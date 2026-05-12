@@ -71,6 +71,10 @@ module.exports = (app, mod, nft_overlay) => {
         <div class="nft-info-label">created in:</div>
         <div class="nft-info-value">${createdInDisplay}</div>
       </div>
+      <div class="nft-info-row">
+        <div class="nft-info-label">description:</div>
+        <div class="nft-info-value">${nft.description || 'N/A'}</div>
+      </div>
       ${metadataRow}
     </div>
   `;

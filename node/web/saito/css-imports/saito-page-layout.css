@@ -20,13 +20,14 @@
 
 .saito-sidebar.left {
   position: sticky;
-  height: calc(100 * var(--saito-vh) - var(--saito-header-height));
+  height: calc(100dvh - var(--saito-header-height));
   top: 0;
   padding: 1.5rem 1rem 1rem 0.5rem;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  transition: height 0.3s;
 }
 
 .saito-sidebar.right {

@@ -13,8 +13,6 @@ import S, { LogLevel } from 'saito-js/saito';
 
 import Network from './network';
 
-import hash_loader from '../../apps/core/hash-loader';
-
 const path = require('path');
 
 export function parseLogLevel(logLevel): LogLevel {
@@ -44,16 +42,15 @@ class Saito {
   build_number: number;
   options: any = {};
   modules: Mods;
-  binary: Binary;
-  crypto: Crypto;
-  connection: Connection;
-  browser: Browser;
-  storage: Storage;
-  wallet: Wallet;
-  keychain: Keychain;
-  network: Network;
-  blockchain: Blockchain;
-  hash: (data: Uint8Array) => string;
+  binary!: Binary;
+  crypto!: Crypto;
+  connection!: Connection;
+  browser!: Browser;
+  storage!: Storage;
+  wallet!: Wallet;
+  keychain!: Keychain;
+  network!: Network;
+  blockchain!: Blockchain;
   server: any;
   core: any;
 
@@ -86,57 +83,50 @@ class Saito {
   }
 
   async init() {
-    try {
-      // await this.storage.initialize();
+    //    try {
+    // await this.storage.initialize();
 
-      //
-      // import hashing library here because of complications with both
-      // performant blake3 library and less performant blake3-js that neeeds
-      // to run in the browser but cannot be deployed via WASM.
-      //
-      await hash_loader(this);
+    console.log('initializing wallet....');
+    await this.wallet.initialize();
+    console.log('initializing keychain....');
+    await this.keychain.initialize();
 
-      console.log('initializing wallet....');
-      await this.wallet.initialize();
-      console.log('initializing keychain....');
-      await this.keychain.initialize();
+    console.log('mapping modules...');
+    this.modules.mods = this.modules.mods_list.map((mod_path) => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      console.log('Installing: ', mod_path);
+      //const Module = require(`../../mods/${mod_path}.js`);
+      const Module = require(`../../mods/${mod_path}`);
+      const x = new Module(this);
+      x.dirname = path.dirname(mod_path);
+      return x;
+    });
 
-      console.log('mapping modules...');
-      this.modules.mods = this.modules.mods_list.map((mod_path) => {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        console.log('Installing: ', mod_path);
-        //const Module = require(`../../mods/${mod_path}.js`);
-        const Module = require(`../../mods/${mod_path}`);
-        const x = new Module(this);
-        x.dirname = path.dirname(mod_path);
-        return x;
-      });
+    console.log('setting current version : ' + this.wallet.version);
 
-      console.log('setting current version : ' + this.wallet.version);
+    this.core.wallet.setWalletVersion(
+      0,
+      Math.floor(this.wallet.version),
+      (this.wallet.version * 1000) % 1000
+    );
 
-      this.core.wallet.setWalletVersion(
-        0,
-        Math.floor(this.wallet.version),
-        (this.wallet.version * 1000) % 1000
-      );
+    // browser sets active module
+    await this.browser.initialize(this);
+    await this.modules.initialize();
 
-      // browser sets active module
-      await this.browser.initialize(this);
-      await this.modules.initialize();
+    // blockchain after modules create dbs
+    await this.blockchain.initialize();
+    this.network.initialize();
 
-      // blockchain after modules create dbs
-      await this.blockchain.initialize();
-      this.network.initialize();
-
-      if (this.server) {
-        this.server.initialize();
-      }
-    } catch (err) {
-      console.error(
-        'Error occured initializing your Saito install. The most likely cause of this is a module that is throwing an error on initialization. You can debug this by removing modules from your config file to test which ones are causing the problem and restarting.'
-      );
-      // console.error(err);
+    if (this.server) {
+      this.server.initialize();
     }
+  }
+  catch(err) {
+    console.error(
+      'Error occured initializing your Saito install. The most likely cause of this is a module that is throwing an error on initialization. You can debug this by removing modules from your config file to test which ones are causing the problem and restarting.'
+    );
+    console.error(err);
   }
 
   async reset(config) {

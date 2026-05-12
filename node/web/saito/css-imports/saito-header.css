@@ -123,7 +123,7 @@
     width 0.33s;
   z-index: 21;
   width: 40rem;
-  height: calc(100 * var(--saito-vh) - var(--saito-header-height) + 3px);
+  height: calc(100svh - var(--saito-header-height) + 3px);
   overflow: hidden auto;
   color: var(--saito-font-color);
 }

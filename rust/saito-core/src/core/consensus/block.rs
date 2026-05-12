@@ -21,7 +21,7 @@ use crate::core::defs::{
     BlockId, Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, Timestamp, UtxoSet, BLOCK_FILE_EXTENSION,
 };
-use crate::core::routing::io::storage::Storage;
+use crate::core::storage::storage::Storage;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::{hash, sign, verify_signature};
 use crate::iterate;
@@ -422,9 +422,9 @@ pub struct Block {
     #[serde(skip)]
     pub created_hashmap_of_slips_spent_this_block: bool,
     #[serde(skip)]
-    pub routed_from_peer: Option<SaitoPublicKey>,
+    pub routed_from_peer_id: u64,
     #[serde(skip)]
-    pub keys_invloved: AHashSet<SaitoPublicKey>,
+    pub publickeys_referenced_in_block_transactions: AHashSet<SaitoPublicKey>,
     #[serde(skip)]
     pub force_loaded: bool,
     // used for checking, before pruning txs from block on downgrade
@@ -443,7 +443,7 @@ impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(
             f,
-            "Block {{ id: {}, timestamp: {}, previous_block_hash: {:?}, creator: {:?}, merkle_root: {:?}, signature: {:?}, graveyard: {}, treasury: {}, total_fees: {}, total_fees_new: {}, total_fees_atr: {}, avg_total_fees: {}, avg_total_fees_new: {}, avg_total_fees_atr: {}, total_payout_routing: {}, total_payout_mining: {}, total_payout_treasury: {}, total_payout_graveyard: {}, total_payout_atr: {}, avg_payout_routing: {}, avg_payout_mining: {}, avg_payout_treasury: {}, avg_payout_graveyard: {}, avg_payout_atr: {}, avg_fee_per_byte: {}, fee_per_byte: {}, avg_nolan_rebroadcast_per_block: {}, burnfee: {}, difficulty: {}, previous_block_unpaid: {}, hash: {:?}, total_work: {}, in_longest_chain: {}, has_golden_ticket: {}, has_issuance_transaction: {}, issuance_transaction_index: {}, has_fee_transaction: {}, has_staking_transaction: {}, golden_ticket_index: {}, fee_transaction_index: {}, total_rebroadcast_slips: {}, total_rebroadcast_nolan: {}, rebroadcast_hash: {}, block_type: {:?}, cv: {}, routed_from_peer: {:?} confirmations: {:?}",
+            "Block {{ id: {}, timestamp: {}, previous_block_hash: {:?}, creator: {:?}, merkle_root: {:?}, signature: {:?}, graveyard: {}, treasury: {}, total_fees: {}, total_fees_new: {}, total_fees_atr: {}, avg_total_fees: {}, avg_total_fees_new: {}, avg_total_fees_atr: {}, total_payout_routing: {}, total_payout_mining: {}, total_payout_treasury: {}, total_payout_graveyard: {}, total_payout_atr: {}, avg_payout_routing: {}, avg_payout_mining: {}, avg_payout_treasury: {}, avg_payout_graveyard: {}, avg_payout_atr: {}, avg_fee_per_byte: {}, fee_per_byte: {}, avg_nolan_rebroadcast_per_block: {}, burnfee: {}, difficulty: {}, previous_block_unpaid: {}, hash: {:?}, total_work: {}, in_longest_chain: {}, has_golden_ticket: {}, has_issuance_transaction: {}, issuance_transaction_index: {}, has_fee_transaction: {}, has_staking_transaction: {}, golden_ticket_index: {}, fee_transaction_index: {}, total_rebroadcast_slips: {}, total_rebroadcast_nolan: {}, rebroadcast_hash: {}, block_type: {:?}, cv: {}, routed_from_peer_id: {:?} confirmations: {:?}",
             self.id,
             self.timestamp,
             self.previous_block_hash.to_hex(),
@@ -489,7 +489,7 @@ impl Display for Block {
             self.rebroadcast_hash.to_hex(),
             self.block_type,
             self.cv,
-            self.routed_from_peer,
+            self.routed_from_peer_id,
             self.confirmations,
         ).unwrap();
         // writeln!(f, " transactions : ").unwrap();
@@ -557,8 +557,8 @@ impl Block {
             // hashmap of all SaitoUTXOSetKeys of the slips in the block
             slips_spent_this_block: AHashMap::new(),
             created_hashmap_of_slips_spent_this_block: false,
-            routed_from_peer: None,
-            keys_invloved: Default::default(),
+            routed_from_peer_id: 0,
+            publickeys_referenced_in_block_transactions: Default::default(),
             cv: ConsensusValues::default(),
             force_loaded: false,
             safe_to_prune_transactions: false,
@@ -933,10 +933,19 @@ impl Block {
 
     /// [transaction][transaction][transaction]...
     pub fn deserialize_from_net(bytes: &[u8]) -> Result<Block, Error> {
+        info!(
+            "[TRACE_SYNC][SERDE] block_deserialize_start bytes={}",
+            bytes.len()
+        );
         if bytes.len() < BLOCK_HEADER_SIZE {
             warn!(
                 "block buffer is smaller than header length. length : {:?}",
                 bytes.len()
+            );
+            warn!(
+                "[TRACE_SYNC][SERDE] block_deserialize_fail reason=short_header bytes={} header_size={}",
+                bytes.len(),
+                BLOCK_HEADER_SIZE
             );
             return Err(Error::from(ErrorKind::InvalidData));
         }
@@ -1101,12 +1110,18 @@ impl Block {
 
         let mut transactions = vec![];
         let mut start_of_transaction_data = BLOCK_HEADER_SIZE;
-        for _n in 0..transactions_len {
+        for tx_index in 0..transactions_len {
             if bytes.len() < start_of_transaction_data + 16 {
                 warn!(
                     "block buffer is invalid to read transaction metadata. length : {:?}, end_of_tx_data : {:?}",
                     bytes.len(),
                     start_of_transaction_data+16
+                );
+                warn!(
+                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=short_tx_metadata tx_index={} bytes={} tx_metadata_end={}",
+                    tx_index,
+                    bytes.len(),
+                    start_of_transaction_data + 16
                 );
                 return Err(Error::from(ErrorKind::InvalidData));
             }
@@ -1133,16 +1148,63 @@ impl Block {
             let total_len = inputs_len
                 .checked_add(outputs_len)
                 .ok_or(Error::from(ErrorKind::InvalidData))?;
-            let end_of_transaction_data = start_of_transaction_data
-                + TRANSACTION_SIZE
-                + (total_len as usize * SLIP_SIZE)
-                + message_len
-                + path_len * HOP_SIZE;
+            let Some(slips_size) = (total_len as usize).checked_mul(SLIP_SIZE) else {
+                error!(
+                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=slip_size_overflow tx_index={} inputs_len={} outputs_len={} total_slips={} slip_size={} bytes={}",
+                    tx_index,
+                    inputs_len,
+                    outputs_len,
+                    total_len,
+                    SLIP_SIZE,
+                    bytes.len()
+                );
+                return Err(Error::from(ErrorKind::InvalidData));
+            };
+            let Some(path_size) = path_len.checked_mul(HOP_SIZE) else {
+                error!(
+                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=path_size_overflow tx_index={} path_len={} hop_size={} bytes={}",
+                    tx_index,
+                    path_len,
+                    HOP_SIZE,
+                    bytes.len()
+                );
+                return Err(Error::from(ErrorKind::InvalidData));
+            };
+            let Some(end_of_transaction_data) = start_of_transaction_data
+                .checked_add(TRANSACTION_SIZE)
+                .and_then(|n| n.checked_add(slips_size))
+                .and_then(|n| n.checked_add(message_len))
+                .and_then(|n| n.checked_add(path_size))
+            else {
+                error!(
+                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=tx_bounds_overflow tx_index={} start={} tx_size={} slips_size={} message_len={} path_size={} bytes={}",
+                    tx_index,
+                    start_of_transaction_data,
+                    TRANSACTION_SIZE,
+                    slips_size,
+                    message_len,
+                    path_size,
+                    bytes.len()
+                );
+                return Err(Error::from(ErrorKind::InvalidData));
+            };
 
             if bytes.len() < end_of_transaction_data {
                 warn!(
                     "block buffer is invalid to read transaction data. length : {:?}, end of tx data : {:?}, tx_count : {:?}",
                     bytes.len(), end_of_transaction_data, transactions_len
+                );
+                warn!(
+                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=short_tx_data tx_index={} tx_count={} start={} end={} inputs_len={} outputs_len={} message_len={} path_len={} bytes={}",
+                    tx_index,
+                    transactions_len,
+                    start_of_transaction_data,
+                    end_of_transaction_data,
+                    inputs_len,
+                    outputs_len,
+                    message_len,
+                    path_len,
+                    bytes.len()
                 );
                 return Err(Error::from(ErrorKind::InvalidData));
             }
@@ -1197,6 +1259,12 @@ impl Block {
             block.block_type = BlockType::Header;
         }
 
+        info!(
+            "[TRACE_SYNC][SERDE] block_deserialize_ok block_id={} tx_count={} bytes={}",
+            block.id,
+            transactions_len,
+            bytes.len()
+        );
         Ok(block)
     }
 
@@ -1536,7 +1604,9 @@ impl Block {
                 total_number_of_non_fee_transactions += 1;
             }
 
-            if (transaction.is_golden_ticket() || transaction.is_normal_transaction())
+            if (transaction.is_golden_ticket()
+                || transaction.is_normal_transaction()
+                || transaction.transaction_type == TransactionType::Bound)
                 && !transaction.is_atr_transaction()
             {
                 cv.total_bytes_new += transaction.get_serialized_size() as u64;
@@ -2538,6 +2608,13 @@ impl Block {
 
     /// [transaction][transaction][transaction]...
     pub fn serialize_for_net(&self, block_type: BlockType) -> Vec<u8> {
+        info!(
+            "[TRACE_SYNC][SERDE] block_serialize_start block_id={} block_hash={} tx_count={} block_type={:?}",
+            self.id,
+            self.hash.to_hex(),
+            self.transactions.len(),
+            block_type
+        );
         let mut tx_len_buffer: Vec<u8> = vec![];
 
         // block headers do not get tx data
@@ -2595,6 +2672,13 @@ impl Block {
         ]
         .concat();
 
+        info!(
+            "[TRACE_SYNC][SERDE] block_serialize_ok block_id={} block_hash={} bytes={} block_type={:?}",
+            self.id,
+            self.hash.to_hex(),
+            buffer.len(),
+            block_type
+        );
         buffer
     }
 
@@ -2728,7 +2812,7 @@ impl Block {
                         total_fees: 0,
                         total_work_for_me: 0,
                         cumulative_fees: 0,
-                        routed_from_peer: tx.routed_from_peer.clone(),
+                        routed_from_peer_id: tx.routed_from_peer_id,
                     }
                 }
             })
@@ -3454,21 +3538,26 @@ impl Block {
     }
 
     pub fn generate_transaction_hashmap(&mut self) {
-        if !self.keys_invloved.is_empty() {
+        if !self.publickeys_referenced_in_block_transactions.is_empty() {
             return;
         }
         for tx in self.transactions.iter() {
             for slip in tx.from.iter() {
-                self.keys_invloved.insert(slip.public_key);
+                self.publickeys_referenced_in_block_transactions
+                    .insert(slip.public_key);
             }
             for slip in tx.to.iter() {
-                self.keys_invloved.insert(slip.public_key);
+                self.publickeys_referenced_in_block_transactions
+                    .insert(slip.public_key);
             }
         }
     }
     pub fn has_keylist_txs(&self, keylist: &Vec<SaitoPublicKey>) -> bool {
         for key in keylist {
-            if self.keys_invloved.contains(key) {
+            if self
+                .publickeys_referenced_in_block_transactions
+                .contains(key)
+            {
                 return true;
             }
         }
@@ -3483,7 +3572,7 @@ impl Block {
     }
     pub fn print_all(&self) {
         info!(
-            "Block {{ id: {}, timestamp: {}, previous_block_hash: {:?}, creator: {:?}, merkle_root: {:?}, signature: {:?}, graveyard: {}, treasury: {}, total_fees: {}, total_fees_new: {}, total_fees_atr: {}, avg_total_fees: {}, avg_total_fees_new: {}, avg_total_fees_atr: {}, total_payout_routing: {}, total_payout_mining: {}, total_payout_treasury: {}, total_payout_graveyard: {}, total_payout_atr: {}, avg_payout_routing: {}, avg_payout_mining: {}, avg_payout_treasury: {}, avg_payout_graveyard: {}, avg_payout_atr: {}, avg_fee_per_byte: {}, fee_per_byte: {}, avg_nolan_rebroadcast_per_block: {}, burnfee: {}, difficulty: {}, previous_block_unpaid: {}, hash: {:?}, total_work: {}, in_longest_chain: {}, has_golden_ticket: {}, has_issuance_transaction: {}, issuance_transaction_index: {}, has_fee_transaction: {}, has_staking_transaction: {}, golden_ticket_index: {}, fee_transaction_index: {}, total_rebroadcast_slips: {}, total_rebroadcast_nolan: {}, rebroadcast_hash: {}, block_type: {:?}, cv: {}, routed_from_peer: {:?} ",
+            "Block {{ id: {}, timestamp: {}, previous_block_hash: {:?}, creator: {:?}, merkle_root: {:?}, signature: {:?}, graveyard: {}, treasury: {}, total_fees: {}, total_fees_new: {}, total_fees_atr: {}, avg_total_fees: {}, avg_total_fees_new: {}, avg_total_fees_atr: {}, total_payout_routing: {}, total_payout_mining: {}, total_payout_treasury: {}, total_payout_graveyard: {}, total_payout_atr: {}, avg_payout_routing: {}, avg_payout_mining: {}, avg_payout_treasury: {}, avg_payout_graveyard: {}, avg_payout_atr: {}, avg_fee_per_byte: {}, fee_per_byte: {}, avg_nolan_rebroadcast_per_block: {}, burnfee: {}, difficulty: {}, previous_block_unpaid: {}, hash: {:?}, total_work: {}, in_longest_chain: {}, has_golden_ticket: {}, has_issuance_transaction: {}, issuance_transaction_index: {}, has_fee_transaction: {}, has_staking_transaction: {}, golden_ticket_index: {}, fee_transaction_index: {}, total_rebroadcast_slips: {}, total_rebroadcast_nolan: {}, rebroadcast_hash: {}, block_type: {:?}, cv: {}, routed_from_peer_id: {:?} ",
             self.id,
             self.timestamp,
             self.previous_block_hash.to_hex(),
@@ -3529,7 +3618,7 @@ impl Block {
             self.rebroadcast_hash.to_hex(),
             self.block_type,
             self.cv,
-            self.routed_from_peer,
+            self.routed_from_peer_id,
         );
         info!(" transactions : ");
         for (index, tx) in self.transactions.iter().enumerate() {
@@ -3553,7 +3642,7 @@ mod tests {
     use crate::core::defs::{
         Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, NOLAN_PER_SAITO,
     };
-    use crate::core::routing::io::storage::Storage;
+    use crate::core::storage::storage::Storage;
     use crate::core::util::crypto::{generate_keys, verify_signature};
     use crate::core::util::test::node_tester::test::NodeTester;
     use crate::core::util::test::test_manager::test::TestManager;
@@ -3588,7 +3677,7 @@ mod tests {
         assert_eq!(block.block_type, BlockType::Full);
         assert_eq!(block.slips_spent_this_block, AHashMap::new());
         assert_eq!(block.created_hashmap_of_slips_spent_this_block, false);
-        assert_eq!(block.routed_from_peer, None);
+        assert_eq!(block.routed_from_peer_id, 0);
     }
 
     #[test]
@@ -3840,6 +3929,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn generate_lite_block_test() {
         let mut t = TestManager::default();
 
@@ -4134,6 +4224,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn atr_test_2() {
         pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();

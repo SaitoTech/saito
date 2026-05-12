@@ -1,14 +1,13 @@
 // import "source-map-support/register";
 import Server from '../lib/saito/core/server';
 import StorageCore from '../lib/saito/core/storage-core';
-import { Saito } from '../apps/core';
+import { Saito } from '../apps/export';
 import fs from 'fs-extra';
 import * as JSON from 'json-bigint';
-import hashLoader from '../apps/core/hash-loader';
 
 import mods_config from '../config/modules.config';
 import S, { initialize as initS } from 'saito-js/index.node';
-import { NodeSharedMethods } from '../lib/saito/core/server';
+import { ServerSharedMethods } from 'saito-js/shared_methods.server';
 import Factory from '../lib/saito/factory';
 import { LogLevel } from 'saito-js/saito';
 import Wallet from '../lib/saito/wallet';
@@ -23,7 +22,6 @@ async function initCLI() {
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
 	app.storage = new StorageCore(app);
-	await hashLoader(app);
 
 	app.BROWSER = 0;
 	app.SPVMODE = 0;
@@ -32,7 +30,7 @@ async function initCLI() {
 	let privateKey = app.options.wallet?.privateKey || '';
 	await initS(
 		app.options,
-		new NodeSharedMethods(app),
+		new ServerSharedMethods(app),
 		new Factory(),
 		privateKey,
 		LogLevel.Info,

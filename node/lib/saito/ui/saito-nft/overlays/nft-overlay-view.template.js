@@ -22,21 +22,11 @@ module.exports = (app, mod, nft_overlay) => {
     imageHtml = `<div class="saito-nft-image" style="background-image:url('${nft?.image || '/saito/img/dreamscape.png'}')" ><div class="saito-nft-text">${text}</div></div>`;
   }
 
-  let descriptionHtml = '';
-  if (nft.description && nft.description.trim()) {
-    descriptionHtml = `
-      <div class="saito-nft-description-box-overlay">
-        <div class="saito-nft-description-text-overlay">${nft.description}</div>
-      </div>
-    `;
-  }
-
   return `
     <div class="saito-nft-panel saito-nft-panel-view active">
       <div class="saito-nft-panel-body saito-nft-panel-body-view">
         <div class="saito-nft-image-wrapper">
           ${imageHtml}
-          ${descriptionHtml}
         </div>
       </div>
       <div class="saito-nft-panel-footer">

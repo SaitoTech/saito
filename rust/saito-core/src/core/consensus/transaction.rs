@@ -13,12 +13,10 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIter
 
 use crate::core::consensus::hop::{Hop, HOP_SIZE};
 use crate::core::consensus::slip::{Slip, SlipType, SLIP_SIZE};
-use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
     Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, Timestamp, UtxoSet, UTXO_KEY_LENGTH,
 };
-use crate::core::routing::io::network::Network;
 use crate::core::util::crypto::{hash, sign, verify, verify_signature};
 use crate::iterate;
 
@@ -69,7 +67,7 @@ pub struct Transaction {
     /// cumulative fees for this tx-in-block
     pub cumulative_fees: Currency,
     #[serde(skip)]
-    pub routed_from_peer: Option<SaitoPublicKey>,
+    pub routed_from_peer_id: u64,
 }
 
 impl Display for Transaction {
@@ -133,7 +131,7 @@ impl Default for Transaction {
             total_fees: 0,
             total_work_for_me: 0,
             cumulative_fees: 0,
-            routed_from_peer: None,
+            routed_from_peer_id: 0,
         }
     }
 }
@@ -192,121 +190,6 @@ impl Transaction {
         }
     }
 
-    /// this function exists largely for testing. It attempts to attach the requested fee
-    /// to the transaction if possible. If not possible it reverts back to a transaction
-    /// with 1 zero-fee input and 1 zero-fee output.
-    ///
-    /// # Arguments
-    ///
-    /// * `wallet_lock`:
-    /// * `to_publickey`:
-    /// * `with_payment`:
-    /// * `with_fee`:
-    ///
-    /// returns: Transaction
-    ///
-    /// # Examples
-    ///
-    /// ```
-    ///
-    /// ```
-    pub fn create(
-        wallet: &mut Wallet,
-        to_public_key: SaitoPublicKey,
-        with_payment: Currency,
-        with_fee: Currency,
-        _force_merge: bool,
-        network: Option<&Network>,
-        latest_block_id: u64,
-        genesis_period: u64,
-    ) -> Result<Transaction, Error> {
-        Self::create_with_multiple_payments(
-            wallet,
-            vec![to_public_key],
-            vec![with_payment],
-            with_fee,
-            network,
-            latest_block_id,
-            genesis_period,
-        )
-    }
-
-    pub fn create_with_multiple_payments(
-        wallet: &mut Wallet,
-        mut keys: Vec<SaitoPublicKey>,
-        mut payments: Vec<Currency>,
-        mut with_fee: Currency,
-        network: Option<&Network>,
-        latest_block_id: u64,
-        genesis_period: u64,
-    ) -> Result<Transaction, Error> {
-        let total_payment: Currency = payments.iter().sum();
-        trace!(
-            "generating transaction : payments = {:?}, fee = {:?}",
-            total_payment,
-            with_fee
-        );
-
-        if payments.len() != keys.len() {
-            error!("keys and payments provided to the transaction is not similar in count. payments : {:?} keys : {:?}",payments.len(),keys.len());
-            return Err(Error::from(ErrorKind::InvalidInput));
-        }
-
-        let available_balance = wallet.get_available_balance();
-
-        if with_fee > available_balance {
-            with_fee = 0;
-        }
-
-        let total_requested = total_payment + with_fee;
-        trace!(
-            "in generate transaction. available: {} and payment: {} and fee: {}",
-            available_balance,
-            total_payment,
-            with_fee
-        );
-        if available_balance < total_requested {
-            debug!(
-                "not enough funds to create transaction. required : {:?} available : {:?}",
-                total_requested, available_balance
-            );
-            return Err(Error::from(ErrorKind::NotFound));
-        }
-
-        let mut transaction = Transaction::default();
-        for _ in 0..keys.len() {
-            let key = keys.pop().unwrap();
-            let payment = payments.pop().unwrap();
-
-            let output = Slip {
-                public_key: key,
-                amount: payment,
-                ..Default::default()
-            };
-            transaction.add_to_slip(output);
-        }
-        if total_requested == 0 {
-            let slip = Slip {
-                public_key: wallet.public_key,
-                amount: 0,
-                ..Default::default()
-            };
-            transaction.add_from_slip(slip);
-        } else {
-            let (input_slips, output_slips) =
-                wallet.generate_slips(total_requested, network, latest_block_id, genesis_period);
-
-            for input in input_slips {
-                transaction.add_from_slip(input);
-            }
-            for output in output_slips {
-                transaction.add_to_slip(output);
-            }
-        }
-
-        Ok(transaction)
-    }
-
     ///
     ///
     /// # Arguments
@@ -325,7 +208,6 @@ impl Transaction {
         to_public_key: SaitoPublicKey,
         with_amount: Currency,
     ) -> Transaction {
-        trace!("generate issuance transaction : amount = {:?}", with_amount);
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Issuance;
         let mut output = Slip::default();
@@ -1128,8 +1010,6 @@ impl Transaction {
         // validation criteria for the remaining classes of txs are
         // further down iin this function.
         //
-        let _transaction_type = self.transaction_type;
-
         if self.transaction_type != TransactionType::ATR
             && self.transaction_type != TransactionType::Issuance
         {
@@ -1144,23 +1024,23 @@ impl Transaction {
             //
             // must have valid signature
             //
+            // in order to validate the signature, we need to know which publickey
+            // is supposed to have created it. extracting the right key is slightly
+            // different for NFT transactions than normal ones, as BOUND / NFT txs
+            // have their information stored in tuplies where slip2 contains the
+            // publickey of the sender. So we are extracting the right publickey
+            // here, as a prerequisite to validating the signature...
+            //
             if let Some(hash_for_signature) = &self.hash_for_signature {
                 let sig: SaitoSignature = self.signature;
-                let _public_key: SaitoPublicKey = self.from[0].public_key;
 
                 //
-                // for bound (NFT) txs, the "owner" is in the normal slip (slip2),
-                // not the bound slips (slip1, slip2)
-                //
-
-                //
-                // determine which input slip holds the signing key
+                // in order to check the for bound (NFT) txs, the "owner" is in the normal slip (slip2),
                 //
                 let public_key: SaitoPublicKey = if self.transaction_type == TransactionType::Bound
                 {
                     //
-                    // if this is a CREATE-bound transaction, its first input's Normal
-                    // and outputs should have atleast one nft group: bound, normal, bound
+                    // if this is a CREATE-bound transaction, the first input is Noral
                     //
                     let is_create = self.from[0].slip_type == SlipType::Normal
                         && self.to.len() >= 3
@@ -1170,37 +1050,40 @@ impl Transaction {
 
                     if is_create {
                         //
-                        // creation is signed by normal input
+                        // return nft creator
                         //
                         self.from[0].public_key
                     } else {
                         //
-                        // otherwise it's a SEND/MERGE/SPLIT-bound:
-                        // find the first [Bound, Normal, Bound] nft group
+                        // in SPLIT / MERGE / SEND sender is slip2 in first NFT tuplie
                         //
-                        let mut signer_public_key = self.from[0].public_key;
-                        let mut idx = 0;
-                        while idx + 2 < self.from.len() {
-                            let a = &self.from[idx];
-                            let b = &self.from[idx + 1];
-                            let c = &self.from[idx + 2];
-                            if a.slip_type == SlipType::Bound
-                                && (b.slip_type == SlipType::Normal || b.slip_type == SlipType::ATR)
-                                && c.slip_type == SlipType::Bound
-                            {
-                                signer_public_key = b.public_key;
-                                break;
-                            }
-                            idx += 1;
+                        if self.from.len() < 3 {
+                            return false;
                         }
 
-                        signer_public_key
+                        let a = &self.from[0];
+                        let b = &self.from[1];
+                        let c = &self.from[2];
+
+                        if !(a.slip_type == SlipType::Bound
+                            && (b.slip_type == SlipType::Normal || b.slip_type == SlipType::ATR)
+                            && c.slip_type == SlipType::Bound)
+                        {
+                            return false;
+                        }
+
+                        b.public_key
                     }
                 } else {
-                    // non-Bound txs always sign with the very first input
+                    //
+                    // owner of first from slip is signer for everything else
+                    //
                     self.from[0].public_key
                 };
 
+                //
+                // we can now verify that the signature is valid...
+                //
                 if !verify_signature(hash_for_signature, &sig, &public_key) {
                     error!(
                         "tx verification failed : hash = {:?}, sig = {:?}, pub_key = {:?}",
@@ -1267,89 +1150,212 @@ impl Transaction {
         if self.transaction_type == TransactionType::GoldenTicket {}
 
         //
-        // NFT transactions validation for Bound type
-        //
-        // NFTs can circulate on the network either as BoundTransactions, which are
-        // they type used to CREATE and SEND NFTs, or as ATR transactions which is
-        // what happens if the ATR mechanism rebroadcasts a BoundTransaction in
-        // order to keep it on the network.
-        //
-        // in the User-Originated Transaction sector above, we have already validated
-        // the routing paths, and fee amounts, of our BoundTransactions, so here we
-        // validate the NF-related requirements -- the organization of the slips in
-        // the transaction and whether the inputs/outputs match the NFT.
+        // NFT transactions (bound)
         //
         if self.transaction_type == TransactionType::Bound {
             //
-            // this could either be a NEW nft that we have just created, or an NFT
-            // that already existed and is being sent from one address to another.
-            // our validation rules are slightly different depending on which case
-            // we have, so we check first to see which is which.
+            // the first thing we do is collect information about the NFT tuples
+            // contained nft validation state
             //
+            let mut nft_uuid: Option<SaitoPublicKey> = None;
+            let mut nft_sender: Option<SaitoPublicKey> = None;
+            let mut nft_amount_in: Currency = 0;
+            let mut nft_amount_out: Currency = 0;
+            let mut nft_tuples_in: usize = 0;
+            let mut nft_tuples_out: usize = 0;
+            let mut saito_amount_in: Currency = 0;
+            let mut saito_amount_out: Currency = 0;
 
             //
-            // classify as “new NFT”:
-            // no Bound inputs and atleast one output NFT group (Bound, Normal, Bound)
+            // input NFT tuples
             //
-            let is_this_a_new_nft = !self
-                .from
-                .iter()
-                .any(|input| input.slip_type == SlipType::Bound)
-                && self.to.len() >= 3
-                && (0..self.to.len() - 2).any(|i| {
-                    self.to[i].slip_type == SlipType::Bound
-                        && self.to[i + 1].slip_type == SlipType::Normal
-                        && self.to[i + 2].slip_type == SlipType::Bound
-                });
-
-            //
-            // for new NFTs we check:
-            //
-            // - at least three output slips
-            // - slip1 is bound
-            // - slip2 is normal
-            // - slip3 is bound
-            // - slip3.amount = 0
-            // - slips 4,5,6 etc are normal
-            //
-            if is_this_a_new_nft {
-                //
-                // at least 3 output slips
-                //
-                if self.to.len() < 3 {
-                    error!(
-                        "Bound Transaction Invalid: fewer than 3 outputs, found {}.",
-                        self.to.len()
-                    );
-                    return false;
-                }
+            let mut idx = 0;
+            while idx + 2 < self.from.len() {
+                let a = &self.from[idx];
+                let b = &self.from[idx + 1];
+                let c = &self.from[idx + 2];
 
                 //
-                // slip1 + slip3 = bound
+                // tuple found
                 //
-                if self.to[0].slip_type != SlipType::Bound
-                    || self.to[2].slip_type != SlipType::Bound
+                if a.slip_type == SlipType::Bound
+                    && (b.slip_type == SlipType::Normal || b.slip_type == SlipType::ATR)
+                    && c.slip_type == SlipType::Bound
                 {
+                    //
+                    // enforce that NFTs exist
+                    //
+                    if a.amount == 0 {
+                        error!("3. bound tx invalid: nft slip1 input with zero-amount");
+                        return false;
+                    }
+
+                    //
+                    // enforce canonical tuple structure
+                    //
+                    if c.amount != 0 {
+                        error!("bound tx invalid: tuple slip3 amount nonzero");
+                        return false;
+                    }
+
+                    //
+                    // enforce UUID consistency
+                    //
+                    let tuple_uuid = c.public_key;
+
+                    match nft_uuid {
+                        None => {
+                            nft_uuid = Some(tuple_uuid);
+                        }
+                        Some(existing_uuid) => {
+                            if existing_uuid != tuple_uuid {
+                                error!("bound tx invalid: multiple nft uuids detected");
+                                return false;
+                            }
+                        }
+                    }
+
+                    //
+                    // no funny business
+                    //
+                    match nft_sender {
+                        None => {
+                            nft_sender = Some(b.public_key);
+                        }
+                        Some(existing_sender) => {
+                            if existing_sender != b.public_key {
+                                error!(
+                                    "bound tx invalid: multiple nft from different owners detected"
+                                );
+                                return false;
+                            }
+                        }
+                    }
+
+                    //
+                    // accumulate totals
+                    //
+                    nft_amount_in += a.amount;
+                    saito_amount_in += b.amount;
+                    nft_tuples_in += 1;
+
+                    idx += 3;
+                    continue;
+                }
+
+                //
+                // no bound slips outside tuples allowed...
+                //
+                if a.slip_type == SlipType::Bound {
+                    error!("bound tx invalid: malformed input tuple");
+                    return false;
+                }
+
+                idx += 1;
+            }
+
+            //
+            // output NFT tuples
+            //
+            let mut idx = 0;
+            while idx + 2 < self.to.len() {
+                let a = &self.to[idx];
+                let b = &self.to[idx + 1];
+                let c = &self.to[idx + 2];
+
+                //
+                // tuple found
+                //
+                if a.slip_type == SlipType::Bound
+                    && (b.slip_type == SlipType::Normal || b.slip_type == SlipType::ATR)
+                    && c.slip_type == SlipType::Bound
+                {
+                    //
+                    // enforce that NFTs exist
+                    //
+                    if a.amount == 0 {
+                        error!("2. bound tx invalid: nft slip1 input with zero-amount");
+                        return false;
+                    }
+
+                    //
+                    // enforce canonical tuple structure
+                    //
+                    if c.amount != 0 {
+                        error!("bound tx invalid: tuple slip3 amount nonzero");
+                        return false;
+                    }
+
+                    //
+                    // enforce UUID consistency
+                    //
+                    let tuple_uuid = c.public_key;
+
+                    match nft_uuid {
+                        None => {
+                            nft_uuid = Some(tuple_uuid);
+                        }
+                        Some(existing_uuid) => {
+                            if existing_uuid != tuple_uuid {
+                                error!("bound tx invalid: multiple nft uuids detected");
+                                return false;
+                            }
+                        }
+                    }
+
+                    //
+                    // accumulate totals
+                    //
+                    nft_amount_out += a.amount;
+                    saito_amount_out += b.amount;
+                    nft_tuples_out += 1;
+
+                    idx += 3;
+                    continue;
+                }
+
+                //
+                // no more bound slips outside tuplies....
+                //
+                if a.slip_type == SlipType::Bound {
+                    error!("bound tx invalid: malformed output tuple");
+                    return false;
+                }
+
+                idx += 1;
+            }
+
+            //
+            // the validation rules that apply to NFTs / Bound transactions depend
+            // on whether the user is creating a new NFT or whether the transaction
+            // is simplying transferring NFTs that have already been created. So...
+            //
+
+            //
+            // is this a “new NFT”?
+            //
+            if nft_tuples_in == 0 && nft_tuples_out > 0 {
+                //
+                // at least one funding input
+                //
+                if self.from.is_empty() {
+                    error!("Create-bound transaction: no funding input found");
+                    return false;
+                }
+
+                //
+                // that input is not SlipType::Bound
+                //
+                if self.from[0].slip_type == SlipType::Bound {
                     error!(
-                        "Create-bound transaction: slip1 or slip3 not bound slips ({:?}/{:?})",
-                        self.to[0].slip_type, self.to[2].slip_type
+                        "Create-bound transaction: first input cannot be Bound (found {:?})",
+                        self.from[0].slip_type
                     );
                     return false;
                 }
 
                 //
-                // slip2 = normal
-                //
-                if self.to[1].slip_type != SlipType::Normal {
-                    error!(
-                        "Create-bound transaction: slip2 not normal slip {:?}",
-                        self.to[1].slip_type
-                    );
-                    return false;
-                }
-
-                //
-                // slip1.amount must be non-zero
+                // that input has non-zero Saito
                 //
                 if self.to[0].amount == 0 {
                     error!(
@@ -1360,299 +1366,71 @@ impl Transaction {
                 }
 
                 //
-                // slip3.amount must equal to 0
+                // at least 1 output tuple exists
                 //
-                if self.to[2].amount != 0 {
+                if nft_amount_out == 0 {
+                    error!("Create-bound transaction: nft_amount_out must be > 0");
+                    return false;
+                }
+
+                //
+                // NFT UUID is set properly in output
+                //
+                let funding_input = &self.from[0];
+                let parsed_nft_uuid: SaitoPublicKey = match nft_uuid {
+                    Some(uuid) => uuid,
+                    None => {
+                        error!("Create-bound TX: missing NFT UUID in output tuple");
+                        return false;
+                    }
+                };
+                let mut expected_nft_uuid: SaitoPublicKey = parsed_nft_uuid;
+                // bytes 0..8   = block_id
+                expected_nft_uuid[0..8].copy_from_slice(&funding_input.block_id.to_be_bytes());
+                // bytes 8..16  = tx_ordinal
+                expected_nft_uuid[8..16].copy_from_slice(&funding_input.tx_ordinal.to_be_bytes());
+                // byte 16      = slip_index
+                expected_nft_uuid[16] = funding_input.slip_index;
+                // bytes 17..33 = nft_type payload (already present in parsed_nft_uuid, preserved above)
+                if expected_nft_uuid != parsed_nft_uuid {
                     error!(
-                        "Create-bound transaction: slip3 amount ({}) != 0",
-                        self.to[2].amount
+                        "Create-bound TX: NFT UUID identifiers do not match consumed funding input"
                     );
                     return false;
                 }
 
-                //
-                // any additional slips are not BoundSlips
-                //
-                // outputs[3..] = Normal
-                //
-                for slip in self.to.iter().skip(3) {
-                    if slip.slip_type != SlipType::Normal {
-                        error!(
-                            "Bound Transaction: created tx has unexpected non-normal slip (found {:?}).",
-                            slip.slip_type
-                        );
-                        return false;
-                    }
-                }
-
-                //
-                // This section ensures that the bound slip (output[2]) truly encodes
-                // the unique UTXO that was consumed to mint this NFT. We decode the 33-byte
-                // public_key on output[2] to extract:
-                //
-                //  - rec_block_id   – the original block_id (bytes 0..8)
-                //  - rec_tx_ord     – the original transaction ordinal (bytes 8..16)
-                //  - rec_slip_id    – the original slip_index (byte 16)
-                //
-                // We then compare these directly against the values on the slip we burned
-                // (self.from[0]). If any differ, the NFT-UUID was forged or tampered with.
-                //
-
-                // Extract the 33-byte “UUID” from the third output slip
-                let uuid_pk = self.to[2].public_key;
-
-                // 1) Decode original block_id (8 bytes, big-endian)
-                let rec_block_id = u64::from_be_bytes(uuid_pk[0..8].try_into().unwrap());
-
-                // 2) Decode original transaction ordinal (next 8 bytes)
-                let rec_tx_ord = u64::from_be_bytes(uuid_pk[8..16].try_into().unwrap());
-
-                // 3) Decode original slip_index (1 byte)
-                let rec_slip_id = uuid_pk[16];
-
-                // The slip we actually consumed to mint this NFT
-                let original_input = &self.from[0];
-
-                // Directly verify each identifier
-                if rec_block_id != original_input.block_id
-                    || rec_tx_ord != original_input.tx_ordinal
-                    || rec_slip_id != original_input.slip_index
-                {
-                    error!("Create-bound TX: NFT UUID identifiers do not match the consumed UTXO");
-                    return false;
-                }
+            //
+            // this is an existing NFT
+            //
             } else {
                 //
-                // MULTI-GROUP transfer / split / merge:
-                // dynamically find each [Bound, Normal, Bound] tuple in inputs & outputs
+                // nft amount conserved
                 //
-
-                //
-                // Collect input groups
-                //
-                let mut input_groups = Vec::new(); // Vec<(usize, usize, usize)>
-                let mut index_in = 0;
-                while index_in < self.from.len() {
-                    if self.from[index_in].slip_type == SlipType::Bound {
-                        if index_in + 2 >= self.from.len() {
-                            error!("Send-bound TX: incomplete input group at idx {}", index_in);
-                            return false;
-                        }
-                        let input1 = &self.from[index_in + 0];
-                        let input2 = &self.from[index_in + 1];
-                        let input3 = &self.from[index_in + 2];
-
-                        if (input2.slip_type != SlipType::Normal
-                            && input2.slip_type != SlipType::ATR)
-                            || input3.slip_type != SlipType::Bound
-                        {
-                            error!(
-                                "Send-bound TX: invalid input types at idx {}: {:?}",
-                                index_in, self.from
-                            );
-                            return false;
-                        }
-                        if input1.amount == 0 {
-                            error!(
-                                "Send-bound TX: input slip1.amount = 0 at idx {:?}",
-                                self.from
-                            );
-                            return false;
-                        }
-                        if input3.amount != 0 {
-                            error!(
-                                "Send-bound TX: input slip3.amount != 0 at idx {:?}",
-                                self.from
-                            );
-                            return false;
-                        }
-                        if input1.block_id != input2.block_id || input2.block_id != input3.block_id
-                        {
-                            error!(
-                                "Send-bound TX: input group {} mismatched block_id, {:?}",
-                                index_in, self.from
-                            );
-                            return false;
-                        }
-                        if input1.tx_ordinal != input2.tx_ordinal
-                            || input2.tx_ordinal != input3.tx_ordinal
-                        {
-                            error!(
-                                "Send-bound TX: input group {} mismatched tx_ordinal, {:?}",
-                                index_in, self.from
-                            );
-                            return false;
-                        }
-                        if input2.slip_index != input1.slip_index + 1
-                            || input3.slip_index != input2.slip_index + 1
-                        {
-                            error!(
-                                "Send-bound TX: input group {} non-sequential slip_index, {:?}",
-                                index_in, self.from
-                            );
-                            return false;
-                        }
-
-                        input_groups.push((index_in, index_in + 1, index_in + 2));
-                        index_in += 3;
-                    } else {
-                        if self.from[index_in].slip_type != SlipType::Normal {
-                            error!(
-                                "Send-bound TX: unexpected non-normal slip in inputs at idx {}: {:?}",
-                                index_in, self.from
-                            );
-                            return false;
-                        }
-                        index_in += 1;
-                    }
+                if nft_amount_in != nft_amount_out {
+                    error!("Bound TX invalid: NFT amount mismatch");
+                    return false;
                 }
 
                 //
-                // All input groups must share the same NFT UUID (public_key of slip3)
+                // must consume at least one nft tuple
                 //
-                if input_groups.len() > 1 {
-                    let (_, _, first_i3) = input_groups[0];
-                    let expected_uuid = self.from[first_i3].public_key;
-                    for &(_, _, i3) in &input_groups[1..] {
-                        if self.from[i3].public_key != expected_uuid {
-                            error!("Send-bound TX: mismatched NFT UUID in input groups");
-                            return false;
-                        }
-                    }
+                if nft_tuples_in == 0 {
+                    error!("Bound TX invalid: no input NFT tuples");
+                    return false;
                 }
 
                 //
-                // Collect output groups
+                // must produce at least one nft tuple
                 //
-                let mut output_groups = Vec::new(); // Vec<(usize, usize, usize)>
-                let mut index_out = 0;
-                while index_out < self.to.len() {
-                    if self.to[index_out].slip_type == SlipType::Bound {
-                        if index_out + 2 >= self.to.len() {
-                            error!(
-                                "Send-bound TX: incomplete output group at idx {}, {:?}",
-                                index_out, self.to
-                            );
-                            return false;
-                        }
-                        let output1 = &self.to[index_out + 0];
-                        let output2 = &self.to[index_out + 1];
-                        let output3 = &self.to[index_out + 2];
-
-                        if (output2.slip_type != SlipType::Normal
-                            && output2.slip_type != SlipType::ATR)
-                            || output3.slip_type != SlipType::Bound
-                        {
-                            error!(
-                                "Send-bound TX: invalid output types at idx {}: {:?}",
-                                index_out, self.to
-                            );
-                            return false;
-                        }
-                        if output1.amount == 0 {
-                            error!(
-                                "Send-bound TX: output slip1.amount = 0 at idx {:?}",
-                                self.to
-                            );
-                            return false;
-                        }
-                        if output3.amount != 0 {
-                            error!(
-                                "Send-bound TX: output slip3.amount != 0 at idx {:?}",
-                                self.to
-                            );
-                            return false;
-                        }
-
-                        output_groups.push((index_out, index_out + 1, index_out + 2));
-                        index_out += 3;
-                    } else {
-                        if self.to[index_out].slip_type != SlipType::Normal {
-                            error!(
-                                "Send-bound TX: unexpected non-normal slip in outputs at idx {}: {:?}",
-                                index_out, self.to
-                            );
-                            return false;
-                        }
-                        index_out += 1;
-                    }
-                }
-
-                //
-                // All output groups must share the same NFT UUID as inputs
-                //
-                if output_groups.len() > 1 {
-                    let (_, _, first_output3) = output_groups[0];
-                    let expected_uuid = self.to[first_output3].public_key;
-                    for &(_, _, output3) in &output_groups[1..] {
-                        if self.to[output3].public_key != expected_uuid {
-                            error!("Send-bound TX: mismatched NFT UUID in output groups");
-                            return false;
-                        }
-                    }
-                }
-
-                //
-                // Validate one-to-one transfer (no splitting/merging)
-                //
-                if input_groups.len() == output_groups.len() {
-                    for i in 0..input_groups.len() {
-                        let (i1, _, i3) = input_groups[i];
-                        let (o1, _, o3) = output_groups[i];
-
-                        let input1 = &self.from[i1];
-                        let output1 = &self.to[o1];
-                        let input3 = &self.from[i3];
-                        let output3 = &self.to[o3];
-
-                        //
-                        // public_key unchanged
-                        //
-                        if input1.public_key != output1.public_key {
-                            error!(
-                                "Send-bound TX: group {} slip1 public_key modified, {:?}/{:?}",
-                                i, self.to, self.from
-                            );
-                            return false;
-                        }
-
-                        if input3.public_key != output3.public_key {
-                            error!(
-                                "Send-bound TX: group {} slip3 public_key modified, {:?}/{:?}",
-                                i, self.to, self.from
-                            );
-                            return false;
-                        }
-
-                        //
-                        // slip1.amount unchanged
-                        //
-                        if input1.amount != output1.amount {
-                            error!(
-                                "Send-bound TX: group {} slip1.amount unchanged, {:?}/{:?}",
-                                i, self.to, self.from
-                            );
-                            return false;
-                        }
-
-                        //
-                        // slip3.amount unchanged
-                        //
-                        if input3.amount != output3.amount {
-                            error!(
-                                "Send-bound TX: group {} slip3.amount unchanged, {:?}/{:?}",
-                                i, self.to, self.from
-                            );
-                            return false;
-                        }
-                    }
+                if nft_tuples_out == 0 {
+                    error!("Bound TX invalid: no output NFT tuples");
+                    return false;
                 }
             }
         } else {
             //
             // the only other type of transaction that is permitted to have Bound Slips
-            // are ATR transactions, in the case that the ATR transactions are rebroad-
-            // casting a
+            // are ATR transactions.
             //
             if self.transaction_type != TransactionType::ATR {
                 if self
@@ -1668,9 +1446,7 @@ impl Transaction {
         }
 
         //
-        // All Transactions
-        //
-        // The following validation criteria apply to all transactions, including
+        // the following validation criteria apply to all transactions, including
         // those auto-generated and included in blocks such as ATR transactions
         // and fee transactions.
         //
@@ -1684,7 +1460,7 @@ impl Transaction {
         }
 
         //
-        // spent transaction slips must be spendable (in hashmap)
+        // any UTXO spent must be spendable (in hashmap)
         //
         return if validate_against_utxo {
             let inputs_validate = self.validate_against_utxoset(utxoset);
@@ -1798,20 +1574,6 @@ mod tests {
         assert_eq!(tx.total_out, 0);
         assert_eq!(tx.total_fees, 0);
         assert_eq!(tx.cumulative_fees, 0);
-    }
-
-    #[test]
-    fn transaction_sign_test() {
-        let mut tx = Transaction::default();
-        let keys = generate_keys();
-        let wallet = Wallet::new(keys.1, keys.0);
-
-        tx.to = vec![Slip::default()];
-        tx.sign(&wallet.private_key);
-
-        assert_eq!(tx.to[0].slip_index, 0);
-        assert_ne!(tx.signature, [0; 64]);
-        assert_ne!(tx.hash_for_signature, Some([0; 32]));
     }
 
     #[test]
@@ -1973,45 +1735,5 @@ mod tests {
 
         let serialized_tx = mock_tx.serialize_for_net();
         assert_eq!(serialized_tx.len(), 0);
-    }
-
-    // Item 26: create_with_multiple_payments rejects mismatched key/payment vector lengths.
-    #[test]
-    fn create_with_multiple_payments_rejects_mismatched_key_and_payment_counts() {
-        let keys = generate_keys();
-        let mut wallet = Wallet::new(keys.1, keys.0);
-
-        let recipient: SaitoPublicKey = [1u8; 33];
-        // 2 payments but only 1 key – must return Err(InvalidInput)
-        let result = Transaction::create_with_multiple_payments(
-            &mut wallet,
-            vec![recipient],
-            vec![100, 200],
-            0,
-            None,
-            0,
-            0,
-        );
-        assert!(result.is_err());
-    }
-
-    // Item 26: create_with_multiple_payments rejects when keys outnumber payments.
-    #[test]
-    fn create_with_multiple_payments_rejects_more_keys_than_payments() {
-        let keys = generate_keys();
-        let mut wallet = Wallet::new(keys.1, keys.0);
-
-        let r1: SaitoPublicKey = [1u8; 33];
-        let r2: SaitoPublicKey = [2u8; 33];
-        let result = Transaction::create_with_multiple_payments(
-            &mut wallet,
-            vec![r1, r2],
-            vec![100],
-            0,
-            None,
-            0,
-            0,
-        );
-        assert!(result.is_err());
     }
 }

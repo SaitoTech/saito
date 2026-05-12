@@ -486,7 +486,7 @@ mod tests {
             total_fees: tx.total_fees,
             total_work_for_me: tx.total_work_for_me,
             cumulative_fees: tx.cumulative_fees,
-            routed_from_peer: tx.routed_from_peer.clone(),
+            routed_from_peer_id: tx.routed_from_peer_id,
         }
     }
     fn combine_transactions_into_spv(mut tx1: Transaction, tx2: Transaction) -> Transaction {
@@ -498,10 +498,5 @@ mod tests {
         tx1.transaction_type = TransactionType::SPV;
         tx1.txs_replacements = 2;
         tx1
-        // spv_tx.transaction_type = TransactionType::SPV;
-        // spv_tx.txs_replacements = 1; // Represents the combination of two transactions
-        // spv_tx.hash_for_signature = Some(combined_hash);
-        // // dbg!(&spv_tx);
-        // spv_tx
     }
 }

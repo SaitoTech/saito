@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use log::{debug, info};
-use saito_core::core::routing::peers::peer::PeerStatus;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -12,14 +11,13 @@ use saito_core::core::consensus::slip::{Slip, SLIP_SIZE};
 use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{Currency, SaitoPrivateKey, SaitoPublicKey};
+use saito_core::core::network::peers::Peers;
 use saito_core::core::process::keep_time::KeepTime;
-use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::util::crypto::generate_random_bytes;
 use saito_core::drain;
 use saito_rust::time_keeper::TimeKeeper;
 
 use crate::config_handler::SpammerConfigs;
-use saito_core::core::util::configuration::Configuration;
 
 #[derive(Clone, PartialEq)]
 pub enum GeneratorState {
@@ -31,7 +29,7 @@ pub enum GeneratorState {
 pub struct TransactionGenerator {
     pub state: GeneratorState,
     wallet_lock: Arc<RwLock<Wallet>>,
-    blockchain_lock: Arc<RwLock<Blockchain>>,
+    _blockchain_lock: Arc<RwLock<Blockchain>>,
     expected_slip_count: u64,
     tx_size: u64,
     tx_count: u64,
@@ -41,14 +39,14 @@ pub struct TransactionGenerator {
     sender: Sender<VecDeque<Transaction>>,
     tx_payment: Currency,
     tx_fee: Currency,
-    pub peer_lock: Arc<RwLock<PeerCollection>>,
-    configuration_lock: Arc<RwLock<SpammerConfigs>>,
+    pub peer_lock: Arc<RwLock<Peers>>,
+    _configuration_lock: Arc<RwLock<SpammerConfigs>>,
 }
 
 impl TransactionGenerator {
     pub async fn create(
         wallet_lock: Arc<RwLock<Wallet>>,
-        peers_lock: Arc<RwLock<PeerCollection>>,
+        peers_lock: Arc<RwLock<Peers>>,
         blockchain_lock: Arc<RwLock<Blockchain>>,
         configuration_lock: Arc<RwLock<SpammerConfigs>>,
         sender: Sender<VecDeque<Transaction>>,
@@ -59,7 +57,6 @@ impl TransactionGenerator {
         let tx_count;
         {
             let configs = configuration_lock.read().await;
-
             tx_size = configs.get_spammer_configs().tx_size;
             tx_count = configs.get_spammer_configs().tx_count;
         }
@@ -67,7 +64,7 @@ impl TransactionGenerator {
         let mut res = TransactionGenerator {
             state: GeneratorState::CreatingSlips,
             wallet_lock: wallet_lock.clone(),
-            blockchain_lock: blockchain_lock.clone(),
+            _blockchain_lock: blockchain_lock.clone(),
             expected_slip_count: 1,
             tx_size,
             tx_count,
@@ -78,7 +75,7 @@ impl TransactionGenerator {
             tx_payment,
             tx_fee,
             peer_lock: peers_lock.clone(),
-            configuration_lock,
+            _configuration_lock: configuration_lock,
         };
         {
             let wallet = wallet_lock.read().await;
@@ -134,27 +131,40 @@ impl TransactionGenerator {
                 available_balance / unspent_slip_count as Currency;
             let mut total_output_slips_created: u64 = 0;
 
-            let mut to_public_key = [0; 33];
+            let to_public_key;
 
             {
                 let peers = self.peer_lock.read().await;
 
-                if peers.peers.is_empty() {
+                let mut connected_peers: Vec<SaitoPublicKey> = peers
+                    .peers
+                    .values()
+                    .filter_map(|peer| {
+                        if peer.is_connected {
+                            peer.public_key
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                if connected_peers.is_empty() {
                     info!("not yet connected to a node");
                     return;
                 }
 
-                if let Some((_, peer)) = peers.peers.iter().next() {
-                    if let PeerStatus::Connected = peer.peer_status {
-                        to_public_key = peer.get_public_key();
-                    } else {
-                        info!("peer not connected. status : {:?}", peer.peer_status);
-                        return;
-                    }
-                }
-                assert_eq!(peers.peers.len(), 1usize, "we have assumed connecting to a single node. move add_hop to correct place if not.");
+                // preserve original assumption: exactly one peer
+                assert_eq!(
+                    connected_peers.len(),
+                    1,
+                    "expected exactly one connected peer"
+                );
+
+                to_public_key = connected_peers.pop().unwrap();
+
                 assert_ne!(to_public_key, self.public_key);
             }
+
             let mut txs: VecDeque<Transaction> = Default::default();
             for _i in 0..unspent_slip_count {
                 let transaction = self
@@ -212,23 +222,11 @@ impl TransactionGenerator {
         let payment_amount =
             total_nolans_requested_per_slip / output_slips_per_input_slip as Currency;
 
-        let genesis_period;
-        let latest_block_id;
-        {
-            genesis_period = self.get_genesis_period().await;
-            latest_block_id = self.get_latest_block_id().await;
-        }
-
         let mut wallet = self.wallet_lock.write().await;
 
         let mut transaction = Transaction::default();
 
-        let (input_slips, output_slips) = wallet.generate_slips(
-            total_nolans_requested_per_slip,
-            None,
-            latest_block_id,
-            genesis_period,
-        );
+        let (input_slips, output_slips) = wallet.generate_slips(total_nolans_requested_per_slip);
 
         for slip in input_slips {
             transaction.add_from_slip(slip);
@@ -296,9 +294,6 @@ impl TransactionGenerator {
         let payment = self.tx_payment;
         let fee = self.tx_fee;
 
-        let genesis_period = self.get_genesis_period().await;
-        let latest_block_id = self.get_latest_block_id().await;
-
         tokio::spawn(async move {
             info!(
                 "creating test transactions from new thread : count = {:?}",
@@ -318,16 +313,8 @@ impl TransactionGenerator {
                             if i % 100_000 == 0 {
                                 info!("creating test transactions : {:?}", i);
                             }
-                            let transaction = Transaction::create(
-                                &mut wallet,
-                                public_key,
-                                payment,
-                                fee,
-                                false,
-                                None,
-                                latest_block_id,
-                                genesis_period,
-                            );
+                            let transaction =
+                                wallet.create_transaction(vec![public_key], vec![payment], fee);
                             if transaction.is_err() {
                                 debug!("transaction creation failed. {:?}", transaction);
                                 break;
@@ -363,15 +350,25 @@ impl TransactionGenerator {
         {
             let peers = self.peer_lock.read().await;
 
-            if let Some((_, peer)) = peers.peers.iter().next() {
-                // if let PeerStatus::Connected = peer.peer_status {
-                info!("peer count : {}", peers.peers.len());
-                info!("peer status : {:?}", peer.peer_status);
-                to_public_key = peer.get_public_key();
-                // } else {
-                //     info!("peer not connected. status : {:?}", peer.peer_status);
-                // }
+            let connected_peers: Vec<SaitoPublicKey> = peers
+                .peers
+                .values()
+                .filter_map(|peer| {
+                    if peer.is_connected {
+                        peer.public_key
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            if connected_peers.is_empty() {
+                info!("no connected peers available");
+            } else {
+                info!("connected peer count : {}", connected_peers.len());
+                to_public_key = connected_peers[0];
             }
+
             // assert_eq!(peers.address_to_peers.len(), 1 as usize, "we have assumed connecting to a single node. move add_hop to correct place if not.");
             assert_ne!(to_public_key, self.public_key);
         }
@@ -400,26 +397,5 @@ impl TransactionGenerator {
         }
 
         // info!("Test transactions created, count : {:?}", txs.len());
-    }
-
-    async fn get_latest_block_id(&self) -> u64 {
-        let blockchain = self.blockchain_lock.read().await;
-        blockchain.blockring.get_latest_block_id()
-    }
-
-    async fn get_genesis_period(&self) -> u64 {
-        let config_guard = self.configuration_lock.read().await;
-
-        let config: &dyn Configuration = &*config_guard;
-
-        if let Some(consensus_config) = config.get_consensus_config() {
-            let period = consensus_config.genesis_period;
-            // println!("genesis_period: {:?}", period);
-            period
-        } else {
-            println!("No consensus config available.");
-            // Default value if consensus config is not available
-            1000
-        }
     }
 }

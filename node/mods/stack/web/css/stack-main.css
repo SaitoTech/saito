@@ -11,7 +11,7 @@
   grid-template-columns: 1fr !important;
   padding: 0 !important;
   position: relative !important;
-  top: 0;
+  top: var(--saito-header-height, 60px);
   height: auto;
   overflow: visible !important;
   width: 100% !important;
@@ -27,7 +27,7 @@
 
 /* Splash page layout */
 .stack-splash {
-  min-height: calc(100vh - var(--saito-header-height, 60px));
+  height: calc(100svh - var(--saito-header-height, 60px));
   display: flex;
   flex-direction: column;
   position: relative;
@@ -70,13 +70,6 @@
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
-}
-
-@media (min-width: 769px) {
-  .stack-cta-section {
-    padding-top: 6rem;
-    padding-bottom: 4rem;
-  }
 }
 
 @media (max-width: 768px) {
@@ -282,8 +275,7 @@
 @media (max-width: 768px) {
   .saito-container:has(.stack-splash),
   .saito-container.stack-splash-container {
-    top: var(--saito-header-height);
-    height: calc(100% - var(--saito-header-height));
+    max-height: calc(100svh - var(--saito-header-height));
     grid-template-rows: minmax(0, 1fr);
   }
 

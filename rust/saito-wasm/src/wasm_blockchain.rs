@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
+use crate::saitowasm::{string_to_key, SAITO};
 use js_sys::{BigUint64Array, Function, JsString};
 use log::info;
-use std::cell::RefCell;
-use tokio::sync::RwLock;
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::JsValue;
-
-use crate::saitowasm::{string_to_key, SAITO};
 use saito_core::core::consensus::blockchain::{Blockchain, BlockchainObserver};
 use saito_core::core::defs::{
     BlockHash, BlockId, PrintForLog, SaitoHash, SaitoUTXOSetKey, UTXO_KEY_LENGTH,
 };
+use serde_wasm_bindgen::to_value;
+use std::cell::RefCell;
+use tokio::sync::RwLock;
+use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsValue;
 
 struct JsBlockchainObserver;
 
@@ -22,7 +22,12 @@ thread_local! {
 }
 
 impl BlockchainObserver for JsBlockchainObserver {
-    fn on_chain_reorg(&self, block_id: BlockId, block_hash: &BlockHash, longest_chain: bool) {
+    fn on_chain_reorganization(
+        &self,
+        block_id: BlockId,
+        block_hash: &BlockHash,
+        longest_chain: bool,
+    ) {
         let hash = block_hash.to_hex();
         REORG_FN.with(|cell| {
             if let Some(f) = cell.borrow().as_ref() {
@@ -77,6 +82,19 @@ pub struct WasmBlockchain {
 
 #[wasm_bindgen]
 impl WasmBlockchain {
+    pub fn get(&self) -> JsValue {
+        let saito = SAITO.blocking_lock();
+
+        let blockchain = saito
+            .as_ref()
+            .unwrap()
+            .routing_thread
+            .blockchain_lock
+            .blocking_read();
+
+        to_value(&*blockchain).unwrap()
+    }
+
     pub async fn reset(&self) {
         {
             let saito = SAITO.lock().await;
@@ -87,13 +105,6 @@ impl WasmBlockchain {
                 .config_lock
                 .write()
                 .await;
-            // configs.set_blockchain_configs(Some(Default::default()));
-            // configs
-            //     .get_blockchain_configs_mut()
-            //     .expect("blockchain config should exist here")
-            //     .confirmations
-            //     .clear();
-            configs.set_congestion_data(None);
             configs.get_blockchain_configs_mut().confirmations.clear();
         }
         let mut blockchain = self.blockchain_lock.write().await;

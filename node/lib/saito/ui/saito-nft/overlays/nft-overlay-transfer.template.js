@@ -6,6 +6,11 @@ module.exports = (app, mod, nft_overlay) => {
           <h2 class="saito-nft-mode-title">Send NFT</h2>
           <label class="saito-nft-input-label">Recipient Address</label>
           <input class="saito-nft-input-field" id="nft-receiver-address"/>
+          <label class="saito-nft-input-label">Amount</label>
+          <div class="nft-send-amount-row">
+            <input class="saito-nft-input-field" id="nft-send-amount" placeholder="1" />
+            <button type="button" class="nft-send-max-btn">MAX</button>
+          </div>
         </div>
   `;
 
@@ -43,17 +48,25 @@ module.exports = (app, mod, nft_overlay) => {
   }
 
   html += `
-        <div class="nft-slips-container">
-          <div class="nft-slips-title">AVAILABLE SHARDS</div>
-          <div class="nft-slips-flex">
-            ${splitUtxosHtml}
+        <div class="nft-advanced-options collapsed">
+          <button type="button" class="nft-advanced-toggle" aria-expanded="false">
+            <i class="fa-solid fa-caret-right nft-advanced-caret"></i>
+            <span>Advanced Options</span>
+          </button>
+          <div class="nft-advanced-content">
+            <div class="nft-slips-container">
+              <div class="nft-slips-title">AVAILABLE SHARDS</div>
+              <div class="nft-slips-flex">
+                ${splitUtxosHtml}
+              </div>
+            </div>
           </div>
         </div>
       </div>
       
       <div class="saito-nft-panel-footer">
         <button class="saito-nft-footer-btn saito-button-secondary saito-nft-cancel-btn">Cancel</button>
-        <button class="saito-nft-footer-btn saito-nft-confirm-btn">Confirm</button>
+        <button class="saito-nft-footer-btn saito-nft-confirm-btn">Send</button>
       </div>
     </div>
     `;

@@ -4,7 +4,7 @@ use wasm_bindgen::JsValue;
 
 use crate::wasm_peer_service::WasmPeerService;
 use saito_core::core::defs::PrintForLog;
-use saito_core::core::routing::peers::peer::Peer;
+use saito_core::core::network::peer::Peer;
 
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -14,6 +14,10 @@ pub struct WasmPeer {
 
 #[wasm_bindgen]
 impl WasmPeer {
+    #[wasm_bindgen(getter = id)]
+    pub fn get_id(&self) -> u64 {
+        self.peer.id
+    }
     #[wasm_bindgen(getter = public_key)]
     pub fn get_public_key(&self) -> JsString {
         self.peer.get_public_key().to_base58().into()
@@ -26,19 +30,14 @@ impl WasmPeer {
         }
         array
     }
-    //
-    // #[wasm_bindgen(constructor)]
-    // pub fn new(public_key: PeerIndex) -> WasmPeer {
-    //     WasmPeer {
-    //         peer: Peer::new(public_key),
-    //     }
-    // }
     #[wasm_bindgen(getter = sync_type)]
     pub fn get_sync_type(&self) -> JsString {
-        if self.peer.block_fetch_url.is_empty() {
+        // Sentinel args return the derived HTTP base URL only (see Peer::get_block_fetch_url).
+        let base = self.peer.get_block_fetch_url([0; 32], false, [0; 33]);
+        if base.is_empty() {
             return "lite".into();
         }
-        return "full".into();
+        "full".into()
     }
     #[wasm_bindgen(getter = services)]
     pub fn get_services(&self) -> JsValue {
@@ -66,32 +65,20 @@ impl WasmPeer {
         self.peer.services = services;
     }
     pub fn has_service(&self, service: JsString) -> bool {
-        self.peer.has_service(service.into())
+        let needle = service.as_string().unwrap_or_default();
+        self.peer.services.iter().any(|s| s.service == needle)
     }
 
     #[wasm_bindgen(getter = status)]
     pub fn get_status(&self) -> JsString {
-        match self.peer.peer_status {
-            saito_core::core::routing::peers::peer::PeerStatus::Connected => "connected",
-            saito_core::core::routing::peers::peer::PeerStatus::Disconnected(_, _) => {
-                "disconnected"
-            }
-            saito_core::core::routing::peers::peer::PeerStatus::Connecting => "connecting",
+        if self.peer.is_connected {
+            "connected".into()
+        } else if self.peer.is_connecting {
+            "connecting".into()
+        } else {
+            "disconnected".into()
         }
-        .into()
     }
-
-    // pub fn set_ip(&mut self, ip: JsString) {
-    //     let s = ip.as_string();
-    //     if s.is_none() {
-    //         debug!("cannot parse ip string : {:?}", ip);
-    //         return;
-    //     }
-    //     let s: String = s.unwrap();
-    //     if let Ok(address) = IpAddr::from_str(&s) {
-    //         self.peer.ip_address = Some(address);
-    //     }
-    // }
 }
 
 impl WasmPeer {

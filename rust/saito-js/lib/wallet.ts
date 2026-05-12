@@ -34,84 +34,106 @@ export default class Wallet extends WasmWrapper<WasmWallet> {
     return this.instance.reset(keepKeys);
   }
 
-  public async getPublicKey() {
-    let key = await this.instance.get_public_key();
-    return key === DefaultEmptyPublicKey ? "" : key;
-  }
-
-  public async setPublicKey(key: string) {
-    if (key === "") {
-      key = DefaultEmptyPublicKey;
+    public async getPublicKey() {
+        let key = await this.instance.get_public_key();
+        return key === DefaultEmptyPublicKey ? "" : key;
     }
-    return this.instance.set_public_key(key);
-  }
 
-  public async getPrivateKey() {
-    let key = await this.instance.get_private_key();
-    return key === DefaultEmptyPrivateKey ? "" : key;
-  }
-
-  public async setPrivateKey(key: string) {
-    if (key === "") {
-      key = DefaultEmptyPrivateKey;
+    public async setPublicKey(key: string) {
+        if (key === "") {
+            key = DefaultEmptyPublicKey;
+        }
+        return this.instance.set_public_key(key);
     }
-    return this.instance.set_private_key(key);
-  }
 
-  public async getBalance() {
-    return this.instance.get_balance();
-  }
-
-  public async getPendingTxs() {
-    let txs = await this.instance.get_pending_txs();
-    return txs.map((tx: any) => Saito.getInstance().factory.createTransaction(tx));
-  }
-
-  public async getSlips(): Promise<WalletSlip[]> {
-    return this.instance.get_slips().then((slips) => {
-      return slips.map((slip) => new WalletSlip(slip));
-    });
-  }
-
-  public async addSlips(slips: WalletSlip[]) {
-    for (const slip of slips) {
-      await this.instance.add_slip(slip.instance);
+    public async getPrivateKey() {
+        let key = await this.instance.get_private_key();
+        return key === DefaultEmptyPrivateKey ? "" : key;
     }
-  }
 
-  public async getKeyList(): Promise<string[]> {
-    return this.instance.get_key_list();
-  }
+    public async setPrivateKey(key: string) {
+        if (key === "") {
+            key = DefaultEmptyPrivateKey;
+        }
+        return this.instance.set_private_key(key);
+    }
 
-  public async setKeyList(keylist: string[]) {
-    await this.instance.set_key_list(keylist);
-  }
+    public async getBalance() {
+        return this.instance.get_balance();
+    }
 
-  public async addToPending(tx: Transaction) {
-    let tx2 = tx.clone();
-    await this.instance.add_to_pending(tx2.wasmTransaction);
-  }
+    public async getPendingTxs() {
+        let txs = await this.instance.get_pending_txs();
+        return txs.map((tx: any) => Saito.getInstance().factory.createTransaction(tx));
+    }
 
-  public async addNft(
-    slip1UtxoKeyHex: string,
-    slip2UtxoKeyHex: string,
-    slip3UtxoKeyHex: string,
-    idHex: string,
-    txSigHex: string
-  ): Promise<void> {
-    try {
-      await this.instance.add_nft(
-        slip1UtxoKeyHex,
-        slip2UtxoKeyHex,
-        slip3UtxoKeyHex,
-        idHex,
-        txSigHex
+    public async getSlips(): Promise<WalletSlip[]> {
+        return this.instance.get_slips().then(slips => {
+            return slips.map(slip => new WalletSlip(slip));
+        });
+    }
+
+    public async addSlips(slips: WalletSlip[]) {
+        for (const slip of slips) {
+            await this.instance.add_slip(slip.instance);
+        }
+    }
+
+    public async getKeyList(): Promise<string[]> {
+        return this.instance.get_key_list();
+    }
+
+    public async setKeyList(keylist: string[]) {
+        await this.instance.set_key_list(keylist);
+    }
+
+    public async addToPending(tx: Transaction) {
+        let tx2 = tx.clone();
+        await this.instance.add_to_pending(tx2.wasmTransaction);
+    }
+
+    public async addNft(
+      slip1UtxoKeyHex: string,
+      slip2UtxoKeyHex: string,
+      slip3UtxoKeyHex: string,
+      idHex: string,
+      txSigHex: string,
+    ): Promise<void> {
+      try {
+        await this.instance.add_nft(
+          slip1UtxoKeyHex,
+          slip2UtxoKeyHex,
+          slip3UtxoKeyHex,
+          idHex,
+          txSigHex,
+        );
+      } catch (err) {
+        console.error("wasm add_nft failed:", err);
+        throw err;
+      }
+    }
+
+    public async createNFTTransaction(
+      recipientPublicKey: string,
+      nftAmount: bigint,
+      nftUuid: string,
+      fee: bigint = BigInt(0),
+      saitoDeposit: bigint = BigInt(0),
+      txMsg: object = {}
+    ) {
+      const payload = new Uint8Array(
+        Buffer.from(JSON.stringify(txMsg ?? {}), "utf-8")
       );
-    } catch (err) {
-      console.error("wasm add_nft failed:", err);
-      throw err;
+      return this.instance.createNFTTransaction(
+        recipientPublicKey,
+        nftAmount,
+        nftUuid,
+        fee,
+        saitoDeposit,
+        payload
+      );
     }
-  }
+
 }
 
 export class WalletSlip extends WasmWrapper<WasmWalletSlip> {

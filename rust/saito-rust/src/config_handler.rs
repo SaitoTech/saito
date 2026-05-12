@@ -1,5 +1,4 @@
 use log::{debug, error, info};
-use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use saito_core::core::util::configuration::{
     BlockchainConfig, Configuration, ConsensusConfig, Endpoint, PeerConfig, Server, WalletConfig,
 };
@@ -33,8 +32,6 @@ pub struct NodeConfigurations {
     blockchain: BlockchainConfig,
     /// these skipped values are written into a separate file
     #[serde(skip)]
-    congestion: Option<CongestionStatsDisplay>,
-    #[serde(skip)]
     config_path: String,
     wallet: Option<WalletConfig>,
 }
@@ -63,7 +60,6 @@ impl Default for NodeConfigurations {
             spv_mode: Some(false),
             consensus: Some(ConsensusConfig::default()),
             blockchain: BlockchainConfig::default(),
-            congestion: None,
             config_path: String::from("config/config.json"),
             wallet: None,
         }
@@ -163,7 +159,6 @@ impl Configuration for NodeConfigurations {
         self.spv_mode = Some(config.is_spv_mode());
         self.lite = config.is_spv_mode();
         self.consensus = config.get_consensus_config().cloned();
-        self.congestion = config.get_congestion_data().cloned();
         self.blockchain = config.get_blockchain_configs().clone();
         self.wallet = config.get_wallet_configs().cloned();
     }
@@ -172,13 +167,6 @@ impl Configuration for NodeConfigurations {
         self.consensus.as_ref()
     }
 
-    fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay> {
-        self.congestion.as_ref()
-    }
-
-    fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>) {
-        self.congestion = congestion_data;
-    }
     fn save(&self) -> Result<(), Error> {
         let config_file_path = self.get_config_path();
         let json_bytes = serde_json::to_vec_pretty(&self)?;

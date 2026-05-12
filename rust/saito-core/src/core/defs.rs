@@ -1,10 +1,6 @@
-use std::collections::VecDeque;
 use std::time::Duration;
 
 use ahash::AHashMap;
-use tokio::sync::mpsc::Sender;
-
-use super::stat_thread::StatEvent;
 
 pub type Currency = u64;
 
@@ -48,7 +44,6 @@ pub const MIN_GOLDEN_TICKETS_NUMERATOR: u64 = 2;
 pub const MIN_GOLDEN_TICKETS_DENOMINATOR: u64 = 6;
 
 pub const BLOCK_FILE_EXTENSION: &str = ".sai";
-pub const STAT_BIN_COUNT: usize = 3;
 
 pub const PEER_RECONNECT_WAIT_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
 pub const WS_KEEP_ALIVE_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
@@ -121,91 +116,10 @@ macro_rules! drain {
     }};
 }
 
-#[derive(Clone, Debug)]
-pub struct StatVariable {
-    pub total: u64,
-    pub count_since_last_stat: u64,
-    pub last_stat_at: Timestamp,
-    pub bins: VecDeque<(u64, Timestamp)>,
-    pub avg: f64,
-    pub max_avg: f64,
-    pub min_avg: f64,
-    pub name: String,
-    pub sender: Sender<StatEvent>,
-}
-
-impl StatVariable {
-    pub fn new(name: String, bin_count: usize, sender: Sender<StatEvent>) -> StatVariable {
-        StatVariable {
-            total: 0,
-            count_since_last_stat: 0,
-            last_stat_at: 0,
-            bins: VecDeque::with_capacity(bin_count),
-            avg: 0.0,
-            max_avg: 0.0,
-            min_avg: f64::MAX,
-            name,
-            sender,
-        }
-    }
-    pub fn increment(&mut self) {
-        {
-            self.total += 1;
-            self.count_since_last_stat += 1;
-        }
-    }
-    pub fn increment_by(&mut self, amount: u64) {
-        {
-            self.total += amount;
-            self.count_since_last_stat += amount;
-        }
-    }
-    pub async fn calculate_stats(&mut self, current_time_in_ms: Timestamp) {
-        let time_elapsed_in_ms = current_time_in_ms - self.last_stat_at;
-        self.last_stat_at = current_time_in_ms;
-        if self.bins.len() == self.bins.capacity() - 1 {
-            self.bins.pop_front();
-        }
-        self.bins
-            .push_back((self.count_since_last_stat, time_elapsed_in_ms));
-        self.count_since_last_stat = 0;
-
-        let mut total = 0;
-        let mut total_time_in_ms = 0;
-        for (count, time) in self.bins.iter() {
-            total += *count;
-            total_time_in_ms += *time;
-        }
-
-        self.avg = (1_000.0 * total as f64) / total_time_in_ms as f64;
-        if self.avg > self.max_avg {
-            self.max_avg = self.avg;
-        }
-        if self.avg < self.min_avg {
-            self.min_avg = self.avg;
-        }
-        self.sender
-            .send(StatEvent::StringStat(self.print(current_time_in_ms)))
-            .await
-            .expect("failed sending stat update");
-    }
-    pub fn format_timestamp(timestamp: Timestamp) -> String {
-        chrono::DateTime::from_timestamp_millis(timestamp as i64)
-            .unwrap()
-            .to_string()
-    }
-    fn print(&self, current_time_in_ms: Timestamp) -> String {
-        format!(
-            // target : "saito_stats",
-            "{} - {} - total : {:?}, current_rate : {:.2}, max_rate : {:.2}, min_rate : {:.2}",
-            Self::format_timestamp(current_time_in_ms),
-            format!("{:width$}", self.name, width = 40),
-            self.total,
-            self.avg,
-            self.max_avg,
-            self.min_avg
-        )
-    }
+pub fn format_timestamp(timestamp: Timestamp) -> String {
+    chrono::DateTime::from_timestamp_millis(timestamp as i64)
+        .unwrap()
+        .to_string()
 }
 
 pub trait PrintForLog<T: TryFrom<Vec<u8>>> {
@@ -214,6 +128,225 @@ pub trait PrintForLog<T: TryFrom<Vec<u8>>> {
     fn from_hex(str: &str) -> Result<T, String>;
 
     fn from_base58(str: &str) -> Result<T, String>;
+}
+
+pub mod utxo_map_serde {
+    use crate::core::defs::PrintForLog;
+    use ahash::AHashMap;
+    use serde::Serializer;
+
+    pub fn serialize<S, V>(map: &AHashMap<[u8; 59], V>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        V: serde::Serialize,
+    {
+        use serde::ser::SerializeMap;
+
+        let mut m = serializer.serialize_map(Some(map.len()))?;
+        for (k, v) in map.iter() {
+            m.serialize_entry(&k.to_hex(), v)?;
+        }
+        m.end()
+    }
+}
+
+pub mod utxo_set_serde {
+    use crate::core::defs::PrintForLog;
+    use ahash::AHashSet;
+    use serde::{Serialize, Serializer};
+
+    pub fn serialize<S>(set: &AHashSet<[u8; 59]>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let vec: Vec<String> = set.iter().map(|k| k.to_hex()).collect();
+        vec.serialize(serializer)
+    }
+}
+
+pub mod saito_public_key_serde {
+    use crate::core::defs::PrintForLog;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(key: &[u8; 33], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&key.to_hex())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 33], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        <[u8; 33]>::from_hex(&s).map_err(serde::de::Error::custom)
+    }
+
+    pub mod option {
+        use super::*;
+        use serde::{Deserializer, Serializer};
+
+        pub fn serialize<S>(value: &Option<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match value {
+                Some(v) => serializer.serialize_some(&v.to_hex()),
+                None => serializer.serialize_none(),
+            }
+        }
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<[u8; 33]>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let opt = Option::<String>::deserialize(deserializer)?;
+            match opt {
+                Some(s) => {
+                    let val = <[u8; 33]>::from_hex(&s).map_err(serde::de::Error::custom)?;
+                    Ok(Some(val))
+                }
+                None => Ok(None),
+            }
+        }
+    }
+
+    pub mod vec {
+        use super::*;
+        use serde::{Deserializer, Serializer};
+
+        pub fn serialize<S>(value: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let hex_vec: Vec<String> = value.iter().map(|v| v.to_hex()).collect();
+            serializer.serialize_some(&hex_vec)
+        }
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<[u8; 33]>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let vec = Vec::<String>::deserialize(deserializer)?;
+            let mut result = Vec::with_capacity(vec.len());
+
+            for s in vec {
+                let val = <[u8; 33]>::from_hex(&s).map_err(serde::de::Error::custom)?;
+                result.push(val);
+            }
+
+            Ok(result)
+        }
+    }
+}
+
+pub mod saito_utxosetkey_serde {
+    use crate::core::defs::PrintForLog;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(key: &[u8; 59], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&key.to_hex())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 59], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        <[u8; 59]>::from_hex(&s).map_err(serde::de::Error::custom)
+    }
+}
+
+pub mod vec_u8_serde {
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(data: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&hex::encode(data))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        hex::decode(s).map_err(serde::de::Error::custom)
+    }
+}
+
+pub mod saito_signature_serde {
+    use crate::core::defs::PrintForLog;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(sig: &[u8; 64], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&sig.to_hex())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 64], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        <[u8; 64]>::from_hex(&s).map_err(serde::de::Error::custom)
+    }
+}
+
+pub mod saito_hash_serde {
+    use crate::core::defs::PrintForLog;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(hash: &[u8; 32], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&hash.to_hex())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        <[u8; 32]>::from_hex(&s).map_err(serde::de::Error::custom)
+    }
+
+    pub mod option {
+        use super::*;
+        use serde::{Deserializer, Serializer};
+
+        pub fn serialize<S>(value: &Option<[u8; 32]>, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match value {
+                Some(v) => serializer.serialize_some(&v.to_hex()),
+                None => serializer.serialize_none(),
+            }
+        }
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<[u8; 32]>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let opt = Option::<String>::deserialize(deserializer)?;
+            match opt {
+                Some(s) => {
+                    let val = <[u8; 32]>::from_hex(&s).map_err(serde::de::Error::custom)?;
+                    Ok(Some(val))
+                }
+                None => Ok(None),
+            }
+        }
+    }
 }
 
 #[macro_export]

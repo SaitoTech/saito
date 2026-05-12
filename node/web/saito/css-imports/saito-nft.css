@@ -516,6 +516,32 @@
   border-color: var(--saito-primary);
 }
 
+.nft-send-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 10px;
+}
+
+.nft-send-amount-row .saito-nft-input-field {
+  margin-bottom: 0;
+}
+
+.nft-send-max-btn {
+  border: 1px solid rgba(170, 170, 170, 0.3);
+  background: transparent;
+  color: var(--saito-font-color);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nft-send-max-btn:hover {
+  background: rgba(170, 170, 170, 0.08);
+}
+
 .saito-nft-mode-title {
   font-size: 20px;
   font-weight: 600;
@@ -893,6 +919,58 @@
 
 .saito-nft-panel-send .nft-slip-box.selected-shard {
   border: 3px solid var(--saito-secondary);
+}
+
+.saito-nft-panel-send .nft-advanced-options {
+  border-top: 1px solid rgba(170, 170, 170, 0.2);
+  margin-top: 0.2rem;
+  padding-top: 0.4rem;
+}
+
+.saito-nft-panel-send .nft-advanced-toggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--saito-font-color);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  justify-content: flex-start;
+  padding: 0.55rem 0;
+  font-size: 1.35rem;
+  font-weight: 400;
+  opacity: 0.8;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 4px;
+}
+
+.saito-nft-panel-send .nft-advanced-toggle:hover {
+  background: rgba(170, 170, 170, 0.08);
+  opacity: 1;
+}
+
+.saito-nft-panel-send .nft-advanced-caret {
+  transition: transform 0.2s ease;
+  font-size: 1.2rem;
+  width: 1.2rem;
+  text-align: center;
+}
+
+.saito-nft-panel-send .nft-advanced-options:not(.collapsed) .nft-advanced-caret {
+  transform: rotate(90deg);
+}
+
+.saito-nft-panel-send .nft-advanced-content {
+  padding: 0.8rem 0 0;
+}
+
+.saito-nft-panel-send .nft-advanced-options.collapsed .nft-advanced-content {
+  display: none;
+}
+
+.saito-nft-panel-send .nft-advanced-content .nft-slips-container {
+  margin-bottom: 0;
 }
 
 /* ============================================

@@ -5,12 +5,14 @@ use wasm_bindgen::JsValue;
 use crate::saitowasm::{string_to_key, SAITO};
 use crate::wasm_network_api::WasmNetworkApi;
 use crate::wasm_peer::WasmPeer;
+use crate::wasm_peers::WasmPeers;
 use crate::wasm_transaction::WasmTransaction;
 
 use log::{debug, trace, warn};
 use saito_core::core::consensus_thread::ConsensusEvent;
 use saito_core::core::defs::PrintForLog;
 use saito_core::core::defs::SaitoPublicKey;
+use saito_core::core::network::peer::Peer;
 use saito_core::core::process::process_event::ProcessEvent;
 
 #[wasm_bindgen]
@@ -26,6 +28,11 @@ impl WasmNetwork {
     #[wasm_bindgen(getter)]
     pub fn api(&self) -> WasmNetworkApi {
         WasmNetworkApi {}
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn peers(&self) -> WasmPeers {
+        WasmPeers {}
     }
 
     // -------------------------
@@ -44,10 +51,9 @@ impl WasmNetwork {
             .read()
             .await;
 
-        let connected_peers: Vec<_> = peers
-            .peers
-            .values()
-            .filter(|peer| peer.is_connected())
+        let connected_peers: Vec<Peer> = peers
+            .iter()
+            .filter(|peer| peer.is_verified)
             .cloned()
             .collect();
 
@@ -78,7 +84,7 @@ impl WasmNetwork {
             .read()
             .await;
 
-        let peer = peers.peers.get(&key);
+        let peer = peers.get_peer_by_public_key(&key);
 
         if peer.is_none() {
             warn!("peer not found");
@@ -88,6 +94,24 @@ impl WasmNetwork {
         let peer = peer.cloned().unwrap();
 
         Some(WasmPeer::new_from_peer(peer))
+    }
+
+    #[wasm_bindgen(js_name = getPeerByPeerId)]
+    pub async fn get_peer_by_peer_id(&self, peer_id: u64) -> Option<WasmPeer> {
+        let saito = SAITO.lock().await;
+
+        let peers = saito
+            .as_ref()
+            .unwrap()
+            .routing_thread
+            .network
+            .peer_lock
+            .read()
+            .await;
+
+        let peer = peers.get_peer_by_id(peer_id)?;
+
+        Some(WasmPeer::new_from_peer(peer.clone()))
     }
 
     #[wasm_bindgen(js_name = propagateTransaction)]

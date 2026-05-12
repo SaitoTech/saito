@@ -17,7 +17,14 @@ export default class Network {
   }
 
   public async propagateTransaction(tx: Transaction) {
-    return this.app.core.network.propagateTransaction(tx);
+    console.info(
+      `[TRANSACTION - SENDING] - network.propagateTransaction called signature=${tx.signature}`
+    );
+    const result = await this.app.core.network.propagateTransaction(tx);
+    console.info(
+      `[TRANSACTION - SENDING] - network.propagateTransaction completed signature=${tx.signature}`
+    );
+    return result;
   }
 
   public async getPeers(): Promise<Array<Peer>> {
@@ -26,6 +33,10 @@ export default class Network {
 
   public async getPeer(publicKey: string): Promise<Peer> {
     return this.app.core.network.getPeer(publicKey);
+  }
+
+  public async getPeerByPeerId(peer_id: bigint): Promise<Peer> {
+    return this.app.core.network.getPeerByPeerId(peer_id);
   }
 
   public async sendRequest(

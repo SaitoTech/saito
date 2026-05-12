@@ -3,19 +3,17 @@ import express from 'express';
 import { Server as Ser } from 'http';
 import S from 'saito-js/index.node';
 
+import fetch, { RequestInit } from 'node-fetch';
+
 import fs from 'fs';
 import path from 'path';
 import bodyParser from 'body-parser';
-import ws from 'ws';
 import process from 'process';
-import CustomSharedMethods from 'saito-js/lib/custom/custom_shared_methods';
+import { ServerSharedMethods } from 'saito-js/shared_methods.server';
 import { parse } from 'url';
 import Peer from '../peer';
-import Transaction from '../transaction';
-import PeerServiceList from 'saito-js/lib/peer_service_list';
 import Block from '../block';
 
-import fetch from 'node-fetch';
 import HTMLParser from 'node-html-parser';
 import prettify from 'html-prettify';
 
@@ -35,314 +33,6 @@ expressApp.use(cors());
 
 const webserver = new Ser(expressApp);
 
-export class NodeSharedMethods extends CustomSharedMethods {
-  public app: Saito;
-
-  constructor(app: Saito) {
-    super();
-    this.app = app;
-
-    this.app.connection.on('peer_disconnect', (publicKey: string) => {
-      try {
-        S.getInstance().removeSocket(publicKey);
-      } catch (error) {
-        console.error(`failed removing socket for disconnected peer : ${publicKey}`, error);
-      }
-    });
-  }
-
-  emitAsync(event: string, payload?: any): void {
-    queueMicrotask(() => {
-      try {
-        this.app.connection.emit(event, payload);
-      } catch (error) {
-        console.error(`emitAsync: uncaught error in "${event}" listener:`, error);
-      }
-    });
-  }
-
-  sendMessage(publicKey: string, buffer: Uint8Array): void {
-    try {
-      let socket = S.getInstance().getSocket(publicKey);
-      if (socket) {
-        if (socket.readyState !== ws.OPEN) {
-          S.getInstance().removeSocket(publicKey);
-          return;
-        }
-        socket.send(buffer);
-      }
-    } catch (e) {
-      // console.error(e);
-    }
-  }
-
-  sendMessageToAll(buffer: Uint8Array, exceptions: string[]): void {
-    S.getInstance().peers.forEach((peer, key) => {
-      if (exceptions.includes(key)) {
-        return;
-      }
-      try {
-        let socket = peer.socket;
-        if (socket) {
-          if (socket.readyState !== ws.OPEN) {
-            S.getInstance().removeSocket(key);
-            return;
-          }
-          socket.send(buffer);
-        }
-      } catch (error) {
-        // console.error(error);
-      }
-    });
-  }
-
-  connectToPeer(url: string): void {
-    try {
-      console.log('connecting to ' + url + '....');
-
-      let socket = new ws.WebSocket(url);
-      // S.getInstance().addNewSocket(socket, peer_index);
-
-      let peer = new NetworkPeer(undefined, url);
-      peer.socket = socket;
-
-      socket.on('message', (buffer: any) => {
-        try {
-          S.getLibInstance()
-            .process_msg_buffer_from_peer(buffer, peer.instance)
-            .then((buffer: any) => {
-              if (buffer && buffer.byteLength > 0) {
-                socket.send(buffer);
-              }
-              if (peer.publicKey) {
-                if (!S.getInstance().peers.has(peer.publicKey)) {
-                  console.info('added peer : ' + peer.publicKey + ', url : ' + peer.url);
-                  S.getInstance().peers.set(peer.publicKey, peer);
-                }
-              }
-            })
-            .catch((e: any) => {
-              console.error(
-                `failed processing socket message buffer from peer : ${peer.publicKey} from url : ${url}`,
-                e
-              );
-            });
-        } catch (e) {
-          console.error(
-            `failed processing socket message buffer from peer : ${peer.publicKey} from url : ${url}`,
-            e
-          );
-        }
-      });
-      socket.on('close', () => {
-        S.getLibInstance()
-          .process_peer_disconnection(peer.publicKey)
-          .catch((e: any) =>
-            console.error(
-              `failed processing socket close from peer : ${peer.publicKey} from url : ${url}`,
-              e
-            )
-          );
-      });
-      socket.on('error', (error) => {
-        console.error(
-          `received socket error from peer : ${peer.publicKey} from url : ${url}`,
-          error
-        );
-        S.getLibInstance()
-          .process_peer_disconnection(peer.publicKey)
-          .catch((e: any) =>
-            console.error(
-              `failed processing error from peer : ${peer.publicKey} from url : ${url}`,
-              e
-            )
-          );
-      });
-      socket.on('open', () => {
-        try {
-          // S.getLibInstance()
-          //   .process_new_peer(peer_index, url)
-          //   .then(() => {
-          //     console.log('connected to : ' + url + ' with peer index : ' + peer_index);
-          //   });
-        } catch (e) {
-          console.error(
-            `failed processing socket open from peer : ${peer.publicKey} from url : ${url}`,
-            e
-          );
-        }
-      });
-    } catch (e) {
-      console.error(`error from peer from url : ${url}`, e);
-    }
-  }
-
-  writeValue(key: string, value: Uint8Array): void {
-    try {
-      fs.writeFileSync(key, value);
-    } catch (error) {
-      // console.error(error);
-    }
-  }
-
-  appendValue(key: string, value: Uint8Array): void {
-    try {
-      fs.appendFileSync(key, value);
-    } catch (error) {
-      // console.error(error);
-    }
-  }
-
-  flushData(key: string): void {}
-
-  readValue(key: string): Uint8Array {
-    try {
-      return fs.readFileSync(key);
-    } catch (error) {
-      // console.error(error);
-      return new Uint8Array();
-    }
-  }
-
-  loadBlockFileList(): string[] {
-    try {
-      let files = fs.readdirSync('data/blocks/');
-      files = files.filter((file: string) => file.endsWith('.sai'));
-      return files;
-    } catch (e) {
-      console.log('cwd : ', process.cwd());
-      // console.error(e);
-      return [];
-    }
-  }
-
-  isExistingFile(key: string): boolean {
-    try {
-      let result = fs.existsSync(key);
-      return !!result;
-    } catch (error) {
-      // console.error(error);
-      return false;
-    }
-  }
-
-  removeValue(key: string): void {
-    try {
-      fs.rmSync(key);
-    } catch (e) {
-      // console.error(e);
-    }
-  }
-
-  disconnectFromPeer(publicKey: string): void {
-    S.getInstance().removeSocket(publicKey);
-  }
-
-  fetchBlockFromPeer(url: string): Promise<Uint8Array> {
-    console.log('fetching block from peer: ' + url);
-    return fetch(url)
-      .then((res: any) => {
-        return res.arrayBuffer();
-      })
-      .then((buffer: ArrayBuffer) => {
-        console.log('block data fetched for ' + url + ' with size : ' + buffer.byteLength);
-        return new Uint8Array(buffer);
-      })
-      .catch((err) => {
-        console.error('Error fetching block: ' + url, err);
-        throw 'failed fetching block';
-      });
-  }
-
-  async processApiCall(buffer: Uint8Array, msgIndex: number, publicKey: string): Promise<void> {
-    try {
-      const mycallback = async (response_object) => {
-        // console.log("response_object ", response_object);
-        await this.app.core.network.api.success(
-          response_object ? Buffer.from(JSON.stringify(response_object), 'utf-8') : Buffer.alloc(0),
-          msgIndex,
-          publicKey
-        );
-      };
-      let peer = await this.app.core.network.getPeer(publicKey);
-      let newtx = new Transaction();
-      try {
-        newtx.deserialize(buffer);
-        newtx.unpackData();
-      } catch (error) {
-        console.error(error);
-        newtx.msg = buffer;
-      }
-      await this.app.modules.handlePeerTransaction(newtx, peer, mycallback);
-    } catch (error) {
-      console.error('processApiCall: unhandled error:', error);
-    }
-  }
-
-  sendInterfaceEvent(event: string, public_key: string) {
-    this.emitAsync(event, public_key);
-  }
-
-  sendBlockSuccess(hash: string, blockId: bigint) {
-    this.emitAsync('add-block-success', { hash, blockId });
-  }
-
-  sendWalletUpdate() {
-    this.emitAsync('wallet-updated');
-  }
-
-  sendBlockFetchStatus(count: bigint) {
-    this.emitAsync('block-fetch-status', { count: count });
-  }
-
-  async saveWallet(): Promise<void> {
-    if (this.app.options.wallet && this.app.wallet) {
-      this.app.options.wallet.publicKey = await this.app.wallet.getPublicKey();
-      this.app.options.wallet.privateKey = await this.app.wallet.getPrivateKey();
-      this.app.options.wallet.balance = await this.app.wallet.getBalance();
-    }
-  }
-
-  loadWallet(): void {
-    throw new Error('Method not implemented.');
-  }
-
-  saveBlockchain(): void {
-    throw new Error('Method not implemented.');
-  }
-
-  loadBlockchain(): void {
-    throw new Error('Method not implemented.');
-  }
-
-  getMyServices() {
-    let list = new PeerServiceList();
-    let result = this.app.network.getServices();
-    result.forEach((s) => list.push(s));
-    return list;
-  }
-
-  sendNewVersionAlert(major: number, minor: number, patch: number, publicKey: string): void {
-    console.error(
-      'This is an older version',
-      'current version: ',
-      this.app.wallet.version,
-      ' expected version: ',
-      major
-    );
-  }
-
-  ensureDirExists(path: string): void {
-    if (fs.existsSync(path)) {
-      return;
-    }
-    fs.mkdirSync(path);
-  }
-  sendNewChainDetectedEvent(): void {
-    this.emitAsync('new-chain-detected');
-  }
-}
-
 /**
  * Constructor
  */
@@ -357,7 +47,6 @@ class Server {
     protocol: '',
     name: '',
     url: '',
-    block_fetch_url: '',
     endpoint: {
       host: '',
       port: 0,
@@ -408,60 +97,62 @@ class Server {
     webserver.on('error', (error) => {
       console.error('error on express : ', error);
     });
-    wss.on('connection', (socket: any, request: any) => {
+    wss.on('connection', async (socket: any, request: any) => {
       const { pathname } = parse(request.url);
       console.log(
         'connection established : ',
         request.headers['x-forwarded-for'] + ' || ' + request.socket.remoteAddress
       );
-      let peer = new NetworkPeer();
+
+      let peer = await NetworkPeer.create();
       peer.socket = socket;
+      S.getInstance().peersByPeerId.set(peer.peerId, peer);
 
       // console.log(
       //   'adding new peer : ' + (request.headers['x-forwarded-for'] + request.socket.remoteAddress)
       // );
       // S.getInstance().addNewSocket(socket, peer_index);
 
+      // initialize per-peer chain once (safe if repeated)
+      if (!peer._inflight) {
+        peer._inflight = Promise.resolve();
+      }
+
       socket.on('message', (buffer: any) => {
-        S.getLibInstance()
-          .process_msg_buffer_from_peer(new Uint8Array(buffer), peer.instance)
-          .then((buffer: any) => {
-            if (buffer && buffer.byteLength > 0) {
-              socket.send(buffer);
-            }
-            if (peer.publicKey) {
-              if (!S.getInstance().peers.has(peer.publicKey)) {
-                console.info('added peer : ', peer.publicKey);
-                S.getInstance().peers.set(peer.publicKey, peer);
+        try {
+          const u8 = new Uint8Array(buffer);
+
+          peer._inflight = peer._inflight
+            .then(() => {
+              return S.getLibInstance().process_msg_buffer_from_peer(u8, peer.instance);
+            })
+            .then(async (buffer: any) => {
+              if (buffer && buffer.byteLength > 0) {
+                socket.send(buffer);
               }
-            }
-          })
-          .catch((error: any) => {
-            console.error(
-              `failed processing socket message buffer from peer : ${peer.publicKey}`,
-              error
-            );
-          });
+              if (!peer.publicKey) {
+                await peer.syncFromRust();
+              }
+            })
+            .catch((err: any) => {
+              console.error('server process_msg_buffer_from_peer failed:', err);
+            });
+        } catch (err) {
+          console.error("server socket.on('message') handler threw:", err);
+        }
       });
+
       socket.on('close', () => {
-        S.getLibInstance()
-          .process_peer_disconnection(peer.publicKey)
-          .catch((e: any) =>
-            console.error(`failed processing socket close from peer : ${peer.publicKey}`, e)
-          );
+        S.getInstance().disconnectPeer(peer);
+        S.getLibInstance().process_peer_disconnection(peer.peerId);
       });
       socket.on('error', (error) => {
         console.error('error on socket : ' + peer.publicKey, error);
-        S.getLibInstance()
-          .process_peer_disconnection(peer.publicKey)
-          .catch((e: any) =>
-            console.error(`failed processing socket error from peer : ${peer.publicKey}`, e)
-          );
+        S.getInstance().disconnectPeer(peer);
+        S.getLibInstance().process_peer_disconnection(peer.peerId);
       });
-      peer.get_handshake_challenge_buffer().then((buffer) => {
-        console.log('sending handshake challenge to peer : ', peer.publicKey);
-        socket.send(buffer);
-      });
+
+      await S.getLibInstance().process_new_peer(peer.peerId, false);
     });
 
     this.app.modules.onWebSocketServer(webserver);
@@ -473,16 +164,6 @@ class Server {
     if (this.app.BROWSER === 1) {
       return;
     }
-
-    process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-      console.error('[SAITO] Unhandled Promise Rejection:', reason);
-      if (reason?.stack) console.error(reason.stack);
-    });
-
-    process.on('uncaughtException', (error: Error) => {
-      console.error('[SAITO] Uncaught Exception:', error);
-      if (error?.stack) console.error(error.stack);
-    });
 
     //
     // update server information from options file
@@ -552,7 +233,6 @@ class Server {
     // url += "/block/";
 
     this.server.url = url;
-    this.server.block_fetch_url = url;
 
     //
     // save options
@@ -733,7 +413,7 @@ class Server {
 
       console.log('loading block from disk : ' + bsh);
 
-      let methods = new NodeSharedMethods(this.app);
+      let methods = new ServerSharedMethods(this.app);
 
       //
       // TODO - load from disk to ensure we have txs -- slow.
@@ -921,7 +601,7 @@ class Server {
         }
       }
 
-      let methods = new NodeSharedMethods(this.app);
+      let methods = new ServerSharedMethods(this.app);
 
       //
       // TODO - load from disk to ensure we have txs -- slow.
@@ -1134,10 +814,6 @@ class Server {
       return;
     });
 
-    expressApp.get('/stats', async (req, res) => {
-      let stat = await S.getLibInstance().get_stats();
-      res.send(stat);
-    });
     expressApp.get('/stats/peers', async (req, res) => {
       let stat = await S.getLibInstance().get_peer_stats();
       res.send(stat);
@@ -1194,7 +870,11 @@ class Server {
   // servers can fetch open graph graphics (of links in tweets)
   //
   async fetchOpenGraphProperties(link, callback = null) {
-    return fetch(link, { redirect: 'follow', follow: 50 })
+    const opts: RequestInit & { follow: number } = {
+      redirect: 'follow',
+      follow: 50
+    };
+    return fetch(link, opts)
       .then((res) => {
         if (res.ok) {
           return res.text();
@@ -1306,7 +986,7 @@ class Server {
     express.get('/test-api/transfer/:to/:amt', async (req, res) => {
       let to = req.params.to;
       let amt = req.params.amt;
-      let tx = await S.getInstance().createTransaction(to, amt, BigInt(0));
+      let tx = await this.app.core.wallet.createTransaction(to, amt, BigInt(0));
       await tx.sign();
       await this.app.core.network.core.propagateTransaction(tx);
       res.send({});

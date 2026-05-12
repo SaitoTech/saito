@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -12,157 +12,108 @@ use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
-use crate::core::defs::{
-    BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
-};
+use crate::core::defs::{BlockHash, BlockId, PrintForLog, Timestamp, CHANNEL_SAFE_BUFFER};
+use crate::core::network::events::NetworkEvent;
+use crate::core::network::peers::Peers;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
-use crate::core::routing::io::network_event::NetworkEvent;
-use crate::core::routing::peers::congestion_controller::CongestionType;
-use crate::core::routing::peers::peer_collection::PeerCollection;
-
-use super::stat_thread::StatEvent;
 
 #[derive(Debug)]
 pub enum VerifyRequest {
     Transaction(Transaction),
-    // Transactions(VecDeque<Transaction>),
-    Block(Vec<u8>, SaitoPublicKey, BlockHash, BlockId),
+    Block(Vec<u8>, u64, BlockHash, BlockId),
 }
 
 pub struct VerificationThread {
     pub sender_to_consensus: Sender<ConsensusEvent>,
     pub blockchain_lock: Arc<RwLock<Blockchain>>,
-    pub peer_lock: Arc<RwLock<PeerCollection>>,
+    pub peer_lock: Arc<RwLock<Peers>>,
     pub wallet_lock: Arc<RwLock<Wallet>>,
-    pub processed_txs: StatVariable,
-    pub processed_blocks: StatVariable,
-    pub processed_msgs: StatVariable,
-    pub invalid_txs: StatVariable,
-    pub stat_sender: Sender<StatEvent>,
     pub timer: Timer,
 }
 
 impl VerificationThread {
-    pub async fn verify_tx(&mut self, mut transaction: Transaction) {
+    pub async fn verify_transaction(&mut self, mut transaction: Transaction) {
         trace!("verifying tx : {:?}", transaction.signature.to_hex());
-        let blockchain = self.blockchain_lock.read().await;
-        let mut peers = self.peer_lock.write().await;
-        let wallet = self.wallet_lock.read().await;
-        let public_key = wallet.public_key;
-        transaction.generate(&public_key, 0, 0);
+        info!(
+            "[TRANSACTION - RECEIPT] - verification started tx_sig={} routed_from_peer_id={}",
+            transaction.signature.to_hex(),
+            transaction.routed_from_peer_id
+        );
 
-        // TODO : should we skip validation against utxo if we don't have the full utxo ?
-        if !transaction.validate(&blockchain.utxoset, &blockchain, true) {
+        let is_valid = {
+            let blockchain = self.blockchain_lock.read().await;
+            let wallet = self.wallet_lock.read().await;
+            let public_key = wallet.public_key;
+            transaction.generate(&public_key, 0, 0);
+            let is_valid = transaction.validate(&blockchain.utxoset, &blockchain, true);
+            is_valid
+        };
+
+        if !is_valid {
             debug!(
                 "transaction : {:?} not valid",
                 transaction.signature.to_hex()
             );
-            self.processed_txs.increment();
-            if let Some(public_key) = transaction.routed_from_peer {
-                peers.add_congestion_event(
-                    public_key,
-                    CongestionType::ReceivedInvalidTransactions,
-                    self.timer.get_timestamp_in_ms(),
-                );
-            }
-
+            info!(
+                "[TRANSACTION - RECEIPT] - verification failed tx_sig={}",
+                transaction.signature.to_hex()
+            );
             return;
         }
 
-        self.processed_txs.increment();
-        self.processed_msgs.increment();
+        info!(
+            "[TRANSACTION - RECEIPT] - verification passed, forwarding to consensus tx_sig={}",
+            transaction.signature.to_hex()
+        );
         self.sender_to_consensus
             .send(ConsensusEvent::NewTransaction { transaction })
             .await
             .unwrap();
-        // trace!("releasing blockchain 7");
     }
-    // pub async fn verify_txs(&mut self, transactions: &mut VecDeque<Transaction>) {
-    //     self.processed_txs.increment_by(transactions.len() as u64);
-    //     self.processed_msgs.increment_by(transactions.len() as u64);
-    //     let prev_count = transactions.len();
-    //     let txs: Vec<Transaction>;
-    //     {
-    //         // trace!("locking blockchain 8");
-    //         let blockchain = self.blockchain_lock.read().await;
 
-    //         let public_key = {
-    //             let wallet = self.wallet_lock.read().await;
-    //             wallet.public_key
-    //         };
-    //         let mut peers = self.peer_lock.write().await;
-
-    //         let current_time = self.timer.get_timestamp_in_ms();
-    //         txs = drain!(transactions, 10)
-    //             .filter_map(|mut transaction| {
-    //                 transaction.generate(&public_key, 0, 0);
-
-    //                 if !transaction.validate(&blockchain.utxoset, &blockchain, true) {
-    //                     debug!(
-    //                         "transaction : {:?} not valid",
-    //                         transaction.signature.to_hex()
-    //                     );
-
-    //                     if let Some(public_key) = transaction.routed_from_peer {
-    //                         peers.add_congestion_event(
-    //                             public_key,
-    //                             CongestionType::ReceivedInvalidTransactions,
-    //                             current_time,
-    //                         );
-    //                     }
-
-    //                     None
-    //                 } else {
-    //                     if let Some(public_key) = transaction.routed_from_peer {
-    //                         peers.add_congestion_event(
-    //                             public_key,
-    //                             CongestionType::ReceivedValidTransactions,
-    //                             current_time,
-    //                         );
-    //                     }
-    //                     Some(transaction)
-    //                 }
-    //             })
-    //             .collect();
-    //     }
-
-    //     let invalid_txs = prev_count - txs.len();
-    //     for transaction in txs {
-    //         self.sender_to_consensus
-    //             .send(ConsensusEvent::NewTransaction { transaction })
-    //             .await
-    //             .unwrap();
-    //     }
-    //     self.invalid_txs.increment_by(invalid_txs as u64);
-    // }
     pub async fn verify_block(
         &mut self,
         buffer: &[u8],
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         block_hash: BlockHash,
         block_id: BlockId,
     ) {
         // debug!("verifying block buffer of size : {:?}", buffer.len());
         let buffer_len = buffer.len();
+        info!(
+            "[TRACE_SYNC][SERDE] verify_block_start peer_id={} expected_block_id={} expected_block_hash={} bytes={}",
+            peer_id,
+            block_id,
+            block_hash.to_hex(),
+            buffer_len
+        );
         let result = Block::deserialize_from_net(buffer);
         if result.is_err() {
             warn!(
                 "failed verifying block buffer with length : {:?}",
                 buffer_len
             );
-            let mut peers = self.peer_lock.write().await;
-            peers.add_congestion_event(
-                public_key,
-                CongestionType::ReceivedInvalidBlocks,
-                self.timer.get_timestamp_in_ms(),
+            info!(
+                "[TRACE_SYNC] verify_failed reason=deserialize peer_id={} expected_block_id={} expected_block_hash={} bytes={}",
+                peer_id,
+                block_id,
+                block_hash.to_hex(),
+                buffer_len
             );
             return;
         }
 
         let mut block = result.unwrap();
-        block.routed_from_peer = Some(public_key);
-
+        info!(
+            "[TRACE_SYNC][SERDE] verify_block_deserialize_ok peer_id={} block_id={} block_hash={} tx_count={} bytes={}",
+            peer_id,
+            block.id,
+            block.hash.to_hex(),
+            block.transactions.len(),
+            buffer_len
+        );
+        block.routed_from_peer_id = peer_id;
         block.generate().unwrap();
 
         if block.id != block_id || block.hash != block_hash {
@@ -173,11 +124,13 @@ impl VerificationThread {
                 block_id,
                 block_hash.to_hex()
             );
-            let mut peers = self.peer_lock.write().await;
-            peers.add_congestion_event(
-                public_key,
-                CongestionType::ReceivedInvalidBlocks,
-                self.timer.get_timestamp_in_ms(),
+            info!(
+                "[TRACE_SYNC] verify_failed reason=id_hash_mismatch peer_id={} expected={}::{} got={}::{}",
+                peer_id,
+                block_id,
+                block_hash.to_hex(),
+                block.id,
+                block.hash.to_hex()
             );
             return;
         }
@@ -186,16 +139,19 @@ impl VerificationThread {
             "block : {:?}-{:?} deserialized from buffer from peer : {:?}",
             block.id,
             block.hash.to_hex(),
-            public_key.to_base58()
+            peer_id
         );
 
-        self.processed_blocks.increment();
-        self.processed_msgs.increment();
-
         self.sender_to_consensus
-            .send(ConsensusEvent::BlockFetched { public_key, block })
+            .send(ConsensusEvent::BlockFetched { peer_id, block })
             .await
             .unwrap();
+        info!(
+            "[TRACE_SYNC] verify_ok_submitted_to_consensus peer_id={} block_id={} block_hash={}",
+            peer_id,
+            block_id,
+            block_hash.to_hex()
+        );
     }
 }
 
@@ -216,14 +172,12 @@ impl ProcessEvent<VerifyRequest> for VerificationThread {
         );
         match request {
             VerifyRequest::Transaction(transaction) => {
-                self.verify_tx(transaction).await;
+                self.verify_transaction(transaction).await;
             }
-            VerifyRequest::Block(block, public_key, block_hash, block_id) => {
-                self.verify_block(block.as_slice(), public_key, block_hash, block_id)
+            VerifyRequest::Block(block, peer_id, block_hash, block_id) => {
+                self.verify_block(block.as_slice(), peer_id, block_hash, block_id)
                     .await;
-            } // VerifyRequest::Transactions(mut txs) => {
-              //     self.verify_txs(&mut txs).await;
-              // }
+            }
         }
 
         Some(())
@@ -231,12 +185,7 @@ impl ProcessEvent<VerifyRequest> for VerificationThread {
 
     async fn on_init(&mut self) {}
 
-    async fn on_stat_interval(&mut self, current_time: Timestamp) {
-        self.processed_msgs.calculate_stats(current_time).await;
-        self.invalid_txs.calculate_stats(current_time).await;
-        self.processed_txs.calculate_stats(current_time).await;
-        self.processed_blocks.calculate_stats(current_time).await;
-    }
+    async fn on_stat_interval(&mut self, _current_time: Timestamp) {}
 
     fn is_ready_to_process(&self) -> bool {
         self.sender_to_consensus.capacity() > CHANNEL_SAFE_BUFFER

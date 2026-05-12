@@ -1,0 +1,12 @@
+cd /Users/trevelyan/Programming/saito/rust 
+export CC=/opt/homebrew/opt/llvm/bin/clang
+cargo build
+cd /Users/trevelyan/Programming/saito/rust/saito-wasm
+npm run build
+cd /Users/trevelyan/Programming/saito/rust/saito-js
+npm run build
+npm link
+rm -rf /Users/trevelyan/Programming/saito/node/node_modules/saito-js
+cd /Users/trevelyan/Programming/saito/node
+npm link saito-js
+

@@ -613,7 +613,7 @@ class RedSquare extends ModTemplate {
 
       if (this.browser_active) {
         //siteMessage('Syncing Redsquare...', 2000);
-        this.main.render();
+        this.main?.render();
       }
     }
   }

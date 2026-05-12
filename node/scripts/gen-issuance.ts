@@ -1,6 +1,6 @@
-import { NodeSharedMethods } from '../lib/saito/core/server';
+import { ServerSharedMethods } from 'saito-js/shared_methods.server';
 import StorageCore from '../lib/saito/core/storage-core';
-import { Saito, parseLogLevel } from '../apps/core';
+import { Saito, parseLogLevel } from '../apps/export';
 import S, { initialize as initS } from 'saito-js/index.node';
 import mods_config from '../config/modules.config.js';
 import Factory from '../lib/saito/factory';
@@ -33,7 +33,7 @@ async function genIssuance() {
 
     await initS(
         app.options,
-        new NodeSharedMethods(app),
+        new ServerSharedMethods(app),
         new Factory(),
         privateKey,
         logLevel,

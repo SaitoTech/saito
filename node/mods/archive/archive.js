@@ -1213,10 +1213,6 @@ class Archive extends ModTemplate {
 			for (let r of rows) {
 				await this.deleteTransaction(r.sig);
 			}
-
-			sql = 'SELECT COUNT(*) FROM archives';
-			rows = await this.app.storage.queryDatabase(sql, {}, 'archive');
-			//console.log(rows);
 		}
 
 		this.archive.last_prune = now;

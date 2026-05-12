@@ -4,6 +4,7 @@ const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const ModTemplate = require('./../../lib/templates/modtemplate');
 const VaultMain = require('./lib/ui/main');
 const VaultHome = require('./index');
+const AccessFileOverlay = require('./lib/ui/overlays/load-nfts.js');
 
 class Vault extends ModTemplate {
 	constructor(app) {
@@ -27,6 +28,17 @@ class Vault extends ModTemplate {
 		this.filename = '';
 		this.file_id = null;
 		this.mode = 'private';
+		this.styles = ['/vault/style.css'];
+
+		this.social = {
+			twitter: '@SaitoOfficial',
+			title: 'Vault - Secure Storage',
+			url: 'https://saito.io/vault',
+			description: 'NFT-based cloud storage',
+			image: 'https://saito.io/vault/img/splash.png'
+		};
+
+		this.access_file_overlay = new AccessFileOverlay(this.app, this.mod);
 	}
 
 	async initialize(app) {
@@ -52,14 +64,17 @@ class Vault extends ModTemplate {
 		if (type === 'saito-header') {
 			let x = [];
 			if (!this.browser_active) {
+				this_mod.attachStyleSheets();
 				x.push({
 					text: 'Vault',
 					icon: this.icon,
 					rank: 105,
-					type: 'navigation',
+					type: 'quicklaunch',
 					callback: function (app, id) {
-						navigateWindow('/vault');
-					}
+						//navigateWindow('/vault');
+						this_mod.access_file_overlay.render();
+					},
+					navigation: '/vault'
 				});
 			}
 			return x;
