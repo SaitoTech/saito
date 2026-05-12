@@ -2440,7 +2440,6 @@ impl Blockchain {
         debug!("blocks to add : {:?}", blocks.len());
 
         while let Some(block) = blocks.pop_front() {
-            let peer_id = block.routed_from_peer_id;
             let block_id = block.id;
 
             let mut mempool = mempool_lock.write().await;
@@ -2550,9 +2549,7 @@ impl Blockchain {
 
                 AddBlockResult::FailedNotValid => {
                     drop(mempool);
-                    if peer_id == peer_id {
-                        // TODO -- notify gatekeeper of invalid block
-                    }
+                    // TODO -- notify gatekeeper of invalid block
                 }
             }
         }
