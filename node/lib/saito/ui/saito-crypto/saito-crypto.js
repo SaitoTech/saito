@@ -7,9 +7,7 @@ const Receive = require('./overlays/receive');
 const Details = require('./overlays/details');
 
 class SaitoCrypto {
-
   constructor(app, mod) {
-
     this.app = app;
     this.mod = mod;
 

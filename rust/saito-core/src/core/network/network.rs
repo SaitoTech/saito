@@ -102,8 +102,8 @@ impl Network {
                 let mut wallet = self.wallet_lock.write().await;
                 wallet.add_to_pending(transaction.clone());
 
-		self.io_interface
-		    .send_interface_event(InterfaceEvent::OnTransactionPending())
+                self.io_interface
+                    .send_interface_event(InterfaceEvent::OnTransactionPending())
             }
         }
 

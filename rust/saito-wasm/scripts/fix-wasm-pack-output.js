@@ -8,19 +8,19 @@ function patchMsgHandlerForWeb(filePath) {
   // Current guarded CommonJS block.
   updated = updated.replace(
     /\nif\s*\(\s*typeof module !== \"undefined\"\s*&&\s*typeof exports !== \"undefined\"\s*&&\s*typeof module\.exports !== \"undefined\"\s*\)\s*\{\s*module\.exports\s*=\s*\{\s*MsgHandler\s*\};\s*\}\n/m,
-    "\n"
+    "\n",
   );
 
   // Previous guarded CommonJS block variant.
   updated = updated.replace(
     /\nconst canAssignCommonJsExports = \(\(\) => \{[\s\S]*?\}\)\(\);\s*\n\s*if \(canAssignCommonJsExports\) \{\s*module\.exports = \{ MsgHandler \};\s*\}\n/m,
-    "\n"
+    "\n",
   );
 
   // Legacy simple CommonJS block variant.
   updated = updated.replace(
     /\nif \(typeof module !== \"undefined\"\) \{\s*module\.exports = \{ MsgHandler \};\s*\}\n/m,
-    "\n"
+    "\n",
   );
 
   if (updated !== original) {
@@ -35,7 +35,9 @@ function run() {
   const snippetsDir = path.join(__dirname, "..", "pkg", "web", "snippets");
 
   if (!fs.existsSync(snippetsDir)) {
-    console.log("No web snippets directory found; skipping wasm web snippet patch.");
+    console.log(
+      "No web snippets directory found; skipping wasm web snippet patch.",
+    );
     return;
   }
 
@@ -47,7 +49,12 @@ function run() {
       continue;
     }
 
-    const msgHandlerPath = path.join(snippetsDir, entry.name, "js", "msg_handler.js");
+    const msgHandlerPath = path.join(
+      snippetsDir,
+      entry.name,
+      "js",
+      "msg_handler.js",
+    );
     if (!fs.existsSync(msgHandlerPath)) {
       continue;
     }
@@ -59,7 +66,9 @@ function run() {
     }
   }
 
-  console.log(`Scanned ${scanned} web msg_handler snippet(s), patched ${patched}.`);
+  console.log(
+    `Scanned ${scanned} web msg_handler snippet(s), patched ${patched}.`,
+  );
 }
 
 run();

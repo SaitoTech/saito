@@ -96,9 +96,7 @@ class SaitoHeader extends UIModTemplate {
                 ? 'rust_pending_txs=0'
                 : `rust_pending_txs=${ptxs.length} ` +
                   ptxs
-                    .map((t) =>
-                      t.signature ? String(t.signature).slice(0, 24) + '…' : '?'
-                    )
+                    .map((t) => (t.signature ? String(t.signature).slice(0, 24) + '…' : '?'))
                     .join(', ');
           } catch (e) {
             pendingTxSummary = `getPendingTxs_err=${e}`;
@@ -116,9 +114,6 @@ class SaitoHeader extends UIModTemplate {
         }
       }
     });
-
-
-
 
     app.connection.on('saito-header-update-message', (obj = {}) => {
       let msg = '';
@@ -812,7 +807,6 @@ class SaitoHeader extends UIModTemplate {
    * *******************************************************
    * *******************************************************/
   async renderCrypto(force = false) {
-
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
     let preferred_crypto = this.app.wallet.returnPreferredCrypto();
     let add = preferred_crypto.returnAddress();
@@ -893,11 +887,9 @@ class SaitoHeader extends UIModTemplate {
     // insert crypto balance
     //
     try {
-
       if (preferred_crypto.isActivated()) {
-
-	let ab = await preferred_crypto.getAvailableBalance();
-	let pb = await preferred_crypto.getPendingBalance();
+        let ab = await preferred_crypto.getAvailableBalance();
+        let pb = await preferred_crypto.getPendingBalance();
 
         try {
           let pendingTxSummary = 'rust_pending_txs=unavailable';
@@ -908,9 +900,7 @@ class SaitoHeader extends UIModTemplate {
                 ? 'rust_pending_txs=0'
                 : `rust_pending_txs=${ptxs.length} ` +
                   ptxs
-                    .map((t) =>
-                      t.signature ? String(t.signature).slice(0, 24) + '…' : '?'
-                    )
+                    .map((t) => (t.signature ? String(t.signature).slice(0, 24) + '…' : '?'))
                     .join(', ');
           } catch (e) {
             pendingTxSummary = `getPendingTxs_err=${e}`;
@@ -927,13 +917,13 @@ class SaitoHeader extends UIModTemplate {
 
         let b_elm = document.querySelector('.balance-amount');
 
-	if (pb !== ab) {
+        if (pb !== ab) {
           b_elm.classList.add('pending');
           b_elm.innerHTML = this.app.browser.returnBalanceHTML(pb);
-	} else {
+        } else {
           b_elm.classList.remove('pending');
           b_elm.innerHTML = this.app.browser.returnBalanceHTML(ab);
-	}
+        }
 
         if (Date.now() - preferred_crypto.history_update_ts > 30000 && !this.checking_history) {
           console.log(

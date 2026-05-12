@@ -78,7 +78,6 @@ class CryptoModule extends ModTemplate {
     return this.checkBalance();
   }
 
-
   /**
    * Saito Module initialize function
    * @param {*} app

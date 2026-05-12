@@ -103,9 +103,7 @@ export default class Wallet extends SaitoWallet {
     // add ghost crypto module so Saito interface available
     ////////////////////////////////////////////////////////
     class SaitoCrypto extends CryptoModule {
-
       constructor(app, publicKey) {
-
         super(app, 'SAITO');
         this.name = 'Saito';
         this.description = 'Saito';
@@ -447,11 +445,10 @@ export default class Wallet extends SaitoWallet {
         unique_hash: string = '',
         memo: string = ''
       ) {
-
         let nolan_amount = this.app.wallet.convertSaitoToNolan(amount);
         let current_balance = await this.getAvailableBalance();
 
-        if ((Number(current_balance) - Number(amount)) < 0) {
+        if (Number(current_balance) - Number(amount) < 0) {
           throw new Error('sendPayment: Attempting to send payment with insufficient balance');
         }
 
@@ -563,13 +560,13 @@ export default class Wallet extends SaitoWallet {
       }
 
       async getAvailableBalance() {
-	let x = await this.app.core.wallet.getAvailableBalance();
-	return this.app.wallet.convertNolanToSaito(x);
+        let x = await this.app.core.wallet.getAvailableBalance();
+        return this.app.wallet.convertNolanToSaito(x);
       }
 
       async getPendingBalance() {
-	let x = await this.app.core.wallet.getPendingBalance();
-	return this.app.wallet.convertNolanToSaito(x);
+        let x = await this.app.core.wallet.getPendingBalance();
+        return this.app.wallet.convertNolanToSaito(x);
       }
 
       async returnBalance() {
@@ -583,7 +580,6 @@ export default class Wallet extends SaitoWallet {
       async checkBalanceUpdate() {
         this.app.connection.emit('saito-header-update-crypto');
       }
-
     }
 
     this.saitoCrypto = new SaitoCrypto(this.app, this.publicKey);

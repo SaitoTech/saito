@@ -27,35 +27,26 @@ export class StunManager {
         peer = await NetworkPeer.create();
       }
 
-// initialize per-peer chain once
-dataChannel.onmessage = (messageEvent) => {
-  // Handle incoming messages
-  if (messageEvent.data instanceof ArrayBuffer) {
-    const buffer = new Uint8Array(messageEvent.data);
-    const inflight = peer._inflight ?? Promise.resolve();
+      // initialize per-peer chain once
+      dataChannel.onmessage = (messageEvent) => {
+        // Handle incoming messages
+        if (messageEvent.data instanceof ArrayBuffer) {
+          const buffer = new Uint8Array(messageEvent.data);
+          const inflight = peer._inflight ?? Promise.resolve();
 
-    peer._inflight = inflight
-      .then(() => {
-        return Saito.getLibInstance()
-          .process_msg_buffer_from_peer(buffer, peer.instance);
-      })
-      .catch((err: any) => {
-        console.error(
-          "STUN process_msg_buffer_from_peer failed for ",
-          publicKey,
-          err
-        );
-      });
+          peer._inflight = inflight
+            .then(() => {
+              return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
+            })
+            .catch((err: any) => {
+              console.error("STUN process_msg_buffer_from_peer failed for ", publicKey, err);
+            });
 
-    console.log("Received message via stun data channel from ", publicKey);
-  } else {
-    console.warn(
-      "Received unexpected data type from STUN peer",
-      publicKey,
-      messageEvent
-    );
-  }
-};
+          console.log("Received message via stun data channel from ", publicKey);
+        } else {
+          console.warn("Received unexpected data type from STUN peer", publicKey, messageEvent);
+        }
+      };
 
       dataChannel.onopen = () => {
         console.log("Data channel is open for STUN peer", publicKey);
@@ -71,11 +62,9 @@ dataChannel.onmessage = (messageEvent) => {
         this.stunPeers.set(publicKey, { peerConnection, publicKey });
         console.log(`Data channel opened and STUN peer added with public key: ${publicKey}`);
 
-if (!Saito.getInstance().peers.has(publicKey)) {
-  Saito.getLibInstance().process_stun_peer(peer.peerId, publicKey);
-}
-
-
+        if (!Saito.getInstance().peers.has(publicKey)) {
+          Saito.getLibInstance().process_stun_peer(peer.peerId, publicKey);
+        }
       };
 
       dataChannel.onerror = (error: any) => {
@@ -109,10 +98,10 @@ if (!Saito.getInstance().peers.has(publicKey)) {
     } else {
       console.warn(`Attempt to remove non-existent STUN peer with index: ${publicKey}`);
     }
-const peer = Saito.getInstance().peers.get(publicKey);
-if (peer) {
-  Saito.getLibInstance().remove_stun_peer(peer.peerId, publicKey);
-}
+    const peer = Saito.getInstance().peers.get(publicKey);
+    if (peer) {
+      Saito.getLibInstance().remove_stun_peer(peer.peerId, publicKey);
+    }
   }
 
   private findPeerIndexByPublicKey(publicKey: string): string | null {
