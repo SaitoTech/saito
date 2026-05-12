@@ -55,7 +55,8 @@ class NFTCryptoModule extends CryptoModule {
     this.nft_id = nft_id;
 
     // Optional explicit image (e.g. injected when mint tx is already loaded)
-    this._nft_logo_opt = typeof opts.image === 'string' && opts.image.trim() ? opts.image.trim() : '';
+    this._nft_logo_opt =
+      typeof opts.image === 'string' && opts.image.trim() ? opts.image.trim() : '';
 
     //
     // Cached logos for header / crypto UI: thumb keeps memory and decode cost down
@@ -203,7 +204,11 @@ class NFTCryptoModule extends CryptoModule {
     if (row.data && typeof row.data.image === 'string' && row.data.image.trim()) {
       return row.data.image.trim();
     }
-    if (row.txmsg?.data && typeof row.txmsg.data.image === 'string' && row.txmsg.data.image.trim()) {
+    if (
+      row.txmsg?.data &&
+      typeof row.txmsg.data.image === 'string' &&
+      row.txmsg.data.image.trim()
+    ) {
       return row.txmsg.data.image.trim();
     }
     return '';
@@ -375,8 +380,8 @@ class NFTCryptoModule extends CryptoModule {
 
     for (let s of slips) {
       try {
-	const raw = s?.amount ?? s?.slip1?.amount ?? 0;
-	total += BigInt(typeof raw === 'bigint' ? raw : String(raw));
+        const raw = s?.amount ?? s?.slip1?.amount ?? 0;
+        total += BigInt(typeof raw === 'bigint' ? raw : String(raw));
       } catch (err) {}
     }
 

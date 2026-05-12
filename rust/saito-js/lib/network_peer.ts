@@ -21,9 +21,9 @@ export default class NetworkPeer extends WasmWrapper<WasmNetworkPeer> {
     console.log("[SAITO CONNECT] NetworkPeer.create → Rust create_network_peer", {
       hasUrl: s.length > 0,
       urlLength: s.length,
-      url: s || "(null/undefined/empty)"
+      url: s || "(null/undefined/empty)",
     });
-    const peer = await wasm.create_network_peer(u,);
+    const peer = await wasm.create_network_peer(u);
     return new NetworkPeer(peer);
   }
 
@@ -43,6 +43,4 @@ export default class NetworkPeer extends WasmWrapper<WasmNetworkPeer> {
     this._publicKey = await this.instance.get_public_key();
     this._url = await this.instance.get_url();
   }
-
 }
-

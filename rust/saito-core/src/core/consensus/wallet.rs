@@ -573,7 +573,7 @@ impl Wallet {
             let mut i = 0;
             while i < tx.to.len() {
                 if tx.is_nft(&tx.to, i) {
-		    // do not count deposits as balance
+                    // do not count deposits as balance
                     //let slip2 = &tx.to[i + 1];
                     //if slip2.public_key == self.public_key {
                     //    pending_return = pending_return.saturating_add(slip2.amount);
@@ -607,11 +607,11 @@ impl Wallet {
             ));
         }
         let joined = parts.join(" | ");
-        info!(
+        debug!(
             "[ PENDING BALANCE ] [ {} | pending_nolan={} | pending_txs_count={} | {} ]",
             context, pending_total, count, joined
         );
-        info!(
+        debug!(
             "[ AVAILABLE BALANCE ] [ {} | available_nolan={} ]",
             context, available
         );
@@ -2043,7 +2043,7 @@ impl Wallet {
     pub fn delete_pending_transaction(&mut self, tx: &Transaction) -> bool {
         let hash = tx.hash_for_signature.unwrap();
         let removed = self.pending_txs.remove(&hash).is_some();
-        info!(
+        debug!(
             "[ PENDING BALANCE ] [ delete_pending_transaction tx_sig={} hash_key={} removed={} remaining_pending_txs={} ]",
             tx.signature.to_hex(),
             hash.to_hex(),

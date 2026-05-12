@@ -472,9 +472,7 @@ class Withdraw {
     const nft = new SaitoNFT(this.app, modStub, null, row);
     await nft.fetchTransaction();
     if (nft.load_failed && !nft.tx) {
-      throw new Error(
-        'Error loading NFT: mint transaction not available (local archive / sync).'
-      );
+      throw new Error('Error loading NFT: mint transaction not available (local archive / sync).');
     }
     return nft;
   }

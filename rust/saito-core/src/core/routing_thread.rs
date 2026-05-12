@@ -761,14 +761,14 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     .iter()
                     .map(|b| format!("{:02x}", b))
                     .collect::<String>();
-                info!(
+                trace!(
                     "[TRACE_SYNC] fetched_from_network peer_id={} block_id={} block_hash={} bytes={}",
                     peer_id,
                     block_id,
                     block_hash.to_hex(),
                     buffer.len()
                 );
-                info!(
+                trace!(
                     "[TRACE_SYNC][SERDE] routing_block_fetched peer_id={} block_id={} block_hash={} bytes={} prefix32={}",
                     peer_id,
                     block_id,
@@ -776,7 +776,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     buffer.len(),
                     prefix_hex
                 );
-                info!(
+                trace!(
                     "[TEMP_SYNC_TRACE][FETCH] fetch success peer_id={} block_id={} block_hash={} bytes={}",
                     peer_id,
                     block_id,
@@ -784,7 +784,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     buffer.len()
                 );
                 debug!("block received : {:?}", block_hash.to_hex());
-                info!(
+                trace!(
                     "[TEMP_SYNC_TRACE][FETCH] submit fetched block to verification peer_id={} block_id={} block_hash={} bytes={}",
                     peer_id,
                     block_id,
@@ -796,7 +796,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     buffer, peer_id, block_hash, block_id,
                 ))
                 .await;
-                info!(
+                trace!(
                     "[TRACE_SYNC] submitted_to_verification peer_id={} block_id={} block_hash={}",
                     peer_id,
                     block_id,
@@ -813,7 +813,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 peer_id,
                 block_id,
             } => {
-                info!(
+                trace!(
                     "[TEMP_SYNC_TRACE][FETCH] fetch fail (network) peer_id={} block_id={} block_hash={}",
                     peer_id,
                     block_id,

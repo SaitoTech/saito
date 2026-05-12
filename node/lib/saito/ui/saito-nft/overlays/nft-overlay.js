@@ -272,8 +272,7 @@ class NFTOverlay {
       }
       const i = parseInt(sel.getAttribute('data-utxo-idx'), 10) - 1;
       const a = this.all_slips[i]?.slip1?.amount;
-      amount_input.value =
-        a == null ? '0' : typeof a === 'bigint' ? a.toString() : String(a);
+      amount_input.value = a == null ? '0' : typeof a === 'bigint' ? a.toString() : String(a);
     };
 
     //
@@ -399,7 +398,6 @@ class NFTOverlay {
               tx_msg
             );
           }
-
 
           //
           // having created the NFT, we now modify its TX_MSG if there are

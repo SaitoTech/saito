@@ -81,7 +81,7 @@ impl VerificationThread {
     ) {
         // debug!("verifying block buffer of size : {:?}", buffer.len());
         let buffer_len = buffer.len();
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] verify_block_start peer_id={} expected_block_id={} expected_block_hash={} bytes={}",
             peer_id,
             block_id,
@@ -105,7 +105,7 @@ impl VerificationThread {
         }
 
         let mut block = result.unwrap();
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] verify_block_deserialize_ok peer_id={} block_id={} block_hash={} tx_count={} bytes={}",
             peer_id,
             block.id,
@@ -146,7 +146,7 @@ impl VerificationThread {
             .send(ConsensusEvent::BlockFetched { peer_id, block })
             .await
             .unwrap();
-        info!(
+        debug!(
             "[TRACE_SYNC] verify_ok_submitted_to_consensus peer_id={} block_id={} block_hash={}",
             peer_id,
             block_id,

@@ -33,7 +33,6 @@ export default class Saito {
   private blockchain: Blockchain | null = null;
   private static wasmMemory: WebAssembly.Memory | null = null;
 
-
   public static async initialize(
     configs: any,
     sharedMethods: SharedMethods,
@@ -48,7 +47,6 @@ export default class Saito {
 
     // @ts-ignore
     globalThis.shared_methods = {
-
       send_message_by_peer_id: (peer_id: bigint, buffer: Uint8Array) => {
         return sharedMethods.sendMessageByPeerId(peer_id, buffer);
       },
@@ -88,12 +86,7 @@ export default class Saito {
       disconnect_from_peer: (peer_id: bigint) => {
         return sharedMethods.disconnectFromPeer(peer_id);
       },
-      fetch_block_from_peer: (
-        hash: Uint8Array,
-        peer_id: bigint,
-        url: string,
-        block_id: bigint
-      ) => {
+      fetch_block_from_peer: (hash: Uint8Array, peer_id: bigint, url: string, block_id: bigint) => {
         const expectedHash = Array.from(hash)
           .map((b) => b.toString(16).padStart(2, "0"))
           .join("");
@@ -262,7 +255,6 @@ export default class Saito {
     const factory = this.factory;
     let wallet = undefined;
     if (wasmWallet) {
-
       const wrapTx = <T extends Transaction>(fn: Function) => {
         return async (...args: any[]): Promise<T> => {
           const wasmTx = await fn(...args);
@@ -287,9 +279,7 @@ export default class Saito {
         };
       };
       wallet = Object.create(wasmWallet);
-      wallet.createTransaction = wrapTx(
-        wasmWallet.createTransaction.bind(wasmWallet)
-      );
+      wallet.createTransaction = wrapTx(wasmWallet.createTransaction.bind(wasmWallet));
 
       wallet.createTransactionWithMultiplePayments = wrapTx(
         wasmWallet.createTransactionWithMultiplePayments.bind(wasmWallet)
@@ -329,10 +319,7 @@ export default class Saito {
       );
 
       wallet.createMergeBoundTransaction = wrapTx(
-        bindAndConvert(wasmWallet.createMergeBoundTransaction, [
-          "nft_id_hex",
-          "tx_msg",
-        ])
+        bindAndConvert(wasmWallet.createMergeBoundTransaction, ["nft_id_hex", "tx_msg"])
       );
 
       wallet.createAtomizeBoundTransaction = wrapTx(
@@ -363,10 +350,8 @@ export default class Saito {
           "tx_msg",
         ])
       );
-
     }
     modified_wallet = wallet;
-
 
     // -------------------------
     // NETWORK
@@ -630,7 +615,6 @@ export default class Saito {
     } catch (error) {
       console.error("failed removing socket", error);
     }
-
   }
 
   public async initialize(configs: any): Promise<any> {
@@ -647,24 +631,16 @@ export default class Saito {
     }
   }
 
-  public async processMsgBufferFromPeer(
-    buffer: Uint8Array,
-    peer: NetworkPeer
-  ): Promise<void> {
+  public async processMsgBufferFromPeer(buffer: Uint8Array, peer: NetworkPeer): Promise<void> {
     // initialize per-peer chain once
     const inflight = peer._inflight ?? Promise.resolve();
     peer._inflight = inflight
       .then(() => {
-        return Saito.getLibInstance()
-          .process_msg_buffer_from_peer(buffer, peer.instance);
+        return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
       })
       .catch((err: any) => {
-        console.error(
-          "process_msg_buffer_from_peer failed for peer:",
-          peer.publicKey,
-          err
-        );
-    });
+        console.error("process_msg_buffer_from_peer failed for peer:", peer.publicKey, err);
+      });
     return peer._inflight;
   }
 
