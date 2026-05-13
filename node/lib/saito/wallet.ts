@@ -1619,11 +1619,12 @@ export default class Wallet extends SaitoWallet {
         let slip3_utxokey = nft.slip3.utxo_key;
         let id = nft.id;
         let tx_sig = nft.tx_sig;
+	let ticker = nft.ticker || "";
 
         //
         // Nft is improper, but requires rationalization elsewhere
         //
-        this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig);
+        this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig, ticker);
       }
     }
 
@@ -1648,6 +1649,7 @@ export default class Wallet extends SaitoWallet {
       slip2: any;
       slip3: any;
       tx_sig: string;
+      ticker?: string;
     }> = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
     // console.log('UPDATE NFT LIST from Rust: ', nfts);
@@ -1677,7 +1679,7 @@ export default class Wallet extends SaitoWallet {
     };
 
     const stripSlipLike = (it: any) => {
-      const { slip1, slip2, slip3, tx_sig, ...rest } = it ?? {};
+      const { slip1, slip2, slip3, tx_sig, ticker, ...rest } = it ?? {};
       return rest;
     };
     const signature = (it: any) => JSON.stringify(stripSlipLike(it));
@@ -2006,9 +2008,12 @@ export default class Wallet extends SaitoWallet {
           for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
             let nft = this.app.options.wallet.nfts[z];
             if (nft.id == nft_id) {
-              ticker = `NFT-${this.app.crypto.hash(nft_id).slice(0, 6)}`;
-            }
-          }
+	      ticker = nft.ticker?.trim();
+	      if (!ticker) {
+                ticker = `NFT-${this.app.crypto.hash(nft_id).slice(0, 6)}`;
+      	      }
+      	    }
+    	  }
 
           if (this.returnCryptoModuleByTicker(ticker) || ticker == '') {
             continue;

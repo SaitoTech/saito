@@ -60,6 +60,8 @@ pub struct NFT {
     pub id: Vec<u8>,
     #[serde(with = "crate::core::defs::saito_signature_serde")]
     pub tx_sig: SaitoSignature,
+    #[serde(default)]
+    pub ticker: String,
 }
 
 impl Default for NFT {
@@ -70,27 +72,7 @@ impl Default for NFT {
             slip3: [0; UTXO_KEY_LENGTH], // bound
             id: vec![],
             tx_sig: [0; 64],
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct DetailedNFT {
-    pub slip1: Slip,
-    pub slip2: Slip,
-    pub slip3: Slip,
-    pub id: Vec<u8>,
-    pub tx_sig: SaitoSignature,
-}
-
-impl Default for DetailedNFT {
-    fn default() -> Self {
-        DetailedNFT {
-            slip1: Slip::default(),
-            slip2: Slip::default(),
-            slip3: Slip::default(),
-            id: Vec::new(),
-            tx_sig: [0u8; 64],
+            ticker: String::new(),
         }
     }
 }
@@ -337,6 +319,7 @@ impl Wallet {
                                 slip3.utxoset_key,
                                 slip3.public_key.to_vec(),
                                 tx.signature,
+                                Self::extract_nft_ticker_from_tx(tx),
                             );
 
                             wallet_changed |= WALLET_UPDATED;
@@ -429,6 +412,7 @@ impl Wallet {
                             slip3.utxoset_key,
                             slip3.public_key.to_vec(),
                             tx.signature,
+                            Self::extract_nft_ticker_from_tx(tx),
                         );
 
                         debug!(
@@ -2287,29 +2271,21 @@ impl Wallet {
         Ok((selected_staking_inputs, outputs))
     }
 
-    pub fn get_nft_list(&self) -> Vec<DetailedNFT> {
-        self.nfts
-            .iter()
-            .map(|nft| {
-                //
-                // parse each utxokey back into a Slip
-                //
-                let s1 = Slip::parse_slip_from_utxokey(&nft.slip1)
-                    .expect("bound utxokey must parse to Slip");
-                let s2 = Slip::parse_slip_from_utxokey(&nft.slip2)
-                    .expect("normal utxokey must parse to Slip");
-                let s3 = Slip::parse_slip_from_utxokey(&nft.slip3)
-                    .expect("bound utxokey must parse to Slip");
+    fn extract_nft_ticker_from_tx(tx: &Transaction) -> String {
+        let json_str = String::from_utf8_lossy(&tx.data);
+        let json_str = json_str.trim();
 
-                DetailedNFT {
-                    id: nft.id.clone(),
-                    tx_sig: nft.tx_sig,
-                    slip1: s1,
-                    slip2: s2,
-                    slip3: s3,
-                }
-            })
-            .collect()
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(json_str) {
+            if let Some(ticker) = v["ticker"].as_str() {
+                return ticker.to_string();
+            }
+
+            if let Some(ticker) = v["data"]["ticker"].as_str() {
+                return ticker.to_string();
+            }
+        }
+
+        String::new()
     }
 
     pub fn add_nft(
@@ -2319,6 +2295,7 @@ impl Wallet {
         slip3: SaitoUTXOSetKey,
         id: Vec<u8>,
         tx_sig: SaitoSignature,
+        ticker: String,
     ) {
         //
         // construct the NFT we’d like to insert
@@ -2329,6 +2306,7 @@ impl Wallet {
             slip3,
             id,
             tx_sig,
+            ticker,
         };
 
         //
