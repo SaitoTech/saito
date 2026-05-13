@@ -1752,7 +1752,11 @@ info!("Add Block Info -- new chain doesn't validate!");
         self.upgrade_blocks_for_wind_chain(storage, configs, block_hash)
             .await;
 
-        let mut does_block_validate = self.validate_total_supply(configs).await;
+        let mut does_block_validate = if wind_failure {
+            true
+        } else {
+            self.validate_total_supply(configs).await
+        };
 
         let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
         let validate_against_utxo = self.has_total_supply_loaded(genesis_period);
@@ -1774,11 +1778,13 @@ info!("Add Block Info -- new chain doesn't validate!");
             return WindingResult::FinishWithFailure;
         }
 
-        debug!("winding hash validates: {:?}", block_hash.to_hex());
+        if !wind_failure {
+            debug!("winding hash validates: {:?}", block_hash.to_hex());
 
-        does_block_validate &= block
-            .validate(self, configs, storage, validate_against_utxo)
-            .await;
+            does_block_validate &= block
+                .validate(self, configs, storage, validate_against_utxo)
+                .await;
+        }
 
         if !does_block_validate {
             debug!("latest_block_id = {:?}", self.get_latest_block_id());
@@ -1880,6 +1886,12 @@ info!("Add Block Info -- new chain doesn't validate!");
                 block.id,
                 block.hash.to_hex()
             );
+            if wind_failure {
+                warn!(
+                    "failed while rewinding the original chain after a wind failure; stopping validation to avoid retry loop"
+                );
+                return WindingResult::FinishWithFailure;
+            }
             if current_wind_index == new_chain.len() - 1 {
                 // this is the first block we have tried to add
                 // and so we can just roll out the older chain
@@ -5520,6 +5532,41 @@ mod tests {
 
         let result = bc
             .wind_chain(&[], &[], 0, true, &t.storage, &*config, &mut mempool, None)
+            .await;
+
+        assert!(matches!(result, WindingResult::FinishWithFailure));
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn wind_chain_failure_flag_with_validation_failure_stops_retry_loop() {
+        let mut t = TestManager::default();
+        t.initialize(100, 720_000).await;
+
+        let blockchain_lock = t.blockchain_lock.clone();
+        let mempool_lock = t.mempool_lock.clone();
+        let config_lock = t.config_lock.clone();
+
+        let mut bc = blockchain_lock.write().await;
+        let mut mempool = mempool_lock.write().await;
+        let config = config_lock.read().await;
+
+        let latest_hash = bc.get_latest_block_hash();
+        bc.initial_token_supply = 1;
+        let new_chain = [latest_hash];
+        let old_chain = [[42; 32]];
+
+        let result = bc
+            .wind_chain(
+                &new_chain,
+                &old_chain,
+                0,
+                true,
+                &t.storage,
+                &*config,
+                &mut mempool,
+                None,
+            )
             .await;
 
         assert!(matches!(result, WindingResult::FinishWithFailure));
