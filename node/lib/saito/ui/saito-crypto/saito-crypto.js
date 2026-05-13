@@ -20,10 +20,11 @@ class SaitoCrypto {
     //'saito-crypto-history-render-request'
     this.history_overlay = new History(app, mod);
 
-    //'saito-crypto-send-render-request' / 'saito-crypto-send-confirm' (games / modules)
+    // Games: `saito-crypto-send-render-request` → Send (validate) → `saito-crypto-send-confirm-open-request` → Confirm + mycallback
+    //        `saito-crypto-send-confirm` → result UI
     this.send_confirm_overlay = new Confirm(app, mod);
 
-    // Wallet send form (future); not wired to game events
+    // Send: sole subscriber to legacy send-render-request; forwards to Confirm
     this.send_overlay = new Send(app, mod);
 
     //'saito-crypto-receive-render-request'

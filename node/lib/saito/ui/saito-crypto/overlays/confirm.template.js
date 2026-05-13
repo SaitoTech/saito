@@ -58,6 +58,7 @@ module.exports = function cryptoSendConfirmOverlayTemplate() {
       </footer>
 
       <footer class="crypto-send-confirm-overlay__footer crypto-send-confirm-overlay__footer--interactive">
+        <p class="crypto-send-confirm-overlay__countdown-inline" id="crypto_send_confirm_interactive_countdown" hidden></p>
         <button
           type="button"
           class="button saito-button-primary crypto_transfer_btn crypto-send-confirm-overlay__close-btn"
