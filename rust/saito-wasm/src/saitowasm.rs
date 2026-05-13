@@ -453,12 +453,12 @@ pub async fn get_nft_list() -> Result<Array, JsValue> {
     let saito = SAITO.lock().await;
     let wallet = saito.as_ref().unwrap().context.wallet_lock.read().await;
 
-let js_array = Array::new_with_length(wallet.nfts.len() as u32);
+    let js_array = Array::new_with_length(wallet.nfts.len() as u32);
 
-for (id, nft) in wallet.nfts.iter().enumerate() {
-    let w = WasmNFT::from_wallet_nft(nft);
-    js_array.set(id as u32, w.into());
-}
+    for (id, nft) in wallet.nfts.iter().enumerate() {
+        let w = WasmNFT::from_wallet_nft(nft);
+        js_array.set(id as u32, w.into());
+    }
 
     Ok(js_array)
 }

@@ -1,7 +1,7 @@
 use crate::wasm_slip::WasmSlip;
 use js_sys::Uint8Array;
-use saito_core::core::consensus::wallet::NFT;
 use saito_core::core::consensus::slip::Slip;
+use saito_core::core::consensus::wallet::NFT;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -62,7 +62,7 @@ impl WasmNFT {
 
     #[wasm_bindgen(setter)]
     pub fn set_slip1(&mut self, ws: &WasmSlip) {
-	self.nft.slip1 = ws.slip.get_utxoset_key();
+        self.nft.slip1 = ws.slip.get_utxoset_key();
     }
 
     #[wasm_bindgen(getter)]
@@ -74,7 +74,7 @@ impl WasmNFT {
 
     #[wasm_bindgen(setter)]
     pub fn set_slip2(&mut self, ws: &WasmSlip) {
-	self.nft.slip2 = ws.slip.get_utxoset_key();
+        self.nft.slip2 = ws.slip.get_utxoset_key();
     }
 
     #[wasm_bindgen(getter)]
@@ -86,14 +86,12 @@ impl WasmNFT {
 
     #[wasm_bindgen(setter)]
     pub fn set_slip3(&mut self, ws: &WasmSlip) {
-	self.nft.slip3 = ws.slip.get_utxoset_key();
+        self.nft.slip3 = ws.slip.get_utxoset_key();
     }
 }
 
 impl WasmNFT {
-pub fn from_wallet_nft(nft: &NFT) -> WasmNFT {
-    WasmNFT {
-        nft: nft.clone(),
+    pub fn from_wallet_nft(nft: &NFT) -> WasmNFT {
+        WasmNFT { nft: nft.clone() }
     }
-}
 }

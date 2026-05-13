@@ -92,66 +92,22 @@ export default class Wallet extends WasmWrapper<WasmWallet> {
     await this.instance.add_to_pending(tx2.wasmTransaction);
   }
 
-    public async addSlips(slips: WalletSlip[]) {
-        for (const slip of slips) {
-            await this.instance.add_slip(slip.instance);
-        }
-    }
-
-    public async getKeyList(): Promise<string[]> {
-        return this.instance.get_key_list();
-    }
-
-    public async setKeyList(keylist: string[]) {
-        await this.instance.set_key_list(keylist);
-    }
-
-    public async addToPending(tx: Transaction) {
-        let tx2 = tx.clone();
-        await this.instance.add_to_pending(tx2.wasmTransaction);
-    }
-
-    public async addNft(
-      slip1UtxoKeyHex: string,
-      slip2UtxoKeyHex: string,
-      slip3UtxoKeyHex: string,
-      idHex: string,
-      txSigHex: string,
-      ticker: string = "",
-    ): Promise<void> {
-      try {
-        await this.instance.add_nft(
-          slip1UtxoKeyHex,
-          slip2UtxoKeyHex,
-          slip3UtxoKeyHex,
-          idHex,
-          txSigHex,
-	  ticker,
-        );
-      } catch (err) {
-        console.error("wasm add_nft failed:", err);
-        throw err;
-      }
-    }
-
-    public async createNFTTransaction(
-      recipientPublicKey: string,
-      nftAmount: bigint,
-      nftUuid: string,
-      fee: bigint = BigInt(0),
-      saitoDeposit: bigint = BigInt(0),
-      txMsg: object = {}
-    ) {
-      const payload = new Uint8Array(
-        Buffer.from(JSON.stringify(txMsg ?? {}), "utf-8")
-      );
-      return this.instance.createNFTTransaction(
-        recipientPublicKey,
-        nftAmount,
-        nftUuid,
-        fee,
-        saitoDeposit,
-        payload
+  public async addNft(
+    slip1UtxoKeyHex: string,
+    slip2UtxoKeyHex: string,
+    slip3UtxoKeyHex: string,
+    idHex: string,
+    txSigHex: string,
+    ticker: string = "",
+  ): Promise<void> {
+    try {
+      await this.instance.add_nft(
+        slip1UtxoKeyHex,
+        slip2UtxoKeyHex,
+        slip3UtxoKeyHex,
+        idHex,
+        txSigHex,
+        ticker,
       );
     } catch (err) {
       console.error("wasm add_nft failed:", err);

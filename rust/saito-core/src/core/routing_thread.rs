@@ -872,11 +872,31 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             }
             RoutingEvent::MissingBlock(peer_id, block_hash, block_id) => {
                 trace!(
-                    "[TEMP_SYNC] - missing block requested by blockchain from peer : {:?} for block : {:?}-{:?}",
-                    peer_id,
-                    block_hash.to_hex(),
-                    block_id
-                );
+        "[TEMP_SYNC] - missing block requested by blockchain from peer : {:?} for block : {:?}-{:?}",
+        peer_id,
+        block_hash.to_hex(),
+        block_id
+    );
+
+                let skip_missing_fetch = {
+                    let peers = self.network.peer_lock.read().await;
+                    peers.peers.values().any(|p| p.is_connected && p.is_syncing)
+                };
+
+                //
+                // if any nodes are syncing and connected, we want to let them finish
+                // before we start combing backwards from downloaded blocks, as this
+                // will disrupt the block fetch process...
+                //
+                if skip_missing_fetch {
+                    trace!(
+            "[TEMP_SYNC] - skipping MissingBlock fetch while peer(s) syncing (block_id={} hash={})",
+            block_id,
+            block_hash.to_hex()
+        );
+                    return None;
+                }
+
                 let mut sync = self.sync.write().await;
                 sync.add(
                     &self.network,
