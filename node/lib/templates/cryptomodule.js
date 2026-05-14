@@ -194,6 +194,7 @@ class CryptoModule extends ModTemplate {
   // BROWSER ONLY!!!
   //////////////////////////
   receivePaymentTransaction(tx) {
+
     let txmsg = tx.returnMessage();
 
     let role = 'Unknown';
@@ -394,10 +395,10 @@ class CryptoModule extends ModTemplate {
    * load state of this module from local storage
    */
   async load() {
+
     //
     // info stored in options file
     //
-
     if (this.app?.options?.crypto) {
       if (this.app.options.crypto[this.ticker]) {
         this.options = this.app.options.crypto[this.ticker];
