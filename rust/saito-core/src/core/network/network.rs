@@ -7,14 +7,14 @@ use crate::core::consensus::block::Block;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
-use crate::core::network::interface_io::InterfaceEvent;
-use crate::core::network::interface_io::InterfaceIO;
+use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::network::msg::block::BlockReference;
 use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::RequestServices;
 use crate::core::network::peers::Peers;
 use crate::core::process::keep_time::Timer;
 use crate::core::util::configuration::Configuration;
+use serde_json::json;
 
 const RECONNECTION_PERIOD: Timestamp = 5_000;
 const HANDSHAKE_TIMEOUT: Timestamp = 15_000; // 15 seconds
@@ -84,6 +84,7 @@ impl Network {
     }
 
     pub async fn propagate_transaction(&self, transaction: &Transaction) {
+
         // --- STEP 1: read wallet ---
         let (wallet_public_key, wallet_private_key) = {
             let wallet = self.wallet_lock.read().await;
@@ -143,6 +144,8 @@ impl Network {
             out
         }; // LOCK DROPPED HERE
 
+        let peer_send_count = targets.len();
+
         // --- STEP 4: send outside lock ---
         for (peer_public_key, buffer) in targets {
             let _ = self
@@ -150,6 +153,14 @@ impl Network {
                 .send_message(peer_public_key, buffer.as_slice())
                 .await;
         }
+
+        let sent_payload = serde_json::to_string(&json!({
+            "transaction_signature": transaction.signature.to_hex(),
+            "peer_send_count": peer_send_count,
+        }))
+        .unwrap_or_else(|_| "{}".to_string());
+        self.io_interface
+            .send_interface_event(InterfaceEvent::OnTransactionSent(sent_payload));
     }
 
     pub async fn cleanup_peers(&self, current_time: Timestamp) {

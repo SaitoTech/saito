@@ -15,6 +15,7 @@ use crate::core::util::crypto::{generate_keys, hash, sign};
 use ahash::{AHashMap, AHashSet};
 use log::{debug, error, info, trace, warn};
 use serde::Serialize;
+use serde_json::json;
 use std::fmt::Display;
 use std::io::{Error, ErrorKind};
 
@@ -216,6 +217,7 @@ impl Wallet {
         block: &Block,
         lc: bool,
         genesis_period: BlockId,
+        io: Option<&(dyn InterfaceIO + Send + Sync)>,
     ) -> WalletUpdateStatus {
         let mut wallet_changed = WALLET_NOT_UPDATED;
         debug!(
@@ -246,6 +248,9 @@ impl Wallet {
 
             for tx in block.transactions.iter() {
                 trace!("Processing transaction: {:?}", tx.signature.to_hex());
+
+                let mut emitted_chain_tx_sent = false;
+
                 //
                 // Process inputs first: remove spent slips and NFT groups
                 //
@@ -268,6 +273,26 @@ impl Wallet {
                                 && nft.slip3 == slip3.utxoset_key
                         }) {
                             self.nfts.remove(pos);
+
+                            if let Some(io) = io {
+                                let payload = serde_json::to_string(&json!({
+                                    "block_id": block.id,
+                                    "block_hash": block.hash.to_hex(),
+                                    "timestamp": block.timestamp,
+                                    "transaction_signature": tx.signature.to_hex(),
+                                    "ticker": Self::extract_nft_ticker_from_tx(tx),
+                                    "nft_id": slip3.public_key.to_base58(),
+                                    "nft_amount": slip1.amount,
+                                    "saito_deposit": slip2.amount,
+                                    "slip1_utxo": slip1.utxoset_key.to_hex(),
+                                    "slip2_utxo": slip2.utxoset_key.to_hex(),
+                                    "slip3_utxo": slip3.utxoset_key.to_hex(),
+                                    "sender_publickey": self.public_key.to_base58(),
+                                }))
+                                .unwrap_or_else(|_| "{}".to_string());
+                                io.send_interface_event(InterfaceEvent::OnNFTSent(payload));
+                            }
+
                             debug!(
                                 "Removed sent NFT with UTXO keys: {:?}, {:?}, {:?}",
                                 slip1.utxoset_key.to_hex(),
@@ -287,10 +312,26 @@ impl Wallet {
                             self.delete_slip(input, None);
                         }
                         //
-                        // Also remove from pending if present
+                        // Also remove from pending if present (at most one success per tx)
                         //
                         if self.delete_pending_transaction(tx) {
                             wallet_changed |= WALLET_UPDATED;
+                            if let Some(io) = io {
+                                if !emitted_chain_tx_sent {
+                                    emitted_chain_tx_sent = true;
+                                    let payload = serde_json::to_string(&json!({
+                                        "block_id": block.id,
+                                        "block_hash": block.hash.to_hex(),
+                                        "timestamp": block.timestamp,
+                                        "transaction_signature": tx.signature.to_hex(),
+                                        "transaction_type": format!("{:?}", tx.transaction_type),
+                                    }))
+                                    .unwrap_or_else(|_| "{}".to_string());
+                                    io.send_interface_event(InterfaceEvent::OnTransactionSent(
+                                        payload,
+                                    ));
+                                }
+                            }
                         }
                         i += 1;
                     }
@@ -322,6 +363,30 @@ impl Wallet {
                                 Self::extract_nft_ticker_from_tx(tx),
                             );
 
+                            if let Some(io) = io {
+                                let sender = tx
+                                    .from
+                                    .first()
+                                    .map(|s| s.public_key.to_base58())
+                                    .unwrap_or_default();
+                                let payload = serde_json::to_string(&json!({
+                                    "block_id": block.id,
+                                    "block_hash": block.hash.to_hex(),
+                                    "timestamp": block.timestamp,
+                                    "transaction_signature": tx.signature.to_hex(),
+                                    "ticker": Self::extract_nft_ticker_from_tx(tx),
+                                    "nft_id": slip3.public_key.to_base58(),
+                                    "nft_amount": slip1.amount,
+                                    "saito_deposit": slip2.amount,
+                                    "slip1_utxo": slip1.utxoset_key.to_hex(),
+                                    "slip2_utxo": slip2.utxoset_key.to_hex(),
+                                    "slip3_utxo": slip3.utxoset_key.to_hex(),
+                                    "sender_publickey": sender,
+                                }))
+                                .unwrap_or_else(|_| "{}".to_string());
+                                io.send_interface_event(InterfaceEvent::OnNFTReceived(payload));
+                            }
+
                             wallet_changed |= WALLET_UPDATED;
                         }
                         i += 3;
@@ -330,6 +395,27 @@ impl Wallet {
                         // Handle normal output slips
                         //
                         if output.public_key == self.public_key && output.amount > 0 {
+                            if let Some(io) = io {
+                                let sender = tx
+                                    .from
+                                    .first()
+                                    .map(|s| s.public_key.to_base58())
+                                    .unwrap_or_default();
+                                let payload = serde_json::to_string(&json!({
+                                    "block_id": block.id,
+                                    "block_hash": block.hash.to_hex(),
+                                    "timestamp": block.timestamp,
+                                    "transaction_signature": tx.signature.to_hex(),
+                                    "transaction_type": format!("{:?}", tx.transaction_type),
+                                    "amount": output.amount,
+                                    "sender_publickey": sender,
+                                }))
+                                .unwrap_or_else(|_| "{}".to_string());
+                                io.send_interface_event(InterfaceEvent::OnTransactionReceived(
+                                    payload,
+                                ));
+                            }
+
                             wallet_changed |= WALLET_UPDATED;
                             self.add_slip(output, true, None);
                         }

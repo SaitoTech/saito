@@ -26,8 +26,9 @@ use crate::core::defs::{
     MIN_GOLDEN_TICKETS_NUMERATOR, PROJECT_PUBLIC_KEY, RECOLLECT_EVERY_TX, RECOLLECT_NOTHING,
     RECOLLECT_TXS_WITH_FEES,
 };
+
 use crate::core::mining_thread::MiningEvent;
-use crate::core::network::interface_io::InterfaceEvent;
+use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::network::network::Network;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::storage::storage::Storage;
@@ -1718,7 +1719,9 @@ impl Blockchain {
                     block,
                     true,
                     configs.get_consensus_config().unwrap().genesis_period,
+                    network.map(|n| n.io_interface.as_ref()),
                 );
+
             }
             let block_id = block.id;
 
@@ -2093,6 +2096,7 @@ impl Blockchain {
                 block,
                 false,
                 configs.get_consensus_config().unwrap().genesis_period,
+                network.map(|n| n.io_interface.as_ref()),
             );
         }
         wallet_updated |= self
