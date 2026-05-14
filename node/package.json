@@ -18,6 +18,7 @@
     ".saito": "node ./scripts/dynmods/compile.js",
     "reset": " ./scripts/compile reset",
     "compile": " ./scripts/compile recompile",
+    "linklocal": "bash scripts/link-local.sh",
     "modules": " ./scripts/modules.sh",
     "mods": " ./scripts/modules.sh",
     "old": " webpack --config ./webpack/old/.config.js",
