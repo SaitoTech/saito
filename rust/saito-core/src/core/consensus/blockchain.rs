@@ -613,23 +613,73 @@ info!("Add Block Info - blockring set to empty");
             );
             self.blocks.get_mut(&block_hash).unwrap().in_longest_chain = true;
 
-            let (mut does_new_chain_validate, wallet_updated) = self
-                .validate(
-                    new_chain.as_slice(),
-                    old_chain.as_slice(),
-                    storage,
-                    configs,
-                    mempool,
-                    network,
-                )
-                .await;
+
+
+
+
+info!(
+    "[BOOTSTRAP_TRACE][VALIDATE_START] \
+block_id={} \
+block_hash={} \
+new_chain_len={} \
+old_chain_len={} \
+latest_block_id={} \
+blockring_empty={} \
+initial_loading_status={:?}",
+    block_id,
+    block_hash.to_hex(),
+    new_chain.len(),
+    old_chain.len(),
+    self.get_latest_block_id(),
+    self.blockring.is_empty(),
+    configs.get_blockchain_configs().initial_loading_status,
+);
+
+let (mut does_new_chain_validate, wallet_updated) = self
+    .validate(
+        new_chain.as_slice(),
+        old_chain.as_slice(),
+        storage,
+        configs,
+        mempool,
+        network,
+    )
+    .await;
+
+info!(
+    "[BOOTSTRAP_TRACE][VALIDATE_RESULT] \
+block_id={} \
+block_hash={} \
+does_new_chain_validate={} \
+wallet_updated={:?} \
+latest_block_id_after={} \
+blockring_empty_after={}",
+    block_id,
+    block_hash.to_hex(),
+    does_new_chain_validate,
+    wallet_updated,
+    self.get_latest_block_id(),
+    self.blockring.is_empty(),
+);
 
             does_new_chain_validate &= self.validate_total_supply(configs).await;
+
+
+info!(
+    "[BOOTSTRAP_TRACE][SUPPLY_RESULT] \
+block_id={} \
+block_hash={} \
+does_new_chain_validate_after={}",
+    block_id,
+    block_hash.to_hex(),
+    does_new_chain_validate,
+);
 
             if does_new_chain_validate {
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
 
+info!("Add Block Info -- new chain validates!");
                 AddBlockResult::BlockAddedSuccessfully(
                     block_hash,
                     true,
@@ -637,6 +687,7 @@ info!("Add Block Info - blockring set to empty");
                     new_chain_detected,
                 )
             } else {
+info!("Add Block Info -- new chain doesn't validate!");
                 warn!(
                     "new chain doesn't validate with hash : {:?}",
                     block_hash.to_hex()
@@ -646,7 +697,7 @@ info!("Add Block Info - blockring set to empty");
                 AddBlockResult::FailedNotValid
             }
         } else {
-            info!("Add Block Info - this is not the longest chain");
+            info!("Add Block Info - add block success, but this is not the longest chain");
 
             self.add_block_success(block_hash, storage, mempool, configs)
                 .await;
@@ -1661,7 +1712,8 @@ info!("Add Block Info - blockring set to empty");
         mempool: &mut Mempool,
         network: Option<&Network>,
     ) -> WindingResult<'a> {
-        // trace!(" ... blockchain.wind_chain strt: {:?}", create_timestamp());
+
+        info!(" ... blockchain.wind_chain start!");
 
         debug!(
             "wind_chain: current_wind_index : {:?} new_chain_len: {:?} old_chain_len: {:?} failed : {:?}",
