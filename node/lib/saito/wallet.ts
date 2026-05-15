@@ -282,23 +282,16 @@ export default class Wallet extends SaitoWallet {
 	// handled through event emission from saito-core now
       }
 
-      // Native $SAITO doesn't need to be installed/activated to become available
       isActivated() {
         return true;
       }
 
-      //returns a Promise!
       returnPrivateKey() {
-        return this.app.wallet.getPrivateKey();
+        return this.app.wallet.getPrivateKey(); // return Promise
       }
 
-      checkWithdrawalFeeForAddress(
-        address = '',
-        mycallback: ((fee: string) => void) | null = null
-      ) {
-        if (mycallback) {
-          mycallback(this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee));
-        }
+      checkWithdrawalFeeForAddress(address = '', mycallback: ((fee: string) => void) | null = null) {
+        if (mycallback) { mycallback(this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee)); }
       }
 
       //
@@ -344,7 +337,6 @@ export default class Wallet extends SaitoWallet {
         /*
           we think this should be useful in real time, but if we import the private key, 
           we end up rerunning a bunch of lite blocks and then duplicating chunks of transactions
-
         */
 
         if (obj.timestamp < this.history_update_ts) {

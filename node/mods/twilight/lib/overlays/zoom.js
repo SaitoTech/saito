@@ -38,9 +38,6 @@ class ZoomOverlay {
 
     if (!originalBoard) { return; }
 
-    //
-    // clone board
-    //
     if (!boardClone) {
       boardClone = originalBoard.cloneNode(true);
       boardClone.removeAttribute('id');
@@ -49,67 +46,71 @@ class ZoomOverlay {
       container.appendChild(boardClone);
     }
 
-    //
-    // allow drag panning
-    //
-    if (typeof $ !== "undefined" && $('.gameboard-clone').draggable) {
-      $('.gameboard-clone').draggable({});
+    if (typeof $ !== 'undefined' && $.fn.draggable) {
+      $('.gameboard-clone').draggable({
+        cancel: '.country, .country *'
+      });
     }
 
     this.attachEvents();
   }
 
-  //
-  // Event Handling
-  //
-
   attachEvents() {
 
     if (!this.mod.countries) { return; }
 
+    const jq = (typeof jQuery !== 'undefined') ? jQuery : $;
+
     for (let key in this.mod.countries) {
 
-      let selector = `.zoom-overlay .gameboard-clone .${key}`;
-      let el = document.querySelector(selector);
-
+      let el = document.querySelector(`.zoom-overlay .gameboard-clone .${key}`);
       if (!el) { continue; }
 
-      el.onclick = (e) => {
+      const country_id = key;
 
-        let country_id = e.currentTarget.id;
+      el.onmouseup = (e) => {
+        e.stopPropagation();
 
-        //
-        // Selection mode
-        //
         if (this.spaces_onclick_callback) {
-
           let selectable = false;
           document.querySelectorAll(`.${key}`).forEach((node) => {
             if (node.classList.contains('selectable')) {
               selectable = true;
             }
           });
-
           if (selectable) {
             this.spaces_onclick_callback(country_id);
           }
-
-        } else {
-
-  	  //
-  	  // forward click to real board
-  	  //
-  	  let real = document.querySelector(`.gameboard #${country_id}`);
-  	  if (real) {
-	    const opts = { bubbles: true, cancelable: true, view: window, clientX: e.clientX, clientY: e.clientY };
-  	    real.dispatchEvent(new MouseEvent('mousedown', opts));
-  	    real.dispatchEvent(new MouseEvent('mouseup', opts));
-  	  }
-
+          return;
         }
+
+        this.forwardPlacementToGameboard(country_id, jq);
       };
     }
   }
+
+  forwardPlacementToGameboard(country_id, jq) {
+
+    const board = document.getElementById('gameboard');
+    if (!board || !jq) { return; }
+
+    const real = board.querySelector(`#${country_id}.country`);
+    if (!real) { return; }
+
+    const $r = jq(real);
+
+    // Setup / coup paths use .click on .westerneurope / .easterneurope
+    if (real.classList.contains('westerneurope') || real.classList.contains('easterneurope')) {
+      $r.trigger('click');
+      return;
+    }
+
+    // Ops placement uses jQuery mousedown + mouseup on #country
+    const o = { bubbles: true, clientX: 0, clientY: 0 };
+    $r.trigger(jq.Event('mousedown', o));
+    $r.trigger(jq.Event('mouseup', o));
+  }
+
 
   renderAtCountry(countrykey = "") {
     if (!this.mod.countries || !this.mod.countries[countrykey]) { return; }
