@@ -1,0 +1,168 @@
+/* ==========================================================================
+   Saito Docs — CryptPad module styles
+   
+   Overrides the standard SaitoHeader to a thin branded strip that
+   expands on hover, maximising iframe real estate for CryptPad.
+   ========================================================================== */
+
+/* ---- Reset body ---- */
+body.docs {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #111;
+}
+
+/* ==========================================================================
+   Thin-strip header override
+   
+   Collapsed: 6px red strip (brand bar only, content hidden)
+   Expanded:  3.5rem header (50% of standard 7rem)
+   Triggers:  hover or touch/click
+   ========================================================================== */
+
+body.docs #saito-header {
+  --docs-collapsed: 6px;
+  --docs-expanded: 3.5rem;
+
+  height: var(--docs-collapsed);
+  min-height: 0;
+  padding: 0 1rem;
+  overflow: hidden;
+  background: var(--saito-primary, #E3361C);
+  border-bottom: none;
+  transition:
+    height 0.25s ease,
+    background 0.25s ease,
+    padding 0.25s ease;
+  z-index: 100;
+}
+
+body.docs #saito-header:hover,
+body.docs #saito-header.docs-expanded {
+  height: var(--docs-expanded);
+  padding: 0 1rem;
+  background: var(--saito-header-background, #1a1a1a);
+  overflow: visible;
+}
+
+/* ---- Hide all header children when collapsed ---- */
+body.docs #saito-header > * {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+body.docs #saito-header:hover > *,
+body.docs #saito-header.docs-expanded > * {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---- Scale down inner elements to fit 3.5rem ---- */
+body.docs .saito-header-logo {
+  width: 8rem;
+}
+
+body.docs .saito-header-profile .saito-identicon-box .saito-identicon {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+body.docs #saito-header-menu-toggle i {
+  font-size: 1.8rem;
+}
+
+body.docs .hamburger-container {
+  gap: 0.5rem;
+}
+
+body.docs #header-msg {
+  font-size: 1.2rem;
+}
+
+/* ---- Hamburger slide-out panel: anchor to smaller header ---- */
+body.docs .saito-header-hamburger-contents {
+  top: var(--docs-expanded);
+  height: calc(100svh - var(--docs-expanded) + 3px);
+}
+
+body.docs .saito-header-backdrop {
+  top: var(--docs-expanded);
+  height: calc(100vh - var(--docs-expanded));
+}
+
+/* ==========================================================================
+   Main container — CryptPad iframe
+   Positioned below the collapsed strip; adjusts on hover
+   ========================================================================== */
+
+#docs-main {
+  position: fixed;
+  top: 6px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transition: top 0.25s ease;
+}
+
+/* Push iframe down when header expands */
+body.docs #saito-header:hover ~ #docs-main,
+body.docs #saito-header.docs-expanded ~ #docs-main {
+  top: 3.5rem;
+}
+
+#docs-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+/* ---- Auth status toast ---- */
+#docs-auth-status {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  white-space: nowrap;
+}
+
+#docs-auth-status.visible {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Mobile — touch devices: slightly taller strip, tap-to-expand
+   ========================================================================== */
+
+@media (hover: none) {
+  body.docs #saito-header {
+    --docs-collapsed: 10px;
+  }
+
+  /* Disable hover expansion on touch — use .docs-expanded class instead */
+  body.docs #saito-header:hover {
+    height: var(--docs-collapsed);
+    background: var(--saito-primary, #E3361C);
+    overflow: hidden;
+  }
+
+  body.docs #saito-header:hover > * {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #docs-main {
+    top: 10px;
+  }
+}
