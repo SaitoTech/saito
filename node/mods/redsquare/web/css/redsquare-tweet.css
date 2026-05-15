@@ -207,10 +207,16 @@
   position: absolute;
   width: 3.6rem;
   height: 3.6rem;
-  color: var(--saito-primary);
+  color: var(--saito-white);
   display: grid;
   place-items: center;
   transform-origin: center;
+}
+
+.tweet-tool-like .heart-icon.has-likes,
+.tweet-tool-like .heart-icon.liked,
+.tweet-tool-like .heart-icon.likes {
+  color: var(--saito-primary);
 }
 
 .tweet-tool-like .heart-icon::before {

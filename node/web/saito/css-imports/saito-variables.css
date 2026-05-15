@@ -252,6 +252,7 @@ font imports
   --saito-button-primary-bg-hover: var(--saito-primary-dark);
   --saito-button-primary-fg: var(--saito-primary-text);
   --saito-button-primary-border: var(--saito-primary);
+  --saito-button-radius: var(--saito-border-radius);
   --saito-button-secondary-bg: var(--saito-background-color);
   --saito-button-secondary-bg-hover: var(--saito-primary);
   --saito-button-secondary-fg: var(--saito-primary);

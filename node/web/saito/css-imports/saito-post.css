@@ -197,6 +197,7 @@
   bottom: 2rem;
   right: 2rem;
   margin: 0;
+  border-radius: var(--saito-post-button-radius);
   z-index: 1; /* So button is clickable above the saito-input-large */
 }
 
