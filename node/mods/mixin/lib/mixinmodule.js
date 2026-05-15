@@ -99,10 +99,12 @@ class MixinModule extends CryptoModule {
 	 * @return {Number}
 	 */
 	async checkBalance() {
+
 		if (!this.address) {
 			console.info("Don't query for crypto if we don't even have an address");
 			return;
 		}
+
 		let now = new Date().getTime();
 		if (now - this.balance_timestamp_last_fetched > this.minimum_delay_between_balance_queries) {
 			this.balance_timestamp_last_fetched = now;

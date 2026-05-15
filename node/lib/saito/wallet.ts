@@ -213,36 +213,7 @@ export default class Wallet extends SaitoWallet {
         this.options.isActivated = true;
 
         app.connection.on('wallet-updated', async () => {
-          try {
-            const ab = await this.getAvailableBalance();
-            const pb = await this.getPendingBalance();
-            let pendingTxSummary = 'rust_pending_txs=unavailable';
-            try {
-              const ptxs = await this.app.wallet.getPendingTxs();
-              pendingTxSummary =
-                ptxs.length === 0
-                  ? 'rust_pending_txs=0'
-                  : `rust_pending_txs=${ptxs.length} ` +
-                    ptxs
-                      .map((t: Transaction) =>
-                        t.signature ? String(t.signature).slice(0, 24) + '…' : '?'
-                      )
-                      .join(', ');
-            } catch (e) {
-              pendingTxSummary = `getPendingTxs_err=${e}`;
-            }
-            console.log(
-              `[ PENDING BALANCE ] [ SaitoCrypto wallet-updated | pending_display=${pb} | pending_vs_available=${
-                pb !== ab
-              } | ${pendingTxSummary} ]`
-            );
-            console.log(
-              `[ AVAILABLE BALANCE ] [ SaitoCrypto wallet-updated | available_display=${ab} ]`
-            );
-          } catch (logErr) {
-            console.log(`[ PENDING BALANCE ] [ SaitoCrypto wallet-updated log_error | ${logErr} ]`);
-          }
-          this.checkBalanceUpdate();
+          this.app.connection.emit('saito-header-update-crypto');
         });
       }
 
@@ -506,9 +477,6 @@ export default class Wallet extends SaitoWallet {
         return await this.getAvailableBalance();
       }
 
-      async checkBalanceUpdate() {
-        this.app.connection.emit('saito-header-update-crypto');
-      }
     }
 
     this.saitoCrypto = new SaitoCrypto(this.app, this.publicKey);

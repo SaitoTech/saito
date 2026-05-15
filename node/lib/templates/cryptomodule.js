@@ -227,7 +227,9 @@ try {
 } catch (err) {
 
 }
-    setTimeout(this.checkBalanceUpdate.bind(this), 2000);
+
+    this.checkBalance();
+    this.app.connection.emit('saito-header-update-crypto');
 
   }
 
@@ -320,38 +322,6 @@ try {
    */
   returnBalance() {
     return this.balance;
-  }
-
-  async checkBalanceUpdate() {
-    console.log('$$$$ checkBalanceUpdate');
-
-    let original_balance = Number(this.balance);
-
-    await this.checkBalance();
-
-    let new_balance = Number(this.returnBalance());
-
-    let diff = new_balance - original_balance;
-
-    if (diff == 0) {
-      return;
-    }
-
-    if (diff > 0) {
-      let msg = `New ${this.app.browser.formatDecimals(diff)} ${this.ticker} deposit`;
-try {
-      siteMessage(msg, 3000);
-} catch (err) {
-}
-    } else {
-      let msg = `New ${this.app.browser.formatDecimals(-diff)} ${this.ticker} payment`;
-try {
-      siteMessage(msg, 3000);
-} catch (err) {
-}
-    }
-
-    this.app.connection.emit('saito-header-update-crypto');
   }
 
   /**

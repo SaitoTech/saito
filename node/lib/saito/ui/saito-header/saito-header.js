@@ -552,8 +552,8 @@ class SaitoHeader extends UIModTemplate {
     //
     if (document.getElementById('wallet-select-crypto')) {
       document.getElementById('wallet-select-crypto').onchange = async (e) => {
-        this.clearBalanceCheck();
-        this.clearPendingDepositsCheck();
+        clearTimeout(this.balance_check_interval);
+        clearInterval(this.deposit_check_interval);
 
         if (
           !this.app.options.crypto[e.target.value] ||
@@ -566,6 +566,7 @@ class SaitoHeader extends UIModTemplate {
         console.log(
           'Change preferred crypto, restart polls on crypto balance and pending deposits'
         );
+
         this.initiateBalanceCheck();
         this.initiatePendingDepositsCheck();
       };
@@ -649,8 +650,8 @@ class SaitoHeader extends UIModTemplate {
       document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
     }
 
-    this.clearBalanceCheck();
-    this.clearPendingDepositsCheck();
+    clearTimeout(this.balance_check_interval);
+    clearTimeout(this.deposit_check_interval);
   }
 
   /****************************************************
@@ -1016,25 +1017,26 @@ class SaitoHeader extends UIModTemplate {
   }
 
   initiateBalanceCheck() {
-    let intervalTime = 2000;
 
+    let intervalTime = 2000;
     let preferred_crypto = this.app.wallet.returnPreferredCrypto();
 
     const executeBalanceCheck = async () => {
-      // dont poll if hamburger menu isnt visible
+
+      //
+      // skip if invisible
+      //
       if (document.querySelector('.saito-header-backdrop.menu-visible') == null) {
-        this.clearBalanceCheck();
+        clearTimeout(this.balance_check_interval);
         console.log(`Stopped checking ${preferred_crypto.ticker} balance`);
         return;
       }
 
-      // Call function to check
-      await preferred_crypto.checkBalanceUpdate();
-
-      //loop on time out
+      //
+      // poll / check at increasing intervals
+      //
+      await preferred_crypto.checkBalance();
       this.balance_check_interval = setTimeout(executeBalanceCheck, intervalTime);
-
-      //double wait on each loop
       intervalTime *= 2;
     };
 
@@ -1043,40 +1045,30 @@ class SaitoHeader extends UIModTemplate {
     }
   }
 
-  clearBalanceCheck() {
-    clearTimeout(this.balance_check_interval);
-  }
-
   clearPendingDepositsCheck() {
     clearInterval(this.deposit_check_interval);
   }
 
   initiatePendingDepositsCheck() {
+
     let this_self = this;
     let intervalTime = 5000; // Start with 5 seconds
     let preferred_crypto = this_self.app.wallet.returnPreferredCrypto();
+
     let confirmations = preferred_crypto.confirmations;
 
     const checkDeposits = async () => {
-      // dont poll if hamburger menu isnt visible
+
       if (document.querySelector('.saito-header-backdrop.menu-visible') == null) {
-        this.clearPendingDepositsCheck();
+        clearInterval(this.deposit_check_interval);
         console.log(`Stopped checking ${preferred_crypto.ticker} deposit`);
         return;
       }
 
-      console.log('check pending deposits');
-
       await preferred_crypto.fetchPendingDeposits(function (res) {
         if (res.length > 0) {
           let pending_transfer = res[res.length - 1];
-
-          console.log('pending_transfer: ', pending_transfer);
-
           let amount = Number(pending_transfer.amount);
-
-          console.log(`${amount} ${preferred_crypto.ticker} deposit pending 
-                    (${pending_transfer.confirmations}/${confirmations})`);
 
           if (amount > 0) {
             this_self.updateHeaderMessage(
@@ -1100,11 +1092,9 @@ class SaitoHeader extends UIModTemplate {
         } else {
           if (this_self?.deposit_pending) {
             this_self.deposit_pending = false;
-            //this_self.updateHeaderMessage();
           }
 
           if (this_self.can_update_header_msg) {
-            //this_self.updateHeaderMessage();
             this_self.show_msg = true;
           }
         }
