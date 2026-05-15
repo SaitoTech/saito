@@ -30,6 +30,7 @@ module.exports = (app, mod, tweet) => {
 	}
 
 	let is_liked_css = mod.liked_tweets.includes(tweet.tx.signature) ? 'liked' : '';
+	let has_likes_css = tweet.num_likes > 0 ? 'has-likes' : '';
 
 	let is_retweeted_css = mod.retweeted_tweets.includes(tweet.tx.signature) ? 'retweeted' : '';
 	let is_replied_css = mod.replied_tweets.includes(tweet.tx.signature) ? 'replied' : '';
@@ -51,7 +52,7 @@ module.exports = (app, mod, tweet) => {
                 <div class="tweet-tool tweet-tool-like" title="Like tweet">
 		  						<span class="tweet-tool-like-count ${is_liked_css}">${tweet.num_likes}</span>
                   <div class="heart-bg">
-                    <div class="heart-icon ${is_liked_css}"></div>
+                    <div class="heart-icon ${is_liked_css} ${has_likes_css}"></div>
                   </div>
 								</div>
                 <div class="tweet-tool tweet-tool-share" title="Copy link to tweet">

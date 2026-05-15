@@ -5,13 +5,15 @@ buttons -- Primary & Secondary -- difference is color pattern
 button,
 .saito-button-primary,
 .saito-button-secondary {
+  appearance: none;
+  -webkit-appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: 0.2s;
   letter-spacing: 1px;
   font-size: 1.8rem;
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-button-radius);
   cursor: pointer;
   border: var(--border-thickness-thin) solid var(--saito-button-primary-border);
   text-transform: capitalize;
