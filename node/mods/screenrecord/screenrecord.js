@@ -443,16 +443,19 @@ class Record extends ModTemplate {
 		// initialize variables
 		this.type = type;
 		this.members = members;
+		this.recording_target_selector = null;
 
 		if (type === 'videocall') {
 			this.recorderVideoCallStreamCapture = new StreamCapturer(this.app, this, this.logo);
 			this.recorderVideoCallStreamCapture.view_window = '.video-container-large';
+			this.recording_target_selector = this.recorderVideoCallStreamCapture.view_window;
 			let stream = this.recorderVideoCallStreamCapture.captureVideoCallStreams(includeCamera);
 			this.initializeMediaRecorder(this.chunks, stream);
 		} else if (type === 'game') {
 			let stream;
 			this.gameRecordCapturer = new StreamCapturer(this.app, this, this.logo);
 			this.gameRecordCapturer.view_window = container;
+			this.recording_target_selector = container;
 			this.is_recording_game = true;
 			stream = await this.gameRecordCapturer.captureGameStream(includeCamera);
 			this.initializeMediaRecorder(this.chunks, stream);
@@ -631,6 +634,11 @@ class Record extends ModTemplate {
 			recordIcon.classList.add('recording');
 			recordIcon.parentElement.classList.add('recording');
 		}
+
+		const recordingTarget = document.querySelector(this.recording_target_selector || '.video-container-large');
+		if (recordingTarget) {
+			recordingTarget.classList.add('screenrecord-recording-border');
+		}
 	}
 
 	updateUIForRecordingStop() {
@@ -639,6 +647,10 @@ class Record extends ModTemplate {
 			recordIcon.classList.remove('recording');
 			recordIcon.parentElement.classList.remove('recording');
 		}
+
+		document.querySelectorAll('.screenrecord-recording-border').forEach((recordingTarget) => {
+			recordingTarget.classList.remove('screenrecord-recording-border');
+		});
 
 		const recordButtonGame = document.getElementById('record-stream');
 		if (recordButtonGame) {
