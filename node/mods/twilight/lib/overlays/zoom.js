@@ -96,23 +96,15 @@ class ZoomOverlay {
 
         } else {
 
-console.log("PASSIVE INSPECT MOVE IN ZOOM...");
-console.log("PASSIVE INSPECT MOVE IN ZOOM...");
-console.log("PASSIVE INSPECT MOVE IN ZOOM...");
-console.log("PASSIVE INSPECT MOVE IN ZOOM...");
-console.log("PASSIVE INSPECT MOVE IN ZOOM...");
   	  //
   	  // forward click to real board
   	  //
   	  let real = document.querySelector(`.gameboard #${country_id}`);
   	  if (real) {
-  	    real.click();
+	    const opts = { bubbles: true, cancelable: true, view: window, clientX: e.clientX, clientY: e.clientY };
+  	    real.dispatchEvent(new MouseEvent('mousedown', opts));
+  	    real.dispatchEvent(new MouseEvent('mouseup', opts));
   	  }
-
-
-          //
-          // Passive inspect mode
-          //
 
         }
       };

@@ -217,13 +217,16 @@ class CryptoModule extends ModTemplate {
 
     this.app.connection.emit('saito-crypto-receive-payment', obj);
 
+try {
     siteMessage(
       `${obj.amount} ${obj.ticker} inbound from ${this.app.keychain.returnUsername(
         obj.sender
       )}`,
       3000
     );
+} catch (err) {
 
+}
     setTimeout(this.checkBalanceUpdate.bind(this), 2000);
 
   }
@@ -336,10 +339,16 @@ class CryptoModule extends ModTemplate {
 
     if (diff > 0) {
       let msg = `New ${this.app.browser.formatDecimals(diff)} ${this.ticker} deposit`;
+try {
       siteMessage(msg, 3000);
+} catch (err) {
+}
     } else {
       let msg = `New ${this.app.browser.formatDecimals(-diff)} ${this.ticker} payment`;
+try {
       siteMessage(msg, 3000);
+} catch (err) {
+}
     }
 
     this.app.connection.emit('saito-header-update-crypto');
