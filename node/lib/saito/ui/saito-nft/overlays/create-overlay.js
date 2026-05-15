@@ -294,9 +294,8 @@ class CreateNFT {
 	document.querySelector('.nft-upload-text').innerHTML = "upload token logo/image (optional)";
         document.querySelector(".saito-nft-input-label.ticker").style.display = "block";
         document.querySelector(".saito-nft-metadata-box.ticker").style.display = "block";
-        //document.querySelector('#nft-image-upload').style.display = 'none';
-        //document.querySelector('#create-nft-textarea').style.display = 'flex';
-        //textarea.innerHTML = 'provide token ticker';
+        document.querySelector('#nft-image-upload').style.display = 'flex';
+        document.querySelector('#create-nft-textarea').style.display = 'none';
       }
       if (this.nft_type === 'js') {
         document.querySelector('#nft-image-upload').style.display = 'none';
@@ -341,9 +340,10 @@ class CreateNFT {
       }
 
       const uploadEl = document.querySelector('#nft-image-upload');
-      if (this.image && uploadEl && uploadEl.style.display !== 'none') {
+      if (this.image && uploadEl) {
         this.addImage(this.image);
       }
+
     };
 
     if (document.getElementById('next-step')) {

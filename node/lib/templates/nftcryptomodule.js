@@ -484,7 +484,7 @@ class NFTCryptoModule extends CryptoModule {
 
   async sendPaymentTransaction(publicKey, from_address, to_address, amount, hash, memo = '') {}
 
-  receivePaymentTransaction(tx) {}
+  onReceivePayment(tx) {}
 
   /********************************************************
    * OPTIONAL / OVERRIDDEN BEHAVIOR

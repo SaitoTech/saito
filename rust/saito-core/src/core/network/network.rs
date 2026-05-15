@@ -154,8 +154,15 @@ impl Network {
                 .await;
         }
 
+	let sender = transaction.from.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
+	let receiver = transaction.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
+	let signature = transaction.signature.to_hex();
+
         let sent_payload = serde_json::to_string(&json!({
-            "transaction_signature": transaction.signature.to_hex(),
+            "transaction_signature": signature,
+            "signature": signature,
+            "sender": sender,
+            "receiver": receiver,
             "peer_send_count": peer_send_count,
         }))
         .unwrap_or_else(|_| "{}".to_string());

@@ -275,11 +275,21 @@ impl Wallet {
                             self.nfts.remove(pos);
 
                             if let Some(io) = io {
+				let sender = slip2.public_key.to_base58();
+				let receiver = (0..tx.to.len().saturating_sub(2))
+				    .find(|&i| tx.is_nft(&tx.to, i))
+				    .and_then(|i| tx.to.get(i + 1))
+				    .map(|s| s.public_key.to_base58())
+				    .unwrap_or_else(|| tx.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default());
+				let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),
                                     "timestamp": block.timestamp,
-                                    "transaction_signature": tx.signature.to_hex(),
+                                    "transaction_signature": signature,
+                                    "signature": signature,
+                                    "sender": sender,
+                                    "receiver": receiver,
                                     "ticker": Self::extract_nft_ticker_from_tx(tx),
                                     "nft_id": slip3.public_key.to_base58(),
                                     "nft_amount": slip1.amount,
@@ -319,12 +329,18 @@ impl Wallet {
                             if let Some(io) = io {
                                 if !emitted_chain_tx_sent {
                                     emitted_chain_tx_sent = true;
+				    let sender = tx.from.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
+				    let receiver = tx.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
+                                    let signature = tx.signature.to_hex();
                                     let payload = serde_json::to_string(&json!({
                                         "block_id": block.id,
                                         "block_hash": block.hash.to_hex(),
                                         "timestamp": block.timestamp,
-                                        "transaction_signature": tx.signature.to_hex(),
+                                        "transaction_signature": signature,
+                                        "signature": signature,
                                         "transaction_type": format!("{:?}", tx.transaction_type),
+                                        "sender": sender,
+                                        "receiver": receiver,
                                     }))
                                     .unwrap_or_else(|_| "{}".to_string());
                                     io.send_interface_event(InterfaceEvent::OnTransactionSent(
@@ -364,20 +380,24 @@ impl Wallet {
                             );
 
                             if let Some(io) = io {
-                                let sender = tx
-                                    .from
-                                    .first()
-                                    .map(|s| s.public_key.to_base58())
-                                    .unwrap_or_default();
+				let sender = slip2.public_key.to_base58();
+				let receiver = (0..tx.to.len().saturating_sub(2))
+				    .find(|&i| tx.is_nft(&tx.to, i))
+				    .and_then(|i| tx.to.get(i + 1))
+				    .map(|s| s.public_key.to_base58())
+				    .unwrap_or_else(|| tx.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default());
+				let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),
                                     "timestamp": block.timestamp,
-                                    "transaction_signature": tx.signature.to_hex(),
+                                    "transaction_signature": signature,
+                                    "signature": signature,
+                                    "sender": sender,
+                                    "receiver": receiver,
                                     "ticker": Self::extract_nft_ticker_from_tx(tx),
                                     "nft_id": slip3.public_key.to_base58(),
-                                    "nft_amount": slip1.amount,
-                                    "saito_deposit": slip2.amount,
+                                    "amount": slip1.amount,
                                     "slip1_utxo": slip1.utxoset_key.to_hex(),
                                     "slip2_utxo": slip2.utxoset_key.to_hex(),
                                     "slip3_utxo": slip3.utxoset_key.to_hex(),
@@ -396,18 +416,19 @@ impl Wallet {
                         //
                         if output.public_key == self.public_key && output.amount > 0 {
                             if let Some(io) = io {
-                                let sender = tx
-                                    .from
-                                    .first()
-                                    .map(|s| s.public_key.to_base58())
-                                    .unwrap_or_default();
+				let sender = tx.from.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
+				let receiver = tx.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
+				let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),
                                     "timestamp": block.timestamp,
-                                    "transaction_signature": tx.signature.to_hex(),
+                                    "transaction_signature": signature,
+                                    "signature": signature,
                                     "transaction_type": format!("{:?}", tx.transaction_type),
                                     "amount": output.amount,
+                                    "sender": sender,
+                                    "receiver": receiver,
                                     "sender_publickey": sender,
                                 }))
                                 .unwrap_or_else(|_| "{}".to_string());

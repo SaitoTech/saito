@@ -707,8 +707,8 @@ class Chessgame extends GameTemplate {
           <div class="popup-confirm-menu">
             <div class="popup-prompt">Are you sure?</div>
             <div class="action" id="confirm"><div>✔</div><div>yes</div></div>
-            <div class="action" id="cancel"><div>✘</div><div>cancel</div></div>
-            <div class="confirm_check"><input type="checkbox" name="dontshowme" value="true"/> don't ask </div>
+            <div class="action" id="cancel"><div>✘</div><div>no</div></div>
+            <div class="action" id="stopasking"><div>⏭</div><div>stop asking</div></div>
           </div>`;
 
 		let left = $(`#board`).offset().left;
@@ -742,17 +742,12 @@ class Chessgame extends GameTemplate {
 			$('.popup-confirm-menu').remove();
 			if (confirmation == 'confirm') {
 				callback();
-			} else {
-				this_chess.setBoard(this_chess.game.position);
-			}
-		});
-
-		$('input:checkbox').change(function () {
-			if ($(this).is(':checked')) {
+			} else if (confirmation == 'stopasking') {
 				this_chess.confirm_moves = 0;
 				this_chess.saveGamePreference('chess_expert_mode', 1);
+				callback();
 			} else {
-				this_chess.confirm_moves = 1;
+				this_chess.setBoard(this_chess.game.position);
 			}
 		});
 	}

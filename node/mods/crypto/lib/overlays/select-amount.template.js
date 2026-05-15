@@ -56,7 +56,7 @@ module.exports = (app, mod, form) => {
 
   html += `<div class="crypto_msg">
               <div></div>
-              <div class="select_max">Max: ${mod.max_balance}</div>
+              <div class="select_max hidden">Max: ${mod.max_balance}</div>
             </div>
             <div class="stake-input-error" id="stake-amount-error"></div>
           </div>`;

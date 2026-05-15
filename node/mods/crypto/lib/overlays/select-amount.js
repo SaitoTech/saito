@@ -53,6 +53,7 @@ class CryptoSelectAmount {
 		if (max_button) {
 			max_button.onclick = (e) => {
 				stake_input.value = Number(this.mod.max_balance);
+				this_self.validateAmount();
 			};
 		}
 
@@ -62,6 +63,10 @@ class CryptoSelectAmount {
 		};
 
 		stake_input.oninput = async (e) => {
+			const amt = parseFloat(stake_input.value) || 0;
+			document
+				.querySelector('.select_max')
+				?.classList.toggle('hidden', !(amt > this.mod.max_balance));
 			if (this.errors.amount) {
 				this.validateAmount();
 			}
@@ -99,7 +104,7 @@ class CryptoSelectAmount {
 		};
 
 		if (document.querySelector('#stake-select-crypto')) {
-			document.querySelector('#stake-select-crypto').onchange = (e) => {
+			document.querySelector('#stake-select-crypto').onchange = async (e) => {
 				document.querySelectorAll(`#withdraw-logo-cont img`).forEach((el) => {
 					el.classList.add('hide-element');
 				});
@@ -107,7 +112,21 @@ class CryptoSelectAmount {
 				this.ticker = e.target.value;
 				this.stake = 0;
 
-				this.mod.max_balance = parseFloat(this.mod.balances[this.ticker].balance);
+				if (!this.mod.balances[this.ticker]) {
+					const cm = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
+					if (cm) {
+						await cm.getAvailableBalance();
+						this.mod.balances[this.ticker] = {
+							address: cm.formatAddress(),
+							balance: cm.returnBalance()
+						};
+					} else {
+						this.mod.balances[this.ticker] = { address: '', balance: '0' };
+					}
+				}
+
+				this.mod.max_balance =
+					parseFloat(this.mod.balances[this.ticker]?.balance) || 0;
 
 				this.app.browser.replaceElementById(
 					CryptoSelectAmountTemplate(this.app, this.mod, this),
@@ -214,6 +233,10 @@ class CryptoSelectAmount {
 			input_err_opp.style.display = 'block';
 			this.errors.amount = true;
 		}
+
+		document
+			.querySelector('.select_max')
+			?.classList.toggle('hidden', !(amount > this.mod.max_balance));
 	}
 
 	validateCheckbox() {
