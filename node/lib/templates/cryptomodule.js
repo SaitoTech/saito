@@ -17,7 +17,6 @@
   -- returnPrivateKey
   -- sendPayment
   -- receivePayment
-  -- checkHistory
   -- checkWithdrawalFeeForAddress
 
 **********************************************************************************/
@@ -105,8 +104,11 @@ class CryptoModule extends ModTemplate {
     return await checkPendingBalance();
   }
 
-  asnyc fetchPendingDeposits() {
+  async fetchPendingDeposits() {
     return [];
+  }
+
+  async fetchHistory() {
   }
 
   async startPolling() {
@@ -262,7 +264,8 @@ try {
 
   }
 
-  saveInboundPayment(hash) {
+  pollForInboundPayment(hash) {
+
     if (!this.options?.transfers_inbound) {
       this.options.transfers_inbound = [];
     }
@@ -275,6 +278,9 @@ try {
       console.warn('Crypto: Already saved expected payment');
       return { err: 'Already saved expected payment' };
     }
+
+    this.startPolling();
+
   }
 
   returnLogos() {
@@ -312,7 +318,6 @@ try {
    */
   async activate() {
     await this.checkBalance();
-    await this.checkHistory();
     this.options.isActivated = true;
     this.app.connection.emit('saito-crypto-activated', this.ticker);
     this.save();
@@ -544,16 +549,6 @@ CryptoModule.prototype.receivePayment = function (
   throw new Error('receivePayment must be implemented by subclass!');
 };
 
-/**
- * Abstract method
- * @abstract
- * @param {function} callback - function to call when the data is being fetched/sorted
- * @return {object} payment history data
- */
-CryptoModule.prototype.checkHistory = function (callback = null) {
-  throw new Error('checkHistory must be implemented by subclass!');
-};
-
 CryptoModule.prototype.checkWithdrawalFeeForAddress = function (recipient = '', mycallback = null) {
   if (mycallback != null) {
     mycallback(0);
@@ -566,7 +561,6 @@ CryptoModule.prototype.checkWithdrawalFeeForAddress = function (recipient = '', 
  * @param {function} callback function
  * @return {array} list of pending deposits
  */
-
 CryptoModule.prototype.fetchPendingDeposits = async function (callback) {
   if (callback != null) {
     callback([]);

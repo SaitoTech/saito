@@ -1078,9 +1078,9 @@ export default class Wallet extends SaitoWallet {
     mycallback: ((response?: { err?: string }) => void) | null = null,
     saito_public_key = null
   ) {
+
     if (senders.length !== 1 || receivers.length !== 1 || amounts.length !== 1) {
-      // We have no code which exercises multiple senders/receivers so can't implement it yet.
-      console.error('receivePayment ERROR. Only supports one transaction');
+      console.error('receivePayment ERROR -- currently only supports single payments');
       if (mycallback) {
         mycallback({ err: 'Only supports one transaction' });
       }
@@ -1089,10 +1089,8 @@ export default class Wallet extends SaitoWallet {
 
     try {
       const cryptomod = this.returnCryptoModuleByTicker(ticker);
-      // make sure activated but not necessarily our preferred crypto... (why?)
       await cryptomod.onIsActivated();
-
-      await cryptomod.saveInboundPayment(unique_hash);
+      await cryptomod.pollForInboundPayment(unique_hash);
 
       if (mycallback) {
         mycallback();

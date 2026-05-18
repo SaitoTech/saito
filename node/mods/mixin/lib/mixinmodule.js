@@ -17,6 +17,7 @@
  fetchSafeUtxoBalance()
  fetchUtxo()
  fetchSafeSnapshots()
+ fetchSnapshots()
  fetchPendingDeposits()
  sendInNetworkTransferRequest()
  sendExternalNetworkTransferRequest()
@@ -49,7 +50,6 @@ class MixinModule extends CryptoModule {
 		this.asset_id = asset_id;
 		this.chain_id = chain_id;
 
-
 		this.polling_active = 0;
 		this.polling_last_request = 0; 
 		this.polling_timeout = 0;
@@ -57,11 +57,24 @@ class MixinModule extends CryptoModule {
 		this.polling_interval_current = 0; 
 
 		this.confirmations = 100;
+		this.latest_snapshot_ts = 0;
+	}
+
+	async load() {
+		await super.load();
+		if (this.options?.latest_snapshot_ts) {
+			this.latest_snapshot_ts = Number(this.options.latest_snapshot_ts);
+		}
+	}
+
+	save() {
+		this.options.latest_snapshot_ts = this.latest_snapshot_ts;
+		super.save();
 	}
 
 	async activate() {
 		if (this.mixin.account_created == 0) {
-			console.info('Create mixin account');
+			console.info('Create Mixin account');
 			await this.mixin.createAccount((res) => {
 				if (res.err || Object.keys(res).length < 1) {
 					if (this.app.BROWSER) {
@@ -75,7 +88,7 @@ class MixinModule extends CryptoModule {
 			});
 		} else {
 			if (!this.address) {
-				console.info(`create deposit address for ${this.ticker}`);
+				console.info(`Create Mixin deposit address -- ${this.ticker}`);
 
 				let rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
 				if (!rv) {
@@ -118,11 +131,6 @@ class MixinModule extends CryptoModule {
 	//
 	// queries the latest balance
 	//
-	/**
-	 * Abstract method which should get balance from underlying crypto endpoint
-	 * @abstract
-	 * @return {Number}
-	 */
 	async fetchBalance() {
 
 		if (!this.address) {
@@ -140,6 +148,27 @@ class MixinModule extends CryptoModule {
 
 		return this.balance;
 	}
+
+
+	//
+	// queries the latest pending balance
+	//
+	async fetchPendingBalance() {
+
+		let pending_balance = 0;
+
+  		this.pending_deposits = await this.fetchPendingDeposits();
+
+  		for (let pd of this.pending_deposits) {
+  			if (pd.state === "pending" || Number(pd.confirmations) < Number(this.confirmations)) {
+  				pending_balance += Number(pd.amount || 0);
+  			}
+  		}
+
+		this.pending_balance = pending_balance.toString() || '0.0';
+
+  	}
+
 
 	/*
 	 *
@@ -193,25 +222,190 @@ class MixinModule extends CryptoModule {
 	}
 
 
-	async fetchPendingBalance() {
+	/**
+	 * Incremental history / snapshot sync: fetch new Safe ledger events, append to history,
+	 * emit semantic payment events, and advance latest_snapshot_ts.
+	 * Independent of checkHistory() / history_update_ts.
+	 */
+	async fetchHistory(mycallback = null) {
 
-		let pending_balance = 0;
+		let fetched_updates = [];
 
-  		this.pending_deposits = await this.fetchPendingDeposits();
+		if (!this.asset_id) {
+			return [];
+		}
 
-  		for (let pd of this.pending_deposits) {
-  			if (pd.state === "pending" || Number(pd.confirmations) < Number(this.confirmations)) {
-  				pending_balance += Number(pd.amount || 0);
-  			}
-  		}
+		let snapshots = await new Promise((resolve) => {
+			this.mixin.fetchSafeSnapshots(this.asset_id, this.latest_snapshot_ts, (d) => {
+				resolve(d === false || d == null ? [] : d);
+			});
+		});
 
-		this.pending_balance = pending_balance.toString() || '0.0';
+		let start_ts = this.latest_snapshot_ts;
 
-  	}
+		for (let snap of snapshots) {
+			//
+			// Snapshot object returned by Mixin Safe API (via mixin.js fetchSafeSnapshots):
+			//
+			// {
+			//   snapshot_id: "6049b6c2-3f9e-3627-b671-c81f4f6a88fa",
+			//   user_id: "95b8a0a4-1032-33e7-9154-5f48ebe00a14",
+			//   opponent_id: "dac46e33-fdd2-3453-b77a-73ffadba1ff1",
+			//   transaction_hash: "1db6dc53df33bfc7dd38afa86eb83454b5b71bc178da653431ddc9af025a7487",
+			//   asset_id: "43d61dcd-e413-450d-80b8-101d5e903357",
+			//   kernel_asset_id: "8dd50817c082cdcdd6f167514928767a4b52426997bd6d4930eca101c5ff8a27",
+			//   amount: "0.005",
+			//   memo: "746573742d6d656d6f",
+			//   request_id: "bfb05bb6-03e5-4b5c-a7ab-2ad5a4ed56a7",
+			//   created_at: "2025-08-25T03:23:17.657426Z",
+			//   level: 11,
+			//   type: "snapshot",
+			//   inscription_hash: "INSCRIPTION-HASH",
+			//   deposit: {
+			//     deposit_hash: "DEPOSIT-HASH",
+			//     deposit_index: 1,
+			//     sender: "SOME-STRING",
+			//     destination: "DEPOSIT-DESTINATION",
+			//     tag: "DEPOSIT-TAG"
+			//   },
+			//   withdrawal: {
+			//     withdrawal_hash: "WITHDRAWAL-HASH",
+			//     receiver: "SOME-STRING"
+			//   }
+			// }
+			//
 
+			const obj = {
+				snapshot_id: snap.snapshot_id,
+				counter_party: { address: snap.opponent_id || '' },
+				timestamp: new Date(snap.created_at).getTime(),
+				amount: Number(snap.amount),
+				trans_hash: snap.transaction_hash || ''
+			};
+
+			if (obj.timestamp < this.latest_snapshot_ts) {
+				continue;
+			}
+
+			if (snap.deposit) {
+				//obj.type = 'deposit';
+				obj.type = 'receive';
+				obj.counter_party.address = snap.deposit.sender || '';
+			} else if (snap.withdrawal) {
+				//obj.type = 'withdraw';
+				obj.type = 'send';
+				obj.counter_party.address = snap.withdrawal.receiver || '';
+			} else if (obj.amount > 0) {
+				obj.type = 'receive';
+			} else {
+				obj.type = 'send';
+			}
+
+			if (snap?.opponent_id) {
+				const user = await this.mixin.sendFetchAddressByUserIdTransaction(
+					this.asset_id,
+					snap.opponent_id
+				);
+				if (user?.publickey) {
+					obj.counter_party.publicKey = user.publickey;
+				}
+			}
+
+			this.history.push(obj);
+			fetched_updates.push(obj);
+
+			if (obj.type === 'deposit' || obj.type === 'receive') {
+				//
+				// Broadcast object shape (mixin-payment-received):
+				//
+				// {
+				//   direction: "receive",
+				//   type: "deposit",
+				//   amount: "0.005",
+				//   sender: "0xabc... or mixin-opponent-id",
+				//   receiver: "mixin-deposit-address",
+				//   timestamp: 1710000000000,
+				//   ticker: "SAITO",
+				//   transaction_hash: "1db6dc53...",
+				//   snapshot_id: "6049b6c2-...",
+				//   opponent_id: "dac46e33-...",
+				//   request_id: "bfb05bb6-...",
+				//   memo: "746573742d6d656d6f",
+				//   module: "Mixin SAITO",
+				//   counter_party: { address: "...", publicKey: "..." }
+				// }
+				//
+				this.app.connection.emit('on-payment-received', {
+					direction: obj.type ,
+					amount: String(Math.abs(obj.amount)),
+					sender: obj.counter_party.publicKey || obj.counter_party.address ,
+					receiver: this.returnAddress() || '',
+					timestamp: obj.timestamp,
+					block_id: '',
+					ticker: this.ticker || '', 
+					transaction_signature: '' ,
+					signature: '' ,
+					memo: snap.memo || '' ,
+					confirmation: 1 ,
+					module: this.name || '' ,
+					request: 'crypto payment' ,
+					hash: '',
+				});
+
+			} else if (obj.type === 'send' || obj.type === 'withdraw') {
+				//
+				// Broadcast object shape (mixin-payment-sent):
+				//
+				// {
+				//   direction: "send",
+				//   type: "withdraw",
+				//   amount: "0.005",
+				//   sender: "mixin-deposit-address",
+				//   receiver: "0xabc... or mixin-opponent-id",
+				//   timestamp: 1710000000000,
+				//   ticker: "SAITO",
+				//   transaction_hash: "1db6dc53...",
+				//   snapshot_id: "6049b6c2-...",
+				//   opponent_id: "dac46e33-...",
+				//   request_id: "bfb05bb6-...",
+				//   memo: "746573742d6d656d6f",
+				//   module: "Mixin SAITO",
+				//   counter_party: { address: "...", publicKey: "..." }
+				// }
+				//
+				this.app.connection.emit('on-payment-sent', {
+					direction: obj.type ,
+					amount: String(Math.abs(obj.amount)),
+					receiver: obj.counter_party.address,
+					sender: this.returnAddress() || '',
+					timestamp: obj.timestamp,
+					block_id: '',
+					ticker: this.ticker || '', 
+					transaction_signature: '' ,
+					signature: '' ,
+					memo: snap.memo || '' ,
+					confirmation: 1 ,
+					module: this.name || '' ,
+					request: 'crypto payment' ,
+					hash: '',
+				});
+			}
+
+			this.latest_snapshot_ts = Math.max(this.latest_snapshot_ts, obj.timestamp);
+		}
+
+		if (this.latest_snapshot_ts > start_ts) {
+			this.latest_snapshot_ts++;
+			this.save();
+		}
+
+		if (mycallback != null) { mycallback(fetched_updates); }
+
+		return fetched_updates;
+
+	}
 
 	startPolling() {
-
 
 		//
 		// if we are already polling, increase urgency by reducing interval index
@@ -229,7 +423,6 @@ class MixinModule extends CryptoModule {
                 this.polling_active = 1;
 		this.polling_interval_current = 0;
 
-
 		const poll = async () => {
 
 			//
@@ -239,52 +432,15 @@ class MixinModule extends CryptoModule {
 				return;
 			}
 
-			let old_balance = this.balance;
-			let old_pending_balance = this.pending_balance;
-
-			await this.fetchBalance();
-			await this.fetchPendingBalance();
+			let wallet_updates = await this.fetchHistory();
 
 			//
-			// notify listeners if balance changed
+			// if something has happened....
 			//
-			if (old_balance != this.balance || old_pending_balance != this.pending_balance) {
-
-				let amount_received = "0.0";
-				let old_balance_num = Number(old_balance || "0");
-				let new_balance_num = Number(this.balance || "0");
-				let old_pending_num = Number(old_pending_balance || "0");
-				let new_pending_num = Number(this.pending_balance || "0");
-				let balance_delta = new_balance_num - old_balance_num;
-				let pending_balance_delta = new_pending_num - old_pending_num;
-				let amount_received = 0;
-				if (balance_delta > 0) { amount_received += balance_delta; }
-				if (pending_balance_delta > 0) { amount_received += pending_balance_delta; }
-				amount_received = amount_received.toString();
+			if (wallet_updates.length > 0) {
 
 				//
-				// broadcast an event
-				//
-			        this.app.connection.emit('on-payment-received', {
-					direction: 'receive',
-      					amount: String(amount_received),
-      					sender: '', // Mixin does not give us a reliable counterparty here
-      					receiver: this.returnAddress() || '',
-      					timestamp: Date.now(),
-      					block_id: '',
-      					ticker: this.ticker || '',
-      					transaction_signature: '',
-      					signature: '',
-      					memo: '',
-      					message: '',
-      					confirmation: 1 ,
-      					module: this.name || '',
-      					request: 'crypto payment',
-      					hash: '',
-				});
-
-				//
-				// disable polling, we've been paid...
+				// disable polling, change found...
 				//
 				this.polling_active = 0;
                 		this.polling_last_request = Date.now();      
@@ -315,9 +471,12 @@ class MixinModule extends CryptoModule {
 			let delay = this.polling_intervals[this.polling_interval_current];
 			this.polling_timeout = setTimeout(poll, delay);
 
+		}
 
-
-
+		//
+		// now start!
+		//
+		poll();
 
 		return;
   	}
@@ -549,71 +708,15 @@ class MixinModule extends CryptoModule {
 		}
 	}
 
+
 	/**
 	 * Abstract method which returns snapshot of asset withdrawls, deposits
 	 * @abstract
 	 * @return {Function} Callback function
 	 */
-	async checkHistory(callback = null) {
-		let this_self = this;
-
-		console.debug(`Querying Mixin tx history (post ${new Date(this.history_update_ts)})`);
-
-		let d = await this.mixin.fetchSafeSnapshots(
-			this.asset_id,
-			this.history_update_ts,
-			async function (d) {
-				let timestamp = 0;
-
-				for (let snap of d) {
-					timestamp = new Date(snap.created_at).getTime();
-
-					if (timestamp >= this_self.history_update_ts) {
-						let amount = Number(snap.amount);
-
-						const obj = {
-							counter_party: { address: snap.opponent_id },
-							timestamp,
-							amount,
-							trans_hash: snap.transaction_hash
-						};
-
-						if (snap.deposit) {
-							obj.type = 'deposit';
-							obj.counter_party.address = snap.deposit.sender;
-						} else if (snap.withdrawal) {
-							obj.type = 'withdraw';
-							obj.counter_party.address = snap.withdrawal.receiver;
-						} else if (amount > 0) {
-							obj.type = 'receive';
-						} else {
-							obj.type = 'send';
-						}
-
-						//
-						// Check for associated Saito public key
-						//
-						if (snap?.opponent_id) {
-							const user = await this_self.mixin.sendFetchAddressByUserIdTransaction(
-								this_self.asset_id,
-								snap.opponent_id
-							);
-							if (user?.publickey) {
-								obj.counter_party.publicKey = user.publickey;
-							}
-						}
-						this_self.history.push(obj);
-					}
-				}
-
-				this_self.history_update_ts = Math.max(timestamp, this_self.history_update_ts) + 1;
-				this_self.save();
-
-				if (callback) {
-					callback(this_self.history);
-				}
-			}
-		);
+	async checkHistory(mycallback = null) {
+		if (mycallback != null) { mycallback(this.history); }
+		return this.history;
 	}
 
 	async returnUtxo(state = 'unspent', limit = 500, order = 'DESC', callback = null) {

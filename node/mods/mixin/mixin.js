@@ -224,11 +224,11 @@ class Mixin extends ModTemplate {
   // for any which are activated as the default web3 crypto.
   //
   installCryptos() {
+
     let mixin_self = this;
     let rtModules = this.app.modules.respondTo('mixin-crypto');
 
     for (let i = 0; i < rtModules.length; i++) {
-      // these are the responding Modules, not the returned object of the respondTo
       let crypto_module = new MixinModule(
         this.app,
         mixin_self,
@@ -243,6 +243,8 @@ class Mixin extends ModTemplate {
       if (rtModules[i].returnBalance) {
         crypto_module.returnBalance = rtModules[i].returnBalance;
       }
+
+
 
       if (this.app.BROWSER) {
         if (!this.app.browser.returnURLParameter('withdraw')) {
@@ -260,17 +262,25 @@ class Mixin extends ModTemplate {
       this.crypto_mods.push(crypto_module);
       this.app.modules.mods.push(crypto_module);
 
-      /////////////////////////////////////////////////////////////////
-      // Have a slight asynchronous delay to hit up the Mixin server
-      // so we don't slow down saito initialization
-      /////////////////////////////////////////////////////////////////
+
       setTimeout(async () => {
+
 	if (typeof crypto_module?.returnMixinNetworkInfo === 'function') {
 		await crypto_module.returnMixinNetworkInfo();
 	}
+
+	//
+	// necessary for module functionality
+	//
         await crypto_module.installModule(mixin_self.app);
 
-        // Do an initial balance check if we are able to
+        //
+        // check balance, any changes will result in 
+	// snapshots being found that will broadcast
+	// events which will in turn trigger updates
+        //
+        crypto_module.fetchHistory();
+
         if (mixin_self.account_created) {
           if (crypto_module.isActivated()) {
             await crypto_module.checkBalance();
@@ -282,11 +292,6 @@ class Mixin extends ModTemplate {
     }
   }
 
-  //
-  // QUESTION -- dl Nov-1-2025
-  //
-  // why does this fun
-  //
   async onPeerServiceUp(app, peer, service = {}) {
     if (service.service === 'mixin') {
       console.info('Mixin Module: API online!');
@@ -624,7 +629,7 @@ class Mixin extends ModTemplate {
 
       let snapshots = await user.safe.fetchSafeSnapshots({
         asset: asset_id,
-        limit: 100,
+        limit: 500,
         offset
       });
 
