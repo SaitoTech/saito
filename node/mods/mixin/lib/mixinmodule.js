@@ -14,22 +14,17 @@
  ----------------
  createAccount()
  createDepositAddress()
-
  fetchSafeUtxoBalance()
  fetchUtxo()
  fetchSafeSnapshots()
  fetchPendingDeposits()
-
  sendInNetworkTransferRequest()
  sendExternalNetworkTransferRequest()
-
- returnNetworkInfo()
+ returnMixinNetworkInfo()
  returnWithdrawalFee()
-
  sendFetchUserByAddressTransaction()
  sendFetchUserByPublicKeyByAssetIdTransaction()
  sendFetchAddressByUserIdTransaction()
-
  deposit[]
  mixin.privatekey
  mixin.user_id
@@ -54,8 +49,12 @@ class MixinModule extends CryptoModule {
 		this.asset_id = asset_id;
 		this.chain_id = chain_id;
 
-		this.balance_timestamp_last_fetched = 0;
-		this.minimum_delay_between_balance_queries = 4000;
+
+		this.polling_active = 0;
+		this.polling_last_request = 0; 
+		this.polling_timeout = 0;
+		this.polling_intervals = [0, 15000, 45000, 100000, 300000, 600000];
+		this.polling_interval_current = 0; 
 
 		this.confirmations = 100;
 	}
@@ -93,41 +92,238 @@ class MixinModule extends CryptoModule {
 		}
 	}
 
+
+	//
+	// Critical Balance Check Functions
+	//
+	
+	//
+	// these functions are defined as such in the parent module
+	//
+	//async getAvailableBalance() {
+    	//	return this.checkBalance();
+  	//}
+	//
+  	//async getPendingBalance() {
+  	//	return this.checkBalance();
+  	//}
+  	//async checkBalance() {
+    	//	return this.balance;
+  	//}
+  	//async checkPendingBalance() {
+    	//	return await this.checkBalance();
+  	//}
+
+
+	//
+	// queries the latest balance
+	//
 	/**
 	 * Abstract method which should get balance from underlying crypto endpoint
 	 * @abstract
 	 * @return {Number}
 	 */
-	async checkBalance() {
+	async fetchBalance() {
 
 		if (!this.address) {
-			console.info("Don't query for crypto if we don't even have an address");
+			console.info("Mixin Error: no address - terminating fetch balance");
 			return;
 		}
 
-		let now = new Date().getTime();
-		if (now - this.balance_timestamp_last_fetched > this.minimum_delay_between_balance_queries) {
-			this.balance_timestamp_last_fetched = now;
-
-			let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
-
-			if (balance !== false) {
-				if (this.balance != balance) {
-					console.debug(`Updated ${this.ticker} balance!`);
-					this.balance = balance;
-					this.save();
-				}
-			}
-		}
-
-		if (this.pending_balance) {
-			if (this.pending_balance <= Number(this.balance)) {
-				delete this.pending_balance;
+		let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
+		if (balance !== false) {
+			if (this.balance != balance) {
+				this.balance = balance;
+				this.save();
 			}
 		}
 
 		return this.balance;
 	}
+
+	/*
+	 *
+	 * PENDING DEPOSITS are returned from MIXIN in this fashion
+	 *
+	 * this.pending_deposits = [
+	 *   {
+	 *     deposit_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+	 *     destination: "0xDepositAddressForThisAsset...",
+	 *     tag: "",
+	 *     chain_id: "b7938390-ff6d-4be9-aa99-1a7ede2b7276",
+	 *     asset_id: "c6d0c728-2624-429b-8e0d-d563e5f5ee48",
+	 *     asset_key: "ETH",
+	 *     amount: "0.125",              // string; use Number() in UI
+	 *     transaction_hash: "0xabc...",
+	 *     output_index: 0,
+	 *     block_hash: "0xdef...",
+	 *     block_number: 19876543,
+	 *     confirmations: 5,             // used by saito-header / deposit overlay
+	 *     threshold: 100,             // network confirmation target (often matches module.confirmations)
+	 *     state: "pending",             // e.g. "pending" | "confirmed"
+	 *     created_at: "2024-02-12T16:31:44.123456789Z",
+	 *     updated_at: "2024-02-12T16:32:01.987654321Z"
+	 *   }
+	 * ];
+	 */
+	async fetchPendingDeposits(callback = null) {
+
+		if (!this.address) {
+			this.pending_deposits = [];
+ 			if (callback) callback([]);
+    			return [];
+  		}
+
+		this.pending_deposits = await new Promise((resolve) => {
+			this.mixin.fetchPendingDeposits(this.asset_id, this.address, (res) => {
+				if (res === false) {
+					resolve(this.pending_deposits || []);
+					return;
+      				}
+      				resolve(res || []);
+  			});
+		});
+
+		if (callback) {
+			callback(this.pending_deposits);
+		}
+
+		return this.pending_deposits;
+
+	}
+
+
+	async fetchPendingBalance() {
+
+		let pending_balance = 0;
+
+  		this.pending_deposits = await this.fetchPendingDeposits();
+
+  		for (let pd of this.pending_deposits) {
+  			if (pd.state === "pending" || Number(pd.confirmations) < Number(this.confirmations)) {
+  				pending_balance += Number(pd.amount || 0);
+  			}
+  		}
+
+		this.pending_balance = pending_balance.toString() || '0.0';
+
+  	}
+
+
+	startPolling() {
+
+
+		//
+		// if we are already polling, increase urgency by reducing interval index
+		//
+		if (this.polling_active) {
+			if (this.polling_interval_current > 0) {
+				this.polling_interval_current--;
+			}
+			return;
+		}
+
+		//
+		// record that we are polling
+		//
+                this.polling_active = 1;
+		this.polling_interval_current = 0;
+
+
+		const poll = async () => {
+
+			//
+			// polling stopped externally
+			//
+			if (!this.polling_active) {
+				return;
+			}
+
+			let old_balance = this.balance;
+			let old_pending_balance = this.pending_balance;
+
+			await this.fetchBalance();
+			await this.fetchPendingBalance();
+
+			//
+			// notify listeners if balance changed
+			//
+			if (old_balance != this.balance || old_pending_balance != this.pending_balance) {
+
+				let amount_received = "0.0";
+				let old_balance_num = Number(old_balance || "0");
+				let new_balance_num = Number(this.balance || "0");
+				let old_pending_num = Number(old_pending_balance || "0");
+				let new_pending_num = Number(this.pending_balance || "0");
+				let balance_delta = new_balance_num - old_balance_num;
+				let pending_balance_delta = new_pending_num - old_pending_num;
+				let amount_received = 0;
+				if (balance_delta > 0) { amount_received += balance_delta; }
+				if (pending_balance_delta > 0) { amount_received += pending_balance_delta; }
+				amount_received = amount_received.toString();
+
+				//
+				// broadcast an event
+				//
+			        this.app.connection.emit('on-payment-received', {
+					direction: 'receive',
+      					amount: String(amount_received),
+      					sender: '', // Mixin does not give us a reliable counterparty here
+      					receiver: this.returnAddress() || '',
+      					timestamp: Date.now(),
+      					block_id: '',
+      					ticker: this.ticker || '',
+      					transaction_signature: '',
+      					signature: '',
+      					memo: '',
+      					message: '',
+      					confirmation: 1 ,
+      					module: this.name || '',
+      					request: 'crypto payment',
+      					hash: '',
+				});
+
+				//
+				// disable polling, we've been paid...
+				//
+				this.polling_active = 0;
+                		this.polling_last_request = Date.now();      
+                		this.polling_timeout = 0;
+                		this.polling_interval_current = 0;       
+
+			} else {
+
+				//
+				// decay polling frequency
+				//
+				if (
+					this.polling_interval_current <
+					this.polling_intervals.length - 1
+				) {
+					this.polling_interval_current++;
+				}
+			}
+
+			//
+			// update timestamp
+			//
+			this.polling_last_request = Date.now();
+
+			//
+			// schedule next poll
+			//
+			let delay = this.polling_intervals[this.polling_interval_current];
+			this.polling_timeout = setTimeout(poll, delay);
+
+
+
+
+
+		return;
+  	}
+
+
+
 
 	/**
 	 * Abstract method which should transfer tokens via the crypto endpoint
@@ -235,7 +431,6 @@ class MixinModule extends CryptoModule {
 		//mixinmodule.js:454 received_datetime:  Sun Sep 20 56111 06:01:14 GMT+0500 (Pakistan Standard Time)
 
 		let status = await this.mixin.fetchUtxo('unspent', 100000, 'DESC', (d) => {
-					// console.log('utxo: ', d);
 
 			if (d.length > 0) {
 				for (let i = d.length - 1; i >= 0; i--) {
@@ -295,14 +490,12 @@ class MixinModule extends CryptoModule {
 		return status;
 	}
 
-	async returnNetworkInfo() {
-		let info = await this.mixin.returnNetworkInfo(this.asset_id);
-
+	async returnMixinNetworkInfo() {
+		let info = await this.mixin.returnMixinNetworkInfo(this.asset_id);
 		this.confirmations = info.confirmations || 0;
 		this.price_usd = Number(info.price_usd);
 		this.last_update = Date.now();
 		this.icon_url = info.icon_url;
-
 		return info;
 	}
 
@@ -494,20 +687,6 @@ class MixinModule extends CryptoModule {
 		}
 	}
 
-	async fetchPendingDeposits(callback = null) {
-		const callback_wrapper = (pending_deposits) => {
-			this.pending_balance = Number(this.balance);
-			for (let pd of pending_deposits) {
-				this.pending_balance += Number(pd.amount);
-			}
-
-			if (callback) {
-				callback(pending_deposits);
-			}
-		};
-
-		return await this.mixin.fetchPendingDeposits(this.asset_id, this.address, callback_wrapper);
-	}
 }
 
 module.exports = MixinModule;

@@ -265,8 +265,9 @@ class Mixin extends ModTemplate {
       // so we don't slow down saito initialization
       /////////////////////////////////////////////////////////////////
       setTimeout(async () => {
-        // Will update confirmations, usd_price, etc
-        await crypto_module.returnNetworkInfo();
+	if (typeof crypto_module?.returnMixinNetworkInfo === 'function') {
+		await crypto_module.returnMixinNetworkInfo();
+	}
         await crypto_module.installModule(mixin_self.app);
 
         // Do an initial balance check if we are able to
@@ -326,7 +327,7 @@ class Mixin extends ModTemplate {
   // fetchUtxo()
   // fetchSafeSnapshots()
   // fetchPendingDeposits()
-  // returnNetworkInfo()
+  // returnMixinNetworkInfo()
   // returnWithdrawalFee()
   // sendInNetworkTransferRequest()
   // sendExternalNetworkTransferRequest()
@@ -763,7 +764,7 @@ class Mixin extends ModTemplate {
     }
   }
 
-  async returnNetworkInfo(asset_id) {
+  async returnMixinNetworkInfo(asset_id) {
     try {
       let user = MixinApi({
         keystore: {

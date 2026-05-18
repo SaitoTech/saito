@@ -20,11 +20,11 @@ class Receive {
       this.render(details);
     });
 
-    this.app.connection.on('saito-crypto-receive-payment', (obj={}) => {
+    this.app.connection.on('on-payment-received', (obj={}) => {
 
-console.log("RECEIVED PAYMENT!");
-console.log("RECEIVED PAYMENT!");
-console.log("RECEIVED PAYMENT!");
+console.log("#");
+console.log("#");
+console.log("#");
 console.log("RECEIVED PAYMENT!");
 console.log(JSON.stringify(obj));
 

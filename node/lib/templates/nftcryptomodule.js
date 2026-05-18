@@ -513,9 +513,6 @@ class NFTCryptoModule extends CryptoModule {
     return this._returnNFTSlips({ state, limit });
   }
 
-  async returnNetworkInfo() {
-    return { confirmations: 0 };
-  }
 }
 
 module.exports = NFTCryptoModule;

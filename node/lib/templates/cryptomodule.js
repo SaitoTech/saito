@@ -13,6 +13,7 @@
   Minimum extension functionality: 
 
   -- checkBalance
+  -- fetchBalance
   -- returnPrivateKey
   -- sendPayment
   -- receivePayment
@@ -53,8 +54,14 @@ class CryptoModule extends ModTemplate {
     //
     // quick sanity check -- cache the balance
     //
+    // for Saito and NFT wallets, we can check the balance of the wallet directly by
+    // querying Rust, but in other modules, we may have a remote API serving wallet
+    // information, in which case we want checkBalance() to return a cached version
+    // and not constantly his the remote API.
+    //
     this.balance = '0.0';
     this.pending_balance = '0.0';
+    this.pending_deposits = [];
     this.address = '';
 
     //
@@ -78,7 +85,35 @@ class CryptoModule extends ModTemplate {
     return this.checkBalance();
   }
 
-  /**
+  async checkBalance() {
+    return this.balance;
+  }
+
+  async fetchBalance() {
+    return await this.checkBalance();
+  }
+
+  async checkPendingBalance() {
+    return await this.checkBalance();
+  }
+
+  async checkPendingDeposits() {
+    return [];
+  }
+
+  async fetchPendingBalance() {
+    return await checkPendingBalance();
+  }
+
+  asnyc fetchPendingDeposits() {
+    return [];
+  }
+
+  async startPolling() {
+    return;
+  }
+
+  /**	
    * Saito Module initialize function
    * @param {*} app
    */
@@ -210,12 +245,9 @@ class CryptoModule extends ModTemplate {
     console.info(`Crypto: sendPaymentTransaction sent to ${publicKey}!`, newtx.msg);
   }
 
-  /////////////////////
-  // BROWSER ONLY!!! //
-  /////////////////////
   onPaymentReceived(obj) {
 
-    this.app.connection.emit('saito-crypto-receive-payment', obj);
+    this.app.connection.emit('on-payment-received', obj);
 
 try {
     siteMessage(
@@ -227,9 +259,6 @@ try {
 } catch (err) {
 
 }
-
-    this.checkBalance();
-    this.app.connection.emit('saito-header-update-crypto');
 
   }
 
@@ -284,13 +313,7 @@ try {
   async activate() {
     await this.checkBalance();
     await this.checkHistory();
-
-    if (!this.options.isActivated) {
-      let info = await this.returnNetworkInfo();
-      console.log(`Activated ${this.ticker}: `, info);
-      this.options.isActivated = true;
-    }
-
+    this.options.isActivated = true;
     this.app.connection.emit('saito-crypto-activated', this.ticker);
     this.save();
   }
@@ -574,10 +597,6 @@ CryptoModule.prototype.returnUtxo = async function (
   order = 'DESC'
 ) {
   return true;
-};
-
-CryptoModule.prototype.returnNetworkInfo = async function (ticker) {
-  return { confirmations: 0 };
 };
 
 module.exports = CryptoModule;

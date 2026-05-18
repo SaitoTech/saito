@@ -86,7 +86,9 @@ class SaitoHeader extends UIModTemplate {
       if (preferred_crypto?.ticker == 'SAITO') {
         preferred_crypto.pending_balance = await app.core.wallet.getPendingBalance();
       }
-      this.app.connection.emit('saito-header-update-crypto');
+      if (!this.installing_crypto) {
+        this.renderCrypto();
+      }
     });
 
     app.connection.on('saito-header-update-message', (obj = {}) => {
@@ -126,7 +128,7 @@ class SaitoHeader extends UIModTemplate {
       this.updateHeaderMessage(msg, flash, callback, timeout);
     });
 
-    app.connection.on('saito-header-update-crypto', async () => {
+    app.connection.on('on-payment-received', async () => {
       if (!this.installing_crypto) {
         this.renderCrypto();
       } else {
