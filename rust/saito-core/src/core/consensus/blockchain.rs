@@ -269,9 +269,9 @@ impl Blockchain {
             return AddBlockResult::FailedNotValid;
         }
 
-	//
+        //
         // sanity checks
-	//
+        //
         if self.blocks.contains_key(&block_hash) {
             error!(
                 "block : {:?}-{:?} already exists in blockchain. not adding",
@@ -281,13 +281,11 @@ impl Blockchain {
             return AddBlockResult::BlockAlreadyExists;
         }
 
-	//
+        //
         // if this is not our first block, getch the missing block
-	//
+        //
         if !self.blockring.is_empty() && self.get_block(&block.previous_block_hash).is_none() {
-
-info!("Add Block Info -- blockring is not empty, fetch Missing Block!");
-
+            info!("Add Block Info -- blockring is not empty, fetch Missing Block!");
 
             if block.previous_block_hash == [0; 32] {
                 info!(
@@ -349,7 +347,7 @@ info!("Add Block Info -- blockring is not empty, fetch Missing Block!");
         if let InitialLoadingStatus::WaitingFor(waiting_for) =
             &mut configs.get_blockchain_configs_mut().initial_loading_status
         {
-info!("Add Block Info -- InitialLoadingStatus triggered...");
+            info!("Add Block Info -- InitialLoadingStatus triggered...");
             waiting_for.retain(|(waiting_block_id, waiting_block_hash)| {
                 !(*waiting_block_id == block.id && *waiting_block_hash == block.hash)
             });
@@ -392,7 +390,7 @@ info!("Add Block Info -- InitialLoadingStatus triggered...");
             .blockring
             .contains_block_hash_at_block_id(block_id, block_hash)
         {
-info!("Add Block Info -- adding block to blockring...");
+            info!("Add Block Info -- adding block to blockring...");
             self.blockring.add_block(&block);
         }
 
@@ -414,7 +412,7 @@ info!("Add Block Info -- adding block to blockring...");
         // current longest-chain rule. Keep it indexed so a later higher fork tip
         // can evaluate the complete fork without walking this stale fragment now.
         if !self.blockring.is_empty() && block_id < self.get_latest_block_id() {
-info!("Add Block Info -- block_id is less than latest block id....");
+            info!("Add Block Info -- block_id is less than latest block id....");
             debug!(
                 "block {}-{} is below latest block {}; storing without longest-chain evaluation",
                 block_id,
@@ -441,11 +439,11 @@ info!("Add Block Info -- block_id is less than latest block id....");
         let mut new_chain_detected = false;
         // and get existing current chain for comparison
         if shared_ancestor_found {
-info!("Add Block Info -- shared ancestor found...");
+            info!("Add Block Info -- shared ancestor found...");
             old_chain =
                 self.calculate_old_chain_for_add_block(latest_block_hash, shared_block_hash);
         } else {
-info!("Add Block Info -- shared ancestor not found...");
+            info!("Add Block Info -- shared ancestor not found...");
             debug!(
                 "block without parent. block : {}-{:?}, latest : {:?}-{:?}",
                 block_id,
@@ -461,16 +459,14 @@ info!("Add Block Info -- shared ancestor not found...");
             // at None. We use this to determine if we are a new chain instead
             // of creating a separate variable to manually track entries.
             if self.blockring.is_empty() {
-
-		info!("Add Block Info -- we have found the first block in the blockchain...");
+                info!("Add Block Info -- we have found the first block in the blockchain...");
                 debug!("this is the first block in the blockchain");
 
                 // no need for action as fall-through will result in proper default
                 // behavior. we have the comparison here to separate expected from
                 // unexpected / edge-case issues around block receipt.
             } else {
-
-		info!("Add Block Info -- this is not the first block in the blockchain...");
+                info!("Add Block Info -- this is not the first block in the blockchain...");
 
                 // if this not our first block, handle edge-case around receiving
                 // block 503 before block 453 when block 453 is our expected proper
@@ -533,12 +529,12 @@ info!("Add Block Info -- shared ancestor not found...");
                 self.calculate_old_chain_upto_length(latest_block_hash, new_chain.len() as BlockId);
         }
 
-	//
+        //
         // at this point we should have a shared ancestor or not
         // find out whether this new block is claiming to require chain-validation
-	//
-info!(
-    "[BOOTSTRAP_TRACE][LC_CHECK] \
+        //
+        info!(
+            "[BOOTSTRAP_TRACE][LC_CHECK] \
 block_id={} \
 latest_block_id={} \
 genesis_period={} \
@@ -550,21 +546,22 @@ shared_ancestor_found={} \
 am_i_before={} \
 passes_height_check={} \
 passes_longest_chain_check={}",
-    block_id,
-    self.get_latest_block_id(),
-    self.genesis_period,
-    self.get_latest_block_id().saturating_sub(self.genesis_period),
-    self.blockring.is_empty(),
-    new_chain.len(),
-    old_chain.len(),
-    shared_ancestor_found,
-    am_i_the_longest_chain,
-    block_id
-        > self
-            .get_latest_block_id()
-            .saturating_sub(self.genesis_period),
-    self.is_new_chain_the_longest_chain(&new_chain, &old_chain),
-);
+            block_id,
+            self.get_latest_block_id(),
+            self.genesis_period,
+            self.get_latest_block_id()
+                .saturating_sub(self.genesis_period),
+            self.blockring.is_empty(),
+            new_chain.len(),
+            old_chain.len(),
+            shared_ancestor_found,
+            am_i_the_longest_chain,
+            block_id
+                > self
+                    .get_latest_block_id()
+                    .saturating_sub(self.genesis_period),
+            self.is_new_chain_the_longest_chain(&new_chain, &old_chain),
+        );
 
         if !am_i_the_longest_chain
             && (block_id
@@ -595,9 +592,9 @@ passes_longest_chain_check={}",
         //
         self.blockring.empty = false;
 
-info!("Add Block Info - blockring set to empty");
+        info!("Add Block Info - blockring set to empty");
 
-	//
+        //
         // validate
         //
         // blockchain validate "validates" the new_chain by unwinding the old
@@ -613,12 +610,8 @@ info!("Add Block Info - blockring set to empty");
             );
             self.blocks.get_mut(&block_hash).unwrap().in_longest_chain = true;
 
-
-
-
-
-info!(
-    "[BOOTSTRAP_TRACE][VALIDATE_START] \
+            info!(
+                "[BOOTSTRAP_TRACE][VALIDATE_START] \
 block_id={} \
 block_hash={} \
 new_chain_len={} \
@@ -626,60 +619,59 @@ old_chain_len={} \
 latest_block_id={} \
 blockring_empty={} \
 initial_loading_status={:?}",
-    block_id,
-    block_hash.to_hex(),
-    new_chain.len(),
-    old_chain.len(),
-    self.get_latest_block_id(),
-    self.blockring.is_empty(),
-    configs.get_blockchain_configs().initial_loading_status,
-);
+                block_id,
+                block_hash.to_hex(),
+                new_chain.len(),
+                old_chain.len(),
+                self.get_latest_block_id(),
+                self.blockring.is_empty(),
+                configs.get_blockchain_configs().initial_loading_status,
+            );
 
-let (mut does_new_chain_validate, wallet_updated) = self
-    .validate(
-        new_chain.as_slice(),
-        old_chain.as_slice(),
-        storage,
-        configs,
-        mempool,
-        network,
-    )
-    .await;
+            let (mut does_new_chain_validate, wallet_updated) = self
+                .validate(
+                    new_chain.as_slice(),
+                    old_chain.as_slice(),
+                    storage,
+                    configs,
+                    mempool,
+                    network,
+                )
+                .await;
 
-info!(
-    "[BOOTSTRAP_TRACE][VALIDATE_RESULT] \
+            info!(
+                "[BOOTSTRAP_TRACE][VALIDATE_RESULT] \
 block_id={} \
 block_hash={} \
 does_new_chain_validate={} \
 wallet_updated={:?} \
 latest_block_id_after={} \
 blockring_empty_after={}",
-    block_id,
-    block_hash.to_hex(),
-    does_new_chain_validate,
-    wallet_updated,
-    self.get_latest_block_id(),
-    self.blockring.is_empty(),
-);
+                block_id,
+                block_hash.to_hex(),
+                does_new_chain_validate,
+                wallet_updated,
+                self.get_latest_block_id(),
+                self.blockring.is_empty(),
+            );
 
             does_new_chain_validate &= self.validate_total_supply(configs).await;
 
-
-info!(
-    "[BOOTSTRAP_TRACE][SUPPLY_RESULT] \
+            info!(
+                "[BOOTSTRAP_TRACE][SUPPLY_RESULT] \
 block_id={} \
 block_hash={} \
 does_new_chain_validate_after={}",
-    block_id,
-    block_hash.to_hex(),
-    does_new_chain_validate,
-);
+                block_id,
+                block_hash.to_hex(),
+                does_new_chain_validate,
+            );
 
             if does_new_chain_validate {
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
 
-info!("Add Block Info -- new chain validates!");
+                info!("Add Block Info -- new chain validates!");
                 AddBlockResult::BlockAddedSuccessfully(
                     block_hash,
                     true,
@@ -687,7 +679,7 @@ info!("Add Block Info -- new chain validates!");
                     new_chain_detected,
                 )
             } else {
-info!("Add Block Info -- new chain doesn't validate!");
+                info!("Add Block Info -- new chain doesn't validate!");
                 warn!(
                     "new chain doesn't validate with hash : {:?}",
                     block_hash.to_hex()
@@ -1712,7 +1704,6 @@ info!("Add Block Info -- new chain doesn't validate!");
         mempool: &mut Mempool,
         network: Option<&Network>,
     ) -> WindingResult<'a> {
-
         info!(" ... blockchain.wind_chain start!");
 
         debug!(
@@ -1822,7 +1813,6 @@ info!("Add Block Info -- new chain doesn't validate!");
                     configs.get_consensus_config().unwrap().genesis_period,
                     network.map(|n| n.io_interface.as_ref()),
                 );
-
             }
             let block_id = block.id;
 

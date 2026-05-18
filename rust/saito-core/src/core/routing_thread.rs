@@ -155,20 +155,14 @@ impl RoutingThread {
                 info!("### RequestBlockchain Message Received ###");
                 info!("####################################");
                 info!("peer_id => {}", peer_id);
-                info!(
-                    "latest_known_block_id => {}",
-                    request.latest_known_block_id
-                );
+                info!("latest_known_block_id => {}", request.latest_known_block_id);
                 info!(
                     "latest_known_block_hash => {}",
                     request.latest_known_block_hash.to_hex()
                 );
                 info!("fork_id => {}", request.fork_id.to_hex());
                 info!("sync_type => {}", request.sync_type);
-                info!(
-                    "public_key => {}",
-                    request.public_key.to_base58()
-                );
+                info!("public_key => {}", request.public_key.to_base58());
                 info!("keylist_len => {}", request.keylist.len());
                 for (i, key) in request.keylist.iter().enumerate() {
                     info!("keylist[{}] => {}", i, key.to_base58());

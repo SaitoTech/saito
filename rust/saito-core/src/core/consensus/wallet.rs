@@ -275,13 +275,18 @@ impl Wallet {
                             self.nfts.remove(pos);
 
                             if let Some(io) = io {
-				let sender = slip2.public_key.to_base58();
-				let receiver = (0..tx.to.len().saturating_sub(2))
-				    .find(|&i| tx.is_nft(&tx.to, i))
-				    .and_then(|i| tx.to.get(i + 1))
-				    .map(|s| s.public_key.to_base58())
-				    .unwrap_or_else(|| tx.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default());
-				let signature = tx.signature.to_hex();
+                                let sender = slip2.public_key.to_base58();
+                                let receiver = (0..tx.to.len().saturating_sub(2))
+                                    .find(|&i| tx.is_nft(&tx.to, i))
+                                    .and_then(|i| tx.to.get(i + 1))
+                                    .map(|s| s.public_key.to_base58())
+                                    .unwrap_or_else(|| {
+                                        tx.to
+                                            .first()
+                                            .map(|s| s.public_key.to_base58())
+                                            .unwrap_or_default()
+                                    });
+                                let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),
@@ -329,8 +334,16 @@ impl Wallet {
                             if let Some(io) = io {
                                 if !emitted_chain_tx_sent {
                                     emitted_chain_tx_sent = true;
-				    let sender = tx.from.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
-				    let receiver = tx.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
+                                    let sender = tx
+                                        .from
+                                        .first()
+                                        .map(|s| s.public_key.to_base58())
+                                        .unwrap_or_default();
+                                    let receiver = tx
+                                        .to
+                                        .first()
+                                        .map(|s| s.public_key.to_base58())
+                                        .unwrap_or_default();
                                     let signature = tx.signature.to_hex();
                                     let payload = serde_json::to_string(&json!({
                                         "block_id": block.id,
@@ -380,13 +393,18 @@ impl Wallet {
                             );
 
                             if let Some(io) = io {
-				let sender = slip2.public_key.to_base58();
-				let receiver = (0..tx.to.len().saturating_sub(2))
-				    .find(|&i| tx.is_nft(&tx.to, i))
-				    .and_then(|i| tx.to.get(i + 1))
-				    .map(|s| s.public_key.to_base58())
-				    .unwrap_or_else(|| tx.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default());
-				let signature = tx.signature.to_hex();
+                                let sender = slip2.public_key.to_base58();
+                                let receiver = (0..tx.to.len().saturating_sub(2))
+                                    .find(|&i| tx.is_nft(&tx.to, i))
+                                    .and_then(|i| tx.to.get(i + 1))
+                                    .map(|s| s.public_key.to_base58())
+                                    .unwrap_or_else(|| {
+                                        tx.to
+                                            .first()
+                                            .map(|s| s.public_key.to_base58())
+                                            .unwrap_or_default()
+                                    });
+                                let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),
@@ -416,9 +434,17 @@ impl Wallet {
                         //
                         if output.public_key == self.public_key && output.amount > 0 {
                             if let Some(io) = io {
-				let sender = tx.from.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
-				let receiver = tx.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
-				let signature = tx.signature.to_hex();
+                                let sender = tx
+                                    .from
+                                    .first()
+                                    .map(|s| s.public_key.to_base58())
+                                    .unwrap_or_default();
+                                let receiver = tx
+                                    .to
+                                    .first()
+                                    .map(|s| s.public_key.to_base58())
+                                    .unwrap_or_default();
+                                let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),

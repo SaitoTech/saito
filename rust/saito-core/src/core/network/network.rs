@@ -84,7 +84,6 @@ impl Network {
     }
 
     pub async fn propagate_transaction(&self, transaction: &Transaction) {
-
         // --- STEP 1: read wallet ---
         let (wallet_public_key, wallet_private_key) = {
             let wallet = self.wallet_lock.read().await;
@@ -154,9 +153,17 @@ impl Network {
                 .await;
         }
 
-	let sender = transaction.from.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
-	let receiver = transaction.to.first().map(|s| s.public_key.to_base58()).unwrap_or_default();
-	let signature = transaction.signature.to_hex();
+        let sender = transaction
+            .from
+            .first()
+            .map(|s| s.public_key.to_base58())
+            .unwrap_or_default();
+        let receiver = transaction
+            .to
+            .first()
+            .map(|s| s.public_key.to_base58())
+            .unwrap_or_default();
+        let signature = transaction.signature.to_hex();
 
         let sent_payload = serde_json::to_string(&json!({
             "transaction_signature": signature,

@@ -137,7 +137,6 @@ impl Default for Transaction {
 }
 
 impl Transaction {
-
     pub fn add_hop(
         &mut self,
         my_private_key: &SaitoPrivateKey,
