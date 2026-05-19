@@ -338,7 +338,7 @@ class MixinModule extends CryptoModule {
 				this.app.connection.emit('on-payment-received', {
 					direction: obj.type ,
 					amount: String(Math.abs(obj.amount)),
-					sender: obj.counter_party.publicKey || obj.counter_party.address ,
+					sender: obj.sender ,
 					receiver: this.returnAddress() || '',
 					timestamp: obj.timestamp,
 					block_id: '',
@@ -376,7 +376,7 @@ class MixinModule extends CryptoModule {
 				this.app.connection.emit('on-payment-sent', {
 					direction: obj.type ,
 					amount: String(Math.abs(obj.amount)),
-					receiver: obj.counter_party.address,
+					receiver: obj.receiver ,
 					sender: this.returnAddress() || '',
 					timestamp: obj.timestamp,
 					block_id: '',

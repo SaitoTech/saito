@@ -42,6 +42,13 @@ class CryptoModule extends ModTemplate {
     this.categories = 'Cryptocurrency';
     this.description = '';
 
+    this.polling_active = 0;
+    this.polling_last_request = 0;
+    this.polling_timeout = 0;
+    this.polling_intervals = [0, 10000];
+    this.polling_interval_current = 0;
+
+
     //
     // some modules issue warnings to users on selection
     // see ui/saito-crypto/overlays/activate.js
@@ -264,13 +271,13 @@ class CryptoModule extends ModTemplate {
     if (!this.options.transfers_inbound.includes(hash)) {
       this.options.transfers_inbound.push(hash);
       this.save();
+      this.startPolling();
       return { hash };
     } else {
       console.warn('Crypto: Already saved expected payment');
       return { err: 'Already saved expected payment' };
     }
 
-    this.startPolling();
   }
 
   returnLogos() {

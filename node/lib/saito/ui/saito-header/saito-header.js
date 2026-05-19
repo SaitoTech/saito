@@ -45,6 +45,7 @@ class SaitoHeader extends UIModTemplate {
     // Store the mod functions for when you click icon in the menu, e.g. "RedSquare"
     this.callbacks = {};
 
+    this.web3_start_polling_timeout = null;
     this.can_update_header_msg = true;
     this.show_msg = true;
 
@@ -627,10 +628,29 @@ class SaitoHeader extends UIModTemplate {
     ) {
       document.querySelector('.saito-header-hamburger-contents').classList.add('show-menu');
       document.querySelector('.saito-header-backdrop').classList.add('menu-visible');
-      console.log('Menu open, start polls on crypto balance and pending deposits');
 
-      let preferred_crypto = this.app.wallet.returnPreferredCrypto();
-      preferred_crypto.startPolling();
+      //
+      // start polling web3 crypto
+      //
+      if (this.web3_start_polling_timeout) {
+        clearTimeout(this.web3_start_polling_timeout);
+      }
+
+      //
+      // after 10 seconds, query to update web3 balance if active
+      //
+      this.web3_start_polling_timeout = setTimeout(() => {
+        this.web3_start_polling_timeout = null;
+        if (!document.querySelector('.saito-header-hamburger-contents')?.classList.contains('show-menu')) {
+          return;
+        }
+        let c = this.app.wallet.returnPreferredCrypto();
+        if (c.ticker === 'SAITO' || c.categories === 'NFT' || String(c.ticker || '').toUpperCase().startsWith('NFT-')) {
+          return;
+        }
+        c.startPolling();
+      }, 10000);
+
     }
   }
 
@@ -640,6 +660,23 @@ class SaitoHeader extends UIModTemplate {
     ) {
       document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
       document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
+    }
+
+    //
+    // clear web3 polling if active
+    //
+    if (this.web3_start_polling_timeout) {
+      clearTimeout(this.web3_start_polling_timeout);
+      this.web3_start_polling_timeout = null;
+    }
+    let c = this.app.wallet.returnPreferredCrypto();
+      if (c.ticker !== 'SAITO' && c.categories !== 'NFT') {
+        c.polling_active = 0;
+        if (c.polling_timeout) {
+          clearTimeout(c.polling_timeout);
+          c.polling_timeout = 0;
+        }
+      }
     }
   }
 

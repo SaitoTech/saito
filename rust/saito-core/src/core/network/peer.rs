@@ -1,4 +1,5 @@
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
+use crate::core::network::msg::blockchain::MAX_BLOCKCHAIN_CHUNK;
 use crate::core::network::service::Service;
 use crate::core::process::version::Version;
 use crate::core::util::configuration::Endpoint;
@@ -70,6 +71,7 @@ pub struct Peer {
     pub last_request_blockchain_block_id: u64,
     pub last_request_blockchain_timestamp: u64,
     pub last_request_blockchain_score: u32,
+    pub last_request_blockchain_chunksize: usize,
 
     pub messages_received: u64,
     pub messages_sent: u64,
@@ -127,6 +129,7 @@ impl Peer {
             last_request_blockchain_block_id: 0,
             last_request_blockchain_timestamp: 0,
             last_request_blockchain_score: 0,
+            last_request_blockchain_chunksize: 0,
             messages_received: 0,
             messages_sent: 0,
             blocks_received: 0,
@@ -222,6 +225,16 @@ impl Peer {
         if let Some(pk) = &self.public_key {
             info!("peer {:?} disconnected at {}", pk.to_base58(), current_time);
         }
+    }
+
+    pub fn on_sync_chunk_received(&mut self, chunk_len: usize) {
+        self.last_request_blockchain_chunksize = chunk_len;
+    }
+
+    pub fn should_continue_chain_sync(&self) -> bool {
+        self.is_syncing
+            && !self.is_synced
+            && self.last_request_blockchain_chunksize >= MAX_BLOCKCHAIN_CHUNK
     }
 
     pub fn on_sync_complete(&mut self) {

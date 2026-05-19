@@ -760,13 +760,13 @@ impl SyncManager {
         }
 
         info!(
-        "[TEMP_SYNC_TRACE][SYNC] process Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={} mode={}",
-        peer_id,
-        cs.payload.len(),
-        cs.payload_latest_block_id,
-        cs.latest_known_block_id,
-        if is_spv_mode { "spv" } else { "full" }
-    );
+            "[TEMP_SYNC_TRACE][SYNC] process Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={} mode={}",
+            peer_id,
+            cs.payload.len(),
+            cs.payload_latest_block_id,
+            cs.latest_known_block_id,
+            if is_spv_mode { "spv" } else { "full" }
+        );
 
         let mut previous_block_id = cs.shared_ancestor_block_id;
         let mut previous_block_hash = cs.shared_ancestor_block_hash;
@@ -931,5 +931,49 @@ impl SyncManager {
         self.fetch(network, fetch_dispatcher).await;
 
         Ok(())
+    }
+
+    pub async fn advance_chain_sync_if_ready(
+        &mut self,
+        network: &Network,
+        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+    ) {
+        if !self.queue.is_empty() {
+            return;
+        }
+
+        let peer_id = {
+            let peers = network.peer_lock.read().await;
+            peers
+                .peers
+                .values()
+                .find(|p| p.is_syncing && !p.is_synced)
+                .map(|p| p.id)
+        };
+
+        let Some(peer_id) = peer_id else {
+            return;
+        };
+
+        let mut peers = network.peer_lock.write().await;
+        let Some(peer) = peers.peers.get_mut(&peer_id) else {
+            return;
+        };
+
+        if peer.should_continue_chain_sync() {
+            drop(peers);
+            self.send_request_blockchain_message(peer_id, config_lock, network)
+                .await;
+            return;
+        }
+
+        //
+        // update peer if needed, requires return; after peer drop in closure above
+        //
+        if peer.last_request_blockchain_chunksize > 0
+            && peer.last_request_blockchain_chunksize < MAX_BLOCKCHAIN_CHUNK
+        {
+            peer.on_sync_complete();
+        }
     }
 }

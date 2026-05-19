@@ -199,15 +199,7 @@ impl RoutingThread {
                             chunk_len,
                             chaindata.shared_ancestor_block_id
                         );
-                        if chunk_len < MAX_BLOCKCHAIN_CHUNK {
-                            info!(
-                                "[TEMP_SYNC_TRACE][SYNC] mark sync complete peer_id={} reason=short-chunk payload_n={} max_chunk={}",
-                                peer_id,
-                                chunk_len,
-                                MAX_BLOCKCHAIN_CHUNK
-                            );
-                            peer.on_sync_complete();
-                        }
+                        peer.on_sync_chunk_received(chunk_len);
                         info!(
                             "[TEMP_SYNC_TRACE][SYNC] recv Blockchain peer_state_after peer_id={} syncing={} synced={}",
                             peer_id, peer.is_syncing, peer.is_synced
@@ -220,12 +212,6 @@ impl RoutingThread {
                     chaindata.payload.len(),
                     chaindata.payload_latest_block_id,
                     chaindata.latest_known_block_id
-                );
-                info!(
-                    "[routing] RECEIVED Blockchain peer_id={} payload_entries={} payload_latest_block_id={}",
-                    peer_id,
-                    chaindata.payload.len(),
-                    chaindata.payload_latest_block_id
                 );
                 let mut sync = self.sync.write().await;
                 if let Err(e) = sync
@@ -873,22 +859,16 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
     async fn process_event(&mut self, event: RoutingEvent) -> Option<()> {
         match event {
             RoutingEvent::OnAddBlockSuccess(block_hash) => {
-                trace!(
-                    "[TEMP_SYNC] - block added - removing from SyncManager queue : {:?}",
-                    block_hash.to_hex()
-                );
                 let mut sync = self.sync.write().await;
                 sync.remove(block_hash);
                 sync.fetch(&self.network, &self.fetch_dispatcher).await;
+
+                if sync.queue.is_empty() {
+                    sync.advance_chain_sync_if_ready(&self.network, self.config_lock.clone())
+                        .await;
+                }
             }
             RoutingEvent::MissingBlock(peer_id, block_hash, block_id) => {
-                trace!(
-        "[TEMP_SYNC] - missing block requested by blockchain from peer : {:?} for block : {:?}-{:?}",
-        peer_id,
-        block_hash.to_hex(),
-        block_id
-    );
-
                 let skip_missing_fetch = {
                     let peers = self.network.peer_lock.read().await;
                     peers.peers.values().any(|p| p.is_connected && p.is_syncing)
@@ -900,11 +880,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 // will disrupt the block fetch process...
                 //
                 if skip_missing_fetch {
-                    trace!(
-            "[TEMP_SYNC] - skipping MissingBlock fetch while peer(s) syncing (block_id={} hash={})",
-            block_id,
-            block_hash.to_hex()
-        );
                     return None;
                 }
 
