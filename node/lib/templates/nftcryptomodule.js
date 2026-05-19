@@ -322,6 +322,8 @@ class NFTCryptoModule extends CryptoModule {
     return await this.checkBalance();
   }
 
+
+
   async getPendingBalance() {
     const confirmedStr = await this.checkBalance();
     let confirmed = 0n;

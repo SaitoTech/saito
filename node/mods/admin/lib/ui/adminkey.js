@@ -70,7 +70,7 @@ class AdminKeyUI {
           );
           reloadWindow(1200);
         }
-      });
+      }, this.mod.server_publickey);
     };
   }
 }

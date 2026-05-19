@@ -79,7 +79,7 @@ class AdminModulesUI {
 	  saveBtn.setAttribute("disabled", true);
           siteMessage("Modules updated");
         }
-      });
+      }, this.mod.server_publickey);
     };
 
   }

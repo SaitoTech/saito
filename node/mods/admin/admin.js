@@ -13,7 +13,7 @@ class Admin extends ModTemplate {
     this.description = 'Admin module for Saito application management';
     this.categories = 'Admin utilities';
 
-    this.server_publickey = null;
+    this.server_publickey = "";
     this.server_info = null;
 
   }
@@ -27,30 +27,8 @@ class Admin extends ModTemplate {
   }
 
   async render() {
-
-/****
-    console.log('Admin module rendering');
-
-    let error = true;
-    if (window.location.protocol == 'https:') {
-      error = false;
-    }
-    if (window.location.host.includes('localhost')) {
-      error = false;
-    }
-
-    if (error) {
-      this.main.render();
-      this.main.updateHeader('Warning!');
-      this.main.updateInfo('You need to enable SSL in order for the whole Javascript stack to work, though in the meantime you can do local development work.');
-      return;
-    }
-****/
-
     this.server_publickey = server_publickey;
     this.main.render();
-
-
   }
 
 
@@ -79,7 +57,7 @@ class Admin extends ModTemplate {
 	  this.server_info = res;
 	  this.main.render();
         }
-      });
+      }, peer.publicKey);
     }
   }
 
@@ -332,7 +310,7 @@ class Admin extends ModTemplate {
       } else {
         siteMessage('Node updated');
       }
-    });
+    }, this.server_publickey);
   }
 
   updateOptions(options) {

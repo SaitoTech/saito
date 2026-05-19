@@ -365,6 +365,9 @@ export default class Saito {
       publicKey?: string,
       waitForReply?: boolean
     ): Promise<Uint8Array> => {
+
+      publicKey = typeof publicKey === "string" ? publicKey : (publicKey as any)?.publicKey;
+
       if (!!publicKey) {
         const peer = await core.network.getPeer(publicKey);
         if (peer === null) {

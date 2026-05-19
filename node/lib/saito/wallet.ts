@@ -143,70 +143,19 @@ export default class Wallet extends SaitoWallet {
 
         app.connection.on('on-transaction-sent', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          const block_id = p.block_id;
-          const block_hash = p.block_hash;
-          const timestamp = p.timestamp;
-          const transaction_signature = p.transaction_signature;
-          const signature = p.signature;
-          const transaction_type = p.transaction_type;
-          const sender = p.sender;
-          const receiver = p.receiver;
-          const peer_send_count = p.peer_send_count;
         });
 
         app.connection.on('on-transaction-received', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          const block_id = p.block_id;
-          const block_hash = p.block_hash;
-          const timestamp = p.timestamp;
-          const transaction_signature = p.transaction_signature;
-          const signature = p.signature;
-          const transaction_type = p.transaction_type;
-          const amount = p.amount;
-          const sender = p.sender;
-          const receiver = p.receiver;
-          const sender_publickey = p.sender_publickey;
-
           super.onPaymentReceived(p);
         });
 
         app.connection.on('on-nft-sent', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          const block_id = p.block_id;
-          const block_hash = p.block_hash;
-          const timestamp = p.timestamp;
-          const transaction_signature = p.transaction_signature;
-          const signature = p.signature;
-          const sender = p.sender;
-          const receiver = p.receiver;
-          const ticker = p.ticker;
-          const nft_id = p.nft_id;
-          const nft_amount = p.nft_amount;
-          const saito_deposit = p.saito_deposit;
-          const slip1_utxo = p.slip1_utxo;
-          const slip2_utxo = p.slip2_utxo;
-          const slip3_utxo = p.slip3_utxo;
-          const sender_publickey = p.sender_publickey;
         });
 
         app.connection.on('on-nft-received', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          const block_id = p.block_id;
-          const block_hash = p.block_hash;
-          const timestamp = p.timestamp;
-          const transaction_signature = p.transaction_signature;
-          const signature = p.signature;
-          const sender = p.sender;
-          const receiver = p.receiver;
-          const ticker = p.ticker;
-          const nft_id = p.nft_id;
-          const nft_amount = p.nft_amount;
-          const saito_deposit = p.saito_deposit;
-          const slip1_utxo = p.slip1_utxo;
-          const slip2_utxo = p.slip2_utxo;
-          const slip3_utxo = p.slip3_utxo;
-          const sender_publickey = p.sender_publickey;
-
           super.onPaymentReceived(p);
         });
 

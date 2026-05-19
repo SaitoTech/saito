@@ -94,6 +94,18 @@ class SaitoHeader extends UIModTemplate {
       if (!this.installing_crypto) {
         this.renderCrypto();
       }
+
+      let amount = obj.amount;
+      let ticker = obj.ticker;
+      if (ticker === "SAITO") {
+        amount = this.app.wallet.convertNolanToSaito(amount);
+      }
+
+      siteMessage(
+        `${amount} ${ticker} inbound from ${this.app.keychain.returnUsername(obj.sender)}`,
+        3000
+      );
+
     });
 
     app.connection.on('saito-header-update-message', (obj = {}) => {
@@ -863,11 +875,10 @@ class SaitoHeader extends UIModTemplate {
   }
 
   async renderCrypto(force = false) {
+
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
     let preferred_crypto = this.app.wallet.returnPreferredCrypto();
     let add = preferred_crypto.returnAddress();
-
-    console.log('into render Crypto in SaitoHeader...');
 
     try {
       //
@@ -904,7 +915,9 @@ class SaitoHeader extends UIModTemplate {
       for (let i = 0; i < available_cryptos.length; i++) {
         let crypto_mod = available_cryptos[i];
 
-        // mixin handles
+	//
+        // mixin handles logos
+	//
         let rtn_val = crypto_mod.returnLogos();
 
         options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
@@ -924,12 +937,8 @@ class SaitoHeader extends UIModTemplate {
         );
         menu_html += `</div><div class="header-crypto-balance">${menuBal} ${crypto_mod.ticker}</div>`;
 
-        if (crypto_mod.pending_balance) {
-          const pendRaw =
-            this.isNftCryptoModule(crypto_mod) && crypto_mod.pending_balance != null
-              ? String(crypto_mod.pending_balance).split(/[.eE]/)[0] || '0'
-              : crypto_mod.pending_balance;
-          menu_html += `<div class="header-crypto-pending">${pendRaw} pending </div>`;
+        if (Number(crypto_mod.getPendingBalance()) > Number(crypto_mod.getAvailableBalance())) {
+          menu_html += `<div class="header-crypto-pending">${crypto_mod.getPendingBalance()} pending </div>`;
         } else {
           menu_html += '<div></div>';
         }
