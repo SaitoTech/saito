@@ -11,9 +11,9 @@ html[data-theme='dark'] {
   --palette-outline: var(--saito-border-color-dark);
   --palette-outline-strong: var(--saito-gray-550);
   --palette-bg-gradient:
-    radial-gradient(circle at 24% 68%, color-mix(in srgb, var(--saito-primary) 8%, transparent), transparent 32rem),
-    radial-gradient(circle at 86% 34%, color-mix(in srgb, var(--saito-secondary) 4%, transparent), transparent 30rem),
-    linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 82%, var(--saito-black)), var(--palette-bg));
+    linear-gradient(125deg, color-mix(in srgb, var(--saito-black) 70%, var(--palette-bg)) 8%, transparent 58%, color-mix(in srgb, var(--saito-orange) 4%, transparent) 100%),
+    linear-gradient(40deg, color-mix(in srgb, var(--saito-gray-900) 42%, transparent) 0%, color-mix(in srgb, var(--palette-bg) 18%, transparent) 32%, transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 76%, var(--saito-gray-900)) 0%, var(--palette-bg) 52%, color-mix(in srgb, var(--saito-black) 28%, var(--palette-bg)) 100%);
   --palette-surface-gradient:
     linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 5%, var(--palette-bg)), color-mix(in srgb, var(--saito-black) 12%, var(--palette-bg)));
   --palette-overlay-gradient:
@@ -22,6 +22,7 @@ html[data-theme='dark'] {
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
   --saito-canvas-background: var(--palette-bg-gradient);
+  --saito-header-color: var(--saito-white);
   --saito-header-background: var(--saito-background-color);
 
   --saito-surface-color: var(--palette-surface-1);
@@ -62,4 +63,12 @@ html[data-theme='dark'] {
 
   --saito-box-shadow:
     0px 12px 17px 2px #00000024, 0px 5px 22px 4px #0000001f, 0px 7px 8px -4px #00000033;
+}
+
+html[data-theme='dark'] .saito-header-logo {
+  filter: brightness(0) invert(1);
+}
+
+html[data-theme='dark'] .saito-header-logo .cls-1 {
+  fill: var(--saito-white);
 }

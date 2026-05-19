@@ -84,10 +84,14 @@
 .chat-footer > i {
 	margin-left: 1rem;
 	border-radius: 50%;
-	background-color: var(--saito-background-color);
 	height: 4.3rem;
 	width: 4.3rem;
-	text-align: center;
+	background-color: transparent;
+	box-shadow: none;
+}
+
+.chat-footer > i:hover {
+	background-color: var(--saito-background-color);
 	box-shadow: 0 0 1px var(--saito-primary);
 }
 

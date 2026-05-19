@@ -1321,6 +1321,9 @@ class Tweet {
 			let qs = `.tweet-${this.tx.signature} .tweet-body .tweet-controls .tweet-tool-${stat} .tweet-tool-${stat}-count`;
 			Array.from(document.querySelectorAll(qs)).forEach((obj) => {
 				obj.innerHTML = newCount;
+				if (stat === 'like') {
+					obj.classList.toggle('has-likes', newCount > 0);
+				}
 			});
 		} catch (err) {
 			console.error(`RS.Tweet -- Stat ERROR: ` + err);

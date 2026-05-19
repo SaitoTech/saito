@@ -595,7 +595,7 @@
   padding: 0;
   display: flex;
   flex-flow: row;
-  align-items: end;
+  align-items: center;
   z-index: 2;
   border-top: 1px solid var(--saito-border-color);
   border-bottom-left-radius: inherit;
@@ -611,7 +611,15 @@
 }
 
 .chat-footer .saito-emoji {
-  padding: 1.3rem 0.5rem;
+  top: 50%;
+  bottom: auto;
+  width: 4.3rem;
+  height: 4.3rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
 }
 
 .chat-footer .saito-input .text-input:not(.post-tweet-textarea) {
@@ -633,11 +641,33 @@
   z-index: 2;
   transition: all 0.2s;
   font-size: 2rem;
-  padding: 1.3rem 1rem 1.3rem 0.5rem;
+  align-content: center;
+  text-align: center;
 }
 
-.chat-footer i:hover {
-  transform: rotate(45deg);
+.chat-footer > .chat-input-submit.button-mouse-over {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.3rem;
+  height: 4.3rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.chat-footer > .chat-input-submit:hover {
+  animation: button-mouse-over-pulse 0.9s ease-in-out infinite;
+  transform: scale(1.06);
+}
+
+.chat-footer .saito-emoji:hover {
+  transform: translateY(-50%);
+}
+
+.chat-footer .selection-box-tabs i:hover,
+.chat-footer .saito-box-tab:hover {
+  transform: none;
 }
 
 .dockedLeft {

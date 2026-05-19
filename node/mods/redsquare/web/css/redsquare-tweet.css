@@ -198,6 +198,11 @@
   min-width: 2.4rem;
 }
 
+.tweet-tool-like-count {
+  color: var(--saito-white);
+}
+
+.tweet-tool-like-count.has-likes,
 .tweet-tool-like-count.liked {
   color: var(--saito-primary);
 }
