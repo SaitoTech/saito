@@ -28,7 +28,7 @@ use crate::core::defs::{
 };
 
 use crate::core::mining_thread::MiningEvent;
-use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
+use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::network::Network;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::storage::storage::Storage;

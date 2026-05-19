@@ -3,7 +3,7 @@ use crate::core::network::msg::blockchain::MAX_BLOCKCHAIN_CHUNK;
 use crate::core::network::service::Service;
 use crate::core::process::version::Version;
 use crate::core::util::configuration::Endpoint;
-use log::{info, warn};
+use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -172,12 +172,6 @@ impl Peer {
     }
 
     pub fn on_disconnect(&mut self, current_time: Timestamp) {
-        let prev_connected = self.is_connected;
-        let prev_syncing = self.is_syncing;
-        let prev_synced = self.is_synced;
-        let prev_services_fetching = self.is_services_fetching;
-        let prev_services_fetched = self.is_services_fetched;
-
         // --- lifecycle ---
         self.is_connected = false;
         self.is_connecting = false;
@@ -207,21 +201,6 @@ impl Peer {
         self.is_synced = false;
 
         // --- logging (safe) ---
-        info!(
-            "[TEMP_SYNC_TRACE][SYNC] peer disconnect reset peer_id={} connected:{}->{} syncing:{}->{} synced:{}->{} services_fetching:{}->{} services_fetched:{}->{} at={}",
-            self.id,
-            prev_connected,
-            self.is_connected,
-            prev_syncing,
-            self.is_syncing,
-            prev_synced,
-            self.is_synced,
-            prev_services_fetching,
-            self.is_services_fetching,
-            prev_services_fetched,
-            self.is_services_fetched,
-            current_time
-        );
         if let Some(pk) = &self.public_key {
             info!("peer {:?} disconnected at {}", pk.to_base58(), current_time);
         }
@@ -302,11 +281,6 @@ impl Peer {
         }
 
         if missing_lite_pk {
-            warn!(
-                "[TRACE_SYNC] missing_spv_public_key_fallback_to_full_block_url base={} block_hash={}",
-                base,
-                block_hash.to_hex()
-            );
             return format!("{}/block/{}", base, block_hash.to_hex());
         }
 

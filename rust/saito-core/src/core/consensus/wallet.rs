@@ -668,7 +668,7 @@ impl Wallet {
 
     pub fn delete_slip(&mut self, slip: &Slip, network: Option<&Network>) {
         trace!("deleting slip : {} from wallet", slip);
-        if let Some(removed_slip) = self.slips.remove(&slip.utxoset_key) {
+        if let Some(_removed_slip) = self.slips.remove(&slip.utxoset_key) {
             let in_unspent_list = self.unspent_slips.remove(&slip.utxoset_key);
             if in_unspent_list {
             } else {

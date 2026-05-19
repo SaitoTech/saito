@@ -98,12 +98,6 @@ impl SyncManager {
                     peer.get_block_fetch_url([0; 32], self.spv_fetch, my_public_key);
 
                 if peer_block_fetch_url.is_empty() {
-                    info!(
-                        "[TRACE_SYNC] queue_skip reason=missing_fetch_url peer_id={} block_id={} block_hash={}",
-                        peer_id,
-                        block_id,
-                        block_hash.to_hex()
-                    );
                     return false;
                 }
 
@@ -118,20 +112,8 @@ impl SyncManager {
         let mempool = self.mempool_lock.read().await;
         if blockchain.is_block_indexed(block_hash) {
             info!("[BLOCK_FETCH_TRACE][FETCH] block is indexed...");
-            info!(
-                "[TRACE_SYNC] queue_skip reason=already_indexed peer_id={} block_id={} block_hash={}",
-                peer_id,
-                block_id,
-                block_hash.to_hex()
-            );
         } else if mempool.blocks_queue.iter().any(|b| b.hash == block_hash) {
             info!("[BLOCK_FETCH_TRACE][FETCH] block is in mempool...");
-            info!(
-                "[TRACE_SYNC] queue_skip reason=already_in_mempool peer_id={} block_id={} block_hash={}",
-                peer_id,
-                block_id,
-                block_hash.to_hex()
-            );
         } else {
             info!("[BLOCK_FETCH_TRACE][FETCH] block inserting into queue...");
 
@@ -154,13 +136,6 @@ impl SyncManager {
                             fetch_active: false,
                             fetch_peer_id: None,
                         },
-                    );
-                    info!(
-                        "[TRACE_SYNC] queue_insert peer_id={} block_id={} block_hash={} queue_len={}",
-                        peer_id,
-                        block_id,
-                        block_hash.to_hex(),
-                        self.queue.len()
                     );
                     return true;
                 }
@@ -240,13 +215,6 @@ impl SyncManager {
         entry.retry_count = entry.retry_count.saturating_add(1);
 
         if entry.retry_count >= MAX_BLOCK_FETCH_RETRIES {
-            info!(
-                "[TEMP_SYNC_TRACE][FETCH] fetch fail dropped peer_id={} block_id={} block_hash={} retries={}",
-                peer_id,
-                block_id,
-                block_hash.to_hex(),
-                entry.retry_count
-            );
             error!(
                 "dropping block {:?}-{:?} from fetch queue after {} failures",
                 block_id,
@@ -313,12 +281,6 @@ impl SyncManager {
             };
 
             if !peer_found {
-                info!(
-                    "[TEMP_SYNC_TRACE][FETCH] fetch fail peer-not-found peer_id={} block_id={} block_hash={}",
-                    selected_peer_id,
-                    block_id,
-                    block_hash.to_hex()
-                );
                 warn!(
                     "dropping block fetch: peer {:?} not found for block {:?}",
                     selected_peer_id,
@@ -352,30 +314,10 @@ impl SyncManager {
 
             let is_block_url = url.contains("/block/") || url.contains("/lite-block/");
             if !is_block_url {
-                warn!(
-                    "[TRACE_SYNC] invalid_fetch_url_shape peer_id={} block_id={} block_hash={} url={}",
-                    selected_peer_id,
-                    block_id,
-                    block_hash.to_hex(),
-                    url
-                );
                 self.on_fetch_fail(block_id, block_hash, selected_peer_id, now);
                 continue;
             }
-            info!(
-                "[TRACE_SYNC] fetch_dispatch peer_id={} block_id={} block_hash={} url={}",
-                selected_peer_id,
-                block_id,
-                block_hash.to_hex(),
-                url
-            );
 
-            info!(
-                "[TEMP_SYNC_TRACE][FETCH] fetch begin peer_id={} block_id={} block_hash={}",
-                selected_peer_id,
-                block_id,
-                block_hash.to_hex()
-            );
 
             fetch_dispatcher(block_hash, selected_peer_id, url.clone(), block_id);
         }
@@ -414,13 +356,7 @@ impl SyncManager {
             )
         };
 
-        let (
-            live_latest_known_block_id,
-            live_latest_known_block_hash,
-            live_fork_id,
-            live_chain_fork_id_field,
-            live_blocks_len,
-        ) = {
+        let (live_latest_known_block_id, live_latest_known_block_hash, live_fork_id) = {
             let blockchain = self.blockchain_lock.read().await;
             let live_latest_known_block_id = blockchain.get_latest_block_id();
             let live_latest_known_block_hash = blockchain.get_latest_block_hash();
@@ -428,14 +364,10 @@ impl SyncManager {
                 .generate_fork_id(live_latest_known_block_id)
                 .or(blockchain.fork_id)
                 .unwrap_or([0; 32]);
-            let live_chain_fork_id_field = blockchain.fork_id.unwrap_or([0; 32]);
-            let live_blocks_len = blockchain.blocks.len();
             (
                 live_latest_known_block_id,
                 live_latest_known_block_hash,
                 live_fork_id,
-                live_chain_fork_id_field,
-                live_blocks_len,
             )
         };
 
@@ -449,39 +381,8 @@ impl SyncManager {
             latest_known_block_hash = config_last_block_hash;
             fork_id = config_fork_id;
 
-            log::info!(
-                "[SYNC_FIX] using config identity id={} hash={} fork_id={}",
-                latest_known_block_id,
-                hex::encode(latest_known_block_hash),
-                hex::encode(fork_id)
-            );
         }
 
-        info!(
-            "[SYNC_DEBUG][FORK_ID] block_id={} fork_id={}",
-            latest_known_block_id,
-            fork_id.to_hex()
-        );
-        info!(
-            "[SYNC_DEBUG][CLIENT_SEND] peer_id={} LIVE(id={} hash={} fork_id={} blocks_len={} chain_fork_field={}) CONFIG(id={} hash={} fork_id={}) SENT(id={} hash={} fork_id={})",
-            peer_id,
-            live_latest_known_block_id,
-            live_latest_known_block_hash.to_hex(),
-            live_fork_id.to_hex(),
-            live_blocks_len,
-            live_chain_fork_id_field.to_hex(),
-            config_last_block_id,
-            config_last_block_hash.to_hex(),
-            config_fork_id.to_hex(),
-            latest_known_block_id,
-            latest_known_block_hash.to_hex(),
-            fork_id.to_hex()
-        );
-
-        info!(
-            "[TEMP_SYNC_TRACE][SYNC] send RequestBlockchain peer_id={} latest_known_block_id={} sync_type={}",
-            peer_id, latest_known_block_id, sync_type
-        );
         let my_public_key = {
             let wallet = self.wallet_lock.read().await;
             wallet.public_key
@@ -523,15 +424,7 @@ impl SyncManager {
             return Err(Error::from(ErrorKind::InvalidData));
         }
         let peer_latest_known_block_id = request.latest_known_block_id;
-        let peer_latest_known_block_hash = request.latest_known_block_hash;
         let peer_fork_id = request.fork_id;
-        info!(
-            "[SYNC_DEBUG][SERVER_RECV] peer_id={} REMOTE(id={} hash={} fork_id={})",
-            peer_id,
-            peer_latest_known_block_id,
-            peer_latest_known_block_hash.to_hex(),
-            peer_fork_id.to_hex()
-        );
         let requested_public_key = request.public_key;
         let mut requested_keylist = request.keylist;
         if requested_keylist.is_empty() {
@@ -546,7 +439,6 @@ impl SyncManager {
         let calculated_shared_ancestor_block_hash: [u8; 32];
         let mut ordered_refs: Vec<BlockReference> = Vec::new();
         let mut send_response_starting_from_block_id: u64;
-        let mut fallback_last_10 = false;
 
         {
             let blockchain = self.blockchain_lock.read().await;
@@ -560,19 +452,6 @@ impl SyncManager {
                 .generate_fork_id(our_latest_id)
                 .or(blockchain.fork_id)
                 .unwrap_or([0; 32]);
-            info!(
-                "[SYNC_DEBUG][FORK_ID] block_id={} fork_id={}",
-                our_latest_id,
-                our_fork_id.to_hex()
-            );
-            info!(
-                "[SYNC_DEBUG][SERVER_STATE] peer_id={} LOCAL(id={} hash={} fork_id={} blocks_len={})",
-                peer_id,
-                our_latest_id,
-                our_latest_hash.to_hex(),
-                our_fork_id.to_hex(),
-                blockchain.blocks.len()
-            );
 
             //
             // find shared ancestor with peer chain
@@ -585,16 +464,6 @@ impl SyncManager {
                 .unwrap_or([0; 32]);
             shared_ancestor_block_id = calculated_shared_ancestor_block_id;
             shared_ancestor_block_hash = calculated_shared_ancestor_block_hash;
-            info!(
-                "[SYNC_DEBUG][ANCESTOR] peer_id={} RESULT(shared_id={} shared_hash={}) REMOTE(id={} fork_id={}) LOCAL(id={} fork_id={})",
-                peer_id,
-                calculated_shared_ancestor_block_id,
-                calculated_shared_ancestor_block_hash.to_hex(),
-                peer_latest_known_block_id,
-                peer_fork_id.to_hex(),
-                our_latest_id,
-                our_fork_id.to_hex()
-            );
 
             //
             // determine starting block for sync to peer
@@ -607,7 +476,6 @@ impl SyncManager {
                 if requested_sync_type == SYNC_TYPE_SPV {
                     send_response_starting_from_block_id =
                         std::cmp::max(blockchain.genesis_block_id, our_latest_id.saturating_sub(9));
-                    fallback_last_10 = true;
                 }
             } else if shared_ancestor_block_id > 0 {
                 //
@@ -628,15 +496,7 @@ impl SyncManager {
                     std::cmp::max(blockchain.genesis_block_id, our_latest_id.saturating_sub(9));
                 shared_ancestor_block_id = 0;
                 shared_ancestor_block_hash = [0; 32];
-                fallback_last_10 = true;
             }
-            info!(
-                "[SYNC_DEBUG][ANCESTOR_REASON] peer_id={} peer_id_zero={} fork_mismatch={} fallback_last_10={}",
-                peer_id,
-                peer_latest_known_block_id == 0,
-                peer_fork_id != our_fork_id,
-                fallback_last_10
-            );
 
             //
             // generate block references (payload)
@@ -674,18 +534,6 @@ impl SyncManager {
         //
         let first_ref = ordered_refs.first();
         let last_ref = ordered_refs.last();
-        info!(
-            "[SYNC_DEBUG][SERVER_SEND] peer_id={} start_block_id={} payload_n={} latest_block_id={} shared_ancestor_id={}",
-            peer_id,
-            send_response_starting_from_block_id,
-            ordered_refs.len(),
-            our_latest_id,
-            shared_ancestor_block_id
-        );
-        info!(
-            "[TEMP_SYNC_TRACE][SYNC] send Blockchain response peer_id={} chunk_blocks={} our_latest_id={} shared_ancestor={}",
-            peer_id, ordered_refs.len(), our_latest_id, shared_ancestor_block_id
-        );
 
         network
             .send_message_by_peer_id(
@@ -721,34 +569,6 @@ impl SyncManager {
             let configs = config_lock.read().await;
             configs.is_spv_mode()
         };
-        let (
-            local_blocks_len,
-            local_latest_id,
-            local_last_block_id_field,
-            first_payload_id,
-            last_payload_id,
-        ) = {
-            let blockchain = self.blockchain_lock.read().await;
-            (
-                blockchain.blocks.len(),
-                blockchain.get_latest_block_id(),
-                blockchain.last_block_id,
-                cs.payload.first().map(|r| r.block_id).unwrap_or(0),
-                cs.payload.last().map(|r| r.block_id).unwrap_or(0),
-            )
-        };
-        info!(
-            "[SYNC_DEBUG][CLIENT_RECV] peer_id={} shared_ancestor_id={} shared_ancestor_hash={} payload_n={} first_id={} last_id={} local_blocks_len={} local_latest_id={} local_last_block_id_field={}",
-            peer_id,
-            cs.shared_ancestor_block_id,
-            cs.shared_ancestor_block_hash.to_hex(),
-            cs.payload.len(),
-            first_payload_id,
-            last_payload_id,
-            local_blocks_len,
-            local_latest_id,
-            local_last_block_id_field
-        );
 
         if cs.shared_ancestor_block_id == 0 || cs.shared_ancestor_block_hash == [0; 32] {
             warn!(
@@ -759,14 +579,6 @@ impl SyncManager {
         );
         }
 
-        info!(
-            "[TEMP_SYNC_TRACE][SYNC] process Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={} mode={}",
-            peer_id,
-            cs.payload.len(),
-            cs.payload_latest_block_id,
-            cs.latest_known_block_id,
-            if is_spv_mode { "spv" } else { "full" }
-        );
 
         let mut previous_block_id = cs.shared_ancestor_block_id;
         let mut previous_block_hash = cs.shared_ancestor_block_hash;
@@ -778,16 +590,6 @@ impl SyncManager {
         };
 
         let mut should_add_block = true;
-        if let Some(first_block_reference) = cs.payload.first() {
-            warn!(
-                "[SYNC_DEBUG][CLIENT_FIRST_BLOCK] peer_id={} expected_prev_id={} expected_prev_hash={} first_block_id={} first_block_hash={}",
-                peer_id,
-                previous_block_id,
-                previous_block_hash.to_hex(),
-                first_block_reference.block_id,
-                first_block_reference.block_hash.to_hex()
-            );
-        }
 
         for (i, block_reference) in cs.payload.iter().enumerate() {
             //
@@ -807,12 +609,6 @@ impl SyncManager {
             }
 
             if !should_add_block {
-                info!(
-                "[TEMP_SYNC_TRACE][SYNC] refusing to add block as is not sequential to previous block... block_id={} - p_block_id={} - shared_ancestor_block_id={}",
-                block_reference.block_id,
-                previous_block_id,
-                cs.shared_ancestor_block_id,
-            );
                 continue;
             }
 
@@ -822,12 +618,6 @@ impl SyncManager {
             if !is_spv_mode {
                 if self.add(network, block_reference.clone(), peer_id).await {
                     did_queue_any_blocks = true;
-                    info!(
-                    "[TEMP_SYNC_TRACE][FETCH] queued block download peer_id={} block_id={} block_hash={} reason=full-node",
-                    peer_id,
-                    block_reference.block_id,
-                    block_reference.block_hash.to_hex()
-                );
                 }
 
                 previous_block_id = block_reference.block_id;
@@ -845,39 +635,6 @@ impl SyncManager {
             if block_reference.transactions > 0 || is_last_block_in_chunk {
                 if self.add(network, block_reference.clone(), peer_id).await {
                     did_queue_any_blocks = true;
-
-                    let reason = if block_reference.transactions > 0 {
-                        "spv-has-transactions"
-                    } else {
-                        "final-block-anchor"
-                    };
-
-                    info!(
-                    "[TEMP_SYNC_TRACE][FETCH] queued block download peer_id={} block_id={} block_hash={} reason={} tx_count={}",
-                    peer_id,
-                    block_reference.block_id,
-                    block_reference.block_hash.to_hex(),
-                    reason,
-                    block_reference.transactions
-                );
-                    info!(
-                        "[TRACE_SYNC] chunk_decision action=queue peer_id={} block_id={} block_hash={} is_last_block={} tx_count={} reason={}",
-                        peer_id,
-                        block_reference.block_id,
-                        block_reference.block_hash.to_hex(),
-                        is_last_block_in_chunk,
-                        block_reference.transactions,
-                        reason
-                    );
-                } else {
-                    info!(
-                        "[TRACE_SYNC] chunk_decision action=queue_failed peer_id={} block_id={} block_hash={} is_last_block={} tx_count={}",
-                        peer_id,
-                        block_reference.block_id,
-                        block_reference.block_hash.to_hex(),
-                        is_last_block_in_chunk,
-                        block_reference.transactions
-                    );
                 }
 
                 previous_block_id = block_reference.block_id;
@@ -891,15 +648,6 @@ impl SyncManager {
             {
                 let mut blockchain = self.blockchain_lock.write().await;
 
-                info!(
-                "[TEMP_SYNC_TRACE][GHOST] add_ghost_block peer_id={} block_id={} block_hash={} prev_hash={} has_golden_ticket={} tx_count={}",
-                peer_id,
-                block_reference.block_id,
-                block_reference.block_hash.to_hex(),
-                previous_block_hash.to_hex(),
-                block_reference.has_golden_ticket,
-                block_reference.transactions
-            );
 
                 blockchain.add_ghost_block_without_transactions(
                     block_reference.block_id,

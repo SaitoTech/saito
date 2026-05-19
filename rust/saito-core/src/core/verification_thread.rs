@@ -81,38 +81,16 @@ impl VerificationThread {
     ) {
         // debug!("verifying block buffer of size : {:?}", buffer.len());
         let buffer_len = buffer.len();
-        debug!(
-            "[TRACE_SYNC][SERDE] verify_block_start peer_id={} expected_block_id={} expected_block_hash={} bytes={}",
-            peer_id,
-            block_id,
-            block_hash.to_hex(),
-            buffer_len
-        );
         let result = Block::deserialize_from_net(buffer);
         if result.is_err() {
             warn!(
                 "failed verifying block buffer with length : {:?}",
                 buffer_len
             );
-            info!(
-                "[TRACE_SYNC] verify_failed reason=deserialize peer_id={} expected_block_id={} expected_block_hash={} bytes={}",
-                peer_id,
-                block_id,
-                block_hash.to_hex(),
-                buffer_len
-            );
             return;
         }
 
         let mut block = result.unwrap();
-        debug!(
-            "[TRACE_SYNC][SERDE] verify_block_deserialize_ok peer_id={} block_id={} block_hash={} tx_count={} bytes={}",
-            peer_id,
-            block.id,
-            block.hash.to_hex(),
-            block.transactions.len(),
-            buffer_len
-        );
         block.routed_from_peer_id = peer_id;
         block.generate().unwrap();
 
@@ -123,14 +101,6 @@ impl VerificationThread {
                 block.hash.to_hex(),
                 block_id,
                 block_hash.to_hex()
-            );
-            info!(
-                "[TRACE_SYNC] verify_failed reason=id_hash_mismatch peer_id={} expected={}::{} got={}::{}",
-                peer_id,
-                block_id,
-                block_hash.to_hex(),
-                block.id,
-                block.hash.to_hex()
             );
             return;
         }
@@ -146,12 +116,6 @@ impl VerificationThread {
             .send(ConsensusEvent::BlockFetched { peer_id, block })
             .await
             .unwrap();
-        debug!(
-            "[TRACE_SYNC] verify_ok_submitted_to_consensus peer_id={} block_id={} block_hash={}",
-            peer_id,
-            block_id,
-            block_hash.to_hex()
-        );
     }
 }
 
