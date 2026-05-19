@@ -678,7 +678,7 @@ class SaitoHeader extends UIModTemplate {
         }
       }
     }
-  }
+  
 
   /****************************************************
    *
