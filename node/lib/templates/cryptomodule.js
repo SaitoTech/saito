@@ -256,8 +256,15 @@ class CryptoModule extends ModTemplate {
     this.app.connection.emit('on-payment-received', obj);
 
     try {
+
+      let amount = obj.amount;
+      let ticker = obj.ticker;
+      if (ticker === "SAITO") {
+	amount = this.app.wallet.convertNolanToSaito(amount);
+      }
+
       siteMessage(
-        `${obj.amount} ${obj.ticker} inbound from ${this.app.keychain.returnUsername(obj.sender)}`,
+        `${amount} ${ticker} inbound from ${this.app.keychain.returnUsername(obj.sender)}`,
         3000
       );
     } catch (err) {}

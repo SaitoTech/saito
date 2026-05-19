@@ -193,7 +193,6 @@ function reset_nonpersistent {
   fi
 
   if [ -f "${PROJECT_DIR}/config/options.conf" ]; then
-    echo "creating options file"
     cp "${PROJECT_DIR}/config/options.conf" "${PROJECT_DIR}/config/options"
   else
     cp "${PROJECT_DIR}/config/.templates.options.conf" "${PROJECT_DIR}/config/options"

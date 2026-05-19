@@ -132,7 +132,6 @@ class Spam extends ModTemplate {
 	}
 
 	nodeSpamLoop(app, mod) {
-		console.info('Sending heartbeat spam tx: ' + mod.loop_count);
 		mod.sendSpamTransaction(app, mod, { tx_num: mod.loop_count });
 		mod.loop_count++;
 	}

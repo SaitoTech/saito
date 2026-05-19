@@ -138,14 +138,11 @@ impl Wallet {
     }
 
     pub async fn load(wallet: &mut Wallet, io: &(dyn InterfaceIO + Send + Sync)) {
-        info!("loading wallet...");
         let result = io.load_wallet(wallet).await;
         if result.is_err() {
             error!("loading wallet failed. saving new wallet");
-            // TODO : check error code
             io.save_wallet(wallet).await.unwrap();
         } else {
-            info!("wallet loaded");
             io.send_interface_event(InterfaceEvent::WalletUpdate());
         }
     }
@@ -161,7 +158,6 @@ impl Wallet {
         network: Option<&Network>,
         keep_keys: bool,
     ) {
-        info!("resetting wallet");
         if !keep_keys {
             let keys = generate_keys();
             self.public_key = keys.0;
@@ -346,6 +342,7 @@ impl Wallet {
                                         .unwrap_or_default();
                                     let signature = tx.signature.to_hex();
                                     let payload = serde_json::to_string(&json!({
+                                        "ticker": "SAITO" ,
                                         "block_id": block.id,
                                         "block_hash": block.hash.to_hex(),
                                         "timestamp": block.timestamp,
@@ -446,6 +443,7 @@ impl Wallet {
                                     .unwrap_or_default();
                                 let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
+                                    "ticker": "SAITO",
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),
                                     "timestamp": block.timestamp,
@@ -2197,16 +2195,11 @@ impl Wallet {
             let result = self.slips.insert(slip.utxoset_key, wallet_slip);
             if result.is_none() {
                 self.unspent_slips.insert(slip.utxoset_key);
-                info!("slip key : {:?} with value : {:?} added to wallet from snapshot for address : {:?}. slip : {}",
+                info!("slip : {:?} with value : {:?} added to wallet from snapshot for address : {:?}. slip : {}",
                     slip.utxoset_key.to_hex(),
                     slip.amount,
                     slip.public_key.to_base58(),
                     slip);
-            } else {
-                info!(
-                    "slip with utxo key : {:?} was already available",
-                    slip.utxoset_key.to_hex()
-                );
             }
         });
 
@@ -2760,32 +2753,4 @@ mod tests {
         assert_eq!(wallet.unspent_slips.len(), 0);
     }
 
-    // #[tokio::test]
-    // #[serial_test::serial]
-    // async fn save_and_restore_wallet_test() {
-    //     info!("current dir = {:?}", std::env::current_dir().unwrap());
-    //
-    //     let _t = TestManager::new();
-    //
-    //     let keys = generate_keys();
-    //     let mut wallet = Wallet::new(keys.1, keys.0);
-    //     let public_key1 = wallet.public_key.clone();
-    //     let private_key1 = wallet.private_key.clone();
-    //
-    //     let mut storage = Storage {
-    //         io_interface: Box::new(TestIOHandler::new()),
-    //     };
-    //     wallet.save(&mut storage).await;
-    //
-    //     let keys = generate_keys();
-    //     wallet = Wallet::new(keys.1, keys.0);
-    //
-    //     assert_ne!(wallet.public_key, public_key1);
-    //     assert_ne!(wallet.private_key, private_key1);
-    //
-    //     wallet.load(&mut storage).await;
-    //
-    //     assert_eq!(wallet.public_key, public_key1);
-    //     assert_eq!(wallet.private_key, private_key1);
-    // }
 }

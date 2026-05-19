@@ -677,7 +677,7 @@ class SaitoHeader extends UIModTemplate {
         c.polling_timeout = 0;
       }
     }
-  
+  }
 
   /****************************************************
    *
