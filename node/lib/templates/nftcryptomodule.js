@@ -13,6 +13,7 @@
 **********************************************************************************/
 
 const CryptoModule = require('./cryptomodule');
+const SaitoNFT = require('../saito/ui/saito-nft/saito-nft');
 
 // Mirror saito-js enums so this file loads without bundler resolution (TransactionType.Bound = 8, SlipType.Bound = 9).
 const TX_TYPE_BOUND = 8;
@@ -430,21 +431,40 @@ class NFTCryptoModule extends CryptoModule {
       }
     }
 
-    // Construct NFT transfer transaction
-    const tx = await this.app.wallet.createNFTTransferTransaction(
-      this.nft_id,
-      BigInt(amount),
-      recipient
+    const row = this._returnSampleWalletNFT();
+    if (!row || !row.id) {
+      throw new Error('NFTCryptoModule: NFT not found in wallet');
+    }
+
+    const nft = new SaitoNFT(this.app, null, null, row);
+    const amountInt = Number.parseInt(String(amount), 10);
+    if (!Number.isInteger(amountInt) || amountInt <= 0) {
+      throw new Error('NFTCryptoModule: invalid amount');
+    }
+
+    const tx_msg = JSON.parse(JSON.stringify(nft.txmsg || {}));
+    let newtx = await this.app.wallet.createNFTTransaction(
+      nft,
+      recipient,
+      amountInt,
+      BigInt(0),
+      BigInt(0),
+      tx_msg
     );
 
-    if (!tx) {
+    if (!newtx) {
       throw new Error('NFTCryptoModule: unable to construct NFT transfer');
     }
 
-    await tx.sign();
-    await this.app.network.propagateTransaction(tx);
+    newtx = await nft.modifyBeforeSend(newtx, recipient);
+    if (!newtx) {
+      throw new Error('NFTCryptoModule: transfer blocked by module.');
+    }
 
-    return unique_hash || tx.signature;
+    await newtx.sign();
+    await this.app.network.propagateTransaction(newtx);
+
+    return unique_hash || newtx.signature;
   }
 
   async receivePayment(amount = '', sender = '', recipient = '', timestamp = 0, unique_hash = '') {
@@ -464,7 +484,7 @@ class NFTCryptoModule extends CryptoModule {
 
   async sendPaymentTransaction(publicKey, from_address, to_address, amount, hash, memo = '') {}
 
-  receivePaymentTransaction(tx) {}
+  onReceivePayment(tx) {}
 
   /********************************************************
    * OPTIONAL / OVERRIDDEN BEHAVIOR
@@ -491,10 +511,6 @@ class NFTCryptoModule extends CryptoModule {
 
   async returnUtxo(state = 'unspent', limit = 1000, order = 'DESC') {
     return this._returnNFTSlips({ state, limit });
-  }
-
-  async returnNetworkInfo() {
-    return { confirmations: 0 };
   }
 }
 

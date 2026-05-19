@@ -390,7 +390,6 @@
   object-fit: contain;
 }
 
-/* Description box - appears OVER image/code in provide-metadata overlay */
 .saito-nft-metadata-box {
   width: 100%;
   display: flex;
@@ -412,7 +411,11 @@
   background: var(--saito-surface-hover);
 }
 
-/* Legacy description styles for backward compatibility */
+.saito-nft-metadata-box.ticker , .saito-nft-input-label.ticker {
+  display: none;
+}
+
+
 .saito-nft-description {
   font-size: 14px;
   color: var(--saito-font-color);
@@ -485,6 +488,17 @@
 
 .saito-nft-footer-btn.disabled-btn {
   filter: opacity(60%) brightness(0.8);
+}
+
+.saito-nft-footer-btn.nft-info-delete-nft {
+  color: var(--saito-white);
+  background-color: var(--saito-red);
+  border: 2px solid var(--saito-red);
+}
+
+.saito-nft-footer-btn.nft-info-delete-nft:hover {
+  background-color: var(--saito-red-dark);
+  border-color: var(--saito-red-dark);
 }
 
 .create-nft-container .saito-nft-panel-footer {
@@ -999,7 +1013,8 @@
 }
 
 .create-nft-help-text {
-  line-height: 2.5rem;
+  line-height: 2.8rem;
+  font-size: 2rem;
 }
 
 .create-nft-deposit-container {

@@ -137,10 +137,13 @@ fn get_default_stat_timer() -> Timestamp {
     1_000
 }
 fn get_default_social_stake() -> Timestamp {
-    return 0;
+    return 100000000000000;
 }
 fn get_default_social_stake_period() -> Timestamp {
     return 100;
+}
+fn get_default_block_production_disabled() -> bool {
+    return true;
 }
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Server {
@@ -228,7 +231,7 @@ pub struct ConsensusConfig {
     pub block_confirmation_limit: BlockId,
     #[serde(default = "get_default_recollect_mode")]
     pub recollect_discarded_txs_mode: u8,
-    #[serde(default)]
+    #[serde(default = "get_default_block_production_disabled")]
     pub disable_block_production: bool,
 }
 
@@ -237,13 +240,13 @@ impl Default for ConsensusConfig {
         ConsensusConfig {
             genesis_period: get_default_genesis_period(),
             heartbeat_interval: get_default_heartbeat_period_ms(),
-            prune_after_blocks: 8,
-            max_staker_recursions: 3,
+            prune_after_blocks: get_default_prune_after_blocks(),
+            max_staker_recursions: get_default_max_staker_recursions(),
             default_social_stake: get_default_social_stake(),
             default_social_stake_period: get_default_social_stake_period(),
-            block_confirmation_limit: 1,
+            block_confirmation_limit: get_default_block_confirmation_limit(),
             recollect_discarded_txs_mode: get_default_recollect_mode(),
-            disable_block_production: false,
+            disable_block_production: get_default_block_production_disabled(),
         }
     }
 }

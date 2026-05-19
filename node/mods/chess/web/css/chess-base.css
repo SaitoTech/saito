@@ -226,8 +226,7 @@ input[type='checkbox']:checked {
 	align-items: center;
 }
 
-.popup-confirm-menu .popup-prompt,
-.popup-confirm-menu .confirm_check {
+.popup-confirm-menu .popup-prompt {
 	background-color: unset;
 	box-shadow: none;
 }

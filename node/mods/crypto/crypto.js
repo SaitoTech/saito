@@ -41,6 +41,11 @@ class Crypto extends ModTemplate {
 			}
 		}
 
+		//
+		// set max balance
+		//
+
+
 		app.connection.on('accept-game-stake', async (sobj) => {
 			console.log('accept-game-stake sobj: ', sobj);
 
@@ -167,7 +172,6 @@ try {
 		}
 
 ****/
-
 		return super.respondTo(type);
 	}
 

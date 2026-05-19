@@ -35,10 +35,11 @@ module.exports = (app, mod) => {
   `;
 
   html += `
-            <h3>Provide Metadata</h3>
-
             <div class="saito-nft-input-label">Title</div>
             <input type="text" class="saito-nft-metadata-box title" placeholder="${title}"></input>
+
+            <div class="saito-nft-input-label ticker">Ticker</div>
+            <input type="text" class="saito-nft-metadata-box ticker" placeholder="optional"></input>
 
             <div class="saito-nft-input-label">Description</div>
             <textarea class="saito-nft-metadata-box description" rows="4" placeholder="${'description (optional)'}"></textarea>

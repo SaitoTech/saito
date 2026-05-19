@@ -1,9 +1,10 @@
 /**
  * Game / module crypto transfer confirmation & orchestration UI.
  *
- * Listens for the legacy connection events used by gametemplate (web3 + queue):
- *   - saito-crypto-send-render-request  → show in-flight confirmation
- *   - saito-crypto-send-confirm         → apply success / failure result
+ * Wiring (post split from Send):
+ *   - saito-crypto-send-render-request   → handled only by Send (validates + forwards)
+ *   - saito-crypto-send-confirm-open-request → show overlay + run `mycallback` once
+ *   - saito-crypto-send-confirm          → apply success / failure result
  *
  * Presentation: `web/saito/css-imports/saito-crypto.css` (`.crypto-send-confirm-overlay`).
  */
@@ -33,7 +34,7 @@ class Confirm {
 
     this.onCloseClick = this.onCloseClick.bind(this);
 
-    this.app.connection.on('saito-crypto-send-render-request', (details) => {
+    this.app.connection.on('saito-crypto-send-confirm-open-request', (details) => {
       this.render(details);
     });
 

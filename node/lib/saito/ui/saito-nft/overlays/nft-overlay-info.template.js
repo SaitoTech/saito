@@ -83,12 +83,18 @@ module.exports = (app, mod, nft_overlay) => {
     ? `<button class="saito-nft-footer-btn merge">Merge</button>`
     : '';
 
-  let splitUtxosHtml = '';
-  let splitSlidersHtml = '';
-
   if (!all_slips.length) {
     all_slips.push(nft_overlay.nft);
   }
+
+  let canDeleteFooter = all_slips.some((slip) => mod.publicKey == slip.slip2?.public_key);
+  let deleteFooterHtml = canDeleteFooter
+    ? `<button type="button" class="saito-nft-footer-btn nft-info-delete-nft">Delete</button>`
+    : '';
+  let footerSpacerHtml = canDeleteFooter || mergeButtonHtml ? `<span style="flex:1"></span>` : '';
+
+  let splitUtxosHtml = '';
+  let splitSlidersHtml = '';
 
   if (all_slips.length > 0) {
     // Generate slip boxes for all slips, not just when can_split
@@ -198,6 +204,8 @@ module.exports = (app, mod, nft_overlay) => {
       </div>
       <div class="saito-nft-split-utxo"></div>
       <div class="saito-nft-panel-footer">
+        ${deleteFooterHtml}
+        ${footerSpacerHtml}
         ${mergeButtonHtml}
       </div>
     </div>

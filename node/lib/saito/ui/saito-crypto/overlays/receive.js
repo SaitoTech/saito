@@ -20,8 +20,44 @@ class Receive {
       this.render(details);
     });
 
-    this.app.connection.on('saito-crypto-receive-confirm', (details) => {
-      this.updateOverlay(details);
+    this.app.connection.on('on-payment-received', (obj = {}) => {
+      console.log('#');
+      console.log('#');
+      console.log('#');
+      console.log('RECEIVED PAYMENT!');
+      console.log(JSON.stringify(obj));
+
+      if (!this.mod.game) {
+        return;
+      }
+
+      let expected_hash = this.app.crypto.hash(
+        Buffer.from(
+          String(obj.sender) +
+            String(obj.receiver) +
+            String(obj.amount) +
+            String(this.mod.game.dice) +
+            String(this.mod.game.crypto),
+          'utf-8'
+        )
+      );
+
+      if (this.app.options?.crypto?.[this.mod.game?.crypto]?.transfers_inbound) {
+        console.log('INBOUND EXISTS!');
+        for (
+          let i = 0;
+          i < this.app.options.crypto[this.mod.game.crypto].transfers_inbound.length;
+          i++
+        ) {
+          console.log('looping i: ' + i);
+          if (this.app.options.crypto[this.mod.game.crypto].transfers_inbound[i] == expected_hash) {
+            console.log('match on hash');
+            this.onReceivePayment(obj);
+            this.app.options.crypto[this.mod.game.crypto].transfers_inbound.splice(i, 1);
+            break;
+          }
+        }
+      }
     });
   }
 
@@ -107,19 +143,12 @@ class Receive {
     }
   }
 
-  updateOverlay(results) {
-    let success = results?.hash && !results?.err;
-
+  onReceivePayment() {
     if (document.getElementById('receive-crypto-request-container')) {
       document.querySelector('.spinner').style.display = 'none';
 
-      if (success) {
-        document.querySelector('#auth_title').innerHTML = `Received Payment`;
-        document.querySelector('#game-crypto-icon').style.display = 'block';
-      } else {
-        document.querySelector('#auth_title').innerHTML = `Failure`;
-        document.querySelector('#game-crypto-failure-icon').style.display = 'block';
-      }
+      document.querySelector('#auth_title').innerHTML = `Received Payment`;
+      document.querySelector('#game-crypto-icon').style.display = 'block';
 
       if (this.timeout) {
         clearTimeout(this.timeout);
