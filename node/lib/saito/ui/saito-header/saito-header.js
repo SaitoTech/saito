@@ -670,12 +670,11 @@ class SaitoHeader extends UIModTemplate {
       this.web3_start_polling_timeout = null;
     }
     let c = this.app.wallet.returnPreferredCrypto();
-      if (c.ticker !== 'SAITO' && c.categories !== 'NFT') {
-        c.polling_active = 0;
-        if (c.polling_timeout) {
-          clearTimeout(c.polling_timeout);
-          c.polling_timeout = 0;
-        }
+    if (c.ticker !== 'SAITO' && c.categories !== 'NFT') {
+      c.polling_active = 0;
+      if (c.polling_timeout) {
+         clearTimeout(c.polling_timeout);
+        c.polling_timeout = 0;
       }
     }
   
@@ -686,7 +685,6 @@ class SaitoHeader extends UIModTemplate {
    * and attach click functionality.
    *
    ***************************************************/
-
   updateHeaderMessage(text = '', flash = false, callback = null, timeout = 0) {
     let this_self = this;
     let el = document.getElementById('header-msg');
