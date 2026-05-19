@@ -177,16 +177,19 @@ class GameWeb3 {
     amount = this.app.crypto.convertFloatToSmartPrecision(parseFloat(amount));
     let ticker = this.game.crypto;
     let amount_for_unique_hash = amount;
-    if (ticker == "SAITO") {
-      amount_for_unique_hash = this.app.wallet.convertSaitoToNolan(amount_for_unique_hash).toString();
+    if (ticker == 'SAITO') {
+      amount_for_unique_hash = this.app.wallet
+        .convertSaitoToNolan(amount_for_unique_hash)
+        .toString();
     }
-
 
     this.rollDice();
     let unique_hash = this.app.crypto.hash(
-      Buffer.from(sender + receiver + amount_for_unique_hash + this.game.dice + this.game.crypto, 'utf-8')
+      Buffer.from(
+        sender + receiver + amount_for_unique_hash + this.game.dice + this.game.crypto,
+        'utf-8'
+      )
     );
-
 
     //
     // if we are the sender, lets get sending and receiving addresses
@@ -257,13 +260,17 @@ class GameWeb3 {
     this.rollDice();
     amount_to_send = this.app.crypto.convertFloatToSmartPrecision(parseFloat(amount_to_send));
     let amount_for_unique_hash = amount_to_send;
-    if (this.game.crypto == "SAITO") {
-      amount_for_unique_hash = this.app.wallet.convertSaitoToNolan(amount_for_unique_hash).toString();
+    if (this.game.crypto == 'SAITO') {
+      amount_for_unique_hash = this.app.wallet
+        .convertSaitoToNolan(amount_for_unique_hash)
+        .toString();
     }
     let uh = this.app.crypto.hash(
-      Buffer.from(sender + receiver + amount_for_unique_hash + this.game.dice + this.game.crypto, 'utf-8')
+      Buffer.from(
+        sender + receiver + amount_for_unique_hash + this.game.dice + this.game.crypto,
+        'utf-8'
+      )
     );
-
 
     if (this.game.over) {
       console.info(

@@ -1,7 +1,9 @@
 module.exports = (app, mod, details) => {
   const trusted = Boolean(details?.trusted);
   const showIgnore = !trusted && mod?.game?.over === 0;
-  const modeClass = trusted ? 'send-crypto-overlay--mode-trusted' : 'send-crypto-overlay--mode-interactive';
+  const modeClass = trusted
+    ? 'send-crypto-overlay--mode-trusted'
+    : 'send-crypto-overlay--mode-interactive';
   const ignoreClass = showIgnore ? 'send-crypto-overlay--show-ignore' : '';
 
   let html = `

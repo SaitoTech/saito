@@ -512,7 +512,6 @@ class NFTCryptoModule extends CryptoModule {
   async returnUtxo(state = 'unspent', limit = 1000, order = 'DESC') {
     return this._returnNFTSlips({ state, limit });
   }
-
 }
 
 module.exports = NFTCryptoModule;

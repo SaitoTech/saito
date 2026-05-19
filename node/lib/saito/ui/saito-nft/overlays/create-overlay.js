@@ -291,9 +291,9 @@ class CreateNFT {
         textarea.innerHTML = 'provide text or markdown';
       }
       if (this.nft_type === 'token') {
-	document.querySelector('.nft-upload-text').innerHTML = "upload token logo/image (optional)";
-        document.querySelector(".saito-nft-input-label.ticker").style.display = "block";
-        document.querySelector(".saito-nft-metadata-box.ticker").style.display = "block";
+        document.querySelector('.nft-upload-text').innerHTML = 'upload token logo/image (optional)';
+        document.querySelector('.saito-nft-input-label.ticker').style.display = 'block';
+        document.querySelector('.saito-nft-metadata-box.ticker').style.display = 'block';
         document.querySelector('#nft-image-upload').style.display = 'flex';
         document.querySelector('#create-nft-textarea').style.display = 'none';
       }
@@ -343,14 +343,14 @@ class CreateNFT {
       if (this.image && uploadEl) {
         this.addImage(this.image);
       }
-
     };
 
     if (document.getElementById('next-step')) {
       document.getElementById('next-step').onclick = () => {
         document.querySelector('.nft-creator-overlay.panels').classList.add('provide-metadata');
         if (document.querySelector('.saito-overlay-form-header-title div')) {
-          document.querySelector('.saito-overlay-form-header-title div').innerHTML = "Provide Metadata";
+          document.querySelector('.saito-overlay-form-header-title div').innerHTML =
+            'Provide Metadata';
         }
       };
     }
@@ -359,13 +359,12 @@ class CreateNFT {
       document.getElementById('back-btn').onclick = () => {
         document.querySelector('.nft-creator-overlay.panels').classList.remove('provide-metadata');
         if (document.querySelector('.saito-overlay-form-header-title div')) {
-          document.querySelector('.saito-overlay-form-header-title div').innerHTML = "Create NFT";
+          document.querySelector('.saito-overlay-form-header-title div').innerHTML = 'Create NFT';
         }
       };
     }
 
     document.querySelector('#create_nft').onclick = async (e) => {
-
       let obj = await this.createObject();
       if (obj == false) {
         return;
@@ -443,7 +442,6 @@ class CreateNFT {
       );
       await newtx.sign();
       await this.app.network.propagateTransaction(newtx);
-
     };
   }
 

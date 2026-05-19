@@ -103,13 +103,13 @@ export default class Wallet extends SaitoWallet {
     // add ghost crypto module so Saito interface available
     ////////////////////////////////////////////////////////
     //
-    // this is a convenience class that allows the GameEngine and other modules to 
+    // this is a convenience class that allows the GameEngine and other modules to
     // interact with Saito in the same way that they interact with other web3 crypto
     // modules.
     //
     // most of the functions here are shells since they do not need to process the
-    // underlying payments, and instead rely on events that are broadcast from 
-    // Saito-Core in order to know when payments / nfts have arrived and been 
+    // underlying payments, and instead rely on events that are broadcast from
+    // Saito-Core in order to know when payments / nfts have arrived and been
     // processed.
     //
     class SaitoCrypto extends CryptoModule {
@@ -120,10 +120,10 @@ export default class Wallet extends SaitoWallet {
         this.balance = '0.0';
         this.address = publicKey;
 
-	//
-	// Saito-Core emits events that receive updates on transactions and NFTs that 
-	// are received on-chain. This helper function assists
-	//
+        //
+        // Saito-Core emits events that receive updates on transactions and NFTs that
+        // are received on-chain. This helper function assists
+        //
         const parseInterfacePayload = (payload: unknown): Record<string, unknown> => {
           if (payload == null || payload === '') {
             return {};
@@ -167,7 +167,7 @@ export default class Wallet extends SaitoWallet {
           const receiver = p.receiver;
           const sender_publickey = p.sender_publickey;
 
-	  super.onPaymentReceived(p);
+          super.onPaymentReceived(p);
         });
 
         app.connection.on('on-nft-sent', (payload: unknown) => {
@@ -207,7 +207,7 @@ export default class Wallet extends SaitoWallet {
           const slip3_utxo = p.slip3_utxo;
           const sender_publickey = p.sender_publickey;
 
-	  super.onPaymentReceived(p);
+          super.onPaymentReceived(p);
         });
 
         this.options.isActivated = true;
@@ -250,7 +250,7 @@ export default class Wallet extends SaitoWallet {
       }
 
       async onConfirmation(blk, tx, conf) {
-	// handled through event emission from saito-core now
+        // handled through event emission from saito-core now
       }
 
       isActivated() {
@@ -261,8 +261,13 @@ export default class Wallet extends SaitoWallet {
         return this.app.wallet.getPrivateKey(); // return Promise
       }
 
-      checkWithdrawalFeeForAddress(address = '', mycallback: ((fee: string) => void) | null = null) {
-        if (mycallback) { mycallback(this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee)); }
+      checkWithdrawalFeeForAddress(
+        address = '',
+        mycallback: ((fee: string) => void) | null = null
+      ) {
+        if (mycallback) {
+          mycallback(this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee));
+        }
       }
 
       //
@@ -448,7 +453,7 @@ export default class Wallet extends SaitoWallet {
       }
 
       async receivePayment(howMuch, from, to, timestamp) {
-	// listen for events broadcast from wallet now
+        // listen for events broadcast from wallet now
       }
 
       validateAddress(address) {
@@ -476,7 +481,6 @@ export default class Wallet extends SaitoWallet {
       async checkBalance() {
         return await this.getAvailableBalance();
       }
-
     }
 
     this.saitoCrypto = new SaitoCrypto(this.app, this.publicKey);
@@ -1078,7 +1082,6 @@ export default class Wallet extends SaitoWallet {
     mycallback: ((response?: { err?: string }) => void) | null = null,
     saito_public_key = null
   ) {
-
     if (senders.length !== 1 || receivers.length !== 1 || amounts.length !== 1) {
       console.error('receivePayment ERROR -- currently only supports single payments');
       if (mycallback) {
@@ -1514,7 +1517,7 @@ export default class Wallet extends SaitoWallet {
         let slip3_utxokey = nft.slip3.utxo_key;
         let id = nft.id;
         let tx_sig = nft.tx_sig;
-	let ticker = nft.ticker || "";
+        let ticker = nft.ticker || '';
 
         //
         // Nft is improper, but requires rationalization elsewhere
@@ -1903,12 +1906,12 @@ export default class Wallet extends SaitoWallet {
           for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
             let nft = this.app.options.wallet.nfts[z];
             if (nft.id == nft_id) {
-	      ticker = nft.ticker?.trim();
-	      if (!ticker) {
+              ticker = nft.ticker?.trim();
+              if (!ticker) {
                 ticker = `NFT-${this.app.crypto.hash(nft_id).slice(0, 6)}`;
-      	      }
-      	    }
-    	  }
+              }
+            }
+          }
 
           if (this.returnCryptoModuleByTicker(ticker) || ticker == '') {
             continue;

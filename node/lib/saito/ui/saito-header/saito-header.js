@@ -58,7 +58,6 @@ class SaitoHeader extends UIModTemplate {
   }
 
   async initialize(app) {
-
     await super.initialize(app);
 
     //
@@ -95,7 +94,6 @@ class SaitoHeader extends UIModTemplate {
         this.renderCrypto();
       }
     });
-
 
     app.connection.on('saito-header-update-message', (obj = {}) => {
       let msg = '';
@@ -550,7 +548,6 @@ class SaitoHeader extends UIModTemplate {
     //
     if (document.getElementById('wallet-select-crypto')) {
       document.getElementById('wallet-select-crypto').onchange = async (e) => {
-
         if (
           !this.app.options.crypto[e.target.value] ||
           !this.app.options.crypto[e.target.value].address
@@ -563,9 +560,8 @@ class SaitoHeader extends UIModTemplate {
           'Change preferred crypto, restart polls on crypto balance and pending deposits'
         );
 
-    	let preferred_crypto = this.app.wallet.returnPreferredCrypto();
-    	preferred_crypto.startPolling();
-
+        let preferred_crypto = this.app.wallet.returnPreferredCrypto();
+        preferred_crypto.startPolling();
       };
     }
 
@@ -635,7 +631,6 @@ class SaitoHeader extends UIModTemplate {
 
       let preferred_crypto = this.app.wallet.returnPreferredCrypto();
       preferred_crypto.startPolling();
-
     }
   }
 
@@ -646,7 +641,6 @@ class SaitoHeader extends UIModTemplate {
       document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
       document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
     }
-
   }
 
   /****************************************************
@@ -880,8 +874,8 @@ class SaitoHeader extends UIModTemplate {
 
         options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
         id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${
-  crypto_mod.ticker
-}</option>`;
+          crypto_mod.ticker
+        }</option>`;
         menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
         menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${rtn_val.img}">`;
 
@@ -967,7 +961,6 @@ class SaitoHeader extends UIModTemplate {
           b_elm.classList.remove('pending');
           b_elm.innerHTML = this.app.browser.returnBalanceHTML(ab);
         }
-
       }
     } catch (err) {
       console.error('Error rendering crypto balance: ' + err);
@@ -993,7 +986,6 @@ class SaitoHeader extends UIModTemplate {
 
     console.log('done wallet update...');
   }
-
 }
 
 module.exports = SaitoHeader;

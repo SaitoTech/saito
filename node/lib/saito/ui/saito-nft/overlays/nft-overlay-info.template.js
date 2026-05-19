@@ -91,8 +91,7 @@ module.exports = (app, mod, nft_overlay) => {
   let deleteFooterHtml = canDeleteFooter
     ? `<button type="button" class="saito-nft-footer-btn nft-info-delete-nft">Delete</button>`
     : '';
-  let footerSpacerHtml =
-    canDeleteFooter || mergeButtonHtml ? `<span style="flex:1"></span>` : '';
+  let footerSpacerHtml = canDeleteFooter || mergeButtonHtml ? `<span style="flex:1"></span>` : '';
 
   let splitUtxosHtml = '';
   let splitSlidersHtml = '';

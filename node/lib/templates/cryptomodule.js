@@ -108,14 +108,13 @@ class CryptoModule extends ModTemplate {
     return [];
   }
 
-  async fetchHistory() {
-  }
+  async fetchHistory() {}
 
   async startPolling() {
     return;
   }
 
-  /**	
+  /**
    * Saito Module initialize function
    * @param {*} app
    */
@@ -158,9 +157,7 @@ class CryptoModule extends ModTemplate {
   }
 
   async onConfirmation(blk, tx, conf) {
-
     if (Number(conf) == 0) {
-
       if (!tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
         return 0;
       }
@@ -195,7 +192,8 @@ class CryptoModule extends ModTemplate {
           timestamp: blk.timestamp != null ? blk.timestamp : '',
           block_id: blk.id != null ? blk.id : '',
           ticker: txmsg.ticker != null && txmsg.ticker !== '' ? txmsg.ticker : this.ticker || '',
-          transaction_signature: tx.signature != null && tx.signature !== '' ? String(tx.signature) : '',
+          transaction_signature:
+            tx.signature != null && tx.signature !== '' ? String(tx.signature) : '',
           signature: tx.signature != null && tx.signature !== '' ? String(tx.signature) : '',
           memo: txmsg.memo != null && txmsg.memo !== '' ? txmsg.memo : '',
           message: txmsg.message != null && txmsg.message !== '' ? txmsg.message : '',
@@ -248,24 +246,17 @@ class CryptoModule extends ModTemplate {
   }
 
   onPaymentReceived(obj) {
-
     this.app.connection.emit('on-payment-received', obj);
 
-try {
-    siteMessage(
-      `${obj.amount} ${obj.ticker} inbound from ${this.app.keychain.returnUsername(
-        obj.sender
-      )}`,
-      3000
-    );
-} catch (err) {
-
-}
-
+    try {
+      siteMessage(
+        `${obj.amount} ${obj.ticker} inbound from ${this.app.keychain.returnUsername(obj.sender)}`,
+        3000
+      );
+    } catch (err) {}
   }
 
   pollForInboundPayment(hash) {
-
     if (!this.options?.transfers_inbound) {
       this.options.transfers_inbound = [];
     }
@@ -280,7 +271,6 @@ try {
     }
 
     this.startPolling();
-
   }
 
   returnLogos() {
@@ -377,7 +367,6 @@ try {
    * load state of this module from local storage
    */
   async load() {
-
     //
     // info stored in options file
     //
