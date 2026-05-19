@@ -609,6 +609,20 @@ impl SyncManager {
                         std::cmp::max(blockchain.genesis_block_id, our_latest_id.saturating_sub(9));
                     fallback_last_10 = true;
                 }
+            } else if shared_ancestor_block_id > 0 {
+                //
+                // peer shares ancestry with us, continue sync
+                // immediately after shared ancestor
+                //
+                send_response_starting_from_block_id = peer_latest_known_block_id;
+
+                //
+                // never go below genesis floor
+                //
+                send_response_starting_from_block_id = std::cmp::max(
+                    blockchain.genesis_block_id,
+                    send_response_starting_from_block_id,
+                );
             } else if shared_ancestor_block_id == 0 {
                 send_response_starting_from_block_id =
                     std::cmp::max(blockchain.genesis_block_id, our_latest_id.saturating_sub(9));

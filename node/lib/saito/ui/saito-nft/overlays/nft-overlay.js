@@ -100,6 +100,39 @@ class NFTOverlay {
       };
     }
 
+    let delete_info_btn = document.querySelector('.nft-info-delete-nft');
+    if (delete_info_btn) {
+      delete_info_btn.onclick = async () => {
+        let idx = -1;
+        for (let z = 0; z < this.all_slips.length; z++) {
+          if (this.mod.publicKey == this.all_slips[z].slip2?.public_key) {
+            idx = z;
+            break;
+          }
+        }
+        if (idx < 0) {
+          return;
+        }
+        this.nft.resetNFT(this.all_slips[idx]);
+        let c = await sconfirm(
+          `Delete this NFT and recover ${this.app.wallet.convertNolanToSaito(this.nft.deposit)} SAITO?`
+        );
+        if (!c) {
+          return;
+        }
+        let newtx = await this.app.wallet.createRemoveNFTTransaction(this.nft);
+        await newtx.sign();
+        await this.app.network.propagateTransaction(newtx);
+        this.app.storage.deleteTransaction(this.nft.tx, null, 'localhost');
+        siteMessage('NFT Deletion in Process...', 2000);
+        this.overlay.close();
+        this.app.connection.emit('saito-nft-list-close-request');
+        if (document.querySelector('.nft-list-container')) {
+          this.app.connection.emit('saito-nft-list-render-request');
+        }
+      };
+    }
+
     //
     // split and deposit (info panel)
     //

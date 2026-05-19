@@ -7,7 +7,7 @@ module.exports = (app, mod) => {
       <div class="saito-overlay-form-header">
          <div class="saito-overlay-form-header-title">
             <div>
-               Create Non-Fungible Token (NFT)
+               Create Saito NFT
             </div>
          </div>
       </div>
@@ -30,22 +30,16 @@ module.exports = (app, mod) => {
 
                 <div class="withdraw-info-cont">
                   <span class="withdraw-info-title">Quantity</span> 
-                <!--
-                  <div class="withdraw-info-value create-nft-amount" id="create-nft-amount">1</div>
-                -->
-
-                   <input
+                  <input
                      type="text"
                      inputmode="numeric"
                      pattern="\d*"
                      oninput="this.value = this.value.replace(/\D+/g, '')"
                      class="create-nft-amount" id="create-nft-amount" 
                      value="1"
-                   />
-
+                  />
                 </div>
                 
-
                 <div class="withdraw-info-cont">
                   <span class="withdraw-info-title">Deposit</span> 
                    <input
@@ -57,7 +51,6 @@ module.exports = (app, mod) => {
                      class="create-nft-amount" id="create-nft-deposit" 
                      value="1"
                    />
-                  
                 </div>
               </div>
 

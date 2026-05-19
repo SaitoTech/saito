@@ -181,7 +181,7 @@ class Details {
     if (document.getElementById('check-balance')) {
       document.getElementById('check-balance').onclick = async (e) => {
         e.currentTarget.classList.add('refreshing');
-        let balance = await this.mod.checkBalanceUpdate();
+        let balance = await this.mod.checkBalance();
         this.render(document.querySelector('#qrcode2')?.innerHTML);
         setTimeout(() => {
           document.getElementById('check-balance').classList.add('refreshed');
@@ -193,134 +193,6 @@ class Details {
         }, 5);
       };
     }
-
-    if (document.getElementById('check-history')) {
-      document.getElementById('check-history').onclick = (e) => {
-        e.currentTarget.classList.add('refreshing');
-        this.mod.checkHistory(() => {
-          this.render(document.querySelector('#qrcode2')?.innerHTML);
-          setTimeout(() => {
-            document.getElementById('check-history').classList.add('refreshed');
-            setTimeout(() => {
-              if (document.getElementById('check-history')) {
-                document.getElementById('check-history').classList.remove('refreshed');
-              }
-            }, 5000);
-          }, 5);
-        });
-      };
-    }
-
-    /////////////////////////
-    /// Pagination events....
-    /////////////////////////
-    /*
-    const paginationNumbers = document.getElementById('pagination-numbers');
-    const listItems = document.querySelectorAll('.mixin-txn-his-container .saito-table-row');
-    const nextButton = document.getElementById('next-button');
-    const prevButton = document.getElementById('prev-button');
-
-    const paginationLimit = 10;
-    const pageCount = Math.ceil(listItems.length / paginationLimit);
-    let currentPage = 1;
-
-    if (listItems.length == 0) {
-      document.querySelector('.pagination-container').classList.add('disabled');
-    }
-
-    const disableButton = (button) => {
-      button.classList.add('disabled');
-      //button.setAttribute("disabled", true);
-    };
-
-    const enableButton = (button) => {
-      button.classList.remove('disabled');
-      //button.removeAttribute("disabled");
-    };
-
-    const handlePageButtonsStatus = () => {
-      if (currentPage === 1) {
-        disableButton(prevButton);
-      } else {
-        enableButton(prevButton);
-      }
-
-      if (pageCount === currentPage) {
-        disableButton(nextButton);
-      } else {
-        enableButton(nextButton);
-      }
-    };
-
-    const handleActivePageNumber = () => {
-      document.querySelectorAll('.pagination-number').forEach((button) => {
-        button.classList.remove('active');
-        const pageIndex = Number(button.getAttribute('page-index'));
-        if (pageIndex == currentPage) {
-          button.classList.add('active');
-        }
-      });
-    };
-
-    const appendPageNumber = (index) => {
-      const pageNumber = document.createElement('div');
-      pageNumber.className = 'pagination-number';
-      pageNumber.innerHTML = index;
-      pageNumber.setAttribute('page-index', index);
-      pageNumber.setAttribute('aria-label', 'Page ' + index);
-
-      paginationNumbers.appendChild(pageNumber);
-    };
-
-    const getPaginationNumbers = () => {
-      for (let i = 1; i <= pageCount; i++) {
-        appendPageNumber(i);
-      }
-    };
-
-    const setCurrentPage = (pageNum) => {
-      currentPage = pageNum;
-
-      handleActivePageNumber();
-      handlePageButtonsStatus();
-
-      const prevRange = (pageNum - 1) * paginationLimit;
-      const currRange = pageNum * paginationLimit;
-
-      listItems.forEach((item, index) => {
-        item.classList.add('hidden');
-        if (index >= prevRange && index < currRange) {
-          item.classList.remove('hidden');
-        }
-      });
-    };
-
-    getPaginationNumbers();
-    setCurrentPage(1);
-
-    prevButton.addEventListener('click', () => {
-      if (currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      }
-    });
-
-    nextButton.addEventListener('click', () => {
-      if (currentPage < pageCount) {
-        setCurrentPage(currentPage + 1);
-      }
-    });
-
-    document.querySelectorAll('.pagination-number').forEach((button) => {
-      const pageIndex = Number(button.getAttribute('page-index'));
-
-      if (pageIndex) {
-        button.addEventListener('click', () => {
-          setCurrentPage(pageIndex);
-        });
-      }
-    });
-
-    */
   }
 }
 

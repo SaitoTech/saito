@@ -49,6 +49,7 @@ export default class Nft extends WasmWrapper<WasmNFT> {
     return {
       id: Buffer.from(this.id).toString("hex"),
       tx_sig: Buffer.from(this.tx_sig).toString("hex"),
+      ticker: (this.instance as any).ticker ?? "",
       slip1: {
         amount: sl1.amount,
         slip_type: sl1.slip_type,

@@ -233,23 +233,23 @@ impl InterfaceIO for WasmIoHandler {
             InterfaceEvent::OnTransactionPending() => {
                 MsgHandler::emit_interface_event("on-transaction-pending", "{}");
             }
-            InterfaceEvent::OnTransactionSent() => {
-                MsgHandler::emit_interface_event("on-transaction-sent", "{}");
+            InterfaceEvent::OnTransactionSent(payload) => {
+                MsgHandler::emit_interface_event("on-transaction-sent", &payload);
             }
             InterfaceEvent::OnTransactionCreated() => {
                 MsgHandler::emit_interface_event("on-transaction-created", "{}");
             }
-            InterfaceEvent::OnTransactionReceived() => {
-                MsgHandler::emit_interface_event("on-transaction-received", "{}");
+            InterfaceEvent::OnTransactionReceived(payload) => {
+                MsgHandler::emit_interface_event("on-transaction-received", &payload);
             }
             InterfaceEvent::OnNFTCreated() => {
                 MsgHandler::emit_interface_event("on-nft-created", "{}");
             }
-            InterfaceEvent::OnNFTSent() => {
-                MsgHandler::emit_interface_event("on-nft-sent", "{}");
+            InterfaceEvent::OnNFTSent(payload) => {
+                MsgHandler::emit_interface_event("on-nft-sent", &payload);
             }
-            InterfaceEvent::OnNFTReceived() => {
-                MsgHandler::emit_interface_event("on-nft-received", "{}");
+            InterfaceEvent::OnNFTReceived(payload) => {
+                MsgHandler::emit_interface_event("on-nft-received", &payload);
             }
             InterfaceEvent::OnPeerHandshakeComplete(peer_id, public_key) => {
                 let payload = format!(

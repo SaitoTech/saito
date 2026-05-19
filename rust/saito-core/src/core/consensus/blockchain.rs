@@ -26,8 +26,9 @@ use crate::core::defs::{
     MIN_GOLDEN_TICKETS_NUMERATOR, PROJECT_PUBLIC_KEY, RECOLLECT_EVERY_TX, RECOLLECT_NOTHING,
     RECOLLECT_TXS_WITH_FEES,
 };
+
 use crate::core::mining_thread::MiningEvent;
-use crate::core::network::interface_io::InterfaceEvent;
+use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::network::network::Network;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::storage::storage::Storage;
@@ -268,16 +269,9 @@ impl Blockchain {
             return AddBlockResult::FailedNotValid;
         }
 
-        // if self.blockring.is_empty()
-        //     && self.genesis_block_hash != [0; 32]
-        //     && (block_hash != self.genesis_block_hash || block_id != self.genesis_block_id)
-        // {
-        //     error!("genesis block hash is not empty, but block hash is not equal to genesis block hash. genesis block hash : {:?} block hash : {:?}",
-        //                 self.genesis_block_hash.to_hex(), block_hash.to_hex());
-        //     return AddBlockResult::FailedButRetry(block, false, false);
-        // }
-
+        //
         // sanity checks
+        //
         if self.blocks.contains_key(&block_hash) {
             error!(
                 "block : {:?}-{:?} already exists in blockchain. not adding",
@@ -287,8 +281,12 @@ impl Blockchain {
             return AddBlockResult::BlockAlreadyExists;
         }
 
-        // get missing block
+        //
+        // if this is not our first block, getch the missing block
+        //
         if !self.blockring.is_empty() && self.get_block(&block.previous_block_hash).is_none() {
+            info!("Add Block Info -- blockring is not empty, fetch Missing Block!");
+
             if block.previous_block_hash == [0; 32] {
                 info!(
                     "hash is empty for parent of block : {:?}",
@@ -349,6 +347,7 @@ impl Blockchain {
         if let InitialLoadingStatus::WaitingFor(waiting_for) =
             &mut configs.get_blockchain_configs_mut().initial_loading_status
         {
+            info!("Add Block Info -- InitialLoadingStatus triggered...");
             waiting_for.retain(|(waiting_block_id, waiting_block_hash)| {
                 !(*waiting_block_id == block.id && *waiting_block_hash == block.hash)
             });
@@ -391,6 +390,7 @@ impl Blockchain {
             .blockring
             .contains_block_hash_at_block_id(block_id, block_hash)
         {
+            info!("Add Block Info -- adding block to blockring...");
             self.blockring.add_block(&block);
         }
 
@@ -412,6 +412,7 @@ impl Blockchain {
         // current longest-chain rule. Keep it indexed so a later higher fork tip
         // can evaluate the complete fork without walking this stale fragment now.
         if !self.blockring.is_empty() && block_id < self.get_latest_block_id() {
+            info!("Add Block Info -- block_id is less than latest block id....");
             debug!(
                 "block {}-{} is below latest block {}; storing without longest-chain evaluation",
                 block_id,
@@ -438,9 +439,11 @@ impl Blockchain {
         let mut new_chain_detected = false;
         // and get existing current chain for comparison
         if shared_ancestor_found {
+            info!("Add Block Info -- shared ancestor found...");
             old_chain =
                 self.calculate_old_chain_for_add_block(latest_block_hash, shared_block_hash);
         } else {
+            info!("Add Block Info -- shared ancestor not found...");
             debug!(
                 "block without parent. block : {}-{:?}, latest : {:?}-{:?}",
                 block_id,
@@ -456,12 +459,15 @@ impl Blockchain {
             // at None. We use this to determine if we are a new chain instead
             // of creating a separate variable to manually track entries.
             if self.blockring.is_empty() {
+                info!("Add Block Info -- we have found the first block in the blockchain...");
                 debug!("this is the first block in the blockchain");
 
                 // no need for action as fall-through will result in proper default
                 // behavior. we have the comparison here to separate expected from
                 // unexpected / edge-case issues around block receipt.
             } else {
+                info!("Add Block Info -- this is not the first block in the blockchain...");
+
                 // if this not our first block, handle edge-case around receiving
                 // block 503 before block 453 when block 453 is our expected proper
                 // next block and we are getting blocks out-of-order because of
@@ -523,8 +529,40 @@ impl Blockchain {
                 self.calculate_old_chain_upto_length(latest_block_hash, new_chain.len() as BlockId);
         }
 
+        //
         // at this point we should have a shared ancestor or not
         // find out whether this new block is claiming to require chain-validation
+        //
+        info!(
+            "[BOOTSTRAP_TRACE][LC_CHECK] \
+block_id={} \
+latest_block_id={} \
+genesis_period={} \
+latest_minus_genesis={} \
+blockring_empty={} \
+new_chain_len={} \
+old_chain_len={} \
+shared_ancestor_found={} \
+am_i_before={} \
+passes_height_check={} \
+passes_longest_chain_check={}",
+            block_id,
+            self.get_latest_block_id(),
+            self.genesis_period,
+            self.get_latest_block_id()
+                .saturating_sub(self.genesis_period),
+            self.blockring.is_empty(),
+            new_chain.len(),
+            old_chain.len(),
+            shared_ancestor_found,
+            am_i_the_longest_chain,
+            block_id
+                > self
+                    .get_latest_block_id()
+                    .saturating_sub(self.genesis_period),
+            self.is_new_chain_the_longest_chain(&new_chain, &old_chain),
+        );
+
         if !am_i_the_longest_chain
             && (block_id
                 > self
@@ -532,7 +570,7 @@ impl Blockchain {
                     .saturating_sub(self.genesis_period))
             && self.is_new_chain_the_longest_chain(&new_chain, &old_chain)
         {
-            debug!(
+            info!(
                 "new chain is the longest chain. changing am I the longest chain?. current block : {}-{:?} latest block : {}-{:?} genesis_period : {}",
                 block_id,
                 block_hash.to_hex(),
@@ -554,6 +592,9 @@ impl Blockchain {
         //
         self.blockring.empty = false;
 
+        info!("Add Block Info - blockring set to empty");
+
+        //
         // validate
         //
         // blockchain validate "validates" the new_chain by unwinding the old
@@ -563,11 +604,29 @@ impl Blockchain {
         // with the BlockRing. We fail if the newly-preferred chain is not
         // viable.
         if am_i_the_longest_chain {
-            debug!(
-                "this is the longest chain, adding block : {:?}",
+            info!(
+                "Add Block Info - this is the longest chain, adding block : {:?}",
                 block_hash.to_hex()
             );
             self.blocks.get_mut(&block_hash).unwrap().in_longest_chain = true;
+
+            info!(
+                "[BOOTSTRAP_TRACE][VALIDATE_START] \
+block_id={} \
+block_hash={} \
+new_chain_len={} \
+old_chain_len={} \
+latest_block_id={} \
+blockring_empty={} \
+initial_loading_status={:?}",
+                block_id,
+                block_hash.to_hex(),
+                new_chain.len(),
+                old_chain.len(),
+                self.get_latest_block_id(),
+                self.blockring.is_empty(),
+                configs.get_blockchain_configs().initial_loading_status,
+            );
 
             let (mut does_new_chain_validate, wallet_updated) = self
                 .validate(
@@ -580,12 +639,39 @@ impl Blockchain {
                 )
                 .await;
 
+            info!(
+                "[BOOTSTRAP_TRACE][VALIDATE_RESULT] \
+block_id={} \
+block_hash={} \
+does_new_chain_validate={} \
+wallet_updated={:?} \
+latest_block_id_after={} \
+blockring_empty_after={}",
+                block_id,
+                block_hash.to_hex(),
+                does_new_chain_validate,
+                wallet_updated,
+                self.get_latest_block_id(),
+                self.blockring.is_empty(),
+            );
+
             does_new_chain_validate &= self.validate_total_supply(configs).await;
+
+            info!(
+                "[BOOTSTRAP_TRACE][SUPPLY_RESULT] \
+block_id={} \
+block_hash={} \
+does_new_chain_validate_after={}",
+                block_id,
+                block_hash.to_hex(),
+                does_new_chain_validate,
+            );
 
             if does_new_chain_validate {
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
 
+                info!("Add Block Info -- new chain validates!");
                 AddBlockResult::BlockAddedSuccessfully(
                     block_hash,
                     true,
@@ -593,6 +679,7 @@ impl Blockchain {
                     new_chain_detected,
                 )
             } else {
+                info!("Add Block Info -- new chain doesn't validate!");
                 warn!(
                     "new chain doesn't validate with hash : {:?}",
                     block_hash.to_hex()
@@ -602,7 +689,7 @@ impl Blockchain {
                 AddBlockResult::FailedNotValid
             }
         } else {
-            debug!("this is not the longest chain");
+            info!("Add Block Info - add block success, but this is not the longest chain");
 
             self.add_block_success(block_hash, storage, mempool, configs)
                 .await;
@@ -1617,7 +1704,7 @@ impl Blockchain {
         mempool: &mut Mempool,
         network: Option<&Network>,
     ) -> WindingResult<'a> {
-        // trace!(" ... blockchain.wind_chain strt: {:?}", create_timestamp());
+        info!(" ... blockchain.wind_chain start!");
 
         debug!(
             "wind_chain: current_wind_index : {:?} new_chain_len: {:?} old_chain_len: {:?} failed : {:?}",
@@ -1656,7 +1743,11 @@ impl Blockchain {
         self.upgrade_blocks_for_wind_chain(storage, configs, block_hash)
             .await;
 
-        let mut does_block_validate = self.validate_total_supply(configs).await;
+        let mut does_block_validate = if wind_failure {
+            true
+        } else {
+            self.validate_total_supply(configs).await
+        };
 
         let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
         let validate_against_utxo = self.has_total_supply_loaded(genesis_period);
@@ -1678,11 +1769,13 @@ impl Blockchain {
             return WindingResult::FinishWithFailure;
         }
 
-        debug!("winding hash validates: {:?}", block_hash.to_hex());
+        if !wind_failure {
+            debug!("winding hash validates: {:?}", block_hash.to_hex());
 
-        does_block_validate &= block
-            .validate(self, configs, storage, validate_against_utxo)
-            .await;
+            does_block_validate &= block
+                .validate(self, configs, storage, validate_against_utxo)
+                .await;
+        }
 
         if !does_block_validate {
             debug!("latest_block_id = {:?}", self.get_latest_block_id());
@@ -1718,6 +1811,7 @@ impl Blockchain {
                     block,
                     true,
                     configs.get_consensus_config().unwrap().genesis_period,
+                    network.map(|n| n.io_interface.as_ref()),
                 );
             }
             let block_id = block.id;
@@ -1782,6 +1876,12 @@ impl Blockchain {
                 block.id,
                 block.hash.to_hex()
             );
+            if wind_failure {
+                warn!(
+                    "failed while rewinding the original chain after a wind failure; stopping validation to avoid retry loop"
+                );
+                return WindingResult::FinishWithFailure;
+            }
             if current_wind_index == new_chain.len() - 1 {
                 // this is the first block we have tried to add
                 // and so we can just roll out the older chain
@@ -2093,6 +2193,7 @@ impl Blockchain {
                 block,
                 false,
                 configs.get_consensus_config().unwrap().genesis_period,
+                network.map(|n| n.io_interface.as_ref()),
             );
         }
         wallet_updated |= self
@@ -5421,6 +5522,41 @@ mod tests {
 
         let result = bc
             .wind_chain(&[], &[], 0, true, &t.storage, &*config, &mut mempool, None)
+            .await;
+
+        assert!(matches!(result, WindingResult::FinishWithFailure));
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn wind_chain_failure_flag_with_validation_failure_stops_retry_loop() {
+        let mut t = TestManager::default();
+        t.initialize(100, 720_000).await;
+
+        let blockchain_lock = t.blockchain_lock.clone();
+        let mempool_lock = t.mempool_lock.clone();
+        let config_lock = t.config_lock.clone();
+
+        let mut bc = blockchain_lock.write().await;
+        let mut mempool = mempool_lock.write().await;
+        let config = config_lock.read().await;
+
+        let latest_hash = bc.get_latest_block_hash();
+        bc.initial_token_supply = 1;
+        let new_chain = [latest_hash];
+        let old_chain = [[42; 32]];
+
+        let result = bc
+            .wind_chain(
+                &new_chain,
+                &old_chain,
+                0,
+                true,
+                &t.storage,
+                &*config,
+                &mut mempool,
+                None,
+            )
             .await;
 
         assert!(matches!(result, WindingResult::FinishWithFailure));

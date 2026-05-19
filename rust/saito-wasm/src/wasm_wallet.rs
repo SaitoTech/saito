@@ -583,6 +583,7 @@ impl WasmWallet {
         slip3_hex: String,
         id_hex: String,
         sig_hex: String,
+        ticker: String,
     ) -> Result<(), JsValue> {
         let saito = SAITO.lock().await;
         let saito_ref = saito
@@ -602,7 +603,7 @@ impl WasmWallet {
         let tx_sig: SaitoSignature = string_to_signature(&sig_hex)
             .map_err(|e| JsValue::from_str(&format!("signature parse error: {}", e)))?;
 
-        wallet.add_nft(slip1, slip2, slip3, id, tx_sig);
+        wallet.add_nft(slip1, slip2, slip3, id, tx_sig, ticker);
 
         Ok(())
     }

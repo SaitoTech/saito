@@ -2763,7 +2763,7 @@ class GameQueue {
                   game_self.game = game_self.loadGame(my_specific_game_id);
                 }
 
-                game_self.updateLog('payments received (maybe)... moving on...');
+                game_self.updateLog('payments received...');
                 game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
                 game_self.restartQueue();

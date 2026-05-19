@@ -1,12 +1,13 @@
 use crate::wasm_slip::WasmSlip;
 use js_sys::Uint8Array;
-use saito_core::core::consensus::wallet::DetailedNFT;
+use saito_core::core::consensus::slip::Slip;
+use saito_core::core::consensus::wallet::NFT;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct WasmNFT {
-    pub(crate) nft: DetailedNFT,
+    pub(crate) nft: NFT,
 }
 
 #[wasm_bindgen]
@@ -14,7 +15,7 @@ impl WasmNFT {
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmNFT {
         WasmNFT {
-            nft: DetailedNFT::default(),
+            nft: NFT::default(),
         }
     }
 
@@ -43,38 +44,54 @@ impl WasmNFT {
     }
 
     #[wasm_bindgen(getter)]
+    pub fn ticker(&self) -> js_sys::JsString {
+        self.nft.ticker.as_str().into()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_ticker(&mut self, s: js_sys::JsString) {
+        self.nft.ticker = s.into();
+    }
+
+    #[wasm_bindgen(getter)]
     pub fn slip1(&self) -> WasmSlip {
-        WasmSlip::new_from_slip(self.nft.slip1.clone())
+        let slip = Slip::parse_slip_from_utxokey(&self.nft.slip1)
+            .expect("bound utxokey must parse to Slip");
+        WasmSlip::new_from_slip(slip)
     }
 
     #[wasm_bindgen(setter)]
     pub fn set_slip1(&mut self, ws: &WasmSlip) {
-        self.nft.slip1 = ws.slip.clone();
+        self.nft.slip1 = ws.slip.get_utxoset_key();
     }
 
     #[wasm_bindgen(getter)]
     pub fn slip2(&self) -> WasmSlip {
-        WasmSlip::new_from_slip(self.nft.slip2.clone())
+        let slip = Slip::parse_slip_from_utxokey(&self.nft.slip2)
+            .expect("bound utxokey must parse to Slip");
+        WasmSlip::new_from_slip(slip)
     }
 
     #[wasm_bindgen(setter)]
     pub fn set_slip2(&mut self, ws: &WasmSlip) {
-        self.nft.slip2 = ws.slip.clone();
+        self.nft.slip2 = ws.slip.get_utxoset_key();
     }
 
     #[wasm_bindgen(getter)]
     pub fn slip3(&self) -> WasmSlip {
-        WasmSlip::new_from_slip(self.nft.slip3.clone())
+        let slip = Slip::parse_slip_from_utxokey(&self.nft.slip3)
+            .expect("bound utxokey must parse to Slip");
+        WasmSlip::new_from_slip(slip)
     }
 
     #[wasm_bindgen(setter)]
     pub fn set_slip3(&mut self, ws: &WasmSlip) {
-        self.nft.slip3 = ws.slip.clone();
+        self.nft.slip3 = ws.slip.get_utxoset_key();
     }
 }
 
 impl WasmNFT {
-    pub fn new_from_nft(nft: DetailedNFT) -> WasmNFT {
-        WasmNFT { nft }
+    pub fn from_wallet_nft(nft: &NFT) -> WasmNFT {
+        WasmNFT { nft: nft.clone() }
     }
 }

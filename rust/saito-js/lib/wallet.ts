@@ -97,7 +97,8 @@ export default class Wallet extends WasmWrapper<WasmWallet> {
     slip2UtxoKeyHex: string,
     slip3UtxoKeyHex: string,
     idHex: string,
-    txSigHex: string
+    txSigHex: string,
+    ticker: string = ""
   ): Promise<void> {
     try {
       await this.instance.add_nft(
@@ -105,7 +106,8 @@ export default class Wallet extends WasmWrapper<WasmWallet> {
         slip2UtxoKeyHex,
         slip3UtxoKeyHex,
         idHex,
-        txSigHex
+        txSigHex,
+        ticker
       );
     } catch (err) {
       console.error("wasm add_nft failed:", err);

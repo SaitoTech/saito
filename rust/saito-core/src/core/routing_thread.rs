@@ -151,12 +151,23 @@ impl RoutingThread {
                 self.process_transaction_message(peer_id, transaction).await;
             }
             Message::RequestBlockchain(ref request) => {
+                info!("####################################");
+                info!("### RequestBlockchain Message Received ###");
+                info!("####################################");
+                info!("peer_id => {}", peer_id);
+                info!("latest_known_block_id => {}", request.latest_known_block_id);
                 info!(
-                    "[TEMP_SYNC_TRACE][SYNC] recv RequestBlockchain peer_id={} remote_latest_id={} remote_fork_id={}",
-                    peer_id,
-                    request.latest_known_block_id,
-                    request.fork_id.to_hex()
+                    "latest_known_block_hash => {}",
+                    request.latest_known_block_hash.to_hex()
                 );
+                info!("fork_id => {}", request.fork_id.to_hex());
+                info!("sync_type => {}", request.sync_type);
+                info!("public_key => {}", request.public_key.to_base58());
+                info!("keylist_len => {}", request.keylist.len());
+                for (i, key) in request.keylist.iter().enumerate() {
+                    info!("keylist[{}] => {}", i, key.to_base58());
+                }
+                info!("####################################");
 
                 if !self.gatekeeper.add_costly_record(
                     peer_id,
@@ -872,11 +883,31 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             }
             RoutingEvent::MissingBlock(peer_id, block_hash, block_id) => {
                 trace!(
-                    "[TEMP_SYNC] - missing block requested by blockchain from peer : {:?} for block : {:?}-{:?}",
-                    peer_id,
-                    block_hash.to_hex(),
-                    block_id
-                );
+        "[TEMP_SYNC] - missing block requested by blockchain from peer : {:?} for block : {:?}-{:?}",
+        peer_id,
+        block_hash.to_hex(),
+        block_id
+    );
+
+                let skip_missing_fetch = {
+                    let peers = self.network.peer_lock.read().await;
+                    peers.peers.values().any(|p| p.is_connected && p.is_syncing)
+                };
+
+                //
+                // if any nodes are syncing and connected, we want to let them finish
+                // before we start combing backwards from downloaded blocks, as this
+                // will disrupt the block fetch process...
+                //
+                if skip_missing_fetch {
+                    trace!(
+            "[TEMP_SYNC] - skipping MissingBlock fetch while peer(s) syncing (block_id={} hash={})",
+            block_id,
+            block_hash.to_hex()
+        );
+                    return None;
+                }
+
                 let mut sync = self.sync.write().await;
                 sync.add(
                     &self.network,

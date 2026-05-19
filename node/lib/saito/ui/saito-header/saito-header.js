@@ -45,9 +45,6 @@ class SaitoHeader extends UIModTemplate {
     // Store the mod functions for when you click icon in the menu, e.g. "RedSquare"
     this.callbacks = {};
 
-    this.balance_check_interval = null;
-    this.deposit_check_interval = null;
-
     this.can_update_header_msg = true;
     this.show_msg = true;
 
@@ -78,15 +75,24 @@ class SaitoHeader extends UIModTemplate {
     });
 
     //
-    // registry
+    // listen for inbound / outbound payments
     //
-
     app.connection.on('on-transaction-pending', async () => {
       let preferred_crypto = app.wallet.returnPreferredCrypto();
-      if (preferred_crypto?.ticker == 'SAITO') {
-        preferred_crypto.pending_balance = await app.core.wallet.getPendingBalance();
+      preferred_crypto.pending_balance = await app.core.wallet.getPendingBalance();
+      this.renderCrypto();
+    });
+
+    app.connection.on('on-payment-sent', async () => {
+      if (!this.installing_crypto) {
+        this.renderCrypto();
       }
-      this.app.connection.emit('saito-header-update-crypto');
+    });
+
+    app.connection.on('on-payment-received', async () => {
+      if (!this.installing_crypto) {
+        this.renderCrypto();
+      }
     });
 
     app.connection.on('saito-header-update-message', (obj = {}) => {
@@ -124,14 +130,6 @@ class SaitoHeader extends UIModTemplate {
         }
       }
       this.updateHeaderMessage(msg, flash, callback, timeout);
-    });
-
-    app.connection.on('saito-header-update-crypto', async () => {
-      if (!this.installing_crypto) {
-        this.renderCrypto();
-      } else {
-        console.log('dont render crypto');
-      }
     });
 
     app.connection.on('saito-header-install-crypto', (ticker) => {
@@ -205,12 +203,10 @@ class SaitoHeader extends UIModTemplate {
 
     app.connection.on('saito-header-notification', (source_mod, unread) => {
       this.notifications[source_mod] = unread;
-
       let total = 0;
       for (let m in this.notifications) {
         total += this.notifications[m];
       }
-
       this.app.browser.addNotificationToId(total, 'saito-header-menu-toggle');
     });
 
@@ -235,7 +231,7 @@ class SaitoHeader extends UIModTemplate {
     }
 
     //
-    // add basic framework to DOM if needed
+    // add SaitoHeader to DOM if required
     //
     if (!document.getElementById('saito-header')) {
       this.app.browser.prependElementToDom(
@@ -249,12 +245,12 @@ class SaitoHeader extends UIModTemplate {
     }
 
     //
-    // Header Logo
+    // update header logo
     //
     this.resetHeaderLogo();
 
     //
-    // Add a short cut
+    // add shortcut
     //
     if (this.mod?.use_floating_plus) {
       if (!document.getElementById('saito-floating-menu')) {
@@ -274,12 +270,12 @@ class SaitoHeader extends UIModTemplate {
     await this.renderCrypto(true);
 
     //
-    // Nothing happens here
+    // let modules render into .saito-header
     //
     await this.app.modules.renderInto('.saito-header');
 
     //
-    // Insert user's name
+    // insert username
     //
     this.renderUsername();
 
@@ -552,9 +548,6 @@ class SaitoHeader extends UIModTemplate {
     //
     if (document.getElementById('wallet-select-crypto')) {
       document.getElementById('wallet-select-crypto').onchange = async (e) => {
-        this.clearBalanceCheck();
-        this.clearPendingDepositsCheck();
-
         if (
           !this.app.options.crypto[e.target.value] ||
           !this.app.options.crypto[e.target.value].address
@@ -566,8 +559,9 @@ class SaitoHeader extends UIModTemplate {
         console.log(
           'Change preferred crypto, restart polls on crypto balance and pending deposits'
         );
-        this.initiateBalanceCheck();
-        this.initiatePendingDepositsCheck();
+
+        let preferred_crypto = this.app.wallet.returnPreferredCrypto();
+        preferred_crypto.startPolling();
       };
     }
 
@@ -589,7 +583,6 @@ class SaitoHeader extends UIModTemplate {
     //
     // Mobile support
     //
-
     if (document.querySelector('#saito-floating-plus-btn')) {
       document.getElementById('saito-floating-plus-btn').onclick = (e) => {
         document.getElementById('saito-floating-menu').classList.toggle('activated');
@@ -634,10 +627,10 @@ class SaitoHeader extends UIModTemplate {
     ) {
       document.querySelector('.saito-header-hamburger-contents').classList.add('show-menu');
       document.querySelector('.saito-header-backdrop').classList.add('menu-visible');
-
       console.log('Menu open, start polls on crypto balance and pending deposits');
-      this.initiateBalanceCheck();
-      this.initiatePendingDepositsCheck();
+
+      let preferred_crypto = this.app.wallet.returnPreferredCrypto();
+      preferred_crypto.startPolling();
     }
   }
 
@@ -648,9 +641,6 @@ class SaitoHeader extends UIModTemplate {
       document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
       document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
     }
-
-    this.clearBalanceCheck();
-    this.clearPendingDepositsCheck();
   }
 
   /****************************************************
@@ -971,24 +961,6 @@ class SaitoHeader extends UIModTemplate {
           b_elm.classList.remove('pending');
           b_elm.innerHTML = this.app.browser.returnBalanceHTML(ab);
         }
-
-        if (Date.now() - preferred_crypto.history_update_ts > 30000 && !this.checking_history) {
-          console.log(
-            'CHECKING BECAUSE: ' +
-              Date.now() +
-              ' - ' +
-              preferred_crypto.history_update_ts +
-              ' -- ' +
-              this.checking_history
-          );
-
-          this.checking_history = true;
-          console.log('Checking preferred crypto history for new transactions');
-          preferred_crypto.checkHistory(() => {
-            console.log('FINISHED CHECKING...');
-            delete this.checking_history;
-          });
-        }
       }
     } catch (err) {
       console.error('Error rendering crypto balance: ' + err);
@@ -1013,110 +985,6 @@ class SaitoHeader extends UIModTemplate {
     }
 
     console.log('done wallet update...');
-  }
-
-  initiateBalanceCheck() {
-    let intervalTime = 2000;
-
-    let preferred_crypto = this.app.wallet.returnPreferredCrypto();
-
-    const executeBalanceCheck = async () => {
-      // dont poll if hamburger menu isnt visible
-      if (document.querySelector('.saito-header-backdrop.menu-visible') == null) {
-        this.clearBalanceCheck();
-        console.log(`Stopped checking ${preferred_crypto.ticker} balance`);
-        return;
-      }
-
-      // Call function to check
-      await preferred_crypto.checkBalanceUpdate();
-
-      //loop on time out
-      this.balance_check_interval = setTimeout(executeBalanceCheck, intervalTime);
-
-      //double wait on each loop
-      intervalTime *= 2;
-    };
-
-    if (preferred_crypto.address) {
-      executeBalanceCheck(); // Start the loop
-    }
-  }
-
-  clearBalanceCheck() {
-    clearTimeout(this.balance_check_interval);
-  }
-
-  clearPendingDepositsCheck() {
-    clearInterval(this.deposit_check_interval);
-  }
-
-  initiatePendingDepositsCheck() {
-    let this_self = this;
-    let intervalTime = 5000; // Start with 5 seconds
-    let preferred_crypto = this_self.app.wallet.returnPreferredCrypto();
-    let confirmations = preferred_crypto.confirmations;
-
-    const checkDeposits = async () => {
-      // dont poll if hamburger menu isnt visible
-      if (document.querySelector('.saito-header-backdrop.menu-visible') == null) {
-        this.clearPendingDepositsCheck();
-        console.log(`Stopped checking ${preferred_crypto.ticker} deposit`);
-        return;
-      }
-
-      console.log('check pending deposits');
-
-      await preferred_crypto.fetchPendingDeposits(function (res) {
-        if (res.length > 0) {
-          let pending_transfer = res[res.length - 1];
-
-          console.log('pending_transfer: ', pending_transfer);
-
-          let amount = Number(pending_transfer.amount);
-
-          console.log(`${amount} ${preferred_crypto.ticker} deposit pending 
-                    (${pending_transfer.confirmations}/${confirmations})`);
-
-          if (amount > 0) {
-            this_self.updateHeaderMessage(
-              `${amount} ${preferred_crypto.ticker} deposit pending 
-                        (${pending_transfer.confirmations}/${confirmations})`,
-              true,
-              function () {
-                this_self.app.connection.emit('saito-crypto-history-render-request', {});
-              }
-            );
-
-            this_self.deposit_pending = true;
-
-            if (this_self.show_msg) {
-              siteMessage(`New ${preferred_crypto.ticker} deposit`, 3000);
-              this_self.show_msg = false;
-            }
-          } else {
-            this_self.show_msg = true;
-          }
-        } else {
-          if (this_self?.deposit_pending) {
-            this_self.deposit_pending = false;
-            //this_self.updateHeaderMessage();
-          }
-
-          if (this_self.can_update_header_msg) {
-            //this_self.updateHeaderMessage();
-            this_self.show_msg = true;
-          }
-        }
-      });
-
-      // Double the interval and schedule the next check
-      intervalTime *= 2;
-      this.deposit_check_interval = setTimeout(checkDeposits, intervalTime);
-    };
-
-    console.log(`Started checking ${preferred_crypto.ticker} deposit`);
-    checkDeposits();
   }
 }
 
