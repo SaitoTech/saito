@@ -105,6 +105,31 @@ button i {
   margin: 0 0.5rem;
 }
 
+.button-mouse-over {
+  transform-origin: center;
+  transition:
+    transform 0.16s ease,
+    filter 0.16s ease,
+    box-shadow 0.16s ease;
+  will-change: transform;
+}
+
+.button-mouse-over:hover {
+  animation: button-mouse-over-pulse 0.9s ease-in-out infinite;
+  transform: scale(1.06);
+}
+
+@keyframes button-mouse-over-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 color-mix(in srgb, var(--saito-primary) 0%, transparent));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 0.45rem color-mix(in srgb, var(--saito-primary) 30%, transparent));
+  }
+}
+
 /*******************************
  Arrange multiple buttons 
  *******************************/

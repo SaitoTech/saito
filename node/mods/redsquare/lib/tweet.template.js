@@ -50,11 +50,11 @@ module.exports = (app, mod, tweet) => {
                   <i class="fa fa-repeat ${is_retweeted_css}"></i>
                 </div>
                 <div class="tweet-tool tweet-tool-like" title="Like tweet">
-		  						<span class="tweet-tool-like-count ${is_liked_css}">${tweet.num_likes}</span>
+                  <span class="tweet-tool-like-count ${is_liked_css} ${has_likes_css}">${tweet.num_likes}</span>
                   <div class="heart-bg">
                     <div class="heart-icon ${is_liked_css} ${has_likes_css}"></div>
                   </div>
-								</div>
+                </div>
                 <div class="tweet-tool tweet-tool-share" title="Copy link to tweet">
                 	<i class="fa-solid fa-share-nodes"></i>
                 </div>

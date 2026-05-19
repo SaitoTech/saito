@@ -20,6 +20,7 @@ html[data-theme='raven'] {
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
   --saito-canvas-background: var(--palette-bg-gradient);
+  --saito-header-color: var(--saito-white);
   --saito-header-background: var(--saito-background-color);
 
   --saito-surface-color: var(--palette-surface-1);
@@ -67,4 +68,12 @@ html[data-theme='raven'] {
 
   --saito-box-shadow:
     12px 17px 2px #00000024, 0px 5px 22px 4px #0000001f, 0px 7px 8px -4px #00000033;
+}
+
+html[data-theme='raven'] .saito-header-logo {
+  filter: brightness(0) invert(1);
+}
+
+html[data-theme='raven'] .saito-header-logo .cls-1 {
+  fill: var(--saito-white);
 }
