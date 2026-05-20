@@ -395,7 +395,7 @@ impl SyncManager {
         );
         info!(" -- my fork_id => {:?}", fork_id.to_hex());
         info!(" -- for sync_type => {}", sync_type);
-        info!(" -- for public_key => {:?}", my_public_key);
+        info!(" -- for public_key => {:?}", my_public_key.to_base58());
 
         network
             .send_message_by_peer_id(
