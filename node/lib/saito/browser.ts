@@ -302,7 +302,7 @@ class Browser {
 
       const theme_from_document = document.documentElement.getAttribute('data-theme');
       const theme =
-        this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'dark';
+        this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'noir';
 
       this.switchTheme(theme);
     } catch (err) {

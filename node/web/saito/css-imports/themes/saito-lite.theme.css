@@ -1,5 +1,5 @@
 /*-------------------- LITE THEME --------------------
- * Light UI: warm background from :root tokens; header uses brand red on flat background.
+ * Light UI: warm background from :root tokens; header uses dreamscape brand treatment.
  */
 
 html[data-theme='lite'] {
@@ -14,9 +14,9 @@ html[data-theme='lite'] {
   --palette-bg-gradient:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--palette-bg) 93%, var(--saito-white)) 0%,
-      color-mix(in srgb, var(--palette-bg) 98%, var(--saito-orange)) 42%,
-      var(--palette-bg) 100%
+      color-mix(in srgb, var(--palette-bg) 88%, var(--saito-gray-200)) 0%,
+      color-mix(in srgb, var(--palette-bg) 94%, var(--saito-orange)) 42%,
+      color-mix(in srgb, var(--palette-bg) 92%, var(--saito-gray-200)) 100%
     );
   --palette-surface-gradient:
     linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 82%, var(--saito-orange) 18%), var(--palette-bg));
@@ -43,6 +43,41 @@ html[data-theme='lite'] {
     0 2px 8px color-mix(in srgb, var(--saito-gray-900) 10%, transparent),
     inset 0 1px 0 var(--saito-overlay-panel-border-highlight);
   --saito-modal-shadow: var(--saito-overlay-panel-shadow);
-  --saito-header-color: var(--saito-red);
-  --saito-header-background: var(--saito-background-color);
+  --saito-header-color: var(--saito-white);
+  --saito-header-background: var(--dreamscape);
+  --saito-menu-icon-color: var(--saito-black);
+  --saito-menu-icon-hover-color: var(--saito-black);
+}
+
+html[data-theme='lite'] .redsquare-splash-logo {
+  content: url('/saito/icons/saito-redsquare-icon-outline-label-horizontal-primary.svg');
+}
+
+html[data-theme='lite'] .stun-talk-logo {
+  content: url('/saito/icons/saito-talk-icon-outline-label-horizontal-primary.svg');
+}
+
+html[data-theme='lite'] .stack-cta-logo {
+  content: url('/saito/icons/saito-stack-icon-outline-label-horizontal-primary.svg');
+}
+
+html[data-theme='lite'] .saito-header-menu-section .module-menu > ul > li .saito-module-menu-icon {
+  filter: brightness(0);
+}
+
+html[data-theme='lite'] .saito-header-menu-section .module-menu > ul > li:hover .saito-module-menu-icon {
+  filter: brightness(0) invert(1);
+}
+
+html[data-theme='lite'] .saito-menu i::before {
+  -webkit-text-stroke-color: var(--saito-black);
+}
+
+html[data-theme='lite'] .saito-menu li:hover i::before {
+  color: var(--saito-white);
+  -webkit-text-stroke-color: var(--saito-white);
+}
+
+html[data-theme='lite'] #saito-header {
+  background: var(--dreamscape);
 }

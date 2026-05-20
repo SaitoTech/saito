@@ -16,8 +16,16 @@
   padding: 1.5rem;
   padding-right: 2.5rem;
   font-size: 18px;
-  border-radius: 3rem;
+  border: var(--border-thickness-thin) solid transparent;
+  border-radius: var(--saito-button-radius);
+  box-sizing: border-box;
   width: 100%;
+}
+
+.redsquare-menu.saito-menu-select-subtle > li.item:not(.disabled-option):hover {
+  background-color: transparent;
+  border-color: var(--saito-border-color);
+  color: inherit;
 }
 
 .redsquare-menu .item i {

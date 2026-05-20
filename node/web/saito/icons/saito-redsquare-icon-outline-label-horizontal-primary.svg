@@ -2,12 +2,12 @@
 <defs>
     <style>
       .cls-1 {
-        fill: #fff;
+        fill: #ff8235;
       }
 
       .cls-2 {
         fill: none;
-        stroke: #fff;
+        stroke: #ff8235;
         stroke-linecap: butt;
         stroke-linejoin: miter;
         stroke-miterlimit: 10;
