@@ -27,10 +27,27 @@
 }
 
 .redsquare-splash-logo {
+  --saito-cta-logo-color: var(--saito-white, #fff);
+  --saito-cta-logo-mask: url('/saito/icons/saito-redsquare-icon-outline-label-horizontal.svg');
   display: block;
+  position: relative;
   width: min(560px, 84vw);
+  aspect-ratio: 381 / 134;
   max-width: 100%;
   filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
+}
+
+.redsquare-splash-overlay:hover .redsquare-splash-logo {
+  --saito-cta-logo-mask: url('/saito/icons/saito-redsquare-icon-solid-label-horizontal.svg');
+}
+
+.redsquare-splash-logo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--saito-cta-logo-color);
+  -webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+  mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }
 
 .redsquare-splash-subtitle {

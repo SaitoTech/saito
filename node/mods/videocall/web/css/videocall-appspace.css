@@ -135,10 +135,27 @@
 }
 
 .stun-talk-logo {
+	--saito-cta-logo-color: var(--stun-noir-text, var(--saito-white, #fff));
+	--saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-outline-label-horizontal.svg');
 	width: min(560px, 84vw);
 	display: block;
+	position: relative;
+	aspect-ratio: 381 / 134;
 	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 	max-width: min(560px, 84vw);
+}
+
+.stun-appspace-content:hover .stun-talk-logo {
+	--saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-solid-label-horizontal.svg');
+}
+
+.stun-talk-logo::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--saito-cta-logo-color);
+	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }
 
 .stun-subtitle {

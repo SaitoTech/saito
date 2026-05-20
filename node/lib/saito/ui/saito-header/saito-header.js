@@ -475,9 +475,12 @@ class SaitoHeader extends UIModTemplate {
     const icons = {
       arcade: 'saito-arcade-icon',
       chat: 'saito-chat-icon',
+      filetransfer: 'saito-filetransfer-icon',
+      fileshare: 'saito-filetransfer-icon',
       games: 'saito-games-icon',
       redsquare: 'saito-redsquare-icon',
       saitotalk: 'saito-talk-icon',
+      swarmcast: 'saito-swarmcast-icon',
       talk: 'saito-talk-icon',
       vault: 'saito-vault-icon',
       stack: 'saito-stack-icon'

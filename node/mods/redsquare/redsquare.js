@@ -538,7 +538,7 @@ class RedSquare extends ModTemplate {
       `
         <div class="redsquare-splash-overlay">
           <div class="redsquare-splash-content">
-            <img class="redsquare-splash-logo" src="/saito/icons/saito-redsquare-icon-outline-label-horizontal.svg" alt="Red Square" />
+            <div class="redsquare-splash-logo" role="img" aria-label="Red Square"></div>
             <div class="redsquare-splash-subtitle">PEER-TO-PEER SOCIAL</div>
             <button class="saito-button-primary redsquare-splash-join" type="button">JOIN IN</button>
           </div>
