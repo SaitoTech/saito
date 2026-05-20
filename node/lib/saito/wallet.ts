@@ -156,11 +156,7 @@ export default class Wallet extends SaitoWallet {
         });
 
         app.connection.on('on-nft-received', async (payload: unknown) => {
-alert("on nft received!");
           const p = parseInterfacePayload(payload);
-
-console.log("NFT deets: ");
-console.log(JSON.stringify(p));
 
 	  let ticker = "";
 	  let nft_id = "";
@@ -168,15 +164,11 @@ console.log(JSON.stringify(p));
 	  try {
 	    if (p.ticker) { ticker = String(p.ticker); }
 	    if (p.nft_id) { nft_id = String(p.nft_id); }
-alert("adding NFT to wallet!");
 	    await wallet_self.addNFTToWallet(nft_id, ticker);
-alert("added NFT to wallet!");
 	  } catch (err) {
-alert("added NFT to wallet error!");
 	    console.log("ERROR: adding NFT to wallet... ");
 	  }
 
-alert("triggering super, on payment received...");
           super.onPaymentReceived(p);
 
         });
@@ -1520,8 +1512,6 @@ alert("triggering super, on payment received...");
       ticker?: string;
     }> = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
-    // console.log('UPDATE NFT LIST from Rust: ', nfts);
-
     //
     // snapshot local
     //
@@ -1899,6 +1889,7 @@ alert("triggering super, on payment received...");
 
 
   public async addNFTToWallet(nft_id, ticker) {
+    await this.updateNFTList();
     if (this.returnCryptoModuleByTicker(ticker)) { return; }
     let mod = new NFTCryptoModule(this.app, nft_id, {
       ticker,

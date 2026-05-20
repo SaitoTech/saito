@@ -411,7 +411,7 @@ impl Wallet {
                                     "sender": sender,
                                     "receiver": receiver,
                                     "ticker": Self::extract_nft_ticker_from_tx(tx),
-                                    "nft_id": slip3.public_key.to_base58(),
+                                    "nft_id": slip3.public_key.to_hex(),
                                     "amount": slip1.amount,
                                     "slip1_utxo": slip1.utxoset_key.to_hex(),
                                     "slip2_utxo": slip2.utxoset_key.to_hex(),
