@@ -1866,13 +1866,7 @@ export default class Wallet extends SaitoWallet {
             continue;
           }
 
-          let mod = new NFTCryptoModule(this.app, nft_id, {
-            ticker,
-            name: ticker
-          });
-
-          this.app.modules.mods.push(mod);
-          await mod.initialize(this.app);
+	  await this.addNFTToWallet(nft_id, ticker);
 
           console.log(`NFT crypto module installed: ${ticker} (balance ${total.toString()})`);
         }
@@ -1881,6 +1875,17 @@ export default class Wallet extends SaitoWallet {
       console.log('Error: load nfts');
     }
   }
+
+
+  public async addNFTToWallet(nft_id, ticker) {
+    let mod = new NFTCryptoModule(this.app, nft_id, {
+      ticker,
+      name: ticker
+    });
+    this.app.modules.mods.push(mod);
+    await mod.initialize(this.app);
+  }
+
 
   public async onNewBoundTransaction(tx: Transaction) {
     try {

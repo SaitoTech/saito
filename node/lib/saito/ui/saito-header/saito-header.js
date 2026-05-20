@@ -836,27 +836,6 @@ class SaitoHeader extends UIModTemplate {
   }
 
   /**
-   * Plain string for dropdown menu balance line.
-   */
-  async formatSlideInWalletBalanceNumber(mod, balanceRaw) {
-    const raw =
-      balanceRaw != null && typeof balanceRaw.then === 'function' ? await balanceRaw : balanceRaw;
-    if (this.isNftCryptoModule(mod)) {
-      const s = String(raw ?? '').trim();
-      if (!s) {
-        return '0';
-      }
-      try {
-        const whole = s.split(/[.eE]/)[0] || '0';
-        return BigInt(whole).toString();
-      } catch (e) {
-        return s.split('.')[0] || '0';
-      }
-    }
-    return this.app.browser.formatDecimals(String(raw));
-  }
-
-  /**
    * HTML for main .balance-amount (matches returnBalanceHTML structure for NFT = whole only).
    */
   formatSlideInWalletBalanceHtml(mod, balanceRaw) {
@@ -931,11 +910,7 @@ class SaitoHeader extends UIModTemplate {
           menu_html += `<img class="chain-logo" src="${rtn_val.sub_logo}">`;
         }
 
-        const menuBal = await this.formatSlideInWalletBalanceNumber(
-          crypto_mod,
-          await Promise.resolve(crypto_mod.returnBalance())
-        );
-        menu_html += `</div><div class="header-crypto-balance">${menuBal} ${crypto_mod.ticker}</div>`;
+        menu_html += `</div><div class="header-crypto-balance">${crypto_mod.returnPendingBalance()} ${crypto_mod.ticker}</div>`;
 
         if (Number(crypto_mod.getPendingBalance()) > Number(crypto_mod.getAvailableBalance())) {
           menu_html += `<div class="header-crypto-pending">${crypto_mod.getPendingBalance()} pending </div>`;

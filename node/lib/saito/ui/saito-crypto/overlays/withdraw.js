@@ -22,10 +22,8 @@ class Withdraw {
     };
 
     this.available_balance = 0;
-    /** Raw string balance for NFT withdraw validation (avoids Number precision loss). */
     this._nft_balance_raw = null;
 
-    // We will only programattically input the address if it is a Saito PublicKey
     this.app.connection.on('saito-crypto-withdraw-render-request', async (obj) => {
       this.ticker = obj?.ticker || '';
       this.publicKey = obj?.address || '';
@@ -294,8 +292,12 @@ class Withdraw {
         document.querySelector('.withdraw-address-1').innerText = address.slice(0, -8);
         document.querySelector('.withdraw-address-2').innerText = address.slice(-8);
 
-        document.querySelector('.withdraw-confirm-fee').innerText =
-          `(fee: ${this.fee} ${this.ticker})`;
+	let pc = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
+	if (pc.categories == 'NFT') {
+          document.querySelector('.withdraw-confirm-fee').innerText = `(fee: ${this.fee} SAITO)`;
+	} else {
+          document.querySelector('.withdraw-confirm-fee').innerText = `(fee: ${this.fee} ${this.ticker})`; 
+	}
 
         // Change view to confirmation screen
         document.querySelector('#withdraw-step-one').classList.toggle('hide-element');
