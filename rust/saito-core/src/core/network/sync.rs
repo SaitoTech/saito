@@ -318,7 +318,6 @@ impl SyncManager {
                 continue;
             }
 
-
             fetch_dispatcher(block_hash, selected_peer_id, url.clone(), block_id);
         }
 
@@ -380,7 +379,6 @@ impl SyncManager {
             latest_known_block_id = config_last_block_id;
             latest_known_block_hash = config_last_block_hash;
             fork_id = config_fork_id;
-
         }
 
         let my_public_key = {
@@ -391,7 +389,10 @@ impl SyncManager {
         info!("SEND BLOCKCHAIN REQUEST: to peer...");
         info!(" -- to peer_id => {}", peer_id);
         info!(" -- my latest_known_block_id => {}", latest_known_block_id);
-        info!(" -- my latest_known_block_hash => {:?}", latest_known_block_hash);
+        info!(
+            " -- my latest_known_block_hash => {:?}",
+            latest_known_block_hash.to_hex()
+        );
         info!(" -- my fork_id => {:?}", fork_id.to_hex());
         info!(" -- for sync_type => {}", sync_type);
         info!(" -- for public_key => {:?}", my_public_key);
@@ -587,7 +588,6 @@ impl SyncManager {
         );
         }
 
-
         let mut previous_block_id = cs.shared_ancestor_block_id;
         let mut previous_block_hash = cs.shared_ancestor_block_hash;
         let mut did_queue_any_blocks = false;
@@ -656,7 +656,6 @@ impl SyncManager {
             {
                 let mut blockchain = self.blockchain_lock.write().await;
 
-
                 blockchain.add_ghost_block_without_transactions(
                     block_reference.block_id,
                     block_reference.timestamp,
@@ -695,7 +694,7 @@ impl SyncManager {
         config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     ) {
         if !self.queue.is_empty() {
-info!(" -- no -- queue is not empty");
+            info!(" -- no -- queue is not empty");
 
             return;
         }
@@ -710,25 +709,25 @@ info!(" -- no -- queue is not empty");
         };
 
         let Some(peer_id) = peer_id else {
-info!(" -- no -- cannot find peer from peer_id");
+            info!(" -- no -- cannot find peer from peer_id");
             return;
         };
 
         let mut peers = network.peer_lock.write().await;
         let Some(peer) = peers.peers.get_mut(&peer_id) else {
-info!(" -- no -- cannot get writeable peer");
+            info!(" -- no -- cannot get writeable peer");
             return;
         };
 
         if peer.should_continue_chain_sync() {
-info!(" -- yes -- should continue chain sync");
+            info!(" -- yes -- should continue chain sync");
             drop(peers);
             self.send_request_blockchain_message(peer_id, config_lock, network)
                 .await;
             return;
         }
 
-info!(" -- no -- should we mark as sync complete?");
+        info!(" -- no -- should we mark as sync complete?");
 
         //
         // update peer if needed, requires return; after peer drop in closure above
@@ -736,7 +735,7 @@ info!(" -- no -- should we mark as sync complete?");
         if peer.last_request_blockchain_chunksize > 0
             && peer.last_request_blockchain_chunksize < MAX_BLOCKCHAIN_CHUNK
         {
-info!(" --    -- yes -- mark as sync complete");
+            info!(" --    -- yes -- mark as sync complete");
             peer.on_sync_complete();
         }
     }
