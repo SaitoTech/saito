@@ -37,8 +37,11 @@ class Giphy extends ModTemplate {
 	}
 
 	async render() {
-
-	        const { renderGif, renderGrid } = require('@giphy/js-components');
+		const giphyFetchPkg = require('@giphy/js-fetch-api');
+		const GiphyFetch =
+			giphyFetchPkg?.GiphyFetch ||
+			giphyFetchPkg?.default?.GiphyFetch ||
+			giphyFetchPkg?.default;
 
 		let giphy_self = this;
 
@@ -66,42 +69,30 @@ class Giphy extends ModTemplate {
 		//
 		// Initiate the Giphy search service
 		//
+		if (!this.auth) {
+			console.warn('Giphy auth key not loaded yet');
+			return;
+		}
+
+		if (!GiphyFetch) {
+			console.error('Giphy library import failed: GiphyFetch export not found');
+			return;
+		}
+
 		if (!this.gf || this.gf.apiKey === null) {
 			this.gf = new GiphyFetch(this.auth);
 		}
 
 		if (this.container) {
 			if (!document.querySelector('.saito-gif-container')) {
-				this.app.browser.addElementToSelector(
-					saitoGifTemplate(this.app, this.mod),
-					this.container
-				);
+				this.app.browser.addElementToSelector(saitoGifTemplate(this.app, this.mod), this.container);
 			}
 		} else {
 			this.overlay.show(saitoGifTemplate(this.app, this.mod));
 		}
 
 		//this.loader.render(this.app, this.mod, "saito-gif-content");
-		let onGifClick = (gif, e) => {
-			e.preventDefault();
-			this.parent_callback(gif.images.original.url);
-			this.overlay.remove();
-		};
-
-		renderGrid(
-			{
-				width: giphy_self.selectorWidth,
-				fetchGifs: (offset) => {
-					//giphy_self.loader.remove();
-					return this.gf.search('inception', { offset });
-				},
-				columns: giphy_self.selectorColumns,
-				gutter: 2,
-				onGifClick,
-				key: 34
-			},
-			document.querySelector('.saito-gif-content')
-		);
+		this.attachEvents();
 	}
 
 	returnServices() {
@@ -118,13 +109,17 @@ class Giphy extends ModTemplate {
 
 		if (service.service === 'giphy') {
 			app.network.sendRequestAsTransaction(
-        'get giphy auth',
-        {},
-        function (res) {
-          gif_self.auth = res;
-        },
-        peer.publicKey
-      );
+				'get giphy auth',
+				{},
+				function (res) {
+					gif_self.auth = res;
+					// If UI is already opened, render once auth arrives.
+					if (gif_self.container || document.querySelector('.saito-gif-container')) {
+						gif_self.render();
+					}
+				},
+				peer.publicKey
+			);
 		}
 	}
 
@@ -137,7 +132,6 @@ class Giphy extends ModTemplate {
 					giphy_self.container = container;
 					giphy_self.parent_callback = callback;
 					giphy_self.render();
-					giphy_self.attachEvents();
 				}
 			};
 		}
@@ -165,47 +159,69 @@ class Giphy extends ModTemplate {
 	attachEvents(auth) {
 		let giphy_self = this;
 		let gif_search_icon = document.querySelector('.saito-gif-search i');
-		let gif_input_search = document.querySelector(
-			'.saito-gif-search input'
-		);
+		let gif_input_search = document.querySelector('.saito-gif-search input');
+		let gif_content = document.querySelector('.saito-gif-content');
 
-		const onGifClick = (gif, e) => {
-			e.preventDefault();
-			this.parent_callback(gif.images.original.url);
+		if (!gif_content) {
+			return;
+		}
+
+		const onGifClick = (gif) => {
+			if (this.parent_callback) {
+				this.parent_callback(gif.images.original.url);
+			}
 			this.overlay.remove();
 		};
 
-		const searchGif = () => {
-			let value = gif_input_search.value;
-			console.log(gif_input_search.value, 'giphy search value');
-			document.querySelector('.saito-gif-content').innerHTML = '';
-			//this.loader.render(this.app, this.mod, "saito-gif-content");
+		const searchGif = async (value) => {
+			gif_content.innerHTML = '<div class="giphy-loader">Loading...</div>';
 
-			renderGrid(
-				{
-					width: giphy_self.selectorWidth,
-					fetchGifs: (offset) => {
-						//giphy_self.loader.remove();
-						//console.log("offset", offset, "value ", value);
-						return this.gf.search(value, { offset });
-					},
-					columns: giphy_self.selectorColumns,
-					gutter: 2,
-					onGifClick,
-					key: value
-				},
-				document.querySelector('.saito-gif-content')
-			);
+			try {
+				const res = await this.gf.search(value || 'inception', { limit: 24, offset: 0 });
+				const gifs = res?.data || [];
+
+				if (!gifs.length) {
+					gif_content.innerHTML = '<div class="giphy-loader">No GIFs found</div>';
+					return;
+				}
+
+				gif_content.innerHTML = '';
+				gif_content.style.display = 'grid';
+				gif_content.style.gridTemplateColumns = `repeat(${Math.max(1, giphy_self.selectorColumns)}, minmax(120px, 1fr))`;
+				gif_content.style.gap = '6px';
+				gif_content.style.alignItems = 'start';
+
+				gifs.forEach((gif) => {
+					const img = document.createElement('img');
+					img.src = gif?.images?.fixed_width_small?.url || gif?.images?.fixed_width?.url || gif?.images?.original?.url;
+					img.alt = gif?.title || 'gif';
+					img.loading = 'lazy';
+					img.style.width = '100%';
+					img.style.height = 'auto';
+					img.style.cursor = 'pointer';
+					img.style.borderRadius = '6px';
+					img.onclick = () => onGifClick(gif);
+					gif_content.appendChild(img);
+				});
+			} catch (err) {
+				console.error('Giphy search failed', err);
+				gif_content.innerHTML = '<div class="giphy-loader">Failed to load GIFs</div>';
+			}
 		};
 
-		gif_search_icon.onclick = searchGif;
+		if (gif_search_icon) {
+			gif_search_icon.onclick = () => {
+				const value = gif_input_search?.value || '';
+				searchGif(value);
+			};
+		}
 
 		//add focus to search bar
 		if (gif_input_search) {
 			gif_input_search.oninput = (e) => {
-				//if (e.keyCode === 13) {
-					searchGif();
-				//}
+				let value = gif_input_search.value;
+				console.log(gif_input_search.value, 'giphy search value');
+				searchGif(value);
 			};
 
 			gif_input_search.onclick = (e) => {
@@ -216,6 +232,8 @@ class Giphy extends ModTemplate {
 				gif_input_search.focus({ focusVisible: true });
 			}
 		}
+
+		searchGif('inception');
 	}
 
 	async handlePeerTransaction(app, tx = null, peer, mycallback) {
