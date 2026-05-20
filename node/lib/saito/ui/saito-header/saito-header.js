@@ -887,10 +887,10 @@ class SaitoHeader extends UIModTemplate {
         menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
         menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${logo_src}">`;
         if (sublogo_src) { menu_html += `<img class="chain-logo" src="${sublogo_src}">`; }
-        menu_html += `</div><div class="header-crypto-balance">${crypto_mod.getPendingBalance()} ${crypto_mod.ticker}</div>`;
+        menu_html += `</div><div class="header-crypto-balance">${await crypto_mod.getPendingBalance()} ${crypto_mod.ticker}</div>`;
 
-        if (Number(crypto_mod.getPendingBalance()) > Number(crypto_mod.getAvailableBalance())) {
-          menu_html += `<div class="header-crypto-pending">${crypto_mod.getPendingBalance()} pending </div>`;
+        if (Number(await crypto_mod.getPendingBalance()) > Number(await crypto_mod.getAvailableBalance())) {
+          menu_html += `<div class="header-crypto-pending">${await crypto_mod.getPendingBalance()} pending </div>`;
         } else {
           menu_html += '<div></div>';
         }

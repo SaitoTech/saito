@@ -1,23 +1,26 @@
-module.exports = (app, mod) => {
-  let balance = Number(mod.returnBalance());
-  //saito-overlay-size wide
+module.exports = async (app, mod) => {
+  let available_balance = await mod.getAvailableBalance();
+  let pending_balance = await mod.getPendingBalance();
+  let balance = Number(available_balance);
+  let pending_balance_num = Number(pending_balance);
   let rtn_val = mod.returnLogos();
+  let logo = rtn_val.img;
+  let sublogo = rtn_val.sub_logo;
 
   let html = `
     <div class="crypto-details-overlay ">
         <div class="saito-overlay-form-header">
             <div class="crypto-logo-container">
-              <img class="crypto-logo" src="${rtn_val.img}">
-              ${rtn_val.sub_logo ? `<img class="chain-logo" src="${rtn_val.sub_logo}">` : ''}
+              <img class="crypto-logo" src="${logo}">
+              ${sublogo ? `<img class="chain-logo" src="${sublogo}">` : ''}
             </div>
             <div class="saito-overlay-form-header-title">${mod.name}</div>
             ${
               mod.address
                 ? `<div class="mobile-only460 pubkey-container">
-                             <div class="profile-public-key" id="profile-public-key" data-add="${mod.address}">${mod.address.slice(0, 6)}...${mod.address.slice(-6)}</div>
-                             <i class="fas fa-copy"></i>
-                          </div>
-            `
+                    <div class="profile-public-key" id="profile-public-key" data-add="${mod.address}">${mod.address.slice(0, 6)}...${mod.address.slice(-6)}</div>
+                    <i class="fas fa-copy"></i>
+                  </div>`
                 : ''
             }
         </div>
@@ -25,74 +28,78 @@ module.exports = (app, mod) => {
   `;
 
   if (!mod.isActivated()) {
-    html += `<div id="activate-now" class="saito-anchor">
+    html += `
+            <div id="activate-now" class="saito-anchor">
               <span>activate now</span>
-             </div>
-             <div id="saito-details-loader"></div>
-             </div></div>`;
+            </div>
+            <div id="saito-details-loader"></div>
+        </div>
+    </div>`;
   } else {
-    html += `          
+    html += `
             <div class="deposit-address">
               <div id="qrcode2" class="qrcode"></div>
               <div class="pubkey-container">
-                 <div class="profile-public-key" id="profile-public-key" data-add="${mod.address}">${mod.address.slice(0, 8)}...${mod.address.slice(-8)}</div>
-                 <i class="fas fa-copy"></i>
+                <div class="profile-public-key" id="profile-public-key" data-add="${mod.address}">${mod.address.slice(0, 8)}...${mod.address.slice(-8)}</div>
+                <i class="fas fa-copy"></i>
               </div>
             </div>
-             
-           <div class="wallet-actions">
-               <div class="main-balance">
-                 <div class="label">${Number(mod?.getPendingBalance()) ? 'Available ' : ''}Balance:</div>
-                 <div class="balance-amount">${app.browser.returnBalanceHTML(mod.returnBalance(), true)}</div>
-                 <i id="check-balance" class="fa-solid fa-arrows-rotate refresh"></i>
-               </div>`;
-    if (mod.ticker == 'SAITO') {
-      if (Number(mod.getPendingBalance() > 0)) {
-        html += `<div><div class="label">Pending Balance:</div>
-                  <div class="balance-amount">${mod.getPendingBalance()}</div></div>`;
-      } else {
-        html += '<div></div>';
-      }
 
+            <div class="wallet-actions">
+              <div class="main-balance">
+    `;
+
+    if (pending_balance_num !== balance_num) {
       html += `
-        <div class="saito-button-row auto-size force-row">
-          <div class="get-saito-tokens"></div>
-          <button class="saito-button-secondary" id="get-saito">get saito</button>
-          <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
-        </div>
+                <div class="label">Pending Balance:</div>
+                <div class="balance-amount">${app.browser.returnBalanceHTML(pending_balance, true)}</div>
+                <i id="check-balance" class="fa-solid fa-arrows-rotate refresh"></i>
+              </div>
+    `;
+    } else {
+      html += `
+                <div class="label">Available Balance:</div>
+                <div class="balance-amount">${app.browser.returnBalanceHTML(available_balance, true)}</div>
+                <i id="check-balance" class="fa-solid fa-arrows-rotate refresh"></i>
+              </div>
+    `;
+    }
+
+    if (mod.ticker == 'SAITO') {
+      html += `
+              <div class="saito-button-row auto-size force-row">
+                <div class="get-saito-tokens"></div>
+                <button class="saito-button-secondary" id="get-saito">get saito</button>
+                <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
+              </div>
       `;
     } else {
       let menu_html = '';
-      /*
-      if (mod.exchange_rate && balance) {
-        menu_html = `
-              <div class="label">Value:</div>
-              <div class="header-crypto-value">≈ ${app.browser.formatDecimals(balance * mod.exchange_rate)} SAITO</div></div>`;
-      }*/
 
       html += `
-          <div>${menu_html}</div>
-          <div class="saito-button-grid">
-            <div></div>
-            ${/*balance > 0 ? `<button class="saito-button-secondary" id="convert-saito">convert</button>` : */ '<div></div>'}
-            <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
-          </div>
-        `;
+              <div>${menu_html}</div>
+              <div class="saito-button-grid">
+                <div></div>
+                ${/* balance > 0 ? `<button class="saito-button-secondary" id="convert-saito">convert</button>` : */ '<div></div>'}
+                <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
+              </div>
+      `;
     }
 
-    html += `</div>
-          </div>
+    html += `
+            </div>
+        </div>
 
         <div class="transaction-history">
           <i id="check-history" class="fa-solid fa-arrows-rotate refresh"></i>
           <h6>Transaction History</h6>
           <div class="transaction-history-table saitox-table" data-crypto="${mod.ticker}">
-              <div class="saitox-header-item">Time</div>
-              <div class="saitox-header-item">Type</div>
-              <div class="saitox-header-item">Amount</div>
-              <div class="saitox-header-item">Balance</div>
-              <div class="saitox-header-item">To/From</div>
-              <div class="saitox-header-item saito-only">Memo</div>
+            <div class="saitox-header-item">Time</div>
+            <div class="saitox-header-item">Type</div>
+            <div class="saitox-header-item">Amount</div>
+            <div class="saitox-header-item">Balance</div>
+            <div class="saitox-header-item">To/From</div>
+            <div class="saitox-header-item saito-only">Memo</div>
           </div>
           <nav class="pagination-container disabled">
             <div class="pagination-button disabled" id="prev-button" aria-label="Previous page" title="Previous page">&lt;</div>

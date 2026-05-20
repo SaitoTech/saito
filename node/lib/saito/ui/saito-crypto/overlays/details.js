@@ -24,8 +24,8 @@ class Details {
     });
   }
 
-  render(qrcode_html = '') {
-    this.overlay.show(DetailsTemplate(this.app, this.mod));
+  async render(qrcode_html = '') {
+    this.overlay.show(await DetailsTemplate(this.app, this.mod));
 
     // Insert deposit QR code
     if (document.getElementById('qrcode2')) {

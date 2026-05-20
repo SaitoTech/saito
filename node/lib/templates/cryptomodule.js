@@ -486,15 +486,6 @@ class CryptoModule extends ModTemplate {
 }
 
 /**
- * Abstract method which should get balance from underlying crypto endpoint
- * @abstract
- * @return {Number}
- */
-CryptoModule.prototype.checkBalance = async function () {
-  throw new Error('checkBalance must be implemented by subclass!');
-};
-
-/**
  * Abstract method which should get private key
  * @abstract
  * @return {String} Private Key
