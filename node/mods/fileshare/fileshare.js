@@ -133,7 +133,7 @@ class Fileshare extends ModTemplate {
 			this.incoming[fileId] = file;
 			file.overlay.render(file);
 		} else {
-			//this.sendFile();
+			this.sendFile();
 		}
 	}
 
@@ -617,7 +617,7 @@ class Fileshare extends ModTemplate {
 		let data = {
 			publicKey: this.publicKey,
 			id: fileId,
-			name: file.name.replace(/\s+/g, ''),
+			name: file.name,
 			size: file.size,
 			type: file.type
 		};
@@ -653,7 +653,7 @@ class Fileshare extends ModTemplate {
 			data: {
 				meta: {
 					id: fileId,
-					name: obj.file.name.replace(/\s+/g, ''),
+					name: obj.file.name,
 					size: obj.file.size,
 					type: obj.file.type,
 					offset: obj.offset,
@@ -752,7 +752,7 @@ class Fileshare extends ModTemplate {
 		let data_obj = {
 			publicKey: this.publicKey,
 			id: fileId,
-			name: this.outgoing_files[fileId].file.name.replace(/\s+/g, ''),
+			name: this.outgoing_files[fileId].file.name,
 			size: this.outgoing_files[fileId].file.size,
 			type: this.outgoing_files[fileId].file.type
 		};

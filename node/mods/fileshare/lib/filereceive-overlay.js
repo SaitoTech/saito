@@ -12,22 +12,25 @@ class FileReceiveOverlay {
 		this.divId = `file-transfer-${fileId}-${sender}`;
 
 		//set up stun listeners for interruptions
-		app.connection.on('stun-data-channel-close', (peerId) => {
+		this.onStunDataChannelClose = (peerId) => {
 			if (peerId == this.sender && this?.active) {
 				this.onConnectionFailure();
 			}
-		});
-		app.connection.on('stun-connection-failed', (peerId) => {
-			if (peerId == this.sender & this?.active) {
+		};
+		app.connection.on('stun-data-channel-close', this.onStunDataChannelClose);
+		this.onStunConnectionFailed = (peerId) => {
+			if (peerId == this.sender && this?.active) {
 				this.onConnectionFailure();
 			}
-		});
+		};
+		app.connection.on('stun-connection-failed', this.onStunConnectionFailed);
 
-		app.connection.on("stun-data-channel-open", (peerId) => {
+		this.onStunDataChannelOpen = (peerId) => {
 			if (peerId == this.sender && this?.active){
 				this.onConnectionSuccess();
 			}
-		});
+		};
+		app.connection.on("stun-data-channel-open", this.onStunDataChannelOpen);
 
 	}
 
@@ -48,6 +51,10 @@ class FileReceiveOverlay {
 	}
 
 	remove(){
+		this.app.connection.removeListener('stun-data-channel-close', this.onStunDataChannelClose);
+		this.app.connection.removeListener('stun-connection-failed', this.onStunConnectionFailed);
+		this.app.connection.removeListener('stun-data-channel-open', this.onStunDataChannelOpen);
+
 		if (document.getElementById(this.divId)){
 			document.getElementById(this.divId).remove();
 		}
@@ -116,10 +123,10 @@ class FileReceiveOverlay {
 		}
 
 		const received = new Blob(blob.receiveBuffer);
-
-		let html = `<a href="${URL.createObjectURL(received)}" download="${blob.name}"></a>`
-
-		this.app.browser.addElementToId(html, this.divId);
+		const downloadLink = document.createElement('a');
+		downloadLink.href = URL.createObjectURL(received);
+		downloadLink.download = blob.name || 'download';
+		this.app.browser.addElementToId(downloadLink.outerHTML, this.divId);
 
 		let download_btn = div?.querySelector('#download-transfer');
 		if (download_btn){
