@@ -5,7 +5,6 @@ const AdminHome = require('./index');
 const jsonTree = require('json-tree-viewer');
 
 class Admin extends ModTemplate {
-
   constructor(app) {
     super(app);
     this.name = 'Admin';
@@ -13,17 +12,14 @@ class Admin extends ModTemplate {
     this.description = 'Admin module for Saito application management';
     this.categories = 'Admin utilities';
 
-    this.server_publickey = "";
+    this.server_publickey = '';
     this.server_info = null;
-
   }
 
   async initialize(app) {
-
     await super.initialize(app);
 
     this.main = new AdminMain(app, this);
-
   }
 
   async render() {
@@ -31,17 +27,13 @@ class Admin extends ModTemplate {
     this.main.render();
   }
 
-
-
   async onPeerHandshakeComplete(app, peer) {
-
     if (!this.browser_active) {
       return;
     }
 
-    if (app.BROWSER && !need_to_set_key) {
-
-      let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.server_publickey);
+    if (!need_to_set_key) {
+      let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(server_publickey);
       tx.msg = {
         module: 'Admin',
         request: 'validate-admin-key',
@@ -49,15 +41,19 @@ class Admin extends ModTemplate {
       };
       await tx.sign();
 
-      await this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
-        let res = res_tx.returnMessage();
-        if (this.res?.err) {
-          salert(res.err);
-        } else {
-	  this.server_info = res;
-	  this.main.render();
-        }
-      }, peer.publicKey);
+      this.app.network.sendTransactionWithCallback(
+        tx,
+        (res_tx) => {
+          let res = res_tx.returnMessage();
+          if (res?.err) {
+            alert(res.err);
+          } else {
+            this.server_info = res;
+            this.main.render();
+          }
+        },
+        peer.publicKey
+      );
     }
   }
 
@@ -87,7 +83,15 @@ class Admin extends ModTemplate {
 
     let txmsg = tx.returnMessage();
 
-    const accepted_requests = ['list-databases', 'list-database-tables', 'list-peers', 'run-sql-query', 'set-admin-key', 'validate-admin-key', 'update-options'];
+    const accepted_requests = [
+      'list-databases',
+      'list-database-tables',
+      'list-peers',
+      'run-sql-query',
+      'set-admin-key',
+      'validate-admin-key',
+      'update-options'
+    ];
 
     if (accepted_requests.includes(txmsg.request)) {
       if (!validated) {
@@ -100,12 +104,12 @@ class Admin extends ModTemplate {
     }
 
     if (txmsg.request == 'list-databases') {
-      console.log("=== MODULE DEBUG START ===");
+      console.log('=== MODULE DEBUG START ===');
       for (let m of this.app.modules.mods || []) {
-        console.log("Module:", m.name);
-        console.log("Properties:", Object.keys(m));
+        console.log('Module:', m.name);
+        console.log('Properties:', Object.keys(m));
       }
-      console.log("=== MODULE DEBUG END ===");
+      console.log('=== MODULE DEBUG END ===');
       const arr = [];
       for (const m of this.app.modules.mods || []) {
         if (m.db_tables && m.db_tables.length > 0) {
@@ -125,7 +129,11 @@ class Admin extends ModTemplate {
         return 1;
       }
       try {
-        const rows = await this.app.storage.queryDatabase("SELECT name FROM sqlite_master WHERE type='table'", [], db);
+        const rows = await this.app.storage.queryDatabase(
+          "SELECT name FROM sqlite_master WHERE type='table'",
+          [],
+          db
+        );
         if (mycallback) mycallback({ result: rows });
       } catch (err) {
         if (mycallback) mycallback({ err: err.message });
@@ -167,7 +175,6 @@ class Admin extends ModTemplate {
     }
 
     if (txmsg.request == 'set-admin-key') {
-
       if (!this.app.options.admin) {
         this.app.options.admin = [];
       }
@@ -204,12 +211,10 @@ class Admin extends ModTemplate {
     return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
-
   /**
    * Read config/options files from node directory and return summary to administrator
    */
   getOptions() {
-
     const path = this.app.storage.returnPath();
     const fs = this.app.storage.returnFileSystem();
     const node_info = {};
@@ -227,7 +232,6 @@ class Admin extends ModTemplate {
       if (fs.existsSync(config_dir)) {
         let mcf;
         try {
-
           mcf = fs.readFileSync(`${config_dir}/modules.config.js`, { encoding: 'UTF-8' });
           // remove white space
           mcf = mcf.replace(/\s*\/\/.*/g, '');
@@ -241,7 +245,6 @@ class Admin extends ModTemplate {
           mcf = mcf.substring(1, mcf.length - 1);
 
           this.module_config = JSON.parse(mcf);
-
         } catch (err) {
           console.error(err);
           console.log(mcf);
@@ -289,7 +292,6 @@ class Admin extends ModTemplate {
     }
   }
 
-
   async toggleBlockProduction(setValue) {
     let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.server_publickey);
     tx.msg = {
@@ -303,14 +305,18 @@ class Admin extends ModTemplate {
     };
     await tx.sign();
 
-    this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
-      let res = res_tx.returnMessage();
-      if (res?.err) {
-        salert(res.err);
-      } else {
-        siteMessage('Node updated');
-      }
-    }, this.server_publickey);
+    this.app.network.sendTransactionWithCallback(
+      tx,
+      (res_tx) => {
+        let res = res_tx.returnMessage();
+        if (res?.err) {
+          salert(res.err);
+        } else {
+          siteMessage('Node updated');
+        }
+      },
+      this.server_publickey
+    );
   }
 
   updateOptions(options) {
@@ -324,7 +330,7 @@ class Admin extends ModTemplate {
           this.app.options[a] = options[a];
         }
       } else {
-	this.app.options[a] = options[a];
+        this.app.options[a] = options[a];
       }
     }
     this.app.storage.saveOptions();
@@ -356,11 +362,7 @@ class Admin extends ModTemplate {
     }
   }
 
-
-
-
   webServer(app, expressapp, express, alternative_slug = null) {
-
     const webdir = `${__dirname}/web`;
     const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
     const admin_self = this;
@@ -380,22 +382,20 @@ class Admin extends ModTemplate {
     expressapp.use(uri, express.static(webdir));
   }
 
-
   returnDefaultModules() {
     return [
-      "admin",
-      "arcade",
-      "archive",
-      "blog",
-      "chat",
-      "chess",
-      "crypto",
-      "devtools",
-      "encrypt",
-      "disburse"
+      'admin',
+      'arcade',
+      'archive',
+      'blog',
+      'chat',
+      'chess',
+      'crypto',
+      'devtools',
+      'encrypt',
+      'disburse'
     ];
   }
-
 }
 
 module.exports = Admin;

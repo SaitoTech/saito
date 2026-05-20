@@ -1,3 +1,14 @@
+.admin-modules-hint {
+  padding: 20px 0;
+  color: #555;
+  max-width: 640px;
+}
+
+.admin-modules-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95em;
+}
+
 .module-config-header {
   display: flex;
   align-items: center;
