@@ -1,7 +1,7 @@
 module.exports = async (app, mod) => {
   let available_balance = await mod.getAvailableBalance();
   let pending_balance = await mod.getPendingBalance();
-  let balance = Number(available_balance);
+  let available_balance_num = Number(available_balance);
   let pending_balance_num = Number(pending_balance);
   let rtn_val = mod.returnLogos();
   let logo = rtn_val.img;
@@ -49,7 +49,7 @@ module.exports = async (app, mod) => {
               <div class="main-balance">
     `;
 
-    if (pending_balance_num !== balance_num) {
+    if (pending_balance_num !== available_balance_num) {
       html += `
                 <div class="label">Pending Balance:</div>
                 <div class="balance-amount">${app.browser.returnBalanceHTML(pending_balance, true)}</div>
@@ -70,7 +70,7 @@ module.exports = async (app, mod) => {
               <div class="saito-button-row auto-size force-row">
                 <div class="get-saito-tokens"></div>
                 <button class="saito-button-secondary" id="get-saito">get saito</button>
-                <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
+                <button class='saito-button-primary ${available_balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
               </div>
       `;
     } else {
@@ -80,8 +80,8 @@ module.exports = async (app, mod) => {
               <div>${menu_html}</div>
               <div class="saito-button-grid">
                 <div></div>
-                ${/* balance > 0 ? `<button class="saito-button-secondary" id="convert-saito">convert</button>` : */ '<div></div>'}
-                <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
+                <div></div>
+                <button class='saito-button-primary ${available_balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
               </div>
       `;
     }

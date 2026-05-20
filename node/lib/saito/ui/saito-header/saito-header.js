@@ -539,6 +539,14 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.getElementById('wallet-btn-nft')) {
       document.getElementById('wallet-btn-nft').onclick = (e) => {
+        try {
+	  const kids = document.querySelectorAll('#wallet-btn-details > *');
+	  kids[0]?.classList.remove('hideme'); // wallet icon
+	  kids[1]?.classList.remove('hideme'); // "Wallet" span
+	  kids[2]?.classList.add('hideme');    // list icon
+	  kids[3]?.classList.add('hideme');    // "Back" span
+        } catch (err) {
+        }
         document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         this.app.connection.emit('saito-nft-list-render-request');
       };
@@ -675,6 +683,16 @@ class SaitoHeader extends UIModTemplate {
   }
 
   hideMenu() {
+
+    try {
+      const kids = document.querySelectorAll('#wallet-btn-details > *');
+      kids[0]?.classList.remove('hideme'); // wallet icon
+      kids[1]?.classList.remove('hideme'); // "Wallet" span
+      kids[2]?.classList.add('hideme');    // list icon
+      kids[3]?.classList.add('hideme');    // "Back" span
+    } catch (err) {
+    }
+
     if (
       document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
     ) {
