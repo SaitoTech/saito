@@ -106,18 +106,6 @@
 	border: 1px solid var(--saito-overlay-panel-border);
 }
 
-.stunx-splash-image {
-	width: min(360px, 78vw);
-	height: min(220px, 34vh);
-	background-image:
-		linear-gradient(135deg, var(--stun-noir-accent-splash), var(--stun-noir-accent-splash-2)),
-		url(/videocall/img/splash.jpg);
-	background-size: cover;
-	background-position: center;
-	border-radius: var(--stun-noir-radius);
-	box-shadow: 0 0 60px -18px var(--stun-noir-accent-glow);
-}
-
 .stun-appspace-footer {
 	width: 100%;
 	display: flex;
@@ -146,31 +134,11 @@
 	font-size: 1.75rem;
 }
 
-.stun-brand-pill {
-	font-family: 'Space Grotesk', Manrope, sans-serif;
-	font-size: 1.2rem;
-	font-weight: 500;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--stun-noir-accent);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 3.2rem;
-}
-
-.stun-brand-pill-logo {
-	height: 2.1rem;
-	width: auto;
+.stun-talk-logo {
+	width: min(560px, 84vw);
 	display: block;
-	filter: drop-shadow(0 0 10px var(--stun-noir-accent-glow-soft));
-}
-
-.stun-title {
-	font-family: 'Space Grotesk', Manrope, sans-serif;
-	font-size: clamp(3.6rem, 8vw, 6.2rem);
-	line-height: 1;
-	letter-spacing: -0.03em;
+	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
+	max-width: min(560px, 84vw);
 }
 
 .stun-subtitle {
@@ -193,7 +161,7 @@
 	padding: 1.35rem 2rem;
 	border-radius: var(--stun-noir-radius);
 	background: linear-gradient(135deg, var(--stun-noir-accent), var(--stun-noir-accent-2));
-	color: var(--stun-noir-title-contrast);
+	color: var(--stun-noir-text);
 	box-shadow: 0 0 32px -10px var(--stun-noir-accent-glow-strong);
 	border: none;
 	transition:
@@ -236,8 +204,9 @@
 	text-align: center;
 	display: flex;
 	flex-direction: column;
-	justify-content: space-between;
-	gap: 1.5rem;
+	align-items: center;
+	justify-content: center;
+	gap: 1.4rem;
 }
 
 .stun-appspace-navigation {
@@ -433,4 +402,3 @@ input:checked + .slider:before {
 		align-items: stretch;
 	}
 }
-

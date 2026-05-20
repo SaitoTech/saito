@@ -25,7 +25,8 @@ module.exports = (app, mod) => {
           </div>
         </div>
         <div class="stack-cta-content">
-          <h2 class="stack-cta-title">Publish without Publishers</h2>
+          <img class="stack-cta-logo" src="/saito/icons/saito-stack-icon-outline-label-horizontal.svg" alt="Saito Stack" />
+          <div class="stack-cta-subtitle">PUBLISH WITHOUT PUBLISHERS</div>
           <p class="stack-cta-description">
             Create a subscription-based blog, use NFTs to limit access, and build your audience on your own terms.
           </p>

@@ -2,7 +2,7 @@ module.exports = (app, mod, build_number = '', og_card, listing = null, tx = nul
   let html = `
   
   <!DOCTYPE html>
-  <html lang="en" data-theme="raven">
+  <html lang="en" data-theme="noir">
   
   <head>
 

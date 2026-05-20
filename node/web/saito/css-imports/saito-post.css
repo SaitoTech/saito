@@ -1,7 +1,7 @@
 .tweet-overlay {
-  background: var(--saito-post-overlay-bg);
-  border: var(--border-thickness-thin) solid var(--saito-post-overlay-border);
-  box-shadow: var(--saito-post-overlay-shadow);
+  background: var(--saito-overlay-panel-background);
+  box-shadow: var(--saito-overlay-panel-shadow);
+  border: 1px solid var(--saito-overlay-panel-border);
   padding: var(--border-padding-wide);
   max-height: 95vh;
   max-width: 98vw;

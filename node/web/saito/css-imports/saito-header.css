@@ -518,6 +518,10 @@
   background-position-x: min(-2rem, calc(- (100vw - var(--saito-width)) / 2 + 0.5rem));
 }
 
+.saito-header-logo-back .saito-header-logo path:first-of-type {
+  opacity: 0;
+}
+
 .saito-header-logo-wrapper:hover .saito-back-button {
   transform: scale(1.1);
 }

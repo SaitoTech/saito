@@ -3,7 +3,7 @@ module.exports = (app, mod, build_number, og_card) => {
 
   
   <!DOCTYPE html>
-  <html lang="en" data-theme="dark">
+  <html lang="en" data-theme="noir">
   
   <head>
 
@@ -73,6 +73,53 @@ module.exports = (app, mod, build_number, og_card) => {
       /* hardcode bg colors used because saito-variables arent accessible here */
       background-color: #1c1c23;
       background-image: url('/saito/img/tiled-logo.svg');
+    }
+
+    .pace {
+      width: 300px;
+      height: 300px;
+      background: transparent;
+      overflow: visible;
+    }
+
+    .pace::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--dreamscape);
+      border-radius: 50%;
+      animation: pace-theme-center-atom-spin 6s linear infinite;
+    }
+
+    .pace .pace-progress:after {
+      top: calc(100% + 2.5rem);
+      color: #fff;
+      font-size: 32px;
+      text-shadow: 1px 1px 2px #000;
+      transform: translateX(-50%);
+    }
+
+    .pace .pace-activity {
+      width: 290px;
+      height: 290px;
+      top: 0;
+      left: 0;
+      background-image: url('/saito/icons/saito-chat-icon-outline-label.svg');
+      background-size: 190px 190px;
+      background-position: center;
+      background-repeat: no-repeat;
+      animation: pace-icon-throb 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pace-icon-throb {
+      0%,
+      100% {
+        background-size: 175px 175px;
+      }
+
+      50% {
+        background-size: 190px 190px;
+      }
     }
   </style>
   </head>

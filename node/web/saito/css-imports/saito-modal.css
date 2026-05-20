@@ -11,11 +11,10 @@ This alows for a header with a header with title to be added without extra CSS
   display: grid;
   grid-template-rows: min-content 1fr min-content; /* last item optional */
   max-height: 95vh;
-  border: var(--border-thickness-thick) solid var(--saito-modal-border);
+  border: 1px solid var(--saito-overlay-panel-border);
   border-radius: var(--saito-border-radius);
-  background: var(--saito-modal-background);
-  background-image: var(--saito-modal-texture), var(--saito-modal-background);
-  box-shadow: var(--saito-modal-shadow);
+  background: var(--saito-overlay-panel-background);
+  box-shadow: var(--saito-overlay-panel-shadow);
 }
 
 .saito-modal-title {

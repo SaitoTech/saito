@@ -78,6 +78,7 @@ class RedSquare extends ModTemplate {
     this.retweeted_tweets = [];
     this.replied_tweets = [];
     this.hidden_tweets = [];
+    this.show_splash = true;
 
     this.notifications = [];
     this.notifications_sigs_hmap = {};
@@ -520,10 +521,37 @@ class RedSquare extends ModTemplate {
     // render right-sidebar components
     //
     this.app.modules.renderInto('.redsquare-sidebar');
+    this.renderFirstVisitSplash();
 
     if (!this.app.modules.returnModule('Archive')) {
       salert('RedSquare will not work without Archive installed!');
     }
+  }
+
+  renderFirstVisitSplash() {
+    if (!this.app.BROWSER || !this.show_splash || document.querySelector('.redsquare-splash-overlay')) {
+      return;
+    }
+
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      `
+        <div class="redsquare-splash-overlay">
+          <div class="redsquare-splash-content">
+            <img class="redsquare-splash-logo" src="/saito/icons/saito-redsquare-icon-outline-label-horizontal.svg" alt="Red Square" />
+            <div class="redsquare-splash-subtitle">PEER-TO-PEER SOCIAL</div>
+            <button class="saito-button-primary redsquare-splash-join" type="button">JOIN IN</button>
+          </div>
+        </div>
+      `
+    );
+
+    this.show_splash = false;
+    this.saveOptions();
+
+    document.querySelector('.redsquare-splash-join')?.addEventListener('click', () => {
+      document.querySelector('.redsquare-splash-overlay')?.remove();
+    });
   }
 
   /////////////////////
@@ -2583,6 +2611,9 @@ class RedSquare extends ModTemplate {
       this.retweeted_tweets = rso?.retweeted_tweets || [];
       this.replied_tweets = rso?.replied_tweets || [];
       this.hidden_tweets = rso?.hidden_tweets || [];
+      this.show_splash = Object.prototype.hasOwnProperty.call(rso, 'show-splash')
+        ? rso['show-splash']
+        : true;
 
       if (rso?.curated == 0) {
         this.curated = false;
@@ -2609,6 +2640,7 @@ class RedSquare extends ModTemplate {
     rso.hidden_tweets = this.hidden_tweets;
 
     rso.curated = this.curated;
+    rso['show-splash'] = this.show_splash;
 
     this.app.options.redsquare = rso;
 
