@@ -78,25 +78,33 @@ class SaitoHeader extends UIModTemplate {
     //
     // listen for inbound / outbound payments
     //
-    app.connection.on('on-transaction-pending', async () => {
+    app.connection.on('on-transaction-pending', async (obj=null) => {
       let preferred_crypto = app.wallet.returnPreferredCrypto();
       preferred_crypto.pending_balance = await app.core.wallet.getPendingBalance();
       this.renderCrypto();
     });
 
-    app.connection.on('on-payment-sent', async () => {
+    app.connection.on('on-payment-sent', async (obj=null) => {
       if (!this.installing_crypto) {
         this.renderCrypto();
       }
     });
 
-    app.connection.on('on-payment-received', async () => {
+    app.connection.on('on-payment-received', async (obj=null) => {
+
       if (!this.installing_crypto) {
         this.renderCrypto();
       }
 
+      if (!obj) { return; }
+
       let amount = obj.amount;
       let ticker = obj.ticker;
+      let sender = obj.sender;
+
+      if (!amount || !ticker || !sender) { return; }
+      if (sender === this.publicKey) { return; }
+
       if (ticker === "SAITO") {
         amount = this.app.wallet.convertNolanToSaito(amount);
       }
@@ -823,36 +831,6 @@ class SaitoHeader extends UIModTemplate {
    *
    * *******************************************************
    * *******************************************************/
-  /**
-   * Synthetic NFT rows from multiwallet use whole-unit balances (no SAITO-style decimals).
-   */
-  isNftCryptoModule(mod) {
-    return (
-      mod?.categories === 'NFT' ||
-      String(mod?.ticker || '')
-        .toUpperCase()
-        .startsWith('NFT-')
-    );
-  }
-
-  /**
-   * HTML for main .balance-amount (matches returnBalanceHTML structure for NFT = whole only).
-   */
-  formatSlideInWalletBalanceHtml(mod, balanceRaw) {
-    if (this.isNftCryptoModule(mod)) {
-      const s = String(balanceRaw ?? '').trim();
-      let whole = '0';
-      try {
-        const w = s.split(/[.eE]/)[0] || '0';
-        whole = BigInt(w).toString();
-      } catch (e) {
-        whole = s.split('.')[0] || '0';
-      }
-      return `<span class="balance-amount-whole">${whole}</span>`;
-    }
-    return this.app.browser.returnBalanceHTML(balanceRaw);
-  }
-
   async renderCrypto(force = false) {
 
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
@@ -892,25 +870,24 @@ class SaitoHeader extends UIModTemplate {
       let options_html = '';
       let menu_html = '';
       for (let i = 0; i < available_cryptos.length; i++) {
+
+	//
+	// get cryptos available
+	//
         let crypto_mod = available_cryptos[i];
 
 	//
         // mixin handles logos
 	//
         let rtn_val = crypto_mod.returnLogos();
+	let logo_src = rtn_val.img;
+	let sublogo_src = rtn_val.sub_logo;
 
-        options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
-        id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${
-          crypto_mod.ticker
-        }</option>`;
+        options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${crypto_mod.ticker}</option>`;
         menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
-        menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${rtn_val.img}">`;
-
-        if (rtn_val.sub_logo) {
-          menu_html += `<img class="chain-logo" src="${rtn_val.sub_logo}">`;
-        }
-
-        menu_html += `</div><div class="header-crypto-balance">${crypto_mod.returnPendingBalance()} ${crypto_mod.ticker}</div>`;
+        menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${logo_src}">`;
+        if (sublogo_src) { menu_html += `<img class="chain-logo" src="${sublogo_src}">`; }
+        menu_html += `</div><div class="header-crypto-balance">${crypto_mod.getPendingBalance()} ${crypto_mod.ticker}</div>`;
 
         if (Number(crypto_mod.getPendingBalance()) > Number(crypto_mod.getAvailableBalance())) {
           menu_html += `<div class="header-crypto-pending">${crypto_mod.getPendingBalance()} pending </div>`;
@@ -936,42 +913,18 @@ class SaitoHeader extends UIModTemplate {
     //
     try {
       if (preferred_crypto.isActivated()) {
+
         let ab = await preferred_crypto.getAvailableBalance();
         let pb = await preferred_crypto.getPendingBalance();
-
-        try {
-          let pendingTxSummary = 'rust_pending_txs=unavailable';
-          try {
-            const ptxs = await this.app.wallet.getPendingTxs();
-            pendingTxSummary =
-              ptxs.length === 0
-                ? 'rust_pending_txs=0'
-                : `rust_pending_txs=${ptxs.length} ` +
-                  ptxs
-                    .map((t) => (t.signature ? String(t.signature).slice(0, 24) + '…' : '?'))
-                    .join(', ');
-          } catch (e) {
-            pendingTxSummary = `getPendingTxs_err=${e}`;
-          }
-          console.debug(
-            `[ PENDING BALANCE ] [ renderCrypto | pending_display=${pb} | pending_mode=${
-              pb !== ab
-            } | ${pendingTxSummary} ]`
-          );
-          console.debug(`[ AVAILABLE BALANCE ] [ renderCrypto | available_display=${ab} ]`);
-        } catch (logErr) {
-          console.log(`[ PENDING BALANCE ] [ renderCrypto log_error | ${logErr} ]`);
-        }
-
         let b_elm = document.querySelector('.balance-amount');
 
-        if (this.isNftCryptoModule(preferred_crypto)) {
+        if (preferred_crypto.categories === 'NFT') {
           if (pb !== ab) {
             b_elm.classList.add('pending');
-            b_elm.innerHTML = this.formatSlideInWalletBalanceHtml(preferred_crypto, pb);
+            b_elm.innerHTML = `<span class="balance-amount-whole">${pb}</span>`;
           } else {
             b_elm.classList.remove('pending');
-            b_elm.innerHTML = this.formatSlideInWalletBalanceHtml(preferred_crypto, ab);
+            b_elm.innerHTML = `<span class="balance-amount-whole">${ab}</span>`;
           }
         } else if (pb !== ab) {
           b_elm.classList.add('pending');

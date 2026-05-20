@@ -82,6 +82,7 @@ export default class Wallet extends SaitoWallet {
   async initialize() {
     let privateKey = await this.getPrivateKey();
     let publicKey = await this.getPublicKey();
+    let wallet_self = this;
 
     ////////////////
     // new wallet //
@@ -150,13 +151,34 @@ export default class Wallet extends SaitoWallet {
           super.onPaymentReceived(p);
         });
 
-        app.connection.on('on-nft-sent', (payload: unknown) => {
+        app.connection.on('on-nft-sent', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
         });
 
-        app.connection.on('on-nft-received', (payload: unknown) => {
+        app.connection.on('on-nft-received', async (payload: unknown) => {
+alert("on nft received!");
           const p = parseInterfacePayload(payload);
+
+console.log("NFT deets: ");
+console.log(JSON.stringify(p));
+
+	  let ticker = "";
+	  let nft_id = "";
+
+	  try {
+	    if (p.ticker) { ticker = String(p.ticker); }
+	    if (p.nft_id) { nft_id = String(p.nft_id); }
+alert("adding NFT to wallet!");
+	    await wallet_self.addNFTToWallet(nft_id, ticker);
+alert("added NFT to wallet!");
+	  } catch (err) {
+alert("added NFT to wallet error!");
+	    console.log("ERROR: adding NFT to wallet... ");
+	  }
+
+alert("triggering super, on payment received...");
           super.onPaymentReceived(p);
+
         });
 
         this.options.isActivated = true;
@@ -263,7 +285,6 @@ export default class Wallet extends SaitoWallet {
           we think this should be useful in real time, but if we import the private key, 
           we end up rerunning a bunch of lite blocks and then duplicating chunks of transactions
         */
-
         if (obj.timestamp < this.history_update_ts) {
           console.warn('Pushing an earlier (or same ts) payment record in SAITO history!');
           // console.log(tx);
@@ -1878,6 +1899,7 @@ export default class Wallet extends SaitoWallet {
 
 
   public async addNFTToWallet(nft_id, ticker) {
+    if (this.returnCryptoModuleByTicker(ticker)) { return; }
     let mod = new NFTCryptoModule(this.app, nft_id, {
       ticker,
       name: ticker
