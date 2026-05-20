@@ -12,14 +12,68 @@
 	padding: 2rem 0;
 }
 
+.saito-container.limbo-container:not(.dreaming) .limbo-main {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
 .limbo-menu {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 2rem;
+	gap: 1.6rem;
+}
+
+.limbo-splash-box {
+	width: min(95vw, 96rem);
+	height: fit-content;
+	flex: 0 0 auto;
+	padding: 3.2rem;
+	border-radius: calc(var(--saito-border-radius) + 0.15rem);
+	background: var(--saito-overlay-panel-background);
+	box-shadow: var(--saito-overlay-panel-shadow);
+	border: 1px solid var(--saito-overlay-panel-border);
+}
+
+.limbo-splash-logo {
+	--saito-cta-logo-color: var(--saito-white, #fff);
+	--saito-cta-logo-mask: url('/saito/icons/saito-swarmcast-icon-outline-label-horizontal.svg');
+	width: min(56rem, 84vw);
+	display: block;
+	position: relative;
+	aspect-ratio: 381 / 134;
+	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
+}
+
+.limbo-splash-box:hover .limbo-splash-logo {
+	--saito-cta-logo-mask: url('/saito/icons/saito-swarmcast-icon-solid-label-horizontal.svg');
+}
+
+.limbo-splash-logo::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--saito-cta-logo-color);
+	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+}
+
+.limbo-splash-subtitle {
+	margin-top: 0.4rem;
+	color: var(--saito-font-color-secondary, var(--saito-font-color-light));
+	font-size: 1.35rem;
+	letter-spacing: 0.22em;
+	line-height: 1.5;
+	text-align: center;
 }
 
 .limbo-menu h1 {
+	margin: 0.4rem 0 1rem;
+	color: var(--saito-font-color-heavy, var(--saito-font-color));
+	font-size: 4.2rem;
+	font-weight: 700;
+	line-height: 1.2;
 	text-align: center;
 }
 
@@ -29,38 +83,56 @@
 
 .limbo-launch-options {
 	width: 100%;
-	max-width: 100rem;
+	max-width: 72rem;
 	display: flex;
 	flex-direction: row;
 	justify-content: center;
-	gap: 6rem;
+	gap: 1.2rem;
 }
 
 .limbo-option {
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
 	align-items: center;
-	gap: 0rem;
-	border-radius: 1rem;
-	border: 1px solid var(--saito-border-color);
-	padding: 2.5rem 2rem 1.5rem;
+	gap: 1rem;
+	border-radius: var(--saito-border-radius);
+	border: 1px solid var(--saito-overlay-panel-border);
+	background: var(--saito-button-background, var(--saito-primary));
+	color: var(--saito-button-color, #fff);
+	padding: 1.35rem 2rem;
 	cursor: pointer;
-	height: 20rem;
-	width: 20rem;
-	justify-content: space-evenly;
+	min-height: 5.8rem;
+	width: 100%;
+	justify-content: center;
 	justify-self: center;
+	font: inherit;
+	transition:
+		transform 0.18s ease,
+		box-shadow 0.18s ease,
+		filter 0.18s ease;
 }
 
 .limbo-option i {
-	font-size: 5rem;
+	font-size: 2rem;
 }
 
+.limbo-option span,
 .limbo-option label {
-	font-size: 3rem;
+	font-size: 1.7rem;
+	font-weight: 700;
+	line-height: 1.2;
+	text-transform: capitalize;
 }
 
 .limbo-option:hover {
-	transform: scale(1.05);
+	transform: translateY(-1px);
+	box-shadow: 0 0 32px -12px var(--saito-primary);
+	filter: brightness(1.03);
+}
+
+.limbo-option:active {
+	transform: translateY(0);
+	filter: brightness(0.98);
 }
 
 .spaces-list {
@@ -524,11 +596,11 @@ video#local.noflip {
 	}
 
 	.limbo-option {
-		width: 70%;
+		width: 100%;
 		flex-direction: row;
 		justify-content: center;
-		gap: 4rem;
-		height: 9rem;
+		gap: 1rem;
+		min-height: 5.8rem;
 	}
 
 	/**********************************
@@ -564,11 +636,24 @@ video#local.noflip {
 		margin-bottom: 2rem;
 	}
 
+	.limbo-splash-box {
+		width: 100%;
+		padding: 2rem 1.5rem;
+	}
+
+	.limbo-splash-logo {
+		width: 100%;
+	}
+
+	.limbo-menu h1 {
+		font-size: 3rem;
+	}
+
 	.dream-controls .control-panel {
 		bottom: 1rem;
 	}
 	.limbo-option {
-		width: 90%;
+		width: 100%;
 	}
 }
 

@@ -66,6 +66,7 @@ class Chat extends ModTemplate {
     this.audio_notifications = true;
     this.audio_chime = 'Glass';
     this.auto_open_community = false;
+    this.show_splash = true;
 
     this.online = false;
     this.black_list = [];
@@ -210,6 +211,8 @@ class Chat extends ModTemplate {
 
     await super.render();
 
+    this.renderFirstVisitSplash();
+
     let chat_id = this.app.browser.returnURLParameter('chat_id');
 
     if (chat_id) {
@@ -239,6 +242,32 @@ class Chat extends ModTemplate {
 
       window.history.replaceState({}, document.title, '/' + this.slug);
     }
+  }
+
+  renderFirstVisitSplash() {
+    if (!this.app.BROWSER || !this.show_splash || document.querySelector('.chat-splash-overlay')) {
+      return;
+    }
+
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      `
+        <div class="chat-splash-overlay">
+          <div class="chat-splash-content">
+            <div class="chat-splash-logo" role="img" aria-label="Saito Chat"></div>
+            <div class="chat-splash-subtitle">PEER-TO-PEER SECURE MESSAGING</div>
+            <button class="saito-button-primary chat-splash-start" type="button">start chatting</button>
+          </div>
+        </div>
+      `
+    );
+
+    this.show_splash = false;
+    this.saveOptions();
+
+    document.querySelector('.chat-splash-start')?.addEventListener('click', () => {
+      document.querySelector('.chat-splash-overlay')?.remove();
+    });
   }
 
   async onPeerServiceUp(app, peer, service = {}) {
@@ -2331,6 +2360,9 @@ class Chat extends ModTemplate {
       delete this.app.options.chat.enable_notifications;
 
       this.auto_open_community = this.app.options.chat?.auto_open_community;
+      this.show_splash = Object.prototype.hasOwnProperty.call(this.app.options.chat, 'show-splash')
+        ? this.app.options.chat['show-splash']
+        : true;
       if (this.app.options.chat?.black_list) {
         this.black_list = this.app.options.chat.black_list;
       }
@@ -2347,6 +2379,7 @@ class Chat extends ModTemplate {
     this.app.options.chat.audio_notifications = this.audio_notifications;
     this.app.options.chat.audio_chime = this.audio_chime;
     this.app.options.chat.auto_open_community = this.auto_open_community;
+    this.app.options.chat['show-splash'] = this.show_splash;
     this.app.options.chat.black_list = this.black_list;
     this.app.storage.saveOptions();
   }

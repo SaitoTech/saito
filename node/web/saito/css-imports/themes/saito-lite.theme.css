@@ -49,16 +49,12 @@ html[data-theme='lite'] {
   --saito-menu-icon-hover-color: var(--saito-black);
 }
 
-html[data-theme='lite'] .redsquare-splash-logo {
-  content: url('/saito/icons/saito-redsquare-icon-outline-label-horizontal-primary.svg');
-}
-
-html[data-theme='lite'] .stun-talk-logo {
-  content: url('/saito/icons/saito-talk-icon-outline-label-horizontal-primary.svg');
-}
-
-html[data-theme='lite'] .stack-cta-logo {
-  content: url('/saito/icons/saito-stack-icon-outline-label-horizontal-primary.svg');
+html[data-theme='lite'] .redsquare-splash-logo,
+html[data-theme='lite'] .chat-splash-logo,
+html[data-theme='lite'] .stun-talk-logo,
+html[data-theme='lite'] .stack-cta-logo,
+html[data-theme='lite'] .limbo-splash-logo {
+  --saito-cta-logo-color: var(--saito-primary);
 }
 
 html[data-theme='lite'] .saito-header-menu-section .module-menu > ul > li .saito-module-menu-icon {
