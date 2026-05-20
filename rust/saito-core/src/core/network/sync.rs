@@ -433,6 +433,7 @@ impl SyncManager {
             return Err(Error::from(ErrorKind::InvalidData));
         }
         let peer_latest_known_block_id = request.latest_known_block_id;
+        let peer_latest_known_block_hash = request.latest_known_block_hash;
         let peer_fork_id = request.fork_id;
         let requested_public_key = request.public_key;
         let mut requested_keylist = request.keylist;
@@ -465,14 +466,26 @@ impl SyncManager {
             //
             // find shared ancestor with peer chain
             //
-            calculated_shared_ancestor_block_id =
-                blockchain.generate_last_shared_ancestor(peer_latest_known_block_id, peer_fork_id);
-            calculated_shared_ancestor_block_hash = blockchain
-                .blockring
-                .get_longest_chain_block_hash_at_block_id(calculated_shared_ancestor_block_id)
-                .unwrap_or([0; 32]);
-            shared_ancestor_block_id = calculated_shared_ancestor_block_id;
-            shared_ancestor_block_hash = calculated_shared_ancestor_block_hash;
+            let peer_tip_matches_our_chain = peer_latest_known_block_id > 0
+                && blockchain
+                    .blockring
+                    .get_longest_chain_block_hash_at_block_id(peer_latest_known_block_id)
+                    .map(|block_hash| block_hash == peer_latest_known_block_hash)
+                    .unwrap_or(false);
+
+            if peer_tip_matches_our_chain {
+                shared_ancestor_block_id = peer_latest_known_block_id;
+                shared_ancestor_block_hash = peer_latest_known_block_hash;
+            } else {
+                calculated_shared_ancestor_block_id = blockchain
+                    .generate_last_shared_ancestor(peer_latest_known_block_id, peer_fork_id);
+                calculated_shared_ancestor_block_hash = blockchain
+                    .blockring
+                    .get_longest_chain_block_hash_at_block_id(calculated_shared_ancestor_block_id)
+                    .unwrap_or([0; 32]);
+                shared_ancestor_block_id = calculated_shared_ancestor_block_id;
+                shared_ancestor_block_hash = calculated_shared_ancestor_block_hash;
+            }
 
             //
             // determine starting block for sync to peer
@@ -491,7 +504,7 @@ impl SyncManager {
                 // peer shares ancestry with us, continue sync
                 // immediately after shared ancestor
                 //
-                send_response_starting_from_block_id = peer_latest_known_block_id;
+                send_response_starting_from_block_id = shared_ancestor_block_id.saturating_add(1);
 
                 //
                 // never go below genesis floor
@@ -600,6 +613,14 @@ impl SyncManager {
         let mut should_add_block = true;
 
         for (i, block_reference) in cs.payload.iter().enumerate() {
+            should_add_block = true;
+
+            info!(
+                "received blockchain message 1 : {}-{}-{}",
+                block_reference.block_id,
+                previous_block_id,
+                cs.payload.len()
+            );
             //
             // only process sequential blocks
             //
