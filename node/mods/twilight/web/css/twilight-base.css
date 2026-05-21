@@ -2,6 +2,11 @@
 /*** MOD DEFAULTS ****/
 /*********************/
 
+.hud {
+    color: #222;
+}
+
+
 .saito-overlay {
 	background: transparent;
 }
