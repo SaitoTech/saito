@@ -256,22 +256,23 @@ impl Wallet {
                     let is_this_an_nft = tx.is_nft(&tx.from, i);
 
                     if is_this_an_nft {
+
+                        //
+                        // remove from NFT storage
+                        //
                         let slip1 = &tx.from[i];
                         let slip2 = &tx.from[i + 1];
                         let slip3 = &tx.from[i + 2];
 
-                        //
-                        // Remove the NFT group matching all three UTXO keys
-                        //
-                        if let Some(pos) = self.nfts.iter().position(|nft| {
-                            nft.slip1 == slip1.utxoset_key
-                                && nft.slip2 == slip2.utxoset_key
-                                && nft.slip3 == slip3.utxoset_key
+                        if let Some(pos) = self.nfts.iter().position(|n| {
+                            n.slip1 == slip1.utxoset_key
+                                && n.slip2 == slip2.utxoset_key
+                                && n.slip3 == slip3.utxoset_key
                         }) {
                             self.nfts.remove(pos);
 
                             if let Some(io) = io {
-                                let sender = slip2.public_key.to_base58();
+                                let sender = self.return_nft_sender_publickey(tx);
                                 let receiver = (0..tx.to.len().saturating_sub(2))
                                     .find(|&i| tx.is_nft(&tx.to, i))
                                     .and_then(|i| tx.to.get(i + 1))
@@ -289,16 +290,16 @@ impl Wallet {
                                     "timestamp": block.timestamp,
                                     "transaction_signature": signature,
                                     "signature": signature,
-                                    "sender": sender,
+                                    "sender": sender.to_base58(),
                                     "receiver": receiver,
                                     "ticker": Self::extract_nft_ticker_from_tx(tx),
-                                    "nft_id": slip3.public_key.to_base58(),
+                                    "nft_id": slip3.public_key.to_hex(),
                                     "nft_amount": slip1.amount,
                                     "saito_deposit": slip2.amount,
                                     "slip1_utxo": slip1.utxoset_key.to_hex(),
                                     "slip2_utxo": slip2.utxoset_key.to_hex(),
                                     "slip3_utxo": slip3.utxoset_key.to_hex(),
-                                    "sender_publickey": self.public_key.to_base58(),
+                                    "sender_publickey": sender.to_base58(),
                                 }))
                                 .unwrap_or_else(|_| "{}".to_string());
                                 io.send_interface_event(InterfaceEvent::OnNFTSent(payload));
@@ -390,7 +391,7 @@ impl Wallet {
                             );
 
                             if let Some(io) = io {
-                                let sender = slip2.public_key.to_base58();
+                                let sender = self.return_nft_sender_publickey(tx);
                                 let receiver = (0..tx.to.len().saturating_sub(2))
                                     .find(|&i| tx.is_nft(&tx.to, i))
                                     .and_then(|i| tx.to.get(i + 1))
@@ -408,7 +409,7 @@ impl Wallet {
                                     "timestamp": block.timestamp,
                                     "transaction_signature": signature,
                                     "signature": signature,
-                                    "sender": sender,
+                                    "sender": sender.to_base58(),
                                     "receiver": receiver,
                                     "ticker": Self::extract_nft_ticker_from_tx(tx),
                                     "nft_id": slip3.public_key.to_hex(),
@@ -416,7 +417,7 @@ impl Wallet {
                                     "slip1_utxo": slip1.utxoset_key.to_hex(),
                                     "slip2_utxo": slip2.utxoset_key.to_hex(),
                                     "slip3_utxo": slip3.utxoset_key.to_hex(),
-                                    "sender_publickey": sender,
+                                    "sender_publickey": sender.to_base58(),
                                 }))
                                 .unwrap_or_else(|_| "{}".to_string());
                                 io.send_interface_event(InterfaceEvent::OnNFTReceived(payload));
@@ -494,15 +495,22 @@ impl Wallet {
                     let is_this_an_nft = tx.is_nft(&tx.to, i);
 
                     if is_this_an_nft {
-                        //
-                        // remove from NFT storage
-                        //
+
+			//
+			// remove from NFT storage
+			//
+                        let slip1 = &tx.to[i];
                         let slip2 = &tx.to[i + 1];
-                        let nft_id = slip2.utxoset_key.to_vec();
-                        if let Some(pos) = self.nfts.iter().position(|n| n.id == nft_id) {
+                        let slip3 = &tx.to[i + 2];
+
+                        if let Some(pos) = self.nfts.iter().position(|n| {
+                            n.slip1 == slip1.utxoset_key
+                                && n.slip2 == slip2.utxoset_key
+                                && n.slip3 == slip3.utxoset_key
+                        }) {
                             self.nfts.remove(pos);
                             debug!(
-                                "Unwound NFT output group, removed id: {:?}",
+                                "Unwound NFT output group, removed slip2 group: {:?}",
                                 slip2.utxoset_key.to_hex()
                             );
 
@@ -2397,7 +2405,32 @@ impl Wallet {
         Ok((selected_staking_inputs, outputs))
     }
 
+    /// Returns the Saito public key of the party that sent/spent NFT inputs in `tx`.
+    /// Matches bound-tx signer rules in `transaction.rs` (CREATE vs SEND/SPLIT/MERGE).
+    pub fn return_nft_sender_publickey(&self, tx: &Transaction) -> SaitoPublicKey {
+        if tx.from.is_empty() {
+            return [0u8; 33];
+        }
+
+        let is_create = tx.from[0].slip_type == SlipType::Normal
+            && tx.to.len() >= 3
+            && tx.to[0].slip_type == SlipType::Bound
+            && tx.to[1].slip_type == SlipType::Normal
+            && tx.to[2].slip_type == SlipType::Bound;
+
+        if is_create {
+            return tx.from[0].public_key;
+        }
+
+        if tx.from.len() >= 2 && tx.is_nft(&tx.from, 0) {
+            return tx.from[1].public_key;
+        }
+
+        tx.from[0].public_key
+    }
+
     fn extract_nft_ticker_from_tx(tx: &Transaction) -> String {
+
         let json_str = String::from_utf8_lossy(&tx.data);
         let json_str = json_str.trim();
 
@@ -2414,42 +2447,40 @@ impl Wallet {
         String::new()
     }
 
-    pub fn add_nft(
-        &mut self,
-        slip1: SaitoUTXOSetKey,
-        slip2: SaitoUTXOSetKey,
-        slip3: SaitoUTXOSetKey,
-        id: Vec<u8>,
-        tx_sig: SaitoSignature,
-        ticker: String,
-    ) {
-        //
-        // construct the NFT we’d like to insert
-        //
-        let new_nft = NFT {
-            slip1,
-            slip2,
-            slip3,
-            id,
-            tx_sig,
-            ticker,
-        };
 
-        //
-        // only push if there is no existing NFT with all fields equal
-        //
-        let exists = self.nfts.iter().any(|nft| {
-            nft.slip1 == new_nft.slip1
-                && nft.slip2 == new_nft.slip2
-                && nft.slip3 == new_nft.slip3
-                && nft.id == new_nft.id
-                && nft.tx_sig == new_nft.tx_sig
-        });
+pub fn add_nft(
+    &mut self,
+    slip1: SaitoUTXOSetKey,
+    slip2: SaitoUTXOSetKey,
+    slip3: SaitoUTXOSetKey,
+    id: Vec<u8>,
+    tx_sig: SaitoSignature,
+    ticker: String,
+) {
+    let new_nft = NFT {
+        slip1,
+        slip2,
+        slip3,
+        id,
+        tx_sig,
+        ticker,
+    };
 
-        if !exists {
-            self.nfts.push(new_nft);
+    if let Some(existing) = self.nfts.iter_mut().find(|nft| {
+        nft.slip1 == new_nft.slip1
+            && nft.slip2 == new_nft.slip2
+            && nft.slip3 == new_nft.slip3
+            && nft.id == new_nft.id
+            && nft.tx_sig == new_nft.tx_sig
+    }) {
+        if existing.ticker.is_empty() && !new_nft.ticker.is_empty() {
+            existing.ticker = new_nft.ticker;
         }
+    } else {
+        self.nfts.push(new_nft);
     }
+}
+
 }
 
 impl WalletSlip {
