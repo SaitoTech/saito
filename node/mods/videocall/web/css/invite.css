@@ -1,7 +1,10 @@
 .stun-invite {
-	background-color: white;
+	background: var(--saito-overlay-panel-background);
+	color: var(--saito-font-color);
+	border: 1px solid var(--saito-overlay-panel-border);
+	box-shadow: var(--saito-overlay-panel-shadow);
 	padding: 3rem;
-	border-radius: 2rem;
+	border-radius: var(--saito-border-radius);
 	line-height: 3rem;
 	min-width: 40rem;
 }

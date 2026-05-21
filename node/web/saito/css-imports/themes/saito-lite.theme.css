@@ -3,7 +3,7 @@
  */
 
 html[data-theme='lite'] {
-  --palette-bg: #fff9f9;
+  --palette-bg: #ffffff;
   --palette-bg-inverse: #4e4e4e;
   --palette-surface-1: rgba(102, 102, 102, 0.125);
   --palette-surface-2: rgba(102, 102, 102, 0.2);
@@ -15,7 +15,7 @@ html[data-theme='lite'] {
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--palette-bg) 88%, var(--saito-gray-200)) 0%,
-      color-mix(in srgb, var(--palette-bg) 94%, var(--saito-orange)) 42%,
+      color-mix(in srgb, var(--palette-bg) 94%, var(--saito-orange)) 2%,
       color-mix(in srgb, var(--palette-bg) 92%, var(--saito-gray-200)) 100%
     );
   --palette-surface-gradient:

@@ -97,7 +97,7 @@ button.small,
 button.fat,
 .saito-button-primary.fat,
 .saito-button-secondary.fat {
-  height: 7rem;
+  height: 6rem;
   font-size: 2rem;
 }
 
@@ -131,7 +131,7 @@ button i {
 }
 
 /*******************************
- Arrange multiple buttons 
+ Arrange multiple buttons
  *******************************/
 .saito-button-row {
   display: flex;
@@ -165,7 +165,7 @@ button i {
 }
 
 /*******************************
- Text buttons 
+ Text buttons
  *******************************/
 .saito-anchor {
   cursor: pointer;

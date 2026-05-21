@@ -312,10 +312,34 @@ h2+p {
     text-align: center;
 }
 
-.feature-icon {
+.feature-icon-space {
+    position: relative;
     width: 64px;
     height: 64px;
     margin: auto 0;
+}
+
+.feature-icon {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 0.2s ease;
+}
+
+.feature-icon-solid {
+    opacity: 0;
+}
+
+.card-link:hover .feature-icon-outline,
+.card-link:focus-visible .feature-icon-outline {
+    opacity: 0;
+}
+
+.card-link:hover .feature-icon-solid,
+.card-link:focus-visible .feature-icon-solid {
+    opacity: 1;
 }
 
 .feature-card p {

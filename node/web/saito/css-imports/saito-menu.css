@@ -136,6 +136,11 @@
   color: var(--saito-menu-icon-hover-color);
 }
 
+.utilities-menu li:hover i::before {
+  -webkit-text-stroke-color: var(--saito-primary-text);
+  color: transparent;
+}
+
 @media screen and (max-width: 620px) {
   .saito-header-menu-section .saito-menu > ul {
     column-gap: 1rem;

@@ -30,10 +30,10 @@ input[type='datetime-local'] {
 .call-schedule-wizard-container {
   width: min(550px, 98vw);
   padding: 2rem 3rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--saito-border-color);
-  background-color: var(--saito-gray-800);
-  color: var(--saito-gray-200);
+  border-radius: var(--saito-border-radius);
+  border: 1px solid var(--saito-overlay-panel-border);
+  background: var(--saito-overlay-panel-background);
+  color: var(--saito-font-color);
   box-sizing: border-box;
 }
 
@@ -77,9 +77,10 @@ input[type='datetime-local'] {
 .call-schedule-join-container {
   width: min(550px, 98vw);
   padding: 2rem 3rem;
-  border-radius: 0.5rem;
-  background-color: var(--saito-background-color);
-  color: var(--saito-gray-200);
+  border-radius: var(--saito-border-radius);
+  background: var(--saito-overlay-panel-background);
+  color: var(--saito-font-color);
+  border: 1px solid var(--saito-overlay-panel-border);
   box-sizing: border-box;
 }
 
