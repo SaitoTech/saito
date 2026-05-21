@@ -175,9 +175,7 @@ class SaitoHeader extends UIModTemplate {
     app.connection.on('saito-crypto-activated', async (ticker) => {
       if (this.installing_crypto && this.installing_crypto == ticker) {
         const activated_mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
-        const is_nft_synthetic =
-          activated_mod?.categories === 'NFT' || String(ticker).toUpperCase().startsWith('NFT-');
-        if (is_nft_synthetic) {
+        if (activated_mod?.categories === 'NFT') {
           this.installing_crypto = false;
         } else {
           setTimeout(() => {
@@ -673,7 +671,7 @@ class SaitoHeader extends UIModTemplate {
           return;
         }
         let c = this.app.wallet.returnPreferredCrypto();
-        if (c.ticker === 'SAITO' || c.categories === 'NFT' || String(c.ticker || '').toUpperCase().startsWith('NFT-')) {
+        if (c.categories === 'NFT') {
           return;
         }
         c.startPolling();
@@ -901,21 +899,24 @@ class SaitoHeader extends UIModTemplate {
 	let logo_src = rtn_val.img;
 	let sublogo_src = rtn_val.sub_logo;
 
-        options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${crypto_mod.ticker}</option>`;
-        menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
-        menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${logo_src}">`;
-        if (sublogo_src) { menu_html += `<img class="chain-logo" src="${sublogo_src}">`; }
-        menu_html += `</div><div class="header-crypto-balance">${await crypto_mod.getPendingBalance()} ${crypto_mod.ticker}</div>`;
+        if (crypto_mod.ticker) {
 
-        if (Number(await crypto_mod.getPendingBalance()) > Number(await crypto_mod.getAvailableBalance())) {
-          menu_html += `<div class="header-crypto-pending">${await crypto_mod.getPendingBalance()} pending </div>`;
-        } else {
-          menu_html += '<div></div>';
+          options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${crypto_mod.ticker}</option>`;
+          menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
+          menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${logo_src}">`;
+          if (sublogo_src) { menu_html += `<img class="chain-logo" src="${sublogo_src}">`; }
+          menu_html += `</div><div class="header-crypto-balance">${await crypto_mod.getPendingBalance()} ${crypto_mod.ticker}</div>`;
+
+          if (Number(await crypto_mod.getPendingBalance()) > Number(await crypto_mod.getAvailableBalance())) {
+            menu_html += `<div class="header-crypto-pending">${await crypto_mod.getPendingBalance()} pending </div>`;
+          } else {
+            menu_html += '<div></div>';
+          }
+
+          menu_html += `</div>`;
+
+          this.app.browser.addElementToSelector(options_html, '.wallet-select-crypto');
         }
-
-        menu_html += `</div>`;
-
-        this.app.browser.addElementToSelector(options_html, '.wallet-select-crypto');
       }
 
       this.app.browser.replaceElementBySelector(

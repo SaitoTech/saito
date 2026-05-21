@@ -124,13 +124,30 @@ class SaitoNFT {
 
     const search_cond = this.tx_sig ? { sig: this.tx_sig } : { field4: this.id };
 
+    console.log('[fetchTx] start', {
+      id: this.id?.slice?.(0, 24),
+      tx_sig: this.tx_sig?.slice?.(0, 16),
+      search_cond
+    });
     console.debug('Fetching nft transaction from archive using: ', search_cond);
-    await this.app.storage.loadTransactions(
+    try {
+      await this.app.storage.loadTransactions(
       search_cond,
       async (txs) => {
+        console.log('[fetchTx] localhost cb', {
+          txs_len: txs?.length,
+          sig0: txs?.[0]?.signature?.slice?.(0, 16)
+        });
         if (txs?.length > 0) {
+          console.log('[fetchTx] A: localhost hit → buildNFTData');
           console.debug('local archive returned nft');
-          this.buildNFTData(txs[0]);
+          try {
+            this.buildNFTData(txs[0]);
+            console.log('[fetchTx] cb buildNFTData ok');
+          } catch (e) {
+            console.error('[fetchTx] cb buildNFTData threw', e);
+            throw e;
+          }
           my_callback();
         } else {
           // Try again locally with the other search condition...
@@ -150,6 +167,7 @@ class SaitoNFT {
 
           const remote_callback = () => {};
 
+          console.log('[fetchTx] B: localhost miss → remote started (not awaited)');
           console.debug('trying remote archive for nft');
           //
           // try remote host (ours IS **NOW**  INDEXING NFT TXS)
@@ -180,7 +198,16 @@ class SaitoNFT {
       },
       'localhost'
     );
+    } catch (e) {
+      console.error('[fetchTx] loadTransactions rejected', e);
+      throw e;
+    }
 
+    console.log('[fetchTx] resolved (function returning)', {
+      txmsg_defined: this.txmsg !== undefined,
+      ticker: this.txmsg?.ticker,
+      has_tx: !!this.tx
+    });
     return null;
   }
 
@@ -209,7 +236,20 @@ class SaitoNFT {
     this.slip2 ??= this.extractSlipObject(this.tx?.to[1] ?? null);
     this.slip3 ??= this.extractSlipObject(this.tx?.to[2] ?? null);
 
+    console.log('[fetchTx] pre-parseSlips', {
+      has_tx: !!this.tx,
+      tx_sig_match: this.tx_sig === tx.signature,
+      slip1_amt: this.slip1?.amount,
+      slip1_amt_type: typeof this.slip1?.amount,
+      slip2_amt_type: typeof this.slip2?.amount
+    });
+
     this.parseSlips();
+
+    console.log('[fetchTx] post-parseSlips', {
+      amount: this.amount?.toString?.(),
+      nft_type: this.nft_type
+    });
   }
 
   resetNFT(data) {
@@ -247,6 +287,10 @@ class SaitoNFT {
     }
 
     this.txmsg = tx.returnMessage();
+    console.log('[fetchTx] returnMessage ok', {
+      sig: tx?.signature?.slice?.(0, 16),
+      ticker: this.txmsg?.ticker
+    });
 
     this.data = this.txmsg?.data ?? {};
 
@@ -297,6 +341,13 @@ class SaitoNFT {
         typeof this.data === 'object' ? JSON.stringify(this.data, null, 2) : String(this.data);
       processed = true;
     }
+
+    console.log('[fetchTx] extractNFTData done', {
+      dataKeys: Object.keys(this.data).length,
+      processed,
+      has_image,
+      image_len: typeof this.data?.image === 'string' ? this.data.image.length : 0
+    });
   }
 
   extractSlipObject(slip) {
@@ -367,6 +418,7 @@ class SaitoNFT {
     return all_slips;
   }
 
+
   returnType() {
     if (this.nft_type) {
       return this.nft_type;
@@ -377,7 +429,7 @@ class SaitoNFT {
         return this.nft_type;
       }
     }
-    const properties = ['image', 'text', 'json', 'js', 'css'];
+    const properties = ['image', 'text', 'json', 'js', 'css', 'token'];
 
     for (const prop of properties) {
       const value = this[prop];
@@ -386,7 +438,7 @@ class SaitoNFT {
         return prop;
       }
     }
-    return null;
+    return "";
   }
 
   returnCreator() {

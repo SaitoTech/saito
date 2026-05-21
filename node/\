@@ -12,7 +12,6 @@ const getUuid = require('uuid-by-string');
 
 const CryptoModule = require('../templates/cryptomodule');
 const NFTCryptoModule = require('../templates/nftcryptomodule');
-const { logNftArrival } = require('./ui/saito-nft/tx-review-dump');
 
 interface PreferredTx {
   sig: string;
@@ -158,7 +157,6 @@ export default class Wallet extends SaitoWallet {
 
         app.connection.on('on-nft-received', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          logNftArrival(p, 'receiver on-nft-received');
 
 	  let ticker = "";
 	  let nft_id = "";
@@ -1057,35 +1055,30 @@ export default class Wallet extends SaitoWallet {
     try {
 
       //
-      // register that we are expecting a payment
+      // register that we are expecting a payment in this ticker
       //
-      if (!this.app.options?.crypto) {
-        this.app.options.crypto = {};
+      if (!this.app.options.crypto) {
+  	this.app.options.crypto = {};
       }
       if (!this.app.options.crypto[ticker]) {
-        this.app.options.crypto[ticker] = {};
+  	this.app.options.crypto[ticker] = {};
       }
       if (!this.app.options.crypto[ticker].transfers_inbound) {
-        this.app.options.crypto[ticker].transfers_inbound = [];
+  	this.app.options.crypto[ticker].transfers_inbound = [];
       }
       if (!this.app.options.crypto[ticker].transfers_inbound.includes(unique_hash)) {
         this.app.options.crypto[ticker].transfers_inbound.push(unique_hash);
       }
 
-      //
-      // the ticker might not exist if this is a one-sided NFT transfer
-      //
       const cryptomod = this.returnCryptoModuleByTicker(ticker);
-      if (cryptomod) {
-	await cryptomod.onIsActivated();
-        await cryptomod.startPolling();
-      }
+      await cryptomod.onIsActivated();
+      await cryptomod.startPolling();
 
       if (mycallback) {
         mycallback();
       }
     } catch (err) {
-      if (mycallback) { mycallback({ err }); }
+      mycallback({ err });
     }
   }
 
@@ -1479,7 +1472,9 @@ export default class Wallet extends SaitoWallet {
     if (!Array.isArray(nft_list)) {
       throw new Error('saveNFTList expects an array of NFTs');
     }
+
     this.app.options.wallet.nfts = nft_list;
+
     await this.saveWallet();
   }
 
@@ -1810,23 +1805,21 @@ export default class Wallet extends SaitoWallet {
   // with them...
   //
   public async loadNFTs() {
-
     try {
-
-      await this.updateNFTList();
-
       let nft_balance_by_id = {};
 
       if (this.app.options.wallet.nfts) {
         for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
-
-          let nft = this.app.options.wallet.nfts[z];
-          let nft_sig = nft.tx_sig;
-          let nft_type = this.extractNFTType(nft.slip3.utxo_key);
+          let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
+          console.log('Extracting NFT type...');
+          console.log(this.app.options.wallet.nfts[z].slip3?.utxo_key);
+          let nft_type = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
+          console.log(nft_type);
 
           //
           // check balance (will be used for wallet)
           //
+          let nft = this.app.options.wallet.nfts[z];
           try {
             let amt = BigInt(nft.slip1.amount);
             if (amt > 0n) {

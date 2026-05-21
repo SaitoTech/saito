@@ -416,7 +416,7 @@ class CreateNFT {
 
       if (ticker) {
         tx_msg.ticker = ticker;
-        this.nft_type = 'NFT-' + ticker;
+        this.nft_type = "token";
       }
 
       if (title) {

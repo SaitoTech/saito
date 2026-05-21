@@ -19,59 +19,241 @@ class Receive {
     this.app.connection.on('saito-crypto-receive-render-request', (details) => {
       this.render(details);
     });
-    this.app.connection.on('on-nft-received', (obj={}) => {
-      this.processExpectedPayment(obj);
+    const { logNftArrival } = require('../../saito-nft/tx-review-dump');
+    this.app.connection.on('on-nft-received', (obj = {}) => {
+      logNftArrival(obj, 'receive-overlay on-nft-received');
+      this.processExpectedPayment(obj, 'on-nft-received');
     });
-    this.app.connection.on('on-payment-received', (obj={}) => {
-      this.processExpectedPayment(obj);
+    this.app.connection.on('on-payment-received', (obj = {}) => {
+      console.log('[ReceiveOverlay] on-payment-received', obj);
+      this.processExpectedPayment(obj, 'on-payment-received');
     });
-
   }
 
-  processExpectedPayment(obj = {}) {
-    if (!this.mod?.game) return;
+  /**
+   * Snapshot where wallet.receivePayment may have registered expected hashes.
+   */
+  snapshotInboundStores(ticker = '') {
+    const ti = this.app.options?.transfers_inbound;
+    const crypto = this.app.options?.crypto?.[ticker];
+    return {
+      ticker,
+      transfers_inbound_type: ti == null ? 'null' : Array.isArray(ti) ? 'array' : typeof ti,
+      transfers_inbound_tickers:
+        ti && typeof ti === 'object' && !Array.isArray(ti)
+          ? Object.keys(ti)
+          : Array.isArray(ti)
+            ? `(array len ${ti.length})`
+            : [],
+      transfers_inbound_for_ticker: ti?.[ticker] ?? null,
+      crypto_module_exists: !!this.app.wallet.returnCryptoModuleByTicker(ticker),
+      crypto_transfers_inbound: crypto?.transfers_inbound ?? null
+    };
+  }
 
-    const g = this.mod.game;
-    const ticker = g.crypto;
-    const token = String(obj.sender || obj.sender_publickey || '');
-    if (!token) return;
-    if (obj.ticker && ticker && obj.ticker !== ticker) return;
+  processExpectedPayment(obj = {}, eventSource = 'unknown') {
+    console.log(`[ReceiveOverlay] processExpectedPayment start (${eventSource})`, {
+      eventSource,
+      obj,
+      mod: this.mod?.name ?? this.mod?.returnName?.() ?? null,
+      mod_publicKey: this.mod?.publicKey?.slice?.(0, 12),
+      has_game: !!this.mod?.game,
+      expectHash: this.expectHash ?? null,
+      expectAmount: this.expectAmount ?? null,
+      payer: this.payer ?? null,
+      overlay_open: !!document.getElementById('receive-crypto-request-container')
+    });
+
+    const game = this.mod?.game;
+    if (!game) {
+      console.warn('[ReceiveOverlay] FAIL: no game on mod', {
+        eventSource,
+        mod: this.mod?.name ?? null
+      });
+      return;
+    }
+
+    const ticker = game.crypto;
+    console.log('[ReceiveOverlay] game context', {
+      eventSource,
+      game_id: game.id?.slice?.(0, 12),
+      game_crypto: ticker,
+      game_dice: game.dice,
+      game_over: game.over,
+      players: game.players?.map((p) => p?.slice?.(0, 12))
+    });
+
+    if (obj.ticker && ticker && obj.ticker !== ticker) {
+      console.warn('[ReceiveOverlay] FAIL: ticker mismatch', {
+        eventSource,
+        obj_ticker: obj.ticker,
+        game_crypto: ticker
+      });
+      return;
+    }
+
+    const sender = obj.sender || obj.sender_publickey || '';
+    if (!sender) {
+      console.warn('[ReceiveOverlay] FAIL: no sender on event', { eventSource, obj });
+      return;
+    }
 
     let from = null;
-    for (let i = 0; i < g.players.length; i++) {
-      const stored = [g.keys?.[i], g.cryptos?.[i + 1]?.[ticker]?.address].filter(Boolean);
-      if (g.players[i] === token || stored.some((s) => s.includes(token))) {
-        from = g.players[i];
+    const playerMatchDebug = [];
+
+    for (let i = 0; i < game.players.length; i++) {
+      const player = game.players[i];
+      const knownKeys = [game.keys?.[i], game.cryptos?.[i + 1]?.[ticker]?.address].filter(
+        Boolean
+      );
+      const matched =
+        player === sender || knownKeys.some((k) => k === sender || k.includes(sender));
+
+      playerMatchDebug.push({
+        seat: i + 1,
+        player: player?.slice?.(0, 12),
+        knownKeys: knownKeys.map((k) => (typeof k === 'string' ? k.slice(0, 12) : k)),
+        matched
+      });
+
+      if (matched) {
+        from = player;
         break;
       }
     }
-    if (!from || (this.payer && from !== this.payer)) return;
 
-    let amt = this.app.crypto.convertFloatToSmartPrecision(
-      parseFloat(this.expectAmount ?? obj.amount ?? obj.nft_amount ?? 0)
-    );
-    if (!amt && amt !== 0) return;
+    if (!from) {
+      console.warn('[ReceiveOverlay] FAIL: unable to resolve sender to game player', {
+        eventSource,
+        sender: sender?.slice?.(0, 20),
+        sender_full_len: sender?.length,
+        ticker,
+        playerMatchDebug
+      });
+      return;
+    }
 
-    const amtH =
-      ticker === 'SAITO'
-        ? this.app.wallet.convertSaitoToNolan(amt).toString()
-        : String(amt);
+    if (this.payer && from !== this.payer) {
+      console.warn('[ReceiveOverlay] FAIL: payer mismatch', {
+        eventSource,
+        resolved_from: from?.slice?.(0, 12),
+        expected_payer: this.payer?.slice?.(0, 12)
+      });
+      return;
+    }
+
+    const rawAmount = this.expectAmount ?? obj.amount ?? obj.nft_amount;
+    if (rawAmount === undefined || rawAmount === null) {
+      console.warn('[ReceiveOverlay] FAIL: missing amount', {
+        eventSource,
+        expectAmount: this.expectAmount,
+        obj_amount: obj.amount,
+        obj_nft_amount: obj.nft_amount
+      });
+      return;
+    }
+
+    let amtH;
+    if (ticker === 'SAITO') {
+      amtH = String(rawAmount);
+    } else {
+      const amt = this.app.crypto.convertFloatToSmartPrecision(parseFloat(rawAmount));
+      amtH = String(amt);
+    }
 
     const hash = this.app.crypto.hash(
-      Buffer.from(from + this.mod.publicKey + amtH + g.dice + ticker, 'utf-8')
+      Buffer.from(from + this.mod.publicKey + amtH + game.dice + ticker, 'utf-8')
     );
 
-    if (this.expectHash && this.expectHash !== hash) return;
+    console.log('[ReceiveOverlay] hash comparison inputs', {
+      eventSource,
+      from: from?.slice?.(0, 12),
+      to: this.mod.publicKey?.slice?.(0, 12),
+      rawAmount,
+      amtH,
+      dice: game.dice,
+      ticker,
+      recomputed_hash: hash,
+      expectHash: this.expectHash ?? null,
+      obj_nft_id: obj.nft_id ?? null
+    });
+
+    const inboundStores = this.snapshotInboundStores(ticker);
+    console.log('[ReceiveOverlay] inbound store snapshot', {
+      eventSource,
+      ...inboundStores
+    });
 
     const inbound = this.app.options?.crypto?.[ticker]?.transfers_inbound;
-    if (!inbound?.length) return;
 
-    let i = inbound.indexOf(hash);
-    if (i < 0 && this.expectHash) i = inbound.indexOf(this.expectHash);
-    if (i < 0) return;
+    if (!Array.isArray(inbound) || inbound.length === 0) {
+      console.warn('[ReceiveOverlay] FAIL: no inbound transfers at crypto[ticker] path', {
+        eventSource,
+        lookup_path: `app.options.crypto[${ticker}].transfers_inbound`,
+        inbound_is_array: Array.isArray(inbound),
+        inbound,
+        wallet_registered: inboundStores.transfers_inbound_for_ticker,
+        hint:
+          inboundStores.transfers_inbound_for_ticker?.length
+            ? 'hash may be on app.options.transfers_inbound[ticker] but receive.js reads crypto[ticker]'
+            : 'receivePayment may not have registered hash yet'
+      });
+      return;
+    }
 
-    inbound.splice(i, 1);
-    this.app.wallet.returnCryptoModuleByTicker(ticker)?.save?.();
+    let idx = -1;
+    let matchedBy = null;
+
+    if (this.expectHash) {
+      idx = inbound.indexOf(this.expectHash);
+      if (idx >= 0) {
+        matchedBy = 'expectHash';
+      }
+    }
+
+    if (idx < 0) {
+      idx = inbound.indexOf(hash);
+      if (idx >= 0) {
+        matchedBy = 'recomputed_hash';
+      }
+    }
+
+    if (idx < 0) {
+      console.warn('[ReceiveOverlay] FAIL: hash not found in crypto[ticker].transfers_inbound', {
+        eventSource,
+        recomputed_hash: hash,
+        expectHash: this.expectHash ?? null,
+        inbound_list: inbound,
+        wallet_registered: inboundStores.transfers_inbound_for_ticker,
+        hash_in_wallet_list: inboundStores.transfers_inbound_for_ticker?.includes?.(hash),
+        hash_in_wallet_expect: this.expectHash
+          ? inboundStores.transfers_inbound_for_ticker?.includes?.(this.expectHash)
+          : false
+      });
+      return;
+    }
+
+    console.log('[ReceiveOverlay] matched expected inbound', {
+      eventSource,
+      matchedBy,
+      idx,
+      matched_hash: inbound[idx]
+    });
+
+    inbound.splice(idx, 1);
+
+    const cryptomod = this.app.wallet.returnCryptoModuleByTicker(ticker);
+    if (cryptomod?.save) {
+      cryptomod.save();
+      console.log('[ReceiveOverlay] cryptomod.save() after match', { eventSource, ticker });
+    } else {
+      console.warn('[ReceiveOverlay] no cryptomod.save (module missing?) — inbound updated in memory only', {
+        eventSource,
+        ticker
+      });
+    }
+
+    console.log('[ReceiveOverlay] SUCCESS: calling onReceivePayment', { eventSource });
     this.onReceivePayment(obj);
   }
 
@@ -87,20 +269,30 @@ class Receive {
    *
    */
   render(details) {
-    //
-    // Verify complete information
-    //
+    console.log('[ReceiveOverlay] render (waiting for payment)', {
+      ticker: details?.ticker,
+      amount: details?.amount,
+      hash: details?.hash ?? null,
+      publicKey: details?.publicKey?.slice?.(0, 12),
+      address: details?.address?.slice?.(0, 12),
+      trusted: !!details?.trusted,
+      mod: this.mod?.name ?? null,
+      game_crypto: this.mod?.game?.crypto ?? null,
+      game_dice: this.mod?.game?.dice ?? null,
+      inbound_snapshot: this.snapshotInboundStores(details?.ticker)
+    });
+
     if (!details?.ticker || !details?.amount) {
-      console.error('Missing ticker/amount in Receive Crypto Overlay');
+      console.error('[ReceiveOverlay] FAIL render: missing ticker/amount', details);
       return;
     }
 
     if (!details?.publicKey || !details?.address) {
-      console.error('Missing address in Receive Crypto Overlay');
+      console.error('[ReceiveOverlay] FAIL render: missing publicKey/address', details);
       return;
     }
 
-    console.log('Show overlay');
+    console.log('[ReceiveOverlay] show overlay UI');
     this.overlay.show(ReceiveTemplate(this.app, this.mod, details), () => {
       console.log('&&&&&&&&&&& close overlay -- run call back!!!');
       if (details.mycallback) {
@@ -159,20 +351,24 @@ class Receive {
   }
 
   onReceivePayment() {
-    if (document.getElementById('receive-crypto-request-container')) {
-      document.querySelector('.spinner').style.display = 'none';
+    const container = document.getElementById('receive-crypto-request-container');
+    if (!container) {
+      console.warn('[ReceiveOverlay] onReceivePayment: overlay DOM not found (already closed?)');
+      return;
+    }
 
-      document.querySelector('#auth_title').innerHTML = `Received Payment`;
-      document.querySelector('#game-crypto-icon').style.display = 'block';
+    console.log('[ReceiveOverlay] onReceivePayment: updating UI to Received Payment');
+    document.querySelector('.spinner').style.display = 'none';
+    document.querySelector('#auth_title').innerHTML = `Received Payment`;
+    document.querySelector('#game-crypto-icon').style.display = 'block';
 
-      if (this.timeout) {
-        clearTimeout(this.timeout);
-        setTimeout(() => {
-          this.overlay.close();
-          this.timeout = null;
-        }, 3000);
-        document.querySelector('#receive-crypto-request-container .crypto-transfer-countdown span');
-      }
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      setTimeout(() => {
+        this.overlay.close();
+        this.timeout = null;
+      }, 3000);
+      document.querySelector('#receive-crypto-request-container .crypto-transfer-countdown span');
     }
   }
 }

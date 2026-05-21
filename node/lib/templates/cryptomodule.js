@@ -256,23 +256,6 @@ class CryptoModule extends ModTemplate {
     this.app.connection.emit('on-payment-received', obj);
   }
 
-  pollForInboundPayment(hash) {
-    if (!this.options?.transfers_inbound) {
-      this.options.transfers_inbound = [];
-    }
-
-    if (!this.options.transfers_inbound.includes(hash)) {
-      this.options.transfers_inbound.push(hash);
-      this.save();
-      this.startPolling();
-      return { hash };
-    } else {
-      console.warn('Crypto: Already saved expected payment');
-      return { err: 'Already saved expected payment' };
-    }
-
-  }
-
   returnLogos() {
     return (
       this.app.modules.getRespondTos('crypto-logo', { ticker: this.ticker }).shift() || {
