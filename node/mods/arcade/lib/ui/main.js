@@ -49,11 +49,6 @@ class ArcadeMain {
 		});
 	}
 
-	showInitializer(game_id) {
-		if (!this.mod.browser_active) return;
-		this.mod.render('lounge_overlay', { game_id });
-	}
-
 	async render() {
 		if (document.querySelector('.saito-container')) {
 			this.app.browser.replaceElementBySelector(

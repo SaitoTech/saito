@@ -116,23 +116,7 @@ class Arcade extends ModTemplate {
 		});
 
 		app.connection.on('arcade-game-ready-render-request', (game_details) => {
-			if (!game_details?.id) return;
-			if (this.browser_active) {
-				this.render('lounge_overlay', { game_id: game_details.id });
-				if (this.app.BROWSER && this.ui) {
-					let game_mod = this.app.modules.returnModuleBySlug(game_details?.slug);
-					if (game_mod && !(game_mod.maxPlayers === 1 || this.app.browser.isMobileBrowser())) {
-						this.app.browser.createTabNotification('Game ready!', game_details?.name || '');
-						siteMessage(`${game_details?.name || 'Game'} ready to play!`);
-						try {
-							let chime = new Audio('/saito/sound/Jinja.mp3');
-							chime.play();
-						} catch (e) {}
-					}
-				}
-			} else {
-				this._showReadyPopup(game_details);
-			}
+			this._handleGameReadyNotification(game_details);
 		});
 
 		app.connection.on('arcade-continue-game-from-options', async (game_mod) => {
@@ -238,20 +222,18 @@ class Arcade extends ModTemplate {
 			// my games stored in local wallet
 			//
 			if (this.app.options.games) {
-
 				this.purge();
 
 				for (let game of this.app.options.games) {
-  					if (!(game.players.includes(this.publicKey) || game.accepted.includes(this.publicKey))) {
-  						continue;
-  					}
-  					if (game.over) {
-    						continue;
-  					}
-  					let game_tx = await this.createPseudoTransaction(game);
-  					this.addGame(game_tx, 'active');
+					if (!(game.players.includes(this.publicKey) || game.accepted.includes(this.publicKey))) {
+						continue;
+					}
+					if (game.over) {
+						continue;
+					}
+					let game_tx = await this.createPseudoTransaction(game);
+					this.addGame(game_tx, 'active');
 
-		
 					//
 					// and add to list of my games
 					//
@@ -286,10 +268,12 @@ class Arcade extends ModTemplate {
 	}
 
 	renderInvites() {
-		if (!this.app.BROWSER) { return; }
+		if (!this.app.BROWSER) {
+			return;
+		}
 		if (this.browser_active) {
 			if (this.ui) {
-				this.ui.renderInvites(); 
+				this.ui.renderInvites();
 			}
 		} else {
 			if (this.invite_manager) {
@@ -547,43 +531,40 @@ class Arcade extends ModTemplate {
 		let arcade_self = this;
 
 		if (service.service == 'arcade') {
-
-
-console.log("###TESTINGPEERS###");
-console.log(JSON.stringify(app.core.network.peers.get()));
-console.log("##################");
-console.log("###TESTINGCHAIN##");
-console.log(JSON.stringify(app.core.blockchain.get()));
-console.log("##################");
-console.log("###TESTINGWALLET##");
-console.log(JSON.stringify(app.core.wallet.get()));
-console.log("##################");
+			console.log('###TESTINGPEERS###');
+			console.log(JSON.stringify(app.core.network.peers.get()));
+			console.log('##################');
+			console.log('###TESTINGCHAIN##');
+			console.log(JSON.stringify(app.core.blockchain.get()));
+			console.log('##################');
+			console.log('###TESTINGWALLET##');
+			console.log(JSON.stringify(app.core.wallet.get()));
+			console.log('##################');
 
 			this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
 				if (txs?.length > 0) {
 					for (let serial_tx of txs) {
-
 						let game_tx = new Transaction();
-    						game_tx.deserialize_from_web(app, serial_tx);
+						game_tx.deserialize_from_web(app, serial_tx);
 						let status = game_tx?.msg?.request;
 
-    						if (arcade_self.isMyGame(game_tx)) {
-        						let exists_locally = arcade_self.app.options?.games?.find(
-            							g => g.id === game_tx.signature
-        						);
-        						if (!exists_locally) {
+						if (arcade_self.isMyGame(game_tx)) {
+							let exists_locally = arcade_self.app.options?.games?.find(
+								(g) => g.id === game_tx.signature
+							);
+							if (!exists_locally) {
 								//
 								// if this invite was created in the last 30 seconds, show it anyway
 								// as I may just not have received it online and refreshed...
 								//
 								let msg = game_tx.returnMessage();
-								if ((Date.now() - msg.timestamp) > 30000) {
-            								continue;
-        							}
-        						}
-    						}
+								if (Date.now() - msg.timestamp > 30000) {
+									continue;
+								}
+							}
+						}
 
-    						let game_added = arcade_self.addGame(game_tx);
+						let game_added = arcade_self.addGame(game_tx);
 
 						//Game is marked as "active" but we didn't already add it from our app.options file...
 						if (status == 'active' && game_added && arcade_self.isMyGame(game_tx)) {
@@ -735,7 +716,6 @@ console.log("##################");
 		let arcade_self = this.app.modules.returnModule('Arcade');
 
 		if (Number(conf) == 0) {
-
 			try {
 				if (txmsg.module === 'Arcade') {
 					if (this.hasSeenTransaction(tx, Number(blk.id))) {
@@ -833,7 +813,6 @@ console.log("##################");
 		let requester = peer.publicKey;
 
 		if (message.request === 'arcade invite list') {
-
 			this.purge();
 
 			let txs = [];
@@ -841,10 +820,12 @@ console.log("##################");
 
 			for (let id in this.games) {
 				let record = this.games[id];
-				if (record.is_sender_reachable !== true && (requester != record.tx.from[0].publicKey)) {
+				if (record.is_sender_reachable !== true && requester != record.tx.from[0].publicKey) {
 					continue;
 				}
-				if (record.status === "closed" || record.status === "over") { continue; }
+				if (record.status === 'closed' || record.status === 'over') {
+					continue;
+				}
 				let g = record.tx;
 				txs.push(g.serialize_to_web(this.app));
 			}
@@ -1027,7 +1008,7 @@ console.log("##################");
 
 		let { ts, name, options, players_needed, invitation_type } = gamedata;
 
-console.log("GAMEDATA: " + JSON.stringify(gamedata));
+		console.log('GAMEDATA: ' + JSON.stringify(gamedata));
 
 		let accept_sig = await this.app.crypto.signMessage(
 			`invite_game_${ts}`,
@@ -1333,7 +1314,6 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 				this.removeGame(txmsg.game_id);
 				this.addGame(game.tx);
 				this.renderInvites();
-
 			} else {
 				if (tx.isFrom(this.publicKey)) {
 					salert('Game not available right now...');
@@ -1385,7 +1365,7 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 					data: newtx.toJson()
 				});
 
-				//Start Spinner
+				//Start Spinner now instead of waiting for accept transaction to arrive
 				this.render('lounge_overlay', { game_id: txmsg.game_id });
 			}
 		}
@@ -1573,10 +1553,10 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 
 			this.app.options.arcade.last_game = txmsg.game;
 
-			await this.render('lounge_overlay', { game_id: txmsg.game_id });
-
-			if (this.app.BROWSER == 1 && txmsg.players.length > 1) {
-				siteMessage(txmsg.game + ' invite accepted', 5000);
+			if (this.browser_active) {
+				this.render('lounge_overlay', { game_id: txmsg.game_id });
+			} else if (this.app.BROWSER == 1 && txmsg.players.length > 1) {
+				siteMessage(txmsg.game + ' initializing', 5000);
 			}
 
 			let game_engine_id = await gamemod.initializeGameFromAcceptTransaction(tx);
@@ -1588,11 +1568,12 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 	}
 
 	async receivePeerStatusUpdateTransaction(tx) {
-
 		let txmsg = tx.returnMessage();
 		let pk = txmsg.data?.publickey;
 		let status = txmsg.data?.status;
-		if (!pk || !status) { return 0; }
+		if (!pk || !status) {
+			return 0;
+		}
 
 		for (let id in this.games) {
 			let record = this.games[id];
@@ -1701,6 +1682,7 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 		});
 
 		//Start Spinner
+		console.log('%%%lounge_overlay launchSinglePlayerGame!!!');
 		this.render('lounge_overlay', { game_id: opentx.signature });
 	}
 
@@ -1772,7 +1754,6 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 	}
 
 	purge() {
-
 		const INVITE_CUTOFF = 2000000; // 30 minutes
 		const GAME_CUTOFF = 600000000;
 
@@ -1986,25 +1967,89 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 		});
 	}
 
+	_handleGameReadyNotification(game_details) {
+		if (!game_details?.id) return;
+
+		const game_id = game_details.id;
+
+		this._closeReadyPopup();
+
+		this._notifyGameReady(game_details);
+
+		if (this._loungeOverlayOpenForGame(game_id)) {
+			if (!this.lounge_overlay.showGameReadyState()) {
+				this.render('lounge_overlay', { game_id });
+			}
+			return;
+		}
+
+		if (this.browser_active) {
+			this.render('lounge_overlay', { game_id });
+			return;
+		}
+
+		this._showReadyPopup(game_details);
+	}
+
+	_loungeOverlayOpenForGame(game_id) {
+		if (!game_id || !this.lounge_overlay) return false;
+		if (this.lounge_overlay.invite != null) return false;
+		if (this.lounge_overlay.game_id !== game_id) return false;
+		const ov = this.lounge_overlay.overlay;
+		if (!ov?.visible) return false;
+		const el = document.getElementById(`saito-overlay${ov.ordinal}`);
+		return !!(el && el.style.display !== 'none' && el.querySelector('.arcade-lounge'));
+	}
+
+	_closeReadyPopup() {
+		if (this.ready_popup_overlay?.visible) {
+			this.ready_popup_overlay.close();
+		}
+	}
+
+	_notifyGameReady(game_details) {
+		if (!this.app.BROWSER || !this.ui) return;
+		let game_mod = this.app.modules.returnModuleBySlug(game_details?.slug);
+		if (game_mod && !(game_mod.maxPlayers === 1 || this.app.browser.isMobileBrowser())) {
+			this.app.browser.createTabNotification('Game ready!', game_details?.name || '');
+			//siteMessage(`${game_details?.name || 'Game'} ready to play!`);
+			try {
+				let chime = new Audio('/saito/sound/Jinja.mp3');
+				chime.play();
+			} catch (e) {}
+		}
+	}
+
 	_showReadyPopup(game_details) {
 		if (!this.app.BROWSER) return;
 		if (!this.ready_popup_overlay) {
 			this.ready_popup_overlay = new SaitoOverlay(this.app, this, true, true, false);
 			this.ready_popup_overlay.nonBlocking = true;
+			this.ready_popup_overlay.class = 'saito-overlay arcade-ready-overlay';
+			this.ready_popup_overlay.clickBackdropToClose = false;
 		}
 		const slug = game_details?.slug || 'arcade';
 		const name = game_details?.name || 'Game';
+		const game_mod = this.app.modules.returnModuleBySlug(slug);
+		const image = game_mod?.respondTo?.('arcade-games')?.image || '';
+		const headerImageStyle = image ? ` style="background-image: url('${image}')"` : '';
 		const html = `
-  <div class="arcade-ready-popup">
-    <div class="arcade-ready-popup-title">Your game is ready!</div>
-    <div class="arcade-ready-popup-name">${name}</div>
-    <div class="arcade-ready-popup-actions">
-      <button class="saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
-      <button class="saito-button-secondary arcade-ready-popup-dismiss">Dismiss</button>
-    </div>
-  </div>`;
+					  <div class="arcade-lounge arcade-lounge--ready-popup">
+					    <div class="arcade-lounge-header">
+					      <div class="arcade-lounge-header-image"${headerImageStyle}></div>
+					      <div class="arcade-lounge-header-title">${name}</div>
+					      <div class="arcade-lounge-header-desc">Game Ready</div>
+					    </div>
+					    <div class="arcade-lounge-body">
+					      <p class="arcade-lounge-message">Your table is set. Start when you are ready.</p>
+					    </div>
+					    <div class="saito-button-row auto-size">
+					      <button type="button" class="fat saito-button-secondary arcade-ready-popup-dismiss">Later</button>
+					      <button type="button" class="fat saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
+					    </div>
+					  </div>`;
 		this.ready_popup_overlay.show(html);
-		const overlay = this.ready_popup_overlay;
+
 		setTimeout(() => {
 			const el = document.getElementById(`saito-overlay${overlay.ordinal}`);
 			if (!el) return;
@@ -2153,7 +2198,7 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 
 			this.game_timeout = setTimeout(() => {
 				salert(
-					"Your browser may have broadcast that invite, but network seems unstable. Please refresh to confirm!"
+					'Your browser may have broadcast that invite, but network seems unstable. Please refresh to confirm!'
 				);
 			}, 10000);
 		}

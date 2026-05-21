@@ -88,7 +88,7 @@ button.small,
 button.fat,
 .saito-button-primary.fat,
 .saito-button-secondary.fat {
-  height: 7rem;
+  min-height: 7rem;
   font-size: 2rem;
 }
 

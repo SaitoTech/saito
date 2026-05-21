@@ -1472,7 +1472,8 @@ class GameTemplate extends ModTemplate {
           this.app.connection.emit('arcade-game-ready-render-request', {
             name: this.name,
             slug: this.returnSlug(),
-            id: this.game.id
+            id: this.game.id,
+            status: 'ready'
           });
 
           // So we only process once!
