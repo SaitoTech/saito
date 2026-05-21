@@ -353,7 +353,7 @@
 }
 
 .stack-cta-logo::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background: var(--saito-cta-logo-color);
@@ -735,6 +735,7 @@
 
   .stack-cta-buttons {
     margin-bottom: 2rem;
+    width: 100%;
   }
 
   .stack-cta-buttons button {
