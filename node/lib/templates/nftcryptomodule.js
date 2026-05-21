@@ -14,7 +14,6 @@
 
 const CryptoModule = require('./cryptomodule');
 const SaitoNFT = require('../saito/ui/saito-nft/saito-nft');
-const { logTxReview } = require('../saito/ui/saito-nft/tx-review-dump');
 
 // Mirror saito-js enums so this file loads without bundler resolution (TransactionType.Bound = 8, SlipType.Bound = 9).
 const TX_TYPE_BOUND = 8;
@@ -439,55 +438,21 @@ class NFTCryptoModule extends CryptoModule {
       throw new Error('NFTCryptoModule: NFT not found in wallet');
     }
 
-
-
     const nft = new SaitoNFT(this.app, null, null, row);
     const amountInt = Number.parseInt(String(amount), 10);
     if (!Number.isInteger(amountInt) || amountInt <= 0) {
       throw new Error('NFTCryptoModule: invalid amount');
     }
 
-    console.log('[NFT-SEND] pre-fetch', {
-      id: row?.id?.slice?.(0, 24),
-      tx_sig: row?.tx_sig?.slice?.(0, 16),
-      nfttx_sig: row?.nfttx_sig?.slice?.(0, 16)
-    });
-    const t0 = performance.now();
-    try {
-      await nft.fetchTransaction();
-    } catch (e) {
-      console.error('[NFT-SEND] fetch threw', e);
-      throw e;
-    }
-    console.log('[NFT-SEND] post-fetch', {
-      ms: Math.round(performance.now() - t0),
-      load_failed: nft.load_failed,
-      has_tx: !!nft.tx,
-      loaded_sig: nft.tx?.signature?.slice?.(0, 16),
-      txmsg_defined: nft.txmsg !== undefined,
-      ticker: nft.txmsg?.ticker
-    });
     const tx_msg = JSON.parse(JSON.stringify(nft.txmsg || {}));
-    console.log('[NFT-SEND] tx_msg copy', { ticker: tx_msg?.ticker, keys: Object.keys(tx_msg) });
-
-    let newtx;
-    try {
-      console.log('[NFT-SEND] createNFTTransaction start');
-      newtx = await this.app.wallet.createNFTTransaction(
-        nft,
-        recipient,
-        amountInt,
-        BigInt(0),
-        BigInt(0),
-        tx_msg
-      );
-      console.log('[NFT-SEND] createNFTTransaction ok', {
-        sig: newtx?.signature?.slice?.(0, 16)
-      });
-    } catch (e) {
-      console.error('[NFT-SEND] createNFTTransaction threw', e);
-      throw e;
-    }
+    let newtx = await this.app.wallet.createNFTTransaction(
+      nft,
+      recipient,
+      amountInt,
+      BigInt(0),
+      BigInt(0),
+      tx_msg
+    );
 
     if (!newtx) {
       throw new Error('NFTCryptoModule: unable to construct NFT transfer');
@@ -498,18 +463,8 @@ class NFTCryptoModule extends CryptoModule {
       throw new Error('NFTCryptoModule: transfer blocked by module.');
     }
 
-    try {
-      console.log('[NFT-SEND] sign+propagate start');
-      await newtx.sign();
-      logTxReview(newtx, 'sender pre-propagate (signed)');
-      await this.app.network.propagateTransaction(newtx);
-      console.log('[NFT-SEND] sign+propagate ok', {
-        sig: newtx?.signature?.slice?.(0, 16)
-      });
-    } catch (e) {
-      console.error('[NFT-SEND] sign+propagate threw', e);
-      throw e;
-    }
+    await newtx.sign();
+    await this.app.network.propagateTransaction(newtx);
 
     return unique_hash || newtx.signature;
   }

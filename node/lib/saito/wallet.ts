@@ -12,7 +12,6 @@ const getUuid = require('uuid-by-string');
 
 const CryptoModule = require('../templates/cryptomodule');
 const NFTCryptoModule = require('../templates/nftcryptomodule');
-const { logNftArrival } = require('./ui/saito-nft/tx-review-dump');
 
 interface PreferredTx {
   sig: string;
@@ -158,7 +157,6 @@ export default class Wallet extends SaitoWallet {
 
         app.connection.on('on-nft-received', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          logNftArrival(p, 'receiver on-nft-received');
 
 	  let ticker = "";
 	  let nft_id = "";
