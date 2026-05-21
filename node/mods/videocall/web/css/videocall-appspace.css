@@ -47,6 +47,55 @@
 	--stun-noir-legacy-gradient-start: var(--saito-primary);
 	--stun-noir-legacy-gradient-end: var(--saito-secondary);
 }
+
+html[data-theme="noir"] .stun-appspace,
+html[data-theme="noir"] .stun-chatbox,
+html[data-theme="noir"] .small-audio-chatbox,
+html[data-theme="noir"] .videocall-setting-grid-item,
+html[data-theme="noir"] .stun-settings-shell {
+	--stun-noir-bg: #0d0e11;
+	--stun-noir-surface-low: #121316;
+	--stun-noir-surface: #181a1d;
+	--stun-noir-surface-high: #1e2023;
+	--stun-noir-surface-bright: #2a2c31;
+	--stun-noir-text: #f2f0f4;
+	--stun-noir-text-muted: #abaaae;
+	--stun-noir-accent: #ff914d;
+	--stun-noir-accent-2: #f38239;
+	--stun-noir-accent-strong: #fb9532;
+	--stun-noir-outline: rgba(71, 72, 75, 0.35);
+	--stun-noir-outline-strong: rgba(71, 72, 75, 0.45);
+	--stun-noir-radius: 0.75rem;
+	--stun-noir-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+	--stun-noir-shadow-soft: 0 12px 24px rgba(0, 0, 0, 0.28);
+	--stun-noir-shadow-audio: 0 16px 28px rgba(0, 0, 0, 0.4);
+	--stun-noir-glass: rgba(36, 38, 42, 0.72);
+	--stun-noir-glass-soft: rgba(36, 38, 42, 0.65);
+	--stun-noir-glass-strong: rgba(36, 38, 42, 0.75);
+	--stun-noir-surface-overlay: rgba(13, 14, 17, 0.55);
+	--stun-noir-surface-overlay-strong: rgba(13, 14, 17, 0.6);
+	--stun-noir-white-soft: rgba(255, 255, 255, 0.02);
+	--stun-noir-accent-soft: rgba(255, 145, 77, 0.12);
+	--stun-noir-accent-splash: rgba(255, 145, 77, 0.2);
+	--stun-noir-accent-splash-2: rgba(243, 130, 57, 0.08);
+	--stun-noir-accent-glow: rgba(255, 145, 77, 0.35);
+	--stun-noir-accent-glow-strong: rgba(255, 145, 77, 0.55);
+	--stun-noir-accent-glow-soft: rgba(255, 145, 77, 0.3);
+	--stun-noir-accent-glow-pulse: rgba(255, 145, 77, 0.5);
+	--stun-noir-secondary-glow-pulse: rgba(251, 149, 50, 0.5);
+	--stun-noir-title-contrast: #241105;
+	--stun-noir-danger: #ff7351;
+	--stun-noir-danger-text: #2b0d02;
+	--stun-noir-icon-dark: #16171a;
+	--stun-noir-slider-bg: #ccc;
+	--stun-noir-slider-knob: #fff;
+	--stun-noir-canvas-bg: #222;
+	--stun-noir-border-light: #e5e5e59d;
+	--stun-noir-toggle-bg: #4a4a4a;
+	--stun-noir-legacy-gradient-start: #f30c4f;
+	--stun-noir-legacy-gradient-end: #f8c062;
+}
+
 .stun-appspace {
 	width: 100vw;
 	height: 100dvh;

@@ -1,6 +1,6 @@
 module.exports  = (app, mod, is_dialing = true) => {
 	let html = `
-      <div class="stun-minimal-appspace"> 
+      <div class="stun-minimal-appspace saito-cta"> 
       	<h2>Saito Talk</h2>
       	<div>direct peer-to-peer chat</div>
       	<div class="stunx-splash-image"></div>

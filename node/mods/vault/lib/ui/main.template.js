@@ -4,7 +4,7 @@ module.exports = VaultMainTemplate = (app, mod) => {
 
     <div class="saito-vault-layout"> 
 
-      <section class="vault-hero">
+      <section class="vault-hero saito-cta">
 
         <h1>Saito File Vault</h1>
 

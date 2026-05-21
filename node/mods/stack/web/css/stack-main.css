@@ -394,6 +394,33 @@
   align-self: start;
 }
 
+.stack-cta-buttons .stack-btn-primary,
+.stack-cta-buttons .stack-btn-secondary {
+  min-width: 17rem;
+  min-height: 6.4rem;
+  padding: 1.6rem 3.6rem;
+  border-radius: var(--saito-button-radius, var(--saito-border-radius));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+html[data-theme='noir'] .stack-cta-buttons .stack-btn-primary {
+  background: linear-gradient(135deg, var(--palette-primary), var(--palette-primary-dark));
+  border: 1px solid transparent;
+  color: var(--palette-on-primary);
+}
+
+html[data-theme='noir'] .stack-cta-buttons .stack-btn-secondary {
+  background: var(--palette-surface-2);
+  border: 1px solid var(--palette-outline-strong);
+  color: var(--saito-font-color-heavy);
+}
+
 @media (max-width: 768px) {
   .stack-cta-title {
     font-size: 3rem;
@@ -409,7 +436,7 @@
 
   .stack-cta-buttons button {
     width: 100%;
-    font-size: 1.5rem;
+    font-size: 1.6rem;
   }
 }
 

@@ -253,7 +253,7 @@ class Chat extends ModTemplate {
       'beforeend',
       `
         <div class="chat-splash-overlay">
-          <div class="chat-splash-content">
+          <div class="chat-splash-content saito-cta">
             <div class="chat-splash-logo" role="img" aria-label="Saito Chat"></div>
             <div class="chat-splash-subtitle">PEER-TO-PEER SECURE MESSAGING</div>
             <button class="saito-button-primary chat-splash-start" type="button">start chatting</button>
