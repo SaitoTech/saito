@@ -34,13 +34,16 @@ body {
   position: relative;
   background-color: #4e4e4e;
   background-image: url(/saito/img/tiled-logo.svg);
-
-  /*font-family: arial, helvetica, sans-serif;*/
+  color: #333;
 }
 
 .main {
   margin-top: unset;
   padding: unset;
+}
+
+#saito-header {
+    background: transparent !important;
 }
 
 .gameboard {
