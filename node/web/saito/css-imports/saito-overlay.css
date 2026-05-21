@@ -69,8 +69,8 @@
   height: 3.4rem;
   border-radius: 0.8rem;
   z-index: 100;
-  top: 1rem;
-  right: 1rem;
+  top: -1rem;
+  right: -1rem;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--saito-surface-inverse) 12%, transparent), transparent),
     color-mix(in srgb, var(--saito-surface-color) 84%, var(--saito-primary));

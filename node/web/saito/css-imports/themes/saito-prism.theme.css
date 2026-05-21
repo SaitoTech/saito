@@ -34,6 +34,7 @@ html[data-theme='prism'] {
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
   --saito-canvas-background: var(--palette-bg-gradient);
+  --saito-header-color: var(--saito-white);
   --saito-header-background: #0b0b10;
 
   /* Surface Colors - Card-based UI layers */
