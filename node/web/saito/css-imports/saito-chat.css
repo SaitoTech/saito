@@ -864,6 +864,10 @@
     grid-template-rows: var(--saito-header-height) 1fr;
   }
 
+  .chat-manager-list {
+    background-color: var(--saito-background-color);
+  }
+
   .chat-manager-overlay .close-chat-manager i {
     width: 45px;
     height: 70px;
@@ -880,11 +884,19 @@
     max-height: -webkit-fill-available;
     max-width: -webkit-fill-available;
     border-radius: 0;
+    background: var(--saito-background-color);
+    z-index: 91;
     /* For the keyboard */
-    right: 0;
-    bottom: 0;
-    top: 0;
-    left: 0;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  .chat-container .chat-header,
+  .chat-container .chat-footer,
+  .chat-container .chat-body {
+    background-color: var(--saito-background-color);
   }
 
   .chat-header > .chat-header-nav {
@@ -904,7 +916,7 @@
   .chat-manager-overlay + .chat-container {
     height: 100dvh;
     transition: height 0.3s;
-    z-index: 90;
+    z-index: 91;
   }
 
   .chat-header-info {
