@@ -411,7 +411,7 @@ class BuySaito extends ModTemplate {
     for (let cm of this.mixin_mod.crypto_mods) {
       if (!cm.last_update || Date.now() - cm.last_update > 300000) {
         updated = true;
-        await cm.returnNetworkInfo();
+        await cm.returnMixinNetworkInfo();
       }
     }
     if (updated) {
@@ -890,7 +890,7 @@ class BuySaito extends ModTemplate {
 
               this.app.connection.emit('mailrelay-send-email', {
                 to: 'buysaito@saito.tech',
-		cc: 'richard@saito.tech',
+                cc: 'richard@saito.tech',
                 from: 'Saito Token Sales Bot <info@saito.tech>',
                 subject: `ATTN: Saito Issuance Failure!!`,
                 text: err
@@ -917,7 +917,7 @@ class BuySaito extends ModTemplate {
 
             this.app.connection.emit('mailrelay-send-email', {
               to: 'buysaito@saito.tech',
-	      cc: 'richard@saito.tech',
+              cc: 'richard@saito.tech',
               from: 'Saito Token Sales Bot <info@saito.tech>',
               subject: `ATTN: Insufficient Funds to Complete Sale -- ` + available_balance,
               text: JSON.stringify(
