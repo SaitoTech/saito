@@ -1,7 +1,7 @@
 module.exports = (app, mod) => {
   return `
     <div class="stack-splash">
-      <section class="stack-cta-section">
+      <section class="stack-cta-section saito-cta">
         <div class="stack-cta-image-flip">
           <div class="stack-cta-image-front">
             <img src="/stack/img/splash.png" alt="Stack - Publish. Monetize. Own." onerror="this.style.display='none'; this.parentElement.classList.add('stack-cta-image-placeholder');" />

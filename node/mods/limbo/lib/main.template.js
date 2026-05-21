@@ -2,7 +2,7 @@ module.exports = LimboMainTemplate = (app, mod) => {
 	let html = `
     <div id="saito-container" class="saito-container limbo-container">
       <div id="limbo-main" class="saito-main limbo-main">
-        <div class="limbo-menu limbo-splash-box">
+        <div class="limbo-menu limbo-splash-box saito-cta">
           <div class="limbo-splash-logo" role="img" aria-label="Swarmcast"></div>
           <div class="limbo-splash-subtitle">PEER-TO-PEER BROADCASTING</div>
           <h1>Start Swarmcast</h1>
