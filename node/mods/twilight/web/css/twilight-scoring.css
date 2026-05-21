@@ -114,6 +114,8 @@
   height: 80vh;
   justify-content: space-evenly;
   justify-items: center;
+  background-size: cover !important;
+  background-position-y: bottom !important;
 }
 
 .scoring-overlay .card {
@@ -140,53 +142,39 @@
   border: 0.5rem solid blue;
 }
 .asia-scoring {
-  background-size: cover;
-  background-position-y: bottom;
   background-image:
     linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url(/twilight/img/backgrounds/asia-scoring-bg.png);
+    url(/twilight/img/backgrounds/asia-scoring-bg.png) !important;
 }
 .europe-scoring {
-  background-size: cover;
-  background-position-y: bottom;
   background-image:
     linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url(/twilight/img/backgrounds/europe-scoring-bg.png);
+    url(/twilight/img/backgrounds/europe-scoring-bg.png) !important;
 }
 .mideast-scoring {
-  background-size: cover;
-  background-position-y: bottom;
   background-image:
     linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url(/twilight/img/backgrounds/mideast-scoring-bg.png);
+    url(/twilight/img/backgrounds/mideast-scoring-bg.png) !important;
 }
 .seasia-scoring {
-  background-size: cover;
-  background-position-y: bottom;
   background-image:
     linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url(/twilight/img/backgrounds/seasia-scoring-bg.png);
+    url(/twilight/img/backgrounds/seasia-scoring-bg.png) !important;
 }
 .africa-scoring {
-  background-size: cover;
-  background-position-y: bottom;
   background-image:
     linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url(/twilight/img/backgrounds/africa-scoring-bg.png);
+    url(/twilight/img/backgrounds/africa-scoring-bg.png) !important;
 }
 .samerica-scoring {
-  background-size: cover;
-  background-position-y: bottom;
   background-image:
     linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url(/twilight/img/backgrounds/southamerica-scoring-bg.png);
+    url(/twilight/img/backgrounds/southamerica-scoring-bg.png) !important;
 }
 .camerica-scoring {
-  background-size: cover;
-  background-position-y: bottom;
   background-image:
     linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url(/twilight/img/backgrounds/centralamerica-scoring-bg.png);
+    url(/twilight/img/backgrounds/centralamerica-scoring-bg.png) !important;
 }
 .scoring-box {
   background-color: #0009;

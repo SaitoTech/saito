@@ -2,6 +2,7 @@
 .saito-overlay > div:last-child,
 .saito-overlay > form {
   border: none !important;
+  background: unset;
 }
 
 .game-overlay-menu {
