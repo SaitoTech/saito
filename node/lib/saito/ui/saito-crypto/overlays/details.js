@@ -181,7 +181,7 @@ class Details {
     if (document.getElementById('check-balance')) {
       document.getElementById('check-balance').onclick = async (e) => {
         e.currentTarget.classList.add('refreshing');
-        let balance = await this.mod.checkBalance();
+        let balance = await this.mod.fetchBalance();
         this.render(document.querySelector('#qrcode2')?.innerHTML);
         setTimeout(() => {
           document.getElementById('check-balance').classList.add('refreshed');

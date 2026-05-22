@@ -631,6 +631,8 @@ class Migration extends ModTemplate {
           };
 
           let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
+          let pending_balance = Number(await sm.getPendingBalance());
+
           await sm
             .sendPayment(amount, saitozen_key, pp.hash + 1, 'token migration')
             .then(() => {
@@ -639,7 +641,7 @@ class Migration extends ModTemplate {
               this.updatePayment(pp);
             })
             .catch((err) => {
-              if (sm.pending_balance && sm.pending_balance > amount) {
+              if (pending_balance && pending_balance > amount) {
                 console.info(
                   '666.777 --- insufficient slips to migrate SAITO keep active in queue'
                 );

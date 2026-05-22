@@ -12,12 +12,12 @@
 
   Minimum extension functionality: 
 
-  -- checkBalance
   -- fetchBalance
   -- returnPrivateKey
   -- sendPayment
   -- receivePayment
   -- checkWithdrawalFeeForAddress
+  -- validateAddress
 
 **********************************************************************************/
 const ModTemplate = require('./modtemplate');
@@ -42,13 +42,6 @@ class CryptoModule extends ModTemplate {
     this.categories = 'Cryptocurrency';
     this.description = '';
 
-    this.polling_active = 0;
-    this.polling_last_request = 0;
-    this.polling_timeout = 0;
-    this.polling_intervals = [0, 10000];
-    this.polling_interval_current = 0;
-
-
     //
     // some modules issue warnings to users on selection
     // see ui/saito-crypto/overlays/activate.js
@@ -56,17 +49,17 @@ class CryptoModule extends ModTemplate {
     this.warning = '';
     this.introduction = '';
     this.confirmations = 0;
+    this.activated = false;
 
     //
     // quick sanity check -- cache the balance
     //
     // for Saito and NFT wallets, we can check the balance of the wallet directly by
     // querying Rust, but in other modules, we may have a remote API serving wallet
-    // information, in which case we want checkBalance() to return a cached version
+    // information, in which case we want returnBalance() to return a cached version
     // and not constantly his the remote API.
     //
     this.balance = '0.0';
-    this.pending_balance = '0.0';
     this.pending_deposits = [];
     this.address = '';
 
@@ -84,31 +77,11 @@ class CryptoModule extends ModTemplate {
   }
 
   async getAvailableBalance() {
-    return this.checkBalance();
-  }
-
-  async getPendingBalance() {
-    return this.checkBalance();
-  }
-
-  async checkBalance() {
     return this.balance;
   }
 
-  async fetchBalance() {
-    return await this.checkBalance();
-  }
-
-  async checkPendingBalance() {
-    return await this.checkBalance();
-  }
-
-  async checkPendingDeposits() {
-    return [];
-  }
-
-  async fetchPendingBalance() {
-    return await checkPendingBalance();
+  async getPendingBalance() {
+    return this.balance;
   }
 
   async fetchPendingDeposits() {
@@ -117,9 +90,9 @@ class CryptoModule extends ModTemplate {
 
   async fetchHistory() {}
 
-  async startPolling() {
-    return;
-  }
+  startPolling() {}
+
+  stopPolling() {}
 
   /**
    * Saito Module initialize function
@@ -290,10 +263,13 @@ class CryptoModule extends ModTemplate {
    * require significant resources.
    */
   async activate() {
-    await this.checkBalance();
-    this.options.isActivated = true;
+    if (!this.activated) {
+      this.activated = true;
+      await this.fetchBalance();
+      this.options.isActivated = true;
+      this.save();
+    }
     this.app.connection.emit('saito-crypto-activated', this.ticker);
-    this.save();
   }
 
   /**
@@ -466,7 +442,29 @@ class CryptoModule extends ModTemplate {
 
     return null;
   }
+
+  /**
+   * return utxo
+   * @abstract
+   * @param {string} address to validate
+   * @param {string} ticker to for selected crypto
+   * @return {boolean} true/false
+   */
+  async returnUtxo(state = 'unspent', limit = 1000, order = 'DESC') {
+    return true;
+  }
 }
+
+/**
+ * Hit the API point for the latest account balance
+ * (and cache it as this.balance)
+ *
+ * @return {string} the latest balance
+ *
+ */
+CryptoModule.prototype.fetchBalance = async function () {
+  throw new Error('fetchBalance must be implemented by subclass!');
+};
 
 /**
  * Abstract method which should get private key
@@ -519,18 +517,6 @@ CryptoModule.prototype.checkWithdrawalFeeForAddress = function (recipient = '', 
 };
 
 /**
- * fetch pending deposits
- * @abstract
- * @param {function} callback function
- * @return {array} list of pending deposits
- */
-CryptoModule.prototype.fetchPendingDeposits = async function (callback) {
-  if (callback != null) {
-    callback([]);
-  }
-};
-
-/**
  * Validate given address
  * @abstract
  * @param {string} address to validate
@@ -538,21 +524,6 @@ CryptoModule.prototype.fetchPendingDeposits = async function (callback) {
  * @return {boolean} true/false
  */
 CryptoModule.prototype.validateAddress = function (address) {
-  return true;
-};
-
-/**
- * return utxo
- * @abstract
- * @param {string} address to validate
- * @param {string} ticker to for selected crypto
- * @return {boolean} true/false
- */
-CryptoModule.prototype.returnUtxo = async function (
-  state = 'unspent',
-  limit = 1000,
-  order = 'DESC'
-) {
   return true;
 };
 

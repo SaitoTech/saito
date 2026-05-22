@@ -51,9 +51,8 @@ class MixinModule extends CryptoModule {
 		this.chain_id = chain_id;
 
 		this.polling_active = 0;
-		this.polling_last_request = 0;
 		this.polling_timeout = 0;
-		this.polling_intervals = [0, 15000, 45000, 100000, 300000, 600000];
+		this.polling_intervals = [5000, 15000, 45000, 90000, 120000, 180000];
 		this.polling_interval_current = 0;
 
 		this.confirmations = 100;
@@ -106,27 +105,6 @@ class MixinModule extends CryptoModule {
 	}
 
 	//
-	// Critical Balance Check Functions
-	//
-
-	//
-	// these functions are defined as such in the parent module
-	//
-	//async getAvailableBalance() {
-	//	return this.checkBalance();
-	//}
-	//
-	//async getPendingBalance() {
-	//	return this.checkBalance();
-	//}
-	//async checkBalance() {
-	//	return this.balance;
-	//}
-	//async checkPendingBalance() {
-	//	return await this.checkBalance();
-	//}
-
-	//
 	// queries the latest balance
 	//
 	async fetchBalance() {
@@ -146,11 +124,16 @@ class MixinModule extends CryptoModule {
 		return this.balance;
 	}
 
+	async getAvailableBalance() {
+		return this.fetchBalance();
+	}
+
 	//
 	// queries the latest pending balance
 	//
-	async fetchPendingBalance() {
-		let pending_balance = 0;
+	async getPendingBalance() {
+		await this.fetchBalance();
+		let pending_balance = Number(this.balance);
 
 		this.pending_deposits = await this.fetchPendingDeposits();
 
@@ -160,7 +143,7 @@ class MixinModule extends CryptoModule {
 			}
 		}
 
-		this.pending_balance = pending_balance.toString() || '0.0';
+		return pending_balance.toString() || '0.0';
 	}
 
 	/*
@@ -400,6 +383,14 @@ class MixinModule extends CryptoModule {
 		return fetched_updates;
 	}
 
+	stopPolling() {
+		this.polling_active = 0;
+		if (this.polling_timeout) {
+			clearTimeout(this.polling_timeout);
+			this.polling_timeout = null;
+		}
+	}
+
 	startPolling() {
 		//
 		// if we are already polling, increase urgency by reducing interval index
@@ -429,33 +420,23 @@ class MixinModule extends CryptoModule {
 
 			//
 			// if something has happened....
+			// or nothing is going to happen...
 			//
-			if (wallet_updates.length > 0) {
-				//
-				// disable polling, change found...
-				//
-				this.polling_active = 0;
-				this.polling_last_request = Date.now();
-				this.polling_timeout = 0;
-				this.polling_interval_current = 0;
-			} else {
-				//
-				// decay polling frequency
-				//
-				if (this.polling_interval_current < this.polling_intervals.length - 1) {
-					this.polling_interval_current++;
-				}
+			if (
+				wallet_updates.length > 0 ||
+				this.polling_interval_current >= this.polling_intervals.length
+			) {
+				this.stopPolling();
+				return;
 			}
-
-			//
-			// update timestamp
-			//
-			this.polling_last_request = Date.now();
 
 			//
 			// schedule next poll
 			//
 			let delay = this.polling_intervals[this.polling_interval_current];
+
+			this.polling_interval_current++;
+
 			this.polling_timeout = setTimeout(poll, delay);
 		};
 

@@ -278,7 +278,7 @@ class Mixin extends ModTemplate {
 
         if (mixin_self.account_created) {
           if (crypto_module.isActivated()) {
-            await crypto_module.checkBalance();
+            await crypto_module.fetchBalance();
           } else if (crypto_module.address) {
             crypto_module.activate();
           }
@@ -607,7 +607,6 @@ class Mixin extends ModTemplate {
    */
   async fetchSafeSnapshots(asset_id, created_at = 0, callback = null) {
     try {
-      console.log('<<<<<< MixinApi call ', this.mixin);
       let user = MixinApi({
         keystore: {
           app_id: this.mixin.user_id,
@@ -616,13 +615,10 @@ class Mixin extends ModTemplate {
           session_private_key: this.mixin.session_seed
         }
       });
-      console.log('>>>>>>>>');
 
       let offset = new Date(created_at).toISOString();
       offset = offset.substring(0, offset.length - 1);
       offset = offset + '000000Z';
-
-      console.log(created_at, offset);
 
       let snapshots = await user.safe.fetchSafeSnapshots({
         asset: asset_id,

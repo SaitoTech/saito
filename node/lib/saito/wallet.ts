@@ -121,6 +121,10 @@ export default class Wallet extends SaitoWallet {
         this.balance = '0.0';
         this.address = publicKey;
 
+        // It is easier to flag native cryptos than web3 (especially if we add some outside mixin)
+        // Also applies to nftcryptomodule
+        this.chain_id = 'NATIVE';
+
         //
         // Saito-Core emits events that receive updates on transactions and NFTs that
         // are received on-chain. This helper function assists
@@ -158,19 +162,22 @@ export default class Wallet extends SaitoWallet {
         app.connection.on('on-nft-received', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
 
-	  let ticker = "";
-	  let nft_id = "";
+          let ticker = '';
+          let nft_id = '';
 
-	  try {
-	    if (p.ticker) { ticker = String(p.ticker); }
-	    if (p.nft_id) { nft_id = String(p.nft_id); }
-	    await wallet_self.addNFTToWallet(nft_id, ticker);
-	  } catch (err) {
-	    console.log("ERROR: adding NFT to wallet... ");
-	  }
+          try {
+            if (p.ticker) {
+              ticker = String(p.ticker);
+            }
+            if (p.nft_id) {
+              nft_id = String(p.nft_id);
+            }
+            await wallet_self.addNFTToWallet(nft_id, ticker);
+          } catch (err) {
+            console.log('ERROR: adding NFT to wallet... ');
+          }
 
           super.onPaymentReceived(p);
-
         });
 
         this.options.isActivated = true;
@@ -436,12 +443,9 @@ export default class Wallet extends SaitoWallet {
         return this.app.wallet.convertNolanToSaito(x);
       }
 
-      async returnBalance() {
-        return await this.getAvailableBalance();
-      }
-
-      async checkBalance() {
-        return await this.getAvailableBalance();
+      async fetchBalance() {
+        this.balance = await this.getAvailableBalance();
+        return this.balance;
       }
     }
 
@@ -691,11 +695,6 @@ export default class Wallet extends SaitoWallet {
     this.app.storage.saveOptions();
   }
 
-  async returnBalance() {
-    let s = this.returnCryptoModuleByTicker('SAITO');
-    return await s.returnBalance();
-  }
-
   /////////////////////////
   // WEB3 CRYPTO MODULES //
   /////////////////////////
@@ -756,11 +755,17 @@ export default class Wallet extends SaitoWallet {
    */
   async setPreferredCrypto(ticker) {
     try {
+      const current_crypto = this.returnPreferredCrypto();
+      if (current_crypto?.startPolling) {
+        current_crypto.stopPolling();
+      }
+
       let c_mod = this.returnCryptoModuleByTicker(ticker);
       this.preferred_crypto = ticker.toUpperCase();
       console.log('Activating cryptomod: ' + ticker);
       await c_mod.activate();
-      await this.saveWallet();
+
+      this.saveWallet();
       // if UI is enabled, will re-render the qr code, ticker, and balance in the hamburger menu
       this.app.connection.emit('saito-header-update-crypto');
       return 1;
@@ -859,7 +864,7 @@ export default class Wallet extends SaitoWallet {
 
   async returnPreferredCryptoBalance() {
     const cryptomod = this.returnPreferredCrypto();
-    await cryptomod.checkBalance();
+    await cryptomod.fetchBalance();
     return cryptomod.returnBalance();
   }
 
@@ -1053,7 +1058,6 @@ export default class Wallet extends SaitoWallet {
     }
 
     try {
-
       //
       // register that we are expecting a payment
       //
@@ -1075,7 +1079,7 @@ export default class Wallet extends SaitoWallet {
       //
       const cryptomod = this.returnCryptoModuleByTicker(ticker);
       if (cryptomod) {
-	await cryptomod.onIsActivated();
+        await cryptomod.onIsActivated();
         await cryptomod.startPolling();
       }
 
@@ -1083,7 +1087,9 @@ export default class Wallet extends SaitoWallet {
         mycallback();
       }
     } catch (err) {
-      if (mycallback) { mycallback({ err }); }
+      if (mycallback) {
+        mycallback({ err });
+      }
     }
   }
 
@@ -1318,7 +1324,7 @@ export default class Wallet extends SaitoWallet {
           if (!crypto.isActivated()) {
             continue;
           }
-          let bal = await crypto.returnBalance();
+          let bal = crypto.returnBalance();
           if (parseFloat(bal) > 0) {
             risky = true;
             break;
@@ -1808,16 +1814,13 @@ export default class Wallet extends SaitoWallet {
   // with them...
   //
   public async loadNFTs() {
-
     try {
-
       await this.updateNFTList();
 
       let nft_balance_by_id = {};
 
       if (this.app.options.wallet.nfts) {
         for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
-
           let nft = this.app.options.wallet.nfts[z];
           let nft_sig = nft.tx_sig;
           let nft_type = this.extractNFTType(nft.slip3.utxo_key);
@@ -1899,7 +1902,7 @@ export default class Wallet extends SaitoWallet {
             continue;
           }
 
-	  await this.addNFTToWallet(nft_id, ticker);
+          await this.addNFTToWallet(nft_id, ticker);
 
           console.log(`NFT crypto module installed: ${ticker} (balance ${total.toString()})`);
         }
@@ -1909,10 +1912,11 @@ export default class Wallet extends SaitoWallet {
     }
   }
 
-
   public async addNFTToWallet(nft_id, ticker) {
     await this.updateNFTList();
-    if (this.returnCryptoModuleByTicker(ticker)) { return; }
+    if (this.returnCryptoModuleByTicker(ticker)) {
+      return;
+    }
     let mod = new NFTCryptoModule(this.app, nft_id, {
       ticker,
       name: ticker
@@ -1920,7 +1924,6 @@ export default class Wallet extends SaitoWallet {
     this.app.modules.mods.push(mod);
     await mod.initialize(this.app);
   }
-
 
   public async onNewBoundTransaction(tx: Transaction) {
     try {
