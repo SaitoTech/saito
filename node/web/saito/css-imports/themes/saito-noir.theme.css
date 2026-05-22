@@ -16,7 +16,7 @@ html[data-theme='noir'] {
   --palette-surface-3: #2f3239;
   --palette-surface-inverse: var(--palette-bg-inverse);
   --palette-outline: color-mix(in srgb, #47484b 32%, transparent);
-  --palette-outline-strong: #47484b;
+  --palette-outline-strong: #e2e9ff;
   --palette-shadow: #000000;
   --palette-texture-overlay: url(/saito/img/tiled-logo.svg);
   --palette-bg-gradient:
