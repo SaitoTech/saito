@@ -43,7 +43,7 @@
 }
 
 .transparent-card-overlay .card {
-	background-image: url(/twilight/img/Base.svg);
+	background-image: url(/twilight/img/Base.svg) !important;
 	background-size: contain;
 	background-repeat: no-repeat;
 	width: 200px;
