@@ -82,6 +82,15 @@ class ArcadeMain {
 		this.intersectionObserver.observe(document.getElementById('top-of-game-list'));
 		this.intersectionObserver.observe(document.getElementById('bottom-of-game-list'));
 
+		document.getElementById('arcade-play-now-btn')?.addEventListener('click', () => {
+			const cta = document.querySelector('.arcade-cta-section');
+			if (cta) {
+				cta.classList.add('dissolve');
+				setTimeout(() => cta.remove(), 220);
+			}
+			document.querySelector('.arcade-teasers')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		});
+
 		Array.from(document.querySelectorAll('.arcade-teaser')).forEach((game) => {
 			game.onclick = (e) => {
 				e.stopPropagation();

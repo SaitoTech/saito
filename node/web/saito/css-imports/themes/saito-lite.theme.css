@@ -53,7 +53,8 @@ html[data-theme='lite'] .redsquare-splash-logo,
 html[data-theme='lite'] .chat-splash-logo,
 html[data-theme='lite'] .stun-talk-logo,
 html[data-theme='lite'] .stack-cta-logo,
-html[data-theme='lite'] .limbo-splash-logo {
+html[data-theme='lite'] .limbo-splash-logo,
+html[data-theme='lite'] .arcade-cta-logo {
   --saito-cta-logo-color: var(--saito-primary);
 }
 
