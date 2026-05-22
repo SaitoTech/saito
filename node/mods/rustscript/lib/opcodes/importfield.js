@@ -1,75 +1,113 @@
-const { resolve_symbol } = require('../rustscript/ast_execute');
+module.exports = {
 
-/**
- * Symbolic: copy field into context[as].
- * Legacy signed import when publickey + hash + witness signature present.
- *
- * @param {object} app
- * @param {object} opcode
- * @param {object} context
- * @returns {boolean}
- */
-function importfield(app, opcode, context) {
-  const field_ref = opcode.field;
-  const alias = opcode.as;
+  name: "IMPORTFIELD",
 
-  if (!field_ref) {
-    return false;
-  }
+  description: `
+Imports a signed field into VARS.
 
-  const signer_pubkey = resolve_symbol(context, opcode.publickey);
-  const binding_hash = resolve_symbol(context, opcode.hash);
+Verifies that a value provided in the witness was signed by an authorized publickey
+over a binding hash (literal or VAR reference), then writes the value into VARS.
 
-  if (signer_pubkey && binding_hash && app?.crypto) {
-    const field_name = String(field_ref);
-    const value = resolve_symbol(context, context.witness?.[field_name] ?? `witness.${field_name}`);
-    const signature = resolve_symbol(context, opcode.signature ?? `witness.${opcode.sig ?? 'signature'}`);
+Typical use:
+- import subscription duration
+- import tier, scope, flags, etc.
+`,
 
-    if (value === undefined || value === null || !signature) {
+  exampleScript: {
+    op: "IMPORTFIELD",
+    field: "duration",
+    publickey: "__opcodes.checkownnftwhere.creator",
+    hash: "__opcodes.checkownnftwhere.nft_id"
+  },
+
+  exampleWitness: {
+    duration: "<integer>",
+    signature: "<hex_signature>"
+  },
+
+  schema: {
+    script: {
+      field: "string",
+      publickey: "string",
+      hash: "string"
+    },
+    witness: {
+      signature: "string"
+    }
+  },
+
+  execute(app, script, witness, context) {
+
+    try {
+
+      // --------------------------------------------------
+      // Resolve script parameters (VARs first, literal fallback)
+      // --------------------------------------------------
+      const field_name = script.field;
+      const signer_pubkey = app.browser.resolveVarReference(context, script.publickey);
+      const binding_hash  = app.browser.resolveVarReference(context, script.hash);
+
+      if (!field_name || !signer_pubkey || !binding_hash) {
+        return false;
+      }
+
+      // --------------------------------------------------
+      // Resolve witness values (also via VAR resolver)
+      // --------------------------------------------------
+      const value = app.browser.resolveVarReference(context, witness[field_name]);
+      const signature = app.browser.resolveVarReference(context, witness.signature);
+
+      if (
+        value === undefined ||
+        value === null ||
+        signature === undefined ||
+        signature === null
+      ) {
+console.log("something undefined or null...");
+        return false;
+      }
+
+      // --------------------------------------------------
+      // Canonical digest: hash(binding_hash | value)
+      // --------------------------------------------------
+      const canonical_string = `${value}|${binding_hash}`;
+      const digest = app.crypto.hash(canonical_string);
+
+console.log("verifying...");
+console.log("digest: " + digest);
+console.log("signature: " + signature);
+console.log("publickey: " + signer_pubkey);
+
+      // --------------------------------------------------
+      // Verify signature
+      // --------------------------------------------------
+      const is_valid = app.crypto.verifyMessage(
+        digest,
+        signature,
+        signer_pubkey
+      );
+
+      if (!is_valid) {
+console.log("sig invalid!");
+        return false;
+      }
+
+      // --------------------------------------------------
+      // Write into VARS (opcode namespace)
+      // --------------------------------------------------
+      if (!context.__opcodes) { context.__opcodes = {}; }
+      if (!context.__opcodes.importfield) { context.__opcodes.importfield = {}; }
+
+      context.__opcodes.importfield[field_name] = value;
+
+console.log("^^^^^^ IMPORT FIELD ^^^^^^");
+console.log(JSON.stringify(context.__opcodes));
+
+      return true;
+
+    } catch (err) {
       return false;
     }
-
-    const digest = app.crypto.hash(`${value}|${binding_hash}`);
-    const valid = app.crypto.verifyMessage(digest, String(signature), String(signer_pubkey));
-    if (!valid) {
-      return false;
-    }
-
-    if (alias) {
-      context[alias] = value;
-    } else {
-      context[field_name] = value;
-    }
-    return true;
   }
-
-  const value = resolve_symbol(context, field_ref);
-  if (value === undefined || value === null) {
-    return false;
-  }
-
-  if (alias) {
-    context[alias] = value;
-  } else {
-    const key = String(field_ref).split('.').pop();
-    context[key] = value;
-  }
-
-  return true;
-}
-
-importfield.witness_fields = ['signature'];
-
-importfield.resolve_witness_fields = function (opcode) {
-  const fields = ['signature'];
-  const ref = opcode ? opcode.field : null;
-  if (ref) {
-    const key = String(ref).split('.').pop();
-    if (key && fields.indexOf(key) === -1) {
-      fields.unshift(key);
-    }
-  }
-  return fields;
 };
 
-module.exports = importfield;

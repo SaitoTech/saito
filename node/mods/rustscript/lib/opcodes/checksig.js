@@ -1,26 +1,23 @@
-const { resolve_symbol } = require('../rustscript/ast_execute');
-
-/**
- * @param {object} app
- * @param {object} opcode - AST node { op: 'checksig', publickey, msg?, signature? }
- * @param {object} context
- * @returns {boolean}
- */
-function checksig(app, opcode, context) {
-  const publickey = resolve_symbol(context, opcode.publickey);
-  const msg = resolve_symbol(context, opcode.msg ?? opcode.message ?? '');
-  const signature = resolve_symbol(
-    context,
-    opcode.signature ?? context.witness?.signature ?? 'witness.signature'
-  );
-
-  if (!app?.crypto || !publickey || !signature) {
-    return false;
+module.exports = {
+  name: "CHECKSIG",
+  description: 'Verify a signature against a message.',
+  exampleScript: {
+    op: 'CHECKSIG',
+    publickey: '<publickey>',
+    msg: 'hello world'
+  },
+  exampleWitness: {
+    signature: '<signature>'
+  },
+  schema: {
+    script: { publickey: "string", msg: "string" },
+    witness: { signature: "string" }
+  },
+  execute: function (app, script, witness, context) {
+    const signature = witness.signature || "";
+    const msg = script.msg || "";
+    const publickey = script.publickey || "";
+    return app.crypto.verifyMessage(msg, signature, publickey);
   }
+};
 
-  return app.crypto.verifyMessage(String(msg), String(signature), String(publickey));
-}
-
-checksig.witness_fields = ['signature'];
-
-module.exports = checksig;

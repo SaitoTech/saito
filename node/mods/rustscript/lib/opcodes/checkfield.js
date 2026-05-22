@@ -1,24 +1,79 @@
-const { resolve_symbol, evaluate_condition } = require('../rustscript/ast_execute');
+module.exports = {
 
-/**
- * @param {object} app
- * @param {object} opcode
- * @param {object} context
- * @returns {boolean}
- */
-function checkfield(app, opcode, context) {
-  const left = resolve_symbol(context, opcode.field);
-  let right = resolve_symbol(context, opcode.value);
+  name: "CHECKFIELD",
 
-  if (right === 'NOW' || right === 'now') {
-    right = Date.now();
+  description: `
+Compares two values (resolved via VARS or literals) using a comparison operator.
+Returns true if the comparison holds.
+`,
+
+  exampleScript: {
+    op: "CHECKFIELD",
+    field: "__opcodes.sumfields.expiry",
+    operator: ">",
+    value: "NOW"
+  },
+
+  execute(app, script, witness, context) {
+
+    try {
+
+      // --------------------------------------------------
+      // Resolve operands
+      // --------------------------------------------------
+      const left  = app.browser.resolveVarReference(context, script.field);
+      const right = app.browser.resolveVarReference(context, script.value);
+
+      if (left === undefined || right === undefined) {
+        return false;
+      }
+
+      // Normalize numbers when possible
+      const lnum = Number(left);
+      const rnum = Number(right);
+
+      const l = Number.isFinite(lnum) ? lnum : left;
+      const r = Number.isFinite(rnum) ? rnum : right;
+
+      const op = script.operator;
+
+      // --------------------------------------------------
+      // Comparisons
+      // --------------------------------------------------
+      switch (op) {
+
+        case "==":
+        case "equals":
+          return l === r;
+
+        case "!=":
+        case "notequals":
+          return l !== r;
+
+        case "<":
+        case "lessthan":
+          return l < r;
+
+        case "<=":
+        case "lessthanorequal":
+          return l <= r;
+
+        case ">":
+        case "greaterthan":
+          return l > r;
+
+        case ">=":
+        case "greaterthanorequal":
+          return l >= r;
+
+        default:
+          return false;
+      }
+
+    } catch (err) {
+      return false;
+    }
   }
+};
 
-  if (left === undefined || right === undefined) {
-    return false;
-  }
 
-  return evaluate_condition(left, right, opcode.operator);
-}
-
-module.exports = checkfield;

@@ -1,26 +1,61 @@
-const { resolve_symbol } = require('../rustscript/ast_execute');
+module.exports = {
+  name: "CHECKPATH",
 
-/**
- * @param {object} app
- * @param {object} opcode
- * @param {object} context
- * @returns {boolean}
- */
-function checkpath(app, opcode, context) {
-  const start_publickey = resolve_symbol(context, opcode.publickey);
-  const binding_hash = resolve_symbol(context, opcode.hash) || '';
-  const path = opcode.hops ?? context.witness?.hops;
+  description:
+    "Verify a routing capability path provided in the witness, starting from a claimed authority root and bound to a static hash.",
 
-  if (!app?.crypto || !start_publickey || typeof start_publickey !== 'string') {
-    return false;
+  exampleScript: {
+    op: "CHECKPATH",
+    publickey: "<publickey>",
+    hash: "<hash (optional)>"
+  },
+
+  exampleWitness: {
+    hops: [
+      {
+        to: "<publickey>",
+        value: "<base64_json_payload>",
+        sig: "<signature>"
+      }
+    ]
+  },
+
+  schema: {
+    script: {
+      publickey: "string",
+      hash: "string"
+    },
+    witness: {
+      hops: "array"
+    }
+  },
+
+  execute(app, script, witness, context) {
+    try {
+
+      const start_publickey = script.publickey;
+      const binding_hash = script.hash || "";
+
+      if (!start_publickey || typeof start_publickey !== "string") {
+        return false;
+      }
+
+      const path = witness?.hops;
+
+      if (!Array.isArray(path) || path.length === 0) {
+        return false;
+      }
+
+      return app.crypto.verifyRoutingPath(
+        path,
+        start_publickey,
+        binding_hash
+      );
+
+    } catch (err) {
+      console.error("CHECKPATH error:", err);
+      return false;
+    }
   }
-  if (!Array.isArray(path) || path.length === 0) {
-    return false;
-  }
+};
 
-  return app.crypto.verifyRoutingPath(path, start_publickey, binding_hash);
-}
-
-checkpath.witness_fields = ['hops'];
-
-module.exports = checkpath;

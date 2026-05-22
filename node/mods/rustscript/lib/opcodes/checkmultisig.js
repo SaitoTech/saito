@@ -1,51 +1,66 @@
-const { resolve_symbol } = require('../rustscript/ast_execute');
 
-/**
- * @param {object} app
- * @param {object} opcode
- * @param {object} context
- * @returns {boolean}
- */
-function checkmultisig(app, opcode, context) {
-  const publickeys = opcode.publickeys ?? [];
-  const m = Number(opcode.m ?? publickeys.length);
-  const msg = resolve_symbol(context, opcode.msg ?? opcode.message ?? '');
-  const signatures = opcode.signatures ?? context.witness?.signatures ?? [];
+module.exports = {
+  name: "CHECKMULTISIG",
+  description: "Verify M-of-N signatures" ,
 
-  if (!app?.crypto || !Array.isArray(publickeys) || publickeys.length === 0) {
-    return false;
-  }
-  if (!Array.isArray(signatures) || signatures.length === 0) {
-    return false;
-  }
+  exampleScript: {
+    op: "CHECKMULTISIG",
+    m: 2,
+    publickeys: ["<publickey>", "<publickey>", "<publickey>"],
+    msg: "hello world"
+  },
+  exampleWitness: {
+    signatures: ["<signature>", "<signature>"]
+  },
+  schema: {
+    script: {
+      publickeys: "array:string",
+      m: "number",
+      msg: "string"
+    },
+    witness: {
+      signatures: "array:string"
+    }
+  },
 
-  let valid = 0;
-  const used = new Set();
+  execute: function (app, script, witness, context) {
 
-  for (const signature of signatures) {
-    for (const publickey of publickeys) {
-      const pk = resolve_symbol(context, publickey);
-      if (used.has(pk)) {
-        continue;
-      }
-      try {
-        if (app.crypto.verifyMessage(String(msg), String(signature), String(pk))) {
-          used.add(pk);
-          valid++;
-          break;
+    const publickeys = script.publickeys || [];
+    const m = script.m || publickeys.length;
+    const msg = script.msg || (context ? context.message : "") || "";
+    const signatures = witness.signatures || [];
+
+    if (!Array.isArray(publickeys) || publickeys.length === 0) {
+      console.warn("CHECKMULTISIG: no publickeys provided");
+      return false;
+    }
+
+    if (!Array.isArray(signatures) || signatures.length === 0) {
+      console.warn("CHECKMULTISIG: no signatures provided");
+      return false;
+    }
+
+    let valid = 0;
+    const used = new Set();
+
+    for (let signature of signatures) {
+      for (let publickey of publickeys) {
+        if (used.has(publickey)) { continue; }
+        try {
+          if (app.crypto.verifyMessage(msg, signature, publickey)) {
+            used.add(publickey);
+            valid++;
+            break;
+          }
+        } catch (err) {
+          console.warn("CHECKMULTISIG verify error: ", err);
+          continue;
         }
-      } catch (err) {
-        continue;
       }
+      if (valid >= m) { break; }
     }
-    if (valid >= m) {
-      break;
-    }
+
+    return valid >= m;
   }
+};
 
-  return valid >= m;
-}
-
-checkmultisig.witness_fields = ['signatures'];
-
-module.exports = checkmultisig;

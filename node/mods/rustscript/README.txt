@@ -1,21 +1,34 @@
 # Rustscript module
 
-P2SH contract authoring: semantic script → locking script JSON (LEFT) + execution context (RIGHT).
+P2SH contract authoring: semantic script → locking script (LEFT) + unlocking script (RIGHT).
 
 Lite-client: run `npm run compile` in `node/` before bundling. Do not add `.md` files under this mod.
 
-## Compiler pipeline (`lib/rustscript/` — three files)
+## Script shape (opcode nodes)
+
+```json
+{
+  "op": "CHECKSIG",
+  "args": {
+    "publickey": "",
+    "signature": "context.witness.signature"
+  },
+  "witness": {
+    "signature": ""
+  }
+}
+```
+
+- **LEFT**: contract definition; `witness` only has user-declared slots (from `witness.*` in semantic syntax).
+- **RIGHT**: same tree; implicit runtime witness fields from opcode `witness_fields` are materialized.
+
+Opcode `defaults` and `witness_fields` live in `lib/opcodes/*.js` only.
+
+## Pipeline (`lib/rustscript/`)
 
 ```
 semantic script  →  semantic_to_tokens.js  →  tokens
-tokens           →  tokens_to_ast.js       →  locking script JSON
-locking script   →  ast_execute.js         →  run + validate
+tokens           →  tokens_to_ast.js       →  raw tree
+raw + opcodes    →  ast_execute.materialize →  LEFT / RIGHT JSON
+unlocking        →  ast_execute.js          →  execution
 ```
-
-Opcodes: `lib/opcodes/` (execution primitives, not part of the compiler).
-
-## UI
-
-- **LEFT**: locking script (`{ op, bindings }` or `{ op, args }` for AND/OR/THEN/NOT)
-- **RIGHT**: `{ witness, tx, blk }` runtime payload
-- Context template generation lives in `lib/ui/main.js` only

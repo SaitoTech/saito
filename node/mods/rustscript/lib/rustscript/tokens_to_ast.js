@@ -61,6 +61,7 @@ function tokens_to_ast(tokens) {
       if (peekType() === 'LBRACKET') {
         advance();
         const bindings = {};
+        const witnessDecl = {};
 
         if (peekType() !== 'RBRACKET') {
           do {
@@ -74,7 +75,9 @@ function tokens_to_ast(tokens) {
             }
             const value = advance().value;
 
-            if (peekType() === 'AS') {
+            if (key.startsWith('witness.')) {
+              witnessDecl[key.slice('witness.'.length)] = value;
+            } else if (peekType() === 'AS') {
               advance();
               const aliasTok = expect('IDENT');
               bindings[key] = value;
@@ -86,7 +89,7 @@ function tokens_to_ast(tokens) {
         }
 
         expect('RBRACKET');
-        node = { op: String(name).toUpperCase(), bindings };
+        node = { op: String(name).toUpperCase(), bindings, witnessDecl };
       } else {
         node = { op: String(name).toUpperCase() };
       }
