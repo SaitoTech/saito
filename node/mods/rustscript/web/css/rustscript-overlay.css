@@ -1,0 +1,53 @@
+body.rustscript .rustscript-overlay {
+  padding: 20px;
+  color: var(--rustscript-text);
+  background: var(--rustscript-surface);
+  border-radius: 8px;
+  width: 560px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+body.rustscript .rustscript-overlay h2 {
+  font-size: 1.2em;
+  margin-bottom: 4px;
+  color: var(--rustscript-text);
+}
+
+body.rustscript .rustscript-overlay label {
+  font-size: 0.9em;
+  color: var(--rustscript-muted);
+  margin-bottom: 4px;
+  display: block;
+}
+
+body.rustscript .rustscript-overlay textarea,
+body.rustscript .rustscript-overlay .rs-expert-input {
+  width: 100%;
+  min-height: 160px;
+  padding: 8px;
+  font-family: var(--rustscript-font-mono);
+  background: var(--rustscript-panel);
+  color: var(--rustscript-text);
+  border: 1px solid var(--rustscript-border);
+  border-radius: 4px;
+  resize: vertical;
+}
+
+body.rustscript .overlay-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+body.rustscript .overlay-actions button {
+  background: var(--rustscript-panel);
+  color: var(--rustscript-text);
+  border: 1px solid var(--rustscript-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border 0.15s;
+}
