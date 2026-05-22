@@ -1,22 +1,31 @@
-const { resolve_symbol } = require('../rustscript/ast_execute');
-
-/**
- * @param {object} app
- * @param {object} opcode
- * @param {object} context
- * @returns {boolean}
- */
-function checkhash(app, opcode, context) {
-  const input = resolve_symbol(context, opcode.input ?? 'witness.input');
-  const expected = resolve_symbol(context, opcode.hash);
-
-  if (!app?.crypto || !input || !expected) {
-    return false;
+module.exports = {
+  name: "CHECKHASH",
+  description: "Verify that a preimage hashes to a given Blake3 hash.",
+  exampleScript: {
+    op: "CHECKHASH",
+    hash: "<hash>"
+  },
+  exampleWitness: {
+    input: "<secret>"
+  },
+  schema: {
+    script: {
+      hash: "string"
+    },
+    witness: {
+      input: "string"
+    }
+  },
+  execute: function (app, script, witness, context) {
+    try {
+      const input = witness.input;
+      const output = script.hash;
+      if (!input || !output) { return false; }
+      const hash = app.crypto.hash(input);
+      return hash === output;
+    } catch (err) {
+      console.error("CHECKHASH error: ", err);
+      return false;
+    }
   }
-
-  return app.crypto.hash(String(input)) === String(expected);
-}
-
-checkhash.witness_fields = ['input'];
-
-module.exports = checkhash;
+};

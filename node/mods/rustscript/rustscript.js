@@ -39,6 +39,10 @@ class Rustscript extends ModTemplate {
   initialize(app) {
     super.initialize?.(app);
 
+    const sharedHelpers = {
+      evaluateCondition: this.evaluateCondition.bind(this)
+    };
+
     [
       OpcodeChecksig,
       OpcodeChecktime,
@@ -54,10 +58,10 @@ class Rustscript extends ModTemplate {
       OpcodeCheckownnftwhere,
       OpcodeImportfield,
       OpcodeSumfields
-    ].forEach((handler) => {
-      const name = handler.name || handler.op;
-      if (name && typeof handler === 'function') {
-        this.opcodes[name.toLowerCase()] = handler;
+    ].forEach((op) => {
+      if (op?.name && typeof op.execute === 'function') {
+        Object.assign(op, sharedHelpers);
+        this.opcodes[op.name.toLowerCase()] = op;
       }
     });
   }
@@ -68,19 +72,88 @@ class Rustscript extends ModTemplate {
     this.ui.render();
   }
 
-  buildContext({ tx, blk, witness, ...derived } = {}) {
-    return {
+  buildContext(derived = {}) {
+    const ctx = {
       app: this.app,
       opcodes: this.opcodes,
-      tx: tx ?? {},
-      blk: blk ?? {},
-      witness: witness ?? {},
+      tx: derived.tx ?? {},
+      blk: derived.blk ?? {},
+      witness: derived.witness ?? {},
+      __opcodes: {},
       ...derived
     };
+    if (!ctx.__opcodes) {
+      ctx.__opcodes = {};
+    }
+    return ctx;
+  }
+
+  evaluateCondition(hopContext, condition, context = {}) {
+    const { field, operator, value, type } = condition;
+
+    const lhs = field
+      .split('.')
+      .reduce((obj, key) => (obj !== undefined && obj !== null ? obj[key] : undefined), hopContext);
+
+    let rhs = value;
+    if (typeof value === 'string' && context && context[value] !== undefined) {
+      rhs = context[value];
+    }
+
+    const coerce = (v) => {
+      if (!type) {
+        return v;
+      }
+      if (type === 'number') {
+        return Number(v);
+      }
+      if (type === 'string') {
+        return String(v);
+      }
+      if (type === 'boolean') {
+        if (v === true || v === false) {
+          return v;
+        }
+        if (v === 'true') {
+          return true;
+        }
+        if (v === 'false') {
+          return false;
+        }
+        if (v === 1) {
+          return true;
+        }
+        if (v === 0) {
+          return false;
+        }
+        return false;
+      }
+      return v;
+    };
+
+    const left = coerce(lhs);
+    const right = coerce(rhs);
+
+    switch (operator) {
+      case '==':
+        return left === right;
+      case '!=':
+        return left !== right;
+      case '<':
+        return left < right;
+      case '<=':
+        return left <= right;
+      case '>':
+        return left > right;
+      case '>=':
+        return left >= right;
+      default:
+        throw new Error(`Unknown operator: ${operator}`);
+    }
   }
 
   /**
-   * Semantic script → locking script JSON (LEFT panel).
+   * Semantic script → locking script (LEFT) + unlocking script (RIGHT).
    */
   async parseExpertScript(source, execution_input = {}) {
     const text = String(source ?? '').trim();
@@ -89,17 +162,22 @@ class Rustscript extends ModTemplate {
     }
 
     const tokens = semantic_to_tokens(text);
-    const lockingScript = tokens_to_ast(tokens);
+    const raw = tokens_to_ast(tokens);
+    const lockingScript = ast_execute.materialize(raw, this.opcodes, false);
+    const unlockingScript = ast_execute.materialize(raw, this.opcodes, true);
+
     const json = JSON.stringify(lockingScript, null, 2);
     const validation = ast_execute.validate(lockingScript);
 
     const context = this.buildContext(execution_input);
-    const execution = await ast_execute(lockingScript, context);
+    const execution = await ast_execute(unlockingScript, context);
 
     return {
       tokens,
+      raw,
       ast: lockingScript,
       lockingScript,
+      unlockingScript,
       json,
       validation,
       execution
@@ -107,11 +185,11 @@ class Rustscript extends ModTemplate {
   }
 
   /**
-   * Execute locking script JSON with execution context payload.
+   * Execute unlocking script JSON (RIGHT panel).
    */
-  async runAst(lockingScript, execution_input = {}) {
+  async runAst(unlockingScript, execution_input = {}) {
     const context = this.buildContext(execution_input);
-    return ast_execute(lockingScript, context);
+    return ast_execute(unlockingScript, context);
   }
 }
 

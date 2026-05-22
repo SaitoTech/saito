@@ -1,8 +1,5 @@
 /**
- * Execute locking script against execution context.
- * @param {object} ast
- * @param {object} execution_context
- * @returns {Promise<{ success: boolean, context: object, witness: object, errors: string[] }>}
+ * Execute unlocking script (same JSON shape as locking; witness slots materialized on RIGHT).
  */
 async function ast_execute(ast, execution_context) {
   const context = execution_context ?? {};
@@ -21,35 +18,33 @@ async function ast_execute(ast, execution_context) {
     }
 
     const op = String(node.op || '').toLowerCase();
-    const args = Array.isArray(node.args) ? node.args : [];
+    const args = node.args;
 
-    if (op === 'and') {
-      for (const child of args) {
-        if (!(await eval_node(child))) {
-          return false;
+    if (op === 'and' || op === 'or' || op === 'then' || op === 'not') {
+      const children = Array.isArray(args) ? args : [];
+      if (op === 'and') {
+        for (const child of children) {
+          if (!(await eval_node(child))) {
+            return false;
+          }
         }
-      }
-      return true;
-    }
-
-    if (op === 'or') {
-      for (const child of args) {
-        if (await eval_node(child)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    if (op === 'not') {
-      if (!args[0]) {
         return true;
       }
-      return !(await eval_node(args[0]));
-    }
-
-    if (op === 'then') {
-      for (const phase of args) {
+      if (op === 'or') {
+        for (const child of children) {
+          if (await eval_node(child)) {
+            return true;
+          }
+        }
+        return false;
+      }
+      if (op === 'not') {
+        if (!children[0]) {
+          return true;
+        }
+        return !(await eval_node(children[0]));
+      }
+      for (const phase of children) {
         if (!(await eval_node(phase))) {
           return false;
         }
@@ -58,22 +53,29 @@ async function ast_execute(ast, execution_context) {
     }
 
     const handler = opcodes[op];
-    if (typeof handler !== 'function') {
+    if (!handler || typeof handler.execute !== 'function') {
       return false;
     }
 
-    let opcode = { op };
-    if (node.bindings && typeof node.bindings === 'object') {
-      opcode = { op, ...node.bindings };
-    } else {
-      for (const key of Object.keys(node)) {
-        if (key !== 'op' && key !== 'args' && key !== 'bindings') {
-          opcode[key] = node[key];
-        }
-      }
+    const opcodeArgs =
+      args && typeof args === 'object' && !Array.isArray(args)
+        ? args
+        : node.bindings && typeof node.bindings === 'object'
+          ? { ...node.bindings }
+          : {};
+
+    const nodeWitness = node.witness && typeof node.witness === 'object' ? node.witness : {};
+    const execContext = {
+      ...context,
+      witness: { ...context.witness, ...nodeWitness }
+    };
+
+    if (!execContext.__opcodes) {
+      execContext.__opcodes = {};
     }
 
-    const result = handler(app, opcode, context);
+    const script = { op: String(node.op).toUpperCase(), ...opcodeArgs };
+    const result = handler.execute(app, script, execContext.witness, execContext);
     return result instanceof Promise ? await result : !!result;
   }
 
@@ -96,15 +98,140 @@ async function ast_execute(ast, execution_context) {
   }
 }
 
+function set_nested_empty(obj, path) {
+  const parts = String(path).split('.').filter(Boolean);
+  if (parts.length === 0) {
+    return;
+  }
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') {
+      cur[parts[i]] = {};
+    }
+    cur = cur[parts[i]];
+  }
+  if (cur[parts[parts.length - 1]] === undefined) {
+    cur[parts[parts.length - 1]] = '';
+  }
+}
+
+function opcode_defaults(handler) {
+  if (!handler) {
+    return {};
+  }
+  if (handler.exampleScript && typeof handler.exampleScript === 'object') {
+    const script = { ...handler.exampleScript };
+    delete script.op;
+    return script;
+  }
+  if (handler.defaults && typeof handler.defaults === 'object') {
+    return { ...handler.defaults };
+  }
+  return {};
+}
+
+function witness_fields_for(handler, args) {
+  if (!handler) {
+    return [];
+  }
+  if (typeof handler.resolve_witness_fields === 'function') {
+    return handler.resolve_witness_fields(args);
+  }
+  if (handler.exampleWitness && typeof handler.exampleWitness === 'object') {
+    return Object.keys(handler.exampleWitness);
+  }
+  return Array.isArray(handler.witness_fields) ? handler.witness_fields : [];
+}
+
 /**
- * Locking script structure check (no execution).
+ * Raw parse tree → canonical script JSON (locking or unlocking).
+ * unlocking=true adds implicit opcode witness slots from opcode metadata.
  */
+ast_execute.materialize = function materialize_script(raw, opcodes, unlocking = false) {
+  if (!raw || typeof raw !== 'object') {
+    return raw;
+  }
+
+  const op = String(raw.op || '').toLowerCase();
+
+  if (op === 'and' || op === 'or' || op === 'then' || op === 'not') {
+    const children = Array.isArray(raw.args) ? raw.args : [];
+    return {
+      op: String(raw.op).toUpperCase(),
+      args: children.map((child) => materialize_script(child, opcodes, unlocking))
+    };
+  }
+
+  const handler = opcodes[op];
+  const defaults = opcode_defaults(handler);
+  const args = { ...defaults };
+  const witness = {};
+
+  const bindings = raw.bindings && typeof raw.bindings === 'object' ? raw.bindings : {};
+  const witnessDecl =
+    raw.witnessDecl && typeof raw.witnessDecl === 'object' ? raw.witnessDecl : {};
+
+  for (const [key, value] of Object.entries(bindings)) {
+    args[key] = value;
+  }
+
+  for (const [argName, slot] of Object.entries(witnessDecl)) {
+    const slotName = String(slot);
+    args[argName] = `context.witness.${slotName}`;
+    witness[slotName] = '';
+  }
+
+  if (unlocking) {
+    for (const field of witness_fields_for(handler, args)) {
+      set_nested_empty(witness, field);
+    }
+  }
+
+  return {
+    op: String(raw.op).toUpperCase(),
+    args,
+    witness
+  };
+};
+
+/**
+ * Locking script → unlocking script (same tree, implicit witness slots filled).
+ */
+ast_execute.unlocking_from_locking = function unlocking_from_locking(locking, opcodes) {
+  if (!locking || typeof locking !== 'object') {
+    return locking;
+  }
+
+  const op = String(locking.op || '').toLowerCase();
+
+  if (op === 'and' || op === 'or' || op === 'then' || op === 'not') {
+    const children = Array.isArray(locking.args) ? locking.args : [];
+    return {
+      op: locking.op,
+      args: children.map((child) => unlocking_from_locking(child, opcodes))
+    };
+  }
+
+  const handler = opcodes[op];
+  const witness = locking.witness && typeof locking.witness === 'object' ? { ...locking.witness } : {};
+
+  for (const field of witness_fields_for(handler, locking.args)) {
+    set_nested_empty(witness, field);
+  }
+
+  return {
+    op: locking.op,
+    args: locking.args && typeof locking.args === 'object' ? { ...locking.args } : {},
+    witness
+  };
+};
+
 ast_execute.validate = function ast_validate(ast) {
   const errors = [];
 
   function walk(node, path) {
     if (!node || typeof node !== 'object') {
-      errors.push({ path, message: 'Expected locking script object' });
+      errors.push({ path, message: 'Expected script object' });
       return;
     }
 
@@ -135,8 +262,11 @@ ast_execute.validate = function ast_validate(ast) {
       return;
     }
 
-    if (node.bindings != null && typeof node.bindings !== 'object') {
-      errors.push({ path, message: '"bindings" must be an object' });
+    if (!node.args || typeof node.args !== 'object' || Array.isArray(node.args)) {
+      errors.push({ path, message: 'Opcode requires "args" object' });
+    }
+    if (node.witness != null && typeof node.witness !== 'object') {
+      errors.push({ path, message: '"witness" must be an object' });
     }
   }
 
@@ -144,9 +274,6 @@ ast_execute.validate = function ast_validate(ast) {
   return { valid: errors.length === 0, errors };
 };
 
-/**
- * Resolve dotted path against context (used by lib/opcodes).
- */
 ast_execute.resolve_symbol = function resolve_symbol(context, ref) {
   if (ref === null || ref === undefined) {
     return ref;
@@ -193,9 +320,6 @@ ast_execute.resolve_symbol = function resolve_symbol(context, ref) {
   return cursor;
 };
 
-/**
- * Compare resolved values (used by lib/opcodes).
- */
 ast_execute.evaluate_condition = function evaluate_condition(left, right, operator) {
   const lnum = Number(left);
   const rnum = Number(right);
