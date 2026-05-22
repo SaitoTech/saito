@@ -9,11 +9,11 @@ html[data-theme='noir'] {
   --palette-on-primary: #fff6f1;
   --palette-secondary: #fb9532;
   --palette-on-secondary: #fff6f1;
-  --palette-bg: #0d0e11;
+  --palette-bg: #141519;
   --palette-bg-inverse: #faf9fd;
-  --palette-surface-1: #121316;
-  --palette-surface-2: #181a1d;
-  --palette-surface-3: #24262a;
+  --palette-surface-1: #1a1b20;
+  --palette-surface-2: #22242a;
+  --palette-surface-3: #2f3239;
   --palette-surface-inverse: var(--palette-bg-inverse);
   --palette-outline: color-mix(in srgb, #47484b 32%, transparent);
   --palette-outline-strong: #47484b;
@@ -53,8 +53,8 @@ html[data-theme='noir'] {
   --saito-overlay-backdrop: color-mix(in srgb, var(--palette-bg) 78%, transparent);
   --saito-overlay-backdrop-stacked: color-mix(in srgb, var(--palette-bg) 68%, transparent);
   --saito-overlay-panel-bg: color-mix(in srgb, var(--palette-surface-2) 82%, transparent);
-  --saito-overlay-panel-surface-low: #121316;
-  --saito-overlay-panel-surface: #181a1d;
+  --saito-overlay-panel-surface-low: var(--palette-surface-1);
+  --saito-overlay-panel-surface: var(--palette-surface-2);
   --saito-overlay-panel-background: var(--palette-overlay-gradient);
   --saito-overlay-panel-border: rgba(71, 72, 75, 0.35);
   --saito-overlay-panel-border-highlight: transparent;

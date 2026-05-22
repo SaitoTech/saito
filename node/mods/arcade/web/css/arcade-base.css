@@ -35,19 +35,172 @@
 	position: relative;
 }
 
+.arcade-cta-section {
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 3rem;
+	color: var(--saito-font-color);
+	background: var(--saito-canvas-background, var(--saito-background-color));
+	transition:
+		opacity 0.2s ease,
+		transform 0.2s ease;
+}
+
+.arcade-cta-section.dissolve {
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-0.8rem);
+}
+
+.arcade-cta-card {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4rem;
+	width: min(95vw, 1180px);
+	padding: 3.2rem;
+	border-radius: calc(var(--saito-border-radius) + 0.15rem);
+	background: var(--saito-overlay-panel-background);
+	box-shadow: var(--saito-overlay-panel-shadow);
+	border: 1px solid var(--saito-overlay-panel-border);
+}
+
+.arcade-cta-image-flip {
+	flex: 0 0 min(42vw, 50rem);
+	width: min(42vw, 50rem);
+	aspect-ratio: 1;
+	perspective: 1000px;
+	border-radius: calc(var(--saito-border-radius) + 0.35rem);
+	position: relative;
+}
+
+.arcade-cta-image-front,
+.arcade-cta-image-back {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	backface-visibility: hidden;
+	border-radius: inherit;
+	overflow: hidden;
+	box-shadow: var(--saito-box-shadow);
+	transition: transform 0.6s ease;
+}
+
+.arcade-cta-image-front {
+	transform: rotateY(0deg);
+}
+
+.arcade-cta-image-back {
+	transform: rotateY(180deg);
+	background: var(--saito-background-color);
+	border: 1px solid var(--saito-border-color);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.arcade-cta-image-flip:hover .arcade-cta-image-front {
+	transform: rotateY(-180deg);
+}
+
+.arcade-cta-image-flip:hover .arcade-cta-image-back {
+	transform: rotateY(0deg);
+}
+
+.arcade-cta-image-front img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.arcade-cta-image-back-content {
+	padding: 3rem;
+	color: var(--saito-font-color);
+}
+
+.arcade-cta-image-back-content h3 {
+	font-size: 2.4rem;
+	line-height: 1.3;
+	margin: 0 0 1.5rem;
+	color: var(--saito-font-color-heavy, var(--saito-font-color));
+}
+
+.arcade-cta-image-back-content p {
+	font-size: 1.7rem;
+	line-height: 1.6;
+	margin: 0;
+}
+
+.arcade-cta-content {
+	flex: 1;
+	max-width: 60rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+}
+
+.arcade-cta-logo {
+	--saito-cta-logo-color: var(--saito-white, #fff);
+	--saito-cta-logo-mask: url('/saito/icons/saito-arcade-icon-outline-label-horizontal.svg');
+	width: min(42rem, 100%);
+	aspect-ratio: 381 / 134;
+	margin-bottom: 1.6rem;
+	position: relative;
+	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
+}
+
+.arcade-cta-card:hover .arcade-cta-logo {
+	--saito-cta-logo-mask: url('/saito/icons/saito-arcade-icon-solid-label-horizontal.svg');
+}
+
+.arcade-cta-logo::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: var(--saito-cta-logo-color);
+	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+}
+
+.arcade-cta-subtitle {
+	margin: 0 0 3rem;
+	color: var(--saito-font-color-secondary, var(--saito-font-color-light));
+	font-size: 1.5rem;
+	letter-spacing: 0.22em;
+	line-height: 1.5;
+	text-transform: uppercase;
+}
+
+.arcade-cta-play-btn {
+	min-width: 17rem;
+	min-height: 6.4rem;
+	padding: 1.6rem 3.6rem;
+	font-size: 1.7rem;
+	font-weight: 700;
+}
+
 .arcade-teasers {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-	grid-gap: 1rem;
+	grid-gap: 3rem;
 	align-content: start;
+	background: unset;
+    background-color: transparent;
 }
 
 .arcade-sidebar .saito-announcement {
 	margin-bottom: 1rem;
 	line-height: 1.25em;
-	background: var(--saito-surface-color);
+	background: var(--saito-background-color);
 	color: var(--saito-surface-text);
-	padding: 1rem;
+	padding: 2rem;
+	border: var(--border-thickness-thin) solid var(--saito-border-color);
 }
 
 .saito-sidebar.arcade-sidebar {
@@ -67,15 +220,23 @@
 
 .arcade-teaser {
 	width: 100%;
-	border: var(--border-thickness-thick) solid var(--saito-border-color);
+	border: 1px solid var(--saito-overlay-panel-border);
 	position: relative;
 	cursor: pointer;
 	overflow: hidden;
-	border-radius: var(--saito-border-radius);
+	border-radius: calc(var(--saito-border-radius) + 0.15rem);
+	background: var(--saito-overlay-panel-background);
+	box-shadow: var(--saito-overlay-panel-shadow);
+	transition:
+		border-color 0.18s ease,
+		box-shadow 0.18s ease,
+		transform 0.18s ease;
 }
 
 .arcade-teaser:hover {
 	border-color: var(--saito-primary);
+	box-shadow: var(--saito-box-shadow-high, var(--saito-overlay-panel-shadow));
+	transform: translateY(-1px);
 }
 
 .arcade-teaser-title {
@@ -104,6 +265,7 @@
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+	border-radius: var(--saito-border-radius);
 }
 
 .arcade-teaser-footer {
@@ -127,9 +289,9 @@
  *****************************************/
 
 .arcade-teasers .arcade-teaser {
-	box-shadow: var(--saito-box-shadow);
 	height: min(250px, calc((100vw - 34.5rem) / 4));
-	border-radius: var(--saito-border-radius);
+	border-width: 2px;
+    padding: 2px;
 }
 
 .arcade-teasers .arcade-teaser-title {
@@ -158,7 +320,7 @@
 }
 
 /*************************************
- * Override saito-page-layout 
+ * Override saito-page-layout
  * to make arcade better on mobile
 **************************************/
 
@@ -199,6 +361,26 @@
 	.arcade-sidebar .saito-announcement {
 		display: none;
 	}
+	.arcade-cta-section {
+		padding: 1.5rem;
+	}
+
+	.arcade-cta-card {
+		flex-direction: column;
+		gap: 2rem;
+		padding: 1.5rem;
+	}
+
+	.arcade-cta-image-flip {
+		flex-basis: auto;
+		width: min(100%, 34rem);
+		max-height: 34rem;
+	}
+
+	.arcade-cta-subtitle {
+		margin-bottom: 2rem;
+	}
+
 	.arcade-teasers .arcade-teaser {
 		height: min(180px, calc(100vw / 3));
 	}
