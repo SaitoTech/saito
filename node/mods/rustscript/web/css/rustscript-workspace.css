@@ -1,0 +1,371 @@
+/* Global workspace header — actions, status reactors, mode toggle */
+
+body.rustscript .saito-rustscript {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.rustscript .rs-workspace-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px;
+  background: #141414;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+body.rustscript .rs-workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 200px;
+}
+
+body.rustscript .rs-action-btn {
+  margin: 0;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 3px;
+  border: 1px solid #3a3a3a;
+  background: #1a1a1a;
+  color: #aaa;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+body.rustscript .rs-action-btn:hover {
+  border-color: #555;
+  color: #ddd;
+  background: #222 !important;
+}
+
+body.rustscript .rs-run-execute {
+  border-color: rgba(92, 184, 106, 0.35);
+  color: #8fd49a;
+}
+
+/* Status reactors */
+body.rustscript .rs-workspace-status {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+body.rustscript .rs-status-reactor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 72px;
+  padding: 6px 10px 7px;
+  border-radius: 3px;
+  border: 1px solid #2e2e2e;
+  background: #0a0a0a;
+  pointer-events: none;
+}
+
+body.rustscript .rs-status-reactor-label {
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.62em;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #555;
+  line-height: 1;
+}
+
+body.rustscript .rs-status-reactor-led {
+  width: 100%;
+  height: 6px;
+  border-radius: 2px;
+  background: #111;
+  border: 1px solid #222;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+body.rustscript .rs-status-reactor[data-state='idle'] {
+  background: #080808;
+}
+
+body.rustscript .rs-status-reactor[data-state='idle'] .rs-status-reactor-label {
+  color: #3a3a3a;
+}
+
+body.rustscript .rs-status-reactor[data-state='idle'] .rs-status-reactor-led {
+  background: #0c0c0c;
+}
+
+body.rustscript .rs-status-reactor[data-state='inactive'] {
+  background: #050505;
+  border-color: #1a1a1a;
+}
+
+body.rustscript .rs-status-reactor[data-state='inactive'] .rs-status-reactor-label {
+  color: #2a2a2a;
+}
+
+body.rustscript .rs-status-reactor[data-state='inactive'] .rs-status-reactor-led {
+  background: #000;
+  border-color: #111;
+  box-shadow: none;
+}
+
+body.rustscript .rs-status-reactor[data-state='warn'] {
+  background: rgba(252, 163, 17, 0.08);
+  border-color: rgba(252, 163, 17, 0.35);
+}
+
+body.rustscript .rs-status-reactor[data-state='warn'] .rs-status-reactor-label {
+  color: #e8b060;
+}
+
+body.rustscript .rs-status-reactor[data-state='warn'] .rs-status-reactor-led {
+  background: #fca311;
+  box-shadow: 0 0 12px rgba(252, 163, 17, 0.55);
+  border-color: #e8940a;
+}
+
+body.rustscript .rs-status-reactor[data-state='ready'] {
+  background: rgba(92, 184, 106, 0.08);
+  border-color: rgba(92, 184, 106, 0.35);
+}
+
+body.rustscript .rs-status-reactor[data-state='ready'] .rs-status-reactor-label {
+  color: #8fd49a;
+}
+
+body.rustscript .rs-status-reactor[data-state='ready'] .rs-status-reactor-led {
+  background: #5cb86a;
+  box-shadow: 0 0 12px rgba(92, 184, 106, 0.5);
+  border-color: #4a9f58;
+}
+
+/* Global workspace toggle */
+body.rustscript .rs-workspace-toggle {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+body.rustscript .rs-workspace-toggle:hover {
+  background: transparent !important;
+}
+
+body.rustscript .rs-workspace-toggle-track {
+  display: block;
+  position: relative;
+  width: 148px;
+  height: 44px;
+  border-radius: 3px;
+  background: #0a0a0a;
+  border: 2px solid #3d3d3d;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+}
+
+body.rustscript .rs-workspace-toggle-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(66.666% - 6px);
+  height: calc(100% - 8px);
+  border-radius: 2px;
+  border: 1px solid rgba(255, 200, 80, 0.4);
+  background: linear-gradient(180deg, #ffe090 0%, #fca311 50%, #d88808 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.62em;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #1a1208;
+  transition: left 0.2s ease, background 0.2s, border-color 0.2s, color 0.2s;
+  box-sizing: border-box;
+}
+
+body.rustscript .rs-workspace-toggle.is-unlocked .rs-workspace-toggle-thumb {
+  left: calc(33.333% + 2px);
+  background: linear-gradient(180deg, #ffc0d0 0%, #ff6b8a 50%, #c94a62 100%);
+  border-color: rgba(255, 120, 140, 0.5);
+  color: #2a0810;
+}
+
+body.rustscript .rs-workspace-toggle.is-unlocked .rs-workspace-toggle-track {
+  border-color: rgba(255, 77, 109, 0.45);
+  background: linear-gradient(180deg, #160c10 0%, #0a0808 100%);
+}
+
+body.rustscript .rs-workspace-unlocked .rs-workspace-toggle.is-unlocked .rs-workspace-toggle-thumb {
+  left: calc(33.333% + 2px);
+}
+
+body.rustscript .rs-workspace-toggle:focus-visible .rs-workspace-toggle-track {
+  outline: 2px solid var(--rustscript-accent);
+  outline-offset: 2px;
+}
+
+/* Template menu */
+body.rustscript .rs-template-menu {
+  position: absolute;
+  z-index: 20;
+  left: 12px;
+  top: 52px;
+  max-width: 360px;
+}
+
+body.rustscript .rs-template-menu-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #121212;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.rustscript .rs-template-pick {
+  margin: 0;
+  padding: 8px 10px;
+  text-align: left;
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+  background: #0e0e0e;
+  color: #bbb;
+  font-size: 0.78em;
+  cursor: pointer;
+}
+
+body.rustscript .rs-template-pick:hover {
+  border-color: #555;
+  color: #eee;
+  background: #1a1a1a !important;
+}
+
+/* Unlock panel waiting — hide witness machinery until script is ready */
+body.rustscript .rs-unlocking-pane.rs-unlock-waiting {
+  opacity: 0.32;
+  filter: saturate(0.25) brightness(0.72);
+}
+
+body.rustscript .rs-workspace-locked .rs-unlocking-pane.rs-unlock-gated {
+  pointer-events: none;
+}
+
+body.rustscript .rs-workspace-locked .rs-unlocking-pane.rs-unlock-waiting .rs-panel-header {
+  opacity: 0.55;
+}
+
+body.rustscript .rs-workspace-locked .rs-unlocking-pane.rs-unlock-waiting .rs-panel-body {
+  position: relative;
+  min-height: 120px;
+}
+
+body.rustscript .rs-workspace-unlocked .rs-unlocking-pane.rs-unlock-waiting {
+  opacity: 0.88;
+  filter: none;
+  pointer-events: auto;
+}
+
+body.rustscript .rs-unlocking-pane.rs-unlock-gated .rs-panel-gate {
+  display: flex;
+}
+
+body.rustscript .rs-panel-gate {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 28px 20px;
+  min-height: 140px;
+  background: rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+body.rustscript .rs-panel-waiting .rs-panel-gate {
+  display: flex;
+  flex: 1;
+}
+
+body.rustscript .rs-panel-waiting .rs-panel-semantic {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-waiting.rs-panel-locked .rs-panel-textarea {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-gate-icon {
+  margin: 0;
+  font-size: 1.4em;
+  color: #444;
+  line-height: 1;
+}
+
+body.rustscript .rs-panel-gate-title {
+  margin: 0;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #666;
+}
+
+body.rustscript .rs-panel-gate-text {
+  margin: 0;
+  max-width: 280px;
+  font-size: 0.78em;
+  color: #666;
+  text-align: center;
+  line-height: 1.45;
+}
+
+body.rustscript .rs-panel-inactive .rs-panel-semantic {
+  opacity: 0.5;
+}
+
+/* Inherited read-only values in unlock script */
+body.rustscript .rs-semantic-inherited,
+body.rustscript .rs-semantic-opcode-readonly {
+  color: #666;
+  font-style: normal;
+}
+
+body.rustscript .rs-unlocking-pane .rs-semantic-inherited {
+  color: #7a7060;
+}
+
+body.rustscript .rs-semantic-placeholder-ghost {
+  color: #555;
+  opacity: 0.65;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+@media (max-width: 1100px) {
+  body.rustscript .rs-workspace-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.rustscript .rs-workspace-toggle {
+    align-self: flex-end;
+  }
+}

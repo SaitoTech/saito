@@ -1,0 +1,388 @@
+/* RustScript panels — contract workstation UI */
+
+body.rustscript .rs-editor.rs-locking-pane,
+body.rustscript .rs-editor.rs-unlocking-pane {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Panel identity: LEFT colder / ownership, RIGHT warmer / live */
+body.rustscript .rs-locking-pane {
+  --rs-panel-glow: rgba(196, 92, 106, 0.14);
+  --rs-panel-edge: rgba(196, 92, 106, 0.35);
+  --rs-panel-header-bg: rgba(80, 28, 36, 0.35);
+}
+
+body.rustscript .rs-unlocking-pane {
+  --rs-panel-glow: rgba(252, 163, 17, 0.12);
+  --rs-panel-edge: rgba(252, 163, 17, 0.38);
+  --rs-panel-header-bg: rgba(90, 62, 12, 0.35);
+}
+
+body.rustscript .rs-editor.rs-locking-pane {
+  border-color: var(--rs-panel-edge);
+  box-shadow: inset 0 0 40px var(--rs-panel-glow);
+}
+
+body.rustscript .rs-editor.rs-unlocking-pane {
+  border-color: var(--rs-panel-edge);
+  box-shadow: inset 0 0 40px var(--rs-panel-glow);
+}
+
+body.rustscript .rs-panel-root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Panel header */
+body.rustscript .rs-panel-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 6px 10px;
+  min-height: 0;
+  background: var(--rs-panel-header-bg);
+  border-bottom: 1px solid var(--rs-panel-edge);
+}
+
+body.rustscript .rs-panel-titles {
+  min-width: 0;
+  flex: 1;
+}
+
+body.rustscript .rs-panel-title {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.82em;
+  line-height: 1.25;
+}
+
+body.rustscript .rs-locking-pane .rs-panel-title {
+  color: #e8b4ba;
+}
+
+body.rustscript .rs-unlocking-pane .rs-panel-title {
+  color: #f0d090;
+}
+
+body.rustscript .rs-panel-subtitle {
+  display: block;
+  font-size: 0.8em;
+  line-height: 1.35;
+  margin-top: 2px;
+  color: #b8b8b8;
+  opacity: 1;
+}
+
+body.rustscript .rs-locking-pane .rs-panel-subtitle {
+  color: #c8a8ae;
+}
+
+body.rustscript .rs-unlocking-pane .rs-panel-subtitle {
+  color: #c8b890;
+}
+
+body.rustscript .rs-semantic-opcode:hover {
+  background: rgba(252, 163, 17, 0.08) !important;
+  color: #ffe2a0 !important;
+}
+
+body.rustscript .rs-locking-pane .rs-semantic-opcode:hover {
+  background: rgba(196, 92, 106, 0.1) !important;
+  color: #f5d0d6 !important;
+}
+
+/* Body */
+body.rustscript .rs-panel-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.rustscript .rs-panel-semantic {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
+  background: var(--rustscript-background);
+  border-top: none;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.9em;
+  line-height: 1.32;
+}
+
+body.rustscript .rs-panel-unlocked .rs-panel-semantic {
+  display: none;
+}
+
+body.rustscript .rs-panel-textarea {
+  flex: 1;
+  min-height: 0;
+  display: none;
+  border: none;
+  border-top: 1px solid var(--rustscript-border);
+  line-height: 1.32;
+  font-size: 0.9em;
+}
+
+body.rustscript .rs-panel-unlocked .rs-panel-textarea {
+  display: block;
+}
+
+body.rustscript .rs-locking-pane .rs-panel-unlocked .rs-panel-textarea {
+  background: #100a0c;
+  color: #e8d4d6;
+  box-shadow: inset 0 0 28px rgba(196, 92, 106, 0.1);
+}
+
+body.rustscript .rs-unlocking-pane .rs-panel-unlocked .rs-panel-textarea {
+  background: #0f0d08;
+  color: #e8e0c8;
+  box-shadow: inset 0 0 28px rgba(252, 163, 17, 0.1);
+}
+
+body.rustscript .rs-panel-locked .rs-panel-textarea {
+  display: none;
+}
+
+/* Semantic tree — tight monospace rhythm */
+body.rustscript .rs-semantic-tree {
+  margin: 0;
+}
+
+body.rustscript .rs-semantic-row {
+  padding-left: calc(var(--rs-depth, 0) * 1.25ch);
+  line-height: 1.5;
+  min-height: 1.5em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+body.rustscript .rs-semantic-row-value {
+  min-height: 1.5em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+}
+
+body.rustscript .rs-placeholder-chip,
+body.rustscript .rs-semantic-inherited,
+body.rustscript .rs-semantic-string,
+body.rustscript .rs-semantic-placeholder-ghost {
+  line-height: 1.5;
+  vertical-align: baseline;
+}
+
+body.rustscript .rs-semantic-row-brace {
+  line-height: 1.2;
+  min-height: 1.2em;
+}
+
+body.rustscript .rs-semantic-block-inner {
+  padding-left: 1.25ch;
+  margin-left: 0.35ch;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.rustscript .rs-semantic-section {
+  /* reserved for future collapse toggle */
+  margin: 0;
+}
+
+body.rustscript .rs-locking-pane .rs-semantic-section[data-key='witness'] .rs-semantic-block-inner {
+  border-left-color: rgba(196, 92, 106, 0.25);
+}
+
+body.rustscript .rs-unlocking-pane .rs-semantic-section[data-key='witness'] .rs-semantic-block-inner {
+  border-left-color: rgba(252, 163, 17, 0.28);
+}
+
+body.rustscript .rs-semantic-key {
+  color: #8ec5ea;
+  font-weight: 500;
+}
+
+body.rustscript .rs-locking-pane .rs-semantic-key {
+  color: #9eb8e8;
+}
+
+body.rustscript .rs-unlocking-pane .rs-semantic-key {
+  color: #e8c878;
+}
+
+body.rustscript .rs-semantic-string {
+  color: #8fd49a;
+}
+
+body.rustscript .rs-semantic-literal {
+  color: #b8a0e0;
+}
+
+body.rustscript .rs-semantic-brace,
+body.rustscript .rs-semantic-punct {
+  color: #555;
+  opacity: 0.85;
+}
+
+body.rustscript .rs-semantic-opcode {
+  display: inline;
+  margin: 0;
+  padding: 0 2px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: #d4a855;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: inherit;
+  cursor: pointer;
+  vertical-align: baseline;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: color 0.12s, text-decoration-color 0.12s, background 0.12s;
+}
+
+body.rustscript .rs-locking-pane .rs-semantic-opcode {
+  color: #d8a8b0;
+}
+
+body.rustscript .rs-unlocking-pane .rs-semantic-opcode {
+  color: #e8c878;
+}
+
+body.rustscript .rs-semantic-opcode:hover {
+  text-decoration-color: rgba(252, 163, 17, 0.55);
+}
+
+body.rustscript .rs-locking-pane .rs-semantic-opcode:hover {
+  text-decoration-color: rgba(196, 92, 106, 0.55);
+}
+
+body.rustscript .rs-semantic-opcode:active {
+  background: rgba(252, 163, 17, 0.14) !important;
+}
+
+body.rustscript .rs-placeholder-chip {
+  display: inline-block;
+  margin: 0 1px;
+  padding: 0 6px;
+  min-height: 1.5em;
+  box-sizing: border-box;
+  border-radius: 3px;
+  border: 1px solid rgba(252, 163, 17, 0.35);
+  background: rgba(252, 163, 17, 0.06);
+  color: #c89850;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  vertical-align: baseline;
+}
+
+body.rustscript .rs-placeholder-chip:hover {
+  background: rgba(252, 163, 17, 0.2) !important;
+}
+
+body.rustscript .rs-locking-pane .rs-placeholder-chip {
+  border-color: rgba(196, 92, 106, 0.4);
+  background: rgba(196, 92, 106, 0.08);
+  color: #c89098;
+}
+
+body.rustscript .rs-placeholder-chip:hover {
+  border-color: rgba(252, 163, 17, 0.65);
+  background: rgba(252, 163, 17, 0.2);
+  color: #ffe8b0 !important;
+}
+
+body.rustscript .rs-locking-pane .rs-placeholder-chip:hover {
+  border-color: rgba(196, 92, 106, 0.65);
+  background: rgba(196, 92, 106, 0.2);
+  color: #fce0e4 !important;
+}
+
+body.rustscript .rs-unlocking-pane .rs-placeholder-chip:hover {
+  color: #ffe8b0 !important;
+}
+
+/* Filled editable values — same rhythm as placeholder chips */
+body.rustscript .rs-value-chip {
+  display: inline-block;
+  margin: 0 1px;
+  padding: 0 6px;
+  min-height: 1.5em;
+  max-width: min(100%, 420px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+  border-radius: 3px;
+  border: 1px solid rgba(140, 180, 140, 0.35);
+  background: rgba(92, 184, 106, 0.08);
+  color: #9ec4a4;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  vertical-align: baseline;
+  text-align: left;
+}
+
+body.rustscript .rs-value-chip:hover {
+  border-color: rgba(140, 200, 150, 0.55);
+  background: rgba(92, 184, 106, 0.18) !important;
+  color: #d0f0d4 !important;
+}
+
+body.rustscript .rs-locking-pane .rs-value-chip {
+  border-color: rgba(180, 130, 140, 0.35);
+  background: rgba(196, 92, 106, 0.08);
+  color: #c8a0a8;
+}
+
+body.rustscript .rs-locking-pane .rs-value-chip:hover {
+  border-color: rgba(210, 140, 150, 0.55);
+  background: rgba(196, 92, 106, 0.18) !important;
+  color: #fce0e4 !important;
+}
+
+body.rustscript .rs-unlocking-pane .rs-value-chip {
+  border-color: rgba(200, 170, 100, 0.35);
+  background: rgba(252, 163, 17, 0.08);
+  color: #c8b878;
+}
+
+body.rustscript .rs-value-chip-warn {
+  border-color: rgba(252, 163, 17, 0.55) !important;
+  background: rgba(252, 163, 17, 0.12) !important;
+  color: #e8b060 !important;
+}
+
+body.rustscript .rs-semantic-empty {
+  display: none;
+}
+
+/* Hide legacy eval pills (conflicts with panel VISUAL/SOURCE) */
+body.rustscript .rs-eval-panel {
+  display: none !important;
+}
+
+body.rustscript .rs-prompt-overlay textarea,
+body.rustscript .rs-prompt-overlay input[type='text'] {
+  width: 100%;
+  margin: 8px 0;
+  box-sizing: border-box;
+}
+
+body.rustscript .rs-prompt-now {
+  margin-bottom: 8px;
+}

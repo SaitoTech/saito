@@ -76,7 +76,11 @@ function tokens_to_ast(tokens) {
             const value = advance().value;
 
             if (key.startsWith('witness.')) {
-              witnessDecl[key.slice('witness.'.length)] = value;
+              const field = key.slice('witness.'.length);
+              witnessDecl[field] = {
+                value,
+                literal: valTok.type === 'STRING'
+              };
             } else if (peekType() === 'AS') {
               advance();
               const aliasTok = expect('IDENT');

@@ -1,5 +1,62 @@
+function clone_json(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function is_logical_op(op) {
+  const name = String(op || '').toLowerCase();
+  return name === 'and' || name === 'or' || name === 'then' || name === 'not';
+}
+
+function uses_nested_args(node) {
+  return node.args && typeof node.args === 'object' && !Array.isArray(node.args);
+}
+
+function script_and_witness_from_node(node) {
+  if (uses_nested_args(node)) {
+    return {
+      script: { op: String(node.op).toUpperCase(), ...node.args },
+      witness: node.witness && typeof node.witness === 'object' ? node.witness : {}
+    };
+  }
+
+  const witness = node.witness && typeof node.witness === 'object' ? { ...node.witness } : {};
+  const script = { op: String(node.op).toUpperCase() };
+  const skip = new Set(['op', 'witness', 'args', 'bindings', 'witnessDecl']);
+
+  for (const key of Object.keys(node)) {
+    if (!skip.has(key)) {
+      script[key] = node[key];
+    }
+  }
+
+  return { script, witness };
+}
+
 /**
- * Execute unlocking script (same JSON shape as locking; witness slots materialized on RIGHT).
+ * LEFT panel: exampleScript only (contract to hash). No witness unless user declared.
+ */
+ast_execute.template_locking = function template_locking(opcode) {
+  if (!opcode?.exampleScript || typeof opcode.exampleScript !== 'object') {
+    return { op: opcode?.name || '' };
+  }
+  const script = clone_json(opcode.exampleScript);
+  delete script.witness;
+  return script;
+};
+
+/**
+ * RIGHT panel: exampleScript fields + exampleWitness for live testing.
+ */
+ast_execute.template_unlocking = function template_unlocking(opcode) {
+  const unlocking = ast_execute.template_locking(opcode);
+  if (opcode?.exampleWitness && typeof opcode.exampleWitness === 'object') {
+    unlocking.witness = clone_json(opcode.exampleWitness);
+  }
+  return unlocking;
+};
+
+/**
+ * Execute unlocking script (flat script + witness, or legacy args shape).
  */
 async function ast_execute(ast, execution_context) {
   const context = execution_context ?? {};
@@ -57,14 +114,7 @@ async function ast_execute(ast, execution_context) {
       return false;
     }
 
-    const opcodeArgs =
-      args && typeof args === 'object' && !Array.isArray(args)
-        ? args
-        : node.bindings && typeof node.bindings === 'object'
-          ? { ...node.bindings }
-          : {};
-
-    const nodeWitness = node.witness && typeof node.witness === 'object' ? node.witness : {};
+    const { script, witness: nodeWitness } = script_and_witness_from_node(node);
     const execContext = {
       ...context,
       witness: { ...context.witness, ...nodeWitness }
@@ -74,7 +124,6 @@ async function ast_execute(ast, execution_context) {
       execContext.__opcodes = {};
     }
 
-    const script = { op: String(node.op).toUpperCase(), ...opcodeArgs };
     const result = handler.execute(app, script, execContext.witness, execContext);
     return result instanceof Promise ? await result : !!result;
   }
@@ -164,34 +213,44 @@ ast_execute.materialize = function materialize_script(raw, opcodes, unlocking = 
 
   const handler = opcodes[op];
   const defaults = opcode_defaults(handler);
-  const args = { ...defaults };
-  const witness = {};
-
   const bindings = raw.bindings && typeof raw.bindings === 'object' ? raw.bindings : {};
   const witnessDecl =
     raw.witnessDecl && typeof raw.witnessDecl === 'object' ? raw.witnessDecl : {};
 
-  for (const [key, value] of Object.entries(bindings)) {
-    args[key] = value;
-  }
+  const script = {
+    op: String(raw.op).toUpperCase(),
+    ...defaults,
+    ...bindings
+  };
 
-  for (const [argName, slot] of Object.entries(witnessDecl)) {
-    const slotName = String(slot);
-    args[argName] = `context.witness.${slotName}`;
-    witness[slotName] = '';
-  }
-
-  if (unlocking) {
-    for (const field of witness_fields_for(handler, args)) {
-      set_nested_empty(witness, field);
+  if (Object.keys(witnessDecl).length > 0) {
+    script.witness = {};
+    for (const [field, decl] of Object.entries(witnessDecl)) {
+      const value = decl && typeof decl === 'object' ? decl.value : decl;
+      const literal = decl && typeof decl === 'object' ? !!decl.literal : false;
+      if (literal) {
+        script.witness[field] = value;
+      } else {
+        script.witness[String(value)] = '';
+      }
     }
   }
 
-  return {
-    op: String(raw.op).toUpperCase(),
-    args,
-    witness
-  };
+  if (!unlocking) {
+    return script;
+  }
+
+  const unlockingScript = { ...script };
+  if (handler?.exampleWitness && typeof handler.exampleWitness === 'object') {
+    unlockingScript.witness = clone_json(handler.exampleWitness);
+    if (script.witness && typeof script.witness === 'object') {
+      unlockingScript.witness = { ...unlockingScript.witness, ...script.witness };
+    }
+  } else if (script.witness) {
+    unlockingScript.witness = { ...script.witness };
+  }
+
+  return unlockingScript;
 };
 
 /**
@@ -213,17 +272,19 @@ ast_execute.unlocking_from_locking = function unlocking_from_locking(locking, op
   }
 
   const handler = opcodes[op];
-  const witness = locking.witness && typeof locking.witness === 'object' ? { ...locking.witness } : {};
+  const unlocking = clone_json(locking);
 
-  for (const field of witness_fields_for(handler, locking.args)) {
-    set_nested_empty(witness, field);
+  if (handler?.exampleWitness && typeof handler.exampleWitness === 'object') {
+    const example = clone_json(handler.exampleWitness);
+    unlocking.witness =
+      unlocking.witness && typeof unlocking.witness === 'object'
+        ? { ...example, ...unlocking.witness }
+        : example;
+  } else if (!unlocking.witness) {
+    unlocking.witness = {};
   }
 
-  return {
-    op: locking.op,
-    args: locking.args && typeof locking.args === 'object' ? { ...locking.args } : {},
-    witness
-  };
+  return unlocking;
 };
 
 ast_execute.validate = function ast_validate(ast) {
@@ -262,9 +323,13 @@ ast_execute.validate = function ast_validate(ast) {
       return;
     }
 
-    if (!node.args || typeof node.args !== 'object' || Array.isArray(node.args)) {
-      errors.push({ path, message: 'Opcode requires "args" object' });
+    if (uses_nested_args(node)) {
+      if (node.witness != null && typeof node.witness !== 'object') {
+        errors.push({ path, message: '"witness" must be an object' });
+      }
+      return;
     }
+
     if (node.witness != null && typeof node.witness !== 'object') {
       errors.push({ path, message: '"witness" must be an object' });
     }
