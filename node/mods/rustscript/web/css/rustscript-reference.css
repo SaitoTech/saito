@@ -1,0 +1,142 @@
+/* Opcode reference — compact protocol documentation */
+
+body.rustscript .rs-sidebar-reference {
+  height: 100%;
+  min-height: 0;
+}
+
+body.rustscript .rs-ref-root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  border-radius: 4px;
+  transition: box-shadow 0.2s;
+}
+
+body.rustscript .rs-ref-root.rs-ref-pulse {
+  box-shadow: 0 0 0 1px rgba(252, 163, 17, 0.45), 0 0 16px rgba(252, 163, 17, 0.12);
+}
+
+body.rustscript .rs-ref-title {
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #888;
+  margin: 0;
+}
+
+body.rustscript .rs-ref-select {
+  width: 100%;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--rustscript-border);
+  border-radius: 4px;
+  background: var(--rustscript-background);
+  color: var(--rustscript-text);
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.82em;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg fill='%23888' height='10' viewBox='0 0 24 24' width='10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  cursor: pointer;
+}
+
+body.rustscript .rs-ref-detail {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+body.rustscript .rs-ref-doc {
+  padding: 4px 0 8px;
+}
+
+body.rustscript .rs-ref-doc-name {
+  font-size: 0.95em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-family: var(--rustscript-font-mono);
+  color: var(--rustscript-text);
+  margin: 0 0 6px;
+}
+
+body.rustscript .rs-ref-doc-summary {
+  font-size: 0.82em;
+  line-height: 1.45;
+  color: #999;
+  margin: 0 0 12px;
+}
+
+body.rustscript .rs-ref-block {
+  margin-bottom: 12px;
+}
+
+body.rustscript .rs-ref-block-label {
+  font-size: 0.68em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+body.rustscript .rs-ref-field-list {
+  margin: 0;
+  padding: 0 0 0 1.1em;
+  font-size: 0.82em;
+  line-height: 1.5;
+  color: #aaa;
+}
+
+body.rustscript .rs-ref-field-list code {
+  font-family: var(--rustscript-font-mono);
+  color: #8ec5ea;
+  font-size: 0.95em;
+}
+
+body.rustscript .rs-ref-returns {
+  margin: 0;
+  font-size: 0.82em;
+  line-height: 1.45;
+  color: #888;
+}
+
+body.rustscript .rs-ref-example {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 3px;
+  background: #101010;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.72em;
+  line-height: 1.4;
+  color: #7a9a7a;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+body.rustscript .rs-ref-load-example {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  font-size: 0.7em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  font-family: var(--rustscript-font-mono);
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+}
+
+body.rustscript .rs-ref-load-example:hover {
+  border-color: #666;
+  color: #bbb;
+}

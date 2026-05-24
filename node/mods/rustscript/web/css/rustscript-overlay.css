@@ -51,3 +51,93 @@ body.rustscript .overlay-actions button {
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border 0.15s;
 }
+
+body.rustscript .rs-prompt-primary {
+  border-color: rgba(92, 184, 106, 0.45) !important;
+  color: #9ed4a8 !important;
+  font-weight: 700;
+}
+
+body.rustscript .rs-prompt-note {
+  margin: -4px 0 8px;
+  font-size: 0.78em;
+  color: var(--rustscript-muted);
+  font-style: italic;
+}
+
+body.rustscript .rs-prompt-sign-row,
+body.rustscript .rs-prompt-hash-row {
+  margin: 4px 0 10px;
+}
+
+body.rustscript .rs-prompt-use-wallet,
+body.rustscript .rs-prompt-now {
+  margin: 4px 0 10px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--rustscript-border);
+  background: var(--rustscript-panel);
+  color: var(--rustscript-muted);
+  cursor: pointer;
+  font-size: 0.85em;
+}
+
+body.rustscript .rs-prompt-use-wallet:hover,
+body.rustscript .rs-prompt-now:hover {
+  color: var(--rustscript-text);
+  border-color: #555;
+}
+
+body.rustscript .rs-prompt-preview {
+  margin: 8px 0 12px;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(92, 184, 106, 0.25);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+body.rustscript .rs-prompt-preview-value {
+  width: 100%;
+  min-height: 56px;
+  margin: 6px 0;
+  padding: 8px;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.82em;
+  background: #0a0a0a;
+  color: #9ed4a8;
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+body.rustscript .rs-prompt-use-preview {
+  padding: 5px 10px;
+  border-radius: 3px;
+  border: 1px solid #3a3a3a;
+  background: #141414;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.82em;
+}
+
+body.rustscript .rs-prompt-validation {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  color: #e8b060;
+  background: rgba(252, 163, 17, 0.1);
+  border: 1px solid rgba(252, 163, 17, 0.25);
+}
+
+body.rustscript .rs-prompt-value.rs-prompt-invalid {
+  border-color: rgba(252, 163, 17, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(252, 163, 17, 0.15);
+}
+
+body.rustscript .rs-prompt-overlay input.rs-prompt-publickey {
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.9em;
+  padding: 8px 10px;
+}

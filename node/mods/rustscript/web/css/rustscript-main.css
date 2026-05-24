@@ -1,84 +1,28 @@
 body.rustscript .saito-rustscript {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   height: 100%;
   background-color: var(--rustscript-background);
   color: var(--rustscript-text);
   font-family: var(--rustscript-font-sans);
-}
-
-body.rustscript .rs-toolbar {
-  height: calc(var(--rustscript-toolbar-item-height) + var(--rustscript-toolbar-padding-vertical) * 2);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--rustscript-border);
-  background: var(--rustscript-surface);
-}
-
-body.rustscript .rs-template-select {
-  height: var(--rustscript-toolbar-item-height);
-  min-height: var(--rustscript-toolbar-item-height);
-  padding: var(--rustscript-toolbar-padding-vertical) 32px var(--rustscript-toolbar-padding-vertical) 10px;
-  box-sizing: border-box;
-  background: var(--rustscript-panel);
-  border: 1px solid var(--rustscript-border);
-  border-radius: 4px;
-  color: var(--rustscript-text);
-  font-size: 0.9em;
-  font-family: var(--rustscript-font-sans);
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg fill='%23fca311' height='12' viewBox='0 0 24 24' width='12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px;
-  cursor: pointer;
-}
-
-body.rustscript .rs-template-select.rs-disabled {
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-body.rustscript .rs-toolbar-right {
-  display: flex;
-  gap: 8px;
-}
-
-body.rustscript .rs-mode-btn {
-  height: var(--rustscript-toolbar-item-height);
-  min-height: var(--rustscript-toolbar-item-height);
-  padding: var(--rustscript-toolbar-padding-vertical) 12px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  border: 1px solid var(--rustscript-border);
-  background: var(--rustscript-panel);
-  font-size: 0.9em;
-  color: var(--rustscript-muted);
-  cursor: pointer;
-}
-
-body.rustscript .rs-mode-btn.active {
-  color: var(--rustscript-accent);
-  cursor: default;
+  position: relative;
 }
 
 body.rustscript .rs-layout {
   display: flex;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
+  position: relative;
 }
 
 body.rustscript .rs-main {
   flex: 1;
   display: flex;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 10px;
   overflow: hidden;
   min-height: 0;
 }
@@ -90,14 +34,8 @@ body.rustscript .rs-editor {
   min-width: 0;
   background: var(--rustscript-panel);
   border: 1px solid var(--rustscript-border);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
-}
-
-body.rustscript .rs-editor-header {
-  padding: 8px 10px;
-  background: var(--rustscript-surface);
-  border-bottom: 1px solid var(--rustscript-border);
 }
 
 body.rustscript .rs-editor-title {
@@ -109,8 +47,8 @@ body.rustscript .rs-editor-title {
 
 body.rustscript .rs-editor-subtitle {
   display: block;
-  font-size: 0.75em;
-  color: var(--rustscript-muted);
+  font-size: 0.8em;
+  color: #b8b8b8;
   margin-top: 2px;
 }
 
@@ -135,58 +73,44 @@ body.rustscript .rs-textarea.rs-readonly {
 }
 
 body.rustscript .rs-sidebar {
-  width: 320px;
+  width: 280px;
   background: var(--rustscript-surface);
   border-left: 1px solid var(--rustscript-border);
-  padding: 16px;
-  overflow-y: auto;
-}
-
-body.rustscript .rs-helper {
-  background: var(--rustscript-panel);
-  border: 1px solid var(--rustscript-border);
-  border-radius: 6px;
   padding: 12px;
-}
-
-body.rustscript .rs-helper h3 {
-  font-size: 1em;
-  margin-bottom: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 body.rustscript .rs-tools {
   background: var(--rustscript-surface);
   border-top: 1px solid var(--rustscript-border);
-  padding: 14px 16px;
-}
-
-body.rustscript .rs-tools-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 8px 12px;
 }
 
 body.rustscript .rs-tools-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 body.rustscript .rs-tool-btn {
-  height: var(--rustscript-toolbar-item-height);
-  padding: 0 12px;
+  height: 32px;
+  padding: 0 10px;
   border-radius: 4px;
   border: 1px solid var(--rustscript-border);
   background: var(--rustscript-panel);
-  font-size: 0.9em;
-  color: var(--rustscript-text);
+  font-size: 0.78em;
+  font-family: var(--rustscript-font-mono);
+  color: #aaa;
   cursor: pointer;
 }
 
 body.rustscript .rs-tool-btn:hover {
-  background: var(--rustscript-accent);
-  border-color: var(--rustscript-accent);
-  color: #000;
+  border-color: #555;
+  color: var(--rustscript-text);
+  background: #222;
 }
 
 @media (max-width: 1000px) {
@@ -202,5 +126,6 @@ body.rustscript .rs-tool-btn:hover {
     width: 100%;
     border-left: none;
     border-top: 1px solid var(--rustscript-border);
+    max-height: 38vh;
   }
 }
