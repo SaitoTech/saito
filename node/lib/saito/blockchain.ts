@@ -72,21 +72,10 @@ export default class Blockchain extends SaitoBlockchain {
       // await this.onAddBlockSuccess(blockId, hash);
       // console.log("after onAddBlockSuccess...");
     });
-    // this.app.connection.on('on-chain-reorg',async ()=>{
-    //   await this.onChainReorganization(block_id, block_hash, lc, pos);
-    // });
   }
 
   public async affixCallbacks(block: Block) {
-    console.log('%%%%%%%%%%%%%%%%%%%%%%%%%');
-    console.log('%%%% AFFIX CALLBACKS %%%%');
-    console.log('%%%%%%%%%%%%%%%%%%%%%%%%%');
-    console.log('%%%%%%%%%%%%%%%%%%%%%%%%%');
-    console.log('for: block: ' + block.id);
-    console.log('into affix callbacks... 1');
-
     if (this.callbacks.has(block.hash)) {
-      console.info('nope out of affix callbacks on block: ' + block.hash);
       return;
     }
 
@@ -125,9 +114,6 @@ export default class Blockchain extends SaitoBlockchain {
       }
     }
 
-    console.info(
-      `Affixed ${callbacks.length} callbacks for ${validTxs}/${txs.length} transactions`
-    );
     this.callbacks.set(block.hash, callbacks);
     this.callbackIndices.set(block.hash, callbackIndices);
 

@@ -22,7 +22,7 @@ class AdminMain {
 
     if (need_to_set_key && view != "overview") {
       alert("You need to set your Admin Key first...");
-      voew = "overview";
+      view = "overview";
       return;
     }
 
@@ -46,9 +46,11 @@ class AdminMain {
     document.querySelectorAll(".saito-admin-nav-item").forEach((el) => {
       el.classList.remove("active");
     });
-    document.querySelectorAll(`.saito-admin-nav-item .${view}`).forEach((el) => {
+    document.querySelectorAll(`.saito-admin-nav-item.${view}`).forEach((el) => {
       el.classList.add("active");
     });
+
+    this.setActivePanel(view);
 
     if (view == "overview") {
       this.overview_ui.render();
@@ -73,6 +75,33 @@ class AdminMain {
     this.attachEvents();
   }
 
+
+  setActivePanel(view) {
+    const panels = {
+      overview: ".admin-overview",
+      modules: ".admin-modules",
+      peers: ".admin-peers",
+      database: ".admin-database",
+      blocks: ".admin-blocks",
+      mempool: ".admin-memepool",
+      options: ".admin-options"
+    };
+
+    Object.values(panels).forEach((selector) => {
+      const el = document.querySelector(selector);
+      if (el) {
+        el.style.display = "none";
+      }
+    });
+
+    const active = panels[view];
+    if (active) {
+      const el = document.querySelector(active);
+      if (el) {
+        el.style.display = "";
+      }
+    }
+  }
 
   attachEvents() {
     document.querySelectorAll("[data-admin-view]").forEach((el) => {

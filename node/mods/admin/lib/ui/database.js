@@ -37,7 +37,7 @@ class AdminDatabase {
         const res = res_tx.returnMessage();
         if (res?.err) callback(null, res.err);
         else callback(res?.result, null);
-      });
+      }, this.mod.server_publickey);
     } catch (e) {
       callback(null, e.message || String(e));
     }

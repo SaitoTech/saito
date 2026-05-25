@@ -289,7 +289,6 @@ class Archive extends ModTemplate {
 		if (this.app.BROWSER == 0) {
 			services.push(new PeerService(null, 'archive'));
 		}
-		console.log('archive services', services);
 		return services;
 	}
 
@@ -318,7 +317,6 @@ class Archive extends ModTemplate {
 			let obj = { block_id, block_hash };
 
 			if (tx.type == 8) {
-				console.log('ARCHIVE saving an NFT!!!');
 				obj.field4 = this.app.wallet.computeNFTIdFromTx(tx);
 				obj.field1 = txmsg.module || 'NFT';
 				obj.preserve = 1;

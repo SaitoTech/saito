@@ -2,16 +2,14 @@ const CryptoModule = require('../../lib/templates/cryptomodule');
 
 class TST extends CryptoModule {
 	constructor(app) {
-		super(app, "TST");
+		super(app, 'TST');
 
 		this.slug = 'tst';
 
-		this.description =
-			'This module implement CryptoModule functions without moving tokens';
+		this.description = 'This module implement CryptoModule functions without moving tokens';
 		this.information =
 			'This is some important information you may care to read about when enabling the TST crypto module';
 		this.warning = 'The TST crypto module wishes you to read this warning';
-
 	}
 
 	//
@@ -24,23 +22,21 @@ class TST extends CryptoModule {
 		return this.address;
 	}
 
-	async activate(){
-
-		if (!this.isActivated()){
-
-			if (!this?.address){
+	async activate() {
+		if (!this.isActivated()) {
+			if (!this?.address) {
 				this.privateKey = this.app.crypto.generateKeys();
-				this.address = this.app.crypto.generatePublicKey(this.privateKey);			
+				this.address = this.app.crypto.generatePublicKey(this.privateKey);
 			}
 
-			if (Number(this.balance) == 0){
-				this.balance = (100*Math.random()).toFixed(8);
+			if (Number(this.balance) == 0) {
+				this.balance = (100 * Math.random()).toFixed(8);
 			}
 
 			this.app.connection.emit('saito-header-install-crypto', this.ticker);
 			this.save();
 		}
-		
+
 		await super.activate();
 	}
 
@@ -52,10 +48,10 @@ class TST extends CryptoModule {
 		return this.privateKey;
 	}
 
-	async checkBalance(){
+	async fetchBalance() {
 		return 0;
 	}
-	
+
 	//
 	// sends a payment in amount requested to the specified address if possible
 	//
@@ -78,21 +74,14 @@ class TST extends CryptoModule {
 	// @param {timestamp} timestamp after which transfer must have been made
 	// @return {Array} Array of {hash: {String}} where hash is the transaction_id
 	//
-	async receivePayment(
-		amount = '',
-		sender = '',
-		receiver = '',
-		timestamp,
-		unique_hash = ''
-	) {
+	async receivePayment(amount = '', sender = '', receiver = '', timestamp, unique_hash = '') {
 		if (Math.random() > 0.5) {
 			return 1;
 		}
 		return 0;
 	}
 
-
-	async checkWithdrawalFeeForAddress(address="", callback){
+	async checkWithdrawalFeeForAddress(address = '', callback) {
 		callback(0.005);
 	}
 
@@ -105,7 +94,6 @@ class TST extends CryptoModule {
 
 		return null;
 	}
-
 }
 
 module.exports = TST;

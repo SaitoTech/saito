@@ -1163,8 +1163,8 @@ impl Transaction {
             let mut nft_amount_out: Currency = 0;
             let mut nft_tuples_in: usize = 0;
             let mut nft_tuples_out: usize = 0;
-            let mut saito_amount_in: Currency = 0;
-            let mut saito_amount_out: Currency = 0;
+            let mut _saito_amount_in: Currency = 0;
+            let mut _saito_amount_out: Currency = 0;
 
             //
             // input NFT tuples
@@ -1236,7 +1236,7 @@ impl Transaction {
                     // accumulate totals
                     //
                     nft_amount_in += a.amount;
-                    saito_amount_in += b.amount;
+                    _saito_amount_in += b.amount;
                     nft_tuples_in += 1;
 
                     idx += 3;
@@ -1307,7 +1307,7 @@ impl Transaction {
                     // accumulate totals
                     //
                     nft_amount_out += a.amount;
-                    saito_amount_out += b.amount;
+                    _saito_amount_out += b.amount;
                     nft_tuples_out += 1;
 
                     idx += 3;

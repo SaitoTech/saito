@@ -64,7 +64,7 @@ class NodeSetup {
           } else {
             siteMessage(`Home Application will update on next Server Refresh...`, 2000);
           }
-        });
+        }, this.mod.server_publickey);
       };
     });
 
@@ -220,7 +220,7 @@ class NodeSetup {
       } else {
         reloadWindow(1500);
       }
-    });
+    }, this.mod.server_publickey);
   }
 }
 

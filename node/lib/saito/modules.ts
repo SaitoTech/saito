@@ -73,7 +73,6 @@ class Mods {
     // no callbacks on type=9 spv stubs
     //
     if (tx.type == 5) {
-      console.log('No callbacks for type 5');
       return;
     }
 
@@ -201,8 +200,6 @@ class Mods {
           for (let i = 0; i < dyn_mods.length; i++) {
             let mod_binary = dyn_mods[i]['binary'];
             let moduleCode = this.app.crypto.base64ToString(mod_binary);
-
-            console.log('moduleCode:', moduleCode);
 
             let mod = eval(moduleCode);
             console.log('mod : ', typeof mod);
@@ -415,9 +412,6 @@ class Mods {
     this.app.connection.on(
       'on_peer_handshake_complete',
       async (peer_id: bigint, publicKey: string) => {
-        console.log('###');
-        console.log('### OPHC');
-        console.log('###');
         if (this.app.BROWSER) {
           await this.app.wallet.setKeyList(this.app.keychain.returnWatchedPublicKeys());
         }
@@ -432,9 +426,6 @@ class Mods {
       }
     );
     this.app.connection.on('on_peer_services_up', async (peer_id: bigint, publicKey: string) => {
-      console.log('###');
-      console.log('### OPSU');
-      console.log('###');
       let peer = await this.app.network.getPeerByPeerId(peer_id);
       await this.onPeerServicesUp(peer);
     });
@@ -445,12 +436,12 @@ class Mods {
 
     this.app.connection.on('stun peer disconnect', async (peer_id, publicKey) => {
       await onStunPeerDisconnected(publicKey);
-      console.log('peer handshake completed for peer', publicKey);
+      console.log('stun peer disconnect for peer', publicKey);
     });
 
     const onConnectionUnstable = this.onConnectionUnstable.bind(this);
     this.app.connection.on('peer_disconnect', async (peer_id: bigint, public_key: string) => {
-      console.log('connection dropped -- triggering on connection unstable. key : ', public_key);
+      console.log('connection dropped -- triggering on peer disconnect. key : ', public_key);
       this.onConnectionUnstable(public_key);
     });
 
@@ -584,7 +575,6 @@ class Mods {
   async render() {
     for (let icb = 0; icb < this.mods.length; icb++) {
       if (this.mods[icb].browser_active == 1) {
-        console.log('modules.ts -- render active module -- ' + this.mods[icb].returnName());
         await this.mods[icb].render(this.app, this.mods[icb]);
       }
     }
@@ -698,7 +688,6 @@ class Mods {
   }
 
   onNewBlock(blk, i_am_the_longest_chain) {
-    console.log('### New Block ### ' + blk.id);
     for (let iii = 0; iii < this.mods.length; iii++) {
       this.mods[iii].onNewBlock(blk, i_am_the_longest_chain);
     }
@@ -706,7 +695,6 @@ class Mods {
   }
 
   onChainReorganization(block_id, block_hash, lc) {
-    // console.log('### Reorganization ### ' + block_id + ' - ' + block_hash);
     for (let imp = 0; imp < this.mods.length; imp++) {
       this.mods[imp].onChainReorganization(block_id, block_hash, lc);
     }
@@ -861,10 +849,8 @@ class Mods {
       if (!path) {
         continue;
       }
-      console.log('creating websocket server for module :' + mod.name + ' on path : ' + path);
       let wss = new ws.WebSocketServer({
         noServer: true,
-        // todo : check if the path is already being used or reserved?
         path: '/' + path
       });
       webserver.on('upgrade', (request: any, socket: any, head: any) => {
@@ -873,9 +859,7 @@ class Mods {
         const pathParts = pathname.split('/').filter(Boolean);
         const subdirectory = pathParts.length > 0 ? pathParts[0] : null;
         if (subdirectory === path) {
-          console.debug('connection on module : ' + mod.name + ' upgrade ----> ' + request.url);
           wss.handleUpgrade(request, socket, head, (websocket: any) => {
-            console.log('handling upgrade ///');
             wss.emit('connection', websocket, request);
           });
         }
@@ -899,7 +883,6 @@ class Mods {
     mod.name = name;
     mod.initialize(this.app);
     this.mods.push(mod);
-    console.log('pushed onto stack!');
     return mod;
   }
 }

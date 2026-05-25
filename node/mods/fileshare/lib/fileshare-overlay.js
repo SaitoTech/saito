@@ -9,8 +9,7 @@ class FileShareOverlay {
 		this.recipient = recipient;
 		this.throttle_me = false;
 		this.qs = `#file-transfer-${this.fileId}-${this.recipient}`;
-
-		app.connection.on('stun-data-channel-open', (peerId) => {
+		this.onStunDataChannelOpen = (peerId) => {
 			console.debug('FILESHARE: stun-data-channel-open');
 			if (peerId == this.recipient && this?.active) {
 				this.onConnectionSuccess();
@@ -22,32 +21,36 @@ class FileShareOverlay {
 					this.recipient
 				);
 			}
-		});
+		};
+		app.connection.on('stun-data-channel-open', this.onStunDataChannelOpen);
 
 		// stun-connection-timeout --> quit waiting
-		app.connection.on('stun-connection-close', (peerId) => {
+		this.onStunConnectionClose = (peerId) => {
 			if (peerId == this.recipient && this?.active) {
 				console.debug('FILESHARE: stun-connection-close');
 				this.mod.stun.removePeerConnection(peerId);
 				this.onConnectionFailure();
 				this.active = false;
 			}
-		});
+		};
+		app.connection.on('stun-connection-close', this.onStunConnectionClose);
 
-		app.connection.on('stun-data-channel-close', (peerId) => {
+		this.onStunDataChannelClose = (peerId) => {
 			if (peerId == this.recipient && this?.active) {
 				console.debug('FILESHARE: stun-data-channel-close');
 				this.onConnectionFailure();
 			}
-		});
+		};
+		app.connection.on('stun-data-channel-close', this.onStunDataChannelClose);
 
-		app.connection.on('stun-connection-failed', (peerId) => {
+		this.onStunConnectionFailed = (peerId) => {
 			if (peerId == this.recipient && this?.active) {
 				console.debug('FILESHARE: stun-connection-failed');
 				this.onConnectionFailure();
 				this.active = false;
 			}
-		});
+		};
+		app.connection.on('stun-connection-failed', this.onStunConnectionFailed);
 	}
 
 	render(needs_file = true) {
@@ -67,6 +70,11 @@ class FileShareOverlay {
 	}
 
 	remove() {
+		this.app.connection.removeListener('stun-data-channel-open', this.onStunDataChannelOpen);
+		this.app.connection.removeListener('stun-connection-close', this.onStunConnectionClose);
+		this.app.connection.removeListener('stun-data-channel-close', this.onStunDataChannelClose);
+		this.app.connection.removeListener('stun-connection-failed', this.onStunConnectionFailed);
+
 		if (document.querySelector(this.qs)) {
 			document.querySelector(this.qs).remove();
 		}
@@ -85,10 +93,11 @@ class FileShareOverlay {
 	}
 
 	updateFileData(file) {
+		const safeFileName = this.app.browser.escapeHTML(file?.name || '');
 		let html = `<div class="saito-file-transfer" id="saito-file-transfer-${this.fileId}">
 					<div class="file-transfer-progress"></div>
 					<i class="fa-solid fa-file-export"></i>
-					<div class="file-name">${file.name}</div>
+					<div class="file-name">${safeFileName}</div>
 					<div class="file-size fixed-width">${this.mod.calcSize(file.size)}</div>
 					</div>`;
 
@@ -270,7 +279,12 @@ class FileShareOverlay {
 		let close = document.querySelector(this.qs + ' .icon-button#close');
 		if (close) {
 			close.onclick = async (e) => {
-				if (this?.active && this?.fileId) {
+				const hasSelectedFile = !!this.mod.outgoing_files[this.fileId]?.file;
+				const hasPeerConnection =
+					!!this.recipient && !!this.mod.stun?.hasConnection(this.recipient);
+				const shouldConfirmCancel = hasSelectedFile || hasPeerConnection;
+
+				if (this?.active && this?.fileId && shouldConfirmCancel) {
 					let c = await sconfirm('Are you sure you want to cancel?');
 					if (!c) {
 						return;

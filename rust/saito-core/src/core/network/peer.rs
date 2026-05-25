@@ -1,8 +1,9 @@
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
+use crate::core::network::msg::blockchain::MAX_BLOCKCHAIN_CHUNK;
 use crate::core::network::service::Service;
 use crate::core::process::version::Version;
 use crate::core::util::configuration::Endpoint;
-use log::{info, warn};
+use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -70,6 +71,7 @@ pub struct Peer {
     pub last_request_blockchain_block_id: u64,
     pub last_request_blockchain_timestamp: u64,
     pub last_request_blockchain_score: u32,
+    pub last_request_blockchain_chunksize: usize,
 
     pub messages_received: u64,
     pub messages_sent: u64,
@@ -127,6 +129,7 @@ impl Peer {
             last_request_blockchain_block_id: 0,
             last_request_blockchain_timestamp: 0,
             last_request_blockchain_score: 0,
+            last_request_blockchain_chunksize: 0,
             messages_received: 0,
             messages_sent: 0,
             blocks_received: 0,
@@ -169,12 +172,6 @@ impl Peer {
     }
 
     pub fn on_disconnect(&mut self, current_time: Timestamp) {
-        let prev_connected = self.is_connected;
-        let prev_syncing = self.is_syncing;
-        let prev_synced = self.is_synced;
-        let prev_services_fetching = self.is_services_fetching;
-        let prev_services_fetched = self.is_services_fetched;
-
         // --- lifecycle ---
         self.is_connected = false;
         self.is_connecting = false;
@@ -204,24 +201,19 @@ impl Peer {
         self.is_synced = false;
 
         // --- logging (safe) ---
-        info!(
-            "[TEMP_SYNC_TRACE][SYNC] peer disconnect reset peer_id={} connected:{}->{} syncing:{}->{} synced:{}->{} services_fetching:{}->{} services_fetched:{}->{} at={}",
-            self.id,
-            prev_connected,
-            self.is_connected,
-            prev_syncing,
-            self.is_syncing,
-            prev_synced,
-            self.is_synced,
-            prev_services_fetching,
-            self.is_services_fetching,
-            prev_services_fetched,
-            self.is_services_fetched,
-            current_time
-        );
         if let Some(pk) = &self.public_key {
             info!("peer {:?} disconnected at {}", pk.to_base58(), current_time);
         }
+    }
+
+    pub fn on_sync_chunk_received(&mut self, chunk_len: usize) {
+        self.last_request_blockchain_chunksize = chunk_len;
+    }
+
+    pub fn should_continue_chain_sync(&self) -> bool {
+        self.is_syncing
+            && !self.is_synced
+            && self.last_request_blockchain_chunksize >= MAX_BLOCKCHAIN_CHUNK
     }
 
     pub fn on_sync_complete(&mut self) {
@@ -289,11 +281,6 @@ impl Peer {
         }
 
         if missing_lite_pk {
-            warn!(
-                "[TRACE_SYNC] missing_spv_public_key_fallback_to_full_block_url base={} block_hash={}",
-                base,
-                block_hash.to_hex()
-            );
             return format!("{}/block/{}", base, block_hash.to_hex());
         }
 

@@ -66,7 +66,6 @@ class Migration extends ModTemplate {
     let services = [];
     if (!this.app.BROWSER) {
       if (this.publicKey == this.migration_publickey) {
-        console.log('---> I provide migration services!!!!');
         services.push(new PeerService(null, 'migration'));
       }
     }
@@ -96,7 +95,6 @@ class Migration extends ModTemplate {
               await this.ercMod.activate();
 
               if (this.relay_available && this.ercMod?.address) {
-                console.log('My address: ', this.ercMod.formatAddress());
                 this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
                 siteMessage('checking if automated migration available...', 2000);
                 return;
@@ -316,7 +314,6 @@ class Migration extends ModTemplate {
 
     await newtx.sign();
 
-    console.log('Sending ping to migration bot: ', this.migration_publickey);
     if (offchain) {
       this.app.connection.emit('relay-transaction', newtx);
     } else {
@@ -342,7 +339,6 @@ class Migration extends ModTemplate {
       try {
         this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
         await this.ercMod.activate();
-        console.log('My address: ', this.ercMod.formatAddress());
       } catch (err) {
         // failure state, take self off line
         this.ercMod = false;
@@ -621,7 +617,6 @@ class Migration extends ModTemplate {
     if (this.app.BROWSER) {
       return;
     }
-    console.log('Migration onNEWBLOCK');
     if (this.pending_payments?.length) {
       for (let i = 0; i < this.pending_payments.length; i++) {
         if (this.pending_payments[i].status == 'pending') {
@@ -636,6 +631,8 @@ class Migration extends ModTemplate {
           };
 
           let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
+          let pending_balance = Number(await sm.getPendingBalance());
+
           await sm
             .sendPayment(amount, saitozen_key, pp.hash + 1, 'token migration')
             .then(() => {
@@ -644,7 +641,7 @@ class Migration extends ModTemplate {
               this.updatePayment(pp);
             })
             .catch((err) => {
-              if (sm.pending_balance && sm.pending_balance > amount) {
+              if (pending_balance && pending_balance > amount) {
                 console.info(
                   '666.777 --- insufficient slips to migrate SAITO keep active in queue'
                 );
@@ -678,8 +675,6 @@ class Migration extends ModTemplate {
         }
       }
     }
-
-    console.log('MIGRATION: DB Check -- ', this.pending_payments);
   }
 
   /**

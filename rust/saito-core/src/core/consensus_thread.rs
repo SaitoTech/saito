@@ -61,8 +61,6 @@ impl ConsensusThread {
         mempool_lock: Arc<RwLock<Mempool>>,
         blockchain_lock: Arc<RwLock<Blockchain>>,
     ) {
-        info!("generating issuance init transaction");
-
         let slips = self.storage.get_token_supply_slips_from_disk().await;
         let private_key;
         let public_key;
@@ -99,7 +97,6 @@ impl ConsensusThread {
             mempool
                 .add_transaction_if_validates(tx.clone(), &blockchain)
                 .await;
-            info!("added issuance init tx for : {:?}", tx.signature.to_hex());
         }
         debug_assert_eq!(
             mempool.transactions.len(),
@@ -115,8 +112,6 @@ impl ConsensusThread {
         blockchain: &Blockchain,
         configs: &(dyn Configuration + Send + Sync),
     ) -> Option<Block> {
-        // trace!("locking blockchain 3");
-
         self.block_producing_timer = 0;
 
         let block = mempool
@@ -279,7 +274,6 @@ impl ConsensusThread {
     }
 
     async fn produce_genesis_block(&mut self, timestamp: Timestamp) {
-        info!("producing genesis block");
         self.generate_issuance_tx(self.mempool_lock.clone(), self.blockchain_lock.clone())
             .await;
 
@@ -291,11 +285,6 @@ impl ConsensusThread {
             let block = mempool
                 .bundle_genesis_block(&mut blockchain, timestamp, configs.deref(), &self.storage)
                 .await;
-            info!(
-                "produced genesis block : {:?} with id : {:?}",
-                block.hash.to_hex(),
-                block.id
-            );
 
             let _res = blockchain
                 .add_block(
@@ -383,16 +372,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     "ConsensusThread::process_event : new block fetched : {:?}",
                     fetched_block_hash_hex
                 );
-                trace!(
-                    "[TRACE_SYNC] consensus_received_fetched_block block_id={} block_hash={}",
-                    block.id,
-                    fetched_block_hash_hex
-                );
-                trace!(
-                    "[TEMP_SYNC_TRACE][FETCH] consensus received fetched block block_id={} block_hash={} -> mempool -> add_blocks_from_mempool",
-                    block.id,
-                    fetched_block_hash_hex
-                );
                 let mut configs = self.config_lock.write().await;
                 // trace!("locking blockchain 4");
                 let mut blockchain = self.blockchain_lock.write().await;
@@ -414,20 +393,7 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     );
                     let mut mempool = self.mempool_lock.write().await;
                     mempool.add_block(block);
-                    trace!(
-                        "[TRACE_SYNC] added_to_mempool_from_fetch block_hash={} mempool_block_queue_len={}",
-                        fetched_block_hash_hex,
-                        mempool.blocks_queue.len()
-                    );
                 }
-                trace!(
-                    "[TEMP_SYNC_TRACE][FETCH] consensus submit queued blocks to blockchain add_blocks_from_mempool trigger=fetched-block block_hash={}",
-                    fetched_block_hash_hex
-                );
-                trace!(
-                    "[TRACE_SYNC] submit_mempool_to_blockchain trigger=fetched_block block_hash={}",
-                    fetched_block_hash_hex
-                );
                 blockchain
                     .add_blocks_from_mempool(
                         self.mempool_lock.clone(),
@@ -446,11 +412,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 trace!(
                     "ConsensusThread::process_event : new transaction : {:?}",
                     transaction.signature.to_hex()
-                );
-                info!(
-                    "[TRANSACTION - RECEIPT] - consensus received validated transaction tx_sig={} tx_type={:?}",
-                    transaction.signature.to_hex(),
-                    transaction.transaction_type
                 );
 
                 if let TransactionType::GoldenTicket = transaction.transaction_type {
@@ -487,28 +448,13 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
 
     async fn on_init(&mut self) {
         info!(
-            "saito version = {}",
+            "Saito.on_init: version = {}",
             option_env!("CARGO_PKG_VERSION").unwrap_or("unknown")
         );
 
         let mut configs = self.config_lock.write().await;
         let mut blockchain = self.blockchain_lock.write().await;
         {
-            info!(
-                "genesis_period : {:?}",
-                configs.get_consensus_config().unwrap().genesis_period
-            );
-            info!(
-                "default_social_stake : {:?}",
-                configs.get_consensus_config().unwrap().default_social_stake
-            );
-            info!(
-                "default_social_stake_period : {:?}",
-                configs
-                    .get_consensus_config()
-                    .unwrap()
-                    .default_social_stake_period
-            );
             {
                 let consensus = configs.get_consensus_config().unwrap();
                 debug_assert!(
@@ -518,24 +464,8 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     consensus.block_confirmation_limit
                 );
             }
-            // let blockchain_configs =
-            //     ConfigManager::read_blockchain_configs(self.network.io_interface.deref())
-            //         .await
-            //         .map(|config| Some(config))
-            //         .unwrap_or_else(|e| {
-            //             error!(
-            //                 "Error reading blockchain config: {}. Loading with default values",
-            //                 e
-            //             );
-            //             Some(Default::default())
-            //         });
-            // configs.set_blockchain_configs(blockchain_configs);
 
             let blockchain_configs = configs.get_blockchain_configs();
-            info!(
-                "loading blockchain state from configs : {:?}",
-                blockchain_configs
-            );
             blockchain.last_block_hash =
                 SaitoHash::from_hex(blockchain_configs.last_block_hash.as_str()).unwrap_or([0; 32]);
             blockchain.last_block_id = blockchain_configs.last_block_id;
@@ -563,7 +493,7 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             let start_time = self.timer.get_timestamp_in_ms();
 
             info!(
-                "loading {:?} blocks from disk. Timestamp : {:?}",
+                "Saito.on_init: loading {:?} blocks from disk (ts: {:?})",
                 list.len(),
                 format_timestamp(start_time)
             );
@@ -600,31 +530,23 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 }
 
                 info!(
-                    "{:?} blocks remaining to be loaded. Timestamp : {:?}",
+                    "Saito.on_init: {:?} blocks remaining to be loaded. (ts: {:?})",
                     list.len(),
                     format_timestamp(self.timer.get_timestamp_in_ms())
                 );
             }
             {
                 let mut mempool = self.mempool_lock.write().await;
-                info!("removing {} failed blocks from mempool so new blocks can be bundled after node loadup", mempool.blocks_queue.len());
                 mempool.blocks_queue.clear();
             }
             if self.delete_old_blocks {
                 info!(
-                    "deleting old blocks from disk. latest_block_id : {}",
+                    "Saito.on_init: deleting old blocks from disk. latest_block_id : {}",
                     blockchain.get_latest_block_id()
                 );
                 let purge_id = blockchain
                     .get_latest_block_id()
                     .saturating_sub(blockchain.genesis_period * 2);
-                info!(
-                    "removing {} blocks from disk which were not loaded to blockchain or older than : {} where genesis block : {}. where genesis_period = {}",
-                    files_to_delete.len(),
-                    purge_id,
-                    blockchain.genesis_block_id,
-                    blockchain.genesis_period,
-                );
                 for (file_name, block_id) in files_to_delete {
                     if block_id < purge_id {
                         self.storage
@@ -639,7 +561,7 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             configs.get_blockchain_configs_mut().initial_loading_status =
                 InitialLoadingStatus::Completed;
             info!(
-                "{:?} total blocks in blockchain. Timestamp : {:?}, elapsed_time : {:?}",
+                "Saito.on_init: {:?} total blocks in blockchain (ts: {:?}, elapsed: {:?})",
                 blockchain.blocks.len(),
                 format_timestamp(self.timer.get_timestamp_in_ms()),
                 self.timer.get_timestamp_in_ms() - start_time
@@ -657,11 +579,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 }
             }
         }
-
-        debug!(
-            "sending block id update as : {:?}",
-            blockchain.last_block_id
-        );
     }
 
     async fn on_stat_interval(&mut self, _current_time: Timestamp) {}

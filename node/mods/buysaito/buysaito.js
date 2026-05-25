@@ -62,7 +62,6 @@ class BuySaito extends ModTemplate {
         app.options?.server?.endpoint?.host.includes('staging') ||
         app.options?.server?.host.includes('staging')
       ) {
-        console.warn('BUYSAITO ---> Local development mode');
         this.authorized_public_key = this.publicKey;
       } else {
         this.local_dev = false;
@@ -70,7 +69,6 @@ class BuySaito extends ModTemplate {
 
       setTimeout(() => {
         if (this.mixin_mod && this.authorized_public_key === this.publicKey) {
-          console.log('BUYSAITO --> Iniitalize Mixin Mod!!');
           this.mixin_mod.createAccount();
           this.loadAltAccounts();
           this.loadPendingPayments();
@@ -84,7 +82,6 @@ class BuySaito extends ModTemplate {
     let services = [];
     if (!this.app.BROWSER) {
       if (this.publicKey == this.authorized_public_key) {
-        console.log('BUYSAITO ---> I provide saito selling services!!!!');
         services.push(new PeerService(null, 'buysaito'));
       }
     }
@@ -98,10 +95,6 @@ class BuySaito extends ModTemplate {
     //
     if (service.service === 'buysaito') {
       this.authorized_public_key = peer.publicKey;
-      console.warn(
-        'BUYSAITO ---> set public key of authorized Saito seller!!!!',
-        this.authorized_public_key
-      );
     }
 
     if (service.service == 'relay') {
@@ -418,7 +411,7 @@ class BuySaito extends ModTemplate {
     for (let cm of this.mixin_mod.crypto_mods) {
       if (!cm.last_update || Date.now() - cm.last_update > 300000) {
         updated = true;
-        await cm.returnNetworkInfo();
+        await cm.returnMixinNetworkInfo();
       }
     }
     if (updated) {
@@ -897,7 +890,7 @@ class BuySaito extends ModTemplate {
 
               this.app.connection.emit('mailrelay-send-email', {
                 to: 'buysaito@saito.tech',
-		cc: 'richard@saito.tech',
+                cc: 'richard@saito.tech',
                 from: 'Saito Token Sales Bot <info@saito.tech>',
                 subject: `ATTN: Saito Issuance Failure!!`,
                 text: err
@@ -924,7 +917,7 @@ class BuySaito extends ModTemplate {
 
             this.app.connection.emit('mailrelay-send-email', {
               to: 'buysaito@saito.tech',
-	      cc: 'richard@saito.tech',
+              cc: 'richard@saito.tech',
               from: 'Saito Token Sales Bot <info@saito.tech>',
               subject: `ATTN: Insufficient Funds to Complete Sale -- ` + available_balance,
               text: JSON.stringify(

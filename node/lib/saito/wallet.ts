@@ -82,6 +82,7 @@ export default class Wallet extends SaitoWallet {
   async initialize() {
     let privateKey = await this.getPrivateKey();
     let publicKey = await this.getPublicKey();
+    let wallet_self = this;
 
     ////////////////
     // new wallet //
@@ -120,6 +121,10 @@ export default class Wallet extends SaitoWallet {
         this.balance = '0.0';
         this.address = publicKey;
 
+        // It is easier to flag native cryptos than web3 (especially if we add some outside mixin)
+        // Also applies to nftcryptomodule
+        this.chain_id = 'NATIVE';
+
         //
         // Saito-Core emits events that receive updates on transactions and NFTs that
         // are received on-chain. This helper function assists
@@ -143,69 +148,34 @@ export default class Wallet extends SaitoWallet {
 
         app.connection.on('on-transaction-sent', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          const block_id = p.block_id;
-          const block_hash = p.block_hash;
-          const timestamp = p.timestamp;
-          const transaction_signature = p.transaction_signature;
-          const signature = p.signature;
-          const transaction_type = p.transaction_type;
-          const sender = p.sender;
-          const receiver = p.receiver;
-          const peer_send_count = p.peer_send_count;
         });
 
         app.connection.on('on-transaction-received', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          const block_id = p.block_id;
-          const block_hash = p.block_hash;
-          const timestamp = p.timestamp;
-          const transaction_signature = p.transaction_signature;
-          const signature = p.signature;
-          const transaction_type = p.transaction_type;
-          const amount = p.amount;
-          const sender = p.sender;
-          const receiver = p.receiver;
-          const sender_publickey = p.sender_publickey;
-
           super.onPaymentReceived(p);
         });
 
-        app.connection.on('on-nft-sent', (payload: unknown) => {
+        app.connection.on('on-nft-sent', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          const block_id = p.block_id;
-          const block_hash = p.block_hash;
-          const timestamp = p.timestamp;
-          const transaction_signature = p.transaction_signature;
-          const signature = p.signature;
-          const sender = p.sender;
-          const receiver = p.receiver;
-          const ticker = p.ticker;
-          const nft_id = p.nft_id;
-          const nft_amount = p.nft_amount;
-          const saito_deposit = p.saito_deposit;
-          const slip1_utxo = p.slip1_utxo;
-          const slip2_utxo = p.slip2_utxo;
-          const slip3_utxo = p.slip3_utxo;
-          const sender_publickey = p.sender_publickey;
         });
 
-        app.connection.on('on-nft-received', (payload: unknown) => {
+        app.connection.on('on-nft-received', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          const block_id = p.block_id;
-          const block_hash = p.block_hash;
-          const timestamp = p.timestamp;
-          const transaction_signature = p.transaction_signature;
-          const signature = p.signature;
-          const sender = p.sender;
-          const receiver = p.receiver;
-          const ticker = p.ticker;
-          const nft_id = p.nft_id;
-          const nft_amount = p.nft_amount;
-          const saito_deposit = p.saito_deposit;
-          const slip1_utxo = p.slip1_utxo;
-          const slip2_utxo = p.slip2_utxo;
-          const slip3_utxo = p.slip3_utxo;
-          const sender_publickey = p.sender_publickey;
+
+          let ticker = '';
+          let nft_id = '';
+
+          try {
+            if (p.ticker) {
+              ticker = String(p.ticker);
+            }
+            if (p.nft_id) {
+              nft_id = String(p.nft_id);
+            }
+            await wallet_self.addNFTToWallet(nft_id, ticker);
+          } catch (err) {
+            console.log('ERROR: adding NFT to wallet... ');
+          }
 
           super.onPaymentReceived(p);
         });
@@ -314,7 +284,6 @@ export default class Wallet extends SaitoWallet {
           we think this should be useful in real time, but if we import the private key, 
           we end up rerunning a bunch of lite blocks and then duplicating chunks of transactions
         */
-
         if (obj.timestamp < this.history_update_ts) {
           console.warn('Pushing an earlier (or same ts) payment record in SAITO history!');
           // console.log(tx);
@@ -474,12 +443,9 @@ export default class Wallet extends SaitoWallet {
         return this.app.wallet.convertNolanToSaito(x);
       }
 
-      async returnBalance() {
-        return await this.getAvailableBalance();
-      }
-
-      async checkBalance() {
-        return await this.getAvailableBalance();
+      async fetchBalance() {
+        this.balance = await this.getAvailableBalance();
+        return this.balance;
       }
     }
 
@@ -729,11 +695,6 @@ export default class Wallet extends SaitoWallet {
     this.app.storage.saveOptions();
   }
 
-  async returnBalance() {
-    let s = this.returnCryptoModuleByTicker('SAITO');
-    return await s.returnBalance();
-  }
-
   /////////////////////////
   // WEB3 CRYPTO MODULES //
   /////////////////////////
@@ -794,11 +755,17 @@ export default class Wallet extends SaitoWallet {
    */
   async setPreferredCrypto(ticker) {
     try {
+      const current_crypto = this.returnPreferredCrypto();
+      if (current_crypto?.startPolling) {
+        current_crypto.stopPolling();
+      }
+
       let c_mod = this.returnCryptoModuleByTicker(ticker);
       this.preferred_crypto = ticker.toUpperCase();
       console.log('Activating cryptomod: ' + ticker);
       await c_mod.activate();
-      await this.saveWallet();
+
+      this.saveWallet();
       // if UI is enabled, will re-render the qr code, ticker, and balance in the hamburger menu
       this.app.connection.emit('saito-header-update-crypto');
       return 1;
@@ -897,7 +864,7 @@ export default class Wallet extends SaitoWallet {
 
   async returnPreferredCryptoBalance() {
     const cryptomod = this.returnPreferredCrypto();
-    await cryptomod.checkBalance();
+    await cryptomod.fetchBalance();
     return cryptomod.returnBalance();
   }
 
@@ -1091,15 +1058,38 @@ export default class Wallet extends SaitoWallet {
     }
 
     try {
+      //
+      // register that we are expecting a payment
+      //
+      if (!this.app.options?.crypto) {
+        this.app.options.crypto = {};
+      }
+      if (!this.app.options.crypto[ticker]) {
+        this.app.options.crypto[ticker] = {};
+      }
+      if (!this.app.options.crypto[ticker].transfers_inbound) {
+        this.app.options.crypto[ticker].transfers_inbound = [];
+      }
+      if (!this.app.options.crypto[ticker].transfers_inbound.includes(unique_hash)) {
+        this.app.options.crypto[ticker].transfers_inbound.push(unique_hash);
+      }
+
+      //
+      // the ticker might not exist if this is a one-sided NFT transfer
+      //
       const cryptomod = this.returnCryptoModuleByTicker(ticker);
-      await cryptomod.onIsActivated();
-      await cryptomod.pollForInboundPayment(unique_hash);
+      if (cryptomod) {
+        await cryptomod.onIsActivated();
+        await cryptomod.startPolling();
+      }
 
       if (mycallback) {
         mycallback();
       }
     } catch (err) {
-      mycallback({ err });
+      if (mycallback) {
+        mycallback({ err });
+      }
     }
   }
 
@@ -1334,7 +1324,7 @@ export default class Wallet extends SaitoWallet {
           if (!crypto.isActivated()) {
             continue;
           }
-          let bal = await crypto.returnBalance();
+          let bal = crypto.returnBalance();
           if (parseFloat(bal) > 0) {
             risky = true;
             break;
@@ -1493,9 +1483,7 @@ export default class Wallet extends SaitoWallet {
     if (!Array.isArray(nft_list)) {
       throw new Error('saveNFTList expects an array of NFTs');
     }
-
     this.app.options.wallet.nfts = nft_list;
-
     await this.saveWallet();
   }
 
@@ -1549,8 +1537,6 @@ export default class Wallet extends SaitoWallet {
       tx_sig: string;
       ticker?: string;
     }> = typeof raw === 'string' ? JSON.parse(raw) : raw;
-
-    // console.log('UPDATE NFT LIST from Rust: ', nfts);
 
     //
     // snapshot local
@@ -1829,20 +1815,19 @@ export default class Wallet extends SaitoWallet {
   //
   public async loadNFTs() {
     try {
+      await this.updateNFTList();
+
       let nft_balance_by_id = {};
 
       if (this.app.options.wallet.nfts) {
         for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
-          let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
-          console.log('Extracting NFT type...');
-          console.log(this.app.options.wallet.nfts[z].slip3?.utxo_key);
-          let nft_type = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
-          console.log(nft_type);
+          let nft = this.app.options.wallet.nfts[z];
+          let nft_sig = nft.tx_sig;
+          let nft_type = this.extractNFTType(nft.slip3.utxo_key);
 
           //
           // check balance (will be used for wallet)
           //
-          let nft = this.app.options.wallet.nfts[z];
           try {
             let amt = BigInt(nft.slip1.amount);
             if (amt > 0n) {
@@ -1917,13 +1902,7 @@ export default class Wallet extends SaitoWallet {
             continue;
           }
 
-          let mod = new NFTCryptoModule(this.app, nft_id, {
-            ticker,
-            name: ticker
-          });
-
-          this.app.modules.mods.push(mod);
-          await mod.initialize(this.app);
+          await this.addNFTToWallet(nft_id, ticker);
 
           console.log(`NFT crypto module installed: ${ticker} (balance ${total.toString()})`);
         }
@@ -1931,6 +1910,19 @@ export default class Wallet extends SaitoWallet {
     } catch (err) {
       console.log('Error: load nfts');
     }
+  }
+
+  public async addNFTToWallet(nft_id, ticker) {
+    await this.updateNFTList();
+    if (this.returnCryptoModuleByTicker(ticker)) {
+      return;
+    }
+    let mod = new NFTCryptoModule(this.app, nft_id, {
+      ticker,
+      name: ticker
+    });
+    this.app.modules.mods.push(mod);
+    await mod.initialize(this.app);
   }
 
   public async onNewBoundTransaction(tx: Transaction) {

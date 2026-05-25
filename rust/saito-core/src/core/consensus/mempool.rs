@@ -128,10 +128,6 @@ impl Mempool {
 
         // validate
         if tx_valid {
-            info!(
-                "[TRANSACTION - RECEIPT] - transaction passed mempool pre-check tx_sig={}",
-                transaction.signature.to_hex()
-            );
             self.add_transaction(transaction).await;
         } else {
             debug!(
@@ -183,11 +179,6 @@ impl Mempool {
                 let utxo_key = input.utxoset_key;
                 self.utxo_map.insert(utxo_key, 1);
             }
-            info!(
-                "[TRANSACTION - RECEIPT] - transaction added to mempool tx_sig={} mempool_tx_count={}",
-                transaction.signature.to_hex(),
-                self.transactions.len()
-            );
         }
     }
 

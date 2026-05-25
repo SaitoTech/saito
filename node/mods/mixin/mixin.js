@@ -224,7 +224,6 @@ class Mixin extends ModTemplate {
   // for any which are activated as the default web3 crypto.
   //
   installCryptos() {
-
     let mixin_self = this;
     let rtModules = this.app.modules.respondTo('mixin-crypto');
 
@@ -244,8 +243,6 @@ class Mixin extends ModTemplate {
         crypto_module.returnBalance = rtModules[i].returnBalance;
       }
 
-
-
       if (this.app.BROWSER) {
         if (!this.app.browser.returnURLParameter('withdraw')) {
           if (rtModules[i].name !== rtModules[i].ticker) {
@@ -262,28 +259,26 @@ class Mixin extends ModTemplate {
       this.crypto_mods.push(crypto_module);
       this.app.modules.mods.push(crypto_module);
 
-
       setTimeout(async () => {
+        if (typeof crypto_module?.returnMixinNetworkInfo === 'function') {
+          await crypto_module.returnMixinNetworkInfo();
+        }
 
-	if (typeof crypto_module?.returnMixinNetworkInfo === 'function') {
-		await crypto_module.returnMixinNetworkInfo();
-	}
-
-	//
-	// necessary for module functionality
-	//
+        //
+        // necessary for module functionality
+        //
         await crypto_module.installModule(mixin_self.app);
 
         //
-        // check balance, any changes will result in 
-	// snapshots being found that will broadcast
-	// events which will in turn trigger updates
+        // check balance, any changes will result in
+        // snapshots being found that will broadcast
+        // events which will in turn trigger updates
         //
         crypto_module.fetchHistory();
 
         if (mixin_self.account_created) {
           if (crypto_module.isActivated()) {
-            await crypto_module.checkBalance();
+            await crypto_module.fetchBalance();
           } else if (crypto_module.address) {
             crypto_module.activate();
           }
@@ -624,8 +619,6 @@ class Mixin extends ModTemplate {
       let offset = new Date(created_at).toISOString();
       offset = offset.substring(0, offset.length - 1);
       offset = offset + '000000Z';
-
-      console.log(created_at, offset);
 
       let snapshots = await user.safe.fetchSafeSnapshots({
         asset: asset_id,

@@ -28,7 +28,7 @@ use crate::core::defs::{
 };
 
 use crate::core::mining_thread::MiningEvent;
-use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
+use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::network::Network;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::storage::storage::Storage;
@@ -169,7 +169,6 @@ impl Blockchain {
         prune_after_blocks: BlockId,
         block_confirmation_limit: BlockId,
     ) -> Self {
-        info!("initializing blockchain with genesis period : {:?}, social_stake : {:?}, social_stake_period : {:?}", genesis_period,social_stake,social_stake_period);
         Blockchain {
             utxoset: AHashMap::new(),
             blockring: BlockRing::new(genesis_period),
@@ -204,7 +203,6 @@ impl Blockchain {
     }
 
     pub fn register_observer(&mut self, observer: Box<dyn BlockchainObserver>) {
-        info!("registering observer");
         self.observers.push(observer);
     }
 
@@ -230,24 +228,10 @@ impl Blockchain {
             return AddBlockResult::FailedNotValid;
         }
 
-        debug!(
-            "adding block {:?} of type : {:?} with id : {:?} with latest id : {:?} with tx count (gt/spv/total) : {:?}/{:?}/{:?} prev_block_hash : {:?}",
+        info!(
+            "blockchain.add_block {:?} with id {:?}",
             block.hash.to_hex(),
-            block.block_type,
             block.id,
-            self.get_latest_block_id(),
-            block
-            .transactions
-            .iter()
-            .filter(|tx| tx.transaction_type == TransactionType::GoldenTicket)
-            .count(),
-            block
-            .transactions
-            .iter()
-            .filter(|tx| tx.transaction_type == TransactionType::SPV)
-            .count(),
-            block.transactions.len(),
-            block.previous_block_hash.to_hex()
         );
 
         block.confirmations = 0;
@@ -261,10 +245,8 @@ impl Blockchain {
 
         if block_id < self.genesis_block_id {
             error!(
-                "block id : {:?} is less than genesis block id : {:?}. not adding block : {:?}",
-                block_id,
+                "blockchain.add_block: returning as block_id is less than genesis block_id {:?}",
                 self.genesis_block_id,
-                block.hash.to_hex()
             );
             return AddBlockResult::FailedNotValid;
         }
@@ -273,25 +255,15 @@ impl Blockchain {
         // sanity checks
         //
         if self.blocks.contains_key(&block_hash) {
-            error!(
-                "block : {:?}-{:?} already exists in blockchain. not adding",
-                block.id,
-                block.hash.to_hex()
-            );
             return AddBlockResult::BlockAlreadyExists;
         }
 
         //
-        // if this is not our first block, getch the missing block
+        // if this is not our first block, fetch the missing block
         //
         if !self.blockring.is_empty() && self.get_block(&block.previous_block_hash).is_none() {
-            info!("Add Block Info -- blockring is not empty, fetch Missing Block!");
-
             if block.previous_block_hash == [0; 32] {
-                info!(
-                    "hash is empty for parent of block : {:?}",
-                    block.hash.to_hex()
-                );
+                // empty parent... block 1?
             } else if matches!(
                 configs.get_blockchain_configs().initial_loading_status,
                 InitialLoadingStatus::Completed
@@ -306,48 +278,26 @@ impl Blockchain {
 
                 return if !previous_block_fetched {
                     if block.id.saturating_sub(1) >= minimum_parent_fetch_block_id {
-                        // let block_diff_before_fetching_chain: BlockId =
-                        //     std::cmp::min(1000, genesis_period);
-                        // if block.id.abs_diff(self.get_latest_block_id())
-                        //     < block_diff_before_fetching_chain
-                        // {
-                        debug!(
-                            "need to fetch previous block : {:?}-{:?}",
-                            block.id - 1,
-                            block.previous_block_hash.to_hex()
-                        );
-
                         AddBlockResult::FailedButRetry(block, true, false)
-                        // } else {
-                        //     info!("block : {:?}-{:?} is too distant with the current latest block : id={:?}. so need to fetch the whole blockchain from the peer to make sure this is not an attack. discarding the block",
-                        //         block.id,block.hash.to_hex(),self.get_latest_block_id());
-                        //     AddBlockResult::FailedButRetry(block, false, false)
-                        // }
                     } else {
                         warn!(
-                            "block : {:?}-{:?} is missing parent {:?}, but requesting {:?} would go below the current fetch floor {:?}",
-                            block.id,
-                            block.hash.to_hex(),
-                            block.previous_block_hash.to_hex(),
-                            block.id.saturating_sub(1),
+                            "blockchain.add_block: missing parent, but requesting pushes below parent_fetch_block_id {:?}",
                             minimum_parent_fetch_block_id
                         );
                         AddBlockResult::FailedNotValid
                     }
                 } else {
-                    debug!(
-                        "previous block : {:?} is in the mempool. not fetching",
-                        block.previous_block_hash.to_hex()
-                    );
                     AddBlockResult::FailedButRetry(block, false, false)
                 };
             }
         }
 
+        //
+        // used in loading blocks from disk, irrelevant othrewise
+        //
         if let InitialLoadingStatus::WaitingFor(waiting_for) =
             &mut configs.get_blockchain_configs_mut().initial_loading_status
         {
-            info!("Add Block Info -- InitialLoadingStatus triggered...");
             waiting_for.retain(|(waiting_block_id, waiting_block_hash)| {
                 !(*waiting_block_id == block.id && *waiting_block_hash == block.hash)
             });
@@ -357,68 +307,39 @@ impl Blockchain {
             }
         }
 
-        // pre-validation
         //
-        // this would be a great place to put in a pre-validation check
-        // once we are finished implementing Saito Classic. Goal would
-        // be a fast form of lite-validation just to determine that it
-        // is worth going through the more general effort of evaluating
-        // this block for consensus.
-        //
-
-        // save block to disk
-        //
-        // we have traditionally saved blocks to disk AFTER validating them
-        // but this can slow down block propagation. So it may be sensible
-        // to start a save earlier-on in the process so that we can relay
-        // the block faster serving it off-disk instead of fetching it
-        // repeatedly from memory. Exactly when to do this is left as an
-        // optimization exercise.
-
-        // insert block into hashmap and index
+        // insert block into blockring index
         //
         // the blockring is a BlockRing which lets us know which blocks (at which depth)
         // form part of the longest-chain. We also use the BlockRing to track information
         // on network congestion (how many block candidates exist at various depths and
         // in the future potentially the amount of work on each viable fork chain.
         //
-        // we are going to transfer ownership of the block into the HashMap that stores
-        // the block next, so we insert it into our BlockRing first as that will avoid
-        // needing to borrow the value back for insertion into the BlockRing.
-        // TODO : check if this "if" condition can be moved to an assert
         if !self
             .blockring
             .contains_block_hash_at_block_id(block_id, block_hash)
         {
-            info!("Add Block Info -- adding block to blockring...");
+            info!(" -- adding block to blockring...");
             self.blockring.add_block(&block);
         }
 
-        // blocks are stored in a hashmap indexed by the block_hash. we expect all
-        // all block_hashes to be unique, so simply insert blocks one-by-one on
-        // arrival if they do not exist.
-
+        //
+        // insert block into hashmap
+        //
+        // we now transfer ownership of the block into the HashMap that stores all of
+        // our indexed block. once this is done, any attempt to make block values
+        // mutable will require borrowing the value back from the Hashmap.
+        //
         if !self.blocks.contains_key(&block_hash) {
             self.blocks.insert(block_hash, block);
         } else {
-            error!(
-                "BLOCK IS ALREADY IN THE BLOCKCHAIN, WHY ARE WE ADDING IT????? {:?}",
-                block.hash.to_hex()
-            );
             return AddBlockResult::BlockAlreadyExists;
         }
 
-        // A fork fragment below our current tip cannot win yet under the
-        // current longest-chain rule. Keep it indexed so a later higher fork tip
-        // can evaluate the complete fork without walking this stale fragment now.
+        //
+        // auto-add if the block is below our recorded latest_block_id
+        //
         if !self.blockring.is_empty() && block_id < self.get_latest_block_id() {
-            info!("Add Block Info -- block_id is less than latest block id....");
-            debug!(
-                "block {}-{} is below latest block {}; storing without longest-chain evaluation",
-                block_id,
-                block_hash.to_hex(),
-                self.get_latest_block_id()
-            );
             self.add_block_success(block_hash, storage, mempool, configs)
                 .await;
             return AddBlockResult::BlockAddedSuccessfully(
@@ -429,70 +350,50 @@ impl Blockchain {
             );
         }
 
-        // find shared ancestor of new_block with old_chain
+        //
+        // find shared ancestor with current chain
+        //
         let old_chain: Vec<[u8; 32]>;
         let mut am_i_the_longest_chain = false;
-
         let (shared_ancestor_found, shared_block_hash, new_chain) =
             self.calculate_new_chain_for_add_block(block_hash);
 
+        //
+        // get current chain for comparison
+        //
         let mut new_chain_detected = false;
-        // and get existing current chain for comparison
         if shared_ancestor_found {
-            info!("Add Block Info -- shared ancestor found...");
             old_chain =
                 self.calculate_old_chain_for_add_block(latest_block_hash, shared_block_hash);
         } else {
-            info!("Add Block Info -- shared ancestor not found...");
-            debug!(
-                "block without parent. block : {}-{:?}, latest : {:?}-{:?}",
-                block_id,
-                block_hash.to_hex(),
-                self.get_latest_block_id(),
-                self.get_latest_block_hash().to_hex()
-            );
-
+            //
             // we have a block without a parent.
             //
-            // if this is our first block, the blockring will have no entry yet
-            // and block_ring_lc_pos (longest_chain_position) will be pointing
-            // at None. We use this to determine if we are a new chain instead
-            // of creating a separate variable to manually track entries.
             if self.blockring.is_empty() {
-                info!("Add Block Info -- we have found the first block in the blockchain...");
-                debug!("this is the first block in the blockchain");
-
-                // no need for action as fall-through will result in proper default
-                // behavior. we have the comparison here to separate expected from
-                // unexpected / edge-case issues around block receipt.
+                //
+                // this could be our first block, fall-through for proper handling
+                //
             } else {
-                info!("Add Block Info -- this is not the first block in the blockchain...");
-
+                //
                 // if this not our first block, handle edge-case around receiving
                 // block 503 before block 453 when block 453 is our expected proper
                 // next block and we are getting blocks out-of-order because of
                 // connection or network issues.
+                //
                 if latest_block_hash != [0; 32]
                     && latest_block_hash == self.get_latest_block_hash()
-                    // this check is to making sure node with an old picture is not messing with our main chain.
                     && (block_id
                         > self
                             .get_latest_block_id()
                             .saturating_sub(self.genesis_period))
                 {
-                    info!("blocks received out-of-order issue. handling edge case... block_id : {} - {} latest_block_id : {} - {}",
+                    info!(
+                        " -- block out-of-order... block_id : {} latest_block_id : {}",
                         block_id,
-                        block_hash.to_hex(),
                         self.get_latest_block_id(),
-                        self.get_latest_block_hash().to_hex()
                     );
 
                     let disconnected_block_id = self.get_latest_block_id();
-                    debug!("disconnected id : {:?}", disconnected_block_id);
-                    debug!(
-                        "disconnecting blocks from : {:?} to : {:?}",
-                        block_id, disconnected_block_id
-                    );
 
                     for i in (disconnected_block_id + 1..=block_id).rev() {
                         if let Some(disconnected_block_hash) =
@@ -504,23 +405,21 @@ impl Blockchain {
                                     disconnected_block_hash,
                                     false,
                                 );
-                                trace!("checking block id : {:?}", i);
                                 let disconnected_block =
                                     self.get_block_mut(&disconnected_block_hash);
                                 if let Some(disconnected_block) = disconnected_block {
-                                    trace!("in longest chain set to false");
                                     disconnected_block.in_longest_chain = false;
                                 }
                             }
                         }
                     }
 
-                    am_i_the_longest_chain = false;
-
                     if new_chain.len() >= ALERT_ON_NEWER_CHAIN_LENGTH as usize
                         && block_id > self.get_latest_block_id() + ALERT_ON_NEWER_CHAIN_GAP
                     {
-                        // we have found a new chain that is much recent than the current chain
+                        //
+                        // a disconnected chain +1 genesis period ahead of us???
+                        //
                         new_chain_detected = true;
                     }
                 }
@@ -530,104 +429,39 @@ impl Blockchain {
         }
 
         //
-        // at this point we should have a shared ancestor or not
-        // find out whether this new block is claiming to require chain-validation
+        // is it possible that this will require a chain reorg?
         //
-        info!(
-            "[BOOTSTRAP_TRACE][LC_CHECK] \
-block_id={} \
-latest_block_id={} \
-genesis_period={} \
-latest_minus_genesis={} \
-blockring_empty={} \
-new_chain_len={} \
-old_chain_len={} \
-shared_ancestor_found={} \
-am_i_before={} \
-passes_height_check={} \
-passes_longest_chain_check={}",
-            block_id,
-            self.get_latest_block_id(),
-            self.genesis_period,
-            self.get_latest_block_id()
-                .saturating_sub(self.genesis_period),
-            self.blockring.is_empty(),
-            new_chain.len(),
-            old_chain.len(),
-            shared_ancestor_found,
-            am_i_the_longest_chain,
-            block_id
-                > self
-                    .get_latest_block_id()
-                    .saturating_sub(self.genesis_period),
-            self.is_new_chain_the_longest_chain(&new_chain, &old_chain),
-        );
-
-        if !am_i_the_longest_chain
-            && (block_id
-                > self
-                    .get_latest_block_id()
-                    .saturating_sub(self.genesis_period))
+        if block_id
+            > self
+                .get_latest_block_id()
+                .saturating_sub(self.genesis_period)
             && self.is_new_chain_the_longest_chain(&new_chain, &old_chain)
         {
-            info!(
-                "new chain is the longest chain. changing am I the longest chain?. current block : {}-{:?} latest block : {}-{:?} genesis_period : {}",
-                block_id,
-                block_hash.to_hex(),
-                self.get_latest_block_id(),
-                self.get_latest_block_hash().to_hex(),
-                self.genesis_period
-            );
             am_i_the_longest_chain = true;
         }
 
-        // now update blockring so it is not empty
         //
-        // we do this down here instead of automatically on
-        // adding a block, as we want to have the above check
-        // for handling the edge-case of blocks received in the
-        // wrong order. the longest_chain check also requires a
-        // first-block-received check that is conducted against
-        // the blockring.
+        // now update blockring
+        //
+        // this is somewhat crusty legacy code, but leaving it for
+        // now as it works. this variable lets us add the block to
+        // the blockring for calculating chain lengths etc. without
+        // losing the information if we are the first block to ever
+        // be added.
         //
         self.blockring.empty = false;
 
-        info!("Add Block Info - blockring set to empty");
-
         //
-        // validate
+        // if the block has the potential to reorg consensus...
         //
-        // blockchain validate "validates" the new_chain by unwinding the old
-        // and winding the new, which calling validate on any new previously-
-        // unvalidated blocks. When the longest-chain status of blocks changes
-        // the function on_chain_reorganization is triggered in blocks and
-        // with the BlockRing. We fail if the newly-preferred chain is not
-        // viable.
         if am_i_the_longest_chain {
-            info!(
-                "Add Block Info - this is the longest chain, adding block : {:?}",
-                block_hash.to_hex()
-            );
+            info!(" -- blockchain.add_block: validating block");
+
             self.blocks.get_mut(&block_hash).unwrap().in_longest_chain = true;
 
-            info!(
-                "[BOOTSTRAP_TRACE][VALIDATE_START] \
-block_id={} \
-block_hash={} \
-new_chain_len={} \
-old_chain_len={} \
-latest_block_id={} \
-blockring_empty={} \
-initial_loading_status={:?}",
-                block_id,
-                block_hash.to_hex(),
-                new_chain.len(),
-                old_chain.len(),
-                self.get_latest_block_id(),
-                self.blockring.is_empty(),
-                configs.get_blockchain_configs().initial_loading_status,
-            );
-
+            //
+            // validate it
+            //
             let (mut does_new_chain_validate, wallet_updated) = self
                 .validate(
                     new_chain.as_slice(),
@@ -639,39 +473,14 @@ initial_loading_status={:?}",
                 )
                 .await;
 
-            info!(
-                "[BOOTSTRAP_TRACE][VALIDATE_RESULT] \
-block_id={} \
-block_hash={} \
-does_new_chain_validate={} \
-wallet_updated={:?} \
-latest_block_id_after={} \
-blockring_empty_after={}",
-                block_id,
-                block_hash.to_hex(),
-                does_new_chain_validate,
-                wallet_updated,
-                self.get_latest_block_id(),
-                self.blockring.is_empty(),
-            );
-
+            //
+            // confirm supply unchanged
+            //
             does_new_chain_validate &= self.validate_total_supply(configs).await;
-
-            info!(
-                "[BOOTSTRAP_TRACE][SUPPLY_RESULT] \
-block_id={} \
-block_hash={} \
-does_new_chain_validate_after={}",
-                block_id,
-                block_hash.to_hex(),
-                does_new_chain_validate,
-            );
 
             if does_new_chain_validate {
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
-
-                info!("Add Block Info -- new chain validates!");
                 AddBlockResult::BlockAddedSuccessfully(
                     block_hash,
                     true,
@@ -679,9 +488,8 @@ does_new_chain_validate_after={}",
                     new_chain_detected,
                 )
             } else {
-                info!("Add Block Info -- new chain doesn't validate!");
                 warn!(
-                    "new chain doesn't validate with hash : {:?}",
+                    "block.add_block: validation failed for {:?}",
                     block_hash.to_hex()
                 );
                 self.blocks.get_mut(&block_hash).unwrap().in_longest_chain = false;
@@ -689,8 +497,6 @@ does_new_chain_validate_after={}",
                 AddBlockResult::FailedNotValid
             }
         } else {
-            info!("Add Block Info - add block success, but this is not the longest chain");
-
             self.add_block_success(block_hash, storage, mempool, configs)
                 .await;
             AddBlockResult::BlockAddedSuccessfully(
@@ -863,13 +669,9 @@ does_new_chain_validate_after={}",
         // ensure pruning of next block OK will have the right CVs
         self.prune_blocks_after_add_block(storage, configs).await;
         info!(
-            "block {}-{:?} added successfully. type : {:?} tx count = {:?}/{:?} in_longest_chain : {}",
+            "blockchain.add_block_success -- {}-{} -- added successfully!",
             block_id,
             block_hash.to_hex(),
-            block_type,
-            full_tx_count,
-            tx_count,
-            in_longest_chain
         );
     }
 
@@ -1130,6 +932,8 @@ does_new_chain_validate_after={}",
         let mut block = block.unwrap();
         self.blockring.delete_block(block.id, block.hash);
         self.add_block_transactions_back(mempool, &mut block).await;
+
+        info!("blockchain.add_block_failure: failed to add block");
     }
 
     async fn add_block_transactions_back(&mut self, mempool: &mut Mempool, block: &mut Block) {
