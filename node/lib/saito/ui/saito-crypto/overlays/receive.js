@@ -19,13 +19,12 @@ class Receive {
     this.app.connection.on('saito-crypto-receive-render-request', (details) => {
       this.render(details);
     });
-    this.app.connection.on('on-nft-received', (obj={}) => {
+    this.app.connection.on('on-nft-received', (obj = {}) => {
       this.processExpectedPayment(obj);
     });
-    this.app.connection.on('on-payment-received', (obj={}) => {
+    this.app.connection.on('on-payment-received', (obj = {}) => {
       this.processExpectedPayment(obj);
     });
-
   }
 
   processExpectedPayment(obj = {}) {
@@ -53,9 +52,7 @@ class Receive {
     if (!amt && amt !== 0) return;
 
     const amtH =
-      ticker === 'SAITO'
-        ? this.app.wallet.convertSaitoToNolan(amt).toString()
-        : String(amt);
+      ticker === 'SAITO' ? this.app.wallet.convertSaitoToNolan(amt).toString() : String(amt);
 
     const hash = this.app.crypto.hash(
       Buffer.from(from + this.mod.publicKey + amtH + g.dice + ticker, 'utf-8')
@@ -74,7 +71,6 @@ class Receive {
     this.app.wallet.returnCryptoModuleByTicker(ticker)?.save?.();
     this.onReceivePayment(obj);
   }
-
 
   /**
    * Shows a confirmation overlay before initiating a crypto transfer

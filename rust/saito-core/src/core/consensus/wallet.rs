@@ -256,7 +256,6 @@ impl Wallet {
                     let is_this_an_nft = tx.is_nft(&tx.from, i);
 
                     if is_this_an_nft {
-
                         //
                         // remove from NFT storage
                         //
@@ -495,10 +494,9 @@ impl Wallet {
                     let is_this_an_nft = tx.is_nft(&tx.to, i);
 
                     if is_this_an_nft {
-
-			//
-			// remove from NFT storage
-			//
+                        //
+                        // remove from NFT storage
+                        //
                         let slip1 = &tx.to[i];
                         let slip2 = &tx.to[i + 1];
                         let slip3 = &tx.to[i + 2];
@@ -2430,7 +2428,6 @@ impl Wallet {
     }
 
     fn extract_nft_ticker_from_tx(tx: &Transaction) -> String {
-
         let json_str = String::from_utf8_lossy(&tx.data);
         let json_str = json_str.trim();
 
@@ -2447,40 +2444,38 @@ impl Wallet {
         String::new()
     }
 
+    pub fn add_nft(
+        &mut self,
+        slip1: SaitoUTXOSetKey,
+        slip2: SaitoUTXOSetKey,
+        slip3: SaitoUTXOSetKey,
+        id: Vec<u8>,
+        tx_sig: SaitoSignature,
+        ticker: String,
+    ) {
+        let new_nft = NFT {
+            slip1,
+            slip2,
+            slip3,
+            id,
+            tx_sig,
+            ticker,
+        };
 
-pub fn add_nft(
-    &mut self,
-    slip1: SaitoUTXOSetKey,
-    slip2: SaitoUTXOSetKey,
-    slip3: SaitoUTXOSetKey,
-    id: Vec<u8>,
-    tx_sig: SaitoSignature,
-    ticker: String,
-) {
-    let new_nft = NFT {
-        slip1,
-        slip2,
-        slip3,
-        id,
-        tx_sig,
-        ticker,
-    };
-
-    if let Some(existing) = self.nfts.iter_mut().find(|nft| {
-        nft.slip1 == new_nft.slip1
-            && nft.slip2 == new_nft.slip2
-            && nft.slip3 == new_nft.slip3
-            && nft.id == new_nft.id
-            && nft.tx_sig == new_nft.tx_sig
-    }) {
-        if existing.ticker.is_empty() && !new_nft.ticker.is_empty() {
-            existing.ticker = new_nft.ticker;
+        if let Some(existing) = self.nfts.iter_mut().find(|nft| {
+            nft.slip1 == new_nft.slip1
+                && nft.slip2 == new_nft.slip2
+                && nft.slip3 == new_nft.slip3
+                && nft.id == new_nft.id
+                && nft.tx_sig == new_nft.tx_sig
+        }) {
+            if existing.ticker.is_empty() && !new_nft.ticker.is_empty() {
+                existing.ticker = new_nft.ticker;
+            }
+        } else {
+            self.nfts.push(new_nft);
         }
-    } else {
-        self.nfts.push(new_nft);
     }
-}
-
 }
 
 impl WalletSlip {
@@ -2783,5 +2778,4 @@ mod tests {
         assert_eq!(wallet.staking_slips.len(), 0);
         assert_eq!(wallet.unspent_slips.len(), 0);
     }
-
 }

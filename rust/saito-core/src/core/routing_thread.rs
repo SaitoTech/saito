@@ -139,8 +139,14 @@ impl RoutingThread {
             Message::RequestBlockchain(ref request) => {
                 info!("BLOCKCHAIN REQUEST: received blockchain request...");
                 info!(" -- peer_id => {}", peer_id);
-                info!(" -- latest_known_block_id => {}", request.latest_known_block_id);
-                info!(" -- latest_known_block_hash => {}", request.latest_known_block_hash.to_hex());
+                info!(
+                    " -- latest_known_block_id => {}",
+                    request.latest_known_block_id
+                );
+                info!(
+                    " -- latest_known_block_hash => {}",
+                    request.latest_known_block_hash.to_hex()
+                );
                 info!(" -- fork_id => {}", request.fork_id.to_hex());
                 info!(" -- sync_type => {}", request.sync_type);
                 info!(" -- public_key => {}", request.public_key.to_base58());
@@ -167,7 +173,6 @@ impl RoutingThread {
                 }
             }
             Message::Blockchain(chaindata) => {
-
                 let chunk_len = chaindata.payload.len();
 
                 info!("BLOCKCHAIN RESPONSE: received blockchain response...");
@@ -466,7 +471,6 @@ impl RoutingThread {
             );
         }
 
-
         if had_pending_nonce && counter_nonce != [0; 32] {
             let (public_key, private_key) = {
                 let wallet = self.wallet_lock.read().await;
@@ -747,7 +751,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 sync.fetch(&self.network, &self.fetch_dispatcher).await;
 
                 if sync.queue.is_empty() {
-info!("RoutingEvent::OnAddBlockSuccess: empty queue, triggering advance chain symc...");
+                    info!("RoutingEvent::OnAddBlockSuccess: empty queue, triggering advance chain symc...");
                     sync.advance_chain_sync_if_ready(&self.network, self.config_lock.clone())
                         .await;
                 }

@@ -75,7 +75,6 @@ export default class Blockchain extends SaitoBlockchain {
   }
 
   public async affixCallbacks(block: Block) {
-
     if (this.callbacks.has(block.hash)) {
       return;
     }
