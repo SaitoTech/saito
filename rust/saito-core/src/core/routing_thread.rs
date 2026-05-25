@@ -12,7 +12,6 @@ use crate::core::network::gatekeeper::AccessRecord;
 use crate::core::network::gatekeeper::Gatekeeper;
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::msg::block::BlockReference;
-use crate::core::network::msg::blockchain::MAX_BLOCKCHAIN_CHUNK;
 use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::RequestServices;
@@ -28,7 +27,7 @@ use crate::core::util::crypto::hash;
 use crate::core::util::crypto::{generate_random_bytes, sign, verify};
 use crate::core::verification_thread::VerifyRequest;
 use async_trait::async_trait;
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, info, warn};
 use std::cmp::max;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -123,51 +122,38 @@ impl RoutingThread {
 
         match message {
             Message::RequestHandshake(_challenge) => {
-                info!(
-                    "[TEMP_SYNC_TRACE][VERIFY] recv RequestHandshake peer_id={}",
-                    peer_id
-                );
-                info!("[routing] RECEIVED RequestHandshake peer_id={}", peer_id);
-                info!("HANDSHAKE REQUEST: received handshake request");
+                info!("HANDSHAKE REQUEST: received handshake request...");
                 self.process_request_handshake_message(peer_id, _challenge)
                     .await;
             }
             Message::Handshake(response) => {
-                info!(
-                    "[TEMP_SYNC_TRACE][VERIFY] recv Handshake peer_id={}",
-                    peer_id
-                );
+                info!("HANDSHAKE RESPONSE: received handshake response...");
                 self.process_handshake_message(peer_id, response).await;
             }
             Message::Block(_) => {
                 // ...
             }
             Message::Transaction(transaction) => {
-                info!(
-                    "[TRANSACTION - RECEIPT] - transaction message received from peer peer_id={} tx_sig={}",
-                    peer_id,
-                    transaction.signature.to_hex()
-                );
                 self.process_transaction_message(peer_id, transaction).await;
             }
             Message::RequestBlockchain(ref request) => {
-                info!("####################################");
-                info!("### RequestBlockchain Message Received ###");
-                info!("####################################");
-                info!("peer_id => {}", peer_id);
-                info!("latest_known_block_id => {}", request.latest_known_block_id);
+                info!("BLOCKCHAIN REQUEST: received blockchain request...");
+                info!(" -- peer_id => {}", peer_id);
                 info!(
-                    "latest_known_block_hash => {}",
+                    " -- latest_known_block_id => {}",
+                    request.latest_known_block_id
+                );
+                info!(
+                    " -- latest_known_block_hash => {}",
                     request.latest_known_block_hash.to_hex()
                 );
-                info!("fork_id => {}", request.fork_id.to_hex());
-                info!("sync_type => {}", request.sync_type);
-                info!("public_key => {}", request.public_key.to_base58());
-                info!("keylist_len => {}", request.keylist.len());
+                info!(" -- fork_id => {}", request.fork_id.to_hex());
+                info!(" -- sync_type => {}", request.sync_type);
+                info!(" -- public_key => {}", request.public_key.to_base58());
+                info!(" -- keylist_len => {}", request.keylist.len());
                 for (i, key) in request.keylist.iter().enumerate() {
-                    info!("keylist[{}] => {}", i, key.to_base58());
+                    info!(" -- keylist[{}] => {}", i, key.to_base58());
                 }
-                info!("####################################");
 
                 if !self.gatekeeper.add_costly_record(
                     peer_id,
@@ -188,45 +174,16 @@ impl RoutingThread {
             }
             Message::Blockchain(chaindata) => {
                 let chunk_len = chaindata.payload.len();
+
+                info!("BLOCKCHAIN RESPONSE: received blockchain response...");
+                info!(" -- blocks => {}", chunk_len);
+
                 {
                     let mut peers = self.network.peer_lock.write().await;
                     if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                        info!(
-                            "[TEMP_SYNC_TRACE][SYNC] recv Blockchain peer_state_before peer_id={} syncing={} synced={} payload_n={} shared_ancestor_id={}",
-                            peer_id,
-                            peer.is_syncing,
-                            peer.is_synced,
-                            chunk_len,
-                            chaindata.shared_ancestor_block_id
-                        );
-                        if chunk_len < MAX_BLOCKCHAIN_CHUNK {
-                            info!(
-                                "[TEMP_SYNC_TRACE][SYNC] mark sync complete peer_id={} reason=short-chunk payload_n={} max_chunk={}",
-                                peer_id,
-                                chunk_len,
-                                MAX_BLOCKCHAIN_CHUNK
-                            );
-                            peer.on_sync_complete();
-                        }
-                        info!(
-                            "[TEMP_SYNC_TRACE][SYNC] recv Blockchain peer_state_after peer_id={} syncing={} synced={}",
-                            peer_id, peer.is_syncing, peer.is_synced
-                        );
+                        peer.on_sync_chunk_received(chunk_len);
                     }
                 }
-                info!(
-                    "[TEMP_SYNC_TRACE][SYNC] recv Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={}",
-                    peer_id,
-                    chaindata.payload.len(),
-                    chaindata.payload_latest_block_id,
-                    chaindata.latest_known_block_id
-                );
-                info!(
-                    "[routing] RECEIVED Blockchain peer_id={} payload_entries={} payload_latest_block_id={}",
-                    peer_id,
-                    chaindata.payload.len(),
-                    chaindata.payload_latest_block_id
-                );
                 let mut sync = self.sync.write().await;
                 if let Err(e) = sync
                     .process_blockchain_message(
@@ -283,16 +240,7 @@ impl RoutingThread {
                 }
             }
             Message::RequestServices(_) => {
-                info!(
-                    "[TEMP_SYNC_TRACE][SERVICES] recv RequestServices peer_id={}",
-                    peer_id
-                );
                 let services = self.network.io_interface.get_my_services();
-                let n = services.len();
-                info!(
-                    "[TEMP_SYNC_TRACE][SERVICES] send Services peer_id={} service_count={}",
-                    peer_id, n
-                );
                 self.network
                     .send_message_by_peer_id(peer_id, Message::Services(Services { services }))
                     .await;
@@ -360,11 +308,6 @@ impl RoutingThread {
     }
 
     pub async fn process_peer_buffer(&mut self, peer_id: u64, buffer: Vec<u8>) {
-        info!(
-            "[TRANSACTION - RECEIPT] - received peer buffer for processing peer_id={} bytes={}",
-            peer_id,
-            buffer.len()
-        );
         // Step 1: deserialize buffer → Message
         let message = match Message::deserialize(buffer) {
             Ok(msg) => msg,
@@ -387,18 +330,9 @@ impl RoutingThread {
     // logic or execution across multiple threads or system components.
     //
     async fn process_transaction_message(&mut self, peer_id: u64, mut transaction: Transaction) {
-        info!(
-            "[TRANSACTION - RECEIPT] - dispatching transaction to verification peer_id={} tx_sig={}",
-            peer_id,
-            transaction.signature.to_hex()
-        );
         transaction.routed_from_peer_id = peer_id;
         self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
             .await;
-        info!(
-            "[TRANSACTION - RECEIPT] - transaction enqueued to verification peer_id={}",
-            peer_id
-        );
     }
 
     async fn process_block_reference_message(
@@ -499,11 +433,6 @@ impl RoutingThread {
                 }),
             )
             .await;
-        info!(
-            "[TEMP_SYNC_TRACE][VERIFY] send Handshake reply peer_id={} counter_nonce_nonzero={}",
-            peer_id,
-            counter_nonce != [0; 32]
-        );
     }
 
     async fn process_handshake_message(&mut self, peer_id: u64, handshake: Handshake) {
@@ -542,12 +471,6 @@ impl RoutingThread {
             );
         }
 
-        info!(
-            "[TEMP_SYNC_TRACE][VERIFY] handshake verified peer_id={} peer_pubkey={}",
-            peer_id,
-            handshake.public_key.to_hex()
-        );
-
         if had_pending_nonce && counter_nonce != [0; 32] {
             let (public_key, private_key) = {
                 let wallet = self.wallet_lock.read().await;
@@ -564,10 +487,6 @@ impl RoutingThread {
                     }),
                 )
                 .await;
-            info!(
-                "[TEMP_SYNC_TRACE][VERIFY] send counter Handshake peer_id={}",
-                peer_id
-            );
         }
     }
 
@@ -767,52 +686,12 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 peer_id,
                 buffer,
             } => {
-                let prefix_len = std::cmp::min(32, buffer.len());
-                let prefix_hex = buffer[..prefix_len]
-                    .iter()
-                    .map(|b| format!("{:02x}", b))
-                    .collect::<String>();
-                trace!(
-                    "[TRACE_SYNC] fetched_from_network peer_id={} block_id={} block_hash={} bytes={}",
-                    peer_id,
-                    block_id,
-                    block_hash.to_hex(),
-                    buffer.len()
-                );
-                trace!(
-                    "[TRACE_SYNC][SERDE] routing_block_fetched peer_id={} block_id={} block_hash={} bytes={} prefix32={}",
-                    peer_id,
-                    block_id,
-                    block_hash.to_hex(),
-                    buffer.len(),
-                    prefix_hex
-                );
-                trace!(
-                    "[TEMP_SYNC_TRACE][FETCH] fetch success peer_id={} block_id={} block_hash={} bytes={}",
-                    peer_id,
-                    block_id,
-                    block_hash.to_hex(),
-                    buffer.len()
-                );
                 debug!("block received : {:?}", block_hash.to_hex());
-                trace!(
-                    "[TEMP_SYNC_TRACE][FETCH] submit fetched block to verification peer_id={} block_id={} block_hash={} bytes={}",
-                    peer_id,
-                    block_id,
-                    block_hash.to_hex(),
-                    buffer.len()
-                );
 
                 self.send_to_verification_thread(VerifyRequest::Block(
                     buffer, peer_id, block_hash, block_id,
                 ))
                 .await;
-                trace!(
-                    "[TRACE_SYNC] submitted_to_verification peer_id={} block_id={} block_hash={}",
-                    peer_id,
-                    block_id,
-                    block_hash.to_hex()
-                );
 
                 let mut sync = self.sync.write().await;
                 sync.remove(block_hash);
@@ -824,12 +703,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 peer_id,
                 block_id,
             } => {
-                trace!(
-                    "[TEMP_SYNC_TRACE][FETCH] fetch fail (network) peer_id={} block_id={} block_hash={}",
-                    peer_id,
-                    block_id,
-                    block_hash.to_hex()
-                );
                 let time = self.timer.get_timestamp_in_ms();
 
                 let mut sync = self.sync.write().await;
@@ -873,22 +746,17 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
     async fn process_event(&mut self, event: RoutingEvent) -> Option<()> {
         match event {
             RoutingEvent::OnAddBlockSuccess(block_hash) => {
-                trace!(
-                    "[TEMP_SYNC] - block added - removing from SyncManager queue : {:?}",
-                    block_hash.to_hex()
-                );
                 let mut sync = self.sync.write().await;
                 sync.remove(block_hash);
                 sync.fetch(&self.network, &self.fetch_dispatcher).await;
+
+                if sync.queue.is_empty() {
+                    info!("RoutingEvent::OnAddBlockSuccess: empty queue, triggering advance chain symc...");
+                    sync.advance_chain_sync_if_ready(&self.network, self.config_lock.clone())
+                        .await;
+                }
             }
             RoutingEvent::MissingBlock(peer_id, block_hash, block_id) => {
-                trace!(
-        "[TEMP_SYNC] - missing block requested by blockchain from peer : {:?} for block : {:?}-{:?}",
-        peer_id,
-        block_hash.to_hex(),
-        block_id
-    );
-
                 let skip_missing_fetch = {
                     let peers = self.network.peer_lock.read().await;
                     peers.peers.values().any(|p| p.is_connected && p.is_syncing)
@@ -900,11 +768,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 // will disrupt the block fetch process...
                 //
                 if skip_missing_fetch {
-                    trace!(
-            "[TEMP_SYNC] - skipping MissingBlock fetch while peer(s) syncing (block_id={} hash={})",
-            block_id,
-            block_hash.to_hex()
-        );
                     return None;
                 }
 
@@ -925,11 +788,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             }
             RoutingEvent::BlockchainRequest(peer_id) => {
                 info!(
-                    "[TEMP_SYNC_TRACE][SYNC] chain sync start peer_id={} (BlockchainRequest)",
-                    peer_id
-                );
-                info!(
-                    "requesting blockchain from peer : {:?} after block add failure",
+                    "RoutingEvent::BlockchainRequest -- requesting blockchain from peer {:?} (after block add failure?)",
                     peer_id
                 );
                 let sync = self.sync.read().await;

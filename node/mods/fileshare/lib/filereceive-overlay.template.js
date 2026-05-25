@@ -1,4 +1,5 @@
 module.exports = (mod, fro, file) => {
+	let safeFileName = mod.app.browser.escapeHTML(file?.name || 'file');
 	let html = `
 	<div id='file-transfer-${fro.fileId}-${fro.sender}' class='saito-file-transfer-overlay'>
 		<div class="pseudo-overlay-controls">
@@ -12,7 +13,7 @@ module.exports = (mod, fro, file) => {
 			<div class="saito-file-transfer" id="saito-file-transfer-${fro.fileId}">
 				<div class="file-transfer-progress"></div>
 				<i class="fa-solid fa-file-import"></i>
-				<div class="file-name">${file.name}</div>
+				<div class="file-name">${safeFileName}</div>
 				<div class="file-size fixed-width">${mod.calcSize(file.size)}</div>
 			</div>
 		</div>

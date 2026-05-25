@@ -45,6 +45,7 @@ class SaitoHeader extends UIModTemplate {
     // Store the mod functions for when you click icon in the menu, e.g. "RedSquare"
     this.callbacks = {};
 
+    this.web3_start_polling_timeout = null;
     this.can_update_header_msg = true;
     this.show_msg = true;
 
@@ -77,22 +78,46 @@ class SaitoHeader extends UIModTemplate {
     //
     // listen for inbound / outbound payments
     //
-    app.connection.on('on-transaction-pending', async () => {
-      let preferred_crypto = app.wallet.returnPreferredCrypto();
-      preferred_crypto.pending_balance = await app.core.wallet.getPendingBalance();
-      this.renderCrypto();
-    });
-
-    app.connection.on('on-payment-sent', async () => {
+    app.connection.on('on-transaction-pending', async (obj = null) => {
       if (!this.installing_crypto) {
         this.renderCrypto();
       }
     });
 
-    app.connection.on('on-payment-received', async () => {
+    app.connection.on('on-payment-sent', async (obj = null) => {
       if (!this.installing_crypto) {
         this.renderCrypto();
       }
+    });
+
+    app.connection.on('on-payment-received', async (obj = null) => {
+      if (!this.installing_crypto) {
+        this.renderCrypto();
+      }
+
+      if (!obj) {
+        return;
+      }
+
+      let amount = obj.amount;
+      let ticker = obj.ticker;
+      let sender = obj.sender;
+
+      if (!amount || !ticker || !sender) {
+        return;
+      }
+      if (sender === this.publicKey) {
+        return;
+      }
+
+      if (ticker === 'SAITO') {
+        amount = this.app.wallet.convertNolanToSaito(amount);
+      }
+
+      siteMessage(
+        `${amount} ${ticker} inbound from ${this.app.keychain.returnUsername(obj.sender)}`,
+        3000
+      );
     });
 
     app.connection.on('saito-header-update-message', (obj = {}) => {
@@ -154,9 +179,7 @@ class SaitoHeader extends UIModTemplate {
     app.connection.on('saito-crypto-activated', async (ticker) => {
       if (this.installing_crypto && this.installing_crypto == ticker) {
         const activated_mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
-        const is_nft_synthetic =
-          activated_mod?.categories === 'NFT' || String(ticker).toUpperCase().startsWith('NFT-');
-        if (is_nft_synthetic) {
+        if (activated_mod?.categories === 'NFT') {
           this.installing_crypto = false;
         } else {
           setTimeout(() => {
@@ -518,6 +541,13 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.getElementById('wallet-btn-nft')) {
       document.getElementById('wallet-btn-nft').onclick = (e) => {
+        try {
+          const kids = document.querySelectorAll('#wallet-btn-details > *');
+          kids[0]?.classList.remove('hideme'); // wallet icon
+          kids[1]?.classList.remove('hideme'); // "Wallet" span
+          kids[2]?.classList.add('hideme'); // list icon
+          kids[3]?.classList.add('hideme'); // "Back" span
+        } catch (err) {}
         document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         this.app.connection.emit('saito-nft-list-render-request');
       };
@@ -556,9 +586,11 @@ class SaitoHeader extends UIModTemplate {
         }
 
         await app.wallet.setPreferredCrypto(e.target.value);
+
         console.log(
           'Change preferred crypto, restart polls on crypto balance and pending deposits'
         );
+        clearTimeout(this.web3_start_polling_timeout);
 
         let preferred_crypto = this.app.wallet.returnPreferredCrypto();
         preferred_crypto.startPolling();
@@ -627,20 +659,61 @@ class SaitoHeader extends UIModTemplate {
     ) {
       document.querySelector('.saito-header-hamburger-contents').classList.add('show-menu');
       document.querySelector('.saito-header-backdrop').classList.add('menu-visible');
-      console.log('Menu open, start polls on crypto balance and pending deposits');
 
-      let preferred_crypto = this.app.wallet.returnPreferredCrypto();
-      preferred_crypto.startPolling();
+      //
+      // start polling web3 crypto
+      //
+      if (this.web3_start_polling_timeout) {
+        clearTimeout(this.web3_start_polling_timeout);
+        this.web3_start_polling_timeout = null;
+      }
+
+      //
+      // after 10 seconds, query to update web3 balance if active
+      //
+      this.web3_start_polling_timeout = setTimeout(() => {
+        this.web3_start_polling_timeout = null;
+        if (
+          !document
+            .querySelector('.saito-header-hamburger-contents')
+            ?.classList.contains('show-menu')
+        ) {
+          return;
+        }
+        let c = this.app.wallet.returnPreferredCrypto();
+        if (c.categories === 'NFT') {
+          return;
+        }
+        c.startPolling();
+      }, 10000);
     }
   }
 
   hideMenu() {
+    try {
+      const kids = document.querySelectorAll('#wallet-btn-details > *');
+      kids[0]?.classList.remove('hideme'); // wallet icon
+      kids[1]?.classList.remove('hideme'); // "Wallet" span
+      kids[2]?.classList.add('hideme'); // list icon
+      kids[3]?.classList.add('hideme'); // "Back" span
+    } catch (err) {}
+
     if (
       document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
     ) {
       document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
       document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
     }
+
+    //
+    // clear web3 polling if active
+    //
+    if (this.web3_start_polling_timeout) {
+      clearTimeout(this.web3_start_polling_timeout);
+      this.web3_start_polling_timeout = null;
+    }
+    let c = this.app.wallet.returnPreferredCrypto();
+    c.stopPolling();
   }
 
   /****************************************************
@@ -649,7 +722,6 @@ class SaitoHeader extends UIModTemplate {
    * and attach click functionality.
    *
    ***************************************************/
-
   updateHeaderMessage(text = '', flash = false, callback = null, timeout = 0) {
     let this_self = this;
     let el = document.getElementById('header-msg');
@@ -776,63 +848,10 @@ class SaitoHeader extends UIModTemplate {
    *
    * *******************************************************
    * *******************************************************/
-  /**
-   * Synthetic NFT rows from multiwallet use whole-unit balances (no SAITO-style decimals).
-   */
-  isNftCryptoModule(mod) {
-    return (
-      mod?.categories === 'NFT' ||
-      String(mod?.ticker || '')
-        .toUpperCase()
-        .startsWith('NFT-')
-    );
-  }
-
-  /**
-   * Plain string for dropdown menu balance line.
-   */
-  async formatSlideInWalletBalanceNumber(mod, balanceRaw) {
-    const raw =
-      balanceRaw != null && typeof balanceRaw.then === 'function' ? await balanceRaw : balanceRaw;
-    if (this.isNftCryptoModule(mod)) {
-      const s = String(raw ?? '').trim();
-      if (!s) {
-        return '0';
-      }
-      try {
-        const whole = s.split(/[.eE]/)[0] || '0';
-        return BigInt(whole).toString();
-      } catch (e) {
-        return s.split('.')[0] || '0';
-      }
-    }
-    return this.app.browser.formatDecimals(String(raw));
-  }
-
-  /**
-   * HTML for main .balance-amount (matches returnBalanceHTML structure for NFT = whole only).
-   */
-  formatSlideInWalletBalanceHtml(mod, balanceRaw) {
-    if (this.isNftCryptoModule(mod)) {
-      const s = String(balanceRaw ?? '').trim();
-      let whole = '0';
-      try {
-        const w = s.split(/[.eE]/)[0] || '0';
-        whole = BigInt(w).toString();
-      } catch (e) {
-        whole = s.split('.')[0] || '0';
-      }
-      return `<span class="balance-amount-whole">${whole}</span>`;
-    }
-    return this.app.browser.returnBalanceHTML(balanceRaw);
-  }
-
   async renderCrypto(force = false) {
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
     let preferred_crypto = this.app.wallet.returnPreferredCrypto();
     let add = preferred_crypto.returnAddress();
-
-    console.log('into render Crypto in SaitoHeader...');
 
     try {
       //
@@ -863,45 +882,87 @@ class SaitoHeader extends UIModTemplate {
       // dropdown crypto options
       //
       document.querySelector('.wallet-select-crypto').innerHTML = '';
+      for (let crypto_mod of available_cryptos) {
+        let options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${crypto_mod.ticker}</option>`;
+        this.app.browser.addElementToSelector(options_html, '.wallet-select-crypto');
+      }
 
-      let options_html = '';
+      let b_elm = document.querySelector('.balance-amount');
+      b_elm.innerHTML = this.app.browser.returnBalanceHTML(preferred_crypto.balance);
+
+      let ab = await preferred_crypto.getAvailableBalance();
+      let pb = await preferred_crypto.getPendingBalance();
+
+      //
+      // insert crypto balance
+      //
+      try {
+        if (preferred_crypto.isActivated()) {
+          console.log(
+            '@@@ RenderCrypto -- ',
+            preferred_crypto.ticker,
+            preferred_crypto.balance,
+            ab,
+            pb
+          );
+
+          if (preferred_crypto.categories === 'NFT') {
+            if (pb !== ab) {
+              b_elm.classList.add('pending');
+              b_elm.innerHTML = `<span class="balance-amount-whole">${pb}</span>`;
+            } else {
+              b_elm.classList.remove('pending');
+              b_elm.innerHTML = `<span class="balance-amount-whole">${ab}</span>`;
+            }
+          } else if (pb !== ab) {
+            b_elm.classList.add('pending');
+            b_elm.innerHTML = this.app.browser.returnBalanceHTML(pb);
+          } else {
+            b_elm.classList.remove('pending');
+            b_elm.innerHTML = this.app.browser.returnBalanceHTML(ab);
+          }
+        }
+      } catch (err) {
+        console.error('Error rendering crypto balance: ' + err);
+      }
+
       let menu_html = '';
       for (let i = 0; i < available_cryptos.length; i++) {
+        //
+        // get cryptos available
+        //
         let crypto_mod = available_cryptos[i];
 
-        // mixin handles
+        //
+        // mixin handles logos
+        //
         let rtn_val = crypto_mod.returnLogos();
+        let logo_src = rtn_val.img;
+        let sublogo_src = rtn_val.sub_logo;
 
-        options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
-        id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${
-          crypto_mod.ticker
-        }</option>`;
-        menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
-        menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${rtn_val.img}">`;
+        if (crypto_mod.ticker) {
+          if (crypto_mod.isActivated()) {
+            pb = await crypto_mod.getPendingBalance();
+            ab = await crypto_mod.getAvailableBalance();
+          } else {
+            pb = ab = '0';
+          }
 
-        if (rtn_val.sub_logo) {
-          menu_html += `<img class="chain-logo" src="${rtn_val.sub_logo}">`;
+          menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
+          menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${logo_src}">`;
+          if (sublogo_src) {
+            menu_html += `<img class="chain-logo" src="${sublogo_src}">`;
+          }
+          menu_html += `</div><div class="header-crypto-balance">${this.app.browser.formatDecimals(ab)} ${crypto_mod.ticker}</div>`;
+
+          if (crypto_mod.isActivated() && Number(pb) != Number(ab)) {
+            menu_html += `<div class="header-crypto-pending">${this.app.browser.formatDecimals(pb)} pending </div>`;
+          } else {
+            menu_html += '<div></div>';
+          }
+
+          menu_html += `</div>`;
         }
-
-        const menuBal = await this.formatSlideInWalletBalanceNumber(
-          crypto_mod,
-          await Promise.resolve(crypto_mod.returnBalance())
-        );
-        menu_html += `</div><div class="header-crypto-balance">${menuBal} ${crypto_mod.ticker}</div>`;
-
-        if (crypto_mod.pending_balance) {
-          const pendRaw =
-            this.isNftCryptoModule(crypto_mod) && crypto_mod.pending_balance != null
-              ? String(crypto_mod.pending_balance).split(/[.eE]/)[0] || '0'
-              : crypto_mod.pending_balance;
-          menu_html += `<div class="header-crypto-pending">${pendRaw} pending </div>`;
-        } else {
-          menu_html += '<div></div>';
-        }
-
-        menu_html += `</div>`;
-
-        this.app.browser.addElementToSelector(options_html, '.wallet-select-crypto');
       }
 
       this.app.browser.replaceElementBySelector(
@@ -913,60 +974,6 @@ class SaitoHeader extends UIModTemplate {
     }
 
     //
-    // insert crypto balance
-    //
-    try {
-      if (preferred_crypto.isActivated()) {
-        let ab = await preferred_crypto.getAvailableBalance();
-        let pb = await preferred_crypto.getPendingBalance();
-
-        try {
-          let pendingTxSummary = 'rust_pending_txs=unavailable';
-          try {
-            const ptxs = await this.app.wallet.getPendingTxs();
-            pendingTxSummary =
-              ptxs.length === 0
-                ? 'rust_pending_txs=0'
-                : `rust_pending_txs=${ptxs.length} ` +
-                  ptxs
-                    .map((t) => (t.signature ? String(t.signature).slice(0, 24) + '…' : '?'))
-                    .join(', ');
-          } catch (e) {
-            pendingTxSummary = `getPendingTxs_err=${e}`;
-          }
-          console.debug(
-            `[ PENDING BALANCE ] [ renderCrypto | pending_display=${pb} | pending_mode=${
-              pb !== ab
-            } | ${pendingTxSummary} ]`
-          );
-          console.debug(`[ AVAILABLE BALANCE ] [ renderCrypto | available_display=${ab} ]`);
-        } catch (logErr) {
-          console.log(`[ PENDING BALANCE ] [ renderCrypto log_error | ${logErr} ]`);
-        }
-
-        let b_elm = document.querySelector('.balance-amount');
-
-        if (this.isNftCryptoModule(preferred_crypto)) {
-          if (pb !== ab) {
-            b_elm.classList.add('pending');
-            b_elm.innerHTML = this.formatSlideInWalletBalanceHtml(preferred_crypto, pb);
-          } else {
-            b_elm.classList.remove('pending');
-            b_elm.innerHTML = this.formatSlideInWalletBalanceHtml(preferred_crypto, ab);
-          }
-        } else if (pb !== ab) {
-          b_elm.classList.add('pending');
-          b_elm.innerHTML = this.app.browser.returnBalanceHTML(pb);
-        } else {
-          b_elm.classList.remove('pending');
-          b_elm.innerHTML = this.app.browser.returnBalanceHTML(ab);
-        }
-      }
-    } catch (err) {
-      console.error('Error rendering crypto balance: ' + err);
-    }
-
-    //
     //
     //
     Array.from(document.querySelectorAll('.saito-crypto-details')).forEach((c) => {
@@ -975,16 +982,21 @@ class SaitoHeader extends UIModTemplate {
           'saito-crypto-details-render-request',
           e.currentTarget.dataset.ticker
         );
+        this.hideMenu();
       };
     });
 
     if (document.querySelector('.balance-amount')) {
       document.querySelector('.balance-amount').onclick = (e) => {
-        this.app.connection.emit('saito-crypto-details-render-request', preferred_crypto.ticker);
+        this.app.connection.emit(
+          'saito-crypto-details-render-request',
+          this.app.wallet.returnPreferredCryptoTicker()
+        );
+        this.hideMenu();
       };
     }
 
-    console.log('done wallet update...');
+    console.log('done wallet update...' + preferred_crypto.ticker);
   }
 }
 

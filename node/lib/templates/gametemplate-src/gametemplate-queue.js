@@ -210,7 +210,7 @@ class GameQueue {
 
     // When we get to a stop point, check on all the future moves that had come in
     //if ((await this.runQueue()) == 0) {
-    //	this.processFutureMoves();
+    //  this.processFutureMoves();
     //}
   }
 
@@ -971,7 +971,8 @@ class GameQueue {
           game_self.app.connection.emit('arcade-game-ready-render-request', {
             name: game_self.name,
             slug: game_self.returnSlug(),
-            id: game_self.game.id
+            id: game_self.game.id,
+            status: 'ready'
           });
           // Move into game before processing anything else from the queue or future moves
           game_self.halted = 1;
@@ -1898,10 +1899,10 @@ class GameQueue {
     });
 
     /*
-		      There are two ways to restore, which usually doesn't matter as the next
-		      instruction is almost always a shuffle, but we can restore the deck before/after
-		      the (added deck cards) add "push" to put new cards on top of deck,
-		      otherwise defaults to bottom of deck
+          There are two ways to restore, which usually doesn't matter as the next
+          instruction is almost always a shuffle, but we can restore the deck before/after
+          the (added deck cards) add "push" to put new cards on top of deck,
+          otherwise defaults to bottom of deck
     */
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'DECKRESTORE') {
@@ -2037,8 +2038,8 @@ class GameQueue {
     });
 
     /*
-      		  Creates the pool data structure
-    		*/
+            Creates the pool data structure
+        */
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'POOL') {
         let poolidx = gmv[1];

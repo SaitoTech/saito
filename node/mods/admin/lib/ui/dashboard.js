@@ -63,7 +63,7 @@ class AdminDashboard {
             siteMessage("Block production enabled");
             reloadWindow(1200);
           }
-        });
+        }, this.mod.server_publickey);
       };
     }
 
@@ -112,7 +112,7 @@ attachBlockProductionHandler() {
       } else {
         reloadWindow(1200);
       }
-    });
+    }, this.mod.server_publickey);
   };
 }
 

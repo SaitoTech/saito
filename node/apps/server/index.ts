@@ -43,9 +43,7 @@ export async function startServer() {
 		logLevel,
 		BigInt(1),
 		true,
-	).then(() => {
-		console.log('saito wasm lib initialized');
-	});
+	).then(() => {});
 
 	// enable it for ATR testing
 	//await S.getInstance().disableProducingBlocksByTimer();

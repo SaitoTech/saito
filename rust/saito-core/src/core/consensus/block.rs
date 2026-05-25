@@ -933,19 +933,10 @@ impl Block {
 
     /// [transaction][transaction][transaction]...
     pub fn deserialize_from_net(bytes: &[u8]) -> Result<Block, Error> {
-        debug!(
-            "[TRACE_SYNC][SERDE] block_deserialize_start bytes={}",
-            bytes.len()
-        );
         if bytes.len() < BLOCK_HEADER_SIZE {
             warn!(
                 "block buffer is smaller than header length. length : {:?}",
                 bytes.len()
-            );
-            warn!(
-                "[TRACE_SYNC][SERDE] block_deserialize_fail reason=short_header bytes={} header_size={}",
-                bytes.len(),
-                BLOCK_HEADER_SIZE
             );
             return Err(Error::from(ErrorKind::InvalidData));
         }
@@ -1110,18 +1101,12 @@ impl Block {
 
         let mut transactions = vec![];
         let mut start_of_transaction_data = BLOCK_HEADER_SIZE;
-        for tx_index in 0..transactions_len {
+        for _tx_index in 0..transactions_len {
             if bytes.len() < start_of_transaction_data + 16 {
                 warn!(
                     "block buffer is invalid to read transaction metadata. length : {:?}, end_of_tx_data : {:?}",
                     bytes.len(),
                     start_of_transaction_data+16
-                );
-                warn!(
-                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=short_tx_metadata tx_index={} bytes={} tx_metadata_end={}",
-                    tx_index,
-                    bytes.len(),
-                    start_of_transaction_data + 16
                 );
                 return Err(Error::from(ErrorKind::InvalidData));
             }
@@ -1149,25 +1134,9 @@ impl Block {
                 .checked_add(outputs_len)
                 .ok_or(Error::from(ErrorKind::InvalidData))?;
             let Some(slips_size) = (total_len as usize).checked_mul(SLIP_SIZE) else {
-                error!(
-                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=slip_size_overflow tx_index={} inputs_len={} outputs_len={} total_slips={} slip_size={} bytes={}",
-                    tx_index,
-                    inputs_len,
-                    outputs_len,
-                    total_len,
-                    SLIP_SIZE,
-                    bytes.len()
-                );
                 return Err(Error::from(ErrorKind::InvalidData));
             };
             let Some(path_size) = path_len.checked_mul(HOP_SIZE) else {
-                error!(
-                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=path_size_overflow tx_index={} path_len={} hop_size={} bytes={}",
-                    tx_index,
-                    path_len,
-                    HOP_SIZE,
-                    bytes.len()
-                );
                 return Err(Error::from(ErrorKind::InvalidData));
             };
             let Some(end_of_transaction_data) = start_of_transaction_data
@@ -1176,16 +1145,6 @@ impl Block {
                 .and_then(|n| n.checked_add(message_len))
                 .and_then(|n| n.checked_add(path_size))
             else {
-                error!(
-                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=tx_bounds_overflow tx_index={} start={} tx_size={} slips_size={} message_len={} path_size={} bytes={}",
-                    tx_index,
-                    start_of_transaction_data,
-                    TRANSACTION_SIZE,
-                    slips_size,
-                    message_len,
-                    path_size,
-                    bytes.len()
-                );
                 return Err(Error::from(ErrorKind::InvalidData));
             };
 
@@ -1193,18 +1152,6 @@ impl Block {
                 warn!(
                     "block buffer is invalid to read transaction data. length : {:?}, end of tx data : {:?}, tx_count : {:?}",
                     bytes.len(), end_of_transaction_data, transactions_len
-                );
-                warn!(
-                    "[TRACE_SYNC][SERDE] block_deserialize_fail reason=short_tx_data tx_index={} tx_count={} start={} end={} inputs_len={} outputs_len={} message_len={} path_len={} bytes={}",
-                    tx_index,
-                    transactions_len,
-                    start_of_transaction_data,
-                    end_of_transaction_data,
-                    inputs_len,
-                    outputs_len,
-                    message_len,
-                    path_len,
-                    bytes.len()
                 );
                 return Err(Error::from(ErrorKind::InvalidData));
             }
@@ -1259,12 +1206,6 @@ impl Block {
             block.block_type = BlockType::Header;
         }
 
-        debug!(
-            "[TRACE_SYNC][SERDE] block_deserialize_ok block_id={} tx_count={} bytes={}",
-            block.id,
-            transactions_len,
-            bytes.len()
-        );
         Ok(block)
     }
 
@@ -2608,13 +2549,6 @@ impl Block {
 
     /// [transaction][transaction][transaction]...
     pub fn serialize_for_net(&self, block_type: BlockType) -> Vec<u8> {
-        debug!(
-            "[TRACE_SYNC][SERDE] block_serialize_start block_id={} block_hash={} tx_count={} block_type={:?}",
-            self.id,
-            self.hash.to_hex(),
-            self.transactions.len(),
-            block_type
-        );
         let mut tx_len_buffer: Vec<u8> = vec![];
 
         // block headers do not get tx data
@@ -2672,13 +2606,6 @@ impl Block {
         ]
         .concat();
 
-        debug!(
-            "[TRACE_SYNC][SERDE] block_serialize_ok block_id={} block_hash={} bytes={} block_type={:?}",
-            self.id,
-            self.hash.to_hex(),
-            buffer.len(),
-            block_type
-        );
         buffer
     }
 

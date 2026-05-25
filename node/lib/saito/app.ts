@@ -86,12 +86,11 @@ class Saito {
     //    try {
     // await this.storage.initialize();
 
-    console.log('initializing wallet....');
+    console.log('Initializing wallet....');
     await this.wallet.initialize();
-    console.log('initializing keychain....');
+    console.log('Initializing keychain....');
     await this.keychain.initialize();
 
-    console.log('mapping modules...');
     this.modules.mods = this.modules.mods_list.map((mod_path) => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       console.log('Installing: ', mod_path);
@@ -102,7 +101,7 @@ class Saito {
       return x;
     });
 
-    console.log('setting current version : ' + this.wallet.version);
+    console.log('Wallet Version: ' + this.wallet.version);
 
     this.core.wallet.setWalletVersion(
       0,
@@ -130,7 +129,6 @@ class Saito {
   }
 
   async reset(config) {
-    console.log('resetting saito instance');
     this.options = config;
     this.newSaito();
     await this.init();

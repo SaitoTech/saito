@@ -175,14 +175,6 @@ impl Gatekeeper {
         match record {
             AccessRecord::RequestBlockchainMessageReceived => {
                 if let Message::RequestBlockchain(request) = message {
-                    info!(
-                        "[TEMP_SYNC_TRACE][SYNC] costly-check peer_id={} req_latest_id={} seen_count={} prev_latest_id={} prev_score={}",
-                        peer_id,
-                        request.latest_known_block_id,
-                        peer_record.request_blockchain_messages_received,
-                        peer_record.last_request_blockchain_block_id,
-                        peer_record.last_request_blockchain_score
-                    );
                     if peer_record.request_blockchain_messages_received > 50 {
                         info!(
                		    "[SERVICE REFUSAL - COSTLY: too many request blockchain msgs from peer_id={}",
@@ -202,12 +194,6 @@ impl Gatekeeper {
                     }
                     peer_record.last_request_blockchain_block_id = request.latest_known_block_id;
                     peer_record.last_request_blockchain_timestamp = now;
-                    info!(
-                        "[TEMP_SYNC_TRACE][SYNC] costly-check result peer_id={} req_latest_id={} new_score={}",
-                        peer_id,
-                        request.latest_known_block_id,
-                        peer_record.last_request_blockchain_score
-                    );
                     if peer_record.last_request_blockchain_score > 10 {
                         return false;
                     }

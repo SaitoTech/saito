@@ -36,8 +36,8 @@ const CryptoModule = require('./../../../lib/templates/cryptomodule');
 const getUuid = require('uuid-by-string');
 //
 // TODO - this is old and deprecated and doesn't compile well with ().default bundled
-// code as we require. so we should be updating address validation if we need it, but 
-// this should not be blocking us. 
+// code as we require. so we should be updating address validation if we need it, but
+// this should not be blocking us.
 //
 //const WAValidator = require("multicoin-address-validator");
 
@@ -51,10 +51,9 @@ class MixinModule extends CryptoModule {
 		this.chain_id = chain_id;
 
 		this.polling_active = 0;
-		this.polling_last_request = 0; 
 		this.polling_timeout = 0;
-		this.polling_intervals = [0, 15000, 45000, 100000, 300000, 600000];
-		this.polling_interval_current = 0; 
+		this.polling_intervals = [5000, 15000, 45000, 90000, 120000, 180000];
+		this.polling_interval_current = 0;
 
 		this.confirmations = 100;
 		this.latest_snapshot_ts = 0;
@@ -105,36 +104,12 @@ class MixinModule extends CryptoModule {
 		}
 	}
 
-
-	//
-	// Critical Balance Check Functions
-	//
-	
-	//
-	// these functions are defined as such in the parent module
-	//
-	//async getAvailableBalance() {
-    	//	return this.checkBalance();
-  	//}
-	//
-  	//async getPendingBalance() {
-  	//	return this.checkBalance();
-  	//}
-  	//async checkBalance() {
-    	//	return this.balance;
-  	//}
-  	//async checkPendingBalance() {
-    	//	return await this.checkBalance();
-  	//}
-
-
 	//
 	// queries the latest balance
 	//
 	async fetchBalance() {
-
 		if (!this.address) {
-			console.info("Mixin Error: no address - terminating fetch balance");
+			console.info('Mixin Error: no address - terminating fetch balance');
 			return;
 		}
 
@@ -149,26 +124,27 @@ class MixinModule extends CryptoModule {
 		return this.balance;
 	}
 
+	async getAvailableBalance() {
+		return this.fetchBalance();
+	}
 
 	//
 	// queries the latest pending balance
 	//
-	async fetchPendingBalance() {
+	async getPendingBalance() {
+		await this.fetchBalance();
+		let pending_balance = Number(this.balance);
 
-		let pending_balance = 0;
+		this.pending_deposits = await this.fetchPendingDeposits();
 
-  		this.pending_deposits = await this.fetchPendingDeposits();
+		for (let pd of this.pending_deposits) {
+			if (pd.state === 'pending' || Number(pd.confirmations) < Number(this.confirmations)) {
+				pending_balance += Number(pd.amount || 0);
+			}
+		}
 
-  		for (let pd of this.pending_deposits) {
-  			if (pd.state === "pending" || Number(pd.confirmations) < Number(this.confirmations)) {
-  				pending_balance += Number(pd.amount || 0);
-  			}
-  		}
-
-		this.pending_balance = pending_balance.toString() || '0.0';
-
-  	}
-
+		return pending_balance.toString() || '0.0';
+	}
 
 	/*
 	 *
@@ -196,21 +172,20 @@ class MixinModule extends CryptoModule {
 	 * ];
 	 */
 	async fetchPendingDeposits(callback = null) {
-
 		if (!this.address) {
 			this.pending_deposits = [];
- 			if (callback) callback([]);
-    			return [];
-  		}
+			if (callback) callback([]);
+			return [];
+		}
 
 		this.pending_deposits = await new Promise((resolve) => {
 			this.mixin.fetchPendingDeposits(this.asset_id, this.address, (res) => {
 				if (res === false) {
 					resolve(this.pending_deposits || []);
 					return;
-      				}
-      				resolve(res || []);
-  			});
+				}
+				resolve(res || []);
+			});
 		});
 
 		if (callback) {
@@ -218,9 +193,7 @@ class MixinModule extends CryptoModule {
 		}
 
 		return this.pending_deposits;
-
 	}
-
 
 	/**
 	 * Incremental history / snapshot sync: fetch new Safe ledger events, append to history,
@@ -228,6 +201,11 @@ class MixinModule extends CryptoModule {
 	 * Independent of checkHistory() / history_update_ts.
 	 */
 	async fetchHistory(mycallback = null) {
+		// We should not be making API calls on Mixin if we haven't installed this crypto
+		// (let alone set up a mixin account)
+		if (!this.isActivated()) {
+			return;
+		}
 
 		let fetched_updates = [];
 
@@ -336,22 +314,21 @@ class MixinModule extends CryptoModule {
 				// }
 				//
 				this.app.connection.emit('on-payment-received', {
-					direction: obj.type ,
+					direction: obj.type,
 					amount: String(Math.abs(obj.amount)),
-					sender: obj.counter_party.publicKey || obj.counter_party.address ,
+					sender: obj.sender,
 					receiver: this.returnAddress() || '',
 					timestamp: obj.timestamp,
 					block_id: '',
-					ticker: this.ticker || '', 
-					transaction_signature: '' ,
-					signature: '' ,
-					memo: snap.memo || '' ,
-					confirmation: 1 ,
-					module: this.name || '' ,
-					request: 'crypto payment' ,
-					hash: '',
+					ticker: this.ticker || '',
+					transaction_signature: '',
+					signature: '',
+					memo: snap.memo || '',
+					confirmation: 1,
+					module: this.name || '',
+					request: 'crypto payment',
+					hash: ''
 				});
-
 			} else if (obj.type === 'send' || obj.type === 'withdraw') {
 				//
 				// Broadcast object shape (mixin-payment-sent):
@@ -374,20 +351,20 @@ class MixinModule extends CryptoModule {
 				// }
 				//
 				this.app.connection.emit('on-payment-sent', {
-					direction: obj.type ,
+					direction: obj.type,
 					amount: String(Math.abs(obj.amount)),
-					receiver: obj.counter_party.address,
+					receiver: obj.receiver,
 					sender: this.returnAddress() || '',
 					timestamp: obj.timestamp,
 					block_id: '',
-					ticker: this.ticker || '', 
-					transaction_signature: '' ,
-					signature: '' ,
-					memo: snap.memo || '' ,
-					confirmation: 1 ,
-					module: this.name || '' ,
-					request: 'crypto payment' ,
-					hash: '',
+					ticker: this.ticker || '',
+					transaction_signature: '',
+					signature: '',
+					memo: snap.memo || '',
+					confirmation: 1,
+					module: this.name || '',
+					request: 'crypto payment',
+					hash: ''
 				});
 			}
 
@@ -399,14 +376,22 @@ class MixinModule extends CryptoModule {
 			this.save();
 		}
 
-		if (mycallback != null) { mycallback(fetched_updates); }
+		if (mycallback != null) {
+			mycallback(fetched_updates);
+		}
 
 		return fetched_updates;
+	}
 
+	stopPolling() {
+		this.polling_active = 0;
+		if (this.polling_timeout) {
+			clearTimeout(this.polling_timeout);
+			this.polling_timeout = null;
+		}
 	}
 
 	startPolling() {
-
 		//
 		// if we are already polling, increase urgency by reducing interval index
 		//
@@ -420,11 +405,10 @@ class MixinModule extends CryptoModule {
 		//
 		// record that we are polling
 		//
-                this.polling_active = 1;
+		this.polling_active = 1;
 		this.polling_interval_current = 0;
 
 		const poll = async () => {
-
 			//
 			// polling stopped externally
 			//
@@ -436,42 +420,25 @@ class MixinModule extends CryptoModule {
 
 			//
 			// if something has happened....
+			// or nothing is going to happen...
 			//
-			if (wallet_updates.length > 0) {
-
-				//
-				// disable polling, change found...
-				//
-				this.polling_active = 0;
-                		this.polling_last_request = Date.now();      
-                		this.polling_timeout = 0;
-                		this.polling_interval_current = 0;       
-
-			} else {
-
-				//
-				// decay polling frequency
-				//
-				if (
-					this.polling_interval_current <
-					this.polling_intervals.length - 1
-				) {
-					this.polling_interval_current++;
-				}
+			if (
+				wallet_updates.length > 0 ||
+				this.polling_interval_current >= this.polling_intervals.length
+			) {
+				this.stopPolling();
+				return;
 			}
-
-			//
-			// update timestamp
-			//
-			this.polling_last_request = Date.now();
 
 			//
 			// schedule next poll
 			//
 			let delay = this.polling_intervals[this.polling_interval_current];
-			this.polling_timeout = setTimeout(poll, delay);
 
-		}
+			this.polling_interval_current++;
+
+			this.polling_timeout = setTimeout(poll, delay);
+		};
 
 		//
 		// now start!
@@ -479,10 +446,7 @@ class MixinModule extends CryptoModule {
 		poll();
 
 		return;
-  	}
-
-
-
+	}
 
 	/**
 	 * Abstract method which should transfer tokens via the crypto endpoint
@@ -590,7 +554,6 @@ class MixinModule extends CryptoModule {
 		//mixinmodule.js:454 received_datetime:  Sun Sep 20 56111 06:01:14 GMT+0500 (Pakistan Standard Time)
 
 		let status = await this.mixin.fetchUtxo('unspent', 100000, 'DESC', (d) => {
-
 			if (d.length > 0) {
 				for (let i = d.length - 1; i >= 0; i--) {
 					let row = d[i];
@@ -708,14 +671,15 @@ class MixinModule extends CryptoModule {
 		}
 	}
 
-
 	/**
 	 * Abstract method which returns snapshot of asset withdrawls, deposits
 	 * @abstract
 	 * @return {Function} Callback function
 	 */
 	async checkHistory(mycallback = null) {
-		if (mycallback != null) { mycallback(this.history); }
+		if (mycallback != null) {
+			mycallback(this.history);
+		}
 		return this.history;
 	}
 
@@ -784,12 +748,11 @@ class MixinModule extends CryptoModule {
 			//
 			return true;
 
-//			return WAValidator.validate(address, this.ticker);
+			//			return WAValidator.validate(address, this.ticker);
 		} catch (err) {
 			// console.error("Error 'validateAddress' MixinModule: ", err);
 		}
 	}
-
 }
 
 module.exports = MixinModule;

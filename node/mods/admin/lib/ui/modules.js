@@ -15,7 +15,15 @@ class AdminModulesUI {
     this.modules_changed = false;
     this.initial_state = null;
 
-    this.app.browser.replaceElementBySelector(
+    if (!this.mod.server_info) {
+      this.app.browser.replaceElementContentBySelector(
+        `<p class="admin-modules-hint">Server info is not loaded yet. Wait for admin authentication to finish, then try again.</p>`,
+        this.container
+      );
+      return;
+    }
+
+    this.app.browser.replaceElementContentBySelector(
       ModulesTemplate(this.mod),
       this.container
     );
@@ -79,7 +87,7 @@ class AdminModulesUI {
 	  saveBtn.setAttribute("disabled", true);
           siteMessage("Modules updated");
         }
-      });
+      }, this.mod.server_publickey);
     };
 
   }

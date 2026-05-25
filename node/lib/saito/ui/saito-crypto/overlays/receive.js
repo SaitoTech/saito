@@ -19,46 +19,57 @@ class Receive {
     this.app.connection.on('saito-crypto-receive-render-request', (details) => {
       this.render(details);
     });
-
-    this.app.connection.on('on-payment-received', (obj = {}) => {
-      console.log('#');
-      console.log('#');
-      console.log('#');
-      console.log('RECEIVED PAYMENT!');
-      console.log(JSON.stringify(obj));
-
-      if (!this.mod.game) {
-        return;
-      }
-
-      let expected_hash = this.app.crypto.hash(
-        Buffer.from(
-          String(obj.sender) +
-            String(obj.receiver) +
-            String(obj.amount) +
-            String(this.mod.game.dice) +
-            String(this.mod.game.crypto),
-          'utf-8'
-        )
-      );
-
-      if (this.app.options?.crypto?.[this.mod.game?.crypto]?.transfers_inbound) {
-        console.log('INBOUND EXISTS!');
-        for (
-          let i = 0;
-          i < this.app.options.crypto[this.mod.game.crypto].transfers_inbound.length;
-          i++
-        ) {
-          console.log('looping i: ' + i);
-          if (this.app.options.crypto[this.mod.game.crypto].transfers_inbound[i] == expected_hash) {
-            console.log('match on hash');
-            this.onReceivePayment(obj);
-            this.app.options.crypto[this.mod.game.crypto].transfers_inbound.splice(i, 1);
-            break;
-          }
-        }
-      }
+    this.app.connection.on('on-nft-received', (obj = {}) => {
+      this.processExpectedPayment(obj);
     });
+    this.app.connection.on('on-payment-received', (obj = {}) => {
+      this.processExpectedPayment(obj);
+    });
+  }
+
+  processExpectedPayment(obj = {}) {
+    if (!this.mod?.game) return;
+
+    const g = this.mod.game;
+    const ticker = g.crypto;
+    const token = String(obj.sender || obj.sender_publickey || '');
+    if (!token) return;
+    if (obj.ticker && ticker && obj.ticker !== ticker) return;
+
+    let from = null;
+    for (let i = 0; i < g.players.length; i++) {
+      const stored = [g.keys?.[i], g.cryptos?.[i + 1]?.[ticker]?.address].filter(Boolean);
+      if (g.players[i] === token || stored.some((s) => s.includes(token))) {
+        from = g.players[i];
+        break;
+      }
+    }
+    if (!from || (this.payer && from !== this.payer)) return;
+
+    let amt = this.app.crypto.convertFloatToSmartPrecision(
+      parseFloat(this.expectAmount ?? obj.amount ?? obj.nft_amount ?? 0)
+    );
+    if (!amt && amt !== 0) return;
+
+    const amtH =
+      ticker === 'SAITO' ? this.app.wallet.convertSaitoToNolan(amt).toString() : String(amt);
+
+    const hash = this.app.crypto.hash(
+      Buffer.from(from + this.mod.publicKey + amtH + g.dice + ticker, 'utf-8')
+    );
+
+    if (this.expectHash && this.expectHash !== hash) return;
+
+    const inbound = this.app.options?.crypto?.[ticker]?.transfers_inbound;
+    if (!inbound?.length) return;
+
+    let i = inbound.indexOf(hash);
+    if (i < 0 && this.expectHash) i = inbound.indexOf(this.expectHash);
+    if (i < 0) return;
+
+    inbound.splice(i, 1);
+    this.app.wallet.returnCryptoModuleByTicker(ticker)?.save?.();
+    this.onReceivePayment(obj);
   }
 
   /**

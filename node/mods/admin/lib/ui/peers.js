@@ -106,7 +106,7 @@ class AdminPeers {
             siteMessage("Peers updated");
             reloadWindow(1200);
           }
-        });
+        }, this.mod.server_publickey);
       };
     }
   }
@@ -146,7 +146,7 @@ class AdminPeers {
       } else {
         this.renderLivePeersTable(res.result || []);
       }
-    });
+    }, this.mod.server_publickey);
   }
 
   renderLivePeersTable(rows) {

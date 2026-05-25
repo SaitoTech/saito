@@ -567,6 +567,7 @@
   display: flex;
   flex-direction: column;
   text-align: center;
+  align-items: center;
   min-width: min(40rem, 100%);
   font-size: 1.8rem;
   line-height: 2.8rem;
@@ -587,8 +588,8 @@
 
 .confirm-msg-container .withdraw-confirm-address {
   display: grid;
-  grid-template-columns: minmax(0px, 1fr) min-content min-content;
-  width: 446px;
+  grid-template-columns: minmax(0px, 1fr) max-content min-content;
+  width: fit-content;
   max-width: 100%;
   grid-gap: 0;
 }
@@ -613,7 +614,11 @@
 }
 
 #withdraw-step-two .confirm-submit .saito-button-secondary {
-  border-color: color-mix(in srgb, var(--saito-border-color) 40%, var(--saito-font-color-heavy) 60%);
+  border-color: color-mix(
+    in srgb,
+    var(--saito-border-color) 40%,
+    var(--saito-font-color-heavy) 60%
+  );
 }
 
 .hide-element {

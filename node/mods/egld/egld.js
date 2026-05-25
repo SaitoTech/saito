@@ -121,7 +121,7 @@ class EGLDModule extends CryptoModule {
     }
   }
 
-  async checkBalance() {
+  async fetchBalance() {
     return this.updateAccount();
   }
 

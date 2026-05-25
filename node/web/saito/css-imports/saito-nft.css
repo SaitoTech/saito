@@ -411,6 +411,10 @@
   background: var(--saito-surface-hover);
 }
 
+.saito-nft-metadata-box.ticker {
+  text-transform: uppercase;
+}
+
 .saito-nft-metadata-box.ticker , .saito-nft-input-label.ticker {
   display: none;
 }

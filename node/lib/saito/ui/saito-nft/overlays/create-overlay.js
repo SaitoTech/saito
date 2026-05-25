@@ -405,7 +405,9 @@ class CreateNFT {
         data: obj
       };
 
-      let ticker = document.querySelector('.saito-nft-metadata-box.ticker').value || '';
+      let ticker = (
+        document.querySelector('.saito-nft-metadata-box.ticker').value || ''
+      ).toUpperCase();
       let title_el = document.querySelector('.saito-nft-metadata-box.title');
       let title = title_el.value || title_el.getAttribute('placeholder') || '';
       title = title.trim();
@@ -416,7 +418,7 @@ class CreateNFT {
 
       if (ticker) {
         tx_msg.ticker = ticker;
-        this.nft_type = 'NFT-' + ticker;
+        this.nft_type = 'token';
       }
 
       if (title) {

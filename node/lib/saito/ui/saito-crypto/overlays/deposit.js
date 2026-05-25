@@ -91,7 +91,7 @@ class Deposit {
     try {
       let cryptomod = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
 
-      await cryptomod.checkBalance();
+      await cryptomod.fetchBalance();
       this.balance = Number(cryptomod.returnBalance());
 
       if (document.querySelector(`#saito-deposit-form .balance-amount`)) {
@@ -122,7 +122,7 @@ class Deposit {
     let confs = cryptomod.confirmations;
     let ct = 0;
     let interval = setInterval(() => {
-      cryptomod.checkBalance();
+      cryptomod.fetchBalance();
       cryptomod.fetchPendingDeposits((res) => {
         if (res.length > 0) {
           let pending = res.pop();
