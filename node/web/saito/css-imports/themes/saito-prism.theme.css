@@ -116,6 +116,7 @@ html[data-theme='prism'] {
   --saito-border-color-dark: var(--palette-outline);
   --border-color-general-dividers: var(--palette-outline-strong);
   --saito-border-radius: 12px; /* --pr-radius */
+  --saito-identicon-border-radius: 50%;
 
   /* ============================================
      BOX SHADOWS - Modern, subtle shadows

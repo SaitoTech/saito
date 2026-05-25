@@ -32,6 +32,7 @@ html[data-theme='lite'] {
   --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-border-color: var(--palette-outline);
   --border-color-general-dividers: var(--palette-outline-strong);
+  --saito-identicon-border-radius: var(--saito-border-radius);
   --saito-overlay-panel-surface-low: color-mix(in srgb, var(--saito-white) 88%, var(--saito-orange) 12%);
   --saito-overlay-panel-surface: var(--palette-bg);
   --saito-overlay-panel-background: var(--palette-overlay-gradient);

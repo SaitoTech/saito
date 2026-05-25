@@ -81,7 +81,7 @@
 	background-color: var(--saito-surface-color);
 	flex-shrink: 0;
 	background-color: transparent;
-	border-radius: var(--saito-radius-md);
+	border-radius: var(--saito-identicon-border-radius);
 }
 
 .saito-game-identicons div {
