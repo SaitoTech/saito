@@ -398,6 +398,8 @@
 @media screen and (max-width: 450px) {
 	.arcade-teasers {
 		grid-template-columns: repeat(2, 1fr);
+		gap: 1rem;
+        margin: 1rem 0;
 	}
 }
 

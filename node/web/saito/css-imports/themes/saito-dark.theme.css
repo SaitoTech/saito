@@ -60,6 +60,7 @@ html[data-theme='dark'] {
   /* BORDER COLORS */
   --saito-border-color: var(--palette-outline);
   --border-color-general-dividers: var(--palette-outline-strong);
+  --saito-identicon-border-radius: var(--saito-border-radius);
 
   --saito-box-shadow:
     0px 12px 17px 2px #00000024, 0px 5px 22px 4px #0000001f, 0px 7px 8px -4px #00000033;

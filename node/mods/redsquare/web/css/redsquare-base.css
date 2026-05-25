@@ -254,7 +254,7 @@
   height: 48px;
   border: 1px solid var(--saito-border-color);
   margin-right: 12px;
-  border-radius: 50%;
+  border-radius: var(--saito-identicon-border-radius);
   background-color: var(--saito-muted-color);
   flex-shrink: 0;
   z-index: 5;

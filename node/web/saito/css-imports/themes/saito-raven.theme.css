@@ -64,6 +64,7 @@ html[data-theme='raven'] {
   --saito-border-color: var(--palette-outline);
   --border-color-general-dividers: var(--palette-outline-strong);
   --saito-border-radius: 1rem;
+  --saito-identicon-border-radius: 50%;
   --saito-button-radius: var(--saito-radius-full);
 
   --saito-box-shadow:

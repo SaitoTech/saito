@@ -86,6 +86,7 @@ html[data-theme='noir'] {
   --saito-border-color-dark: var(--palette-outline-strong);
   --border-color-general-dividers: color-mix(in srgb, var(--palette-outline-strong) 24%, transparent);
   --saito-border-radius: 0.75rem;
+  --saito-identicon-border-radius: var(--saito-border-radius);
   --saito-radius-sm: 0.5rem;
   --saito-radius-md: 0.75rem;
   --saito-radius-lg: 1rem;
