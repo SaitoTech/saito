@@ -45,6 +45,7 @@ class Arcade extends ModTemplate {
 		//
 		this.ui = null;
 		this.header = null;
+		this.show_splash = true;
 		this.lounge_overlay = null;
 		this.wizard_overlay = null;
 		this.share_overlay = null;
@@ -195,6 +196,10 @@ class Arcade extends ModTemplate {
 		if (!app.options.arcade) {
 			app.options.arcade = {};
 		}
+
+		this.show_splash = Object.prototype.hasOwnProperty.call(app.options.arcade, 'show-splash')
+			? app.options.arcade['show-splash']
+			: true;
 
 		//
 		// Maybe good, maybe not... Only sorts on fresh load...
@@ -1837,6 +1842,19 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 			this.app.storage.saveOptions();
 			this.renderInvites();
 		}
+	}
+
+	saveOptions() {
+		if (!this.app.BROWSER) {
+			return;
+		}
+
+		if (!this.app.options.arcade) {
+			this.app.options.arcade = {};
+		}
+
+		this.app.options.arcade['show-splash'] = this.show_splash;
+		this.app.storage.saveOptions();
 	}
 
 	removeGameFromWallet(game_id) {

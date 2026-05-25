@@ -1,14 +1,14 @@
 module.exports = (mod) => {
   let html = `
     <div id="saito-container" class="saito-container">
-      
+
       <div class="saito-sidebar left">
       </div>
-      
+
       <div class="saito-main">
          <div class="redsquare-load-new-tweets-container"></div>
          <div class="tweet-container ${mod.curated ? 'active-curation' : ''}">
-          <div id="saito-loader-container" class="saito-loader-container"> 
+          <div id="saito-loader-container" class="saito-loader-container">
             <div class="saito-loader"></div>
           </div>
          </div>
@@ -17,10 +17,10 @@ module.exports = (mod) => {
          </div>
          <div class="tweet-thread-holder" id="tweet-thread-holder"></div>
       </div>
-     
-      <div class="saito-sidebar redsquare-sidebar right">
+
+      <div class="saito-sidebar redsquare-sidebar right hide-scrollbar">
       </div>
-      
+
     </div>
   `;
 

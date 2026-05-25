@@ -850,34 +850,80 @@ class RedSquareMain {
       return;
     }
 
-    /* Scroll the right side bar code (originally in ./sidebar.js) */
+    /* Keep the right sidebar fixed and sync its internal scroll with the main feed. */
     var scrollableElement = document.querySelector('.saito-container');
+    var mainContent = document.querySelector('.saito-main');
     var sidebar = document.querySelector('.saito-sidebar.right');
-    var scrollTop = 0;
-    var stop = 0;
 
-    scrollableElement.addEventListener('scroll', (e) => {
-      let newScrollTop = scrollableElement.scrollTop;
-      let maxScroll = sidebar.clientHeight - window.innerHeight + 70;
+    if (scrollableElement && mainContent && sidebar) {
+      var scrollTop = scrollableElement.scrollTop;
+      var ticking = false;
+      var heightSyncFrame = null;
 
-      if (maxScroll > 0) {
-        if (scrollTop < newScrollTop) {
-          if (newScrollTop - stop > maxScroll) {
-            stop = window.innerHeight - 70 - sidebar.clientHeight + newScrollTop;
-          }
-        } else {
-          if (stop > newScrollTop) {
-            stop = newScrollTop;
-          }
+      sidebar.style.top = '';
+
+      const syncMainHeightWithSidebar = () => {
+        mainContent.style.minHeight = '';
+
+        if (
+          sidebar.scrollHeight > sidebar.clientHeight &&
+          mainContent.scrollHeight < sidebar.scrollHeight
+        ) {
+          mainContent.style.minHeight = `${sidebar.scrollHeight}px`;
         }
-      } else {
-        //Keep top of side bar fixed relative to viewPort
-        stop = newScrollTop;
+      };
+
+      const requestMainHeightSync = () => {
+        if (heightSyncFrame) {
+          return;
+        }
+
+        heightSyncFrame = window.requestAnimationFrame(() => {
+          heightSyncFrame = null;
+          syncMainHeightWithSidebar();
+        });
+      };
+
+      requestMainHeightSync();
+      window.addEventListener('resize', requestMainHeightSync);
+      sidebar.addEventListener('load', requestMainHeightSync, true);
+
+      if (window.ResizeObserver) {
+        this.sidebar_resize_observer = new ResizeObserver(requestMainHeightSync);
+        this.sidebar_resize_observer.observe(mainContent);
+        this.sidebar_resize_observer.observe(sidebar);
       }
 
-      sidebar.style.top = stop + 'px';
-      scrollTop = newScrollTop;
-    });
+      if (window.MutationObserver) {
+        this.sidebar_mutation_observer = new MutationObserver(requestMainHeightSync);
+        this.sidebar_mutation_observer.observe(mainContent, { childList: true, subtree: true });
+        this.sidebar_mutation_observer.observe(sidebar, { childList: true, subtree: true });
+      }
+
+      scrollableElement.addEventListener('scroll', () => {
+        if (ticking) {
+          return;
+        }
+
+        ticking = true;
+
+        window.requestAnimationFrame(() => {
+          let newScrollTop = scrollableElement.scrollTop;
+          let scrollDelta = newScrollTop - scrollTop;
+
+          if (scrollDelta !== 0) {
+            sidebar.scrollTop += scrollDelta;
+          }
+
+          if (this.mode == 'tweets') {
+            this.scroll_depth = newScrollTop;
+          }
+
+          scrollTop = newScrollTop;
+          ticking = false;
+        });
+      });
+    }
 
     /* Code for the slide-out header */
     /*

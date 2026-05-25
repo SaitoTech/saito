@@ -1,17 +1,17 @@
 module.exports = (game_mod, invite_obj = {}) => {
-	let html = `<form class="arcade-wizard saito-overlay-size wide">`;
-	let invite = null;
-	let publicKey = null;
-	if (invite_obj.invite) {
-		invite = invite_obj.invite;
-	}
-	if (invite_obj.publicKey) {
-		publicKey = invite_obj.publicKey;
-	}
+  let html = `<form class="arcade-wizard saito-overlay-size wide">`;
+  let invite = null;
+  let publicKey = null;
+  if (invite_obj.invite) {
+    invite = invite_obj.invite;
+  }
+  if (invite_obj.publicKey) {
+    publicKey = invite_obj.publicKey;
+  }
 
-	let img = game_mod.respondTo('arcade-games')?.image || '';
+  let img = game_mod.respondTo('arcade-games')?.image || '';
 
-	html += `
+  html += `
     <div class="arcade-wizard-container">
     
       <!- ***Game thumbnail & options start*** -->
@@ -31,11 +31,11 @@ module.exports = (game_mod, invite_obj = {}) => {
       <!- ***Game desc & title end*** -->
   `;
 
-	html += `
+  html += `
         <input type="hidden" name="game" value="${game_mod.name}" />
   `;
 
-	html += `
+  html += `
     </div>
 
     <div class="arcade-wizard-controls">
@@ -48,54 +48,54 @@ module.exports = (game_mod, invite_obj = {}) => {
       <div class="arcade-wizard-actions">
   `;
 
-	if (game_mod.maxPlayers == 1) {
-		/*html += `<select name="invite_type" style="display:none;">
+  if (game_mod.maxPlayers == 1) {
+    /*html += `<select name="invite_type" style="display:none;">
               <option value="single" selected default></option>
              </select>
     `;*/
 
-		html += `<button type="button" id="game-invite-btn" class="fat saito-button-primary game-invite-btn" data-type="single">Play</button>`;
-	} else {
-		html += `
+    html += `<button type="button" id="game-invite-btn" class="fat saito-button-primary game-invite-btn" data-type="single">Play</button>`;
+  } else {
+    html += `
           <div class="saito-multi-select_btn saito-select">
            <div class="saito-multi-select_btn_options saito-slct">
       `;
-		if (publicKey) {
-			html += `<button type="button" class="saito-multi-btn  game-invite-btn" data-type="direct">next...</button>`;
-		} else {
-			if (invite_obj.league) {
-				html += `
+    if (publicKey) {
+      html += `<button type="button" class="saito-multi-btn  game-invite-btn" data-type="direct">next...</button>`;
+    } else {
+      if (invite_obj.league) {
+        html += `
 					<button type="button" class="saito-multi-btn  game-invite-btn" data-type="open">create public league invite</button>
                 			 <button type="button" class="saito-multi-btn  game-invite-btn" data-type="private">create private league invite</button>
 				`;
-			} else {
-				html += `
+      } else {
+        html += `
               				<button type="button" class="saito-multi-btn  game-invite-btn" data-type="open">create public invite</button>
               				<button type="button" class="saito-multi-btn game-invite-btn" data-type="private">create private invite</button>
          			`;
 
-				if (game_mod?.can_play_async) {
-					html += `<button type="button" class="saito-multi-btn  game-invite-btn" data-type="async">create async invite</button>`;
-				}
-			}
-		}
-		html += `</div>
+        if (game_mod?.can_play_async) {
+          html += `<button type="button" class="saito-multi-btn  game-invite-btn" data-type="async">create async invite</button>`;
+        }
+      }
+    }
+    html += `</div>
           </div>`;
-	}
+  }
 
-	html += `
+  html += `
       </div>
 
     </div>
   `;
 
-	// support game publishers
-	if (game_mod.publisher_message) {
-		html += `<div id="arcade-game-publisher-message" class="arcade-game-publisher-message">
+  // support game publishers
+  if (game_mod.publisher_message) {
+    html += `<div id="arcade-game-publisher-message" class="arcade-game-publisher-message">
       <span>NOTE: </span>${game_mod.publisher_message}</div>`;
-	}
+  }
 
-	html += `</form>`; // overlay closing
+  html += `</form>`; // overlay closing
 
-	return html;
+  return html;
 };
