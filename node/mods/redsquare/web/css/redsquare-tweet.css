@@ -413,6 +413,11 @@
   max-height: 50rem;
   overflow-y: scroll;
   padding-right: 2rem;
+  scrollbar-width: none;
+}
+
+.tweet-text.expanded::-webkit-scrollbar {
+  display: none;
 }
 
 .tweet-text a {

@@ -252,6 +252,7 @@
 .tweet-avatar {
   width: 48px;
   height: 48px;
+  border: 1px solid var(--saito-border-color);
   margin-right: 12px;
   border-radius: 50%;
   background-color: var(--saito-muted-color);

@@ -39,6 +39,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  position: fixed;
+  top: var(--saito-header-height);
+  right: max(1rem, calc((100vw - var(--saito-width)) / 2));
+  width: 31rem;
+  height: calc(100dvh - var(--saito-header-height));
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .chat-manager-list.saito-sidebar-element {
@@ -66,6 +74,10 @@ body {
   .tweet-button {
     width: 52px;
     min-width: unset;
+  }
+
+  .saito-sidebar.right {
+    width: 30rem;
   }
 }
 
