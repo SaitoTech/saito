@@ -692,7 +692,7 @@ impl SyncManager {
 
         if !did_queue_any_blocks
             && self.queue.is_empty()
-            && cs.payload.len() == MAX_BLOCKCHAIN_CHUNK
+            && cs.payload_latest_block_id < cs.latest_known_block_id
             && cs.shared_ancestor_block_id != 0
         {
             self.send_request_blockchain_message(peer_id, config_lock.clone(), network)
@@ -753,9 +753,7 @@ impl SyncManager {
         //
         // update peer if needed, requires return; after peer drop in closure above
         //
-        if peer.last_request_blockchain_chunksize > 0
-            && peer.last_request_blockchain_chunksize < MAX_BLOCKCHAIN_CHUNK
-        {
+        if peer.last_request_blockchain_chunksize > 0 && !peer.last_request_blockchain_has_more {
             info!(" --    -- yes -- mark as sync complete");
             peer.on_sync_complete();
         }
