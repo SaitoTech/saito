@@ -1,5 +1,4 @@
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
-use crate::core::network::msg::blockchain::MAX_BLOCKCHAIN_CHUNK;
 use crate::core::network::service::Service;
 use crate::core::process::version::Version;
 use crate::core::util::configuration::Endpoint;
@@ -72,6 +71,8 @@ pub struct Peer {
     pub last_request_blockchain_timestamp: u64,
     pub last_request_blockchain_score: u32,
     pub last_request_blockchain_chunksize: usize,
+    #[serde(default)]
+    pub last_request_blockchain_has_more: bool,
 
     pub messages_received: u64,
     pub messages_sent: u64,
@@ -130,6 +131,7 @@ impl Peer {
             last_request_blockchain_timestamp: 0,
             last_request_blockchain_score: 0,
             last_request_blockchain_chunksize: 0,
+            last_request_blockchain_has_more: false,
             messages_received: 0,
             messages_sent: 0,
             blocks_received: 0,
@@ -180,6 +182,7 @@ impl Peer {
 
         self.is_syncing = false;
         self.is_synced = false;
+        self.last_request_blockchain_has_more = false;
 
         // --- services ---
         self.services.clear();
@@ -206,19 +209,19 @@ impl Peer {
         }
     }
 
-    pub fn on_sync_chunk_received(&mut self, chunk_len: usize) {
+    pub fn on_sync_chunk_received(&mut self, chunk_len: usize, has_more: bool) {
         self.last_request_blockchain_chunksize = chunk_len;
+        self.last_request_blockchain_has_more = has_more;
     }
 
     pub fn should_continue_chain_sync(&self) -> bool {
-        self.is_syncing
-            && !self.is_synced
-            && self.last_request_blockchain_chunksize >= MAX_BLOCKCHAIN_CHUNK
+        self.is_syncing && !self.is_synced && self.last_request_blockchain_has_more
     }
 
     pub fn on_sync_complete(&mut self) {
         self.is_syncing = false;
         self.is_synced = true;
+        self.last_request_blockchain_has_more = false;
     }
 
     pub fn on_stun_connect(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {

@@ -181,7 +181,10 @@ impl RoutingThread {
                 {
                     let mut peers = self.network.peer_lock.write().await;
                     if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                        peer.on_sync_chunk_received(chunk_len);
+                        peer.on_sync_chunk_received(
+                            chunk_len,
+                            chaindata.payload_latest_block_id < chaindata.latest_known_block_id,
+                        );
                     }
                 }
                 let mut sync = self.sync.write().await;
