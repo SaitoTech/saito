@@ -5,7 +5,7 @@
       .cls-1 {
         stroke: #fff;
         stroke-miterlimit: 10;
-        stroke-width: 4px;
+        stroke-width: 5px;
       }
 
       .cls-1, .cls-2 {
