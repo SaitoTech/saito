@@ -1,7 +1,7 @@
-.settlers-stats-overlay, .trade-overlay,
+.game.settlers .settlers-stats-overlay, .game.settlers .trade-overlay,
 /*.rules-overlay,*/
 
-.settlers-selection-overlay, .bank-overlay, .dev-card-overlay, .build-overlay {
+.game.settlers .settlers-selection-overlay, .game.settlers .bank-overlay, .game.settlers .dev-card-overlay, .game.settlers .build-overlay {
 	display: flex;
 	flex-direction: column;
 	gap: 2rem;
@@ -17,12 +17,12 @@
 	/* Firefox */
 }
 
-.settlers-stats-overlay.winner {
+.game.settlers .settlers-stats-overlay.winner {
     position: relative;
     background-color: #d3c38d88;
 }
 
-.settlers-stats-overlay.winner::before {
+.game.settlers .settlers-stats-overlay.winner::before {
 	content: '';
     position: absolute;
     width: 100%;
@@ -36,12 +36,12 @@
     z-index: -1;
 }
 
-.settlers-selection-overlay {
+.game.settlers .settlers-selection-overlay {
 	width: min(630px, 95vw);
 	align-items: center;
 }
 
-.dev-card-overlay {
+.game.settlers .dev-card-overlay {
 	width: unset;
 	max-width: 85vw;
 }
@@ -81,7 +81,7 @@
 stats overlay
 */
 
-.settlers-stats-overlay {
+.game.settlers .settlers-stats-overlay {
 	padding: min(2rem, 1.5vw, 2.5vh);
 	min-height: min(650px, 90vh);
 	width: 700px;
@@ -194,34 +194,34 @@ stats overlay
 	margin: 1rem;
 }
 
-.settlers-stats-player {
+.game.settlers .settlers-stats-player {
 	font-size: 1.9rem;
 	line-height: 3rem;
 	opacity: 0.90;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	background: unset !important;
+	background: unset;
 	width: 100%;
 }
 
-.settlers-stats-player.p1 {
+.game.settlers .settlers-stats-player.p1 {
 	border-bottom: 5px solid var(--p1-color);
 }
 
-.settlers-stats-player.p2 {
+.game.settlers .settlers-stats-player.p2 {
 	border-bottom: 5px solid var(--p2-color);
 }
 
-.settlers-stats-player.p3 {
+.game.settlers .settlers-stats-player.p3 {
 	border-bottom: 5px solid var(--p3-color);
 }
 
-.settlers-stats-player.p4 {
+.game.settlers .settlers-stats-player.p4 {
 	border-bottom: 5px solid var(--p4-color);
 }
 
-.settlers-stats-player+.settlers-stats-row {
+.game.settlers .settlers-stats-player+.settlers-stats-row {
 	margin-top: 0.75rem;
 }
 
@@ -231,7 +231,7 @@ stats overlay
 
 
 
-.stats-header {
+.game.settlers .stats-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-evenly;
@@ -239,7 +239,7 @@ stats overlay
 	text-transform: uppercase;
 }
 
-.stats-header .overlay-tab {
+.game.settlers .stats-header .overlay-tab {
 	padding: 0.5rem 2rem;
 	cursor: pointer;
 	position: relative;
@@ -249,13 +249,13 @@ stats overlay
 	text-overflow: ellipsis;
 }
 
-.stats-header .overlay-tab.active-tab {
+.game.settlers .stats-header .overlay-tab.active-tab {
 	text-shadow: 1px 1px 1px #626163;
 	border-bottom: 2px solid #424143;
 	min-width: fit-content;
 }
 
-.stats-header .overlay-tab.active-tab::after {
+.game.settlers .stats-header .overlay-tab.active-tab::after {
 	content: "";
 	position: absolute;
 	top: 31px;
@@ -268,12 +268,12 @@ stats overlay
 	border-radius: 5px;
 }
 
-.overlay-page {
+.game.settlers .overlay-page {
 	display: none;
 	padding: min(1rem, 1vw, 1.5vh);
 }
 
-.overlay-page.active-page {
+.game.settlers .overlay-page.active-page {
 	display: flex;
 	flex-direction: column;
 	gap: 1.5rem;
@@ -285,7 +285,7 @@ stats overlay
  * 
  * ********/
 
-.trade-overlay {
+.game.settlers .trade-overlay {
 	width: min(1000px, 90vw);
 }
 
@@ -360,10 +360,10 @@ stats overlay
 	border-top-right-radius: 1rem;
 }
 
-.trade_count_up::before {
+.game.settlers .trade_count_up::before {
 	content: '⌃';
 	font-size: 5rem;
-	color: #fff !important;
+	color: #fff;
 	position: absolute;
 	left: 50%;
 	top: 80%;
@@ -372,10 +372,10 @@ stats overlay
 	-webkit-text-stroke: #fff;
 }
 
-.trade_count_down::after {
+.game.settlers .trade_count_down::after {
 	content: '⌄';
 	font-size: 5rem;
-	color: #fff !important;
+	color: #fff;
 	position: absolute;
 	left: 50%;
 	top: 10%;
@@ -576,20 +576,20 @@ stats overlay
 	justify-content: center;
 }
 
-.notice_overlay {
+.game.settlers .notice_overlay {
 	padding: 3rem;
 	font-size: 1.8rem;
 }
 
-.notice_overlay>div {
+.game.settlers .notice_overlay>div {
 	margin: 1rem;
 }
 
-.notice_overlay ul {
+.game.settlers .notice_overlay ul {
 	margin: 0 5rem;
 }
 
-.notice_overlay ul li {
+.game.settlers .notice_overlay ul li {
 	margin-bottom: 0.5rem;
 	font-size: 2rem;
 }
@@ -599,7 +599,7 @@ stats overlay
 		display: flex;
 		flex-direction: column;
 	}
-	.settlers-stats-overlay{
+	.game.settlers .settlers-stats-overlay{
 		min-height: unset;
 		height: min(800px, 85vh);
 		padding: 2rem 2vw;
@@ -608,19 +608,19 @@ stats overlay
 	.vp-3p .settlers-stats-row img {
 		height: min(6.5rem, 13vw);
 	}
-	.splash_overlay h2 {
+	.game.settlers .splash_overlay h2 {
 		font-size: 3rem;
 	}
-	.notice_overlay {
+	.game.settlers .notice_overlay {
 		padding: 1.5rem;
 	}
-	.notice_overlay ul {
+	.game.settlers .notice_overlay ul {
 		margin: 0 2rem 0 3rem;
 	}
-	.notice_overlay ul li {
+	.game.settlers .notice_overlay ul li {
 		font-size: inherit;
 	}
-	.stats-header .overlay-tab {
+	.game.settlers .stats-header .overlay-tab {
 		padding: 0.5rem;
 	}
 	.settlers-stats-row {
@@ -644,13 +644,13 @@ stats overlay
 		margin: 1.5rem;
 	}
 
-	.stats-header{
+	.game.settlers .stats-header{
 		flex-wrap: wrap;
 	}
-	.stats-header .overlay-tab {
+	.game.settlers .stats-header .overlay-tab {
 		max-width: unset;
 	}
-	.stats-header .overlay-tab.active-tab{
+	.game.settlers .stats-header .overlay-tab.active-tab{
 		order: 1;
 	}
 
@@ -660,11 +660,11 @@ stats overlay
 }
 
 @media screen and (orientation: landscape) and (max-height: 600px) {
-	.settlers-stats-overlay, .trade-overlay, .rules-overlay, .settlers-selection-overlay, .bank-overlay, .dev-card-overlay, .build-overlay {
+	.game.settlers .settlers-stats-overlay, .game.settlers .trade-overlay, .rules-overlay, .game.settlers .settlers-selection-overlay, .game.settlers .bank-overlay, .game.settlers .dev-card-overlay, .game.settlers .build-overlay {
 		max-height: 98vh;
 		gap: 0.5rem;
 	}
-	.trade-overlay {
+	.game.settlers .trade-overlay {
 		display: grid;
 		grid-template-columns: 15rem 1fr;
 	}

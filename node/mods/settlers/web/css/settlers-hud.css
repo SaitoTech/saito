@@ -1,18 +1,18 @@
-.hud, .hud-long {
+.game.settlers .hud, .game.settlers .hud-long {
 	width: 55rem;
 	max-width: 100vw;
-	z-index: 50 !important;
+	z-index: 50;
 	padding: 3px 0 0 0;
 	height: auto;
 }
 
 /* Wrapper for settlers status messages? */
 
-.hud-header {
+.game.settlers .hud-header {
 	display: none;
 }
 
-.hud-body {
+.game.settlers .hud-body {
 	min-height: 12rem;
 	width: 100%;
 	display: flex;
@@ -25,7 +25,7 @@
 
 /* override default #efefef background */
 
-.hud-body .status {
+.game.settlers .hud-body .status {
     background-color: transparent;
     box-shadow: none;
     padding: 0;
@@ -38,14 +38,14 @@
     gap: 0.75rem;
 }
 
-.hud-status-card-list{
+.game.settlers .hud-status-card-list{
 	display: flex;
 }
 
 
 /* hide scrollbars */
 
-.hud .controls {
+.game.settlers .hud .controls {
 	-ms-overflow-style: none;
 	scrollbar-width: none;
 	overflow-y: auto;
@@ -54,7 +54,7 @@
 	margin: 0.5rem;
 }
 
-.hud .controls ul {
+.game.settlers .hud .controls ul {
 	min-height: 7.5rem;
 	display: flex;
 	flex-direction: row;
@@ -65,7 +65,7 @@
 }
 
 
-.hud .controls ul li {
+.game.settlers .hud .controls ul li {
 	background-color: lightgray;
 	padding: 0.5rem;
 	border: 3px solid #424143;
@@ -78,14 +78,14 @@
 	cursor: default;
 }
 
-.hud .controls ul li#rolldice {
+.game.settlers .hud .controls ul li#rolldice {
 	margin-left: 2rem;
 	width: 9rem;
 	overflow: hidden;
 }
 
 
-.hud .controls ul li i {
+.game.settlers .hud .controls ul li i {
 	z-index: 2;
 }
 
@@ -94,17 +94,17 @@
 	background-color: chocolate;
 }
 
-.hud .controls ul > div {
+.game.settlers .hud .controls ul > div {
 	width: 7rem;
 }
 
-.hud .controls ul li.enabled {
+.game.settlers .hud .controls ul li.enabled {
 	background-color: #b79e76;
 	color: var(--text-color);
 	cursor: pointer;
 }
 
-.hud .controls ul li.enabled:hover {
+.game.settlers .hud .controls ul li.enabled:hover {
 	background-color: #e2d26c;
 	filter: drop-shadow(2px 2px 2px var(--text-color));
 	transform: translate(-1px, -1px);
@@ -113,7 +113,7 @@
 
 /* rp updates */
 
-.hud {
+.game.settlers .hud {
 	overflow: visible;
 }
 
@@ -122,49 +122,49 @@
 }
 
 @media only screen and (max-width: 600px) and (orientation: portrait) {
-	.saitoa {
+	.game.settlers .saitoa {
 		padding: 0.5rem;
 	}
 
-	.hud{
+	.game.settlers .hud{
 		margin-bottom: 0;
 	}
 
-	.hud-body {
+	.game.settlers .hud-body {
 		width: calc(100% - 2rem);
 	}
 
-	body .player-box {
-		height: auto !important;
-		width: 100% !important;
-		display: block !important;
-		top: 0px !important;
-		z-index: 200 !important;
+	.game.settlers body .player-box {
+		height: auto;
+		width: 100%;
+		display: block;
+		top: 0px;
+		z-index: 200;
 		max-width: 90vw;
 		margin-left: 5vw;
 		margin-right: 5vw;
 		margin-top: 5vw;
 	}
 
-	.hud-body .controls ul {
+	.game.settlers .hud-body .controls ul {
 		gap: 0.5rem;
 	}
 
-	.hud-body .controls ul li {
+	.game.settlers .hud-body .controls ul li {
 		min-width: 10rem;
 		border-width: 2px;
 		padding: 0.25rem 0.5rem;
 	}
 
-	.controls {
+	.game.settlers .controls {
 		margin-top: unset;
 	}
 
-	.hud .controls ul {
+	.game.settlers .hud .controls ul {
 		gap: 0.5rem;
 	}
 
-	.hud .controls ul li#rolldice {
+	.game.settlers .hud .controls ul li#rolldice {
 		margin-left: 0.5rem;
 	}
 
@@ -172,13 +172,13 @@
 
 
 @media only screen and (max-height: 600px) and (orientation: landscape) {
-	.hud {
+	.game.settlers .hud {
 		max-width: 50vw;
 		max-height: 50vh;
 		margin-bottom: 1rem;
 	}
 
-	.hud.hud-long {
+	.game.settlers .hud.hud-long {
 		left: unset;
 		transform: unset;
 		right: 2rem;
