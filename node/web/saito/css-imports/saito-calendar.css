@@ -25,13 +25,13 @@
 }
 
 .saito-tab-button.active {
-  color: var(--saito-white);
+  color: var(--saito-primary-text);
   background-color: var(--saito-primary);
 }
 
 .saito-tab-button:hover {
   background-color: var(--saito-primary);
-  color: var(--saito-white);
+  color: var(--saito-primary-text);
 }
 
 .saito-calendar-events-details {
@@ -86,15 +86,15 @@
 .saito-calendar-events-date {
   float: right;
   padding: 0.5rem;
-  color: #777;
+  color: var(--saito-calendar-muted-color);
   font-size: 1.5rem;
   font-style: italic;
 }
 
 .saito-calendar-event {
   padding: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid #ccc;
+  border-radius: var(--saito-radius-md);
+  border: var(--border-thickness-thin) solid var(--saito-calendar-event-border);
   width: 95%;
 }
 
@@ -154,25 +154,25 @@
 
 .saito-calendar-day-icon {
   padding-right: 0.75rem;
-  background: red;
+  background: var(--saito-calendar-event-dot-bg);
 }
 
 .saito-calendar-days div:hover {
   background-color: var(--saito-primary);
-  color: var(--saito-background-color);
+  color: var(--saito-primary-text);
   border-radius: var(--saito-border-radius);
 }
 
 .prev-date {
-  color: rgba(0, 0, 0, 0.391);
+  color: var(--saito-calendar-muted-past-color);
 }
 
 .next-date {
-  color: #8888;
+  color: var(--saito-calendar-muted-past-color);
 }
 
 .today {
   background-color: var(--saito-primary);
-  color: var(--saito-background-color);
+  color: var(--saito-primary-text);
   border-radius: var(--saito-border-radius);
 }

@@ -9,8 +9,8 @@
   grid-template-rows: min-content 1fr;
   grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  border-radius: var(--saito-radius-lg);
+  box-shadow: var(--saito-overlay-panel-shadow);
 }
 
 /* ============================================
@@ -18,7 +18,7 @@
    ============================================ */
 .saito-nft-overlay.header {
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(170, 170, 170, 0.25);
+  border-bottom: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -181,19 +181,16 @@
 .nft-info-table {
   width: 100%;
   margin-bottom: 2rem;
-  border: 1px solid rgba(170, 170, 170, 0.2);
-  border-radius: 8px;
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
+  border-radius: var(--saito-radius-md);
   overflow: hidden;
-  background: var(
-    --saito-surface-hover,
-    var(--saito-surface-selected, var(--saito-background-color))
-  );
+  background: var(--saito-surface-hover);
 }
 
 .nft-info-row {
   display: grid;
   grid-template-columns: 120px 1fr;
-  border-bottom: 1px solid rgba(170, 170, 170, 0.1);
+  border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
   padding: 0.8rem 1rem;
   align-items: start;
 }
@@ -232,8 +229,8 @@
   flex-direction: column;
   gap: 0.3rem;
   padding: 0.6rem;
-  background: rgba(170, 170, 170, 0.05);
-  border-radius: 4px;
+  background: var(--saito-surface-color);
+  border-radius: var(--saito-radius-sm);
 }
 
 .nft-info-metadata-key {
@@ -355,11 +352,11 @@
   gap: 1rem;
   padding: 1rem 1.2rem;
   background: var(--saito-background-color);
-  border: 2px solid rgba(100, 100, 100, 0.5);
-  border-radius: 12px;
+  border: var(--border-thickness-medium) solid var(--saito-border-color);
+  border-radius: var(--saito-radius-lg);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--saito-elevation-1);
 }
 
 .saito-nft-description-text-overlay {
@@ -400,8 +397,8 @@
   color: var(--saito-font-color);
   margin-top: 0.5rem;
   margin-bottom: 2rem;
-  border: 2px solid rgba(100, 100, 100, 0.5);
-  border-radius: 5px;
+  border: var(--border-thickness-medium) solid var(--saito-border-color);
+  border-radius: var(--saito-radius-sm);
   cursor: text;
   font-family: inherit;
   transition: all 0.1s ease;
@@ -436,7 +433,7 @@
 
 .saito-nft-description.editable {
   transition: all 0.2s ease;
-  border-radius: 4px;
+  border-radius: var(--saito-radius-sm);
   margin: 0;
 }
 
@@ -457,8 +454,8 @@
   overflow: hidden;
   overflow-y: auto;
   white-space: pre-wrap;
-  color: var(--saito-white);
-  background: var(--saito-black);
+  color: var(--saito-status-code-fg);
+  background: var(--saito-status-code-bg);
   font-size: 1.75rem;
 }
 
@@ -470,7 +467,7 @@
   gap: 12px;
   justify-content: flex-end;
   padding: 1rem 1.8rem;
-  border-top: 1px solid rgba(170, 170, 170, 0.15);
+  border-top: var(--border-thickness-thin) solid var(--saito-border-color);
   transition: opacity 0.3s ease-in-out;
   margin-top: auto;
 }
@@ -484,7 +481,7 @@
 .saito-nft-footer-btn {
   flex: 1;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: var(--saito-radius-md);
   font-weight: 600;
   max-width: 20rem;
   transition: all 0.2s ease;
@@ -522,8 +519,8 @@
 .saito-nft-input-field {
   width: 100%;
   padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid rgba(170, 170, 170, 0.3);
+  border-radius: var(--saito-input-radius);
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
   margin-bottom: 10px;
   height: max-content;
   transition: border-color 0.2s ease;
@@ -611,10 +608,10 @@
 .split-instructions {
   font-size: 2.2rem;
   line-height: 1.6;
-  color: var(--saito-font-color, #333333);
+  color: var(--saito-font-color);
   margin-bottom: 2rem;
   padding: 0.3rem;
-  border-radius: 8px;
+  border-radius: var(--saito-radius-md);
   max-width: 600px;
   width: 100%;
   font-weight: 500;
@@ -636,7 +633,7 @@
   position: relative;
   align-items: center;
   background: var(--saito-background-color);
-  border: 1px solid rgba(170, 170, 170, 0.2);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
   padding: 0;
   height: 50px;
 }
@@ -648,12 +645,12 @@
   align-items: center;
   justify-content: center;
   background: var(--saito-background-color);
-  border: 2px solid var(--saito-primary, #333333);
+  border: var(--border-thickness-medium) solid var(--saito-primary);
   border-radius: 8px;
   font-size: 2.4rem;
   font-weight: 700;
-  color: var(--saito-font-color, #333333);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: var(--saito-font-color);
+  box-shadow: var(--saito-elevation-1);
   user-select: none;
 }
 
@@ -697,7 +694,7 @@
   z-index: 10;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px var(--saito-background-color);
+  box-shadow: var(--saito-control-ring-shadow);
 }
 
 .split-bar::before,
@@ -721,14 +718,14 @@
 }
 
 .split-bar:hover {
-  background: #777;
+  background: var(--saito-primary-dark);
   box-shadow:
-    0 0 0 2px var(--saito-background-color),
-    0 2px 8px rgba(0, 0, 0, 0.2);
+    var(--saito-control-ring-shadow),
+    var(--saito-elevation-2);
 }
 
 .split-bar:active {
-  background: #555;
+  background: var(--saito-primary-dark);
 }
 
 /* Split buttons container */
@@ -753,7 +750,7 @@
 .split-button {
   width: 100px;
   padding: 10px 20px;
-  border-radius: 6px;
+  border-radius: var(--saito-radius-sm);
   border: none;
   background: var(--saito-primary);
   color: var(--saito-primary-text);
@@ -761,36 +758,36 @@
   font-size: 1.3rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--saito-elevation-1);
 }
 
 /* Return button styling (left-aligned, secondary style) */
 .split-return-button {
-  background: var(--saito-surface-selected, rgba(170, 170, 170, 0.2));
-  color: var(--saito-font-color, #333333);
-  border: 1px solid rgba(170, 170, 170, 0.3);
+  background: var(--saito-surface-selected);
+  color: var(--saito-font-color);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
 }
 
 .split-return-button:hover {
-  background: var(--saito-surface-hover, rgba(170, 170, 170, 0.3));
-  border-color: rgba(170, 170, 170, 0.5);
+  background: var(--saito-surface-hover);
+  border-color: var(--saito-primary);
 }
 
 .split-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #999;
+  background: var(--saito-button-disabled-bg);
 }
 
 .split-button:not(:disabled):hover {
   opacity: 0.9;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--saito-elevation-2);
 }
 
 .split-button:not(:disabled):active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--saito-elevation-1);
 }
 
 .atomize-button {
@@ -801,8 +798,8 @@
 .atomize-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #999;
-  color: #fff;
+  background: var(--saito-button-disabled-bg);
+  color: var(--saito-button-disabled-fg);
 }
 
 /* ============================================
@@ -831,9 +828,9 @@
   flex: 1 1 250px;
   max-width: 200px;
   padding: 1.2rem;
-  background: var(--saito-surface-hover, var(--saito-surface-selected, rgba(170, 170, 170, 0.05)));
-  border-radius: 8px;
-  border: 1px solid rgba(170, 170, 170, 0.2);
+  background: var(--saito-surface-hover);
+  border-radius: var(--saito-radius-md);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
@@ -864,7 +861,7 @@
   gap: 1rem;
   margin-top: 0.5rem;
   padding-top: 0.8rem;
-  border-top: 1px solid rgba(170, 170, 170, 0.2);
+  border-top: var(--border-thickness-thin) solid var(--saito-border-color);
   justify-content: flex-end;
 }
 
@@ -875,7 +872,7 @@
   align-items: center;
   column-gap: 2rem;
   padding: 0.8rem 0;
-  border-bottom: 1px solid rgba(170, 170, 170, 0.1);
+  border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
 }
 
 .nft-details-split-utxo:last-child {

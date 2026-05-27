@@ -1,10 +1,10 @@
 module.exports = (app, mod, build_number, og_card) => {
   return `
 
-  
+
   <!DOCTYPE html>
-  <html lang="en" data-theme="dark">
-  
+  <html lang="en" data-theme="noir">
+
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -12,10 +12,10 @@ module.exports = (app, mod, build_number, og_card) => {
     <meta name="keywords" content="${mod.categories}"/>
     <meta name="author" content="Dominic Cobb with Saito Team"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes" />
-  
+
     <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/fontawesome.min.css" type="text/css" media="screen" />
     <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/all.css" type="text/css" media="screen" />
-  
+
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="saito.io ${mod.returnSlug()}" />
@@ -24,7 +24,7 @@ module.exports = (app, mod, build_number, og_card) => {
     <meta name="msapplication-navbutton-color" content="#FFFFFF" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="msapplication-starturl" content="/index.html" />
-  
+
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:site" content="${og_card.twitter}" />
     <meta name="twitter:creator" content="${og_card.twitter}" />
@@ -32,7 +32,7 @@ module.exports = (app, mod, build_number, og_card) => {
     <meta name="twitter:url" content="${og_card.url}" />
     <meta name="twitter:description" content="${app.browser.escapeHTML(og_card.description)}" />
     <meta name="twitter:image" content="${og_card.image}" />
-  
+
     <meta property="og:type" content="website" />
     <meta property="og:title" content="${app.browser.escapeHTML(og_card.title)}" />
     <meta property="og:url" content="${og_card.url}" />
@@ -41,7 +41,7 @@ module.exports = (app, mod, build_number, og_card) => {
     <meta property="og:image" content="${og_card.image}"/>
     <meta property="og:image:url" content="${og_card.image}"/>
     <meta property="og:image:secure_url" content="${og_card.image}"/>
-  
+
     <link rel="icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
     <link rel="icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
@@ -49,12 +49,12 @@ module.exports = (app, mod, build_number, og_card) => {
 
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
-    <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />  
-  
+    <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
+
     <title>${mod.returnName()}</title>
-  
+
     <script type="text/javascript" src="/saito/lib/jquery/jquery-3.2.1.min.js"></script>
-    
+
     <style type="text/css">
     /* css for fade-out bg effect while content is loading */
     body::before {
@@ -69,18 +69,65 @@ module.exports = (app, mod, build_number, og_card) => {
       height: 100vh;
       width: 100vw;
       /* hardcode bg colors used because saito-variables arent accessible here */
-      background-color: #222;
+      background-color: #1c1c23;
       background-image: url('/saito/img/tiled-logo.svg');
+    }
+
+    .pace {
+      width: 300px;
+      height: 300px;
+      background: transparent;
+      overflow: visible;
+    }
+
+    .pace::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--dreamscape);
+      border-radius: 50%;
+      animation: pace-theme-center-atom-spin 6s linear infinite;
+    }
+
+    .pace .pace-progress:after {
+      top: calc(100% + 2.5rem);
+      color: #fff;
+      font-size: 32px;
+      text-shadow: 1px 1px 2px #000;
+      transform: translateX(-50%);
+    }
+
+    .pace .pace-activity {
+      width: 290px;
+      height: 290px;
+      top: 0;
+      left: 0;
+      background-image: url('/saito/icons/saito-swarmcast-icon-outline-label.svg');
+      background-size: 190px 190px;
+      background-position: center;
+      background-repeat: no-repeat;
+      animation: pace-icon-throb 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pace-icon-throb {
+      0%,
+      100% {
+        background-size: 175px 175px;
+      }
+
+      50% {
+        background-size: 190px 190px;
+      }
     }
   </style>
   </head>
-  
+
   <body>
-  
+
   </body>
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
 </script>
   </html>
-  
+
   `;
 };

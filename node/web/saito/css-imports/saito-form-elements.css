@@ -21,9 +21,9 @@ Selects
   background-color: transparent;
   overflow: hidden;
   width: 100.01%;
-  border-radius: 0 1rem 1rem 0;
+  border-radius: 0 var(--saito-input-radius) var(--saito-input-radius) 0;
   outline: none;
-  background-color: none;
+  background-color: transparent;
   cursor: pointer;
 }
 
@@ -32,14 +32,14 @@ Selects
   position: absolute;
   top: 0;
   right: 0;
-  color: var(--saito-white);
-  background-color: var(--saito-primary);
+  color: var(--saito-button-primary-fg);
+  background-color: var(--saito-button-primary-bg);
   cursor: pointer;
   pointer-events: none;
   -webkit-transition: 0.25s all ease;
   -o-transition: 0.25s all ease;
   transition: 0.25s all ease;
-  border-radius: 0 1rem 1rem 0;
+  border-radius: 0 var(--saito-input-radius) var(--saito-input-radius) 0;
   height: 100%;
   width: 5rem;
   display: flex;
@@ -47,7 +47,7 @@ Selects
 }
 
 .saito-select:hover::after {
-  color: var(--saito-white) !important;
+  color: var(--saito-button-primary-fg) !important;
 }
 
 .saito-select .saito-slct {
@@ -56,16 +56,19 @@ Selects
 
 .saito-slct {
   appearance: none;
-  background-color: var(--saito-white);
-  border-radius: 1rem;
-  padding: 0 1rem;
+  background-color: var(--saito-input-bg);
+  color: var(--saito-input-fg);
+  border-radius: var(--saito-input-radius);
+  padding: 0 var(--saito-space-md);
 }
 
 textarea,
 input {
-  background-color: var(--saito-surface-color);
-  color: var(--saito-font-color-heavy);
-  border: var(--border-thickness-thin) solid var(--saito-primary);
+  background-color: var(--saito-input-bg);
+  color: var(--saito-input-fg-heavy);
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
+  box-shadow: var(--saito-input-shadow);
+  font-family: var(--saito-input-font);
 }
 
 
@@ -73,6 +76,8 @@ input {
 
 textarea:focus, input:focus, select:focus {
   outline: none;
+  border-color: var(--saito-input-border-focus);
+  box-shadow: var(--saito-focus-ring);
 }
 
 
@@ -86,12 +91,13 @@ input[type="number"],
 input[type="password"],
 input[type="date"],
 input[type="datetime-local"] {
-  padding: 1rem 1.5rem;
+  padding: var(--saito-space-md) var(--saito-space-lg);
   font-size: 1.6rem;
   width: 20rem;  /* Min width ? */
-  color: var(--saito-font-color);
-  border-radius: .5rem;
-  background-color: var(--saito-surface-color);
+  color: var(--saito-input-fg);
+  border-radius: var(--saito-input-radius);
+  background-color: var(--saito-input-bg);
+  font-family: var(--saito-input-font);
 }
 
 input[type="text"]:focus,
@@ -102,6 +108,7 @@ input[type="datetime-local"] {
 
 input::placeholder {
   opacity: 80%;
+  color: var(--saito-input-placeholder);
 }
 
 input[type="text"],
@@ -119,7 +126,7 @@ input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   border: none;
-  border: var(--border-thickness-thin) solid var(--saito-primary);
+  border: var(--border-thickness-thin) solid var(--saito-input-border-focus);
   width: 2rem;
   height: 2rem;
   margin: 3px 0.5rem;
@@ -148,7 +155,7 @@ input[type="checkbox"]:checked {
 }
 
 input[type="checkbox"]:checked::after {
-  color: var(--saito-background-color);
+  color: var(--saito-primary-text);
   opacity: 1;
 }
 
@@ -159,7 +166,7 @@ radio inputs
 input[type="radio"] {
   appearance: none;
   -webkit-appearance: none;
-  border: var(--border-thickness-thin) solid var(--saito-primary);
+  border: var(--border-thickness-thin) solid var(--saito-input-border-focus);
   width: 2rem;
   height: 2rem;
   margin: 0 0.5rem;
@@ -185,7 +192,7 @@ input[type="radio"]::after {
 }
 
 input[type="radio"]:checked::after {
-  color: var(--saito-background-color);
+  color: var(--saito-primary-text);
   opacity: 1;
 }
 
@@ -207,19 +214,19 @@ input[type="range"]::-webkit-slider-runnable-track {
   width: 100%;
   height: 0.6rem;
   cursor: pointer;
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-elevation-2);
   background: var(--saito-primary);
   border-radius: 0.5rem;
   border: var(--border-color-general-dividers);
 }
 
 input[type="range"]::-webkit-slider-thumb {
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-elevation-2);
   border: 1px solid var(--color-contrast);
   height: 3rem;
   width: 2rem;
   border-radius: 0.5rem;
-  background: var(--saito-white);
+  background: var(--saito-surface-inverse);
   cursor: pointer;
   -webkit-appearance: none;
   margin-top: -1.2rem;
@@ -229,19 +236,19 @@ input[type="range"]::-moz-range-track {
   width: 100%;
   height: 0.6rem;
   cursor: pointer;
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-elevation-2);
   background: var(--saito-primary);
-  border-radius: .5rempx;
+  border-radius: 0.5rem;
   border: var(--border-color-general-dividers);
 }
 
 input[type="range"]::-moz-range-thumb {
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-elevation-2);
   border: 1px solid var(--color-contrast);
   height: 3rem;
   width: 2rem;
   border-radius: .5rem;
-  background: var(--saito-white);
+  background: var(--saito-surface-inverse);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -266,23 +273,22 @@ input[type="range"]::-ms-fill-lower {
   background: var(--saito-primary);
   border: var(--border-color-general-dividers);
   border-radius: 0.5rem;
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-elevation-2);
 }
 
 input[type="range"]::-ms-fill-upper {
-  /* background: #3071a9; */
   border: var(--border-color-general-dividers);
   border-radius: 0.5rem;
-  box-shadow: var(--saito-box-shadow));
+  box-shadow: var(--saito-elevation-2);
 }
 
 input[type="range"]::-ms-thumb {
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-elevation-2);
   border: 1px solid var(--color-contrast);
   height: 3.6rem;
   width: 1.6rem;
   border-radius: 0.5rem;
-  background: var(--saito-white);
+  background: var(--saito-surface-inverse);
   cursor: pointer;
 }
 
@@ -305,8 +311,8 @@ input[type="range"]:focus::-ms-fill-upper {
   min-width: 250px;
   width: 100%;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--saito-gray-700) 27%, transparent);
-  border: 1px solid var(--saito-border-color, #444);
+  background: var(--saito-surface-hover);
+  border: 1px solid var(--saito-border-color);
   overflow: hidden;
   font-size: 0.9rem;
   user-select: none;
@@ -319,7 +325,7 @@ input[type="range"]:focus::-ms-fill-upper {
   top: 2px;
   bottom: 2px;
   width: calc(70% - 4px);
-  background: var(--saito-primary, #639);
+  background: var(--saito-primary);
   border-radius: 999px;
   z-index: 0;
   transition: left 0.3s ease;
@@ -357,7 +363,7 @@ input[type="range"]:focus::-ms-fill-upper {
 
 .toggle-switch .toggle-option.active {
   flex-basis: 70% !important;
-  color: #fff;
+  color: var(--saito-primary-text);
 }
 
 .toggle-switch .toggle-option:not(.active) {

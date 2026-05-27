@@ -47,7 +47,7 @@
   max-width: 18rem;
   aspect-ratio: 1 / 1;
   padding: 1rem;
-  border: 2px solid var(--saito-primary-dark);
+  border: var(--border-thickness-medium) solid var(--saito-primary-dark);
   border-radius: var(--saito-border-radius);
   display: flex;
   flex-direction: column;
@@ -100,8 +100,8 @@
   padding: 2.5rem;
   width: 420px;
   height: 600px;
-  border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  border-radius: var(--saito-radius-lg);
+  box-shadow: var(--saito-overlay-panel-shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -124,8 +124,8 @@
   }
 
   & .details {
-    border: 1px solid var(--saito-font-color);
-    border-radius: 15px;
+    border: var(--border-thickness-thin) solid var(--saito-border-color);
+    border-radius: var(--saito-radius-lg);
     padding: 15px;
     display: flex;
     flex-direction: column;
