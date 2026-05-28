@@ -7,7 +7,7 @@ use saito_core::core::consensus::blockchain::{Blockchain, BlockchainObserver};
 use saito_core::core::defs::{
     BlockHash, BlockId, PrintForLog, SaitoHash, SaitoUTXOSetKey, UTXO_KEY_LENGTH,
 };
-use serde_wasm_bindgen::to_value;
+use crate::js_value_serialize::to_js_value;
 use std::cell::RefCell;
 use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -82,7 +82,7 @@ pub struct WasmBlockchain {
 
 #[wasm_bindgen]
 impl WasmBlockchain {
-    pub fn get(&self) -> JsValue {
+    pub fn get(&self) -> Result<JsValue, JsValue> {
         let saito = SAITO.blocking_lock();
 
         let blockchain = saito
@@ -92,7 +92,7 @@ impl WasmBlockchain {
             .blockchain_lock
             .blocking_read();
 
-        to_value(&*blockchain).unwrap()
+        to_js_value(&*blockchain)
     }
 
     pub async fn reset(&self) {

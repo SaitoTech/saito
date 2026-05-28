@@ -4,7 +4,7 @@ use std::sync::Arc;
 use js_sys::{Array, JsString, Uint8Array};
 use log::{debug, error, warn};
 use num_traits::FromPrimitive;
-use serde_wasm_bindgen::to_value;
+use crate::js_value_serialize::to_js_value;
 use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
@@ -378,7 +378,7 @@ impl WasmWallet {
         Ok(WasmTransaction::from_transaction(tx))
     }
 
-    pub fn get(&self) -> JsValue {
+    pub fn get(&self) -> Result<JsValue, JsValue> {
         let saito = SAITO.blocking_lock();
 
         let wallet = saito
@@ -388,7 +388,7 @@ impl WasmWallet {
             .wallet_lock
             .blocking_read();
 
-        to_value(&*wallet).unwrap()
+        to_js_value(&*wallet)
     }
 
     pub async fn save(&self) {

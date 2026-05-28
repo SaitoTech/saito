@@ -1,4 +1,5 @@
 pub mod saitowasm;
+mod js_value_serialize;
 mod wasm_balance_snapshot;
 mod wasm_block;
 mod wasm_blockchain;
