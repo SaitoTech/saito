@@ -10,6 +10,7 @@ const GameInvitationLink = require('./../../lib/saito/ui/modals/saito-link/saito
 const Invite = require('./lib/ui/invite');
 const LoungeOverlay = require('./lib/ui/overlays/lounge');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
+const JSON = require('json-bigint');
 
 const arcadeHome = require('./index');
 

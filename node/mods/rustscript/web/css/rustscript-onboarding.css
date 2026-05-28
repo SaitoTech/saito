@@ -12,10 +12,23 @@ body.rustscript .rs-onboarding-overlay {
   margin: 0 !important;
 }
 
-body.rustscript .rs-onboarding-overlay .saito-overlay-backdrop,
-body.rustscript #saito-overlay-backdrop.rs-onboarding-overlay-backdrop {
-  background: rgba(8, 8, 8, 0.92);
+body.rustscript .rs-onboarding-overlay-backdrop,
+body.rustscript [id^='saito-overlay-backdrop'].rs-onboarding-overlay-backdrop {
+  background: rgba(8, 8, 8, 0.92) !important;
   backdrop-filter: blur(6px);
+}
+
+body.rustscript .rs-onboarding-overlay.maximized-overlay,
+body.rustscript .rs-onboarding-overlay.center-overlay {
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100vh !important;
+  max-height: none !important;
+  transform: none !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
 }
 
 body.rustscript .rs-onboard-appspace {
@@ -132,6 +145,24 @@ body.rustscript .rs-onboard-path-desc {
   font-size: 0.82em;
   line-height: 1.4;
   color: #888;
+}
+
+body.rustscript .rs-onboard-skip {
+  margin: 12px auto 0;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 0.78em;
+  font-family: var(--rustscript-font-mono);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+body.rustscript .rs-onboard-skip:hover {
+  color: #aaa;
+  background: transparent !important;
 }
 
 body.rustscript .rs-onboard-back {
@@ -286,73 +317,3 @@ body.rustscript .rs-onboard-primary-btn:hover {
   background: rgba(252, 163, 17, 0.2);
 }
 
-/* Guided workspace strip */
-body.rustscript .rs-guided-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
-  background: #181818;
-  border-bottom: 1px solid #333;
-  font-size: 0.8em;
-}
-
-body.rustscript .rs-guided-strip[hidden] {
-  display: none !important;
-}
-
-body.rustscript .rs-guided-label {
-  color: #aaa;
-}
-
-body.rustscript .rs-guided-label strong {
-  color: #ddd;
-  font-weight: 600;
-}
-
-body.rustscript .rs-guided-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-body.rustscript .rs-guided-btn {
-  margin: 0;
-  padding: 6px 12px;
-  border-radius: 14px;
-  border: 1px solid #444;
-  background: transparent;
-  color: #aaa;
-  font-size: 0.78em;
-  font-family: var(--rustscript-font-mono);
-  cursor: pointer;
-}
-
-body.rustscript .rs-guided-btn-primary {
-  border-color: rgba(252, 163, 17, 0.45);
-  color: var(--rustscript-accent);
-}
-
-body.rustscript .rs-guided-btn:hover {
-  border-color: #666;
-  color: #ddd;
-}
-
-/* Progressive revelation — step 1 hides witness */
-body.rustscript .saito-rustscript.rs-guided-step-1 .rs-unlocking-pane {
-  display: none;
-}
-
-body.rustscript .saito-rustscript.rs-guided-step-1 .rs-generate-unlocking,
-body.rustscript .saito-rustscript.rs-guided-step-1 .rs-execute-script {
-  display: none;
-}
-
-body.rustscript .saito-rustscript.rs-guided-step-1 .rs-main {
-  gap: 0;
-}
-
-body.rustscript .saito-rustscript.rs-guided-interact .rs-guided-step-create-only {
-  display: none;
-}

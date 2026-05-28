@@ -51,8 +51,13 @@ class OnboardingOverlay {
 
   applyFullscreenLayout() {
     const el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+    const backdrop = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
+
     if (el) {
-      el.classList.add('maximized-overlay');
+      el.classList.add('maximized-overlay', 'rs-onboarding-overlay');
+    }
+    if (backdrop) {
+      backdrop.classList.add('rs-onboarding-overlay-backdrop');
     }
     if (typeof this.overlay.pullOverlayToFront === 'function') {
       this.overlay.pullOverlayToFront();
@@ -64,6 +69,10 @@ class OnboardingOverlay {
     if (!root) {
       return;
     }
+
+    root.querySelector('[data-action="skip-onboarding"]')?.addEventListener('click', () => {
+      this.dismiss('skip');
+    });
 
     root.querySelector('[data-action="back-splash"]')?.addEventListener('click', () => {
       this.showStep('splash');

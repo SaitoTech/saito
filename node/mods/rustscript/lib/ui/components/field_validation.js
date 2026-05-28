@@ -29,6 +29,26 @@ function inferFieldKindFromPath(path) {
   return inferFieldKind(path[path.length - 1]);
 }
 
+function validateForApply(kind, value) {
+  const s = String(value ?? '').trim();
+  if (!s) {
+    return { ok: false, message: 'A value is required' };
+  }
+  if (isPlaceholder(s)) {
+    return { ok: false, message: 'Enter a real value — placeholders cannot be applied' };
+  }
+
+  const result = validateField(kind, s);
+  if (!result.valid) {
+    return {
+      ok: false,
+      message: result.message || 'Value format is invalid'
+    };
+  }
+
+  return { ok: true, value: s };
+}
+
 function validateField(kind, value) {
   if (value === null || value === undefined) {
     return { valid: true, state: 'empty' };
@@ -116,5 +136,6 @@ module.exports = {
   inferFieldKind,
   inferFieldKindFromPath,
   validateField,
+  validateForApply,
   findSignableMessage
 };

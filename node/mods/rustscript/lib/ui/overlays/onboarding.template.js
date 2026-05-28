@@ -27,6 +27,10 @@ const OnboardingSplashTemplate = () => {
             <span class="rs-onboard-path-desc">Direct access to the full scripting workstation.</span>
           </button>
         </div>
+
+        <button type="button" class="rs-onboard-skip" data-action="skip-onboarding">
+          Continue to workstation without a tour
+        </button>
       </div>
     </div>
   `;

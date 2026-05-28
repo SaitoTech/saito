@@ -72,17 +72,6 @@ body.rustscript .rs-textarea.rs-readonly {
   color: var(--rustscript-muted);
 }
 
-body.rustscript .rs-sidebar {
-  width: 280px;
-  background: var(--rustscript-surface);
-  border-left: 1px solid var(--rustscript-border);
-  padding: 12px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
 body.rustscript .rs-tools {
   background: var(--rustscript-surface);
   border-top: 1px solid var(--rustscript-border);
@@ -122,10 +111,4 @@ body.rustscript .rs-tool-btn:hover {
     flex-direction: column;
   }
 
-  body.rustscript .rs-sidebar {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid var(--rustscript-border);
-    max-height: 38vh;
-  }
 }

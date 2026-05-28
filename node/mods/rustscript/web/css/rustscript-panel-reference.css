@@ -1,0 +1,166 @@
+/* Guided mode — only Create Script panel has a visible header */
+body.rustscript.rs-workspace-guided .rs-test-pane .rs-panel-header {
+  display: none !important;
+}
+
+/* Test panel — headerless info / guidance mode */
+
+body.rustscript .rs-panel-mode-reference .rs-panel-semantic,
+body.rustscript .rs-panel-mode-reference .rs-panel-textarea {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-mode-reference .rs-panel-reference {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+body.rustscript .rs-panel-mode-semantic .rs-panel-reference,
+body.rustscript .rs-panel-mode-source .rs-panel-reference {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-has-witness-bar.rs-panel-mode-semantic .rs-panel-reference {
+  display: flex !important;
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+  border-bottom: 1px solid #1e1e1e;
+  align-items: flex-start;
+}
+
+body.rustscript .rs-panel-has-witness-bar.rs-panel-mode-semantic .rs-panel-semantic {
+  display: block !important;
+  flex: 1;
+  min-height: 0;
+}
+
+body.rustscript .rs-panel-mode-semantic .rs-panel-semantic {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+body.rustscript .rs-panel-mode-semantic .rs-panel-textarea {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-mode-source .rs-panel-textarea {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+
+body.rustscript .rs-panel-mode-source .rs-panel-semantic {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-reference {
+  display: none;
+  box-sizing: border-box;
+}
+
+/* Info mode — no header, no chrome, floating text only */
+body.rustscript .rs-panel-info-mode .rs-panel-header {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+}
+
+body.rustscript .rs-test-pane.rs-panel-info-mode {
+  border-color: #1a1a1a !important;
+  box-shadow: none !important;
+}
+
+body.rustscript .rs-test-pane.rs-panel-info-mode .rs-panel-body {
+  border-top: none;
+  background: #0a0a0a;
+}
+
+body.rustscript .rs-test-pane.rs-panel-info-mode .rs-panel-reference {
+  padding: 0 48px 0 56px;
+  width: 100%;
+  align-items: center;
+}
+
+body.rustscript .rs-panel-has-witness-bar .rs-panel-reference {
+  padding: 16px 24px 12px 32px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+body.rustscript .rs-panel-ref {
+  max-width: 520px;
+}
+
+body.rustscript .rs-panel-ref-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 1.28em;
+  font-weight: 400;
+  line-height: 2.05;
+  color: #b8b8b8;
+  letter-spacing: 0.01em;
+}
+
+body.rustscript .rs-panel-ref-list li {
+  position: relative;
+  padding-left: 1.65em;
+  margin-bottom: 4px;
+}
+
+body.rustscript .rs-panel-ref-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3a3a3a;
+  border: 1px solid #4a4a4a;
+}
+
+body.rustscript .rs-panel-ref-count {
+  font-weight: 700;
+  color: #d8d8d8;
+}
+
+body.rustscript .rs-panel-ref-enter-test {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-color: rgba(160, 200, 165, 0.5);
+  cursor: pointer;
+}
+
+body.rustscript .rs-panel-ref-enter-test:hover {
+  color: #d0f0d4 !important;
+  background: transparent !important;
+  text-decoration-color: rgba(160, 200, 165, 0.85);
+}
+
+body.rustscript .rs-panel-ref-script-ready .rs-panel-ref-list li::before {
+  background: #2a4a30;
+  border-color: #3a6a42;
+}

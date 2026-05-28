@@ -7,7 +7,7 @@ module.exports = {
     op: "CHECKMULTISIG",
     m: 2,
     publickeys: ["<publickey>", "<publickey>", "<publickey>"],
-    msg: "hello world"
+    msg: '<text>'
   },
   exampleWitness: {
     signatures: ["<signature>", "<signature>"]

@@ -4,7 +4,7 @@ module.exports = {
   exampleScript: {
     op: 'CHECKSIG',
     publickey: '<publickey>',
-    msg: 'hello world'
+    msg: '<text>'
   },
   exampleWitness: {
     signature: '<signature>'

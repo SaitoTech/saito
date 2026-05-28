@@ -14,9 +14,8 @@ class GenerateExpertOverlay {
         <p class="rs-overlay-hint">The only place to author symbolic human-readable scripts.</p>
         <label>Expert script</label>
         <textarea class="rs-expert-input" spellcheck="false" placeholder="CHECKSIG[publickey=&quot;alice&quot;]&#10;AND&#10;IMPORTFIELD[field=&quot;duration&quot;]"></textarea>
-        <div class="overlay-actions">
-          <button class="rs-expert-generate-btn">Generate</button>
-          <button class="rs-expert-cancel-btn">Cancel</button>
+        <div class="overlay-actions overlay-actions-apply-only">
+          <button class="rs-expert-generate-btn rs-prompt-primary">Generate</button>
         </div>
       </div>
     `;
@@ -32,10 +31,6 @@ class GenerateExpertOverlay {
   }
 
   attachEvents() {
-    document.querySelector('.rs-expert-cancel-btn').onclick = () => {
-      this.overlay.hide();
-    };
-
     document.querySelector('.rs-expert-generate-btn').onclick = async () => {
       const input = document.querySelector('.rs-expert-input').value.trim();
       if (!input) {
