@@ -1,3 +1,4 @@
+.game.epidemic {
 body {
 	font-family: arial, helvetica, sans-serif;
 	padding: 0px;
@@ -569,4 +570,5 @@ i.menu_icon_icon {
 
 ul#status-cardbox {
 	overflow-y: scroll;
+}
 }

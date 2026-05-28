@@ -1,3 +1,4 @@
+.game.paths {
 .guns-overlay {
 	min-width: 1131px;
 	min-height: 700px;
@@ -124,4 +125,5 @@
 
 .guns-overlay .content {
 	width: 100%;
+}
 }

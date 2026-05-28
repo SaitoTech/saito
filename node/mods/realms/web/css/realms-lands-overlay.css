@@ -1,4 +1,4 @@
-
+.game.realms {
 .lands-overlay {
   position: relative;
   top: 0;
@@ -82,4 +82,4 @@
 .lands-overlay .close-overlay:hover {
   opacity: 0.6;
 }
-
+}

@@ -1,4 +1,4 @@
-
+.game.midnight {
 .bold {
 	font-weight: bold;
 }
@@ -126,4 +126,5 @@
 	margin-top: 5px;
 	padding-top: 5px;
 	font-style: italic;
+}
 }

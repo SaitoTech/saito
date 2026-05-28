@@ -1,3 +1,4 @@
+.game.paths {
 .tutorial-overlay {
 	background-image: url(/paths/img/backgrounds/fort1_wwi.jpg);
 	background-size: cover;
@@ -42,5 +43,4 @@
 .tutorial-overlay .content p {
     margin-top: 1.5rem;
 }
-
-
+}

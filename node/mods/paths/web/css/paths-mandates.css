@@ -1,3 +1,4 @@
+.game.paths {
 .mandates-overlay {
 	min-width: 900px;
 	min-height: 550px;
@@ -48,4 +49,5 @@
 	vertical-align: bottom;
 	height: 100%;
 	color: #555;
+}
 }

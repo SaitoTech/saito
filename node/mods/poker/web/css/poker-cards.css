@@ -1,3 +1,4 @@
+.game.poker {
 .deal .card, .cardfan .card, .hand .card {
 	width: min(15vh,17vw);
 	height: calc(1.53 * min(15vh, 17vw));
@@ -79,5 +80,4 @@
         transform: scale(1.5);
     }
 }
-
-
+}

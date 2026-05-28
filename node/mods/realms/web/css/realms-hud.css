@@ -1,5 +1,4 @@
-
-
+.game.realms {
 .cardbox-card img {
   width: inherit;
 }
@@ -28,4 +27,4 @@
   background-repeat: no-repeat;
   pointer-events: none;
 }
-
+}

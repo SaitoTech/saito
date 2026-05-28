@@ -1,3 +1,4 @@
+.game.hearts {
 body {
 	font-family: arial, helvetica, sans-serif;
 	font-size: 13px;
@@ -33,4 +34,5 @@ body {
 	overflow-y: scroll;
 }
 .pile {
+}
 }

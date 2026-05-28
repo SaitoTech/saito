@@ -1,3 +1,4 @@
+.game.imperium {
 .how-to-move-overlay {
 	display: grid;
 	color: white;
@@ -103,5 +104,4 @@
 	background-color: goldenrod;
    	color: black;
 }
-
-
+}

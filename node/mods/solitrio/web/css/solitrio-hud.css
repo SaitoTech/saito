@@ -1,3 +1,4 @@
+.game.solitrio {
 .status {
 	background-color: whitesmoke;
 	padding: 1rem;
@@ -19,4 +20,5 @@
 
 .stats-menu-controls .option{
 	margin-top: 2rem;
+}
 }

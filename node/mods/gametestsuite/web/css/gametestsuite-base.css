@@ -1,3 +1,4 @@
+.game.gametestsuite {
 body {
 	font-family: arial, helvetica, sans-serif;
 	font-size: 13px;
@@ -73,4 +74,5 @@ h2 {
 	height: 60px;
 	width: 320px;
 	padding: 15px;
+}
 }

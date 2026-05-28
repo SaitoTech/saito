@@ -1,3 +1,4 @@
+.game.paths {
 .saito-overlay:has(> .menu) {
   box-shadow: none;
   background-color: transparent;
@@ -164,5 +165,4 @@
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
   z-index: 2;
 }
-
-
+}

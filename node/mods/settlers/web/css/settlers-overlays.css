@@ -1,7 +1,8 @@
-.game.settlers .settlers-stats-overlay, .game.settlers .trade-overlay,
+.game.settlers {
+.settlers-stats-overlay, .trade-overlay,
 /*.rules-overlay,*/
 
-.game.settlers .settlers-selection-overlay, .game.settlers .bank-overlay, .game.settlers .dev-card-overlay, .game.settlers .build-overlay {
+.settlers-selection-overlay, .bank-overlay, .dev-card-overlay, .build-overlay {
 	display: flex;
 	flex-direction: column;
 	gap: 2rem;
@@ -17,12 +18,12 @@
 	/* Firefox */
 }
 
-.game.settlers .settlers-stats-overlay.winner {
+.settlers-stats-overlay.winner {
     position: relative;
     background-color: #d3c38d88;
 }
 
-.game.settlers .settlers-stats-overlay.winner::before {
+.settlers-stats-overlay.winner::before {
 	content: '';
     position: absolute;
     width: 100%;
@@ -36,12 +37,12 @@
     z-index: -1;
 }
 
-.game.settlers .settlers-selection-overlay {
+.settlers-selection-overlay {
 	width: min(630px, 95vw);
 	align-items: center;
 }
 
-.game.settlers .dev-card-overlay {
+.dev-card-overlay {
 	width: unset;
 	max-width: 85vw;
 }
@@ -81,7 +82,7 @@
 stats overlay
 */
 
-.game.settlers .settlers-stats-overlay {
+.settlers-stats-overlay {
 	padding: min(2rem, 1.5vw, 2.5vh);
 	min-height: min(650px, 90vh);
 	width: 700px;
@@ -194,7 +195,7 @@ stats overlay
 	margin: 1rem;
 }
 
-.game.settlers .settlers-stats-player {
+.settlers-stats-player {
 	font-size: 1.9rem;
 	line-height: 3rem;
 	opacity: 0.90;
@@ -205,23 +206,23 @@ stats overlay
 	width: 100%;
 }
 
-.game.settlers .settlers-stats-player.p1 {
+.settlers-stats-player.p1 {
 	border-bottom: 5px solid var(--p1-color);
 }
 
-.game.settlers .settlers-stats-player.p2 {
+.settlers-stats-player.p2 {
 	border-bottom: 5px solid var(--p2-color);
 }
 
-.game.settlers .settlers-stats-player.p3 {
+.settlers-stats-player.p3 {
 	border-bottom: 5px solid var(--p3-color);
 }
 
-.game.settlers .settlers-stats-player.p4 {
+.settlers-stats-player.p4 {
 	border-bottom: 5px solid var(--p4-color);
 }
 
-.game.settlers .settlers-stats-player+.settlers-stats-row {
+.settlers-stats-player+.settlers-stats-row {
 	margin-top: 0.75rem;
 }
 
@@ -231,7 +232,7 @@ stats overlay
 
 
 
-.game.settlers .stats-header {
+.stats-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-evenly;
@@ -239,7 +240,7 @@ stats overlay
 	text-transform: uppercase;
 }
 
-.game.settlers .stats-header .overlay-tab {
+.stats-header .overlay-tab {
 	padding: 0.5rem 2rem;
 	cursor: pointer;
 	position: relative;
@@ -249,13 +250,13 @@ stats overlay
 	text-overflow: ellipsis;
 }
 
-.game.settlers .stats-header .overlay-tab.active-tab {
+.stats-header .overlay-tab.active-tab {
 	text-shadow: 1px 1px 1px #626163;
 	border-bottom: 2px solid #424143;
 	min-width: fit-content;
 }
 
-.game.settlers .stats-header .overlay-tab.active-tab::after {
+.stats-header .overlay-tab.active-tab::after {
 	content: "";
 	position: absolute;
 	top: 31px;
@@ -268,12 +269,12 @@ stats overlay
 	border-radius: 5px;
 }
 
-.game.settlers .overlay-page {
+.overlay-page {
 	display: none;
 	padding: min(1rem, 1vw, 1.5vh);
 }
 
-.game.settlers .overlay-page.active-page {
+.overlay-page.active-page {
 	display: flex;
 	flex-direction: column;
 	gap: 1.5rem;
@@ -285,7 +286,7 @@ stats overlay
  * 
  * ********/
 
-.game.settlers .trade-overlay {
+.trade-overlay {
 	width: min(1000px, 90vw);
 }
 
@@ -360,7 +361,7 @@ stats overlay
 	border-top-right-radius: 1rem;
 }
 
-.game.settlers .trade_count_up::before {
+.trade_count_up::before {
 	content: '⌃';
 	font-size: 5rem;
 	color: #fff;
@@ -372,7 +373,7 @@ stats overlay
 	-webkit-text-stroke: #fff;
 }
 
-.game.settlers .trade_count_down::after {
+.trade_count_down::after {
 	content: '⌄';
 	font-size: 5rem;
 	color: #fff;
@@ -576,20 +577,20 @@ stats overlay
 	justify-content: center;
 }
 
-.game.settlers .notice_overlay {
+.notice_overlay {
 	padding: 3rem;
 	font-size: 1.8rem;
 }
 
-.game.settlers .notice_overlay>div {
+.notice_overlay>div {
 	margin: 1rem;
 }
 
-.game.settlers .notice_overlay ul {
+.notice_overlay ul {
 	margin: 0 5rem;
 }
 
-.game.settlers .notice_overlay ul li {
+.notice_overlay ul li {
 	margin-bottom: 0.5rem;
 	font-size: 2rem;
 }
@@ -599,7 +600,7 @@ stats overlay
 		display: flex;
 		flex-direction: column;
 	}
-	.game.settlers .settlers-stats-overlay{
+	.settlers-stats-overlay{
 		min-height: unset;
 		height: min(800px, 85vh);
 		padding: 2rem 2vw;
@@ -608,19 +609,19 @@ stats overlay
 	.vp-3p .settlers-stats-row img {
 		height: min(6.5rem, 13vw);
 	}
-	.game.settlers .splash_overlay h2 {
+	.splash_overlay h2 {
 		font-size: 3rem;
 	}
-	.game.settlers .notice_overlay {
+	.notice_overlay {
 		padding: 1.5rem;
 	}
-	.game.settlers .notice_overlay ul {
+	.notice_overlay ul {
 		margin: 0 2rem 0 3rem;
 	}
-	.game.settlers .notice_overlay ul li {
+	.notice_overlay ul li {
 		font-size: inherit;
 	}
-	.game.settlers .stats-header .overlay-tab {
+	.stats-header .overlay-tab {
 		padding: 0.5rem;
 	}
 	.settlers-stats-row {
@@ -644,13 +645,13 @@ stats overlay
 		margin: 1.5rem;
 	}
 
-	.game.settlers .stats-header{
+	.stats-header{
 		flex-wrap: wrap;
 	}
-	.game.settlers .stats-header .overlay-tab {
+	.stats-header .overlay-tab {
 		max-width: unset;
 	}
-	.game.settlers .stats-header .overlay-tab.active-tab{
+	.stats-header .overlay-tab.active-tab{
 		order: 1;
 	}
 
@@ -660,15 +661,16 @@ stats overlay
 }
 
 @media screen and (orientation: landscape) and (max-height: 600px) {
-	.game.settlers .settlers-stats-overlay, .game.settlers .trade-overlay, .rules-overlay, .game.settlers .settlers-selection-overlay, .game.settlers .bank-overlay, .game.settlers .dev-card-overlay, .game.settlers .build-overlay {
+	.settlers-stats-overlay, .trade-overlay, .rules-overlay, .settlers-selection-overlay, .bank-overlay, .dev-card-overlay, .build-overlay {
 		max-height: 98vh;
 		gap: 0.5rem;
 	}
-	.game.settlers .trade-overlay {
+	.trade-overlay {
 		display: grid;
 		grid-template-columns: 15rem 1fr;
 	}
 	.trade_overlay_buttons {
 		grid-column: 1 / span 2;
 	}
+}
 }

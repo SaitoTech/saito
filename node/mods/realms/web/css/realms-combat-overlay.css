@@ -1,4 +1,4 @@
-
+.game.realms {
 .combat-overlay {
   position: fixed;
   top: 0;
@@ -42,4 +42,4 @@
 .combat-overlay .confirm-attack:hover {
   background: #ff6060;
 }
-
+}

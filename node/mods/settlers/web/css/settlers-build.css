@@ -1,13 +1,14 @@
-.game.settlers .saito-overlay:has(> .dev-card-overlay) + .saito-overlay-backdrop {
+.game.settlers {
+.saito-overlay:has(> .dev-card-overlay) + .saito-overlay-backdrop {
 	background: #000a;
 }
 
-.game.settlers .dev-card-overlay {
+.dev-card-overlay {
 	display: flex;
 	flex-wrap: auto;
 }
 
-.game.settlers .build-overlay {
+.build-overlay {
 	min-width: min(750px, 97vw);
 }
 
@@ -33,11 +34,11 @@
 	position: relative;
 }
 
-.game.settlers .build-overlay .settlers-item-row .settlers-cards-container {
+.build-overlay .settlers-item-row .settlers-cards-container {
 	position: relative;
 }
 
-.game.settlers .build-overlay .settlers-item-row {
+.build-overlay .settlers-item-row {
 	transition: all 0.2s ease-in-out;
 	border: 5px solid transparent;
 	border-radius: 1rem;
@@ -46,13 +47,13 @@
 	transform: scale(0.98);
 }
 
-.game.settlers .build-overlay .settlers-item-row:hover {
+.build-overlay .settlers-item-row:hover {
 	border: 5px solid #efefef33;
 	transform: scale(1.01);
 	cursor: pointer;
 }
 
-.game.settlers .build-overlay .settlers-item-row::after {
+.build-overlay .settlers-item-row::after {
 	transition: all 0.2s ease-in-out;
 	content: 'Build';
 	width: calc(50% + 2rem);
@@ -78,12 +79,12 @@
 	content: 'Buy';
 }
 
-.game.settlers .settlers-item-row.settlers-row-disabled::after {
+.settlers-item-row.settlers-row-disabled::after {
 	content: 'cannot purchase';
 	cursor: not-allowed;
 }
 
-.game.settlers .bank-overlay .settlers-trade-resources.settlers-row-disabled::after {
+.bank-overlay .settlers-trade-resources.settlers-row-disabled::after {
 	content: 'cannot trade now';
 	cursor: not-allowed;
 	transition: all 0.2s ease-in-out;
@@ -104,20 +105,20 @@
 	filter: drop-shadow(2px 4px 6px black);
 }
 
-.game.settlers .build-overlay .settlers-item-row:hover::after {
+.build-overlay .settlers-item-row:hover::after {
 	opacity: 1;
 }
 
-.game.settlers .settlers-row-disabled .settlers-item-img {
+.settlers-row-disabled .settlers-item-img {
 	filter: grayscale(1);
 	opacity: 0.5;
 }
 
-.game.settlers .settlers-item-row.settlers-row-disabled:hover {
+.settlers-item-row.settlers-row-disabled:hover {
 	cursor: not-allowed;
 }
 
-.game.settlers .settlers-row-disabled .settlers-item-img:hover {
+.settlers-row-disabled .settlers-item-img:hover {
 	cursor: not-allowed;
 }
 
@@ -139,7 +140,7 @@
 	position: relative;
 }
 
-.game.settlers .bank-overlay .settlers-items-container .settlers-cards-container img {
+.bank-overlay .settlers-items-container .settlers-cards-container img {
 	height: 16rem;
 }
 
@@ -227,18 +228,18 @@
 	height: 6rem;
 }
 
-.game.settlers .discard-cards-overlay .settlers-items-container {
+.discard-cards-overlay .settlers-items-container {
 	gap: unset;
 }
 
 
-.game.settlers .discard-cards-overlay .settlers-cards-container img.selected {
+.discard-cards-overlay .settlers-cards-container img.selected {
 	filter: grayscale(50%) brightness(0.7);
 }
 
 /* discard overlay */
 
-.game.settlers .dev-card-overlay .settlers-cards-container {
+.dev-card-overlay .settlers-cards-container {
 	display: flex;
 	flex-wrap: nowrap;
 	overflow: auto;
@@ -303,7 +304,7 @@
 }
 
 @media screen and (orientation: landscape) and (max-height: 600px) {
-	.game.settlers .build-overlay {
+	.build-overlay {
 		min-width: unset;
 	}
 
@@ -312,12 +313,12 @@
 		padding: 0;
 	}
 
-	.game.settlers .build-overlay .settlers-item-row,
-	.game.settlers .settlers-item-column {
+	.build-overlay .settlers-item-row,
+	.settlers-item-column {
 		padding: 0;
 	}
 
-	.game.settlers .bank-overlay .settlers-items-container .settlers-cards-container img {
+	.bank-overlay .settlers-items-container .settlers-cards-container img {
 		max-height: 13rem;
 	}
 
@@ -336,36 +337,36 @@
 		height: 6rem;
 	}
 
-	.game.settlers .build-overlay .settlers-item-row {
+	.build-overlay .settlers-item-row {
 		padding: 0;
 		border: 0;
 		gap: 1.5rem;
 	}
 
-	.game.settlers .build-overlay .settlers-item-row:hover {
+	.build-overlay .settlers-item-row:hover {
 		border: unset;
 		transform: scale(0.9);
 	}
 
-	.game.settlers .discard-cards-overlay .settlers-items-container {
+	.discard-cards-overlay .settlers-items-container {
 		flex-direction: row;
 		flex-wrap: wrap;
 		padding-top: 2rem;
 	}
-	.game.settlers .discard-cards-overlay .settlers-item-info-text {
+	.discard-cards-overlay .settlers-item-info-text {
 		position: absolute;
 		top: 0;
 	}
 }
 
 @media screen and (orientation: portrait) and (max-width: 600px) {
-	.game.settlers .build-overlay .settlers-item-row {
+	.build-overlay .settlers-item-row {
 		padding: 0;
 		border: 0;
 		gap: 1rem;
 	}
 
-	.game.settlers .build-overlay .settlers-item-row:hover {
+	.build-overlay .settlers-item-row:hover {
 		border: unset;
 		transform: scale(0.9);
 	}
@@ -388,8 +389,8 @@
 		gap: 0.2rem;
 	}
 
-	.game.settlers .settlers-items-container .settlers-cards-container img,
-	.game.settlers .discard-cards-overlay .settlers-items-container .settlers-cards-container img
+	.settlers-items-container .settlers-cards-container img,
+	.discard-cards-overlay .settlers-items-container .settlers-cards-container img
 	 {
 		height: 8rem;
 	}
@@ -414,18 +415,19 @@
 	.item-city .settlers-cards-container img:nth-child(n + 5) {
 		left: -4.5rem;
 	}
-	.game.settlers .build-overlay .settlers-item-row > .settlers-item-column {
+	.build-overlay .settlers-item-row > .settlers-item-column {
 		max-width: 4.5rem;
 		min-width: 4.5rem;
 	}
 
-	.game.settlers .bank-overlay .settlers-items-container .settlers-cards-container img {
+	.bank-overlay .settlers-items-container .settlers-cards-container img {
 		height: unset;
 		width: 25%;
 	}
 
-	.game.settlers .dev-card-overlay .settlers-cards-container {
+	.dev-card-overlay .settlers-cards-container {
 		flex-wrap: wrap;
 	}
 
+}
 }

@@ -1,3 +1,4 @@
+.game.imperium {
 .strategy-card-selection-overlay.hide-scrollbar {
 	overflow: visible !important;
 }
@@ -83,4 +84,5 @@
 
 .strategy-card-selection-controls .strategy-card.strategy-card-popup.opaque {
 	visibility: hidden;
+}
 }

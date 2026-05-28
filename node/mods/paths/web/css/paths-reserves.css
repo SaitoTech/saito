@@ -1,3 +1,4 @@
+.game.paths {
 .reserves-overlay {
 	min-width: 1000px;
 	min-height: 540px;
@@ -36,5 +37,4 @@
   	width: 80%;
   	aspect-ratio: 1000 / 540;
 }
-
-
+}

@@ -1,3 +1,4 @@
+.game.twilight {
 .deck-overlay {
 	width: 90vw;
 	max-height: 90vh;
@@ -116,4 +117,5 @@
 .deck-overlay .cardlist-container .card .cardimg {
 	width: inherit;
 	height: inherit;
+}
 }

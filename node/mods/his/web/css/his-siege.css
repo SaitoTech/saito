@@ -1,3 +1,4 @@
+.game.his {
 .siege-overlay {
 	background-image: url(/his/img/backgrounds/siege.png);
 	background-size: cover;
@@ -117,4 +118,5 @@
 
 .hits-assignable-hover-effect:hover {
 	font-weight: bold;
+}
 }

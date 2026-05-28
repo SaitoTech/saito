@@ -1,3 +1,4 @@
+.game.imperium {
 .strategy-card-leadership .text {
 	color: #13b708bb;
 }
@@ -100,4 +101,5 @@
 	color: gold;
 	float: right;
 	width: 100%;
+}
 }

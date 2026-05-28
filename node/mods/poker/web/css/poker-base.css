@@ -1,4 +1,5 @@
-:root {
+.game.poker {
+& {
   --ideal-game-log: min(450px, 65vw);
 }
 
@@ -131,4 +132,5 @@ body {
     left: calc(50vw - min(125px, 33vw));
   }
   */
+}
 }

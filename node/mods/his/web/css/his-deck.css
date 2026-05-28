@@ -1,3 +1,4 @@
+.game.his {
 .deck-overlay {
   display: flex;
   flex-wrap: wrap;
@@ -21,4 +22,5 @@
 	width: 20vw;
 	max-width: 230px;
 	max-height: 322px;
+}
 }

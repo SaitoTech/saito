@@ -1,4 +1,4 @@
-
+.game.realms {
 .mana-pie {
   position: absolute;
   top: 0;
@@ -42,4 +42,5 @@
   0%   { transform: scale(1); }
   75%  { transform: scale(1.5); }
   100% { transform: scale(1); }
+}
 }

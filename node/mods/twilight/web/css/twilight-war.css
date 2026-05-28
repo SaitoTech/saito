@@ -1,3 +1,4 @@
+.game.twilight {
 .war-overlay {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -59,4 +60,5 @@
 	background-image:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(/twilight/img/backgrounds/iraniraq-bg.jpg) !important;
+}
 }

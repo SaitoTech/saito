@@ -1,3 +1,4 @@
+.game.imperium {
 .imperium-dashboard {
 	display: inline-flex;
 	column-gap: 1.5rem;
@@ -156,4 +157,5 @@
 .dash-item {
 	color: #fff;
 	position: relative;
+}
 }

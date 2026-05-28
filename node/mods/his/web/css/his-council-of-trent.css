@@ -1,3 +1,4 @@
+.game.his {
 .council-of-trent-overlay {
 	background-image: url(/his/img/backgrounds/council-of-trent.jpg);
 	background-size: cover;
@@ -48,4 +49,5 @@
 .continue_protestants {
 	border-bottom: 1px dashed whitesmoke;
 	cursor: pointer;
+}
 }

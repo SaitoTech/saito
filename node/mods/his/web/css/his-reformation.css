@@ -1,3 +1,4 @@
+.game.his {
 .reformation-overlay {
 	background-image: url(/his/img/backgrounds/reformation.jpg);
 	background-size: cover;
@@ -103,4 +104,5 @@
 .papacy {
 	width: 35rem;
 	max-width: 35vw;
+}
 }

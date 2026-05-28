@@ -1,3 +1,4 @@
+.game.his {
 .hud-body .status .status-message {
 	padding-top: 15px;
 }
@@ -7,7 +8,7 @@
   z-index: 90;
 }
 
-:root {
+& {
  --border-color-general-dividers: #ddd;
 }
 
@@ -605,6 +606,4 @@ img {
   top: 2905px;
   left: 4795px;
 }
-
-
-
+}

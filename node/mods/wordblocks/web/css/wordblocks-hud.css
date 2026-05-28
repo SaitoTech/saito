@@ -1,3 +1,4 @@
+.game.wordblocks {
 .hud {
 	display: block;
 	width: 600px;
@@ -57,4 +58,5 @@
 
 .controls ul li {
 	background-color: transparent;
+}
 }

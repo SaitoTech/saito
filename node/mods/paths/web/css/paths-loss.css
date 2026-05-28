@@ -1,4 +1,4 @@
-
+.game.paths {
 .loss-overlay {
         min-width: 1131px;
         min-height: 827px;
@@ -267,5 +267,4 @@
     display: flex;
     grid-column: span 2;
 }
-
-
+}

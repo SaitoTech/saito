@@ -1,3 +1,4 @@
+.game.scotland {
 .hud.hud-long {
 	width: unset;
 	height: 200px;
@@ -249,4 +250,5 @@
 	100% {
 		transform: rotateZ(0), translateX(-18%);
 	}
+}
 }

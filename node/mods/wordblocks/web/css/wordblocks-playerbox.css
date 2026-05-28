@@ -1,3 +1,4 @@
+.game.wordblocks {
 .lastmove {
 	display: flex;
 	flex-direction: row;
@@ -95,4 +96,5 @@
 		display: grid;
 	}
 
+}
 }

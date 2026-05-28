@@ -1,3 +1,4 @@
+.game.wordblocks {
 .player_clock .game-clock{
 	position: static;
 	background: unset;
@@ -11,4 +12,5 @@
 	.player_clock .game-clock{
 		font-size: 2.4rem;
 	}
+}
 }

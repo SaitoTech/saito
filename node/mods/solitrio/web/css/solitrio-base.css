@@ -1,3 +1,4 @@
+.game.solitrio {
 .rules-overlay ul {
 	margin-left: 25px;
 }
@@ -197,3 +198,4 @@ This works for display, but it screws up the animations!!!!
 */
 
 /*}*/
+}

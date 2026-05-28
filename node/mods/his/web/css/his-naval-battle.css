@@ -1,3 +1,4 @@
+.game.his {
 .naval-battle-overlay {
 	background-image: url(/his/img/backgrounds/naval_battle.png);
 	background-size: cover;
@@ -118,4 +119,5 @@
 
 .hits-assignable-hover-effect:hover {
 	font-weight: bold;
+}
 }

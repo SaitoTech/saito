@@ -1,3 +1,4 @@
+.game.his {
 .diet-overlay {
 	background-image: url(/his/img/backgrounds/diet_of_worms.jpeg);
 	background-size: cover;
@@ -76,4 +77,5 @@
 .diet_of_worms_noskip,
 .diet_of_worms_end {
 	cursor: pointer;
+}
 }

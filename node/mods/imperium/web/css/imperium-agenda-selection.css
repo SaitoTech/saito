@@ -1,3 +1,4 @@
+.game.imperium {
 .agenda-selection-overlay {
 	display: grid;
 	color: white;
@@ -37,4 +38,5 @@
 
 .agenda-selection-cards .overlay_agendacard:hover {
 	transform: scale(1.1);
+}
 }

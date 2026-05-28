@@ -2,7 +2,6 @@
 .saito-overlay > div:last-child,
 .saito-overlay > form {
   border: none !important;
-  color: var(--saito-font-color);
 }
 
 .game-overlay-menu {

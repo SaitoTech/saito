@@ -1,9 +1,10 @@
+.game.imperium {
 .saito-overlay {
 	background: transparent;
 	box-shadow: none;
 }
 
-:root {
+& {
 	--background-color-shim-normal: #000c;
 }
 
@@ -575,7 +576,7 @@ ul li {
 	color: whitesmoke;
 }
 
-:root {
+& {
 	--p1: #229922;
 	--p2: #0066ff;
 	--p3: #ff6037;
@@ -2105,4 +2106,5 @@ input[type='range'] {
 }
 .how_to_play_resources_entry {
 	padding-top: 20px;
+}
 }

@@ -1,3 +1,4 @@
+.game.his {
 .field-battle-overlay {
 	background-image: url(/his/img/backgrounds/field_battle.jpg);
 	background-size: cover;
@@ -118,4 +119,5 @@
 
 .hits-assignable-hover-effect:hover {
 	font-weight: bold;
+}
 }

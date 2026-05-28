@@ -1,3 +1,4 @@
+.game.twilight {
 .hud-body .controls .game-cardgrid {
 	display: flex;
 	flex-direction: row;
@@ -80,4 +81,5 @@
 	column-gap: 0.5rem;
 	align-items: center;
 	justify-content: center;
+}
 }

@@ -1,6 +1,8 @@
+.game.labyrinth {
 .gameboard {
 	background-image: url('/labyrinth/img/gameboard-large.jpg');
 	background-size: cover;
 	width: 3400px;
 	height: 2200px;
+}
 }

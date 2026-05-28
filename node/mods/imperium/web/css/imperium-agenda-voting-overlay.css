@@ -1,3 +1,4 @@
+.game.imperium {
 .voting-hud {
 	height: 450px;
 	min-height: 450px;
@@ -19,4 +20,5 @@
 }
 .voting-hud .hud-body .status li.option.textchoice:hover {
 	background-color: #3334;
+}
 }

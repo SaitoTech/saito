@@ -1,3 +1,4 @@
+.game.his {
 .showcard {
 	border-bottom: 2px dashed;
 }
@@ -24,4 +25,5 @@ ul .option.showcard {
 
 .pass .cardimg {
 	position: absolute;
+}
 }

@@ -1,3 +1,4 @@
+.game.quake3 {
 .quake-controls {
 	background-color: whitesmoke;
 	border-radius: 0.5rem;
@@ -78,4 +79,5 @@ input[type='text'] {
 #controls-bottom {
 	/*//position: absolute;
     //bottom: 0;*/
+}
 }

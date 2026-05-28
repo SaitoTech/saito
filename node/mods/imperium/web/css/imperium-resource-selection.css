@@ -1,3 +1,4 @@
+.game.imperium {
 .influence-selection-overlay {
 	display: block;
 	width: 90vw;
@@ -87,4 +88,5 @@
 	background-color: #000a;
 	border-radius: 1rem;
 	margin-top: 4rem;
+}
 }

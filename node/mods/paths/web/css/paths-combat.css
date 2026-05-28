@@ -1,3 +1,4 @@
+.game.paths {
 .combat-overlay {
 	min-width: 1131px;
 	min-height: 827px;
@@ -6,4 +7,5 @@
 	border-radius: 2rem;
 	background-image: url('/paths/img/CombatTables.png');
 	background-size: cover;
+}
 }

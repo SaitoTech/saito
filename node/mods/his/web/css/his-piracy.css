@@ -1,3 +1,4 @@
+.game.his {
 .piracy-overlay {
 	background-image: url(/his/img/backgrounds/move/piracy.jpg);
 	background-size: cover;
@@ -108,4 +109,4 @@
 .defender {
 	width: 35vw;
 }
-
+}

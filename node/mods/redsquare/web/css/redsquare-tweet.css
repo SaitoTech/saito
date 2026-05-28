@@ -198,36 +198,26 @@
   min-width: 2.4rem;
 }
 
-.tweet-tool-like-count {
-  color: var(--saito-white);
-}
-
-.tweet-tool-like-count.has-likes,
-.tweet-tool-like-count.liked {
-  color: var(--saito-primary);
-}
-
 .tweet-tool-like .heart-icon {
   cursor: pointer;
   position: absolute;
   width: 3.6rem;
   height: 3.6rem;
-  color: var(--saito-white);
   display: grid;
   place-items: center;
   transform-origin: center;
 }
 
-.tweet-tool-like .heart-icon.has-likes,
-.tweet-tool-like .heart-icon.liked,
-.tweet-tool-like .heart-icon.likes {
+.tweet-tool-like.has-likes .heart-icon.has-likes::before,
+.tweet-tool-like.liked .heart-icon.liked::before,
+.tweet-tool-like.likes .heart-icon.likes::before {
   color: var(--saito-primary);
 }
 
 .tweet-tool-like .heart-icon::before {
   content: '';
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 1.7em;
+  height: 1.7rem;
   background: currentColor;
   mask: url('/saito/lib/font-awesome-6/svgs/regular/heart.svg') center / contain no-repeat;
   -webkit-mask: url('/saito/lib/font-awesome-6/svgs/regular/heart.svg') center / contain no-repeat;
@@ -236,6 +226,10 @@
     -webkit-mask 0.12s ease,
     transform 0.16s ease,
     filter 0.16s ease;
+}
+
+.liked, .likes, .has-likes {
+    color: var(--saito-primary);
 }
 
 .tweet-tool-like .heart-icon.liked::before,

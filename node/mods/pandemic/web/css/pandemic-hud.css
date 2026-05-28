@@ -1,3 +1,4 @@
+.game.epidemic {
 .hud-long, .controls {
 	width: 550px;
 	padding: 0;
@@ -53,4 +54,5 @@ img.menu_icon_icon, i.menu_icon_icon {
 
 .game-cardbox {
 	height: 55vh;
+}
 }

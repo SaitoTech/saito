@@ -1,6 +1,4 @@
-
-
-
+.game.his {
 .movement-overlay  .available-units-overlay {
     display: flex;
     flex-direction: rows;
@@ -46,7 +44,7 @@
 .available-units-overlay .army_tile {
     position: relative;
     margin-left: 0px !important;
-    margin-right 0px !important;
+    margin-right: 0px !important;
     margin-top: 0px !important;
     margin-bottom 0px !important;
 }
@@ -68,4 +66,4 @@
 .available-units-overlay .army_tile.opaque {
     opacity: 0.5;
 }
-
+}

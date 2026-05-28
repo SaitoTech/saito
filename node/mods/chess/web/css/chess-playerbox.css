@@ -1,3 +1,4 @@
+.game.chess {
 .game-playerbox-manager {
 	display: flex;
 	flex-direction: column;
@@ -96,4 +97,5 @@
 		min-width: unset;
 		width: 100%;
 	}
+}
 }

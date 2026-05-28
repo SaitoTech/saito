@@ -1,4 +1,5 @@
-:root {
+.game.shogun {
+& {
 	--dominion-parchment: tan;
 	--dominion-dark: #554e3e;
 }
@@ -273,4 +274,5 @@ img,
 	to {
 		box-shadow: 0 0 30px 30px floralwhite;
 	}
+}
 }

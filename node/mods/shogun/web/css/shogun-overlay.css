@@ -1,4 +1,4 @@
-
+.game.shogun {
 .overlay-img {
 	position: relative;
 	width: 100px;
@@ -141,4 +141,5 @@
 	top: unset;
 	left: unset;
 	transform: unset;
+}
 }

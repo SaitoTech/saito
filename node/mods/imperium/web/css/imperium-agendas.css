@@ -1,3 +1,4 @@
+.game.imperium {
 .agenda-card {
 	background-image: url(/imperium/img/cards/agenda.png);
 	background-size: cover;
@@ -41,4 +42,5 @@
     justify-content: space-evenly;
     width: 100%;
     flex-wrap: wrap;
+}
 }
