@@ -1,38 +1,7 @@
 class OpcodeReference {
-  constructor(app, mod, options = {}) {
+  constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.onLoadExample = options.onLoadExample || null;
-    this.mountEl = null;
-    this.selectedKey = null;
-  }
-
-  mount(container) {
-    this.mountEl = container;
-    container.innerHTML = this.renderShell();
-    this.bindEvents();
-    this.populateOpcodeSelect();
-  }
-
-  renderShell() {
-    return `
-      <div class="rs-ref-root">
-        <h3 class="rs-ref-title">Opcode Reference</h3>
-        <select class="rs-ref-select" aria-label="Select opcode">
-          <option value="" disabled selected>Select opcode…</option>
-        </select>
-        <div class="rs-ref-detail" aria-live="polite"></div>
-      </div>
-    `;
-  }
-
-  bindEvents() {
-    this.mountEl?.querySelector('.rs-ref-select')?.addEventListener('change', (e) => {
-      const key = e.target.value;
-      if (key) {
-        this.selectOpcode(key);
-      }
-    });
   }
 
   getSortedOpcodes() {
@@ -42,132 +11,38 @@ class OpcodeReference {
     return Object.values(this.mod.opcodes).sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  populateOpcodeSelect() {
-    const select = this.mountEl?.querySelector('.rs-ref-select');
-    if (!select) {
-      return;
-    }
-
-    const prev = this.selectedKey;
-    select.innerHTML = '';
-
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.disabled = true;
-    placeholder.selected = !prev;
-    placeholder.textContent = 'Select opcode…';
-    select.appendChild(placeholder);
-
-    for (const op of this.getSortedOpcodes()) {
-      const opt = document.createElement('option');
-      const key = op.name.toLowerCase();
-      opt.value = key;
-      opt.textContent = op.name;
-      if (key === prev) {
-        opt.selected = true;
-        placeholder.selected = false;
-      }
-      select.appendChild(opt);
-    }
-  }
-
-  selectOpcode(key) {
-    const normalized = String(key || '').toLowerCase();
-    const op = this.mod.opcodes?.[normalized];
-    if (!op) {
-      return;
-    }
-    this.selectedKey = normalized;
-    const select = this.mountEl?.querySelector('.rs-ref-select');
-    if (select) {
-      select.value = normalized;
-    }
-    this.renderDetail(op);
-  }
-
-  focusOpcode(key) {
-    const normalized = String(key || '').toLowerCase();
-    if (!this.mod.opcodes?.[normalized]) {
-      return;
-    }
-
-    this.selectOpcode(normalized);
-
-    const root = this.mountEl?.querySelector('.rs-ref-root');
-    const detail = this.mountEl?.querySelector('.rs-ref-detail');
-    const sidebar = document.querySelector('.rs-sidebar');
-
-    root?.classList.remove('rs-ref-pulse');
-    void root?.offsetWidth;
-    root?.classList.add('rs-ref-pulse');
-
-    if (detail) {
-      detail.scrollTop = 0;
-    }
-    sidebar?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-    window.setTimeout(() => {
-      root?.classList.remove('rs-ref-pulse');
-    }, 900);
-  }
-
-  renderDetail(op) {
-    const detail = this.mountEl?.querySelector('.rs-ref-detail');
-    if (!detail) {
-      return;
-    }
-
-    const desc = this.formatDescription(op.description);
-    const required = this.listRequiredFields(op);
+  buildDetailHtml(op) {
     const returns = this.returnsLine(op);
+    const required = this.listRequiredFields(op);
     const example = this.compactExample(op);
 
-    detail.innerHTML = `
-      <article class="rs-ref-doc" data-opcode="${op.name}">
-        <h4 class="rs-ref-doc-name">${op.name}</h4>
-        <p class="rs-ref-doc-summary">${desc}</p>
+    const requiredItems = required
+      .map((f) => `<li><code>${this.escapeHtml(f)}</code></li>`)
+      .join('');
 
+    return `
+      <div class="rs-ref-doc">
+        <p class="rs-ref-lead">${this.escapeHtml(returns)}</p>
         ${
           required.length
             ? `
-        <div class="rs-ref-block">
-          <div class="rs-ref-block-label">Required</div>
-          <ul class="rs-ref-field-list">${required.map((f) => `<li><code>${f}</code></li>`).join('')}</ul>
+        <div class="rs-ref-section">
+          <p class="rs-ref-section-label">Required:</p>
+          <ul class="rs-ref-field-list">${requiredItems}</ul>
         </div>`
             : ''
         }
-
-        <div class="rs-ref-block">
-          <div class="rs-ref-block-label">Returns</div>
-          <p class="rs-ref-returns">${returns}</p>
-        </div>
-
         ${
           example
             ? `
-        <div class="rs-ref-block">
-          <div class="rs-ref-block-label">Example</div>
+        <div class="rs-ref-section">
+          <p class="rs-ref-section-label">Example:</p>
           <pre class="rs-ref-example">${this.escapeHtml(example)}</pre>
         </div>`
             : ''
         }
-
-        <button type="button" class="rs-ref-load-example">load example</button>
-      </article>
+      </div>
     `;
-
-    detail.querySelector('.rs-ref-load-example')?.addEventListener('click', () => {
-      if (typeof this.onLoadExample === 'function') {
-        this.onLoadExample(op);
-      }
-    });
-  }
-
-  formatDescription(description) {
-    if (!description) {
-      return 'No description.';
-    }
-    return String(description).trim().replace(/\s+/g, ' ');
   }
 
   listRequiredFields(op) {
@@ -197,9 +72,9 @@ class OpcodeReference {
   returnsLine(op) {
     const name = String(op.name || '').toUpperCase();
     if (name === 'CHECKSIG') {
-      return 'true if signature validates against message and publickey.';
+      return 'Returns true if signature validates against message and publickey.';
     }
-    return 'boolean — true when the opcode condition is satisfied.';
+    return 'Returns boolean — true when the opcode condition is satisfied.';
   }
 
   compactExample(op) {

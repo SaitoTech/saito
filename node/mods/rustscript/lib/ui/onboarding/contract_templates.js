@@ -72,7 +72,7 @@ function scratchContract() {
   return {
     op: 'CHECKSIG',
     publickey: '<publickey>',
-    msg: 'my ownership rule'
+    msg: '<text>'
   };
 }
 

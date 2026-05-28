@@ -36,6 +36,16 @@ const PLACEHOLDER_META = {
     hint: 'Message that was signed',
     action: 'text'
   },
+  text: {
+    label: 'Text',
+    hint: 'Text value for this field',
+    action: 'text'
+  },
+  string: {
+    label: 'Text',
+    hint: 'Text value for this field',
+    action: 'text'
+  },
   nftid: {
     label: 'NFT ID',
     hint: 'NFT identifier',

@@ -1,6 +1,7 @@
-const { isPlaceholder, placeholderMeta } = require('./placeholder_utils');
+const { isPlaceholder, placeholderMeta, placeholderName } = require('./placeholder_utils');
 const { isWitnessPath } = require('./workspace_sync');
 const { inferFieldKindFromPath, validateField } = require('./field_validation');
+const { isLogicalOperator, normalizeLogicalOperator } = require('./logical_operators');
 
 class SemanticScriptView {
   constructor(app, mod, options = {}) {
@@ -86,6 +87,16 @@ class SemanticScriptView {
   renderAtom(value, path, keyName = '') {
     const readOnlyInherited = this.witnessOnlyEditable && !isWitnessPath(path);
 
+    if (keyName === 'op' && typeof value === 'string' && isLogicalOperator(value)) {
+      if (readOnlyInherited) {
+        return this.span(String(value).toUpperCase(), 'rs-semantic-logical-readonly');
+      }
+      if (!this.canEditPath(path)) {
+        return this.span(String(value).toUpperCase(), 'rs-semantic-logical-readonly');
+      }
+      return this.renderLogicalOpRef(value, path);
+    }
+
     if (keyName === 'op' && typeof value === 'string' && this.isKnownOpcode(value)) {
       if (readOnlyInherited) {
         return this.span(String(value).toUpperCase(), 'rs-semantic-opcode-readonly');
@@ -98,7 +109,7 @@ class SemanticScriptView {
         return this.span(value, 'rs-semantic-inherited');
       }
       if (!this.canEditPath(path)) {
-        return this.span(value, 'rs-semantic-placeholder-ghost');
+        return this.span(this.formatPlaceholderLabel(value), 'rs-semantic-placeholder-ghost');
       }
       return this.renderPlaceholderChip(value, path);
     }
@@ -141,7 +152,9 @@ class SemanticScriptView {
 
   renderEditableValue(value, path, keyName) {
     const fieldKind = this.fieldKindFor(path, keyName);
-    const meta = placeholderMeta(`<${fieldKind === 'text' ? String(keyName || 'input').toLowerCase() : fieldKind}>`) || {
+    const placeholderKey =
+      keyName === 'msg' ? 'text' : fieldKind === 'text' ? 'text' : String(keyName || 'input').toLowerCase();
+    const meta = placeholderMeta(`<${placeholderKey}>`) || {
       label: String(keyName || 'Value'),
       hint: 'Click to edit',
       action: fieldKind === 'message' ? 'text' : fieldKind
@@ -152,10 +165,13 @@ class SemanticScriptView {
 
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'rs-value-chip';
+    btn.className = 'rs-value-resolved';
     if (validation.state === 'warn') {
-      btn.classList.add('rs-value-chip-warn');
+      btn.classList.add('rs-value-resolved-warn');
       btn.title = validation.message || 'Value may be malformed — click to edit';
+    } else if (validation.state === 'valid') {
+      btn.classList.add('rs-value-resolved-complete');
+      btn.title = 'Complete — click to edit';
     } else {
       btn.title = meta.hint || 'Click to edit';
     }
@@ -174,12 +190,20 @@ class SemanticScriptView {
     return btn;
   }
 
+  formatPlaceholderLabel(value) {
+    const name = placeholderName(value);
+    if (name) {
+      return `<${name}>`;
+    }
+    return String(value);
+  }
+
   renderPlaceholderChip(value, path) {
     const meta = placeholderMeta(value);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'rs-placeholder-chip';
-    btn.textContent = value;
+    btn.textContent = this.formatPlaceholderLabel(value);
     btn.title = meta?.hint || value;
     btn.dataset.path = JSON.stringify(path);
 
@@ -199,13 +223,37 @@ class SemanticScriptView {
     btn.type = 'button';
     btn.className = 'rs-semantic-opcode';
     btn.textContent = String(opName).toUpperCase();
-    btn.title = 'Inspect opcode in reference panel';
+    btn.title = 'Open opcode reference';
 
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       if (this.onOpcodeClick) {
         this.onOpcodeClick(key);
+      }
+    });
+
+    return btn;
+  }
+
+  renderLogicalOpRef(opName, path) {
+    const normalized = normalizeLogicalOperator(opName);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rs-semantic-logical-op';
+    btn.textContent = normalized;
+    btn.title = 'Change logical operator';
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.onFieldClick) {
+        this.onFieldClick(
+          path,
+          normalized,
+          { action: 'logical', label: normalized, hint: 'Choose how conditions combine' },
+          'logical'
+        );
       }
     });
 
