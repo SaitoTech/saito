@@ -1,3 +1,4 @@
+.game.imperium {
 .new-action-cards-overlay {
 	width: 80vw;
 	max-width: 1200px;
@@ -74,4 +75,5 @@
 	transform: scale(1.2);
 	z-index: 10;
 	border: 1px solid whitesmoke;
+}
 }

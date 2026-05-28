@@ -1,3 +1,4 @@
+.game.imperium {
 #confirm.option {
 	padding: 2rem;
 }
@@ -167,4 +168,5 @@ hud-menu-overlay ul li {
 	align-items: center;
 	padding: 0 10px;
 	background-color: transparent;
+}
 }

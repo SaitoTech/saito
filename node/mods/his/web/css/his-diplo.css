@@ -1,3 +1,4 @@
+.game.his {
 .diplomacy-overlay {
 	background-image: url(/his/img/backgrounds/diplomacy/ambassadors.jpeg);
 	background-size: cover;
@@ -183,6 +184,4 @@
     padding: 1rem;
     padding-top: 0px;
 }
-
-
-
+}

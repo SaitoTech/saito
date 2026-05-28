@@ -1,3 +1,4 @@
+.game.blackjack {
 .tinyhand .card {
 	position: absolute;
 	width: 12vh;
@@ -102,4 +103,5 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+}
 }

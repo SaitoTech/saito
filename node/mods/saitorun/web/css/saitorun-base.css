@@ -1,3 +1,4 @@
+.game.saitorun {
 body {
 	margin: 0;
 	background-image: url('/saitorun/img/background.jpg');
@@ -194,4 +195,5 @@ a.answer-button:hover {
 	font-size: 28px !important;
 	font-weight: 900 !important;
 	margin-top: -2px;
+}
 }

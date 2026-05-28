@@ -1,3 +1,4 @@
+.game.his {
 .marriage-overlay {
     background-image: url(/his/img/backgrounds/marital_status.png);
     background-size: contain;
@@ -116,5 +117,4 @@
     top: 75%;
     left: 83%;
 }
-
-
+}

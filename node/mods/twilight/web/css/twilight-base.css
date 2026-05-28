@@ -1,3 +1,4 @@
+.game.twilight {
 /*********************/
 /*** MOD DEFAULTS ****/
 /*********************/
@@ -693,4 +694,5 @@ body {
 		width: 90vw;
 		height: calc(90vw * 1.4);
 	}
+}
 }

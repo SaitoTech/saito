@@ -1,5 +1,6 @@
+.game.settlers {
 @media only screen and (max-width: 600px) and (orientation: portrait) {
-	.game.settlers .racetrack {
+	.racetrack {
 		display: none;
 		position: absolute;
 		width: 100%;
@@ -19,7 +20,8 @@
 }
 
 @media only screen and (max-height: 600px) and (orientation: landscape) {
-	.game.settlers .racetrack {
+	.racetrack {
 		display: none;
 	}
+}
 }

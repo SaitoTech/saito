@@ -1,4 +1,5 @@
-:root {
+.game.chess {
+& {
 	--game-menu-background: #f9efdf;
 	--font-color-primary: #000;
 }
@@ -374,4 +375,5 @@ img.captured {
 		left: -12px;
 		font-size: 12px;
 	}
+}
 }

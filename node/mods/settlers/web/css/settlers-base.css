@@ -1,4 +1,4 @@
-.game.settlers {
+:root {
 	--p1-color: #bb233b; /* redish */
 	--p2-color: #004193; /* bluish */
 	--p3-color: #adce14; /* yellowish */
@@ -17,12 +17,15 @@
 	/* https://open-foundry.com/fonts/bagnard_sans_regular */
 }
 
+.game.settlers {
+
+
 .mobile-log-tab {
 	background-color: #d3c38df5;
 	color: #424143;
 }
 
-.game.settlers .player-box {
+.player-box {
 	min-height: 0vh;
 }
 
@@ -30,11 +33,11 @@
 	z-index: 9;
 }
 
-.game.settlers body {
+body {
 	user-select: none;
 }
 
-.game.settlers p {
+p {
 	overflow: unset;
 }
 
@@ -118,11 +121,11 @@ dt {
 	margin-bottom: 0.5em;
 }
 
-.game.settlers .saito-address {
+.saito-address {
 	color: unset;
 }
 
-.game.settlers .main.dark {
+.main.dark {
 	background-color: #369;
 }
 
@@ -130,8 +133,8 @@ dt {
 
 /* !-- background moved to body so board is resizable */
 /* gameboard == ocean, the "board" that gets resized is #hexgrid */
-.game.settlers .main,
-.game.settlers .scrollable-page {
+.main,
+.scrollable-page {
 	position: absolute;
 	width: 100%;
 	height: 100%;
@@ -154,7 +157,7 @@ dt {
 	background-position: 85px 90px;
 }
 
-.game.settlers .player-box {
+.player-box {
 	background-color: #444e;
 	z-index: 3;
 	max-width: 25vw;
@@ -174,7 +177,7 @@ dt {
 	background-color: unset;
 }
 
-.game.settlers .player-box .plog {
+.player-box .plog {
 	display: none;
 }
 
@@ -192,7 +195,7 @@ dt {
 	background-color: #e7e7e7;
 }
 
-.game.settlers .status-message {
+.status-message {
 	box-shadow: unset;
 }
 
@@ -466,7 +469,7 @@ dt {
 	transition: unset;
 }
 
-.game.settlers .player-box {
+.player-box {
 	max-width: 80vw;
 	width: unset;
 }
@@ -527,32 +530,32 @@ dt {
 	color: var(--p4-color);
 }
 
-.game.settlers .game-playerbox .saito-identicon-box {
+.game-playerbox .saito-identicon-box {
 	width: 4rem;
 	height: 4rem;
 }
 
-.game.settlers .saito-userline {
+.saito-userline {
 	width: 100%;
 }
 
-.game.settlers .player-box.c1 .saito-identicon-box {
+.player-box.c1 .saito-identicon-box {
 	border: 5px solid var(--p1-color);
 }
 
-.game.settlers .player-box.c2 .saito-identicon-box {
+.player-box.c2 .saito-identicon-box {
 	border: 5px solid var(--p2-color);
 }
 
-.game.settlers .player-box.c3 .saito-identicon-box {
+.player-box.c3 .saito-identicon-box {
 	border: 5px solid var(--p3-color);
 }
 
-.game.settlers .player-box.c4 .saito-identicon-box {
+.player-box.c4 .saito-identicon-box {
 	border: 5px solid var(--p4-color);
 }
 
-.game.settlers .player-box .saito-identicon {
+.player-box .saito-identicon {
 	width: 100%;
 	height: unset;
 }
@@ -756,7 +759,7 @@ input[type='checkbox'] {
 	font-weight: bold;
 }
 
-.game.settlers .status-message {
+.status-message {
 	width: unset;
 	background-color: unset;
 }
@@ -870,7 +873,7 @@ input[type='checkbox'] {
 	background-color: #e7e7e7;
 }
 
-.game.settlers .player-box .trade:hover {
+.player-box .trade:hover {
 	color: black;
 	background-color: #a7a7a7;
 }
@@ -936,7 +939,7 @@ input[type='checkbox'] {
   color: var(--p4-color);
 }*/
 
-.game.settlers .player-box .icon {
+.player-box .icon {
 	display: inline-block;
 	width: 30px;
 	vertical-align: middle;
@@ -1010,20 +1013,20 @@ input[type='checkbox'] {
 }
 ******/
 
-.game.settlers .opponents > .player-box {
+.opponents > .player-box {
 	position: relative;
 	right: unset;
 	top: unset;
 }
 
-.game.settlers .player-box.me {
+.player-box.me {
 	max-height: unset;
 	/* left: 30px; */
 	top: unset;
 	bottom: 1px;
 }
 
-.game.settlers .player-box {
+.player-box {
 	display: relative;
 }
 
@@ -1042,8 +1045,8 @@ input[type='checkbox'] {
 	}
 }
 
-.game.settlers .saitoa,
-.game.settlers #saito-alert-box {
+.saitoa,
+#saito-alert-box {
 	font-family: bagnard-sans;
 	border: 5px solid #424143;
 	background-image: unset;
@@ -1059,12 +1062,12 @@ input[type='checkbox'] {
 	color: var(--text-color);
 }
 
-.game.settlers .saito-overlay {
+.saito-overlay {
 	background: transparent;
 	border-radius: 0;
 }
 
-.game.settlers .saito-overlay > div.saitoa:last-child {
+.saito-overlay > div.saitoa:last-child {
 	background-color: #d3c38df5;
 	box-shadow: none;
 	border-radius: 0;
@@ -1077,11 +1080,11 @@ input[type='checkbox'] {
 }
 
 /* Overwrite the menu color */
-.game.settlers {
+& {
 	--game-menu-background: #d3c38df5;
 }
 
-.game.settlers .game-menu {
+.game-menu {
 	color: var(--text-color);
 }
 
@@ -1098,7 +1101,7 @@ input[type='checkbox'] {
 		flex-wrap: unset;
 	}
 
-	.game.settlers .saitoa {
+	.saitoa {
 		border-image-width: 15px;
 		border-image-outset: 3px;
 		border-width: 3px;
@@ -1115,9 +1118,10 @@ input[type='checkbox'] {
 		font-size: 18px;
 	}
 
-	.game.settlers .saitoa {
+	.saitoa {
 		border-image-width: 15px;
 		border-image-outset: 3px;
 		border-width: 3px;
 	}
+}
 }

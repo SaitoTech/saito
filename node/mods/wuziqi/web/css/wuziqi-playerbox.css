@@ -1,4 +1,4 @@
-
+.game.wuziqi {
 .game-playerbox-head .saito-user .saito-address {
 	color: white;
 }
@@ -103,4 +103,5 @@
 	.game-playerbox {
 		border-radius: 8px;
 	}
+}
 }

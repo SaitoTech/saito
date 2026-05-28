@@ -1,3 +1,4 @@
+.game.imperium {
 .planet-card {
 	width: 22.5rem;
 	height: 31.5rem;
@@ -6,4 +7,5 @@
 
 .planet-card.exhausted {
 	opacity: 0.7;
+}
 }

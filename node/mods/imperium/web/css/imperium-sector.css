@@ -1,3 +1,4 @@
+.game.imperium {
 .sector-overlay {
 	height: min-content;
 	width: min-content;
@@ -48,4 +49,5 @@
 }
 
 .sector-overlay .planet-grid .planet-card {
+}
 }
