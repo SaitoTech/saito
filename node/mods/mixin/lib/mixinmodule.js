@@ -39,7 +39,7 @@ const getUuid = require('uuid-by-string');
 // code as we require. so we should be updating address validation if we need it, but
 // this should not be blocking us.
 //
-//const WAValidator = require("multicoin-address-validator");
+const WAValidator = require('@taasfi/multicoin-address-validator');
 
 class MixinModule extends CryptoModule {
 	constructor(app, mixin_mod, ticker, asset_id, chain_id) {
@@ -54,6 +54,8 @@ class MixinModule extends CryptoModule {
 		this.polling_timeout = 0;
 		this.polling_intervals = [5000, 15000, 45000, 90000, 120000, 180000];
 		this.polling_interval_current = 0;
+
+		this.cached_contacts = [];
 
 		this.confirmations = 100;
 		this.latest_snapshot_ts = 0;
@@ -457,46 +459,29 @@ class MixinModule extends CryptoModule {
 	 * @return {Number}
 	 */
 	async sendPayment(amount = '', recipient = '', unique_hash = '') {
-		let r = recipient.split('|');
-
 		let internal_transfer = false;
-		let destination = recipient;
+		let destination = await this.processAddress(recipient);
+
+		let r = destination.split('|');
 
 		let res = {};
 
-		console.info('Mixin sendPayment to ' + recipient);
+		console.info('Mixin sendPayment to ' + destination);
 
-		// if address has |mixin| concat
+		//
+		// if address has |mixin| concat --> internal mixin transfer
+		//
 		if (r.length >= 2) {
 			if (r[2] === 'mixin') {
-				console.info('Send to Mixin address');
-				internal_transfer = true;
-				destination = r[1];
+				res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, r[1], amount);
 			}
-		}
-
-		// check if address exists in local db
-		if (internal_transfer == false) {
-			await this.mixin.sendFetchUserByAddressTransaction(
-				{
-					address: recipient
-				},
-				function (res) {
-					console.info('Cross network callback complete');
-					if (res?.user_id) {
-						internal_transfer = true;
-						destination = res.user_id;
-					}
-				}
-			);
-		}
-
-		// internal mixin transfer
-		if (internal_transfer) {
-			res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, destination, amount);
-		} else {
+		} else if (this.validateAddress(destination)) {
+			//
 			// address is external, send external withdrawl request
+			//
 			res = await this.mixin.sendExternalNetworkTransferRequest(this.asset_id, destination, amount);
+		} else {
+			throw new Error(`MixinModule: invalid address for ${this.ticker} -- `, destination);
 		}
 
 		if (res.status == 200) {
@@ -626,43 +611,25 @@ class MixinModule extends CryptoModule {
 	// if it can offer zero-fee in-network transfers or requires a network fee to be paid
 	// in order to process the payment.
 	//
-	async checkWithdrawalFeeForAddress(recipient = '', mycallback) {
-		if (recipient == '') {
+	async checkWithdrawalFeeForAddress(address = '', mycallback) {
+		if (address == '') {
 			return mycallback(0);
 		}
 
-		let r = recipient.split('|');
+		address = await this.processAddress(address);
+
+		let r = address.split('|');
 		let ts = new Date().getTime();
 
 		//
-		// internal MIXIN transfer
+		// internal MIXIN transfer, 0 fee
 		//
 		if (r.length >= 2) {
 			if (r[2] === 'mixin') {
 				return mycallback(0);
 			}
-		}
-
-		//
-		// check if address exists in local db
-		//
-		let user_data = null;
-		await this.mixin.sendFetchUserByAddressTransaction(
-			{
-				address: recipient
-			},
-			function (res) {
-				user_data = res;
-			}
-		);
-
-		//
-		// return 0 fee if in-network address, or estimate if external
-		//
-		if (typeof user_data.user_id != 'undefined') {
-			return mycallback(0);
 		} else {
-			let fee = await this.mixin.returnWithdrawalFee(this.asset_id, recipient);
+			let fee = await this.mixin.returnWithdrawalFee(this.asset_id, address);
 			if (fee !== false) {
 				return mycallback(fee);
 			}
@@ -690,6 +657,11 @@ class MixinModule extends CryptoModule {
 	async returnAddressFromPublicKey(publicKey) {
 		this_self = this;
 		try {
+			//try local cache first
+			if (this.cached_contacts[publicKey]) {
+				return this.cached_contacts[publicKey];
+			}
+
 			//check if key exists in keychain
 			let address = await super.returnAddressFromPublicKey(publicKey);
 
@@ -704,24 +676,19 @@ class MixinModule extends CryptoModule {
 					asset_id: this.asset_id
 				},
 				function (res) {
-					// console.log('miximodule res: ', res);
-					// this.address + '|' + this.mixin.mixin.user_id + '|' + 'mixin';
 					if (res.length > 0) {
 						for (let i = 0; i < res.length; i++) {
-							console.log(
-								res[i].asset_id,
-								' - ',
-								this_self.asset_id,
-								' - ',
-								res[i].asset_id == this_self.asset_id
-							);
 							if (res[i].asset_id == this_self.asset_id) {
 								let address = res[i].address;
 								if (res[i]?.user_id) {
 									address += '|' + res[i].user_id + '|mixin';
 								}
+
+								this_self.cached_contacts[publicKey] = address;
 								// save address to keychain if publickey exists in keychain
-								this_self.app.keychain.addCryptoAddress(publicKey, this_self.ticker, address);
+								if (this_self.app.keychain.hasPublicKey(publicKey)) {
+									this_self.app.keychain.addCryptoAddress(publicKey, this_self.ticker, address);
+								}
 								return address;
 							}
 						}
@@ -734,23 +701,71 @@ class MixinModule extends CryptoModule {
 		}
 	}
 
+	// Mixin specific function to minimize the amount of table look ups
+	async processAddress(destination) {
+		if (destination.includes('|mixin')) {
+			return destination;
+		}
+
+		if (this.app.crypto.isPublicKey(destination)) {
+			return await this.returnAddressFromPublicKey(destination);
+		} else {
+			//
+			// check if address exists in local db
+			//
+			for (let pk in this.cached_contacts) {
+				if (this.cached_contacts[pk].includes(destination)) {
+					return this.cached_contacts[pk];
+				}
+			}
+
+			for (let k of this.app.keychain.returnKeys()) {
+				if (k?.crypto_addresses[this.ticker]?.includes(destination)) {
+					return k.crypto_addresses[this.ticker];
+				}
+			}
+
+			//
+			// check if address exists in remote db
+			//
+			let user_data = null;
+			await this.mixin.sendFetchUserByAddressTransaction(
+				{
+					address: destination
+				},
+				(res) => {
+					console.log('*************', res);
+					user_data = res;
+
+					if (res?.publickey && res.user_id) {
+						destination += '|' + res.user_id + '|mixin';
+						// Cache return values
+
+						this.cached_contacts[res.publickey] = destination;
+						if (this.app.keychain.hasPublicKey(res.publickey)) {
+							this.app.keychain.addCryptoAddress(res.publickey, this.ticker, destination);
+						}
+					}
+				}
+			);
+
+			return destination;
+		}
+	}
+
 	validateAddress(address) {
 		if (address.includes('|')) {
 			let r = address.split('|');
 			address = r[0];
 		}
 
-		// suported cryptos by validator package
-		//https://www.npmjs.com/package/multicoin-address-validator?activeTab=readme
-		try {
-			//
-			// see above
-			//
-			return true;
+		console.log('ValidateAddress: ', address, this.ticker);
 
-			//			return WAValidator.validate(address, this.ticker);
+		try {
+			return WAValidator.validate(address, this.ticker);
 		} catch (err) {
-			// console.error("Error 'validateAddress' MixinModule: ", err);
+			console.error("Error 'validateAddress' MixinModule: ", err);
+			return false;
 		}
 	}
 }

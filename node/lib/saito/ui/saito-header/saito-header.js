@@ -96,8 +96,11 @@ class SaitoHeader extends UIModTemplate {
       }
 
       if (!obj) {
+        console.debug('on-payment-received -- no object');
         return;
       }
+
+      console.debug(obj);
 
       let amount = obj.amount;
       let ticker = obj.ticker;

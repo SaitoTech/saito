@@ -487,6 +487,7 @@ class Keychain {
     let crypto_addresses = friend?.crypto_addresses || {};
 
     if (!crypto_addresses?.ticker || crypto_addresses.ticker !== address) {
+      console.log('$$$ SAVE -- ', publicKey, ticker, address);
       crypto_addresses[ticker] = address;
       this.app.keychain.addKey(publicKey, {
         crypto_addresses

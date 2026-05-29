@@ -15,6 +15,8 @@ class Details {
       this.ticker = ticker;
       this.mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
       this.render();
+
+      this.mod.startPolling();
     });
 
     app.connection.on('saito-crypto-activated', (ticker) => {
@@ -22,10 +24,32 @@ class Details {
         this.render();
       }
     });
+
+    app.connection.on('on-transaction-pending', (obj = null) => {
+      if (this.overlay.visible) {
+        this.updateBalances();
+      }
+    });
+
+    app.connection.on('on-payment-sent', (obj = null) => {
+      if (this.overlay.visible) {
+        this.updateBalances();
+      }
+    });
+
+    app.connection.on('on-payment-received', (obj = null) => {
+      if (this.overlay.visible) {
+        this.updateBalances();
+      }
+    });
   }
 
-  async render(qrcode_html = '') {
-    this.overlay.show(await DetailsTemplate(this.app, this.mod));
+  render(qrcode_html = '') {
+    this.overlay.show(DetailsTemplate(this.app, this.mod), () => {
+      this.mod.stopPolling();
+    });
+
+    this.updateBalances();
 
     // Insert deposit QR code
     if (document.getElementById('qrcode2')) {
@@ -37,6 +61,10 @@ class Details {
 
         document.querySelector('#qrcode2').innerHTML = '';
         this.app.browser.generateQRCode(this.mod.address, 'qrcode2');
+        this.app.browser.addElementToId(
+          `<div class="crypto-api-fetch-spinner"><i class='fa-solid fa-spin fa-arrows-rotate'/></div>`,
+          'qrcode2'
+        );
         setTimeout(() => {
           document.querySelector('#qrcode2').removeAttribute('style');
         }, 100);
@@ -55,6 +83,43 @@ class Details {
     this.formatHistory();
 
     this.attachEvents();
+  }
+
+  async updateBalances() {
+    let available_balance = await this.mod.getAvailableBalance();
+    let pending_balance = await this.mod.getPendingBalance();
+    let available_balance_num = Number(available_balance);
+    let pending_balance_num = Number(pending_balance);
+
+    let html = '';
+
+    if (pending_balance_num !== available_balance_num) {
+      html += `
+                <div class="label">Pending Balance:</div>
+                <div class="balance-amount">${this.app.browser.returnBalanceHTML(pending_balance, true)}</div>
+              
+    `;
+    } else {
+      html += `
+                <div class="label">Available Balance:</div>
+                <div class="balance-amount">${this.app.browser.returnBalanceHTML(available_balance, true)}</div>
+              </div>
+    `;
+    }
+
+    let balance_handle = document.querySelector('.main-balance');
+    if (balance_handle) {
+      balance_handle.innerHTML = html;
+    }
+
+    let send_btn = document.getElementById('send-crypto');
+    if (send_btn) {
+      if (pending_balance_num > 0 || available_balance_num > 0) {
+        send_btn.removeAttribute('disabled');
+      } else {
+        send_btn.setAttribute('disabled', false);
+      }
+    }
   }
 
   formatHistory() {
@@ -175,22 +240,6 @@ class Details {
         this.app.connection.emit('saito-purchase-launch');
         //let overlay = new SaitoOverlay(this.app, this.mod);
         //overlay.show(SaitoTokenOverlay());
-      };
-    }
-
-    if (document.getElementById('check-balance')) {
-      document.getElementById('check-balance').onclick = async (e) => {
-        e.currentTarget.classList.add('refreshing');
-        let balance = await this.mod.fetchBalance();
-        this.render(document.querySelector('#qrcode2')?.innerHTML);
-        setTimeout(() => {
-          document.getElementById('check-balance').classList.add('refreshed');
-          setTimeout(() => {
-            if (document.getElementById('check-balance')) {
-              document.getElementById('check-balance').classList.remove('refreshed');
-            }
-          }, 5000);
-        }, 5);
       };
     }
   }

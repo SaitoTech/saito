@@ -1,8 +1,4 @@
-module.exports = async (app, mod) => {
-  let available_balance = await mod.getAvailableBalance();
-  let pending_balance = await mod.getPendingBalance();
-  let available_balance_num = Number(available_balance);
-  let pending_balance_num = Number(pending_balance);
+module.exports = (app, mod) => {
   let rtn_val = mod.returnLogos();
   let logo = rtn_val.img;
   let sublogo = rtn_val.sub_logo;
@@ -46,42 +42,24 @@ module.exports = async (app, mod) => {
             </div>
 
             <div class="wallet-actions">
-              <div class="main-balance">
+              <div class="main-balance">...</div>
     `;
-
-    if (pending_balance_num !== available_balance_num) {
-      html += `
-                <div class="label">Pending Balance:</div>
-                <div class="balance-amount">${app.browser.returnBalanceHTML(pending_balance, true)}</div>
-                <i id="check-balance" class="fa-solid fa-arrows-rotate refresh"></i>
-              </div>
-    `;
-    } else {
-      html += `
-                <div class="label">Available Balance:</div>
-                <div class="balance-amount">${app.browser.returnBalanceHTML(available_balance, true)}</div>
-                <i id="check-balance" class="fa-solid fa-arrows-rotate refresh"></i>
-              </div>
-    `;
-    }
 
     if (mod.ticker == 'SAITO') {
       html += `
               <div class="saito-button-row auto-size force-row">
                 <div class="get-saito-tokens"></div>
                 <button class="saito-button-secondary" id="get-saito">get saito</button>
-                <button class='saito-button-primary ${available_balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
+                <button class='saito-button-primary' disabled id='send-crypto'>Send</button>
               </div>
       `;
     } else {
-      let menu_html = '';
-
       html += `
-              <div>${menu_html}</div>
+              <div></div>
               <div class="saito-button-grid">
                 <div></div>
                 <div></div>
-                <button class='saito-button-primary ${available_balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
+                <button class='saito-button-primary' disabled id='send-crypto'>Send</button>
               </div>
       `;
     }
@@ -91,7 +69,6 @@ module.exports = async (app, mod) => {
         </div>
 
         <div class="transaction-history">
-          <i id="check-history" class="fa-solid fa-arrows-rotate refresh"></i>
           <h6>Transaction History</h6>
           <div class="transaction-history-table saitox-table" data-crypto="${mod.ticker}">
             <div class="saitox-header-item">Time</div>

@@ -150,9 +150,11 @@ export default class Wallet extends SaitoWallet {
           const p = parseInterfacePayload(payload);
         });
 
+        // Map transaction-received event from WASM to UI-focused event
         app.connection.on('on-transaction-received', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          super.onPaymentReceived(p);
+          p.ticker = 'SAITO';
+          app.connection.emit('on-payment-received', p);
         });
 
         app.connection.on('on-nft-sent', async (payload: unknown) => {
@@ -177,7 +179,8 @@ export default class Wallet extends SaitoWallet {
             console.log('ERROR: adding NFT to wallet... ');
           }
 
-          super.onPaymentReceived(p);
+          // Map transaction-received event from WASM to UI-focused event
+          app.connection.emit('on-payment-received', p);
         });
 
         this.options.isActivated = true;
@@ -856,7 +859,6 @@ export default class Wallet extends SaitoWallet {
 
   saveAvailableCryptosAssociativeArray(publicKey, cryptos) {
     for (let ticker in cryptos) {
-      console.log('$$$ SAVE -- ', publicKey, ticker, cryptos[ticker].address);
       this.app.keychain.addCryptoAddress(publicKey, ticker, cryptos[ticker].address);
     }
     this.app.keychain.saveKeys();
@@ -901,7 +903,10 @@ export default class Wallet extends SaitoWallet {
     let rtnObj = {};
 
     if (!this.doesPreferredCryptoTransactionExist(unique_hash)) {
-      console.log('preferred crypto transaction does not already exist');
+      console.log(
+        '[wallet.ts -- sendPayment] preferred crypto transaction does not already exist',
+        saito_public_key
+      );
       try {
         const cryptomod = this.returnCryptoModuleByTicker(ticker);
         for (let i = 0; i < senders.length; i++) {
@@ -922,11 +927,13 @@ export default class Wallet extends SaitoWallet {
                 this.deletePreferredCryptoTransaction(unique_hash);
               }
 
-              if (saito_public_key) {
-                if (ticker !== 'SAITO') {
+              if (ticker !== 'SAITO') {
+                if (saito_public_key) {
                   //
                   // duplicate the "crypto payment" for non-native off chain transactions
                   //
+
+                  console.log('>>>> sendPayment [non-SAITO] -- add metadata transaction');
                   await cryptomod.sendPaymentTransaction(
                     saito_public_key,
                     senders[i],
@@ -943,6 +950,7 @@ export default class Wallet extends SaitoWallet {
               }
               return;
             } catch (err) {
+              console.error(err);
               // it failed, delete the transaction
               this.deletePreferredCryptoTransaction(unique_hash);
               rtnObj = { err };

@@ -190,10 +190,17 @@ class CryptoModule extends ModTemplate {
           obj.receiver = tx.to[0].publicKey;
         }
 
-        console.log('>>>>>>>>>> crypto payment', obj);
+        console.log('>>>>>>>>>> crypto payment announcement', obj);
+
+        this.startPolling();
 
         if (this.app.BROWSER) {
-          this.onPaymentReceived(obj);
+          if (direction == 'receive') {
+            siteMessage(
+              `Checking on ${obj.amount} ${obj.ticker} from ${this.app.keychain.returnUsername(obj.sender)}`,
+              3000
+            );
+          }
         }
 
         return 1;
@@ -223,10 +230,6 @@ class CryptoModule extends ModTemplate {
     await this.app.network.propagateTransaction(newtx);
 
     console.info(`Crypto: sendPaymentTransaction sent to ${publicKey}!`, newtx.msg);
-  }
-
-  onPaymentReceived(obj) {
-    this.app.connection.emit('on-payment-received', obj);
   }
 
   returnLogos() {

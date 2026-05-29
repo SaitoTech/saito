@@ -14,6 +14,7 @@ class Withdraw {
     this.ticker = '';
     this.pc = null; // pointer at the crypto module
     this.publicKey = '';
+    this.address = ''; // the withdrawal destination
     this.fee = null;
 
     this.errors = {
@@ -39,22 +40,21 @@ class Withdraw {
   async render() {
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
-    let destination = '';
 
     if (this.publicKey) {
-      destination = await this.pc.returnAddressFromPublicKey(this.publicKey);
+      this.address = await this.pc.returnAddressFromPublicKey(this.publicKey);
     }
+
+    console.log('>>>> render ', this.publicKey, this.ticker, this.address);
 
     if (document.getElementById('withdrawal-form')) {
       this.app.browser.replaceElementById(
-        WithdrawTemplate(this.app, this.mod, this.publicKey, destination),
+        WithdrawTemplate(this.app, this.mod, this.publicKey, this.address),
         'withdrawal-form'
       );
     } else {
-      this.overlay.show(WithdrawTemplate(this.app, this.mod, this.publicKey, destination), () => {
-        this.ticker = null;
-        this.pc = null;
-        this.publicKey = null;
+      this.overlay.show(WithdrawTemplate(this.app, this.mod, this.publicKey, this.address), () => {
+        this.clear();
       });
     }
 
@@ -196,6 +196,13 @@ class Withdraw {
 
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
+
+    if (this.publicKey) {
+      this.address = await this.pc.returnAddressFromPublicKey(this.publicKey);
+    } else {
+      this.address = '';
+    }
+
     await this.fetchWithdrawFee();
 
     setTimeout(async () => {
@@ -237,7 +244,9 @@ class Withdraw {
           return;
         }
         e.stopPropagation();
-        void this.selectCryptoTicker(li.dataset.ticker);
+        if (li.dataset.ticker !== this.ticker) {
+          void this.selectCryptoTicker(li.dataset.ticker);
+        }
       };
     }
 
@@ -293,7 +302,7 @@ class Withdraw {
         document.querySelector('.withdraw-address-2').innerText = address.slice(-8);
 
         let pc = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
-        if (pc.categories == 'NFT') {
+        if (pc.chain_id == 'NATIVE') {
           document.querySelector('.withdraw-confirm-fee').innerText = `(fee: ${this.fee} SAITO)`;
         } else {
           document.querySelector('.withdraw-confirm-fee').innerText =
@@ -316,7 +325,6 @@ class Withdraw {
 
         try {
           let amount = document.querySelector('#withdraw-input-amount').value;
-          let address = document.querySelector('#withdraw-input-address').value;
 
           let ticker = this.ticker;
           let sender = this.pc.formatAddress();
@@ -346,7 +354,7 @@ class Withdraw {
             const tx_msg = JSON.parse(JSON.stringify(nft.txmsg || {}));
             let newtx = await this_withdraw.app.wallet.createNFTTransaction(
               nft,
-              address,
+              this.address,
               amountInt,
               BigInt(0),
               BigInt(0),
@@ -357,7 +365,7 @@ class Withdraw {
             // having created the NFT, we now modify its TX_MSG if there are
             // any handlers that want to process the transaction
             //
-            newtx = await nft.modifyBeforeSend(newtx, address);
+            newtx = await nft.modifyBeforeSend(newtx, this.address);
             if (!newtx) {
               throw new Error('NFT transfer blocked by module.');
             }
@@ -381,9 +389,9 @@ class Withdraw {
           await this.app.wallet.sendPayment(
             ticker,
             [sender],
-            [address],
+            [this.address],
             [amount],
-            btoa(sender + address + amount + ts),
+            btoa(sender + this.address + amount + ts),
             async function (res) {
               if (res.hash != '') {
                 this_withdraw.withdrawBroadcastSuccessUi();
@@ -504,10 +512,9 @@ class Withdraw {
 
   async fetchWithdrawFee() {
     let this_withdraw = this;
-    let address = document.querySelector('#withdraw-input-address').value;
 
     document.querySelector('.withdraw-info-value.fee').innerHTML = 'updating...';
-    this.pc.checkWithdrawalFeeForAddress(address, (amt) => {
+    this.pc.checkWithdrawalFeeForAddress(this.address, (amt) => {
       this.fee = Number(amt);
       document.querySelector('.withdraw-info-value.fee').innerHTML = `${amt} ${this.ticker}`;
     });
@@ -566,19 +573,27 @@ class Withdraw {
   validateAddressInput() {
     this.clearAddressError();
 
-    let address = document.querySelector('#withdraw-input-address').value;
+    this.address = document.querySelector('#withdraw-input-address').value;
 
-    let valid = this.pc.validateAddress(address);
+    let valid = this.pc.validateAddress(this.address);
 
     if (!valid) {
       document.querySelector('#withdraw-address-error').innerHTML =
         'Error: Invalid ' + this.ticker + ' address';
       document.querySelector('#withdraw-address-error').style.display = 'block';
       this.errors['address'] = true;
+      this.address = '';
+
+      // Disable submission
+      this.handleErrors();
+      return;
     }
 
-    // Disable submission
-    this.handleErrors();
+    if (this.pc.chain_id == 'NATIVE') {
+      return;
+    }
+
+    // We do some extra processing of web3 Cryptos
   }
 
   handleErrors() {
@@ -611,6 +626,17 @@ class Withdraw {
     this.clearAmountError();
 
     this.handleErrors();
+  }
+
+  clear() {
+    this.resetErrors();
+    this.ticker = null;
+    this.pc = null;
+    this.publicKey = '';
+    this.address = '';
+    this.fee = null;
+    this.available_balance = 0;
+    this._nft_balance_raw = null;
   }
 }
 
