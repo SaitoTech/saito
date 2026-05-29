@@ -255,7 +255,7 @@ dt {
 .road.rhover,
 .city.empty.rhover {
 	outline: 0;
-	box-shadow: 0 0 12px rgba(255, 212, 92, 0.55);
+	cursor: pointer;
 	transition:
 		background-color 120ms ease,
 		box-shadow 120ms ease,
@@ -271,6 +271,70 @@ dt {
 	box-shadow:
 		0 0 0 2px rgba(255, 255, 255, 0.3),
 		0 0 16px rgba(255, 212, 92, 0.72);
+}
+
+.placement-wave-highlight,
+.city.placement-wave-highlight,
+.road.placement-wave-highlight {
+	animation: settlers-placement-wave 240ms ease-out both;
+}
+
+.city.empty.placement-wave-highlight {
+	border: 1px solid #fff;
+	background:
+		linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%),
+		radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), rgba(0, 0, 1, 0.5) 80%);
+	backdrop-filter: blur(1px);
+}
+
+.road.placement-wave-highlight {
+	border: 1px solid #aaa;
+	background:
+		linear-gradient(145deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 70%),
+		radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.3) 80%);
+}
+
+.sector-container.placement-wave-highlight .sector_value {
+	animation: settlers-placement-wave-token 240ms ease-out both;
+}
+
+@keyframes settlers-placement-wave {
+	0% {
+		filter: brightness(1) saturate(1);
+		box-shadow: 0 0 0 rgba(255, 212, 92, 0);
+	}
+
+	35% {
+		filter: brightness(1.24) saturate(1.18);
+		box-shadow:
+			0 0 0 3px rgba(255, 255, 255, 0.34),
+			0 0 20px rgba(255, 212, 92, 0.78);
+	}
+
+	100% {
+		filter: brightness(1) saturate(1);
+		box-shadow: 0 0 12px rgba(255, 212, 92, 0.55);
+	}
+}
+
+@keyframes settlers-placement-wave-token {
+	0% {
+		border-color: rgba(255, 212, 92, 0.5);
+		background-color: rgba(255, 212, 92, 0.12);
+		box-shadow: 0 0 12px rgba(255, 212, 92, 0.34);
+	}
+
+	35% {
+		border-color: rgba(255, 255, 255, 0.84);
+		background-color: rgba(255, 255, 255, 0.28);
+		box-shadow: 0 0 18px rgba(255, 212, 92, 0.7);
+	}
+
+	100% {
+		border-color: rgba(255, 212, 92, 0.5);
+		background-color: rgba(255, 212, 92, 0.12);
+		box-shadow: 0 0 12px rgba(255, 212, 92, 0.34);
+	}
 }
 
 /*.chover:hover:after{
@@ -293,29 +357,19 @@ dt {
 }
 
 .city.empty.rhover {
-	border: 1px solid #fff;
+	border: 1px solid transparent;
 	position: absolute;
-	z-index: 0;
-	background:
-		linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%),
-		radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), rgba(0, 0, 1, 0.5) 80%);
-	box-shadow:
-		inset 0 0 10px rgba(255, 255, 255, 0.5),
-		0 5px 15px rgba(0, 0, 0, 0.3);
-	backdrop-filter: blur(1px);
+	background: transparent;
+	box-shadow: none;
 	z-index: 999;
 }
 
 .road.rhover {
-	border: 1px solid #aaa;
+	border: 1px solid transparent;
 	position: absolute;
 	z-index: 9999;
-	background:
-		linear-gradient(145deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 70%),
-		radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.3) 80%);
-	box-shadow:
-		inset 0 0 10px rgba(255, 255, 255, 0.5),
-		0 5px 15px rgba(0, 0, 0, 0.3);
+	background: transparent;
+	box-shadow: none;
 }
 
 .rhover:hover,
@@ -646,9 +700,6 @@ input[type='checkbox'] {
 }
 
 .sector-container.rhover .sector_value {
-	border-color: rgba(255, 212, 92, 0.5);
-	background-color: rgba(255, 212, 92, 0.12);
-	box-shadow: 0 0 12px rgba(255, 212, 92, 0.34);
 	transition:
 		background-color 120ms ease,
 		border-color 120ms ease,
