@@ -431,12 +431,12 @@ class Settlers extends GameTemplate {
 		document.querySelector('#hud-body')?.classList.add('saitoa');
 		$('.hud-body .controls').appendTo('#hud');
 
-		let html = `<ul><li class="option enabled" id="score" title="view game statistics"><i class="fa-solid fa-ranking-star"></i></li>
-	    	<li class="option enabled" id="trade" title="trade with other players"><i class="fa-solid fa-money-bill-transfer"></i></li>
-	    	<li class="option" id="bank" title="trade with the bank"><i class="fa-solid fa-building-columns"></i></li>
-	    	<li class="option" id="playcard" title="play an action card"><i class="fa-solid fa-person-running"></i></li>
-	    	<li class="option" id="spend" title="build or buy"><i class="fa-solid fa-screwdriver-wrench"></i></li>
-	    	<li class="option enabled" id="rolldice"><i class="fa-solid fa-forward"></i></li></ul>
+		let html = `<ul><li class="option enabled" id="score" title="view game statistics"><i class="fa-solid fa-ranking-star"></i><span class="settlers-control-label">Stats</span></li>
+        <li class="option enabled" id="trade" title="trade with other players"><i class="fa-solid fa-money-bill-transfer"></i><span class="settlers-control-label">Trade</span></li>
+        <li class="option" id="bank" title="trade with the bank"><i class="fa-solid fa-building-columns"></i><span class="settlers-control-label">Bank</span></li>
+        <li class="option" id="playcard" title="play an action card"><i class="fa-solid fa-person-running"></i><span class="settlers-control-label">Card</span></li>
+        <li class="option" id="spend" title="build or buy"><i class="fa-solid fa-screwdriver-wrench"></i><span class="settlers-control-label">Build</span></li>
+        <li class="option enabled primary-action" id="rolldice"><i class="fa-solid fa-forward"></i><span class="settlers-control-label">Next</span></li></ul>
 	    	`;
 
 		this.hud.updateControls(html);

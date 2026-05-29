@@ -7,7 +7,8 @@ module.exports = (tobj) => {
 	let num_cards_in_play = 0;
 
 	for (let r of tobj.resources) {
-		html += `<div id="want_${r}" class="trade_area select ${r}">
+		html += `<div id="want_${r}" class="trade_area select ${r} ${tobj.get[r] > 0 ? 'has-count' : ''}">
+          <div class="trade_resource_label">${r}</div>
           <div class="trade_count_arrow trade_count_up can_select"></div>  
           <div class="trade_count_number" data-count="${tobj.get[r]}">${tobj.get[r] > 0 ? tobj.get[r] : ''}</div> 
           <div class="trade_count_arrow trade_count_down${tobj.get[r] > 0 ? ' can_select' : ''}"></div>
@@ -22,12 +23,14 @@ module.exports = (tobj) => {
 	let valid_trade = true;
 
 	for (let r of tobj.resources) {
+		let available = tobj.mod.countResource(tobj.mod.game.player, r);
 		if (tobj.give[r] > tobj.mod.countResource(tobj.mod.game.player, r)) {
 			valid_trade = false;
 		}
 		html += `<div id="offer_${r}" class="trade_area select ${r} 
-					${tobj.give[r] > tobj.mod.countResource(tobj.mod.game.player, r) ? ' invalid_offer' : ''}">
-            <div class="trade_count_arrow trade_count_up ${tobj.give[r] < tobj.mod.countResource(tobj.mod.game.player, r) ? ' can_select' : ''}"></div>  
+					${tobj.give[r] > available ? ' invalid_offer' : ''} ${tobj.give[r] > 0 ? 'has-count' : ''}">
+            <div class="trade_resource_label">${r}<span>${available}</span></div>
+            <div class="trade_count_arrow trade_count_up ${tobj.give[r] < available ? ' can_select' : ''}"></div>
             <div class="trade_count_number" data-count="${tobj.give[r]}">${tobj.give[r] > 0 ? tobj.give[r] : ''}</div> 
             <div class="trade_count_arrow trade_count_down${tobj.give[r] > 0 ? ' can_select' : ''}"></div>
           </div>`;

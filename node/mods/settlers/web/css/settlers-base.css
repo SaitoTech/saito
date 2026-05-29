@@ -1,14 +1,14 @@
 :root {
-	--p1-color: #bb233b; /* redish */
-	--p2-color: #004193; /* bluish */
-	--p3-color: #adce14; /* yellowish */
-	--p4-color: #644700; /* brown */
+	--p1-color: #c9414d; /* clay red */
+	--p2-color: #2f6fbb; /* harbor blue */
+	--p3-color: #4f8f3a; /* moss green */
+	--p4-color: #b86f24; /* ochre */
 	--text-color: #331800;
 
-	--p1-color-lite: #bb233be9; /* redish */
-	--p2-color-lite: #004193e9; /* bluish */
-	--p3-color-lite: #adce14e9; /* yellowish */
-	--p4-color-lite: #644700e9; /* brown */
+	--p1-color-lite: #c9414de9; /* clay red */
+	--p2-color-lite: #2f6fbbe9; /* harbor blue */
+	--p3-color-lite: #4f8f3ae9; /* moss green */
+	--p4-color-lite: #b86f24e9; /* ochre */
 }
 
 @font-face {
@@ -250,6 +250,29 @@ dt {
 	border-color: whitesmoke;
 }
 
+.chover,
+.city.chover,
+.road.rhover,
+.city.empty.rhover {
+	outline: 0;
+	box-shadow: 0 0 12px rgba(255, 212, 92, 0.55);
+	transition:
+		background-color 120ms ease,
+		box-shadow 120ms ease,
+		filter 120ms ease,
+		transform 120ms ease;
+}
+
+.chover:hover,
+.city.chover:hover,
+.rhover:hover,
+.city.empty.rhover:hover {
+	filter: brightness(1.15) saturate(1.1);
+	box-shadow:
+		0 0 0 2px rgba(255, 255, 255, 0.3),
+		0 0 16px rgba(255, 212, 92, 0.72);
+}
+
 /*.chover:hover:after{
 	content: attr(data-score);
 	color: black;
@@ -263,6 +286,7 @@ dt {
 .chover.noselect:hover {
 	background-color: #222;
 	cursor: help;
+	box-shadow: 0 0 12px rgba(180, 45, 45, 0.46);
 }
 .chover.noselect:hover:after {
 	color: whitesmoke;
@@ -621,9 +645,20 @@ input[type='checkbox'] {
 	cursor: pointer;
 }
 
+.sector-container.rhover .sector_value {
+	border-color: rgba(255, 212, 92, 0.5);
+	background-color: rgba(255, 212, 92, 0.12);
+	box-shadow: 0 0 12px rgba(255, 212, 92, 0.34);
+	transition:
+		background-color 120ms ease,
+		border-color 120ms ease,
+		box-shadow 120ms ease;
+}
+
 .sector-container.rhover:hover .sector_value {
-	border: 1px solid white;
-	background-color: whitesmoke;
+	border-color: rgba(255, 255, 255, 0.72);
+	background-color: rgba(255, 255, 255, 0.22);
+	box-shadow: 0 0 16px rgba(255, 212, 92, 0.52);
 	cursor: pointer;
 }
 
@@ -958,10 +993,13 @@ input[type='checkbox'] {
 	padding: 3px;
 	gap: 1rem;
 	position: relative;
+	line-height: 1.25;
 }
 
 .status .player-notice {
-	opacity: 0.66;
+	opacity: 0.72;
+	padding: 0.35rem 0.5rem;
+	border-radius: 0.6rem;
 }
 
 .status .player-notice:last-child {
@@ -1049,9 +1087,18 @@ input[type='checkbox'] {
 #saito-alert-box {
 	font-family: bagnard-sans;
 	border: 5px solid #424143;
-	background-image: unset;
 	background-color: #d3c38df5;
-	box-shadow: none;
+	background-image:
+		linear-gradient(
+			145deg,
+			rgba(255, 255, 255, 0.24),
+			rgba(255, 255, 255, 0.06) 38%,
+			rgba(51, 24, 0, 0.12)
+		);
+	box-shadow:
+		0 10px 24px rgba(0, 0, 0, 0.3),
+		inset 0 2px 0 rgba(255, 255, 255, 0.28),
+		inset 0 -10px 22px rgba(51, 24, 0, 0.1);
 	border-radius: 0;
 	border-image: url(/settlers/img/border.png) !important;
 	border-image-slice: 51 !important;
@@ -1069,7 +1116,17 @@ input[type='checkbox'] {
 
 .saito-overlay > div.saitoa:last-child {
 	background-color: #d3c38df5;
-	box-shadow: none;
+	background-image:
+		linear-gradient(
+			145deg,
+			rgba(255, 255, 255, 0.24),
+			rgba(255, 255, 255, 0.06) 38%,
+			rgba(51, 24, 0, 0.12)
+		);
+	box-shadow:
+		0 12px 28px rgba(0, 0, 0, 0.36),
+		inset 0 2px 0 rgba(255, 255, 255, 0.28),
+		inset 0 -12px 24px rgba(51, 24, 0, 0.1);
 	border-radius: 0;
 	border: 5px solid #424143 !important;
 	border-image: url(/settlers/img/border.png) !important;

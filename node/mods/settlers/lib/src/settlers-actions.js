@@ -550,12 +550,20 @@ class SettlersActions {
     $(".action").on("click", function () {
       $("#" + slot).css("background-color", "");
       let confirmation = $(this).attr("id");
+      const clearPlacementHints = () => {
+        $(".rhover, .chover").off();
+        $(".rhover").removeClass("rhover");
+        $(".chover").removeClass("chover noselect");
+        $(".road.new").removeClass("new");
+        $(".road.empty, .city.empty, .sector-container").removeAttr("style");
+      };
 
       $(".action").off();
       $(".popup-confirm-menu").remove();
       if (confirmation == "stopasking") {
         settlers_self.confirm_moves = 0;
         settlers_self.saveGamePreference("settlers_confirm_moves", 0);
+        clearPlacementHints();
         callback();
       }
       if (confirmation == "confirm") {
