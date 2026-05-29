@@ -1,4 +1,4 @@
-
+.game.his {
 .build-overlay .build-controls {
     display: flex;
     flex-direction: row;
@@ -53,5 +53,4 @@
     font-size: 34rem;
     text-align: center;
 }
-
-
+}

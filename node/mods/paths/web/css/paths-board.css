@@ -1,3 +1,4 @@
+.game.paths {
 
 .pulse-trigger {
   border-bottom: 2px dashed #fff;
@@ -589,7 +590,7 @@
 }
 
 
-.allies-mandated-offensive-track.active:hover { 
+.allies-mandated-offensive-track.active:hover {
   opacity: 0;
 }
 .allies-mandated-offensive-track.active {
@@ -620,8 +621,6 @@
   top: 3078px;
   left: 2681px;
 }
-
-
 
 
 .us-commitment-track {
@@ -674,7 +673,6 @@
   top: 2507px;
   left: 562px;
 }
-}
 .allies-action-round-track-9 {
   top: 3102px;
   left: 1396px;
@@ -691,7 +689,6 @@
   top: 3102px;
   left: 1650px;
 }
-
 
 
 
@@ -867,7 +864,7 @@
   max-height: 100px;
 }
 
-.allies-eliminated-units-box
+.allies-eliminated-units-box{
   top: 2950px;
   left: 1890px;
   position: absolute;
@@ -950,5 +947,4 @@
     height: inherit;
 }
 
-
-
+}

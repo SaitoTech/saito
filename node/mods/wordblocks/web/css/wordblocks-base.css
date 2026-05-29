@@ -1,3 +1,4 @@
+.game.wordblocks {
 .main, .scrollable-page {
 	position: absolute;
 	width: 100%;
@@ -597,4 +598,5 @@ Resize board on smaller screens
 	.rack-controls i {
 		padding: 8px;
 	}
+}
 }

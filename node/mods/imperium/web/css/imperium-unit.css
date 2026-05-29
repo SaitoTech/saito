@@ -1,3 +1,4 @@
+.game.imperium {
 .units-overlay {
 	display: flex;
 	flex-wrap: wrap;
@@ -138,4 +139,5 @@
 .unit-desc {
 	font-size: 1.5rem;
 	opacity: 0.8;
+}
 }

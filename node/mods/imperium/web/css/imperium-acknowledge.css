@@ -1,3 +1,4 @@
+.game.imperium {
 
 .acknowledge-overlay {
   background: linear-gradient(rgba(0, 0, 0, 0.40), rgba(0, 0, 0, 0.40)), url(/imperium/img/backgrounds/bombardment.jpg);
@@ -40,7 +41,8 @@
   letter-spacing: 0.2rem;
 }
 
-.acknowledge-overlay .acknowledge-menu ul li:hover
+.acknowledge-overlay .acknowledge-menu ul li:hover {
   background: #0005;
+}
 }
 

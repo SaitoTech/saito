@@ -1,3 +1,4 @@
+.game.his {
 .winter {
 	min-width: 90vw;
 	min-height: 90vh;
@@ -55,5 +56,4 @@
   font-weight: bold;
   color: #e69500;
 }
-
-
+}

@@ -1,3 +1,4 @@
+.game.paths {
 .flank-overlay {
 	min-width: 1131px;
 	min-height: 827px;
@@ -64,4 +65,4 @@
 	margin-bottom: 1rem;
 	border: 1px solid #000;
 }
-
+}

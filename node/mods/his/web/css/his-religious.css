@@ -1,3 +1,4 @@
+.game.his {
 .rdebater_tile {
 	z-index: 30;
 	position: relative;
@@ -12,4 +13,4 @@
     	height: auto !important;
     	width: auto !important;
 }
-
+}

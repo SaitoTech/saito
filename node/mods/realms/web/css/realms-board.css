@@ -1,4 +1,4 @@
-
+.game.realms {
 #realms-board {
   display: flex;
   flex-direction: row;
@@ -77,4 +77,4 @@
   cursor: pointer;
   transform: scale(1.03);
 }
-
+}

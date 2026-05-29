@@ -1,3 +1,4 @@
+.game.twilight {
 .headline-overlay {
 	width: 90vw;
 	height: 80vh;
@@ -65,4 +66,5 @@
 	font-size: 2rem;
 	display: block;
 	width: 100%;
+}
 }

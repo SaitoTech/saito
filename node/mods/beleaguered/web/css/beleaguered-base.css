@@ -1,3 +1,6 @@
+.game.beleaguered {
+
+    
 .logobox .status,
 .logobox .status-header {
 	background-color: #fffe;
@@ -202,4 +205,5 @@
 	.controls > .status_option:first-child {
 		border-top: unset;
 	}
+}
 }

@@ -1,3 +1,4 @@
+.game.poker {
 .pot {
   cursor: pointer;
   position: absolute;
@@ -131,4 +132,5 @@
   100% {
     transform: scale(1);
   }
+}
 }
