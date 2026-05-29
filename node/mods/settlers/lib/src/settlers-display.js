@@ -148,27 +148,11 @@ class SettlersDisplay {
     }
     try {
       let cards = '';
-      let resourceCounts = {};
-      let firstResourceIndex = {};
       let resources = this.game.state.players[this.game.player - 1].resources;
 
-      for (let i = 0; i < resources.length; i++) {
-        let r = resources[i];
-        resourceCounts[r] = (resourceCounts[r] || 0) + 1;
-        if (firstResourceIndex[r] === undefined) {
-          firstResourceIndex[r] = i;
-        }
-      }
-
-      for (let i = 0; i < resources.length; i++) {
-        let r = resources[i];
-        let countBadge =
-          i === firstResourceIndex[r] && resourceCounts[r] > 4
-            ? `<div class="resource-card-count">${resourceCounts[r]}</div>`
-            : '';
-        cards += `<div class="card ${countBadge ? 'resource-count-card' : ''}" data-resource="${r}">
+      for (let r of resources) {
+        cards += `<div class="card" data-resource="${r}">
                     <img src="${this.returnCardImage(r)}">
-                    ${countBadge}
                   </div>`;
       }
 

@@ -478,6 +478,97 @@ class SettlersActions {
     this.endTurn();
   }
 
+  stopPlacementHintWave() {
+    this.placement_hint_wave_token = (this.placement_hint_wave_token || 0) + 1;
+
+    if (this.placement_hint_wave_timeout) {
+      clearTimeout(this.placement_hint_wave_timeout);
+      this.placement_hint_wave_timeout = null;
+    }
+
+    $(".placement-wave-highlight").removeClass("placement-wave-highlight");
+  }
+
+  runPlacementHintWave() {
+    let waveToken = this.placement_hint_wave_token || 0;
+    let selector = this.placement_hint_wave_selector || ".rhover, .chover";
+    let targets = Array.from(document.querySelectorAll(selector)).filter((el) => {
+      return (
+        el.offsetParent !== null &&
+        !el.classList.contains("noselect") &&
+        (el.classList.contains("rhover") || el.classList.contains("chover"))
+      );
+    });
+
+    if (!targets.length) {
+      this.stopPlacementHintWave();
+      return;
+    }
+
+    targets.sort((a, b) => {
+      let ar = a.getBoundingClientRect();
+      let br = b.getBoundingClientRect();
+      return ar.left + ar.top * 0.35 - (br.left + br.top * 0.35);
+    });
+
+    const passDuration = 500;
+    const pulseDuration = 100;
+    const stagger = targets.length > 1 ? passDuration / (targets.length - 1) : 0;
+
+    targets.forEach((el, index) => {
+      setTimeout(() => {
+        if (waveToken !== this.placement_hint_wave_token) {
+          return;
+        }
+
+        if (
+          !el.isConnected ||
+          el.classList.contains("noselect") ||
+          (!el.classList.contains("rhover") && !el.classList.contains("chover"))
+        ) {
+          return;
+        }
+
+        el.classList.remove("placement-wave-highlight");
+        void el.offsetWidth;
+        el.classList.add("placement-wave-highlight");
+
+        setTimeout(() => {
+          if (waveToken !== this.placement_hint_wave_token) {
+            return;
+          }
+
+          if (el.isConnected) {
+            el.classList.remove("placement-wave-highlight");
+          }
+        }, pulseDuration);
+      }, Math.round(index * stagger));
+    });
+  }
+
+  schedulePlacementHintWave(delay = 10000) {
+    let waveToken = this.placement_hint_wave_token || 0;
+
+    this.placement_hint_wave_timeout = setTimeout(() => {
+      if (waveToken !== this.placement_hint_wave_token) {
+        return;
+      }
+
+      this.runPlacementHintWave();
+      this.schedulePlacementHintWave(5330);
+    }, delay);
+  }
+
+  startPlacementHintWave(selector = ".rhover, .chover") {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    this.stopPlacementHintWave();
+    this.placement_hint_wave_selector = selector;
+    this.schedulePlacementHintWave(10000);
+  }
+
   /* 
   Create an object saying what the exchange rate for each resource is
   */
@@ -507,6 +598,8 @@ class SettlersActions {
   }
 
   confirmPlacement(slot, piece, callback) {
+    this.stopPlacementHintWave();
+
     let cm = this.loadGamePreference("settlers_confirm_moves");
     if (cm != null) {
       this.confirm_moves = cm;
@@ -523,7 +616,6 @@ class SettlersActions {
           <div class="popup-confirm-menu">
             <div class="popup-prompt">Place ${piece} here?</div>
             <div class="action" id="confirm">yes</div>
-            <div class="action" id="stopasking">yes, stop asking</div>
           </div>`;
 
     let left = $(`#${slot}`).offset().left + 50;
@@ -550,22 +642,9 @@ class SettlersActions {
     $(".action").on("click", function () {
       $("#" + slot).css("background-color", "");
       let confirmation = $(this).attr("id");
-      const clearPlacementHints = () => {
-        $(".rhover, .chover").off();
-        $(".rhover").removeClass("rhover");
-        $(".chover").removeClass("chover noselect");
-        $(".road.new").removeClass("new");
-        $(".road.empty, .city.empty, .sector-container").removeAttr("style");
-      };
 
       $(".action").off();
       $(".popup-confirm-menu").remove();
-      if (confirmation == "stopasking") {
-        settlers_self.confirm_moves = 0;
-        settlers_self.saveGamePreference("settlers_confirm_moves", 0);
-        clearPlacementHints();
-        callback();
-      }
       if (confirmation == "confirm") {
         callback();
       }
