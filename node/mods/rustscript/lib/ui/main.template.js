@@ -35,8 +35,6 @@ module.exports = RustscriptMainTemplate = (app, mod) => {
         aria-label="Guided mode — assisted semantic editing. Click for Expert raw JSON mode."
       >
         <span class="rs-workspace-toggle-track">
-          <span class="rs-workspace-toggle-label rs-workspace-toggle-label-guided">GUIDED</span>
-          <span class="rs-workspace-toggle-label rs-workspace-toggle-label-expert">EXPERT</span>
           <span class="rs-workspace-toggle-thumb">GUIDED</span>
         </span>
       </button>

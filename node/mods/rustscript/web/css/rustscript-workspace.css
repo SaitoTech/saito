@@ -50,7 +50,7 @@ body.rustscript .rs-action-btn {
   min-width: 120px;
   padding: 0 20px;
   border-radius: 2px;
-  border: 1px solid #3a3a3a;
+  border: 2px solid #3d3d3d;
   background: #1a1a1a;
   color: #ccc;
   font-family: var(--rustscript-font-mono);
@@ -66,7 +66,7 @@ body.rustscript .rs-new-script {
 }
 
 body.rustscript .rs-action-btn:hover {
-  border-color: #555;
+  border-color: #5a5a5a;
   color: #fff;
   background: #262626 !important;
 }
@@ -158,7 +158,7 @@ body.rustscript .rs-workspace-toggle:hover {
 body.rustscript .rs-workspace-toggle-track {
   display: block;
   position: relative;
-  width: 148px;
+  width: 168px;
   height: 44px;
   border-radius: 2px;
   background: #0a0a0a;
@@ -167,37 +167,11 @@ body.rustscript .rs-workspace-toggle-track {
   box-sizing: border-box;
 }
 
-body.rustscript .rs-workspace-toggle-label {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-family: var(--rustscript-font-mono);
-  font-size: 0.58em;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: #666;
-  pointer-events: none;
-  z-index: 0;
-}
-
-body.rustscript .rs-workspace-toggle-label-guided {
-  left: 14px;
-}
-
-body.rustscript .rs-workspace-toggle-label-expert {
-  right: 14px;
-}
-
-body.rustscript .rs-workspace-toggle.is-guided .rs-workspace-toggle-label-guided,
-body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-expert {
-  color: transparent;
-}
-
 body.rustscript .rs-workspace-toggle-thumb {
   position: absolute;
   top: 4px;
   left: 4px;
-  width: calc(50% - 6px);
+  width: calc(70% - 6px);
   height: calc(100% - 8px);
   z-index: 1;
   border-radius: 2px;
@@ -208,16 +182,17 @@ body.rustscript .rs-workspace-toggle-thumb {
   align-items: center;
   justify-content: center;
   font-family: var(--rustscript-font-mono);
-  font-size: 0.62em;
+  font-size: 0.68em;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   color: #1a1208;
-  transition: left 0.2s ease, background 0.2s, border-color 0.2s, color 0.2s;
+  transition: left 0.22s ease, width 0.22s ease, background 0.22s, border-color 0.22s, color 0.22s;
   box-sizing: border-box;
+  white-space: nowrap;
 }
 
 body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-thumb {
-  left: calc(50% + 2px);
+  left: calc(30% + 2px);
   background: linear-gradient(180deg, #ffc0d0 0%, #ff6b8a 50%, #c94a62 100%);
   border-color: rgba(255, 120, 140, 0.5);
   color: #2a0810;
@@ -257,7 +232,7 @@ body.rustscript .rs-template-pick {
   margin: 0;
   padding: 8px 10px;
   text-align: left;
-  border: 1px solid #2a2a2a;
+  border: 2px solid #3d3d3d;
   border-radius: 3px;
   background: #0e0e0e;
   color: #bbb;
@@ -271,26 +246,44 @@ body.rustscript .rs-template-pick:hover {
   background: #1a1a1a !important;
 }
 
-/* Guided workflow — emphasis via opacity */
-body.rustscript.rs-create-focused .rs-create-pane.rs-create-primary {
-  opacity: 1;
+/* Guided workflow — one panel at a time (expert mode shows both) */
+body.rustscript.rs-workspace-guided.rs-guided-create-only .rs-test-pane {
+  display: none !important;
 }
 
-body.rustscript.rs-create-focused .rs-test-pane.rs-test-guidance {
-  opacity: 0.42;
-  box-shadow: none !important;
-  border-color: #1a1a1a !important;
+body.rustscript.rs-workspace-guided.rs-guided-test-only .rs-create-pane {
+  display: none !important;
 }
 
-body.rustscript.rs-create-dim .rs-create-pane {
-  opacity: 0.68;
-  filter: saturate(0.88);
+body.rustscript.rs-workspace-guided .rs-editor.rs-panel-active {
+  animation: rs-panel-fade-in 0.45s ease;
 }
 
-body.rustscript.rs-test-live .rs-test-pane.rs-test-active {
+@keyframes rs-panel-fade-in {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+body.rustscript.rs-workspace-unlocked .rs-main {
+  display: flex;
+  gap: 10px;
+}
+
+body.rustscript.rs-workspace-guided .rs-main {
+  display: flex;
+  gap: 10px;
+}
+
+body.rustscript.rs-workspace-guided.rs-guided-create-only .rs-create-pane,
+body.rustscript.rs-workspace-guided.rs-guided-test-only .rs-test-pane {
+  flex: 1;
   opacity: 1;
   filter: none;
-  box-shadow: inset 0 0 0 1px rgba(252, 163, 17, 0.22);
+  box-shadow: inset 0 0 40px var(--rs-panel-glow);
 }
 
 body.rustscript.rs-workspace-unlocked .rs-test-pane .rs-panel-title {
@@ -302,7 +295,7 @@ body.rustscript.rs-workspace-unlocked .rs-test-pane .rs-panel-title {
 /* Inherited read-only values in unlock script */
 body.rustscript .rs-semantic-inherited,
 body.rustscript .rs-semantic-opcode-readonly {
-  color: #666;
+  color: #6a9a72;
   font-style: normal;
 }
 

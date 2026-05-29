@@ -25,6 +25,7 @@
 
 .saito-module.saito-game:hover {
 	transform: scale(1.02);
+	border: none !important;
 }
 
 .saito-module-titlebar {

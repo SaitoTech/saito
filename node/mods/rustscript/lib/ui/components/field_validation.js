@@ -1,4 +1,4 @@
-const { isPlaceholder } = require('./placeholder_utils');
+const { isPlaceholder, getAtPath } = require('./placeholder_utils');
 
 /** UI-only lightweight format hints — not execution validation. */
 
@@ -29,7 +29,18 @@ function inferFieldKindFromPath(path) {
   return inferFieldKind(path[path.length - 1]);
 }
 
-function validateForApply(kind, value) {
+function isSaitoPublicKey(value, app) {
+  const s = String(value ?? '').trim();
+  if (!s) {
+    return false;
+  }
+  if (app?.crypto?.isPublicKey) {
+    return app.crypto.isPublicKey(s);
+  }
+  return /^[A-HJ-NP-Za-km-z1-9]+$/.test(s) && s.length >= 40 && s.length <= 50;
+}
+
+function validateForApply(kind, value, app) {
   const s = String(value ?? '').trim();
   if (!s) {
     return { ok: false, message: 'A value is required' };
@@ -38,7 +49,7 @@ function validateForApply(kind, value) {
     return { ok: false, message: 'Enter a real value — placeholders cannot be applied' };
   }
 
-  const result = validateField(kind, s);
+  const result = validateField(kind, s, app);
   if (!result.valid) {
     return {
       ok: false,
@@ -49,7 +60,7 @@ function validateForApply(kind, value) {
   return { ok: true, value: s };
 }
 
-function validateField(kind, value) {
+function validateField(kind, value, app) {
   if (value === null || value === undefined) {
     return { valid: true, state: 'empty' };
   }
@@ -61,12 +72,11 @@ function validateField(kind, value) {
 
   switch (kind) {
     case 'publickey': {
-      const hex = /^[0-9a-fA-F]+$/.test(s);
-      const len = s.length >= 64 && s.length <= 132;
+      const ok = isSaitoPublicKey(s, app);
       return {
-        valid: hex && len,
-        state: hex && len ? 'valid' : 'warn',
-        message: 'Expected a hex Saito public key'
+        valid: ok,
+        state: ok ? 'valid' : 'warn',
+        message: 'Expected a Saito public key'
       };
     }
     case 'hash': {
@@ -97,6 +107,88 @@ function validateField(kind, value) {
     }
     default:
       return { valid: true, state: 'valid' };
+  }
+}
+
+function pickPublicKey(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const s = value.trim();
+  if (!s || isPlaceholder(s)) {
+    return '';
+  }
+  return s;
+}
+
+/**
+ * Resolve opcode node + required keys for a witness signature field path.
+ * Works for CHECKSIG, CHECKMULTISIG, and nested AND/OR trees.
+ */
+function findSignatureContext(script, path) {
+  if (!script || !Array.isArray(path) || path.length === 0) {
+    return { message: '', requiredPublicKeys: [], signatureIndex: null };
+  }
+
+  let nodePath = path.slice();
+  let signatureIndex = null;
+  const last = nodePath[nodePath.length - 1];
+
+  if (last === 'signature') {
+    nodePath.pop();
+    if (nodePath[nodePath.length - 1] === 'witness') {
+      nodePath.pop();
+    }
+  } else if (typeof last === 'number' && nodePath[nodePath.length - 2] === 'signatures') {
+    signatureIndex = last;
+    nodePath.pop();
+    nodePath.pop();
+    if (nodePath[nodePath.length - 1] === 'witness') {
+      nodePath.pop();
+    }
+  } else if (last === 'signatures') {
+    nodePath.pop();
+    if (nodePath[nodePath.length - 1] === 'witness') {
+      nodePath.pop();
+    }
+  }
+
+  const node = getAtPath(script, nodePath);
+  const requiredPublicKeys = [];
+
+  if (node && typeof node === 'object') {
+    const pk = pickPublicKey(node.publickey);
+    if (pk) {
+      requiredPublicKeys.push(pk);
+    }
+    if (Array.isArray(node.publickeys)) {
+      for (const key of node.publickeys) {
+        const k = pickPublicKey(key);
+        if (k && !requiredPublicKeys.includes(k)) {
+          requiredPublicKeys.push(k);
+        }
+      }
+    }
+  }
+
+  const message =
+    (node && pickMessage(node.msg ?? node.message)) || findSignableMessage(script);
+
+  return { message, requiredPublicKeys, signatureIndex };
+}
+
+async function walletOwnsRequiredKey(app, requiredPublicKeys) {
+  if (!Array.isArray(requiredPublicKeys) || requiredPublicKeys.length === 0) {
+    return false;
+  }
+  try {
+    const mine = String((await app.wallet.getPublicKey()) || '').trim();
+    if (!mine) {
+      return false;
+    }
+    return requiredPublicKeys.some((pk) => pk === mine);
+  } catch (err) {
+    return false;
   }
 }
 
@@ -135,7 +227,10 @@ function pickMessage(value) {
 module.exports = {
   inferFieldKind,
   inferFieldKindFromPath,
+  isSaitoPublicKey,
   validateField,
   validateForApply,
-  findSignableMessage
+  findSignableMessage,
+  findSignatureContext,
+  walletOwnsRequiredKey
 };
