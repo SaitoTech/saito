@@ -190,6 +190,29 @@ class RustscriptMain {
     this.applyWorkspaceUI();
   }
 
+  returnToScript() {
+    this.testingUnlocked = false;
+    this.applyWorkspaceUI();
+  }
+
+  createTransaction() {
+    if (!this.scriptReady) {
+      siteMessage('Complete your script in Create Script first');
+      return;
+    }
+
+    const locking = this.getLockingScriptSafe();
+    const json = JSON.stringify(locking, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'rustscript-locking.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    siteMessage('Locking script exported — use in your transaction builder');
+  }
+
   syncUnlockFromScript() {
     const locking = this.getLockingScriptSafe();
     const scriptStatus = evaluateScriptStatus(locking);
@@ -246,7 +269,9 @@ class RustscriptMain {
       remainingCount: testLive ? remainingWitness : remainingScript,
       scriptStructurallyValid: status.script.state === 'ready',
       showMoveToTesting,
-      onMoveToTesting: () => this.moveIntoTesting()
+      onMoveToTesting: () => this.moveIntoTesting(),
+      onCreateTransaction: () => this.createTransaction(),
+      onReturnToScript: () => this.returnToScript()
     };
 
     this.lockingPanel?.applyWorkspaceState({
@@ -276,7 +301,8 @@ class RustscriptMain {
     root?.classList.toggle('rs-script-not-ready', !this.scriptReady);
     root?.classList.toggle('rs-script-ready', this.scriptReady);
     root?.classList.toggle('rs-create-focused', guided && !testLive);
-    root?.classList.toggle('rs-create-dim', guided && testLive);
+    root?.classList.toggle('rs-guided-create-only', guided && !testLive);
+    root?.classList.toggle('rs-guided-test-only', guided && testLive);
     root?.classList.toggle('rs-test-live', testLive);
 
     const testPane = document.querySelector('.rs-test-pane');
@@ -284,6 +310,28 @@ class RustscriptMain {
     testPane?.classList.toggle('rs-test-guidance', guided && !testLive);
     testPane?.classList.toggle('rs-test-active', testLive);
     createPane?.classList.toggle('rs-create-primary', guided && !testLive);
+    createPane?.classList.toggle('rs-create-script-ready', guided && this.scriptReady);
+
+    if (guided) {
+      const entering = testLive ? testPane : createPane;
+      const leaving = testLive ? createPane : testPane;
+      leaving?.classList.remove('rs-panel-active');
+      if (entering) {
+        entering.classList.remove('rs-panel-active');
+        void entering.offsetWidth;
+        entering.classList.add('rs-panel-active');
+      }
+    } else {
+      createPane?.classList.remove('rs-panel-active');
+      testPane?.classList.remove('rs-panel-active');
+    }
+
+    if (guided && this.scriptReady && !wasReady) {
+      createPane?.classList.remove('rs-create-complete-flash');
+      void createPane?.offsetWidth;
+      createPane?.classList.add('rs-create-complete-flash');
+      window.setTimeout(() => createPane?.classList.remove('rs-create-complete-flash'), 1100);
+    }
 
     this.updateWorkspaceToggle();
     this.refreshStatusIndicators(status, { testLive, showMoveToTesting });
@@ -424,7 +472,8 @@ class RustscriptMain {
       side: 'unlocking',
       onOpcodeClick: opcodeLink,
       getLockingScript,
-      onChange: (s, side) => this.onPanelChange(s, side)
+      onChange: (s, side) => this.onPanelChange(s, side),
+      onReturnToScript: () => this.returnToScript()
     });
 
     if (lockMount) {

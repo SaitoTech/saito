@@ -54,10 +54,43 @@ body.rustscript .rs-panel-header {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 6px 10px;
-  min-height: 0;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  min-height: 44px;
+  box-sizing: border-box;
   background: var(--rs-panel-header-bg);
   border-bottom: 1px solid var(--rs-panel-edge);
+}
+
+body.rustscript .rs-panel-header-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+body.rustscript .rs-panel-return-script {
+  margin: 0;
+  padding: 0 14px;
+  min-height: 32px;
+  border-radius: 2px;
+  border: 2px solid #3d3d3d;
+  background: #141414;
+  color: #b8b8b8;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.68em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+body.rustscript .rs-panel-return-script:hover {
+  border-color: #5a5a5a;
+  color: #eee;
+  background: #1e1e1e !important;
 }
 
 body.rustscript .rs-panel-titles {
@@ -72,22 +105,62 @@ body.rustscript .rs-panel-title {
   line-height: 1.25;
 }
 
-body.rustscript .rs-create-pane .rs-panel-title {
+body.rustscript .rs-create-pane .rs-panel-title,
+body.rustscript .rs-test-pane.rs-test-active .rs-panel-title {
   font-size: 1.18em;
   font-weight: 800;
-  color: #e8b4ba;
+  line-height: 1.25;
 }
 
-body.rustscript .rs-test-pane .rs-panel-title {
-  font-size: 0.82em;
-  font-weight: 600;
-  color: #555;
+body.rustscript .rs-create-pane .rs-panel-title {
+  color: #e8b4ba;
+  transition: color 1s ease, text-shadow 1s ease;
 }
 
 body.rustscript .rs-test-pane.rs-test-active .rs-panel-title {
-  font-size: 0.95em;
-  font-weight: 700;
   color: #c8a860;
+}
+
+body.rustscript .rs-create-pane.rs-create-script-ready .rs-panel-title {
+  color: #8fd49a;
+  text-shadow: 0 0 12px rgba(92, 184, 106, 0.35);
+}
+
+body.rustscript .rs-create-pane .rs-panel-header {
+  transition: background 1s ease, border-color 1s ease, box-shadow 1s ease;
+}
+
+body.rustscript .rs-create-pane.rs-create-script-ready .rs-panel-header {
+  background: rgba(40, 72, 46, 0.35);
+  border-bottom-color: rgba(92, 184, 106, 0.35);
+}
+
+body.rustscript .rs-create-pane.rs-create-complete-flash .rs-panel-header {
+  animation: rs-create-header-complete 1s ease forwards;
+}
+
+@keyframes rs-create-header-complete {
+  0% {
+    box-shadow: inset 0 0 0 rgba(92, 184, 106, 0);
+  }
+  35% {
+    box-shadow: inset 0 0 28px rgba(92, 184, 106, 0.22);
+  }
+  100% {
+    box-shadow: inset 0 0 0 rgba(92, 184, 106, 0);
+  }
+}
+
+body.rustscript .rs-test-pane .rs-panel-title {
+  font-size: 1.18em;
+  font-weight: 800;
+  color: #555;
+  line-height: 1.25;
+}
+
+body.rustscript .rs-test-pane.rs-test-active .rs-panel-header {
+  background: var(--rs-panel-header-bg);
+  border-bottom: 1px solid var(--rs-panel-edge);
 }
 
 body.rustscript .rs-panel-subtitle {
@@ -105,16 +178,6 @@ body.rustscript .rs-locking-pane .rs-panel-subtitle {
 
 body.rustscript .rs-unlocking-pane .rs-panel-subtitle {
   color: #c8b890;
-}
-
-body.rustscript .rs-semantic-opcode:hover {
-  background: rgba(252, 163, 17, 0.08) !important;
-  color: #ffe2a0 !important;
-}
-
-body.rustscript .rs-locking-pane .rs-semantic-opcode:hover {
-  background: rgba(196, 92, 106, 0.1) !important;
-  color: #f5d0d6 !important;
 }
 
 /* Body */
@@ -245,11 +308,11 @@ body.rustscript .rs-semantic-punct {
 body.rustscript .rs-semantic-opcode {
   display: inline;
   margin: 0;
-  padding: 0 2px;
+  padding: 0;
   border: none;
-  border-radius: 2px;
+  border-radius: 0;
   background: transparent;
-  color: #d4a855;
+  color: #8fd49a;
   font-family: inherit;
   font-size: inherit;
   font-weight: 600;
@@ -259,37 +322,41 @@ body.rustscript .rs-semantic-opcode {
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
-  transition: color 0.12s, text-decoration-color 0.12s, background 0.12s;
+  transition: color 0.12s, text-decoration-color 0.12s;
 }
 
 body.rustscript .rs-locking-pane .rs-semantic-opcode {
-  color: #d8a8b0;
+  color: #8fd49a;
 }
 
 body.rustscript .rs-unlocking-pane .rs-semantic-opcode {
-  color: #e8c878;
+  color: #9ad4a4;
 }
 
 body.rustscript .rs-semantic-opcode:hover {
-  text-decoration-color: rgba(252, 163, 17, 0.55);
+  color: #b8f0c0 !important;
+  background: transparent !important;
+  text-decoration-color: rgba(140, 200, 150, 0.55);
 }
 
 body.rustscript .rs-locking-pane .rs-semantic-opcode:hover {
-  text-decoration-color: rgba(196, 92, 106, 0.55);
+  color: #b8f0c0 !important;
+  background: transparent !important;
+  text-decoration-color: rgba(140, 200, 150, 0.55);
 }
 
 body.rustscript .rs-semantic-opcode:active {
-  background: rgba(252, 163, 17, 0.14) !important;
+  background: transparent !important;
 }
 
 body.rustscript .rs-semantic-logical-op {
   display: inline;
   margin: 0;
-  padding: 0 2px;
+  padding: 0;
   border: none;
-  border-radius: 2px;
+  border-radius: 0;
   background: transparent;
-  color: #8ec5ea;
+  color: #8fd49a;
   font-family: inherit;
   font-size: inherit;
   font-weight: 700;
@@ -304,11 +371,13 @@ body.rustscript .rs-semantic-logical-op {
 }
 
 body.rustscript .rs-semantic-logical-op:hover {
-  text-decoration-color: rgba(142, 197, 234, 0.5);
+  color: #b8f0c0 !important;
+  background: transparent !important;
+  text-decoration-color: rgba(140, 200, 150, 0.5);
 }
 
 body.rustscript .rs-semantic-logical-readonly {
-  color: #6a8a9a;
+  color: #6a9a72;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -435,7 +504,7 @@ body.rustscript .rs-value-resolved-complete:hover {
 body.rustscript .rs-semantic-opcode,
 body.rustscript .rs-placeholder-chip,
 body.rustscript .rs-value-resolved,
-body.rustscript .rs-panel-ref-move-testing {
+body.rustscript .rs-panel-ref-action {
   cursor: pointer;
 }
 

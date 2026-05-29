@@ -160,7 +160,11 @@ class SemanticScriptView {
       action: fieldKind === 'message' ? 'text' : fieldKind
     };
 
-    const validation = validateField(meta.action === 'text' ? fieldKind : meta.action, value);
+    const validation = validateField(
+      meta.action === 'text' ? fieldKind : meta.action,
+      value,
+      this.app
+    );
     const display = typeof value === 'string' ? JSON.stringify(value) : String(value);
 
     const btn = document.createElement('button');

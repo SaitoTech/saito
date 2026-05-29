@@ -1,6 +1,6 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const { isPlaceholder } = require('./placeholder_utils');
-const { findSignableMessage, validateForApply } = require('./field_validation');
+const { validateForApply, findSignatureContext, walletOwnsRequiredKey } = require('./field_validation');
 const {
   LOGICAL_OPERATORS,
   normalizeLogicalOperator,
@@ -44,7 +44,6 @@ class PlaceholderPrompt {
       this.openSignature(options, onSubmit);
       return;
     }
-
     if (action === 'timestamp') {
       this.openTimestamp(options, onSubmit);
       return;
@@ -53,9 +52,38 @@ class PlaceholderPrompt {
     this.openGeneric(options, onSubmit);
   }
 
-  showOverlay(html) {
+  showOverlay(html, focusSelector) {
     this.overlay.show(html);
-    this.activeRoot = document.querySelector('.rs-prompt-overlay:last-of-type') || document.querySelector('.rs-prompt-overlay');
+    this.activeRoot =
+      document.querySelector('.rs-prompt-overlay:last-of-type') || document.querySelector('.rs-prompt-overlay');
+    this.focusPrimaryInput(this.activeRoot, focusSelector);
+  }
+
+  focusPrimaryInput(root, selector) {
+    if (!root) {
+      return;
+    }
+    const run = () => {
+      const el =
+        (selector && root.querySelector(selector)) ||
+        root.querySelector('.rs-prompt-hash-input') ||
+        root.querySelector('.rs-prompt-publickey-input') ||
+        root.querySelector('.rs-prompt-logical-select') ||
+        root.querySelector('textarea.rs-prompt-value') ||
+        root.querySelector('input.rs-prompt-value');
+      if (!el || typeof el.focus !== 'function') {
+        return;
+      }
+      el.focus();
+      if (el.value && typeof el.select === 'function') {
+        el.select();
+      }
+    };
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(run);
+    } else {
+      run();
+    }
   }
 
   ensureValidationEl(root) {
@@ -93,7 +121,7 @@ class PlaceholderPrompt {
   }
 
   applyValidated(root, onSubmit, kind, rawValue) {
-    const result = validateForApply(kind, rawValue);
+    const result = validateForApply(kind, rawValue, this.app);
     if (!result.ok) {
       this.showInlineError(root, result.message);
       return false;
@@ -126,7 +154,7 @@ class PlaceholderPrompt {
       </div>
     `;
 
-    this.showOverlay(html);
+    this.showOverlay(html, '.rs-prompt-logical-select');
     const root = document.querySelector('.rs-prompt-logical');
 
     const select = root?.querySelector('.rs-prompt-logical-select');
@@ -171,7 +199,7 @@ class PlaceholderPrompt {
       </div>
     `;
 
-    this.showOverlay(html);
+    this.showOverlay(html, '.rs-prompt-hash-input');
     this.bindHash(onSubmit);
   }
 
@@ -200,7 +228,6 @@ class PlaceholderPrompt {
       refreshHash();
     });
     refreshHash();
-    input?.focus();
 
     root?.querySelector('.rs-prompt-copy-hash')?.addEventListener('click', async () => {
       if (!this.liveHash) {
@@ -235,7 +262,7 @@ class PlaceholderPrompt {
             type="text"
             class="rs-prompt-value rs-prompt-publickey-input"
             value="${this.escape(currentValue)}"
-            placeholder="hex public key"
+            placeholder="Saito public key"
             autocomplete="off"
             spellcheck="false"
           />
@@ -250,7 +277,7 @@ class PlaceholderPrompt {
       </div>
     `;
 
-    this.showOverlay(html);
+    this.showOverlay(html, '.rs-prompt-publickey-input');
     this.bindPublicKey(onSubmit);
   }
 
@@ -259,11 +286,6 @@ class PlaceholderPrompt {
     const input = root?.querySelector('input.rs-prompt-publickey-input');
     if (!input) {
       return;
-    }
-
-    input.focus();
-    if (input.value) {
-      input.select();
     }
 
     input.addEventListener('input', () => this.clearInlineError(root));
@@ -286,61 +308,87 @@ class PlaceholderPrompt {
     });
   }
 
-  openSignature(options, onSubmit) {
-    const meta = options?.meta || {};
+  async openSignature(options, onSubmit) {
     const currentValue = isPlaceholder(options?.currentValue) ? '' : String(options?.currentValue ?? '');
     const context = options?.context || {};
     const script = context.script || {};
-    const lockingScript = typeof context.lockingScript === 'object' ? context.lockingScript : this.getLockingScript();
-    const signableMsg = findSignableMessage(script, lockingScript);
+    const path = context.path || [];
+    const sigCtx = findSignatureContext(script, path);
+    const canAutoSign = await walletOwnsRequiredKey(this.app, sigCtx.requiredPublicKeys);
+    const pkDisplay = sigCtx.requiredPublicKeys.length
+      ? sigCtx.requiredPublicKeys.join(', ')
+      : '—';
+    const msgDisplay = sigCtx.message || '—';
 
-    const html = `
-      <div class="rustscript-overlay rs-prompt-overlay rs-prompt-signature" data-action="signature">
-        <h2 class="rs-prompt-title">${meta.label || 'Signature'}</h2>
-        <p class="rs-overlay-hint">${meta.hint || ''}</p>
-        <label>Message to sign</label>
-        <textarea class="rs-prompt-msg" spellcheck="false" placeholder="Message that was signed">${this.escape(signableMsg)}</textarea>
-        <button type="button" class="rs-prompt-sign-wallet">Sign With My Key</button>
-        <label>Signature (hex)</label>
-        <textarea class="rs-prompt-value rs-prompt-signature-value" spellcheck="false" placeholder="hex signature">${this.escape(currentValue)}</textarea>
+    let manualBlock = '';
+    if (!canAutoSign) {
+      manualBlock = `
+        <label class="rs-prompt-label" for="rs-prompt-signature-value">Signature</label>
+        <textarea id="rs-prompt-signature-value" class="rs-prompt-value rs-prompt-signature-value" spellcheck="false" placeholder="hex signature">${this.escape(currentValue)}</textarea>
         <p class="rs-prompt-validation" hidden></p>
         <div class="overlay-actions overlay-actions-apply-only">
           <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
         </div>
+      `;
+    } else {
+      manualBlock = `
+        <p class="rs-prompt-validation" hidden></p>
+        <div class="overlay-actions overlay-actions-apply-only">
+          <button type="button" class="rs-prompt-sign-wallet rs-prompt-primary">Sign with My Key</button>
+        </div>
+      `;
+    }
+
+    const html = `
+      <div class="rustscript-overlay rs-prompt-overlay rs-prompt-signature${canAutoSign ? ' rs-prompt-signature-auto' : ''}" data-action="signature">
+        <h2 class="rs-prompt-title">Sign Message</h2>
+        <label class="rs-prompt-label">Required Publickey</label>
+        <div class="rs-prompt-signature-readonly">${this.escape(pkDisplay)}</div>
+        <label class="rs-prompt-label">Message</label>
+        <div class="rs-prompt-signature-readonly rs-prompt-signature-message">${this.escape(msgDisplay)}</div>
+        ${manualBlock}
       </div>
     `;
 
-    this.showOverlay(html);
-    this.bindSignature(onSubmit);
+    const focusSelector = canAutoSign ? '.rs-prompt-sign-wallet' : '.rs-prompt-signature-value';
+    this.showOverlay(html, focusSelector);
+    this.bindSignature(onSubmit, { canAutoSign, message: sigCtx.message });
   }
 
-  bindSignature(onSubmit) {
+  bindSignature(onSubmit, options = {}) {
     const root = document.querySelector('.rs-prompt-signature');
     const valueEl = root?.querySelector('.rs-prompt-signature-value');
+    const canAutoSign = options.canAutoSign === true;
+    const message = String(options.message ?? '').trim();
 
     valueEl?.addEventListener('input', () => this.clearInlineError(root));
 
-    root?.querySelector('.rs-prompt-sign-wallet')?.addEventListener('click', async () => {
+    const signAndApply = async () => {
       try {
-        const msg = root?.querySelector('.rs-prompt-msg')?.value?.trim();
-        if (!msg) {
-          this.showInlineError(root, 'Enter a message to sign');
+        if (!message) {
+          this.showInlineError(root, 'No signable message found for this opcode');
           return;
         }
         const privateKey = await this.app.wallet.getPrivateKey();
-        const sig = await this.app.crypto.signMessage(msg, privateKey);
-        if (valueEl) {
-          valueEl.value = sig;
-        }
+        const sig = await this.app.crypto.signMessage(message, privateKey);
         this.clearInlineError(root);
+        onSubmit(sig);
+        this.overlay.hide();
+        this.activeRoot = null;
       } catch (err) {
         this.showInlineError(root, err.message || String(err));
       }
+    };
+
+    root?.querySelector('.rs-prompt-sign-wallet')?.addEventListener('click', () => {
+      signAndApply();
     });
 
-    root?.querySelector('.rs-prompt-apply')?.addEventListener('click', () => {
-      this.applyValidated(root, onSubmit, 'signature', valueEl?.value);
-    });
+    if (!canAutoSign) {
+      root?.querySelector('.rs-prompt-apply')?.addEventListener('click', () => {
+        this.applyValidated(root, onSubmit, 'signature', valueEl?.value);
+      });
+    }
   }
 
   openTimestamp(options, onSubmit) {
@@ -361,7 +409,7 @@ class PlaceholderPrompt {
       </div>
     `;
 
-    this.showOverlay(html);
+    this.showOverlay(html, '.rs-prompt-value');
     const root = document.querySelector('.rs-prompt-timestamp');
     const input = root?.querySelector('.rs-prompt-value');
 
@@ -382,17 +430,16 @@ class PlaceholderPrompt {
   openGeneric(options, onSubmit) {
     const meta = options?.meta || {};
     const action = meta.action || options?.fieldKind || 'text';
-    const title = meta.label || 'Edit value';
-    const hint = meta.hint || '';
+    const fieldKind = options?.fieldKind || 'text';
+    const isPlainText = action === 'text' || fieldKind === 'text' || fieldKind === 'message';
+    const title = isPlainText ? 'Provide Text' : meta.label || 'Edit value';
     const currentValue = isPlaceholder(options?.currentValue) ? '' : String(options?.currentValue ?? '');
-    const kind = action === 'text' ? options?.fieldKind || 'text' : action;
+    const kind = action === 'text' ? fieldKind : action;
 
     const html = `
       <div class="rustscript-overlay rs-prompt-overlay rs-prompt-generic" data-action="${action}">
-        <h2 class="rs-prompt-title">${title}</h2>
-        <p class="rs-overlay-hint">${hint}</p>
-        <label>Value</label>
-        <textarea class="rs-prompt-value" spellcheck="false">${this.escape(currentValue)}</textarea>
+        <h2 class="rs-prompt-title">${this.escape(title)}</h2>
+        <textarea class="rs-prompt-value rs-prompt-generic-input" spellcheck="false">${this.escape(currentValue)}</textarea>
         <p class="rs-prompt-validation" hidden></p>
         <div class="overlay-actions overlay-actions-apply-only">
           <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
@@ -400,7 +447,7 @@ class PlaceholderPrompt {
       </div>
     `;
 
-    this.showOverlay(html);
+    this.showOverlay(html, '.rs-prompt-generic-input');
     const root = document.querySelector('.rs-prompt-generic');
     const input = root?.querySelector('.rs-prompt-value');
 

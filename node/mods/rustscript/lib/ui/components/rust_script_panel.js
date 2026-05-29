@@ -26,6 +26,7 @@ class RustScriptPanel {
     this.script = options.script || {};
     this.onChange = options.onChange || null;
     this.onOpcodeClick = options.onOpcodeClick || null;
+    this.onReturnToScript = options.onReturnToScript || null;
     this.getLockingScript = options.getLockingScript || (() => ({}));
 
     this.mountEl = null;
@@ -56,12 +57,14 @@ class RustScriptPanel {
 
   renderShell() {
     const title = this.role === 'create' ? 'Create Script' : 'Test Script';
-    const showHeader = this.role === 'create';
 
     return `
       <div class="rs-panel-root rs-panel-${this.side} rs-panel-role-${this.role}" data-rs-role="${this.role}" data-rs-side="${this.side}">
-        <div class="rs-panel-header"${showHeader ? '' : ' hidden'}>
+        <div class="rs-panel-header" hidden>
           <span class="rs-editor-title rs-panel-title">${title}</span>
+          <div class="rs-panel-header-actions">
+            <button type="button" class="rs-panel-return-script" hidden>Return to Script</button>
+          </div>
         </div>
         <div class="rs-panel-body">
           <div class="rs-panel-reference"></div>
@@ -89,8 +92,18 @@ class RustScriptPanel {
     this.semanticView.mount(this.semanticEl);
     this.referenceView.mount(this.referenceEl);
     this.bindEvents();
+    this.bindHeaderActions();
     this.setScript(this.script);
     this.applyWorkspaceState();
+  }
+
+  bindHeaderActions() {
+    this.root?.querySelector('.rs-panel-return-script')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof this.onReturnToScript === 'function') {
+        this.onReturnToScript();
+      }
+    });
   }
 
   bindEvents() {
@@ -112,6 +125,9 @@ class RustScriptPanel {
       return 'source';
     }
     if (this.role === 'test' && !this.testActive) {
+      return 'reference';
+    }
+    if (this.role === 'create' && this.referenceContext?.showMoveToTesting) {
       return 'reference';
     }
     return 'semantic';
@@ -274,13 +290,26 @@ class RustScriptPanel {
 
   updatePanelHeader(displayMode) {
     const header = this.root?.querySelector('.rs-panel-header');
-    const infoMode = this.role === 'test' && displayMode === 'reference';
+    const returnBtn = this.root?.querySelector('.rs-panel-return-script');
+    const guided = this.workspaceMode === 'locked';
     const expert = this.workspaceMode === 'unlocked';
-    const showHeader = this.role === 'create' || expert;
+    const infoMode = this.role === 'test' && displayMode === 'reference';
+
+    let showHeader = false;
+    if (this.role === 'create') {
+      showHeader = true;
+    } else if (this.role === 'test') {
+      showHeader = expert || (guided && this.testActive);
+    }
 
     if (header) {
       header.hidden = !showHeader;
     }
+
+    if (returnBtn) {
+      returnBtn.hidden = !(this.role === 'test' && guided && this.testActive);
+    }
+
     this.root?.classList.toggle('rs-panel-no-header', infoMode);
     this.root?.classList.toggle('rs-panel-info-mode', infoMode);
   }

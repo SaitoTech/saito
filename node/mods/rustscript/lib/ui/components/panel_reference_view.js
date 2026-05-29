@@ -36,16 +36,22 @@ class PanelReferenceView {
     const countLine = `<li><span class="rs-panel-ref-count">${remaining}</span> ${fieldLabel} remaining</li>`;
 
     if (phase === 'witness-help') {
-      return [countLine];
+      return [
+        countLine,
+        `<li class="rs-panel-ref-actions rs-panel-ref-actions-inline">
+          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-return" data-action="return-to-script">Return to Script</button>
+        </li>`
+      ];
     }
 
     if (phase === 'script-ready') {
-      const valid = context.scriptStructurallyValid !== false;
-      const formatLine = valid
-        ? '<li>your script is formatted correctly</li>'
-        : '<li>your script is formatted incorrectly</li>';
-      const enterLine = `<li><button type="button" class="rs-panel-ref-enter-test" data-action="move-to-testing">click here to enter test mode</button></li>`;
-      return [formatLine, enterLine];
+      return [
+        '<li class="rs-panel-ref-ready-msg">Your script is ready for testing or for uploading to the network.<br>Which would you prefer?</li>',
+        `<li class="rs-panel-ref-actions">
+          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-test" data-action="move-to-testing">Proceed to Test</button>
+          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-tx" data-action="create-transaction">Create Transaction</button>
+        </li>`
+      ];
     }
 
     return [countLine, '<li>test mode will enable when complete</li>'];
@@ -55,6 +61,18 @@ class PanelReferenceView {
     this.container?.querySelector('[data-action="move-to-testing"]')?.addEventListener('click', () => {
       if (typeof this.lastContext?.onMoveToTesting === 'function') {
         this.lastContext.onMoveToTesting();
+      }
+    });
+
+    this.container?.querySelector('[data-action="create-transaction"]')?.addEventListener('click', () => {
+      if (typeof this.lastContext?.onCreateTransaction === 'function') {
+        this.lastContext.onCreateTransaction();
+      }
+    });
+
+    this.container?.querySelector('[data-action="return-to-script"]')?.addEventListener('click', () => {
+      if (typeof this.lastContext?.onReturnToScript === 'function') {
+        this.lastContext.onReturnToScript();
       }
     });
   }
