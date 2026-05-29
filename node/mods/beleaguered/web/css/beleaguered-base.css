@@ -1,5 +1,10 @@
 .game.beleaguered {
 
+	--beleaguered-card-width: min(15.5vh, 120px, 20vw);
+	--beleaguered-card-height: calc(var(--beleaguered-card-width) * 1.53);
+	--beleaguered-selection-blue: #4cc9f0;
+	--beleaguered-selection-green: #67f28f;
+	--beleaguered-selection-gold: #ffd166;
     
 .logobox .status,
 .logobox .status-header {
@@ -57,17 +62,20 @@
 .status-header {
 	padding: 10px 5px;
 	margin-top: 20px;
-	height: 160px;
+	height: auto;
+	min-height: 160px;
 }
 
 .status_option {
 	cursor: pointer;
-	border-top: 1px solid;
+	border-top: 1px solid rgba(0, 0, 0, 0.35);
 	border-radius: 0px;
 	min-height: 45px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	padding: 0 0.5rem;
+	text-align: center;
 }
 
 .status_option:hover {
@@ -77,6 +85,7 @@
 
 .animated_elem img {
 	width: 100%;
+	border-radius: 8px;
 }
 
 /* Mark place you can put selected card*/
@@ -84,8 +93,29 @@
 	cursor: pointer;
 }
 
-.card-slot.cs-selectable:hover img {
-	filter: sepia(80%) hue-rotate(10deg) saturate(4);
+.card-slot.cs-selectable img {
+	outline: 2px solid transparent;
+	transition:
+		filter 120ms ease,
+		transform 120ms ease,
+		box-shadow 120ms ease,
+		outline-color 120ms ease;
+}
+
+.gameboard:not(.selected_state) .card-slot.cs-selectable img {
+	box-shadow:
+		0 0 0 2px rgba(255, 255, 255, 0.55),
+		0 0 14px rgba(76, 201, 240, 0.42);
+}
+
+.gameboard:not(.selected_state) .card-slot.cs-selectable:hover img {
+	filter: brightness(1.08) saturate(1.08);
+	outline-color: var(--beleaguered-selection-blue);
+	transform: translateY(-3px);
+	box-shadow:
+		0 8px 18px rgba(0, 0, 0, 0.28),
+		0 0 0 3px rgba(76, 201, 240, 0.82),
+		0 0 20px rgba(76, 201, 240, 0.58);
 }
 
 .cardstack.cs-selectable,
@@ -96,25 +126,39 @@
 /* Color empty slots */
 .cardstack.cs-selectable:hover,
 .cs-empty.cs-selectable:hover {
-	border-color: #00ff00;
-	background-color: rgba(160, 255, 160, 0.85);
+	border-color: var(--beleaguered-selection-green);
+	background-color: rgba(103, 242, 143, 0.3);
+	box-shadow:
+		inset 0 0 0 2px rgba(103, 242, 143, 0.75),
+		0 0 20px rgba(103, 242, 143, 0.42);
 }
 
-/*.selected_state .card-slot.cs-selectable:hover img {
-  opacity: 0.95;
-  border-color: #00ff00;
-  background-color: rgba(160, 255, 160, 0.85);
-}*/
+.selected_state .card-slot.cs-selectable:not(.cs-selected) img {
+	box-shadow:
+		0 0 0 3px rgba(103, 242, 143, 0.78),
+		0 0 22px rgba(103, 242, 143, 0.48);
+}
+
+.selected_state .card-slot.cs-selectable:not(.cs-selected):hover img {
+	filter: brightness(1.08) saturate(1.12);
+	outline-color: var(--beleaguered-selection-green);
+	transform: translateY(-3px);
+}
 
 .card-slot.cs-selected img {
-	filter: sepia(80%) hue-rotate(20deg) saturate(4);
+	filter: brightness(1.05) saturate(1.1);
+	outline-color: var(--beleaguered-selection-gold);
+	box-shadow:
+		0 0 0 3px rgba(255, 209, 102, 0.9),
+		0 0 24px rgba(255, 209, 102, 0.58);
 }
 
 .selected_state .card-slot.cs-selectable.cs-selected:hover img {
 	background-color: unset;
 	opacity: unset;
-	border-color: black;
-	filter: sepia(100%) hue-rotate(100deg) saturate(10);
+	border-color: rgba(0, 0, 0, 0.6);
+	filter: brightness(0.95) saturate(0.9);
+	transform: none;
 	cursor: not-allowed;
 }
 
@@ -125,8 +169,8 @@
 	margin: auto;
 	position: relative;
 	display: grid;
-	grid-template-rows: repeat(4, min(184px, 24vh, 30.6vw));
-	grid-template-columns: auto min(15.5vh, 120px, 20vw) auto;
+	grid-template-rows: repeat(4, var(--beleaguered-card-height));
+	grid-template-columns: minmax(0, 1fr) var(--beleaguered-card-width) minmax(0, 1fr);
 	grid-gap: min(10px, 1vh);
 }
 
@@ -136,15 +180,18 @@
 
 .card-slot {
 	position: absolute;
-	width: min(15.5vh, 120px, 20vw);
-	height: min(184px, 24vh, 30.6vw);
-	border-radius: 10px;
+	width: var(--beleaguered-card-width);
+	height: var(--beleaguered-card-height);
+	border-radius: 8px;
 }
 
 .card-slot img {
 	width: 100%;
-	border-radius: 10px;
-	border: 0.5px solid black;
+	height: auto;
+	display: block;
+	border-radius: 8px;
+	border: 1px solid rgba(0, 0, 0, 0.65);
+	background: white;
 }
 
 @media screen and (orientation: portrait) and (max-width: 550px) {
@@ -170,8 +217,9 @@
 	.status_option {
 		border-top: unset;
 		border-left: 1px solid;
-		width: min(80px, 30vw);
+		width: clamp(64px, 23vw, 96px);
 		height: 100%;
+		font-size: clamp(12px, 3.5vw, 16px);
 	}
 
 	.status_option:first-child {

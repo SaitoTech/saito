@@ -20,7 +20,8 @@ class Beleaguered extends OnePlayerGameTemplate {
 			'created by Pawel (twitter: @PawelPawlak14) with contributions from Saito team. Feel free to pm me with any suggestions/feedback';
 
 		this.animationSpeed = 700;
-		this.card_img_dir = '/saito/img/arcade/cards';
+		this.undoAnimationSpeed = Math.max(70, Math.round(this.animationSpeed * 0.1));
+		this.card_img_dir = '/beleaguered/img/cards';
 
 		this.app = app;
 		this.status = 'Beta';
@@ -297,7 +298,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 		activateCards();
 	}
 
-	async moveCard(card, source_stack, target_stack) {
+	async moveCard(card, source_stack, target_stack, options = {}) {
 		console.log(`Move ${card} from ${source_stack} to ${target_stack}`);
 
 		//Update Internal Game Logic
@@ -307,6 +308,11 @@ class Beleaguered extends OnePlayerGameTemplate {
 		this.selected = '';
 
 		this.removeEvents();
+
+		let original_animation_speed = this.animationSpeed;
+		if (options.animationSpeed) {
+			this.animationSpeed = options.animationSpeed;
+		}
 
 		this.moveGameElement(
 			this.copyGameElement(this.cardStacks[source_stack].getTopCardElement().children[0]),
@@ -322,6 +328,8 @@ class Beleaguered extends OnePlayerGameTemplate {
 				console.log('Finished animating');
 			}
 		);
+
+		this.animationSpeed = original_animation_speed;
 	}
 
 	/* Copy hand into board*/
@@ -459,6 +467,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 		html += `<div class="new_game status_option">New Game</div>`;
 
 		if (this.moves.length > 0) {
+			html += `<div class="restart_game status_option">Restart</div>`;
 			html += `<div class="undo_last status_option">Undo</div>`;
 		}
 		html += `<div class="auto_solve status_option">Auto Complete</div></div>`;
@@ -475,6 +484,10 @@ class Beleaguered extends OnePlayerGameTemplate {
 
 		$('.undo_last').on('click', () => {
 			this.undoMove();
+		});
+
+		$('.restart_game').on('click', () => {
+			this.restartGame();
 		});
 
 		$('.auto_solve').on('click', async () => {
@@ -510,10 +523,49 @@ class Beleaguered extends OnePlayerGameTemplate {
 		let mv = this.moves.shift().split('\t');
 
 		if (mv[0] == 'move') {
-			this.moveCard(mv[1], mv[3], mv[2]);
+			this.moveCard(mv[1], mv[3], mv[2], { animationSpeed: this.undoAnimationSpeed });
 
 			$('.undo_last').off();
 		}
+	}
+
+	restartGame() {
+		if (this.moves.length == 0) {
+			return;
+		}
+
+		this.removeEvents();
+		$('.restart_game').off();
+		$('.undo_last').off();
+		$('.auto_solve').off();
+
+		let moves_to_reverse = this.moves.splice(0);
+		for (let move of moves_to_reverse) {
+			let mv = move.split('\t');
+			if (mv[0] == 'move') {
+				this.reverseMove(mv);
+			}
+		}
+
+		this.selected = '';
+		$('.animated_elem').remove();
+
+		for (let slot of this.stacks) {
+			this.cardStacks[slot].cards = [...this.game.board[slot]];
+			this.cardStacks[slot].initialized = true;
+		}
+
+		this.displayBoard();
+		this.displayUserInterface();
+	}
+
+	reverseMove(mv) {
+		let card = mv[1];
+		let source_stack = mv[2];
+		let target_stack = mv[3];
+		let moved_card = this.game.board[target_stack].pop();
+
+		this.game.board[source_stack].push(moved_card || card);
 	}
 
 	async autoPlay() {
