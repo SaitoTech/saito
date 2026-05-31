@@ -14,7 +14,12 @@ function lockingFromOpcode(opcodes, key) {
   }
   const script = clone(op.exampleScript);
   delete script.witness;
+  delete script.required;
   return script;
+}
+
+function defaultStarterScript(opcodes) {
+  return lockingFromOpcode(opcodes, 'checksig');
 }
 
 function getContractTemplates(opcodes) {
@@ -68,12 +73,8 @@ function getContractTemplates(opcodes) {
   ];
 }
 
-function scratchContract() {
-  return {
-    op: 'CHECKSIG',
-    publickey: '<publickey>',
-    msg: '<text>'
-  };
-}
-
-module.exports = { getContractTemplates, scratchContract, lockingFromOpcode };
+module.exports = {
+  getContractTemplates,
+  defaultStarterScript,
+  lockingFromOpcode
+};

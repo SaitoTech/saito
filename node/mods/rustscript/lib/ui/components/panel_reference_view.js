@@ -33,20 +33,26 @@ class PanelReferenceView {
 
   buildItems(phase, remaining, context) {
     const fieldLabel = remaining === 1 ? 'field' : 'fields';
-    const countLine = `<li><span class="rs-panel-ref-count">${remaining}</span> ${fieldLabel} remaining</li>`;
+    const countText = `<span class="rs-panel-ref-count">${remaining}</span> ${fieldLabel} remaining`;
 
-    if (phase === 'witness-help') {
+    if (phase === 'required-help') {
+      return [`<li class="rs-panel-ref-status-text">${countText}</li>`];
+    }
+
+    if (phase === 'required-complete') {
       return [
-        countLine,
-        `<li class="rs-panel-ref-actions rs-panel-ref-actions-inline">
-          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-return" data-action="return-to-script">Return to Script</button>
+        '<li class="rs-panel-ref-success-msg">✓ Script successfully validates.</li>',
+        '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">This script is ready to upload to the network.</li>',
+        `<li class="rs-panel-ref-actions">
+          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-tx" data-action="create-transaction">Create Transaction</button>
         </li>`
       ];
     }
 
     if (phase === 'script-ready') {
       return [
-        '<li class="rs-panel-ref-ready-msg">Your script is ready for testing or for uploading to the network.<br>Which would you prefer?</li>',
+        '<li class="rs-panel-ref-success-msg">✓ Your script is ready!</li>',
+        '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">Would you like to test it or upload it to the network?</li>',
         `<li class="rs-panel-ref-actions">
           <button type="button" class="rs-panel-ref-action rs-panel-ref-action-test" data-action="move-to-testing">Proceed to Test</button>
           <button type="button" class="rs-panel-ref-action rs-panel-ref-action-tx" data-action="create-transaction">Create Transaction</button>
@@ -54,7 +60,7 @@ class PanelReferenceView {
       ];
     }
 
-    return [countLine, '<li>test mode will enable when complete</li>'];
+    return [`<li>• ${countText}</li>`, '<li>test mode will enable when complete</li>'];
   }
 
   bindEvents() {
@@ -67,12 +73,6 @@ class PanelReferenceView {
     this.container?.querySelector('[data-action="create-transaction"]')?.addEventListener('click', () => {
       if (typeof this.lastContext?.onCreateTransaction === 'function') {
         this.lastContext.onCreateTransaction();
-      }
-    });
-
-    this.container?.querySelector('[data-action="return-to-script"]')?.addEventListener('click', () => {
-      if (typeof this.lastContext?.onReturnToScript === 'function') {
-        this.lastContext.onReturnToScript();
       }
     });
   }

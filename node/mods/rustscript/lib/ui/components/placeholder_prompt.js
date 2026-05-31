@@ -149,7 +149,7 @@ class PlaceholderPrompt {
         <p class="rs-prompt-logical-explain">${this.escape(explain)}</p>
         <p class="rs-prompt-validation" hidden></p>
         <div class="overlay-actions overlay-actions-apply-only">
-          <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
+          <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
         </div>
       </div>
     `;
@@ -194,7 +194,7 @@ class PlaceholderPrompt {
         </div>
         <p class="rs-prompt-validation" hidden></p>
         <div class="overlay-actions overlay-actions-apply-only">
-          <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
+          <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
         </div>
       </div>
     `;
@@ -266,13 +266,11 @@ class PlaceholderPrompt {
             autocomplete="off"
             spellcheck="false"
           />
-          <div class="rs-prompt-publickey-actions">
-            <button type="button" class="rs-prompt-use-mine">Use Mine</button>
-          </div>
         </div>
         <p class="rs-prompt-validation" hidden></p>
-        <div class="overlay-actions overlay-actions-apply-only">
-          <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
+        <div class="overlay-actions overlay-actions-split">
+          <button type="button" class="rs-prompt-use-mine">Use Mine</button>
+          <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
         </div>
       </div>
     `;
@@ -327,7 +325,7 @@ class PlaceholderPrompt {
         <textarea id="rs-prompt-signature-value" class="rs-prompt-value rs-prompt-signature-value" spellcheck="false" placeholder="hex signature">${this.escape(currentValue)}</textarea>
         <p class="rs-prompt-validation" hidden></p>
         <div class="overlay-actions overlay-actions-apply-only">
-          <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
+          <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
         </div>
       `;
     } else {
@@ -404,7 +402,7 @@ class PlaceholderPrompt {
         <button type="button" class="rs-prompt-now">Use now</button>
         <p class="rs-prompt-validation" hidden></p>
         <div class="overlay-actions overlay-actions-apply-only">
-          <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
+          <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
         </div>
       </div>
     `;
@@ -442,7 +440,7 @@ class PlaceholderPrompt {
         <textarea class="rs-prompt-value rs-prompt-generic-input" spellcheck="false">${this.escape(currentValue)}</textarea>
         <p class="rs-prompt-validation" hidden></p>
         <div class="overlay-actions overlay-actions-apply-only">
-          <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
+          <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
         </div>
       </div>
     `;

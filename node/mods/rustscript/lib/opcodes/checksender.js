@@ -9,35 +9,26 @@ module.exports = {
     publickey: "<publickey>"
   },
 
-  exampleWitness: {},
+  exampleRequired: {},
 
   schema: {
     script: {
       publickey: "string"
     },
-    witness: {}
+    required: {}
   },
 
-  execute: function (app, script, witness, context) {
-    try {
-      // canonical places we might find the sender in the execution context
-      const sender =
-        (context && context.tx && context.tx.sender) ||
-        (context && context["tx.sender"]) ||
-        (context && context.sender) ||
-        null;
+  execute: function (node, context) {
+    const sender =
+      (context && context.tx && context.tx.sender) ||
+      (context && context["tx.sender"]) ||
+      (context && context.sender) ||
+      null;
 
-      const required = script.publickey || null;
-      if (!required) return false; // script must state the required key
+    const required = node.publickey || null;
+    if (!required) return false;
 
-      // normalize case to avoid superficial mismatches
-      if (!sender) return false;
-      return String(sender).toLowerCase() === String(required).toLowerCase();
-    } catch (err) {
-      console.error("CHECKSENDER execute error:", err);
-      return false;
-    }
+    if (!sender) return false;
+    return String(sender).toLowerCase() === String(required).toLowerCase();
   }
 };
-
-

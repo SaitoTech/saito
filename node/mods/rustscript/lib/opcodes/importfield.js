@@ -5,7 +5,7 @@ module.exports = {
   description: `
 Imports a signed field into VARS.
 
-Verifies that a value provided in the witness was signed by an authorized publickey
+Verifies that a value provided in required was signed by an authorized publickey
 over a binding hash (literal or VAR reference), then writes the value into VARS.
 
 Typical use:
@@ -20,7 +20,7 @@ Typical use:
     hash: "__opcodes.checkownnftwhere.nft_id"
   },
 
-  exampleWitness: {
+  exampleRequired: {
     duration: "<integer>",
     signature: "<hex_signature>"
   },
@@ -31,83 +31,53 @@ Typical use:
       publickey: "string",
       hash: "string"
     },
-    witness: {
+    required: {
       signature: "string"
     }
   },
 
-  execute(app, script, witness, context) {
+  execute(node, context) {
+    const required = node.required || {};
+    const field_name = node.field;
+    const signer_pubkey = context.app.browser.resolveVarReference(context, node.publickey);
+    const binding_hash  = context.app.browser.resolveVarReference(context, node.hash);
 
-    try {
-
-      // --------------------------------------------------
-      // Resolve script parameters (VARs first, literal fallback)
-      // --------------------------------------------------
-      const field_name = script.field;
-      const signer_pubkey = app.browser.resolveVarReference(context, script.publickey);
-      const binding_hash  = app.browser.resolveVarReference(context, script.hash);
-
-      if (!field_name || !signer_pubkey || !binding_hash) {
-        return false;
-      }
-
-      // --------------------------------------------------
-      // Resolve witness values (also via VAR resolver)
-      // --------------------------------------------------
-      const value = app.browser.resolveVarReference(context, witness[field_name]);
-      const signature = app.browser.resolveVarReference(context, witness.signature);
-
-      if (
-        value === undefined ||
-        value === null ||
-        signature === undefined ||
-        signature === null
-      ) {
-console.log("something undefined or null...");
-        return false;
-      }
-
-      // --------------------------------------------------
-      // Canonical digest: hash(binding_hash | value)
-      // --------------------------------------------------
-      const canonical_string = `${value}|${binding_hash}`;
-      const digest = app.crypto.hash(canonical_string);
-
-console.log("verifying...");
-console.log("digest: " + digest);
-console.log("signature: " + signature);
-console.log("publickey: " + signer_pubkey);
-
-      // --------------------------------------------------
-      // Verify signature
-      // --------------------------------------------------
-      const is_valid = app.crypto.verifyMessage(
-        digest,
-        signature,
-        signer_pubkey
-      );
-
-      if (!is_valid) {
-console.log("sig invalid!");
-        return false;
-      }
-
-      // --------------------------------------------------
-      // Write into VARS (opcode namespace)
-      // --------------------------------------------------
-      if (!context.__opcodes) { context.__opcodes = {}; }
-      if (!context.__opcodes.importfield) { context.__opcodes.importfield = {}; }
-
-      context.__opcodes.importfield[field_name] = value;
-
-console.log("^^^^^^ IMPORT FIELD ^^^^^^");
-console.log(JSON.stringify(context.__opcodes));
-
-      return true;
-
-    } catch (err) {
+    if (!field_name || !signer_pubkey || !binding_hash) {
       return false;
     }
+
+    const value = context.app.browser.resolveVarReference(context, required[field_name]);
+    const signature = context.app.browser.resolveVarReference(context, required.signature);
+
+    if (
+      value === true ||
+      value === undefined ||
+      value === null ||
+      signature === true ||
+      signature === undefined ||
+      signature === null
+    ) {
+      return false;
+    }
+
+    const canonical_string = `${value}|${binding_hash}`;
+    const digest = context.app.crypto.hash(canonical_string);
+
+    const is_valid = context.app.crypto.verifyMessage(
+      digest,
+      signature,
+      signer_pubkey
+    );
+
+    if (!is_valid) {
+      return false;
+    }
+
+    if (!context.__opcodes) { context.__opcodes = {}; }
+    if (!context.__opcodes.importfield) { context.__opcodes.importfield = {}; }
+
+    context.__opcodes.importfield[field_name] = value;
+
+    return true;
   }
 };
-

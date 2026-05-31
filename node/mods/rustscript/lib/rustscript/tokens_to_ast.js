@@ -1,19 +1,24 @@
 /**
- * token stream → locking script AST
- * @param {Array<{ type: string, value?: string }>} tokens
- * @returns {object}
+ * Token stream → canonical AST.
+ *
+ * Grammar precedence (lowest → highest): THEN (sequencing), OR, AND, NOT.
+ * THEN is ordered execution, not a boolean combinator.
+ * Leaf form: OPCODE or OPCODE[field=value, required.field=value]
  */
-function tokens_to_ast(tokens) {
+
+// Lowest precedence — THEN sequences phases (ordered execution, not boolean logic).
+const PREC_THEN = 1;
+const PREC_OR = 2;
+const PREC_AND = 3;
+// Highest precedence — unary NOT binds tightest.
+const PREC_NOT = 4;
+
+function parse(tokens) {
   if (!Array.isArray(tokens) || tokens.length === 0) {
     throw new Error('Token stream is empty');
   }
 
   let pos = 0;
-
-  const PREC_THEN = 1;
-  const PREC_OR = 2;
-  const PREC_AND = 3;
-  const PREC_NOT = 4;
 
   function peek(offset = 0) {
     return tokens[pos + offset];
@@ -41,27 +46,31 @@ function tokens_to_ast(tokens) {
     return advance();
   }
 
-  function parse(min_prec) {
+  function parse_expr(min_prec) {
     let node;
 
+    // --- parse unary NOT ---
     if (peekType() === 'NOT') {
       advance();
-      node = { op: 'NOT', args: [parse(PREC_NOT)] };
+      node = { op: 'NOT', args: [parse_expr(PREC_NOT)] };
+
+    // --- parse grouped expression ( ... ) ---
     } else if (peekType() === 'LPAREN') {
       advance();
-      node = parse(0);
+      node = parse_expr(0);
       if (peekType() !== 'RPAREN') {
         syntaxError('RPAREN');
       }
       advance();
+
+    // --- parse opcode invocation ---
     } else if (peekType() === 'IDENT') {
       const nameTok = advance();
-      const name = nameTok.value;
+      node = { op: String(nameTok.value).toUpperCase() };
 
+      // Optional [ key=value, required.field=value, ... ]
       if (peekType() === 'LBRACKET') {
         advance();
-        const bindings = {};
-        const witnessDecl = {};
 
         if (peekType() !== 'RBRACKET') {
           do {
@@ -75,38 +84,35 @@ function tokens_to_ast(tokens) {
             }
             const value = advance().value;
 
-            if (key.startsWith('witness.')) {
-              const field = key.slice('witness.'.length);
-              witnessDecl[field] = {
-                value,
-                literal: valTok.type === 'STRING'
-              };
-            } else if (peekType() === 'AS') {
-              advance();
-              const aliasTok = expect('IDENT');
-              bindings[key] = value;
-              bindings.as = aliasTok.value.toLowerCase();
+            if (key.startsWith('required.')) {
+              const field = key.slice('required.'.length);
+              if (!node.required) {
+                node.required = {};
+              }
+              if (valTok.type === 'IDENT' && String(value).toLowerCase() === 'true') {
+                node.required[field] = true;
+              } else {
+                node.required[field] = value;
+              }
             } else {
-              bindings[key] = value;
+              node[key] = value;
             }
           } while (peekType() === 'COMMA' && advance());
         }
 
         expect('RBRACKET');
-        node = { op: String(name).toUpperCase(), bindings, witnessDecl };
-      } else {
-        node = { op: String(name).toUpperCase() };
       }
     } else {
       syntaxError('expression');
     }
 
+    // --- parse binary operators by precedence ---
     while (true) {
       if (peekType() === 'THEN' && min_prec <= PREC_THEN) {
         advance();
         const phases = [node];
         do {
-          phases.push(parse(PREC_THEN + 1));
+          phases.push(parse_expr(PREC_THEN + 1));
         } while (peekType() === 'THEN' && advance());
         node = { op: 'THEN', args: phases };
         continue;
@@ -114,13 +120,13 @@ function tokens_to_ast(tokens) {
 
       if (peekType() === 'OR' && min_prec <= PREC_OR) {
         advance();
-        node = { op: 'OR', args: [node, parse(PREC_OR + 1)] };
+        node = { op: 'OR', args: [node, parse_expr(PREC_OR + 1)] };
         continue;
       }
 
       if (peekType() === 'AND' && min_prec <= PREC_AND) {
         advance();
-        node = { op: 'AND', args: [node, parse(PREC_AND + 1)] };
+        node = { op: 'AND', args: [node, parse_expr(PREC_AND + 1)] };
         continue;
       }
 
@@ -130,11 +136,11 @@ function tokens_to_ast(tokens) {
     return node;
   }
 
-  const ast = parse(0);
+  const ast = parse_expr(0);
   if (peekType() !== 'EOF') {
     syntaxError('EOF');
   }
   return ast;
 }
 
-module.exports = tokens_to_ast;
+module.exports = parse;

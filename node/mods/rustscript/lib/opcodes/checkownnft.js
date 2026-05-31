@@ -5,7 +5,7 @@ module.exports = {
     op: 'CHECKOWNNFT',
     nftid: '<nftid>',
   },
-  exampleWitness: {
+  exampleRequired: {
     utxokey1: '<utxokey1>',
     utxokey2: '<utxokey2>',
     utxokey3: '<utxokey3>',
@@ -14,14 +14,14 @@ module.exports = {
     script: {
       nftid: "string",
     },
-    witness: {
+    required: {
       utxokey1: "string",
       utxokey2: "string",
       utxokey3: "string",
     }
   },
 
-  execute: async function (app, script, witness, context) {
+  execute: function (node, context) {
     const tx = context.tx;
 
     let tx_sender = null;
@@ -31,17 +31,15 @@ module.exports = {
       return false;
     }
 
-console.log("WITNESS: " +JSON.stringify(witness));
+    const required = node.required || {};
 
-    //
-    // check tx.signature is correct / validates
-    //
-    let nftid    = script.nftid || "";
-    let utxokey1 = witness.utxokey1 || "";
-    let utxokey2 = witness.utxokey2 || "";
-    let utxokey3 = witness.utxokey3 || "";
+    let nftid    = node.nftid || "";
+    let utxokey1 = required.utxokey1;
+    let utxokey2 = required.utxokey2;
+    let utxokey3 = required.utxokey3;
 
     if (!nftid) { return false; }
+    if (utxokey1 === true || utxokey2 === true || utxokey3 === true) { return false; }
     if (!utxokey1 || !utxokey2 || !utxokey3) { return false; }
 
 console.log("CHECKOWNNFT: " + tx_sender);
@@ -51,9 +49,9 @@ console.log("CHECKOWNNFT: " + utxokey2);
 console.log("CHECKOWNNFT: " + utxokey3);
 
     //
-    // TEMPORARILY RETURNING TRUE, NEED NEW NPMS FOR SPENDABILITY CHECK
+    // TODO: Remove stub — implement spendability and ownership checks once
+    // synchronous chain-state APIs are available in the execution context.
     //
-
     return true;
 
     // let [
@@ -61,12 +59,12 @@ console.log("CHECKOWNNFT: " + utxokey3);
     //   isSlip2Spendable,
     //   isSlip3Spendable
     // ] = await Promise.all([
-    //   //app.blockchain.isSlipSpendable(utxokey1),
-    //   app.blockchain.isSlipSpendable(utxokey2),
-    //   //app.blockchain.isSlipSpendable(utxokey3),
+    //   //context.app.blockchain.isSlipSpendable(utxokey1),
+    //   context.app.blockchain.isSlipSpendable(utxokey2),
+    //   //context.app.blockchain.isSlipSpendable(utxokey3),
     // ]);
 
-    // let isSlip2Spendable = app.blockchain.isSlipSpendable(utxokey2);
+    // let isSlip2Spendable = context.app.blockchain.isSlipSpendable(utxokey2);
 
     // if (
     //   isSlip2Spendable 
@@ -162,7 +160,7 @@ console.log("CHECKOWNNFT: " + utxokey3);
       //   console.log("CHECKOWNNFT :: from publickey:", tx.from[0]?.publicKey);
 
       //   if (hash_bytes && hash_bytes.length > 0 && tx.from[0]?.publicKey) {
-      //     sig_ok = app.crypto.verifySignature(
+      //     sig_ok = context.app.crypto.verifySignature(
       //       hash_bytes,
       //       tx.signature,
       //       tx.from[0].publicKey

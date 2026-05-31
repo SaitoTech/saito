@@ -5,7 +5,7 @@ const {
   OnboardingTemplatePickerTemplate,
   OnboardingInteractTemplate
 } = require('./onboarding.template.js');
-const { getContractTemplates, scratchContract } = require('../onboarding/contract_templates.js');
+const { getContractTemplates, lockingFromOpcode } = require('../onboarding/contract_templates.js');
 
 class OnboardingOverlay {
   constructor(app, mod, mainUi) {
@@ -101,7 +101,7 @@ class OnboardingOverlay {
         if (choice === 'template') {
           this.showStep('create-templates');
         } else if (choice === 'scratch') {
-          this.enterCreateGuided(scratchContract());
+          this.enterCreateGuided(lockingFromOpcode(this.mod.opcodes, 'checksig'));
         }
       });
     });

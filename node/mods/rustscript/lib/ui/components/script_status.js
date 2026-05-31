@@ -1,5 +1,10 @@
 const { isPlaceholder } = require('./placeholder_utils');
-const ast_execute = require('../../rustscript/ast_execute');
+const { validateScriptStructure } = require('../script_validate');
+const {
+  collectWitnessMissing,
+  opcodeTreeNeedsWitness,
+  isWitnessValueSupplied
+} = require('../script_build');
 
 /** UI-only lifecycle status — does not change runtime behavior. */
 
@@ -19,8 +24,7 @@ function isEmptyScript(script) {
 
 function collectPlaceholders(node, path = [], options = {}) {
   const found = [];
-  const skipWitness = options.skipWitness === true;
-  const witnessOnly = options.witnessOnly === true;
+  const skipRequired = options.skipRequired === true;
 
   function walk(value, currentPath) {
     if (value === null || value === undefined) {
@@ -46,18 +50,11 @@ function collectPlaceholders(node, path = [], options = {}) {
     }
 
     for (const key of Object.keys(value)) {
-      if (skipWitness && key === 'witness') {
+      if (skipRequired && key === 'required') {
         continue;
       }
       walk(value[key], currentPath.concat(key));
     }
-  }
-
-  if (witnessOnly) {
-    if (node?.witness && typeof node.witness === 'object') {
-      walk(node.witness, path.concat('witness'));
-    }
-    return found;
   }
 
   walk(node, path);
@@ -69,8 +66,8 @@ function evaluateScriptStatus(lockingScript) {
     return { state: 'idle', placeholders: [] };
   }
 
-  const placeholders = collectPlaceholders(lockingScript, [], { skipWitness: true });
-  const validation = ast_execute.validate(lockingScript);
+  const placeholders = collectPlaceholders(lockingScript, [], { skipRequired: true });
+  const validation = validateScriptStructure(lockingScript);
 
   if (!validation.valid || placeholders.length > 0) {
     return { state: 'warn', placeholders, validation };
@@ -79,64 +76,62 @@ function evaluateScriptStatus(lockingScript) {
   return { state: 'ready', placeholders: [], validation };
 }
 
-function isEmptyWitness(unlockingScript) {
-  if (!unlockingScript || typeof unlockingScript !== 'object') {
-    return true;
+function evaluateRequiredStatus(testScript, execution, opcodes) {
+  if (execution?.success === true && opcodeTreeNeedsWitness(testScript, opcodes)) {
+    return { state: 'ready', placeholders: [] };
   }
-  const witness = unlockingScript.witness;
-  if (!witness || typeof witness !== 'object' || Array.isArray(witness)) {
-    return true;
-  }
-  return Object.keys(witness).length === 0;
-}
 
-function evaluateWitnessStatus(unlockingScript) {
-  if (isEmptyWitness(unlockingScript)) {
+  if (!opcodeTreeNeedsWitness(testScript, opcodes)) {
     return { state: 'idle', placeholders: [] };
   }
 
-  const placeholders = collectPlaceholders(unlockingScript, [], { witnessOnly: true });
+  const missing = collectWitnessMissing(testScript, opcodes);
 
-  if (placeholders.length > 0) {
-    return { state: 'warn', placeholders };
+  if (missing.length > 0) {
+    return { state: 'warn', placeholders: missing };
   }
 
   return { state: 'ready', placeholders: [] };
 }
 
-function evaluateValidStatus(scriptStatus, witnessStatus, execution) {
+function evaluateValidStatus(scriptStatus, requiredStatus, execution) {
   const scriptReady = scriptStatus.state === 'ready';
-  const witnessReady = witnessStatus.state === 'ready';
 
-  if (!scriptReady || !witnessReady) {
+  if (!scriptReady) {
     return { state: 'idle' };
+  }
+
+  if (execution?.success === true) {
+    return { state: 'ready' };
+  }
+
+  const requiredReady = requiredStatus.state === 'ready';
+
+  if (!requiredReady) {
+    return { state: 'warn' };
   }
 
   if (!execution || !execution.attempted) {
-    return { state: 'idle' };
-  }
-
-  if (execution.success) {
-    return { state: 'ready' };
+    return { state: 'warn' };
   }
 
   return { state: 'warn' };
 }
 
-function evaluateWorkspaceStatus(lockingScript, unlockingScript, execution) {
+function evaluateWorkspaceStatus(lockingScript, unlockingScript, execution, opcodes) {
   const script = evaluateScriptStatus(lockingScript);
-  const witness = evaluateWitnessStatus(unlockingScript);
-  const valid = evaluateValidStatus(script, witness, execution);
+  const required = evaluateRequiredStatus(unlockingScript, execution, opcodes);
+  const valid = evaluateValidStatus(script, required, execution);
 
-  return { script, witness, valid };
+  return { script, required, valid };
 }
 
 module.exports = {
   evaluateWorkspaceStatus,
   evaluateScriptStatus,
-  evaluateWitnessStatus,
+  evaluateRequiredStatus,
   evaluateValidStatus,
   collectPlaceholders,
   isEmptyScript,
-  isEmptyWitness
+  isWitnessValueSupplied
 };

@@ -6,6 +6,10 @@
 body.rustscript {
   --rustscript-toolbar-item-height: 42px;
   --rustscript-toolbar-padding-vertical: 6px;
+  --rs-control-height: 44px;
+  --rs-control-border: 2px solid #3d3d3d;
+  --rs-control-radius: 4px;
+  --rs-control-radius-chrome: 2px;
   --rustscript-background: #141414;
   --rustscript-surface: #181818;
   --rustscript-panel: #1c1c1c;

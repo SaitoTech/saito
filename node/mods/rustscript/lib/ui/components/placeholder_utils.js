@@ -3,12 +3,12 @@ const PLACEHOLDER_PATTERN = /^<([^<>]+)>$/;
 const PLACEHOLDER_META = {
   signature: {
     label: 'Signature',
-    hint: 'Witness signature required to unlock this condition',
+    hint: 'Required signature for this condition',
     action: 'signature'
   },
   signatures: {
     label: 'Signatures',
-    hint: 'Array of witness signatures (M-of-N)',
+    hint: 'Required signatures (M-of-N)',
     action: 'text'
   },
   publickey: {
@@ -28,7 +28,7 @@ const PLACEHOLDER_META = {
   },
   input: {
     label: 'Input',
-    hint: 'Witness preimage to hash',
+    hint: 'Required preimage to hash',
     action: 'text'
   },
   msg: {
@@ -73,13 +73,19 @@ const PLACEHOLDER_META = {
   },
   hops: {
     label: 'Routing hops',
-    hint: 'Signed routing path witness array',
+    hint: 'Signed routing path array',
     action: 'text'
   }
 };
 
+/** String placeholder in script fields, e.g. "<publickey>". */
 function isPlaceholder(value) {
   return typeof value === 'string' && PLACEHOLDER_PATTERN.test(value.trim());
+}
+
+/** Unfilled entry in a node.required map. */
+function isRequiredMissing(value) {
+  return value === true;
 }
 
 function placeholderName(value) {
@@ -96,6 +102,17 @@ function placeholderMeta(value) {
     PLACEHOLDER_META[name] || {
       label: name,
       hint: `Provide value for <${name}>`,
+      action: 'text'
+    }
+  );
+}
+
+function requiredFieldMeta(fieldName) {
+  const name = String(fieldName || '').toLowerCase();
+  return (
+    PLACEHOLDER_META[name] || {
+      label: name,
+      hint: `Provide ${name}`,
       action: 'text'
     }
   );
@@ -130,8 +147,10 @@ function getAtPath(root, path) {
 
 module.exports = {
   isPlaceholder,
+  isRequiredMissing,
   placeholderName,
   placeholderMeta,
+  requiredFieldMeta,
   setAtPath,
   getAtPath
 };

@@ -5,27 +5,25 @@ module.exports = {
     op: "CHECKHASH",
     hash: "<hash>"
   },
-  exampleWitness: {
+  exampleRequired: {
     input: "<secret>"
   },
   schema: {
     script: {
       hash: "string"
     },
-    witness: {
+    required: {
       input: "string"
     }
   },
-  execute: function (app, script, witness, context) {
-    try {
-      const input = witness.input;
-      const output = script.hash;
-      if (!input || !output) { return false; }
-      const hash = app.crypto.hash(input);
-      return hash === output;
-    } catch (err) {
-      console.error("CHECKHASH error: ", err);
+  execute: function (node, context) {
+    const required = node.required || {};
+    const input = required.input;
+    const output = node.hash;
+    if (input === true || !input || !output) {
       return false;
     }
+    const hash = context.app.crypto.hash(input);
+    return hash === output;
   }
 };

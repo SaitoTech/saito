@@ -61,6 +61,9 @@ function validateForApply(kind, value, app) {
 }
 
 function validateField(kind, value, app) {
+  if (value === true) {
+    return { valid: true, state: 'empty' };
+  }
   if (value === null || value === undefined) {
     return { valid: true, state: 'empty' };
   }
@@ -122,7 +125,7 @@ function pickPublicKey(value) {
 }
 
 /**
- * Resolve opcode node + required keys for a witness signature field path.
+ * Resolve opcode node + required keys for a required signature field path.
  * Works for CHECKSIG, CHECKMULTISIG, and nested AND/OR trees.
  */
 function findSignatureContext(script, path) {
@@ -136,19 +139,19 @@ function findSignatureContext(script, path) {
 
   if (last === 'signature') {
     nodePath.pop();
-    if (nodePath[nodePath.length - 1] === 'witness') {
+    if (nodePath[nodePath.length - 1] === 'required') {
       nodePath.pop();
     }
   } else if (typeof last === 'number' && nodePath[nodePath.length - 2] === 'signatures') {
     signatureIndex = last;
     nodePath.pop();
     nodePath.pop();
-    if (nodePath[nodePath.length - 1] === 'witness') {
+    if (nodePath[nodePath.length - 1] === 'required') {
       nodePath.pop();
     }
   } else if (last === 'signatures') {
     nodePath.pop();
-    if (nodePath[nodePath.length - 1] === 'witness') {
+    if (nodePath[nodePath.length - 1] === 'required') {
       nodePath.pop();
     }
   }
@@ -201,9 +204,9 @@ function findSignableMessage(script, lockingScript) {
       return direct;
     }
 
-    const witness = src?.witness;
-    if (witness && typeof witness === 'object') {
-      const w = pickMessage(witness.msg ?? witness.message);
+    const required = src?.required;
+    if (required && typeof required === 'object') {
+      const w = pickMessage(required.msg ?? required.message);
       if (w) {
         return w;
       }

@@ -2,7 +2,7 @@ const SemanticScriptView = require('./semantic_script_view');
 const PanelReferenceView = require('./panel_reference_view');
 const PlaceholderPrompt = require('./placeholder_prompt');
 const { setAtPath } = require('./placeholder_utils');
-const { isWitnessPath } = require('./workspace_sync');
+const { isRequiredPath } = require('./workspace_sync');
 const { inferFieldKindFromPath } = require('./field_validation');
 const { isLogicalOperator, normalizeLogicalOperator } = require('./logical_operators');
 
@@ -26,7 +26,6 @@ class RustScriptPanel {
     this.script = options.script || {};
     this.onChange = options.onChange || null;
     this.onOpcodeClick = options.onOpcodeClick || null;
-    this.onReturnToScript = options.onReturnToScript || null;
     this.getLockingScript = options.getLockingScript || (() => ({}));
 
     this.mountEl = null;
@@ -40,7 +39,7 @@ class RustScriptPanel {
     });
     this.semanticView = new SemanticScriptView(app, mod, {
       panelRole: this.side,
-      witnessOnlyEditable: this.role === 'test',
+      requiredOnlyEditable: this.role === 'test',
       interactionEnabled: true,
       onPlaceholderClick: (path, value, meta) => this.openValueEditor(path, value, meta),
       onFieldClick: (path, value, meta, fieldKind) => this.openValueEditor(path, value, meta, fieldKind),
@@ -62,9 +61,6 @@ class RustScriptPanel {
       <div class="rs-panel-root rs-panel-${this.side} rs-panel-role-${this.role}" data-rs-role="${this.role}" data-rs-side="${this.side}">
         <div class="rs-panel-header" hidden>
           <span class="rs-editor-title rs-panel-title">${title}</span>
-          <div class="rs-panel-header-actions">
-            <button type="button" class="rs-panel-return-script" hidden>Return to Script</button>
-          </div>
         </div>
         <div class="rs-panel-body">
           <div class="rs-panel-reference"></div>
@@ -92,18 +88,8 @@ class RustScriptPanel {
     this.semanticView.mount(this.semanticEl);
     this.referenceView.mount(this.referenceEl);
     this.bindEvents();
-    this.bindHeaderActions();
     this.setScript(this.script);
     this.applyWorkspaceState();
-  }
-
-  bindHeaderActions() {
-    this.root?.querySelector('.rs-panel-return-script')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (typeof this.onReturnToScript === 'function') {
-        this.onReturnToScript();
-      }
-    });
   }
 
   bindEvents() {
@@ -121,13 +107,16 @@ class RustScriptPanel {
   }
 
   resolveDisplayMode() {
+    if (this.role === 'create') {
+      return this.workspaceMode === 'unlocked' ? 'source' : 'semantic';
+    }
     if (this.workspaceMode === 'unlocked') {
       return 'source';
     }
-    if (this.role === 'test' && !this.testActive) {
+    if (!this.testActive) {
       return 'reference';
     }
-    if (this.role === 'create' && this.referenceContext?.showMoveToTesting) {
+    if (this.referenceContext?.phase === 'required-complete') {
       return 'reference';
     }
     return 'semantic';
@@ -158,12 +147,12 @@ class RustScriptPanel {
       this.syncExpertTextarea();
     }
 
-    const witnessEditable = this.role === 'test';
+    const requiredEditable = this.role === 'test';
     const interactionEnabled = this.role === 'create' || this.testActive;
 
     this.semanticView.setRenderOptions({
       panelRole: this.side,
-      witnessOnlyEditable: witnessEditable,
+      requiredOnlyEditable: requiredEditable,
       interactionEnabled
     });
 
@@ -172,20 +161,21 @@ class RustScriptPanel {
 
     this.updatePanelHeader(displayMode);
 
-    this.updateWitnessBar();
+    this.updateRequiredBar();
     this.refreshGuidance();
   }
 
-  updateWitnessBar() {
-    const showWitnessBar =
+  updateRequiredBar() {
+    const phase = this.referenceContext?.phase;
+    const showRequiredBar =
       this.role === 'test' &&
       this.testActive &&
       this.workspaceMode === 'locked' &&
-      this.referenceContext?.phase === 'witness-help';
+      phase === 'required-help';
 
-    this.root?.classList.toggle('rs-panel-has-witness-bar', showWitnessBar);
+    this.root?.classList.toggle('rs-panel-has-required-bar', showRequiredBar);
 
-    if (showWitnessBar && this.referenceEl) {
+    if (showRequiredBar && this.referenceEl) {
       this.referenceView.render(this.referenceContext || {});
     }
   }
@@ -204,7 +194,7 @@ class RustScriptPanel {
     } else {
       this.syncTextareaFromScript();
     }
-    this.updateWitnessBar();
+    this.updateRequiredBar();
 
     if (mode === 'semantic') {
       this.renderSemantic();
@@ -272,15 +262,7 @@ class RustScriptPanel {
       const text = this.textarea?.value || '{}';
       try {
         const parsed = JSON.parse(text);
-        if (this.role === 'test' && this.workspaceMode === 'unlocked' && parsed && typeof parsed === 'object') {
-          if (parsed.witness && typeof parsed.witness === 'object') {
-            this.script = parsed.witness;
-          } else {
-            this.script = parsed;
-          }
-        } else {
-          this.script = parsed;
-        }
+        this.script = parsed && typeof parsed === 'object' ? parsed : {};
       } catch (err) {
         throw new Error(`Invalid ${this.role} script JSON: ${err.message}`);
       }
@@ -290,7 +272,6 @@ class RustScriptPanel {
 
   updatePanelHeader(displayMode) {
     const header = this.root?.querySelector('.rs-panel-header');
-    const returnBtn = this.root?.querySelector('.rs-panel-return-script');
     const guided = this.workspaceMode === 'locked';
     const expert = this.workspaceMode === 'unlocked';
     const infoMode = this.role === 'test' && displayMode === 'reference';
@@ -304,10 +285,6 @@ class RustScriptPanel {
 
     if (header) {
       header.hidden = !showHeader;
-    }
-
-    if (returnBtn) {
-      returnBtn.hidden = !(this.role === 'test' && guided && this.testActive);
     }
 
     this.root?.classList.toggle('rs-panel-no-header', infoMode);
@@ -329,16 +306,7 @@ class RustScriptPanel {
     if (!this.textarea || this.workspaceMode !== 'unlocked') {
       return;
     }
-    if (this.role === 'create') {
-      this.textarea.value = JSON.stringify(this.script, null, 2);
-      return;
-    }
-    const locking = this.getLockingScript();
-    const payload = {
-      script: locking && typeof locking === 'object' ? locking : {},
-      witness: this.script && typeof this.script === 'object' ? this.script : {}
-    };
-    this.textarea.value = JSON.stringify(payload, null, 2);
+    this.textarea.value = JSON.stringify(this.script, null, 2);
   }
 
   renderSemantic() {
@@ -356,7 +324,7 @@ class RustScriptPanel {
   }
 
   openValueEditor(path, value, meta, fieldKind) {
-    if (this.role === 'test' && !isWitnessPath(path)) {
+    if (this.role === 'test' && !isRequiredPath(path)) {
       return;
     }
     if (this.role === 'test' && !this.testActive) {
@@ -419,11 +387,14 @@ class RustScriptPanel {
   }
 
   refreshGuidance() {
+    if (this.role !== 'test') {
+      return;
+    }
     if (this.displayMode === 'reference') {
       this.renderReference();
       return;
     }
-    if (this.root?.classList.contains('rs-panel-has-witness-bar') && this.referenceContext) {
+    if (this.root?.classList.contains('rs-panel-has-required-bar') && this.referenceContext) {
       this.referenceView.render(this.referenceContext);
     }
   }
