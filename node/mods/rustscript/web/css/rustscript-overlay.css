@@ -1,10 +1,27 @@
 /* RustScript overlays — spacious developer tooling */
 
+/* Single frame: outer saito shell is transparent; inner panel owns border/radius */
+body.rustscript .saito-overlay:has(> .rustscript-overlay) {
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+
+body.rustscript .saito-overlay > .rustscript-overlay {
+  border: var(--rs-control-border) !important;
+  border-radius: var(--rs-control-radius) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55) !important;
+  overflow: hidden;
+  background: var(--rustscript-surface);
+}
+
 body.rustscript .rustscript-overlay {
   padding: 28px 32px 24px;
   color: #ececec;
   background: var(--rustscript-surface);
-  border-radius: 8px;
+  border-radius: var(--rs-control-radius);
   width: 820px;
   max-width: 94vw;
   display: flex;
@@ -43,7 +60,7 @@ body.rustscript .rustscript-overlay input.rs-prompt-publickey-input {
   width: 100%;
   box-sizing: border-box;
   padding: 14px 16px;
-  min-height: 52px;
+  min-height: var(--rs-control-height);
   font-family: var(--rustscript-font-mono);
   font-size: 0.95em;
   font-weight: 500;
@@ -51,7 +68,7 @@ body.rustscript .rustscript-overlay input.rs-prompt-publickey-input {
   background: #0c0c0c;
   color: #efefef;
   border: 1px solid #444;
-  border-radius: 4px;
+  border-radius: var(--rs-control-radius);
 }
 
 body.rustscript .rustscript-overlay textarea::placeholder,
@@ -92,13 +109,20 @@ body.rustscript .overlay-actions-apply-only {
   justify-content: flex-end;
 }
 
+body.rustscript .overlay-actions-split {
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 12px;
+}
+
 body.rustscript .overlay-actions button {
   background: #1a1a1a;
   color: #e8e8e8;
-  border: 1px solid #444;
-  border-radius: 4px;
-  padding: 10px 22px;
-  min-height: 44px;
+  border: var(--rs-control-border);
+  border-radius: var(--rs-control-radius);
+  padding: 0 22px;
+  min-height: var(--rs-control-height);
+  height: var(--rs-control-height);
   font-family: var(--rustscript-font-mono);
   font-size: 0.82em;
   font-weight: 700;
@@ -106,13 +130,26 @@ body.rustscript .overlay-actions button {
   text-transform: uppercase;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
+  box-sizing: border-box;
+}
+
+body.rustscript .overlay-actions-split .rs-prompt-use-mine {
+  flex: 1 1 auto;
+  margin: 0;
+  min-width: 0;
+}
+
+body.rustscript .overlay-actions-split .rs-prompt-apply {
+  flex: 1 1 auto;
+  margin: 0;
+  min-width: 140px;
+  max-width: 220px;
 }
 
 body.rustscript .rs-prompt-primary {
   border-color: rgba(92, 184, 106, 0.55) !important;
   color: #b8f0c0 !important;
   font-weight: 700;
-  min-width: 120px;
 }
 
 body.rustscript .rs-prompt-primary:hover {
@@ -123,7 +160,7 @@ body.rustscript .rs-prompt-primary:hover {
 body.rustscript .rs-prompt-validation {
   margin: 0;
   padding: 10px 12px;
-  border-radius: 4px;
+  border-radius: var(--rs-control-radius);
   font-size: 0.9em;
   line-height: 1.45;
   color: #f0c878;
@@ -146,10 +183,10 @@ body.rustscript .rs-overlay-hint {
 body.rustscript .rs-prompt-logical-select {
   width: 100%;
   box-sizing: border-box;
-  height: 52px;
+  height: var(--rs-control-height);
   padding: 0 36px 0 16px;
   border: 1px solid #444;
-  border-radius: 4px;
+  border-radius: var(--rs-control-radius);
   background: #0c0c0c;
   color: #efefef;
   font-family: var(--rustscript-font-mono);
@@ -167,7 +204,7 @@ body.rustscript .rs-prompt-logical-select {
 body.rustscript .rs-prompt-logical-explain {
   margin: 6px 0 0;
   padding: 14px 16px;
-  border-radius: 4px;
+  border-radius: var(--rs-control-radius);
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 1em;
@@ -188,7 +225,7 @@ body.rustscript .rs-prompt-hash-output {
   min-height: 56px;
   margin: 0;
   padding: 14px 16px;
-  border-radius: 4px;
+  border-radius: var(--rs-control-radius);
   border: 1px solid rgba(92, 184, 106, 0.35);
   background: #080808;
   font-family: var(--rustscript-font-mono);
@@ -205,7 +242,7 @@ body.rustscript .rs-prompt-copy-hash {
   width: 48px;
   min-height: 56px;
   padding: 0;
-  border-radius: 4px;
+  border-radius: var(--rs-control-radius);
   border: 1px solid #444;
   background: #141414;
   color: #c8c8c8;
@@ -220,7 +257,7 @@ body.rustscript .rs-prompt-copy-hash:hover {
   background: #1c1c1c;
 }
 
-/* Public key — input + right-aligned Use Mine */
+/* Public key — input full width; actions on one row */
 body.rustscript .rs-prompt-publickey-field {
   display: flex;
   flex-direction: column;
@@ -229,29 +266,8 @@ body.rustscript .rs-prompt-publickey-field {
 }
 
 body.rustscript .rs-prompt-publickey-input {
-  min-height: 56px;
+  min-height: var(--rs-control-height);
   font-size: 0.98em;
-}
-
-body.rustscript .rs-prompt-publickey-actions {
-  display: flex;
-  justify-content: flex-end;
-  width: 100%;
-}
-
-body.rustscript .rs-prompt-use-mine {
-  margin: 0;
-  padding: 8px 14px;
-  min-height: 36px;
-  border-radius: 4px;
-  border: 1px solid #444;
-  background: #141414;
-  color: #c8c8c8;
-  font-family: var(--rustscript-font-mono);
-  font-size: 0.78em;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  cursor: pointer;
 }
 
 body.rustscript .rs-prompt-use-mine:hover {
@@ -264,16 +280,18 @@ body.rustscript .rs-prompt-sign-wallet,
 body.rustscript .rs-prompt-now {
   align-self: flex-start;
   margin: 4px 0 10px;
-  padding: 10px 16px;
-  min-height: 40px;
-  border-radius: 4px;
-  border: 1px solid #444;
+  padding: 0 16px;
+  min-height: var(--rs-control-height);
+  height: var(--rs-control-height);
+  border-radius: var(--rs-control-radius);
+  border: var(--rs-control-border);
   background: #141414;
   color: #c8c8c8;
   font-family: var(--rustscript-font-mono);
   font-size: 0.82em;
   font-weight: 600;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 body.rustscript .rs-prompt-sign-wallet:hover,
@@ -287,8 +305,8 @@ body.rustscript .rs-prompt-signature-readonly {
   width: 100%;
   box-sizing: border-box;
   padding: 14px 16px;
-  min-height: 52px;
-  border-radius: 4px;
+  min-height: var(--rs-control-height);
+  border-radius: var(--rs-control-radius);
   border: 1px solid #333;
   background: #080808;
   font-family: var(--rustscript-font-mono);
@@ -344,10 +362,10 @@ body.rustscript .rs-opcode-ref-overlay-select {
   min-width: 180px;
   max-width: 260px;
   box-sizing: border-box;
-  height: 48px;
+  height: var(--rs-control-height);
   padding: 0 36px 0 14px;
   border: 1px solid #444;
-  border-radius: 4px;
+  border-radius: var(--rs-control-radius);
   background: #0c0c0c;
   color: #efefef;
   font-family: var(--rustscript-font-mono);

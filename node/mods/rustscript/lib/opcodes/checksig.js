@@ -6,18 +6,21 @@ module.exports = {
     publickey: '<publickey>',
     msg: '<text>'
   },
-  exampleWitness: {
+  exampleRequired: {
     signature: '<signature>'
   },
   schema: {
     script: { publickey: "string", msg: "string" },
-    witness: { signature: "string" }
+    required: { signature: "string" }
   },
-  execute: function (app, script, witness, context) {
-    const signature = witness.signature || "";
-    const msg = script.msg || "";
-    const publickey = script.publickey || "";
-    return app.crypto.verifyMessage(msg, signature, publickey);
+  execute: function (node, context) {
+    const required = node.required || {};
+    const signature = required.signature;
+    if (signature === true || !signature) {
+      return false;
+    }
+    const msg = node.msg || "";
+    const publickey = node.publickey || "";
+    return context.app.crypto.verifyMessage(msg, signature, publickey);
   }
 };
-

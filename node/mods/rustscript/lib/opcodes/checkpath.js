@@ -2,7 +2,7 @@ module.exports = {
   name: "CHECKPATH",
 
   description:
-    "Verify a routing capability path provided in the witness, starting from a claimed authority root and bound to a static hash.",
+    "Verify a routing capability path provided in required, starting from a claimed authority root and bound to a static hash.",
 
   exampleScript: {
     op: "CHECKPATH",
@@ -10,7 +10,7 @@ module.exports = {
     hash: "<hash (optional)>"
   },
 
-  exampleWitness: {
+  exampleRequired: {
     hops: [
       {
         to: "<publickey>",
@@ -25,37 +25,29 @@ module.exports = {
       publickey: "string",
       hash: "string"
     },
-    witness: {
+    required: {
       hops: "array"
     }
   },
 
-  execute(app, script, witness, context) {
-    try {
+  execute(node, context) {
+    const required = node.required || {};
+    const start_publickey = node.publickey;
+    const binding_hash = node.hash || "";
 
-      const start_publickey = script.publickey;
-      const binding_hash = script.hash || "";
-
-      if (!start_publickey || typeof start_publickey !== "string") {
-        return false;
-      }
-
-      const path = witness?.hops;
-
-      if (!Array.isArray(path) || path.length === 0) {
-        return false;
-      }
-
-      return app.crypto.verifyRoutingPath(
-        path,
-        start_publickey,
-        binding_hash
-      );
-
-    } catch (err) {
-      console.error("CHECKPATH error:", err);
+    if (!start_publickey || typeof start_publickey !== "string") {
       return false;
     }
+
+    const path = required.hops;
+    if (path === true || !Array.isArray(path) || path.length === 0) {
+      return false;
+    }
+
+    return context.app.crypto.verifyRoutingPath(
+      path,
+      start_publickey,
+      binding_hash
+    );
   }
 };
-

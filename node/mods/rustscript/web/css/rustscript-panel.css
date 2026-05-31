@@ -63,34 +63,9 @@ body.rustscript .rs-panel-header {
   border-bottom: 1px solid var(--rs-panel-edge);
 }
 
-body.rustscript .rs-panel-header-actions {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-body.rustscript .rs-panel-return-script {
-  margin: 0;
-  padding: 0 14px;
-  min-height: 32px;
-  border-radius: 2px;
-  border: 2px solid #3d3d3d;
-  background: #141414;
-  color: #b8b8b8;
-  font-family: var(--rustscript-font-mono);
-  font-size: 0.68em;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-body.rustscript .rs-panel-return-script:hover {
-  border-color: #5a5a5a;
-  color: #eee;
-  background: #1e1e1e !important;
+body.rustscript .rs-panel-title {
+  flex: 1;
+  min-width: 0;
 }
 
 body.rustscript .rs-panel-titles {
@@ -133,6 +108,20 @@ body.rustscript .rs-create-pane .rs-panel-header {
 body.rustscript .rs-create-pane.rs-create-script-ready .rs-panel-header {
   background: rgba(40, 72, 46, 0.35);
   border-bottom-color: rgba(92, 184, 106, 0.35);
+}
+
+body.rustscript .rs-create-pane .rs-panel-header.rs-panel-header-nav {
+  cursor: pointer;
+}
+
+body.rustscript .rs-create-pane .rs-panel-header.rs-panel-header-nav:hover {
+  background: rgba(48, 84, 54, 0.45);
+  border-bottom-color: rgba(92, 184, 106, 0.55);
+}
+
+body.rustscript .rs-create-pane .rs-panel-header.rs-panel-header-nav:hover .rs-panel-title {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 body.rustscript .rs-create-pane.rs-create-complete-flash .rs-panel-header {
@@ -270,11 +259,11 @@ body.rustscript .rs-semantic-section {
   margin: 0;
 }
 
-body.rustscript .rs-locking-pane .rs-semantic-section[data-key='witness'] .rs-semantic-block-inner {
+body.rustscript .rs-locking-pane .rs-semantic-section[data-key='required'] .rs-semantic-block-inner,
   border-left-color: rgba(196, 92, 106, 0.25);
 }
 
-body.rustscript .rs-unlocking-pane .rs-semantic-section[data-key='witness'] .rs-semantic-block-inner {
+body.rustscript .rs-unlocking-pane .rs-semantic-section[data-key='required'] .rs-semantic-block-inner,
   border-left-color: rgba(252, 163, 17, 0.28);
 }
 

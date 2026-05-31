@@ -19,8 +19,8 @@ module.exports = RustscriptMainTemplate = (app, mod) => {
         <div class="rs-status-reactor rs-status-script" data-state="idle" title="Script definition">
           <span class="rs-status-reactor-label">SCRIPT</span>
         </div>
-        <div class="rs-status-reactor rs-status-witness" data-state="idle" title="Witness data">
-          <span class="rs-status-reactor-label">WITNESS</span>
+        <div class="rs-status-reactor rs-status-required" data-state="idle" title="Required fields">
+          <span class="rs-status-reactor-label">REQUIRED</span>
         </div>
         <div class="rs-status-reactor rs-status-valid" data-state="idle" title="Execution result">
           <span class="rs-status-reactor-label">VALID</span>
@@ -35,7 +35,9 @@ module.exports = RustscriptMainTemplate = (app, mod) => {
         aria-label="Guided mode — assisted semantic editing. Click for Expert raw JSON mode."
       >
         <span class="rs-workspace-toggle-track">
-          <span class="rs-workspace-toggle-thumb">GUIDED</span>
+          <span class="rs-workspace-toggle-label rs-workspace-toggle-label-guided">GUIDED</span>
+          <span class="rs-workspace-toggle-label rs-workspace-toggle-label-expert">EXPERT</span>
+          <span class="rs-workspace-toggle-thumb" aria-hidden="true"></span>
         </span>
       </button>
     </div>

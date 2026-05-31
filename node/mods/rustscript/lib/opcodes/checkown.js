@@ -5,16 +5,16 @@ module.exports = {
     op: "CHECKOWN",
     utxokey: "<utxokey>",
   },
-  exampleWitness: {},
+  exampleRequired: {},
   schema: {
     script: { utxokey: "string" },
-    witness: {},
+    required: {},
   },
-  execute: async function (app, script, witness, context) {
+  execute: function (node, context) {
     const tx = context.tx;
-    let utxokey = script.utxokey || "";
+    let utxokey = node.utxokey || "";
 
-    let is_slip_spendable = await app.blockchain.isSlipSpendable(utxokey);
+    let is_slip_spendable = context.app.blockchain.isSlipSpendable(utxokey);
     console.log("CHECKOWN :: utxokey:", utxokey);
     console.log("CHECKOWN :: isSlipSpendable:", is_slip_spendable);
 
@@ -45,7 +45,7 @@ module.exports = {
       console.log("CHECKOWN :: from publickey:", tx.from[0]?.publicKey);
 
       if (hash_bytes && hash_bytes.length > 0 && tx.from[0]?.publicKey) {
-        sig_ok = app.crypto.verifySignature(
+        sig_ok = context.app.crypto.verifySignature(
           hash_bytes,
           tx.signature,
           tx.from[0].publicKey
@@ -62,10 +62,8 @@ module.exports = {
     }
 
     //
-    // NEED TO FIX:
-    // temporarliy returing true in all cases,
-    // currently have issue  tx.signature: 0000000000000000000000000000000000000000
-    // inside sendRequest() tx.signature is non-zero but here is zero. 
+    // TODO: Remove stub — return (is_slip_spendable && sig_ok) once tx.signature
+    // is available in the execution context (currently zeroed before CHECKOWN runs).
     //
     return (is_slip_spendable && sig_ok) || true;
   },

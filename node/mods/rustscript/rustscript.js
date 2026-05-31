@@ -1,9 +1,10 @@
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const ModTemplate = require('./../../lib/templates/modtemplate');
 const RustscriptMain = require('./lib/ui/main');
-const semantic_to_tokens = require('./lib/rustscript/semantic_to_tokens');
-const tokens_to_ast = require('./lib/rustscript/tokens_to_ast');
-const ast_execute = require('./lib/rustscript/ast_execute');
+const tokenize = require('./lib/rustscript/semantic_to_tokens');
+const parse = require('./lib/rustscript/tokens_to_ast');
+const execute = require('./lib/rustscript/ast_execute');
+const { build_test_script_from_create } = require('./lib/ui/script_build');
 
 const OpcodeChecksig = require('./lib/opcodes/checksig');
 const OpcodeChecktime = require('./lib/opcodes/checktime');
@@ -77,8 +78,8 @@ class Rustscript extends ModTemplate {
       app: this.app,
       opcodes: this.opcodes,
       tx: derived.tx ?? {},
-      blk: derived.blk ?? {},
-      witness: derived.witness ?? {},
+      block: derived.block ?? {},
+      variables: derived.variables ?? {},
       __opcodes: {},
       ...derived
     };
@@ -155,31 +156,26 @@ class Rustscript extends ModTemplate {
   /**
    * Semantic script → locking script (LEFT) + unlocking script (RIGHT).
    */
-  async parseExpertScript(source, execution_input = {}) {
+  parseExpertScript(source, execution_input = {}) {
     const text = String(source ?? '').trim();
     if (!text) {
       throw new Error('Script is empty');
     }
 
-    const tokens = semantic_to_tokens(text);
-    const raw = tokens_to_ast(tokens);
-    const lockingScript = ast_execute.materialize(raw, this.opcodes, false);
-    const unlockingScript = ast_execute.materialize(raw, this.opcodes, true);
+    const tokens = tokenize(text);
+    const ast = parse(tokens);
+    const script = build_test_script_from_create(ast, {}, this.opcodes);
 
-    const json = JSON.stringify(lockingScript, null, 2);
-    const validation = ast_execute.validate(lockingScript);
-
+    const json = JSON.stringify(ast, null, 2);
     const context = this.buildContext(execution_input);
-    const execution = await ast_execute(unlockingScript, context);
+    const execution = execute(script, context);
 
     return {
       tokens,
-      raw,
-      ast: lockingScript,
-      lockingScript,
-      unlockingScript,
+      ast,
+      lockingScript: ast,
+      unlockingScript: script,
       json,
-      validation,
       execution
     };
   }
@@ -187,9 +183,9 @@ class Rustscript extends ModTemplate {
   /**
    * Execute unlocking script JSON (RIGHT panel).
    */
-  async runAst(unlockingScript, execution_input = {}) {
+  runAst(unlockingScript, execution_input = {}) {
     const context = this.buildContext(execution_input);
-    return ast_execute(unlockingScript, context);
+    return execute(unlockingScript, context);
   }
 }
 

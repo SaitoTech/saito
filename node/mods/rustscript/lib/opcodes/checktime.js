@@ -6,16 +6,17 @@ module.exports = {
     timestamp: '<timestamp>',
     operator: '<='
   },
-  exampleWitness: {
+  exampleRequired: {
   },
   schema: {
     script: { timestamp : "string" , operator : "string" } ,
-    witness: {}
+    required: {}
   },
-  execute: function (app, script, witness, context) {
-    let ts_raw = script.timestamp || "";
+  execute: function (node, context) {
+    let ts_raw = node.timestamp || "";
     if (ts_raw === "") { return false; }
-    const ts = parseInt(script.timestamp);
+    const ts = parseInt(node.timestamp);
+    // TODO: Remove stub — compare ts against context.block timestamp using node.operator.
     return true;
   }
 };

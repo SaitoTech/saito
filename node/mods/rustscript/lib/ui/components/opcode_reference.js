@@ -27,7 +27,7 @@ class OpcodeReference {
           required.length
             ? `
         <div class="rs-ref-section">
-          <p class="rs-ref-section-label">Required:</p>
+          <p class="rs-ref-section-label">Witness fields:</p>
           <ul class="rs-ref-field-list">${requiredItems}</ul>
         </div>`
             : ''
@@ -51,8 +51,8 @@ class OpcodeReference {
     if (op.schema?.script && typeof op.schema.script === 'object') {
       Object.keys(op.schema.script).forEach((k) => fields.add(k));
     }
-    if (op.schema?.witness && typeof op.schema.witness === 'object') {
-      Object.keys(op.schema.witness).forEach((k) => fields.add(k));
+    if (op.schema?.required && typeof op.schema.required === 'object') {
+      Object.keys(op.schema.required).forEach((k) => fields.add(`required.${k}`));
     }
 
     if (!fields.size && op.exampleScript) {
@@ -62,8 +62,8 @@ class OpcodeReference {
         }
       });
     }
-    if (op.exampleWitness) {
-      Object.keys(op.exampleWitness).forEach((k) => fields.add(k));
+    if (op.exampleRequired) {
+      Object.keys(op.exampleRequired).forEach((k) => fields.add(k));
     }
 
     return Array.from(fields).sort();
@@ -82,9 +82,8 @@ class OpcodeReference {
       return '';
     }
     const sample = { ...op.exampleScript };
-    if (op.exampleWitness && Object.keys(op.exampleWitness).length) {
-      sample.witness = op.exampleWitness;
-    }
+    delete sample.witness;
+    delete sample.required;
     return JSON.stringify(sample, null, 2);
   }
 

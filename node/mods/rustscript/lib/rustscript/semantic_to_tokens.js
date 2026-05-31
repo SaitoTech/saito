@@ -1,16 +1,14 @@
 /**
- * semantic script text → token stream
- * @param {string} input
- * @returns {Array<{ type: string, value?: string, line?: number, column?: number }>}
+ * Semantic script text → token stream.
+ *
+ * One pass over the input. Each token: type, value, line, column.
  */
-function semantic_to_tokens(input) {
+function tokenize(input) {
   const text = String(input ?? '');
   const tokens = [];
   let i = 0;
   let line = 1;
   let column = 1;
-
-  const KEYWORDS = new Set(['AND', 'OR', 'NOT', 'THEN', 'AS']);
 
   function peek(n = 0) {
     return text[i + n];
@@ -29,6 +27,8 @@ function semantic_to_tokens(input) {
 
   while (i < text.length) {
     const ch = peek();
+
+    // --- whitespace (skipped) ---
     if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
       advance();
       continue;
@@ -37,6 +37,7 @@ function semantic_to_tokens(input) {
     const startLine = line;
     const startCol = column;
 
+    // --- punctuation ---
     if (ch === '(' || ch === ')' || ch === '[' || ch === ']' || ch === '=' || ch === ',') {
       advance();
       const type =
@@ -49,6 +50,7 @@ function semantic_to_tokens(input) {
       continue;
     }
 
+    // --- double-quoted strings ---
     if (ch === '"') {
       advance();
       let value = '';
@@ -68,13 +70,19 @@ function semantic_to_tokens(input) {
       continue;
     }
 
+    // --- identifiers and keywords ---
     if (/[A-Za-z_]/.test(ch)) {
       let value = '';
       while (i < text.length && (/[A-Za-z0-9_]/.test(peek()) || peek() === '.')) {
         value += advance();
       }
       const upper = value.toUpperCase();
-      if (KEYWORDS.has(upper) && !value.includes('.')) {
+
+      // Logical keywords (dotted names like required.field stay IDENT).
+      if (
+        !value.includes('.') &&
+        (upper === 'AND' || upper === 'OR' || upper === 'NOT' || upper === 'THEN')
+      ) {
         tokens.push({ type: upper, value: upper, line: startLine, column: startCol });
       } else {
         tokens.push({ type: 'IDENT', value, line: startLine, column: startCol });
@@ -89,4 +97,4 @@ function semantic_to_tokens(input) {
   return tokens;
 }
 
-module.exports = semantic_to_tokens;
+module.exports = tokenize;

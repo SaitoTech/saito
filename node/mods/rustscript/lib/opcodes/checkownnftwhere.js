@@ -10,8 +10,8 @@ Checks that:
 1. The submitted NFT is spendable by the transaction sender (tx.from === slip2.publicKey)
 2. Additional WHERE constraints hold over NFT metadata (creator, type)
 
-Witness must include:
-  witness.slips = [ utxoKey1, utxoKey2, utxoKey3 ]
+Required fields:
+  utxokey1, utxokey2, utxokey3
 `,
 
   exampleScript: {
@@ -30,7 +30,7 @@ Witness must include:
     ]
   },
 
-  exampleWitness: {
+  exampleRequired: {
     utxokey1 : "<string>" ,
     utxokey2 : "<string>" ,
     utxokey3 : "<string>" 
@@ -40,7 +40,7 @@ Witness must include:
     script: {
       where: "array"
     },
-    witness: {
+    required: {
       utxokey1 : "string" ,
       utxokey2 : "string" ,
       utxokey3 : "string" ,
@@ -48,13 +48,15 @@ Witness must include:
   },
 
 
-  execute(app, script, witness, context) {
+  execute(node, context) {
     const tx = context.tx;
 
-    let utxo1 = witness.utxokey1 || null;
-    let utxo2 = witness.utxokey2 || null;
-    let utxo3 = witness.utxokey3 || null;
+    const required = node.required || {};
+    let utxo1 = required.utxokey1;
+    let utxo2 = required.utxokey2;
+    let utxo3 = required.utxokey3;
 
+    if (utxo1 === true || utxo2 === true || utxo3 === true) { return false; }
     if (!utxo1 || !utxo2 || !utxo3) { return false; }
 
     const slip1 = Slip.fromUtxoKey(utxo1);
@@ -65,20 +67,9 @@ Witness must include:
       return false;
     }
 
-    //
-    // write to OPCODE
-    //
-    try {
-      context.__opcodes.checkownnftwhere = {};
-      // 66 bytes from utxokey 3 = nft.id
-      context.__opcodes.checkownnftwhere.nft_id = utxo3.substring(0, 66).toLowerCase();
-console.log("**** CHECKOWNNFTWHERE produced nft_id of: " + context.__opcodes.checkownnftwhere.nft_id);
-console.log("**** CHECKOWNNFTWHERE produced length: " + context.__opcodes.checkownnftwhere.nft_id.length);
-    } catch (err) {
-      context.__opcodes.checkownnftwhere = { nft_id: "" };
-    }
-
-
+    if (!context.__opcodes) { context.__opcodes = {}; }
+    context.__opcodes.checkownnftwhere = {};
+    context.__opcodes.checkownnftwhere.nft_id = utxo3.substring(0, 66).toLowerCase();
 
     // --------------------------------------------------
     // Ownership check (runtime only)
@@ -93,15 +84,15 @@ console.log("**** CHECKOWNNFTWHERE produced length: " + context.__opcodes.checko
     // --------------------------------------------------
     // Extract NFT metadata
     // --------------------------------------------------
-    const nft_type = app.wallet.extractNFTType(utxo3);
+    const nft_type = context.app.wallet.extractNFTType(utxo3);
     const creator  = slip1.publicKey;
 
     // --------------------------------------------------
     // WHERE clause evaluation
     // --------------------------------------------------
-    if (Array.isArray(script.where)) {
+    if (Array.isArray(node.where)) {
 
-      for (const clause of script.where) {
+      for (const clause of node.where) {
 
         let lhs;
 

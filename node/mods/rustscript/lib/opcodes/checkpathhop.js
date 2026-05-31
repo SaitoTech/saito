@@ -33,7 +33,7 @@ module.exports = {
     publickey: "<creator_publickey>"
   },
 
-  exampleWitness: {
+  exampleRequired: {
     hops : [
       {
         to: "<publickey>",
@@ -50,29 +50,30 @@ module.exports = {
       assert: "array",
       publickey: "string"
     },
-    witness: {
+    required: {
       hops: "array"
     }
   },
 
-  execute(app, script, witness, context) {
-    try {
+  execute(node, context) {
 
 console.log("EXECUTING CHECKPATHHOP...");
+
+      const required = node.required || {};
 
       /* --------------------------------------------------
        * 0. Basic input checks
        * -------------------------------------------------- */
 
-      const path = witness?.hops;
-      if (!Array.isArray(path) || path.length === 0) {
+      const path = required.hops;
+      if (path === true || !Array.isArray(path) || path.length === 0) {
         return false;
       }
 
 console.log("CPH 2");
-      const start_publickey = app.browser.resolveVarReference(context, script.publickey);
+      const start_publickey = context.app.browser.resolveVarReference(context, node.publickey);
 console.log("CPH 3");
-      let binding_hash = app.browser.resolveVarReference(context, script.hash);
+      let binding_hash = context.app.browser.resolveVarReference(context, node.hash);
 console.log("CPH 4: " + binding_hash.length);
       if (typeof binding_hash !== "string" || !binding_hash.length) { binding_hash = ""; }
 console.log("CPH 5");
@@ -86,7 +87,7 @@ console.log("CPH 6");
 console.log("starting publickey: " + start_publickey);
 console.log("binding hash: " + binding_hash);
 
-      if (!app.crypto.verifyRoutingPath(
+      if (!context.app.crypto.verifyRoutingPath(
         path,
         start_publickey,
         binding_hash
@@ -115,9 +116,9 @@ console.log("ROUTING PATH VERIFIES!");
 
       let filtered = decoded;
 
-      if (Array.isArray(script.where) && script.where.length > 0) {
+      if (Array.isArray(node.where) && node.where.length > 0) {
         filtered = decoded.filter(hop => {
-          return script.where.every(condition =>
+          return node.where.every(condition =>
             this.evaluateCondition(hop, condition, context)
           );
         });
@@ -133,7 +134,7 @@ console.log("ROUTING PATH VERIFIES!");
 
       let selected;
 
-      switch (script.selector) {
+      switch (node.selector) {
         case "FIRST":
           selected = [filtered[0]];
           break;
@@ -174,7 +175,7 @@ if (context?.__DEBUG_ACCESS__) {
 	/* --------------------------------------------------
 	 * 5. ASSERT conditions
 	 * -------------------------------------------------- */
-	if (Array.isArray(script.assert) && script.assert.length > 0) {
+	if (Array.isArray(node.assert) && node.assert.length > 0) {
 
 console.log("ASSERT EXISTS...");
 
@@ -182,7 +183,7 @@ console.log("ASSERT EXISTS...");
 
   for (const hop of selected) {
 console.log("HOP EXISTS...");
-    for (const assertion of script.assert) {
+    for (const assertion of node.assert) {
       const result = this.evaluateCondition(hop, assertion, context);
 
 console.log("does the result hold: " + result);
@@ -226,10 +227,6 @@ console.log("returning true...");
 
 	return true;
 
-    } catch (err) {
-      console.error("CHECKPATHHOP error:", err);
-      return false;
-    }
   }
 };
 

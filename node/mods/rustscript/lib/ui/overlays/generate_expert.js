@@ -31,14 +31,14 @@ class GenerateExpertOverlay {
   }
 
   attachEvents() {
-    document.querySelector('.rs-expert-generate-btn').onclick = async () => {
+    document.querySelector('.rs-expert-generate-btn').onclick = () => {
       const input = document.querySelector('.rs-expert-input').value.trim();
       if (!input) {
         return;
       }
 
       try {
-        const result = await this.mod.parseExpertScript(input);
+        const result = this.mod.parseExpertScript(input);
         this.mod.ui.onParseSuccess(input, result);
         this.overlay.hide();
       } catch (err) {

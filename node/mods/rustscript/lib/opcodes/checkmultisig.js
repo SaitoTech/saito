@@ -9,7 +9,7 @@ module.exports = {
     publickeys: ["<publickey>", "<publickey>", "<publickey>"],
     msg: '<text>'
   },
-  exampleWitness: {
+  exampleRequired: {
     signatures: ["<signature>", "<signature>"]
   },
   schema: {
@@ -18,17 +18,21 @@ module.exports = {
       m: "number",
       msg: "string"
     },
-    witness: {
+    required: {
       signatures: "array:string"
     }
   },
 
-  execute: function (app, script, witness, context) {
+  execute: function (node, context) {
 
-    const publickeys = script.publickeys || [];
-    const m = script.m || publickeys.length;
-    const msg = script.msg || (context ? context.message : "") || "";
-    const signatures = witness.signatures || [];
+    const required = node.required || {};
+    const publickeys = node.publickeys || [];
+    const m = node.m || publickeys.length;
+    const msg = node.msg || (context ? context.message : "") || "";
+    const signatures = required.signatures;
+    if (signatures === true || !Array.isArray(signatures) || signatures.length === 0) {
+      return false;
+    }
 
     if (!Array.isArray(publickeys) || publickeys.length === 0) {
       console.warn("CHECKMULTISIG: no publickeys provided");
@@ -46,15 +50,10 @@ module.exports = {
     for (let signature of signatures) {
       for (let publickey of publickeys) {
         if (used.has(publickey)) { continue; }
-        try {
-          if (app.crypto.verifyMessage(msg, signature, publickey)) {
-            used.add(publickey);
-            valid++;
-            break;
-          }
-        } catch (err) {
-          console.warn("CHECKMULTISIG verify error: ", err);
-          continue;
+        if (context.app.crypto.verifyMessage(msg, signature, publickey)) {
+          used.add(publickey);
+          valid++;
+          break;
         }
       }
       if (valid >= m) { break; }
@@ -63,4 +62,3 @@ module.exports = {
     return valid >= m;
   }
 };
-

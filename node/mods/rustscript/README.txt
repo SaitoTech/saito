@@ -1,34 +1,53 @@
 # Rustscript module
 
-P2SH contract authoring: semantic script → locking script (LEFT) + unlocking script (RIGHT).
+P2SH contract authoring: semantic text → AST → execute.
 
 Lite-client: run `npm run compile` in `node/` before bundling. Do not add `.md` files under this mod.
 
-## Script shape (opcode nodes)
+## Canonical AST
+
+Leaf opcode:
 
 ```json
 {
   "op": "CHECKSIG",
-  "args": {
-    "publickey": "",
-    "signature": "context.witness.signature"
-  },
-  "witness": {
-    "signature": ""
+  "publickey": "<publickey>",
+  "msg": "Hello",
+  "required": {
+    "signature": true
   }
 }
 ```
 
-- **LEFT**: contract definition; `witness` only has user-declared slots (from `witness.*` in semantic syntax).
-- **RIGHT**: same tree; implicit runtime witness fields from opcode `witness_fields` are materialized.
+After the user supplies data:
 
-Opcode `defaults` and `witness_fields` live in `lib/opcodes/*.js` only.
+```json
+{
+  "required": {
+    "signature": "552a50c7..."
+  }
+}
+```
 
-## Pipeline (`lib/rustscript/`)
+`true` means required but not yet supplied. Any other value is part of the script and participates in hashing exactly as written.
+
+## Runtime (`lib/rustscript/`)
 
 ```
-semantic script  →  semantic_to_tokens.js  →  tokens
-tokens           →  tokens_to_ast.js       →  raw tree
-raw + opcodes    →  ast_execute.materialize →  LEFT / RIGHT JSON
-unlocking        →  ast_execute.js          →  execution
+script → script_to_scripthash.js → script_to_scripthash(script)
+AST    → ast_execute.js         → execute(ast, context) → true | false
 ```
+
+## Parser (`lib/rustscript/`)
+
+```
+semantic text → semantic_to_tokens.js → tokenize(text)
+tokens        → tokens_to_ast.js      → parse(tokens)
+```
+
+## UI
+
+Structural validation for expert JSON editing: `lib/ui/script_validate.js`.
+Scaffold required fields for test panel: `lib/ui/script_build.js`.
+
+Opcode behavior lives in `lib/opcodes/*.js`.
