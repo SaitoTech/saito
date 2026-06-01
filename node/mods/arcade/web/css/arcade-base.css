@@ -188,7 +188,7 @@
 .arcade-teasers {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-	grid-gap: 3rem;
+	grid-gap: 1rem;
 	align-content: start;
 	background: unset;
     background-color: transparent;
@@ -223,7 +223,7 @@
 	border: 1px solid var(--saito-overlay-panel-border);
 	position: relative;
 	cursor: pointer;
-	overflow: hidden;
+	overflow: visible;
 	border-radius: calc(var(--saito-border-radius) + 0.15rem);
 	background: var(--saito-overlay-panel-background);
 	box-shadow: var(--saito-overlay-panel-shadow);
@@ -254,6 +254,7 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	border-radius: var(--saito-border-radius);
 }
 
 .arcade-teaser-image {
@@ -280,7 +281,7 @@
 
 .arcade-teaser-footer .arcade-invite-badge {
 	width: fit-content;
-	padding: 0 20% 0 33%;
+	padding: 0 25%;
 	max-width: unset;
 }
 
