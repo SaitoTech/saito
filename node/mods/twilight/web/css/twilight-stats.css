@@ -1,7 +1,8 @@
+.game.twilight {
 .statistics-overlay {
 	min-width: 80vw;
 	min-height: auto;
-    	background: url('/twilight/img/TS Map-11.jpg');
+    	background: url('/twilight/img/TS Map-11.jpg') !important;
 	background-size: cover;
     	background-position: center;
     	transform: scale(1.1);
@@ -175,4 +176,5 @@
 	background-color: #0006;
 	padding-top: 1rem;
 	padding-bottom: 1rem;
+}
 }

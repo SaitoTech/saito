@@ -1,6 +1,4 @@
-
-
-
+.game.twilight {
 .game-help-hidden {
   visibility: hidden;
   opacity: 0;
@@ -25,4 +23,4 @@
     letter-spacing: 0.1rem;
     font-weight: bold;
 }*/
-
+}

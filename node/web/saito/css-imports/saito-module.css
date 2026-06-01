@@ -12,24 +12,38 @@
 .saito-module {
   display: flex;
   flex-wrap: wrap;
-  row-gap: 1rem;
+  row-gap: var(--saito-space-md);
   flex-direction: row;
   justify-content: space-between;
   position: relative;
   width: 100%;
   cursor: pointer;
-  padding: 1rem;
+  padding: var(--saito-space-md);
   align-items: center;
   background-size: cover;
   background-position: center;
-  background-color: color-mix(in srgb, var(--saito-gray-700) 27%, transparent);
+  background-color: var(--saito-card-bg);
   background-blend-mode: soft-light;
   border-radius: var(--saito-border-radius);
+  border: var(--border-thickness-thin) solid var(--saito-card-border-initial);
+  box-shadow: var(--saito-card-shadow);
   overflow: hidden;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+
+.saito-module:hover {
+  background-color: var(--saito-card-bg-hover);
+  border-color: var(--saito-card-border);
+  box-shadow: var(--saito-card-shadow-hover);
+  transform: var(--saito-card-transform-hover);
 }
 
 .saito-module-titlebar {
-  padding: 0.5rem;
+  padding: var(--saito-space-xs);
   max-width: 18rem;
   min-width: 12rem;
   width: 18rem;
@@ -38,7 +52,7 @@
   white-space: nowrap;
   overflow-wrap: break-word;
   opacity: 0.8;
-  background: #000a;
+  background: var(--saito-chip-bg);
   border-radius: var(--saito-border-radius);
 }
 
@@ -47,14 +61,14 @@
 }
 
 .saito-module-titlebar-title {
-  color: var(--saito-white);
+  color: var(--saito-chip-fg);
   font-size: 2rem;
 }
 
 .saito-module-titlebar-details {
   font-size: 1.4rem;
   text-transform: uppercase;
-  color: var(--saito-white);
+  color: var(--saito-chip-fg);
 }
 
 .saito-game-details {
@@ -74,7 +88,7 @@
     Small tweaks for when the saito-module is crammed into a sidebar
 */
 .saito-sidebar .saito-module {
-  padding: 0.5rem;
+  padding: var(--saito-space-xs);
 }
 
 .saito-sidebar .saito-module-titlebar {
@@ -99,43 +113,44 @@
 .saito-module-overlay {
   display: flex;
   flex-direction: column;
-  row-gap: 1rem;
+  row-gap: var(--saito-space-md);
   width: min(90vw, 80rem);
   max-height: 70vh;
   overflow: auto;
-  background: var(--saito-background-color);
+  background: var(--saito-overlay-panel-background);
   border-radius: var(--saito-border-radius);
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
-  padding: 2rem;
+  border: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
+  box-shadow: var(--saito-overlay-panel-shadow);
+  padding: var(--saito-space-xl);
   user-select: none;
 }
 
 .saito-module-header {
-  background: var(--dreamscape); /* testing not sure where*/
+  background: var(--saito-header-background);
   background-size: cover;
   background-position: center;
-  padding: 0.5rem;
+  padding: var(--saito-space-xs);
 }
 
 .saito-module-header .saito-module-titlebar {
   max-width: 100%;
   width: 100%;
-  padding: 0.5rem 1rem;
+  padding: var(--saito-space-xs) var(--saito-space-md);
 }
 
 .saito-module-overlay .saito-module-titlebar {
   background: var(--saito-header-background);
-  color: var(--saito-white);
+  color: var(--saito-header-color);
 }
 
 .saito-module-details {
   display: grid;
   grid-template-columns: 10rem 1fr;
-  gap: 1rem;
-  margin: 1rem;
-  padding: 2rem;
-  border-radius: 0.5rem;
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
+  gap: var(--saito-space-md);
+  margin: var(--saito-space-md);
+  padding: var(--saito-space-xl);
+  border-radius: var(--saito-radius-md);
+  border: var(--border-thickness-thin) solid var(--saito-card-border);
 }
 
 .saito-module-overlay > h4 {
@@ -143,18 +158,18 @@
 }
 
 .saito-module-settings {
-  padding: 1rem;
+  padding: var(--saito-space-md);
 }
 
 fieldset.saito-grid {
-  padding: 2rem;
+  padding: var(--saito-space-xl);
   display: grid;
   grid-template-columns: 2rem 1fr;
-  gap: 2rem;
+  gap: var(--saito-space-xl);
   align-items: center;
-  margin: 1rem 0;
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
-  border-radius: 0.5rem;
+  margin: var(--saito-space-md) 0;
+  border: var(--border-thickness-thin) solid var(--saito-card-border);
+  border-radius: var(--saito-radius-md);
   position: relative;
 }
 

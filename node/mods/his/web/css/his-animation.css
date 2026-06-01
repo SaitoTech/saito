@@ -1,4 +1,4 @@
-
+.game.his {
 .blink {
   animation: blinktext 2.5s linear infinite;
 }
@@ -16,6 +16,4 @@
     color: whitesmoke;
   }
 }
-
-
-
+}

@@ -1,4 +1,4 @@
-
+.game.his {
 .space_view {
   height: 60vh;
   width: calc(60vh * 0.74);
@@ -49,5 +49,4 @@
   font-size: 2rem;
   margin-top: 2rem;
 }
-
-
+}

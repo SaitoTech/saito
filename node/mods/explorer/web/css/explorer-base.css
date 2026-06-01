@@ -1,5 +1,7 @@
-.header {
+#saito-header.header {
 	padding: 0.75em 1em;
+	background: var(--dreamscape);
+	color: var(--saito-header-color);
 }
 
 h1, h2, h3 {

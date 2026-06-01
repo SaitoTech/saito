@@ -1,3 +1,4 @@
+.game.his {
 .theses-overlay {
 	height: 90vh;
 	width: 90vw;
@@ -109,4 +110,5 @@
 }
 .zoom-ottoman {
 	transform: translate(-60%, -46%) scaleX(0.6) scaleY(0.6);
+}
 }

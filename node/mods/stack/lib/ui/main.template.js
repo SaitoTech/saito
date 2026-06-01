@@ -1,7 +1,7 @@
 module.exports = (app, mod) => {
   return `
     <div class="stack-splash">
-      <section class="stack-cta-section">
+      <section class="stack-cta-section saito-cta">
         <div class="stack-cta-image-flip">
           <div class="stack-cta-image-front">
             <img src="/stack/img/splash.png" alt="Stack - Publish. Monetize. Own." onerror="this.style.display='none'; this.parentElement.classList.add('stack-cta-image-placeholder');" />
@@ -25,7 +25,8 @@ module.exports = (app, mod) => {
           </div>
         </div>
         <div class="stack-cta-content">
-          <h2 class="stack-cta-title">Publish without Publishers</h2>
+          <div class="stack-cta-logo" role="img" aria-label="Saito Stack"></div>
+          <div class="stack-cta-subtitle">PUBLISH WITHOUT PUBLISHERS</div>
           <p class="stack-cta-description">
             Create a subscription-based blog, use NFTs to limit access, and build your audience on your own terms.
           </p>

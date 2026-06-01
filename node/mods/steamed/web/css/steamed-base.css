@@ -1,8 +1,9 @@
+.game.steamed {
 body {
 	font-family: serif;
 }
 
-:root {
+& {
 	--steamed-card-width: min(17.5vh, 20vw);
 	--steamed-card-height: min(27.125vh, 31vw);
 }
@@ -436,4 +437,5 @@ body {
 	 	font-size: 24px;
 	 	line-height: 45px;
 	 }
+}
 }

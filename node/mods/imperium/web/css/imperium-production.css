@@ -1,3 +1,4 @@
+.game.imperium {
 .production-overlay {
 	height: 90vh;
 	max-height: 90vh;
@@ -112,4 +113,5 @@
 	grid-column-end: 3;
 	grid-row-start: 3;
 	grid-row-end: 3;
+}
 }

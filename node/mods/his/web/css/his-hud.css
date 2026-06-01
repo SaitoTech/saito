@@ -1,3 +1,4 @@
+.game.his {
 .hud-header {
 	opacity: 0.5;
 	background-color: #0005;
@@ -86,4 +87,4 @@
     -ms-user-select: none;
     user-select: none;
 }
-
+}

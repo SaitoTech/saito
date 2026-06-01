@@ -300,19 +300,10 @@ class Browser {
 
       this.browser_active = 1;
 
-      let theme = /*document.documentElement.getAttribute('data-theme') ||*/ 'lite';
+      const theme_from_document = document.documentElement.getAttribute('data-theme');
+      const theme = this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'noir';
 
-      // ignore html-embedded default theme preference until we are sorted on the themese
-      // because all of them are undefined!
-
-      if (this.app.options?.theme) {
-        if (this.app.options.theme[active_module]) {
-          theme = this.app.options.theme[active_module];
-          this.switchTheme(theme);
-        }
-      }
-
-      this.updateThemeInHeader(theme);
+      this.switchTheme(theme);
     } catch (err) {
       if (err == 'ReferenceError: document is not defined') {
         console.error('non-browser detected: ', err);
@@ -721,13 +712,19 @@ class Browser {
     const QRCode = require('./../helpers/qrcode');
     let obj = document.getElementById(qrid);
 
-    if (typeof data === 'object') {
-      data.width = 256;
-      data.height = 256;
-      data.colorDark = '#000000';
-      data.colorLight = '#ffffff';
-      data.correctLevel = QRCode.CorrectLevel.H;
-    }
+    data =
+      typeof data === 'object' && data !== null
+        ? data
+        : {
+            text: data
+          };
+
+    data.width = data.width || 256;
+    data.height = data.height || 256;
+    data.colorDark = data.colorDark || '#000000';
+    data.colorLight = data.colorLight || '#ffffff';
+    data.correctLevel = data.correctLevel || QRCode.CorrectLevel.H;
+    data.useSVG = true;
 
     console.debug('browser [generateQRCode]: ', data);
 

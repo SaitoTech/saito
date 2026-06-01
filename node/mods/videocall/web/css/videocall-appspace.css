@@ -5,6 +5,54 @@
 .small-audio-chatbox,
 .videocall-setting-grid-item,
 .stun-settings-shell {
+	--stun-noir-bg: var(--saito-background-color);
+	--stun-noir-surface-low: var(--saito-overlay-panel-surface-low, var(--saito-background-color));
+	--stun-noir-surface: var(--saito-overlay-panel-bg, var(--saito-surface-color));
+	--stun-noir-surface-high: var(--saito-surface-hover);
+	--stun-noir-surface-bright: var(--saito-surface-selected);
+	--stun-noir-text: var(--saito-font-color);
+	--stun-noir-text-muted: var(--saito-font-color-secondary);
+	--stun-noir-accent: var(--saito-primary);
+	--stun-noir-accent-2: var(--saito-primary-dark);
+	--stun-noir-accent-strong: var(--saito-primary);
+	--stun-noir-outline: var(--saito-overlay-panel-border);
+	--stun-noir-outline-strong: var(--saito-border-color);
+	--stun-noir-radius: var(--saito-border-radius);
+	--stun-noir-shadow: var(--saito-overlay-panel-shadow);
+	--stun-noir-shadow-soft: var(--saito-box-shadow);
+	--stun-noir-shadow-audio: var(--saito-overlay-panel-shadow);
+	--stun-noir-glass: var(--saito-overlay-panel-bg);
+	--stun-noir-glass-soft: var(--saito-surface-color);
+	--stun-noir-glass-strong: var(--saito-surface-hover);
+	--stun-noir-surface-overlay: var(--saito-overlay-panel-bg);
+	--stun-noir-surface-overlay-strong: var(--saito-overlay-panel-background);
+	--stun-noir-white-soft: color-mix(in srgb, var(--saito-font-color) 8%, transparent);
+	--stun-noir-accent-soft: color-mix(in srgb, var(--saito-primary) 14%, transparent);
+	--stun-noir-accent-splash: color-mix(in srgb, var(--saito-primary) 22%, transparent);
+	--stun-noir-accent-splash-2: color-mix(in srgb, var(--saito-secondary) 12%, transparent);
+	--stun-noir-accent-glow: color-mix(in srgb, var(--saito-primary) 38%, transparent);
+	--stun-noir-accent-glow-strong: color-mix(in srgb, var(--saito-primary) 55%, transparent);
+	--stun-noir-accent-glow-soft: color-mix(in srgb, var(--saito-primary) 30%, transparent);
+	--stun-noir-accent-glow-pulse: color-mix(in srgb, var(--saito-primary) 50%, transparent);
+	--stun-noir-secondary-glow-pulse: color-mix(in srgb, var(--saito-secondary) 50%, transparent);
+	--stun-noir-title-contrast: var(--saito-primary-text);
+	--stun-noir-danger: var(--saito-status-danger);
+	--stun-noir-danger-text: var(--saito-primary-text);
+	--stun-noir-icon-dark: var(--saito-surface-inverse-text);
+	--stun-noir-slider-bg: var(--saito-surface-selected);
+	--stun-noir-slider-knob: var(--saito-background-color);
+	--stun-noir-canvas-bg: var(--saito-background-color);
+	--stun-noir-border-light: var(--saito-border-color);
+	--stun-noir-toggle-bg: var(--saito-surface-hover);
+	--stun-noir-legacy-gradient-start: var(--saito-primary);
+	--stun-noir-legacy-gradient-end: var(--saito-secondary);
+}
+
+html[data-theme="noir"] .stun-appspace,
+html[data-theme="noir"] .stun-chatbox,
+html[data-theme="noir"] .small-audio-chatbox,
+html[data-theme="noir"] .videocall-setting-grid-item,
+html[data-theme="noir"] .stun-settings-shell {
 	--stun-noir-bg: #0d0e11;
 	--stun-noir-surface-low: #121316;
 	--stun-noir-surface: #181a1d;
@@ -59,11 +107,9 @@
 	justify-content: center;
 	position: relative;
 	padding: 3rem;
-	color: var(--stun-noir-text);
-	background:
-		radial-gradient(60vw 60vw at 50% -20%, var(--stun-noir-accent-soft), transparent),
-		var(--stun-noir-bg);
-	font-family: Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	color: var(--saito-font-color);
+	background: var(--saito-canvas-background);
+	font-family: var(--saito-font);
 }
 
 .stun-minimal-appspace {
@@ -71,8 +117,8 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	background-color: var(--stun-noir-bg);
-	color: var(--stun-noir-text);
+	background: var(--saito-overlay-panel-background);
+	color: var(--saito-font-color);
 	justify-content: space-between;
 	width: min(400px, 98vw);
 	height: min(600px, 80vh);
@@ -100,22 +146,10 @@
 	width: min(95vw, 860px);
 	padding: 3.2rem;
 	gap: 2.4rem;
-	border-radius: calc(var(--stun-noir-radius) + 0.15rem);
-	background: linear-gradient(145deg, var(--stun-noir-surface-low), var(--stun-noir-surface));
-	box-shadow: var(--stun-noir-shadow);
-	border: 1px solid var(--stun-noir-outline);
-}
-
-.stunx-splash-image {
-	width: min(360px, 78vw);
-	height: min(220px, 34vh);
-	background-image:
-		linear-gradient(135deg, var(--stun-noir-accent-splash), var(--stun-noir-accent-splash-2)),
-		url(/videocall/img/splash.jpg);
-	background-size: cover;
-	background-position: center;
-	border-radius: var(--stun-noir-radius);
-	box-shadow: 0 0 60px -18px var(--stun-noir-accent-glow);
+	border-radius: calc(var(--saito-border-radius) + 0.15rem);
+	background: var(--saito-overlay-panel-background);
+	box-shadow: var(--saito-overlay-panel-shadow);
+	border: 1px solid var(--saito-overlay-panel-border);
 }
 
 .stun-appspace-footer {
@@ -124,7 +158,7 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	color: var(--stun-noir-text-muted);
+	color: var(--saito-font-color-secondary);
 }
 
 .stun-appspace-footer > div {
@@ -137,8 +171,8 @@
 }
 
 .stun-appspace-footer > div:hover {
-	color: var(--stun-noir-text);
-	background-color: var(--stun-noir-surface-high);
+	color: var(--saito-font-color-heavy);
+	background-color: var(--saito-surface-hover);
 }
 
 .my-stun-container-info {
@@ -146,37 +180,34 @@
 	font-size: 1.75rem;
 }
 
-.stun-brand-pill {
-	font-family: 'Space Grotesk', Manrope, sans-serif;
-	font-size: 1.2rem;
-	font-weight: 500;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--stun-noir-accent);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 3.2rem;
-}
-
-.stun-brand-pill-logo {
-	height: 2.1rem;
-	width: auto;
+.stun-talk-logo {
+	--saito-cta-logo-color: var(--saito-font-color-heavy);
+	--saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-outline-label-horizontal.svg');
+	width: min(560px, 84vw);
 	display: block;
-	filter: drop-shadow(0 0 10px var(--stun-noir-accent-glow-soft));
+	position: relative;
+	aspect-ratio: 381 / 134;
+	filter: drop-shadow(0 0 18px var(--stun-noir-accent-glow-soft));
+	max-width: min(560px, 84vw);
 }
 
-.stun-title {
-	font-family: 'Space Grotesk', Manrope, sans-serif;
-	font-size: clamp(3.6rem, 8vw, 6.2rem);
-	line-height: 1;
-	letter-spacing: -0.03em;
+.stun-appspace-content:hover .stun-talk-logo {
+	--saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-solid-label-horizontal.svg');
+}
+
+.stun-talk-logo::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--saito-cta-logo-color);
+	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }
 
 .stun-subtitle {
 	text-transform: uppercase;
 	letter-spacing: 0.22em;
-	color: var(--stun-noir-text-muted);
+	color: var(--saito-font-color-secondary);
 	font-size: 1.25rem;
 }
 
@@ -191,9 +222,9 @@
 .stunx-appspace-launch-call-btn {
 	width: 100%;
 	padding: 1.35rem 2rem;
-	border-radius: var(--stun-noir-radius);
-	background: linear-gradient(135deg, var(--stun-noir-accent), var(--stun-noir-accent-2));
-	color: var(--stun-noir-title-contrast);
+	border-radius: var(--saito-button-radius);
+	background: var(--saito-button-primary-bg);
+	color: var(--saito-button-primary-fg);
 	box-shadow: 0 0 32px -10px var(--stun-noir-accent-glow-strong);
 	border: none;
 	transition:
@@ -216,9 +247,10 @@
 .stunx-precall-link {
 	font-size: 2rem;
 	cursor: pointer;
-	color: var(--stun-noir-accent);
-	background-color: var(--stun-noir-surface-high);
-	border-radius: var(--stun-noir-radius);
+	color: var(--saito-button-secondary-fg);
+	background-color: var(--saito-button-secondary-bg);
+	border: 1px solid var(--saito-button-secondary-border);
+	border-radius: var(--saito-button-radius);
 	min-width: 5.2rem;
 	min-height: 5.2rem;
 	display: flex;
@@ -228,16 +260,17 @@
 }
 
 .stunx-precall-link:hover {
-	color: var(--stun-noir-text);
-	background-color: var(--stun-noir-surface-bright);
+	color: var(--saito-button-secondary-fg-hover);
+	background-color: var(--saito-button-secondary-bg-hover);
 }
 
 .stunx-appspace-splash {
 	text-align: center;
 	display: flex;
 	flex-direction: column;
-	justify-content: space-between;
-	gap: 1.5rem;
+	align-items: center;
+	justify-content: center;
+	gap: 1.4rem;
 }
 
 .stun-appspace-navigation {
@@ -270,7 +303,7 @@
 
 .videocall-media-settings-header h2 {
 	margin: 0;
-	font-family: 'Space Grotesk', Manrope, sans-serif;
+	font-family: var(--saito-font);
 	font-size: 2.2rem;
 	font-weight: 500;
 	letter-spacing: -0.02em;
@@ -279,7 +312,7 @@
 .videocall-media-settings-header p {
 	margin: 0;
 	font-size: 1.4rem;
-	color: var(--stun-noir-text-muted);
+	color: var(--saito-font-color-secondary);
 }
 
 /** Dialer **/
@@ -433,5 +466,3 @@ input:checked + .slider:before {
 		align-items: stretch;
 	}
 }
-
-

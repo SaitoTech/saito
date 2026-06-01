@@ -1,3 +1,4 @@
+.game.imperium {
 .anti-fighter-barrage-overlay {
 	background:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
@@ -60,4 +61,5 @@
 	background-color: #0005;
 	padding: 1rem;
 	border-radius: 1rem;
+}
 }

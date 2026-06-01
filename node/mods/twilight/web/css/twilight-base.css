@@ -1,6 +1,12 @@
+.game.twilight {
 /*********************/
 /*** MOD DEFAULTS ****/
 /*********************/
+
+.hud {
+    color: #222;
+}
+
 
 .saito-overlay {
 	background: transparent;
@@ -38,7 +44,7 @@
 }
 
 .transparent-card-overlay .card {
-	background-image: url(/twilight/img/Base.svg);
+	background-image: url(/twilight/img/Base.svg) !important;
 	background-size: contain;
 	background-repeat: no-repeat;
 	width: 200px;
@@ -688,4 +694,5 @@ body {
 		width: 90vw;
 		height: calc(90vw * 1.4);
 	}
+}
 }

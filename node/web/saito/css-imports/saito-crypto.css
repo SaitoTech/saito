@@ -130,16 +130,16 @@
 }
 
 .deposit {
-  color: #00ae00;
+  color: var(--saito-status-success);
 }
 
 .withdraw {
-  color: #e34927;
+  color: var(--saito-status-danger);
 }
 
 .withdraw.invalid,
 .deposit.invalid {
-  color: #cab202;
+  color: var(--saito-status-warning);
 }
 
 .crypto-timestamp {
@@ -257,7 +257,8 @@
   .wallet-details .qrcode {
     height: 15rem;
   }
-  .wallet-details .qrcode img {
+  .wallet-details .qrcode img,
+  .wallet-details .qrcode svg {
     height: 15rem;
     width: 15rem;
   }
@@ -314,7 +315,7 @@
   width: 100%;
   color: var(--saito-primary-text);
   background: var(--saito-highlight);
-  border: 1px solid var(--saito-border-color);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
   border-radius: var(--saito-border-radius);
   overflow: hidden;
 }

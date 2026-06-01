@@ -5,18 +5,20 @@ buttons -- Primary & Secondary -- difference is color pattern
 button,
 .saito-button-primary,
 .saito-button-secondary {
+  appearance: none;
+  -webkit-appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: 0.2s;
   letter-spacing: 1px;
   font-size: 1.8rem;
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-button-radius);
   cursor: pointer;
-  border: var(--border-thickness-thin) solid var(--saito-primary);
+  border: var(--border-thickness-thin) solid var(--saito-button-primary-border);
   text-transform: capitalize;
-  padding: /*0 */ 1rem;
-  margin: 0.5rem;
+  padding: var(--saito-space-md);
+  margin: var(--saito-space-xs);
   white-space: nowrap;
   min-width: 18rem;
   min-height: 4.5rem;
@@ -25,13 +27,14 @@ button,
 
 button,
 .saito-button-primary {
-  background: var(--saito-primary);
-  color: var(--saito-primary-text);
+  background: var(--saito-button-primary-bg);
+  color: var(--saito-button-primary-fg);
 }
 
 .saito-button-secondary {
-  color: var(--saito-primary);
-  background: var(--saito-background-color);
+  color: var(--saito-button-secondary-fg);
+  background: var(--saito-button-secondary-bg);
+  border-color: var(--saito-button-secondary-border);
 }
 
 button:focus,
@@ -40,9 +43,15 @@ button:focus,
   outline: none;
 }
 
+button:focus-visible,
+.saito-button-primary:focus-visible,
+.saito-button-secondary:focus-visible {
+  box-shadow: var(--saito-focus-ring);
+}
+
 .saito-button-primary.disabled,
 .saito-button-primary[disabled] {
-  background: var(---saito-background-color);
+  background: var(--saito-button-disabled-bg);
   color: var(--saito-font-color-primary);
   border: var(--border-thickness-thin) solid var(--saito-font-color-primary);
   cursor: not-allowed;
@@ -50,20 +59,20 @@ button:focus,
 
 .saito-button-secondary.disabled,
 .saito-button-secondary[disabled] {
-  background: var(---saito-background-color);
-  color: var(--saito-font-color-light);
-  border: var(--border-thickness-thin) solid var(--saito-font-color-light);
+  background: var(--saito-button-disabled-bg);
+  color: var(--saito-button-disabled-fg);
+  border: var(--border-thickness-thin) solid var(--saito-button-disabled-border);
   cursor: not-allowed;
 }
 
 button:hover,
 .saito-button-primary:hover {
-  background: var(--saito-primary-dark);
+  background: var(--saito-button-primary-bg-hover);
 }
 
 .saito-button-secondary:hover {
-  background: var(--saito-primary);
-  color: var(--saito-primary-text);
+  background: var(--saito-button-secondary-bg-hover);
+  color: var(--saito-button-secondary-fg-hover);
 }
 
 button.small,
@@ -88,7 +97,7 @@ button.small,
 button.fat,
 .saito-button-primary.fat,
 .saito-button-secondary.fat {
-  min-height: 7rem;
+  height: 6rem;
   font-size: 2rem;
 }
 
@@ -96,8 +105,33 @@ button i {
   margin: 0 0.5rem;
 }
 
+.button-mouse-over {
+  transform-origin: center;
+  transition:
+    transform 0.16s ease,
+    filter 0.16s ease,
+    box-shadow 0.16s ease;
+  will-change: transform;
+}
+
+.button-mouse-over:hover {
+  animation: button-mouse-over-pulse 0.9s ease-in-out infinite;
+  transform: scale(1.06);
+}
+
+@keyframes button-mouse-over-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 color-mix(in srgb, var(--saito-primary) 0%, transparent));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 0.45rem color-mix(in srgb, var(--saito-primary) 30%, transparent));
+  }
+}
+
 /*******************************
- Arrange multiple buttons 
+ Arrange multiple buttons
  *******************************/
 .saito-button-row {
   display: flex;
@@ -131,7 +165,7 @@ button i {
 }
 
 /*******************************
- Text buttons 
+ Text buttons
  *******************************/
 .saito-anchor {
   cursor: pointer;
@@ -196,7 +230,7 @@ span.saito-anchor {
   /* This allows row to become column */
   .saito-button-row {
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: var(--saito-space-md);
   }
 
   .saito-button-row button,

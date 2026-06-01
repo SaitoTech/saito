@@ -1,3 +1,4 @@
+.game.nwasm {
 body {
 	background-color: black !important;
 }
@@ -498,4 +499,5 @@ body {
 			var(--x-6) var(--y-3) var(--c-6-3),
 			var(--x-6) var(--y-2) var(--c-6-2);
 	}
+}
 }

@@ -42,6 +42,7 @@ class ModTemplate {
       lite: 'fa-solid fa-sun',
       raven: 'fa-solid fa-crow',
       dark: 'fa-solid fa-moon',
+      noir: 'fa-solid fa-circle-half-stroke',
       prism: 'fa-solid fa-gem'
     };
 

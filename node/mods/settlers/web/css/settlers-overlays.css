@@ -1,3 +1,4 @@
+.game.settlers {
 .settlers-stats-overlay, .trade-overlay,
 /*.rules-overlay,*/
 
@@ -201,24 +202,37 @@ stats overlay
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	background: unset !important;
+	background: unset;
 	width: 100%;
 }
 
+.settlers-stats-player.p1,
+.settlers-stats-player.p2,
+.settlers-stats-player.p3,
+.settlers-stats-player.p4 {
+	background: transparent !important;
+	background-image: none !important;
+	border-bottom: 0;
+	text-decoration-line: underline;
+	text-decoration-thickness: 0.35rem;
+	text-underline-offset: 0.28rem;
+	text-decoration-skip-ink: none;
+}
+
 .settlers-stats-player.p1 {
-	border-bottom: 5px solid var(--p1-color);
+	text-decoration-color: var(--p1-color);
 }
 
 .settlers-stats-player.p2 {
-	border-bottom: 5px solid var(--p2-color);
+	text-decoration-color: var(--p2-color);
 }
 
 .settlers-stats-player.p3 {
-	border-bottom: 5px solid var(--p3-color);
+	text-decoration-color: var(--p3-color);
 }
 
 .settlers-stats-player.p4 {
-	border-bottom: 5px solid var(--p4-color);
+	text-decoration-color: var(--p4-color);
 }
 
 .settlers-stats-player+.settlers-stats-row {
@@ -318,21 +332,88 @@ stats overlay
 	font-size: 9rem;
 	max-width: 15rem;
 	max-height: 20rem;
+	border: 2px solid rgba(66, 65, 67, 0.2);
+	border-radius: 0.8rem;
+	overflow: hidden;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+	transition:
+		box-shadow 140ms ease,
+		filter 140ms ease,
+		transform 140ms ease;
+}
+
+.trade_area:hover,
+.trade_area.has-count {
+	box-shadow:
+		0 6px 16px rgba(0, 0, 0, 0.24),
+		0 0 0 2px rgba(255, 212, 92, 0.34);
+}
+
+.trade_area:hover {
+	transform: translateY(-1px);
 }
 
 .invalid_offer {
-	filter: grayscale(40%) brightness(0.5);
-	color: red;
+	filter: grayscale(35%) brightness(0.72);
+	color: #ff5757;
+	box-shadow:
+		0 0 0 2px rgba(180, 45, 45, 0.62),
+		0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.trade_resource_label {
+	position: absolute;
+	left: 0.5rem;
+	right: 0.5rem;
+	bottom: 0.45rem;
+	z-index: 4;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.35rem;
+	color: #fff;
+	font-size: 1.2rem;
+	line-height: 1;
+	text-transform: uppercase;
+	text-shadow: 1px 1px 2px #000;
+	pointer-events: none;
+}
+
+.trade_resource_label span {
+	min-width: 1.8rem;
+	height: 1.8rem;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(51, 24, 0, 0.78);
+	border: 1px solid rgba(255, 255, 255, 0.45);
+	font-size: 1.1rem;
 }
 
 .trade_count_number {
 	position: absolute;
 	left: 50%;
-	top: 48%;
+	top: 50%;
 	transform: translate(-50%, -50%);
 	transition: all 0.2s ease-in-out;
 	z-index: 2;
 	filter: drop-shadow(1px 1px 2px black);
+	width: 5.6rem;
+	height: 5.6rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(51, 24, 0, 0.58);
+	font-size: 4.2rem;
+	line-height: 1;
+	box-sizing: border-box;
+}
+
+.trade_count_number:empty {
+	background: transparent;
+	filter: none;
 }
 
 .trade_count_arrow {
@@ -343,15 +424,20 @@ stats overlay
 	left: 0px;
 	z-index: 3;
 	background: #331800;
-	opacity: 0;
+	opacity: 0.16;
 	cursor: pointer;
 	pointer-events: none;
 	transition: all 0.2s ease-in-out;
 }
 
+.trade_area .trade_count_arrow.can_select,
 .trade_area:hover .trade_count_arrow.can_select {
-	opacity: 0.7;
+	opacity: 0.44;
 	pointer-events: unset;
+}
+
+.trade_area:hover .trade_count_arrow.can_select {
+	opacity: 0.72;
 }
 
 .trade_count_up {
@@ -363,7 +449,7 @@ stats overlay
 .trade_count_up::before {
 	content: '⌃';
 	font-size: 5rem;
-	color: #fff !important;
+	color: #fff;
 	position: absolute;
 	left: 50%;
 	top: 80%;
@@ -375,7 +461,7 @@ stats overlay
 .trade_count_down::after {
 	content: '⌄';
 	font-size: 5rem;
-	color: #fff !important;
+	color: #fff;
 	position: absolute;
 	left: 50%;
 	top: 10%;
@@ -401,16 +487,23 @@ stats overlay
 	padding: 0.5rem 1rem;
 	line-height: 4rem;
 	border: 4px solid #424143;
-	border-radius: 1.5rem;
+	border-radius: 0.9rem;
 	min-width: 16rem;
 	max-width: 250px;
 	text-align: center;
+	background: rgba(255, 255, 255, 0.14);
+	transition:
+		background 140ms ease,
+		box-shadow 140ms ease,
+		transform 140ms ease;
 }
 
 .trade_overlay_button.valid_trade:hover {
-	background-color: #b79e76;
+	background-color: #ffd45c;
 	font-size: 18px;
 	cursor: pointer;
+	box-shadow: 0 5px 12px rgba(0, 0, 0, 0.22);
+	transform: translateY(-1px);
 }
 
 .vp-table img {
@@ -671,4 +764,5 @@ stats overlay
 	.trade_overlay_buttons {
 		grid-column: 1 / span 2;
 	}
+}
 }

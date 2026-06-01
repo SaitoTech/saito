@@ -141,6 +141,18 @@ impl ConsensusThread {
         timestamp: Timestamp,
         produce_without_limits: bool,
     ) -> bool {
+        let chain_sync_in_progress = {
+            let peers = self.network.peer_lock.read().await;
+            peers
+                .peers
+                .values()
+                .any(|peer| peer.is_connected && peer.is_syncing && !peer.is_synced)
+        };
+        if chain_sync_in_progress && !produce_without_limits {
+            trace!("skipping block production while chain sync is in progress");
+            return false;
+        }
+
         let config_lock = self.config_lock.clone();
         let mut configs = config_lock.write().await;
 

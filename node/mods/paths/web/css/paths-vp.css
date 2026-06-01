@@ -1,4 +1,4 @@
-
+.game.paths {
 .vp-overlay {
 	width: 90vw;
     	height: auto;
@@ -14,4 +14,4 @@
     	white-space: pre-wrap;
     	overflow-y: auto;
 }
-
+}
