@@ -228,10 +228,19 @@ impl SyncManager {
     pub async fn fetch(&mut self, network: &Network, fetch_dispatcher: &FetchDispatcher) -> bool {
         let mut work_done = false;
         let now = self.timer.get_timestamp_in_ms();
+        let max_concurrent_fetches = {
+            let blockchain = self.blockchain_lock.read().await;
+            if blockchain.blockring.is_empty() {
+                1
+            } else {
+                MAX_CONCURRENT_BLOCK_FETCHES
+            }
+        };
+
         loop {
             let items_being_fetched = self.queue.values().filter(|e| e.fetch_active).count();
 
-            if items_being_fetched >= MAX_CONCURRENT_BLOCK_FETCHES {
+            if items_being_fetched >= max_concurrent_fetches {
                 break;
             }
 
