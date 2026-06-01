@@ -74,7 +74,8 @@
 
 .arcade-invite-badge {
 	position: absolute;
-	right: 0;
+	right: -0.75rem;
+	bottom: -0.75rem;
 	height: 100%;
 	width: 10rem;
 	max-width: 100%;
@@ -92,6 +93,7 @@
 	text-shadow: 1px 1px 2px var(--saito-black);
 	background-color: var(--saito-primary);
 	color: var(--saito-primary-text);
-	border-radius: 0 var(--saito-radius-md) var(--saito-radius-md) 0;
-	clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);
+	border-radius: var(--saito-radius-md);
+	border: 3px solid var(--saito-background-color);
+	/*clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);*/
 }
