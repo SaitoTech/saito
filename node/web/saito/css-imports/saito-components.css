@@ -35,8 +35,8 @@
 
 .online .online-status-indicator:after, .stun .online-status-indicator:after {
   display: block;
-  top: 2.9rem;
-  left: 2.75rem;
+  top: 3.9rem;
+  left: 3.75rem;
   border: var(--border-thickness-medium) solid var(--saito-notification-ring);
 }
 
