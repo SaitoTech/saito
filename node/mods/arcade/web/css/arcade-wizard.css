@@ -96,7 +96,7 @@
 .arcade-wizard {
 	padding: 2rem;
 	border-radius: inherit;
-	color: var(--saito-white);
+	color: var(--saito-font-color);
 	background: var(--saito-gray-850);
 	border: 1px solid var(--saito-gray-850);
 	user-select: none;
@@ -167,13 +167,18 @@
 	outline: none;
 }
 
+.arcade-wizard select option,
+#advanced-options-overlay-container select option {
+	background: var(--saito-background-color);
+}
+
 .saito-select::after {
 	border-left: 1px solid var(--saito-primary);
 }
 
 .overlay-input {
-	color: var(--saito-white);
-	background: var(--saito-gray-850);
+	color: var(--saito-font-color);
+	background: transparent;
 }
 
 .arcade-wizard-controls .overlay-input {
@@ -186,8 +191,8 @@
 	width: 100%;
 	outline: none;
 	border: none;
-	color: var(--saito-white);
-	background: var(--saito-gray-850);
+	color: var(--saito-font-color);
+	background: transparent;
 }
 
 .arcade-wizard-controls .settings {
@@ -244,13 +249,25 @@
 }
 
 .saito-multi-select_btn.saito-select {
-	border-bottom: unset;
+	background: transparent;
+	border: 1px solid var(--saito-primary);
+	border-bottom: 1px solid var(--saito-primary);
+	border-radius: 0 var(--saito-input-radius) var(--saito-input-radius) 0;
 	height: 4.8rem;
 	width: 100%;
 	position: relative;
 	display: flex;
 	line-height: 3;
 	margin-top: 0px;
+}
+
+.saito-multi-select_btn.saito-select::after {
+	align-items: center;
+	background: var(--saito-primary);
+	border-left: 1px solid var(--saito-primary);
+	color: var(--saito-font-color);
+	height: 100%;
+	line-height: 1;
 }
 
 .saito-multi-select_btn_options {
@@ -264,12 +281,8 @@
 	overflow: visible;
 }
 
-.saito-multi-select_btn {
-	background: none;
-}
-
 .saito-multi-select_btn_options button {
-	background: var(--saito-gray-850);
+	background: transparent;
 	margin: 0rem;
 	padding: 0rem;
 	width: 100%;
@@ -278,23 +291,24 @@
 	min-height: 4.8rem;
 	font-size: 2rem;
 	margin-bottom: -1px;
+	border: none;
+}
+
+.saito-multi-select_btn.showAll .saito-multi-select_btn_options button {
 	border: 1px solid var(--saito-primary);
 }
 
-/*.saito-multi-select_btn.showAll>.saito-multi-select_btn_options button {
-  background-color: var(--saito-primary);
-  color: #fff;
-}*/
+.saito-multi-select_btn:not(.showAll):hover .saito-multi-select_btn_options button:first-child,
+.saito-multi-select_btn_options button:hover {
+	background: var(--saito-primary);
+	color: var(--saito-white);
+}
 
 .saito-multi-btn {
 	width: 100%;
 	min-height: 4.8rem;
-	margin: 0.1rem;
-	color: var(--saito-white);
-}
-
-.saito-multi-btn:hover {
-	background: var(--saito-primary);
+	margin: 0;
+	color: var(--saito-font-color);
 }
 
 .arcade-wizard-form {

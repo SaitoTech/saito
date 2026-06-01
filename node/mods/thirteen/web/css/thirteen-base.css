@@ -1,3 +1,4 @@
+.game.thirteen {
 /*** increase cardbox default size ***/
 .game-cardbox {
 	top: 4vh;
@@ -360,4 +361,5 @@ li.card {
 .hud-card .agenda_card {
 	width: 131px;
 	height: 180px;
+}
 }

@@ -98,7 +98,7 @@ async function init() {
       new BrowserSharedMethods(saito),
       new Factory(),
       saito.options.wallet?.privateKey || '',
-      LogLevel.Debug,
+      logLevel,
       BigInt(1),
       true
     );

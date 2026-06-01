@@ -1,3 +1,4 @@
+.game.poker {
 .controls div.option {
   /*height: 10rem;*/
   height: unset;
@@ -151,4 +152,5 @@ span.raise_option img {
   list-style: none;
   padding: 1rem 2rem;
   cursor: pointer;
+}
 }

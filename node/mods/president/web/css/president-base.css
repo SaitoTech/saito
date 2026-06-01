@@ -1,3 +1,4 @@
+.game.president {
 * {
   --card-width: 110px;
   --card-spacing: calc(var(--card-width) * 0.25);
@@ -278,4 +279,5 @@ body {
     left: unset;
     transform: unset;
   }
+}
 }

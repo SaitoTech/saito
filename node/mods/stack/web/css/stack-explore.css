@@ -593,9 +593,11 @@
     padding: 0;
   }
 
-  .saito-overlay-closebox:has(+ .stack-explore-overlay) .saito-overlay-closebox-btn {
-    background: var(--saito-font-color);
-    color: var(--saito-background-color);
+  .saito-overlay-closebox:has(+ .stack-explore-overlay) {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 18%, transparent), transparent),
+      color-mix(in srgb, var(--saito-surface-color) 84%, var(--saito-primary));
+    border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-overlay-panel-border));
   }
 
   .stack-explore-sidebar {

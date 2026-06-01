@@ -1,3 +1,4 @@
+.game.imperium {
 .tech-overlay {
 	display: flex;
 	flex-direction: row;
@@ -53,4 +54,5 @@
 	bottom: 0.5rem;
 	right: 0rem;
 	-webkit-text-stroke: 1px #000;
+}
 }

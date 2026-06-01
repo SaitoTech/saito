@@ -198,13 +198,21 @@ class SaitoHeader extends UIModTemplate {
     // In the future, we may want to parameterize what we replace the logo with
     //
     app.connection.on('saito-header-replace-logo', (callback = null) => {
+      let logo = document.querySelector('.saito-header-logo-wrapper');
+      if (logo) {
+        logo.classList.add('saito-header-logo-back');
+      }
+
       if (!document.querySelector('.saito-back-button')) {
         this.app.browser.addElementToSelector(
           `<i class="saito-back-button fa-solid fa-arrow-left"></i>`,
           '.saito-header-logo-wrapper'
         );
+      }
 
-        document.querySelector('.saito-header-logo-wrapper').onclick = (e) => {
+      logo = document.querySelector('.saito-header-logo-wrapper');
+      if (logo) {
+        logo.onclick = (e) => {
           if (callback) {
             callback(e);
           }
@@ -241,6 +249,7 @@ class SaitoHeader extends UIModTemplate {
   resetHeaderLogo() {
     let logo = document.querySelector('.saito-header-logo-wrapper');
     if (logo) {
+      logo.classList.remove('saito-header-logo-back');
       logo.innerHTML = this.app.browser.logoSVG();
       logo.onclick = (e) => {
         navigateWindow(this.header_location, 300);
@@ -460,11 +469,6 @@ class SaitoHeader extends UIModTemplate {
   }
 
   addMenuItem(item, id) {
-    let html = `     
-      <li id="${id}" data-id="${item.text}" class="saito-header-appspace-option ${item.type}" ${item?.navigation ? `data-navigation="${item.navigation}"` : ''}>
-        <i class="${item.icon}"></i>
-        <span>${item.text}</span></li>`;
-
     let keyword = item.type;
     if (!keyword) {
       console.warn('Unclassified responder to saito-header!');
@@ -474,11 +478,58 @@ class SaitoHeader extends UIModTemplate {
       keyword = 'module';
     }
 
+    const icon = this.renderMenuItemIcon(item, keyword);
+
+    let html = `     
+      <li id="${id}" data-id="${item.text}" class="saito-header-appspace-option ${item.type}" ${item?.navigation ? `data-navigation="${item.navigation}"` : ''}>
+        ${icon}
+        <span>${item.text}</span></li>`;
+
     let menu = document.querySelector(`.saito-header-menu-section .${keyword}-menu > ul`);
     if (menu) {
       menu.innerHTML += html;
       menu.parentElement.classList.remove('empty-menu-section');
     }
+  }
+
+  renderMenuItemIcon(item, keyword) {
+    if (keyword === 'module') {
+      const icon_paths = this.returnModuleMenuIconPaths(item.text);
+      if (icon_paths) {
+        return `<span class="saito-module-menu-icon-wrap" aria-hidden="true">
+          <img class="saito-module-menu-icon saito-module-menu-icon-outline" src="${icon_paths.outline}" alt="">
+          <img class="saito-module-menu-icon saito-module-menu-icon-solid" src="${icon_paths.solid}" alt="">
+        </span>`;
+      }
+    }
+
+    return `<i class="${item.icon}"></i>`;
+  }
+
+  returnModuleMenuIconPaths(text = '') {
+    const key = text.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const icons = {
+      arcade: 'saito-arcade-icon',
+      chat: 'saito-chat-icon',
+      filetransfer: 'saito-filetransfer-icon',
+      fileshare: 'saito-filetransfer-icon',
+      games: 'saito-games-icon',
+      redsquare: 'saito-redsquare-icon',
+      saitotalk: 'saito-talk-icon',
+      swarmcast: 'saito-swarmcast-icon',
+      talk: 'saito-talk-icon',
+      vault: 'saito-vault-icon',
+      stack: 'saito-stack-icon'
+    };
+
+    if (!icons[key]) {
+      return null;
+    }
+
+    return {
+      outline: `/saito/icons/${icons[key]}-outline.svg`,
+      solid: `/saito/icons/${icons[key]}-solid.svg`
+    };
   }
 
   attachEvents() {

@@ -1,17 +1,16 @@
 module.exports = (app, mod, build_number, og_card, include_loader = true) => {
+  const gameSlug = app.browser.escapeHTML(mod.returnSlug());
   let html = `
 
   
   <!DOCTYPE html>
-  <html lang="en" data-theme="lite">
+  <html lang="en" class="game ${gameSlug}" data-theme="noir">
   
   <head>
 
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="description" content="${app.browser.escapeHTML(
-      app.browser.sanitize(mod.description)
-    )}" />
+    <meta name="description" content="${app.browser.escapeHTML(app.browser.sanitize(mod.description))}" />
     <meta name="keywords" content="${mod.categories}"/>
     <meta name="author" content="${og_card.creator}"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />

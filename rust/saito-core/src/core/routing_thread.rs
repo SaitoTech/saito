@@ -12,6 +12,7 @@ use crate::core::network::gatekeeper::AccessRecord;
 use crate::core::network::gatekeeper::Gatekeeper;
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::msg::block::BlockReference;
+use crate::core::network::msg::blockchain::MAX_BLOCKCHAIN_CHUNK;
 use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::RequestServices;
@@ -373,15 +374,29 @@ impl RoutingThread {
         let block_id = block_reference.block_id;
         let block_hash = block_reference.block_hash;
 
-        {
+        let active_chain_sync = {
             let peers = self.network.peer_lock.read().await;
             if peers.get_peer_by_id(peer_id).is_none() {
                 return false;
             }
-        }
+            peers.peers.values().any(|p| p.is_connected && p.is_syncing)
+        };
 
         let blockchain = self.blockchain_lock.read().await;
         if blockchain.is_block_indexed(block_hash) {
+            return false;
+        }
+        if active_chain_sync
+            && block_id
+                > blockchain
+                    .get_latest_block_id()
+                    .saturating_add(MAX_BLOCKCHAIN_CHUNK as BlockId)
+        {
+            info!(
+                "[BLOCK_PROCESS_TRACE][VERIFY] deferring block reference {} while chain sync catches up from {}",
+                block_id,
+                blockchain.get_latest_block_id()
+            );
             return false;
         }
         if !blockchain.blocks.is_empty() && blockchain.lowest_acceptable_block_id >= block_id {
@@ -754,6 +769,14 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 sync.fetch(&self.network, &self.fetch_dispatcher).await;
 
                 if sync.queue.is_empty() {
+                    let is_latest_block = {
+                        let blockchain = self.blockchain_lock.read().await;
+                        blockchain.get_latest_block_hash() == block_hash
+                    };
+                    if !is_latest_block {
+                        return None;
+                    }
+
                     info!("RoutingEvent::OnAddBlockSuccess: empty queue, triggering advance chain symc...");
                     sync.advance_chain_sync_if_ready(&self.network, self.config_lock.clone())
                         .await;

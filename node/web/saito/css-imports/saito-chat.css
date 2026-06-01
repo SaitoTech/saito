@@ -27,8 +27,8 @@
   gap: 1rem;
   border: 1px solid var(--saito-border-color);
   border-radius: var(--saito-border-radius);
-  background-image: url(/saito/img/tiled-logo.svg);
-  background-color: var(--saito-background-color);
+  background-image: var(--saito-chat-background-image);
+  background-color: var(--saito-chat-background);
 }
 
 .chat-popup-img-enhanced {
@@ -55,7 +55,7 @@
 
 .chat-manager .saito-user:hover {
   background-color: var(--saito-primary);
-  color: var(--saito-white);
+  color: var(--saito-primary-text);
 }
 
 .chat-manager .saito-user:hover .saito-userline,
@@ -87,7 +87,7 @@
 }
 
 .new-notification {
-  background: linear-gradient(90deg, #0003 47%, var(--saito-primary), #0003 53%);
+  background: var(--saito-chat-notification-gradient);
   background-size: 300%;
   animation: notificationAnimation 1.8s ease;
 }
@@ -154,7 +154,7 @@
 
 /* Chat teaser indicating said chat is open in a popup */
 .saito-chat-active {
-  background-color: color-mix(in srgb, var(--saito-gray-700) 27%, transparent);
+  background-color: var(--saito-chat-active-bg);
   color: var(--saito-font-color-secondary);
 }
 
@@ -181,7 +181,7 @@
   position: fixed;
   bottom: 0px;
   border: var(--border-thickness-thin) solid var(--saito-border-color);
-  background: var(--saito-background-color);
+  background: var(--saito-chat-shell-bg);
   color: var(--saito-font-color);
   max-height: 100vh;
   min-width: 30rem;
@@ -197,7 +197,7 @@
   /* So weird, at 15 it blocks the z-index 20 slide in menu*/
   /* reason: the slidein is child of saito header, so whatever z-index is assigned to saito header,
   the child (slidein menu) inherits it */
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-elevation-2);
 }
 
 .chat-container,
@@ -258,6 +258,7 @@
   border-top-left-radius: inherit;
   border-top-right-radius: inherit;
   width: 100%;
+  background-color: var(--saito-background-color);
 }
 
 .chat-header > .chat-header-nav {
@@ -289,7 +290,7 @@
 
 .chat-header > .chat-header-nav > i:hover {
   background-color: var(--saito-primary);
-  color: var(--saito-background-color);
+  color: var(--saito-primary-text);
 }
 
 .fix-me {
@@ -310,7 +311,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) min-content;
   align-items: center;
-  box-shadow: 0px 2px 2px -2px; /* added some depth to the header here. Across all themes, but I feel it is necessary. */
+  box-shadow: var(--saito-chat-header-shadow);
 }
 
 .chat-container.minimized .chat-header-info {
@@ -350,7 +351,7 @@
 .chat-action-item:hover,
 .chat-action-menu:hover {
   background-color: var(--saito-primary);
-  color: var(--saito-background-color);
+  color: var(--saito-primary-text);
 }
 
 .chat-action-item:hover i,
@@ -405,8 +406,8 @@
   display: block;
   height: 100%;
   overflow: clip auto;
-  background-image: url(/saito/img/tiled-logo.svg);
-  background-color: var(--saito-background-color);
+  background-image: var(--saito-chat-background-image);
+  background-color: var(--saito-chat-background);
 }
 
 .chat-body > .saito-user {
@@ -423,8 +424,8 @@
   padding: 0.75rem;
   padding-right: 3rem;
   border-radius: 0.5rem 0.5rem 0.5rem 0;
-  background: var(--saito-background-color);
-  box-shadow: var(--saito-box-shadow);
+  background: var(--saito-chat-message-bg);
+  box-shadow: var(--saito-chat-message-shadow);
   margin-right: 1rem;
   height: fit-content;
   overflow: visible;
@@ -444,7 +445,7 @@
 
 /* self's messages -- inverse of other people's messages */
 .chat-body .saito-user-self.saito-user .saito-userline {
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-chat-message-shadow);
   border-radius: var(--saito-border-radius);
 }
 
@@ -531,7 +532,7 @@
   right: -5rem;
   bottom: 1; /* bumped it down a notch, and closer to the element */
   z-index: 9;
-  background: var(--saito-background-color);
+  background: var(--saito-overlay-panel-background);
   border-radius: var(--saito-border-radius);
   border: var(--border-thickness-thin) solid var(--saito-border-color);
   font-size: 1.1rem; /* made this way smaller, but this way access immediately below the line works better */
@@ -595,12 +596,12 @@
   padding: 0;
   display: flex;
   flex-flow: row;
-  align-items: end;
+  align-items: center;
   z-index: 2;
   border-top: 1px solid var(--saito-border-color);
   border-bottom-left-radius: inherit;
   border-bottom-right-radius: inherit;
-  background: var(--saito-background-color);
+  background: var(--saito-chat-shell-bg);
   position: relative;
 }
 
@@ -611,8 +612,28 @@
 }
 
 .chat-footer .saito-emoji {
-  padding: 1.3rem 0.5rem;
+  top: 50%;
+  bottom: auto;
+  width: 4.3rem;
+  height: 4.3rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
 }
+
+.chat-footer .saito-input .text-input:not(.post-tweet-textarea) {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/*
+.chat-footer .saito-input .text-input:not(.post-tweet-textarea):focus,
+.chat-footer .saito-input .text-input:not(.post-tweet-textarea):focus-within {
+  border-color: var(--saito-input-border-focus);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--saito-input-border-focus) 34%, transparent);
+}*/
 
 /* This is the submit paper airplane icon */
 
@@ -622,11 +643,33 @@
   z-index: 2;
   transition: all 0.2s;
   font-size: 2rem;
-  padding: 1.3rem 1rem 1.3rem 0.5rem;
+  align-content: center;
+  text-align: center;
 }
 
-.chat-footer i:hover {
-  transform: rotate(45deg);
+.chat-footer > .chat-input-submit.button-mouse-over {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.3rem;
+  height: 4.3rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.chat-footer > .chat-input-submit:hover {
+  animation: button-mouse-over-pulse 0.9s ease-in-out infinite;
+  transform: scale(1.06);
+}
+
+.chat-footer .saito-emoji:hover {
+  transform: translateY(-50%);
+}
+
+.chat-footer .selection-box-tabs i:hover,
+.chat-footer .saito-box-tab:hover {
+  transform: none;
 }
 
 .dockedLeft {
@@ -662,8 +705,8 @@
 }
 
 .chat-main-container {
-  background-color: var(--saito-background-color);
-  background-image: url(/saito/img/tiled-logo.svg);
+  background-color: var(--saito-chat-background);
+  background-image: var(--saito-chat-background-image);
 }
 
 .chat-main-container .chat-body {
@@ -672,7 +715,7 @@
 }
 
 .chat-main-container .saito-sidebar.left {
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-chat-shell-bg);
 }
 
 .saito-chat-button {
@@ -727,14 +770,14 @@
 }
 
 .chat-manager-overlay {
-  background-color: var(--saito-background-color); /* testing */
+  background-color: var(--saito-overlay-panel-bg);
   position: absolute;
   left: 0;
   top: var(--saito-header-height);
   z-index: 90;
   width: 300px;
   border: var(--border-thickness-thin) solid var(--saito-border-color);
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-overlay-panel-shadow);
   border-radius: var(--saito-border-radius);
   height: fit-content;
   overflow: hidden;
@@ -776,7 +819,7 @@
 .chat-popup.maximized .chat-maximizer-icon,
 .chat-popup.minimized .chat-minimizer-icon {
   background-color: var(--saito-primary);
-  color: var(--saito-background-color);
+  color: var(--saito-primary-text);
 }
 
 @media screen and (max-width: 720px) {
@@ -823,6 +866,10 @@
     grid-template-rows: var(--saito-header-height) 1fr;
   }
 
+  .chat-manager-list {
+    background-color: var(--saito-background-color);
+  }
+
   .chat-manager-overlay .close-chat-manager i {
     width: 45px;
     height: 70px;
@@ -839,11 +886,19 @@
     max-height: -webkit-fill-available;
     max-width: -webkit-fill-available;
     border-radius: 0;
+    background: var(--saito-background-color);
+    z-index: 91;
     /* For the keyboard */
-    right: 0;
-    bottom: 0;
-    top: 0;
-    left: 0;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  .chat-container .chat-header,
+  .chat-container .chat-footer,
+  .chat-container .chat-body {
+    background-color: var(--saito-background-color);
   }
 
   .chat-header > .chat-header-nav {
@@ -863,7 +918,7 @@
   .chat-manager-overlay + .chat-container {
     height: 100dvh;
     transition: height 0.3s;
-    z-index: 90;
+    z-index: 91;
   }
 
   .chat-header-info {

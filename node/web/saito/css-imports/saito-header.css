@@ -2,7 +2,7 @@
   position: fixed;
   display: flex;
   width: 100vw;
-  backdrop-filter: blur(1px);
+  backdrop-filter: none;
   margin: 0;
   align-items: center;
   justify-content: space-between;
@@ -16,7 +16,7 @@
     height 0.33s linear,
     padding 0.33s linear;
   color: var(--saito-header-color);
-  background: var(--saito-header-background);
+  background: transparent;
 }
 
 #saito-header.wide-screen {
@@ -44,8 +44,8 @@
 
 #saito-header.game .hamburger-container {
   padding: 0.5rem;
-  background: #0003;
-  border-radius: 0.5rem;
+  background: var(--saito-chip-bg);
+  border-radius: var(--saito-radius-md);
   margin-top: 1rem;
 }
 
@@ -86,8 +86,8 @@
   height: 4px;
   margin-bottom: 5px;
   position: relative;
-  background: var(--saito-white);
-  border-radius: 3px;
+  background: var(--saito-header-color);
+  border-radius: var(--saito-radius-sm);
   z-index: 1;
   transform-origin: 4px 0px;
   transition: transform 0.5s cubic-bezier(0.77, 0.2, 0.05, 1);
@@ -112,12 +112,13 @@
 
 .saito-header-hamburger-contents {
   display: block;
-  background: var(--saito-background-color);
+  background: var(--saito-header-menu-bg);
   position: absolute;
   right: -40rem;
   top: var(--saito-header-height);
-  border-top: 1px solid var(--border-color-general-dividers);
-  border-left: 1px solid var(--border-color-general-dividers);
+  border-top: var(--border-thickness-thin) solid var(--saito-header-menu-border);
+  border-left: var(--border-thickness-thin) solid var(--saito-header-menu-border);
+  box-shadow: var(--saito-header-menu-shadow);
   transition:
     right 0.33s,
     width 0.33s;
@@ -179,7 +180,9 @@
 }
 
 #qrcode img,
-.qrcode img {
+#qrcode svg,
+.qrcode img,
+.qrcode svg {
   height: 18rem;
   width: 18rem;
   border: var(--border-thickness-fat) solid var(--saito-primary);
@@ -386,7 +389,7 @@
   width: 4.6rem;
   height: 4.6rem;
   transition: transform 200ms ease-out;
-  background-color: var(--saito-primary);
+  background-color: var(--saito-floating-action-bg);
   border-radius: 50%;
   position: relative;
   z-index: 2;
@@ -394,7 +397,7 @@
   display: none;
   justify-content: center;
   align-items: center;
-  filter: drop-shadow(1px 1px 2px var(--color-contrast));
+  filter: drop-shadow(var(--saito-floating-action-shadow));
 }
 
 .activated .saito-floating-plus-btn {
@@ -403,7 +406,7 @@
 
 .saito-floating-plus-btn i {
   font-size: 2.5rem;
-  color: #fff;
+  color: var(--saito-floating-action-fg);
   width: 2.5rem;
   height: 2.5rem;
   text-align: center;
@@ -414,9 +417,9 @@
   width: 4.1rem;
   height: 4.1rem;
   border-radius: 50%;
-  background-color: var(--saito-background-color); /* testing */
+  background-color: var(--saito-floating-menu-bg);
   transition: box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  border: 1px solid var(--border-color-general-dividers); /* testing */
+  border: var(--border-thickness-thin) solid var(--saito-floating-menu-border);
   color: var(--saito-font-color);
   cursor: pointer;
   display: flex;
@@ -431,7 +434,7 @@
 .saito-floating-menu-mask {
   width: 100%;
   height: 100%;
-  background: var(--saito-background-color); /* testing */
+  background: var(--saito-floating-menu-bg);
   position: absolute;
   opacity: 0;
   transition: all 0.3s linear;
@@ -510,9 +513,13 @@
   top: 0;
   left: 0;
   color: var(--saito-header-color);
-  background: var(--saito-header-background);
+  background: transparent;
   background-size: 100vw;
   background-position-x: min(-2rem, calc(- (100vw - var(--saito-width)) / 2 + 0.5rem));
+}
+
+.saito-header-logo-back .saito-header-logo path:first-of-type {
+  opacity: 0;
 }
 
 .saito-header-logo-wrapper:hover .saito-back-button {

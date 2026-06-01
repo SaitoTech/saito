@@ -18,12 +18,12 @@
 
 .saito-menu > ul > li:active {
   /* newly added state, for use in Sangre3000 -only so far */
-  background: var(--background-color-button-active-sidebar);
+  background: var(--saito-menu-item-active-bg);
 }
 
 .saito-menu > ul > li:hover p {
-  background-color: var(--saito-background-color);
-  color: var(--saito-background-color);
+  background-color: var(--saito-menu-item-hover-bg);
+  color: var(--saito-menu-item-hover-fg);
 }
 
 .saito-menu > ul > li > i {
@@ -71,12 +71,43 @@
   margin-bottom: 0.75rem;
 }
 
+.saito-header-menu-section .module-menu > ul > li > .saito-module-menu-icon-wrap {
+  position: relative;
+  display: block;
+  width: 3.2rem;
+  height: 3.2rem;
+  margin-bottom: 0.75rem;
+  pointer-events: none;
+}
+
+.saito-header-menu-section .module-menu > ul > li .saito-module-menu-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 0.16s ease;
+}
+
+.saito-header-menu-section .module-menu > ul > li .saito-module-menu-icon-solid {
+  opacity: 0;
+}
+
+.saito-header-menu-section .module-menu > ul > li:hover .saito-module-menu-icon-outline {
+  opacity: 0;
+}
+
+.saito-header-menu-section .module-menu > ul > li:hover .saito-module-menu-icon-solid {
+  opacity: 1;
+}
+
 .saito-header-menu-section .saito-menu > ul > li > i.navigation-symbol {
   font-size: 1.4rem;
   margin-left: 5px;
 }
 
-.saito-header-menu-section .saito-menu > ul > li > i + span {
+.saito-header-menu-section .saito-menu > ul > li > i + span,
+.saito-header-menu-section .module-menu > ul > li > .saito-module-menu-icon-wrap + span {
   margin: 0;
   text-overflow: ellipsis;
   max-width: 10rem;
@@ -95,13 +126,19 @@
 }
 
 .saito-menu i::before {
-  -webkit-text-stroke-color: var(--saito-font-color);
+  -webkit-text-stroke-color: var(--saito-menu-icon-color);
   -webkit-text-stroke-width: 1px;
   color: transparent;
 }
 
 .saito-menu li:hover i::before {
+  -webkit-text-stroke-color: var(--saito-menu-icon-hover-color);
+  color: var(--saito-menu-icon-hover-color);
+}
+
+.utilities-menu li:hover i::before {
   -webkit-text-stroke-color: var(--saito-primary-text);
+  color: transparent;
 }
 
 @media screen and (max-width: 620px) {
@@ -116,6 +153,12 @@
 
   .saito-header-menu-section .saito-menu > ul > li > i {
     font-size: 2.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .saito-header-menu-section .module-menu > ul > li > .saito-module-menu-icon-wrap {
+    width: 2.8rem;
+    height: 2.8rem;
     margin-bottom: 0.25rem;
   }
 }

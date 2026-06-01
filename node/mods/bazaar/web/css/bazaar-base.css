@@ -1,4 +1,4 @@
-
+.game.bazaar {
 .gameboard {
 	/* Default fill the background with image */
 	position: absolute;
@@ -418,4 +418,5 @@
 		width: max(50px, 6.3vw);
 		height: max(50px, 6.3vw);
 	}
+}
 }

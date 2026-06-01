@@ -14,7 +14,7 @@ Saito Identicon
   width: 3.5rem;
   height: 3.5rem;
   border: var(--border-thickness-thin) solid var(--saito-background-color);
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-identicon-border-radius);
   cursor: pointer; /* app.browser tries to turn all .saito-identicon into clickable target */
 }
 

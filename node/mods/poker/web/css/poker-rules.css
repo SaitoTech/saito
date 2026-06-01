@@ -1,3 +1,4 @@
+.game.poker {
 .poker-rules-overlay {
 	border: solid 0.5rem #fff;
 	width: 95rem;
@@ -91,4 +92,5 @@ img.mcard {
 .stats-table-header div {
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
 }

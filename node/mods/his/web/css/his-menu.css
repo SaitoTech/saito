@@ -1,3 +1,4 @@
+.game.his {
 .saito-overlay:has(> .movemenu) {
   box-shadow: none;
 }
@@ -190,5 +191,4 @@
 	}
 
 }
-
-
+}

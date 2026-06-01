@@ -1,12 +1,14 @@
 module.exports = (app, mod, bank) => {
 	console.log(bank?.selected_resource);
-	let prompt = (bank?.selected_resource) ? "R" : "Select r";
+	let prompt = bank?.selected_resource
+		? `Giving ${bank.minForTrade[bank.selected_resource]} ${bank.selected_resource}`
+		: 'Select resource to give bank';
 	let html = '';
 
 	if (Object.keys(bank.my_resources).length > 0) {
 		html += `<div class="saitoa bank-overlay">
 			          <div class="settlers-items-container">
-			            <div class="settlers-item-info-text">${prompt}esource to give bank:</div>`;
+			            <div class="settlers-item-info-text">${prompt}</div>`;
 
 		for (let i in bank.my_resources) {
 			let row = `<div class="settlers-cards-container settlers-trade-resources 
@@ -15,7 +17,7 @@ module.exports = (app, mod, bank) => {
 			for (let j = 0; j < bank.minForTrade[i]; j++) {
 				row += `<img src="${mod.returnCardImage(i)}">`;
 			}
-			row += `</div>`;
+			row += `<div class="settlers-bank-ratio">${bank.minForTrade[i]}:1 ${i}</div></div>`;
 
 			if (!bank?.selected_resource || bank.selected_resource == i) {
 				html += row;
@@ -40,7 +42,7 @@ module.exports = (app, mod, bank) => {
 			}
 		}
 
-		html += `<div class="settlers-cards-container settlers-item-info-text">${three4one ? 3 : 4} of the same resource</div>`;
+		html += `<div class="settlers-cards-container settlers-item-info-text">${three4one ? 3 : 4}:1 with matching resources</div>`;
 	}
 
 	html += `</div>`;
@@ -50,7 +52,7 @@ module.exports = (app, mod, bank) => {
 	}
 
 	html += `<div class="settlers-items-container settlers-items-container-desired-resources">
-            <div class="settlers-item-info-text">Select resource to buy:</div>
+            <div class="settlers-item-info-text">Select resource to receive</div>
             <div class="settlers-cards-container settlers-desired-resources">`;
 
 	for (let i of mod.returnResources()) {
