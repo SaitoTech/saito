@@ -49,7 +49,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
-    <link rel="stylesheet" type="text/css" href="/faucet/style.css" />
+    <link rel="stylesheet" type="text/css" href="/faucet/style.css?v=${build_number}" />
 
     <title>Saito Testnet Faucet</title>
   
