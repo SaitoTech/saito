@@ -1,67 +1,100 @@
 /**
- * script → scripthash
- *
- * Input:  script object (canonical RustScript AST)
- * Output: 64-character lowercase hex Blake3 digest of the script
- *
- * Pure function: no validation, execution, mutation, or side effects.
- *
- * ---------------------------------------------------------------------------
- * HASHING RULES
- * ---------------------------------------------------------------------------
- *
- * Hash the script exactly as it exists — every field and value that is present
- * participates in the digest. Do not strip, transform, or normalize away any
- * part of the script before hashing.
- *
- * The `required` object is part of the script. Its values are hashed literally:
- *
- *   { "required": { "signature": true } }
- *
- * and
- *
- *   { "required": { "signature": "552a50c7..." } }
- *
- * MUST produce different hashes. A creator may intentionally commit to specific
- * supplied values (or to placeholders marked true) when authoring the script.
- *
- * Do not:
- *   - remove `required` because values are missing or present
- *   - coerce true → absent or absent → true
- *   - merge supplied values with scaffold placeholders
- *   - run validation or execution before hashing
- *
- * ---------------------------------------------------------------------------
- * SERIALIZATION (for cross-runtime determinism)
- * ---------------------------------------------------------------------------
- *
- * 1. Deep-copy via recursive stable JSON (object keys sorted lexicographically
- *    at each object; array element order preserved; values unchanged).
- * 2. UTF-8 encode the JSON string.
- * 3. Blake3 hash → hex (same algorithm as Saito `app.crypto.hash`).
- *
- * Key order in the in-memory object does not affect the hash; value content does.
- * A future Rust port should mirror this serialization and Blake3 step exactly.
+ * Purpose: Produce deterministic Blake3 hash for a script object.
  */
 
 const blake3 = require('blake3');
 
-function stableJsonStringify(value) {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-
-  if (Array.isArray(value)) {
-    return '[' + value.map((item) => stableJsonStringify(item)).join(',') + ']';
-  }
-
-  const keys = Object.keys(value).sort();
-  const parts = keys.map((key) => JSON.stringify(key) + ':' + stableJsonStringify(value[key]));
-  return '{' + parts.join(',') + '}';
-}
-
 function script_to_scripthash(script) {
-  const json = stableJsonStringify(script);
+  if (!script || typeof script !== 'object' || Array.isArray(script)) {
+    return false;
+  }
+
+  let json = '';
+  const seen = new Set();
+  const stack = [{ value: script, state: 0, index: 0, keys: null, isArray: false }];
+
+  while (stack.length > 0) {
+    const frame = stack[stack.length - 1];
+    const value = frame.value;
+
+    if (frame.state === 0) {
+      if (value === null) {
+        json += 'null';
+        stack.pop();
+        continue;
+      }
+
+      const t = typeof value;
+      if (t === 'string') {
+        json += JSON.stringify(value);
+        stack.pop();
+        continue;
+      }
+      if (t === 'number') {
+        if (!Number.isFinite(value)) {
+          return false;
+        }
+        json += String(value);
+        stack.pop();
+        continue;
+      }
+      if (t === 'boolean') {
+        json += value ? 'true' : 'false';
+        stack.pop();
+        continue;
+      }
+      if (t !== 'object') {
+        return false;
+      }
+
+      if (seen.has(value)) {
+        return false;
+      }
+      seen.add(value);
+
+      frame.isArray = Array.isArray(value);
+      frame.index = 0;
+      frame.keys = frame.isArray ? null : Object.keys(value).sort();
+      frame.state = 1;
+      json += frame.isArray ? '[' : '{';
+      continue;
+    }
+
+    if (frame.isArray) {
+      if (frame.index >= value.length) {
+        json += ']';
+        seen.delete(value);
+        stack.pop();
+        continue;
+      }
+
+      if (frame.index > 0) {
+        json += ',';
+      }
+
+      const child = value[frame.index];
+      frame.index += 1;
+      stack.push({ value: child, state: 0, index: 0, keys: null, isArray: false });
+      continue;
+    }
+
+    if (frame.index >= frame.keys.length) {
+      json += '}';
+      seen.delete(value);
+      stack.pop();
+      continue;
+    }
+
+    if (frame.index > 0) {
+      json += ',';
+    }
+
+    const key = frame.keys[frame.index];
+    frame.index += 1;
+    json += JSON.stringify(key) + ':';
+    stack.push({ value: value[key], state: 0, index: 0, keys: null, isArray: false });
+  }
+
   return blake3.hash(json).toString('hex');
 }
 

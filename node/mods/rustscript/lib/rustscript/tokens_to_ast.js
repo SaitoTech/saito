@@ -1,146 +1,185 @@
 /**
- * Token stream → canonical AST.
- *
- * Grammar precedence (lowest → highest): THEN (sequencing), OR, AND, NOT.
- * THEN is ordered execution, not a boolean combinator.
- * Leaf form: OPCODE or OPCODE[field=value, required.field=value]
+ * Purpose: Parse canonical tokens into a RustScript AST.
  */
 
-// Lowest precedence — THEN sequences phases (ordered execution, not boolean logic).
-const PREC_THEN = 1;
-const PREC_OR = 2;
-const PREC_AND = 3;
-// Highest precedence — unary NOT binds tightest.
-const PREC_NOT = 4;
-
-function parse(tokens) {
+function tokens_to_ast(tokens) {
   if (!Array.isArray(tokens) || tokens.length === 0) {
-    throw new Error('Token stream is empty');
+    return false;
   }
 
-  let pos = 0;
+  const output = [];
+  const operators = [];
+  const precedence = { THEN: 1, OR: 2, AND: 3, NOT: 4 };
+  let i = 0;
 
-  function peek(offset = 0) {
-    return tokens[pos + offset];
-  }
-
-  function peekType(offset = 0) {
-    return tokens[pos + offset]?.type;
-  }
-
-  function advance() {
-    return tokens[pos++];
-  }
-
-  function syntaxError(expected) {
-    const tok = peek();
-    const got = tok ? tok.type : 'EOF';
-    throw new Error(`Expected ${expected} but found ${got} at ${tok?.line}:${tok?.column}`);
-  }
-
-  function expect(type) {
-    const tok = peek();
-    if (!tok || tok.type !== type) {
-      syntaxError(type);
+  while (i < tokens.length) {
+    const token = tokens[i];
+    if (!token || typeof token !== 'object' || typeof token.type !== 'string') {
+      return false;
     }
-    return advance();
-  }
 
-  function parse_expr(min_prec) {
-    let node;
+    if (token.type === 'LPAREN') {
+      operators.push('(');
+      i += 1;
+      continue;
+    }
 
-    // --- parse unary NOT ---
-    if (peekType() === 'NOT') {
-      advance();
-      node = { op: 'NOT', args: [parse_expr(PREC_NOT)] };
-
-    // --- parse grouped expression ( ... ) ---
-    } else if (peekType() === 'LPAREN') {
-      advance();
-      node = parse_expr(0);
-      if (peekType() !== 'RPAREN') {
-        syntaxError('RPAREN');
+    if (token.type === 'RPAREN') {
+      while (operators.length > 0 && operators[operators.length - 1] !== '(') {
+        output.push(operators.pop());
       }
-      advance();
+      if (operators.length === 0 || operators[operators.length - 1] !== '(') {
+        return false;
+      }
+      operators.pop();
+      i += 1;
+      continue;
+    }
 
-    // --- parse opcode invocation ---
-    } else if (peekType() === 'IDENT') {
-      const nameTok = advance();
-      node = { op: String(nameTok.value).toUpperCase() };
+    if (token.type === 'IDENT') {
+      const name = String(token.value || '');
+      const upper = name.toUpperCase();
 
-      // Optional [ key=value, required.field=value, ... ]
-      if (peekType() === 'LBRACKET') {
-        advance();
+      if (upper === 'AND' || upper === 'OR' || upper === 'NOT' || upper === 'THEN') {
+        while (operators.length > 0) {
+          const top = operators[operators.length - 1];
+          if (top === '(') {
+            break;
+          }
+          const topPrec = precedence[top] || 0;
+          const curPrec = precedence[upper] || 0;
+          const rightAssoc = upper === 'NOT';
+          if ((rightAssoc && topPrec > curPrec) || (!rightAssoc && topPrec >= curPrec)) {
+            output.push(operators.pop());
+          } else {
+            break;
+          }
+        }
+        operators.push(upper);
+        i += 1;
+        continue;
+      }
 
-        if (peekType() !== 'RBRACKET') {
-          do {
-            const keyTok = expect('IDENT');
-            const key = keyTok.value.toLowerCase();
-            expect('EQUALS');
+      const node = { op: name };
+      i += 1;
 
-            const valTok = peek();
-            if (!valTok || (valTok.type !== 'STRING' && valTok.type !== 'IDENT')) {
-              syntaxError('STRING or IDENT');
-            }
-            const value = advance().value;
+      if (i < tokens.length && tokens[i] && tokens[i].type === 'LBRACKET') {
+        i += 1;
+        let expectField = true;
 
-            if (key.startsWith('required.')) {
-              const field = key.slice('required.'.length);
-              if (!node.required) {
-                node.required = {};
-              }
-              if (valTok.type === 'IDENT' && String(value).toLowerCase() === 'true') {
-                node.required[field] = true;
-              } else {
-                node.required[field] = value;
-              }
-            } else {
-              node[key] = value;
-            }
-          } while (peekType() === 'COMMA' && advance());
+        while (i < tokens.length) {
+          const t = tokens[i];
+          if (!t || typeof t.type !== 'string') {
+            return false;
+          }
+
+          if (t.type === 'RBRACKET') {
+            i += 1;
+            expectField = false;
+            break;
+          }
+
+          if (!expectField) {
+            return false;
+          }
+
+          if (t.type !== 'IDENT') {
+            return false;
+          }
+          const key = String(t.value || '');
+          if (!key) {
+            return false;
+          }
+          i += 1;
+
+          if (i >= tokens.length || !tokens[i] || tokens[i].type !== 'EQUALS') {
+            return false;
+          }
+          i += 1;
+
+          if (i >= tokens.length || !tokens[i]) {
+            return false;
+          }
+          const v = tokens[i];
+          if (v.type === 'STRING' || v.type === 'NUMBER' || v.type === 'BOOLEAN') {
+            node[key] = v.value;
+          } else if (v.type === 'IDENT') {
+            node[key] = String(v.value || '');
+          } else {
+            return false;
+          }
+          i += 1;
+
+          if (i < tokens.length && tokens[i] && tokens[i].type === 'COMMA') {
+            i += 1;
+            expectField = true;
+          } else {
+            expectField = false;
+          }
         }
 
-        expect('RBRACKET');
+        if (expectField) {
+          return false;
+        }
       }
-    } else {
-      syntaxError('expression');
+
+      output.push(node);
+      continue;
     }
 
-    // --- parse binary operators by precedence ---
-    while (true) {
-      if (peekType() === 'THEN' && min_prec <= PREC_THEN) {
-        advance();
-        const phases = [node];
-        do {
-          phases.push(parse_expr(PREC_THEN + 1));
-        } while (peekType() === 'THEN' && advance());
-        node = { op: 'THEN', args: phases };
+    return false;
+  }
+
+  while (operators.length > 0) {
+    const op = operators.pop();
+    if (op === '(') {
+      return false;
+    }
+    output.push(op);
+  }
+
+  if (output.length === 0) {
+    return false;
+  }
+
+  const stack = [];
+  for (let j = 0; j < output.length; j += 1) {
+    const item = output[j];
+
+    if (typeof item === 'string') {
+      if (item === 'NOT') {
+        if (stack.length < 1) {
+          return false;
+        }
+        const a = stack.pop();
+        stack.push({ op: 'NOT', args: [a] });
         continue;
       }
 
-      if (peekType() === 'OR' && min_prec <= PREC_OR) {
-        advance();
-        node = { op: 'OR', args: [node, parse_expr(PREC_OR + 1)] };
+      if (item === 'AND' || item === 'OR' || item === 'THEN') {
+        if (stack.length < 2) {
+          return false;
+        }
+        const right = stack.pop();
+        const left = stack.pop();
+        stack.push({ op: item, args: [left, right] });
         continue;
       }
 
-      if (peekType() === 'AND' && min_prec <= PREC_AND) {
-        advance();
-        node = { op: 'AND', args: [node, parse_expr(PREC_AND + 1)] };
-        continue;
-      }
-
-      break;
+      return false;
     }
 
-    return node;
+    if (!item || typeof item !== 'object' || typeof item.op !== 'string' || item.op.length === 0) {
+      return false;
+    }
+    stack.push(item);
   }
 
-  const ast = parse_expr(0);
-  if (peekType() !== 'EOF') {
-    syntaxError('EOF');
+  if (stack.length !== 1) {
+    return false;
   }
-  return ast;
+
+  return stack[0];
 }
 
-module.exports = parse;
+module.exports = tokens_to_ast;

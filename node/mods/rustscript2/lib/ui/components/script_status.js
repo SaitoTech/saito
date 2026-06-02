@@ -25,6 +25,7 @@ function isEmptyScript(script) {
 function collectPlaceholders(node, path = [], options = {}) {
   const found = [];
   const skipRequired = options.skipRequired === true;
+  const skipWitness = options.skipWitness === true;
 
   function walk(value, currentPath) {
     if (value === null || value === undefined) {
@@ -53,6 +54,9 @@ function collectPlaceholders(node, path = [], options = {}) {
       if (skipRequired && key === 'required') {
         continue;
       }
+      if (skipWitness && key === 'witness') {
+        continue;
+      }
       walk(value[key], currentPath.concat(key));
     }
   }
@@ -66,7 +70,7 @@ function evaluateScriptStatus(lockingScript) {
     return { state: 'idle', placeholders: [] };
   }
 
-  const placeholders = collectPlaceholders(lockingScript, [], { skipRequired: true });
+  const placeholders = collectPlaceholders(lockingScript, [], { skipRequired: true, skipWitness: true });
   const validation = validateScriptStructure(lockingScript);
 
   if (!validation.valid || placeholders.length > 0) {

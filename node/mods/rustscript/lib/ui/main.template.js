@@ -1,16 +1,13 @@
-module.exports = RustscriptMainTemplate = (app, mod) => {
+module.exports = () => {
   return `
-<div class="saito-rustscript rs-workspace-locked">
-
+<div class="rustscript rs-workspace-locked">
   <header class="rs-workspace-header">
     <div class="rs-workspace-actions">
       <button type="button" class="rs-action-btn rs-new-script">New Script</button>
-      <button type="button" class="rs-action-btn rs-expert-only rs-welcome-tour">Welcome</button>
       <button type="button" class="rs-action-btn rs-expert-only rs-import-script">Import Script</button>
       <button type="button" class="rs-action-btn rs-expert-only rs-templates">Templates</button>
       <button type="button" class="rs-action-btn rs-expert-only rs-expert-syntax">Expert Syntax</button>
       <button type="button" class="rs-action-btn rs-expert-only rs-run-validate">Validate</button>
-      <button type="button" class="rs-action-btn rs-expert-only rs-run-execute">Execute</button>
       <input type="file" class="rs-import-file rs-expert-only" accept=".json,.txt,application/json" hidden />
     </div>
 
@@ -35,9 +32,10 @@ module.exports = RustscriptMainTemplate = (app, mod) => {
         aria-label="Guided mode — assisted semantic editing. Click for Expert raw JSON mode."
       >
         <span class="rs-workspace-toggle-track">
-          <span class="rs-workspace-toggle-label rs-workspace-toggle-label-guided">GUIDED</span>
-          <span class="rs-workspace-toggle-label rs-workspace-toggle-label-expert">EXPERT</span>
-          <span class="rs-workspace-toggle-thumb" aria-hidden="true"></span>
+          <span class="rs-workspace-toggle-inactive" aria-hidden="true">EXPERT</span>
+          <span class="rs-workspace-toggle-thumb">
+            <span class="rs-workspace-toggle-label">GUIDED</span>
+          </span>
         </span>
       </button>
     </div>
@@ -47,11 +45,10 @@ module.exports = RustscriptMainTemplate = (app, mod) => {
     <div class="rs-template-menu-inner"></div>
   </div>
 
-  <section class="rs-layout">
-    <div class="rs-main">
-      <div class="rs-editor rs-create-pane rs-locking-pane" id="rs-locking-panel-mount"></div>
-      <div class="rs-editor rs-test-pane rs-unlocking-pane" id="rs-unlocking-panel-mount"></div>
-    </div>
+  <section class="rustscript-body">
+    <div id="rustscript-editor-create" class="rustscript-editor rustscript-editor-locking"></div>
+    <div id="rustscript-editor-test" class="rustscript-editor rustscript-editor-unlocking" hidden></div>
+    <aside id="rustscript-panel" class="rustscript-panel"></aside>
   </section>
 </div>
 `;

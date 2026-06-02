@@ -139,19 +139,19 @@ function findSignatureContext(script, path) {
 
   if (last === 'signature') {
     nodePath.pop();
-    if (nodePath[nodePath.length - 1] === 'required') {
+    if (nodePath[nodePath.length - 1] === 'witness' || nodePath[nodePath.length - 1] === 'required') {
       nodePath.pop();
     }
   } else if (typeof last === 'number' && nodePath[nodePath.length - 2] === 'signatures') {
     signatureIndex = last;
     nodePath.pop();
     nodePath.pop();
-    if (nodePath[nodePath.length - 1] === 'required') {
+    if (nodePath[nodePath.length - 1] === 'witness' || nodePath[nodePath.length - 1] === 'required') {
       nodePath.pop();
     }
   } else if (last === 'signatures') {
     nodePath.pop();
-    if (nodePath[nodePath.length - 1] === 'required') {
+    if (nodePath[nodePath.length - 1] === 'witness' || nodePath[nodePath.length - 1] === 'required') {
       nodePath.pop();
     }
   }
@@ -207,6 +207,14 @@ function findSignableMessage(script, lockingScript) {
     const required = src?.required;
     if (required && typeof required === 'object') {
       const w = pickMessage(required.msg ?? required.message);
+      if (w) {
+        return w;
+      }
+    }
+
+    const witness = src?.witness;
+    if (witness && typeof witness === 'object') {
+      const w = pickMessage(witness.msg ?? witness.message);
       if (w) {
         return w;
       }

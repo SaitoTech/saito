@@ -1,64 +1,77 @@
+/**
+ * Purpose: CHECKMULTISIG opcode — verify M-of-N message signatures.
+ */
 
 module.exports = {
-  name: "CHECKMULTISIG",
-  description: "Verify M-of-N signatures" ,
-
+  name: 'CHECKMULTISIG',
+  description: 'Verify M-of-N signatures',
   exampleScript: {
-    op: "CHECKMULTISIG",
+    op: 'CHECKMULTISIG',
     m: 2,
-    publickeys: ["<publickey>", "<publickey>", "<publickey>"],
-    msg: '<text>'
-  },
-  exampleRequired: {
-    signatures: ["<signature>", "<signature>"]
+    publickeys: ['<publickey>', '<publickey>', '<publickey>'],
+    msg: '<text>',
+    witness: {
+      signatures: ['<signature>', '<signature>']
+    }
   },
   schema: {
-    script: {
-      publickeys: "array:string",
-      m: "number",
-      msg: "string"
-    },
-    required: {
-      signatures: "array:string"
-    }
+    m: 'number',
+    publickeys: 'array:publickey',
+    msg: 'text',
+    signatures: 'array:signature'
   },
 
-  execute: function (node, context) {
-
-    const required = node.required || {};
-    const publickeys = node.publickeys || [];
-    const m = node.m || publickeys.length;
-    const msg = node.msg || (context ? context.message : "") || "";
-    const signatures = required.signatures;
-    if (signatures === true || !Array.isArray(signatures) || signatures.length === 0) {
+  execute(node, context) {
+    if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {
+      return false;
+    }
+    if (!context.app || !context.app.crypto || typeof context.app.crypto.verifyMessage !== 'function') {
       return false;
     }
 
-    if (!Array.isArray(publickeys) || publickeys.length === 0) {
-      console.warn("CHECKMULTISIG: no publickeys provided");
+    const witness = node.witness;
+    if (!witness || typeof witness !== 'object' || Array.isArray(witness)) {
       return false;
     }
 
+    const signatures = witness.signatures;
     if (!Array.isArray(signatures) || signatures.length === 0) {
-      console.warn("CHECKMULTISIG: no signatures provided");
       return false;
     }
+
+    const publickeys = node.publickeys;
+    if (!Array.isArray(publickeys) || publickeys.length === 0) {
+      return false;
+    }
+
+    const m = Number(node.m);
+    const threshold = Number.isFinite(m) && m > 0 ? m : publickeys.length;
+    const msg = typeof node.msg === 'string' ? node.msg : '';
 
     let valid = 0;
-    const used = new Set();
+    const used = {};
 
-    for (let signature of signatures) {
-      for (let publickey of publickeys) {
-        if (used.has(publickey)) { continue; }
-        if (context.app.crypto.verifyMessage(msg, signature, publickey)) {
-          used.add(publickey);
-          valid++;
+    for (let s = 0; s < signatures.length; s += 1) {
+      const signature = signatures[s];
+      if (typeof signature !== 'string' || signature.length === 0) {
+        continue;
+      }
+      for (let p = 0; p < publickeys.length; p += 1) {
+        const publickey = publickeys[p];
+        if (typeof publickey !== 'string' || used[publickey]) {
+          continue;
+        }
+        if (context.app.crypto.verifyMessage(msg, signature, publickey) === true) {
+          used[publickey] = true;
+          valid += 1;
           break;
         }
       }
-      if (valid >= m) { break; }
+      if (valid >= threshold) {
+        return true;
+      }
     }
 
-    return valid >= m;
+    return valid >= threshold;
   }
 };

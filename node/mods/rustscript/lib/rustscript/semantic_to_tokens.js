@@ -1,100 +1,154 @@
 /**
- * Semantic script text → token stream.
- *
- * One pass over the input. Each token: type, value, line, column.
+ * Purpose: Convert semantic RustScript text into canonical tokens.
  */
-function tokenize(input) {
-  const text = String(input ?? '');
+
+function semantic_to_tokens(input) {
+  if (typeof input !== 'string') {
+    return false;
+  }
+
   const tokens = [];
   let i = 0;
-  let line = 1;
-  let column = 1;
+  const n = input.length;
 
-  function peek(n = 0) {
-    return text[i + n];
-  }
+  while (i < n) {
+    const ch = input[i];
 
-  function advance() {
-    const ch = text[i++];
-    if (ch === '\n') {
-      line++;
-      column = 1;
-    } else {
-      column++;
-    }
-    return ch;
-  }
-
-  while (i < text.length) {
-    const ch = peek();
-
-    // --- whitespace (skipped) ---
     if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
-      advance();
+      i += 1;
       continue;
     }
 
-    const startLine = line;
-    const startCol = column;
-
-    // --- punctuation ---
-    if (ch === '(' || ch === ')' || ch === '[' || ch === ']' || ch === '=' || ch === ',') {
-      advance();
-      const type =
-        ch === '(' ? 'LPAREN' :
-        ch === ')' ? 'RPAREN' :
-        ch === '[' ? 'LBRACKET' :
-        ch === ']' ? 'RBRACKET' :
-        ch === '=' ? 'EQUALS' : 'COMMA';
-      tokens.push({ type, value: ch, line: startLine, column: startCol });
+    if (ch === '(') {
+      tokens.push({ type: 'LPAREN', value: '(' });
+      i += 1;
+      continue;
+    }
+    if (ch === ')') {
+      tokens.push({ type: 'RPAREN', value: ')' });
+      i += 1;
+      continue;
+    }
+    if (ch === '[') {
+      tokens.push({ type: 'LBRACKET', value: '[' });
+      i += 1;
+      continue;
+    }
+    if (ch === ']') {
+      tokens.push({ type: 'RBRACKET', value: ']' });
+      i += 1;
+      continue;
+    }
+    if (ch === ',') {
+      tokens.push({ type: 'COMMA', value: ',' });
+      i += 1;
+      continue;
+    }
+    if (ch === '=') {
+      tokens.push({ type: 'EQUALS', value: '=' });
+      i += 1;
       continue;
     }
 
-    // --- double-quoted strings ---
-    if (ch === '"') {
-      advance();
+    if (ch === '"' || ch === "'") {
+      const quote = ch;
+      i += 1;
       let value = '';
-      while (i < text.length && peek() !== '"') {
-        if (peek() === '\\' && peek(1) !== undefined) {
-          advance();
-          value += advance();
-        } else {
-          value += advance();
+      let closed = false;
+
+      while (i < n) {
+        const c = input[i];
+        if (c === '\\') {
+          if (i + 1 >= n) {
+            return false;
+          }
+          value += input[i + 1];
+          i += 2;
+          continue;
+        }
+        if (c === quote) {
+          closed = true;
+          i += 1;
+          break;
+        }
+        value += c;
+        i += 1;
+      }
+
+      if (!closed) {
+        return false;
+      }
+
+      tokens.push({ type: 'STRING', value: value });
+      continue;
+    }
+
+    if (
+      (ch >= '0' && ch <= '9') ||
+      (ch === '-' && i + 1 < n && input[i + 1] >= '0' && input[i + 1] <= '9')
+    ) {
+      let start = i;
+      i += 1;
+      while (i < n && input[i] >= '0' && input[i] <= '9') {
+        i += 1;
+      }
+      if (i < n && input[i] === '.') {
+        i += 1;
+        if (i >= n || input[i] < '0' || input[i] > '9') {
+          return false;
+        }
+        while (i < n && input[i] >= '0' && input[i] <= '9') {
+          i += 1;
         }
       }
-      if (peek() !== '"') {
-        throw new Error(`Unterminated string at ${startLine}:${startCol}`);
+      const num = Number(input.slice(start, i));
+      if (!Number.isFinite(num)) {
+        return false;
       }
-      advance();
-      tokens.push({ type: 'STRING', value, line: startLine, column: startCol });
+      tokens.push({ type: 'NUMBER', value: num });
       continue;
     }
 
-    // --- identifiers and keywords ---
-    if (/[A-Za-z_]/.test(ch)) {
-      let value = '';
-      while (i < text.length && (/[A-Za-z0-9_]/.test(peek()) || peek() === '.')) {
-        value += advance();
-      }
-      const upper = value.toUpperCase();
+    const isIdentStart =
+      (ch >= 'A' && ch <= 'Z') ||
+      (ch >= 'a' && ch <= 'z') ||
+      ch === '_' ||
+      ch === '$';
 
-      // Logical keywords (dotted names like required.field stay IDENT).
-      if (
-        !value.includes('.') &&
-        (upper === 'AND' || upper === 'OR' || upper === 'NOT' || upper === 'THEN')
-      ) {
-        tokens.push({ type: upper, value: upper, line: startLine, column: startCol });
+    if (isIdentStart) {
+      let start = i;
+      i += 1;
+      while (i < n) {
+        const c = input[i];
+        const isIdentChar =
+          (c >= 'A' && c <= 'Z') ||
+          (c >= 'a' && c <= 'z') ||
+          (c >= '0' && c <= '9') ||
+          c === '_' ||
+          c === '$' ||
+          c === '.';
+        if (!isIdentChar) {
+          break;
+        }
+        i += 1;
+      }
+
+      const raw = input.slice(start, i);
+      const upper = raw.toUpperCase();
+      if (upper === 'TRUE') {
+        tokens.push({ type: 'BOOLEAN', value: true });
+      } else if (upper === 'FALSE') {
+        tokens.push({ type: 'BOOLEAN', value: false });
       } else {
-        tokens.push({ type: 'IDENT', value, line: startLine, column: startCol });
+        tokens.push({ type: 'IDENT', value: raw });
       }
       continue;
     }
 
-    throw new Error(`Unexpected character "${ch}" at ${line}:${column}`);
+    return false;
   }
 
-  tokens.push({ type: 'EOF', value: '', line, column });
   return tokens;
 }
 
-module.exports = tokenize;
+module.exports = semantic_to_tokens;

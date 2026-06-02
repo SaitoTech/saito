@@ -60,7 +60,7 @@ class PanelReferenceView {
       ];
     }
 
-    return [`<li>• ${countText}</li>`, '<li>test mode will enable when complete</li>'];
+    return [`<li>${countText}</li>`, '<li>test mode will enable when complete</li>'];
   }
 
   bindEvents() {

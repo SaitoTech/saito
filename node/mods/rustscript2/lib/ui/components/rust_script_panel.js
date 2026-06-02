@@ -2,7 +2,7 @@ const SemanticScriptView = require('./semantic_script_view');
 const PanelReferenceView = require('./panel_reference_view');
 const PlaceholderPrompt = require('./placeholder_prompt');
 const { setAtPath } = require('./placeholder_utils');
-const { isRequiredPath } = require('./workspace_sync');
+const { isWitnessPath } = require('./workspace_sync');
 const { inferFieldKindFromPath } = require('./field_validation');
 const { isLogicalOperator, normalizeLogicalOperator } = require('./logical_operators');
 
@@ -140,13 +140,6 @@ class RustScriptPanel {
       return;
     }
 
-    const displayMode = this.resolveDisplayMode();
-    this.setDisplayMode(displayMode);
-
-    if (this.workspaceMode === 'unlocked') {
-      this.syncExpertTextarea();
-    }
-
     const requiredEditable = this.role === 'test';
     const interactionEnabled = this.role === 'create' || this.testActive;
 
@@ -159,10 +152,7 @@ class RustScriptPanel {
     this.root.classList.toggle('rs-panel-test-live', this.role === 'test' && this.testActive);
     this.root.classList.toggle('rs-panel-test-guidance', this.role === 'test' && !this.testActive);
 
-    this.updatePanelHeader(displayMode);
-
-    this.updateRequiredBar();
-    this.refreshGuidance();
+    this.presentFromScript();
   }
 
   updateRequiredBar() {
@@ -188,20 +178,34 @@ class RustScriptPanel {
     this.root.classList.toggle('rs-panel-mode-reference', mode === 'reference');
 
     this.updatePanelHeader(mode);
-
-    if (this.workspaceMode === 'unlocked') {
-      this.syncExpertTextarea();
-    } else {
-      this.syncTextareaFromScript();
-    }
     this.updateRequiredBar();
+    this.renderDisplayMode(mode);
+    this.refreshGuidance();
+  }
 
+  renderDisplayMode(mode) {
+    if (mode === 'source') {
+      this.syncExpertTextarea();
+      return;
+    }
+    this.syncTextareaFromScript();
     if (mode === 'semantic') {
       this.renderSemantic();
     } else if (mode === 'reference') {
       this.renderReference();
     }
+  }
 
+  /** Re-resolve presentation from workspace state and render panel.script. */
+  presentFromScript() {
+    const displayMode = this.resolveDisplayMode();
+    if (displayMode !== this.displayMode) {
+      this.setDisplayMode(displayMode);
+      return;
+    }
+    this.updatePanelHeader(displayMode);
+    this.updateRequiredBar();
+    this.renderDisplayMode(displayMode);
     this.refreshGuidance();
   }
 
@@ -240,17 +244,7 @@ class RustScriptPanel {
     }
 
     this.script = script && typeof script === 'object' ? script : {};
-    if (this.workspaceMode === 'unlocked') {
-      this.syncExpertTextarea();
-    } else {
-      this.syncTextareaFromScript();
-    }
-
-    if (this.displayMode === 'semantic') {
-      this.renderSemantic();
-    } else if (this.displayMode === 'reference') {
-      this.renderReference();
-    }
+    this.presentFromScript();
 
     if (!options.silent) {
       this.notifyChange();
@@ -299,14 +293,20 @@ class RustScriptPanel {
       this.textarea.value = '{}';
       return;
     }
-    this.textarea.value = JSON.stringify(this.script, null, 2);
+    this.textarea.value = JSON.stringify(this.getScriptForDisplay(), null, 2);
   }
 
   syncExpertTextarea() {
     if (!this.textarea || this.workspaceMode !== 'unlocked') {
       return;
     }
-    this.textarea.value = JSON.stringify(this.script, null, 2);
+    const script = this.getScriptForDisplay();
+    this.textarea.value = JSON.stringify(script, null, 2);
+  }
+
+  /** Script object shown in expert textarea — same data as guided, including witness/required. */
+  getScriptForDisplay() {
+    return this.script && typeof this.script === 'object' ? this.script : {};
   }
 
   renderSemantic() {
@@ -324,7 +324,7 @@ class RustScriptPanel {
   }
 
   openValueEditor(path, value, meta, fieldKind) {
-    if (this.role === 'test' && !isRequiredPath(path)) {
+    if (this.role === 'test' && !isWitnessPath(path)) {
       return;
     }
     if (this.role === 'test' && !this.testActive) {
@@ -372,16 +372,7 @@ class RustScriptPanel {
     }
 
     setAtPath(this.script, path, newValue);
-
-    if (this.workspaceMode === 'unlocked') {
-      this.syncExpertTextarea();
-    } else {
-      this.syncTextareaFromScript();
-    }
-
-    if (this.displayMode === 'semantic') {
-      this.renderSemantic();
-    }
+    this.presentFromScript();
 
     this.notifyChange();
   }

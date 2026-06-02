@@ -1,0 +1,70 @@
+body.rustscript .rustscript-opcodes {
+  max-width: 540px;
+  max-height: 70vh;
+  padding: 20px 22px;
+  overflow: auto;
+  color: var(--rustscript-text, #e8e8e8);
+  background: var(--rustscript-panel, #1c1c1c);
+  border: 1px solid var(--rustscript-border, #383838);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+body.rustscript .rustscript-opcodes h2 {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+body.rustscript .rustscript-opcodes ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+body.rustscript .rustscript-opcodes li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rustscript-border-subtle, #2a2a2a);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: #b0b0b0;
+}
+
+body.rustscript .rustscript-opcodes li:last-child {
+  border-bottom: none;
+}
+
+body.rustscript .rustscript-opcodes li strong {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--rustscript-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fca311;
+}
+
+body.rustscript .rustscript-opcodes > .rustscript-button {
+  margin-top: 14px;
+  height: 34px;
+  padding: 0 16px;
+  border: 2px solid #3d3d3d;
+  border-radius: var(--rustscript-radius, 2px);
+  background: #1a1a1a;
+  color: #ccc;
+  font-family: var(--rustscript-mono, ui-monospace, monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+body.rustscript .rustscript-opcodes > .rustscript-button:hover {
+  border-color: #5a5a5a;
+  color: #fff;
+  background: #262626;
+}

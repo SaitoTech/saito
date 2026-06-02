@@ -1,3 +1,7 @@
+/**
+ * Purpose: CHECKRECIPIENT opcode — verify transaction pays script publickey.
+ */
+
 module.exports = {
   name: 'CHECKRECIPIENT',
   description: 'Verify a transaction output pays the required publickey.',
@@ -5,31 +9,57 @@ module.exports = {
     op: 'CHECKRECIPIENT',
     publickey: '<publickey>'
   },
-  exampleRequired: {},
   schema: {
-    script: { publickey: 'string' },
-    required: {}
+    publickey: 'publickey'
   },
+
   execute(node, context) {
-    const tx = context.tx;
-    const required = node.publickey || null;
-    if (!required) {
+    if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {
       return false;
     }
 
-    const outputs = tx?.to ?? tx?.outputs ?? [];
-    const required_lc = String(required).toLowerCase();
-
-    for (const slip of outputs) {
-      const pk = slip?.publicKey ?? slip?.publickey ?? slip?.address;
-      if (pk && String(pk).toLowerCase() === required_lc) {
-        return true;
-      }
+    const tx = context.tx;
+    if (!tx || typeof tx !== 'object' || Array.isArray(tx)) {
+      return false;
     }
 
-    const tx_to = context['tx.to'] ?? tx?.to;
-    if (tx_to && String(tx_to).toLowerCase() === required_lc) {
-      return true;
+    const publickey = node.publickey;
+    if (typeof publickey !== 'string' || publickey.length === 0) {
+      return false;
+    }
+
+    const required = publickey.toLowerCase();
+    const outputs = tx.to;
+    if (Array.isArray(outputs)) {
+      for (let i = 0; i < outputs.length; i += 1) {
+        const slip = outputs[i];
+        if (!slip || typeof slip !== 'object') {
+          continue;
+        }
+        const pk = slip.publicKey || slip.publickey || slip.address;
+        if (typeof pk === 'string' && pk.toLowerCase() === required) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    if (typeof outputs === 'string' && outputs.length > 0) {
+      return outputs.toLowerCase() === required;
+    }
+
+    const altOutputs = tx.outputs;
+    if (Array.isArray(altOutputs)) {
+      for (let i = 0; i < altOutputs.length; i += 1) {
+        const slip = altOutputs[i];
+        if (!slip || typeof slip !== 'object') {
+          continue;
+        }
+        const pk = slip.publicKey || slip.publickey || slip.address;
+        if (typeof pk === 'string' && pk.toLowerCase() === required) {
+          return true;
+        }
+      }
     }
 
     return false;

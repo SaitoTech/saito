@@ -1,78 +1,78 @@
-const RustscriptMainTemplate = require('./main.template.js');
-const GenerateExpertOverlay = require('./overlays/generate_expert.js');
-const OnboardingOverlay = require('./overlays/onboarding.js');
-const RustScriptPanel = require('./components/rust_script_panel');
-const OpcodeReferenceOverlay = require('./components/opcode_reference_overlay');
-const { evaluateWorkspaceStatus, evaluateScriptStatus } = require('./components/script_status');
-const { build_test_script_from_create } = require('./script_build');
-const { getContractTemplates, defaultStarterScript } = require('./onboarding/contract_templates.js');
-const { validateScriptStructure } = require('./script_validate');
-const { template_locking } = require('./script_templates');
+const MainTemplate = require('./main.template');
+const RustscriptEditor = require('./editor');
+const RustscriptPanel = require('./panel');
+const WelcomeOverlay = require('./overlays/welcome');
+const PublicKeyFieldOverlay = require('./overlays/fields/publickey');
+const SignatureFieldOverlay = require('./overlays/fields/signature');
+const TextFieldOverlay = require('./overlays/fields/text');
+const HashFieldOverlay = require('./overlays/fields/hash');
+const LogicalFieldOverlay = require('./overlays/fields/logical');
+const OpcodesOverlay = require('./overlays/opcodes');
+const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const { evaluateWorkspaceStatus, evaluateScriptStatus, validateScriptStructure } = require('./script_validate');
+const {
+  build_test_script_from_create,
+  defaultStarterScript,
+  getContractTemplates
+} = require('./script_build');
 
 class RustscriptMain {
-  constructor(app, mod, container = '') {
+  constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.container = container;
-    this.generate_expert_overlay = new GenerateExpertOverlay(this.app, this.mod);
-    this.onboarding_overlay = null;
-    this.lastScriptSource = '';
-    this.executionStatus = { attempted: false, success: false };
+    this.container = '.saito-container';
     this.workspaceMode = 'locked';
-    this.scriptReady = false;
-    this.requiredReady = false;
     this.testingUnlocked = false;
+    this.scriptReady = false;
+    this.executionStatus = { attempted: false, success: false };
+    this.lastScriptSource = '';
 
-    this.lockingPanel = null;
-    this.unlockingPanel = null;
-    this.opcodeReferenceOverlay = null;
+    this.createEditor = new RustscriptEditor(app, mod, '#rustscript-editor-create', 'create');
+    this.testEditor = new RustscriptEditor(app, mod, '#rustscript-editor-test', 'test');
+    this.panel = new RustscriptPanel(app, mod, '#rustscript-panel', this);
+    this.welcomeOverlay = new WelcomeOverlay(app, mod, this);
+    this.opcodesOverlay = new OpcodesOverlay(app, mod);
+    this.generateExpertOverlay = new SaitoOverlay(app, mod, false);
+
+    this.fieldOverlays = {
+      publickey: new PublicKeyFieldOverlay(app, mod),
+      signature: new SignatureFieldOverlay(app, mod),
+      text: new TextFieldOverlay(app, mod),
+      hash: new HashFieldOverlay(app, mod),
+      logical: new LogicalFieldOverlay(app, mod)
+    };
   }
 
-  render(container = '') {
-    if (container !== '') {
-      this.container = container;
-    }
-    if (!this.container || this.container.trim() === '') {
-      this.container = '.saito-container';
-    }
-
-    const html = RustscriptMainTemplate(this.app, this.mod);
-
-    if (!document.querySelector('.saito-rustscript')) {
-      this.app.browser.addElementToSelector(html, this.container);
+  render() {
+    if (document.querySelector('.rustscript')) {
+      this.app.browser.replaceElementBySelector(MainTemplate(), '.rustscript');
     } else {
-      this.app.browser.replaceElementBySelector(html, '.saito-rustscript');
+      this.app.browser.addElementToSelector(MainTemplate(), this.container);
     }
 
     document.body.classList.add('rustscript');
-    this.workspaceMode = 'locked';
-    this.mountPanels();
-    this.initOpcodeReferenceOverlay();
+
+    if (!this.mod.getScript()?.op) {
+      this.mod.setScript(defaultStarterScript(this.mod.opcodes));
+    }
+
+    this.syncEditorModes();
     this.mountTemplateMenu();
+    this.createEditor.render();
+    this.testEditor.render();
+    this.panel.render();
+    this.applyWorkspaceUI();
     this.attachEvents();
 
-    this.setLockingScriptJson(defaultStarterScript(this.mod.opcodes));
-    this.applyWorkspaceUI();
-
-    if (OnboardingOverlay.shouldShow(this.app)) {
-      this.showOnboarding();
+    if (WelcomeOverlay.shouldShow(this.app)) {
+      this.welcomeOverlay.render();
     }
   }
 
-  showOnboarding(options = {}) {
-    if (this.onboarding_overlay?.overlay) {
-      try {
-        this.onboarding_overlay.overlay.remove();
-      } catch (err) {
-        /* fresh instance */
-      }
-    }
-
-    this.onboarding_overlay = new OnboardingOverlay(this.app, this.mod, this);
-    if (options.step) {
-      this.onboarding_overlay.step = options.step;
-    }
-    this.onboarding_overlay.render();
+  syncEditorModes() {
+    const mode = this.workspaceMode === 'locked' ? 'guided' : 'expert';
+    this.createEditor.displayMode = mode;
+    this.testEditor.displayMode = mode;
   }
 
   mountTemplateMenu() {
@@ -99,51 +99,133 @@ class RustscriptMain {
     });
   }
 
-  ensureGuidedStarterScript() {
-    if (this.workspaceMode !== 'locked') {
-      return;
+  attachEvents() {
+    const openWelcome = () => {
+      this.welcomeOverlay.render('splash');
+    };
+
+    document.querySelector('.rs-new-script')?.addEventListener('click', openWelcome);
+
+    document.querySelector('.rs-workspace-toggle')?.addEventListener('click', () => {
+      this.setWorkspaceMode(this.workspaceMode === 'locked' ? 'unlocked' : 'locked');
+    });
+
+    document.querySelector('.rs-import-script')?.addEventListener('click', () => {
+      document.querySelector('.rs-import-file')?.click();
+    });
+
+    document.querySelector('.rs-import-file')?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) {
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = this.parseImportedContract(String(reader.result || ''));
+          this.executionStatus = { attempted: false, success: false };
+          if (parsed.locking) {
+            this.mod.setScript(stripWitnessForLocking(parsed.locking));
+          }
+          if (parsed.unlocking) {
+            this.testingUnlocked = true;
+            this.mod.setScript(parsed.unlocking);
+          } else {
+            this.testingUnlocked = false;
+          }
+          this.refresh();
+          siteMessage('Script imported');
+        } catch (err) {
+          siteMessage(err.message);
+        }
+        e.target.value = '';
+      };
+      reader.readAsText(file);
+    });
+
+    document.querySelector('.rs-templates')?.addEventListener('click', () => {
+      const menu = document.querySelector('.rs-template-menu');
+      if (menu) {
+        menu.toggleAttribute('hidden');
+      }
+    });
+
+    document.querySelector('.rs-expert-syntax')?.addEventListener('click', () => {
+      this.renderGenerateExpertOverlay();
+    });
+
+    document.querySelector('.rs-run-validate')?.addEventListener('click', () => {
+      this.validateLockingScript();
+    });
+
+    if (!this._templateMenuOutsideClick) {
+      this._templateMenuOutsideClick = (e) => {
+        const menu = document.querySelector('.rs-template-menu');
+        if (!menu || menu.hasAttribute('hidden')) {
+          return;
+        }
+        if (e.target.closest('.rs-template-menu') || e.target.closest('.rs-templates')) {
+          return;
+        }
+        menu.setAttribute('hidden', '');
+      };
+      document.addEventListener('click', this._templateMenuOutsideClick);
     }
-    const locking = this.getLockingScriptSafe();
-    if (evaluateScriptStatus(locking).state === 'idle') {
-      this.setLockingScriptJson(defaultStarterScript(this.mod.opcodes));
+  }
+
+  setWorkspaceMode(mode) {
+    this.workspaceMode = mode === 'unlocked' ? 'unlocked' : 'locked';
+    if (this.workspaceMode === 'unlocked') {
+      this.testingUnlocked = true;
+      const locking = stripWitnessForLocking(this.mod.getScript());
+      const merged = build_test_script_from_create(locking, this.mod.getScript(), this.mod.opcodes);
+      this.mod.setScript(merged);
     }
+    this.syncEditorModes();
+    this.applyWorkspaceUI();
+    this.refresh();
   }
 
   enterCreateGuided(lockingScript) {
     this.testingUnlocked = false;
     this.executionStatus = { attempted: false, success: false };
-    this.setWorkspaceMode('locked');
-    this.unlockingPanel?.clearUnlockPreview();
-    this.setLockingScriptJson(lockingScript || defaultStarterScript(this.mod.opcodes));
+    this.workspaceMode = 'locked';
+    this.mod.setScript(stripWitnessForLocking(lockingScript || defaultStarterScript(this.mod.opcodes)));
+    this.syncEditorModes();
     this.applyWorkspaceUI();
+    this.refresh();
   }
 
   enterInteractGuided(parsed) {
     this.testingUnlocked = true;
     this.executionStatus = { attempted: false, success: false };
-    this.setWorkspaceMode('locked');
-
+    this.workspaceMode = 'locked';
     if (parsed.locking) {
-      this.setLockingScriptJson(parsed.locking);
+      this.mod.setScript(stripWitnessForLocking(parsed.locking));
     }
     if (parsed.unlocking) {
-      this.setUnlockingScriptJson(parsed.unlocking);
+      const merged = build_test_script_from_create(
+        stripWitnessForLocking(parsed.locking || this.mod.getScript()),
+        parsed.unlocking,
+        this.mod.opcodes
+      );
+      this.mod.setScript(merged);
     } else if (parsed.locking) {
-      this.syncUnlockFromScript();
+      const merged = build_test_script_from_create(
+        stripWitnessForLocking(parsed.locking),
+        this.mod.getScript(),
+        this.mod.opcodes
+      );
+      this.mod.setScript(merged);
     }
-
+    this.syncEditorModes();
     this.applyWorkspaceUI();
+    this.refresh();
   }
 
   enterExpertMode() {
     this.testingUnlocked = true;
     this.executionStatus = { attempted: false, success: false };
-
-    const checksig = this.mod.opcodes?.checksig;
-    if (checksig) {
-      this.setLockingScriptJson(template_locking(checksig));
-      this.syncUnlockFromScript();
-    }
     this.setWorkspaceMode('unlocked');
   }
 
@@ -152,204 +234,41 @@ class RustscriptMain {
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
       throw new Error('Contract must be a JSON object');
     }
-
     return { locking: obj, unlocking: null };
   }
 
-  getLockingScriptSafe() {
-    try {
-      return this.lockingPanel?.getScript() || {};
-    } catch (err) {
-      return this.lockingPanel?.script || {};
-    }
-  }
-
-  getUnlockingScriptSafe() {
-    try {
-      return this.unlockingPanel?.getScript() || {};
-    } catch (err) {
-      return this.unlockingPanel?.script || {};
-    }
-  }
-
-  moveIntoTesting() {
-    if (!this.scriptReady) {
-      siteMessage('Complete your script in Create Script first');
-      return;
-    }
-    this.testingUnlocked = true;
-    this.syncUnlockFromScript();
-    this.applyWorkspaceUI();
-  }
-
-  returnToScript() {
-    if (this.workspaceMode !== 'locked' || !this.testingUnlocked) {
-      return;
-    }
-    this.testingUnlocked = false;
-    this.executionStatus = { attempted: false, success: false };
-    this.applyWorkspaceUI();
-  }
-
-  createTransaction() {
-    if (!this.scriptReady) {
-      siteMessage('Complete your script in Create Script first');
-      return;
-    }
-
-    const locking = this.getLockingScriptSafe();
-    const json = JSON.stringify(locking, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'rustscript-locking.json';
-    link.click();
-    URL.revokeObjectURL(url);
-    siteMessage('Locking script exported — use in your transaction builder');
-  }
-
-  syncUnlockFromScript() {
-    const locking = this.getLockingScriptSafe();
-    const scriptStatus = evaluateScriptStatus(locking);
-    const guided = this.workspaceMode === 'locked';
-    const expert = this.workspaceMode === 'unlocked';
-    const maySync = expert || (scriptStatus.state === 'ready' && (!guided || this.testingUnlocked));
-
-    if (!maySync) {
-      this.unlockingPanel?.clearUnlockPreview();
-      return;
-    }
-
-    try {
-      const current = this.getUnlockingScriptSafe();
-      const merged = build_test_script_from_create(locking, current, this.mod.opcodes);
-      this.unlockingPanel?.setScript(merged, { silent: true, force: true });
-    } catch (err) {
-      console.warn('[rustscript] sync unlock', err.message);
-    }
-  }
-
   applyWorkspaceUI() {
-    const locking = this.getLockingScriptSafe();
-    const unlocking = this.getUnlockingScriptSafe();
-    const status = evaluateWorkspaceStatus(locking, unlocking, this.executionStatus, this.mod.opcodes);
+    const root = document.querySelector('.rustscript');
+    if (!root) {
+      return;
+    }
 
-    const wasReady = this.scriptReady;
-    const wasRequiredReady = this.requiredReady;
-    this.scriptReady = status.script.state === 'ready';
-    this.requiredReady = status.required.state === 'ready';
     const guided = this.workspaceMode === 'locked';
+    root.classList.toggle('rs-workspace-guided', guided);
+    root.classList.toggle('rs-workspace-locked', guided);
+    root.classList.toggle('rs-workspace-unlocked', !guided);
+    document.body.classList.toggle('rs-workspace-guided', guided);
+    document.body.classList.toggle('rs-workspace-unlocked', !guided);
 
-    if (!this.scriptReady) {
-      this.testingUnlocked = false;
-    }
-
-    const expert = this.workspaceMode === 'unlocked';
-    const showMoveToTesting = guided && this.scriptReady && !this.testingUnlocked;
-    const testLive = expert ? true : guided ? this.testingUnlocked && this.scriptReady : this.scriptReady;
-
-    const remainingScript = status.script.placeholders?.length ?? 0;
-    const remainingRequired = status.required.placeholders?.length ?? 0;
-
-    let referencePhase = 'script-help';
-    if (testLive && guided) {
-      if (this.executionStatus.success === true) {
-        referencePhase = 'required-complete';
-      } else {
-        referencePhase = 'required-help';
-      }
-    } else if (showMoveToTesting) {
-      referencePhase = 'script-ready';
-    }
-
-    const referenceContext = {
-      lockingScript: locking,
-      scriptStatus: status.script,
-      phase: referencePhase,
-      remainingCount: testLive ? remainingRequired : remainingScript,
-      scriptStructurallyValid: status.script.state === 'ready',
-      executionSuccess: this.executionStatus.success === true,
-      showMoveToTesting,
-      onMoveToTesting: () => this.moveIntoTesting(),
-      onCreateTransaction: () => this.createTransaction()
-    };
-
-    this.lockingPanel?.applyWorkspaceState({
-      workspaceMode: this.workspaceMode,
-      testActive: false,
-      referenceContext: null
-    });
-    this.unlockingPanel?.applyWorkspaceState({
-      workspaceMode: this.workspaceMode,
-      testActive: testLive,
-      unlockActive: testLive,
-      referenceContext
-    });
-
-    if (!testLive) {
-      if (guided && !this.scriptReady) {
-        this.unlockingPanel?.clearUnlockPreview();
-      }
-    } else if (testLive) {
-      this.syncUnlockFromScript();
-      if (guided && this.requiredReady && !wasRequiredReady && !this.executionStatus.attempted) {
-        this.runExecution();
-      }
-    }
-
-    const root = document.querySelector('.saito-rustscript');
-    root?.classList.toggle('rs-workspace-guided', guided);
-    root?.classList.toggle('rs-workspace-locked', guided);
-    root?.classList.toggle('rs-workspace-unlocked', !guided);
-    root?.classList.toggle('rs-script-not-ready', !this.scriptReady);
-    root?.classList.toggle('rs-script-ready', this.scriptReady);
-    root?.classList.toggle('rs-guided-dual-pane', guided);
-    root?.classList.toggle('rs-test-live', testLive);
-
-    const testPane = document.querySelector('.rs-test-pane');
-    const createPane = document.querySelector('.rs-create-pane');
-    testPane?.classList.toggle('rs-test-guidance', guided && this.scriptReady && !testLive);
-    testPane?.classList.toggle('rs-test-active', testLive);
-    createPane?.classList.toggle('rs-create-script-ready', guided && this.scriptReady);
-    createPane?.querySelector('.rs-panel-header')?.classList.toggle(
-      'rs-panel-header-nav',
-      guided && this.testingUnlocked && this.scriptReady
+    const locking = stripWitnessForLocking(this.mod.getScript());
+    const unlocking = this.testingUnlocked ? this.mod.getScript() : {};
+    const status = evaluateWorkspaceStatus(
+      locking,
+      unlocking,
+      this.executionStatus,
+      this.mod.opcodes
     );
 
-    if (guided && this.scriptReady && !wasReady) {
-      createPane?.classList.remove('rs-create-complete-flash');
-      void createPane?.offsetWidth;
-      createPane?.classList.add('rs-create-complete-flash');
-      window.setTimeout(() => createPane?.classList.remove('rs-create-complete-flash'), 1100);
-    }
+    this.scriptReady = status.script.state === 'ready';
+    const testLive = guided ? this.testingUnlocked && this.scriptReady : this.scriptReady;
+    const showMoveToTesting = guided && this.scriptReady && !this.testingUnlocked;
 
     this.updateWorkspaceToggle();
     this.refreshStatusIndicators(status, { testLive, showMoveToTesting });
-  }
 
-  setWorkspaceMode(mode) {
-    const next = mode === 'unlocked' ? 'unlocked' : 'locked';
-    if (next === 'unlocked') {
-      this.testingUnlocked = true;
-      this.syncUnlockFromScript();
-    }
-    this.workspaceMode = next;
-    this.syncPanelsFromTextareas();
-    this.ensureGuidedStarterScript();
-    this.applyWorkspaceUI();
-  }
-
-  syncPanelsFromTextareas() {
-    for (const panel of [this.lockingPanel, this.unlockingPanel]) {
-      if (!panel?.textarea) {
-        continue;
-      }
-      try {
-        panel.script = JSON.parse(panel.textarea.value || '{}');
-      } catch (err) {
-        /* keep in-memory script until JSON is valid */
-      }
+    const testEditor = root.querySelector('#rustscript-editor-test');
+    if (testEditor) {
+      testEditor.hidden = !testLive;
     }
   }
 
@@ -361,7 +280,14 @@ class RustscriptMain {
     const guided = this.workspaceMode === 'locked';
     toggle.classList.toggle('is-guided', guided);
     toggle.classList.toggle('is-expert', !guided);
-    toggle.classList.remove('is-locked', 'is-unlocked');
+    const thumbLabel = toggle.querySelector('.rs-workspace-toggle-label');
+    const inactiveLabel = toggle.querySelector('.rs-workspace-toggle-inactive');
+    if (thumbLabel) {
+      thumbLabel.textContent = guided ? 'GUIDED' : 'EXPERT';
+    }
+    if (inactiveLabel) {
+      inactiveLabel.textContent = guided ? 'EXPERT' : 'GUIDED';
+    }
     toggle.setAttribute('aria-checked', guided ? 'true' : 'false');
     toggle.setAttribute(
       'aria-label',
@@ -375,8 +301,8 @@ class RustscriptMain {
     const status =
       statusIn ||
       evaluateWorkspaceStatus(
-        this.getLockingScriptSafe(),
-        this.getUnlockingScriptSafe(),
+        stripWitnessForLocking(this.mod.getScript()),
+        this.testingUnlocked ? this.mod.getScript() : {},
         this.executionStatus,
         this.mod.opcodes
       );
@@ -384,10 +310,8 @@ class RustscriptMain {
     const testLive = options.testLive ?? (this.testingUnlocked && this.scriptReady);
     const execSuccess = this.executionStatus?.success === true;
     const scriptState = status.script.state === 'ready' ? 'ready' : status.script.state;
-    const requiredState =
-      execSuccess && this.scriptReady ? 'ready' : status.required.state;
-    const validState =
-      execSuccess && status.script.state === 'ready' ? 'ready' : status.valid.state;
+    const requiredState = execSuccess && this.scriptReady ? 'ready' : status.required.state;
+    const validState = execSuccess && status.script.state === 'ready' ? 'ready' : status.valid.state;
 
     this.setStatusReactor('.rs-status-script', scriptState, {
       idle: 'No script defined',
@@ -427,209 +351,96 @@ class RustscriptMain {
     }
   }
 
-  onPanelChange(script, side) {
-    this.executionStatus = { attempted: false, success: false };
-
-    if (side === 'locking') {
-      const scriptStatus = evaluateScriptStatus(this.getLockingScriptSafe());
-      if (scriptStatus.state === 'ready' && this.testingUnlocked) {
-        this.syncUnlockFromScript();
-      } else if (this.workspaceMode === 'locked' && scriptStatus.state !== 'ready') {
-        this.unlockingPanel?.clearUnlockPreview();
-      }
-    } else if (side === 'unlocking') {
-      const locking = this.getLockingScriptSafe();
-      const scriptStatus = evaluateScriptStatus(locking);
-      if (scriptStatus.state === 'ready' && this.testingUnlocked) {
-        this.syncUnlockFromScript();
-      }
+  refresh() {
+    if (this.testingUnlocked && this.workspaceMode === 'locked') {
+      const locking = stripWitnessForLocking(this.mod.getScript());
+      const merged = build_test_script_from_create(locking, this.mod.getScript(), this.mod.opcodes);
+      this.mod.setScript(merged);
     }
-
+    this.createEditor.render();
+    if (this.testingUnlocked) {
+      this.testEditor.render();
+    }
     this.applyWorkspaceUI();
-    this.unlockingPanel?.refreshGuidance();
-    this.lockingPanel?.refreshGuidance();
+    this.panel.render();
   }
 
-  mountPanels() {
-    const lockMount = document.getElementById('rs-locking-panel-mount');
-    const unlockMount = document.getElementById('rs-unlocking-panel-mount');
-    const opcodeLink = (key) => this.focusOpcodeReference(key);
-
-    const getLockingScript = () => this.getLockingScriptSafe();
-
-    this.lockingPanel = new RustScriptPanel(this.app, this.mod, {
-      role: 'create',
-      side: 'locking',
-      onOpcodeClick: opcodeLink,
-      getLockingScript,
-      onChange: (s, side) => this.onPanelChange(s, side)
-    });
-    this.unlockingPanel = new RustScriptPanel(this.app, this.mod, {
-      role: 'test',
-      side: 'unlocking',
-      onOpcodeClick: opcodeLink,
-      getLockingScript,
-      onChange: (s, side) => this.onPanelChange(s, side)
-    });
-
-    if (lockMount) {
-      this.lockingPanel.mount(lockMount);
-    }
-    if (unlockMount) {
-      this.unlockingPanel.mount(unlockMount);
-    }
-  }
-
-  initOpcodeReferenceOverlay() {
-    this.opcodeReferenceOverlay = new OpcodeReferenceOverlay(this.app, this.mod);
-  }
-
-  openOpcodeReference(key) {
-    if (!this.opcodeReferenceOverlay) {
-      this.initOpcodeReferenceOverlay();
-    }
-    this.opcodeReferenceOverlay.open(key);
-  }
-
-  focusOpcodeReference(key) {
-    this.openOpcodeReference(key);
-  }
-
-  loadTemplate(lockingScript) {
-    this.executionStatus = { attempted: false, success: false };
-    this.testingUnlocked = false;
-    this.setLockingScriptJson(lockingScript);
-    this.applyWorkspaceUI();
-    siteMessage('Template loaded');
-  }
-
-  loadOpcodeExample(op) {
-    if (!op) {
+  loadTemplate(locking) {
+    if (!locking || typeof locking !== 'object') {
       return;
     }
     this.executionStatus = { attempted: false, success: false };
     this.testingUnlocked = false;
-    this.setLockingScriptJson(template_locking(op));
+    this.mod.setScript(stripWitnessForLocking(locking));
     this.applyWorkspaceUI();
-    siteMessage(`${op.name} example loaded`);
+    this.refresh();
+    siteMessage('Template loaded');
   }
 
-  attachEvents() {
-    const openWelcome = () => {
-      this.showOnboarding({ step: 'splash' });
-    };
-
-    document.querySelector('.rs-welcome-tour')?.addEventListener('click', openWelcome);
-
-    document.querySelector('.rs-workspace-toggle')?.addEventListener('click', () => {
-      this.setWorkspaceMode(this.workspaceMode === 'locked' ? 'unlocked' : 'locked');
-    });
-
-    document.querySelector('.rs-create-pane .rs-panel-header')?.addEventListener('click', () => {
-      if (this.workspaceMode === 'locked' && this.testingUnlocked && this.scriptReady) {
-        this.returnToScript();
-      }
-    });
-
-    document.querySelector('.rs-new-script')?.addEventListener('click', openWelcome);
-
-    document.querySelector('.rs-import-script')?.addEventListener('click', () => {
-      document.querySelector('.rs-import-file')?.click();
-    });
-
-    document.querySelector('.rs-import-file')?.addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (!file) {
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const parsed = this.parseImportedContract(String(reader.result || ''));
-          this.executionStatus = { attempted: false, success: false };
-          if (parsed.locking) {
-            this.setLockingScriptJson(parsed.locking);
-          }
-          if (parsed.unlocking) {
-            this.setUnlockingScriptJson(parsed.unlocking);
-          } else {
-            this.syncUnlockFromScript();
-          }
-          this.applyWorkspaceUI();
-          siteMessage('Script imported');
-        } catch (err) {
-          siteMessage(err.message);
-        }
-        e.target.value = '';
-      };
-      reader.readAsText(file);
-    });
-
-    document.querySelector('.rs-templates')?.addEventListener('click', () => {
-      const menu = document.querySelector('.rs-template-menu');
-      if (menu) {
-        menu.toggleAttribute('hidden');
-      }
-    });
-
-    document.querySelector('.rs-expert-syntax')?.addEventListener('click', () => {
-      this.generate_expert_overlay.render(this.lastScriptSource);
-    });
-
-    document.querySelector('.rs-run-validate')?.addEventListener('click', () => {
-      this.validateLockingScript();
-    });
-
-    document.querySelector('.rs-run-execute')?.addEventListener('click', () => {
-      this.runExecution();
-    });
-
-    document.addEventListener('click', (e) => {
-      const menu = document.querySelector('.rs-template-menu');
-      if (!menu || menu.hasAttribute('hidden')) {
-        return;
-      }
-      if (e.target.closest('.rs-template-menu') || e.target.closest('.rs-templates')) {
-        return;
-      }
-      menu.setAttribute('hidden', '');
-    });
-  }
-
-  setLockingScriptJson(obj) {
-    this.lockingPanel?.setScript(obj, { silent: true });
-  }
-
-  setUnlockingScriptJson(obj) {
-    this.unlockingPanel?.setScript(obj, { silent: true });
-  }
-
-  parseSemanticScript(source) {
-    const result = this.mod.parseExpertScript(source);
-    this.onParseSuccess(source, result);
-    return result;
-  }
-
-  onParseSuccess(source, result) {
-    this.executionStatus = { attempted: false, success: false };
-    this.setLockingScriptJson(result.lockingScript);
-    this.setUnlockingScriptJson(result.unlockingScript);
-    this.lastScriptSource = source;
-    this.applyWorkspaceUI();
-  }
-
-  generateUnlockingFromLocking(silent = false) {
-    this.syncUnlockFromScript();
-    if (!silent) {
-      siteMessage('Unlock script synchronized from script');
+  openFieldOverlay(path) {
+    if (!path) {
+      return;
     }
-    this.applyWorkspaceUI();
+    const current = this.mod.getField(path);
+    const kind = fieldOverlayKind(current, path);
+    const overlay = this.fieldOverlays[kind] || this.fieldOverlays.text;
+    overlay.path = path;
+    overlay.currentValue = current;
+    overlay.onApply = (next) => {
+      this.mod.setField(path, next);
+      this.refresh();
+    };
+    overlay.render();
+  }
+
+  openOpcodeReference(key) {
+    this.opcodesOverlay.open(key);
+  }
+
+  renderGenerateExpertOverlay() {
+    const html = `
+      <div class="rustscript-overlay">
+        <h2>Generate Expert Script</h2>
+        <p class="rs-overlay-hint">The only place to author symbolic human-readable scripts.</p>
+        <label>Expert script</label>
+        <textarea class="rs-expert-input" spellcheck="false" placeholder="CHECKSIG[publickey=&quot;alice&quot;]&#10;AND&#10;IMPORTFIELD[field=&quot;duration&quot;]"></textarea>
+        <div class="overlay-actions overlay-actions-apply-only">
+          <button type="button" class="rs-expert-generate-btn rs-prompt-primary">Generate</button>
+        </div>
+      </div>
+    `;
+    this.generateExpertOverlay.show(html);
+    const input = document.querySelector('.rs-expert-input');
+    if (input) {
+      input.value = this.lastScriptSource || '';
+    }
+    document.querySelector('.rs-expert-generate-btn')?.addEventListener('click', () => {
+      const text = document.querySelector('.rs-expert-input')?.value?.trim();
+      if (!text) {
+        return;
+      }
+      try {
+        const result = this.mod.parseExpertScript(text);
+        this.executionStatus = { attempted: false, success: false };
+        this.mod.setScript(stripWitnessForLocking(result.lockingScript));
+        if (result.unlockingScript && Object.keys(result.unlockingScript).length) {
+          this.testingUnlocked = true;
+          this.mod.setScript(result.unlockingScript);
+        }
+        this.lastScriptSource = text;
+        this.generateExpertOverlay.hide();
+        this.refresh();
+        siteMessage('Expert script parsed');
+      } catch (err) {
+        siteMessage(err.message || 'Failed to parse expert script');
+      }
+    });
   }
 
   validateLockingScript() {
     try {
-      const locking = this.lockingPanel.getScript();
-      const validation = validateScriptStructure(locking);
+      const locking = stripWitnessForLocking(this.mod.getScript());
+      const validation = validateScriptStructure(locking, { locking: true });
       if (!validation.valid) {
         throw new Error(validation.errors.map((e) => `${e.path}: ${e.message}`).join('; '));
       }
@@ -652,34 +463,86 @@ class RustscriptMain {
     }
 
     try {
-      const unlocking = this.unlockingPanel.getScript();
-      const result = this.mod.runAst(unlocking, this.mod.buildContext({}));
-
-      this.executionStatus = {
-        attempted: true,
-        success: result === true
-      };
-
-      if (result === true) {
+      const success =
+        this.mod.execute({
+          app: this.app,
+          opcodes: this.mod.opcodes,
+          tx: {},
+          block: {}
+        }) === true;
+      this.executionStatus = { attempted: true, success };
+      if (success) {
         siteMessage('Execution simulation succeeded');
       } else {
         siteMessage('Execution simulation returned false');
       }
-      console.log('[rustscript] execution', result);
-      this.applyWorkspaceUI();
+      this.refresh();
     } catch (err) {
       this.executionStatus = { attempted: true, success: false };
       siteMessage(`Execution error: ${err.message}`);
-      this.applyWorkspaceUI();
+      this.refresh();
     }
   }
+}
 
-  updateParseState(state, message = '') {
-    if (message) {
-      console.warn('[rustscript]', state, message);
-    }
-    this.applyWorkspaceUI();
+function stripWitnessForLocking(node) {
+  if (!node || typeof node !== 'object') {
+    return node;
   }
+  if (Array.isArray(node)) {
+    return node.map(stripWitnessForLocking);
+  }
+  const out = {};
+  for (const key of Object.keys(node)) {
+    if (key === 'witness') {
+      continue;
+    }
+    out[key] = stripWitnessForLocking(node[key]);
+  }
+  return out;
+}
+
+function fieldOverlayKind(value, path) {
+  const last = String(path || '')
+    .split('.')
+    .pop()
+    .toLowerCase();
+  if (last === 'op' && typeof value === 'string') {
+    const v = value.trim().toUpperCase();
+    if (v === 'AND' || v === 'OR' || v === 'NOT' || v === 'THEN') {
+      return 'logical';
+    }
+  }
+  if (typeof value !== 'string') {
+    return 'text';
+  }
+  const m = value.match(/^<([^<>]+)>$/);
+  if (!m) {
+    if (last === 'publickey' || last === 'publickeys') {
+      return 'publickey';
+    }
+    if (last === 'signature' || last === 'signatures') {
+      return 'signature';
+    }
+    if (last === 'hash') {
+      return 'hash';
+    }
+    return 'text';
+  }
+  const tag = m[1].toLowerCase();
+  if (tag === 'signature' || tag === 'sig') {
+    return 'signature';
+  }
+  if (tag === 'publickey' || tag === 'pubkey') {
+    return 'publickey';
+  }
+  if (tag === 'hash') {
+    return 'hash';
+  }
+  if (tag === 'and' || tag === 'or' || tag === 'not' || tag === 'then') {
+    return 'logical';
+  }
+  return 'text';
 }
 
 module.exports = RustscriptMain;
