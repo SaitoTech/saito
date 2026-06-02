@@ -74,6 +74,9 @@ html[data-theme='prism'] {
   --saito-button-secondary-fg: var(--saito-primary);
   --saito-button-secondary-fg-hover: var(--saito-primary-text);
 
+  --saito-bubble-background: linear-gradient( 145deg, color-mix(in srgb, var(--saito-background-color) 86%, var(--saito-primary) 14%), color-mix(in srgb, var(--saito-background-color) 92%, var(--saito-surface-hover) 8%) );
+  --saito-bubble-shadow: 0 10px 24px color-mix(in srgb, var(--palette-shadow) 32%, transparent), 0 2px 7px color-mix(in srgb, var(--palette-shadow) 20%, transparent), inset 0 1px 0 color-mix(in srgb, var(--saito-primary) 34%, transparent);
+
   /* Primary Colors - Indigo accent from Prism */
   --saito-primary: var(--palette-primary);
   --saito-primary-dark: var(--palette-primary-dark);
