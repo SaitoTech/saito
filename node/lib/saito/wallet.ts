@@ -838,8 +838,7 @@ export default class Wallet extends SaitoWallet {
       for (let i = 0; i < mods.length; i++) {
         ticker = mods[i].ticker;
         let address = mods[i].formatAddress();
-        await mods[i].getAvailableBalance();
-        let balance = mods[i].returnBalance();
+        let balance = await mods[i].getAvailableBalance();
 
         if (!cryptos[ticker]) {
           cryptos[ticker] = { address, balance };

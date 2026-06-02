@@ -12,8 +12,9 @@ class Details {
     this.loader = new SaitoLoader(this.app, this.mod, '#saito-details-loader');
 
     app.connection.on('saito-crypto-details-render-request', (ticker) => {
-      this.ticker = ticker;
-      this.mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
+      this.ticker = ticker || app.wallet.returnPreferredCryptoTicker();
+
+      this.mod = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
       this.render();
 
       this.mod.startPolling();

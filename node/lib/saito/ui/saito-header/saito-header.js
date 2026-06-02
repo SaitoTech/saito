@@ -569,13 +569,6 @@ class SaitoHeader extends UIModTemplate {
       };
     }
 
-    if (document.getElementById('wallet-btn-history')) {
-      document.getElementById('wallet-btn-history').onclick = (e) => {
-        app.connection.emit('saito-crypto-history-render-request');
-        this.hideMenu();
-      };
-    }
-
     if (document.getElementById('wallet-btn-settings')) {
       document.getElementById('wallet-btn-settings').onclick = (e) => {
         document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');

@@ -353,6 +353,8 @@
   justify-content: space-between;
   gap: 0.45rem;
   width: 100%;
+  min-width: unset;
+  max-width: 100%;
   min-height: 4.25rem;
   padding: 0.45rem 0.65rem;
   margin: 0;
@@ -583,7 +585,8 @@
 }
 
 .crypto-send-confirm-overlay__chain-address {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
   font-size: 1.5rem;
   letter-spacing: 0.04em;
@@ -619,7 +622,8 @@
   word-break: break-word;
 }
 
-#crypto-send-confirm-root.crypto-send-confirm-overlay--has-detail .crypto-send-confirm-overlay__detail-message {
+#crypto-send-confirm-root.crypto-send-confirm-overlay--has-detail
+  .crypto-send-confirm-overlay__detail-message {
   display: block;
 }
 
@@ -636,11 +640,13 @@
   gap: 1.4rem;
 }
 
-#crypto-send-confirm-root[data-confirm-mode='trusted'] .crypto-send-confirm-overlay__footer--interactive {
+#crypto-send-confirm-root[data-confirm-mode='trusted']
+  .crypto-send-confirm-overlay__footer--interactive {
   display: none;
 }
 
-#crypto-send-confirm-root[data-confirm-mode='interactive'] .crypto-send-confirm-overlay__footer--trusted {
+#crypto-send-confirm-root[data-confirm-mode='interactive']
+  .crypto-send-confirm-overlay__footer--trusted {
   display: none;
 }
 
@@ -672,7 +678,8 @@
   color: color-mix(in srgb, var(--saito-white) 92%, transparent);
 }
 
-#crypto-send-confirm-root.crypto-send-confirm-overlay--show-ignore .crypto-send-confirm-overlay__ignore {
+#crypto-send-confirm-root.crypto-send-confirm-overlay--show-ignore
+  .crypto-send-confirm-overlay__ignore {
   display: flex;
 }
 
@@ -701,8 +708,10 @@
   display: block;
 }
 
-#crypto-send-confirm-root[data-confirm-state='success'] .crypto-send-confirm-overlay__result-icon--failure,
-#crypto-send-confirm-root[data-confirm-state='failed'] .crypto-send-confirm-overlay__result-icon--success {
+#crypto-send-confirm-root[data-confirm-state='success']
+  .crypto-send-confirm-overlay__result-icon--failure,
+#crypto-send-confirm-root[data-confirm-state='failed']
+  .crypto-send-confirm-overlay__result-icon--success {
   display: none !important;
 }
 
@@ -717,14 +726,638 @@
   display: none;
 }
 
-.game-crypto-transfer-manager-container.send-crypto-overlay .send-crypto-overlay__footer--trusted
+.game-crypto-transfer-manager-container.send-crypto-overlay
+  .send-crypto-overlay__footer--trusted
   .send-crypto-overlay__countdown {
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 }
 
-.game-crypto-transfer-manager-container.send-crypto-overlay[data-send-state='success'] .send-crypto-overlay__spinner,
-.game-crypto-transfer-manager-container.send-crypto-overlay[data-send-state='failed'] .send-crypto-overlay__spinner {
+.game-crypto-transfer-manager-container.send-crypto-overlay[data-send-state='success']
+  .send-crypto-overlay__spinner,
+.game-crypto-transfer-manager-container.send-crypto-overlay[data-send-state='failed']
+  .send-crypto-overlay__spinner {
   display: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Wallet withdraw overlay (saito-crypto.withdraw)                            */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Withdraw overlay layout: one fixed outer height; header + footer are intrinsic;
+ * main flexes to fill the remainder (no stacked min-heights that overflow the form).
+ */
+#withdrawal-form.withdraw-overlay {
+  --withdraw-overlay-height: min(52rem, 90vh);
+  width: min(48rem, 96vw);
+  max-width: 100%;
+  height: var(--withdraw-overlay-height);
+  max-height: var(--withdraw-overlay-height);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+#withdrawal-form.withdraw-overlay.saito-overlay-form {
+  gap: 0;
+}
+
+#withdrawal-form .withdraw-overlay__surface {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#withdrawal-form .withdraw-overlay__header {
+  flex: 0 0 auto;
+}
+
+#withdrawal-form .withdraw-overlay__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#withdrawal-form .withdraw-overlay__compose,
+#withdrawal-form .withdraw-overlay__review {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#withdrawal-form .withdraw-overlay__footer-bar {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  margin-top: 0;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--saito-border-color) 55%, transparent);
+  box-sizing: border-box;
+}
+
+#withdrawal-form .withdraw-overlay__actions {
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  margin: 0;
+}
+
+#withdrawal-form .withdraw-overlay__actions button {
+  min-width: 14rem;
+  min-height: 4.5rem;
+  margin: 0;
+  flex: 0 1 calc(50% - 0.5rem);
+  max-width: 20rem;
+}
+
+#withdrawal-form .withdraw-overlay__header.saito-overlay-form-header {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: 1.25rem;
+  row-gap: 0.25rem;
+  height: auto;
+  min-height: 5.5rem;
+  max-height: none;
+  padding: 0.85rem 1.35rem;
+}
+
+#withdrawal-form .withdraw-header-logo-cont {
+  width: 4.5rem;
+  height: 4.5rem;
+  max-width: 4.5rem;
+  max-height: 4.5rem;
+  flex-shrink: 0;
+}
+
+#withdrawal-form .withdraw-header-logo-cont .crypto-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#withdrawal-form .withdraw-header-logo-cont .chain-logo {
+  position: absolute;
+  width: auto;
+  height: 36%;
+  bottom: 8%;
+  right: 8%;
+}
+
+#withdrawal-form .withdraw-overlay__header .saito-overlay-form-header-title {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  min-width: 0;
+  text-align: left;
+}
+
+#withdrawal-form .withdraw-overlay__title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: inherit;
+}
+
+#withdrawal-form .withdraw-overlay__compose {
+  gap: 1.6rem;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding: 0.25rem 0 0.5rem;
+}
+
+#withdrawal-form .withdraw-compose-top {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 1.2rem;
+}
+
+#withdrawal-form .withdraw-token-picker {
+  width: min(10.5rem, 42vw);
+  max-width: 100%;
+}
+
+#withdrawal-form .withdraw-token-picker .withdraw-field-label {
+  margin-bottom: 0.35rem;
+}
+
+#withdrawal-form .withdraw-token-picker .saito-overlay-form-input {
+  margin: 0;
+  max-width: none;
+}
+
+#withdrawal-form .withdraw-balance-fee-stack {
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+#withdrawal-form .withdraw-meta-line {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
+  gap: 0.5rem 1.25rem;
+  align-items: baseline;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+
+#withdrawal-form .withdraw-meta-line .withdraw-info-title {
+  text-transform: capitalize;
+  font-size: 1.15rem;
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+#withdrawal-form .withdraw-meta-line .withdraw-info-value {
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+#withdrawal-form .withdraw-field-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--saito-font-color) 72%, transparent);
+}
+
+#withdrawal-form .withdraw-input-cont:not(.fixed-user) {
+  grid-template-columns: 1fr min-content min-content;
+}
+
+#withdrawal-form .withdraw-input-cont.fixed-user {
+  grid-template-columns: min-content minmax(0, 1fr);
+}
+
+#withdrawal-form .withdraw-input-cont.fixed-user .withdraw-options-cont,
+#withdrawal-form .withdraw-input-cont.fixed-user button.withdraw-options-cont {
+  display: none !important;
+}
+
+#withdrawal-form button.withdraw-options-cont {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: unset;
+  min-height: unset;
+  margin: 0 0 0 0.5rem;
+  padding: 1rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+
+#withdrawal-form button.withdraw-options-cont:hover {
+  font-weight: bold;
+  background: transparent;
+  color: inherit;
+}
+
+#withdrawal-form button.withdraw-options-cont:hover i {
+  transform: scale(1.15);
+}
+
+#withdrawal-form #withdraw-amount-cont {
+  grid-template-columns: 1fr min-content;
+  align-items: stretch;
+}
+
+#withdrawal-form .withdraw-max-btn {
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 0.35rem 0 0;
+  min-width: unset;
+  min-height: unset;
+  padding: 0.4rem 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  border-radius: var(--saito-border-radius);
+  color: var(--saito-button-secondary-fg);
+  background: var(--saito-button-secondary-bg);
+  border: var(--border-thickness-thin) solid var(--saito-button-secondary-border);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+#withdrawal-form .withdraw-max-btn:hover {
+  background: var(--saito-button-secondary-bg-hover);
+  color: var(--saito-button-secondary-fg-hover);
+}
+
+#withdrawal-form .withdraw-max-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--saito-focus-ring);
+}
+
+#withdrawal-form .withdraw-error-slot {
+  min-height: 2.8rem;
+  margin-top: 0.25rem;
+}
+
+#withdrawal-form .withdraw-error {
+  position: static;
+  display: block;
+  visibility: hidden;
+  margin: 0;
+  padding: 0;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  text-align: left;
+  right: auto;
+  background: transparent;
+  color: var(--saito-status-danger);
+}
+
+#withdrawal-form .withdraw-error:not(:empty) {
+  visibility: visible;
+}
+
+#withdrawal-form[data-withdraw-state='review'] .withdraw-confirm-overlay__tx-row,
+#withdrawal-form[data-withdraw-state='pending'] .withdraw-confirm-overlay__tx-row,
+#withdrawal-form[data-withdraw-state='failed'] .withdraw-confirm-overlay__tx-row {
+  display: none !important;
+}
+
+#withdrawal-form .withdraw-overlay__review {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 0.75rem 0 1rem;
+  text-align: center;
+  gap: 1.25rem;
+}
+
+/* Confirm: summary centered in the fixed panel */
+#withdrawal-form[data-withdraw-state='review'] .withdraw-confirm-overlay__body {
+  justify-content: center;
+  gap: 1.6rem;
+}
+
+#withdrawal-form[data-withdraw-state='review'] .withdraw-confirm-overlay__status,
+#withdrawal-form[data-withdraw-state='review'] .withdraw-send-result,
+#withdrawal-form[data-withdraw-state='review'] .withdraw-confirm-overlay__tx-row {
+  display: none !important;
+}
+
+/* Pending: spinner upper-mid, dimmed summary below */
+#withdrawal-form[data-withdraw-state='pending'] .withdraw-confirm-overlay__body {
+  justify-content: flex-start;
+  padding-top: 2.5rem;
+  gap: 1.5rem;
+}
+
+#withdrawal-form[data-withdraw-state='pending'] .withdraw-send-result,
+#withdrawal-form[data-withdraw-state='pending'] .withdraw-confirm-overlay__tx-row {
+  display: none !important;
+}
+
+#withdrawal-form[data-withdraw-state='pending'] .withdraw-confirm-overlay__review-details {
+  opacity: 0.55;
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: center;
+}
+
+/* Success / failure: icon, message, optional tx — vertically centered */
+#withdrawal-form[data-withdraw-state='success'] .withdraw-confirm-overlay__body,
+#withdrawal-form[data-withdraw-state='failed'] .withdraw-confirm-overlay__body {
+  justify-content: center;
+  gap: 1.1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 1rem;
+}
+
+#withdrawal-form[data-withdraw-state='success'] .withdraw-confirm-overlay__review-details,
+#withdrawal-form[data-withdraw-state='failed'] .withdraw-confirm-overlay__review-details {
+  display: none !important;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__status {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 5rem;
+}
+
+#withdrawal-form[data-withdraw-state='review'] .withdraw-confirm-overlay__status {
+  display: none;
+  min-height: 0;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__review-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6rem;
+  width: 100%;
+  max-width: 42rem;
+  flex: 0 0 auto;
+}
+
+#withdrawal-form .withdraw-send-result {
+  display: none;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 38rem;
+  text-align: center;
+}
+
+#withdrawal-form[data-withdraw-state='success'] .withdraw-send-result,
+#withdrawal-form[data-withdraw-state='failed'] .withdraw-send-result {
+  display: flex;
+}
+
+#withdrawal-form .withdraw-send-result__title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--saito-font-color);
+}
+
+#withdrawal-form .withdraw-send-result__message {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--saito-font-color) 82%, transparent);
+}
+
+#withdrawal-form[data-withdraw-state='failed'] .withdraw-send-result__message {
+  color: var(--saito-status-danger);
+}
+
+#withdrawal-form .withdraw-confirm-overlay__tx-row {
+  flex: 0 0 auto;
+  margin-top: 0.25rem;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__spinner {
+  display: none;
+  width: 7rem;
+  height: 7rem;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__spinner.show {
+  display: block;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__result-icon {
+  font-size: 5rem;
+  line-height: 1;
+}
+
+#withdrawal-form[data-withdraw-state='success']
+  .withdraw-confirm-overlay__result-icon--success {
+  color: var(--saito-status-success);
+}
+
+#withdrawal-form[data-withdraw-state='failed']
+  .withdraw-confirm-overlay__result-icon--failure {
+  color: var(--saito-status-danger);
+}
+
+#withdrawal-form .withdraw-confirm-overlay__summary,
+#withdrawal-form .withdraw-confirm-overlay__recipient,
+#withdrawal-form .withdraw-confirm-overlay__fee-row,
+#withdrawal-form .withdraw-confirm-overlay__tx-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 42rem;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__summary-label {
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--saito-font-color) 68%, transparent);
+}
+
+#withdrawal-form .withdraw-confirm-overlay__amount {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__chain-address {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 1.45rem;
+  letter-spacing: 0.02em;
+  word-break: break-all;
+  max-width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--saito-border-radius);
+  background: color-mix(in srgb, var(--saito-background-color) 88%, var(--saito-primary) 12%);
+  border: 1px solid color-mix(in srgb, var(--saito-border-color) 50%, transparent);
+}
+
+#withdrawal-form .withdraw-confirm-overlay__chain-address::after {
+  content: none;
+}
+
+#withdrawal-form .withdraw-confirm-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  color: var(--saito-primary);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+#withdrawal-form .withdraw-confirm-copy-btn:hover {
+  opacity: 0.85;
+}
+
+#withdrawal-form .withdraw-confirm-counterparty {
+  width: 100%;
+}
+
+#withdrawal-form .withdraw-confirm-counterparty .saito-user {
+  justify-content: center;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__fee {
+  font-size: 1.5rem;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__tx-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__tx-hash {
+  font-family: monospace;
+  font-size: 1.4rem;
+  line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__tx-inline .withdraw-confirm-copy-btn {
+  flex-shrink: 0;
+  padding: 0.25rem 0.35rem;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__tx-inline .withdraw-confirm-copy-btn .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#withdrawal-form .withdraw-overlay__actions button.saito-button-secondary {
+  color: var(--saito-button-secondary-fg);
+  background: var(--saito-button-secondary-bg);
+  border-color: var(--saito-button-secondary-border);
+}
+
+#withdrawal-form .withdraw-overlay__actions button.saito-button-secondary:hover {
+  background: var(--saito-button-secondary-bg-hover);
+  color: var(--saito-button-secondary-fg-hover);
+}
+
+#withdrawal-form .withdraw-overlay__actions button.saito-button-primary {
+  background: var(--saito-button-primary-bg);
+  color: var(--saito-button-primary-fg);
+  border-color: var(--saito-button-primary-border);
+}
+
+#withdrawal-form .withdraw-confirm-overlay__pending-label {
+  font-size: 1.5rem;
+  color: color-mix(in srgb, var(--saito-font-color) 80%, transparent);
+  padding: 0.5rem 1rem;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-option--focused {
+  outline: 2px solid color-mix(in srgb, var(--saito-primary) 65%, transparent);
+  outline-offset: -2px;
+}
+
+@media screen and (max-width: 520px) {
+  #withdrawal-form.withdraw-overlay {
+    --withdraw-overlay-height: min(52rem, 92vh);
+  }
+
+  #withdrawal-form .withdraw-token-picker {
+    width: min(10.5rem, 100%);
+  }
+
+  #withdrawal-form .withdraw-overlay__actions button {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  #withdrawal-form[data-withdraw-state='pending'] .withdraw-confirm-overlay__body {
+    padding-top: 1.75rem;
+  }
 }
