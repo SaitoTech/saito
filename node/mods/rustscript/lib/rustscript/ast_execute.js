@@ -1,74 +1,107 @@
 /**
- * Evaluate a canonical AST against an execution context.
- *
- * Input:  ast, context
- * Output: true | false
- *
- * Context is the sole execution environment:
- *   context.app, context.tx, context.block, context.variables, context.opcodes, …
- *
- * Opcodes read and write context. Program data lives on AST nodes.
- * THEN runs phases sequentially because opcodes may mutate context.
+ * Purpose: Execute RustScript AST against runtime context.
  */
 
-function execute(ast, context) {
-  if (!context || typeof context !== 'object') {
+function ast_execute(ast, context) {
+  if (!ast || typeof ast !== 'object' || !context || typeof context !== 'object') {
+    return false;
+  }
+  if (!context.opcodes || typeof context.opcodes !== 'object') {
     return false;
   }
 
-  const opcodes = context.opcodes ?? {};
+  const walk = [{ node: ast, visited: false }];
+  const values = [];
 
-  function eval_node(node) {
-    if (!node || typeof node !== 'object') {
+  while (walk.length > 0) {
+    const frame = walk.pop();
+    const node = frame.node;
+
+    if (!node || typeof node !== 'object' || typeof node.op !== 'string' || node.op.length === 0) {
       return false;
     }
 
-    const op = String(node.op || '').toLowerCase();
-    const children = Array.isArray(node.args) ? node.args : [];
+    const op = node.op;
 
-    if (op === 'and') {
-      for (let i = 0; i < children.length; i++) {
-        if (!eval_node(children[i])) {
+    if (!frame.visited) {
+      walk.push({ node: node, visited: true });
+
+      if (op === 'NOT') {
+        if (!Array.isArray(node.args) || node.args.length !== 1) {
           return false;
         }
+        walk.push({ node: node.args[0], visited: false });
+        continue;
       }
-      return true;
-    }
 
-    if (op === 'or') {
-      for (let i = 0; i < children.length; i++) {
-        if (eval_node(children[i])) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    if (op === 'not') {
-      if (children.length === 0) {
-        return true;
-      }
-      return !eval_node(children[0]);
-    }
-
-    if (op === 'then') {
-      for (let i = 0; i < children.length; i++) {
-        if (!eval_node(children[i])) {
+      if (op === 'AND' || op === 'OR' || op === 'THEN') {
+        if (!Array.isArray(node.args) || node.args.length < 2) {
           return false;
         }
+        for (let i = node.args.length - 1; i >= 0; i -= 1) {
+          walk.push({ node: node.args[i], visited: false });
+        }
+        continue;
       }
-      return true;
+
+      continue;
     }
 
-    const handler = opcodes[op];
-    if (!handler || typeof handler.execute !== 'function') {
+    if (op === 'NOT') {
+      if (values.length < 1) {
+        return false;
+      }
+      const a = values.pop();
+      values.push(!a);
+      continue;
+    }
+
+    if (op === 'AND' || op === 'OR' || op === 'THEN') {
+      const argCount = Array.isArray(node.args) ? node.args.length : 0;
+      if (values.length < argCount) {
+        return false;
+      }
+
+      const start = values.length - argCount;
+
+      if (op === 'OR') {
+        let result = false;
+        for (let i = start; i < values.length; i += 1) {
+          if (values[i] === true) {
+            result = true;
+            break;
+          }
+        }
+        values.length = start;
+        values.push(result);
+        continue;
+      }
+
+      let allTrue = true;
+      for (let i = start; i < values.length; i += 1) {
+        if (values[i] !== true) {
+          allTrue = false;
+          break;
+        }
+      }
+      values.length = start;
+      values.push(allTrue);
+      continue;
+    }
+
+    const key = op.toLowerCase();
+    const handler = context.opcodes[key];
+    if (typeof handler !== 'function') {
       return false;
     }
-
-    return handler.execute(node, context) === true;
+    values.push(handler(node, context) === true);
   }
 
-  return eval_node(ast) === true;
+  if (values.length !== 1) {
+    return false;
+  }
+
+  return values[0] === true;
 }
 
-module.exports = execute;
+module.exports = ast_execute;

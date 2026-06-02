@@ -1,0 +1,79 @@
+body.rustscript .rustscript-templates {
+  max-width: 500px;
+  padding: 20px 22px;
+  color: var(--rustscript-text, #e8e8e8);
+  background: var(--rustscript-panel, #1c1c1c);
+  border: 1px solid var(--rustscript-border, #383838);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+body.rustscript .rustscript-templates h2 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+body.rustscript .rustscript-templates > p {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  color: var(--rustscript-muted, #9a9a9a);
+}
+
+body.rustscript .rustscript-templates ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+body.rustscript .rustscript-templates ul .rustscript-template {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--rustscript-border-subtle, #2a2a2a);
+  border-radius: var(--rustscript-radius, 4px);
+  background: var(--rustscript-bg, #141414);
+  color: var(--rustscript-text, #e0e0e0);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+body.rustscript .rustscript-templates ul .rustscript-template:hover {
+  border-color: #555;
+  background: #1e1e1e;
+}
+
+body.rustscript .rustscript-templates ul .rustscript-template strong {
+  display: block;
+  font-weight: 700;
+  font-family: var(--rustscript-mono, ui-monospace, monospace);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  color: #fca311;
+}
+
+body.rustscript .rustscript-templates > .rustscript-button {
+  margin-top: 10px;
+  height: 34px;
+  padding: 0 16px;
+  border: 2px solid #3d3d3d;
+  border-radius: var(--rustscript-radius, 2px);
+  background: #1a1a1a;
+  color: #ccc;
+  font-family: var(--rustscript-mono, ui-monospace, monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}

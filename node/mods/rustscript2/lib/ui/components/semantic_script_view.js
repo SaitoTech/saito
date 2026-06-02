@@ -1,8 +1,8 @@
-const { isPlaceholder, placeholderMeta } = require('./placeholder_utils');
-const { isRequiredPath } = require('./workspace_sync');
+const { isPlaceholder, placeholderMeta, placeholderName } = require('./placeholder_utils');
+const { isWitnessPath } = require('./workspace_sync');
 const { inferFieldKindFromPath, validateField } = require('./field_validation');
 const { isLogicalOperator, normalizeLogicalOperator } = require('./logical_operators');
-const { witnessFieldNames, isWitnessValueSupplied } = require('../script_build');
+const { witnessFieldNames, unlockWitnessFieldNames, isWitnessValueSupplied } = require('../script_build');
 
 class SemanticScriptView {
   constructor(app, mod, options = {}) {
@@ -77,7 +77,7 @@ class SemanticScriptView {
     if (!this.requiredOnlyEditable) {
       return true;
     }
-    return isRequiredPath(path);
+    return isWitnessPath(path);
   }
 
   fieldKindFor(path, keyName = '') {
@@ -86,7 +86,7 @@ class SemanticScriptView {
   }
 
   renderAtom(value, path, keyName = '') {
-    const readOnlyInherited = this.requiredOnlyEditable && !isRequiredPath(path);
+    const readOnlyInherited = this.requiredOnlyEditable && !isWitnessPath(path);
 
     if (keyName === 'op' && typeof value === 'string' && isLogicalOperator(value)) {
       if (readOnlyInherited) {
@@ -291,13 +291,32 @@ class SemanticScriptView {
     const inner = document.createElement('div');
     inner.className = 'rs-semantic-block-inner';
 
-    const keys = Object.keys(obj);
+    const appendWitness = this.willAppendWitnessFields(obj);
+
+    const keys = Object.keys(obj).filter((key) => {
+      if (key === 'witness') {
+        if (this.panelRole === 'locking') {
+          return false;
+        }
+        if (this.panelRole === 'unlocking' && this.requiredOnlyEditable) {
+          return false;
+        }
+      }
+      if (key === 'required') {
+        const val = obj[key];
+        if (val && typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0) {
+          return false;
+        }
+      }
+      return true;
+    });
+
     keys.forEach((key, index) => {
       const childPath = path.concat(key);
       const child = obj[key];
       const isNestedObject = child !== null && typeof child === 'object' && !Array.isArray(child);
       const isNestedArray = Array.isArray(child);
-      const isLast = index === keys.length - 1;
+      const needsTrailingComma = index < keys.length - 1 || appendWitness;
 
       if (isNestedObject || isNestedArray) {
         const section = document.createElement('div');
@@ -312,7 +331,7 @@ class SemanticScriptView {
         keyRow.appendChild(this.span(':', 'rs-semantic-punct'));
         section.appendChild(keyRow);
         section.appendChild(this.renderValue(child, childPath, depth + 1));
-        if (!isLast) {
+        if (needsTrailingComma) {
           const commaRow = this.createRow(depth + 1);
           commaRow.appendChild(this.span(',', 'rs-semantic-punct'));
           section.appendChild(commaRow);
@@ -324,7 +343,7 @@ class SemanticScriptView {
         row.appendChild(this.span(JSON.stringify(key), 'rs-semantic-key'));
         row.appendChild(this.span(':', 'rs-semantic-punct'));
         row.appendChild(this.renderAtom(child, childPath, key));
-        if (!isLast) {
+        if (needsTrailingComma) {
           row.appendChild(this.span(',', 'rs-semantic-punct'));
         }
         inner.appendChild(row);
@@ -392,103 +411,91 @@ class SemanticScriptView {
     return block;
   }
 
-  appendWitnessFields(block, obj, path, depth) {
+  willAppendWitnessFields(obj) {
     if (this.panelRole !== 'unlocking' || !this.requiredOnlyEditable) {
-      return;
+      return false;
     }
 
     const op = String(obj.op || '').toLowerCase();
     if (op === 'and' || op === 'or' || op === 'then' || op === 'not') {
-      return;
+      return false;
     }
 
-    const fields = witnessFieldNames(this.mod?.opcodes, op);
+    const fields = unlockWitnessFieldNames(this.mod?.opcodes, op, obj);
     if (!fields.length) {
+      return false;
+    }
+
+    const witness = obj.witness && typeof obj.witness === 'object' ? obj.witness : {};
+    const missing = fields.filter((key) => !isWitnessValueSupplied(witness[key]));
+    const supplied = fields.filter((key) => isWitnessValueSupplied(witness[key]));
+    return missing.length > 0 || supplied.length > 0;
+  }
+
+  appendWitnessFields(block, obj, path, depth) {
+    if (!this.willAppendWitnessFields(obj)) {
       return;
     }
 
-    const required = obj.required && typeof obj.required === 'object' ? obj.required : {};
-    const missing = fields.filter((key) => !isWitnessValueSupplied(required[key]));
-    if (!missing.length) {
-      return;
-    }
+    const op = String(obj.op || '').toLowerCase();
+    const fields = unlockWitnessFieldNames(this.mod?.opcodes, op, obj);
+    const witness = obj.witness && typeof obj.witness === 'object' ? obj.witness : {};
+    const missing = fields.filter((key) => !isWitnessValueSupplied(witness[key]));
+    const supplied = fields.filter((key) => isWitnessValueSupplied(witness[key]));
 
     const inner = block.querySelector('.rs-semantic-block-inner');
     if (!inner) {
       return;
     }
 
-    const hasRequiredKey = Object.prototype.hasOwnProperty.call(obj, 'required');
-    const keys = Object.keys(obj);
-    const needsComma = keys.length > 0;
-
-    if (needsComma) {
-      const commaRow = this.createRow(depth + 1);
-      commaRow.appendChild(this.span(',', 'rs-semantic-punct'));
-      inner.appendChild(commaRow);
-    }
-
     const section = document.createElement('div');
     section.className = 'rs-semantic-section';
-    section.dataset.key = 'required';
+    section.dataset.key = 'witness';
     section.dataset.depth = String(depth + 1);
-    section.dataset.path = JSON.stringify(path.concat('required'));
+    section.dataset.path = JSON.stringify(path.concat('witness'));
     section.dataset.kind = 'object';
 
     const keyRow = this.createRow(depth + 1);
-    keyRow.appendChild(this.span(JSON.stringify('required'), 'rs-semantic-key'));
+    keyRow.appendChild(this.span(JSON.stringify('witness'), 'rs-semantic-key'));
     keyRow.appendChild(this.span(':', 'rs-semantic-punct'));
     section.appendChild(keyRow);
 
-    const reqBlock = document.createElement('div');
-    reqBlock.className = 'rs-semantic-block';
-    reqBlock.dataset.depth = String(depth + 1);
-    reqBlock.dataset.kind = 'object';
+    const witnessBlock = document.createElement('div');
+    witnessBlock.className = 'rs-semantic-block';
+    witnessBlock.dataset.depth = String(depth + 1);
+    witnessBlock.dataset.kind = 'object';
 
-    const reqOpen = this.createRow(depth + 1, 'rs-semantic-row-brace');
-    reqOpen.appendChild(this.span('{', 'rs-semantic-brace'));
-    reqBlock.appendChild(reqOpen);
+    const witnessOpen = this.createRow(depth + 1, 'rs-semantic-row-brace');
+    witnessOpen.appendChild(this.span('{', 'rs-semantic-brace'));
+    witnessBlock.appendChild(witnessOpen);
 
-    const reqInner = document.createElement('div');
-    reqInner.className = 'rs-semantic-block-inner';
+    const witnessInner = document.createElement('div');
+    witnessInner.className = 'rs-semantic-block-inner';
 
-    const renderedKeys = hasRequiredKey ? Object.keys(required) : [];
-    missing.forEach((fieldName, index) => {
-      const fieldPath = path.concat('required', fieldName);
+    const orderedFields = [...missing, ...supplied];
+    orderedFields.forEach((fieldName, index) => {
+      const fieldPath = path.concat('witness', fieldName);
       const row = this.createRow(depth + 2, 'rs-semantic-row-value');
       row.appendChild(this.span(JSON.stringify(fieldName), 'rs-semantic-key'));
       row.appendChild(this.span(':', 'rs-semantic-punct'));
-      row.appendChild(this.renderPlaceholderChip(`<${fieldName}>`, fieldPath));
-      if (index < missing.length - 1 || renderedKeys.some((k) => isWitnessValueSupplied(required[k]))) {
+      if (isWitnessValueSupplied(witness[fieldName])) {
+        row.appendChild(this.renderAtom(witness[fieldName], fieldPath, fieldName));
+      } else {
+        row.appendChild(this.renderPlaceholderChip(`<${fieldName}>`, fieldPath));
+      }
+      if (index < orderedFields.length - 1) {
         row.appendChild(this.span(',', 'rs-semantic-punct'));
       }
-      reqInner.appendChild(row);
+      witnessInner.appendChild(row);
     });
 
-    for (const fieldName of renderedKeys) {
-      if (!isWitnessValueSupplied(required[fieldName])) {
-        continue;
-      }
-      const fieldPath = path.concat('required', fieldName);
-      const row = this.createRow(depth + 2, 'rs-semantic-row-value');
-      row.appendChild(this.span(JSON.stringify(fieldName), 'rs-semantic-key'));
-      row.appendChild(this.span(':', 'rs-semantic-punct'));
-      row.appendChild(this.renderAtom(required[fieldName], fieldPath, fieldName));
-      const lastSuppliedIndex = renderedKeys.filter((k) => isWitnessValueSupplied(required[k])).indexOf(fieldName);
-      const supplied = renderedKeys.filter((k) => isWitnessValueSupplied(required[k]));
-      if (lastSuppliedIndex < supplied.length - 1) {
-        row.appendChild(this.span(',', 'rs-semantic-punct'));
-      }
-      reqInner.appendChild(row);
-    }
+    witnessBlock.appendChild(witnessInner);
 
-    reqBlock.appendChild(reqInner);
+    const witnessClose = this.createRow(depth + 1, 'rs-semantic-row-brace');
+    witnessClose.appendChild(this.span('}', 'rs-semantic-brace'));
+    witnessBlock.appendChild(witnessClose);
 
-    const reqClose = this.createRow(depth + 1, 'rs-semantic-row-brace');
-    reqClose.appendChild(this.span('}', 'rs-semantic-brace'));
-    reqBlock.appendChild(reqClose);
-
-    section.appendChild(reqBlock);
+    section.appendChild(witnessBlock);
     inner.appendChild(section);
   }
 

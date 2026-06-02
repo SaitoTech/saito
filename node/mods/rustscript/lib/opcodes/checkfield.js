@@ -1,22 +1,40 @@
+/**
+ * Purpose: CHECKFIELD opcode — compare resolved field values.
+ */
+
 module.exports = {
-
-  name: "CHECKFIELD",
-
+  name: 'CHECKFIELD',
   description: `
 Compares two values (resolved via VARS or literals) using a comparison operator.
 Returns true if the comparison holds.
 `,
-
   exampleScript: {
-    op: "CHECKFIELD",
-    field: "__opcodes.sumfields.expiry",
-    operator: ">",
-    value: "NOW"
+    op: 'CHECKFIELD',
+    field: '__opcodes.sumfields.expiry',
+    operator: '>',
+    value: 'NOW'
+  },
+  schema: {
+    field: 'reference',
+    operator: 'operator',
+    value: 'reference'
   },
 
   execute(node, context) {
-    const left  = context.app.browser.resolveVarReference(context, node.field);
-    const right = context.app.browser.resolveVarReference(context, node.value);
+    if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {
+      return false;
+    }
+
+    const operator = node.operator;
+    if (typeof operator !== 'string' || operator.length === 0) {
+      return false;
+    }
+
+    const left = resolveRef(context, node.field);
+    let right = resolveRef(context, node.value);
+    if (typeof right === 'string' && Object.prototype.hasOwnProperty.call(context, right)) {
+      right = context[right];
+    }
 
     if (left === undefined || right === undefined) {
       return false;
@@ -24,40 +42,48 @@ Returns true if the comparison holds.
 
     const lnum = Number(left);
     const rnum = Number(right);
-
     const l = Number.isFinite(lnum) ? lnum : left;
     const r = Number.isFinite(rnum) ? rnum : right;
 
-    const op = node.operator;
-
-    switch (op) {
-
-      case "==":
-      case "equals":
-        return l === r;
-
-      case "!=":
-      case "notequals":
-        return l !== r;
-
-      case "<":
-      case "lessthan":
-        return l < r;
-
-      case "<=":
-      case "lessthanorequal":
-        return l <= r;
-
-      case ">":
-      case "greaterthan":
-        return l > r;
-
-      case ">=":
-      case "greaterthanorequal":
-        return l >= r;
-
-      default:
-        return false;
+    if (operator === '==' || operator === 'equals') {
+      return l === r;
     }
+    if (operator === '!=' || operator === 'notequals') {
+      return l !== r;
+    }
+    if (operator === '<' || operator === 'lessthan') {
+      return l < r;
+    }
+    if (operator === '<=' || operator === 'lessthanorequal') {
+      return l <= r;
+    }
+    if (operator === '>' || operator === 'greaterthan') {
+      return l > r;
+    }
+    if (operator === '>=' || operator === 'greaterthanorequal') {
+      return l >= r;
+    }
+
+    return false;
   }
 };
+
+function resolveRef(root, ref) {
+  if (typeof ref !== 'string') {
+    return ref;
+  }
+  const parts = ref.split('.');
+  let cursor = root;
+  for (let i = 0; i < parts.length; i += 1) {
+    const key = parts[i];
+    if (
+      !cursor ||
+      typeof cursor !== 'object' ||
+      !Object.prototype.hasOwnProperty.call(cursor, key)
+    ) {
+      return ref;
+    }
+    cursor = cursor[key];
+  }
+  return cursor;
+}

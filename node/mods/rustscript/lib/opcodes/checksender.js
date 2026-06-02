@@ -1,34 +1,38 @@
+/**
+ * Purpose: CHECKSENDER opcode — verify transaction sender matches script publickey.
+ */
 
 module.exports = {
-
-  name: "CHECKSENDER",
-  description: "Check transaction sender matches supplied publickey.",
-
+  name: 'CHECKSENDER',
+  description: 'Check transaction sender matches supplied publickey.',
   exampleScript: {
-    op: "CHECKSENDER",
-    publickey: "<publickey>"
+    op: 'CHECKSENDER',
+    publickey: '<publickey>'
   },
-
-  exampleRequired: {},
-
   schema: {
-    script: {
-      publickey: "string"
-    },
-    required: {}
+    publickey: 'publickey'
   },
 
-  execute: function (node, context) {
-    const sender =
-      (context && context.tx && context.tx.sender) ||
-      (context && context["tx.sender"]) ||
-      (context && context.sender) ||
-      null;
+  execute(node, context) {
+    if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {
+      return false;
+    }
 
-    const required = node.publickey || null;
-    if (!required) return false;
+    const tx = context.tx;
+    if (!tx || typeof tx !== 'object' || Array.isArray(tx)) {
+      return false;
+    }
 
-    if (!sender) return false;
-    return String(sender).toLowerCase() === String(required).toLowerCase();
+    const publickey = node.publickey;
+    if (typeof publickey !== 'string' || publickey.length === 0) {
+      return false;
+    }
+
+    const sender = tx.sender;
+    if (typeof sender !== 'string' || sender.length === 0) {
+      return false;
+    }
+
+    return sender.toLowerCase() === publickey.toLowerCase();
   }
 };
