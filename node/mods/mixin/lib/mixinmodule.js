@@ -23,9 +23,6 @@
  sendExternalNetworkTransferRequest()
  returnMixinNetworkInfo()
  returnWithdrawalFee()
- sendFetchUserByAddressTransaction()
- sendFetchUserByPublicKeyByAssetIdTransaction()
- sendFetchAddressByUserIdTransaction()
  deposit[]
  mixin.privatekey
  mixin.user_id
@@ -197,6 +194,25 @@ class MixinModule extends CryptoModule {
 		return this.pending_deposits;
 	}
 
+	checkCacheForUser(user_id) {
+		//
+		// check if address exists in local db
+		//
+		for (let pk in this.cached_contacts) {
+			if (this.cached_contacts[pk].includes(user_id)) {
+				return pk;
+			}
+		}
+
+		for (let k of this.app.keychain.returnKeys()) {
+			if (k?.crypto_addresses[this.ticker]?.includes(user_id)) {
+				return k.publicKey;
+			}
+		}
+
+		return false;
+	}
+
 	/**
 	 * Incremental history / snapshot sync: fetch new Safe ledger events, append to history,
 	 * emit semantic payment events, and advance latest_snapshot_ts.
@@ -282,12 +298,43 @@ class MixinModule extends CryptoModule {
 			}
 
 			if (snap?.opponent_id) {
-				const user = await this.mixin.sendFetchAddressByUserIdTransaction(
-					this.asset_id,
-					snap.opponent_id
-				);
-				if (user?.publickey) {
-					obj.counter_party.publicKey = user.publickey;
+				let pk = this.checkCacheForUser(snap.opponent_id);
+				if (pk) {
+					obj.counter_party.publicKey = pk;
+				} else {
+					const user = await this.mixin.sendFetchUserTransaction(
+						{
+							asset_id: this.asset_id,
+							user_id: snap.opponent_id
+						},
+						(res) => {
+							if (res?.length > 0) {
+								// Cache this results!
+								let address = res[0].address;
+								if (res[0]?.user_id) {
+									address += '|' + res[0].user_id + '|mixin';
+								}
+
+								if (res[0].publickey) {
+									let pk = res[0].publickey;
+									this.cached_contacts[pk] = address;
+									// save address to keychain if publickey exists in keychain
+									if (this.app.keychain.hasPublicKey(pk)) {
+										this.app.keychain.addCryptoAddress(pk, this.ticker, address);
+									}
+								}
+
+								// And return
+								return res[0];
+							}
+
+							return null;
+						}
+					);
+
+					if (user?.publickey) {
+						obj.counter_party.publicKey = user.publickey;
+					}
 				}
 			}
 
@@ -318,7 +365,7 @@ class MixinModule extends CryptoModule {
 				this.app.connection.emit('on-payment-received', {
 					direction: obj.type,
 					amount: String(Math.abs(obj.amount)),
-					sender: obj.sender,
+					sender: obj?.counter_party.publicKey || obj?.counter_party.address || 'unknown',
 					receiver: this.returnAddress() || '',
 					timestamp: obj.timestamp,
 					block_id: '',
@@ -355,7 +402,7 @@ class MixinModule extends CryptoModule {
 				this.app.connection.emit('on-payment-sent', {
 					direction: obj.type,
 					amount: String(Math.abs(obj.amount)),
-					receiver: obj.receiver,
+					receiver: obj?.counter_party.publicKey || obj?.counter_party.address || 'unknown',
 					sender: this.returnAddress() || '',
 					timestamp: obj.timestamp,
 					block_id: '',
@@ -662,15 +709,14 @@ class MixinModule extends CryptoModule {
 				return this.cached_contacts[publicKey];
 			}
 
-			//check if key exists in keychain
-			let address = await super.returnAddressFromPublicKey(publicKey);
+			let key = this.app.keychain.returnKey(publicKey, true);
 
-			if (address) {
-				return address;
+			if (key?.crypto_addresses) {
+				return key.crypto_addresses[this.ticker];
 			}
 
 			// if it doesnt exist fetch it from node db
-			return this.mixin.sendFetchUserByPublicKeyByAssetIdTransaction(
+			return this.mixin.sendFetchUserTransaction(
 				{
 					publicKey: publicKey,
 					asset_id: this.asset_id
@@ -728,22 +774,21 @@ class MixinModule extends CryptoModule {
 			//
 			// check if address exists in remote db
 			//
-			let user_data = null;
-			await this.mixin.sendFetchUserByAddressTransaction(
+			await this.mixin.sendFetchUserTransaction(
 				{
-					address: destination
+					address: destination,
+					asset_id: this.asset_id
 				},
 				(res) => {
-					console.log('*************', res);
-					user_data = res;
-
-					if (res?.publickey && res.user_id) {
-						destination += '|' + res.user_id + '|mixin';
-						// Cache return values
-
-						this.cached_contacts[res.publickey] = destination;
-						if (this.app.keychain.hasPublicKey(res.publickey)) {
-							this.app.keychain.addCryptoAddress(res.publickey, this.ticker, destination);
+					if (res?.length) {
+						let user_data = res[0];
+						if (user_data?.publickey && user_data.user_id) {
+							destination += '|' + user_data.user_id + '|mixin';
+							// Cache return values
+							this.cached_contacts[user_data.publickey] = destination;
+							if (this.app.keychain.hasPublicKey(user_data.publickey)) {
+								this.app.keychain.addCryptoAddress(user_data.publickey, this.ticker, destination);
+							}
 						}
 					}
 				}
@@ -758,8 +803,6 @@ class MixinModule extends CryptoModule {
 			let r = address.split('|');
 			address = r[0];
 		}
-
-		console.log('ValidateAddress: ', address, this.ticker);
 
 		try {
 			return WAValidator.validate(address, this.ticker);

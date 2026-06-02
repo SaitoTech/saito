@@ -256,7 +256,7 @@ class Withdraw {
     this.hideSendResultMessage();
     this.hideTxRow();
 
-    const amount = document.getElementById('withdraw-input-amount')?.value;
+    const amount = Number(document.getElementById('withdraw-input-amount')?.value);
     const address = document.getElementById('withdraw-input-address')?.value || '';
 
     const amountEl = document.getElementById('withdraw-confirm-amount');
@@ -281,6 +281,11 @@ class Withdraw {
         counterpartyWrap.classList.remove('hide-element');
         this.counterparty.publicKey = this.publicKey;
         this.counterparty.render();
+        if (this.app.keychain.returnIdentifierByPublicKey(this.publicKey)) {
+          this.counterparty.updateUserline(
+            this.publicKey.slice(0, 6) + '...' + this.publicKey.slice(-6)
+          );
+        }
       } else {
         counterpartyWrap.classList.add('hide-element');
         counterpartyWrap.innerHTML = '';
@@ -1013,11 +1018,11 @@ class Withdraw {
     const blocked =
       this.errors['amount'] != false || this.errors['address'] != false || this.feePending;
     if (blocked) {
-      submit.setAttribute('disabled', true);
-      //submit.classList.add('disabled');
+      if (!submit.getAttribute('disabled')) {
+        submit.setAttribute('disabled', true);
+      }
     } else {
       submit.removeAttribute('disabled');
-      //submit.classList.remove('disabled');
     }
   }
 

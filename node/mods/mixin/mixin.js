@@ -150,24 +150,10 @@ class Mixin extends ModTemplate {
     }
 
     //
-    // sendPayment, returnWithdrawalFeeForAddress
+    // sendPayment, returnWithdrawalFeeForAddress, getMixinAddress, returnHistory
     //
-    if (message.request === 'mixin fetch user by address') {
-      return await this.receiveFetchUserByAddressTransaction(app, tx, peer, mycallback);
-    }
-
-    //
-    // getMixinAddress
-    //
-    if (message.request === 'mixin fetch user by publickey by asset_id') {
-      return await this.receiveFetchUserByPublickeyByAssetIdTransaction(app, tx, peer, mycallback);
-    }
-
-    //
-    // returnHistory
-    //
-    if (message.request === 'mixin fetch address by user id by asset_id') {
-      return await this.receiveFetchAddressByUserIdByAssetIdTransaction(app, tx, peer, mycallback);
+    if (message.request === 'mixin fetch user') {
+      return await this.receiveFetchUserTransaction(app, tx, peer, mycallback);
     }
 
     //
@@ -331,9 +317,7 @@ class Mixin extends ModTemplate {
   // returnWithdrawalFee()
   // sendInNetworkTransferRequest()
   // sendExternalNetworkTransferRequest()
-  // sendFetchUserByAddressTransaction()
-  // sendFetchUserByPublicKeyByAssetIdTransaction()
-  // sendFetchAddressByUserIdTransaction()
+  // sendFetchUserTransaction()
   // ---------------------
   //
 
@@ -1094,6 +1078,11 @@ class Mixin extends ModTemplate {
     }
   }
 
+  /**
+   *
+   * TODO -- we want a uniqueness constraint so we don't make duplicate entries
+   * everytime a user ports their key and "recovers" their mixin credentials
+   */
   async receiveSaveUserTransaction(app, tx, peer, callback) {
     let message = tx.returnMessage();
 
@@ -1159,101 +1148,55 @@ class Mixin extends ModTemplate {
     return result;
   }
 
-  async sendFetchUserByAddressTransaction(params = {}, callback) {
-    let data = params;
-    return this.app.network.sendRequestAsTransaction(
-      'mixin fetch user by address',
-      data,
-      function (res) {
-        console.log('Callback for sendFetchUserByAddressTransaction request: ', res);
+  async sendFetchUserTransaction(params = {}, callback = null) {
+    return this.app.network.sendRequestAsTransaction('mixin fetch user', params, function (res) {
+      console.log('Callback for sendFetchUser: ', params, res);
+      if (callback) {
         return callback(res);
-      },
-      this.mixin_peer?.peerIndex
-    );
+      } else {
+        return res;
+      }
+    });
   }
 
-  async receiveFetchUserByAddressTransaction(app, tx, peer, callback = null) {
-    let message = tx.returnMessage();
-    let address = message.data.address;
-    let sql = `SELECT * FROM mixin_users 
-               WHERE address = $address;`;
-    let params = {
-      $address: address
-    };
+  async receiveFetchUserTransaction(app, tx, peer, callback = null) {
+    let data = tx.returnMessage().data;
+    let sql = `SELECT * FROM mixin_users WHERE`;
+    let params = {};
 
-    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
-    if (result.length > 0) {
-      return callback(result[0]);
+    // Must provide one of [address, publickey, user_id]
+    if (data?.address) {
+      sql += ` address = $address`;
+      params['$address'] = data.address;
     }
 
-    return callback(false);
-  }
+    if (data?.publicKey) {
+      sql += ` publickey = $publickey`;
+      params['$publickey'] = data.publicKey;
+    }
 
-  // Get MixinAddress -> returnAddressFromPublicKey
-  async sendFetchUserByPublicKeyByAssetIdTransaction(params = {}, callback) {
-    return await this.app.network.sendRequestAsTransaction(
-      'mixin fetch user by publickey by asset_id',
-      params,
-      callback,
-      this.mixin_peer?.peerIndex
-    );
-  }
+    if (data?.user_id) {
+      sql += ` user_id = $user_id`;
+      params['$user_id'] = data.user_id;
+    }
 
-  async receiveFetchUserByPublickeyByAssetIdTransaction(app, tx, peer, callback = null) {
-    let message = tx.returnMessage();
-    let publicKey = message.data.publicKey;
-    let asset_id = message.data.asset_id;
-    let sql = `SELECT * FROM mixin_users 
-               WHERE publickey = $publicKey AND asset_id = $asset_id ORDER BY created_at DESC;`;
-    let params = {
-      $publicKey: publicKey,
-      $asset_id: asset_id
-    };
-    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
-    if (result.length > 0) {
+    // Optional for address (which is unique per crypto), but necessary for user_id / publicKey
+    if (data?.asset_id) {
+      sql += ` AND asset_id = $asset_id`;
+      params['$asset_id'] = data.asset_id;
+    }
+
+    sql += ' ORDER BY created_at DESC';
+
+    console.log('*****', sql, params);
+
+    try {
+      let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
       return callback(result);
+    } catch (err) {
+      console.error(err);
     }
-
-    return callback(false);
-  }
-
-  //Return History
-  async sendFetchAddressByUserIdTransaction(asset_id, user_id) {
-    if (this.mixin_peer?.peerIndex) {
-      return await this.app.network.sendRequestAsTransaction(
-        'mixin fetch address by user id',
-        { asset_id, user_id },
-        function (res) {
-          if (res.length > 0) {
-            return res[0];
-          }
-          return null;
-        },
-        this.mixin_peer.peerIndex
-      );
-    } else {
-      return null;
-    }
-  }
-
-  async receiveFetchAddressByUserIdTransaction(app, tx, peer, callback = null) {
-    console.log('tx:', tx);
-    let message = tx.returnMessage();
-    let user_id = message.data.user_id;
-    let asset_id = message.data.asset_id;
-    let sql = `SELECT * FROM mixin_users 
-               WHERE user_id = $user_id AND asset_id = $asset_id ORDER BY created_at DESC;`;
-    let params = {
-      $user_id: user_id,
-      $asset_id: asset_id
-    };
-    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
-    console.log('result:', result);
-    if (result.length > 0) {
-      return callback(result);
-    }
-
-    return callback(false);
+    return callback([]);
   }
 
   async load() {

@@ -548,7 +548,7 @@
   align-items: center;
   gap: 1.6rem;
   width: 100%;
-  text-align: center;
+  /*text-align: center;*/
 }
 
 .crypto-send-confirm-overlay__status,
@@ -1072,7 +1072,7 @@
   min-height: 0;
   box-sizing: border-box;
   padding: 0.75rem 0 1rem;
-  text-align: center;
+  /*text-align: center;*/
   gap: 1.25rem;
 }
 
@@ -1201,13 +1201,11 @@
   line-height: 1;
 }
 
-#withdrawal-form[data-withdraw-state='success']
-  .withdraw-confirm-overlay__result-icon--success {
+#withdrawal-form[data-withdraw-state='success'] .withdraw-confirm-overlay__result-icon--success {
   color: var(--saito-status-success);
 }
 
-#withdrawal-form[data-withdraw-state='failed']
-  .withdraw-confirm-overlay__result-icon--failure {
+#withdrawal-form[data-withdraw-state='failed'] .withdraw-confirm-overlay__result-icon--failure {
   color: var(--saito-status-danger);
 }
 
@@ -1242,6 +1240,7 @@
     monospace;
   font-size: 1.45rem;
   letter-spacing: 0.02em;
+  text-align: center;
   word-break: break-all;
   max-width: 100%;
   padding: 0.5rem 0.75rem;
@@ -1313,23 +1312,6 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-#withdrawal-form .withdraw-overlay__actions button.saito-button-secondary {
-  color: var(--saito-button-secondary-fg);
-  background: var(--saito-button-secondary-bg);
-  border-color: var(--saito-button-secondary-border);
-}
-
-#withdrawal-form .withdraw-overlay__actions button.saito-button-secondary:hover {
-  background: var(--saito-button-secondary-bg-hover);
-  color: var(--saito-button-secondary-fg-hover);
-}
-
-#withdrawal-form .withdraw-overlay__actions button.saito-button-primary {
-  background: var(--saito-button-primary-bg);
-  color: var(--saito-button-primary-fg);
-  border-color: var(--saito-button-primary-border);
 }
 
 #withdrawal-form .withdraw-confirm-overlay__pending-label {

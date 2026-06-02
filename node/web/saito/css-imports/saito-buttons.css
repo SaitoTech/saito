@@ -75,6 +75,13 @@ button:hover,
   color: var(--saito-button-secondary-fg-hover);
 }
 
+.saito-button-primary.disabled:hover,
+.saito-button-primary[disabled]:hover,
+.saito-button-secondary.disabled:hover,
+.saito-button-secondary[disabled]:hover {
+  background: var(--saito-button-disabled-bg);
+}
+
 button.small,
 .saito-button-primary.small,
 .saito-button-secondary.small {
