@@ -183,8 +183,6 @@ html[data-theme='noir'] {
   --saito-chat-background: var(--palette-bg);
   --saito-chat-background-image: var(--palette-texture-overlay);
   --saito-chat-shell-bg: var(--saito-post-textarea-bg);
-  --saito-chat-message-bg: var(--saito-post-textarea-bg-focus);
-  --saito-chat-message-shadow: var(--saito-elevation-1);
   --saito-chat-active-bg: var(--palette-surface-3);
   --saito-chat-header-shadow: var(--saito-elevation-0);
   --saito-calendar-event-border: var(--saito-card-border);

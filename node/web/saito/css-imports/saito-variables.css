@@ -354,11 +354,24 @@ font imports
   --saito-tooltip-shadow: var(--saito-overlay-panel-shadow);
   --saito-tooltip-radius: var(--saito-radius-md);
 
-  --saito-chat-background: var(--saito-background-color);
+  --saito-chat-background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--saito-background-color) 96%, var(--saito-primary) 4%),
+      color-mix(in srgb, var(--saito-background-color) 98%, var(--saito-surface-hover) 2%)
+    );
   --saito-chat-background-image: var(--palette-texture-overlay);
   --saito-chat-shell-bg: var(--saito-background-color);
-  --saito-chat-message-bg: var(--saito-background-color);
-  --saito-chat-message-shadow: var(--saito-elevation-2);
+  --saito-bubble-background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--saito-background-color) 96%, var(--saito-primary) 4%),
+      color-mix(in srgb, var(--saito-background-color) 98%, var(--saito-surface-hover) 2%)
+    );
+  --saito-bubble-shadow:
+    0 10px 24px color-mix(in srgb, var(--palette-shadow) 42%, transparent),
+    0 2px 7px color-mix(in srgb, var(--palette-shadow) 30%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--saito-primary) 14%, transparent);
   --saito-chat-active-bg: var(--saito-card-bg);
   --saito-chat-header-shadow: var(--saito-elevation-1);
   --saito-chat-notification-gradient: linear-gradient(

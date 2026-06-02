@@ -97,3 +97,11 @@
 	border: 3px solid var(--saito-background-color);
 	/*clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);*/
 }
+
+.saito-game .arcade-invite-badge {
+  border: 1px solid var(--saito-border-color);
+  right: 0;
+  bottom: 0;
+  padding: 0 0 0 7px;
+  text-align: center;
+}
