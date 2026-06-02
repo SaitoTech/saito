@@ -192,6 +192,7 @@
 	align-content: start;
 	background: unset;
     background-color: transparent;
+    padding: 0 5px 0 0;
 }
 
 .arcade-sidebar .saito-announcement {
