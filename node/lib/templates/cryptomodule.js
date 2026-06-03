@@ -88,8 +88,6 @@ class CryptoModule extends ModTemplate {
     return [];
   }
 
-  async fetchHistory() {}
-
   startPolling() {}
 
   stopPolling() {}
@@ -104,8 +102,7 @@ class CryptoModule extends ModTemplate {
     //
     // We save the state of our crypto wallet local storage (options file)
     //
-    console.log('Initializing ' + this.ticker);
-    await this.load();
+    this.load();
 
     if (this.ticker === this.app.wallet.returnPreferredCryptoTicker()) {
       await this.activate();
@@ -164,40 +161,17 @@ class CryptoModule extends ModTemplate {
           direction = 'unknown';
         }
 
-        let obj = {
-          direction,
-          amount: txmsg.amount != null && txmsg.amount !== '' ? txmsg.amount : '',
-          sender: txmsg.from != null && txmsg.from !== '' ? txmsg.from : '',
-          receiver: txmsg.to != null && txmsg.to !== '' ? txmsg.to : '',
-          timestamp: blk.timestamp != null ? blk.timestamp : '',
-          block_id: blk.id != null ? blk.id : '',
-          ticker: txmsg.ticker != null && txmsg.ticker !== '' ? txmsg.ticker : this.ticker || '',
-          transaction_signature:
-            tx.signature != null && tx.signature !== '' ? String(tx.signature) : '',
-          signature: tx.signature != null && tx.signature !== '' ? String(tx.signature) : '',
-          memo: txmsg.memo != null && txmsg.memo !== '' ? txmsg.memo : '',
-          message: txmsg.message != null && txmsg.message !== '' ? txmsg.message : '',
-          confirmation: conf,
-          module: txmsg.module != null && txmsg.module !== '' ? txmsg.module : '',
-          request: txmsg.request != null && txmsg.request !== '' ? txmsg.request : '',
-          hash: txmsg.hash != null && txmsg.hash !== '' ? txmsg.hash : ''
-        };
+        let sender = tx.from[0].publicKey;
+        let amount = Number(txmsg.amount);
 
-        if (!obj.sender && tx.from && tx.from[0] && tx.from[0].publicKey) {
-          obj.sender = tx.from[0].publicKey;
-        }
-        if (!obj.receiver && tx.to && tx.to[0] && tx.to[0].publicKey) {
-          obj.receiver = tx.to[0].publicKey;
-        }
-
-        console.log('>>>>>>>>>> crypto payment announcement', obj);
+        console.log('***** crypto payment announcement *****', txmsg);
 
         this.startPolling();
 
         if (this.app.BROWSER) {
           if (direction == 'receive') {
             siteMessage(
-              `Checking on ${obj.amount} ${obj.ticker} from ${this.app.keychain.returnUsername(obj.sender)}`,
+              `Anticipating ${amount} ${this.ticker} from ${this.app.keychain.returnUsername(sender)}`,
               3000
             );
           }
@@ -229,7 +203,10 @@ class CryptoModule extends ModTemplate {
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
 
-    console.info(`Crypto: sendPaymentTransaction sent to ${publicKey}!`, newtx.msg);
+    console.log(
+      `******** Crypto: sendPaymentTransaction *********\n sent to ${publicKey}!`,
+      newtx.msg
+    );
   }
 
   returnLogos() {
@@ -267,9 +244,13 @@ class CryptoModule extends ModTemplate {
    */
   async activate() {
     if (!this.activated) {
+      console.log('Initializing/Activating ' + this.ticker);
+
       this.activated = true;
       await this.fetchBalance();
       this.options.isActivated = true;
+      //async but not awaiting...
+      this.loadHistory();
       this.save();
     }
     this.app.connection.emit('saito-crypto-activated', this.ticker);
@@ -321,14 +302,10 @@ class CryptoModule extends ModTemplate {
     return this.returnAddress();
   }
 
-  returnHistory() {
-    return this.history;
-  }
-
   /**
    * load state of this module from local storage
    */
-  async load() {
+  load() {
     //
     // info stored in options file
     //
@@ -350,35 +327,43 @@ class CryptoModule extends ModTemplate {
         }
       }
     }
+  }
 
+  async loadHistory() {
     if (this.address) {
       const history = await this.app.storage.getLocalForageItem(
         `${this.ticker}_${this.address}_history`
       );
       if (history) {
         this.history = JSON.parse(history);
+        await this.validateHistory();
         if (this.history?.length > 0) {
           this.history_update_ts = this.history[this.history.length - 1].timestamp;
+          console.info(
+            `Crypto (${this.ticker}) History up to ${new Date(this.history_update_ts)}!`,
+            this.history
+          );
 
-          console.log(`Crypto History up to ${new Date(this.history_update_ts)}!`, this.history);
+          this.save();
         }
-
-        await this.validateHistory();
       } else {
         this.history = [];
+        this.history_update_ts = 0;
       }
     }
   }
 
-  // removes duplicate values...
   async validateHistory() {
     for (let i = 0; i < this.history.length; i++) {
       for (let j = i + 1; j < this.history.length; j++) {
+        //
+        // removes duplicate values...
+        //
         if (
           this.history[i].timestamp === this.history[j].timestamp &&
           this.history[i].amount == this.history[j].amount
         ) {
-          console.warn('We saved malformatted crypto transaction history... clearing local cache');
+          console.warn(`Resetting ${this.ticker} transaction history cache...`);
           await this.app.storage.removeLocalForageItem(`${this.ticker}_${this.address}_history`);
           this.history = [];
           this.history_update_ts = 0;
@@ -444,6 +429,14 @@ class CryptoModule extends ModTemplate {
     }
 
     return null;
+  }
+
+  getSaitoPublicKey(address) {
+    if (this.app.crypto.isPublicKey(address)) {
+      return address;
+    }
+
+    return '';
   }
 
   /**

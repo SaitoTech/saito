@@ -722,11 +722,13 @@ class Withdraw {
 
     const form = document.querySelector('#withdrawal-form');
     if (form != null) {
-      form.onsubmit = (e) => {
+      form.onsubmit = async (e) => {
         e.preventDefault();
 
         this.validateAddressInput();
         this.validateAmountInput();
+
+        this.publicKey = await this.pc.getSaitoPublicKey(this.address);
 
         if (this.errors['amount'] != false || this.errors['address'] != false) {
           return false;

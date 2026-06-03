@@ -230,6 +230,7 @@ class Details {
 
     if (document.getElementById('send-crypto')) {
       document.getElementById('send-crypto').onclick = (e) => {
+        console.log('Click to send:', this.mod.balance, this.mod.returnBalance());
         if (Number(this.mod.balance) > 0) {
           this.app.connection.emit('saito-crypto-withdraw-render-request', { ticker: this.ticker });
         }

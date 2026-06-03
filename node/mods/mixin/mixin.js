@@ -150,7 +150,7 @@ class Mixin extends ModTemplate {
     }
 
     //
-    // sendPayment, returnWithdrawalFeeForAddress, getMixinAddress, returnHistory
+    // sendPayment, returnWithdrawalFeeForAddress, getMixinAddress
     //
     if (message.request === 'mixin fetch user') {
       return await this.receiveFetchUserTransaction(app, tx, peer, mycallback);
@@ -254,13 +254,6 @@ class Mixin extends ModTemplate {
         // necessary for module functionality
         //
         await crypto_module.installModule(mixin_self.app);
-
-        //
-        // check balance, any changes will result in
-        // snapshots being found that will broadcast
-        // events which will in turn trigger updates
-        //
-        crypto_module.fetchHistory();
 
         if (mixin_self.account_created) {
           if (crypto_module.isActivated()) {
@@ -1152,10 +1145,9 @@ class Mixin extends ModTemplate {
     return this.app.network.sendRequestAsTransaction('mixin fetch user', params, function (res) {
       console.log('Callback for sendFetchUser: ', params, res);
       if (callback) {
-        return callback(res);
-      } else {
-        return res;
+        callback(res);
       }
+      return res;
     });
   }
 

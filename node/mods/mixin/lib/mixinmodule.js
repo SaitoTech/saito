@@ -55,19 +55,6 @@ class MixinModule extends CryptoModule {
 		this.cached_contacts = [];
 
 		this.confirmations = 100;
-		this.latest_snapshot_ts = 0;
-	}
-
-	async load() {
-		await super.load();
-		if (this.options?.latest_snapshot_ts) {
-			this.latest_snapshot_ts = Number(this.options.latest_snapshot_ts);
-		}
-	}
-
-	save() {
-		this.options.latest_snapshot_ts = this.latest_snapshot_ts;
-		super.save();
 	}
 
 	async activate() {
@@ -101,6 +88,11 @@ class MixinModule extends CryptoModule {
 
 			await super.activate();
 		}
+	}
+
+	async loadHistory() {
+		await super.loadHistory();
+		await this.checkForRecentTransactions();
 	}
 
 	//
@@ -194,7 +186,7 @@ class MixinModule extends CryptoModule {
 		return this.pending_deposits;
 	}
 
-	checkCacheForUser(user_id) {
+	getSaitoPublicKey(user_id) {
 		//
 		// check if address exists in local db
 		//
@@ -213,12 +205,66 @@ class MixinModule extends CryptoModule {
 		return false;
 	}
 
+	async validateHistory() {
+		await super.validateHistory();
+		for (let i = 0; i < this.history.length; i++) {
+			//
+			// Retroactively check for Saito publickeys to display user names
+			//
+			if (this.history[i].counter_party.address && !this.history[i].counter_party.publicKey) {
+				// We will save an empty string so we don't repeatedly hit the external DB for non-Saito linked accounts
+				if (this.history[i].counter_party.publicKey !== '') {
+					this.history[i].counter_party.publicKey =
+						this.getSaitoPublicKey(this.history[i].counter_party.address) ||
+						(await this.remoteUserFetch(this.history[i].counter_party.address));
+				}
+			}
+		}
+	}
+
+	async remoteUserFetch(user_id) {
+		let user = null;
+
+		// It is very strange that we seem to be unable to pass values back from
+		// this asynchronous function, though I swear there are places in the code where
+		// we expect that behavior.
+		// This setting a variable through the callback, with an await (to make sure the callback gets called)
+		// seems to do the trick
+
+		await this.mixin.sendFetchUserTransaction(
+			{
+				asset_id: this.asset_id,
+				user_id
+			},
+			(res) => {
+				if (res?.length > 0) {
+					// Cache this results!
+					let address = res[0].address;
+					if (res[0]?.user_id) {
+						address += '|' + res[0].user_id + '|mixin';
+					}
+
+					if (res[0].publickey) {
+						let pk = res[0].publickey;
+						this.cached_contacts[pk] = address;
+						// save address to keychain if publickey exists in keychain
+						if (this.app.keychain.hasPublicKey(pk)) {
+							this.app.keychain.addCryptoAddress(pk, this.ticker, address);
+						}
+					}
+
+					user = res[0];
+				}
+			}
+		);
+		return user?.publickey || '';
+	}
+
 	/**
 	 * Incremental history / snapshot sync: fetch new Safe ledger events, append to history,
-	 * emit semantic payment events, and advance latest_snapshot_ts.
-	 * Independent of checkHistory() / history_update_ts.
+	 * emit semantic payment events, and advance history_update_ts.
 	 */
-	async fetchHistory(mycallback = null) {
+	async checkForRecentTransactions() {
 		// We should not be making API calls on Mixin if we haven't installed this crypto
 		// (let alone set up a mixin account)
 		if (!this.isActivated()) {
@@ -232,12 +278,10 @@ class MixinModule extends CryptoModule {
 		}
 
 		let snapshots = await new Promise((resolve) => {
-			this.mixin.fetchSafeSnapshots(this.asset_id, this.latest_snapshot_ts, (d) => {
+			this.mixin.fetchSafeSnapshots(this.asset_id, this.history_update_ts + 1, (d) => {
 				resolve(d === false || d == null ? [] : d);
 			});
 		});
-
-		let start_ts = this.latest_snapshot_ts;
 
 		for (let snap of snapshots) {
 			//
@@ -279,7 +323,7 @@ class MixinModule extends CryptoModule {
 				trans_hash: snap.transaction_hash || ''
 			};
 
-			if (obj.timestamp < this.latest_snapshot_ts) {
+			if (obj.timestamp < this.history_update_ts) {
 				continue;
 			}
 
@@ -298,43 +342,12 @@ class MixinModule extends CryptoModule {
 			}
 
 			if (snap?.opponent_id) {
-				let pk = this.checkCacheForUser(snap.opponent_id);
+				let pk = this.getSaitoPublicKey(snap.opponent_id);
+				if (!pk) {
+					pk = await this.remoteUserFetch(snap.opponent_id);
+				}
 				if (pk) {
 					obj.counter_party.publicKey = pk;
-				} else {
-					const user = await this.mixin.sendFetchUserTransaction(
-						{
-							asset_id: this.asset_id,
-							user_id: snap.opponent_id
-						},
-						(res) => {
-							if (res?.length > 0) {
-								// Cache this results!
-								let address = res[0].address;
-								if (res[0]?.user_id) {
-									address += '|' + res[0].user_id + '|mixin';
-								}
-
-								if (res[0].publickey) {
-									let pk = res[0].publickey;
-									this.cached_contacts[pk] = address;
-									// save address to keychain if publickey exists in keychain
-									if (this.app.keychain.hasPublicKey(pk)) {
-										this.app.keychain.addCryptoAddress(pk, this.ticker, address);
-									}
-								}
-
-								// And return
-								return res[0];
-							}
-
-							return null;
-						}
-					);
-
-					if (user?.publickey) {
-						obj.counter_party.publicKey = user.publickey;
-					}
 				}
 			}
 
@@ -417,16 +430,11 @@ class MixinModule extends CryptoModule {
 				});
 			}
 
-			this.latest_snapshot_ts = Math.max(this.latest_snapshot_ts, obj.timestamp);
+			this.history_update_ts = Math.max(this.history_update_ts, obj.timestamp);
 		}
 
-		if (this.latest_snapshot_ts > start_ts) {
-			this.latest_snapshot_ts++;
+		if (snapshots.length > 0) {
 			this.save();
-		}
-
-		if (mycallback != null) {
-			mycallback(fetched_updates);
 		}
 
 		return fetched_updates;
@@ -465,7 +473,7 @@ class MixinModule extends CryptoModule {
 				return;
 			}
 
-			let wallet_updates = await this.fetchHistory();
+			let wallet_updates = await this.checkForRecentTransactions();
 
 			//
 			// if something has happened....
@@ -716,7 +724,8 @@ class MixinModule extends CryptoModule {
 			}
 
 			// if it doesnt exist fetch it from node db
-			return this.mixin.sendFetchUserTransaction(
+			let address = '';
+			await this.mixin.sendFetchUserTransaction(
 				{
 					publicKey: publicKey,
 					asset_id: this.asset_id
@@ -725,7 +734,7 @@ class MixinModule extends CryptoModule {
 					if (res.length > 0) {
 						for (let i = 0; i < res.length; i++) {
 							if (res[i].asset_id == this_self.asset_id) {
-								let address = res[i].address;
+								address = res[i].address;
 								if (res[i]?.user_id) {
 									address += '|' + res[i].user_id + '|mixin';
 								}
@@ -741,6 +750,8 @@ class MixinModule extends CryptoModule {
 					}
 				}
 			);
+
+			return address;
 		} catch (err) {
 			// console.error('Error getMixinAddress: ', err);
 			return null;
