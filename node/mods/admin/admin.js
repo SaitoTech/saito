@@ -156,7 +156,15 @@ class Admin extends ModTemplate {
 
     if (txmsg.request === 'list-peers') {
       try {
+        console.log("################################################");
+        console.log("################################################");
+        console.log("################################################");
+        console.log("################################################");
+        console.log("################################################");
+        console.log("################################################");
+        console.log(JSON.stringify(app.core.network.peers.get()));
         const peers = await this.app.network.getPeers();
+        console.log(JSON.stringify(peers));
         const snapshot = peers.map((p) => {
           const keys = Object.getOwnPropertyNames(Object.getPrototypeOf(p));
           const peer = this.serializePeerForAdmin(p);
@@ -214,6 +222,31 @@ class Admin extends ModTemplate {
   }
 
   serializePeerForAdmin(peer) {
+    const serializePrototypeGetters = (value, output, depth, seen) => {
+      let proto = Object.getPrototypeOf(value);
+
+      while (proto && proto !== Object.prototype) {
+        for (const key of Object.getOwnPropertyNames(proto)) {
+          const descriptor = Object.getOwnPropertyDescriptor(proto, key);
+          if (!descriptor?.get || key === 'constructor' || output[key] !== undefined) {
+            continue;
+          }
+
+          try {
+            const serialized = serializeValue(value[key], depth + 1, seen);
+            if (serialized !== undefined) {
+              output[key] = serialized;
+            }
+          } catch (err) {
+            output[key] = `[unavailable: ${err.message}]`;
+          }
+        }
+        proto = Object.getPrototypeOf(proto);
+      }
+
+      return output;
+    };
+
     const serializeValue = (value, depth = 0, seen = new WeakSet()) => {
       if (value === null || value === undefined) {
         return value;
@@ -269,33 +302,12 @@ class Admin extends ModTemplate {
           output[key] = `[unavailable: ${err.message}]`;
         }
       }
+      serializePrototypeGetters(value, output, depth, seen);
       seen.delete(value);
       return output;
     };
 
-    const output = serializeValue(peer) || {};
-    let proto = Object.getPrototypeOf(peer);
-
-    while (proto && proto !== Object.prototype) {
-      for (const key of Object.getOwnPropertyNames(proto)) {
-        const descriptor = Object.getOwnPropertyDescriptor(proto, key);
-        if (!descriptor?.get || key === 'constructor' || output[key] !== undefined) {
-          continue;
-        }
-
-        try {
-          const serialized = serializeValue(peer[key]);
-          if (serialized !== undefined) {
-            output[key] = serialized;
-          }
-        } catch (err) {
-          output[key] = `[unavailable: ${err.message}]`;
-        }
-      }
-      proto = Object.getPrototypeOf(proto);
-    }
-
-    return output;
+    return serializeValue(peer) || {};
   }
 
   /**
