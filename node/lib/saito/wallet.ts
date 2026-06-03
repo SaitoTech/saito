@@ -148,21 +148,24 @@ export default class Wallet extends SaitoWallet {
 
         app.connection.on('on-transaction-sent', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
+          console.log('************** transaction-sent **************', p);
         });
 
         // Map transaction-received event from WASM to UI-focused event
         app.connection.on('on-transaction-received', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          p.ticker = 'SAITO';
+          console.log('*************** transaction-received ***********');
           app.connection.emit('on-payment-received', p);
         });
 
         app.connection.on('on-nft-sent', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
+          console.log('*************** nft-sent ***********', p);
         });
 
         app.connection.on('on-nft-received', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
+          console.log('*************** nft-received ***********', p);
 
           let ticker = '';
           let nft_id = '';
@@ -185,10 +188,26 @@ export default class Wallet extends SaitoWallet {
 
         this.options.isActivated = true;
 
-        app.connection.on('wallet-updated', async () => {
+        app.connection.on('wallet-updated', async (payload: unknown) => {
+          console.log('************** wallet-updated ************', payload);
           this.app.connection.emit('saito-header-update-crypto');
         });
+
+        app.connection.on('on-payment-received', async (p) => {
+          this.balance = await this.getAvailableBalance();
+          if (!p.ticker) {
+            p.ticker = 'SAITO';
+          }
+          console.log('*************** payment-received ***********', p);
+        });
+
+        app.connection.on('on-payment-sent', async (p) => {
+          this.balance = await this.getAvailableBalance();
+          console.log('*************** payment-sent ***********', p);
+        });
       }
+
+      async onPeerHandshakeComplete(app, peer) {}
 
       //
       // Check if I have a net change in slips amounts...
@@ -222,9 +241,11 @@ export default class Wallet extends SaitoWallet {
         return super.shouldAffixCallbackToModule(modname, tx);
       }
 
-      async onConfirmation(blk, tx, conf) {
-        // handled through event emission from saito-core now
-      }
+      //
+      // This overwrites the function in cryptomodule because we don't need to process the txmsg
+      // we will rely on slip update events emanating from the WASM
+      //
+      async onConfirmation(blk, tx, conf) {}
 
       isActivated() {
         return true;
@@ -255,8 +276,7 @@ export default class Wallet extends SaitoWallet {
           return;
         }
 
-        if (txmsg.request == 'crypto payment' && txmsg.module !== this.name) {
-          console.warn('Wrong crypto...');
+        if (txmsg.request !== 'crypto payment' || txmsg.module !== this.name) {
           return;
         }
 
@@ -281,6 +301,10 @@ export default class Wallet extends SaitoWallet {
           obj.counter_party.publicKey = txmsg.from;
           obj.type = 'receive';
           obj.amount = txmsg.amount;
+        }
+
+        if (!obj.type) {
+          return;
         }
 
         /*
@@ -932,7 +956,9 @@ export default class Wallet extends SaitoWallet {
                   // duplicate the "crypto payment" for non-native off chain transactions
                   //
 
-                  console.log('>>>> sendPayment [non-SAITO] -- add metadata transaction');
+                  console.log(
+                    '************ sendPayment [non-SAITO] -- add metadata transaction ******'
+                  );
                   await cryptomod.sendPaymentTransaction(
                     saito_public_key,
                     senders[i],

@@ -529,6 +529,10 @@ class Migration extends ModTemplate {
         console.info('Disbursing Saito without verification because local testing...');
         this.savePendingPayment(newPayment);
       } else {
+        //
+        // Mixin will handle polling of the recent transactions and emit an event when we confirm the funds transfer
+        // so we need to rewrite this...
+        //
         this.ercMod.checkHistory((history) => {
           for (let h of history) {
             if (h.counter_party?.address) {
