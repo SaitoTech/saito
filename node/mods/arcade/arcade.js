@@ -536,7 +536,7 @@ class Arcade extends ModTemplate {
 		let arcade_self = this;
 
 		if (service.service == 'arcade') {
-			console.log('###TESTINGPEERS###');
+			/*console.log('###TESTINGPEERS###');
 			console.log(JSON.stringify(app.core.network.peers.get()));
 			console.log('##################');
 			console.log('###TESTINGCHAIN##');
@@ -545,7 +545,7 @@ class Arcade extends ModTemplate {
 			console.log('###TESTINGWALLET##');
 			console.log(JSON.stringify(app.core.wallet.get()));
 			console.log('##################');
-
+			*/
 			this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
 				if (txs?.length > 0) {
 					for (let serial_tx of txs) {
