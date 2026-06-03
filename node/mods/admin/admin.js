@@ -159,12 +159,14 @@ class Admin extends ModTemplate {
         const peers = await this.app.network.getPeers();
         const snapshot = peers.map((p) => {
           const keys = Object.getOwnPropertyNames(Object.getPrototypeOf(p));
+          const peer = this.serializePeerForAdmin(p);
           return {
-            publicKey: p.publicKey || p.public_key || null,
-            host: p.host || null,
-            port: p.port || null,
-            services: p.services || null,
-            rawKeys: keys
+            publicKey: peer.publicKey || peer.public_key || null,
+            host: peer.host || null,
+            port: peer.port || null,
+            services: peer.services || null,
+            rawKeys: keys,
+            peer
           };
         });
         if (mycallback) mycallback({ result: snapshot });
@@ -209,6 +211,91 @@ class Admin extends ModTemplate {
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
+  }
+
+  serializePeerForAdmin(peer) {
+    const serializeValue = (value, depth = 0, seen = new WeakSet()) => {
+      if (value === null || value === undefined) {
+        return value;
+      }
+
+      if (typeof value === 'bigint') {
+        return value.toString();
+      }
+
+      if (typeof value === 'function') {
+        return undefined;
+      }
+
+      if (typeof value !== 'object') {
+        return value;
+      }
+
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+
+      if (depth >= 4) {
+        return '[MaxDepth]';
+      }
+
+      seen.add(value);
+
+      if (Array.isArray(value)) {
+        const output = value.map((item) => serializeValue(item, depth + 1, seen));
+        seen.delete(value);
+        return output;
+      }
+
+      if (typeof value.toJSON === 'function') {
+        try {
+          const output = serializeValue(value.toJSON(), depth + 1, seen);
+          seen.delete(value);
+          return output;
+        } catch (err) {
+          seen.delete(value);
+          return `[toJSON unavailable: ${err.message}]`;
+        }
+      }
+
+      const output = {};
+      for (const key of Object.getOwnPropertyNames(value)) {
+        try {
+          const serialized = serializeValue(value[key], depth + 1, seen);
+          if (serialized !== undefined) {
+            output[key] = serialized;
+          }
+        } catch (err) {
+          output[key] = `[unavailable: ${err.message}]`;
+        }
+      }
+      seen.delete(value);
+      return output;
+    };
+
+    const output = serializeValue(peer) || {};
+    let proto = Object.getPrototypeOf(peer);
+
+    while (proto && proto !== Object.prototype) {
+      for (const key of Object.getOwnPropertyNames(proto)) {
+        const descriptor = Object.getOwnPropertyDescriptor(proto, key);
+        if (!descriptor?.get || key === 'constructor' || output[key] !== undefined) {
+          continue;
+        }
+
+        try {
+          const serialized = serializeValue(peer[key]);
+          if (serialized !== undefined) {
+            output[key] = serialized;
+          }
+        } catch (err) {
+          output[key] = `[unavailable: ${err.message}]`;
+        }
+      }
+      proto = Object.getPrototypeOf(proto);
+    }
+
+    return output;
   }
 
   /**
