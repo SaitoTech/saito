@@ -4,11 +4,6 @@ module.exports = () => {
   <header class="rs-workspace-header">
     <div class="rs-workspace-actions">
       <button type="button" class="rs-action-btn rs-new-script">New Script</button>
-      <button type="button" class="rs-action-btn rs-expert-only rs-import-script">Import Script</button>
-      <button type="button" class="rs-action-btn rs-expert-only rs-templates">Templates</button>
-      <button type="button" class="rs-action-btn rs-expert-only rs-expert-syntax">Expert Syntax</button>
-      <button type="button" class="rs-action-btn rs-expert-only rs-run-validate">Validate</button>
-      <input type="file" class="rs-import-file rs-expert-only" accept=".json,.txt,application/json" hidden />
     </div>
 
     <div class="rs-workspace-header-right">
@@ -32,18 +27,13 @@ module.exports = () => {
         aria-label="Guided mode — assisted semantic editing. Click for Expert raw JSON mode."
       >
         <span class="rs-workspace-toggle-track">
-          <span class="rs-workspace-toggle-inactive" aria-hidden="true">EXPERT</span>
-          <span class="rs-workspace-toggle-thumb">
-            <span class="rs-workspace-toggle-label">GUIDED</span>
-          </span>
+          <span class="rs-workspace-toggle-label rs-workspace-toggle-label-guided">GUIDED</span>
+          <span class="rs-workspace-toggle-label rs-workspace-toggle-label-expert">EXPERT</span>
+          <span class="rs-workspace-toggle-thumb" aria-hidden="true"></span>
         </span>
       </button>
     </div>
   </header>
-
-  <div class="rs-template-menu" hidden>
-    <div class="rs-template-menu-inner"></div>
-  </div>
 
   <section class="rustscript-body">
     <div id="rustscript-editor-create" class="rustscript-editor rustscript-editor-locking"></div>

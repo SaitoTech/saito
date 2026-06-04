@@ -114,10 +114,6 @@ body.rustscript .rs-workspace-guided .rs-workspace-actions {
   flex: 0 0 auto;
 }
 
-body.rustscript .rs-workspace-guided .rs-expert-only {
-  display: none !important;
-}
-
 body.rustscript .rs-workspace-header-right {
   display: flex;
   align-items: center;
@@ -135,7 +131,7 @@ body.rustscript .rs-workspace-header .rs-action-btn {
   background: #1a1a1a !important;
   color: #ccc !important;
   font-family: var(--rustscript-font-mono);
-  font-size: 1.312rem;
+  font-size: 0.82em;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -176,7 +172,7 @@ body.rustscript .rs-status-reactor {
 
 body.rustscript .rs-status-reactor-label {
   font-family: var(--rustscript-font-mono);
-  font-size: 1.248rem;
+  font-size: 0.78em;
   font-weight: 800;
   letter-spacing: 0.14em;
   line-height: 1;
@@ -212,7 +208,7 @@ body.rustscript .rs-status-reactor[data-state='ready'] .rs-status-reactor-label 
   color: #e8f8ea;
 }
 
-/* Guided / Expert slider — label lives inside the thumb */
+/* Guided / Expert slider — dual labels with sliding thumb */
 body.rustscript .rs-workspace-toggle {
   flex-shrink: 0;
   margin: 0;
@@ -241,29 +237,32 @@ body.rustscript .rs-workspace-toggle-track {
   overflow: hidden;
 }
 
-body.rustscript .rs-workspace-toggle-inactive {
+body.rustscript .rs-workspace-toggle-label {
   position: absolute;
   top: 0;
-  right: 0;
-  left: auto;
   width: 50%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--rustscript-font-mono);
-  font-size: 1.088rem;
+  font-size: 0.68em;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: #5a5a5a;
   z-index: 0;
   pointer-events: none;
   user-select: none;
+  box-sizing: border-box;
 }
 
-body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-inactive {
-  right: auto;
+body.rustscript .rs-workspace-toggle-label-guided {
   left: 0;
+}
+
+body.rustscript .rs-workspace-toggle-label-expert {
+  right: 0;
+  left: auto;
 }
 
 body.rustscript .rs-workspace-toggle-thumb {
@@ -273,9 +272,6 @@ body.rustscript .rs-workspace-toggle-thumb {
   width: 50%;
   height: 100%;
   z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border: none;
   border-radius: 0;
   background: linear-gradient(180deg, #ffe090 0%, #fca311 50%, #d88808 100%);
@@ -285,13 +281,10 @@ body.rustscript .rs-workspace-toggle-thumb {
   pointer-events: none;
 }
 
-body.rustscript .rs-workspace-toggle-label {
-  font-family: var(--rustscript-font-mono);
-  font-size: 1.088rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+body.rustscript .rs-workspace-toggle.is-guided .rs-workspace-toggle-label-guided,
+body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-expert {
   color: #1a1208;
-  line-height: 1;
+  z-index: 2;
 }
 
 body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-thumb {
@@ -299,50 +292,23 @@ body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-thumb {
   background: linear-gradient(180deg, #ffc0d0 0%, #ff6b8a 50%, #c94a62 100%);
 }
 
-body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label {
+body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-expert {
   color: #2a0810;
+}
+
+body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-guided {
+  color: #5a5a5a;
+  z-index: 0;
+}
+
+body.rustscript .rs-workspace-toggle.is-guided .rs-workspace-toggle-label-expert {
+  color: #5a5a5a;
+  z-index: 0;
 }
 
 body.rustscript .rs-workspace-toggle:focus-visible .rs-workspace-toggle-track {
   outline: 2px solid var(--rustscript-accent);
   outline-offset: 2px;
-}
-
-body.rustscript .rs-template-menu {
-  position: absolute;
-  z-index: 20;
-  left: 12px;
-  top: 64px;
-  max-width: 360px;
-}
-
-body.rustscript .rs-template-menu-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px;
-  border: 1px solid #333;
-  border-radius: 4px;
-  background: #121212;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-body.rustscript .rs-template-pick {
-  padding: 8px 10px;
-  text-align: left;
-  border: 2px solid #3d3d3d;
-  border-radius: 3px;
-  background: #0e0e0e !important;
-  color: #bbb !important;
-  font-family: var(--rustscript-font-mono);
-  font-size: 1.248rem;
-  cursor: pointer;
-}
-
-body.rustscript .rs-template-pick:hover {
-  border-color: #555;
-  color: #eee !important;
-  background: #1a1a1a !important;
 }
 
 /* Main columns */

@@ -1,22 +1,50 @@
-module.exports = (path, value) => {
-  const safePath = String(path || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+module.exports = (options) => {
+  const {
+    pkDisplay,
+    msgDisplay,
+    canAutoSign,
+    currentValue
+  } = options;
+
+  const safePk = String(pkDisplay ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  const safeMsg = String(msgDisplay ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  const safeValue = String(currentValue ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  let manualBlock = '';
+  if (!canAutoSign) {
+    manualBlock = `
+      <label class="rs-prompt-label" for="rs-prompt-signature-value">Signature</label>
+      <textarea id="rs-prompt-signature-value" class="rs-prompt-value rs-prompt-signature-value" spellcheck="false" placeholder="hex signature">${safeValue}</textarea>
+    `;
+  }
+
+  const actions = canAutoSign
+    ? `<div class="overlay-actions overlay-actions-apply-only">
+        <button type="button" class="rs-prompt-sign-wallet rs-prompt-primary">Sign with My Key</button>
+      </div>`
+    : `<div class="overlay-actions overlay-actions-apply-only">
+        <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
+      </div>`;
+
   return `
-<div class="rustscript-field">
-  <h2 class="rustscript-field-title">Signature</h2>
-  <label class="rustscript-field-label">Field path</label>
-  <p class="rustscript-field-path">${safePath}</p>
-  <label class="rustscript-field-label" for="rustscript-field-signature-input">Value</label>
-  <textarea
-    id="rustscript-field-signature-input"
-    class="rustscript-field-input"
-    spellcheck="false"
-    placeholder="Hex or base64 signature"
-  >${String(value || '')}</textarea>
-  <div class="rustscript-field-actions">
-    <button type="button" class="rustscript-button">Sign message</button>
-    <button type="button" class="rustscript-button rustscript-button-primary">Apply</button>
-    <button type="button" class="rustscript-button">Cancel</button>
-  </div>
+<div class="rustscript-overlay rs-prompt-overlay rs-prompt-signature${canAutoSign ? ' rs-prompt-signature-auto' : ''}">
+  <h2 class="rs-prompt-title">Sign Message</h2>
+  <label class="rs-prompt-label">Required Publickey</label>
+  <div class="rs-prompt-signature-readonly">${safePk}</div>
+  <label class="rs-prompt-label">Message</label>
+  <div class="rs-prompt-signature-readonly rs-prompt-signature-message">${safeMsg}</div>
+  ${manualBlock}
+  <p class="rs-prompt-validation" hidden></p>
+  ${actions}
 </div>
 `;
 };

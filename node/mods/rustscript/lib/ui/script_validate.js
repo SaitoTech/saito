@@ -125,6 +125,15 @@ function isEmptyScript(script) {
   return false;
 }
 
+/** Locking script with only an opcode name and no field values yet. */
+function isIncompleteOpcodeStub(script) {
+  if (isEmptyScript(script)) {
+    return false;
+  }
+  const keys = Object.keys(script).filter((k) => k !== 'witness' && k !== 'required');
+  return keys.length === 1 && keys[0] === 'op';
+}
+
 function collectPlaceholders(node, path = [], options = {}) {
   const found = [];
   const skipRequired = options.skipRequired === true;
@@ -167,6 +176,13 @@ function collectPlaceholders(node, path = [], options = {}) {
 function evaluateScriptStatus(lockingScript) {
   if (isEmptyScript(lockingScript)) {
     return { state: 'idle', placeholders: [] };
+  }
+  if (isIncompleteOpcodeStub(lockingScript)) {
+    return {
+      state: 'warn',
+      placeholders: ['(incomplete)'],
+      validation: validateScriptStructure(lockingScript)
+    };
   }
   const placeholders = collectPlaceholders(lockingScript, [], { skipRequired: true, skipWitness: true });
   const validation = validateScriptStructure(lockingScript);
