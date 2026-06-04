@@ -69,7 +69,10 @@ module.exports = (app, mod) => {
         </div>
 
         <div class="transaction-history">
-          <h6>Transaction History</h6>
+          <div class='transaction-grid-header'>
+            <h6>Transaction History</h6>
+            <button class="saito-button-secondary small" id='fetch-history'>refresh</button>
+          </div>
           <div class="transaction-history-table saitox-table" data-crypto="${mod.ticker}">
             <div class="saitox-header-item">Time</div>
             <div class="saitox-header-item">Type</div>
@@ -78,11 +81,6 @@ module.exports = (app, mod) => {
             <div class="saitox-header-item">To/From</div>
             <div class="saitox-header-item saito-only">Memo</div>
           </div>
-          <nav class="pagination-container disabled">
-            <div class="pagination-button disabled" id="prev-button" aria-label="Previous page" title="Previous page">&lt;</div>
-            <div id="pagination-numbers"></div>
-            <div class="pagination-button disabled" id="next-button" aria-label="Next page" title="Next page">&gt;</div>
-          </nav>
         </div>
       </div>
     `;

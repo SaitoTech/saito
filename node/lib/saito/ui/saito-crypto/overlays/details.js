@@ -124,7 +124,15 @@ class Details {
   }
 
   formatHistory() {
-    let history_html = '';
+    let history_html = `
+          <div class="transaction-history-table saitox-table" data-crypto="${this.mod.ticker}">
+            <div class="saitox-header-item">Time</div>
+            <div class="saitox-header-item">Type</div>
+            <div class="saitox-header-item">Amount</div>
+            <div class="saitox-header-item">Balance</div>
+            <div class="saitox-header-item">To/From</div>
+            <div class="saitox-header-item saito-only">Memo</div>
+    `;
     let running_balance = Number(this.mod.returnBalance());
 
     if (this.ticker == 'SAITO') {
@@ -200,7 +208,12 @@ class Details {
                           `;
     }
 
-    this.app.browser.addElementToSelector(history_html, '.transaction-history-table.saitox-table');
+    history_html += '</div>';
+
+    this.app.browser.replaceElementBySelector(
+      history_html,
+      '.transaction-history-table.saitox-table'
+    );
   }
 
   attachEvents() {
@@ -242,6 +255,14 @@ class Details {
         this.app.connection.emit('saito-purchase-launch');
         //let overlay = new SaitoOverlay(this.app, this.mod);
         //overlay.show(SaitoTokenOverlay());
+      };
+    }
+
+    if (document.getElementById('fetch-history')) {
+      document.getElementById('fetch-history').onclick = (e) => {
+        this.mod.fetchHistory(0, () => {
+          this.formatHistory();
+        });
       };
     }
   }

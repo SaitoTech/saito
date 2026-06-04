@@ -494,12 +494,11 @@ class NFTCryptoModule extends CryptoModule {
    * OPTIONAL / OVERRIDDEN BEHAVIOR
    ********************************************************/
 
-  async checkHistory(callback = null) {
+  async fetchHistory(ts = null, callback = null) {
     // Explicitly unsupported for NFTs
     if (callback) {
       callback([]);
     }
-    return [];
   }
 
   async fetchPendingDeposits(callback = null) {

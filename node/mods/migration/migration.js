@@ -533,7 +533,7 @@ class Migration extends ModTemplate {
         // Mixin will handle polling of the recent transactions and emit an event when we confirm the funds transfer
         // so we need to rewrite this...
         //
-        this.ercMod.checkHistory((history) => {
+        /*this.ercMod.fetchHistory(0, (history) => {
           for (let h of history) {
             if (h.counter_party?.address) {
               if (txmsg.from.includes(h.counter_party?.address)) {
@@ -545,7 +545,7 @@ class Migration extends ModTemplate {
               }
             }
           }
-        });
+        });*/
       }
     }
   }

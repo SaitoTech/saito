@@ -475,6 +475,8 @@ class MixinModule extends CryptoModule {
 
 			let wallet_updates = await this.checkForRecentTransactions();
 
+			// We could also independently hit the API for pendingDeposits...
+
 			//
 			// if something has happened....
 			// or nothing is going to happen...
@@ -698,11 +700,12 @@ class MixinModule extends CryptoModule {
 	 * @abstract
 	 * @return {Function} Callback function
 	 */
-	async checkHistory(mycallback = null) {
+	async fetchHistory(ts = null, mycallback = null) {
+		const newTransactions = await this.checkForRecentTransactions();
+
 		if (mycallback != null) {
 			mycallback(this.history);
 		}
-		return this.history;
 	}
 
 	async returnUtxo(state = 'unspent', limit = 500, order = 'DESC', callback = null) {

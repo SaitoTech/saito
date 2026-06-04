@@ -120,6 +120,16 @@
   grid-template-rows: min-content minmax(0, 1fr);
 }
 
+.transaction-grid-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.transaction-grid-header h6 {
+  margin-top: 1rem;
+}
+
 .transaction-history .saito-table-header,
 .transaction-history .saito-table-row {
   grid-template-columns: repeat(5, 1fr);

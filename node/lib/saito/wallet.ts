@@ -148,7 +148,7 @@ export default class Wallet extends SaitoWallet {
 
         app.connection.on('on-transaction-sent', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          console.log('************** transaction-sent **************', p);
+          //console.log('************** transaction-sent **************', p);
         });
 
         // Map transaction-received event from WASM to UI-focused event
@@ -206,8 +206,6 @@ export default class Wallet extends SaitoWallet {
           console.log('*************** payment-sent ***********', p);
         });
       }
-
-      async onPeerHandshakeComplete(app, peer) {}
 
       //
       // Check if I have a net change in slips amounts...
@@ -324,56 +322,82 @@ export default class Wallet extends SaitoWallet {
       }
 
       //
-      // Pull a ledger of payments from an archive (explorerc)
+      // Pull a ledger of payments from an archive (memento) that builds
+      // a database of blocks, transactions, and slips
       //
-      async checkHistory(callback) {
-        console.log(
-          `DISABLED - MEMENTO - we do not watch to check balance every time on WalletUpdate`
-        );
-        console.log(
-          `Checking for missed SAITO transactions since ${new Date(this.history_update_ts)}`
-        );
+      async fetchHistory(ts = null, callback = null) {
+        // This is more complicated than need be, but the idea
+        // is that we have a button to manually check the remote archive
+        // for missing ledger entries... so we want to be able to override the standard
+        // history_update_ts,... but only once.
+        // the min_ts gets set by calling this once and then afterwards we only query new stuff
+        if (ts == null) {
+          ts = this.history_update_ts;
+        } else if (this.min_ts) {
+          ts = this.min_ts;
+        }
 
-        /*****
+        console.log(`[Memento] Checking for missed SAITO transactions since ${new Date(ts)}`);
+
         const mycallback = (rows) => {
           let timestamp = 0;
+          console.log(`Memento returned ${rows.length} historical transactions`);
+
           if (rows?.length) {
             for (let r of rows) {
+              // Ignore 0-payment records (which shouldn't exist anyways)
+              if (Number(r.amount) == 0) {
+                continue;
+              }
               timestamp = r.timestamp;
+
+              let amount = this.app.wallet.convertNolanToSaito(BigInt(r.amount));
+              const obj = {
+                counter_party: { address: '', publicKey: '' },
+                timestamp,
+                amount,
+                type: '',
+                trans_hash: r.tx_sig,
+                memo: 'memento'
+              };
+
+              if (r.from_key == this.publicKey) {
+                obj.counter_party.address = obj.counter_party.publicKey = r.to_key;
+                obj.type = 'send';
+                obj.amount = -obj.amount;
+              } else {
+                // I am the receiver
+                obj.counter_party.address = obj.counter_party.publicKey = r.from_key;
+                obj.type = 'receive';
+              }
+
+              // This has been restructured to allow insertion of older transactions
               if (timestamp > this.history_update_ts) {
-                if (Number(r.amount) == 0) {
-                  continue;
-                }
-                let amount = this.app.wallet.convertNolanToSaito(BigInt(r.amount));
-                const obj = {
-                  counter_party: { address: '', publicKey: '' },
-                  timestamp,
-                  amount,
-                  type: '',
-                  trans_hash: r.tx_sig,
-                  memo: 'memento'
-                };
-
-                if (r.from_key == this.publicKey) {
-                  obj.counter_party.address = obj.counter_party.publicKey = r.to_key;
-                  obj.type = 'send';
-                  obj.amount = -obj.amount;
-                } else {
-                  // I am the receiver
-                  obj.counter_party.address = obj.counter_party.publicKey = r.from_key;
-                  obj.type = 'receive';
-                }
-
                 this.history.push(obj);
               } else {
-                // console.warn('Repeated/old transaction returned from Memento: ', r);
+                for (let i = 0; i < this.history.length; i++) {
+                  // Or insert if a missed transaction
+                  if (this.history[i].timestamp > timestamp) {
+                    this.history.splice(i, 1);
+                    break;
+                  } else if (this.history[i].timestamp === timestamp) {
+                    // Check if duplicate
+                    if (this.history[i].amount == obj.amount) {
+                      // Is it sufficient that the timestamp and amount are the same
+                      // Should we also check the counter party?
+                      break;
+                    }
+                  }
+                }
               }
-            }
 
-            this.history_update_ts = Math.max(this.history_update_ts, timestamp) + 1;
+              this.history_update_ts = Math.max(this.history_update_ts, timestamp) + 1;
+            }
 
             this.save();
           }
+
+          this.min_ts = this.history_update_ts;
 
           if (callback) {
             callback(this.history);
@@ -381,17 +405,19 @@ export default class Wallet extends SaitoWallet {
         };
 
         // Request data from SQL database in Memento
-        this.app.network.sendRequestAsTransaction(
+        await this.app.network.sendRequestAsTransaction(
           'memento',
           {
             publicKey: this.publicKey,
-            offset: this.history_update_ts
+            offset: ts
           },
           mycallback
         );
-*****/
       }
 
+      /**
+       * SAITO [cryptomodule] implementation for sending
+       */
       async sendPayment(
         amount: string,
         to_address: string,
@@ -894,6 +920,7 @@ export default class Wallet extends SaitoWallet {
   }
 
   /**
+   * General WALLET function
    * Sends payments to the addresses provided if this user is the corresponding
    * sender. Will not send if similar payment was found after the given timestamp.
    * @param {String} ticker - Ticker of install crypto module
@@ -902,6 +929,7 @@ export default class Wallet extends SaitoWallet {
    * @param {Array} amounts - Array of amounts to send
    * @param {Function} mycallback - ({hash: {String}}) -> {...}
    * @param {String} public key of recipient so we can inform them of the payment
+   * @param {String} memo -- an optional field for module code to provide clarifying information
    */
   async sendPayment(
     ticker,
@@ -925,6 +953,9 @@ export default class Wallet extends SaitoWallet {
 
     let rtnObj = {};
 
+    //
+    // This check is to prevent double paying in a game do to a refresh
+    //
     if (!this.doesPreferredCryptoTransactionExist(unique_hash)) {
       console.log(
         '[wallet.ts -- sendPayment] preferred crypto transaction does not already exist',

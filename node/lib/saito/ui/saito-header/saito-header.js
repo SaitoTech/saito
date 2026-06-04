@@ -894,6 +894,12 @@ class SaitoHeader extends UIModTemplate {
    * Integrate Saito MultiWallet
    *
    * *******************************************************
+   *
+   * We need to be very careful about what goes in here because this is called * A LOT *
+   * on-transaction-pending / on-payment-sent / on-payment-received
+   * (previously, on-wallet-update)
+   * So if there is something in here that awaits a remote API call, it can be very costly
+   *
    * *******************************************************/
   async renderCrypto(force = false) {
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
