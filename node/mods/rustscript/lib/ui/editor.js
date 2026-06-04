@@ -3,7 +3,8 @@ const {
   isPlaceholder,
   placeholderMeta,
   isWitnessPath,
-  isWitnessValueSupplied
+  isWitnessValueSupplied,
+  lockingView
 } = require('./script_build');
 const { inferFieldKindFromPath, validateField, collectPlaceholders } = require('./script_validate');
 
@@ -40,7 +41,7 @@ function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-/** Opcode definition object (exampleScript, exampleRequired, schema). */
+/** Opcode definition object (exampleScript, schema). */
 function resolveOpcode(mod, opName) {
   const key = String(opName || '').toLowerCase();
   const entry = mod?.opcodes?.[key];
@@ -50,7 +51,7 @@ function resolveOpcode(mod, opName) {
   if (entry.opcode && typeof entry.opcode === 'object') {
     return entry.opcode;
   }
-  if (entry.name || entry.exampleScript || entry.exampleRequired) {
+  if (entry.name || entry.exampleScript) {
     return entry;
   }
   return null;
@@ -73,13 +74,19 @@ function metaScriptKeys(opDef) {
       seen.add(key);
     }
   }
-  const schema = opDef?.schema?.script;
-  if (schema && typeof schema === 'object') {
+  const witnessKeys = new Set(
+    Object.keys(opDef?.exampleScript?.witness && typeof opDef.exampleScript.witness === 'object'
+      ? opDef.exampleScript.witness
+      : {})
+  );
+  const schema = opDef?.schema;
+  if (schema && typeof schema === 'object' && !Array.isArray(schema) && !schema.script) {
     for (const key of Object.keys(schema)) {
-      if (!seen.has(key)) {
-        order.push(key);
-        seen.add(key);
+      if (witnessKeys.has(key) || seen.has(key)) {
+        continue;
       }
+      order.push(key);
+      seen.add(key);
     }
   }
   return order;
@@ -88,18 +95,9 @@ function metaScriptKeys(opDef) {
 function metaRequiredKeys(opDef) {
   const order = [];
   const seen = new Set();
-  const example = opDef?.exampleRequired;
-  if (example && typeof example === 'object' && !Array.isArray(example)) {
-    for (const key of Object.keys(example)) {
-      if (!seen.has(key)) {
-        order.push(key);
-        seen.add(key);
-      }
-    }
-  }
-  const schema = opDef?.schema?.required;
-  if (schema && typeof schema === 'object') {
-    for (const key of Object.keys(schema)) {
+  const witness = opDef?.exampleScript?.witness;
+  if (witness && typeof witness === 'object' && !Array.isArray(witness)) {
+    for (const key of Object.keys(witness)) {
       if (!seen.has(key)) {
         order.push(key);
         seen.add(key);
@@ -123,7 +121,7 @@ function unlockWitnessKeys(mod, opName, node) {
 
 function witnessPlaceholderFromMeta(mod, opName, fieldName) {
   const opDef = resolveOpcode(mod, opName);
-  const template = opDef?.exampleRequired?.[fieldName];
+  const template = opDef?.exampleScript?.witness?.[fieldName];
   if (typeof template === 'string') {
     return template;
   }
@@ -198,18 +196,18 @@ function materializeNode(node, mod, role) {
   }
 
   if (role === 'unlocking') {
-    const reqTemplate =
-      opDef?.exampleRequired && typeof opDef.exampleRequired === 'object'
-        ? opDef.exampleRequired
+    const witnessTemplate =
+      opDef?.exampleScript?.witness && typeof opDef.exampleScript.witness === 'object'
+        ? opDef.exampleScript.witness
         : null;
-    if (reqTemplate) {
+    if (witnessTemplate) {
       const witness =
         node.witness && typeof node.witness === 'object' && !Array.isArray(node.witness)
           ? deepClone(node.witness)
           : {};
       for (const wKey of metaRequiredKeys(opDef)) {
-        if (witness[wKey] === undefined && Object.prototype.hasOwnProperty.call(reqTemplate, wKey)) {
-          witness[wKey] = deepClone(reqTemplate[wKey]);
+        if (witness[wKey] === undefined && Object.prototype.hasOwnProperty.call(witnessTemplate, wKey)) {
+          witness[wKey] = deepClone(witnessTemplate[wKey]);
         }
       }
       if (Object.keys(witness).length > 0) {
@@ -565,6 +563,8 @@ class SemanticScriptView {
     const block = document.createElement('div');
     block.className = 'rs-semantic-block';
     block.dataset.depth = String(depth);
+    block.dataset.path = JSON.stringify(path);
+    block.dataset.kind = 'object';
 
     const open = this.createRow(depth, 'rs-semantic-row-brace');
     open.appendChild(this.span('{', 'rs-semantic-brace'));
@@ -585,22 +585,9 @@ class SemanticScriptView {
       const needsTrailingComma = index < keys.length - 1 || appendWitness;
 
       if (isNestedObject || isNestedArray) {
-        const section = document.createElement('div');
-        section.className = 'rs-semantic-section';
-        section.dataset.key = key;
-
-        const keyRow = this.createRow(depth + 1);
-        keyRow.appendChild(this.span(jsonKey(key), 'rs-semantic-key'));
-        keyRow.appendChild(this.span(':', 'rs-semantic-punct'));
-        section.appendChild(keyRow);
-        section.appendChild(this.renderValue(child, childPath, depth + 1));
-        if (needsTrailingComma) {
-          const commaRow = this.createRow(depth + 1);
-          commaRow.appendChild(this.span(',', 'rs-semantic-punct'));
-          section.appendChild(commaRow);
-        }
-
-        inner.appendChild(section);
+        inner.appendChild(
+          this.renderNestedSection(key, child, childPath, depth, isNestedArray, needsTrailingComma)
+        );
       } else {
         const row = this.createRow(depth + 1, 'rs-semantic-row-value');
         row.appendChild(this.span(jsonKey(key), 'rs-semantic-key'));
@@ -623,9 +610,33 @@ class SemanticScriptView {
     return block;
   }
 
+  renderNestedSection(key, child, childPath, depth, isNestedArray, needsTrailingComma) {
+    const section = document.createElement('div');
+    section.className = 'rs-semantic-section';
+    section.dataset.key = key;
+    section.dataset.depth = String(depth + 1);
+    section.dataset.path = JSON.stringify(childPath);
+    section.dataset.kind = isNestedArray ? 'array' : 'object';
+
+    const keyRow = this.createRow(depth + 1, 'rs-semantic-row-key');
+    keyRow.appendChild(this.span(jsonKey(key), 'rs-semantic-key'));
+    keyRow.appendChild(this.span(':', 'rs-semantic-punct'));
+    section.appendChild(keyRow);
+    section.appendChild(this.renderValue(child, childPath, depth + 1));
+    if (needsTrailingComma) {
+      const commaRow = this.createRow(depth + 1, 'rs-semantic-row-comma');
+      commaRow.appendChild(this.span(',', 'rs-semantic-punct'));
+      section.appendChild(commaRow);
+    }
+    return section;
+  }
+
   renderArray(arr, path, depth) {
     const block = document.createElement('div');
     block.className = 'rs-semantic-block rs-semantic-block-array';
+    block.dataset.depth = String(depth);
+    block.dataset.path = JSON.stringify(path);
+    block.dataset.kind = 'array';
 
     const open = this.createRow(depth, 'rs-semantic-row-brace');
     open.appendChild(this.span('[', 'rs-semantic-brace'));
@@ -643,7 +654,7 @@ class SemanticScriptView {
         section.className = 'rs-semantic-section';
         section.appendChild(this.renderValue(item, childPath, depth + 1));
         if (index < arr.length - 1) {
-          const commaRow = this.createRow(depth + 1);
+          const commaRow = this.createRow(depth + 1, 'rs-semantic-row-comma');
           commaRow.appendChild(this.span(',', 'rs-semantic-punct'));
           section.appendChild(commaRow);
         }
@@ -693,66 +704,32 @@ class SemanticScriptView {
       return;
     }
 
-    const op = String(obj.op || '').toLowerCase();
-    const fields = unlockWitnessKeys(this.mod, obj.op, obj);
-    const witness = obj.witness && typeof obj.witness === 'object' ? obj.witness : {};
-
     const inner = block.querySelector('.rs-semantic-block-inner');
     if (!inner) {
       return;
     }
 
-    const section = document.createElement('div');
-    section.className = 'rs-semantic-section';
-    section.dataset.key = 'witness';
-
-    const keyRow = this.createRow(depth + 1);
-    keyRow.appendChild(this.span(jsonKey('witness'), 'rs-semantic-key'));
-    keyRow.appendChild(this.span(':', 'rs-semantic-punct'));
-    section.appendChild(keyRow);
-
-    const witnessBlock = document.createElement('div');
-    witnessBlock.className = 'rs-semantic-block';
-
-    const witnessOpen = this.createRow(depth + 1, 'rs-semantic-row-brace');
-    witnessOpen.appendChild(this.span('{', 'rs-semantic-brace'));
-    witnessBlock.appendChild(witnessOpen);
-
-    const witnessInner = document.createElement('div');
-    witnessInner.className = 'rs-semantic-block-inner';
-
     const opDef = resolveOpcode(this.mod, obj.op);
+    const fields = unlockWitnessKeys(this.mod, obj.op, obj);
+    const witness = obj.witness && typeof obj.witness === 'object' ? obj.witness : {};
     const fieldSet = new Set(fields);
     const orderedFields = metaRequiredKeys(opDef).filter((key) => fieldSet.has(key));
-    orderedFields.forEach((fieldName, index) => {
-      const fieldPath = path.concat('witness', fieldName);
-      const row = this.createRow(depth + 2, 'rs-semantic-row-value');
-      row.appendChild(this.span(jsonKey(fieldName), 'rs-semantic-key'));
-      row.appendChild(this.span(':', 'rs-semantic-punct'));
+
+    const witnessObj = {};
+    for (const fieldName of orderedFields) {
       if (isWitnessValueSupplied(witness[fieldName])) {
-        row.appendChild(this.renderAtom(witness[fieldName], fieldPath, fieldName));
+        witnessObj[fieldName] = witness[fieldName];
       } else {
         const placeholder = witnessPlaceholderFromMeta(this.mod, obj.op, fieldName);
-        if (typeof placeholder === 'string') {
-          row.appendChild(this.renderPlaceholderChip(placeholder, fieldPath));
-        } else {
-          row.appendChild(this.renderAtom(placeholder, fieldPath, fieldName));
-        }
+        witnessObj[fieldName] =
+          typeof placeholder === 'string' ? placeholder : placeholder;
       }
-      if (index < orderedFields.length - 1) {
-        row.appendChild(this.span(',', 'rs-semantic-punct'));
-      }
-      witnessInner.appendChild(row);
-    });
+    }
 
-    witnessBlock.appendChild(witnessInner);
-
-    const witnessClose = this.createRow(depth + 1, 'rs-semantic-row-brace');
-    witnessClose.appendChild(this.span('}', 'rs-semantic-brace'));
-    witnessBlock.appendChild(witnessClose);
-
-    section.appendChild(witnessBlock);
-    inner.appendChild(section);
+    const witnessPath = path.concat('witness');
+    inner.appendChild(
+      this.renderNestedSection('witness', witnessObj, witnessPath, depth, false, false)
+    );
   }
 
   createRow(depth, extraClass = '') {
@@ -874,23 +851,6 @@ function cloneForDisplay(mod, role) {
   return materializeForRole(script, mod, role);
 }
 
-function stripWitnessBranch(node) {
-  if (!node || typeof node !== 'object') {
-    return node;
-  }
-  if (Array.isArray(node)) {
-    return node.map(stripWitnessBranch);
-  }
-  const out = {};
-  for (const key of Object.keys(node)) {
-    if (key === 'witness') {
-      continue;
-    }
-    out[key] = stripWitnessBranch(node[key]);
-  }
-  return out;
-}
-
 function commitExpert(editor, expertEl) {
   if (editor.displayMode !== 'expert') {
     return;
@@ -902,7 +862,7 @@ function commitExpert(editor, expertEl) {
     return;
   }
   if (editor.role === 'create') {
-    editor.mod.setScript(stripWitnessBranch(parsed));
+    editor.mod.setScript(lockingView(parsed));
   } else {
     editor.mod.setScript(parsed);
   }

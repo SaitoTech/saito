@@ -1,24 +1,12 @@
-module.exports = (path, value) => {
-  const safePath = String(path || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const safeValue = String(value || '').replace(/"/g, '&quot;');
-  return `
-<div class="rustscript-field">
-  <h2 class="rustscript-field-title">Logical combinator</h2>
-  <label class="rustscript-field-label">Field path</label>
-  <p class="rustscript-field-path">${safePath}</p>
-  <p class="rustscript-field-hint">Reserved — combine scripts with AND / OR / NOT in a later stage.</p>
-  <label class="rustscript-field-label" for="rustscript-field-logical-input">Current value</label>
-  <input
-    type="text"
-    id="rustscript-field-logical-input"
-    class="rustscript-field-input"
-    value="${safeValue}"
-    readonly
-    spellcheck="false"
-  />
-  <div class="rustscript-field-actions">
-    <button type="button" class="rustscript-button rustscript-button-primary">Close</button>
+module.exports = (currentOp, optionsHtml, explain) => `
+<div class="rustscript-overlay rs-prompt-overlay rs-prompt-logical">
+  <h2 class="rs-prompt-title">${currentOp}</h2>
+  <label class="rs-prompt-label" for="rs-prompt-logical-select">Operator</label>
+  <select id="rs-prompt-logical-select" class="rs-prompt-logical-select">${optionsHtml}</select>
+  <p class="rs-prompt-logical-explain">${explain}</p>
+  <p class="rs-prompt-validation" hidden></p>
+  <div class="overlay-actions overlay-actions-apply-only">
+    <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
   </div>
 </div>
 `;
-};

@@ -1,5 +1,5 @@
 const { evaluateWorkspaceStatus } = require('./script_validate');
-const { build_test_script_from_create } = require('./script_build');
+const { lockingView } = require('./script_build');
 
 class PanelReferenceView {
   constructor(app, mod) {
@@ -100,7 +100,7 @@ class RustscriptPanel {
     const refEl = el.querySelector('.rustscript-panel-reference');
     this.referenceView.mount(refEl);
 
-    const locking = stripWitnessBranch(deepClone(this.mod.getScript()));
+    const locking = lockingView(deepClone(this.mod.getScript()));
     const unlocking = this.main.testingUnlocked ? this.mod.getScript() : {};
     const status = evaluateWorkspaceStatus(
       locking,
@@ -125,14 +125,12 @@ class RustscriptPanel {
     this.referenceView.render({
       phase,
       remainingCount: testLive ? remainingRequired : remainingScript,
-      onMoveToTesting: () => this.moveToTesting(locking),
+      onMoveToTesting: () => this.moveToTesting(),
       onCreateTransaction: () => this.createTransaction()
     });
   }
 
-  moveToTesting(locking) {
-    const merged = build_test_script_from_create(locking, this.mod.getScript(), this.mod.opcodes);
-    this.mod.setScript(merged);
+  moveToTesting() {
     this.main.testingUnlocked = true;
     this.main.refresh();
   }
@@ -148,23 +146,6 @@ class RustscriptPanel {
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
-}
-
-function stripWitnessBranch(node) {
-  if (!node || typeof node !== 'object') {
-    return node;
-  }
-  if (Array.isArray(node)) {
-    return node.map(stripWitnessBranch);
-  }
-  const out = {};
-  for (const key of Object.keys(node)) {
-    if (key === 'witness') {
-      continue;
-    }
-    out[key] = stripWitnessBranch(node[key]);
-  }
-  return out;
 }
 
 module.exports = RustscriptPanel;

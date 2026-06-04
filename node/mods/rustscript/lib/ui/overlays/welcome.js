@@ -1,11 +1,11 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const {
-  WelcomeSplashTemplate,
-  WelcomeCreateChoiceTemplate,
-  WelcomeTemplatePickerTemplate,
-  WelcomeInteractTemplate
-} = require('./welcome.template');
-const { getContractTemplates, lockingFromOpcode } = require('../script_build');
+const { WelcomeSplashTemplate, WelcomeBuildChoiceTemplate } = require('./welcome.template');
+const { getContractTemplates } = require('../script_build');
+
+const BUILD_TEMPLATE_IDS = {
+  multisig: 'shared-wallet',
+  'password-protected': 'secret-vault'
+};
 
 class WelcomeOverlay {
   constructor(app, mod, mainUi) {
@@ -34,14 +34,8 @@ class WelcomeOverlay {
       case 'splash':
         html = WelcomeSplashTemplate();
         break;
-      case 'create-choice':
-        html = WelcomeCreateChoiceTemplate();
-        break;
-      case 'create-templates':
-        html = WelcomeTemplatePickerTemplate(this.templates);
-        break;
-      case 'interact':
-        html = WelcomeInteractTemplate();
+      case 'create-build':
+        html = WelcomeBuildChoiceTemplate();
         break;
       default:
         html = WelcomeSplashTemplate();
@@ -77,95 +71,43 @@ class WelcomeOverlay {
       this.showStep('splash');
     });
 
-    root.querySelector('[data-action="back-create-choice"]')?.addEventListener('click', () => {
-      this.showStep('create-choice');
-    });
-
     root.querySelectorAll('[data-path]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const path = btn.dataset.path;
         if (path === 'create') {
-          this.showStep('create-choice');
+          this.showStep('create-build');
         } else if (path === 'interact') {
-          this.showStep('interact');
+          alert('This functionality is not implemented yet');
         } else if (path === 'expert') {
           this.enterExpert();
         }
       });
     });
 
-    root.querySelectorAll('[data-choice]').forEach((btn) => {
+    root.querySelectorAll('[data-build]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const choice = btn.dataset.choice;
-        if (choice === 'template') {
-          this.showStep('create-templates');
-        } else if (choice === 'scratch') {
-          this.enterCreateGuided(lockingFromOpcode(this.mod.opcodes, 'checksig'));
+        const build = btn.dataset.build;
+        if (build === 'custom') {
+          this.enterCreateFromScratch();
+          return;
         }
-      });
-    });
-
-    root.querySelectorAll('[data-template-id]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const tpl = this.templates.find((t) => t.id === btn.dataset.templateId);
+        const templateId = BUILD_TEMPLATE_IDS[build];
+        const tpl = this.templates.find((t) => t.id === templateId);
         if (tpl) {
           this.enterCreateGuided(tpl.locking);
         }
       });
     });
-
-    root.querySelector('[data-action="import-contract"]')?.addEventListener('click', () => {
-      this.handleImport();
-    });
-
-    const dropzone = root.querySelector('[data-dropzone]');
-    const input = root.querySelector('.rs-onboard-import-input');
-    if (dropzone && input) {
-      dropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropzone.classList.add('rs-onboard-import-drag');
-      });
-      dropzone.addEventListener('dragleave', () => {
-        dropzone.classList.remove('rs-onboard-import-drag');
-      });
-      dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzone.classList.remove('rs-onboard-import-drag');
-        const file = e.dataTransfer?.files?.[0];
-        if (file) {
-          this.readFileIntoInput(file, input);
-        }
-      });
-    }
-  }
-
-  readFileIntoInput(file, input) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      input.value = String(reader.result || '');
-    };
-    reader.readAsText(file);
-  }
-
-  handleImport() {
-    const text = document.querySelector('.rs-onboard-import-input')?.value?.trim();
-    if (!text) {
-      siteMessage('Paste contract JSON to continue');
-      return;
-    }
-
-    try {
-      const parsed = this.mainUi.parseImportedContract(text);
-      this.dismiss('interact');
-      this.mainUi.enterInteractGuided(parsed);
-    } catch (err) {
-      siteMessage(err.message || 'Invalid contract JSON');
-    }
   }
 
   enterCreateGuided(lockingScript) {
     this.dismiss('create');
     this.mainUi.enterCreateGuided(lockingScript);
+  }
+
+  enterCreateFromScratch() {
+    this.dismiss('create');
+    this.mainUi.enterCreateFromScratch();
   }
 
   enterExpert() {

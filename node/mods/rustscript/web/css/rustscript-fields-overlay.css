@@ -1,6 +1,6 @@
 /* Field editor overlays — rustscript2 prompt parity */
 
-body.rustscript .saito-overlay:has(> .rustscript-field) {
+body.rustscript .saito-overlay:has(> .rs-prompt-overlay) {
   border: none !important;
   background: transparent !important;
   border-radius: 0 !important;
@@ -8,163 +8,15 @@ body.rustscript .saito-overlay:has(> .rustscript-field) {
   overflow: visible;
 }
 
-body.rustscript .rustscript-field {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  width: 100%;
-  min-width: min(520px, 94vw);
-  max-width: 94vw;
-  padding: 28px 32px 24px;
-  box-sizing: border-box;
-  color: #ececec;
+body.rustscript .saito-overlay > .rs-prompt-overlay {
+  border: var(--rs-control-border, 2px solid #3d3d3d) !important;
+  border-radius: var(--rs-control-radius, 4px) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55) !important;
+  overflow: hidden;
   background: var(--rustscript-surface, #181818);
-  border: var(--rs-control-border, 2px solid #3d3d3d);
-  border-radius: var(--rs-control-radius, 4px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
-  font-family: var(--rustscript-font-sans, 'Inter', system-ui, sans-serif);
-  font-size: 1.6rem;
 }
 
-body.rustscript .rustscript-field-title {
-  margin: 0;
-  font-family: var(--rustscript-font-mono, ui-monospace, monospace);
-  font-size: 1.52rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  line-height: 1.25;
-  color: #f2f2f2;
-}
-
-body.rustscript .rustscript-field-label {
-  display: block;
-  margin: 0 0 6px;
-  font-family: var(--rustscript-font-mono, ui-monospace, monospace);
-  font-size: 1.248rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #a8a8a8;
-}
-
-body.rustscript .rustscript-field-path {
-  margin: 0 0 4px;
-  padding: 12px 14px;
-  border-radius: var(--rs-control-radius, 4px);
-  border: 1px solid #333;
-  background: #080808;
-  font-family: var(--rustscript-font-mono, ui-monospace, monospace);
-  font-size: 1.36rem;
-  font-weight: 500;
-  line-height: 1.45;
-  color: #d8d8d8;
-  word-break: break-all;
-}
-
-body.rustscript .rustscript-field-hint {
-  margin: 0;
-  padding: 14px 16px;
-  border-radius: var(--rs-control-radius, 4px);
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 1.36rem;
-  line-height: 1.55;
-  color: #c8c8c8;
-}
-
-body.rustscript .rustscript-field-input {
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 14px 16px;
-  min-height: var(--rs-control-height, 44px);
-  border: 1px solid #444;
-  border-radius: var(--rs-control-radius, 4px);
-  background: #0c0c0c;
-  color: #efefef;
-  font-family: var(--rustscript-font-mono, ui-monospace, monospace);
-  font-size: 1.44rem;
-  font-weight: 500;
-  line-height: 1.45;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-body.rustscript .rustscript-field-input::placeholder {
-  color: #8a8a8a;
-  opacity: 1;
-}
-
-body.rustscript .rustscript-field-input:focus {
-  border-color: #666;
-  background: #101010;
-}
-
-body.rustscript textarea.rustscript-field-input {
-  min-height: 140px;
-  resize: vertical;
-}
-
-body.rustscript .rustscript-field-input[readonly] {
-  color: #b0b0b0;
-  background: #0a0a0a;
-  border-color: #333;
-}
-
-body.rustscript .rustscript-field-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 10px;
-  width: 100%;
-  margin-top: 4px;
-  padding-top: 4px;
-}
-
-body.rustscript .rustscript-field .rustscript-button {
-  flex: 1 1 auto;
-  min-width: 140px;
-  min-height: var(--rs-control-height, 44px);
-  height: var(--rs-control-height, 44px);
-  margin: 0;
-  padding: 0 22px;
-  border: var(--rs-control-border, 2px solid #3d3d3d);
-  border-radius: var(--rs-control-radius, 4px);
-  background: #1a1a1a !important;
-  color: #e8e8e8 !important;
-  font-family: var(--rustscript-font-mono, ui-monospace, monospace);
-  font-size: 1.312rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1;
-  cursor: pointer;
-  box-sizing: border-box;
-  appearance: none;
-  -webkit-appearance: none;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-body.rustscript .rustscript-field .rustscript-button:hover {
-  border-color: #5a5a5a !important;
-  color: #fff !important;
-  background: #262626 !important;
-}
-
-body.rustscript .rustscript-field .rustscript-button-primary {
-  border-color: rgba(92, 184, 106, 0.55) !important;
-  color: #b8f0c0 !important;
-}
-
-body.rustscript .rustscript-field .rustscript-button-primary:hover {
-  background: #1e2a1e !important;
-  border-color: rgba(92, 184, 106, 0.75) !important;
-  color: #d8f8dc !important;
-}
-
-body.rustscript .rustscript-field-actions .rustscript-button:last-child {
-  flex: 0 1 auto;
-  min-width: 120px;
+body.rustscript .rs-prompt-overlay {
+  width: min(520px, 94vw);
+  max-width: 94vw;
 }

@@ -3,6 +3,9 @@ const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const RustscriptMain = require('./lib/ui/main');
 const ast_execute = require('./lib/rustscript/ast_execute');
 const script_to_scripthash = require('./lib/rustscript/script_to_scripthash');
+const tokenize = require('./lib/rustscript/semantic_to_tokens');
+const parse = require('./lib/rustscript/tokens_to_ast');
+const { build_test_script_from_create } = require('./lib/ui/script_build');
 
 const OpcodeChecksig = require('./lib/opcodes/CHECKSIG');
 const OpcodeCheckmultisig = require('./lib/opcodes/CHECKMULTISIG');
@@ -34,9 +37,8 @@ class Rustscript extends ModTemplate {
       '/rustscript/css/rustscript-editor.css',
       '/rustscript/css/rustscript-panel.css',
       '/rustscript/css/rustscript-welcome-overlay.css',
-      '/rustscript/css/rustscript-templates-overlay.css',
-      '/rustscript/css/rustscript-import-overlay.css',
       '/rustscript/css/rustscript-fields-overlay.css',
+      '/rustscript/css/rustscript-overlay.css',
       '/rustscript/css/rustscript-opcodes-overlay.css'
     ];
 
@@ -209,6 +211,25 @@ class Rustscript extends ModTemplate {
     }
 
     return script_to_scripthash(clone);
+  }
+
+  parseExpertScript(source) {
+    const text = String(source ?? '').trim();
+    if (!text) {
+      throw new Error('Script is empty');
+    }
+
+    const tokens = tokenize(text);
+    const ast = parse(tokens);
+    const unlockingScript = build_test_script_from_create(ast, {}, this.opcodes);
+
+    return {
+      tokens,
+      ast,
+      lockingScript: ast,
+      unlockingScript,
+      json: JSON.stringify(ast, null, 2)
+    };
   }
 }
 

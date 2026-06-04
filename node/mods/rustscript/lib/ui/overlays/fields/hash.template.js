@@ -1,26 +1,14 @@
-module.exports = (path, value) => {
-  const safePath = String(path || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const safeValue = String(value || '').replace(/"/g, '&quot;');
-  return `
-<div class="rustscript-field">
-  <h2 class="rustscript-field-title">Hash</h2>
-  <label class="rustscript-field-label">Field path</label>
-  <p class="rustscript-field-path">${safePath}</p>
-  <label class="rustscript-field-label" for="rustscript-field-hash-input">Value</label>
-  <input
-    type="text"
-    id="rustscript-field-hash-input"
-    class="rustscript-field-input"
-    value="${safeValue}"
-    placeholder="Blake3 hex digest"
-    spellcheck="false"
-    autocomplete="off"
-  />
-  <div class="rustscript-field-actions">
-    <button type="button" class="rustscript-button">Hash witness input</button>
-    <button type="button" class="rustscript-button rustscript-button-primary">Apply</button>
-    <button type="button" class="rustscript-button">Cancel</button>
+module.exports = () => `
+<div class="rustscript-overlay rs-prompt-overlay rs-prompt-hash">
+  <h2 class="rs-prompt-title">Provide Text to Hash</h2>
+  <textarea class="rs-prompt-hash-input" spellcheck="false" placeholder="Enter text to hash"></textarea>
+  <div class="rs-prompt-hash-output-row">
+    <output class="rs-prompt-hash-output" aria-live="polite">—</output>
+    <button type="button" class="rs-prompt-copy-hash" title="Copy hash" aria-label="Copy hash">⎘</button>
+  </div>
+  <p class="rs-prompt-validation" hidden></p>
+  <div class="overlay-actions overlay-actions-apply-only">
+    <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
   </div>
 </div>
 `;
-};

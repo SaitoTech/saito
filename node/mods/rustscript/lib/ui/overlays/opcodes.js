@@ -10,7 +10,10 @@ class OpcodeReference {
     if (!this.mod.opcodes) {
       return [];
     }
-    return Object.values(this.mod.opcodes).sort((a, b) => a.name.localeCompare(b.name));
+    return Object.values(this.mod.opcodes)
+      .map((handler) => handler?.opcode || handler)
+      .filter((op) => op && op.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   buildDetailHtml(op) {
@@ -29,7 +32,7 @@ class OpcodeReference {
           required.length
             ? `
         <div class="rs-ref-section">
-          <p class="rs-ref-section-label">Witness fields:</p>
+          <p class="rs-ref-section-label">Required fields:</p>
           <ul class="rs-ref-field-list">${requiredItems}</ul>
         </div>`
             : ''
@@ -49,25 +52,10 @@ class OpcodeReference {
 
   listRequiredFields(op) {
     const fields = new Set();
-
-    if (op.schema?.script && typeof op.schema.script === 'object') {
-      Object.keys(op.schema.script).forEach((k) => fields.add(k));
+    const witness = op.exampleScript?.witness;
+    if (witness && typeof witness === 'object' && !Array.isArray(witness)) {
+      Object.keys(witness).forEach((k) => fields.add(k));
     }
-    if (op.schema?.required && typeof op.schema.required === 'object') {
-      Object.keys(op.schema.required).forEach((k) => fields.add(`required.${k}`));
-    }
-
-    if (!fields.size && op.exampleScript) {
-      Object.keys(op.exampleScript).forEach((k) => {
-        if (k !== 'op') {
-          fields.add(k);
-        }
-      });
-    }
-    if (op.exampleRequired) {
-      Object.keys(op.exampleRequired).forEach((k) => fields.add(k));
-    }
-
     return Array.from(fields).sort();
   }
 
@@ -167,8 +155,9 @@ class OpcodesOverlay {
 
   selectOpcode(key) {
     const normalized = String(key || '').toLowerCase();
-    const op = this.mod.opcodes?.[normalized];
-    if (!op) {
+    const handler = this.mod.opcodes?.[normalized];
+    const op = handler?.opcode || handler;
+    if (!op || !op.name) {
       return;
     }
     this.selectedKey = normalized;

@@ -1,6 +1,37 @@
-/** UI-only: merge witness values into test scripts (not part of locking script hash). */
+/** UI-only: scaffold unlock fields (witness) on the authoritative script object. */
 
 const PLACEHOLDER_PATTERN = /^<([^<>]+)>$/;
+
+function resolveOpcodeDefinition(opcodes, opName) {
+  const handler = opcodes?.[String(opName || '').toLowerCase()];
+  if (!handler) {
+    return null;
+  }
+  if (handler.opcode && typeof handler.opcode === 'object') {
+    return handler.opcode;
+  }
+  if (handler.name || handler.exampleScript) {
+    return handler;
+  }
+  return null;
+}
+
+function lockingView(node) {
+  if (!node || typeof node !== 'object') {
+    return node;
+  }
+  if (Array.isArray(node)) {
+    return node.map(lockingView);
+  }
+  const out = {};
+  for (const key of Object.keys(node)) {
+    if (key === 'witness') {
+      continue;
+    }
+    out[key] = lockingView(node[key]);
+  }
+  return out;
+}
 
 const PLACEHOLDER_META = {
   signature: { label: 'Signature', hint: 'Required signature for this condition', action: 'signature' },
@@ -49,19 +80,19 @@ function isWitnessValueSupplied(value) {
   return true;
 }
 
-function witnessFieldNames(opcodes, opName) {
-  const handler = opcodes?.[String(opName || '').toLowerCase()];
-  if (!handler?.exampleRequired || typeof handler.exampleRequired !== 'object') {
+function unlockFieldNames(opcodes, opName) {
+  const witness = resolveOpcodeDefinition(opcodes, opName)?.exampleScript?.witness;
+  if (!witness || typeof witness !== 'object' || Array.isArray(witness)) {
     return [];
   }
-  return Object.keys(handler.exampleRequired);
+  return Object.keys(witness);
 }
 
-/** Witness fields still needed at unlock time (not embedded in locking required). */
+/** Unlock fields still needed at test time (not embedded in locking required). */
 function unlockWitnessFieldNames(opcodes, opName, node) {
   const embedded =
     node?.required && typeof node.required === 'object' ? node.required : {};
-  return witnessFieldNames(opcodes, opName).filter(
+  return unlockFieldNames(opcodes, opName).filter(
     (key) => !isWitnessValueSupplied(embedded[key])
   );
 }
@@ -138,8 +169,7 @@ function preserve_witness_in_tree(previous, next, opcodes) {
 }
 
 function witnessPlaceholder(opcodes, opName, fieldKey) {
-  const handler = opcodes?.[String(opName || '').toLowerCase()];
-  const example = handler?.exampleRequired?.[fieldKey];
+  const example = resolveOpcodeDefinition(opcodes, opName)?.exampleScript?.witness?.[fieldKey];
   if (typeof example === 'string') {
     return example;
   }
@@ -234,7 +264,7 @@ function opcodeTreeNeedsWitness(node, opcodes) {
       (n.args || []).forEach(walk);
       return;
     }
-    if (witnessFieldNames(opcodes, op).length > 0) {
+    if (unlockFieldNames(opcodes, op).length > 0) {
       found = true;
     }
   }
@@ -248,11 +278,11 @@ function cloneScript(obj) {
 }
 
 function lockingFromOpcode(opcodes, key) {
-  const op = opcodes?.[key];
-  if (!op?.exampleScript) {
+  const opDef = resolveOpcodeDefinition(opcodes, key);
+  if (!opDef?.exampleScript) {
     return { op: String(key || '').toUpperCase() };
   }
-  const script = cloneScript(op.exampleScript);
+  const script = cloneScript(opDef.exampleScript);
   delete script.witness;
   delete script.required;
   return script;
@@ -319,7 +349,9 @@ module.exports = {
   placeholderMeta,
   isWitnessPath,
   isWitnessValueSupplied,
-  witnessFieldNames,
+  resolveOpcodeDefinition,
+  lockingView,
+  unlockFieldNames,
   unlockWitnessFieldNames,
   cloneScriptTree,
   preserve_witness_in_tree,
