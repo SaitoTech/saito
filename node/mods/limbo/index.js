@@ -1,3 +1,5 @@
+const CtaLoader = require('../../lib/templates/saito-cta-loader.template');
+
 module.exports = (app, mod, build_number, og_card) => {
   return `
 
@@ -49,6 +51,7 @@ module.exports = (app, mod, build_number, og_card) => {
 
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
+    ${CtaLoader.head('swarmcast')}
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
 
     <title>${mod.returnName()}</title>
@@ -122,8 +125,8 @@ module.exports = (app, mod, build_number, og_card) => {
   </style>
   </head>
 
-  <body>
-
+  <body class="saito-cta-loader-active">
+    ${CtaLoader.loader('swarmcast')}
   </body>
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
 </script>

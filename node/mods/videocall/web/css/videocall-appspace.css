@@ -191,7 +191,7 @@ html[data-theme="noir"] .stun-settings-shell {
 	max-width: min(560px, 84vw);
 }
 
-.stun-appspace-content:hover .stun-talk-logo {
+.saito-cta:hover .stun-talk-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-solid-label-horizontal.svg');
 }
 

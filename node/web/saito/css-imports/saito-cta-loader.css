@@ -1,0 +1,98 @@
+.saito-cta-progress {
+  --saito-cta-progress-width: 86rem;
+  width: min(95vw, var(--saito-cta-progress-width));
+  height: 4.2rem;
+  min-height: 3.6rem;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--saito-button-radius, var(--saito-border-radius, 0.75rem));
+  border: 1px solid var(--saito-overlay-panel-border, var(--saito-border-color, rgba(255, 255, 255, 0.16)));
+  background: rgba(17, 19, 23, 0.72);
+  background: color-mix(in srgb, var(--saito-overlay-panel-background, #111317) 72%, transparent);
+  box-shadow: var(--saito-overlay-panel-shadow, 0 16px 32px rgba(0, 0, 0, 0.32));
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s ease;
+}
+
+.saito-cta-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--saito-cta-progress-value, 0%);
+  min-width: 0.35rem;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--saito-primary, #ff914d), var(--saito-primary-dark, #f38239));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--saito-primary, #ff914d) 48%, transparent);
+  transition: width 0.16s ease-out;
+}
+
+.saito-cta-progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--saito-primary-text, #fff);
+  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.38);
+  pointer-events: none;
+}
+
+.saito-cta-progress.complete {
+  opacity: 0;
+  transform: translateY(-0.4rem);
+  pointer-events: none;
+}
+
+.saito-cta-loading-parent {
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.arcade-cta-section .saito-cta-progress,
+.stack-splash .saito-cta-progress {
+  --saito-cta-progress-width: 118rem;
+}
+
+.saito-cta.saito-cta-loading button,
+.saito-cta.saito-cta-loading input,
+.saito-cta.saito-cta-loading select,
+.saito-cta.saito-cta-loading textarea,
+.saito-cta.saito-cta-loading .saito-button-primary,
+.saito-cta.saito-cta-loading .saito-button-secondary,
+.saito-cta.saito-cta-loading .stack-btn-primary,
+.saito-cta.saito-cta-loading .stack-btn-secondary,
+.saito-cta.saito-cta-loading .limbo-option,
+.saito-cta.saito-cta-loading .vault-btn {
+  cursor: wait;
+  filter: grayscale(0.18) brightness(0.82);
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+body:has(.saito-cta) .pace {
+  display: none;
+}
+
+body:has(.saito-cta)::before,
+body.saito-cta-loader-active::before {
+  opacity: 0 !important;
+  z-index: -2 !important;
+  pointer-events: none !important;
+}
+
+@supports not selector(body:has(.saito-cta)) {
+  body.saito-cta-loader-active .pace {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .saito-cta-progress {
+    height: 3.8rem;
+  }
+}

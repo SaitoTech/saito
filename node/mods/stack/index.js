@@ -1,3 +1,5 @@
+const CtaLoader = require('../../lib/templates/saito-cta-loader.template');
+
 module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = null) => {
   console.log(og_card);
 
@@ -53,6 +55,7 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
   <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
   <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
 
+  ${CtaLoader.head('stack')}
   <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
 
   <title>Saito Stack</title>
@@ -126,7 +129,8 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
   </style>
 
 </head>
-<body>
+<body class="saito-cta-loader-active">
+  ${CtaLoader.loader('stack')}
   <div class="saito-container hide-scrollbar" id="saito-container"></div>
 </body>
 `;

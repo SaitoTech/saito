@@ -155,7 +155,7 @@
 	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.arcade-cta-card:hover .arcade-cta-logo {
+.saito-cta:hover .arcade-cta-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-arcade-icon-solid-label-horizontal.svg');
 }
 

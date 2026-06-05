@@ -1,3 +1,5 @@
+const CtaLoader = require('../../lib/templates/saito-cta-loader.template');
+
 module.exports = (app, mod, build_number, og_card, recent_tweets = []) => {
   let html = `
 
@@ -50,6 +52,7 @@ module.exports = (app, mod, build_number, og_card, recent_tweets = []) => {
   <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
   <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
 
+  ${CtaLoader.head('redsquare')}
   <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
 
   <title>Saito RedSquare</title>
@@ -121,7 +124,9 @@ module.exports = (app, mod, build_number, og_card, recent_tweets = []) => {
   </style>
 
 </head>
-<body></body>
+<body class="saito-cta-loader-active">
+  ${CtaLoader.loader('redsquare')}
+</body>
 `;
 
   html += `<script type="text/javascript">
