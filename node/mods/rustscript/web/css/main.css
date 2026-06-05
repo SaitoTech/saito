@@ -269,38 +269,46 @@ body.rustscript .rs-workspace-toggle-thumb {
   position: absolute;
   top: 0;
   left: 0;
-  width: 50%;
+  width: 70%;
   height: 100%;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  border-radius: 0;
+  border-radius: calc(var(--rs-control-radius-chrome) - 2px);
   background: linear-gradient(180deg, #ffe090 0%, #fca311 50%, #d88808 100%);
   box-shadow: none;
-  transition: left 0.22s ease, background 0.22s ease;
+  transition: left 0.22s ease;
   box-sizing: border-box;
   pointer-events: none;
 }
 
+body.rustscript .rs-workspace-toggle-thumb-text {
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.68em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #1a1208;
+  user-select: none;
+}
+
 body.rustscript .rs-workspace-toggle.is-guided .rs-workspace-toggle-label-guided,
 body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-expert {
-  color: #1a1208;
-  z-index: 2;
-}
-
-body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-thumb {
-  left: 50%;
-  background: linear-gradient(180deg, #ffc0d0 0%, #ff6b8a 50%, #c94a62 100%);
-}
-
-body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-expert {
-  color: #2a0810;
-}
-
-body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-guided {
   color: #5a5a5a;
   z-index: 0;
 }
 
+body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-thumb {
+  left: 30%;
+}
+
+body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-expert,
+body.rustscript .rs-workspace-toggle.is-guided .rs-workspace-toggle-label-guided {
+  color: #5a5a5a;
+}
+
+body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-guided,
 body.rustscript .rs-workspace-toggle.is-guided .rs-workspace-toggle-label-expert {
   color: #5a5a5a;
   z-index: 0;

@@ -61,7 +61,6 @@ impl ConsensusThread {
         mempool_lock: Arc<RwLock<Mempool>>,
         blockchain_lock: Arc<RwLock<Blockchain>>,
     ) {
-
         let slips = self.storage.get_token_supply_slips_from_disk().await;
         let private_key;
         let public_key;
@@ -113,7 +112,6 @@ impl ConsensusThread {
         blockchain: &Blockchain,
         configs: &(dyn Configuration + Send + Sync),
     ) -> Option<Block> {
-
         self.block_producing_timer = 0;
 
         let block = mempool
@@ -449,7 +447,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
     }
 
     async fn on_init(&mut self) {
-
         info!(
             "Saito.on_init: version = {}",
             option_env!("CARGO_PKG_VERSION").unwrap_or("unknown")

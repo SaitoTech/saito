@@ -1,8 +1,8 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
-use crate::saitowasm::{string_to_key, SAITO};
 use crate::js_value_serialize::to_js_value;
+use crate::saitowasm::{string_to_key, SAITO};
 
 #[wasm_bindgen]
 #[derive(Clone)]

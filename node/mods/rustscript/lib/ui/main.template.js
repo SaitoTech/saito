@@ -29,7 +29,9 @@ module.exports = () => {
         <span class="rs-workspace-toggle-track">
           <span class="rs-workspace-toggle-label rs-workspace-toggle-label-guided">GUIDED</span>
           <span class="rs-workspace-toggle-label rs-workspace-toggle-label-expert">EXPERT</span>
-          <span class="rs-workspace-toggle-thumb" aria-hidden="true"></span>
+          <span class="rs-workspace-toggle-thumb" aria-hidden="true">
+            <span class="rs-workspace-toggle-thumb-text">GUIDED</span>
+          </span>
         </span>
       </button>
     </div>

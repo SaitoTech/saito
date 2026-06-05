@@ -116,7 +116,9 @@ body.rustscript .rustscript-overlay .rs-prompt-primary:hover {
 }
 
 body.rustscript .rustscript-overlay input.rs-prompt-value,
-body.rustscript .rustscript-overlay input.rs-prompt-publickey-input {
+body.rustscript .rustscript-overlay input.rs-prompt-publickey-input,
+body.rustscript .rustscript-overlay input.rs-prompt-single-input,
+body.rustscript .rustscript-overlay input.rs-prompt-number-input {
   width: 100%;
   box-sizing: border-box;
   padding: 14px 16px;
@@ -181,6 +183,25 @@ body.rustscript .rs-prompt-hash-input {
 
 body.rustscript .rs-prompt-generic .rs-prompt-title {
   margin-bottom: 10px;
+}
+
+body.rustscript .rs-prompt-generic-single .rs-prompt-single-input {
+  min-height: var(--rs-control-height);
+}
+
+body.rustscript .rs-prompt-publickey-panel,
+body.rustscript .rs-prompt-number-panel,
+body.rustscript .rs-prompt-generic-single {
+  width: min(480px, 94vw);
+}
+
+body.rustscript .rs-prompt-number-field {
+  width: 100%;
+}
+
+body.rustscript .rs-prompt-number-input {
+  min-height: var(--rs-control-height);
+  font-size: 0.98em;
 }
 
 body.rustscript .rs-prompt-generic-input {
