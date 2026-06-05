@@ -33,8 +33,7 @@ class StackMain {
     if (!document.querySelector('.stack-splash')) {
       this.app.browser.addElementToSelector(html, this.container);
     } else {
-      // Replace only the splash content, not the entire container
-      this.app.browser.replaceElementContentBySelector(html, '.stack-splash');
+      this.app.browser.replaceElementBySelector(html, '.stack-splash');
     }
 
     // Update container class

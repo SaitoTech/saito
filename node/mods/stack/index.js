@@ -1,3 +1,6 @@
+const SaitoCtaLoader = require('../../lib/templates/saito-cta-loader.template');
+const SaitoCtaPrerender = require('../../lib/templates/saito-cta-prerender.template');
+
 module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = null) => {
   console.log(og_card);
 
@@ -49,11 +52,15 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
 
   <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/fontawesome.min.css" type="text/css" media="screen" />
   <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/all.css" type="text/css" media="screen" />
+  ${SaitoCtaLoader.preload('stack')}
   
   <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
+  ${SaitoCtaLoader.styles()}
+  ${SaitoCtaLoader.script()}
   <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
 
   <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
+  <link rel="stylesheet" type="text/css" href="/stack/style.css?v=${build_number}" />
 
   <title>Saito Stack</title>
   <meta name="description" content="Stack - Permissioned Blogging">
@@ -75,6 +82,12 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
       /* hardcode bg colors used because saito-variables arent accessible here */
       background-color: #1c1c23;
       background-image: url('/saito/img/tiled-logo.svg');
+    }
+
+    body.saito-cta-loader-active::before {
+      opacity: 0 !important;
+      z-index: -2 !important;
+      pointer-events: none !important;
     }
 
     .pace {
@@ -126,8 +139,10 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
   </style>
 
 </head>
-<body>
-  <div class="saito-container hide-scrollbar" id="saito-container"></div>
+<body class="saito-cta-loader-active">
+  <div class="saito-container hide-scrollbar stack-splash-container" id="saito-container">
+    ${initialPostSerialized ? '' : SaitoCtaPrerender.stack()}
+  </div>
 </body>
 `;
   if (initialPostSerialized) {

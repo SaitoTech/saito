@@ -1,3 +1,6 @@
+const SaitoCtaLoader = require('../../lib/templates/saito-cta-loader.template');
+const SaitoCtaPrerender = require('../../lib/templates/saito-cta-prerender.template');
+
 module.exports = (app, mod, build_number = '', og_card, listing = null, tx = null) => {
   let html = `
   
@@ -47,6 +50,8 @@ module.exports = (app, mod, build_number = '', og_card, listing = null, tx = nul
 
     <script type="text/javascript" src="/saito/lib/jquery/jquery-3.2.1.min.js"></script>
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
+    ${SaitoCtaLoader.styles()}
+    ${SaitoCtaLoader.script()}
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
     <link rel="stylesheet" type="text/css" href="/store/style.css" />
@@ -68,11 +73,17 @@ module.exports = (app, mod, build_number = '', og_card, listing = null, tx = nul
       background-color: #1c1c23;
       background-image: url('/saito/img/tiled-logo.svg');
     }
+
+    body.saito-cta-loader-active::before {
+      opacity: 0 !important;
+      z-index: -2 !important;
+      pointer-events: none !important;
+    }
   </style>
   </head>
   
-  <body>
-    <div class="saito-container" id="saito-container"></div>
+  <body class="saito-cta-loader-active">
+    ${SaitoCtaPrerender.assetStore()}
   </body>
 
     <script type="text/javascript">

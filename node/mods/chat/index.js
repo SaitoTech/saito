@@ -1,3 +1,6 @@
+const SaitoCtaLoader = require('../../lib/templates/saito-cta-loader.template');
+const ChatSplashTemplate = require('./lib/splash.template');
+
 module.exports = (app, mod, build_number, og_card) => {
   return `
 
@@ -17,6 +20,7 @@ module.exports = (app, mod, build_number, og_card) => {
   
     <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/fontawesome.min.css" type="text/css" media="screen" />
     <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/all.css" type="text/css" media="screen" />
+    ${SaitoCtaLoader.preload('chat')}
   
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -52,8 +56,11 @@ module.exports = (app, mod, build_number, og_card) => {
     <script type="text/javascript" src="/saito/lib/jquery/jquery-3.2.1.min.js"></script>
   
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
+    ${SaitoCtaLoader.styles()}
+    ${SaitoCtaLoader.script()}
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
+    <link rel="stylesheet" type="text/css" href="/chat/style.css?v=${build_number}" />
     
     <title>Saito Chat</title>
   
@@ -73,6 +80,12 @@ module.exports = (app, mod, build_number, og_card) => {
       /* hardcode bg colors used because saito-variables arent accessible here */
       background-color: #1c1c23;
       background-image: url('/saito/img/tiled-logo.svg');
+    }
+
+    body.saito-cta-loader-active::before {
+      opacity: 0 !important;
+      z-index: -2 !important;
+      pointer-events: none !important;
     }
 
     .pace {
@@ -124,8 +137,8 @@ module.exports = (app, mod, build_number, og_card) => {
   </style>
   </head>
   
-  <body>
-  
+  <body class="saito-cta-loader-active">
+    ${ChatSplashTemplate()}
   </body>
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
 </script>

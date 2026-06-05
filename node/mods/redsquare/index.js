@@ -1,3 +1,6 @@
+const SaitoCtaLoader = require('../../lib/templates/saito-cta-loader.template');
+const RedSquareSplashTemplate = require('./lib/splash.template');
+
 module.exports = (app, mod, build_number, og_card, recent_tweets = []) => {
   let html = `
 
@@ -46,11 +49,15 @@ module.exports = (app, mod, build_number, og_card, recent_tweets = []) => {
 
   <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/fontawesome.min.css" type="text/css" media="screen" />
   <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/all.css" type="text/css" media="screen" />
+  ${SaitoCtaLoader.preload('redsquare')}
   
   <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
+  ${SaitoCtaLoader.styles()}
+  ${SaitoCtaLoader.script()}
   <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
 
   <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
+  <link rel="stylesheet" type="text/css" href="/redsquare/style.css?v=${build_number}" />
 
   <title>Saito RedSquare</title>
 
@@ -70,6 +77,12 @@ module.exports = (app, mod, build_number, og_card, recent_tweets = []) => {
       /* hardcode bg colors used because saito-variables arent accessible here */
       background-color: #1c1c23;
       background-image: url('/saito/img/tiled-logo.svg');
+    }
+
+    body.saito-cta-loader-active::before {
+      opacity: 0 !important;
+      z-index: -2 !important;
+      pointer-events: none !important;
     }
 
     .pace {
@@ -121,7 +134,9 @@ module.exports = (app, mod, build_number, og_card, recent_tweets = []) => {
   </style>
 
 </head>
-<body></body>
+<body class="saito-cta-loader-active">
+  ${RedSquareSplashTemplate()}
+</body>
 `;
 
   html += `<script type="text/javascript">

@@ -44,6 +44,7 @@ class CallLaunch {
 
 	render() {
 		if (document.querySelector('.stun-appspace')) {
+			this.attachEvents(this.app, this.mod);
 			return;
 		}
 

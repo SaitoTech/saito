@@ -1,3 +1,5 @@
+const SaitoCtaLoader = require('../saito-cta-loader.template');
+
 module.exports = (app, mod, build_number, og_card, include_loader = true) => {
   const gameSlug = app.browser.escapeHTML(mod.returnSlug());
   let html = `
@@ -55,6 +57,8 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
     <script type="text/javascript" src="/saito/lib/hammer/hammer.min.js"></script>
     
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
+    ${SaitoCtaLoader.styles()}
+    ${SaitoCtaLoader.script()}
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     
     <link rel="stylesheet" type="text/css" href="/saito/lib/jquery/jquery-ui.min.css" media="screen"/>

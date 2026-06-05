@@ -1,3 +1,6 @@
+const SaitoCtaLoader = require('../../lib/templates/saito-cta-loader.template');
+const SaitoCtaPrerender = require('../../lib/templates/saito-cta-prerender.template');
+
 module.exports = (app, mod, build_number, og_card, game) => {
   let html = `
   
@@ -52,11 +55,15 @@ module.exports = (app, mod, build_number, og_card, game) => {
     <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
     <link rel="icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
+    ${SaitoCtaLoader.preload('arcade')}
 
     <script type="text/javascript" src="/saito/lib/jquery/jquery-3.2.1.min.js"></script>
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
+    ${SaitoCtaLoader.styles()}
+    ${SaitoCtaLoader.script()}
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
+    <link rel="stylesheet" type="text/css" href="/arcade/style.css?v=${build_number}" />
 
     <title>Saito Arcade</title>
   
@@ -76,6 +83,12 @@ module.exports = (app, mod, build_number, og_card, game) => {
       /* hardcode bg colors used because saito-variables arent accessible here */
       background-color: #180c24;
       background-image: url('/saito/img/tiled-logo.svg');
+    }
+
+    body.saito-cta-loader-active::before {
+      opacity: 0 !important;
+      z-index: -2 !important;
+      pointer-events: none !important;
     }
 
     .pace {
@@ -127,7 +140,9 @@ module.exports = (app, mod, build_number, og_card, game) => {
   </style>
   </head>
   
-  <body></body>`;
+  <body class="saito-cta-loader-active">
+    ${SaitoCtaPrerender.arcade()}
+  </body>`;
 
   html += `
     <script type="text/javascript">

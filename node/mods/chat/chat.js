@@ -12,6 +12,7 @@ const PeerService = require('saito-js/lib/peer_service').default;
 const ChatSettings = require('./lib/overlays/chat-manager-menu');
 const ChatSidebar = require('./lib/appspace/chat-sidebar');
 const HomePage = require('./index');
+const ChatSplashTemplate = require('./lib/splash.template');
 
 class Chat extends ModTemplate {
   constructor(app) {
@@ -245,22 +246,18 @@ class Chat extends ModTemplate {
   }
 
   renderFirstVisitSplash() {
-    if (!this.app.BROWSER || !this.show_splash || document.querySelector('.chat-splash-overlay')) {
+    if (!this.app.BROWSER) {
       return;
     }
 
-    document.body.insertAdjacentHTML(
-      'beforeend',
-      `
-        <div class="chat-splash-overlay">
-          <div class="chat-splash-content saito-cta">
-            <div class="chat-splash-logo" role="img" aria-label="Saito Chat"></div>
-            <div class="chat-splash-subtitle">PEER-TO-PEER SECURE MESSAGING</div>
-            <button class="saito-button-primary chat-splash-start" type="button">start chatting</button>
-          </div>
-        </div>
-      `
-    );
+    if (!this.show_splash) {
+      document.querySelector('.chat-splash-overlay')?.remove();
+      return;
+    }
+
+    if (!document.querySelector('.chat-splash-overlay')) {
+      document.body.insertAdjacentHTML('beforeend', ChatSplashTemplate());
+    }
 
     this.show_splash = false;
     this.saveOptions();

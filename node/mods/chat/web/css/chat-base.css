@@ -37,7 +37,7 @@
 	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.chat-splash-overlay:hover .chat-splash-logo {
+.chat-splash-content:hover .chat-splash-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-chat-icon-solid-label-horizontal.svg');
 }
 

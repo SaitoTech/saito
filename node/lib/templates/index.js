@@ -1,3 +1,5 @@
+const SaitoCtaLoader = require('./saito-cta-loader.template');
+
 module.exports = (app, mod, build_number) => {
   let html = `
 
@@ -13,6 +15,7 @@ module.exports = (app, mod, build_number) => {
     <meta name="author" content="" />
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
     <link rel="stylesheet" type="text/css" href="/${mod.returnSlug()}/style.css?v=${build_number}" />
+    ${SaitoCtaLoader.head()}
 
     <title>${mod.returnTitle()}</title>
   

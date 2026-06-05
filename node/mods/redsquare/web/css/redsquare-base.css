@@ -37,7 +37,7 @@
   filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.redsquare-splash-overlay:hover .redsquare-splash-logo {
+.redsquare-splash-content:hover .redsquare-splash-logo {
   --saito-cta-logo-mask: url('/saito/icons/saito-redsquare-icon-solid-label-horizontal.svg');
 }
 

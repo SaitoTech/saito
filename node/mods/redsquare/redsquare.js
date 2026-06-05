@@ -7,6 +7,7 @@ const RedSquareMenu = require('./lib/menu');
 const TweetMenu = require('./lib/tweet-menu');
 const Tweet = require('./lib/tweet');
 const redsquareHome = require('./index');
+const RedSquareSplashTemplate = require('./lib/splash.template');
 const Post = require('./lib/post');
 const Transaction = require('../../lib/saito/transaction').default;
 const PeerService = require('saito-js/lib/peer_service').default;
@@ -529,26 +530,18 @@ class RedSquare extends ModTemplate {
   }
 
   renderFirstVisitSplash() {
-    if (
-      !this.app.BROWSER ||
-      !this.show_splash ||
-      document.querySelector('.redsquare-splash-overlay')
-    ) {
+    if (!this.app.BROWSER) {
       return;
     }
 
-    document.body.insertAdjacentHTML(
-      'beforeend',
-      `
-        <div class="redsquare-splash-overlay">
-          <div class="redsquare-splash-content saito-cta">
-            <div class="redsquare-splash-logo" role="img" aria-label="Red Square"></div>
-            <div class="redsquare-splash-subtitle">PEER-TO-PEER SOCIAL</div>
-            <button class="saito-button-primary redsquare-splash-join" type="button">JOIN IN</button>
-          </div>
-        </div>
-      `
-    );
+    if (!this.show_splash) {
+      document.querySelector('.redsquare-splash-overlay')?.remove();
+      return;
+    }
+
+    if (!document.querySelector('.redsquare-splash-overlay')) {
+      document.body.insertAdjacentHTML('beforeend', RedSquareSplashTemplate());
+    }
 
     this.show_splash = false;
     this.saveOptions();

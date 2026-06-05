@@ -1,3 +1,6 @@
+const SaitoCtaLoader = require('../../lib/templates/saito-cta-loader.template');
+const SaitoCtaPrerender = require('../../lib/templates/saito-cta-prerender.template');
+
 module.exports = (app, mod, build_number, og_card) => {
   return `
 
@@ -46,10 +49,14 @@ module.exports = (app, mod, build_number, og_card) => {
     <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
     <link rel="icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
+    ${SaitoCtaLoader.preload('talk')}
 
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
+    ${SaitoCtaLoader.styles()}
+    ${SaitoCtaLoader.script()}
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />  
+    <link rel="stylesheet" type="text/css" href="/videocall/style.css?v=${build_number}" />
   
     <title>Saito Talk</title>
   
@@ -70,6 +77,12 @@ module.exports = (app, mod, build_number, og_card) => {
       width: 100vw;
       /* hardcode bg colors used because saito-variables arent accessible here */
       background-color: #0d0e11;
+    }
+
+    body.saito-cta-loader-active::before {
+      opacity: 0 !important;
+      z-index: -2 !important;
+      pointer-events: none !important;
     }
 
     .pace {
@@ -121,8 +134,8 @@ module.exports = (app, mod, build_number, og_card) => {
   </style>
   </head>
   
-  <body class="videocall">
-  
+  <body class="videocall saito-cta-loader-active">
+    ${SaitoCtaPrerender.talk()}
   </body>
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
 </script>

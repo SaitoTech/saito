@@ -1,3 +1,6 @@
+const SaitoCtaLoader = require('../../lib/templates/saito-cta-loader.template');
+const SaitoCtaPrerender = require('../../lib/templates/saito-cta-prerender.template');
+
 module.exports = (app, mod, build_number, og_card) => {
   return `
 
@@ -46,10 +49,14 @@ module.exports = (app, mod, build_number, og_card) => {
     <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
     <link rel="icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
+    ${SaitoCtaLoader.preload('swarmcast')}
 
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
+    ${SaitoCtaLoader.styles()}
+    ${SaitoCtaLoader.script()}
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
+    <link rel="stylesheet" type="text/css" href="/limbo/style.css?v=${build_number}" />
 
     <title>${mod.returnName()}</title>
 
@@ -71,6 +78,12 @@ module.exports = (app, mod, build_number, og_card) => {
       /* hardcode bg colors used because saito-variables arent accessible here */
       background-color: #1c1c23;
       background-image: url('/saito/img/tiled-logo.svg');
+    }
+
+    body.saito-cta-loader-active::before {
+      opacity: 0 !important;
+      z-index: -2 !important;
+      pointer-events: none !important;
     }
 
     .pace {
@@ -122,8 +135,8 @@ module.exports = (app, mod, build_number, og_card) => {
   </style>
   </head>
 
-  <body>
-
+  <body class="saito-cta-loader-active">
+    ${SaitoCtaPrerender.limbo()}
   </body>
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
 </script>
