@@ -348,7 +348,7 @@
   filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.stack-cta-section:hover .stack-cta-logo {
+.saito-cta:hover .stack-cta-logo {
   --saito-cta-logo-mask: url('/saito/icons/saito-stack-icon-solid-label-horizontal.svg');
 }
 
