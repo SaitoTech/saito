@@ -185,7 +185,7 @@
 .qrcode svg {
   height: 18rem;
   width: 18rem;
-  border: var(--border-thickness-fat) solid var(--saito-primary);
+  border: 1rem solid var(--saito-white);
   /* 
   We need a thick border and no padding for the qrcode to be scannable
   Do not add a padding
