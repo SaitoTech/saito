@@ -46,7 +46,7 @@
 	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.limbo-splash-box:hover .limbo-splash-logo {
+.saito-cta:hover .limbo-splash-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-swarmcast-icon-solid-label-horizontal.svg');
 }
 
