@@ -2578,6 +2578,7 @@ class Browser {
 
   switchTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
+    this.switchIconFontForTheme(theme);
 
     if (this.app.BROWSER == 1) {
       let mod_obj = this.app.modules.returnActiveModule();
@@ -2595,6 +2596,43 @@ class Browser {
 
       this.updateThemeInHeader(theme);
     }
+  }
+
+  switchIconFontForTheme(theme) {
+    const remixicon_id = 'saito-remixicon-css';
+    const remixicon_shim_id = 'saito-remixicon-fontawesome-shim-css';
+    const remixicon_href = '/saito/lib/remixicon/remixicon.css';
+    const remixicon_shim_href = '/saito/lib/remixicon/fontawesome-remixicon-shim.css';
+    let mod_obj = this.app.modules.returnActiveModule();
+    let icon_font = mod_obj?.theme_icon_fonts?.[theme] || 'fontawesome';
+    let use_remix = icon_font === 'remix' || icon_font === 'remixicon';
+
+    document.documentElement.setAttribute(
+      'data-icon-font',
+      use_remix ? 'remix' : 'fontawesome'
+    );
+
+    const ensureStylesheet = (id, href) => {
+      if (document.getElementById(id)) {
+        return;
+      }
+      let link = document.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      link.href = href;
+      link.type = 'text/css';
+      link.media = 'screen';
+      document.head.appendChild(link);
+    };
+
+    if (use_remix) {
+      ensureStylesheet(remixicon_id, remixicon_href);
+      ensureStylesheet(remixicon_shim_id, remixicon_shim_href);
+      return;
+    }
+
+    document.getElementById(remixicon_shim_id)?.remove();
+    document.getElementById(remixicon_id)?.remove();
   }
 
   updateThemeInHeader(theme) {

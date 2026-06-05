@@ -46,6 +46,11 @@ class ModTemplate {
       prism: 'fa-solid fa-gem'
     };
 
+    // Map theme names to icon fonts; omit a theme to keep Font Awesome.
+    this.theme_icon_fonts = {
+      prism: 'remix'
+    };
+
     this.processedTxs = {};
 
     this.parameters = {};
