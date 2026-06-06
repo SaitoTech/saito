@@ -61,31 +61,6 @@ class RustscriptMain {
     if (WelcomeOverlay.shouldShow(this.app)) {
       this.welcomeOverlay.render();
     }
-
-    this.runPageLoadCheckHashTest();
-  }
-
-  runPageLoadCheckHashTest() {
-    const test_script = {
-      op: 'CHECKHASH',
-      hash: 'ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f',
-      witness: {
-        input: 'hello'
-      }
-    };
-
-    console.log('RS-A1 PAGE LOAD TEST START');
-    console.log('RS-C1 ENGINE');
-    console.log(this.app?.core?.scripting);
-    console.log('RS-C2 EVALUATE');
-    console.log(typeof this.app?.core?.scripting?.evaluate);
-    console.log('RS-A2 BEFORE EVALUATE');
-    console.log(test_script);
-
-    const result = this.app.core.scripting.evaluate(test_script);
-
-    console.log('RS-A3 AFTER EVALUATE');
-    console.log(result);
   }
 
   syncEditorModes() {
@@ -379,7 +354,6 @@ class RustscriptMain {
         this.lastScriptSource = text;
         this.generateExpertOverlay.hide();
         this.refresh();
-        siteMessage('Expert script parsed');
       } catch (err) {
         siteMessage(err.message || 'Failed to parse expert script');
       }
@@ -387,17 +361,13 @@ class RustscriptMain {
   }
 
   autoValidateTestScript() {
-    console.log('RS-B1 TEST SCRIPT VALIDATION TRIGGERED');
-
     const testEl = document.querySelector('#rustscript-editor-test');
     if (!testEl) {
-      console.log('RS-B2 TEST EDITOR MISSING');
       this.validationDisplay = null;
       this.executionStatus = { attempted: false, success: false };
       return;
     }
     if (testEl.hidden) {
-      console.log('RS-B3 TEST EDITOR HIDDEN');
       this.validationDisplay = null;
       this.executionStatus = { attempted: false, success: false };
       return;
@@ -411,7 +381,6 @@ class RustscriptMain {
         this.mod.opcodes
       ).script.state === 'ready';
     if (!scriptReady) {
-      console.log('RS-B4 SCRIPT NOT READY');
       this.validationDisplay = null;
       this.executionStatus = { attempted: false, success: false };
       return;
@@ -422,9 +391,6 @@ class RustscriptMain {
       ? testEl.querySelector('.rustscript-editor-expert')?.value
       : JSON.stringify(this.mod.getScript());
 
-    console.log('RS-B5 PARSING TEST SCRIPT');
-    console.log(scriptText);
-
     let scriptJson;
     try {
       scriptJson = JSON.parse(scriptText);
@@ -434,29 +400,16 @@ class RustscriptMain {
       return;
     }
 
-    console.log('RS-B6 TEST SCRIPT PARSED');
-    console.log(scriptJson);
-
     const evaluate = this.app?.core?.scripting?.evaluate;
     if (typeof evaluate !== 'function') {
       return;
     }
 
-    console.log('RS-C1 ENGINE');
-    console.log(this.app?.core?.scripting);
-    console.log('RS-C2 EVALUATE');
-    console.log(typeof this.app?.core?.scripting?.evaluate);
-    console.log('RS-B7 BEFORE EVALUATE');
-    console.log('RUSTSCRIPT AUTO VALIDATE');
-    console.log(scriptJson);
     const result = evaluate(scriptJson);
-    console.log('RS-B8 AFTER EVALUATE');
-    console.log(result);
 
     const success = result === 1;
     this.validationDisplay = success ? 'valid' : 'invalid';
     this.executionStatus = { attempted: true, success };
-    console.log('RS-B9 UPDATING STATUS');
   }
 }
 

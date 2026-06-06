@@ -315,8 +315,7 @@ body.rustscript .rs-workspace-toggle.is-guided .rs-workspace-toggle-label-guided
 
 body.rustscript .rs-workspace-toggle.is-expert .rs-workspace-toggle-label-guided,
 body.rustscript .rs-workspace-toggle.is-guided .rs-workspace-toggle-label-expert {
-  color: #5a5a5a;
-  z-index: 0;
+  display: none;
 }
 
 body.rustscript .rs-workspace-toggle:focus-visible .rs-workspace-toggle-track {
