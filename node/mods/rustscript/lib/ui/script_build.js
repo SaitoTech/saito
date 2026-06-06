@@ -67,7 +67,11 @@ function placeholderMeta(value) {
 }
 
 function isWitnessPath(path) {
-  return Array.isArray(path) && path.length >= 1 && path[0] === 'witness';
+  if (!Array.isArray(path) || path.length < 2) {
+    return false;
+  }
+  const witnessIndex = path.indexOf('witness');
+  return witnessIndex >= 0 && witnessIndex < path.length - 1;
 }
 
 function isWitnessValueSupplied(value) {
