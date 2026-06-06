@@ -30,8 +30,8 @@ class TextFieldOverlay {
   }
 
   attachEvents() {
-    const host = this.overlay.overlay || document;
-    const root = host.querySelector('.rs-prompt-generic');
+    const host = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+    const root = host?.querySelector('.rs-prompt-generic');
     const input = root?.querySelector('.rs-prompt-value');
     if (!root || !input) {
       return;

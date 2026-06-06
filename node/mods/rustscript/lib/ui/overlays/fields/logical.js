@@ -41,8 +41,8 @@ class LogicalFieldOverlay {
   }
 
   attachEvents() {
-    const host = this.overlay.overlay || document;
-    const root = host.querySelector('.rs-prompt-logical');
+    const host = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+    const root = host?.querySelector('.rs-prompt-logical');
     const select = root?.querySelector('.rs-prompt-logical-select');
     const title = root?.querySelector('.rs-prompt-title');
     const explainEl = root?.querySelector('.rs-prompt-logical-explain');

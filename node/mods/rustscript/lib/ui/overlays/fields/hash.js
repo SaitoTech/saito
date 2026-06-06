@@ -17,8 +17,8 @@ class HashFieldOverlay {
   }
 
   attachEvents() {
-    const host = this.overlay.overlay || document;
-    const root = host.querySelector('.rs-prompt-hash');
+    const host = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+    const root = host?.querySelector('.rs-prompt-hash');
     const input = root?.querySelector('.rs-prompt-hash-input');
     const output = root?.querySelector('.rs-prompt-hash-output');
     if (!root || !input) {
