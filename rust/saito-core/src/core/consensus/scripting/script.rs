@@ -1,3 +1,5 @@
+use crate::core::consensus::transaction::Transaction;
+use crate::core::consensus::block::Block;
 use crate::core::defs::PrintForLog;
 use crate::core::util::crypto;
 use serde_json::Value;

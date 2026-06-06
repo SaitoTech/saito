@@ -134,8 +134,8 @@ class SignatureFieldOverlay {
   }
 
   attachEvents(options = {}) {
-    const host = this.overlay.overlay || document;
-    const root = host.querySelector('.rs-prompt-signature');
+    const host = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+    const root = host?.querySelector('.rs-prompt-signature');
     const valueEl = root?.querySelector('.rs-prompt-signature-value');
     const canAutoSign = options.canAutoSign === true;
     const message = String(options.message ?? '').trim();

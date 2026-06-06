@@ -26,8 +26,8 @@ class NumberFieldOverlay {
   }
 
   attachEvents() {
-    const host = this.overlay.overlay || document;
-    const root = host.querySelector('.rs-prompt-number-panel');
+    const host = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+    const root = host?.querySelector('.rs-prompt-number-panel');
     const input = root?.querySelector('.rs-prompt-number-input');
     if (!root || !input) {
       return;
