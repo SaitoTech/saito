@@ -868,7 +868,6 @@ pub fn evaluate_script(json: JsString) -> u8 {
     script.validate(None, None)
 }
 
-
 #[wasm_bindgen]
 pub async fn get_account_slips(public_key: JsString) -> Result<Array, JsValue> {
     let saito = SAITO.lock().await;

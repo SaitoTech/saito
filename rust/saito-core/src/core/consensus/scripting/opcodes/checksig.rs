@@ -35,22 +35,12 @@ impl CheckSig {
         }
     }
 
-    pub fn validate(
-        context: &mut Value,
-        _tx: Option<&Transaction>,
-        _blk: Option<&Block>,
-    ) -> u8 {
-        let publickey = context["script"]["publickey"]
-            .as_str()
-            .unwrap_or("");
+    pub fn validate(context: &mut Value, _tx: Option<&Transaction>, _blk: Option<&Block>) -> u8 {
+        let publickey = context["script"]["publickey"].as_str().unwrap_or("");
 
-        let message = context["script"]["msg"]
-            .as_str()
-            .unwrap_or("");
+        let message = context["script"]["msg"].as_str().unwrap_or("");
 
-        let signature = context["witness"]["signature"]
-            .as_str()
-            .unwrap_or("");
+        let signature = context["witness"]["signature"].as_str().unwrap_or("");
 
         if publickey.is_empty() || message.is_empty() || signature.is_empty() {
             return 0;
