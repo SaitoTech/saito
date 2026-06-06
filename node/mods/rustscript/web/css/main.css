@@ -208,6 +208,11 @@ body.rustscript .rs-status-reactor[data-state='ready'] .rs-status-reactor-label 
   color: #e8f8ea;
 }
 
+body.rustscript .rs-status-valid.is-actionable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 /* Guided / Expert slider — dual labels with sliding thumb */
 body.rustscript .rs-workspace-toggle {
   flex-shrink: 0;

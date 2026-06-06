@@ -24,6 +24,7 @@ class RustscriptMain {
     this.workspaceMode = 'locked';
     this.testingUnlocked = false;
     this.executionStatus = { attempted: false, success: false };
+    this.validationDisplay = null;
     this.lastScriptSource = '';
 
     this.createEditor = new RustscriptEditor(app, mod, '#rustscript-editor-create', 'create');
@@ -54,15 +55,37 @@ class RustscriptMain {
     document.body.classList.add('rustscript');
 
     this.syncEditorModes();
-    this.createEditor.render();
-    this.testEditor.render();
-    this.panel.render();
-    this.applyWorkspaceUI();
     this.attachEvents();
+    this.refresh();
 
     if (WelcomeOverlay.shouldShow(this.app)) {
       this.welcomeOverlay.render();
     }
+
+    this.runPageLoadCheckHashTest();
+  }
+
+  runPageLoadCheckHashTest() {
+    const test_script = {
+      op: 'CHECKHASH',
+      hash: 'ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f',
+      witness: {
+        input: 'hello'
+      }
+    };
+
+    console.log('RS-A1 PAGE LOAD TEST START');
+    console.log('RS-C1 ENGINE');
+    console.log(this.app?.core?.scripting);
+    console.log('RS-C2 EVALUATE');
+    console.log(typeof this.app?.core?.scripting?.evaluate);
+    console.log('RS-A2 BEFORE EVALUATE');
+    console.log(test_script);
+
+    const result = this.app.core.scripting.evaluate(test_script);
+
+    console.log('RS-A3 AFTER EVALUATE');
+    console.log(result);
   }
 
   syncEditorModes() {
@@ -97,6 +120,7 @@ class RustscriptMain {
   enterCreateGuided(lockingScript) {
     this.testingUnlocked = false;
     this.executionStatus = { attempted: false, success: false };
+    this.validationDisplay = null;
     this.workspaceMode = 'locked';
     this.mod.setScript(lockingView(lockingScript || {}));
     this.syncEditorModes();
@@ -107,6 +131,7 @@ class RustscriptMain {
   enterCreateFromScratch() {
     this.testingUnlocked = false;
     this.executionStatus = { attempted: false, success: false };
+    this.validationDisplay = null;
     this.workspaceMode = 'locked';
     this.lastScriptSource = '';
     this.mod.setScript({});
@@ -119,6 +144,7 @@ class RustscriptMain {
   enterExpertMode() {
     this.testingUnlocked = true;
     this.executionStatus = { attempted: false, success: false };
+    this.validationDisplay = null;
     this.setWorkspaceMode('unlocked');
   }
 
@@ -193,7 +219,12 @@ class RustscriptMain {
     const execSuccess = this.executionStatus?.success === true;
     const scriptState = scriptReady ? 'ready' : status.script.state;
     const requiredState = execSuccess && scriptReady ? 'ready' : status.required.state;
-    const validState = execSuccess && scriptReady ? 'ready' : status.valid.state;
+    let validState = execSuccess && scriptReady ? 'ready' : status.valid.state;
+    if (this.validationDisplay === 'valid') {
+      validState = 'ready';
+    } else if (this.validationDisplay === 'invalid' || this.validationDisplay === 'invalid_json') {
+      validState = 'warn';
+    }
 
     this.setStatusReactor('.rs-status-script', scriptState, {
       idle: 'No script defined',
@@ -217,9 +248,25 @@ class RustscriptMain {
 
     this.setStatusReactor('.rs-status-valid', validState, {
       idle: 'Script incomplete',
-      warn: 'Script complete — ready to validate',
-      ready: 'Execution succeeded'
+      warn: 'Script validation failed',
+      ready: 'Script validated successfully'
     });
+
+    const validEl = document.querySelector('.rs-status-valid');
+    if (validEl) {
+      const label = validEl.querySelector('.rs-status-reactor-label');
+      if (label) {
+        if (this.validationDisplay === 'invalid_json') {
+          label.textContent = 'INVALID JSON';
+        } else if (this.validationDisplay === 'valid') {
+          label.textContent = 'VALID';
+        } else if (this.validationDisplay === 'invalid') {
+          label.textContent = 'INVALID';
+        } else {
+          label.textContent = 'VALID';
+        }
+      }
+    }
   }
 
   setStatusReactor(selector, state, titles) {
@@ -249,6 +296,10 @@ class RustscriptMain {
     this.createEditor.render();
     if (this.testingUnlocked) {
       this.testEditor.render();
+      this.autoValidateTestScript();
+    } else {
+      this.validationDisplay = null;
+      this.executionStatus = { attempted: false, success: false };
     }
     this.applyWorkspaceUI();
     this.panel.render();
@@ -318,6 +369,7 @@ class RustscriptMain {
       try {
         const result = this.mod.parseExpertScript(text);
         this.executionStatus = { attempted: false, success: false };
+        this.validationDisplay = null;
         this.mod.setScript(lockingView(result.lockingScript));
         this.testingUnlocked = false;
         if (result.unlockingScript && Object.keys(result.unlockingScript).length) {
@@ -334,43 +386,77 @@ class RustscriptMain {
     });
   }
 
-  runExecution() {
+  autoValidateTestScript() {
+    console.log('RS-B1 TEST SCRIPT VALIDATION TRIGGERED');
+
+    const testEl = document.querySelector('#rustscript-editor-test');
+    if (!testEl) {
+      console.log('RS-B2 TEST EDITOR MISSING');
+      this.validationDisplay = null;
+      this.executionStatus = { attempted: false, success: false };
+      return;
+    }
+    if (testEl.hidden) {
+      console.log('RS-B3 TEST EDITOR HIDDEN');
+      this.validationDisplay = null;
+      this.executionStatus = { attempted: false, success: false };
+      return;
+    }
+
     const scriptReady =
       evaluateWorkspaceStatus(
         lockingView(this.mod.getScript()),
-        this.testingUnlocked ? this.mod.getScript() : {},
+        this.mod.getScript(),
         this.executionStatus,
         this.mod.opcodes
       ).script.state === 'ready';
     if (!scriptReady) {
-      siteMessage('Complete your script in Create Script before executing');
-      return;
-    }
-    if (this.workspaceMode === 'locked' && !this.testingUnlocked) {
-      siteMessage('Move into testing before executing');
+      console.log('RS-B4 SCRIPT NOT READY');
+      this.validationDisplay = null;
+      this.executionStatus = { attempted: false, success: false };
       return;
     }
 
+    const isExpert = testEl.classList.contains('is-expert');
+    const scriptText = isExpert
+      ? testEl.querySelector('.rustscript-editor-expert')?.value
+      : JSON.stringify(this.mod.getScript());
+
+    console.log('RS-B5 PARSING TEST SCRIPT');
+    console.log(scriptText);
+
+    let scriptJson;
     try {
-      const success =
-        this.mod.execute({
-          app: this.app,
-          opcodes: this.mod.opcodes,
-          tx: {},
-          block: {}
-        }) === true;
-      this.executionStatus = { attempted: true, success };
-      if (success) {
-        siteMessage('Execution simulation succeeded');
-      } else {
-        siteMessage('Execution simulation returned false');
-      }
-      this.refresh();
+      scriptJson = JSON.parse(scriptText);
     } catch (err) {
+      this.validationDisplay = 'invalid_json';
       this.executionStatus = { attempted: true, success: false };
-      siteMessage(`Execution error: ${err.message}`);
-      this.refresh();
+      return;
     }
+
+    console.log('RS-B6 TEST SCRIPT PARSED');
+    console.log(scriptJson);
+
+    const evaluate = this.app?.core?.scripting?.evaluate;
+    if (typeof evaluate !== 'function') {
+      return;
+    }
+
+    console.log('RS-C1 ENGINE');
+    console.log(this.app?.core?.scripting);
+    console.log('RS-C2 EVALUATE');
+    console.log(typeof this.app?.core?.scripting?.evaluate);
+    console.log('RS-B7 BEFORE EVALUATE');
+    console.log('RUSTSCRIPT AUTO VALIDATE');
+    console.log(scriptJson);
+    const result = evaluate(scriptJson);
+    console.log('RS-B8 AFTER EVALUATE');
+    console.log(result);
+
+    const success = result === 1;
+    this.validationDisplay = success ? 'valid' : 'invalid';
+    this.executionStatus = { attempted: true, success };
+    console.log('RS-B9 UPDATING STATUS');
   }
 }
 

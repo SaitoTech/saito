@@ -480,7 +480,7 @@ export default class Saito {
       );
     };
 
-    return {
+    const coreObject = {
       //
       // why? because network defined outside
       //
@@ -519,6 +519,20 @@ export default class Saito {
         verifySignature: wasm.verify_signature?.bind(wasm),
       },
 
+
+      //
+      // SCRIPTING
+      //
+      scripting: {
+        evaluate: (script: any): number => {
+          if (typeof script !== "string") {
+            script = JSON.stringify(script);
+          }
+
+          return wasm.evaluate_script(script);
+        },
+      },
+
       //
       // ADMIN / MISC (unstructured)
       //
@@ -526,6 +540,12 @@ export default class Saito {
         writeIssuanceFile: wasm.write_issuance_file?.bind(wasm),
       },
     };
+
+    console.log("CORE OBJECT");
+    console.log(coreObject);
+    console.log("CORE SCRIPTING", coreObject.scripting);
+
+    return coreObject;
   }
 
   public static getInstance(): Saito {
