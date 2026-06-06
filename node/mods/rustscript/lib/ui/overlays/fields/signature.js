@@ -142,6 +142,10 @@ class SignatureFieldOverlay {
 
     const validation = root?.querySelector('.rs-prompt-validation');
 
+    if (valueEl && typeof valueEl.focus === 'function') {
+      valueEl.focus({ preventScroll: true });
+    }
+
     const showError = (msg) => {
       if (!validation) {
         siteMessage(msg);

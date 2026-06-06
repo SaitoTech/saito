@@ -50,6 +50,8 @@ class LogicalFieldOverlay {
       return;
     }
 
+    select.focus({ preventScroll: true });
+
     const updateExplain = () => {
       const op = normalizeLogicalOperator(select.value);
       if (title) {

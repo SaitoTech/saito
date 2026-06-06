@@ -350,20 +350,22 @@ body.rustscript .rustscript-editor-unlocking .rs-placeholder-chip:hover {
 
 body.rustscript .rustscript-editor-guided .rs-value-resolved {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
   margin-block: var(--rs-tree-field-inset);
   margin-inline: 0;
   padding: 0 2px;
   border: none;
   background: transparent;
   box-shadow: none;
-  max-width: min(100%, 420px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
   font-family: inherit;
   font-size: inherit;
-  line-height: calc(var(--rs-tree-row-h, 2em) - (var(--rs-tree-field-inset, 0.22em) * 2));
+  line-height: 1.32;
   min-height: calc(var(--rs-tree-row-h, 2em) - (var(--rs-tree-field-inset, 0.22em) * 2));
   cursor: pointer;
   vertical-align: baseline;
