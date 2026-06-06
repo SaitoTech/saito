@@ -8,7 +8,6 @@ pub mod hop;
 pub mod mempool;
 pub mod merkle;
 pub mod ringitem;
-#[path = "scripting/script.rs"]
 pub mod scripting;
 pub mod slip;
 pub mod transaction;

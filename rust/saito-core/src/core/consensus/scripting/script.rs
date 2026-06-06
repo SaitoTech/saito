@@ -1,8 +1,10 @@
-use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::block::Block;
+use crate::core::consensus::transaction::Transaction;
 use crate::core::defs::PrintForLog;
 use crate::core::util::crypto;
-use serde_json::Value;
+use serde_json::{json, Value};
+
+use super::opcodes::{CheckField, CheckHash, CheckMultiSig, CheckSig, ImportField, SumFields};
 
 pub const TEST_SCRIPT: &str = r#"{
   "op": "CHECKHASH",
@@ -11,12 +13,6 @@ pub const TEST_SCRIPT: &str = r#"{
     "input": "hello"
   }
 }"#;
-
-pub mod opcodes {
-    #[path = "checkhash.rs"]
-    mod checkhash;
-    pub use checkhash::CheckHash;
-}
 
 pub struct Script {
     pub json: Value,
@@ -55,7 +51,8 @@ impl Script {
             //
             match op.as_str() {
                 "AND" => {
-                    let args = node["args"].as_array().unwrap_or(&Vec::new());
+                    let default_args = Vec::new();
+                    let args = node["args"].as_array().unwrap_or(&default_args);
 
                     for child in args {
                         if eval(child, context, tx, blk) == 0 {
@@ -67,7 +64,8 @@ impl Script {
                 }
 
                 "OR" => {
-                    let args = node["args"].as_array().unwrap_or(&Vec::new());
+                    let default_args = Vec::new();
+                    let args = node["args"].as_array().unwrap_or(&default_args);
 
                     for child in args {
                         if eval(child, context, tx, blk) == 1 {
@@ -79,7 +77,8 @@ impl Script {
                 }
 
                 "NOT" => {
-                    let args = node["args"].as_array().unwrap_or(&Vec::new());
+                    let default_args = Vec::new();
+                    let args = node["args"].as_array().unwrap_or(&default_args);
 
                     if args.is_empty() {
                         return 1;
@@ -94,7 +93,6 @@ impl Script {
 
                 _ => {}
             }
-
 
             //
             // refresh "script" and "witness"
@@ -133,13 +131,32 @@ impl Script {
                 }
             }
 
-
             //
             // opcode dispatch
             //
             match op.as_str() {
                 "CHECKHASH" => {
                     return CheckHash::execute(context, tx, blk);
+                }
+
+                "CHECKSIG" => {
+                    return CheckSig::validate(context, tx, blk);
+                }
+
+                "CHECKMULTISIG" => {
+                    return CheckMultiSig::validate(context, tx, blk);
+                }
+
+                "IMPORTFIELD" => {
+                    return ImportField::validate(context, tx, blk);
+                }
+
+                "SUMFIELDS" => {
+                    return SumFields::validate(context, tx, blk);
+                }
+
+                "CHECKFIELD" => {
+                    return CheckField::validate(context, tx, blk);
                 }
 
                 _ => {
@@ -330,6 +347,364 @@ impl Script {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::core::defs::PrintForLog;
+    use serde_json::json;
+
+    use super::Script;
+
+    #[test]
+    fn validate_checkhash_fixture_returns_success() {
+        let mut script = Script::new();
+        script.parse(super::TEST_SCRIPT);
+        assert_eq!(script.validate(None, None), 1);
+    }
+
+    #[test]
+    fn validate_checksig_fixture_returns_success() {
+        let mut script = Script::new();
+        script.parse(
+            r#"{
+  "op": "CHECKSIG",
+  "publickey": "xM2vUs5XCpNjYjcgxk4yVhybDcayk3tnwZNWrFg7jRGs",
+  "msg": "hello",
+  "witness": {
+    "signature": "feb62fe225dd4b15e7ac6fe472c046715e77e8f01b93d501300353104630fdce3abdf31ad517c4d7f062d24d715d72ad66e0770d27d3e5c6b98f58151bd65b0c"
+  }
+}"#,
+        );
+        assert_eq!(script.validate(None, None), 1);
+    }
+
+    #[test]
+    fn validate_checksig_invalid_signature_returns_failure() {
+        let mut script = Script::new();
+        script.parse(
+            r#"{
+  "op": "CHECKSIG",
+  "publickey": "xM2vUs5XCpNjYjcgxk4yVhybDcayk3tnwZNWrFg7jRGs",
+  "msg": "hello",
+  "witness": {
+    "signature": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  }
+}"#,
+        );
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_checkmultisig_three_publickeys_m_omitted_two_signatures_fails() {
+        let (pk1, sk1) = crate::core::util::crypto::generate_keys();
+        let (pk2, sk2) = crate::core::util::crypto::generate_keys();
+        let (pk3, _) = crate::core::util::crypto::generate_keys();
+        let msg = "multisig threshold default";
+        let sig1 = crate::core::util::crypto::sign(msg.as_bytes(), &sk1).to_hex();
+        let sig2 = crate::core::util::crypto::sign(msg.as_bytes(), &sk2).to_hex();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKMULTISIG",
+                "publickeys": [pk1.to_base58(), pk2.to_base58(), pk3.to_base58()],
+                "msg": msg,
+                "witness": {
+                    "signatures": [sig1, sig2]
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_checkmultisig_empty_publickeys_fails() {
+        let mut script = Script::new();
+        script.parse(
+            r#"{
+  "op": "CHECKMULTISIG",
+  "m": 1,
+  "publickeys": [],
+  "msg": "hello",
+  "witness": {
+    "signatures": ["feb62fe225dd4b15e7ac6fe472c046715e77e8f01b93d501300353104630fdce3abdf31ad517c4d7f062d24d715d72ad66e0770d27d3e5c6b98f58151bd65b0c"]
+  }
+}"#,
+        );
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_checkmultisig_empty_signatures_fails() {
+        let mut script = Script::new();
+        script.parse(
+            r#"{
+  "op": "CHECKMULTISIG",
+  "m": 1,
+  "publickeys": ["xM2vUs5XCpNjYjcgxk4yVhybDcayk3tnwZNWrFg7jRGs"],
+  "msg": "hello",
+  "witness": {
+    "signatures": []
+  }
+}"#,
+        );
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_checkmultisig_duplicate_signatures_cannot_reuse_publickey() {
+        let (pk1, sk1) = crate::core::util::crypto::generate_keys();
+        let msg = "duplicate signature reuse";
+        let sig1 = crate::core::util::crypto::sign(msg.as_bytes(), &sk1).to_hex();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKMULTISIG",
+                "m": 2,
+                "publickeys": [pk1.to_base58()],
+                "msg": msg,
+                "witness": {
+                    "signatures": [sig1.clone(), sig1]
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_checkmultisig_two_of_three_succeeds() {
+        let (pk1, sk1) = crate::core::util::crypto::generate_keys();
+        let (pk2, sk2) = crate::core::util::crypto::generate_keys();
+        let (pk3, _) = crate::core::util::crypto::generate_keys();
+        let msg = "two of three success";
+        let sig1 = crate::core::util::crypto::sign(msg.as_bytes(), &sk1).to_hex();
+        let sig2 = crate::core::util::crypto::sign(msg.as_bytes(), &sk2).to_hex();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKMULTISIG",
+                "m": 2,
+                "publickeys": [pk1.to_base58(), pk2.to_base58(), pk3.to_base58()],
+                "msg": msg,
+                "witness": {
+                    "signatures": [sig1, sig2]
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 1);
+    }
+
+    #[test]
+    fn validate_checkmultisig_two_of_three_insufficient_signatures_fails() {
+        let (pk1, sk1) = crate::core::util::crypto::generate_keys();
+        let (pk2, _) = crate::core::util::crypto::generate_keys();
+        let (pk3, _) = crate::core::util::crypto::generate_keys();
+        let msg = "two of three failure";
+        let sig1 = crate::core::util::crypto::sign(msg.as_bytes(), &sk1).to_hex();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKMULTISIG",
+                "m": 2,
+                "publickeys": [pk1.to_base58(), pk2.to_base58(), pk3.to_base58()],
+                "msg": msg,
+                "witness": {
+                    "signatures": [sig1]
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_importfield_signed_witness_succeeds() {
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let binding_hash = "binding123";
+        let duration = 42;
+        let canonical = format!("{duration}|{binding_hash}");
+        let digest = crate::core::util::crypto::hash(canonical.as_bytes()).to_hex();
+        let sig = crate::core::util::crypto::sign(digest.as_bytes(), &sk).to_hex();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "IMPORTFIELD",
+                "field": "duration",
+                "publickey": pk.to_base58(),
+                "hash": binding_hash,
+                "witness": {
+                    "duration": duration,
+                    "signature": sig
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 1);
+    }
+
+    #[test]
+    fn validate_importfield_invalid_signature_fails() {
+        let (pk, _) = crate::core::util::crypto::generate_keys();
+
+        let mut script = Script::new();
+        script.parse(&serde_json::to_string(&json!({
+            "op": "IMPORTFIELD",
+            "field": "duration",
+            "publickey": pk.to_base58(),
+            "hash": "binding123",
+            "witness": {
+                "duration": 42,
+                "signature": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            }
+        })).unwrap());
+
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_sumfields_adds_into_opcodes() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SUMFIELDS",
+                "a": 10,
+                "b": 5,
+                "into": "expiry"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 1);
+    }
+
+    #[test]
+    fn validate_sumfields_invalid_into_key_fails() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SUMFIELDS",
+                "a": 1,
+                "b": 2,
+                "into": "bad-key"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_sumfields_missing_operand_fails() {
+        let mut script = Script::new();
+        script.parse(r#"{"op":"SUMFIELDS","b":2,"into":"expiry"}"#);
+
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_checkfield_greater_than_succeeds() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": 20,
+                "operator": ">",
+                "value": 10
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 1);
+    }
+
+    #[test]
+    fn validate_checkfield_unknown_operator_fails() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": 1,
+                "operator": "???",
+                "value": 2
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 0);
+    }
+
+    #[test]
+    fn validate_checkfield_equals_alias_succeeds() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": 5,
+                "operator": "equals",
+                "value": 5
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 1);
+    }
+
+    #[test]
+    fn validate_importfield_sumfields_checkfield_chain_succeeds() {
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let binding_hash = "chain-binding";
+        let duration = 7;
+        let canonical = format!("{duration}|{binding_hash}");
+        let digest = crate::core::util::crypto::hash(canonical.as_bytes()).to_hex();
+        let sig = crate::core::util::crypto::sign(digest.as_bytes(), &sk).to_hex();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "IMPORTFIELD",
+                        "field": "duration",
+                        "publickey": pk.to_base58(),
+                        "hash": binding_hash,
+                        "witness": {
+                            "duration": duration,
+                            "signature": sig
+                        }
+                    },
+                    {
+                        "op": "SUMFIELDS",
+                        "a": 3,
+                        "b": "__opcodes.importfield.duration",
+                        "into": "expiry"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.sumfields.expiry",
+                        "operator": "==",
+                        "value": 10
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None), 1);
+    }
+}
+
 fn set_at(target: &mut Value, path: &[&str], value: Value) {
     if path.len() == 1 {
         if let Value::Object(map) = target {
@@ -353,4 +728,90 @@ fn set_at(target: &mut Value, path: &[&str], value: Value) {
         }
         set_at(entry, &path[1..], value);
     }
+}
+
+pub(crate) fn resolve_ref(
+    value: &Value,
+    context: &Value,
+    tx: Option<&Transaction>,
+    blk: Option<&Block>,
+) -> Value {
+
+    //
+    // literals remain literals
+    //
+    let Some(path) = value.as_str() else {
+        return value.clone();
+    };
+
+    //
+    // helper for walking serde_json::Value trees
+    //
+    fn lookup(root: &Value, path: &str) -> Option<Value> {
+        let mut current = root;
+
+        for part in path.split('.') {
+            current = current.get(part)?;
+        }
+
+        Some(current.clone())
+    }
+
+    //
+    // script.*
+    //
+    if let Some(remainder) = path.strip_prefix("script.") {
+        return lookup(&context["script"], remainder)
+            .unwrap_or(Value::Null);
+    }
+
+    //
+    // witness.*
+    //
+    if let Some(remainder) = path.strip_prefix("witness.") {
+        return lookup(&context["witness"], remainder)
+            .unwrap_or(Value::Null);
+    }
+
+    //
+    // vars.*
+    //
+    if let Some(remainder) = path.strip_prefix("vars.") {
+        return lookup(&context["vars"], remainder)
+            .unwrap_or(Value::Null);
+    }
+
+    //
+    // tx.*
+    //
+    if let Some(remainder) = path.strip_prefix("tx.") {
+        if let Some(tx) = tx {
+            let tx_json = serde_json::to_value(tx).unwrap_or(Value::Null);
+
+            return lookup(&tx_json, remainder)
+                .unwrap_or(Value::Null);
+        }
+
+        return Value::Null;
+    }
+
+    //
+    // blk.*
+    //
+    if let Some(remainder) = path.strip_prefix("blk.") {
+        if let Some(blk) = blk {
+            let blk_json = serde_json::to_value(blk).unwrap_or(Value::Null);
+
+            return lookup(&blk_json, remainder)
+                .unwrap_or(Value::Null);
+        }
+
+        return Value::Null;
+    }
+
+    //
+    // not a reference:
+    // treat as literal string
+    //
+    value.clone()
 }
