@@ -851,6 +851,25 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
 }
 
 #[wasm_bindgen]
+pub fn evaluate_script(json: JsString) -> u8 {
+    use saito_core::core::consensus::scripting::Script;
+
+    let json_str = match json.as_string() {
+        Some(s) => s,
+        None => return 0,
+    };
+
+    if serde_json::from_str::<serde_json::Value>(&json_str).is_err() {
+        return 0;
+    }
+
+    let mut script = Script::new();
+    script.parse(&json_str);
+    script.validate(None, None)
+}
+
+
+#[wasm_bindgen]
 pub async fn get_account_slips(public_key: JsString) -> Result<Array, JsValue> {
     let saito = SAITO.lock().await;
     let blockchain = saito
