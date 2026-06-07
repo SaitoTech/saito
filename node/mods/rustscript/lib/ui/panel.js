@@ -130,9 +130,9 @@ class RustscriptPanel {
     });
   }
 
-  moveToTesting() {
+  async moveToTesting() {
     this.main.testingUnlocked = true;
-    this.main.refresh();
+    await this.main.refresh();
   }
 
   createTransaction() {

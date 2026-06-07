@@ -177,6 +177,9 @@ function witnessPlaceholder(opcodes, opName, fieldKey) {
   if (typeof example === 'string') {
     return example;
   }
+  if (Array.isArray(example)) {
+    return cloneScript(example);
+  }
   if (example !== undefined && example !== null && typeof example !== 'object') {
     return example;
   }

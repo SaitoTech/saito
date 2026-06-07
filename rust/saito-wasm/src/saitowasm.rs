@@ -851,7 +851,7 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
 }
 
 #[wasm_bindgen]
-pub fn evaluate_script(json: JsString) -> u8 {
+pub async fn evaluate_script(json: JsString) -> u8 {
     use saito_core::core::consensus::scripting::Script;
 
     let json_str = match json.as_string() {
@@ -863,9 +863,18 @@ pub fn evaluate_script(json: JsString) -> u8 {
         return 0;
     }
 
+    let saito = SAITO.lock().await;
+    let blockchain = saito
+        .as_ref()
+        .unwrap()
+        .routing_thread
+        .blockchain_lock
+        .read()
+        .await;
+
     let mut script = Script::new();
     script.parse(&json_str);
-    script.validate(None, None)
+    script.validate(None, None, Some(&blockchain))
 }
 
 #[wasm_bindgen]

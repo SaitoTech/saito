@@ -851,7 +851,7 @@ function cloneForDisplay(mod, role) {
   return materializeForRole(script, mod, role);
 }
 
-function commitExpert(editor, expertEl) {
+async function commitExpert(editor, expertEl) {
   if (editor.displayMode !== 'expert') {
     return;
   }
@@ -867,7 +867,7 @@ function commitExpert(editor, expertEl) {
     editor.mod.setScript(parsed);
   }
   if (editor.mod.main) {
-    editor.mod.main.refresh();
+    await editor.mod.main.refresh();
   }
 }
 

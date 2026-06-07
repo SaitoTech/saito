@@ -9,7 +9,7 @@ module.exports = {
     op: 'CHECKMULTISIG',
     m: 2,
     publickeys: ['<publickey>', '<publickey>', '<publickey>'],
-    msg: '<text>',
+    msg: 'hello',
     witness: {
       signatures: ['<signature>', '<signature>']
     }

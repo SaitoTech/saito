@@ -524,12 +524,12 @@ export default class Saito {
       // SCRIPTING
       //
       scripting: {
-        evaluate: (script: any): number => {
+        evaluate: async (script: any): Promise<number> => {
           if (typeof script !== "string") {
             script = JSON.stringify(script);
           }
 
-          return wasm.evaluate_script(script);
+          return await wasm.evaluate_script(script);
         },
       },
 
