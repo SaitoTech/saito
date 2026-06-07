@@ -1,10 +1,14 @@
 use crate::core::consensus::block::Block;
 use crate::core::consensus::transaction::Transaction;
+use crate::core::consensus::blockchain::Blockchain;
 use crate::core::defs::PrintForLog;
 use crate::core::util::crypto;
 use serde_json::{json, Value};
 
-use super::opcodes::{CheckField, CheckHash, CheckMultiSig, CheckSig, ImportField, SumFields};
+use super::opcodes::{
+    CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere, CheckSig,
+    ImportField, SumFields,
+};
 
 pub const TEST_SCRIPT: &str = r#"{
   "op": "CHECKHASH",
@@ -31,7 +35,7 @@ impl Script {
         self.json = serde_json::from_str(json).expect("parse: invalid JSON");
     }
 
-    pub fn validate(&self, tx: Option<&Transaction>, blk: Option<&Block>) -> u8 {
+    pub fn validate(&self, tx: Option<&Transaction>, blk: Option<&Block>, blockchain: Option<&Blockchain>) -> u8 {
         let mut context = json!({
             "script": {},
             "witness": {},
@@ -43,6 +47,7 @@ impl Script {
             context: &mut Value,
             tx: Option<&Transaction>,
             blk: Option<&Block>,
+            blockchain: Option<&Blockchain>,
         ) -> u8 {
             let op = node["op"].as_str().unwrap_or("").to_uppercase();
 
@@ -55,7 +60,7 @@ impl Script {
                     let args = node["args"].as_array().unwrap_or(&default_args);
 
                     for child in args {
-                        if eval(child, context, tx, blk) == 0 {
+                        if eval(child, context, tx, blk, blockchain) == 0 {
                             return 0;
                         }
                     }
@@ -68,7 +73,7 @@ impl Script {
                     let args = node["args"].as_array().unwrap_or(&default_args);
 
                     for child in args {
-                        if eval(child, context, tx, blk) == 1 {
+                        if eval(child, context, tx, blk, blockchain) == 1 {
                             return 1;
                         }
                     }
@@ -84,7 +89,7 @@ impl Script {
                         return 1;
                     }
 
-                    return if eval(&args[0], context, tx, blk) == 1 {
+                    return if eval(&args[0], context, tx, blk, blockchain) == 1 {
                         0
                     } else {
                         1
@@ -159,13 +164,25 @@ impl Script {
                     return CheckField::validate(context, tx, blk);
                 }
 
+                "CHECKOWN" => {
+                    return CheckOwn::validate(context, tx, blk, blockchain);
+                }
+
+                "CHECKOWNNFT" => {
+                    return CheckOwnNft::validate(context, tx, blk, blockchain);
+                }
+
+                "CHECKOWNNFTWHERE" => {
+                    return CheckOwnNftWhere::validate(context, tx, blk, blockchain);
+                }
+
                 _ => {
                     return 0;
                 }
             }
         }
 
-        eval(&self.json, &mut context, tx, blk)
+        eval(&self.json, &mut context, tx, blk, blockchain)
     }
 
     //
@@ -358,7 +375,7 @@ mod tests {
     fn validate_checkhash_fixture_returns_success() {
         let mut script = Script::new();
         script.parse(super::TEST_SCRIPT);
-        assert_eq!(script.validate(None, None), 1);
+        assert_eq!(script.validate(None, None, None), 1);
     }
 
     #[test]
@@ -374,7 +391,7 @@ mod tests {
   }
 }"#,
         );
-        assert_eq!(script.validate(None, None), 1);
+        assert_eq!(script.validate(None, None, None), 1);
     }
 
     #[test]
@@ -390,7 +407,7 @@ mod tests {
   }
 }"#,
         );
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -415,7 +432,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -432,7 +449,7 @@ mod tests {
   }
 }"#,
         );
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -449,7 +466,7 @@ mod tests {
   }
 }"#,
         );
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -472,7 +489,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -498,7 +515,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 1);
+        assert_eq!(script.validate(None, None, None), 1);
     }
 
     #[test]
@@ -523,7 +540,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -550,7 +567,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 1);
+        assert_eq!(script.validate(None, None, None), 1);
     }
 
     #[test]
@@ -569,7 +586,7 @@ mod tests {
             }
         })).unwrap());
 
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -585,7 +602,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 1);
+        assert_eq!(script.validate(None, None, None), 1);
     }
 
     #[test]
@@ -601,7 +618,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -609,7 +626,7 @@ mod tests {
         let mut script = Script::new();
         script.parse(r#"{"op":"SUMFIELDS","b":2,"into":"expiry"}"#);
 
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -625,7 +642,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 1);
+        assert_eq!(script.validate(None, None, None), 1);
     }
 
     #[test]
@@ -641,7 +658,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 0);
+        assert_eq!(script.validate(None, None, None), 0);
     }
 
     #[test]
@@ -657,7 +674,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 1);
+        assert_eq!(script.validate(None, None, None), 1);
     }
 
     #[test]
@@ -701,7 +718,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None), 1);
+        assert_eq!(script.validate(None, None, None), 1);
     }
 }
 

@@ -264,14 +264,14 @@ class RustscriptMain {
     this.mod.setScript(merged);
   }
 
-  refresh() {
+  async refresh() {
     if (this.testingUnlocked) {
       this.syncTestScriptFromLocking();
     }
     this.createEditor.render();
     if (this.testingUnlocked) {
       this.testEditor.render();
-      this.autoValidateTestScript();
+      await this.autoValidateTestScript();
     } else {
       this.validationDisplay = null;
       this.executionStatus = { attempted: false, success: false };
@@ -335,6 +335,11 @@ class RustscriptMain {
     const input = document.querySelector('.rs-expert-input');
     if (input) {
       input.value = this.lastScriptSource || '';
+      requestAnimationFrame(() => {
+        input.focus({ preventScroll: true });
+        const end = input.value.length;
+        input.setSelectionRange(end, end);
+      });
     }
     document.querySelector('.rs-expert-generate-btn')?.addEventListener('click', () => {
       const text = document.querySelector('.rs-expert-input')?.value?.trim();
@@ -360,7 +365,7 @@ class RustscriptMain {
     });
   }
 
-  autoValidateTestScript() {
+  async autoValidateTestScript() {
     const testEl = document.querySelector('#rustscript-editor-test');
     if (!testEl) {
       this.validationDisplay = null;
@@ -405,7 +410,7 @@ class RustscriptMain {
       return;
     }
 
-    const result = evaluate(scriptJson);
+    const result = await evaluate(scriptJson);
 
     const success = result === 1;
     this.validationDisplay = success ? 'valid' : 'invalid';
