@@ -12,12 +12,7 @@ pub struct SumFields {
 }
 
 impl SumFields {
-    pub fn validate(
-        context: &mut Value,
-        tx: Option<&Transaction>,
-        blk: Option<&Block>,
-    ) -> u8 {
-
+    pub fn validate(context: &mut Value, tx: Option<&Transaction>, blk: Option<&Block>) -> u8 {
         let a = &context["script"]["a"];
         let b = &context["script"]["b"];
         let into_val = &context["script"]["into"];

@@ -933,6 +933,10 @@ impl Wallet {
         // second pass: commit inputs
         //
         let mut inputs: Vec<Slip> = vec![];
+        let change_slip1_creator = candidate_inputs
+            .first()
+            .map(|(s1, _, _, _)| s1.public_key)
+            .unwrap_or(self.public_key);
 
         for (s1, s2, s3, utxo_key) in candidate_inputs {
             inputs.push(s1.clone());
@@ -959,7 +963,7 @@ impl Wallet {
             let dep_to_change = total_slip2_in.saturating_sub(dep_to_recipients_floor);
 
             let change_slip1 = Slip {
-                public_key: self.public_key,
+                public_key: change_slip1_creator,
                 amount: change,
                 slip_type: SlipType::Bound,
                 ..Default::default()
@@ -1144,6 +1148,8 @@ impl Wallet {
             ));
         }
 
+        let creator_public_key = nft_input_slips[0].public_key;
+
         let mut total_nft_in: Currency = 0;
         let mut total_dep_in: Currency = 0;
         let mut inp_idx = 0;
@@ -1267,7 +1273,7 @@ impl Wallet {
             // NFT OUTPUT GROUP
             //
             let nft_amount_slip = Slip {
-                public_key: recipient,
+                public_key: creator_public_key,
                 amount: nft_amount_for_recipient,
                 slip_type: SlipType::Bound,
                 ..Default::default()

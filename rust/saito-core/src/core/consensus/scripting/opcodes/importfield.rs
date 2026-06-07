@@ -39,8 +39,7 @@ impl ImportField {
             return 0;
         }
 
-        let signer_pubkey =
-            resolve_ref(&context["script"]["publickey"], context, tx, blk);
+        let signer_pubkey = resolve_ref(&context["script"]["publickey"], context, tx, blk);
         let binding_hash = resolve_ref(&context["script"]["hash"], context, tx, blk);
 
         let signer_pubkey = match signer_pubkey.as_str() {
