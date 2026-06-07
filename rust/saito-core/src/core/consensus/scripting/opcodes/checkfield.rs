@@ -1,7 +1,7 @@
+use super::super::script::resolve_ref;
 use crate::core::consensus::block::Block;
 use crate::core::consensus::transaction::Transaction;
 use serde_json::Value;
-use super::super::script::resolve_ref;
 
 pub struct CheckField {
     pub name: String,
@@ -11,13 +11,7 @@ pub struct CheckField {
 }
 
 impl CheckField {
-
-    pub fn validate(
-        context: &Value,
-        tx: Option<&Transaction>,
-        blk: Option<&Block>,
-    ) -> u8 {
-
+    pub fn validate(context: &Value, tx: Option<&Transaction>, blk: Option<&Block>) -> u8 {
         let operator = context["script"]["operator"].as_str().unwrap_or("");
         let field = &context["script"]["field"];
         let value = &context["script"]["value"];
@@ -31,7 +25,6 @@ impl CheckField {
 
         match left {
             Value::Number(left_num) => {
-
                 let Some(left_num) = left_num.as_u64() else {
                     return 0;
                 };

@@ -7,6 +7,7 @@ pub mod golden_ticket;
 pub mod hop;
 pub mod mempool;
 pub mod merkle;
+pub mod nft;
 pub mod ringitem;
 pub mod scripting;
 pub mod slip;

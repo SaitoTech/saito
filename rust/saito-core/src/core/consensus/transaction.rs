@@ -1159,6 +1159,7 @@ impl Transaction {
             //
             let mut nft_uuid: Option<SaitoPublicKey> = None;
             let mut nft_sender: Option<SaitoPublicKey> = None;
+            let mut nft_creator: Option<SaitoPublicKey> = None;
             let mut nft_amount_in: Currency = 0;
             let mut nft_amount_out: Currency = 0;
             let mut nft_tuples_in: usize = 0;
@@ -1196,6 +1197,23 @@ impl Transaction {
                     if c.amount != 0 {
                         error!("bound tx invalid: tuple slip3 amount nonzero");
                         return false;
+                    }
+
+                    //
+                    // enforce tuple creator
+                    //
+                    let tuple_creator = a.public_key;
+
+                    match nft_creator {
+                        None => {
+                            nft_creator = Some(tuple_creator);
+                        }
+                        Some(existing_creator) => {
+                            if existing_creator != tuple_creator {
+                                error!("bound tx invalid: multiple nft creators detected");
+                                return false;
+                            }
+                        }
                     }
 
                     //
@@ -1286,6 +1304,20 @@ impl Transaction {
                         return false;
                     }
 
+                    let tuple_creator = a.public_key;
+
+                    match nft_creator {
+                        None => {
+                            nft_creator = Some(tuple_creator);
+                        }
+                        Some(existing_creator) => {
+                            if existing_creator != tuple_creator {
+                                error!("bound tx invalid: output creator mismatch");
+                                return false;
+                            }
+                        }
+                    }
+
                     //
                     // enforce UUID consistency
                     //
@@ -1373,10 +1405,30 @@ impl Transaction {
                     return false;
                 }
 
+
+                let funding_input = &self.from[0];
+
+                //
+                // nft creator is set properly
+                //
+                match nft_creator {
+                    Some(creator) => {
+                        if creator != funding_input.public_key {
+                            error!(
+                                "Create-bound TX: creator does not match funding input"
+                            );
+                            return false;
+                        }
+                    }
+                    None => {
+                        error!("Create-bound TX: missing creator");
+                        return false;
+                    }
+                }
+
                 //
                 // NFT UUID is set properly in output
                 //
-                let funding_input = &self.from[0];
                 let parsed_nft_uuid: SaitoPublicKey = match nft_uuid {
                     Some(uuid) => uuid,
                     None => {

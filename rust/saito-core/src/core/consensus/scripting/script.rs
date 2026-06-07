@@ -1,13 +1,13 @@
 use crate::core::consensus::block::Block;
-use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::blockchain::Blockchain;
+use crate::core::consensus::transaction::Transaction;
 use crate::core::defs::PrintForLog;
 use crate::core::util::crypto;
 use serde_json::{json, Value};
 
 use super::opcodes::{
-    CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere, CheckSig,
-    ImportField, SumFields,
+    CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere, CheckPath,
+    CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime, ImportField, SumFields,
 };
 
 pub const TEST_SCRIPT: &str = r#"{
@@ -35,7 +35,12 @@ impl Script {
         self.json = serde_json::from_str(json).expect("parse: invalid JSON");
     }
 
-    pub fn validate(&self, tx: Option<&Transaction>, blk: Option<&Block>, blockchain: Option<&Blockchain>) -> u8 {
+    pub fn validate(
+        &self,
+        tx: Option<&Transaction>,
+        blk: Option<&Block>,
+        blockchain: Option<&Blockchain>,
+    ) -> u8 {
         let mut context = json!({
             "script": {},
             "witness": {},
@@ -174,6 +179,26 @@ impl Script {
 
                 "CHECKOWNNFTWHERE" => {
                     return CheckOwnNftWhere::validate(context, tx, blk, blockchain);
+                }
+
+                "CHECKSENDER" => {
+                    return CheckSender::validate(context, tx, blk);
+                }
+
+                "CHECKRECIPIENT" => {
+                    return CheckRecipient::validate(context, tx, blk);
+                }
+
+                "CHECKPATH" => {
+                    return CheckPath::validate(context, tx, blk);
+                }
+
+                "CHECKPATHHOP" => {
+                    return CheckPathHop::validate(context, tx, blk);
+                }
+
+                "CHECKTIME" => {
+                    return CheckTime::validate(context, tx, blk);
                 }
 
                 _ => {
@@ -753,7 +778,6 @@ pub(crate) fn resolve_ref(
     tx: Option<&Transaction>,
     blk: Option<&Block>,
 ) -> Value {
-
     //
     // literals remain literals
     //
@@ -778,24 +802,21 @@ pub(crate) fn resolve_ref(
     // script.*
     //
     if let Some(remainder) = path.strip_prefix("script.") {
-        return lookup(&context["script"], remainder)
-            .unwrap_or(Value::Null);
+        return lookup(&context["script"], remainder).unwrap_or(Value::Null);
     }
 
     //
     // witness.*
     //
     if let Some(remainder) = path.strip_prefix("witness.") {
-        return lookup(&context["witness"], remainder)
-            .unwrap_or(Value::Null);
+        return lookup(&context["witness"], remainder).unwrap_or(Value::Null);
     }
 
     //
     // vars.*
     //
     if let Some(remainder) = path.strip_prefix("vars.") {
-        return lookup(&context["vars"], remainder)
-            .unwrap_or(Value::Null);
+        return lookup(&context["vars"], remainder).unwrap_or(Value::Null);
     }
 
     //
@@ -805,8 +826,7 @@ pub(crate) fn resolve_ref(
         if let Some(tx) = tx {
             let tx_json = serde_json::to_value(tx).unwrap_or(Value::Null);
 
-            return lookup(&tx_json, remainder)
-                .unwrap_or(Value::Null);
+            return lookup(&tx_json, remainder).unwrap_or(Value::Null);
         }
 
         return Value::Null;
@@ -819,11 +839,17 @@ pub(crate) fn resolve_ref(
         if let Some(blk) = blk {
             let blk_json = serde_json::to_value(blk).unwrap_or(Value::Null);
 
-            return lookup(&blk_json, remainder)
-                .unwrap_or(Value::Null);
+            return lookup(&blk_json, remainder).unwrap_or(Value::Null);
         }
 
         return Value::Null;
+    }
+
+    //
+    // __opcodes.*
+    //
+    if let Some(remainder) = path.strip_prefix("__opcodes.") {
+        return lookup(&context["__opcodes"], remainder).unwrap_or(Value::Null);
     }
 
     //

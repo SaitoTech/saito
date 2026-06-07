@@ -2352,6 +2352,7 @@ dependencies = [
  "aes 0.7.5",
  "ahash",
  "async-trait",
+ "base64 0.21.5",
  "blake3",
  "block-modes",
  "bs58",

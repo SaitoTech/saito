@@ -31,27 +31,30 @@ impl CheckOwn {
 
         let mut sig_ok = false;
         if let Some(tx) = tx {
-            let hash_for_signature = match tx.hash_for_signature {
-                Some(h) => h,
-                None => {
-                    if matches!(tx.transaction_type, TransactionType::SPV) {
-                        tx.signature[0..32].try_into().expect("signature prefix is 32 bytes")
-                    } else {
-                        hash(&tx.serialize_for_signature())
-                    }
-                }
+            let hash_for_signature: Option<[u8; 32]> = if let Some(h) = tx.hash_for_signature {
+                Some(h)
+            } else if matches!(tx.transaction_type, TransactionType::SPV) {
+                tx.signature
+                    .get(0..32)
+                    .and_then(|slice| slice.try_into().ok())
+            } else {
+                Some(hash(&tx.serialize_for_signature()))
             };
 
-            if !hash_for_signature.iter().all(|&b| b == 0)
-                && !tx.from.is_empty()
-                && verify_signature(&hash_for_signature, &tx.signature, &tx.from[0].public_key)
-            {
-                sig_ok = true;
+            if let Some(hash_for_signature) = hash_for_signature {
+                if !hash_for_signature.iter().all(|&b| b == 0)
+                    && !tx.from.is_empty()
+                    && verify_signature(&hash_for_signature, &tx.signature, &tx.from[0].public_key)
+                {
+                    sig_ok = true;
+                }
             }
         }
 
-        // JS: return (is_slip_spendable && sig_ok) || true;
-        let _ = (is_slip_spendable, sig_ok);
-        1
+        if is_slip_spendable && sig_ok {
+            1
+        } else {
+            0
+        }
     }
 }
