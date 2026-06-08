@@ -1,3 +1,9 @@
+/**
+ * In-game crypto receive overlay — waiting for / confirming inbound payment.
+ *
+ * Presentation: `web/saito/css-imports/saito-crypto.css` (`.crypto-receive-overlay`).
+ */
+
 const ReceiveTemplate = require('./receive.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoUser = require('./../../saito-user/saito-user');
@@ -13,8 +19,15 @@ class Receive {
     this.counter_party = new SaitoUser(
       this.app,
       this.mod,
-      '#receive-crypto-request-container .counterparty-details'
+      '#receive-crypto-request-root .counterparty-details'
     );
+
+    /** @type {ReturnType<Receive['bindElements']> | null} */
+    this.el = null;
+    this.timeout = null;
+    this.countdownTimer = null;
+
+    this.onCloseClick = this.onCloseClick.bind(this);
 
     this.app.connection.on('saito-crypto-receive-render-request', (details) => {
       this.render(details);
@@ -25,6 +38,45 @@ class Receive {
     this.app.connection.on('on-payment-received', (obj = {}) => {
       this.processExpectedPayment(obj);
     });
+  }
+
+  clearTimers() {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
+    if (this.countdownTimer) {
+      clearTimeout(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+  }
+
+  /**
+   * @returns {null | {
+   *   root: HTMLElement,
+   *   title: HTMLElement | null,
+   *   amount: HTMLElement | null,
+   *   address: HTMLElement | null,
+   *   countdown: HTMLElement | null,
+   *   closeBtn: HTMLButtonElement | null,
+   *   ignoreCheckbox: HTMLInputElement | null
+   * }}
+   */
+  bindElements(root) {
+    return {
+      root,
+      title: root.querySelector('#crypto_receive_title'),
+      amount: root.querySelector('#crypto_receive_amount'),
+      address: root.querySelector('#crypto_receive_address'),
+      countdown: root.querySelector('#crypto_receive_countdown'),
+      closeBtn: root.querySelector('#crypto_receive_close'),
+      ignoreCheckbox: root.querySelector('#crypto_receive_ignore')
+    };
+  }
+
+  refreshDomRefs() {
+    const root = document.getElementById('receive-crypto-request-root');
+    this.el = root ? this.bindElements(root) : null;
   }
 
   processExpectedPayment(obj = {}) {
@@ -72,20 +124,76 @@ class Receive {
     this.onReceivePayment(obj);
   }
 
+  applyRootLayout(details) {
+    const root = this.el?.root;
+    if (!root) {
+      return;
+    }
+
+    const trusted = Boolean(details?.trusted);
+    root.dataset.receiveMode = trusted ? 'trusted' : 'interactive';
+
+    const showGameIgnore = !trusted && this.mod?.game?.over === 0;
+    root.classList.toggle('crypto-receive-overlay--show-ignore', showGameIgnore);
+  }
+
+  onCloseClick() {
+    if (this.el?.ignoreCheckbox?.checked) {
+      this.mod.saveGamePreference('crypto_transfers_inbound_trusted', 1);
+    }
+    this.overlay.close();
+  }
+
+  attachEvents() {
+    const btn = this.el?.closeBtn;
+    if (!btn) {
+      return;
+    }
+    btn.addEventListener('click', this.onCloseClick);
+  }
+
+  startAutoCloseCountdown() {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+    }
+    if (this.countdownTimer) {
+      clearTimeout(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+    this.timeout = setTimeout(() => {
+      this.overlay.close();
+      this.timeout = null;
+    }, 3000);
+    if (this.el?.countdown) {
+      this.el.countdown.textContent = '3';
+    }
+    this.scheduleCountdownTick();
+  }
+
+  scheduleCountdownTick() {
+    this.countdownTimer = setTimeout(() => {
+      this.countdownTimer = null;
+      const span = this.el?.countdown;
+      if (!span || !document.body.contains(span)) {
+        return;
+      }
+      let value = parseInt(span.textContent, 10);
+      if (Number.isNaN(value)) {
+        value = 0;
+      }
+      value = Math.max(value - 1, 0);
+      span.textContent = String(value);
+      if (value > 0) {
+        this.scheduleCountdownTick();
+      }
+    }, 900);
+  }
+
   /**
-   * Shows a confirmation overlay before initiating a crypto transfer
-   * @param ticker { string } - name of a currency
-   * @param amount { string } - the amount of crypto
-   * @param publicKey { string } - Saito public key of recipient
-   * @param address { string } - address of receiver (for currency)
-   * @param trusted { boolean } - flag for whether to autoprocess
-   * @param mycallback { function} - to run when approved
-   *
+   * Shows a confirmation overlay while waiting for an inbound crypto transfer.
+   * @param details {{ ticker: string, amount: string, publicKey: string, address: string, trusted?: boolean, mycallback?: function }}
    */
   render(details) {
-    //
-    // Verify complete information
-    //
     if (!details?.ticker || !details?.amount) {
       console.error('Missing ticker/amount in Receive Crypto Overlay');
       return;
@@ -96,79 +204,76 @@ class Receive {
       return;
     }
 
-    console.log('Show overlay');
-    this.overlay.show(ReceiveTemplate(this.app, this.mod, details), () => {
-      console.log('&&&&&&&&&&& close overlay -- run call back!!!');
+    this.clearTimers();
+
+    this.overlay.show(ReceiveTemplate(), () => {
       if (details.mycallback) {
         details.mycallback();
       }
     });
 
-    this.counter_party.publicKey = details.publicKey;
+    this.refreshDomRefs();
 
+    if (!this.el?.root) {
+      return;
+    }
+
+    this.applyRootLayout(details);
+
+    if (this.el.title) {
+      this.el.title.textContent = 'Receiving Payment';
+    }
+
+    if (this.el.amount) {
+      this.el.amount.textContent = `${details.amount} ${details.ticker}`;
+    }
+
+    if (this.el.address && details.address && details.address !== details.publicKey) {
+      let a = details.address;
+      if (a.includes('|')) {
+        a = a.split('|')[0];
+      }
+      if (a.length > 16) {
+        this.el.address.textContent = `${a.slice(0, 8)}…${a.slice(-8)}`;
+      } else {
+        this.el.address.textContent = a;
+      }
+    }
+
+    this.el.root.dataset.receiveState = 'pending';
+
+    this.counter_party.publicKey = details.publicKey;
     this.counter_party.render();
 
-    let html = `
-			<div class="profile-public-key">
-				${details.address.slice(0, 8)}...${details.address.slice(-8)}
-            </div>`;
-
-    this.counter_party.updateUserline(html);
+    if (this.app.keychain.returnIdentifierByPublicKey(details.publicKey)) {
+      this.counter_party.updateUserline(
+        details.publicKey.slice(0, 8) + '…' + details.publicKey.slice(-8),
+        details.publicKey
+      );
+    }
 
     this.attachEvents();
 
     if (details?.trusted) {
-      console.log('Trusted!');
-      this.timeout = setTimeout(() => {
-        this.overlay.close();
-        this.timeout = null;
-      }, 3000);
-      this.countDown();
-    }
-  }
-
-  countDown() {
-    // Countdown clock
-    setTimeout(() => {
-      let c = document.querySelector(
-        '#receive-crypto-request-container .crypto-transfer-countdown span'
-      );
-      if (c) {
-        let value = parseInt(c.innerHTML);
-        value = Math.max(value - 1, 0);
-        c.innerHTML = value.toString();
-        this.countDown();
-      }
-    }, 900);
-  }
-
-  attachEvents() {
-    if (document.getElementById('crypto_receipt_btn')) {
-      document.getElementById('crypto_receipt_btn').onclick = (e) => {
-        let ignoreBtn = document.querySelector('#ignore_checkbox');
-        if (ignoreBtn?.checked) {
-          this.mod.saveGamePreference('crypto_transfers_inbound_trusted', 1);
-        }
-        this.overlay.close();
-      };
+      this.startAutoCloseCountdown();
     }
   }
 
   onReceivePayment() {
-    if (document.getElementById('receive-crypto-request-container')) {
-      document.querySelector('.spinner').style.display = 'none';
+    this.refreshDomRefs();
+    const root = this.el?.root;
+    if (!root) {
+      return;
+    }
 
-      document.querySelector('#auth_title').innerHTML = `Received Payment`;
-      document.querySelector('#game-crypto-icon').style.display = 'block';
+    if (this.el?.title) {
+      this.el.title.textContent = 'Payment received';
+    }
 
-      if (this.timeout) {
-        clearTimeout(this.timeout);
-        setTimeout(() => {
-          this.overlay.close();
-          this.timeout = null;
-        }, 3000);
-        document.querySelector('#receive-crypto-request-container .crypto-transfer-countdown span');
-      }
+    root.dataset.receiveState = 'success';
+
+    if (this.timeout) {
+      this.startAutoCloseCountdown();
     }
   }
 }

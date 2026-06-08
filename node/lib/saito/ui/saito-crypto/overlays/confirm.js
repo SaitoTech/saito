@@ -170,8 +170,15 @@ class Confirm {
     }
 
     if (this.el.address && details.address && details.address !== details.publicKey) {
-      const a = details.address;
-      this.el.address.textContent = `${a.slice(0, 8)}…${a.slice(-8)}`;
+      let a = details.address;
+      if (a.includes('|')) {
+        a = a.split('|')[0];
+      }
+      if (a.length > 16) {
+        this.el.address.textContent = `${a.slice(0, 8)}…${a.slice(-8)}`;
+      } else {
+        this.el.address.textContent = a;
+      }
     }
 
     this.el.root.dataset.confirmState = 'pending';
@@ -181,8 +188,8 @@ class Confirm {
 
     // Include publickey if the SaitoUser is going to be showing a name
     if (this.app.keychain.returnIdentifierByPublicKey(details.publicKey)) {
-      this.counterparty.updateUserline(
-        details.publicKey.slice(0, 6) + '...' + details.publicKey.slice(-6),
+      this.counter_party.updateUserline(
+        details.publicKey.slice(0, 8) + '…' + details.publicKey.slice(-8),
         details.publicKey
       );
     }

@@ -216,6 +216,10 @@
   cursor: pointer;
 }
 
+.balance-amount:hover {
+  color: var(--saito-font-color-heavy);
+}
+
 .balance-amount.pending {
   color: var(--saito-font-color-light);
   animation: fade-animation 1.5s infinite ease-in-out;
@@ -225,11 +229,16 @@
   animation: fade-animation 1.5s infinite ease-in-out;
 }
 
+.balance-amount-segments {
+  display: flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
 .balance-amount-whole,
 .balance-amount-separator,
 .balance-amount-decimal {
   width: min-content;
-  display: block;
 }
 
 .balance-amount-whole,
@@ -239,6 +248,13 @@
 
 .balance-amount-decimal {
   font-size: 2rem;
+}
+
+/* Sub-unit balances (< 1): uniform size so 0.xxxx reads as one fractional value */
+.balance-amount-segments--subunit .balance-amount-whole,
+.balance-amount-segments--subunit .balance-amount-separator,
+.balance-amount-segments--subunit .balance-amount-decimal {
+  font-size: 3.5rem;
 }
 
 .wallet-btn-container {
