@@ -50,6 +50,7 @@ pub struct SyncManager {
     pub(crate) queue: BTreeMap<(BlockId, SaitoHash), QueueItem>,
     timer: Arc<Timer>,
     peer_fetch_urls: HashMap<u64, String>,
+    block_fetch_url: Option<String>,
     blockchain_lock: Arc<RwLock<Blockchain>>,
     mempool_lock: Arc<RwLock<Mempool>>,
     wallet_lock: Arc<RwLock<Wallet>>,
@@ -63,6 +64,7 @@ impl SyncManager {
         wallet_lock: Arc<RwLock<Wallet>>,
         timer: Arc<Timer>,
         spv_fetch: bool,
+        block_fetch_url: Option<String>,
     ) -> Self {
         Self {
             queue: BTreeMap::new(),
@@ -72,6 +74,7 @@ impl SyncManager {
             mempool_lock,
             wallet_lock,
             spv_fetch,
+            block_fetch_url,
         }
     }
 
@@ -580,6 +583,7 @@ impl SyncManager {
                         .map_or(our_latest_hash, |r| r.block_hash),
                     payload_latest_block_id: last_ref.map_or(our_latest_id, |r| r.block_id),
                     payload_latest_block_hash: last_ref.map_or(our_latest_hash, |r| r.block_hash),
+                    block_fetch_url: self.block_fetch_url.clone(),
                     payload: ordered_refs.clone(),
                 }),
             )
@@ -618,6 +622,19 @@ impl SyncManager {
             let blockchain = self.blockchain_lock.read().await;
             blockchain.blocks.is_empty()
         };
+        {
+            let mut peers = network.peer_lock.write().await;
+            if let Some(peer) = peers.peers.get_mut(&peer_id) {
+                if cs.block_fetch_url.is_some() {
+                    info!(
+                        "peer {} provided block fetch URL: {}",
+                        peer_id,
+                        cs.block_fetch_url.as_ref().unwrap()
+                    );
+                    peer.url = cs.block_fetch_url.clone();
+                }
+            }
+        }
 
         let mut should_add_block = true;
 

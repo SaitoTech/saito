@@ -204,6 +204,18 @@ pub mod test {
             let configuration: Arc<RwLock<dyn Configuration + Send + Sync>> =
                 Arc::new(RwLock::new(configuration));
 
+            let block_fetch_url = {
+                let config = configuration
+                    .try_read()
+                    .expect("config lock should be available during NodeTester init");
+                if config.is_spv_mode() {
+                    None
+                } else {
+                    let url = config.get_block_fetch_url();
+                    (!url.is_empty()).then_some(url)
+                }
+            };
+
             let channel_size = 1_000_000;
 
             let peers = Arc::new(RwLock::new(Peers::default()));
@@ -273,6 +285,7 @@ pub mod test {
                         context.wallet_lock.clone(),
                         Arc::new(timer.clone().unwrap()),
                         sync_lite_block_fetch,
+                        block_fetch_url.clone(),
                     ))),
                     gatekeeper: Gatekeeper::default(),
                     congestion_check_timer: 0,

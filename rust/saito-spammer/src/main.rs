@@ -277,9 +277,12 @@ async fn run_routing_event_processor(
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
     let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(channel_size);
 
-    let sync_lite_block_fetch = {
+    let (sync_lite_block_fetch, block_fetch_url) = {
         let c = configs_lock.read().await;
-        c.is_spv_mode()
+        (
+            c.is_spv_mode(),
+            (!c.get_block_fetch_url().is_empty()).then_some(c.get_block_fetch_url()),
+        )
     };
     let fetch_dispatcher: FetchDispatcher = {
         let sender_to_io = sender_to_io_controller.clone();
@@ -331,6 +334,7 @@ async fn run_routing_event_processor(
             context.wallet_lock.clone(),
             Arc::new(timer.clone()),
             sync_lite_block_fetch,
+            block_fetch_url,
         ))),
         gatekeeper: Gatekeeper::default(),
         congestion_check_timer: 0,

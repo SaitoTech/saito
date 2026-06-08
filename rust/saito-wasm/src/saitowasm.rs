@@ -98,9 +98,15 @@ pub fn new(
         );
         panic!("cannot continue");
     }
+    let (sync_lite_block_fetch, block_fetch_url) = {
+        let config = configuration.blocking_read();
+        (
+            config.is_spv_mode(),
+            (!config.get_block_fetch_url().is_empty()).then_some(config.get_block_fetch_url()),
+        )
+    };
 
     let peers = Arc::new(RwLock::new(Peers::default()));
-    let sync_lite_block_fetch = configuration.blocking_read().is_spv_mode();
     let context = Context {
         blockchain_lock: Arc::new(RwLock::new(Blockchain::new(
             wallet.clone(),
@@ -162,6 +168,7 @@ pub fn new(
                 context.wallet_lock.clone(),
                 Arc::new(timer.clone()),
                 sync_lite_block_fetch,
+                block_fetch_url,
             ))),
             gatekeeper: Gatekeeper::default(),
             congestion_check_timer: 0,
