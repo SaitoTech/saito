@@ -12,7 +12,7 @@ class SaitoUser {
     this.data_disable = false; // prevent click to open user-menu
   }
 
-  updateUserline(userline) {
+  updateUserline(userline, title = '') {
     let qs = this.container + `> .saito-user-${this.publicKey} .saito-userline`;
     let elem = document.querySelector(qs);
     if (elem) {
@@ -21,6 +21,13 @@ class SaitoUser {
         elem.classList.remove('hidden');
       } else {
         elem.classList.add('hidden');
+        elem.removeAttribute('title');
+      }
+
+      if (title) {
+        elem.setAttribute('title', title);
+      } else {
+        elem.removeAttribute('title');
       }
     }
   }

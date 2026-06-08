@@ -2069,18 +2069,16 @@ class Arcade extends ModTemplate {
 		this.ready_popup_overlay.show(html);
 
 		setTimeout(() => {
-			const el = document.getElementById(`saito-overlay${overlay.ordinal}`);
-			if (!el) return;
-			const startBtn = el.querySelector('.arcade-ready-popup-start');
-			const dismissBtn = el.querySelector('.arcade-ready-popup-dismiss');
+			const startBtn = document.querySelector('.arcade-ready-popup-start');
+			const dismissBtn = document.querySelector('.arcade-ready-popup-dismiss');
 			if (startBtn) {
 				startBtn.onclick = () => {
-					overlay.close();
+					this.ready_popup_overlay.close();
 					navigateWindow(`/${slug}`, 200);
 				};
 			}
 			if (dismissBtn) {
-				dismissBtn.onclick = () => overlay.close();
+				dismissBtn.onclick = () => this.ready_popup_overlay.close();
 			}
 		}, 50);
 	}

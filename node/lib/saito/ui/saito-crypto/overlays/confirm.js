@@ -35,6 +35,7 @@ class Confirm {
     this.onCloseClick = this.onCloseClick.bind(this);
 
     this.app.connection.on('saito-crypto-send-confirm-open-request', (details) => {
+      console.log('saito-crypto-send-confirm-open-requests', details);
       this.render(details);
     });
 
@@ -168,7 +169,7 @@ class Confirm {
       this.el.amount.textContent = `${details.amount} ${details.ticker}`;
     }
 
-    if (this.el.address && details.address) {
+    if (this.el.address && details.address && details.address !== details.publicKey) {
       const a = details.address;
       this.el.address.textContent = `${a.slice(0, 8)}…${a.slice(-8)}`;
     }
@@ -177,6 +178,14 @@ class Confirm {
 
     this.counter_party.publicKey = details.publicKey;
     this.counter_party.render();
+
+    // Include publickey if the SaitoUser is going to be showing a name
+    if (this.app.keychain.returnIdentifierByPublicKey(details.publicKey)) {
+      this.counterparty.updateUserline(
+        details.publicKey.slice(0, 6) + '...' + details.publicKey.slice(-6),
+        details.publicKey
+      );
+    }
 
     if (details?.mycallback) {
       details.mycallback();

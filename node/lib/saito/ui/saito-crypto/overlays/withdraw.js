@@ -265,9 +265,8 @@ class Withdraw {
     }
 
     const addressEl = document.getElementById('withdraw-confirm-address');
-    if (addressEl) {
+    if (addressEl && address !== this.publicKey) {
       addressEl.textContent = address;
-      addressEl.setAttribute('title', address);
     }
 
     const feeEl = document.getElementById('withdraw-confirm-fee');
@@ -283,7 +282,8 @@ class Withdraw {
         this.counterparty.render();
         if (this.app.keychain.returnIdentifierByPublicKey(this.publicKey)) {
           this.counterparty.updateUserline(
-            this.publicKey.slice(0, 6) + '...' + this.publicKey.slice(-6)
+            this.publicKey.slice(0, 6) + '...' + this.publicKey.slice(-6),
+            this.publicKey
           );
         }
       } else {
