@@ -146,7 +146,6 @@
 }
 
 .arcade-cta-logo {
-	--saito-cta-logo-color: var(--saito-white, #fff);
 	--saito-cta-logo-mask: url('/saito/icons/saito-arcade-icon-outline-label-horizontal.svg');
 	width: min(42rem, 100%);
 	aspect-ratio: 381 / 134;
@@ -163,7 +162,6 @@
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: var(--saito-cta-logo-color);
 	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }
