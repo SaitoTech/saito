@@ -3,11 +3,13 @@ use std::fmt::{Display, Formatter};
 use std::io::{Error, ErrorKind};
 
 use crate::core::consensus::blockchain::Blockchain;
+use crate::core::consensus::scripting::Script;
 use log::{debug, error, trace, warn};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use primitive_types::U256;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
@@ -946,6 +948,29 @@ impl Transaction {
                 || slip.slip_type == SlipType::RouterOutput
                 || slip.slip_type == SlipType::BlockStake
             {
+                //
+                // if we have not found a p2sh slip yet, track our publickey
+                // as this may be an access_script
+                //
+                if !p2sh_idx.is_some() {
+                    p2sh_expected_hash = Some(slip.public_key);
+                }
+
+                //
+                // P2SH commitments use 0x00 || blake3(script) and are
+                // authorized separately through script execution.
+                // this will never be confused with a proper publickey
+                // as those are 0x02 and 0x03.
+                //
+                if slip.public_key[0] == 0x00 {
+                    if p2sh_expected_hash != slip.public_key {
+                        error!("transaction invalid: multiple P2SH inputs in wallet");
+                        return false;
+                    }
+                    i += 1;
+                    continue;
+                }
+
                 if let Some(existing_authorizer) = authorizer {
                     if existing_authorizer != slip.public_key {
                         error!("transaction invalid: attempts to spend fee-bearing slips from multiple users");
@@ -972,10 +997,108 @@ impl Transaction {
                     return false;
                 }
                 p2sh_idx = Some(i);
-                p2sh_expected_hash = Some(slip.public_key);
             }
 
             i += 1;
+        }
+
+        //
+        // P2SH validation.
+        //
+        // The preceding spend unit commits to a canonical access script
+        // through its publickey:
+        //
+        //     public_key[0]     = 0x00
+        //     public_key[1..33] = blake3(canonical_script)
+        //
+        // A trailing zero-value P2SH marker indicates that consensus
+        // should load tx.data, reveal the script, verify the commitment,
+        // merge witness information, and execute the script.
+        //
+        if p2sh_idx.is_some() {
+            let Some(expected_hash) = p2sh_expected_hash else {
+                error!("P2SH spend: missing commitment pubkey");
+                return false;
+            };
+
+            //
+            // tx.data must contain UTF-8 JSON.
+            //
+            let Ok(txmsg_text) = std::str::from_utf8(&self.data) else {
+                error!("P2SH spend: tx.data is not UTF-8");
+                return false;
+            };
+
+            let Ok(txmsg) = serde_json::from_str::<Value>(txmsg_text) else {
+                error!("P2SH spend: tx.data is not valid JSON");
+                return false;
+            };
+
+            //
+            // access_script is required.
+            //
+            let Some(access_script) = txmsg.get("access_script").and_then(|v| v.as_str()) else {
+                error!("P2SH spend: missing txmsg.access_script");
+                return false;
+            };
+
+            if access_script.is_empty() {
+                error!("P2SH spend: empty txmsg.access_script");
+                return false;
+            }
+
+            //
+            // Build script from JSON.
+            //
+            let script_json: Value = match serde_json::from_str(access_script) {
+                Ok(v) => v,
+                Err(_) => {
+                    error!("P2SH spend: access_script is not valid JSON");
+                    return false;
+                }
+            };
+
+            //
+            //
+            //
+            let mut script = Script::new();
+            script.json = script_json;
+
+            //
+            // Canonical script hash.
+            //
+            let script_hash_hex = script.hash();
+
+            //
+            // Commitment must be 0x00 || blake3(script).
+            //
+            if expected_hash[0] != 0x00 {
+                error!("P2SH spend: commitment missing 0x00 prefix");
+                return false;
+            }
+
+            let Ok(hash_bytes) = hex::decode(&script_hash_hex) else {
+                error!("P2SH spend: script hash is not valid hex");
+                return false;
+            };
+
+            if hash_bytes.len() != 32 {
+                error!("P2SH spend: script hash is not 32 bytes");
+                return false;
+            }
+
+            if expected_hash[1..33] != hash_bytes[..] {
+                error!("P2SH spend: script hash does not match commitment");
+                return false;
+            }
+
+            //
+            // Execute script.
+            //
+            if script.validate(Some(self), None, Some(blockchain)) != 1 {
+                error!("P2SH spend: access_script evaluation failed");
+                return false;
+            }
         }
 
         // Fee Transactions are validated in the block class. There can only
@@ -1145,20 +1268,18 @@ impl Transaction {
             // publickey of the sender. So we are extracting the right publickey
             // here, as a prerequisite to validating the signature...
             //
-            if let Some(hash_for_signature) = &self.hash_for_signature {
-                let sig: SaitoSignature = self.signature;
+            let sig: SaitoSignature = self.signature;
 
-                let public_key: SaitoPublicKey = match authorizer {
-                    Some(pk) => pk,
-                    None => {
-                        error!("transaction invalid: unable to determine authorizer");
-                        return false;
-                    }
+            if let Some(public_key) = authorizer {
+                //
+                // Ordinary transactions and mixed P2SH transactions
+                // must satisfy secp256k1 signature validation.
+                //
+                let Some(hash_for_signature) = &self.hash_for_signature else {
+                    error!("ERROR 757293: there is no hash for signature in a transaction");
+                    return false;
                 };
 
-                //
-                // we can now verify that the signature is valid...
-                //
                 if !verify_signature(hash_for_signature, &sig, &public_key) {
                     error!(
                         "tx verification failed : hash = {:?}, sig = {:?}, pub_key = {:?}",
@@ -1170,13 +1291,13 @@ impl Transaction {
                 }
             } else {
                 //
-                // we reach here if we have not already calculated the hash
-                // that is checked by the signature. while we could auto-gen
-                // it here, we choose to throw an error to raise visibility of
-                // unexpected behavior.
+                // Pure P2SH transactions have no ordinary signer.
+                // Their authorization is entirely script-based.
                 //
-                error!("ERROR 757293: there is no hash for signature in a transaction");
-                return false;
+                if p2sh_idx.is_none() {
+                    error!("transaction invalid: unable to determine authorizer");
+                    return false;
+                }
             }
 
             //
