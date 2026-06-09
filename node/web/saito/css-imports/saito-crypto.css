@@ -162,6 +162,10 @@
   white-space: nowrap;
 }
 
+.crypto-type-italic {
+  font-style: italic;
+}
+
 .refresh {
   position: absolute;
   right: 1rem;

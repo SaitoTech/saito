@@ -872,7 +872,7 @@ class Mixin extends ModTemplate {
       ]);
 
       console.log('sendedTx: ', sendedTx);
-      return { status: 200, message: sendedTx };
+      return { status: 200, message: sendedTx, pending: balance - amount };
     } catch (err) {
       return { status: 400, message: err };
     }
@@ -898,6 +898,14 @@ class Mixin extends ModTemplate {
       const chainFee = fees.find((f) => f.asset_id === chain.asset_id);
       const fee = assetFee ?? chainFee;
       console.log('fee', fee);
+
+      const balance = await client.utxo.safeAssetBalance({
+        members: [this.mixin.user_id],
+        threshold: 1,
+        asset: asset_id,
+        state: 'unspent'
+      });
+      console.log('balance: ', balance);
 
       // withdrawal with chain asset as fee
       if (fee.asset_id !== asset.asset_id) {
@@ -1064,7 +1072,7 @@ class Mixin extends ModTemplate {
           }
         ]);
         console.log('res: ', res);
-        return { status: 200, message: res };
+        return { status: 200, message: res, pending: balance - (amount + fee) };
       }
     } catch (err) {
       return { status: 400, message: err };

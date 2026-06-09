@@ -956,7 +956,9 @@ class SaitoHeader extends UIModTemplate {
             preferred_crypto.ticker,
             preferred_crypto.balance,
             ab,
-            pb
+            pb,
+            preferred_crypto.pending_balance,
+            preferred_crypto.last_balance
           );
 
           if (preferred_crypto.categories === 'NFT') {

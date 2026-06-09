@@ -116,10 +116,10 @@ class CryptoSelectAmount {
 				if (!this.mod.balances[this.ticker]) {
 					const cm = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
 					if (cm) {
-						await cm.getAvailableBalance();
+						let balance = await cm.getAvailableBalance();
 						this.mod.balances[this.ticker] = {
 							address: cm.formatAddress(),
-							balance: cm.returnBalance()
+							balance
 						};
 					} else {
 						this.mod.balances[this.ticker] = { address: '', balance: '0' };

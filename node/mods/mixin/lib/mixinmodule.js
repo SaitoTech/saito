@@ -99,6 +99,7 @@ class MixinModule extends CryptoModule {
 	// queries the latest balance
 	//
 	async fetchBalance() {
+		console.log('@@@ FetchBalance ' + this.ticker);
 		if (!this.address) {
 			console.info('Mixin Error: no address - terminating fetch balance');
 			return;
@@ -106,6 +107,10 @@ class MixinModule extends CryptoModule {
 
 		let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
 		if (balance !== false) {
+			if (balance == this.pending_balance) {
+				delete this.pending_balance;
+				delete this.last_balance;
+			}
 			if (this.balance != balance) {
 				this.balance = balance;
 				this.save();
@@ -125,6 +130,15 @@ class MixinModule extends CryptoModule {
 	async getPendingBalance() {
 		await this.fetchBalance();
 		let pending_balance = Number(this.balance);
+
+		if (this.pending_balance) {
+			if (pending_balance !== this.pending_balance) {
+				pending_balance = this.pending_balance;
+			} else {
+				delete this.pending_balance;
+				delete this.last_balance;
+			}
+		}
 
 		this.pending_deposits = await this.fetchPendingDeposits();
 
@@ -412,6 +426,7 @@ class MixinModule extends CryptoModule {
 				//   counter_party: { address: "...", publicKey: "..." }
 				// }
 				//
+
 				this.app.connection.emit('on-payment-sent', {
 					direction: obj.type,
 					amount: String(Math.abs(obj.amount)),
@@ -542,6 +557,11 @@ class MixinModule extends CryptoModule {
 		}
 
 		if (res.status == 200) {
+			// And what our new balance should be
+			this.pending_balance = Number(res.pending.toFixed(8));
+			if (!this.last_balance) {
+				this.last_balance = this.balance;
+			}
 			return unique_hash;
 		} else {
 			throw new Error('MixinModule: ' + res.message);

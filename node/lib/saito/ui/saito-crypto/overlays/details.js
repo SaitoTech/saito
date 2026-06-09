@@ -26,21 +26,24 @@ class Details {
       }
     });
 
-    app.connection.on('on-transaction-pending', (obj = null) => {
+    app.connection.on('on-transaction-pending', async (obj = null) => {
       if (this.overlay.visible) {
-        this.updateBalances();
+        await this.updateBalances();
+        this.formatHistory();
       }
     });
 
-    app.connection.on('on-payment-sent', (obj = null) => {
+    app.connection.on('on-payment-sent', async (obj = null) => {
       if (this.overlay.visible) {
-        this.updateBalances();
+        await this.updateBalances();
+        this.formatHistory();
       }
     });
 
-    app.connection.on('on-payment-received', (obj = null) => {
+    app.connection.on('on-payment-received', async (obj = null) => {
       if (this.overlay.visible) {
-        this.updateBalances();
+        await this.updateBalances();
+        this.formatHistory();
       }
     });
   }
@@ -152,6 +155,20 @@ class Details {
     if (this.mod.history?.length > 0) {
       console.log('Formatting HISTORY: ', this.mod.history);
 
+      // insert a filler line for a pending balance change...
+      if (this.mod.pending_balance) {
+        let diff = Number(this.mod.pending_balance) - Number(this.mod.last_balance);
+        history_html += `<div class="crypto-timestamp"></div>
+                          <div class="crypto-type-italic">Pending</div>
+                          <div class="crypto-amount">${this.app.browser.formatDecimals(diff)}</div>
+                          <div class="crypto-amount">${this.app.browser.formatDecimals(this.mod.pending_balance)}</div>
+                          <div></div>
+                          <div class="saito-only"></div>`;
+
+        running_balance -= diff;
+        running_balance = Number(running_balance.toFixed(8));
+      }
+
       // Go backwards in time
       for (let i = this.mod.history.length - 1; i >= 0; i--) {
         let h = this.mod.history[i];
@@ -191,10 +208,10 @@ class Details {
 
         history_html += inner_html;
 
-        running_balance -= Number(h.amount);
         //
         // Round off to correct any crazy float operations bullshit
         //
+        running_balance -= Number(h.amount);
         running_balance = Number(running_balance.toFixed(8));
       }
     }

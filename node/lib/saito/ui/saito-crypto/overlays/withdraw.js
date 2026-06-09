@@ -257,7 +257,6 @@ class Withdraw {
     this.hideTxRow();
 
     const amount = Number(document.getElementById('withdraw-input-amount')?.value);
-    const address = document.getElementById('withdraw-input-address')?.value || '';
 
     const amountEl = document.getElementById('withdraw-confirm-amount');
     if (amountEl) {
@@ -265,8 +264,12 @@ class Withdraw {
     }
 
     const addressEl = document.getElementById('withdraw-confirm-address');
-    if (addressEl && address !== this.publicKey) {
-      addressEl.textContent = address;
+    if (addressEl && this.address !== this.publicKey) {
+      let a = this.address;
+      if (a.includes('|')) {
+        a = a.split('|')[0];
+      }
+      addressEl.textContent = a;
     }
 
     const feeEl = document.getElementById('withdraw-confirm-fee');

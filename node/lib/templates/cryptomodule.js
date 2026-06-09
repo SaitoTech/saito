@@ -76,6 +76,9 @@ class CryptoModule extends ModTemplate {
     this.options.isActivated = false;
   }
 
+  // These are overwritten by the individual crypto modules
+  // we should define these as mandatory functions and throw an
+  // error if a module is inheriting without defining.
   async getAvailableBalance() {
     return this.balance;
   }
@@ -282,7 +285,7 @@ class CryptoModule extends ModTemplate {
    * @return {String} cached balance
    */
   returnBalance() {
-    return this.balance;
+    return this.pending_balance || this.balance || '0';
   }
 
   /**
