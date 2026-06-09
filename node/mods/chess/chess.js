@@ -54,7 +54,7 @@ class Chessgame extends GameTemplate {
 		}
 
 		await this.injectGameHTML(htmlTemplate());
-		document.documentElement.setAttribute('data-theme', 'dark');
+		document.documentElement.setAttribute('data-theme', 'lite');
 
 		//this.sizer.render();
 		//this.sizer.attachEvents('#board');

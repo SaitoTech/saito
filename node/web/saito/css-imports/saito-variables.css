@@ -65,6 +65,7 @@ font imports
 
 :root {
   --saito-white: #fff;
+  --saito-cta-logo: var(--saito-white);
   --saito-gray-050: #f2f2f2;
   --saito-gray-100: #e4e4e4;
   --saito-gray-150: #d7d7d7;

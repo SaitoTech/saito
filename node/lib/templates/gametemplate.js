@@ -86,6 +86,7 @@ class GameTemplate extends ModTemplate {
     super(app);
 
     this.name = 'Game';
+    this.is_game_template = true;
     this.game_length = 30; //Estimated number of minutes to complete a game
     this.game = {};
     this.moves = [];
@@ -395,7 +396,9 @@ class GameTemplate extends ModTemplate {
 
   async render(app) {
     try {
+      document.documentElement.setAttribute('data-theme', 'lite');
       await super.render(app);
+      document.documentElement.setAttribute('data-theme', 'lite');
       app.connection.emit('set-relay-status-to-busy', {});
 
       if (this.header) {
@@ -578,7 +581,7 @@ class GameTemplate extends ModTemplate {
       });
       await this.initializeGameQueue(this.game.id);
     } else {
-      document.documentElement.setAttribute('data-theme', 'arcade');
+      document.documentElement.setAttribute('data-theme', 'lite');
 
       let header = new SaitoHeader(this.app, this);
       await header.initialize(this.app);

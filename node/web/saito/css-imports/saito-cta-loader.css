@@ -78,6 +78,14 @@ body:has(.saito-cta) .pace {
   display: none;
 }
 
+.saito-cta-logo {
+  color: var(--saito-cta-logo, var(--saito-white, #fff));
+}
+
+.saito-cta-logo::after {
+  background: currentColor;
+}
+
 body:has(.saito-cta)::before,
 body.saito-cta-loader-active::before {
   opacity: 0 !important;

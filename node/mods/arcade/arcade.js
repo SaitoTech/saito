@@ -2002,8 +2002,8 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 		const name = game_details?.name || 'Game';
 		const html = `
   <div class="arcade-ready-popup">
-    <div class="arcade-ready-popup-title">Your game is ready!</div>
     <div class="arcade-ready-popup-name">${name}</div>
+    <div class="arcade-ready-popup-title">Your game is ready!</div>
     <div class="arcade-ready-popup-actions">
       <button class="saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
       <button class="saito-button-secondary arcade-ready-popup-dismiss">Dismiss</button>
