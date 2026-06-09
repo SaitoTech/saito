@@ -15,7 +15,11 @@ class GameBoardSizer {
     this.app = app;
     this.mod = mod;
     this.maxZoom = 200;
+    this.zoomStep = 5;
     this.container = '.hamburger-container';
+    this.boardWheelHandler = null;
+    this.boardWheelTarget = null;
+    this.saveScalePreferenceTimeout = null;
   }
 
   /**
@@ -86,6 +90,7 @@ class GameBoardSizer {
       let screenRatio = Math.min(window.innerWidth / boardWidth, window.innerHeight / boardHeight);
 
       input.value = Math.floor(100 * screenRatio);
+      sizer_self.updateSliderProgress(input);
       targetObject.style.transformOrigin = 'top left';
       targetObject.style.transform = `scale(${input.value / 100})`;
       targetObject.style.left = '';
@@ -126,19 +131,68 @@ class GameBoardSizer {
         sizer_self.mod.deleteGamePreference(sizer_self.mod.returnSlug() + '-board-scale');
         console.error(err);
       }
+      sizer_self.updateSliderProgress(boardScaler);
 
-      boardScaler.addEventListener('change', () => {
+      boardScaler.oninput = () => {
+        sizer_self.scaleBoard(targetObject, false);
+      };
+      boardScaler.onchange = () => {
         sizer_self.scaleBoard(targetObject);
+      };
+
+      if (sizer_self.boardWheelTarget && sizer_self.boardWheelHandler) {
+        sizer_self.boardWheelTarget.removeEventListener('wheel', sizer_self.boardWheelHandler);
+      }
+      sizer_self.boardWheelTarget = targetObject;
+      sizer_self.boardWheelHandler = (event) => {
+        if (event.target !== targetObject) {
+          return;
+        }
+        if (event.deltaY === 0) {
+          return;
+        }
+
+        let scrollDirection = event.deltaY < 0 ? 1 : -1;
+        let minZoom = parseInt(boardScaler.min, 10) || 2;
+        let maxZoom = parseInt(boardScaler.max, 10) || sizer_self.maxZoom;
+        let currentZoom = parseInt(boardScaler.value, 10);
+        let nextZoom = currentZoom + scrollDirection * sizer_self.zoomStep;
+
+        nextZoom = Math.max(minZoom, Math.min(maxZoom, nextZoom));
+        if (nextZoom === currentZoom) {
+          return;
+        }
+
+        event.preventDefault();
+        boardScaler.value = nextZoom;
+        sizer_self.scaleBoard(targetObject, false);
+        sizer_self.saveScalePreference(boardScaler.value, 250);
+      };
+      targetObject.addEventListener('wheel', sizer_self.boardWheelHandler, { passive: false });
+
+      document.querySelectorAll('#game_board_sizer .game-board-sizer-step').forEach((button) => {
+        button.onclick = () => {
+          let zoomDirection = parseInt(button.dataset.boardZoom, 10);
+          let minZoom = parseInt(boardScaler.min, 10) || 2;
+          let maxZoom = parseInt(boardScaler.max, 10) || sizer_self.maxZoom;
+          let currentZoom = parseInt(boardScaler.value, 10);
+          let nextZoom = currentZoom + zoomDirection * sizer_self.zoomStep;
+
+          nextZoom = Math.max(minZoom, Math.min(maxZoom, nextZoom));
+          if (nextZoom === currentZoom) {
+            return;
+          }
+
+          boardScaler.value = nextZoom;
+          sizer_self.scaleBoard(targetObject);
+        };
       });
     }
 
-    $('#game_board_sizer i').off();
-    $('#game_board_sizer i').on('click', function () {
+    $('#game_board_sizer .game-board-sizer-center').off();
+    $('#game_board_sizer .game-board-sizer-center').on('click', function () {
       centerBoard(document.querySelector('#game_board_sizer input'));
-      sizer_self.mod.saveGamePreference(
-        sizer_self.mod.returnSlug() + '-board-scale',
-        document.querySelector('#game_board_sizer input').value
-      );
+      sizer_self.saveScalePreference(document.querySelector('#game_board_sizer input').value);
     });
 
     // and adjust positioning
@@ -167,14 +221,33 @@ class GameBoardSizer {
    * @param targetObject - by default, the "#gameboard" DOM object
    *
    */
-  scaleBoard(targetObject) {
-    targetObject.style.transform = `scale(${
-      document.querySelector('#game_board_sizer input').value / 100
-    })`;
-    this.mod.saveGamePreference(
-      this.mod.returnSlug() + '-board-scale',
-      document.querySelector('#game_board_sizer input').value
-    );
+  scaleBoard(targetObject, savePreference = true) {
+    let boardScaler = document.querySelector('#game_board_sizer input');
+    this.updateSliderProgress(boardScaler);
+    targetObject.style.transform = `scale(${boardScaler.value / 100})`;
+    if (savePreference) {
+      this.saveScalePreference(boardScaler.value);
+    }
+  }
+
+  updateSliderProgress(input) {
+    if (!input) {
+      return;
+    }
+
+    let minZoom = parseFloat(input.min) || 0;
+    let maxZoom = parseFloat(input.max) || this.maxZoom;
+    let currentZoom = parseFloat(input.value) || minZoom;
+    let progress = ((currentZoom - minZoom) / (maxZoom - minZoom)) * 100;
+
+    input.style.setProperty('--board-scale-progress', `${Math.max(0, Math.min(100, progress))}%`);
+  }
+
+  saveScalePreference(value, delay = 0) {
+    clearTimeout(this.saveScalePreferenceTimeout);
+    this.saveScalePreferenceTimeout = setTimeout(() => {
+      this.mod.saveGamePreference(this.mod.returnSlug() + '-board-scale', value);
+    }, delay);
   }
 }
 
