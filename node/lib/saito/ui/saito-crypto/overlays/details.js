@@ -136,7 +136,7 @@ class Details {
             <div class="saitox-header-item">To/From</div>
             <div class="saitox-header-item saito-only">Memo</div>
     `;
-    let running_balance = Number(this.mod.returnBalance());
+    let running_balance = Number(this.mod.returnDisplayBalance());
 
     if (this.ticker == 'SAITO') {
       document.documentElement.style.setProperty('--saitox-column-ct', 6);
@@ -156,12 +156,12 @@ class Details {
       console.log('Formatting HISTORY: ', this.mod.history);
 
       // insert a filler line for a pending balance change...
-      if (this.mod.pending_balance) {
-        let diff = Number(this.mod.pending_balance) - Number(this.mod.last_balance);
+      if (this.mod.last_balance) {
+        let diff = running_balance - Number(this.mod.last_balance);
         history_html += `<div class="crypto-timestamp"></div>
-                          <div class="crypto-type-italic">Pending</div>
+                          <div class="crypto-type-italic">pending</div>
                           <div class="crypto-amount">${this.app.browser.formatDecimals(diff)}</div>
-                          <div class="crypto-amount">${this.app.browser.formatDecimals(this.mod.pending_balance)}</div>
+                          <div class="crypto-amount">${this.app.browser.formatDecimals(running_balance)}</div>
                           <div></div>
                           <div class="saito-only"></div>`;
 
@@ -260,7 +260,6 @@ class Details {
 
     if (document.getElementById('send-crypto')) {
       document.getElementById('send-crypto').onclick = (e) => {
-        console.log('Click to send:', this.mod.balance, this.mod.returnBalance());
         if (Number(this.mod.balance) > 0) {
           this.app.connection.emit('saito-crypto-withdraw-render-request', { ticker: this.ticker });
         }

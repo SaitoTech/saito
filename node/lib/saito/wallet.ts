@@ -770,7 +770,7 @@ export default class Wallet extends SaitoWallet {
         return 1;
       }
 
-      return Number(b.returnBalance()) - Number(a.returnBalance());
+      return Number(b.returnDisplayBalance()) - Number(a.returnDisplayBalance());
     });
 
     if (filter) {
@@ -915,8 +915,7 @@ export default class Wallet extends SaitoWallet {
 
   async returnPreferredCryptoBalance() {
     const cryptomod = this.returnPreferredCrypto();
-    await cryptomod.fetchBalance();
-    return cryptomod.returnBalance();
+    return cryptomod.getAvailableBalance();
   }
 
   /**
@@ -1388,8 +1387,7 @@ export default class Wallet extends SaitoWallet {
           if (!crypto.isActivated()) {
             continue;
           }
-          let bal = crypto.returnBalance();
-          if (parseFloat(bal) > 0) {
+          if (Number(crypto.returnDisplayBalance()) > 0) {
             risky = true;
             break;
           }

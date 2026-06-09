@@ -256,10 +256,10 @@ class Mixin extends ModTemplate {
         await crypto_module.installModule(mixin_self.app);
 
         if (mixin_self.account_created) {
-          if (crypto_module.isActivated()) {
-            await crypto_module.fetchBalance();
-          } else if (crypto_module.address) {
-            crypto_module.activate();
+          // We don't want to activate every crypto in the wallet, only
+          // the ones that users have already manually activated
+          if (crypto_module.isActivated() || crypto_module.address) {
+            await crypto_module.activate();
           }
         }
       }, 250);

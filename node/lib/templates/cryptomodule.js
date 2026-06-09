@@ -56,7 +56,7 @@ class CryptoModule extends ModTemplate {
     //
     // for Saito and NFT wallets, we can check the balance of the wallet directly by
     // querying Rust, but in other modules, we may have a remote API serving wallet
-    // information, in which case we want returnBalance() to return a cached version
+    // information, in which case we want returnDisplayBalance() to return a cached version
     // and not constantly his the remote API.
     //
     this.balance = '0.0';
@@ -284,7 +284,7 @@ class CryptoModule extends ModTemplate {
    * Synchronous getter of crypto balance
    * @return {String} cached balance
    */
-  returnBalance() {
+  returnDisplayBalance() {
     return this.pending_balance || this.balance || '0';
   }
 

@@ -26,6 +26,10 @@ class Receive {
     this.el = null;
     this.timeout = null;
     this.countdownTimer = null;
+    this.expectHash = null;
+    this.expectAmount = null;
+    this.payer = null;
+    this.earlyPayments = [];
 
     this.onCloseClick = this.onCloseClick.bind(this);
 
@@ -79,14 +83,51 @@ class Receive {
     this.el = root ? this.bindElements(root) : null;
   }
 
+  earlyPaymentKey(obj = {}) {
+    return `${obj.sender || obj.sender_publickey || ''}|${obj.amount ?? ''}|${obj.ticker || ''}`;
+  }
+
+  bufferEarlyPayment(obj = {}) {
+    const token = String(obj.sender || obj.sender_publickey || '');
+    if (!token) {
+      return;
+    }
+    const key = this.earlyPaymentKey(obj);
+    if (!this.earlyPayments.some((o) => this.earlyPaymentKey(o) === key)) {
+      this.earlyPayments.push({ ...obj });
+      if (this.earlyPayments.length > 8) {
+        this.earlyPayments.shift();
+      }
+    }
+  }
+
+  replayEarlyPayments() {
+    if (!this.earlyPayments.length) {
+      return;
+    }
+    const pending = this.earlyPayments.splice(0);
+    for (const obj of pending) {
+      if (this.processExpectedPayment(obj)) {
+        return;
+      }
+    }
+    this.earlyPayments.push(...pending);
+  }
+
   processExpectedPayment(obj = {}) {
-    if (!this.mod?.game) return;
+    if (!this.mod?.game) {
+      return false;
+    }
 
     const g = this.mod.game;
     const ticker = g.crypto;
     const token = String(obj.sender || obj.sender_publickey || '');
-    if (!token) return;
-    if (obj.ticker && ticker && obj.ticker !== ticker) return;
+    if (!token) {
+      return false;
+    }
+    if (obj.ticker && ticker && obj.ticker !== ticker) {
+      return false;
+    }
 
     let from = null;
     for (let i = 0; i < g.players.length; i++) {
@@ -96,32 +137,64 @@ class Receive {
         break;
       }
     }
-    if (!from || (this.payer && from !== this.payer)) return;
+    if (!from || (this.payer && from !== this.payer)) {
+      return false;
+    }
 
-    let amt = this.app.crypto.convertFloatToSmartPrecision(
-      parseFloat(this.expectAmount ?? obj.amount ?? obj.nft_amount ?? 0)
-    );
-    if (!amt && amt !== 0) return;
+    const amountSource = this.expectAmount ?? obj.amount ?? obj.nft_amount ?? 0;
+    let amt = this.app.crypto.convertFloatToSmartPrecision(parseFloat(amountSource));
+    if (!amt && amt !== 0) {
+      return false;
+    }
 
-    const amtH =
-      ticker === 'SAITO' ? this.app.wallet.convertSaitoToNolan(amt).toString() : String(amt);
+    let amtH;
+    if (ticker === 'SAITO') {
+      if (this.expectAmount != null) {
+        amtH = this.app.wallet
+          .convertSaitoToNolan(
+            this.app.crypto.convertFloatToSmartPrecision(parseFloat(this.expectAmount))
+          )
+          .toString();
+      } else {
+        const raw = parseFloat(amountSource);
+        // WASM payment events report SAITO amounts in nolan; game queue uses SAITO floats.
+        if (Number.isFinite(raw) && raw >= this.app.wallet.nolan_per_saito) {
+          amtH = String(Math.round(raw));
+        } else {
+          amtH = this.app.wallet.convertSaitoToNolan(amt).toString();
+        }
+      }
+    } else {
+      amtH = String(amt);
+    }
 
     const hash = this.app.crypto.hash(
       Buffer.from(from + this.mod.publicKey + amtH + g.dice + ticker, 'utf-8')
     );
 
-    if (this.expectHash && this.expectHash !== hash) return;
+    if (this.expectHash && this.expectHash !== hash) {
+      return false;
+    }
 
     const inbound = this.app.options?.crypto?.[ticker]?.transfers_inbound;
-    if (!inbound?.length) return;
+    if (!inbound?.length) {
+      this.bufferEarlyPayment(obj);
+      return false;
+    }
 
     let i = inbound.indexOf(hash);
     if (i < 0 && this.expectHash) i = inbound.indexOf(this.expectHash);
-    if (i < 0) return;
+    if (i < 0) {
+      if (!this.expectHash || hash === this.expectHash) {
+        this.bufferEarlyPayment(obj);
+      }
+      return false;
+    }
 
     inbound.splice(i, 1);
     this.app.wallet.returnCryptoModuleByTicker(ticker)?.save?.();
     this.onReceivePayment(obj);
+    return true;
   }
 
   applyRootLayout(details) {
@@ -137,10 +210,18 @@ class Receive {
     root.classList.toggle('crypto-receive-overlay--show-ignore', showGameIgnore);
   }
 
+  clearExpectedPayment() {
+    this.expectHash = null;
+    this.expectAmount = null;
+    this.payer = null;
+    this.earlyPayments = [];
+  }
+
   onCloseClick() {
     if (this.el?.ignoreCheckbox?.checked) {
       this.mod.saveGamePreference('crypto_transfers_inbound_trusted', 1);
     }
+    this.clearExpectedPayment();
     this.overlay.close();
   }
 
@@ -205,6 +286,9 @@ class Receive {
     }
 
     this.clearTimers();
+    this.expectHash = details.hash || null;
+    this.expectAmount = details.amount ?? null;
+    this.payer = details.publicKey || null;
 
     this.overlay.show(ReceiveTemplate(), () => {
       if (details.mycallback) {
@@ -257,6 +341,9 @@ class Receive {
     if (details?.trusted) {
       this.startAutoCloseCountdown();
     }
+
+    // Retry real payment events that arrived before receivePayment registered the hash.
+    this.replayEarlyPayments();
   }
 
   onReceivePayment() {
@@ -275,6 +362,8 @@ class Receive {
     if (this.timeout) {
       this.startAutoCloseCountdown();
     }
+
+    this.clearExpectedPayment();
   }
 }
 

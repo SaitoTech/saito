@@ -393,10 +393,6 @@ class NFTCryptoModule extends CryptoModule {
     return this.balance;
   }
 
-  returnBalance() {
-    return this.balance || '0';
-  }
-
   returnAddress() {
     // NFTs are sent to public keys, not external addresses
     return this.app.wallet.publicKey;

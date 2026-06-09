@@ -95,7 +95,7 @@ class Deposit {
     try {
       let cryptomod = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
 
-      this.balance = Number(await cryptomod.getAvailableBalance());
+      this.balance = Number(await cryptomod.fetchBalance());
 
       if (document.querySelector(`#saito-deposit-form .balance-amount`)) {
         document.querySelector(`#saito-deposit-form .balance-amount`).innerHTML =
@@ -116,15 +116,17 @@ class Deposit {
     }
   }
 
-  pollPendingDeposit() {
+  async pollPendingDeposit() {
     this.overlay.blockClose();
     const cryptomod = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
-    let new_balance = Number(cryptomod.returnBalance());
+
+    let new_balance = Number(await cryptomod.getAvailableBalance());
 
     console.log(
-      'Crypto Deposit: poll pending deposit...., current/initial balance: ',
+      'Crypto Deposit: poll pending deposit...., current/initial/desired balance: ',
       new_balance,
-      this.balance
+      this.balance,
+      this.desired_amount
     );
 
     // Short circuit before starting the interval
@@ -140,9 +142,9 @@ class Deposit {
 
     let confs = cryptomod.confirmations;
     let ct = 0;
-    let interval = setInterval(() => {
-      cryptomod.fetchBalance();
-      cryptomod.fetchPendingDeposits((res) => {
+    let interval = setInterval(async () => {
+      await cryptomod.fetchBalance();
+      await cryptomod.fetchPendingDeposits((res) => {
         if (res.length > 0) {
           let pending = res.pop();
           ct = pending.confirmations;
@@ -167,7 +169,7 @@ class Deposit {
         document.querySelector('.saito-crypto-deposit-content').innerHTML = html;
       }
 
-      new_balance = Number(cryptomod.returnBalance());
+      new_balance = Number(cryptomod.balance);
 
       console.log('Crypto Deposit: poll -- balance -- ', new_balance, this.balance);
 

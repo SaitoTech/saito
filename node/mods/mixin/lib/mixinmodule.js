@@ -99,21 +99,30 @@ class MixinModule extends CryptoModule {
 	// queries the latest balance
 	//
 	async fetchBalance() {
-		console.log('@@@ FetchBalance ' + this.ticker);
 		if (!this.address) {
 			console.info('Mixin Error: no address - terminating fetch balance');
 			return;
 		}
 
-		let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
-		if (balance !== false) {
-			if (balance == this.pending_balance) {
-				delete this.pending_balance;
-				delete this.last_balance;
-			}
-			if (this.balance != balance) {
-				this.balance = balance;
-				this.save();
+		let ts = Date.now();
+		//
+		// We are adding some throttling here because this was getting called > 10 times
+		// just on page load. The polling / checkForRecentTransactions will clear the flag
+		// if there is any activity that would update things
+		//
+		if (!this.last_balance_fetch || ts - this.last_balance_fetch > 10000) {
+			console.log('@@@ FetchBalance ' + this.ticker);
+			this.last_balance_fetch = ts;
+
+			let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
+			if (balance !== false) {
+				if (balance == this.pending_balance) {
+					delete this.pending_balance;
+				}
+				if (this.balance != balance) {
+					this.balance = balance;
+					this.save();
+				}
 			}
 		}
 
@@ -128,18 +137,16 @@ class MixinModule extends CryptoModule {
 	// queries the latest pending balance
 	//
 	async getPendingBalance() {
-		await this.fetchBalance();
-		let pending_balance = Number(this.balance);
+		let pending_balance = Number(await this.getAvailableBalance());
 
+		// Did we cache a pending balance because we just sent some tokens and cannot trust the safeUTXOBalance?
 		if (this.pending_balance) {
 			if (pending_balance !== this.pending_balance) {
 				pending_balance = this.pending_balance;
-			} else {
-				delete this.pending_balance;
-				delete this.last_balance;
 			}
 		}
 
+		// Do we have incoming deposits from outside the platform?
 		this.pending_deposits = await this.fetchPendingDeposits();
 
 		for (let pd of this.pending_deposits) {
@@ -148,7 +155,7 @@ class MixinModule extends CryptoModule {
 			}
 		}
 
-		return pending_balance.toString() || '0.0';
+		return pending_balance.toString() || '0';
 	}
 
 	/*
@@ -285,6 +292,8 @@ class MixinModule extends CryptoModule {
 			return;
 		}
 
+		console.log('@@@ checkForRecentTransactions -- ' + this.ticker);
+
 		let fetched_updates = [];
 
 		if (!this.asset_id) {
@@ -296,6 +305,13 @@ class MixinModule extends CryptoModule {
 				resolve(d === false || d == null ? [] : d);
 			});
 		});
+
+		if (snapshots.length > 0) {
+			// Make sure we can fetchBalance to reflect updates from API point
+			delete this.last_balance_fetch;
+			// Clear out pending data for UI refresh
+			delete this.last_balance;
+		}
 
 		for (let snap of snapshots) {
 			//

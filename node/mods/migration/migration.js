@@ -427,8 +427,9 @@ class Migration extends ModTemplate {
 
       this.can_auto = true;
 
+      let new_balance = Number(await this.ercMod.getAvailableBalance());
+
       if (txmsg.data?.go) {
-        let new_balance = Number(this.ercMod.returnBalance());
         if (this.local_dev) {
           new_balance = Math.round(10000000000 * Math.random());
           new_balance = new_balance / 20000; // 20000  --> 500k max
@@ -437,7 +438,7 @@ class Migration extends ModTemplate {
         this.main.processDepositedSaito(new_balance);
       } else {
         // We are already sitting on some ERC20 wrapped SAITO
-        this.balance = Number(this.ercMod.returnBalance());
+        this.balance = new_balance;
         this.main.render();
       }
     }
