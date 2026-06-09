@@ -48,15 +48,8 @@ html[data-theme='lite'] {
   --saito-header-background: var(--dreamscape);
   --saito-menu-icon-color: var(--saito-black);
   --saito-menu-icon-hover-color: var(--saito-black);
-}
-
-html[data-theme='lite'] .redsquare-splash-logo,
-html[data-theme='lite'] .chat-splash-logo,
-html[data-theme='lite'] .stun-talk-logo,
-html[data-theme='lite'] .stack-cta-logo,
-html[data-theme='lite'] .limbo-splash-logo,
-html[data-theme='lite'] .arcade-cta-logo {
-  --saito-cta-logo-color: var(--saito-primary);
+  --saito-primary-text: #222;
+  --saito-cta-logo: var(--saito-primary);
 }
 
 html[data-theme='lite'] .saito-header-menu-section .module-menu > ul > li .saito-module-menu-icon {

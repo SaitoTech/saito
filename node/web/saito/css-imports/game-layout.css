@@ -141,6 +141,10 @@ div.h3 {
   }
 }
 
+.logobox {
+    color: #222;
+}
+
 .message_box {
   background-image: url(/saito/img/arcade/your_move.png);
   background-size: cover;

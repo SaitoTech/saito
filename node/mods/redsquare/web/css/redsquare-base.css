@@ -27,7 +27,6 @@
 }
 
 .redsquare-splash-logo {
-  --saito-cta-logo-color: var(--saito-white, #fff);
   --saito-cta-logo-mask: url('/saito/icons/saito-redsquare-icon-outline-label-horizontal.svg');
   display: block;
   position: relative;
@@ -45,7 +44,6 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--saito-cta-logo-color);
   -webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
   mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }

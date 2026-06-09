@@ -2044,20 +2044,14 @@ class Arcade extends ModTemplate {
 		const image = game_mod?.respondTo?.('arcade-games')?.image || '';
 		const headerImageStyle = image ? ` style="background-image: url('${image}')"` : '';
 		const html = `
-					  <div class="arcade-lounge arcade-lounge--ready-popup">
-					    <div class="arcade-lounge-header">
-					      <div class="arcade-lounge-header-image"${headerImageStyle}></div>
-					      <div class="arcade-lounge-header-title">${name}</div>
-					      <div class="arcade-lounge-header-desc">Game Ready</div>
-					    </div>
-					    <div class="arcade-lounge-body">
-					      <p class="arcade-lounge-message">Your table is set. Start when you are ready.</p>
-					    </div>
-					    <div class="saito-button-row auto-size">
-					      <button type="button" class="fat saito-button-secondary arcade-ready-popup-dismiss">Later</button>
-					      <button type="button" class="fat saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
-					    </div>
-					  </div>`;
+  <div class="arcade-ready-popup">
+    <div class="arcade-ready-popup-name">${name}</div>
+    <div class="arcade-ready-popup-title">Your game is ready!</div>
+    <div class="arcade-ready-popup-actions">
+      <button class="saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
+      <button class="saito-button-secondary arcade-ready-popup-dismiss">Dismiss</button>
+    </div>
+  </div>`;
 		this.ready_popup_overlay.show(html);
 
 		setTimeout(() => {

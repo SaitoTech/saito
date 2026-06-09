@@ -20,7 +20,7 @@ module.exports = (app, mod) => {
           </div>
         </div>
         <div class="stack-cta-content">
-          <div class="stack-cta-logo" role="img" aria-label="Saito Stack"></div>
+          <div class="saito-cta-logo stack-cta-logo" role="img" aria-label="Saito Stack"></div>
           <div class="stack-cta-subtitle">PUBLISH WITHOUT PUBLISHERS</div>
           <h2 class="stack-cta-title">Publish. Monetize. Own.</h2>
           <p class="stack-cta-description">

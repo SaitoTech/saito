@@ -2576,16 +2576,23 @@ class Browser {
   }
 
   switchTheme(theme) {
+    let mod_obj = this.app.modules.returnActiveModule();
+    let force_lite_for_game =
+      mod_obj?.is_game_template === true ||
+      document.documentElement.classList.contains('game');
+
+    if (force_lite_for_game) {
+      theme = 'lite';
+    }
+
     document.documentElement.setAttribute('data-theme', theme);
 
     if (this.app.BROWSER == 1) {
-      let mod_obj = this.app.modules.returnActiveModule();
-
       if (!this.app.options.theme) {
         this.app.options.theme = {};
       }
 
-      if (mod_obj != null) {
+      if (mod_obj != null && !force_lite_for_game) {
         if (mod_obj.slug != null) {
           this.app.options.theme[mod_obj.slug] = theme;
           this.app.storage.saveOptions();
