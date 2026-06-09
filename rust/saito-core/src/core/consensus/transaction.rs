@@ -873,7 +873,6 @@ impl Transaction {
         // a single fee transaction per block, we do not need to do further work to
         // validate them here.
         //
-
         if self.from.len() > u8::MAX as usize {
             error!("ERROR: transaction has too many inputs");
             return false;
@@ -883,6 +882,9 @@ impl Transaction {
             return false;
         }
 
+        //
+        // refuse transactions with duplicate inputs
+        //
         if self
             .from
             .iter()
@@ -893,6 +895,87 @@ impl Transaction {
         {
             error!("ERROR: transaction : {} has duplicate inputs", self);
             return false;
+        }
+
+        //
+        // Determine the authorization structure of this transaction.
+        //
+        // All positive-value spend units in signed transactions must be
+        // authorized exactly once. Ordinary "NORMAL" slips are authorized
+        // if they have the same public key that signed the transaction, while
+        // P2SH inputs will have the script_hash as their publickey and will
+        // be followed by a zero-value P2SH hash that indicates the preceeding
+        // Normal slip is actually a P2SH access hash.
+        //
+        // This check prevents one user from spending another user's
+        // inputs while also identifying any P2SH spend paths that require
+        // loading tx.data and evaluating unlocking scripts.
+        //
+        let mut authorizer: Option<SaitoPublicKey> = None;
+        let mut p2sh_idx: Option<usize> = None;
+        let mut p2sh_expected_hash: Option<SaitoPublicKey> = None;
+
+        let mut i = 0;
+        while i < self.from.len() {
+            let slip = &self.from[i];
+
+            //
+            // invalid if P2SH goes first
+            //
+            if slip.slip_type == SlipType::P2SH && i == 0 {
+                error!("transaction invalid: P2SH slip found at input 0");
+                return false;
+            }
+
+            //
+            // skip past Bound slips, where publickey is not authorizer
+            //
+            if slip.slip_type == SlipType::Bound
+                || (slip.slip_type != SlipType::P2SH && slip.amount == 0)
+            {
+                i += 1;
+                continue;
+            }
+
+            //
+            // publickey is authorizer for normal and ATR slips
+            //
+            if slip.slip_type == SlipType::Normal
+                || slip.slip_type == SlipType::ATR
+                || slip.slip_type == SlipType::MinerOutput
+                || slip.slip_type == SlipType::RouterOutput
+                || slip.slip_type == SlipType::BlockStake
+            {
+                if let Some(existing_authorizer) = authorizer {
+                    if existing_authorizer != slip.public_key {
+                        error!("transaction invalid: attempts to spend fee-bearing slips from multiple users");
+                        return false;
+                    }
+                } else {
+                    authorizer = Some(slip.public_key);
+                }
+
+                i += 1;
+                continue;
+            }
+
+            //
+            // P2SH markers should never appear standalone.
+            //
+            if slip.slip_type == SlipType::P2SH {
+                if p2sh_idx.is_some() {
+                    error!("transaction invalid: multiple P2SH slips found in transaction");
+                    return false;
+                }
+                if slip.amount != 0 {
+                    error!("transaction invalid: P2SH slip found with amount > 0");
+                    return false;
+                }
+                p2sh_idx = Some(i);
+                p2sh_expected_hash = Some(slip.public_key);
+            }
+
+            i += 1;
         }
 
         // Fee Transactions are validated in the block class. There can only
@@ -987,6 +1070,37 @@ impl Transaction {
                 }
             }
 
+            let public_key = match authorizer {
+                Some(pk) => pk,
+                None => {
+                    error!("BlockStake transaction invalid: unable to determine authorizer");
+                    return false;
+                }
+            };
+
+            let Some(hash_for_signature) = &self.hash_for_signature else {
+                error!("BlockStake transaction invalid: missing hash_for_signature");
+                return false;
+            };
+
+            if !verify_signature(hash_for_signature, &self.signature, &public_key) {
+                error!("BlockStake transaction invalid: signature verification failed");
+                return false;
+            }
+
+            //
+            // Stake outputs must remain owned by the entity that authorized
+            // the staking transaction.
+            //
+            for slip in self.to.iter() {
+                if slip.slip_type == SlipType::BlockStake && slip.public_key != public_key {
+                    error!(
+                        "BlockStake transaction invalid: stake output credited to wrong public key"
+                    );
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -1034,51 +1148,12 @@ impl Transaction {
             if let Some(hash_for_signature) = &self.hash_for_signature {
                 let sig: SaitoSignature = self.signature;
 
-                //
-                // in order to check the for bound (NFT) txs, the "owner" is in the normal slip (slip2),
-                //
-                let public_key: SaitoPublicKey = if self.transaction_type == TransactionType::Bound
-                {
-                    //
-                    // if this is a CREATE-bound transaction, the first input is Noral
-                    //
-                    let is_create = self.from[0].slip_type == SlipType::Normal
-                        && self.to.len() >= 3
-                        && self.to[0].slip_type == SlipType::Bound
-                        && self.to[1].slip_type == SlipType::Normal
-                        && self.to[2].slip_type == SlipType::Bound;
-
-                    if is_create {
-                        //
-                        // return nft creator
-                        //
-                        self.from[0].public_key
-                    } else {
-                        //
-                        // in SPLIT / MERGE / SEND sender is slip2 in first NFT tuplie
-                        //
-                        if self.from.len() < 3 {
-                            return false;
-                        }
-
-                        let a = &self.from[0];
-                        let b = &self.from[1];
-                        let c = &self.from[2];
-
-                        if !(a.slip_type == SlipType::Bound
-                            && (b.slip_type == SlipType::Normal || b.slip_type == SlipType::ATR)
-                            && c.slip_type == SlipType::Bound)
-                        {
-                            return false;
-                        }
-
-                        b.public_key
+                let public_key: SaitoPublicKey = match authorizer {
+                    Some(pk) => pk,
+                    None => {
+                        error!("transaction invalid: unable to determine authorizer");
+                        return false;
                     }
-                } else {
-                    //
-                    // owner of first from slip is signer for everything else
-                    //
-                    self.from[0].public_key
                 };
 
                 //
@@ -1405,7 +1480,6 @@ impl Transaction {
                     return false;
                 }
 
-
                 let funding_input = &self.from[0];
 
                 //
@@ -1414,9 +1488,7 @@ impl Transaction {
                 match nft_creator {
                     Some(creator) => {
                         if creator != funding_input.public_key {
-                            error!(
-                                "Create-bound TX: creator does not match funding input"
-                            );
+                            error!("Create-bound TX: creator does not match funding input");
                             return false;
                         }
                     }

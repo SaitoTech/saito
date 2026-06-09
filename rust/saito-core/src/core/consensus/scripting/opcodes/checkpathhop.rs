@@ -161,6 +161,16 @@ fn evaluate_condition(hop: &DecodedHop, condition: &Value, context: &Value) -> O
     compare_values(&left, &right, operator)
 }
 
+fn hop_satisfies_assertions(hop: &DecodedHop, assert_clauses: &[Value], context: &Value) -> bool {
+    for clause in assert_clauses {
+        match evaluate_condition(hop, clause, context) {
+            Some(true) => continue,
+            Some(false) | None => return false,
+        }
+    }
+    true
+}
+
 pub struct CheckPathHop {
     pub name: String,
     pub description: String,
@@ -215,40 +225,61 @@ impl CheckPathHop {
         }
 
         let selector = context["script"]["selector"].as_str().unwrap_or("");
-        let selected: Vec<&DecodedHop> = match selector {
-            "FIRST" => vec![filtered[0]],
-            "LAST" => vec![filtered[filtered.len() - 1]],
+        let assert_clauses = context["script"]["assert"]
+            .as_array()
+            .map(|clauses| clauses.as_slice())
+            .unwrap_or(&[]);
+
+        let winning_hop: &DecodedHop = match selector {
+            "FIRST" => {
+                let hop = filtered[0];
+                if !assert_clauses.is_empty()
+                    && !hop_satisfies_assertions(hop, assert_clauses, context)
+                {
+                    return 0;
+                }
+                hop
+            }
+            "LAST" => {
+                let hop = filtered[filtered.len() - 1];
+                if !assert_clauses.is_empty()
+                    && !hop_satisfies_assertions(hop, assert_clauses, context)
+                {
+                    return 0;
+                }
+                hop
+            }
             "ONLY" => {
                 if filtered.len() != 1 {
                     return 0;
                 }
-                vec![filtered[0]]
-            }
-            "ANY" => filtered,
-            _ => return 0,
-        };
-
-        if let Some(assert_clauses) = context["script"]["assert"].as_array() {
-            if !assert_clauses.is_empty() {
-                let mut assertion_satisfied = false;
-
-                for hop in &selected {
-                    for clause in assert_clauses {
-                        match evaluate_condition(hop, clause, context) {
-                            Some(true) => assertion_satisfied = true,
-                            Some(false) => return 0,
-                            None => return 0,
-                        }
-                    }
-                }
-
-                if !assertion_satisfied {
+                let hop = filtered[0];
+                if !assert_clauses.is_empty()
+                    && !hop_satisfies_assertions(hop, assert_clauses, context)
+                {
                     return 0;
                 }
+                hop
             }
-        }
-
-        let winning_hop = selected[0];
+            "ANY" => {
+                if assert_clauses.is_empty() {
+                    filtered[0]
+                } else {
+                    let mut matched: Option<&DecodedHop> = None;
+                    for hop in &filtered {
+                        if hop_satisfies_assertions(hop, assert_clauses, context) {
+                            matched = Some(hop);
+                            break;
+                        }
+                    }
+                    match matched {
+                        Some(hop) => hop,
+                        None => return 0,
+                    }
+                }
+            }
+            _ => return 0,
+        };
 
         if !context
             .get("__opcodes")
@@ -272,5 +303,284 @@ impl CheckPathHop {
         });
 
         1
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::defs::PrintForLog;
+    use crate::core::util::crypto::{generate_keys, hash, sign};
+    use serde_json::json;
+
+    fn make_signed_hop(
+        to: &crate::core::defs::SaitoPublicKey,
+        value_json: &Value,
+        signer_sk: &crate::core::defs::SaitoPrivateKey,
+        binding_hash: &str,
+    ) -> Value {
+        let value_b64 = base64::engine::general_purpose::STANDARD
+            .encode(serde_json::to_string(value_json).unwrap().as_bytes());
+        let canonical = format!("{}|{}|{}", to.to_base58(), value_b64, binding_hash);
+        let digest = hash(canonical.as_bytes()).to_hex();
+        let sig = sign(digest.as_bytes(), signer_sk).to_hex();
+
+        json!({
+            "to": to.to_base58(),
+            "value": value_b64,
+            "sig": sig
+        })
+    }
+
+    fn checkpathhop_context(
+        start_pk: &crate::core::defs::SaitoPublicKey,
+        binding_hash: &str,
+        hops: Vec<Value>,
+        selector: &str,
+        where_clauses: Value,
+        assert_clauses: Value,
+    ) -> Value {
+        json!({
+            "script": {
+                "publickey": start_pk.to_base58(),
+                "hash": binding_hash,
+                "selector": selector,
+                "where": where_clauses,
+                "assert": assert_clauses
+            },
+            "witness": {
+                "hops": hops
+            }
+        })
+    }
+
+    fn two_hop_fixture() -> (
+        crate::core::defs::SaitoPublicKey,
+        crate::core::defs::SaitoPrivateKey,
+        crate::core::defs::SaitoPublicKey,
+        crate::core::defs::SaitoPrivateKey,
+        crate::core::defs::SaitoPublicKey,
+        crate::core::defs::SaitoPrivateKey,
+        String,
+        Vec<Value>,
+    ) {
+        let (pk0, sk0) = generate_keys();
+        let (pk1, sk1) = generate_keys();
+        let (pk2, sk2) = generate_keys();
+        let binding_hash = "checkpathhop-test-binding".to_string();
+
+        let hop0_value = json!({ "role": "relay", "score": 1 });
+        let hop1_value = json!({ "role": "target", "score": 2 });
+
+        let hop0 = make_signed_hop(&pk1, &hop0_value, &sk0, &binding_hash);
+        let hop1 = make_signed_hop(&pk2, &hop1_value, &sk1, &binding_hash);
+
+        (pk0, sk0, pk1, sk1, pk2, sk2, binding_hash, vec![hop0, hop1])
+    }
+
+    #[test]
+    fn any_succeeds_when_first_filtered_hop_satisfies_assert() {
+        let (pk0, _sk0, pk1, _sk1, _pk2, _sk2, binding_hash, hops) = two_hop_fixture();
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            hops,
+            "ANY",
+            json!([]),
+            json!([{
+                "field": "value.role",
+                "operator": "==",
+                "value": "relay"
+            }]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 1);
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["to"].as_str(),
+            Some(pk1.to_base58().as_str())
+        );
+    }
+
+    #[test]
+    fn any_succeeds_when_only_later_filtered_hop_satisfies_assert() {
+        let (pk0, _sk0, _pk1, _sk1, pk2, _sk2, binding_hash, hops) = two_hop_fixture();
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            hops,
+            "ANY",
+            json!([]),
+            json!([{
+                "field": "value.role",
+                "operator": "==",
+                "value": "target"
+            }]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 1);
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["to"].as_str(),
+            Some(pk2.to_base58().as_str())
+        );
+    }
+
+    #[test]
+    fn any_fails_when_no_filtered_hop_satisfies_assert() {
+        let (pk0, _sk0, _pk1, _sk1, _pk2, _sk2, binding_hash, hops) = two_hop_fixture();
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            hops,
+            "ANY",
+            json!([]),
+            json!([{
+                "field": "value.role",
+                "operator": "==",
+                "value": "missing"
+            }]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 0);
+    }
+
+    #[test]
+    fn first_requires_first_filtered_hop_to_satisfy_assert() {
+        let (pk0, _sk0, pk1, _sk1, _pk2, _sk2, binding_hash, hops) = two_hop_fixture();
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            hops,
+            "FIRST",
+            json!([]),
+            json!([{
+                "field": "value.role",
+                "operator": "==",
+                "value": "relay"
+            }]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 1);
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["to"].as_str(),
+            Some(pk1.to_base58().as_str())
+        );
+    }
+
+    #[test]
+    fn first_fails_when_first_filtered_hop_does_not_satisfy_assert() {
+        let (pk0, _sk0, _pk1, _sk1, _pk2, _sk2, binding_hash, hops) = two_hop_fixture();
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            hops,
+            "FIRST",
+            json!([]),
+            json!([{
+                "field": "value.role",
+                "operator": "==",
+                "value": "target"
+            }]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 0);
+    }
+
+    #[test]
+    fn last_requires_last_filtered_hop_to_satisfy_assert() {
+        let (pk0, _sk0, _pk1, _sk1, pk2, _sk2, binding_hash, hops) = two_hop_fixture();
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            hops,
+            "LAST",
+            json!([]),
+            json!([{
+                "field": "value.role",
+                "operator": "==",
+                "value": "target"
+            }]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 1);
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["to"].as_str(),
+            Some(pk2.to_base58().as_str())
+        );
+    }
+
+    #[test]
+    fn last_fails_when_last_filtered_hop_does_not_satisfy_assert() {
+        let (pk0, _sk0, _pk1, _sk1, _pk2, _sk2, binding_hash, hops) = two_hop_fixture();
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            hops,
+            "LAST",
+            json!([]),
+            json!([{
+                "field": "value.role",
+                "operator": "==",
+                "value": "relay"
+            }]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 0);
+    }
+
+    #[test]
+    fn only_requires_exactly_one_filtered_hop() {
+        let (pk0, _sk0, pk1, _sk1, _pk2, _sk2, binding_hash, hops) = two_hop_fixture();
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            hops,
+            "ONLY",
+            json!([{
+                "field": "value.role",
+                "operator": "==",
+                "value": "relay"
+            }]),
+            json!([{
+                "field": "value.score",
+                "operator": "==",
+                "value": 1,
+                "type": "number"
+            }]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 1);
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["to"].as_str(),
+            Some(pk1.to_base58().as_str())
+        );
+    }
+
+    #[test]
+    fn only_fails_when_more_than_one_hop_matches_where() {
+        let (pk0, _sk0, _pk1, _sk1, _pk2, _sk2, binding_hash, hops) = two_hop_fixture();
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            hops,
+            "ONLY",
+            json!([]),
+            json!([{
+                "field": "value.score",
+                "operator": ">",
+                "value": 0,
+                "type": "number"
+            }]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 0);
     }
 }
