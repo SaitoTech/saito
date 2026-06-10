@@ -96,7 +96,15 @@ class MixinModule extends CryptoModule {
 	}
 
 	//
-	// queries the latest balance
+	// Balance state (see also getPendingBalance, sendPayment, checkForRecentTransactions):
+	//
+	// - balance: confirmed Safe UTXO from fetchSafeUtxoBalance; persisted via save()
+	// - pending_balance: ephemeral post-send expected balance until the API reflects the
+	//   transfer; also drives returnDisplayBalance() and header "pending" styling
+	// - last_balance: ephemeral pre-send snapshot for a synthetic pending row in the
+	//   transaction history overlay until the snapshot lands in history
+	//
+	// pending_balance and last_balance are not persisted in save().
 	//
 	async fetchBalance() {
 		if (!this.address) {
@@ -116,6 +124,7 @@ class MixinModule extends CryptoModule {
 
 			let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
 			if (balance !== false) {
+				// API caught up to the post-send estimate; drop the optimistic override.
 				if (balance == this.pending_balance) {
 					delete this.pending_balance;
 				}
@@ -307,9 +316,9 @@ class MixinModule extends CryptoModule {
 		});
 
 		if (snapshots.length > 0) {
-			// Make sure we can fetchBalance to reflect updates from API point
+			// Real ledger activity arrived; allow fetchBalance and drop the synthetic
+			// pending history row (details overlay uses last_balance until this point).
 			delete this.last_balance_fetch;
-			// Clear out pending data for UI refresh
 			delete this.last_balance;
 		}
 
@@ -573,7 +582,8 @@ class MixinModule extends CryptoModule {
 		}
 
 		if (res.status == 200) {
-			// And what our new balance should be
+			// Safe UTXO balance lags after send; cache expected post-send balance and
+			// pre-send snapshot until fetchBalance / checkForRecentTransactions confirm.
 			this.pending_balance = Number(res.pending.toFixed(8));
 			if (!this.last_balance) {
 				this.last_balance = this.balance;

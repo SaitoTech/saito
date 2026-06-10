@@ -155,7 +155,8 @@ class Details {
     if (this.mod.history?.length > 0) {
       console.log('Formatting HISTORY: ', this.mod.history);
 
-      // insert a filler line for a pending balance change...
+      // Synthetic pending row until the send snapshot appears in mod.history
+      // (last_balance is the pre-send balance; cleared in checkForRecentTransactions).
       if (this.mod.last_balance) {
         let diff = running_balance - Number(this.mod.last_balance);
         history_html += `<div class="crypto-timestamp"></div>

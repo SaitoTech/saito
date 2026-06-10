@@ -281,8 +281,9 @@ class CryptoModule extends ModTemplate {
   }
 
   /**
-   * Synchronous getter of crypto balance
-   * @return {String} cached balance
+   * Synchronous getter for UI display. Prefers pending_balance when set (e.g. Mixin
+   * post-send optimistic override); otherwise returns the persisted confirmed balance.
+   * @return {String} display balance, not necessarily the latest API-confirmed value
    */
   returnDisplayBalance() {
     return this.pending_balance || this.balance || '0';
