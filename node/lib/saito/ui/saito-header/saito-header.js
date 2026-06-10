@@ -100,8 +100,6 @@ class SaitoHeader extends UIModTemplate {
         return;
       }
 
-      console.debug(obj);
-
       let amount = obj.amount;
       let ticker = obj.ticker;
       let sender = obj.sender;

@@ -184,6 +184,7 @@ class GameWeb3 {
     }
 
     this.rollDice();
+    this.saveGame(this.game.id);
     let unique_hash = this.app.crypto.hash(
       Buffer.from(
         sender + receiver + amount_for_unique_hash + this.game.dice + this.game.crypto,
@@ -216,7 +217,8 @@ class GameWeb3 {
         amount,
         ticker,
         hash: unique_hash,
-        // always confirm at end of game ???
+        game_id: this.game.id,
+        trusted: this.loadGamePreference('crypto_transfers_outbound_trusted'),
         mycallback: async function () {
           await game_self.app.wallet.sendPayment(
             ticker,
@@ -247,7 +249,9 @@ class GameWeb3 {
             address: sender_crypto_address,
             amount: amount,
             hash: unique_hash,
-            ticker
+            ticker,
+            game_id: game_self.game.id,
+            trusted: game_self.loadGamePreference('crypto_transfers_inbound_trusted')
           });
         },
         sender

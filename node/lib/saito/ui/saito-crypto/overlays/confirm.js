@@ -13,6 +13,34 @@ const ConfirmTemplate = require('./confirm.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoUser = require('./../../saito-user/saito-user');
 
+function findGameById(app, game_id) {
+  if (!game_id || !app?.options?.games?.length) {
+    return null;
+  }
+  for (let i = 0; i < app.options.games.length; i++) {
+    if (app.options.games[i].id === game_id) {
+      return app.options.games[i];
+    }
+  }
+  return null;
+}
+
+function resolveGameContext(app, mod, game_id = null) {
+  const fromId = findGameById(app, game_id);
+  if (fromId) {
+    return fromId;
+  }
+  return mod?.game || null;
+}
+
+function resolveGameMod(app, mod, game_id = null) {
+  const game = resolveGameContext(app, mod, game_id);
+  if (game?.module) {
+    return app.modules.returnModuleByName(game.module) || mod;
+  }
+  return mod;
+}
+
 class Confirm {
   constructor(app, mod) {
     this.app = app;
@@ -31,6 +59,7 @@ class Confirm {
     this.el = null;
     this.timeout = null;
     this.countdownTimer = null;
+    this.gameId = null;
 
     this.onCloseClick = this.onCloseClick.bind(this);
 
@@ -103,7 +132,10 @@ class Confirm {
 
   onCloseClick() {
     if (this.el?.ignoreCheckbox?.checked) {
-      this.mod.saveGamePreference('crypto_transfers_outbound_trusted', 1);
+      resolveGameMod(this.app, this.mod, this.gameId).saveGamePreference(
+        'crypto_transfers_outbound_trusted',
+        1
+      );
     }
     this.overlay.close();
   }
@@ -125,7 +157,8 @@ class Confirm {
     const trusted = Boolean(details?.trusted);
     root.dataset.confirmMode = trusted ? 'trusted' : 'interactive';
 
-    const showGameIgnore = !trusted && this.mod?.game?.over === 0;
+    const game = resolveGameContext(this.app, this.mod, this.gameId);
+    const showGameIgnore = !trusted && game?.over === 0;
     root.classList.toggle('crypto-send-confirm-overlay--show-ignore', showGameIgnore);
   }
 
@@ -150,6 +183,7 @@ class Confirm {
     }
 
     this.clearTimers();
+    this.gameId = details.game_id || null;
 
     this.overlay.show(ConfirmTemplate());
     this.refreshDomRefs();

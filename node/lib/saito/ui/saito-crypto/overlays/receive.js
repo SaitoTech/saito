@@ -8,6 +8,34 @@ const ReceiveTemplate = require('./receive.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoUser = require('./../../saito-user/saito-user');
 
+function findGameById(app, game_id) {
+  if (!game_id || !app?.options?.games?.length) {
+    return null;
+  }
+  for (let i = 0; i < app.options.games.length; i++) {
+    if (app.options.games[i].id === game_id) {
+      return app.options.games[i];
+    }
+  }
+  return null;
+}
+
+function resolveGameContext(app, mod, game_id = null) {
+  const fromId = findGameById(app, game_id);
+  if (fromId) {
+    return fromId;
+  }
+  return mod?.game || null;
+}
+
+function resolveGameMod(app, mod, game_id = null) {
+  const game = resolveGameContext(app, mod, game_id);
+  if (game?.module) {
+    return app.modules.returnModuleByName(game.module) || mod;
+  }
+  return mod;
+}
+
 class Receive {
   constructor(app, mod, container = '') {
     this.app = app;
@@ -29,6 +57,7 @@ class Receive {
     this.expectHash = null;
     this.expectAmount = null;
     this.payer = null;
+    this.gameId = null;
     this.earlyPayments = [];
 
     this.onCloseClick = this.onCloseClick.bind(this);
@@ -115,11 +144,10 @@ class Receive {
   }
 
   processExpectedPayment(obj = {}) {
-    if (!this.mod?.game) {
+    const g = resolveGameContext(this.app, this.mod, this.gameId);
+    if (!g) {
       return false;
     }
-
-    const g = this.mod.game;
     const ticker = g.crypto;
     const token = String(obj.sender || obj.sender_publickey || '');
     if (!token) {
@@ -168,12 +196,13 @@ class Receive {
       amtH = String(amt);
     }
 
-    const hash = this.app.crypto.hash(
-      Buffer.from(from + this.mod.publicKey + amtH + g.dice + ticker, 'utf-8')
-    );
-
-    if (this.expectHash && this.expectHash !== hash) {
-      return false;
+    // Prefer the hash from the game engine (payWinner / queue); persisted game dice
+    // may be stale after the player has left the game page.
+    let hash = this.expectHash;
+    if (!hash) {
+      hash = this.app.crypto.hash(
+        Buffer.from(from + this.mod.publicKey + amtH + g.dice + ticker, 'utf-8')
+      );
     }
 
     const inbound = this.app.options?.crypto?.[ticker]?.transfers_inbound;
@@ -183,11 +212,8 @@ class Receive {
     }
 
     let i = inbound.indexOf(hash);
-    if (i < 0 && this.expectHash) i = inbound.indexOf(this.expectHash);
     if (i < 0) {
-      if (!this.expectHash || hash === this.expectHash) {
-        this.bufferEarlyPayment(obj);
-      }
+      this.bufferEarlyPayment(obj);
       return false;
     }
 
@@ -206,7 +232,8 @@ class Receive {
     const trusted = Boolean(details?.trusted);
     root.dataset.receiveMode = trusted ? 'trusted' : 'interactive';
 
-    const showGameIgnore = !trusted && this.mod?.game?.over === 0;
+    const game = resolveGameContext(this.app, this.mod, this.gameId);
+    const showGameIgnore = !trusted && game?.over === 0;
     root.classList.toggle('crypto-receive-overlay--show-ignore', showGameIgnore);
   }
 
@@ -214,12 +241,16 @@ class Receive {
     this.expectHash = null;
     this.expectAmount = null;
     this.payer = null;
+    this.gameId = null;
     this.earlyPayments = [];
   }
 
   onCloseClick() {
     if (this.el?.ignoreCheckbox?.checked) {
-      this.mod.saveGamePreference('crypto_transfers_inbound_trusted', 1);
+      resolveGameMod(this.app, this.mod, this.gameId).saveGamePreference(
+        'crypto_transfers_inbound_trusted',
+        1
+      );
     }
     this.clearExpectedPayment();
     this.overlay.close();
@@ -289,6 +320,7 @@ class Receive {
     this.expectHash = details.hash || null;
     this.expectAmount = details.amount ?? null;
     this.payer = details.publicKey || null;
+    this.gameId = details.game_id || null;
 
     this.overlay.show(ReceiveTemplate(), () => {
       if (details.mycallback) {
