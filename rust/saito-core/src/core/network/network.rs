@@ -1,4 +1,4 @@
-use log::{error, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use std::io::Error;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -108,7 +108,7 @@ impl Network {
         }
 
         // --- STEP 3: collect send targets (NO AWAIT HERE) ---
-        let targets: Vec<(SaitoPublicKey, Vec<u8>)> = {
+        let targets: Vec<(u64, Vec<u8>)> = {
             let mut peers = self.peer_lock.write().await;
 
             let mut out = Vec::new();
@@ -137,19 +137,21 @@ impl Network {
                 let message = Message::Transaction(tx);
                 let serialized = message.serialize();
 
-                out.push((peer_public_key, serialized));
+                out.push((peer.id, serialized));
             }
 
             out
         }; // LOCK DROPPED HERE
 
+        debug!("propagate_transaction to {} peers", targets.len());
+
         let peer_send_count = targets.len();
 
         // --- STEP 4: send outside lock ---
-        for (peer_public_key, buffer) in targets {
+        for (peer_id, buffer) in targets {
             let _ = self
                 .io_interface
-                .send_message(peer_public_key, buffer.as_slice())
+                .send_message_by_peer_id(peer_id, buffer.as_slice())
                 .await;
         }
 
@@ -272,7 +274,7 @@ impl Network {
     pub async fn ping(&self) {
         let peers = self.peer_lock.read().await;
 
-        let mut targets: Vec<SaitoPublicKey> = vec![];
+        let mut targets: Vec<u64> = vec![];
 
         for peer in peers.peers.values() {
             let Some(pk) = peer.public_key else {
@@ -281,7 +283,7 @@ impl Network {
             if !peer.is_connected {
                 continue;
             }
-            targets.push(pk);
+            targets.push(peer.id);
         }
 
         drop(peers);
@@ -289,10 +291,10 @@ impl Network {
         let message = Message::Ping();
         let serialized = message.serialize();
 
-        for pk in targets {
+        for id in targets {
             let _ = self
                 .io_interface
-                .send_message(pk, serialized.as_slice())
+                .send_message_by_peer_id(id, serialized.as_slice())
                 .await;
         }
     }
@@ -432,21 +434,21 @@ impl Network {
         work_done
     }
 
-    pub async fn send_message(&self, public_key: SaitoPublicKey, message: Message) {
-        let buffer = message.serialize();
+    // pub async fn send_message(&self, public_key: SaitoPublicKey, message: Message) {
+    //     let buffer = message.serialize();
 
-        if let Err(err) = self
-            .io_interface
-            .send_message(public_key, buffer.as_slice())
-            .await
-        {
-            error!(
-                "failed sending message to peer {:?}: {:?}",
-                public_key.to_base58(),
-                err
-            );
-        }
-    }
+    //     if let Err(err) = self
+    //         .io_interface
+    //         .send_message(public_key, buffer.as_slice())
+    //         .await
+    //     {
+    //         error!(
+    //             "failed sending message to peer {:?}: {:?}",
+    //             public_key.to_base58(),
+    //             err
+    //         );
+    //     }
+    // }
 
     pub async fn send_message_by_peer_id(&self, peer_id: u64, message: Message) {
         let buffer = message.serialize();

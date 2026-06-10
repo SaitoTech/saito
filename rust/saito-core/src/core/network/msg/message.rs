@@ -9,6 +9,7 @@ use crate::core::network::msg::block::{BlockReference, RequestBlockReference};
 use crate::core::network::msg::blockchain::{Blockchain, RequestBlockchain};
 use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::network::msg::services::{RequestServices, Services};
+use crate::core::util::configuration::Endpoint;
 use crate::core::util::serialize::Serialize;
 use log::{error, warn};
 
@@ -33,6 +34,8 @@ pub enum Message {
     RequestGenesisBlockReference(),
     GenesisBlockReference(BlockReference),
     Disconnect(String),
+    RequestEndpoint(),
+    Endpoint(String),
 }
 
 impl Message {
@@ -60,6 +63,10 @@ impl Message {
             Message::RequestGenesisBlockReference() => vec![],
             Message::GenesisBlockReference(data) => data.serialize(),
             Message::Disconnect(message) => message.as_bytes().to_vec(),
+            Message::RequestEndpoint() => {
+                vec![]
+            }
+            Message::Endpoint(endpoint) => endpoint.as_bytes().to_vec(),
         });
 
         buffer
@@ -193,6 +200,10 @@ impl Message {
             23 => Ok(Message::RequestBlockReference(
                 RequestBlockReference::deserialize(&buffer)?,
             )),
+            24 => Ok(Message::RequestEndpoint()),
+            25 => Ok(Message::Endpoint(
+                String::from_utf8(buffer).or(Err(ErrorKind::InvalidData))?,
+            )),
             _ => {
                 error!("message type : {:?} not valid", message_type);
                 Err(Error::from(ErrorKind::InvalidData))
@@ -221,6 +232,8 @@ impl Message {
             Message::RequestBlockchain(_) => 21,
             Message::Blockchain(_) => 22,
             Message::RequestBlockReference(_) => 23,
+            Message::RequestEndpoint() => 24,
+            Message::Endpoint(_) => 25,
         }
     }
 }

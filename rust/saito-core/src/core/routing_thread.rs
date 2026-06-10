@@ -167,7 +167,12 @@ impl RoutingThread {
 
                 let sync = self.sync.read().await;
                 if let Err(e) = sync
-                    .process_request_blockchain_message(request.clone(), peer_id, &self.network)
+                    .process_request_blockchain_message(
+                        request.clone(),
+                        peer_id,
+                        &self.network,
+                        self.config_lock.clone(),
+                    )
                     .await
                 {
                     error!("process_request_blockchain_message error: {:?}", e);
@@ -307,6 +312,40 @@ impl RoutingThread {
                     "Received disconnection message: {:?}. from peer : {}",
                     message, peer_id
                 );
+            }
+            Message::RequestEndpoint() => {
+                let config = self.config_lock.read().await;
+                if let Some(server) = config.get_server_configs() {
+                    let _ = self
+                        .network
+                        .io_interface
+                        .as_ref()
+                        .send_message_by_peer_id(
+                            peer_id,
+                            &Message::Endpoint(config.get_block_fetch_url()).serialize(),
+                        )
+                        .await
+                        .map_err(|e| {
+                            error!(
+                                "failed to send endpoint message to peer {}: {:?}",
+                                peer_id, e
+                            );
+                        });
+                }
+            }
+            Message::Endpoint(url) => {
+                let mut peers = self.network.peer_lock.write().await;
+                let _ = peers.get_peer_by_id_mut(peer_id).map(|peer| {
+                    peer.url = Some(url);
+                });
+                drop(peers);
+                let sync = self.sync.read().await;
+                sync.send_request_blockchain_message(
+                    peer_id,
+                    self.config_lock.clone(),
+                    &self.network,
+                )
+                .await;
             }
         }
     }
@@ -626,6 +665,10 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 peer_id,
                 initiate_handshake,
             } => {
+                debug!(
+                    "PeerConnectionResult: peer_id {}, initiate_handshake {}",
+                    peer_id, initiate_handshake
+                );
                 let mut send_handshake = None;
                 let mut should_request_sync = false;
 

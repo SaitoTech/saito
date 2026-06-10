@@ -59,7 +59,6 @@ pub const REQUEST_BLOCKCHAIN_MIN_WIRE_LEN: usize = 8 + 32 + 32 + 1 + 33 + 4;
 
 /// Byte length of the fixed header of a serialized [`Blockchain`] (before count + payload).
 pub const BLOCKCHAIN_HEADER_WIRE_LEN: usize = 8 + 32 + 32 + 8 + 32 + 8 + 32 + 8 + 32;
-pub const BLOCKCHAIN_BLOCK_FETCH_URL_LEN_WIRE_LEN: usize = 4;
 
 fn read_u64_be(buf: &[u8], off: usize) -> Result<u64, Error> {
     Ok(u64::from_be_bytes(
@@ -107,18 +106,13 @@ pub struct Blockchain {
     pub payload_earliest_block_hash: BlockHash,
     pub payload_latest_block_id: BlockId,
     pub payload_latest_block_hash: BlockHash,
-    pub block_fetch_url: Option<String>,
     pub payload: Vec<BlockReference>,
 }
 
 impl Blockchain {
     /// Total wire size for this payload (header + count + payload references).
     pub fn wire_len(&self) -> usize {
-        BLOCKCHAIN_HEADER_WIRE_LEN
-            + 4
-            + self.payload.len() * BLOCK_REFERENCE_WIRE_LEN
-            + BLOCKCHAIN_BLOCK_FETCH_URL_LEN_WIRE_LEN
-            + self.block_fetch_url.as_ref().map_or(0, |url| url.len())
+        BLOCKCHAIN_HEADER_WIRE_LEN + 4 + self.payload.len() * BLOCK_REFERENCE_WIRE_LEN
     }
 }
 
@@ -202,7 +196,6 @@ impl Serialize<Self> for Blockchain {
         let count: u32 = u32::try_from(n).unwrap_or_else(|_| {
             panic!("Blockchain: payload length {} exceeds u32::MAX", n);
         });
-        let block_fetch_url = self.block_fetch_url.as_deref().unwrap_or("");
 
         let mut out = Vec::with_capacity(self.wire_len());
         out.extend_from_slice(&self.latest_known_block_id.to_be_bytes());
@@ -214,8 +207,6 @@ impl Serialize<Self> for Blockchain {
         out.extend_from_slice(self.payload_earliest_block_hash.as_slice());
         out.extend_from_slice(&self.payload_latest_block_id.to_be_bytes());
         out.extend_from_slice(self.payload_latest_block_hash.as_slice());
-        out.extend_from_slice(&(block_fetch_url.len() as u32).to_be_bytes());
-        out.extend_from_slice(block_fetch_url.as_bytes());
         out.extend_from_slice(&count.to_be_bytes());
 
         for reference in &self.payload {
@@ -226,11 +217,11 @@ impl Serialize<Self> for Blockchain {
     }
 
     fn deserialize(buffer: &Vec<u8>) -> Result<Self, Error> {
-        if buffer.len() < BLOCKCHAIN_HEADER_WIRE_LEN + BLOCKCHAIN_BLOCK_FETCH_URL_LEN_WIRE_LEN + 4 {
+        if buffer.len() < BLOCKCHAIN_HEADER_WIRE_LEN + 4 {
             warn!(
                 "Deserializing Blockchain: buffer too short ({} < {})",
                 buffer.len(),
-                BLOCKCHAIN_HEADER_WIRE_LEN + BLOCKCHAIN_BLOCK_FETCH_URL_LEN_WIRE_LEN + 4
+                BLOCKCHAIN_HEADER_WIRE_LEN + 4
             );
             return Err(Error::from(ErrorKind::InvalidData));
         }
@@ -244,12 +235,7 @@ impl Serialize<Self> for Blockchain {
         let payload_earliest_block_hash = read_hash(buffer, 120)?;
         let payload_latest_block_id = read_u64_be(buffer, 152)?;
         let payload_latest_block_hash = read_hash(buffer, 160)?;
-        let block_fetch_url_len = read_u32_be(buffer, 192)? as usize;
-        let block_fetch_url_start =
-            BLOCKCHAIN_HEADER_WIRE_LEN + BLOCKCHAIN_BLOCK_FETCH_URL_LEN_WIRE_LEN;
-        let reference_count_offset = block_fetch_url_start
-            .checked_add(block_fetch_url_len)
-            .ok_or_else(|| Error::from(ErrorKind::InvalidData))?;
+        let reference_count_offset = BLOCKCHAIN_HEADER_WIRE_LEN;
         if buffer.len() < reference_count_offset + 4 {
             warn!(
                 "Deserializing Blockchain: buffer too short for fetch URL and reference count (got {}, need at least {})",
@@ -258,14 +244,6 @@ impl Serialize<Self> for Blockchain {
             );
             return Err(Error::from(ErrorKind::InvalidData));
         }
-        let block_fetch_url = if block_fetch_url_len > 0 {
-            Some(
-                String::from_utf8(buffer[block_fetch_url_start..reference_count_offset].to_vec())
-                    .map_err(|_| Error::from(ErrorKind::InvalidData))?,
-            )
-        } else {
-            None
-        };
 
         let reference_count = read_u32_be(buffer, reference_count_offset)? as usize;
         if reference_count > MAX_BLOCKCHAIN_CHUNK {
@@ -276,8 +254,6 @@ impl Serialize<Self> for Blockchain {
             return Err(Error::from(ErrorKind::InvalidData));
         }
         let body_len = BLOCKCHAIN_HEADER_WIRE_LEN
-            + BLOCKCHAIN_BLOCK_FETCH_URL_LEN_WIRE_LEN
-            + block_fetch_url_len
             + 4
             + reference_count.saturating_mul(BLOCK_REFERENCE_WIRE_LEN);
         if buffer.len() != body_len {
@@ -309,7 +285,6 @@ impl Serialize<Self> for Blockchain {
             payload_earliest_block_hash,
             payload_latest_block_id,
             payload_latest_block_hash,
-            block_fetch_url,
             payload,
         })
     }
@@ -371,7 +346,6 @@ mod tests {
                     has_golden_ticket: false,
                 },
             ],
-            block_fetch_url: Some("http://example.com/blocks".into()),
         };
         let buf = c.serialize();
         assert_eq!(buf.len(), c.wire_len());
@@ -388,9 +362,8 @@ mod tests {
 
     #[test]
     fn blockchain_rejects_reference_count_over_max() {
-        let mut buf =
-            vec![0u8; BLOCKCHAIN_HEADER_WIRE_LEN + BLOCKCHAIN_BLOCK_FETCH_URL_LEN_WIRE_LEN + 4];
-        buf[196..200].copy_from_slice(&(129u32).to_be_bytes());
+        let mut buf = vec![0u8; BLOCKCHAIN_HEADER_WIRE_LEN + 4];
+        buf[192..196].copy_from_slice(&(129u32).to_be_bytes());
         assert!(Blockchain::deserialize(&buf).is_err());
     }
 }

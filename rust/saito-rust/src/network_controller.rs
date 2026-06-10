@@ -99,6 +99,11 @@ impl NetworkController {
     }
 
     pub async fn register_public_key_mapping(&mut self, public_key: SaitoPublicKey, peer_id: u64) {
+        debug!(
+            "registering public key mapping for peer_id : {:?}, public_key : {:?}",
+            peer_id,
+            public_key.to_base58()
+        );
         if let Some(previous_peer_id) = self.peer_id_by_public_key.insert(public_key, peer_id) {
             if previous_peer_id != peer_id {
                 if let Some(old_sender) = self.sockets_by_peer_id.remove(&previous_peer_id) {

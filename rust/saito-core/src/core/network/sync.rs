@@ -11,9 +11,10 @@ use crate::core::network::msg::blockchain::{
 };
 use crate::core::network::msg::message::Message;
 use crate::core::network::network::Network;
+use crate::core::network::peer::PeerType;
 use crate::core::process::keep_time::Timer;
 use crate::core::util::configuration::Configuration;
-use log::{error, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use std::collections::{BTreeMap, HashMap};
 use std::io::{Error, ErrorKind};
 use tokio::sync::RwLock;
@@ -346,6 +347,7 @@ impl SyncManager {
         config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
         network: &Network,
     ) {
+        debug!("SEND REQUEST BLOCKCHAIN MESSAGE : {}", peer_id);
         let (sync_type, config_last_block_id, config_last_block_hash, config_fork_id) = {
             let configs = config_lock.read().await;
             let sync_type = if configs.is_spv_mode() {
@@ -435,6 +437,7 @@ impl SyncManager {
         request: RequestBlockchain,
         peer_id: u64,
         network: &Network,
+        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     ) -> Result<(), Error> {
         let requested_sync_type = request.sync_type;
         if !is_supported_sync_type(requested_sync_type) {
@@ -561,6 +564,16 @@ impl SyncManager {
                 }
                 block_id = block_id.saturating_add(1);
             }
+            drop(blockchain);
+            if block_id - 1 == our_latest_id {
+                // @david: check here.
+                // -1 because loop adds 1 at exit
+                debug!("we have sent all our blocks, now we need to request their blocks also.");
+                self.send_request_blockchain_message(peer_id, config_lock.clone(), network)
+                    .await;
+            } else {
+                debug!("still not all blocks sent, waiting for more blocks to be sent. current block_id = {} our_block_id = {}", block_id, our_latest_id);
+            }
         }
 
         //
@@ -583,7 +596,6 @@ impl SyncManager {
                         .map_or(our_latest_hash, |r| r.block_hash),
                     payload_latest_block_id: last_ref.map_or(our_latest_id, |r| r.block_id),
                     payload_latest_block_hash: last_ref.map_or(our_latest_hash, |r| r.block_hash),
-                    block_fetch_url: self.block_fetch_url.clone(),
                     payload: ordered_refs.clone(),
                 }),
             )
@@ -600,6 +612,10 @@ impl SyncManager {
         network: &Network,
         fetch_dispatcher: &FetchDispatcher,
     ) -> Result<(), Error> {
+        info!(
+            "received Blockchain message from peer {} with latest_known_block_id {} and shared_ancestor_block_id {}",
+            peer_id, cs.latest_known_block_id, cs.shared_ancestor_block_id
+        );
         let is_spv_mode = {
             let configs = config_lock.read().await;
             configs.is_spv_mode()
@@ -611,7 +627,7 @@ impl SyncManager {
             peer_id,
             cs.shared_ancestor_block_id,
             cs.shared_ancestor_block_hash.to_hex()
-        );
+            );
         }
 
         let mut previous_block_id = cs.shared_ancestor_block_id;
@@ -622,16 +638,26 @@ impl SyncManager {
             let blockchain = self.blockchain_lock.read().await;
             blockchain.blocks.is_empty()
         };
+
         {
-            let mut peers = network.peer_lock.write().await;
-            if let Some(peer) = peers.peers.get_mut(&peer_id) {
-                if cs.block_fetch_url.is_some() {
+            if let Some(peer) = network.peer_lock.read().await.get_peer_by_id(peer_id) {
+                if peer.url.is_none() {
+                    // @david: we receive a response only if the other side has a block fetch url. right? so we don't have to
+                    let _ = network
+                        .io_interface
+                        .send_message_by_peer_id(peer_id, &Message::RequestEndpoint().serialize())
+                        .await
+                        .map_err(|e| {
+                            error!(
+                            "[BLOCK_FETCH_TRACE][FETCH] error sending RequestEndpoint to peer {:?}: {}",
+                            peer_id, e
+                            );
+                        });
                     info!(
-                        "peer {} provided block fetch URL: {}",
-                        peer_id,
-                        cs.block_fetch_url.as_ref().unwrap()
+                        "Don't have block fetch url for peer {}. So requested it. Waiting for it...",
+                        peer_id
                     );
-                    peer.url = cs.block_fetch_url.clone();
+                    return Err(Error::from(ErrorKind::InvalidData));
                 }
             }
         }
