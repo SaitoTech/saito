@@ -231,8 +231,8 @@ impl Message {
             Message::RequestBlockchain(_) => 21,
             Message::Blockchain(_) => 22,
             Message::RequestBlockReference(_) => 23,
-Message::RequestEndpoint(_) => 24,
-Message::Endpoint(_) => 25,
+            Message::RequestEndpoint(_) => 24,
+            Message::Endpoint(_) => 25,
         }
     }
 }
