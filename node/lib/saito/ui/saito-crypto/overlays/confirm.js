@@ -203,15 +203,21 @@ class Confirm {
       this.el.amount.textContent = `${details.amount} ${details.ticker}`;
     }
 
-    if (this.el.address && details.address && details.address !== details.publicKey) {
-      let a = details.address;
-      if (a.includes('|')) {
-        a = a.split('|')[0];
-      }
-      if (a.length > 16) {
-        this.el.address.textContent = `${a.slice(0, 8)}…${a.slice(-8)}`;
+    if (this.el.address) {
+      const showChainAddress = details.address && details.address !== details.publicKey;
+      this.el.address.classList.toggle('hide-element', !showChainAddress);
+      if (showChainAddress) {
+        let a = details.address;
+        if (a.includes('|')) {
+          a = a.split('|')[0];
+        }
+        if (a.length > 16) {
+          this.el.address.textContent = `${a.slice(0, 8)}…${a.slice(-8)}`;
+        } else {
+          this.el.address.textContent = a;
+        }
       } else {
-        this.el.address.textContent = a;
+        this.el.address.textContent = '';
       }
     }
 

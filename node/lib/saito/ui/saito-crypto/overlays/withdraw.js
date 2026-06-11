@@ -264,12 +264,18 @@ class Withdraw {
     }
 
     const addressEl = document.getElementById('withdraw-confirm-address');
-    if (addressEl && this.address !== this.publicKey) {
-      let a = this.address;
-      if (a.includes('|')) {
-        a = a.split('|')[0];
+    if (addressEl) {
+      const showChainAddress = this.address && this.address !== this.publicKey;
+      addressEl.classList.toggle('hide-element', !showChainAddress);
+      if (showChainAddress) {
+        let a = this.address;
+        if (a.includes('|')) {
+          a = a.split('|')[0];
+        }
+        addressEl.textContent = a;
+      } else {
+        addressEl.textContent = '';
       }
-      addressEl.textContent = a;
     }
 
     const feeEl = document.getElementById('withdraw-confirm-fee');
