@@ -963,7 +963,7 @@ impl Transaction {
                 // as those are 0x02 and 0x03.
                 //
                 if slip.public_key[0] == 0x00 {
-                    if p2sh_expected_hash != slip.public_key {
+                    if p2sh_expected_hash != Some(slip.public_key) {
                         error!("transaction invalid: multiple P2SH inputs in wallet");
                         return false;
                     }
