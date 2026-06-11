@@ -247,7 +247,6 @@ impl RoutingThread {
             }
             Message::RequestEndpoint(_) => {
                 let config = self.config_lock.read().await;
-
                 if let Some(server) = config.get_server_configs() {
                     self.network
                         .send_message_by_peer_id(
@@ -259,7 +258,6 @@ impl RoutingThread {
             }
             Message::Endpoint(endpoint) => {
                 let mut peers = self.network.peer_lock.write().await;
-
                 if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
                     peer.endpoint = endpoint;
                 }
