@@ -249,6 +249,26 @@ impl RoutingThread {
                     .send_message_by_peer_id(peer_id, Message::Services(Services { services }))
                     .await;
             }
+            Message::RequestEndpoint(_) => {
+                let config = self.config_lock.read().await;
+
+                if let Some(server) = config.get_server_configs() {
+                    self.network
+                        .send_message_by_peer_id(
+                            peer_id,
+                            Message::Endpoint(server.endpoint.clone()),
+                        )
+                        .await;
+                }
+            }
+            Message::Endpoint(endpoint) => {
+                let mut peers = self.network.peer_lock.write().await;
+
+                if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                    peer.endpoint = endpoint;
+                }
+            }
+
             Message::RequestGenesisBlockReference() => {
                 self.process_request_genesis_block_reference_message(peer_id)
                     .await;
@@ -661,6 +681,25 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     .send_message_by_peer_id(peer_id, Message::RequestServices(RequestServices {}))
                     .await;
 
+                //
+                // share endpoint
+                //
+                {
+                    let config = self.config_lock.read().await;
+                    if let Some(server) = config.get_server_configs() {
+                        self.network
+                            .send_message_by_peer_id(
+                                peer_id,
+                                Message::Endpoint(server.endpoint.clone()),
+                            )
+                            .await;
+                    }
+                }
+
+                self.network
+                    .send_message_by_peer_id(peer_id, Message::RequestServices(RequestServices {}))
+                    .await;
+
                 if should_request_sync {
                     let sync = self.sync.read().await;
                     sync.send_request_blockchain_message(
@@ -883,6 +922,7 @@ mod tests {
     use crate::core::process::process_event::ProcessEvent;
     use crate::core::routing_thread::RoutingThread;
     use crate::core::util::config_manager::CONFIRMATION_CONFIG_PATH;
+    use crate::core::util::configuration::Endpoint;
     use crate::core::util::configuration::{
         BlockchainConfig, Configuration, ConsensusConfig, PeerConfig, Server, WalletConfig,
     };

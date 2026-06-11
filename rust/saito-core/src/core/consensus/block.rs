@@ -2828,12 +2828,17 @@ impl Block {
         storage: &Storage,
         validate_against_utxo: bool,
     ) -> bool {
+        //
+        // return true if previously validated
+        //
         if self.is_valid {
-            // block is already validated
             return true;
         }
+
         //
-        // TODO SYNC : Add the code to check whether this is the genesis block and skip validations
+        // TODO
+        //
+        // this code requires clean-up, it seems to be skipping  SYNC : Add the code to check whether this is the genesis block and skip validations
         //
         assert!(self.id > 0);
         if configs.is_spv_mode() {
