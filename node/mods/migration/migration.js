@@ -331,7 +331,7 @@ class Migration extends ModTemplate {
     let saitozen = tx.from[0].publicKey;
 
     // Only respond if I am the known migration bot
-    if (!this.publicKey == this.migration_publickey) {
+    if (this.publicKey != this.migration_publickey) {
       return;
     }
 
@@ -361,7 +361,6 @@ class Migration extends ModTemplate {
     let error = null;
     // Check balance
 
-    let min_deposit = 0;
     let max_deposit = await this.app.wallet.getBalance('SAITO');
     max_deposit = Number(this.app.wallet.convertNolanToSaito(max_deposit));
 
@@ -387,7 +386,6 @@ class Migration extends ModTemplate {
       module: 'Migration',
       request: 'migration accept',
       data: {
-        min_deposit,
         max_deposit,
         mixin_address,
         error,
