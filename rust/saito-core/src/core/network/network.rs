@@ -173,7 +173,6 @@ impl Network {
             "peer_send_count": peer_send_count,
         }))
         .unwrap_or_else(|_| "{}".to_string());
-
     }
 
     pub async fn cleanup_peers(&self, current_time: Timestamp) {
