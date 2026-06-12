@@ -2,7 +2,7 @@
  * RustScript onboarding — px typography (Saito :root is 10px; do not use rem here).
  */
 
-body.rustscript .rs-onboarding-overlay {
+body:has(.saito-container.rustscript) .rs-onboarding-overlay {
   align-items: stretch !important;
   justify-content: stretch !important;
   width: 100% !important;
@@ -14,14 +14,14 @@ body.rustscript .rs-onboarding-overlay {
   margin: 0 !important;
 }
 
-body.rustscript .rs-onboarding-overlay-backdrop,
-body.rustscript [id^='saito-overlay-backdrop'].rs-onboarding-overlay-backdrop {
+body:has(.saito-container.rustscript) .rs-onboarding-overlay-backdrop,
+body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop'].rs-onboarding-overlay-backdrop {
   background: rgba(14, 16, 20, 0.96) !important;
   backdrop-filter: blur(6px);
 }
 
-body.rustscript .rs-onboarding-overlay.maximized-overlay,
-body.rustscript .rs-onboarding-overlay.center-overlay {
+body:has(.saito-container.rustscript) .rs-onboarding-overlay.maximized-overlay,
+body:has(.saito-container.rustscript) .rs-onboarding-overlay.center-overlay {
   width: 100vw !important;
   max-width: none !important;
   height: 100vh !important;
@@ -35,7 +35,7 @@ body.rustscript .rs-onboarding-overlay.center-overlay {
 
 /* ── Canvas ── */
 
-body.rustscript .rs-onboard-appspace,
+body:has(.saito-container.rustscript) .rs-onboard-appspace,
 .rs-onboarding-overlay .rs-onboard-appspace {
   --rs-onboard-fs-brand: 32px;
   --rs-onboard-fs-prompt: 20px;
@@ -77,7 +77,7 @@ body.rustscript .rs-onboard-appspace,
   -webkit-font-smoothing: antialiased;
 }
 
-body.rustscript .rs-onboard-appspace button,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button,
 .rs-onboarding-overlay .rs-onboard-appspace button {
   display: flex;
   min-width: 0;
@@ -95,7 +95,7 @@ body.rustscript .rs-onboard-appspace button,
 }
 
 /* Saito .saito-overlay > div:last-child adds border/shadow to appspace root */
-body.rustscript .rs-onboarding-overlay.saito-overlay > .rs-onboard-appspace,
+body:has(.saito-container.rustscript) .rs-onboarding-overlay.saito-overlay > .rs-onboard-appspace,
 .rs-onboarding-overlay.saito-overlay > .rs-onboard-appspace {
   border: none !important;
   border-radius: 0 !important;
@@ -104,20 +104,20 @@ body.rustscript .rs-onboarding-overlay.saito-overlay > .rs-onboard-appspace,
 
 /* ── Panels ── */
 
-body.rustscript .rs-onboard-panel,
+body:has(.saito-container.rustscript) .rs-onboard-panel,
 .rs-onboarding-overlay .rs-onboard-panel {
   display: flex;
   flex-direction: column;
   width: 100%;
 }
 
-body.rustscript .rs-onboard-panel-centered,
+body:has(.saito-container.rustscript) .rs-onboard-panel-centered,
 .rs-onboarding-overlay .rs-onboard-panel-centered {
   max-width: 640px;
   gap: 36px;
 }
 
-body.rustscript .rs-onboard-panel-grid,
+body:has(.saito-container.rustscript) .rs-onboard-panel-grid,
 .rs-onboarding-overlay .rs-onboard-panel-grid {
   max-width: 880px;
   gap: 24px;
@@ -125,7 +125,7 @@ body.rustscript .rs-onboard-panel-grid,
 
 /* ── Centered hero (screen 1) ── */
 
-body.rustscript .rs-onboard-hero,
+body:has(.saito-container.rustscript) .rs-onboard-hero,
 .rs-onboarding-overlay .rs-onboard-hero {
   display: flex;
   flex-direction: column;
@@ -134,14 +134,14 @@ body.rustscript .rs-onboard-hero,
   gap: 12px;
 }
 
-body.rustscript .rs-onboard-mark,
+body:has(.saito-container.rustscript) .rs-onboard-mark,
 .rs-onboarding-overlay .rs-onboard-mark {
   font-size: 36px;
   line-height: 1;
   color: var(--rs-onboard-accent);
 }
 
-body.rustscript .rs-onboard-title,
+body:has(.saito-container.rustscript) .rs-onboard-title,
 .rs-onboarding-overlay .rs-onboard-title {
   margin: 0;
   font-size: var(--rs-onboard-fs-brand);
@@ -152,7 +152,7 @@ body.rustscript .rs-onboard-title,
   line-height: 1.15;
 }
 
-body.rustscript .rs-onboard-lead,
+body:has(.saito-container.rustscript) .rs-onboard-lead,
 .rs-onboarding-overlay .rs-onboard-lead {
   margin: 0;
   max-width: 480px;
@@ -163,7 +163,7 @@ body.rustscript .rs-onboard-lead,
 
 /* ── Choices section ── */
 
-body.rustscript .rs-onboard-choices-section,
+body:has(.saito-container.rustscript) .rs-onboard-choices-section,
 .rs-onboarding-overlay .rs-onboard-choices-section {
   display: flex;
   flex-direction: column;
@@ -171,7 +171,7 @@ body.rustscript .rs-onboard-choices-section,
   width: 100%;
 }
 
-body.rustscript .rs-onboard-prompt,
+body:has(.saito-container.rustscript) .rs-onboard-prompt,
 .rs-onboarding-overlay .rs-onboard-prompt {
   margin: 0;
   font-size: var(--rs-onboard-fs-prompt);
@@ -181,14 +181,14 @@ body.rustscript .rs-onboard-prompt,
   text-align: left;
 }
 
-body.rustscript .rs-onboard-panel-centered .rs-onboard-prompt,
+body:has(.saito-container.rustscript) .rs-onboard-panel-centered .rs-onboard-prompt,
 .rs-onboarding-overlay .rs-onboard-panel-centered .rs-onboard-prompt {
   text-align: center;
 }
 
 /* ── Option cards (screens 1 & 2) ── */
 
-body.rustscript .rs-onboard-options,
+body:has(.saito-container.rustscript) .rs-onboard-options,
 .rs-onboarding-overlay .rs-onboard-options {
   display: flex;
   flex-direction: column;
@@ -196,7 +196,7 @@ body.rustscript .rs-onboard-options,
   width: 100%;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-option,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-option,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-option {
   flex-direction: row;
   align-items: center;
@@ -213,25 +213,25 @@ body.rustscript .rs-onboard-appspace button.rs-onboard-option,
   box-sizing: border-box;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-option:hover,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-option:hover,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-option:hover {
   border-color: #505862;
   background: var(--rs-onboard-card-hover) !important;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-option-primary,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-option-primary,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-option-primary {
   border-color: var(--rs-onboard-border-primary);
   background: var(--rs-onboard-card-primary) !important;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-option-primary:hover,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-option-primary:hover,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-option-primary:hover {
   border-color: rgba(232, 160, 48, 0.6);
   background: var(--rs-onboard-card-primary-hover) !important;
 }
 
-body.rustscript .rs-onboard-option-icon,
+body:has(.saito-container.rustscript) .rs-onboard-option-icon,
 .rs-onboarding-overlay .rs-onboard-option-icon {
   flex: 0 0 40px;
   display: flex;
@@ -244,20 +244,20 @@ body.rustscript .rs-onboard-option-icon,
   color: var(--rs-onboard-text-desc);
 }
 
-body.rustscript .rs-onboard-option-primary .rs-onboard-option-icon,
+body:has(.saito-container.rustscript) .rs-onboard-option-primary .rs-onboard-option-icon,
 .rs-onboarding-overlay .rs-onboard-option-primary .rs-onboard-option-icon {
   background: rgba(232, 160, 48, 0.12);
   color: #e8b860;
 }
 
-body.rustscript .rs-onboard-option-icon-svg,
+body:has(.saito-container.rustscript) .rs-onboard-option-icon-svg,
 .rs-onboarding-overlay .rs-onboard-option-icon-svg {
   width: 22px;
   height: 22px;
   display: block;
 }
 
-body.rustscript .rs-onboard-option-body,
+body:has(.saito-container.rustscript) .rs-onboard-option-body,
 .rs-onboarding-overlay .rs-onboard-option-body {
   display: flex;
   flex-direction: column;
@@ -266,7 +266,7 @@ body.rustscript .rs-onboard-option-body,
   min-width: 0;
 }
 
-body.rustscript .rs-onboard-option-kicker,
+body:has(.saito-container.rustscript) .rs-onboard-option-kicker,
 .rs-onboarding-overlay .rs-onboard-option-kicker {
   font-size: var(--rs-onboard-fs-kicker);
   font-weight: 700;
@@ -276,7 +276,7 @@ body.rustscript .rs-onboard-option-kicker,
   line-height: 1.2;
 }
 
-body.rustscript .rs-onboard-option-title,
+body:has(.saito-container.rustscript) .rs-onboard-option-title,
 .rs-onboarding-overlay .rs-onboard-option-title {
   font-size: var(--rs-onboard-fs-option-title);
   font-weight: 600;
@@ -284,14 +284,14 @@ body.rustscript .rs-onboard-option-title,
   color: var(--rs-onboard-text-strong);
 }
 
-body.rustscript .rs-onboard-option-desc,
+body:has(.saito-container.rustscript) .rs-onboard-option-desc,
 .rs-onboarding-overlay .rs-onboard-option-desc {
   font-size: var(--rs-onboard-fs-option-desc);
   line-height: 1.55;
   color: var(--rs-onboard-text-desc);
 }
 
-body.rustscript .rs-onboard-option-chevron,
+body:has(.saito-container.rustscript) .rs-onboard-option-chevron,
 .rs-onboarding-overlay .rs-onboard-option-chevron {
   flex: 0 0 auto;
   font-size: 22px;
@@ -300,7 +300,7 @@ body.rustscript .rs-onboard-option-chevron,
   transition: color 0.15s, transform 0.15s;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-option:hover .rs-onboard-option-chevron,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-option:hover .rs-onboard-option-chevron,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-option:hover .rs-onboard-option-chevron {
   color: var(--rs-onboard-accent);
   transform: translateX(2px);
@@ -308,14 +308,14 @@ body.rustscript .rs-onboard-appspace button.rs-onboard-option:hover .rs-onboard-
 
 /* ── Step headers (screens 2 & 3) ── */
 
-body.rustscript .rs-onboard-step-header,
+body:has(.saito-container.rustscript) .rs-onboard-step-header,
 .rs-onboarding-overlay .rs-onboard-step-header {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-body.rustscript .rs-onboard-step-title,
+body:has(.saito-container.rustscript) .rs-onboard-step-title,
 .rs-onboarding-overlay .rs-onboard-step-title {
   margin: 0;
   font-size: var(--rs-onboard-fs-step);
@@ -324,7 +324,7 @@ body.rustscript .rs-onboard-step-title,
   color: var(--rs-onboard-text-strong);
 }
 
-body.rustscript .rs-onboard-step-lead,
+body:has(.saito-container.rustscript) .rs-onboard-step-lead,
 .rs-onboarding-overlay .rs-onboard-step-lead {
   margin: 0;
   font-size: var(--rs-onboard-fs-lead);
@@ -332,12 +332,12 @@ body.rustscript .rs-onboard-step-lead,
   color: var(--rs-onboard-text-desc);
 }
 
-body.rustscript .rs-onboard-panel-centered .rs-onboard-step-lead,
+body:has(.saito-container.rustscript) .rs-onboard-panel-centered .rs-onboard-step-lead,
 .rs-onboarding-overlay .rs-onboard-panel-centered .rs-onboard-step-lead {
   text-align: center;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-back,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-back,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-back {
   align-self: flex-start;
   padding: 0;
@@ -349,7 +349,7 @@ body.rustscript .rs-onboard-appspace button.rs-onboard-back,
   font-weight: 500;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-back:hover,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-back:hover,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-back:hover {
   color: var(--rs-onboard-text-desc) !important;
   background: none !important;
@@ -357,7 +357,7 @@ body.rustscript .rs-onboard-appspace button.rs-onboard-back:hover,
 
 /* ── Template grid (screen 3) ── */
 
-body.rustscript .rs-onboard-template-grid,
+body:has(.saito-container.rustscript) .rs-onboard-template-grid,
 .rs-onboarding-overlay .rs-onboard-template-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -365,7 +365,7 @@ body.rustscript .rs-onboard-template-grid,
   width: 100%;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-template,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-template,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-template {
   flex-direction: column;
   align-items: flex-start;
@@ -385,19 +385,19 @@ body.rustscript .rs-onboard-appspace button.rs-onboard-template,
   transition: border-color 0.15s, background 0.15s;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-template:hover,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-template:hover,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-template:hover {
   border-color: #505862;
   background: var(--rs-onboard-card-hover) !important;
 }
 
-body.rustscript .rs-onboard-appspace button.rs-onboard-template:focus-visible,
+body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-template:focus-visible,
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-template:focus-visible {
   outline: 2px solid var(--rs-onboard-accent);
   outline-offset: 2px;
 }
 
-body.rustscript .rs-onboard-template-name,
+body:has(.saito-container.rustscript) .rs-onboard-template-name,
 .rs-onboarding-overlay .rs-onboard-template-name {
   width: 100%;
   min-width: 0;
@@ -409,7 +409,7 @@ body.rustscript .rs-onboard-template-name,
   word-break: break-word;
 }
 
-body.rustscript .rs-onboard-template-desc,
+body:has(.saito-container.rustscript) .rs-onboard-template-desc,
 .rs-onboarding-overlay .rs-onboard-template-desc {
   width: 100%;
   min-width: 0;
@@ -424,24 +424,24 @@ body.rustscript .rs-onboard-template-desc,
 /* ── Responsive ── */
 
 @media (max-width: 640px) {
-  body.rustscript .rs-onboard-appspace,
+  body:has(.saito-container.rustscript) .rs-onboard-appspace,
   .rs-onboarding-overlay .rs-onboard-appspace {
     padding: 28px 16px;
   }
 
-  body.rustscript .rs-onboard-panel-centered,
-  body.rustscript .rs-onboard-panel-grid,
+  body:has(.saito-container.rustscript) .rs-onboard-panel-centered,
+  body:has(.saito-container.rustscript) .rs-onboard-panel-grid,
   .rs-onboarding-overlay .rs-onboard-panel-centered,
   .rs-onboarding-overlay .rs-onboard-panel-grid {
     max-width: 100%;
   }
 
-  body.rustscript .rs-onboard-appspace button.rs-onboard-option,
+  body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-option,
   .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-option {
     padding: 16px 18px;
   }
 
-  body.rustscript .rs-onboard-template-grid,
+  body:has(.saito-container.rustscript) .rs-onboard-template-grid,
   .rs-onboarding-overlay .rs-onboard-template-grid {
     grid-template-columns: 1fr;
   }

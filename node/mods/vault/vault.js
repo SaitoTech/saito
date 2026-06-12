@@ -38,7 +38,7 @@ class Vault extends ModTemplate {
 			image: 'https://saito.io/vault/img/splash.png'
 		};
 
-		this.access_file_overlay = new AccessFileOverlay(this.app, this.mod);
+		this.access_file_overlay = new AccessFileOverlay(this.app, this);
 	}
 
 	async initialize(app) {

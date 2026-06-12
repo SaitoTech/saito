@@ -45,9 +45,9 @@ class PanelReferenceView {
     if (phase === 'required-complete') {
       return [
         '<li class="rs-panel-ref-success-msg">✓ Script successfully validates.</li>',
-        '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">This script is ready to upload to the network.</li>',
+        '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">This script is ready to publish to the network.</li>',
         `<li class="rs-panel-ref-actions">
-          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-tx" data-action="create-transaction">Create Transaction</button>
+          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Publish to Network</button>
         </li>`
       ];
     }
@@ -55,10 +55,10 @@ class PanelReferenceView {
     if (phase === 'script-ready') {
       return [
         '<li class="rs-panel-ref-success-msg">✓ Your script is ready!</li>',
-        '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">Would you like to test it or upload it to the network?</li>',
+        '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">Publish when you are ready, or test first if you like.</li>',
         `<li class="rs-panel-ref-actions">
+          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Publish to Network</button>
           <button type="button" class="rs-panel-ref-action rs-panel-ref-action-test" data-action="move-to-testing">Proceed to Test</button>
-          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-tx" data-action="create-transaction">Create Transaction</button>
         </li>`
       ];
     }
@@ -73,9 +73,9 @@ class PanelReferenceView {
       }
     });
 
-    this.container?.querySelector('[data-action="create-transaction"]')?.addEventListener('click', () => {
-      if (typeof this.lastContext?.onCreateTransaction === 'function') {
-        this.lastContext.onCreateTransaction();
+    this.container?.querySelector('[data-action="publish"]')?.addEventListener('click', () => {
+      if (typeof this.lastContext?.onPublish === 'function') {
+        this.lastContext.onPublish();
       }
     });
   }
@@ -126,7 +126,7 @@ class RustscriptPanel {
       phase,
       remainingCount: testLive ? remainingRequired : remainingScript,
       onMoveToTesting: () => this.moveToTesting(),
-      onCreateTransaction: () => this.createTransaction()
+      onPublish: () => this.openPublish()
     });
   }
 
@@ -135,12 +135,10 @@ class RustscriptPanel {
     await this.main.refresh();
   }
 
-  createTransaction() {
-    const hash = this.mod.scripthash();
-    this.app.connection.emit('rustscript-create-transaction', {
-      script: this.mod.getScript(),
-      scripthash: hash
-    });
+  openPublish() {
+    if (this.main?.publishFlow && this.main.isScriptPublishable()) {
+      this.main.publishFlow.openChoice();
+    }
   }
 }
 

@@ -34,13 +34,18 @@ class Rustscript extends ModTemplate {
 
     this.styles = [
       '/rustscript/css/main.css',
+      '/rustscript/css/rustscript-header.css',
+      '/rustscript/css/rustscript-command-bar.css',
       '/rustscript/css/rustscript-editor.css',
       '/rustscript/css/rustscript-panel.css',
       '/rustscript/css/rustscript-welcome-overlay.css',
       '/rustscript/css/rustscript-fields-overlay.css',
       '/rustscript/css/rustscript-overlay.css',
-      '/rustscript/css/rustscript-opcodes-overlay.css'
+      '/rustscript/css/rustscript-opcodes-overlay.css',
+      '/rustscript/css/rustscript-publish-overlay.css'
     ];
+
+    this.icon = 'fas fa-code';
 
     this.script = {};
     this.opcodes = {};
@@ -48,7 +53,7 @@ class Rustscript extends ModTemplate {
     this.header = null;
   }
 
-  initialize(app) {
+  async initialize(app) {
     super.initialize?.(app);
 
     [
@@ -73,6 +78,7 @@ class Rustscript extends ModTemplate {
         this.opcodes[key].opcode = op;
       }
     });
+
   }
 
   async render() {
@@ -80,14 +86,37 @@ class Rustscript extends ModTemplate {
       return;
     }
 
-    if (this.main == null) {
-      this.main = new RustscriptMain(this.app, this);
+    if (!this.header) {
       this.header = new SaitoHeader(this.app, this);
       await this.header.initialize(this.app);
+      this.addComponent(this.header);
+    }
+    if (!this.main) {
+      this.main = new RustscriptMain(this.app, this);
+      this.addComponent(this.main);
     }
 
     await this.header.render();
-    this.main.render();
+    await this.main.render();
+  }
+
+  respondTo(type = '') {
+    if (type === 'saito-header') {
+      if (!this.browser_active) {
+        return [
+          {
+            text: 'Rustscript',
+            icon: this.icon,
+            rank: 110,
+            type: 'navigation',
+            callback: function () {
+              navigateWindow('/rustscript');
+            }
+          }
+        ];
+      }
+    }
+    return null;
   }
 
   setScript(script) {
@@ -252,6 +281,18 @@ class Rustscript extends ModTemplate {
       unlockingScript,
       json: JSON.stringify(ast, null, 2)
     };
+  }
+
+  async onConfirmation(blk, tx, conf) {
+    if (this.main?.publishFlow) {
+      this.main.publishFlow.handleConfirmation(blk, tx, conf);
+    }
+  }
+
+  async onNewBlock(blk, lc) {
+    if (this.main?.publishFlow) {
+      await this.main.publishFlow.checkBlockForPendingTx(blk);
+    }
   }
 }
 

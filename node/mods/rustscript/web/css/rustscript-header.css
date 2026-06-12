@@ -1,0 +1,108 @@
+/*
+ * RustScript — Saito header dark theme (module-scoped overrides only).
+ * Layout, height, and padding come from saito-header.css — do not redeclare them.
+ * :root = 10px; --saito-header-height = 7rem (70px).
+ */
+
+body:has(.saito-container.rustscript) #saito-header {
+  background: #121212;
+  color: #e0e0e0;
+  border-bottom: 1px solid #2a2a2a;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+  backdrop-filter: none;
+  align-items: center;
+}
+
+body:has(.saito-container.rustscript) #saito-header .saito-header-logo-wrapper {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+/* resetHeaderLogo() injects an SVG with class saito-header-logo — match native 15rem × 100% */
+body:has(.saito-container.rustscript) #saito-header .saito-header-logo {
+  width: 15rem;
+  height: 100%;
+  cursor: pointer;
+  fill: #e8e8e8;
+}
+
+body:has(.saito-container.rustscript) #saito-header .saito-header-logo .cls-1 {
+  fill: #e8e8e8;
+}
+
+body:has(.saito-container.rustscript) #saito-header .hamburger-container {
+  align-items: center;
+  margin-left: auto;
+}
+
+body:has(.saito-container.rustscript) #saito-header #header-msg {
+  color: #c8c8c8;
+  display: flex;
+  align-items: center;
+  align-self: center;
+}
+
+body:has(.saito-container.rustscript) #saito-header #header-msg.flash {
+  color: #ececec;
+}
+
+body:has(.saito-container.rustscript) #saito-header #saito-header-menu-toggle {
+  margin-right: 0;
+  margin-left: 0;
+  align-items: center;
+  align-self: center;
+}
+
+body:has(.saito-container.rustscript) #saito-header #saito-header-menu-toggle i {
+  color: #ececec;
+  line-height: 1;
+}
+
+body:has(.saito-container.rustscript) #saito-header #saito-header-menu-toggle:hover i {
+  color: #fff;
+  opacity: 1;
+}
+
+body:has(.saito-container.rustscript) #saito-header .saito-header-hamburger-contents {
+  background: #161616;
+  border-color: #2e2e2e;
+  color: #e4e4e4;
+}
+
+body:has(.saito-container.rustscript) #saito-header .saito-header-backdrop {
+  background: rgba(6, 6, 8, 0.72);
+}
+
+body:has(.saito-container.rustscript) #saito-header #qrcode img,
+body:has(.saito-container.rustscript) #saito-header .qrcode img {
+  border-color: #3a3a3a;
+  background: #0e0e0e;
+}
+
+body:has(.saito-container.rustscript) #saito-header .balance-amount-whole,
+body:has(.saito-container.rustscript) #saito-header .balance-amount-separator,
+body:has(.saito-container.rustscript) #saito-header .balance-amount-decimal {
+  color: #ececec;
+}
+
+body:has(.saito-container.rustscript) #saito-header .wallet-btn {
+  background: #1a1a1a;
+  color: #ddd;
+}
+
+body:has(.saito-container.rustscript) #saito-header .wallet-btn:hover {
+  background: #2e2e2e;
+  color: #fff;
+}
+
+body:has(.saito-container.rustscript) #saito-header .wallet-btn-container {
+  background: #0e0e0e;
+  color: #e0e0e0;
+}
+
+body:has(.saito-container.rustscript.rs-publish-modal-open) #saito-header {
+  pointer-events: auto !important;
+  z-index: 100050 !important;
+}

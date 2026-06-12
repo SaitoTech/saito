@@ -341,19 +341,22 @@ class SemanticScriptView {
     this.container.appendChild(tree);
   }
 
-  renderValue(value, path, depth) {
+  renderValue(value, path, depth, trailingComma = false) {
     if (value === null || typeof value !== 'object') {
-      return this.renderPrimitiveRow(value, path, depth);
+      return this.renderPrimitiveRow(value, path, depth, trailingComma);
     }
     if (Array.isArray(value)) {
-      return this.renderArray(value, path, depth);
+      return this.renderArray(value, path, depth, trailingComma);
     }
-    return this.renderObject(value, path, depth);
+    return this.renderObject(value, path, depth, trailingComma);
   }
 
-  renderPrimitiveRow(value, path, depth) {
+  renderPrimitiveRow(value, path, depth, trailingComma = false) {
     const row = this.createRow(depth, 'rs-semantic-row-value');
     row.appendChild(this.renderAtom(value, path));
+    if (trailingComma) {
+      row.appendChild(this.span(',', 'rs-semantic-punct'));
+    }
     return row;
   }
 
@@ -559,7 +562,7 @@ class SemanticScriptView {
     return btn;
   }
 
-  renderObject(obj, path, depth) {
+  renderObject(obj, path, depth, trailingComma = false) {
     const block = document.createElement('div');
     block.className = 'rs-semantic-block';
     block.dataset.depth = String(depth);
@@ -603,8 +606,11 @@ class SemanticScriptView {
     block.appendChild(inner);
     this.appendWitnessFields(block, obj, path, depth);
 
-    const close = this.createRow(depth, 'rs-semantic-row-brace');
+    const close = this.createRow(depth, 'rs-semantic-row-brace rs-semantic-row-close');
     close.appendChild(this.span('}', 'rs-semantic-brace'));
+    if (trailingComma) {
+      close.appendChild(this.span(',', 'rs-semantic-punct'));
+    }
     block.appendChild(close);
 
     return block;
@@ -622,16 +628,11 @@ class SemanticScriptView {
     keyRow.appendChild(this.span(jsonKey(key), 'rs-semantic-key'));
     keyRow.appendChild(this.span(':', 'rs-semantic-punct'));
     section.appendChild(keyRow);
-    section.appendChild(this.renderValue(child, childPath, depth + 1));
-    if (needsTrailingComma) {
-      const commaRow = this.createRow(depth + 1, 'rs-semantic-row-comma');
-      commaRow.appendChild(this.span(',', 'rs-semantic-punct'));
-      section.appendChild(commaRow);
-    }
+    section.appendChild(this.renderValue(child, childPath, depth + 1, needsTrailingComma));
     return section;
   }
 
-  renderArray(arr, path, depth) {
+  renderArray(arr, path, depth, trailingComma = false) {
     const block = document.createElement('div');
     block.className = 'rs-semantic-block rs-semantic-block-array';
     block.dataset.depth = String(depth);
@@ -652,12 +653,9 @@ class SemanticScriptView {
       if (isNested) {
         const section = document.createElement('div');
         section.className = 'rs-semantic-section';
-        section.appendChild(this.renderValue(item, childPath, depth + 1));
-        if (index < arr.length - 1) {
-          const commaRow = this.createRow(depth + 1, 'rs-semantic-row-comma');
-          commaRow.appendChild(this.span(',', 'rs-semantic-punct'));
-          section.appendChild(commaRow);
-        }
+        section.appendChild(
+          this.renderValue(item, childPath, depth + 1, index < arr.length - 1)
+        );
         inner.appendChild(section);
       } else {
         const row = this.createRow(depth + 1, 'rs-semantic-row-value');
@@ -671,8 +669,11 @@ class SemanticScriptView {
 
     block.appendChild(inner);
 
-    const close = this.createRow(depth, 'rs-semantic-row-brace');
+    const close = this.createRow(depth, 'rs-semantic-row-brace rs-semantic-row-close');
     close.appendChild(this.span(']', 'rs-semantic-brace'));
+    if (trailingComma) {
+      close.appendChild(this.span(',', 'rs-semantic-punct'));
+    }
     block.appendChild(close);
 
     return block;

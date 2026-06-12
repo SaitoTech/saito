@@ -1,6 +1,6 @@
 /* Field editor overlays — rustscript2 prompt parity */
 
-body.rustscript .saito-overlay:has(> .rs-prompt-overlay) {
+body:has(.saito-container.rustscript) .saito-overlay:has(> .rs-prompt-overlay) {
   border: none !important;
   background: transparent !important;
   border-radius: 0 !important;
@@ -8,7 +8,7 @@ body.rustscript .saito-overlay:has(> .rs-prompt-overlay) {
   overflow: visible;
 }
 
-body.rustscript .saito-overlay > .rs-prompt-overlay {
+body:has(.saito-container.rustscript) .saito-overlay > .rs-prompt-overlay {
   border: var(--rs-control-border, 2px solid #3d3d3d) !important;
   border-radius: var(--rs-control-radius, 4px) !important;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55) !important;
@@ -16,7 +16,7 @@ body.rustscript .saito-overlay > .rs-prompt-overlay {
   background: var(--rustscript-surface, #181818);
 }
 
-body.rustscript .rs-prompt-overlay {
+body:has(.saito-container.rustscript) .rs-prompt-overlay {
   width: min(520px, 94vw);
   max-width: 94vw;
 }
