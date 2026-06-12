@@ -1,3 +1,4 @@
+.game.twilight {
 .war-overlay {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -13,6 +14,8 @@
 	height: 80vh;
 	justify-content: space-evenly;
 	justify-items: center;
+	background-size: cover !important;
+	background-position-y: top !important;
 }
 
 .war-overlay .card {
@@ -28,44 +31,34 @@
 }
 
 .indopaki-war {
-	background-size: cover;
-	background-position-y: top;
+
 	background-image:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-		url(/twilight/img/backgrounds/indopaki-bg.jpg);
+		url(/twilight/img/backgrounds/indopaki-bg.jpg) !important;
 }
 .koreanwar-war {
-	background-size: cover;
-	background-position-y: top;
 	background-image:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-		url(/twilight/img/backgrounds/koreanwar-bg.jpg);
+		url(/twilight/img/backgrounds/koreanwar-bg.jpg) !important;
 }
 .arabisraeli-war {
-	background-size: cover;
-	background-position-y: top;
 	background-image:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-		url(/twilight/img/backgrounds/arabisraeli-bg.jpg);
+		url(/twilight/img/backgrounds/arabisraeli-bg.jpg) !important;
 }
 .sudan-war {
-	background-size: cover;
-	background-position-y: top;
 	background-image:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-		url(/twilight/img/backgrounds/sudan-bg.jpg);
+		url(/twilight/img/backgrounds/sudan-bg.jpg) !important;
 }
 .brushwar-war {
-	background-size: cover;
-	background-position-y: top;
 	background-image:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-		url(/twilight/img/backgrounds/brushwar-alternate.jpg);
+		url(/twilight/img/backgrounds/brushwar-alternate.jpg) !important;
 }
 .iraniraq-war {
-	background-size: cover;
-	background-position-y: top;
 	background-image:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-		url(/twilight/img/backgrounds/iraniraq-bg.jpg);
+		url(/twilight/img/backgrounds/iraniraq-bg.jpg) !important;
+}
 }

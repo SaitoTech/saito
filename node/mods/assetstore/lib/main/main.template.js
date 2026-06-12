@@ -42,7 +42,7 @@ module.exports = (app, mod, this_self) => {
   if (app.browser.returnURLParameter('seller') || app.browser.returnURLParameter('listing')) {
   } else {
     html += `
-      <div class="asset-store-splash">
+      <div class="asset-store-splash saito-cta">
         <div class='store-img-flip'>
           <div class='store-img-front'>
             <img src="/store/img/splash.png">

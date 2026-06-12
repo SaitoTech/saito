@@ -9,7 +9,7 @@
 }
 
 .notification-item:hover {
-  background-color: pink;
+  background-color: var(--saito-notification-hover-bg);
 }
 
 .notifications-empty {
@@ -58,7 +58,7 @@
 }
 
 .saito-user:hover .saito-notification-dot{
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-notification-ring);
   color: var(--saito-font-color);
 }
 

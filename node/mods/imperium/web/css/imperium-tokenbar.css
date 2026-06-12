@@ -1,3 +1,4 @@
+.game.imperium {
 .tokenbar {
 	display: block;
 	position: relative;
@@ -19,4 +20,5 @@
 	color: #000;
 	-webkit-text-stroke: 1px #fff;
 	stroke: 1px #fff;
+}
 }

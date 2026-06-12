@@ -1,3 +1,4 @@
+.game.his {
 .war-overlay {
 	height: 90vh;
 	width: 90vw;
@@ -99,4 +100,4 @@
     font-size: 2rem;
     font-style: italic;
 }
-
+}

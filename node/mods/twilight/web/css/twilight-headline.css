@@ -1,3 +1,4 @@
+.game.twilight {
 .headline-overlay {
 	width: 90vw;
 	height: 80vh;
@@ -8,7 +9,7 @@
 	border-radius: var(--saito-border-radius);
 	background-image:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-		url(/twilight/img/backgrounds/headline-bg.png);
+		url(/twilight/img/backgrounds/headline-bg.png) !important;
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
@@ -65,4 +66,5 @@
 	font-size: 2rem;
 	display: block;
 	width: 100%;
+}
 }

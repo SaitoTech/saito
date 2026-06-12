@@ -11,9 +11,10 @@ This alows for a header with a header with title to be added without extra CSS
   display: grid;
   grid-template-rows: min-content 1fr min-content; /* last item optional */
   max-height: 95vh;
-  border: var(--border-thickness-thick) solid var(--border-color-general-dividers);
+  border: 1px solid var(--saito-overlay-panel-border);
   border-radius: var(--saito-border-radius);
-  background-image: url(/saito/img/tiled-logo.svg);
+  background: var(--saito-overlay-panel-background);
+  box-shadow: var(--saito-overlay-panel-shadow);
 }
 
 .saito-modal-title {
@@ -156,7 +157,7 @@ This alows for a header with a header with title to be added without extra CSS
 }
 
 #saito-confirm-add-publickey {
-  background-color: var(--saito-white);
+  background: var(--saito-modal-background);
   height: auto;
   width: 30vh;
   border-radius: 1.5rem;
@@ -221,8 +222,7 @@ This alows for a header with a header with title to be added without extra CSS
 /* LIST SELECTION MODAL */
 
 .game-selection-list-overlay {
-  background-color: black;
-  /* testing, i have it as white locally. */
+  background: var(--saito-overlay-panel-background);
   max-height: 90vh;
   overflow-y: scroll;
   font-size: 2rem;
@@ -237,14 +237,13 @@ This alows for a header with a header with title to be added without extra CSS
 }
 
 .selection-list li:hover {
-  background-color: #33669999;
-  /* testing */
+  background-color: var(--saito-surface-selected);
 }
 
 .selection-list li .tiptext {
   width: fit-content;
-  background-color: #000a;
-  color: #ffffff !important;
+  background-color: var(--saito-chip-bg);
+  color: var(--saito-chip-fg) !important;
   min-width: 0px;
   padding: 3px;
   pointer-events: none;
@@ -274,11 +273,11 @@ This alows for a header with a header with title to be added without extra CSS
 }
 
 .saito-overlaid-icon {
-  color: var(--saito-white);
+  color: var(--saito-chip-fg);
   position: absolute;
   left: 34%;
   top: 34%;
-  background: #000a;
+  background: var(--saito-chip-bg);
   width: min(90%, 5rem);
   height: min(90%, 5rem);
   display: flex;
@@ -353,7 +352,8 @@ This alows for a header with a header with title to be added without extra CSS
   margin: 2rem;
 }
 
-#qr-share-link img {
+#qr-share-link img,
+#qr-share-link svg {
   height: auto;
   max-width: 24rem;
   width: 24vh;

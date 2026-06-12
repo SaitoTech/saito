@@ -10,7 +10,7 @@ without any warranty.
 
 /* load body text fonts */
 @import url('http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono');
-
+.game.nwasm {
 html {
 	background: #000;
 }
@@ -125,4 +125,5 @@ table.datatable td {
 }
 td.numalign {
 	text-align: right;
+}
 }

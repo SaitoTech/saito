@@ -46,6 +46,7 @@ class Arcade extends ModTemplate {
 		//
 		this.ui = null;
 		this.header = null;
+		this.show_splash = true;
 		this.lounge_overlay = null;
 		this.wizard_overlay = null;
 		this.share_overlay = null;
@@ -180,6 +181,10 @@ class Arcade extends ModTemplate {
 		if (!app.options.arcade) {
 			app.options.arcade = {};
 		}
+
+		this.show_splash = Object.prototype.hasOwnProperty.call(app.options.arcade, 'show-splash')
+			? app.options.arcade['show-splash']
+			: true;
 
 		//
 		// Maybe good, maybe not... Only sorts on fresh load...
@@ -1824,6 +1829,19 @@ class Arcade extends ModTemplate {
 		}
 	}
 
+	saveOptions() {
+		if (!this.app.BROWSER) {
+			return;
+		}
+
+		if (!this.app.options.arcade) {
+			this.app.options.arcade = {};
+		}
+
+		this.app.options.arcade['show-splash'] = this.show_splash;
+		this.app.storage.saveOptions();
+	}
+
 	removeGameFromWallet(game_id) {
 		this.removeGame(game_id);
 		if (this.app.options.games) {
@@ -2043,18 +2061,16 @@ class Arcade extends ModTemplate {
 		this.ready_popup_overlay.show(html);
 
 		setTimeout(() => {
-			const el = document.getElementById(`saito-overlay${overlay.ordinal}`);
-			if (!el) return;
-			const startBtn = el.querySelector('.arcade-ready-popup-start');
-			const dismissBtn = el.querySelector('.arcade-ready-popup-dismiss');
+			const startBtn = document.querySelector('.arcade-ready-popup-start');
+			const dismissBtn = document.querySelector('.arcade-ready-popup-dismiss');
 			if (startBtn) {
 				startBtn.onclick = () => {
-					overlay.close();
+					this.ready_popup_overlay.close();
 					navigateWindow(`/${slug}`, 200);
 				};
 			}
 			if (dismissBtn) {
-				dismissBtn.onclick = () => overlay.close();
+				dismissBtn.onclick = () => this.ready_popup_overlay.close();
 			}
 		}, 50);
 	}

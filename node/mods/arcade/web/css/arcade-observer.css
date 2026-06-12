@@ -3,7 +3,7 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  background: rgba(0, 0, 0, 0.85);
+  background: var(--background-color-shim-dark);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 9999;
@@ -18,9 +18,9 @@
 }
 
 .arcade-observer-btn {
-  background: #222;
-  border: 1px solid #555;
-  color: #fff;
+  background: var(--saito-surface-color);
+  border: 1px solid var(--saito-border-color);
+  color: var(--saito-font-color);
   padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
@@ -28,8 +28,8 @@
 }
 
 .arcade-observer-btn:hover {
-  background: #333;
-  border-color: #666;
+  background: var(--saito-surface-hover);
+  border-color: var(--saito-primary);
 }
 
 .arcade-observer-progress {
@@ -52,14 +52,14 @@
   display: block !important;
   position: absolute;
   inset: 0;
-  background-color: var(--background-color-shim-normal);
+  background-color: var(--saito-overlay-backdrop);
 }
 
 .arcade-observer-loading-panel {
   position: relative;
   z-index: 1;
-  box-shadow: var(--saito-box-shadow);
-  border: var(--border-thickness) solid var(--border-color-general-dividers);
+  box-shadow: var(--saito-overlay-panel-shadow);
+  border: var(--border-thickness) solid var(--saito-overlay-panel-border);
 }
 
 .arcade-observer-loading-inner {
@@ -85,7 +85,7 @@
 .arcade-observer-progress-bar {
   width: 300px;
   height: 6px;
-  background: var(--background-color-shim-light);
+  background: var(--saito-overlay-backdrop-stacked);
   margin: 20px auto;
   border-radius: var(--saito-border-radius);
   overflow: hidden;

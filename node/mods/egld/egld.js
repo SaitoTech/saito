@@ -121,7 +121,7 @@ class EGLDModule extends CryptoModule {
     }
   }
 
-  async checkBalance() {
+  async fetchBalance() {
     return this.updateAccount();
   }
 
@@ -173,7 +173,7 @@ class EGLDModule extends CryptoModule {
    *
    */
 
-  async checkHistory(callback = null) {
+  async fetchHistory(ts = null, callback = null) {
     try {
       const address = Address.newFromBech32(this.address);
       const transactions = await this.apiNetworkProvider.doGetGeneric(
@@ -289,7 +289,7 @@ class EGLDModule extends CryptoModule {
         }
       }*/
     } catch (error) {
-      console.error('Error checkHistory:', error);
+      console.error('Error fetchHistory:', error);
     }
 
     if (callback) {

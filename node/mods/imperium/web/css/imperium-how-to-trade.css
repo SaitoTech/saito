@@ -1,3 +1,4 @@
+.game.imperium {
 .how-to-trade-overlay {
 	display: grid;
 	color: white;
@@ -92,4 +93,5 @@
 .how-to-trade-example .unit {
 	margin-top: 0rem;
 	padding-top: 0rem;
+}
 }

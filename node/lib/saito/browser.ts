@@ -300,19 +300,10 @@ class Browser {
 
       this.browser_active = 1;
 
-      let theme = /*document.documentElement.getAttribute('data-theme') ||*/ 'lite';
+      const theme_from_document = document.documentElement.getAttribute('data-theme');
+      const theme = this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'noir';
 
-      // ignore html-embedded default theme preference until we are sorted on the themese
-      // because all of them are undefined!
-
-      if (this.app.options?.theme) {
-        if (this.app.options.theme[active_module]) {
-          theme = this.app.options.theme[active_module];
-          this.switchTheme(theme);
-        }
-      }
-
-      this.updateThemeInHeader(theme);
+      this.switchTheme(theme);
     } catch (err) {
       if (err == 'ReferenceError: document is not defined') {
         console.error('non-browser detected: ', err);
@@ -721,13 +712,19 @@ class Browser {
     const QRCode = require('./../helpers/qrcode');
     let obj = document.getElementById(qrid);
 
-    if (typeof data === 'object') {
-      data.width = 256;
-      data.height = 256;
-      data.colorDark = '#000000';
-      data.colorLight = '#ffffff';
-      data.correctLevel = QRCode.CorrectLevel.H;
-    }
+    data =
+      typeof data === 'object' && data !== null
+        ? data
+        : {
+            text: data
+          };
+
+    data.width = data.width || 256;
+    data.height = data.height || 256;
+    data.colorDark = data.colorDark || '#000000';
+    data.colorLight = data.colorLight || '#ffffff';
+    data.correctLevel = data.correctLevel || QRCode.CorrectLevel.H;
+    data.useSVG = true;
 
     console.debug('browser [generateQRCode]: ', data);
 
@@ -2859,14 +2856,24 @@ class Browser {
   }
 
   returnBalanceHTML(balance, exact_precision) {
+    const raw = parseFloat(String(balance));
+    const isSubunit =
+      Number.isFinite(raw) && Math.abs(raw) > 0 && Math.abs(raw) < 1;
+
     balance = this.formatDecimals(balance, exact_precision);
     let separator = this.getDecimalSeparator();
     let split = balance.split(`${separator}`);
-    let html = `<span class="balance-amount-whole">${split[0]}</span>`;
+    const segmentsClass = isSubunit
+      ? 'balance-amount-segments balance-amount-segments--subunit'
+      : 'balance-amount-segments';
+
+    let html = `<span class="${segmentsClass}">`;
+    html += `<span class="balance-amount-whole">${split[0]}</span>`;
     if (split[1]) {
       html += `<span class="balance-amount-separator">${separator}</span>`;
       html += `<span class="balance-amount-decimal">${split[1]}</span>`;
     }
+    html += `</span>`;
     return html;
   }
 

@@ -150,24 +150,10 @@ class Mixin extends ModTemplate {
     }
 
     //
-    // sendPayment, returnWithdrawalFeeForAddress
+    // sendPayment, returnWithdrawalFeeForAddress, getMixinAddress
     //
-    if (message.request === 'mixin fetch user by address') {
-      return await this.receiveFetchUserByAddressTransaction(app, tx, peer, mycallback);
-    }
-
-    //
-    // getMixinAddress
-    //
-    if (message.request === 'mixin fetch user by publickey by asset_id') {
-      return await this.receiveFetchUserByPublickeyByAssetIdTransaction(app, tx, peer, mycallback);
-    }
-
-    //
-    // returnHistory
-    //
-    if (message.request === 'mixin fetch address by user id by asset_id') {
-      return await this.receiveFetchAddressByUserIdByAssetIdTransaction(app, tx, peer, mycallback);
+    if (message.request === 'mixin fetch user') {
+      return await this.receiveFetchUserTransaction(app, tx, peer, mycallback);
     }
 
     //
@@ -269,18 +255,11 @@ class Mixin extends ModTemplate {
         //
         await crypto_module.installModule(mixin_self.app);
 
-        //
-        // check balance, any changes will result in
-        // snapshots being found that will broadcast
-        // events which will in turn trigger updates
-        //
-        crypto_module.fetchHistory();
-
         if (mixin_self.account_created) {
-          if (crypto_module.isActivated()) {
-            await crypto_module.checkBalance();
-          } else if (crypto_module.address) {
-            crypto_module.activate();
+          // We don't want to activate every crypto in the wallet, only
+          // the ones that users have already manually activated
+          if (crypto_module.isActivated() || crypto_module.address) {
+            await crypto_module.activate();
           }
         }
       }, 250);
@@ -331,9 +310,7 @@ class Mixin extends ModTemplate {
   // returnWithdrawalFee()
   // sendInNetworkTransferRequest()
   // sendExternalNetworkTransferRequest()
-  // sendFetchUserByAddressTransaction()
-  // sendFetchUserByPublicKeyByAssetIdTransaction()
-  // sendFetchAddressByUserIdTransaction()
+  // sendFetchUserTransaction()
   // ---------------------
   //
 
@@ -607,7 +584,6 @@ class Mixin extends ModTemplate {
    */
   async fetchSafeSnapshots(asset_id, created_at = 0, callback = null) {
     try {
-      console.log('<<<<<< MixinApi call ', this.mixin);
       let user = MixinApi({
         keystore: {
           app_id: this.mixin.user_id,
@@ -616,13 +592,10 @@ class Mixin extends ModTemplate {
           session_private_key: this.mixin.session_seed
         }
       });
-      console.log('>>>>>>>>');
 
       let offset = new Date(created_at).toISOString();
       offset = offset.substring(0, offset.length - 1);
       offset = offset + '000000Z';
-
-      console.log(created_at, offset);
 
       let snapshots = await user.safe.fetchSafeSnapshots({
         asset: asset_id,
@@ -899,7 +872,7 @@ class Mixin extends ModTemplate {
       ]);
 
       console.log('sendedTx: ', sendedTx);
-      return { status: 200, message: sendedTx };
+      return { status: 200, message: sendedTx, pending: balance - amount };
     } catch (err) {
       return { status: 400, message: err };
     }
@@ -925,6 +898,14 @@ class Mixin extends ModTemplate {
       const chainFee = fees.find((f) => f.asset_id === chain.asset_id);
       const fee = assetFee ?? chainFee;
       console.log('fee', fee);
+
+      const balance = await client.utxo.safeAssetBalance({
+        members: [this.mixin.user_id],
+        threshold: 1,
+        asset: asset_id,
+        state: 'unspent'
+      });
+      console.log('balance: ', balance);
 
       // withdrawal with chain asset as fee
       if (fee.asset_id !== asset.asset_id) {
@@ -1091,13 +1072,18 @@ class Mixin extends ModTemplate {
           }
         ]);
         console.log('res: ', res);
-        return { status: 200, message: res };
+        return { status: 200, message: res, pending: balance - (amount + fee) };
       }
     } catch (err) {
       return { status: 400, message: err };
     }
   }
 
+  /**
+   *
+   * TODO -- we want a uniqueness constraint so we don't make duplicate entries
+   * everytime a user ports their key and "recovers" their mixin credentials
+   */
   async receiveSaveUserTransaction(app, tx, peer, callback) {
     let message = tx.returnMessage();
 
@@ -1163,101 +1149,54 @@ class Mixin extends ModTemplate {
     return result;
   }
 
-  async sendFetchUserByAddressTransaction(params = {}, callback) {
-    let data = params;
-    return this.app.network.sendRequestAsTransaction(
-      'mixin fetch user by address',
-      data,
-      function (res) {
-        console.log('Callback for sendFetchUserByAddressTransaction request: ', res);
-        return callback(res);
-      },
-      this.mixin_peer?.peerIndex
-    );
+  async sendFetchUserTransaction(params = {}, callback = null) {
+    return this.app.network.sendRequestAsTransaction('mixin fetch user', params, function (res) {
+      console.log('Callback for sendFetchUser: ', params, res);
+      if (callback) {
+        callback(res);
+      }
+      return res;
+    });
   }
 
-  async receiveFetchUserByAddressTransaction(app, tx, peer, callback = null) {
-    let message = tx.returnMessage();
-    let address = message.data.address;
-    let sql = `SELECT * FROM mixin_users 
-               WHERE address = $address;`;
-    let params = {
-      $address: address
-    };
+  async receiveFetchUserTransaction(app, tx, peer, callback = null) {
+    let data = tx.returnMessage().data;
+    let sql = `SELECT * FROM mixin_users WHERE`;
+    let params = {};
 
-    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
-    if (result.length > 0) {
-      return callback(result[0]);
+    // Must provide one of [address, publickey, user_id]
+    if (data?.address) {
+      sql += ` address = $address`;
+      params['$address'] = data.address;
     }
 
-    return callback(false);
-  }
+    if (data?.publicKey) {
+      sql += ` publickey = $publickey`;
+      params['$publickey'] = data.publicKey;
+    }
 
-  // Get MixinAddress -> returnAddressFromPublicKey
-  async sendFetchUserByPublicKeyByAssetIdTransaction(params = {}, callback) {
-    return await this.app.network.sendRequestAsTransaction(
-      'mixin fetch user by publickey by asset_id',
-      params,
-      callback,
-      this.mixin_peer?.peerIndex
-    );
-  }
+    if (data?.user_id) {
+      sql += ` user_id = $user_id`;
+      params['$user_id'] = data.user_id;
+    }
 
-  async receiveFetchUserByPublickeyByAssetIdTransaction(app, tx, peer, callback = null) {
-    let message = tx.returnMessage();
-    let publicKey = message.data.publicKey;
-    let asset_id = message.data.asset_id;
-    let sql = `SELECT * FROM mixin_users 
-               WHERE publickey = $publicKey AND asset_id = $asset_id ORDER BY created_at DESC;`;
-    let params = {
-      $publicKey: publicKey,
-      $asset_id: asset_id
-    };
-    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
-    if (result.length > 0) {
+    // Optional for address (which is unique per crypto), but necessary for user_id / publicKey
+    if (data?.asset_id) {
+      sql += ` AND asset_id = $asset_id`;
+      params['$asset_id'] = data.asset_id;
+    }
+
+    sql += ' ORDER BY created_at DESC';
+
+    console.log('*****', sql, params);
+
+    try {
+      let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
       return callback(result);
+    } catch (err) {
+      console.error(err);
     }
-
-    return callback(false);
-  }
-
-  //Return History
-  async sendFetchAddressByUserIdTransaction(asset_id, user_id) {
-    if (this.mixin_peer?.peerIndex) {
-      return await this.app.network.sendRequestAsTransaction(
-        'mixin fetch address by user id',
-        { asset_id, user_id },
-        function (res) {
-          if (res.length > 0) {
-            return res[0];
-          }
-          return null;
-        },
-        this.mixin_peer.peerIndex
-      );
-    } else {
-      return null;
-    }
-  }
-
-  async receiveFetchAddressByUserIdTransaction(app, tx, peer, callback = null) {
-    console.log('tx:', tx);
-    let message = tx.returnMessage();
-    let user_id = message.data.user_id;
-    let asset_id = message.data.asset_id;
-    let sql = `SELECT * FROM mixin_users 
-               WHERE user_id = $user_id AND asset_id = $asset_id ORDER BY created_at DESC;`;
-    let params = {
-      $user_id: user_id,
-      $asset_id: asset_id
-    };
-    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
-    console.log('result:', result);
-    if (result.length > 0) {
-      return callback(result);
-    }
-
-    return callback(false);
+    return callback([]);
   }
 
   async load() {

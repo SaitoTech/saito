@@ -1,0 +1,60 @@
+/* ----------------------------------------------------------------
+ * Scrollbars, text selection, and native form controls shared by dark-mode
+ * themes (dark, raven, prism, noir). Uses theme tokens on html[data-theme='…']
+ * so each skin keeps its colors (Chrome needs explicit option + color-scheme).
+ *----------------------------------------------------------------*/
+
+html[data-theme='dark'],
+html[data-theme='raven'],
+html[data-theme='prism'],
+html[data-theme='noir'] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--saito-border-color) var(--saito-background-color);
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] select option,
+html[data-theme='raven'] select option,
+html[data-theme='prism'] select option,
+html[data-theme='noir'] select option {
+  background-color: var(--saito-background-color);
+  color: var(--saito-font-color);
+}
+
+html[data-theme='dark'] ::-webkit-scrollbar,
+html[data-theme='raven'] ::-webkit-scrollbar,
+html[data-theme='prism'] ::-webkit-scrollbar,
+html[data-theme='noir'] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html[data-theme='dark'] ::-webkit-scrollbar-track,
+html[data-theme='raven'] ::-webkit-scrollbar-track,
+html[data-theme='prism'] ::-webkit-scrollbar-track,
+html[data-theme='noir'] ::-webkit-scrollbar-track {
+  background: var(--saito-background-color);
+}
+
+html[data-theme='dark'] ::-webkit-scrollbar-thumb,
+html[data-theme='raven'] ::-webkit-scrollbar-thumb,
+html[data-theme='prism'] ::-webkit-scrollbar-thumb,
+html[data-theme='noir'] ::-webkit-scrollbar-thumb {
+  background: var(--saito-border-color);
+  border-radius: 4px;
+}
+
+html[data-theme='dark'] ::-webkit-scrollbar-thumb:hover,
+html[data-theme='raven'] ::-webkit-scrollbar-thumb:hover,
+html[data-theme='prism'] ::-webkit-scrollbar-thumb:hover,
+html[data-theme='noir'] ::-webkit-scrollbar-thumb:hover {
+  background: var(--saito-primary);
+}
+
+html[data-theme='dark'] ::selection,
+html[data-theme='raven'] ::selection,
+html[data-theme='prism'] ::selection,
+html[data-theme='noir'] ::selection {
+  background: var(--saito-primary);
+  color: var(--saito-primary-text);
+}

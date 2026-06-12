@@ -1,3 +1,4 @@
+.game.his {
 .fortification-overlay {
 	width: 90vw;
 	height: 80vh;
@@ -161,4 +162,5 @@
 	color: white;
 	background: #000;
 	margin-bottom: 2rem;
+}
 }

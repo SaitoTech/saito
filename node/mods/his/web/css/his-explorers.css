@@ -1,3 +1,4 @@
+.game.his {
 .explorer-card {
 	height: 25rem;
 	width: 25rem;
@@ -25,5 +26,4 @@
 	min-height: 80vh;
 	max-height: 90vh;
 }
-
-
+}

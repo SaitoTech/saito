@@ -72,6 +72,10 @@ class NFTCryptoModule extends CryptoModule {
     // NFTs do not have external addresses
     this.address = this.app.wallet.publicKey;
 
+    // It is easier to flag native cryptos than web3 (especially if we add some outside mixin)
+    // Also applies to ghost Saito module in wallet.ts
+    this.chain_id = 'NATIVE';
+
     // History is intentionally unsupported
     this.history = null;
     this.history_update_ts = 0;
@@ -319,13 +323,11 @@ class NFTCryptoModule extends CryptoModule {
   }
 
   async getAvailableBalance() {
-    return await this.checkBalance();
+    return await this.fetchBalance();
   }
 
-
-
   async getPendingBalance() {
-    const confirmedStr = await this.checkBalance();
+    const confirmedStr = await this.fetchBalance();
     let confirmed = 0n;
     try {
       confirmed = BigInt(String(confirmedStr || '0'));
@@ -373,7 +375,7 @@ class NFTCryptoModule extends CryptoModule {
     return pending.toString();
   }
 
-  async checkBalance() {
+  async fetchBalance() {
     // Sum all unreserved slips for this NFT id
     const slips = this._returnNFTSlips({ unreserved: true });
 
@@ -389,10 +391,6 @@ class NFTCryptoModule extends CryptoModule {
     // CryptoModule expects a string
     this.balance = total.toString();
     return this.balance;
-  }
-
-  returnBalance() {
-    return this.balance || '0';
   }
 
   returnAddress() {
@@ -492,12 +490,11 @@ class NFTCryptoModule extends CryptoModule {
    * OPTIONAL / OVERRIDDEN BEHAVIOR
    ********************************************************/
 
-  async checkHistory(callback = null) {
+  async fetchHistory(ts = null, callback = null) {
     // Explicitly unsupported for NFTs
     if (callback) {
       callback([]);
     }
-    return [];
   }
 
   async fetchPendingDeposits(callback = null) {

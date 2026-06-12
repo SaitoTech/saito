@@ -1,4 +1,4 @@
-
+.game.twilight {
 .game-playerbox-head .saito-user > .saito-address,
 .game-playerbox-head .saito-user > .saito-userline {
 	color: white;
@@ -108,4 +108,5 @@
 	.game-playerbox {
 		border-radius: 8px;
 	}
+}
 }

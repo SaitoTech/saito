@@ -1,4 +1,4 @@
-
+.game.blackjack {
 .game-playerbox-manager {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -232,4 +232,5 @@
 	left: 1rem;
 	top: -4rem !important;
   }
+}
 }

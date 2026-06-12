@@ -9,6 +9,7 @@ class AdminPeers {
     this.peers = JSON.parse(
       JSON.stringify(mod?.server_info?.options?.peers || [])
     );
+    this.livePeerJsonKeydown = null;
   }
 
   render() {
@@ -164,9 +165,14 @@ class AdminPeers {
     table.className = "admin-live-peers-table";
 
     // Dynamically determine all keys present across rows
+    const hiddenKeys = new Set(["peer"]);
     const allKeys = new Set();
     rows.forEach((row) => {
-      Object.keys(row).forEach((key) => allKeys.add(key));
+      Object.keys(row).forEach((key) => {
+        if (!hiddenKeys.has(key)) {
+          allKeys.add(key);
+        }
+      });
     });
 
     const keys = Array.from(allKeys);
@@ -180,6 +186,10 @@ class AdminPeers {
       th.innerText = key;
       headerRow.appendChild(th);
     });
+
+    const actionHeader = document.createElement("th");
+    actionHeader.innerText = "JSON";
+    headerRow.appendChild(actionHeader);
 
     thead.appendChild(headerRow);
     table.appendChild(thead);
@@ -204,11 +214,85 @@ class AdminPeers {
         tr.appendChild(td);
       });
 
+      const actionTd = document.createElement("td");
+      const jsonButton = document.createElement("button");
+      jsonButton.className = "admin-live-peer-json-button";
+      jsonButton.type = "button";
+      jsonButton.innerText = "View";
+      jsonButton.onclick = () => {
+        this.showLivePeerJson(row.peer || row);
+      };
+      actionTd.appendChild(jsonButton);
+      tr.appendChild(actionTd);
+
       tbody.appendChild(tr);
     });
 
     table.appendChild(tbody);
     container.appendChild(table);
+  }
+
+  showLivePeerJson(peer) {
+    this.closeLivePeerJson();
+
+    const overlay = document.createElement("div");
+    overlay.className = "admin-live-peer-json-overlay";
+
+    const popup = document.createElement("div");
+    popup.className = "admin-live-peer-json-popup";
+
+    const header = document.createElement("div");
+    header.className = "admin-live-peer-json-header";
+
+    const title = document.createElement("h3");
+    title.innerText = "Peer JSON";
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "admin-live-peer-json-close";
+    closeButton.type = "button";
+    closeButton.innerText = "Close";
+
+    header.appendChild(title);
+    header.appendChild(closeButton);
+
+    const json = document.createElement("pre");
+    json.className = "admin-live-peer-json-body";
+    try {
+      json.innerText = JSON.stringify(peer, null, 2) || "{}";
+    } catch (err) {
+      json.innerText = `Unable to stringify peer JSON: ${err.message}`;
+    }
+
+    popup.appendChild(header);
+    popup.appendChild(json);
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    const close = () => {
+      this.closeLivePeerJson();
+    };
+    const onKeydown = (e) => {
+      if (e.key === "Escape") {
+        close();
+      }
+    };
+
+    closeButton.onclick = close;
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        close();
+      }
+    };
+    document.addEventListener("keydown", onKeydown);
+    this.livePeerJsonKeydown = onKeydown;
+  }
+
+  closeLivePeerJson() {
+    if (this.livePeerJsonKeydown) {
+      document.removeEventListener("keydown", this.livePeerJsonKeydown);
+      this.livePeerJsonKeydown = null;
+    }
+    document.querySelector(".admin-live-peer-json-overlay")?.remove();
   }
 
   renderLivePeerError(msg) {
@@ -219,4 +303,3 @@ class AdminPeers {
 }
 
 module.exports = AdminPeers;
-

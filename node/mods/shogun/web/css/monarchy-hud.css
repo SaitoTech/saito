@@ -1,3 +1,4 @@
+.game.shogun {
 .game-cardgrid {
 	column-gap: 1rem;
 }
@@ -62,4 +63,5 @@
 
 .card.nonplayable{
 	filter: grayscale(75%) brightness(0.75);
+}
 }

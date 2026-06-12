@@ -8,6 +8,8 @@ use saito_core::core::consensus::blockchain::{Blockchain, BlockchainObserver};
 use saito_core::core::defs::{
     BlockHash, BlockId, PrintForLog, SaitoHash, SaitoUTXOSetKey, UTXO_KEY_LENGTH,
 };
+use serde::Serialize;
+use serde_wasm_bindgen::Serializer;
 use std::cell::RefCell;
 use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -92,7 +94,8 @@ impl WasmBlockchain {
             .blockchain_lock
             .blocking_read();
 
-        to_js_value(&*blockchain)
+        let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
+        blockchain.serialize(&serializer).unwrap()
     }
 
     pub async fn reset(&self) {

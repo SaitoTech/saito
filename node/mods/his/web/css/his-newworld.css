@@ -1,3 +1,4 @@
+.game.his {
 .new-world-overlay {
 	background-image: url(/his/img/backgrounds/new_world.jpg);
 	background-size: cover;
@@ -351,7 +352,4 @@
       top : 2996px;
       left : 486px;
 }
-
-
-
-
+}

@@ -1,4 +1,4 @@
-
+.game.imperium {
 .bombardment-overlay {
   background: linear-gradient(rgba(0, 0, 0, 0.40), rgba(0, 0, 0, 0.40)), url(/imperium/img/backgrounds/bombardment.jpg);
   background-size: cover;
@@ -83,4 +83,4 @@
   padding: 1rem;
   border-radius: 1rem;
 }
-
+}

@@ -14,6 +14,7 @@ class ScreenRecordControls {
 		this.startTime = new Date().getTime();
 
 		this.callbacks = {};
+		this.started_timeout = null;
 
 	}
 
@@ -25,6 +26,7 @@ class ScreenRecordControls {
 
 		}
 
+		this.showStartedCue();
         this.startTimer()
 		this.attachEvents();
 
@@ -82,8 +84,27 @@ class ScreenRecordControls {
 		this.timer_interval = null;
 	}
 
+	showStartedCue() {
+		let controls = document.getElementById('screenrecord-controls');
+		if (!controls) {
+			return;
+		}
+		controls.classList.add('recording-started');
+		if (this.started_timeout) {
+			clearTimeout(this.started_timeout);
+		}
+		this.started_timeout = setTimeout(() => {
+			controls.classList.remove('recording-started');
+			this.started_timeout = null;
+		}, 1800);
+	}
+
     remove(){
 		this.stopTimer();
+		if (this.started_timeout) {
+			clearTimeout(this.started_timeout);
+			this.started_timeout = null;
+		}
 		if (document.getElementById("screenrecord-controls")){
 			document.getElementById("screenrecord-controls").remove();
 		}

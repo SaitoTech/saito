@@ -39,10 +39,6 @@ class Deposit {
       let ticker = this.migration ? '' : this.ticker;
       this.overlay.show(PendingDepositTemplate(ticker));
 
-      if (this.migration) {
-        this.overlay.blockClose();
-      }
-
       this.pollPendingDeposit();
     });
 
@@ -64,6 +60,14 @@ class Deposit {
   async render() {
     this.overlay.show(DepositTemplate(this.app, this.mod, this));
     this.renderCrypto();
+
+    if (this.ticker === 'SAITO') {
+      let balance = await this.app.wallet.getBalance();
+      if (Number(balance) == 0 && document.querySelector('.get-saito-tokens')) {
+        this.app.modules.renderInto('.get-saito-tokens');
+      }
+    }
+
     this.attachEvents();
   }
 
@@ -81,8 +85,8 @@ class Deposit {
 
     if (document.getElementById('submit')) {
       document.getElementById('submit').onclick = () => {
-        this.overlay.remove();
-        this.app.connection.emit('saito-crypto-deposit-poll-pending');
+        this.overlay.show(PendingDepositTemplate(this.ticker));
+        this.pollPendingDeposit();
       };
     }
   }
@@ -91,8 +95,7 @@ class Deposit {
     try {
       let cryptomod = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
 
-      await cryptomod.checkBalance();
-      this.balance = Number(cryptomod.returnBalance());
+      this.balance = Number(await cryptomod.fetchBalance());
 
       if (document.querySelector(`#saito-deposit-form .balance-amount`)) {
         document.querySelector(`#saito-deposit-form .balance-amount`).innerHTML =
@@ -113,17 +116,35 @@ class Deposit {
     }
   }
 
-  pollPendingDeposit() {
-    console.log('Crypto Deposit: poll pending deposit...., current balance: ', this.balance);
-
+  async pollPendingDeposit() {
     this.overlay.blockClose();
     const cryptomod = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
 
+    let new_balance = Number(await cryptomod.getAvailableBalance());
+
+    console.log(
+      'Crypto Deposit: poll pending deposit...., current/initial/desired balance: ',
+      new_balance,
+      this.balance,
+      this.desired_amount
+    );
+
+    // Short circuit before starting the interval
+    if (this.desired_amount) {
+      if (new_balance > this?.desired_amount) {
+        this.overlay.remove();
+        if (this.callback) {
+          this.callback();
+        }
+        return;
+      }
+    }
+
     let confs = cryptomod.confirmations;
     let ct = 0;
-    let interval = setInterval(() => {
-      cryptomod.checkBalance();
-      cryptomod.fetchPendingDeposits((res) => {
+    let interval = setInterval(async () => {
+      await cryptomod.fetchBalance();
+      await cryptomod.fetchPendingDeposits((res) => {
         if (res.length > 0) {
           let pending = res.pop();
           ct = pending.confirmations;
@@ -148,7 +169,9 @@ class Deposit {
         document.querySelector('.saito-crypto-deposit-content').innerHTML = html;
       }
 
-      let new_balance = Number(cryptomod.returnBalance());
+      new_balance = Number(cryptomod.balance);
+
+      console.log('Crypto Deposit: poll -- balance -- ', new_balance, this.balance);
 
       if (this.local_dev && ct > 8) {
         new_balance = 100000 * Math.random();
@@ -157,8 +180,8 @@ class Deposit {
 
       if (new_balance > this.balance) {
         clearInterval(interval);
+        this.overlay.remove();
         if (this.callback) {
-          this.overlay.remove();
           this.callback();
         }
       }

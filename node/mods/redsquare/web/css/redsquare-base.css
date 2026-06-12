@@ -1,3 +1,88 @@
+.redsquare-splash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--saito-white, #fff);
+  background:
+    radial-gradient(60vw 60vw at 50% -20%, rgba(255, 145, 77, 0.12), transparent),
+    #0d0e11;
+}
+
+.redsquare-splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(95vw, 860px);
+  padding: 3.2rem;
+  gap: 2.4rem;
+  border-radius: calc(var(--saito-border-radius) + 0.15rem);
+  background: var(--saito-overlay-panel-background);
+  box-shadow: var(--saito-overlay-panel-shadow);
+  border: 1px solid var(--saito-overlay-panel-border);
+}
+
+.redsquare-splash-logo {
+  --saito-cta-logo-color: var(--saito-white, #fff);
+  --saito-cta-logo-mask: url('/saito/icons/saito-redsquare-icon-outline-label-horizontal.svg');
+  display: block;
+  position: relative;
+  width: min(560px, 84vw);
+  aspect-ratio: 381 / 134;
+  max-width: 100%;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
+}
+
+.redsquare-splash-overlay:hover .redsquare-splash-logo {
+  --saito-cta-logo-mask: url('/saito/icons/saito-redsquare-icon-solid-label-horizontal.svg');
+}
+
+.redsquare-splash-logo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--saito-cta-logo-color);
+  -webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+  mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+}
+
+.redsquare-splash-subtitle {
+  color: var(--saito-font-color-secondary, #abaaae);
+  font-size: 1.25rem;
+  letter-spacing: 0.22em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.redsquare-splash-join {
+  width: 100%;
+  padding: 1.35rem 2rem;
+  border: none;
+  border-radius: var(--saito-border-radius);
+  color: #fff;
+  background: linear-gradient(135deg, #ff914d, #f38239);
+  box-shadow: 0 0 32px -10px rgba(255, 145, 77, 0.55);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    filter 0.18s ease;
+}
+
+.redsquare-splash-join:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 36px -10px rgba(255, 145, 77, 0.55);
+  filter: brightness(1.03);
+}
+
+.redsquare-splash-join:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
 .tweet-container {
   position: relative;
   max-width: 600px;
@@ -5,7 +90,6 @@
   border-right: 1px solid var(--saito-border-color);
   border-left: 1px solid var(--saito-border-color);
   border-bottom: 1px solid var(--saito-border-color);
-  background: var(--saito-background-color);
 }
 
 .saito-end-of-redsquare {
@@ -24,6 +108,10 @@
 
 .tweet-container .tweet-overlay .tweet-overlay-content .tweet-overlay-header {
   display: none;
+}
+
+.tweet-overlay .post-tweet-button {
+  border-radius: var(--saito-button-radius);
 }
 
 .tweet-thread-holder {
@@ -107,7 +195,7 @@
   display: flex;
   align-items: center;
   font-size: 13px;
-  color: #718695;
+  color: var(--saito-muted-color);
   margin-bottom: 6px;
   gap: 6px;
 }
@@ -164,9 +252,10 @@
 .tweet-avatar {
   width: 48px;
   height: 48px;
+  border: 1px solid var(--saito-border-color);
   margin-right: 12px;
-  border-radius: 50%;
-  background-color: #aaa;
+  border-radius: var(--saito-identicon-border-radius);
+  background-color: var(--saito-muted-color);
   flex-shrink: 0;
   z-index: 5;
   display: block !important;

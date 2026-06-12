@@ -1,6 +1,27 @@
+.game.settlers {
 .card, .cardfan .card {
 	width: min(15vh, 15vw);
 	height: auto;
+}
+
+.resource-card-count {
+	position: absolute;
+	left: -0.5rem;
+	top: -0.5rem;
+	min-width: 2.6rem;
+	height: 2.6rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #ffd45c;
+	border: 2px solid #424143;
+	color: var(--text-color);
+	font-size: 1.6rem;
+	font-weight: 700;
+	line-height: 1;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+	z-index: 5;
 }
 
 .card.tiny {
@@ -58,4 +79,13 @@
 
 .card_holder img {
 	width: 100%;
+}
+
+@media only screen and (max-width: 600px) and (orientation: portrait) {
+	.resource-card-count {
+		min-width: 2.1rem;
+		height: 2.1rem;
+		font-size: 1.25rem;
+	}
+}
 }

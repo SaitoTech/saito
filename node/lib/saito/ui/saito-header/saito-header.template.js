@@ -18,9 +18,11 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                        <div class="wallet-balance">
                            <img class="wallet-identicon" src="${identicon}">
                            <div class="balance-amount">
-                            <span class="balance-amount-whole">0</span>
-                            <span class="balance-amount-separator">.</span>
-                            <span class="balance-amount-decimal">00</span>
+                            <span class="balance-amount-segments">
+                              <span class="balance-amount-whole">0</span>
+                              <span class="balance-amount-separator">.</span>
+                              <span class="balance-amount-decimal">00</span>
+                            </span>
                             </div>
                            <select class="wallet-select-crypto" id="wallet-select-crypto"></select>
                        </div>
@@ -44,10 +46,6 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                            <i class="hideme fa-solid fa-list"></i>
                            <span class="hideme">Back</span>
                        </div>
-                       <!--div class="wallet-btn" id="wallet-btn-history">
-                           <i class="fa-regular fa-clock"></i>
-                           <span>History</span>
-                       </div-->
                        <div class="wallet-btn" id="wallet-btn-nft">
                            <i class="fa-solid fa-shapes"></i>
                            <span>NFTs</span>

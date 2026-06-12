@@ -476,7 +476,7 @@ class SettingsAppspace {
 
 						siteMessage('rebooting...');
 						if (this.app.browser.browser_active == 1) {
-							reloadWindow(300);
+							reloadWindow(500);
 						}
 					}
 				};

@@ -2,10 +2,9 @@
   max-width: 95vw;
   align-items: center;
 
-  /* Hard code color themes to light text on dark background */
-  color: var(--saito-white);
-  background: var(--saito-gray-900); /* this is pure black... */
-  border-radius: 1rem;
+  color: var(--saito-crypto-transfer-fg);
+  background: var(--saito-crypto-transfer-bg);
+  border-radius: var(--saito-radius-lg);
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
@@ -15,8 +14,8 @@
 }
 
 .game-crypto-transfer-manager-container .token-dropdown {
-  color: var(--saito-white);
-  background: var(--saito-gray-900);
+  color: var(--saito-crypto-transfer-fg);
+  background: var(--saito-crypto-transfer-bg);
 }
 
 .saito-overlay:has(.game-crypto-transfer-manager-container) {
@@ -32,7 +31,7 @@
 }
 
 input[type='checkbox'].ignore_checkbox {
-  border: 1px solid white;
+  border: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
   vertical-align: bottom;
   position: relative;
 }
@@ -62,7 +61,7 @@ input[type='checkbox'].ignore_checkbox {
 .stake-input-error {
   position: absolute;
   display: none;
-  color: var(--saito-red);
+  color: var(--saito-status-danger);
   font-size: 1.6rem;
   top: 105%;
   left: 1rem;
@@ -88,9 +87,9 @@ input[type='number'] {
 .game-crypto-transfer-manager-container .stake {
   background: none;
   border: none;
-  color: var(--saito-white);
+  color: var(--saito-crypto-transfer-fg);
   border-radius: 0;
-  border-bottom: 1px solid var(--saito-white);
+  border-bottom: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
   text-align: center;
   padding: 1rem;
   font-size: 4rem;
@@ -138,8 +137,8 @@ input[type='number'] {
 
 .crypto_transfer_btn.secondary {
   background: none;
-  color: var(--saito-white);
-  border: 1px solid var(--saito-border-color); /* testing */
+  color: var(--saito-crypto-transfer-fg);
+  border: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
 }
 
 #cryptoManagerFeedback {
@@ -226,7 +225,7 @@ input[type='number'] {
 }
 
 .game-crypto-transfer-manager-container .game-crypto-icon {
-  font-size: 8rem;
+  font-size: 10rem;
   display: none;
 }
 
@@ -250,7 +249,7 @@ input[type='number'] {
 }
 
 .counterparty-details .saito-user > .saito-address {
-  color: white;
+  color: var(--saito-crypto-transfer-fg);
   font-size: 1.2em;
 }
 
@@ -350,7 +349,8 @@ input[type='number'] {
 }
 
 .send-crypto-overlay__chain-address {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
   font-size: 1.5rem;
   letter-spacing: 0.04em;
@@ -392,7 +392,8 @@ input[type='number'] {
   color: color-mix(in srgb, var(--saito-white) 92%, transparent);
 }
 
-.send-crypto-overlay--mode-interactive.send-crypto-overlay--show-ignore .send-crypto-overlay__ignore {
+.send-crypto-overlay--mode-interactive.send-crypto-overlay--show-ignore
+  .send-crypto-overlay__ignore {
   display: flex;
 }
 

@@ -1,5 +1,4 @@
-
-
+.game.settlers {
 .cardnotice-wrapper {
     background-size: 111%;
     background-position: center;
@@ -38,4 +37,5 @@
 .cardnotice-card .settlers-dev-card-title {
 	font-size: 45px;
 	bottom: 11.5%;
+}
 }

@@ -23,9 +23,6 @@
  sendExternalNetworkTransferRequest()
  returnMixinNetworkInfo()
  returnWithdrawalFee()
- sendFetchUserByAddressTransaction()
- sendFetchUserByPublicKeyByAssetIdTransaction()
- sendFetchAddressByUserIdTransaction()
  deposit[]
  mixin.privatekey
  mixin.user_id
@@ -39,7 +36,7 @@ const getUuid = require('uuid-by-string');
 // code as we require. so we should be updating address validation if we need it, but
 // this should not be blocking us.
 //
-//const WAValidator = require("multicoin-address-validator");
+const WAValidator = require('@taasfi/multicoin-address-validator');
 
 class MixinModule extends CryptoModule {
 	constructor(app, mixin_mod, ticker, asset_id, chain_id) {
@@ -51,25 +48,13 @@ class MixinModule extends CryptoModule {
 		this.chain_id = chain_id;
 
 		this.polling_active = 0;
-		this.polling_last_request = 0;
 		this.polling_timeout = 0;
-		this.polling_intervals = [0, 15000, 45000, 100000, 300000, 600000];
+		this.polling_intervals = [5000, 15000, 45000, 90000, 120000, 180000];
 		this.polling_interval_current = 0;
 
+		this.cached_contacts = [];
+
 		this.confirmations = 100;
-		this.latest_snapshot_ts = 0;
-	}
-
-	async load() {
-		await super.load();
-		if (this.options?.latest_snapshot_ts) {
-			this.latest_snapshot_ts = Number(this.options.latest_snapshot_ts);
-		}
-	}
-
-	save() {
-		this.options.latest_snapshot_ts = this.latest_snapshot_ts;
-		super.save();
 	}
 
 	async activate() {
@@ -105,29 +90,21 @@ class MixinModule extends CryptoModule {
 		}
 	}
 
-	//
-	// Critical Balance Check Functions
-	//
+	async loadHistory() {
+		await super.loadHistory();
+		await this.checkForRecentTransactions();
+	}
 
 	//
-	// these functions are defined as such in the parent module
+	// Balance state (see also getPendingBalance, sendPayment, checkForRecentTransactions):
 	//
-	//async getAvailableBalance() {
-	//	return this.checkBalance();
-	//}
+	// - balance: confirmed Safe UTXO from fetchSafeUtxoBalance; persisted via save()
+	// - pending_balance: ephemeral post-send expected balance until the API reflects the
+	//   transfer; also drives returnDisplayBalance() and header "pending" styling
+	// - last_balance: ephemeral pre-send snapshot for a synthetic pending row in the
+	//   transaction history overlay until the snapshot lands in history
 	//
-	//async getPendingBalance() {
-	//	return this.checkBalance();
-	//}
-	//async checkBalance() {
-	//	return this.balance;
-	//}
-	//async checkPendingBalance() {
-	//	return await this.checkBalance();
-	//}
-
-	//
-	// queries the latest balance
+	// pending_balance and last_balance are not persisted in save().
 	//
 	async fetchBalance() {
 		if (!this.address) {
@@ -135,23 +112,50 @@ class MixinModule extends CryptoModule {
 			return;
 		}
 
-		let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
-		if (balance !== false) {
-			if (this.balance != balance) {
-				this.balance = balance;
-				this.save();
+		let ts = Date.now();
+		//
+		// We are adding some throttling here because this was getting called > 10 times
+		// just on page load. The polling / checkForRecentTransactions will clear the flag
+		// if there is any activity that would update things
+		//
+		if (!this.last_balance_fetch || ts - this.last_balance_fetch > 10000) {
+			console.log('@@@ FetchBalance ' + this.ticker);
+			this.last_balance_fetch = ts;
+
+			let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
+			if (balance !== false) {
+				// API caught up to the post-send estimate; drop the optimistic override.
+				if (balance == this.pending_balance) {
+					delete this.pending_balance;
+				}
+				if (this.balance != balance) {
+					this.balance = balance;
+					this.save();
+				}
 			}
 		}
 
 		return this.balance;
 	}
 
+	async getAvailableBalance() {
+		return this.fetchBalance();
+	}
+
 	//
 	// queries the latest pending balance
 	//
-	async fetchPendingBalance() {
-		let pending_balance = 0;
+	async getPendingBalance() {
+		let pending_balance = Number(await this.getAvailableBalance());
 
+		// Did we cache a pending balance because we just sent some tokens and cannot trust the safeUTXOBalance?
+		if (this.pending_balance) {
+			if (pending_balance !== this.pending_balance) {
+				pending_balance = this.pending_balance;
+			}
+		}
+
+		// Do we have incoming deposits from outside the platform?
 		this.pending_deposits = await this.fetchPendingDeposits();
 
 		for (let pd of this.pending_deposits) {
@@ -160,7 +164,7 @@ class MixinModule extends CryptoModule {
 			}
 		}
 
-		this.pending_balance = pending_balance.toString() || '0.0';
+		return pending_balance.toString() || '0';
 	}
 
 	/*
@@ -212,17 +216,92 @@ class MixinModule extends CryptoModule {
 		return this.pending_deposits;
 	}
 
+	getSaitoPublicKey(user_id) {
+		//
+		// check if address exists in local db
+		//
+		for (let pk in this.cached_contacts) {
+			if (this.cached_contacts[pk].includes(user_id)) {
+				return pk;
+			}
+		}
+
+		for (let k of this.app.keychain.returnKeys()) {
+			if (k?.crypto_addresses[this.ticker]?.includes(user_id)) {
+				return k.publicKey;
+			}
+		}
+
+		return false;
+	}
+
+	async validateHistory() {
+		await super.validateHistory();
+		for (let i = 0; i < this.history.length; i++) {
+			//
+			// Retroactively check for Saito publickeys to display user names
+			//
+			if (this.history[i].counter_party.address && !this.history[i].counter_party.publicKey) {
+				// We will save an empty string so we don't repeatedly hit the external DB for non-Saito linked accounts
+				if (this.history[i].counter_party.publicKey !== '') {
+					this.history[i].counter_party.publicKey =
+						this.getSaitoPublicKey(this.history[i].counter_party.address) ||
+						(await this.remoteUserFetch(this.history[i].counter_party.address));
+				}
+			}
+		}
+	}
+
+	async remoteUserFetch(user_id) {
+		let user = null;
+
+		// It is very strange that we seem to be unable to pass values back from
+		// this asynchronous function, though I swear there are places in the code where
+		// we expect that behavior.
+		// This setting a variable through the callback, with an await (to make sure the callback gets called)
+		// seems to do the trick
+
+		await this.mixin.sendFetchUserTransaction(
+			{
+				asset_id: this.asset_id,
+				user_id
+			},
+			(res) => {
+				if (res?.length > 0) {
+					// Cache this results!
+					let address = res[0].address;
+					if (res[0]?.user_id) {
+						address += '|' + res[0].user_id + '|mixin';
+					}
+
+					if (res[0].publickey) {
+						let pk = res[0].publickey;
+						this.cached_contacts[pk] = address;
+						// save address to keychain if publickey exists in keychain
+						if (this.app.keychain.hasPublicKey(pk)) {
+							this.app.keychain.addCryptoAddress(pk, this.ticker, address);
+						}
+					}
+
+					user = res[0];
+				}
+			}
+		);
+		return user?.publickey || '';
+	}
+
 	/**
 	 * Incremental history / snapshot sync: fetch new Safe ledger events, append to history,
-	 * emit semantic payment events, and advance latest_snapshot_ts.
-	 * Independent of checkHistory() / history_update_ts.
+	 * emit semantic payment events, and advance history_update_ts.
 	 */
-	async fetchHistory(mycallback = null) {
+	async checkForRecentTransactions() {
 		// We should not be making API calls on Mixin if we haven't installed this crypto
 		// (let alone set up a mixin account)
 		if (!this.isActivated()) {
 			return;
 		}
+
+		console.log('@@@ checkForRecentTransactions -- ' + this.ticker);
 
 		let fetched_updates = [];
 
@@ -231,12 +310,17 @@ class MixinModule extends CryptoModule {
 		}
 
 		let snapshots = await new Promise((resolve) => {
-			this.mixin.fetchSafeSnapshots(this.asset_id, this.latest_snapshot_ts, (d) => {
+			this.mixin.fetchSafeSnapshots(this.asset_id, this.history_update_ts + 1, (d) => {
 				resolve(d === false || d == null ? [] : d);
 			});
 		});
 
-		let start_ts = this.latest_snapshot_ts;
+		if (snapshots.length > 0) {
+			// Real ledger activity arrived; allow fetchBalance and drop the synthetic
+			// pending history row (details overlay uses last_balance until this point).
+			delete this.last_balance_fetch;
+			delete this.last_balance;
+		}
 
 		for (let snap of snapshots) {
 			//
@@ -278,7 +362,7 @@ class MixinModule extends CryptoModule {
 				trans_hash: snap.transaction_hash || ''
 			};
 
-			if (obj.timestamp < this.latest_snapshot_ts) {
+			if (obj.timestamp < this.history_update_ts) {
 				continue;
 			}
 
@@ -297,12 +381,12 @@ class MixinModule extends CryptoModule {
 			}
 
 			if (snap?.opponent_id) {
-				const user = await this.mixin.sendFetchAddressByUserIdTransaction(
-					this.asset_id,
-					snap.opponent_id
-				);
-				if (user?.publickey) {
-					obj.counter_party.publicKey = user.publickey;
+				let pk = this.getSaitoPublicKey(snap.opponent_id);
+				if (!pk) {
+					pk = await this.remoteUserFetch(snap.opponent_id);
+				}
+				if (pk) {
+					obj.counter_party.publicKey = pk;
 				}
 			}
 
@@ -333,7 +417,7 @@ class MixinModule extends CryptoModule {
 				this.app.connection.emit('on-payment-received', {
 					direction: obj.type,
 					amount: String(Math.abs(obj.amount)),
-					sender: obj.sender,
+					sender: obj?.counter_party.publicKey || obj?.counter_party.address || 'unknown',
 					receiver: this.returnAddress() || '',
 					timestamp: obj.timestamp,
 					block_id: '',
@@ -367,10 +451,11 @@ class MixinModule extends CryptoModule {
 				//   counter_party: { address: "...", publicKey: "..." }
 				// }
 				//
+
 				this.app.connection.emit('on-payment-sent', {
 					direction: obj.type,
 					amount: String(Math.abs(obj.amount)),
-					receiver: obj.receiver,
+					receiver: obj?.counter_party.publicKey || obj?.counter_party.address || 'unknown',
 					sender: this.returnAddress() || '',
 					timestamp: obj.timestamp,
 					block_id: '',
@@ -385,19 +470,22 @@ class MixinModule extends CryptoModule {
 				});
 			}
 
-			this.latest_snapshot_ts = Math.max(this.latest_snapshot_ts, obj.timestamp);
+			this.history_update_ts = Math.max(this.history_update_ts, obj.timestamp);
 		}
 
-		if (this.latest_snapshot_ts > start_ts) {
-			this.latest_snapshot_ts++;
+		if (snapshots.length > 0) {
 			this.save();
 		}
 
-		if (mycallback != null) {
-			mycallback(fetched_updates);
-		}
-
 		return fetched_updates;
+	}
+
+	stopPolling() {
+		this.polling_active = 0;
+		if (this.polling_timeout) {
+			clearTimeout(this.polling_timeout);
+			this.polling_timeout = null;
+		}
 	}
 
 	startPolling() {
@@ -425,37 +513,29 @@ class MixinModule extends CryptoModule {
 				return;
 			}
 
-			let wallet_updates = await this.fetchHistory();
+			let wallet_updates = await this.checkForRecentTransactions();
+
+			// We could also independently hit the API for pendingDeposits...
 
 			//
 			// if something has happened....
+			// or nothing is going to happen...
 			//
-			if (wallet_updates.length > 0) {
-				//
-				// disable polling, change found...
-				//
-				this.polling_active = 0;
-				this.polling_last_request = Date.now();
-				this.polling_timeout = 0;
-				this.polling_interval_current = 0;
-			} else {
-				//
-				// decay polling frequency
-				//
-				if (this.polling_interval_current < this.polling_intervals.length - 1) {
-					this.polling_interval_current++;
-				}
+			if (
+				wallet_updates.length > 0 ||
+				this.polling_interval_current >= this.polling_intervals.length
+			) {
+				this.stopPolling();
+				return;
 			}
-
-			//
-			// update timestamp
-			//
-			this.polling_last_request = Date.now();
 
 			//
 			// schedule next poll
 			//
 			let delay = this.polling_intervals[this.polling_interval_current];
+
+			this.polling_interval_current++;
+
 			this.polling_timeout = setTimeout(poll, delay);
 		};
 
@@ -476,49 +556,38 @@ class MixinModule extends CryptoModule {
 	 * @return {Number}
 	 */
 	async sendPayment(amount = '', recipient = '', unique_hash = '') {
-		let r = recipient.split('|');
-
 		let internal_transfer = false;
-		let destination = recipient;
+		let destination = await this.processAddress(recipient);
+
+		let r = destination.split('|');
 
 		let res = {};
 
-		console.info('Mixin sendPayment to ' + recipient);
+		console.info('Mixin sendPayment to ' + destination);
 
-		// if address has |mixin| concat
+		//
+		// if address has |mixin| concat --> internal mixin transfer
+		//
 		if (r.length >= 2) {
 			if (r[2] === 'mixin') {
-				console.info('Send to Mixin address');
-				internal_transfer = true;
-				destination = r[1];
+				res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, r[1], amount);
 			}
-		}
-
-		// check if address exists in local db
-		if (internal_transfer == false) {
-			await this.mixin.sendFetchUserByAddressTransaction(
-				{
-					address: recipient
-				},
-				function (res) {
-					console.info('Cross network callback complete');
-					if (res?.user_id) {
-						internal_transfer = true;
-						destination = res.user_id;
-					}
-				}
-			);
-		}
-
-		// internal mixin transfer
-		if (internal_transfer) {
-			res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, destination, amount);
-		} else {
+		} else if (this.validateAddress(destination)) {
+			//
 			// address is external, send external withdrawl request
+			//
 			res = await this.mixin.sendExternalNetworkTransferRequest(this.asset_id, destination, amount);
+		} else {
+			throw new Error(`MixinModule: invalid address for ${this.ticker} -- `, destination);
 		}
 
 		if (res.status == 200) {
+			// Safe UTXO balance lags after send; cache expected post-send balance and
+			// pre-send snapshot until fetchBalance / checkForRecentTransactions confirm.
+			this.pending_balance = Number(res.pending.toFixed(8));
+			if (!this.last_balance) {
+				this.last_balance = this.balance;
+			}
 			return unique_hash;
 		} else {
 			throw new Error('MixinModule: ' + res.message);
@@ -645,43 +714,25 @@ class MixinModule extends CryptoModule {
 	// if it can offer zero-fee in-network transfers or requires a network fee to be paid
 	// in order to process the payment.
 	//
-	async checkWithdrawalFeeForAddress(recipient = '', mycallback) {
-		if (recipient == '') {
+	async checkWithdrawalFeeForAddress(address = '', mycallback) {
+		if (address == '') {
 			return mycallback(0);
 		}
 
-		let r = recipient.split('|');
+		address = await this.processAddress(address);
+
+		let r = address.split('|');
 		let ts = new Date().getTime();
 
 		//
-		// internal MIXIN transfer
+		// internal MIXIN transfer, 0 fee
 		//
 		if (r.length >= 2) {
 			if (r[2] === 'mixin') {
 				return mycallback(0);
 			}
-		}
-
-		//
-		// check if address exists in local db
-		//
-		let user_data = null;
-		await this.mixin.sendFetchUserByAddressTransaction(
-			{
-				address: recipient
-			},
-			function (res) {
-				user_data = res;
-			}
-		);
-
-		//
-		// return 0 fee if in-network address, or estimate if external
-		//
-		if (typeof user_data.user_id != 'undefined') {
-			return mycallback(0);
 		} else {
-			let fee = await this.mixin.returnWithdrawalFee(this.asset_id, recipient);
+			let fee = await this.mixin.returnWithdrawalFee(this.asset_id, address);
 			if (fee !== false) {
 				return mycallback(fee);
 			}
@@ -695,11 +746,12 @@ class MixinModule extends CryptoModule {
 	 * @abstract
 	 * @return {Function} Callback function
 	 */
-	async checkHistory(mycallback = null) {
+	async fetchHistory(ts = null, mycallback = null) {
+		const newTransactions = await this.checkForRecentTransactions();
+
 		if (mycallback != null) {
 			mycallback(this.history);
 		}
-		return this.history;
 	}
 
 	async returnUtxo(state = 'unspent', limit = 500, order = 'DESC', callback = null) {
@@ -709,47 +761,100 @@ class MixinModule extends CryptoModule {
 	async returnAddressFromPublicKey(publicKey) {
 		this_self = this;
 		try {
-			//check if key exists in keychain
-			let address = await super.returnAddressFromPublicKey(publicKey);
+			//try local cache first
+			if (this.cached_contacts[publicKey]) {
+				return this.cached_contacts[publicKey];
+			}
 
-			if (address) {
-				return address;
+			let key = this.app.keychain.returnKey(publicKey, true);
+
+			if (key?.crypto_addresses) {
+				return key.crypto_addresses[this.ticker];
 			}
 
 			// if it doesnt exist fetch it from node db
-			return this.mixin.sendFetchUserByPublicKeyByAssetIdTransaction(
+			let address = '';
+			await this.mixin.sendFetchUserTransaction(
 				{
 					publicKey: publicKey,
 					asset_id: this.asset_id
 				},
 				function (res) {
-					// console.log('miximodule res: ', res);
-					// this.address + '|' + this.mixin.mixin.user_id + '|' + 'mixin';
 					if (res.length > 0) {
 						for (let i = 0; i < res.length; i++) {
-							console.log(
-								res[i].asset_id,
-								' - ',
-								this_self.asset_id,
-								' - ',
-								res[i].asset_id == this_self.asset_id
-							);
 							if (res[i].asset_id == this_self.asset_id) {
-								let address = res[i].address;
+								address = res[i].address;
 								if (res[i]?.user_id) {
 									address += '|' + res[i].user_id + '|mixin';
 								}
+
+								this_self.cached_contacts[publicKey] = address;
 								// save address to keychain if publickey exists in keychain
-								this_self.app.keychain.addCryptoAddress(publicKey, this_self.ticker, address);
+								if (this_self.app.keychain.hasPublicKey(publicKey)) {
+									this_self.app.keychain.addCryptoAddress(publicKey, this_self.ticker, address);
+								}
 								return address;
 							}
 						}
 					}
 				}
 			);
+
+			return address;
 		} catch (err) {
 			// console.error('Error getMixinAddress: ', err);
 			return null;
+		}
+	}
+
+	// Mixin specific function to minimize the amount of table look ups
+	async processAddress(destination) {
+		if (destination.includes('|mixin')) {
+			return destination;
+		}
+
+		if (this.app.crypto.isPublicKey(destination)) {
+			return await this.returnAddressFromPublicKey(destination);
+		} else {
+			//
+			// check if address exists in local db
+			//
+			for (let pk in this.cached_contacts) {
+				if (this.cached_contacts[pk].includes(destination)) {
+					return this.cached_contacts[pk];
+				}
+			}
+
+			for (let k of this.app.keychain.returnKeys()) {
+				if (k?.crypto_addresses[this.ticker]?.includes(destination)) {
+					return k.crypto_addresses[this.ticker];
+				}
+			}
+
+			//
+			// check if address exists in remote db
+			//
+			await this.mixin.sendFetchUserTransaction(
+				{
+					address: destination,
+					asset_id: this.asset_id
+				},
+				(res) => {
+					if (res?.length) {
+						let user_data = res[0];
+						if (user_data?.publickey && user_data.user_id) {
+							destination += '|' + user_data.user_id + '|mixin';
+							// Cache return values
+							this.cached_contacts[user_data.publickey] = destination;
+							if (this.app.keychain.hasPublicKey(user_data.publickey)) {
+								this.app.keychain.addCryptoAddress(user_data.publickey, this.ticker, destination);
+							}
+						}
+					}
+				}
+			);
+
+			return destination;
 		}
 	}
 
@@ -759,17 +864,11 @@ class MixinModule extends CryptoModule {
 			address = r[0];
 		}
 
-		// suported cryptos by validator package
-		//https://www.npmjs.com/package/multicoin-address-validator?activeTab=readme
 		try {
-			//
-			// see above
-			//
-			return true;
-
-			//			return WAValidator.validate(address, this.ticker);
+			return WAValidator.validate(address, this.ticker);
 		} catch (err) {
-			// console.error("Error 'validateAddress' MixinModule: ", err);
+			console.error("Error 'validateAddress' MixinModule: ", err);
+			return false;
 		}
 	}
 }
