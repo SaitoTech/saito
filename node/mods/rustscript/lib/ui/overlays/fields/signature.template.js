@@ -29,10 +29,10 @@ module.exports = (options) => {
 
   const actions = canAutoSign
     ? `<div class="overlay-actions overlay-actions-apply-only">
-        <button type="button" class="rs-prompt-sign-wallet rs-prompt-primary">Sign with My Key</button>
+        <button type="button" class="rs-btn rs-btn-primary rs-prompt-sign-wallet">Sign with My Key</button>
       </div>`
     : `<div class="overlay-actions overlay-actions-apply-only">
-        <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
+        <button type="button" class="rs-btn rs-btn-primary rs-prompt-apply">Apply</button>
       </div>`;
 
   return `

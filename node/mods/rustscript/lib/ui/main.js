@@ -11,7 +11,12 @@ const NumberFieldOverlay = require('./overlays/fields/number');
 const OpcodesOverlay = require('./overlays/opcodes');
 const PublishFlow = require('./overlays/publish');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const { evaluateWorkspaceStatus, resolveFieldOverlayKind } = require('./script_validate');
+const {
+  evaluateWorkspaceStatus,
+  deriveWorkflowIndicator,
+  isWitnessPhaseComplete,
+  resolveFieldOverlayKind
+} = require('./script_validate');
 const {
   build_test_script_from_create,
   lockingView
@@ -116,12 +121,58 @@ class RustscriptMain {
     return status.script.state === 'ready';
   }
 
+  isInTestScriptMode() {
+    if (this.workspaceMode === 'unlocked') {
+      return true;
+    }
+    if (!this.testingUnlocked) {
+      return false;
+    }
+    const status = evaluateWorkspaceStatus(
+      lockingView(this.mod.getScript()),
+      this.mod.getScript(),
+      this.executionStatus,
+      this.mod.opcodes
+    );
+    return status.script.state === 'ready';
+  }
+
+  panelShowsPublishAction() {
+    const locking = lockingView(this.mod.getScript());
+    const unlocking = this.testingUnlocked ? this.mod.getScript() : {};
+    const status = evaluateWorkspaceStatus(
+      locking,
+      unlocking,
+      this.executionStatus,
+      this.mod.opcodes
+    );
+    const scriptReady = status.script.state === 'ready';
+    const guided = this.workspaceMode === 'locked';
+    const showMoveToTesting = guided && scriptReady && !this.testingUnlocked;
+
+    if (this.testingUnlocked && scriptReady) {
+      return this.executionStatus.success === true;
+    }
+    if (showMoveToTesting) {
+      return true;
+    }
+    return false;
+  }
+
+  shouldShowCommandBarPublish() {
+    return (
+      this.isScriptPublishable() &&
+      this.isInTestScriptMode() &&
+      !this.panelShowsPublishAction()
+    );
+  }
+
   updatePublishButton() {
     const btn = document.querySelector('.rs-publish-script');
     if (!btn) {
       return;
     }
-    btn.hidden = !this.isScriptPublishable();
+    btn.hidden = !this.shouldShowCommandBarPublish();
   }
 
   setWorkspaceMode(mode) {
@@ -195,7 +246,7 @@ class RustscriptMain {
     const showMoveToTesting = guided && scriptReady && !this.testingUnlocked;
 
     this.updateWorkspaceToggle();
-    this.refreshStatusIndicators(status, { testLive, showMoveToTesting });
+    this.refreshStatusIndicators();
 
     const testEditor = root.querySelector('#rustscript-editor-test');
     if (testEditor) {
@@ -209,53 +260,38 @@ class RustscriptMain {
     document.querySelector('.rs-mode-expert')?.classList.toggle('is-active', !guided);
   }
 
-  refreshStatusIndicators(statusIn, options = {}) {
-    const status =
-      statusIn ||
-      evaluateWorkspaceStatus(
-        lockingView(this.mod.getScript()),
-        this.testingUnlocked ? this.mod.getScript() : {},
-        this.executionStatus,
-        this.mod.opcodes
-      );
+  refreshStatusIndicators() {
+    const locking = lockingView(this.mod.getScript());
+    const unlocking = this.testingUnlocked ? this.mod.getScript() : {};
 
-    const scriptReady = status.script.state === 'ready';
-    const testLive = options.testLive ?? (this.testingUnlocked && scriptReady);
-    const execSuccess = this.executionStatus?.success === true;
-    const scriptState = scriptReady ? 'ready' : status.script.state;
-    const requiredState = execSuccess && scriptReady ? 'ready' : status.required.state;
-    let validState = execSuccess && scriptReady ? 'ready' : status.valid.state;
-    if (this.validationDisplay === 'valid') {
-      validState = 'ready';
-    } else if (this.validationDisplay === 'invalid' || this.validationDisplay === 'invalid_json') {
-      validState = 'warn';
-    }
+    const workflow = deriveWorkflowIndicator({
+      lockingScript: locking,
+      unlockingScript: unlocking,
+      testingUnlocked: this.testingUnlocked,
+      execution: this.executionStatus,
+      opcodes: this.mod.opcodes,
+      validationDisplay: this.validationDisplay
+    });
 
-    this.setStatusReactor('.rs-status-script', scriptState, {
-      idle: 'No script defined',
-      warn: 'Script incomplete or unresolved placeholders',
+    this.setStatusReactor('.rs-status-script', workflow.script, {
+      idle: 'Script not yet complete',
       ready: 'Script complete'
     });
 
-    if (!scriptReady || (this.workspaceMode === 'locked' && !testLive)) {
-      this.setStatusReactor('.rs-status-required', 'inactive', {
-        inactive: options.showMoveToTesting
-          ? 'Script complete — proceed to testing to complete witness fields'
-          : 'Waiting for script — witness step unlocks when script is complete'
-      });
-    } else {
-      this.setStatusReactor('.rs-status-required', requiredState, {
-        idle: 'Witness fields not started',
-        warn: 'Witness has unresolved placeholders',
-        ready: 'Witness complete'
-      });
-    }
+    this.setStatusReactor('.rs-status-required', workflow.witness, {
+      idle: 'Witness step not entered',
+      warn: 'Complete required witness fields',
+      ready: 'Witness complete'
+    });
 
-    this.setStatusReactor('.rs-status-valid', validState, {
-      idle: 'Validation not started',
-      warn: 'Script validation failed',
+    this.setStatusReactor('.rs-status-valid', workflow.valid, {
+      idle: 'Script evaluation not started',
+      warn: 'Witness supplied but script returned false',
       ready: 'Script validates successfully'
     });
+
+    this.setProgressConnector('.rs-progress-connector-1', workflow.arrow1);
+    this.setProgressConnector('.rs-progress-connector-2', workflow.arrow2);
 
     const validEl = document.querySelector('.rs-status-valid');
     if (validEl) {
@@ -263,9 +299,7 @@ class RustscriptMain {
       if (label) {
         if (this.validationDisplay === 'invalid_json') {
           label.textContent = 'Invalid JSON';
-        } else if (this.validationDisplay === 'valid') {
-          label.textContent = 'Script Valid';
-        } else if (this.validationDisplay === 'invalid') {
+        } else if (workflow.phase === 'evaluation_failed') {
           label.textContent = 'Script Invalid';
         } else {
           label.textContent = 'Script Valid';
@@ -285,6 +319,14 @@ class RustscriptMain {
     if (titles?.[state]) {
       el.title = titles[state];
     }
+  }
+
+  setProgressConnector(selector, state) {
+    const el = document.querySelector(selector);
+    if (!el) {
+      return;
+    }
+    el.dataset.state = state;
   }
 
   syncTestScriptFromLocking() {
@@ -419,6 +461,12 @@ class RustscriptMain {
         this.mod.opcodes
       ).script.state === 'ready';
     if (!scriptReady) {
+      this.validationDisplay = null;
+      this.executionStatus = { attempted: false, success: false };
+      return;
+    }
+
+    if (!isWitnessPhaseComplete(this.mod.getScript(), this.mod.opcodes)) {
       this.validationDisplay = null;
       this.executionStatus = { attempted: false, success: false };
       return;

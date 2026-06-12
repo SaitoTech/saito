@@ -11,6 +11,8 @@ body:has(.saito-container.rustscript) #saito-header {
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
   backdrop-filter: none;
   align-items: center;
+  /* Full-bleed chrome; content aligns to workspace gutter (overrides global saito-header padding). */
+  padding: 1rem var(--rs-page-gutter);
 }
 
 body:has(.saito-container.rustscript) #saito-header .saito-header-logo-wrapper {
@@ -100,9 +102,4 @@ body:has(.saito-container.rustscript) #saito-header .wallet-btn:hover {
 body:has(.saito-container.rustscript) #saito-header .wallet-btn-container {
   background: #0e0e0e;
   color: #e0e0e0;
-}
-
-body:has(.saito-container.rustscript.rs-publish-modal-open) #saito-header {
-  pointer-events: auto !important;
-  z-index: 100050 !important;
 }

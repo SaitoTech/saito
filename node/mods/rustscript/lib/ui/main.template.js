@@ -19,12 +19,12 @@ module.exports = () => {
           <span class="rs-progress-dot" aria-hidden="true"></span>
           <span class="rs-progress-label rs-status-reactor-label">Script Complete</span>
         </div>
-        <span class="rs-progress-connector" aria-hidden="true"></span>
+        <span class="rs-progress-connector rs-progress-connector-1" data-state="idle" aria-hidden="true"></span>
         <div class="rs-progress-step rs-status-required" data-state="idle" title="Witness fields">
           <span class="rs-progress-dot" aria-hidden="true"></span>
           <span class="rs-progress-label rs-status-reactor-label">Witness Complete</span>
         </div>
-        <span class="rs-progress-connector" aria-hidden="true"></span>
+        <span class="rs-progress-connector rs-progress-connector-2" data-state="idle" aria-hidden="true"></span>
         <div class="rs-progress-step rs-status-valid" data-state="idle" title="Script execution result">
           <span class="rs-progress-dot" aria-hidden="true"></span>
           <span class="rs-progress-label rs-status-reactor-label">Script Valid</span>

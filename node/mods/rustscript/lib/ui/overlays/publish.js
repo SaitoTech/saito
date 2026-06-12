@@ -141,27 +141,26 @@ class PublishFlow {
   applyOverlayLayout() {
     const el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
     const backdrop = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
-    const blockZ = 100000;
 
     if (el) {
       el.classList.add('rs-publish-overlay-shell', 'maximized-overlay');
-      el.style.zIndex = String(blockZ + 2);
-      el.style.pointerEvents = 'auto';
+      el.style.pointerEvents = 'none';
     }
     if (backdrop) {
       backdrop.classList.add('rs-publish-overlay-backdrop');
       backdrop.style.display = 'block';
       backdrop.style.pointerEvents = 'auto';
-      backdrop.style.zIndex = String(blockZ + 1);
+      backdrop.style.top = '0';
+      backdrop.style.left = '0';
+      backdrop.style.width = '100vw';
+      backdrop.style.height = '100dvh';
+      backdrop.style.zIndex = '100001';
+    }
+    if (el) {
+      el.style.zIndex = '100002';
     }
     if (typeof this.overlay.pullOverlayToFront === 'function') {
       this.overlay.pullOverlayToFront();
-    }
-    if (el) {
-      el.style.zIndex = String(blockZ + 2);
-    }
-    if (backdrop) {
-      backdrop.style.zIndex = String(blockZ + 1);
     }
   }
 

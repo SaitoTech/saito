@@ -6,7 +6,7 @@ module.exports = (currentOp, optionsHtml, explain) => `
   <p class="rs-prompt-logical-explain">${explain}</p>
   <p class="rs-prompt-validation" hidden></p>
   <div class="overlay-actions overlay-actions-apply-only">
-    <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
+    <button type="button" class="rs-btn rs-btn-primary rs-prompt-apply">Apply</button>
   </div>
 </div>
 `;

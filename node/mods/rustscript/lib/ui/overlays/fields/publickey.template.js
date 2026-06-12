@@ -17,8 +17,8 @@ module.exports = (value) => {
   </div>
   <p class="rs-prompt-validation" hidden></p>
   <div class="overlay-actions overlay-actions-split">
-    <button type="button" class="rs-prompt-use-mine">Use My Public Key</button>
-    <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
+    <button type="button" class="rs-btn rs-btn-secondary rs-prompt-use-mine">Use My Public Key</button>
+    <button type="button" class="rs-btn rs-btn-primary rs-prompt-apply">Apply</button>
   </div>
 </div>
 `;
