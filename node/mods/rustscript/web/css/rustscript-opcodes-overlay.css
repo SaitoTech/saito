@@ -1,11 +1,27 @@
 /* Opcode reference overlay */
 
+body:has(.saito-container.rustscript) .saito-overlay:has(> .rs-opcode-ref-overlay) {
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+
+body:has(.saito-container.rustscript) .saito-overlay > .rs-opcode-ref-overlay {
+  border: var(--rs-overlay-border) !important;
+  box-shadow: var(--rs-overlay-shadow) !important;
+}
+
 body:has(.saito-container.rustscript) .rs-opcode-ref-overlay {
-  width: 860px;
+  width: min(860px, 94vw);
   max-width: 94vw;
   max-height: 88vh;
-  padding: 28px 32px 24px;
+  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
   gap: 0;
+  background: var(--rustscript-surface);
+  border-radius: var(--rs-control-radius, 4px);
+  box-sizing: border-box;
 }
 
 body:has(.saito-container.rustscript) .rs-opcode-ref-overlay-head {
@@ -20,12 +36,12 @@ body:has(.saito-container.rustscript) .rs-opcode-ref-overlay-head {
 
 body:has(.saito-container.rustscript) .rs-opcode-ref-overlay-title {
   margin: 0;
-  font-family: var(--rustscript-font-mono);
-  font-size: 0.95em;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #f2f2f2;
+  font-family: var(--rustscript-font-sans);
+  font-size: var(--rs-overlay-title-size);
+  font-weight: var(--rs-overlay-title-weight);
+  letter-spacing: var(--rs-overlay-title-spacing);
+  text-transform: none;
+  color: #f4f4f4;
   flex: 1;
   min-width: 0;
 }

@@ -38,6 +38,7 @@ class Rustscript extends ModTemplate {
       '/rustscript/css/rustscript-command-bar.css',
       '/rustscript/css/rustscript-editor.css',
       '/rustscript/css/rustscript-panel.css',
+      '/rustscript/css/rustscript-overlay-system.css',
       '/rustscript/css/rustscript-welcome-overlay.css',
       '/rustscript/css/rustscript-fields-overlay.css',
       '/rustscript/css/rustscript-overlay.css',

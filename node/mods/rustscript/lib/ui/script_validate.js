@@ -309,6 +309,107 @@ function evaluateWorkspaceStatus(lockingScript, unlockingScript, execution, opco
   };
 }
 
+/** Witness stage is satisfied when the script needs no witness fields or all are filled. */
+function isWitnessPhaseComplete(unlockingScript, opcodes) {
+  if (!opcodeTreeNeedsWitness(unlockingScript, opcodes)) {
+    return true;
+  }
+  return collectWitnessMissing(unlockingScript, opcodes).length === 0;
+}
+
+/**
+ * Sequential workflow indicator — one derived phase, not three independent booleans.
+ *
+ * Phases: building_script → script_complete → witness_active → witness_complete
+ *         → evaluation_success | evaluation_failed
+ */
+function deriveWorkflowIndicator({
+  lockingScript,
+  unlockingScript,
+  testingUnlocked,
+  execution,
+  opcodes,
+  validationDisplay
+}) {
+  const idle = 'idle';
+  const ready = 'ready';
+  const warn = 'warn';
+
+  const scriptReady = evaluateScriptStatus(lockingScript).state === 'ready';
+
+  if (!scriptReady) {
+    return {
+      phase: 'building_script',
+      script: idle,
+      witness: idle,
+      valid: idle,
+      arrow1: idle,
+      arrow2: idle
+    };
+  }
+
+  if (!testingUnlocked) {
+    return {
+      phase: 'script_complete',
+      script: ready,
+      witness: idle,
+      valid: idle,
+      arrow1: idle,
+      arrow2: idle
+    };
+  }
+
+  if (!isWitnessPhaseComplete(unlockingScript, opcodes)) {
+    return {
+      phase: 'witness_active',
+      script: ready,
+      witness: warn,
+      valid: idle,
+      arrow1: ready,
+      arrow2: idle
+    };
+  }
+
+  const attempted =
+    validationDisplay === 'valid' ||
+    validationDisplay === 'invalid' ||
+    validationDisplay === 'invalid_json' ||
+    execution?.attempted === true;
+
+  if (!attempted) {
+    return {
+      phase: 'witness_complete',
+      script: ready,
+      witness: ready,
+      valid: idle,
+      arrow1: ready,
+      arrow2: ready
+    };
+  }
+
+  const success = validationDisplay === 'valid' || execution?.success === true;
+
+  if (success) {
+    return {
+      phase: 'evaluation_success',
+      script: ready,
+      witness: ready,
+      valid: ready,
+      arrow1: ready,
+      arrow2: ready
+    };
+  }
+
+  return {
+    phase: 'evaluation_failed',
+    script: ready,
+    witness: ready,
+    valid: warn,
+    arrow1: ready,
+    arrow2: ready
+  };
+}
+
 module.exports = {
   validateScriptStructure,
   inferFieldKindFromPath,
@@ -316,6 +417,8 @@ module.exports = {
   validateField,
   evaluateWorkspaceStatus,
   evaluateScriptStatus,
+  deriveWorkflowIndicator,
+  isWitnessPhaseComplete,
   collectPlaceholders,
   isEmptyScript
 };

@@ -1,6 +1,5 @@
 /*
- * RustScript publish workspaces — px typography (Saito :root ≈ 10px; do not rely on rem/em).
- * Large temporary workspaces below the global Saito header; editor remains visible beneath.
+ * RustScript publish workspaces — modal owns full viewport (header included).
  */
 
 /* ── Block underlying RustScript UI while publish workspace is open ── */
@@ -22,59 +21,86 @@
   color: inherit !important;
 }
 
-/* ── Backdrop: full workspace capture below header ── */
+/* ── Backdrop: full viewport over header + workspace + command bar ── */
 
 body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop'].rs-publish-overlay-backdrop {
   position: fixed !important;
   display: block !important;
-  top: var(--saito-header-height, 60px) !important;
+  top: 0 !important;
   left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   width: 100vw !important;
-  height: calc(100vh - var(--saito-header-height, 60px)) !important;
-  background: rgba(8, 8, 10, 0.78) !important;
-  backdrop-filter: blur(4px);
+  height: 100vh !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+  background: rgba(6, 6, 8, 0.86) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
   pointer-events: auto !important;
-  z-index: 100001 !important;
+  z-index: var(--rs-overlay-z-backdrop) !important;
 }
 
-/* ── Overlay shell: large workspace, owns the viewport below header ── */
+/* ── Overlay shell — viewport-centered (not offset by header) ── */
 
 body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell {
   position: fixed !important;
-  top: calc(var(--saito-header-height, 60px) + 0.75vh) !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  width: min(90vw, 1680px) !important;
-  height: min(92vh, calc(100vh - var(--saito-header-height, 60px) - 1.5vh)) !important;
-  max-width: 90vw !important;
-  max-height: 92vh !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  transform: none !important;
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
   background: transparent !important;
   box-shadow: none !important;
   overflow: hidden !important;
-  z-index: 100002 !important;
+  z-index: var(--rs-overlay-z-panel) !important;
   display: flex !important;
-  flex-direction: column !important;
-  pointer-events: auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: none !important;
+}
+
+/* Choice step — compact centered dialog */
+body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell:has(.rs-publish-choice) {
+  width: 100vw !important;
+  height: 100dvh !important;
+}
+
+body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell:has(.rs-publish-choice) > .rs-publish-overlay {
+  width: min(92vw, 640px) !important;
+  max-height: min(88vh, 540px) !important;
+  height: auto !important;
+  flex: 0 1 auto !important;
+}
+
+/* Send / review step — wide review surface */
+body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell:has(.rs-publish-send) > .rs-publish-overlay {
+  width: min(94vw, 1480px) !important;
+  height: min(88vh, calc(100dvh - 2.5rem)) !important;
+  max-height: min(88vh, calc(100dvh - 2.5rem)) !important;
+  flex: 0 1 auto !important;
 }
 
 body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell > .rs-publish-overlay {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 100%;
+  width: min(92vw, 1680px);
+  height: min(92vh, calc(100dvh - 2rem));
+  max-width: 94vw;
+  max-height: 92vh;
   min-height: 0;
   overflow: hidden;
   padding: 0;
-  border: var(--rs-control-border) !important;
+  border: var(--rs-overlay-border) !important;
   border-radius: var(--rs-control-radius) !important;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65) !important;
-  background: var(--rustscript-surface);
+  box-shadow: var(--rs-overlay-shadow) !important;
+  background: #181818 !important;
   color: #ececec;
   box-sizing: border-box;
   font-size: 18px;
@@ -82,6 +108,8 @@ body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell > 
   line-height: 1.45;
   text-transform: none;
   letter-spacing: normal;
+  pointer-events: auto;
+  position: relative;
 }
 
 body:has(.saito-container.rustscript) .rs-publish-workspace-inner {
@@ -89,16 +117,30 @@ body:has(.saito-container.rustscript) .rs-publish-workspace-inner {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 28px 36px 24px;
+  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
   box-sizing: border-box;
   overflow: hidden;
 }
 
-/* Saito standard close control */
+body:has(.saito-container.rustscript) .rs-publish-choice .rs-publish-workspace-inner {
+  padding: 32px 36px 28px;
+  align-items: stretch;
+}
+
+/* Close control — anchored to panel chrome */
 body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell .saito-overlay-closebox {
-  top: 12px;
-  right: 12px;
-  z-index: 20;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  z-index: var(--rs-overlay-z-controls);
+  pointer-events: auto;
+  border: 1px solid #555;
+  background: #1a1a1a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 body:has(.saito-container.rustscript) .rs-publish-overlay h2,
@@ -119,7 +161,7 @@ body:has(.saito-container.rustscript) .rs-publish-overlay pre {
 body:has(.saito-container.rustscript) .rs-publish-title {
   flex-shrink: 0;
   margin: 0 0 28px;
-  padding-right: 48px;
+  padding-right: 44px;
   font-size: 28px;
   font-weight: 700;
   line-height: 1.25;
@@ -127,11 +169,14 @@ body:has(.saito-container.rustscript) .rs-publish-title {
 }
 
 body:has(.saito-container.rustscript) .rs-publish-title-choice {
-  margin: 0 0 48px;
-  font-size: 40px;
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
+  margin: 0 0 36px;
+  padding-right: 44px;
+  font-family: var(--rustscript-font-sans);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-transform: none;
   color: #fafafa;
 }
 
@@ -142,15 +187,18 @@ body:has(.saito-container.rustscript) .rs-publish-lead {
   color: #a8a8a8;
 }
 
-/* ── Asset selector (Vault-style box art) ── */
+/* ── Asset selector ── */
 
 body:has(.saito-container.rustscript) .rs-publish-asset-grid {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
   align-items: stretch;
   min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
 }
 
 @media (max-width: 720px) {
@@ -161,32 +209,10 @@ body:has(.saito-container.rustscript) .rs-publish-asset-grid {
 
 body:has(.saito-container.rustscript) .rs-publish-asset-card {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-end;
   gap: 0;
   width: 100%;
-  min-height: 320px;
-  padding: 0;
-  border: 3px solid #3a3a3a;
-  border-radius: var(--rs-control-radius);
-  background: #101010 !important;
-  color: #f0f0f0 !important;
-  cursor: pointer;
-  box-sizing: border-box;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  min-height: var(--rs-btn-card-min-height);
   margin: 0;
-  appearance: none;
-  -webkit-appearance: none;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-body:has(.saito-container.rustscript) .rs-publish-asset-card:not(.is-disabled):hover {
-  transform: translateY(-6px) scale(1.01);
-  border-color: rgba(92, 184, 106, 0.75);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
 body:has(.saito-container.rustscript) .rs-publish-asset-card.is-disabled {
@@ -202,27 +228,27 @@ body:has(.saito-container.rustscript) .rs-publish-asset-visual {
   justify-content: center;
   width: 100%;
   min-height: 0;
-  padding: 20px 16px 12px;
+  padding: 18px 16px 14px;
   background: #0a0a0a;
   box-sizing: border-box;
 }
 
 body:has(.saito-container.rustscript) .rs-publish-asset-visual-saito {
-  background: radial-gradient(circle at 50% 42%, rgba(252, 163, 17, 0.16) 0%, transparent 62%), #0a0a0a;
+  background: radial-gradient(circle at 50% 45%, rgba(252, 163, 17, 0.14) 0%, transparent 58%), #0a0a0a;
 }
 
 body:has(.saito-container.rustscript) .rs-publish-asset-visual-nft {
   background-color: #0a0a0a;
   background-image: url('/vault/img/jade_key.png');
-  background-size: min(78%, 340px);
+  background-size: min(68%, var(--rs-btn-card-visual-max));
   background-position: center center;
   background-repeat: no-repeat;
   filter: grayscale(0.35) brightness(0.85);
 }
 
 body:has(.saito-container.rustscript) .rs-publish-asset-img {
-  width: min(78%, 340px);
-  height: min(78%, 340px);
+  width: min(68%, var(--rs-btn-card-visual-max));
+  height: min(68%, var(--rs-btn-card-visual-max));
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
@@ -230,106 +256,117 @@ body:has(.saito-container.rustscript) .rs-publish-asset-img {
 
 body:has(.saito-container.rustscript) .rs-publish-asset-name {
   flex-shrink: 0;
-  padding: 14px 16px 18px;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  padding: 12px 16px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   text-align: center;
-  color: #f4f4f4;
-  background: rgba(0, 0, 0, 0.35);
+  color: #f0f0f0;
+  background: rgba(0, 0, 0, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 body:has(.saito-container.rustscript) .rs-publish-asset-badge {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  padding: 6px 12px;
+  top: 10px;
+  right: 10px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(252, 163, 17, 0.18);
-  border: 1px solid rgba(252, 163, 17, 0.45);
-  color: #f0c878;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #999;
   font-family: var(--rustscript-font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   z-index: 2;
 }
 
-/* ── Send overlay: 65% script / 35% controls ── */
+/* ── Send overlay: script preview + controls (flat, no nested boxes) ── */
 
-body:has(.saito-container.rustscript) .rs-publish-send-layout {
-  padding-bottom: 20px;
+body:has(.saito-container.rustscript) .rs-publish-send.rs-publish-overlay {
+  padding: 20px 22px 14px;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-send-panels {
+body:has(.saito-container.rustscript) .rs-publish-send .rs-publish-send-panels {
   flex: 1 1 auto;
   display: grid;
   grid-template-columns: 65fr 35fr;
-  gap: 20px;
+  gap: 22px;
   align-items: stretch;
   min-height: 0;
+  height: 100%;
 }
 
 @media (max-width: 900px) {
-  body:has(.saito-container.rustscript) .rs-publish-send-panels {
+  body:has(.saito-container.rustscript) .rs-publish-send .rs-publish-send-panels {
     grid-template-columns: 1fr;
     overflow-y: auto;
   }
 }
 
-body:has(.saito-container.rustscript) .rs-publish-send-panel {
+body:has(.saito-container.rustscript) .rs-publish-send-column {
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  padding: 18px;
-  border: 1px solid #333;
-  border-radius: var(--rs-control-radius);
-  background: #0e0e0e;
+  padding: 0;
+  border: none;
+  background: transparent;
   box-sizing: border-box;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-send-script {
-  padding: 16px 16px 14px;
+body:has(.saito-container.rustscript) .rs-publish-send-form {
+  border-left: 1px solid #333;
+  padding-left: 22px;
+}
+
+@media (max-width: 900px) {
+  body:has(.saito-container.rustscript) .rs-publish-send-form {
+    border-left: none;
+    padding-left: 0;
+    padding-top: 16px;
+    border-top: 1px solid #333;
+  }
 }
 
 body:has(.saito-container.rustscript) .rs-publish-script-readonly {
   flex: 1 1 auto;
   margin: 0;
-  padding: 16px;
+  padding: 14px 16px;
   min-height: 0;
   overflow: auto;
-  border: 1px solid #2a2a2a;
+  border: none;
   border-radius: var(--rs-control-radius-chrome);
-  background: #080808;
+  background: #0c0c0c;
   font-family: var(--rustscript-font-mono);
-  font-size: 15px;
-  line-height: 1.48;
-  color: #e0e0e0;
+  font-size: 16px;
+  line-height: 1.58;
+  color: #e8e8e8;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 body:has(.saito-container.rustscript) .rs-publish-panel-note {
   flex-shrink: 0;
-  margin: 18px 0 0;
-  padding: 0 2px;
-  font-size: 14px;
+  margin: 22px 0 2px;
+  padding: 0;
+  font-size: 13px;
   line-height: 1.45;
-  color: #777;
+  color: #999;
 }
 
 body:has(.saito-container.rustscript) .rs-publish-send-form {
-  padding-bottom: 16px;
+  padding-bottom: 0;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-field {
+body:has(.saito-container.rustscript) .rs-publish-send .rs-publish-field {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 18px;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 body:has(.saito-container.rustscript) .rs-publish-field-label {
@@ -387,25 +424,10 @@ body:has(.saito-container.rustscript) .rs-publish-send-actions {
 
 body:has(.saito-container.rustscript) .rs-publish-go-btn {
   width: 100%;
-  min-height: 64px;
-  padding: 0 32px;
-  border: none;
-  border-radius: var(--rs-control-radius);
-  background: linear-gradient(180deg, #6ecf80 0%, #3d9a50 100%);
-  color: #0a140c;
-  font-family: var(--rustscript-font-mono);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  box-shadow: 0 6px 24px rgba(61, 154, 80, 0.4);
-  transition: filter 0.12s, transform 0.1s;
-}
-
-body:has(.saito-container.rustscript) .rs-publish-go-btn:hover:not(:disabled) {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
+  min-height: var(--rs-btn-primary-height);
+  height: var(--rs-btn-primary-height);
+  font-size: 15px;
+  letter-spacing: 0.1em;
 }
 
 body:has(.saito-container.rustscript) .rs-publish-go-btn:disabled {
@@ -523,30 +545,7 @@ body:has(.saito-container.rustscript) .rs-publish-success-actions {
 
 body:has(.saito-container.rustscript) .rs-publish-success-btn {
   flex: 1 1 200px;
-  min-height: 52px;
-  padding: 12px 18px;
-  border: var(--rs-control-border);
-  border-radius: var(--rs-control-radius);
-  background: #141414 !important;
-  color: #e8e8e8 !important;
-  font-family: var(--rustscript-font-mono);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  box-shadow: none;
   margin: 0;
-}
-
-body:has(.saito-container.rustscript) .rs-publish-success-primary {
-  border-color: rgba(92, 184, 106, 0.55);
-  color: #b8f0c0 !important;
-}
-
-body:has(.saito-container.rustscript) .rs-publish-success-primary:hover {
-  background: #1a2a1a !important;
-  border-color: rgba(92, 184, 106, 0.75);
 }
 
 body:has(.saito-container.rustscript) .rs-publish-success-future {
@@ -563,4 +562,3 @@ body:has(.saito-container.rustscript) .rs-publish-address-recap {
   color: #555;
   word-break: break-all;
 }
-

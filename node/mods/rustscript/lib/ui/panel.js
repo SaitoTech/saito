@@ -47,7 +47,7 @@ class PanelReferenceView {
         '<li class="rs-panel-ref-success-msg">✓ Script successfully validates.</li>',
         '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">This script is ready to publish to the network.</li>',
         `<li class="rs-panel-ref-actions">
-          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Publish to Network</button>
+          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Publish to Network</button>
         </li>`
       ];
     }
@@ -57,8 +57,8 @@ class PanelReferenceView {
         '<li class="rs-panel-ref-success-msg">✓ Your script is ready!</li>',
         '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">Publish when you are ready, or test first if you like.</li>',
         `<li class="rs-panel-ref-actions">
-          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Publish to Network</button>
-          <button type="button" class="rs-panel-ref-action rs-panel-ref-action-test" data-action="move-to-testing">Proceed to Test</button>
+          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Publish to Network</button>
+          <button type="button" class="rs-btn rs-btn-secondary rs-panel-ref-action rs-panel-ref-action-test" data-action="move-to-testing">Proceed to Test</button>
         </li>`
       ];
     }
