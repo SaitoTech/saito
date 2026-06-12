@@ -3046,9 +3046,9 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
       //
       if (this.is_testing == 1) {
         if (this.game.player == 2) {
-          this.game.deck[0].hand = ["brushwar", "missileenvy", "iraniraq", "abmtreaty", "quagmire", "nato", "grainsales"];
+          this.game.deck[0].hand = ["cubanmissile", "fidel", "missileenvy", "iraniraq", "abmtreaty", "quagmire", "nato", "grainsales"];
         } else {
-          this.game.deck[0].hand = ["brezhnev", "saltnegotiations","opec","asknot","flowerpower","indopaki", "truman", "asia"];
+          this.game.deck[0].hand = ["oas", "saltnegotiations","opec","asknot","flowerpower","indopaki", "truman", "asia"];
         }
 
       	//this.game.state.round = 1;
@@ -4618,7 +4618,7 @@ async playerTurnHeadlineSelected(card, player) {
             }
             twilight_self.game.state.events.wwby_triggers = 1; //Remember penalty to apply with next endturn
           }
-          twilight_self.game.state.events.wwby = 0; //Turn off WWBY
+          twilight_self.game.state.events.wwby = -1; // disable WWBY
         }
       }
 
@@ -4766,6 +4766,8 @@ async playerTurnHeadlineSelected(card, player) {
 
         if (action == "event") {
 
+          if (twilight_self.game.state.events.wwby == -1) { twilight_self.game.state.events.wwby = 0; }
+
 	  let ac = twilight_self.returnAllCards(true);
           if (ac[card].player != "both" && ac[card].player != player) {
 
@@ -4821,6 +4823,8 @@ async playerTurnHeadlineSelected(card, player) {
 
         if (action == "ops") {
 
+          if (twilight_self.game.state.events.wwby == -1) { twilight_self.game.state.events.wwby = 1; }
+
           //
           // our event or both
           if (twilight_self.confirm_moves == 1 && (card != "missileenvy" || is_this_missile_envy_noneventable == 0)) {
@@ -4857,6 +4861,8 @@ async playerTurnHeadlineSelected(card, player) {
         if (action == "space") {
 
 	  let ac = twilight_self.returnAllCards(true);
+
+          if (twilight_self.game.state.events.wwby == -1) { twilight_self.game.state.events.wwby = 1; }
 
           if (twilight_self.confirm_moves == 1) {
             let fr_header = `Confirm you want to space ${ac[card].name}`;
@@ -6016,6 +6022,7 @@ async playerTurnHeadlineSelected(card, player) {
 	              twilight_self.game.state.events.cubanmissilecrisis = 0; //for immediate effect
 	              twilight_self.game.state.events.cubanmissilecrisis_cancelled = 1; //for immediate effect
 	              twilight_self.game.state.events.cubanmissilecrisis_removal_country = countryname;
+		      if (mycallback) { mycallback(); }
                     } else {
                       twilight_self.addMove("place\tus\tus\t"+countryname+"\t1");
                       twilight_self.placeInfluence(countryname, 1, "us", mycallback);
@@ -6078,12 +6085,13 @@ async playerTurnHeadlineSelected(card, player) {
       		        twilight_self.addMove("setvar\tgame\tstate\tevents\tcubanmissilecrisis_cancelled\t1");
     		        twilight_self.addMove("setvar\tgame\tstate\tevents\tcubanmissilecrisis_removal_country\t"+countryname);
                         twilight_self.removeInfluence("cuba", 1, "ussr");
-                        twilight_self.addMove("remove\tussr\tussr\tcuba\t2");
+                        twilight_self.addMove("remove\tussr\tussr\tcuba\t1");
                         twilight_self.addMove("unlimit\tcmc\t"+countryname);
                         twilight_self.addMove("NOTIFY\tUSSR has cancelled the Cuban Missile Crisis");
                         twilight_self.game.state.events.cubanmissilecrisis = 0; //for immediate effect
 	                twilight_self.game.state.events.cubanmissilecrisis_cancelled = 1; //for immediate effect
 	                twilight_self.game.state.events.cubanmissilecrisis_removal_country = countryname;
+			if (mycallback) { mycallback(); }
                     } else {
                       twilight_self.addMove("place\tussr\tussr\t"+countryname+"\t1");
                       twilight_self.placeInfluence(countryname, 1, "ussr", mycallback);
