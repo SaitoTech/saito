@@ -59,6 +59,7 @@ class SaitoHeader extends UIModTemplate {
   }
 
   async initialize(app) {
+
     await super.initialize(app);
 
     //

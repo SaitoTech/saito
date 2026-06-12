@@ -1,6 +1,6 @@
 /* Opcode reference overlay */
 
-body.rustscript .rs-opcode-ref-overlay {
+body:has(.saito-container.rustscript) .rs-opcode-ref-overlay {
   width: 860px;
   max-width: 94vw;
   max-height: 88vh;
@@ -8,7 +8,7 @@ body.rustscript .rs-opcode-ref-overlay {
   gap: 0;
 }
 
-body.rustscript .rs-opcode-ref-overlay-head {
+body:has(.saito-container.rustscript) .rs-opcode-ref-overlay-head {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -18,7 +18,7 @@ body.rustscript .rs-opcode-ref-overlay-head {
   padding-bottom: 0;
 }
 
-body.rustscript .rs-opcode-ref-overlay-title {
+body:has(.saito-container.rustscript) .rs-opcode-ref-overlay-title {
   margin: 0;
   font-family: var(--rustscript-font-mono);
   font-size: 0.95em;
@@ -30,7 +30,7 @@ body.rustscript .rs-opcode-ref-overlay-title {
   min-width: 0;
 }
 
-body.rustscript .rs-opcode-ref-overlay-select {
+body:has(.saito-container.rustscript) .rs-opcode-ref-overlay-select {
   flex: 0 0 auto;
   min-width: 180px;
   max-width: 260px;
@@ -53,7 +53,7 @@ body.rustscript .rs-opcode-ref-overlay-select {
   cursor: pointer;
 }
 
-body.rustscript .rs-opcode-ref-overlay-body {
+body:has(.saito-container.rustscript) .rs-opcode-ref-overlay-body {
   flex: 1;
   min-height: 0;
   max-height: 62vh;
@@ -61,22 +61,22 @@ body.rustscript .rs-opcode-ref-overlay-body {
   padding: 6px 2px 10px;
 }
 
-body.rustscript .rs-ref-doc {
+body:has(.saito-container.rustscript) .rs-ref-doc {
   padding: 0;
 }
 
-body.rustscript .rs-ref-lead {
+body:has(.saito-container.rustscript) .rs-ref-lead {
   margin: 0 0 20px;
   font-size: 1.05em;
   line-height: 1.65;
   color: #d8d8d8;
 }
 
-body.rustscript .rs-ref-section {
+body:has(.saito-container.rustscript) .rs-ref-section {
   margin-bottom: 22px;
 }
 
-body.rustscript .rs-ref-section-label {
+body:has(.saito-container.rustscript) .rs-ref-section-label {
   margin: 0 0 10px;
   font-size: 0.92em;
   font-weight: 700;
@@ -84,7 +84,7 @@ body.rustscript .rs-ref-section-label {
   color: #a8a8a8;
 }
 
-body.rustscript .rs-ref-field-list {
+body:has(.saito-container.rustscript) .rs-ref-field-list {
   margin: 0;
   padding: 0 0 0 1.35em;
   font-size: 1em;
@@ -92,13 +92,13 @@ body.rustscript .rs-ref-field-list {
   color: #c8c8c8;
 }
 
-body.rustscript .rs-ref-field-list code {
+body:has(.saito-container.rustscript) .rs-ref-field-list code {
   font-family: var(--rustscript-font-mono);
   font-size: 1em;
   color: #9ed4ff;
 }
 
-body.rustscript .rs-ref-example {
+body:has(.saito-container.rustscript) .rs-ref-example {
   margin: 0;
   padding: 14px 16px;
   border-radius: 4px;

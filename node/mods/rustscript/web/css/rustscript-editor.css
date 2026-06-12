@@ -1,11 +1,10 @@
 /* Editor panes — guided semantic JSON (rustscript2 panel parity) */
 
-body.rustscript .rustscript-editor {
+.saito-container.rustscript .rustscript-editor {
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
   width: 100%;
-  height: 100%;
   min-height: 0;
   min-width: 0;
   padding: 0;
@@ -16,17 +15,17 @@ body.rustscript .rustscript-editor {
   box-sizing: border-box;
 }
 
-body.rustscript .rustscript-editor-locking {
+.saito-container.rustscript .rustscript-editor-locking {
   border-color: var(--rustscript-create-edge);
   box-shadow: inset 0 0 40px var(--rustscript-create-glow);
 }
 
-body.rustscript .rustscript-editor-unlocking {
+.saito-container.rustscript .rustscript-editor-unlocking {
   border-color: var(--rustscript-test-edge);
   box-shadow: inset 0 0 32px var(--rustscript-test-glow);
 }
 
-body.rustscript .rustscript-editor-title {
+.saito-container.rustscript .rustscript-editor-title {
   flex-shrink: 0;
   margin: 0;
   padding: 8px 12px;
@@ -44,20 +43,19 @@ body.rustscript .rustscript-editor-title {
   border-bottom: 1px solid var(--rustscript-create-edge);
 }
 
-body.rustscript .rustscript-editor-locking .rustscript-editor-title {
+.saito-container.rustscript .rustscript-editor-locking .rustscript-editor-title {
   color: #e8b4ba;
 }
 
-body.rustscript .rustscript-editor-unlocking .rustscript-editor-title {
+.saito-container.rustscript .rustscript-editor-unlocking .rustscript-editor-title {
   color: #c8a860;
   background: rgba(90, 62, 12, 0.25);
   border-bottom-color: var(--rustscript-test-edge);
 }
 
-body.rustscript .rustscript-editor-guided {
+.saito-container.rustscript .rustscript-editor-guided {
   flex: 1 1 auto;
   min-height: 0;
-  height: 100%;
   overflow: auto;
   padding: 10px 12px;
   box-sizing: border-box;
@@ -69,13 +67,12 @@ body.rustscript .rustscript-editor-guided {
   text-transform: none;
 }
 
-body.rustscript .rustscript-editor-expert {
+.saito-container.rustscript .rustscript-editor-expert {
   flex: 1 1 auto;
   min-height: 0;
-  height: 100%;
   width: 100%;
   margin: 0;
-  padding: 12px;
+  padding: 10px 12px;
   border: none;
   border-radius: 0;
   resize: none;
@@ -83,42 +80,43 @@ body.rustscript .rustscript-editor-expert {
   box-sizing: border-box;
   font-family: var(--rustscript-font-mono);
   font-size: 0.9em;
-  line-height: 1.32;
+  line-height: 1.28;
   tab-size: 2;
   color: var(--rustscript-text);
   background: var(--rustscript-background);
 }
 
-body.rustscript .rustscript-editor-locking .rustscript-editor-expert {
+.saito-container.rustscript .rustscript-editor-locking .rustscript-editor-expert {
   background: #100a0c;
   color: #e8d4d6;
   box-shadow: inset 0 0 28px rgba(196, 92, 106, 0.1);
 }
 
-body.rustscript .rustscript-editor-unlocking .rustscript-editor-expert {
+.saito-container.rustscript .rustscript-editor-unlocking .rustscript-editor-expert {
   background: #0f0d08;
   color: #e8e0c8;
   box-shadow: inset 0 0 28px rgba(252, 163, 17, 0.1);
 }
 
 /* Semantic JSON tree — single row / indent grid for both editor panes */
-body.rustscript .rustscript-editor-guided.rs-semantic-grid {
+.saito-container.rustscript .rustscript-editor-guided.rs-semantic-grid {
   --rs-tree-row-h: 2em;
-  --rs-tree-row-gap: 0.35em;
+  --rs-tree-row-gap: 0.22em;
+  --rs-tree-struct-gap: 0.08em;
   --rs-tree-field-inset: 0.22em;
   --rs-tree-indent: 1.25ch;
   --rs-tree-inner-pad: 1.25ch;
-  --rs-tree-inner-margin: 0.35ch;
+  --rs-tree-inner-margin: 0.25ch;
   --rs-tree-col-gap: 0.25em;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-tree {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-tree {
   margin: 0;
   font-variant-ligatures: none;
   font-feature-settings: 'liga' 0;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-row {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -133,33 +131,53 @@ body.rustscript .rustscript-editor-guided .rs-semantic-row {
   box-sizing: border-box;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-row-brace,
-body.rustscript .rustscript-editor-guided .rs-semantic-row-value,
-body.rustscript .rustscript-editor-guided .rs-semantic-row-key,
-body.rustscript .rustscript-editor-guided .rs-semantic-row-comma {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-brace,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-value,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-key,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-comma {
   min-height: var(--rs-tree-row-h);
   line-height: var(--rs-tree-row-h);
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-block-inner {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-brace {
+  min-height: auto;
+  line-height: 1.28;
+  margin-bottom: var(--rs-tree-struct-gap);
+}
+
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-close {
+  min-height: auto;
+  line-height: 1.28;
+  margin-bottom: var(--rs-tree-row-gap);
+}
+
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-key {
+  min-height: auto;
+  line-height: 1.28;
+  margin-bottom: var(--rs-tree-struct-gap);
+}
+
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-block-inner {
   padding-left: var(--rs-tree-inner-pad);
   margin-left: var(--rs-tree-inner-margin);
+  margin-top: 0;
+  margin-bottom: var(--rs-tree-struct-gap);
   border-left: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-section {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-section {
   margin: 0;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-key,
-body.rustscript .rustscript-editor-guided .rs-semantic-punct,
-body.rustscript .rustscript-editor-guided .rs-semantic-brace,
-body.rustscript .rustscript-editor-guided .rs-semantic-string,
-body.rustscript .rustscript-editor-guided .rs-semantic-literal,
-body.rustscript .rustscript-editor-guided .rs-semantic-inherited,
-body.rustscript .rustscript-editor-guided .rs-semantic-placeholder-ghost,
-body.rustscript .rustscript-editor-guided .rs-semantic-opcode-readonly,
-body.rustscript .rustscript-editor-guided .rs-semantic-logical-readonly {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-key,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-punct,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-brace,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-string,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-literal,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-inherited,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-placeholder-ghost,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode-readonly,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-readonly {
   display: inline-flex;
   align-items: center;
   min-height: var(--rs-tree-row-h);
@@ -170,10 +188,10 @@ body.rustscript .rustscript-editor-guided .rs-semantic-logical-readonly {
   text-transform: none;
 }
 
-body.rustscript .rustscript-editor-guided .rs-placeholder-chip,
-body.rustscript .rustscript-editor-guided .rs-value-resolved,
-body.rustscript .rustscript-editor-guided .rs-semantic-opcode,
-body.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
+.saito-container.rustscript .rustscript-editor-guided .rs-placeholder-chip,
+.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
   display: inline-flex;
   align-items: center;
   min-height: calc(var(--rs-tree-row-h) - (var(--rs-tree-field-inset) * 2));
@@ -185,59 +203,59 @@ body.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
   box-sizing: border-box;
 }
 
-body.rustscript .rustscript-editor-locking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
+.saito-container.rustscript .rustscript-editor-locking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
   border-left-color: rgba(196, 92, 106, 0.25);
 }
 
-body.rustscript .rustscript-editor-unlocking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
+.saito-container.rustscript .rustscript-editor-unlocking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
   border-left-color: rgba(252, 163, 17, 0.28);
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-key {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-key {
   color: #8ec5ea;
   font-weight: 500;
 }
 
-body.rustscript .rustscript-editor-locking .rs-semantic-key {
+.saito-container.rustscript .rustscript-editor-locking .rs-semantic-key {
   color: #9eb8e8;
 }
 
-body.rustscript .rustscript-editor-unlocking .rs-semantic-key {
+.saito-container.rustscript .rustscript-editor-unlocking .rs-semantic-key {
   color: #e8c878;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-string {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-string {
   color: #8fd49a;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-literal {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-literal {
   color: #b8a0e0;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-inherited,
-body.rustscript .rustscript-editor-guided .rs-semantic-opcode-readonly {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-inherited,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode-readonly {
   color: #6a9a72;
   font-style: normal;
 }
 
-body.rustscript .rustscript-editor-unlocking .rs-semantic-inherited {
+.saito-container.rustscript .rustscript-editor-unlocking .rs-semantic-inherited {
   color: #7a7060;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-placeholder-ghost {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-placeholder-ghost {
   color: #555;
   opacity: 0.65;
   font-family: inherit;
   font-size: inherit;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-brace,
-body.rustscript .rustscript-editor-guided .rs-semantic-punct {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-brace,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-punct {
   color: #555;
   opacity: 0.85;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-opcode {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode {
   display: inline-flex;
   align-items: center;
   margin-block: var(--rs-tree-field-inset);
@@ -260,21 +278,21 @@ body.rustscript .rustscript-editor-guided .rs-semantic-opcode {
   transition: color 0.12s, text-decoration-color 0.12s;
 }
 
-body.rustscript .rustscript-editor-locking .rs-semantic-opcode {
+.saito-container.rustscript .rustscript-editor-locking .rs-semantic-opcode {
   color: #8fd49a;
 }
 
-body.rustscript .rustscript-editor-unlocking .rs-semantic-opcode {
+.saito-container.rustscript .rustscript-editor-unlocking .rs-semantic-opcode {
   color: #9ad4a4;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-opcode:hover {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode:hover {
   color: #b8f0c0 !important;
   background: transparent !important;
   text-decoration-color: rgba(140, 200, 150, 0.55);
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
   display: inline-flex;
   align-items: center;
   margin-block: var(--rs-tree-field-inset);
@@ -298,19 +316,19 @@ body.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
   transition: color 0.12s, text-decoration-color 0.12s;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-logical-op:hover {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-op:hover {
   color: #b8f0c0 !important;
   background: transparent !important;
   text-decoration-color: rgba(140, 200, 150, 0.5);
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-logical-readonly {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-readonly {
   color: #6a9a72;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
-body.rustscript .rustscript-editor-guided .rs-placeholder-chip {
+.saito-container.rustscript .rustscript-editor-guided .rs-placeholder-chip {
   display: inline-flex;
   align-items: center;
   margin-block: var(--rs-tree-field-inset);
@@ -330,25 +348,25 @@ body.rustscript .rustscript-editor-guided .rs-placeholder-chip {
   text-transform: none !important;
 }
 
-body.rustscript .rustscript-editor-locking .rs-placeholder-chip {
+.saito-container.rustscript .rustscript-editor-locking .rs-placeholder-chip {
   border-color: rgba(196, 92, 106, 0.4);
   background: rgba(196, 92, 106, 0.08);
   color: #c89098;
 }
 
-body.rustscript .rustscript-editor-locking .rs-placeholder-chip:hover {
+.saito-container.rustscript .rustscript-editor-locking .rs-placeholder-chip:hover {
   border-color: rgba(196, 92, 106, 0.65);
   background: rgba(196, 92, 106, 0.2);
   color: #fce0e4 !important;
 }
 
-body.rustscript .rustscript-editor-unlocking .rs-placeholder-chip:hover {
+.saito-container.rustscript .rustscript-editor-unlocking .rs-placeholder-chip:hover {
   border-color: rgba(252, 163, 17, 0.65);
   background: rgba(252, 163, 17, 0.2);
   color: #ffe8b0 !important;
 }
 
-body.rustscript .rustscript-editor-guided .rs-value-resolved {
+.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved {
   display: inline-flex;
   align-items: flex-start;
   flex-wrap: wrap;
@@ -378,58 +396,58 @@ body.rustscript .rustscript-editor-guided .rs-value-resolved {
   transition: color 0.12s, text-decoration-color 0.12s;
 }
 
-body.rustscript .rustscript-editor-guided .rs-value-resolved:hover {
+.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved:hover {
   color: #d8f0dc !important;
   background: transparent !important;
   text-decoration-color: rgba(140, 200, 150, 0.45);
 }
 
-body.rustscript .rustscript-editor-locking .rs-value-resolved {
+.saito-container.rustscript .rustscript-editor-locking .rs-value-resolved {
   color: #d4b8be;
 }
 
-body.rustscript .rustscript-editor-locking .rs-value-resolved:hover {
+.saito-container.rustscript .rustscript-editor-locking .rs-value-resolved:hover {
   color: #f0d8dc !important;
   text-decoration-color: rgba(196, 92, 106, 0.45);
 }
 
-body.rustscript .rustscript-editor-unlocking .rs-value-resolved {
+.saito-container.rustscript .rustscript-editor-unlocking .rs-value-resolved {
   color: #d8c890;
 }
 
-body.rustscript .rustscript-editor-unlocking .rs-value-resolved:hover {
+.saito-container.rustscript .rustscript-editor-unlocking .rs-value-resolved:hover {
   color: #f0e0b0 !important;
   text-decoration-color: rgba(252, 163, 17, 0.45);
 }
 
-body.rustscript .rustscript-editor-guided .rs-value-resolved-warn {
+.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved-warn {
   color: #e8b060 !important;
   text-decoration-color: rgba(252, 163, 17, 0.35);
 }
 
-body.rustscript .rustscript-editor-guided .rs-value-resolved-complete {
+.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved-complete {
   color: #98b8a0 !important;
   text-decoration: none !important;
   font-weight: 500;
   opacity: 0.92;
 }
 
-body.rustscript .rustscript-editor-locking .rs-value-resolved-complete {
+.saito-container.rustscript .rustscript-editor-locking .rs-value-resolved-complete {
   color: #a8a0a4 !important;
 }
 
-body.rustscript .rustscript-editor-unlocking .rs-value-resolved-complete {
+.saito-container.rustscript .rustscript-editor-unlocking .rs-value-resolved-complete {
   color: #a8a080 !important;
 }
 
-body.rustscript .rustscript-editor-guided .rs-value-resolved-complete:hover {
+.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved-complete:hover {
   text-decoration: underline !important;
   text-decoration-color: rgba(140, 160, 145, 0.35) !important;
 }
 
-body.rustscript .rustscript-editor-guided .rs-semantic-opcode,
-body.rustscript .rustscript-editor-guided .rs-placeholder-chip,
-body.rustscript .rustscript-editor-guided .rs-value-resolved,
-body.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode,
+.saito-container.rustscript .rustscript-editor-guided .rs-placeholder-chip,
+.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved,
+.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
   cursor: pointer;
 }

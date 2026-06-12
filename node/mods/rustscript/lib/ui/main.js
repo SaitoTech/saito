@@ -9,6 +9,7 @@ const HashFieldOverlay = require('./overlays/fields/hash');
 const LogicalFieldOverlay = require('./overlays/fields/logical');
 const NumberFieldOverlay = require('./overlays/fields/number');
 const OpcodesOverlay = require('./overlays/opcodes');
+const PublishFlow = require('./overlays/publish');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const { evaluateWorkspaceStatus, resolveFieldOverlayKind } = require('./script_validate');
 const {
@@ -16,11 +17,14 @@ const {
   lockingView
 } = require('./script_build');
 
+const MOUNT_SELECTOR = '.saito-container';
+const WORKSPACE_SELECTOR = 'main.rustscript';
+
 class RustscriptMain {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.container = '.saito-container';
+    this.container = MOUNT_SELECTOR;
     this.workspaceMode = 'locked';
     this.testingUnlocked = false;
     this.executionStatus = { attempted: false, success: false };
@@ -32,6 +36,7 @@ class RustscriptMain {
     this.panel = new RustscriptPanel(app, mod, '#rustscript-panel', this);
     this.welcomeOverlay = new WelcomeOverlay(app, mod, this);
     this.opcodesOverlay = new OpcodesOverlay(app, mod);
+    this.publishFlow = new PublishFlow(app, mod, this);
     this.generateExpertOverlay = new SaitoOverlay(app, mod, false);
 
     this.fieldOverlays = {
@@ -46,13 +51,20 @@ class RustscriptMain {
   }
 
   render() {
-    if (document.querySelector('.rustscript')) {
-      this.app.browser.replaceElementBySelector(MainTemplate(), '.rustscript');
-    } else {
-      this.app.browser.addElementToSelector(MainTemplate(), this.container);
+    const container = document.querySelector(MOUNT_SELECTOR);
+    if (!container) {
+      console.error(`RustScript: mount container not found: ${MOUNT_SELECTOR}`);
+      return;
     }
 
-    document.body.classList.add('rustscript');
+    container.classList.add('rustscript');
+
+    const workspaceQuery = `${MOUNT_SELECTOR} ${WORKSPACE_SELECTOR}`;
+    if (container.querySelector(WORKSPACE_SELECTOR)) {
+      this.app.browser.replaceElementBySelector(MainTemplate(), workspaceQuery);
+    } else {
+      this.app.browser.addElementToSelector(MainTemplate(), MOUNT_SELECTOR);
+    }
 
     this.syncEditorModes();
     this.attachEvents();
@@ -76,9 +88,40 @@ class RustscriptMain {
 
     document.querySelector('.rs-new-script')?.addEventListener('click', openWelcome);
 
-    document.querySelector('.rs-workspace-toggle')?.addEventListener('click', () => {
-      this.setWorkspaceMode(this.workspaceMode === 'locked' ? 'unlocked' : 'locked');
+    document.querySelectorAll('.rs-mode-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        if (mode === 'expert') {
+          this.setWorkspaceMode('unlocked');
+        } else if (mode === 'guided') {
+          this.setWorkspaceMode('locked');
+        }
+      });
     });
+
+    document.querySelector('.rs-publish-script')?.addEventListener('click', () => {
+      if (this.isScriptPublishable()) {
+        this.publishFlow.openChoice();
+      }
+    });
+  }
+
+  isScriptPublishable() {
+    const status = evaluateWorkspaceStatus(
+      lockingView(this.mod.getScript()),
+      this.testingUnlocked ? this.mod.getScript() : {},
+      this.executionStatus,
+      this.mod.opcodes
+    );
+    return status.script.state === 'ready';
+  }
+
+  updatePublishButton() {
+    const btn = document.querySelector('.rs-publish-script');
+    if (!btn) {
+      return;
+    }
+    btn.hidden = !this.isScriptPublishable();
   }
 
   setWorkspaceMode(mode) {
@@ -124,8 +167,9 @@ class RustscriptMain {
   }
 
   applyWorkspaceUI() {
-    const root = document.querySelector('.rustscript');
-    if (!root) {
+    const root = document.querySelector(`${MOUNT_SELECTOR} ${WORKSPACE_SELECTOR}`);
+    const container = document.querySelector(MOUNT_SELECTOR);
+    if (!root || !container) {
       return;
     }
 
@@ -133,8 +177,8 @@ class RustscriptMain {
     root.classList.toggle('rs-workspace-guided', guided);
     root.classList.toggle('rs-workspace-locked', guided);
     root.classList.toggle('rs-workspace-unlocked', !guided);
-    document.body.classList.toggle('rs-workspace-guided', guided);
-    document.body.classList.toggle('rs-workspace-unlocked', !guided);
+    container.classList.toggle('rs-workspace-guided', guided);
+    container.classList.toggle('rs-workspace-unlocked', !guided);
 
     const locking = lockingView(this.mod.getScript());
     const unlocking = this.testingUnlocked ? this.mod.getScript() : {};
@@ -146,7 +190,8 @@ class RustscriptMain {
     );
 
     const scriptReady = status.script.state === 'ready';
-    const testLive = guided ? this.testingUnlocked && scriptReady : scriptReady;
+    const isExpert = !guided;
+    const testLive = isExpert ? true : this.testingUnlocked && scriptReady;
     const showMoveToTesting = guided && scriptReady && !this.testingUnlocked;
 
     this.updateWorkspaceToggle();
@@ -159,24 +204,9 @@ class RustscriptMain {
   }
 
   updateWorkspaceToggle() {
-    const toggle = document.querySelector('.rs-workspace-toggle');
-    if (!toggle) {
-      return;
-    }
     const guided = this.workspaceMode === 'locked';
-    toggle.classList.toggle('is-guided', guided);
-    toggle.classList.toggle('is-expert', !guided);
-    toggle.setAttribute('aria-checked', guided ? 'true' : 'false');
-    const thumbText = toggle.querySelector('.rs-workspace-toggle-thumb-text');
-    if (thumbText) {
-      thumbText.textContent = guided ? 'GUIDED' : 'EXPERT';
-    }
-    toggle.setAttribute(
-      'aria-label',
-      guided
-        ? 'Guided mode — step-by-step semantic editing. Switch to Expert for raw JSON.'
-        : 'Expert mode — direct JSON editing. Switch to Guided for assisted editing.'
-    );
+    document.querySelector('.rs-mode-guided')?.classList.toggle('is-active', guided);
+    document.querySelector('.rs-mode-expert')?.classList.toggle('is-active', !guided);
   }
 
   refreshStatusIndicators(statusIn, options = {}) {
@@ -210,21 +240,21 @@ class RustscriptMain {
     if (!scriptReady || (this.workspaceMode === 'locked' && !testLive)) {
       this.setStatusReactor('.rs-status-required', 'inactive', {
         inactive: options.showMoveToTesting
-          ? 'Script complete — move into testing to fill required fields'
-          : 'Waiting for script — required fields unlock when script is complete'
+          ? 'Script complete — proceed to testing to complete witness fields'
+          : 'Waiting for script — witness step unlocks when script is complete'
       });
     } else {
       this.setStatusReactor('.rs-status-required', requiredState, {
-        idle: 'No required fields yet',
-        warn: 'Required fields have unresolved placeholders',
-        ready: 'Required fields complete'
+        idle: 'Witness fields not started',
+        warn: 'Witness has unresolved placeholders',
+        ready: 'Witness complete'
       });
     }
 
     this.setStatusReactor('.rs-status-valid', validState, {
-      idle: 'Script incomplete',
+      idle: 'Validation not started',
       warn: 'Script validation failed',
-      ready: 'Script validated successfully'
+      ready: 'Script validates successfully'
     });
 
     const validEl = document.querySelector('.rs-status-valid');
@@ -232,16 +262,18 @@ class RustscriptMain {
       const label = validEl.querySelector('.rs-status-reactor-label');
       if (label) {
         if (this.validationDisplay === 'invalid_json') {
-          label.textContent = 'INVALID JSON';
+          label.textContent = 'Invalid JSON';
         } else if (this.validationDisplay === 'valid') {
-          label.textContent = 'VALID';
+          label.textContent = 'Script Valid';
         } else if (this.validationDisplay === 'invalid') {
-          label.textContent = 'INVALID';
+          label.textContent = 'Script Invalid';
         } else {
-          label.textContent = 'VALID';
+          label.textContent = 'Script Valid';
         }
       }
     }
+
+    this.updatePublishButton();
   }
 
   setStatusReactor(selector, state, titles) {
@@ -278,6 +310,7 @@ class RustscriptMain {
     }
     this.applyWorkspaceUI();
     this.panel.render();
+    this.updatePublishButton();
   }
 
   openFieldOverlay(path) {
