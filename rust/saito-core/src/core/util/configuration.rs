@@ -169,13 +169,6 @@ pub struct Server {
 }
 
 #[derive(Deserialize, Debug, Clone, Serialize, Default)]
-pub enum InitialLoadingStatus {
-    #[default]
-    NotStarted,
-    WaitingFor(Vec<(BlockId, SaitoHash)>),
-    Completed,
-}
-#[derive(Deserialize, Debug, Clone, Serialize, Default)]
 pub struct BlockchainConfig {
     #[serde(default)]
     pub last_block_hash: String,
@@ -195,8 +188,6 @@ pub struct BlockchainConfig {
     pub lowest_acceptable_block_id: BlockId,
     #[serde(default)]
     pub fork_id: String,
-    #[serde(skip)]
-    pub initial_loading_status: InitialLoadingStatus,
     #[serde(default = "get_default_issuance_writing_block_interval")]
     pub issuance_writing_block_interval: BlockId,
     #[serde(default)]
