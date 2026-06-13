@@ -1,4 +1,3 @@
-mod js_value_serialize;
 pub mod saitowasm;
 mod wasm_balance_snapshot;
 mod wasm_block;
