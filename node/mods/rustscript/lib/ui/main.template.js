@@ -10,7 +10,6 @@ module.exports = () => {
   <footer class="rs-command-bar" role="toolbar" aria-label="RustScript workflow">
     <div class="rs-command-bar-region rs-command-bar-left">
       <button type="button" class="rs-cmd-btn rs-cmd-secondary rs-new-script">New Script</button>
-      <button type="button" class="rs-cmd-btn rs-cmd-secondary rs-import-transaction">Import Transaction</button>
       <button type="button" class="rs-cmd-btn rs-cmd-primary rs-publish-script" hidden>Publish</button>
     </div>
 

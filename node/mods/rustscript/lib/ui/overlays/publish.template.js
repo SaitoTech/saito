@@ -7,16 +7,18 @@ module.exports = {
   <div class="rs-publish-workspace-inner">
     <h2 class="rs-publish-title rs-publish-title-choice">What do you want to secure?</h2>
     <div class="rs-publish-asset-grid">
-      <button type="button" class="rs-btn rs-btn-card rs-publish-asset-card rs-publish-asset-saito" data-action="publish-saito">
-        <span class="rs-publish-asset-visual rs-publish-asset-visual-saito">
-          <img src="/saito/img/saito-icon.png" alt="" class="rs-publish-asset-img" />
+      <button type="button" class="rs-btn rs-btn-card rs-publish-asset-card rs-publish-asset-saito" data-action="publish-saito" aria-label="Secure SAITO">
+        <span class="rs-publish-asset-media">
+          <img src="/rustscript/img/saito.png" alt="" class="rs-publish-asset-img" aria-hidden="true" />
+          <span class="rs-publish-asset-name">SAITO</span>
         </span>
-        <span class="rs-publish-asset-name">SAITO</span>
       </button>
-      <button type="button" class="rs-btn rs-btn-card rs-publish-asset-card rs-publish-asset-nft is-disabled" disabled aria-disabled="true">
-        <span class="rs-publish-asset-visual rs-publish-asset-visual-nft" aria-hidden="true"></span>
-        <span class="rs-publish-asset-name">NFT</span>
-        <span class="rs-publish-asset-badge">Coming Soon</span>
+      <button type="button" class="rs-btn rs-btn-card rs-publish-asset-card rs-publish-asset-nft is-disabled" disabled aria-disabled="true" aria-label="NFT — coming soon">
+        <span class="rs-publish-asset-media">
+          <img src="/rustscript/img/nft.png" alt="" class="rs-publish-asset-img" aria-hidden="true" />
+          <span class="rs-publish-asset-name">NFT</span>
+          <span class="rs-publish-asset-badge">Coming Soon</span>
+        </span>
       </button>
     </div>
   </div>
@@ -29,7 +31,9 @@ module.exports = {
         <span class="rs-publish-field-label">Script Hash</span>
         <div class="rs-publish-input-copy-row">
           <input type="text" class="rs-publish-input rs-publish-address" readonly value="${p2shAddress}" spellcheck="false" />
-          <button type="button" class="rs-publish-copy-btn" data-action="publish-copy-hash" title="Copy script hash" aria-label="Copy script hash">⎘</button>
+          <button type="button" class="rs-publish-copy-btn" data-action="publish-copy-hash" title="Copy script hash" aria-label="Copy script hash">
+            <i class="fa-solid fa-copy rs-publish-copy-icon" aria-hidden="true"></i>
+          </button>
         </div>
       </label>
       <div class="rs-publish-field-row">

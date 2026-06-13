@@ -217,6 +217,9 @@ body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-opt
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-option:hover {
   border-color: #505862;
   background: var(--rs-onboard-card-hover) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-option-primary,
@@ -229,6 +232,9 @@ body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-opt
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-option-primary:hover {
   border-color: rgba(232, 160, 48, 0.6);
   background: var(--rs-onboard-card-primary-hover) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 body:has(.saito-container.rustscript) .rs-onboard-option-icon,
@@ -389,6 +395,9 @@ body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-tem
 .rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-template:hover {
   border-color: #505862;
   background: var(--rs-onboard-card-hover) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-template:focus-visible,

@@ -1,7 +1,6 @@
 /*
- * RustScript — Saito header dark theme (module-scoped overrides only).
- * Layout, height, and padding come from saito-header.css — do not redeclare them.
- * :root = 10px; --saito-header-height = 7rem (70px).
+ * RustScript — Saito header bar chrome only (module-scoped).
+ * Slide menu, wallet panel, and module grid use default Saito styling — do not override here.
  */
 
 body:has(.saito-container.rustscript) #saito-header {
@@ -65,41 +64,4 @@ body:has(.saito-container.rustscript) #saito-header #saito-header-menu-toggle i 
 body:has(.saito-container.rustscript) #saito-header #saito-header-menu-toggle:hover i {
   color: #fff;
   opacity: 1;
-}
-
-body:has(.saito-container.rustscript) #saito-header .saito-header-hamburger-contents {
-  background: #161616;
-  border-color: #2e2e2e;
-  color: #e4e4e4;
-}
-
-body:has(.saito-container.rustscript) #saito-header .saito-header-backdrop {
-  background: rgba(6, 6, 8, 0.72);
-}
-
-body:has(.saito-container.rustscript) #saito-header #qrcode img,
-body:has(.saito-container.rustscript) #saito-header .qrcode img {
-  border-color: #3a3a3a;
-  background: #0e0e0e;
-}
-
-body:has(.saito-container.rustscript) #saito-header .balance-amount-whole,
-body:has(.saito-container.rustscript) #saito-header .balance-amount-separator,
-body:has(.saito-container.rustscript) #saito-header .balance-amount-decimal {
-  color: #ececec;
-}
-
-body:has(.saito-container.rustscript) #saito-header .wallet-btn {
-  background: #1a1a1a;
-  color: #ddd;
-}
-
-body:has(.saito-container.rustscript) #saito-header .wallet-btn:hover {
-  background: #2e2e2e;
-  color: #fff;
-}
-
-body:has(.saito-container.rustscript) #saito-header .wallet-btn-container {
-  background: #0e0e0e;
-  color: #e0e0e0;
 }

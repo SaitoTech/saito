@@ -178,7 +178,9 @@ body:has(.saito-container.rustscript) .rs-btn-primary:hover:not(:disabled) {
   border-color: #62c070;
   background: linear-gradient(180deg, #62c070 0%, #357a44 100%);
   color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 body:has(.saito-container.rustscript) .rs-btn-primary:disabled {
@@ -202,13 +204,16 @@ body:has(.saito-container.rustscript) .rs-btn-secondary:hover:not(:disabled) {
   border-color: #686868;
   background: #2c2c2c;
   color: #fff;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 body:has(.saito-container.rustscript) .rs-btn-card {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-end;
+  justify-content: stretch;
   width: 100%;
   min-height: var(--rs-btn-card-min-height);
   padding: 0;
@@ -217,31 +222,29 @@ body:has(.saito-container.rustscript) .rs-btn-card {
   background: #101010 !important;
   color: #f0f0f0 !important;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
   text-transform: none;
   letter-spacing: normal;
   font-weight: 400;
 }
 
 body:has(.saito-container.rustscript) .rs-btn-card:not(:disabled):not(.is-disabled):hover {
-  transform: translateY(-3px);
   border-color: #666;
   background: #161616 !important;
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 body:has(.saito-container.rustscript) .rs-btn-card:not(:disabled):not(.is-disabled):focus-visible {
-  outline: none;
+  outline: 2px solid #666;
+  outline-offset: 2px;
   border-color: #777;
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.45),
-    0 0 0 2px rgba(255, 255, 255, 0.12);
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 body:has(.saito-container.rustscript) .rs-btn-card:not(:disabled):not(.is-disabled):active {
-  transform: translateY(-1px);
+  transform: none;
 }
 
 body:has(.saito-container.rustscript) .rs-btn-card.is-disabled,
@@ -290,10 +293,11 @@ body:has(.saito-container.rustscript) .rs-overlay-validation[hidden] {
 }
 
 /*
- * Full-viewport modal backdrop — covers header, workspace, and command bar.
- * Excludes welcome onboarding (full-screen alternate treatment).
+ * RustScript-owned modal backdrops only — do not restyle global Saito overlay backdrops
+ * (Settings/Account and other modules rely on default z-index stacking).
  */
-body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop']:not(.rs-onboarding-overlay-backdrop) {
+body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop'].rs-publish-overlay-backdrop,
+body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop'].rs-overlay-backdrop {
   top: 0 !important;
   left: 0 !important;
   width: 100vw !important;
@@ -304,6 +308,30 @@ body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop']:not(.rs-onb
   -webkit-backdrop-filter: blur(8px);
   pointer-events: auto !important;
   z-index: var(--rs-overlay-z-backdrop) !important;
+}
+
+/* Close control — Saito default placement (above/right of panel, outside chrome) */
+body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell > .saito-overlay-closebox,
+body:has(.saito-container.rustscript) .saito-overlay:has(> .rustscript-overlay) > .saito-overlay-closebox,
+body:has(.saito-container.rustscript) .saito-overlay:has(> .rs-overlay-panel) > .saito-overlay-closebox {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  top: -1rem;
+  right: -1rem;
+  width: 4.2rem;
+  height: 3.4rem;
+  margin: 0;
+  padding: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: var(--rs-overlay-z-controls);
+}
+
+body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell.maximized-overlay > .saito-overlay-closebox,
+body:has(.saito-container.rustscript) .saito-overlay:has(> .rustscript-overlay).maximized-overlay > .saito-overlay-closebox {
+  top: 1rem;
+  right: 1rem;
 }
 
 /* Field / opcode / expert overlays — panel above backdrop */
