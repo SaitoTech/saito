@@ -20,7 +20,6 @@ module.exports = {
 
     return buildSendPanelOverlay({
       extraRootClass: 'rs-unlock-solution',
-      scriptHeading: 'Complete Script',
       scriptDisplay,
       formFieldsHtml,
       errorExtraClass: 'rs-unlock-error',

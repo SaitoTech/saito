@@ -73,6 +73,7 @@ body:has(.saito-container.rustscript) {
 
 /* Override global Saito button chrome inside the workstation */
 .saito-container.rustscript .rs-cmd-btn,
+.saito-container.rustscript .rs-mode-btn,
 .saito-container.rustscript .rs-panel-ref-action,
 .saito-container.rustscript .rs-onboard-appspace button {
   min-width: 0;

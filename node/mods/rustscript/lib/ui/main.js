@@ -95,10 +95,6 @@ class RustscriptMain {
 
     document.querySelector('.rs-new-script')?.addEventListener('click', openWelcome);
 
-    document.querySelector('.rs-import-transaction')?.addEventListener('click', () => {
-      this.importFlow.open();
-    });
-
     document.querySelectorAll('.rs-mode-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const mode = btn.dataset.mode;

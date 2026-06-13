@@ -26,7 +26,8 @@
 
 .saito-container.rustscript .rs-command-bar-left {
   justify-content: flex-start;
-  gap: 12px;
+  gap: 10px;
+  min-width: 124px;
 }
 
 .saito-container.rustscript .rs-command-bar-center {
@@ -69,6 +70,9 @@
   border-color: #686868;
   background: #2c2c2c;
   color: #fff;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 .saito-container.rustscript .rs-cmd-primary {
@@ -83,7 +87,9 @@
   border-color: #62c070;
   background: linear-gradient(180deg, #62c070 0%, #357a44 100%);
   color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 .saito-container.rustscript .rs-publish-script[hidden] {
@@ -210,62 +216,69 @@
   cursor: pointer;
 }
 
-/* ── Mode selector — text tabs, not a boxed control ── */
+/* ── Mode selector — compact segmented control ── */
 
 .saito-container.rustscript .rs-mode-switch {
   display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 0;
   height: auto;
-  padding: 0;
-  border: none;
-  background: transparent;
+  padding: 3px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #141414;
   box-shadow: none;
 }
 
 .saito-container.rustscript .rs-mode-sep {
-  color: #444;
-  font-family: var(--rustscript-font-mono);
-  font-size: 14px;
-  font-weight: 300;
-  line-height: 1;
-  user-select: none;
+  display: none;
 }
 
 .saito-container.rustscript .rs-mode-btn {
   min-width: 0;
-  padding: 6px 2px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
+  min-height: 0;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 3px;
   background: transparent;
-  color: #777;
+  color: #888;
   font-family: var(--rustscript-font-mono);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   line-height: 1.2;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
   margin: 0;
   text-transform: none;
-  transition: color 0.15s, border-color 0.15s;
+  box-shadow: none;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
 }
 
 .saito-container.rustscript .rs-mode-btn:hover:not(.is-active) {
-  color: #aaa;
+  color: #c8c8c8;
+  background: #1c1c1c;
+  border-color: #555;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 .saito-container.rustscript .rs-mode-btn.is-active {
-  color: #e8e8e8;
+  color: #d8eedc;
   font-weight: 600;
-  border-bottom-color: #888;
+  background: #1a2420;
+  border-color: #4a7a52;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 .saito-container.rustscript .rs-mode-btn:focus-visible {
   outline: 2px solid #555;
-  outline-offset: 3px;
+  outline-offset: 2px;
+  box-shadow: none !important;
 }
 
 @media (max-width: 1100px) {
