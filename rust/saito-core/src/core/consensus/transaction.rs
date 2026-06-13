@@ -4,7 +4,7 @@ use std::io::{Error, ErrorKind};
 
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::scripting::Script;
-use log::{debug, error, trace, warn};
+use log::{debug, error, trace, info, warn};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use primitive_types::U256;
@@ -716,7 +716,7 @@ impl Transaction {
 
     /// Runs when the chain is re-organized
     pub fn on_chain_reorganization(&self, utxoset: &mut UtxoSet, longest_chain: bool) {
-        trace!(
+        info!(
             "tx reorg : {:?} with {} inputs and {} outputs",
             self.signature.to_hex(),
             self.from.len(),

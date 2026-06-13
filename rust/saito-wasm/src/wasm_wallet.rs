@@ -1,7 +1,9 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
-use crate::js_value_serialize::to_js_value;
+use serde::Serialize;
+use serde_wasm_bindgen::Serializer;
+
 use js_sys::{Array, JsString, Uint8Array};
 use log::{debug, error, warn};
 use num_traits::FromPrimitive;
@@ -378,7 +380,7 @@ impl WasmWallet {
         Ok(WasmTransaction::from_transaction(tx))
     }
 
-    pub fn get(&self) -> Result<JsValue, JsValue> {
+    pub fn get(&self) -> JsValue {
         let saito = SAITO.blocking_lock();
 
         let wallet = saito
@@ -388,7 +390,11 @@ impl WasmWallet {
             .wallet_lock
             .blocking_read();
 
-        to_js_value(&*wallet)
+    let serializer = Serializer::new()
+        .serialize_large_number_types_as_bigints(true);
+
+    wallet.serialize(&serializer).unwrap()
+
     }
 
     pub async fn save(&self) {

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::js_value_serialize::to_js_value;
 use crate::saitowasm::{string_to_key, SAITO};
 use js_sys::{BigUint64Array, Function, JsString};
 use log::info;
@@ -84,7 +83,7 @@ pub struct WasmBlockchain {
 
 #[wasm_bindgen]
 impl WasmBlockchain {
-    pub fn get(&self) -> Result<JsValue, JsValue> {
+    pub fn get(&self) -> JsValue {
         let saito = SAITO.blocking_lock();
 
         let blockchain = saito
