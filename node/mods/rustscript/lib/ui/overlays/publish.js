@@ -47,6 +47,7 @@ class PublishFlow {
     this.pendingTxSignature = '';
     this.p2shAddress = '';
     this.p2shHash = '';
+    this.lastPublishedTx = null;
     this.availableBalanceNolan = BigInt(0);
     this.blockedRoot = null;
 
@@ -263,6 +264,34 @@ class PublishFlow {
         siteMessage('Could not copy address');
       }
     });
+
+    root.querySelector('[data-action="publish-spend"]')?.addEventListener('click', async () => {
+      const tx = this.lastPublishedTx;
+      if (!tx) {
+        siteMessage('Publish transaction not available');
+        return;
+      }
+      this.hide();
+      try {
+        await this.mod.loadTransactionForWitness(tx);
+      } catch (err) {
+        siteMessage(err?.message || 'Could not start unlock workflow');
+      }
+    });
+
+    root.querySelector('[data-action="publish-export"]')?.addEventListener('click', () => {
+      const tx = this.lastPublishedTx;
+      if (!tx) {
+        siteMessage('Publish transaction not available');
+        return;
+      }
+      try {
+        const { filename } = this.mod.exportTransaction(tx);
+        siteMessage(`Transaction exported (${filename})`);
+      } catch (err) {
+        siteMessage(err?.message || 'Could not export transaction');
+      }
+    });
   }
 
   async broadcastPublish(amountSaito, feeSaito) {
@@ -305,6 +334,8 @@ class PublishFlow {
       throw new Error('Transaction was not signed.');
     }
 
+    this.lastPublishedTx = newtx;
+
     return newtx;
   }
 
@@ -317,6 +348,7 @@ class PublishFlow {
       for (let i = 0; i < txs.length; i++) {
         const tx = txs[i];
         if (tx?.signature === this.pendingTxSignature) {
+          this.lastPublishedTx = tx;
           this.onPublishConfirmed();
           return;
         }
@@ -344,6 +376,7 @@ class PublishFlow {
     if (this.pendingTxSignature && tx.signature !== this.pendingTxSignature) {
       return;
     }
+    this.lastPublishedTx = tx;
     this.onPublishConfirmed();
   }
 }

@@ -10,6 +10,8 @@ const LogicalFieldOverlay = require('./overlays/fields/logical');
 const NumberFieldOverlay = require('./overlays/fields/number');
 const OpcodesOverlay = require('./overlays/opcodes');
 const PublishFlow = require('./overlays/publish');
+const UnlockFlow = require('./overlays/unlock');
+const ImportFlow = require('./overlays/import');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const {
   evaluateWorkspaceStatus,
@@ -42,6 +44,8 @@ class RustscriptMain {
     this.welcomeOverlay = new WelcomeOverlay(app, mod, this);
     this.opcodesOverlay = new OpcodesOverlay(app, mod);
     this.publishFlow = new PublishFlow(app, mod, this);
+    this.unlockFlow = new UnlockFlow(app, mod, this);
+    this.importFlow = new ImportFlow(app, mod, this);
     this.generateExpertOverlay = new SaitoOverlay(app, mod, false);
 
     this.fieldOverlays = {
@@ -92,6 +96,10 @@ class RustscriptMain {
     };
 
     document.querySelector('.rs-new-script')?.addEventListener('click', openWelcome);
+
+    document.querySelector('.rs-import-transaction')?.addEventListener('click', () => {
+      this.importFlow.open();
+    });
 
     document.querySelectorAll('.rs-mode-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -215,6 +223,37 @@ class RustscriptMain {
     this.executionStatus = { attempted: false, success: false };
     this.validationDisplay = null;
     this.setWorkspaceMode('unlocked');
+  }
+
+  async enterUnlockGuided(lockingScript) {
+    this.mod.workflow = 'unlock';
+    this.testingUnlocked = true;
+    this.executionStatus = { attempted: false, success: false };
+    this.validationDisplay = null;
+    this.workspaceMode = 'locked';
+    const merged = build_test_script_from_create(
+      lockingView(lockingScript || {}),
+      {},
+      this.mod.opcodes
+    );
+    this.mod.setScript(merged);
+    this.syncEditorModes();
+    this.applyWorkspaceUI();
+    await this.refresh();
+  }
+
+  async enterUnlockExpert() {
+    this.mod.workflow = 'unlock';
+    this.testingUnlocked = true;
+    this.executionStatus = { attempted: false, success: false };
+    this.validationDisplay = null;
+    this.mod.setScript({});
+    this.setWorkspaceMode('unlocked');
+    this.syncEditorModes();
+    await this.refresh();
+    siteMessage(
+      'Expert unlock mode: reconstruct the locking script and complete all witness fields.'
+    );
   }
 
   applyWorkspaceUI() {
@@ -496,6 +535,10 @@ class RustscriptMain {
     const success = result === 1;
     this.validationDisplay = success ? 'valid' : 'invalid';
     this.executionStatus = { attempted: true, success };
+
+    if (success && this.mod.workflow === 'unlock' && !this.unlockFlow?.step) {
+      await this.unlockFlow.openSolution();
+    }
   }
 }
 

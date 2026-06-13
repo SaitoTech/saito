@@ -5,7 +5,14 @@ const ast_execute = require('./lib/rustscript/ast_execute');
 const script_to_scripthash = require('./lib/rustscript/script_to_scripthash');
 const tokenize = require('./lib/rustscript/semantic_to_tokens');
 const parse = require('./lib/rustscript/tokens_to_ast');
-const { build_test_script_from_create } = require('./lib/ui/script_build');
+const { build_test_script_from_create, lockingView } = require('./lib/ui/script_build');
+const { deriveP2shFromLockingScript } = require('./lib/rustscript/p2sh');
+const { downloadTransactionFile, serializeTransactionToWeb } = require('./lib/transaction_io');
+const Transaction = require('./../../lib/saito/transaction');
+const Slip = require('./../../lib/saito/slip');
+
+/** Saito SlipType::P2SH — not yet exported from saito-js SlipType enum. */
+const SLIP_TYPE_P2SH = 10;
 
 const OpcodeChecksig = require('./lib/opcodes/CHECKSIG');
 const OpcodeCheckmultisig = require('./lib/opcodes/CHECKMULTISIG');
@@ -43,7 +50,8 @@ class Rustscript extends ModTemplate {
       '/rustscript/css/rustscript-fields-overlay.css',
       '/rustscript/css/rustscript-overlay.css',
       '/rustscript/css/rustscript-opcodes-overlay.css',
-      '/rustscript/css/rustscript-publish-overlay.css'
+      '/rustscript/css/rustscript-publish-overlay.css',
+      '/rustscript/css/rustscript-import-overlay.css'
     ];
 
     this.icon = 'fas fa-code';
@@ -52,6 +60,10 @@ class Rustscript extends ModTemplate {
     this.opcodes = {};
     this.main = null;
     this.header = null;
+
+    /** @type {'create'|'unlock'} */
+    this.workflow = 'create';
+    this.unlockContext = null;
   }
 
   async initialize(app) {
@@ -288,12 +300,208 @@ class Rustscript extends ModTemplate {
     if (this.main?.publishFlow) {
       this.main.publishFlow.handleConfirmation(blk, tx, conf);
     }
+    if (this.main?.unlockFlow) {
+      this.main.unlockFlow.handleConfirmation(blk, tx, conf);
+    }
   }
 
   async onNewBlock(blk, lc) {
     if (this.main?.publishFlow) {
       await this.main.publishFlow.checkBlockForPendingTx(blk);
     }
+    if (this.main?.unlockFlow) {
+      await this.main.unlockFlow.checkBlockForPendingTx(blk);
+    }
+  }
+
+  resetUnlockWorkflow() {
+    this.workflow = 'create';
+    this.unlockContext = null;
+  }
+
+  /** Canonical web-serialized transaction JSON (shared with import / future explorer export). */
+  serializeTransaction(tx) {
+    return serializeTransactionToWeb(this.app, tx);
+  }
+
+  /** Download a transaction as canonical JSON via the browser. */
+  exportTransaction(tx) {
+    return downloadTransactionFile(this.app, tx);
+  }
+
+  /**
+   * Load a P2SH publish (or compatible) transaction into the unlock / witness workflow.
+   *
+   * Category A — txmsg.access_script present:
+   *   Guided mode: locking script restored; user completes witness only.
+   * Category B — no txmsg.access_script:
+   *   Expert mode: user must supply locking script and witness.
+   */
+  async loadTransactionForWitness(tx) {
+    if (!tx) {
+      throw new Error('Transaction is required');
+    }
+
+    const txmsg = typeof tx.returnMessage === 'function' ? tx.returnMessage() : tx.msg || {};
+    const p2shAddress =
+      txmsg.p2sh_address ||
+      txmsg.p2shAddress ||
+      this._findP2shOutputAddress(tx) ||
+      '';
+
+    const lockedSlip = this._findLockedOutputSlip(tx, p2shAddress);
+    if (!lockedSlip) {
+      throw new Error('Could not locate script-locked funds in this transaction.');
+    }
+
+    const { hash } = deriveP2shFromLockingScript(
+      this.app,
+      txmsg.access_script ? JSON.parse(txmsg.access_script) : {}
+    );
+    const p2shHash = txmsg.scripthash || hash || '';
+
+    const accessScriptRaw = txmsg.access_script || txmsg.accessScript || '';
+    const hasAccessScript =
+      typeof accessScriptRaw === 'string'
+        ? accessScriptRaw.trim().length > 0
+        : accessScriptRaw && typeof accessScriptRaw === 'object';
+
+    this.unlockContext = {
+      sourceTxSignature: tx.signature || '',
+      p2shAddress,
+      p2shHash,
+      lockedSlip: lockedSlip.toJson ? lockedSlip.toJson() : lockedSlip,
+      importCategory: hasAccessScript ? 'guided' : 'expert',
+      sourceTxmsg: txmsg
+    };
+
+    this.workflow = 'unlock';
+
+    if (hasAccessScript) {
+      let locking;
+      try {
+        locking =
+          typeof accessScriptRaw === 'string' ? JSON.parse(accessScriptRaw) : accessScriptRaw;
+      } catch (err) {
+        throw new Error('access_script is not valid JSON');
+      }
+      if (this.main) {
+        await this.main.enterUnlockGuided(locking);
+      }
+      siteMessage('Script loaded. Complete the witness fields to unlock these funds.');
+    } else {
+      if (this.main) {
+        await this.main.enterUnlockExpert();
+      }
+      siteMessage(
+        'This transaction does not include a locking script. Expert mode is required — provide both the locking script and witness data.'
+      );
+    }
+
+    return this.unlockContext;
+  }
+
+  /**
+   * Import entry point — detects guided vs expert mode from txmsg.access_script.
+   */
+  async importTransactionForUnlock(tx) {
+    return this.loadTransactionForWitness(tx);
+  }
+
+  _findP2shOutputAddress(tx) {
+    const outputs = tx.to || [];
+    for (let i = 0; i < outputs.length; i++) {
+      const slip = outputs[i];
+      if (slip?.publicKey && String(slip.publicKey).length > 0 && slip.publicKey[0] !== undefined) {
+        const pk = slip.publicKey;
+        if (typeof pk === 'string' && pk.length >= 66) {
+          return pk;
+        }
+      }
+    }
+    return '';
+  }
+
+  _findLockedOutputSlip(tx, p2shAddress) {
+    const outputs = tx.to || [];
+    if (p2shAddress) {
+      for (let i = 0; i < outputs.length; i++) {
+        if (outputs[i]?.publicKey === p2shAddress) {
+          return outputs[i];
+        }
+      }
+    }
+    for (let i = 0; i < outputs.length; i++) {
+      const slip = outputs[i];
+      if (slip?.amount && BigInt(slip.amount) > BigInt(0)) {
+        return slip;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Construct and broadcast a P2SH unlock transaction spending all locked funds.
+   */
+  async broadcastSolution({ destinationPublicKey = '', feeSaito = '0' } = {}) {
+    const ctx = this.unlockContext;
+    if (!ctx?.lockedSlip) {
+      throw new Error('No unlock context — load a script-locked transaction first');
+    }
+    if (!destinationPublicKey) {
+      throw new Error('Destination public key is required');
+    }
+
+    const fullScript = this.getScript();
+    const accessScript = JSON.stringify(fullScript);
+
+    const feeNolan = this.app.wallet.convertSaitoToNolan(feeSaito || '0');
+    const lockedAmount = BigInt(ctx.lockedSlip.amount || 0);
+    const outputAmount = lockedAmount - feeNolan;
+    if (outputAmount <= BigInt(0)) {
+      throw new Error('Fee exceeds locked amount');
+    }
+
+    const tx = new Transaction();
+    tx.timestamp = Date.now();
+
+    const lockedInput = new Slip(undefined, ctx.lockedSlip);
+    tx.addFromSlip(lockedInput);
+
+    const p2shMarker = new Slip();
+    p2shMarker.type = SLIP_TYPE_P2SH;
+    p2shMarker.amount = BigInt(0);
+    p2shMarker.publicKey = ctx.p2shAddress;
+    tx.addFromSlip(p2shMarker);
+
+    const output = new Slip();
+    output.publicKey = destinationPublicKey;
+    output.amount = outputAmount;
+    tx.addToSlip(output);
+
+    tx.msg = {
+      module: this.name,
+      request: 'spend p2sh',
+      access_script: accessScript,
+      scripthash: ctx.p2shHash,
+      p2sh_address: ctx.p2shAddress,
+      destination: destinationPublicKey,
+      fee: String(feeSaito),
+      source_tx: ctx.sourceTxSignature || ''
+    };
+
+    await tx.sign();
+    await this.app.network.propagateTransaction(tx);
+
+    if (!tx.signature) {
+      throw new Error('Unlock transaction was not signed');
+    }
+
+    if (this.main?.unlockFlow) {
+      this.main.unlockFlow.notePendingSignature(tx.signature);
+    }
+
+    return tx;
   }
 }
 
