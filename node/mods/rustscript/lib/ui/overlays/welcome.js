@@ -77,7 +77,8 @@ class WelcomeOverlay {
         if (path === 'create') {
           this.showStep('create-build');
         } else if (path === 'interact') {
-          alert('This functionality is not implemented yet');
+          this.dismiss('interact');
+          this.mainUi.importFlow.open();
         } else if (path === 'expert') {
           this.enterExpert();
         }

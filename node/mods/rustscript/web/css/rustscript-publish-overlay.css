@@ -562,3 +562,30 @@ body:has(.saito-container.rustscript) .rs-publish-address-recap {
   color: #555;
   word-break: break-all;
 }
+
+/* Publish success actions — green hover; default emphasis on Create New Script */
+
+body:has(.saito-container.rustscript) .rs-publish-success-actions .rs-publish-success-btn:hover:not(:disabled) {
+  border-color: #62c070;
+  background: linear-gradient(180deg, #62c070 0%, #357a44 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(45, 107, 56, 0.45);
+}
+
+body:has(.saito-container.rustscript)
+  .rs-publish-success-actions:has(.rs-publish-success-btn:hover:not(.rs-success-default))
+  .rs-success-default {
+  border: var(--rs-control-border);
+  background: #1a1a1a;
+  color: #e8e8e8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+body:has(.saito-container.rustscript) .rs-unlock-panel-heading {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #d8d8d8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

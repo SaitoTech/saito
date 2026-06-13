@@ -62,10 +62,10 @@ module.exports = {
   <div class="rs-publish-success-icon" aria-hidden="true">✓</div>
   <h2 class="rs-publish-title">Your script is now published on the network.</h2>
   <div class="rs-publish-success-actions">
-    <button type="button" class="rs-btn rs-btn-primary rs-publish-success-btn" data-action="publish-new-script">Create New Script</button>
+    <button type="button" class="rs-btn rs-btn-primary rs-publish-success-btn rs-success-default" data-action="publish-new-script">Create New Script</button>
     <button type="button" class="rs-btn rs-btn-secondary rs-publish-success-btn" data-action="publish-copy-address">Copy P2SH Address</button>
-    <button type="button" class="rs-btn rs-btn-secondary rs-publish-success-btn rs-publish-success-future" data-action="publish-spend" disabled>Spend This Script</button>
-    <button type="button" class="rs-btn rs-btn-secondary rs-publish-success-btn rs-publish-success-future" data-action="publish-share" disabled>Share This Script</button>
+    <button type="button" class="rs-btn rs-btn-secondary rs-publish-success-btn" data-action="publish-spend">Spend This Script</button>
+    <button type="button" class="rs-btn rs-btn-secondary rs-publish-success-btn" data-action="publish-export">Export Transaction</button>
   </div>
   <p class="rs-publish-address-recap" data-address="${p2shAddress}">${p2shAddress}</p>
       `
