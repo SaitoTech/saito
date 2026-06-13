@@ -21,6 +21,10 @@ export default class Blockchain extends SaitoBlockchain {
   }
 
   async resetBlockchain() {
+    console.info(
+      '[IMPORT_TRACE] before resetBlockchain saveOptions app_option_slips=' +
+        (this.app.options.wallet?.slips?.length ?? 0)
+    );
     this.app.options.blockchain = {
       last_block_hash: DefaultEmptyBlockHash,
       last_block_id: 0,
@@ -35,6 +39,10 @@ export default class Blockchain extends SaitoBlockchain {
     };
     this.instance.reset();
     this.app.storage.saveOptions();
+    console.info(
+      '[IMPORT_TRACE] after resetBlockchain saveOptions app_option_slips=' +
+        (this.app.options.wallet?.slips?.length ?? 0)
+    );
   }
 
   async saveBlockchain() {

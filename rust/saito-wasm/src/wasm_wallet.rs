@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
 
 use js_sys::{Array, JsString, Uint8Array};
-use log::{debug, error, warn};
+use log::{debug, error, info, warn};
 use num_traits::FromPrimitive;
 use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -399,6 +399,12 @@ impl WasmWallet {
 
     pub async fn save(&self) {
         let mut wallet = self.wallet.write().await;
+        info!(
+            "[SAVE_TRACE] wasm_wallet.save slips={} unspent={} balance={}",
+            wallet.slips.len(),
+            wallet.unspent_slips.len(),
+            wallet.get_available_balance()
+        );
         Wallet::save(&mut wallet, &(WasmIoHandler {})).await;
     }
     pub async fn reset(&mut self, keep_keys: bool) {
@@ -414,6 +420,7 @@ impl WasmWallet {
     }
 
     pub async fn load(&mut self) {
+        info!("[LOAD_TRACE] wasm_wallet.load");
         let mut wallet = self.wallet.write().await;
         Wallet::load(&mut wallet, &(WasmIoHandler {})).await;
     }
