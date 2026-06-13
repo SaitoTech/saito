@@ -8,8 +8,8 @@ const parse = require('./lib/rustscript/tokens_to_ast');
 const { build_test_script_from_create, lockingView } = require('./lib/ui/script_build');
 const { deriveP2shFromLockingScript } = require('./lib/rustscript/p2sh');
 const { downloadTransactionFile, serializeTransactionToWeb } = require('./lib/transaction_io');
-const Transaction = require('./../../lib/saito/transaction');
-const Slip = require('./../../lib/saito/slip');
+const Transaction = require('./../../lib/saito/transaction').default;
+const Slip = require('./../../lib/saito/slip').default;
 
 /** Saito SlipType::P2SH — not yet exported from saito-js SlipType enum. */
 const SLIP_TYPE_P2SH = 10;
