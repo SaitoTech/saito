@@ -1,4 +1,4 @@
-const Transaction = require('./../../../lib/saito/transaction');
+const Transaction = require('./../../../lib/saito/transaction').default;
 
 /**
  * Canonical on-disk / share-link transaction format for RustScript and future consumers.

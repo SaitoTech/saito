@@ -79,9 +79,7 @@ class RustscriptMain {
     this.attachEvents();
     this.refresh();
 
-    if (WelcomeOverlay.shouldShow(this.app)) {
-      this.welcomeOverlay.render();
-    }
+    this.welcomeOverlay.render('splash');
   }
 
   syncEditorModes() {

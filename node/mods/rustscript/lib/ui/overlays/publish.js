@@ -1,5 +1,7 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PublishTemplate = require('./publish.template');
+const WaitingTemplate = require('./waiting.template');
+const { ConfirmationWaitingUI } = require('../confirmation_waiting');
 const { lockingView } = require('../script_build');
 const { deriveP2shFromLockingScript } = require('../../rustscript/p2sh');
 
@@ -50,6 +52,7 @@ class PublishFlow {
     this.lastPublishedTx = null;
     this.availableBalanceNolan = BigInt(0);
     this.blockedRoot = null;
+    this.confirmationWaiting = null;
 
     this.onEscapeKey = (event) => {
       if (event.key === 'Escape' && this.step) {
@@ -93,15 +96,21 @@ class PublishFlow {
 
   openWaiting() {
     this.step = 'waiting';
-    this.show(PublishTemplate.waitingOverlay({ phase: 'pending', p2shAddress: this.p2shAddress }));
+    this.show(WaitingTemplate.pendingConfirmationOverlay());
     this.bindWaitingEvents();
+    this.confirmationWaiting = new ConfirmationWaitingUI(
+      this.app,
+      '.rs-publish-waiting.rs-confirmation-waiting.is-pending'
+    );
+    this.confirmationWaiting.start();
   }
 
   openSuccess() {
+    this.confirmationWaiting?.stop();
+    this.confirmationWaiting = null;
     this.step = 'success';
     this.show(
       PublishTemplate.waitingOverlay({
-        phase: 'success',
         p2shAddress: escapeHtml(this.p2shAddress)
       })
     );
@@ -129,6 +138,8 @@ class PublishFlow {
   }
 
   onOverlayClosed() {
+    this.confirmationWaiting?.stop();
+    this.confirmationWaiting = null;
     document.querySelector('.saito-container')?.classList.remove('rs-publish-modal-open');
     document.removeEventListener('keydown', this.onEscapeKey);
     if (this.blockedRoot) {
@@ -195,6 +206,19 @@ class PublishFlow {
       errorEl.textContent = msg;
       errorEl.hidden = !msg;
     };
+
+    root.querySelector('[data-action="publish-copy-hash"]')?.addEventListener('click', async () => {
+      const hash = root.querySelector('.rs-publish-address')?.value;
+      if (!hash) {
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(hash);
+        siteMessage('Script hash copied');
+      } catch (err) {
+        siteMessage('Could not copy hash');
+      }
+    });
 
     root.querySelector('[data-action="publish-broadcast"]')?.addEventListener('click', async () => {
       showError('');
@@ -353,6 +377,7 @@ class PublishFlow {
           return;
         }
       }
+      this.confirmationWaiting?.onNewBlockWithoutConfirmation();
     } catch (err) {
       // keep waiting
     }
@@ -362,6 +387,8 @@ class PublishFlow {
     if (this.step !== 'waiting') {
       return;
     }
+    this.confirmationWaiting?.stop();
+    this.confirmationWaiting = null;
     this.openSuccess();
   }
 

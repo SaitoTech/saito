@@ -1,5 +1,7 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const UnlockTemplate = require('./unlock.template');
+const WaitingTemplate = require('./waiting.template');
+const { ConfirmationWaitingUI } = require('../confirmation_waiting');
 
 function escapeHtml(text) {
   return String(text || '')
@@ -45,6 +47,7 @@ class UnlockFlow {
     this.pendingTxSignature = '';
     this.destinationPublicKey = '';
     this.blockedRoot = null;
+    this.confirmationWaiting = null;
 
     this.onEscapeKey = (event) => {
       if (event.key === 'Escape' && this.step) {
@@ -87,20 +90,21 @@ class UnlockFlow {
 
   openWaiting() {
     this.step = 'waiting';
-    this.show(
-      UnlockTemplate.waitingOverlay({
-        phase: 'pending',
-        destinationPublicKey: escapeHtml(this.destinationPublicKey)
-      })
-    );
+    this.show(WaitingTemplate.pendingConfirmationOverlay({ extraClass: 'rs-unlock-waiting' }));
     this.bindWaitingEvents();
+    this.confirmationWaiting = new ConfirmationWaitingUI(
+      this.app,
+      '.rs-unlock-waiting.rs-confirmation-waiting.is-pending'
+    );
+    this.confirmationWaiting.start();
   }
 
   openSuccess() {
+    this.confirmationWaiting?.stop();
+    this.confirmationWaiting = null;
     this.step = 'success';
     this.show(
       UnlockTemplate.waitingOverlay({
-        phase: 'success',
         destinationPublicKey: escapeHtml(this.destinationPublicKey)
       })
     );
@@ -128,6 +132,8 @@ class UnlockFlow {
   }
 
   onOverlayClosed() {
+    this.confirmationWaiting?.stop();
+    this.confirmationWaiting = null;
     document.querySelector('.saito-container')?.classList.remove('rs-publish-modal-open');
     document.removeEventListener('keydown', this.onEscapeKey);
     if (this.blockedRoot) {
@@ -244,6 +250,7 @@ class UnlockFlow {
           return;
         }
       }
+      this.confirmationWaiting?.onNewBlockWithoutConfirmation();
     } catch (err) {
       // keep waiting
     }
@@ -253,6 +260,8 @@ class UnlockFlow {
     if (this.step !== 'waiting') {
       return;
     }
+    this.confirmationWaiting?.stop();
+    this.confirmationWaiting = null;
     this.openSuccess();
   }
 
