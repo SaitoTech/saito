@@ -43,7 +43,7 @@ module.exports = (view) => {
 
         <div class="store-product-info-col">
           <div class="store-product-info-block store-product-price-block">
-            <div class="store-product-price-label">${view.primaryLabel}</div>
+            <div class="store-product-section-label">${view.primaryLabel}</div>
             <div class="store-product-price-main">${view.primaryDisplay}</div>
             ${
 							view.showNextBid
@@ -53,16 +53,16 @@ module.exports = (view) => {
           </div>
 
           <div class="store-product-info-block store-product-description">
-            <div class="store-product-desc-header">Description</div>
+            <div class="store-product-section-label">Description</div>
             <div class="store-product-desc-body">${descHtml}</div>
           </div>
 
           <div class="store-product-info-block store-product-purchase-info">
             <div class="store-product-meta-section">
-              <div><strong>Type:</strong> ${view.productType}</div>
-              <div><strong>File type:</strong> ${view.fileType}</div>
-              <div><strong>Created:</strong> ${view.createdDate}</div>
-              <div><strong>Quantity available:</strong> ${view.supply}</div>
+              <div class="store-product-meta-row"><span class="store-product-section-label">Type:</span> <span class="store-product-meta-value">${view.productType}</span></div>
+              <div class="store-product-meta-row"><span class="store-product-section-label">File type:</span> <span class="store-product-meta-value">${view.fileType}</span></div>
+              <div class="store-product-meta-row"><span class="store-product-section-label">Created:</span> <span class="store-product-meta-value">${view.createdDate}</span></div>
+              <div class="store-product-meta-row"><span class="store-product-section-label">Available:</span> <span class="store-product-meta-value">${view.supply}</span></div>
             </div>
 
             ${
@@ -74,10 +74,7 @@ module.exports = (view) => {
 								: ''
 						}
 
-            <div class="store-product-message-section">
-              <label class="store-product-note-label">Message to seller</label>
-              <textarea class="store-product-note" placeholder="Add note (size, color, delivery details, etc.)"></textarea>
-            </div>
+            <textarea id="store-product-note-input" class="store-product-note" placeholder="note to seller (size, color, delivery info, etc)"></textarea>
           </div>
         </div>
       </div>
