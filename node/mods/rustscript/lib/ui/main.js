@@ -10,6 +10,7 @@ const LogicalFieldOverlay = require('./overlays/fields/logical');
 const NumberFieldOverlay = require('./overlays/fields/number');
 const OpcodesOverlay = require('./overlays/opcodes');
 const PublishFlow = require('./overlays/publish');
+const PublishNFTFlow = require('./overlays/publish-nft');
 const UnlockFlow = require('./overlays/unlock');
 const ImportFlow = require('./overlays/import');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
@@ -23,6 +24,7 @@ const {
   build_test_script_from_create,
   lockingView
 } = require('./script_build');
+const PanelMenu = require('./panel_menu');
 
 const MOUNT_SELECTOR = '.saito-container';
 const WORKSPACE_SELECTOR = 'main.rustscript';
@@ -44,6 +46,7 @@ class RustscriptMain {
     this.welcomeOverlay = new WelcomeOverlay(app, mod, this);
     this.opcodesOverlay = new OpcodesOverlay(app, mod);
     this.publishFlow = new PublishFlow(app, mod, this);
+    this.publishNftFlow = new PublishNFTFlow(app, mod, this, this.publishFlow);
     this.unlockFlow = new UnlockFlow(app, mod, this);
     this.importFlow = new ImportFlow(app, mod, this);
     this.generateExpertOverlay = new SaitoOverlay(app, mod, false);
@@ -107,7 +110,7 @@ class RustscriptMain {
     });
 
     document.querySelector('.rs-publish-script')?.addEventListener('click', () => {
-      if (this.isScriptPublishable()) {
+      if (this.shouldShowPublishButton()) {
         this.publishFlow.openChoice();
       }
     });
@@ -123,23 +126,11 @@ class RustscriptMain {
     return status.script.state === 'ready';
   }
 
-  isInTestScriptMode() {
-    if (this.workspaceMode === 'unlocked') {
-      return true;
-    }
-    if (!this.testingUnlocked) {
-      return false;
-    }
-    const status = evaluateWorkspaceStatus(
-      lockingView(this.mod.getScript()),
-      this.mod.getScript(),
-      this.executionStatus,
-      this.mod.opcodes
-    );
-    return status.script.state === 'ready';
-  }
-
-  panelShowsPublishAction() {
+  /**
+   * Command-bar Publish — "Open Publish Overlay".
+   * Stays visible once the locking script is publishable until invalidation or reset.
+   */
+  shouldShowPublishButton() {
     const locking = lockingView(this.mod.getScript());
     const unlocking = this.testingUnlocked ? this.mod.getScript() : {};
     const status = evaluateWorkspaceStatus(
@@ -148,33 +139,68 @@ class RustscriptMain {
       this.executionStatus,
       this.mod.opcodes
     );
-    const scriptReady = status.script.state === 'ready';
-    const guided = this.workspaceMode === 'locked';
-    const showMoveToTesting = guided && scriptReady && !this.testingUnlocked;
 
-    if (this.testingUnlocked && scriptReady) {
-      return this.executionStatus.success === true;
+    if (status.script.state !== 'ready') {
+      return false;
     }
-    if (showMoveToTesting) {
-      return true;
-    }
-    return false;
-  }
 
-  shouldShowCommandBarPublish() {
-    return (
-      this.isScriptPublishable() &&
-      this.isInTestScriptMode() &&
-      !this.panelShowsPublishAction()
-    );
+    if (status.script.validation && status.script.validation.valid === false) {
+      return false;
+    }
+
+    if (this.validationDisplay === 'invalid_json') {
+      return false;
+    }
+
+    if (
+      isWitnessPhaseComplete(unlocking, this.mod.opcodes) &&
+      this.executionStatus?.attempted &&
+      this.executionStatus.success !== true
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   updatePublishButton() {
+    const slot = document.querySelector('.rs-publish-slot');
     const btn = document.querySelector('.rs-publish-script');
-    if (!btn) {
+    if (!slot || !btn) {
       return;
     }
-    btn.hidden = !this.shouldShowCommandBarPublish();
+    const visible = this.shouldShowPublishButton();
+    slot.classList.toggle('is-visible', visible);
+    slot.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    btn.tabIndex = visible ? 0 : -1;
+  }
+
+  exportPanelScript(scope) {
+    try {
+      let scriptPayload;
+      if (scope === 'script-create') {
+        scriptPayload = lockingView(this.mod.getScript());
+      } else if (scope === 'script-test') {
+        scriptPayload = this.mod.getScript();
+      } else {
+        scriptPayload = this.mod.getScript();
+      }
+
+      this.mod.exportScriptDraft(scriptPayload);
+    } catch (_err) {
+      /* export failed — no transient notification */
+    }
+  }
+
+  bindPanelMenu(root, menuId) {
+    PanelMenu.attach(root, {
+      menuId,
+      onAction: (action) => {
+        if (action === 'export') {
+          this.exportPanelScript(menuId);
+        }
+      }
+    });
   }
 
   setWorkspaceMode(mode) {
@@ -200,23 +226,67 @@ class RustscriptMain {
   }
 
   enterCreateFromScratch() {
-    this.testingUnlocked = false;
-    this.executionStatus = { attempted: false, success: false };
-    this.validationDisplay = null;
-    this.workspaceMode = 'locked';
-    this.lastScriptSource = '';
-    this.mod.setScript({});
-    this.syncEditorModes();
-    this.applyWorkspaceUI();
-    this.refresh();
-    this.renderGenerateExpertOverlay();
+    this.resetWorkspaceToFresh({ expertMode: false, workflow: 'create' }).then(() => {
+      this.renderGenerateExpertOverlay();
+    });
   }
 
   enterExpertMode() {
-    this.testingUnlocked = true;
+    this.resetWorkspaceToFresh({ expertMode: true, workflow: 'create' });
+  }
+
+  resetOverlayFlows() {
+    this.generateExpertOverlay?.hide?.();
+    this.publishFlow?.hide?.();
+    this.publishNftFlow?.hide?.();
+    this.unlockFlow?.hide?.();
+    this.importFlow?.hide?.();
+
+    if (this.publishFlow) {
+      this.publishFlow.pendingTxSignature = '';
+      this.publishFlow.p2shAddress = '';
+      this.publishFlow.p2shHash = '';
+      this.publishFlow.lastPublishedTx = null;
+      this.publishFlow.confirmationWaiting?.stop?.();
+      this.publishFlow.confirmationWaiting = null;
+    }
+    if (this.unlockFlow) {
+      this.unlockFlow.pendingTxSignature = '';
+      this.unlockFlow.confirmationWaiting?.stop?.();
+      this.unlockFlow.confirmationWaiting = null;
+    }
+  }
+
+  resetEditorShells() {
+    const root = document.querySelector(`${MOUNT_SELECTOR} ${WORKSPACE_SELECTOR}`);
+    if (!root) {
+      return;
+    }
+    ['#rustscript-editor-create', '#rustscript-editor-test'].forEach((sel) => {
+      const el = root.querySelector(sel);
+      if (el) {
+        el.innerHTML = '';
+        delete el.dataset.rustscriptEventsAttached;
+      }
+    });
+  }
+
+  async resetWorkspaceToFresh({ expertMode = false, workflow = 'create' } = {}) {
+    this.resetOverlayFlows();
+    this.mod.resetUnlockWorkflow();
+    if (workflow) {
+      this.mod.workflow = workflow;
+    }
+    this.mod.setScript({});
+    this.testingUnlocked = !!expertMode;
     this.executionStatus = { attempted: false, success: false };
     this.validationDisplay = null;
-    this.setWorkspaceMode('unlocked');
+    this.lastScriptSource = '';
+    this.workspaceMode = expertMode ? 'unlocked' : 'locked';
+    this.resetEditorShells();
+    this.syncEditorModes();
+    this.applyWorkspaceUI();
+    await this.refresh({ skipTestSync: true });
   }
 
   async enterUnlockGuided(lockingScript) {
@@ -245,9 +315,6 @@ class RustscriptMain {
     this.setWorkspaceMode('unlocked');
     this.syncEditorModes();
     await this.refresh();
-    siteMessage(
-      'Expert unlock mode: reconstruct the locking script and complete all witness fields.'
-    );
   }
 
   applyWorkspaceUI() {
@@ -371,8 +438,8 @@ class RustscriptMain {
     this.mod.setScript(merged);
   }
 
-  async refresh() {
-    if (this.testingUnlocked) {
+  async refresh({ skipTestSync = false } = {}) {
+    if (this.testingUnlocked && !skipTestSync) {
       this.syncTestScriptFromLocking();
     }
     this.createEditor.render();
@@ -417,9 +484,7 @@ class RustscriptMain {
 
     const result = overlay.render();
     if (result && typeof result.then === 'function') {
-      result.catch((err) => {
-        siteMessage(err.message || 'Could not open field editor');
-      });
+      result.catch(() => {});
     }
   }
 
@@ -431,9 +496,8 @@ class RustscriptMain {
     const html = `
       <div class="rustscript-overlay">
         <h2>Generate Expert Script</h2>
-        <p class="rs-overlay-hint">The only place to author symbolic human-readable scripts.</p>
-        <label>Expert script</label>
         <textarea class="rs-expert-input" spellcheck="false" placeholder="CHECKSIG[publickey=&quot;alice&quot;]&#10;AND&#10;IMPORTFIELD[field=&quot;duration&quot;]"></textarea>
+        <p class="rs-prompt-validation rs-expert-generate-error" hidden role="alert"></p>
         <div class="overlay-actions overlay-actions-apply-only">
           <button type="button" class="rs-expert-generate-btn rs-prompt-primary">Generate</button>
         </div>
@@ -442,15 +506,18 @@ class RustscriptMain {
     this.generateExpertOverlay.show(html);
     const input = document.querySelector('.rs-expert-input');
     if (input) {
-      input.value = this.lastScriptSource || '';
+      input.value = '';
       requestAnimationFrame(() => {
         input.focus({ preventScroll: true });
-        const end = input.value.length;
-        input.setSelectionRange(end, end);
       });
     }
     document.querySelector('.rs-expert-generate-btn')?.addEventListener('click', () => {
       const text = document.querySelector('.rs-expert-input')?.value?.trim();
+      const errorEl = document.querySelector('.rs-expert-generate-error');
+      if (errorEl) {
+        errorEl.hidden = true;
+        errorEl.textContent = '';
+      }
       if (!text) {
         return;
       }
@@ -468,7 +535,10 @@ class RustscriptMain {
         this.generateExpertOverlay.hide();
         this.refresh();
       } catch (err) {
-        siteMessage(err.message || 'Failed to parse expert script');
+        if (errorEl) {
+          errorEl.textContent = err.message || 'Failed to parse expert script';
+          errorEl.hidden = false;
+        }
       }
     });
   }
@@ -529,10 +599,6 @@ class RustscriptMain {
     const success = result === 1;
     this.validationDisplay = success ? 'valid' : 'invalid';
     this.executionStatus = { attempted: true, success };
-
-    if (success && this.mod.workflow === 'unlock' && !this.unlockFlow?.step) {
-      await this.unlockFlow.openSolution();
-    }
   }
 }
 

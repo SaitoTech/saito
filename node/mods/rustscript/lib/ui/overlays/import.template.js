@@ -8,7 +8,6 @@ module.exports = {
 <div class="rustscript-overlay rs-publish-overlay rs-publish-workspace rs-import-overlay">
   <div class="rs-publish-workspace-inner rs-import-inner">
     <h2 class="rs-publish-title rs-import-title">Import Transaction</h2>
-    <p class="rs-import-lead">Load a script-locked publish transaction to complete witness data and unlock funds.</p>
 
     <div id="rs-import-drop-zone" class="rs-import-dropzone" tabindex="0" role="button" aria-label="Import transaction file">
       <span class="rs-import-dropzone-icon" aria-hidden="true">
@@ -18,9 +17,8 @@ module.exports = {
           <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
       </span>
-      <p class="rs-import-dropzone-lead">Drag and drop a transaction file here</p>
-      <p class="rs-import-dropzone-or">or</p>
-      <p class="rs-import-dropzone-click">Click to select a file</p>
+      <p class="rs-import-dropzone-lead">drag and drop a transaction file here</p>
+      <p class="rs-import-dropzone-click">or click here</p>
       <input type="file" class="rs-import-file-input" accept=".json,application/json,text/plain" hidden />
     </div>
 
@@ -30,9 +28,8 @@ module.exports = {
 
     <section class="rs-import-p2sh">
       <h3 class="rs-import-p2sh-heading">Import from P2SH Link</h3>
-      <p class="rs-import-p2sh-hint">Paste the P2SH link generated when you published a script.</p>
       <div class="rs-import-p2sh-row">
-        <input type="text" class="rs-publish-input rs-import-p2sh-input" placeholder="Paste P2SH link…" spellcheck="false" autocomplete="off" />
+        <input type="text" class="rs-import-p2sh-input" placeholder="Paste P2SH link…" spellcheck="false" autocomplete="off" />
         <button type="button" class="rs-btn rs-btn-secondary rs-import-p2sh-btn" data-action="import-p2sh-link">Import</button>
       </div>
     </section>

@@ -38,6 +38,40 @@
   justify-content: flex-end;
 }
 
+.saito-container.rustscript .rs-command-bar-right-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.saito-container.rustscript .rs-publish-slot {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns 0.22s ease;
+  overflow: hidden;
+}
+
+.saito-container.rustscript .rs-publish-slot.is-visible {
+  grid-template-columns: 1fr;
+}
+
+.saito-container.rustscript .rs-publish-slot .rs-publish-script {
+  min-width: 124px;
+  opacity: 0;
+  transform: translateX(12px);
+  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s linear 0.22s;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.saito-container.rustscript .rs-publish-slot.is-visible .rs-publish-script {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+  visibility: visible;
+  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s;
+}
+
 /* ── Actions ── */
 
 .saito-container.rustscript .rs-cmd-btn {

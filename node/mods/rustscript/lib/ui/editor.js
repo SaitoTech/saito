@@ -773,6 +773,10 @@ class RustscriptEditor {
 
     if (!el.querySelector('.rustscript-editor-guided')) {
       el.innerHTML = EditorTemplate(this.role);
+      const menuId = this.role === 'test' ? 'script-test' : 'script-create';
+      if (el.querySelector('.rs-panel-menu')) {
+        this.mod.main?.bindPanelMenu(el, menuId);
+      }
     }
 
     const guidedEl = el.querySelector('.rustscript-editor-guided');
@@ -801,7 +805,7 @@ class RustscriptEditor {
       this.semanticView.mount(guidedEl);
       this.semanticView.render(display);
     } else {
-      expertEl.value = JSON.stringify(display, null, 2);
+      expertEl.value = isEmptyScriptRoot(display) ? '' : JSON.stringify(display, null, 2);
     }
 
     this.attachEvents(el, expertEl);
@@ -845,6 +849,15 @@ class RustscriptEditor {
     const script = cloneForDisplay(this.mod, 'create');
     return collectPlaceholders(script, [], { skipRequired: true, skipWitness: true }).length;
   }
+}
+
+function isEmptyScriptRoot(value) {
+  return (
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
+  );
 }
 
 function cloneForDisplay(mod, role) {

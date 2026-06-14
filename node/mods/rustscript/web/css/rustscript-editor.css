@@ -25,11 +25,38 @@
   box-shadow: inset 0 0 32px var(--rustscript-test-glow);
 }
 
-.saito-container.rustscript .rustscript-editor-title {
+/* ── Panel header + recessed menu ── */
+
+.saito-container.rustscript .rs-panel-header {
   flex-shrink: 0;
-  margin: 0;
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-height: 44px;
+  padding: 4px 10px 4px 6px;
+  box-sizing: border-box;
+}
+
+.saito-container.rustscript .rs-panel-header .rs-panel-menu {
+  margin-left: auto;
+}
+
+.saito-container.rustscript .rustscript-editor-locking .rs-panel-header {
+  background: rgba(80, 28, 36, 0.35);
+  border-bottom: 1px solid var(--rustscript-create-edge);
+}
+
+.saito-container.rustscript .rustscript-editor-unlocking .rs-panel-header {
+  background: rgba(90, 62, 12, 0.25);
+  border-bottom: 1px solid var(--rustscript-test-edge);
+}
+
+.saito-container.rustscript .rustscript-editor-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -39,8 +66,8 @@
   line-height: 1.25;
   font-size: 1.18em;
   font-family: var(--rustscript-font-sans);
-  background: rgba(80, 28, 36, 0.35);
-  border-bottom: 1px solid var(--rustscript-create-edge);
+  background: transparent;
+  border-bottom: none;
 }
 
 .saito-container.rustscript .rustscript-editor-locking .rustscript-editor-title {
@@ -49,8 +76,6 @@
 
 .saito-container.rustscript .rustscript-editor-unlocking .rustscript-editor-title {
   color: #c8a860;
-  background: rgba(90, 62, 12, 0.25);
-  border-bottom-color: var(--rustscript-test-edge);
 }
 
 .saito-container.rustscript .rustscript-editor-guided {
@@ -96,6 +121,33 @@
   background: #0f0d08;
   color: #e8e0c8;
   box-shadow: inset 0 0 28px rgba(252, 163, 17, 0.1);
+}
+
+/* Panel menu — harmonize with locking / unlocking headers */
+.saito-container.rustscript .rustscript-editor-locking .rs-panel-menu-trigger {
+  border-color: rgba(196, 92, 106, 0.35);
+  background: rgba(60, 20, 26, 0.5);
+  color: rgba(232, 180, 186, 0.85);
+}
+
+.saito-container.rustscript .rustscript-editor-locking .rs-panel-menu-trigger:hover,
+.saito-container.rustscript .rustscript-editor-locking .rs-panel-menu-trigger:focus-visible {
+  border-color: rgba(196, 92, 106, 0.55);
+  background: rgba(70, 28, 34, 0.65);
+  color: #f0c8ce;
+}
+
+.saito-container.rustscript .rustscript-editor-unlocking .rs-panel-menu-trigger {
+  border-color: rgba(200, 168, 96, 0.35);
+  background: rgba(50, 38, 14, 0.45);
+  color: rgba(200, 168, 96, 0.9);
+}
+
+.saito-container.rustscript .rustscript-editor-unlocking .rs-panel-menu-trigger:hover,
+.saito-container.rustscript .rustscript-editor-unlocking .rs-panel-menu-trigger:focus-visible {
+  border-color: rgba(200, 168, 96, 0.55);
+  background: rgba(58, 44, 16, 0.6);
+  color: #dcc890;
 }
 
 /* Semantic JSON tree — single row / indent grid for both editor panes */

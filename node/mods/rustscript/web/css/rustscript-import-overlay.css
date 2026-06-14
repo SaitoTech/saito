@@ -21,19 +21,12 @@ body:has(.saito-container.rustscript) .rs-import-inner {
 }
 
 body:has(.saito-container.rustscript) .rs-import-title {
-  margin: 0 0 10px;
+  margin: 0 0 24px;
   padding-right: 44px;
   font-size: 28px;
   font-weight: 700;
   line-height: 1.25;
   color: #fafafa;
-}
-
-body:has(.saito-container.rustscript) .rs-import-lead {
-  margin: 0 0 24px;
-  font-size: 15px;
-  line-height: 1.5;
-  color: #a0a0a0;
 }
 
 body:has(.saito-container.rustscript) .rs-import-dropzone {
@@ -86,25 +79,30 @@ body:has(.saito-container.rustscript) .rs-import-dropzone-icon svg {
 }
 
 body:has(.saito-container.rustscript) .rs-import-dropzone-lead {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: #e8e8e8;
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #c8c8c8;
   text-align: center;
-}
-
-body:has(.saito-container.rustscript) .rs-import-dropzone-or {
-  margin: 8px 0;
-  font-size: 14px;
-  color: #777;
-  text-align: center;
+  text-transform: none;
 }
 
 body:has(.saito-container.rustscript) .rs-import-dropzone-click {
   margin: 0;
   font-size: 14px;
-  color: #62c070;
+  font-weight: 400;
+  color: #888;
   text-align: center;
+  text-transform: none;
+}
+
+body:has(.saito-container.rustscript) .rs-import-file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 body:has(.saito-container.rustscript) .rs-import-error {
@@ -139,33 +137,43 @@ body:has(.saito-container.rustscript) .rs-import-divider::after {
 }
 
 body:has(.saito-container.rustscript) .rs-import-p2sh-heading {
-  margin: 0 0 6px;
+  margin: 0 0 20px;
   font-size: 16px;
   font-weight: 600;
   color: #e0e0e0;
 }
 
-body:has(.saito-container.rustscript) .rs-import-p2sh-hint {
-  margin: 0 0 14px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: #888;
-}
-
 body:has(.saito-container.rustscript) .rs-import-p2sh-row {
   display: flex;
   gap: 10px;
-  align-items: stretch;
+  align-items: center;
 }
 
 body:has(.saito-container.rustscript) .rs-import-p2sh-input {
   flex: 1 1 auto;
   min-width: 0;
+  height: var(--rs-control-height);
+  min-height: var(--rs-control-height);
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 1px solid #444;
+  border-radius: var(--rs-control-radius-chrome);
+  background: #0a0a0a;
+  color: #f2f2f2;
+  font-family: var(--rustscript-font-mono);
+  font-size: 15px;
+  line-height: 1.35;
+  outline: none;
 }
 
 body:has(.saito-container.rustscript) .rs-import-p2sh-btn {
   flex: 0 0 auto;
-  min-width: var(--rs-btn-secondary-min-width);
+  min-width: 96px;
+  height: var(--rs-control-height);
+  min-height: var(--rs-control-height);
+  padding: 0 20px;
+  box-sizing: border-box;
+  box-shadow: none;
 }
 
 body:has(.saito-container.rustscript) .rs-import-loading-inner {

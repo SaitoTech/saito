@@ -71,7 +71,6 @@ class PublishFlow {
     const locking = lockingView(this.mod.getScript());
     const { hash, address } = deriveP2shFromLockingScript(this.app, locking);
     if (!hash || !address) {
-      siteMessage('Could not derive a script address from this script.');
       return;
     }
 
@@ -189,6 +188,10 @@ class PublishFlow {
     root.querySelector('[data-action="publish-saito"]')?.addEventListener('click', () => {
       this.openSend();
     });
+    root.querySelector('[data-action="publish-nft"]')?.addEventListener('click', () => {
+      this.hide();
+      this.mainUi?.publishNftFlow?.openSend();
+    });
   }
 
   bindSendEvents() {
@@ -200,7 +203,6 @@ class PublishFlow {
     const errorEl = root.querySelector('.rs-publish-error');
     const showError = (msg) => {
       if (!errorEl) {
-        siteMessage(msg);
         return;
       }
       errorEl.textContent = msg;
@@ -214,9 +216,8 @@ class PublishFlow {
       }
       try {
         await navigator.clipboard.writeText(hash);
-        siteMessage('Script hash copied');
-      } catch (err) {
-        siteMessage('Could not copy hash');
+      } catch (_err) {
+        /* clipboard unavailable */
       }
     });
 
@@ -283,37 +284,33 @@ class PublishFlow {
       }
       try {
         await navigator.clipboard.writeText(address);
-        siteMessage('Script address copied');
-      } catch (err) {
-        siteMessage('Could not copy address');
+      } catch (_err) {
+        /* clipboard unavailable */
       }
     });
 
     root.querySelector('[data-action="publish-spend"]')?.addEventListener('click', async () => {
       const tx = this.lastPublishedTx;
       if (!tx) {
-        siteMessage('Publish transaction not available');
         return;
       }
       this.hide();
       try {
         await this.mod.loadTransactionForWitness(tx);
-      } catch (err) {
-        siteMessage(err?.message || 'Could not start unlock workflow');
+      } catch (_err) {
+        /* unlock workflow could not start */
       }
     });
 
     root.querySelector('[data-action="publish-export"]')?.addEventListener('click', () => {
       const tx = this.lastPublishedTx;
       if (!tx) {
-        siteMessage('Publish transaction not available');
         return;
       }
       try {
-        const { filename } = this.mod.exportTransaction(tx);
-        siteMessage(`Transaction exported (${filename})`);
-      } catch (err) {
-        siteMessage(err?.message || 'Could not export transaction');
+        this.mod.exportTransaction(tx);
+      } catch (_err) {
+        /* export failed */
       }
     });
   }
@@ -337,20 +334,15 @@ class PublishFlow {
       throw new Error(this.insufficientBalanceMessage(balance));
     }
 
-    const newtx = await this.app.wallet.createUnsignedTransaction(address, amountNolan, feeNolan);
-    const accessScript = JSON.stringify(locking);
+    const newtx = await this.mod.publishScript({
+      assetType: 'saito',
+      locking,
+      p2shAddress: address,
+      p2shHash: hash,
+      amountSaito,
+      feeSaito
+    });
 
-    newtx.msg = {
-      module: this.mod.name,
-      request: 'publish p2sh',
-      access_script: accessScript,
-      scripthash: hash,
-      p2sh_address: address,
-      amount: String(amountSaito),
-      fee: String(feeSaito)
-    };
-
-    await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
 
     this.pendingTxSignature = newtx.signature || '';
