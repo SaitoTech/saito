@@ -38,6 +38,28 @@ class Store extends ModTemplate {
 		await this.header.render();
 	}
 
+
+        async onConfirmation(blk, tx, conf=0) {
+
+                let txmsg = tx.returnMessage();
+                let store_self = this.app.modules.returnModule('Store');
+
+                if (Number(conf) == 0) {
+			if (txmsg.module == 'Store') {
+
+				if (txmsg.request == 'list') {
+					await store_self.receiveListTransaction(tx);
+				}
+			}
+		}
+
+	}
+
+	async receiveListTransaction(tx) {
+
+	}
+
+
 	getItemsForSale() {
 		return [
 			{
