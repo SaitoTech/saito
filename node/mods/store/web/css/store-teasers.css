@@ -1,0 +1,8 @@
+.store-teasers {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, 220px);
+	gap: 20px;
+	width: 100%;
+	justify-content: start;
+	align-content: start;
+}
