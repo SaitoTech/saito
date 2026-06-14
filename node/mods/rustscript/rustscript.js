@@ -7,12 +7,39 @@ const tokenize = require('./lib/rustscript/semantic_to_tokens');
 const parse = require('./lib/rustscript/tokens_to_ast');
 const { build_test_script_from_create, lockingView } = require('./lib/ui/script_build');
 const { deriveP2shFromLockingScript } = require('./lib/rustscript/p2sh');
-const { downloadTransactionFile, serializeTransactionToWeb } = require('./lib/transaction_io');
+const { downloadTransactionFile, serializeTransactionToWeb, transactionExportFilename } = require('./lib/transaction_io');
 const Transaction = require('./../../lib/saito/transaction').default;
 const Slip = require('./../../lib/saito/slip').default;
+const { TransactionType } = require('saito-js/lib/transaction');
+const { SlipType } = require('saito-js/lib/slip');
 
 /** Saito SlipType::P2SH — not yet exported from saito-js SlipType enum. */
 const SLIP_TYPE_P2SH = 10;
+
+function slipToStoredJson(slip) {
+  if (!slip) {
+    return null;
+  }
+  if (typeof slip.toJson === 'function') {
+    return slip.toJson();
+  }
+  return {
+    publicKey: slip.publicKey,
+    amount: slip.amount,
+    type: slip.type,
+    blockId: slip.blockId,
+    txOrdinal: slip.txOrdinal,
+    index: slip.index
+  };
+}
+
+function isBoundSlipType(type) {
+  return type === SlipType.Bound || type === 9;
+}
+
+function isNormalOrAtrSlipType(type) {
+  return type === SlipType.Normal || type === SlipType.ATR || type === 0 || type === 1;
+}
 
 const OpcodeChecksig = require('./lib/opcodes/CHECKSIG');
 const OpcodeCheckmultisig = require('./lib/opcodes/CHECKMULTISIG');
@@ -51,7 +78,9 @@ class Rustscript extends ModTemplate {
       '/rustscript/css/rustscript-overlay.css',
       '/rustscript/css/rustscript-opcodes-overlay.css',
       '/rustscript/css/rustscript-publish-overlay.css',
-      '/rustscript/css/rustscript-import-overlay.css'
+      '/rustscript/css/rustscript-publish-nft.css',
+      '/rustscript/css/rustscript-import-overlay.css',
+      '/saito/css-imports/saito-nft.css'
     ];
 
     this.icon = 'fas fa-code';
@@ -325,8 +354,139 @@ class Rustscript extends ModTemplate {
   }
 
   /** Download a transaction as canonical JSON via the browser. */
-  exportTransaction(tx) {
-    return downloadTransactionFile(this.app, tx);
+  exportTransaction(tx, { prefix } = {}) {
+    const filename = prefix ? transactionExportFilename(tx, prefix) : undefined;
+    return downloadTransactionFile(this.app, tx, { filename });
+  }
+
+  /**
+   * Build a shareable draft transaction wrapping the script at its current state.
+   * Uses the same web-serialization path as publish export (no broadcast).
+   */
+  buildScriptShareTransaction(scriptPayload) {
+    if (!scriptPayload || typeof scriptPayload !== 'object') {
+      throw new Error('Nothing to export yet.');
+    }
+
+    const locking = lockingView(scriptPayload);
+    const { hash, address } = deriveP2shFromLockingScript(this.app, locking);
+    if (!hash || !address) {
+      throw new Error('Could not derive script address for export.');
+    }
+
+    const tx = new Transaction();
+    tx.timestamp = Date.now();
+
+    const output = new Slip();
+    output.type = SLIP_TYPE_P2SH;
+    output.publicKey = address;
+    output.amount = BigInt(0);
+    tx.addToSlip(output);
+
+    tx.msg = {
+      module: this.name,
+      request: 'publish p2sh',
+      access_script: JSON.stringify(scriptPayload),
+      scripthash: hash,
+      p2sh_address: address,
+      amount: '0',
+      fee: '0',
+      draft: true
+    };
+
+    return tx;
+  }
+
+  /** Export current script state via canonical transaction JSON download. */
+  exportScriptDraft(scriptPayload) {
+    const tx = this.buildScriptShareTransaction(scriptPayload);
+    return this.exportTransaction(tx, { prefix: 'rustscript-draft' });
+  }
+
+  /**
+   * Unified publish entry — SAITO or NFT to the derived P2SH address.
+   * NFT path uses app.wallet.createNFTTransaction (wallet handles shard selection).
+   */
+  async publishScript({
+    assetType = 'saito',
+    locking,
+    p2shAddress,
+    p2shHash,
+    amountSaito,
+    feeSaito,
+    nft = null,
+    nftAmount = 1
+  }) {
+    const lockingScript = lockingView(locking || {});
+    const accessScript = JSON.stringify(lockingScript);
+    const baseMsg = {
+      module: this.name,
+      request: 'publish p2sh',
+      access_script: accessScript,
+      scripthash: p2shHash,
+      p2sh_address: p2shAddress,
+      asset_type: assetType,
+      fee: String(feeSaito)
+    };
+
+    if (assetType === 'saito') {
+      const amountNolan = this.app.wallet.convertSaitoToNolan(amountSaito);
+      const feeNolan = this.app.wallet.convertSaitoToNolan(feeSaito);
+      const newtx = await this.app.wallet.createUnsignedTransaction(
+        p2shAddress,
+        amountNolan,
+        feeNolan
+      );
+      newtx.msg = {
+        ...baseMsg,
+        amount: String(amountSaito)
+      };
+      await newtx.sign();
+      return newtx;
+    }
+
+    if (assetType === 'nft') {
+      if (!nft) {
+        throw new Error('No NFT selected.');
+      }
+      await nft.fetchTransaction();
+      const amountInt = parseInt(String(nftAmount), 10);
+      if (!Number.isInteger(amountInt) || amountInt <= 0) {
+        throw new Error('Enter a valid NFT amount.');
+      }
+      const totalAvailable = nft.getTotalAmount ? nft.getTotalAmount() : 0;
+      if (amountInt > totalAvailable) {
+        throw new Error(`Insufficient NFT units (${totalAvailable} available).`);
+      }
+
+      const feeNolan = this.app.wallet.convertSaitoToNolan(feeSaito);
+      const nftTxmsg = JSON.parse(JSON.stringify(nft.txmsg || {}));
+      const txMsg = {
+        ...baseMsg,
+        nft_id: nft.id,
+        nft_amount: String(amountInt),
+        nft_txmsg: nftTxmsg,
+        amount: '0'
+      };
+
+      let newtx = await this.app.wallet.createNFTTransaction(
+        nft,
+        p2shAddress,
+        amountInt,
+        feeNolan,
+        BigInt(0),
+        txMsg
+      );
+
+      newtx = await nft.modifyBeforeSend(newtx, p2shAddress);
+      if (!newtx) {
+        throw new Error('NFT transfer blocked by module.');
+      }
+      await newtx.sign();
+      return newtx;
+    }
+
+    throw new Error(`Unknown asset type: ${assetType}`);
   }
 
   /**
@@ -354,6 +514,11 @@ class Rustscript extends ModTemplate {
       throw new Error('Could not locate script-locked funds in this transaction.');
     }
 
+    const assetType =
+      txmsg.asset_type === 'nft' || txmsg.nft_id ? 'nft' : txmsg.asset_type || 'saito';
+    const lockedNftSlips =
+      assetType === 'nft' ? this._findLockedNftSlipTriplet(tx, p2shAddress) : null;
+
     const { hash } = deriveP2shFromLockingScript(
       this.app,
       txmsg.access_script ? JSON.parse(txmsg.access_script) : {}
@@ -371,6 +536,12 @@ class Rustscript extends ModTemplate {
       p2shAddress,
       p2shHash,
       lockedSlip: lockedSlip.toJson ? lockedSlip.toJson() : lockedSlip,
+      assetType,
+      lockedNftSlips,
+      nftId: txmsg.nft_id || '',
+      nftAmount: txmsg.nft_amount || '',
+      nftTxmsg:
+        txmsg.nft_txmsg && typeof txmsg.nft_txmsg === 'object' ? txmsg.nft_txmsg : null,
       importCategory: hasAccessScript ? 'guided' : 'expert',
       sourceTxmsg: txmsg
     };
@@ -388,14 +559,10 @@ class Rustscript extends ModTemplate {
       if (this.main) {
         await this.main.enterUnlockGuided(locking);
       }
-      siteMessage('Script loaded. Complete the witness fields to unlock these funds.');
     } else {
       if (this.main) {
         await this.main.enterUnlockExpert();
       }
-      siteMessage(
-        'This transaction does not include a locking script. Expert mode is required — provide both the locking script and witness data.'
-      );
     }
 
     return this.unlockContext;
@@ -441,9 +608,55 @@ class Rustscript extends ModTemplate {
   }
 
   /**
+   * Locate bound-normal-bound NFT output triplet locked at p2shAddress.
+   * Mirrors wallet NFT output ordering from create_nft_transaction.
+   */
+  _findLockedNftSlipTriplet(tx, p2shAddress) {
+    const outputs = tx.to || [];
+    for (let i = 1; i < outputs.length - 1; i++) {
+      const slip1 = outputs[i - 1];
+      const slip2 = outputs[i];
+      const slip3 = outputs[i + 1];
+      if (!slip2 || slip2.publicKey !== p2shAddress) {
+        continue;
+      }
+      if (!isBoundSlipType(slip1?.type)) {
+        continue;
+      }
+      if (!isNormalOrAtrSlipType(slip2?.type)) {
+        continue;
+      }
+      if (!isBoundSlipType(slip3?.type)) {
+        continue;
+      }
+      return [slip1, slip2, slip3].map(slipToStoredJson);
+    }
+    return null;
+  }
+
+  /**
    * Construct and broadcast a P2SH unlock transaction spending all locked funds.
    */
   async broadcastSolution({ destinationPublicKey = '', feeSaito = '0' } = {}) {
+    const ctx = this.unlockContext;
+    if (!ctx?.lockedSlip) {
+      throw new Error('No unlock context — load a script-locked transaction first');
+    }
+    if (!destinationPublicKey) {
+      throw new Error('Destination public key is required');
+    }
+
+    if (ctx.assetType === 'nft' && Array.isArray(ctx.lockedNftSlips) && ctx.lockedNftSlips.length === 3) {
+      return this.broadcastNftSolution({ destinationPublicKey, feeSaito });
+    }
+
+    return this.broadcastSaitoSolution({ destinationPublicKey, feeSaito });
+  }
+
+  /**
+   * SAITO unlock — single locked output to destination (existing behavior).
+   */
+  async broadcastSaitoSolution({ destinationPublicKey = '', feeSaito = '0' } = {}) {
     const ctx = this.unlockContext;
     if (!ctx?.lockedSlip) {
       throw new Error('No unlock context — load a script-locked transaction first');
@@ -489,6 +702,87 @@ class Rustscript extends ModTemplate {
       fee: String(feeSaito),
       source_tx: ctx.sourceTxSignature || ''
     };
+
+    await tx.sign();
+    await this.app.network.propagateTransaction(tx);
+
+    if (!tx.signature) {
+      throw new Error('Unlock transaction was not signed');
+    }
+
+    if (this.main?.unlockFlow) {
+      this.main.unlockFlow.notePendingSignature(tx.signature);
+    }
+
+    return tx;
+  }
+
+  /**
+   * NFT unlock — preserve bound-normal-bound slip triplet (same semantics as create_send_bound_transaction).
+   *
+   * Slips copied:
+   *   slip1 — Bound, NFT amount (creator public key)
+   *   slip2 — Normal, SAITO deposit (recipient updated to destination)
+   *   slip3 — Bound, NFT uuid (amount 0)
+   *
+   * Transaction type: Bound (required for wallet NFT recognition).
+   */
+  async broadcastNftSolution({ destinationPublicKey = '', feeSaito = '0' } = {}) {
+    const ctx = this.unlockContext;
+    const slips = ctx.lockedNftSlips;
+    const fullScript = this.getScript();
+    const accessScript = JSON.stringify(fullScript);
+
+    const feeNolan = this.app.wallet.convertSaitoToNolan(feeSaito || '0');
+    const depositAmount = BigInt(slips[1].amount || 0);
+    const outputDeposit = depositAmount - feeNolan;
+    if (outputDeposit <= BigInt(0)) {
+      throw new Error('Fee exceeds locked deposit');
+    }
+
+    const tx = new Transaction();
+    tx.timestamp = Date.now();
+    tx.type = TransactionType.Bound;
+
+    for (const stored of slips) {
+      tx.addFromSlip(new Slip(undefined, stored));
+    }
+
+    const p2shMarker = new Slip();
+    p2shMarker.type = SLIP_TYPE_P2SH;
+    p2shMarker.amount = BigInt(0);
+    p2shMarker.publicKey = ctx.p2shAddress;
+    tx.addFromSlip(p2shMarker);
+
+    const out1 = new Slip(undefined, { ...slips[0] });
+    const out2 = new Slip(undefined, {
+      ...slips[1],
+      publicKey: destinationPublicKey,
+      amount: outputDeposit
+    });
+    const out3 = new Slip(undefined, { ...slips[2] });
+
+    tx.addToSlip(out1);
+    tx.addToSlip(out2);
+    tx.addToSlip(out3);
+
+    tx.msg = {
+      module: this.name,
+      request: 'spend p2sh',
+      asset_type: 'nft',
+      access_script: accessScript,
+      scripthash: ctx.p2shHash,
+      p2sh_address: ctx.p2shAddress,
+      destination: destinationPublicKey,
+      fee: String(feeSaito),
+      source_tx: ctx.sourceTxSignature || '',
+      nft_id: ctx.nftId || slips[2]?.publicKey || '',
+      nft_amount: ctx.nftAmount || String(slips[0]?.amount || '0')
+    };
+
+    if (ctx.nftTxmsg && typeof ctx.nftTxmsg === 'object') {
+      Object.assign(tx.msg, ctx.nftTxmsg);
+    }
 
     await tx.sign();
     await this.app.network.propagateTransaction(tx);

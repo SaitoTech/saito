@@ -43,7 +43,6 @@ class TextFieldOverlay {
 
     const showError = (message) => {
       if (!validation) {
-        siteMessage(message);
         return;
       }
       validation.hidden = false;

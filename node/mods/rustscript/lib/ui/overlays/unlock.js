@@ -59,12 +59,14 @@ class UnlockFlow {
   async openSolution() {
     const ctx = this.mod.unlockContext;
     if (!ctx?.lockedSlip) {
-      siteMessage('No locked funds found for this script.');
       return;
     }
 
     const script = this.mod.getScript();
-    const lockedNolan = BigInt(ctx.lockedSlip.amount || 0);
+    const lockedNolan =
+      ctx?.assetType === 'nft' && ctx?.lockedNftSlips?.[1]
+        ? BigInt(ctx.lockedNftSlips[1].amount || 0)
+        : BigInt(ctx?.lockedSlip?.amount || 0);
     const defaultFee = this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee || BigInt(0));
     const fee = defaultFee && defaultFee !== '0.00' ? defaultFee : '0.001';
     const feeNolan = this.app.wallet.convertSaitoToNolan(fee);
@@ -179,7 +181,6 @@ class UnlockFlow {
     const errorEl = root.querySelector('.rs-unlock-error');
     const showError = (msg) => {
       if (!errorEl) {
-        siteMessage(msg);
         return;
       }
       errorEl.textContent = msg;

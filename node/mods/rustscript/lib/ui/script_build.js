@@ -92,13 +92,18 @@ function unlockFieldNames(opcodes, opName) {
   return Object.keys(witness);
 }
 
-/** Unlock fields still needed at test time (not embedded in locking required). */
+function isWitnessFieldEmbedded(node, fieldKey) {
+  const required = node?.required && typeof node.required === 'object' ? node.required : {};
+  if (isWitnessValueSupplied(required[fieldKey])) {
+    return true;
+  }
+  const reference = node?.reference && typeof node.reference === 'object' ? node.reference : {};
+  return isWitnessValueSupplied(reference[fieldKey]);
+}
+
+/** Unlock fields still needed at test time (not embedded in locking required/reference). */
 function unlockWitnessFieldNames(opcodes, opName, node) {
-  const embedded =
-    node?.required && typeof node.required === 'object' ? node.required : {};
-  return unlockFieldNames(opcodes, opName).filter(
-    (key) => !isWitnessValueSupplied(embedded[key])
-  );
+  return unlockFieldNames(opcodes, opName).filter((key) => !isWitnessFieldEmbedded(node, key));
 }
 
 function cloneScriptTree(node) {
@@ -146,12 +151,10 @@ function preserve_witness_in_tree(previous, next, opcodes) {
   const merged = JSON.parse(JSON.stringify(next));
   const prevWitness =
     previous.witness && typeof previous.witness === 'object' ? previous.witness : {};
-  const embeddedRequired =
-    merged.required && typeof merged.required === 'object' ? merged.required : {};
   const mergedWitness = {};
 
   for (const key of Object.keys(prevWitness)) {
-    if (isWitnessValueSupplied(embeddedRequired[key])) {
+    if (isWitnessFieldEmbedded(merged, key)) {
       continue;
     }
     const val = prevWitness[key];

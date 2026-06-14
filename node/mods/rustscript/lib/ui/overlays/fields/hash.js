@@ -31,7 +31,6 @@ class HashFieldOverlay {
 
     const showError = (message) => {
       if (!validation) {
-        siteMessage(message);
         return;
       }
       validation.hidden = false;
@@ -72,9 +71,8 @@ class HashFieldOverlay {
       }
       try {
         await navigator.clipboard.writeText(this.liveHash);
-        siteMessage('Hash copied');
-      } catch (err) {
-        siteMessage('Could not copy hash');
+      } catch (_err) {
+        /* clipboard unavailable */
       }
     });
 

@@ -209,14 +209,19 @@ class ImportFlow {
       return;
     }
 
-    this.hide();
-
     try {
       await this.mod.loadTransactionForWitness(tx);
+      this.hide();
     } catch (err) {
-      siteMessage(err?.message || 'Could not load transaction into witness mode.');
-    } finally {
       this._processing = false;
+      this.errorMessage = err?.message || 'Could not load transaction into witness mode.';
+      this.step = 'idle';
+      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+      this.bindIdleEvents();
+    } finally {
+      if (this.step !== 'idle') {
+        this._processing = false;
+      }
     }
   }
 }

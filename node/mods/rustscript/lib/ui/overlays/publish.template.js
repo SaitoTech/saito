@@ -9,15 +9,14 @@ module.exports = {
     <div class="rs-publish-asset-grid">
       <button type="button" class="rs-btn rs-btn-card rs-publish-asset-card rs-publish-asset-saito" data-action="publish-saito" aria-label="Secure SAITO">
         <span class="rs-publish-asset-media">
-          <img src="/rustscript/img/saito.png" alt="" class="rs-publish-asset-img" aria-hidden="true" />
+          <img src="/rustscript/img/red_cube.jpg" alt="" class="rs-publish-asset-img" aria-hidden="true" />
           <span class="rs-publish-asset-name">SAITO</span>
         </span>
       </button>
-      <button type="button" class="rs-btn rs-btn-card rs-publish-asset-card rs-publish-asset-nft is-disabled" disabled aria-disabled="true" aria-label="NFT — coming soon">
+      <button type="button" class="rs-btn rs-btn-card rs-publish-asset-card rs-publish-asset-nft" data-action="publish-nft" aria-label="Secure NFT">
         <span class="rs-publish-asset-media">
-          <img src="/rustscript/img/nft.png" alt="" class="rs-publish-asset-img" aria-hidden="true" />
+          <img src="/rustscript/img/multi_cube.jpg" alt="" class="rs-publish-asset-img" aria-hidden="true" />
           <span class="rs-publish-asset-name">NFT</span>
-          <span class="rs-publish-asset-badge">Coming Soon</span>
         </span>
       </button>
     </div>

@@ -308,7 +308,7 @@ body:has(.saito-container.rustscript) .rs-publish-send-column {
 }
 
 body:has(.saito-container.rustscript) .rs-publish-send-form {
-  padding: 8px 20px 0 20px;
+  padding: 14px 20px 0 10px;
 }
 
 @media (max-width: 900px) {
@@ -322,7 +322,7 @@ body:has(.saito-container.rustscript) .rs-publish-send-form {
 body:has(.saito-container.rustscript) .rs-publish-script-readonly {
   flex: 1 1 auto;
   margin: 0;
-  padding: 14px 14px 12px 16px;
+  padding: 14px 16px 12px 16px;
   min-height: 0;
   overflow: auto;
   border: none;

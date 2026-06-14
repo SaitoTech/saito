@@ -148,7 +148,6 @@ class SignatureFieldOverlay {
 
     const showError = (msg) => {
       if (!validation) {
-        siteMessage(msg);
         return;
       }
       validation.hidden = false;

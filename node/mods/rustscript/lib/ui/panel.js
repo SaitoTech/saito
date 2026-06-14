@@ -1,5 +1,6 @@
 const { evaluateWorkspaceStatus } = require('./script_validate');
 const { lockingView } = require('./script_build');
+const PanelMenu = require('./panel_menu');
 
 class PanelReferenceView {
   constructor(app, mod) {
@@ -43,6 +44,15 @@ class PanelReferenceView {
     }
 
     if (phase === 'required-complete') {
+      if (this.mod?.workflow === 'unlock') {
+        return [
+          '<li class="rs-panel-ref-success-msg">✓ Script successfully validates.</li>',
+          '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">This script is ready to unlock the locked funds.</li>',
+          `<li class="rs-panel-ref-actions">
+          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-unlock" data-action="unlock-solution">Unlock Funds</button>
+        </li>`
+        ];
+      }
       return [
         '<li class="rs-panel-ref-success-msg">✓ Script successfully validates.</li>',
         '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">This script is ready to publish to the network.</li>',
@@ -78,6 +88,12 @@ class PanelReferenceView {
         this.lastContext.onPublish();
       }
     });
+
+    this.container?.querySelector('[data-action="unlock-solution"]')?.addEventListener('click', () => {
+      if (typeof this.lastContext?.onUnlockSolution === 'function') {
+        this.lastContext.onUnlockSolution();
+      }
+    });
   }
 }
 
@@ -96,7 +112,7 @@ class RustscriptPanel {
       return;
     }
 
-    el.innerHTML = '<div class="rustscript-panel-reference"></div>';
+    el.innerHTML = `<div class="rustscript-panel-reference"></div>`;
     const refEl = el.querySelector('.rustscript-panel-reference');
     this.referenceView.mount(refEl);
 
@@ -122,11 +138,20 @@ class RustscriptPanel {
       phase = 'script-ready';
     }
 
+    if (PanelMenu.shouldShowForWitnessPanel(phase)) {
+      el.insertAdjacentHTML(
+        'afterbegin',
+        `<header class="rs-panel-header rs-panel-header-status">${PanelMenu.markup('witness')}</header>`
+      );
+      this.main?.bindPanelMenu(el, 'witness');
+    }
+
     this.referenceView.render({
       phase,
       remainingCount: testLive ? remainingRequired : remainingScript,
       onMoveToTesting: () => this.moveToTesting(),
-      onPublish: () => this.openPublish()
+      onPublish: () => this.openPublish(),
+      onUnlockSolution: () => this.openUnlockSolution()
     });
   }
 
@@ -138,6 +163,12 @@ class RustscriptPanel {
   openPublish() {
     if (this.main?.publishFlow && this.main.isScriptPublishable()) {
       this.main.publishFlow.openChoice();
+    }
+  }
+
+  openUnlockSolution() {
+    if (this.main?.unlockFlow && this.mod.workflow === 'unlock') {
+      this.main.unlockFlow.openSolution();
     }
   }
 }
