@@ -46,6 +46,11 @@ body {
     background: transparent !important;
 }
 
+.game .saito-header-backdrop {
+    top: 0;
+    height: 100vh;
+}
+
 .gameboard {
   /*transform-origin: left top; /* For resizing game boards */
   user-select: none;

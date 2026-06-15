@@ -348,10 +348,16 @@ class CallInterfaceVideo {
 	}
 
 	attachEvents() {
-		let add_users = document.querySelector('.add-users-container');
+		let add_users = document.querySelector('.users-on-call .invite-control');
 		if (add_users) {
 			add_users.addEventListener('click', (e) => {
 				this.mod.copyInviteLink();
+			});
+			add_users.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					this.mod.copyInviteLink();
+				}
 			});
 		}
 
@@ -579,12 +585,10 @@ class CallInterfaceVideo {
 
 	updateImages() {
 		let images = ``;
-		let count = 0;
 
 		let imageDiv = document.querySelector('.users-on-call .stun-identicon-list');
-		let countDiv = document.querySelector('.users-on-call .users-on-call-count');
 
-		if (!imageDiv || !countDiv) {
+		if (!imageDiv) {
 			return;
 		}
 
@@ -599,11 +603,9 @@ class CallInterfaceVideo {
 
 			let imgsrc = this.app.keychain.returnIdenticon(publickey);
 			images += `<img data-id ="${publickey}" class="saito-identicon" src="${imgsrc}"/>`;
-			count++;
 		}
 
 		imageDiv.innerHTML = images;
-		countDiv.innerHTML = count;
 	}
 
 	startTimer() {
