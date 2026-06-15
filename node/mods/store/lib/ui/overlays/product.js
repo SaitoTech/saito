@@ -1,5 +1,6 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ProductTemplate = require('./product.template');
+const { hydrateListingFromArchive } = require('../../listing-hydration');
 
 class ProductOverlay {
 	constructor(app, mod, product = {}) {
@@ -62,7 +63,7 @@ class ProductOverlay {
 
 	returnViewModel(product = {}) {
 		const listingTitle =
-			product.subtitle || product.listing_title || product.name || 'Untitled Item';
+			product.title ?? product.nft_title ?? 'Untitled Item';
 		const seller = product.seller || 'anon-store';
 		const shortSeller = this.returnShortKey(seller);
 
@@ -79,16 +80,16 @@ class ProductOverlay {
 				? images.map((img) => (img?.startsWith('gradient-') ? fallbackImage : img))
 				: [fallbackImage];
 
-		const priceValue = product.price || product.title || '';
+		const priceValue = product.price || product.reserve_price || '';
 		const bidValue = product.current_bid || product.currentBid || '';
 		const isBid = !!bidValue && !priceValue;
 		const primaryValue = isBid ? bidValue : priceValue || 'N/A';
 		const primaryLabel = isBid ? 'Current Bid' : 'Price';
-		const currency = product.currency || 'SAITO';
+		const currency = product.currency || product.denomination || 'SAITO';
 		const nextBid = product.next_bid || product.nextMinBid || '';
 		const supply = Number(product.supply ?? product.quantity ?? 1) || 1;
 		const actionText = isBid ? 'Bid' : 'Buy';
-		const description = product.description || '';
+		const description = product.description ?? product.nft_description ?? '';
 		const txid = String(product.tx_id || product.txid || product.id || 'N/A');
 		const primaryDisplay = this.hasCurrencyLabel(primaryValue)
 			? String(primaryValue)
@@ -146,6 +147,20 @@ class ProductOverlay {
 		const view = this.returnViewModel(this.product || {});
 		this.overlay.show(ProductTemplate(view));
 		this.attachEvents();
+		this.maybeHydrateProductImage();
+	}
+
+	maybeHydrateProductImage() {
+		const listing = this.product;
+		if (!listing || listing.image != null) {
+			return;
+		}
+
+		hydrateListingFromArchive(this.app, this.mod, listing, (updated) => {
+			if (updated?.image != null) {
+				this.render(updated);
+			}
+		});
 	}
 }
 
