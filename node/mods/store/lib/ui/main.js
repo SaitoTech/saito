@@ -7,6 +7,10 @@ class Main {
 		this.mod = mod;
 		this.container = container;
 		this.teasers = new Teasers(this.app, this.mod, '.store-teasers');
+
+		this.app.connection.on('store-render-listings', () => {
+			this.teasers.render('.store-teasers');
+		});
 	}
 
 	render(container = '') {
@@ -30,6 +34,7 @@ class Main {
 			sellBtn.onclick = (e) => {
 				e.preventDefault();
 				this.setActiveMenuItem('sell');
+				this.mod.listing_overlay.render();
 			};
 		}
 
@@ -41,6 +46,10 @@ class Main {
 
 				if (view === 'featured' || view === 'all') {
 					this.scrollToListings();
+				}
+
+				if (view === 'sell') {
+					this.mod.listing_overlay.render();
 				}
 			};
 		});
