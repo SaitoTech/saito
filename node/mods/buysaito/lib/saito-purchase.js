@@ -287,7 +287,7 @@ class SaitoPurchaseOverlay {
         // query balance again
         await cm.activate();
 
-        this.crypto_selected.available_balance = Number(cm.returnBalance());
+        this.crypto_selected.available_balance = Number(await cm.getAvailableBalance());
       }
     } catch (err) {
       console.error(err);

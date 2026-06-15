@@ -188,24 +188,22 @@ class Memento extends ModTemplate {
         let total_out = BigInt(0); // to
 
         let ledger = null;
+        let pk = '';
+
         if (transaction.from.length > 0) {
-          if (transaction.from.length == 1) {
-            ledger = {};
-          } else {
-            let pk = '';
-            for (let f of transaction.from) {
-              if (!pk) {
-                console.info('From...', f.publicKey);
-                pk = f.publicKey;
-              }
-              if (pk !== f.publicKey) {
-                console.warn('******************');
-                console.warn('******************');
-                console.warn('******************');
-                console.warn('Cannot guesstimate ledger if not exactly one from slip');
-                pk = '';
-                break;
-              }
+          ledger = {};
+          for (let f of transaction.from) {
+            if (!pk) {
+              pk = f.publicKey;
+            }
+            if (pk !== f.publicKey) {
+              console.warn('******************');
+              console.warn('******************');
+              console.warn('******************');
+              console.warn('Cannot guesstimate ledger if not exactly one from slip');
+              ledger = null;
+              pk = '';
+              break;
             }
           }
         }
@@ -250,16 +248,16 @@ class Memento extends ModTemplate {
             $lc: lc
           };
 
-          // Initialize ledger
-          if (ledger) {
-            ledger.tos = new Array();
-            ledger.from_key = fromSlip.publicKey;
-            ledger.total = Number(fromSlip.amount);
-            ledger.change = 0;
-          }
-
           await this.app.storage.runDatabase(fromSql, fromParams, 'memento');
         });
+
+        // Initialize ledger
+        if (ledger && pk) {
+          ledger.tos = new Array();
+          ledger.from_key = pk;
+          ledger.total = total_in;
+          ledger.change = 0;
+        }
 
         /////////////////////////////////
         // Insert to slip data

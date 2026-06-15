@@ -45,7 +45,6 @@ class Crypto extends ModTemplate {
 		// set max balance
 		//
 
-
 		app.connection.on('accept-game-stake', async (sobj) => {
 			console.log('accept-game-stake sobj: ', sobj);
 
@@ -60,8 +59,7 @@ class Crypto extends ModTemplate {
 	}
 
 	respondTo(type = '') {
-
-/*****
+		/*****
 		if (type == 'game-menu') {
 			//
 			// This should be a game module

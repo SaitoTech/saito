@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 
 use saito_core::core::util::configuration::{
     get_default_issuance_writing_block_interval, BlockchainConfig, Configuration, ConsensusConfig,
-    Endpoint, InitialLoadingStatus, PeerConfig, Server, WalletConfig,
+    Endpoint, PeerConfig, Server, WalletConfig,
 };
 fn get_default_consensus() -> Option<ConsensusConfig> {
     Some(ConsensusConfig::default())
@@ -63,7 +63,6 @@ impl WasmConfiguration {
                 lowest_acceptable_block_id: 0,
                 fork_id: "0000000000000000000000000000000000000000000000000000000000000000"
                     .to_string(),
-                initial_loading_status: InitialLoadingStatus::NotStarted,
                 issuance_writing_block_interval: get_default_issuance_writing_block_interval(),
                 confirmations: vec![],
             },

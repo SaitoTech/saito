@@ -249,6 +249,24 @@ impl RoutingThread {
                     .send_message_by_peer_id(peer_id, Message::Services(Services { services }))
                     .await;
             }
+            Message::RequestEndpoint(_) => {
+                let config = self.config_lock.read().await;
+                if let Some(server) = config.get_server_configs() {
+                    self.network
+                        .send_message_by_peer_id(
+                            peer_id,
+                            Message::Endpoint(server.endpoint.clone()),
+                        )
+                        .await;
+                }
+            }
+            Message::Endpoint(endpoint) => {
+                let mut peers = self.network.peer_lock.write().await;
+                if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                    peer.endpoint = endpoint;
+                }
+            }
+
             Message::RequestGenesisBlockReference() => {
                 self.process_request_genesis_block_reference_message(peer_id)
                     .await;
@@ -349,6 +367,36 @@ impl RoutingThread {
             block_reference.block_id,
         );
 
+        //
+        // sync from peer if needed
+        //
+        {
+            let mut peers = self.network.peer_lock.write().await;
+            let peer = peers.get_peer_by_id_mut(peer_id).unwrap();
+
+            if peer.is_syncing {
+                return;
+            }
+
+            if !peer.is_synced {
+                peer.is_syncing = true;
+                drop(peers);
+
+                let sync = self.sync.read().await;
+                sync.send_request_blockchain_message(
+                    peer_id,
+                    self.config_lock.clone(),
+                    &self.network,
+                )
+                .await;
+
+                return;
+            }
+        }
+
+        //
+        // otherwise, should we queue for download?
+        //
         if self
             .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, &block_reference)
             .await
@@ -661,6 +709,25 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     .send_message_by_peer_id(peer_id, Message::RequestServices(RequestServices {}))
                     .await;
 
+                //
+                // share endpoint
+                //
+                {
+                    let config = self.config_lock.read().await;
+                    if let Some(server) = config.get_server_configs() {
+                        self.network
+                            .send_message_by_peer_id(
+                                peer_id,
+                                Message::Endpoint(server.endpoint.clone()),
+                            )
+                            .await;
+                    }
+                }
+
+                self.network
+                    .send_message_by_peer_id(peer_id, Message::RequestServices(RequestServices {}))
+                    .await;
+
                 if should_request_sync {
                     let sync = self.sync.read().await;
                     sync.send_request_blockchain_message(
@@ -783,9 +850,16 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 }
             }
             RoutingEvent::MissingBlock(peer_id, block_hash, block_id) => {
+                //
+                // do not fetch missing blocks if we are syncing or the peer who is reporting
+                // the missing block is not synced.
+                //
                 let skip_missing_fetch = {
                     let peers = self.network.peer_lock.read().await;
-                    peers.peers.values().any(|p| p.is_connected && p.is_syncing)
+                    peers.peers.values().any(|p| p.is_connected && p.is_syncing) || {
+                        let peer = peers.get_peer_by_id(peer_id).unwrap();
+                        peer.is_syncing || !peer.is_synced
+                    }
                 };
 
                 //
@@ -882,6 +956,7 @@ mod tests {
     use crate::core::process::process_event::ProcessEvent;
     use crate::core::routing_thread::RoutingThread;
     use crate::core::util::config_manager::CONFIRMATION_CONFIG_PATH;
+    use crate::core::util::configuration::Endpoint;
     use crate::core::util::configuration::{
         BlockchainConfig, Configuration, ConsensusConfig, PeerConfig, Server, WalletConfig,
     };

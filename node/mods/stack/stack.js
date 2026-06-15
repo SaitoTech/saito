@@ -590,6 +590,9 @@ class Stack extends ModTemplate {
           }
 
           return null;
+        },
+        returnKeys: () => {
+          return [{ publicKey: this.STACK_OFFICIAL_PUBLICKEY, identifier: 'SaitoOfficial' }];
         }
       };
     }

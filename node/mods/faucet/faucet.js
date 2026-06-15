@@ -3,6 +3,8 @@ const ModTemplate = require('../../lib/templates/modtemplate');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const SaitoOverlay = require('./../../lib/saito/ui/saito-overlay/saito-overlay');
 const FaucetHome = require('./index');
+const FaucetMainTemplate = require('./lib/faucet-main.template');
+const FaucetOverlayTemplate = require('./lib/faucet-overlay.template');
 
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
@@ -24,9 +26,10 @@ class Faucet extends ModTemplate {
 		this.categories = 'Utility Ecommerce NFTs';
 
 		this.icon_fa = 'fa-solid fa-faucet';
+		this.styles = ['/faucet/style.css'];
 
 		this.amount = BigInt(10000000000);
-		this.overlay = new SaitoOverlay(app, this);
+		this.overlay = new SaitoOverlay(app, this, false);
 
 		this.payouts = {};
 
@@ -54,8 +57,9 @@ class Faucet extends ModTemplate {
 
 		await super.render();
 
-		this.app.browser.addElementToDom(this.template());
+		this.app.browser.addElementToDom(FaucetMainTemplate(this.app, this));
 
+		this.setFaucetState('idle');
 		this.attachEvents();
 	}
 
@@ -81,42 +85,69 @@ class Faucet extends ModTemplate {
 
 			setTimeout(() => {
 				document.querySelector('.saito-faucet-button').onclick = (e) => {
-					this.overlay.show(this.template());
+					this.overlay.show(FaucetOverlayTemplate(this.app, this));
+					this.setFaucetState('idle');
 					this.attachEvents();
 				};
 			}, 50);
 		}
 	}
 
-	template() {
-		return `      
-		<div class='faucet saito-overlay-size'>
-        		<h2>SAITO Faucet</h2>
-        	        <p>click on the button to receive 100 SAITO from the testnet faucet</p>
-		        <button class="saito-primary faucet-button" id="faucet-button" >Request Testnet SAITO</button>
-      			<div class="faucet-spinner"><div class="saito_spinner spinner"></div></div>
-      		</div>`;
+	setFaucetState(state = 'idle') {
+		const root = document.getElementById('faucet-request-container');
+		if (!root) {
+			return;
+		}
+
+		root.dataset.faucetState = state;
+
+		const title = document.getElementById('faucet_title');
+		const closeBtn = document.getElementById('faucet-close-btn');
+
+		const titles = {
+			idle: 'Testnet Faucet',
+			pending: 'Requesting Tokens',
+			success: 'Tokens Received'
+		};
+
+		const closeLabels = {
+			idle: 'Close',
+			pending: 'Close',
+			success: 'Continue'
+		};
+
+		if (title) {
+			title.textContent = titles[state] || titles.idle;
+		}
+		if (closeBtn) {
+			closeBtn.textContent = closeLabels[state] || closeLabels.idle;
+		}
+	}
+
+	closeFaucetOverlay() {
+		if (document.querySelector('.saito-overlay #faucet-request-container')) {
+			this.overlay.close();
+		}
 	}
 
 	attachEvents() {
-		let btn = document.querySelector('.faucet-button');
+		let btn = document.getElementById('faucet-button');
 		if (btn) {
 			btn.onclick = async (e) => {
 				siteMessage('Creating Faucet Request...', 3000);
-
-				try {
-					let btn = document.querySelector('.faucet-button');
-					let spinner = document.querySelector('.faucet-spinner');
-					btn.style.display = 'none';
-					spinner.style.display = 'block';
-					let msg_holder = document.querySelector('.faucet p');
-					msg_holder.innerHTML = 'Please wait a moment';
-				} catch (err) {}
+				this.setFaucetState('pending');
 
 				let tx = await this.createFaucetTransaction();
 				this.app.network.propagateTransaction(tx);
 
 				siteMessage('Broadcasting Faucet Request to Server...', 5000);
+			};
+		}
+
+		let closeBtn = document.getElementById('faucet-close-btn');
+		if (closeBtn) {
+			closeBtn.onclick = () => {
+				this.closeFaucetOverlay();
 			};
 		}
 	}
@@ -152,12 +183,7 @@ class Faucet extends ModTemplate {
 		if (txmsg.request === 'faucet issuance') {
 			if (tx.isTo(this.publicKey) && this.app.BROWSER) {
 				siteMessage('Faucet Payment Received...', 3000);
-				try {
-					let msg_holder = document.querySelector('.faucet p');
-					let spinner = document.querySelector('.faucet-spinner');
-					spinner.style.display = 'none';
-					msg_holder.innerHTML = 'please check your wallet...';
-				} catch (err) {}
+				this.setFaucetState('success');
 			}
 			return;
 		}

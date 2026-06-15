@@ -24,7 +24,7 @@ use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::storage::storage::Storage;
-use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
+use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 
 pub const BLOCK_PRODUCING_TIMER: u64 = Duration::from_millis(1000).as_millis() as u64;
@@ -493,7 +493,16 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 Some(SaitoHash::from_hex(blockchain_configs.fork_id.as_str()).unwrap_or([0; 32]));
         }
 
+        //
+        // full nodes
+        //
         if !configs.is_browser() {
+            //
+            // start loading from disk
+            //
+            blockchain.is_loading = true;
+            blockchain.is_loaded = false;
+
             let mut list = self
                 .storage
                 .load_block_name_list()
@@ -570,8 +579,13 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     }
                 }
             }
-            configs.get_blockchain_configs_mut().initial_loading_status =
-                InitialLoadingStatus::Completed;
+
+            //
+            // mark load as complete
+            //
+            blockchain.is_loading = false;
+            blockchain.is_loaded = true;
+
             info!(
                 "Saito.on_init: {:?} total blocks in blockchain (ts: {:?}, elapsed: {:?})",
                 blockchain.blocks.len(),
@@ -590,6 +604,13 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                         .unwrap();
                 }
             }
+
+        //
+        // browsers
+        //
+        } else {
+            blockchain.is_loading = false;
+            blockchain.is_loaded = true;
         }
     }
 

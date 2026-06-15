@@ -33,6 +33,7 @@ module.exports = (app, mod, deposit_self) => {
            <div class="network-confirmations">
                 <span class="network-confirmations-count">0</span> network confirmations
            </div>
+           <div class="get-saito-tokens"></div>
            <button type="button" class="saito-button-primary" id='submit'>Done</button> 
         </div>
 

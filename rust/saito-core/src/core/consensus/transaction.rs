@@ -3,11 +3,13 @@ use std::fmt::{Display, Formatter};
 use std::io::{Error, ErrorKind};
 
 use crate::core::consensus::blockchain::Blockchain;
-use log::{debug, error, trace, warn};
+use crate::core::consensus::scripting::Script;
+use log::{debug, error, info, trace, warn};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use primitive_types::U256;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
@@ -714,7 +716,7 @@ impl Transaction {
 
     /// Runs when the chain is re-organized
     pub fn on_chain_reorganization(&self, utxoset: &mut UtxoSet, longest_chain: bool) {
-        trace!(
+        info!(
             "tx reorg : {:?} with {} inputs and {} outputs",
             self.signature.to_hex(),
             self.from.len(),
@@ -861,19 +863,8 @@ impl Transaction {
         validate_against_utxo: bool,
     ) -> bool {
         //
-        // there are various types of transactions which have different validation
-        // requirements. the most significant difference is between transactions that
-        // are implicit or created by the block producer (ATR / Fee) and transactions
-        // that are created by users and must be cryptographically signed, etc...
-
+        // limited number of slips
         //
-        // Fee Transactions are validated in block.validate() because they must match
-        // the fee transaction that block.generate_consensus_values() would create given
-        // the contents of the block. for this reason, and because there can only be
-        // a single fee transaction per block, we do not need to do further work to
-        // validate them here.
-        //
-
         if self.from.len() > u8::MAX as usize {
             error!("ERROR: transaction has too many inputs");
             return false;
@@ -883,6 +874,9 @@ impl Transaction {
             return false;
         }
 
+        //
+        // no duplicate infputs
+        //
         if self
             .from
             .iter()
@@ -895,15 +889,241 @@ impl Transaction {
             return false;
         }
 
+        //
+        // determine authorization structure
+        //
+        // transactions can contain two kinds of slips, NORMAL slips that are
+        // signed by the publickey of the sender, and P2SH slips that are spendable
+        // only if the spending user provides a script that is capable of unlocking
+        // the script-hash.
+        //
+        // we start validation by checking which form of authorization (or both) is
+        // required. "authorizer" will be set if any slips exist that spend SAITO
+        // that require a slip from that user. "p2sh_idx" will be set if there is
+        // a slip that is unlocked by a P2SH script.
+        //
+        // P2SH scripts are identified by amount=0 P2SH input slips that are
+        // tucked into the list of FROM slips AFTER the normal slip or NFT tuple
+        // that is spendable by the slip. Since we need to loop through all of the
+        // slips in the transaction to identify them, we take advantage of the loop
+        // to check that the only non-P2SH-spendable slips that are spent are from
+        // the user who is identified as the authorizer otherwise.
+        //
+        let mut authorizer: Option<SaitoPublicKey> = None;
+        let mut p2sh_idx: Option<usize> = None;
+        let mut p2sh_expected_hash: Option<SaitoPublicKey> = None;
+
+        let mut i = 0;
+        while i < self.from.len() {
+            let slip = &self.from[i];
+
+            //
+            // invalid if P2SH slip is first
+            //
+            if slip.slip_type == SlipType::P2SH && i == 0 {
+                error!("transaction invalid: P2SH slip found at input 0");
+                return false;
+            }
+
+            //
+            // skip Bound slips, where publickey is not authorizer
+            //
+            if slip.slip_type == SlipType::Bound {
+                i += 1;
+                continue;
+            }
+
+            //
+            // otherwise publickey is authorizer
+            //
+            if slip.slip_type == SlipType::Normal
+                || slip.slip_type == SlipType::ATR
+                || slip.slip_type == SlipType::MinerOutput
+                || slip.slip_type == SlipType::RouterOutput
+                || slip.slip_type == SlipType::BlockStake
+            {
+                //
+                // remember the hash, in case next slip is P2SH
+                //
+                if !p2sh_idx.is_some() {
+                    p2sh_expected_hash = Some(slip.public_key);
+                }
+
+                //
+                // fail on multiple P2SH slips-in-block
+                //
+                if slip.public_key[0] == 0x00 {
+                    if p2sh_expected_hash != Some(slip.public_key) {
+                        error!("transaction invalid: multiple P2SH inputs in wallet");
+                        return false;
+                    }
+                    i += 1;
+                    continue;
+                }
+
+                //
+                // set authorizer or fail if different
+                //
+                if let Some(existing_authorizer) = authorizer {
+                    if existing_authorizer != slip.public_key {
+                        error!("transaction invalid: attempts to spend fee-bearing slips from multiple users");
+                        return false;
+                    }
+                } else {
+                    authorizer = Some(slip.public_key);
+                }
+
+                i += 1;
+                continue;
+            }
+
+            //
+            // set P2SH markers should never appear standalone.
+            //
+            if slip.slip_type == SlipType::P2SH {
+                if p2sh_idx.is_some() {
+                    error!("transaction invalid: multiple P2SH slips found in transaction");
+                    return false;
+                }
+                if slip.amount != 0 {
+                    error!("transaction invalid: P2SH slip found with amount > 0");
+                    return false;
+                }
+                p2sh_idx = Some(i);
+            }
+
+            i += 1;
+        }
+
+        //
+        // P2SH validation.
+        //
+        // we only validate P2SH scripts if we have found them. the reason for this is that
+        // script validation is more computationally intensive, as we must load the tx.data
+        // and find the script that purports to unlock the script, located here:
+        //
+        // txmsg.access_script
+        //
+        // the witness data is now provided INSIDE the script, so we need to extract the
+        // version that does not include the witness data and use it to validate the script
+        // hash (p2sh_expected_hash) before we execute the script and confirm that the
+        // version WITH the witness data unlocks it successfully.
+        //
+        if p2sh_idx.is_some() {
+            //
+            // all scripts must have unlockable hashes
+            //
+            let Some(access_hash) = p2sh_expected_hash else {
+                error!("transaction invalid: P2SH found but script-hash missing...");
+                return false;
+            };
+
+            //
+            // tx.data must contain UTF-8 JSON.
+            //
+            let Ok(txmsg_text) = std::str::from_utf8(&self.data) else {
+                error!("transaction invalid: P2SH tx.data is not UTF-8");
+                return false;
+            };
+            let Ok(txmsg) = serde_json::from_str::<Value>(txmsg_text) else {
+                error!("transaction invalid: P2SH tx.data is not valid JSON");
+                return false;
+            };
+
+            //
+            // txmsg.access_script is required.
+            //
+            let Some(access_script) = txmsg.get("access_script").and_then(|v| v.as_str()) else {
+                error!("transaction invalid: P2SH missing txmsg.access_script");
+                return false;
+            };
+
+            //
+            // access script must exist as JSON
+            //
+            if access_script.is_empty() {
+                error!("transaction invalid: P2SH has empty txmsg.access_script");
+                return false;
+            }
+
+            //
+            // access_script must be valid JSON
+            //
+            let script_json: Value = match serde_json::from_str(access_script) {
+                Ok(v) => v,
+                Err(_) => {
+                    error!("P2SH spend: access_script is not valid JSON");
+                    return false;
+                }
+            };
+
+            //
+            // we now recreate the "unlock script" from the submitted data
+            //
+            let mut script = Script::new();
+            script.json = script_json;
+
+            //
+            // and generate the hash that this unlock script *should* produce
+            //
+            let script_hash_hex = script.hash();
+
+            //
+            // we are looking for this (from P2SH slip.publickey)
+            //
+            if access_hash[0] != 0x00 {
+                error!("transaction invalid: P2SH script hashes to something weird");
+                return false;
+            }
+
+            //
+            // script invalid if reconstructing doesn't give exact match
+            //
+            let Ok(hash_bytes) = hex::decode(&script_hash_hex) else {
+                error!("transaction invalid: P2SH script hash is not valid hex");
+                return false;
+            };
+            if hash_bytes.len() != 32 {
+                error!("P2SH spend: script hash is not 32 bytes");
+                return false;
+            }
+            if access_hash[1..33] != hash_bytes[..] {
+                error!("P2SH spend: script hash does not match commitment");
+                return false;
+            }
+
+            //
+            // script invalid if it doesn't return 1 when executed w/ witness
+            //
+            if script.validate(Some(self), None, Some(blockchain)) != 1 {
+                error!("P2SH spend: access_script evaluation failed");
+                return false;
+            }
+        }
+
+        //
+        // there are various types of transactions which have different validation
+        // requirements. the most significant difference is between transactions that
+        // are implicit or created by the block producer (ATR / Fee) and transactions
+        // that are created by users and must be cryptographically signed, etc...
+        // we can sometimes skip further processing for these transaction types.
+        //
+
+        //
+        // FEE TRANSACTIONS
+        //
         // Fee Transactions are validated in the block class. There can only
         // be one per block, and they are checked by ensuring the transaction hash
         // matches our self-generated safety check. We do not need to validate
         // their input slips as their input slips are records of what to do
         // when reversing/unwinding the chain and have been spent previously.
+        //
         if self.transaction_type == TransactionType::Fee {
             return true;
         }
 
+        //
+        // SPV TRANSACTIONS
         //
         // SPV transactions are "ghost" transactions which are included in SPV/lite-
         // blocks. these transactions are not permitted to create outputs, and are
@@ -911,25 +1131,36 @@ impl Transaction {
         // or consensus.
         //
         if self.transaction_type == TransactionType::SPV {
-            if self.total_fees > 0 {
-                error!("ERROR: SPV transaction contains invalid hash");
-                return false;
+            if !self.from.is_empty() || !self.to.is_empty() {
+                return false; // no spendable slips
             }
-
+            if self.total_fees > 0 || self.total_in > 0 || self.total_out > 0 {
+                return false; // no declared value
+            }
+            if !self.path.is_empty() {
+                return false; // no routing work
+            }
             return true;
         }
 
         //
+        // BLOCKSTAKE TRANSACTIONS
+        //
         // BlockStake transactions are a special class of transactions that are
-        // affixed to blocks in order to propose them. This is used to add a form
+        // affixed to blocks in order to propose them. While this is not required
+        // for Saito Consensus to work, if it exists it can be used to add a form
         // of "social slashing" -- attackers who wish to spend their own money in
-        // a "joyride" attack can be slashed as needed if the network must be
-        // forked to deal with problems created by malicious participants at low
-        // levels of fee-throughput.
+        // a "joyride" attack can be forced to identify those tokens, which permits
+        // them to be slashed if the network must respond to their attack with a
+        // defensive fork. this feature exists to provide greater security during
+        // our bootstrapping stage where fee-throughput is still low.
         //
         if let TransactionType::BlockStake = self.transaction_type {
             let mut total_stakes = 0;
 
+            //
+            // validate only BlockStake and Normal (change) outputs
+            //
             for slip in self.to.iter() {
                 if !matches!(slip.slip_type, SlipType::BlockStake)
                     && !matches!(slip.slip_type, SlipType::Normal)
@@ -937,81 +1168,46 @@ impl Transaction {
                     error!("staking transaction outputs are not staking");
                     return false;
                 }
-
                 if matches!(slip.slip_type, SlipType::BlockStake) {
                     total_stakes += slip.amount;
                 }
             }
 
+            //
+            // validate stake is sufficient
+            //
             if total_stakes < blockchain.social_stake_requirement {
-                warn!(
-                    "Not enough funds staked. expected: {:?}, staked: {:?}",
-                    blockchain.social_stake_requirement, total_stakes
-                );
+                error!("transaction invalid: insufficient block stake...");
                 return false;
             }
 
-            let mut unique_keys: AHashSet<SaitoUTXOSetKey> = Default::default();
-
+            //
+            // validate BlockStake input slips are mature enough to re-stake
+            //
             if validate_against_utxo {
                 for slip in self.from.iter() {
-                    if slip.utxoset_key == [0; UTXO_KEY_LENGTH] {
-                        error!("utxo set key is empty");
-                        return false;
-                    }
+                    //
+                    // this checks that any BlockStake inputs are "fresh" enough to re-stake
+                    //
                     if !blockchain.is_slip_unlocked(&slip.utxoset_key) {
-                        error!("slip is not unlocked. slip : {}", slip);
+                        error!("transaction invalid: blockstake slip is not mature enough");
                         return false;
                     }
-                    let utxo_slip = match Slip::parse_slip_from_utxokey(&slip.utxoset_key) {
-                        Ok(s) => s,
-                        Err(e) => {
-                            error!("failed to parse utxoset_key during validation: {:?}", e);
-                            return false;
-                        }
-                    };
-                    if utxo_slip.amount != slip.amount {
-                        error!(
-                            "slip amount doesn't match with the utxo amount : {}. slip : {}",
-                            utxo_slip.amount, slip
-                        );
-                        return false;
-                    }
-
-                    unique_keys.insert(slip.utxoset_key);
-                }
-                if unique_keys.len() != self.from.len() {
-                    error!("same utxo is used twice in the transaction. unique count : {} from_slip count : {}. tx : {}", unique_keys.len(), self.from.len(), self.signature.to_hex());
-                    // same utxo is used twice in the transaction
-                    return false;
                 }
             }
-
-            return true;
         }
 
         //
         // User-Originated Transactions
         //
-        // most transactions are identifiable by the public_key that
-        // has signed their input transaction, but some transactions
-        // do not have senders as they are auto-generated as part of
-        // the block itself.
-        //
-        // ATR transactions
-        // FEE transactions
-        // ISSUANCE transactions
-        //
         // the following validation rules cover user-originated txs
-        // where we expect that the inputs are coming from valid
-        // SAITO tokens that exist on the network.
-        //
-        // the first set of validation criteria is applied only to
-        // validation criteria for the remaining classes of txs are
-        // further down iin this function.
+        // where inputs must come from valid SAITO tokens that exist
+        // and are spendable on the network. This is essentially
+        // every transaction type except ATR and Issuance.
         //
         if self.transaction_type != TransactionType::ATR
             && self.transaction_type != TransactionType::Issuance
+            && self.transaction_type != TransactionType::Fee
         {
             //
             // must have sender
@@ -1022,98 +1218,35 @@ impl Transaction {
             }
 
             //
-            // must have valid signature
+            // valid signature from authorizer
             //
-            // in order to validate the signature, we need to know which publickey
-            // is supposed to have created it. extracting the right key is slightly
-            // different for NFT transactions than normal ones, as BOUND / NFT txs
-            // have their information stored in tuplies where slip2 contains the
-            // publickey of the sender. So we are extracting the right publickey
-            // here, as a prerequisite to validating the signature...
-            //
-            if let Some(hash_for_signature) = &self.hash_for_signature {
-                let sig: SaitoSignature = self.signature;
-
-                //
-                // in order to check the for bound (NFT) txs, the "owner" is in the normal slip (slip2),
-                //
-                let public_key: SaitoPublicKey = if self.transaction_type == TransactionType::Bound
-                {
-                    //
-                    // if this is a CREATE-bound transaction, the first input is Noral
-                    //
-                    let is_create = self.from[0].slip_type == SlipType::Normal
-                        && self.to.len() >= 3
-                        && self.to[0].slip_type == SlipType::Bound
-                        && self.to[1].slip_type == SlipType::Normal
-                        && self.to[2].slip_type == SlipType::Bound;
-
-                    if is_create {
-                        //
-                        // return nft creator
-                        //
-                        self.from[0].public_key
-                    } else {
-                        //
-                        // in SPLIT / MERGE / SEND sender is slip2 in first NFT tuplie
-                        //
-                        if self.from.len() < 3 {
-                            return false;
-                        }
-
-                        let a = &self.from[0];
-                        let b = &self.from[1];
-                        let c = &self.from[2];
-
-                        if !(a.slip_type == SlipType::Bound
-                            && (b.slip_type == SlipType::Normal || b.slip_type == SlipType::ATR)
-                            && c.slip_type == SlipType::Bound)
-                        {
-                            return false;
-                        }
-
-                        b.public_key
-                    }
-                } else {
-                    //
-                    // owner of first from slip is signer for everything else
-                    //
-                    self.from[0].public_key
+            if let Some(public_key) = authorizer {
+                let Some(hash_for_signature) = &self.hash_for_signature else {
+                    error!("ERROR 757293: there is no hash for signature in a transaction");
+                    return false;
                 };
 
-                //
-                // we can now verify that the signature is valid...
-                //
-                if !verify_signature(hash_for_signature, &sig, &public_key) {
+                if !verify_signature(hash_for_signature, &self.signature, &public_key) {
                     error!(
                         "tx verification failed : hash = {:?}, sig = {:?}, pub_key = {:?}",
                         hash_for_signature.to_hex(),
-                        sig.to_hex(),
+                        self.signature.to_hex(),
                         public_key.to_base58()
                     );
                     return false;
                 }
-            } else {
-                //
-                // we reach here if we have not already calculated the hash
-                // that is checked by the signature. while we could auto-gen
-                // it here, we choose to throw an error to raise visibility of
-                // unexpected behavior.
-                //
-                error!("ERROR 757293: there is no hash for signature in a transaction");
+            }
+
+            //
+            // or p2sh script...
+            //
+            if authorizer.is_none() && p2sh_idx.is_none() {
+                error!("transaction invalid: unable to determine authorizer");
                 return false;
             }
 
             //
-            // validate routing path sigs
-            //
-            // it strengthens censorship-resistance and anti-MEV properties in the network
-            // if we refuse to let nodes include transactions that have not been routed to
-            // them. nonetheless, while we may add this restriction, it will also mean that
-            // the server will need to cryptographically sign the transactions that it is
-            // sending to itself, so for now we accept transactions WITHOUT routing paths
-            // but require that any transaction WITH a routing path must have a cryptograph-
-            // ically valid path.
+            // validate routing sigs
             //
             if !self.validate_routing_path() {
                 error!("ERROR 482033: routing paths do not validate, transaction invalid");
@@ -1121,7 +1254,7 @@ impl Transaction {
             }
 
             //
-            // validate tokens are not created out of thin air
+            // validate no tokens created out of thin air
             //
             if self.total_out > self.total_in && self.transaction_type != TransactionType::Fee {
                 error!("ERROR 802394: transaction spends more than it has available");
@@ -1130,9 +1263,14 @@ impl Transaction {
         }
 
         //
-        // fee transactions
+        // fee transactions -- already processed (auto-exit above)
         //
-        if self.transaction_type == TransactionType::Fee {}
+        //if self.transaction_type == TransactionType::Fee {}
+
+        //
+        // spv transactions -- already processed (auto-exist above)
+        //
+        //if self.transaction_type == TransactionType::Fee {}
 
         //
         // atr transactions
@@ -1154,11 +1292,11 @@ impl Transaction {
         //
         if self.transaction_type == TransactionType::Bound {
             //
-            // the first thing we do is collect information about the NFT tuples
-            // contained nft validation state
+            // NFTs store inputs and outputs in slip-tuples
             //
             let mut nft_uuid: Option<SaitoPublicKey> = None;
             let mut nft_sender: Option<SaitoPublicKey> = None;
+            let mut nft_creator: Option<SaitoPublicKey> = None;
             let mut nft_amount_in: Currency = 0;
             let mut nft_amount_out: Currency = 0;
             let mut nft_tuples_in: usize = 0;
@@ -1167,7 +1305,7 @@ impl Transaction {
             let mut _saito_amount_out: Currency = 0;
 
             //
-            // input NFT tuples
+            // loop through inputs
             //
             let mut idx = 0;
             while idx + 2 < self.from.len() {
@@ -1175,15 +1313,12 @@ impl Transaction {
                 let b = &self.from[idx + 1];
                 let c = &self.from[idx + 2];
 
-                //
-                // tuple found
-                //
                 if a.slip_type == SlipType::Bound
                     && (b.slip_type == SlipType::Normal || b.slip_type == SlipType::ATR)
                     && c.slip_type == SlipType::Bound
                 {
                     //
-                    // enforce that NFTs exist
+                    // enforce NFTs exist
                     //
                     if a.amount == 0 {
                         error!("3. bound tx invalid: nft slip1 input with zero-amount");
@@ -1196,6 +1331,23 @@ impl Transaction {
                     if c.amount != 0 {
                         error!("bound tx invalid: tuple slip3 amount nonzero");
                         return false;
+                    }
+
+                    //
+                    // enforce tuple creator
+                    //
+                    let tuple_creator = a.public_key;
+
+                    match nft_creator {
+                        None => {
+                            nft_creator = Some(tuple_creator);
+                        }
+                        Some(existing_creator) => {
+                            if existing_creator != tuple_creator {
+                                error!("bound tx invalid: multiple nft creators detected");
+                                return false;
+                            }
+                        }
                     }
 
                     //
@@ -1216,7 +1368,7 @@ impl Transaction {
                     }
 
                     //
-                    // no funny business
+                    // no funny business with multiple tuples
                     //
                     match nft_sender {
                         None => {
@@ -1244,7 +1396,7 @@ impl Transaction {
                 }
 
                 //
-                // no bound slips outside tuples allowed...
+                // no bound slips outside tuples...
                 //
                 if a.slip_type == SlipType::Bound {
                     error!("bound tx invalid: malformed input tuple");
@@ -1255,7 +1407,7 @@ impl Transaction {
             }
 
             //
-            // output NFT tuples
+            // loop through outputs
             //
             let mut idx = 0;
             while idx + 2 < self.to.len() {
@@ -1271,7 +1423,7 @@ impl Transaction {
                     && c.slip_type == SlipType::Bound
                 {
                     //
-                    // enforce that NFTs exist
+                    // ensure NFTs exist
                     //
                     if a.amount == 0 {
                         error!("2. bound tx invalid: nft slip1 input with zero-amount");
@@ -1284,6 +1436,20 @@ impl Transaction {
                     if c.amount != 0 {
                         error!("bound tx invalid: tuple slip3 amount nonzero");
                         return false;
+                    }
+
+                    let tuple_creator = a.public_key;
+
+                    match nft_creator {
+                        None => {
+                            nft_creator = Some(tuple_creator);
+                        }
+                        Some(existing_creator) => {
+                            if existing_creator != tuple_creator {
+                                error!("bound tx invalid: output creator mismatch");
+                                return false;
+                            }
+                        }
                     }
 
                     //
@@ -1326,13 +1492,14 @@ impl Transaction {
             }
 
             //
-            // the validation rules that apply to NFTs / Bound transactions depend
-            // on whether the user is creating a new NFT or whether the transaction
-            // is simplying transferring NFTs that have already been created. So...
+            // now that we have a list of input and output tuples, we need to know
+            // what type of NFT is being transferred or created as the validation
+            // rules that apply to NFTs / Bound transactions depend on whether the
+            // user is creating a new NFT or transferring an existing NFT...
             //
 
             //
-            // is this a “new NFT”?
+            // CREATE_BOUND_TRANSACTION / NEW NFT
             //
             if nft_tuples_in == 0 && nft_tuples_out > 0 {
                 //
@@ -1373,10 +1540,27 @@ impl Transaction {
                     return false;
                 }
 
+                let funding_input = &self.from[0];
+
+                //
+                // nft creator is set properly
+                //
+                match nft_creator {
+                    Some(creator) => {
+                        if creator != funding_input.public_key {
+                            error!("Create-bound TX: creator does not match funding input");
+                            return false;
+                        }
+                    }
+                    None => {
+                        error!("Create-bound TX: missing creator");
+                        return false;
+                    }
+                }
+
                 //
                 // NFT UUID is set properly in output
                 //
-                let funding_input = &self.from[0];
                 let parsed_nft_uuid: SaitoPublicKey = match nft_uuid {
                     Some(uuid) => uuid,
                     None => {
@@ -1400,7 +1584,7 @@ impl Transaction {
                 }
 
             //
-            // this is an existing NFT
+            // CREATE_NFT_TRANSACTION / EXISTING NFT TRANSFER
             //
             } else {
                 //
@@ -1429,8 +1613,10 @@ impl Transaction {
             }
         } else {
             //
-            // the only other type of transaction that is permitted to have Bound Slips
-            // are ATR transactions.
+            // all other (non-Bound) transaction types will reach this "else" clause
+            // in which case we check that they do not have Bound slips unless they
+            // are ATR transactions, where the conversion is validated at the block
+            // level...
             //
             if self.transaction_type != TransactionType::ATR {
                 if self
@@ -1446,12 +1632,6 @@ impl Transaction {
         }
 
         //
-        // the following validation criteria apply to all transactions, including
-        // those auto-generated and included in blocks such as ATR transactions
-        // and fee transactions.
-        //
-
-        //
         // all transactions must have outputs
         //
         if self.to.is_empty() {
@@ -1460,7 +1640,7 @@ impl Transaction {
         }
 
         //
-        // any UTXO spent must be spendable (in hashmap)
+        // all UTXO spent must be spendable (in hashmap)
         //
         return if validate_against_utxo {
             let inputs_validate = self.validate_against_utxoset(utxoset);

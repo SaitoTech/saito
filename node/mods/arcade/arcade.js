@@ -10,6 +10,7 @@ const GameInvitationLink = require('./../../lib/saito/ui/modals/saito-link/saito
 const Invite = require('./lib/ui/invite');
 const LoungeOverlay = require('./lib/ui/overlays/lounge');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
+const JSON = require('json-bigint');
 
 const arcadeHome = require('./index');
 
@@ -536,15 +537,6 @@ class Arcade extends ModTemplate {
 		let arcade_self = this;
 
 		if (service.service == 'arcade') {
-			console.log('###TESTINGPEERS###');
-			console.log(JSON.stringify(app.core.network.peers.get()));
-			console.log('##################');
-			console.log('###TESTINGCHAIN##');
-			console.log(JSON.stringify(app.core.blockchain.get()));
-			console.log('##################');
-			console.log('###TESTINGWALLET##');
-			console.log(JSON.stringify(app.core.wallet.get()));
-			console.log('##################');
 
 			this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
 				if (txs?.length > 0) {
@@ -2069,18 +2061,16 @@ class Arcade extends ModTemplate {
 		this.ready_popup_overlay.show(html);
 
 		setTimeout(() => {
-			const el = document.getElementById(`saito-overlay${overlay.ordinal}`);
-			if (!el) return;
-			const startBtn = el.querySelector('.arcade-ready-popup-start');
-			const dismissBtn = el.querySelector('.arcade-ready-popup-dismiss');
+			const startBtn = document.querySelector('.arcade-ready-popup-start');
+			const dismissBtn = document.querySelector('.arcade-ready-popup-dismiss');
 			if (startBtn) {
 				startBtn.onclick = () => {
-					overlay.close();
+					this.ready_popup_overlay.close();
 					navigateWindow(`/${slug}`, 200);
 				};
 			}
 			if (dismissBtn) {
-				dismissBtn.onclick = () => overlay.close();
+				dismissBtn.onclick = () => this.ready_popup_overlay.close();
 			}
 		}, 50);
 	}

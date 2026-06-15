@@ -173,8 +173,6 @@ impl Network {
             "peer_send_count": peer_send_count,
         }))
         .unwrap_or_else(|_| "{}".to_string());
-        self.io_interface
-            .send_interface_event(InterfaceEvent::OnTransactionSent(sent_payload));
     }
 
     pub async fn cleanup_peers(&self, current_time: Timestamp) {

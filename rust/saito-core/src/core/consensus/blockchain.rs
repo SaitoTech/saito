@@ -33,7 +33,7 @@ use crate::core::network::network::Network;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::storage::storage::Storage;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
-use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
+use crate::core::util::configuration::Configuration;
 use crate::{drain, iterate};
 
 pub fn bit_pack(top: u32, bottom: u32) -> u64 {
@@ -148,6 +148,9 @@ pub struct Blockchain {
     pub social_stake_period: u64,
     pub genesis_period: BlockId,
 
+    pub is_loading: bool, // when loading blocks from disk
+    pub is_loaded: bool,
+
     pub checkpoint_found: bool,
     pub initial_token_supply: Currency,
     pub last_issuance_written_on: BlockId,
@@ -191,6 +194,8 @@ impl Blockchain {
             social_stake_period,
             genesis_period,
             checkpoint_found: false,
+            is_loading: false,
+            is_loaded: false,
             initial_token_supply: 0,
             last_issuance_written_on: 0,
             prune_after_blocks,
@@ -255,6 +260,7 @@ impl Blockchain {
         // sanity checks
         //
         if self.blocks.contains_key(&block_hash) {
+            info!("blockchain.add_block: block already exists, returning that result");
             return AddBlockResult::BlockAlreadyExists;
         }
 
@@ -264,11 +270,8 @@ impl Blockchain {
         if !self.blockring.is_empty() && self.get_block(&block.previous_block_hash).is_none() {
             if block.previous_block_hash == [0; 32] {
                 // empty parent... block 1?
-            } else if matches!(
-                configs.get_blockchain_configs().initial_loading_status,
-                InitialLoadingStatus::Completed
-            ) || self.checkpoint_found
-            {
+                info!("empty parent... block 1?");
+            } else if self.is_loaded || self.checkpoint_found {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
                     .any(|b| block.previous_block_hash == b.hash);
                 let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
@@ -289,21 +292,6 @@ impl Blockchain {
                 } else {
                     AddBlockResult::FailedButRetry(block, false, false)
                 };
-            }
-        }
-
-        //
-        // used in loading blocks from disk, irrelevant othrewise
-        //
-        if let InitialLoadingStatus::WaitingFor(waiting_for) =
-            &mut configs.get_blockchain_configs_mut().initial_loading_status
-        {
-            waiting_for.retain(|(waiting_block_id, waiting_block_hash)| {
-                !(*waiting_block_id == block.id && *waiting_block_hash == block.hash)
-            });
-            if waiting_for.is_empty() {
-                configs.get_blockchain_configs_mut().initial_loading_status =
-                    InitialLoadingStatus::Completed;
             }
         }
 
@@ -479,6 +467,7 @@ impl Blockchain {
             does_new_chain_validate &= self.validate_total_supply(configs).await;
 
             if does_new_chain_validate {
+                info!("VALIDATES!!!! adding...");
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
                 AddBlockResult::BlockAddedSuccessfully(
@@ -623,7 +612,6 @@ impl Blockchain {
                 && !configs.is_browser()
                 && !configs.is_spv_mode()
             {
-                // TODO : this will have an impact when the block sizes are getting large or there are many forks. need to handle this
                 storage.write_block_to_disk(block).await;
 
                 let writing_interval = configs
@@ -1554,7 +1542,7 @@ impl Blockchain {
         };
 
         let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-        let validate_against_utxo = self.has_total_supply_loaded(genesis_period);
+        let has_total_supply_loaded = self.has_total_supply_loaded(genesis_period);
 
         let mut block = match self.blocks.get(block_hash).cloned() {
             Some(b) => b,
@@ -1577,7 +1565,7 @@ impl Blockchain {
             debug!("winding hash validates: {:?}", block_hash.to_hex());
 
             does_block_validate &= block
-                .validate(self, configs, storage, validate_against_utxo)
+                .validate(self, configs, storage, has_total_supply_loaded)
                 .await;
         }
 
@@ -1599,7 +1587,10 @@ impl Blockchain {
 
         let mut wallet_updated = WALLET_NOT_UPDATED;
 
+        info!("does block validate?");
+
         if does_block_validate {
+            info!("yes, it does....");
             // blockring update
             self.blockring
                 .on_chain_reorganization(block.id, block.hash, true);
@@ -1608,6 +1599,7 @@ impl Blockchain {
             //  will not want to do the work of scrolling through the block and
             //  updating their wallets by default. wallet processing can be
             //  more efficiently handled by lite-nodes.
+            info!("about to ocr wallet...");
             {
                 let mut wallet = self.wallet_lock.write().await;
 
@@ -1622,10 +1614,12 @@ impl Blockchain {
 
             // utxoset update
             {
+                info!("about to ocr block...");
                 if let Some(block) = self.blocks.get_mut(block_hash) {
                     block.on_chain_reorganization(&mut self.utxoset, true);
+                    info!("done ocr block...");
                 } else {
-                    warn!(
+                    info!(
                         "wind_chain: block {:?} not found for utxo reorganization",
                         block_hash.to_hex()
                     );
@@ -2414,10 +2408,7 @@ impl Blockchain {
                             }
                         }
 
-                        if !matches!(
-                            configs.get_blockchain_configs().initial_loading_status,
-                            InitialLoadingStatus::Completed
-                        ) {
+                        if !self.is_loaded {
                             blocks.clear();
                         }
                     }
@@ -2710,6 +2701,8 @@ impl Blockchain {
         self.lowest_acceptable_block_hash = [0; 32];
         self.sync_fetch_floor_block_id = 0;
         self.fork_id = Some([0; 32]);
+        self.is_loading = false;
+        self.is_loaded = false;
         self.save().await;
     }
 
@@ -3103,7 +3096,6 @@ mod tests {
     use crate::core::consensus::wallet::{Wallet, WALLET_NOT_UPDATED};
     use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
     use crate::core::storage::storage::Storage;
-    use crate::core::util::configuration::InitialLoadingStatus;
     use crate::core::util::crypto::{generate_keys, hash};
     use crate::core::util::test::node_tester::test::NodeTester;
     use crate::core::util::test::test_manager::test::{create_timestamp, TestManager};
@@ -3146,12 +3138,6 @@ mod tests {
         let mut t = TestManager::default();
         t.initialize(100, 1_000_000_000).await;
 
-        {
-            let mut configs = t.config_lock.write().await;
-            configs.get_blockchain_configs_mut().initial_loading_status =
-                InitialLoadingStatus::Completed;
-        }
-
         let latest_hash = t.get_latest_block_hash().await;
         let mut block = t
             .create_block(latest_hash, create_timestamp() + 1, 0, 0, 0, false)
@@ -3160,6 +3146,8 @@ mod tests {
 
         let result = {
             let mut blockchain = t.blockchain_lock.write().await;
+            blockchain.is_loading = false;
+            blockchain.is_loaded = true;
             blockchain.sync_fetch_floor_block_id = block.id.saturating_sub(1);
             let mut mempool = t.mempool_lock.write().await;
             let mut configs = t.config_lock.write().await;
@@ -3187,12 +3175,6 @@ mod tests {
         let mut t = TestManager::default();
         t.initialize(100, 1_000_000_000).await;
 
-        {
-            let mut configs = t.config_lock.write().await;
-            configs.get_blockchain_configs_mut().initial_loading_status =
-                InitialLoadingStatus::Completed;
-        }
-
         let latest_hash = t.get_latest_block_hash().await;
         let mut block = t
             .create_block(latest_hash, create_timestamp() + 1, 0, 0, 0, false)
@@ -3201,6 +3183,10 @@ mod tests {
 
         let result = {
             let mut blockchain = t.blockchain_lock.write().await;
+
+            blockchain.is_loading = false;
+            blockchain.is_loaded = true;
+
             blockchain.sync_fetch_floor_block_id = block.id;
             let mut mempool = t.mempool_lock.write().await;
             let mut configs = t.config_lock.write().await;

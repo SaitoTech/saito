@@ -1,31 +1,66 @@
-module.exports = (app, mod, details) => {
-  let html = `  
-  <div class="game-crypto-transfer-manager-container" id="receive-crypto-request-container">
-    
-    <h2 class="auth_title" id="auth_title">Receiving Payment</h2>
+/**
+ * In-game crypto receive overlay — structural markup only.
+ *
+ * `data-receive-state` and `data-receive-mode` are set from receive.js after mount.
+ */
+module.exports = function cryptoReceiveOverlayTemplate() {
+  return `
+  <div
+    class="game-crypto-transfer-manager-container crypto-receive-overlay"
+    id="receive-crypto-request-root"
+    data-receive-state="pending"
+    data-receive-mode="interactive"
+  >
+    <div class="crypto-receive-overlay__surface">
+      <header class="crypto-receive-overlay__header">
+        <h2 class="auth_title crypto-receive-overlay__title" id="crypto_receive_title"></h2>
+      </header>
 
-    <div class="saito_spinner spinner" id="spinner"></div>
+      <div class="crypto-receive-overlay__body">
+        <div class="crypto-receive-overlay__status" aria-live="polite">
+          <div class="saito_spinner spinner crypto-receive-overlay__spinner" id="crypto_receive_spinner"></div>
+          <i
+            id="crypto_receive_icon_success"
+            class="game-crypto-icon crypto-receive-overlay__result-icon crypto-receive-overlay__result-icon--success fa-solid fa-circle-check"
+            aria-hidden="true"
+          ></i>
+        </div>
 
-    <i id="game-crypto-icon" class="game-crypto-icon fa-solid fa-circle-check"></i>
-    <i id="game-crypto-failure-icon" class="game-crypto-icon fa-solid fa-circle-exclamation"></i>
+        <section class="crypto-receive-overlay__summary" aria-label="Amount">
+          <div class="amount crypto-receive-overlay__amount" id="crypto_receive_amount"></div>
+        </section>
 
-    <div class="amount">${details.amount} ${details.ticker}</div>
+        <section class="crypto-receive-overlay__sender" aria-labelledby="crypto_receive_sender_label">
+          <div class="crypto-receive-overlay__summary-label" id="crypto_receive_sender_label">From</div>
+          <div class="counterparty-details"></div>
+          <div class="crypto-receive-overlay__chain-address" id="crypto_receive_address"></div>
+        </section>
+      </div>
 
-    <div class="counterparty-details"></div>
-    `;
+      <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--trusted">
+        <div class="crypto-transfer-countdown crypto-receive-overlay__countdown" aria-live="polite">
+          Closing in <span id="crypto_receive_countdown">3</span>s
+        </div>
+      </footer>
 
-  if (!details?.trusted) {
-    html += `<div class="button saito-button-primary crypto_transfer_btn" id="crypto_receipt_btn">continue</div>`;
-    if (mod?.game?.over == 0) {
-      html += `<div class="ignore">
-              <input type="checkbox" checked id="ignore_checkbox" class="ignore_checkbox"> 
-              don't wait for confirmation
-            </div>`;
-    }
-  } else {
-    html += `<div class="crypto-transfer-countdown">Closing in <span>3</span>s</div>`;
-  }
-
-  html += '</div>';
-  return html;
+      <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--interactive">
+        <button
+          type="button"
+          class="button saito-button-primary crypto_transfer_btn crypto-receive-overlay__close-btn"
+          id="crypto_receive_close"
+        >
+          Close
+        </button>
+        <label class="crypto-receive-overlay__ignore">
+          <input
+            type="checkbox"
+            checked
+            id="crypto_receive_ignore"
+            class="ignore_checkbox crypto-receive-overlay__ignore-checkbox"
+          />
+          <span class="crypto-receive-overlay__ignore-label">Don't wait for confirmation</span>
+        </label>
+      </footer>
+    </div>
+  </div>`;
 };

@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::io::{Error, ErrorKind};
 
-use log::{debug, error, trace};
+use log::{debug, error, info, trace};
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
@@ -25,6 +25,7 @@ pub enum SlipType {
     RouterOutput = 7,
     BlockStake = 8,
     Bound = 9,
+    P2SH = 10,
 }
 
 #[serde_with::serde_as]
@@ -74,13 +75,14 @@ impl Default for Slip {
 }
 
 impl Slip {
-    /// runs when block is purged for good or staking slip deleted
+    //
+    // when block is purged and slips deleted
+    //
     pub fn delete(&self, utxoset: &mut UtxoSet) -> bool {
         if self.get_utxoset_key() == [0; UTXO_KEY_LENGTH] {
             error!("ERROR 572034: asked to remove a slip without its utxoset_key properly set!");
             return false;
         }
-        debug!("deleting slip from utxo : {}", self);
         utxoset.remove_entry(&self.get_utxoset_key());
         true
     }
@@ -173,7 +175,7 @@ impl Slip {
     pub fn on_chain_reorganization(&self, utxoset: &mut UtxoSet, spendable: bool) {
         if self.amount > 0 {
             if spendable {
-                trace!(
+                info!(
                     "adding slip to utxo : {:?}-{:?}-{:?} with value : {:?} key: {:?}",
                     self.block_id,
                     self.tx_ordinal,
@@ -183,7 +185,7 @@ impl Slip {
                 );
                 utxoset.insert(self.utxoset_key, spendable);
             } else {
-                trace!(
+                info!(
                     "removing slip from utxo : {:?}-{:?}-{:?} with value : {:?} key: {:?}",
                     self.block_id,
                     self.tx_ordinal,
