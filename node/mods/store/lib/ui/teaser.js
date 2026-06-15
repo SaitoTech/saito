@@ -6,7 +6,7 @@ class Teaser {
 		this.mod = mod;
 		this.data = data;
 		this.container = container;
-		this.cardId = `store-teaser-${this.data.id || Date.now()}`;
+		this.cardId = `store-teaser-${this.data.id || this.data.nfttx_sig || this.data.tx_sig || Date.now()}`;
 	}
 
 	render(container = '') {

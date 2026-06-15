@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS listings (
 
   title TEXT DEFAULT '',
   description TEXT DEFAULT '',
+  image TEXT DEFAULT NULL,
   reserve_price INTEGER DEFAULT 0,
   quantity INTEGER DEFAULT 1,
   status INTEGER DEFAULT 1,

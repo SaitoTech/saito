@@ -62,14 +62,14 @@ module.exports = (view) => {
               <div class="store-product-meta-row"><span class="store-product-section-label">Type:</span> <span class="store-product-meta-value">${view.productType}</span></div>
               <div class="store-product-meta-row"><span class="store-product-section-label">File type:</span> <span class="store-product-meta-value">${view.fileType}</span></div>
               <div class="store-product-meta-row"><span class="store-product-section-label">Created:</span> <span class="store-product-meta-value">${view.createdDate}</span></div>
-              <div class="store-product-meta-row"><span class="store-product-section-label">Available:</span> <span class="store-product-meta-value">${view.supply}</span></div>
             </div>
 
             ${
 							view.showQuantity
 								? `<div class="store-product-qty-selector">
-                <label for="store-product-qty-input">Quantity</label>
+                <label for="store-product-qty-input">Quantity:</label>
                 <input id="store-product-qty-input" type="number" min="1" max="${view.supply}" value="1" />
+                <span class="store-product-qty-max">(max ${view.supply})</span>
               </div>`
 								: ''
 						}
