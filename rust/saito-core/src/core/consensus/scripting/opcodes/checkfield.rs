@@ -34,7 +34,7 @@ impl CheckField {
                 };
 
                 match operator {
-                    "==" => return (left_num == right_num) as u8,
+                    "==" | "equals" => return (left_num == right_num) as u8,
                     "!=" => return (left_num != right_num) as u8,
                     "<" => return (left_num < right_num) as u8,
                     "<=" => return (left_num <= right_num) as u8,
@@ -51,7 +51,7 @@ impl CheckField {
                 };
 
                 match operator {
-                    "==" => return (left_str == right_str) as u8,
+                    "==" | "equals" => return (left_str == right_str) as u8,
                     "!=" => return (left_str != right_str) as u8,
                     "<" => return (left_str < right_str) as u8,
                     "<=" => return (left_str <= right_str) as u8,
@@ -67,7 +67,7 @@ impl CheckField {
                 };
 
                 match operator {
-                    "==" => return (left_bool == right_bool) as u8,
+                    "==" | "equals" => return (left_bool == right_bool) as u8,
                     "!=" => return (left_bool != right_bool) as u8,
                     _ => return 0,
                 }
