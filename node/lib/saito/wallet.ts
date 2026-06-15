@@ -674,8 +674,10 @@ export default class Wallet extends SaitoWallet {
       '[INIT_TRACE] wallet initialize complete app_option_slips=' +
         (this.app.options.wallet?.slips?.length ?? 0)
     );
-    console.info('[LOAD_TRACE] wallet initialization complete app_option_slips=' +
-      (this.app.options.wallet?.slips?.length ?? 0));
+    console.info(
+      '[LOAD_TRACE] wallet initialization complete app_option_slips=' +
+        (this.app.options.wallet?.slips?.length ?? 0)
+    );
   }
 
   constructor(wallet: any) {

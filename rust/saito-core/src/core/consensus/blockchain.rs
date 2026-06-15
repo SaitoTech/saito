@@ -260,7 +260,7 @@ impl Blockchain {
         // sanity checks
         //
         if self.blocks.contains_key(&block_hash) {
-	    info!("blockchain.add_block: block already exists, returning that result");
+            info!("blockchain.add_block: block already exists, returning that result");
             return AddBlockResult::BlockAlreadyExists;
         }
 
@@ -270,7 +270,7 @@ impl Blockchain {
         if !self.blockring.is_empty() && self.get_block(&block.previous_block_hash).is_none() {
             if block.previous_block_hash == [0; 32] {
                 // empty parent... block 1?
-	        info!("empty parent... block 1?");
+                info!("empty parent... block 1?");
             } else if self.is_loaded || self.checkpoint_found {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
                     .any(|b| block.previous_block_hash == b.hash);
@@ -294,7 +294,6 @@ impl Blockchain {
                 };
             }
         }
-
 
         //
         // insert block into blockring index
@@ -468,7 +467,7 @@ impl Blockchain {
             does_new_chain_validate &= self.validate_total_supply(configs).await;
 
             if does_new_chain_validate {
-	        info!("VALIDATES!!!! adding...");
+                info!("VALIDATES!!!! adding...");
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
                 AddBlockResult::BlockAddedSuccessfully(
@@ -613,7 +612,6 @@ impl Blockchain {
                 && !configs.is_browser()
                 && !configs.is_spv_mode()
             {
-
                 storage.write_block_to_disk(block).await;
 
                 let writing_interval = configs
@@ -1589,10 +1587,10 @@ impl Blockchain {
 
         let mut wallet_updated = WALLET_NOT_UPDATED;
 
-info!("does block validate?");
+        info!("does block validate?");
 
         if does_block_validate {
-info!("yes, it does....");
+            info!("yes, it does....");
             // blockring update
             self.blockring
                 .on_chain_reorganization(block.id, block.hash, true);
@@ -1601,7 +1599,7 @@ info!("yes, it does....");
             //  will not want to do the work of scrolling through the block and
             //  updating their wallets by default. wallet processing can be
             //  more efficiently handled by lite-nodes.
-info!("about to ocr wallet...");
+            info!("about to ocr wallet...");
             {
                 let mut wallet = self.wallet_lock.write().await;
 
@@ -1616,10 +1614,10 @@ info!("about to ocr wallet...");
 
             // utxoset update
             {
-info!("about to ocr block...");
+                info!("about to ocr block...");
                 if let Some(block) = self.blocks.get_mut(block_hash) {
                     block.on_chain_reorganization(&mut self.utxoset, true);
-info!("done ocr block...");
+                    info!("done ocr block...");
                 } else {
                     info!(
                         "wind_chain: block {:?} not found for utxo reorganization",

@@ -390,11 +390,9 @@ impl WasmWallet {
             .wallet_lock
             .blocking_read();
 
-    let serializer = Serializer::new()
-        .serialize_large_number_types_as_bigints(true);
+        let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
 
-    wallet.serialize(&serializer).unwrap()
-
+        wallet.serialize(&serializer).unwrap()
     }
 
     pub async fn save(&self) {
