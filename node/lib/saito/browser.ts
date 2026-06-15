@@ -2856,14 +2856,23 @@ class Browser {
   }
 
   returnBalanceHTML(balance, exact_precision) {
+    const raw = parseFloat(String(balance));
+    const isSubunit = Number.isFinite(raw) && Math.abs(raw) > 0 && Math.abs(raw) < 1;
+
     balance = this.formatDecimals(balance, exact_precision);
     let separator = this.getDecimalSeparator();
     let split = balance.split(`${separator}`);
-    let html = `<span class="balance-amount-whole">${split[0]}</span>`;
+    const segmentsClass = isSubunit
+      ? 'balance-amount-segments balance-amount-segments--subunit'
+      : 'balance-amount-segments';
+
+    let html = `<span class="${segmentsClass}">`;
+    html += `<span class="balance-amount-whole">${split[0]}</span>`;
     if (split[1]) {
       html += `<span class="balance-amount-separator">${separator}</span>`;
       html += `<span class="balance-amount-decimal">${split[1]}</span>`;
     }
+    html += `</span>`;
     return html;
   }
 

@@ -1,6 +1,7 @@
 /* ----------------------------------------------------------------
- * Scrollbars & text selection shared by dark-mode themes (dark, raven, prism, noir).
- * Uses theme tokens set on html[data-theme='…'] so each skin keeps its colors.
+ * Scrollbars, text selection, and native form controls shared by dark-mode
+ * themes (dark, raven, prism, noir). Uses theme tokens on html[data-theme='…']
+ * so each skin keeps its colors (Chrome needs explicit option + color-scheme).
  *----------------------------------------------------------------*/
 
 html[data-theme='dark'],
@@ -9,6 +10,15 @@ html[data-theme='prism'],
 html[data-theme='noir'] {
   scrollbar-width: thin;
   scrollbar-color: var(--saito-border-color) var(--saito-background-color);
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] select option,
+html[data-theme='raven'] select option,
+html[data-theme='prism'] select option,
+html[data-theme='noir'] select option {
+  background-color: var(--saito-background-color);
+  color: var(--saito-font-color);
 }
 
 html[data-theme='dark'] ::-webkit-scrollbar,

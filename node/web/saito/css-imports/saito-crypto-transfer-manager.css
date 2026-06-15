@@ -225,7 +225,7 @@ input[type='number'] {
 }
 
 .game-crypto-transfer-manager-container .game-crypto-icon {
-  font-size: 8rem;
+  font-size: 10rem;
   display: none;
 }
 
@@ -349,7 +349,8 @@ input[type='number'] {
 }
 
 .send-crypto-overlay__chain-address {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
   font-size: 1.5rem;
   letter-spacing: 0.04em;
@@ -391,7 +392,8 @@ input[type='number'] {
   color: color-mix(in srgb, var(--saito-white) 92%, transparent);
 }
 
-.send-crypto-overlay--mode-interactive.send-crypto-overlay--show-ignore .send-crypto-overlay__ignore {
+.send-crypto-overlay--mode-interactive.send-crypto-overlay--show-ignore
+  .send-crypto-overlay__ignore {
   display: flex;
 }
 

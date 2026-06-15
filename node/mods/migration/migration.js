@@ -331,7 +331,7 @@ class Migration extends ModTemplate {
     let saitozen = tx.from[0].publicKey;
 
     // Only respond if I am the known migration bot
-    if (!this.publicKey == this.migration_publickey) {
+    if (this.publicKey != this.migration_publickey) {
       return;
     }
 
@@ -361,7 +361,6 @@ class Migration extends ModTemplate {
     let error = null;
     // Check balance
 
-    let min_deposit = 0;
     let max_deposit = await this.app.wallet.getBalance('SAITO');
     max_deposit = Number(this.app.wallet.convertNolanToSaito(max_deposit));
 
@@ -387,7 +386,6 @@ class Migration extends ModTemplate {
       module: 'Migration',
       request: 'migration accept',
       data: {
-        min_deposit,
         max_deposit,
         mixin_address,
         error,
@@ -427,8 +425,9 @@ class Migration extends ModTemplate {
 
       this.can_auto = true;
 
+      let new_balance = Number(await this.ercMod.getAvailableBalance());
+
       if (txmsg.data?.go) {
-        let new_balance = Number(this.ercMod.returnBalance());
         if (this.local_dev) {
           new_balance = Math.round(10000000000 * Math.random());
           new_balance = new_balance / 20000; // 20000  --> 500k max
@@ -437,7 +436,7 @@ class Migration extends ModTemplate {
         this.main.processDepositedSaito(new_balance);
       } else {
         // We are already sitting on some ERC20 wrapped SAITO
-        this.balance = Number(this.ercMod.returnBalance());
+        this.balance = new_balance;
         this.main.render();
       }
     }
@@ -529,7 +528,11 @@ class Migration extends ModTemplate {
         console.info('Disbursing Saito without verification because local testing...');
         this.savePendingPayment(newPayment);
       } else {
-        this.ercMod.checkHistory((history) => {
+        //
+        // Mixin will handle polling of the recent transactions and emit an event when we confirm the funds transfer
+        // so we need to rewrite this...
+        //
+        /*this.ercMod.fetchHistory(0, (history) => {
           for (let h of history) {
             if (h.counter_party?.address) {
               if (txmsg.from.includes(h.counter_party?.address)) {
@@ -541,7 +544,7 @@ class Migration extends ModTemplate {
               }
             }
           }
-        });
+        });*/
       }
     }
   }

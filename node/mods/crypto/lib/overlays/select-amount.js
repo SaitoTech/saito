@@ -33,6 +33,8 @@ class CryptoSelectAmount {
 				el.classList.remove('hide-element');
 			});
 		this.attachEvents();
+
+		console.log('*******', this.mod.balances);
 	}
 
 	attachEvents() {
@@ -57,23 +59,22 @@ class CryptoSelectAmount {
 			};
 		}
 
+		// Don't allow users to enter keys other than numbers
 		stake_input.onkeydown = async (e) => {
 			let amount = stake_input.value;
 			this_self.app.browser.validateAmountLimit(amount, e);
 		};
 
-		stake_input.oninput = async (e) => {
-			const amt = parseFloat(stake_input.value) || 0;
-			document
-				.querySelector('.select_max')
-				?.classList.toggle('hidden', !(amt > this.mod.max_balance));
-			if (this.errors.amount) {
-				this.validateAmount();
-			}
-		};
-
+		// Only validate amount after user finishes setting it
 		stake_input.onblur = async (e) => {
 			this_self.validateAmount();
+		};
+
+		// Auto-clear error mid-correction process
+		stake_input.oninput = async (e) => {
+			if (this_self.errors.amount) {
+				this_self.validateAmount();
+			}
 		};
 
 		document.querySelector('#enable_staking_yes').onclick = async (e) => {
@@ -115,18 +116,17 @@ class CryptoSelectAmount {
 				if (!this.mod.balances[this.ticker]) {
 					const cm = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
 					if (cm) {
-						await cm.getAvailableBalance();
+						let balance = await cm.getAvailableBalance();
 						this.mod.balances[this.ticker] = {
 							address: cm.formatAddress(),
-							balance: cm.returnBalance()
+							balance
 						};
 					} else {
 						this.mod.balances[this.ticker] = { address: '', balance: '0' };
 					}
 				}
 
-				this.mod.max_balance =
-					parseFloat(this.mod.balances[this.ticker]?.balance) || 0;
+				this.mod.max_balance = parseFloat(this.mod.balances[this.ticker]?.balance) || 0;
 
 				this.app.browser.replaceElementById(
 					CryptoSelectAmountTemplate(this.app, this.mod, this),
@@ -200,6 +200,8 @@ class CryptoSelectAmount {
 		input_err.innerText = '';
 		input_err.style.display = 'none';
 
+		console.log('validateAmount: ', amount, opponent_amount, this.mod.max_balance);
+
 		//advanced input
 		if (opponent_amount < 0) {
 			errorMsg2 = 'must be non-negative';
@@ -234,9 +236,7 @@ class CryptoSelectAmount {
 			this.errors.amount = true;
 		}
 
-		document
-			.querySelector('.select_max')
-			?.classList.toggle('hidden', !(amount > this.mod.max_balance));
+		document.querySelector('.select_max')?.classList.toggle('hidden', errorMsg || errorMsg2);
 	}
 
 	validateCheckbox() {

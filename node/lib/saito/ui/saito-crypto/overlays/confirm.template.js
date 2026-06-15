@@ -32,13 +32,12 @@ module.exports = function cryptoSendConfirmOverlayTemplate() {
           ></i>
         </div>
 
-        <section class="crypto-send-confirm-overlay__summary" aria-labelledby="crypto_send_confirm_summary_label">
-          <div class="crypto-send-confirm-overlay__summary-label" id="crypto_send_confirm_summary_label">Amount</div>
+        <section class="crypto-send-confirm-overlay__summary" aria-label="Amount">
           <div class="amount crypto-send-confirm-overlay__amount" id="crypto_send_confirm_amount"></div>
         </section>
 
         <section class="crypto-send-confirm-overlay__recipient" aria-labelledby="crypto_send_confirm_recipient_label">
-          <div class="crypto-send-confirm-overlay__summary-label" id="crypto_send_confirm_recipient_label">Recipient</div>
+          <div class="crypto-send-confirm-overlay__summary-label" id="crypto_send_confirm_recipient_label">To</div>
           <div class="counterparty-details"></div>
           <div class="crypto-send-confirm-overlay__chain-address" id="crypto_send_confirm_address"></div>
         </section>

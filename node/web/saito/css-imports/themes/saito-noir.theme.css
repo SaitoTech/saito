@@ -96,11 +96,11 @@ html[data-theme='noir'] {
   --saito-button-primary-bg-hover: linear-gradient(135deg, var(--palette-primary), var(--palette-primary-dark));
   --saito-button-primary-fg: var(--palette-on-primary);
   --saito-button-primary-border: transparent;
-  --saito-button-secondary-bg: linear-gradient(135deg, var(--palette-primary), var(--palette-primary-dark));
-  --saito-button-secondary-bg-hover: linear-gradient(135deg, var(--palette-primary), var(--palette-primary-dark));
-  --saito-button-secondary-fg: var(--palette-on-primary);
-  --saito-button-secondary-fg-hover: var(--palette-on-primary);
-  --saito-button-secondary-border: transparent;
+  --saito-button-secondary-bg: var(--palette-surface-2);
+  --saito-button-secondary-bg-hover: var(--palette-surface-3);
+  --saito-button-secondary-fg: var(--saito-font-color-heavy);
+  --saito-button-secondary-fg-hover: var(--saito-font-color-heavy);
+  --saito-button-secondary-border: var(--palette-outline-strong);
   --saito-button-disabled-bg: var(--palette-surface-1);
   --saito-button-disabled-fg: color-mix(in srgb, var(--saito-font-color-secondary) 58%, transparent);
   --saito-button-disabled-border: transparent;
@@ -223,10 +223,9 @@ html[data-theme='noir'] .saito-header-logo .cls-1 {
   fill: var(--saito-white);
 }
 
-html[data-theme='noir'] button,
-html[data-theme='noir'] .button,
-html[data-theme='noir'] .saito-button-primary,
-html[data-theme='noir'] .saito-button-secondary {
+html[data-theme='noir'] button:not(.saito-button-secondary),
+html[data-theme='noir'] .button:not(.saito-button-secondary),
+html[data-theme='noir'] .saito-button-primary {
   background-clip: padding-box;
   border-radius: var(--saito-button-radius);
   box-shadow: 0 0 32px -10px rgba(255, 145, 77, 0.55);
@@ -239,18 +238,16 @@ html[data-theme='noir'] .saito-button-secondary {
     filter 0.18s ease;
 }
 
-html[data-theme='noir'] button,
-html[data-theme='noir'] .button,
-html[data-theme='noir'] .saito-button-primary,
-html[data-theme='noir'] .saito-button-secondary {
+html[data-theme='noir'] button:not(.saito-button-secondary),
+html[data-theme='noir'] .button:not(.saito-button-secondary),
+html[data-theme='noir'] .saito-button-primary {
   background: linear-gradient(135deg, var(--palette-primary), var(--palette-primary-dark));
-  border-color: transparent;
+  border: 1px solid transparent;
 }
 
-html[data-theme='noir'] button:hover,
-html[data-theme='noir'] .button:hover,
-html[data-theme='noir'] .saito-button-primary:hover,
-html[data-theme='noir'] .saito-button-secondary:hover {
+html[data-theme='noir'] button:not(.saito-button-secondary):hover,
+html[data-theme='noir'] .button:not(.saito-button-secondary):hover,
+html[data-theme='noir'] .saito-button-primary:hover {
   background: linear-gradient(135deg, var(--palette-primary), var(--palette-primary-dark));
   box-shadow: 0 0 36px -10px rgba(255, 145, 77, 0.55);
   color: var(--palette-on-primary);
@@ -258,11 +255,39 @@ html[data-theme='noir'] .saito-button-secondary:hover {
   transform: translateY(-1px);
 }
 
-html[data-theme='noir'] button:active,
-html[data-theme='noir'] .button:active,
-html[data-theme='noir'] .saito-button-primary:active,
-html[data-theme='noir'] .saito-button-secondary:active {
+html[data-theme='noir'] button:not(.saito-button-secondary):active,
+html[data-theme='noir'] .button:not(.saito-button-secondary):active,
+html[data-theme='noir'] .saito-button-primary:active {
   filter: brightness(0.98);
+  transform: translateY(0);
+}
+
+html[data-theme='noir'] .saito-button-secondary {
+  background-clip: padding-box;
+  background: var(--palette-surface-2);
+  border: 1px solid var(--palette-outline-strong);
+  border-radius: var(--saito-button-radius);
+  box-shadow: none;
+  color: var(--saito-font-color-heavy);
+  font-weight: 500;
+  letter-spacing: 0;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+html[data-theme='noir'] .saito-button-secondary:hover {
+  background: var(--palette-surface-3);
+  border-color: var(--palette-outline-strong);
+  box-shadow: none;
+  color: var(--saito-font-color-heavy);
+  filter: none;
+  transform: translateY(-1px);
+}
+
+html[data-theme='noir'] .saito-button-secondary:active {
+  filter: none;
   transform: translateY(0);
 }
 

@@ -2695,6 +2695,7 @@ class GameQueue {
           amount,
           ticker,
           hash: unique_hash,
+          game_id: game_self.game.id,
           trusted: this_self.loadGamePreference('crypto_transfers_outbound_trusted'),
           mycallback: sendPaymentWrapper
         });
@@ -2758,6 +2759,7 @@ class GameQueue {
               amount: amount,
               ticker,
               hash: unique_hash,
+              game_id: game_self.game.id,
               trusted: this_self.loadGamePreference('crypto_transfers_inbound_trusted'),
               mycallback: function () {
                 if (game_self.game.id != my_specific_game_id) {

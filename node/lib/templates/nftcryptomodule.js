@@ -393,10 +393,6 @@ class NFTCryptoModule extends CryptoModule {
     return this.balance;
   }
 
-  returnBalance() {
-    return this.balance || '0';
-  }
-
   returnAddress() {
     // NFTs are sent to public keys, not external addresses
     return this.app.wallet.publicKey;
@@ -494,12 +490,11 @@ class NFTCryptoModule extends CryptoModule {
    * OPTIONAL / OVERRIDDEN BEHAVIOR
    ********************************************************/
 
-  async checkHistory(callback = null) {
+  async fetchHistory(ts = null, callback = null) {
     // Explicitly unsupported for NFTs
     if (callback) {
       callback([]);
     }
-    return [];
   }
 
   async fetchPendingDeposits(callback = null) {

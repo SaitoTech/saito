@@ -227,21 +227,23 @@ impl Mempool {
             current_timestamp
         );
 
-        let staking_tx;
-        {
-            let mut wallet = self.wallet_lock.write().await;
+        if blockchain.social_stake_requirement > 0 {
+            let staking_tx;
+            {
+                let mut wallet = self.wallet_lock.write().await;
 
-            staking_tx = wallet
-                .create_staking_transaction(
-                    blockchain.social_stake_requirement,
-                    blockchain.get_latest_unlocked_stake_block_id(),
-                    (blockchain.get_latest_block_id() + 1)
-                        .saturating_sub(configs.get_consensus_config().unwrap().genesis_period),
-                )
-                .ok()?;
+                staking_tx = wallet
+                    .create_staking_transaction(
+                        blockchain.social_stake_requirement,
+                        blockchain.get_latest_unlocked_stake_block_id(),
+                        (blockchain.get_latest_block_id() + 1)
+                            .saturating_sub(configs.get_consensus_config().unwrap().genesis_period),
+                    )
+                    .ok()?;
+            }
+            self.add_transaction_if_validates(staking_tx, blockchain)
+                .await;
         }
-        self.add_transaction_if_validates(staking_tx, blockchain)
-            .await;
 
         let mut block = Block::create(
             &mut self.transactions,

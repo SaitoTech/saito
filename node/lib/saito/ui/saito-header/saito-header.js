@@ -96,6 +96,7 @@ class SaitoHeader extends UIModTemplate {
       }
 
       if (!obj) {
+        console.debug('on-payment-received -- no object');
         return;
       }
 
@@ -566,13 +567,6 @@ class SaitoHeader extends UIModTemplate {
       };
     }
 
-    if (document.getElementById('wallet-btn-history')) {
-      document.getElementById('wallet-btn-history').onclick = (e) => {
-        app.connection.emit('saito-crypto-history-render-request');
-        this.hideMenu();
-      };
-    }
-
     if (document.getElementById('wallet-btn-settings')) {
       document.getElementById('wallet-btn-settings').onclick = (e) => {
         document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
@@ -898,6 +892,12 @@ class SaitoHeader extends UIModTemplate {
    * Integrate Saito MultiWallet
    *
    * *******************************************************
+   *
+   * We need to be very careful about what goes in here because this is called * A LOT *
+   * on-transaction-pending / on-payment-sent / on-payment-received
+   * (previously, on-wallet-update)
+   * So if there is something in here that awaits a remote API call, it can be very costly
+   *
    * *******************************************************/
   async renderCrypto(force = false) {
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
@@ -954,7 +954,9 @@ class SaitoHeader extends UIModTemplate {
             preferred_crypto.ticker,
             preferred_crypto.balance,
             ab,
-            pb
+            pb,
+            preferred_crypto.pending_balance,
+            preferred_crypto.last_balance
           );
 
           if (preferred_crypto.categories === 'NFT') {

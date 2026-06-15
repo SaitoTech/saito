@@ -171,12 +171,13 @@
 
 #qrcode,
 .qrcode {
-  width: 100%;
+  max-width: 100%;
   height: 18rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
+  position: relative;
 }
 
 #qrcode img,
@@ -195,9 +196,28 @@
   visibility: inherit;
 }
 
+.crypto-api-fetch-spinner {
+  color: var(--saito-yellow-light);
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  width: 4rem;
+  height: 4rem;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--saito-gray-900);
+  font-size: 3.2rem;
+}
+
 .balance-amount {
   display: flex;
   align-items: baseline;
+  cursor: pointer;
+}
+
+.balance-amount:hover {
+  color: var(--saito-font-color-heavy);
 }
 
 .balance-amount.pending {
@@ -209,11 +229,16 @@
   animation: fade-animation 1.5s infinite ease-in-out;
 }
 
+.balance-amount-segments {
+  display: flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
 .balance-amount-whole,
 .balance-amount-separator,
 .balance-amount-decimal {
   width: min-content;
-  display: block;
 }
 
 .balance-amount-whole,
@@ -223,6 +248,13 @@
 
 .balance-amount-decimal {
   font-size: 2rem;
+}
+
+/* Sub-unit balances (< 1): uniform size so 0.xxxx reads as one fractional value */
+.balance-amount-segments--subunit .balance-amount-whole,
+.balance-amount-segments--subunit .balance-amount-separator,
+.balance-amount-segments--subunit .balance-amount-decimal {
+  font-size: 3.5rem;
 }
 
 .wallet-btn-container {

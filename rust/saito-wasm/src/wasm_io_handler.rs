@@ -3,7 +3,7 @@ use std::io::{Error, ErrorKind};
 
 use async_trait::async_trait;
 use js_sys::{Array, BigInt, Boolean, Uint8Array};
-use log::{error, trace};
+use log::{error, info, trace};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
@@ -323,13 +323,20 @@ impl InterfaceIO for WasmIoHandler {
         }
     }
 
-    async fn save_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
+    async fn save_wallet(&self, wallet: &mut Wallet) -> Result<(), Error> {
+        info!(
+            "[SAVE_TRACE] wasm io save_wallet slips={} unspent={} balance={}",
+            wallet.slips.len(),
+            wallet.unspent_slips.len(),
+            wallet.get_available_balance()
+        );
         MsgHandler::save_wallet();
         // TODO : return error state
         Ok(())
     }
 
     async fn load_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
+        info!("[LOAD_TRACE] wasm io load_wallet");
         MsgHandler::load_wallet();
         // TODO : return error state
         Ok(())

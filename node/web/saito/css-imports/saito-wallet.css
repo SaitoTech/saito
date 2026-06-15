@@ -674,12 +674,16 @@
 }
 
 .withdraw-error {
-  padding: 0rem 1rem;
+  padding: 0;
   color: var(--saito-status-danger);
   display: none;
-  position: absolute;
-  right: 6.5rem;
-  background: var(--saito-background-color);
+  position: static;
+  background: transparent;
+}
+
+#withdrawal-form .withdraw-error {
+  position: static;
+  right: auto;
 }
 
 .withdraw-external-fee-span.saito {

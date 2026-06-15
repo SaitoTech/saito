@@ -22,7 +22,7 @@ use crate::core::defs::{
     SaitoUTXOSetKey, Timestamp, UtxoSet, BLOCK_FILE_EXTENSION,
 };
 use crate::core::storage::storage::Storage;
-use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
+use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::{hash, sign, verify_signature};
 use crate::iterate;
 
@@ -2458,7 +2458,7 @@ impl Block {
     }
 
     pub fn on_chain_reorganization(&mut self, utxoset: &mut UtxoSet, longest_chain: bool) -> bool {
-        debug!(
+        info!(
             "block : on chain reorg : {:?} - {:?}",
             self.id,
             self.hash.to_hex()
@@ -2828,38 +2828,38 @@ impl Block {
         storage: &Storage,
         validate_against_utxo: bool,
     ) -> bool {
+        //
+        // return true if previously validated
+        //
         if self.is_valid {
-            // block is already validated
             return true;
         }
+
         //
-        // TODO SYNC : Add the code to check whether this is the genesis block and skip validations
+        // TODO
+        //
+        // this code requires clean-up, it seems to be skipping  SYNC : Add the code to check whether this is the genesis block and skip validations
         //
         assert!(self.id > 0);
         if configs.is_spv_mode() {
             trace!("SPV mode, skipping block validation");
             self.generate_consensus_values(blockchain, storage, configs)
                 .await;
-            if let InitialLoadingStatus::Completed =
-                configs.get_blockchain_configs().initial_loading_status
-            {
+            if blockchain.is_loaded {
                 self.is_valid = true;
             }
             return true;
         }
 
         //
-        // "ghost blocks" are blocks that simply contain the block hash, they are used
-        // by lite-clients to sync the chain without validating all of the transactions
-        // in situations where users want to make that trade-off. for that reasons, if
-        // we have a Ghost Block we automatically validate it.
+        // "ghost blocks" are used by lite-clients in SPV mode
         //
         if let BlockType::Ghost = self.block_type {
             return true;
         }
 
         //
-        // all valid blocks with ID > 1 must have at least one transaction
+        // valid blocks have at least one transaction
         //
         if self.transactions.is_empty() && self.id != 1 && !blockchain.blocks.is_empty() {
             error!("ERROR 424342: block does not validate as it has no transactions",);
@@ -2867,21 +2867,23 @@ impl Block {
         }
 
         //
-        // all valid blocks must be signed by their creator
+        // valid blocks are signed by their creator
         //
         if !verify_signature(&self.pre_hash, &self.signature, &self.creator) {
             error!("ERROR 582039: block is not signed by creator or signature does not validate",);
             return false;
         }
 
-        debug!("validate block : {:?}-{:?}", self.id, self.hash.to_hex());
-
+        //
         // generate "consensus values"
+        //
         let cv = self
             .generate_consensus_values(blockchain, storage, configs)
             .await;
-        trace!("consensus values generated : {}", cv);
 
+        //
+        // validating total fees requires supply loaded
+        //
         if validate_against_utxo {
             //
             // total_fees
@@ -3153,9 +3155,7 @@ impl Block {
             // ghost blocks
             //
             if let BlockType::Ghost = previous_block.block_type {
-                if let InitialLoadingStatus::Completed =
-                    configs.get_blockchain_configs().initial_loading_status
-                {
+                if blockchain.is_loaded {
                     self.is_valid = true;
                 }
                 return true;
@@ -3206,17 +3206,6 @@ impl Block {
             //
             // validate golden ticket
             //
-            // the golden ticket is a special kind of transaction that stores the
-            // solution to the network-payment lottery in the transaction message
-            // field. it targets the hash of the previous block, which is why we
-            // tackle it's validation logic here.
-            //
-            // first we reconstruct the ticket, then calculate that the solution
-            // meets our consensus difficulty criteria. note that by this point in
-            // the validation process we have already examined the fee transaction
-            // which was generated using this solution. If the solution is invalid
-            // we find that out now, and it invalidates the block.
-            //
             if let Some(gt_index) = cv.gt_index {
                 let golden_ticket: GoldenTicket =
                     match GoldenTicket::deserialize_from_net(&self.transactions[gt_index].data) {
@@ -3252,27 +3241,14 @@ impl Block {
                 // we confirm that the golden ticket is targetting the block hash
                 // of the previous block. the solution is invalid if it is not
                 // current with the state of the chain..
-                trace!("validating gt...");
+                //
                 if !gt.validate(previous_block.difficulty) {
                     error!(
-                        "ERROR 801923: Golden Ticket solution does not validate against previous_block_hash : {:?}, difficulty : {:?}, random : {:?}, public_key : {:?} target : {:?}",
+                        "ERROR 801923: Golden Ticket solution does not validate against previous_block_hash : {:?}",
                         previous_block.hash.to_hex(),
-                        previous_block.difficulty,
-                        gt.random.to_hex(),
-                        gt.public_key.to_base58(),
-                        gt.target.to_hex()
-                    );
-                    let solution = hash(&gt.serialize_for_net());
-                    let solution_num = primitive_types::U256::from_big_endian(&solution);
-
-                    error!(
-                        "solution : {:?} leading zeros : {:?}",
-                        solution.to_hex(),
-                        solution_num.leading_zeros()
                     );
                     return false;
                 }
-                trace!("gt validated !");
             } else {
                 //
                 // if there is no golden ticket, our previous block's total_fees will
@@ -3285,7 +3261,6 @@ impl Block {
                     return false;
                 }
             }
-            // trace!(" ... golden ticket: (validated)  {:?}", create_timestamp());
         }
 
         //
@@ -3316,13 +3291,22 @@ impl Block {
         //    );
         //    return false;
         //}
+
+        //
+        // must follow ATR section
+        //
         if validate_against_utxo && cv.rebroadcast_hash != self.rebroadcast_hash {
             error!("ERROR 123422: hash of rebroadcast transactions incorrect. expected : {:?} actual : {:?}",cv.rebroadcast_hash.to_hex(), self.rebroadcast_hash.to_hex());
             return false;
         }
 
+        debug!(
+            "MERKLE: id={} hash={:?} merkle={:?}",
+            self.id, self.hash, self.merkle_root,
+        );
+
         //
-        // merkle root
+        // validate merkle root
         //
         if self.merkle_root == [0; 32]
             && self.merkle_root
@@ -3333,7 +3317,7 @@ impl Block {
         }
 
         //
-        // fee transaction
+        // validate fee transaction (payouts)
         //
         // because the fee transaction that is created by generate_consensus_values is
         // produced without knowledge of the block in which it will be put, we need to
@@ -3344,39 +3328,26 @@ impl Block {
             if let (Some(ft_index), Some(fee_transaction_expected)) =
                 (cv.ft_index, cv.fee_transaction)
             {
+                //
+                // requires golden ticket
+                //
                 if cv.gt_index.is_none() {
                     error!("ERROR 48203: block has fee transaction but no golden ticket");
                     return false;
                 }
 
-                //
-                // the fee transaction is hashed to compare it with the one in the block
-                //
                 let fee_transaction_in_block = self.transactions.get(ft_index).unwrap();
                 let hash1 = hash(&fee_transaction_expected.serialize_for_signature());
                 let hash2 = hash(&fee_transaction_in_block.serialize_for_signature());
 
+                //
+                // requires exact hash match
+                //
                 if validate_against_utxo && hash1 != hash2 {
                     error!(
                         "ERROR 892032: block {} fee transaction doesn't match cv-expected fee transaction",
                         self.id
                     );
-                    error!(
-                        "expected = {:?}",
-                        &fee_transaction_expected.serialize_for_signature()
-                    );
-                    error!(
-                        "actual   = {:?}",
-                        &fee_transaction_in_block.serialize_for_signature()
-                    );
-                    if let Some(gt_index) = cv.gt_index {
-                        if let Ok(golden_ticket) =
-                            GoldenTicket::deserialize_from_net(&self.transactions[gt_index].data)
-                        {
-                            error!("gt.publickey = {:?}", golden_ticket.public_key.to_hex());
-                        }
-                    }
-
                     return false;
                 }
             }
@@ -3401,10 +3372,8 @@ impl Block {
         // class, and the validation logic for slips is contained in the slips
         // class. Note that we are passing in a read-only copy of our UTXOSet so
         // as to determine spendability.
-
-        if let InitialLoadingStatus::Completed =
-            configs.get_blockchain_configs().initial_loading_status
-        {
+        //
+        if blockchain.is_loaded {
             // we don't validate transactions if we load blocks from disk
             trace!(
                 "validating transactions ... count : {:?}",
@@ -3455,9 +3424,7 @@ impl Block {
             trace!("transactions validation complete");
         }
 
-        if let InitialLoadingStatus::Completed =
-            configs.get_blockchain_configs().initial_loading_status
-        {
+        if blockchain.is_loaded {
             self.is_valid = true;
         }
 

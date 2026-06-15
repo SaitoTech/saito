@@ -1,0 +1,64 @@
+/* Field editor overlays — extend shared overlay system */
+
+body:has(.saito-container.rustscript) .saito-overlay:has(> .rs-prompt-overlay) {
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+
+body:has(.saito-container.rustscript) .saito-overlay > .rs-prompt-overlay {
+  border: var(--rs-overlay-border) !important;
+  border-radius: var(--rs-control-radius, 4px) !important;
+  box-shadow: var(--rs-overlay-shadow) !important;
+  overflow: hidden;
+  background: var(--rustscript-surface, #181818);
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-overlay {
+  width: min(520px, 94vw);
+  max-width: 94vw;
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-overlay-gap);
+  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
+  box-sizing: border-box;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-overlay .rs-prompt-title {
+  margin: var(--rs-overlay-title-margin);
+  font-family: var(--rustscript-font-sans);
+  font-size: var(--rs-overlay-title-size);
+  font-weight: var(--rs-overlay-title-weight);
+  letter-spacing: var(--rs-overlay-title-spacing);
+  line-height: 1.25;
+  text-transform: none;
+  color: #f4f4f4;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-overlay .overlay-actions {
+  display: flex;
+  width: 100%;
+  gap: var(--rs-overlay-footer-gap);
+  align-items: center;
+  margin-top: var(--rs-overlay-footer-margin-top);
+  padding-top: 4px;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-overlay .overlay-actions-apply-only {
+  justify-content: flex-end;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-overlay .overlay-actions-split {
+  justify-content: space-between;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-overlay .overlay-actions-split .rs-prompt-use-mine {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-overlay .overlay-actions-split .rs-prompt-apply {
+  flex: 0 0 auto;
+}

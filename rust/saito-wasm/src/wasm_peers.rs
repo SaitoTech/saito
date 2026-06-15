@@ -1,8 +1,8 @@
+use crate::saitowasm::{string_to_key, SAITO};
+use serde::Serialize;
+use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
-
-use crate::saitowasm::{string_to_key, SAITO};
-use serde_wasm_bindgen::to_value;
 
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -21,6 +21,8 @@ impl WasmPeers {
             .peer_lock
             .blocking_read();
 
+        let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
+
         match public_key {
             Some(pk) => {
                 // ✅ convert String → JsString
@@ -32,7 +34,7 @@ impl WasmPeers {
                 match key {
                     Ok(key_bytes) => {
                         if let Some(peer) = peers.get_peer_by_public_key(&key_bytes) {
-                            to_value(peer).unwrap()
+                            peer.serialize(&serializer).unwrap()
                         } else {
                             JsValue::NULL
                         }
@@ -40,7 +42,7 @@ impl WasmPeers {
                     Err(_) => JsValue::NULL,
                 }
             }
-            None => to_value(&*peers).unwrap(),
+            None => (&*peers).serialize(&serializer).unwrap(),
         }
     }
 }
