@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::io::{Error, ErrorKind};
 
-use log::{info, debug, error, trace};
+use log::{debug, error, info, trace};
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};

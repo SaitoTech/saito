@@ -4,7 +4,7 @@ use std::io::{Error, ErrorKind};
 
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::scripting::Script;
-use log::{debug, error, trace, info, warn};
+use log::{debug, error, info, trace, warn};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use primitive_types::U256;
@@ -1291,7 +1291,6 @@ impl Transaction {
         // NFT transactions (bound)
         //
         if self.transaction_type == TransactionType::Bound {
-
             //
             // NFTs store inputs and outputs in slip-tuples
             //
@@ -1310,7 +1309,6 @@ impl Transaction {
             //
             let mut idx = 0;
             while idx + 2 < self.from.len() {
-
                 let a = &self.from[idx];
                 let b = &self.from[idx + 1];
                 let c = &self.from[idx + 2];
@@ -1493,18 +1491,17 @@ impl Transaction {
                 idx += 1;
             }
 
-	    //
-	    // now that we have a list of input and output tuples, we need to know
-	    // what type of NFT is being transferred or created as the validation 
-	    // rules that apply to NFTs / Bound transactions depend on whether the 
-	    // user is creating a new NFT or transferring an existing NFT...
+            //
+            // now that we have a list of input and output tuples, we need to know
+            // what type of NFT is being transferred or created as the validation
+            // rules that apply to NFTs / Bound transactions depend on whether the
+            // user is creating a new NFT or transferring an existing NFT...
             //
 
             //
             // CREATE_BOUND_TRANSACTION / NEW NFT
             //
             if nft_tuples_in == 0 && nft_tuples_out > 0 {
-
                 //
                 // at least one funding input
                 //
@@ -1590,7 +1587,6 @@ impl Transaction {
             // CREATE_NFT_TRANSACTION / EXISTING NFT TRANSFER
             //
             } else {
-
                 //
                 // nft amount conserved
                 //
@@ -1616,12 +1612,11 @@ impl Transaction {
                 }
             }
         } else {
-
-	    //
-	    // all other (non-Bound) transaction types will reach this "else" clause
-	    // in which case we check that they do not have Bound slips unless they 
-	    // are ATR transactions, where the conversion is validated at the block
-	    // level...
+            //
+            // all other (non-Bound) transaction types will reach this "else" clause
+            // in which case we check that they do not have Bound slips unless they
+            // are ATR transactions, where the conversion is validated at the block
+            // level...
             //
             if self.transaction_type != TransactionType::ATR {
                 if self

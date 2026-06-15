@@ -519,7 +519,6 @@ export default class Saito {
         verifySignature: wasm.verify_signature?.bind(wasm),
       },
 
-
       //
       // SCRIPTING
       //
@@ -707,9 +706,9 @@ export default class Saito {
   }
 
   public async updateBalanceFrom(snapshot: BalanceSnapshot) {
-    console.info('[IMPORT_TRACE] before updateBalanceFrom (saito.ts)');
+    console.info("[IMPORT_TRACE] before updateBalanceFrom (saito.ts)");
     await Saito.getLibInstance().update_from_balance_snapshot(snapshot.instance);
-    console.info('[IMPORT_TRACE] after updateBalanceFrom (saito.ts)');
+    console.info("[IMPORT_TRACE] after updateBalanceFrom (saito.ts)");
   }
 
   public async addPendingTx(tx: Transaction) {

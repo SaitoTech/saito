@@ -2857,8 +2857,7 @@ class Browser {
 
   returnBalanceHTML(balance, exact_precision) {
     const raw = parseFloat(String(balance));
-    const isSubunit =
-      Number.isFinite(raw) && Math.abs(raw) > 0 && Math.abs(raw) < 1;
+    const isSubunit = Number.isFinite(raw) && Math.abs(raw) > 0 && Math.abs(raw) < 1;
 
     balance = this.formatDecimals(balance, exact_precision);
     let separator = this.getDecimalSeparator();
