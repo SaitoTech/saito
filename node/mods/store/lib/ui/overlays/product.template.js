@@ -21,7 +21,7 @@ module.exports = (view) => {
           </div>
 
           <div class="store-product-meta">
-            <div class="store-product-title">${view.title}</div>
+            <div class="store-product-title">${view.listingTitle}</div>
             <div class="store-product-seller">by ${view.shortSeller}</div>
           </div>
         </div>

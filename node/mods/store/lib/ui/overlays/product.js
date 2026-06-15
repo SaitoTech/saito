@@ -61,7 +61,8 @@ class ProductOverlay {
 	}
 
 	returnViewModel(product = {}) {
-		const title = product.title || (product.badge ? 'Saito Collectible' : 'Untitled Item');
+		const listingTitle =
+			product.subtitle || product.listing_title || product.name || 'Untitled Item';
 		const seller = product.seller || 'anon-store';
 		const shortSeller = this.returnShortKey(seller);
 
@@ -78,7 +79,7 @@ class ProductOverlay {
 				? images.map((img) => (img?.startsWith('gradient-') ? fallbackImage : img))
 				: [fallbackImage];
 
-		const priceValue = product.price || '';
+		const priceValue = product.price || product.title || '';
 		const bidValue = product.current_bid || product.currentBid || '';
 		const isBid = !!bidValue && !priceValue;
 		const primaryValue = isBid ? bidValue : priceValue || 'N/A';
@@ -99,7 +100,7 @@ class ProductOverlay {
 		return {
 			identicon:
 				this.app?.keychain?.returnIdenticon?.(seller || product.id) || '',
-			title,
+			listingTitle,
 			seller,
 			shortSeller,
 			images: normalizedImages,
