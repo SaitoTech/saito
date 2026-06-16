@@ -1457,8 +1457,19 @@ impl Transaction {
                         }
                         Some(existing_creator) => {
                             if existing_creator != tuple_creator {
-                                error!("bound tx invalid: output creator mismatch");
-                                return false;
+                                //
+                                // early on-chain NFTs erroneously set a.public_key to the
+                                // b.public_key value. while this breaks NFT functionality
+                                // for those NFTs, we include the edge-case for backwards
+                                // compatibility.
+                                //
+                                if existing_creator != b.public_key {
+                                    error!("bound tx invalid: existing creator does not match b public key");
+                                } else {
+                                    error!("bound tx invalid: output creator mismatch");
+                                    error!("tx : {}", self);
+                                    return false;
+                                }
                             }
                         }
                     }
