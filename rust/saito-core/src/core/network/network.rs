@@ -91,6 +91,15 @@ impl Network {
         };
 
         // --- STEP 2: update wallet if needed ---
+        let tx_sig = transaction.signature.to_hex();
+        let tx_type = transaction.transaction_type;
+        let from_pk = transaction
+            .from
+            .first()
+            .map(|s| s.public_key.to_base58())
+            .unwrap_or_else(|| "<empty>".to_string());
+        let wallet_pk = wallet_public_key.to_base58();
+
         if transaction
             .from
             .first()
@@ -102,9 +111,27 @@ impl Network {
                 let mut wallet = self.wallet_lock.write().await;
                 wallet.add_to_pending(transaction.clone());
 
+                info!(
+                    "[tx-pending-trace] network.propagate_transaction broadcasting OnTransactionPending sig={} type={:?}",
+                    tx_sig,
+                    tx_type
+                );
                 self.io_interface
                     .send_interface_event(InterfaceEvent::OnTransactionPending())
+            } else {
+                info!(
+                    "[tx-pending-trace] network.propagate_transaction skipped OnTransactionPending (golden ticket) sig={}",
+                    tx_sig
+                );
             }
+        } else {
+            info!(
+                "[tx-pending-trace] network.propagate_transaction skipped OnTransactionPending (from_pk={} wallet_pk={}) sig={} type={:?}",
+                from_pk,
+                wallet_pk,
+                tx_sig,
+                tx_type
+            );
         }
 
         // --- STEP 3: collect send targets (NO AWAIT HERE) ---

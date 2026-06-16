@@ -1,0 +1,208 @@
+.saito-container.store-purchase-modal-open {
+	pointer-events: none;
+}
+
+body:has(.saito-container.store-container) [id^='saito-overlay-backdrop'].store-purchase-overlay-backdrop {
+	position: fixed !important;
+	display: block !important;
+	inset: 0 !important;
+	width: 100vw !important;
+	height: 100dvh !important;
+	margin: 0 !important;
+	background: rgba(6, 6, 8, 0.86) !important;
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	pointer-events: auto !important;
+	z-index: 100001 !important;
+}
+
+body:has(.saito-container.store-container) .saito-overlay.store-purchase-overlay-shell {
+	position: fixed !important;
+	inset: 0 !important;
+	width: 100vw !important;
+	height: 100dvh !important;
+	transform: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: none !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	overflow: visible !important;
+	z-index: 100002 !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	pointer-events: none !important;
+}
+
+body:has(.saito-container.store-container) .saito-overlay.store-purchase-overlay-shell > .store-purchase-overlay {
+	flex: 0 1 auto;
+	display: flex;
+	flex-direction: column;
+	width: min(92vw, 680px);
+	max-height: min(88vh, calc(100dvh - 2rem));
+	overflow: hidden;
+	padding: 0;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 12px;
+	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+	background: #181818;
+	color: #ececec;
+	box-sizing: border-box;
+	font-size: 18px;
+	line-height: 1.45;
+	pointer-events: auto;
+}
+
+.store-purchase-inner {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 100%;
+	padding: 32px 36px;
+	box-sizing: border-box;
+	text-align: center;
+}
+
+.store-purchase-waiting.is-pending .rs-confirmation-stack {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	max-width: 520px;
+	margin: 0 auto;
+}
+
+.store-purchase-title {
+	margin: 0 0 16px;
+	font-size: 32px;
+	line-height: 1.25;
+	font-weight: 700;
+	color: #f3f4f6;
+}
+
+.store-purchase-lead {
+	margin: 0 0 12px;
+	max-width: 480px;
+	font-size: 18px;
+	line-height: 1.5;
+	color: #c7d2dc;
+}
+
+.store-purchase-subtitle {
+	min-height: 3.2em;
+	margin: 0 auto 4px;
+	max-width: 480px;
+	font-size: 20px;
+	line-height: 1.5;
+	color: #9ca3af;
+}
+
+.store-purchase-waiting .rs-publish-spinner {
+	display: flex;
+	justify-content: center;
+	gap: 14px;
+	margin: 0 auto 36px;
+	width: fit-content;
+}
+
+.store-purchase-waiting .rs-publish-spinner-box {
+	width: 26px;
+	height: 26px;
+	border-radius: 6px;
+	background: #3a8ecb;
+	animation: store-purchase-spin-pulse 1.2s ease-in-out infinite;
+}
+
+.store-purchase-waiting .rs-publish-spinner-box:nth-child(2) {
+	animation-delay: 0.15s;
+}
+
+.store-purchase-waiting .rs-publish-spinner-box:nth-child(3) {
+	animation-delay: 0.3s;
+}
+
+.store-purchase-waiting .rs-publish-spinner-box:nth-child(4) {
+	animation-delay: 0.45s;
+}
+
+@keyframes store-purchase-spin-pulse {
+	0%,
+	100% {
+		transform: scale(0.75) rotate(0deg);
+		opacity: 0.45;
+	}
+	50% {
+		transform: scale(1) rotate(90deg);
+		opacity: 1;
+	}
+}
+
+.store-purchase-waiting .rs-confirmation-timer {
+	margin-top: 32px;
+	padding-top: 24px;
+	border-top: 1px solid #333;
+	width: 100%;
+	max-width: 360px;
+}
+
+.store-purchase-waiting .rs-confirmation-timer-label {
+	display: block;
+	margin-bottom: 10px;
+	font-size: 14px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: lowercase;
+	color: #888;
+}
+
+.store-purchase-waiting .rs-confirmation-countdown {
+	display: inline-block;
+	min-width: 2ch;
+	font-size: 38px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	color: #d8d8d8;
+	line-height: 1.1;
+}
+
+.store-purchase-waiting .rs-confirmation-timer-unit {
+	display: block;
+	margin-top: 6px;
+	font-size: 15px;
+	color: #888;
+}
+
+.store-purchase-success-icon {
+	width: 72px;
+	height: 72px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 auto 24px;
+	background: rgba(58, 142, 203, 0.15);
+	color: #3a8ecb;
+	font-size: 36px;
+	font-weight: 700;
+}
+
+.store-purchase-close-btn {
+	margin-top: 28px;
+	background: #3a8ecb;
+	color: #ffffff;
+	border: none;
+	border-radius: 8px;
+	padding: 12px 28px;
+	font-size: 16px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.store-purchase-close-btn:hover {
+	filter: brightness(1.05);
+}

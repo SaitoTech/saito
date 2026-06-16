@@ -8,7 +8,7 @@ use crate::wasm_peer::WasmPeer;
 use crate::wasm_peers::WasmPeers;
 use crate::wasm_transaction::WasmTransaction;
 
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use saito_core::core::consensus_thread::ConsensusEvent;
 use saito_core::core::defs::PrintForLog;
 use saito_core::core::defs::SaitoPublicKey;
@@ -148,12 +148,20 @@ impl WasmNetwork {
                 .join(", "),
         );
 
+        info!(
+            "[tx-pending-trace] wasm propagateTransaction -> ConsensusEvent::NewTransaction sig={} type={:?}",
+            tx.signature.to_hex(),
+            tx.transaction_type
+        );
+
         saito
             .as_mut()
             .unwrap()
             .consensus_thread
             .process_event(ConsensusEvent::NewTransaction { transaction: tx })
             .await;
+
+        info!("[tx-pending-trace] wasm propagateTransaction returned (pending event may fire later via bundle_block)");
 
         //crate::saitowasm::process_new_transaction(wtx).await;
     }

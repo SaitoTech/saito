@@ -1,14 +1,12 @@
 CREATE TABLE IF NOT EXISTS sales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-  purchase_sig TEXT NOT NULL UNIQUE,
+  signature TEXT NOT NULL UNIQUE,
+
+  listing TEXT NOT NULL,
 
   buyer TEXT DEFAULT '',
   seller TEXT DEFAULT '',
-
-  listing_signature TEXT DEFAULT '',
-
-  nft_id TEXT DEFAULT '',
 
   quantity INTEGER DEFAULT 1,
 
@@ -17,8 +15,17 @@ CREATE TABLE IF NOT EXISTS sales (
 
   refund TEXT DEFAULT '',
 
-  status TEXT DEFAULT 'pending',
+  status INTEGER DEFAULT 0,
+  onchain INTEGER DEFAULT 1,
 
-  created_at INTEGER DEFAULT 0
+  fulfillment_tx TEXT DEFAULT '',
+  retry_count INTEGER DEFAULT 0,
+  last_attempt INTEGER DEFAULT 0,
 
+  block_id INTEGER DEFAULT 0,
+  block_hash TEXT DEFAULT '',
+  transaction_id INTEGER DEFAULT 0,
+
+  created_at INTEGER DEFAULT 0,
+  updated_at INTEGER DEFAULT 0
 );

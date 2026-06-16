@@ -409,6 +409,10 @@ class SaitoNFT {
 
     return null;
   }
+
+  returnImage() {
+    return this.image || '';
+  }
 }
 
 module.exports = SaitoNFT;
