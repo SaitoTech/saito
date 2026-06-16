@@ -1213,8 +1213,14 @@ impl Transaction {
             // must have sender
             //
             if self.from.is_empty() {
-                error!("ERROR 582039: less than 1 input in transaction");
-                return false;
+                if self.transaction_type == TransactionType::BlockStake
+                    && blockchain.social_stake_requirement == 0
+                {
+                } else {
+                    error!("ERROR 582039: less than 1 input in transaction");
+                    error!("tx : {}", self);
+                    return false;
+                }
             }
 
             //
@@ -1241,8 +1247,13 @@ impl Transaction {
             // or p2sh script...
             //
             if authorizer.is_none() && p2sh_idx.is_none() {
-                error!("transaction invalid: unable to determine authorizer");
-                return false;
+                if self.transaction_type == TransactionType::BlockStake
+                    && blockchain.social_stake_requirement == 0
+                {
+                } else {
+                    error!("transaction invalid: unable to determine authorizer");
+                    return false;
+                }
             }
 
             //
