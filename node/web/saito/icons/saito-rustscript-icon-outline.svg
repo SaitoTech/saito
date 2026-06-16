@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="370 321 310 355">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #fff;
+        stroke-miterlimit: 10;
+        stroke-width: 5px;
+      }
+    </style>
+  </defs>
+  <polyline class="cls-1" points="520,380 450,523 520,666"/>
+  <polyline class="cls-1" points="530,380 600,523 530,666"/>
+</svg>

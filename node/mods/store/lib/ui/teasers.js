@@ -6,6 +6,10 @@ class Teasers {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
+
+		this.app.connection.on('store-listing-updated', (listing) => {
+			Teaser.updateMedia(this.app, listing);
+		});
 	}
 
 	render(container = '') {

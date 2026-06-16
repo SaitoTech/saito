@@ -443,7 +443,12 @@ class CreateNFT {
         this.nft_type
       );
       await newtx.sign();
+      console.log('[tx-pending-trace] create-overlay calling propagateTransaction', {
+        signature: newtx.signature,
+        type: newtx.type
+      });
       await this.app.network.propagateTransaction(newtx);
+      console.log('[tx-pending-trace] create-overlay propagateTransaction returned');
     };
   }
 

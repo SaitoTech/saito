@@ -1,12 +1,52 @@
 const TeaserTemplate = require('./teaser.template');
+const Listing = require('../listing');
 
 class Teaser {
-	constructor(app, mod, data = {}, container = '') {
+	constructor(app, mod, listing = null, container = '') {
 		this.app = app;
 		this.mod = mod;
-		this.data = data;
+		this.listing = listing;
 		this.container = container;
-		this.cardId = `store-teaser-${this.data.id || this.data.nfttx_sig || this.data.tx_sig || Date.now()}`;
+		this.cardId = `store-teaser-${this.listing?.signature || 'item'}`;
+	}
+
+	static updateMedia(app, listing) {
+		if (!(listing instanceof Listing) || !listing.signature) {
+			return;
+		}
+
+		const image = listing.returnImage();
+		if (!image) {
+			return;
+		}
+
+		Teaser.updateMediaFromUrl(app, listing.signature, image);
+	}
+
+	static updateMediaFromUrl(app, signature, image_url = '') {
+		if (!signature || !image_url) {
+			return;
+		}
+
+		const card = document.querySelector(`#store-teaser-${signature} .teaser-media`);
+		if (!card) {
+			return;
+		}
+
+		card.classList.remove(
+			'gradient-1',
+			'gradient-2',
+			'gradient-3',
+			'gradient-4',
+			'gradient-5',
+			'gradient-6',
+			'gradient-7',
+			'gradient-8',
+			'gradient-9',
+			'gradient-10'
+		);
+		card.classList.add('has-image');
+		card.style.background = `url(${image_url}) center / cover no-repeat`;
 	}
 
 	render(container = '') {
@@ -14,20 +54,25 @@ class Teaser {
 			this.container = container;
 		}
 
-		if (!this.container) {
+		if (!this.container || !(this.listing instanceof Listing)) {
 			return;
 		}
 
-		const mediaClass = this.returnMediaClass(this.data.image);
-		const mediaBackground = this.returnMediaBackground(this.data.image);
-		const badgeClass = this.data.badge ? '' : 'hidden';
-		const identicon = this.app.keychain.returnIdenticon(this.data.seller || this.data.id);
+		const image = this.listing.returnImage();
+		const mediaClass = this.returnMediaClass(image);
+		const mediaBackground = this.returnMediaBackground(image);
+		const badgeClass = this.listing.badge ? '' : 'hidden';
+		const identicon = this.app.keychain.returnIdenticon(this.listing.seller || '');
 		const templateData = {
-			title: this.data.title || '',
-			subtitle: this.data.subtitle || '',
-			seller: this.data.seller || '',
+			title: this.listing.returnTitle(),
+			subtitle: this.listing.subtitle || '',
+			seller: this.listing.seller || '',
 			identicon,
-			show_buy_now: this.data.show_buy_now ?? this.data.can_buy ?? this.data.badge ?? false
+			show_buy_now:
+				this.listing.show_buy_now ??
+				this.listing.can_buy ??
+				this.listing.badge ??
+				false
 		};
 
 		this.app.browser.addElementToSelector(
@@ -35,6 +80,36 @@ class Teaser {
 			this.container
 		);
 		this.attachEvents();
+		this.tryCacheImage();
+	}
+
+	tryCacheImage() {
+		if (this.listing.image) {
+			return;
+		}
+
+		const cache_url = this.listing.returnCacheImageUrl?.();
+		if (!cache_url) {
+			this.maybeLoadNFT();
+			return;
+		}
+
+		const img = new Image();
+		img.onload = () => {
+			Teaser.updateMediaFromUrl(this.app, this.listing.signature, cache_url);
+		};
+		img.onerror = () => {
+			this.maybeLoadNFT();
+		};
+		img.src = cache_url;
+	}
+
+	maybeLoadNFT() {
+		if (this.listing.image) {
+			return;
+		}
+
+		this.listing.loadNFT();
 	}
 
 	returnMediaClass(image = '') {
@@ -76,7 +151,7 @@ class Teaser {
 			teaserCard.onclick = (e) => {
 				e.preventDefault();
 				if (this.mod.product_overlay) {
-					this.mod.product_overlay.render(this.data);
+					this.mod.product_overlay.render(this.listing);
 				}
 			};
 		}
