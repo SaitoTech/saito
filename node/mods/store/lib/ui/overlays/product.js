@@ -1,13 +1,19 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ProductTemplate = require('./product.template');
-const { hydrateListingFromArchive } = require('../../listing-hydration');
+const Listing = require('../../listing');
 
 class ProductOverlay {
-	constructor(app, mod, product = {}) {
+	constructor(app, mod, product = null) {
 		this.app = app;
 		this.mod = mod;
 		this.product = product;
 		this.overlay = new SaitoOverlay(app, mod);
+
+		this.app.connection.on('store-listing-updated', (listing) => {
+			if (this.product?.signature && this.product.signature === listing.signature) {
+				this.render(listing);
+			}
+		});
 	}
 
 	returnShortKey(key = '') {
@@ -35,8 +41,8 @@ class ProductOverlay {
 		return ext || 'unknown';
 	}
 
-	returnCreatedDate(product = {}) {
-		const raw = product.created_at || product.createdAt || product.timestamp || Date.now();
+	returnCreatedDate(listing = {}) {
+		const raw = listing.created_at || listing.createdAt || listing.timestamp || Date.now();
 		const date = new Date(raw);
 		if (Number.isNaN(date.getTime())) {
 			return new Date().toLocaleDateString();
@@ -48,30 +54,34 @@ class ProductOverlay {
 		return /[a-zA-Z]/.test(String(value));
 	}
 
-	returnProductType(product = {}) {
-		if (product.type) {
-			return product.type;
+	returnProductType(listing = {}) {
+		if (listing.type) {
+			return listing.type;
 		}
-		if (product.nft || product.nft_id || product.badge) {
+		if (listing.nft || listing.nft_id || listing.badge) {
 			return 'NFT';
 		}
-		if (product.delivery || product.shipping || product.physical) {
+		if (listing.delivery || listing.shipping || listing.physical) {
 			return 'Physical';
 		}
 		return 'Digital';
 	}
 
-	returnViewModel(product = {}) {
-		const listingTitle =
-			product.title ?? product.nft_title ?? 'Untitled Item';
-		const seller = product.seller || 'anon-store';
+	returnViewModel(listing = {}) {
+		const listingTitle = listing.returnTitle?.() || 'Untitled Item';
+		const seller = listing.seller || 'anon-store';
 		const shortSeller = this.returnShortKey(seller);
 
-		const images = Array.isArray(product.images)
-			? product.images.filter(Boolean)
-			: product.image
-				? [product.image]
-				: [];
+		const listingImage = listing.returnImage?.() || '';
+		const cacheImageUrl = !listingImage ? listing.returnCacheImageUrl?.() || '' : '';
+
+		const images = Array.isArray(listing.images)
+			? listing.images.filter(Boolean)
+			: listingImage
+				? [listingImage]
+				: cacheImageUrl
+					? [cacheImageUrl]
+					: [];
 
 		const fallbackImage =
 			"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%23132736'/%3E%3Cstop offset='1' stop-color='%233c8fcb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='800' fill='url(%23g)'/%3E%3C/svg%3E";
@@ -80,17 +90,17 @@ class ProductOverlay {
 				? images.map((img) => (img?.startsWith('gradient-') ? fallbackImage : img))
 				: [fallbackImage];
 
-		const priceValue = product.price || product.reserve_price || '';
-		const bidValue = product.current_bid || product.currentBid || '';
+		const priceValue = listing.price || listing.reserve_price || '';
+		const bidValue = listing.current_bid || listing.currentBid || '';
 		const isBid = !!bidValue && !priceValue;
 		const primaryValue = isBid ? bidValue : priceValue || 'N/A';
 		const primaryLabel = isBid ? 'Current Bid' : 'Price';
-		const currency = product.currency || product.denomination || 'SAITO';
-		const nextBid = product.next_bid || product.nextMinBid || '';
-		const supply = Number(product.supply ?? product.quantity ?? 1) || 1;
+		const currency = listing.currency || listing.denomination || 'SAITO';
+		const nextBid = listing.next_bid || listing.nextMinBid || '';
+		const supply = listing.returnQuantity?.() || 1;
 		const actionText = isBid ? 'Bid' : 'Buy';
-		const description = product.description ?? product.nft_description ?? '';
-		const txid = String(product.tx_id || product.txid || product.id || 'N/A');
+		const description = listing.returnDescription?.() || '';
+		const txid = String(listing.signature || 'N/A');
 		const primaryDisplay = this.hasCurrencyLabel(primaryValue)
 			? String(primaryValue)
 			: `${primaryValue} ${currency}`;
@@ -99,8 +109,7 @@ class ProductOverlay {
 			: `${nextBid} ${currency}`;
 
 		return {
-			identicon:
-				this.app?.keychain?.returnIdenticon?.(seller || product.id) || '',
+			identicon: this.app?.keychain?.returnIdenticon?.(seller) || '',
 			listingTitle,
 			seller,
 			shortSeller,
@@ -116,9 +125,9 @@ class ProductOverlay {
 			actionText,
 			description,
 			hasDescription: !!description,
-			productType: this.returnProductType(product),
+			productType: this.returnProductType(listing),
 			fileType: this.returnFileType(normalizedImages),
-			createdDate: this.returnCreatedDate(product),
+			createdDate: this.returnCreatedDate(listing),
 			txidShort: this.returnShortKey(txid)
 		};
 	}
@@ -138,6 +147,37 @@ class ProductOverlay {
 			};
 		});
 
+		if (mainImage) {
+			mainImage.onerror = () => {
+				mainImage.onerror = null;
+				this.maybeLoadNFT();
+			};
+		}
+
+		const buyBtn = document.querySelector('.store-product-buy');
+		if (buyBtn) {
+			buyBtn.onclick = async (e) => {
+				e.preventDefault();
+				const listing = this.product;
+				if (!(listing instanceof Listing)) {
+					return;
+				}
+
+				const qtyInput = document.querySelector('#store-product-qty-input');
+				const quantity = qtyInput ? Number(qtyInput.value) || 1 : 1;
+
+				if (buyBtn.disabled) {
+					return;
+				}
+				buyBtn.disabled = true;
+
+				try {
+					await this.mod.purchase_flow?.startPurchase(listing, quantity);
+				} finally {
+					buyBtn.disabled = false;
+				}
+			};
+		}
 	}
 
 	render(product = null) {
@@ -147,17 +187,29 @@ class ProductOverlay {
 		const view = this.returnViewModel(this.product || {});
 		this.overlay.show(ProductTemplate(view));
 		this.attachEvents();
-		this.maybeHydrateProductImage();
+		if (!this.product?.image) {
+			this.maybeLoadNFT();
+		}
 	}
 
-	maybeHydrateProductImage() {
+	maybeLoadNFT() {
 		const listing = this.product;
-		if (!listing || listing.image != null) {
+		if (!(listing instanceof Listing)) {
 			return;
 		}
 
-		hydrateListingFromArchive(this.app, this.mod, listing, (updated) => {
-			if (updated?.image != null) {
+		if (listing._store_image_fallback) {
+			return;
+		}
+
+		if (listing.image) {
+			return;
+		}
+
+		listing._store_image_fallback = true;
+
+		listing.loadNFT((updated) => {
+			if (updated?.image) {
 				this.render(updated);
 			}
 		});
