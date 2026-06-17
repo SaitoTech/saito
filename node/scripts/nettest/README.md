@@ -34,10 +34,11 @@ npm run nettest help
 
 - `list` - Shows available scenarios with their descriptions
 - `whatis <scenario>` - Displays detailed description of a specific scenario
-- `deploy <scenario> <branch> [--noconfirm]` - Sets up test nodes based on scenario configuration
+- `deploy <scenario> <branch> [--noconfirm] [local]` - Sets up test nodes based on scenario configuration
   - `scenario`: Name of the scenario folder in scripts/nettest/scenarios/
   - `branch`: Git branch to use for node deployment
   - `--noconfirm`: Skip the prompt to start network after deployment
+  - `local`: Run `npm run linklocal` after `npm install` in each deployed node, for testing local Rust/WASM updates
 - `reset <scenario>` - Resets configuration for all nodes in a scenario
 - `snapshot` - Creates a new scenario from the current network state
   - Prompts for scenario name and description
@@ -87,6 +88,11 @@ scripts/nettest/scenarios/
 Deploy a basic test network:
 ```
 npm run nettest deploy base main
+```
+
+Deploy a basic test network without prompting and with local Rust/WASM packages linked into each node:
+```
+npm run nettest deploy base main --noconfirm local
 ```
 
 View network status:
