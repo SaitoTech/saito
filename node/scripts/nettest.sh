@@ -5,6 +5,14 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 NETTEST_DIR="${SCRIPT_DIR}/nettest"
 LOG_FILE="${NETTEST_DIR}/nettest.log"
 
+# `PROJECT_DIR` is the Saito node app directory. In the current monorepo
+# layout, the git root is the parent checkout and the node app lives in
+# `node/`. Nettest deploy intentionally clones the entire monorepo into each
+# node folder so each deployed node has its own sibling `node/` and `rust/`
+# directories, e.g. `scripts/nettest/nodes/1/node` and
+# `scripts/nettest/nodes/1/rust`.
+GIT_ROOT="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+
 # Ensure log directory exists
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -25,9 +33,47 @@ execute() {
     local cmd="$1"
     local output
     output=$($cmd 2>&1)
+    local status=$?
     log "Command: $cmd"
     log "Output: $output"
-    return ${PIPESTATUS[0]}
+    return $status
+}
+
+clone_project_source() {
+    local branch="$1"
+    local target_dir="$2"
+    local source_dir="${GIT_ROOT:-$PROJECT_DIR}"
+
+    announce "Cloning full repository [$source_dir] into [$target_dir]"
+    execute "rm -rf ${target_dir}" || return 1
+    execute "git clone $source_dir $target_dir" || return 1
+    execute "git -C $target_dir checkout $branch" && return 0
+    execute "git -C $target_dir fetch origin refs/remotes/origin/$branch:refs/heads/$branch" || return 1
+    execute "git -C $target_dir checkout $branch"
+}
+
+node_app_dir() {
+    local deployed_node_dir="$1"
+
+    if [ -d "${deployed_node_dir}/node" ]; then
+        echo "${deployed_node_dir}/node"
+    else
+        echo "$deployed_node_dir"
+    fi
+}
+
+prepare_local_rust_workspace() {
+    if [ "$use_local" != "local" ]; then
+        return 0
+    fi
+
+    if [ -n "$SAITO_RUST_ROOT" ] && [ -d "$SAITO_RUST_ROOT" ]; then
+        announce "Using explicit SAITO_RUST_ROOT for local Rust/WASM linking: $SAITO_RUST_ROOT"
+        return 0
+    fi
+
+    announce "Local Rust/WASM linking will use each deployed monorepo's sibling rust/ directory"
+    return 0
 }
 
 
@@ -117,6 +163,7 @@ function deploy_scenario() {
     local scenario=$1
     local branch=$2
     local no_confirm=$3
+    local use_local=$4
     local scenario_dir="${NETTEST_DIR}/scenarios/${scenario}"
     local nodes_dir="${NETTEST_DIR}/nodes"
 
@@ -126,6 +173,9 @@ function deploy_scenario() {
     announce "----------------------------------------"
 
     announce "Deploying scenario: [$scenario] from branch: [$branch]"
+    if [ "$use_local" = "local" ]; then
+        announce "Local Rust/WASM linking enabled: will run [npm run linklocal] after [npm install] for each node"
+    fi
 
     # Check if scenario exists
     if [ ! -d "$scenario_dir" ]; then
@@ -136,6 +186,11 @@ function deploy_scenario() {
     # Clear existing setup
     clear_network
 
+    prepare_local_rust_workspace "$nodes_dir" || {
+        announce "Error: Local Rust/WASM workspace setup failed"
+        exit 1
+    }
+
     # Find all numbered node directories in scenario
     for node_dir in "$scenario_dir"/[0-9]*; do
         if [ -d "$node_dir" ]; then
@@ -144,35 +199,56 @@ function deploy_scenario() {
             announce "----------------------------------------"
             announce "Setting up node${node_num}..."
             
-            # Clone repository
+            # Clone/copy repository source
             announce "Cloning branch ${branch} for node${node_num}..."
-            execute "git clone --depth 1 --branch $branch ${PROJECT_DIR} $target_dir" || {
+            clone_project_source "$branch" "$target_dir" || {
                 announce "Error: Git clone failed for node${node_num}"
                 exit 1
             }
 
+            local app_dir
+            app_dir="$(node_app_dir "$target_dir")"
+            if [ ! -f "${app_dir}/package.json" ]; then
+                announce "Error: package.json not found for node${node_num} at ${app_dir}/package.json"
+                exit 1
+            fi
+            announce "Node${node_num} app directory: ${app_dir}"
+
             # Copy data directory if it exists
             if [ -d "${node_dir}/data" ]; then
                 announce "Copying data files for node${node_num}..."
-                execute "mkdir -p ${target_dir}/data"
-                execute "cp -r ${node_dir}/data/* ${target_dir}/data/" || true
+                execute "mkdir -p ${app_dir}/data"
+                execute "cp -r ${node_dir}/data/* ${app_dir}/data/" || true
             fi
 
             # Copy conf directory if it exists
             if [ -d "${node_dir}/config" ]; then
                 announce "Copying configuration files for node${node_num}..."
-                execute "mkdir -p ${target_dir}/config"
-                execute "cp -r ${node_dir}/config/* ${target_dir}/config/" || true
+                execute "mkdir -p ${app_dir}/config"
+                execute "cp -r ${node_dir}/config/* ${app_dir}/config/" || true
             fi
 
             # Install dependencies, compile, and copy blocks
             announce "Running [npm install] for node${node_num}..."
-            (cd "$target_dir" && {
+            (cd "$app_dir" && {
                 execute "npm install" || {
                     announce "Error: npm install failed for node${node_num}"
                     exit 1
                 }
                 announce "---"
+
+                if [ "$use_local" = "local" ]; then
+                    if [ -d "${target_dir}/rust" ]; then
+                        export SAITO_RUST_ROOT="${target_dir}/rust"
+                        announce "Using node${node_num} Rust workspace: $SAITO_RUST_ROOT"
+                    fi
+                    announce "Running [npm run linklocal] for node${node_num}..."
+                    execute "npm run linklocal" || {
+                        announce "Error: npm run linklocal failed for node${node_num}"
+                        exit 1
+                    }
+                    announce "---"
+                fi
                 
                 announce "Compiling node${node_num}..."
                 execute "npm run nuke dev" || {
@@ -183,13 +259,13 @@ function deploy_scenario() {
                 # Copy data directory if it exists again post nuke
                 if [ -d "${node_dir}/data" ]; then
                     announce "Copying data files for node${node_num}..."
-                    execute "mkdir -p ${target_dir}/data"
+                    execute "mkdir -p ${app_dir}/data"
                     execute "cp -r ${node_dir}/data/* data/" || true
                 fi
                 # Copy blocks if they exist
                 if [ -d "${node_dir}/data/blocks" ]; then
                     announce "Copying blockchain data for node${node_num}..."
-                    mkdir -p "${target_dir}/data/blocks"
+                    mkdir -p "${app_dir}/data/blocks"
                     execute "cp -r ${node_dir}/data/blocks/* data/blocks/"
                 fi
 
@@ -200,7 +276,12 @@ function deploy_scenario() {
                 }
                 announce "PM2 configuration for node${node_num} created"
                 announce "---"
-            }) &
+            })
+            local setup_status=$?
+            if [ $setup_status -ne 0 ]; then
+                announce "Error: setup failed for node${node_num}"
+                exit $setup_status
+            fi
         fi
     done
 
@@ -243,39 +324,41 @@ function reset_scenario() {
         if [ -d "$node_dir" ]; then
             local node_num=$(basename "$node_dir")
             local target_dir="${nodes_dir}/${node_num}"
+            local app_dir
+            app_dir="$(node_app_dir "$target_dir")"
             
             announce "Resetting node${node_num}..."
             
             # Clear existing conf and data directories
-            if [ -d "${target_dir}/config" ]; then
+            if [ -d "${app_dir}/config" ]; then
                 announce "Clearing configuration for node${node_num}..."
-                execute "rm -rf ${target_dir:?}/config/*"
+                execute "rm -rf ${app_dir:?}/config/*"
             fi
             
-            if [ -d "${target_dir}/data" ]; then
+            if [ -d "${app_dir}/data" ]; then
                 announce "Clearing data for node${node_num}..."
-                execute "rm -rf ${target_dir:?}/data/*"
+                execute "rm -rf ${app_dir:?}/data/*"
             fi
 
             # Copy new data directory if it exists
             if [ -d "${node_dir}/data" ]; then
                 announce "Copying new data files for node${node_num}..."
-                execute "mkdir -p ${target_dir}/data"
-                execute "cp -r ${node_dir}/data/* ${target_dir}/data/" || true
+                execute "mkdir -p ${app_dir}/data"
+                execute "cp -r ${node_dir}/data/* ${app_dir}/data/" || true
             fi
 
             # Copy blocks if they exist
             if [ -d "${node_dir}/data/blocks" ]; then
                 announce "Copying blockchain data for node${node_num}..."
-                mkdir -p "${target_dir}/data/blocks"
-                execute "cp -r ${node_dir}/data/blocks/* ${target_dir}/data/blocks/"
+                mkdir -p "${app_dir}/data/blocks"
+                execute "cp -r ${node_dir}/data/blocks/* ${app_dir}/data/blocks/"
             fi
 
             # Copy new conf directory if it exists
             if [ -d "${node_dir}/config" ]; then
                 announce "Copying new configuration files for node${node_num}..."
-                execute "mkdir -p ${target_dir}/config"
-                execute "cp -r ${node_dir}/config/* ${target_dir}/config/" || true
+                execute "mkdir -p ${app_dir}/config"
+                execute "cp -r ${node_dir}/config/* ${app_dir}/config/" || true
             fi
         fi
     done
@@ -286,7 +369,9 @@ function reset_scenario() {
 }
 
 function display_issuance() {
-    local node_dir="${NETTEST_DIR}/nodes/1"
+    local deployed_node_dir="${NETTEST_DIR}/nodes/1"
+    local node_dir
+    node_dir="$(node_app_dir "$deployed_node_dir")"
     local issuance_file="${node_dir}/data/issuance/issuance.keys"
 
     if [ -f "$issuance_file" ]; then
@@ -354,7 +439,9 @@ function show_status() {
 
 function view_logs() {
     local node_num=$1
-    local node_dir="${NETTEST_DIR}/nodes/${node_num}"
+    local deployed_node_dir="${NETTEST_DIR}/nodes/${node_num}"
+    local node_dir
+    node_dir="$(node_app_dir "$deployed_node_dir")"
     local log_file="${node_dir}/saito.log"
 
     if [ -z "$node_num" ]; then
@@ -393,8 +480,10 @@ function show_endpoints() {
     for node_dir in "$nodes_dir"/[0-9]*; do
         if [ -d "$node_dir" ]; then
             local node_num=$(basename "$node_dir")
-            local options_file="${node_dir}/config/options"
-            local options_conf="${node_dir}/config/options.conf"
+            local app_dir
+            app_dir="$(node_app_dir "$node_dir")"
+            local options_file="${app_dir}/config/options"
+            local options_conf="${app_dir}/config/options.conf"
             
             # Try options first, then options.conf
             if [ -f "$options_file" ]; then
@@ -430,11 +519,12 @@ function show_help() {
     announce "clear"
     announce "  Stops all pm2 processes and deletes all node folders"
     announce ""
-    announce "deploy <scenario> <branch> [--noconfirm]"
+    announce "deploy <scenario> <branch> [--noconfirm] [local]"
     announce "  Sets up test nodes based on scenario configuration"
     announce "  - scenario: Name of the scenario folder in nettest/scenarios/"
     announce "  - branch: Git branch to use for node deployment"
     announce "  - --noconfirm: Skip the prompt to start network after deployment"
+    announce "  - local: Run npm run linklocal after npm install in each deployed node"
     announce ""
     announce "reset <scenario>"
     announce "  Resets configuration for all nodes in a scenario"
@@ -513,6 +603,8 @@ function snapshot_network() {
     for node_dir in "$nodes_dir"/[0-9]*; do
         if [ -d "$node_dir" ]; then
             local node_num=$(basename "$node_dir")
+            local source_app_dir
+            source_app_dir="$(node_app_dir "$node_dir")"
             local target_dir="${scenario_dir}/${node_num}"
             
             announce "Processing node${node_num}..."
@@ -522,31 +614,31 @@ function snapshot_network() {
             mkdir -p "${target_dir}/data/issuance"
 
             # Copy configuration files
-            if [ -f "${node_dir}/config/options.conf" ]; then
-                execute "cp ${node_dir}/config/options.conf ${target_dir}/config/"
+            if [ -f "${source_app_dir}/config/options.conf" ]; then
+                execute "cp ${source_app_dir}/config/options.conf ${target_dir}/config/"
             else
                 announce "Warning: No options file found for node${node_num}"
             fi
 
-            if [ -f "${node_dir}/config/modules.config.js" ]; then
-                execute "cp ${node_dir}/config/modules.config.js ${target_dir}/config/"
+            if [ -f "${source_app_dir}/config/modules.config.js" ]; then
+                execute "cp ${source_app_dir}/config/modules.config.js ${target_dir}/config/"
             else
                 announce "Warning: No modules.config.js found for node${node_num}"
             fi
 
             # Copy issuance files
-            if [ -d "${node_dir}/data/issuance" ]; then
-                execute "cp -r ${node_dir}/data/issuance/* ${target_dir}/data/issuance/"
+            if [ -d "${source_app_dir}/data/issuance" ]; then
+                execute "cp -r ${source_app_dir}/data/issuance/* ${target_dir}/data/issuance/"
             fi
 
             # Check for blocks directory
-            if [ -d "${node_dir}/data/blocks" ]; then
+            if [ -d "${source_app_dir}/data/blocks" ]; then
                 announce "Node${node_num} has a blocks directory."
                 announce "Do you want to include blocks for node ${node_num} in the snapshot? (y/N)"
                 read -r copy_blocks
                 if [[ "$copy_blocks" =~ ^[Yy]$ ]]; then
                     mkdir -p "${target_dir}/data/blocks"
-                    execute "cp -r ${node_dir}/data/blocks/* ${target_dir}/data/blocks/"
+                    execute "cp -r ${source_app_dir}/data/blocks/* ${target_dir}/data/blocks/"
                     announce "Blocks copied for node${node_num}"
                 else
                     announce "Skipping blocks for node${node_num}"
@@ -633,10 +725,23 @@ case "$1" in
         ;;
     "deploy")
         if [ -z "$2" ] || [ -z "$3" ]; then
-            announce "Usage: nettest deploy <scenario> <branch> [--noconfirm]"
+            announce "Usage: nettest deploy <scenario> <branch> [--noconfirm] [local]"
             exit 1
         fi
-        deploy_scenario "$2" "$3" "$4"
+        no_confirm=""
+        use_local=""
+        for arg in "$4" "$5"; do
+            if [ "$arg" = "--noconfirm" ]; then
+                no_confirm="--noconfirm"
+            elif [ "$arg" = "local" ]; then
+                use_local="local"
+            elif [ -n "$arg" ]; then
+                announce "Unknown deploy option: $arg"
+                announce "Usage: nettest deploy <scenario> <branch> [--noconfirm] [local]"
+                exit 1
+            fi
+        done
+        deploy_scenario "$2" "$3" "$no_confirm" "$use_local"
         ;;
     "reset")
         if [ -z "$2" ]; then
