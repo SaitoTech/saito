@@ -32,7 +32,7 @@ module.exports = (app, mod, form) => {
 
       opt_html += `<option value="${ticker}" ${form.ticker == ticker ? 'selected' : ''}>${ticker}</option>`;
 
-      let icons = app.modules.getRespondTos('crypto-logo', { ticker }).shift() || {
+      let icons = app.wallet.returnCryptoModuleByTicker(ticker)?.returnLogos() || {
         img: `/${ticker.toLowerCase()}/img/logo.png`
       };
 
