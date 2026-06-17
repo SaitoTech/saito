@@ -237,25 +237,15 @@ class GameWeb3 {
         }
       });
     } else if (this.publicKey === receiver) {
-      await game_self.app.wallet.receivePayment(
+      game_self.app.connection.emit('saito-crypto-receive-render-request', {
+        publicKey: sender,
+        address: sender_crypto_address,
+        amount: amount,
+        hash: unique_hash,
         ticker,
-        [sender_crypto_address],
-        [receiver_crypto_address],
-        [amount],
-        unique_hash,
-        function () {
-          game_self.app.connection.emit('saito-crypto-receive-render-request', {
-            publicKey: sender,
-            address: sender_crypto_address,
-            amount: amount,
-            hash: unique_hash,
-            ticker,
-            game_id: game_self.game.id,
-            trusted: game_self.loadGamePreference('crypto_transfers_inbound_trusted')
-          });
-        },
-        sender
-      );
+        game_id: game_self.game.id
+      });
+      await game_self.app.wallet.receivePayment(ticker, sender_crypto_address, amount, unique_hash);
     }
   }
 

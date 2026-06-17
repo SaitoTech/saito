@@ -147,14 +147,28 @@ export default class Wallet extends SaitoWallet {
         };
 
         app.connection.on('on-transaction-sent', (payload: unknown) => {
-          const p = parseInterfacePayload(payload);
-          //console.log('************** transaction-sent **************', p);
+          /*const p = parseInterfacePayload(payload);
+          // Add filter (until WASM is fixed)
+          if (p.sender == this.publicKey) {
+            if (p.amount > 0) {
+              console.log('************** transaction-sent **************', p);
+              delete p.sender_publickey;
+              p.amount = app.wallet.convertNolanToSaito(p.amount).toString();
+              app.connection.emit('on-payment-sent', p);
+            }
+          }*/
         });
 
         // Map transaction-received event from WASM to UI-focused event
         app.connection.on('on-transaction-received', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          console.log('*************** transaction-received ***********');
+          console.log('*************** transaction-received ***********', payload);
+          if (!p.ticker) {
+            p.ticker = 'SAITO';
+          }
+          delete p.sender_publickey;
+          p.amount = app.wallet.convertNolanToSaito(p.amount).toString();
+
           app.connection.emit('on-payment-received', p);
         });
 
@@ -167,23 +181,16 @@ export default class Wallet extends SaitoWallet {
           const p = parseInterfacePayload(payload);
           console.log('*************** nft-received ***********', p);
 
-          let ticker = '';
-          let nft_id = '';
-
-          try {
-            if (p.ticker) {
-              ticker = String(p.ticker);
+          // If the NFT has a ticker, process it like an incoming payment
+          if (p?.ticker) {
+            try {
+              await wallet_self.addNFTToWallet(p.nft_id, p.ticker);
+              p.amount.toString();
+              app.connection.emit('on-payment-received', p);
+            } catch (err) {
+              console.log('ERROR: adding NFT to wallet... ');
             }
-            if (p.nft_id) {
-              nft_id = String(p.nft_id);
-            }
-            await wallet_self.addNFTToWallet(nft_id, ticker);
-          } catch (err) {
-            console.log('ERROR: adding NFT to wallet... ');
           }
-
-          // Map transaction-received event from WASM to UI-focused event
-          app.connection.emit('on-payment-received', p);
         });
 
         this.options.isActivated = true;
@@ -191,19 +198,6 @@ export default class Wallet extends SaitoWallet {
         app.connection.on('wallet-updated', async (payload: unknown) => {
           console.log('************** wallet-updated ************', payload);
           this.app.connection.emit('saito-header-update-crypto');
-        });
-
-        app.connection.on('on-payment-received', async (p) => {
-          this.balance = await this.getAvailableBalance();
-          if (!p.ticker) {
-            p.ticker = 'SAITO';
-          }
-          console.log('*************** payment-received ***********', p);
-        });
-
-        app.connection.on('on-payment-sent', async (p) => {
-          this.balance = await this.getAvailableBalance();
-          console.log('*************** payment-sent ***********', p);
         });
       }
 
@@ -472,10 +466,6 @@ export default class Wallet extends SaitoWallet {
 
         // Return all transaction signatures
         return signatures.join(', ');
-      }
-
-      async receivePayment(howMuch, from, to, timestamp) {
-        // listen for events broadcast from wallet now
       }
 
       validateAddress(address) {
@@ -980,7 +970,9 @@ export default class Wallet extends SaitoWallet {
                 this.deletePreferredCryptoTransaction(unique_hash);
               }
 
-              if (ticker !== 'SAITO') {
+              // chain_id covers native SAITO and native NFTs
+              // ticker !== 'SAITO'
+              if (cryptomod.chain_id !== 'NATIVE') {
                 if (saito_public_key) {
                   //
                   // duplicate the "crypto payment" for non-native off chain transactions
@@ -1103,56 +1095,12 @@ export default class Wallet extends SaitoWallet {
    * @param {Function} mycallback - (Array of {address: {String}, balance: {Int}}) -> {...}
    * @param {String} (optional) public key of sender
    */
-  async receivePayment(
-    ticker,
-    senders = [],
-    receivers = [],
-    amounts = [],
-    unique_hash = '',
-    mycallback: ((response?: { err?: string }) => void) | null = null,
-    saito_public_key = null
-  ) {
-    if (senders.length !== 1 || receivers.length !== 1 || amounts.length !== 1) {
-      console.error('receivePayment ERROR -- currently only supports single payments');
-      if (mycallback) {
-        mycallback({ err: 'Only supports one transaction' });
-      }
-      return;
-    }
-
-    try {
-      //
-      // register that we are expecting a payment
-      //
-      if (!this.app.options?.crypto) {
-        this.app.options.crypto = {};
-      }
-      if (!this.app.options.crypto[ticker]) {
-        this.app.options.crypto[ticker] = {};
-      }
-      if (!this.app.options.crypto[ticker].transfers_inbound) {
-        this.app.options.crypto[ticker].transfers_inbound = [];
-      }
-      if (!this.app.options.crypto[ticker].transfers_inbound.includes(unique_hash)) {
-        this.app.options.crypto[ticker].transfers_inbound.push(unique_hash);
-      }
-
-      //
-      // the ticker might not exist if this is a one-sided NFT transfer
-      //
-      const cryptomod = this.returnCryptoModuleByTicker(ticker);
-      if (cryptomod) {
-        await cryptomod.onIsActivated();
-        await cryptomod.startPolling();
-      }
-
-      if (mycallback) {
-        mycallback();
-      }
-    } catch (err) {
-      if (mycallback) {
-        mycallback({ err });
-      }
+  async receivePayment(ticker: string, sender: string, amount: string, unique_hash = '') {
+    const cryptomod = this.returnCryptoModuleByTicker(ticker);
+    if (cryptomod) {
+      await cryptomod.receivePayment(amount, sender, unique_hash);
+    } else {
+      console.error('Cannot receive payment to uninstalled crypto module!');
     }
   }
 
@@ -1954,9 +1902,22 @@ export default class Wallet extends SaitoWallet {
             let nft = this.app.options.wallet.nfts[z];
             if (nft.id == nft_id) {
               ticker = nft.ticker?.trim();
-              if (!ticker) {
-                ticker = `NFT-${this.app.crypto.hash(nft_id).slice(0, 6)}`;
-              }
+
+              /*
+              // IMPORTANT NOTE - TODO
+              We need a test for the NFT type here. This code will treat every NFT like a token, 
+              which may be a desired result (especially, since ticker is now hardcoded in every NFT object)
+              But, if that is the case, then there is no reason to have a defined "token"-type NFT
+
+              Proposed solutions: 
+              1) add a type test here
+              2) use ticker as a quick and dirty is nft a token test
+                2a) in creation overlay, make ticker a mandatory field
+                2b) in creatino overylay, cut-paste the following auto ticker generator
+              */
+              //if (!ticker) {
+              //  ticker = `NFT-${this.app.crypto.hash(nft_id).slice(0, 6)}`;
+              //}
             }
           }
 
@@ -1968,6 +1929,10 @@ export default class Wallet extends SaitoWallet {
 
           console.log(`NFT crypto module installed: ${ticker} (balance ${total.toString()})`);
         }
+
+        // IMPORTANT NOTE - TODO
+        // We need to emit an event here to trigger a cryptoRender so that the installed token-NFTs display in the
+        // Saito-HEADER
       }
     } catch (err) {
       console.log('Error: load nfts');

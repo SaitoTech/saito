@@ -46,9 +46,8 @@ class Quake3 extends GameTemplate {
 		//this.content_server  = "quake.adsotrans.com";
 		//this.game_server     = "quake.adsotrans.com:27960";
 
-		this.content_server  = "quake.adsotrans.com";
-		this.game_server     = "quake.adsotrans.com";
-
+		this.content_server = 'quake.adsotrans.com';
+		this.game_server = 'quake.adsotrans.com';
 
 		//this.content_server  = "quake.adsotrans.com:80";
 		//this.game_server     = "18.162.50.137:27960";
@@ -116,17 +115,9 @@ class Quake3 extends GameTemplate {
 						//
 						// monitor for receipt
 						//
-						this.app.wallet.receivePayment(
-							[victim_web3_address],
-							[killer_web3_address],
-							[stake],
-							ts,
-							uhash,
-							function () {
-								siteMessage(`${stake} ${ticker} received in tribute`, 8000);
-							},
-							ticker
-						);
+						//this.app.wallet.receivePayment(ticker, victim_web3_address, stake, uhash);
+
+						// You don't need to monitor for receipt, if you receive crypto, you will get a siteMessage anyways
 					}
 				}
 				return 1;
@@ -513,7 +504,7 @@ class Quake3 extends GameTemplate {
 						}
 						window.location.href = '/';
 					};
-console.log("QUAKE ARGS:", args);
+					console.log('QUAKE ARGS:', args);
 					ioq3.callMain(args);
 				} else {
 					console.log('Wait a minute...');

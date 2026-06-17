@@ -441,7 +441,7 @@ class Crypto {
 
       return result;
     } catch (error) {
-      console.error('Error encrypting with public key:', error);
+      console.error('Error encrypting with public key:', error, recipientPublicKey);
       throw new Error(`Encryption failed: ${error.message}`);
     }
   }

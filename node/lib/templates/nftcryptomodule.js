@@ -467,11 +467,12 @@ class NFTCryptoModule extends CryptoModule {
     return unique_hash || newtx.signature;
   }
 
-  async receivePayment(amount = '', sender = '', recipient = '', timestamp = 0, unique_hash = '') {
-    // NFT receipt is handled by wallet UTXO processing
-    // We simply return success
-    return true;
-  }
+  // IMPORTANT NOTE -- FIX THIS
+  //async receivePayment(amount = '', sender = '', recipient = '', timestamp = 0, unique_hash = '') {
+  // NFT receipt is handled by wallet UTXO processing
+  // We simply return success
+  //  return true;
+  //}
 
   //
   // Legacy CryptoModule "crypto payment" channel (Saito notification txs for web3).
