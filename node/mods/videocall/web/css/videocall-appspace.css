@@ -181,7 +181,6 @@ html[data-theme="noir"] .stun-settings-shell {
 }
 
 .stun-talk-logo {
-	--saito-cta-logo-color: var(--saito-font-color-heavy);
 	--saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-outline-label-horizontal.svg');
 	width: min(560px, 84vw);
 	display: block;
@@ -191,7 +190,7 @@ html[data-theme="noir"] .stun-settings-shell {
 	max-width: min(560px, 84vw);
 }
 
-.stun-appspace-content:hover .stun-talk-logo {
+.saito-cta:hover .stun-talk-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-solid-label-horizontal.svg');
 }
 
@@ -199,7 +198,6 @@ html[data-theme="noir"] .stun-settings-shell {
 	content: "";
 	position: absolute;
 	inset: 0;
-	background: var(--saito-cta-logo-color);
 	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }

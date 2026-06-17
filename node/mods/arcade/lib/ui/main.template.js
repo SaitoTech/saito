@@ -15,7 +15,7 @@ module.exports = (app, mod) => {
                 </div>
               </div>
               <div class="arcade-cta-content">
-                <div class="arcade-cta-logo" role="img" aria-label="Saito Arcade"></div>
+                <div class="saito-cta-logo arcade-cta-logo" role="img" aria-label="Saito Arcade"></div>
                 <div class="arcade-cta-subtitle">PEER-TO-PEER,  PROVABLY FAIR, FUN</div>
                 <button class="saito-button-primary arcade-cta-play-btn" id="arcade-play-now-btn" type="button">Play Now</button>
               </div>

@@ -529,7 +529,11 @@ class RedSquare extends ModTemplate {
   }
 
   renderFirstVisitSplash() {
-    if (!this.app.BROWSER || !this.show_splash || document.querySelector('.redsquare-splash-overlay')) {
+    if (
+      !this.app.BROWSER ||
+      !this.show_splash ||
+      document.querySelector('.redsquare-splash-overlay')
+    ) {
       return;
     }
 
@@ -538,7 +542,7 @@ class RedSquare extends ModTemplate {
       `
         <div class="redsquare-splash-overlay">
           <div class="redsquare-splash-content saito-cta">
-            <div class="redsquare-splash-logo" role="img" aria-label="Red Square"></div>
+            <div class="saito-cta-logo redsquare-splash-logo" role="img" aria-label="Red Square"></div>
             <div class="redsquare-splash-subtitle">PEER-TO-PEER SOCIAL</div>
             <button class="saito-button-primary redsquare-splash-join" type="button">JOIN IN</button>
           </div>
@@ -579,7 +583,11 @@ class RedSquare extends ModTemplate {
         tweets_limit: tweet_limit,
         busy: {}
       };
-      this.peers.push(peer_obj);
+      if (peer == 'localhost') {
+        this.peers.unshift(peer_obj);
+      } else {
+        this.peers.push(peer_obj);
+      }
     } else {
       this.peers[peer_idx].peer = peer;
       peer_obj = this.peers[peer_idx];
@@ -898,7 +906,7 @@ class RedSquare extends ModTemplate {
                   txs[t] = tx;
                 }
 
-                let count = this.processTweetsFromPeer(this.peers[i], txs);
+                let count = this.processTweetsFromPeer(this.peers[i], txs, created_at == 'earlier');
 
                 if (txs.length == 0) {
                   console.debug('RS: Mark remote peer as tapped out...');
@@ -938,7 +946,11 @@ class RedSquare extends ModTemplate {
             this.app.storage.loadTransactions(
               obj,
               (txs) => {
-                let count = this.processTweetsFromPeer(this.peers[i], txs);
+                let count = this.processTweetsFromPeer(
+                  this.peers[i],
+                  txs,
+                  created_at === 'earlier'
+                );
 
                 if (txs.length == 0) {
                   if (created_at === 'earlier') {
@@ -978,7 +990,7 @@ class RedSquare extends ModTemplate {
     return peer_count;
   }
 
-  processTweetsFromPeer(peer, txs) {
+  processTweetsFromPeer(peer, txs, older = true) {
     let count = 0;
 
     //
@@ -1000,10 +1012,11 @@ class RedSquare extends ModTemplate {
       let created_at = txs[z].timestamp;
       let updated_at = txs[z].optional?.updated_at || created_at;
 
-      if (created_at < peer.tweets_earliest_ts) {
-        peer.tweets_earliest_ts = created_at;
-
-        this.tweets_earliest_ts = Math.min(this.tweets_earliest_ts, peer.tweets_earliest_ts);
+      if (older) {
+        if (created_at < peer.tweets_earliest_ts) {
+          peer.tweets_earliest_ts = created_at;
+          this.tweets_earliest_ts = Math.min(this.tweets_earliest_ts, peer.tweets_earliest_ts);
+        }
       }
       if (updated_at > peer.tweets_latest_ts) {
         peer.tweets_latest_ts = updated_at;
@@ -2718,10 +2731,9 @@ class RedSquare extends ModTemplate {
       if (tweet.curated == 1) {
         tweet.tx.optional.curated = 1;
 
-        if (!tweet.game){
-          this.cached_tweets.push(tweet.tx.serialize_to_web(this.app));  
+        if (!tweet.game) {
+          this.cached_tweets.push(tweet.tx.serialize_to_web(this.app));
         }
-        
       }
     }
 

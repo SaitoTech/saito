@@ -27,7 +27,6 @@
 }
 
 .chat-splash-logo {
-	--saito-cta-logo-color: var(--saito-white, #fff);
 	--saito-cta-logo-mask: url('/saito/icons/saito-chat-icon-outline-label-horizontal.svg');
 	display: block;
 	position: relative;
@@ -37,7 +36,7 @@
 	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.chat-splash-overlay:hover .chat-splash-logo {
+.saito-cta:hover .chat-splash-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-chat-icon-solid-label-horizontal.svg');
 }
 
@@ -45,7 +44,6 @@
 	content: "";
 	position: absolute;
 	inset: 0;
-	background: var(--saito-cta-logo-color);
 	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }
@@ -120,7 +118,8 @@
 	max-width: 50vw;
 	overflow: visible;
 	border-right: var(--border-thickness) solid var(--saito-border-color);
-	padding: 1rem;
+	padding: 1.2rem 1rem;
+	background: var(--saito-background-color);
 }
 
 .chat-main-container .saito-sidebar.right {

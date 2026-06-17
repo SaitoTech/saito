@@ -146,7 +146,6 @@
 }
 
 .arcade-cta-logo {
-	--saito-cta-logo-color: var(--saito-white, #fff);
 	--saito-cta-logo-mask: url('/saito/icons/saito-arcade-icon-outline-label-horizontal.svg');
 	width: min(42rem, 100%);
 	aspect-ratio: 381 / 134;
@@ -155,7 +154,7 @@
 	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.arcade-cta-card:hover .arcade-cta-logo {
+.saito-cta:hover .arcade-cta-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-arcade-icon-solid-label-horizontal.svg');
 }
 
@@ -163,7 +162,6 @@
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: var(--saito-cta-logo-color);
 	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }
@@ -188,10 +186,11 @@
 .arcade-teasers {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-	grid-gap: 3rem;
+	grid-gap: 1rem;
 	align-content: start;
 	background: unset;
     background-color: transparent;
+    padding: 0 5px 0 0;
 }
 
 .arcade-sidebar .saito-announcement {
@@ -223,7 +222,7 @@
 	border: 1px solid var(--saito-overlay-panel-border);
 	position: relative;
 	cursor: pointer;
-	overflow: hidden;
+	overflow: visible;
 	border-radius: calc(var(--saito-border-radius) + 0.15rem);
 	background: var(--saito-overlay-panel-background);
 	box-shadow: var(--saito-overlay-panel-shadow);
@@ -254,6 +253,7 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	border-radius: var(--saito-border-radius);
 }
 
 .arcade-teaser-image {
@@ -280,7 +280,7 @@
 
 .arcade-teaser-footer .arcade-invite-badge {
 	width: fit-content;
-	padding: 0 20% 0 33%;
+	padding: 0 25%;
 	max-width: unset;
 }
 
