@@ -254,6 +254,15 @@ class SaitoHeader extends UIModTemplate {
     this.app.connection.on('saito-header-logo-change-request', (obj) => {
       this.resetHeaderLogo();
     });
+
+    const pendingListenerCount =
+      typeof app.connection.listenerCount === 'function'
+        ? app.connection.listenerCount('on-transaction-pending')
+        : null;
+    console.log('[header-mint-flash] SaitoHeader.initialize complete', {
+      mod: this.mod?.name,
+      on_transaction_pending_listener_count: pendingListenerCount
+    });
   }
 
   resetHeaderLogo() {

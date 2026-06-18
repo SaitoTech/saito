@@ -7,11 +7,11 @@ class Teaser {
 		this.mod = mod;
 		this.listing = listing;
 		this.container = container;
-		this.cardId = `store-teaser-${this.listing?.signature || 'item'}`;
+		this.cardId = `store-teaser-${this.listing?.id || 'item'}`;
 	}
 
 	static updateMedia(app, listing) {
-		if (!(listing instanceof Listing) || !listing.signature) {
+		if (!(listing instanceof Listing) || !listing.id) {
 			return;
 		}
 
@@ -20,15 +20,15 @@ class Teaser {
 			return;
 		}
 
-		Teaser.updateMediaFromUrl(app, listing.signature, image);
+		Teaser.updateMediaFromUrl(app, listing.id, image);
 	}
 
-	static updateMediaFromUrl(app, signature, image_url = '') {
-		if (!signature || !image_url) {
+	static updateMediaFromUrl(app, listing_id, image_url = '') {
+		if (!listing_id || !image_url) {
 			return;
 		}
 
-		const card = document.querySelector(`#store-teaser-${signature} .teaser-media`);
+		const card = document.querySelector(`#store-teaser-${listing_id} .teaser-media`);
 		if (!card) {
 			return;
 		}
@@ -96,7 +96,7 @@ class Teaser {
 
 		const img = new Image();
 		img.onload = () => {
-			Teaser.updateMediaFromUrl(this.app, this.listing.signature, cache_url);
+			Teaser.updateMediaFromUrl(this.app, this.listing.id, cache_url);
 		};
 		img.onerror = () => {
 			this.maybeLoadNFT();
@@ -150,8 +150,8 @@ class Teaser {
 		if (teaserCard) {
 			teaserCard.onclick = (e) => {
 				e.preventDefault();
-				if (this.mod.product_overlay) {
-					this.mod.product_overlay.render(this.listing);
+				if (this.mod.main?.product_overlay) {
+					this.mod.main.product_overlay.render(this.listing);
 				}
 			};
 		}

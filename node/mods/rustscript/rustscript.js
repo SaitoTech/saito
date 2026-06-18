@@ -2,11 +2,9 @@ const ModTemplate = require('./../../lib/templates/modtemplate');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const RustscriptMain = require('./lib/ui/main');
 const ast_execute = require('./lib/rustscript/ast_execute');
-const script_to_scripthash = require('./lib/rustscript/script_to_scripthash');
 const tokenize = require('./lib/rustscript/semantic_to_tokens');
 const parse = require('./lib/rustscript/tokens_to_ast');
 const { build_test_script_from_create, lockingView } = require('./lib/ui/script_build');
-const { deriveP2shFromLockingScript } = require('./lib/rustscript/p2sh');
 const { downloadTransactionFile, serializeTransactionToWeb, transactionExportFilename } = require('./lib/transaction_io');
 const Transaction = require('./../../lib/saito/transaction').default;
 const Slip = require('./../../lib/saito/slip').default;
@@ -276,34 +274,7 @@ class Rustscript extends ModTemplate {
   }
 
   scripthash() {
-    const clone = JSON.parse(JSON.stringify(this.script));
-    const pending = [clone];
-
-    while (pending.length > 0) {
-      const node = pending.pop();
-      if (!node || typeof node !== 'object') {
-        continue;
-      }
-
-      if (Array.isArray(node)) {
-        for (let i = 0; i < node.length; i += 1) {
-          pending.push(node[i]);
-        }
-        continue;
-      }
-
-      if (Object.prototype.hasOwnProperty.call(node, 'witness')) {
-        delete node.witness;
-      }
-
-      if (Array.isArray(node.args)) {
-        for (let i = 0; i < node.args.length; i += 1) {
-          pending.push(node.args[i]);
-        }
-      }
-    }
-
-    return script_to_scripthash(clone);
+    return this.app.core.scripting.hash(lockingView(this.script));
   }
 
   parseExpertScript(source) {
@@ -369,7 +340,8 @@ class Rustscript extends ModTemplate {
     }
 
     const locking = lockingView(scriptPayload);
-    const { hash, address } = deriveP2shFromLockingScript(this.app, locking);
+    const hash = this.app.core.scripting.hash(locking);
+    const address = this.app.core.scripting.address(locking);
     if (!hash || !address) {
       throw new Error('Could not derive script address for export.');
     }
@@ -379,7 +351,7 @@ class Rustscript extends ModTemplate {
 
     const output = new Slip();
     output.type = SLIP_TYPE_P2SH;
-    output.publicKey = address;
+    output.publicKey = this.app.crypto.toBase58(address);
     output.amount = BigInt(0);
     tx.addToSlip(output);
 
@@ -419,6 +391,10 @@ class Rustscript extends ModTemplate {
   }) {
     const lockingScript = lockingView(locking || {});
     const accessScript = JSON.stringify(lockingScript);
+    const recipient =
+      p2shAddress.length === 66 && p2shAddress.startsWith('00')
+        ? this.app.crypto.toBase58(p2shAddress)
+        : p2shAddress;
     const baseMsg = {
       module: this.name,
       request: 'publish p2sh',
@@ -433,7 +409,7 @@ class Rustscript extends ModTemplate {
       const amountNolan = this.app.wallet.convertSaitoToNolan(amountSaito);
       const feeNolan = this.app.wallet.convertSaitoToNolan(feeSaito);
       const newtx = await this.app.wallet.createUnsignedTransaction(
-        p2shAddress,
+        recipient,
         amountNolan,
         feeNolan
       );
@@ -471,14 +447,14 @@ class Rustscript extends ModTemplate {
 
       let newtx = await this.app.wallet.createNFTTransaction(
         nft,
-        p2shAddress,
+        recipient,
         amountInt,
         feeNolan,
         BigInt(0),
         txMsg
       );
 
-      newtx = await nft.modifyBeforeSend(newtx, p2shAddress);
+      newtx = await nft.modifyBeforeSend(newtx, recipient);
       if (!newtx) {
         throw new Error('NFT transfer blocked by module.');
       }
@@ -519,10 +495,8 @@ class Rustscript extends ModTemplate {
     const lockedNftSlips =
       assetType === 'nft' ? this._findLockedNftSlipTriplet(tx, p2shAddress) : null;
 
-    const { hash } = deriveP2shFromLockingScript(
-      this.app,
-      txmsg.access_script ? JSON.parse(txmsg.access_script) : {}
-    );
+    const accessScript = txmsg.access_script ? JSON.parse(txmsg.access_script) : {};
+    const hash = this.app.core.scripting.hash(accessScript);
     const p2shHash = txmsg.scripthash || hash || '';
 
     const accessScriptRaw = txmsg.access_script || txmsg.accessScript || '';
@@ -589,11 +563,15 @@ class Rustscript extends ModTemplate {
     return '';
   }
 
-  _findLockedOutputSlip(tx, p2shAddress) {
+  _findLockedOutputSlip(tx, scriptAddress) {
+    const slipKey =
+      scriptAddress.length === 66 && scriptAddress.startsWith('00')
+        ? this.app.crypto.toBase58(scriptAddress)
+        : scriptAddress;
     const outputs = tx.to || [];
-    if (p2shAddress) {
+    if (slipKey) {
       for (let i = 0; i < outputs.length; i++) {
-        if (outputs[i]?.publicKey === p2shAddress) {
+        if (outputs[i]?.publicKey === slipKey) {
           return outputs[i];
         }
       }
@@ -611,13 +589,17 @@ class Rustscript extends ModTemplate {
    * Locate bound-normal-bound NFT output triplet locked at p2shAddress.
    * Mirrors wallet NFT output ordering from create_nft_transaction.
    */
-  _findLockedNftSlipTriplet(tx, p2shAddress) {
+  _findLockedNftSlipTriplet(tx, scriptAddress) {
+    const slipKey =
+      scriptAddress.length === 66 && scriptAddress.startsWith('00')
+        ? this.app.crypto.toBase58(scriptAddress)
+        : scriptAddress;
     const outputs = tx.to || [];
     for (let i = 1; i < outputs.length - 1; i++) {
       const slip1 = outputs[i - 1];
       const slip2 = outputs[i];
       const slip3 = outputs[i + 1];
-      if (!slip2 || slip2.publicKey !== p2shAddress) {
+      if (!slip2 || slip2.publicKey !== slipKey) {
         continue;
       }
       if (!isBoundSlipType(slip1?.type)) {
@@ -684,7 +666,10 @@ class Rustscript extends ModTemplate {
     const p2shMarker = new Slip();
     p2shMarker.type = SLIP_TYPE_P2SH;
     p2shMarker.amount = BigInt(0);
-    p2shMarker.publicKey = ctx.p2shAddress;
+    p2shMarker.publicKey =
+      ctx.p2shAddress.length === 66 && ctx.p2shAddress.startsWith('00')
+        ? this.app.crypto.toBase58(ctx.p2shAddress)
+        : ctx.p2shAddress;
     tx.addFromSlip(p2shMarker);
 
     const output = new Slip();
@@ -751,7 +736,10 @@ class Rustscript extends ModTemplate {
     const p2shMarker = new Slip();
     p2shMarker.type = SLIP_TYPE_P2SH;
     p2shMarker.amount = BigInt(0);
-    p2shMarker.publicKey = ctx.p2shAddress;
+    p2shMarker.publicKey =
+      ctx.p2shAddress.length === 66 && ctx.p2shAddress.startsWith('00')
+        ? this.app.crypto.toBase58(ctx.p2shAddress)
+        : ctx.p2shAddress;
     tx.addFromSlip(p2shMarker);
 
     const out1 = new Slip(undefined, { ...slips[0] });

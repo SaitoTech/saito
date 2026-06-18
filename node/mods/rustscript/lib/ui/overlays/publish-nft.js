@@ -2,7 +2,6 @@ const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-
 const SaitoNFTCard = require('./../../../../../lib/saito/ui/saito-nft/saito-nft-card');
 const PublishNFTTemplate = require('./publish-nft.template');
 const { lockingView } = require('../script_build');
-const { deriveP2shFromLockingScript } = require('../../rustscript/p2sh');
 
 function escapeHtml(text) {
   return String(text || '')
@@ -69,7 +68,8 @@ class PublishNFTFlow {
 
   async openSend() {
     const locking = lockingView(this.mod.getScript());
-    const { hash, address } = deriveP2shFromLockingScript(this.app, locking);
+    const hash = this.app.core.scripting.hash(locking);
+    const address = this.app.core.scripting.address(locking);
     if (!hash || !address) {
       return;
     }
@@ -367,7 +367,8 @@ class PublishNFTFlow {
 
   async broadcastPublishNft(nft, nftAmount, feeSaito) {
     const locking = lockingView(this.mod.getScript());
-    const { hash, address } = deriveP2shFromLockingScript(this.app, locking);
+    const hash = this.app.core.scripting.hash(locking);
+    const address = this.app.core.scripting.address(locking);
     if (!hash || !address) {
       throw new Error('Could not derive script address');
     }

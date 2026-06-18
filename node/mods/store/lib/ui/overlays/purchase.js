@@ -28,10 +28,17 @@ class PurchaseFlow {
 		this.pendingTxSignature = '';
 		this.listingTitle = '';
 		this.confirmationWaiting = null;
+
+		this.app.connection.on('store-purchase-asset', (data) => {
+			this.onStorePurchaseAsset(data);
+		});
+		this.app.connection.on('store-new-block', (data) => {
+			this.onStoreNewBlock(data);
+		});
 	}
 
 	async startPurchase(listing, quantity = 1) {
-		if (!listing?.signature || String(listing.signature).startsWith('store-demo-')) {
+		if (!listing?.id || String(listing.id).startsWith('store-demo-')) {
 			salert('This listing is not available for purchase.');
 			return;
 		}
@@ -41,7 +48,7 @@ class PurchaseFlow {
 			return;
 		}
 
-		const unit_price = parseListingUnitPrice(listing.price);
+		const unit_price = parseListingUnitPrice(listing.returnPrice?.() || listing.price);
 		if (!unit_price || Number(unit_price) <= 0) {
 			salert('This listing does not have a valid price.');
 			return;
@@ -65,9 +72,8 @@ class PurchaseFlow {
 		try {
 			newtx = await this.mod.createPurchaseAssetTransaction(
 				listing,
-				{ price: unit_price, fee },
-				total_nolan,
-				quantity
+				{ price: unit_price, fee, quantity },
+				total_nolan
 			);
 		} catch (err) {
 			salert(err?.message || 'Could not create purchase transaction.');
@@ -80,7 +86,7 @@ class PurchaseFlow {
 			return;
 		}
 
-		this.mod.product_overlay?.overlay?.hide?.();
+		this.mod.main?.product_overlay?.overlay?.hide?.();
 
 		if (wallet_balance < total_nolan) {
 			this.app.connection.emit(
@@ -184,39 +190,20 @@ class PurchaseFlow {
 		});
 	}
 
-	async checkBlockForPendingTx(blk) {
+	onStoreNewBlock({ blk } = {}) {
 		if (!this.pendingTxSignature || this.step !== 'waiting' || !blk) {
 			return;
 		}
 
-		try {
-			const txs = blk.transactions || [];
-			for (let i = 0; i < txs.length; i++) {
-				const tx = txs[i];
-				if (tx?.signature === this.pendingTxSignature) {
-					this.onPurchaseConfirmed();
-					return;
-				}
-			}
-			this.confirmationWaiting?.onNewBlockWithoutConfirmation();
-		} catch (err) {
-			// keep waiting
-		}
+		this.confirmationWaiting?.onNewBlockWithoutConfirmation();
 	}
 
-	onPurchaseConfirmed() {
-		if (this.step !== 'waiting') {
-			return;
-		}
-		this.openProcessing();
-	}
-
-	handleConfirmation(blk, tx, conf) {
+	onStorePurchaseAsset({ blk, tx, conf } = {}) {
 		if (Number(conf) !== 0) {
 			return;
 		}
 
-		const txmsg = tx.returnMessage?.() || {};
+		const txmsg = tx?.returnMessage?.() || {};
 		if (txmsg.module !== 'Store' || txmsg.request !== 'purchase-asset') {
 			return;
 		}
@@ -224,6 +211,13 @@ class PurchaseFlow {
 			return;
 		}
 		this.onPurchaseConfirmed();
+	}
+
+	onPurchaseConfirmed() {
+		if (this.step !== 'waiting') {
+			return;
+		}
+		this.openProcessing();
 	}
 }
 
