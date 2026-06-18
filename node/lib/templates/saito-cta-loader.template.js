@@ -234,8 +234,11 @@ function script() {
     (function () {
       var progress = 0;
       var complete = false;
-      var pendingFinish = false;
+      var paceComplete = false;
+      var appReady = false;
       var fallbackTimer = null;
+      var hardTimeoutTimer = null;
+      var xcloseObserver = null;
 
       function percent(value) {
         value = Number(value) || 0;
@@ -274,21 +277,67 @@ function script() {
         }
       }
 
-      function finish() {
-        if (complete) {
-          return;
-        }
-        var loader = document.querySelector('.saito-cta-loader-shell');
-        if (!document.body || !loader) {
-          pendingFinish = true;
-          update(100);
-          return;
+      function waitForStylesheets(timeout) {
+        var links = Array.prototype.slice.call(document.querySelectorAll('link[rel~="stylesheet"]'));
+        var pending = links.filter(function (link) {
+          if (!link.href) {
+            return false;
+          }
+          try {
+            var url = new URL(link.href, window.location.href);
+            if (url.origin !== window.location.origin) {
+              return false;
+            }
+          } catch (err) {
+            return false;
+          }
+          return !link.sheet;
+        });
+
+        if (!pending.length) {
+          return Promise.resolve();
         }
 
-        complete = true;
-        pendingFinish = false;
-        stopFallbackProgress();
-        update(100);
+        return Promise.race([
+          Promise.all(pending.map(function (link) {
+            return new Promise(function (resolve) {
+              if (link.sheet) {
+                resolve();
+                return;
+              }
+              link.addEventListener('load', resolve, { once: true });
+              link.addEventListener('error', resolve, { once: true });
+            });
+          })),
+          new Promise(function (resolve) {
+            setTimeout(resolve, timeout);
+          })
+        ]);
+      }
+
+      function waitForPaint() {
+        if (!window.requestAnimationFrame) {
+          return new Promise(function (resolve) {
+            setTimeout(resolve, 16);
+          });
+        }
+        return Promise.race([
+          new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+              requestAnimationFrame(resolve);
+            });
+          }),
+          new Promise(function (resolve) {
+            setTimeout(resolve, 160);
+          })
+        ]);
+      }
+
+      function reveal(loader) {
+        if (hardTimeoutTimer) {
+          clearTimeout(hardTimeoutTimer);
+          hardTimeoutTimer = null;
+        }
 
         if (document.body) {
           document.body.classList.add('saito-cta-loader-complete');
@@ -304,14 +353,75 @@ function script() {
         }
       }
 
+      function finish(force) {
+        if (complete) {
+          return;
+        }
+        if (!force && (!paceComplete || !appReady)) {
+          return;
+        }
+        var loader = document.querySelector('.saito-cta-loader-shell');
+        if (!document.body || !loader) {
+          update(100);
+          return;
+        }
+
+        complete = true;
+        stopFallbackProgress();
+        update(100);
+
+        waitForStylesheets(1200)
+          .then(waitForPaint)
+          .then(function () {
+            reveal(loader);
+          })
+          .catch(function () {
+            reveal(loader);
+          });
+      }
+
+      function markPaceComplete() {
+        paceComplete = true;
+        update(Math.max(progress, 98));
+        finish(false);
+      }
+
+      function markAppReady() {
+        appReady = true;
+        if (xcloseObserver) {
+          xcloseObserver.disconnect();
+          xcloseObserver = null;
+        }
+        finish(false);
+      }
+
+      function bindXCloseFallback() {
+        if (!document.body || appReady) {
+          return;
+        }
+        if (document.body.classList.contains('xclose')) {
+          markAppReady();
+          return;
+        }
+        if (!window.MutationObserver || xcloseObserver) {
+          return;
+        }
+        xcloseObserver = new MutationObserver(function () {
+          if (document.body.classList.contains('xclose')) {
+            markAppReady();
+          }
+        });
+        xcloseObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      }
+
       function bindPace() {
         if (!window.Pace || window.__saitoCtaLoaderPaceBound) {
           return;
         }
         window.__saitoCtaLoaderPaceBound = true;
         window.Pace.on('progress', update);
-        window.Pace.on('done', finish);
-        window.Pace.on('hide', finish);
+        window.Pace.on('done', markPaceComplete);
+        window.Pace.on('hide', markPaceComplete);
       }
 
       function startFallbackProgress() {
@@ -330,13 +440,22 @@ function script() {
 
       function boot() {
         bindPace();
+        bindXCloseFallback();
         update(currentPaceProgress());
         startFallbackProgress();
 
-        if (pendingFinish || (document.body && document.body.classList.contains('pace-done'))) {
-          finish();
+        if (document.body && document.body.classList.contains('pace-done')) {
+          markPaceComplete();
         }
       }
+
+      window.SaitoCtaLoader = {
+        markAppReady: markAppReady,
+        markPaceComplete: markPaceComplete,
+        finish: function () {
+          finish(true);
+        }
+      };
 
       bindPace();
 
@@ -350,10 +469,17 @@ function script() {
         bindPace();
         setTimeout(function () {
           if (!window.Pace || !window.Pace.running) {
-            finish();
+            markPaceComplete();
           }
         }, 600);
       });
+
+      hardTimeoutTimer = setTimeout(function () {
+        if (!complete) {
+          console.warn('Saito CTA loader timed out before app-ready signal');
+          finish(true);
+        }
+      }, 12000);
     })();
   </script>`;
 }

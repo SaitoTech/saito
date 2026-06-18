@@ -86,8 +86,8 @@ body:has(.saito-cta) .pace {
   background: currentColor;
 }
 
-body:has(.saito-cta)::before,
-body.saito-cta-loader-active::before {
+body.saito-cta-loader-active::before,
+body.saito-cta-loader-complete::before {
   opacity: 0 !important;
   z-index: -2 !important;
   pointer-events: none !important;
