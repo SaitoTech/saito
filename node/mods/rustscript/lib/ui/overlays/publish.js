@@ -3,7 +3,6 @@ const PublishTemplate = require('./publish.template');
 const WaitingTemplate = require('./waiting.template');
 const { ConfirmationWaitingUI } = require('../confirmation_waiting');
 const { lockingView } = require('../script_build');
-const { deriveP2shFromLockingScript } = require('../../rustscript/p2sh');
 
 function escapeHtml(text) {
   return String(text || '')
@@ -69,7 +68,8 @@ class PublishFlow {
 
   async openSend() {
     const locking = lockingView(this.mod.getScript());
-    const { hash, address } = deriveP2shFromLockingScript(this.app, locking);
+    const hash = this.app.core.scripting.hash(locking);
+    const address = this.app.core.scripting.address(locking);
     if (!hash || !address) {
       return;
     }
@@ -317,7 +317,8 @@ class PublishFlow {
 
   async broadcastPublish(amountSaito, feeSaito) {
     const locking = lockingView(this.mod.getScript());
-    const { hash, address } = deriveP2shFromLockingScript(this.app, locking);
+    const hash = this.app.core.scripting.hash(locking);
+    const address = this.app.core.scripting.address(locking);
     if (!hash || !address) {
       throw new Error('Could not derive script address');
     }

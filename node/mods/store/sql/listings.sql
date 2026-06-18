@@ -1,7 +1,5 @@
 CREATE TABLE IF NOT EXISTS listings (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-  signature TEXT NOT NULL UNIQUE,
+  id TEXT PRIMARY KEY,
 
   nft_id TEXT DEFAULT '',
   seller TEXT DEFAULT '',
@@ -10,16 +8,13 @@ CREATE TABLE IF NOT EXISTS listings (
   description TEXT DEFAULT '',
   image TEXT DEFAULT NULL,
 
-  price TEXT DEFAULT '',
-  quantity INTEGER DEFAULT 1,
+  price INTEGER DEFAULT 0,
+
+  quantity_total INTEGER DEFAULT 1,
+  quantity_available INTEGER DEFAULT 1,
+  quantity_reserved INTEGER DEFAULT 0,
 
   status INTEGER DEFAULT 1,
-  onchain INTEGER DEFAULT 1,
-
-  block_id INTEGER DEFAULT 0,
-  block_hash TEXT DEFAULT '',
-  transaction_id INTEGER DEFAULT 0,
-  slip_id INTEGER DEFAULT 0,
 
   created_at INTEGER DEFAULT 0,
   updated_at INTEGER DEFAULT 0

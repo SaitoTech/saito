@@ -1,5 +1,8 @@
 const MainTemplate = require('./main.template');
 const Teasers = require('./teasers');
+const ProductOverlay = require('./overlays/product');
+const ListingOverlay = require('./overlays/listing');
+const PurchaseFlow = require('./overlays/purchase');
 
 class Main {
 	constructor(app, mod, container = '.saito-container') {
@@ -7,10 +10,19 @@ class Main {
 		this.mod = mod;
 		this.container = container;
 		this.teasers = new Teasers(this.app, this.mod, '.store-teasers');
+		this.product_overlay = null;
+		this.listing_overlay = null;
+		this.purchase_flow = null;
 
 		this.app.connection.on('store-render-listings', () => {
 			this.teasers.render('.store-teasers');
 		});
+	}
+
+	async initialize() {
+		this.product_overlay = new ProductOverlay(this.app, this.mod);
+		this.listing_overlay = new ListingOverlay(this.app, this.mod);
+		this.purchase_flow = new PurchaseFlow(this.app, this.mod);
 	}
 
 	render(container = '') {
@@ -34,7 +46,7 @@ class Main {
 			sellBtn.onclick = (e) => {
 				e.preventDefault();
 				this.setActiveMenuItem('sell');
-				this.mod.listing_overlay.render();
+				this.listing_overlay.render();
 			};
 		}
 
@@ -49,7 +61,7 @@ class Main {
 				}
 
 				if (view === 'sell') {
-					this.mod.listing_overlay.render();
+					this.listing_overlay.render();
 				}
 			};
 		});
