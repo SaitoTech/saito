@@ -3,14 +3,14 @@ const ProductTemplate = require('./product.template');
 const Listing = require('../../listing');
 
 class ProductOverlay {
-	constructor(app, mod, product = null) {
+	constructor(app, mod, listing = null) {
 		this.app = app;
 		this.mod = mod;
-		this.product = product;
+		this.listing = listing;
 		this.overlay = new SaitoOverlay(app, mod);
 
 		this.app.connection.on('store-listing-updated', (listing) => {
-			if (this.product?.signature && this.product.signature === listing.signature) {
+			if (this.listing?.id && this.listing.id === listing.id) {
 				this.render(listing);
 			}
 		});
@@ -90,7 +90,7 @@ class ProductOverlay {
 				? images.map((img) => (img?.startsWith('gradient-') ? fallbackImage : img))
 				: [fallbackImage];
 
-		const priceValue = listing.price || listing.reserve_price || '';
+		const priceValue = listing.returnPrice?.() || listing.price || listing.reserve_price || '';
 		const bidValue = listing.current_bid || listing.currentBid || '';
 		const isBid = !!bidValue && !priceValue;
 		const primaryValue = isBid ? bidValue : priceValue || 'N/A';
@@ -100,7 +100,7 @@ class ProductOverlay {
 		const supply = listing.returnQuantity?.() || 1;
 		const actionText = isBid ? 'Bid' : 'Buy';
 		const description = listing.returnDescription?.() || '';
-		const txid = String(listing.signature || 'N/A');
+		const txid = String(listing.id || 'N/A');
 		const primaryDisplay = this.hasCurrencyLabel(primaryValue)
 			? String(primaryValue)
 			: `${primaryValue} ${currency}`;
@@ -158,7 +158,7 @@ class ProductOverlay {
 		if (buyBtn) {
 			buyBtn.onclick = async (e) => {
 				e.preventDefault();
-				const listing = this.product;
+				const listing = this.listing;
 				if (!(listing instanceof Listing)) {
 					return;
 				}
@@ -172,7 +172,7 @@ class ProductOverlay {
 				buyBtn.disabled = true;
 
 				try {
-					await this.mod.purchase_flow?.startPurchase(listing, quantity);
+					await this.mod.main?.purchase_flow?.startPurchase(listing, quantity);
 				} finally {
 					buyBtn.disabled = false;
 				}
@@ -180,20 +180,20 @@ class ProductOverlay {
 		}
 	}
 
-	render(product = null) {
-		if (product) {
-			this.product = product;
+	render(listing = null) {
+		if (listing) {
+			this.listing = listing;
 		}
-		const view = this.returnViewModel(this.product || {});
+		const view = this.returnViewModel(this.listing || {});
 		this.overlay.show(ProductTemplate(view));
 		this.attachEvents();
-		if (!this.product?.image) {
+		if (!this.listing?.image) {
 			this.maybeLoadNFT();
 		}
 	}
 
 	maybeLoadNFT() {
-		const listing = this.product;
+		const listing = this.listing;
 		if (!(listing instanceof Listing)) {
 			return;
 		}

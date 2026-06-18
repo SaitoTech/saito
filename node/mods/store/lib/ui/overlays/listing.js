@@ -10,13 +10,14 @@ class ListingOverlay {
 		this.mode = 'select';
 		this.selectedNft = null;
 		this.card_list = [];
-		this.form = {
+		this.listing = {
 			title: '',
 			description: '',
 			price: '1',
-			supply: 1,
-			maxSupply: 1
+			quantity_total: 1,
+			quantity_available: 1
 		};
+		this.max_quantity_total = 1;
 	}
 
 	returnShortKey(key = '') {
@@ -68,30 +69,31 @@ class ListingOverlay {
 
 	returnConfigureView(nft) {
 		const seller = this.mod.publicKey || 'anon-store';
-		const maxSupply = Number(nft?.getTotalAmount?.() || nft?.amount || 1) || 1;
-		const priceNum = Number(this.form.price) || 1;
+		const max_quantity_total = Number(nft?.getTotalAmount?.() || nft?.amount || 1) || 1;
+		const priceNum = Number(this.listing.price) || 1;
 
 		return {
-			listingTitle: this.escapeHtml(this.form.title),
+			listingTitle: this.escapeHtml(this.listing.title),
 			shortSeller: this.returnShortKey(seller),
 			mediaHtml: this.returnMediaHtml(nft),
-			description: this.escapeHtml(this.form.description),
+			description: this.escapeHtml(this.listing.description),
 			priceDisplay: `${priceNum} SAITO`,
 			productType: this.escapeHtml(nft?.returnType?.() || 'NFT'),
 			fileType: this.escapeHtml(this.returnFileType(nft)),
 			createdDate: new Date().toLocaleDateString(),
-			supply: this.form.supply
+			supply: this.listing.quantity_total
 		};
 	}
 
-	populateFormFromNft(nft) {
-		const maxSupply = Number(nft?.getTotalAmount?.() || nft?.amount || 1) || 1;
-		this.form = {
+	resetListingFromNft(nft) {
+		const max_quantity_total = Number(nft?.getTotalAmount?.() || nft?.amount || 1) || 1;
+		this.max_quantity_total = max_quantity_total;
+		this.listing = {
 			title: nft?.title || 'Untitled NFT',
 			description: nft?.description || '',
 			price: '1',
-			supply: maxSupply,
-			maxSupply
+			quantity_total: max_quantity_total,
+			quantity_available: max_quantity_total
 		};
 	}
 
@@ -147,7 +149,7 @@ class ListingOverlay {
 			await this.selectedNft.fetchTransaction();
 		}
 
-		this.populateFormFromNft(this.selectedNft);
+		this.resetListingFromNft(this.selectedNft);
 		this.renderConfigureMode();
 	}
 
@@ -175,10 +177,10 @@ class ListingOverlay {
 		if (editTitle) {
 			editTitle.onclick = (e) => {
 				e.preventDefault();
-				const next = prompt('Listing title', this.form.title);
+				const next = prompt('Listing title', this.listing.title);
 				if (next !== null && next.trim()) {
-					this.form.title = next.trim();
-					document.querySelector('#store-listing-title-text').textContent = this.form.title;
+					this.listing.title = next.trim();
+					document.querySelector('#store-listing-title-text').textContent = this.listing.title;
 				}
 			};
 		}
@@ -187,11 +189,11 @@ class ListingOverlay {
 		if (editDesc) {
 			editDesc.onclick = (e) => {
 				e.preventDefault();
-				const next = prompt('Listing description', this.form.description);
+				const next = prompt('Listing description', this.listing.description);
 				if (next !== null) {
-					this.form.description = next.trim();
+					this.listing.description = next.trim();
 					document.querySelector('#store-listing-desc-text').textContent =
-						this.form.description || 'No description provided';
+						this.listing.description || 'No description provided';
 				}
 			};
 		}
@@ -200,11 +202,11 @@ class ListingOverlay {
 		if (editPrice) {
 			editPrice.onclick = (e) => {
 				e.preventDefault();
-				const next = prompt('Price in SAITO', this.form.price);
+				const next = prompt('Price in SAITO', this.listing.price);
 				if (next !== null && next.trim()) {
 					const cleaned = next.trim().replace(/[^\d.]/g, '');
 					if (cleaned) {
-						this.form.price = cleaned;
+						this.listing.price = cleaned;
 						document.querySelector('#store-listing-price-text').textContent = `${cleaned} SAITO`;
 					}
 				}
@@ -216,18 +218,19 @@ class ListingOverlay {
 			editAvailable.onclick = (e) => {
 				e.preventDefault();
 				const next = prompt(
-					`Available quantity (max ${this.form.maxSupply})`,
-					String(this.form.supply)
+					`Available quantity (max ${this.max_quantity_total})`,
+					String(this.listing.quantity_total)
 				);
 				if (next !== null && next.trim()) {
 					let qty = parseInt(next.trim(), 10);
 					if (!Number.isFinite(qty) || qty < 1) {
 						qty = 1;
 					}
-					if (qty > this.form.maxSupply) {
-						qty = this.form.maxSupply;
+					if (qty > this.max_quantity_total) {
+						qty = this.max_quantity_total;
 					}
-					this.form.supply = qty;
+					this.listing.quantity_total = qty;
+					this.listing.quantity_available = qty;
 					document.querySelector('#store-listing-available-text').textContent = String(qty);
 				}
 			};
@@ -242,19 +245,9 @@ class ListingOverlay {
 		}
 	}
 
-	collectListingData() {
-		return {
-			quantity: this.form.supply,
-			price: this.form.price,
-			title: this.form.title,
-			description: this.form.description
-		};
-	}
-
 	async submitListing() {
-		const listing = this.collectListingData();
 		try {
-			const tx = await this.mod.createListAssetTransaction(this.selectedNft, listing);
+			const tx = await this.mod.createListAssetTransaction(this.selectedNft, this.listing);
 			await this.app.network.propagateTransaction(tx);
 			alert('Listing submitted');
 			this.overlay.close();

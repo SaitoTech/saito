@@ -29,7 +29,8 @@ class Teasers {
 			this.app.browser.replaceElementContentBySelector('', this.container);
 		}
 
-		const items = this.mod.getItemsForSale();
+		const { getItemsForSale } = require('./listing-cache');
+		const items = getItemsForSale(this.mod);
 		for (const item of items) {
 			const teaser = new Teaser(this.app, this.mod, item, targetSelector);
 			teaser.render();
