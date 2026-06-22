@@ -4,7 +4,7 @@ module.exports = (value) => {
     .replace(/"/g, '&quot;');
   return `
 <div class="rustscript-overlay rs-prompt-overlay rs-prompt-publickey-panel">
-  <h2 class="rs-prompt-title">Provide Publickey</h2>
+  <h2 class="rs-prompt-title">Public Key</h2>
   <div class="rs-prompt-publickey-field">
     <input
       type="text"
@@ -17,8 +17,8 @@ module.exports = (value) => {
   </div>
   <p class="rs-prompt-validation" hidden></p>
   <div class="overlay-actions overlay-actions-split">
-    <button type="button" class="rs-prompt-use-mine">Use Mine</button>
-    <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
+    <button type="button" class="rs-prompt-use-mine">Use My Public Key</button>
+    <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
   </div>
 </div>
 `;

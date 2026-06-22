@@ -109,12 +109,24 @@ class Rustscript extends ModTemplate {
     let cursor = this.script;
     for (let i = 0; i < parts.length - 1; i += 1) {
       const key = parts[i];
-      if (!cursor[key] || typeof cursor[key] !== 'object' || Array.isArray(cursor[key])) {
-        cursor[key] = {};
+      const nextKey = parts[i + 1];
+      const nextIsIndex = /^\d+$/.test(nextKey);
+      if (Array.isArray(cursor)) {
+        const idx = parseInt(key, 10);
+        cursor = cursor[idx];
+        continue;
+      }
+      if (!cursor[key] || typeof cursor[key] !== 'object') {
+        cursor[key] = nextIsIndex ? [] : {};
       }
       cursor = cursor[key];
     }
-    cursor[parts[parts.length - 1]] = value;
+    const last = parts[parts.length - 1];
+    if (Array.isArray(cursor)) {
+      cursor[parseInt(last, 10)] = value;
+    } else {
+      cursor[last] = value;
+    }
   }
 
   getField(path) {
@@ -123,11 +135,21 @@ class Rustscript extends ModTemplate {
     }
     const parts = path.split('.');
     let cursor = this.script;
-    for (let i = 0; i < parts.length; i += 1) {
-      if (!cursor || typeof cursor !== 'object' || Array.isArray(cursor)) {
+    for (const part of parts) {
+      if (cursor == null) {
         return undefined;
       }
-      cursor = cursor[parts[i]];
+      if (Array.isArray(cursor)) {
+        const idx = parseInt(part, 10);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= cursor.length) {
+          return undefined;
+        }
+        cursor = cursor[idx];
+      } else if (typeof cursor === 'object') {
+        cursor = cursor[part];
+      } else {
+        return undefined;
+      }
     }
     return cursor;
   }

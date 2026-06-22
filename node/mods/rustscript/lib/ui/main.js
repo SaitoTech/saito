@@ -7,9 +7,10 @@ const SignatureFieldOverlay = require('./overlays/fields/signature');
 const TextFieldOverlay = require('./overlays/fields/text');
 const HashFieldOverlay = require('./overlays/fields/hash');
 const LogicalFieldOverlay = require('./overlays/fields/logical');
+const NumberFieldOverlay = require('./overlays/fields/number');
 const OpcodesOverlay = require('./overlays/opcodes');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const { evaluateWorkspaceStatus } = require('./script_validate');
+const { evaluateWorkspaceStatus, resolveFieldOverlayKind } = require('./script_validate');
 const {
   build_test_script_from_create,
   lockingView
@@ -36,8 +37,10 @@ class RustscriptMain {
       publickey: new PublicKeyFieldOverlay(app, mod),
       signature: new SignatureFieldOverlay(app, mod),
       text: new TextFieldOverlay(app, mod),
+      message: new TextFieldOverlay(app, mod),
       hash: new HashFieldOverlay(app, mod),
-      logical: new LogicalFieldOverlay(app, mod)
+      logical: new LogicalFieldOverlay(app, mod),
+      number: new NumberFieldOverlay(app, mod)
     };
   }
 
@@ -163,6 +166,10 @@ class RustscriptMain {
     toggle.classList.toggle('is-guided', guided);
     toggle.classList.toggle('is-expert', !guided);
     toggle.setAttribute('aria-checked', guided ? 'true' : 'false');
+    const thumbText = toggle.querySelector('.rs-workspace-toggle-thumb-text');
+    if (thumbText) {
+      thumbText.textContent = guided ? 'GUIDED' : 'EXPERT';
+    }
     toggle.setAttribute(
       'aria-label',
       guided
@@ -252,7 +259,7 @@ class RustscriptMain {
       return;
     }
     const current = this.mod.getField(path);
-    const kind = fieldOverlayKind(current, path);
+    const kind = resolveFieldOverlayKind(current, path);
     const overlay = this.fieldOverlays[kind] || this.fieldOverlays.text;
     overlay.path = path;
     overlay.currentValue = current;
@@ -260,6 +267,20 @@ class RustscriptMain {
       this.mod.setField(path, next);
       this.refresh();
     };
+
+    if (kind === 'text' || kind === 'message') {
+      overlay.title = kind === 'message' ? 'Message' : 'Text';
+      overlay.multiline = kind !== 'message';
+      overlay.placeholder = kind === 'message' ? 'Message to sign or verify' : '';
+      overlay.submitLabel = 'Apply';
+    }
+
+    if (kind === 'number') {
+      const key = String(path).split('.').pop().toLowerCase();
+      overlay.title = key === 'm' ? 'Threshold (M)' : key === 'n' ? 'Total Keys (N)' : 'Number';
+      overlay.placeholder = '0';
+    }
+
     const result = overlay.render();
     if (result && typeof result.then === 'function') {
       result.catch((err) => {
@@ -351,49 +372,6 @@ class RustscriptMain {
       this.refresh();
     }
   }
-}
-
-function fieldOverlayKind(value, path) {
-  const last = String(path || '')
-    .split('.')
-    .pop()
-    .toLowerCase();
-  if (last === 'op' && typeof value === 'string') {
-    const v = value.trim().toUpperCase();
-    if (v === 'AND' || v === 'OR' || v === 'NOT' || v === 'THEN') {
-      return 'logical';
-    }
-  }
-  if (typeof value !== 'string') {
-    return 'text';
-  }
-  const m = value.match(/^<([^<>]+)>$/);
-  if (!m) {
-    if (last === 'publickey' || last === 'publickeys') {
-      return 'publickey';
-    }
-    if (last === 'signature' || last === 'signatures') {
-      return 'signature';
-    }
-    if (last === 'hash') {
-      return 'hash';
-    }
-    return 'text';
-  }
-  const tag = m[1].toLowerCase();
-  if (tag === 'signature' || tag === 'sig') {
-    return 'signature';
-  }
-  if (tag === 'publickey' || tag === 'pubkey') {
-    return 'publickey';
-  }
-  if (tag === 'hash') {
-    return 'hash';
-  }
-  if (tag === 'and' || tag === 'or' || tag === 'not' || tag === 'then') {
-    return 'logical';
-  }
-  return 'text';
 }
 
 module.exports = RustscriptMain;

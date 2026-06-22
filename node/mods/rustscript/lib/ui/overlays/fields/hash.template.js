@@ -8,7 +8,7 @@ module.exports = () => `
   </div>
   <p class="rs-prompt-validation" hidden></p>
   <div class="overlay-actions overlay-actions-apply-only">
-    <button type="button" class="rs-prompt-apply rs-prompt-primary">Submit</button>
+    <button type="button" class="rs-prompt-apply rs-prompt-primary">Apply</button>
   </div>
 </div>
 `;

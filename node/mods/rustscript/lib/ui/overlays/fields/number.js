@@ -1,29 +1,25 @@
 const SaitoOverlay = require('./../../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const TextFieldTemplate = require('./text.template');
+const NumberFieldTemplate = require('./number.template');
 const { isPlaceholder } = require('../../script_build');
 
-class TextFieldOverlay {
+class NumberFieldOverlay {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(app, mod, false);
     this.currentValue = '';
-    this.title = 'Text';
-    this.multiline = true;
-    this.placeholder = '';
-    this.submitLabel = 'Apply';
+    this.title = 'Number';
+    this.placeholder = '0';
     this.onApply = null;
   }
 
   render() {
-    const value = isPlaceholder(this.currentValue) ? '' : String(this.currentValue ?? '');
+    const raw = isPlaceholder(this.currentValue) ? '' : String(this.currentValue ?? '');
     this.overlay.show(
-      TextFieldTemplate({
+      NumberFieldTemplate({
         title: this.title,
-        value,
-        multiline: this.multiline,
-        placeholder: this.placeholder,
-        submitLabel: this.submitLabel
+        value: raw,
+        placeholder: this.placeholder
       })
     );
     this.attachEvents();
@@ -31,8 +27,8 @@ class TextFieldOverlay {
 
   attachEvents() {
     const host = this.overlay.overlay || document;
-    const root = host.querySelector('.rs-prompt-generic');
-    const input = root?.querySelector('.rs-prompt-value');
+    const root = host.querySelector('.rs-prompt-number-panel');
+    const input = root?.querySelector('.rs-prompt-number-input');
     if (!root || !input) {
       return;
     }
@@ -58,18 +54,22 @@ class TextFieldOverlay {
     input.addEventListener('input', clearError);
 
     root.querySelector('.rs-prompt-apply')?.addEventListener('click', () => {
-      const next = input.value ?? '';
-      if (!String(next).trim() || isPlaceholder(next)) {
+      const next = String(input.value ?? '').trim();
+      if (!next || isPlaceholder(next)) {
         showError('A value is required');
+        return;
+      }
+      if (!/^-?\d+$/.test(next)) {
+        showError('Expected an integer');
         return;
       }
       clearError();
       if (typeof this.onApply === 'function') {
-        this.onApply(next);
+        this.onApply(Number(next));
       }
       this.overlay.hide();
     });
   }
 }
 
-module.exports = TextFieldOverlay;
+module.exports = NumberFieldOverlay;

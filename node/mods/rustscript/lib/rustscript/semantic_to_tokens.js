@@ -1,5 +1,12 @@
 /**
  * Purpose: Convert semantic RustScript text into canonical tokens.
+ *
+ * Lexical rules:
+ * - Integers only (optional leading minus). No floating point.
+ * - Double-quoted strings only. Backslash escapes the next character.
+ * - Identifiers are dot-separated paths: segment(.segment)*
+ *   Each segment starts with [A-Za-z_$] and continues with [A-Za-z0-9_$].
+ * - TRUE / FALSE (case-insensitive) when the token is a single segment.
  */
 
 function semantic_to_tokens(input) {
@@ -11,47 +18,37 @@ function semantic_to_tokens(input) {
   let i = 0;
   const n = input.length;
 
+  const isAlpha = (c) => (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+  const isDigit = (c) => c >= '0' && c <= '9';
+  const isIdentStart = (c) => isAlpha(c) || c === '_' || c === '$';
+  const isIdentPart = (c) => isIdentStart(c) || isDigit(c);
+  const isSpace = (c) => c === ' ' || c === '\t' || c === '\n' || c === '\r';
+
+  const PUNCT = {
+    '(': 'LPAREN',
+    ')': 'RPAREN',
+    '[': 'LBRACKET',
+    ']': 'RBRACKET',
+    ',': 'COMMA',
+    '=': 'EQUALS'
+  };
+
   while (i < n) {
     const ch = input[i];
 
-    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
+    if (isSpace(ch)) {
       i += 1;
       continue;
     }
 
-    if (ch === '(') {
-      tokens.push({ type: 'LPAREN', value: '(' });
-      i += 1;
-      continue;
-    }
-    if (ch === ')') {
-      tokens.push({ type: 'RPAREN', value: ')' });
-      i += 1;
-      continue;
-    }
-    if (ch === '[') {
-      tokens.push({ type: 'LBRACKET', value: '[' });
-      i += 1;
-      continue;
-    }
-    if (ch === ']') {
-      tokens.push({ type: 'RBRACKET', value: ']' });
-      i += 1;
-      continue;
-    }
-    if (ch === ',') {
-      tokens.push({ type: 'COMMA', value: ',' });
-      i += 1;
-      continue;
-    }
-    if (ch === '=') {
-      tokens.push({ type: 'EQUALS', value: '=' });
+    const punctType = PUNCT[ch];
+    if (punctType) {
+      tokens.push({ type: punctType, value: ch });
       i += 1;
       continue;
     }
 
-    if (ch === '"' || ch === "'") {
-      const quote = ch;
+    if (ch === '"') {
       i += 1;
       let value = '';
       let closed = false;
@@ -66,7 +63,7 @@ function semantic_to_tokens(input) {
           i += 2;
           continue;
         }
-        if (c === quote) {
+        if (c === '"') {
           closed = true;
           i += 1;
           break;
@@ -79,69 +76,57 @@ function semantic_to_tokens(input) {
         return false;
       }
 
-      tokens.push({ type: 'STRING', value: value });
+      tokens.push({ type: 'STRING', value });
       continue;
     }
 
-    if (
-      (ch >= '0' && ch <= '9') ||
-      (ch === '-' && i + 1 < n && input[i + 1] >= '0' && input[i + 1] <= '9')
-    ) {
-      let start = i;
-      i += 1;
-      while (i < n && input[i] >= '0' && input[i] <= '9') {
+    if (isDigit(ch) || (ch === '-' && i + 1 < n && isDigit(input[i + 1]))) {
+      const start = i;
+      if (input[i] === '-') {
         i += 1;
       }
-      if (i < n && input[i] === '.') {
+      while (i < n && isDigit(input[i])) {
         i += 1;
-        if (i >= n || input[i] < '0' || input[i] > '9') {
-          return false;
-        }
-        while (i < n && input[i] >= '0' && input[i] <= '9') {
-          i += 1;
-        }
       }
       const num = Number(input.slice(start, i));
-      if (!Number.isFinite(num)) {
+      if (!Number.isInteger(num)) {
         return false;
       }
       tokens.push({ type: 'NUMBER', value: num });
       continue;
     }
 
-    const isIdentStart =
-      (ch >= 'A' && ch <= 'Z') ||
-      (ch >= 'a' && ch <= 'z') ||
-      ch === '_' ||
-      ch === '$';
-
-    if (isIdentStart) {
-      let start = i;
+    if (isIdentStart(ch)) {
+      const start = i;
       i += 1;
-      while (i < n) {
-        const c = input[i];
-        const isIdentChar =
-          (c >= 'A' && c <= 'Z') ||
-          (c >= 'a' && c <= 'z') ||
-          (c >= '0' && c <= '9') ||
-          c === '_' ||
-          c === '$' ||
-          c === '.';
-        if (!isIdentChar) {
-          break;
-        }
+      while (i < n && isIdentPart(input[i])) {
         i += 1;
       }
 
-      const raw = input.slice(start, i);
-      const upper = raw.toUpperCase();
-      if (upper === 'TRUE') {
-        tokens.push({ type: 'BOOLEAN', value: true });
-      } else if (upper === 'FALSE') {
-        tokens.push({ type: 'BOOLEAN', value: false });
-      } else {
-        tokens.push({ type: 'IDENT', value: raw });
+      while (i < n && input[i] === '.') {
+        i += 1;
+        if (i >= n || !isIdentStart(input[i])) {
+          return false;
+        }
+        while (i < n && isIdentPart(input[i])) {
+          i += 1;
+        }
       }
+
+      const raw = input.slice(start, i);
+      if (raw.indexOf('.') === -1) {
+        const upper = raw.toUpperCase();
+        if (upper === 'TRUE') {
+          tokens.push({ type: 'BOOLEAN', value: true });
+          continue;
+        }
+        if (upper === 'FALSE') {
+          tokens.push({ type: 'BOOLEAN', value: false });
+          continue;
+        }
+      }
+
+      tokens.push({ type: 'IDENT', value: raw });
       continue;
     }
 

@@ -65,13 +65,32 @@ function validateScriptStructure(ast, options = {}) {
   return { valid: errors.length === 0, errors };
 }
 
-const { isPlaceholder, collectWitnessMissing, opcodeTreeNeedsWitness } = require('./script_build');
+const {
+  isPlaceholder,
+  placeholderMeta,
+  placeholderName,
+  collectWitnessMissing,
+  opcodeTreeNeedsWitness
+} = require('./script_build');
+
+function pathKeyName(path) {
+  if (!Array.isArray(path) || path.length === 0) {
+    return '';
+  }
+  for (let i = path.length - 1; i >= 0; i -= 1) {
+    const k = String(path[i]);
+    if (!/^\d+$/.test(k)) {
+      return k.toLowerCase();
+    }
+  }
+  return String(path[path.length - 1]).toLowerCase();
+}
 
 function inferFieldKindFromPath(path) {
   if (!Array.isArray(path) || path.length === 0) {
     return 'text';
   }
-  const k = String(path[path.length - 1]).toLowerCase();
+  const k = pathKeyName(path);
   if (k === 'publickey' || k === 'publickeys') {
     return 'publickey';
   }
@@ -84,6 +103,58 @@ function inferFieldKindFromPath(path) {
   if (k === 'msg' || k === 'message') {
     return 'message';
   }
+  if (k === 'm' || k === 'n' || k === 'threshold' || k === 'count') {
+    return 'number';
+  }
+  if (k === 'op') {
+    return 'logical';
+  }
+  return 'text';
+}
+
+function resolveFieldOverlayKind(value, path) {
+  const pathArr = Array.isArray(path) ? path : String(path || '').split('.').filter(Boolean);
+
+  if (typeof value === 'string' && isPlaceholder(value)) {
+    const meta = placeholderMeta(value);
+    if (meta?.action === 'publickey') {
+      return 'publickey';
+    }
+    if (meta?.action === 'signature') {
+      return 'signature';
+    }
+    if (meta?.action === 'hash') {
+      return 'hash';
+    }
+    const tag = placeholderName(value);
+    if (tag === 'msg' || tag === 'message') {
+      return 'message';
+    }
+  }
+
+  if (typeof value === 'number') {
+    return 'number';
+  }
+
+  const fromPath = inferFieldKindFromPath(pathArr);
+  if (fromPath !== 'text') {
+    return fromPath;
+  }
+
+  if (typeof value === 'string' && isPlaceholder(value)) {
+    const tag = placeholderName(value);
+    if (tag === 'and' || tag === 'or' || tag === 'not' || tag === 'then') {
+      return 'logical';
+    }
+  }
+
+  if (pathArr.length && String(pathArr[pathArr.length - 1]).toLowerCase() === 'op') {
+    const op = String(value || '').trim().toUpperCase();
+    if (op === 'AND' || op === 'OR' || op === 'NOT' || op === 'THEN') {
+      return 'logical';
+    }
+  }
+
   return 'text';
 }
 
@@ -109,6 +180,10 @@ function validateField(kind, value, app) {
     case 'signature': {
       const ok = /^[0-9a-fA-F]+$/.test(s) && s.length >= 128;
       return { valid: ok, state: ok ? 'valid' : 'warn', message: 'Expected hex signature bytes' };
+    }
+    case 'number': {
+      const ok = /^-?\d+$/.test(s);
+      return { valid: ok, state: ok ? 'valid' : 'warn', message: 'Expected an integer' };
     }
     default:
       return { valid: true, state: 'valid' };
@@ -237,6 +312,7 @@ function evaluateWorkspaceStatus(lockingScript, unlockingScript, execution, opco
 module.exports = {
   validateScriptStructure,
   inferFieldKindFromPath,
+  resolveFieldOverlayKind,
   validateField,
   evaluateWorkspaceStatus,
   evaluateScriptStatus,
