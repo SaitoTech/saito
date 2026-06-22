@@ -147,16 +147,16 @@ export default class Wallet extends SaitoWallet {
         };
 
         app.connection.on('on-transaction-sent', (payload: unknown) => {
-          /*const p = parseInterfacePayload(payload);
+          const p = parseInterfacePayload(payload);
           // Add filter (until WASM is fixed)
           if (p.sender == this.publicKey) {
-            if (p.amount > 0) {
+            if (Number(p.amount) > 0) {
               console.log('************** transaction-sent **************', p);
               delete p.sender_publickey;
               p.amount = app.wallet.convertNolanToSaito(p.amount).toString();
               app.connection.emit('on-payment-sent', p);
             }
-          }*/
+          }
         });
 
         // Map transaction-received event from WASM to UI-focused event
@@ -175,6 +175,10 @@ export default class Wallet extends SaitoWallet {
         app.connection.on('on-nft-sent', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
           console.log('*************** nft-sent ***********', p);
+          if (p.ticker) {
+            p.amount = p.nft_amount.toString();
+            app.connection.emit('on-payment-sent', p);
+          }
         });
 
         app.connection.on('on-nft-received', async (payload: unknown) => {
