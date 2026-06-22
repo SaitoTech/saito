@@ -2581,8 +2581,7 @@ class Browser {
   switchTheme(theme) {
     let mod_obj = this.app.modules.returnActiveModule();
     let force_lite_for_game =
-      mod_obj?.is_game_template === true ||
-      document.documentElement.classList.contains('game');
+      mod_obj?.is_game_template === true || document.documentElement.classList.contains('game');
 
     if (force_lite_for_game) {
       theme = 'lite';
