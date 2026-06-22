@@ -8,19 +8,21 @@ class Listing {
 		this.app = app;
 		this.mod = mod;
 
-		this.id = data.id || '';
+		this.id = data.id ?? 0;
 		this.nft_id = data.nft_id || '';
 		this.seller = data.seller || '';
 		this.title = data.title || '';
 		this.description = data.description || '';
 		this.image = data.image ?? null;
 		this.price = data.price ?? 0;
-		this.quantity_total = data.quantity_total ?? data.quantity ?? 1;
-		this.quantity_available = data.quantity_available ?? data.quantity ?? 1;
-		this.quantity_reserved = data.quantity_reserved ?? 0;
-		this.status = data.status ?? 1;
-		this.created_at = data.created_at || 0;
-		this.updated_at = data.updated_at || data.created_at || 0;
+		this.quantity_available = data.quantity_available ?? data.quantity ?? 0;
+		this.quantity_pending = data.quantity_pending ?? 0;
+		this.quantity_sold = data.quantity_sold ?? 0;
+		this.quantity_total =
+			data.quantity_total ??
+			Number(this.quantity_available) + Number(this.quantity_pending) + Number(this.quantity_sold);
+		this.status = data.status ?? LISTING_STATUS_ACTIVE;
+		this.updated_at = data.updated_at || 0;
 		this.subtitle = data.subtitle || '';
 		this.badge = data.badge;
 		this.nft = data.nft || null;
@@ -62,7 +64,7 @@ class Listing {
 	}
 
 	isActive() {
-		return Number(this.status) === 1 && this.returnQuantity() > 0;
+		return Number(this.quantity_available ?? 0) > 0;
 	}
 
 	attachNFT(nft) {
@@ -130,9 +132,9 @@ class Listing {
 			price: this.price,
 			quantity_total: this.quantity_total,
 			quantity_available: this.quantity_available,
-			quantity_reserved: this.quantity_reserved,
+			quantity_pending: this.quantity_pending,
+			quantity_sold: this.quantity_sold,
 			status: this.status,
-			created_at: this.created_at,
 			updated_at: this.updated_at,
 			subtitle: this.subtitle,
 			badge: this.badge

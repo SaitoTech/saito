@@ -1,20 +1,13 @@
-const Listing = require('./listing');
-const { LISTING_STATUS_ACTIVE } = Listing;
-const Inventory = require('./inventory');
 const Sale = require('./sale');
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
 const { createListingScript, executeListingScript, returnP2SHTuples } = require('./scripting');
 const {
 	buildFulfillmentTransaction,
-	serializeAnchoredInventorySlips,
 	returnChainLocation,
-	returnInventorySlipId,
 	returnAmountPaidToStore
 } = require('./helpers');
 const {
-	INVENTORY_STATUS_ACTIVE,
-	INVENTORY_STATUS_SPENT,
-	SALE_STATUS_PENDING
+	ORDER_STATUS_PENDING
 } = require('./warehouse');
 
 module.exports = {
@@ -93,7 +86,7 @@ module.exports = {
 	                                this.store_public_key
 	                        )
 	                ) {
-	                        await this.warehouse.updateListing(nft, tx, txmsg);
+	                        await this.warehouse.removeListing(nft, tx, txmsg);
 	                }
 
 	                //
@@ -180,14 +173,12 @@ module.exports = {
 			return;
 		}
 
-		const reserved = await this.warehouse.reserveListing(listing_id, quantity);
-		if (!reserved) {
-			console.warn('Store: purchase could not reserve quantity', listing_id);
+		if (Number(listing.quantity_available || 0) < quantity) {
+			console.warn('Store: purchase insufficient available quantity', listing_id);
 			await this.warehouse.refundBuyer(buyer, listing_id, amount_paid, 'insufficient-quantity');
 			return;
 		}
 
-		const seller = listing.seller || '';
 		const chain = returnChainLocation(blk, tx);
 		const now = Date.now();
 
@@ -196,15 +187,15 @@ module.exports = {
 				new Sale({
 					signature: tx.signature,
 					buyer,
-					seller,
-					listing_id,
+					seller: '',
+					listing_id: Number(listing_id),
 					quantity,
 					price: txmsg.price,
 					fee: txmsg.fee,
 					refund,
-					status: SALE_STATUS_PENDING,
-					onchain: 1,
-					fulfillment_tx: '',
+					status: ORDER_STATUS_PENDING,
+					on_chain: 1,
+					outbound_tx: '',
 					retry_count: 0,
 					last_attempt: 0,
 					block_id: chain.block_id,
@@ -216,7 +207,6 @@ module.exports = {
 			);
 			console.log('Store: purchase queued', tx.signature);
 		} catch (err) {
-			await this.warehouse.restoreReservation(listing_id, quantity);
 			if (String(err?.message || err).includes('UNIQUE')) {
 				console.log('Store: purchase already queued', tx.signature);
 				return;
