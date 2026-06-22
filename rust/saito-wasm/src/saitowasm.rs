@@ -23,6 +23,7 @@ use saito_core::core::consensus::context::Context;
 use saito_core::core::consensus::mempool::Mempool;
 use saito_core::core::consensus::transaction::{Transaction, TransactionType};
 use saito_core::core::consensus::wallet::Wallet;
+use saito_core::core::consensus::scripting::Script;
 use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusThread};
 use saito_core::core::defs::{
     BlockId, Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, Timestamp, CHANNEL_SAFE_BUFFER,
@@ -319,6 +320,8 @@ pub fn log(record: &Record) {
     console_log(&message, &level_style, &file_line_style, &text_style);
 }
 
+
+
 #[wasm_bindgen]
 pub async fn create_network_peer(url: Option<String>) -> WasmNetworkPeer {
     let mut saito = SAITO.lock().await;
@@ -553,6 +556,9 @@ pub async fn remove_stun_peer(peer_id: u64, public_key: JsString) {
         })
         .await;
 }
+
+
+
 //
 // #[wasm_bindgen]
 // pub async fn get_next_public_key() -> BigInt {
@@ -852,7 +858,6 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
 
 #[wasm_bindgen]
 pub async fn evaluate_script(json: JsString) -> u8 {
-    use saito_core::core::consensus::scripting::Script;
 
     let json_str = match json.as_string() {
         Some(s) => s,
@@ -875,6 +880,24 @@ pub async fn evaluate_script(json: JsString) -> u8 {
     let mut script = Script::new();
     script.parse(&json_str);
     script.validate(None, None, Some(&blockchain))
+}
+
+#[wasm_bindgen]
+pub fn get_script_hash(json: JsString) -> String {
+    let Some(json_str) = json.as_string() else {
+        return String::new();
+    };
+
+    Script::from_json(&json_str).hash()
+}
+
+#[wasm_bindgen]
+pub fn get_script_address(json: JsString) -> String {
+    let Some(json_str) = json.as_string() else {
+        return String::new();
+    };
+
+    Script::from_json(&json_str).address_hex()
 }
 
 #[wasm_bindgen]

@@ -1,3 +1,4 @@
+use super::super::script::{resolve_ref, resolved_value_to_message_string};
 use crate::core::consensus::block::Block;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::defs::{PrintForLog, SaitoPublicKey, SaitoSignature};
@@ -35,10 +36,11 @@ impl CheckSig {
         }
     }
 
-    pub fn validate(context: &mut Value, _tx: Option<&Transaction>, _blk: Option<&Block>) -> u8 {
+    pub fn validate(context: &mut Value, tx: Option<&Transaction>, blk: Option<&Block>) -> u8 {
         let publickey = context["script"]["publickey"].as_str().unwrap_or("");
 
-        let message = context["script"]["msg"].as_str().unwrap_or("");
+        let resolved_msg = resolve_ref(&context["script"]["msg"], context, tx, blk);
+        let message = resolved_value_to_message_string(&resolved_msg);
 
         let signature = context["witness"]["signature"].as_str().unwrap_or("");
 

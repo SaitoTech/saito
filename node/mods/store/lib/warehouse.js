@@ -1,21 +1,27 @@
 const Listing = require('./listing');
-const { LISTING_STATUS_ACTIVE } = Listing;
 const Database = require('./database');
 const {
-	INVENTORY_STATUS_ACTIVE,
-	INVENTORY_STATUS_SPENT,
-	SALE_STATUS_PENDING,
-	SALE_STATUS_FULFILLING,
-	SALE_STATUS_FINALIZED,
-	SALE_STATUS_FAILED,
-	SALE_MAX_RETRIES
+	ORDER_STATUS_PENDING,
+	ORDER_STATUS_SENDING,
+	ORDER_STATUS_COMPLETE,
+	ORDER_STATUS_FAILED,
+	ORDER_MAX_RETRIES
 } = Database;
-const { syncListingCache, removeListingFromCache } = require('./ui/listing-cache');
+const { syncListingCache } = require('./ui/listing-cache');
 const Inventory = require('./inventory');
 const Sale = require('./sale');
-const { findInventoryTriple, anchorInventoryInputs, inventoryInputsFromRecord, enrichInventoryFromTransaction, serializeAnchoredInventorySlips, returnChainLocation, returnInventorySlipId, slipPublicKey } = require('./helpers');
+const {
+	findInventoryTriple,
+	anchorInventoryInputs,
+	inventoryInputsFromRecord,
+	enrichInventoryFromTransaction,
+	serializeAnchoredInventorySlips,
+	returnChainLocation,
+	returnInventorySlipId,
+	slipPublicKey
+} = require('./helpers');
 const { initializeImageCache } = require('./images');
-const { executeListingScript } = require('./scripting');
+const { executeListingScript, returnP2SHTuples } = require('./scripting');
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
 
 class Warehouse {
@@ -33,182 +39,175 @@ class Warehouse {
 		}
 
 		this.mod.listings = {};
-		await this.loadActiveListings();
+		await this.rebuildListings();
 		await initializeImageCache(this.mod);
 	}
 
 	async onNewBlock(blk, lc) {
-		await this.processPendingOrders();
+		await this.processOrder();
 	}
 
-	async listAssetConsumesPriorInventory(tx, txmsg) {
-		const prior_sig =
-			txmsg.fulfill_sale?.prior_inventory || txmsg.fulfill_sale?.prior_listing || '';
-		if (!prior_sig) {
-			return false;
-		}
+	async onChainReorganization(block_id, block_hash, longest_chain) {
+		await this.db.updateInventoryChainState(block_id, block_hash, longest_chain);
+		await this.db.updateSalesChainState(block_id, block_hash, longest_chain);
+		await this.db.updateTransactionsChainState(block_id, block_hash, longest_chain);
 
-		const inventory = await this.returnInventory(prior_sig);
-		let anchored = inventory ? inventoryInputsFromRecord(inventory) : null;
-
-		if (!anchored) {
-			const prior_tx = await this.returnTransaction(prior_sig);
-			if (!prior_tx) {
-				return false;
+		for (const row of Object.values(this.inventory)) {
+			if (
+				Number(row.block_id) === Number(block_id) &&
+				String(row.block_hash || '') === String(block_hash || '')
+			) {
+				row.longest_chain = longest_chain ? 1 : 0;
 			}
-			const script_address =
-				txmsg.listing?.pay_descriptor || inventory?.p2sh_address || '';
-			const slip_key = slipPublicKey(this.app, script_address);
-			if (!slip_key || !findInventoryTriple(prior_tx.to, slip_key)) {
-				return false;
-			}
-			anchored = anchorInventoryInputs(prior_tx, slip_key, {
-				block_id: inventory?.block_id,
-				transaction_id: inventory?.transaction_id
-			});
 		}
 
-		if (!anchored?.length) {
-			return false;
-		}
-
-		const from = tx.from || [];
-		const consumes = anchored.every((expected) =>
-			from.some(
-				(input) =>
-					Number(input?.blockId ?? input?.block_id ?? 0) ===
-						Number(expected.blockId ?? 0) &&
-					Number(input?.txOrdinal ?? input?.tx_ordinal ?? 0) ===
-						Number(expected.txOrdinal ?? 0) &&
-					Number(input?.index ?? 0) === Number(expected.index ?? 0)
-			)
-		);
-		if (!consumes) {
-			return false;
-		}
-
-		const access_script = txmsg.access_script || inventory?.access_script || '';
-		if (!access_script) {
-			return false;
-		}
-
-		return executeListingScript(this.app, access_script, this.mod.store_public_key);
+		await this.rebuildListings();
 	}
 
-	async finalizeSaleFromListAsset(tx, fulfill) {
-		const sale_signature = fulfill?.sale_signature;
-		if (!sale_signature) {
-			return false;
+	async rebuildListings() {
+		const buckets = await this.db.scanInventoryForRebuild();
+		const existing = await this.db.loadAllListings();
+		const existing_by_bucket = {};
+
+		for (const row of existing || []) {
+			existing_by_bucket[`${row.nft_id}:${row.price}`] = row;
 		}
 
-		const sale = await this.returnOrder(sale_signature);
-		if (!sale) {
-			return false;
-		}
+		await this.db.clearListings();
+		this.listings = {};
 
-		if (Number(sale.status) === SALE_STATUS_FINALIZED) {
-			return true;
-		}
-
-		if (Number(sale.status) !== SALE_STATUS_FULFILLING) {
-			return false;
-		}
-
-		if (sale.fulfillment_tx && sale.fulfillment_tx !== tx.signature) {
-			return false;
-		}
-
-		const listing_id = sale.listing_id;
-		const quantity = Number(fulfill.quantity) || 1;
 		const now = Date.now();
 
-		await this.finalizeOrder(sale.id, tx.signature, listing_id, quantity, now);
+		for (const bucket of buckets || []) {
+			const nft_id = bucket.nft_id;
+			const price = Number(bucket.price ?? 0);
+			const key = `${nft_id}:${price}`;
+			const prev = existing_by_bucket[key] || {};
+			const listing = new Listing(this.app, this.mod, {
+				nft_id,
+				price,
+				title: prev.title || '',
+				description: prev.description || '',
+				image: prev.image ?? null,
+				quantity_available: Number(bucket.total_quantity ?? 0),
+				quantity_pending: Number(prev.quantity_pending ?? 0),
+				quantity_sold: Number(prev.quantity_sold ?? 0),
+				updated_at: now
+			});
 
-		const listing = await this.returnListing(listing_id);
-		const seller = sale.seller || listing?.seller;
-		const payout_nolan =
-			BigInt(this.app.wallet.convertSaitoToNolan(sale.price) ?? 0) * BigInt(quantity);
-
-		if (seller && payout_nolan > 0n) {
-			try {
-				const payout_tx = await this.app.wallet.createUnsignedTransaction(
-					seller,
-					payout_nolan,
-					BigInt(0)
-				);
-				payout_tx.msg = {
-					module: 'Store',
-					request: 'seller_payout',
-					listing_id,
-					sale_signature
-				};
-				await payout_tx.sign();
-				this.app.network.propagateTransaction(payout_tx);
-			} catch (err) {
-				console.warn('Store: seller payout failed', err?.message);
+			await this.db.insertListing(listing);
+			const row = await this.db.returnListingByBucket(nft_id, price);
+			if (row) {
+				listing.id = row.id;
+				this.listings[listing.id] = listing;
+				syncListingCache(this.mod, listing);
 			}
 		}
 
-		return true;
+		this.mod.listings = this.listings;
 	}
 
-	async refundBuyer(buyer, listing_id, amount, reason) {
-		if (!buyer || !listing_id || amount <= 0n) {
+	async addListing(nft, tx, txmsg) {
+		if (this.app.BROWSER || !tx?.signature) {
 			return;
 		}
 
-		console.warn('Store: refunding buyer', { buyer, listing_id, reason });
+		if (await this.db.returnInventory(tx.signature)) {
+			return;
+		}
+
+		const access_script = txmsg.access_script || '';
+		if (!(await executeListingScript(this.app, access_script, this.mod.store_public_key))) {
+			return;
+		}
+
+		const observation = this.observeInventoryPosition(nft, tx, txmsg);
+		if (!observation) {
+			return;
+		}
+
+		const inventory = new Inventory(observation);
+		this.inventory[inventory.signature] = inventory;
+
 		try {
-			const refund_tx = await this.mod.createRefundTransaction(buyer, listing_id, amount, reason);
-			if (refund_tx) {
-				this.app.network.propagateTransaction(refund_tx);
-			}
+			await this.db.insertInventory(inventory);
 		} catch (err) {
-			console.warn('Store: refund failed', err?.message);
+			if (String(err?.message || err).includes('UNIQUE')) {
+				return;
+			}
+			throw err;
+		}
+
+		await this.rebuildListings();
+
+		const listing = await this.db.returnListingByBucket(inventory.nft_id, inventory.price);
+		const image = nft.returnImage?.() || '';
+		if (image && listing?.id) {
+			this.mod.image_cache[listing.id] = image;
 		}
 	}
 
-	async processPendingOrders() {
+	async removeListing(nft, tx, txmsg) {
+		if (this.app.BROWSER || !tx) {
+			return;
+		}
+
+		const spent_rows = await this.matchSpentInventory(tx);
+		if (!spent_rows.length) {
+			return;
+		}
+
+		const now = Date.now();
+
+		for (const row of spent_rows) {
+			await this.db.markInventorySpent(row.signature, now);
+			delete this.inventory[row.signature];
+			await this.db.incrementListingSold(row.nft_id, row.price, row.quantity, now);
+		}
+
+		await this.rebuildListings();
+	}
+
+	async processOrder() {
 		if (this.app.BROWSER) {
 			return;
 		}
 
-		const sales = await this.returnPendingOrders();
-
-		if (!sales?.length) {
+		const orders = await this.db.returnPendingOrders(ORDER_STATUS_PENDING);
+		if (!orders?.length) {
 			return;
 		}
 
-		for (const sale of sales) {
-			if (sale.fulfillment_tx) {
+		for (const row of orders) {
+			const order = new Sale(row);
+			if (order.outbound_tx) {
 				continue;
 			}
 
-			const listing_id = sale.listing_id;
-			const buyer = sale.buyer;
-			const quantity = Number(sale.quantity) || 1;
-			const unit_price = BigInt(this.app.wallet.convertSaitoToNolan(sale.price) ?? 0);
-			const listing = await this.returnListing(listing_id);
+			const listing = await this.returnListing(order.listing_id);
+			const quantity = Number(order.quantity) || 1;
+			const unit_price = BigInt(this.app.wallet.convertSaitoToNolan(order.price) ?? 0);
 			const now = Date.now();
-
 			let reject_reason = '';
 
 			if (!listing || !listing.isActive()) {
 				reject_reason = 'listing inactive or missing';
-			} else if (Number(listing.quantity_reserved || 0) < quantity) {
-				reject_reason = 'insufficient reserved quantity';
+			} else if (Number(listing.quantity_available || 0) < quantity) {
+				reject_reason = 'insufficient available quantity';
 			} else if (unit_price < BigInt(listing.price ?? 0)) {
 				reject_reason = 'purchase price below listing price';
 			}
 
-			let inventory = reject_reason ? null : await this.returnActiveInventory(listing_id);
+			let inventory = reject_reason
+				? null
+				: await this.db.returnActiveInventoryForBucket(listing.nft_id, listing.price);
 			let inventory_tx = null;
 			let inventory_txmsg = {};
 			let inventory_inputs = inventory ? inventoryInputsFromRecord(inventory) : null;
 			const access_script = inventory?.access_script || '';
 
 			if (!reject_reason && !inventory) {
-				reject_reason = 'active inventory not found';
+				reject_reason = 'active inventory position not found';
 			}
 
 			if (!reject_reason && !access_script) {
@@ -218,13 +217,12 @@ class Warehouse {
 			if (!reject_reason && !inventory_inputs) {
 				inventory_tx = await this.returnTransaction(inventory.signature);
 				if (!inventory_tx) {
-					reject_reason = 'inventory slips missing and transaction not found';
+					reject_reason = 'inventory transaction not found';
 				} else {
 					inventory_txmsg = inventory_tx.returnMessage?.() || {};
 					inventory = enrichInventoryFromTransaction(inventory, inventory_txmsg);
 					inventory_inputs = inventoryInputsFromRecord(inventory);
-					const script_address =
-						inventory?.p2sh_address || inventory_txmsg?.listing?.pay_descriptor || '';
+					const script_address = inventory?.p2sh_address || inventory_txmsg?.p2sh_address || '';
 					const slip_public_key = slipPublicKey(this.app, script_address);
 					if (!inventory_inputs && script_address) {
 						const anchored = anchorInventoryInputs(inventory_tx, slip_public_key, {
@@ -246,104 +244,182 @@ class Warehouse {
 				access_script &&
 				!(await executeListingScript(this.app, access_script, this.mod.store_public_key))
 			) {
-				reject_reason = 'store cannot spend inventory script';
+				reject_reason = 'store cannot execute inventory script';
 			}
 
 			if (reject_reason) {
-				console.log('Store: processPendingOrders deferred', {
-					sale: sale.signature,
-					listing_id,
+				console.log('Store: processOrder deferred', {
+					order: order.signature,
+					listing_id: order.listing_id,
 					reason: reject_reason
 				});
-				await this.incrementSaleRetry(sale, now);
+				await this.incrementOrderRetry(order, now);
 				continue;
 			}
 
-			let fulfillment_tx = null;
+			let outbound_tx = null;
 
 			try {
-				fulfillment_tx = this.mod.createFulfillmentTransaction({
+				inventory.listing_id = listing.id;
+				outbound_tx = this.mod.createFulfillmentTransaction({
 					inventory,
 					inventory_tx,
 					inventory_txmsg,
 					listing,
-					sale,
-					buyer,
+					sale: order,
+					buyer: order.buyer,
 					quantity
 				});
 			} catch (err) {
-				console.warn('Store: processPendingOrders fulfillment build failed', err?.message);
-				await this.incrementSaleRetry(sale, now);
+				console.warn('Store: processOrder outbound build failed', err?.message);
+				await this.incrementOrderRetry(order, now);
 				continue;
 			}
 
 			const nft_source_tx =
 				inventory_tx || (await this.returnTransaction(inventory.signature));
-			if (nft_source_tx && listing_id) {
+			if (nft_source_tx && listing?.id) {
 				const nft = new SaitoNFT(this.app, this.mod, nft_source_tx, null);
 				const nft_image = nft.returnImage?.() || '';
 				if (nft_image) {
-					this.mod.image_cache[listing_id] = nft_image;
+					this.mod.image_cache[listing.id] = nft_image;
 				}
 			}
 
-			await fulfillment_tx.sign();
+			await outbound_tx.sign();
+			await this.db.adjustListingExpectations(listing.id, -quantity, quantity, now);
 
-			await this.markOrderFulfilling(sale.id, fulfillment_tx.signature, now);
+			const cached = this.listings[listing.id];
+			if (cached) {
+				cached.quantity_available = Math.max(0, Number(cached.quantity_available) - quantity);
+				cached.quantity_pending = Number(cached.quantity_pending) + quantity;
+				cached.updated_at = now;
+				syncListingCache(this.mod, cached);
+			}
 
-			await this.insertTransaction(fulfillment_tx, { onchain: 1 });
+			await this.db.updateOrderSending(order.id, outbound_tx.signature, now, ORDER_STATUS_SENDING);
+			await this.insertTransaction(outbound_tx, { onchain: 1 });
 
-			console.log('Store: processPendingOrders propagating fulfillment', fulfillment_tx.signature);
-			this.app.network.propagateTransaction(fulfillment_tx);
+			console.log('Store: processOrder propagating outbound tx', outbound_tx.signature);
+			this.app.network.propagateTransaction(outbound_tx);
 			break;
 		}
 	}
 
-	async incrementSaleRetry(sale, now = Date.now()) {
-		const retry_count = await this.retryOrder(sale.id, now);
-		if (retry_count >= SALE_MAX_RETRIES) {
-			const listing_id = sale.listing_id;
-			const quantity = Number(sale.quantity) || 1;
-			await this.failOrder(sale.id, listing_id, quantity, now);
-		}
-	}
-
-	// --- listings ---
-
-	async loadActiveListings(limit = 20) {
-		this.listings = {};
-
-		const rows = await this.db.loadActiveListings(limit, LISTING_STATUS_ACTIVE);
-		for (const row of rows || []) {
-			await this.addListing(row, { persist: false, sync_cache: true });
-		}
-
-		return Object.values(this.listings);
-	}
-
-	async addListing(data, { persist = true, sync_cache = true } = {}) {
-		const listing = data instanceof Listing ? data : new Listing(this.app, this.mod, data);
-		if (!listing.id) {
+	observeInventoryPosition(nft, tx, txmsg) {
+		const tuples = returnP2SHTuples(tx);
+		if (!tuples.outputs?.length) {
 			return null;
 		}
 
-		this.listings[listing.id] = listing;
-		if (sync_cache) {
-			syncListingCache(this.mod, listing);
+		const script_address = txmsg.p2sh_address || '';
+		const slip_key = slipPublicKey(this.app, script_address);
+		const chain = returnChainLocation(null, tx);
+		const utxo_slips = serializeAnchoredInventorySlips(tx, slip_key, chain);
+
+		if (!utxo_slips) {
+			return null;
 		}
 
-		if (persist) {
-			await this.db.insertListing(listing);
-		}
+		const meta = txmsg.listing || {};
+		const price_nolan = Number(this.app.wallet.convertSaitoToNolan(meta.price ?? 0) ?? 0);
 
-		return listing;
+		return {
+			signature: tx.signature,
+			nft_id: String(nft.id || nft.uuid || meta.nft_id || ''),
+			seller: tx.from?.[0]?.publicKey || '',
+			quantity: Number(nft.amount ?? tuples.outputs[0]?.slips?.[0]?.amount ?? 1) || 1,
+			price: price_nolan,
+			access_hash: txmsg.access_hash || '',
+			access_script: txmsg.access_script || '',
+			p2sh_address: script_address,
+			block_id: chain.block_id,
+			block_hash: chain.block_hash,
+			transaction_id: chain.transaction_id,
+			slip_id: returnInventorySlipId(tx, slip_key),
+			longest_chain: 1,
+			on_chain: 1,
+			spent: 0,
+			utxo_slip1: utxo_slips[0],
+			utxo_slip2: utxo_slips[1],
+			utxo_slip3: utxo_slips[2],
+			created_at: Date.now(),
+			updated_at: Date.now()
+		};
 	}
 
-	removeListing(listing_id, { sync_cache = true } = {}) {
-		delete this.listings[listing_id];
-		if (sync_cache) {
-			removeListingFromCache(this.mod, listing_id);
+	async matchSpentInventory(tx) {
+		const tuples = returnP2SHTuples(tx);
+		if (!tuples.inputs?.length) {
+			return [];
 		}
+
+		const rows = await this.db.returnAllActiveInventory();
+		const spent = [];
+
+		for (const row of rows || []) {
+			let anchored = inventoryInputsFromRecord(row);
+			if (!anchored) {
+				const prior_tx = await this.returnTransaction(row.signature);
+				if (!prior_tx) {
+					continue;
+				}
+				const slip_key = slipPublicKey(this.app, row.p2sh_address);
+				anchored = anchorInventoryInputs(prior_tx, slip_key, {
+					block_id: row.block_id,
+					transaction_id: row.transaction_id
+				});
+			}
+			if (!anchored?.length) {
+				continue;
+			}
+
+			const consumes = anchored.every((expected) =>
+				(tx.from || []).some(
+					(input) =>
+						Number(input?.blockId ?? input?.block_id ?? 0) ===
+							Number(expected.blockId ?? 0) &&
+						Number(input?.txOrdinal ?? input?.tx_ordinal ?? 0) ===
+							Number(expected.txOrdinal ?? 0) &&
+						Number(input?.index ?? 0) === Number(expected.index ?? 0)
+				)
+			);
+
+			if (consumes) {
+				spent.push(row);
+			}
+		}
+
+		return spent;
+	}
+
+	async incrementOrderRetry(order, now = Date.now()) {
+		const retry_count = (await this.db.returnOrderRetryCount(order.id)) + 1;
+		await this.db.updateOrderRetry(order.id, retry_count, now);
+		if (retry_count >= ORDER_MAX_RETRIES) {
+			await this.db.updateOrderFailed(order.id, now, ORDER_STATUS_FAILED);
+		}
+	}
+
+	async refundBuyer(buyer, listing_id, amount, reason) {
+		if (!buyer || !listing_id || amount <= 0n) {
+			return;
+		}
+
+		console.warn('Store: refunding buyer', { buyer, listing_id, reason });
+		try {
+			const refund_tx = await this.mod.createRefundTransaction(buyer, listing_id, amount, reason);
+			if (refund_tx) {
+				this.app.network.propagateTransaction(refund_tx);
+			}
+		} catch (err) {
+			console.warn('Store: refund failed', err?.message);
+		}
+	}
+
+	async addOrder(sale) {
+		const params = sale instanceof Sale ? sale.toInsertParams() : sale;
+		await this.db.insertOrder(params);
 	}
 
 	async returnListing(listing_id) {
@@ -357,7 +433,10 @@ class Warehouse {
 				return null;
 			}
 
-			return await this.addListing(row, { persist: false, sync_cache: true });
+			const listing = new Listing(this.app, this.mod, row);
+			this.listings[listing.id] = listing;
+			syncListingCache(this.mod, listing);
+			return listing;
 		} catch (err) {
 			return null;
 		}
@@ -371,163 +450,19 @@ class Warehouse {
 		return this.returnListings().filter((listing) => listing.isActive());
 	}
 
-	async reserveListing(listing_id, quantity) {
-		const qty = Number(quantity) || 1;
-		const listing = await this.returnListing(listing_id);
-		if (!listing || Number(listing.quantity_available) < qty) {
-			return false;
-		}
-
-		const now = Date.now();
-		const updated = await this.db.reserveListing(listing_id, qty, now);
-		if (!updated) {
-			return false;
-		}
-
-		const quantity_available = Number(updated.quantity_available);
-		const quantity_reserved = Number(updated.quantity_reserved);
-		if (quantity_available !== Number(listing.quantity_available) - qty) {
-			return false;
-		}
-
-		listing.quantity_available = quantity_available;
-		listing.quantity_reserved = quantity_reserved;
-		listing.updated_at = now;
-		syncListingCache(this.mod, listing);
-
-		return true;
-	}
-
-	async releaseReservation(listing_id, quantity) {
-		const qty = Number(quantity) || 1;
-		const now = Date.now();
-		await this.db.releaseReservation(listing_id, qty, now);
-
-		const listing = this.listings[listing_id] || (await this.returnListing(listing_id));
-		if (listing) {
-			listing.quantity_reserved = Math.max(0, Number(listing.quantity_reserved) - qty);
-			listing.updated_at = now;
-			syncListingCache(this.mod, listing);
-		}
-	}
-
-	async restoreReservation(listing_id, quantity) {
-		const qty = Number(quantity) || 1;
-		const now = Date.now();
-		await this.db.restoreReservation(listing_id, qty, now);
-
-		const listing = this.listings[listing_id] || (await this.returnListing(listing_id));
-		if (listing) {
-			listing.quantity_available += qty;
-			listing.quantity_reserved = Math.max(0, Number(listing.quantity_reserved) - qty);
-			listing.updated_at = now;
-			syncListingCache(this.mod, listing);
-		}
-	}
-
-	// --- inventory ---
-
-	async addInventory(data, { persist = true } = {}) {
-		const inventory = data instanceof Inventory ? data : new Inventory(data);
-		if (!inventory.signature) {
-			return null;
-		}
-
-		this.inventory[inventory.signature] = inventory;
-
-		if (persist) {
-			await this.db.insertInventory(inventory);
-		}
-
-		return inventory;
-	}
-
-	removeInventory(signature) {
-		delete this.inventory[signature];
-	}
-
-	async updateInventory(signature, status) {
-		const now = Date.now();
-		await this.db.updateInventory(signature, status, now);
-
-		if (this.inventory[signature]) {
-			this.inventory[signature].status = status;
-			this.inventory[signature].updated_at = now;
-		}
-	}
-
-	async returnInventory(signature) {
-		if (this.inventory[signature]) {
-			return this.inventory[signature];
-		}
-
-		try {
-			const row = await this.db.returnInventory(signature);
-			if (!row) {
-				return null;
-			}
-
-			return await this.addInventory(row, { persist: false });
-		} catch (err) {
-			return null;
-		}
-	}
-
 	async returnActiveInventory(listing_id) {
-		if (!listing_id) {
+		const listing = await this.returnListing(listing_id);
+		if (!listing) {
 			return null;
 		}
 
-		try {
-			const row = await this.db.returnActiveInventory(listing_id, INVENTORY_STATUS_ACTIVE);
-			if (!row) {
-				return null;
-			}
-
-			return await this.addInventory(row, { persist: false });
-		} catch (err) {
+		const row = await this.db.returnActiveInventoryForBucket(listing.nft_id, listing.price);
+		if (!row) {
 			return null;
 		}
+
+		return new Inventory(row);
 	}
-
-	// --- sales / orders ---
-
-	async addOrder(sale) {
-		const params = sale instanceof Sale ? sale.toInsertParams() : sale;
-		await this.db.insertOrder(params);
-	}
-
-	async returnPendingOrders() {
-		const rows = await this.db.returnPendingOrders(SALE_STATUS_PENDING);
-		return (rows || []).map((row) => new Sale(row));
-	}
-
-	async returnOrder(signature) {
-		const row = await this.db.returnOrder(signature);
-		return row ? new Sale(row) : null;
-	}
-
-	async markOrderFulfilling(order_id, fulfillment_tx, now = Date.now()) {
-		await this.db.updateOrderFulfilling(order_id, fulfillment_tx, now, SALE_STATUS_FULFILLING);
-	}
-
-	async finalizeOrder(order_id, fulfillment_tx, listing_id, quantity, now = Date.now()) {
-		await this.db.updateOrderFinalized(order_id, fulfillment_tx, now, SALE_STATUS_FINALIZED);
-		await this.releaseReservation(listing_id, quantity);
-	}
-
-	async retryOrder(order_id, now = Date.now()) {
-		const retry_count = (await this.db.returnOrderRetryCount(order_id)) + 1;
-		await this.db.updateOrderRetry(order_id, retry_count, now);
-		return retry_count;
-	}
-
-	async failOrder(order_id, listing_id, quantity, now = Date.now()) {
-		await this.restoreReservation(listing_id, quantity);
-		await this.db.updateOrderFailed(order_id, now, SALE_STATUS_FAILED);
-	}
-
-	// --- transaction archive ---
 
 	async insertTransaction(tx, chain = {}) {
 		await this.db.insertTransaction(tx, this.app, chain);
@@ -536,26 +471,11 @@ class Warehouse {
 	async returnTransaction(signature) {
 		return this.db.returnTransaction(signature, this.app);
 	}
-
-	async onChainReorganization(block_id, block_hash, onchain) {
-		const params = await this.db.applyChainReorganization(block_id, block_hash, onchain);
-
-		for (const inventory of Object.values(this.inventory)) {
-			if (
-				Number(inventory.block_id) === params.$block_id &&
-				String(inventory.block_hash || '') === params.$block_hash
-			) {
-				inventory.onchain = params.$onchain;
-			}
-		}
-	}
 }
 
 module.exports = Warehouse;
-module.exports.INVENTORY_STATUS_ACTIVE = INVENTORY_STATUS_ACTIVE;
-module.exports.INVENTORY_STATUS_SPENT = INVENTORY_STATUS_SPENT;
-module.exports.SALE_STATUS_PENDING = SALE_STATUS_PENDING;
-module.exports.SALE_STATUS_FULFILLING = SALE_STATUS_FULFILLING;
-module.exports.SALE_STATUS_FINALIZED = SALE_STATUS_FINALIZED;
-module.exports.SALE_STATUS_FAILED = SALE_STATUS_FAILED;
-module.exports.SALE_MAX_RETRIES = SALE_MAX_RETRIES;
+module.exports.ORDER_STATUS_PENDING = ORDER_STATUS_PENDING;
+module.exports.ORDER_STATUS_SENDING = ORDER_STATUS_SENDING;
+module.exports.ORDER_STATUS_COMPLETE = ORDER_STATUS_COMPLETE;
+module.exports.ORDER_STATUS_FAILED = ORDER_STATUS_FAILED;
+module.exports.ORDER_MAX_RETRIES = ORDER_MAX_RETRIES;

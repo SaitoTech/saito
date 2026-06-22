@@ -203,13 +203,10 @@ function enrichInventoryFromTransaction(inventory, inventory_txmsg = {}) {
 		inventory.access_hash = inventory_txmsg.access_hash || '';
 	}
 	if (!inventory.p2sh_address) {
-		inventory.p2sh_address = meta.pay_descriptor || '';
+		inventory.p2sh_address = inventory_txmsg.p2sh_address || meta.pay_descriptor || '';
 	}
 	if (!inventory.nft_id) {
 		inventory.nft_id = meta.nft_id || '';
-	}
-	if (!inventory.listing_id) {
-		inventory.listing_id = meta.id || meta.listing_id || '';
 	}
 
 	return inventory;
