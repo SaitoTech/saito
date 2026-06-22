@@ -402,7 +402,8 @@ class MixinModule extends CryptoModule {
 					receiver_address: this.formatAddress() || '',
 					sender_address: obj?.counter_party.address || 'unknown',
 					sender: obj?.counter_party.publicKey || 'unknown',
-					timestamp: obj.timestamp
+					timestamp: obj.timestamp,
+					transaction_signature: obj.trans_hash
 					//memo: snap.memo || ''
 				});
 			} else if (obj.type === 'send' || obj.type === 'withdraw') {
@@ -413,7 +414,8 @@ class MixinModule extends CryptoModule {
 					receiver: obj?.counter_party.publicKey || 'unknown',
 					sender_address: this.formatAddress() || '',
 					sender: this.publicKey,
-					timestamp: obj.timestamp
+					timestamp: obj.timestamp,
+					transaction_signature: obj.trans_hash
 					//memo: snap.memo || ''
 				});
 			}
@@ -535,6 +537,10 @@ class MixinModule extends CryptoModule {
 			this.pending_balance = Number(res.pending.toFixed(8));
 			if (!this.last_balance) {
 				this.last_balance = this.balance;
+			}
+
+			if (res.message?.length) {
+				return res.message[0].transaction_hash || unique_hash;
 			}
 			return unique_hash;
 		} else {

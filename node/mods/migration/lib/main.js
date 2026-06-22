@@ -51,16 +51,16 @@ class MigrationMain {
         }
 
         let emailtext = `
-			      <div>
-				    <p>Dear Saitozen,</p>
-			     	<p>Token withdrawal requested:</p>
-					<p>From: ${erc20}</p>
-					<p>To: ${pk}</p>
-					<p>Email: ${email}</p>
-					<p>Token transfer should be recorded at:</p>
-					<p>0x24F10EA2827717770270e3cc97F015Ba58fcB9b6</p>
-			 	    <p>-- Saito Migration Transfer Service</p>
-				`;
+            <div>
+            <p>Dear Saitozen,</p>
+            <p>Token withdrawal requested:</p>
+          <p>From: ${erc20}</p>
+          <p>To: ${pk}</p>
+          <p>Email: ${email}</p>
+          <p>Token transfer should be recorded at:</p>
+          <p>0x24F10EA2827717770270e3cc97F015Ba58fcB9b6</p>
+            <p>-- Saito Migration Transfer Service</p>
+        `;
 
         // to, from, subject, text, ishtml, attachments, bcc
         mailrelay_mod.sendMailRelayTransaction({
@@ -119,21 +119,21 @@ class MigrationMain {
       }
 
       let emailtext = `
-				<div>
-			      <p>Dear Saitozen,</p>
-			      <p>You have provided the following ERC20/BEP20 address:</p>
-			      <p>${erc20}</p>
-			      <p>And the following Saito address / publickey:</p>
-			      <p>${publickey}</p>
-			      <p>If this information is correct, complete your withdrawal by sending your ERC20 or BEP20 tokens to our monitored multisig address:</p>
-			      <p>0x24F10EA2827717770270e3cc97F015Ba58fcB9b6</p>
-				  <p>(Note, the address is the same on both networks.)</b>
-			      <p>Once the transfer is complete, please click on the following link and confirm the submission - our team will complete the transfer within 24 hours:</p>
-			      <p>http://saito.io/migration?publickey=${publickey}&erc20=${erc20}&email=${email}</p>
-			      <p>Please reach out by email if you do not hear from us in a day.</p>
-			      <p>-- The Saito Team</p> 
-			    </div>
-			`;
+        <div>
+            <p>Dear Saitozen,</p>
+            <p>You have provided the following ERC20/BEP20 address:</p>
+            <p>${erc20}</p>
+            <p>And the following Saito address / publickey:</p>
+            <p>${publickey}</p>
+            <p>If this information is correct, complete your withdrawal by sending your ERC20 or BEP20 tokens to our monitored multisig address:</p>
+            <p>0x24F10EA2827717770270e3cc97F015Ba58fcB9b6</p>
+          <p>(Note, the address is the same on both networks.)</b>
+            <p>Once the transfer is complete, please click on the following link and confirm the submission - our team will complete the transfer within 24 hours:</p>
+            <p>http://saito.io/migration?publickey=${publickey}&erc20=${erc20}&email=${email}</p>
+            <p>Please reach out by email if you do not hear from us in a day.</p>
+            <p>-- The Saito Team</p> 
+          </div>
+      `;
 
       mailrelay_mod.sendMailRelayTransaction({
         to: email,
@@ -153,7 +153,7 @@ class MigrationMain {
       document.querySelector('.withdraw-title').innerHTML = 'Email Sent';
       document.querySelector('.withdraw-intro').innerHTML =
         `<p>We have emailed you instructions on transferring your ERC20/BEP20 tokens and a link to report the transfer when complete.</p>
-			 <p>In the event of problems please reach out directly at <i>info@saito.tech</i>.</p>`;
+       <p>In the event of problems please reach out directly at <i>info@saito.tech</i>.</p>`;
       document.querySelector('#email').style.display = 'none';
       document.querySelector('#publickey').style.display = 'none';
       document.querySelector('#erc20').style.display = 'none';
@@ -163,6 +163,11 @@ class MigrationMain {
 
     if (document.getElementById('automatic')) {
       document.getElementById('automatic').onclick = async () => {
+        if (!this.mod.can_auto) {
+          salert('Automated migration is not available yet. Please wait a moment and try again.');
+          return;
+        }
+
         if (this.mod.balance) {
           this.processDepositedSaito(this.mod.balance);
           return;
@@ -200,11 +205,11 @@ class MigrationMain {
    * */
   processDepositedSaito(new_balance) {
     let html = `
-	        <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container saito-overlay-size narrow">
-	            <div class="saito-overlay-form-header">
-	                <div class="saito-overlay-form-header-title">Deposited</div>
-	            </div>
-	            <div class="saito-crypto-deposit-content"><div>`;
+          <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container saito-overlay-size narrow">
+              <div class="saito-overlay-form-header">
+                  <div class="saito-overlay-form-header-title">Deposited</div>
+              </div>
+              <div class="saito-crypto-deposit-content"><div>`;
 
     if (this.mod.balance) {
       html += `<div>${this.mod.balance} ERC20 SAITO pending conversion into </div>`;
@@ -214,24 +219,24 @@ class MigrationMain {
     html += `<div class=""> ${this.mod.publicKey.slice(0, 8)}...${this.mod.publicKey.slice(-8)} </div>`;
 
     if (new_balance > this.mod.max_deposit) {
-      html += `<div>Click to convert the maximum of ${this.mod.max_deposit} into on chain SAITO. The remaining ${new_balance - this.mod.max_deposit} SAITO will be safe on your wallet (please back it up!!!), 
-					let omskian@saito [Richard] know that the migration bot is out of money. 
-					When it is refilled, you'll be able to convert the rest just be revisiting this page.</div>`;
+      html += `<div>Click to convert the maximum of ${this.mod.max_deposit} into on chain SAITO. The remaining ${Number((new_balance - this.mod.max_deposit).toFixed(8))} SAITO will be safe on your wallet (please back it up!!!), 
+          let omskian@saito [Richard] know that the migration bot is out of money. 
+          When it is refilled, you'll be able to convert the rest just be revisiting this page.</div>`;
     } else {
       html += `<div>Click next to convert to on chain SAITO</div></div>`;
     }
 
     html += `</div>
 
-	        <div class="saito-button-row">
-	           <button type="button" class="saito-button-primary" id='submit'>Convert</button> 
-	        </div>
+          <div class="saito-button-row">
+             <button type="button" class="saito-button-primary" id='submit'>Convert</button> 
+          </div>
 
-			`;
+      `;
 
     this.overlay.show(html);
 
-    const sendCallback = (robj) => {
+    const shiftFromSendToReceive = (robj, amount) => {
       if (robj?.err) {
         salert('Migration Error: <br> ' + robj.err);
         return;
@@ -239,17 +244,33 @@ class MigrationMain {
 
       try {
         this.overlay.remove();
-        document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
-        this.app.browser.addElementToSelectorOrDom(
-          '<div class="saito-overlay-form-header-content">2 of 2</div>',
-          '.saito-overlay-form-header'
-        );
+        document.querySelector('.withdraw-title').innerHTML = 'Awaiting native SAITO';
         document.querySelector('.withdraw-intro').innerHTML =
-          'Check your wallet in the side bar ->';
-        document.querySelector('.withdraw-form-fields').remove();
+          'Your ERC-20 transfer is complete. Waiting for native SAITO from the migration bot...';
+        document.querySelector('.withdraw-form-fields')?.remove();
       } catch (err) {
         console.warn('UI errors...', err);
       }
+
+      let hash = robj?.hash;
+      this.app.connection.emit('saito-crypto-receive-render-request', {
+        ticker: 'SAITO',
+        amount,
+        publicKey: this.mod.migration_publickey,
+        address: this.mod.migration_publickey,
+        hash,
+        mycallback: () => {
+          try {
+            document.querySelector('.withdraw-title').innerHTML = 'Migration complete';
+            document.querySelector('.withdraw-intro').innerHTML =
+              'Native SAITO has been issued to your wallet.';
+          } catch (err) {
+            console.warn('UI errors...', err);
+          }
+        }
+      });
+
+      this.app.wallet.receivePayment('SAITO', this.mod.migration_publickey, amount, hash);
     };
 
     if (document.getElementById('submit')) {
@@ -257,39 +278,58 @@ class MigrationMain {
         e.currentTarget.remove();
         let sender = this.mod.ercMod.formatAddress();
 
-        let amount = Math.min(new_balance, this.mod.max_deposit).toFixed(8);
+        let amount = Math.min(new_balance, this.mod.max_deposit).toString();
 
         if (document.querySelector('.saito-overlay-form-header-title')) {
           document.querySelector('.saito-overlay-form-header-title').innerHTML =
             `Converting ${new_balance > this.mod.max_deposit ? 'only' : ''} ${amount} ERC20 SAITO...`;
         }
 
+        // This doesn't matter
         let unique_hash = this.app.crypto.hash(
           Buffer.from(sender + this.mod.migration_mixin_address + amount + 'ERC-SAITO', 'utf-8')
         );
 
-        if (this.mod.local_dev) {
-          //Fake payment
-          this.mod.ercMod.sendPaymentTransaction(
-            this.mod.migration_publickey,
-            this.mod.ercMod.formatAddress(),
-            this.mod.migration_mixin_address,
-            amount,
-            unique_hash
-          );
-          sendCallback({});
-          return;
-        }
+        const sendPaymentWrapper = async () => {
+          let res = { hash: 'local-dev-mixin-' + Date.now() };
 
-        this.app.wallet.sendPayment(
-          this.mod.wrapped_saito_ticker,
-          [this.mod.ercMod.formatAddress()],
-          [this.mod.migration_mixin_address],
-          [amount],
-          unique_hash,
-          sendCallback,
-          this.mod.migration_publickey
-        );
+          try {
+            if (this.mod.local_dev) {
+              await this.mod.ercMod.sendPaymentTransaction(
+                this.mod.migration_publickey,
+                this.mod.ercMod.formatAddress(),
+                this.mod.migration_mixin_address,
+                amount,
+                res.hash
+              );
+            } else {
+              res = await this.app.wallet.sendPayment(
+                this.mod.wrapped_saito_ticker,
+                [this.mod.ercMod.formatAddress()],
+                [this.mod.migration_mixin_address],
+                [amount],
+                unique_hash,
+                this.mod.migration_publickey
+              );
+            }
+
+            this.app.connection.emit('saito-crypto-send-confirm', res, () => {
+              shiftFromSendToReceive(res, amount);
+            });
+          } catch (err) {
+            console.error(err);
+            this.app.connection.emit('saito-crypto-send-confirm', { err });
+          }
+        };
+
+        this.app.connection.emit('saito-crypto-send-confirm-open-request', {
+          ticker: this.mod.wrapped_saito_ticker,
+          amount,
+          address: this.mod.migration_mixin_address,
+          publicKey: this.mod.migration_publickey,
+          hash: unique_hash,
+          mycallback: sendPaymentWrapper
+        });
       };
     }
   }

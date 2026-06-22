@@ -986,7 +986,7 @@ export default class Wallet extends SaitoWallet {
                     senders[i],
                     receivers[i],
                     amounts[i],
-                    unique_hash,
+                    hash || unique_hash,
                     memo
                   );
                 }
@@ -995,7 +995,7 @@ export default class Wallet extends SaitoWallet {
               if (mycallback) {
                 mycallback({ hash: hash });
               }
-              return;
+              return { hash: hash };
             } catch (err) {
               console.error(err);
               // it failed, delete the transaction
@@ -1020,6 +1020,7 @@ export default class Wallet extends SaitoWallet {
     if (mycallback) {
       mycallback(rtnObj);
     }
+    return rtnObj;
   }
 
   /**

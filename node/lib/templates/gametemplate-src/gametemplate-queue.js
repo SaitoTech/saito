@@ -2679,7 +2679,7 @@ class GameQueue {
               game_self.updateLog('payments issued...');
               game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
-              game_self.app.connection.emit('saito-crypto-send-confirm', robj, unique_hash);
+              game_self.app.connection.emit('saito-crypto-send-confirm', robj);
 
               game_self.restartQueue();
               return 0;
@@ -2689,7 +2689,7 @@ class GameQueue {
           );
         };
 
-        game_self.app.connection.emit('saito-crypto-send-render-request', {
+        game_self.app.connection.emit('saito-crypto-send-confirm-open-request', {
           publicKey: receiver,
           address: receiver_crypto_address,
           amount,

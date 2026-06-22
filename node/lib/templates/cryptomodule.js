@@ -215,10 +215,12 @@ class CryptoModule extends ModTemplate {
   async sendPaymentTransaction(publicKey, from_address, to_address, amount, hash, memo = '') {
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(publicKey);
 
+    let fix_amount = Number(amount).toString();
+
     newtx.msg = {
       module: this.name,
       request: 'crypto payment',
-      amount,
+      amount: fix_amount,
       from: from_address,
       to: to_address,
       hash
@@ -418,8 +420,12 @@ class CryptoModule extends ModTemplate {
       for (let i = 0; i < this.early_payments.length; i++) {
         let early_sender = this.early_payments[i].sender_address || this.early_payments[i].sender;
         if (early_sender == sender) {
-          if (this.early_payments[i].amount == amount) {
-            this.app.connection.emit('on-receive-expected-payment', unique_hash);
+          if (Number(this.early_payments[i].amount) == Number(amount)) {
+            this.app.connection.emit(
+              'on-receive-expected-payment',
+              unique_hash,
+              this.early_payments[i]
+            );
             this.early_payments.splice(i, 1);
             return;
           }
@@ -452,6 +458,7 @@ class CryptoModule extends ModTemplate {
      transaction_type,
 
      // extra stuff from Mixin
+     transaction_signature <- "snap.transaction_hash"
      memo: (string)
    */
   processExpectedPayment(obj = {}) {
@@ -473,11 +480,17 @@ class CryptoModule extends ModTemplate {
 
     for (let h in this.transfers_inbound) {
       if (this.transfers_inbound[h].sender == sender) {
-        if (this.transfers_inbound[h].amount == obj.amount) {
-          this.app.connection.emit('on-receive-expected-payment', h);
+        // Convert to Number so we don't worry about string formatting
+        if (Number(this.transfers_inbound[h].amount) == Number(obj.amount)) {
+          this.app.connection.emit('on-receive-expected-payment', h, obj);
           delete this.transfers_inbound[h];
           return;
         } else {
+          console.warn(
+            ' *** Received a payment of an unexpected amount ***',
+            this.transfers_inbound[h],
+            obj
+          );
           // Under/overpaid condition...
         }
       }

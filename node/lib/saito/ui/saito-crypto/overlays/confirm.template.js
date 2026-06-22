@@ -4,17 +4,22 @@
  * `data-confirm-state` and `data-confirm-mode` are set from confirm.js after mount.
  * No runtime string interpolation: placeholders stay empty until filled.
  */
-module.exports = function cryptoSendConfirmOverlayTemplate() {
+module.exports = function cryptoSendConfirmOverlayTemplate(details) {
+  let ca = false;
+  if (details.address && details.address !== details.publicKey) {
+    ca = details.address.includes('|') ? details.address.split('|')[0] : details.address;
+  }
+
   return `
   <div
     class="game-crypto-transfer-manager-container crypto-send-confirm-overlay"
     id="crypto-send-confirm-root"
     data-confirm-state="pending"
-    data-confirm-mode="interactive"
+    data-confirm-mode="${details?.trusted ? 'trusted' : 'interactive'}"
   >
     <div class="crypto-send-confirm-overlay__surface">
       <header class="crypto-send-confirm-overlay__header">
-        <h2 class="auth_title crypto-send-confirm-overlay__title" id="crypto_send_confirm_title"></h2>
+        <h2 class="auth_title crypto-send-confirm-overlay__title" id="crypto_send_confirm_title">Sending Payment</h2>
       </header>
 
       <div class="crypto-send-confirm-overlay__body">
@@ -33,13 +38,19 @@ module.exports = function cryptoSendConfirmOverlayTemplate() {
         </div>
 
         <section class="crypto-send-confirm-overlay__summary" aria-label="Amount">
-          <div class="amount crypto-send-confirm-overlay__amount" id="crypto_send_confirm_amount"></div>
+          <div class="amount crypto-send-confirm-overlay__amount" id="crypto_send_confirm_amount">${details.amount} ${details.ticker}</div>
         </section>
 
         <section class="crypto-send-confirm-overlay__recipient" aria-labelledby="crypto_send_confirm_recipient_label">
           <div class="crypto-send-confirm-overlay__summary-label" id="crypto_send_confirm_recipient_label">To</div>
           <div class="counterparty-details"></div>
-          <div class="crypto-send-confirm-overlay__chain-address" id="crypto_send_confirm_address"></div>
+          ${
+            ca
+              ? `<div class="crypto-send-confirm-overlay__chain-address" id="crypto_send_confirm_address">${ca.length > 16 ? `${ca.slice(0, 8)}…${ca.slice(-8)}` : ca}</div>
+          `
+              : ''
+          }
+          
         </section>
 
         <div
@@ -65,14 +76,6 @@ module.exports = function cryptoSendConfirmOverlayTemplate() {
         >
           Close
         </button>
-        <label class="crypto-send-confirm-overlay__ignore">
-          <input
-            type="checkbox"
-            id="crypto_send_confirm_ignore"
-            class="ignore_checkbox crypto-send-confirm-overlay__ignore-checkbox"
-          />
-          <span class="crypto-send-confirm-overlay__ignore-label">Do not ask again</span>
-        </label>
       </footer>
     </div>
   </div>`;

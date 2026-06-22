@@ -1,6 +1,5 @@
 const Deposit = require('./overlays/deposit');
 const Withdraw = require('./overlays/withdraw');
-const Send = require('./overlays/send');
 const Confirm = require('./overlays/confirm');
 const Receive = require('./overlays/receive');
 const Details = require('./overlays/details');
@@ -19,9 +18,6 @@ class SaitoCrypto {
     // Games: `saito-crypto-send-render-request` → Send (validate) → `saito-crypto-send-confirm-open-request` → Confirm + mycallback
     //        `saito-crypto-send-confirm` → result UI
     this.send_confirm_overlay = new Confirm(app, mod);
-
-    // Send: sole subscriber to legacy send-render-request; forwards to Confirm
-    this.send_overlay = new Send(app, mod);
 
     //'saito-crypto-receive-render-request'
     this.receive_overlay = new Receive(app, mod);

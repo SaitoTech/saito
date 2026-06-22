@@ -41,7 +41,7 @@ class Receive {
       this.render(details);
     });
 
-    this.app.connection.on('on-receive-expected-payment', (hash) => {
+    this.app.connection.on('on-receive-expected-payment', (hash, details) => {
       if (hash == this.expected_hash) {
         this.onReceivePayment();
       }

@@ -13,41 +13,11 @@ const ConfirmTemplate = require('./confirm.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoUser = require('./../../saito-user/saito-user');
 
-function findGameById(app, game_id) {
-  if (!game_id || !app?.options?.games?.length) {
-    return null;
-  }
-  for (let i = 0; i < app.options.games.length; i++) {
-    if (app.options.games[i].id === game_id) {
-      return app.options.games[i];
-    }
-  }
-  return null;
-}
-
-function resolveGameContext(app, mod, game_id = null) {
-  const fromId = findGameById(app, game_id);
-  if (fromId) {
-    return fromId;
-  }
-  return mod?.game || null;
-}
-
-function resolveGameMod(app, mod, game_id = null) {
-  const game = resolveGameContext(app, mod, game_id);
-  if (game?.module) {
-    return app.modules.returnModuleByName(game.module) || mod;
-  }
-  return mod;
-}
-
 class Confirm {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(app, mod, false);
-
-    this.overlay.clickBackdropToClose = false;
 
     this.counter_party = new SaitoUser(
       this.app,
@@ -55,21 +25,18 @@ class Confirm {
       '#crypto-send-confirm-root .counterparty-details'
     );
 
-    /** @type {ReturnType<Confirm['bindElements']> | null} */
     this.el = null;
     this.timeout = null;
     this.countdownTimer = null;
-    this.gameId = null;
-
-    this.onCloseClick = this.onCloseClick.bind(this);
 
     this.app.connection.on('saito-crypto-send-confirm-open-request', (details) => {
       console.log('saito-crypto-send-confirm-open-requests', details);
       this.render(details);
     });
 
-    this.app.connection.on('saito-crypto-send-confirm', (rtnValue) => {
+    this.app.connection.on('saito-crypto-send-confirm', (rtnValue, callback_on_close) => {
       this.applyResult(rtnValue);
+      this.callback = callback_on_close;
     });
   }
 
@@ -88,32 +55,21 @@ class Confirm {
    * @returns {null | {
    *   root: HTMLElement,
    *   title: HTMLElement | null,
-   *   amount: HTMLElement | null,
-   *   address: HTMLElement | null,
    *   detailMessage: HTMLElement | null,
-   *   spinner: HTMLElement | null,
    *   countdown: HTMLElement | null,
-   *   closeBtn: HTMLButtonElement | null,
-   *   ignoreCheckbox: HTMLInputElement | null
    * }}
    */
-  bindElements(root) {
-    return {
-      root,
-      title: root.querySelector('#crypto_send_confirm_title'),
-      amount: root.querySelector('#crypto_send_confirm_amount'),
-      address: root.querySelector('#crypto_send_confirm_address'),
-      detailMessage: root.querySelector('#crypto_send_confirm_detail'),
-      spinner: root.querySelector('#crypto_send_confirm_spinner'),
-      countdown: root.querySelector('#crypto_send_confirm_countdown'),
-      closeBtn: root.querySelector('#crypto_send_confirm_close'),
-      ignoreCheckbox: root.querySelector('#crypto_send_confirm_ignore')
-    };
-  }
-
-  refreshDomRefs() {
+  bindElements() {
     const root = document.getElementById('crypto-send-confirm-root');
-    this.el = root ? this.bindElements(root) : null;
+    if (root) {
+      return {
+        root,
+        title: root.querySelector('#crypto_send_confirm_title'),
+        detailMessage: root.querySelector('#crypto_send_confirm_detail'),
+        countdown: root.querySelector('#crypto_send_confirm_countdown')
+      };
+    }
+    return null;
   }
 
   /**
@@ -130,48 +86,6 @@ class Confirm {
     return { ok: true };
   }
 
-  onCloseClick() {
-    if (this.el?.ignoreCheckbox?.checked) {
-      resolveGameMod(this.app, this.mod, this.gameId).saveGamePreference(
-        'crypto_transfers_outbound_trusted',
-        1
-      );
-    }
-    this.overlay.close();
-  }
-
-  attachEvents() {
-    const btn = this.el?.closeBtn;
-    if (!btn) {
-      return;
-    }
-    btn.addEventListener('click', this.onCloseClick);
-  }
-
-  applyRootLayout(details) {
-    const root = this.el?.root;
-    if (!root) {
-      return;
-    }
-
-    const trusted = Boolean(details?.trusted);
-    root.dataset.confirmMode = trusted ? 'trusted' : 'interactive';
-
-    const game = resolveGameContext(this.app, this.mod, this.gameId);
-    const showGameIgnore = !trusted && game?.over === 0;
-    root.classList.toggle('crypto-send-confirm-overlay--show-ignore', showGameIgnore);
-  }
-
-  clearStatusCopy() {
-    if (!this.el?.root) {
-      return;
-    }
-    this.el.root.classList.remove('crypto-send-confirm-overlay--has-detail');
-    if (this.el.detailMessage) {
-      this.el.detailMessage.textContent = '';
-    }
-  }
-
   /**
    * @param details {{ ticker: string, amount: string, publicKey: string, address: string, trusted?: boolean, mycallback?: function }}
    */
@@ -183,45 +97,25 @@ class Confirm {
     }
 
     this.clearTimers();
-    this.gameId = details.game_id || null;
 
-    this.overlay.show(ConfirmTemplate());
-    this.refreshDomRefs();
+    this.overlay.show(ConfirmTemplate(details), () => {
+      // We can pass a callback to be run after the overlay is closed...
+      if (this.callback) {
+        this.callback();
+      }
+      this.el = null;
+      this.callback = null;
+      this.clearTimers();
+    });
+    this.overlay.blockClose('#crypto_send_confirm_close');
+
+    this.el = this.bindElements();
 
     if (!this.el?.root) {
+      console.error('bindElement failure...');
+      this.overlay.close();
       return;
     }
-
-    this.clearStatusCopy();
-    this.applyRootLayout(details);
-
-    if (this.el.title) {
-      this.el.title.textContent = 'Sending Payment';
-    }
-
-    if (this.el.amount) {
-      this.el.amount.textContent = `${details.amount} ${details.ticker}`;
-    }
-
-    if (this.el.address) {
-      const showChainAddress = details.address && details.address !== details.publicKey;
-      this.el.address.classList.toggle('hide-element', !showChainAddress);
-      if (showChainAddress) {
-        let a = details.address;
-        if (a.includes('|')) {
-          a = a.split('|')[0];
-        }
-        if (a.length > 16) {
-          this.el.address.textContent = `${a.slice(0, 8)}…${a.slice(-8)}`;
-        } else {
-          this.el.address.textContent = a;
-        }
-      } else {
-        this.el.address.textContent = '';
-      }
-    }
-
-    this.el.root.dataset.confirmState = 'pending';
 
     this.counter_party.publicKey = details.publicKey;
     this.counter_party.render();
@@ -250,6 +144,15 @@ class Confirm {
     }
   }
 
+  attachEvents() {
+    let cls_btn = document.querySelector('#crypto-send-confirm-root #crypto_send_confirm_close');
+    if (cls_btn) {
+      cls_btn.onclick = () => {
+        this.overlay.close();
+      };
+    }
+  }
+
   scheduleCountdownTick() {
     this.countdownTimer = setTimeout(() => {
       this.countdownTimer = null;
@@ -273,28 +176,29 @@ class Confirm {
    * @param results {{ hash?: string, err?: unknown }}
    */
   applyResult(results) {
-    this.refreshDomRefs();
-    const root = this.el?.root;
-    if (!root) {
+    const el = this.bindElements();
+    if (!el) {
       return;
     }
 
+    console.log(results);
+
     const success = Boolean(results?.hash && !results?.err);
 
-    if (this.el.title) {
-      this.el.title.textContent = success ? 'Payment sent' : 'Payment failed';
+    if (el.title) {
+      el.title.textContent = success ? 'Payment sent' : 'Payment failed';
     }
 
-    root.dataset.confirmState = success ? 'success' : 'failed';
+    el.root.dataset.confirmState = success ? 'success' : 'failed';
 
     if (success) {
-      root.classList.remove('crypto-send-confirm-overlay--has-detail');
-      if (this.el.detailMessage) {
-        this.el.detailMessage.textContent = '';
+      el.root.classList.remove('crypto-send-confirm-overlay--has-detail');
+      if (el.detailMessage) {
+        el.detailMessage.textContent = '';
       }
     }
 
-    if (!success && this.el.detailMessage) {
+    if (!success && el.detailMessage) {
       const err = results?.err;
       const msg =
         typeof err === 'string'
@@ -302,8 +206,8 @@ class Confirm {
           : err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
             ? err.message
             : '';
-      this.el.detailMessage.textContent = msg || 'This transfer could not be confirmed.';
-      root.classList.add('crypto-send-confirm-overlay--has-detail');
+      el.detailMessage.textContent = msg || 'This transfer could not be confirmed.';
+      el.root.classList.add('crypto-send-confirm-overlay--has-detail');
     }
 
     if (this.timeout) {
@@ -312,8 +216,8 @@ class Confirm {
         this.overlay.close();
         this.timeout = null;
       }, 3000);
-      if (this.el.countdown) {
-        this.el.countdown.textContent = '3';
+      if (el.countdown) {
+        el.countdown.textContent = '3';
       }
     }
   }

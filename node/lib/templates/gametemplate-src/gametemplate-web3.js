@@ -211,7 +211,7 @@ class GameWeb3 {
     }
 
     if (this.publicKey === sender) {
-      this.app.connection.emit('saito-crypto-send-render-request', {
+      this.app.connection.emit('saito-crypto-send-confirm-open-request', {
         publicKey: receiver,
         address: receiver_crypto_address,
         amount,
@@ -228,7 +228,7 @@ class GameWeb3 {
             unique_hash,
             function (robj) {
               console.debug('GT [payWinner] End game crypto transfer callback', robj);
-              game_self.app.connection.emit('saito-crypto-send-confirm', robj, unique_hash);
+              game_self.app.connection.emit('saito-crypto-send-confirm', robj);
             },
             receiver,
             `${game_self.name} stake`
