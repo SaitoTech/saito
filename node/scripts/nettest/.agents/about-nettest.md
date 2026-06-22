@@ -70,17 +70,14 @@ The scenario README describes the scenario. `nettest list` shows the first line,
    - `pm2 delete all` if PM2 exists.
    - Deletes all folders under `scripts/nettest/nodes/`.
 4. For each numeric node folder in the scenario:
-   - Recreates the Saito node app under `scripts/nettest/nodes/<node_number>`.
-   - In a legacy checkout where the node app is also the git root, this is a direct clone of `<PROJECT_DIR>`.
-   - In the current monorepo layout (`/opt/saito` git root with node app in `/opt/saito/node`), deploy clones the git root to a temporary directory and copies only the `node/` subdirectory into the target nettest node.
-   - Copies scenario `data/` into node `data/`, if present.
-   - Copies scenario `config/` into node `config/`, if present.
-   - Runs `npm install` inside the node clone.
-   - If the deploy option `local` is provided, prepares the local Rust workspace before node setup:
-     - respects an existing `SAITO_RUST_ROOT` if it points to a directory;
-     - otherwise, in the monorepo layout, creates `scripts/nettest/nodes/rust -> /opt/saito/rust` and exports `SAITO_RUST_ROOT` to that path so deployed node apps can find sibling `../rust`.
-   - If the deploy option `local` is provided, runs `npm run linklocal` inside the node clone immediately after `npm install` and before `npm run nuke dev`. In local mode, node setup is waited on sequentially to avoid concurrent npm-link/Rust-WASM build races across nodes.
-   - Runs `npm run nuke dev` inside the node clone.
+   - Recreates the Saito checkout under `scripts/nettest/nodes/<node_number>`.
+   - In a legacy checkout where the node app is also the git root, the deployed app directory is the node folder itself.
+   - In the current monorepo layout (`/opt/saito` git root with node app in `/opt/saito/node`), deploy clones the full git root into the target nettest node, so the deployed app directory is `scripts/nettest/nodes/<node_number>/node` and the deployed Rust workspace is the sibling `scripts/nettest/nodes/<node_number>/rust`.
+   - Copies scenario `data/` into the deployed app's `data/`, if present.
+   - Copies scenario `config/` into the deployed app's `config/`, if present.
+   - Runs `npm install` inside the deployed app directory.
+   - If the deploy option `local` is provided, runs `npm run linklocal` inside each deployed app immediately after `npm install` and before `npm run nuke dev`, with `SAITO_RUST_ROOT` pointed at that deployed monorepo's sibling `rust/` directory when present.
+   - Runs `npm run nuke dev` inside the deployed app directory.
    - Re-copies scenario `data/` after nuke, because compile/nuke clears runtime data.
    - Copies scenario `data/blocks/` if present.
    - Creates a stopped PM2 process named `node<node_number>` using `npm start`, merged logs, log file `./saito.log`.
@@ -159,7 +156,7 @@ README: two nodes with the same chain for ten blocks then both fork for ten bloc
 Observed:
 - Similar endpoint and peer topology to base.
 - Includes `issuance.tsv` and `issuance.orig` in addition to base-style issuance files.
-- No `data/blocks/` directories were visible during inspection, so the README may describe intended behavior, generated behavior, or a scenario that is incomplete/stale unless block state is produced elsewhere.
+- Includes preloaded block state: 20 `.sai` files under node1 and 20 `.sai` files under node2. The first ten blocks are shared; later blocks diverge for the fork test.
 
 ## Important implementation details
 
@@ -207,6 +204,12 @@ Scenario configuration details for block production, staking, issuance/wallets, 
 
 ```text
 /opt/saito/node/scripts/nettest/.agents/about-scenario-config.md
+```
+
+Log analysis and report-production workflow for PM2/node logs and browser console exports is documented in:
+
+```text
+/opt/saito/node/scripts/nettest/.agents/about-log-analysis-and-reports.md
 ```
 
 For JS-only updates, normal npm-installed packages are sufficient.
