@@ -329,10 +329,11 @@ function reset_scenario() {
             
             announce "Resetting node${node_num}..."
             
-            # Clear existing conf and data directories
+            # Clear scenario-owned config files while preserving config/build.
+            # config/build contains tsconfig/webpack files required by npm start/compile.
             if [ -d "${app_dir}/config" ]; then
-                announce "Clearing configuration for node${node_num}..."
-                execute "rm -rf ${app_dir:?}/config/*"
+                announce "Clearing scenario configuration for node${node_num}..."
+                execute "rm -f ${app_dir}/config/options ${app_dir}/config/options.conf ${app_dir}/config/modules.config.js"
             fi
             
             if [ -d "${app_dir}/data" ]; then
