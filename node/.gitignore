@@ -63,9 +63,23 @@ dist
 dist/*
 
 scripts/nettest/nettest.log
-scripts/nettest/nodes
-scripts/nettest/nodes/*
+
+# Nettest deployed nodes are throwaway runtime output.
+scripts/nettest/nodes/
+scripts/nettest/nodes/**
 scripts/nettest/nodes/nettest.log
+
+# Nettest scenarios are ignored by default so local snapshots / experiments
+# are not committed accidentally. Re-include shared scenarios explicitly.
+scripts/nettest/scenarios/*
+!scripts/nettest/scenarios/atr/
+!scripts/nettest/scenarios/atr/**
+!scripts/nettest/scenarios/base/
+!scripts/nettest/scenarios/base/**
+!scripts/nettest/scenarios/blonger/
+!scripts/nettest/scenarios/blonger/**
+!scripts/nettest/scenarios/fork/
+!scripts/nettest/scenarios/fork/**
 
 saito-issuance
 saito-issuance/*
