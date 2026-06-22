@@ -16,11 +16,7 @@ module.exports  = (mod, videoEnabled = true, audioEnabled = true) => {
               <div class="counter">00:00</div>
               <div class="users-on-call">
                 <div class="stun-identicon-list"></div>
-                <div class="users-on-call-text"><span class="users-on-call-count">1</span> on call</div>
-              </div>
-              <div class="add-users-container control-list">
-                <div class="icon_click_area">
-                  <label>Invite</label>
+                <div class="invite-control icon_click_area" role="button" tabindex="0" aria-label="Invite users" title="Invite users">
                   <i class="add_users fa fa-plus"></i>
                 </div>
               </div>

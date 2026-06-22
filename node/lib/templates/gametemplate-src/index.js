@@ -4,7 +4,7 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
 
   
   <!DOCTYPE html>
-  <html lang="en" class="game ${gameSlug}" data-theme="noir">
+  <html lang="en" class="game ${gameSlug}" data-theme="lite">
   
   <head>
 

@@ -37,7 +37,6 @@
 }
 
 .limbo-splash-logo {
-	--saito-cta-logo-color: var(--saito-white, #fff);
 	--saito-cta-logo-mask: url('/saito/icons/saito-swarmcast-icon-outline-label-horizontal.svg');
 	width: min(56rem, 84vw);
 	display: block;
@@ -46,7 +45,7 @@
 	filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.limbo-splash-box:hover .limbo-splash-logo {
+.saito-cta:hover .limbo-splash-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-swarmcast-icon-solid-label-horizontal.svg');
 }
 
@@ -54,7 +53,6 @@
 	content: "";
 	position: absolute;
 	inset: 0;
-	background: var(--saito-cta-logo-color);
 	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }

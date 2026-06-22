@@ -76,6 +76,7 @@ class SettlersPlayer {
     $('.sector-container').on('mouseup', function (e) {
       if (Math.abs(xpos-e.clientX) > 4) { return; }
       if (Math.abs(ypos-e.clientY) > 4) { return; }
+      settlers_self.stopPlacementHintWave();
       $(".sector-container").off();
       $(".sector-container").removeClass("rhover");
       let slot = $(this).attr("id");
@@ -84,6 +85,7 @@ class SettlersPlayer {
     });
     $(".bandit").removeClass("rhover");
     $(".bandit").off(); //Don't select bandit tile
+    this.startPlacementHintWave(".sector-container.rhover");
   }
 
   canPlayerBuildTown(player) {
@@ -150,6 +152,7 @@ class SettlersPlayer {
         //Confirm this move
         let slot = $(this).attr("id");
         settlers_self.confirmPlacement(slot, settlers_self.c1.name, () => {
+          settlers_self.stopPlacementHintWave();
           $(".city.empty").removeClass("chover");
           $(".city.empty").off();
           settlers_self.game.state.placedCity = slot;
@@ -169,6 +172,7 @@ class SettlersPlayer {
         this.updateControls(`<i class="fa-solid fa-xmark"></i>`);
           document.getElementById("rolldice").onclick = (e) => {
             //Make sure the confirm popup goes away
+            settlers_self.stopPlacementHintWave();
             $(".action").off();
             $(".popup-confirm-menu").remove();
             $(".rhover").off();
@@ -203,6 +207,7 @@ class SettlersPlayer {
         let slot = $(this).attr("id");
         $(".rhover").css("background-color", "");
         settlers_self.confirmPlacement(slot, settlers_self.c1.name, () => {
+          settlers_self.stopPlacementHintWave();
           $(".rhover").off();
           $(".rhover").removeClass("rhover");
 
@@ -212,6 +217,7 @@ class SettlersPlayer {
         });
       });
     }
+    this.startPlacementHintWave();
   }
 
   canPlayerBuildRoad(player) {
@@ -237,6 +243,7 @@ class SettlersPlayer {
         let slot = $(this).attr("id");
         $(".road.empty").css("background-color", "");
         settlers_self.confirmPlacement(slot, settlers_self.r.name, () => {
+          settlers_self.stopPlacementHintWave();
           $(".road.new").off();
           $(".road.new").removeAttr("style");
           $(".rhover").removeClass("rhover");
@@ -252,6 +259,7 @@ class SettlersPlayer {
         this.updateControls(`<i class="fa-solid fa-xmark"></i>`);
         document.getElementById("rolldice").onclick = (e) => {
           //Make sure the confirm popup goes away
+          settlers_self.stopPlacementHintWave();
           $(".action").off();
           $(".popup-confirm-menu").remove();
           $(".road.empty").off();
@@ -271,6 +279,7 @@ class SettlersPlayer {
         let slot = $(this).attr("id");
         $(".road.empty").removeAttr("style");
         settlers_self.confirmPlacement(slot, settlers_self.r.name, () => {
+          settlers_self.stopPlacementHintWave();
           $(".road.empty").off();
           $(".rhover").removeClass("rhover");
           $(".road.empty").removeAttr("style");
@@ -279,6 +288,7 @@ class SettlersPlayer {
         });
       });
     }
+    this.startPlacementHintWave();
   }
 
   canPlayerBuildCity(player) {
@@ -299,6 +309,7 @@ class SettlersPlayer {
       this.updateControls(`<i class="fa-solid fa-xmark"></i>`);
       document.getElementById("rolldice").onclick = (e) => {
         //Make sure the confirm popup goes away
+        settlers_self.stopPlacementHintWave();
         $(".action").off();
         $(".popup-confirm-menu").remove();
         //Disable board event selection
@@ -328,6 +339,7 @@ class SettlersPlayer {
 
       $(this).css("border-color", "yellow");
       settlers_self.confirmPlacement(slot, settlers_self.c2.name, () => {
+        settlers_self.stopPlacementHintWave();
         $(".chover").removeAttr("style");
         $(".chover").off();
         $(".chover").removeClass("chover");
@@ -347,6 +359,7 @@ class SettlersPlayer {
 
         });
     });
+    this.startPlacementHintWave(".chover");
   }
 
   /*
