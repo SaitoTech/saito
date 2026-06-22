@@ -55,6 +55,7 @@ export default class Blockchain extends SaitoBlockchain {
       lowest_acceptable_timestamp: Number(await this.instance.get_lowest_acceptable_timestamp()),
       lowest_acceptable_block_hash: await this.instance.get_lowest_acceptable_block_hash(),
       lowest_acceptable_block_id: Number(await this.instance.get_lowest_acceptable_block_id()),
+      issuance_writing_block_interval:this.app.options.blockchain?.issuance_writing_block_interval ?? 10,
       fork_id: await this.instance.get_fork_id(),
       confirmations: []
     };
