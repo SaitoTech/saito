@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use super::super::script::{resolve_ref, resolved_value_to_message_string};
 use crate::core::consensus::block::Block;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::defs::{PrintForLog, SaitoPublicKey, SaitoSignature};
@@ -36,7 +37,7 @@ impl CheckMultiSig {
         }
     }
 
-    pub fn validate(context: &mut Value, _tx: Option<&Transaction>, _blk: Option<&Block>) -> u8 {
+    pub fn validate(context: &mut Value, tx: Option<&Transaction>, blk: Option<&Block>) -> u8 {
         let publickeys = match context["script"]["publickeys"].as_array() {
             Some(keys) if !keys.is_empty() => keys,
             _ => return 0,
@@ -55,11 +56,21 @@ impl CheckMultiSig {
             },
         };
 
-        let msg = context["script"]["msg"]
+        let script_msg = &context["script"]["msg"];
+        let has_script_msg = script_msg
             .as_str()
-            .filter(|s| !s.is_empty())
-            .or_else(|| context["variables"]["message"].as_str())
-            .unwrap_or("");
+            .map(|s| !s.is_empty())
+            .unwrap_or(!script_msg.is_null());
+
+        let msg = if has_script_msg {
+            let resolved = resolve_ref(script_msg, context, tx, blk);
+            resolved_value_to_message_string(&resolved)
+        } else {
+            context["variables"]["message"]
+                .as_str()
+                .unwrap_or("")
+                .to_string()
+        };
 
         let mut valid = 0usize;
         let mut used = HashSet::new();
@@ -85,7 +96,7 @@ impl CheckMultiSig {
                     continue;
                 };
 
-                if verify(msg.as_bytes(), &sig, &pk) {
+                if verify(msg.as_ref(), &sig, &pk) {
                     used.insert(publickey.to_string());
                     valid += 1;
                     break;

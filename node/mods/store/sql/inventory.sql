@@ -3,22 +3,24 @@ CREATE TABLE IF NOT EXISTS inventory (
 
   signature TEXT NOT NULL UNIQUE,
 
-  listing_id TEXT NOT NULL,
+  nft_id TEXT NOT NULL,
+  seller TEXT DEFAULT '',
 
-  nft_id TEXT DEFAULT '',
-
-  quantity INTEGER DEFAULT 1,
-
-  status INTEGER DEFAULT 1,
-  onchain INTEGER DEFAULT 1,
-
-  block_id INTEGER DEFAULT 0,
-  block_hash TEXT DEFAULT '',
-  transaction_id INTEGER DEFAULT 0,
-  slip_id INTEGER DEFAULT 0,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  price INTEGER NOT NULL DEFAULT 0,
 
   access_hash TEXT DEFAULT '',
-  access_script TEXT DEFAULT '',
+  access_script TEXT NOT NULL DEFAULT '',
+  p2sh_address TEXT DEFAULT '',
+
+  block_id INTEGER NOT NULL DEFAULT 0,
+  block_hash TEXT NOT NULL DEFAULT '',
+  transaction_id INTEGER NOT NULL DEFAULT 0,
+  slip_id INTEGER NOT NULL DEFAULT 0,
+
+  longest_chain INTEGER NOT NULL DEFAULT 1,
+  on_chain INTEGER NOT NULL DEFAULT 1,
+  spent INTEGER NOT NULL DEFAULT 0,
 
   utxo_slip1 TEXT DEFAULT '',
   utxo_slip2 TEXT DEFAULT '',
@@ -27,3 +29,9 @@ CREATE TABLE IF NOT EXISTS inventory (
   created_at INTEGER DEFAULT 0,
   updated_at INTEGER DEFAULT 0
 );
+
+CREATE INDEX IF NOT EXISTS inventory_chain_idx
+  ON inventory (block_id, block_hash);
+
+CREATE INDEX IF NOT EXISTS inventory_bucket_idx
+  ON inventory (nft_id, price, on_chain, spent);

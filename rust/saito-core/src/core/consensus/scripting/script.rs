@@ -1,7 +1,8 @@
 use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
+use crate::core::consensus::slip::Slip;
 use crate::core::consensus::transaction::Transaction;
-use crate::core::defs::PrintForLog;
+use crate::core::defs::{PrintForLog, SaitoPublicKey};
 use crate::core::util::crypto;
 use serde_json::{json, Value};
 
@@ -29,6 +30,12 @@ impl Script {
 
     pub fn create(&mut self, text: &str) {
         todo!()
+    }
+
+    pub fn from_json(json: &str) -> Self {
+        let mut script = Script::new();
+        script.parse(json);
+        script
     }
 
     pub fn parse(&mut self, json: &str) {
@@ -328,6 +335,24 @@ impl Script {
         // return hash as hex
         //
         crypto::hash(canonical.as_bytes()).to_hex()
+    }
+
+    pub fn address(&self) -> SaitoPublicKey {
+        let hash_hex = self.hash();
+        let hash_bytes = hex::decode(hash_hex)
+            .expect("script hash should be valid hex");
+
+        let mut address: SaitoPublicKey = [0; 33];
+
+        address[0] = 0x00;
+        address[1..33].copy_from_slice(&hash_bytes[..32]);
+
+        address
+    }
+
+    /// Script commitment as hex: `00` + 32-byte script hash (66 characters).
+    pub fn address_hex(&self) -> String {
+        format!("00{}", self.hash())
     }
 
     pub fn get(&self, path: &str) -> Value {
@@ -745,6 +770,158 @@ mod tests {
 
         assert_eq!(script.validate(None, None, None), 1);
     }
+
+    #[test]
+    fn address_hex_is_00_prefix_plus_hash() {
+        let script = Script::from_json(super::TEST_SCRIPT);
+        let hash = script.hash();
+        assert!(!hash.is_empty());
+        assert_eq!(script.address_hex(), format!("00{hash}"));
+        assert_eq!(script.address_hex().len(), 66);
+    }
+
+    #[test]
+    fn resolve_ref_p2sh_utxoset_key_returns_hex() {
+        use super::{resolve_ref, resolved_value_to_message_string};
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut custody = Slip::default();
+        custody.slip_type = SlipType::Normal;
+        custody.public_key[0] = 0x00;
+        custody.public_key[1] = 0xab;
+        custody.generate_utxoset_key();
+        let expected = custody.utxoset_key.to_hex();
+
+        let mut tx = Transaction::default();
+        tx.from.push(custody);
+
+        let context = json!({ "script": {}, "witness": {}, "variables": {} });
+        let resolved = resolve_ref(
+            &json!("tx.from.p2sh.utxoset_key"),
+            &context,
+            Some(&tx),
+            None,
+        );
+        assert_eq!(resolved_value_to_message_string(&resolved), expected);
+    }
+
+    #[test]
+    fn resolve_ref_p2sh_prefers_custody_over_marker() {
+        use super::{resolve_ref, resolved_value_to_message_string};
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut custody = Slip::default();
+        custody.slip_type = SlipType::Normal;
+        custody.public_key[0] = 0x00;
+        custody.public_key[1] = 0xcd;
+        custody.amount = 5;
+        custody.generate_utxoset_key();
+        let expected = custody.utxoset_key.to_hex();
+
+        let mut marker = Slip::default();
+        marker.slip_type = SlipType::P2SH;
+        marker.public_key = custody.public_key;
+        marker.amount = 0;
+        marker.generate_utxoset_key();
+
+        let mut tx = Transaction::default();
+        tx.from.push(custody);
+        tx.from.push(marker);
+
+        let context = json!({ "script": {}, "witness": {}, "variables": {} });
+        let resolved = resolve_ref(
+            &json!("tx.from.p2sh.utxoset_key"),
+            &context,
+            Some(&tx),
+            None,
+        );
+        assert_eq!(resolved_value_to_message_string(&resolved), expected);
+    }
+
+    #[test]
+    fn resolve_ref_p2sh_missing_slip_returns_empty_string() {
+        use super::{resolve_ref, resolved_value_to_message_string};
+        use crate::core::consensus::transaction::Transaction;
+
+        let tx = Transaction::default();
+        let context = json!({ "script": {}, "witness": {}, "variables": {} });
+        let resolved = resolve_ref(
+            &json!("tx.from.p2sh.utxoset_key"),
+            &context,
+            Some(&tx),
+            None,
+        );
+        assert_eq!(resolved_value_to_message_string(&resolved), "");
+    }
+
+    #[test]
+    fn validate_checkmultisig_contextual_p2sh_msg_succeeds() {
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let mut custody = Slip::default();
+        custody.slip_type = SlipType::Normal;
+        custody.public_key[0] = 0x00;
+        custody.public_key[1] = 0xef;
+        custody.generate_utxoset_key();
+        let msg = custody.utxoset_key.to_hex();
+        let sig = crate::core::util::crypto::sign(msg.as_bytes(), &sk).to_hex();
+
+        let mut tx = Transaction::default();
+        tx.from.push(custody);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKMULTISIG",
+                "m": 1,
+                "publickeys": [pk.to_base58()],
+                "msg": "tx.from.p2sh.utxoset_key",
+                "witness": {
+                    "signatures": [sig]
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None), 1);
+    }
+
+    #[test]
+    fn validate_checksig_contextual_p2sh_msg_succeeds() {
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let mut custody = Slip::default();
+        custody.slip_type = SlipType::Normal;
+        custody.public_key[0] = 0x00;
+        custody.public_key[1] = 0xef;
+        custody.generate_utxoset_key();
+        let msg = custody.utxoset_key.to_hex();
+        let sig = crate::core::util::crypto::sign(msg.as_bytes(), &sk).to_hex();
+
+        let mut tx = Transaction::default();
+        tx.from.push(custody);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKSIG",
+                "publickey": pk.to_base58(),
+                "msg": "tx.from.p2sh.utxoset_key",
+                "witness": {
+                    "signature": sig
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None), 1);
+    }
 }
 
 fn set_at(target: &mut Value, path: &[&str], value: Value) {
@@ -772,6 +949,34 @@ fn set_at(target: &mut Value, path: &[&str], value: Value) {
     }
 }
 
+fn resolve_p2sh_slip_field(slips: &[Slip], field: &str) -> Value {
+    let Some(slip) = slips.iter().find(|s| s.public_key[0] == 0x00) else {
+        return Value::String(String::new());
+    };
+
+    match field {
+        "utxoset_key" => Value::String(slip.utxoset_key.to_hex()),
+        "public_key" => Value::String(slip.public_key.to_base58()),
+        _ => Value::String(String::new()),
+    }
+}
+
+pub(crate) fn resolved_value_to_message_string(value: &Value) -> String {
+    match value {
+        Value::String(s) => s.clone(),
+        Value::Number(n) => {
+            if let Some(u) = n.as_u64() {
+                u.to_string()
+            } else if let Some(i) = n.as_i64() {
+                i.to_string()
+            } else {
+                String::new()
+            }
+        }
+        _ => String::new(),
+    }
+}
+
 pub(crate) fn resolve_ref(
     value: &Value,
     context: &Value,
@@ -792,7 +997,11 @@ pub(crate) fn resolve_ref(
         let mut current = root;
 
         for part in path.split('.') {
-            current = current.get(part)?;
+            if let Ok(index) = part.parse::<usize>() {
+                current = current.get(index)?;
+            } else {
+                current = current.get(part)?;
+            }
         }
 
         Some(current.clone())
@@ -824,6 +1033,13 @@ pub(crate) fn resolve_ref(
     //
     if let Some(remainder) = path.strip_prefix("tx.") {
         if let Some(tx) = tx {
+            if let Some(field) = remainder.strip_prefix("from.p2sh.") {
+                return resolve_p2sh_slip_field(&tx.from, field);
+            }
+            if let Some(field) = remainder.strip_prefix("to.p2sh.") {
+                return resolve_p2sh_slip_field(&tx.to, field);
+            }
+
             let tx_json = serde_json::to_value(tx).unwrap_or(Value::Null);
 
             return lookup(&tx_json, remainder).unwrap_or(Value::Null);

@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS sales (
 
   signature TEXT NOT NULL UNIQUE,
 
-  listing_id TEXT NOT NULL,
+  listing_id INTEGER NOT NULL,
 
   buyer TEXT DEFAULT '',
   seller TEXT DEFAULT '',
@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS sales (
   refund TEXT DEFAULT '',
 
   status INTEGER DEFAULT 0,
-  onchain INTEGER DEFAULT 1,
+  on_chain INTEGER DEFAULT 1,
 
-  fulfillment_tx TEXT DEFAULT '',
+  outbound_tx TEXT DEFAULT '',
   retry_count INTEGER DEFAULT 0,
   last_attempt INTEGER DEFAULT 0,
 
