@@ -454,7 +454,6 @@ class CryptoModule extends ModTemplate {
      block_hash,
      block_id,
      signature,
-     transaction_signature,
      transaction_type,
 
      // extra stuff from Mixin

@@ -313,18 +313,16 @@ impl Wallet {
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),
                                     "timestamp": block.timestamp,
-                                    "transaction_signature": signature,
                                     "signature": signature,
                                     "sender": sender.to_base58(),
                                     "receiver": receiver,
                                     "ticker": Self::extract_nft_ticker_from_tx(tx),
                                     "nft_id": slip3.public_key.to_hex(),
-                                    "nft_amount": slip1.amount,
+                                    "amount": slip1.amount,
                                     "saito_deposit": slip2.amount,
                                     "slip1_utxo": slip1.utxoset_key.to_hex(),
                                     "slip2_utxo": slip2.utxoset_key.to_hex(),
                                     "slip3_utxo": slip3.utxoset_key.to_hex(),
-                                    "sender_publickey": sender.to_base58(),
                                 }))
                                 .unwrap_or_else(|_| "{}".to_string());
                                 io.send_interface_event(InterfaceEvent::OnNFTSent(payload));
@@ -361,20 +359,29 @@ impl Wallet {
                                         .first()
                                         .map(|s| s.public_key.to_base58())
                                         .unwrap_or_default();
+                                    // receiver uses tx.to.first(); amount sums non-self to-slips.
+                                    // Both may be inaccurate when a transaction has multiple to-slips
+                                    // (e.g. multiple recipients, or change ordered before payment).
                                     let receiver = tx
                                         .to
                                         .first()
                                         .map(|s| s.public_key.to_base58())
                                         .unwrap_or_default();
+                                    let amount: Currency = tx
+                                        .to
+                                        .iter()
+                                        .filter(|s| s.public_key != self.public_key)
+                                        .map(|s| s.amount)
+                                        .sum();
                                     let signature = tx.signature.to_hex();
                                     let payload = serde_json::to_string(&json!({
                                         "ticker": "SAITO" ,
                                         "block_id": block.id,
                                         "block_hash": block.hash.to_hex(),
                                         "timestamp": block.timestamp,
-                                        "transaction_signature": signature,
                                         "signature": signature,
                                         "transaction_type": format!("{:?}", tx.transaction_type),
+                                        "amount": amount,
                                         "sender": sender,
                                         "receiver": receiver,
                                     }))
@@ -432,7 +439,6 @@ impl Wallet {
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),
                                     "timestamp": block.timestamp,
-                                    "transaction_signature": signature,
                                     "signature": signature,
                                     "sender": sender.to_base58(),
                                     "receiver": receiver,
@@ -442,7 +448,6 @@ impl Wallet {
                                     "slip1_utxo": slip1.utxoset_key.to_hex(),
                                     "slip2_utxo": slip2.utxoset_key.to_hex(),
                                     "slip3_utxo": slip3.utxoset_key.to_hex(),
-                                    "sender_publickey": sender.to_base58(),
                                 }))
                                 .unwrap_or_else(|_| "{}".to_string());
                                 io.send_interface_event(InterfaceEvent::OnNFTReceived(payload));
@@ -462,24 +467,18 @@ impl Wallet {
                                     .first()
                                     .map(|s| s.public_key.to_base58())
                                     .unwrap_or_default();
-                                let receiver = tx
-                                    .to
-                                    .first()
-                                    .map(|s| s.public_key.to_base58())
-                                    .unwrap_or_default();
+                                let receiver = output.public_key.to_base58();
                                 let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
                                     "ticker": "SAITO",
                                     "block_id": block.id,
                                     "block_hash": block.hash.to_hex(),
                                     "timestamp": block.timestamp,
-                                    "transaction_signature": signature,
                                     "signature": signature,
                                     "transaction_type": format!("{:?}", tx.transaction_type),
                                     "amount": output.amount,
                                     "sender": sender,
                                     "receiver": receiver,
-                                    "sender_publickey": sender,
                                 }))
                                 .unwrap_or_else(|_| "{}".to_string());
                                 io.send_interface_event(InterfaceEvent::OnTransactionReceived(
