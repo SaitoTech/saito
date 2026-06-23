@@ -264,7 +264,7 @@ Scrollbars
   padding: 3rem;
   font-size: var(--font-size-large);
   background: var(--saito-primary);
-  color: var(--saito-primary-text);
+  color: var(--saito-white);
   position: fixed;
   bottom: min(5rem, 10vh);
   left: min(5rem, 5vw);
