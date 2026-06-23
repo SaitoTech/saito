@@ -672,10 +672,18 @@ class ModTools extends ModTemplate {
 			}
 		}
 
+		let updated = false;
+
 		for (let i = 0; i < list.length; i++) {
 			if (list[i].hop < this.max_hops) {
-				this.blacklistAddress(list[i]);
+				if (this.blacklistAddress(list[i], false)) {
+					updated = true;
+				}
 			}
+		}
+
+		if (updated) {
+			this.app.connection.emit('on-saito-blacklist-updated');
 		}
 	}
 
@@ -694,17 +702,17 @@ class ModTools extends ModTemplate {
 		}
 	}
 
-	blacklistAddress(data) {
+	blacklistAddress(data, emitUpdate = true) {
 		// there is an edge-case where the first address will be added address-free, so checking and bailing
 		if (!data?.publicKey) {
-			return;
+			return false;
 		}
 
 		let add = data.publicKey;
 
 		if (add === this.publicKey) {
 			// Don't blacklist myself
-			return;
+			return false;
 		}
 
 		if (!this.blacklisted_publickeys.includes(add)) {
@@ -724,8 +732,11 @@ class ModTools extends ModTemplate {
 
 			this.blacklist.push(data);
 			this.save();
+			if (emitUpdate) {
+				this.app.connection.emit('on-saito-blacklist-updated');
+			}
+			return true;
 		}
-		this.app.connection.emit('on-saito-blacklist-updated');
 
 		//
 		// if we already have the entry, we can push its time stamp forward
@@ -738,6 +749,7 @@ class ModTools extends ModTemplate {
 		}
 
 		this.save();
+		return false;
 	}
 
 	whitelistAddress(data, sudo = false) {
