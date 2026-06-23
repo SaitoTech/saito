@@ -133,6 +133,14 @@ class Tweet {
 		//
 		try {
 			this.setKeys(tx.optional, true);
+
+			// Safety catch for mis-curated tweets, 6/23/2026
+			if (this.updated_at < 1782203100000) {
+				if (this.curated > 0) {
+					this.curated = 0;
+					this.tx.optional.curated = 0;
+				}
+			}
 		} catch (err) {
 			console.error('ERROR in Tweet.js (2):', err);
 		}
@@ -763,7 +771,7 @@ class Tweet {
 						e.stopPropagation();
 						this.curation_check = this.tx.optional.curation_check = false;
 						this.tx.optional.curated = 1;
-						this.mod.saveTweet(this);
+						this.mod.saveTweet(this, true);
 						this.rerenderControls(true);
 						siteMessage('Thank you for your feedback!', 3000);
 					};
@@ -780,7 +788,7 @@ class Tweet {
 						e.stopPropagation();
 						this.curation_check = this.tx.optional.curation_check = false;
 						this.tx.optional.curated = 1;
-						this.mod.saveTweet(this);
+						this.mod.saveTweet(this, true);
 						this.rerenderControls(true);
 						siteMessage('Thank you for your feedback!', 3000);
 					};

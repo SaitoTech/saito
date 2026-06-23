@@ -147,57 +147,9 @@ module.exports = (app, mod) => {
   }
 
   html += `
-        
-        </div>
-        <div id="options-space"></div>    
-        </div>
-    `;
-
-  /*
-    html +=  `
-        <div class="modtools-container">
-          <div class="modtools-container-title">App Permissions</div>
-      `;
-
-
-      if (Object.keys(apps).length > 0) {
-        for(let key in apps){
-          html += `
-                <div class="app-permission-option">
-                    <div class="app-name">${key.toUpperCase()}</div>
-                    <div class="app-permission-list">
-                      ${apps[key] == '*'  ? `<div>Allow all</div>` : ``}
-                      ${apps[key] == '!'  ? `<div>Allow none</div>` : ``}
-                      ${apps[key] == '$'  ? `<div>Allow fee-bearing</div>` : ``}
-                    </div>
-                </div>
-                `;  
-          }
-      } else {
-        html += `
-          <div>No app permissions to show</div>
-        `;
-      }
-
-    html +=`
-
-        </div>    
-    
-    </div>`;
-*/
-
-  let public_options = Object.assign({}, app.options);
-  delete public_options.wallet;
-
-  let opt_str = JSON.stringify(
-    public_options,
-    (key, value) => (typeof value === 'bigint' ? value.toString() : value) // return everything else unchanged
-  );
-  html += `
 </body>
 
   <script type="text/javascript">
-    var options = \'${opt_str}\';
     var blacklist = [];
     var whitelist = [];`;
 

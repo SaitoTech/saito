@@ -186,7 +186,6 @@ class RedSquareMenu {
     this.peers = [];
     this.keylist = {};
 
-    this.tweet_count = 0;
     this.liked_tweets = [];
     this.retweeted_tweets = [];
     this.replied_tweets = [];
