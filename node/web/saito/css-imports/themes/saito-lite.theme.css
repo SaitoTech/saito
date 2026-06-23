@@ -52,6 +52,7 @@ html[data-theme='lite'] {
   --saito-button-primary-fg: var(--saito-white);
   --saito-button-secondary-fg-hover: var(--saito-white);
   --saito-cta-logo: var(--saito-primary);
+  --palette-on-primary: #ffffff;
 }
 
 html[data-theme='lite'] .saito-header-menu-section .module-menu > ul > li .saito-module-menu-icon {
