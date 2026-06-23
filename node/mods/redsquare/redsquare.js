@@ -1395,10 +1395,9 @@ class RedSquare extends ModTemplate {
         t.tx.optional.updated_at = tx.optional.updated_at;
 
         if (tx.optional.curated && !t.curated) {
-          // Negative curation is authoritative. Positive curation is recalculated
-          // locally so curated feeds only show whitelisted authors.
-          t.curated = tx.optional.curated == -1 ? -1 : this.curate(tx);
-          t.tx.optional.curated = t.curated;
+          // Update curation value if (1/-1)
+          t.tx.optional.curated = tx.optional.curated;
+          t.curated = tx.optional.curated;
 
           delete t.curation_check;
 
@@ -1838,7 +1837,17 @@ class RedSquare extends ModTemplate {
   }
 
   updateTweetCuration(tweet, interaction_tx) {
-    tweet.curated = this.curate(tweet.tx);
+    //
+    // set as curated if liked by moderator, but ignore blacklisted people
+    //
+    let new_curation = Math.max(0, this.curate(interaction_tx));
+
+    if (new_curation == 1) {
+      //console.debug('RS move tweet to curated by trusted like/retweet!');
+      this.addToCouncil(tweet.tx.from[0].publicKey);
+    }
+
+    tweet.curated = new_curation || tweet.curated;
   }
 
   async updateTweetStat(tweet_tx, ts, stat, tweet = null) {
@@ -2974,10 +2983,19 @@ class RedSquare extends ModTemplate {
       return -1;
     }
 
-    // Keep local/archive negative curation, but do not accept cached positive
-    // curation. Curated mode should only show content from whitelisted authors.
-    if (tx.optional?.curated == -1) {
-      return -1;
+    // My contacts get through
+    if (this.app.keychain.hasPublicKey(tx.from[0].publicKey)) {
+      return 1;
+    }
+
+    if (tx.to[0].amount) {
+      //console.log('Auto approve moneyed tweets: ', tx.to[0].amount);
+      return 1;
+    }
+
+    // Allow us to cache curated status (preferably just "1") in local archives
+    if (tx.optional.curated !== undefined) {
+      return tx.optional.curated;
     }
 
     return 0;
