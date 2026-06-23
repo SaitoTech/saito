@@ -154,18 +154,6 @@ class ModTools extends ModTemplate {
 		//this.styles = [`/${this.returnSlug()}/style.css`];
 		await super.render();
 		this.attachEvents();
-
-		let el = document.querySelector('#options-space');
-		el.innerHTML = '';
-
-		if (window?.options) {
-			try {
-				let optjson = JSON.parse(window.options);
-				var tree = jsonTree.create(optjson, el);
-			} catch (err) {
-				console.log('error creating jsonTree: ' + err);
-			}
-		}
 	}
 
 	attachEvents() {
@@ -273,19 +261,19 @@ class ModTools extends ModTemplate {
 			//
 			if (this.canPeerModerate(peer.publicKey)) {
 				app.network.sendRequestAsTransaction(
-          'modtools',
-          { request: 'load' },
-          (res) => {
-            if (res?.blacklist?.length) {
-              modtools_self.addPeerBlacklist(peer.publicKey, res.blacklist);
-            }
+					'modtools',
+					{ request: 'load' },
+					(res) => {
+						if (res?.blacklist?.length) {
+							modtools_self.addPeerBlacklist(peer.publicKey, res.blacklist);
+						}
 
-            if (res?.whitelist?.length) {
-              modtools_self.addPeerWhitelist(peer.publicKey, res.whitelist);
-            }
-          },
-          peer.publicKey
-        );
+						if (res?.whitelist?.length) {
+							modtools_self.addPeerWhitelist(peer.publicKey, res.whitelist);
+						}
+					},
+					peer.publicKey
+				);
 			}
 		}
 	}
@@ -601,6 +589,7 @@ class ModTools extends ModTemplate {
 				this.blacklisted_publickeys.splice(i, 1);
 
 				this.save();
+				this.app.connection.emit('on-saito-blacklist-updated');
 				return;
 			}
 		}
@@ -736,6 +725,7 @@ class ModTools extends ModTemplate {
 			this.blacklist.push(data);
 			this.save();
 		}
+		this.app.connection.emit('on-saito-blacklist-updated');
 
 		//
 		// if we already have the entry, we can push its time stamp forward
