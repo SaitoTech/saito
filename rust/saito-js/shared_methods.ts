@@ -46,6 +46,7 @@ export interface SaitoRuntimeApp {
   };
   connection: {
     emit(eventName: string, ...args: any[]): void;
+    listenerCount?(eventName: string): number;
   };
   modules: {
     handlePeerTransaction(
