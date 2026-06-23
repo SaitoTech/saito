@@ -263,7 +263,7 @@ Scrollbars
   max-width: 100vw;
   padding: 3rem;
   font-size: var(--font-size-large);
-  background: var(--saito-primary);
+  background: var(--saito-white);
   color: var(--saito-primary-text);
   position: fixed;
   bottom: min(5rem, 10vh);
