@@ -271,12 +271,11 @@
   position: relative;
   padding: 0 0.5rem;
   border-radius: var(--saito-border-radius);
-<<<<<<< HEAD
-  border: 1px solid
-    color-mix(in srgb, var(--saito-border-color) 50%, var(--saito-font-color-heavy) 50%);
-=======
+  /*
+  unapplied experiment
+   border: 1px solid
+    color-mix(in srgb, var(--saito-border-color) 50%, var(--saito-font-color-heavy) 50%);*/
   border: var(--border-thickness-thin) solid var(--saito-border-color);
->>>>>>> staging
   gap: 0.25rem;
   align-items: center;
   background: linear-gradient(
