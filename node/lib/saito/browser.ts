@@ -81,6 +81,8 @@ class Browser {
     }
 
     app.connection.on('saito-render-complete', () => {
+      (window as any).SaitoCtaLoader?.markAppReady?.();
+
       //hide pace-js if its still active
       let elem = document.querySelector('.pace');
       let delay = 500;
