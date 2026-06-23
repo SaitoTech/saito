@@ -156,7 +156,6 @@ export default class Wallet extends SaitoWallet {
           if (p.sender == this.publicKey) {
             if (Number(p.amount) > 0) {
               console.log('************** transaction-sent **************', p);
-              delete p.sender_publickey;
               p.amount = app.wallet.convertNolanToSaito(p.amount).toString();
               app.connection.emit('on-payment-sent', p);
             }
@@ -166,21 +165,24 @@ export default class Wallet extends SaitoWallet {
         // Map transaction-received event from WASM to UI-focused event
         app.connection.on('on-transaction-received', (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          console.log('*************** transaction-received ***********', payload);
-          if (!p.ticker) {
-            p.ticker = 'SAITO';
-          }
-          delete p.sender_publickey;
-          p.amount = app.wallet.convertNolanToSaito(p.amount).toString();
 
-          app.connection.emit('on-payment-received', p);
+          // Ignore transactions that I sent
+          if (p.sender !== this.publicKey) {
+            console.log('*************** transaction-received ***********', payload);
+            if (!p.ticker) {
+              p.ticker = 'SAITO';
+            }
+            p.amount = app.wallet.convertNolanToSaito(p.amount).toString();
+
+            app.connection.emit('on-payment-received', p);
+          }
         });
 
         app.connection.on('on-nft-sent', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
           console.log('*************** nft-sent ***********', p);
           if (p.ticker) {
-            p.amount = p.nft_amount.toString();
+            p.amount = p.amount?.toString();
             app.connection.emit('on-payment-sent', p);
           }
         });
@@ -193,7 +195,7 @@ export default class Wallet extends SaitoWallet {
           if (p?.ticker) {
             try {
               await wallet_self.addNFTToWallet(p.nft_id, p.ticker);
-              p.amount.toString();
+              p.amount = p.amount?.toString();
               app.connection.emit('on-payment-received', p);
             } catch (err) {
               console.log('ERROR: adding NFT to wallet... ');
