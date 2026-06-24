@@ -1,5 +1,4 @@
 class SettlersPlayer {
-
   //Select the person to steal from
   playerMoveBandit(player, hexId) {
     let settlers_self = this;
@@ -35,14 +34,14 @@ class SettlersPlayer {
             } (${settlers_self.game.state.players[i].resources.length} cards)</li>`;
           }
         }
-        html += "</ul></div>";
+        html += '</ul></div>';
         this.hud.updateStatus(html);
 
         //Select a player to steal from
-        $(".textchoice").off();
-        $(".textchoice").on("click", function () {
-          $(".textchoice").off();
-          let victim = $(this).attr("id");
+        $('.textchoice').off();
+        $('.textchoice').on('click', function () {
+          $('.textchoice').off();
+          let victim = $(this).attr('id');
           robPlayer(victim);
         });
       } else {
@@ -59,33 +58,38 @@ class SettlersPlayer {
   // when 7 is rolled or Soldier Played
   // Select the target spot
   //
-  playerPlayBandit() {
-
+  playerPlayBandit(flash_tiles = false) {
     let xpos = 0;
     let ypos = 0;
 
     this.updateStatus(`MOVE the <span class="to-upper">${this.b.name}</span>:`);
-    $(".option").css("visibility", "hidden");
+    $('.option').css('visibility', 'hidden');
     let settlers_self = this;
-    $(".sector-container").addClass("rhover");
-    $(".sector-container").off();
+    $('.sector-container').addClass('rhover');
+    $('.sector-container').off();
     $('.sector-container').on('mousedown', function (e) {
       xpos = e.clientX;
       ypos = e.clientY;
     });
     $('.sector-container').on('mouseup', function (e) {
-      if (Math.abs(xpos-e.clientX) > 4) { return; }
-      if (Math.abs(ypos-e.clientY) > 4) { return; }
+      if (Math.abs(xpos - e.clientX) > 4) {
+        return;
+      }
+      if (Math.abs(ypos - e.clientY) > 4) {
+        return;
+      }
       settlers_self.stopPlacementHintWave();
-      $(".sector-container").off();
-      $(".sector-container").removeClass("rhover");
-      let slot = $(this).attr("id");
+      $('.sector-container').off();
+      $('.sector-container').removeClass('rhover');
+      let slot = $(this).attr('id');
       settlers_self.addMove(`move_bandit\t${settlers_self.game.player}\t${slot}`);
       settlers_self.endTurn();
     });
-    $(".bandit").removeClass("rhover");
-    $(".bandit").off(); //Don't select bandit tile
-    this.startPlacementHintWave(".sector-container.rhover");
+    $('.bandit').removeClass('rhover');
+    $('.bandit').off(); //Don't select bandit tile
+    if (flash_tiles) {
+      this.startPlacementHintWave('.sector-container.rhover');
+    }
   }
 
   canPlayerBuildTown(player) {
@@ -105,7 +109,7 @@ class SettlersPlayer {
       }
     }
     let xpos, ypos;
-    $(".flash").removeClass("flash");
+    $('.flash').removeClass('flash');
     /*
       Everyone starts with 2 settlements and can be placed anywhere on island
       */
@@ -120,21 +124,20 @@ class SettlersPlayer {
         );
       }
 
-      $(".city.empty").addClass("chover");
+      $('.city.empty').addClass('chover');
       //$('.city').css('z-index', 9999999);
-      $(".city.empty").off();
+      $('.city.empty').off();
 
-      $(`.city.empty[data-score="15"]`).addClass("noselect");
-      $(`.city.empty[data-score="14"]`).addClass("noselect");
+      $(`.city.empty[data-score="15"]`).addClass('noselect');
+      $(`.city.empty[data-score="14"]`).addClass('noselect');
       //$('.city.noselect').removeClass("empty");
 
-
-      $(".city.empty").on("mousedown", function (e) {
+      $('.city.empty').on('mousedown', function (e) {
         xpos = e.clientX;
         ypos = e.clientY;
       });
       //Create as menu on the game board to input word from a tile in horizontal or vertical direction
-      $(".city.empty").on("mouseup", function (e) {
+      $('.city.empty').on('mouseup', function (e) {
         if (Math.abs(xpos - e.clientX) > 4) {
           return;
         }
@@ -142,61 +145,60 @@ class SettlersPlayer {
           return;
         }
 
-        if ($(this).hasClass("noselect")){
-          salert("This space is too valuable for an initial placement");
+        if ($(this).hasClass('noselect')) {
+          salert('This space is too valuable for an initial placement');
           return;
         }
 
-
-        $(".city.empty").css("background-color", "");
+        $('.city.empty').css('background-color', '');
         //Confirm this move
-        let slot = $(this).attr("id");
+        let slot = $(this).attr('id');
         settlers_self.confirmPlacement(slot, settlers_self.c1.name, () => {
           settlers_self.stopPlacementHintWave();
-          $(".city.empty").removeClass("chover");
-          $(".city.empty").off();
+          $('.city.empty').removeClass('chover');
+          $('.city.empty').off();
           settlers_self.game.state.placedCity = slot;
           //settlers_self.buildCity(settlers_self.game.player, slot);
           if (existing_cities == 1)
             settlers_self.addMove(
-              `secondcity\t${settlers_self.game.player}\t${slot.replace("city_", "")}`
+              `secondcity\t${settlers_self.game.player}\t${slot.replace('city_', '')}`
             );
           settlers_self.addMove(`build_city\t${settlers_self.game.player}\t${slot}`);
           settlers_self.endTurn();
         });
       });
+      this.startPlacementHintWave();
     } else {
       /* During game, must build roads to open up board for new settlements*/
       this.updateStatus(`you may build a ${this.c1.name}...`);
       if (canBackUp) {
         this.updateControls(`<i class="fa-solid fa-xmark"></i>`);
-          document.getElementById("rolldice").onclick = (e) => {
-            //Make sure the confirm popup goes away
-            settlers_self.stopPlacementHintWave();
-            $(".action").off();
-            $(".popup-confirm-menu").remove();
-            $(".rhover").off();
-            $(".rhover").removeClass("rhover");
+        document.getElementById('rolldice').onclick = (e) => {
+          //Make sure the confirm popup goes away
+          $('.action').off();
+          $('.popup-confirm-menu').remove();
+          $('.rhover').off();
+          $('.rhover').removeClass('rhover');
 
-            settlers_self.addMove(`undo_build\t${settlers_self.game.player}\t1`);
-            settlers_self.endTurn();
-          }
+          settlers_self.addMove(`undo_build\t${settlers_self.game.player}\t1`);
+          settlers_self.endTurn();
+        };
       }
 
       let building_options = this.returnCitySlotsAdjacentToPlayerRoads(this.game.player);
       for (let i = 0; i < building_options.length; i++) {
         console.log(building_options[i]);
-        let divname = "#" + building_options[i];
-        $(divname).addClass("rhover");
+        let divname = '#' + building_options[i];
+        $(divname).addClass('rhover');
       }
 
-      $(".rhover").off();
-      $(".rhover").on("mousedown", function (e) {
+      $('.rhover').off();
+      $('.rhover').on('mousedown', function (e) {
         xpos = e.clientX;
         ypos = e.clientY;
       });
 
-      $(".rhover").on("mouseup", function (e) {
+      $('.rhover').on('mouseup', function (e) {
         if (Math.abs(xpos - e.clientX) > 4) {
           return;
         }
@@ -204,12 +206,11 @@ class SettlersPlayer {
           return;
         }
 
-        let slot = $(this).attr("id");
-        $(".rhover").css("background-color", "");
+        let slot = $(this).attr('id');
+        $('.rhover').css('background-color', '');
         settlers_self.confirmPlacement(slot, settlers_self.c1.name, () => {
-          settlers_self.stopPlacementHintWave();
-          $(".rhover").off();
-          $(".rhover").removeClass("rhover");
+          $('.rhover').off();
+          $('.rhover').removeClass('rhover');
 
           //settlers_self.buildCity(settlers_self.game.player, slot);
           settlers_self.addMove(`build_city\t${settlers_self.game.player}\t${slot}`);
@@ -217,7 +218,6 @@ class SettlersPlayer {
         });
       });
     }
-    this.startPlacementHintWave();
   }
 
   canPlayerBuildRoad(player) {
@@ -230,24 +230,25 @@ class SettlersPlayer {
     this.halted = 1;
 
     if (this.game.state.placedCity) {
-      this.hud.updateStatus(`<div class="player-notice">YOUR TURN: place a connecting ${this.r.name}</diiv>`);
+      this.hud.updateStatus(
+        `<div class="player-notice">YOUR TURN: place a connecting ${this.r.name}</diiv>`
+      );
 
-      let newRoads = this.hexgrid.edgesFromVertex(this.game.state.placedCity.replace("city_", ""));
+      let newRoads = this.hexgrid.edgesFromVertex(this.game.state.placedCity.replace('city_', ''));
       for (let road of newRoads) {
-        $(`#road_${road}`).addClass("new");
+        $(`#road_${road}`).addClass('new');
       }
-      $(".road.new").addClass("rhover");
+      $('.road.new').addClass('rhover');
 
-      $(".road.new").off();
-      $(".road.new").on("click", function () {
-        let slot = $(this).attr("id");
-        $(".road.empty").css("background-color", "");
+      $('.road.new').off();
+      $('.road.new').on('click', function () {
+        let slot = $(this).attr('id');
+        $('.road.empty').css('background-color', '');
         settlers_self.confirmPlacement(slot, settlers_self.r.name, () => {
-          settlers_self.stopPlacementHintWave();
-          $(".road.new").off();
-          $(".road.new").removeAttr("style");
-          $(".rhover").removeClass("rhover");
-          $(".road.new").removeClass("new");
+          $('.road.new').off();
+          $('.road.new').removeAttr('style');
+          $('.rhover').removeClass('rhover');
+          $('.road.new').removeClass('new');
 
           settlers_self.addMove(`build_road\t${settlers_self.game.player}\t${slot}`);
           settlers_self.endTurn();
@@ -257,38 +258,38 @@ class SettlersPlayer {
       this.updateStatus(`you may build a ${this.r.name}...`);
       if (canBackUp) {
         this.updateControls(`<i class="fa-solid fa-xmark"></i>`);
-        document.getElementById("rolldice").onclick = (e) => {
+        document.getElementById('rolldice').onclick = (e) => {
           //Make sure the confirm popup goes away
-          settlers_self.stopPlacementHintWave();
-          $(".action").off();
-          $(".popup-confirm-menu").remove();
-          $(".road.empty").off();
-          $(".rhover").removeClass("rhover");
-          $(".road.empty").removeAttr("style");
+          $('.action').off();
+          $('.popup-confirm-menu').remove();
+          $('.road.empty').off();
+          $('.rhover').removeClass('rhover');
+          $('.road.empty').removeAttr('style');
 
           settlers_self.addMove(`undo_build\t${settlers_self.game.player}\t0`);
           settlers_self.endTurn();
-        }
+        };
       }
 
       /*Normal game play, can play road anywhere empty connected to my possessions*/
-      $(".road.empty").addClass("rhover");
+      $('.road.empty').addClass('rhover');
 
-      $(".road.empty").off();
-      $(".road.empty").on("click", function () {
-        let slot = $(this).attr("id");
-        $(".road.empty").removeAttr("style");
+      $('.road.empty').off();
+      $('.road.empty').on('click', function () {
+        let slot = $(this).attr('id');
+        $('.road.empty').removeAttr('style');
         settlers_self.confirmPlacement(slot, settlers_self.r.name, () => {
-          settlers_self.stopPlacementHintWave();
-          $(".road.empty").off();
-          $(".rhover").removeClass("rhover");
-          $(".road.empty").removeAttr("style");
+          $('.road.empty').off();
+          $('.rhover').removeClass('rhover');
+          $('.road.empty').removeAttr('style');
           settlers_self.addMove(`build_road\t${settlers_self.game.player}\t${slot}`);
           settlers_self.endTurn();
         });
       });
     }
-    this.startPlacementHintWave();
+
+    // barely visible, looks bad
+    //this.startPlacementHintWave();
   }
 
   canPlayerBuildCity(player) {
@@ -307,18 +308,17 @@ class SettlersPlayer {
     this.updateStatus(`click on a ${this.c1.name} to upgrade it to a ${this.c2.name}...`);
     if (canBackUp) {
       this.updateControls(`<i class="fa-solid fa-xmark"></i>`);
-      document.getElementById("rolldice").onclick = (e) => {
+      document.getElementById('rolldice').onclick = (e) => {
         //Make sure the confirm popup goes away
-        settlers_self.stopPlacementHintWave();
-        $(".action").off();
-        $(".popup-confirm-menu").remove();
+        $('.action').off();
+        $('.popup-confirm-menu').remove();
         //Disable board event selection
-        $(".chover").off();
-        $(".chover").removeClass("chover");
+        $('.chover').off();
+        $('.chover').removeClass('chover');
 
         settlers_self.addMove(`undo_build\t${settlers_self.game.player}\t2`);
         settlers_self.endTurn();
-      }
+      };
     }
 
     let settlers_self = this;
@@ -326,23 +326,22 @@ class SettlersPlayer {
     //Manually go through available player's cities because DOM doesn't have convenient selector
     for (let c of settlers_self.game.state.cities) {
       if (c.level === 1 && c.player === player) {
-        $("#" + c.slot).addClass("chover");
+        $('#' + c.slot).addClass('chover');
       }
     }
 
     //$(selector).addClass('chover');
-    $(".chover").off();
-    $(".chover").on("click", function () {
-//>>>>>>>>>>>>>>>>>
-      let slot = $(this).attr("id");
-      $(".chover").removeAttr("style");
+    $('.chover').off();
+    $('.chover').on('click', function () {
+      //>>>>>>>>>>>>>>>>>
+      let slot = $(this).attr('id');
+      $('.chover').removeAttr('style');
 
-      $(this).css("border-color", "yellow");
+      $(this).css('border-color', 'yellow');
       settlers_self.confirmPlacement(slot, settlers_self.c2.name, () => {
-        settlers_self.stopPlacementHintWave();
-        $(".chover").removeAttr("style");
-        $(".chover").off();
-        $(".chover").removeClass("chover");
+        $('.chover').removeAttr('style');
+        $('.chover').off();
+        $('.chover').removeClass('chover');
         for (let i = 0; i < settlers_self.game.state.cities.length; i++) {
           if (
             slot == settlers_self.game.state.cities[i].slot &&
@@ -354,12 +353,10 @@ class SettlersPlayer {
           }
         }
         //Something went wrong, try again
-        console.warn("Unexpected error in upgrading a city");
+        console.warn('Unexpected error in upgrading a city');
         settlers_self.playerBuildCity(player);
-
-        });
+      });
     });
-    this.startPlacementHintWave(".chover");
   }
 
   /*
@@ -368,63 +365,63 @@ class SettlersPlayer {
   playerPlayMove() {
     let can_do_something = false;
 
-    if (this.canPlayerTradeWithBank()){
+    if (this.canPlayerTradeWithBank()) {
       can_do_something = true;
-      $("#bank").addClass("enabled");
-    }else{
-      $("#bank").removeClass("enabled");
+      $('#bank').addClass('enabled');
+    } else {
+      $('#bank').removeClass('enabled');
     }
-    
+
     if (this.canPlayerPlayCard()) {
       can_do_something = true;
-      $("#playcard").addClass("enabled");
-    }else{
-      $("#playcard").removeClass("enabled");
+      $('#playcard').addClass('enabled');
+    } else {
+      $('#playcard').removeClass('enabled');
     }
-    
-    
-    if (this.canPlayerBuildRoad(this.game.player) ||
+
+    if (
+      this.canPlayerBuildRoad(this.game.player) ||
       this.canPlayerBuildTown(this.game.player) ||
       this.canPlayerBuildCity(this.game.player) ||
-      this.canPlayerBuyCard(this.game.player)){
+      this.canPlayerBuyCard(this.game.player)
+    ) {
       can_do_something = true;
-      $("#spend").addClass("enabled");
-    }else{
-      $("#spend").removeClass("enabled");
+      $('#spend').addClass('enabled');
+    } else {
+      $('#spend').removeClass('enabled');
     }
 
-    $(".controls .option").css("visibility", "visible");
+    $('.controls .option').css('visibility', 'visible');
 
-    $("#rolldice").html(`<i class="fa-solid fa-forward"></i>`);
-    $("#rolldice").addClass("enabled");
+    $('#rolldice').html(`<i class="fa-solid fa-forward"></i>`);
+    $('#rolldice').addClass('enabled');
 
     //
     // auto-end my turn if I cannot do anything
     //
     if (can_do_something != true) {
-        this.addMove("end_turn\t" + this.game.player); //End turn deletes the previous move (player_actions)
-        this.addMove("ACKNOWLEDGE\tyou cannot do anything - end turn\t" + this.game.player);
-        this.endTurn();
+      this.addMove('end_turn\t' + this.game.player); //End turn deletes the previous move (player_actions)
+      this.addMove('ACKNOWLEDGE\tyou cannot do anything - end turn\t' + this.game.player);
+      this.endTurn();
       return;
     }
 
     //
     // Set timer to auto-end my turn if I take too long
-    // 
-    if (this.turn_limit){
-      this.setShotClock("#rolldice", this.turn_limit, false);
+    //
+    if (this.turn_limit) {
+      this.setShotClock('#rolldice', this.turn_limit, false);
     }
 
-    let statushtml = "YOUR TURN:";
+    let statushtml = 'YOUR TURN:';
     this.updateStatus(`${statushtml}`);
 
-    document.getElementById("rolldice").onclick = (e) => {
-        e.currentTarget.onclick = null;
-        this.addMove("end_turn\t" + this.game.player);
-        this.endTurn();
-    }
+    document.getElementById('rolldice').onclick = (e) => {
+      e.currentTarget.onclick = null;
+      this.addMove('end_turn\t' + this.game.player);
+      this.endTurn();
+    };
   }
-
 
   canPlayerTradeWithBank() {
     let minForTrade = this.analyzePorts(); //4;  //1) Fix to have 3:1 port, 2) Fix for resource specific 2:1 ports
@@ -441,7 +438,6 @@ class SettlersPlayer {
     return false;
   }
 
-
   canPlayerBuyCard(player) {
     //No more cards in deck (No reshuffling in this game)
     if (!this.game.state.hasRolled || this.game.state.playerTurn !== this.game.player) return false;
@@ -454,26 +450,26 @@ class SettlersPlayer {
       return false;
     }
     if (this.game.state.playerTurn !== this.game.player) {
-      console.log("not my turn");
+      console.log('not my turn');
       return false;
     }
-    
-    console.log(this.game.state.players[this.game.player-1].devcards);
-    
-    if (onlyKnights){
-      for (let c of this.game.state.players[this.game.player-1].devcards){
+
+    console.log(this.game.state.players[this.game.player - 1].devcards);
+
+    if (onlyKnights) {
+      for (let c of this.game.state.players[this.game.player - 1].devcards) {
         let card = this.game.deck[0].cards[c];
         console.log(card);
-        if (card.action == 1){
+        if (card.action == 1) {
           return true;
         }
       }
-    }else{
+    } else {
       if (this.game.state.players[this.game.player - 1].devcards.length > 0) {
-        return this.game.state.canPlayCard; 
+        return this.game.state.canPlayCard;
       }
     }
-    
+
     return false;
   }
 }
