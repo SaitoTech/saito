@@ -391,42 +391,33 @@ class RedSquare extends ModTemplate {
       //////////////////////////////////
 
       let pr = this.addPeer('localhost', 100);
-      const loadAndCache = () => {
-        this.loadTweets(
-          'earlier',
-          (tx_count) => {
-            // Use curation to bootstrap jedi council
-            for (let tweet of this.tweets) {
-              if (tweet.curated == 1) {
-                this.addToCouncil(tweet.tx.from[0].publicKey);
-              }
-            }
-
-            // Create cache to serve with index.js
-            this.cacheRecentTweets();
-            console.debug(
-              `RS -- Preloaded ${tx_count} transactions ~~ ${this.tweets.length} tweets`
-            );
-          },
-          pr
-        );
-      };
 
       // Reset data to clear on a blacklisted key
       app.connection.on('on-saito-blacklist-updated', () => {
-        this.tweets = [];
-        this.cached_tweets = [];
-        this.last_cache = 0;
-
-        this.tweets_sigs_hmap = {};
-        this.special_threads_hmap = {};
-        this.unknown_children = [];
-        this.orphan_edits = [];
-
-        loadAndCache();
+        for (let i = 0; i < this.tweets.length; i++) {
+          if (this.tweets[i]?.tx?.optional) {
+            this.tweets[i].tx.optional.curated = this.curate(this.tweets[i].tx);
+          }
+        }
+        this.cacheRecentTweets(true);
       });
 
-      loadAndCache();
+      this.loadTweets(
+        'earlier',
+        (tx_count) => {
+          // Use curation to bootstrap jedi council
+          for (let tweet of this.tweets) {
+            if (tweet.curated == 1) {
+              this.addToCouncil(tweet.tx.from[0].publicKey);
+            }
+          }
+
+          // Create cache to serve with index.js
+          this.cacheRecentTweets();
+          console.debug(`RS -- Preloaded ${tx_count} transactions ~~ ${this.tweets.length} tweets`);
+        },
+        pr
+      );
       return;
     }
 
