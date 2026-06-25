@@ -715,7 +715,7 @@ class Arcade extends ModTemplate {
 		if (Number(conf) == 0) {
 			try {
 				if (txmsg.module === 'Arcade') {
-					if (this.hasSeenTransaction(tx, Number(blk.id))) {
+					if (this.hasSeenTransaction(tx, blk)) {
 						return;
 					}
 

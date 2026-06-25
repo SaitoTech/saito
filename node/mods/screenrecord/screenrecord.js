@@ -311,7 +311,7 @@ class Record extends ModTemplate {
 			if (message.module === 'screenrecord') {
 				console.log('received information');
 				if (this.app.BROWSER === 1) {
-					if (this.hasSeenTransaction(tx, Number(blk.id))) return;
+					if (this.hasSeenTransaction(tx, blk)) return;
 
 					if (tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
 						if (message.request === 'start recording') {

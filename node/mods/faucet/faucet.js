@@ -163,7 +163,7 @@ class Faucet extends ModTemplate {
 		//
 		// sanity check
 		//
-		if (this.hasSeenTransaction(tx, Number(blk.id))) {
+		if (this.hasSeenTransaction(tx, blk)) {
 			return;
 		}
 

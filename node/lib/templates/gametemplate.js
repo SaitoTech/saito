@@ -967,7 +967,7 @@ class GameTemplate extends ModTemplate {
         return;
       }
 
-      if (this.hasSeenTransaction(tx, Number(blk.id))) {
+      if (this.hasSeenTransaction(tx, blk)) {
         return;
       }
 
@@ -990,6 +990,7 @@ class GameTemplate extends ModTemplate {
           }
 
           if (this.isUnprocessedMoveQuickCheck(player_publickey, player_step, game_id) == -1) {
+            console.log('[OBS_TRACE] isUnprocessedMoveQuickCheck ignore move');
             return;
           }
 

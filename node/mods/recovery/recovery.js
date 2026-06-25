@@ -150,7 +150,7 @@ class Recovery extends ModTemplate {
 		}
 
 		if (Number(conf) == 0) {
-			if (this.hasSeenTransaction(tx, Number(blk.id))) {
+			if (this.hasSeenTransaction(tx, blk)) {
 				return;
 			}
 

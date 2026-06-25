@@ -483,7 +483,7 @@ class Videocall extends ModTemplate {
 				if (this.app.BROWSER === 1) {
 					let from = tx.from[0].publicKey;
 
-					if ((this.hasSeenTransaction(tx), Number(blk.id))) return;
+					if (this.hasSeenTransaction(tx, blk)) return;
 
 					if (!this.have_joined_room || tx.timestamp + 3000 < this.have_joined_room) {
 						console.log(

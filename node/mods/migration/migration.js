@@ -236,7 +236,7 @@ class Migration extends ModTemplate {
       return;
     }
 
-    if (this.hasSeenTransaction(tx, Number(blk.id))) {
+    if (this.hasSeenTransaction(tx, blk)) {
       console.error('Migration is ignoring a duplicate transaction!!!!');
       return;
     }

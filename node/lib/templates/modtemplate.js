@@ -1109,7 +1109,12 @@ class ModTemplate {
     });
   }
 
-  hasSeenTransaction(tx, blk_id = 0) {
+  hasSeenTransaction(tx, blk = null) {
+    let blk_id = 0;
+    if (blk && blk.id !== undefined && blk.id !== null) {
+      blk_id = Number(blk.id);
+    }
+
     let hashed_data = this.name + tx.signature;
     if (this.processedTxs[hashed_data] !== undefined) {
       if (this.processedTxs[hashed_data]) {
