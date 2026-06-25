@@ -251,8 +251,8 @@ class Registry extends ModTemplate {
 				mycallback(found_keys);
 			});
 		} else {
-			if (this.peers.length) {
-				this.queryKeys(this.peers[0], missing_keys, (identifiers) => {
+			for (let i = 0; i < this.peers.length; i++) {
+				this.queryKeys(this.peers[i], missing_keys, (identifiers) => {
 					//
 					// This callback is executed in the browser
 					//
@@ -262,8 +262,6 @@ class Registry extends ModTemplate {
 					}
 					mycallback(found_keys);
 				});
-			} else {
-				console.warn('Cannot fetchManyIdentifiers until I connect to a peer with Registry service');
 			}
 		}
 	}
@@ -417,7 +415,17 @@ class Registry extends ModTemplate {
 
 	onPeerServiceUp(app, peer, service = {}) {
 		if (service.service === 'registry') {
-			this.peers.push(peer);
+			let should_push = true;
+			for (let i = 0; i < this.peers.length; i++) {
+				if (this.peers[i].publicKey == peer.publicKey) {
+					// refresh / overwrite reference to peer
+					this.peers[i] = peer;
+					should_push = false;
+				}
+			}
+			if (should_push) {
+				this.peers.push(peer);
+			}
 
 			//
 			// We want to allow service nodes to connect to each other as registry peers

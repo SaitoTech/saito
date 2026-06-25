@@ -58,10 +58,7 @@ class RegisterUsername {
 					request: 'registry namecheck'
 				};
 
-				let registry_peer = null;
-				if (this.mod.peers[0]?.publicKey) {
-          registry_peer = this.mod.peers[0].publicKey;
-        }
+				let registry_peer_pk = this.mod.peers[0]?.publicKey || null;
 
 				this.app.network.sendRequestAsTransaction(
 					'registry query',
@@ -104,7 +101,7 @@ class RegisterUsername {
 							}
 						}
 					},
-					registry_peer
+					registry_peer_pk
 				);
 			}
 		};

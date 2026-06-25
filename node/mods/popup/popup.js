@@ -363,7 +363,15 @@ class Popup extends ModTemplate {
 		// load available lessons / media
 		//
 		if (service.service === 'popup') {
-			if (!this.peers.includes(peer.publicKey)) {
+			let should_push = true;
+			for (let i = 0; i < this.peers.length; i++) {
+				if (this.peers[i].publicKey == peer.publicKey) {
+					// refresh / overwrite reference to peer
+					this.peers[i] = peer;
+					should_push = false;
+				}
+			}
+			if (should_push) {
 				this.peers.push(peer);
 			}
 
