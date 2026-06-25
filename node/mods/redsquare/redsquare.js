@@ -73,7 +73,6 @@ class RedSquare extends ModTemplate {
     this.peers = [];
     this.keylist = {};
 
-    this.tweet_count = 0;
     this.liked_tweets = [];
     this.retweeted_tweets = [];
     this.replied_tweets = [];
@@ -393,6 +392,16 @@ class RedSquare extends ModTemplate {
 
       let pr = this.addPeer('localhost', 100);
 
+      // Reset data to clear on a blacklisted key
+      app.connection.on('on-saito-blacklist-updated', () => {
+        for (let i = 0; i < this.tweets.length; i++) {
+          if (this.tweets[i]?.tx?.optional) {
+            this.tweets[i].tx.optional.curated = this.curate(this.tweets[i].tx);
+          }
+        }
+        this.cacheRecentTweets(true);
+      });
+
       this.loadTweets(
         'earlier',
         (tx_count) => {
@@ -409,25 +418,6 @@ class RedSquare extends ModTemplate {
         },
         pr
       );
-
-      ///
-      // We just want the metadata from the archive, lol
-      ///
-      /*let archive_mod = this.app.modules.returnModule('Archive');
-      if (archive_mod) {
-        archive_mod.loadTransactionsWithCallback({ field1: 'Blog', limit: 50 }, (res) => {
-          for (let i = 0; i < res.length; i++) {
-            this.blogs.push({
-              ts: res[i].updated_at,
-              publicKey: res[i].field2,
-              tx_id: res[i].sig
-            });
-          }
-
-          this.addBlogPseudoTweets();
-        });
-      }*/
-
       return;
     }
 
@@ -1039,7 +1029,7 @@ class RedSquare extends ModTemplate {
         // save w. metadata
         //
         if (peer.publicKey != this.publicKey) {
-          this.saveTweet(tweet, 0);
+          this.saveTweet(tweet);
         }
 
         count += added;
@@ -1395,10 +1385,9 @@ class RedSquare extends ModTemplate {
         t.tx.optional.updated_at = tx.optional.updated_at;
 
         if (tx.optional.curated && !t.curated) {
-          // Negative curation is authoritative. Positive curation is recalculated
-          // locally so curated feeds only show whitelisted authors.
-          t.curated = tx.optional.curated == -1 ? -1 : this.curate(tx);
-          t.tx.optional.curated = t.curated;
+          // Update curation value if (1/-1)
+          t.tx.optional.curated = tx.optional.curated;
+          t.curated = tx.optional.curated;
 
           delete t.curation_check;
 
@@ -1410,7 +1399,7 @@ class RedSquare extends ModTemplate {
 
         t.rerenderControls(should_rerender);
 
-        //this.updateSavedTweet(tx.signature);
+        this.updateSavedTweet(tx.signature);
       }
 
       return 0;
@@ -1838,7 +1827,18 @@ class RedSquare extends ModTemplate {
   }
 
   updateTweetCuration(tweet, interaction_tx) {
-    tweet.curated = this.curate(tweet.tx);
+    //
+    // set as curated if liked by moderator, but ignore blacklisted people
+    //
+    let new_curation = Math.max(0, this.curate(interaction_tx));
+
+    if (new_curation == 1) {
+      //console.debug('RS move tweet to curated by trusted like/retweet!');
+      this.addToCouncil(tweet.tx.from[0].publicKey);
+    }
+
+    tweet.curated = new_curation || tweet.curated;
+    tweet.tx.optional.curated = tweet.curated;
   }
 
   async updateTweetStat(tweet_tx, ts, stat, tweet = null) {
@@ -2020,12 +2020,13 @@ class RedSquare extends ModTemplate {
     //
 
     if (retweeted_tweet?.tx) {
-      await this.incrementRetweets(retweeted_tweet.tx, tx);
-
       //
-      // set as curated if liked by moderator
+      // set as curated if liked by whitelisted moderator
       //
       this.updateTweetCuration(retweeted_tweet, tx);
+
+      // curation value gets saved here
+      await this.incrementRetweets(retweeted_tweet.tx, tx);
 
       retweeted_tweet.rerenderControls(true);
 
@@ -2343,7 +2344,7 @@ class RedSquare extends ModTemplate {
       //
       tweet = await tweet.analyseTweetLinks(1);
 
-      this.saveTweet(tweet, 1, blk);
+      this.saveTweet(tweet, false, blk);
 
       //
       // Includes retweeted tweet
@@ -2352,8 +2353,8 @@ class RedSquare extends ModTemplate {
         other_tweet = this.returnTweet(tweet.signature);
 
         if (other_tweet) {
-          await this.incrementRetweets(other_tweet.tx, tx);
           this.updateTweetCuration(other_tweet, tx);
+          await this.incrementRetweets(other_tweet.tx, tx);
           other_tweet.rerenderControls();
         } else {
           //
@@ -2365,6 +2366,9 @@ class RedSquare extends ModTemplate {
             { sig: tweet.signature, field1: 'RedSquare' },
             async (txs) => {
               if (txs?.length) {
+                if (txs[0]?.optional?.curated !== undefined && txs[0].optional.curated != 1) {
+                  txs[0].optional.curated = this.curate(tx);
+                }
                 this.incrementRetweets(txs[0], tx);
               }
             },
@@ -2466,7 +2470,7 @@ class RedSquare extends ModTemplate {
 
       //Move off curation list
       flagged_tweet.curated = -1;
-      flagged_tweet.optional.curated = -1;
+      flagged_tweet.tx.optional.curated = -1;
       this.cacheRecentTweets(true);
     }
 
@@ -2522,7 +2526,7 @@ class RedSquare extends ModTemplate {
     return;
   }
 
-  saveTweet(tweet, preserve = 1, blk = null) {
+  saveTweet(tweet, preserve = 0, blk = null) {
     if (!tweet) {
       console.warn('RS.saveTweet: no tweet!');
       return;
@@ -2609,7 +2613,6 @@ class RedSquare extends ModTemplate {
 
       this.notifications_last_viewed_ts = rso?.notifications_last_viewed_ts || 0;
       this.notifications_number_unviewed = rso?.notifications_number_unviewed || 0;
-      this.tweet_count = rso?.tweet_count || 0;
 
       this.liked_tweets = rso?.liked_tweets || [];
       this.retweeted_tweets = rso?.retweeted_tweets || [];
@@ -2636,7 +2639,6 @@ class RedSquare extends ModTemplate {
 
     rso.notifications_last_viewed_ts = this.notifications_last_viewed_ts;
     rso.notifications_number_unviewed = this.notifications_number_unviewed;
-    rso.tweet_count = this.tweet_count;
 
     rso.liked_tweets = this.liked_tweets.slice(-100);
     rso.retweeted_tweets = this.retweeted_tweets.slice(-100);
@@ -2660,7 +2662,7 @@ class RedSquare extends ModTemplate {
     }
     if (!this.liked_tweets.includes(tweet.tx.signature)) {
       this.liked_tweets.push(tweet.tx.signature);
-      this.saveTweet(tweet);
+      this.saveTweet(tweet, true);
     }
     this.saveOptions();
   }
@@ -2671,7 +2673,7 @@ class RedSquare extends ModTemplate {
     }
     if (!this.retweeted_tweets.includes(tweet.tx.signature)) {
       this.retweeted_tweets.push(tweet.tx.signature);
-      this.saveTweet(tweet);
+      this.saveTweet(tweet, true);
     }
     this.saveOptions();
   }
@@ -2682,7 +2684,7 @@ class RedSquare extends ModTemplate {
     }
     if (!this.replied_tweets.includes(tweet.tx.signature)) {
       this.replied_tweets.push(tweet.tx.signature);
-      this.saveTweet(tweet);
+      this.saveTweet(tweet, true);
     }
     this.saveOptions();
   }
@@ -2974,10 +2976,28 @@ class RedSquare extends ModTemplate {
       return -1;
     }
 
-    // Keep local/archive negative curation, but do not accept cached positive
-    // curation. Curated mode should only show content from whitelisted authors.
-    if (tx.optional?.curated == -1) {
-      return -1;
+    // My contacts get through
+    if (this.app.keychain.hasPublicKey(tx.from[0].publicKey)) {
+      return 1;
+    }
+
+    if (tx.to[0].amount) {
+      return 1;
+    }
+
+    if (this.app.BROWSER) {
+      if (
+        this.liked_tweets?.includes(tx.signature) ||
+        this.retweeted_tweets?.includes(tx.signature) ||
+        this.replied_tweets?.includes(tx.signature)
+      ) {
+        return 1;
+      }
+    }
+
+    // Allow us to cache non-approved curation status in local archives
+    if (tx.optional.curated !== undefined && tx.optional.curated <= 0) {
+      return tx.optional.curated;
     }
 
     return 0;

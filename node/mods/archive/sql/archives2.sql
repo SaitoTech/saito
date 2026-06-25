@@ -8,3 +8,5 @@ CREATE INDEX IF NOT EXISTS created_at_idx on archives (created_at);
 CREATE INDEX IF NOT EXISTS updated_at_idx on archives (updated_at);
 CREATE INDEX IF NOT EXISTS flagged_idx on archives (flagged);
 CREATE INDEX IF NOT EXISTS owner_idx on archives (owner);
+CREATE INDEX IF NOT EXISTS field1_flagged_created_at_idx on archives (field1, flagged, created_at);
+CREATE INDEX IF NOT EXISTS field1_flagged_updated_at_idx on archives (field1, flagged, updated_at);

@@ -31,7 +31,8 @@
   display: none;
 }
 
-.tweet-container.active-curation .tweet[data-curated='1'] {
+.tweet-container.active-curation .tweet[data-curated='1'],
+.tweet-container.active-curation .tweet[data-source-type='server-cache'] {
   /* ... except for positively marked ones */
   display: grid;
 }

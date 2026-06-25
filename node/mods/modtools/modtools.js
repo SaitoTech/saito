@@ -154,18 +154,6 @@ class ModTools extends ModTemplate {
 		//this.styles = [`/${this.returnSlug()}/style.css`];
 		await super.render();
 		this.attachEvents();
-
-		let el = document.querySelector('#options-space');
-		el.innerHTML = '';
-
-		if (window?.options) {
-			try {
-				let optjson = JSON.parse(window.options);
-				var tree = jsonTree.create(optjson, el);
-			} catch (err) {
-				console.log('error creating jsonTree: ' + err);
-			}
-		}
 	}
 
 	attachEvents() {
@@ -273,19 +261,19 @@ class ModTools extends ModTemplate {
 			//
 			if (this.canPeerModerate(peer.publicKey)) {
 				app.network.sendRequestAsTransaction(
-          'modtools',
-          { request: 'load' },
-          (res) => {
-            if (res?.blacklist?.length) {
-              modtools_self.addPeerBlacklist(peer.publicKey, res.blacklist);
-            }
+					'modtools',
+					{ request: 'load' },
+					(res) => {
+						if (res?.blacklist?.length) {
+							modtools_self.addPeerBlacklist(peer.publicKey, res.blacklist);
+						}
 
-            if (res?.whitelist?.length) {
-              modtools_self.addPeerWhitelist(peer.publicKey, res.whitelist);
-            }
-          },
-          peer.publicKey
-        );
+						if (res?.whitelist?.length) {
+							modtools_self.addPeerWhitelist(peer.publicKey, res.whitelist);
+						}
+					},
+					peer.publicKey
+				);
 			}
 		}
 	}
@@ -601,6 +589,7 @@ class ModTools extends ModTemplate {
 				this.blacklisted_publickeys.splice(i, 1);
 
 				this.save();
+				this.app.connection.emit('on-saito-blacklist-updated');
 				return;
 			}
 		}
@@ -683,10 +672,18 @@ class ModTools extends ModTemplate {
 			}
 		}
 
+		let updated = false;
+
 		for (let i = 0; i < list.length; i++) {
 			if (list[i].hop < this.max_hops) {
-				this.blacklistAddress(list[i]);
+				if (this.blacklistAddress(list[i], false)) {
+					updated = true;
+				}
 			}
+		}
+
+		if (updated) {
+			this.app.connection.emit('on-saito-blacklist-updated');
 		}
 	}
 
@@ -705,17 +702,17 @@ class ModTools extends ModTemplate {
 		}
 	}
 
-	blacklistAddress(data) {
+	blacklistAddress(data, emitUpdate = true) {
 		// there is an edge-case where the first address will be added address-free, so checking and bailing
 		if (!data?.publicKey) {
-			return;
+			return false;
 		}
 
 		let add = data.publicKey;
 
 		if (add === this.publicKey) {
 			// Don't blacklist myself
-			return;
+			return false;
 		}
 
 		if (!this.blacklisted_publickeys.includes(add)) {
@@ -735,6 +732,10 @@ class ModTools extends ModTemplate {
 
 			this.blacklist.push(data);
 			this.save();
+			if (emitUpdate) {
+				this.app.connection.emit('on-saito-blacklist-updated');
+			}
+			return true;
 		}
 
 		//
@@ -748,6 +749,7 @@ class ModTools extends ModTemplate {
 		}
 
 		this.save();
+		return false;
 	}
 
 	whitelistAddress(data, sudo = false) {

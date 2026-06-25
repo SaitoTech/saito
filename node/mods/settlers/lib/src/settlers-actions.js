@@ -6,23 +6,21 @@ class SettlersActions {
   playerAcknowledgeNotice(msg, mycallback) {
     let html = `<i class="fa-solid fa-forward"></i>`;
     try {
-
       this.updateStatusWithOptions(`<div class="player-notice">${msg}</div>`, html);
 
-      document.getElementById("rolldice").onclick = async (e) => {
+      document.getElementById('rolldice').onclick = async (e) => {
         e.currentTarget.onclick = null;
         this.clearShotClock();
         this.updateControls();
         this.game.queue.splice(this.game.queue.length - 1, 1);
         this.restartQueue();
-      }
+      };
 
-      if (this.loadGamePreference("settlers_play_mode") !== 0 || this.turn_limit) {
-        this.setShotClock("#rolldice", 2500);  
+      if (this.loadGamePreference('settlers_play_mode') !== 0 || this.turn_limit) {
+        this.setShotClock('#rolldice', 2500);
       }
-
     } catch (err) {
-      console.error("Error with ACKWNOLEDGE notice!: " + err);
+      console.error('Error with ACKWNOLEDGE notice!: ' + err);
     }
 
     this.halted = 1;
@@ -35,8 +33,7 @@ class SettlersActions {
   // Award resources for dice roll
   //
   collectHarvest(value, player_who_rolled) {
-
-    let notice = "";
+    let notice = '';
     let poor_harvest = true;
 
     let collection = {};
@@ -49,21 +46,23 @@ class SettlersActions {
         if (this.game.state.hexes[neighboringHex].value == value) {
           let resource = this.game.state.hexes[neighboringHex].resource;
 
-          if (this.game.state.hexes[neighboringHex].robber && player !== this.game.state.robinhood) {
-            if (!blocked[player]){
+          if (
+            this.game.state.hexes[neighboringHex].robber &&
+            player !== this.game.state.robinhood
+          ) {
+            if (!blocked[player]) {
               blocked[player] = [];
             }
 
             blocked[player].push(resource);
-            this.game.stats.blocked[resource][player-1]++;
+            this.game.stats.blocked[resource][player - 1]++;
 
-            if (city.level == 2){
+            if (city.level == 2) {
               blocked[player].push(resource);
-              this.game.stats.blocked[resource][player-1]++;
+              this.game.stats.blocked[resource][player - 1]++;
             }
-
           } else {
-            if (!collection[player]){
+            if (!collection[player]) {
               collection[player] = [];
             }
 
@@ -101,61 +100,63 @@ class SettlersActions {
       roll: value,
       harvest: collection,
       bandit: blocked,
-      threatened: this.game.state.threatened.slice(),
+      threatened: this.game.state.threatened.slice()
     });
 
-    let firstMsg = (this.game.player == player_who_rolled)  ? "you" : this.game.playerNames[player_who_rolled - 1];
+    let firstMsg =
+      this.game.player == player_who_rolled ? 'you' : this.game.playerNames[player_who_rolled - 1];
     firstMsg += ` rolled <span class='die_value'>${value}</span>`;
 
-    for (let player in collection){
+    for (let player in collection) {
       let logMsg = `${this.formatPlayer(player)} gains`;
       collection[player].sort();
-      for (let resource of collection[player]){
+      for (let resource of collection[player]) {
         logMsg += this.formatResource(resource);
       }
       this.updateLog(logMsg);
     }
 
     if (Object.keys(collection).length == 0) {
-      this.updateLog("nobody collects any resources.");
+      this.updateLog('nobody collects any resources.');
     }
 
     if (poor_harvest) {
       this.updateStatus(`${firstMsg}: ${this.randomMsg()}`, 1);
     } else {
       this.updateStatus(
-        `<div class="player-notice"><span>${firstMsg}! you gain: </span><div class="hud-status-card-list">${notice}</div></div>`, 1);
+        `<div class="player-notice"><span>${firstMsg}! you gain: </span><div class="hud-status-card-list">${notice}</div></div>`,
+        1
+      );
     }
 
-    if (this.animationSequence.length > 0){
+    if (this.animationSequence.length > 0) {
       this.runAnimationQueue(250);
       return 0;
-    }else{
+    } else {
       return 1;
     }
   }
-
 
   buildCity(player, slot) {
     // remove adjacent slots
     let ad = this.returnAdjacentCitySlots(slot);
     for (let i = 0; i < ad.length; i++) {
-      let d = "#" + ad[i];
+      let d = '#' + ad[i];
       try {
         $(d).remove();
       } catch (err) {}
     }
 
     //Put City on GUI Board
-    let divname = "#" + slot;
-    let owner = "p" + this.game.colors[player - 1];
+    let divname = '#' + slot;
+    let owner = 'p' + this.game.colors[player - 1];
 
-    $(divname).removeClass("empty");
+    $(divname).removeClass('empty');
     $(this.c1.svg).hide().appendTo(divname).fadeIn(1200);
     $(divname).addClass(owner);
 
     let blocks_me = false;
-    let newRoads = this.hexgrid.edgesFromVertex(slot.replace("city_", ""));
+    let newRoads = this.hexgrid.edgesFromVertex(slot.replace('city_', ''));
     if (this.game.player == player) {
       //Enable player to put roads on adjacent edges
       for (let road of newRoads) {
@@ -167,7 +168,7 @@ class SettlersActions {
       for (let road of newRoads) {
         //console.log("road: ",road);
         for (let i = 0; i < this.game.state.roads.length; i++) {
-          if (this.game.state.roads[i].slot == "road_" + road) {
+          if (this.game.state.roads[i].slot == 'road_' + road) {
             //console.log("exists");
             if (this.game.state.roads[i].player == this.game.player) {
               //console.log("is mine");
@@ -193,7 +194,7 @@ class SettlersActions {
     for (let p in this.game.state.ports) {
       let porttowns = this.hexgrid.verticesFromEdge(p);
       for (let t of porttowns) {
-        if ("city_" + t == slot) {
+        if ('city_' + t == slot) {
           this.game.state.players[player - 1].ports.push(this.game.state.ports[p]);
           //console.log(`Player ${player} has a ${this.game.state.ports[p]} port`);
         }
@@ -201,20 +202,20 @@ class SettlersActions {
     }
 
     //Let's just store a list of hex-ids that the city borders
-    let neighbours = this.hexgrid.hexesFromVertex(slot.replace("city_", "")); //this.returnAdjacentHexes(slot);
+    let neighbours = this.hexgrid.hexesFromVertex(slot.replace('city_', '')); //this.returnAdjacentHexes(slot);
     this.game.state.cities.push({
       player: player,
       slot: slot,
       neighbours: neighbours,
-      level: 1,
+      level: 1
     });
 
     if (blocks_me) {
-      console.log("undo ghost roads");
+      console.log('undo ghost roads');
       this.displayBoard();
     }
 
-    if (this.game.player == player){
+    if (this.game.player == player) {
       this.game.state.last_city = slot;
     }
   }
@@ -223,21 +224,21 @@ class SettlersActions {
   Update internal game logic to mark road as built and change class in DOM for display
   */
   buildRoad(player, slot) {
-    let divname = "#" + slot;
-    let owner = "p" + this.game.colors[player - 1];
+    let divname = '#' + slot;
+    let owner = 'p' + this.game.colors[player - 1];
 
     //Check if road exists in DOM and update status
     if (!document.querySelector(divname)) {
-      let roadInfo = slot.split("_");
-      this.addRoadToGameboard(roadInfo[2] + "_" + roadInfo[3], roadInfo[1]);
+      let roadInfo = slot.split('_');
+      this.addRoadToGameboard(roadInfo[2] + '_' + roadInfo[3], roadInfo[1]);
     }
 
-    $(divname).removeClass("empty").addClass(owner);
+    $(divname).removeClass('empty').addClass(owner);
 
     //Add adjacent road slots
     if (this.game.player == player) {
-      let v1 = this.hexgrid.verticesFromEdge(slot.replace("road_", ""));
-      for (let road of this.hexgrid.adjacentEdges(slot.replace("road_", ""))) {
+      let v1 = this.hexgrid.verticesFromEdge(slot.replace('road_', ''));
+      for (let road of this.hexgrid.adjacentEdges(slot.replace('road_', ''))) {
         //console.log("road: ",road);
         let v2 = this.hexgrid.verticesFromEdge(road);
         let intersection = v2.filter(function (n) {
@@ -246,7 +247,7 @@ class SettlersActions {
         //console.log(v1, v2, intersection);
         let block_me = false;
         for (let i = 0; i < this.game.state.cities.length; i++) {
-          if (this.game.state.cities[i].slot == "city_" + intersection[0]) {
+          if (this.game.state.cities[i].slot == 'city_' + intersection[0]) {
             if (this.game.state.cities[i].player !== this.game.player) {
               block_me = true;
             }
@@ -259,10 +260,8 @@ class SettlersActions {
         }
       }
     }
-
   }
 
-  
   /*
     Every time a knight played, need to check if this makes a new largest army
   */
@@ -290,9 +289,11 @@ class SettlersActions {
       }
     }
 
-    if (vpChange){
+    if (vpChange) {
       this.updateLog(`${this.formatPlayer(player)} claims the LARGEST ARMY`);
-      this.game.queue.push(`ACKNOWLEDGE\t${this.game.playerNames[player-1]} forms the largest army`);
+      this.game.queue.push(
+        `ACKNOWLEDGE\t${this.game.playerNames[player - 1]} forms the largest army`
+      );
     }
   }
 
@@ -301,7 +302,7 @@ class SettlersActions {
   or return 0 if empty
   */
   isCityAt(slot) {
-    if (!slot.includes("city_")) slot = "city_" + slot;
+    if (!slot.includes('city_')) slot = 'city_' + slot;
 
     for (let city of this.game.state.cities) if (city.slot == slot) return city.player;
     return 0;
@@ -352,7 +353,7 @@ class SettlersActions {
     //Determine which roads belong to player
     let playerSegments = [];
     for (let road of this.game.state.roads) {
-      if (road.player == player) playerSegments.push(road.slot.replace("road_", ""));
+      if (road.player == player) playerSegments.push(road.slot.replace('road_', ''));
     }
     //Starting with each, find maximal continguous path
     let longest = [];
@@ -364,10 +365,10 @@ class SettlersActions {
       if (bestPath.length > longest.length) longest = bestPath;
     }
 
-    if (longest.length > this.game.state.players[player - 1].road){
+    if (longest.length > this.game.state.players[player - 1].road) {
       this.game.state.players[player - 1].road = longest.length;
     }
-    
+
     //Check if longest path is good enough to claim VP prize
     if (longest.length >= this.longest.min) {
       if (this.game.state.longestRoad.player > 0) {
@@ -378,14 +379,16 @@ class SettlersActions {
             this.highlightRoad(
               player,
               longest,
-              `claimed the ${this.longest.name} from ${
-                this.formatPlayer(this.game.state.longestRoad.player)
-              } with ${longest.length} segments!`
+              `claimed the ${this.longest.name} from ${this.formatPlayer(
+                this.game.state.longestRoad.player
+              )} with ${longest.length} segments!`
             );
             this.game.state.longestRoad.player = player;
             this.game.state.longestRoad.size = longest.length;
             this.game.state.longestRoad.path = longest;
-            this.game.queue.push(`ACKNOWLEDGE\t${this.game.playerNames[player - 1]} claimed the longest road ${this.longest.icon}`);
+            this.game.queue.push(
+              `ACKNOWLEDGE\t${this.game.playerNames[player - 1]} claimed the longest road ${this.longest.icon}`
+            );
           } else {
             //Increase size
             this.game.state.longestRoad.size = longest.length;
@@ -406,7 +409,9 @@ class SettlersActions {
           `claimed the ${this.longest.name} with ${longest.length} segments.`
         );
 
-        this.game.queue.push(`ACKNOWLEDGE\t${this.game.playerNames[player - 1]} claimed the longest road ${this.longest.icon}`);
+        this.game.queue.push(
+          `ACKNOWLEDGE\t${this.game.playerNames[player - 1]} claimed the longest road ${this.longest.icon}`
+        );
         this.game.state.longestRoad.player = player;
         this.game.state.longestRoad.size = longest.length;
         this.game.state.longestRoad.path = longest;
@@ -433,7 +438,7 @@ class SettlersActions {
 
   //Convert Resource Object to readable string
   wishListToString(stuff) {
-    let offer = "";
+    let offer = '';
     for (let resource in stuff) {
       if (stuff[resource] > 0) {
         if (stuff[resource] > 1) {
@@ -443,12 +448,12 @@ class SettlersActions {
         }
       }
     }
-    offer = offer.length > 0 ? offer.substring(5) : "<em>nothing</em>";
+    offer = offer.length > 0 ? offer.substring(5) : '<em>nothing</em>';
     return offer;
   }
 
   wishListToImage(stuff) {
-    let offer = "";
+    let offer = '';
     for (let resource in stuff) {
       for (let i = 0; i < stuff[resource]; i++) {
         offer += `<img class="icon" src="${this.returnCardImage(resource)}"/>`;
@@ -474,7 +479,7 @@ class SettlersActions {
   }
 
   clearAdvert() {
-    this.addMove("clear_advert\t" + this.game.player);
+    this.addMove('clear_advert\t' + this.game.player);
     this.endTurn();
   }
 
@@ -486,21 +491,41 @@ class SettlersActions {
       this.placement_hint_wave_timeout = null;
     }
 
-    $(".placement-wave-highlight").removeClass("placement-wave-highlight");
+    $(document).off('mouseenter.settlersPlacementHintWave');
+    $('.placement-wave-highlight').removeClass('placement-wave-highlight');
+  }
+
+  bindPlacementHintWaveHoverStop(selector) {
+    let settlers_self = this;
+
+    $(document).off('mouseenter.settlersPlacementHintWave');
+    $(document).on('mouseenter.settlersPlacementHintWave', selector, function () {
+      let el = this;
+      if (
+        el.offsetParent === null ||
+        el.classList.contains('noselect') ||
+        (!el.classList.contains('rhover') && !el.classList.contains('chover'))
+      ) {
+        return;
+      }
+
+      settlers_self.stopPlacementHintWave();
+    });
   }
 
   runPlacementHintWave() {
     let waveToken = this.placement_hint_wave_token || 0;
-    let selector = this.placement_hint_wave_selector || ".rhover, .chover";
+    let selector = this.placement_hint_wave_selector || '.rhover, .chover';
     let targets = Array.from(document.querySelectorAll(selector)).filter((el) => {
       return (
         el.offsetParent !== null &&
-        !el.classList.contains("noselect") &&
-        (el.classList.contains("rhover") || el.classList.contains("chover"))
+        !el.classList.contains('noselect') &&
+        (el.classList.contains('rhover') || el.classList.contains('chover'))
       );
     });
 
     if (!targets.length) {
+      console.info('SETTLERS: no targets');
       this.stopPlacementHintWave();
       return;
     }
@@ -511,38 +536,42 @@ class SettlersActions {
       return ar.left + ar.top * 0.35 - (br.left + br.top * 0.35);
     });
 
-    const passDuration = 500;
-    const pulseDuration = 100;
+    const passDuration = 1000;
+    const pulseDuration = 250;
     const stagger = targets.length > 1 ? passDuration / (targets.length - 1) : 0;
 
     targets.forEach((el, index) => {
-      setTimeout(() => {
-        if (waveToken !== this.placement_hint_wave_token) {
-          return;
-        }
-
-        if (
-          !el.isConnected ||
-          el.classList.contains("noselect") ||
-          (!el.classList.contains("rhover") && !el.classList.contains("chover"))
-        ) {
-          return;
-        }
-
-        el.classList.remove("placement-wave-highlight");
-        void el.offsetWidth;
-        el.classList.add("placement-wave-highlight");
-
-        setTimeout(() => {
+      setTimeout(
+        () => {
           if (waveToken !== this.placement_hint_wave_token) {
+            console.info('SETTLERS: waveToken mismatch');
             return;
           }
 
-          if (el.isConnected) {
-            el.classList.remove("placement-wave-highlight");
+          if (
+            !el.isConnected ||
+            el.classList.contains('noselect') ||
+            (!el.classList.contains('rhover') && !el.classList.contains('chover'))
+          ) {
+            return;
           }
-        }, pulseDuration);
-      }, Math.round(index * stagger));
+
+          el.classList.remove('placement-wave-highlight');
+          void el.offsetWidth;
+          el.classList.add('placement-wave-highlight');
+
+          setTimeout(() => {
+            if (waveToken !== this.placement_hint_wave_token) {
+              return;
+            }
+
+            if (el.isConnected) {
+              el.classList.remove('placement-wave-highlight');
+            }
+          }, pulseDuration);
+        },
+        Math.round(index * stagger)
+      );
     });
   }
 
@@ -555,18 +584,21 @@ class SettlersActions {
       }
 
       this.runPlacementHintWave();
-      this.schedulePlacementHintWave(5330);
+      this.schedulePlacementHintWave();
     }, delay);
   }
 
-  startPlacementHintWave(selector = ".rhover, .chover") {
-    if (typeof window === "undefined") {
+  startPlacementHintWave(selector = '.rhover, .chover') {
+    if (typeof window === 'undefined') {
       return;
     }
 
     this.stopPlacementHintWave();
     this.placement_hint_wave_selector = selector;
-    this.schedulePlacementHintWave(10000);
+    this.bindPlacementHintWaveHoverStop(selector);
+    // Run almost immediately as a visual prompt
+    // Basically only for initial placement and bandit
+    this.schedulePlacementHintWave(1500);
   }
 
   /* 
@@ -579,7 +611,7 @@ class SettlersActions {
     //console.log(this.game.state.players[this.game.player-1].ports);
 
     for (let i of this.game.state.players[this.game.player - 1].ports) {
-      if (i == "any") {
+      if (i == 'any') {
         //3:1 portt
         minForTrade = 3;
       } else {
@@ -600,7 +632,7 @@ class SettlersActions {
   confirmPlacement(slot, piece, callback) {
     this.stopPlacementHintWave();
 
-    let cm = this.loadGamePreference("settlers_confirm_moves");
+    let cm = this.loadGamePreference('settlers_confirm_moves');
     if (cm != null) {
       this.confirm_moves = cm;
     }
@@ -610,7 +642,7 @@ class SettlersActions {
       return;
     }
 
-    $(`#${slot}`).css("background-color", "yellow");
+    $(`#${slot}`).css('background-color', 'yellow');
     let settlers_self = this;
     let html = `
           <div class="popup-confirm-menu">
@@ -621,35 +653,34 @@ class SettlersActions {
     let left = $(`#${slot}`).offset().left + 50;
     let top = $(`#${slot}`).offset().top + 20;
 
-    $(".popup-confirm-menu").remove();
-    $("body").append(html);
+    $('.popup-confirm-menu').remove();
+    $('body').append(html);
 
-    if (left + 200 < window.innerWidth){
-      $(".popup-confirm-menu").css({
-        position: "absolute",
+    if (left + 200 < window.innerWidth) {
+      $('.popup-confirm-menu').css({
+        position: 'absolute',
         top: top,
-        left: left,
+        left: left
       });
-    }else{
-      $(".popup-confirm-menu").css({
-        position: "absolute",
+    } else {
+      $('.popup-confirm-menu').css({
+        position: 'absolute',
         top: top,
-        right: 0,
+        right: 0
       });
     }
 
-    $(".action").off();
-    $(".action").on("click", function () {
-      $("#" + slot).css("background-color", "");
-      let confirmation = $(this).attr("id");
+    $('.action').off();
+    $('.action').on('click', function () {
+      $('#' + slot).css('background-color', '');
+      let confirmation = $(this).attr('id');
 
-      $(".action").off();
-      $(".popup-confirm-menu").remove();
-      if (confirmation == "confirm") {
+      $('.action').off();
+      $('.popup-confirm-menu').remove();
+      if (confirmation == 'confirm') {
         callback();
       }
     });
-
   }
 }
 
