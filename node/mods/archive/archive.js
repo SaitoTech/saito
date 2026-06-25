@@ -1168,14 +1168,23 @@ class Archive extends ModTemplate {
 			//
 			// Servers clean up SQL / file storage
 			//
+			let pruned_ct = 0;
+			//
+			// delete flagged transactions
+			//
+			let sql = `DELETE FROM archives WHERE flagged = 1 AND tx != ''`;
+			let params = {};
+			let results = await this.app.storage.runDatabase(sql, params, 'archive');
+			if (results?.changes) {
+				pruned_ct += results?.changes;
+			}
 
 			//
 			// delete public blockchain transactions
 			//
-			let pruned_ct = 0;
-			let sql = `DELETE FROM archives WHERE owner = "" AND updated_at < $ts AND preserve = 0 AND tx != ''`;
-			let params = { $ts: now - this.prune_public_ts };
-			let results = await this.app.storage.runDatabase(sql, params, 'archive');
+			sql = `DELETE FROM archives WHERE owner = "" AND updated_at < $ts AND preserve = 0 AND tx != ''`;
+			params = { $ts: now - this.prune_public_ts };
+			results = await this.app.storage.runDatabase(sql, params, 'archive');
 			if (results?.changes) {
 				pruned_ct += results?.changes;
 			}
@@ -1206,7 +1215,7 @@ class Archive extends ModTemplate {
 			// Need to add something to delete the super big transactions as well...
 			//
 			params = { $ts: now - this.prune_public_ts };
-			sql = `SELECT sig FROM archives WHERE updated_at < $ts AND preserve = 0 AND tx = ''`;
+			sql = `SELECT sig FROM archives WHERE updated_at < $ts AND (preserve = 0 OR flagged = 1) AND tx = ''`;
 			let rows = await this.app.storage.queryDatabase(sql, params, 'archive');
 			for (let r of rows) {
 				await this.deleteTransaction(r.sig);

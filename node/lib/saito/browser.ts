@@ -81,6 +81,8 @@ class Browser {
     }
 
     app.connection.on('saito-render-complete', () => {
+      (window as any).SaitoCtaLoader?.markAppReady?.();
+
       //hide pace-js if its still active
       let elem = document.querySelector('.pace');
       let delay = 500;
@@ -301,7 +303,8 @@ class Browser {
       this.browser_active = 1;
 
       const theme_from_document = document.documentElement.getAttribute('data-theme');
-      const theme = this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'noir';
+      const theme =
+        this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'noir';
 
       this.switchTheme(theme);
     } catch (err) {
@@ -358,7 +361,7 @@ class Browser {
           let publicKey = e.target.getAttribute('data-id');
           if (
             !publicKey ||
-            !app.crypto.isPublicKey(publicKey) ||
+            !app.wallet.isValidPublicKey(publicKey) ||
             disable_click === 'true' ||
             disable_click == true
           ) {
@@ -448,7 +451,7 @@ class Browser {
             if (key) {
               add = key.publicKey;
             }
-            if (this.app.crypto.isPublicKey(cleaner) && (add == '' || add == null)) {
+            if (this.app.wallet.isValidPublicKey(cleaner) && (add == '' || add == null)) {
               add = cleaner;
             }
             if (!keys.includes(add) && add != '' && add != null) {
@@ -464,7 +467,7 @@ class Browser {
 
     if (adds) {
       adds.forEach((add) => {
-        if (this.app.crypto.isPublicKey(add) && !keys.includes(add)) {
+        if (this.app.wallet.isValidPublicKey(add) && !keys.includes(add)) {
           keys.push(add);
         }
       });
@@ -474,7 +477,7 @@ class Browser {
         let key = this.app.keychain.returnKey({ identifier: id });
         if (key.publicKey) {
           let add = key.publicKey;
-          if (this.app.crypto.isPublicKey(add)) {
+          if (this.app.wallet.isValidPublicKey(add)) {
             if (!keys.includes(add)) {
               keys.push(add);
             }
@@ -2494,7 +2497,7 @@ class Browser {
           if (el.classList.contains('saito-address') && !el.classList.contains('treated')) {
             el.classList.add('treated');
             let key = el.dataset?.id;
-            if (key && saito_app.crypto.isPublicKey(key)) {
+            if (key && saito_app.wallet.isValidPublicKey(key)) {
               // Returns registered name from our keychain or empty string
               let identifier = saito_app.keychain.returnIdentifierByPublicKey(key);
 
@@ -2578,7 +2581,8 @@ class Browser {
   switchTheme(theme) {
     let mod_obj = this.app.modules.returnActiveModule();
     let force_lite_for_game =
-      mod_obj?.is_game_template === true || document.documentElement.classList.contains('game');
+      mod_obj?.is_game_template === true ||
+      document.documentElement.classList.contains('game');
 
     if (force_lite_for_game) {
       theme = 'lite';
@@ -2720,7 +2724,7 @@ class Browser {
         key = split[1];
       }
 
-      if (this.app.crypto.isPublicKey(key)) {
+      if (this.app.wallet.isValidPublicKey(key)) {
         if (!keys.includes(key)) {
           keys.push(key);
         }
@@ -2744,7 +2748,7 @@ class Browser {
         key = split[1];
       }
 
-      if (this.app.crypto.isPublicKey(key)) {
+      if (this.app.wallet.isValidPublicKey(key)) {
         return `<span class="saito-mention saito-address" data-id="${key}">${username}</span>`;
       } else {
         return k;
@@ -2862,24 +2866,23 @@ class Browser {
   }
 
   returnBalanceHTML(balance, exact_precision) {
-    const raw = parseFloat(String(balance));
-    const isSubunit = Number.isFinite(raw) && Math.abs(raw) > 0 && Math.abs(raw) < 1;
-
     balance = this.formatDecimals(balance, exact_precision);
     let separator = this.getDecimalSeparator();
-    let split = balance.split(`${separator}`);
-    const segmentsClass = isSubunit
-      ? 'balance-amount-segments balance-amount-segments--subunit'
-      : 'balance-amount-segments';
 
-    let html = `<span class="${segmentsClass}">`;
-    html += `<span class="balance-amount-whole">${split[0]}</span>`;
+    let split = balance.split(`${separator}`);
+
+    let html = `<span class="balance-amount-whole">${split[0]}</span>`;
+
     if (split[1]) {
       html += `<span class="balance-amount-separator">${separator}</span>`;
       html += `<span class="balance-amount-decimal">${split[1]}</span>`;
     }
-    html += `</span>`;
+
     return html;
+
+    //document.querySelector(`.balance-amount-whole`).innerHTML = whole_amt;
+    //document.querySelector(`.balance-amount-separator`).innerHTML = separator;
+    //document.querySelector(`.balance-amount-decimal`).innerHTML = decimal_amt;
   }
 
   logoSVG() {

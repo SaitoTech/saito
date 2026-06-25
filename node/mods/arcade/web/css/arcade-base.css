@@ -193,6 +193,10 @@
     padding: 0 5px 0 0;
 }
 
+.arcade-teaser-install {
+  overflow: hidden;
+}
+
 .arcade-sidebar .saito-announcement {
 	margin-bottom: 1rem;
 	line-height: 1.25em;
