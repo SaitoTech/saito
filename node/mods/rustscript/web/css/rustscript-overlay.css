@@ -1,0 +1,373 @@
+<<<<<<< HEAD
+/* Shared RustScript overlays — expert syntax; extends overlay system */
+
+body:has(.saito-container.rustscript) .saito-overlay:has(> .rustscript-overlay) {
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+
+body:has(.saito-container.rustscript) .saito-overlay > .rustscript-overlay {
+  border: var(--rs-overlay-border) !important;
+  border-radius: var(--rs-control-radius, 4px) !important;
+  box-shadow: var(--rs-overlay-shadow) !important;
+  overflow: hidden;
+  background: var(--rustscript-surface);
+}
+
+body:has(.saito-container.rustscript) .rustscript-overlay {
+  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
+  color: #ececec;
+  background: var(--rustscript-surface);
+  width: min(820px, 94vw);
+  max-width: 94vw;
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-overlay-gap);
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+body:has(.saito-container.rustscript) .rustscript-overlay h2,
+body:has(.saito-container.rustscript) .rustscript-overlay .rs-prompt-title {
+  margin: var(--rs-overlay-title-margin);
+  font-family: var(--rustscript-font-sans);
+  font-size: var(--rs-overlay-title-size);
+  font-weight: var(--rs-overlay-title-weight);
+  letter-spacing: var(--rs-overlay-title-spacing);
+  line-height: 1.25;
+  text-transform: none;
+  color: #f4f4f4;
+}
+
+body:has(.saito-container.rustscript) .rustscript-overlay label,
+body:has(.saito-container.rustscript) .rustscript-overlay .rs-prompt-label,
+body:has(.saito-container.rustscript) .rustscript-overlay .rs-overlay-hint {
+  font-family: var(--rustscript-font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: #a8a8a8;
+  margin: 0 0 8px;
+  display: block;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body:has(.saito-container.rustscript) .rustscript-overlay textarea,
+body:has(.saito-container.rustscript) .rustscript-overlay .rs-expert-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  min-height: 140px;
+  font-family: var(--rustscript-font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+  background: #0c0c0c;
+  color: #efefef;
+  border: 1px solid #4a4a4a;
+  border-radius: var(--rs-control-radius, 4px);
+  resize: vertical;
+  outline: none;
+}
+
+body:has(.saito-container.rustscript) .rustscript-overlay textarea::placeholder {
+  color: #8a8a8a;
+  opacity: 1;
+}
+
+body:has(.saito-container.rustscript) .rustscript-overlay .overlay-actions {
+  display: flex;
+  width: 100%;
+  gap: var(--rs-overlay-footer-gap);
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: var(--rs-overlay-footer-margin-top);
+  padding-top: 4px;
+}
+
+body:has(.saito-container.rustscript) .rustscript-overlay .overlay-actions .rs-btn,
+body:has(.saito-container.rustscript) .rustscript-overlay .overlay-actions button:not(.rs-btn) {
+  min-height: var(--rs-btn-primary-height);
+  height: var(--rs-btn-primary-height);
+  min-width: var(--rs-btn-primary-min-width);
+  padding: var(--rs-btn-primary-padding);
+  font-size: var(--rs-btn-primary-font-size);
+}
+
+body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-value,
+body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-publickey-input,
+body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-single-input,
+body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-number-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  min-height: var(--rs-control-height);
+  font-family: var(--rustscript-font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+  background: #0c0c0c;
+  color: #efefef;
+  border: 1px solid #4a4a4a;
+  border-radius: var(--rs-control-radius, 4px);
+  outline: none;
+}
+
+body:has(.saito-container.rustscript) .rustscript-overlay input::placeholder {
+  color: #8a8a8a;
+  opacity: 1;
+}
+
+body:has(.saito-container.rustscript) .overlay-actions-apply-only {
+  justify-content: flex-end;
+}
+
+body:has(.saito-container.rustscript) .overlay-actions-split {
+  justify-content: space-between;
+  align-items: stretch;
+  gap: var(--rs-overlay-footer-gap);
+}
+
+body:has(.saito-container.rustscript) .overlay-actions-split .rs-prompt-use-mine {
+  flex: 1 1 auto;
+  margin: 0;
+  min-width: 0;
+}
+
+body:has(.saito-container.rustscript) .overlay-actions-split .rs-prompt-apply {
+  flex: 0 0 auto;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-validation {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--rs-control-radius, 4px);
+  font-size: 14px;
+  line-height: 1.45;
+  color: #f0c878;
+  background: rgba(252, 163, 17, 0.12);
+  border: 1px solid rgba(252, 163, 17, 0.35);
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-validation[hidden] {
+  display: none !important;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-hash-input {
+  min-height: 120px;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-generic .rs-prompt-title {
+  margin-bottom: 24px;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-generic-single .rs-prompt-single-input {
+  min-height: var(--rs-control-height);
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-publickey-panel,
+body:has(.saito-container.rustscript) .rs-prompt-number-panel,
+body:has(.saito-container.rustscript) .rs-prompt-generic-single {
+  width: min(480px, 94vw);
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-number-field {
+  width: 100%;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-number-input {
+  min-height: var(--rs-control-height);
+  font-size: 15px;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-generic-input {
+  min-height: 168px;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-logical-select {
+  width: 100%;
+  box-sizing: border-box;
+  height: var(--rs-control-height);
+  padding: 0 36px 0 16px;
+  border: 1px solid #4a4a4a;
+  border-radius: var(--rs-control-radius, 4px);
+  background: #0c0c0c;
+  color: #efefef;
+  font-family: var(--rustscript-font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg fill='%23aaa' height='12' viewBox='0 0 24 24' width='12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-logical-explain {
+  margin: 6px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--rs-control-radius, 4px);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 15px;
+  line-height: 1.55;
+  color: #c8c8c8;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-hash-output-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-hash-output {
+  flex: 1;
+  min-height: 56px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--rs-control-radius, 4px);
+  border: 1px solid rgba(92, 184, 106, 0.35);
+  background: #080808;
+  font-family: var(--rustscript-font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #b8f0c0;
+  word-break: break-all;
+  display: block;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-copy-hash {
+  flex: 0 0 5.2rem;
+  width: 5.2rem;
+  height: 5.2rem;
+  min-height: 5.2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--rs-control-radius, 4px);
+  border: 1px solid #4a4a4a;
+  background: #141414;
+  color: #c8c8c8;
+  cursor: pointer;
+  align-self: stretch;
+  box-shadow: none;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-copy-icon {
+  font-size: 2rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-copy-hash:hover {
+  color: #f0f0f0;
+  border-color: #666;
+  background: #1c1c1c;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-publickey-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-publickey-input {
+  min-height: var(--rs-control-height);
+  font-size: 15px;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-sign-wallet {
+  align-self: flex-start;
+  margin: 4px 0 10px;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-signature-readonly {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  min-height: var(--rs-control-height);
+  border-radius: var(--rs-control-radius, 4px);
+  border: 1px solid #4a4a4a;
+  background: #080808;
+  font-family: var(--rustscript-font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #d8d8d8;
+  word-break: break-all;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-signature-message {
+  min-height: 72px;
+  white-space: pre-wrap;
+}
+
+body:has(.saito-container.rustscript) .rs-prompt-signature-auto .overlay-actions {
+  margin-top: 8px;
+=======
+body.rustscript .rustscript-overlay {
+  padding: 20px;
+  color: var(--rustscript-text);
+  background: var(--rustscript-surface);
+  border-radius: 8px;
+  width: 560px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+body.rustscript .rustscript-overlay h2 {
+  font-size: 1.2em;
+  margin-bottom: 4px;
+  color: var(--rustscript-text);
+}
+
+body.rustscript .rustscript-overlay label {
+  font-size: 0.9em;
+  color: var(--rustscript-muted);
+  margin-bottom: 4px;
+  display: block;
+}
+
+body.rustscript .rustscript-overlay textarea,
+body.rustscript .rustscript-overlay .rs-expert-input {
+  width: 100%;
+  min-height: 160px;
+  padding: 8px;
+  font-family: var(--rustscript-font-mono);
+  background: var(--rustscript-panel);
+  color: var(--rustscript-text);
+  border: 1px solid var(--rustscript-border);
+  border-radius: 4px;
+  resize: vertical;
+}
+
+body.rustscript .overlay-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+body.rustscript .overlay-actions button {
+  background: var(--rustscript-panel);
+  color: var(--rustscript-text);
+  border: 1px solid var(--rustscript-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border 0.15s;
+>>>>>>> 47390b7b (fix: rustscript refactor start)
+}
