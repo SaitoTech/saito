@@ -2880,9 +2880,6 @@ class Browser {
 
     return html;
 
-    //document.querySelector(`.balance-amount-whole`).innerHTML = whole_amt;
-    //document.querySelector(`.balance-amount-separator`).innerHTML = separator;
-    //document.querySelector(`.balance-amount-decimal`).innerHTML = decimal_amt;
   }
 
   logoSVG() {

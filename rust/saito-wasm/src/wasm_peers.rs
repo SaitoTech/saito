@@ -25,7 +25,6 @@ impl WasmPeers {
 
         match public_key {
             Some(pk) => {
-
                 // ✅ convert String → JsString
                 let js_pk = JsValue::from_str(&pk);
 

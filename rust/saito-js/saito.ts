@@ -519,7 +519,6 @@ export default class Saito {
         verifySignature: wasm.verify_signature?.bind(wasm),
       },
 
-
       //
       // SCRIPTING
       //
