@@ -25,6 +25,8 @@ class PublicKeyFieldOverlay {
       return;
     }
 
+    input.focus({ preventScroll: true });
+
     const validation = root.querySelector('.rs-prompt-validation');
 
     const showError = (message) => {
