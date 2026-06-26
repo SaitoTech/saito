@@ -93,8 +93,12 @@ impl WasmBlockchain {
             .blockchain_lock
             .blocking_read();
 
+<<<<<<< HEAD
         let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
         blockchain.serialize(&serializer).unwrap()
+=======
+        to_js_value(&*blockchain)
+>>>>>>> e817aa89 (fix: js-rust serialize)
     }
 
     pub async fn reset(&self) {

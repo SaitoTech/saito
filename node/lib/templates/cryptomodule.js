@@ -74,6 +74,31 @@ class CryptoModule extends ModTemplate {
     //
     this.options = {};
     this.options.isActivated = false;
+
+    // There is no guarantee that these persist between page loads
+    // Each crypto listens for incoming payments and caches the details in early_payments
+    // When a module call receivePayment, it registers an expected payment and checks for it in early_payments
+    // Otherwise it starts polling
+    // When a registered payment matches an inbound payment, it fires 'on-receive-expected-payment' to clear
+    // whatever UI components are connected
+    this.transfers_inbound = {};
+    this.early_payments = [];
+
+    app.connection.on('on-payment-received', async (p) => {
+      if (p.ticker == this.ticker) {
+        // Force a balance check for smoothly rerendering... (i think)
+        this.balance = await this.getAvailableBalance();
+        console.log('*************** payment-received ***********', p);
+        this.processExpectedPayment(p);
+      }
+    });
+
+    app.connection.on('on-payment-sent', async (p) => {
+      if (p.ticker == this.ticker) {
+        this.balance = await this.getAvailableBalance();
+        console.log('*************** payment-sent ***********', p);
+      }
+    });
   }
 
   // These are overwritten by the individual crypto modules
@@ -190,10 +215,12 @@ class CryptoModule extends ModTemplate {
   async sendPaymentTransaction(publicKey, from_address, to_address, amount, hash, memo = '') {
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(publicKey);
 
+    let fix_amount = Number(amount).toString();
+
     newtx.msg = {
       module: this.name,
       request: 'crypto payment',
-      amount,
+      amount: fix_amount,
       from: from_address,
       to: to_address,
       hash
@@ -377,6 +404,100 @@ class CryptoModule extends ModTemplate {
   }
 
   /**
+   *
+   * Registers an expected payment and checks for it...
+   * Searches for a payment which matches the criteria specified in the parameters.
+   * @abstract
+   * @param {Number} howMuch - How much of the token was transferred
+   * @param {String} from - Pubkey/address the transasction was sent from
+   * @param {timestamp} to - timestamp after which the transaction was sent
+   * @return {Boolean}
+   */
+  async receivePayment(amount, sender, unique_hash = '') {
+    // Check if we already received it
+
+    if (this.early_payments.length) {
+      for (let i = 0; i < this.early_payments.length; i++) {
+        let early_sender = this.early_payments[i].sender_address || this.early_payments[i].sender;
+        if (early_sender == sender) {
+          if (Number(this.early_payments[i].amount) == Number(amount)) {
+            this.app.connection.emit(
+              'on-receive-expected-payment',
+              unique_hash,
+              this.early_payments[i]
+            );
+            this.early_payments.splice(i, 1);
+            return;
+          }
+        }
+      }
+    }
+
+    this.transfers_inbound[unique_hash] = { sender, amount };
+
+    // Start monitoring for incoming payment
+    await this.startPolling();
+  }
+
+  /**********************
+     payment payload (obj):
+     **********************
+     ticker: (string)
+     amount: (string) 
+     receiver: (string) saito public key (if known)
+     receiver_address: (string) chain address (if applicable)
+     sender: (string) saito public key (if known)
+     sender_address: (string) chain address (if applicable)
+     timestamp: (int)
+
+     // extra stuff from wasm event
+     block_hash,
+     block_id,
+     signature,
+     transaction_signature,
+     transaction_type,
+
+     // extra stuff from Mixin
+     transaction_signature <- "snap.transaction_hash"
+     memo: (string)
+   */
+  processExpectedPayment(obj = {}) {
+    let receiver = obj.receiver_address || obj.receiver;
+    if (receiver !== this.publicKey && receiver !== this.formatAddress()) {
+      console.warn('***** Payment not to me!', obj);
+      return;
+    }
+
+    if (!Object.keys(this.transfers_inbound).length) {
+      // Cache the payment and quit
+      obj.timestamp = Date.now();
+      this.early_payments.push(obj);
+      return false;
+    }
+
+    // Try chain address, fallback to SAITO publickey
+    let sender = obj.sender_address || obj.sender;
+
+    for (let h in this.transfers_inbound) {
+      if (this.transfers_inbound[h].sender == sender) {
+        // Convert to Number so we don't worry about string formatting
+        if (Number(this.transfers_inbound[h].amount) == Number(obj.amount)) {
+          this.app.connection.emit('on-receive-expected-payment', h, obj);
+          delete this.transfers_inbound[h];
+          return;
+        } else {
+          console.warn(
+            ' *** Received a payment of an unexpected amount ***',
+            this.transfers_inbound[h],
+            obj
+          );
+          // Under/overpaid condition...
+        }
+      }
+    }
+  }
+
+  /**
    * save state of this module to local storage
    */
   save() {
@@ -394,13 +515,6 @@ class CryptoModule extends ModTemplate {
     //
     this.options.balance = this.balance;
     this.options.address = this.address;
-
-    if (!this.options?.transfers_inbound?.length) {
-      delete this.options.transfers_inbound;
-    }
-    if (!this.options?.transfers_outbound?.length) {
-      delete this.options.transfers_outbound;
-    }
 
     // Clean up legacy storage
     delete this.options.destination;
@@ -489,25 +603,6 @@ CryptoModule.prototype.sendPayment = async function (
   unique_hash = ''
 ) {
   throw new Error('sendPayment must be implemented by subclass!');
-};
-
-/**
- * Searches for a payment which matches the criteria specified in the parameters.
- * @abstract
- * @param {Number} howMuch - How much of the token was transferred
- * @param {String} from - Pubkey/address the transasction was sent from
- * @param {String} to - Pubkey/address the transasction was sent to
- * @param {timestamp} to - timestamp after which the transaction was sent
- * @return {Boolean}
- */
-CryptoModule.prototype.receivePayment = function (
-  amount,
-  sender,
-  recipient,
-  timestamp,
-  unique_hash = ''
-) {
-  throw new Error('receivePayment must be implemented by subclass!');
 };
 
 CryptoModule.prototype.checkWithdrawalFeeForAddress = function (recipient = '', mycallback = null) {

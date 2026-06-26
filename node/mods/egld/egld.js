@@ -360,7 +360,8 @@ class EGLDModule extends CryptoModule {
     }
   }
 
-  async receivePayment(amount = '', sender = '', recipient = '', timestamp = 0, unique_hash = '') {
+  async receivePayment(amount = '', sender = '', unique_hash = '') {
+    let timestamp = 0;
     let this_self = this;
     let status = 0;
     try {

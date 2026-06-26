@@ -2679,7 +2679,7 @@ class GameQueue {
               game_self.updateLog('payments issued...');
               game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
-              game_self.app.connection.emit('saito-crypto-send-confirm', robj, unique_hash);
+              game_self.app.connection.emit('saito-crypto-send-confirm', robj);
 
               game_self.restartQueue();
               return 0;
@@ -2689,7 +2689,7 @@ class GameQueue {
           );
         };
 
-        game_self.app.connection.emit('saito-crypto-send-render-request', {
+        game_self.app.connection.emit('saito-crypto-send-confirm-open-request', {
           publicKey: receiver,
           address: receiver_crypto_address,
           amount,
@@ -2746,35 +2746,37 @@ class GameQueue {
         game_self.saveGame(game_self.game.id);
         game_self.halted = 1;
 
+        //
+        // Update 6/17/2026
+        // We launch the overlay before calling receivePayment
+        // because the continue code is triggered by closing the overlay, which
+        // listens for a confirmation event emitted by the crypto, that could be instantaneous
+        //
+        game_self.app.connection.emit('saito-crypto-receive-render-request', {
+          address: sender_crypto_address,
+          publicKey: sender,
+          amount: amount,
+          ticker,
+          hash: unique_hash,
+          game_id: game_self.game.id,
+          mycallback: function () {
+            if (game_self.game.id != my_specific_game_id) {
+              game_self.game = game_self.loadGame(my_specific_game_id);
+            }
+
+            game_self.updateLog('payments received...');
+            game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+
+            game_self.restartQueue();
+            return 0;
+          }
+        });
+
         await game_self.app.wallet.receivePayment(
           ticker,
-          [sender_crypto_address],
-          [receiver_crypto_address],
-          [amount],
-          unique_hash,
-          function () {
-            game_self.app.connection.emit('saito-crypto-receive-render-request', {
-              address: sender_crypto_address,
-              publicKey: sender,
-              amount: amount,
-              ticker,
-              hash: unique_hash,
-              game_id: game_self.game.id,
-              trusted: this_self.loadGamePreference('crypto_transfers_inbound_trusted'),
-              mycallback: function () {
-                if (game_self.game.id != my_specific_game_id) {
-                  game_self.game = game_self.loadGame(my_specific_game_id);
-                }
-
-                game_self.updateLog('payments received...');
-                game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
-
-                game_self.restartQueue();
-                return 0;
-              }
-            });
-          },
-          sender
+          sender_crypto_address,
+          amount,
+          unique_hash
         );
 
         return 0;

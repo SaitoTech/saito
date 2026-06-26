@@ -3,7 +3,12 @@
  *
  * `data-receive-state` and `data-receive-mode` are set from receive.js after mount.
  */
-module.exports = function cryptoReceiveOverlayTemplate() {
+module.exports = function cryptoReceiveOverlayTemplate(details) {
+  let ca = false;
+  if (details.address && details.address !== details.publicKey) {
+    ca = details.address.includes('|') ? details.address.split('|')[0] : details.address;
+  }
+
   return `
   <div
     class="game-crypto-transfer-manager-container crypto-receive-overlay"
@@ -13,7 +18,7 @@ module.exports = function cryptoReceiveOverlayTemplate() {
   >
     <div class="crypto-receive-overlay__surface">
       <header class="crypto-receive-overlay__header">
-        <h2 class="auth_title crypto-receive-overlay__title" id="crypto_receive_title"></h2>
+        <h2 class="auth_title crypto-receive-overlay__title" id="crypto_receive_title">Receiving Payment</h2>
       </header>
 
       <div class="crypto-receive-overlay__body">
@@ -27,13 +32,19 @@ module.exports = function cryptoReceiveOverlayTemplate() {
         </div>
 
         <section class="crypto-receive-overlay__summary" aria-label="Amount">
-          <div class="amount crypto-receive-overlay__amount" id="crypto_receive_amount"></div>
+          <div class="amount crypto-receive-overlay__amount" id="crypto_receive_amount">${details.amount} ${details.ticker}</div>
         </section>
 
         <section class="crypto-receive-overlay__sender" aria-labelledby="crypto_receive_sender_label">
           <div class="crypto-receive-overlay__summary-label" id="crypto_receive_sender_label">From</div>
           <div class="counterparty-details"></div>
-          <div class="crypto-receive-overlay__chain-address" id="crypto_receive_address"></div>
+          ${
+            ca
+              ? `
+            <div class="crypto-receive-overlay__chain-address" id="crypto_receive_address">${ca.length > 16 ? `${ca.slice(0, 8)}…${ca.slice(-8)}` : ca}</div>
+          `
+              : ''
+          }
         </section>
       </div>
 

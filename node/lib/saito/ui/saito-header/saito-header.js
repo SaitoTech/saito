@@ -120,10 +120,6 @@ class SaitoHeader extends UIModTemplate {
         return;
       }
 
-      if (ticker === 'SAITO') {
-        amount = this.app.wallet.convertNolanToSaito(amount);
-      }
-
       siteMessage(
         `${amount} ${ticker} inbound from ${this.app.keychain.returnUsername(obj.sender)}`,
         3000

@@ -1,0 +1,87 @@
+/* newsplorer-search.css — hero and search bar */
+
+.newsplorer-search-component {
+	max-width: 720px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.newsplorer-hero-title {
+	margin: 0 0 0.5rem;
+	font-size: 1.75rem;
+	font-weight: 700;
+	letter-spacing: -0.03em;
+	color: var(--np-text);
+	line-height: 1.2;
+}
+
+.newsplorer-hero-subtitle {
+	margin: 0 0 1.5rem;
+	font-size: 0.9375rem;
+	color: var(--np-text-muted);
+	line-height: 1.5;
+}
+
+.newsplorer-search-form {
+	width: 100%;
+}
+
+.newsplorer-search-field {
+	position: relative;
+	display: flex;
+	align-items: center;
+	width: 100%;
+}
+
+.newsplorer-search-icon {
+	position: absolute;
+	left: 1.125rem;
+	font-size: 1rem;
+	color: var(--np-text-muted);
+	pointer-events: none;
+}
+
+.newsplorer-search-input {
+	width: 100%;
+	height: 3.25rem;
+	padding: 0 1.25rem 0 2.75rem;
+	font-size: 0.9375rem;
+	font-family: var(--np-font);
+	color: var(--np-text);
+	background: var(--np-surface);
+	border: 1px solid var(--np-border);
+	border-radius: var(--np-radius-lg);
+	box-shadow: var(--np-shadow-md);
+	box-sizing: border-box;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.newsplorer-search-input::placeholder {
+	color: #9aa5b1;
+}
+
+.newsplorer-search-input:hover {
+	border-color: #c5cdd8;
+}
+
+.newsplorer-search-input:focus {
+	outline: none;
+	border-color: var(--np-accent);
+	box-shadow: 0 0 0 3px rgba(7, 132, 195, 0.15), var(--np-shadow-md);
+}
+
+@media (max-width: 768px) {
+	.newsplorer-hero-title {
+		font-size: 1.375rem;
+	}
+
+	.newsplorer-hero-subtitle {
+		font-size: 0.875rem;
+		margin-bottom: 1.25rem;
+	}
+
+	.newsplorer-search-input {
+		height: 2.875rem;
+		font-size: 0.875rem;
+	}
+}

@@ -1,0 +1,17 @@
+/* newsplorer-transactions.css — latest transactions table */
+
+.newsplorer-transactions-component .newsplorer-table thead th:nth-child(5),
+.newsplorer-transactions-component .newsplorer-table tbody td:nth-child(5) {
+	text-align: right;
+}
+
+.newsplorer-transactions-component .newsplorer-table tbody td:first-child {
+	max-width: 8rem;
+}
+
+@media (max-width: 900px) {
+	.newsplorer-transactions-component .newsplorer-table thead th:nth-child(4),
+	.newsplorer-transactions-component .newsplorer-table tbody td:nth-child(4) {
+		display: none;
+	}
+}

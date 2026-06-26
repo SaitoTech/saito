@@ -836,6 +836,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 sync.fetch(&self.network, &self.fetch_dispatcher).await;
 
                 if sync.queue.is_empty() {
+
                     let is_latest_block = {
                         let blockchain = self.blockchain_lock.read().await;
                         blockchain.get_latest_block_hash() == block_hash

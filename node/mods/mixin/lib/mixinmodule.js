@@ -356,7 +356,7 @@ class MixinModule extends CryptoModule {
 
 			const obj = {
 				snapshot_id: snap.snapshot_id,
-				counter_party: { address: snap.opponent_id || '' },
+				counter_party: { address: '' },
 				timestamp: new Date(snap.created_at).getTime(),
 				amount: Number(snap.amount),
 				trans_hash: snap.transaction_hash || ''
@@ -388,85 +388,35 @@ class MixinModule extends CryptoModule {
 				if (pk) {
 					obj.counter_party.publicKey = pk;
 				}
+				obj.counter_party.address = await this.processAddress(snap.opponent_id, false);
 			}
 
 			this.history.push(obj);
 			fetched_updates.push(obj);
 
 			if (obj.type === 'deposit' || obj.type === 'receive') {
-				//
-				// Broadcast object shape (mixin-payment-received):
-				//
-				// {
-				//   direction: "receive",
-				//   type: "deposit",
-				//   amount: "0.005",
-				//   sender: "0xabc... or mixin-opponent-id",
-				//   receiver: "mixin-deposit-address",
-				//   timestamp: 1710000000000,
-				//   ticker: "SAITO",
-				//   transaction_hash: "1db6dc53...",
-				//   snapshot_id: "6049b6c2-...",
-				//   opponent_id: "dac46e33-...",
-				//   request_id: "bfb05bb6-...",
-				//   memo: "746573742d6d656d6f",
-				//   module: "Mixin SAITO",
-				//   counter_party: { address: "...", publicKey: "..." }
-				// }
-				//
 				this.app.connection.emit('on-payment-received', {
-					direction: obj.type,
-					amount: String(Math.abs(obj.amount)),
-					sender: obj?.counter_party.publicKey || obj?.counter_party.address || 'unknown',
-					receiver: this.returnAddress() || '',
-					timestamp: obj.timestamp,
-					block_id: '',
 					ticker: this.ticker || '',
-					transaction_signature: '',
-					signature: '',
-					memo: snap.memo || '',
-					confirmation: 1,
-					module: this.name || '',
-					request: 'crypto payment',
-					hash: ''
+					amount: String(Math.abs(obj.amount)),
+					receiver: this.publicKey,
+					receiver_address: this.formatAddress() || '',
+					sender_address: obj?.counter_party.address || 'unknown',
+					sender: obj?.counter_party.publicKey || 'unknown',
+					timestamp: obj.timestamp,
+					transaction_signature: obj.trans_hash
+					//memo: snap.memo || ''
 				});
 			} else if (obj.type === 'send' || obj.type === 'withdraw') {
-				//
-				// Broadcast object shape (mixin-payment-sent):
-				//
-				// {
-				//   direction: "send",
-				//   type: "withdraw",
-				//   amount: "0.005",
-				//   sender: "mixin-deposit-address",
-				//   receiver: "0xabc... or mixin-opponent-id",
-				//   timestamp: 1710000000000,
-				//   ticker: "SAITO",
-				//   transaction_hash: "1db6dc53...",
-				//   snapshot_id: "6049b6c2-...",
-				//   opponent_id: "dac46e33-...",
-				//   request_id: "bfb05bb6-...",
-				//   memo: "746573742d6d656d6f",
-				//   module: "Mixin SAITO",
-				//   counter_party: { address: "...", publicKey: "..." }
-				// }
-				//
-
 				this.app.connection.emit('on-payment-sent', {
-					direction: obj.type,
-					amount: String(Math.abs(obj.amount)),
-					receiver: obj?.counter_party.publicKey || obj?.counter_party.address || 'unknown',
-					sender: this.returnAddress() || '',
-					timestamp: obj.timestamp,
-					block_id: '',
 					ticker: this.ticker || '',
-					transaction_signature: '',
-					signature: '',
-					memo: snap.memo || '',
-					confirmation: 1,
-					module: this.name || '',
-					request: 'crypto payment',
-					hash: ''
+					amount: String(Math.abs(obj.amount)),
+					receiver_address: obj?.counter_party.address || 'unknown',
+					receiver: obj?.counter_party.publicKey || 'unknown',
+					sender_address: this.formatAddress() || '',
+					sender: this.publicKey,
+					timestamp: obj.timestamp,
+					transaction_signature: obj.trans_hash
+					//memo: snap.memo || ''
 				});
 			}
 
@@ -588,6 +538,10 @@ class MixinModule extends CryptoModule {
 			if (!this.last_balance) {
 				this.last_balance = this.balance;
 			}
+
+			if (res.message?.length) {
+				return res.message[0].transaction_hash || unique_hash;
+			}
 			return unique_hash;
 		} else {
 			throw new Error('MixinModule: ' + res.message);
@@ -609,95 +563,6 @@ class MixinModule extends CryptoModule {
 	 */
 	returnPrivateKey() {
 		return this.mixin.mixin.privatekey;
-	}
-
-	/**
-	 * Searches for a payment which matches the criteria specified in the parameters.
-	 * @abstract
-	 * @param {Number} howMuch - How much of the token was transferred
-	 * @param {String} from - Pubkey/address the transasction was sent from
-	 * @param {String} to - Pubkey/address the transasction was sent to
-	 * @param {timestamp} to - timestamp after which the transaction was sent
-	 * @return {Boolean}
-	 */
-	async receivePayment(amount = '', sender = '', recipient = '', timestamp = 0, unique_hash = '') {
-		let this_self = this;
-		let received_status = 0;
-		let split = sender.split('|');
-
-		console.log('split: ', split);
-
-		let opponent_id = split[1];
-		sender = split[0];
-
-		//
-		// the mixin module might have a record of this already stored locally
-		//
-		console.log('////////////////////////////////////////////////////');
-		console.log('inside receivePayment ///');
-		console.log('amount, sender, timestamp');
-		console.log(amount, sender, timestamp);
-
-		//snapshot_datetime:  Mon Feb 12 2024 16:31:44 GMT+0500 (Pakistan Standard Time)
-		//mixinmodule.js:454 received_datetime:  Sun Sep 20 56111 06:01:14 GMT+0500 (Pakistan Standard Time)
-
-		let status = await this.mixin.fetchUtxo('unspent', 100000, 'DESC', (d) => {
-			if (d.length > 0) {
-				for (let i = d.length - 1; i >= 0; i--) {
-					let row = d[i];
-
-					//compare timestamps
-					let snapshot_date = new Date(row.created_at);
-					let received_date = new Date(timestamp);
-
-					console.log(
-						'received_datetime - snapshot_datetime - diff : ',
-						received_date,
-						snapshot_date,
-						snapshot_date - received_date
-					);
-
-					if (snapshot_date - received_date > 0) {
-						let snapshot_asset_id = row.asset_id;
-
-						console.log('*************************************');
-						console.log('snapshot response ///');
-
-						// filter out specific asset
-						if (snapshot_asset_id == this_self.asset_id) {
-							console.log('assets matched ///');
-
-							let senders = row.senders;
-
-							console.log('snapshot_opponent_id: ', senders);
-							console.log('opponent_id: ', opponent_id);
-							console.log('oponnent id exists:', senders.includes(opponent_id));
-
-							// filter out opponents
-							if (senders.includes(opponent_id)) {
-								console.log('opponent_id matched ////');
-
-								let snapshot_amount = Number(row.amount);
-								console.log('row.amount: ', row.amount);
-								console.log('snapshot_amount: ', snapshot_amount);
-
-								if (snapshot_amount == amount) {
-									console.log('match found ///');
-
-									return 1;
-								}
-							}
-						}
-					}
-				}
-
-				return 0;
-			}
-		});
-
-		console.log('status / ////////////////////////////');
-		console.log(status);
-		return status;
 	}
 
 	async returnMixinNetworkInfo() {
@@ -807,8 +672,14 @@ class MixinModule extends CryptoModule {
 		}
 	}
 
-	// Mixin specific function to minimize the amount of table look ups
-	async processAddress(destination) {
+	/**
+	 * Mixin specific function to minimize the amount of table look ups
+	 * @destination (string) the chain address for the token -- no validation (?)
+	 * @remote_fallback (boolean) -- we are overloading this function to also function as a
+	 * 								search through our cache and keychain to get the full formatted address from
+	 * 								the mixin_id...
+	 */
+	async processAddress(destination, remote_fallback = true) {
 		if (destination.includes('|mixin')) {
 			return destination;
 		}
@@ -831,28 +702,30 @@ class MixinModule extends CryptoModule {
 				}
 			}
 
-			//
-			// check if address exists in remote db
-			//
-			await this.mixin.sendFetchUserTransaction(
-				{
-					address: destination,
-					asset_id: this.asset_id
-				},
-				(res) => {
-					if (res?.length) {
-						let user_data = res[0];
-						if (user_data?.publickey && user_data.user_id) {
-							destination += '|' + user_data.user_id + '|mixin';
-							// Cache return values
-							this.cached_contacts[user_data.publickey] = destination;
-							if (this.app.keychain.hasPublicKey(user_data.publickey)) {
-								this.app.keychain.addCryptoAddress(user_data.publickey, this.ticker, destination);
+			if (remote_fallback) {
+				//
+				// check if address exists in remote db
+				//
+				await this.mixin.sendFetchUserTransaction(
+					{
+						address: destination,
+						asset_id: this.asset_id
+					},
+					(res) => {
+						if (res?.length) {
+							let user_data = res[0];
+							if (user_data?.publickey && user_data.user_id) {
+								destination += '|' + user_data.user_id + '|mixin';
+								// Cache return values
+								this.cached_contacts[user_data.publickey] = destination;
+								if (this.app.keychain.hasPublicKey(user_data.publickey)) {
+									this.app.keychain.addCryptoAddress(user_data.publickey, this.ticker, destination);
+								}
 							}
 						}
 					}
-				}
-			);
+				);
+			}
 
 			return destination;
 		}

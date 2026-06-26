@@ -30,10 +30,28 @@
     gap: 2rem;
 >>>>>>> staging
 }
+/* Lightweight READY notification popup (when not in Arcade) */
+.arcade-ready-popup {
+    max-width: 22rem;
+    /* margin: 0 auto; */
+    padding: 2.5rem;
+    text-align: center;
+    background: var(--saito-background-color);
+    border-radius: var(--saito-border-radius);
+    box-shadow: var(--saito-overlay-panel-shadow);
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
 
 .arcade-ready-overlay.maximized-overlay .saito-overlay-closebox {
 	top: -1.5rem;
 	right: -1.5rem;
+}
+
+.arcade-ready-popup-name {
+    font-size: larger;
 }
 
 .arcade-lounge.arcade-lounge--ready-popup {
