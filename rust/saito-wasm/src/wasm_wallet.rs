@@ -1,13 +1,7 @@
 use std::ops::Deref;
 use std::sync::Arc;
-
-<<<<<<< HEAD
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
-
-=======
-use crate::js_value_serialize::to_js_value;
->>>>>>> d0f828fa (fix: rustscript rust implementation)
 use js_sys::{Array, JsString, Uint8Array};
 use log::{debug, error, info, warn};
 use num_traits::FromPrimitive;
@@ -384,7 +378,7 @@ impl WasmWallet {
         Ok(WasmTransaction::from_transaction(tx))
     }
 
-    pub fn get(&self) -> Result<JsValue, JsValue> {
+    pub fn get(&self) -> JsValue {
         let saito = SAITO.blocking_lock();
 
         let wallet = saito

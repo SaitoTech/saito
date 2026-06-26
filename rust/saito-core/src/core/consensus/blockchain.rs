@@ -270,6 +270,7 @@ impl Blockchain {
         if !self.blockring.is_empty() && self.get_block(&block.previous_block_hash).is_none() {
             if block.previous_block_hash == [0; 32] {
                 // empty parent... block 1?
+	        info!("empty parent... block 1?");
             } else if self.is_loaded || self.checkpoint_found {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
                     .any(|b| block.previous_block_hash == b.hash);
@@ -293,6 +294,7 @@ impl Blockchain {
                 };
             }
         }
+
 
         //
         // insert block into blockring index
@@ -466,7 +468,7 @@ impl Blockchain {
             does_new_chain_validate &= self.validate_total_supply(configs).await;
 
             if does_new_chain_validate {
-                info!("VALIDATES!!!! adding...");
+	        info!("VALIDATES!!!! adding...");
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
                 AddBlockResult::BlockAddedSuccessfully(
