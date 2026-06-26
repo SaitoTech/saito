@@ -12,6 +12,23 @@
 	bottom: 1.5rem;
 	transform: none;
 	margin: 0;
+<<<<<<< HEAD
+=======
+}
+/* Lightweight READY notification popup (when not in Arcade) */
+.arcade-ready-popup {
+    max-width: 22rem;
+    /* margin: 0 auto; */
+    padding: 2.5rem;
+    text-align: center;
+    background: var(--saito-background-color);
+    border-radius: var(--saito-border-radius);
+    box-shadow: var(--saito-overlay-panel-shadow);
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+>>>>>>> staging
 }
 /* Lightweight READY notification popup (when not in Arcade) */
 .arcade-ready-popup {

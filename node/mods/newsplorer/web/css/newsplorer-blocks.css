@@ -1,0 +1,20 @@
+/* newsplorer-blocks.css — latest blocks table */
+
+.newsplorer-blocks-component .newsplorer-table thead th:nth-child(4),
+.newsplorer-blocks-component .newsplorer-table tbody td:nth-child(4) {
+	text-align: center;
+}
+
+.newsplorer-blocks-component .newsplorer-table thead th:nth-child(5),
+.newsplorer-blocks-component .newsplorer-table thead th:nth-child(6),
+.newsplorer-blocks-component .newsplorer-table tbody td:nth-child(5),
+.newsplorer-blocks-component .newsplorer-table tbody td:nth-child(6) {
+	text-align: right;
+}
+
+@media (max-width: 900px) {
+	.newsplorer-blocks-component .newsplorer-table thead th:nth-child(5),
+	.newsplorer-blocks-component .newsplorer-table tbody td:nth-child(5) {
+		display: none;
+	}
+}
