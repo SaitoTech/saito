@@ -375,10 +375,14 @@ export class BrowserSharedMethods implements SharedMethods {
 
   emitInterfaceEvent(event_name: string, payload_json: string) {
     if (event_name === "on-transaction-pending") {
+<<<<<<< HEAD
       console.info(
         "[tx-pending-trace] shared_methods.browser emitInterfaceEvent on-transaction-pending",
         { payload_json }
       );
+=======
+      console.info("[tx-pending-trace] shared_methods.browser emitInterfaceEvent on-transaction-pending");
+>>>>>>> 7c4ec6a0 (fix: debugging)
     }
 
     const payload = parseInterfaceEventPayload(payload_json);
@@ -401,6 +405,9 @@ export class BrowserSharedMethods implements SharedMethods {
     if (payload === null) {
       logPendingEmit("payload-null");
       this.app.connection.emit(event_name);
+      if (event_name === "on-transaction-pending") {
+        console.info("[tx-pending-trace] app.connection.emit(on-transaction-pending) complete");
+      }
       return;
     }
 
