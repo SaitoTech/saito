@@ -865,6 +865,12 @@ impl Transaction {
         //
         // limited number of slips
         //
+        // Fee Transactions are validated in block.validate() because they must match
+        // the fee transaction that block.generate_consensus_values() would create given
+        // the contents of the block. for this reason, and because there can only be
+        // a single fee transaction per block, we do not need to do further work to
+        // validate them here.
+        //
         if self.from.len() > u8::MAX as usize {
             error!("ERROR: transaction has too many inputs");
             return false;
@@ -1195,6 +1201,7 @@ impl Transaction {
                     }
                 }
             }
+
         }
 
         //
