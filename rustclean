@@ -1,4 +1,5 @@
-rm ./node/mods/rustscript
+rm -rf ./rust/saito-core/src/core/consensus/scripting
+rm -rf ./node/mods/rustscript
 git add .
 git commit -m "fix: merge"
 git rebase --continue
