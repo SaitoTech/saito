@@ -380,7 +380,7 @@ impl WasmWallet {
         Ok(WasmTransaction::from_transaction(tx))
     }
 
-    pub fn get(&self) -> JsValue {
+    pub fn get(&self) -> Result<JsValue, JsValue> {
         let saito = SAITO.blocking_lock();
 
         let wallet = saito
@@ -391,7 +391,6 @@ impl WasmWallet {
             .blocking_read();
 
         let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
-
         wallet.serialize(&serializer).unwrap()
     }
 

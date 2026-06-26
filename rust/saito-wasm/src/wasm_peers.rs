@@ -4,13 +4,17 @@ use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
+use crate::saitowasm::{string_to_key, SAITO};
+use crate::js_value_serialize::to_js_value;
+
+>>>>>>> e817aa89 (fix: js-rust serialize)
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct WasmPeers {}
 
 #[wasm_bindgen]
 impl WasmPeers {
-    pub fn get(&self, public_key: Option<String>) -> JsValue {
+    pub fn get(&self, public_key: Option<String>) -> Result<JsValue, JsValue> {
         let saito = SAITO.blocking_lock();
 
         let peers = saito
@@ -36,10 +40,10 @@ impl WasmPeers {
                         if let Some(peer) = peers.get_peer_by_public_key(&key_bytes) {
                             peer.serialize(&serializer).unwrap()
                         } else {
-                            JsValue::NULL
+                            Ok(JsValue::NULL)
                         }
                     }
-                    Err(_) => JsValue::NULL,
+                    Err(_) => Ok(JsValue::NULL),
                 }
             }
             None => (&*peers).serialize(&serializer).unwrap(),

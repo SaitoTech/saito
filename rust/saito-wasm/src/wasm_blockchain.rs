@@ -83,7 +83,7 @@ pub struct WasmBlockchain {
 
 #[wasm_bindgen]
 impl WasmBlockchain {
-    pub fn get(&self) -> JsValue {
+    pub fn get(&self) -> Result<JsValue, JsValue> {
         let saito = SAITO.blocking_lock();
 
         let blockchain = saito
