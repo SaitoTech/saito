@@ -9,6 +9,10 @@ pub mod mempool;
 pub mod merkle;
 pub mod nft;
 pub mod ringitem;
+<<<<<<< HEAD
+=======
+#[path = "scripting/script.rs"]
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
 pub mod scripting;
 pub mod slip;
 pub mod transaction;

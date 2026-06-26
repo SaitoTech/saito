@@ -836,6 +836,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 sync.fetch(&self.network, &self.fetch_dispatcher).await;
 
                 if sync.queue.is_empty() {
+<<<<<<< HEAD
 
                     let is_latest_block = {
                         let blockchain = self.blockchain_lock.read().await;
@@ -845,6 +846,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         return None;
                     }
 
+=======
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
                     info!("RoutingEvent::OnAddBlockSuccess: empty queue, triggering advance chain symc...");
                     sync.advance_chain_sync_if_ready(&self.network, self.config_lock.clone())
                         .await;

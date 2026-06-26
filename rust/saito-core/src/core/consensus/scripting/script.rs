@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::slip::Slip;
@@ -10,6 +11,11 @@ use super::opcodes::{
     CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere, CheckPath,
     CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime, ImportField, SumFields,
 };
+=======
+use crate::core::defs::PrintForLog;
+use crate::core::util::crypto;
+use serde_json::Value;
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
 
 pub const TEST_SCRIPT: &str = r#"{
   "op": "CHECKHASH",
@@ -19,6 +25,15 @@ pub const TEST_SCRIPT: &str = r#"{
   }
 }"#;
 
+<<<<<<< HEAD
+=======
+pub mod opcodes {
+    #[path = "checkhash.rs"]
+    mod checkhash;
+    pub use checkhash::CheckHash;
+}
+
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
 pub struct Script {
     pub json: Value,
 }
@@ -32,22 +47,29 @@ impl Script {
         todo!()
     }
 
+<<<<<<< HEAD
     pub fn from_json(json: &str) -> Self {
         let mut script = Script::new();
         script.parse(json);
         script
     }
 
+=======
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
     pub fn parse(&mut self, json: &str) {
         self.json = serde_json::from_str(json).expect("parse: invalid JSON");
     }
 
+<<<<<<< HEAD
     pub fn validate(
         &self,
         tx: Option<&Transaction>,
         blk: Option<&Block>,
         blockchain: Option<&Blockchain>,
     ) -> u8 {
+=======
+    pub fn validate(&self, tx: Option<&Transaction>, blk: Option<&Block>) -> u8 {
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
         let mut context = json!({
             "script": {},
             "witness": {},
@@ -59,7 +81,10 @@ impl Script {
             context: &mut Value,
             tx: Option<&Transaction>,
             blk: Option<&Block>,
+<<<<<<< HEAD
             blockchain: Option<&Blockchain>,
+=======
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
         ) -> u8 {
             let op = node["op"].as_str().unwrap_or("").to_uppercase();
 
@@ -68,11 +93,18 @@ impl Script {
             //
             match op.as_str() {
                 "AND" => {
+<<<<<<< HEAD
                     let default_args = Vec::new();
                     let args = node["args"].as_array().unwrap_or(&default_args);
 
                     for child in args {
                         if eval(child, context, tx, blk, blockchain) == 0 {
+=======
+                    let args = node["args"].as_array().unwrap_or(&Vec::new());
+
+                    for child in args {
+                        if eval(child, context, tx, blk) == 0 {
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
                             return 0;
                         }
                     }
@@ -81,11 +113,18 @@ impl Script {
                 }
 
                 "OR" => {
+<<<<<<< HEAD
                     let default_args = Vec::new();
                     let args = node["args"].as_array().unwrap_or(&default_args);
 
                     for child in args {
                         if eval(child, context, tx, blk, blockchain) == 1 {
+=======
+                    let args = node["args"].as_array().unwrap_or(&Vec::new());
+
+                    for child in args {
+                        if eval(child, context, tx, blk) == 1 {
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
                             return 1;
                         }
                     }
@@ -94,14 +133,22 @@ impl Script {
                 }
 
                 "NOT" => {
+<<<<<<< HEAD
                     let default_args = Vec::new();
                     let args = node["args"].as_array().unwrap_or(&default_args);
+=======
+                    let args = node["args"].as_array().unwrap_or(&Vec::new());
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
 
                     if args.is_empty() {
                         return 1;
                     }
 
+<<<<<<< HEAD
                     return if eval(&args[0], context, tx, blk, blockchain) == 1 {
+=======
+                    return if eval(&args[0], context, tx, blk) == 1 {
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
                         0
                     } else {
                         1
@@ -111,6 +158,10 @@ impl Script {
                 _ => {}
             }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
             //
             // refresh "script" and "witness"
             //
@@ -148,6 +199,10 @@ impl Script {
                 }
             }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
             //
             // opcode dispatch
             //
@@ -156,6 +211,7 @@ impl Script {
                     return CheckHash::execute(context, tx, blk);
                 }
 
+<<<<<<< HEAD
                 "CHECKSIG" => {
                     return CheckSig::validate(context, tx, blk);
                 }
@@ -208,13 +264,19 @@ impl Script {
                     return CheckTime::validate(context, tx, blk);
                 }
 
+=======
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
                 _ => {
                     return 0;
                 }
             }
         }
 
+<<<<<<< HEAD
         eval(&self.json, &mut context, tx, blk, blockchain)
+=======
+        eval(&self.json, &mut context, tx, blk)
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
     }
 
     //
@@ -337,6 +399,7 @@ impl Script {
         crypto::hash(canonical.as_bytes()).to_hex()
     }
 
+<<<<<<< HEAD
     pub fn address(&self) -> SaitoPublicKey {
         let hash_hex = self.hash();
         let hash_bytes = hex::decode(hash_hex)
@@ -355,6 +418,8 @@ impl Script {
         format!("00{}", self.hash())
     }
 
+=======
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
     pub fn get(&self, path: &str) -> Value {
         let parts: Vec<&str> = path.split('.').filter(|s| !s.is_empty()).collect();
         if parts.is_empty() {
@@ -414,6 +479,7 @@ impl Script {
     }
 }
 
+<<<<<<< HEAD
 #[cfg(test)]
 mod tests {
     use crate::core::defs::PrintForLog;
@@ -924,6 +990,8 @@ mod tests {
     }
 }
 
+=======
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
 fn set_at(target: &mut Value, path: &[&str], value: Value) {
     if path.len() == 1 {
         if let Value::Object(map) = target {
@@ -948,6 +1016,7 @@ fn set_at(target: &mut Value, path: &[&str], value: Value) {
         set_at(entry, &path[1..], value);
     }
 }
+<<<<<<< HEAD
 
 fn resolve_p2sh_slip_field(slips: &[Slip], field: &str) -> Value {
     let Some(slip) = slips.iter().find(|s| s.public_key[0] == 0x00) else {
@@ -1074,3 +1143,5 @@ pub(crate) fn resolve_ref(
     //
     value.clone()
 }
+=======
+>>>>>>> d0f828fa (fix: rustscript rust implementation)

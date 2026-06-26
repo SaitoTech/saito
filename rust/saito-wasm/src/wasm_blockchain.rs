@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::js_value_serialize::to_js_value;
 use crate::saitowasm::{string_to_key, SAITO};
 use js_sys::{BigUint64Array, Function, JsString};
 use log::info;
@@ -7,8 +8,11 @@ use saito_core::core::consensus::blockchain::{Blockchain, BlockchainObserver};
 use saito_core::core::defs::{
     BlockHash, BlockId, PrintForLog, SaitoHash, SaitoUTXOSetKey, UTXO_KEY_LENGTH,
 };
+<<<<<<< HEAD
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
+=======
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
 use std::cell::RefCell;
 use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;

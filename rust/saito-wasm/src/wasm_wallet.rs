@@ -1,9 +1,13 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
+<<<<<<< HEAD
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
 
+=======
+use crate::js_value_serialize::to_js_value;
+>>>>>>> d0f828fa (fix: rustscript rust implementation)
 use js_sys::{Array, JsString, Uint8Array};
 use log::{debug, error, info, warn};
 use num_traits::FromPrimitive;
