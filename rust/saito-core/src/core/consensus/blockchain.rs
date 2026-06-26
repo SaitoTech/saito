@@ -270,7 +270,6 @@ impl Blockchain {
         if !self.blockring.is_empty() && self.get_block(&block.previous_block_hash).is_none() {
             if block.previous_block_hash == [0; 32] {
                 // empty parent... block 1?
-                info!("empty parent... block 1?");
             } else if self.is_loaded || self.checkpoint_found {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
                     .any(|b| block.previous_block_hash == b.hash);

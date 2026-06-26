@@ -1201,7 +1201,6 @@ impl Transaction {
                     }
                 }
             }
-
         }
 
         //
@@ -1309,6 +1308,7 @@ impl Transaction {
         // NFT transactions (bound)
         //
         if self.transaction_type == TransactionType::Bound {
+
             //
             // NFTs store inputs and outputs in slip-tuples
             //
@@ -1327,6 +1327,7 @@ impl Transaction {
             //
             let mut idx = 0;
             while idx + 2 < self.from.len() {
+
                 let a = &self.from[idx];
                 let b = &self.from[idx + 1];
                 let c = &self.from[idx + 2];
@@ -1531,6 +1532,7 @@ impl Transaction {
             // CREATE_BOUND_TRANSACTION / NEW NFT
             //
             if nft_tuples_in == 0 && nft_tuples_out > 0 {
+
                 //
                 // at least one funding input
                 //
@@ -1616,6 +1618,7 @@ impl Transaction {
             // CREATE_NFT_TRANSACTION / EXISTING NFT TRANSFER
             //
             } else {
+
                 //
                 // nft amount conserved
                 //
