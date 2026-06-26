@@ -519,6 +519,20 @@ export default class Saito {
         verifySignature: wasm.verify_signature?.bind(wasm),
       },
 
+
+      //
+      // SCRIPTING
+      //
+      scripting: {
+        evaluate: (script: any): number => {
+          if (typeof script !== "string") {
+            script = JSON.stringify(script);
+          }
+
+          return wasm.evaluate_script(script);
+        },
+      },
+
       //
       // SCRIPTING
       //

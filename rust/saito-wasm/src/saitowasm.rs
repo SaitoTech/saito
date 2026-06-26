@@ -857,7 +857,12 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
 }
 
 #[wasm_bindgen]
+<<<<<<< HEAD
 pub async fn evaluate_script(json: JsString) -> u8 {
+=======
+pub fn evaluate_script(json: JsString) -> u8 {
+    use saito_core::core::consensus::scripting::Script;
+>>>>>>> 192c6561 (fix: rustscript validation)
 
     let json_str = match json.as_string() {
         Some(s) => s,
@@ -868,6 +873,7 @@ pub async fn evaluate_script(json: JsString) -> u8 {
         return 0;
     }
 
+<<<<<<< HEAD
     let saito = SAITO.lock().await;
     let blockchain = saito
         .as_ref()
@@ -899,6 +905,13 @@ pub fn get_script_address(json: JsString) -> String {
 
     Script::from_json(&json_str).address_hex()
 }
+=======
+    let mut script = Script::new();
+    script.parse(&json_str);
+    script.validate(None, None)
+}
+
+>>>>>>> 192c6561 (fix: rustscript validation)
 
 #[wasm_bindgen]
 pub async fn get_account_slips(public_key: JsString) -> Result<Array, JsValue> {
