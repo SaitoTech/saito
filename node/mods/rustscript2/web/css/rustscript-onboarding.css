@@ -1,0 +1,319 @@
+/* RustScript onboarding — full-viewport splash / wizard */
+
+body.rustscript .rs-onboarding-overlay {
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  transform: none !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+}
+
+body.rustscript .rs-onboarding-overlay-backdrop,
+body.rustscript [id^='saito-overlay-backdrop'].rs-onboarding-overlay-backdrop {
+  background: rgba(8, 8, 8, 0.92) !important;
+  backdrop-filter: blur(6px);
+}
+
+body.rustscript .rs-onboarding-overlay.maximized-overlay,
+body.rustscript .rs-onboarding-overlay.center-overlay {
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100vh !important;
+  max-height: none !important;
+  transform: none !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+body.rustscript .rs-onboard-appspace {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(252, 163, 17, 0.08), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(196, 92, 106, 0.06), transparent 50%),
+    #0e0e0e;
+  color: #e0e0e0;
+  font-family: var(--rustscript-font-sans);
+}
+
+body.rustscript .rs-onboard-panel {
+  width: min(720px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+body.rustscript .rs-onboard-panel-narrow {
+  width: min(520px, 100%);
+}
+
+body.rustscript .rs-onboard-hero {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+body.rustscript .rs-onboard-mark {
+  font-size: 1.6em;
+  color: var(--rustscript-accent);
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+body.rustscript .rs-onboard-title {
+  font-size: 1.5em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  color: #f0f0f0;
+}
+
+body.rustscript .rs-onboard-lead {
+  font-size: 0.95em;
+  line-height: 1.55;
+  color: #aaa;
+  margin: 0 auto;
+  max-width: 420px;
+}
+
+body.rustscript .rs-onboard-paths {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body.rustscript .rs-onboard-path {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  width: 100%;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+body.rustscript .rs-onboard-path:hover {
+  border-color: #555;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.rustscript .rs-onboard-path-primary {
+  border-color: rgba(252, 163, 17, 0.45);
+  background: rgba(252, 163, 17, 0.06);
+}
+
+body.rustscript .rs-onboard-path-primary:hover {
+  border-color: rgba(252, 163, 17, 0.65);
+  background: rgba(252, 163, 17, 0.1);
+}
+
+body.rustscript .rs-onboard-path-muted {
+  opacity: 0.85;
+}
+
+body.rustscript .rs-onboard-path-kicker {
+  font-size: 0.65em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rustscript-accent);
+}
+
+body.rustscript .rs-onboard-path-title {
+  font-size: 0.95em;
+  font-weight: 700;
+  color: #eee;
+}
+
+body.rustscript .rs-onboard-path-desc {
+  font-size: 0.82em;
+  line-height: 1.4;
+  color: #888;
+}
+
+body.rustscript .rs-onboard-skip {
+  margin: 12px auto 0;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 0.78em;
+  font-family: var(--rustscript-font-mono);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+body.rustscript .rs-onboard-skip:hover {
+  color: #aaa;
+  background: transparent !important;
+}
+
+body.rustscript .rs-onboard-back {
+  align-self: flex-start;
+  margin: 0;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+body.rustscript .rs-onboard-back:hover {
+  color: #aaa;
+  background: none;
+}
+
+body.rustscript .rs-onboard-step-title {
+  font-size: 1.1em;
+  font-weight: 700;
+  margin: 0;
+  color: #eee;
+}
+
+body.rustscript .rs-onboard-step-lead {
+  font-size: 0.88em;
+  line-height: 1.45;
+  color: #999;
+  margin: -8px 0 0;
+}
+
+body.rustscript .rs-onboard-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body.rustscript .rs-onboard-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  width: 100%;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+}
+
+body.rustscript .rs-onboard-choice:hover {
+  border-color: #555;
+}
+
+body.rustscript .rs-onboard-choice-title {
+  font-size: 0.92em;
+  font-weight: 700;
+  color: #ddd;
+}
+
+body.rustscript .rs-onboard-choice-desc {
+  font-size: 0.8em;
+  color: #777;
+}
+
+body.rustscript .rs-onboard-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+body.rustscript .rs-onboard-template {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  margin: 0;
+  padding: 12px 14px;
+  min-height: 88px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #141414;
+  cursor: pointer;
+}
+
+body.rustscript .rs-onboard-template:hover {
+  border-color: rgba(252, 163, 17, 0.4);
+}
+
+body.rustscript .rs-onboard-template-name {
+  font-size: 0.88em;
+  font-weight: 700;
+  color: #e8e8e8;
+}
+
+body.rustscript .rs-onboard-template-desc {
+  font-size: 0.75em;
+  line-height: 1.4;
+  color: #777;
+}
+
+body.rustscript .rs-onboard-import-zone {
+  border: 1px dashed #444;
+  border-radius: 6px;
+  padding: 12px;
+  background: #101010;
+  transition: border-color 0.15s;
+}
+
+body.rustscript .rs-onboard-import-zone.rs-onboard-import-drag {
+  border-color: var(--rustscript-accent);
+}
+
+body.rustscript .rs-onboard-import-hint {
+  font-size: 0.78em;
+  color: #666;
+  margin: 0 0 8px;
+}
+
+body.rustscript .rs-onboard-import-input {
+  width: 100%;
+  min-height: 140px;
+  box-sizing: border-box;
+  border: none;
+  background: transparent;
+  color: #8fd49a;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.78em;
+  line-height: 1.4;
+  resize: vertical;
+  outline: none;
+}
+
+body.rustscript .rs-onboard-primary-btn {
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(252, 163, 17, 0.5);
+  background: rgba(252, 163, 17, 0.12);
+  color: var(--rustscript-accent);
+  font-size: 0.85em;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+body.rustscript .rs-onboard-primary-btn:hover {
+  background: rgba(252, 163, 17, 0.2);
+}
+

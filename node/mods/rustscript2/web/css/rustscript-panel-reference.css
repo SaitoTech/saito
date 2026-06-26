@@ -1,0 +1,279 @@
+/* Guided mode — hide test header only in inactive guidance state */
+body.rustscript.rs-workspace-guided .rs-test-pane.rs-test-guidance .rs-panel-header {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-mode-reference .rs-panel-semantic,
+body.rustscript .rs-panel-mode-reference .rs-panel-textarea {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-mode-reference .rs-panel-reference {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 40px 48px 24px 56px;
+  box-sizing: border-box;
+}
+
+body.rustscript .rs-panel-mode-semantic .rs-panel-reference,
+body.rustscript .rs-panel-mode-source .rs-panel-reference {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-has-required-bar.rs-panel-mode-semantic .rs-panel-reference {
+  display: flex !important;
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+  border-bottom: 1px solid #1e1e1e;
+  align-items: flex-start;
+}
+
+body.rustscript .rs-panel-has-required-bar.rs-panel-mode-semantic .rs-panel-semantic {
+  display: block !important;
+  flex: 1;
+  min-height: 0;
+}
+
+body.rustscript .rs-panel-mode-semantic .rs-panel-semantic {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+body.rustscript .rs-panel-mode-semantic .rs-panel-textarea {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-mode-source .rs-panel-textarea {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+
+body.rustscript .rs-panel-mode-source .rs-panel-semantic {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-reference {
+  display: none;
+  box-sizing: border-box;
+}
+
+/* Info mode — no header, no chrome, floating text only */
+body.rustscript .rs-panel-info-mode .rs-panel-header {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+}
+
+body.rustscript .rs-test-pane.rs-panel-info-mode {
+  border-color: #1a1a1a !important;
+  box-shadow: none !important;
+}
+
+body.rustscript .rs-test-pane.rs-panel-info-mode .rs-panel-body {
+  border-top: none;
+  background: #0a0a0a;
+}
+
+body.rustscript .rs-test-pane.rs-panel-info-mode .rs-panel-reference {
+  width: 100%;
+  align-items: flex-start;
+}
+
+body.rustscript .rs-panel-has-required-bar .rs-panel-reference {
+  padding: 16px 24px 12px 32px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+body.rustscript .rs-panel-ref {
+  max-width: 520px;
+}
+
+body.rustscript .rs-panel-ref-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 1.28em;
+  font-weight: 400;
+  line-height: 2.05;
+  color: #b8b8b8;
+  letter-spacing: 0.01em;
+}
+
+body.rustscript .rs-panel-ref-list li {
+  position: relative;
+  padding-left: 1.65em;
+  margin-bottom: 4px;
+}
+
+body.rustscript .rs-panel-ref-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3a3a3a;
+  border: 1px solid #4a4a4a;
+}
+
+body.rustscript .rs-panel-ref-count {
+  font-weight: 700;
+  color: #d8d8d8;
+}
+
+body.rustscript .rs-panel-ref-script-ready .rs-panel-ref-list li::before,
+body.rustscript .rs-panel-ref-required-complete .rs-panel-ref-list li::before {
+  background: #2a4a30;
+  border-color: #3a6a42;
+}
+
+body.rustscript .rs-panel-ref-script-ready .rs-panel-ref-success-msg,
+body.rustscript .rs-panel-ref-required-complete .rs-panel-ref-success-msg {
+  color: #b8f0c0;
+}
+
+body.rustscript .rs-panel-ref-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-left: 0 !important;
+  margin-bottom: 0 !important;
+  list-style: none;
+}
+
+body.rustscript .rs-panel-ref-status-row::before {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-ref-status-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.28em;
+  line-height: 1.55;
+  color: #b8b8b8;
+  padding-left: 0 !important;
+}
+
+body.rustscript .rs-panel-ref-status-text::before {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-ref-success-msg {
+  padding-left: 0 !important;
+  line-height: 1.55;
+  margin-bottom: 8px !important;
+  font-size: 1.28em;
+  font-weight: 600;
+  color: #b8f0c0;
+}
+
+body.rustscript .rs-panel-ref-success-msg::before {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-ref-success-sub {
+  padding-left: 0 !important;
+  line-height: 1.55;
+  margin-bottom: 16px !important;
+  color: #989898;
+  font-size: 1.05em;
+}
+
+body.rustscript .rs-panel-ref-success-sub::before {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-ref-status-row .rs-panel-ref-action-return {
+  flex: 0 0 auto;
+  min-width: 168px;
+}
+
+body.rustscript .rs-panel-ref-ready-msg {
+  padding-left: 0 !important;
+  line-height: 1.55;
+  margin-bottom: 16px !important;
+}
+
+body.rustscript .rs-panel-ref-ready-msg::before {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-ref-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-left: 0 !important;
+  margin-top: 8px;
+  list-style: none;
+}
+
+body.rustscript .rs-panel-ref-actions::before {
+  display: none !important;
+}
+
+body.rustscript .rs-panel-ref-action {
+  flex: 1 1 180px;
+  min-height: var(--rs-control-height);
+  margin: 0;
+  padding: 14px 20px;
+  border-radius: var(--rs-control-radius);
+  border: var(--rs-control-border);
+  background: #141414;
+  color: #e8e8e8;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+body.rustscript .rs-panel-ref-action-test {
+  border-color: rgba(92, 184, 106, 0.45);
+  color: #b8f0c0;
+}
+
+body.rustscript .rs-panel-ref-action-test:hover {
+  border-color: rgba(92, 184, 106, 0.75) !important;
+  background: #1a2a1a !important;
+  color: #d8f8dc !important;
+}
+
+body.rustscript .rs-panel-ref-action-tx:hover {
+  border-color: #5a5a5a !important;
+  background: #1e1e1e !important;
+  color: #fff !important;
+}
+
+body.rustscript .rs-panel-ref-action-return {
+  flex: 0 1 auto;
+  min-width: 160px;
+  border-color: #3d3d3d;
+  color: #c8c8c8;
+}
+
+body.rustscript .rs-panel-ref-action-return:hover {
+  border-color: #5a5a5a !important;
+  background: #1a1a1a !important;
+  color: #eee !important;
+}
