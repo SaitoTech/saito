@@ -1,0 +1,128 @@
+.saito-container.store-container {
+	display: block;
+	width: 100%;
+	max-width: none;
+	margin: 0;
+	box-sizing: border-box;
+	padding: 1.5rem max(1rem, calc((100vw - var(--saito-width)) / 2));
+	overflow-y: auto;
+	overflow-x: hidden;
+	grid-template-columns: unset;
+	column-gap: unset;
+}
+
+.store-body {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	gap: 2rem 2.5rem;
+	align-items: start;
+	width: 100%;
+}
+
+.store-body .menu {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	width: max-content;
+	min-width: 14rem;
+	position: sticky;
+	top: 0;
+	padding: 0.85rem 0.75rem;
+	border-radius: var(--saito-border-radius);
+	background: var(--saito-surface-color);
+	border: var(--border-thickness-thin) solid var(--saito-border-color);
+}
+
+.store-body .menu .store-menu-item {
+	padding: 0.75rem 1rem;
+	border-radius: calc(var(--saito-border-radius) - 0.15rem);
+	font-size: 1.8rem;
+	line-height: 1.4;
+	font-family: var(--saito-font);
+	color: var(--saito-font-color-heavy);
+}
+
+.store-body .menu .store-menu-item.active {
+	background: var(--saito-surface-selected);
+	color: var(--saito-font-color-heavy);
+	font-family: var(--saito-font-medium);
+}
+
+.store-body .menu .store-menu-divider {
+	height: 1px;
+	margin: 1.25rem 0.25rem;
+	background: var(--saito-border-color);
+}
+
+.store-body .content {
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+	min-width: 0;
+	width: 100%;
+}
+
+.store-body .hero {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1.5rem;
+	width: 100%;
+	padding: 1rem 1.5rem;
+	border-radius: var(--saito-border-radius);
+	background: var(--saito-surface-color);
+	border: var(--border-thickness-thin) solid var(--saito-border-color);
+}
+
+.store-body .hero .text {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 1.5rem;
+	line-height: 1.45;
+	color: var(--saito-font-color-heavy);
+}
+
+.store-body .hero button {
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+.store-body .listings {
+	min-width: 0;
+	width: 100%;
+}
+
+.store-body .listings .grid {
+	width: 100%;
+}
+
+@media screen and (max-width: 900px) {
+	.store-body {
+		grid-template-columns: 1fr;
+		gap: 1.5rem;
+	}
+
+	.store-body .menu {
+		position: static;
+		width: 100%;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+	}
+
+	.store-body .menu .store-menu-divider {
+		width: 100%;
+		height: 1px;
+		margin: 0.75rem 0;
+	}
+
+	.store-body .hero {
+		flex-direction: column;
+		align-items: stretch;
+		padding: 1rem 1.25rem;
+	}
+
+	.store-body .hero button {
+		width: 100%;
+	}
+}
