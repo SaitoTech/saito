@@ -547,33 +547,6 @@ export default class Saito {
       },
 
       //
-      // SCRIPTING
-      //
-      scripting: {
-        evaluate: async (script: any): Promise<number> => {
-          if (typeof script !== "string") {
-            script = JSON.stringify(script);
-          }
-          return await wasm.evaluate_script(script);
-        },
-
-        hash: (script: any): string => {
-    	  if (typeof script !== "string") {
-    	    script = JSON.stringify(script);
-    	  }
-    	  return wasm.get_script_hash(script);
-  	},
-
-        address: (script: any): string => {
-          if (typeof script !== "string") {
-            script = JSON.stringify(script);
-          }
-          return wasm.get_script_address(script);
-        },
-
-      },
-
-      //
       // ADMIN / MISC (unstructured)
       //
       admin: {

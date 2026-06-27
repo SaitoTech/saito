@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 const ModTemplate = require('./../../lib/templates/modtemplate');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const RustscriptMain = require('./lib/ui/main');
@@ -54,13 +53,6 @@ const OpcodeCheckown = require('./lib/opcodes/CHECKOWN');
 const OpcodeCheckownnft = require('./lib/opcodes/CHECKOWNNFT');
 const OpcodeCheckownnftwhere = require('./lib/opcodes/CHECKOWNNFTWHERE');
 const OpcodeChecktime = require('./lib/opcodes/CHECKTIME');
-=======
-const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
-const ModTemplate = require('./../../lib/templates/modtemplate');
-const RustscriptMain = require('./lib/ui/main');
-const { parseExpertScript } = require('./lib/parser');
-const exampleScripts = require('./examples/scripts');
->>>>>>> 47390b7b (fix: rustscript refactor start)
 
 class Rustscript extends ModTemplate {
   constructor(app) {
@@ -69,7 +61,6 @@ class Rustscript extends ModTemplate {
     this.appname = 'Rustscript';
     this.name = 'Rustscript';
     this.slug = 'rustscript';
-<<<<<<< HEAD
     this.description = 'Symbolic P2SH contract scripting';
     this.categories = 'Utility Programming Cryptography';
 
@@ -793,29 +784,6 @@ class Rustscript extends ModTemplate {
     }
 
     return tx;
-=======
-    this.description = 'Symbolic script parser prototype (AST only, no execution)';
-    this.categories = 'Utility Programming Cryptography';
-
-    this.styles = ['/rustscript/style.css'];
-
-    this.examples = exampleScripts;
-    this.ui = new RustscriptMain(this.app, this, '.saito-container');
-  }
-
-  render() {
-    this.header = new SaitoHeader(this.app, this);
-    this.header.render();
-    this.ui.render();
-  }
-
-  /**
-   * Parse symbolic expert script text into AST + debug views.
-   * @param {string} source
-   */
-  parseExpertScript(source) {
-    return parseExpertScript(source);
->>>>>>> 47390b7b (fix: rustscript refactor start)
   }
 }
 
