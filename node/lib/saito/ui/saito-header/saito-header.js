@@ -1031,9 +1031,12 @@ class SaitoHeader extends UIModTemplate {
             });
           }
         } else if (flashDebug) {
-          console.log('[header-mint-flash] renderCrypto skipped flash logic (crypto not activated)', {
-            ticker: preferred_crypto.ticker
-          });
+          console.log(
+            '[header-mint-flash] renderCrypto skipped flash logic (crypto not activated)',
+            {
+              ticker: preferred_crypto.ticker
+            }
+          );
         }
       } catch (err) {
         console.error('Error rendering crypto balance: ' + err);
