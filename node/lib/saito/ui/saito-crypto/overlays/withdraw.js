@@ -866,9 +866,11 @@ class Withdraw {
       if (document.getElementById('address-book')) {
         document.getElementById('address-book').onclick = (e) => {
           this.contacts.title = `Contacts with ${this.ticker}`;
-          this.contacts.callback = (key) => {
+          this.contacts.callback = async (key) => {
             this.publicKey = key;
-            this.render();
+            await this.render();
+            this.clearAddressError();
+            this.handleErrors();
           };
 
           let contactsWithCrypto = this.app.keychain.returnKeys();
