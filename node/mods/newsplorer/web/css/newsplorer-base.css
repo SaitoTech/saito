@@ -1,0 +1,88 @@
+/*
+ * newsplorer-base.css
+ *
+ * Saito shell overrides for the explorer layout.
+ */
+
+.saito-container.newsplorer-container {
+	display: block;
+	width: 100%;
+	max-width: none;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	grid-template-columns: unset;
+	column-gap: unset;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+body:has(.newsplorer-page) {
+	--saito-header-color: var(--newsplorer-foreground);
+	background-color: var(--newsplorer-muted);
+}
+
+body:has(.newsplorer-page) #saito-header {
+	background: var(--newsplorer-card);
+	backdrop-filter: none;
+	border-bottom: 1px solid var(--newsplorer-border);
+	color: var(--newsplorer-foreground);
+	padding-inline: var(--newsplorer-gutter);
+}
+
+body:has(.newsplorer-page) #saito-header .saito-header-logo-wrapper {
+	display: flex;
+	align-items: center;
+	height: 100%;
+	opacity: 1;
+	visibility: visible;
+}
+
+/* Noir/dark/raven invert the logo for dark canvases; Newsplorer uses a light card header. */
+body:has(.newsplorer-page) #saito-header .saito-header-logo {
+	display: block;
+	width: 15rem;
+	height: auto;
+	max-height: 100%;
+	opacity: 1;
+	visibility: visible;
+	filter: brightness(0) saturate(100%);
+	fill: var(--newsplorer-foreground);
+}
+
+body:has(.newsplorer-page) #saito-header .saito-header-logo .cls-1 {
+	fill: var(--newsplorer-foreground);
+}
+
+html[data-theme='noir'] body:has(.newsplorer-page) #saito-header .saito-header-logo,
+html[data-theme='dark'] body:has(.newsplorer-page) #saito-header .saito-header-logo,
+html[data-theme='raven'] body:has(.newsplorer-page) #saito-header .saito-header-logo,
+html[data-theme='prism'] body:has(.newsplorer-page) #saito-header .saito-header-logo {
+	filter: brightness(0) saturate(100%);
+}
+
+html[data-theme='noir'] body:has(.newsplorer-page) #saito-header .saito-header-logo .cls-1,
+html[data-theme='dark'] body:has(.newsplorer-page) #saito-header .saito-header-logo .cls-1,
+html[data-theme='raven'] body:has(.newsplorer-page) #saito-header .saito-header-logo .cls-1 {
+	fill: var(--newsplorer-foreground);
+}
+
+html[data-theme='dark'] body:has(.newsplorer-page) #saito-header .saito-header-logo {
+	filter: brightness(0) invert(1);
+}
+
+body:has(.newsplorer-page) #saito-header-menu-toggle i,
+body:has(.newsplorer-page) #saito-header .header-msg {
+	color: var(--newsplorer-foreground);
+}
+
+body:has(.newsplorer-page) .saito-header-hamburger-contents,
+body:has(.newsplorer-page) .saito-header-menu {
+	border-color: var(--newsplorer-border);
+}
+
+@media (max-width: 48rem) {
+	body:has(.newsplorer-page) #saito-header {
+		padding-inline: max(1.5rem, var(--newsplorer-gutter));
+	}
+}

@@ -1,0 +1,118 @@
+/*
+ * newsplorer-layout.css
+ *
+ * Reusable layout utilities.
+ */
+
+.newsplorer-container:not(.saito-container) {
+	width: 100%;
+	max-width: var(--newsplorer-max-width);
+	margin-inline: auto;
+	padding-inline: var(--newsplorer-gutter);
+}
+
+.newsplorer-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--newsplorer-space-4);
+}
+
+.newsplorer-stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--newsplorer-stack-gap);
+}
+
+.newsplorer-stack-sm {
+	display: flex;
+	flex-direction: column;
+	gap: var(--newsplorer-space-2);
+}
+
+.newsplorer-stack-lg {
+	display: flex;
+	flex-direction: column;
+	gap: var(--newsplorer-space-5);
+}
+
+.newsplorer-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--newsplorer-space-3);
+}
+
+.newsplorer-row-between {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--newsplorer-space-4);
+}
+
+.newsplorer-grid {
+	display: grid;
+	gap: var(--newsplorer-grid-gap);
+}
+
+.newsplorer-grid-2 {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--newsplorer-grid-gap);
+}
+
+.newsplorer-grid-3 {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--newsplorer-grid-gap);
+}
+
+.newsplorer-grid-4 {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: var(--newsplorer-grid-gap);
+}
+
+.newsplorer-grid-auto {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+	gap: var(--newsplorer-grid-gap);
+}
+
+.newsplorer-gap-2 { gap: var(--newsplorer-space-2); }
+.newsplorer-gap-3 { gap: var(--newsplorer-space-3); }
+.newsplorer-gap-4 { gap: var(--newsplorer-space-4); }
+.newsplorer-gap-6 { gap: var(--newsplorer-space-6); }
+
+.newsplorer-p-4 { padding: var(--newsplorer-space-4); }
+.newsplorer-p-5 { padding: var(--newsplorer-space-5); }
+.newsplorer-p-6 { padding: var(--newsplorer-space-6); }
+
+.newsplorer-px-4 { padding-inline: var(--newsplorer-space-4); }
+.newsplorer-px-5 { padding-inline: var(--newsplorer-space-5); }
+.newsplorer-py-4 { padding-block: var(--newsplorer-space-4); }
+.newsplorer-py-6 { padding-block: var(--newsplorer-space-6); }
+
+.newsplorer-m-0 { margin: 0; }
+.newsplorer-mt-4 { margin-top: var(--newsplorer-space-4); }
+.newsplorer-mb-4 { margin-bottom: var(--newsplorer-space-4); }
+.newsplorer-mb-6 { margin-bottom: var(--newsplorer-space-6); }
+
+.newsplorer-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.newsplorer-text-left { text-align: left; }
+.newsplorer-text-center { text-align: center; }
+.newsplorer-text-right { text-align: right; }
+
+.newsplorer-w-full { width: 100%; }
+.newsplorer-min-w-0 { min-width: 0; }

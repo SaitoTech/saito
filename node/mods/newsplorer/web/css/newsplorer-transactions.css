@@ -1,0 +1,32 @@
+/*
+ * newsplorer-transactions.css
+ *
+ * Transactions component layout.
+ */
+
+.newsplorer-transactions-component .newsplorer-heading {
+	font-size: var(--newsplorer-text-sm);
+	font-weight: var(--newsplorer-font-medium);
+	color: var(--newsplorer-muted-foreground);
+	letter-spacing: var(--newsplorer-tracking-wide);
+	text-transform: uppercase;
+}
+
+.newsplorer-transactions-feed .newsplorer-feed-title .newsplorer-link {
+	max-width: 100%;
+	font-family: var(--newsplorer-font-mono);
+	font-size: var(--newsplorer-text-xs);
+	font-weight: var(--newsplorer-font-normal);
+}
+
+.newsplorer-transactions-feed .newsplorer-feed-title {
+	align-items: flex-start;
+}
+
+.newsplorer-transactions-feed .newsplorer-feed-item {
+	align-items: start;
+}
+
+.newsplorer-transactions-feed .newsplorer-feed-side {
+	padding-top: 0.125rem;
+}

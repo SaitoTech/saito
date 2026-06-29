@@ -1,0 +1,13 @@
+/*
+ * newsplorer-blocks.css
+ *
+ * Blocks component layout.
+ */
+
+.newsplorer-blocks-component .newsplorer-heading {
+	font-size: var(--newsplorer-text-sm);
+	font-weight: var(--newsplorer-font-medium);
+	color: var(--newsplorer-muted-foreground);
+	letter-spacing: var(--newsplorer-tracking-wide);
+	text-transform: uppercase;
+}
