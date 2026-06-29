@@ -611,7 +611,7 @@ class ExploreOverlay {
       let publicKey = input;
 
       // Check if input is a valid publicKey
-      if (!this.app.wallet.isValidPublicKey(input)) {
+      if (!this.app.crypto.isPublicKey(input)) {
         if (!input.includes('@')) {
           input += '@saito';
         }
@@ -626,7 +626,7 @@ class ExploreOverlay {
       }
 
       // Validate publicKey
-      if (!this.app.wallet.isValidPublicKey(publicKey)) {
+      if (!this.app.crypto.isPublicKey(publicKey)) {
         siteMessage('Invalid public key. Please check and try again', 5000);
         return;
       }
