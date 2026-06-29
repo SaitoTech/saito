@@ -531,11 +531,11 @@ export default class Saito {
         },
 
         hash: (script: any): string => {
-    	  if (typeof script !== "string") {
-    	    script = JSON.stringify(script);
-    	  }
-    	  return wasm.get_script_hash(script);
-  	},
+          if (typeof script !== "string") {
+            script = JSON.stringify(script);
+          }
+          return wasm.get_script_hash(script);
+        },
 
         address: (script: any): string => {
           if (typeof script !== "string") {
@@ -543,7 +543,6 @@ export default class Saito {
           }
           return wasm.get_script_address(script);
         },
-
       },
 
       //

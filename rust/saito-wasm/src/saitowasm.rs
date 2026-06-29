@@ -21,9 +21,9 @@ use log::{debug, error, info, trace, warn, Level, Log, Metadata, Record};
 use saito_core::core::consensus::blockchain::Blockchain;
 use saito_core::core::consensus::context::Context;
 use saito_core::core::consensus::mempool::Mempool;
+use saito_core::core::consensus::scripting::Script;
 use saito_core::core::consensus::transaction::{Transaction, TransactionType};
 use saito_core::core::consensus::wallet::Wallet;
-use saito_core::core::consensus::scripting::Script;
 use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusThread};
 use saito_core::core::defs::{
     BlockId, Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, Timestamp, CHANNEL_SAFE_BUFFER,
@@ -320,8 +320,6 @@ pub fn log(record: &Record) {
     console_log(&message, &level_style, &file_line_style, &text_style);
 }
 
-
-
 #[wasm_bindgen]
 pub async fn create_network_peer(url: Option<String>) -> WasmNetworkPeer {
     let mut saito = SAITO.lock().await;
@@ -556,8 +554,6 @@ pub async fn remove_stun_peer(peer_id: u64, public_key: JsString) {
         })
         .await;
 }
-
-
 
 //
 // #[wasm_bindgen]
@@ -858,7 +854,6 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
 
 #[wasm_bindgen]
 pub async fn evaluate_script(json: JsString) -> u8 {
-
     let json_str = match json.as_string() {
         Some(s) => s,
         None => return 0,

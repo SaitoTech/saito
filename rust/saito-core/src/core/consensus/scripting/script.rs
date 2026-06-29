@@ -339,8 +339,7 @@ impl Script {
 
     pub fn address(&self) -> SaitoPublicKey {
         let hash_hex = self.hash();
-        let hash_bytes = hex::decode(hash_hex)
-            .expect("script hash should be valid hex");
+        let hash_bytes = hex::decode(hash_hex).expect("script hash should be valid hex");
 
         let mut address: SaitoPublicKey = [0; 33];
 

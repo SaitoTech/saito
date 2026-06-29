@@ -218,8 +218,7 @@ impl ConsensusThread {
             let block_hash = block.hash.to_hex();
             debug!(
                 "adding bundled block : {:?} with id : {:?} to mempool",
-                block_hash,
-                block_id
+                block_hash, block_id
             );
             trace!(
                 "mempool size after bundling : {:?}",
