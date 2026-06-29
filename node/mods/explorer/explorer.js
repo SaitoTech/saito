@@ -1,631 +1,713 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
-const sanitizer = require('sanitizer');
-const JSON = require('json-bigint');
-const S = require('saito-js/saito').default;
+const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const Main = require('./lib/ui/main');
+const Block = require('./lib/ui/block');
+const Supply = require('./lib/ui/supply');
+const Address = require('./lib/ui/address');
+const Search = require('./lib/ui/search');
+const ShellTemplate = require('./lib/ui/shell.template');
+const { transitionView } = require('./lib/ui/transitions');
+const index = require('./index');
+const PeerService = require('saito-js/lib/peer_service').default;
+const { handleExplorerRequest } = require('./lib/peer/requests');
+const { requestBlocksFromPeer, requestBlockFromPeer, requestSupplyFromPeer, requestAddressFromPeer } = require('./lib/peer/client');
+const ExplorerDatabase = require('./lib/database');
+const { buildBlockStatistics } = require('./lib/block-statistics');
+const { buildAddressRowsFromBlock, blockContainsAtrTransaction } = require('./lib/address-index');
+const { SUPPLY_BLOCK_COUNT } = require('./lib/supply-rows');
+const {
+	extractTransactionsFromBlocks,
+	mergeBlockByHash,
+} = require('./lib/explorer-format');
 
-class ExplorerCore extends ModTemplate {
+class Explorer extends ModTemplate {
+
 	constructor(app) {
 		super(app);
-		this.app = app;
+
 		this.name = 'Explorer';
 		this.slug = 'explorer';
-		this.description = 'Block explorer for the Saito blockchain. Not suitable for lite-clients';
-		this.categories = 'Utilities Dev';
-		this.class = 'utility';
+		this.dbname = 'explorer';
+		this.description = 'Saito Blockchain Explorer';
+		this.categories = 'Utilities Information';
+
+		this.INDEX_BLOCKS = 1;
+		this.INDEX_PUBLICKEYS = 1;
+
+		this.main = null;
+		this.blockComponent = null;
+		this.supplyComponent = null;
+		this.addressComponent = null;
+		this.search = null;
+		this.header = null;
+		this.shellRendered = false;
+		this.activeView = 'home';
+		this.blockHash = null;
+		this.addressPublicKey = null;
+		this.navigationBound = false;
+		this.styles = ['/saito/saito.css', `/${this.slug}/style.css`];
+
+		this.blocks = [];
+		this.transactions = [];
+		this.blocksReady = false;
+		this.transactionsReady = false;
+		this.blocksError = null;
+		this.transactionsError = null;
+		this.explorerPeer = null;
+
+		this.supplyColumns = [];
+		this.supplyReady = false;
+		this.supplyError = null;
+
+		this.addressRows = [];
+		this.addressReady = false;
+		this.addressError = null;
 	}
 
-	webServer(app, expressapp) {
-		var explorer_self = app.modules.returnModule('Explorer');
+	returnServices() {
+		let services = [];
+		if (this.app.BROWSER == 0) {
+			services.push(new PeerService(null, 'Explorer'));
+		}
+		return services;
+	}
 
-		///////////////////
-		// web resources //
-		///////////////////
-		expressapp.get('/explorer/', async function (req, res) {
-			const page = parseInt(req.query.page) || 0;
+	parseRoute() {
+		const path = window.location.pathname.replace(/\/+$/, '');
+		const prefix = `/${this?.slug || 'explorer'}`;
+		const blockMatch = path.match(new RegExp(`^${prefix}/block/([^/]+)$`));
+		const supplyMatch = path.match(new RegExp(`^${prefix}/supply$`));
+		const addressMatch = path.match(new RegExp(`^${prefix}/address/([^/]+)$`));
 
-			if (!res.finished) {
-				res.set('Content-type', 'text/html');
-				res.charset = 'UTF-8';
-				return res.send(await explorer_self.returnIndexHTML(page));
-			}
+		if (blockMatch) {
+			return {
+				view: 'block',
+				hash: decodeURIComponent(blockMatch[1]),
+			};
+		}
+
+		if (supplyMatch) {
+			return { view: 'supply' };
+		}
+
+		if (addressMatch) {
+			return {
+				view: 'address',
+				publicKey: decodeURIComponent(addressMatch[1]),
+			};
+		}
+
+		return { view: 'home' };
+	}
+
+	ensureShell() {
+		if (this.shellRendered) {
 			return;
-		});
+		}
 
-		expressapp.get('/explorer/style.css', function (req, res) {
-			if (!res.finished) {
-				return res.sendFile(__dirname + '/web/style.css');
-			}
+		const container = document.querySelector('.saito-container');
+		if (container) {
+			container.classList.add('explorer-container');
+		}
+
+		this.app.browser.replaceElementContentBySelector(ShellTemplate(), '.saito-container');
+		this.shellRendered = true;
+
+		if (!this.search) {
+			this.search = new Search(this.app, this);
+		}
+		this.search.render('.explorer-search');
+	}
+
+	bindNavigation() {
+		if (this.navigationBound || !this.browser_active) {
 			return;
-		});
+		}
 
-		expressapp.get('/explorer/css/explorer-base.css', function (req, res) {
-			if (!res.finished) {
-				return res.sendFile(__dirname + '/web/css/explorer-base.css');
-			}
-			return;
-		});
+		this.navigationBound = true;
 
-		expressapp.get('/explorer/utils.js', function (req, res) {
-			if (!res.finished) {
-				return res.sendFile(__dirname + '/web/utils.js');
-			}
-			return;
-		});
-
-		///////////////////
-		// web requests //
-		///////////////////
-		expressapp.get('/explorer/block', async function (req, res) {
-			var hash = sanitizer.sanitize(req.query.hash);
-
-			if (hash == null) {
-				if (!res.finished) {
-					res.setHeader('Content-type', 'text/html');
-					res.charset = 'UTF-8';
-					return res.send('Please provide a block hash.');
-				}
-				return;
-			} else {
-				if (!res.finished) {
-					res.setHeader('Content-type', 'text/html');
-					res.charset = 'UTF-8';
-					return res.send(await explorer_self.returnBlockHTML(app, hash));
-				}
-				return;
-			}
-		});
-
-		expressapp.get('/explorer/mempool', async function (req, res) {
-			if (!res.finished) {
-				res.setHeader('Content-type', 'text/html');
-				res.charset = 'UTF-8';
-				return res.send(await explorer_self.returnMempoolHTML());
-			}
-			return;
-		});
-
-		expressapp.get('/explorer/blocksource', async function (req, res) {
-			var hash = sanitizer.sanitize(req.query.hash);
-
-			if (hash == null) {
-				if (!res.finished) {
-					res.setHeader('Content-type', 'text/html');
-					res.charset = 'UTF-8';
-					return res.send('NO BLOCK FOUND 1: ');
-				}
-				return;
-			} else {
-				if (hash != null) {
-					let html = await explorer_self.returnBlockSourceHTML(app, hash)
-					if (!res.finished && html) {
-						res.setHeader('Content-type', 'text/html');
-						res.charset = 'UTF-8';
-						return res.send(html);
-					}
-					return;
-				}
-			}
-		});
-
-		expressapp.get('/explorer/balance', async function (req, res) {
-			var pubkey = sanitizer.sanitize(req.query.pubkey);
-
-			if (pubkey == null) {
-				if (!res.finished) {
-					res.setHeader('Content-type', 'text/html');
-					res.charset = 'UTF-8';
-					return res.send('Please provide a public key.');
-				}
-				return;
-			} else {
-				let html = await explorer_self.returnBalanceHTML(app, pubkey);
-				if (!res.finished) {
-					res.setHeader('Content-type', 'text/html');
-					res.charset = 'UTF-8';
-					return res.send(html);
-				}
-				return;
-			}
-		});
-
-		expressapp.get('/explorer/balance/all', async function (req, res) {
-				let html = await explorer_self.returnAllBalanceHTML(app);
-				if (!res.finished) {
-					res.setHeader('Content-type', 'text/html');
-					res.charset = 'UTF-8';
-					return res.send(html);
-				}
-				return;
-		});
-
-		// //////////////////////
-		// full json blocks //
-		//////////////////////
-		expressapp.get('/explorer/json-block/:bhash', async (req, res) => {
-			const bhash = req.params.bhash;
-			if (bhash == null) {
+		document.addEventListener('click', (event) => {
+			if (!this.browser_active) {
 				return;
 			}
 
-			try {
-				// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-				// @ts-ignore
-				const blk = await app.blockchain.getBlock(bhash);
-				console.log(blk, 'this block');
-				if (!blk) {
-					return;
+			const pubkeyLink = event.target.closest('.explorer-pubkey-link[data-public-key]');
+			if (pubkeyLink) {
+				event.preventDefault();
+				event.stopPropagation();
+				const publicKey = pubkeyLink.getAttribute('data-public-key');
+				if (publicKey) {
+					this.renderAddress(publicKey, { pushState: true, animate: true });
 				}
+				return;
+			}
 
-				// const blkwtx = new Block(app);
-				// blkwtx.block = JSON.parse(JSON.stringify(blk.block));
-				// blkwtx.transactions = blk.transactions;
-				// blkwtx.app = null;
+			const link = event.target.closest('.explorer-footer-link');
+			if (!link) {
+				return;
+			}
 
-				var txwmsgs = [];
-				blk.transactions.forEach((transaction) => {
-					let tx = transaction.toJson();
-					tx.msg = transaction.returnMessage();
-					txwmsgs.push(tx);
+			const href = link.getAttribute('href') || '';
+			if (href.endsWith('/explorer/supply')) {
+				event.preventDefault();
+				this.renderSupply({ pushState: true, animate: true });
+			}
+		});
+
+		window.addEventListener('popstate', (event) => {
+			const state = event.state || this.parseRoute();
+
+			if (state.view === 'block' && state.hash) {
+				this.renderBlock(state.hash, {
+					pushState: false,
+					animate: true,
+					expandTxSignature: state.expandTxSignature || null,
 				});
-
-				var fullblock = JSON.parse(blk.toJson());
-				fullblock.transactions = txwmsgs;
-				let html_to_return = JSON.stringify(fullblock);
-
-				if (!res.finished) {
-					res.writeHead(200, {
-						'Content-Type': 'text/plain',
-						'Content-Transfer-Encoding': 'utf8'
-					});
-					return res.end(html_to_return);
-				}
-
-			} catch (err) {
-
-				console.error('FETCH BLOCKS ERROR SINGLE BLOCK FETCH: ', err);
-				if (!res.finished) {
-					res.status(400);
-					return res.end({
-						error: {
-							message: `FAILED SERVER REQUEST: could not find block: ${bhash}`
-						}
-					});
-				}
+				return;
 			}
+
+			if (state.view === 'supply') {
+				this.renderSupply({ pushState: false, animate: true });
+				return;
+			}
+
+			if (state.view === 'address' && state.publicKey) {
+				this.renderAddress(state.publicKey, { pushState: false, animate: true });
+				return;
+			}
+
+			this.renderHome({ pushState: false, animate: true });
 		});
 	}
 
-	async initialize(app) {
-		console.log("inside initialize of explorer.js");
+	getViewElement() {
+		return document.querySelector('.explorer-view');
 	}
 
-	returnHead() {
-		return '<html> \
-  <head> \
-    <meta charset="utf-8"> \
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"> \
-    <meta name="viewport" content="width=device-width, initial-scale=1"> \
-    <meta name="description" content=""> \
-    <meta name="author" content=""> \
-    <title>Saito Network: Blockchain Explorer</title> \
-    <link rel="stylesheet" type="text/css" href="/saito/saito.css" /> \
-    <link rel="stylesheet" type="text/css" href="/explorer/style.css" /> \
-    <link rel="stylesheet" type="text/css" href="/saito/lib/jsonTree/jsonTree.css" /> \
-    <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/all.css" type="text/css" media="screen"> \
-    <script src="/explorer/utils.js"></script> \
-    <script src="/saito/lib/jsonTree/jsonTree.js"></script> \
-    <link rel="icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png"> \
-    <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png"> \
-    <link rel="icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png"> \
-    <link rel="apple-touch-icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png"></link> \
-  </head> ';
-	}
+	async renderHome(options = {}) {
+		const { pushState = true, animate = true } = options;
 
-	returnHeader() {
-		return '<body> \
-        \
-        <div id="saito-header" class="header header-home"> \
-        <img class="saito-header-logo" src=""> \
-    </div>';
-	}
+		this.activeView = 'home';
+		this.blockHash = null;
+		this.blockComponent = null;
+		this.supplyComponent = null;
+		this.addressComponent = null;
+		this.addressPublicKey = null;
 
-	async returnIndexMain(page = 0) {
-		let txs = await S.getInstance().getMempoolTxs();
-		let balance = await this.app.wallet.getBalance();
-		let balanceSaito = balance/BigInt(100000000);
-		let nolansRemainder = balance - (balanceSaito * BigInt(100000000));
-		
-		// Update pagination controls in returnIndexMain
-		const createPaginationControls = async () => {
-			const totalBlocks = Number(await this.app.blockchain.getLatestBlockId());
-			const totalPages = Math.ceil(totalBlocks / 200);
-			const currentPage = page;
-			
-			let pages = [];
-			const range = 5;
-			
-			// Always add first page
-			pages.push(0);
-			
-			// Add pages around current page
-			for (let i = Math.max(1, currentPage - range); i <= Math.min(totalPages - 2, currentPage + range); i++) {
-				if (i === 1 && currentPage - range > 1) {
-					pages.push('...');
-				}
-				pages.push(i);
-				if (i === currentPage + range && currentPage + range < totalPages - 2) {
-					pages.push('...');
-				}
+		if (pushState) {
+			window.history.pushState({ view: 'home' }, '', `/${this.slug}`);
+		}
+
+		this.ensureShell();
+
+		const renderContent = () => {
+			if (!this.main) {
+				this.main = new Main(this.app, this);
 			}
-			
-			// Always add last page if we have more than one page
-			if (totalPages > 1) {
-				pages.push(totalPages - 1);
-			}
-			
-			const pageButtons = pages.map(p => {
-				if (p === '...') {
-					return '<span class="page-ellipsis">...</span>';
-				}
-				return `<a href="/explorer?page=${p}" class="secondary-button ${p === currentPage ? 'disabled current-page' : ''}">${p + 1}</a>`;
-			}).join('');
-
-			return `
-				<div class="pagination-controls">
-					<a href="/explorer?page=0" class="secondary-button ${currentPage === 0 ? 'disabled' : ''}">First</a>
-					<a href="/explorer?page=${Math.max(0, currentPage - 1)}" class="secondary-button ${currentPage === 0 ? 'disabled' : ''}">Previous</a>
-					${pageButtons}
-					<a href="/explorer?page=${currentPage + 1}" class="secondary-button ${currentPage >= totalPages - 1 ? 'disabled' : ''}">Next</a>
-					<a href="/explorer?page=${totalPages - 1}" class="secondary-button ${currentPage >= totalPages - 1 ? 'disabled' : ''}">Last</a>
-				</div>
-			`;
+			this.main.render('.explorer-view');
 		};
 
-		const paginationControls = await createPaginationControls();
+		if (animate) {
+			await transitionView(this.getViewElement(), renderContent);
+		} else {
+			renderContent();
+		}
+	}
 
-		return (
-			'<div class="explorer-main explorer-main--index"> \
-        <div class="block-table"> \
-          <div class="explorer-data"><h4>Server Address:</h4></div> <div class="address">' +
-			(await this.app.wallet.getPublicKey()) +
-			'</div> \
-          <div class="explorer-data"><h4>Balance:</h4> </div><div>' +
-			(balanceSaito+"."+nolansRemainder) +
-			'</div> \
-          <div class="explorer-data"><h4>Mempool:</h4></div> <div><a href="/explorer/mempool">' +
-			txs.length +
-			' txs</a></div> \
-        </div>' + this.returnInputBalanceHTML() +
-			'\
-        <div class="explorer-data"><h4>Search for Block (by hash):</h4> \
-        <form method="get" action="/explorer/block"><div class="one-line-form"><input type="text" name="hash" class="hash-search-input" /> \
-        <input type="submit" id="explorer-button" class="button" value="search" /></div></form> </div> \
-        <div class="explorer-data"><h3>Recent Blocks:</h3></div> \
-        ' + paginationControls + '\
-        <div id="block-list">' +
-			(await this.listBlocks(page)) +
-			'</div> \
-        ' + paginationControls + '\
-      </div> '
+	async renderSupply(options = {}) {
+		const { pushState = true, animate = true } = options;
+
+		this.activeView = 'supply';
+		this.blockHash = null;
+		this.blockComponent = null;
+		this.main = null;
+		this.supplyColumns = [];
+		this.supplyReady = false;
+		this.supplyError = null;
+		this.addressComponent = null;
+		this.addressPublicKey = null;
+
+		if (pushState) {
+			window.history.pushState({ view: 'supply' }, '', `/${this.slug}/supply`);
+		}
+
+		this.ensureShell();
+
+		const renderContent = () => {
+			if (!this.supplyComponent) {
+				this.supplyComponent = new Supply(this.app, this);
+			}
+			this.supplyComponent.render('.explorer-view');
+		};
+
+		if (animate) {
+			await transitionView(this.getViewElement(), renderContent);
+		} else {
+			renderContent();
+		}
+	}
+
+	async renderAddress(publicKey, options = {}) {
+		const { pushState = true, animate = true } = options;
+
+		if (!publicKey) {
+			return;
+		}
+
+		this.activeView = 'address';
+		this.addressPublicKey = publicKey;
+		this.blockHash = null;
+		this.blockComponent = null;
+		this.main = null;
+		this.supplyComponent = null;
+		this.addressRows = [];
+		this.addressReady = false;
+		this.addressError = null;
+
+		if (pushState) {
+			window.history.pushState(
+				{ view: 'address', publicKey },
+				'',
+				`/${this.slug}/address/${encodeURIComponent(publicKey)}`
+			);
+		}
+
+		this.ensureShell();
+
+		const renderContent = () => {
+			this.addressComponent = new Address(this.app, this, publicKey);
+			this.addressComponent.render('.explorer-view');
+		};
+
+		if (animate) {
+			await transitionView(this.getViewElement(), renderContent);
+		} else {
+			renderContent();
+		}
+	}
+
+	resolveBlockHash(blockHash = '', blockId = '') {
+		if (blockHash) {
+			return blockHash;
+		}
+
+		if (blockId == null || blockId === '') {
+			return null;
+		}
+
+		const block = (this.blocks || []).find((entry) => String(entry?.id) === String(blockId));
+		return block?.hash || null;
+	}
+
+	async renderBlock(blockHash, options = {}) {
+		const { pushState = true, animate = true, expandTxSignature = null } = options;
+
+		if (!blockHash) {
+			return;
+		}
+
+		this.activeView = 'block';
+		this.blockHash = blockHash;
+		this.supplyComponent = null;
+		this.addressComponent = null;
+		this.addressPublicKey = null;
+
+		if (pushState) {
+			const url = `/${this.slug}/block/${encodeURIComponent(blockHash)}`;
+			window.history.pushState(
+				{ view: 'block', hash: blockHash, expandTxSignature },
+				'',
+				url
+			);
+		}
+
+		this.ensureShell();
+
+		const renderContent = () => {
+			this.blockComponent = new Block(this.app, this, blockHash, expandTxSignature);
+			this.blockComponent.render('.explorer-view');
+		};
+
+		if (animate) {
+			await transitionView(this.getViewElement(), renderContent);
+		} else {
+			renderContent();
+		}
+	}
+
+	async onPeerServiceUp(app, peer, service = {}) {
+		if (!app.BROWSER || !this.browser_active) {
+			return;
+		}
+
+		if (service.service !== 'Explorer') {
+			return;
+		}
+
+		this.explorerPeer = peer;
+		this.blocksReady = false;
+		this.transactionsReady = false;
+		this.blocksError = null;
+		this.transactionsError = null;
+		this.blocks = [];
+		this.transactions = [];
+		this.supplyColumns = [];
+		this.supplyReady = false;
+		this.supplyError = null;
+		this.addressRows = [];
+		this.addressReady = false;
+		this.addressError = null;
+
+		await this.refreshActiveView();
+
+		requestBlocksFromPeer(
+			app,
+			peer,
+			{ count: 10, include_offchain: false },
+			async (response) => {
+				if (response?.err) {
+					console.error('Explorer: block request failed (network)', {
+						peer: peer?.publicKey,
+						error: response.err,
+						response,
+					});
+					this.blocksError = 'Network error while fetching blocks.';
+					this.blocksReady = true;
+					this.transactionsError = 'Network error while fetching transactions.';
+					this.transactionsReady = true;
+					await this.refreshActiveView();
+					return;
+				}
+
+				if (!response?.success) {
+					console.error('Explorer: block request failed', {
+						peer: peer?.publicKey,
+						error: response?.error || 'unknown error',
+						response,
+					});
+					this.blocksError = response?.error || 'Failed to fetch blocks from Explorer peer.';
+					this.blocksReady = true;
+					this.transactionsError = 'Waiting for block data before loading transactions.';
+					this.transactionsReady = true;
+					await this.refreshActiveView();
+					return;
+				}
+
+				this.blocks = Array.isArray(response.data) ? response.data : [];
+				this.blocksReady = true;
+				await this.refreshActiveView();
+
+				await this.fetchTransactionData(app, peer);
+
+				if (this.activeView === 'supply') {
+					await this.fetchSupplyData(app, peer);
+				}
+
+				if (this.activeView === 'address' && this.addressPublicKey) {
+					await this.fetchAddressData(app, peer, this.addressPublicKey);
+				}
+			}
 		);
 	}
 
-	returnPageClose() {
-		return '</body> \
-        </html>';
+	fetchSupplyData(app, peer) {
+		this.supplyReady = false;
+		this.supplyError = null;
+		this.supplyColumns = [];
+
+		return new Promise((resolve) => {
+			requestSupplyFromPeer(app, peer, { count: SUPPLY_BLOCK_COUNT }, async (response) => {
+				if (response?.err) {
+					console.error('Explorer: supply request failed (network)', {
+						peer: peer?.publicKey,
+						error: response.err,
+						response,
+					});
+					this.supplyError = 'Network error while fetching supply data.';
+					this.supplyReady = true;
+					await this.refreshActiveView();
+					resolve();
+					return;
+				}
+
+				if (!response?.success) {
+					console.error('Explorer: supply request failed', {
+						peer: peer?.publicKey,
+						error: response?.error || 'unknown error',
+						response,
+					});
+					this.supplyError = response?.error || 'Failed to fetch supply data from Explorer peer.';
+					this.supplyReady = true;
+					await this.refreshActiveView();
+					resolve();
+					return;
+				}
+
+				this.supplyColumns = Array.isArray(response.data?.columns) ? response.data.columns : [];
+				this.supplyReady = true;
+				await this.refreshActiveView();
+				resolve();
+			});
+		});
 	}
 
-	/////////////////////
-	// Main Index Page //
-	/////////////////////
-	async returnIndexHTML(page) {
-		var html =
-			this.returnHead() +
-			this.returnHeader() +
-			(await this.returnIndexMain(page)) +
-			this.returnPageClose();
-		return html;
+	fetchAddressData(app, peer, publicKey) {
+		this.addressReady = false;
+		this.addressError = null;
+		this.addressRows = [];
+
+		return new Promise((resolve) => {
+			requestAddressFromPeer(app, peer, publicKey, { count: 100 }, async (response) => {
+				if (response?.err) {
+					console.error('Explorer: address request failed (network)', {
+						peer: peer?.publicKey,
+						error: response.err,
+						response,
+					});
+					this.addressError = 'Network error while fetching address activity.';
+					this.addressReady = true;
+					await this.refreshActiveView();
+					resolve();
+					return;
+				}
+
+				if (!response?.success) {
+					console.error('Explorer: address request failed', {
+						peer: peer?.publicKey,
+						error: response?.error || 'unknown error',
+						response,
+					});
+					this.addressError = response?.error || 'Failed to fetch address activity from Explorer peer.';
+					this.addressReady = true;
+					await this.refreshActiveView();
+					resolve();
+					return;
+				}
+
+				this.addressRows = Array.isArray(response.data?.rows) ? response.data.rows : [];
+				this.addressReady = true;
+				await this.refreshActiveView();
+				resolve();
+			});
+		});
 	}
 
-	async returnMempoolHTML() {
-		let txs = await S.getInstance().getMempoolTxs();
-		var html = this.returnHead();
-		html += this.returnHeader();
-		html += '<div class="explorer-main explorer-main--mempool">';
-		html +=
-			'<a class="button" href="/explorer/"><i class="fas fa-cubes"></i> back to blocks</a>';
-		html +=
-			'<h3>Mempool Transactions:</h3><div data-json="' +
-			encodeURI(JSON.stringify(txs, null, 4)) +
-			'" class="json">' +
-			JSON.stringify(txs) +
-			'</div></div>';
-		html += this.returnInvokeJSONTree();
-		html += this.returnPageClose();
-		return html;
+	requestBlockFromPeerPromise(app, peer, identifier, includeTransactions = true) {
+		return new Promise((resolve) => {
+			requestBlockFromPeer(app, peer, identifier, includeTransactions, (response) => {
+				if (response?.success && response.data) {
+					resolve(response.data);
+					return;
+				}
+				resolve(null);
+			});
+		});
 	}
 
-	async returnBlockSourceHTML(app, hash) {
-		var html = this.returnHead();
-		html += this.returnHeader();
-		html += '<div class="explorer-main explorer-main--block-source">';
-		html +=
-			'<a class="button" href="/explorer/block?hash=' +
-			hash +
-			'"><i class="fas fa-cubes"></i> back to block</a>';
-		html +=
-			'<h3>Block Source (' +
-			hash +
-			'):</h3><div class="blockJson"><div class="loader"></div></div>';
-		html +=
-			'<script> \
-        fetchRawBlock("' + hash + '"); \
-      </script>';
-		html += this.returnPageClose();
-		return html;
-	}
+	async fetchTransactionData(app, peer) {
+		this.transactionsReady = false;
+		this.transactionsError = null;
+		this.transactions = [];
 
-	returnInvokeJSONTree() {
-		var jstxt =
-			'\n <script> \n \
-    var jsonObj = document.querySelector(".json"); \n \
-    var jsonTxt = decodeURI(jsonObj.dataset.json); \n \
-    jsonObj.innerHTML = ""; \n \
-    var tree = jsonTree.create(JSON.parse(jsonTxt), jsonObj); \n \
-    </script> \n';
-		return jstxt;
-	}
-
-	async listBlocks(page = 0) {
-		console.log("page: ", page);
-		var explorer_self = this;
-		let latest_block_id = await explorer_self.app.blockchain.getLatestBlockId();
-
-		var html = '<div class="blockchain-table">';
-		html += '<div class="table-header"></div><div class="table-header">id</div><div class="table-header">block hash</div>';
-		html += '<div class="table-header">tx</div><div class="table-header">previous block</div><div class="table-header">block creator</div><div class="table-header">timestamp</div>';
-
-		const BLOCKS_PER_PAGE = 200;
-		const startBlock = latest_block_id - (BigInt(page) * BigInt(BLOCKS_PER_PAGE));
-		let endBlock = startBlock - BigInt(BLOCKS_PER_PAGE);
-		console.log("startBlock: ", startBlock);
-		console.log("endBlock: ", endBlock);
-		
-		// Ensure endBlock doesn't go below 0
-		if (endBlock < BigInt(0)) {
-			endBlock = BigInt(0);
+		if (!this.blocks?.length) {
+			this.transactionsReady = true;
+			await this.refreshActiveView();
+			return;
 		}
 
-		for (var mb = startBlock; mb >= endBlock; mb--) {
-			let longest_chain_hash = await explorer_self.app.blockchain.getLongestChainHashAtId(mb);
-			let hashes_at_block_id = await explorer_self.app.blockchain.getHashesAtId(mb);
+		const fetchCount = Math.min(5, this.blocks.length);
 
-			for (let i = 0; i < hashes_at_block_id.length; i++) {
-				let txs_in_block = 0;
-				let previous_block_hash = '';
-				let block_creator = '';
-				let timestamp = '';
-
-				let block = await explorer_self.app.blockchain.getBlock(hashes_at_block_id[i]);
-
-				if (block) {
-					let blk = JSON.parse(block.toJson());
-					txs_in_block = block.transactions.length;
-					previous_block_hash = block.previousBlockHash;
-					block_creator = blk.creator;
-					
-					// Format timestamp with 24-hour time
-					const blockTime = new Date(Number(blk.timestamp));
-					const localTime = blockTime.toISOString().replace('T', ' ').slice(0, 19);
-					const timeDiff = this.getTimeDifference(Number(blk.timestamp));
-					timestamp = `<div class="timestamp" data-tooltip="${timeDiff}">${localTime}</div>`;
+		try {
+			const requests = [];
+			for (let i = 0; i < fetchCount; i++) {
+				const block = this.blocks[i];
+				const id = block?.hash || block?.id;
+				if (id == null || id === '') {
+					continue;
 				}
+				requests.push(this.requestBlockFromPeerPromise(app, peer, id, true));
+			}
 
-				if (longest_chain_hash === hashes_at_block_id[i]) {
-					html += '<div>*</div>';
-				} else {
-					html += '<div></div>';
+			const results = await Promise.all(requests);
+			let enrichedBlocks = this.blocks.slice();
+			for (let i = 0; i < results.length; i++) {
+				const fullBlock = results[i];
+				if (fullBlock) {
+					enrichedBlocks = mergeBlockByHash(enrichedBlocks, fullBlock);
 				}
+			}
 
-				html += '<div class="ellipsis"><a href="/explorer/block?hash=' + block.hash + '">' + block.id + '</a></div>';
-				html += '<div class="ellipsis" title="' + block.hash + '"><a href="/explorer/block?hash=' + block.hash + '">' + block.hash + '</a></div>';
-				html += '<div>' + txs_in_block + '</div>';
-				html += '<div class="ellipsis" title="' + previous_block_hash + '">' + previous_block_hash + '</div>';
-				html += '<div class="ellipsis" title="' + block_creator + '">' + block_creator + '</div>';
-				html += timestamp;
+			this.blocks = enrichedBlocks;
+			this.transactions = extractTransactionsFromBlocks(enrichedBlocks);
+			this.transactionsReady = true;
+		} catch (err) {
+			console.error('Explorer: failed to fetch transaction data', err);
+			this.transactionsError = 'Failed to load recent transactions.';
+			this.transactionsReady = true;
+		}
+
+		await this.refreshActiveView();
+	}
+
+	async refreshActiveView() {
+		if (this.activeView === 'home' && this.main) {
+			this.main.render('.explorer-view');
+			return;
+		}
+
+		if (this.activeView === 'supply' && this.supplyComponent) {
+			this.supplyComponent.paint();
+			return;
+		}
+
+		if (this.activeView === 'address' && this.addressComponent) {
+			this.addressComponent.paint();
+		}
+	}
+
+	async handlePeerTransaction(app, tx = null, peer, mycallback) {
+		if (tx == null) {
+			return 0;
+		}
+
+		if (app.BROWSER == 1) {
+			return super.handlePeerTransaction(app, tx, peer, mycallback);
+		}
+
+		let txmsg = tx.returnMessage();
+		let response = await handleExplorerRequest(app, txmsg, this);
+
+		if (response !== null) {
+			if (mycallback) {
+				mycallback(response);
+				return 1;
 			}
 		}
-		html += '</div>';
-		return html;
+
+		return super.handlePeerTransaction(app, tx, peer, mycallback);
 	}
 
-	// Fixed getTimeDifference to properly calculate time differences
-	getTimeDifference(timestamp) {
-		const now = Math.floor(Date.now() / 1000); // Convert current time to seconds
-		const diff = now - timestamp;
-		
-		if (diff < 60) return 'Just now';
-		if (diff < 3600) return `${Math.floor(diff/60)} minutes ago`;
-		if (diff < 86400) return `${Math.floor(diff/3600)} hours ago`;
-		return `${Math.floor(diff/86400)} days ago`;
+	async initialize(app) {
+		await super.initialize(app);
+
+		if (app.BROWSER == 0) {
+			this.database = new ExplorerDatabase(app, this);
+		}
+
+		if (this.browser_active) {
+			this.header = new SaitoHeader(this.app, this);
+			await this.header.initialize(this.app);
+			this.bindNavigation();
+		}
 	}
 
-	////////////////////////
-	// Single Block Page  //
-	////////////////////////
-	async returnBlockHTML(app, hash) {
-		var html = this.returnHead() + this.returnHeader();
-		html += '<div class="explorer-main explorer-main--block-explorer">';
-		
-		// Top navigation back to block list
-		html += '<div class="block-navigation flex items-center gap-16 mt-12 mb-12">';
-		html += '<a href="/explorer" class="button text-2xl"><i class="fas fa-cubes"></i> Back to Block List</a>';
-		html += '</div>';
-		
-		html += '<h3>Block Explorer:</h3>';
-		
+	async render() {
+		await super.render();
+
+		if (!this.browser_active) {
+			return;
+		}
+
+		if (this.header) {
+			await this.header.render();
+		}
+
+		this.ensureShell();
+
+		const route = this.parseRoute();
+
+		if (route.view === 'block' && route.hash) {
+			await this.renderBlock(route.hash, { pushState: false, animate: false });
+			return;
+		}
+
+		if (route.view === 'supply') {
+			await this.renderSupply({ pushState: false, animate: false });
+			return;
+		}
+
+		if (route.view === 'address' && route.publicKey) {
+			await this.renderAddress(route.publicKey, { pushState: false, animate: false });
+			return;
+		}
+
+		await this.renderHome({ pushState: false, animate: false });
+	}
+
+	async onNewBlock(block, lc) {
+		if (this.app.BROWSER !== 0 || !block?.id || !this.database) {
+			return;
+		}
+
+		if (this.INDEX_BLOCKS) {
+			try {
+				const stats = await buildBlockStatistics(this.app, block);
+				await this.database.insertBlockStatistics(stats);
+			} catch (err) {
+				console.error('Explorer: failed to record block statistics', err);
+			}
+		}
+
+		if (!this.INDEX_PUBLICKEYS) {
+			return;
+		}
+
 		try {
-			const this_block = await this.app.blockchain.getBlock(hash);
-			if (this_block) {
-				// Initial block data
-				html += '<div class="txlist">';
-				html += '<div class="loader"></div>';
-				html += '</div>';
+			const addressRows = buildAddressRowsFromBlock(this.app, block, Boolean(lc));
+			await this.database.insertAddressRows(addressRows);
 
-				// Block navigation section
-				const previous_block_hash = this_block.previousBlockHash;
-				const next_block_id = Number(this_block.id) + 1;
-				
-				html += '<div class="block-navigation--controls flex justify-center items-center gap-16 mt-8 mb-8 pt-8 border-t border-saito">';
-				
-				// Previous block link
-				if (previous_block_hash) {
-					html += `<a href="/explorer/block?hash=${previous_block_hash}" class="button">
-						<i class="fas fa-chevron-left"></i> Previous Block
-					</a>`;
-				}
-				
-				// Next blocks
-				try {
-					const next_block_hashes = await this.app.blockchain.getHashesAtId(BigInt(next_block_id));
-					if (next_block_hashes && next_block_hashes.length > 0) {
-						if (next_block_hashes.length === 1) {
-							html += `<a href="/explorer/block?hash=${next_block_hashes[0]}" class="button">
-								Next Block <i class="fas fa-chevron-right"></i>
-							</a>`;
-						} else {
-							// Multiple next blocks
-							html += '<div class="dropdown">';
-							html += '<button class="button dropdown-toggle">Next Blocks <i class="fas fa-chevron-down"></i></button>';
-							html += '<div class="dropdown-content">';
-							for (let i = 0; i < next_block_hashes.length; i++) {
-								html += `<a href="/explorer/block?hash=${next_block_hashes[i]}">Block ${next_block_id} (${i + 1}/${next_block_hashes.length})</a>`;
-							}
-							html += '</div></div>';
-						}
-					}
-				} catch (err) {
-					console.log("Error fetching next blocks:", err);
-				}
-				
-				html += '</div>'; // Close block-navigation--controls
+			if (blockContainsAtrTransaction(block)) {
+				this.scheduleAddressPruningOnAtr(Number(block.id));
 			}
 		} catch (err) {
-			console.log("Error fetching block data:", err);
-			html += '<div class="loader"></div>';
+			console.error('Explorer: failed to record address activity', err);
+		}
+	}
+
+	scheduleAddressPruningOnAtr(blockId) {
+		if (!Number.isFinite(blockId) || blockId <= 0 || !this.database) {
+			return;
 		}
 
-		html += '</div>'; // Close explorer-main
-		html += `<script>fetchBlock("${hash}");</script>`;
-		html += this.returnPageClose();
-		
-		return html;
+		setImmediate(() => {
+			this.database.pruneAddressesBeforeBlockId(blockId).catch((err) => {
+				console.error('Explorer: ATR address pruning failed', err);
+			});
+		});
 	}
 
-	// Input Balance HTML
-	returnInputBalanceHTML() {
-		var html = `
-		<div class="explorer-data">
-			<h4>Check balance (by wallet)</h4>
-			<form method="get" action="/explorer/balance">
-				<div class="one-line-form">
-					<input type="text" class="balance-search-input" name="pubkey">
-					<input type="submit" class="button" value="check">
-				</div>
-			</form>
-		</div>
-		`;
+	async onChainReorganization(block_id, block_hash, lc) {
+		if (this.app.BROWSER !== 0 || !this.database || !this.INDEX_PUBLICKEYS) {
+			return;
+		}
 
-		return html;
+		try {
+			await this.database.updateAddressLongestChainState(block_id, block_hash, lc);
+		} catch (err) {
+			console.error('Explorer: failed to update address longest-chain state', err);
+		}
 	}
 
-	// Balance HTML
-	async returnBalanceHTML(app, pubkey) {
-		var html = this.returnHead() + this.returnHeader();
+	webServer(app, expressapp, express, alternative_slug = null) {
+		const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+		const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+		const self = this;
 
-		html += `
-		<div class="explorer-main explorer-main--balance">
-			<div class="block-table">
-				<div class="explorer-data">
-					<h4>Wallet Address:</h4>
-				</div>
-				<div class="address">` + pubkey + `</div>
-				<div class="explorer-data">
-					<h4>Saito:</h4>
-				</div>
-				<div class="balance-saito">-</div>
-				<div class="explorer-data">
-					<h4>Nolan:</h4>
-				</div>
-				<div class="balance-nolan">-</div>
-			</div>
-			<div class="explorer-balance-row">
-				<h4>Check balance (by wallet)</h4>
-				<form method="get" action="/explorer/balance">
-					<div class="one-line-form">
-						<input type="text" class="balance-search-input" name="pubkey" >
-						<input type="submit" class="balance-button" value="check">
-						<a href="/explorer/balance/all" class="balance-button">Show all</a>
-					</div>
-				</form>
-			</div>
-			<div class="explorer-balance-row-button">
-				<a href="/explorer">
-					<button class="balance-button"><i class="fas fa-cubes"></i> Back to explorer</button>
-				</a>
-			</div>
-		</div>
-		<script>
-			checkBalance("`+ pubkey + `");
-		</script>
-		`;
-		html += this.returnPageClose();
-		return html;
+		expressapp.use(uri, express.static(webdir));
+
+		const sendIndex = async function (req, res) {
+			const html = index(app, self, app.build_number);
+			res.setHeader('Content-type', 'text/html');
+			res.charset = 'UTF-8';
+			return res.send(html);
+		};
+
+		expressapp.get(`${uri}/block/:hash`, sendIndex);
+		expressapp.get(`${uri}/supply`, sendIndex);
+		expressapp.get(`${uri}/address/:publickey`, sendIndex);
+		expressapp.get(uri, sendIndex);
 	}
 
-	async returnAllBalanceHTML(app) {
-		var html = this.returnHead() + this.returnHeader();
-
-		html += `
-		<div class="explorer-main explorer-main--all-balance">
-		
-			<div class="explorer-balance-row">
-				<a href="/explorer">
-					<button class="balance-button"><i class="fas fa-cubes"></i> Back to explorer</button>
-				</a>
-			</div>
-			<h2>Holders</h2>
-			<h3>Total Supply</h3>
-			<div class="block-table">
-				<div class="explorer-data">
-					<h4>Saito:</h4>
-				</div>
-				<div class="balance-saito">-</div>
-				<div class="explorer-data">
-					<h4>Nolan:</h4>
-				</div>
-				<div class="balance-nolan">-</div>
-			</div>
-
-			<div class="explorer-balance-row">
-				<div class="explorer-balance-table">
-					<div class="explorer-balance-header">Wallet</div>
-					<div class="explorer-balance-header">Saito</div>
-					<div class="explorer-balance-header">Nolan</div>
-				</div>
-			</div>
-		</div>
-		<script>
-			checkAllBalance();
-		</script>
-		`;
-		html += this.returnPageClose();
-		return html;
-	}
-
-	shouldAffixCallbackToModule() {
-		return 1;
-	}
 }
 
-module.exports = ExplorerCore;
+module.exports = Explorer;

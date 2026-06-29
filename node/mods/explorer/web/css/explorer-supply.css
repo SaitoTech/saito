@@ -1,0 +1,174 @@
+/*
+ * explorer-supply.css
+ *
+ * Token supply oversight page — ATR-style matrix adapted to Explorer theme.
+ */
+
+.explorer-supply-page {
+	min-width: 0;
+}
+
+.explorer-supply-header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--explorer-space-3);
+}
+
+.explorer-supply-header-text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	min-width: 0;
+	flex: 1;
+}
+
+.explorer-supply-dashboard {
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.explorer-supply-metrics {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--explorer-space-4);
+	margin-bottom: var(--explorer-space-3);
+}
+
+.explorer-supply-metric {
+	text-align: center;
+	min-width: 10rem;
+}
+
+.explorer-supply-metric h3 {
+	margin: 0 0 0.2rem;
+	font-size: var(--explorer-text-xl);
+	font-weight: var(--explorer-font-bold);
+	color: var(--explorer-foreground);
+	font-variant-numeric: tabular-nums;
+	line-height: var(--explorer-leading-tight);
+}
+
+.explorer-supply-metric p {
+	margin: 0;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-tabs {
+	display: flex;
+	gap: var(--explorer-space-4);
+	border-bottom: 1px solid var(--explorer-border);
+	margin-bottom: var(--explorer-space-2);
+}
+
+.explorer-supply-tab {
+	font-size: var(--explorer-text-sm);
+	font-weight: var(--explorer-font-semibold);
+	color: var(--explorer-foreground);
+	padding: var(--explorer-space-2) 0;
+	position: relative;
+}
+
+.explorer-supply-tab.active::after {
+	content: '';
+	position: absolute;
+	bottom: -1px;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background-color: var(--explorer-primary);
+}
+
+.explorer-supply-status {
+	margin: 0 0 var(--explorer-space-3);
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+	line-height: var(--explorer-leading-relaxed);
+}
+
+.explorer-supply-table-wrap {
+	width: 100%;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.explorer-supply-table {
+	width: 100%;
+	min-width: 72rem;
+	border-collapse: collapse;
+	font-size: var(--explorer-text-sm);
+}
+
+.explorer-supply-table th,
+.explorer-supply-table td {
+	padding: var(--explorer-space-2) var(--explorer-space-2);
+	text-align: left;
+	vertical-align: middle;
+	border-bottom: 1px solid var(--explorer-border);
+}
+
+.explorer-supply-table thead th {
+	font-size: var(--explorer-text-xs);
+	font-weight: var(--explorer-font-semibold);
+	color: var(--explorer-muted-foreground);
+	background-color: var(--explorer-muted);
+	white-space: nowrap;
+}
+
+.explorer-supply-table .explorer-supply-row-label {
+	font-family: var(--explorer-font-mono);
+	font-size: var(--explorer-text-xs);
+	color: var(--explorer-foreground);
+	white-space: nowrap;
+}
+
+.explorer-supply-table .explorer-supply-numeric {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	font-size: var(--explorer-text-xs);
+}
+
+.explorer-supply-table tr.explorer-supply-highlight {
+	background-color: #fdeed5;
+}
+
+.explorer-supply-table tr.explorer-supply-total-row {
+	background-color: #d8c3a2;
+	font-weight: var(--explorer-font-semibold);
+}
+
+.explorer-supply-table tr.explorer-payout-highlight {
+	background-color: color-mix(in oklch, var(--explorer-link) 12%, var(--explorer-card));
+}
+
+html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-highlight {
+	background-color: color-mix(in oklch, var(--explorer-primary) 18%, var(--explorer-card));
+}
+
+html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-total-row {
+	background-color: color-mix(in oklch, var(--explorer-primary) 28%, var(--explorer-card));
+}
+
+html[data-theme='dark'] .explorer-supply-table tr.explorer-payout-highlight {
+	background-color: color-mix(in oklch, var(--explorer-link) 16%, var(--explorer-card));
+}
+
+.explorer-supply-block-link {
+	font-weight: var(--explorer-font-medium);
+	font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 48rem) {
+	.explorer-supply-metrics {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--explorer-space-3);
+	}
+
+	.explorer-supply-metric {
+		min-width: 0;
+	}
+}

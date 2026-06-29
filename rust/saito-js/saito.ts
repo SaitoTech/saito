@@ -559,37 +559,32 @@ export default class Saito {
     if (coreObject.blockchain) {
 
       const blockchain = coreObject.blockchain;
-      const factory = this.factory;
+      const wrapper = this.blockchain;
+
+      blockchain.get = async () => {
+        return wrapper.get();
+      };
 
       blockchain.getBlock = async (
         idOrHash: string | number | bigint,
         includeTransactions: boolean = false
       ) => {
-        let wasmBlock;
-        if (typeof idOrHash === "string") {
-          wasmBlock = await blockchain.get_block(
-            idOrHash,
-            includeTransactions
-          );
-        } else {
-          wasmBlock = await blockchain.get_block_by_id(
-            BigInt(idOrHash),
-            includeTransactions
-          );
-        }
-        return factory.createBlock(wasmBlock);
+        return wrapper.getBlock(
+          idOrHash,
+          includeTransactions
+        );
       };
 
       blockchain.getBlocks = async (
         count: number,
         includeOffchain: boolean = false
       ) => {
-        const wasmBlocks = await blockchain.get_blocks(
+        return wrapper.getBlocks(
           count,
           includeOffchain
         );
-        return wasmBlocks.map((block: any) => factory.createBlock(block));
       };
+
     }
 
     console.log("CORE OBJECT");

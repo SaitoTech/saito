@@ -1,0 +1,118 @@
+/*
+ * explorer-search.css
+ *
+ * Search component layout.
+ */
+
+.explorer-search {
+	position: relative;
+	display: flex;
+	align-items: center;
+	width: 100%;
+	min-width: 0;
+	flex: 1;
+}
+
+.explorer-search-input {
+	display: block;
+	width: 100%;
+	height: 3.2rem;
+	min-height: 0;
+	padding-block: 0;
+	padding-inline: var(--explorer-space-3);
+	font-family: var(--explorer-font-sans);
+	font-size: var(--explorer-text-sm);
+	line-height: var(--explorer-leading-snug);
+	color: var(--explorer-foreground);
+	background-color: transparent;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.explorer-search-input::placeholder {
+	color: var(--explorer-muted-foreground);
+	opacity: 1;
+}
+
+.explorer-search-input:hover,
+.explorer-search-input:focus {
+	outline: none;
+	border: none;
+	box-shadow: none;
+}
+
+.explorer-search-component {
+	width: 100%;
+	min-width: 0;
+}
+
+.explorer-search-form {
+	width: 100%;
+}
+
+.explorer-search-box {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	height: 3.2rem;
+	background-color: var(--explorer-muted);
+	border: 1px solid var(--explorer-border);
+	border-radius: var(--explorer-radius);
+	overflow: hidden;
+	box-shadow: none;
+}
+
+.explorer-search-submit {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 3.2rem;
+	height: 3.2rem;
+	min-width: 3.2rem;
+	max-width: 3.2rem;
+	padding: 0;
+	margin: 0;
+	border: none;
+	border-radius: 0;
+	background-color: var(--explorer-primary);
+	color: var(--explorer-primary-foreground);
+	font-size: 1.3rem;
+	line-height: 1;
+	cursor: default;
+	transition: background-color var(--explorer-transition-fast);
+}
+
+.explorer-search-submit i {
+	display: block;
+	font-size: 1.3rem;
+	line-height: 1;
+}
+
+.explorer-search-submit:hover {
+	background-color: color-mix(in oklch, var(--explorer-primary) 90%, var(--explorer-foreground));
+}
+
+@media (max-width: 48rem) {
+	.explorer-search-box {
+		height: 3.4rem;
+	}
+
+	.explorer-search-input {
+		height: 3.4rem;
+		font-size: var(--explorer-text-base);
+	}
+
+	.explorer-search-submit {
+		width: 3.4rem;
+		height: 3.4rem;
+		min-width: 3.4rem;
+		max-width: 3.4rem;
+		font-size: 1.4rem;
+	}
+
+	.explorer-search-submit i {
+		font-size: 1.4rem;
+	}
+}

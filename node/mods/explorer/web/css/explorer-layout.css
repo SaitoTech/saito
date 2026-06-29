@@ -1,0 +1,118 @@
+/*
+ * explorer-layout.css
+ *
+ * Reusable layout utilities.
+ */
+
+.explorer-container:not(.saito-container) {
+	width: 100%;
+	max-width: var(--explorer-max-width);
+	margin-inline: auto;
+	padding-inline: var(--explorer-gutter);
+}
+
+.explorer-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--explorer-space-4);
+}
+
+.explorer-stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--explorer-stack-gap);
+}
+
+.explorer-stack-sm {
+	display: flex;
+	flex-direction: column;
+	gap: var(--explorer-space-2);
+}
+
+.explorer-stack-lg {
+	display: flex;
+	flex-direction: column;
+	gap: var(--explorer-space-5);
+}
+
+.explorer-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--explorer-space-3);
+}
+
+.explorer-row-between {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--explorer-space-4);
+}
+
+.explorer-grid {
+	display: grid;
+	gap: var(--explorer-grid-gap);
+}
+
+.explorer-grid-2 {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--explorer-grid-gap);
+}
+
+.explorer-grid-3 {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--explorer-grid-gap);
+}
+
+.explorer-grid-4 {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: var(--explorer-grid-gap);
+}
+
+.explorer-grid-auto {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+	gap: var(--explorer-grid-gap);
+}
+
+.explorer-gap-2 { gap: var(--explorer-space-2); }
+.explorer-gap-3 { gap: var(--explorer-space-3); }
+.explorer-gap-4 { gap: var(--explorer-space-4); }
+.explorer-gap-6 { gap: var(--explorer-space-6); }
+
+.explorer-p-4 { padding: var(--explorer-space-4); }
+.explorer-p-5 { padding: var(--explorer-space-5); }
+.explorer-p-6 { padding: var(--explorer-space-6); }
+
+.explorer-px-4 { padding-inline: var(--explorer-space-4); }
+.explorer-px-5 { padding-inline: var(--explorer-space-5); }
+.explorer-py-4 { padding-block: var(--explorer-space-4); }
+.explorer-py-6 { padding-block: var(--explorer-space-6); }
+
+.explorer-m-0 { margin: 0; }
+.explorer-mt-4 { margin-top: var(--explorer-space-4); }
+.explorer-mb-4 { margin-bottom: var(--explorer-space-4); }
+.explorer-mb-6 { margin-bottom: var(--explorer-space-6); }
+
+.explorer-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.explorer-text-left { text-align: left; }
+.explorer-text-center { text-align: center; }
+.explorer-text-right { text-align: right; }
+
+.explorer-w-full { width: 100%; }
+.explorer-min-w-0 { min-width: 0; }

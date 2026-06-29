@@ -1,0 +1,36 @@
+/*
+ * explorer-block-teaser.css
+ *
+ * Block teaser component layout.
+ */
+
+.block-teaser .explorer-heading {
+	font-size: var(--explorer-text-sm);
+	font-weight: var(--explorer-font-medium);
+	color: var(--explorer-muted-foreground);
+	letter-spacing: var(--explorer-tracking-wide);
+	text-transform: uppercase;
+}
+
+.explorer-teaser-loading {
+	padding: var(--explorer-space-5) var(--explorer-space-4);
+	text-align: center;
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-teaser-loading-title {
+	margin: 0 0 var(--explorer-space-2);
+	font-size: var(--explorer-text-sm);
+	font-weight: var(--explorer-font-semibold);
+	color: var(--explorer-foreground);
+}
+
+.explorer-teaser-loading-message {
+	margin: 0;
+	font-size: var(--explorer-text-sm);
+	line-height: var(--explorer-leading-relaxed);
+}
+
+.explorer-teaser-error .explorer-teaser-loading-title {
+	color: var(--explorer-destructive);
+}

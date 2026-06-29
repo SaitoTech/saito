@@ -1,0 +1,24 @@
+/*
+ * explorer-transaction-teaser.css
+ *
+ * Transaction teaser component layout.
+ */
+
+.transaction-teaser .explorer-heading {
+	font-size: var(--explorer-text-sm);
+	font-weight: var(--explorer-font-medium);
+	color: var(--explorer-muted-foreground);
+	letter-spacing: var(--explorer-tracking-wide);
+	text-transform: uppercase;
+}
+
+.transaction-teaser-feed .explorer-feed-line .explorer-link {
+	max-width: 100%;
+	font-family: var(--explorer-font-mono);
+	font-size: var(--explorer-text-xs);
+	font-weight: var(--explorer-font-normal);
+}
+
+.transaction-teaser-feed .explorer-feed-detail .explorer-link {
+	font-weight: var(--explorer-font-normal);
+}
