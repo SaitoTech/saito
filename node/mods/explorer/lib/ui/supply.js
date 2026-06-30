@@ -15,7 +15,6 @@ class Supply {
 
 		this.mod.supplyComponent = this;
 		this.paint();
-		this.attachEvents();
 
 		if (!this.mod.supplyReady && this.mod.explorerPeer) {
 			this.mod.fetchSupplyData(this.app, this.mod.explorerPeer);
@@ -41,20 +40,14 @@ class Supply {
 			}),
 			this.container
 		);
+
+		this.attachEvents();
 	}
 
 	attachEvents() {
 		const root = document.querySelector(this.container);
 		if (!root) {
 			return;
-		}
-
-		const backBtn = root.querySelector('[data-nav="home"]');
-		if (backBtn) {
-			backBtn.onclick = (event) => {
-				event.preventDefault();
-				this.mod.renderHome({ pushState: true, animate: true });
-			};
 		}
 
 		root.querySelectorAll('.explorer-supply-block-link').forEach((link) => {

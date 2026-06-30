@@ -28,7 +28,11 @@ body:has(.explorer-page) #saito-header {
 	backdrop-filter: none;
 	border-bottom: 1px solid var(--explorer-border);
 	color: var(--explorer-foreground);
-	padding-inline: var(--explorer-gutter);
+	box-sizing: border-box;
+	width: 100%;
+	padding-inline: calc(
+		var(--explorer-gutter) + max(0px, (100vw - var(--explorer-max-width)) / 2)
+	);
 }
 
 body:has(.explorer-page) #saito-header .saito-header-logo-wrapper {
@@ -84,6 +88,9 @@ body:has(.explorer-page) .saito-header-menu {
 
 @media (max-width: 48rem) {
 	body:has(.explorer-page) #saito-header {
-		padding-inline: max(1.5rem, var(--explorer-gutter));
+		padding-inline: max(
+			1.5rem,
+			calc(var(--explorer-gutter) + max(0px, (100vw - var(--explorer-max-width)) / 2))
+		);
 	}
 }

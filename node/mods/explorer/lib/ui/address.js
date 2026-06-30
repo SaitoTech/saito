@@ -16,7 +16,6 @@ class Address {
 
 		this.mod.addressComponent = this;
 		this.paint();
-		this.attachEvents();
 
 		if (!this.mod.addressReady && this.mod.explorerPeer) {
 			this.mod.fetchAddressData(this.app, this.mod.explorerPeer, this.publicKey);
@@ -41,20 +40,14 @@ class Address {
 			}),
 			this.container
 		);
+
+		this.attachEvents();
 	}
 
 	attachEvents() {
 		const root = document.querySelector(this.container);
 		if (!root) {
 			return;
-		}
-
-		const backBtn = root.querySelector('[data-nav="home"]');
-		if (backBtn) {
-			backBtn.onclick = (event) => {
-				event.preventDefault();
-				this.mod.renderHome({ pushState: true, animate: true });
-			};
 		}
 
 		root.querySelectorAll('.explorer-address-block-link, .explorer-address-tx-link').forEach((link) => {

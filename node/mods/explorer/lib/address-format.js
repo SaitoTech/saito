@@ -1,4 +1,4 @@
-const { truncateHash, formatSaito, displayName } = require('./explorer-format');
+const { truncateHash, formatSaito, displayName, isAnonymousUsername } = require('./explorer-format');
 
 const RECIPIENT_LABELS = {
 	0: 'self',
@@ -68,9 +68,14 @@ function formatAddressSummary(app, publicKey, rows = []) {
 		}
 	}
 
+	const key = String(publicKey || '').trim();
+	const username = app.keychain.returnUsername(key);
+	const hasUsername = !isAnonymousUsername(username, key);
+
 	return {
-		publicKeyDisplay: displayName(app, publicKey),
-		publicKeyRaw: publicKey,
+		publicKeyLabel: hasUsername ? username : displayName(app, key),
+		publicKeyFull: key,
+		hasUsername,
 		entryCount: rows.length,
 		netDelta: formatAddressDelta(netDelta),
 		netDeltaSaito: formatAddressDeltaSaito(netDelta),

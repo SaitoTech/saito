@@ -1,16 +1,16 @@
 module.exports = ({
-	placeholder = 'Search by Address / Txn Hash / Block / Token / Domain Name'
+	placeholder = 'Search by Block Hash or User Publickey'
 } = {}) => {
 	return `
     <section class="explorer-search-component" aria-label="Search">
-      <form class="explorer-search-form" action="#" method="get" onsubmit="return false;">
+      <form class="explorer-search-form" action="#" method="get">
         <div class="explorer-search-box">
           <div class="explorer-search">
             <input
               type="search"
               class="explorer-search-input"
               placeholder="${placeholder}"
-              aria-label="Search the Saito blockchain"
+              aria-label="Search by block hash or user public key"
               autocomplete="off"
             />
           </div>

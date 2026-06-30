@@ -49,26 +49,60 @@ function formatTxMsgPreview(app, msg) {
 	}
 }
 
-function formatPublicKeyDisplay(app, publicKey) {
-	const key = String(publicKey || '').trim();
-	if (!key) {
-		return '—';
+function isAnonymousUsername(name, publicKey) {
+	if (!name || name === '—') {
+		return true;
 	}
-	const username = displayName(app, key);
-	const truncated = truncateHash(key, 8, 8);
-	if (username && username !== key && username !== '—') {
-		return esc(app, `${username} (${truncated})`);
+	if (name === publicKey) {
+		return true;
 	}
-	return esc(app, truncated);
+	return String(name).startsWith('Anon-');
 }
 
-function buildPublicKeyLink(app, publicKey, label = null) {
+function displayName(app, publicKey, options = {}) {
 	const key = String(publicKey || '').trim();
 	if (!key) {
 		return '—';
 	}
 
-	const inner = label != null ? esc(app, label) : formatPublicKeyDisplay(app, key);
+	const username = app.keychain.returnUsername(key);
+	if (!isAnonymousUsername(username, key)) {
+		return username;
+	}
+
+	if (options.full) {
+		return key;
+	}
+
+	return truncateHash(key, 8, 8);
+}
+
+function formatPublicKeyDisplay(app, publicKey, options = {}) {
+	const key = String(publicKey || '').trim();
+	if (!key) {
+		return '—';
+	}
+
+	const username = app.keychain.returnUsername(key);
+	if (!isAnonymousUsername(username, key)) {
+		const truncated = truncateHash(key, 8, 8);
+		return esc(app, `${username} (${truncated})`);
+	}
+
+	if (options.full) {
+		return esc(app, key);
+	}
+
+	return esc(app, truncateHash(key, 8, 8));
+}
+
+function buildPublicKeyLink(app, publicKey, label = null, options = {}) {
+	const key = String(publicKey || '').trim();
+	if (!key) {
+		return '—';
+	}
+
+	const inner = label != null ? esc(app, label) : formatPublicKeyDisplay(app, key, options);
 	const href = `/explorer/address/${encodeURIComponent(key)}`;
 
 	return `<a href="${href}" class="explorer-link explorer-pubkey-link" data-public-key="${esc(app, key)}">${inner}</a>`;
@@ -184,13 +218,6 @@ function formatTimeAgo(app, timestamp) {
 	}
 	const seconds = ts > 1e12 ? Math.floor(ts / 1000) : ts;
 	return app.browser.formatTimeDifference(seconds);
-}
-
-function displayName(app, publicKey) {
-	if (!publicKey) {
-		return '—';
-	}
-	return app.keychain.returnUsername(String(publicKey));
 }
 
 function slipAmount(slip) {
@@ -476,6 +503,7 @@ module.exports = {
 	formatSaito,
 	formatTimeAgo,
 	displayName,
+	isAnonymousUsername,
 	buildPublicKeyLink,
 	formatPublicKeyDisplay,
 	formatBlocksForTeaser,

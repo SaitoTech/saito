@@ -131,6 +131,14 @@ class Explorer extends ModTemplate {
 				return;
 			}
 
+			const backBtn = event.target.closest('[data-nav="home"], [data-explorer-nav="home"]');
+			if (backBtn) {
+				event.preventDefault();
+				event.stopPropagation();
+				this.renderHome({ pushState: true, animate: true });
+				return;
+			}
+
 			const pubkeyLink = event.target.closest('.explorer-pubkey-link[data-public-key]');
 			if (pubkeyLink) {
 				event.preventDefault();
