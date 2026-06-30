@@ -1,14 +1,12 @@
-const Sale = require('./sale');
+const Order = require('./order');
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
 const { createListingScript, executeListingScript, returnP2SHTuples } = require('./scripting');
 const {
 	buildFulfillmentTransaction,
 	returnChainLocation,
-	returnAmountPaidToStore
+	returnAmountPaidToStore,
+	returnPaymentUtxoToStore
 } = require('./helpers');
-const {
-	ORDER_STATUS_PENDING
-} = require('./warehouse');
 
 module.exports = {
 
@@ -141,15 +139,14 @@ module.exports = {
 		}
 
 		const buyer = txmsg.buyer || tx.from?.[0]?.publicKey;
-		const refund = txmsg.refund;
 		const listing_id = txmsg.listing_id || txmsg.listing_signature;
 		const quantity = Number(txmsg.quantity) || 1;
 		const unit_price = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.price) ?? 0);
 		const fee = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.fee) ?? 0);
 		const total = unit_price * BigInt(quantity) + fee;
 
-		if (!buyer || !refund || !listing_id) {
-			console.warn('Store: purchase missing buyer, refund, or listing_id');
+		if (!buyer || !listing_id) {
+			console.warn('Store: purchase missing buyer or listing_id');
 			return;
 		}
 
@@ -159,6 +156,7 @@ module.exports = {
 		}
 
 		const amount_paid = returnAmountPaidToStore(tx, this.publicKey);
+		const payment_utxo = returnPaymentUtxoToStore(tx, this.publicKey);
 
 		if (amount_paid < total) {
 			console.warn(`Store: purchase underpaid. got=${amount_paid} need=${total}`);
@@ -166,7 +164,13 @@ module.exports = {
 			return;
 		}
 
-		const listing = await this.warehouse.returnListing(listing_id);
+		if (!payment_utxo) {
+			console.warn('Store: purchase payment UTXO not found');
+			await this.warehouse.refundBuyer(buyer, listing_id, amount_paid, 'payment-utxo-missing');
+			return;
+		}
+
+		const listing = await this.warehouse.returnSummary(listing_id);
 		if (!listing || !listing.isActive()) {
 			console.warn('Store: purchase listing inactive or missing', listing_id);
 			await this.warehouse.refundBuyer(buyer, listing_id, amount_paid, 'listing-inactive');
@@ -183,35 +187,35 @@ module.exports = {
 		const now = Date.now();
 
 		try {
-			await this.warehouse.addOrder(
-				new Sale({
-					signature: tx.signature,
+			await this.warehouse.queuePurchase(
+				new Order({
+					order_tx_sig: tx.signature,
 					buyer,
-					seller: '',
-					listing_id: Number(listing_id),
-					quantity,
-					price: txmsg.price,
-					fee: txmsg.fee,
-					refund,
-					status: ORDER_STATUS_PENDING,
-					on_chain: 1,
-					outbound_tx: '',
-					retry_count: 0,
-					last_attempt: 0,
-					block_id: chain.block_id,
-					block_hash: chain.block_hash,
-					transaction_id: chain.transaction_id,
+					nft_id: listing.nft_id,
+					price: Number(listing.price ?? 0),
+					payment_tx_sig: payment_utxo.payment_tx_sig,
+					payment_output_index: payment_utxo.payment_output_index,
+					payment_amount: Number(payment_utxo.payment_amount),
+					block_id_added: chain.block_id,
+					block_hash_added: chain.block_hash,
+					transaction_id_added: chain.transaction_id,
+					longest_chain_added: 1,
+					settlement_tx_sig: '',
+					block_id_fulfilled: 0,
+					block_hash_fulfilled: '',
+					transaction_id_fulfilled: 0,
+					longest_chain_fulfilled: 0,
 					created_at: now,
 					updated_at: now
 				})
 			);
-			console.log('Store: purchase queued', tx.signature);
+			console.log('Store: escrow payment recorded', tx.signature);
 		} catch (err) {
 			if (String(err?.message || err).includes('UNIQUE')) {
-				console.log('Store: purchase already queued', tx.signature);
+				console.log('Store: escrow payment already recorded', tx.signature);
 				return;
 			}
-			console.warn('Store: purchase queue failed', err?.message);
+			console.warn('Store: escrow payment record failed', err?.message);
 			await this.warehouse.refundBuyer(buyer, listing_id, amount_paid, 'queue-failed');
 		}
 	},

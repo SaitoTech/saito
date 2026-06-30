@@ -58,7 +58,7 @@ async function initializeImageCache(mod) {
 		}
 
 		try {
-			const inv = await mod.warehouse.returnActiveInventory(listing.id);
+			const inv = await mod.warehouse.returnActiveDeposit(listing.id);
 			if (!inv?.signature) {
 				continue;
 			}

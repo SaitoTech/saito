@@ -468,9 +468,9 @@ class Rustscript extends ModTemplate {
   /**
    * Load a P2SH publish (or compatible) transaction into the unlock / witness workflow.
    *
-   * Category A — txmsg.access_script present:
+   * Category A — txmsg.access_scripts[] present:
    *   Guided mode: locking script restored; user completes witness only.
-   * Category B — no txmsg.access_script:
+   * Category B — no txmsg.access_scripts[]:
    *   Expert mode: user must supply locking script and witness.
    */
   async loadTransactionForWitness(tx) {
@@ -495,15 +495,20 @@ class Rustscript extends ModTemplate {
     const lockedNftSlips =
       assetType === 'nft' ? this._findLockedNftSlipTriplet(tx, p2shAddress) : null;
 
-    const accessScript = txmsg.access_script ? JSON.parse(txmsg.access_script) : {};
-    const hash = this.app.core.scripting.hash(accessScript);
-    const p2shHash = txmsg.scripthash || hash || '';
 
-    const accessScriptRaw = txmsg.access_script || txmsg.accessScript || '';
-    const hasAccessScript =
-      typeof accessScriptRaw === 'string'
-        ? accessScriptRaw.trim().length > 0
-        : accessScriptRaw && typeof accessScriptRaw === 'object';
+const accessScriptRaw =
+  (Array.isArray(txmsg.access_scripts) && txmsg.access_scripts.length > 0)
+    ? txmsg.access_scripts[0]
+    : (txmsg.access_script || txmsg.accessScript || '');
+
+const accessScript = accessScriptRaw ? JSON.parse(accessScriptRaw) : {};
+const hash = this.app.core.scripting.hash(accessScript);
+const p2shHash = txmsg.scripthash || hash || '';
+
+const hasAccessScript =
+  typeof accessScriptRaw === 'string'
+    ? accessScriptRaw.trim().length > 0
+    : accessScriptRaw && typeof accessScriptRaw === 'object';
 
     this.unlockContext = {
       sourceTxSignature: tx.signature || '',
@@ -543,7 +548,7 @@ class Rustscript extends ModTemplate {
   }
 
   /**
-   * Import entry point — detects guided vs expert mode from txmsg.access_script.
+   * Import entry point — detects guided vs expert mode from txmsg.access_scripts[].
    */
   async importTransactionForUnlock(tx) {
     return this.loadTransactionForWitness(tx);
@@ -663,15 +668,6 @@ class Rustscript extends ModTemplate {
     const lockedInput = new Slip(undefined, ctx.lockedSlip);
     tx.addFromSlip(lockedInput);
 
-    const p2shMarker = new Slip();
-    p2shMarker.type = SLIP_TYPE_P2SH;
-    p2shMarker.amount = BigInt(0);
-    p2shMarker.publicKey =
-      ctx.p2shAddress.length === 66 && ctx.p2shAddress.startsWith('00')
-        ? this.app.crypto.toBase58(ctx.p2shAddress)
-        : ctx.p2shAddress;
-    tx.addFromSlip(p2shMarker);
-
     const output = new Slip();
     output.publicKey = destinationPublicKey;
     output.amount = outputAmount;
@@ -680,7 +676,7 @@ class Rustscript extends ModTemplate {
     tx.msg = {
       module: this.name,
       request: 'spend p2sh',
-      access_script: accessScript,
+      access_scripts: [ accessScript ],
       scripthash: ctx.p2shHash,
       p2sh_address: ctx.p2shAddress,
       destination: destinationPublicKey,
@@ -733,15 +729,6 @@ class Rustscript extends ModTemplate {
       tx.addFromSlip(new Slip(undefined, stored));
     }
 
-    const p2shMarker = new Slip();
-    p2shMarker.type = SLIP_TYPE_P2SH;
-    p2shMarker.amount = BigInt(0);
-    p2shMarker.publicKey =
-      ctx.p2shAddress.length === 66 && ctx.p2shAddress.startsWith('00')
-        ? this.app.crypto.toBase58(ctx.p2shAddress)
-        : ctx.p2shAddress;
-    tx.addFromSlip(p2shMarker);
-
     const out1 = new Slip(undefined, { ...slips[0] });
     const out2 = new Slip(undefined, {
       ...slips[1],
@@ -758,7 +745,7 @@ class Rustscript extends ModTemplate {
       module: this.name,
       request: 'spend p2sh',
       asset_type: 'nft',
-      access_script: accessScript,
+      access_scripts: [ accessScript ],
       scripthash: ctx.p2shHash,
       p2sh_address: ctx.p2shAddress,
       destination: destinationPublicKey,

@@ -139,10 +139,6 @@ function serializeAnchoredInventorySlips(tx, p2sh_address, chain = {}) {
 	return anchored.map((slip) => slipToJsonString(slip));
 }
 
-function returnTupleQuantity(triple) {
-	return Number(triple?.[0]?.amount || 0);
-}
-
 function returnChainLocation(blk = null, tx = null) {
 	return {
 		block_id: Number(blk?.id ?? blk?.block_id ?? blk?.bid ?? 0) || 0,
@@ -181,6 +177,31 @@ function returnAmountPaidToStore(tx, store_public_key) {
 	return amount_paid;
 }
 
+/**
+ * Locate the first payment output sent to the Store for manual settlement input construction.
+ */
+function returnPaymentUtxoToStore(tx, store_public_key) {
+	if (!tx?.signature || !store_public_key) {
+		return null;
+	}
+
+	for (let i = 0; i < (tx.to || []).length; i++) {
+		const o = tx.to[i];
+		if (o?.publicKey !== store_public_key) {
+			continue;
+		}
+
+		const amount = typeof o.amount === 'bigint' ? o.amount : BigInt(o.amount ?? 0);
+		return {
+			payment_tx_sig: tx.signature,
+			payment_output_index: Number(o?.index ?? i),
+			payment_amount: amount
+		};
+	}
+
+	return null;
+}
+
 function cloneOutputTriple(sourceTriple, { nft_amount, buyer_public_key, p2sh_address }) {
 	const out1 = new Slip(undefined, slipToStoredJson(sourceTriple[0]));
 	out1.amount = BigInt(nft_amount);
@@ -188,28 +209,6 @@ function cloneOutputTriple(sourceTriple, { nft_amount, buyer_public_key, p2sh_ad
 	out2.publicKey = buyer_public_key || p2sh_address;
 	const out3 = new Slip(undefined, slipToStoredJson(sourceTriple[2]));
 	return [out1, out2, out3];
-}
-
-function enrichInventoryFromTransaction(inventory, inventory_txmsg = {}) {
-	if (!inventory) {
-		return inventory;
-	}
-
-	const meta = inventory_txmsg.listing || {};
-	if (!inventory.access_script) {
-		inventory.access_script = inventory_txmsg.access_script || '';
-	}
-	if (!inventory.access_hash) {
-		inventory.access_hash = inventory_txmsg.access_hash || '';
-	}
-	if (!inventory.p2sh_address) {
-		inventory.p2sh_address = inventory_txmsg.p2sh_address || meta.pay_descriptor || '';
-	}
-	if (!inventory.nft_id) {
-		inventory.nft_id = meta.nft_id || '';
-	}
-
-	return inventory;
 }
 
 function buildFulfillmentTransaction({
@@ -316,11 +315,6 @@ function buildFulfillmentTransaction({
 	return tx;
 }
 
-function normalizeInventoryRecord(data = {}) {
-	const Inventory = require('./inventory');
-	return data instanceof Inventory ? data : new Inventory(data);
-}
-
 module.exports = {
 	SLIP_TYPE_P2SH,
 	slipPublicKey,
@@ -333,12 +327,10 @@ module.exports = {
 	parseStoredSlip,
 	inventoryInputsFromRecord,
 	serializeAnchoredInventorySlips,
-	returnTupleQuantity,
 	returnChainLocation,
 	returnInventorySlipId,
 	returnAmountPaidToStore,
-	normalizeInventoryRecord,
+	returnPaymentUtxoToStore,
 	cloneOutputTriple,
-	enrichInventoryFromTransaction,
 	buildFulfillmentTransaction
 };

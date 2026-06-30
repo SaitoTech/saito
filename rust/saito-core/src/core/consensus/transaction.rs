@@ -916,28 +916,28 @@ impl Transaction {
         // the user who is identified as the authorizer otherwise.
         //
         let mut authorizer: Option<SaitoPublicKey> = None;
-        let mut p2sh_idx: Option<usize> = None;
-        let mut p2sh_expected_hash: Option<SaitoPublicKey> = None;
+	let mut p2sh_idxs = Vec::<usize>::new();
 
         let mut i = 0;
         while i < self.from.len() {
             let slip = &self.from[i];
 
             //
-            // invalid if P2SH slip is first
-            //
-            if slip.slip_type == SlipType::P2SH && i == 0 {
-                error!("transaction invalid: P2SH slip found at input 0");
-                return false;
-            }
-
-            //
-            // skip Bound slips, where publickey is not authorizer
+            // skip bound slips, where publickey is not authorizer
             //
             if slip.slip_type == SlipType::Bound {
                 i += 1;
                 continue;
             }
+
+            //
+            // p2sh addresses have 0x00 as first byte. publickeys are 0x01 or 0x02
+            //
+	    if slip.public_key[0] == 0x00 {
+    		p2sh_idxs.push(i);
+    		i += 1;
+    		continue;
+	    }
 
             //
             // otherwise publickey is authorizer
@@ -948,24 +948,6 @@ impl Transaction {
                 || slip.slip_type == SlipType::RouterOutput
                 || slip.slip_type == SlipType::BlockStake
             {
-                //
-                // remember the hash, in case next slip is P2SH
-                //
-                if !p2sh_idx.is_some() {
-                    p2sh_expected_hash = Some(slip.public_key);
-                }
-
-                //
-                // fail on multiple P2SH slips-in-block
-                //
-                if slip.public_key[0] == 0x00 {
-                    if p2sh_expected_hash != Some(slip.public_key) {
-                        error!("transaction invalid: multiple P2SH inputs in wallet");
-                        return false;
-                    }
-                    i += 1;
-                    continue;
-                }
 
                 //
                 // set authorizer or fail if different
@@ -987,15 +969,10 @@ impl Transaction {
             // set P2SH markers should never appear standalone.
             //
             if slip.slip_type == SlipType::P2SH {
-                if p2sh_idx.is_some() {
-                    error!("transaction invalid: multiple P2SH slips found in transaction");
-                    return false;
-                }
                 if slip.amount != 0 {
                     error!("transaction invalid: P2SH slip found with amount > 0");
                     return false;
                 }
-                p2sh_idx = Some(i);
             }
 
             i += 1;
@@ -1008,41 +985,70 @@ impl Transaction {
         // script validation is more computationally intensive, as we must load the tx.data
         // and find the script that purports to unlock the script, located here:
         //
-        // txmsg.access_script
+        // txmsg.access_script[]
         //
-        // the witness data is now provided INSIDE the script, so we need to extract the
-        // version that does not include the witness data and use it to validate the script
-        // hash (p2sh_expected_hash) before we execute the script and confirm that the
-        // version WITH the witness data unlocks it successfully.
+        // the witness data is now provided INSIDE the script, one entry per p2sh input 
+	// being spent/moved in the slip.
         //
-        if p2sh_idx.is_some() {
-            //
-            // all scripts must have unlockable hashes
-            //
-            let Some(access_hash) = p2sh_expected_hash else {
-                error!("transaction invalid: P2SH found but script-hash missing...");
-                return false;
-            };
+	let mut array_idx = 0;
+	let mut txmsg_text = "";
+	let mut txmsg = Value::Null;
+	let mut access_scripts: Vec<Value> = Vec::new();
+	for p2sh_idx in p2sh_idxs.iter() {
+
+    	    let slip = &self.from[*p2sh_idx];
+    	    let p2sh_public_key = slip.public_key;
 
             //
-            // tx.data must contain UTF-8 JSON.
+            // tx.data must contain UTF-8 JSON
+	    //
+	    // but extract it all on the first loop to avoid duplication
             //
-            let Ok(txmsg_text) = std::str::from_utf8(&self.data) else {
-                error!("transaction invalid: P2SH tx.data is not UTF-8");
-                return false;
-            };
-            let Ok(txmsg) = serde_json::from_str::<Value>(txmsg_text) else {
-                error!("transaction invalid: P2SH tx.data is not valid JSON");
-                return false;
-            };
+	    if array_idx == 0 {
 
-            //
-            // txmsg.access_script is required.
-            //
-            let Some(access_script) = txmsg.get("access_script").and_then(|v| v.as_str()) else {
-                error!("transaction invalid: P2SH missing txmsg.access_script");
-                return false;
-            };
+    		txmsg_text = match std::str::from_utf8(&self.data) {
+    		    Ok(v) => v,
+    		    Err(_) => {
+    		        error!("transaction invalid: P2SH tx.data is not UTF-8");
+    		        return false;
+    		    }
+    		};
+
+    		txmsg = match serde_json::from_str::<Value>(txmsg_text) {
+    		    Ok(v) => v,
+    		    Err(_) => {
+    		        error!("transaction invalid: P2SH tx.data is not valid JSON");
+    		        return false;
+    		    }
+    		};
+
+    		access_scripts = match txmsg.get("access_scripts").and_then(|v| v.as_array()) {
+    		    Some(v) => v.clone(),
+    		    None => {
+    		        error!("transaction invalid: P2SH missing txmsg.access_scripts");
+    		        return false;
+    		    }
+    		};
+
+	    	if access_scripts.len() != p2sh_idxs.len() {
+	        	error!(
+	        	    "transaction invalid: {} access scripts supplied for {} P2SH inputs",
+	        	    access_scripts.len(),
+	        	    p2sh_idxs.len()
+	        	);
+	        	return false;
+	        }
+
+	    }
+
+
+	    //
+	    // fetch access script
+	    //
+	    let Some(access_script) = access_scripts[array_idx].as_str() else {
+       	        error!("transaction invalid: access_scripts entry is not a string");
+    	        return false;
+    	    };
 
             //
             // access script must exist as JSON
@@ -1068,7 +1074,7 @@ impl Transaction {
             //
             let mut script = Script::new();
             script.json = script_json;
-
+	
             //
             // and generate the hash that this unlock script *should* produce
             //
@@ -1077,8 +1083,8 @@ impl Transaction {
             //
             // we are looking for this (from P2SH slip.publickey)
             //
-            if access_hash[0] != 0x00 {
-                error!("transaction invalid: P2SH script hashes to something weird");
+            if p2sh_public_key[0] != 0x00 {
+                error!("transaction invalid: P2SH publickey is something weird");
                 return false;
             }
 
@@ -1093,7 +1099,7 @@ impl Transaction {
                 error!("P2SH spend: script hash is not 32 bytes");
                 return false;
             }
-            if access_hash[1..33] != hash_bytes[..] {
+            if p2sh_public_key[1..33] != hash_bytes[..] {
                 error!("P2SH spend: script hash does not match commitment");
                 return false;
             }
@@ -1105,6 +1111,9 @@ impl Transaction {
                 error!("P2SH spend: access_script evaluation failed");
                 return false;
             }
+
+	    array_idx += 1;
+
         }
 
         //
@@ -1252,7 +1261,7 @@ impl Transaction {
             //
             // or p2sh script...
             //
-            if authorizer.is_none() && p2sh_idx.is_none() {
+            if authorizer.is_none() && p2sh_idxs.is_empty() {
                 if self.transaction_type == TransactionType::BlockStake
                     && blockchain.social_stake_requirement == 0
                 {

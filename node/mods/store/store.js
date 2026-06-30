@@ -98,7 +98,7 @@ class Store extends ModTemplate {
 			if (!this.app.BROWSER && mycallback != null) {
 				mycallback({
 					listings: this.warehouse
-						.returnActiveListings()
+						.returnActiveSummaries()
 						.map((listing) => listing.serialize())
 				});
 				return 1;
