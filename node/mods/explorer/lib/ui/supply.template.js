@@ -1,57 +1,67 @@
-module.exports = ({
-	loading = false,
-	error = null,
-	summary = null,
-	columns = [],
-	rows = [],
-}) => {
-	const summaryHtml = summary
-		? `
-      <div class="explorer-supply-metrics">
-        <div class="explorer-supply-metric">
-          <h3>${summary.totalSupply}</h3>
-          <p>Total supply (NOLAN)</p>
-        </div>
-        <div class="explorer-supply-metric">
-          <h3>${summary.utxo}</h3>
-          <p>UTXO</p>
-        </div>
-        <div class="explorer-supply-metric">
-          <h3>${summary.treasury}</h3>
-          <p>Treasury</p>
-        </div>
-        <div class="explorer-supply-metric">
-          <h3>${summary.graveyard}</h3>
-          <p>Graveyard</p>
-        </div>
-      </div>
-    `
-		: '';
+function renderNumericCell(value, options = {}) {
+	if (value && typeof value === 'object' && value.text != null) {
+		const tone = value.tone || 'muted';
+		return `<td class="explorer-supply-numeric explorer-supply-delta explorer-supply-delta-${tone}">${value.text}</td>`;
+	}
 
-	const headerCells = columns
+	const classes = ['explorer-supply-numeric'];
+	if (options.isUnknown) {
+		classes.push('explorer-supply-unknown');
+	}
+
+	return `<td class="${classes.join(' ')}">${value}</td>`;
+}
+
+function renderBlockHeaderCells(columns = []) {
+	return columns
 		.map((column) => {
-			const blockId = column?.block_id != null ? String(column.block_id) : '—';
-			const hash = column?.block_hash || '';
+			const blockId = column?.blockId != null ? String(column.blockId) : '—';
+			const hash = column?.blockHash || '';
 			if (hash) {
 				return `<th class="explorer-supply-block-header" data-block-hash="${hash}"><a href="/explorer/block/${encodeURIComponent(hash)}" class="explorer-link explorer-supply-block-link">${blockId}</a></th>`;
 			}
 			return `<th>${blockId}</th>`;
 		})
 		.join('');
+}
 
-	const bodyRows = rows
-		.map(
-			(row) => `
+function renderMatrixRows(rows = [], columnCount = 0) {
+	const colspan = columnCount > 0 ? columnCount + 1 : 2;
+
+	return rows
+		.map((row) => {
+			if (row.isSectionDivider) {
+				return `
+      <tr class="explorer-supply-delta-divider" aria-hidden="true">
+        <td colspan="${colspan}"></td>
+      </tr>
+    `;
+			}
+
+			return `
       <tr class="${row.className}">
         <td class="explorer-supply-row-label">${row.label}</td>
-        ${row.values.map((value) => `<td class="explorer-supply-numeric">${value}</td>`).join('')}
+        ${row.values
+					.map((value) => renderNumericCell(value, { isUnknown: row.key === 'utxo' && !row.isDelta }))
+					.join('')}
       </tr>
-    `
-		)
+    `;
+		})
 		.join('');
+}
+
+module.exports = ({
+	loading = false,
+	error = null,
+	columns = [],
+	rows = [],
+	hasData = false,
+}) => {
+	const headerCells = renderBlockHeaderCells(columns);
+	const bodyRows = renderMatrixRows(rows, columns.length);
 
 	const tableHtml =
-		columns.length > 0
+		hasData && columns.length > 0
 			? `
       <div class="explorer-supply-table-wrap explorer-table-wrap">
         <table class="explorer-supply-table data-table blocktable">
@@ -72,7 +82,7 @@ module.exports = ({
 	let statusHtml = '';
 	if (loading) {
 		statusHtml = `
-      <p class="explorer-supply-status">Loading token supply from Explorer peer…</p>
+      <p class="explorer-supply-status">Loading token supply accounting from Explorer peer…</p>
     `;
 	} else if (error) {
 		statusHtml = `
@@ -81,7 +91,7 @@ module.exports = ({
         <p class="explorer-teaser-loading-message">${error}</p>
       </div>
     `;
-	} else if (!columns.length) {
+	} else if (!hasData) {
 		statusHtml = `
       <p class="explorer-supply-status">No supply statistics are available yet. The Explorer node records supply data as new blocks arrive on the longest chain.</p>
     `;
@@ -96,15 +106,11 @@ module.exports = ({
           </button>
           <div class="explorer-supply-header-text">
             <h1 class="explorer-page-title">Token Supply</h1>
-            <p class="explorer-subtitle">Longest-chain supply breakdown by block (NOLAN)</p>
+            <p class="explorer-subtitle">Longest-chain protocol accounting by block (SAITO)</p>
           </div>
         </div>
 
         <div class="explorer-supply-dashboard explorer-card explorer-card-padded">
-          ${summaryHtml}
-          <div class="explorer-supply-tabs">
-            <div class="explorer-supply-tab active">Block data</div>
-          </div>
           ${statusHtml}
           ${tableHtml}
         </div>

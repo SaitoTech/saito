@@ -1,12 +1,12 @@
 const SUPPLY_BLOCK_COUNT = 8;
 
 const SUPPLY_TABLE_ROWS = [
+	{ key: 'total_supply', label: 'TOTAL SUPPLY', section: 'supply-total' },
 	{ key: 'treasury', label: 'treasury', section: 'supply' },
 	{ key: 'graveyard', label: 'graveyard', section: 'supply' },
 	{ key: 'previous_block_unpaid', label: 'previous_block_unpaid', section: 'supply' },
 	{ key: 'total_fees', label: 'total_fees', section: 'supply' },
-	{ key: 'utxo', label: 'utxo', section: 'supply' },
-	{ key: 'total_supply', label: 'total_supply', section: 'supply-total' },
+	{ key: 'utxo', label: 'utxo', section: 'supply', displayUnknown: true },
 	{ key: 'total_payout_routing', label: 'total_payout_routing', section: 'payout' },
 	{ key: 'total_payout_mining', label: 'total_payout_mining', section: 'payout' },
 	{ key: 'total_payout_treasury', label: 'total_payout_treasury', section: 'payout' },
@@ -20,7 +20,24 @@ const SUPPLY_TABLE_ROWS = [
 	{ key: 'difficulty', label: 'difficulty', section: 'metric' },
 ];
 
+/** Insert the delta section immediately after this reserve-bucket row. */
+const SUPPLY_DELTA_SECTION_AFTER_KEY = 'utxo';
+
+function splitSupplyTableRows() {
+	const splitIndex = SUPPLY_TABLE_ROWS.findIndex((row) => row.key === SUPPLY_DELTA_SECTION_AFTER_KEY);
+	if (splitIndex < 0) {
+		return { reserveRows: SUPPLY_TABLE_ROWS, trailingRows: [] };
+	}
+
+	return {
+		reserveRows: SUPPLY_TABLE_ROWS.slice(0, splitIndex + 1),
+		trailingRows: SUPPLY_TABLE_ROWS.slice(splitIndex + 1),
+	};
+}
+
 module.exports = {
 	SUPPLY_BLOCK_COUNT,
 	SUPPLY_TABLE_ROWS,
+	SUPPLY_DELTA_SECTION_AFTER_KEY,
+	splitSupplyTableRows,
 };

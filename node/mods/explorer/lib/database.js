@@ -8,8 +8,8 @@ class ExplorerDatabase {
 		return this.mod.dbname;
 	}
 
-	async insertBlockStatistics(stats) {
-		const sql = `INSERT OR IGNORE INTO blocks (
+	async upsertBlockStatistics(stats) {
+		const sql = `INSERT OR REPLACE INTO blocks (
 			block_id,
 			block_hash,
 			treasury,
@@ -73,7 +73,15 @@ class ExplorerDatabase {
 			$total_supply
 		)`;
 
-		const params = {
+		return this.runBlockStatisticsStatement(sql, stats, 'upsertBlockStatistics');
+	}
+
+	async insertBlockStatistics(stats) {
+		return this.upsertBlockStatistics(stats);
+	}
+
+	blockStatisticsParams(stats) {
+		return {
 			$block_id: stats.block_id,
 			$block_hash: stats.block_hash,
 			$treasury: stats.treasury,
@@ -105,16 +113,39 @@ class ExplorerDatabase {
 			$utxo: stats.utxo,
 			$total_supply: stats.total_supply,
 		};
+	}
+
+	async runBlockStatisticsStatement(sql, stats, label) {
+		const params = this.blockStatisticsParams(stats);
 
 		try {
 			const res = await this.app.storage.runDatabase(sql, params, this.dbname);
 			if (res?.changes > 0) {
 				return { success: true };
 			}
-			return { success: false, reason: 'duplicate' };
+			return { success: false, reason: 'no changes' };
 		} catch (err) {
-			console.error('Explorer Database: insertBlockStatistics failed', err);
-			return { success: false, reason: err?.message || 'insert failed' };
+			console.error(`Explorer Database: ${label} failed`, err);
+			return { success: false, reason: err?.message || 'write failed' };
+		}
+	}
+
+	async getStatisticsByBlockHash(blockHash) {
+		if (!blockHash) {
+			return null;
+		}
+
+		try {
+			const rows =
+				(await this.app.storage.queryDatabase(
+					`SELECT * FROM blocks WHERE block_hash = $block_hash LIMIT 1`,
+					{ $block_hash: String(blockHash) },
+					this.dbname
+				)) || [];
+			return rows[0] || null;
+		} catch (err) {
+			console.error('Explorer Database: getStatisticsByBlockHash failed', err);
+			return null;
 		}
 	}
 

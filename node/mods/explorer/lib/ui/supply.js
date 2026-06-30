@@ -1,5 +1,4 @@
 const SupplyTemplate = require('./supply.template');
-const { formatSupplyTable, formatLatestSupplySummary } = require('../supply-format');
 
 class Supply {
 	constructor(app, mod) {
@@ -26,17 +25,15 @@ class Supply {
 		const error = this.mod.supplyError
 			? this.app.browser.escapeHTML(this.mod.supplyError)
 			: null;
-		const columns = this.mod.supplyColumns || [];
-		const summary = formatLatestSupplySummary(columns);
-		const rows = formatSupplyTable(this.app, columns);
+		const view = this.mod.supplyView || null;
 
 		this.app.browser.replaceElementContentBySelector(
 			SupplyTemplate({
 				loading,
 				error,
-				summary,
-				columns,
-				rows,
+				columns: view?.columns || [],
+				rows: view?.rows || [],
+				hasData: Boolean(view?.hasData),
 			}),
 			this.container
 		);

@@ -196,16 +196,104 @@ function truncateHash(hash, head = 10, tail = 8) {
 	return `${hash.slice(0, head)}...${hash.slice(-tail)}`;
 }
 
+const SAITO_MILLION = 1_000_000n;
+const SAITO_BILLION = 1_000_000_000n;
+
+/** Protocol parameters and other non-monetary counters — never abbreviated. */
+const EXPLORER_INTEGER_ONLY_KEYS = new Set(['burn_fee', 'difficulty']);
+
+function formatExplorerInteger(value) {
+	if (value == null || value === '') {
+		return '—';
+	}
+
+	try {
+		return BigInt(value).toLocaleString('en-US');
+	} catch (err) {
+		return String(value);
+	}
+}
+
+function formatAbbreviatedQuotient(scaled) {
+	const whole = scaled / 100n;
+	const frac = scaled % 100n;
+
+	if (frac === 0n) {
+		return whole.toLocaleString('en-US');
+	}
+
+	if (frac % 10n === 0n) {
+		return `${whole.toLocaleString('en-US')}.${(frac / 10n).toString()}`;
+	}
+
+	return `${whole.toLocaleString('en-US')}.${frac.toString().padStart(2, '0')}`;
+}
+
+function canAbbreviateWithTwoDecimals(value, unit) {
+	return unit > 0n && (value * 100n) % unit === 0n;
+}
+
+/**
+ * Format a whole-number SAITO amount for display.
+ * Abbreviates to million/billion only when the quotient needs at most two decimal places.
+ */
+function formatMonetaryWhole(whole) {
+	if (whole < SAITO_MILLION) {
+		return whole.toLocaleString('en-US');
+	}
+
+	if (whole >= SAITO_BILLION) {
+		if (canAbbreviateWithTwoDecimals(whole, SAITO_BILLION)) {
+			const scaled = (whole * 100n) / SAITO_BILLION;
+			return `${formatAbbreviatedQuotient(scaled)} billion`;
+		}
+		return whole.toLocaleString('en-US');
+	}
+
+	if (canAbbreviateWithTwoDecimals(whole, SAITO_MILLION)) {
+		const scaled = (whole * 100n) / SAITO_MILLION;
+		return `${formatAbbreviatedQuotient(scaled)} million`;
+	}
+
+	return whole.toLocaleString('en-US');
+}
+
+/**
+ * Format a NOLAN balance using Explorer monetary display rules (no unit suffix).
+ */
+function formatNolanAsExplorerCurrency(nolan) {
+	if (nolan == null || nolan === '') {
+		return '—';
+	}
+
+	let amount;
+	try {
+		amount = BigInt(nolan);
+	} catch (err) {
+		return String(nolan);
+	}
+
+	const whole = amount / NOLAN_PER_SAITO;
+	const frac = amount % NOLAN_PER_SAITO;
+
+	if (frac === 0n) {
+		return formatMonetaryWhole(whole);
+	}
+
+	const fracStr = frac.toString().padStart(8, '0').replace(/0+$/, '');
+	return `${whole.toLocaleString('en-US')}.${fracStr}`;
+}
+
 function formatSaito(nolan) {
 	try {
 		const amount = BigInt(nolan ?? 0);
 		const whole = amount / NOLAN_PER_SAITO;
 		const frac = amount % NOLAN_PER_SAITO;
 		if (frac === 0n) {
-			return `${whole} SAITO`;
+			return `${formatMonetaryWhole(whole)} SAITO`;
 		}
 		let fracStr = frac.toString().padStart(8, '0').replace(/0+$/, '');
-		return `${whole}.${fracStr} SAITO`;
+		return `${whole.toLocaleString('en-US')}.${fracStr} SAITO`;
 	} catch (err) {
 		return '0 SAITO';
 	}
@@ -500,6 +588,10 @@ function mergeBlockByHash(blocks, enrichedBlock) {
 
 module.exports = {
 	truncateHash,
+	EXPLORER_INTEGER_ONLY_KEYS,
+	formatExplorerInteger,
+	formatMonetaryWhole,
+	formatNolanAsExplorerCurrency,
 	formatSaito,
 	formatTimeAgo,
 	displayName,

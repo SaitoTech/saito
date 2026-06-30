@@ -13,6 +13,7 @@ const { handleExplorerRequest } = require('./lib/peer/requests');
 const { requestBlocksFromPeer, requestBlockFromPeer, requestSupplyFromPeer, requestAddressFromPeer } = require('./lib/peer/client');
 const ExplorerDatabase = require('./lib/database');
 const { buildBlockStatistics } = require('./lib/block-statistics');
+const { backfillSupplyStatistics } = require('./lib/supply-accounting');
 const { buildAddressRowsFromBlock, blockContainsAtrTransaction } = require('./lib/address-index');
 const { SUPPLY_BLOCK_COUNT } = require('./lib/supply-rows');
 const {
@@ -55,7 +56,7 @@ class Explorer extends ModTemplate {
 		this.transactionsError = null;
 		this.explorerPeer = null;
 
-		this.supplyColumns = [];
+		this.supplyView = null;
 		this.supplyReady = false;
 		this.supplyError = null;
 
@@ -229,7 +230,7 @@ class Explorer extends ModTemplate {
 		this.blockHash = null;
 		this.blockComponent = null;
 		this.main = null;
-		this.supplyColumns = [];
+		this.supplyView = null;
 		this.supplyReady = false;
 		this.supplyError = null;
 		this.addressComponent = null;
@@ -359,7 +360,7 @@ class Explorer extends ModTemplate {
 		this.transactionsError = null;
 		this.blocks = [];
 		this.transactions = [];
-		this.supplyColumns = [];
+		this.supplyView = null;
 		this.supplyReady = false;
 		this.supplyError = null;
 		this.addressRows = [];
@@ -421,7 +422,7 @@ class Explorer extends ModTemplate {
 	fetchSupplyData(app, peer) {
 		this.supplyReady = false;
 		this.supplyError = null;
-		this.supplyColumns = [];
+		this.supplyView = null;
 
 		return new Promise((resolve) => {
 			requestSupplyFromPeer(app, peer, { count: SUPPLY_BLOCK_COUNT }, async (response) => {
@@ -451,7 +452,8 @@ class Explorer extends ModTemplate {
 					return;
 				}
 
-				this.supplyColumns = Array.isArray(response.data?.columns) ? response.data.columns : [];
+				this.supplyView =
+					response.data && typeof response.data === 'object' ? response.data : null;
 				this.supplyReady = true;
 				await this.refreshActiveView();
 				resolve();
@@ -600,6 +602,11 @@ class Explorer extends ModTemplate {
 
 		if (app.BROWSER == 0) {
 			this.database = new ExplorerDatabase(app, this);
+			setImmediate(() => {
+				backfillSupplyStatistics(app, this).catch((err) => {
+					console.error('Explorer: supply statistics backfill failed', err);
+				});
+			});
 		}
 
 		if (this.browser_active) {
@@ -649,8 +656,8 @@ class Explorer extends ModTemplate {
 
 		if (this.INDEX_BLOCKS) {
 			try {
-				const stats = await buildBlockStatistics(this.app, block);
-				await this.database.insertBlockStatistics(stats);
+				const stats = await buildBlockStatistics(this.app, this, block);
+				await this.database.upsertBlockStatistics(stats);
 			} catch (err) {
 				console.error('Explorer: failed to record block statistics', err);
 			}
