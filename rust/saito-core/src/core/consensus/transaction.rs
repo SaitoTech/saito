@@ -1616,14 +1616,6 @@ impl Transaction {
             //
             } else {
                 //
-                // nft amount conserved
-                //
-                if nft_amount_in != nft_amount_out {
-                    error!("Bound TX invalid: NFT amount mismatch");
-                    return false;
-                }
-
-                //
                 // must consume at least one nft tuple
                 //
                 if nft_tuples_in == 0 {
@@ -1631,12 +1623,15 @@ impl Transaction {
                     return false;
                 }
 
-                //
-                // must produce at least one nft tuple
-                //
                 if nft_tuples_out == 0 {
-                    error!("Bound TX invalid: no output NFT tuples");
-                    return false;
+                    // burn: NFT inputs consumed with no NFT outputs — valid, no
+                    // amount conservation required since the token is destroyed
+                } else {
+                    // transfer: NFT amount must be conserved
+                    if nft_amount_in != nft_amount_out {
+                        error!("Bound TX invalid: NFT amount mismatch");
+                        return false;
+                    }
                 }
             }
         } else {

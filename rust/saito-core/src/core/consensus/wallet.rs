@@ -272,6 +272,7 @@ impl Wallet {
                 trace!("Processing transaction: {:?}", tx.signature.to_hex());
 
                 let mut emitted_chain_tx_sent = false;
+                let mut emitted_nft_sent = false;
 
                 //
                 // Process inputs first: remove spent slips and NFT groups
@@ -298,6 +299,7 @@ impl Wallet {
 
                             if let Some(io) = io {
                                 let sender = self.return_nft_sender_publickey(tx);
+                                // receiver = first TO NFT group's slip2 (the primary recipient)
                                 let receiver = (0..tx.to.len().saturating_sub(2))
                                     .find(|&i| tx.is_nft(&tx.to, i))
                                     .and_then(|i| tx.to.get(i + 1))
@@ -308,6 +310,22 @@ impl Wallet {
                                             .map(|s| s.public_key.to_base58())
                                             .unwrap_or_default()
                                     });
+                                // amount = sum of TO NFT groups going to recipients (not self)
+                                let sent_amount: Currency = {
+                                    let mut total: Currency = 0;
+                                    let mut j = 0;
+                                    while j + 2 < tx.to.len() {
+                                        if tx.is_nft(&tx.to, j) {
+                                            if tx.to[j + 1].public_key != self.public_key {
+                                                total = total.saturating_add(tx.to[j].amount);
+                                            }
+                                            j += 3;
+                                        } else {
+                                            j += 1;
+                                        }
+                                    }
+                                    total
+                                };
                                 let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
                                     "block_id": block.id,
@@ -318,7 +336,7 @@ impl Wallet {
                                     "receiver": receiver,
                                     "ticker": Self::extract_nft_ticker_from_tx(tx),
                                     "nft_id": slip3.public_key.to_hex(),
-                                    "amount": slip1.amount,
+                                    "amount": sent_amount,
                                     "saito_deposit": slip2.amount,
                                     "slip1_utxo": slip1.utxoset_key.to_hex(),
                                     "slip2_utxo": slip2.utxoset_key.to_hex(),
@@ -326,6 +344,7 @@ impl Wallet {
                                 }))
                                 .unwrap_or_else(|_| "{}".to_string());
                                 io.send_interface_event(InterfaceEvent::OnNFTSent(payload));
+                                emitted_nft_sent = true;
                             }
 
                             debug!(
@@ -352,7 +371,7 @@ impl Wallet {
                         if self.delete_pending_transaction(tx) {
                             wallet_changed |= WALLET_UPDATED;
                             if let Some(io) = io {
-                                if !emitted_chain_tx_sent {
+                                if !emitted_chain_tx_sent && !emitted_nft_sent {
                                     emitted_chain_tx_sent = true;
                                     let sender = tx
                                         .from
@@ -424,16 +443,6 @@ impl Wallet {
 
                             if let Some(io) = io {
                                 let sender = self.return_nft_sender_publickey(tx);
-                                let receiver = (0..tx.to.len().saturating_sub(2))
-                                    .find(|&i| tx.is_nft(&tx.to, i))
-                                    .and_then(|i| tx.to.get(i + 1))
-                                    .map(|s| s.public_key.to_base58())
-                                    .unwrap_or_else(|| {
-                                        tx.to
-                                            .first()
-                                            .map(|s| s.public_key.to_base58())
-                                            .unwrap_or_default()
-                                    });
                                 let signature = tx.signature.to_hex();
                                 let payload = serde_json::to_string(&json!({
                                     "block_id": block.id,
@@ -441,10 +450,11 @@ impl Wallet {
                                     "timestamp": block.timestamp,
                                     "signature": signature,
                                     "sender": sender.to_base58(),
-                                    "receiver": receiver,
+                                    "receiver": slip2.public_key.to_base58(),
                                     "ticker": Self::extract_nft_ticker_from_tx(tx),
                                     "nft_id": slip3.public_key.to_hex(),
                                     "amount": slip1.amount,
+                                    "saito_deposit": slip2.amount,
                                     "slip1_utxo": slip1.utxoset_key.to_hex(),
                                     "slip2_utxo": slip2.utxoset_key.to_hex(),
                                     "slip3_utxo": slip3.utxoset_key.to_hex(),
@@ -2039,15 +2049,18 @@ impl Wallet {
         let old_nft = self.nfts.remove(pos);
 
         //
-        // parse slip2 from its UTXO key
+        // parse all three NFT slips from their UTXO keys
         //
+        let mut input_slip1 = Slip::parse_slip_from_utxokey(&old_nft.slip1)
+            .map_err(|_| Error::new(ErrorKind::Other, "failed to parse slip1 from utxokey"))?;
         let mut input_slip2 = Slip::parse_slip_from_utxokey(&old_nft.slip2)
             .map_err(|_| Error::new(ErrorKind::Other, "failed to parse slip2 from utxokey"))?;
+        let mut input_slip3 = Slip::parse_slip_from_utxokey(&old_nft.slip3)
+            .map_err(|_| Error::new(ErrorKind::Other, "failed to parse slip3 from utxokey"))?;
 
-        //
-        // ensure correct type for spending; slip2 is a normal spendable slip
-        //
+        input_slip1.slip_type = SlipType::Bound;
         input_slip2.slip_type = SlipType::Normal;
+        input_slip3.slip_type = SlipType::Bound;
 
         //
         // compute original deposit amount
@@ -2058,26 +2071,23 @@ impl Wallet {
         }
 
         //
-        // build bound transaction
+        // build bound transaction — inputs are the full NFT triplet,
+        // output is only the deposit refund (no NFT group = burn)
         //
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Bound;
 
-        //
-        // add input slip to the transaction
-        //
+        transaction.add_from_slip(input_slip1);
         transaction.add_from_slip(input_slip2.clone());
+        transaction.add_from_slip(input_slip3);
 
         //
-        // create output slip (refund to current holder = input_slip2.public_key)
+        // refund the deposit to the current holder
         //
-        let mut out_slip = input_slip2.clone();
+        let mut out_slip = input_slip2;
         out_slip.amount = deposit_amount;
         out_slip.slip_type = SlipType::Normal;
 
-        //
-        // add output slip
-        //
         transaction.add_to_slip(out_slip);
         transaction.data = tx_msg;
 
