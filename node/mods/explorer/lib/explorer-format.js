@@ -4,6 +4,7 @@ const {
 	formatSlipTypeName,
 } = require('./transaction-types');
 const { renderJsonTree } = require('./ui/tx/json-tree');
+const { hasP2shUnlockTargets } = require('./tx-actions');
 
 function esc(app, value) {
 	return app.browser.escapeHTML(String(value ?? ''));
@@ -139,6 +140,46 @@ function formatOptionalBigInt(app, value) {
 	}
 }
 
+function bytesToHex(bytes) {
+	const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+	let hex = '';
+	for (let i = 0; i < arr.length; i++) {
+		hex += arr[i].toString(16).padStart(2, '0');
+	}
+	return hex;
+}
+
+function enrichBlockCryptoFromSerialize(block, parsed) {
+	if (!parsed) {
+		return parsed;
+	}
+
+	if (parsed.merkle_root && parsed.signature) {
+		return parsed;
+	}
+
+	try {
+		if (typeof block?.serialize !== 'function') {
+			return parsed;
+		}
+		const bytes = block.serialize();
+		const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+		if (u8.length < 181) {
+			return parsed;
+		}
+		if (!parsed.merkle_root) {
+			parsed.merkle_root = bytesToHex(u8.subarray(85, 117));
+		}
+		if (!parsed.signature) {
+			parsed.signature = bytesToHex(u8.subarray(117, 181));
+		}
+	} catch (err) {
+		// ignore missing crypto fields
+	}
+
+	return parsed;
+}
+
 function enrichBlockFromWrapper(block, parsed) {
 	if (!block || typeof block.toJson !== 'function' || !parsed) {
 		return parsed;
@@ -183,7 +224,7 @@ function enrichBlockFromWrapper(block, parsed) {
 		// ignore
 	}
 
-	return parsed;
+	return enrichBlockCryptoFromSerialize(block, parsed);
 }
 
 function truncateHash(hash, head = 10, tail = 8) {
@@ -401,11 +442,20 @@ function formatTransactionsForTeaser(app, transactions = [], limit = 10) {
 function slipDisplay(app, slip) {
 	const slipType = slip?.type ?? slip?.slip_type;
 	const rawKey = slip?.publicKey || slip?.public_key || '';
+	const blockId = slip?.blockId ?? slip?.block_id;
+	const txOrdinal = slip?.txOrdinal ?? slip?.tx_ordinal;
+	const slipIndex = slip?.index ?? slip?.slip_index;
 	return {
-		publicKey: buildPublicKeyLink(app, rawKey),
+		publicKey: buildPublicKeyLink(app, rawKey, esc(app, rawKey)),
 		publicKeyRaw: esc(app, rawKey),
 		amount: esc(app, formatSaito(slipAmount(slip))),
 		slipType: esc(app, formatSlipTypeName(slipType)),
+		block: formatOptionalBigInt(app, blockId),
+		transaction: formatOptionalBigInt(app, txOrdinal),
+		slip:
+			slipIndex != null && slipIndex !== ''
+				? esc(app, String(slipIndex))
+				: '—',
 	};
 }
 
@@ -415,8 +465,8 @@ function formatTransactionForBlockPage(app, tx, index = 0) {
 	const txMsg = decodeTxMsg(tx);
 	const fromSlips = Array.isArray(tx?.from) ? tx.from : [];
 	const toSlips = Array.isArray(tx?.to) ? tx.to : [];
-	const timeRelative = formatTimeAgo(app, tx?.timestamp);
 	const timeAbsolute = formatAbsoluteTime(tx?.timestamp);
+	const timeDetail = timeAbsolute || '—';
 	const inputCount = fromSlips.length;
 	const outputCount = toSlips.length;
 
@@ -427,9 +477,9 @@ function formatTransactionForBlockPage(app, tx, index = 0) {
 		signatureRaw: esc(app, signature),
 		signatureFull: esc(app, signature),
 		txId: esc(app, String(index + 1)),
-		time: esc(app, timeRelative),
+		time: esc(app, formatTimeAgo(app, tx?.timestamp)),
 		timeAbsolute: esc(app, timeAbsolute),
-		timeFull: esc(app, timeAbsolute ? `${timeRelative} · ${timeAbsolute}` : timeRelative),
+		timeDetail: esc(app, timeDetail),
 		inputs: esc(app, inputCount ? `${inputCount} input${inputCount === 1 ? '' : 's'}` : '0 inputs'),
 		outputs: esc(app, outputCount ? `${outputCount} output${outputCount === 1 ? '' : 's'}` : '0 outputs'),
 		ioSummary: esc(
@@ -444,6 +494,7 @@ function formatTransactionForBlockPage(app, tx, index = 0) {
 		toSlips: toSlips.map((slip) => slipDisplay(app, slip)),
 		hasTxMsg: txMsg != null,
 		txMsgHtml: txMsg != null ? renderJsonTree(app, txMsg) : null,
+		hasP2shUnlock: hasP2shUnlockTargets(tx),
 	};
 }
 
@@ -462,7 +513,17 @@ function formatBlockType(block) {
 	return String(blockType).replace(/"/g, '');
 }
 
-function formatBlockSummaryRows(app, block, txCount = 0) {
+function buildPreviousBlockLink(app, previousHash) {
+	const hash = String(previousHash || '').trim();
+	if (!hash || /^0+$/.test(hash)) {
+		return '—';
+	}
+
+	const safeHash = esc(app, hash);
+	return `<a href="/explorer/block/${encodeURIComponent(hash)}" class="explorer-link explorer-mono explorer-block-prev-link" data-block-hash="${safeHash}">${safeHash}</a>`;
+}
+
+function formatBlockSummaryPrimary(app, block) {
 	const rows = [];
 	const add = (label, value, opts = {}) => {
 		rows.push({
@@ -472,25 +533,52 @@ function formatBlockSummaryRows(app, block, txCount = 0) {
 		});
 	};
 
-	const relativeTime = formatTimeAgo(app, block.timestamp);
 	const absoluteTime = formatAbsoluteTime(block.timestamp);
-	const timestampDisplay =
-		relativeTime && absoluteTime
-			? esc(app, `${relativeTime} (${absoluteTime})`)
-			: esc(app, relativeTime || absoluteTime || '—');
+	const creator = String(block.creator || '').trim();
+	const merkleRoot = String(block.merkle_root || '').trim();
+	const signature = String(block.signature || '').trim();
 
-	add('Block height', esc(app, String(block.id ?? '—')), { numeric: true });
-	add('Previous hash', esc(app, truncateHash(block.previous_block_hash || '', 12, 10)), {
-		mono: true,
-		hashLink: true,
-		full: esc(app, block.previous_block_hash || ''),
-	});
+	add('Block Hash', esc(app, block.hash || '—'), { mono: true });
+	add('Timestamp', esc(app, absoluteTime || '—'));
+	add('Previous Block', buildPreviousBlockLink(app, block.previous_block_hash), { html: true });
+	add(
+		'Creator',
+		creator ? buildPublicKeyLink(app, creator, creator) : '—',
+		{ html: true, mono: true }
+	);
+	add('Merkle Root', merkleRoot ? esc(app, merkleRoot) : '—', { mono: true });
+	add('Signature', signature ? esc(app, signature) : '—', { mono: true });
+
+	return rows;
+}
+
+function formatBlockSummaryBadges(app, block) {
+	return {
+		goldenTicket: {
+			label: esc(app, block.has_golden_ticket ? 'Golden Ticket' : 'No Golden Ticket'),
+			active: Boolean(block.has_golden_ticket),
+		},
+		longestChain: {
+			label: esc(app, block.in_longest_chain === false ? 'Unconfirmed' : 'Longest Chain'),
+			active: block.in_longest_chain !== false,
+		},
+	};
+}
+
+function formatBlockSummaryDetail(app, block, txCount = 0) {
+	const rows = [];
+	const add = (label, value, opts = {}) => {
+		rows.push({
+			label: esc(app, label),
+			value: value == null || value === '' ? '—' : value,
+			...opts,
+		});
+	};
+
 	add(
 		'Status',
 		esc(app, block.in_longest_chain === false ? 'Unconfirmed' : 'Finalized')
 	);
-	add('Timestamp', timestampDisplay);
-	add('Miner', buildPublicKeyLink(app, block.creator), { html: true });
 	add('Transactions', esc(app, String(txCount)), { numeric: true });
 	add('Block type', esc(app, formatBlockType(block)));
 	add('Burn fee', formatOptionalSaito(app, block.burnfee));
@@ -509,7 +597,6 @@ function formatBlockSummaryRows(app, block, txCount = 0) {
 	add('Block size', block.block_size != null ? esc(app, `${block.block_size} bytes`) : '—', {
 		numeric: true,
 	});
-	add('Golden ticket', esc(app, block.has_golden_ticket ? 'Yes' : 'No'));
 	add('Fee transaction', esc(app, block.has_fee_transaction ? 'Yes' : 'No'));
 	add('Difficulty', formatOptionalBigInt(app, block.difficulty));
 
@@ -539,12 +626,12 @@ function normalizeBlockRecord(block) {
 					return tx;
 				});
 			}
-			return enrichBlockFromWrapper(block, parsed);
+			return enrichBlockCryptoFromSerialize(block, enrichBlockFromWrapper(block, parsed));
 		} catch (err) {
 			return block;
 		}
 	}
-	return block;
+	return enrichBlockCryptoFromSerialize(block, block);
 }
 
 function normalizeBlockTransactions(block) {
@@ -567,7 +654,9 @@ function formatBlockForPage(app, rawBlock, txFormatter = formatTransactionsForBl
 	return {
 		number: esc(app, String(block.id ?? '')),
 		hashDisplay: esc(app, block.hash || ''),
-		summaryRows: formatBlockSummaryRows(app, block, transactions.length),
+		summaryPrimary: formatBlockSummaryPrimary(app, block),
+		summaryBadges: formatBlockSummaryBadges(app, block),
+		summaryDetail: formatBlockSummaryDetail(app, block, transactions.length),
 		transactions: txFormatter(app, transactions),
 	};
 }

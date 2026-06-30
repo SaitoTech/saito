@@ -78,7 +78,6 @@ module.exports = ({
 		statusHtml = `<p class="explorer-address-status">No indexed activity found for this public key on the longest chain.</p>`;
 	}
 
-	const publicKeyLabel = summary?.publicKeyLabel || 'Address';
 	const publicKeyFull = summary?.publicKeyFull || '';
 
 	return `
@@ -89,9 +88,7 @@ module.exports = ({
             <i class="fa-solid fa-arrow-left"></i>
           </button>
           <div class="explorer-address-header-text">
-            <h1 class="explorer-page-title">Address Balances</h1>
-            <p class="explorer-subtitle">Indexed activity on the longest chain (NOLAN)</p>
-            <p class="explorer-subtitle explorer-address-key">${publicKeyLabel}</p>
+            <h1 class="explorer-page-title">Address Transfers</h1>
             ${publicKeyFull ? `<p class="explorer-address-key-raw explorer-mono">${publicKeyFull}</p>` : ''}
           </div>
         </div>

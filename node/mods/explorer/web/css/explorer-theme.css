@@ -22,7 +22,7 @@ body.explorer-body-root,
 	--explorer-secondary: oklch(0.967 0.001 286.375);
 	--explorer-secondary-foreground: oklch(0.21 0.006 285.885);
 	--explorer-muted: oklch(0.97 0 0);
-	--explorer-muted-foreground: oklch(0.556 0 0);
+	--explorer-muted-foreground: oklch(0.48 0 0);
 	--explorer-accent: oklch(0.97 0 0);
 	--explorer-accent-foreground: oklch(0.205 0 0);
 	--explorer-destructive: oklch(0.577 0.245 27.325);

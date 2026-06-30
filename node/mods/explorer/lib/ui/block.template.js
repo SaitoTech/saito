@@ -11,7 +11,6 @@ module.exports = ({
 	block = null,
 	expandedSignature = null,
 } = {}) => {
-	const hashDisplay = block?.hashDisplay || blockHash;
 	const title = loading && !block
 		? 'Block'
 		: error
@@ -28,7 +27,7 @@ module.exports = ({
           <div class="explorer-info-table-wrap">
             <table class="explorer-info-table">
               <tbody>
-                ${Array.from({ length: 8 })
+                ${Array.from({ length: 7 })
 									.map(
 										() => `
                   <tr class="explorer-info-row">
@@ -72,7 +71,11 @@ module.exports = ({
 
 		body = `
       <div class="explorer-block-summary">
-        ${BlockSummaryTemplate(block.summaryRows || [])}
+        ${BlockSummaryTemplate({
+					primary: block.summaryPrimary || [],
+					detail: block.summaryDetail || [],
+					badges: block.summaryBadges || null,
+				})}
       </div>
       <section class="explorer-block-transactions" aria-label="Block transactions">
         <div class="explorer-panel-header">
@@ -98,7 +101,6 @@ module.exports = ({
           </button>
           <div class="explorer-block-header-text">
             <h1 class="explorer-page-title explorer-block-page-title">${title}</h1>
-            <p class="explorer-block-hash explorer-mono" title="${hashDisplay}">${hashDisplay}</p>
           </div>
         </div>
         <section class="explorer-block explorer-panel">

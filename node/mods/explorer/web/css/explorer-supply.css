@@ -65,6 +65,15 @@
 	white-space: nowrap;
 }
 
+.explorer-supply-table thead th.explorer-supply-block-header {
+	text-align: right;
+}
+
+.explorer-supply-table thead th.explorer-supply-block-header .explorer-supply-block-link {
+	display: block;
+	text-align: right;
+}
+
 .explorer-supply-table .explorer-supply-row-label {
 	font-family: var(--explorer-font-mono);
 	font-size: var(--explorer-text-xs);

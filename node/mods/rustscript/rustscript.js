@@ -138,6 +138,142 @@ class Rustscript extends ModTemplate {
 
     await this.header.render();
     await this.main.render();
+    await this.consumeExplorerImport();
+  }
+
+  async consumeExplorerImport() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    let raw = null;
+    try {
+      raw = sessionStorage.getItem('rustscript_explorer_import');
+      if (!raw) {
+        return;
+      }
+      sessionStorage.removeItem('rustscript_explorer_import');
+    } catch (err) {
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(raw);
+      if (!payload?.tx) {
+        return;
+      }
+
+      const tx = new Transaction();
+      tx.deserialize_from_web(this.app, JSON.stringify(payload.tx));
+
+      if (payload.target?.kind === 'input' && payload.target.fromIndex != null) {
+        await this.loadP2shInputForWitness(tx, payload.target.fromIndex);
+      } else {
+        await this.loadTransactionForWitness(tx);
+      }
+
+      if (this.main?.welcomeOverlay) {
+        this.main.welcomeOverlay.dismiss('explorer');
+      }
+    } catch (err) {
+      console.warn('Rustscript: explorer import failed', err);
+    }
+  }
+
+  _isP2shMarkerSlip(slip) {
+    if (!slip) {
+      return false;
+    }
+    const type = Number(slip.type ?? slip.slip_type);
+    if (type === SLIP_TYPE_P2SH) {
+      return true;
+    }
+    const pk = String(slip.publicKey || slip.public_key || '');
+    return pk.length >= 66 && pk.startsWith('00');
+  }
+
+  _findFundSlipBeforeP2shMarker(tx, markerIndex) {
+    const from = tx.from || [];
+    for (let i = markerIndex - 1; i >= 0; i--) {
+      const slip = from[i];
+      const type = Number(slip?.type ?? slip?.slip_type);
+      if (type === SlipType.Bound || type === 9) {
+        continue;
+      }
+      return slip;
+    }
+    return null;
+  }
+
+  /**
+   * Load a spend transaction's P2SH input witness for inspection / unlock testing.
+   */
+  async loadP2shInputForWitness(tx, fromIndex) {
+    if (!tx) {
+      throw new Error('Transaction is required');
+    }
+
+    const from = tx.from || [];
+    const marker = from[fromIndex];
+    if (!marker || !this._isP2shMarkerSlip(marker)) {
+      throw new Error('Selected slip is not a P2SH input marker');
+    }
+
+    let p2shArrayIndex = 0;
+    for (let i = 0; i < fromIndex; i++) {
+      if (this._isP2shMarkerSlip(from[i])) {
+        p2shArrayIndex += 1;
+      }
+    }
+
+    const fundSlip = this._findFundSlipBeforeP2shMarker(tx, fromIndex);
+    if (!fundSlip) {
+      throw new Error('Could not locate fund slip for P2SH input');
+    }
+
+    const txmsg = typeof tx.returnMessage === 'function' ? tx.returnMessage() : tx.msg || {};
+    const accessScripts = Array.isArray(txmsg.access_scripts) ? txmsg.access_scripts : [];
+    const accessScriptRaw = accessScripts[p2shArrayIndex];
+    if (!accessScriptRaw) {
+      throw new Error('access_scripts entry not found for P2SH input');
+    }
+
+    const fullScript =
+      typeof accessScriptRaw === 'string' ? JSON.parse(accessScriptRaw) : accessScriptRaw;
+    const locking = lockingView(fullScript);
+    const hash = this.app.core.scripting.hash(locking);
+    const p2shPublicKey = marker.publicKey || marker.public_key || '';
+    const p2shAddress =
+      p2shPublicKey.length === 66 && p2shPublicKey.startsWith('00')
+        ? this.app.crypto.toBase58(p2shPublicKey)
+        : p2shPublicKey;
+
+    this.unlockContext = {
+      sourceTxSignature: tx.signature || '',
+      p2shAddress,
+      p2shHash: txmsg.scripthash || hash || '',
+      lockedSlip: slipToStoredJson(fundSlip),
+      assetType: 'saito',
+      lockedNftSlips: null,
+      importCategory: 'guided',
+      sourceTxmsg: txmsg,
+      p2shInputFromIndex: fromIndex
+    };
+
+    this.workflow = 'unlock';
+
+    if (this.main) {
+      this.main.testingUnlocked = true;
+      this.main.executionStatus = { attempted: false, success: false };
+      this.main.validationDisplay = null;
+      this.main.workspaceMode = 'locked';
+      this.setScript(fullScript);
+      this.main.syncEditorModes();
+      this.main.applyWorkspaceUI();
+      await this.main.refresh();
+    }
+
+    return this.unlockContext;
   }
 
   respondTo(type = '') {
@@ -473,9 +609,13 @@ class Rustscript extends ModTemplate {
    * Category B — no txmsg.access_scripts[]:
    *   Expert mode: user must supply locking script and witness.
    */
-  async loadTransactionForWitness(tx) {
+  async loadTransactionForWitness(tx, options = {}) {
     if (!tx) {
       throw new Error('Transaction is required');
+    }
+
+    if (options?.target?.kind === 'input' && options.target.fromIndex != null) {
+      return this.loadP2shInputForWitness(tx, options.target.fromIndex);
     }
 
     const txmsg = typeof tx.returnMessage === 'function' ? tx.returnMessage() : tx.msg || {};

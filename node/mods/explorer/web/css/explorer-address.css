@@ -23,14 +23,10 @@
 	flex: 1;
 }
 
-.explorer-address-key {
-	margin: 0;
-}
-
 .explorer-address-key-raw {
 	margin: 0;
-	font-size: var(--explorer-text-xs);
-	color: var(--explorer-muted-foreground);
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-foreground);
 	word-break: break-all;
 	line-height: var(--explorer-leading-snug);
 }

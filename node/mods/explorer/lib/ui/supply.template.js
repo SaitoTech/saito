@@ -18,9 +18,9 @@ function renderBlockHeaderCells(columns = []) {
 			const blockId = column?.blockId != null ? String(column.blockId) : '—';
 			const hash = column?.blockHash || '';
 			if (hash) {
-				return `<th class="explorer-supply-block-header" data-block-hash="${hash}"><a href="/explorer/block/${encodeURIComponent(hash)}" class="explorer-link explorer-supply-block-link">${blockId}</a></th>`;
+				return `<th class="explorer-supply-block-header explorer-supply-numeric" data-block-hash="${hash}"><a href="/explorer/block/${encodeURIComponent(hash)}" class="explorer-link explorer-supply-block-link">${blockId}</a></th>`;
 			}
-			return `<th>${blockId}</th>`;
+			return `<th class="explorer-supply-block-header explorer-supply-numeric">${blockId}</th>`;
 		})
 		.join('');
 }

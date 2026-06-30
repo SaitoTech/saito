@@ -9,14 +9,23 @@ const ACCOUNTING_DELTA_FIELDS = [
 	{ key: 'total_fees', label: 'Δ Outstanding Fees' },
 ];
 
-/** Reconciliation row — sum of ACCOUNTING_DELTA_FIELDS at render time. */
+/** Sum of per-block routing, mining, and ATR payout changes (block-to-block). */
+const DELTA_PAYOUTS_FIELD = { key: 'payouts', label: 'Δ Payouts' };
+
+const PAYOUT_DELTA_SOURCES = [
+	'total_payout_routing',
+	'total_payout_mining',
+	'total_payout_atr',
+];
+
+/** Reconciliation row — sum of bucket deltas and payout delta at render time. */
 const DELTA_TOTAL_FIELD = { key: 'total', label: 'Δ TOTAL' };
 
 /**
  * Ordered rows for the dedicated delta section.
- * Extend ACCOUNTING_DELTA_FIELDS to add more bucket deltas; total follows automatically.
+ * Extend ACCOUNTING_DELTA_FIELDS to add more bucket deltas; payouts and total follow.
  */
-const DELTA_SECTION_ROWS = [...ACCOUNTING_DELTA_FIELDS, DELTA_TOTAL_FIELD];
+const DELTA_SECTION_ROWS = [...ACCOUNTING_DELTA_FIELDS, DELTA_PAYOUTS_FIELD, DELTA_TOTAL_FIELD];
 
 const EMPTY_BLOCK_HASH =
 	'0000000000000000000000000000000000000000000000000000000000000000';
@@ -70,14 +79,35 @@ function computeFieldDelta(currentRow, previousRow, fieldKey) {
 }
 
 /**
- * Sum bucket deltas. Returns null when any bucket delta is unavailable.
+ * Compute the combined delta for routing, mining, and ATR payouts between two blocks.
+ */
+function computePayoutsDelta(currentRow, previousRow) {
+	if (!currentRow || !previousRow) {
+		return null;
+	}
+
+	let total = 0n;
+	for (let i = 0; i < PAYOUT_DELTA_SOURCES.length; i++) {
+		const key = PAYOUT_DELTA_SOURCES[i];
+		total += toBigInt(currentRow[key]) - toBigInt(previousRow[key]);
+	}
+
+	return total;
+}
+
+/**
+ * Sum bucket deltas and payout delta. Returns null when any component is unavailable.
  */
 function computeTotalDelta(bucketDeltas = {}) {
 	let total = 0n;
+	const keys = [
+		...ACCOUNTING_DELTA_FIELDS.map((field) => field.key),
+		DELTA_PAYOUTS_FIELD.key,
+	];
 
-	for (let i = 0; i < ACCOUNTING_DELTA_FIELDS.length; i++) {
-		const field = ACCOUNTING_DELTA_FIELDS[i];
-		const delta = bucketDeltas[field.key];
+	for (let i = 0; i < keys.length; i++) {
+		const key = keys[i];
+		const delta = bucketDeltas[key];
 
 		if (delta === null || delta === undefined) {
 			return null;
@@ -111,6 +141,7 @@ async function computeAccountingDeltas(statsRows = [], options = {}) {
 			deltas[field.key] = computeFieldDelta(row, previous, field.key);
 		}
 
+		deltas[DELTA_PAYOUTS_FIELD.key] = computePayoutsDelta(row, previous);
 		deltas[DELTA_TOTAL_FIELD.key] = computeTotalDelta(deltas);
 
 		results.push({
@@ -138,11 +169,14 @@ function formatDeltaTone(nolanDelta) {
 
 module.exports = {
 	ACCOUNTING_DELTA_FIELDS,
+	DELTA_PAYOUTS_FIELD,
 	DELTA_TOTAL_FIELD,
 	DELTA_SECTION_ROWS,
+	PAYOUT_DELTA_SOURCES,
 	toBigInt,
 	resolvePreviousBlockRow,
 	computeFieldDelta,
+	computePayoutsDelta,
 	computeTotalDelta,
 	computeAccountingDeltas,
 	formatDeltaTone,

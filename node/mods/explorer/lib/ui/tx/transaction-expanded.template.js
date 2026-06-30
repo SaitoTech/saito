@@ -1,64 +1,72 @@
 const SlipTableTemplate = require('./slip-table.template');
 
-module.exports = (tx) => {
-	const messageSection = tx.hasTxMsg
-		? `
-      <section class="explorer-tx-section">
-        <h3 class="explorer-tx-section-title">Message</h3>
-        <div class="explorer-json-view">${tx.txMsgHtml}</div>
-      </section>
-    `
-		: `
-      <section class="explorer-tx-section">
-        <h3 class="explorer-tx-section-title">Message</h3>
-        <p class="explorer-tx-section-empty">No TXMSG payload for this transaction.</p>
+function renderActions(tx) {
+	const unlockBtn = tx.hasP2shUnlock
+		? `<button type="button" class="explorer-tx-action-btn" data-action="tx-unlock-script">Unlock Script</button>`
+		: '';
+
+	return `
+      <section class="explorer-tx-section explorer-tx-actions-section">
+        <h3 class="explorer-tx-section-title">Actions</h3>
+        <ul class="explorer-tx-actions-list">
+          <li><button type="button" class="explorer-tx-action-btn" data-action="tx-export">Export Transaction</button></li>
+          ${unlockBtn ? `<li>${unlockBtn}</li>` : ''}
+        </ul>
       </section>
     `;
+}
+
+module.exports = (tx) => {
+	const fromTable = SlipTableTemplate(tx.fromSlips || [], 'From');
+	const toTable = SlipTableTemplate(tx.toSlips || [], 'To');
+
+	const inputsSection = fromTable.hasSlips
+		? `
+      <section class="explorer-tx-section">
+        <h3 class="explorer-tx-section-title">Inputs</h3>
+        ${fromTable.html}
+      </section>
+    `
+		: fromTable.html;
+
+	const outputsSection = toTable.hasSlips
+		? `
+      <section class="explorer-tx-section">
+        <h3 class="explorer-tx-section-title">Outputs</h3>
+        ${toTable.html}
+      </section>
+    `
+		: toTable.html;
+
+	const messageSection = tx.hasTxMsg
+		? `
+      <section class="explorer-tx-section explorer-txmsg-section">
+        <button type="button" class="explorer-txmsg-toggle" aria-expanded="false">
+          <span class="explorer-txmsg-caret" aria-hidden="true">▶</span>
+          <span class="explorer-txmsg-toggle-label">Click to view transaction payload data</span>
+        </button>
+        <div class="explorer-txmsg-payload" hidden>
+          <div class="explorer-json-view">${tx.txMsgHtml}</div>
+        </div>
+      </section>
+    `
+		: `<p class="explorer-tx-empty-line">There is no TXMSG payload in this transaction.</p>`;
 
 	return `
     <div class="explorer-tx-row-expanded-inner">
-      <section class="explorer-tx-section">
-        <h3 class="explorer-tx-section-title">Metadata</h3>
-        <div class="explorer-info-table-wrap explorer-info-table-compact">
-          <table class="explorer-info-table">
-            <tbody>
-              <tr class="explorer-info-row">
-                <th class="explorer-info-label" scope="row">Transaction type</th>
-                <td class="explorer-info-value"><span class="explorer-tx-type-badge explorer-tx-type-badge-subtle">${tx.type}</span></td>
-              </tr>
-              <tr class="explorer-info-row">
-                <th class="explorer-info-label" scope="row">Timestamp</th>
-                <td class="explorer-info-value">${tx.timeFull}</td>
-              </tr>
-              <tr class="explorer-info-row">
-                <th class="explorer-info-label" scope="row">Fee</th>
-                <td class="explorer-info-value explorer-info-numeric">${tx.fee}</td>
-              </tr>
-              <tr class="explorer-info-row">
-                <th class="explorer-info-label" scope="row">Index in block</th>
-                <td class="explorer-info-value explorer-info-numeric">#${tx.txId}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <dl class="explorer-tx-meta">
+        <dt class="explorer-tx-meta-label">Signature</dt>
+        <dd class="explorer-tx-meta-value explorer-tx-meta-value-mono">${tx.signatureFull}</dd>
+        <dt class="explorer-tx-meta-label">Timestamp</dt>
+        <dd class="explorer-tx-meta-value">${tx.timeDetail}</dd>
+        <dt class="explorer-tx-meta-label">Fee</dt>
+        <dd class="explorer-tx-meta-value">${tx.fee}</dd>
+      </dl>
 
-      <section class="explorer-tx-section">
-        <h3 class="explorer-tx-section-title">Inputs</h3>
-        ${SlipTableTemplate(tx.fromSlips || [], 'From')}
-      </section>
-
-      <section class="explorer-tx-section">
-        <h3 class="explorer-tx-section-title">Outputs</h3>
-        ${SlipTableTemplate(tx.toSlips || [], 'To')}
-      </section>
-
+      ${inputsSection}
+      ${outputsSection}
       ${messageSection}
-
-      <section class="explorer-tx-section">
-        <h3 class="explorer-tx-section-title">Signature</h3>
-        <p class="explorer-tx-signature explorer-mono">${tx.signatureFull}</p>
-      </section>
+      ${renderActions(tx)}
     </div>
   `;
 };
