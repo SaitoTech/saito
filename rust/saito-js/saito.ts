@@ -557,7 +557,6 @@ export default class Saito {
     // add functions to core.blockchain
     //
     if (coreObject.blockchain) {
-
       const blockchain = coreObject.blockchain;
       const factory = this.factory;
 
@@ -567,27 +566,15 @@ export default class Saito {
       ) => {
         let wasmBlock;
         if (typeof idOrHash === "string") {
-          wasmBlock = await blockchain.get_block(
-            idOrHash,
-            includeTransactions
-          );
+          wasmBlock = await blockchain.get_block(idOrHash, includeTransactions);
         } else {
-          wasmBlock = await blockchain.get_block_by_id(
-            BigInt(idOrHash),
-            includeTransactions
-          );
+          wasmBlock = await blockchain.get_block_by_id(BigInt(idOrHash), includeTransactions);
         }
         return factory.createBlock(wasmBlock);
       };
 
-      blockchain.getBlocks = async (
-        count: number,
-        includeOffchain: boolean = false
-      ) => {
-        const wasmBlocks = await blockchain.get_blocks(
-          count,
-          includeOffchain
-        );
+      blockchain.getBlocks = async (count: number, includeOffchain: boolean = false) => {
+        const wasmBlocks = await blockchain.get_blocks(count, includeOffchain);
         return wasmBlocks.map((block: any) => factory.createBlock(block));
       };
     }
