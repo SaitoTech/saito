@@ -874,7 +874,7 @@ pub async fn evaluate_script(json: JsString) -> u8 {
 
     let mut script = Script::new();
     script.parse(&json_str);
-    script.validate(None, None, Some(&blockchain))
+    script.validate(None, None, Some(&blockchain), None)
 }
 
 #[wasm_bindgen]

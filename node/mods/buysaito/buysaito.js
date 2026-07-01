@@ -945,15 +945,29 @@ class BuySaito extends ModTemplate {
   }
 
   async createSaitoIssuanceTransaction(payment_data) {
-    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-      payment_data.recipient_pubkey,
-      this.app.wallet.convertSaitoToNolan(payment_data.issue_amount)
-    );
+    let payment_recipient = payment_data.recipient_pubkey;
+    let txmsg = null;
 
     if (payment_data.tx) {
       let userTX = new Transaction();
       userTX.deserialize_from_web(this.app, payment_data.tx);
-      newtx.msg = userTX.returnMessage();
+      txmsg = userTX.returnMessage();
+      if (txmsg?.p2sh_address) {
+        const address = txmsg.p2sh_address;
+        payment_recipient =
+          address.length === 66 && address.startsWith('00')
+            ? this.app.crypto.toBase58(address)
+            : address;
+      }
+    }
+
+    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+      payment_recipient,
+      this.app.wallet.convertSaitoToNolan(payment_data.issue_amount)
+    );
+
+    if (txmsg) {
+      newtx.msg = txmsg;
     } else {
       newtx.msg = {
         module: 'BuySaito',

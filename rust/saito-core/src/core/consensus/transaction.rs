@@ -1107,7 +1107,7 @@ impl Transaction {
             //
             // script invalid if it doesn't return 1 when executed w/ witness
             //
-            if script.validate(Some(self), None, Some(blockchain)) != 1 {
+            if script.validate(Some(self), None, Some(blockchain), Some(array_idx)) != 1 {
                 error!("P2SH spend: access_script evaluation failed");
                 return false;
             }

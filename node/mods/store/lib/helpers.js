@@ -2,9 +2,71 @@ const Slip = require('../../../lib/saito/slip').default;
 const Transaction = require('../../../lib/saito/transaction').default;
 const { SlipType } = require('saito-js/lib/slip');
 const { TransactionType } = require('saito-js/lib/transaction');
+const { signAccessScriptWitness } = require('./scripting');
 
 /** Saito SlipType::P2SH — matches rustscript store unlock pattern. */
 const SLIP_TYPE_P2SH = 10;
+
+function isP2shPublicKey(app, publicKey = '') {
+	if (!publicKey || !app?.crypto?.fromBase58) {
+		return false;
+	}
+	try {
+		const hex = app.crypto.fromBase58(publicKey);
+		return typeof hex === 'string' && hex.length >= 2 && hex.startsWith('00');
+	} catch (err) {
+		return false;
+	}
+}
+
+function returnP2shInputIndexesWithApp(app, from = []) {
+	const indexes = [];
+	for (let i = 0; i < from.length; i++) {
+		if (isP2shPublicKey(app, from[i]?.publicKey)) {
+			indexes.push(i);
+		}
+	}
+	return indexes;
+}
+
+function returnFirstP2shUtxoSetKeyHex(tx, app) {
+	const indexes = returnP2shInputIndexesWithApp(app, tx?.from || []);
+	if (!indexes.length) {
+		return '';
+	}
+	return String(tx.from[indexes[0]]?.utxoKey || '');
+}
+
+async function attachP2shAccessScripts(app, tx, script_by_pubkey = {}) {
+	if (!app || !tx) {
+		throw new Error('transaction and app are required for P2SH witness');
+	}
+
+	const indexes = returnP2shInputIndexesWithApp(app, tx.from || []);
+	if (!indexes.length) {
+		return tx;
+	}
+
+	const witness_message = returnFirstP2shUtxoSetKeyHex(tx, app);
+	if (!witness_message) {
+		throw new Error('P2SH input is missing utxoset key');
+	}
+
+	const access_scripts = [];
+	for (let i = 0; i < indexes.length; i++) {
+		const slip = tx.from[indexes[i]];
+		const pubkey = slip?.publicKey || '';
+		const locking_script = script_by_pubkey[pubkey] || '';
+		if (!locking_script) {
+			throw new Error('missing access script for P2SH input');
+		}
+		access_scripts.push(await signAccessScriptWitness(app, locking_script, witness_message));
+	}
+
+	tx.msg = tx.msg || {};
+	tx.msg.access_scripts = access_scripts;
+	return tx;
+}
 
 function slipPublicKey(app, script_address) {
 	if (!script_address) {
@@ -158,27 +220,42 @@ function returnListingSlipId(tx = null, p2sh_address = '') {
 	return 0;
 }
 
-function returnAmountPaidToStore(tx, store_public_key) {
-	let amount_paid = 0n;
+function returnPaymentUtxoFromPurchase(tx, txmsg = {}, app = null) {
+	if (!tx?.signature || !txmsg?.p2sh_address || !app) {
+		return null;
+	}
 
-	for (const o of tx.to || []) {
-		if (o?.publicKey === store_public_key) {
-			const a = typeof o.amount === 'bigint' ? o.amount : BigInt(o.amount ?? 0);
-			amount_paid += a;
+	const expected = slipPublicKey(app, txmsg.p2sh_address);
+	if (!expected) {
+		return null;
+	}
+
+	for (let i = 0; i < (tx.to || []).length; i++) {
+		const o = tx.to[i];
+		if (o?.publicKey !== expected) {
+			continue;
 		}
+
+		const amount = typeof o.amount === 'bigint' ? o.amount : BigInt(o.amount ?? 0);
+		return {
+			payment_tx_sig: tx.signature,
+			payment_output_index: Number(o?.index ?? i),
+			payment_amount: amount,
+			p2sh_address: txmsg.p2sh_address,
+			access_script: txmsg.access_script || ''
+		};
 	}
 
-	if (tx.isFrom(store_public_key) && tx.to?.[0]) {
-		const a =
-			typeof tx.to[0].amount === 'bigint' ? tx.to[0].amount : BigInt(tx.to[0].amount ?? 0);
-		amount_paid = a;
-	}
+	return null;
+}
 
-	return amount_paid;
+function returnAmountPaidInPurchase(tx, txmsg = {}, app = null) {
+	const payment_utxo = returnPaymentUtxoFromPurchase(tx, txmsg, app);
+	return payment_utxo ? payment_utxo.payment_amount : 0n;
 }
 
 /**
- * Locate the first payment output sent to the Store for manual settlement input construction.
+ * @deprecated Use returnPaymentUtxoFromPurchase for P2SH purchase payments.
  */
 function returnPaymentUtxoToStore(tx, store_public_key) {
 	if (!tx?.signature || !store_public_key) {
@@ -200,6 +277,28 @@ function returnPaymentUtxoToStore(tx, store_public_key) {
 	}
 
 	return null;
+}
+
+/**
+ * @deprecated Use returnAmountPaidInPurchase for P2SH purchase payments.
+ */
+function returnAmountPaidToStore(tx, store_public_key) {
+	let amount_paid = 0n;
+
+	for (const o of tx.to || []) {
+		if (o?.publicKey === store_public_key) {
+			const a = typeof o.amount === 'bigint' ? o.amount : BigInt(o.amount ?? 0);
+			amount_paid += a;
+		}
+	}
+
+	if (tx.isFrom(store_public_key) && tx.to?.[0]) {
+		const a =
+			typeof tx.to[0].amount === 'bigint' ? tx.to[0].amount : BigInt(tx.to[0].amount ?? 0);
+		amount_paid = a;
+	}
+
+	return amount_paid;
 }
 
 function cloneOutputTriple(sourceTriple, { nft_amount, buyer_public_key, p2sh_address }) {
@@ -285,7 +384,7 @@ function addListingInputsToTransaction(tx, listing_rows = [], app = null) {
 	return inputs;
 }
 
-function buildFulfillmentTransaction({
+async function buildFulfillmentTransaction({
 	app = null,
 	listing_tx = null,
 	listing_txmsg = {},
@@ -403,10 +502,26 @@ function buildFulfillmentTransaction({
 		seller: primary.seller || ''
 	};
 
+	const payment_txmsg =
+		(typeof payment_tx?.returnMessage === 'function' ? payment_tx.returnMessage() : payment_tx?.msg) ||
+		{};
+	const payment_access_script = payment_txmsg.access_script || '';
+	const payment_pubkey = slipPublicKey(app, payment_txmsg.p2sh_address || '');
+	const script_by_pubkey = {};
+
+	if (payment_pubkey && payment_access_script) {
+		script_by_pubkey[payment_pubkey] = payment_access_script;
+	}
+	if (slip_public_key && access_script) {
+		script_by_pubkey[slip_public_key] = access_script;
+	}
+
+	await attachP2shAccessScripts(app, tx, script_by_pubkey);
 	return tx;
 }
 
-function buildOrderRefundTransaction({
+async function buildOrderRefundTransaction({
+	app = null,
 	order,
 	payment_tx = null,
 	refund_public_key = '',
@@ -455,12 +570,29 @@ function buildOrderRefundTransaction({
 		payment_amount: String(order.payment_amount ?? 0)
 	};
 
+	const payment_txmsg =
+		(typeof payment_tx?.returnMessage === 'function' ? payment_tx.returnMessage() : payment_tx?.msg) ||
+		{};
+	const payment_access_script = payment_txmsg.access_script || '';
+	const payment_pubkey = slipPublicKey(app, payment_txmsg.p2sh_address || '');
+	if (!payment_pubkey || !payment_access_script) {
+		throw new Error('payment access script not available');
+	}
+
+	await attachP2shAccessScripts(app, tx, {
+		[payment_pubkey]: payment_access_script
+	});
+
 	return tx;
 }
 
 module.exports = {
 	SLIP_TYPE_P2SH,
 	slipPublicKey,
+	isP2shPublicKey,
+	returnP2shInputIndexesWithApp,
+	returnFirstP2shUtxoSetKeyHex,
+	attachP2shAccessScripts,
 	slipToStoredJson,
 	isNFTTuple,
 	findInventoryTriple,
@@ -472,6 +604,8 @@ module.exports = {
 	serializeAnchoredListingSlips,
 	returnChainLocation,
 	returnListingSlipId,
+	returnAmountPaidInPurchase,
+	returnPaymentUtxoFromPurchase,
 	returnAmountPaidToStore,
 	returnPaymentUtxoToStore,
 	cloneOutputTriple,

@@ -1,13 +1,19 @@
 const Order = require('./order');
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
-const { createListingScript, executeListingScript, returnP2SHTuples } = require('./scripting');
+const {
+	createListingScript,
+	createPurchaseScript,
+	executeListingScript,
+	returnP2SHTuples
+} = require('./scripting');
 const {
 	buildFulfillmentTransaction,
 	buildOrderRefundTransaction,
 	returnChainLocation,
-	returnAmountPaidToStore,
-	returnPaymentUtxoToStore,
-	serializePaymentSlip
+	returnAmountPaidInPurchase,
+	returnPaymentUtxoFromPurchase,
+	serializePaymentSlip,
+	slipPublicKey
 } = require('./helpers');
 
 module.exports = {
@@ -115,20 +121,31 @@ module.exports = {
 			throw new Error('Summary id is required for purchase');
 		}
 
+		const buyer_publickey = await this.app.wallet.getPublicKey();
+		const script_info = createPurchaseScript(this.app, {
+			buyer_publickey,
+			store_publickey: this.store_public_key
+		});
+		const payment_recipient =
+			slipPublicKey(this.app, script_info.p2sh_address) || script_info.p2sh_address;
+
 		const newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-			this.store_public_key,
+			payment_recipient,
 			nolan_to_send
 		);
 
 		newtx.msg = {
 			module: 'Store',
 			request: 'purchase-asset',
-			buyer: await this.app.wallet.getPublicKey(),
-			refund: await this.app.wallet.getPublicKey(),
+			buyer: buyer_publickey,
+			refund: buyer_publickey,
 			listing_id: summary.id,
 			quantity: Number(sale.quantity) || 1,
 			price: String(sale.price),
-			fee: String(sale.fee)
+			fee: String(sale.fee),
+			access_script: script_info.access_script,
+			access_hash: script_info.access_hash,
+			p2sh_address: script_info.p2sh_address
 		};
 
 		await newtx.sign();
@@ -151,8 +168,8 @@ module.exports = {
 		});
 	},
 
-	createOrderRefundTransaction(params) {
-		return buildOrderRefundTransaction(params);
+	async createOrderRefundTransaction(params) {
+		return buildOrderRefundTransaction({ ...params, app: this.app });
 	},
 
 	async propagateOrderRefund(order, { payment_tx = null, refund_public_key = '', reason = 'unable-to-fulfill' } = {}) {
@@ -160,7 +177,7 @@ module.exports = {
 			return;
 		}
 
-		const refund_tx = this.createOrderRefundTransaction({
+		const refund_tx = await this.createOrderRefundTransaction({
 			order,
 			payment_tx,
 			refund_public_key,
@@ -206,8 +223,8 @@ module.exports = {
 			return;
 		}
 
-		const amount_paid = returnAmountPaidToStore(tx, this.publicKey);
-		const payment_utxo = returnPaymentUtxoToStore(tx, this.publicKey);
+		const amount_paid = returnAmountPaidInPurchase(tx, txmsg, this.app);
+		const payment_utxo = returnPaymentUtxoFromPurchase(tx, txmsg, this.app);
 		const refund_order = payment_utxo
 			? this.orderFromPurchaseTx(tx, txmsg, payment_utxo, chain)
 			: null;
@@ -296,7 +313,7 @@ module.exports = {
 		}
 	},
 
-	createFulfillmentTransaction(params) {
+	async createFulfillmentTransaction(params) {
 		return buildFulfillmentTransaction({ ...params, app: this.app });
 	}
 };

@@ -403,7 +403,7 @@ class Warehouse {
 		let outbound_tx = null;
 
 		try {
-			outbound_tx = this.mod.createFulfillmentTransaction({
+			outbound_tx = await this.mod.createFulfillmentTransaction({
 				listing,
 				listings,
 				listing_tx,

@@ -62,13 +62,17 @@ function returnP2SHTuples(tx) {
 	return { inputs, outputs };
 }
 
-function createListingScript(app, { seller_publickey, store_publickey } = {}) {
-	const script = {
+function buildBuyerOrStoreScript(buyer_publickey, store_publickey) {
+	return {
 		op: 'CHECKMULTISIG',
 		m: 1,
-		publickeys: [seller_publickey, store_publickey],
+		publickeys: [buyer_publickey, store_publickey],
 		msg: 'tx.from.p2sh.utxoset_key'
 	};
+}
+
+function createListingScript(app, { seller_publickey, store_publickey } = {}) {
+	const script = buildBuyerOrStoreScript(seller_publickey, store_publickey);
 
 	const hash = app.core.scripting.hash(script);
 	const address = app.core.scripting.address(script);
@@ -78,6 +82,13 @@ function createListingScript(app, { seller_publickey, store_publickey } = {}) {
 		access_hash: hash,
 		p2sh_address: address
 	};
+}
+
+function createPurchaseScript(app, { buyer_publickey, store_publickey } = {}) {
+	return createListingScript(app, {
+		seller_publickey: buyer_publickey,
+		store_publickey
+	});
 }
 
 function parseAccessScript(access_script) {
@@ -138,9 +149,31 @@ async function executeListingScript(app, access_script, publickey) {
 	return result === 1;
 }
 
+async function signAccessScriptWitness(app, access_script, message) {
+	const script = parseAccessScript(access_script);
+	if (!script || !message) {
+		throw new Error('access script and message are required for P2SH witness');
+	}
+
+	let signature = '';
+	if (typeof app.wallet?.signMessage === 'function') {
+		signature = await app.wallet.signMessage(message);
+	} else {
+		const privatekey = await app.wallet.getPrivateKey();
+		signature = app.crypto.signMessage(message, privatekey);
+	}
+
+	const executable = JSON.parse(JSON.stringify(script));
+	executable.witness = { signatures: [signature] };
+	return JSON.stringify(executable);
+}
+
 module.exports = {
+	buildBuyerOrStoreScript,
 	createListingScript,
+	createPurchaseScript,
 	parseAccessScript,
 	returnP2SHTuples,
-	executeListingScript
+	executeListingScript,
+	signAccessScriptWitness
 };
