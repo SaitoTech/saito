@@ -26,8 +26,6 @@ CREATE TABLE IF NOT EXISTS listings (
   longest_chain_sold INTEGER NOT NULL DEFAULT 0,
 
   on_chain INTEGER NOT NULL DEFAULT 1,
-  in_flight INTEGER NOT NULL DEFAULT 0,
-  reserved_order_id INTEGER NOT NULL DEFAULT 0,
 
   utxo_slip1 TEXT DEFAULT '',
   utxo_slip2 TEXT DEFAULT '',
@@ -44,4 +42,4 @@ CREATE INDEX IF NOT EXISTS listings_sold_chain_idx
   ON listings (block_id_sold, block_hash_sold);
 
 CREATE INDEX IF NOT EXISTS listings_bucket_idx
-  ON listings (nft_id, price, longest_chain_listed, longest_chain_sold, in_flight);
+  ON listings (nft_id, price, longest_chain_listed, longest_chain_sold);

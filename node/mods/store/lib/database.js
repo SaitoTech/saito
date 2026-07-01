@@ -1,5 +1,8 @@
 const Transaction = require('../../../lib/saito/transaction').default;
 
+/** Listing is reserved for an in-flight settlement until confirmed or reset. */
+const LISTING_SETTLEMENT_PENDING_BLOCK_ID = -1;
+
 class Database {
 	constructor(app, mod) {
 		this.app = app;
@@ -108,7 +111,7 @@ class Database {
 			  access_hash, access_script, p2sh_address, slip_id,
 			  block_id_listed, block_hash_listed, transaction_id_listed, longest_chain_listed,
 			  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
-			  on_chain, in_flight, reserved_order_id,
+			  on_chain,
 			  utxo_slip1, utxo_slip2, utxo_slip3,
 			  created_at, updated_at
 			) VALUES (
@@ -116,7 +119,7 @@ class Database {
 			  $access_hash, $access_script, $p2sh_address, $slip_id,
 			  $block_id_listed, $block_hash_listed, $transaction_id_listed, $longest_chain_listed,
 			  $block_id_sold, $block_hash_sold, $transaction_id_sold, $longest_chain_sold,
-			  $on_chain, $in_flight, $reserved_order_id,
+			  $on_chain,
 			  $utxo_slip1, $utxo_slip2, $utxo_slip3,
 			  $created_at, $updated_at
 			)`,
@@ -139,8 +142,6 @@ class Database {
 				$transaction_id_sold: row.transaction_id_sold ?? 0,
 				$longest_chain_sold: row.longest_chain_sold ?? 0,
 				$on_chain: row.on_chain ?? 1,
-				$in_flight: row.in_flight ?? 0,
-				$reserved_order_id: row.reserved_order_id ?? 0,
 				$utxo_slip1: row.utxo_slip1 || '',
 				$utxo_slip2: row.utxo_slip2 || '',
 				$utxo_slip3: row.utxo_slip3 || '',
@@ -167,15 +168,45 @@ class Database {
 				 WHERE nft_id = $nft_id AND price = $price
 				   AND on_chain = 1
 				   AND longest_chain_listed = 1
-				   AND (block_id_sold = 0 OR longest_chain_sold = 0)
-				   AND in_flight = 0
-				 ORDER BY created_at ASC
+				   AND block_id_sold = 0
+				   AND longest_chain_sold = 0
+				 ORDER BY created_at ASC, id ASC
 				 LIMIT $limit`,
 				{ $nft_id: nft_id, $price: Number(price), $limit: Number(limit) || 1 },
 				this.dbname
 			);
 		} catch (err) {
 			return [];
+		}
+	}
+
+	async returnLowestSatisfyingPriceForNft(nft_id, max_price, quantity) {
+		try {
+			const res = await this.app.storage.queryDatabase(
+				`SELECT price, SUM(quantity) AS total_quantity
+				 FROM listings
+				 WHERE nft_id = $nft_id AND price <= $max_price
+				   AND on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND block_id_sold = 0
+				   AND longest_chain_sold = 0
+				 GROUP BY price
+				 HAVING SUM(quantity) >= $quantity
+				 ORDER BY price ASC
+				 LIMIT 1`,
+				{
+					$nft_id: nft_id,
+					$max_price: Number(max_price),
+					$quantity: Number(quantity) || 1
+				},
+				this.dbname
+			);
+			if (!res?.[0]) {
+				return null;
+			}
+			return Number(res[0].price);
+		} catch (err) {
+			return null;
 		}
 	}
 
@@ -190,7 +221,8 @@ class Database {
 				`SELECT * FROM listings
 				 WHERE on_chain = 1
 				   AND longest_chain_listed = 1
-				   AND (block_id_sold = 0 OR longest_chain_sold = 0)
+				   AND block_id_sold = 0
+				   AND longest_chain_sold = 0
 				 ORDER BY created_at ASC`,
 				{},
 				this.dbname
@@ -207,8 +239,6 @@ class Database {
 			     block_hash_sold = $block_hash_sold,
 			     transaction_id_sold = $transaction_id_sold,
 			     longest_chain_sold = 1,
-			     in_flight = 0,
-			     reserved_order_id = 0,
 			     updated_at = $updated_at
 			 WHERE signature = $signature`,
 			{
@@ -222,44 +252,63 @@ class Database {
 		);
 	}
 
-	async reserveListing(signature, order_id, now) {
+	async markListingSettlementPending(signature, now = Date.now()) {
 		await this.app.storage.runDatabase(
 			`UPDATE listings
-			 SET in_flight = 1, reserved_order_id = $reserved_order_id, updated_at = $updated_at
+			 SET block_id_sold = $block_id_sold,
+			     block_hash_sold = '',
+			     transaction_id_sold = 0,
+			     longest_chain_sold = 0,
+			     updated_at = $updated_at
 			 WHERE signature = $signature
 			   AND longest_chain_listed = 1
-			   AND (block_id_sold = 0 OR longest_chain_sold = 0)
-			   AND in_flight = 0`,
+			   AND block_id_sold = 0
+			   AND longest_chain_sold = 0`,
 			{
 				$signature: signature,
-				$reserved_order_id: Number(order_id) || 0,
+				$block_id_sold: LISTING_SETTLEMENT_PENDING_BLOCK_ID,
 				$updated_at: now
 			},
 			this.dbname
 		);
 	}
 
-	async releaseListing(signature, now) {
+	async clearListingSettlementPending(signature, now = Date.now()) {
 		await this.app.storage.runDatabase(
 			`UPDATE listings
-			 SET in_flight = 0, reserved_order_id = 0, updated_at = $updated_at
-			 WHERE signature = $signature`,
-			{ $signature: signature, $updated_at: now },
-			this.dbname
-		);
-	}
-
-	async releaseListingsForOrder(order_id, now = Date.now()) {
-		await this.app.storage.runDatabase(
-			`UPDATE listings
-			 SET in_flight = 0, reserved_order_id = 0, updated_at = $updated_at
-			 WHERE reserved_order_id = $reserved_order_id`,
+			 SET block_id_sold = 0,
+			     block_hash_sold = '',
+			     transaction_id_sold = 0,
+			     longest_chain_sold = 0,
+			     updated_at = $updated_at
+			 WHERE signature = $signature
+			   AND block_id_sold = $block_id_sold`,
 			{
-				$reserved_order_id: Number(order_id) || 0,
+				$signature: signature,
+				$block_id_sold: LISTING_SETTLEMENT_PENDING_BLOCK_ID,
 				$updated_at: now
 			},
 			this.dbname
 		);
+	}
+
+	async sumListingQuantityForBucket(nft_id, price) {
+		try {
+			const res = await this.app.storage.queryDatabase(
+				`SELECT COALESCE(SUM(quantity), 0) AS total_quantity
+				 FROM listings
+				 WHERE nft_id = $nft_id AND price = $price
+				   AND on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND block_id_sold = 0
+				   AND longest_chain_sold = 0`,
+				{ $nft_id: nft_id, $price: Number(price) },
+				this.dbname
+			);
+			return Number(res?.[0]?.total_quantity ?? 0);
+		} catch (err) {
+			return 0;
+		}
 	}
 
 	async updateListingsListedChainState(block_id, block_hash, longest_chain) {
@@ -295,8 +344,8 @@ class Database {
 				 FROM listings
 				 WHERE on_chain = 1
 				   AND longest_chain_listed = 1
-				   AND (block_id_sold = 0 OR longest_chain_sold = 0)
-				   AND in_flight = 0
+				   AND block_id_sold = 0
+				   AND longest_chain_sold = 0
 				 GROUP BY nft_id, price`,
 				{},
 				this.dbname
@@ -313,10 +362,10 @@ class Database {
 		await this.app.storage.runDatabase(
 			`INSERT INTO summary (
 			  nft_id, price, title, description, image,
-			  quantity_available, quantity_pending, quantity_sold, updated_at
+			  quantity_available, updated_at
 			) VALUES (
 			  $nft_id, $price, $title, $description, $image,
-			  $quantity_available, $quantity_pending, $quantity_sold, $updated_at
+			  $quantity_available, $updated_at
 			)`,
 			{
 				$nft_id: summary.nft_id,
@@ -325,8 +374,6 @@ class Database {
 				$description: summary.description || '',
 				$image: summary.image ?? null,
 				$quantity_available: Number(summary.quantity_available ?? 0),
-				$quantity_pending: Number(summary.quantity_pending ?? 0),
-				$quantity_sold: Number(summary.quantity_sold ?? 0),
 				$updated_at: summary.updated_at ?? Date.now()
 			},
 			this.dbname
@@ -371,22 +418,15 @@ class Database {
 		);
 	}
 
-	async adjustSummaryQuantities(summary_id, available_delta, pending_delta, sold_delta, now) {
+	async updateSummaryAvailable(summary_id, quantity_available, now = Date.now()) {
 		await this.app.storage.runDatabase(
 			`UPDATE summary
-			 SET quantity_available = quantity_available + $available_delta,
-			     quantity_pending = quantity_pending + $pending_delta,
-			     quantity_sold = quantity_sold + $sold_delta,
+			 SET quantity_available = $quantity_available,
 			     updated_at = $updated_at
-			 WHERE id = $id
-			   AND quantity_available + $available_delta >= 0
-			   AND quantity_pending + $pending_delta >= 0
-			   AND quantity_sold + $sold_delta >= 0`,
+			 WHERE id = $id`,
 			{
 				$id: Number(summary_id),
-				$available_delta: Number(available_delta),
-				$pending_delta: Number(pending_delta),
-				$sold_delta: Number(sold_delta),
+				$quantity_available: Number(quantity_available ?? 0),
 				$updated_at: now
 			},
 			this.dbname
@@ -484,6 +524,34 @@ class Database {
 			this.dbname
 		);
 		return res?.[0] || null;
+	}
+
+	async returnListingsWithSettlementPending() {
+		try {
+			return await this.app.storage.queryDatabase(
+				`SELECT * FROM listings
+				 WHERE block_id_sold = $block_id_sold
+				   AND longest_chain_sold = 0`,
+				{ $block_id_sold: LISTING_SETTLEMENT_PENDING_BLOCK_ID },
+				this.dbname
+			);
+		} catch (err) {
+			return [];
+		}
+	}
+
+	async returnSettlingOrders() {
+		try {
+			return await this.app.storage.queryDatabase(
+				`SELECT * FROM orders
+				 WHERE status = 'settling'
+				   AND settlement_tx_sig != ''`,
+				{},
+				this.dbname
+			);
+		} catch (err) {
+			return [];
+		}
 	}
 
 	async returnPendingOrders() {
@@ -634,3 +702,4 @@ class Database {
 }
 
 module.exports = Database;
+module.exports.LISTING_SETTLEMENT_PENDING_BLOCK_ID = LISTING_SETTLEMENT_PENDING_BLOCK_ID;

@@ -9,8 +9,6 @@ CREATE TABLE IF NOT EXISTS summary (
   image TEXT DEFAULT NULL,
 
   quantity_available INTEGER DEFAULT 0,
-  quantity_pending INTEGER DEFAULT 0,
-  quantity_sold INTEGER DEFAULT 0,
 
   updated_at INTEGER DEFAULT 0
 );

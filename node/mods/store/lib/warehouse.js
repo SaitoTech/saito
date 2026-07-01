@@ -9,7 +9,6 @@ const {
 	anchorInventoryInputs,
 	listingInputsFromRecord,
 	serializeAnchoredListingSlips,
-	serializePaymentSlip,
 	returnChainLocation,
 	returnListingSlipId,
 	slipPublicKey
@@ -100,11 +99,8 @@ class Warehouse {
 		}
 
 		const summary = await this.ensureSummaryForListing(listing);
-		await this.updateSummary(summary.id, {
-			quantity_available: Number(summary.quantity_available) + Number(listing.quantity || 1)
-		});
+		await this.syncSummaryForBucket(summary.nft_id, summary.price);
 
-		await this.syncSummaryToCache(summary.nft_id, summary.price);
 		return listing;
 	}
 
@@ -142,26 +138,7 @@ class Warehouse {
 
 			const summary = await this.db.returnSummaryByBucket(row.nft_id, row.price);
 			if (summary?.id) {
-				const qty = Number(row.quantity) || 1;
-				const available = Math.max(0, Number(summary.quantity_available) - qty);
-				const sold = Number(summary.quantity_sold) || 0;
-
-				await this.updateSummary(summary.id, {
-					quantity_available: available,
-					quantity_sold: sold + qty
-				});
-
-				const refreshed = await this.db.returnSummary(summary.id);
-				if (
-					refreshed &&
-					Number(refreshed.quantity_available) <= 0 &&
-					Number(refreshed.quantity_pending) <= 0 &&
-					Number(refreshed.quantity_sold) <= 0
-				) {
-					await this.deleteSummary(summary.id);
-				} else {
-					await this.syncSummaryToCache(row.nft_id, row.price);
-				}
+				await this.syncSummaryForBucket(row.nft_id, row.price);
 			}
 
 			removed.push(row);
@@ -213,20 +190,18 @@ class Warehouse {
 		});
 
 		const prior_listing = fulfill.prior_inventory || '';
-		if (prior_listing) {
-			await this.db.markListingSold(prior_listing, chain, now);
-			delete this.listings[prior_listing];
+		const consumed_signatures = Array.isArray(fulfill.listing_signatures)
+			? fulfill.listing_signatures.filter(Boolean)
+			: prior_listing
+				? [prior_listing]
+				: [];
+
+		for (const signature of consumed_signatures) {
+			await this.db.markListingSold(signature, chain, now);
+			delete this.listings[signature];
 		}
 
-		const summary = await this.db.returnSummaryByBucket(order.nft_id, order.price);
-		if (summary?.id) {
-			const qty = Number(fulfill.quantity ?? order.quantity ?? 1);
-			await this.updateSummary(summary.id, {
-				quantity_pending: Math.max(0, Number(summary.quantity_pending) - qty),
-				quantity_sold: Number(summary.quantity_sold) + qty
-			});
-			await this.syncSummaryToCache(order.nft_id, order.price);
-		}
+		await this.syncSummaryForBucket(order.nft_id, order.price);
 	}
 
 	async processQueue() {
@@ -234,6 +209,7 @@ class Warehouse {
 			return;
 		}
 
+		await this.resetStaleSettlementPendingListings();
 		await this.resetOrphanedSettlements();
 		await this.resetOrphanedFulfillments();
 
@@ -253,11 +229,7 @@ class Warehouse {
 				}
 
 				if (order.isPending() && order.isReceivedOnChain() && !order.isFulfilledOnChain()) {
-					const listing_rows = await this.findSpendableListings(
-						order.nft_id,
-						order.price,
-						order.quantity
-					);
+					const listing_rows = await this.findSpendableListingsForOrder(order);
 					if (!listing_rows.length) {
 						await this.deferOrder(order, retry_limit);
 					}
@@ -265,11 +237,7 @@ class Warehouse {
 				continue;
 			}
 
-			const listing_rows = await this.findSpendableListings(
-				order.nft_id,
-				order.price,
-				order.quantity
-			);
+			const listing_rows = await this.findSpendableListingsForOrder(order);
 
 			if (!listing_rows.length) {
 				await this.deferOrder(order, retry_limit);
@@ -289,7 +257,7 @@ class Warehouse {
 
 		for (const row of rows || []) {
 			const order = new Order(row);
-			await this.db.releaseListingsForOrder(order.id, now);
+			await this.clearSettlementPendingForOrder(order);
 			await this.db.updateOrder(order.id, {
 				settlement_tx_sig: '',
 				status: ORDER_STATUS_PENDING,
@@ -298,12 +266,56 @@ class Warehouse {
 				transaction_id_fulfilled: 0,
 				longest_chain_fulfilled: 0
 			});
+			await this.syncSummaryForBucket(order.nft_id, order.price);
+		}
+	}
 
-			for (const listing_row of Object.values(this.listings)) {
-				if (Number(listing_row.reserved_order_id) === Number(order.id)) {
-					listing_row.in_flight = 0;
-					listing_row.reserved_order_id = 0;
-				}
+	async resetStaleSettlementPendingListings() {
+		const pending_rows = await this.db.returnListingsWithSettlementPending();
+		if (!pending_rows?.length) {
+			return;
+		}
+
+		const settling_orders = await this.db.returnSettlingOrders();
+		const reserved = new Set();
+
+		for (const order_row of settling_orders || []) {
+			const signatures = await this.returnSettlementListingSignatures(order_row);
+			for (const signature of signatures) {
+				reserved.add(signature);
+			}
+		}
+
+		const now = Date.now();
+		for (const row of pending_rows) {
+			if (reserved.has(row.signature)) {
+				continue;
+			}
+			await this.db.clearListingSettlementPending(row.signature, now);
+			await this.syncSummaryForBucket(row.nft_id, row.price);
+		}
+	}
+
+	async returnSettlementListingSignatures(order_row) {
+		const settlement_tx = await this.db.returnTransaction(order_row.settlement_tx_sig, this.app);
+		const txmsg = settlement_tx?.returnMessage?.() || {};
+		const fulfill = txmsg.fulfill_sale || {};
+		const signatures = Array.isArray(fulfill.listing_signatures)
+			? fulfill.listing_signatures.filter(Boolean)
+			: [];
+		if (!signatures.length && fulfill.prior_inventory) {
+			signatures.push(fulfill.prior_inventory);
+		}
+		return signatures;
+	}
+
+	async clearSettlementPendingForOrder(order) {
+		const signatures = await this.returnSettlementListingSignatures(order);
+		const now = Date.now();
+		for (const signature of signatures) {
+			await this.db.clearListingSettlementPending(signature, now);
+			if (this.listings[signature]) {
+				this.listings[signature].block_id_sold = 0;
 			}
 		}
 	}
@@ -352,9 +364,10 @@ class Warehouse {
 
 	async fulfillOrder(order, listing_rows) {
 		const quantity = Number(order.quantity) || 1;
-		const summary_row = await this.db.returnSummaryByBucket(order.nft_id, order.price);
+		const fulfill_price = Number(listing_rows[0]?.price ?? order.price ?? 0);
+		const summary_row = await this.db.returnSummaryByBucket(order.nft_id, fulfill_price);
 		const summary = summary_row ? new Summary(this.app, this.mod, summary_row) : null;
-		const reject_reason = this.canFulfillOrder(order, summary, quantity);
+		const reject_reason = await this.canFulfillOrder(order, summary, quantity, fulfill_price);
 
 		if (reject_reason) {
 			console.log('Store: fulfillOrder rejected', {
@@ -379,26 +392,16 @@ class Warehouse {
 		const now = Date.now();
 		const primary = listing_rows[0];
 
-		for (const row of listing_rows) {
-			await this.db.reserveListing(row.signature, order.id, now);
-			if (this.listings[row.signature]) {
-				this.listings[row.signature].in_flight = 1;
-				this.listings[row.signature].reserved_order_id = order.id;
-			}
-		}
-
-		await this.updateSummary(summary.id, {
-			quantity_available: Math.max(0, Number(summary.quantity_available) - quantity),
-			quantity_pending: Number(summary.quantity_pending) + quantity
-		});
-		await this.syncSummaryToCache(order.nft_id, order.price);
-
 		const listing_tx = await this.db.returnTransaction(primary.signature, this.app);
 		const listing_txmsg = listing_tx?.returnMessage?.() || {};
 		const payment_tx = await this.db.returnTransaction(order.payment_tx_sig, this.app);
-		const listings = listing_rows.map((row) => new Listing(row));
+		const listings = listing_rows.map((row) => {
+			const listing_row = new Listing(row);
+			listing_row.take_qty = Number(row.take_qty ?? row.quantity ?? 1);
+			listing_row.summary_id = summary.id;
+			return listing_row;
+		});
 		const listing = listings[0];
-		listing.summary_id = summary.id;
 
 		let outbound_tx = null;
 
@@ -416,14 +419,16 @@ class Warehouse {
 			});
 		} catch (err) {
 			console.warn('Store: fulfillOrder settlement build failed', err?.message);
-			await this.releaseReservedListings(listing_rows, now);
-			await this.updateSummary(summary.id, {
-				quantity_available: Number(summary.quantity_available) + quantity,
-				quantity_pending: Math.max(0, Number(summary.quantity_pending) - quantity)
-			});
-			await this.syncSummaryToCache(order.nft_id, order.price);
 			return false;
 		}
+
+		for (const row of listing_rows) {
+			await this.db.markListingSettlementPending(row.signature, now);
+			if (this.listings[row.signature]) {
+				this.listings[row.signature].block_id_sold = -1;
+			}
+		}
+		await this.syncSummaryForBucket(order.nft_id, fulfill_price);
 
 		if (listing_tx && summary?.id) {
 			const nft = new SaitoNFT(this.app, this.mod, listing_tx, null);
@@ -443,16 +448,6 @@ class Warehouse {
 		console.log('Store: fulfillOrder propagating settlement', outbound_tx.signature);
 		this.app.network.propagateTransaction(outbound_tx);
 		return true;
-	}
-
-	async releaseReservedListings(listing_rows, now = Date.now()) {
-		for (const row of listing_rows || []) {
-			await this.db.releaseListing(row.signature, now);
-			if (this.listings[row.signature]) {
-				this.listings[row.signature].in_flight = 0;
-				this.listings[row.signature].reserved_order_id = 0;
-			}
-		}
 	}
 
 	// --- summaries ---
@@ -483,8 +478,6 @@ class Warehouse {
 				description: prev.description || '',
 				image: prev.image ?? null,
 				quantity_available: Number(bucket.total_quantity ?? 0),
-				quantity_pending: Number(prev.quantity_pending ?? 0),
-				quantity_sold: Number(prev.quantity_sold ?? 0),
 				updated_at: now
 			});
 
@@ -591,8 +584,6 @@ class Warehouse {
 			description: '',
 			image: null,
 			quantity_available: 0,
-			quantity_pending: 0,
-			quantity_sold: 0,
 			updated_at: now
 		});
 
@@ -640,8 +631,6 @@ class Warehouse {
 			longest_chain_sold: 0,
 			slip_id: returnListingSlipId(tx, slip_key),
 			on_chain: 1,
-			in_flight: 0,
-			reserved_order_id: 0,
 			utxo_slip1: utxo_slips[0],
 			utxo_slip2: utxo_slips[1],
 			utxo_slip3: utxo_slips[2],
@@ -736,16 +725,18 @@ class Warehouse {
 		return '';
 	}
 
-	canFulfillOrder(order, summary, quantity) {
+	async canFulfillOrder(order, summary, quantity, fulfill_price = null) {
 		if (!order?.isProcessable?.()) {
 			return 'order is not open';
 		}
 
-		if (!summary || !summary.isActive()) {
+		if (!summary) {
 			return 'listing inactive or missing';
 		}
 
-		if (Number(summary.quantity_available || 0) < quantity) {
+		const bucket_price = Number(fulfill_price ?? summary.price ?? order.price ?? 0);
+		const available = await this.returnAvailableQuantity(order.nft_id, bucket_price);
+		if (available < quantity) {
 			return 'insufficient available quantity';
 		}
 
@@ -755,12 +746,73 @@ class Warehouse {
 		}
 
 		const payment_amount = BigInt(order.payment_amount ?? 0);
-		const required = BigInt(summary.price ?? 0) * BigInt(quantity);
+		const required = BigInt(order.price ?? 0) * BigInt(quantity);
 		if (payment_amount < required) {
 			return 'escrowed payment amount insufficient';
 		}
 
 		return '';
+	}
+
+	async returnAvailableQuantity(nft_id, price) {
+		return this.db.sumListingQuantityForBucket(nft_id, price);
+	}
+
+	async syncSummaryForBucket(nft_id, price) {
+		const available = await this.db.sumListingQuantityForBucket(nft_id, price);
+		let row = await this.db.returnSummaryByBucket(nft_id, price);
+
+		if (!row && available <= 0) {
+			return null;
+		}
+
+		const now = Date.now();
+
+		if (!row) {
+			await this.db.insertSummary({
+				nft_id,
+				price: Number(price ?? 0),
+				title: '',
+				description: '',
+				image: null,
+				quantity_available: available,
+				updated_at: now
+			});
+			row = await this.db.returnSummaryByBucket(nft_id, price);
+		} else {
+			await this.db.updateSummaryAvailable(row.id, available, now);
+			if (available <= 0) {
+				const refreshed = await this.db.returnSummary(row.id);
+				const has_metadata = !!(
+					refreshed?.title ||
+					refreshed?.description ||
+					refreshed?.image
+				);
+				if (!has_metadata) {
+					await this.deleteSummary(row.id);
+					return null;
+				}
+			}
+		}
+
+		return this.syncSummaryToCache(nft_id, price);
+	}
+
+	async findSpendableListingsForOrder(order) {
+		const nft_id = order.nft_id;
+		const max_price = Number(order.price ?? 0);
+		const quantity = Number(order.quantity) || 1;
+
+		const fulfill_price = await this.db.returnLowestSatisfyingPriceForNft(
+			nft_id,
+			max_price,
+			quantity
+		);
+		if (fulfill_price === null) {
+			return [];
+		}
+
+		return this.findSpendableListings(nft_id, fulfill_price, quantity);
 	}
 
 	async findSpendableListings(nft_id, price, quantity) {
@@ -778,11 +830,9 @@ class Warehouse {
 				break;
 			}
 			const row_qty = Number(row.quantity) || 1;
-			if (row_qty > remaining) {
-				continue;
-			}
-			selected.push(row);
-			remaining -= row_qty;
+			const take_qty = Math.min(row_qty, remaining);
+			selected.push({ ...row, take_qty });
+			remaining -= take_qty;
 		}
 
 		if (remaining > 0) {
@@ -804,35 +854,6 @@ class Warehouse {
 			return true;
 		}
 		return !!(await this.db.returnListingBySignature(signature));
-	}
-
-	async updateSummary(summary_id, fields = {}) {
-		const row = await this.db.returnSummary(summary_id);
-		if (!row) {
-			return null;
-		}
-
-		const now = Date.now();
-		const available =
-			fields.quantity_available !== undefined
-				? Number(fields.quantity_available)
-				: Number(row.quantity_available);
-		const pending =
-			fields.quantity_pending !== undefined
-				? Number(fields.quantity_pending)
-				: Number(row.quantity_pending);
-		const sold =
-			fields.quantity_sold !== undefined ? Number(fields.quantity_sold) : Number(row.quantity_sold);
-
-		await this.db.adjustSummaryQuantities(
-			summary_id,
-			available - Number(row.quantity_available),
-			pending - Number(row.quantity_pending),
-			sold - Number(row.quantity_sold),
-			now
-		);
-
-		return this.db.returnSummary(summary_id);
 	}
 
 	async deleteSummary(summary_id) {

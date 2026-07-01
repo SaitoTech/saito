@@ -24,8 +24,6 @@ class Listing {
 		this.longest_chain_sold = data.longest_chain_sold ?? 0;
 
 		this.on_chain = data.on_chain ?? 1;
-		this.in_flight = data.in_flight ?? 0;
-		this.reserved_order_id = data.reserved_order_id ?? 0;
 		this.utxo_slip1 = data.utxo_slip1 || '';
 		this.utxo_slip2 = data.utxo_slip2 || '';
 		this.utxo_slip3 = data.utxo_slip3 || '';
@@ -55,8 +53,12 @@ class Listing {
 		return Number(this.block_id_sold) > 0 && Number(this.longest_chain_sold) === 1;
 	}
 
+	isSettlementPending() {
+		return Number(this.block_id_sold) === -1 && Number(this.longest_chain_sold) === 0;
+	}
+
 	isAvailable() {
-		return this.isListedOnChain() && !this.isSoldOnChain() && Number(this.in_flight) === 0;
+		return this.isListedOnChain() && !this.isSoldOnChain() && !this.isSettlementPending();
 	}
 }
 

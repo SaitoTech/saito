@@ -16,11 +16,7 @@ class Summary {
 		this.image = data.image ?? null;
 		this.price = data.price ?? 0;
 		this.quantity_available = data.quantity_available ?? data.quantity ?? 0;
-		this.quantity_pending = data.quantity_pending ?? 0;
-		this.quantity_sold = data.quantity_sold ?? 0;
-		this.quantity_total =
-			data.quantity_total ??
-			Number(this.quantity_available) + Number(this.quantity_pending) + Number(this.quantity_sold);
+		this.quantity_total = data.quantity_total ?? Number(this.quantity_available);
 		this.status = data.status ?? SUMMARY_STATUS_ACTIVE;
 		this.updated_at = data.updated_at || 0;
 		this.subtitle = data.subtitle || '';
@@ -36,11 +32,12 @@ class Summary {
 	}
 
 	returnCacheImageUrl() {
-		if (!this.id || this.id.startsWith('store-demo-')) {
+		const id = String(this.id ?? '');
+		if (!id || id.startsWith('store-demo-')) {
 			return '';
 		}
 		const slug = this.mod?.returnSlug?.() || 'store';
-		return `/${encodeURI(slug)}/cache/${this.id}.img`;
+		return `/${encodeURI(slug)}/cache/${id}.img`;
 	}
 
 	returnTitle() {
@@ -132,8 +129,6 @@ class Summary {
 			price: this.price,
 			quantity_total: this.quantity_total,
 			quantity_available: this.quantity_available,
-			quantity_pending: this.quantity_pending,
-			quantity_sold: this.quantity_sold,
 			status: this.status,
 			updated_at: this.updated_at,
 			subtitle: this.subtitle,
