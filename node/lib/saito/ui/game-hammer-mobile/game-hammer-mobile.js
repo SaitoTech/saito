@@ -166,12 +166,13 @@ class GameHammerMobile {
       //Create hammer (HammerJS included in index.html script)
       var hammertime = new Hammer(this.element, {});
       hammertime.get('pinch').set({ enable: true });
-      hammertime.get('pan').set({ threshold: 0 });
+      hammertime.get('pan').set({ threshold: 10 });
 
       let hammer_self = this;
 
       //Dragging object
       hammertime.on('pan', function (e) {
+        if (e.pointers.length > 1) return; // ignore pan events fired during a pinch gesture
         hammer_self.element.style.transition = 'unset';
         if (hammer_self.lastEvent !== 'pan') {
           hammer_self.fixHammerjsDeltaIssue = {
@@ -195,14 +196,16 @@ class GameHammerMobile {
 
       //Pinch scaling object
       hammertime.on('pinch', function (e) {
-        console.log(e.scale);
         var d = hammer_self.scaleFrom(
           hammer_self.pinchZoomOrigin,
           hammer_self.last.z,
           hammer_self.last.z * e.scale
         );
-        hammer_self.current.x = (d.x + hammer_self.last.x + e.deltaX) * e.scale;
-        hammer_self.current.y = (d.y + hammer_self.last.y + e.deltaY) * e.scale;
+        // d.x/y is the translation offset caused by scaling from the zoom origin.
+        // last.x/y is the accumulated pan, and e.deltaX/Y is the pan during this gesture.
+        // Do NOT multiply positions by e.scale — that compounds the zoom into the translation.
+        hammer_self.current.x = d.x + hammer_self.last.x + e.deltaX;
+        hammer_self.current.y = d.y + hammer_self.last.y + e.deltaY;
         hammer_self.current.z = d.z;
         hammer_self.lastEvent = 'pinch';
         hammer_self.update();

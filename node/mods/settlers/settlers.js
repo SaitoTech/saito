@@ -425,6 +425,12 @@ class Settlers extends GameTemplate {
 		this.hud.render();
 		this.status = [];
 
+		if (app.browser.isMobileBrowser(navigator.userAgent) && window.innerHeight > window.innerWidth) {
+			const rt = document.getElementById('racetrack');
+			const hudEl = document.getElementById('hud');
+			if (rt && hudEl) hudEl.prepend(rt);
+		}
+
 		//
 		//Maybe we should standardize addClass() or classlist = [], for our UI components
 		//
@@ -491,42 +497,23 @@ class Settlers extends GameTemplate {
 
 			trade_btn.onclick = openTrade;
 
-			if (this.app.browser.isMobileBrowser() && window.innerHeight > window.innerWidth) {
-				trade_btn.innerHTML = `<i class="fa-solid fa-users"></i>`;
-
-				const showPlayerBoxes = () => {
-					if (document.querySelector('.game-playerbox-manager').style.display == 'flex') {
-						document.querySelector('.game-playerbox-manager').style.display = 'none';
-						trade_btn.onclick = showPlayerBoxes;
-						trade_btn.innerHTML = `<i class="fa-solid fa-users"></i>`;
-						return;
+			const vpBar = document.getElementById('settlers-vp-bar');
+			if (vpBar) {
+				vpBar.style.cursor = 'pointer';
+				vpBar.onclick = () => {
+					const manager = document.querySelector('.game-playerbox-manager');
+					if (!manager) return;
+					const visible = manager.style.display === 'flex';
+					manager.style.display = visible ? 'none' : 'flex';
+					if (!visible) {
+						manager.onclick = () => {
+							manager.style.display = 'none';
+							manager.onclick = null;
+						};
 					} else {
-						document.querySelector('.game-playerbox-manager').style.display = 'flex';
-						try {
-							// Swap to trade functionality
-
-							trade_btn.innerHTML = `<i class="fa-solid fa-money-bill-transfer"></i>`;
-							trade_btn.onclick = openTrade;
-
-							//
-							// close playerboxen on back-click
-							//
-							$('.game-playerbox-manager').off();
-							$('.game-playerbox-manager').on('click', () => {
-								console.log('Hide playerboxes in mobile');
-								document.querySelector('.game-playerbox-manager').style.display = 'none';
-								trade_btn.onclick = showPlayerBoxes;
-								trade_btn.innerHTML = `<i class="fa-solid fa-users"></i>`;
-							});
-						} catch (err) {
-							console.error('ERROR 485023: ' + err);
-						}
+						manager.onclick = null;
 					}
-
-				}
-
-				trade_btn.onclick = showPlayerBoxes;
-
+				};
 			}
 
 		}

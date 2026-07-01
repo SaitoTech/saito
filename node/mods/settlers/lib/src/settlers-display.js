@@ -504,6 +504,9 @@ class SettlersDisplay {
 
   updateStatus(str, preserve = 0) {
     try {
+      const maximum_length =
+        this.app.browser.isMobileBrowser(navigator.userAgent) || window.innerWidth < 600 ? 2 : 3;
+
       if (this.lock_interface == 1) {
         return;
       }
@@ -522,7 +525,7 @@ class SettlersDisplay {
       this.status.push(update);
 
       //Keep last three
-      while (this.status.length > 3) {
+      while (this.status.length > maximum_length) {
         this.status.shift();
       }
 

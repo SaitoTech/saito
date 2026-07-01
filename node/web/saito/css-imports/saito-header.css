@@ -677,6 +677,21 @@
   .pubkey-mobile-wrapper {
     display: flex;
   }
+
+  #saito-header.game {
+    padding-right: 2px;
+  }
+
+  #saito-header.game .hamburger-container {
+    margin-top: 3px;
+  }
+
+  #saito-header-menu-toggle {
+    width: 3rem;
+  }
+  #saito-header-menu-toggle i {
+    transform: unset;
+  }
 }
 
 @media screen and (max-width: 420px) {

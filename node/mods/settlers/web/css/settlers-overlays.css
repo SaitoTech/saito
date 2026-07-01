@@ -749,6 +749,22 @@ stats overlay
 
 	.trade_area{
 		font-size: 5rem;
+		/* Ensure each trade card is a comfortable tap target */
+		min-height: 9rem;
+	}
+
+	.trade_count_arrow {
+		/* Taller tap zones for the increment/decrement arrows on small screens */
+		height: max(5rem, 44%);
+		min-height: 4.4rem;
+	}
+
+	.trade_overlay_button {
+		min-height: 4.8rem;
+		line-height: 1.2;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 }
 

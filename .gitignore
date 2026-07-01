@@ -2,3 +2,4 @@
 
 *.sai
 .DS_Store
+*.claude

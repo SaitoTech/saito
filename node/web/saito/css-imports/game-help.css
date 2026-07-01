@@ -119,5 +119,43 @@
         left: 1.5rem;
         max-width: 65%;
     }
+}
 
- }   
+@media screen and (max-width: 600px) {
+    .game-help-overlay {
+        width: 94vw;
+        height: 80vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 1.5rem;
+        padding: 1.8rem 1.5rem 1rem;
+    }
+
+    /* Un-absolute the children so they flow in the column */
+    .game-help-overlay > div {
+        position: relative;
+        top: auto;
+        bottom: auto;
+        left: auto;
+        right: auto;
+        max-width: 100%;
+        background: #0008;
+    }
+
+    .game-help-overlay-title {
+        font-size: 2.6rem;
+        letter-spacing: 0.05rem;
+    }
+
+    .game-help-overlay-text {
+        font-size: 1.8rem;
+        line-height: 2.8rem;
+    }
+
+    .game-help-overlay > div.game-help-overlay-optout {
+        margin-top: auto;
+        align-self: flex-end;
+    }
+}
