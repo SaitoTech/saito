@@ -37,9 +37,9 @@ class PurchaseFlow {
 		});
 	}
 
-	async startPurchase(listing, quantity = 1) {
-		if (!listing?.id || String(listing.id).startsWith('store-demo-')) {
-			salert('This listing is not available for purchase.');
+	async startPurchase(summary, quantity = 1) {
+		if (!summary?.id || String(summary.id).startsWith('store-demo-')) {
+			salert('This item is not available for purchase.');
 			return;
 		}
 
@@ -48,13 +48,13 @@ class PurchaseFlow {
 			return;
 		}
 
-		const unit_price = parseListingUnitPrice(listing.returnPrice?.() || listing.price);
+		const unit_price = parseListingUnitPrice(summary.returnPrice?.() || summary.price);
 		if (!unit_price || Number(unit_price) <= 0) {
-			salert('This listing does not have a valid price.');
+			salert('This item does not have a valid price.');
 			return;
 		}
 
-		quantity = Math.max(1, Math.min(Number(quantity) || 1, listing.returnQuantity?.() || 1));
+		quantity = Math.max(1, Math.min(Number(quantity) || 1, summary.returnQuantity?.() || 1));
 		const fee = String(this.mod.fee || 0);
 		const unit_nolan = BigInt(this.app.wallet.convertSaitoToNolan(unit_price) ?? 0);
 		const fee_nolan = BigInt(this.app.wallet.convertSaitoToNolan(fee) ?? 0);
@@ -66,12 +66,12 @@ class PurchaseFlow {
 		}
 
 		const wallet_balance = await this.app.wallet.getBalance();
-		this.listingTitle = listing.returnTitle?.() || listing.title || 'this item';
+		this.listingTitle = summary.returnTitle?.() || summary.title || 'this item';
 
 		let newtx = null;
 		try {
 			newtx = await this.mod.createPurchaseAssetTransaction(
-				listing,
+				summary,
 				{ price: unit_price, fee, quantity },
 				total_nolan
 			);
@@ -94,7 +94,7 @@ class PurchaseFlow {
 				this.app.wallet.convertNolanToSaito(total_nolan),
 				this.mod.store_public_key,
 				newtx.serialize_to_web(this.app),
-				`Purchase ${listing.returnTitle?.() || 'Store listing'}`
+				`Purchase ${summary.returnTitle?.() || 'Store item'}`
 			);
 			this.openWaiting();
 			return;

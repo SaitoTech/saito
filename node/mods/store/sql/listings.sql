@@ -13,14 +13,21 @@ CREATE TABLE IF NOT EXISTS listings (
   access_script TEXT NOT NULL DEFAULT '',
   p2sh_address TEXT DEFAULT '',
 
-  block_id INTEGER NOT NULL DEFAULT 0,
-  block_hash TEXT NOT NULL DEFAULT '',
-  transaction_id INTEGER NOT NULL DEFAULT 0,
   slip_id INTEGER NOT NULL DEFAULT 0,
 
-  longest_chain INTEGER NOT NULL DEFAULT 1,
+  block_id_listed INTEGER NOT NULL DEFAULT 0,
+  block_hash_listed TEXT NOT NULL DEFAULT '',
+  transaction_id_listed INTEGER NOT NULL DEFAULT 0,
+  longest_chain_listed INTEGER NOT NULL DEFAULT 1,
+
+  block_id_sold INTEGER NOT NULL DEFAULT 0,
+  block_hash_sold TEXT NOT NULL DEFAULT '',
+  transaction_id_sold INTEGER NOT NULL DEFAULT 0,
+  longest_chain_sold INTEGER NOT NULL DEFAULT 0,
+
   on_chain INTEGER NOT NULL DEFAULT 1,
-  spent INTEGER NOT NULL DEFAULT 0,
+  in_flight INTEGER NOT NULL DEFAULT 0,
+  reserved_order_id INTEGER NOT NULL DEFAULT 0,
 
   utxo_slip1 TEXT DEFAULT '',
   utxo_slip2 TEXT DEFAULT '',
@@ -30,8 +37,11 @@ CREATE TABLE IF NOT EXISTS listings (
   updated_at INTEGER DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS listings_chain_idx
-  ON listings (block_id, block_hash);
+CREATE INDEX IF NOT EXISTS listings_listed_chain_idx
+  ON listings (block_id_listed, block_hash_listed);
+
+CREATE INDEX IF NOT EXISTS listings_sold_chain_idx
+  ON listings (block_id_sold, block_hash_sold);
 
 CREATE INDEX IF NOT EXISTS listings_bucket_idx
-  ON listings (nft_id, price, on_chain, spent);
+  ON listings (nft_id, price, longest_chain_listed, longest_chain_sold, in_flight);

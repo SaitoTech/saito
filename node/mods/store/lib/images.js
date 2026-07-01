@@ -52,18 +52,18 @@ async function initializeImageCache(mod) {
 		return;
 	}
 
-	for (const listing of Object.values(mod.listings)) {
-		if (!listing?.id || mod.image_cache[listing.id]) {
+	for (const summary of Object.values(mod.summaries)) {
+		if (!summary?.id || mod.image_cache[summary.id]) {
 			continue;
 		}
 
 		try {
-			const inv = await mod.warehouse.returnActiveDeposit(listing.id);
-			if (!inv?.signature) {
+			const listing = await mod.warehouse.returnActiveListingForSummary(summary.id);
+			if (!listing?.signature) {
 				continue;
 			}
 
-			const tx = await mod.warehouse.returnTransaction(inv.signature);
+			const tx = await mod.warehouse.db.returnTransaction(listing.signature, mod.app);
 			if (!tx) {
 				continue;
 			}
@@ -71,7 +71,7 @@ async function initializeImageCache(mod) {
 			const nft = new SaitoNFT(mod.app, mod, tx, null);
 			const image = nft.returnImage?.() || '';
 			if (image) {
-				mod.image_cache[listing.id] = image;
+				mod.image_cache[summary.id] = image;
 			}
 		} catch (err) {
 			continue;
@@ -79,8 +79,8 @@ async function initializeImageCache(mod) {
 	}
 }
 
-function serveCachedImageResponse(mod, res, listing_id) {
-	const image_data = mod.image_cache[listing_id];
+function serveCachedImageResponse(mod, res, summary_id) {
+	const image_data = mod.image_cache[summary_id];
 	if (!image_data) {
 		res.status(404).end();
 		return;

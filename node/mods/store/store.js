@@ -5,7 +5,7 @@ const Main = require('./lib/ui/main');
 const Warehouse = require('./lib/warehouse');
 const transactions = require('./lib/transactions');
 const { serveCachedImageResponse } = require('./lib/images');
-const { syncListingCache } = require('./lib/ui/listing-cache');
+const { syncSummaryCache } = require('./lib/ui/summary-cache');
 const index = require('./index');
 
 class Store extends ModTemplate {
@@ -19,11 +19,12 @@ class Store extends ModTemplate {
 
 		this.main = null;
 		this.header = null;
-		this.listings = {};
+		this.summaries = {};
 		this.image_cache = {};
 		this.store_public_key = '';
 		this.store_peer_index = null;
 		this.fee = 0;
+		this.order_retry_limit = 10;
 
 		this.warehouse = new Warehouse(app, this);
 		Object.assign(this, transactions);
@@ -78,7 +79,7 @@ class Store extends ModTemplate {
 				console.log('Store: loadListings response', response);
 				if (response?.listings) {
 					for (const data of response.listings) {
-						syncListingCache(this, data);
+						syncSummaryCache(this, data);
 					}
 					this.app.connection.emit('store-render-listings');
 				}
@@ -99,7 +100,7 @@ class Store extends ModTemplate {
 				mycallback({
 					listings: this.warehouse
 						.returnActiveSummaries()
-						.map((listing) => listing.serialize())
+						.map((summary) => summary.serialize())
 				});
 				return 1;
 			}
@@ -136,6 +137,14 @@ class Store extends ModTemplate {
 				this.app.connection.emit('store-purchase-asset', { blk, tx, conf });
 				console.log('Store: onConfirmation purchase-asset conf=0', tx.signature);
 				await this.receivePurchaseAssetTransaction(blk, tx);
+				break;
+
+			case 'order-refund':
+				this.app.connection.emit('store-order-refund', { blk, tx, conf });
+				console.log('Store: onConfirmation order-refund conf=0', tx.signature);
+				if (this.app.BROWSER && typeof siteMessage === 'function') {
+					siteMessage('Refund Issued: order could not be processed.', 5000);
+				}
 				break;
 		}
 	}

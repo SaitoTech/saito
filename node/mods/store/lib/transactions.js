@@ -3,9 +3,11 @@ const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
 const { createListingScript, executeListingScript, returnP2SHTuples } = require('./scripting');
 const {
 	buildFulfillmentTransaction,
+	buildOrderRefundTransaction,
 	returnChainLocation,
 	returnAmountPaidToStore,
-	returnPaymentUtxoToStore
+	returnPaymentUtxoToStore,
+	serializePaymentSlip
 } = require('./helpers');
 
 module.exports = {
@@ -64,6 +66,12 @@ module.exports = {
 	        const nft = new SaitoNFT(this.app, this, tx, null);
 	        const txmsg = tx.returnMessage();
 
+	        if (txmsg.fulfill_sale) {
+	                await this.warehouse.confirmSettlement(blk, tx);
+	                await this.warehouse.addListing(nft, tx, txmsg, blk);
+	                return;
+	        }
+
 	        //
 	        // determine if existing inventory is being modified
 	        //
@@ -84,13 +92,13 @@ module.exports = {
 	                                this.store_public_key
 	                        )
 	                ) {
-	                        await this.warehouse.removeListing(nft, tx, txmsg);
+	                        await this.warehouse.removeListing(nft, tx, txmsg, blk);
 	                }
 
 	                //
 	                // new inventory position observed
 	                //
-	                await this.warehouse.addListing(nft, tx, txmsg);
+	                await this.warehouse.addListing(nft, tx, txmsg, blk);
 
 	        } catch (err) {
 	                console.log('Store: receiveListAssetTransaction ignored', err?.message);
@@ -98,13 +106,13 @@ module.exports = {
 
 	},
 
-	async createPurchaseAssetTransaction(listing, sale = {}, nolan_to_send = 0n) {
+	async createPurchaseAssetTransaction(summary, sale = {}, nolan_to_send = 0n) {
 		if (!this.store_public_key) {
 			throw new Error('Store public key is not configured');
 		}
 
-		if (!listing?.id) {
-			throw new Error('Listing id is required for purchase');
+		if (!summary?.id) {
+			throw new Error('Summary id is required for purchase');
 		}
 
 		const newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
@@ -117,7 +125,7 @@ module.exports = {
 			request: 'purchase-asset',
 			buyer: await this.app.wallet.getPublicKey(),
 			refund: await this.app.wallet.getPublicKey(),
-			listing_id: listing.id,
+			listing_id: summary.id,
 			quantity: Number(sale.quantity) || 1,
 			price: String(sale.price),
 			fee: String(sale.fee)
@@ -125,6 +133,47 @@ module.exports = {
 
 		await newtx.sign();
 		return newtx;
+	},
+
+	orderFromPurchaseTx(tx, txmsg, payment_utxo, chain) {
+		const buyer = txmsg.buyer || tx.from?.[0]?.publicKey || '';
+		return new Order({
+			order_tx_sig: tx.signature,
+			buyer,
+			payment_tx_sig: payment_utxo.payment_tx_sig,
+			payment_output_index: payment_utxo.payment_output_index,
+			payment_amount: Number(payment_utxo.payment_amount),
+			payment_utxo_slip: serializePaymentSlip(tx, payment_utxo.payment_output_index, chain),
+			block_id_received: chain.block_id,
+			block_hash_received: chain.block_hash,
+			transaction_id_received: chain.transaction_id,
+			longest_chain_received: 1
+		});
+	},
+
+	createOrderRefundTransaction(params) {
+		return buildOrderRefundTransaction(params);
+	},
+
+	async propagateOrderRefund(order, { payment_tx = null, refund_public_key = '', reason = 'unable-to-fulfill' } = {}) {
+		if (this.app.BROWSER) {
+			return;
+		}
+
+		const refund_tx = this.createOrderRefundTransaction({
+			order,
+			payment_tx,
+			refund_public_key,
+			reason
+		});
+		if (!refund_tx) {
+			return;
+		}
+
+		await refund_tx.sign();
+		await this.warehouse.db.insertTransaction(refund_tx, this.app, { onchain: 1 });
+		this.app.network.propagateTransaction(refund_tx);
+		console.log('Store: propagating order refund', refund_tx.signature, reason);
 	},
 
 	async receivePurchaseAssetTransaction(blk, tx) {
@@ -144,6 +193,8 @@ module.exports = {
 		const unit_price = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.price) ?? 0);
 		const fee = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.fee) ?? 0);
 		const total = unit_price * BigInt(quantity) + fee;
+		const chain = returnChainLocation(blk, tx);
+		const refund_public_key = txmsg.refund || buyer;
 
 		if (!buyer || !listing_id) {
 			console.warn('Store: purchase missing buyer or listing_id');
@@ -157,49 +208,68 @@ module.exports = {
 
 		const amount_paid = returnAmountPaidToStore(tx, this.publicKey);
 		const payment_utxo = returnPaymentUtxoToStore(tx, this.publicKey);
+		const refund_order = payment_utxo
+			? this.orderFromPurchaseTx(tx, txmsg, payment_utxo, chain)
+			: null;
+
+		const refund = async (reason) => {
+			if (!refund_order) {
+				console.warn('Store: cannot refund purchase without payment UTXO', reason);
+				return;
+			}
+			try {
+				await this.propagateOrderRefund(refund_order, {
+					payment_tx: tx,
+					refund_public_key,
+					reason
+				});
+			} catch (err) {
+				console.warn('Store: purchase refund failed', reason, err?.message);
+			}
+		};
 
 		if (amount_paid < total) {
 			console.warn(`Store: purchase underpaid. got=${amount_paid} need=${total}`);
-			await this.warehouse.refundBuyer(buyer, listing_id, amount_paid, 'underpaid');
+			await refund('underpaid');
 			return;
 		}
 
 		if (!payment_utxo) {
 			console.warn('Store: purchase payment UTXO not found');
-			await this.warehouse.refundBuyer(buyer, listing_id, amount_paid, 'payment-utxo-missing');
 			return;
 		}
 
-		const listing = await this.warehouse.returnSummary(listing_id);
-		if (!listing || !listing.isActive()) {
-			console.warn('Store: purchase listing inactive or missing', listing_id);
-			await this.warehouse.refundBuyer(buyer, listing_id, amount_paid, 'listing-inactive');
+		const summary = await this.warehouse.returnSummary(listing_id);
+		if (!summary || !summary.isActive()) {
+			console.warn('Store: purchase summary inactive or missing', listing_id);
+			await refund('listing-inactive');
 			return;
 		}
 
-		if (Number(listing.quantity_available || 0) < quantity) {
+		if (Number(summary.quantity_available || 0) < quantity) {
 			console.warn('Store: purchase insufficient available quantity', listing_id);
-			await this.warehouse.refundBuyer(buyer, listing_id, amount_paid, 'insufficient-quantity');
+			await refund('insufficient-quantity');
 			return;
 		}
 
-		const chain = returnChainLocation(blk, tx);
 		const now = Date.now();
 
 		try {
-			await this.warehouse.queuePurchase(
+			await this.warehouse.addOrder(
 				new Order({
 					order_tx_sig: tx.signature,
 					buyer,
-					nft_id: listing.nft_id,
-					price: Number(listing.price ?? 0),
+					nft_id: summary.nft_id,
+					price: Number(summary.price ?? 0),
+					quantity,
 					payment_tx_sig: payment_utxo.payment_tx_sig,
 					payment_output_index: payment_utxo.payment_output_index,
 					payment_amount: Number(payment_utxo.payment_amount),
-					block_id_added: chain.block_id,
-					block_hash_added: chain.block_hash,
-					transaction_id_added: chain.transaction_id,
-					longest_chain_added: 1,
+					payment_utxo_slip: refund_order.payment_utxo_slip,
+					block_id_received: chain.block_id,
+					block_hash_received: chain.block_hash,
+					transaction_id_received: chain.transaction_id,
+					longest_chain_received: 1,
 					settlement_tx_sig: '',
 					block_id_fulfilled: 0,
 					block_hash_fulfilled: '',
@@ -209,6 +279,12 @@ module.exports = {
 					updated_at: now
 				})
 			);
+			await this.warehouse.db.insertTransaction(tx, this.app, {
+				onchain: 1,
+				block_id: chain.block_id,
+				block_hash: chain.block_hash,
+				transaction_id: chain.transaction_id
+			});
 			console.log('Store: escrow payment recorded', tx.signature);
 		} catch (err) {
 			if (String(err?.message || err).includes('UNIQUE')) {
@@ -216,27 +292,11 @@ module.exports = {
 				return;
 			}
 			console.warn('Store: escrow payment record failed', err?.message);
-			await this.warehouse.refundBuyer(buyer, listing_id, amount_paid, 'queue-failed');
+			await refund('queue-failed');
 		}
 	},
 
 	createFulfillmentTransaction(params) {
 		return buildFulfillmentTransaction({ ...params, app: this.app });
-	},
-
-	async createRefundTransaction(buyer, listing_id, amount, reason) {
-		if (!buyer || !listing_id || amount <= 0n) {
-			return null;
-		}
-
-		const refund_tx = await this.app.wallet.createUnsignedTransaction(buyer, amount, BigInt(0));
-		refund_tx.msg = {
-			module: 'Store',
-			request: 'purchase_refund',
-			reason,
-			listing_id
-		};
-		await refund_tx.sign();
-		return refund_tx;
 	}
 };

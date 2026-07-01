@@ -10,22 +10,113 @@ class Database {
 		return this.mod.dbname;
 	}
 
-	// --- listings (authoritative: one row per deposited NFT position) ---
+	async ensureSchema() {
+		const listing_columns = [
+			'ALTER TABLE listings ADD COLUMN in_flight INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE listings ADD COLUMN reserved_order_id INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE listings ADD COLUMN block_id_listed INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE listings ADD COLUMN block_hash_listed TEXT NOT NULL DEFAULT ""',
+			'ALTER TABLE listings ADD COLUMN transaction_id_listed INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE listings ADD COLUMN longest_chain_listed INTEGER NOT NULL DEFAULT 1',
+			'ALTER TABLE listings ADD COLUMN block_id_sold INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE listings ADD COLUMN block_hash_sold TEXT NOT NULL DEFAULT ""',
+			'ALTER TABLE listings ADD COLUMN transaction_id_sold INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE listings ADD COLUMN longest_chain_sold INTEGER NOT NULL DEFAULT 0'
+		];
+		const order_columns = [
+			'ALTER TABLE orders ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1',
+			'ALTER TABLE orders ADD COLUMN payment_utxo_slip TEXT NOT NULL DEFAULT ""',
+			'ALTER TABLE orders ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE orders ADD COLUMN status TEXT NOT NULL DEFAULT "pending"',
+			'ALTER TABLE orders ADD COLUMN block_id_received INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE orders ADD COLUMN block_hash_received TEXT NOT NULL DEFAULT ""',
+			'ALTER TABLE orders ADD COLUMN transaction_id_received INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE orders ADD COLUMN longest_chain_received INTEGER NOT NULL DEFAULT 1'
+		];
+
+		for (const sql of [...listing_columns, ...order_columns]) {
+			try {
+				await this.app.storage.runDatabase(sql, {}, this.dbname);
+			} catch (err) {
+				// column already exists
+			}
+		}
+
+		await this.migrateListingChainFields();
+		await this.migrateOrderChainFields();
+	}
+
+	async migrateListingChainFields() {
+		const migrations = [
+			`UPDATE listings
+			 SET block_id_listed = block_id,
+			     block_hash_listed = block_hash,
+			     transaction_id_listed = transaction_id,
+			     longest_chain_listed = longest_chain
+			 WHERE block_id_listed = 0 AND block_id != 0`,
+			`UPDATE listings
+			 SET longest_chain_sold = 1
+			 WHERE block_id_sold = 0 AND spent = 1 AND block_id != 0`,
+			`UPDATE listings
+			 SET block_id_sold = block_id,
+			     block_hash_sold = block_hash,
+			     transaction_id_sold = transaction_id,
+			     longest_chain_sold = longest_chain
+			 WHERE block_id_sold = 0 AND spent = 1 AND block_id != 0`
+		];
+
+		for (const sql of migrations) {
+			try {
+				await this.app.storage.runDatabase(sql, {}, this.dbname);
+			} catch (err) {
+				// legacy columns may be absent on fresh installs
+			}
+		}
+	}
+
+	async migrateOrderChainFields() {
+		const migrations = [
+			`UPDATE orders
+			 SET block_id_received = block_id_added,
+			     block_hash_received = block_hash_added,
+			     transaction_id_received = transaction_id_added,
+			     longest_chain_received = longest_chain_added
+			 WHERE block_id_received = 0 AND block_id_added != 0`,
+			`UPDATE orders
+			 SET block_id_fulfilled = block_id_confirmed,
+			     block_hash_fulfilled = block_hash_confirmed,
+			     transaction_id_fulfilled = transaction_id_confirmed,
+			     longest_chain_fulfilled = longest_chain_confirmed
+			 WHERE block_id_fulfilled = 0 AND block_id_confirmed != 0`
+		];
+
+		for (const sql of migrations) {
+			try {
+				await this.app.storage.runDatabase(sql, {}, this.dbname);
+			} catch (err) {
+				// legacy columns may be absent on fresh installs
+			}
+		}
+	}
+
+	// --- listings (authoritative: one row per listing transaction) ---
 
 	async insertListingRow(row) {
 		await this.app.storage.runDatabase(
 			`INSERT INTO listings (
 			  signature, nft_id, seller, quantity, price,
-			  access_hash, access_script, p2sh_address,
-			  block_id, block_hash, transaction_id, slip_id,
-			  longest_chain, on_chain, spent,
+			  access_hash, access_script, p2sh_address, slip_id,
+			  block_id_listed, block_hash_listed, transaction_id_listed, longest_chain_listed,
+			  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
+			  on_chain, in_flight, reserved_order_id,
 			  utxo_slip1, utxo_slip2, utxo_slip3,
 			  created_at, updated_at
 			) VALUES (
 			  $signature, $nft_id, $seller, $quantity, $price,
-			  $access_hash, $access_script, $p2sh_address,
-			  $block_id, $block_hash, $transaction_id, $slip_id,
-			  $longest_chain, $on_chain, $spent,
+			  $access_hash, $access_script, $p2sh_address, $slip_id,
+			  $block_id_listed, $block_hash_listed, $transaction_id_listed, $longest_chain_listed,
+			  $block_id_sold, $block_hash_sold, $transaction_id_sold, $longest_chain_sold,
+			  $on_chain, $in_flight, $reserved_order_id,
 			  $utxo_slip1, $utxo_slip2, $utxo_slip3,
 			  $created_at, $updated_at
 			)`,
@@ -38,13 +129,18 @@ class Database {
 				$access_hash: row.access_hash || '',
 				$access_script: row.access_script || '',
 				$p2sh_address: row.p2sh_address || '',
-				$block_id: row.block_id ?? 0,
-				$block_hash: row.block_hash || '',
-				$transaction_id: row.transaction_id ?? 0,
 				$slip_id: row.slip_id ?? 0,
-				$longest_chain: row.longest_chain ?? 1,
+				$block_id_listed: row.block_id_listed ?? row.block_id ?? 0,
+				$block_hash_listed: row.block_hash_listed || row.block_hash || '',
+				$transaction_id_listed: row.transaction_id_listed ?? row.transaction_id ?? 0,
+				$longest_chain_listed: row.longest_chain_listed ?? row.longest_chain ?? 1,
+				$block_id_sold: row.block_id_sold ?? 0,
+				$block_hash_sold: row.block_hash_sold || '',
+				$transaction_id_sold: row.transaction_id_sold ?? 0,
+				$longest_chain_sold: row.longest_chain_sold ?? 0,
 				$on_chain: row.on_chain ?? 1,
-				$spent: row.spent ?? 0,
+				$in_flight: row.in_flight ?? 0,
+				$reserved_order_id: row.reserved_order_id ?? 0,
 				$utxo_slip1: row.utxo_slip1 || '',
 				$utxo_slip2: row.utxo_slip2 || '',
 				$utxo_slip3: row.utxo_slip3 || '',
@@ -64,28 +160,37 @@ class Database {
 		return res?.[0] || null;
 	}
 
-	async returnActiveListingForBucket(nft_id, price) {
+	async returnSpendableListingsForBucket(nft_id, price, limit = 1) {
 		try {
-			const res = await this.app.storage.queryDatabase(
+			return await this.app.storage.queryDatabase(
 				`SELECT * FROM listings
 				 WHERE nft_id = $nft_id AND price = $price
-				   AND on_chain = 1 AND spent = 0 AND longest_chain = 1
+				   AND on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND (block_id_sold = 0 OR longest_chain_sold = 0)
+				   AND in_flight = 0
 				 ORDER BY created_at ASC
-				 LIMIT 1`,
-				{ $nft_id: nft_id, $price: Number(price) },
+				 LIMIT $limit`,
+				{ $nft_id: nft_id, $price: Number(price), $limit: Number(limit) || 1 },
 				this.dbname
 			);
-			return res?.[0] || null;
 		} catch (err) {
-			return null;
+			return [];
 		}
+	}
+
+	async returnActiveListingForBucket(nft_id, price) {
+		const rows = await this.returnSpendableListingsForBucket(nft_id, price, 1);
+		return rows?.[0] || null;
 	}
 
 	async returnAllActiveListingRows() {
 		try {
 			return await this.app.storage.queryDatabase(
 				`SELECT * FROM listings
-				 WHERE on_chain = 1 AND spent = 0 AND longest_chain = 1
+				 WHERE on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND (block_id_sold = 0 OR longest_chain_sold = 0)
 				 ORDER BY created_at ASC`,
 				{},
 				this.dbname
@@ -95,18 +200,85 @@ class Database {
 		}
 	}
 
-	async markListingSpent(signature, now) {
+	async markListingSold(signature, chain = {}, now = Date.now()) {
 		await this.app.storage.runDatabase(
-			`UPDATE listings SET spent = 1, updated_at = $updated_at WHERE signature = $signature`,
+			`UPDATE listings
+			 SET block_id_sold = $block_id_sold,
+			     block_hash_sold = $block_hash_sold,
+			     transaction_id_sold = $transaction_id_sold,
+			     longest_chain_sold = 1,
+			     in_flight = 0,
+			     reserved_order_id = 0,
+			     updated_at = $updated_at
+			 WHERE signature = $signature`,
+			{
+				$signature: signature,
+				$block_id_sold: Number(chain.block_id ?? 0),
+				$block_hash_sold: String(chain.block_hash || ''),
+				$transaction_id_sold: Number(chain.transaction_id ?? 0),
+				$updated_at: now
+			},
+			this.dbname
+		);
+	}
+
+	async reserveListing(signature, order_id, now) {
+		await this.app.storage.runDatabase(
+			`UPDATE listings
+			 SET in_flight = 1, reserved_order_id = $reserved_order_id, updated_at = $updated_at
+			 WHERE signature = $signature
+			   AND longest_chain_listed = 1
+			   AND (block_id_sold = 0 OR longest_chain_sold = 0)
+			   AND in_flight = 0`,
+			{
+				$signature: signature,
+				$reserved_order_id: Number(order_id) || 0,
+				$updated_at: now
+			},
+			this.dbname
+		);
+	}
+
+	async releaseListing(signature, now) {
+		await this.app.storage.runDatabase(
+			`UPDATE listings
+			 SET in_flight = 0, reserved_order_id = 0, updated_at = $updated_at
+			 WHERE signature = $signature`,
 			{ $signature: signature, $updated_at: now },
 			this.dbname
 		);
 	}
 
-	async updateListingsChainState(block_id, block_hash, longest_chain) {
+	async releaseListingsForOrder(order_id, now = Date.now()) {
 		await this.app.storage.runDatabase(
-			`UPDATE listings SET longest_chain = $longest_chain
-			 WHERE block_id = $block_id AND block_hash = $block_hash`,
+			`UPDATE listings
+			 SET in_flight = 0, reserved_order_id = 0, updated_at = $updated_at
+			 WHERE reserved_order_id = $reserved_order_id`,
+			{
+				$reserved_order_id: Number(order_id) || 0,
+				$updated_at: now
+			},
+			this.dbname
+		);
+	}
+
+	async updateListingsListedChainState(block_id, block_hash, longest_chain) {
+		await this.app.storage.runDatabase(
+			`UPDATE listings SET longest_chain_listed = $longest_chain
+			 WHERE block_id_listed = $block_id AND block_hash_listed = $block_hash`,
+			{
+				$block_id: Number(block_id) || 0,
+				$block_hash: String(block_hash || ''),
+				$longest_chain: longest_chain ? 1 : 0
+			},
+			this.dbname
+		);
+	}
+
+	async updateListingsSoldChainState(block_id, block_hash, longest_chain) {
+		await this.app.storage.runDatabase(
+			`UPDATE listings SET longest_chain_sold = $longest_chain
+			 WHERE block_id_sold = $block_id AND block_hash_sold = $block_hash`,
 			{
 				$block_id: Number(block_id) || 0,
 				$block_hash: String(block_hash || ''),
@@ -121,7 +293,10 @@ class Database {
 			return await this.app.storage.queryDatabase(
 				`SELECT nft_id, price, SUM(quantity) AS total_quantity
 				 FROM listings
-				 WHERE on_chain = 1 AND spent = 0 AND longest_chain = 1
+				 WHERE on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND (block_id_sold = 0 OR longest_chain_sold = 0)
+				   AND in_flight = 0
 				 GROUP BY nft_id, price`,
 				{},
 				this.dbname
@@ -218,23 +393,25 @@ class Database {
 		);
 	}
 
-	// --- orders (escrowed payment UTXOs) ---
+	// --- orders ---
 
 	async insertOrder(order) {
 		await this.app.storage.runDatabase(
 			`INSERT INTO orders (
-			  order_tx_sig, buyer, nft_id, price,
-			  payment_tx_sig, payment_output_index, payment_amount,
-			  block_id_added, block_hash_added, transaction_id_added, longest_chain_added,
+			  order_tx_sig, buyer, nft_id, price, quantity,
+			  payment_tx_sig, payment_output_index, payment_amount, payment_utxo_slip,
+			  block_id_received, block_hash_received, transaction_id_received, longest_chain_received,
 			  settlement_tx_sig,
 			  block_id_fulfilled, block_hash_fulfilled, transaction_id_fulfilled, longest_chain_fulfilled,
+			  attempts, status,
 			  created_at, updated_at
 			) VALUES (
-			  $order_tx_sig, $buyer, $nft_id, $price,
-			  $payment_tx_sig, $payment_output_index, $payment_amount,
-			  $block_id_added, $block_hash_added, $transaction_id_added, $longest_chain_added,
+			  $order_tx_sig, $buyer, $nft_id, $price, $quantity,
+			  $payment_tx_sig, $payment_output_index, $payment_amount, $payment_utxo_slip,
+			  $block_id_received, $block_hash_received, $transaction_id_received, $longest_chain_received,
 			  $settlement_tx_sig,
 			  $block_id_fulfilled, $block_hash_fulfilled, $transaction_id_fulfilled, $longest_chain_fulfilled,
+			  $attempts, $status,
 			  $created_at, $updated_at
 			)`,
 			order,
@@ -249,7 +426,9 @@ class Database {
 			'block_hash_fulfilled',
 			'transaction_id_fulfilled',
 			'longest_chain_fulfilled',
-			'longest_chain_added'
+			'longest_chain_received',
+			'attempts',
+			'status'
 		];
 		const sets = [];
 		const params = { $id: Number(order_id), $updated_at: now };
@@ -274,6 +453,21 @@ class Database {
 		);
 	}
 
+	async incrementOrderAttempts(order_id, now = Date.now()) {
+		await this.app.storage.runDatabase(
+			`UPDATE orders SET attempts = attempts + 1, updated_at = $updated_at WHERE id = $id`,
+			{ $id: Number(order_id), $updated_at: now },
+			this.dbname
+		);
+
+		const res = await this.app.storage.queryDatabase(
+			`SELECT attempts FROM orders WHERE id = $id LIMIT 1`,
+			{ $id: Number(order_id) },
+			this.dbname
+		);
+		return Number(res?.[0]?.attempts ?? 0);
+	}
+
 	async returnOrderByTxSig(order_tx_sig) {
 		const res = await this.app.storage.queryDatabase(
 			`SELECT * FROM orders WHERE order_tx_sig = $order_tx_sig LIMIT 1`,
@@ -283,26 +477,67 @@ class Database {
 		return res?.[0] || null;
 	}
 
-	async returnOpenOrders() {
+	async returnOrderBySettlementSig(settlement_tx_sig) {
+		const res = await this.app.storage.queryDatabase(
+			`SELECT * FROM orders WHERE settlement_tx_sig = $settlement_tx_sig LIMIT 1`,
+			{ $settlement_tx_sig: settlement_tx_sig },
+			this.dbname
+		);
+		return res?.[0] || null;
+	}
+
+	async returnPendingOrders() {
 		try {
 			return await this.app.storage.queryDatabase(
 				`SELECT * FROM orders
-				 WHERE longest_chain_added = 1
-				   AND longest_chain_fulfilled = 0
+				 WHERE status IN ('pending', 'settling')
+				   AND longest_chain_received = 1
 				 ORDER BY id ASC`,
 				{},
 				this.dbname
 			);
 		} catch (err) {
-			console.log('Store Database: returnOpenOrders failed', err?.message);
+			console.log('Store Database: returnPendingOrders failed', err?.message);
 			return [];
 		}
 	}
 
-	async updateOrdersAddedChainState(block_id, block_hash, longest_chain) {
+	async returnOrphanedSettlingOrders() {
+		try {
+			return await this.app.storage.queryDatabase(
+				`SELECT * FROM orders
+				 WHERE status = 'settling'
+				   AND longest_chain_received = 1
+				   AND block_id_fulfilled > 0
+				   AND longest_chain_fulfilled = 0`,
+				{},
+				this.dbname
+			);
+		} catch (err) {
+			return [];
+		}
+	}
+
+	async returnOrphanedFulfilledOrders() {
+		try {
+			return await this.app.storage.queryDatabase(
+				`SELECT * FROM orders
+				 WHERE status = 'fulfilled'
+				   AND longest_chain_received = 1
+				   AND block_id_fulfilled > 0
+				   AND longest_chain_fulfilled = 0`,
+				{},
+				this.dbname
+			);
+		} catch (err) {
+			return [];
+		}
+	}
+
+	async updateOrdersReceivedChainState(block_id, block_hash, longest_chain) {
 		await this.app.storage.runDatabase(
-			`UPDATE orders SET longest_chain_added = $longest_chain, updated_at = $updated_at
-			 WHERE block_id_added = $block_id AND block_hash_added = $block_hash`,
+			`UPDATE orders SET longest_chain_received = $longest_chain, updated_at = $updated_at
+			 WHERE block_id_received = $block_id AND block_hash_received = $block_hash`,
 			{
 				$block_id: Number(block_id) || 0,
 				$block_hash: String(block_hash || ''),

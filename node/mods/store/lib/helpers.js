@@ -115,12 +115,12 @@ function parseStoredSlip(stored) {
 	}
 }
 
-function inventoryInputsFromRecord(inventory) {
-	if (!inventory) {
+function listingInputsFromRecord(listing) {
+	if (!listing) {
 		return null;
 	}
 
-	const slips = [inventory.utxo_slip1, inventory.utxo_slip2, inventory.utxo_slip3]
+	const slips = [listing.utxo_slip1, listing.utxo_slip2, listing.utxo_slip3]
 		.map(parseStoredSlip)
 		.filter(Boolean);
 	if (slips.length !== 3 || !isNFTTuple(slips, 0)) {
@@ -130,7 +130,7 @@ function inventoryInputsFromRecord(inventory) {
 	return slips;
 }
 
-function serializeAnchoredInventorySlips(tx, p2sh_address, chain = {}) {
+function serializeAnchoredListingSlips(tx, p2sh_address, chain = {}) {
 	const anchored = anchorInventoryInputs(tx, p2sh_address, chain);
 	if (!anchored) {
 		return null;
@@ -147,7 +147,7 @@ function returnChainLocation(blk = null, tx = null) {
 	};
 }
 
-function returnInventorySlipId(tx = null, p2sh_address = '') {
+function returnListingSlipId(tx = null, p2sh_address = '') {
 	const outputs = tx?.to || [];
 	for (let i = 0; i < outputs.length; i++) {
 		const slip = outputs[i];
@@ -211,36 +211,118 @@ function cloneOutputTriple(sourceTriple, { nft_amount, buyer_public_key, p2sh_ad
 	return [out1, out2, out3];
 }
 
+function anchorPaymentInput(payment_tx, payment_output_index, chain = {}) {
+	if (!payment_tx?.to?.length) {
+		return null;
+	}
+
+	const index = Number(payment_output_index ?? 0);
+	const source = payment_tx.to[index];
+	if (!source) {
+		return null;
+	}
+
+	const slip = new Slip(undefined, slipToStoredJson(source));
+	slip.blockId = Number(chain.block_id ?? 0) || 0;
+	slip.txOrdinal = Number(chain.transaction_id ?? 0) || 0;
+	slip.index = Number(source?.index ?? index) || index;
+	return slip;
+}
+
+function paymentInputFromOrder(order, payment_tx = null) {
+	if (!order) {
+		return null;
+	}
+
+	if (order.payment_utxo_slip) {
+		const cached = parseStoredSlip(order.payment_utxo_slip);
+		if (cached) {
+			return cached;
+		}
+	}
+
+	if (!payment_tx) {
+		return null;
+	}
+
+	return anchorPaymentInput(payment_tx, order.payment_output_index, {
+		block_id: order.block_id_received ?? order.block_id_added,
+		transaction_id: order.transaction_id_received ?? order.transaction_id_added
+	});
+}
+
+function serializePaymentSlip(payment_tx, payment_output_index, chain = {}) {
+	const slip = anchorPaymentInput(payment_tx, payment_output_index, chain);
+	return slip ? slipToJsonString(slip) : '';
+}
+
+function addListingInputsToTransaction(tx, listing_rows = [], app = null) {
+	const inputs = [];
+
+	for (let i = 0; i < listing_rows.length; i++) {
+		const listing_row = listing_rows[i];
+		let nft_triple = listingInputsFromRecord(listing_row);
+		if (!nft_triple) {
+			throw new Error('listing position not available');
+		}
+
+		const script_address = listing_row.p2sh_address || '';
+		const slip_public_key = slipPublicKey(app, script_address) || script_address;
+
+		for (const input of nft_triple) {
+			tx.addFromSlip(input);
+		}
+
+		const p2sh_marker = new Slip();
+		p2sh_marker.type = SLIP_TYPE_P2SH;
+		p2sh_marker.amount = BigInt(0);
+		p2sh_marker.publicKey = slip_public_key;
+		tx.addFromSlip(p2sh_marker);
+
+		inputs.push({ listing: listing_row, nft_triple, slip_public_key });
+	}
+
+	return inputs;
+}
+
 function buildFulfillmentTransaction({
 	app = null,
-	inventory_tx = null,
-	inventory_txmsg = {},
-	inventory,
-	listing = null,
+	listing_tx = null,
+	listing_txmsg = {},
+	listing,
+	listings = null,
+	summary = null,
 	sale,
 	buyer,
-	quantity
+	quantity,
+	payment_tx = null
 }) {
-	const script_address = inventory.p2sh_address || inventory_txmsg?.listing?.pay_descriptor || '';
+	const listing_rows = Array.isArray(listings) && listings.length ? listings : listing ? [listing] : [];
+	if (!listing_rows.length) {
+		throw new Error('listing position not available');
+	}
+
+	const primary = listing_rows[0];
+	const script_address = primary.p2sh_address || listing_txmsg?.listing?.pay_descriptor || '';
 	const slip_public_key = app ? slipPublicKey(app, script_address) : script_address;
-	const access_script = inventory.access_script || inventory_txmsg?.access_script || '';
+	const access_script = primary.access_script || listing_txmsg?.access_script || '';
 
-	let inventory_triple = inventoryInputsFromRecord(inventory);
-	let anchored_inputs = inventory_triple;
+	let nft_triple = listingInputsFromRecord(primary);
+	let anchored_inputs = nft_triple;
 
-	if (!inventory_triple && inventory_tx) {
-		inventory_triple = findInventoryTriple(inventory_tx.to, slip_public_key);
-		anchored_inputs = anchorInventoryInputs(inventory_tx, slip_public_key, {
-			block_id: inventory.block_id,
-			transaction_id: inventory.transaction_id
+	if (!nft_triple && listing_tx) {
+		nft_triple = findInventoryTriple(listing_tx.to, slip_public_key);
+		anchored_inputs = anchorInventoryInputs(listing_tx, slip_public_key, {
+			block_id: primary.block_id_listed ?? primary.block_id,
+			transaction_id: primary.transaction_id_listed ?? primary.transaction_id
 		});
 	}
 
-	if (!inventory_triple || !anchored_inputs) {
-		throw new Error('inventory position not available');
+	if (!nft_triple || !anchored_inputs) {
+		throw new Error('listing position not available');
 	}
 
-	const total_qty = Number(inventory_triple[0]?.amount || 0);
+	const total_qty = Number(nft_triple[0]?.amount || 0);
 	const buy_qty = Number(quantity) || 1;
 	if (buy_qty <= 0 || buy_qty > total_qty) {
 		throw new Error('invalid fulfillment quantity');
@@ -251,17 +333,15 @@ function buildFulfillmentTransaction({
 	tx.timestamp = Date.now();
 	tx.type = TransactionType.Bound;
 
-	for (const input of anchored_inputs) {
-		tx.addFromSlip(input);
+	const payment_input = paymentInputFromOrder(sale, payment_tx);
+	if (!payment_input) {
+		throw new Error('payment input not available');
 	}
+	tx.addFromSlip(payment_input);
 
-	const p2sh_marker = new Slip();
-	p2sh_marker.type = SLIP_TYPE_P2SH;
-	p2sh_marker.amount = BigInt(0);
-	p2sh_marker.publicKey = slip_public_key;
-	tx.addFromSlip(p2sh_marker);
+	addListingInputsToTransaction(tx, listing_rows, app);
 
-	for (const out of cloneOutputTriple(inventory_triple, {
+	for (const out of cloneOutputTriple(nft_triple, {
 		nft_amount: buy_qty,
 		buyer_public_key: buyer
 	})) {
@@ -269,7 +349,7 @@ function buildFulfillmentTransaction({
 	}
 
 	if (remainder > 0) {
-		for (const out of cloneOutputTriple(inventory_triple, {
+		for (const out of cloneOutputTriple(nft_triple, {
 			nft_amount: remainder,
 			p2sh_address: slip_public_key
 		})) {
@@ -277,39 +357,102 @@ function buildFulfillmentTransaction({
 		}
 	}
 
-	const base_listing = inventory_txmsg?.listing || {
-		id: inventory.listing_id,
-		nft_id: inventory.nft_id || listing?.nft_id,
-		title: listing?.title,
-		description: listing?.description,
-		price: listing?.returnPrice?.() || listing?.price,
+	const unit_price = BigInt(sale?.price ?? summary?.price ?? primary.price ?? 0);
+	const seller_amount = unit_price * BigInt(buy_qty);
+	if (seller_amount > 0n && primary.seller) {
+		const seller_slip = new Slip();
+		seller_slip.publicKey = primary.seller;
+		seller_slip.amount = seller_amount;
+		seller_slip.type = SlipType.Normal;
+		tx.addToSlip(seller_slip);
+	}
+
+	const base_listing = listing_txmsg?.listing || {
+		id: primary.summary_id,
+		nft_id: primary.nft_id || summary?.nft_id,
+		title: summary?.title,
+		description: summary?.description,
+		price: summary?.returnPrice?.() || summary?.price,
 		denomination: 'SAITO',
 		pay_descriptor: script_address
 	};
 	const relist_listing = {
 		...base_listing,
-		id: inventory.listing_id || base_listing.id,
-		nft_id: inventory.nft_id || base_listing.nft_id,
-		title: listing?.title || base_listing.title,
-		description: listing?.description || base_listing.description,
-		price: listing?.returnPrice?.() || base_listing.price,
+		id: primary.summary_id || base_listing.id,
+		nft_id: primary.nft_id || base_listing.nft_id,
+		title: summary?.title || base_listing.title,
+		description: summary?.description || base_listing.description,
+		price: summary?.returnPrice?.() || base_listing.price,
 		denomination: base_listing.denomination || 'SAITO',
 		pay_descriptor: script_address,
 		nft_amount: remainder,
 		quantity: remainder
 	};
 
-	tx.msg = JSON.parse(JSON.stringify(inventory_txmsg || {}));
+	tx.msg = JSON.parse(JSON.stringify(listing_txmsg || {}));
 	tx.msg.module = 'Store';
 	tx.msg.request = 'list-asset';
 	tx.msg.access_script = access_script;
-	tx.msg.access_hash = inventory.access_hash || inventory_txmsg?.access_hash || '';
+	tx.msg.access_hash = primary.access_hash || listing_txmsg?.access_hash || '';
 	tx.msg.listing = relist_listing;
 	tx.msg.fulfill_sale = {
-		sale_signature: sale.signature,
-		prior_inventory: inventory.signature,
+		sale_signature: sale.order_tx_sig || sale.signature,
+		prior_inventory: primary.signature,
 		buyer,
-		quantity: buy_qty
+		quantity: buy_qty,
+		seller: primary.seller || ''
+	};
+
+	return tx;
+}
+
+function buildOrderRefundTransaction({
+	order,
+	payment_tx = null,
+	refund_public_key = '',
+	reason = 'unable-to-fulfill'
+}) {
+	if (!order) {
+		return null;
+	}
+
+	const payment_input = paymentInputFromOrder(order, payment_tx);
+	if (!payment_input) {
+		throw new Error('payment input not available');
+	}
+
+	const refund_to = refund_public_key || order.buyer || '';
+	if (!refund_to) {
+		throw new Error('refund recipient not available');
+	}
+
+	const amount = BigInt(order.payment_amount ?? payment_input.amount ?? 0);
+	if (amount <= 0n) {
+		throw new Error('refund amount not available');
+	}
+
+	const tx = new Transaction();
+	tx.timestamp = Date.now();
+
+	tx.addFromSlip(payment_input);
+
+	const refund_slip = new Slip();
+	refund_slip.publicKey = refund_to;
+	refund_slip.amount = amount;
+	refund_slip.type = SlipType.Normal;
+	tx.addToSlip(refund_slip);
+
+	tx.msg = {
+		module: 'Store',
+		request: 'order-refund',
+		type: 'order-refund',
+		order_tx_sig: order.order_tx_sig || order.signature || '',
+		buyer: order.buyer || '',
+		refund: refund_to,
+		reason,
+		payment_tx_sig: order.payment_tx_sig || order.order_tx_sig || '',
+		payment_output_index: Number(order.payment_output_index ?? 0),
+		payment_amount: String(order.payment_amount ?? 0)
 	};
 
 	return tx;
@@ -325,12 +468,17 @@ module.exports = {
 	anchorInventoryInputs,
 	slipToJsonString,
 	parseStoredSlip,
-	inventoryInputsFromRecord,
-	serializeAnchoredInventorySlips,
+	listingInputsFromRecord,
+	serializeAnchoredListingSlips,
 	returnChainLocation,
-	returnInventorySlipId,
+	returnListingSlipId,
 	returnAmountPaidToStore,
 	returnPaymentUtxoToStore,
 	cloneOutputTriple,
-	buildFulfillmentTransaction
+	anchorPaymentInput,
+	paymentInputFromOrder,
+	serializePaymentSlip,
+	addListingInputsToTransaction,
+	buildFulfillmentTransaction,
+	buildOrderRefundTransaction
 };
