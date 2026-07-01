@@ -1,7 +1,17 @@
 function renderNumericCell(value, options = {}) {
 	if (value && typeof value === 'object' && value.text != null) {
 		const tone = value.tone || 'muted';
-		return `<td class="explorer-supply-numeric explorer-supply-delta explorer-supply-delta-${tone}">${value.text}</td>`;
+		const classes = ['explorer-supply-numeric'];
+
+		if (options.isNetFlow) {
+			classes.push('explorer-supply-net-flow');
+			classes.push(`explorer-supply-net-flow-${tone}`);
+		} else {
+			classes.push('explorer-supply-delta');
+			classes.push(`explorer-supply-delta-${tone}`);
+		}
+
+		return `<td class="${classes.join(' ')}">${value.text}</td>`;
 	}
 
 	const classes = ['explorer-supply-numeric'];
@@ -38,11 +48,25 @@ function renderMatrixRows(rows = [], columnCount = 0) {
     `;
 			}
 
+			if (row.isSectionTitle) {
+				return `
+      <tr class="explorer-supply-net-flow-title">
+        <td colspan="${colspan}">${row.label}</td>
+      </tr>
+    `;
+			}
+
 			return `
       <tr class="${row.className}">
         <td class="explorer-supply-row-label">${row.label}</td>
         ${row.values
-					.map((value) => renderNumericCell(value, { isUnknown: row.key === 'utxo' && !row.isDelta }))
+					.map((value) =>
+						renderNumericCell(value, {
+							isUnknown: row.key === 'utxo' && !row.isNetFlow,
+							isNetFlow: row.isNetFlow,
+							isTotal: row.isTotal,
+						})
+					)
 					.join('')}
       </tr>
     `;

@@ -1,5 +1,10 @@
 const { splitSupplyTableRows } = require('./supply-rows');
-const { DELTA_SECTION_ROWS, computeAccountingDeltas, formatDeltaTone } = require('./supply-deltas');
+const {
+	NET_FLOW_SECTION_TITLE,
+	NET_FLOW_SECTION_ROWS,
+	computeNetFlows,
+	formatNetFlowTone,
+} = require('./supply-deltas');
 const {
 	EXPLORER_INTEGER_ONLY_KEYS,
 	formatExplorerInteger,
@@ -20,19 +25,20 @@ function formatSupplyCell(value, key = '', options = {}) {
 	return formatNolanAsExplorerCurrency(value);
 }
 
-function formatDeltaCell(nolanDelta) {
-	const tone = formatDeltaTone(nolanDelta);
+function formatNetFlowCell(nolanValue, options = {}) {
+	const isTotal = Boolean(options.isTotal);
+	const tone = formatNetFlowTone(nolanValue, { isTotal });
 
-	if (nolanDelta === null || nolanDelta === undefined) {
+	if (nolanValue === null || nolanValue === undefined) {
 		return { text: '—', tone };
 	}
 
-	if (nolanDelta === 0n) {
+	if (nolanValue === 0n) {
 		return { text: '0', tone };
 	}
 
-	const sign = nolanDelta > 0n ? '+' : '−';
-	const magnitude = nolanDelta < 0n ? -nolanDelta : nolanDelta;
+	const sign = nolanValue > 0n ? '+' : '−';
+	const magnitude = nolanValue < 0n ? -nolanValue : nolanValue;
 
 	return {
 		text: `${sign}${formatNolanAsExplorerCurrency(magnitude)}`,
@@ -55,13 +61,18 @@ function accountingRowClassName(row) {
 	return classes.join(' ');
 }
 
-function deltaRowClassName(fieldKey) {
-	return [
+function netFlowRowClassName(fieldKey, isTotal = false) {
+	const classes = [
 		'explorer-supply-row',
-		'explorer-supply-delta-row',
-		'explorer-supply-delta-section-row',
-		`explorer-supply-delta-row-${fieldKey}`,
-	].join(' ');
+		'explorer-supply-net-flow-row',
+		`explorer-supply-net-flow-row-${fieldKey}`,
+	];
+
+	if (isTotal) {
+		classes.push('explorer-supply-net-flow-total-row');
+	}
+
+	return classes.join(' ');
 }
 
 function buildAccountingRow(row, statsRows) {
@@ -69,7 +80,7 @@ function buildAccountingRow(row, statsRows) {
 		key: row.key,
 		label: row.label,
 		className: accountingRowClassName(row),
-		isDelta: false,
+		isNetFlow: false,
 		values: statsRows.map((column) =>
 			formatSupplyCell(column?.[row.key], row.key, { displayUnknown: row.displayUnknown })
 		),
@@ -83,22 +94,35 @@ function buildSectionDivider(key) {
 	};
 }
 
-function buildDeltaSectionRows(blockDeltas = []) {
-	const rows = [buildSectionDivider('delta_section_start')];
+function buildSectionTitle(label) {
+	return {
+		key: 'net_flow_section_title',
+		isSectionTitle: true,
+		label,
+	};
+}
 
-	for (let i = 0; i < DELTA_SECTION_ROWS.length; i++) {
-		const field = DELTA_SECTION_ROWS[i];
+function buildNetFlowSectionRows(blockFlows = []) {
+	const rows = [buildSectionDivider('net_flow_section_start'), buildSectionTitle(NET_FLOW_SECTION_TITLE)];
+
+	for (let i = 0; i < NET_FLOW_SECTION_ROWS.length; i++) {
+		const field = NET_FLOW_SECTION_ROWS[i];
+		const isTotal = field.key === 'total';
+
 		rows.push({
-			key: `delta_${field.key}`,
+			key: `net_flow_${field.key}`,
 			label: field.label,
-			className: deltaRowClassName(field.key),
-			isDelta: true,
-			section: 'delta',
-			values: blockDeltas.map((entry) => formatDeltaCell(entry.deltas[field.key])),
+			className: netFlowRowClassName(field.key, isTotal),
+			isNetFlow: true,
+			isTotal,
+			section: 'net-flow',
+			values: blockFlows.map((entry) =>
+				formatNetFlowCell(entry.flows?.[field.key], { isTotal })
+			),
 		});
 	}
 
-	rows.push(buildSectionDivider('delta_section_end'));
+	rows.push(buildSectionDivider('net_flow_section_end'));
 
 	return rows;
 }
@@ -108,15 +132,15 @@ function buildValueRows(tableRows, statsRows) {
 }
 
 /**
- * Assemble the full supply table: reserve buckets, grouped delta section, then trailing rows.
+ * Assemble the full supply table: reserve buckets, net-flow section, then trailing rows.
  */
 async function formatSupplyTable(statsRows = [], options = {}) {
-	const blockDeltas = await computeAccountingDeltas(statsRows, options);
+	const blockFlows = await computeNetFlows(statsRows, options);
 	const { reserveRows, trailingRows } = splitSupplyTableRows();
 
 	return [
 		...buildValueRows(reserveRows, statsRows),
-		...buildDeltaSectionRows(blockDeltas),
+		...buildNetFlowSectionRows(blockFlows),
 		...buildValueRows(trailingRows, statsRows),
 	];
 }
@@ -125,6 +149,6 @@ module.exports = {
 	UTXO_UNKNOWN_DISPLAY,
 	formatSupplyCell,
 	formatSupplyTable,
-	formatDeltaCell,
-	buildDeltaSectionRows,
+	formatNetFlowCell,
+	buildNetFlowSectionRows,
 };

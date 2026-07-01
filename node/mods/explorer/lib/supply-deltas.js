@@ -1,31 +1,25 @@
 /**
- * Header-visible accounting buckets compared block-to-block.
- * UTXO is intentionally excluded — it is not derivable from headers alone.
+ * Net-flow accounting for the Token Supply table.
+ *
+ * Each block column shows how value moved into the five major header buckets
+ * during block production, derived from protocol transitions (not snapshot diffs).
+ *
+ * Conservation: current + previous + utxo + treasury + graveyard === 0
  */
-const ACCOUNTING_DELTA_FIELDS = [
-	{ key: 'treasury', label: 'Δ Treasury' },
-	{ key: 'graveyard', label: 'Δ Graveyard' },
-	{ key: 'previous_block_unpaid', label: 'Δ Previous Block Unpaid' },
-	{ key: 'total_fees', label: 'Δ Outstanding Fees' },
+
+const NET_FLOW_SECTION_TITLE = 'Net Flow';
+
+const NET_FLOW_ROWS = [
+	{ key: 'current_unpaid', label: '→ Current Block Unpaid' },
+	{ key: 'previous_unpaid', label: '→ Previous Block Unpaid' },
+	{ key: 'utxo', label: '→ UTXO' },
+	{ key: 'treasury', label: '→ Treasury' },
+	{ key: 'graveyard', label: '→ Graveyard' },
 ];
 
-/** Sum of per-block routing, mining, and ATR payout changes (block-to-block). */
-const DELTA_PAYOUTS_FIELD = { key: 'payouts', label: 'Δ Payouts' };
+const NET_FLOW_TOTAL_FIELD = { key: 'total', label: 'TOTAL NET FLOW' };
 
-const PAYOUT_DELTA_SOURCES = [
-	'total_payout_routing',
-	'total_payout_mining',
-	'total_payout_atr',
-];
-
-/** Reconciliation row — sum of bucket deltas and payout delta at render time. */
-const DELTA_TOTAL_FIELD = { key: 'total', label: 'Δ TOTAL' };
-
-/**
- * Ordered rows for the dedicated delta section.
- * Extend ACCOUNTING_DELTA_FIELDS to add more bucket deltas; payouts and total follow.
- */
-const DELTA_SECTION_ROWS = [...ACCOUNTING_DELTA_FIELDS, DELTA_PAYOUTS_FIELD, DELTA_TOTAL_FIELD];
+const NET_FLOW_SECTION_ROWS = [...NET_FLOW_ROWS, NET_FLOW_TOTAL_FIELD];
 
 const EMPTY_BLOCK_HASH =
 	'0000000000000000000000000000000000000000000000000000000000000000';
@@ -39,6 +33,19 @@ function toBigInt(value) {
 	} catch (err) {
 		return 0n;
 	}
+}
+
+function hasGoldenTicket(row) {
+	if (!row) {
+		return false;
+	}
+	const value = row.has_golden_ticket;
+	return value === true || value === 1 || value === '1';
+}
+
+function hasGrandparent(parentRow) {
+	const hash = String(parentRow?.previous_block_hash || '').trim();
+	return Boolean(hash && hash !== EMPTY_BLOCK_HASH);
 }
 
 /**
@@ -63,67 +70,62 @@ async function resolvePreviousBlockRow(currentRow, hashIndex, mod, toStatsRow) {
 		const dbRow = await mod.database.getStatisticsByBlockHash(parentHash);
 		return dbRow ? toStatsRow(dbRow) : null;
 	} catch (err) {
-		console.error('Explorer: failed to resolve previous block for supply delta', err);
+		console.error('Explorer: failed to resolve previous block for supply net flow', err);
 		return null;
 	}
 }
 
 /**
- * Compute the delta for a single accounting field between two blocks.
+ * Derive per-category net flows for one block from protocol accounting fields.
  */
-function computeFieldDelta(currentRow, previousRow, fieldKey) {
-	if (!currentRow || !previousRow) {
-		return null;
-	}
-	return toBigInt(currentRow[fieldKey]) - toBigInt(previousRow[fieldKey]);
-}
-
-/**
- * Compute the combined delta for routing, mining, and ATR payouts between two blocks.
- */
-function computePayoutsDelta(currentRow, previousRow) {
-	if (!currentRow || !previousRow) {
+function computeNetFlowsForBlock(current, parent) {
+	if (!current) {
 		return null;
 	}
 
-	let total = 0n;
-	for (let i = 0; i < PAYOUT_DELTA_SOURCES.length; i++) {
-		const key = PAYOUT_DELTA_SOURCES[i];
-		total += toBigInt(currentRow[key]) - toBigInt(previousRow[key]);
-	}
+	const parentTotalFees = parent ? toBigInt(parent.total_fees) : 0n;
+	const hasGt = hasGoldenTicket(current);
+	const parentHadGt = hasGoldenTicket(parent);
 
-	return total;
-}
+	// New fees enter the current block pool; parent fee pool clears into payouts or carry.
+	let currentUnpaid = toBigInt(current.total_fees) - parentTotalFees;
 
-/**
- * Sum bucket deltas and payout delta. Returns null when any component is unavailable.
- */
-function computeTotalDelta(bucketDeltas = {}) {
-	let total = 0n;
-	const keys = [
-		...ACCOUNTING_DELTA_FIELDS.map((field) => field.key),
-		DELTA_PAYOUTS_FIELD.key,
-	];
-
-	for (let i = 0; i < keys.length; i++) {
-		const key = keys[i];
-		const delta = bucketDeltas[key];
-
-		if (delta === null || delta === undefined) {
-			return null;
+	let previousUnpaid = 0n;
+	if (parent && !hasGt) {
+		previousUnpaid += parentTotalFees;
+		if (!parentHadGt && hasGrandparent(parent)) {
+			previousUnpaid -= toBigInt(parent.previous_block_unpaid);
 		}
-
-		total += delta;
 	}
 
-	return total;
+	const treasury =
+		toBigInt(current.total_payout_treasury) - toBigInt(current.total_payout_atr);
+	const graveyard = toBigInt(current.total_payout_graveyard);
+
+	const utxo =
+		toBigInt(current.total_payout_routing) +
+		toBigInt(current.total_payout_mining) +
+		toBigInt(current.total_payout_atr) -
+		toBigInt(current.total_fees);
+
+	const total = parent
+		? currentUnpaid + previousUnpaid + utxo + treasury + graveyard
+		: null;
+
+	return {
+		current_unpaid: currentUnpaid,
+		previous_unpaid: previousUnpaid,
+		utxo,
+		treasury,
+		graveyard,
+		total,
+	};
 }
 
 /**
- * Compute header deltas for every displayed block (low block id → high).
- * Each delta uses the previous longest-chain block via previous_block_hash.
+ * Compute net flows for every displayed block (low block id → high).
  */
-async function computeAccountingDeltas(statsRows = [], options = {}) {
+async function computeNetFlows(statsRows = [], options = {}) {
 	const { mod, toStatsRow } = options;
 	const hashIndex = new Map(
 		statsRows.filter((row) => row?.block_hash).map((row) => [row.block_hash, row])
@@ -133,51 +135,51 @@ async function computeAccountingDeltas(statsRows = [], options = {}) {
 
 	for (let i = 0; i < statsRows.length; i++) {
 		const row = statsRows[i];
-		const previous = await resolvePreviousBlockRow(row, hashIndex, mod, toStatsRow);
-		const deltas = {};
-
-		for (let j = 0; j < ACCOUNTING_DELTA_FIELDS.length; j++) {
-			const field = ACCOUNTING_DELTA_FIELDS[j];
-			deltas[field.key] = computeFieldDelta(row, previous, field.key);
-		}
-
-		deltas[DELTA_PAYOUTS_FIELD.key] = computePayoutsDelta(row, previous);
-		deltas[DELTA_TOTAL_FIELD.key] = computeTotalDelta(deltas);
+		const parent = await resolvePreviousBlockRow(row, hashIndex, mod, toStatsRow);
+		const flows = computeNetFlowsForBlock(row, parent);
 
 		results.push({
 			block_id: row?.block_id,
 			block_hash: row?.block_hash,
-			deltas,
+			flows,
 		});
 	}
 
 	return results;
 }
 
-function formatDeltaTone(nolanDelta) {
-	if (nolanDelta === null || nolanDelta === undefined) {
+function formatNetFlowTone(nolanValue, options = {}) {
+	const { isTotal = false } = options;
+
+	if (nolanValue === null || nolanValue === undefined) {
 		return 'muted';
 	}
-	if (nolanDelta === 0n) {
+
+	if (isTotal && nolanValue !== 0n) {
+		return 'error';
+	}
+
+	if (nolanValue === 0n) {
 		return 'zero';
 	}
-	if (nolanDelta > 0n) {
+
+	if (nolanValue > 0n) {
 		return 'positive';
 	}
+
 	return 'negative';
 }
 
 module.exports = {
-	ACCOUNTING_DELTA_FIELDS,
-	DELTA_PAYOUTS_FIELD,
-	DELTA_TOTAL_FIELD,
-	DELTA_SECTION_ROWS,
-	PAYOUT_DELTA_SOURCES,
+	NET_FLOW_SECTION_TITLE,
+	NET_FLOW_ROWS,
+	NET_FLOW_TOTAL_FIELD,
+	NET_FLOW_SECTION_ROWS,
 	toBigInt,
+	hasGoldenTicket,
+	hasGrandparent,
 	resolvePreviousBlockRow,
-	computeFieldDelta,
-	computePayoutsDelta,
-	computeTotalDelta,
-	computeAccountingDeltas,
-	formatDeltaTone,
+	computeNetFlowsForBlock,
+	computeNetFlows,
+	formatNetFlowTone,
 };

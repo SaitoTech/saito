@@ -148,6 +148,59 @@
 	padding-left: var(--explorer-space-3);
 }
 
+.explorer-supply-net-flow-title td {
+	padding: var(--explorer-space-2) var(--explorer-space-2) var(--explorer-space-1);
+	border-bottom: 0;
+	font-size: var(--explorer-text-xs);
+	font-weight: var(--explorer-font-semibold);
+	letter-spacing: var(--explorer-tracking-wide);
+	text-transform: uppercase;
+	color: var(--explorer-muted-foreground);
+	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+}
+
+.explorer-supply-table tr.explorer-supply-net-flow-row {
+	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+}
+
+.explorer-supply-table tr.explorer-supply-net-flow-row td {
+	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+}
+
+.explorer-supply-table tr.explorer-supply-net-flow-row .explorer-supply-row-label,
+.explorer-supply-table tr.explorer-supply-net-flow-row .explorer-supply-numeric {
+	font-size: var(--explorer-text-xs);
+	font-weight: var(--explorer-font-normal);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-table tr.explorer-supply-net-flow-total-row .explorer-supply-row-label,
+.explorer-supply-table tr.explorer-supply-net-flow-total-row .explorer-supply-numeric {
+	font-weight: var(--explorer-font-semibold);
+	color: var(--explorer-foreground);
+}
+
+.explorer-supply-net-flow-zero {
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-net-flow-positive {
+	color: color-mix(in oklch, #3b6ea8 78%, var(--explorer-foreground));
+}
+
+.explorer-supply-net-flow-negative {
+	color: color-mix(in oklch, #9a6b2f 78%, var(--explorer-foreground));
+}
+
+.explorer-supply-net-flow-muted {
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-net-flow-error {
+	color: var(--explorer-destructive);
+	font-weight: var(--explorer-font-semibold);
+}
+
 .explorer-supply-delta-zero {
 	color: var(--explorer-muted-foreground);
 }
