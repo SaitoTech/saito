@@ -1,27 +1,83 @@
 .game.settlers {
-@media only screen and (max-width: 600px) and (orientation: portrait) {
-	.racetrack {
-		display: none;
-		position: absolute;
-		width: 100%;
-		height: 100%;
-		margin-left: auto;
-		margin-right: auto;
-		margin-top: auto;
-		margin-bottom: auto;
-		left: 0;
-		top: 0;
-		padding-top: 10vh;
-		background-color: black;
-		padding-left: 5vw;
-		padding-right: 5vw;
-		z-index: 5;
-	}
-}
+	@media only screen and (max-width: 600px) and (orientation: portrait) {
+		/* Racetrack is moved inside #hud on mobile via JS.
+	   It sits above the HUD body and peeks out over the top edge.
+	   On racetrack-lock it slides fully above to reveal all slots. */
 
-@media only screen and (max-height: 600px) and (orientation: landscape) {
-	.racetrack {
-		display: none;
+		#hud .racetrack {
+			display: flex;
+			flex-direction: row-reverse;
+			align-items: stretch;
+
+			/* Override the desktop left-slide positioning */
+			position: absolute;
+			top: auto;
+			left: 0;
+			right: 0;
+			bottom: 100%;
+			width: calc(100% - 1rem);
+			height: auto;
+			margin: auto;
+
+			background: #222b;
+			border-radius: 0.5rem 0.5rem 0 0;
+			overflow: hidden;
+			z-index: -1;
+		}
+
+		/* Each VP slot becomes a compact column */
+		#hud .racetrack .racetrack-slot {
+			flex: 1;
+			min-height: unset;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: flex-end;
+			padding: 0.3rem 0.1rem;
+			margin: 0;
+			background: #5554;
+			gap: 0.2rem;
+		}
+
+		/* The VP number label — small, at the bottom of each slot */
+		#hud .racetrack .racetrack-slot-label {
+			top: auto;
+			right: auto;
+			transform: none;
+			width: 100%;
+			font-size: 1rem;
+			line-height: 1.4;
+			color: #ddd;
+			text-align: center;
+			order: 2;
+		}
+
+		#hud .racetrack .track-players {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			order: 1;
+		}
+
+		/* Player dots — colored circles, no names */
+		#hud .racetrack .player-position {
+			height: 1.4rem;
+			padding: 0;
+		}
+
+		#hud .racetrack .player-position span {
+			display: none;
+		}
+
+		/* Hide the title label */
+		#hud .racetrack .racetrack-label {
+			display: none;
+		}
 	}
-}
+
+	@media only screen and (max-height: 600px) and (orientation: landscape) {
+		.racetrack {
+			display: none;
+		}
+	}
 }

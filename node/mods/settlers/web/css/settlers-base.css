@@ -240,7 +240,9 @@
 	}
 
 	.chover:hover,
-	.city.chover:hover {
+	.chover:active,
+	.city.chover:hover,
+	.city.chover:active {
 		/*fill: whitesmoke;
   stroke: whitesmoke;*/
 		background-color: whitesmoke;
@@ -262,9 +264,13 @@
 	}
 
 	.chover:hover,
+	.chover:active,
 	.city.chover:hover,
+	.city.chover:active,
 	.rhover:hover,
-	.city.empty.rhover:hover {
+	.rhover:active,
+	.city.empty.rhover:hover,
+	.city.empty.rhover:active {
 		filter: brightness(1.15) saturate(1.1);
 		box-shadow:
 			0 0 0 2px rgba(255, 255, 255, 0.3),
@@ -323,7 +329,9 @@
 	}
 
 	.rhover:hover,
-	.city.empty.rhover:hover {
+	.rhover:active,
+	.city.empty.rhover:hover,
+	.city.empty.rhover:active {
 		border: 1px solid white;
 		background-color: whitesmoke;
 		cursor: pointer;
@@ -643,7 +651,8 @@
 		text-align: center;
 	}
 
-	.sector-container.rhover:hover {
+	.sector-container.rhover:hover,
+	.sector-container.rhover:active {
 		background: none;
 		border: none;
 		cursor: pointer;
@@ -656,7 +665,8 @@
 			box-shadow 120ms ease;
 	}
 
-	.sector-container.rhover:hover .sector_value {
+	.sector-container.rhover:hover .sector_value,
+	.sector-container.rhover:active .sector_value {
 		border-color: rgba(255, 255, 255, 0.72);
 		background-color: rgba(255, 255, 255, 0.22);
 		box-shadow: 0 0 16px rgba(255, 212, 92, 0.52);
@@ -1155,6 +1165,11 @@
 			font-size: 16px;
 			max-width: 100%;
 			flex-wrap: unset;
+		}
+
+		.status .player-notice::before {
+			bottom: -7px;
+			width: 10rem;
 		}
 
 		.saitoa {

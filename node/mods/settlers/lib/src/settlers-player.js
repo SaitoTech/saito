@@ -67,15 +67,15 @@ class SettlersPlayer {
     let settlers_self = this;
     $('.sector-container').addClass('rhover');
     $('.sector-container').off();
-    $('.sector-container').on('mousedown', function (e) {
+    $('.sector-container').on('pointerdown', function (e) {
       xpos = e.clientX;
       ypos = e.clientY;
     });
-    $('.sector-container').on('mouseup', function (e) {
-      if (Math.abs(xpos - e.clientX) > 4) {
+    $('.sector-container').on('pointerup', function (e) {
+      if (Math.abs(xpos - e.clientX) > 12) {
         return;
       }
-      if (Math.abs(ypos - e.clientY) > 4) {
+      if (Math.abs(ypos - e.clientY) > 12) {
         return;
       }
       settlers_self.stopPlacementHintWave();
@@ -132,16 +132,16 @@ class SettlersPlayer {
       $(`.city.empty[data-score="14"]`).addClass('noselect');
       //$('.city.noselect').removeClass("empty");
 
-      $('.city.empty').on('mousedown', function (e) {
+      $('.city.empty').on('pointerdown', function (e) {
         xpos = e.clientX;
         ypos = e.clientY;
       });
       //Create as menu on the game board to input word from a tile in horizontal or vertical direction
-      $('.city.empty').on('mouseup', function (e) {
-        if (Math.abs(xpos - e.clientX) > 4) {
+      $('.city.empty').on('pointerup', function (e) {
+        if (Math.abs(xpos - e.clientX) > 12) {
           return;
         }
-        if (Math.abs(ypos - e.clientY) > 4) {
+        if (Math.abs(ypos - e.clientY) > 12) {
           return;
         }
 
@@ -193,16 +193,16 @@ class SettlersPlayer {
       }
 
       $('.rhover').off();
-      $('.rhover').on('mousedown', function (e) {
+      $('.rhover').on('pointerdown', function (e) {
         xpos = e.clientX;
         ypos = e.clientY;
       });
 
-      $('.rhover').on('mouseup', function (e) {
-        if (Math.abs(xpos - e.clientX) > 4) {
+      $('.rhover').on('pointerup', function (e) {
+        if (Math.abs(xpos - e.clientX) > 12) {
           return;
         }
-        if (Math.abs(ypos - e.clientY) > 4) {
+        if (Math.abs(ypos - e.clientY) > 12) {
           return;
         }
 

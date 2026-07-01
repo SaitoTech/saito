@@ -491,15 +491,15 @@ class SettlersActions {
       this.placement_hint_wave_timeout = null;
     }
 
-    $(document).off('mouseenter.settlersPlacementHintWave');
+    $(document).off('pointerenter.settlersPlacementHintWave');
     $('.placement-wave-highlight').removeClass('placement-wave-highlight');
   }
 
   bindPlacementHintWaveHoverStop(selector) {
     let settlers_self = this;
 
-    $(document).off('mouseenter.settlersPlacementHintWave');
-    $(document).on('mouseenter.settlersPlacementHintWave', selector, function () {
+    $(document).off('pointerenter.settlersPlacementHintWave');
+    $(document).on('pointerenter.settlersPlacementHintWave', selector, function () {
       let el = this;
       if (
         el.offsetParent === null ||
