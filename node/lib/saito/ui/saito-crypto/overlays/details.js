@@ -33,6 +33,13 @@ class Details {
       }
     });
 
+    app.connection.on('wallet-updated', async (obj = null) => {
+      if (this.overlay.visible) {
+        await this.updateBalances();
+        this.formatHistory();
+      }
+    });
+
     app.connection.on('on-payment-sent', async (obj = null) => {
       if (this.overlay.visible) {
         await this.updateBalances();

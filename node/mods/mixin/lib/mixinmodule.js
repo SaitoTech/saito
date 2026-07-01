@@ -298,7 +298,7 @@ class MixinModule extends CryptoModule {
 		// We should not be making API calls on Mixin if we haven't installed this crypto
 		// (let alone set up a mixin account)
 		if (!this.isActivated()) {
-			return;
+			return [];
 		}
 
 		console.log('@@@ checkForRecentTransactions -- ' + this.ticker);
@@ -472,7 +472,7 @@ class MixinModule extends CryptoModule {
 			// or nothing is going to happen...
 			//
 			if (
-				wallet_updates.length > 0 ||
+				wallet_updates?.length > 0 ||
 				this.polling_interval_current >= this.polling_intervals.length
 			) {
 				this.stopPolling();

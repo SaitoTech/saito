@@ -73,11 +73,6 @@ class NFTAtomize {
     this.active = true;
 
     //
-    // Listen for wallet updates
-    //
-    this.app.connection.on('saito-header-update-crypto', this.walletListener);
-
-    //
     // Reassurance text rotation
     //
     this.reassuranceInterval = setInterval(() => {
@@ -104,8 +99,6 @@ class NFTAtomize {
     if (!this.active) return;
 
     this.active = false;
-
-    this.app.connection.removeListener('saito-header-update-crypto', this.walletListener);
 
     if (this.reassuranceInterval) {
       clearInterval(this.reassuranceInterval);
@@ -239,8 +232,6 @@ class NFTAtomize {
     if (statusEl) {
       statusEl.innerText = 'Atomization complete.';
     }
-
-    this.app.connection.removeListener('saito-header-update-crypto', this.walletListener);
 
     if (this.reassuranceInterval) {
       clearInterval(this.reassuranceInterval);

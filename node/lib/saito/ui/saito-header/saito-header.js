@@ -93,6 +93,12 @@ class SaitoHeader extends UIModTemplate {
       }
     });
 
+    app.connection.on('wallet-updated', async (obj = null) => {
+      if (!this.installing_crypto) {
+        this.renderCrypto();
+      }
+    });
+
     app.connection.on('on-payment-sent', async (obj = null) => {
       if (!this.installing_crypto) {
         this.renderCrypto();

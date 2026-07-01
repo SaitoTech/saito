@@ -94,6 +94,21 @@ class NFTCryptoModule extends CryptoModule {
     });
   }
 
+  async activate() {
+    await super.activate();
+
+    if (!this.nft) {
+      await this.app.wallet.updateNFTList();
+      const row = this._returnSampleWalletNFT();
+      if (!row || !row.id) {
+        throw new Error('NFTCryptoModule: NFT not found in wallet');
+      }
+
+      this.nft = new SaitoNFT(this.app, null, null, row);
+      await this.nft.fetchTransaction();
+    }
+  }
+
   /**
    * Best-effort: pull image from wallet row, mint tx (via SaitoNFT), optional downscale for UI.
    * Safe to call repeatedly; concurrent calls share one in-flight refresh.
@@ -128,6 +143,7 @@ class NFTCryptoModule extends CryptoModule {
       this._nft_logo_thumb = null;
       this._nft_logo_full = null;
       if ((prevThumb || prevFull) && this.app?.connection) {
+        // This does nothing
         this.app.connection.emit('saito-header-update-crypto');
       }
       return;
@@ -138,6 +154,7 @@ class NFTCryptoModule extends CryptoModule {
 
     if (prevThumb !== this._nft_logo_thumb || prevFull !== this._nft_logo_full) {
       if (this.app?.connection) {
+        // This does nothing
         this.app.connection.emit('saito-header-update-crypto');
       }
     }
@@ -431,20 +448,14 @@ class NFTCryptoModule extends CryptoModule {
       }
     }
 
-    const row = this._returnSampleWalletNFT();
-    if (!row || !row.id) {
-      throw new Error('NFTCryptoModule: NFT not found in wallet');
-    }
-
-    const nft = new SaitoNFT(this.app, null, null, row);
     const amountInt = Number.parseInt(String(amount), 10);
     if (!Number.isInteger(amountInt) || amountInt <= 0) {
       throw new Error('NFTCryptoModule: invalid amount');
     }
 
-    const tx_msg = JSON.parse(JSON.stringify(nft.txmsg || {}));
+    const tx_msg = JSON.parse(JSON.stringify(this.nft.txmsg || {}));
     let newtx = await this.app.wallet.createNFTTransaction(
-      nft,
+      this.nft,
       recipient,
       amountInt,
       BigInt(0),
@@ -456,7 +467,7 @@ class NFTCryptoModule extends CryptoModule {
       throw new Error('NFTCryptoModule: unable to construct NFT transfer');
     }
 
-    newtx = await nft.modifyBeforeSend(newtx, recipient);
+    newtx = await this.nft.modifyBeforeSend(newtx, recipient);
     if (!newtx) {
       throw new Error('NFTCryptoModule: transfer blocked by module.');
     }
@@ -464,15 +475,23 @@ class NFTCryptoModule extends CryptoModule {
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
 
+    /*
+      Copied over from withdraw overlay, which is otherwise the same
+
+      These should probably better be tied to the wallet-update event...
+
+      try {
+        await this_withdraw.app.wallet.updateNFTList();
+      } catch (err) {
+        console.warn('withdraw NFT: updateNFTList', err);
+      }
+      if (document.querySelector('.nft-list-container')) {
+        this_withdraw.app.connection.emit('saito-nft-list-render-request');
+      }
+    */
+
     return unique_hash || newtx.signature;
   }
-
-  // IMPORTANT NOTE -- FIX THIS
-  //async receivePayment(amount = '', sender = '', recipient = '', timestamp = 0, unique_hash = '') {
-  // NFT receipt is handled by wallet UTXO processing
-  // We simply return success
-  //  return true;
-  //}
 
   //
   // Legacy CryptoModule "crypto payment" channel (Saito notification txs for web3).

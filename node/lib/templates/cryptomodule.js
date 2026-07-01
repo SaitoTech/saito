@@ -134,8 +134,6 @@ class CryptoModule extends ModTemplate {
 
     if (this.ticker === this.app.wallet.returnPreferredCryptoTicker()) {
       await this.activate();
-      // if UI is enabled, will re-render the qr code, ticker, and balance in the hamburger menu
-      this.app.connection.emit('saito-header-update-crypto');
     }
   }
 

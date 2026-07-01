@@ -767,50 +767,6 @@ class Withdraw {
               pendingLabel.textContent = 'Broadcasting…';
             }
 
-            if (this_withdraw.isNftWithdrawSelection()) {
-              const nft = await this_withdraw.loadSaitoNftForWithdraw();
-              const amountRaw = String(amount).trim();
-              let amountInt;
-              try {
-                amountInt = parseInt(amountRaw, 10);
-              } catch (err) {
-                throw new Error('Error sending NFT: invalid amount.');
-              }
-              if (!Number.isInteger(amountInt) || amountInt <= 0) {
-                throw new Error('Error sending NFT: amount must be a positive integer.');
-              }
-              const tx_msg = JSON.parse(JSON.stringify(nft.txmsg || {}));
-              let newtx = await this_withdraw.app.wallet.createNFTTransaction(
-                nft,
-                this.address,
-                amountInt,
-                BigInt(0),
-                BigInt(0),
-                tx_msg
-              );
-
-              newtx = await nft.modifyBeforeSend(newtx, this.address);
-              if (!newtx) {
-                throw new Error('NFT transfer blocked by module.');
-              }
-
-              await newtx.sign();
-              await this_withdraw.app.network.propagateTransaction(newtx);
-              try {
-                await this_withdraw.app.wallet.updateNFTList();
-              } catch (err) {
-                console.warn('withdraw NFT: updateNFTList', err);
-              }
-              this_withdraw.app.connection.emit('saito-header-update-crypto');
-              if (document.querySelector('.nft-list-container')) {
-                this_withdraw.app.connection.emit('saito-nft-list-render-request');
-              }
-              const nftHash =
-                typeof newtx?.signature === 'string' && newtx.signature ? newtx.signature : '';
-              this_withdraw.withdrawBroadcastSuccessUi(nftHash);
-              return;
-            }
-
             let ts = new Date().getTime();
             await this.app.wallet.sendPayment(
               ticker,
@@ -1066,22 +1022,6 @@ class Withdraw {
 
   isNftWithdrawSelection() {
     return this.pc?.categories === 'NFT' && typeof this.pc?.nft_id === 'string' && this.pc.nft_id;
-  }
-
-  async loadSaitoNftForWithdraw() {
-    const nft_id = this.pc.nft_id;
-    const list = this.app?.options?.wallet?.nfts || [];
-    const row = list.find((n) => n && n.id === nft_id);
-    if (!row) {
-      throw new Error('Error loading NFT: no wallet row for this NFT id.');
-    }
-    const modStub = { publicKey: this.app.wallet.publicKey };
-    const nft = new SaitoNFT(this.app, modStub, null, row);
-    await nft.fetchTransaction();
-    if (nft.load_failed && !nft.tx) {
-      throw new Error('Error loading NFT: mint transaction not available (local archive / sync).');
-    }
-    return nft;
   }
 
   clear() {

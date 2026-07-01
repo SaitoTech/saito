@@ -181,7 +181,7 @@ export default class Wallet extends SaitoWallet {
         app.connection.on('on-nft-sent', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
           console.log('*************** nft-sent ***********', p);
-          if (p.ticker) {
+          if (p.ticker || this.app.wallet.extractNFTType(p.slip3_utxo) == 'token') {
             p.amount = p.amount?.toString();
             app.connection.emit('on-payment-sent', p);
           }
@@ -189,16 +189,18 @@ export default class Wallet extends SaitoWallet {
 
         app.connection.on('on-nft-received', async (payload: unknown) => {
           const p = parseInterfacePayload(payload);
-          console.log('*************** nft-received ***********', p);
+          p.amount = p.amount?.toString();
+          let is_payment = p?.ticker || this.app.wallet.extractNFTType(p.slip3_utxo) == 'token';
 
-          // If the NFT has a ticker, process it like an incoming payment
-          if (p?.ticker) {
-            try {
-              await wallet_self.addNFTToWallet(p.nft_id, p.ticker);
-              p.amount = p.amount?.toString();
+          // This needs to be out here so we catch newly-minted nfts
+          if (is_payment) {
+            await wallet_self.addNFTToWallet(p.nft_id, p.ticker);
+          }
+
+          if (p.sender !== this.publicKey) {
+            console.log('*************** nft-received ***********', p);
+            if (is_payment) {
               app.connection.emit('on-payment-received', p);
-            } catch (err) {
-              console.log('ERROR: adding NFT to wallet... ');
             }
           }
         });
@@ -207,7 +209,6 @@ export default class Wallet extends SaitoWallet {
 
         app.connection.on('wallet-updated', async (payload: unknown) => {
           console.log('************** wallet-updated ************', payload);
-          this.app.connection.emit('saito-header-update-crypto');
         });
       }
 
@@ -844,8 +845,6 @@ export default class Wallet extends SaitoWallet {
       await c_mod.activate();
 
       this.saveWallet();
-      // if UI is enabled, will re-render the qr code, ticker, and balance in the hamburger menu
-      this.app.connection.emit('saito-header-update-crypto');
       return 1;
     } catch (err) {
       // console.error(err);
@@ -1614,11 +1613,6 @@ export default class Wallet extends SaitoWallet {
         this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig, ticker);
       }
     }
-
-    //
-    // created NFT? balance should be affected... update
-    //
-    this.app.connection.emit('saito-header-update-crypto');
   }
 
   async updateNFTList(): Promise<{
@@ -1774,11 +1768,6 @@ export default class Wallet extends SaitoWallet {
     //   await this.app.wallet.saveOptions?.();
     // }
 
-    //
-    // crypto (nfts) updated
-    //
-    this.app.connection.emit('saito-header-update-crypto');
-
     return { updated, rebroadcast, persisted };
   }
 
@@ -1830,14 +1819,13 @@ export default class Wallet extends SaitoWallet {
     amount,
     fee = BigInt(0),
     saito_deposit = BigInt(0),
-    tx_msg?: object | null
+    tx_msg?: object
   ) {
     await nft.fetchTransaction();
 
-    const msg =
-      tx_msg !== undefined && tx_msg !== null
-        ? tx_msg
-        : JSON.parse(JSON.stringify(nft.txmsg || {}));
+    console.log('<<<<<<******', tx_msg);
+    const msg = Object.assign(tx_msg, nft.txmsg || {});
+    console.log(msg, '*****>>>>>>>>');
 
     return this.app.core.wallet.createNFTTransaction(
       recipient_public_key,
@@ -2031,7 +2019,9 @@ export default class Wallet extends SaitoWallet {
   }
 
   public async addNFTToWallet(nft_id, ticker) {
-    await this.updateNFTList();
+    // I don't think we want this when loading our saved NFT-tokens...
+    //await this.updateNFTList();
+
     if (this.returnCryptoModuleByTicker(ticker)) {
       return;
     }
