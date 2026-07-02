@@ -1,18 +1,28 @@
 const Summary = require('../summary');
 const { returnDemoSummaries } = require('../summary');
 
+function summaryBucketKey(nft_id = '', price = 0) {
+	return `${nft_id}:${Number(price)}`;
+}
+
+function summaryDomId(summary) {
+	const key = summaryBucketKey(summary?.nft_id, summary?.price);
+	return `store-teaser-${encodeURIComponent(key)}`;
+}
+
 function syncSummaryCache(mod, data) {
 	const summary = data instanceof Summary ? data : new Summary(mod.app, mod, data);
-	if (!summary.id) {
+	if (!summary.nft_id) {
 		return null;
 	}
 
-	mod.summaries[summary.id] = summary;
+	const key = summaryBucketKey(summary.nft_id, summary.price);
+	mod.summaries[key] = summary;
 	return summary;
 }
 
-function removeSummaryFromCache(mod, summary_id) {
-	delete mod.summaries[summary_id];
+function removeSummaryFromCache(mod, nft_id, price) {
+	delete mod.summaries[summaryBucketKey(nft_id, price)];
 }
 
 function getSummariesForSale(mod) {
@@ -25,6 +35,8 @@ function getSummariesForSale(mod) {
 }
 
 module.exports = {
+	summaryBucketKey,
+	summaryDomId,
 	syncSummaryCache,
 	removeSummaryFromCache,
 	getSummariesForSale

@@ -11,7 +11,10 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_tx_sig TEXT NOT NULL,
   payment_output_index INTEGER NOT NULL DEFAULT 0,
   payment_amount INTEGER NOT NULL DEFAULT 0,
-  payment_utxo_slip TEXT NOT NULL DEFAULT '',
+  utxo_slip TEXT NOT NULL DEFAULT '',
+  access_hash TEXT NOT NULL DEFAULT '',
+  access_script TEXT NOT NULL DEFAULT '',
+  p2sh_address TEXT NOT NULL DEFAULT '',
 
   block_id_received INTEGER NOT NULL DEFAULT 0,
   block_hash_received TEXT NOT NULL DEFAULT '',

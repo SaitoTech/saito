@@ -1,5 +1,3 @@
-const Transaction = require('../../../lib/saito/transaction').default;
-
 /** Listing is reserved for an in-flight settlement until confirmed or reset. */
 const LISTING_SETTLEMENT_PENDING_BLOCK_ID = -1;
 
@@ -29,6 +27,9 @@ class Database {
 		const order_columns = [
 			'ALTER TABLE orders ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1',
 			'ALTER TABLE orders ADD COLUMN payment_utxo_slip TEXT NOT NULL DEFAULT ""',
+			'ALTER TABLE orders ADD COLUMN payment_access_hash TEXT NOT NULL DEFAULT ""',
+			'ALTER TABLE orders ADD COLUMN payment_access_script TEXT NOT NULL DEFAULT ""',
+			'ALTER TABLE orders ADD COLUMN payment_p2sh_address TEXT NOT NULL DEFAULT ""',
 			'ALTER TABLE orders ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0',
 			'ALTER TABLE orders ADD COLUMN status TEXT NOT NULL DEFAULT "pending"',
 			'ALTER TABLE orders ADD COLUMN block_id_received INTEGER NOT NULL DEFAULT 0',
@@ -47,6 +48,7 @@ class Database {
 
 		await this.migrateListingChainFields();
 		await this.migrateOrderChainFields();
+		await this.migrateOrderCryptoFieldNames();
 	}
 
 	async migrateListingChainFields() {
@@ -98,6 +100,28 @@ class Database {
 				await this.app.storage.runDatabase(sql, {}, this.dbname);
 			} catch (err) {
 				// legacy columns may be absent on fresh installs
+			}
+		}
+	}
+
+	/** Rename legacy payment_* crypto columns on orders. */
+	async migrateOrderCryptoFieldNames() {
+		const renames = [
+			['payment_utxo_slip', 'utxo_slip'],
+			['payment_access_hash', 'access_hash'],
+			['payment_access_script', 'access_script'],
+			['payment_p2sh_address', 'p2sh_address']
+		];
+
+		for (const [from, to] of renames) {
+			try {
+				await this.app.storage.runDatabase(
+					`ALTER TABLE orders RENAME COLUMN ${from} TO ${to}`,
+					{},
+					this.dbname
+				);
+			} catch (err) {
+				// already renamed or column absent on fresh installs
 			}
 		}
 	}
@@ -232,7 +256,11 @@ class Database {
 		}
 	}
 
-	async markListingSold(signature, chain = {}, now = Date.now()) {
+	async markListingSold(
+		signature,
+		{ sold_block_id = 0, sold_block_hash = '', sold_transaction_id = 0 } = {},
+		now = Date.now()
+	) {
 		await this.app.storage.runDatabase(
 			`UPDATE listings
 			 SET block_id_sold = $block_id_sold,
@@ -243,9 +271,9 @@ class Database {
 			 WHERE signature = $signature`,
 			{
 				$signature: signature,
-				$block_id_sold: Number(chain.block_id ?? 0),
-				$block_hash_sold: String(chain.block_hash || ''),
-				$transaction_id_sold: Number(chain.transaction_id ?? 0),
+				$block_id_sold: Number(sold_block_id ?? 0),
+				$block_hash_sold: String(sold_block_hash || ''),
+				$transaction_id_sold: Number(sold_transaction_id ?? 0),
 				$updated_at: now
 			},
 			this.dbname
@@ -410,24 +438,43 @@ class Database {
 		await this.app.storage.runDatabase(`DELETE FROM summary`, {}, this.dbname);
 	}
 
-	async deleteSummary(summary_id) {
+	async deleteSummaryByBucket(nft_id, price) {
 		await this.app.storage.runDatabase(
-			`DELETE FROM summary WHERE id = $id`,
-			{ $id: Number(summary_id) },
+			`DELETE FROM summary WHERE nft_id = $nft_id AND price = $price`,
+			{ $nft_id: nft_id, $price: Number(price) },
 			this.dbname
 		);
 	}
 
-	async updateSummaryAvailable(summary_id, quantity_available, now = Date.now()) {
+	async updateSummaryAvailableByBucket(nft_id, price, quantity_available, now = Date.now()) {
 		await this.app.storage.runDatabase(
 			`UPDATE summary
 			 SET quantity_available = $quantity_available,
 			     updated_at = $updated_at
-			 WHERE id = $id`,
+			 WHERE nft_id = $nft_id AND price = $price`,
 			{
-				$id: Number(summary_id),
+				$nft_id: nft_id,
+				$price: Number(price),
 				$quantity_available: Number(quantity_available ?? 0),
 				$updated_at: now
+			},
+			this.dbname
+		);
+	}
+
+	async updateSummaryMetadata(nft_id, price, { title = '', description = '' } = {}) {
+		await this.app.storage.runDatabase(
+			`UPDATE summary
+			 SET title = CASE WHEN length($title) > 0 THEN $title ELSE title END,
+			     description = CASE WHEN length($description) > 0 THEN $description ELSE description END,
+			     updated_at = $updated_at
+			 WHERE nft_id = $nft_id AND price = $price`,
+			{
+				$nft_id: nft_id,
+				$price: Number(price ?? 0),
+				$title: String(title || ''),
+				$description: String(description || ''),
+				$updated_at: Date.now()
 			},
 			this.dbname
 		);
@@ -439,7 +486,8 @@ class Database {
 		await this.app.storage.runDatabase(
 			`INSERT INTO orders (
 			  order_tx_sig, buyer, nft_id, price, quantity,
-			  payment_tx_sig, payment_output_index, payment_amount, payment_utxo_slip,
+			  payment_tx_sig, payment_output_index, payment_amount, utxo_slip,
+			  access_hash, access_script, p2sh_address,
 			  block_id_received, block_hash_received, transaction_id_received, longest_chain_received,
 			  settlement_tx_sig,
 			  block_id_fulfilled, block_hash_fulfilled, transaction_id_fulfilled, longest_chain_fulfilled,
@@ -447,7 +495,8 @@ class Database {
 			  created_at, updated_at
 			) VALUES (
 			  $order_tx_sig, $buyer, $nft_id, $price, $quantity,
-			  $payment_tx_sig, $payment_output_index, $payment_amount, $payment_utxo_slip,
+			  $payment_tx_sig, $payment_output_index, $payment_amount, $utxo_slip,
+			  $access_hash, $access_script, $p2sh_address,
 			  $block_id_received, $block_hash_received, $transaction_id_received, $longest_chain_received,
 			  $settlement_tx_sig,
 			  $block_id_fulfilled, $block_hash_fulfilled, $transaction_id_fulfilled, $longest_chain_fulfilled,
@@ -625,76 +674,6 @@ class Database {
 				$block_hash: String(block_hash || ''),
 				$longest_chain: longest_chain ? 1 : 0,
 				$updated_at: Date.now()
-			},
-			this.dbname
-		);
-	}
-
-	// --- transaction archive ---
-
-	async insertTransaction(tx, app, chain = {}) {
-		if (!tx?.signature) {
-			return;
-		}
-
-		const serialized = tx.serialize_to_web(app);
-		try {
-			await this.app.storage.runDatabase(
-				`INSERT INTO transactions (signature, tx, onchain, block_id, block_hash, transaction_id, created_at)
-				 VALUES ($signature, $tx, $onchain, $block_id, $block_hash, $transaction_id, $created_at)`,
-				{
-					$signature: tx.signature,
-					$tx: JSON.stringify(serialized),
-					$onchain: chain.onchain ?? 1,
-					$block_id: chain.block_id ?? 0,
-					$block_hash: chain.block_hash || '',
-					$transaction_id: chain.transaction_id ?? 0,
-					$created_at: Date.now()
-				},
-				this.dbname
-			);
-		} catch (err) {
-			if (!String(err?.message || err).includes('UNIQUE')) {
-				throw err;
-			}
-		}
-	}
-
-	async returnTransaction(signature, app) {
-		if (!signature) {
-			return null;
-		}
-
-		try {
-			const res = await this.app.storage.queryDatabase(
-				`SELECT tx FROM transactions WHERE signature = $signature AND onchain = $onchain LIMIT 1`,
-				{ $signature: signature, $onchain: 1 },
-				this.dbname
-			);
-			if (!res?.length || !res[0]?.tx) {
-				return null;
-			}
-
-			let raw = res[0].tx;
-			if (typeof raw === 'string') {
-				raw = JSON.parse(raw);
-			}
-
-			const tx = new Transaction();
-			tx.deserialize_from_web(app, raw);
-			return tx;
-		} catch (err) {
-			return null;
-		}
-	}
-
-	async updateTransactionsChainState(block_id, block_hash, onchain) {
-		await this.app.storage.runDatabase(
-			`UPDATE transactions SET onchain = $onchain WHERE block_id = $block_id AND block_hash = $block_hash`,
-			{
-				$block_id: Number(block_id) || 0,
-				$block_hash: String(block_hash || ''),
-				$onchain: onchain ? 1 : 0
 			},
 			this.dbname
 		);

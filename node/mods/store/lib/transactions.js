@@ -8,20 +8,20 @@ const {
 	createListingScript,
 	createPurchaseScript,
 	executeListingScript,
-	returnP2SHTuples
+	returnCreatedNftTuples,
+	returnSpentNftTuples,
+	signAccessScriptWitness
 } = require('./scripting');
 const {
-	attachP2shAccessScripts,
-	returnChainLocation,
+	transactionIndexInBlock,
 	returnAmountPaidInPurchase,
 	returnPaymentUtxoFromPurchase,
-	serializePaymentSlip,
 	slipPublicKey,
-	SLIP_TYPE_P2SH,
-	findInventoryTriple,
-	listingInputsFromRecord,
+	serializeSlip,
 	paymentInputFromOrder,
-	slipToStoredJson
+	listingInputSlipJsonFromRecord,
+	listingTxmsg,
+	listRustP2shInputIndexes
 } = require('./helpers');
 
 module.exports = {
@@ -96,8 +96,7 @@ module.exports = {
 	        const txmsg = tx.returnMessage();
 
 	        if (txmsg.fulfill_sale) {
-	                await this.warehouse.confirmSettlement(blk, tx);
-	                await this.warehouse.addListing(nft, tx, txmsg, blk);
+	                await this.receiveFulfillmentTransaction(blk, tx);
 	                return;
 	        }
 
@@ -106,15 +105,17 @@ module.exports = {
 	        //
 	        try {
 
-	                const tuples = returnP2SHTuples(tx);
-	                const p2sh_address = this.app.core.scripting.address(txmsg.access_script || '');
+	                const spent_tuples = returnSpentNftTuples(tx);
+	                const created_tuples = returnCreatedNftTuples(tx);
+	                const slip_key =
+	                        slipPublicKey(this.app, txmsg.p2sh_address || '') || txmsg.p2sh_address || '';
 
 	                //
 	                // inventory moved from one listing position to another
 	                //
 	                if (
-	                        tuples.inputs.some(t => t.p2sh_public_key === p2sh_address) &&
-	                        tuples.outputs.some(t => t.p2sh_public_key === p2sh_address) &&
+	                        spent_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
+	                        created_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
 	                        await executeListingScript(
 	                                this.app,
 	                                txmsg.access_script || '',
@@ -138,34 +139,386 @@ module.exports = {
 
 	},
 
+	async receiveFulfillmentTransaction(blk, tx) {
+		console.log('Store: receiveFulfillmentTransaction start', tx.signature);
+
+		const nft = new SaitoNFT(this.app, this, tx, null);
+		const txmsg = tx.returnMessage();
+
+		await this.warehouse.confirmSettlement(blk, tx);
+		await this.warehouse.addListing(nft, tx, txmsg, blk);
+	},
+
+	attachFulfillmentTxmsg(fulfillment_tx, order_row, listing_rows = [], listing_tx = null) {
+		if (!fulfillment_tx || !order_row || !listing_rows.length || !listing_tx) {
+			throw new Error('fulfillment transaction, order, listing rows, and listing tx are required');
+		}
+
+		const primary_listing_row = listing_rows[0];
+		const listing_txmsg = listingTxmsg(listing_tx);
+		const buyer = order_row.buyer || '';
+		const buy_qty = Number(order_row.quantity) || 1;
+		const unit_price = Number(order_row.price ?? primary_listing_row.price ?? 0);
+
+		let relist_listing_row = primary_listing_row;
+		let relist_remainder = 0;
+		for (const listing_row of listing_rows) {
+			const row_qty = Number(listing_row.quantity ?? 1);
+			const take_qty = Number(listing_row.take_qty ?? row_qty);
+			const remainder = row_qty - take_qty;
+			if (remainder > 0) {
+				relist_listing_row = listing_row;
+				relist_remainder = remainder;
+				break;
+			}
+		}
+
+		const pay_descriptor = relist_listing_row.p2sh_address || primary_listing_row.p2sh_address || '';
+		const base_listing = listing_txmsg.listing || {
+			nft_id: primary_listing_row.nft_id,
+			price: unit_price,
+			denomination: 'SAITO',
+			pay_descriptor
+		};
+
+		const existing_access_scripts = Array.isArray(fulfillment_tx.msg?.access_scripts)
+			? fulfillment_tx.msg.access_scripts
+			: null;
+
+		fulfillment_tx.msg = {
+			...JSON.parse(JSON.stringify(listing_txmsg || {})),
+			...(fulfillment_tx.msg || {})
+		};
+		fulfillment_tx.msg.module = 'Store';
+		fulfillment_tx.msg.request = 'list-asset';
+		fulfillment_tx.msg.fulfill_sale = {
+			sale_signature: order_row.order_tx_sig || order_row.signature,
+			prior_inventory: primary_listing_row.signature,
+			listing_signatures: listing_rows.map((row) => row.signature).filter(Boolean),
+			buyer,
+			quantity: buy_qty,
+			seller: relist_listing_row.seller || primary_listing_row.seller || ''
+		};
+
+		if (relist_remainder > 0) {
+			fulfillment_tx.msg.access_script = relist_listing_row.access_script || '';
+			fulfillment_tx.msg.access_hash = relist_listing_row.access_hash || '';
+			fulfillment_tx.msg.p2sh_address = relist_listing_row.p2sh_address || '';
+			fulfillment_tx.msg.listing = {
+				...base_listing,
+				nft_id: primary_listing_row.nft_id || base_listing.nft_id,
+				price: unit_price,
+				denomination: base_listing.denomination || 'SAITO',
+				pay_descriptor,
+				nft_amount: relist_remainder,
+				quantity: relist_remainder
+			};
+		} else {
+			fulfillment_tx.msg.access_script = primary_listing_row.access_script || '';
+			fulfillment_tx.msg.access_hash = primary_listing_row.access_hash || '';
+			fulfillment_tx.msg.p2sh_address = primary_listing_row.p2sh_address || '';
+			fulfillment_tx.msg.listing = {
+				...base_listing,
+				nft_id: primary_listing_row.nft_id || base_listing.nft_id,
+				price: unit_price,
+				denomination: base_listing.denomination || 'SAITO',
+				pay_descriptor: primary_listing_row.p2sh_address || pay_descriptor,
+				nft_amount: 0,
+				quantity: 0
+			};
+		}
+
+		if (existing_access_scripts) {
+			fulfillment_tx.msg.access_scripts = existing_access_scripts;
+		}
+
+		return fulfillment_tx;
+	},
+
+	/**
+	 * Build a fulfillment transaction from order and listing database rows.
+	 * Witnesses attach only to payment escrow and NFT custody slips (never Bound).
+	 */
+	async createFulfillmentTransaction(order_row, listing_rows = [], listing_tx = null) {
+		if (!order_row) {
+			throw new Error('order_row is required');
+		}
+		if (!listing_rows.length) {
+			throw new Error('listing rows are required');
+		}
+
+		const buyer = order_row.buyer || '';
+		const buy_qty = Number(order_row.quantity) || 1;
+		const allocated_total = listing_rows.reduce(
+			(sum, row) => sum + Number(row.take_qty ?? row.quantity ?? 0),
+			0
+		);
+		if (buy_qty <= 0 || allocated_total !== buy_qty) {
+			throw new Error('invalid fulfillment quantity');
+		}
+
+		const primary_listing_row = listing_rows[0];
+		const buyer_template_json = listingInputSlipJsonFromRecord(primary_listing_row);
+		if (!buyer_template_json) {
+			throw new Error('listing utxo slips not available');
+		}
+
+		const payment_input = paymentInputFromOrder(order_row);
+		if (!payment_input) {
+			throw new Error('payment utxo slip not available');
+		}
+
+		const payment_access_script = order_row.access_script || '';
+		if (!payment_access_script) {
+			throw new Error('payment access script not available on order');
+		}
+
+		const payment_utxo_key = String(payment_input.utxoKey || '');
+		if (!payment_utxo_key) {
+			throw new Error('P2SH input is missing utxoset key');
+		}
+
+		const access_scripts = [];
+		const fulfillment_tx = new Transaction();
+		fulfillment_tx.timestamp = Date.now();
+		fulfillment_tx.type = TransactionType.Bound;
+		fulfillment_tx.msg = {};
+
+		const payment_pubkey =
+			slipPublicKey(this.app, order_row.p2sh_address) || order_row.p2sh_address || '';
+
+		const witness_log = (role) => ({
+			logRustScript: true,
+			context: `createFulfillmentTransaction:${role}`
+		});
+
+		fulfillment_tx.addFromSlip(payment_input);
+		access_scripts.push(
+			await signAccessScriptWitness(
+				this.app,
+				payment_access_script,
+				payment_utxo_key,
+				witness_log('payment')
+			)
+		);
+
+		const partial_relists = [];
+
+		for (const listing_row of listing_rows) {
+			const take_qty = Number(listing_row.take_qty ?? listing_row.quantity ?? 0);
+			const row_qty = Number(listing_row.quantity ?? 1);
+			const listing_access_script = listing_row.access_script || '';
+
+			if (!listing_access_script) {
+				throw new Error('listing access script not available');
+			}
+
+			if (take_qty <= 0 || take_qty > row_qty) {
+				throw new Error('invalid fulfillment quantity');
+			}
+
+			const row_triple_json = listingInputSlipJsonFromRecord(listing_row);
+			if (!row_triple_json) {
+				throw new Error('listing utxo slips not available');
+			}
+
+			const listing_p2sh_public_key =
+				slipPublicKey(this.app, listing_row.p2sh_address) || listing_row.p2sh_address;
+
+			for (let j = 0; j < row_triple_json.length; j++) {
+				const slip_json = row_triple_json[j];
+				const listing_utxo_key = String(slip_json?.utxoKey || '');
+				const listing_input = new Slip(undefined, slip_json);
+				const is_custody = j === 1;
+
+				if (is_custody && !listing_utxo_key) {
+					throw new Error('P2SH input is missing utxoset key');
+				}
+
+				fulfillment_tx.addFromSlip(listing_input);
+
+				if (is_custody) {
+					access_scripts.push(
+						await signAccessScriptWitness(
+							this.app,
+							listing_access_script,
+							listing_utxo_key,
+							witness_log(`listing-custody-${listing_row.signature || listing_rows.indexOf(listing_row)}`)
+						)
+					);
+				}
+			}
+
+			const remainder = row_qty - take_qty;
+			if (remainder > 0) {
+				if (partial_relists.length) {
+					throw new Error('multiple partial listing consumptions are not supported');
+				}
+				partial_relists.push({
+					listing_row,
+					row_triple_json,
+					listing_p2sh_public_key,
+					remainder
+				});
+			}
+		}
+
+		let buyer_custody_total = 0n;
+		for (const listing_row of listing_rows) {
+			const take_qty = Number(listing_row.take_qty ?? listing_row.quantity ?? 0);
+			const row_qty = Number(listing_row.quantity ?? 1);
+			const row_triple_json = listingInputSlipJsonFromRecord(listing_row);
+			if (!row_triple_json || row_qty <= 0 || take_qty <= 0) {
+				continue;
+			}
+			const row_custody = BigInt(row_triple_json[1]?.amount ?? 0);
+			buyer_custody_total += (row_custody * BigInt(take_qty)) / BigInt(row_qty);
+		}
+
+		{
+			const buyer_out1 = new Slip(undefined, buyer_template_json[0]);
+			buyer_out1.amount = BigInt(buy_qty);
+			fulfillment_tx.addToSlip(buyer_out1);
+		}
+		{
+			const buyer_out2 = new Slip(undefined, buyer_template_json[1]);
+			buyer_out2.publicKey = buyer;
+			buyer_out2.amount = buyer_custody_total;
+			fulfillment_tx.addToSlip(buyer_out2);
+		}
+		{
+			const buyer_out3 = new Slip(undefined, buyer_template_json[2]);
+			fulfillment_tx.addToSlip(buyer_out3);
+		}
+
+		for (const relist of partial_relists) {
+			{
+				const relist_out1 = new Slip(undefined, relist.row_triple_json[0]);
+				relist_out1.amount = BigInt(relist.remainder);
+				fulfillment_tx.addToSlip(relist_out1);
+			}
+			{
+				const relist_out2 = new Slip(undefined, relist.row_triple_json[1]);
+				relist_out2.publicKey = relist.listing_p2sh_public_key;
+				const row_custody = BigInt(relist.row_triple_json[1]?.amount ?? 0);
+				const row_qty = Number(relist.listing_row.quantity ?? 1);
+				const take_qty = row_qty - relist.remainder;
+				const buyer_part =
+					row_qty > 0 ? (row_custody * BigInt(take_qty)) / BigInt(row_qty) : 0n;
+				relist_out2.amount = row_custody - buyer_part;
+				fulfillment_tx.addToSlip(relist_out2);
+			}
+			{
+				const relist_out3 = new Slip(undefined, relist.row_triple_json[2]);
+				fulfillment_tx.addToSlip(relist_out3);
+			}
+		}
+
+		const unit_price = BigInt(order_row.price ?? primary_listing_row.price ?? 0);
+		const seller_amounts = new Map();
+		for (const listing_row of listing_rows) {
+			const seller = listing_row.seller || '';
+			if (!seller) {
+				continue;
+			}
+			const take_qty = Number(listing_row.take_qty ?? listing_row.quantity ?? 0);
+			const prior = seller_amounts.get(seller) || 0n;
+			seller_amounts.set(seller, prior + unit_price * BigInt(take_qty));
+		}
+		for (const [seller, amount] of seller_amounts.entries()) {
+			if (amount <= 0n) {
+				continue;
+			}
+			const seller_slip = new Slip();
+			seller_slip.publicKey = seller;
+			seller_slip.amount = amount;
+			seller_slip.type = SlipType.Normal;
+			fulfillment_tx.addToSlip(seller_slip);
+		}
+
+		fulfillment_tx.msg.access_scripts = access_scripts;
+
+		const p2sh_indexes = listRustP2shInputIndexes(this.app, fulfillment_tx);
+		if (access_scripts.length !== p2sh_indexes.length) {
+			throw new Error(
+				`access script count ${access_scripts.length} does not match P2SH input count ${p2sh_indexes.length}`
+			);
+		}
+
+		if (listing_tx) {
+			this.attachFulfillmentTxmsg(fulfillment_tx, order_row, listing_rows, listing_tx);
+		}
+
+		const { dumpFulfillmentAccessScripts } = require('./fulfillment-trace');
+		dumpFulfillmentAccessScripts(this.app, fulfillment_tx, payment_pubkey);
+
+		await fulfillment_tx.sign();
+		return fulfillment_tx;
+	},
+
 	async createPurchaseAssetTransaction(summary, sale = {}, nolan_to_send = 0n) {
+		console.log('TX 01 createPurchaseAssetTransaction enter', {
+			nft_id: summary?.nft_id,
+			price: summary?.price,
+			nolan_to_send: nolan_to_send.toString()
+		});
+
 		if (!this.store_public_key) {
 			throw new Error('Store public key is not configured');
 		}
 
-		if (!summary?.id) {
-			throw new Error('Summary id is required for purchase');
+		if (!summary?.nft_id) {
+			throw new Error('Summary nft_id is required for purchase');
 		}
 
+		const bucket_price = Number(summary.price ?? 0);
+		if (!Number.isFinite(bucket_price) || bucket_price <= 0) {
+			throw new Error('Summary price is required for purchase');
+		}
+
+		console.log('TX 02 before wallet.getPublicKey()');
 		const buyer_publickey = await this.app.wallet.getPublicKey();
+		console.log('TX 03 after wallet.getPublicKey()', { buyer_publickey });
+
 		const script_info = createPurchaseScript(this.app, {
 			buyer_publickey,
 			store_publickey: this.store_public_key
 		});
 		const payment_recipient =
 			slipPublicKey(this.app, script_info.p2sh_address) || script_info.p2sh_address;
+		if (
+			!payment_recipient ||
+			(payment_recipient === script_info.p2sh_address &&
+				script_info.p2sh_address?.length === 66 &&
+				script_info.p2sh_address?.startsWith('00'))
+		) {
+			console.error(
+				'Store: createPurchaseAssetTransaction slipPublicKey failed',
+				script_info.p2sh_address,
+				payment_recipient
+			);
+			throw new Error('invalid recipient public key');
+		}
 
+		console.log('TX 04 before createUnsignedTransactionWithDefaultFee()', {
+			payment_recipient,
+			nolan_to_send: nolan_to_send.toString()
+		});
 		const newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
 			payment_recipient,
 			nolan_to_send
 		);
+		console.log('TX 05 after createUnsignedTransactionWithDefaultFee()', {
+			inputs: newtx.from?.length,
+			outputs: newtx.to?.length
+		});
 
 		newtx.msg = {
 			module: 'Store',
 			request: 'purchase-asset',
 			buyer: buyer_publickey,
 			refund: buyer_publickey,
-			listing_id: summary.id,
+			nft_id: summary.nft_id,
 			quantity: Number(sale.quantity) || 1,
 			price: String(sale.price),
 			fee: String(sale.fee),
@@ -174,39 +527,61 @@ module.exports = {
 			p2sh_address: script_info.p2sh_address
 		};
 
+		console.log('TX 06 before newtx.sign()');
 		await newtx.sign();
+		console.log('TX 07 after newtx.sign()', { signature: newtx.signature });
+
+		console.log('TX created', {
+			signature: newtx.signature,
+			inputs: newtx.from?.length,
+			outputs: newtx.to?.length
+		});
 		return newtx;
 	},
 
-	orderFromPurchaseTx(tx, txmsg, payment_utxo, chain) {
+	orderFromPurchaseTx(
+		tx,
+		txmsg,
+		payment_utxo,
+		{ received_block_id = 0, received_block_hash = '', received_transaction_id = 0 } = {}
+	) {
 		const buyer = txmsg.buyer || tx.from?.[0]?.publicKey || '';
+		const payment_slip = tx.to?.[payment_utxo.payment_output_index];
 		return new Order({
 			order_tx_sig: tx.signature,
 			buyer,
 			payment_tx_sig: payment_utxo.payment_tx_sig,
 			payment_output_index: payment_utxo.payment_output_index,
 			payment_amount: Number(payment_utxo.payment_amount),
-			payment_utxo_slip: serializePaymentSlip(tx, payment_utxo.payment_output_index, chain),
-			block_id_received: chain.block_id,
-			block_hash_received: chain.block_hash,
-			transaction_id_received: chain.transaction_id,
+			utxo_slip: payment_slip ? serializeSlip(payment_slip) : '',
+			access_hash: txmsg.access_hash || '',
+			access_script: payment_utxo.access_script || txmsg.access_script || '',
+			p2sh_address: payment_utxo.p2sh_address || txmsg.p2sh_address || '',
+			block_id_received: Number(received_block_id ?? 0),
+			block_hash_received: String(received_block_hash || ''),
+			transaction_id_received: Number(received_transaction_id ?? 0),
 			longest_chain_received: 1
 		});
 	},
 
 	async createOrderRefundTransaction({
-		order,
-		payment_tx = null,
+		order_row,
 		refund_public_key = '',
 		reason = 'unable-to-fulfill'
 	} = {}) {
+		const order = order_row;
 		if (!order) {
 			return null;
 		}
 
-		const payment_input = paymentInputFromOrder(order, payment_tx);
+		const payment_input = paymentInputFromOrder(order);
 		if (!payment_input) {
 			throw new Error('payment input not available');
+		}
+
+		const payment_access_script = order.access_script || '';
+		if (!payment_access_script) {
+			throw new Error('payment access script not available on order');
 		}
 
 		const refund_to = refund_public_key || order.buyer || '';
@@ -243,30 +618,28 @@ module.exports = {
 			payment_amount: String(order.payment_amount ?? 0)
 		};
 
-		const payment_txmsg =
-			(typeof payment_tx?.returnMessage === 'function' ? payment_tx.returnMessage() : payment_tx?.msg) ||
-			{};
-		const payment_access_script = payment_txmsg.access_script || '';
-		const payment_pubkey = slipPublicKey(this.app, payment_txmsg.p2sh_address || '');
-		if (!payment_pubkey || !payment_access_script) {
-			throw new Error('payment access script not available');
-		}
+		const { attachP2shAccessScripts } = require('./helpers');
+		await attachP2shAccessScripts(this.app, tx, { payment_access_script });
 
-		await attachP2shAccessScripts(this.app, tx, {
-			[payment_pubkey]: payment_access_script
+		const payment_pubkey =
+			slipPublicKey(this.app, order.p2sh_address) || order.p2sh_address || '';
+
+		const { logAccessScriptsForRustscript } = require('./fulfillment-trace');
+		logAccessScriptsForRustscript(this.app, tx, {
+			operation: 'order-refund',
+			payment_pubkey
 		});
 
 		return tx;
 	},
 
-	async propagateOrderRefund(order, { payment_tx = null, refund_public_key = '', reason = 'unable-to-fulfill' } = {}) {
+	async propagateOrderRefund(order, { refund_public_key = '', reason = 'unable-to-fulfill' } = {}) {
 		if (this.app.BROWSER) {
 			return;
 		}
 
 		const refund_tx = await this.createOrderRefundTransaction({
-			order,
-			payment_tx,
+			order_row: order,
 			refund_public_key,
 			reason
 		});
@@ -275,7 +648,6 @@ module.exports = {
 		}
 
 		await refund_tx.sign();
-		await this.warehouse.db.insertTransaction(refund_tx, this.app, { onchain: 1 });
 		this.app.network.propagateTransaction(refund_tx);
 		console.log('Store: propagating order refund', refund_tx.signature, reason);
 	},
@@ -292,28 +664,51 @@ module.exports = {
 		}
 
 		const buyer = txmsg.buyer || tx.from?.[0]?.publicKey;
-		const listing_id = txmsg.listing_id || txmsg.listing_signature;
+		const nft_id = String(txmsg.nft_id || '').trim();
 		const quantity = Number(txmsg.quantity) || 1;
 		const unit_price = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.price) ?? 0);
 		const fee = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.fee) ?? 0);
 		const total = unit_price * BigInt(quantity) + fee;
-		const chain = returnChainLocation(blk, tx);
+		const received_block_id = Number(blk?.id ?? 0);
+		const received_block_hash = String(blk?.hash ?? '');
+		const received_transaction_id = transactionIndexInBlock(blk, tx);
 		const refund_public_key = txmsg.refund || buyer;
 
-		if (!buyer || !listing_id) {
-			console.warn('Store: purchase missing buyer or listing_id');
+		console.log('');
+		console.log('****************************************************');
+		console.log('********** STORE PURCHASE RECEIVED **********');
+		console.log('****************************************************');
+		console.log({
+			signature: tx.signature,
+			buyer,
+			nft_id,
+			price_nolan: unit_price?.toString?.(),
+			quantity,
+			amount_paid: returnAmountPaidInPurchase(tx, txmsg, this.app)?.toString?.(),
+			total_due: total?.toString?.()
+		});
+
+		if (!buyer || !nft_id) {
+			console.warn('Store: purchase missing buyer or nft_id');
+			console.log('SERVER EXIT: missing-buyer-or-nft-id');
 			return;
 		}
 
 		if (unit_price <= 0n) {
 			console.warn('Store: purchase invalid price');
+			console.log('SERVER EXIT: invalid-price');
 			return;
 		}
 
+		console.log('SERVER 01 validate payment');
 		const amount_paid = returnAmountPaidInPurchase(tx, txmsg, this.app);
 		const payment_utxo = returnPaymentUtxoFromPurchase(tx, txmsg, this.app);
 		const refund_order = payment_utxo
-			? this.orderFromPurchaseTx(tx, txmsg, payment_utxo, chain)
+			? this.orderFromPurchaseTx(tx, txmsg, payment_utxo, {
+					received_block_id,
+					received_block_hash,
+					received_transaction_id
+				})
 			: null;
 
 		const refund = async (reason) => {
@@ -323,7 +718,6 @@ module.exports = {
 			}
 			try {
 				await this.propagateOrderRefund(refund_order, {
-					payment_tx: tx,
 					refund_public_key,
 					reason
 				});
@@ -334,288 +728,83 @@ module.exports = {
 
 		if (amount_paid < total) {
 			console.warn(`Store: purchase underpaid. got=${amount_paid} need=${total}`);
+			console.log('SERVER EXIT: underpaid', { signature: tx.signature });
 			await refund('underpaid');
 			return;
 		}
 
 		if (!payment_utxo) {
 			console.warn('Store: purchase payment UTXO not found');
+			console.log('SERVER EXIT: payment-utxo-missing', { signature: tx.signature });
 			return;
 		}
 
-		const summary = await this.warehouse.returnSummary(listing_id);
+		console.log('SERVER 02 lookup summary bucket', {
+			nft_id,
+			price_nolan: unit_price.toString(),
+			signature: tx.signature
+		});
+		const summary = await this.warehouse.returnSummaryByBucket(nft_id, Number(unit_price));
 		const available = summary
 			? await this.warehouse.returnAvailableQuantity(summary.nft_id, summary.price)
 			: 0;
+
+		console.log('SERVER 03 quantity check', {
+			signature: tx.signature,
+			available,
+			quantity,
+			summary_found: Boolean(summary)
+		});
 		if (!summary || available <= 0) {
-			console.warn('Store: purchase summary inactive or missing', listing_id);
+			console.warn('Store: purchase summary inactive or missing', nft_id, unit_price.toString());
+			console.log('SERVER EXIT: listing-inactive', { signature: tx.signature });
 			await refund('listing-inactive');
 			return;
 		}
 
 		if (available < quantity) {
-			console.warn('Store: purchase insufficient available quantity', listing_id);
+			console.warn(
+				'Store: purchase insufficient available quantity',
+				nft_id,
+				unit_price.toString()
+			);
+			console.log('SERVER EXIT: insufficient-quantity', { signature: tx.signature });
 			await refund('insufficient-quantity');
 			return;
 		}
 
 		const now = Date.now();
 
+		console.log('SERVER 04 reserve inventory', { signature: tx.signature });
 		try {
-			await this.warehouse.addOrder(
-				new Order({
-					order_tx_sig: tx.signature,
-					buyer,
-					nft_id: summary.nft_id,
-					price: Number(summary.price ?? 0),
-					quantity,
-					payment_tx_sig: payment_utxo.payment_tx_sig,
-					payment_output_index: payment_utxo.payment_output_index,
-					payment_amount: Number(payment_utxo.payment_amount),
-					payment_utxo_slip: refund_order.payment_utxo_slip,
-					block_id_received: chain.block_id,
-					block_hash_received: chain.block_hash,
-					transaction_id_received: chain.transaction_id,
-					longest_chain_received: 1,
-					settlement_tx_sig: '',
-					block_id_fulfilled: 0,
-					block_hash_fulfilled: '',
-					transaction_id_fulfilled: 0,
-					longest_chain_fulfilled: 0,
-					created_at: now,
-					updated_at: now
-				})
-			);
-			await this.warehouse.db.insertTransaction(tx, this.app, {
-				onchain: 1,
-				block_id: chain.block_id,
-				block_hash: chain.block_hash,
-				transaction_id: chain.transaction_id
+			const order = this.orderFromPurchaseTx(tx, txmsg, payment_utxo, {
+				received_block_id,
+				received_block_hash,
+				received_transaction_id
 			});
+			order.nft_id = summary.nft_id;
+			order.price = Number(summary.price ?? 0);
+			order.quantity = quantity;
+			order.created_at = now;
+			order.updated_at = now;
+			await this.warehouse.addOrder(order);
 			console.log('Store: escrow payment recorded', tx.signature);
+			console.log('SERVER 05 create fulfillment — deferred to warehouse queue', {
+				signature: tx.signature
+			});
+			console.log('SERVER 06 broadcast fulfillment — deferred to warehouse queue', {
+				signature: tx.signature
+			});
+			console.log('SERVER 07 complete', { signature: tx.signature, order_tx_sig: order.order_tx_sig });
 		} catch (err) {
 			if (String(err?.message || err).includes('UNIQUE')) {
 				console.log('Store: escrow payment already recorded', tx.signature);
+				console.log('SERVER EXIT: duplicate-order', { signature: tx.signature });
 				return;
 			}
 			console.warn('Store: escrow payment record failed', err?.message);
+			console.log('SERVER EXIT: queue-failed', { signature: tx.signature });
 			await refund('queue-failed');
 		}
-	},
-
-	async createFulfillmentTransaction({
-		listing_tx = null,
-		listing_txmsg = {},
-		listing,
-		listings = null,
-		summary = null,
-		sale,
-		buyer,
-		quantity,
-		payment_tx = null
-	} = {}) {
-		const allocations = (Array.isArray(listings) && listings.length ? listings : listing ? [listing] : []).map(
-			(row) => ({
-				listing: row,
-				take_qty: Number(row.take_qty ?? row.quantity ?? 0)
-			})
-		);
-		if (!allocations.length) {
-			throw new Error('listing position not available');
-		}
-
-		const primary = allocations[0].listing;
-		const buy_qty = Number(quantity) || 1;
-		const allocated_total = allocations.reduce((sum, row) => sum + row.take_qty, 0);
-		if (buy_qty <= 0 || allocated_total !== buy_qty) {
-			throw new Error('invalid fulfillment quantity');
-		}
-
-		let buyer_template = listingInputsFromRecord(primary);
-		if (!buyer_template && listing_tx) {
-			const script_address = primary.p2sh_address || listing_txmsg?.listing?.pay_descriptor || '';
-			const slip_public_key = slipPublicKey(this.app, script_address) || script_address;
-			buyer_template = findInventoryTriple(listing_tx.to, slip_public_key);
-		}
-		if (!buyer_template) {
-			throw new Error('listing position not available');
-		}
-
-		const tx = new Transaction();
-		tx.timestamp = Date.now();
-		tx.type = TransactionType.Bound;
-
-		const payment_input = paymentInputFromOrder(sale, payment_tx);
-		if (!payment_input) {
-			throw new Error('payment input not available');
-		}
-		tx.addFromSlip(payment_input);
-
-		const script_by_pubkey = {};
-		const partial_relists = [];
-
-		for (const allocation of allocations) {
-			const listing_row = allocation.listing;
-			const take_qty = allocation.take_qty;
-			const row_qty = Number(listing_row.quantity) || 1;
-			if (take_qty <= 0 || take_qty > row_qty) {
-				throw new Error('invalid fulfillment quantity');
-			}
-
-			const row_triple = listingInputsFromRecord(listing_row);
-			if (!row_triple) {
-				throw new Error('listing position not available');
-			}
-
-			const row_script_address = listing_row.p2sh_address || '';
-			const row_slip_public_key =
-				slipPublicKey(this.app, row_script_address) || row_script_address;
-			const row_access_script = listing_row.access_script || '';
-			if (row_slip_public_key && row_access_script) {
-				script_by_pubkey[row_slip_public_key] = row_access_script;
-			}
-
-			for (const input of row_triple) {
-				tx.addFromSlip(input);
-			}
-
-			const p2sh_marker = new Slip();
-			p2sh_marker.type = SLIP_TYPE_P2SH;
-			p2sh_marker.amount = BigInt(0);
-			p2sh_marker.publicKey = row_slip_public_key;
-			tx.addFromSlip(p2sh_marker);
-
-			const remainder = row_qty - take_qty;
-			if (remainder > 0) {
-				if (partial_relists.length) {
-					throw new Error('multiple partial listing consumptions are not supported');
-				}
-				partial_relists.push({
-					allocation,
-					row_triple,
-					row_slip_public_key,
-					remainder
-				});
-			}
-		}
-
-		const buyer_out1 = new Slip(undefined, slipToStoredJson(buyer_template[0]));
-		buyer_out1.amount = BigInt(buy_qty);
-		const buyer_out2 = new Slip(undefined, slipToStoredJson(buyer_template[1]));
-		buyer_out2.publicKey = buyer;
-		const buyer_out3 = new Slip(undefined, slipToStoredJson(buyer_template[2]));
-		for (const out of [buyer_out1, buyer_out2, buyer_out3]) {
-			tx.addToSlip(out);
-		}
-
-		for (const relist of partial_relists) {
-			const relist_out1 = new Slip(undefined, slipToStoredJson(relist.row_triple[0]));
-			relist_out1.amount = BigInt(relist.remainder);
-			const relist_out2 = new Slip(undefined, slipToStoredJson(relist.row_triple[1]));
-			relist_out2.publicKey = relist.row_slip_public_key;
-			const relist_out3 = new Slip(undefined, slipToStoredJson(relist.row_triple[2]));
-			for (const out of [relist_out1, relist_out2, relist_out3]) {
-				tx.addToSlip(out);
-			}
-		}
-
-		const partial_allocation = partial_relists[0]?.allocation || null;
-
-		const unit_price = BigInt(sale?.price ?? summary?.price ?? primary.price ?? 0);
-		const seller_amounts = new Map();
-		for (const allocation of allocations) {
-			const seller = allocation.listing.seller || '';
-			if (!seller) {
-				continue;
-			}
-			const prior = seller_amounts.get(seller) || 0n;
-			seller_amounts.set(seller, prior + unit_price * BigInt(allocation.take_qty));
-		}
-		for (const [seller, amount] of seller_amounts.entries()) {
-			if (amount <= 0n) {
-				continue;
-			}
-			const seller_slip = new Slip();
-			seller_slip.publicKey = seller;
-			seller_slip.amount = amount;
-			seller_slip.type = SlipType.Normal;
-			tx.addToSlip(seller_slip);
-		}
-
-		const listing_price_nolan = Number(summary?.price ?? primary.price ?? sale?.price ?? 0);
-		const relist_source = partial_allocation?.listing || primary;
-		const relist_remainder = partial_allocation
-			? Number(partial_allocation.listing.quantity) - partial_allocation.take_qty
-			: 0;
-		const script_address = relist_source.p2sh_address || listing_txmsg?.listing?.pay_descriptor || '';
-		const access_script = relist_source.access_script || listing_txmsg?.access_script || '';
-
-		const base_listing = listing_txmsg?.listing || {
-			id: primary.summary_id,
-			nft_id: primary.nft_id || summary?.nft_id,
-			title: summary?.title,
-			description: summary?.description,
-			price: listing_price_nolan,
-			denomination: 'SAITO',
-			pay_descriptor: script_address
-		};
-
-		tx.msg = JSON.parse(JSON.stringify(listing_txmsg || {}));
-		tx.msg.module = 'Store';
-		tx.msg.request = 'list-asset';
-		tx.msg.fulfill_sale = {
-			sale_signature: sale.order_tx_sig || sale.signature,
-			prior_inventory: primary.signature,
-			listing_signatures: allocations.map((row) => row.listing.signature),
-			buyer,
-			quantity: buy_qty,
-			seller: relist_source.seller || primary.seller || ''
-		};
-
-		if (relist_remainder > 0) {
-			tx.msg.access_script = access_script;
-			tx.msg.access_hash = relist_source.access_hash || listing_txmsg?.access_hash || '';
-			tx.msg.p2sh_address = script_address;
-			tx.msg.listing = {
-				...base_listing,
-				id: primary.summary_id || base_listing.id,
-				nft_id: primary.nft_id || base_listing.nft_id,
-				title: summary?.title || base_listing.title,
-				description: summary?.description || base_listing.description,
-				price: listing_price_nolan,
-				denomination: base_listing.denomination || 'SAITO',
-				pay_descriptor: script_address,
-				nft_amount: relist_remainder,
-				quantity: relist_remainder
-			};
-		} else {
-			tx.msg.access_script = primary.access_script || listing_txmsg?.access_script || '';
-			tx.msg.access_hash = primary.access_hash || listing_txmsg?.access_hash || '';
-			tx.msg.p2sh_address = primary.p2sh_address || script_address;
-			tx.msg.listing = {
-				...base_listing,
-				id: primary.summary_id || base_listing.id,
-				nft_id: primary.nft_id || base_listing.nft_id,
-				title: summary?.title || base_listing.title,
-				description: summary?.description || base_listing.description,
-				price: listing_price_nolan,
-				denomination: base_listing.denomination || 'SAITO',
-				pay_descriptor: primary.p2sh_address || script_address,
-				nft_amount: 0,
-				quantity: 0
-			};
-		}
-
-		const payment_txmsg =
-			(typeof payment_tx?.returnMessage === 'function' ? payment_tx.returnMessage() : payment_tx?.msg) ||
-			{};
-		const payment_access_script = payment_txmsg.access_script || '';
-		const payment_pubkey = slipPublicKey(this.app, payment_txmsg.p2sh_address || '');
-		if (payment_pubkey && payment_access_script) {
-			script_by_pubkey[payment_pubkey] = payment_access_script;
-		}
-
-		await attachP2shAccessScripts(this.app, tx, script_by_pubkey);
-		return tx;
 	}
 };

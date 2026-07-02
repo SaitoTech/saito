@@ -4,6 +4,7 @@ use crate::core::consensus::slip::{Slip, SlipType};
 use crate::core::consensus::transaction::Transaction;
 use crate::core::defs::{PrintForLog, SaitoPublicKey};
 use crate::core::util::crypto;
+use log::info;
 use serde_json::{json, Value};
 
 use super::opcodes::{
@@ -1063,11 +1064,18 @@ pub(crate) fn resolve_ref(
     		        .and_then(|v| v.as_u64())
     		        .unwrap_or(0) as usize;
 
-    		return resolve_p2sh_slip_field(
+    		let resolved = resolve_p2sh_slip_field(
     		    &tx.from,
     		    field,
     		    p2sh_ordinal,
     		);
+    		if field == "utxoset_key" {
+    		    info!(
+    		        "RUSTSCRIPT DEREFERENCE\n\nExpression:\n    tx.from.p2sh.utxoset_key\n\nResolved Value:\n    {}",
+    		        resolved_value_to_message_string(&resolved)
+    		    );
+    		}
+    		return resolved;
 
             }
             if let Some(field) = remainder.strip_prefix("to.p2sh.") {

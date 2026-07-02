@@ -1108,6 +1108,12 @@ impl Transaction {
             // script invalid if it doesn't return 1 when executed w/ witness
             //
             if script.validate(Some(self), None, Some(blockchain), Some(array_idx)) != 1 {
+                error!(
+                    "RUSTSCRIPT VALIDATION FAILURE\n\nAccess Script Index:\n    {}\n\nTransaction Input Index:\n    {}\n\nScript Hash:\n    {}",
+                    array_idx,
+                    p2sh_idx,
+                    script_hash_hex
+                );
                 error!("P2SH spend: access_script evaluation failed");
                 return false;
             }

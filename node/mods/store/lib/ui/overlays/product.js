@@ -1,6 +1,8 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ProductTemplate = require('./product.template');
 const Summary = require('../../summary');
+const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
+const { summaryBucketKey } = require('../summary-cache');
 
 class ProductOverlay {
 	constructor(app, mod, summary = null) {
@@ -10,7 +12,11 @@ class ProductOverlay {
 		this.overlay = new SaitoOverlay(app, mod);
 
 		this.app.connection.on('store-listing-updated', (summary) => {
-			if (this.summary?.id && this.summary.id === summary.id) {
+			if (
+				this.summary?.nft_id &&
+				summaryBucketKey(this.summary.nft_id, this.summary.price) ===
+					summaryBucketKey(summary.nft_id, summary.price)
+			) {
 				this.render(summary);
 			}
 		});
@@ -72,23 +78,14 @@ class ProductOverlay {
 		const seller = summary.seller || 'anon-store';
 		const shortSeller = this.returnShortKey(seller);
 
-		const listingImage = summary.returnImage?.() || '';
-		const cacheImageUrl = !listingImage ? summary.returnCacheImageUrl?.() || '' : '';
-
+		const listingImage = summary.hasLoadedImage?.() ? summary.returnImage?.() || '' : '';
 		const images = Array.isArray(summary.images)
 			? summary.images.filter(Boolean)
-			: listingImage
-				? [listingImage]
-				: cacheImageUrl
-					? [cacheImageUrl]
-					: [];
+			: [listingImage || summary.returnPlaceholderImage?.() || DREAMSCAPE_PLACEHOLDER];
 
-		const fallbackImage =
-			"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%23132736'/%3E%3Cstop offset='1' stop-color='%233c8fcb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='800' fill='url(%23g)'/%3E%3C/svg%3E";
-		const normalizedImages =
-			images.length > 0
-				? images.map((img) => (img?.startsWith('gradient-') ? fallbackImage : img))
-				: [fallbackImage];
+		const normalizedImages = images.map((img) =>
+			img?.startsWith?.('gradient-') ? DREAMSCAPE_PLACEHOLDER : img
+		);
 
 		const priceValue = summary.returnPrice?.() || summary.price || summary.reserve_price || '';
 		const bidValue = summary.current_bid || summary.currentBid || '';
@@ -100,7 +97,7 @@ class ProductOverlay {
 		const supply = summary.returnQuantity?.() || 1;
 		const actionText = isBid ? 'Bid' : 'Buy';
 		const description = summary.returnDescription?.() || '';
-		const txid = String(summary.id || 'N/A');
+		const txid = String(summary.listing_signature || summary.nft_id || 'N/A');
 		const primaryDisplay = this.hasCurrencyLabel(primaryValue)
 			? String(primaryValue)
 			: `${primaryValue} ${currency}`;
@@ -128,7 +125,8 @@ class ProductOverlay {
 			productType: this.returnProductType(summary),
 			fileType: this.returnFileType(normalizedImages),
 			createdDate: this.returnCreatedDate(summary),
-			txidShort: this.returnShortKey(txid)
+			txidShort: this.returnShortKey(txid),
+			imageLoading: summary.isImageLoading?.() ?? false
 		};
 	}
 
@@ -150,7 +148,7 @@ class ProductOverlay {
 		if (mainImage) {
 			mainImage.onerror = () => {
 				mainImage.onerror = null;
-				this.maybeLoadNFT();
+				this.beginOverlayEnrichment();
 			};
 		}
 
@@ -187,32 +185,30 @@ class ProductOverlay {
 		const view = this.returnViewModel(this.summary || {});
 		this.overlay.show(ProductTemplate(view));
 		this.attachEvents();
-		if (!this.summary?.image) {
-			this.maybeLoadNFT();
-		}
+		this.beginOverlayEnrichment();
 	}
 
-	maybeLoadNFT() {
+	beginOverlayEnrichment() {
 		const summary = this.summary;
 		if (!(summary instanceof Summary)) {
 			return;
 		}
 
-		if (summary._store_image_fallback) {
-			return;
-		}
-
-		if (summary.image) {
-			return;
-		}
-
-		summary._store_image_fallback = true;
-
-		summary.loadNFT((updated) => {
-			if (updated?.image) {
-				this.render(updated);
+		const refreshIfNeeded = () => {
+			this.render(summary);
+			if (!summary.image) {
+				summary.enrichMedia(() => this.render(summary));
 			}
-		});
+		};
+
+		if (summary.listing_tx) {
+			if (!summary.image) {
+				summary.enrichMedia(() => this.render(summary));
+			}
+			return;
+		}
+
+		summary.ensureListingTransaction(refreshIfNeeded);
 	}
 }
 

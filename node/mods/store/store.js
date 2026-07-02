@@ -16,6 +16,7 @@ class Store extends ModTemplate {
 		this.name = 'Store';
 		this.slug = 'store';
 		this.dbname = 'store';
+		this.styles = ['/store/style.css'];
 
 		this.main = null;
 		this.header = null;
@@ -40,10 +41,13 @@ class Store extends ModTemplate {
 		}
 
 		if (this.browser_active) {
-			this.main = new Main(this.app, this);
-			await this.main.initialize();
 			this.header = new SaitoHeader(this.app, this);
 			await this.header.initialize(this.app);
+			this.addComponent(this.header);
+
+			this.main = new Main(this.app, this);
+			await this.main.initialize();
+			this.addComponent(this.main);
 		}
 	}
 
@@ -110,16 +114,29 @@ class Store extends ModTemplate {
 	}
 
 	async render() {
-		if (this.main) {
-			await this.main.render();
-			await this.header.render();
+		if (!this.browser_active || !this.main) {
+			return;
 		}
+
+		await super.render();
 	}
 
 	async onConfirmation(blk, tx, conf = 0) {
+
 		if (Number(conf) !== 0) {
 			return;
 		}
+
+		console.log('');
+		console.log('****************************************************');
+		console.log('********** STORE onConfirmation **********');
+		console.log('****************************************************');
+		console.log({
+			conf,
+			signature: tx?.signature,
+			request: tx?.returnMessage?.()?.request,
+			module: tx?.returnMessage?.()?.module
+		});
 
 		const txmsg = tx.returnMessage();
 		if (txmsg.module !== 'Store') {
@@ -128,22 +145,39 @@ class Store extends ModTemplate {
 
 		switch (txmsg.request) {
 			case 'list-asset':
+				console.log('onConfirmation -> receiveListAssetTransaction', {
+					signature: tx.signature
+				});
 				this.app.connection.emit('store-list-asset', { blk, tx, conf });
 				console.log('Store: onConfirmation list-asset conf=0', tx.signature);
 				await this.receiveListAssetTransaction(blk, tx);
 				break;
 
 			case 'purchase-asset':
+				console.log('onConfirmation -> receivePurchaseAssetTransaction', {
+					signature: tx.signature
+				});
 				this.app.connection.emit('store-purchase-asset', { blk, tx, conf });
 				console.log('Store: onConfirmation purchase-asset conf=0', tx.signature);
 				await this.receivePurchaseAssetTransaction(blk, tx);
 				break;
 
 			case 'order-refund':
+				console.log('onConfirmation -> order-refund handler', {
+					signature: tx.signature
+				});
 				this.app.connection.emit('store-order-refund', { blk, tx, conf });
 				console.log('Store: onConfirmation order-refund conf=0', tx.signature);
 				if (this.app.BROWSER && typeof siteMessage === 'function') {
 					siteMessage('Refund Issued: order could not be processed.', 5000);
+				}
+				break;
+
+			default:
+				if (txmsg.fulfill_sale) {
+					console.log('onConfirmation -> receiveListAssetTransaction (fulfill_sale)', {
+						signature: tx.signature
+					});
 				}
 				break;
 		}
@@ -171,12 +205,12 @@ class Store extends ModTemplate {
 		const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
 		const self = this;
 
-		expressapp.get(`${uri}/cache/:listing_id.img`, function (req, res) {
-			const listing_id = String(req.params.listing_id || '');
-			if (!listing_id) {
+		expressapp.get(`${uri}/cache/:nft_id.img`, function (req, res) {
+			const nft_id = decodeURIComponent(String(req.params.nft_id || ''));
+			if (!nft_id) {
 				return res.status(404).end();
 			}
-			return serveCachedImageResponse(self, res, listing_id);
+			return serveCachedImageResponse(self, res, nft_id);
 		});
 
 		expressapp.use(uri, express.static(webdir));

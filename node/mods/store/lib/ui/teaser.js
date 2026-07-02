@@ -1,5 +1,7 @@
 const TeaserTemplate = require('./teaser.template');
 const Summary = require('../summary');
+const { DREAMSCAPE_PLACEHOLDER } = require('../summary');
+const { summaryDomId } = require('./summary-cache');
 
 class Teaser {
 	constructor(app, mod, summary = null, container = '') {
@@ -7,33 +9,54 @@ class Teaser {
 		this.mod = mod;
 		this.summary = summary;
 		this.container = container;
-		this.cardId = `store-teaser-${this.summary?.id || 'item'}`;
+		this.cardId = summaryDomId(summary);
+	}
+
+	static returnTeaserCard(dom_id) {
+		if (!dom_id) {
+			return null;
+		}
+		return document.getElementById(dom_id);
+	}
+
+	static returnTeaserMedia(dom_id) {
+		const card = Teaser.returnTeaserCard(dom_id);
+		return card?.querySelector('.teaser-media') ?? null;
+	}
+
+	static setMediaLoading(app, dom_id, loading = false) {
+		const media = Teaser.returnTeaserMedia(dom_id);
+		if (!media) {
+			return;
+		}
+		media.classList.toggle('teaser-media-loading', loading);
 	}
 
 	static updateMedia(app, summary) {
-		if (!(summary instanceof Summary) || !summary.id) {
+		if (!(summary instanceof Summary) || !summary.nft_id) {
+			return;
+		}
+
+		if (!summary.hasLoadedImage?.()) {
 			return;
 		}
 
 		const image = summary.returnImage();
-		if (!image) {
-			return;
-		}
-
-		Teaser.updateMediaFromUrl(app, summary.id, image);
+		Teaser.updateMediaFromUrl(app, summaryDomId(summary), image);
 	}
 
-	static updateMediaFromUrl(app, summary_id, image_url = '') {
-		if (!summary_id || !image_url) {
+	static updateMediaFromUrl(app, dom_id, image_url = '') {
+		if (!dom_id || !image_url) {
 			return;
 		}
 
-		const card = document.querySelector(`#store-teaser-${summary_id} .teaser-media`);
-		if (!card) {
+		const media = Teaser.returnTeaserMedia(dom_id);
+		if (!media) {
 			return;
 		}
 
-		card.classList.remove(
+		media.classList.remove(
+			'dreamscape-placeholder',
 			'gradient-1',
 			'gradient-2',
 			'gradient-3',
@@ -43,10 +66,11 @@ class Teaser {
 			'gradient-7',
 			'gradient-8',
 			'gradient-9',
-			'gradient-10'
+			'gradient-10',
+			'teaser-media-loading'
 		);
-		card.classList.add('has-image');
-		card.style.background = `url(${image_url}) center / cover no-repeat`;
+		media.classList.add('has-image');
+		media.style.background = `url(${image_url}) center / cover no-repeat`;
 	}
 
 	render(container = '') {
@@ -58,9 +82,12 @@ class Teaser {
 			return;
 		}
 
-		const image = this.summary.returnImage();
+		const image = this.summary.hasLoadedImage()
+			? this.summary.returnImage()
+			: this.summary.returnPlaceholderImage();
 		const mediaClass = this.returnMediaClass(image);
 		const mediaBackground = this.returnMediaBackground(image);
+		const showLoading = this.summary.isImageLoading();
 		const badgeClass = this.summary.badge ? '' : 'hidden';
 		const identicon = this.app.keychain.returnIdenticon(this.summary.seller || '');
 		const templateData = {
@@ -76,45 +103,28 @@ class Teaser {
 		};
 
 		this.app.browser.addElementToSelector(
-			TeaserTemplate(templateData, this.cardId, mediaClass, mediaBackground, badgeClass),
+			TeaserTemplate(templateData, this.cardId, mediaClass, mediaBackground, badgeClass, showLoading),
 			this.container
 		);
 		this.attachEvents();
-		this.tryCacheImage();
+		this.beginMediaEnrichment();
 	}
 
-	tryCacheImage() {
-		if (this.summary.image) {
+	beginMediaEnrichment() {
+		if (!this.summary.isImageLoading()) {
 			return;
 		}
 
-		const cache_url = this.summary.returnCacheImageUrl?.();
-		if (!cache_url) {
-			this.maybeLoadNFT();
-			return;
-		}
-
-		const img = new Image();
-		img.onload = () => {
-			Teaser.updateMediaFromUrl(this.app, this.summary.id, cache_url);
-		};
-		img.onerror = () => {
-			this.maybeLoadNFT();
-		};
-		img.src = cache_url;
-	}
-
-	maybeLoadNFT() {
-		if (this.summary.image) {
-			return;
-		}
-
-		this.summary.loadNFT();
+		Teaser.setMediaLoading(this.app, this.cardId, true);
+		this.summary.enrichMedia();
 	}
 
 	returnMediaClass(image = '') {
+		if (this.summary.isDemo() && image?.startsWith?.('gradient-')) {
+			return image;
+		}
 		if (!image) {
-			return 'gradient-1';
+			return 'dreamscape-placeholder';
 		}
 		if (image.startsWith('gradient-')) {
 			return image;
@@ -123,8 +133,11 @@ class Teaser {
 	}
 
 	returnMediaBackground(image = '') {
+		if (this.summary.isDemo() && image?.startsWith?.('gradient-')) {
+			return this.returnGradientForClass(image);
+		}
 		if (!image || image.startsWith('gradient-')) {
-			return this.returnGradientForClass(this.returnMediaClass(image));
+			return `url(${DREAMSCAPE_PLACEHOLDER}) center / cover no-repeat`;
 		}
 		return `url(${image}) center / cover no-repeat`;
 	}
@@ -146,7 +159,7 @@ class Teaser {
 	}
 
 	attachEvents() {
-		const teaserCard = document.querySelector(`#${this.cardId}`);
+		const teaserCard = Teaser.returnTeaserCard(this.cardId);
 		if (teaserCard) {
 			teaserCard.onclick = (e) => {
 				e.preventDefault();

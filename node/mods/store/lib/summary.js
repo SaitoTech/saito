@@ -1,4 +1,11 @@
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
+const {
+	DREAMSCAPE_PLACEHOLDER,
+	isDemoNftId,
+	ensureListingTransaction,
+	enrichSummaryMedia,
+	applyListingTransaction
+} = require('./summary-media');
 
 const SUMMARY_STATUS_ACTIVE = 1;
 const SUMMARY_STATUS_INACTIVE = 0;
@@ -22,22 +29,48 @@ class Summary {
 		this.subtitle = data.subtitle || '';
 		this.badge = data.badge;
 		this.nft = data.nft || null;
+		this.listing_signature = data.listing_signature || '';
+		this.listing_tx = data.listing_tx || null;
+		this._image_source = data._image_source || null;
+	}
+
+	isDemo() {
+		return isDemoNftId(this.nft_id);
+	}
+
+	returnPlaceholderImage() {
+		if (this.isDemo() && this.image?.startsWith?.('gradient-')) {
+			return this.image;
+		}
+		return DREAMSCAPE_PLACEHOLDER;
+	}
+
+	isImageLoading() {
+		return !this.hasLoadedImage() && !this.isDemo();
+	}
+
+	hasLoadedImage() {
+		return !!this.image;
 	}
 
 	returnImage() {
 		if (this.image) {
 			return this.image;
 		}
-		return this.nft?.returnImage?.() || '';
+		const nft_image = this.nft?.returnImage?.() || '';
+		if (nft_image) {
+			return nft_image;
+		}
+		return this.returnPlaceholderImage();
 	}
 
 	returnCacheImageUrl() {
-		const id = String(this.id ?? '');
-		if (!id || id.startsWith('store-demo-')) {
+		const nft_id = String(this.nft_id ?? '');
+		if (!nft_id || this.isDemo()) {
 			return '';
 		}
 		const slug = this.mod?.returnSlug?.() || 'store';
-		return `/${encodeURI(slug)}/cache/${id}.img`;
+		return `/${encodeURI(slug)}/cache/${encodeURIComponent(nft_id)}.img`;
 	}
 
 	returnTitle() {
@@ -70,7 +103,7 @@ class Summary {
 		}
 		this.nft = nft;
 		if (!this.image) {
-			const image = nft.returnImage?.();
+			const image = nft.returnImage?.() || '';
 			if (image) {
 				this.image = image;
 			}
@@ -78,54 +111,44 @@ class Summary {
 		return this;
 	}
 
+	attachListingTransaction(tx) {
+		return applyListingTransaction(this, tx);
+	}
+
+	ensureListingTransaction(onComplete = null) {
+		const done = (summary) => {
+			if (onComplete) {
+				onComplete(summary);
+			}
+			return summary;
+		};
+
+		return ensureListingTransaction(this).then(done);
+	}
+
+	enrichMedia(onComplete = null) {
+		const done = (summary) => {
+			if (onComplete) {
+				onComplete(summary);
+			}
+			return summary;
+		};
+
+		return enrichSummaryMedia(this).then(done);
+	}
+
+	/** @deprecated use ensureListingTransaction or enrichMedia */
 	loadNFT(onComplete = null) {
-		if (this.image) {
-			if (onComplete) {
-				onComplete(this);
-			}
-			return;
-		}
-
-		if (this.nft) {
-			this.attachNFT(this.nft);
-			if (onComplete) {
-				onComplete(this);
-			}
-			return;
-		}
-
-		if (!this.nft_id && !this.id) {
-			if (onComplete) {
-				onComplete(this);
-			}
-			return;
-		}
-
-		const nft = new SaitoNFT(this.app, this.mod, null, {
-			id: this.nft_id,
-			nft_id: this.nft_id,
-			tx_sig: this.id
-		});
-
-		nft.fetchTransaction(() => {
-			this.attachNFT(nft);
-			if (this.image && this.app?.connection) {
-				this.app.connection.emit('store-listing-updated', this);
-			}
-			if (onComplete) {
-				onComplete(this);
-			}
-		});
+		return this.enrichMedia(onComplete);
 	}
 
 	serialize() {
 		return {
-			id: this.id,
 			nft_id: this.nft_id,
 			seller: this.seller,
 			title: this.title,
 			description: this.description,
-			image: this.image,
+			listing_signature: this.listing_signature || '',
 			price: this.price,
 			quantity_total: this.quantity_total,
 			quantity_available: this.quantity_available,
@@ -140,7 +163,7 @@ class Summary {
 function returnDemoSummaries(app, mod) {
 	const rows = [
 		{
-			id: 'store-demo-1',
+			nft_id: 'store-demo-1',
 			title: '3 SAITO',
 			subtitle: 'Archival Series',
 			price: 300000000,
@@ -153,7 +176,7 @@ function returnDemoSummaries(app, mod) {
 			status: SUMMARY_STATUS_ACTIVE
 		},
 		{
-			id: 'store-demo-2',
+			nft_id: 'store-demo-2',
 			title: '5 SAITO',
 			subtitle: 'Genesis Drop',
 			price: 500000000,
@@ -166,7 +189,7 @@ function returnDemoSummaries(app, mod) {
 			status: SUMMARY_STATUS_ACTIVE
 		},
 		{
-			id: 'store-demo-3',
+			nft_id: 'store-demo-3',
 			title: '8 SAITO',
 			subtitle: 'Creator Bundle',
 			price: 800000000,
@@ -179,7 +202,7 @@ function returnDemoSummaries(app, mod) {
 			status: SUMMARY_STATUS_ACTIVE
 		},
 		{
-			id: 'store-demo-4',
+			nft_id: 'store-demo-4',
 			title: '12 SAITO',
 			subtitle: 'Community Special',
 			price: 1200000000,
@@ -192,7 +215,7 @@ function returnDemoSummaries(app, mod) {
 			status: SUMMARY_STATUS_ACTIVE
 		},
 		{
-			id: 'store-demo-5',
+			nft_id: 'store-demo-5',
 			title: '15 SAITO',
 			subtitle: 'Founders Capsule',
 			price: 1500000000,
@@ -205,7 +228,7 @@ function returnDemoSummaries(app, mod) {
 			status: SUMMARY_STATUS_ACTIVE
 		},
 		{
-			id: 'store-demo-6',
+			nft_id: 'store-demo-6',
 			title: '20 SAITO',
 			subtitle: 'Limited Vault',
 			price: 2000000000,
@@ -218,7 +241,7 @@ function returnDemoSummaries(app, mod) {
 			status: SUMMARY_STATUS_ACTIVE
 		},
 		{
-			id: 'store-demo-7',
+			nft_id: 'store-demo-7',
 			title: '25 SAITO',
 			subtitle: 'Verified Set',
 			price: 2500000000,
@@ -231,7 +254,7 @@ function returnDemoSummaries(app, mod) {
 			status: SUMMARY_STATUS_ACTIVE
 		},
 		{
-			id: 'store-demo-8',
+			nft_id: 'store-demo-8',
 			title: '30 SAITO',
 			subtitle: 'Collector Tier',
 			price: 3000000000,
@@ -244,7 +267,7 @@ function returnDemoSummaries(app, mod) {
 			status: SUMMARY_STATUS_ACTIVE
 		},
 		{
-			id: 'store-demo-9',
+			nft_id: 'store-demo-9',
 			title: '40 SAITO',
 			subtitle: 'Premium Relay',
 			price: 4000000000,
@@ -257,7 +280,7 @@ function returnDemoSummaries(app, mod) {
 			status: SUMMARY_STATUS_ACTIVE
 		},
 		{
-			id: 'store-demo-10',
+			nft_id: 'store-demo-10',
 			title: '55 SAITO',
 			subtitle: 'Legendary Pack',
 			price: 5500000000,
@@ -277,4 +300,5 @@ function returnDemoSummaries(app, mod) {
 module.exports = Summary;
 module.exports.SUMMARY_STATUS_ACTIVE = SUMMARY_STATUS_ACTIVE;
 module.exports.SUMMARY_STATUS_INACTIVE = SUMMARY_STATUS_INACTIVE;
+module.exports.DREAMSCAPE_PLACEHOLDER = DREAMSCAPE_PLACEHOLDER;
 module.exports.returnDemoSummaries = returnDemoSummaries;

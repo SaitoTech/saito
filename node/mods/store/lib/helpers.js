@@ -17,41 +17,80 @@ function isP2shPublicKey(app, publicKey = '') {
 	}
 }
 
-async function attachP2shAccessScripts(app, tx, script_by_pubkey = {}) {
-	if (!app || !tx) {
-		throw new Error('transaction and app are required for P2SH witness');
-	}
+/** Mirrors saito-core: Bound slips are never P2SH inputs for witness purposes. */
+function isBoundSlip(slip) {
+	return Number(slip?.type) === SlipType.Bound;
+}
 
-	const from = tx.from || [];
+/** True when Rust would include this input in p2sh_idxs. */
+function slipRequiresP2shWitness(app, slip) {
+	if (isBoundSlip(slip)) {
+		return false;
+	}
+	return isP2shPublicKey(app, slip?.publicKey || '');
+}
+
+function listRustP2shInputIndexes(app, tx) {
 	const indexes = [];
+	const from = tx?.from || [];
 	for (let i = 0; i < from.length; i++) {
-		if (isP2shPublicKey(app, from[i]?.publicKey)) {
+		if (slipRequiresP2shWitness(app, from[i])) {
 			indexes.push(i);
 		}
 	}
-	if (!indexes.length) {
-		return tx;
+	return indexes;
+}
+
+async function attachP2shAccessScripts(
+	app,
+	fulfillment_tx,
+	{ payment_access_script = '', listing_txs = [] } = {}
+) {
+	if (!app || !fulfillment_tx) {
+		throw new Error('transaction and app are required for P2SH witness');
 	}
 
-	const witness_message = String(tx.from[indexes[0]]?.utxoKey || '');
+	const from = fulfillment_tx.from || [];
+	const p2sh_indexes = [];
+	for (let i = 0; i < from.length; i++) {
+		if (isP2shPublicKey(app, from[i]?.publicKey)) {
+			p2sh_indexes.push(i);
+		}
+	}
+	if (!p2sh_indexes.length) {
+		return fulfillment_tx;
+	}
+
+	const witness_message = String(from[p2sh_indexes[0]]?.utxoKey || '');
 	if (!witness_message) {
 		throw new Error('P2SH input is missing utxoset key');
 	}
 
+	const locking_scripts = [];
+	if (payment_access_script) {
+		locking_scripts.push(payment_access_script);
+	}
+	for (const listing_tx of listing_txs) {
+		const listing_txmsg = listingTxmsg(listing_tx);
+		locking_scripts.push(listing_txmsg.access_script || '');
+	}
+
+	if (locking_scripts.length !== p2sh_indexes.length) {
+		throw new Error('P2SH input count does not match access script count');
+	}
+
 	const access_scripts = [];
-	for (let i = 0; i < indexes.length; i++) {
-		const slip = tx.from[indexes[i]];
-		const pubkey = slip?.publicKey || '';
-		const locking_script = script_by_pubkey[pubkey] || '';
+	for (let i = 0; i < p2sh_indexes.length; i++) {
+		const locking_script = locking_scripts[i] || '';
 		if (!locking_script) {
 			throw new Error('missing access script for P2SH input');
 		}
 		access_scripts.push(await signAccessScriptWitness(app, locking_script, witness_message));
 	}
 
-	tx.msg = tx.msg || {};
-	tx.msg.access_scripts = access_scripts;
-	return tx;
+	fulfillment_tx.msg = fulfillment_tx.msg || {};
+	fulfillment_tx.msg.access_scripts = access_scripts;
+	return fulfillment_tx;
 }
 
 function slipPublicKey(app, script_address) {
@@ -64,14 +103,14 @@ function slipPublicKey(app, script_address) {
 	return script_address;
 }
 
-function slipToStoredJson(slip) {
+function serializeSlip(slip) {
 	if (!slip) {
-		return null;
+		return '';
 	}
 	if (typeof slip.toJson === 'function') {
-		return slip.toJson();
+		return JSON.stringify(slip.toJson());
 	}
-	return {
+	return JSON.stringify({
 		publicKey: slip.publicKey,
 		amount: slip.amount,
 		type: slip.type,
@@ -79,7 +118,7 @@ function slipToStoredJson(slip) {
 		txOrdinal: slip.txOrdinal,
 		index: slip.index,
 		utxoKey: slip.utxoKey
-	};
+	});
 }
 
 /**
@@ -138,37 +177,6 @@ function findInventoryTriple(slips, p2sh_address) {
 	return [slips[start], slips[start + 1], slips[start + 2]];
 }
 
-/**
- * Input slips must reference the mined listing transaction UTXO, not template outputs.
- */
-function anchorInventoryInputs(listing_tx, p2sh_address, chain = {}) {
-	const outputs = listing_tx?.to || [];
-	const start = findInventoryTripleStartIndex(outputs, p2sh_address);
-	if (start < 0) {
-		return null;
-	}
-
-	const block_id = Number(chain.block_id ?? 0) || 0;
-	const transaction_id = Number(chain.transaction_id ?? 0) || 0;
-	const anchored = [];
-
-	for (let j = 0; j < 3; j++) {
-		const source = outputs[start + j];
-		const slip = new Slip(undefined, normalizeSlipJson(slipToStoredJson(source)));
-		slip.blockId = BigInt(block_id);
-		slip.txOrdinal = BigInt(transaction_id);
-		slip.index = Number(source?.index ?? start + j) || start + j;
-		anchored.push(slip);
-	}
-
-	return anchored;
-}
-
-function slipToJsonString(slip) {
-	const json = slipToStoredJson(slip);
-	return json ? JSON.stringify(json) : '';
-}
-
 function parseStoredSlip(stored) {
 	if (!stored) {
 		return null;
@@ -181,36 +189,45 @@ function parseStoredSlip(stored) {
 	}
 }
 
-function listingInputsFromRecord(listing) {
+function listingTxmsg(transaction) {
+	return (typeof transaction?.returnMessage === 'function'
+		? transaction.returnMessage()
+		: transaction?.msg) || {};
+}
+
+function listingInputSlipJsonFromRecord(listing) {
 	if (!listing) {
 		return null;
 	}
 
-	const slips = [listing.utxo_slip1, listing.utxo_slip2, listing.utxo_slip3]
-		.map(parseStoredSlip)
-		.filter(Boolean);
+	const stored = [listing.utxo_slip1, listing.utxo_slip2, listing.utxo_slip3];
+	if (stored.some((value) => !value)) {
+		return null;
+	}
+
+	const json_triple = stored.map((value) => {
+		const data = typeof value === 'string' ? JSON.parse(value) : value;
+		return normalizeSlipJson(data);
+	});
+
+	const slips = json_triple.map((data) => new Slip(undefined, data));
 	if (slips.length !== 3 || !isNFTTuple(slips, 0)) {
 		return null;
 	}
 
-	return slips;
+	return json_triple;
 }
 
-function serializeAnchoredListingSlips(tx, p2sh_address, chain = {}) {
-	const anchored = anchorInventoryInputs(tx, p2sh_address, chain);
-	if (!anchored) {
-		return null;
+/** Store bookkeeping only — index of tx within its confirming block. */
+function transactionIndexInBlock(blk = null, tx = null) {
+	const signature = tx?.signature || '';
+	const txs = blk?.transactions || [];
+	for (let i = 0; i < txs.length; i++) {
+		if (txs[i]?.signature === signature) {
+			return i;
+		}
 	}
-
-	return anchored.map((slip) => slipToJsonString(slip));
-}
-
-function returnChainLocation(blk = null, tx = null) {
-	return {
-		block_id: Number(blk?.id ?? blk?.block_id ?? blk?.bid ?? 0) || 0,
-		block_hash: String(blk?.hash ?? blk?.block_hash ?? blk?.bsh ?? ''),
-		transaction_id: Number(tx?.transaction_id ?? tx?.tx_index ?? tx?.index ?? 0) || 0
-	};
+	return 0;
 }
 
 function returnListingSlipId(tx = null, p2sh_address = '') {
@@ -258,66 +275,32 @@ function returnAmountPaidInPurchase(tx, txmsg = {}, app = null) {
 	return payment_utxo ? payment_utxo.payment_amount : 0n;
 }
 
-function anchorPaymentInput(payment_tx, payment_output_index, chain = {}) {
-	if (!payment_tx?.to?.length) {
+function paymentInputFromOrder(order_row) {
+	if (!order_row) {
 		return null;
 	}
 
-	const index = Number(payment_output_index ?? 0);
-	const source = payment_tx.to[index];
-	if (!source) {
-		return null;
-	}
-
-	const slip = new Slip(undefined, normalizeSlipJson(slipToStoredJson(source)));
-	slip.blockId = BigInt(chain.block_id ?? 0);
-	slip.txOrdinal = BigInt(chain.transaction_id ?? 0);
-	slip.index = Number(source?.index ?? index) || index;
-	return slip;
-}
-
-function paymentInputFromOrder(order, payment_tx = null) {
-	if (!order) {
-		return null;
-	}
-
-	if (order.payment_utxo_slip) {
-		const cached = parseStoredSlip(order.payment_utxo_slip);
-		if (cached) {
-			return cached;
-		}
-	}
-
-	if (!payment_tx) {
-		return null;
-	}
-
-	return anchorPaymentInput(payment_tx, order.payment_output_index, {
-		block_id: order.block_id_received ?? order.block_id_added,
-		transaction_id: order.transaction_id_received ?? order.transaction_id_added
-	});
-}
-
-function serializePaymentSlip(payment_tx, payment_output_index, chain = {}) {
-	const slip = anchorPaymentInput(payment_tx, payment_output_index, chain);
-	return slip ? slipToJsonString(slip) : '';
+	const stored = order_row.utxo_slip || order_row.payment_utxo_slip || '';
+	return parseStoredSlip(stored);
 }
 
 module.exports = {
 	SLIP_TYPE_P2SH,
+	isP2shPublicKey,
+	isBoundSlip,
+	slipRequiresP2shWitness,
+	listRustP2shInputIndexes,
 	slipPublicKey,
 	attachP2shAccessScripts,
-	slipToStoredJson,
+	serializeSlip,
 	normalizeSlipJson,
 	findInventoryTriple,
-	anchorInventoryInputs,
-	slipToJsonString,
-	listingInputsFromRecord,
-	serializeAnchoredListingSlips,
-	returnChainLocation,
+	parseStoredSlip,
+	listingTxmsg,
+	listingInputSlipJsonFromRecord,
+	transactionIndexInBlock,
 	returnListingSlipId,
 	returnAmountPaidInPurchase,
 	returnPaymentUtxoFromPurchase,
-	paymentInputFromOrder,
-	serializePaymentSlip
+	paymentInputFromOrder
 };

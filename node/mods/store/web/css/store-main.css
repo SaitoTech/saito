@@ -1,6 +1,10 @@
+/* .saito-container sits below #saito-header — preserve standard page chrome */
 .saito-container.store-container {
 	display: block;
+	position: absolute;
+	top: var(--saito-header-height);
 	width: 100%;
+	height: calc(100% - var(--saito-header-height));
 	max-width: none;
 	margin: 0;
 	box-sizing: border-box;

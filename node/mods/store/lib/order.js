@@ -16,7 +16,10 @@ class Order {
 		this.payment_tx_sig = data.payment_tx_sig || data.order_tx_sig || data.signature || '';
 		this.payment_output_index = Number(data.payment_output_index ?? 0);
 		this.payment_amount = Number(data.payment_amount ?? 0);
-		this.payment_utxo_slip = data.payment_utxo_slip || '';
+		this.utxo_slip = data.utxo_slip || data.payment_utxo_slip || '';
+		this.access_hash = data.access_hash || data.payment_access_hash || '';
+		this.access_script = data.access_script || data.payment_access_script || '';
+		this.p2sh_address = data.p2sh_address || data.payment_p2sh_address || '';
 
 		this.block_id_received = Number(
 			data.block_id_received ?? data.block_id_added ?? data.block_id ?? 0
@@ -112,7 +115,10 @@ class Order {
 			$payment_tx_sig: this.payment_tx_sig,
 			$payment_output_index: Number(this.payment_output_index ?? 0),
 			$payment_amount: Number(this.payment_amount ?? 0),
-			$payment_utxo_slip: this.payment_utxo_slip || '',
+			$utxo_slip: this.utxo_slip || '',
+			$access_hash: this.access_hash || '',
+			$access_script: this.access_script || '',
+			$p2sh_address: this.p2sh_address || '',
 			$block_id_received: Number(this.block_id_received ?? 0),
 			$block_hash_received: this.block_hash_received || '',
 			$transaction_id_received: Number(this.transaction_id_received ?? 0),
