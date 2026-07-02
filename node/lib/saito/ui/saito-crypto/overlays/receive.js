@@ -123,10 +123,7 @@ class Receive {
     this.counter_party.render();
 
     if (this.app.keychain.returnIdentifierByPublicKey(details.publicKey)) {
-      this.counter_party.updateUserline(
-        details.publicKey.slice(0, 8) + '…' + details.publicKey.slice(-8),
-        details.publicKey
-      );
+      this.counter_party.updateUserlineAddress(details.publicKey);
     }
 
     this.attachEvents();

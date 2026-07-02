@@ -60,7 +60,10 @@ module.exports = (app, mod, publickey = '', address = '') => {
               </div>
               <div class="withdraw-meta-line">
                 <span class="withdraw-info-title">Network fee</span>
-                <span class="withdraw-info-value fee" id="withdraw-fee-display">--</span>
+                <span class="withdraw-fee-value-wrap" id="withdraw-fee-wrap">
+                  <span class="withdraw-info-value fee" id="withdraw-fee-display">--</span>
+                  <i class="fas fa-pen withdraw-fee-edit-icon hide-element" id="withdraw-fee-edit-icon" aria-hidden="true"></i>
+                </span>
               </div>
             </div>
           </div>
@@ -83,7 +86,6 @@ module.exports = (app, mod, publickey = '', address = '') => {
                   value="${address}"
                   id="withdraw-input-address"
                   required
-                  placeholder="Receiving address"
                 >`;
 
   if (!fixedRecipient) {
@@ -116,7 +118,6 @@ module.exports = (app, mod, publickey = '', address = '') => {
                   id="withdraw-input-amount"
                   value=""
                   required
-                  placeholder="Amount to send"
                 >
                 <button type="button" class="withdraw-max-btn" id="withdraw-max-btn" title="Use maximum amount">
                   MAX
@@ -190,7 +191,6 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
       <footer class="withdraw-overlay__footer-bar">
         <div class="saito-button-row withdraw-overlay__actions" id="withdraw-footer-compose">
-          <button type="button" class="saito-button-secondary" id="withdraw-reset">Clear</button>
           <button
             type="submit"
             form="withdrawal-form"
@@ -207,7 +207,6 @@ module.exports = (app, mod, publickey = '', address = '') => {
         </div>
 
         <div class="saito-button-row withdraw-overlay__actions hide-element" id="withdraw-footer-pending">
-          <button type="button" class="saito-button-secondary" id="withdraw-cancel-pending" disabled>Cancel</button>
           <span class="withdraw-confirm-overlay__pending-label" id="withdraw-pending-label">Broadcasting…</span>
         </div>
 

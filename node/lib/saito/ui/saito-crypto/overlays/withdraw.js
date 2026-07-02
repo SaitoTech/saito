@@ -104,11 +104,9 @@ class Withdraw {
     }
     if (this.isNftWithdrawSelection()) {
       amountLabel.textContent = 'Units';
-      amountInput.placeholder = 'Whole number of units';
       amountInput.step = '1';
     } else {
       amountLabel.textContent = 'Amount';
-      amountInput.placeholder = 'Amount to send';
       amountInput.step = '0.00000001';
     }
   }
@@ -290,10 +288,7 @@ class Withdraw {
         this.counterparty.publicKey = this.publicKey;
         this.counterparty.render();
         if (this.app.keychain.returnIdentifierByPublicKey(this.publicKey)) {
-          this.counterparty.updateUserline(
-            this.publicKey.slice(0, 6) + '...' + this.publicKey.slice(-6),
-            this.publicKey
-          );
+          this.counterparty.updateUserlineAddress(this.publicKey);
         }
       } else {
         counterpartyWrap.classList.add('hide-element');
@@ -663,6 +658,14 @@ class Withdraw {
       };
     }
 
+    const feeWrap = document.getElementById('withdraw-fee-wrap');
+    if (feeWrap) {
+      feeWrap.onclick = (e) => {
+        e.preventDefault();
+        void this.promptForFee();
+      };
+    }
+
     const txCopyBtn = document.getElementById('withdraw-confirm-tx-copy');
     if (txCopyBtn) {
       const copyTxHash = () => {
@@ -717,15 +720,6 @@ class Withdraw {
         e.preventDefault();
         this.overlay.close();
         this.app.connection.emit('saito-crypto-details-render-request', this.ticker);
-      };
-    }
-
-    const resetBtn = document.getElementById('withdraw-reset');
-    if (resetBtn) {
-      resetBtn.onclick = (e) => {
-        e.preventDefault();
-        this.clear();
-        this.render();
       };
     }
 
@@ -874,10 +868,59 @@ class Withdraw {
     }
   }
 
+  updateFeeEditability() {
+    const wrap = document.getElementById('withdraw-fee-wrap');
+    const icon = document.getElementById('withdraw-fee-edit-icon');
+    const isNative = this.pc?.chain_id === 'NATIVE';
+    wrap?.classList.toggle('withdraw-fee-wrap--editable', isNative);
+    icon?.classList.toggle('hide-element', !isNative);
+    if (wrap) {
+      wrap.title = isNative ? 'Click to set the network fee' : '';
+    }
+  }
+
+  async promptForFee() {
+    if (!this.pc || this.pc.chain_id !== 'NATIVE') {
+      return;
+    }
+
+    const current = this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee).toString();
+    const input = await sprompt('Set network fee (SAITO):', current);
+    if (input === false || input === undefined || input === '') {
+      return;
+    }
+
+    const parsed = parseFloat(input);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      siteMessage('Please enter a valid, non-negative fee.', 2000);
+      return;
+    }
+
+    this.app.options.wallet = this.app.options.wallet || {};
+    this.app.options.wallet.default_fee = this.app.wallet.convertSaitoToNolan(parsed.toString());
+    this.app.wallet.default_fee = BigInt(this.app.options.wallet.default_fee);
+    this.app.storage.saveOptions();
+
+    siteMessage(`Network fee updated to: ${parsed} SAITO`, 1000);
+
+    // Native-chain fee is a flat wallet setting, not dependent on the recipient
+    // address, so reflect it immediately rather than waiting on fetchWithdrawFee's
+    // address-gated lookup (which shows "--" until a valid address is entered).
+    this.fee = parsed;
+    const feeEl =
+      document.getElementById('withdraw-fee-display') ||
+      document.querySelector('.withdraw-info-value.fee');
+    this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(parsed));
+
+    this.handleErrors();
+    this.validateAmountInput();
+  }
+
   async fetchWithdrawFee() {
     const feeEl =
       document.getElementById('withdraw-fee-display') ||
       document.querySelector('.withdraw-info-value.fee');
+    this.updateFeeEditability();
     if (!feeEl) {
       return;
     }

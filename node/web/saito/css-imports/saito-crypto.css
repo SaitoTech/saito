@@ -1008,6 +1008,33 @@
   min-width: 0;
 }
 
+#withdrawal-form .withdraw-fee-value-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+#withdrawal-form .withdraw-fee-wrap--editable {
+  cursor: pointer;
+}
+
+#withdrawal-form .withdraw-fee-wrap--editable .withdraw-info-value {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2rem;
+}
+
+#withdrawal-form .withdraw-fee-wrap--editable:hover .withdraw-info-value,
+#withdrawal-form .withdraw-fee-wrap--editable:hover .withdraw-fee-edit-icon {
+  color: var(--saito-primary);
+}
+
+#withdrawal-form .withdraw-fee-edit-icon {
+  font-size: 0.95rem;
+  opacity: 0.72;
+}
+
 #withdrawal-form .withdraw-field-label {
   display: block;
   margin-bottom: 0.35rem;
