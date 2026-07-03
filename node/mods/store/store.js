@@ -127,17 +127,6 @@ class Store extends ModTemplate {
 			return;
 		}
 
-		console.log('');
-		console.log('****************************************************');
-		console.log('********** STORE onConfirmation **********');
-		console.log('****************************************************');
-		console.log({
-			conf,
-			signature: tx?.signature,
-			request: tx?.returnMessage?.()?.request,
-			module: tx?.returnMessage?.()?.module
-		});
-
 		const txmsg = tx.returnMessage();
 		if (txmsg.module !== 'Store') {
 			return;
@@ -145,27 +134,18 @@ class Store extends ModTemplate {
 
 		switch (txmsg.request) {
 			case 'list-asset':
-				console.log('onConfirmation -> receiveListAssetTransaction', {
-					signature: tx.signature
-				});
 				this.app.connection.emit('store-list-asset', { blk, tx, conf });
 				console.log('Store: onConfirmation list-asset conf=0', tx.signature);
 				await this.receiveListAssetTransaction(blk, tx);
 				break;
 
 			case 'purchase-asset':
-				console.log('onConfirmation -> receivePurchaseAssetTransaction', {
-					signature: tx.signature
-				});
 				this.app.connection.emit('store-purchase-asset', { blk, tx, conf });
 				console.log('Store: onConfirmation purchase-asset conf=0', tx.signature);
 				await this.receivePurchaseAssetTransaction(blk, tx);
 				break;
 
 			case 'order-refund':
-				console.log('onConfirmation -> order-refund handler', {
-					signature: tx.signature
-				});
 				this.app.connection.emit('store-order-refund', { blk, tx, conf });
 				console.log('Store: onConfirmation order-refund conf=0', tx.signature);
 				if (this.app.BROWSER && typeof siteMessage === 'function') {
@@ -174,11 +154,6 @@ class Store extends ModTemplate {
 				break;
 
 			default:
-				if (txmsg.fulfill_sale) {
-					console.log('onConfirmation -> receiveListAssetTransaction (fulfill_sale)', {
-						signature: tx.signature
-					});
-				}
 				break;
 		}
 	}

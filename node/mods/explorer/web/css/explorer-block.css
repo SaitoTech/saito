@@ -187,33 +187,79 @@
 	border-top: 1px solid var(--explorer-border);
 }
 
-.explorer-page button.explorer-block-meta-link {
-	display: inline;
+/* -----------------------------------------------------------------
+ * Explorer action controls
+ *
+ * A single, deliberate treatment for utility actions and disclosure
+ * toggles in the block view (metadata toggle, Export, Unlock, TXMSG
+ * payload). Scoped to `.explorer-page` so these never inherit the
+ * global Saito `button` theme (oversized min-widths, orange fill).
+ * ----------------------------------------------------------------- */
+.explorer-page .explorer-action,
+.explorer-page a.explorer-action,
+.explorer-page button.explorer-action {
+	appearance: none;
+	-webkit-appearance: none;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--explorer-space-1);
 	width: auto;
+	max-width: 100%;
 	min-width: 0;
 	min-height: 0;
 	margin: 0;
-	padding: 0;
-	border: 0;
-	border-radius: 0;
-	background: none;
-	color: var(--explorer-muted-foreground);
+	padding: 0.3rem 0.7rem;
+	border: 1px solid var(--explorer-border);
+	border-radius: var(--explorer-radius-sm);
+	background: var(--explorer-card);
+	color: var(--explorer-foreground);
+	font-family: var(--explorer-font-sans);
 	font-size: var(--explorer-text-sm);
-	font-weight: var(--explorer-font-normal);
-	line-height: inherit;
-	text-align: left;
-	text-decoration: underline;
-	text-underline-offset: 0.15em;
-	cursor: pointer;
-	appearance: none;
-	text-transform: none;
+	font-weight: var(--explorer-font-medium);
+	line-height: var(--explorer-leading-snug);
 	letter-spacing: normal;
+	text-transform: none;
+	text-align: left;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
 	box-shadow: none;
+	transition:
+		background-color var(--explorer-transition-fast),
+		border-color var(--explorer-transition-fast),
+		color var(--explorer-transition-fast);
 }
 
-.explorer-page button.explorer-block-meta-link:hover {
-	color: var(--explorer-link);
-	background: none;
+.explorer-page .explorer-action:hover,
+.explorer-page a.explorer-action:hover,
+.explorer-page button.explorer-action:hover {
+	background: var(--explorer-muted);
+	border-color: color-mix(in oklch, var(--explorer-primary) 28%, var(--explorer-border));
+	color: var(--explorer-link-hover);
+}
+
+.explorer-page .explorer-action:focus-visible,
+.explorer-page a.explorer-action:focus-visible,
+.explorer-page button.explorer-action:focus-visible {
+	outline: none;
+	box-shadow: var(--explorer-focus-ring);
+}
+
+.explorer-page .explorer-action i {
+	margin: 0;
+	font-size: 0.85em;
+	line-height: 1;
+}
+
+/* Groups several actions on one aligned row (replaces bulleted lists). */
+.explorer-action-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--explorer-space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
 }
 
 .explorer-block-detail-panel {
@@ -488,26 +534,6 @@
 	color: var(--explorer-tx-empty, var(--explorer-muted-foreground));
 }
 
-.explorer-txmsg-toggle {
-	display: flex;
-	align-items: center;
-	gap: var(--explorer-space-2);
-	width: 100%;
-	margin: 0;
-	padding: var(--explorer-space-2) var(--explorer-space-3);
-	border: 1px solid var(--explorer-border);
-	border-radius: var(--explorer-radius-sm);
-	background-color: var(--explorer-card);
-	color: var(--explorer-foreground);
-	font-size: var(--explorer-text-sm);
-	text-align: left;
-	cursor: pointer;
-}
-
-.explorer-txmsg-toggle:hover {
-	background-color: color-mix(in oklch, var(--explorer-muted) 35%, var(--explorer-card));
-}
-
 .explorer-txmsg-caret {
 	flex: 0 0 auto;
 	width: 1rem;
@@ -629,46 +655,6 @@
 	font-size: var(--explorer-text-xs);
 	color: var(--explorer-tx-label, var(--explorer-muted-foreground));
 	word-break: break-word;
-}
-
-.explorer-tx-actions-list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 0.35rem;
-}
-
-.explorer-tx-actions-list li::before {
-	content: '•';
-	margin-right: 0.35rem;
-	color: var(--explorer-tx-label);
-}
-
-.explorer-tx-actions-list li {
-	margin: 0;
-	padding: 0;
-}
-
-.explorer-tx-action-btn {
-	display: inline;
-	margin: 0;
-	padding: 0;
-	border: 0;
-	background: transparent;
-	color: var(--explorer-link);
-	font-size: var(--explorer-text-sm);
-	font-weight: var(--explorer-font-medium);
-	text-align: left;
-	cursor: pointer;
-	text-decoration: underline;
-	text-underline-offset: 0.15em;
-}
-
-.explorer-tx-action-btn:hover {
-	color: var(--explorer-link-hover);
 }
 
 .explorer-tx-picker-overlay {

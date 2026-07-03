@@ -1,5 +1,6 @@
 const AddressTemplate = require('./address.template');
 const { formatAddressActivityRows, formatAddressSummary } = require('../address-format');
+const { parseBalanceSnapshotNolan } = require('../peer-node-info');
 
 class Address {
 	constructor(app, mod, publicKey) {
@@ -7,6 +8,8 @@ class Address {
 		this.mod = mod;
 		this.publicKey = publicKey;
 		this.container = '.explorer-view';
+		this.currentBalanceNolan = null;
+		this.balanceFetched = false;
 	}
 
 	render(container = '') {
@@ -20,6 +23,24 @@ class Address {
 		if (!this.mod.addressReady && this.mod.explorerPeer) {
 			this.mod.fetchAddressData(this.app, this.mod.explorerPeer, this.publicKey);
 		}
+
+		if (!this.balanceFetched) {
+			this.fetchBalance();
+		}
+	}
+
+	async fetchBalance() {
+		try {
+			const response = await fetch(`/balance/${encodeURIComponent(this.publicKey)}`);
+			if (response.ok) {
+				const text = await response.text();
+				this.currentBalanceNolan = parseBalanceSnapshotNolan(text);
+			}
+		} catch (err) {
+			// balance fetch is best-effort
+		}
+		this.balanceFetched = true;
+		this.paint();
 	}
 
 	paint() {
@@ -28,8 +49,9 @@ class Address {
 			? this.app.browser.escapeHTML(this.mod.addressError)
 			: null;
 		const rawRows = this.mod.addressRows || [];
-		const summary = formatAddressSummary(this.app, this.publicKey, rawRows);
-		const rows = formatAddressActivityRows(this.app, rawRows);
+		const balanceNolan = this.balanceFetched ? this.currentBalanceNolan : null;
+		const summary = formatAddressSummary(this.app, this.publicKey, rawRows, balanceNolan);
+		const rows = formatAddressActivityRows(this.app, rawRows, balanceNolan);
 
 		this.app.browser.replaceElementContentBySelector(
 			AddressTemplate({

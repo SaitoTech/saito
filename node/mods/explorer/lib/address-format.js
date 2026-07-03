@@ -6,16 +6,19 @@ const RECIPIENT_LABELS = {
 	2: 'script',
 };
 
-function formatAddressDelta(delta) {
+function formatDeltaSaito(delta) {
 	if (delta == null || delta === '') {
 		return '—';
 	}
 
 	try {
 		const value = BigInt(delta);
-		const formatted = value.toLocaleString();
+		const formatted = formatSaito(value > 0n ? value : -value);
 		if (value > 0n) {
 			return `+${formatted}`;
+		}
+		if (value < 0n) {
+			return `−${formatted}`;
 		}
 		return formatted;
 	} catch (err) {
@@ -23,20 +26,14 @@ function formatAddressDelta(delta) {
 	}
 }
 
-function formatAddressDeltaSaito(delta) {
-	if (delta == null || delta === '') {
+function formatBalanceSaito(nolan) {
+	if (nolan == null) {
 		return '—';
 	}
-
 	try {
-		const value = BigInt(delta);
-		const formatted = formatSaito(value);
-		if (value > 0n) {
-			return `+${formatted}`;
-		}
-		return formatted;
+		return formatSaito(BigInt(nolan));
 	} catch (err) {
-		return String(delta);
+		return '—';
 	}
 }
 
@@ -45,20 +42,64 @@ function formatRecipientLabel(recipient) {
 	return RECIPIENT_LABELS[key] || String(recipient ?? '—');
 }
 
-function formatAddressActivityRows(app, rows = []) {
-	return rows.map((row) => ({
-		blockId: row.block_id != null ? String(row.block_id) : '—',
-		blockHash: row.block_hash || '',
-		txHash: row.tx_hash || '',
-		txHashDisplay: truncateHash(row.tx_hash || '', 8, 8),
-		delta: formatAddressDelta(row.delta),
-		deltaSaito: formatAddressDeltaSaito(row.delta),
-		recipient: formatRecipientLabel(row.recipient),
-		isLongestChain: Number(row.is_longest_chain) === 1,
-	}));
+function deltaSignClass(delta) {
+	try {
+		const v = BigInt(delta ?? 0);
+		if (v > 0n) return 'explorer-address-delta-positive';
+		if (v < 0n) return 'explorer-address-delta-negative';
+	} catch (err) {
+		// ignore
+	}
+	return '';
 }
 
-function formatAddressSummary(app, publicKey, rows = []) {
+function formatAddressActivityRows(app, rows = [], currentBalanceNolan = null) {
+	const chronological = rows.slice().reverse();
+
+	let runningBalance = null;
+	if (currentBalanceNolan != null) {
+		try {
+			let total = BigInt(currentBalanceNolan);
+			for (let i = rows.length - 1; i >= 0; i--) {
+				total -= BigInt(rows[i]?.delta ?? 0);
+			}
+			runningBalance = total;
+		} catch (err) {
+			runningBalance = null;
+		}
+	}
+
+	const formatted = [];
+	for (let i = 0; i < chronological.length; i++) {
+		const row = chronological[i];
+		const delta = row.delta;
+
+		if (runningBalance != null) {
+			try {
+				runningBalance += BigInt(delta ?? 0);
+			} catch (err) {
+				// keep previous balance
+			}
+		}
+
+		formatted.push({
+			blockId: row.block_id != null ? String(row.block_id) : '—',
+			blockHash: row.block_hash || '',
+			txHash: row.tx_hash || '',
+			txHashDisplay: truncateHash(row.tx_hash || '', 8, 8),
+			deltaSaito: formatDeltaSaito(delta),
+			deltaClass: deltaSignClass(delta),
+			recipient: formatRecipientLabel(row.recipient),
+			balance: runningBalance != null ? formatBalanceSaito(runningBalance) : null,
+			isLongestChain: Number(row.is_longest_chain) === 1,
+		});
+	}
+
+	formatted.reverse();
+	return formatted;
+}
+
+function formatAddressSummary(app, publicKey, rows = [], currentBalanceNolan = null) {
 	let netDelta = 0n;
 	for (let i = 0; i < rows.length; i++) {
 		try {
@@ -77,15 +118,16 @@ function formatAddressSummary(app, publicKey, rows = []) {
 		publicKeyFull: key,
 		hasUsername,
 		entryCount: rows.length,
-		netDelta: formatAddressDelta(netDelta),
-		netDeltaSaito: formatAddressDeltaSaito(netDelta),
+		currentBalance: currentBalanceNolan != null ? formatBalanceSaito(currentBalanceNolan) : null,
+		netDeltaSaito: formatDeltaSaito(netDelta),
 	};
 }
 
 module.exports = {
 	formatAddressActivityRows,
 	formatAddressSummary,
-	formatAddressDelta,
-	formatAddressDeltaSaito,
+	formatDeltaSaito,
+	formatBalanceSaito,
 	formatRecipientLabel,
+	deltaSignClass,
 };

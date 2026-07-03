@@ -352,16 +352,18 @@
 }
 
 .explorer-feed-badge {
-	padding: var(--explorer-space-1);
+	width: auto;
+	height: auto;
+	padding: var(--explorer-space-1) var(--explorer-space-2);
 	font-size: var(--explorer-text-xs);
 	font-weight: var(--explorer-font-medium);
 	color: var(--explorer-foreground);
 	background-color: var(--explorer-muted);
 	border: 1px solid var(--explorer-border);
 	font-variant-numeric: tabular-nums;
-	text-align: center;
+	text-align: right;
 	line-height: 1.2;
-	word-break: break-word;
+	white-space: nowrap;
 }
 
 .explorer-feed-chevron {
@@ -433,8 +435,7 @@
 	white-space: nowrap;
 }
 
-.explorer-page button.explorer-json-toggle,
-.explorer-page button.explorer-txmsg-toggle {
+.explorer-page button.explorer-json-toggle {
 	appearance: none;
 	min-width: 0;
 	min-height: 0;
@@ -468,6 +469,38 @@
 	font-weight: var(--explorer-font-normal);
 	color: var(--explorer-muted-foreground);
 	white-space: nowrap;
+}
+
+.explorer-load-more {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--explorer-space-3) var(--explorer-space-4);
+	border-top: 1px solid var(--explorer-border);
+}
+
+.explorer-load-more-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--explorer-space-1) var(--explorer-space-4);
+	border: 1px solid var(--explorer-border);
+	border-radius: var(--explorer-radius);
+	background-color: var(--explorer-card);
+	color: var(--explorer-link);
+	font-size: var(--explorer-text-sm);
+	font-weight: var(--explorer-font-medium);
+	cursor: pointer;
+	transition: background-color var(--explorer-transition-fast);
+}
+
+.explorer-load-more-btn:hover {
+	background-color: var(--explorer-muted);
+}
+
+.explorer-load-more-text {
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
 }
 
 @media (max-width: 48rem) {

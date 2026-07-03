@@ -1,6 +1,6 @@
 const Slip = require('../../../lib/saito/slip').default;
 const { SlipType } = require('saito-js/lib/slip');
-const { signAccessScriptWitness } = require('./scripting');
+const { isNFTTuple, signAccessScriptWitness } = require('./scripting');
 
 /** Saito SlipType::P2SH — matches rustscript store unlock pattern. */
 const SLIP_TYPE_P2SH = 10;
@@ -139,23 +139,9 @@ function normalizeSlipJson(data) {
 	return normalized;
 }
 
-function isNFTTuple(slips, i) {
-	if (!slips || i + 2 >= slips.length) {
-		return false;
-	}
-	const a = slips[i];
-	const b = slips[i + 1];
-	const c = slips[i + 2];
-	return (
-		a?.type === SlipType.Bound &&
-		c?.type === SlipType.Bound &&
-		(b?.type === SlipType.Normal || b?.type === SlipType.ATR)
-	);
-}
-
-function findInventoryTripleStartIndex(slips, p2sh_address) {
+function findInventoryTriple(slips, p2sh_address) {
 	if (!p2sh_address || !slips?.length) {
-		return -1;
+		return null;
 	}
 	for (let i = 0; i + 2 < slips.length; i++) {
 		if (!isNFTTuple(slips, i)) {
@@ -163,18 +149,10 @@ function findInventoryTripleStartIndex(slips, p2sh_address) {
 		}
 		// slip2.publicKey is the P2SH custody address, not a wallet public key.
 		if (slips[i + 1]?.publicKey === p2sh_address) {
-			return i;
+			return [slips[i], slips[i + 1], slips[i + 2]];
 		}
 	}
-	return -1;
-}
-
-function findInventoryTriple(slips, p2sh_address) {
-	const start = findInventoryTripleStartIndex(slips, p2sh_address);
-	if (start < 0) {
-		return null;
-	}
-	return [slips[start], slips[start + 1], slips[start + 2]];
+	return null;
 }
 
 function parseStoredSlip(stored) {

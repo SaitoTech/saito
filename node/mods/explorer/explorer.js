@@ -4,6 +4,8 @@ const Main = require('./lib/ui/main');
 const Block = require('./lib/ui/block');
 const Supply = require('./lib/ui/supply');
 const Address = require('./lib/ui/address');
+const AllBlocks = require('./lib/ui/all-blocks');
+const AllTransactions = require('./lib/ui/all-transactions');
 const Search = require('./lib/ui/search');
 const ShellTemplate = require('./lib/ui/shell.template');
 const { transitionView } = require('./lib/ui/transitions');
@@ -39,6 +41,8 @@ class Explorer extends ModTemplate {
 		this.blockComponent = null;
 		this.supplyComponent = null;
 		this.addressComponent = null;
+		this.allBlocksComponent = null;
+		this.allTransactionsComponent = null;
 		this.search = null;
 		this.header = null;
 		this.shellRendered = false;
@@ -79,6 +83,8 @@ class Explorer extends ModTemplate {
 		const blockMatch = path.match(new RegExp(`^${prefix}/block/([^/]+)$`));
 		const supplyMatch = path.match(new RegExp(`^${prefix}/supply$`));
 		const addressMatch = path.match(new RegExp(`^${prefix}/address/([^/]+)$`));
+		const allBlocksMatch = path.match(new RegExp(`^${prefix}/blocks$`));
+		const allTransactionsMatch = path.match(new RegExp(`^${prefix}/transactions$`));
 
 		if (blockMatch) {
 			return {
@@ -96,6 +102,14 @@ class Explorer extends ModTemplate {
 				view: 'address',
 				publicKey: decodeURIComponent(addressMatch[1]),
 			};
+		}
+
+		if (allBlocksMatch) {
+			return { view: 'allBlocks' };
+		}
+
+		if (allTransactionsMatch) {
+			return { view: 'allTransactions' };
 		}
 
 		return { view: 'home' };
@@ -152,14 +166,27 @@ class Explorer extends ModTemplate {
 			}
 
 			const link = event.target.closest('.explorer-footer-link');
-			if (!link) {
+			if (link) {
+				const href = link.getAttribute('href') || '';
+				if (href.endsWith('/explorer/supply')) {
+					event.preventDefault();
+					this.renderSupply({ pushState: true, animate: true });
+				}
 				return;
 			}
 
-			const href = link.getAttribute('href') || '';
-			if (href.endsWith('/explorer/supply')) {
-				event.preventDefault();
-				this.renderSupply({ pushState: true, animate: true });
+			const viewAllLink = event.target.closest('[data-explorer-nav]');
+			if (viewAllLink) {
+				const nav = viewAllLink.getAttribute('data-explorer-nav');
+				if (nav === 'all-blocks') {
+					event.preventDefault();
+					event.stopPropagation();
+					this.renderAllBlocks({ pushState: true, animate: true });
+				} else if (nav === 'all-transactions') {
+					event.preventDefault();
+					event.stopPropagation();
+					this.renderAllTransactions({ pushState: true, animate: true });
+				}
 			}
 		});
 
@@ -185,12 +212,33 @@ class Explorer extends ModTemplate {
 				return;
 			}
 
+			if (state.view === 'allBlocks') {
+				this.renderAllBlocks({ pushState: false, animate: true });
+				return;
+			}
+
+			if (state.view === 'allTransactions') {
+				this.renderAllTransactions({ pushState: false, animate: true });
+				return;
+			}
+
 			this.renderHome({ pushState: false, animate: true });
 		});
 	}
 
 	getViewElement() {
 		return document.querySelector('.explorer-view');
+	}
+
+	cleanupListViews() {
+		if (this.allBlocksComponent) {
+			this.allBlocksComponent.cleanup();
+			this.allBlocksComponent = null;
+		}
+		if (this.allTransactionsComponent) {
+			this.allTransactionsComponent.cleanup();
+			this.allTransactionsComponent = null;
+		}
 	}
 
 	async renderHome(options = {}) {
@@ -202,6 +250,7 @@ class Explorer extends ModTemplate {
 		this.supplyComponent = null;
 		this.addressComponent = null;
 		this.addressPublicKey = null;
+		this.cleanupListViews();
 
 		if (pushState) {
 			window.history.pushState({ view: 'home' }, '', `/${this.slug}`);
@@ -235,6 +284,7 @@ class Explorer extends ModTemplate {
 		this.supplyError = null;
 		this.addressComponent = null;
 		this.addressPublicKey = null;
+		this.cleanupListViews();
 
 		if (pushState) {
 			window.history.pushState({ view: 'supply' }, '', `/${this.slug}/supply`);
@@ -272,6 +322,7 @@ class Explorer extends ModTemplate {
 		this.addressRows = [];
 		this.addressReady = false;
 		this.addressError = null;
+		this.cleanupListViews();
 
 		if (pushState) {
 			window.history.pushState(
@@ -320,6 +371,7 @@ class Explorer extends ModTemplate {
 		this.supplyComponent = null;
 		this.addressComponent = null;
 		this.addressPublicKey = null;
+		this.cleanupListViews();
 
 		if (pushState) {
 			const url = `/${this.slug}/block/${encodeURIComponent(blockHash)}`;
@@ -335,6 +387,66 @@ class Explorer extends ModTemplate {
 		const renderContent = () => {
 			this.blockComponent = new Block(this.app, this, blockHash, expandTxSignature);
 			this.blockComponent.render('.explorer-view');
+		};
+
+		if (animate) {
+			await transitionView(this.getViewElement(), renderContent);
+		} else {
+			renderContent();
+		}
+	}
+
+	async renderAllBlocks(options = {}) {
+		const { pushState = true, animate = true } = options;
+
+		this.activeView = 'allBlocks';
+		this.blockHash = null;
+		this.blockComponent = null;
+		this.main = null;
+		this.supplyComponent = null;
+		this.addressComponent = null;
+		this.addressPublicKey = null;
+		this.cleanupListViews();
+
+		if (pushState) {
+			window.history.pushState({ view: 'allBlocks' }, '', `/${this.slug}/blocks`);
+		}
+
+		this.ensureShell();
+
+		const renderContent = () => {
+			this.allBlocksComponent = new AllBlocks(this.app, this);
+			this.allBlocksComponent.render('.explorer-view');
+		};
+
+		if (animate) {
+			await transitionView(this.getViewElement(), renderContent);
+		} else {
+			renderContent();
+		}
+	}
+
+	async renderAllTransactions(options = {}) {
+		const { pushState = true, animate = true } = options;
+
+		this.activeView = 'allTransactions';
+		this.blockHash = null;
+		this.blockComponent = null;
+		this.main = null;
+		this.supplyComponent = null;
+		this.addressComponent = null;
+		this.addressPublicKey = null;
+		this.cleanupListViews();
+
+		if (pushState) {
+			window.history.pushState({ view: 'allTransactions' }, '', `/${this.slug}/transactions`);
+		}
+
+		this.ensureShell();
+
+		const renderContent = () => {
+			this.allTransactionsComponent = new AllTransactions(this.app, this);
+			this.allTransactionsComponent.render('.explorer-view');
 		};
 
 		if (animate) {
@@ -366,6 +478,20 @@ class Explorer extends ModTemplate {
 		this.addressRows = [];
 		this.addressReady = false;
 		this.addressError = null;
+
+		if (this.activeView === 'allBlocks') {
+			this.cleanupListViews();
+			this.allBlocksComponent = new AllBlocks(this.app, this);
+			this.allBlocksComponent.render('.explorer-view');
+			return;
+		}
+
+		if (this.activeView === 'allTransactions') {
+			this.cleanupListViews();
+			this.allTransactionsComponent = new AllTransactions(this.app, this);
+			this.allTransactionsComponent.render('.explorer-view');
+			return;
+		}
 
 		await this.refreshActiveView();
 
@@ -646,6 +772,16 @@ class Explorer extends ModTemplate {
 			return;
 		}
 
+		if (route.view === 'allBlocks') {
+			await this.renderAllBlocks({ pushState: false, animate: false });
+			return;
+		}
+
+		if (route.view === 'allTransactions') {
+			await this.renderAllTransactions({ pushState: false, animate: false });
+			return;
+		}
+
 		await this.renderHome({ pushState: false, animate: false });
 	}
 
@@ -718,6 +854,8 @@ class Explorer extends ModTemplate {
 		};
 
 		expressapp.get(`${uri}/block/:hash`, sendIndex);
+		expressapp.get(`${uri}/blocks`, sendIndex);
+		expressapp.get(`${uri}/transactions`, sendIndex);
 		expressapp.get(`${uri}/supply`, sendIndex);
 		expressapp.get(`${uri}/address/:publickey`, sendIndex);
 		expressapp.get(uri, sendIndex);

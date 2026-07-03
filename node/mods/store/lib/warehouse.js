@@ -36,7 +36,7 @@ class Warehouse {
 		await this.db.ensureSchema();
 		this.mod.summaries = {};
 		await this.initializeSummaryCache();
-		await this.initializeImageCache();
+		await initializeImageCache(this.mod);
 	}
 
 	async initializeSummaryCache() {
@@ -47,17 +47,13 @@ class Warehouse {
 
 		const rows = await this.db.loadAllSummaries();
 		for (const row of rows || []) {
-			const key = this.bucketKey(row.nft_id, row.price);
+			const key = summaryBucketKey(row.nft_id, row.price);
 			if (!this.summaries[key]) {
 				await this.syncSummaryToCache(row.nft_id, row.price);
 			}
 		}
 
 		this.mod.summaries = this.summaries;
-	}
-
-	async initializeImageCache() {
-		await initializeImageCache(this.mod);
 	}
 
 	async onNewBlock(blk, lc) {
@@ -526,7 +522,7 @@ class Warehouse {
 		const existing_by_bucket = {};
 
 		for (const row of existing || []) {
-			existing_by_bucket[this.bucketKey(row.nft_id, row.price)] = row;
+			existing_by_bucket[summaryBucketKey(row.nft_id, row.price)] = row;
 		}
 
 		await this.db.clearSummaries();
@@ -537,7 +533,7 @@ class Warehouse {
 		for (const bucket of buckets || []) {
 			const nft_id = bucket.nft_id;
 			const price = Number(bucket.price ?? 0);
-			const prev = existing_by_bucket[this.bucketKey(nft_id, price)] || {};
+			const prev = existing_by_bucket[summaryBucketKey(nft_id, price)] || {};
 
 			await this.db.insertSummary({
 				nft_id,
@@ -556,7 +552,7 @@ class Warehouse {
 				if (listing?.signature) {
 					summary.listing_signature = listing.signature;
 				}
-				const key = this.bucketKey(nft_id, price);
+				const key = summaryBucketKey(nft_id, price);
 				this.summaries[key] = summary;
 				syncSummaryCache(this.mod, summary);
 			}
@@ -570,7 +566,7 @@ class Warehouse {
 	}
 
 	async returnSummaryByBucket(nft_id, price) {
-		const key = this.bucketKey(nft_id, price);
+		const key = summaryBucketKey(nft_id, price);
 		if (this.summaries[key]) {
 			return this.summaries[key];
 		}
@@ -669,7 +665,7 @@ class Warehouse {
 		if (listing?.signature) {
 			summary.listing_signature = listing.signature;
 		}
-		const key = this.bucketKey(nft_id, price);
+		const key = summaryBucketKey(nft_id, price);
 		this.summaries[key] = summary;
 		this.mod.summaries = this.summaries;
 		syncSummaryCache(this.mod, summary);
@@ -831,7 +827,7 @@ class Warehouse {
 				const has_metadata = !!(refreshed?.title || refreshed?.description);
 				if (!has_metadata) {
 					await this.db.deleteSummaryByBucket(nft_id, price);
-					const key = this.bucketKey(nft_id, price);
+					const key = summaryBucketKey(nft_id, price);
 					delete this.summaries[key];
 					this.mod.summaries = this.summaries;
 					return null;
@@ -840,10 +836,6 @@ class Warehouse {
 		}
 
 		return this.syncSummaryToCache(nft_id, price);
-	}
-
-	bucketKey(nft_id, price) {
-		return summaryBucketKey(nft_id, price);
 	}
 
 	async listingExists(signature) {

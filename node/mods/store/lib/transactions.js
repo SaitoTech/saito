@@ -24,6 +24,27 @@ const {
 	listRustP2shInputIndexes
 } = require('./helpers');
 
+function partitionCustodyDeposit(row_custody, take_qty, row_qty) {
+	const buyer =
+		row_qty > 0 ? (row_custody * BigInt(take_qty)) / BigInt(row_qty) : 0n;
+	return { buyer, remaining: row_custody - buyer };
+}
+
+function p2shPaymentRecipient(app, p2sh_address, context) {
+	const recipient = slipPublicKey(app, p2sh_address) || p2sh_address;
+	if (
+		!recipient ||
+		(recipient === p2sh_address &&
+			p2sh_address?.length === 66 &&
+			p2sh_address?.startsWith('00'))
+	) {
+		const log = context === 'createPurchaseAssetTransaction' ? console.error : console.log;
+		log(`Store: ${context} slipPublicKey failed`, p2sh_address, recipient);
+		throw new Error('invalid recipient public key');
+	}
+	return recipient;
+}
+
 module.exports = {
 
 
@@ -58,21 +79,11 @@ module.exports = {
 		//
 		// create the listing tx
 		//
-		const slip_public_key =
-			slipPublicKey(this.app, script_info.p2sh_address) || script_info.p2sh_address;
-		if (
-			!slip_public_key ||
-			(slip_public_key === script_info.p2sh_address &&
-				script_info.p2sh_address?.length === 66 &&
-				script_info.p2sh_address?.startsWith('00'))
-		) {
-			console.log(
-				'Store: createListAssetTransaction slipPublicKey failed',
-				script_info.p2sh_address,
-				slip_public_key
-			);
-			throw new Error('invalid recipient public key');
-		}
+		const slip_public_key = p2shPaymentRecipient(
+			this.app,
+			script_info.p2sh_address,
+			'createListAssetTransaction'
+		);
 		let newtx = await this.app.wallet.createNFTTransaction(
 			nft,
 			slip_public_key,
@@ -176,7 +187,7 @@ module.exports = {
 		const pay_descriptor = relist_listing_row.p2sh_address || primary_listing_row.p2sh_address || '';
 		const base_listing = listing_txmsg.listing || {
 			nft_id: primary_listing_row.nft_id,
-			price: unit_price,
+			price: String(this.app.wallet.convertNolanToSaito(BigInt(unit_price)) ?? unit_price),
 			denomination: 'SAITO',
 			pay_descriptor
 		};
@@ -207,7 +218,6 @@ module.exports = {
 			fulfillment_tx.msg.listing = {
 				...base_listing,
 				nft_id: primary_listing_row.nft_id || base_listing.nft_id,
-				price: unit_price,
 				denomination: base_listing.denomination || 'SAITO',
 				pay_descriptor,
 				nft_amount: relist_remainder,
@@ -220,7 +230,6 @@ module.exports = {
 			fulfillment_tx.msg.listing = {
 				...base_listing,
 				nft_id: primary_listing_row.nft_id || base_listing.nft_id,
-				price: unit_price,
 				denomination: base_listing.denomination || 'SAITO',
 				pay_descriptor: primary_listing_row.p2sh_address || pay_descriptor,
 				nft_amount: 0,
@@ -372,7 +381,8 @@ module.exports = {
 				continue;
 			}
 			const row_custody = BigInt(row_triple_json[1]?.amount ?? 0);
-			buyer_custody_total += (row_custody * BigInt(take_qty)) / BigInt(row_qty);
+			const { buyer } = partitionCustodyDeposit(row_custody, take_qty, row_qty);
+			buyer_custody_total += buyer;
 		}
 
 		{
@@ -403,9 +413,8 @@ module.exports = {
 				const row_custody = BigInt(relist.row_triple_json[1]?.amount ?? 0);
 				const row_qty = Number(relist.listing_row.quantity ?? 1);
 				const take_qty = row_qty - relist.remainder;
-				const buyer_part =
-					row_qty > 0 ? (row_custody * BigInt(take_qty)) / BigInt(row_qty) : 0n;
-				relist_out2.amount = row_custody - buyer_part;
+				const { remaining } = partitionCustodyDeposit(row_custody, take_qty, row_qty);
+				relist_out2.amount = remaining;
 				fulfillment_tx.addToSlip(relist_out2);
 			}
 			{
@@ -457,12 +466,6 @@ module.exports = {
 	},
 
 	async createPurchaseAssetTransaction(summary, sale = {}, nolan_to_send = 0n) {
-		console.log('TX 01 createPurchaseAssetTransaction enter', {
-			nft_id: summary?.nft_id,
-			price: summary?.price,
-			nolan_to_send: nolan_to_send.toString()
-		});
-
 		if (!this.store_public_key) {
 			throw new Error('Store public key is not configured');
 		}
@@ -476,42 +479,22 @@ module.exports = {
 			throw new Error('Summary price is required for purchase');
 		}
 
-		console.log('TX 02 before wallet.getPublicKey()');
 		const buyer_publickey = await this.app.wallet.getPublicKey();
-		console.log('TX 03 after wallet.getPublicKey()', { buyer_publickey });
 
 		const script_info = createPurchaseScript(this.app, {
 			buyer_publickey,
 			store_publickey: this.store_public_key
 		});
-		const payment_recipient =
-			slipPublicKey(this.app, script_info.p2sh_address) || script_info.p2sh_address;
-		if (
-			!payment_recipient ||
-			(payment_recipient === script_info.p2sh_address &&
-				script_info.p2sh_address?.length === 66 &&
-				script_info.p2sh_address?.startsWith('00'))
-		) {
-			console.error(
-				'Store: createPurchaseAssetTransaction slipPublicKey failed',
-				script_info.p2sh_address,
-				payment_recipient
-			);
-			throw new Error('invalid recipient public key');
-		}
+		const payment_recipient = p2shPaymentRecipient(
+			this.app,
+			script_info.p2sh_address,
+			'createPurchaseAssetTransaction'
+		);
 
-		console.log('TX 04 before createUnsignedTransactionWithDefaultFee()', {
-			payment_recipient,
-			nolan_to_send: nolan_to_send.toString()
-		});
 		const newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
 			payment_recipient,
 			nolan_to_send
 		);
-		console.log('TX 05 after createUnsignedTransactionWithDefaultFee()', {
-			inputs: newtx.from?.length,
-			outputs: newtx.to?.length
-		});
 
 		newtx.msg = {
 			module: 'Store',
@@ -527,15 +510,7 @@ module.exports = {
 			p2sh_address: script_info.p2sh_address
 		};
 
-		console.log('TX 06 before newtx.sign()');
 		await newtx.sign();
-		console.log('TX 07 after newtx.sign()', { signature: newtx.signature });
-
-		console.log('TX created', {
-			signature: newtx.signature,
-			inputs: newtx.from?.length,
-			outputs: newtx.to?.length
-		});
 		return newtx;
 	},
 
@@ -674,33 +649,16 @@ module.exports = {
 		const received_transaction_id = transactionIndexInBlock(blk, tx);
 		const refund_public_key = txmsg.refund || buyer;
 
-		console.log('');
-		console.log('****************************************************');
-		console.log('********** STORE PURCHASE RECEIVED **********');
-		console.log('****************************************************');
-		console.log({
-			signature: tx.signature,
-			buyer,
-			nft_id,
-			price_nolan: unit_price?.toString?.(),
-			quantity,
-			amount_paid: returnAmountPaidInPurchase(tx, txmsg, this.app)?.toString?.(),
-			total_due: total?.toString?.()
-		});
-
 		if (!buyer || !nft_id) {
 			console.warn('Store: purchase missing buyer or nft_id');
-			console.log('SERVER EXIT: missing-buyer-or-nft-id');
 			return;
 		}
 
 		if (unit_price <= 0n) {
 			console.warn('Store: purchase invalid price');
-			console.log('SERVER EXIT: invalid-price');
 			return;
 		}
 
-		console.log('SERVER 01 validate payment');
 		const amount_paid = returnAmountPaidInPurchase(tx, txmsg, this.app);
 		const payment_utxo = returnPaymentUtxoFromPurchase(tx, txmsg, this.app);
 		const refund_order = payment_utxo
@@ -728,36 +686,22 @@ module.exports = {
 
 		if (amount_paid < total) {
 			console.warn(`Store: purchase underpaid. got=${amount_paid} need=${total}`);
-			console.log('SERVER EXIT: underpaid', { signature: tx.signature });
 			await refund('underpaid');
 			return;
 		}
 
 		if (!payment_utxo) {
 			console.warn('Store: purchase payment UTXO not found');
-			console.log('SERVER EXIT: payment-utxo-missing', { signature: tx.signature });
 			return;
 		}
 
-		console.log('SERVER 02 lookup summary bucket', {
-			nft_id,
-			price_nolan: unit_price.toString(),
-			signature: tx.signature
-		});
 		const summary = await this.warehouse.returnSummaryByBucket(nft_id, Number(unit_price));
 		const available = summary
 			? await this.warehouse.returnAvailableQuantity(summary.nft_id, summary.price)
 			: 0;
 
-		console.log('SERVER 03 quantity check', {
-			signature: tx.signature,
-			available,
-			quantity,
-			summary_found: Boolean(summary)
-		});
 		if (!summary || available <= 0) {
 			console.warn('Store: purchase summary inactive or missing', nft_id, unit_price.toString());
-			console.log('SERVER EXIT: listing-inactive', { signature: tx.signature });
 			await refund('listing-inactive');
 			return;
 		}
@@ -768,14 +712,12 @@ module.exports = {
 				nft_id,
 				unit_price.toString()
 			);
-			console.log('SERVER EXIT: insufficient-quantity', { signature: tx.signature });
 			await refund('insufficient-quantity');
 			return;
 		}
 
 		const now = Date.now();
 
-		console.log('SERVER 04 reserve inventory', { signature: tx.signature });
 		try {
 			const order = this.orderFromPurchaseTx(tx, txmsg, payment_utxo, {
 				received_block_id,
@@ -789,21 +731,12 @@ module.exports = {
 			order.updated_at = now;
 			await this.warehouse.addOrder(order);
 			console.log('Store: escrow payment recorded', tx.signature);
-			console.log('SERVER 05 create fulfillment — deferred to warehouse queue', {
-				signature: tx.signature
-			});
-			console.log('SERVER 06 broadcast fulfillment — deferred to warehouse queue', {
-				signature: tx.signature
-			});
-			console.log('SERVER 07 complete', { signature: tx.signature, order_tx_sig: order.order_tx_sig });
 		} catch (err) {
 			if (String(err?.message || err).includes('UNIQUE')) {
 				console.log('Store: escrow payment already recorded', tx.signature);
-				console.log('SERVER EXIT: duplicate-order', { signature: tx.signature });
 				return;
 			}
 			console.warn('Store: escrow payment record failed', err?.message);
-			console.log('SERVER EXIT: queue-failed', { signature: tx.signature });
 			await refund('queue-failed');
 		}
 	}

@@ -3,12 +3,7 @@ module.exports = () => {
     <div class="explorer-page">
       <div class="explorer-utility-bar">
         <div class="explorer-container explorer-utility-inner">
-          <div class="explorer-utility-start">
-            <span class="explorer-ticker">SAITO Price: <strong>$0.42</strong> (+1.20%)</span>
-          </div>
-          <div class="explorer-utility-end">
-            <div class="explorer-search"></div>
-          </div>
+          <div class="explorer-search"></div>
         </div>
       </div>
 

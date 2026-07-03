@@ -334,7 +334,7 @@ class Block {
 			}
 
 			const toggleRow = (e) => {
-				if (e?.target?.closest('.explorer-tx-action-btn, .explorer-txmsg-toggle, .explorer-json-toggle, .explorer-link, .explorer-block-meta-link')) {
+				if (e?.target?.closest('.explorer-action, .explorer-json-toggle, .explorer-link')) {
 					return;
 				}
 				if (e) {

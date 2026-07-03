@@ -21,11 +21,27 @@ function blockHeaderToJson(block) {
 
 async function handleRequestBlocks(app, txmsg) {
   const params = requestParams(txmsg);
-  const count = Number(params.count ?? 20);
+  const count = Math.min(Number(params.count ?? 20), 50);
   const includeOffchain = Boolean(params.include_offchain ?? false);
+  const beforeId = params.before_id != null ? Number(params.before_id) : null;
 
   if (!Number.isFinite(count) || count <= 0) {
     return failure('invalid count');
+  }
+
+  if (beforeId != null && Number.isFinite(beforeId) && beforeId > 0) {
+    const results = [];
+    for (let id = beforeId - 1; id > 0 && results.length < count; id--) {
+      try {
+        const block = await app.core.blockchain.getBlock(BigInt(id), false);
+        if (block) {
+          results.push(blockHeaderToJson(block));
+        }
+      } catch (err) {
+        break;
+      }
+    }
+    return success(results);
   }
 
   const blocks = await app.core.blockchain.getBlocks(count, includeOffchain);

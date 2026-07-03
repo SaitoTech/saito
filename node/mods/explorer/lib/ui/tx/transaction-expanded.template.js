@@ -2,16 +2,16 @@ const SlipTableTemplate = require('./slip-table.template');
 
 function renderActions(tx) {
 	const unlockBtn = tx.hasP2shUnlock
-		? `<button type="button" class="explorer-tx-action-btn" data-action="tx-unlock-script">Unlock Script</button>`
+		? `<button type="button" class="explorer-action explorer-tx-action-btn" data-action="tx-unlock-script">Unlock Script</button>`
 		: '';
 
 	return `
       <section class="explorer-tx-section explorer-tx-actions-section">
         <h3 class="explorer-tx-section-title">Actions</h3>
-        <ul class="explorer-tx-actions-list">
-          <li><button type="button" class="explorer-tx-action-btn" data-action="tx-export">Export Transaction</button></li>
-          ${unlockBtn ? `<li>${unlockBtn}</li>` : ''}
-        </ul>
+        <div class="explorer-action-row">
+          <button type="button" class="explorer-action explorer-tx-action-btn" data-action="tx-export">Export Transaction</button>
+          ${unlockBtn}
+        </div>
       </section>
     `;
 }
@@ -41,9 +41,9 @@ module.exports = (tx) => {
 	const messageSection = tx.hasTxMsg
 		? `
       <section class="explorer-tx-section explorer-txmsg-section">
-        <button type="button" class="explorer-txmsg-toggle" aria-expanded="false">
+        <button type="button" class="explorer-action explorer-txmsg-toggle" aria-expanded="false">
           <span class="explorer-txmsg-caret" aria-hidden="true">▶</span>
-          <span class="explorer-txmsg-toggle-label">Click to view transaction payload data</span>
+          <span class="explorer-txmsg-toggle-label">View transaction payload</span>
         </button>
         <div class="explorer-txmsg-payload" hidden>
           <div class="explorer-json-view">${tx.txMsgHtml}</div>

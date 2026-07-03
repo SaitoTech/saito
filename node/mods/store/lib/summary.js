@@ -3,8 +3,7 @@ const {
 	DREAMSCAPE_PLACEHOLDER,
 	isDemoNftId,
 	ensureListingTransaction,
-	enrichSummaryMedia,
-	applyListingTransaction
+	enrichSummaryMedia
 } = require('./summary-media');
 
 const SUMMARY_STATUS_ACTIVE = 1;
@@ -111,10 +110,6 @@ class Summary {
 		return this;
 	}
 
-	attachListingTransaction(tx) {
-		return applyListingTransaction(this, tx);
-	}
-
 	ensureListingTransaction(onComplete = null) {
 		const done = (summary) => {
 			if (onComplete) {
@@ -135,11 +130,6 @@ class Summary {
 		};
 
 		return enrichSummaryMedia(this).then(done);
-	}
-
-	/** @deprecated use ensureListingTransaction or enrichMedia */
-	loadNFT(onComplete = null) {
-		return this.enrichMedia(onComplete);
 	}
 
 	serialize() {

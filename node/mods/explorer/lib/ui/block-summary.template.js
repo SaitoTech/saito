@@ -71,7 +71,7 @@ module.exports = ({ primary = [], detail = [], badges = null } = {}) => {
 	const detailToggle = detail.length
 		? `
       <div class="explorer-block-meta-footer">
-        <button type="button" class="explorer-block-meta-link explorer-block-meta-toggle" aria-expanded="false">
+        <button type="button" class="explorer-action explorer-block-meta-toggle" aria-expanded="false">
           View full block metadata
         </button>
       </div>

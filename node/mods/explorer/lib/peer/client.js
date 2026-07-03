@@ -5,13 +5,19 @@ function requestBlocksFromPeer(app, peer, options = {}, callback = null) {
   const count = options.count ?? 10;
   const includeOffchain = options.include_offchain ?? true;
 
+  const data = {
+    request: 'request blocks',
+    count,
+    include_offchain: includeOffchain,
+  };
+
+  if (options.before_id != null) {
+    data.before_id = Number(options.before_id);
+  }
+
   return app.network.sendRequestAsTransaction(
     'request blocks',
-    {
-      request: 'request blocks',
-      count,
-      include_offchain: includeOffchain,
-    },
+    data,
     callback,
     peer.publicKey
   );

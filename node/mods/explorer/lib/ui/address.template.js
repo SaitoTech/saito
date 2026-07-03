@@ -4,20 +4,34 @@ module.exports = ({
 	summary = null,
 	rows = [],
 }) => {
-	const summaryHtml = summary
+	const hasBalance = summary?.currentBalance != null;
+
+	const metricsHtml = summary
 		? `
       <div class="explorer-address-metrics">
-        <div class="explorer-address-metric">
-          <h3>${summary.netDeltaSaito}</h3>
-          <p>Net activity (indexed)</p>
-        </div>
+        ${
+					hasBalance
+						? `
+          <div class="explorer-address-metric">
+            <h3>${summary.currentBalance}</h3>
+            <p>Current Balance</p>
+          </div>
+        `
+						: ''
+				}
         <div class="explorer-address-metric">
           <h3>${summary.entryCount}</h3>
           <p>Transactions</p>
         </div>
+        <div class="explorer-address-metric">
+          <h3>${summary.netDeltaSaito}</h3>
+          <p>Net indexed activity</p>
+        </div>
       </div>
     `
 		: '';
+
+	const hasRunningBalance = rows.length > 0 && rows[0].balance != null;
 
 	const tableHtml = rows.length
 		? `
@@ -26,10 +40,10 @@ module.exports = ({
           <thead>
             <tr>
               <th>Block</th>
-              <th class="explorer-table-cell-numeric">Delta (NOLAN)</th>
-              <th class="explorer-table-cell-numeric">Delta (SAITO)</th>
-              <th>Recipient</th>
               <th>Transaction</th>
+              <th>Counterparty</th>
+              <th class="explorer-table-cell-numeric">Amount</th>
+              ${hasRunningBalance ? '<th class="explorer-table-cell-numeric">Balance</th>' : ''}
             </tr>
           </thead>
           <tbody>
@@ -44,9 +58,6 @@ module.exports = ({
 											: row.blockId
 									}
                 </td>
-                <td class="explorer-table-cell-numeric explorer-address-delta">${row.delta}</td>
-                <td class="explorer-table-cell-numeric explorer-address-delta">${row.deltaSaito}</td>
-                <td>${row.recipient}</td>
                 <td>
                   ${
 										row.txHash
@@ -54,6 +65,9 @@ module.exports = ({
 											: '—'
 									}
                 </td>
+                <td class="explorer-address-recipient">${row.recipient}</td>
+                <td class="explorer-table-cell-numeric explorer-address-delta ${row.deltaClass}">${row.deltaSaito}</td>
+                ${hasRunningBalance ? `<td class="explorer-table-cell-numeric explorer-address-balance">${row.balance}</td>` : ''}
               </tr>
             `
 							)
@@ -66,16 +80,16 @@ module.exports = ({
 
 	let statusHtml = '';
 	if (loading) {
-		statusHtml = `<p class="explorer-address-status">Loading address activity from Explorer peer…</p>`;
+		statusHtml = `<p class="explorer-address-status">Loading address history…</p>`;
 	} else if (error) {
 		statusHtml = `
       <div class="explorer-teaser-loading explorer-teaser-error">
-        <p class="explorer-teaser-loading-title">Unable to load address activity</p>
+        <p class="explorer-teaser-loading-title">Unable to load address history</p>
         <p class="explorer-teaser-loading-message">${error}</p>
       </div>
     `;
 	} else if (!rows.length) {
-		statusHtml = `<p class="explorer-address-status">No indexed activity found for this public key on the longest chain.</p>`;
+		statusHtml = `<p class="explorer-address-status">No indexed activity found for this address on the longest chain.</p>`;
 	}
 
 	const publicKeyFull = summary?.publicKeyFull || '';
@@ -88,13 +102,13 @@ module.exports = ({
             <i class="fa-solid fa-arrow-left"></i>
           </button>
           <div class="explorer-address-header-text">
-            <h1 class="explorer-page-title">Address Transfers</h1>
+            <h1 class="explorer-page-title">Address</h1>
             ${publicKeyFull ? `<p class="explorer-address-key-raw explorer-mono">${publicKeyFull}</p>` : ''}
           </div>
         </div>
 
         <div class="explorer-address-dashboard explorer-card explorer-card-padded">
-          ${summaryHtml}
+          ${metricsHtml}
           ${statusHtml}
           ${tableHtml}
         </div>

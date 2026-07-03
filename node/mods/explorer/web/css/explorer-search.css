@@ -63,6 +63,16 @@
 	box-shadow: none;
 }
 
+.explorer-utility-bar .explorer-search-box {
+	height: 3.6rem;
+	box-shadow: var(--explorer-shadow-xs);
+}
+
+.explorer-utility-bar .explorer-search-input {
+	height: 3.6rem;
+	font-size: var(--explorer-text-base);
+}
+
 .explorer-search-submit {
 	display: inline-flex;
 	align-items: center;
@@ -92,6 +102,13 @@
 
 .explorer-search-submit:hover {
 	background-color: color-mix(in oklch, var(--explorer-primary) 90%, var(--explorer-foreground));
+}
+
+.explorer-utility-bar .explorer-search-submit {
+	width: 3.6rem;
+	height: 3.6rem;
+	min-width: 3.6rem;
+	max-width: 3.6rem;
 }
 
 @media (max-width: 48rem) {

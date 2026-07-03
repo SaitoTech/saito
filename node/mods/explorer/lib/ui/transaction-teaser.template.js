@@ -60,7 +60,7 @@ module.exports = ({
         ${body}
       </div>
       <div class="explorer-panel-footer">
-        <a class="explorer-link" href="#">View all transactions</a>
+        <a class="explorer-link" href="/explorer/transactions" data-explorer-nav="all-transactions">View all transactions</a>
       </div>
     </section>
   `;

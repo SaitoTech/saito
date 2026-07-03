@@ -39,12 +39,6 @@ class PurchaseFlow {
 	}
 
 	async startPurchase(summary, quantity = 1) {
-		console.log('========================================================');
-		console.log('=============== STORE PURCHASE START ===================');
-		console.log('listing:', summary?.nft_id);
-		console.log('title:', summary?.returnTitle?.() || summary?.title);
-		console.log('========================================================');
-
 		if (!summary?.nft_id || isDemoNftId(summary.nft_id)) {
 			salert('This item is not available for purchase.');
 			return;
@@ -72,35 +66,22 @@ class PurchaseFlow {
 			return;
 		}
 
-		console.log('BUY 01 before wallet.getBalance()');
 		const wallet_balance = await this.app.wallet.getBalance();
-		console.log('BUY 02 after wallet.getBalance()', wallet_balance);
 
 		this.listingTitle = summary.returnTitle?.() || summary.title || 'this item';
 
 		let newtx = null;
 		try {
-			console.log('BUY 03 before createPurchaseAssetTransaction()', {
-				nft_id: summary?.nft_id,
-				price: summary?.price,
-				quantity,
-				total_nolan: total_nolan.toString()
-			});
 			newtx = await this.mod.createPurchaseAssetTransaction(
 				summary,
 				{ price: unit_price, fee, quantity },
 				total_nolan
 			);
-			console.log('BUY 04 after createPurchaseAssetTransaction()', {
-				signature: newtx?.signature
-			});
 		} catch (err) {
 			console.error('Store: createPurchaseAssetTransaction failed', err);
 			salert(err?.message || 'Could not create purchase transaction.');
 			return;
 		}
-
-		console.log('BUY 05 transaction created and signed', { signature: newtx.signature });
 
 		this.pendingTxSignature = newtx.signature || '';
 		if (!this.pendingTxSignature) {
@@ -108,16 +89,9 @@ class PurchaseFlow {
 			return;
 		}
 
-		console.log('BUY 06 before product overlay hide');
 		this.mod.main?.product_overlay?.overlay?.hide?.();
-		console.log('BUY 07 after product overlay hide');
 
 		if (wallet_balance < total_nolan) {
-			console.log('BUY 08 insufficient balance — launching saito-purchase-launch', {
-				signature: newtx.signature,
-				wallet_balance: wallet_balance.toString(),
-				total_nolan: total_nolan.toString()
-			});
 			this.app.connection.emit(
 				'saito-purchase-launch',
 				this.app.wallet.convertNolanToSaito(total_nolan),
@@ -125,41 +99,22 @@ class PurchaseFlow {
 				newtx.serialize_to_web(this.app),
 				`Purchase ${summary.returnTitle?.() || 'Store item'}`
 			);
-			console.log('BUY 09 before openWaiting() (insufficient balance path)', {
-				signature: newtx.signature
-			});
 			this.openWaiting();
-			console.log('BUY 10 after openWaiting() (insufficient balance path)', {
-				signature: newtx.signature
-			});
 			return;
 		}
 
 		try {
-			console.log('BUY 11 before network.propagateTransaction()', {
-				signature: newtx.signature
-			});
 			await this.app.network.propagateTransaction(newtx);
-			console.log('BUY 12 after network.propagateTransaction()', {
-				signature: newtx.signature
-			});
 		} catch (err) {
 			salert(err?.message || 'Could not submit purchase transaction.');
 			this.pendingTxSignature = '';
 			return;
 		}
 
-		console.log('BUY 13 before openWaiting() (propagate path)', {
-			signature: newtx.signature
-		});
 		this.openWaiting();
-		console.log('BUY 14 after openWaiting() (propagate path)', {
-			signature: newtx.signature
-		});
 	}
 
 	openWaiting() {
-		console.log('BUY openWaiting() enter', { pendingTxSignature: this.pendingTxSignature });
 		this.step = 'waiting';
 		this.show(PurchaseTemplate.pendingOverlay({ listingTitle: this.listingTitle }));
 		this.confirmationWaiting = new ConfirmationWaitingUI(
@@ -167,7 +122,6 @@ class PurchaseFlow {
 			'.store-purchase-waiting.is-pending'
 		);
 		this.confirmationWaiting.start();
-		console.log('BUY openWaiting() exit', { pendingTxSignature: this.pendingTxSignature });
 	}
 
 	openProcessing() {

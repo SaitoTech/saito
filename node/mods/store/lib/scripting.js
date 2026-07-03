@@ -161,6 +161,7 @@ async function signAccessScriptWitness(app, access_script, message, options = {}
 }
 
 module.exports = {
+	isNFTTuple,
 	buildBuyerOrStoreScript,
 	createListingScript,
 	createPurchaseScript,
