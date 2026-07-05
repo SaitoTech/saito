@@ -6,6 +6,20 @@ const {
 const { renderJsonTree } = require('./ui/tx/json-tree');
 const { hasP2shUnlockTargets } = require('./tx-actions');
 
+// TransactionType::SPV — the placeholder type a full node substitutes for
+// transactions that are not relevant to a lite client when it generates a lite
+// block. Their presence means we are looking at a reduced (SPV) copy of a block
+// rather than the full block.
+const SPV_TRANSACTION_TYPE = 5;
+
+function isSpvTransaction(tx) {
+	const type = tx?.type ?? tx?.transaction_type;
+	if (type == null || type === '') {
+		return false;
+	}
+	return Number(type) === SPV_TRANSACTION_TYPE || String(type) === 'SPV';
+}
+
 function esc(app, value) {
 	return app.browser.escapeHTML(String(value ?? ''));
 }
@@ -75,7 +89,7 @@ function displayName(app, publicKey, options = {}) {
 		return key;
 	}
 
-	return truncateHash(key, 8, 8);
+	return truncatePublicKey(key, 16);
 }
 
 function formatPublicKeyDisplay(app, publicKey, options = {}) {
@@ -86,7 +100,7 @@ function formatPublicKeyDisplay(app, publicKey, options = {}) {
 
 	const username = app.keychain.returnUsername(key);
 	if (!isAnonymousUsername(username, key)) {
-		const truncated = truncateHash(key, 8, 8);
+		const truncated = truncatePublicKey(key, 16);
 		return esc(app, `${username} (${truncated})`);
 	}
 
@@ -94,7 +108,7 @@ function formatPublicKeyDisplay(app, publicKey, options = {}) {
 		return esc(app, key);
 	}
 
-	return esc(app, truncateHash(key, 8, 8));
+	return esc(app, truncatePublicKey(key, 16));
 }
 
 function buildPublicKeyLink(app, publicKey, label = null, options = {}) {
@@ -235,6 +249,19 @@ function truncateHash(hash, head = 10, tail = 8) {
 		return hash;
 	}
 	return `${hash.slice(0, head)}...${hash.slice(-tail)}`;
+}
+
+// Public keys are never truncated in the middle: keep the leading characters and
+// append an ellipsis from the right only, so the start of the key stays readable.
+function truncatePublicKey(key, head = 16) {
+	const value = String(key || '').trim();
+	if (!value) {
+		return '';
+	}
+	if (value.length <= head + 3) {
+		return value;
+	}
+	return `${value.slice(0, head)}...`;
 }
 
 const SAITO_MILLION = 1_000_000n;
@@ -428,7 +455,9 @@ function extractTransactionsFromBlocks(blocks = []) {
 
 function formatTransactionsForTeaser(app, transactions = [], limit = 10) {
 	return transactions.slice(0, limit).map((tx) => ({
-		hash: esc(app, truncateHash(tx.signature || tx.hash || '')),
+		// Render the full signature and let CSS (.explorer-truncate) shorten it from
+		// the right only when the column is too narrow — never a middle ellipsis.
+		hash: esc(app, tx.signature || tx.hash || ''),
 		signature: esc(app, tx.signature || tx.hash || ''),
 		blockHash: esc(app, tx.block_hash || ''),
 		blockId: esc(app, tx.block_id != null ? String(tx.block_id) : ''),
@@ -654,6 +683,7 @@ function formatBlockForPage(app, rawBlock, txFormatter = formatTransactionsForBl
 	return {
 		number: esc(app, String(block.id ?? '')),
 		hashDisplay: esc(app, block.hash || ''),
+		hasSpvTransactions: transactions.some(isSpvTransaction),
 		summaryPrimary: formatBlockSummaryPrimary(app, block),
 		summaryBadges: formatBlockSummaryBadges(app, block),
 		summaryDetail: formatBlockSummaryDetail(app, block, transactions.length),
@@ -677,6 +707,7 @@ function mergeBlockByHash(blocks, enrichedBlock) {
 
 module.exports = {
 	truncateHash,
+	truncatePublicKey,
 	EXPLORER_INTEGER_ONLY_KEYS,
 	formatExplorerInteger,
 	formatMonetaryWhole,
@@ -694,4 +725,6 @@ module.exports = {
 	formatTransactionForBlockPage,
 	extractTransactionsFromBlocks,
 	mergeBlockByHash,
+	normalizeBlockRecord,
+	isSpvTransaction,
 };

@@ -1,5 +1,9 @@
 const DashboardTemplate = require('./dashboard.template');
 const { buildPeerNodeInfo } = require('../peer-node-info');
+const { formatSaito } = require('../explorer-format');
+const { summarizeModulePopularity } = require('../module-detect');
+
+const MODULE_LIST_LIMIT = 6;
 
 class Dashboard {
 	constructor(app, mod) {
@@ -7,26 +11,6 @@ class Dashboard {
 		this.mod = mod;
 		this.container = null;
 		this.fetchToken = 0;
-		this.data = {
-			transactions: {
-				label: 'Transactions',
-				value: '12.4 M',
-				sub: '(128.4 TPS)',
-			},
-			fee: {
-				label: 'Med Fee Price',
-				value: '0.001 SAITO',
-				sub: '(< $0.01)',
-			},
-			finalized: {
-				label: 'Last Finalized Block',
-				value: '1,842,901',
-			},
-			safe: {
-				label: 'Last Safe Block',
-				value: '1,842,899',
-			},
-		};
 		this.peerNode = {
 			ready: false,
 			loading: true,
@@ -51,12 +35,68 @@ class Dashboard {
 
 		this.app.browser.replaceElementContentBySelector(
 			DashboardTemplate({
-				stats: this.data,
 				peerNode: this.peerNode,
+				blockchain: this.buildBlockchainInfo(),
+				modules: this.buildModulePopularity(),
 				app: this.app,
 			}),
 			this.container
 		);
+	}
+
+	buildBlockchainInfo() {
+		const info = this.mod.chainInfo;
+		const ready = this.mod.chainInfoReady;
+		const error = this.mod.chainInfoError;
+
+		if (!info) {
+			if (error) {
+				return { loading: false, ready: false, error, rows: [] };
+			}
+			return { loading: !ready, ready: false, error: null, rows: [] };
+		}
+
+		const integer = (value) =>
+			value == null ? '—' : Number(value).toLocaleString('en-US');
+		const saito = (value) => (value == null ? '—' : formatSaito(value));
+
+		// The ATR (Automatic Transaction Rebroadcast) frontier block is the oldest
+		// block still retained in the current epoch — i.e. the blockchain's
+		// genesis_block_id — whose unspent slips are rebroadcast as it falls out of
+		// the genesis window.
+		const rows = [
+			{ label: 'Burn Fee', value: saito(info.burnfee) },
+			{ label: 'Difficulty', value: integer(info.difficulty) },
+			{ label: 'ATR Block', value: integer(info.genesis_block_id) },
+			{ label: 'Golden Ticket Coverage', value: this.formatGoldenTicketCoverage(info) },
+		];
+
+		return { loading: false, ready: true, error: null, rows };
+	}
+
+	formatGoldenTicketCoverage(info) {
+		const window = Number(info?.golden_ticket_window ?? 0);
+		const count = Number(info?.golden_ticket_count ?? 0);
+		if (!Number.isFinite(window) || window <= 0) {
+			return '—';
+		}
+		const percent = Math.round((count / window) * 100);
+		return `${percent}% (${count}/${window})`;
+	}
+
+	buildModulePopularity() {
+		const ready = this.mod.transactionsReady;
+		const error = this.mod.transactionsError;
+
+		if (!ready) {
+			return { loading: true, ready: false, error: null, rows: [], total: 0 };
+		}
+
+		const { rows, total } = summarizeModulePopularity(this.mod.transactions || [], {
+			limit: MODULE_LIST_LIMIT,
+		});
+
+		return { loading: false, ready: true, error: error || null, rows, total };
 	}
 
 	async loadPeerNodeInfo() {

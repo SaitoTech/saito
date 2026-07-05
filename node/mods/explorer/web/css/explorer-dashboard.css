@@ -44,6 +44,11 @@
 	flex: 1;
 }
 
+/* Allow long values (public key, endpoint) to shrink so right-side ellipsis engages. */
+.explorer-dashboard-peer-grid > .explorer-stat {
+	min-width: 0;
+}
+
 .explorer-dashboard-peer-status {
 	margin: 0;
 	flex: 1;
@@ -63,6 +68,43 @@
 	font-weight: var(--explorer-font-normal);
 }
 
+/* Centered loading state (currently used by the Server Info card). */
+.explorer-dashboard-card--loading {
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
+
+.explorer-dashboard-loading {
+	margin: 0;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-dashboard-status {
+	margin: 0;
+	flex: 1;
+	display: flex;
+	align-items: center;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-dashboard-status--error {
+	color: var(--explorer-destructive);
+}
+
+.explorer-dashboard-info-card,
+.explorer-dashboard-modules-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--explorer-space-2);
+}
+
+.explorer-dashboard-info-card > .explorer-dashboard-quad {
+	flex: 1;
+}
+
 .explorer-dashboard-quad {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -70,37 +112,38 @@
 	height: 100%;
 }
 
-.explorer-dashboard-chart {
+.explorer-module-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
 	display: flex;
 	flex-direction: column;
 	gap: var(--explorer-space-2);
+	flex: 1;
 }
 
-.explorer-chart-placeholder {
+.explorer-module-item {
 	display: flex;
-	align-items: flex-end;
+	align-items: baseline;
 	justify-content: space-between;
-	gap: var(--explorer-space-1);
-	flex: 1;
-	min-height: 3.5rem;
-	padding-top: var(--explorer-space-1);
+	gap: var(--explorer-space-3);
+	font-size: var(--explorer-text-sm);
 }
 
-.explorer-chart-placeholder span {
-	display: block;
-	flex: 1;
-	max-width: 1.5rem;
-	border-radius: var(--explorer-radius-sm) var(--explorer-radius-sm) 0 0;
-	background: color-mix(in oklch, var(--explorer-foreground) 12%, transparent);
+.explorer-module-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: var(--explorer-font-medium);
 }
 
-.explorer-chart-placeholder span:nth-child(1) { height: 42%; }
-.explorer-chart-placeholder span:nth-child(2) { height: 58%; }
-.explorer-chart-placeholder span:nth-child(3) { height: 36%; }
-.explorer-chart-placeholder span:nth-child(4) { height: 72%; }
-.explorer-chart-placeholder span:nth-child(5) { height: 54%; }
-.explorer-chart-placeholder span:nth-child(6) { height: 88%; }
-.explorer-chart-placeholder span:nth-child(7) { height: 64%; }
+.explorer-module-count {
+	flex: none;
+	white-space: nowrap;
+	color: var(--explorer-muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
 
 @media (max-width: 75rem) {
 	.explorer-dashboard-grid {

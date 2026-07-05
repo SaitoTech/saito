@@ -1,4 +1,4 @@
-const { formatSaito, truncateHash } = require('./explorer-format');
+const { formatSaito, truncatePublicKey } = require('./explorer-format');
 
 function parseBalanceSnapshotNolan(text) {
 	if (!text || typeof text !== 'string') {
@@ -22,12 +22,12 @@ function parseBalanceSnapshotNolan(text) {
 }
 
 async function fetchPeerCount() {
-	const response = await fetch('/stats/peers');
+	const response = await fetch('/json/peers');
 	if (!response.ok) {
 		throw new Error('peer stats unavailable');
 	}
 	const data = await response.json();
-	const peers = Object.values(data?.index_to_peers || {});
+	const peers = Array.isArray(data?.peers) ? data.peers : [];
 	return peers.length;
 }
 
@@ -72,7 +72,7 @@ async function buildPeerNodeInfo(app, mod) {
 		loading: false,
 		error: null,
 		publicKey,
-		publicKeyDisplay: truncateHash(publicKey, 10, 10),
+		publicKeyDisplay: truncatePublicKey(publicKey, 16),
 		balance: balanceNolan != null ? formatSaito(balanceNolan) : '—',
 		peerCount: peerCount != null ? String(peerCount) : '—',
 		endpoint,

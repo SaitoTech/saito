@@ -19,17 +19,19 @@
 .explorer-utility-inner {
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	min-height: 4.5rem;
-	padding-block: var(--explorer-space-2);
+	justify-content: flex-start;
+	/* Search box reclaims ~half of this padding (see explorer-search.css); the
+	   two values stay balanced so the utility bar's overall height is unchanged. */
+	padding-block: calc(var(--explorer-space-3) / 2);
 	font-size: var(--explorer-text-sm);
 }
 
 .explorer-utility-inner > .explorer-search {
-	flex: 1;
+	/* 36rem base width increased by 40% (36rem * 1.4). */
+	flex: 0 1 50.4rem;
 	width: 100%;
 	min-width: 0;
-	max-width: 80rem;
+	max-width: 50.4rem;
 }
 
 .explorer-utility-bar .explorer-search-component {

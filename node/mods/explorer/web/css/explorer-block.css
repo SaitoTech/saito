@@ -192,61 +192,74 @@
  *
  * A single, deliberate treatment for utility actions and disclosure
  * toggles in the block view (metadata toggle, Export, Unlock, TXMSG
- * payload). Scoped to `.explorer-page` so these never inherit the
- * global Saito `button` theme (oversized min-widths, orange fill).
+ * payload). These are secondary utilities, not calls to action, so
+ * they read as subtle blue links with a dashed underline rather than
+ * filled buttons. Selectors use `body:has(.explorer-page)` so they
+ * beat global Saito theme rules such as
+ * `html[data-theme='noir'] button:not(.saito-button-secondary)`
+ * (higher specificity than `.explorer-page button` alone). `display:
+ * inline-block` (never flex) is required so the dashed underline
+ * renders across the control text.
  * ----------------------------------------------------------------- */
-.explorer-page .explorer-action,
-.explorer-page a.explorer-action,
-.explorer-page button.explorer-action {
+body:has(.explorer-page) .explorer-page .explorer-action,
+body:has(.explorer-page) .explorer-page a.explorer-action,
+body:has(.explorer-page) .explorer-page button.explorer-action {
 	appearance: none;
 	-webkit-appearance: none;
-	display: inline-flex;
-	align-items: center;
-	gap: var(--explorer-space-1);
+	display: inline-block;
 	width: auto;
 	max-width: 100%;
 	min-width: 0;
 	min-height: 0;
 	margin: 0;
-	padding: 0.3rem 0.7rem;
-	border: 1px solid var(--explorer-border);
-	border-radius: var(--explorer-radius-sm);
-	background: var(--explorer-card);
-	color: var(--explorer-foreground);
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: none;
+	background-image: none;
+	color: var(--explorer-link);
 	font-family: var(--explorer-font-sans);
 	font-size: var(--explorer-text-sm);
-	font-weight: var(--explorer-font-medium);
+	font-weight: var(--explorer-font-normal);
 	line-height: var(--explorer-leading-snug);
 	letter-spacing: normal;
 	text-transform: none;
 	text-align: left;
-	text-decoration: none;
-	white-space: nowrap;
+	text-decoration-line: underline;
+	text-decoration-style: dashed;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 3px;
 	cursor: pointer;
 	box-shadow: none;
+	filter: none;
+	transform: none;
 	transition:
-		background-color var(--explorer-transition-fast),
-		border-color var(--explorer-transition-fast),
-		color var(--explorer-transition-fast);
+		color var(--explorer-transition-fast),
+		text-decoration-color var(--explorer-transition-fast);
 }
 
-.explorer-page .explorer-action:hover,
-.explorer-page a.explorer-action:hover,
-.explorer-page button.explorer-action:hover {
-	background: var(--explorer-muted);
-	border-color: color-mix(in oklch, var(--explorer-primary) 28%, var(--explorer-border));
+body:has(.explorer-page) .explorer-page .explorer-action:hover,
+body:has(.explorer-page) .explorer-page a.explorer-action:hover,
+body:has(.explorer-page) .explorer-page button.explorer-action:hover {
+	background: none;
+	background-image: none;
 	color: var(--explorer-link-hover);
+	text-decoration-style: solid;
+	box-shadow: none;
+	filter: none;
+	transform: none;
 }
 
-.explorer-page .explorer-action:focus-visible,
-.explorer-page a.explorer-action:focus-visible,
-.explorer-page button.explorer-action:focus-visible {
+body:has(.explorer-page) .explorer-page .explorer-action:focus-visible,
+body:has(.explorer-page) .explorer-page a.explorer-action:focus-visible,
+body:has(.explorer-page) .explorer-page button.explorer-action:focus-visible {
 	outline: none;
+	border-radius: var(--explorer-radius-sm);
 	box-shadow: var(--explorer-focus-ring);
 }
 
-.explorer-page .explorer-action i {
-	margin: 0;
+body:has(.explorer-page) .explorer-page .explorer-action i {
+	margin-right: var(--explorer-space-1);
 	font-size: 0.85em;
 	line-height: 1;
 }
@@ -260,6 +273,79 @@
 	margin: 0;
 	padding: 0;
 	list-style: none;
+}
+
+/* Notice shown above the transaction list when the block is a local SPV copy. */
+.explorer-block-spv-notice {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--explorer-space-3);
+	margin-bottom: var(--explorer-space-3);
+	padding: var(--explorer-space-2) var(--explorer-space-4);
+	border: 1px solid var(--explorer-border);
+	border-radius: var(--explorer-radius-sm);
+	background: var(--explorer-muted);
+}
+
+.explorer-block-spv-text {
+	flex: 1 1 18rem;
+	min-width: 0;
+	margin: 0;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+}
+
+body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns {
+	appearance: none;
+	flex: 0 0 auto;
+	margin: 0;
+	padding: var(--explorer-space-1) var(--explorer-space-3);
+	border: 1px solid var(--explorer-link);
+	border-radius: var(--explorer-radius-sm);
+	background: transparent;
+	background-image: none;
+	color: var(--explorer-link);
+	font-family: var(--explorer-font-sans);
+	font-size: var(--explorer-text-sm);
+	font-weight: var(--explorer-font-medium);
+	line-height: 1.4;
+	min-width: 0;
+	min-height: 0;
+	cursor: pointer;
+	text-decoration: none;
+	text-transform: none;
+	letter-spacing: normal;
+	box-shadow: none;
+	filter: none;
+	transform: none;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns:hover {
+	background: var(--explorer-link);
+	background-image: none;
+	color: var(--explorer-card);
+	box-shadow: none;
+	filter: none;
+	transform: none;
+}
+
+body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns:focus-visible {
+	outline: none;
+	box-shadow: var(--explorer-focus-ring);
+}
+
+body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns[disabled] {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.explorer-block-spv-error {
+	flex: 1 1 100%;
+	margin: 0;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-destructive);
 }
 
 .explorer-block-detail-panel {

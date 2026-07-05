@@ -63,13 +63,16 @@
 	box-shadow: none;
 }
 
+/* Taller search box: grows from 3.6rem to 5.1rem by reclaiming half of the
+   utility bar's vertical padding, giving the input a larger share of the
+   component's height without changing the bar's overall height. */
 .explorer-utility-bar .explorer-search-box {
-	height: 3.6rem;
+	height: 5.1rem;
 	box-shadow: var(--explorer-shadow-xs);
 }
 
 .explorer-utility-bar .explorer-search-input {
-	height: 3.6rem;
+	height: 5.1rem;
 	font-size: var(--explorer-text-base);
 }
 
@@ -104,11 +107,13 @@
 	background-color: color-mix(in oklch, var(--explorer-primary) 90%, var(--explorer-foreground));
 }
 
+/* Match the taller box (5.1rem) and widen by 40% (3.6rem * 1.4) so the button
+   keeps its proportion of the wider search bar. */
 .explorer-utility-bar .explorer-search-submit {
-	width: 3.6rem;
-	height: 3.6rem;
-	min-width: 3.6rem;
-	max-width: 3.6rem;
+	width: 5.04rem;
+	height: 5.1rem;
+	min-width: 5.04rem;
+	max-width: 5.04rem;
 }
 
 @media (max-width: 48rem) {

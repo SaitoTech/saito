@@ -42,6 +42,22 @@ function requestBlockFromPeer(app, peer, identifier, includeTransactions = true,
 }
 
 /**
+ * Send a "request info" off-chain request to an Explorer peer.
+ * Returns a blockchain summary (latest/genesis block, burn fee, difficulty,
+ * recent fees and Golden Ticket coverage) describing the serving node.
+ */
+function requestInfoFromPeer(app, peer, callback = null) {
+  return app.network.sendRequestAsTransaction(
+    'request info',
+    {
+      request: 'request info',
+    },
+    callback,
+    peer.publicKey
+  );
+}
+
+/**
  * Send a "request supply" off-chain request to an Explorer peer.
  */
 function requestSupplyFromPeer(app, peer, options = {}, callback = null) {
@@ -79,6 +95,7 @@ function requestAddressFromPeer(app, peer, publickey, options = {}, callback = n
 module.exports = {
   requestBlocksFromPeer,
   requestBlockFromPeer,
+  requestInfoFromPeer,
   requestSupplyFromPeer,
   requestAddressFromPeer,
 };

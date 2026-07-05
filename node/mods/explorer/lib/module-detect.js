@@ -67,6 +67,81 @@ function capitalizeFirst(str) {
 	return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// Consensus-level transaction categories. These are produced by the protocol
+// itself (block fee distribution, golden tickets, ATR rebroadcasts, issuance,
+// block staking) rather than an application module, so they are excluded from
+// the "Most Popular Modules" ranking.
+const NON_MODULE_CATEGORIES = new Set([
+	'Fee',
+	'GoldenTicket',
+	'ATR',
+	'Issuance',
+	'BlockStake',
+]);
+
+// Canonical Saito Wiki pages for application modules. Entries left as null are
+// rendered as plain text until a URL is supplied, so links can be filled in
+// later without any UI changes. Do not invent URLs here.
+const MODULE_WIKI_URLS = {
+	RedSquare: null,
+	Twilight: null,
+	Arcade: null,
+	Registry: null,
+	Store: null,
+	Chat: null,
+	Wallet: null,
+	Email: null,
+	Relay: null,
+	Archive: null,
+	Explorer: null,
+};
+
+function moduleWikiUrl(moduleName) {
+	if (!moduleName) {
+		return null;
+	}
+	const url = MODULE_WIKI_URLS[moduleName];
+	return typeof url === 'string' && url ? url : null;
+}
+
+// Rank application modules by how many of the supplied recent transactions they
+// account for. Consensus-level categories are excluded so the ranking reflects
+// genuine application activity. Percentages are relative to the module-attributed
+// transactions in the sample (a rolling window of recently loaded blocks), so
+// they are estimates over that window rather than the whole chain.
+function summarizeModulePopularity(transactions = [], options = {}) {
+	const limit = options.limit ?? 6;
+	const counts = new Map();
+	let total = 0;
+
+	for (let i = 0; i < transactions.length; i++) {
+		const name = detectTransactionModule(transactions[i]) || 'Unknown';
+		if (NON_MODULE_CATEGORIES.has(name)) {
+			continue;
+		}
+		counts.set(name, (counts.get(name) || 0) + 1);
+		total++;
+	}
+
+	const rows = Array.from(counts.entries())
+		.map(([name, count]) => ({
+			name,
+			count,
+			percent: total > 0 ? Math.round((count / total) * 100) : 0,
+			wikiUrl: moduleWikiUrl(name),
+		}))
+		.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+	return {
+		total,
+		rows: limit ? rows.slice(0, limit) : rows,
+	};
+}
+
 module.exports = {
 	detectTransactionModule,
+	summarizeModulePopularity,
+	moduleWikiUrl,
+	MODULE_WIKI_URLS,
+	NON_MODULE_CATEGORIES,
 };

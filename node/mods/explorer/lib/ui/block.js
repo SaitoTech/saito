@@ -1,5 +1,5 @@
 const BlockTemplate = require('./block.template');
-const { formatBlockForPage } = require('../explorer-format');
+const { formatBlockForPage, normalizeBlockRecord } = require('../explorer-format');
 const {
 	collectP2shUnlockTargets,
 	exportTransaction,
@@ -19,6 +19,8 @@ class Block {
 		this.pendingExpandSignature = expandTxSignature || null;
 		this.container = '.explorer-view';
 		this.fetchToken = 0;
+		this.fetchingTransactions = false;
+		this.fetchTransactionsError = null;
 	}
 
 	render(container = '') {
@@ -31,6 +33,8 @@ class Block {
 		this.error = null;
 		this.block = null;
 		this.expandedSignature = null;
+		this.fetchingTransactions = false;
+		this.fetchTransactionsError = null;
 
 		this.paint();
 		this.attachEvents();
@@ -42,6 +46,14 @@ class Block {
 		const block = this.block ? formatBlockForPage(this.app, this.block) : null;
 		const expandedSignature = this.expandedSignature || this.pendingExpandSignature;
 
+		// A block only carries SPV placeholder transactions when it was read from
+		// the browser's local lite chain. Offer to pull the full copy from the
+		// Explorer peer whenever one is connected.
+		const canFetchTransactions = !!block?.hasSpvTransactions && !!this.mod.explorerPeer;
+		const fetchTransactionsError = this.fetchTransactionsError
+			? this.app.browser.escapeHTML(this.fetchTransactionsError)
+			: null;
+
 		this.app.browser.replaceElementContentBySelector(
 			BlockTemplate({
 				blockHash: this.app.browser.escapeHTML(this.blockHash),
@@ -50,9 +62,65 @@ class Block {
 				error,
 				block,
 				expandedSignature,
+				canFetchTransactions,
+				fetchingTransactions: this.fetchingTransactions,
+				fetchTransactionsError,
 			}),
 			this.container
 		);
+	}
+
+	async fetchFullTransactions() {
+		if (this.fetchingTransactions) {
+			return;
+		}
+
+		const peer = this.mod.explorerPeer;
+		if (!peer) {
+			return;
+		}
+
+		this.fetchingTransactions = true;
+		this.fetchTransactionsError = null;
+		this.paint();
+		this.attachEvents();
+
+		let fullBlock = null;
+		try {
+			fullBlock = await this.mod.requestBlockFromPeerPromise(this.app, peer, this.blockHash, true);
+		} catch (err) {
+			fullBlock = null;
+		}
+
+		// The user may have navigated to another view while the request was in
+		// flight; only apply the result if this component is still the active one.
+		if (this.mod.blockComponent !== this) {
+			return;
+		}
+
+		this.fetchingTransactions = false;
+
+		if (fullBlock && Array.isArray(fullBlock.transactions)) {
+			// Preserve the metadata already derived from the local block (burn fee,
+			// difficulty, etc.) and only swap in the full transaction list so the
+			// summary panel does not regress to placeholder values.
+			const merged = normalizeBlockRecord(this.block);
+			if (merged && typeof merged === 'object') {
+				merged.transactions = fullBlock.transactions;
+				this.block = merged;
+			} else {
+				this.block = fullBlock;
+			}
+			// The previously expanded row was an SPV placeholder that no longer
+			// exists in the full transaction list.
+			this.expandedSignature = null;
+		} else {
+			this.fetchTransactionsError =
+				'Could not fetch transactions from the Explorer peer. Please try again.';
+		}
+
+		this.paint();
+		this.attachEvents();
 	}
 
 	expandAndScrollToTransaction(signature) {
@@ -309,6 +377,14 @@ class Block {
 				if (hash) {
 					this.mod.renderBlock(hash, { pushState: true, animate: true });
 				}
+			};
+		});
+
+		root.querySelectorAll('.explorer-block-fetch-txns').forEach((btn) => {
+			btn.onclick = (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				this.fetchFullTransactions();
 			};
 		});
 

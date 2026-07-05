@@ -10,6 +10,9 @@ module.exports = ({
 	error = null,
 	block = null,
 	expandedSignature = null,
+	canFetchTransactions = false,
+	fetchingTransactions = false,
+	fetchTransactionsError = null,
 } = {}) => {
 	const title = loading && !block
 		? 'Block'
@@ -69,6 +72,18 @@ module.exports = ({
         `;
 		});
 
+		const spvNotice = canFetchTransactions
+			? `
+        <div class="explorer-block-spv-notice">
+          <p class="explorer-block-spv-text">This is a lightweight (SPV) copy of the block from your local node, so most transactions are hidden.</p>
+          <button type="button" class="explorer-block-fetch-txns"${fetchingTransactions ? ' disabled aria-busy="true"' : ''}>
+            ${fetchingTransactions ? 'Fetching transactions…' : 'Click to fetch transactions'}
+          </button>
+          ${fetchTransactionsError ? `<p class="explorer-block-spv-error" role="alert">${fetchTransactionsError}</p>` : ''}
+        </div>
+      `
+			: '';
+
 		body = `
       <div class="explorer-block-summary">
         ${BlockSummaryTemplate({
@@ -81,6 +96,7 @@ module.exports = ({
         <div class="explorer-panel-header">
           <h2 class="explorer-heading explorer-m-0">Transactions <span class="explorer-panel-count">${block.transactions?.length ?? 0}</span></h2>
         </div>
+        ${spvNotice}
         <div class="explorer-tx-list explorer-feed">
           ${
 						txRows.length

@@ -6,7 +6,6 @@ module.exports = (app, mod, props = {}) => {
         <div class="node-card-menu">
           <button class="node-card-tab-btn active" data-tab="summary">Summary</button>
           <button class="node-card-tab-btn" data-tab="peerStats">Peers</button>
-          <button class="node-card-tab-btn monitors" data-tab="monitors">Monitors</button>
           <button class="node-card-tab-btn" data-tab="peers">Explore</button>
           <button class="node-card-close" aria-label="Close">×</button>
         </div>

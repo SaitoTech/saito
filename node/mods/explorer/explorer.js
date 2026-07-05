@@ -12,7 +12,7 @@ const { transitionView } = require('./lib/ui/transitions');
 const index = require('./index');
 const PeerService = require('saito-js/lib/peer_service').default;
 const { handleExplorerRequest } = require('./lib/peer/requests');
-const { requestBlocksFromPeer, requestBlockFromPeer, requestSupplyFromPeer, requestAddressFromPeer } = require('./lib/peer/client');
+const { requestBlocksFromPeer, requestBlockFromPeer, requestInfoFromPeer, requestSupplyFromPeer, requestAddressFromPeer } = require('./lib/peer/client');
 const ExplorerDatabase = require('./lib/database');
 const { buildBlockStatistics } = require('./lib/block-statistics');
 const { backfillSupplyStatistics } = require('./lib/supply-accounting');
@@ -59,6 +59,10 @@ class Explorer extends ModTemplate {
 		this.blocksError = null;
 		this.transactionsError = null;
 		this.explorerPeer = null;
+
+		this.chainInfo = null;
+		this.chainInfoReady = false;
+		this.chainInfoError = null;
 
 		this.supplyView = null;
 		this.supplyReady = false;
@@ -472,6 +476,9 @@ class Explorer extends ModTemplate {
 		this.transactionsError = null;
 		this.blocks = [];
 		this.transactions = [];
+		this.chainInfo = null;
+		this.chainInfoReady = false;
+		this.chainInfoError = null;
 		this.supplyView = null;
 		this.supplyReady = false;
 		this.supplyError = null;
@@ -494,6 +501,8 @@ class Explorer extends ModTemplate {
 		}
 
 		await this.refreshActiveView();
+
+		this.fetchChainInfo(app, peer);
 
 		requestBlocksFromPeer(
 			app,
@@ -685,6 +694,38 @@ class Explorer extends ModTemplate {
 		await this.refreshActiveView();
 	}
 
+	fetchChainInfo(app, peer) {
+		this.chainInfoReady = false;
+		this.chainInfoError = null;
+		this.chainInfo = null;
+
+		return new Promise((resolve) => {
+			requestInfoFromPeer(app, peer, async (response) => {
+				if (response?.err) {
+					this.chainInfoError = 'Network error while fetching blockchain information.';
+					this.chainInfoReady = true;
+					await this.refreshActiveView();
+					resolve();
+					return;
+				}
+
+				if (!response?.success) {
+					this.chainInfoError =
+						response?.error || 'Failed to fetch blockchain information from Explorer peer.';
+					this.chainInfoReady = true;
+					await this.refreshActiveView();
+					resolve();
+					return;
+				}
+
+				this.chainInfo = response.data || null;
+				this.chainInfoReady = true;
+				await this.refreshActiveView();
+				resolve();
+			});
+		});
+	}
+
 	async refreshActiveView() {
 		if (this.activeView === 'home' && this.main) {
 			this.main.render('.explorer-view');
@@ -852,6 +893,34 @@ class Explorer extends ModTemplate {
 			res.charset = 'UTF-8';
 			return res.send(html);
 		};
+
+		// Legacy query-parameter URLs are permanently redirected (HTTP 301) to
+		// their canonical REST-style equivalents so old bookmarks, links, and
+		// search-engine results keep working while the explorer exposes a single
+		// canonical URL per resource. The supplied identifier is preserved
+		// exactly (encoded the same way the canonical routes are generated);
+		// missing/blank parameters fall back gracefully to the explorer home.
+		const firstQueryValue = function (value) {
+			return Array.isArray(value) ? value[0] : value;
+		};
+
+		// /explorer/balance?pubkey=<key>  ->  /explorer/address/<key>
+		expressapp.get(`${uri}/balance`, function (req, res) {
+			const pubkey = firstQueryValue(req.query.pubkey);
+			if (typeof pubkey === 'string' && pubkey.trim() !== '') {
+				return res.redirect(301, `${uri}/address/${encodeURIComponent(pubkey)}`);
+			}
+			return res.redirect(301, uri);
+		});
+
+		// /explorer/block?hash=<hash>  ->  /explorer/block/<hash>
+		expressapp.get(`${uri}/block`, function (req, res) {
+			const hash = firstQueryValue(req.query.hash);
+			if (typeof hash === 'string' && hash.trim() !== '') {
+				return res.redirect(301, `${uri}/block/${encodeURIComponent(hash)}`);
+			}
+			return res.redirect(301, uri);
+		});
 
 		expressapp.get(`${uri}/block/:hash`, sendIndex);
 		expressapp.get(`${uri}/blocks`, sendIndex);
