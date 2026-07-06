@@ -1,0 +1,249 @@
+/*
+ * explorer-supply.css
+ *
+ * Token supply developer accounting table.
+ */
+
+.explorer-supply-page {
+	min-width: 0;
+}
+
+.explorer-supply-header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--explorer-space-3);
+}
+
+.explorer-supply-header-text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	min-width: 0;
+	flex: 1;
+}
+
+.explorer-supply-dashboard {
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.explorer-supply-status {
+	margin: 0 0 var(--explorer-space-3);
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+	line-height: var(--explorer-leading-relaxed);
+}
+
+.explorer-supply-table-wrap {
+	width: 100%;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.explorer-supply-table {
+	width: 100%;
+	min-width: 72rem;
+	border-collapse: collapse;
+	font-size: var(--explorer-text-sm);
+}
+
+.explorer-supply-table th,
+.explorer-supply-table td {
+	padding: var(--explorer-space-2) var(--explorer-space-2);
+	text-align: left;
+	vertical-align: middle;
+	border-bottom: 1px solid var(--explorer-border);
+}
+
+.explorer-supply-table thead th {
+	font-size: var(--explorer-text-xs);
+	font-weight: var(--explorer-font-semibold);
+	color: var(--explorer-muted-foreground);
+	background-color: var(--explorer-muted);
+	white-space: nowrap;
+}
+
+.explorer-supply-table thead th.explorer-supply-block-header {
+	text-align: right;
+}
+
+.explorer-supply-table thead th.explorer-supply-block-header .explorer-supply-block-link {
+	display: block;
+	text-align: right;
+}
+
+.explorer-supply-table .explorer-supply-row-label {
+	font-family: var(--explorer-font-mono);
+	font-size: var(--explorer-text-xs);
+	color: var(--explorer-foreground);
+	white-space: nowrap;
+}
+
+.explorer-supply-table .explorer-supply-numeric {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	font-size: var(--explorer-text-xs);
+}
+
+.explorer-supply-table tr.explorer-supply-highlight {
+	background-color: #fdeed5;
+}
+
+.explorer-supply-table tr.explorer-supply-invariant-row {
+	background-color: #d9e9dc;
+	border-top: 1px solid #b5cfba;
+	border-bottom: 1px solid #b5cfba;
+}
+
+.explorer-supply-table tr.explorer-supply-invariant-row td {
+	background-color: #d9e9dc;
+}
+
+.explorer-supply-table tr.explorer-supply-invariant-row .explorer-supply-row-label {
+	color: #2a5232;
+	font-weight: var(--explorer-font-semibold);
+	letter-spacing: 0.03em;
+}
+
+.explorer-supply-table tr.explorer-supply-invariant-row .explorer-supply-numeric {
+	color: #234a29;
+	font-weight: var(--explorer-font-semibold);
+}
+
+.explorer-supply-table tr.explorer-payout-highlight {
+	background-color: color-mix(in oklch, var(--explorer-link) 12%, var(--explorer-card));
+}
+
+.explorer-supply-table tr.explorer-supply-delta-divider td {
+	padding: 0;
+	height: 0;
+	border-bottom: 1px solid color-mix(in oklch, var(--explorer-muted-foreground) 22%, var(--explorer-border));
+	background-color: transparent;
+}
+
+.explorer-supply-table tr.explorer-supply-delta-divider:first-of-type td {
+	border-top: 1px solid color-mix(in oklch, var(--explorer-muted-foreground) 22%, var(--explorer-border));
+}
+
+.explorer-supply-table tr.explorer-supply-delta-section-row {
+	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+}
+
+.explorer-supply-table tr.explorer-supply-delta-section-row td {
+	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+}
+
+.explorer-supply-table tr.explorer-supply-delta-section-row .explorer-supply-row-label,
+.explorer-supply-table tr.explorer-supply-delta-section-row .explorer-supply-numeric {
+	font-size: var(--explorer-text-xs);
+	font-weight: var(--explorer-font-normal);
+	font-style: normal;
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-table tr.explorer-supply-delta-section-row .explorer-supply-row-label {
+	padding-left: var(--explorer-space-3);
+}
+
+.explorer-supply-net-flow-title td {
+	padding: var(--explorer-space-2) var(--explorer-space-2) var(--explorer-space-1);
+	border-bottom: 0;
+	font-size: var(--explorer-text-xs);
+	font-weight: var(--explorer-font-semibold);
+	letter-spacing: var(--explorer-tracking-wide);
+	text-transform: uppercase;
+	color: var(--explorer-muted-foreground);
+	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+}
+
+.explorer-supply-table tr.explorer-supply-net-flow-row {
+	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+}
+
+.explorer-supply-table tr.explorer-supply-net-flow-row td {
+	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+}
+
+.explorer-supply-table tr.explorer-supply-net-flow-row .explorer-supply-row-label,
+.explorer-supply-table tr.explorer-supply-net-flow-row .explorer-supply-numeric {
+	font-size: var(--explorer-text-xs);
+	font-weight: var(--explorer-font-normal);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-table tr.explorer-supply-net-flow-total-row .explorer-supply-row-label,
+.explorer-supply-table tr.explorer-supply-net-flow-total-row .explorer-supply-numeric {
+	font-weight: var(--explorer-font-semibold);
+	color: var(--explorer-foreground);
+}
+
+.explorer-supply-net-flow-zero {
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-net-flow-positive {
+	color: color-mix(in oklch, #3b6ea8 78%, var(--explorer-foreground));
+}
+
+.explorer-supply-net-flow-negative {
+	color: color-mix(in oklch, #9a6b2f 78%, var(--explorer-foreground));
+}
+
+.explorer-supply-net-flow-muted {
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-net-flow-error {
+	color: var(--explorer-destructive);
+	font-weight: var(--explorer-font-semibold);
+}
+
+.explorer-supply-delta-zero {
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-delta-positive {
+	color: color-mix(in oklch, #3b6ea8 78%, var(--explorer-foreground));
+}
+
+.explorer-supply-delta-negative {
+	color: color-mix(in oklch, #9a6b2f 78%, var(--explorer-foreground));
+}
+
+.explorer-supply-delta-muted {
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-unknown {
+	color: var(--explorer-muted-foreground);
+	font-weight: var(--explorer-font-semibold);
+	letter-spacing: 0.08em;
+}
+
+html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-highlight {
+	background-color: color-mix(in oklch, var(--explorer-primary) 18%, var(--explorer-card));
+}
+
+html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-invariant-row,
+html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-invariant-row td {
+	background-color: #1c3322;
+	border-top-color: #2f4f38;
+	border-bottom-color: #2f4f38;
+}
+
+html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-invariant-row .explorer-supply-row-label,
+html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-invariant-row .explorer-supply-numeric {
+	color: #a8cdb0;
+}
+
+html[data-theme='dark'] .explorer-supply-table tr.explorer-payout-highlight {
+	background-color: color-mix(in oklch, var(--explorer-link) 16%, var(--explorer-card));
+}
+
+.explorer-supply-block-link {
+	font-weight: var(--explorer-font-medium);
+	font-variant-numeric: tabular-nums;
+}

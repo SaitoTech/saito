@@ -1,4 +1,5 @@
 const VaultMainTemplate = require('./main.template.js');
+const FileUploadOverlay = require('./overlays/file-upload.js');
 
 class VaultMain {
   constructor(app, mod, container = '') {
@@ -6,7 +7,7 @@ class VaultMain {
     this.mod = mod;
     this.container = container;
 
-    //this.file_upload_overlay = new FileUploadOverlay(this.app, this.mod);
+    this.file_upload_overlay = new FileUploadOverlay(this.app, this.mod);
   }
 
   render(container = '') {
@@ -36,6 +37,10 @@ class VaultMain {
   attachEvents() {
     try {
       document.querySelector('#vault-secure-btn').onclick = (e) => {
+        this.file_upload_overlay.render();
+      };
+
+      document.querySelector('#vault-access-link').onclick = (e) => {
         this.mod.access_file_overlay.render();
       };
     } catch (err) {

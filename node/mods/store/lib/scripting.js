@@ -1,8 +1,5 @@
 const { SlipType } = require('saito-js/lib/slip');
 
-/** Saito SlipType::P2SH — matches rustscript unlock marker on spending inputs. */
-const SLIP_TYPE_P2SH = 10;
-
 function isNFTTuple(slips, i) {
 	if (!slips || i + 2 >= slips.length) {
 		return false;
@@ -17,58 +14,46 @@ function isNFTTuple(slips, i) {
 	);
 }
 
-function returnP2SHTuples(tx) {
-	const from = tx?.from || [];
-	const to = tx?.to || [];
-	const inputs = [];
-	const outputs = [];
-	const p2sh_keys = new Set();
+function collectNftTuples(slips = []) {
+	const tuples = [];
 
-	for (let i = 0; i < from.length; i++) {
-		if (Number(from[i]?.type) !== SLIP_TYPE_P2SH) {
+	for (let i = 0; i + 2 < slips.length; i++) {
+		if (!isNFTTuple(slips, i)) {
 			continue;
 		}
-		const marker = from[i];
-		const key = marker?.publicKey || '';
-		if (key) {
-			p2sh_keys.add(key);
-		}
-		if (i >= 3 && isNFTTuple(from, i - 3)) {
-			inputs.push({
-				slips: [from[i - 3], from[i - 2], from[i - 1]],
-				p2sh_public_key: key
-			});
-		}
-	}
 
-	const spending = p2sh_keys.size > 0;
-
-	for (let i = 0; i + 2 < to.length; i++) {
-		if (!isNFTTuple(to, i)) {
-			continue;
-		}
-		const slip2_key = to[i + 1]?.publicKey || '';
-		if (spending && !p2sh_keys.has(slip2_key)) {
-			i += 2;
-			continue;
-		}
-		outputs.push({
-			slips: [to[i], to[i + 1], to[i + 2]],
-			p2sh_public_key: slip2_key
+		const custody = slips[i + 1];
+		tuples.push({
+			slips: [slips[i], slips[i + 1], slips[i + 2]],
+			custody_public_key: custody?.publicKey || ''
 		});
 		i += 2;
 	}
 
-	return { inputs, outputs };
+	return tuples;
+}
+
+/** NFT triples created in transaction outputs. */
+function returnCreatedNftTuples(tx) {
+	return collectNftTuples(tx?.to || []);
+}
+
+/** NFT triples consumed from transaction inputs. */
+function returnSpentNftTuples(tx) {
+	return collectNftTuples(tx?.from || []);
+}
+
+function buildBuyerOrStoreScript(buyer_publickey, store_publickey) {
+	return {
+		op: 'CHECKMULTISIG',
+		m: 1,
+		publickeys: [buyer_publickey, store_publickey],
+		msg: 'tx.from.p2sh.utxoset_key'
+	};
 }
 
 function createListingScript(app, { seller_publickey, store_publickey } = {}) {
-	const script = {
-		op: 'CHECKMULTISIG',
-		m: 1,
-		publickeys: [seller_publickey, store_publickey],
-		msg: 'tx.from.p2sh.utxoset_key'
-	};
+	const script = buildBuyerOrStoreScript(seller_publickey, store_publickey);
 
 	const hash = app.core.scripting.hash(script);
 	const address = app.core.scripting.address(script);
@@ -78,6 +63,13 @@ function createListingScript(app, { seller_publickey, store_publickey } = {}) {
 		access_hash: hash,
 		p2sh_address: address
 	};
+}
+
+function createPurchaseScript(app, { buyer_publickey, store_publickey } = {}) {
+	return createListingScript(app, {
+		seller_publickey: buyer_publickey,
+		store_publickey
+	});
 }
 
 function parseAccessScript(access_script) {
@@ -138,9 +130,44 @@ async function executeListingScript(app, access_script, publickey) {
 	return result === 1;
 }
 
+async function signAccessScriptWitness(app, access_script, message, options = {}) {
+	const script = parseAccessScript(access_script);
+	if (!script || !message) {
+		throw new Error('access script and message are required for P2SH witness');
+	}
+
+	let signature = '';
+	if (typeof app.wallet?.signMessage === 'function') {
+		signature = await app.wallet.signMessage(message);
+	} else {
+		const privatekey = await app.wallet.getPrivateKey();
+		signature = app.crypto.signMessage(message, privatekey);
+	}
+
+	const executable = JSON.parse(JSON.stringify(script));
+	executable.witness = { signatures: [signature] };
+	const executable_string = JSON.stringify(executable);
+
+	if (options.logRustScript) {
+		const { dumpRustScriptEngineCall } = require('./fulfillment-trace');
+		dumpRustScriptEngineCall(options.context || 'signAccessScriptWitness', {
+			locking_script: script,
+			executable,
+			executable_string
+		});
+	}
+
+	return executable_string;
+}
+
 module.exports = {
+	isNFTTuple,
+	buildBuyerOrStoreScript,
 	createListingScript,
+	createPurchaseScript,
 	parseAccessScript,
-	returnP2SHTuples,
-	executeListingScript
+	returnCreatedNftTuples,
+	returnSpentNftTuples,
+	executeListingScript,
+	signAccessScriptWitness
 };

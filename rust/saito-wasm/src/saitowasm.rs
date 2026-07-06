@@ -853,7 +853,7 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
 }
 
 #[wasm_bindgen]
-pub async fn evaluate_script(json: JsString) -> u8 {
+pub async fn evaluate_script(json: JsString, tx: Option<WasmTransaction>) -> u8 {
     let json_str = match json.as_string() {
         Some(s) => s,
         None => return 0,
@@ -872,9 +872,11 @@ pub async fn evaluate_script(json: JsString) -> u8 {
         .read()
         .await;
 
+    let tx_ref = tx.as_ref().map(|wtx| &wtx.tx);
+
     let mut script = Script::new();
     script.parse(&json_str);
-    script.validate(None, None, Some(&blockchain))
+    script.validate(tx_ref, None, Some(&blockchain), None)
 }
 
 #[wasm_bindgen]

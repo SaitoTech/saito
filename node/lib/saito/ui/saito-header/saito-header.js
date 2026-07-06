@@ -924,6 +924,7 @@ class SaitoHeader extends UIModTemplate {
    *
    * *******************************************************/
   async renderCrypto(force = false, flashDebugTrigger = null) {
+
     const flashDebug = flashDebugTrigger === 'on-transaction-pending';
     if (flashDebug) {
       console.log('[header-mint-flash] renderCrypto begin', { force, flashDebugTrigger });
@@ -983,6 +984,10 @@ class SaitoHeader extends UIModTemplate {
 
       let ab = await preferred_crypto.getAvailableBalance();
       let pb = await preferred_crypto.getPendingBalance();
+
+console.log("****** CHECKING BALANCES SAITO HEADER ******");
+console.log("available balance: " + ab);
+console.log("pending balance: " + pb);
 
       //
       // insert crypto balance

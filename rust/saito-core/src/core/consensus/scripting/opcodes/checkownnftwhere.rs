@@ -36,9 +36,22 @@ impl CheckOwnNftWhere {
             return 0;
         };
 
-        let Some(tuple) = tuple_from_utxo_hex_keys(utxokey1, utxokey2, utxokey3, blockchain) else {
+        let Some(tuple) = tuple_from_utxo_hex_keys(utxokey1, utxokey2, utxokey3) else {
             return 0;
         };
+
+        let key1 = tuple.slip1.utxoset_key;
+        let key2 = tuple.slip2.utxoset_key;
+
+        if !blockchain.is_slip_unlocked(&key1) {
+            return 0;
+        }
+
+        if tuple.slip2.amount > 0 {
+            if !blockchain.is_slip_unlocked(&key2) {
+                return 0;
+            }
+        }
 
         if !context
             .get("__opcodes")

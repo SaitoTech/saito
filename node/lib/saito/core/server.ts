@@ -268,7 +268,6 @@ class Server {
         }
         console.info('serving block : ' + blk.file_name);
         const filename = './data/blocks/' + blk.file_name;
-        // console.info("### write from line 188 of server.ts.");
         res.writeHead(200, {
           'Content-Type': 'text/plain',
           'Content-Transfer-Encoding': 'utf8'
@@ -276,13 +275,6 @@ class Server {
         const src = fs.createReadStream(filename, { encoding: 'utf8' });
         src.pipe(res);
       } catch (err) {
-        //
-        // file does not exist on disk, check in memory
-        //
-        //let blk = await this.app.blockchain.returnBlockByHash(bsh);
-
-        console.error('FETCH BLOCKS ERROR SINGLE BLOCK FETCH: ', err);
-        console.info('### write from line server.ts:422');
         res.status(400);
         res.end({
           error: {
@@ -814,13 +806,22 @@ class Server {
       return;
     });
 
-    expressApp.get('/stats/peers', async (req, res) => {
-      let stat = await S.getLibInstance().get_peer_stats();
-      res.send(stat);
-    });
-    expressApp.get('/stats/congestion', async (req, res) => {
-      let stat = await S.getLibInstance().get_congestion_stats();
-      res.send(stat);
+    expressApp.get('/json/peers', async (req, res) => {
+      const peers = await this.app.core.network.getPeers()
+
+      const peerData = peers.map((peer) => ({
+        id: peer.id.toString(),
+        publicKey: peer.publicKey,
+  	keyList: peer.keyList,
+  	synctype: peer.synctype,
+  	services: peer.services,
+  	status: peer.status,
+      }));
+
+      res.json({
+  	peers: peerData,
+      });
+
     });
 
     //

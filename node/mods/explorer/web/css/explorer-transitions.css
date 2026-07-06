@@ -1,0 +1,26 @@
+/*
+ * explorer-transitions.css
+ *
+ * In-page view transitions for the Explorer content area.
+ */
+
+.explorer-view-root {
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	width: 100%;
+}
+
+.explorer-view-panel {
+	transition: opacity 200ms ease;
+}
+
+.explorer-view.explorer-view-exit,
+.explorer-view.explorer-view-enter {
+	opacity: 0;
+	transition: opacity 200ms ease;
+}
+
+.explorer-view:not(.explorer-view-exit):not(.explorer-view-enter) {
+	opacity: 1;
+}

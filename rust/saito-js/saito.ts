@@ -456,8 +456,7 @@ export default class Saito {
       const myPublicKey = await wallet.getPublicKey();
 
       const tx = await modified_wallet.createTransaction(myPublicKey, BigInt(0), BigInt(0), false);
-
-      const txObj = self.factory.createTransaction(tx);
+      const txObj = tx;
       txObj.msg = {
         request: message,
         data: data,
@@ -523,10 +522,15 @@ export default class Saito {
       // SCRIPTING
       //
       scripting: {
-        evaluate: async (script: any): Promise<number> => {
+        evaluate: async (script: any , tx?: Transaction): Promise<number> => {
           if (typeof script !== "string") {
             script = JSON.stringify(script);
           }
+	  if (tx) {
+    	    tx.packData();
+    	    return await wasm.evaluate_script(script, tx.wasmTransaction);
+  	  }
+
           return await wasm.evaluate_script(script);
         },
 
@@ -558,25 +562,32 @@ export default class Saito {
     //
     if (coreObject.blockchain) {
       const blockchain = coreObject.blockchain;
-      const factory = this.factory;
+      const wrapper = this.blockchain;
+
+      blockchain.get = async () => {
+        return wrapper.get();
+      };
 
       blockchain.getBlock = async (
         idOrHash: string | number | bigint,
         includeTransactions: boolean = false
       ) => {
-        let wasmBlock;
-        if (typeof idOrHash === "string") {
-          wasmBlock = await blockchain.get_block(idOrHash, includeTransactions);
-        } else {
-          wasmBlock = await blockchain.get_block_by_id(BigInt(idOrHash), includeTransactions);
-        }
-        return factory.createBlock(wasmBlock);
+        return wrapper.getBlock(
+          idOrHash,
+          includeTransactions
+        );
       };
 
-      blockchain.getBlocks = async (count: number, includeOffchain: boolean = false) => {
-        const wasmBlocks = await blockchain.get_blocks(count, includeOffchain);
-        return wasmBlocks.map((block: any) => factory.createBlock(block));
+      blockchain.getBlocks = async (
+        count: number,
+        includeOffchain: boolean = false
+      ) => {
+        return wrapper.getBlocks(
+          count,
+          includeOffchain
+        );
       };
+
     }
 
     console.log("CORE OBJECT");
