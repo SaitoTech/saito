@@ -51,8 +51,8 @@ class Archive extends ModTemplate {
 		// limitations like a private archive node that wants to limit
 		// usage of privately-uploaded data.
 		//
-		//this.access_hash = 0; // ignore access_hash
-		this.access_hash = 1; // don't serve txs with access_hash restrictions
+		//this.enforce_access_hash = 0; // ignore access_hash
+		this.enforce_access_hash = 1; // don't serve txs with access_hash restrictions
 
 		this.schema = [
 			'id',
@@ -789,9 +789,9 @@ class Archive extends ModTemplate {
 		//
 		// before we return the content, we potential parse any content that
 		// is protected by an access_hash that is not solved by an affixed
-		// access_script and access_witness.
+		// access_script
 		//
-		if (this.access_hash == 1) {
+		if (this.enforce_access_hash == 1) {
 			let altered_rows = [];
 
 			for (let r of rows) {
@@ -801,54 +801,54 @@ class Archive extends ModTemplate {
 				// a specific network item in order to access.
 				//
 				if (r.owner) {
+
 					let access_script = obj.access_script || null;
 					let access_hash = obj.access_hash || null;
-					if (!access_script && obj.access_witness) {
-						try {
-							let tx = new Transaction();
-							tx.deserialize_from_web(this.app, r.tx);
 
-							let txmsg = tx.returnMessage();
-
-							if (txmsg.access_script) {
-								access_script = txmsg.access_script;
-							}
-							if (txmsg.access_hash) {
-								access_hash = txmsg.access_hash;
-							}
-						} catch (err) {
-							// malformed tx, deny
+					//
+					// if there is no script provided there is no witness data
+					// provided either, so we should "continue"
+					//
+					if (!access_script) {
 							continue;
-						}
-					}
-
-					if (!access_script && !obj.access_witness) {
-						//
-						// no script but witness provided...
-						//
-						continue;
 					} else {
-						if (access_hash === r.owner) {
-							let include_row = false;
-							let scripting_mod = this.app.modules.returnModule('Scripting');
-							if (scripting_mod) {
-								if (
-									await scripting_mod.evaluate(
-										access_hash,
-										access_script,
-										obj.access_witness,
-										obj,
-										request_tx,
-										null
-									)
-								) {
-									include_row = true;
-								} else {
-								}
-							}
-							if (include_row) {
+						let computed_hash = this.app.core.scripting.hash(access_script);
+						let hash_match = computed_hash === r.owner;
+						console.log(
+							'--------------------------------\nARCHIVE OWNER CHECK\n\nstored owner:\n' +
+								r.owner +
+								'\n\ncomputed hash:\n' +
+								computed_hash +
+								'\n\nhash match:\n' +
+								hash_match +
+								'\n\n--------------------------------'
+						);
+
+						if (this.app.core.scripting.hash(access_script) === r.owner) {
+							let archive_ok = await this.app.core.scripting.evaluate(
+								access_script,
+								request_tx
+							);
+							console.log(
+								'--------------------------------\nARCHIVE SCRIPT RESULT\n\n' +
+									(archive_ok ? 'true' : 'false') +
+									'\n\n--------------------------------'
+							);
+							if (archive_ok) {
 								altered_rows.push(r);
+							} else {
+								console.log(
+									'--------------------------------\nARCHIVE REJECTED ROW\n\nsignature:\n' +
+										r.sig +
+										'\n\n--------------------------------'
+								);
 							}
+						} else {
+							console.log(
+								'--------------------------------\nARCHIVE REJECTED ROW\n\nsignature:\n' +
+									r.sig +
+									'\n\n--------------------------------'
+							);
 						}
 					}
 				} else {
@@ -935,29 +935,21 @@ class Archive extends ModTemplate {
 				return false;
 			}
 
-			// Evaluate the script using the Scripting module
-			let can_delete = false;
-			let scripting_mod = this.app.modules.returnModule('Scripting');
-			if (scripting_mod) {
-				let request_tx = obj.request_tx || tx || null;
-				let eval_result = await scripting_mod.evaluate(
-					obj.access_hash,
-					obj.access_script,
-					obj.access_witness,
-					{},
-					request_tx,
-					null
-				);
 
-				if (eval_result) {
+			let can_delete = false;
+			let request_tx = obj.request_tx || tx || null;
+
+			if (this.app.core.scripting.hash(obj.access_script) === obj.access_hash) {
+				if (await this.app.core.scripting.evaluate(obj.access_script, request_tx)) {
 					can_delete = true;
 					console.log('DELETE ACCESS GRANTED: Script evaluation passed');
 				} else {
 					console.log('DELETE DENIED: Script evaluation failed');
 				}
 			} else {
-				console.log('DELETE DENIED: Scripting module not available');
+				console.log('DELETE DENIED: access_hash does not match supplied script');
 			}
+
 
 			if (!can_delete) {
 				return false;

@@ -1,7 +1,6 @@
 const LoadNFTsTemplate = require('./load-nfts.template');
 const SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const FileUploadOverlay = require('./file-upload.js');
 const WitnessOverlay = require('./witness');
 
 class LoadNFTs {
@@ -10,7 +9,6 @@ class LoadNFTs {
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.witness_overlay = new WitnessOverlay(this.app, this.mod);
-    this.file_upload_overlay = new FileUploadOverlay(this.app, this.mod);
 
     this.nft_list = [];
     this.vault_nfts = [];
@@ -178,13 +176,6 @@ class LoadNFTs {
   }
 
   attachEvents() {
-    const upload_btn = document.querySelector('#create-access-nft');
-    if (upload_btn) {
-      upload_btn.onclick = (e) => {
-        this.file_upload_overlay.render();
-      };
-    }
-
     let items = document.querySelectorAll('.vault-nft-item');
     if (!items || items.length === 0) {
       return;

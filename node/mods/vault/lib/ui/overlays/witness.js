@@ -33,18 +33,6 @@ class Witness {
         }
       }
 
-      // Prepopulate witness data textarea with template
-      if (this.access_script) {
-        let scripting_mod = this.app.modules.returnModule("Scripting");
-        if (scripting_mod && scripting_mod.generateWitnessFromScript) {
-          let witnessTemplate = scripting_mod.generateWitnessFromScript(this.access_script);
-          let witnessTextarea = document.querySelector('.witness-data-textarea');
-          if (witnessTextarea && witnessTemplate) {
-            witnessTextarea.value = JSON.stringify(witnessTemplate, null, 2);
-          }
-        }
-      }
-      
       this.attachEvents();
     }, 25);
   }

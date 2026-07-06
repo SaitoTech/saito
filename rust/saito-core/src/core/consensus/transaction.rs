@@ -916,7 +916,7 @@ impl Transaction {
         // the user who is identified as the authorizer otherwise.
         //
         let mut authorizer: Option<SaitoPublicKey> = None;
-	let mut p2sh_idxs = Vec::<usize>::new();
+        let mut p2sh_idxs = Vec::<usize>::new();
 
         let mut i = 0;
         while i < self.from.len() {
@@ -933,11 +933,11 @@ impl Transaction {
             //
             // p2sh addresses have 0x00 as first byte. publickeys are 0x01 or 0x02
             //
-	    if slip.public_key[0] == 0x00 {
-    		p2sh_idxs.push(i);
-    		i += 1;
-    		continue;
-	    }
+            if slip.public_key[0] == 0x00 {
+                p2sh_idxs.push(i);
+                i += 1;
+                continue;
+            }
 
             //
             // otherwise publickey is authorizer
@@ -948,7 +948,6 @@ impl Transaction {
                 || slip.slip_type == SlipType::RouterOutput
                 || slip.slip_type == SlipType::BlockStake
             {
-
                 //
                 // set authorizer or fail if different
                 //
@@ -987,68 +986,64 @@ impl Transaction {
         //
         // txmsg.access_script[]
         //
-        // the witness data is now provided INSIDE the script, one entry per p2sh input 
-	// being spent/moved in the slip.
+        // the witness data is now provided INSIDE the script, one entry per p2sh input
+        // being spent/moved in the slip.
         //
-	let mut array_idx = 0;
-	let mut txmsg_text = "";
-	let mut txmsg = Value::Null;
-	let mut access_scripts: Vec<Value> = Vec::new();
-	for p2sh_idx in p2sh_idxs.iter() {
-
-    	    let slip = &self.from[*p2sh_idx];
-    	    let p2sh_public_key = slip.public_key;
+        let mut array_idx = 0;
+        let mut txmsg_text = "";
+        let mut txmsg = Value::Null;
+        let mut access_scripts: Vec<Value> = Vec::new();
+        for p2sh_idx in p2sh_idxs.iter() {
+            let slip = &self.from[*p2sh_idx];
+            let p2sh_public_key = slip.public_key;
 
             //
             // tx.data must contain UTF-8 JSON
-	    //
-	    // but extract it all on the first loop to avoid duplication
             //
-	    if array_idx == 0 {
+            // but extract it all on the first loop to avoid duplication
+            //
+            if array_idx == 0 {
+                txmsg_text = match std::str::from_utf8(&self.data) {
+                    Ok(v) => v,
+                    Err(_) => {
+                        error!("transaction invalid: P2SH tx.data is not UTF-8");
+                        return false;
+                    }
+                };
 
-    		txmsg_text = match std::str::from_utf8(&self.data) {
-    		    Ok(v) => v,
-    		    Err(_) => {
-    		        error!("transaction invalid: P2SH tx.data is not UTF-8");
-    		        return false;
-    		    }
-    		};
+                txmsg = match serde_json::from_str::<Value>(txmsg_text) {
+                    Ok(v) => v,
+                    Err(_) => {
+                        error!("transaction invalid: P2SH tx.data is not valid JSON");
+                        return false;
+                    }
+                };
 
-    		txmsg = match serde_json::from_str::<Value>(txmsg_text) {
-    		    Ok(v) => v,
-    		    Err(_) => {
-    		        error!("transaction invalid: P2SH tx.data is not valid JSON");
-    		        return false;
-    		    }
-    		};
+                access_scripts = match txmsg.get("access_scripts").and_then(|v| v.as_array()) {
+                    Some(v) => v.clone(),
+                    None => {
+                        error!("transaction invalid: P2SH missing txmsg.access_scripts");
+                        return false;
+                    }
+                };
 
-    		access_scripts = match txmsg.get("access_scripts").and_then(|v| v.as_array()) {
-    		    Some(v) => v.clone(),
-    		    None => {
-    		        error!("transaction invalid: P2SH missing txmsg.access_scripts");
-    		        return false;
-    		    }
-    		};
+                if access_scripts.len() != p2sh_idxs.len() {
+                    error!(
+                        "transaction invalid: {} access scripts supplied for {} P2SH inputs",
+                        access_scripts.len(),
+                        p2sh_idxs.len()
+                    );
+                    return false;
+                }
+            }
 
-	    	if access_scripts.len() != p2sh_idxs.len() {
-	        	error!(
-	        	    "transaction invalid: {} access scripts supplied for {} P2SH inputs",
-	        	    access_scripts.len(),
-	        	    p2sh_idxs.len()
-	        	);
-	        	return false;
-	        }
-
-	    }
-
-
-	    //
-	    // fetch access script
-	    //
-	    let Some(access_script) = access_scripts[array_idx].as_str() else {
-       	        error!("transaction invalid: access_scripts entry is not a string");
-    	        return false;
-    	    };
+            //
+            // fetch access script
+            //
+            let Some(access_script) = access_scripts[array_idx].as_str() else {
+                error!("transaction invalid: access_scripts entry is not a string");
+                return false;
+            };
 
             //
             // access script must exist as JSON
@@ -1074,7 +1069,7 @@ impl Transaction {
             //
             let mut script = Script::new();
             script.json = script_json;
-	
+
             //
             // and generate the hash that this unlock script *should* produce
             //
@@ -1118,8 +1113,7 @@ impl Transaction {
                 return false;
             }
 
-	    array_idx += 1;
-
+            array_idx += 1;
         }
 
         //

@@ -16,18 +16,10 @@ pub fn tuple_from_utxo_hex_keys(
     utxokey1: &str,
     utxokey2: &str,
     utxokey3: &str,
-    blockchain: &Blockchain,
 ) -> Option<NFTTuple> {
     let key1 = SaitoUTXOSetKey::from_hex(utxokey1).ok()?;
     let key2 = SaitoUTXOSetKey::from_hex(utxokey2).ok()?;
     let key3 = SaitoUTXOSetKey::from_hex(utxokey3).ok()?;
-
-    if !blockchain.is_slip_unlocked(&key1)
-        || !blockchain.is_slip_unlocked(&key2)
-        || !blockchain.is_slip_unlocked(&key3)
-    {
-        return None;
-    }
 
     let slip1 = Slip::parse_slip_from_utxokey(&key1).ok()?;
     let slip2 = Slip::parse_slip_from_utxokey(&key2).ok()?;

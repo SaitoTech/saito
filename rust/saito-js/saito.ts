@@ -456,8 +456,7 @@ export default class Saito {
       const myPublicKey = await wallet.getPublicKey();
 
       const tx = await modified_wallet.createTransaction(myPublicKey, BigInt(0), BigInt(0), false);
-
-      const txObj = self.factory.createTransaction(tx);
+      const txObj = tx;
       txObj.msg = {
         request: message,
         data: data,
@@ -523,10 +522,15 @@ export default class Saito {
       // SCRIPTING
       //
       scripting: {
-        evaluate: async (script: any): Promise<number> => {
+        evaluate: async (script: any , tx?: Transaction): Promise<number> => {
           if (typeof script !== "string") {
             script = JSON.stringify(script);
           }
+	  if (tx) {
+    	    tx.packData();
+    	    return await wasm.evaluate_script(script, tx.wasmTransaction);
+  	  }
+
           return await wasm.evaluate_script(script);
         },
 

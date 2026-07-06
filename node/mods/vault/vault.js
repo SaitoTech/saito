@@ -13,7 +13,7 @@ class Vault extends ModTemplate {
 		this.appname = 'Vault';
 		this.name = 'Vault';
 		this.slug = 'vault';
-		this.dependencies = ['Archive', 'Scripting'];
+		this.dependencies = ['Archive'];
 		this.description = 'Storage Vault regulated by NFT Keys';
 		this.categories = 'Utility Cryptography Programming';
 		this.icon = 'fas fa-vault';
@@ -112,11 +112,16 @@ class Vault extends ModTemplate {
 	}
 
 	async handlePeerTransaction(app, tx = null, peer, mycallback) {
+
+console.log("handle peer transaction -- vault");
+
 		if (tx == null) {
 			return 0;
 		}
 
 		let txmsg = tx.returnMessage();
+
+console.log(txmsg.request);
 
 		if (!txmsg.request || !mycallback) {
 			return 0;
@@ -127,30 +132,52 @@ class Vault extends ModTemplate {
 				//
 				// run CHECKOWN / CHECKOWNNFT script
 				//
-				let scripting_mod = app.modules.returnModule('Scripting');
-				if (!scripting_mod) {
-					mycallback({ status: 'err', err: 'scripting_module_missing' });
+				if (!app.core?.scripting?.hash || !app.core?.scripting?.evaluate) {
+console.log("ERROR vault access file 1");
+					mycallback({ status: 'err', err: 'scripting_unavailable' });
 					return 0;
 				}
+console.log("NORMAL vault access file 1");
 
-				//
-				// evaluate(hash, script, witness, vars, tx, blk)
-				// tx => the request transaction, so CHECKOWN sees tx/from/signature
-				//
-				let ok = await scripting_mod.evaluate(
-					txmsg.data.access_hash || '',
-					txmsg.data.access_script || '',
-					txmsg.data.access_witness || '',
-					{}, //
-					tx, //
-					null //
+				let access_script = txmsg.data.access_script || '';
+				let access_hash = txmsg.data.access_hash || '';
+				let ok = false;
+
+				let computed_hash = app.core.scripting.hash(access_script);
+				let hash_match = computed_hash === access_hash;
+				console.log(
+					'--------------------------------\nVAULT ACCESS REQUEST RECEIVED\n\naccess_hash:\n' +
+						access_hash +
+						'\n\ncomputed_hash:\n' +
+						computed_hash +
+						'\n\nhash_match:\n' +
+						hash_match +
+						'\n\n--------------------------------'
 				);
+console.log("NORMAL vault access file 1");
+
+				if (app.core.scripting.hash(access_script) === access_hash) {
+					console.log(
+						'--------------------------------\nCALLING RUST SCRIPT VALIDATOR\n--------------------------------'
+					);
+					ok = await app.core.scripting.evaluate(access_script, tx);
+					console.log(
+						'--------------------------------\nSCRIPT VALIDATION RESULT:\n\n' +
+							(ok ? 'true' : 'false') +
+							'\n\n--------------------------------'
+					);
+				}
+console.log("NORMAL vault access file 2");
 
 				if (!ok) {
+					console.log('SCRIPT VALIDATION FAILED');
 					siteMessage('Supplied Witness Data Incorrect: Access Denied', 2000);
 					mycallback({ status: 'err', err: 'access_denied_script_failed' });
 					return 0;
 				}
+
+console.log("NORMAL vault access file 3");
+
 
 				//
 				// If script passes, proceed to Archive
@@ -162,9 +189,9 @@ class Vault extends ModTemplate {
 				data.owner = txmsg.data.access_hash;
 				data.access_hash = txmsg.data.access_hash;
 				data.access_script = txmsg.data.access_script;
-				data.access_witness = txmsg.data.access_witness;
 				data.sig = txmsg.data.data.file_id;
 				data.request_tx = tx;
+console.log("NORMAL vault access file 4");
 
 				this.app.storage.loadTransactions(
 					data,
@@ -175,6 +202,7 @@ class Vault extends ModTemplate {
 					0
 				);
 			} catch (err) {
+console.log("ERROR processing vault access file...");
 				mycallback({ status: 'err', err: JSON.stringify(err) });
 			}
 
@@ -212,8 +240,7 @@ class Vault extends ModTemplate {
 		let newtx = await this.app.wallet.createUnsignedTransaction();
 
 		try {
-			let scripting_mod = this.app.modules.returnModule('Scripting');
-			if (!scripting_mod) {
+			if (!this.app.core?.scripting?.hash) {
 				return null;
 			}
 
@@ -225,12 +252,20 @@ class Vault extends ModTemplate {
 			if (access_script_obj == null) {
 				access_script_obj = {
 					op: 'CHECKOWNNFT',
-					nftid
+					nftid,
+					witness: {
+						utxokey1: '',
+						utxokey2: '',
+						utxokey3: ''
+					}
 				};
 			}
 
-			let access_script = JSON.stringify(access_script_obj);
-			let access_hash = scripting_mod.hash(access_script);
+			let access_script =
+				typeof access_script_obj === 'string'
+					? access_script_obj
+					: JSON.stringify(access_script_obj);
+			let access_hash = this.app.core.scripting.hash(access_script);
 
 			let msg = {
 				request: 'vault add file',
@@ -247,13 +282,8 @@ class Vault extends ModTemplate {
 	}
 
 	async sendAccessFileRequest(vault_data = null, witness_data = null, mycallback = null) {
-		//
-		// get scripting module
-		//
-		let scripting_mod = this.app.modules.returnModule('Scripting');
-
-		if (!scripting_mod) {
-			console.warn('VAULT: Scripting module not found, aborting');
+		if (!this.app.core?.scripting?.hash) {
+			console.warn('VAULT: app.core.scripting not available, aborting');
 			return null;
 		}
 
@@ -292,7 +322,6 @@ class Vault extends ModTemplate {
 		}
 
 		let access_script = '';
-		let access_witness = '';
 		let access_hash = '';
 
 		//
@@ -300,9 +329,16 @@ class Vault extends ModTemplate {
 		//
 		if (file_access_script && witness_data) {
 			try {
-				access_script = file_access_script;
-				access_witness = witness_data;
-				access_hash = scripting_mod.hash(access_script);
+				let script = JSON.parse(file_access_script);
+
+				script.witness =
+					typeof witness_data === 'string'
+						? JSON.parse(witness_data)
+						: witness_data;
+		
+				access_script = JSON.stringify(script);
+				access_hash = this.app.core.scripting.hash(access_script);
+
 			} catch (err) {
 				alert('Error submitting witness data: perhaps script does not validate?');
 				return;
@@ -313,20 +349,16 @@ class Vault extends ModTemplate {
 			//
 			let access_script_obj = {
 				op: 'CHECKOWNNFT',
-				nftid
-			};
+				nftid,
+				witness: {
+					utxokey1: utxokey1,
+					utxokey2: utxokey2,
+					utxokey3: utxokey3
+				}
+			}
 
 			access_script = JSON.stringify(access_script_obj);
-			let access_witness_obj = [
-				{
-					utxokey1,
-					utxokey2,
-					utxokey3
-				}
-			];
-
-			access_witness = JSON.stringify(access_witness_obj);
-			access_hash = scripting_mod.hash(access_script);
+			access_hash = this.app.core.scripting.hash(access_script);
 		}
 
 		//
@@ -339,17 +371,38 @@ class Vault extends ModTemplate {
 
 		let data = {
 			request: 'vault access file',
-			access_witness: access_witness,
 			access_script: access_script,
 			access_hash: access_hash,
 			data: { file_id }
 		};
 
 		if (this.peer) {
+			let computed_hash = this.app.core.scripting.hash(access_script);
+			let script_pretty = JSON.stringify(JSON.parse(access_script), null, 2);
+			console.log(
+				'--------------------------------\nVAULT DOWNLOAD REQUEST\n\naccess_hash:\n' +
+					access_hash +
+					'\n\nhash(access_script):\n' +
+					computed_hash +
+					'\n\nscript:\n' +
+					script_pretty +
+					'\n\nfile_id:\n' +
+					file_id +
+					'\n\n--------------------------------'
+			);
+
 			this.app.network.sendRequestAsTransaction(
 				'vault access file',
 				data,
 				(res) => {
+
+
+console.log("$$$");
+console.log("$$$");
+console.log("RECEIVED RESPONSE: ");
+console.log("$$$");
+console.log("$$$");
+
 					// Handle undefined or error responses
 					if (!res) {
 						console.error('VAULT: No response received (network error or timeout)');
