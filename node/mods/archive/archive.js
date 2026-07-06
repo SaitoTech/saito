@@ -825,7 +825,7 @@ class Archive extends ModTemplate {
 						);
 
 						if (this.app.core.scripting.hash(access_script) === r.owner) {
-							let archive_ok = await this.app.core.scripting.evaluate(
+							let archive_ok = await this.app.core.scripting.evaluate_with_transaction(
 								access_script,
 								request_tx
 							);
@@ -940,7 +940,7 @@ class Archive extends ModTemplate {
 			let request_tx = obj.request_tx || tx || null;
 
 			if (this.app.core.scripting.hash(obj.access_script) === obj.access_hash) {
-				if (await this.app.core.scripting.evaluate(obj.access_script, request_tx)) {
+				if (await this.app.core.scripting.evaluate_with_transaction(obj.access_script, request_tx)) {
 					can_delete = true;
 					console.log('DELETE ACCESS GRANTED: Script evaluation passed');
 				} else {

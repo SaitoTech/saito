@@ -209,14 +209,11 @@ class LoadNFTs {
           //
           this.overlay.hide();
           this.witness_overlay.access_script = vault_entry.file_access_script;
+          this.witness_overlay.vault_entry = vault_entry;
           this.witness_overlay.render();
 
           this.witness_overlay.callback = (result) => {
-            //
-            // User provided witness data, now make the file request
-            //
-            let witness_data = result.witness_data;
-            this.mod.sendAccessFileRequest(vault_entry, witness_data);
+            this.mod.sendAccessFileRequest(vault_entry, result.access_script);
           };
         } else {
           //
