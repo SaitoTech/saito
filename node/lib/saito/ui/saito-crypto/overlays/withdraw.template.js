@@ -153,12 +153,12 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
             <div class="withdraw-confirm-overlay__review-details">
               <section class="withdraw-confirm-overlay__summary" aria-labelledby="withdraw-confirm-amount-label">
-                <div class="withdraw-confirm-overlay__summary-label" id="withdraw-confirm-amount-label">Amount</div>
+                <div class="withdraw-confirm-overlay__summary-label" id="withdraw-confirm-amount-label">Send</div>
                 <div class="withdraw-confirm-overlay__amount" id="withdraw-confirm-amount"></div>
               </section>
 
               <section class="withdraw-confirm-overlay__recipient" aria-labelledby="withdraw-confirm-recipient-label">
-                <div class="withdraw-confirm-overlay__summary-label" id="withdraw-confirm-recipient-label">Recipient</div>
+                <div class="withdraw-confirm-overlay__summary-label" id="withdraw-confirm-recipient-label">TO</div>
                 <div class="withdraw-confirm-counterparty counterparty-details hide-element" id="withdraw-confirm-counterparty"></div>
                 <div class="withdraw-confirm-overlay__chain-address" id="withdraw-confirm-address"></div>
               </section>

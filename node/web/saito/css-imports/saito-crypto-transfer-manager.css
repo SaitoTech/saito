@@ -240,7 +240,6 @@ input[type='number'] {
 .counterparty-details {
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 .counterparty-details .saito-user {

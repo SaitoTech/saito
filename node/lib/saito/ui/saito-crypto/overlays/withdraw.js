@@ -287,9 +287,7 @@ class Withdraw {
         counterpartyWrap.classList.remove('hide-element');
         this.counterparty.publicKey = this.publicKey;
         this.counterparty.render();
-        if (this.app.keychain.returnIdentifierByPublicKey(this.publicKey)) {
-          this.counterparty.updateUserlineAddress(this.publicKey);
-        }
+        this.counterparty.updateUserline(this.publicKey, this.publicKey);
       } else {
         counterpartyWrap.classList.add('hide-element');
         counterpartyWrap.innerHTML = '';

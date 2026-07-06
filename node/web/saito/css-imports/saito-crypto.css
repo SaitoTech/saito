@@ -375,22 +375,34 @@
   width: 100%;
   min-width: unset;
   max-width: 100%;
-  min-height: 4.25rem;
-  padding: 0.45rem 0.65rem;
+  min-height: var(--withdraw-control-height, 4.5rem);
+  padding: 0.7rem 0.85rem;
   margin: 0;
   box-sizing: border-box;
-  border: 1px solid
-    color-mix(in srgb, var(--saito-border-color) 40%, var(--saito-font-color-heavy) 60%);
-  border-radius: var(--saito-border-radius);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--saito-background-color) 90%, var(--saito-primary) 10%),
-    color-mix(in srgb, var(--saito-background-color) 96%, black)
-  );
-  color: var(--saito-font-color);
+  border: var(--border-thickness-thin) solid var(--withdraw-control-border, var(--saito-input-border));
+  border-radius: var(--withdraw-control-radius, var(--saito-input-radius));
+  background-color: var(--saito-input-bg);
+  box-shadow: var(--saito-input-shadow);
+  color: var(--saito-input-fg-heavy);
   font: inherit;
   line-height: 1;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-trigger:hover {
+  background-color: var(--saito-input-bg-focus);
+  border-color: var(--withdraw-control-border-hover, var(--saito-input-border-focus));
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-trigger:focus-visible {
+  outline: none;
+  border-color: var(--saito-input-border-focus);
+  box-shadow: var(--saito-focus-ring);
 }
 
 #withdrawal-form #withdraw-step-one .withdraw-token-trigger-left {
@@ -472,14 +484,13 @@
   list-style: none;
   max-height: 14rem;
   overflow-y: auto;
-  background: color-mix(in srgb, var(--saito-background-color) 78%, black);
-  color: var(--saito-font-color);
-  border: 1px solid
-    color-mix(in srgb, var(--saito-border-color) 35%, var(--saito-font-color-heavy) 65%);
-  border-radius: var(--saito-border-radius);
+  background: var(--saito-overlay-panel-bg, var(--saito-background-color));
+  color: var(--saito-input-fg-heavy);
+  border: var(--border-thickness-thin) solid var(--withdraw-control-border, var(--saito-input-border));
+  border-radius: var(--withdraw-control-radius, var(--saito-input-radius));
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--saito-font-color-heavy) 10%, transparent),
-    0 6px 16px rgba(0, 0, 0, 0.26);
+    0 0 0 1px color-mix(in srgb, var(--saito-white) 7%, transparent),
+    0 10px 24px color-mix(in srgb, var(--saito-black) 26%, transparent);
 }
 
 #withdrawal-form #withdraw-step-one .withdraw-token-option {
@@ -492,11 +503,11 @@
 }
 
 #withdrawal-form #withdraw-step-one .withdraw-token-option:hover {
-  background: color-mix(in srgb, var(--saito-primary) 7%, transparent);
+  background-color: var(--saito-input-bg-focus);
 }
 
 #withdrawal-form #withdraw-step-one .withdraw-token-option[aria-selected='true'] {
-  background: color-mix(in srgb, var(--saito-primary) 4.5%, transparent);
+  background: color-mix(in srgb, var(--saito-primary) 14%, transparent);
 }
 
 #withdrawal-form #withdraw-step-one .withdraw-token-option-logo {
@@ -821,7 +832,13 @@
  */
 #withdrawal-form.withdraw-overlay {
   --withdraw-overlay-height: min(52rem, 90vh);
-  width: min(48rem, 96vw);
+  --withdraw-control-height: 4.75rem;
+  --withdraw-control-radius: var(--saito-input-radius);
+  --withdraw-control-border: color-mix(in srgb, var(--saito-input-border) 86%, transparent);
+  --withdraw-control-border-hover: color-mix(in srgb, var(--saito-input-border-focus) 72%, var(--saito-input-border));
+  --withdraw-control-action-bg: color-mix(in srgb, var(--saito-background-color) 78%, transparent);
+  --withdraw-control-action-hover-bg: color-mix(in srgb, var(--saito-primary) 14%, transparent);
+  width: min(60rem, 96vw);
   max-width: 100%;
   height: var(--withdraw-overlay-height);
   max-height: var(--withdraw-overlay-height);
@@ -841,7 +858,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 3rem;
   width: 100%;
   box-sizing: border-box;
 }
@@ -878,7 +895,7 @@
 }
 
 #withdrawal-form .withdraw-overlay__actions {
-  justify-content: center;
+  justify-content: right;
   align-items: center;
   gap: 1rem;
   width: 100%;
@@ -951,7 +968,7 @@
   gap: 1.6rem;
   justify-content: flex-start;
   box-sizing: border-box;
-  padding: 0.25rem 0 0.5rem;
+  padding: 1rem;
 }
 
 #withdrawal-form .withdraw-compose-top {
@@ -1049,6 +1066,30 @@
   grid-template-columns: 1fr min-content min-content;
 }
 
+#withdrawal-form .withdraw-input-cont {
+  min-height: var(--withdraw-control-height);
+  overflow: hidden;
+  background-color: var(--saito-input-bg);
+  border: var(--border-thickness-thin) solid var(--withdraw-control-border);
+  border-radius: var(--withdraw-control-radius);
+  box-shadow: var(--saito-input-shadow);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+#withdrawal-form .withdraw-input-cont:hover {
+  background-color: var(--saito-input-bg-focus);
+  border-color: var(--withdraw-control-border-hover);
+}
+
+#withdrawal-form .withdraw-input-cont:focus-within {
+  background-color: var(--saito-input-bg-focus);
+  border-color: var(--saito-input-border-focus);
+  box-shadow: var(--saito-focus-ring);
+}
+
 #withdrawal-form .withdraw-input-cont.fixed-user {
   grid-template-columns: min-content minmax(0, 1fr);
 }
@@ -1058,30 +1099,62 @@
   display: none !important;
 }
 
+#withdrawal-form .saito-overlay-form-input .withdraw-input-cont input {
+  min-height: calc(var(--withdraw-control-height) - 2px);
+  width: 100%;
+  padding: 0 1.35rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--saito-input-fg-heavy);
+  font-size: 1.45rem;
+}
+
+#withdrawal-form .saito-overlay-form-input .withdraw-input-cont input:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+#withdrawal-form .saito-overlay-form-input .withdraw-input-cont input:disabled {
+  opacity: 1;
+  color: var(--saito-input-fg-heavy);
+  cursor: default;
+}
+
 #withdrawal-form button.withdraw-options-cont {
   appearance: none;
   -webkit-appearance: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: unset;
-  min-height: unset;
-  margin: 0 0 0 0.5rem;
-  padding: 1rem;
+  width: var(--withdraw-control-height);
+  min-width: var(--withdraw-control-height);
+  min-height: calc(var(--withdraw-control-height) - 2px);
+  margin: 0;
+  padding: 0;
   border: none;
+  border-left: var(--border-thickness-thin) solid var(--withdraw-control-border);
   border-radius: 0;
   background: transparent;
-  color: inherit;
+  color: var(--saito-input-fg);
   font: inherit;
   letter-spacing: normal;
   text-transform: none;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 #withdrawal-form button.withdraw-options-cont:hover {
-  font-weight: bold;
-  background: transparent;
-  color: inherit;
+  font-weight: normal;
+  background: var(--withdraw-control-action-hover-bg);
+  color: var(--saito-primary);
+}
+
+#withdrawal-form button.withdraw-options-cont:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--saito-primary) 50%, transparent);
 }
 
 #withdrawal-form button.withdraw-options-cont:hover i {
@@ -1096,37 +1169,45 @@
 #withdrawal-form .withdraw-max-btn {
   flex-shrink: 0;
   align-self: center;
-  margin: 0 0.35rem 0 0;
+  margin: 0 0.45rem 0 0;
   min-width: unset;
   min-height: unset;
-  padding: 0.4rem 0.75rem;
-  font-size: 1.25rem;
+  padding: 0.45rem 0.8rem;
+  font-size: 1.15rem;
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: 0.04em;
-  border-radius: var(--saito-border-radius);
-  color: var(--saito-button-secondary-fg);
-  background: var(--saito-button-secondary-bg);
-  border: var(--border-thickness-thin) solid var(--saito-button-secondary-border);
+  letter-spacing: 0;
+  border-radius: calc(var(--withdraw-control-radius) - 1px);
+  color: var(--saito-input-fg-heavy);
+  background: var(--withdraw-control-action-bg);
+  border: var(--border-thickness-thin) solid var(--withdraw-control-border);
   cursor: pointer;
   transition:
-    background 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
     color 0.15s ease;
 }
 
 #withdrawal-form .withdraw-max-btn:hover {
-  background: var(--saito-button-secondary-bg-hover);
-  color: var(--saito-button-secondary-fg-hover);
+  background: var(--withdraw-control-action-hover-bg);
+  border-color: var(--withdraw-control-border-hover);
+  color: var(--saito-primary);
 }
+
 
 #withdrawal-form .withdraw-max-btn:focus-visible {
   outline: none;
   box-shadow: var(--saito-focus-ring);
 }
 
+#withdrawal-form .input-elements-container {
+    gap: 2rem;
+}
+
 #withdrawal-form .withdraw-error-slot {
-  min-height: 2.8rem;
+/*  min-height: 2.8rem;
   margin-top: 0.25rem;
+  */
 }
 
 #withdrawal-form .withdraw-error {
@@ -1176,7 +1257,8 @@
 /* Confirm: summary centered in the fixed panel */
 #withdrawal-form[data-withdraw-state='review'] .withdraw-confirm-overlay__body {
   justify-content: center;
-  gap: 1.6rem;
+  gap: 2rem;
+  padding: 1rem;
 }
 
 #withdrawal-form[data-withdraw-state='review'] .withdraw-confirm-overlay__status,
@@ -1239,7 +1321,7 @@
   align-items: center;
   gap: 1.6rem;
   width: 100%;
-  max-width: 42rem;
+  max-width: 60rem;
   flex: 0 0 auto;
 }
 
@@ -1312,10 +1394,23 @@
 #withdrawal-form .withdraw-confirm-overlay__tx-row {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: start;
   gap: 0.5rem;
   width: 100%;
-  max-width: 42rem;
+  max-width: 60rem;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__fee-row {
+    align-items: end;
+    margin: 1rem 0 0 0;
+}
+
+#withdrawal-form .withdraw-confirm-overlay__amount,
+#withdrawal-form .withdraw-confirm-counterparty{
+    padding: 1rem;
+    background-color: var(--saito-input-bg);
+    width: 100%;
+    border-radius: var(--saito-border-radius);
 }
 
 #withdrawal-form .withdraw-confirm-overlay__summary-label {
@@ -1328,7 +1423,6 @@
 
 #withdrawal-form .withdraw-confirm-overlay__amount {
   font-size: 2rem;
-  font-weight: 600;
 }
 
 #withdrawal-form .withdraw-confirm-overlay__chain-address {
