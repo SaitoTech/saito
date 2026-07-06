@@ -414,6 +414,16 @@ class Videocall extends ModTemplate {
 					hook: 'screen_share onair',
 					prepend: true,
 					callback: function (app) {
+						//
+						// screen_share === true when we present; a public key when a peer does
+						//
+						if (call_self.screen_share && call_self.screen_share !== true) {
+							siteMessage(
+								`${call_self.app.keychain.returnUsername(call_self.screen_share)} is presenting`,
+								2000
+							);
+							return;
+						}
 						if (call_self.screen_share) {
 							call_self.app.connection.emit('stop-share-screen');
 						} else {
@@ -421,20 +431,37 @@ class Videocall extends ModTemplate {
 						}
 					},
 					event: function (id) {
-						call_self.app.connection.on('toggle-screen-share-label', (state = false) => {
-							let container = document.getElementById(id);
-							if (container) {
+						call_self.app.connection.on(
+							'toggle-screen-share-label',
+							(state = false, sender = null) => {
+								let container = document.getElementById(id);
+								if (!container) {
+									return;
+								}
+
+								let label = container.querySelector('label');
+								let icon = container.querySelector('i');
+
 								if (state) {
 									container.classList.add('recording');
-									container.querySelector('label').innerText = 'Stop';
-									container.querySelector('i')?.classList.add('recording');
+									icon?.classList.add('recording');
+
+									if (sender && sender !== call_self.publicKey) {
+										container.classList.add('not-clickable');
+										container.title = `${call_self.app.keychain.returnUsername(sender)} is presenting`;
+										if (label) label.innerText = 'Presenting';
+									} else {
+										container.title = 'Stop presenting';
+										if (label) label.innerText = 'Stop';
+									}
 								} else {
-									container.classList.remove('recording');
-									container.querySelector('label').innerText = 'Present';
-									container.querySelector('i')?.classList.remove('recording');
+									container.classList.remove('recording', 'not-clickable');
+									icon?.classList.remove('recording');
+									container.title = 'Present your screen';
+									if (label) label.innerText = 'Present';
 								}
 							}
-						});
+						);
 					}
 				},
 				{
@@ -620,6 +647,11 @@ class Videocall extends ModTemplate {
 						if (this.screen_share !== tx.from[0].publicKey) {
 							this.screen_share = tx.from[0].publicKey;
 							this.app.connection.emit('add-remote-stream-request', 'presentation', null);
+							this.app.connection.emit('toggle-screen-share-label', true, tx.from[0].publicKey);
+							siteMessage(
+								`${this.app.keychain.returnUsername(tx.from[0].publicKey)} started presenting`,
+								2500
+							);
 						}
 					}
 
@@ -632,6 +664,7 @@ class Videocall extends ModTemplate {
 
 						this.streams.remoteStreams.delete('presentation');
 						this.screen_share = null;
+						this.app.connection.emit('toggle-screen-share-label', false);
 					}
 
 					// Peer sharing connection state with people in the call...

@@ -308,45 +308,6 @@ class Stun extends ModTemplate {
 							let peerId = tx.to[0].publicKey;
 							let peerConnection = this.peers.get(peerId);
 							if (peerConnection) {
-								//
-								// This handles the renegotiation for adding/droping media streams
-								// However, need to further study "perfect negotiation" with polite/impolite peers
-								//
-								peerConnection.onnegotiationneeded = async () => {
-									try {
-										if (!peerConnection?.negotiation_counter) {
-											peerConnection.negotiation_counter = 0;
-										}
-										console.log('STUN: Negotation needed, ', peerConnection.negotiation_counter);
-
-										if (peerConnection.negotiation_counter > 10) {
-											console.warn(`STUN: Negotation needed, but going to cool off instead`);
-											peerConnection.negotiation_timeout = setTimeout(() => {
-												peerConnection.negotiation_counter = 0;
-											}, 12000);
-											return;
-										}
-
-										peerConnection.negotiation_counter++;
-										peerConnection.makingOffer = true;
-
-										if (peerConnection?.negotiation_timeout) {
-											clearTimeout(peerConnection.negotiation_timeout);
-										}
-
-										await peerConnection.setLocalDescription();
-
-										await this.sendPeerDescriptionTransaction(
-											peerId,
-											peerConnection.localDescription
-										);
-									} catch (err) {
-										console.error('STUN offer ERROR:', err);
-									} finally {
-										peerConnection.makingOffer = false;
-									}
-								};
-
 								if (peerConnection.connectionState !== 'connected') {
 									console.log(
 										'STUN: setting connection timer with on chain confirmation that my peer join transaction was sent'
@@ -729,45 +690,47 @@ class Stun extends ModTemplate {
 			this.app.connection.emit('stun-data-channel-close', peerId);
 		};
 
+		//
+		// This handles the renegotiation for adding/dropping media streams (e.g. screen share).
+		// Bound unconditionally on both sides -- the polite/impolite (peerConnection.rude) and
+		// offer-collision handling in handleSignalingMessage's 'peer-description' branch already
+		// implements "perfect negotiation", so it's safe for both peers to originate an offer.
+		//
+		peerConnection.onnegotiationneeded = async () => {
+			try {
+				if (!peerConnection?.negotiation_counter) {
+					peerConnection.negotiation_counter = 0;
+				}
+				console.log('STUN: Negotation needed, ', peerConnection.negotiation_counter);
+
+				if (peerConnection.negotiation_counter > 10) {
+					console.warn(`STUN: Negotation needed, but going to cool off instead`);
+					peerConnection.negotiation_timeout = setTimeout(() => {
+						peerConnection.negotiation_counter = 0;
+					}, 12000);
+					return;
+				}
+
+				peerConnection.negotiation_counter++;
+				peerConnection.makingOffer = true;
+
+				if (peerConnection?.negotiation_timeout) {
+					clearTimeout(peerConnection.negotiation_timeout);
+				}
+
+				await peerConnection.setLocalDescription();
+
+				await this.sendPeerDescriptionTransaction(peerId, peerConnection.localDescription);
+			} catch (err) {
+				console.error('STUN offer ERROR:', err);
+			} finally {
+				peerConnection.makingOffer = false;
+			}
+		};
+
 		if (callback) {
 			this.callback = callback;
 			callback(peerId);
-		} else {
-			//
-			// This handles the renegotiation for adding/droping media streams
-			// However, need to further study "perfect negotiation" with polite/impolite peers
-			//
-			peerConnection.onnegotiationneeded = async () => {
-				try {
-					if (!peerConnection?.negotiation_counter) {
-						peerConnection.negotiation_counter = 0;
-					}
-					console.log('STUN: Negotation needed, ', peerConnection.negotiation_counter);
-
-					if (peerConnection.negotiation_counter > 10) {
-						console.warn(`STUN: Negotation needed, but going to cool off instead`);
-						peerConnection.negotiation_timeout = setTimeout(() => {
-							peerConnection.negotiation_counter = 0;
-						}, 12000);
-						return;
-					}
-
-					peerConnection.negotiation_counter++;
-					peerConnection.makingOffer = true;
-
-					if (peerConnection?.negotiation_timeout) {
-						clearTimeout(peerConnection.negotiation_timeout);
-					}
-
-					await peerConnection.setLocalDescription();
-
-					await this.sendPeerDescriptionTransaction(peerId, peerConnection.localDescription);
-				} catch (err) {
-					console.error('STUN offer ERROR:', err);
-				} finally {
-					peerConnection.makingOffer = false;
-				}
-			};
 		}
 	}
 

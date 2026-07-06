@@ -929,6 +929,10 @@ class Limbo extends ModTemplate {
 				this.toggleNotification(true, sender);
 
 				if (sender !== this.publicKey) {
+					siteMessage(
+						`${this.app.keychain.returnUsername(sender)} started a swarmcast`,
+						2500
+					);
 					this.dreamer = sender;
 					this.controls = new LiteDreamControls(this.app, this, txmsg);
 					this.controls.render();
