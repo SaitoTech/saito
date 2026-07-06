@@ -9,7 +9,7 @@ const StackMain = require('./lib/ui/main');
 const ExploreOverlay = require('./lib/ui/overlay/explore');
 const CreatePost = require('./lib/ui/create-post');
 const ViewPost = require('./lib/ui/view-post');
-const { getAccessScriptForIntent } = require('./lib/access/access-scripts');
+const { getAccessScriptForIntent, embedWitnessInScript } = require('./lib/access/access-scripts');
 
 //
 // Stack - Permissioned Blogging Platform
@@ -656,11 +656,42 @@ class Stack extends ModTemplate {
     }
   }
 
+  buildUnlockAccessScript(publishIntent, witnessData) {
+    const lockingScript = this.getAccessScriptForPublishIntent(publishIntent);
+    if (lockingScript === null) {
+      throw new Error('buildUnlockAccessScript: public posts have no unlock script');
+    }
+
+    const witnessByOpcode = {};
+
+    if (witnessData?.utxokey1 && witnessData?.utxokey2 && witnessData?.utxokey3) {
+      witnessByOpcode.CHECKOWNNFTWHERE = {
+        utxokey1: witnessData.utxokey1,
+        utxokey2: witnessData.utxokey2,
+        utxokey3: witnessData.utxokey3
+      };
+    }
+
+    if (Array.isArray(witnessData?.hops) && witnessData.hops.length > 0) {
+      witnessByOpcode.CHECKPATHHOP = { hops: witnessData.hops };
+    }
+
+    if (witnessData?.duration != null && witnessData?.duration_sig) {
+      witnessByOpcode.IMPORTFIELD = {
+        duration: witnessData.duration,
+        signature: witnessData.duration_sig
+      };
+    }
+
+    const completeScript = embedWitnessInScript(lockingScript, witnessByOpcode);
+    return JSON.stringify(completeScript);
+  }
+
   /**
-   * Hash an access script using canonicalization
+   * Hash an access script using app.core.scripting.hash()
    *
-   * Canonicalizes the script JSON to ensure deterministic hashing.
-   * Same script object will always produce the same hash.
+   * Hashes the witness-free locking script JSON. Same script object will
+   * always produce the same hash via Rust canonicalization.
    *
    * @param {Object|null} script - Access script object, or null
    * @returns {string} Access hash (empty string if script is null)
@@ -670,19 +701,14 @@ class Stack extends ModTemplate {
       return '';
     }
 
-    const scripting_mod = this.app.modules.returnModule('Scripting');
-    if (!scripting_mod) {
-      console.warn('Stack: Scripting module not available - cannot hash access script');
+    if (!this.app.core?.scripting?.hash) {
+      console.warn('Stack: app.core.scripting.hash not available - cannot hash access script');
       return '';
     }
 
-    // Canonicalize the script to ensure deterministic hashing
-    const canonical_script = scripting_mod.canonicalize(script);
-
-    // Hash the canonicalized script
-    const access_hash = scripting_mod.hash(canonical_script);
-
-    return access_hash;
+    const access_script =
+      typeof script === 'string' ? script : JSON.stringify(script);
+    return this.app.core.scripting.hash(access_script);
   }
 
   ////////////////////////////
@@ -792,7 +818,7 @@ class Stack extends ModTemplate {
       // ========================================================================
       // 1. Generate normalized publish intent from post data
       // 2. Map intent to canonical access script template
-      // 3. Canonicalize and hash the script
+      // 3. Hash the locking script
       // 4. Attach access_hash to transaction
       // ========================================================================
 
@@ -835,13 +861,7 @@ class Stack extends ModTemplate {
           access_hash = this.hashAccessScript(access_script);
 
           if (access_hash) {
-            // Canonicalize script for optional local storage (debugging only)
-            const scripting_mod = this.app.modules.returnModule('Scripting');
-            if (scripting_mod) {
-              const canonical_script = scripting_mod.canonicalize(access_script);
-              // Store canonicalized script locally for debugging (not required for access)
-              newtx.msg.access_script = canonical_script;
-            }
+            newtx.msg.access_script = JSON.stringify(access_script);
             newtx.msg.access_hash = access_hash;
           }
         } else {
@@ -1765,12 +1785,13 @@ class Stack extends ModTemplate {
   // NFT Access Resolution //
   ////////////////////////////
   /**
-   * Resolves Stack NFT access data from wallet for Archive queries.
-   * Mirrors Vault's pattern: discovers Stack NFTs, loads transactions, extracts slips.
+   * Resolves Stack NFT witness data from wallet for unlock-script construction.
    *
-   * @returns {Object|null} Access data object with access_hash, access_script, access_witness, or null if no NFT found
+   * @param {string|null} authorPublicKey - Post author; when set, selects the Stack NFT
+   *   whose creator matches this key
+   * @returns {Object|null} Structured witness data, or null if no matching NFT found
    */
-  async resolveStackAccessData() {
+  async resolveStackAccessData(authorPublicKey = null) {
     try {
       // Update NFT list to ensure wallet cache is fresh
       await this.app.wallet.updateNFTList();
@@ -1780,18 +1801,32 @@ class Stack extends ModTemplate {
         return null;
       }
 
-      // Find first Stack NFT (type === "stack")
-      let stackNFT = null;
+      const stackCandidates = [];
       for (const rec of nftList) {
         const nftType = this.app.wallet.extractNFTType(rec.slip3?.utxo_key || '');
         if (nftType === 'stack') {
-          stackNFT = rec;
-          break;
+          stackCandidates.push(rec);
         }
       }
 
-      if (!stackNFT) {
+      if (stackCandidates.length === 0) {
         return null;
+      }
+
+      let stackNFT = null;
+      if (authorPublicKey) {
+        for (const rec of stackCandidates) {
+          const creator = rec.slip1?.public_key || '';
+          if (creator === authorPublicKey) {
+            stackNFT = rec;
+            break;
+          }
+        }
+        if (!stackNFT) {
+          return null;
+        }
+      } else {
+        stackNFT = stackCandidates[0];
       }
 
       // Create SaitoNFT object and load transaction to get full slip data
@@ -1799,62 +1834,40 @@ class Stack extends ModTemplate {
       const nft = new SaitoNFT(this.app, this, null, stackNFT, null);
       await nft.fetchTransaction();
 
-      // Extract slip utxo_keys (required for witness)
-      const slip1_utxokey = nft.slip1?.utxo_key || '';
-      const slip2_utxokey = nft.slip2?.utxo_key || '';
-      const slip3_utxokey = nft.slip3?.utxo_key || '';
-      let slips = [];
-      slips.push(slip1_utxokey);
-      slips.push(slip2_utxokey);
-      slips.push(slip3_utxokey);
+      const utxokey1 = nft.slip1?.utxo_key || '';
+      const utxokey2 = nft.slip2?.utxo_key || '';
+      const utxokey3 = nft.slip3?.utxo_key || '';
 
-      if (!slip1_utxokey || !slip2_utxokey || !slip3_utxokey) {
+      if (!utxokey1 || !utxokey2 || !utxokey3) {
         console.warn('Stack: NFT missing required slip utxo_keys');
         return null;
       }
 
-      // 2. Extract routing path from NFT transaction if present
-      let path = [];
+      let hops = [];
+      let duration = null;
+      let duration_sig = null;
       try {
         const nft_txmsg = nft.tx?.returnMessage?.();
         if (Array.isArray(nft_txmsg?.data?.path)) {
-          path = nft_txmsg.data.path;
+          hops = nft_txmsg.data.path;
+        }
+        if (nft_txmsg?.data?.duration != null) {
+          duration = nft_txmsg.data.duration;
+          duration_sig = nft_txmsg.data.duration_sig || null;
         }
       } catch (err) {
-        // Fail silently — absence of path is normal
+        // Absence of path/duration is normal for some NFT states
       }
 
-      // Construct witness data in CHECKOWNNFTWHERE format: { slips: [utxokey1, utxokey2, utxokey3] }
-      let access_witness_obj = [
-        {
-          utxokey1: slip1_utxokey,
-          utxokey2: slip2_utxokey,
-          utxokey3: slip3_utxokey
-        }
-      ];
-      if (Array.isArray(path) && path.length > 0) {
-        access_witness_obj.push({
-          hops: path
-        });
-      }
-      try {
-        let nft_txmsg = nft.tx?.returnMessage?.();
-        if (nft_txmsg.data.duration) {
-          access_witness_obj.push({
-            duration: nft_txmsg.data.duration,
-            signature: nft_txmsg.data.duration_sig
-          });
-        }
-      } catch (err) {
-        console.log('ERROR attaching duration and sig to witness...');
-      }
-      const access_witness = JSON.stringify(access_witness_obj);
-
-      // Note: access_hash and access_script come from the POST transaction, not the NFT
-      // We return witness data here, and the caller will attach it along with post's access_hash/access_script
       return {
-        access_witness: access_witness,
-        nft_creator: nft.creator || nft.slip1?.public_key || ''
+        utxokey1,
+        utxokey2,
+        utxokey3,
+        hops,
+        duration,
+        duration_sig,
+        nft_creator: nft.creator || nft.slip1?.public_key || '',
+        nft_id: nft.id || ''
       };
     } catch (error) {
       console.warn('Stack: Error resolving NFT access data:', error);

@@ -270,7 +270,45 @@ function getSubscriptionNonTransferableScript(authorPublicKey) {
 }
 
 
+/**
+ * Embed witness data into a witness-free locking script.
+ *
+ * Returns a new script object; the original lockingScript is not mutated.
+ *
+ * @param {Object} lockingScript - Witness-free locking script object
+ * @param {Object} witnessByOpcode - Witness payloads keyed by opcode name
+ * @returns {Object} Complete access script with embedded witness
+ */
+function embedWitnessInScript(lockingScript, witnessByOpcode) {
+  if (!lockingScript || typeof lockingScript !== 'object') {
+    throw new Error('embedWitnessInScript: lockingScript must be an object');
+  }
+  if (!witnessByOpcode || typeof witnessByOpcode !== 'object') {
+    throw new Error('embedWitnessInScript: witnessByOpcode must be an object');
+  }
+
+  function walk(node) {
+    const copy = { ...node };
+    const op = copy.op;
+
+    if (op === 'AND' && Array.isArray(copy.args)) {
+      copy.args = copy.args.map((child) => walk(child));
+      return copy;
+    }
+
+    if (witnessByOpcode[op]) {
+      copy.witness = { ...(copy.witness || {}), ...witnessByOpcode[op] };
+    }
+
+    return copy;
+  }
+
+  return walk(lockingScript);
+}
+
+
 module.exports = {
-  getAccessScriptForIntent
+  getAccessScriptForIntent,
+  embedWitnessInScript
 };
 

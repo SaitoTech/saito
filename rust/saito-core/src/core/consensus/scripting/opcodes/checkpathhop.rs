@@ -54,14 +54,6 @@ fn lookup_field(hop: &DecodedHop, field: &str) -> Option<Value> {
     Some(current)
 }
 
-fn resolve_rhs(context: &Value, value: &Value) -> Value {
-    if let Some(key) = value.as_str() {
-        if let Some(v) = context.get(key) {
-            return v.clone();
-        }
-    }
-    value.clone()
-}
 
 fn coerce_value(value: &Value, ty: Option<&str>) -> Value {
     let Some(ty) = ty else {
@@ -147,23 +139,23 @@ fn compare_values(left: &Value, right: &Value, operator: &str) -> Option<bool> {
     }
 }
 
-fn evaluate_condition(hop: &DecodedHop, condition: &Value, context: &Value) -> Option<bool> {
+fn evaluate_condition(hop: &DecodedHop, condition: &Value, context: &Value, tx: Option<&Transaction>, blk: Option<&Block>) -> Option<bool> {
     let field = condition.get("field").and_then(|v| v.as_str())?;
     let operator = condition.get("operator").and_then(|v| v.as_str())?;
     let rhs_raw = condition.get("value")?;
     let ty = condition.get("type").and_then(|v| v.as_str());
 
     let lhs_raw = lookup_field(hop, field)?;
-    let rhs_resolved = resolve_rhs(context, rhs_raw);
+    let rhs_resolved = resolve_ref(rhs_raw, context, tx, blk);
     let left = coerce_value(&lhs_raw, ty);
     let right = coerce_value(&rhs_resolved, ty);
 
     compare_values(&left, &right, operator)
 }
 
-fn hop_satisfies_assertions(hop: &DecodedHop, assert_clauses: &[Value], context: &Value) -> bool {
+fn hop_satisfies_assertions(hop: &DecodedHop, assert_clauses: &[Value], context: &Value, tx: Option<&Transaction>, blk: Option<&Block>) -> bool {
     for clause in assert_clauses {
-        match evaluate_condition(hop, clause, context) {
+        match evaluate_condition(hop, clause, context, tx, blk) {
             Some(true) => continue,
             Some(false) | None => return false,
         }
@@ -212,7 +204,7 @@ impl CheckPathHop {
                     .filter(|hop| {
                         clauses
                             .iter()
-                            .all(|clause| evaluate_condition(hop, clause, context) == Some(true))
+                            .all(|clause| evaluate_condition(hop, clause, context, tx, blk) == Some(true))
                     })
                     .collect()
             }
@@ -234,7 +226,7 @@ impl CheckPathHop {
             "FIRST" => {
                 let hop = filtered[0];
                 if !assert_clauses.is_empty()
-                    && !hop_satisfies_assertions(hop, assert_clauses, context)
+                    && !hop_satisfies_assertions(hop, assert_clauses, context, tx, blk)
                 {
                     return 0;
                 }
@@ -243,7 +235,7 @@ impl CheckPathHop {
             "LAST" => {
                 let hop = filtered[filtered.len() - 1];
                 if !assert_clauses.is_empty()
-                    && !hop_satisfies_assertions(hop, assert_clauses, context)
+                    && !hop_satisfies_assertions(hop, assert_clauses, context, tx, blk)
                 {
                     return 0;
                 }
@@ -255,7 +247,7 @@ impl CheckPathHop {
                 }
                 let hop = filtered[0];
                 if !assert_clauses.is_empty()
-                    && !hop_satisfies_assertions(hop, assert_clauses, context)
+                    && !hop_satisfies_assertions(hop, assert_clauses, context, tx, blk)
                 {
                     return 0;
                 }
@@ -267,7 +259,7 @@ impl CheckPathHop {
                 } else {
                     let mut matched: Option<&DecodedHop> = None;
                     for hop in &filtered {
-                        if hop_satisfies_assertions(hop, assert_clauses, context) {
+                        if hop_satisfies_assertions(hop, assert_clauses, context, tx, blk) {
                             matched = Some(hop);
                             break;
                         }

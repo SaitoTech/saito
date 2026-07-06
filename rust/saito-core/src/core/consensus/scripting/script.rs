@@ -56,9 +56,31 @@ impl Script {
             "variables": {}
         });
 
+	//
+	// set context variables
+	//
         if let Some(idx) = current_p2sh_idx {
             context["__current_p2sh_idx"] = json!(idx);
         }
+
+	let now_ms = if let Some(blk) = blk {
+	    blk.timestamp
+	} else if let Some(tx) = tx {
+	    tx.timestamp
+	} else {
+	    std::time::SystemTime::now()
+	        .duration_since(std::time::UNIX_EPOCH)
+	        .map(|d| d.as_millis() as u64)
+	        .unwrap_or(0)
+	};
+	context["NOW"] = json!(now_ms);
+
+	if let Some(tx) = tx {
+	    if let Some(slip) = tx.from.first() {
+	        context["REQUESTER"] = json!(slip.public_key.to_base58());
+	    }
+	}
+
 
         fn eval(
             node: &Value,
@@ -1099,6 +1121,15 @@ pub(crate) fn resolve_ref(
     if let Some(remainder) = path.strip_prefix("__opcodes.") {
         return lookup(&context["__opcodes"], remainder).unwrap_or(Value::Null);
     }
+
+
+    //
+    // NOW and REQUESTER
+    //
+    if let Some(resolved) = context.get(path) {
+        return resolved.clone();
+    }
+
 
     //
     // not a reference:
