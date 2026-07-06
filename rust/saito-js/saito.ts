@@ -522,13 +522,20 @@ export default class Saito {
       // SCRIPTING
       //
       scripting: {
-        evaluate: async (script: any , tx?: Transaction): Promise<number> => {
+        evaluate: async (script: any): Promise<number> => {
+          if (typeof script !== "string") {
+            script = JSON.stringify(script);
+          }
+          return await wasm.evaluate_script(script);
+        },
+
+        evaluate_with_transaction: async (script: any , tx?: Transaction): Promise<number> => {
           if (typeof script !== "string") {
             script = JSON.stringify(script);
           }
 	  if (tx) {
     	    tx.packData();
-    	    return await wasm.evaluate_script(script, tx.wasmTransaction);
+    	    return await wasm.evaluate_script_with_transaction(script, tx.wasmTransaction);
   	  }
 
           return await wasm.evaluate_script(script);

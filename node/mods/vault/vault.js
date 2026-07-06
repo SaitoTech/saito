@@ -160,7 +160,7 @@ console.log("NORMAL vault access file 1");
 					console.log(
 						'--------------------------------\nCALLING RUST SCRIPT VALIDATOR\n--------------------------------'
 					);
-					ok = await app.core.scripting.evaluate(access_script, tx);
+					ok = await app.core.scripting.evaluate_with_transaction(access_script, tx);
 					console.log(
 						'--------------------------------\nSCRIPT VALIDATION RESULT:\n\n' +
 							(ok ? 'true' : 'false') +
@@ -281,23 +281,21 @@ console.log("ERROR processing vault access file...");
 		return newtx;
 	}
 
-	async sendAccessFileRequest(vault_data = null, witness_data = null, mycallback = null) {
+	async sendAccessFileRequest(vault_data = null, access_script_override = null, mycallback = null) {
 		if (!this.app.core?.scripting?.hash) {
 			console.warn('VAULT: app.core.scripting not available, aborting');
 			return null;
 		}
 
 		//
-		// script: CHECKOWNNFT + nftid
-		// witness: three utxokeys proving ownership (or custom witness data)
+		// Standard path builds CHECKOWNNFT from nft utxokeys.
+		// Custom keys pass a complete access_script via access_script_override.
 		//
 		let nftid = null;
 		let utxokey1 = null;
 		let utxokey2 = null;
 		let utxokey3 = null;
 		let file_id = null;
-		let file_access_script = '';
-
 		//
 		// if called from UI (LoadNFTs click) use provided values
 		//
@@ -307,7 +305,6 @@ console.log("ERROR processing vault access file...");
 			utxokey2 = vault_data.slip2_utxokey;
 			utxokey3 = vault_data.slip3_utxokey;
 			file_id = vault_data.file_id;
-			file_access_script = vault_data.file_access_script;
 		} else {
 			nftid = prompt('NFT ID (nftid):');
 			utxokey1 = prompt('NFT utxokey1:');
@@ -324,23 +321,16 @@ console.log("ERROR processing vault access file...");
 		let access_script = '';
 		let access_hash = '';
 
-		//
-		// Check if this is a custom/advanced key with custom script
-		//
-		if (file_access_script && witness_data) {
+		if (access_script_override) {
 			try {
-				let script = JSON.parse(file_access_script);
-
-				script.witness =
-					typeof witness_data === 'string'
-						? JSON.parse(witness_data)
-						: witness_data;
-		
-				access_script = JSON.stringify(script);
+				access_script =
+					typeof access_script_override === 'string'
+						? access_script_override
+						: JSON.stringify(access_script_override);
+				JSON.parse(access_script);
 				access_hash = this.app.core.scripting.hash(access_script);
-
 			} catch (err) {
-				alert('Error submitting witness data: perhaps script does not validate?');
+				alert('Error submitting access script: invalid JSON?');
 				return;
 			}
 		} else {
@@ -355,7 +345,7 @@ console.log("ERROR processing vault access file...");
 					utxokey2: utxokey2,
 					utxokey3: utxokey3
 				}
-			}
+			};
 
 			access_script = JSON.stringify(access_script_obj);
 			access_hash = this.app.core.scripting.hash(access_script);
