@@ -11,6 +11,13 @@
 	padding-inline: var(--explorer-gutter);
 }
 
+.explorer-container.full-width:not(.saito-container) {
+	width: 100vw;
+	max-width: 100vw;
+	margin-inline: calc(50% - 50vw);
+	padding-inline: var(--explorer-space-2);
+}
+
 .explorer-section {
 	display: flex;
 	flex-direction: column;

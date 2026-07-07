@@ -24,9 +24,61 @@
 }
 
 .explorer-supply-dashboard {
+	position: relative;
 	width: 100%;
 	min-width: 0;
-	overflow: hidden;
+	overflow: visible;
+}
+
+.explorer-supply-dashboard-toolbar {
+	position: relative;
+}
+
+.explorer-supply-width-toggle {
+	position: absolute;
+	top: -24px;
+	right: -24px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.4rem;
+	height: 2.4rem;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--explorer-muted-foreground);
+	cursor: pointer;
+	transition:
+		color var(--explorer-transition-fast),
+		opacity var(--explorer-transition-fast);
+}
+
+.explorer-supply-width-toggle:hover,
+.explorer-supply-width-toggle:focus-visible {
+	color: var(--explorer-foreground);
+	outline: none;
+}
+
+.explorer-supply-width-toggle:focus-visible {
+	box-shadow: 0 0 0 2px color-mix(in oklch, var(--explorer-ring) 35%, transparent);
+	border-radius: var(--explorer-radius-sm);
+}
+
+.explorer-supply-width-toggle i {
+	font-size: 1.6rem;
+	line-height: 1;
+}
+
+.explorer-supply-collapse-icon {
+	display: none;
+}
+
+.explorer-container.full-width .explorer-supply-expand-icon {
+	display: none;
+}
+
+.explorer-container.full-width .explorer-supply-collapse-icon {
+	display: inline-block;
 }
 
 .explorer-supply-status {

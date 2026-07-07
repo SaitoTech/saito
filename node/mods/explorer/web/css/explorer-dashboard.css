@@ -39,7 +39,7 @@
 
 .explorer-dashboard-peer-grid {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: 1fr;
 	gap: var(--explorer-space-3);
 	flex: 1;
 }
@@ -68,7 +68,7 @@
 	font-weight: var(--explorer-font-normal);
 }
 
-/* Centered loading state (currently used by the Server Info card). */
+/* Centered loading state (currently used by the Peer Node Information card). */
 .explorer-dashboard-card--loading {
 	align-items: center;
 	justify-content: center;
@@ -107,7 +107,7 @@
 
 .explorer-dashboard-quad {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: 1fr;
 	gap: var(--explorer-space-3) var(--explorer-space-4);
 	height: 100%;
 }

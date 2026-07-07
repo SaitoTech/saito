@@ -80,9 +80,15 @@ module.exports = ({
 	columns = [],
 	rows = [],
 	hasData = false,
+	fullWidth = false,
 }) => {
 	const headerCells = renderBlockHeaderCells(columns);
 	const bodyRows = renderMatrixRows(rows, columns.length);
+	const containerClasses = ['explorer-container', 'explorer-stack'];
+	if (fullWidth) {
+		containerClasses.push('full-width');
+	}
+	const toggleLabel = fullWidth ? 'Collapse supply dashboard' : 'Expand supply dashboard';
 
 	const tableHtml =
 		hasData && columns.length > 0
@@ -123,7 +129,7 @@ module.exports = ({
 
 	return `
     <main class="explorer-content explorer-view-panel explorer-supply-page">
-      <div class="explorer-container explorer-stack">
+      <div class="${containerClasses.join(' ')}">
         <div class="explorer-supply-header">
           <button type="button" class="explorer-back-link" data-nav="home" aria-label="Back to explorer home">
             <i class="fa-solid fa-arrow-left"></i>
@@ -135,6 +141,12 @@ module.exports = ({
         </div>
 
         <div class="explorer-supply-dashboard explorer-card explorer-card-padded">
+          <div class="explorer-supply-dashboard-toolbar">
+            <span class="explorer-supply-width-toggle" data-supply-width-toggle role="button" tabindex="0" aria-label="${toggleLabel}" title="${toggleLabel}" aria-expanded="${fullWidth ? 'true' : 'false'}">
+              <i class="fa-solid fa-expand explorer-supply-expand-icon" aria-hidden="true"></i>
+              <i class="fa-solid fa-down-left-and-up-right-to-center explorer-supply-collapse-icon" aria-hidden="true"></i>
+            </span>
+          </div>
           ${statusHtml}
           ${tableHtml}
         </div>

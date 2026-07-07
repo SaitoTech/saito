@@ -5,7 +5,7 @@ module.exports = ({ peerNode = {}, blockchain = {}, modules = {}, app = null } =
 		app?.browser?.escapeHTML ? app.browser.escapeHTML(String(value ?? '')) : String(value ?? '');
 
 	//
-	// Server Info card
+	// Peer Node Information card
 	//
 	let serverInfoCard;
 
@@ -14,7 +14,7 @@ module.exports = ({ peerNode = {}, blockchain = {}, modules = {}, app = null } =
 		// card reads as an intentional loading state rather than stray placeholder text.
 		serverInfoCard = `
       <div class="explorer-card explorer-dashboard-card explorer-dashboard-peer-card explorer-dashboard-card--loading">
-        <p class="explorer-dashboard-loading">Loading server information…</p>
+        <p class="explorer-dashboard-loading">Loading peer node information…</p>
       </div>
     `;
 	} else {
@@ -59,7 +59,7 @@ module.exports = ({ peerNode = {}, blockchain = {}, modules = {}, app = null } =
 
 		serverInfoCard = `
       <div class="explorer-card explorer-dashboard-card explorer-dashboard-peer-card">
-        <div class="explorer-stat-label">Server Info</div>
+        <div class="explorer-stat-label">Peer Node Information</div>
         ${peerNodeBody}
       </div>
     `;

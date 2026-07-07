@@ -5,6 +5,7 @@ class Supply {
 		this.app = app;
 		this.mod = mod;
 		this.container = '.explorer-view';
+		this.fullWidth = false;
 	}
 
 	render(container = '') {
@@ -34,6 +35,7 @@ class Supply {
 				columns: view?.columns || [],
 				rows: view?.rows || [],
 				hasData: Boolean(view?.hasData),
+				fullWidth: this.fullWidth,
 			}),
 			this.container
 		);
@@ -56,6 +58,30 @@ class Supply {
 				}
 			};
 		});
+
+		const widthToggle = root.querySelector('[data-supply-width-toggle]');
+		const supplyContainer = root.querySelector('.explorer-supply-page .explorer-container');
+		if (widthToggle && supplyContainer) {
+			const toggleFullWidth = () => {
+				this.fullWidth = !this.fullWidth;
+				supplyContainer.classList.toggle('full-width', this.fullWidth);
+
+				const label = this.fullWidth
+					? 'Collapse supply dashboard'
+					: 'Expand supply dashboard';
+				widthToggle.setAttribute('aria-label', label);
+				widthToggle.setAttribute('title', label);
+				widthToggle.setAttribute('aria-expanded', this.fullWidth ? 'true' : 'false');
+			};
+
+			widthToggle.onclick = toggleFullWidth;
+			widthToggle.onkeydown = (event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					toggleFullWidth();
+				}
+			};
+		}
 	}
 }
 
