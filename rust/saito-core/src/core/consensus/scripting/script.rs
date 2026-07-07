@@ -7,6 +7,11 @@ use crate::core::util::crypto;
 use log::info;
 use serde_json::{json, Value};
 
+#[cfg(target_arch = "wasm32")]
+use js_sys;
+
+
+
 use super::opcodes::{
     CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere, CheckPath,
     CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime, ImportField, SumFields,
@@ -39,6 +44,90 @@ impl Script {
         script
     }
 
+    pub fn merge_witness(script: &Value, witness: &Value) -> Value {
+        let mut merged = script.clone();
+
+        let witness_items = match witness.as_array() {
+            Some(v) => v,
+            None => return merged,
+        };
+
+        let mut witness_index: usize = 0;
+
+        fn walk(node: &mut Value, witness_items: &Vec<Value>, witness_index: &mut usize) {
+            //
+            // recurse through logical operators
+            //
+            if let Some(op) = node.get("op").and_then(|v| v.as_str()) {
+                match op.to_uppercase().as_str() {
+                    "AND" | "OR" => {
+                        if let Some(args) = node.get_mut("args").and_then(|v| v.as_array_mut()) {
+                            for child in args.iter_mut() {
+                                walk(child, witness_items, witness_index);
+                            }
+                        }
+
+                        return;
+                    }
+
+                    "NOT" => {
+                        if let Some(args) = node.get_mut("args").and_then(|v| v.as_array_mut()) {
+                            if let Some(child) = args.get_mut(0) {
+                                walk(child, witness_items, witness_index);
+                            }
+                        }
+
+                        return;
+                    }
+
+                    _ => {}
+                }
+            }
+
+            //
+            // already contains witness
+            //
+            if node
+                .get("witness")
+                .and_then(|v| v.as_object())
+                .map(|o| !o.is_empty())
+                .unwrap_or(false)
+            {
+                return;
+            }
+
+            //
+            // no remaining witness
+            //
+            if *witness_index >= witness_items.len() {
+                return;
+            }
+
+            //
+            // witness entry must be an object
+            //
+            let Some(witness_object) = witness_items[*witness_index].as_object() else {
+                *witness_index += 1;
+                return;
+            };
+
+            //
+            // consume this witness
+            //
+            *witness_index += 1;
+
+            let Some(node_object) = node.as_object_mut() else {
+                return;
+            };
+
+            node_object.insert("witness".to_string(), Value::Object(witness_object.clone()));
+        }
+
+        walk(&mut merged, witness_items, &mut witness_index);
+
+        merged
+    }
+
     pub fn parse(&mut self, json: &str) {
         self.json = serde_json::from_str(json).expect("parse: invalid JSON");
     }
@@ -56,31 +145,41 @@ impl Script {
             "variables": {}
         });
 
-	//
-	// set context variables
-	//
+        //
+        // set context variables
+        //
         if let Some(idx) = current_p2sh_idx {
             context["__current_p2sh_idx"] = json!(idx);
         }
 
-	let now_ms = if let Some(blk) = blk {
-	    blk.timestamp
-	} else if let Some(tx) = tx {
-	    tx.timestamp
-	} else {
-	    std::time::SystemTime::now()
-	        .duration_since(std::time::UNIX_EPOCH)
-	        .map(|d| d.as_millis() as u64)
-	        .unwrap_or(0)
-	};
-	context["NOW"] = json!(now_ms);
 
-	if let Some(tx) = tx {
-	    if let Some(slip) = tx.from.first() {
-	        context["REQUESTER"] = json!(slip.public_key.to_base58());
-	    }
-	}
+let now_ms = if let Some(blk) = blk {
+    blk.timestamp
+} else if let Some(tx) = tx {
+    tx.timestamp
+} else {
+    #[cfg(target_arch = "wasm32")]
+    {
+        js_sys::Date::now() as u64
+    }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64
+    }
+};
+
+context["NOW"] = json!(now_ms);
+
+
+        if let Some(tx) = tx {
+            if let Some(slip) = tx.from.first() {
+                context["REQUESTER"] = json!(slip.public_key.to_base58());
+            }
+        }
 
         fn eval(
             node: &Value,
@@ -1122,14 +1221,12 @@ pub(crate) fn resolve_ref(
         return lookup(&context["__opcodes"], remainder).unwrap_or(Value::Null);
     }
 
-
     //
     // NOW and REQUESTER
     //
     if let Some(resolved) = context.get(path) {
         return resolved.clone();
     }
-
 
     //
     // not a reference:

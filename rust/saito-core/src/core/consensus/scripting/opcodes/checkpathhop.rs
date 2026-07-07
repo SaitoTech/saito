@@ -54,7 +54,6 @@ fn lookup_field(hop: &DecodedHop, field: &str) -> Option<Value> {
     Some(current)
 }
 
-
 fn coerce_value(value: &Value, ty: Option<&str>) -> Value {
     let Some(ty) = ty else {
         return value.clone();
@@ -139,7 +138,13 @@ fn compare_values(left: &Value, right: &Value, operator: &str) -> Option<bool> {
     }
 }
 
-fn evaluate_condition(hop: &DecodedHop, condition: &Value, context: &Value, tx: Option<&Transaction>, blk: Option<&Block>) -> Option<bool> {
+fn evaluate_condition(
+    hop: &DecodedHop,
+    condition: &Value,
+    context: &Value,
+    tx: Option<&Transaction>,
+    blk: Option<&Block>,
+) -> Option<bool> {
     let field = condition.get("field").and_then(|v| v.as_str())?;
     let operator = condition.get("operator").and_then(|v| v.as_str())?;
     let rhs_raw = condition.get("value")?;
@@ -153,7 +158,13 @@ fn evaluate_condition(hop: &DecodedHop, condition: &Value, context: &Value, tx: 
     compare_values(&left, &right, operator)
 }
 
-fn hop_satisfies_assertions(hop: &DecodedHop, assert_clauses: &[Value], context: &Value, tx: Option<&Transaction>, blk: Option<&Block>) -> bool {
+fn hop_satisfies_assertions(
+    hop: &DecodedHop,
+    assert_clauses: &[Value],
+    context: &Value,
+    tx: Option<&Transaction>,
+    blk: Option<&Block>,
+) -> bool {
     for clause in assert_clauses {
         match evaluate_condition(hop, clause, context, tx, blk) {
             Some(true) => continue,
@@ -202,9 +213,9 @@ impl CheckPathHop {
                 decoded
                     .iter()
                     .filter(|hop| {
-                        clauses
-                            .iter()
-                            .all(|clause| evaluate_condition(hop, clause, context, tx, blk) == Some(true))
+                        clauses.iter().all(|clause| {
+                            evaluate_condition(hop, clause, context, tx, blk) == Some(true)
+                        })
                     })
                     .collect()
             }

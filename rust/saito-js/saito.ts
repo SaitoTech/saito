@@ -529,7 +529,23 @@ export default class Saito {
           return await wasm.evaluate_script(script);
         },
 
-        evaluate_with_transaction: async (script: any , tx?: Transaction): Promise<number> => {
+        mergeWitness: (script: any, witness: any): any => {
+
+          if (typeof script !== "string") {
+            script = JSON.stringify(script);
+          }
+
+          if (typeof witness !== "string") {
+            witness = JSON.stringify(witness);
+          }
+
+          return JSON.parse(
+            wasm.merge_witness(script, witness)
+          );
+
+        },
+
+        evaluateWithTransaction: async (script: any , tx?: Transaction): Promise<number> => {
           if (typeof script !== "string") {
             script = JSON.stringify(script);
           }
