@@ -2825,6 +2825,79 @@ class RedSquare extends ModTemplate {
 
     expressapp.use(uri, express.static(webdir));
 
+    //
+    // permalink: /redsquare/t/{sig-prefix} resolves against the archive and
+    // redirects to the canonical ?tweet_id= page (which renders per-tweet
+    // open graph tags). resolving is a curation signal, so we bump the
+    // archive row's preserve flag / retention clock on every hit.
+    // see .design/link-sharing-design.md
+    //
+    expressapp.get(uri + '/t/:prefix', async function (req, res) {
+      let prefix = String(req.params.prefix || '').toLowerCase();
+      if (!/^[0-9a-f]{12,128}$/.test(prefix)) {
+        return res.redirect(302, uri + '/');
+      }
+      app.storage.loadTransactions(
+        { sig_prefix: prefix, field1: 'RedSquare', limit: 10 },
+        (txs) => {
+          //
+          // the archive keeps per-owner copies of the same tx, so multiple
+          // rows are fine as long as they agree on the signature; genuinely
+          // ambiguous prefixes get the miss page rather than a guess
+          //
+          let sigs = [...new Set((txs || []).map((t) => t.signature))];
+          if (sigs.length !== 1) {
+            return res.redirect(302, uri + '/?content_missing=1');
+          }
+
+          app.storage.updateTransaction(txs[0], { preserve: 1 }, 'localhost');
+
+          return res.redirect(302, uri + '/?tweet_id=' + sigs[0]);
+        },
+        'localhost'
+      );
+    });
+
+    //
+    // person permalink: /redsquare/@name resolves a registered identifier
+    // through the registry and redirects to the profile view
+    //
+    expressapp.get(uri + '/@:identifier', async function (req, res) {
+      let identifier = String(req.params.identifier || '');
+      if (!/^[a-zA-Z0-9_.-]{1,64}(@[a-zA-Z0-9_.-]{1,64})?$/.test(identifier)) {
+        return res.redirect(302, uri + '/');
+      }
+      if (!identifier.includes('@')) {
+        identifier += '@saito';
+      }
+
+      let registry_mod = app.modules.returnModule('Registry');
+      if (!registry_mod?.checkIdentifierInDatabase) {
+        return res.redirect(302, uri + '/');
+      }
+
+      //
+      // non-master nodes forward the lookup to the registry peer, so guard
+      // the request with a timeout and make sure we only respond once
+      //
+      let sent = false;
+      let respond = (target) => {
+        if (!sent && !res.finished) {
+          sent = true;
+          res.redirect(302, target);
+        }
+      };
+      setTimeout(() => respond(uri + '/'), 3000);
+
+      registry_mod.checkIdentifierInDatabase(identifier, (rows) => {
+        if (rows?.length && rows[0].publickey) {
+          respond(uri + '/?user_id=' + encodeURIComponent(rows[0].publickey));
+        } else {
+          respond(uri + '/?content_missing=1');
+        }
+      });
+    });
+
     expressapp.get(uri, async function (req, res) {
       let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 

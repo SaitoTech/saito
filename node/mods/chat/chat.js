@@ -1111,7 +1111,7 @@ class Chat extends ModTemplate {
       if (tx.isFrom(this.publicKey) && this.publicKey == txmsg.admin) {
         // We have now generated a unique ID (transaction signature) for the chat group
         // and can create a link for anyone else to find it
-        this.generateChatGroupLink(newGroup);
+        this.generateChatGroupLink(newGroup, false);
       } else {
         let inviter = txmsg?.sender || txmsg.admin;
         await this.sendJoinGroupTransaction(newGroup, inviter);
@@ -2490,7 +2490,12 @@ class Chat extends ModTemplate {
     this.app.connection.emit('chat-manager-render-request');
   }
 
-  generateChatGroupLink(group) {
+  //
+  // share = true only from user-gesture contexts (menu clicks): the share
+  // sheet needs transient activation. non-gesture callers (e.g. group
+  // creation confirmations) get the old silent copy-to-clipboard behavior.
+  //
+  generateChatGroupLink(group, share = true) {
     let obj = {
       id: group.id,
       name: group.name,
@@ -2507,8 +2512,15 @@ class Chat extends ModTemplate {
     let base64obj = this.app.crypto.stringToBase64(JSON.stringify(obj));
 
     let link = window.location.origin + '/chat?chat_id=' + base64obj;
-    navigator.clipboard.writeText(link);
-    siteMessage('Link Copied', 2000);
+    if (share) {
+      this.app.browser.handleShare({
+        title: `Join ${group.name} on Saito Chat`,
+        url: link
+      });
+    } else {
+      navigator.clipboard.writeText(link);
+      siteMessage('Link Copied', 2000);
+    }
   }
 
   webServer(app, expressapp, express) {

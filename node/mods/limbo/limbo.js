@@ -1737,8 +1737,10 @@ class Limbo extends ModTemplate {
 			let event_link = this.app.browser.createEventInviteLink(this.app.keychain.returnKey(id));
 
 			this.app.connection.emit('calendar-refresh-request');
-			await navigator.clipboard.writeText(event_link);
-			siteMessage('Invitation link copied to clipboard', 3500);
+			this.app.browser.handleShare({
+				title: title || 'Saito Swarmcast invitation',
+				url: event_link
+			});
 		};
 		schedule_wizard.render();
 	}
@@ -1751,6 +1753,8 @@ class Limbo extends ModTemplate {
 		};
 
 		let invite = new InvitationLink(this.app, this, data);
+		// dream links only work while the cast is live
+		invite.ttl = 60 * 60 * 24;
 		invite.render();
 
 		/*if (truthy) {

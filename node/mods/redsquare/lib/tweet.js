@@ -998,13 +998,19 @@ class Tweet {
 					e.preventDefault();
 					e.stopImmediatePropagation();
 
-					let tweetUrl =
-						window.location.origin + window.location.pathname + '?tweet_id=' + this.tx.signature;
-					this.app.browser.handleShare({ title: 'Saito Redsquare Post', url: tweetUrl });
+					//
+					// sharing is a curation signal, same as like/retweet/reply --
+					// it preserves the tweet so the permalink keeps resolving
+					//
+					this.mod.saveTweet(this, true);
 
-					/*navigator.clipboard.writeText(tweetUrl).then(() => {
-						siteMessage('Link copied to clipboard.', 2000);
-					});*/
+					let tweetUrl =
+						window.location.origin +
+						'/' +
+						this.mod.returnSlug() +
+						'/t/' +
+						this.tx.signature.substring(0, 16);
+					this.app.browser.handleShare({ title: 'Saito Redsquare Post', url: tweetUrl });
 				};
 			}
 

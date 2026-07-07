@@ -358,10 +358,10 @@ class Blog extends ModTemplate {
           let tx = txs[0];
           tx.msg.data.content = content;
           tx.msg.data.title = title;
-          (tx.msg.data.image = image),
+          ((tx.msg.data.image = image),
             (tx.msg.data.tags = tags),
             (tx.msg.data.imageUrl = imageUrl),
-            await this.app.storage.updateTransaction(tx, {}, 'localhost');
+            await this.app.storage.updateTransaction(tx, {}, 'localhost'));
         }
       },
       'localhost'
@@ -849,6 +849,36 @@ class Blog extends ModTemplate {
       res.charset = 'UTF-8';
       res.send(pageHome(app, mod_self, app.build_number, updatedSocial));
       return;
+    });
+
+    //
+    // permalink: /blog/t/{sig-prefix} resolves against the archive and
+    // redirects to the canonical ?public_key=&tx_id= page (which renders
+    // per-post open graph tags). resolving bumps the archive row's preserve
+    // flag / retention clock. see .design/link-sharing-design.md
+    //
+    expressapp.get('/' + encodeURI(this.returnSlug()) + '/t/:prefix', async function (req, res) {
+      let uri = '/' + encodeURI(mod_self.returnSlug());
+      let prefix = String(req.params.prefix || '').toLowerCase();
+      if (!/^[0-9a-f]{12,128}$/.test(prefix)) {
+        return res.redirect(302, uri + '/');
+      }
+      app.storage.loadTransactions(
+        { sig_prefix: prefix, field1: 'Blog', limit: 10 },
+        (txs) => {
+          let sigs = [...new Set((txs || []).map((t) => t.signature))];
+          if (sigs.length !== 1) {
+            return res.redirect(302, uri + '/?content_missing=1');
+          }
+          let tx = (txs || []).find((t) => t.signature === sigs[0]);
+          let pk = tx.from?.[0]?.publicKey || '';
+          return res.redirect(
+            302,
+            uri + '/?public_key=' + encodeURIComponent(pk) + '&tx_id=' + sigs[0]
+          );
+        },
+        'localhost'
+      );
     });
 
     expressapp.get('/' + encodeURI(this.returnSlug()) + '/markdown', async function (req, res) {

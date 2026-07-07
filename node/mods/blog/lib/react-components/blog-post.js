@@ -1,5 +1,5 @@
 import React from 'react';
-import { copyPostLinkToClipboard, getImageUrl } from '../utils';
+import { sharePostLink, getImageUrl } from '../utils';
 import { Upload, Pencil, Trash2 } from 'lucide-react';
 
 const BlogPost = ({ app, mod, post, publicKey, onEditClick, onDeleteClick }) => {
@@ -43,9 +43,7 @@ const BlogPost = ({ app, mod, post, publicKey, onEditClick, onDeleteClick }) => 
               <Upload
                 size={20}
                 onClick={() => {
-                  navigator.clipboard.writeText(window.location).then(() => {
-                    siteMessage('Link copied to clipboard.', 2000);
-                  });
+                  sharePostLink(app, post);
                 }}
               />
             </div>

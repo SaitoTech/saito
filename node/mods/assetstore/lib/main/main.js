@@ -25,11 +25,18 @@ class AssetStoreMain {
 
 		// Standard Saito UI Components
 		this.loader = new SaitoLoader(app, mod, '.assetstore-table');
-		this.link = new SaitoInvitationLink(app, mod, {
-			name: 'Store',
-			path: '/store',
-			seller: mod.publicKey
-		});
+		//
+		// registered sellers get the human-readable /store/@name permalink
+		// (resolved server-side through the registry); everyone else shares
+		// the raw ?seller= pubkey form
+		//
+		let store_identifier = app.keychain.returnIdentifierByPublicKey(mod.publicKey);
+		let link_data = store_identifier
+			? { name: 'Store', path: `/store/@${store_identifier.split('@')[0]}` }
+			: { name: 'Store', path: '/store', seller: mod.publicKey };
+		this.link = new SaitoInvitationLink(app, mod, link_data);
+		// store links are long-lived references, not transitory invites
+		this.link.shorten = false;
 		this.contactList = new ContactsList(app, mod);
 		this.contactList.title = 'Bookmark contact';
 		this.contactList.callback = async (person) => {

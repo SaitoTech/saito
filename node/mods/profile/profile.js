@@ -152,9 +152,15 @@ class Profile extends ModTemplate {
 	}
 
 	async render() {
-		// Check for URL param (since that is the prime use case)
-		let param = this.app.browser.returnURLParameter('load_key');
+		// Key exports live in the #fragment (never sent to the server); fall back
+		// to the query param so links shared before the change keep working
+		let param =
+			this.app.browser.returnHashParameter('load_key') ||
+			this.app.browser.returnURLParameter('load_key');
 		if (param) {
+			// scrub the key material from the address bar and history entry
+			window.history.replaceState('', '', window.location.pathname);
+
 			let key = JSON.parse(this.app.crypto.base64ToString(param));
 
 			//console.log("My key: ", this.publicKey, "Wanted Key: ", key.publicKey);

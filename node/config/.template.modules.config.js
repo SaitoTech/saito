@@ -13,6 +13,7 @@ module.exports = {
                 'registry/registry.js',
                 'settings/settings.js',
                 'settlers/settlers.js',
+                'shortlink/shortlink.js',
                 'solitrio/solitrio.js',
                 'wordblocks/wordblocks.js',
                 'stun/stun.js'
@@ -30,6 +31,7 @@ module.exports = {
                 'registry/registry.js',
                 'settings/settings.js',
                 'settlers/settlers.js',
+                'shortlink/shortlink.js',
                 'solitrio/solitrio.js',
                 'wordblocks/wordblocks.js',
                 'stun/stun.js'

@@ -495,6 +495,22 @@ class Browser {
     return `${protocol}://${host}:${port}/r?i=${url_payload}`;
   }
 
+  //
+  // ask a shortlink-service peer to mint a short /l/{slug}/{id} URL for a
+  // long share link. resolves to the short URL, or null when no service is
+  // available / the request times out -- callers must treat null as "keep
+  // using the long URL". see .design/link-sharing-design.md
+  //
+  async shortenLink(long_url, obj: any = {}) {
+    try {
+      const shortlink_mod: any = this.app.modules.returnModuleBySlug('shortlink');
+      if (shortlink_mod?.shorten) {
+        return await shortlink_mod.shorten(long_url, obj);
+      }
+    } catch (err) {}
+    return null;
+  }
+
   createEventInviteLink(event) {
     let obj = Object.assign({}, event);
     delete obj.privateKey;
@@ -535,6 +551,28 @@ class Browser {
           return pair[1] || pair[0];
         }
       }
+    } catch (err) {}
+    return '';
+  }
+
+  //
+  // like returnURLParameter, but reads from the #fragment. fragments never
+  // appear in the HTTP request line or server logs, so sensitive payloads
+  // (e.g. profile key exports) belong here rather than in the query string.
+  //
+  returnHashParameter(name) {
+    try {
+      let hash = window.location.hash;
+      if (!hash) {
+        return '';
+      }
+      hash = hash.substring(1);
+      // tolerate both "#key=value" and "#component?key=value"
+      if (hash.includes('?')) {
+        hash = hash.split('?')[1];
+      }
+      const params = new URLSearchParams(hash);
+      return params.get(name) || '';
     } catch (err) {}
     return '';
   }
@@ -2995,11 +3033,14 @@ class Browser {
   }
 
   handleShare(data) {
-    // Use Web Share API if available, otherwise fall back to copy
-    if (this.isMobileBrowser() && navigator.share) {
+    // Use Web Share API if available, otherwise fall back to copy.
+    // Feature-detect rather than UA-sniff: desktop Chrome/Edge/Safari support it too.
+    if (navigator.share && (!navigator.canShare || navigator.canShare(data))) {
       navigator.share(data).catch((err) => {
-        // User cancelled or error - fall back to copy
-        this.handleCopyLink(data?.url);
+        // AbortError means the user closed the share sheet -- don't copy behind their back
+        if (err?.name !== 'AbortError') {
+          this.handleCopyLink(data?.url);
+        }
       });
     } else {
       // Fall back to copy link

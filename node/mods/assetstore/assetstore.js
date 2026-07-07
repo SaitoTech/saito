@@ -1001,6 +1001,46 @@ class AssetStore extends ModTemplate {
 		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
 		let assetstore_self = this;
 
+		//
+		// person permalink: /store/@name resolves a registered identifier
+		// through the registry and redirects to that seller's store.
+		// see .design/link-sharing-design.md
+		//
+		expressapp.get('/' + encodeURI(this.returnSlug()) + '/@:identifier', async function (req, res) {
+			let uri = '/' + encodeURI(assetstore_self.returnSlug());
+			let identifier = String(req.params.identifier || '');
+			if (!/^[a-zA-Z0-9_.-]{1,64}(@[a-zA-Z0-9_.-]{1,64})?$/.test(identifier)) {
+				return res.redirect(302, uri + '/');
+			}
+			if (!identifier.includes('@')) {
+				identifier += '@saito';
+			}
+
+			let registry_mod = app.modules.returnModule('Registry');
+			if (!registry_mod?.checkIdentifierInDatabase) {
+				return res.redirect(302, uri + '/');
+			}
+
+			// non-master nodes forward the lookup to the registry peer, so
+			// guard with a timeout and only respond once
+			let sent = false;
+			let respond = (target) => {
+				if (!sent && !res.finished) {
+					sent = true;
+					res.redirect(302, target);
+				}
+			};
+			setTimeout(() => respond(uri + '/'), 3000);
+
+			registry_mod.checkIdentifierInDatabase(identifier, (rows) => {
+				if (rows?.length && rows[0].publickey) {
+					respond(uri + '/?seller=' + encodeURIComponent(rows[0].publickey));
+				} else {
+					respond(uri + '/');
+				}
+			});
+		});
+
 		expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
 			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 

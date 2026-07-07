@@ -105,6 +105,9 @@ class LeagueMenu {
 					this.mod,
 					data
 				);
+				// league links are long-lived references, not transitory invites --
+				// don't mint an expiring short alias for them
+				this.invitation_link.shorten = false;
 				this.invitation_link.render();
 			};
 		} catch (err) {}

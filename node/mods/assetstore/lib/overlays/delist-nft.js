@@ -108,6 +108,8 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
             seller: this.mod.publicKey,
             listing: this.nft.tx_sig
           });
+          // store listings are long-lived references, not transitory invites
+          this.link.shorten = false;
         }
 
         this.overlay.close();

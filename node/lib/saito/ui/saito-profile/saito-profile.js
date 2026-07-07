@@ -211,7 +211,10 @@ class SaitoProfile {
               };
 
               let base64obj = this.app.crypto.stringToBase64(JSON.stringify(obj));
-              let link = window.location.origin + '/profile?load_key=' + base64obj;
+              // private key goes in the #fragment so it never reaches the server
+              // or its request logs; encoded because base64 contains '+' and '='
+              let link =
+                window.location.origin + '/profile#load_key=' + encodeURIComponent(base64obj);
               navigator.clipboard.writeText(link);
               siteMessage('Private URL copied', 5000);
             }

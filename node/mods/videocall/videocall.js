@@ -31,6 +31,9 @@ class Videocall extends ModTemplate {
 
 		this.stun = null; //The stun API
 		this.streams = null;
+		this.short_call_link = null; // cached /l/ alias for the active room
+		this.short_link_promise = null; // in-flight mint, shared between callers
+		this.short_link_call_id = null;
 		this.dialer = new DialingInterface(app, this);
 
 		this.layout = 'focus';
@@ -76,6 +79,9 @@ class Videocall extends ModTemplate {
 		app.connection.on('reset-stun', () => {
 			console.log('Reset Stun');
 			this.room_obj = null;
+			this.short_call_link = null;
+			this.short_link_promise = null;
+			this.short_link_call_id = null;
 			if (this.CallInterface) {
 				this.CallInterface.destroy();
 				this.CallInterface = null;
@@ -286,8 +292,10 @@ class Videocall extends ModTemplate {
 
 							let event_link = app.browser.createEventInviteLink(app.keychain.returnKey(call_id));
 
-							await navigator.clipboard.writeText(event_link);
-							siteMessage('Invitation link copied to clipboard', 3500);
+							app.browser.handleShare({
+								title: title || 'Saito Videocall invitation',
+								url: event_link
+							});
 						};
 						schedule_wizard.render();
 					}
@@ -1094,6 +1102,8 @@ class Videocall extends ModTemplate {
 		console.debug('TALK: save call to keychain', this.room_obj);
 
 		this.app.keychain.addWatchedPublicKey(this.room_obj.call_id);
+
+		this.refreshShortCallLink();
 	}
 
 	createRoom(identifier = 'my video call') {
@@ -1109,6 +1119,8 @@ class Videocall extends ModTemplate {
 			identifier,
 			link
 		});
+
+		this.refreshShortCallLink();
 
 		return link;
 	}
@@ -1136,9 +1148,47 @@ class Videocall extends ModTemplate {
 		return call_link;
 	}
 
+	//
+	// mint a short alias for the room and cache it. resolves to the short
+	// link (or null if no shortlink service is reachable -- bounded ~2s by
+	// the timeout inside shortenLink). concurrent calls for the same room
+	// share one mint, so callers may await this without double-minting.
+	// copyInviteLink() reads the cache synchronously and must not await.
+	//
+	refreshShortCallLink(room_obj = this.room_obj) {
+		if (!room_obj?.call_id) {
+			this.short_call_link = null;
+			this.short_link_promise = null;
+			this.short_link_call_id = null;
+			return Promise.resolve(null);
+		}
+		let call_id = room_obj.call_id;
+		if (this.short_link_call_id === call_id && this.short_link_promise) {
+			return this.short_link_promise;
+		}
+		this.short_call_link = null;
+		this.short_link_call_id = call_id;
+		this.short_link_promise = this.app.browser
+			.shortenLink(this.generateCallLink(room_obj), { ttl: 60 * 60 * 24 })
+			.then((short_url) => {
+				if (short_url && this.room_obj?.call_id === call_id) {
+					this.short_call_link = short_url;
+					let key = this.app.keychain.returnKey(call_id, true);
+					if (key) {
+						this.app.keychain.addKey(call_id, { link: short_url });
+					}
+				}
+				return this.short_call_link;
+			})
+			.catch(() => null);
+		return this.short_link_promise;
+	}
+
 	copyInviteLink() {
-		navigator.clipboard.writeText(this.generateCallLink());
-		siteMessage('Invite link copied to clipboard', 1500);
+		this.app.browser.handleShare({
+			title: 'Saito Videocall invite',
+			url: this.short_call_link || this.generateCallLink()
+		});
 	}
 
 	webServer(app, expressapp, express) {

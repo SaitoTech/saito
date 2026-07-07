@@ -285,6 +285,29 @@ class ModTemplate {
         this.eventOverlay.render();
       }
     }
+
+    //
+    // the shortlink resolver lands expired/burned invites on the module home
+    // page with this param; modules can override render() handling for a
+    // richer message, this is just the default
+    //
+    if (this.browser_active && this.app.browser.returnURLParameter('expired_invite')) {
+      if (typeof siteMessage === 'function') {
+        siteMessage('This invite link has expired', 5000);
+      }
+      window.history.replaceState('', '', window.location.pathname);
+    }
+
+    //
+    // permalink pointed at a tweet the archive no longer holds (pruned,
+    // moderated, or minted on another node) -- land gracefully
+    //
+    if (this.browser_active && this.app.browser.returnURLParameter('content_missing')) {
+      if (typeof siteMessage === 'function') {
+        siteMessage('The linked content is no longer available', 5000);
+      }
+      window.history.replaceState('', '', window.location.pathname);
+    }
   }
 
   returnName() {

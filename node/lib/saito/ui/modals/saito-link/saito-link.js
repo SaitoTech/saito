@@ -12,18 +12,50 @@ class InvitationLink {
     this.share_to_chat = true;
     this.share_to_redsquare = true;
     this.share_to_qr = true;
+    this.share_to_device = typeof navigator !== 'undefined' && !!navigator.share;
+
+    //
+    // invite links are transitory, so we request a short /l/{slug}/{id}
+    // alias from a shortlink-service peer. ttl is in seconds; modules with
+    // shorter-lived invites (calls, file offers) can override before render.
+    // set shorten = false to opt out entirely.
+    //
+    this.shorten = true;
+    this.ttl = 60 * 60 * 24 * 7;
+    this.shorten_label = true;
   }
 
   render(display = true) {
     this.buildLink();
+    this.shortenInBackground();
     if (display) {
       this.overlay.show(InvitationLinkTemplate(this.app, this));
       this.attachEvents();
     } else {
-      navigator.clipboard.writeText(this.invite_link);
-      let game = this.data.name || this.data.game;
-      siteMessage(`${game} invite link copied to clipboard`, 2500);
+      let game = this.data.name || this.data.game || 'Saito';
+      this.app.browser.handleShare({ title: `${game} invite`, url: this.invite_link });
     }
+  }
+
+  //
+  // fired at render so the overlay appears instantly with the long link;
+  // when the short link lands we swap it in. share/copy handlers read
+  // this.invite_link at click time (never awaiting the network inside the
+  // user gesture), so they pick up whichever form is current.
+  //
+  shortenInBackground() {
+    if (!this.shorten) {
+      return;
+    }
+    let label = this.shorten_label ? this.data.name || this.data.game || '' : '';
+    this.app.browser
+      .shortenLink(this.invite_link, { ttl: this.ttl, label })
+      .then((short_url) => {
+        if (short_url) {
+          this.invite_link = short_url;
+        }
+      })
+      .catch(() => {});
   }
 
   attachEvents() {
@@ -34,6 +66,14 @@ class InvitationLink {
       });
     } catch (err) {
       console.error(err);
+    }
+
+    if (document.getElementById('device-share-link')) {
+      document.getElementById('device-share-link').onclick = (e) => {
+        this.overlay.remove();
+        let game = this.data.name || this.data.game || 'Saito';
+        this.app.browser.handleShare({ title: `${game} invite`, url: this.invite_link });
+      };
     }
 
     if (document.getElementById('chat-invite-link')) {

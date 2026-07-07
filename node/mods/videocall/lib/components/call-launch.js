@@ -5,7 +5,6 @@ const SaitoLoader = require('../../../../lib/saito/ui/saito-loader/saito-loader.
 const CallScheduleJoin = require('./call-schedule-join.js');
 const CallScheduleWizard = require('../../../../lib/saito/ui/saito-calendar/saito-schedule-wizard.js');
 
-
 /**
  *
  * This is a splash screen for initiating a Saito Video call
@@ -38,8 +37,8 @@ class CallLaunch {
 		});
 
 		app.connection.on('call-launch-enter-call', () => {
-			this.enterCall()
-		})
+			this.enterCall();
+		});
 	}
 
 	render() {
@@ -47,29 +46,28 @@ class CallLaunch {
 			return;
 		}
 
-	    this.keys = this.app.keychain.returnKeys({ type: 'event', mod: 'videocall' });
+		this.keys = this.app.keychain.returnKeys({ type: 'event', mod: 'videocall' });
 
-	    let future = Date.now() + 15*60*1000;
-	    let past = Date.now() - 15*60*1000;
+		let future = Date.now() + 15 * 60 * 1000;
+		let past = Date.now() - 15 * 60 * 1000;
 
-	    if (this.keys.length) {
-	      for (let i = this.keys.length - 1; i >= 0; i--) {
-	        if (this.keys[i].startTime > future){
-	          this.keys.splice(i,1);
-	          continue;
-	        }
-	        if (this.keys[i].startTime < past ){
-	          this.keys.splice(i,1);
-	        }
+		if (this.keys.length) {
+			for (let i = this.keys.length - 1; i >= 0; i--) {
+				if (this.keys[i].startTime > future) {
+					this.keys.splice(i, 1);
+					continue;
+				}
+				if (this.keys[i].startTime < past) {
+					this.keys.splice(i, 1);
+				}
+			}
+		}
 
-	      }
-	    }
-
-	    if (!this.callScheduleJoin){
-  			this.callScheduleJoin = new CallScheduleJoin(this.app, this.mod, this.keys);
-	    }else{
-	    	this.callScheduleJoin.keys = this.keys;
-	    }
+		if (!this.callScheduleJoin) {
+			this.callScheduleJoin = new CallScheduleJoin(this.app, this.mod, this.keys);
+		} else {
+			this.callScheduleJoin.keys = this.keys;
+		}
 
 		if (this.container === '.saito-overlay') {
 			this.overlay.show(StunLaunchTemplate(this.app, this.mod, this.keys), () => {
@@ -77,9 +75,7 @@ class CallLaunch {
 				this.app.connection.emit('close-preview-window');
 			});
 		} else if (this.container === 'body') {
-			this.app.browser.addElementToDom(
-				StunLaunchTemplate(this.app, this.mod, this.keys)
-			);
+			this.app.browser.addElementToDom(StunLaunchTemplate(this.app, this.mod, this.keys));
 		}
 
 		//
@@ -88,13 +84,11 @@ class CallLaunch {
 		//
 
 		this.attachEvents(this.app, this.mod);
-
 	}
 
 	attachEvents(app, mod) {
 		if (document.getElementById('createRoom')) {
 			document.getElementById('createRoom').onclick = async (e) => {
-
 				if (!this.mod.isRelayConnected) {
 					siteMessage('Wait for peer connection');
 					return;
@@ -107,81 +101,90 @@ class CallLaunch {
 					await this.mod.createRoom();
 				}
 
-				this.enterCall()
+				this.enterCall();
 			};
 		}
 
-		if (document.getElementById('stunx-call-settings')){
+		if (document.getElementById('stunx-call-settings')) {
 			document.getElementById('stunx-call-settings').onclick = (e) => {
-				this.callSetting.render();	
-			}
+				this.callSetting.render();
+			};
 		}
 
-
 		if (document.getElementById('createScheduleRoom')) {
-			
 			document.getElementById('createScheduleRoom').onclick = async (e) => {
-                const callScheduleWizard = new CallScheduleWizard(this.app, this.mod)
-                callScheduleWizard.callbackAfterSubmit = async (utcStartTime, duration, description = "", title = "") => {
+				const callScheduleWizard = new CallScheduleWizard(this.app, this.mod);
+				callScheduleWizard.callbackAfterSubmit = async (
+					utcStartTime,
+					duration,
+					description = '',
+					title = ''
+				) => {
+					//Creates public key for clal
+					const call_id = await this.mod.generateRoomId();
 
-                    //Creates public key for clal
-                    const call_id = await this.mod.generateRoomId();
+					const room_obj = {
+						call_id,
+						scheduled: true,
+						call_peers: [],
+						startTime: utcStartTime,
+						duration,
+						profile: { description }
+					};
 
-                    const room_obj = {
-                        call_id,
-                        scheduled: true,
-                        call_peers: [],
-                        startTime: utcStartTime, 
-                        duration,
-                        profile: {description}
-                    };
-        
-                    let call_link =  this.mod.generateCallLink(room_obj)
+					let call_link = this.mod.generateCallLink(room_obj);
 
-                    this.app.keychain.addKey(call_id, { identifier: title || "Video Call", startTime:utcStartTime, duration, description, link: call_link });
-        
-                    this.app.connection.emit('calendar-refresh-request');
-                    this.app.connection.emit('close-preview-window', true); // rerender screen
+					this.app.keychain.addKey(call_id, {
+						identifier: title || 'Video Call',
+						startTime: utcStartTime,
+						duration,
+						description,
+						link: call_link
+					});
 
-                    let event_link =  this.app.browser.createEventInviteLink(this.app.keychain.returnKey(call_id));
-                    await navigator.clipboard.writeText(event_link);
-                    siteMessage('Invitation link copied to clipboard', 3500);
+					this.app.connection.emit('calendar-refresh-request');
+					this.app.connection.emit('close-preview-window', true); // rerender screen
 
-                }
+					let event_link = this.app.browser.createEventInviteLink(
+						this.app.keychain.returnKey(call_id)
+					);
+					this.app.browser.handleShare({
+						title: title || 'Saito Videocall invitation',
+						url: event_link
+					});
+				};
 
-                callScheduleWizard.render()
-
+				callScheduleWizard.render();
 			};
 		}
 
 		if (document.getElementById('joinScheduleRoom')) {
 			document.getElementById('joinScheduleRoom').onclick = async (e) => {
-				
-				let s = this.callScheduleJoin.render()
+				let s = this.callScheduleJoin.render();
 
-				if (!s){
-					document.getElementById('createRoom').click();	
+				if (!s) {
+					document.getElementById('createRoom').click();
 				}
 			};
 		}
 
-
-		if (document.querySelector(".stunx-precall-link")) {
-			document.querySelector(".stunx-precall-link").onclick = async (e) => {
+		if (document.querySelector('.stunx-precall-link')) {
+			document.querySelector('.stunx-precall-link').onclick = async (e) => {
 				let mode = e.currentTarget.dataset.id;
-				let call_link = "";
-				if (mode == "join"){
-					call_link =  this.mod.generateCallLink(this.mod.room_obj);
-				}else if (mode == "create"){
+				let call_link = '';
+				if (mode == 'join') {
+					call_link = this.mod.generateCallLink(this.mod.room_obj);
+				} else if (mode == 'create') {
 					call_link = this.mod.createRoom();
-				}else{
+				} else {
 					this.callScheduleJoin.render(false);
 					return;
 				}
 
-				await navigator.clipboard.writeText(call_link);
-				siteMessage("Call link copied");
-			}
+				let short_link = await this.mod.refreshShortCallLink();
+				await navigator.clipboard.writeText(short_link || call_link);
+				siteMessage('Call link copied');
+			};
 		}
 	}
 
@@ -192,15 +195,21 @@ class CallLaunch {
 
 		this.app.connection.emit('stun-init-call-interface', this.callSetting.returnSettings());
 
-		// Copy link here!
-		if (this.mod.room_obj.host_public_key == this.mod.publicKey) {
-			this.mod.copyInviteLink();
-		}
-
 		//
 		//Close this component
 		//
 		this.app.connection.emit('close-preview-window');
+
+		// Copy link here!
+		// wait (bounded ~2s) for the short-link mint that createRoom() kicked
+		// off -- copying immediately would always grab the long form because
+		// the cache can't have populated yet
+		if (this.mod.room_obj.host_public_key == this.mod.publicKey) {
+			this.mod.refreshShortCallLink().finally(() => {
+				this.mod.copyInviteLink();
+			});
+		}
+
 		//
 		// Start the stun call
 		//

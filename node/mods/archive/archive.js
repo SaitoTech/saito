@@ -729,6 +729,29 @@ class Archive extends ModTemplate {
 			}
 		}
 
+		//
+		// sig_prefix -- permalink resolution by signature prefix, see
+		// .design/link-sharing-design.md. signatures are lowercase hex, so a
+		// range predicate of [prefix, prefix + 'g') captures exactly the sigs
+		// beginning with prefix while letting sqlite walk sig_idx (LIKE would
+		// skip the index under the default case-insensitive collation).
+		//
+		if (obj.sig_prefix) {
+			let sig_prefix = String(obj.sig_prefix)
+				.toLowerCase()
+				.replace(/[^0-9a-f]/g, '');
+			delete obj.sig_prefix;
+			if (sig_prefix.length >= 12 && sig_prefix.length <= 128) {
+				sql += ' archives.sig >= $sig_lo AND archives.sig < $sig_hi AND';
+				params['$sig_lo'] = sig_prefix;
+				params['$sig_hi'] = sig_prefix + 'g';
+				where_obj['sig'] = { '>=': sig_prefix, '<': sig_prefix + 'g' };
+			} else {
+				// malformed/short prefixes must not degrade into an unfiltered scan
+				sql += ' 1 = 0 AND';
+			}
+		}
+
 		for (let key in obj) {
 			if (this.schema.includes(key)) {
 				sql += ` archives.${key} = $${key} AND`;
@@ -801,7 +824,6 @@ class Archive extends ModTemplate {
 				// a specific network item in order to access.
 				//
 				if (r.owner) {
-
 					let access_script = obj.access_script || null;
 					let access_witness = obj.access_witness || null;
 					//let access_hash = obj.access_hash || null;
@@ -1010,7 +1032,6 @@ class Archive extends ModTemplate {
 			} else {
 				console.log('DELETE DENIED: access_hash does not match supplied script');
 			}
-
 
 			if (!can_delete) {
 				return false;

@@ -14,16 +14,19 @@ export const getImageUrl = (base64String) => {
   return `data:image/${mimeType};base64,${base64String}`;
 };
 
-export const copyPostLinkToClipboard = async (post) => {
+export const sharePostLink = (app, post) => {
   try {
-    const url = new URL(window.location.origin + window.location.pathname);
-    url.searchParams.set('public_key', post.publicKey);
-    url.searchParams.set('tx_id', post.sig);
-    await navigator.clipboard.writeText(url.toString());
-    salert('Post link copied to clipboard!');
+    // short archive permalink; the /blog/t/ route resolves the prefix and
+    // redirects to the canonical ?public_key=&tx_id= page. anchored to the
+    // blog slug because BlogPost components also render on other pages
+    const url = `${window.location.origin}/blog/t/${post.sig.substring(0, 16)}`;
+    app.browser.handleShare({
+      title: post.title || 'Saito Blog post',
+      url
+    });
   } catch (err) {
-    console.error('Failed to copy link:', err);
-    salert('Failed to copy link');
+    console.error('Failed to share link:', err);
+    salert('Failed to share link');
   }
 };
 

@@ -769,6 +769,10 @@ class Fileshare extends ModTemplate {
 
 		file_invitation_link.share_to_chat = false;
 		file_invitation_link.share_to_redsquare = false;
+		// the offer only works while this browser stays online, so the short
+		// alias should die quickly too; no label to avoid leaking filenames
+		file_invitation_link.ttl = 60 * 60 * 24;
+		file_invitation_link.shorten_label = false;
 
 		file_invitation_link.render(true);
 
