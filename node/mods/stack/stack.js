@@ -2457,6 +2457,56 @@ class Stack extends ModTemplate {
       return res.send(HomePage(app, stack_self, app.build_number, updateSocial));
     });
 
+    //
+    // person permalinks: /stack/@name and /stack/@name/<txsig> resolve a
+    // registered identifier through the registry and redirect to the clean
+    // /stack/<publickey>[/<txsig>] paths. MUST be registered before the
+    // /:publickey catch-alls, which would otherwise swallow "@name" as a
+    // publickey. see .design/link-sharing-design.md
+    //
+    const resolveIdentifierRoute = (req, res, buildTarget) => {
+      let identifier = String(req.params.identifier || '');
+      if (!/^[a-zA-Z0-9_.-]{1,64}(@[a-zA-Z0-9_.-]{1,64})?$/.test(identifier)) {
+        return res.redirect(302, uri);
+      }
+      if (!identifier.includes('@')) {
+        identifier += '@saito';
+      }
+
+      const registry_mod = app.modules.returnModule('Registry');
+      if (!registry_mod?.checkIdentifierInDatabase) {
+        return res.redirect(302, uri);
+      }
+
+      // non-master nodes forward the lookup to the registry peer, so guard
+      // with a timeout and only respond once
+      let sent = false;
+      const respond = (target) => {
+        if (!sent && !res.finished) {
+          sent = true;
+          res.redirect(302, target);
+        }
+      };
+      setTimeout(() => respond(uri), 3000);
+
+      registry_mod.checkIdentifierInDatabase(identifier, (rows) => {
+        if (rows?.length && rows[0].publickey) {
+          respond(buildTarget(encodeURIComponent(rows[0].publickey)));
+        } else {
+          respond(uri);
+        }
+      });
+    };
+
+    expressapp.get(`${uri}/@:identifier`, (req, res) => {
+      resolveIdentifierRoute(req, res, (pk) => `${uri}/${pk}`);
+    });
+
+    expressapp.get(`${uri}/@:identifier/:txsig`, (req, res) => {
+      const txsig = encodeURIComponent(String(req.params.txsig || ''));
+      resolveIdentifierRoute(req, res, (pk) => `${uri}/${pk}/${txsig}`);
+    });
+
     expressapp.get(`${uri}/:publickey`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';

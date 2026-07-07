@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS links (
   module      TEXT DEFAULT "",
   path        TEXT DEFAULT "",
   params      TEXT DEFAULT "",
+  title       TEXT DEFAULT "",
   creator     TEXT DEFAULT "",
   created_at  INTEGER DEFAULT 0,
   expires_at  INTEGER DEFAULT 0,

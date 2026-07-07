@@ -47,9 +47,10 @@ class InvitationLink {
     if (!this.shorten) {
       return;
     }
+    let game = this.data.name || this.data.game || 'Saito';
     let label = this.shorten_label ? this.data.name || this.data.game || '' : '';
     this.app.browser
-      .shortenLink(this.invite_link, { ttl: this.ttl, label })
+      .shortenLink(this.invite_link, { ttl: this.ttl, label, title: `${game} invite` })
       .then((short_url) => {
         if (short_url) {
           this.invite_link = short_url;

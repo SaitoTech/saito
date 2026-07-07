@@ -236,7 +236,11 @@ class ViewPost {
 
           let shareUrl = window.location.href;
           if (this.authorPublicKey && this.tx.signature) {
-            shareUrl = `/${this.mod.slug}/${this.authorPublicKey}/${this.tx.signature}`;
+            // prefer the registered name when our keychain knows it -- the
+            // /stack/@name routes resolve it back to the publickey
+            let name = this.app.keychain.returnIdentifierByPublicKey(this.authorPublicKey);
+            let author_segment = name ? '@' + name.split('@')[0] : this.authorPublicKey;
+            shareUrl = `/${this.mod.slug}/${author_segment}/${this.tx.signature}`;
             if (!shareUrl.startsWith('http')) {
               shareUrl = window.location.origin + shareUrl;
             }

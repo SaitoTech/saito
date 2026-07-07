@@ -260,9 +260,15 @@ where server-side state adds a capability rather than just brevity.
   persistence — hence TTLs, `max_uses`, and the private-key blocklist.
 - QR codes shrink from dense base64 blobs to trivially scannable short URLs —
   arguably the largest UX win.
-- Social previews: phase 2 can add optional `title`/`image` columns and an
-  OG-tag interstitial instead of a bare 302. Not needed at launch; module
-  HomePages already carry generic social meta.
+- Social previews (implemented): links store an optional `title` (140 chars,
+  escaped at render); link-preview crawlers (matched by user-agent) receive a
+  per-link OpenGraph card -- title from the row, description/image from the
+  target module's `social` object -- instead of the 302. Crucially, bot hits
+  do **not** increment `uses`, since messenger preview fetchers would
+  otherwise burn `max_uses=1` links the moment they are pasted into a chat.
+- Stats (implemented): a `shortlink stats` peer request returns
+  `{uses, max_uses, created_at, expires_at}` for a link id, restricted to the
+  creator's publickey. No UI consumes it yet.
 
 ## Mechanism 3: Private Fragment Links
 
@@ -324,18 +330,31 @@ otherwise). Never `await` the network inside the gesture.
   removals, multi-year-old links, other-node content).
 - Prefix length: 16 hex chars — conservative choice, confirmed.
 
-## Open Questions
+## Deferred (own thematic tasks, decided 2026-07-07)
 
-- Chat revocation UX: where does "invalidate invite link" live in the group
-  admin UI, and does regenerating mint a new id automatically?
-- Person-permalink share UI beyond AssetStore: no "share profile" button
-  exists anywhere in the product today (users copy the address bar), so
-  emitting `/redsquare/@name` links needs a new UI surface -- a product
-  decision, not a mechanical change.
+These need substantial product/design thought and are explicitly on hold;
+they should be picked up as standalone projects, not as loose ends of this
+one:
+
+- **Chat group invitation links (was phase 5).** Convert to revocable
+  non-expiring shortlink rows (`expires_at = 0` + admin "invalidate invite
+  link"). Blocked on revocation UX: where the action lives in group admin,
+  whether regenerating auto-mints a new id, and how member re-invites work.
+  Until then group invites stay long and self-contained (status quo, no
+  worse than before).
+- **Profile / person-share UI.** No "share profile" button exists anywhere
+  today (users copy the address bar), so nothing emits `/redsquare/@name`
+  links yet even though the routes resolve. Needs a designed share surface
+  across profile views, user menus, and possibly the header.
+- **Scheduled-event links.** `?event=` payloads stay long: they are shared
+  one-shot from inside gestures where the mint can't be awaited. Fixing this
+  properly means rethinking the schedule-wizard share step (pre-mint before
+  showing the copy/share button), ideally together with the calendar UX.
 
 ## Implementation Status (2026-07-07)
 
-Phases 1-4 are implemented; phase 5 (chat capability-link revocation) is not.
+Phases 1-4 are implemented and verified in-app (share sheet, shortlinks,
+permalinks). Phase 5 and the items above are deferred by decision.
 Decisions made during implementation that refine the design above:
 
 - **Share-as-curation is two-sided.** Sharing is browser-local (no on-chain
@@ -362,8 +381,14 @@ Decisions made during implementation that refine the design above:
   `modtemplate.js` `render()`; RedSquare and Blog handle `content_missing`
   in their own `render()`.
 - **Registry person routes**: implemented for RedSquare
-  (`/redsquare/@name` -> `?user_id=`) and AssetStore
-  (`/store/@name` -> `?seller=`); other modules can copy the pattern.
+  (`/redsquare/@name` -> `?user_id=`), AssetStore (`/store/@name` ->
+  `?seller=`), and Stack (`/stack/@name` and `/stack/@name/<txsig>`;
+  registered before the `/:publickey` catch-alls, which would otherwise
+  swallow them). Stack's share buttons emit the `@name` form when the
+  sharer's keychain knows the author's registered identifier, falling back
+  to the publickey -- "better sometimes, never worse": names of authors the
+  sharer has never interacted with aren't known locally, and the gesture
+  rule forbids an async registry lookup inside the share click.
   AssetStore's "share my store" InvitationLink emits the `@name` form when
   the seller has a registered identifier.
 - **Videocall rooms cache a background-shortened link**

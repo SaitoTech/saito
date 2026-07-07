@@ -502,10 +502,14 @@ class ExploreOverlay {
           e.preventDefault();
           e.stopPropagation();
 
-          let shareUrl = window.location.origin + `/${this.mod.slug}/${this.targetPublicKey}`;
+          // prefer the registered name when our keychain knows it -- the
+          // /stack/@name route resolves it back to the publickey
+          let name = this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey);
+          let author_segment = name ? '@' + name.split('@')[0] : this.targetPublicKey;
+          let shareUrl = window.location.origin + `/${this.mod.slug}/${author_segment}`;
           let title = 'Stack Creator';
-          if (this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey)) {
-            title += ' --- ' + this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey);
+          if (name) {
+            title += ' --- ' + name;
           }
 
           this.app.browser.handleShare({

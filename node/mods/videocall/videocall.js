@@ -1169,7 +1169,10 @@ class Videocall extends ModTemplate {
 		this.short_call_link = null;
 		this.short_link_call_id = call_id;
 		this.short_link_promise = this.app.browser
-			.shortenLink(this.generateCallLink(room_obj), { ttl: 60 * 60 * 24 })
+			.shortenLink(this.generateCallLink(room_obj), {
+				ttl: 60 * 60 * 24,
+				title: 'Saito Videocall invite'
+			})
 			.then((short_url) => {
 				if (short_url && this.room_obj?.call_id === call_id) {
 					this.short_call_link = short_url;

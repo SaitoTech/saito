@@ -43,6 +43,32 @@ class Shortlink extends ModTemplate {
     // params must stay self-contained (see design doc, "private fragment links")
     //
     this.forbidden_params = /load_key|privatekey|private_key|seed/i;
+
+    //
+    // link-preview fetchers (messengers, social crawlers). they get an
+    // opengraph card instead of the redirect, and never count as a "use" --
+    // otherwise pasting a max_uses=1 link into a chat app would burn it
+    // before the recipient ever clicks.
+    //
+    this.bot_regex =
+      /bot|crawler|spider|facebookexternalhit|twitterbot|slackbot|discord|whatsapp|telegram|linkedin|embedly|pinterest|skypeuripreview|preview/i;
+  }
+
+  //
+  // older dev databases predate the title column; the ALTER fails
+  // harmlessly wherever the column already exists
+  //
+  async initialize(app) {
+    await super.initialize(app);
+    if (app.BROWSER == 0) {
+      try {
+        await app.storage.runDatabase(
+          'ALTER TABLE links ADD COLUMN title TEXT DEFAULT ""',
+          {},
+          'shortlink'
+        );
+      } catch (err) {}
+    }
   }
 
   returnServices() {
@@ -79,6 +105,7 @@ class Shortlink extends ModTemplate {
     let ttl = obj.ttl || 0;
     let max_uses = obj.max_uses || 0;
     let label = obj.label || '';
+    let title = obj.title || '';
 
     if (!this.app.BROWSER || this.peers.length == 0) {
       return null;
@@ -94,6 +121,7 @@ class Shortlink extends ModTemplate {
     let data = {
       path: url.pathname,
       params: url.search.replace(/^\?/, ''),
+      title,
       ttl,
       max_uses
     };
@@ -147,7 +175,39 @@ class Shortlink extends ModTemplate {
       return 0;
     }
 
+    if (txmsg.request === 'shortlink stats') {
+      if (!this.app.BROWSER) {
+        return this.returnStats(txmsg.data, peer, mycallback);
+      }
+      return 0;
+    }
+
     return super.handlePeerTransaction(app, newtx, peer, mycallback);
+  }
+
+  //
+  // creators can query how their own links are doing; nobody else can
+  //
+  async returnStats(data = {}, peer, mycallback = null) {
+    if (!mycallback) {
+      return 0;
+    }
+    let id = String(data.id || '');
+    if (!/^[0-9a-zA-Z]{8}$/.test(id)) {
+      mycallback({ err: 'invalid id' });
+      return 1;
+    }
+    let rows = await this.app.storage.queryDatabase(
+      'SELECT id, uses, max_uses, created_at, expires_at FROM links WHERE id = $id AND creator = $creator',
+      { $id: id, $creator: peer?.publicKey || '' },
+      'shortlink'
+    );
+    if (!rows?.length) {
+      mycallback({ err: 'not found' });
+      return 1;
+    }
+    mycallback({ err: null, ...rows[0] });
+    return 1;
   }
 
   async createLink(data = {}, peer, mycallback = null) {
@@ -184,6 +244,9 @@ class Shortlink extends ModTemplate {
     let ttl = Math.max(0, Math.floor(Number(data.ttl) || 0));
     let max_uses = Math.max(0, Math.floor(Number(data.max_uses) || 0));
 
+    // stored raw, escaped at render time in the opengraph card
+    let title = String(data.title || '').substring(0, 140);
+
     let now = Date.now();
 
     if (!this.rateLimitOk(peer?.publicKey || '', now)) {
@@ -215,13 +278,14 @@ class Shortlink extends ModTemplate {
     }
 
     await this.app.storage.runDatabase(
-      `INSERT INTO links (id, module, path, params, creator, created_at, expires_at, max_uses, uses)
-       VALUES ($id, $module, $path, $params, $creator, $created_at, $expires_at, $max_uses, 0)`,
+      `INSERT INTO links (id, module, path, params, title, creator, created_at, expires_at, max_uses, uses)
+       VALUES ($id, $module, $path, $params, $title, $creator, $created_at, $expires_at, $max_uses, 0)`,
       {
         $id: id,
         $module: slug,
         $path: path,
         $params: params,
+        $title: title,
         $creator: peer?.publicKey || '',
         $created_at: now,
         $expires_at: ttl > 0 ? now + ttl * 1000 : 0,
@@ -315,6 +379,18 @@ class Shortlink extends ModTemplate {
       }
 
       //
+      // link-preview fetchers get an opengraph card and do not consume a
+      // use -- otherwise pasting a single-use link into a messenger would
+      // burn it before the recipient clicks
+      //
+      let ua = String(req.headers['user-agent'] || '');
+      if (shortlink_self.bot_regex.test(ua)) {
+        res.setHeader('Content-type', 'text/html');
+        res.charset = 'UTF-8';
+        return res.send(shortlink_self.returnOpenGraphCard(app, req, row));
+      }
+
+      //
       // burned rows (uses >= max_uses) are kept so later visitors get the
       // "expired" landing rather than a generic miss; purgeExpired() removes
       // them after a grace period
@@ -331,6 +407,46 @@ class Shortlink extends ModTemplate {
       }
       return res.redirect(302, target);
     });
+  }
+
+  //
+  // per-link social card for crawlers. title comes from the stored link,
+  // description/image fall back to the target module's social object.
+  //
+  returnOpenGraphCard(app, req, row) {
+    let target_mod = app.modules.returnModuleBySlug(row.module);
+    let social = target_mod?.social || {};
+
+    let title = row.title || social.title || `${row.module} on Saito`;
+    let description = social.description || 'Open this link on Saito';
+    let image = social.image || '';
+
+    let base = `${req.protocol}://${req.headers.host}`;
+    if (image && !/^https?:\/\//.test(image)) {
+      image = base + image;
+    }
+    let short_url = `${base}/l/${row.module}/${row.id}`;
+
+    let e = this.escapeHtml;
+    return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>${e(title)}</title>
+<meta property="og:title" content="${e(title)}">
+<meta property="og:description" content="${e(description)}">
+${image ? `<meta property="og:image" content="${e(image)}">` : ''}
+<meta property="og:url" content="${e(short_url)}">
+<meta name="twitter:card" content="summary">
+</head><body>${e(title)}</body></html>`;
+  }
+
+  escapeHtml(str = '') {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }
 
