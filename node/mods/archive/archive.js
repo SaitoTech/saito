@@ -803,15 +803,82 @@ class Archive extends ModTemplate {
 				if (r.owner) {
 
 					let access_script = obj.access_script || null;
-					let access_hash = obj.access_hash || null;
+					let access_witness = obj.access_witness || null;
+					//let access_hash = obj.access_hash || null;
 
 					//
 					// if there is no script provided there is no witness data
 					// provided either, so we should "continue"
 					//
-					if (!access_script) {
-							continue;
-					} else {
+					if (!access_script && access_witness) {
+
+						console.log(
+							'--------------------------------\nARCHIVE ACCESS WITNESS\n--------------------------------\n\n' +
+								'signature:\n' +
+								r.sig +
+								'\n\n' +
+								'owner:\n' +
+								r.owner +
+								'\n\n' +
+								'access_witness:\n' +
+								JSON.stringify(
+									(function () {
+										try {
+											return typeof access_witness === 'string'
+												? JSON.parse(access_witness)
+												: access_witness;
+										} catch (err) {
+											return access_witness;
+										}
+									})(),
+									null,
+									2
+								) +
+								'\n\n--------------------------------'
+						);
+
+						try {
+
+						        let tx = new Transaction();
+        						tx.deserialize_from_web(this.app, r.tx);
+        						let txmsg = tx.returnMessage();
+
+        						if (txmsg.access_script) {
+
+								let locking_script = txmsg.access_script;
+								try {
+									if (typeof locking_script === 'string') {
+										locking_script = JSON.parse(locking_script);
+									}
+								} catch (err) {
+									// leave as-is for logging
+								}
+
+								console.log(
+									'--------------------------------\nARCHIVE LOCKING SCRIPT\n--------------------------------\n\n' +
+										JSON.stringify(locking_script, null, 2) +
+										'\n\n--------------------------------'
+								);
+
+        							access_script = this.app.core.scripting.mergeWitness(
+                							    txmsg.access_script,
+                							    obj.access_witness
+                							);
+
+								console.log(
+									'--------------------------------\nARCHIVE EXECUTABLE SCRIPT\n--------------------------------\n\n' +
+										JSON.stringify(access_script, null, 2) +
+										'\n\n--------------------------------'
+								);
+							}
+						} catch (err) {
+							console.log("Error processing access_witness in Archive...");
+						}
+
+					}
+
+					if (access_script) {
+
 						let computed_hash = this.app.core.scripting.hash(access_script);
 						let hash_match = computed_hash === r.owner;
 						console.log(
@@ -825,7 +892,7 @@ class Archive extends ModTemplate {
 						);
 
 						if (this.app.core.scripting.hash(access_script) === r.owner) {
-							let archive_ok = await this.app.core.scripting.evaluate_with_transaction(
+							let archive_ok = await this.app.core.scripting.evaluateWithTransaction(
 								access_script,
 								request_tx
 							);
@@ -916,6 +983,7 @@ class Archive extends ModTemplate {
 		// SECOND: Check if owner is specified and verify ownership
 		//
 		if (existing_row.owner && existing_row.owner !== '') {
+
 			//
 			// Owner is specified, need to verify access
 			//
@@ -924,23 +992,16 @@ class Archive extends ModTemplate {
 			console.log('*****************');
 
 			// Check if access credentials are provided
-			if (!obj.access_script || !obj.access_witness) {
+			if (!obj.access_script) {
 				console.log('DELETE DENIED: No access_script or access_witness provided');
 				return false;
 			}
 
-			// Check if access_hash matches the owner
-			if (!obj.access_hash || obj.access_hash !== existing_row.owner) {
-				console.log('DELETE DENIED: access_hash does not match owner');
-				return false;
-			}
-
-
 			let can_delete = false;
 			let request_tx = obj.request_tx || tx || null;
 
-			if (this.app.core.scripting.hash(obj.access_script) === obj.access_hash) {
-				if (await this.app.core.scripting.evaluate_with_transaction(obj.access_script, request_tx)) {
+			if (this.app.core.scripting.hash(obj.access_script) === existing_row.owner) {
+				if (await this.app.core.scripting.evaluateWithTransaction(obj.access_script, request_tx)) {
 					can_delete = true;
 					console.log('DELETE ACCESS GRANTED: Script evaluation passed');
 				} else {

@@ -160,7 +160,7 @@ console.log("NORMAL vault access file 1");
 					console.log(
 						'--------------------------------\nCALLING RUST SCRIPT VALIDATOR\n--------------------------------'
 					);
-					ok = await app.core.scripting.evaluate_with_transaction(access_script, tx);
+					ok = await app.core.scripting.evaluateWithTransaction(access_script, tx);
 					console.log(
 						'--------------------------------\nSCRIPT VALIDATION RESULT:\n\n' +
 							(ok ? 'true' : 'false') +

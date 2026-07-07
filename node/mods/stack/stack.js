@@ -1789,7 +1789,7 @@ class Stack extends ModTemplate {
    *
    * @param {string|null} authorPublicKey - Post author; when set, selects the Stack NFT
    *   whose creator matches this key
-   * @returns {Object|null} Structured witness data, or null if no matching NFT found
+   * @returns {Object|null} Structured witness data with legacy `access_witness` JSON string, or null
    */
   async resolveStackAccessData(authorPublicKey = null) {
     try {
@@ -1859,7 +1859,24 @@ class Stack extends ModTemplate {
         // Absence of path/duration is normal for some NFT states
       }
 
-      return {
+      const access_witness_array = [
+        {
+          utxokey1,
+          utxokey2,
+          utxokey3
+        }
+      ];
+      if (Array.isArray(hops) && hops.length > 0) {
+        access_witness_array.push({ hops });
+      }
+      if (duration != null) {
+        access_witness_array.push({
+          duration,
+          signature: duration_sig
+        });
+      }
+
+      const result = {
         utxokey1,
         utxokey2,
         utxokey3,
@@ -1867,8 +1884,30 @@ class Stack extends ModTemplate {
         duration,
         duration_sig,
         nft_creator: nft.creator || nft.slip1?.public_key || '',
-        nft_id: nft.id || ''
+        nft_id: nft.id || '',
+        access_witness: JSON.stringify(access_witness_array)
       };
+
+      console.log(
+        '--------------------------------\nSTACK ACCESS WITNESS\n--------------------------------\n\n' +
+          'NFT ID:\n' +
+          (result.nft_id || '') +
+          '\n\n' +
+          'creator publickey:\n' +
+          (result.nft_creator || '') +
+          '\n\n' +
+          'owner publickey:\n' +
+          (nft.slip2?.public_key || '') +
+          '\n\n' +
+          'access_witness:\n' +
+          JSON.stringify(access_witness_array, null, 2) +
+          '\n\n' +
+          'structured object:\n' +
+          JSON.stringify(result, null, 2) +
+          '\n\n--------------------------------'
+      );
+
+      return result;
     } catch (error) {
       console.warn('Stack: Error resolving NFT access data:', error);
       return null;
@@ -2092,7 +2131,7 @@ class Stack extends ModTemplate {
 
     // PART 1: Resolve Stack NFT access data (mirrors Vault pattern)
     // This provides witness data that can be attached to Archive queries
-    const accessData = await this.resolveStackAccessData();
+    const accessData = await this.resolveStackAccessData(publicKey);
     if (accessData?.access_witness) {
       access_witness = accessData.access_witness;
     }
