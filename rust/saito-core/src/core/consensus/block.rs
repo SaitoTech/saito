@@ -2266,8 +2266,11 @@ impl Block {
                         //
                         let expected_treasury_contribution2 =
                             previous_previous_block.total_fees / 2;
+                info!("[treasury examination 1 available]: {:?} ", previous_previous_block.total_fees);
+                info!("[treasury examination 2 my share]: {:?} ", expected_treasury_contribution2);
                         let maximum_treasury_contribution2 =
                             (previous_block.avg_total_fees as f64 * 1.5) as u64;
+                info!("[treasury examination 3 max]: {:?} ", maximum_treasury_contribution2);
                         if expected_treasury_contribution2 > maximum_treasury_contribution2 {
                             treasury_contribution += maximum_treasury_contribution2;
                             graveyard_contribution +=
@@ -2275,6 +2278,7 @@ impl Block {
                         } else {
                             treasury_contribution += expected_treasury_contribution2;
                         }
+                info!("[treasury examination 4 final]: {:?} ", treasury_contribution);
 
                         //
                         // half to router (capped @ 1.5)

@@ -1,7 +1,12 @@
 function renderNumericCell(value, options = {}) {
+	const classes = ['explorer-supply-numeric'];
+
+	if (options.isGoldenTicketColumn) {
+		classes.push('explorer-column-golden-ticket');
+	}
+
 	if (value && typeof value === 'object' && value.text != null) {
 		const tone = value.tone || 'muted';
-		const classes = ['explorer-supply-numeric'];
 
 		if (options.isNetFlow) {
 			classes.push('explorer-supply-net-flow');
@@ -14,7 +19,6 @@ function renderNumericCell(value, options = {}) {
 		return `<td class="${classes.join(' ')}">${value.text}</td>`;
 	}
 
-	const classes = ['explorer-supply-numeric'];
 	if (options.isUnknown) {
 		classes.push('explorer-supply-unknown');
 	}
@@ -22,20 +26,30 @@ function renderNumericCell(value, options = {}) {
 	return `<td class="${classes.join(' ')}">${value}</td>`;
 }
 
+function renderGoldenTicketIcon() {
+	return '<i class="fa-solid fa-star explorer-golden-ticket-icon" aria-hidden="true" title="Golden Ticket"></i>';
+}
+
 function renderBlockHeaderCells(columns = []) {
 	return columns
 		.map((column) => {
 			const blockId = column?.blockId != null ? String(column.blockId) : '—';
 			const hash = column?.blockHash || '';
-			if (hash) {
-				return `<th class="explorer-supply-block-header explorer-supply-numeric" data-block-hash="${hash}"><a href="/explorer/block/${encodeURIComponent(hash)}" class="explorer-link explorer-supply-block-link">${blockId}</a></th>`;
+			const headerClasses = ['explorer-supply-block-header', 'explorer-supply-numeric'];
+			if (column?.hasGoldenTicket) {
+				headerClasses.push('explorer-column-golden-ticket');
 			}
-			return `<th class="explorer-supply-block-header explorer-supply-numeric">${blockId}</th>`;
+			const goldenTicketIcon = column?.hasGoldenTicket ? renderGoldenTicketIcon() : '';
+			if (hash) {
+				return `<th class="${headerClasses.join(' ')}" data-block-hash="${hash}"><a href="/explorer/block/${encodeURIComponent(hash)}" class="explorer-link explorer-supply-block-link"><span class="explorer-supply-block-id">${blockId}</span>${goldenTicketIcon}</a></th>`;
+			}
+			return `<th class="${headerClasses.join(' ')}"><span class="explorer-supply-block-id">${blockId}</span>${goldenTicketIcon}</th>`;
 		})
 		.join('');
 }
 
-function renderMatrixRows(rows = [], columnCount = 0) {
+function renderMatrixRows(rows = [], columns = []) {
+	const columnCount = columns.length;
 	const colspan = columnCount > 0 ? columnCount + 1 : 2;
 
 	return rows
@@ -60,11 +74,12 @@ function renderMatrixRows(rows = [], columnCount = 0) {
       <tr class="${row.className}">
         <td class="explorer-supply-row-label">${row.label}</td>
         ${row.values
-					.map((value) =>
+					.map((value, columnIndex) =>
 						renderNumericCell(value, {
 							isUnknown: row.key === 'utxo' && !row.isNetFlow,
 							isNetFlow: row.isNetFlow,
 							isTotal: row.isTotal,
+							isGoldenTicketColumn: Boolean(columns[columnIndex]?.hasGoldenTicket),
 						})
 					)
 					.join('')}
@@ -74,6 +89,23 @@ function renderMatrixRows(rows = [], columnCount = 0) {
 		.join('');
 }
 
+function renderBlockControls(showBlockControls = false) {
+	if (!showBlockControls) {
+		return '';
+	}
+
+	return `
+          <div class="explorer-supply-admin-controls" aria-label="Manual block production">
+            <button type="button" class="explorer-supply-admin-button" data-supply-produce-block>
+              Produce Block
+            </button>
+            <button type="button" class="explorer-supply-admin-button" data-supply-produce-block-gt>
+              Produce Block + Golden Ticket
+            </button>
+          </div>
+  `;
+}
+
 module.exports = ({
 	loading = false,
 	error = null,
@@ -81,14 +113,16 @@ module.exports = ({
 	rows = [],
 	hasData = false,
 	fullWidth = false,
+	showBlockControls = false,
 }) => {
 	const headerCells = renderBlockHeaderCells(columns);
-	const bodyRows = renderMatrixRows(rows, columns.length);
+	const bodyRows = renderMatrixRows(rows, columns);
 	const containerClasses = ['explorer-container', 'explorer-stack'];
 	if (fullWidth) {
 		containerClasses.push('full-width');
 	}
 	const toggleLabel = fullWidth ? 'Collapse supply dashboard' : 'Expand supply dashboard';
+	const blockControlsHtml = renderBlockControls(showBlockControls);
 
 	const tableHtml =
 		hasData && columns.length > 0
@@ -138,6 +172,7 @@ module.exports = ({
             <h1 class="explorer-page-title">Token Supply</h1>
             <p class="explorer-subtitle">Longest-chain protocol accounting by block (SAITO)</p>
           </div>
+          ${blockControlsHtml}
         </div>
 
         <div class="explorer-supply-dashboard explorer-card explorer-card-padded">

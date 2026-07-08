@@ -136,15 +136,11 @@ class Vault extends ModTemplate {
 
 	async handlePeerTransaction(app, tx = null, peer, mycallback) {
 
-console.log("handle peer transaction -- vault");
-
 		if (tx == null) {
 			return 0;
 		}
 
 		let txmsg = tx.returnMessage();
-
-console.log(txmsg.request);
 
 		if (!txmsg.request || !mycallback) {
 			return 0;

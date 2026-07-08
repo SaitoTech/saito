@@ -1,6 +1,7 @@
 const { SUPPLY_BLOCK_COUNT } = require('./supply-rows');
 const { formatSupplyTable } = require('./supply-format');
 const { buildBlockStatistics } = require('./block-statistics');
+const { hasGoldenTicket } = require('./supply-deltas');
 
 function normalizeBlockId(value) {
 	if (value == null || value === '') {
@@ -43,6 +44,7 @@ function buildPresentationColumns(statsRows = []) {
 	return statsRows.map((row) => ({
 		blockId: normalizeBlockId(row.block_id),
 		blockHash: String(row.block_hash || ''),
+		hasGoldenTicket: hasGoldenTicket(row),
 	}));
 }
 

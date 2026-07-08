@@ -858,7 +858,6 @@ class Chat extends ModTemplate {
     }
 
     if (txmsg.request === 'chat history') {
-      console.log('Chat history request for: ', peer.publicKey);
       let group = this.returnGroup(txmsg?.data?.group_id);
 
       if (!group) {

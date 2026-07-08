@@ -23,6 +23,69 @@
 	flex: 1;
 }
 
+.explorer-supply-admin-controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--explorer-space-2);
+	margin-left: auto;
+	flex-shrink: 0;
+}
+
+.explorer-supply-admin-button {
+	appearance: none;
+	-webkit-appearance: none;
+	display: inline-block;
+	margin: 0;
+	padding: 0.35rem 0.7rem;
+	border: 1px solid var(--explorer-border);
+	border-radius: var(--explorer-radius-sm);
+	background-color: color-mix(in oklch, var(--explorer-secondary) 88%, var(--explorer-card));
+	color: var(--explorer-muted-foreground);
+	font-family: var(--explorer-font-sans);
+	font-size: var(--explorer-text-xs);
+	font-weight: var(--explorer-font-medium);
+	line-height: var(--explorer-leading-snug);
+	letter-spacing: var(--explorer-tracking-wide);
+	text-transform: uppercase;
+	cursor: pointer;
+	box-shadow: none;
+	transition:
+		color var(--explorer-transition-fast),
+		background-color var(--explorer-transition-fast),
+		border-color var(--explorer-transition-fast);
+}
+
+.explorer-supply-admin-button:hover,
+.explorer-supply-admin-button:focus-visible {
+	color: var(--explorer-foreground);
+	background-color: var(--explorer-secondary);
+	border-color: color-mix(in oklch, var(--explorer-muted-foreground) 28%, var(--explorer-border));
+	outline: none;
+}
+
+.explorer-supply-admin-button:focus-visible {
+	box-shadow: var(--explorer-focus-ring);
+}
+
+.explorer-supply-admin-button:disabled {
+	opacity: 0.55;
+	cursor: wait;
+}
+
+@media (max-width: 720px) {
+	.explorer-supply-header {
+		flex-wrap: wrap;
+	}
+
+	.explorer-supply-admin-controls {
+		width: 100%;
+		justify-content: flex-start;
+		margin-left: 0;
+	}
+}
+
 .explorer-supply-dashboard {
 	position: relative;
 	width: 100%;
@@ -122,8 +185,27 @@
 }
 
 .explorer-supply-table thead th.explorer-supply-block-header .explorer-supply-block-link {
-	display: block;
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.15rem;
 	text-align: right;
+}
+
+.explorer-golden-ticket-icon {
+	font-size: 0.65rem;
+	line-height: 1;
+	color: color-mix(in oklch, var(--explorer-primary) 72%, var(--explorer-muted-foreground));
+}
+
+.explorer-supply-table th.explorer-column-golden-ticket,
+.explorer-supply-table td.explorer-column-golden-ticket {
+	box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--explorer-primary) 7%, transparent);
+}
+
+html[data-theme='dark'] .explorer-supply-table th.explorer-column-golden-ticket,
+html[data-theme='dark'] .explorer-supply-table td.explorer-column-golden-ticket {
+	box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--explorer-primary) 11%, transparent);
 }
 
 .explorer-supply-table .explorer-supply-row-label {

@@ -231,7 +231,6 @@ impl InterfaceIO for WasmIoHandler {
                 MsgHandler::emit_interface_event("wallet-updated", "{}");
             }
             InterfaceEvent::OnTransactionPending() => {
-                info!("[tx-pending-trace] wasm_io_handler emit on-transaction-pending -> JS");
                 MsgHandler::emit_interface_event("on-transaction-pending", "{}");
             }
             InterfaceEvent::OnTransactionSent(payload) => {

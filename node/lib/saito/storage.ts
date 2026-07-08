@@ -367,26 +367,19 @@ class Storage {
   }
 
   async resetOptionsFromKey(publicKey) {
-    console.info('[IMPORT_TRACE] before resetOptionsFromKey publicKey=' + publicKey);
     if (this.app.BROWSER) {
       let wallet = await localforage.getItem(publicKey);
       if (wallet) {
         console.log(`Found wallet for ${publicKey} in IndexedDB`);
         //siteMessage(`Found wallet for ${publicKey} in IndexedDB`);
         this.app.options = wallet;
-        console.info('[IMPORT_TRACE] before saveOptions (resetOptionsFromKey indexedDB hit)');
         this.app.storage.saveOptions();
-        console.info('[IMPORT_TRACE] after saveOptions (resetOptionsFromKey indexedDB hit)');
       } else {
         console.log(`Creating fresh wallet for ${publicKey}`);
         //siteMessage(`Creating fresh wallet for ${publicKey}`);
         await this.resetOptions();
       }
     }
-    console.info(
-      '[IMPORT_TRACE] after resetOptionsFromKey app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
   }
 
   /**
@@ -451,13 +444,8 @@ class Storage {
   }
 
   saveOptions() {
-    console.info(
-      '[IMPORT_TRACE] before saveOptions app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
     if (this.app.BROWSER == 1) {
       if (this.active_tab == 0) {
-        console.info('[IMPORT_TRACE] saveOptions skipped active_tab=0');
         return;
       }
     }
@@ -466,7 +454,6 @@ class Storage {
     let new_wallet_hash = this.app.crypto.hash(new_wallet_json);
 
     if (new_wallet_hash == this?.wallet_options_hash) {
-      console.info('[IMPORT_TRACE] saveOptions skipped hash unchanged');
       return;
     }
 
@@ -475,10 +462,6 @@ class Storage {
 
       //Update hash
       this.wallet_options_hash = new_wallet_hash;
-      console.info(
-        '[IMPORT_TRACE] after saveOptions persisted app_option_slips=' +
-          (this.app.options.wallet?.slips?.length ?? 0)
-      );
     } catch (err) {
       for (let i = 0; i < localStorage.length; i++) {
         let item = localStorage.getItem(localStorage.key(i));

@@ -307,7 +307,6 @@ impl Blockchain {
             .blockring
             .contains_block_hash_at_block_id(block_id, block_hash)
         {
-            info!(" -- adding block to blockring...");
             self.blockring.add_block(&block);
         }
 
@@ -443,8 +442,6 @@ impl Blockchain {
         // if the block has the potential to reorg consensus...
         //
         if am_i_the_longest_chain {
-            info!(" -- blockchain.add_block: validating block");
-
             self.blocks.get_mut(&block_hash).unwrap().in_longest_chain = true;
 
             //
@@ -1495,8 +1492,6 @@ impl Blockchain {
         mempool: &mut Mempool,
         network: Option<&Network>,
     ) -> WindingResult<'a> {
-        info!(" ... blockchain.wind_chain start!");
-
         debug!(
             "wind_chain: current_wind_index : {:?} new_chain_len: {:?} old_chain_len: {:?} failed : {:?}",
             current_wind_index,new_chain.len(),old_chain.len(), wind_failure
@@ -1586,10 +1581,7 @@ impl Blockchain {
 
         let mut wallet_updated = WALLET_NOT_UPDATED;
 
-        info!("does block validate?");
-
         if does_block_validate {
-            info!("yes, it does....");
             // blockring update
             self.blockring
                 .on_chain_reorganization(block.id, block.hash, true);
@@ -1598,7 +1590,6 @@ impl Blockchain {
             //  will not want to do the work of scrolling through the block and
             //  updating their wallets by default. wallet processing can be
             //  more efficiently handled by lite-nodes.
-            info!("about to ocr wallet...");
             {
                 let mut wallet = self.wallet_lock.write().await;
 
