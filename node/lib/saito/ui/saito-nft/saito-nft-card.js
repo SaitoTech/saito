@@ -102,44 +102,18 @@ class SaitoNFTCard {
 
     let elm = document.querySelector(this.my_qs + ' .nft-card-img');
     if (elm) {
-      if (this.nft.nft_type == 'vault') {
-        try {
-          elm.innerHTML = `<div class="nft-card-text">${this.nft.json}</div>`;
-          let obj = JSON.parse(this.nft.json);
-          elm.style.backgroundImage = `url("/vault/img/jade_key_min.png")`;
-          if (obj.file_access_script) {
-            elm.style.backgroundImage = `url("/vault/img/crystal_key_min.png")`;
-          }
-          return;
-        } catch (err) {}
-      }
-      if (this.nft.image != '') {
-        elm.innerHTML = '';
-        elm.style.backgroundImage = `url("${this.nft.image}")`;
-        return;
-      }
-      if (this.nft.js != '') {
-        elm.innerHTML = `<div class="nft-card-text">${this.nft.js}</div>`;
-        return;
-      }
-      if (this.nft.css != '') {
-        elm.innerHTML = `<div class="nft-card-text">${this.nft.css}</div>`;
-        return;
-      }
-      if (this.nft.text != '') {
-        elm.innerHTML = `<div class="nft-card-text">${this.nft.text}</div>`;
-        return;
-      }
-      if (this.nft.json != '') {
-        elm.innerHTML = `<div class="nft-card-text">${this.nft.json}</div>`;
+      const display = this.nft.returnMediaDisplay();
+
+      if (display.loading) {
+        elm.innerHTML = `<div class="saito_spinner spinner"></div>`;
+        elm.style.backgroundImage = '';
         return;
       }
 
-      if (this.nft.load_failed) {
-        elm.innerHTML = `<i class="fa-solid fa-heart-crack"></i>`;
-      } else {
-        elm.innerHTML = `<div class="saito_spinner spinner"></div>`;
-      }
+      elm.innerHTML = display.innerHtml || '';
+      elm.style.backgroundImage = display.backgroundImage
+        ? `url("${display.backgroundImage}")`
+        : '';
     } else {
       console.warn('NFT Element not rendered --', this.my_qs);
     }

@@ -413,6 +413,112 @@ class SaitoNFT {
   returnImage() {
     return this.image || '';
   }
+
+  returnModuleMediaDisplay() {
+    const nft_type = this.nft_type || (typeof this.returnType === 'function' ? this.returnType() : null);
+    const handlers = this.app.modules.getRespondTos('saito-nft-media', this);
+
+    for (const modobj of handlers) {
+      if (!modobj?.class || !modobj.class.includes(nft_type) || !nft_type) {
+        continue;
+      }
+      if (typeof modobj.returnMediaDisplay === 'function') {
+        const display = modobj.returnMediaDisplay(this);
+        if (display) {
+          return display;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  hasResolvableMedia() {
+    if (this.returnImage()) {
+      return true;
+    }
+    if (this.returnModuleMediaDisplay()) {
+      return true;
+    }
+    return !!(this.js || this.css || this.text || this.json);
+  }
+
+  isMediaLoading() {
+    return this.returnMediaDisplay().loading;
+  }
+
+  returnMediaDisplay() {
+    const moduleDisplay = this.returnModuleMediaDisplay();
+    if (moduleDisplay) {
+      return {
+        backgroundImage: moduleDisplay.backgroundImage || '',
+        innerHtml: moduleDisplay.innerHtml || '',
+        loading: false,
+        failed: false
+      };
+    }
+
+    if (this.image) {
+      return {
+        backgroundImage: this.image,
+        innerHtml: '',
+        loading: false,
+        failed: false
+      };
+    }
+
+    if (this.js) {
+      return {
+        backgroundImage: '',
+        innerHtml: `<div class="nft-card-text">${this.js}</div>`,
+        loading: false,
+        failed: false
+      };
+    }
+
+    if (this.css) {
+      return {
+        backgroundImage: '',
+        innerHtml: `<div class="nft-card-text">${this.css}</div>`,
+        loading: false,
+        failed: false
+      };
+    }
+
+    if (this.text) {
+      return {
+        backgroundImage: '',
+        innerHtml: `<div class="nft-card-text">${this.text}</div>`,
+        loading: false,
+        failed: false
+      };
+    }
+
+    if (this.json) {
+      return {
+        backgroundImage: '',
+        innerHtml: `<div class="nft-card-text">${this.json}</div>`,
+        loading: false,
+        failed: false
+      };
+    }
+
+    if (this.load_failed) {
+      return {
+        backgroundImage: '',
+        innerHtml: '<i class="fa-solid fa-heart-crack"></i>',
+        loading: false,
+        failed: true
+      };
+    }
+
+    return {
+      backgroundImage: '',
+      innerHtml: '',
+      loading: true,
+      failed: false
+    };
+  }
 }
 
 module.exports = SaitoNFT;
