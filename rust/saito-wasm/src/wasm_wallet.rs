@@ -394,12 +394,6 @@ impl WasmWallet {
 
     pub async fn save(&self) {
         let mut wallet = self.wallet.write().await;
-        info!(
-            "[SAVE_TRACE] wasm_wallet.save slips={} unspent={} balance={}",
-            wallet.slips.len(),
-            wallet.unspent_slips.len(),
-            wallet.get_available_balance()
-        );
         Wallet::save(&mut wallet, &(WasmIoHandler {})).await;
     }
     pub async fn reset(&mut self, keep_keys: bool) {

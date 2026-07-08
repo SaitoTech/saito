@@ -325,12 +325,6 @@ impl InterfaceIO for WasmIoHandler {
     }
 
     async fn save_wallet(&self, wallet: &mut Wallet) -> Result<(), Error> {
-        info!(
-            "[SAVE_TRACE] wasm io save_wallet slips={} unspent={} balance={}",
-            wallet.slips.len(),
-            wallet.unspent_slips.len(),
-            wallet.get_available_balance()
-        );
         MsgHandler::save_wallet();
         // TODO : return error state
         Ok(())

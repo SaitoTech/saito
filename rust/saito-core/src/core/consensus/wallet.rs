@@ -160,21 +160,8 @@ impl Wallet {
         }
     }
     pub async fn save(wallet: &mut Wallet, io: &(dyn InterfaceIO + Send + Sync)) {
-        info!(
-            "[SAVE_TRACE] saveWallet called slips={} unspent={} balance={}",
-            wallet.slips.len(),
-            wallet.unspent_slips.len(),
-            wallet.get_available_balance()
-        );
-        info!(
-            "[SAVE_TRACE] serializing wallet slips={} unspent={} balance={}",
-            wallet.slips.len(),
-            wallet.unspent_slips.len(),
-            wallet.get_available_balance()
-        );
         trace!("saving wallet");
         io.save_wallet(wallet).await.unwrap();
-        info!("[SAVE_TRACE] saveWallet completed");
         trace!("wallet saved");
     }
 

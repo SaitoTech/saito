@@ -480,7 +480,6 @@ class Storage {
           (this.app.options.wallet?.slips?.length ?? 0)
       );
     } catch (err) {
-      console.info('[SAVE_TRACE] saveOptions failed: ' + err);
       for (let i = 0; i < localStorage.length; i++) {
         let item = localStorage.getItem(localStorage.key(i));
         let parsed_item = '';

@@ -467,7 +467,6 @@ impl Blockchain {
             does_new_chain_validate &= self.validate_total_supply(configs).await;
 
             if does_new_chain_validate {
-                info!("VALIDATES!!!! adding...");
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
                 AddBlockResult::BlockAddedSuccessfully(
@@ -1614,10 +1613,8 @@ impl Blockchain {
 
             // utxoset update
             {
-                info!("about to ocr block...");
                 if let Some(block) = self.blocks.get_mut(block_hash) {
                     block.on_chain_reorganization(&mut self.utxoset, true);
-                    info!("done ocr block...");
                 } else {
                     info!(
                         "wind_chain: block {:?} not found for utxo reorganization",

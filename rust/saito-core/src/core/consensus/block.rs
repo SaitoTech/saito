@@ -2458,11 +2458,6 @@ impl Block {
     }
 
     pub fn on_chain_reorganization(&mut self, utxoset: &mut UtxoSet, longest_chain: bool) -> bool {
-        info!(
-            "block : on chain reorg : {:?} - {:?}",
-            self.id,
-            self.hash.to_hex()
-        );
         for tx in &self.transactions {
             tx.on_chain_reorganization(utxoset, longest_chain);
         }
