@@ -31,6 +31,7 @@ class Summary {
 		this.listing_signature = data.listing_signature || '';
 		this.listing_tx = data.listing_tx || null;
 		this._image_source = data._image_source || null;
+		this._media_enriched = data._media_enriched || false;
 	}
 
 	isDemo() {
@@ -45,11 +46,57 @@ class Summary {
 	}
 
 	isImageLoading() {
-		return !this.hasLoadedImage() && !this.isDemo();
+		if (this.isDemo()) {
+			return false;
+		}
+		return this.returnMediaDisplay().loading;
 	}
 
 	hasLoadedImage() {
 		return !!this.image;
+	}
+
+	returnMediaDisplay() {
+		if (this.isDemo()) {
+			return {
+				backgroundImage: '',
+				innerHtml: '',
+				loading: false,
+				failed: false
+			};
+		}
+
+		if (this.nft?.returnMediaDisplay) {
+			const display = this.nft.returnMediaDisplay();
+			if (!display.loading || !this._media_enriched) {
+				return display;
+			}
+		}
+
+		if (this.image) {
+			return {
+				backgroundImage: this.image,
+				innerHtml: '',
+				loading: false,
+				failed: false
+			};
+		}
+
+		if (this._media_enriched) {
+			return {
+				backgroundImage: this.returnPlaceholderImage(),
+				innerHtml: '',
+				loading: false,
+				failed: false
+			};
+		}
+
+		return {
+			backgroundImage: '',
+			innerHtml: '',
+			loading: true,
+			failed: false
+		};
 	}
 
 	returnImage() {

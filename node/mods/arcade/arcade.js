@@ -469,7 +469,8 @@ class Arcade extends ModTemplate {
 	}
 
 	async createPseudoTransaction(game) {
-		let game_tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
+
+		let game_tx = await this.app.wallet.createUnsignedTransaction(this.publicKey, 0, 0);
 
 		if (game.accepted) {
 			game.accepted.forEach((player) => {

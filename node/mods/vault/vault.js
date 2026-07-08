@@ -90,6 +90,29 @@ class Vault extends ModTemplate {
 				}
 			};
 		}
+
+		if (type === 'saito-nft-media') {
+			return {
+				class: ['vault'],
+				returnMediaDisplay(nft) {
+					if (!nft?.json) {
+						return null;
+					}
+					try {
+						const obj = JSON.parse(nft.json);
+						const backgroundImage = obj.file_access_script
+							? '/vault/img/crystal_key_min.png'
+							: '/vault/img/jade_key_min.png';
+						return {
+							backgroundImage,
+							innerHtml: `<div class="nft-card-text">${nft.json}</div>`
+						};
+					} catch (err) {
+						return null;
+					}
+				}
+			};
+		}
 		return null;
 	}
 

@@ -549,21 +549,44 @@ class Stack extends ModTemplate {
             value_obj.delegate = true;
           }
 
-          const value_json = JSON.stringify(value_obj);
-          const value_b64 = Buffer.from(value_json).toString('base64');
 
-          const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
-          const hash_digest = this_mod.app.crypto.hash(canonical_string);
-          const privatekey = await this_mod.app.wallet.getPrivateKey();
-          const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
+	  //
+	  // we want to extend the routing path from the point where *we*
+	  // most recently acquired authority over the NFT, not from the
+	  // end of the existing routing path. This prevents merchants who
+	  // repeatedly sell inventory from accumulating customer history
+	  // into future transfers, etc.
+	  //
+	  const my_publickey = await this_mod.app.wallet.getPublicKey();
 
-          tx.msg.data.path.push({
-            to: receiver,
-            value: value_b64,
-            sig: sig
-          });
+	  if (Array.isArray(tx.msg.data.path) && tx.msg.data.path.length > 0) {
+	    let last_inbound = -1;
+	    for (let i = 0; i < tx.msg.data.path.length; i++) {
+	      if (tx.msg.data.path[i].to === my_publickey) {
+	        last_inbound = i;
+	      }
+	    }
+	    if (last_inbound >= 0) {
+	      tx.msg.data.path = tx.msg.data.path.slice(0, last_inbound + 1);
+	    }
+	  }
 
-          return tx;
+	  const value_json = JSON.stringify(value_obj);
+	  const value_b64 = Buffer.from(value_json).toString('base64');
+
+	  const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
+	  const hash_digest = this_mod.app.crypto.hash(canonical_string);
+	  const privatekey = await this_mod.app.wallet.getPrivateKey();
+	  const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
+
+	  tx.msg.data.path.push({
+	    to: receiver,
+	    value: value_b64,
+	    sig: sig
+	  });
+
+	  return tx;
+
         }
       };
     }

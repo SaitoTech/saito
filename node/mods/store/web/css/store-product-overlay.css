@@ -351,6 +351,11 @@
 	margin-left: auto;
 }
 
+.store-product-info-col > .store-product-buy {
+	align-self: flex-end;
+	flex-shrink: 0;
+}
+
 /* Isolate protected overlay from Saito theme / global form rules */
 .saito-overlay > .store-product-overlay {
 	background: #f6f8fb;
