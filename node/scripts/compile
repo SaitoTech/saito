@@ -39,9 +39,7 @@ echo ""
 for d in "${PROJECT_DIR}/mods/"*/ ;
 do
   if [ -d "$d/web/css" ]; then
-    if [ -f "$d/web/style.css" ] && grep -q '@import url' "$d/web/style.css"; then
-      echo "skip module css in $d (style.css uses @import entry point)"
-    elif [ "$1" == "dev" ] || [ "$2" == "dev" ]; then
+    if [ "$1" == "dev" ] || [ "$2" == "dev" ]; then
       echo "link module css in $d"
       find "$d/web/css/" -type f -name '*.css' 2>/dev/null | sort | sed 's|.*/web/||' | sed 's/^/@import url(".\//' | sed 's/$/");/' | sed 's/\/\//\//g' > "$d/web/style.css"
     else

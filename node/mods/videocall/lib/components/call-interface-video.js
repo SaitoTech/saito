@@ -23,6 +23,13 @@ class CallInterfaceVideo {
 		this.full_screen = fullScreen;
 		this.rendered = false;
 
+		//
+		// Stable display order (join sequence) and current holder of the
+		// large window in split (focus/speaker) layouts
+		//
+		this.peer_order = [];
+		this.expanded_peer = null;
+
 		this.app.connection.on('show-call-interface', async (videoEnabled, audioEnabled) => {
 			console.info('TALK [show-call-interface]', videoEnabled, audioEnabled);
 
@@ -73,9 +80,7 @@ class CallInterfaceVideo {
 		this.app.connection.on('remove-waiting-video-box', () => {
 			let peer_id = 'connecting';
 			if (this.video_boxes[peer_id]?.video_box) {
-				if (this.video_boxes[peer_id].video_box?.remove) {
-					this.video_boxes[peer_id].video_box.remove();
-				}
+				this.video_boxes[peer_id].video_box.destroy();
 				delete this.video_boxes[peer_id];
 			}
 		});
@@ -84,21 +89,26 @@ class CallInterfaceVideo {
 			this.remote_streams.delete(peer_id);
 
 			if (this.video_boxes[peer_id]?.video_box) {
-				if (this.video_boxes[peer_id].video_box?.remove) {
-					this.video_boxes[peer_id].video_box.remove();
-				}
+				this.video_boxes[peer_id].video_box.destroy();
 				delete this.video_boxes[peer_id];
 				this.updateImages();
 			}
 
-			this.app.connection.emit('stun-switch-view');
+			if (this.expanded_peer === peer_id) {
+				this.expanded_peer = null;
+			}
 
-			//this.insertActions(this.mod.room_obj.call_peers);
+			//
+			// Reflow the remaining boxes in place -- no layout rebuild, no toast
+			//
+			this.setDisplayContainers();
 		});
 
 		// Change arrangement of video boxes (emitted from SwitchDisplay overlay)
-		app.connection.on('stun-switch-view', (newView = '', save = false) => {
-			siteMessage(`Switched to ${newView} display`, 2000);
+		app.connection.on('stun-switch-view', (newView = '', noMessage = false) => {
+			if (newView && !noMessage) {
+				siteMessage(`Switched to ${newView} display`, 2000);
+			}
 
 			if (newView == 'presentation') {
 				newView = 'focus';
@@ -215,6 +225,21 @@ class CallInterfaceVideo {
 		this.app.connection.removeAllListeners('stun-new-speaker');
 		this.app.connection.removeAllListeners('videocall-show-settings');
 		this.app.connection.removeAllListeners('videocall-connection-strength');
+		this.app.connection.removeAllListeners('stun-data-channel-open');
+		this.app.connection.removeAllListeners('toggle-screen-share-label');
+
+		this.stopTimer();
+
+		//
+		// close() normally destroys the boxes, but reset-stun can call destroy()
+		// directly -- make sure their listeners are unhooked either way
+		//
+		for (let peer in this.video_boxes) {
+			if (this.video_boxes[peer]?.video_box?.destroy) {
+				this.video_boxes[peer].video_box.destroy();
+			}
+			delete this.video_boxes[peer];
+		}
 
 		this.rendered = false;
 		this?.streamMirror?.destroy();
@@ -239,9 +264,9 @@ class CallInterfaceVideo {
 		}
 
 		if (!this.mod.browser_active) {
-			this.app.connection.emit('stun-switch-view', 'gallery');
+			this.app.connection.emit('stun-switch-view', 'gallery', true);
 		} else {
-			this.app.connection.emit('stun-switch-view', this.mod.layout);
+			this.app.connection.emit('stun-switch-view', this.mod.layout, true);
 		}
 
 		if (!this.full_screen) {
@@ -491,53 +516,49 @@ class CallInterfaceVideo {
 	}
 
 	flipDisplay(stream_id) {
-		let big_video = document.querySelector(`.${this.local_container} .video-box`);
-		if (!big_video) {
+		//
+		// gallery has no large slot
+		//
+		if (this.local_container === this.remote_container) {
 			return;
 		}
-		this.video_boxes[big_video.id].video_box.containerClass = this.remote_container;
-		this.video_boxes[big_video.id].video_box.rerender();
-		if (this.video_boxes[big_video.id].connection_strength) {
-			this.video_boxes[big_video.id].video_box.addConnectionStrength(
-				this.video_boxes[big_video.id].connection_strength
-			);
+		if (!this.video_boxes[stream_id] || this.expanded_peer === stream_id) {
+			return;
 		}
 
-		this.video_boxes[stream_id].video_box.containerClass = this.local_container;
-		this.video_boxes[stream_id].video_box.rerender();
-		if (this.video_boxes[stream_id].connection_strength) {
-			this.video_boxes[stream_id].video_box.addConnectionStrength(
-				this.video_boxes[stream_id].connection_strength
-			);
-		}
+		this.expanded_peer = stream_id;
+		this.setDisplayContainers();
 	}
 
 	addRemoteStream(peer, remoteStream) {
 		this.createVideoBox(peer);
 		this.video_boxes[peer].video_box.render(remoteStream);
-
-		if (remoteStream) {
-			let peer_elem = document.getElementById(`stream_${peer}`);
-			if (peer_elem) {
-				peer_elem.querySelector('.video-box').click();
-			}
-		}
-
 		this.updateImages();
 
 		if (peer.toLowerCase() === 'presentation') {
 			// switch mode to presentation
 			this.app.connection.emit('stun-switch-view', 'presentation');
 			this.flipDisplay('presentation');
+		} else if (
+			remoteStream &&
+			peer !== 'local' &&
+			peer !== 'connecting' &&
+			(!this.expanded_peer || this.expanded_peer === 'local')
+		) {
+			//
+			// In focus/speaker layouts the counterparty belongs in the large
+			// window -- promote the first remote peer whose stream arrives
+			//
+			this.flipDisplay(peer);
 		}
 
 		this.setDisplayContainers();
 	}
 
 	addLocalStream(localStream) {
+		this.localStream = localStream;
 		this.createVideoBox('local', this.local_container);
 		this.video_boxes['local'].video_box.render(localStream);
-		this.localStream = localStream;
 		this.updateImages();
 
 		this.setDisplayContainers();
@@ -651,83 +672,187 @@ class CallInterfaceVideo {
 	switchDisplayToGallery() {
 		this.local_container = 'gallery';
 		this.remote_container = 'gallery';
-
-		let container = document.querySelector('.video-container-large');
-
-		container.innerHTML = `<div class="gallery"></div>`;
-		container.classList.remove('split-view', 'expanded', 'presentation');
-		container.classList.add('gallery-view');
-		this.setDisplayContainers();
+		this.applyLayout();
 	}
 
 	switchDisplayToExpanded() {
 		this.local_container = 'expanded-video';
 		this.remote_container = 'side-videos';
-
-		let container = document.querySelector('.video-container-large');
-
-		container.innerHTML = `<div class="expanded-video"></div>
-		<div class="side-videos"></div>`;
-		container.classList.remove('gallery-view', 'presentation');
-		container.classList.add('split-view', 'expanded');
-
-		this.setDisplayContainers();
+		this.applyLayout();
 	}
 
-	switchDisplayToPresentation() {
-		this.local_container = 'presentation';
-		this.remote_container = 'presentation-side-videos';
+	//
+	// Re-class the two persistent wrapper divs for the active layout instead of
+	// rebuilding them -- the live <video> elements are moved, never recreated
+	//
+	applyLayout() {
+		const container = document.querySelector('.video-container-large');
+		if (!container) {
+			return;
+		}
 
-		let container = document.querySelector('.video-container-large');
+		const primary = container.querySelector('.videocall-primary');
+		const secondary = container.querySelector('.videocall-secondary');
+		if (!primary || !secondary) {
+			return;
+		}
 
-		container.innerHTML = `<div class="presentation"></div>
-		<div class="presentation-side-videos"></div>`;
-		container.classList.remove('gallery-view', 'expanded');
-		container.classList.add('split-view', 'presentation');
+		const layout_classes = [
+			'hidden',
+			'gallery',
+			'expanded-video',
+			'side-videos',
+			'presentation',
+			'presentation-side-videos'
+		];
+		primary.classList.remove(...layout_classes);
+		secondary.classList.remove(...layout_classes);
+
+		if (this.local_container === this.remote_container) {
+			container.classList.remove('split-view', 'expanded', 'presentation');
+			container.classList.add('gallery-view');
+			primary.classList.add('hidden');
+			secondary.classList.add(this.remote_container);
+		} else {
+			container.classList.remove('gallery-view', 'presentation');
+			container.classList.add('split-view', 'expanded');
+			primary.classList.add(this.local_container);
+			secondary.classList.add(this.remote_container);
+		}
 
 		this.setDisplayContainers();
 	}
 
 	setDisplayContainers() {
+		const container = document.querySelector('.video-container-large');
+		if (!container) {
+			return;
+		}
+
+		const split_mode = this.local_container !== this.remote_container;
+
+		//
+		// Make sure someone sensible holds the large window in split layouts
+		//
+		if (split_mode && (!this.expanded_peer || !this.video_boxes[this.expanded_peer])) {
+			this.expanded_peer = this.defaultExpandedPeer();
+		}
+
 		for (let i in this.video_boxes) {
-			if (i === 'local') {
-				this.video_boxes[i].video_box.containerClass = this.local_container;
-				this.video_boxes[i].video_box.render(this.localStream);
-			} else {
-				this.video_boxes[i].video_box.containerClass = this.remote_container;
-				this.video_boxes[i].video_box.render(this.remote_streams.get(i));
-				if (this.video_boxes[i].connection_strength) {
-					this.video_boxes[i].video_box.addConnectionStrength(
-						this.video_boxes[i].connection_strength
-					);
-				}
+			const vb = this.video_boxes[i].video_box;
+
+			vb.containerClass =
+				split_mode && i === this.expanded_peer ? this.local_container : this.remote_container;
+
+			vb.render(i === 'local' ? this.localStream : this.remote_streams.get(i));
+			this.placeBox(i);
+
+			if (i !== 'local' && this.video_boxes[i].connection_strength) {
+				vb.addConnectionStrength(this.video_boxes[i].connection_strength);
 			}
 		}
 
-		const galleryContainer = document.querySelector('.gallery');
-		const sideVideosContainer = document.querySelector('.side-videos, .presentation-side-videos');
-
-		if (galleryContainer) {
-			this.setupContainer(galleryContainer);
-		}
-
-		if (sideVideosContainer) {
-			this.setupContainer(sideVideosContainer);
-		}
+		container
+			.querySelectorAll('.videocall-primary, .videocall-secondary')
+			.forEach((c) => this.setupContainer(c));
 
 		document.querySelectorAll('.video-box-container-large').forEach((item) => {
 			this.resizeBackground(item);
 		});
 	}
 
+	defaultExpandedPeer() {
+		if (this.video_boxes['presentation']) {
+			return 'presentation';
+		}
+
+		//
+		// focus layout: show the counterparty large, not ourselves
+		//
+		for (let peer of this.peer_order) {
+			if (this.video_boxes[peer]) {
+				return peer;
+			}
+		}
+
+		return this.video_boxes['local'] ? 'local' : null;
+	}
+
+	orderIndex(id) {
+		if (id === 'presentation') return -2;
+		if (id === 'local') return -1;
+		if (id === 'connecting') return Number.MAX_SAFE_INTEGER;
+
+		let idx = this.peer_order.indexOf(id);
+		if (idx === -1) {
+			idx = this.peer_order.length;
+			this.peer_order.push(id);
+		}
+		return idx;
+	}
+
+	//
+	// Keep boxes in stable join order so tiles don't shuffle when peers come
+	// and go; only touch the DOM when an element is actually out of place
+	//
+	placeBox(id) {
+		const vb = this.video_boxes[id]?.video_box;
+		const box = document.getElementById(`stream_${id}`);
+		if (!vb?.containerClass || !box) {
+			return;
+		}
+
+		const target = document.querySelector(`.video-container-large .${vb.containerClass}`);
+		if (!target) {
+			return;
+		}
+
+		const myIdx = this.orderIndex(id);
+		let before = null;
+		for (const child of target.children) {
+			if (child === box) {
+				continue;
+			}
+			if (this.orderIndex((child.id || '').replace('stream_', '')) > myIdx) {
+				before = child;
+				break;
+			}
+		}
+
+		if (box.parentElement !== target || box.nextElementSibling !== before) {
+			target.insertBefore(box, before);
+		}
+
+		box.classList.add('flex-item');
+	}
+
 	setupContainer(container) {
 		Array.from(container.children).forEach((child) => {
 			child.classList.add('flex-item');
 		});
+		this.updateCountClasses(container);
 		this.adjustClassesAndCount(container);
 	}
 
+	updateCountClasses(element) {
+		const childCount = element.children.length;
+		Array.from(element.classList).forEach((className) => {
+			if (className.startsWith('count-')) {
+				element.classList.remove(className);
+			}
+		});
+		element.classList.add(`count-${childCount}`);
+	}
+
 	adjustClassesAndCount(element) {
+		//
+		// Containers persist for the life of the call now -- one observer each,
+		// not one per render
+		//
+		if (element._sizing_observer) {
+			return;
+		}
+
 		const observer = new ResizeObserver((entries) => {
 			for (let entry of entries) {
 				const width = entry.contentRect.width;
@@ -744,19 +869,18 @@ class CallInterfaceVideo {
 					element.classList.add('square');
 				}
 
-				const childCount = element.children.length;
-				Array.from(element.classList).forEach((className) => {
-					if (className.startsWith('count-')) {
-						element.classList.remove(className);
-					}
-				});
-				element.classList.add(`count-${childCount}`);
+				this.updateCountClasses(element);
 			}
 		});
 		observer.observe(element);
+		element._sizing_observer = observer;
 	}
 
 	resizeBackground(element) {
+		if (element._bg_observer) {
+			return;
+		}
+
 		const bg_observer = new ResizeObserver((entries) => {
 			for (let entry of entries) {
 				const element = entry.target;
@@ -777,6 +901,7 @@ class CallInterfaceVideo {
 		});
 
 		bg_observer.observe(element);
+		element._bg_observer = bg_observer;
 	}
 }
 

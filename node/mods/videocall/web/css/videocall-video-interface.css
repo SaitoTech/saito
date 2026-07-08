@@ -1,3 +1,24 @@
+/*
+ * Videocall main interface styles
+ *
+ * Organization:
+ *   1. Containers (overlay / appspace / chatbox)
+ *   2. Minimized (PiP) window mode
+ *   3. Main grid + layout modes (gallery / split / presentation)
+ *   4. Video boxes + per-tile info overlays
+ *   5. Connection messages + spinners
+ *   6. Add-users overlay
+ *   7. Footer toolbar + controls
+ *   8. Pre-call chat settings
+ *   9. Connection meter
+ *  10. In-call settings overlay
+ *  11. Media queries (900 / 767 / 600 / 395)
+ */
+
+/* ------------------------------------------------------------------ */
+/* 1. Containers                                                       */
+/* ------------------------------------------------------------------ */
+
 .stun-overlay-container {
 	z-index: 100;
 	width: 100vw;
@@ -25,9 +46,9 @@
 .stun-chatbox {
 	bottom: 0;
 	left: 0;
-	height: 100dvh;
-	/*position: fixed;*/
-	background-color: var(--saito-background-color);
+	background: var(--stun-noir-bg);
+	color: var(--stun-noir-text);
+	font-family: Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 	transition: all 0.2s;
 	z-index: 20;
 	width: 100%;
@@ -65,6 +86,16 @@
 	line-height: 3rem;
 }
 
+.stun-chatbox .minimizer:hover i,
+.stun-chatbox .maximizer:hover i {
+	color: var(--saito-primary);
+	transform: scale(1.1);
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Minimized (PiP) window mode                                      */
+/* ------------------------------------------------------------------ */
+
 @keyframes minimize {
 	100% {
 		position: absolute;
@@ -83,7 +114,7 @@
 	cursor: grab;
 	border-radius: var(--saito-border-radius);
 	max-width: 100%;
-	max-height: 50vh;
+	max-height: 50dvh;
 }
 
 .stun-overlay-container.minimize .stun-chatbox main {
@@ -136,6 +167,11 @@
 	min-width: unset;
 }
 
+.minimize .stun-identicon-list {
+	gap: 0.6rem;
+	margin-right: 0.6rem;
+}
+
 .minimize .stun-chatbox .stun-identicon-list img.saito-identicon {
 	width: 3rem;
 	height: 3rem;
@@ -178,11 +214,9 @@
 	font-size: unset;
 }
 
-.stun-chatbox .minimizer:hover i,
-.stun-chatbox .maximizer:hover i {
-	color: var(--saito-primary);
-	transform: scale(1.1);
-}
+/* ------------------------------------------------------------------ */
+/* 3. Main grid + layout modes                                         */
+/* ------------------------------------------------------------------ */
 
 .stun-chatbox main {
 	height: 100%;
@@ -194,24 +228,25 @@
 	max-height: 100svh;
 }
 
-.stun-chatbox .heading {
-	padding: 1rem;
-}
-
 .stun-chatbox .video-container-large {
-	/*width: 97%; Why!!?? */
 	height: 100%;
-	max-height: calc(100vh - 150px);
+	max-height: calc(100dvh - 150px);
 	transition: all 0.5s ease;
 	position: relative;
-	padding: 1rem;
+	padding: 1.25rem;
 	display: grid;
 	grid-template-rows: minmax(0px, 1fr);
-	gap: 1rem;
+	gap: 1.25rem;
 }
 
 .gallery-view {
 	grid-template-columns: minmax(0px, 1fr);
+}
+
+/* The primary wrapper persists across layout switches; in gallery mode it is
+   empty and must not occupy a grid track */
+.video-container-large > .videocall-primary.hidden {
+	display: none;
 }
 
 .split-view {
@@ -267,21 +302,6 @@
 		flex-direction: row;
 	}
 
-	& .wide .flex-item {
-		/* max-width: 66%; */
-	}
-
-	/*
-	& .square .flex-item {
-		flex-basis: 33%;
-		max-width: 50%;
-	}
-
-	& .side-videos.square .flex-item {
-		flex-basis: 100%;
-		max-width: 100%;
-	}*/
-
 	& .tall {
 		flex-direction: column;
 		flex-wrap: unset;
@@ -307,6 +327,170 @@
 	object-fit: cover;
 }
 
+.presentation {
+	width: 85%;
+	height: 100%;
+	margin-right: 10px;
+}
+
+.presentation-side-videos {
+	flex: 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. Video boxes + per-tile info overlays                             */
+/* ------------------------------------------------------------------ */
+
+.video-box-container-large {
+	display: flex;
+	width: 100%;
+	max-height: 100%;
+	justify-content: center;
+	align-items: center;
+	color: var(--saito-white);
+	position: relative;
+	flex: 1;
+}
+
+.stun-chatbox .video-box-container-large {
+	position: relative;
+	cursor: pointer;
+	overflow: hidden;
+	border: 1px solid var(--stun-noir-outline);
+	border-radius: 0.9rem;
+	background: linear-gradient(
+		145deg,
+		var(--stun-noir-surface-low),
+		var(--stun-noir-surface)
+	);
+	box-shadow:
+		inset 0 1px 0 var(--stun-noir-white-soft),
+		var(--stun-noir-shadow-soft);
+}
+
+.expanded-video .video-box-container-large {
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	animation: fade-in 0.5s ease-in;
+	animation-fill-mode: forwards;
+}
+
+.presentation .video-box-container-large {
+	width: 100%;
+	opacity: 0;
+	animation: fade-in 0.5s ease-in;
+	animation-fill-mode: forwards;
+}
+
+.presentation-side-videos .video-box-container-large {
+	height: fit-content;
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+/* When staring at self, be like a mirror */
+
+.chat-settings-preview video,
+video#local {
+	transform: rotateY(180deg);
+}
+
+.default-video-mask {
+	position: absolute;
+	overflow: hidden;
+	top: 50%;
+	z-index: 10;
+	margin: 1rem auto;
+	transform: translateY(-55%);
+	border-radius: 62%;
+	border: 1px solid var(--saito-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-shadow: 2px 2px 3px dimgray;
+	font-size: 6rem;
+	padding: 3rem;
+}
+
+.default-video-mask.hidden {
+	display: none;
+}
+
+.video-box-container-large video {
+	width: 100%;
+	height: 100%;
+	max-width: 100%;
+	object-fit: cover;
+	max-height: calc(100svh - 150px);
+	z-index: 2;
+	border-radius: inherit;
+	border: none;
+}
+
+.video-box-container-large.portrait video {
+	height: 100%;
+}
+
+video#presentation {
+	object-fit: contain;
+	padding: 3px;
+}
+
+.video-call-info {
+	color: var(--saito-white);
+	text-shadow:
+		0px 1px 2px var(--saito-gray-850),
+		0px -1px 2px var(--saito-gray-850);
+	height: auto;
+	position: absolute;
+	display: grid;
+	grid-template-columns: min-content 1fr min-content min-content;
+	align-items: center;
+	width: 100%;
+	gap: 1rem;
+	padding: 0 1rem 1rem;
+	bottom: 0;
+	z-index: 2;
+}
+
+.video-call-info .saito-address {
+	font-size: 1.4rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: fit-content;
+	background: var(--stun-noir-glass-soft);
+	backdrop-filter: blur(10px);
+	padding: 0.45rem 0.85rem;
+	border-radius: 999px;
+}
+
+.video-call-info .call-icons i {
+	font-size: 2rem;
+	border-radius: 50%;
+	height: 1.5rem;
+	width: 1.5rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: var(--saito-primary);
+	box-shadow: 0 0 8px 4px var(--saito-primary);
+}
+
+.video-call-info i.disabled,
+.video-call-info i.fa-microphone-slash {
+	background-color: unset;
+	box-shadow: unset;
+}
+
 .stun-chatbox .peer-call-list {
 	display: flex;
 	padding: 0.5rem;
@@ -322,9 +506,6 @@
 	filter: grayscale(100%);
 }
 
-.stun-chatbox .volume-control {
-}
-
 .stun-chatbox .volume-control i {
 	font-size: 1.8rem;
 	border-radius: 50%;
@@ -336,79 +517,68 @@
 	cursor: pointer;
 }
 
-.expanded-video .video-box-container-large {
-	width: 100%;
-	height: 100%;
-	opacity: 0;
-	opacity: 0;
-	animation: fade-in 0.5s ease-in;
-	animation-fill-mode: forwards;
+.speaker {
+	border: 2px solid var(--stun-noir-accent-2) !important;
+	box-shadow: 0 0 24px -10px var(--stun-noir-accent-2);
 }
 
-/* .side-videos .video-box-container-large {
-	max-height: 100%;
-	overflow: clip;
-} */
-
-.stun-chatbox .video-box-container-large {
+.video-box-container-large canvas#oscilloscope {
+	position: absolute;
+	width: min(60vw, 40dvh);
+	height: min(60vw, 40dvh);
+	border-radius: 50%;
 	border: 2px solid var(--saito-border-color-dark);
-	border-radius: var(--saito-border-radius);
-	position: relative;
+	background-image: url(/saito/img/saito-background-icon.svg);
+	background-color: var(--stun-noir-canvas-bg);
+	background-size: 66%;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. Connection messages + spinners                                   */
+/* ------------------------------------------------------------------ */
+
+.video-box-container-large > #connection-message {
+	color: var(--saito-white);
+	width: 50%;
+	line-height: 1.5;
+	position: absolute;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 10;
+}
+
+.video-box-container-large > #connection-message > p {
+	color: var(--saito-white);
+	font-size: 2.8rem;
+}
+
+#reconnect-button {
+	color: var(--saito-white);
+	line-height: 1.5;
+	align-items: center;
+	justify-content: center;
+	z-index: 10;
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	opacity: 0;
+}
+
+#reconnect-button button {
+	background: var(--saito-primary);
+	text-align: center;
+	padding: 1rem 1.5rem;
+	letter-spacing: 1px;
+	color: var(--saito-white);
+	font-weight: 500;
+	font-size: 1.2rem;
+	border-radius: 0.5rem;
+	min-width: 0;
 	cursor: pointer;
-	overflow: hidden;
-}
-
-.presentation {
-	width: 85%;
-	height: 100%;
-	margin-right: 10px;
-}
-
-.presentation .video-box-container-large {
-	width: 100%;
-	opacity: 0;
-	opacity: 0;
-	animation: fade-in 0.5s ease-in;
-	animation-fill-mode: forwards;
-	border: 2px solid var(--saito-border-color-dark);
-}
-
-.presentation-side-videos {
-	flex: 1;
-}
-
-.presentation-side-videos .video-box-container-large {
-	height: fit-content;
-	border: 2px solid var(--saito-border-color-dark);
-}
-
-@keyframes fade-in {
-	from {
-		opacity: 0;
-	}
-
-	to {
-		opacity: 1;
-	}
-}
-
-.stun-chatbox .b-btngrid {
-	border: none;
-	margin-left: 1rem;
-	margin-top: 250px;
-	width: 160px;
-	height: 38px;
-	border-radius: 4px;
-	left: 51px;
-	cursor: pointer;
-}
-
-.stun-chatbox .heading {
-	background: linear-gradient(
-		96.79deg,
-		var(--stun-noir-legacy-gradient-start) 0%,
-		var(--stun-noir-legacy-gradient-end) 91.87%
-	);
+	border: 1px solid transparent;
 }
 
 .lds-dual-ring {
@@ -455,207 +625,9 @@
 	}
 }
 
-.video-box-container-large {
-	display: flex;
-	width: 100%;
-	max-height: 100%;
-	justify-content: center;
-	align-items: center;
-	color: var(--saito-white);
-	position: relative;
-	flex: 1;
-}
-
-/* When staring at self, be like a mirror */
-
-.chat-settings-preview video,
-video#local {
-	transform: rotateY(180deg);
-}
-
-.default-video-mask {
-	position: absolute;
-	overflow: hidden;
-	top: 50%;
-	z-index: 10;
-	margin: 1rem auto;
-	transform: translateY(-55%);
-	border-radius: 62%;
-	border: 1px solid var(--saito-primary);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	text-shadow: 2px 2px 3px dimgray;
-	font-size: 6rem;
-	padding: 3rem;
-}
-
-/*.default-video-mask {
-	width: 20rem;
-	height: 20rem;
-	background-image: url('/swarmcast/img/inception.gif');
-	background-position: center;
-	background-size: 200%;
-}*/
-
-.default-video-mask.hidden {
-	display: none;
-}
-
-.video-box-container-large video {
-	width: 100%;
-	height: 100%;
-	max-width: 100%;
-	object-fit: cover;
-	max-height: calc(100svh - 150px);
-	z-index: 2;
-	border-radius: inherit;
-	border: none;
-}
-
-.video-box-container-large.portrait video {
-	/*width: auto;*/
-	height: 100%;
-}
-
-video#presentation {
-	object-fit: contain;
-	padding: 3px;
-}
-
-.video-box-container-large > #connection-message {
-	color: var(--saito-white);
-	width: 50%;
-	line-height: 1.5;
-	position: absolute;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 10;
-}
-
-#reconnect-button {
-	color: var(--saito-white);
-	/* width: 50%; */
-	line-height: 1.5;
-	position: absolute;
-	/* display: flex; */
-	align-items: center;
-	justify-content: center;
-	z-index: 10;
-	position: absolute;
-	bottom: 0;
-	right: 0;
-	opacity: 0;
-}
-
-#reconnect-button button {
-	background: var(--saito-primary);
-	text-align: center;
-	padding: 1rem 1.5rem;
-	text-align: center;
-	letter-spacing: 1px;
-	color: var(--saito-white);
-	font-weight: 500;
-	font-size: 1.2rem;
-	border-radius: 0.5rem;
-	min-width: 0;
-	cursor: pointer;
-	border: 1px solid transparent;
-}
-
-.video-box-container-large > #connection-message > p {
-	color: var(--saito-white);
-	font-size: 2.8rem;
-}
-
-.video-call-info {
-	color: var(--saito-white);
-	text-shadow:
-		0px 1px 2px var(--saito-gray-850),
-		0px -1px 2px var(--saito-gray-850);
-	height: 3.5rem;
-	position: absolute;
-	display: grid;
-	grid-template-columns: min-content 1fr min-content min-content;
-	align-items: center;
-	width: calc(100% - 2rem);
-	gap: 1rem;
-	bottom: 0;
-	z-index: 2;
-}
-
-.video-call-info .saito-address {
-	font-size: 2rem;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	max-width: 100%;
-}
-
-.video-call-info .call-icons i {
-	font-size: 2rem;
-	border-radius: 50%;
-	height: 1.5rem;
-	width: 1.5rem;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	background-color: var(--saito-primary);
-	box-shadow: 0 0 8px 4px var(--saito-primary);
-}
-
-.video-call-info i.disabled,
-.video-call-info i.fa-microphone-slash {
-	background-color: unset;
-	box-shadow: unset;
-}
-
-.video-box-container-large canvas#oscilloscope {
-	position: absolute;
-	width: min(60vw, 40vh);
-	height: min(60vw, 40vh);
-	border-radius: 50%;
-	border: 2px solid var(--saito-border-color-dark);
-	background-image: url(/saito/img/saito-background-icon.svg);
-	background-color: var(--stun-noir-canvas-bg);
-	background-size: 66%;
-	background-repeat: no-repeat;
-	background-position: center;
-}
-
-.lds-dual-ring {
-	display: inline-block;
-}
-
-.lds-dual-ring:after {
-	content: ' ';
-	display: block;
-	width: 10px;
-	height: 10px;
-	margin: 8px;
-	border-radius: 50%;
-	border: 6px solid var(--saito-white);
-	border-color: var(--saito-white) transparent var(--saito-white) transparent;
-	animation: lds-dual-ring 1.2s linear infinite;
-}
-
-.ls-dual-ring2 {
-	display: inline-block;
-}
-
-.lds-dual-ring2:after {
-	content: ' ';
-	display: block;
-	width: 10px;
-	height: 10px;
-	/* margin: 8px; */
-	border-radius: 50%;
-	border: 6px solid var(--saito-white);
-	border-color: var(--saito-white) transparent var(--saito-white) transparent;
-	animation: lds-dual-ring 1.2s linear infinite;
-}
-
-/*  Add users */
+/* ------------------------------------------------------------------ */
+/* 6. Add-users overlay                                                */
+/* ------------------------------------------------------------------ */
 
 .add-users-header {
 	font-size: 1.7rem;
@@ -683,59 +655,51 @@ video#presentation {
 	font-size: 1.4rem;
 }
 
-@keyframes lds-dual-ring {
-	0% {
-		transform: rotate(0deg);
-	}
-
-	100% {
-		transform: rotate(360deg);
-	}
-}
-
-@keyframes glow {
-	0% {
-		transform: scale(0.97);
-	}
-
-	50% {
-		transform: scale(1);
-	}
-
-	75% {
-		transform: scale(0.97);
-	}
-
-	100% {
-		transform: scale(0.97);
-	}
-}
+/* ------------------------------------------------------------------ */
+/* 7. Footer toolbar + controls                                        */
+/* ------------------------------------------------------------------ */
 
 .footer {
-	justify-content: left;
+	justify-content: center;
 	align-items: center;
 	gap: 5rem;
-	padding: 1.5rem;
+	padding: 0 2rem 1.2rem;
+	padding: 0 2rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
 	display: flex;
 	width: 100%;
 	box-sizing: border-box;
 }
 
+.stun-toolbar-shell {
+	width: min(900px, calc(100vw - 3rem));
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1.8rem;
+	padding: 2.2rem;
+	background: var(--stun-noir-glass);
+	backdrop-filter: blur(12px);
+	border: 1px solid var(--stun-noir-outline-strong);
+	border-radius: 2rem;
+	box-shadow: var(--stun-noir-shadow);
+}
+
 .footer .timer {
 	display: flex;
-	flex-direction: row-reverse;
+	flex-direction: row;
 	align-items: center;
 	max-width: 100vw;
 	justify-content: space-evenly;
-	gap: 1rem;
-	min-width: 35rem;
+	gap: 1.2rem;
+	min-width: 0;
 }
 
 .timer .counter {
-	color: var(--saito-primary);
-	font-size: 2rem;
+	color: var(--stun-noir-accent);
+	font-size: 1.8rem;
 	min-width: 7rem;
-	font-family: monospace;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+		'Courier New', monospace;
 	text-align: right;
 }
 
@@ -743,7 +707,11 @@ video#presentation {
 	display: flex;
 	align-items: center;
 	justify-content: space-evenly;
-	gap: 0.75rem;
+	gap: 0.6rem;
+	background-color: var(--stun-noir-surface-overlay);
+	padding: 0.55rem 0.85rem;
+	border-radius: 999px;
+	border: 1px solid var(--stun-noir-outline-strong);
 }
 
 .stun-identicon-list {
@@ -752,38 +720,51 @@ video#presentation {
 	margin-right: 1rem;
 }
 
-.minimize .stun-identicon-list {
-	gap: 0.6rem;
-	margin-right: 0.6rem;
-}
-
 .stun-identicon-list img {
-	width: 4rem;
-	height: 4rem;
+	width: 5rem;
+	height: 5rem;
+	border-radius: 999px;
+	border: 1px solid var(--stun-noir-outline-strong);
 }
 
 .users-on-call .invite-control {
-	width: 4rem;
-	height: 4rem;
+	width: 5rem;
+	height: 5rem;
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	border-radius: 999px;
-	background-color: var(--saito-background-color);
+	background-color: var(--stun-noir-surface-high);
+	border: 1px solid var(--stun-noir-outline-strong);
+	transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.users-on-call .invite-control:hover,
+.users-on-call .invite-control:focus-visible {
+	background-color: var(--stun-noir-accent);
+	border-color: var(--stun-noir-accent);
+	outline: none;
+}
+
+.users-on-call .invite-control:hover i,
+.users-on-call .invite-control:focus-visible i {
+	color: var(--saito-button-primary-fg);
 }
 
 .control-panel {
 	display: flex;
-	gap: 5rem;
+	gap: 1rem;
+	align-items: center;
 }
 
 .control-list {
 	display: flex;
 	align-items: center;
-	border-radius: var(--saito-border-radius);
-	gap: 1px;
-	background-color: var(--saito-border-color);
-	padding: 1px;
+	border-radius: 999px;
+	gap: 0.5rem;
+	background-color: var(--stun-noir-surface-overlay-strong);
+	border: 1px solid var(--stun-noir-outline-strong);
+	padding: 0.5rem;
 	width: fit-content;
 }
 
@@ -793,43 +774,44 @@ video#presentation {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	background-color: var(--saito-background-color);
+	background-color: var(--stun-noir-surface-high);
 	position: relative;
+	border-radius: 999px;
 }
 
-/*
-.control-list > div:first-child {
-	border-top-left-radius: var(--saito-border-radius);
-	border-bottom-left-radius: var(--saito-border-radius);
-}
-
-.control-list > div:last-child {
-	border-top-right-radius: var(--saito-border-radius);
-	border-bottom-right-radius: var(--saito-border-radius);
-}
-*/
 .control-list .icon_click_area.disabled {
-	background-color: grey;
+	background-color: var(--stun-noir-outline);
 }
 
 .control-list .icon_click_area.disabled i {
-	color: var(--saito-background-color);
+	color: var(--stun-noir-text);
 }
 
-.speaker {
-	border: 3px solid var(--saito-primary) !important;
+.call-controls .audio-control.disabled i,
+.call-controls .video-control.disabled i {
+	color: var(--stun-noir-text);
 }
 
 .control-list .icon_click_area label {
 	position: absolute;
-	color: var(--saito-font-color);
-	bottom: -2.5rem;
+	color: var(--stun-noir-text-muted);
+	bottom: -2.3rem;
 	font-size: 1.2rem;
 	text-align: center;
+	opacity: 0;
+	transform: translateY(4px);
+	pointer-events: none;
+	transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease;
+}
+
+.control-list .icon_click_area:hover label {
+	opacity: 1;
+	transform: translateY(0);
+	color: var(--stun-noir-text);
 }
 
 .icon_click_area i {
-	color: var(--saito-font-color);
+	color: var(--stun-noir-text);
 	transition: all 0.2s;
 	font-size: 2rem;
 	min-width: 2rem;
@@ -841,6 +823,10 @@ video#presentation {
 	cursor: pointer;
 }
 
+.icon_click_area.not-clickable {
+	cursor: default;
+}
+
 .icon_click_area:hover i {
 	transform: scale(1.2);
 }
@@ -850,117 +836,53 @@ video#presentation {
 	color: var(--saito-red);
 }
 
-@media screen and (min-width: 2560px) {
-	.footer {
-		padding: 2rem;
-		min-height: 120px;
+.disconnect-control.icon_click_area {
+	background: var(--stun-noir-danger);
+}
+
+.disconnect-control.icon_click_area i {
+	color: var(--stun-noir-danger-text);
+}
+
+.disconnect-control.icon_click_area:hover i.disconnect_btn {
+	color: var(--stun-noir-text);
+}
+
+.onair.recording {
+	background-color: var(--saito-red);
+}
+
+.onair.recording i {
+	color: var(--saito-white);
+	animation: pulsate 1s ease-in-out infinite;
+}
+
+.record-container.recording {
+	background-color: var(--saito-red);
+}
+
+.record-container.recording i {
+	color: var(--saito-white);
+	animation: pulsate 1s ease-in-out infinite;
+}
+
+@keyframes pulsate {
+	0% {
+		transform: scale(1);
+	}
+
+	50% {
+		transform: scale(1.2);
+	}
+
+	100% {
+		transform: scale(1);
 	}
 }
 
-@media screen and (max-width: 900px) {
-	.stun-chatbox main {
-		grid-template-rows: minmax(0, 1fr) minmax(200px, 20%);
-		grid-template-columns: minmax(100px, 1fr);
-	}
-
-	.video-box-container-large canvas#oscilloscope {
-		width: 10rem;
-		height: 10rem;
-	}
-
-	.stun-chatbox .video-container-large {
-		width: 100%;
-	}
-
-	.video-container-large.gallery-view {
-		overflow-y: auto;
-	}
-
-	.footer {
-		flex-direction: column;
-		align-items: flex-start;
-		justify-content: center;
-		align-items: center;
-		gap: 3rem;
-	}
-
-	.control-panel {
-		gap: 3rem;
-	}
-
-	.control-list .icon_click_area label {
-		bottom: -2rem;
-	}
-}
-
-@media screen and (max-width: 600px) {
-	.control-list .icon_click_area {
-		width: 4.2rem;
-		height: 4.2rem;
-	}
-
-	.icon_click_area i {
-		font-size: 1.8rem;
-	}
-
-	.control-list label {
-		display: none;
-	}
-
-	/* PiP effect */
-	.stun-chatbox .video-container-large {
-		padding: 0.25rem;
-		gap: 0;
-		grid-template-columns: minmax(0px, 1fr);
-		grid-template-rows: minmax(0px, 1fr);
-		border-radius: var(--saito-border-radius);
-	}
-	.stun-chatbox .video-container-large.split-view .side-videos {
-		position: absolute;
-		top: 5px;
-		right: 5px;
-		width: 25%;
-		flex-direction: column;
-	}
-	.stun-chatbox .video-container-large.split-view .side-videos .call-icons {
-		display: none;
-	}
-
-	.stun-chatbox .video-container-large.split-view .side-videos .video-call-info {
-		height: 2.75rem;
-	}
-	.stun-chatbox .video-container-large.split-view .side-videos .video-call-info .saito-address {
-		font-size: 1.5rem;
-	}
-	.stun-chatbox .video-container-large.split-view .side-videos .video-call-info i {
-		display: none;
-	}
-	.stun-chatbox .video-container-large.split-view .side-videos .peer-call-list .saito-identicon {
-		width: 2rem;
-		height: 2rem;
-	}
-	.stun-identicon-list img {
-		width: 3rem;
-		height: 3rem;
-	  }
-}
-
-@media screen and (max-width: 395px) {
-	.footer {
-		padding: 0.5rem;
-	}
-
-	.control-list .icon_click_area {
-		width: 3.8rem;
-		height: 3.8rem;
-	}
-
-	.icon_click_area i {
-		font-size: 1.6rem;
-	}
-}
-
-/* CHAT SETTINGS */
+/* ------------------------------------------------------------------ */
+/* 8. Pre-call chat settings                                           */
+/* ------------------------------------------------------------------ */
 
 .chat-settings-preview-section {
 	display: flex;
@@ -992,10 +914,6 @@ video#presentation {
 	margin-top: 1rem;
 }
 
-.chat-settings-test-mic {
-	margin-top: 1rem;
-}
-
 .chat-settings-audio-controls {
 	display: flex;
 	align-items: center;
@@ -1013,10 +931,12 @@ video#presentation {
 
 .chat-settings-preview {
 	position: relative;
-	border: 1px solid var(--stun-noir-border-light);
-	border-radius: var(--saito-border-radius);
+	border: 1px solid var(--stun-noir-outline);
+	border-radius: 0.9rem;
+	background-color: var(--stun-noir-surface-low);
+	overflow: hidden;
 	width: min(640px, 90vw);
-	min-height: min(480px, 70vh);
+	min-height: min(480px, 70dvh);
 	display: flex;
 }
 
@@ -1025,36 +945,51 @@ video#presentation {
 	left: 50%;
 	top: 50%;
 	transform: translate(-50%, -50%);
+	font-size: 1.3rem;
+	letter-spacing: 0.04em;
+	color: var(--stun-noir-text-muted);
 }
 
 .chat-settings video {
 	width: 100%;
 	max-width: 100vw;
 	border-radius: var(--saito-border-radius);
-	max-height: 50vh;
+	max-height: 50dvh;
 }
 
 .chat-settings-toggle-icons {
 	cursor: pointer;
 	position: absolute;
-	bottom: 1rem;
-	left: 1rem;
+	bottom: 1.4rem;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 0.7rem;
+	background: var(--stun-noir-glass-strong);
+	backdrop-filter: blur(10px);
+	padding: 0.5rem;
+	border-radius: 999px;
 }
 
 .chat-settings-toggle-icon {
-	color: var(--saito-primary);
-	width: 5rem;
+	width: 4.2rem;
+	height: 4.2rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+	font-size: 1.8rem;
+	color: var(--stun-noir-text);
+	background-color: var(--stun-noir-surface-high);
+	text-shadow: none;
 	text-align: center;
-	font-size: 3rem;
 	padding: 0.25rem;
 	cursor: pointer;
-	text-shadow:
-		0px 1px 2px var(--saito-gray-850),
-		0px -1px 2px var(--saito-gray-850);
 }
 
 .chat-settings-toggle-icon:hover {
-	color: var(--saito-secondary);
+	color: var(--stun-noir-bg);
+	background: linear-gradient(135deg, var(--stun-noir-accent), var(--stun-noir-accent-2));
 }
 
 .stun-input-settings {
@@ -1079,6 +1014,30 @@ video#presentation {
 	display: none;
 }
 
+.stun-input-settings.cinematic-inputs {
+	width: 100%;
+	border-radius: 0.9rem;
+	padding: 1.2rem;
+	background-color: var(--stun-noir-surface-low);
+	border: 1px solid var(--stun-noir-outline);
+}
+
+.stun-input-settings.cinematic-inputs legend {
+	display: block;
+	font-size: 1.2rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--stun-noir-accent);
+	margin-bottom: 0.65rem;
+}
+
+.stun-input-settings.cinematic-inputs select {
+	background-color: var(--stun-noir-surface-high);
+	color: var(--stun-noir-text);
+	border-radius: 0.75rem;
+	border: 1px solid var(--stun-noir-outline);
+}
+
 .chat-settings .toggle-icon {
 	color: var(--saito-white);
 	font-size: 1.5rem;
@@ -1089,19 +1048,10 @@ video#presentation {
 	padding: 0.5rem;
 }
 
-/*
-@media screen and (max-width: 900px) {
-	.chat-settings-preview {
-	}
+/* ------------------------------------------------------------------ */
+/* 9. Connection meter                                                 */
+/* ------------------------------------------------------------------ */
 
-	.chat-settings-preview-section {
-		width: 45rem;
-		max-width: 90vw;
-	}
-}
-*/
-
-/**  Connection meter **/
 .connection-strength {
 	width: 25px;
 	display: flex;
@@ -1165,77 +1115,9 @@ video#presentation {
 	visibility: visible;
 }
 
-@media screen and (max-width: 767px) {
-	.video-call-info i {
-		font-size: 1rem;
-		margin-right: 0.5rem;
-	}
-
-	/* .video-box-container-large video {
-    height: 100%;
-    width: auto;
-  } */
-
-	/* .video-box-container-large video {
-		height: 100%;
-		width: auto;
-	} */
-
-	.video-box-container-large > #connection-message {
-		width: 100%;
-	}
-
-	.video-box-container-large > #connection-message p {
-		font-size: 2rem;
-	}
-
-	.presentation,
-	.expanded-video {
-		resize: none;
-		overflow: hidden;
-		min-width: 100%;
-	}
-}
-
-@keyframes pulsate {
-	0% {
-		transform: scale(1);
-	}
-
-	50% {
-		transform: scale(1.2);
-	}
-
-	100% {
-		transform: scale(1);
-	}
-}
-
-.icon_click_area.not-clickable {
-	cursor: default;
-}
-
-.onair.recording {
-	background-color: var(--saito-red);
-}
-
-.onair.recording i {
-	color: var(--saito-white);
-	animation: pulsate 1s ease-in-out infinite;
-}
-
-.record-container.recording {
-	background-color: var(--saito-red);
-}
-
-.record-container.recording i {
-	color: var(--saito-white);
-	animation: pulsate 1s ease-in-out infinite;
-}
-
-/*
-  settings overlay
-*/
+/* ------------------------------------------------------------------ */
+/* 10. In-call settings overlay                                        */
+/* ------------------------------------------------------------------ */
 
 .videocall-option-label {
 	display: grid;
@@ -1243,281 +1125,6 @@ video#presentation {
 	gap: 1.5rem;
 	align-items: center;
 	cursor: pointer;
-	font-size: 2rem;
-}
-
-.videocall-setting-grid-item {
-	display: grid;
-	background: var(--saito-background-color);
-	color: var(--saito-font-color);
-	padding: 2rem;
-	font-size: 1.75rem;
-}
-
-/* Cinematic refresh overrides */
-
-.stun-chatbox {
-	background: var(--stun-noir-bg);
-	color: var(--stun-noir-text);
-	font-family: Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-.stun-chatbox .video-container-large {
-	padding: 1.25rem;
-	gap: 1.25rem;
-}
-
-.stun-chatbox .video-box-container-large {
-	border: 1px solid var(--stun-noir-outline);
-	border-radius: 0.9rem;
-	background: linear-gradient(
-		145deg,
-		var(--stun-noir-surface-low),
-		var(--stun-noir-surface)
-	);
-	box-shadow:
-		inset 0 1px 0 var(--stun-noir-white-soft),
-		var(--stun-noir-shadow-soft);
-}
-
-.stun-chatbox .video-box-container-large video {
-	border-radius: inherit;
-}
-
-.stun-chatbox .video-call-info {
-	padding: 0 1rem 1rem;
-	width: 100%;
-	bottom: 0;
-	height: auto;
-	grid-template-columns: min-content 1fr min-content min-content;
-}
-
-.stun-chatbox .video-call-info .saito-address {
-	background: var(--stun-noir-glass-soft);
-	backdrop-filter: blur(10px);
-	padding: 0.45rem 0.85rem;
-	border-radius: 999px;
-	font-size: 1.4rem;
-	max-width: fit-content;
-}
-
-.speaker {
-	border: 2px solid var(--stun-noir-accent-2) !important;
-	box-shadow: 0 0 24px -10px var(--stun-noir-accent-2);
-}
-
-.footer {
-	justify-content: center;
-	padding: 0 2rem 1.2rem;
-}
-
-.stun-toolbar-shell {
-	width: min(900px, calc(100vw - 3rem));
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1.8rem;
-	padding: 2.2rem;
-	background: var(--stun-noir-glass);
-	backdrop-filter: blur(12px);
-	border: 1px solid var(--stun-noir-outline-strong);
-	border-radius: 2rem;
-	box-shadow: var(--stun-noir-shadow);
-}
-
-.footer .timer {
-	flex-direction: row;
-	min-width: 0;
-	gap: 1.2rem;
-}
-
-.timer .counter {
-	color: var(--stun-noir-accent);
-	font-size: 1.8rem;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-		'Courier New', monospace;
-}
-
-.users-on-call {
-	background-color: var(--stun-noir-surface-overlay);
-	padding: 0.55rem 0.85rem;
-	border-radius: 999px;
-	border: 1px solid var(--stun-noir-outline-strong);
-	gap: 0.6rem;
-}
-
-.stun-identicon-list img {
-	width: 5rem;
-	height: 5rem;
-	border-radius: 999px;
-	border: 1px solid var(--stun-noir-outline-strong);
-}
-
-.users-on-call .invite-control {
-	width: 5rem;
-	height: 5rem;
-	background-color: var(--stun-noir-surface-high);
-	border: 1px solid var(--stun-noir-outline-strong);
-	transition: background-color 0.18s ease, border-color 0.18s ease;
-}
-
-.users-on-call .invite-control:hover,
-.users-on-call .invite-control:focus-visible {
-	background-color: var(--stun-noir-accent);
-	border-color: var(--stun-noir-accent);
-	outline: none;
-}
-
-.users-on-call .invite-control:hover i,
-.users-on-call .invite-control:focus-visible i {
-	color: var(--saito-button-primary-fg);
-}
-
-.control-panel {
-	gap: 1rem;
-	align-items: center;
-}
-
-.control-list {
-	background-color: var(--stun-noir-surface-overlay-strong);
-	border: 1px solid var(--stun-noir-outline-strong);
-	padding: 0.5rem;
-	gap: 0.5rem;
-	border-radius: 999px;
-}
-
-.control-list .icon_click_area {
-	width: 5rem;
-	height: 5rem;
-	border-radius: 999px;
-	background-color: var(--stun-noir-surface-high);
-}
-
-.control-list .icon_click_area label {
-	bottom: -2.3rem;
-	color: var(--stun-noir-text-muted);
-	opacity: 0;
-	transform: translateY(4px);
-	pointer-events: none;
-	transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease;
-}
-
-.control-list .icon_click_area:hover label {
-	opacity: 1;
-	transform: translateY(0);
-	color: var(--stun-noir-text);
-}
-
-.icon_click_area i {
-	color: var(--stun-noir-text);
-}
-
-.control-list .icon_click_area.disabled {
-	background-color: var(--stun-noir-outline);
-}
-
-.control-list .icon_click_area.disabled i {
-	color: var(--stun-noir-text);
-}
-
-.call-controls .audio-control.disabled i,
-.call-controls .video-control.disabled i {
-	color: var(--stun-noir-text);
-}
-
-.disconnect-control.icon_click_area {
-	background: var(--stun-noir-danger);
-}
-
-.disconnect-control.icon_click_area i {
-	color: var(--stun-noir-danger-text);
-}
-
-.disconnect-control.icon_click_area:hover i.disconnect_btn {
-	color: var(--stun-noir-text);
-}
-
-.chat-settings-preview {
-	border-radius: 0.9rem;
-	border: 1px solid var(--stun-noir-outline);
-	background-color: var(--stun-noir-surface-low);
-	overflow: hidden;
-}
-
-.chat-settings-preview span {
-	font-size: 1.3rem;
-	letter-spacing: 0.04em;
-	color: var(--stun-noir-text-muted);
-}
-
-.chat-settings-toggle-icons {
-	left: 50%;
-	transform: translateX(-50%);
-	bottom: 1.4rem;
-	display: flex;
-	gap: 0.7rem;
-	background: var(--stun-noir-glass-strong);
-	backdrop-filter: blur(10px);
-	padding: 0.5rem;
-	border-radius: 999px;
-}
-
-.chat-settings-toggle-icon {
-	width: 4.2rem;
-	height: 4.2rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 999px;
-	font-size: 1.8rem;
-	color: var(--stun-noir-text);
-	background-color: var(--stun-noir-surface-high);
-	text-shadow: none;
-}
-
-.chat-settings-toggle-icon:hover {
-	color: var(--stun-noir-bg);
-	background: linear-gradient(135deg, var(--stun-noir-accent), var(--stun-noir-accent-2));
-}
-
-.stun-input-settings.cinematic-inputs {
-	width: 100%;
-	border-radius: 0.9rem;
-	padding: 1.2rem;
-	background-color: var(--stun-noir-surface-low);
-	border: 1px solid var(--stun-noir-outline);
-}
-
-.stun-input-settings.cinematic-inputs legend {
-	display: block;
-	font-size: 1.2rem;
-	letter-spacing: 0.12em;
-	text-transform: uppercase;
-	color: var(--stun-noir-accent);
-	margin-bottom: 0.65rem;
-}
-
-.stun-input-settings.cinematic-inputs select {
-	background-color: var(--stun-noir-surface-high);
-	color: var(--stun-noir-text);
-	border-radius: 0.75rem;
-	border: 1px solid var(--stun-noir-outline);
-}
-
-.videocall-setting-grid-item {
-	background: var(--stun-noir-surface-low);
-	color: var(--stun-noir-text);
-	border-radius: 0.9rem;
-	border: 1px solid var(--stun-noir-outline) !important;
-}
-
-.videocall-setting-grid-item .saito-modal-title {
-	font-family: 'Space Grotesk', Manrope, sans-serif;
-	font-size: 2.2rem;
-	letter-spacing: -0.02em;
-}
-
-.videocall-option-label {
 	background: var(--stun-noir-surface-high);
 	border-radius: 0.9rem;
 	padding: 1rem 1.2rem;
@@ -1528,6 +1135,22 @@ video#presentation {
 .videocall-option-label.active,
 .videocall-option-label:hover {
 	border-color: var(--stun-noir-accent-glow);
+}
+
+.videocall-setting-grid-item {
+	display: grid;
+	background: var(--stun-noir-surface-low);
+	color: var(--stun-noir-text);
+	padding: 2rem;
+	font-size: 1.75rem;
+	border-radius: 0.9rem;
+	border: 1px solid var(--stun-noir-outline) !important;
+}
+
+.videocall-setting-grid-item .saito-modal-title {
+	font-family: 'Space Grotesk', Manrope, sans-serif;
+	font-size: 2.2rem;
+	letter-spacing: -0.02em;
 }
 
 .stun-settings-shell {
@@ -1547,7 +1170,36 @@ video#presentation {
 	margin-bottom: 1rem;
 }
 
+/* ------------------------------------------------------------------ */
+/* 11. Media queries                                                   */
+/* ------------------------------------------------------------------ */
+
 @media screen and (max-width: 900px) {
+	.stun-chatbox main {
+		grid-template-rows: minmax(0, 1fr) minmax(200px, 20%);
+		grid-template-columns: minmax(100px, 1fr);
+	}
+
+	.video-box-container-large canvas#oscilloscope {
+		width: 10rem;
+		height: 10rem;
+	}
+
+	.stun-chatbox .video-container-large {
+		width: 100%;
+	}
+
+	.video-container-large.gallery-view {
+		overflow-y: auto;
+	}
+
+	.footer {
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 3rem;
+	}
+
 	.stun-toolbar-shell {
 		flex-direction: column;
 		align-items: stretch;
@@ -1557,8 +1209,38 @@ video#presentation {
 	.footer .timer,
 	.control-panel {
 		justify-content: center;
-        flex-wrap: wrap;
-		}
+		flex-wrap: wrap;
+	}
+
+	.control-panel {
+		gap: 3rem;
+	}
+
+	.control-list .icon_click_area label {
+		bottom: -2rem;
+	}
+}
+
+@media screen and (max-width: 767px) {
+	.video-call-info i {
+		font-size: 1rem;
+		margin-right: 0.5rem;
+	}
+
+	.video-box-container-large > #connection-message {
+		width: 100%;
+	}
+
+	.video-box-container-large > #connection-message p {
+		font-size: 2rem;
+	}
+
+	.presentation,
+	.expanded-video {
+		resize: none;
+		overflow: hidden;
+		min-width: 100%;
+	}
 }
 
 @media screen and (max-width: 600px) {
@@ -1570,5 +1252,56 @@ video#presentation {
 	.users-on-call .invite-control {
 		width: 3.75rem;
 		height: 3.75rem;
+	}
+
+	.icon_click_area i {
+		font-size: 1.8rem;
+	}
+
+	.control-list label {
+		display: none;
+	}
+
+	/* PiP effect */
+	.stun-chatbox .video-container-large {
+		padding: 0.25rem;
+		gap: 0;
+		grid-template-columns: minmax(0px, 1fr);
+		grid-template-rows: minmax(0px, 1fr);
+		border-radius: var(--saito-border-radius);
+	}
+	.stun-chatbox .video-container-large.split-view .side-videos {
+		position: absolute;
+		top: 5px;
+		right: 5px;
+		width: 25%;
+		flex-direction: column;
+	}
+	.stun-chatbox .video-container-large.split-view .side-videos .call-icons {
+		display: none;
+	}
+
+	.stun-chatbox .video-container-large.split-view .side-videos .video-call-info {
+		height: 2.75rem;
+	}
+	.stun-chatbox .video-container-large.split-view .side-videos .video-call-info .saito-address {
+		font-size: 1.5rem;
+	}
+	.stun-chatbox .video-container-large.split-view .side-videos .video-call-info i {
+		display: none;
+	}
+	.stun-chatbox .video-container-large.split-view .side-videos .peer-call-list .saito-identicon {
+		width: 2rem;
+		height: 2rem;
+	}
+	.stun-identicon-list img {
+		width: 3rem;
+		height: 3rem;
+	}
+}
+
+@media screen and (max-width: 395px) {
+	.icon_click_area i {
+		font-size: 1.6rem;
 	}
 }

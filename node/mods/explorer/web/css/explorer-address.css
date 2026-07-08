@@ -1,0 +1,112 @@
+/*
+ * explorer-address.css
+ *
+ * Address page layout.
+ */
+
+.explorer-address-page {
+	min-width: 0;
+}
+
+.explorer-address-header {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: var(--explorer-space-3);
+}
+
+.explorer-address-header-text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	min-width: 0;
+	flex: 1;
+}
+
+.explorer-address-key-raw {
+	margin: 0;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-foreground);
+	word-break: break-all;
+	line-height: var(--explorer-leading-snug);
+}
+
+.explorer-address-dashboard {
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.explorer-address-metrics {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--explorer-space-4);
+	margin-bottom: var(--explorer-space-3);
+}
+
+.explorer-address-metric {
+	text-align: center;
+	min-width: 10rem;
+}
+
+.explorer-address-metric h3 {
+	margin: 0 0 0.2rem;
+	font-size: var(--explorer-text-xl);
+	font-weight: var(--explorer-font-bold);
+	color: var(--explorer-foreground);
+	font-variant-numeric: tabular-nums;
+	line-height: var(--explorer-leading-tight);
+}
+
+.explorer-address-metric p {
+	margin: 0;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-address-status {
+	margin: 0 0 var(--explorer-space-3);
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+	line-height: var(--explorer-leading-relaxed);
+}
+
+.explorer-address-table .explorer-address-delta,
+.explorer-address-table .explorer-address-balance {
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.explorer-address-delta-positive {
+	color: oklch(0.45 0.14 145);
+}
+
+.explorer-address-delta-negative {
+	color: oklch(0.52 0.19 27);
+}
+
+.explorer-address-balance {
+	font-weight: var(--explorer-font-medium);
+}
+
+.explorer-address-recipient {
+	white-space: nowrap;
+}
+
+@media (max-width: 48rem) {
+	.explorer-address-metrics {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--explorer-space-3);
+	}
+
+	.explorer-address-metric {
+		min-width: 0;
+	}
+
+	.explorer-address-table th,
+	.explorer-address-table td {
+		padding: var(--explorer-space-2) var(--explorer-space-2);
+		font-size: var(--explorer-text-xs);
+	}
+}

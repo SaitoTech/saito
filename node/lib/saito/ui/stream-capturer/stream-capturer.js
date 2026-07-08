@@ -981,10 +981,6 @@ class StreamCapturer {
     }
   }
 
-  emitUpdatedCombinedStream() {
-    this.app.connection.emit('screenrecord-update-stream', this.combinedStream);
-  }
-
   async getOrCreateVideoBox(publicKey) {
     if (!this.videoBox) {
       const streams = this.app.modules.getRespondTos('media-request');

@@ -110,10 +110,20 @@ class RustscriptMain {
     });
 
     document.querySelector('.rs-publish-script')?.addEventListener('click', () => {
-      if (this.shouldShowPublishButton()) {
+      if (!this.shouldShowPublishButton()) {
+        return;
+      }
+      if (this.isUnlockCommandBarAction()) {
+        this.unlockFlow.openSolution();
+      } else {
         this.publishFlow.openChoice();
       }
     });
+  }
+
+  /** Loaded/imported on-chain script — unlock workflow, not a new publish. */
+  isUnlockCommandBarAction() {
+    return this.mod.workflow === 'unlock';
   }
 
   isScriptPublishable() {
@@ -160,6 +170,15 @@ class RustscriptMain {
       return false;
     }
 
+    if (this.isUnlockCommandBarAction()) {
+      if (!isWitnessPhaseComplete(unlocking, this.mod.opcodes)) {
+        return false;
+      }
+      if (this.executionStatus?.success !== true) {
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -170,8 +189,10 @@ class RustscriptMain {
       return;
     }
     const visible = this.shouldShowPublishButton();
+    const isUnlock = this.isUnlockCommandBarAction();
     slot.classList.toggle('is-visible', visible);
     slot.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    btn.textContent = isUnlock ? 'Unlock' : 'Publish';
     btn.tabIndex = visible ? 0 : -1;
   }
 

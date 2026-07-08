@@ -12,6 +12,9 @@ module.exports = (view) => {
 		: '';
 
 	const descHtml = view.hasDescription ? view.description : 'No description provided';
+	const loadingHtml = view.imageLoading
+		? `<div class="store-product-media-loading" aria-hidden="true"></div>`
+		: '';
 	return `
     <div class="store-product-overlay">
       <div class="store-product-header">
@@ -36,6 +39,7 @@ module.exports = (view) => {
       <div class="store-product-body">
         <div class="store-product-media-col">
           <div class="store-product-media">
+            ${loadingHtml}
             <img class="store-product-main-image" src="${view.images[0]}" />
           </div>
           ${view.hasGallery ? `<div class="store-product-thumbs">${thumbHtml}</div>` : ''}

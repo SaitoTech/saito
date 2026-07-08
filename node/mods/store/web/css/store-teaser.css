@@ -21,6 +21,34 @@
 	background-repeat: no-repeat;
 }
 
+.teaser-media.dreamscape-placeholder {
+	background-color: #132736;
+}
+
+.teaser-media-loading .teaser-media-loading-indicator {
+	opacity: 1;
+}
+
+.teaser-media-loading-indicator {
+	position: absolute;
+	right: 10px;
+	bottom: 10px;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	border: 2px solid rgba(255, 255, 255, 0.35);
+	border-top-color: rgba(255, 255, 255, 0.95);
+	opacity: 0;
+	animation: store-teaser-media-spin 0.8s linear infinite;
+	pointer-events: none;
+}
+
+@keyframes store-teaser-media-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 .teaser-media.gradient-1 {
 	background-image: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
 }

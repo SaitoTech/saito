@@ -24,6 +24,45 @@ export default class Blockchain extends WasmWrapper<WasmBlockchain> {
       .then(() => {});
   }
 
+  public get() {
+    return this.instance.get();
+  }
+
+  public async getBlocks(
+    count: number,
+    includeOffchain: boolean = false
+  ) {
+    const wasmBlocks = await this.instance.get_blocks(
+      count,
+      includeOffchain
+    );
+
+    return wasmBlocks.map((block: any) =>
+      Saito.getInstance().factory.createBlock(block)
+    );
+  }
+
+  public async getBlock(
+    idOrHash: string | number | bigint,
+    includeTransactions: boolean = false
+  ) {
+    let wasmBlock;
+
+    if (typeof idOrHash === "string") {
+      wasmBlock = await this.instance.get_block(
+        idOrHash,
+        includeTransactions
+      );
+    } else {
+      wasmBlock = await this.instance.get_block_by_id(
+        BigInt(idOrHash),
+        includeTransactions
+      );
+    }
+
+    return Saito.getInstance().factory.createBlock(wasmBlock);
+  }
+
   public async reset() {
     return this.instance.reset();
   }

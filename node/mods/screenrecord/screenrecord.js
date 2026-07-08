@@ -37,23 +37,13 @@ class Record extends ModTemplate {
 		this.mediaRecorder = null;
 		this.is_capturing_stream = false;
 
-		this.app.connection.on('screenrecord-update-stream', async (combinedStream) => {
-			console.log('combined stream', combinedStream);
-			try {
-				if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
-					this.mediaRecorder.requestData();
-					await new Promise((resolve) => {
-						this.mediaRecorder.onstop = resolve;
-						this.mediaRecorder.stop();
-					});
-				}
-
-				// Keep existing chunks, don't reset them
-				await this.initializeMediaRecorder(this.chunks, combinedStream);
-			} catch (error) {
-				console.error('Error updating media recorder:', error);
-			}
-		});
+		//
+		// NOTE: there is deliberately no mid-recording stream swap here. The
+		// StreamCapturer records through a stable canvas track + audio mixer
+		// track, so layout changes and joining/leaving participants never
+		// require restarting the MediaRecorder (which would either discard
+		// earlier chunks or concatenate webm segments most players can't read).
+		//
 
 		this.app.connection.on('interrupt-screen-recording', async () => {
 			// Don't stop until the game ends...
@@ -62,6 +52,24 @@ class Record extends ModTemplate {
 			if (this?.mediaRecorder) {
 				await this.stopRecording();
 			}
+		});
+
+		//
+		// Someone joined the call after we started recording -- they never got
+		// the original 'start recording' message, so tell them now (and add
+		// them to members so our eventual 'stop recording' reaches them too)
+		//
+		this.app.connection.on('videocall-add-party', (publicKey) => {
+			if (!this.mediaRecorder || this.type !== 'videocall') {
+				return;
+			}
+			if (publicKey === this.publicKey) {
+				return;
+			}
+			if (!this.members.includes(publicKey)) {
+				this.members.push(publicKey);
+			}
+			this.sendStartRecordingTransaction([publicKey], true);
 		});
 	}
 
@@ -277,24 +285,7 @@ class Record extends ModTemplate {
 			if (this.app.BROWSER === 1) {
 				if (this.hasSeenTransaction(tx)) return;
 				if (tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
-					if (message.request === 'start recording') {
-						siteMessage(
-							`${this.app.keychain.returnUsername(
-								tx.from[0].publicKey
-							)} started recording their screen`,
-							1500
-						);
-						this.updateUIForRecordingStart();
-					}
-					if (message.request === 'stop recording') {
-						siteMessage(
-							`${this.app.keychain.returnUsername(
-								tx.from[0].publicKey
-							)} stopped recording their screen`,
-							1500
-						);
-						this.updateUIForRecordingStop();
-					}
+					this.receiveRecordingMessage(message, tx.from[0].publicKey);
 				}
 			}
 		}
@@ -306,37 +297,47 @@ class Record extends ModTemplate {
 		}
 
 		let message = tx.returnMessage();
-		console.log(message.module, 'screenrecord');
 		if (conf == 0) {
 			if (message.module === 'screenrecord') {
-				console.log('received information');
 				if (this.app.BROWSER === 1) {
 					if (this.hasSeenTransaction(tx, blk)) return;
 
 					if (tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
-						if (message.request === 'start recording') {
-							siteMessage(
-								`${this.app.keychain.returnUsername(
-									tx.from[0].publicKey
-								)} started recording their screen`,
-								1500
-							);
-							this.updateUIForRecordingStart();
-						}
-						if (message.request === 'stop recording') {
-							siteMessage(
-								`${this.app.keychain.returnUsername(
-									tx.from[0].publicKey
-								)} stopped recording their screen`,
-								1500
-							);
-							this.updateUIForRecordingStop();
-						}
-
-						// this.toggleNotification();
+						this.receiveRecordingMessage(message, tx.from[0].publicKey);
 					}
 				}
 			}
+		}
+	}
+
+	//
+	// Shared handling for recording signals, which arrive over relay (instant)
+	// and may be re-delivered on chain -- hasSeenTransaction dedupes the pair
+	//
+	receiveRecordingMessage(message, sender) {
+		let username = this.app.keychain.returnUsername(sender);
+
+		if (message.request === 'recording countdown') {
+			this.showCountdown(message.seconds || 5, sender);
+		}
+
+		if (message.request === 'start recording') {
+			//
+			// message.ongoing means we joined a call that was already being
+			// recorded -- word it in the present tense
+			//
+			siteMessage(
+				message.ongoing
+					? `${username} is recording this call`
+					: `${username} started recording their screen`,
+				2500
+			);
+			this.updateUIForRecordingStart(sender);
+		}
+
+		if (message.request === 'stop recording') {
+			siteMessage(`${username} stopped recording their screen`, 1500);
+			this.updateUIForRecordingStop();
 		}
 	}
 
@@ -398,7 +399,11 @@ class Record extends ModTemplate {
 		}
 	}
 
-	async initializeMediaRecorder(existingChunks, stream) {
+	async initializeMediaRecorder(stream) {
+		//
+		// each recording starts fresh -- chunks from a previous session would
+		// corrupt the output file
+		//
 		this.chunks = [];
 		let mimeType =
 			stream.getVideoTracks().length > 0
@@ -450,7 +455,7 @@ class Record extends ModTemplate {
 			this.recorderVideoCallStreamCapture.view_window = '.video-container-large';
 			this.recording_target_selector = this.recorderVideoCallStreamCapture.view_window;
 			let stream = this.recorderVideoCallStreamCapture.captureVideoCallStreams(includeCamera);
-			this.initializeMediaRecorder(this.chunks, stream);
+			this.initializeMediaRecorder(stream);
 		} else if (type === 'game') {
 			let stream;
 			this.gameRecordCapturer = new StreamCapturer(this.app, this, this.logo);
@@ -458,7 +463,7 @@ class Record extends ModTemplate {
 			this.recording_target_selector = container;
 			this.is_recording_game = true;
 			stream = await this.gameRecordCapturer.captureGameStream(includeCamera);
-			this.initializeMediaRecorder(this.chunks, stream);
+			this.initializeMediaRecorder(stream);
 
 			// show controls
 			this.screenrecordControls = new ScreenRecordControls(this.app, this);
@@ -538,11 +543,23 @@ class Record extends ModTemplate {
 			this.screenrecordControls = null;
 		}
 
+		//
+		// Update the UI and tell peers the recording ended NOW -- the filename
+		// prompt in downloadMedia can sit open indefinitely and must not delay
+		// the stop notification
+		//
+		this.updateUIForRecordingStop();
+		this.sendStopRecordingTransaction(this.members);
+		this.members = [];
+
 		if (this.mediaRecorder) {
+			const recorder = this.mediaRecorder;
+			this.mediaRecorder = null;
+
 			let fn = () => {
 				return new Promise((resolve, reject) => {
 					try {
-						this.mediaRecorder.onstop = async () => {
+						recorder.onstop = async () => {
 							const blob = new Blob(this.chunks, { type: 'video/webm' });
 							const hasVideo = this.chunks.some(
 								(chunk) => chunk.type.includes('video') || chunk.type === 'video/webm'
@@ -564,12 +581,11 @@ class Record extends ModTemplate {
 						reject();
 					}
 
-					this.mediaRecorder.stop();
+					recorder.stop();
 				});
 			};
 
 			await fn();
-			this.mediaRecorder = null;
 		}
 		// if (this.localStream) {
 		// 	this.localStream.getTracks().forEach((track) => track.stop());
@@ -577,20 +593,87 @@ class Record extends ModTemplate {
 		// }
 
 		// this.removeVideoBox()
-
-		this.updateUIForRecordingStop();
-		this.sendStopRecordingTransaction(this.members);
-
-		this.mediaRecorder = null;
-		this.members = [];
 	}
 
-	async sendStartRecordingTransaction(keys) {
+	//
+	// Full-screen count-in overlay. Shown to the recorder before recording
+	// starts and mirrored to everyone else in the call so nobody is surprised.
+	//
+	showCountdown(seconds = 5, sender = null) {
+		let existingCountdown = document.getElementById('screenrecord-countdown-overlay');
+		if (existingCountdown) {
+			existingCountdown.remove();
+		}
+
+		let label =
+			sender && sender !== this.publicKey
+				? `${this.app.keychain.returnUsername(sender)} starts recording in`
+				: 'Recording starts in';
+
+		let countdown = document.createElement('div');
+		countdown.id = 'screenrecord-countdown-overlay';
+		countdown.className = 'screenrecord-countdown-overlay';
+		countdown.setAttribute('aria-live', 'assertive');
+		countdown.innerHTML = `
+			<div class="screenrecord-countdown-label">${label}</div>
+			<div class="screenrecord-countdown-number">${seconds}</div>
+		`;
+		document.body.appendChild(countdown);
+
+		let countNumber = countdown.querySelector('.screenrecord-countdown-number');
+		let countLabel = countdown.querySelector('.screenrecord-countdown-label');
+		let count = seconds;
+
+		return new Promise((resolve) => {
+			const interval = setInterval(() => {
+				count--;
+				countNumber.textContent = count;
+
+				if (count <= 0) {
+					clearInterval(interval);
+					countdown.classList.add('screenrecord-countdown-started');
+					if (countLabel) {
+						countLabel.textContent = 'Recording started';
+					}
+					setTimeout(() => {
+						countdown.remove();
+						resolve();
+					}, 500);
+				}
+			}, 1000);
+		});
+	}
+
+	async sendCountdownTransaction(keys = [], seconds = 5) {
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
 		try {
 			newtx.msg = {
 				module: 'screenrecord',
-				request: 'start recording'
+				request: 'recording countdown',
+				seconds
+			};
+			for (let peer of keys) {
+				if (peer != this.publicKey) {
+					newtx.addTo(peer);
+				}
+			}
+
+			await newtx.sign();
+
+			this.app.connection.emit('relay-transaction', newtx);
+		} catch (error) {
+			console.log('error sending recording countdown transaction', error);
+		}
+	}
+
+	async sendStartRecordingTransaction(keys, ongoing = false) {
+		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
+		try {
+			newtx.msg = {
+				module: 'screenrecord',
+				request: 'start recording',
+				// true when notifying a late joiner that recording is already underway
+				ongoing
 			};
 			for (let peer of keys) {
 				if (peer != this.publicKey) {
@@ -627,12 +710,27 @@ class Record extends ModTemplate {
 		this.app.network.propagateTransaction(newtx);
 	}
 
-	updateUIForRecordingStart() {
+	updateUIForRecordingStart(remote_sender = null) {
 		const recordIcon = document.querySelector('.fa-record-vinyl');
 		if (recordIcon) {
 			console.log('updating UI for recording start');
 			recordIcon.classList.add('recording');
-			recordIcon.parentElement.classList.add('recording');
+
+			const container = recordIcon.parentElement;
+			container.classList.add('recording');
+
+			//
+			// Recording is not exclusive -- the button stays clickable so you can
+			// record too, but the label/tooltip say who is already recording
+			//
+			const label = container.querySelector('label');
+			if (remote_sender) {
+				container.title = `${this.app.keychain.returnUsername(remote_sender)} is recording the call`;
+				if (label) label.innerText = 'Recording';
+			} else {
+				container.title = 'Stop recording';
+				if (label) label.innerText = 'Stop';
+			}
 		}
 
 		const recordingTarget = document.querySelector(this.recording_target_selector || '.video-container-large');
@@ -645,7 +743,13 @@ class Record extends ModTemplate {
 		const recordIcon = document.querySelector('.fa-record-vinyl');
 		if (recordIcon) {
 			recordIcon.classList.remove('recording');
-			recordIcon.parentElement.classList.remove('recording');
+
+			const container = recordIcon.parentElement;
+			container.classList.remove('recording');
+			container.title = 'Record the call';
+
+			const label = container.querySelector('label');
+			if (label) label.innerText = 'Record';
 		}
 
 		document.querySelectorAll('.screenrecord-recording-border').forEach((recordingTarget) => {

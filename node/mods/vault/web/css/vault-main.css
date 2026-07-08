@@ -172,3 +172,19 @@ body.vault {
 .vault-nfts .send-nft-list {
   padding: 5px;
 }
+
+#saito-container .vault-access-textlink {
+  margin-top: auto;
+  text-align: center;
+  font-size: 1.9rem;
+  padding-bottom: 60px;
+  opacity: 0.8;
+  cursor: pointer;
+  color: var(--saito-primary-text);
+  text-decoration: underline dashed;
+  text-underline-offset: 0.25em;
+}
+
+#saito-container .vault-access-textlink:hover {
+  opacity: 1;
+}

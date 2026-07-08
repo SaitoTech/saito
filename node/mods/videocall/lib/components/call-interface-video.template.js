@@ -6,8 +6,8 @@ module.exports  = (mod, videoEnabled = true, audioEnabled = true) => {
     <div class="stun-chatbox hide-scrollbar" id="stun-chatbox">
       <main>
         <section class="video-container-large split-view">
-          <div class="expanded-video"></div>
-          <div class="side-videos"></div>
+          <div class="videocall-primary expanded-video"></div>
+          <div class="videocall-secondary side-videos"></div>
         </section>
 
         <section class="footer">

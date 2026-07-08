@@ -1,0 +1,101 @@
+/**
+ * Send a "request blocks" off-chain request to an Explorer peer.
+ */
+function requestBlocksFromPeer(app, peer, options = {}, callback = null) {
+  const count = options.count ?? 10;
+  const includeOffchain = options.include_offchain ?? true;
+
+  const data = {
+    request: 'request blocks',
+    count,
+    include_offchain: includeOffchain,
+  };
+
+  if (options.before_id != null) {
+    data.before_id = Number(options.before_id);
+  }
+
+  return app.network.sendRequestAsTransaction(
+    'request blocks',
+    data,
+    callback,
+    peer.publicKey
+  );
+}
+
+/**
+ * Send a "request block" off-chain request to an Explorer peer.
+ */
+function requestBlockFromPeer(app, peer, identifier, includeTransactions = true, callback = null) {
+  const data = {
+    request: 'request block',
+    include_transactions: includeTransactions,
+  };
+
+  if (typeof identifier === 'bigint' || typeof identifier === 'number') {
+    data.block_id = String(identifier);
+  } else {
+    data.hash = String(identifier);
+  }
+
+  return app.network.sendRequestAsTransaction('request block', data, callback, peer.publicKey);
+}
+
+/**
+ * Send a "request info" off-chain request to an Explorer peer.
+ * Returns a blockchain summary (latest/genesis block, burn fee, difficulty,
+ * recent fees and Golden Ticket coverage) describing the serving node.
+ */
+function requestInfoFromPeer(app, peer, callback = null) {
+  return app.network.sendRequestAsTransaction(
+    'request info',
+    {
+      request: 'request info',
+    },
+    callback,
+    peer.publicKey
+  );
+}
+
+/**
+ * Send a "request supply" off-chain request to an Explorer peer.
+ */
+function requestSupplyFromPeer(app, peer, options = {}, callback = null) {
+  const count = options.count ?? 8;
+
+  return app.network.sendRequestAsTransaction(
+    'request supply',
+    {
+      request: 'request supply',
+      count,
+    },
+    callback,
+    peer.publicKey
+  );
+}
+
+/**
+ * Send a "request address" off-chain request to an Explorer peer.
+ */
+function requestAddressFromPeer(app, peer, publickey, options = {}, callback = null) {
+  const count = options.count ?? options.limit ?? 100;
+
+  return app.network.sendRequestAsTransaction(
+    'request address',
+    {
+      request: 'request address',
+      publickey: String(publickey),
+      count,
+    },
+    callback,
+    peer.publicKey
+  );
+}
+
+module.exports = {
+  requestBlocksFromPeer,
+  requestBlockFromPeer,
+  requestInfoFromPeer,
+  requestSupplyFromPeer,
+  requestAddressFromPeer,
+};

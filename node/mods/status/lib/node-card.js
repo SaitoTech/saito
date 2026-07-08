@@ -1,5 +1,4 @@
 const NodeCardTemplate = require('./node-card.template');
-const S = require('saito-js/saito').default;
 const jsonTree = require('json-tree-viewer');
 
 class NodeCard {
@@ -15,7 +14,6 @@ class NodeCard {
     this.contentEl = null;
     this.stats = {};
     this.peers = [];
-    this.congestion = {};
   }
 
   async render() {
@@ -46,18 +44,10 @@ try {
   async loadData() {
     if (!this.contentEl) return;
     try {
-        const [peerRaw, congestionRaw] = await Promise.all([
-          this.fetchData('stats/peers'),
-          this.fetchData('stats/congestion'),
-        ]);
-        
+        const data = await this.fetchData('json/peers');
+
         this.stats = {};
-        this.peers = Object.values(
-          this.safeParse(peerRaw, { index_to_peers: {} }).index_to_peers
-        );
-        this.congestion = this.safeParse(congestionRaw);
-   
-        console.log("congestion: ", this.congestion);
+        this.peers = Array.isArray(data?.peers) ? data.peers : [];
 
     } catch (e) {
       console.error('Error loading data:', e);
@@ -69,14 +59,23 @@ try {
     this.renderContent();
   }
 
-  fetchData(path) {
+  async fetchData(path) {
     if (this.props.endpoint) {
-      return fetch(`${this.props.endpoint}/${path}`).then(r => r.text());
+      const response = await fetch(`${this.props.endpoint}/${path}`);
+      return this.safeParse(await response.text(), { peers: [] });
     }
-    if (path.includes('peers')) {
-      return S.getLibInstance().get_peer_stats();
-    }
-    return S.getLibInstance().get_congestion_stats();
+
+    const peers = await this.app.core.network.getPeers();
+    return {
+      peers: peers.map((peer) => ({
+        id: peer.id.toString(),
+        publicKey: peer.publicKey,
+        keyList: peer.keyList,
+        synctype: peer.synctype,
+        services: peer.services,
+        status: peer.status,
+      })),
+    };
   }
 
   safeParse(data, fallback = {}) {
@@ -154,7 +153,6 @@ try {
       pubkey = this.props.options.wallet.publicKey;
 
       this.root.querySelector('.node-card-info .ip').innerHTML = ip;
-      this.root.querySelector(`.node-card-menu .monitors`).style.display = 'none';
     } else {
       if (this.props.config) {
         let config = this.props.config;
@@ -176,10 +174,6 @@ try {
     
       jsonTree.create(this.peers, this.contentEl);
     
-    } else if (activeTab === 'monitors') {
-
-      jsonTree.create(this.congestion, this.contentEl);
-
     } else if (activeTab === 'peers') {
       console.log("this.peers:", this.peers);
       this.peers.forEach(p => {
@@ -204,9 +198,8 @@ try {
         <div class="peer-link-info">
           <div class="peer-title-container">
             <span class="peer-title">Browser</span>            
-            <span class="peer-ip">(${peer.ip_address})</span>
           </div>
-          <div class="perr-pubkey">${peer.public_key}</div>
+          <div class="perr-pubkey">${peer.publicKey}</div>
         </div>
       `
 

@@ -874,7 +874,34 @@ pub async fn evaluate_script(json: JsString) -> u8 {
 
     let mut script = Script::new();
     script.parse(&json_str);
-    script.validate(None, None, Some(&blockchain))
+    script.validate(None, None, Some(&blockchain), None)
+}
+
+#[wasm_bindgen]
+pub async fn evaluate_script_with_transaction(json: JsString, tx: &WasmTransaction) -> u8 {
+    let json_str = match json.as_string() {
+        Some(s) => s,
+        None => return 0,
+    };
+
+    if serde_json::from_str::<serde_json::Value>(&json_str).is_err() {
+        return 0;
+    }
+
+    let saito = SAITO.lock().await;
+    let blockchain = saito
+        .as_ref()
+        .unwrap()
+        .routing_thread
+        .blockchain_lock
+        .read()
+        .await;
+
+    let tx_ref = Some(&tx.tx);
+
+    let mut script = Script::new();
+    script.parse(&json_str);
+    script.validate(tx_ref, None, Some(&blockchain), None)
 }
 
 #[wasm_bindgen]

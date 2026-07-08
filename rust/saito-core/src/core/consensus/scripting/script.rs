@@ -1,9 +1,10 @@
 use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
-use crate::core::consensus::slip::Slip;
+use crate::core::consensus::slip::{Slip, SlipType};
 use crate::core::consensus::transaction::Transaction;
 use crate::core::defs::{PrintForLog, SaitoPublicKey};
 use crate::core::util::crypto;
+use log::info;
 use serde_json::{json, Value};
 
 use super::opcodes::{
@@ -47,12 +48,17 @@ impl Script {
         tx: Option<&Transaction>,
         blk: Option<&Block>,
         blockchain: Option<&Blockchain>,
+        current_p2sh_idx: Option<usize>,
     ) -> u8 {
         let mut context = json!({
             "script": {},
             "witness": {},
             "variables": {}
         });
+
+        if let Some(idx) = current_p2sh_idx {
+            context["__current_p2sh_idx"] = json!(idx);
+        }
 
         fn eval(
             node: &Value,
@@ -424,7 +430,7 @@ mod tests {
     fn validate_checkhash_fixture_returns_success() {
         let mut script = Script::new();
         script.parse(super::TEST_SCRIPT);
-        assert_eq!(script.validate(None, None, None), 1);
+        assert_eq!(script.validate(None, None, None, None), 1);
     }
 
     #[test]
@@ -440,7 +446,7 @@ mod tests {
   }
 }"#,
         );
-        assert_eq!(script.validate(None, None, None), 1);
+        assert_eq!(script.validate(None, None, None, None), 1);
     }
 
     #[test]
@@ -456,7 +462,7 @@ mod tests {
   }
 }"#,
         );
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -481,7 +487,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -498,7 +504,7 @@ mod tests {
   }
 }"#,
         );
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -515,7 +521,7 @@ mod tests {
   }
 }"#,
         );
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -538,7 +544,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -564,7 +570,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 1);
+        assert_eq!(script.validate(None, None, None, None), 1);
     }
 
     #[test]
@@ -589,7 +595,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -616,7 +622,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 1);
+        assert_eq!(script.validate(None, None, None, None), 1);
     }
 
     #[test]
@@ -635,7 +641,7 @@ mod tests {
             }
         })).unwrap());
 
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -651,7 +657,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 1);
+        assert_eq!(script.validate(None, None, None, None), 1);
     }
 
     #[test]
@@ -667,7 +673,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -675,7 +681,7 @@ mod tests {
         let mut script = Script::new();
         script.parse(r#"{"op":"SUMFIELDS","b":2,"into":"expiry"}"#);
 
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -691,7 +697,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 1);
+        assert_eq!(script.validate(None, None, None, None), 1);
     }
 
     #[test]
@@ -707,7 +713,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 0);
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]
@@ -723,7 +729,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 1);
+        assert_eq!(script.validate(None, None, None, None), 1);
     }
 
     #[test]
@@ -767,7 +773,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None), 1);
+        assert_eq!(script.validate(None, None, None, None), 1);
     }
 
     #[test]
@@ -886,7 +892,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(Some(&tx), None, None), 1);
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
     }
 
     #[test]
@@ -919,7 +925,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(Some(&tx), None, None), 1);
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
     }
 }
 
@@ -948,16 +954,31 @@ fn set_at(target: &mut Value, path: &[&str], value: Value) {
     }
 }
 
-fn resolve_p2sh_slip_field(slips: &[Slip], field: &str) -> Value {
-    let Some(slip) = slips.iter().find(|s| s.public_key[0] == 0x00) else {
-        return Value::String(String::new());
-    };
+fn resolve_p2sh_slip_field(slips: &[Slip], field: &str, p2sh_ordinal: usize) -> Value {
+    let mut ordinal = 0usize;
 
-    match field {
-        "utxoset_key" => Value::String(slip.utxoset_key.to_hex()),
-        "public_key" => Value::String(slip.public_key.to_base58()),
-        _ => Value::String(String::new()),
+    for slip in slips {
+        if slip.slip_type == SlipType::Bound {
+            continue;
+        }
+
+        if slip.public_key[0] != 0x00 {
+            continue;
+        }
+
+        if ordinal != p2sh_ordinal {
+            ordinal += 1;
+            continue;
+        }
+
+        return match field {
+            "utxoset_key" => Value::String(slip.utxoset_key.to_hex()),
+            "public_key" => Value::String(slip.public_key.to_base58()),
+            _ => Value::String(String::new()),
+        };
     }
+
+    Value::String(String::new())
 }
 
 pub(crate) fn resolved_value_to_message_string(value: &Value) -> String {
@@ -1033,10 +1054,22 @@ pub(crate) fn resolve_ref(
     if let Some(remainder) = path.strip_prefix("tx.") {
         if let Some(tx) = tx {
             if let Some(field) = remainder.strip_prefix("from.p2sh.") {
-                return resolve_p2sh_slip_field(&tx.from, field);
+                let p2sh_ordinal = context
+                    .get("__current_p2sh_idx")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0) as usize;
+
+                let resolved = resolve_p2sh_slip_field(&tx.from, field, p2sh_ordinal);
+                if field == "utxoset_key" {
+                    info!(
+    		        "RUSTSCRIPT DEREFERENCE\n\nExpression:\n    tx.from.p2sh.utxoset_key\n\nResolved Value:\n    {}",
+    		        resolved_value_to_message_string(&resolved)
+    		    );
+                }
+                return resolved;
             }
             if let Some(field) = remainder.strip_prefix("to.p2sh.") {
-                return resolve_p2sh_slip_field(&tx.to, field);
+                return resolve_p2sh_slip_field(&tx.to, field, 0);
             }
 
             let tx_json = serde_json::to_value(tx).unwrap_or(Value::Null);

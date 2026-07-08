@@ -1,11 +1,15 @@
-module.exports = (data = {}, cardId = '', mediaClass = '', mediaBackground = '') => {
+module.exports = (data = {}, cardId = '', mediaClass = '', mediaBackground = '', badgeClass = '', showLoading = false) => {
 	const actionSlot = data.has_action_text || data.show_buy_now
 		? `<div class="card-action-slot">Buy Now</div>`
+		: '';
+	const loadingSlot = showLoading
+		? `<div class="teaser-media-loading-indicator" aria-hidden="true"></div>`
 		: '';
 
 	return `
     <div class="store-teaser" id="${cardId}">
-      <div class="teaser-media ${mediaClass}" style="background: ${mediaBackground};">
+      <div class="teaser-media ${mediaClass}${showLoading ? ' teaser-media-loading' : ''}" style="background: ${mediaBackground};">
+        ${loadingSlot}
         ${actionSlot}
         <div class="teaser-identicon">
           <img src="${data.identicon}" />

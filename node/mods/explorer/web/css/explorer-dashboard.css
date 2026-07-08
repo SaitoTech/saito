@@ -1,0 +1,166 @@
+/*
+ * explorer-dashboard.css
+ *
+ * Dashboard component layout.
+ */
+
+.explorer-dashboard-component {
+	margin-bottom: 0;
+}
+
+.explorer-dashboard-grid {
+	display: grid;
+	grid-template-columns: 1.05fr 1.35fr 1fr;
+	gap: var(--explorer-space-2);
+	align-items: stretch;
+}
+
+.explorer-dashboard-card {
+	padding: var(--explorer-space-3) var(--explorer-space-4);
+	min-height: 9rem;
+}
+
+.explorer-dashboard-split {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--explorer-space-3);
+	height: 100%;
+}
+
+.explorer-dashboard-peer-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--explorer-space-2);
+}
+
+.explorer-dashboard-peer-card > .explorer-stat-label {
+	margin-bottom: var(--explorer-space-1);
+}
+
+.explorer-dashboard-peer-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--explorer-space-3);
+	flex: 1;
+}
+
+/* Allow long values (public key, endpoint) to shrink so right-side ellipsis engages. */
+.explorer-dashboard-peer-grid > .explorer-stat {
+	min-width: 0;
+}
+
+.explorer-dashboard-peer-status {
+	margin: 0;
+	flex: 1;
+	display: flex;
+	align-items: center;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-dashboard-peer-error {
+	color: var(--explorer-destructive);
+}
+
+.explorer-dashboard-peer-key .explorer-link {
+	font-family: var(--explorer-font-mono);
+	font-size: 0.92em;
+	font-weight: var(--explorer-font-normal);
+}
+
+/* Centered loading state (currently used by the Peer Node Information card). */
+.explorer-dashboard-card--loading {
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
+
+.explorer-dashboard-loading {
+	margin: 0;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-dashboard-status {
+	margin: 0;
+	flex: 1;
+	display: flex;
+	align-items: center;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-dashboard-status--error {
+	color: var(--explorer-destructive);
+}
+
+.explorer-dashboard-info-card,
+.explorer-dashboard-modules-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--explorer-space-2);
+}
+
+.explorer-dashboard-info-card > .explorer-dashboard-quad {
+	flex: 1;
+}
+
+.explorer-dashboard-quad {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--explorer-space-3) var(--explorer-space-4);
+	height: 100%;
+}
+
+.explorer-module-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--explorer-space-2);
+	flex: 1;
+}
+
+.explorer-module-item {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--explorer-space-3);
+	font-size: var(--explorer-text-sm);
+}
+
+.explorer-module-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: var(--explorer-font-medium);
+}
+
+.explorer-module-count {
+	flex: none;
+	white-space: nowrap;
+	color: var(--explorer-muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 75rem) {
+	.explorer-dashboard-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 48rem) {
+	.explorer-dashboard-card {
+		padding: var(--explorer-space-3);
+		min-height: auto;
+	}
+
+	.explorer-dashboard-split,
+	.explorer-dashboard-quad,
+	.explorer-dashboard-peer-grid {
+		grid-template-columns: 1fr;
+		gap: var(--explorer-space-2);
+	}
+}

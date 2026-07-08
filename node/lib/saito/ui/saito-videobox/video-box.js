@@ -11,7 +11,13 @@ class VideoBox {
     this.video_class = '';
     this.display_wave_form = false;
 
-    app.connection.on('peer-toggle-audio-status', ({ enabled, public_key }) => {
+    //
+    // Handlers are kept by reference so destroy() can unhook them from the
+    // global emitter -- otherwise dead boxes keep reacting to events forever
+    //
+    this.listeners = {};
+
+    this.addListener('peer-toggle-audio-status', ({ enabled, public_key }) => {
       if (public_key !== this.stream_id) return;
 
       //console.debug('Videobox.peer-toggle-audio-status', public_key, enabled);
@@ -36,38 +42,17 @@ class VideoBox {
         }
       }
     });
-    app.connection.on('peer-toggle-video-status', ({ enabled, public_key }) => {
+
+    this.addListener('peer-toggle-video-status', ({ enabled, public_key }) => {
       if (public_key !== this.stream_id) return;
 
       //console.debug('Videobox.peer-toggle-video-status', public_key, enabled);
 
       this.toggleMask(enabled);
-
-      /*const video_box = document.getElementById(
-                    `stream_${this.stream_id}`
-                );
-                if (video_box.querySelector(`.video-call-info`)) {
-                    let element = video_box.querySelector(
-                        `.video-call-info .fa-video-slash`
-                    );
-
-                    if (!enabled && !element) {
-                        video_box
-                            .querySelector(`.video-call-info`)
-                            .insertAdjacentHTML(
-                                'beforeend',
-                                `<i class="fas fa-video-slash"> </i>`
-                            );
-                    } else {
-                        if (element) {
-                            element.parentElement.removeChild(element);
-                        }
-                    }
-                }*/
     });
 
-    this.app.connection.on('stun-update-connection-message', (peer_id, status) => {
-      if (!this.stream_id !== peer_id) {
+    this.addListener('stun-update-connection-message', (peer_id, status) => {
+      if (this.stream_id !== peer_id) {
         return;
       }
 
@@ -80,7 +65,7 @@ class VideoBox {
       }
     });
 
-    app.connection.on('peer-list', (address, list) => {
+    this.addListener('peer-list', (address, list) => {
       if (address !== this.stream_id) {
         return;
       }
@@ -91,6 +76,19 @@ class VideoBox {
     });
   }
 
+  addListener(event, handler) {
+    this.listeners[event] = handler;
+    this.app.connection.on(event, handler);
+  }
+
+  destroy() {
+    for (let event in this.listeners) {
+      this.app.connection.removeListener(event, this.listeners[event]);
+    }
+    this.listeners = {};
+    this.remove();
+  }
+
   render(stream = null) {
     if (stream) {
       this.stream = stream;
@@ -98,12 +96,16 @@ class VideoBox {
 
     //console.debug(`Videobox.render: [${this.stream_id}]`, stream);
 
+    let videoBox = document.getElementById(`stream_${this.stream_id}`);
+
     //Add Video Box
-    if (!document.getElementById(`stream_${this.stream_id}`)) {
+    if (!videoBox) {
       this.app.browser.addElementToClass(
         videoBoxTemplate(this.stream_id, this.app, this.mod, this.video_class),
         this.containerClass
       );
+
+      videoBox = document.getElementById(`stream_${this.stream_id}`);
 
       const videoBoxVideo = document.querySelector(`#stream_${this.stream_id} video`);
       videoBoxVideo.addEventListener('play', (event) => {
@@ -122,12 +124,28 @@ class VideoBox {
           event.currentTarget.parentElement.classList.remove('portrait');
         }
       });
+    } else if (this.containerClass) {
+      //
+      // Reconcile placement: move the live element rather than rebuilding it,
+      // so the <video> keeps playing without flashing black
+      //
+      const target = document.querySelector(`.video-container-large .${this.containerClass}`);
+      if (target && videoBox.parentElement !== target) {
+        target.appendChild(videoBox);
+      }
     }
 
     if (this.stream) {
       this.removeConnectionMessage();
       const videoBoxVideo = document.querySelector(`#stream_${this.stream_id} video`);
-      videoBoxVideo.srcObject = this.stream;
+
+      //
+      // Re-assigning the same MediaStream restarts playback, so only touch
+      // srcObject when the stream actually changed
+      //
+      if (videoBoxVideo.srcObject !== this.stream) {
+        videoBoxVideo.srcObject = this.stream;
+      }
 
       if (this.stream.getVideoTracks()?.length > 0) {
         //steam includes video, as it should
@@ -142,15 +160,23 @@ class VideoBox {
       }
 
       if (this.stream.getAudioTracks()?.length > 0) {
-        let enabled =
-          this.stream.getAudioTracks()[0].enabled && !this.stream.getAudioTracks()[0].muted;
-        if (this.stream_id === 'presentation') {
-          enabled = true;
+        //
+        // track.enabled/.muted on a remote track reflect transport-level state
+        // (e.g. transient jitter dropouts), not the peer's actual mute preference.
+        // The real mute state comes from the 'toggle-audio' signaling message, so
+        // only derive it from the raw track here for streams we control ourselves --
+        // otherwise this can race with and overwrite the correct remote mute icon.
+        //
+        if (this.stream_id === 'local' || this.stream_id === 'presentation') {
+          let enabled =
+            this.stream_id === 'presentation'
+              ? true
+              : this.stream.getAudioTracks()[0].enabled && !this.stream.getAudioTracks()[0].muted;
+          this.app.connection.emit('peer-toggle-audio-status', {
+            enabled,
+            public_key: this.stream_id
+          });
         }
-        this.app.connection.emit('peer-toggle-audio-status', {
-          enabled,
-          public_key: this.stream_id
-        });
       } else {
         let icon = document.querySelector(`#stream_${this.stream_id} #audio-indicator`);
         icon.classList.add('disabled');
@@ -201,7 +227,6 @@ class VideoBox {
   }
 
   rerender() {
-    this.remove();
     this.render(this.stream);
     this.renderPeerList();
   }
@@ -221,6 +246,14 @@ class VideoBox {
     callList.innerHTML = '';
 
     for (let address in this.peer_list) {
+      //
+      // I already know the state of my own connection with this peer,
+      // only show their connections with the other call members
+      //
+      if (address === this.mod.publicKey) {
+        continue;
+      }
+
       let connectionState = this.peer_list[address];
       let identiconUrl = this.app.keychain.returnIdenticon(address);
 
@@ -440,9 +473,6 @@ class VideoBox {
     }
   }
 
-  //
-  // this needs fixing!!
-  //
   remove(is_disconnection = false) {
     //Cut out the fuzzing
     if (this.animation) {
@@ -452,6 +482,9 @@ class VideoBox {
 
     let videoBox = document.getElementById(`stream_${this.stream_id}`);
     if (videoBox) {
+      if (videoBox._bg_observer) {
+        videoBox._bg_observer.disconnect();
+      }
       videoBox.remove();
     }
   }

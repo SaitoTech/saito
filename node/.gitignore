@@ -59,6 +59,8 @@ data/issuance/archive
 data/state
 data/*.tar.gz
 
+**/*blocks*/
+
 dist
 dist/*
 

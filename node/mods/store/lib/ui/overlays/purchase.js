@@ -1,6 +1,7 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PurchaseTemplate = require('./purchase.template');
 const { ConfirmationWaitingUI } = require('../../../../rustscript/lib/ui/confirmation_waiting');
+const { isDemoNftId } = require('../../summary-media');
 
 function parseListingUnitPrice(price = '') {
 	const match = String(price).match(/[\d.]+/);
@@ -37,9 +38,9 @@ class PurchaseFlow {
 		});
 	}
 
-	async startPurchase(listing, quantity = 1) {
-		if (!listing?.id || String(listing.id).startsWith('store-demo-')) {
-			salert('This listing is not available for purchase.');
+	async startPurchase(summary, quantity = 1) {
+		if (!summary?.nft_id || isDemoNftId(summary.nft_id)) {
+			salert('This item is not available for purchase.');
 			return;
 		}
 
@@ -48,13 +49,13 @@ class PurchaseFlow {
 			return;
 		}
 
-		const unit_price = parseListingUnitPrice(listing.returnPrice?.() || listing.price);
+		const unit_price = parseListingUnitPrice(summary.returnPrice?.() || summary.price);
 		if (!unit_price || Number(unit_price) <= 0) {
-			salert('This listing does not have a valid price.');
+			salert('This item does not have a valid price.');
 			return;
 		}
 
-		quantity = Math.max(1, Math.min(Number(quantity) || 1, listing.returnQuantity?.() || 1));
+		quantity = Math.max(1, Math.min(Number(quantity) || 1, summary.returnQuantity?.() || 1));
 		const fee = String(this.mod.fee || 0);
 		const unit_nolan = BigInt(this.app.wallet.convertSaitoToNolan(unit_price) ?? 0);
 		const fee_nolan = BigInt(this.app.wallet.convertSaitoToNolan(fee) ?? 0);
@@ -66,16 +67,18 @@ class PurchaseFlow {
 		}
 
 		const wallet_balance = await this.app.wallet.getBalance();
-		this.listingTitle = listing.returnTitle?.() || listing.title || 'this item';
+
+		this.listingTitle = summary.returnTitle?.() || summary.title || 'this item';
 
 		let newtx = null;
 		try {
 			newtx = await this.mod.createPurchaseAssetTransaction(
-				listing,
+				summary,
 				{ price: unit_price, fee, quantity },
 				total_nolan
 			);
 		} catch (err) {
+			console.error('Store: createPurchaseAssetTransaction failed', err);
 			salert(err?.message || 'Could not create purchase transaction.');
 			return;
 		}
@@ -94,7 +97,7 @@ class PurchaseFlow {
 				this.app.wallet.convertNolanToSaito(total_nolan),
 				this.mod.store_public_key,
 				newtx.serialize_to_web(this.app),
-				`Purchase ${listing.returnTitle?.() || 'Store listing'}`
+				`Purchase ${summary.returnTitle?.() || 'Store item'}`
 			);
 			this.openWaiting();
 			return;

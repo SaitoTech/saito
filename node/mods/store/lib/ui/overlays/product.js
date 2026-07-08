@@ -1,17 +1,23 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ProductTemplate = require('./product.template');
-const Listing = require('../../listing');
+const Summary = require('../../summary');
+const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
+const { summaryBucketKey } = require('../summary-cache');
 
 class ProductOverlay {
-	constructor(app, mod, listing = null) {
+	constructor(app, mod, summary = null) {
 		this.app = app;
 		this.mod = mod;
-		this.listing = listing;
+		this.summary = summary;
 		this.overlay = new SaitoOverlay(app, mod);
 
-		this.app.connection.on('store-listing-updated', (listing) => {
-			if (this.listing?.id && this.listing.id === listing.id) {
-				this.render(listing);
+		this.app.connection.on('store-listing-updated', (summary) => {
+			if (
+				this.summary?.nft_id &&
+				summaryBucketKey(this.summary.nft_id, this.summary.price) ===
+					summaryBucketKey(summary.nft_id, summary.price)
+			) {
+				this.render(summary);
 			}
 		});
 	}
@@ -41,8 +47,8 @@ class ProductOverlay {
 		return ext || 'unknown';
 	}
 
-	returnCreatedDate(listing = {}) {
-		const raw = listing.created_at || listing.createdAt || listing.timestamp || Date.now();
+	returnCreatedDate(summary = {}) {
+		const raw = summary.created_at || summary.createdAt || summary.timestamp || Date.now();
 		const date = new Date(raw);
 		if (Number.isNaN(date.getTime())) {
 			return new Date().toLocaleDateString();
@@ -54,53 +60,44 @@ class ProductOverlay {
 		return /[a-zA-Z]/.test(String(value));
 	}
 
-	returnProductType(listing = {}) {
-		if (listing.type) {
-			return listing.type;
+	returnProductType(summary = {}) {
+		if (summary.type) {
+			return summary.type;
 		}
-		if (listing.nft || listing.nft_id || listing.badge) {
+		if (summary.nft || summary.nft_id || summary.badge) {
 			return 'NFT';
 		}
-		if (listing.delivery || listing.shipping || listing.physical) {
+		if (summary.delivery || summary.shipping || summary.physical) {
 			return 'Physical';
 		}
 		return 'Digital';
 	}
 
-	returnViewModel(listing = {}) {
-		const listingTitle = listing.returnTitle?.() || 'Untitled Item';
-		const seller = listing.seller || 'anon-store';
+	returnViewModel(summary = {}) {
+		const listingTitle = summary.returnTitle?.() || 'Untitled Item';
+		const seller = summary.seller || 'anon-store';
 		const shortSeller = this.returnShortKey(seller);
 
-		const listingImage = listing.returnImage?.() || '';
-		const cacheImageUrl = !listingImage ? listing.returnCacheImageUrl?.() || '' : '';
+		const listingImage = summary.hasLoadedImage?.() ? summary.returnImage?.() || '' : '';
+		const images = Array.isArray(summary.images)
+			? summary.images.filter(Boolean)
+			: [listingImage || summary.returnPlaceholderImage?.() || DREAMSCAPE_PLACEHOLDER];
 
-		const images = Array.isArray(listing.images)
-			? listing.images.filter(Boolean)
-			: listingImage
-				? [listingImage]
-				: cacheImageUrl
-					? [cacheImageUrl]
-					: [];
+		const normalizedImages = images.map((img) =>
+			img?.startsWith?.('gradient-') ? DREAMSCAPE_PLACEHOLDER : img
+		);
 
-		const fallbackImage =
-			"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%23132736'/%3E%3Cstop offset='1' stop-color='%233c8fcb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='800' fill='url(%23g)'/%3E%3C/svg%3E";
-		const normalizedImages =
-			images.length > 0
-				? images.map((img) => (img?.startsWith('gradient-') ? fallbackImage : img))
-				: [fallbackImage];
-
-		const priceValue = listing.returnPrice?.() || listing.price || listing.reserve_price || '';
-		const bidValue = listing.current_bid || listing.currentBid || '';
+		const priceValue = summary.returnPrice?.() || summary.price || summary.reserve_price || '';
+		const bidValue = summary.current_bid || summary.currentBid || '';
 		const isBid = !!bidValue && !priceValue;
 		const primaryValue = isBid ? bidValue : priceValue || 'N/A';
 		const primaryLabel = isBid ? 'Current Bid' : 'Price';
-		const currency = listing.currency || listing.denomination || 'SAITO';
-		const nextBid = listing.next_bid || listing.nextMinBid || '';
-		const supply = listing.returnQuantity?.() || 1;
+		const currency = summary.currency || summary.denomination || 'SAITO';
+		const nextBid = summary.next_bid || summary.nextMinBid || '';
+		const supply = summary.returnQuantity?.() || 1;
 		const actionText = isBid ? 'Bid' : 'Buy';
-		const description = listing.returnDescription?.() || '';
-		const txid = String(listing.id || 'N/A');
+		const description = summary.returnDescription?.() || '';
+		const txid = String(summary.listing_signature || summary.nft_id || 'N/A');
 		const primaryDisplay = this.hasCurrencyLabel(primaryValue)
 			? String(primaryValue)
 			: `${primaryValue} ${currency}`;
@@ -125,10 +122,11 @@ class ProductOverlay {
 			actionText,
 			description,
 			hasDescription: !!description,
-			productType: this.returnProductType(listing),
+			productType: this.returnProductType(summary),
 			fileType: this.returnFileType(normalizedImages),
-			createdDate: this.returnCreatedDate(listing),
-			txidShort: this.returnShortKey(txid)
+			createdDate: this.returnCreatedDate(summary),
+			txidShort: this.returnShortKey(txid),
+			imageLoading: summary.isImageLoading?.() ?? false
 		};
 	}
 
@@ -150,7 +148,7 @@ class ProductOverlay {
 		if (mainImage) {
 			mainImage.onerror = () => {
 				mainImage.onerror = null;
-				this.maybeLoadNFT();
+				this.beginOverlayEnrichment();
 			};
 		}
 
@@ -158,8 +156,8 @@ class ProductOverlay {
 		if (buyBtn) {
 			buyBtn.onclick = async (e) => {
 				e.preventDefault();
-				const listing = this.listing;
-				if (!(listing instanceof Listing)) {
+				const summary = this.summary;
+				if (!(summary instanceof Summary)) {
 					return;
 				}
 
@@ -172,7 +170,7 @@ class ProductOverlay {
 				buyBtn.disabled = true;
 
 				try {
-					await this.mod.main?.purchase_flow?.startPurchase(listing, quantity);
+					await this.mod.main?.purchase_flow?.startPurchase(summary, quantity);
 				} finally {
 					buyBtn.disabled = false;
 				}
@@ -180,39 +178,37 @@ class ProductOverlay {
 		}
 	}
 
-	render(listing = null) {
-		if (listing) {
-			this.listing = listing;
+	render(summary = null) {
+		if (summary) {
+			this.summary = summary;
 		}
-		const view = this.returnViewModel(this.listing || {});
+		const view = this.returnViewModel(this.summary || {});
 		this.overlay.show(ProductTemplate(view));
 		this.attachEvents();
-		if (!this.listing?.image) {
-			this.maybeLoadNFT();
-		}
+		this.beginOverlayEnrichment();
 	}
 
-	maybeLoadNFT() {
-		const listing = this.listing;
-		if (!(listing instanceof Listing)) {
+	beginOverlayEnrichment() {
+		const summary = this.summary;
+		if (!(summary instanceof Summary)) {
 			return;
 		}
 
-		if (listing._store_image_fallback) {
-			return;
-		}
-
-		if (listing.image) {
-			return;
-		}
-
-		listing._store_image_fallback = true;
-
-		listing.loadNFT((updated) => {
-			if (updated?.image) {
-				this.render(updated);
+		const refreshIfNeeded = () => {
+			this.render(summary);
+			if (!summary.image) {
+				summary.enrichMedia(() => this.render(summary));
 			}
-		});
+		};
+
+		if (summary.listing_tx) {
+			if (!summary.image) {
+				summary.enrichMedia(() => this.render(summary));
+			}
+			return;
+		}
+
+		summary.ensureListingTransaction(refreshIfNeeded);
 	}
 }
 

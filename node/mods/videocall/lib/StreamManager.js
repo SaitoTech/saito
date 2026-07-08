@@ -174,7 +174,6 @@ class StreamManager {
         return;
       }
       this.endPresentation();
-      this.app.connection.emit('toggle-screen-share-label', false);
     });
 
     app.connection.on('stun-connection-connected', (peerId) => {
@@ -620,6 +619,12 @@ class StreamManager {
         this.app.options.stun.settings?.layout || this.mod.layout
       );
       this.mod.screen_share = null;
+
+      //
+      // Reset the button here (not in the stop-share-screen handler) so the
+      // browser's native "Stop sharing" bar resets it too
+      //
+      this.app.connection.emit('toggle-screen-share-label', false);
 
       this.mod.sendOffChainMessage('screen-share-stop');
     }

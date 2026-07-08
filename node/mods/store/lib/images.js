@@ -1,4 +1,5 @@
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
+const { loadTransactionFromArchive } = require('./archive');
 
 const ALLOWED_IMAGE_MIMES = new Set([
 	'image/png',
@@ -52,26 +53,34 @@ async function initializeImageCache(mod) {
 		return;
 	}
 
-	for (const listing of Object.values(mod.listings)) {
-		if (!listing?.id || mod.image_cache[listing.id]) {
+	for (const summary of Object.values(mod.summaries)) {
+		const nft_id = summary?.nft_id;
+		if (!nft_id || mod.image_cache[nft_id]) {
 			continue;
 		}
 
 		try {
-			const inv = await mod.warehouse.returnActiveInventory(listing.id);
-			if (!inv?.signature) {
+			const listing = await mod.warehouse.db.returnActiveListingForBucket(
+				summary.nft_id,
+				summary.price
+			);
+			if (!listing?.signature) {
 				continue;
 			}
 
-			const tx = await mod.warehouse.returnTransaction(inv.signature);
+			const tx = await loadTransactionFromArchive(mod.app, listing.signature);
 			if (!tx) {
 				continue;
 			}
 
+			const txmsg = tx.returnMessage?.() || {};
+			await mod.warehouse.persistSummaryMetadata(summary.nft_id, summary.price, txmsg);
+			await mod.warehouse.syncSummaryToCache(summary.nft_id, summary.price);
+
 			const nft = new SaitoNFT(mod.app, mod, tx, null);
 			const image = nft.returnImage?.() || '';
 			if (image) {
-				mod.image_cache[listing.id] = image;
+				mod.image_cache[nft_id] = image;
 			}
 		} catch (err) {
 			continue;
@@ -79,8 +88,8 @@ async function initializeImageCache(mod) {
 	}
 }
 
-function serveCachedImageResponse(mod, res, listing_id) {
-	const image_data = mod.image_cache[listing_id];
+function serveCachedImageResponse(mod, res, nft_id) {
+	const image_data = mod.image_cache[nft_id];
 	if (!image_data) {
 		res.status(404).end();
 		return;
