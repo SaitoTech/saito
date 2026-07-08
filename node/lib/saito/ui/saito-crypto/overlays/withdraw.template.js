@@ -100,6 +100,11 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
   html += `
               </div>
+              <div
+                class="withdraw-address-preview hide-element"
+                id="withdraw-address-preview"
+                aria-live="polite"
+              ></div>
               <div class="withdraw-error-slot" aria-live="polite">
                 <div class="withdraw-error" id="withdraw-address-error" role="alert"></div>
               </div>
@@ -109,11 +114,9 @@ module.exports = (app, mod, publickey = '', address = '') => {
               <label class="withdraw-field-label" for="withdraw-input-amount" id="withdraw-amount-label">Amount</label>
               <div class="withdraw-input-cont" id="withdraw-amount-cont">
                 <input
-                  type="number"
+                  type="text"
                   autocomplete="off"
-                  min="0"
-                  max="9999999999.99999999"
-                  step="0.00000001"
+                  inputmode="decimal"
                   class="withdraw-input-amount"
                   id="withdraw-input-amount"
                   value=""
@@ -121,6 +124,17 @@ module.exports = (app, mod, publickey = '', address = '') => {
                 >
                 <button type="button" class="withdraw-max-btn" id="withdraw-max-btn" title="Use maximum amount">
                   MAX
+                </button>
+                <button
+                  type="button"
+                  class="withdraw-amount-confirm-btn hide-element"
+                  id="withdraw-amount-confirm-btn"
+                  title="Confirm amount"
+                  aria-label="Confirm amount"
+                  aria-pressed="false"
+                  disabled
+                >
+                  <i class="fa-solid fa-check" aria-hidden="true"></i>
                 </button>
               </div>
               <div class="withdraw-error-slot" aria-live="polite">
@@ -196,8 +210,9 @@ module.exports = (app, mod, publickey = '', address = '') => {
             form="withdrawal-form"
             class="withdraw-submit saito-button-primary"
             id="saito-overlay-submit"
+            disabled
           >
-            Review
+            Send
           </button>
         </div>
 
@@ -211,7 +226,7 @@ module.exports = (app, mod, publickey = '', address = '') => {
         </div>
 
         <div class="saito-button-row withdraw-overlay__actions hide-element" id="withdraw-footer-success">
-          <button type="button" class="saito-button-secondary" id="withdraw-view-history">View history</button>
+          <a class="saito-button-secondary" id="withdraw-view-history" href="/explorer">View on Explorer</a>
           <button type="button" class="saito-button-primary" id="withdraw-done">Done</button>
         </div>
 

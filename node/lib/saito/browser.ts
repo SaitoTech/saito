@@ -2674,8 +2674,7 @@ class Browser {
   }
 
   getThousandSeparator() {
-    let decimal_separator = this.getDecimalSeparator();
-    return decimal_separator == '.' ? ',' : '.';
+    return this.getLocaleNumberSeparators().group;
   }
 
   /**
@@ -2699,6 +2698,164 @@ class Browser {
       console.error('Browser [formatNumber] Error: ', err);
       return number;
     }
+  }
+
+  getLocaleNumberSeparators(locale = null) {
+    const resolvedLocale =
+      locale || (this.app.BROWSER && window?.navigator?.language ? window.navigator.language : 'en-US');
+    const parts = Intl.NumberFormat(resolvedLocale).formatToParts(12345.6);
+    return {
+      locale: resolvedLocale,
+      decimal: parts.find((part) => part.type === 'decimal')?.value || '.',
+      group: parts.find((part) => part.type === 'group')?.value || ''
+    };
+  }
+
+  parseLocaleAmount(value = '', options: any = {}) {
+    const maxFractionDigits =
+      Number.isFinite(options.maxFractionDigits) && options.maxFractionDigits >= 0
+        ? options.maxFractionDigits
+        : 8;
+    const allowNegative = options.allowNegative === true;
+    const strictLocaleSeparators = options.strictLocaleSeparators === true;
+    const { decimal, group } = this.getLocaleNumberSeparators(options.locale || null);
+    let input = String(value ?? '').trim();
+
+    if (!input) {
+      return { valid: false, normalized: '', value: null, fractionDigits: 0 };
+    }
+
+    input = input
+      .replace(/[\s\u00a0\u202f]/g, '')
+      .replace(/[’']/g, '')
+      .replace(/[−–—]/g, '-');
+
+    let negative = false;
+    if (input.startsWith('-')) {
+      negative = allowNegative;
+      input = input.slice(1);
+    }
+
+    if (!/\d/.test(input)) {
+      return { valid: false, normalized: '', value: null, fractionDigits: 0 };
+    }
+
+    const dotPositions = [];
+    const commaPositions = [];
+    for (let i = 0; i < input.length; i++) {
+      if (input[i] === '.') {
+        dotPositions.push(i);
+      } else if (input[i] === ',') {
+        commaPositions.push(i);
+      }
+    }
+
+    const allDecimalCandidates = [...dotPositions, ...commaPositions].sort((a, b) => a - b);
+    let decimalIndex = -1;
+    let decimalChar = decimal;
+
+    if (allDecimalCandidates.length) {
+      const last = allDecimalCandidates[allDecimalCandidates.length - 1];
+      const lastChar = input[last];
+      const after = input.slice(last + 1).replace(/\D/g, '');
+      const before = input.slice(0, last).replace(/\D/g, '');
+      const sameCharCount = lastChar === '.' ? dotPositions.length : commaPositions.length;
+      const otherCharCount = lastChar === '.' ? commaPositions.length : dotPositions.length;
+      const localeDecimalMatch = lastChar === decimal;
+      const localeGroupMatch = group && lastChar === group;
+
+      if (strictLocaleSeparators && localeGroupMatch) {
+        decimalIndex = -1;
+      } else if (otherCharCount > 0) {
+        decimalIndex = last;
+        decimalChar = lastChar;
+      } else if (localeDecimalMatch) {
+        decimalIndex = last;
+        decimalChar = lastChar;
+      } else if (sameCharCount > 1) {
+        if (after.length > 0 && after.length !== 3) {
+          decimalIndex = last;
+          decimalChar = lastChar;
+        }
+      } else if (localeGroupMatch && after.length === 3 && before.length > 0) {
+        decimalIndex = -1;
+      } else if (after.length > 0 && after.length <= maxFractionDigits) {
+        decimalIndex = last;
+        decimalChar = lastChar;
+      }
+    }
+
+    let whole = '';
+    let fraction = '';
+    for (let i = 0; i < input.length; i++) {
+      const ch = input[i];
+      if (i === decimalIndex) {
+        continue;
+      }
+      if (/\d/.test(ch)) {
+        if (decimalIndex >= 0 && i > decimalIndex) {
+          fraction += ch;
+        } else {
+          whole += ch;
+        }
+      }
+    }
+
+    whole = whole.replace(/^0+(?=\d)/, '') || '0';
+    fraction = fraction.slice(0, maxFractionDigits);
+
+    if (maxFractionDigits === 0) {
+      fraction = '';
+    }
+
+    const normalized = `${negative ? '-' : ''}${whole}${fraction ? `.${fraction}` : ''}`;
+    const numeric = Number(normalized);
+    return {
+      valid: Number.isFinite(numeric),
+      normalized,
+      value: Number.isFinite(numeric) ? numeric : null,
+      fractionDigits: fraction.length,
+      hadTrailingDecimal: decimalIndex === input.length - 1 || input.endsWith(decimalChar)
+    };
+  }
+
+  formatLocaleAmount(value = '', options: any = {}) {
+    const maxFractionDigits =
+      Number.isFinite(options.maxFractionDigits) && options.maxFractionDigits >= 0
+        ? options.maxFractionDigits
+        : 8;
+    const { locale, decimal } = this.getLocaleNumberSeparators(options.locale || null);
+    const parsed = this.parseLocaleAmount(value, { ...options, maxFractionDigits });
+
+    if (!parsed.valid) {
+      return '';
+    }
+
+    const [wholeRaw, fractionRaw = ''] = parsed.normalized.replace('-', '').split('.');
+    const whole = BigInt(wholeRaw || '0').toLocaleString(locale);
+    const sign = parsed.normalized.startsWith('-') ? '-' : '';
+    const fraction = fractionRaw.slice(0, maxFractionDigits);
+
+    if (fraction || parsed.hadTrailingDecimal) {
+      return `${sign}${whole}${decimal}${fraction}`;
+    }
+
+    return `${sign}${whole}`;
+  }
+
+  formatLocaleAmountInputElement(input, options: any = {}) {
+    if (!input) {
+      return { valid: false, normalized: '', value: null, fractionDigits: 0 };
+    }
+
+    const parsed = this.parseLocaleAmount(input.value, options);
+    input.dataset.amountRaw = parsed.valid ? parsed.normalized : '';
+
+    if (parsed.valid) {
+      input.value = this.formatLocaleAmount(input.value, options);
+    }
+
+    return parsed;
   }
 
   addSaitoMentions(textarea, listDiv, inputType) {

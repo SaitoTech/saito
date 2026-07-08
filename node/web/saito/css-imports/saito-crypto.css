@@ -902,7 +902,8 @@
   margin: 0;
 }
 
-#withdrawal-form .withdraw-overlay__actions button {
+#withdrawal-form .withdraw-overlay__actions button,
+#withdrawal-form .withdraw-overlay__actions a {
   min-width: 14rem;
   min-height: 4.5rem;
   margin: 0;
@@ -1099,6 +1100,78 @@
   display: none !important;
 }
 
+#withdrawal-form .withdraw-address-preview {
+  min-height: var(--withdraw-control-height);
+  padding: 0.8rem 1rem;
+  background-color: var(--saito-input-bg);
+  border: var(--border-thickness-thin) solid var(--withdraw-control-border);
+  border-radius: var(--withdraw-control-radius);
+  box-shadow: var(--saito-input-shadow);
+}
+
+#withdrawal-form .withdraw-address-user.saito-user {
+  display: grid;
+  grid-template-columns: min-content minmax(0, 1fr) min-content;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 1rem;
+  width: 100%;
+  min-width: 0;
+}
+
+#withdrawal-form .withdraw-address-user .saito-identicon-box {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+#withdrawal-form .withdraw-address-user-primary {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--saito-input-fg-heavy);
+}
+
+#withdrawal-form .withdraw-address-user-secondary {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--saito-font-color) 68%, transparent);
+}
+
+#withdrawal-form button.withdraw-address-edit {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  min-width: 3.2rem;
+  height: 3.2rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--withdraw-control-radius);
+  background: transparent;
+  color: var(--saito-input-fg);
+  cursor: pointer;
+}
+
+#withdrawal-form button.withdraw-address-edit:hover,
+#withdrawal-form button.withdraw-address-edit:focus-visible {
+  color: var(--saito-primary);
+  background: var(--withdraw-control-action-hover-bg);
+  outline: none;
+}
+
 #withdrawal-form .saito-overlay-form-input .withdraw-input-cont input {
   min-height: calc(var(--withdraw-control-height) - 2px);
   width: 100%;
@@ -1166,7 +1239,8 @@
   align-items: stretch;
 }
 
-#withdrawal-form .withdraw-max-btn {
+#withdrawal-form .withdraw-max-btn,
+#withdrawal-form .withdraw-amount-confirm-btn {
   flex-shrink: 0;
   align-self: center;
   margin: 0 0.45rem 0 0;
@@ -1188,14 +1262,36 @@
     color 0.15s ease;
 }
 
-#withdrawal-form .withdraw-max-btn:hover {
+#withdrawal-form .withdraw-amount-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  padding: 0;
+  color: color-mix(in srgb, var(--saito-input-fg) 42%, transparent);
+}
+
+#withdrawal-form .withdraw-amount-confirm-btn--active {
+  color: var(--saito-status-success);
+  border-color: color-mix(in srgb, var(--saito-status-success) 55%, var(--withdraw-control-border));
+  background: color-mix(in srgb, var(--saito-status-success) 12%, transparent);
+}
+
+#withdrawal-form .withdraw-max-btn:hover,
+#withdrawal-form .withdraw-amount-confirm-btn:hover {
   background: var(--withdraw-control-action-hover-bg);
   border-color: var(--withdraw-control-border-hover);
   color: var(--saito-primary);
 }
 
+#withdrawal-form .withdraw-amount-confirm-btn--active:hover {
+  color: var(--saito-status-success);
+  border-color: color-mix(in srgb, var(--saito-status-success) 65%, var(--withdraw-control-border));
+}
 
-#withdrawal-form .withdraw-max-btn:focus-visible {
+#withdrawal-form .withdraw-max-btn:focus-visible,
+#withdrawal-form .withdraw-amount-confirm-btn:focus-visible {
   outline: none;
   box-shadow: var(--saito-focus-ring);
 }
@@ -1525,7 +1621,8 @@
     width: min(10.5rem, 100%);
   }
 
-  #withdrawal-form .withdraw-overlay__actions button {
+  #withdrawal-form .withdraw-overlay__actions button,
+  #withdrawal-form .withdraw-overlay__actions a {
     flex: 1 1 100%;
     max-width: 100%;
   }
