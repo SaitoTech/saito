@@ -415,7 +415,8 @@ class SaitoNFT {
   }
 
   returnModuleMediaDisplay() {
-    const nft_type = this.nft_type || (typeof this.returnType === 'function' ? this.returnType() : null);
+    const nft_type =
+      this.nft_type || (typeof this.returnType === 'function' ? this.returnType() : null);
     const handlers = this.app.modules.getRespondTos('saito-nft-media', this);
 
     for (const modobj of handlers) {
