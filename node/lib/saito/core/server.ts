@@ -807,21 +807,20 @@ class Server {
     });
 
     expressApp.get('/json/peers', async (req, res) => {
-      const peers = await this.app.core.network.getPeers()
+      const peers = await this.app.core.network.getPeers();
 
       const peerData = peers.map((peer) => ({
         id: peer.id.toString(),
         publicKey: peer.publicKey,
-  	keyList: peer.keyList,
-  	synctype: peer.synctype,
-  	services: peer.services,
-  	status: peer.status,
+        keyList: peer.keyList,
+        synctype: peer.synctype,
+        services: peer.services,
+        status: peer.status
       }));
 
       res.json({
-  	peers: peerData,
+        peers: peerData
       });
-
     });
 
     //

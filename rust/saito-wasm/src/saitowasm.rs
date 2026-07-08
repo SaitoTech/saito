@@ -922,10 +922,8 @@ pub fn get_script_address(json: JsString) -> String {
     Script::from_json(&json_str).address_hex()
 }
 
-
 #[wasm_bindgen]
 pub fn merge_witness(script_json: JsString, witness_json: JsString) -> String {
-
     let Some(script_str) = script_json.as_string() else {
         return String::from("{}");
     };
@@ -935,12 +933,10 @@ pub fn merge_witness(script_json: JsString, witness_json: JsString) -> String {
     };
 
     let script: serde_json::Value =
-        serde_json::from_str(&script_str)
-            .unwrap_or(serde_json::Value::Null);
+        serde_json::from_str(&script_str).unwrap_or(serde_json::Value::Null);
 
     let witness: serde_json::Value =
-        serde_json::from_str(&witness_str)
-            .unwrap_or(serde_json::Value::Null);
+        serde_json::from_str(&witness_str).unwrap_or(serde_json::Value::Null);
 
     if script.is_null() {
         return String::from("{}");
@@ -948,10 +944,8 @@ pub fn merge_witness(script_json: JsString, witness_json: JsString) -> String {
 
     let merged = Script::merge_witness(&script, &witness);
 
-    serde_json::to_string(&merged)
-        .unwrap_or_else(|_| String::from("{}"))
+    serde_json::to_string(&merged).unwrap_or_else(|_| String::from("{}"))
 }
-
 
 #[wasm_bindgen]
 pub async fn get_account_slips(public_key: JsString) -> Result<Array, JsValue> {

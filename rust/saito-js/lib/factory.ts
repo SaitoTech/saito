@@ -15,7 +15,7 @@ export default class Factory {
 
   public createTransaction<T extends Transaction>(data?: any): Transaction {
     if (data instanceof Transaction) {
-        return data;
+      return data;
     }
     return new Transaction(data);
   }

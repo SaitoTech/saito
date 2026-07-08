@@ -10,8 +10,6 @@ use serde_json::{json, Value};
 #[cfg(target_arch = "wasm32")]
 use js_sys;
 
-
-
 use super::opcodes::{
     CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere, CheckPath,
     CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime, ImportField, SumFields,
@@ -152,28 +150,26 @@ impl Script {
             context["__current_p2sh_idx"] = json!(idx);
         }
 
+        let now_ms = if let Some(blk) = blk {
+            blk.timestamp
+        } else if let Some(tx) = tx {
+            tx.timestamp
+        } else {
+            #[cfg(target_arch = "wasm32")]
+            {
+                js_sys::Date::now() as u64
+            }
 
-let now_ms = if let Some(blk) = blk {
-    blk.timestamp
-} else if let Some(tx) = tx {
-    tx.timestamp
-} else {
-    #[cfg(target_arch = "wasm32")]
-    {
-        js_sys::Date::now() as u64
-    }
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as u64
+            }
+        };
 
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64
-    }
-};
-
-context["NOW"] = json!(now_ms);
-
+        context["NOW"] = json!(now_ms);
 
         if let Some(tx) = tx {
             if let Some(slip) = tx.from.first() {

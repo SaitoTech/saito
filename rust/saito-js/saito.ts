@@ -530,7 +530,6 @@ export default class Saito {
         },
 
         mergeWitness: (script: any, witness: any): any => {
-
           if (typeof script !== "string") {
             script = JSON.stringify(script);
           }
@@ -539,20 +538,17 @@ export default class Saito {
             witness = JSON.stringify(witness);
           }
 
-          return JSON.parse(
-            wasm.merge_witness(script, witness)
-          );
-
+          return JSON.parse(wasm.merge_witness(script, witness));
         },
 
-        evaluateWithTransaction: async (script: any , tx?: Transaction): Promise<number> => {
+        evaluateWithTransaction: async (script: any, tx?: Transaction): Promise<number> => {
           if (typeof script !== "string") {
             script = JSON.stringify(script);
           }
-	  if (tx) {
-    	    tx.packData();
-    	    return await wasm.evaluate_script_with_transaction(script, tx.wasmTransaction);
-  	  }
+          if (tx) {
+            tx.packData();
+            return await wasm.evaluate_script_with_transaction(script, tx.wasmTransaction);
+          }
 
           return await wasm.evaluate_script(script);
         },
@@ -595,22 +591,12 @@ export default class Saito {
         idOrHash: string | number | bigint,
         includeTransactions: boolean = false
       ) => {
-        return wrapper.getBlock(
-          idOrHash,
-          includeTransactions
-        );
+        return wrapper.getBlock(idOrHash, includeTransactions);
       };
 
-      blockchain.getBlocks = async (
-        count: number,
-        includeOffchain: boolean = false
-      ) => {
-        return wrapper.getBlocks(
-          count,
-          includeOffchain
-        );
+      blockchain.getBlocks = async (count: number, includeOffchain: boolean = false) => {
+        return wrapper.getBlocks(count, includeOffchain);
       };
-
     }
 
     console.log("CORE OBJECT");
