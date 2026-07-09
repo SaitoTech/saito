@@ -425,6 +425,16 @@ class GameMoves {
       halted: this.halted
     });
 
+    //
+    // process any stopgame / gameover that arrived while the queue was running
+    //
+    if (this.deferred_game_end?.length && this.halted != 1) {
+      await this.processDeferredGameEndTransactions();
+      if (this.game.over) {
+        return 0;
+      }
+    }
+
     if (this.game.futurePlus && this.game.futurePlus[this.game.step.game]) {
       //>>>>>>>>>>>>>>>>>>>
       console.warn('Execute meta game transaction');

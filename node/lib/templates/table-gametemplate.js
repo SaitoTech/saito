@@ -247,6 +247,154 @@ class GameTableTemplate extends GameTemplate {
     return;
   }
 
+  //
+  // Execute any settlement we still owe before withdrawing from the table, so
+  // that "leave now" cannot be used to walk out on debts from a finished hand.
+  //
+  // Two sources:
+  //  (1) SEND instructions already on the queue where we are the sender --
+  //      replayed with their original unique_hash, so the opponent's pending
+  //      RECEIVE can resolve and the wallet can dedupe if the queued send
+  //      already fired
+  //  (2) debt accrued in game.state.debt that has not been converted into
+  //      queued payments yet (player exits before the settle instruction runs)
+  //
+  // Resolves once the wallet has processed the payments, so the caller can
+  // safely navigate away afterwards.
+  //
+  async settleDebtsOnExit() {
+    if (!this.game?.crypto || this.game.crypto === 'CHIPS') {
+      return;
+    }
+
+    let payments = [];
+
+    //
+    // (1) queued SENDs where we are the sender
+    //
+    for (let i = this.game.queue.length - 1; i >= 0; i--) {
+      let mv = this.game.queue[i].split('\t');
+      if (mv[0] === 'SEND' && mv[1] === this.publicKey) {
+        payments.push({
+          receiver: mv[2],
+          amount: mv[3],
+          unique_hash: mv[5],
+          ticker: mv[6] || this.game.crypto
+        });
+        this.game.queue.splice(i, 1);
+      }
+    }
+
+    //
+    // (2) accrued debt not yet queued -- same pairing logic as settleDebt()
+    //
+    if (this.game.state?.debt && typeof this.game.stake != 'object') {
+      let me = this.game.players.indexOf(this.publicKey);
+      if (me >= 0 && this.game.state.debt[me] > 0) {
+        for (let j = 0; j < this.game.state.debt.length && this.game.state.debt[me] > 0; j++) {
+          if (this.game.state.debt[j] < 0) {
+            let amount_owed = Math.min(
+              Math.abs(this.game.state.debt[j]),
+              this.game.state.debt[me]
+            );
+            if (amount_owed > 0) {
+              this.game.state.debt[me] -= amount_owed;
+              this.game.state.debt[j] += amount_owed;
+
+              payments.push({
+                receiver: this.game.players[j],
+                amount:
+                  typeof this.convertChipsToCrypto === 'function'
+                    ? this.convertChipsToCrypto(amount_owed)
+                    : String(amount_owed),
+                unique_hash: null,
+                ticker: this.game.crypto
+              });
+            }
+          }
+        }
+      }
+    }
+
+    if (payments.length == 0) {
+      return;
+    }
+
+    this.saveGame(this.game.id);
+
+    for (let payment of payments) {
+      await this.executeExitPayment(payment);
+    }
+  }
+
+  async executeExitPayment({ receiver, amount, unique_hash, ticker }) {
+    amount = this.app.crypto.convertFloatToSmartPrecision(parseFloat(amount));
+
+    //
+    // accrued-debt payments have no hash yet -- derive one the same way
+    // addPaymentToQueue does, so the wallet can dedupe on it
+    //
+    if (!unique_hash) {
+      this.rollDice();
+      let amount_for_unique_hash = amount;
+      if (ticker == 'SAITO') {
+        amount_for_unique_hash = this.app.wallet
+          .convertSaitoToNolan(amount_for_unique_hash)
+          .toString();
+      }
+      unique_hash = this.app.crypto.hash(
+        Buffer.from(
+          this.publicKey + receiver + amount_for_unique_hash + this.game.dice + ticker,
+          'utf-8'
+        )
+      );
+    }
+
+    let sender_crypto_address = '';
+    let receiver_crypto_address = '';
+    for (let i = 0; i < this.game.players.length; i++) {
+      if (this.game.players[i] === this.publicKey) {
+        sender_crypto_address = this.game.keys[i];
+      }
+      if (this.game.players[i] === receiver) {
+        receiver_crypto_address = this.game.keys[i];
+      }
+    }
+
+    if (!sender_crypto_address || !receiver_crypto_address) {
+      console.warn(`GTT [settleDebtsOnExit] cannot resolve addresses to pay ${receiver}`);
+      return;
+    }
+
+    console.info(`GTT [settleDebtsOnExit] paying ${amount} ${ticker} to ${receiver} on exit`);
+
+    //
+    // informational overlay -- no mycallback, we await the payment ourselves
+    //
+    this.app.connection.emit('saito-crypto-send-confirm-open-request', {
+      publicKey: receiver,
+      address: receiver_crypto_address,
+      amount,
+      ticker,
+      hash: unique_hash,
+      game_id: this.game.id,
+      trusted: true
+    });
+
+    let robj = await this.app.wallet.sendPayment(
+      ticker,
+      [sender_crypto_address],
+      [receiver_crypto_address],
+      [amount],
+      unique_hash,
+      null,
+      receiver,
+      `${this.name} stake`
+    );
+
+    this.app.connection.emit('saito-crypto-send-confirm', robj);
+  }
+
   resetGameWithFewerPlayers() {
     console.log('!!!!!!!!!!!!!!!!!!!!\n', '!!! GAME UPDATED !!!\n', '!!!!!!!!!!!!!!!!!!!!');
     console.log('My Public Key: ' + this.publicKey);
@@ -283,7 +431,7 @@ class GameTableTemplate extends GameTemplate {
               </div>
               <div class="saito-modal-menu-option" id="forfeit">
                 <i class="fa-solid fa-door-open"></i>
-                <div class="option-keyword">Leave now<span>--</span><span class="option-explanation">abandon any active bets and quit the game</span></div>
+                <div class="option-keyword">Leave now<span>--</span><span class="option-explanation">abandon the current hand, settle any debts, and quit the game</span></div>
               </div>
             </div>
           </div>`;
@@ -305,6 +453,11 @@ class GameTableTemplate extends GameTemplate {
           return;
         }
         if (choice == 'forfeit') {
+          //
+          // pay any outstanding settlement before we withdraw and navigate away
+          //
+          await game_self.settleDebtsOnExit();
+
           await game_self.sendStopGameTransaction('withdraw');
           game_self.game.over = 2;
           game_self.removePlayer(game_self.publicKey);

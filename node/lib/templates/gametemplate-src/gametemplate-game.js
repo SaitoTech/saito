@@ -533,6 +533,56 @@ class GameGame {
    * ****************************************************************************************************/
 
   /*
+  stopgame / gameover transactions bypass the future-move buffer, but they must not
+  execute while the engine is halted or mid-queue: they wipe the queue and re-render
+  the controls underneath armed UI (e.g. an acknowledge notice with a live shot clock).
+  We park them here and drain them via processDeferredGameEndTransactions() when the
+  engine resumes (restartQueue / processFutureMoves).
+  */
+  deferGameEndTransactionIfBusy(request, tx) {
+    if (this.halted != 1 && this.gaming_active != 1) {
+      return false;
+    }
+
+    if (!this.deferred_game_end) {
+      this.deferred_game_end = [];
+    }
+
+    console.warn(
+      `GT: deferring ${request} tx until engine resumes (halted: ${this.halted}, gaming_active: ${this.gaming_active})`
+    );
+
+    this.deferred_game_end.push({ request, tx, game_id: this.game.id });
+    return true;
+  }
+
+  async processDeferredGameEndTransactions() {
+    if (!this.deferred_game_end?.length) {
+      return;
+    }
+
+    for (let i = 0; i < this.deferred_game_end.length; i++) {
+      //
+      // only process entries for the currently loaded game -- an entry parked
+      // while another game of this module was swapped in waits for its own game
+      //
+      if (this.deferred_game_end[i].game_id === this.game.id) {
+        let { request, tx } = this.deferred_game_end[i];
+        this.deferred_game_end.splice(i, 1);
+        i--;
+
+        console.info(`GT: processing deferred ${request} tx now that engine has resumed`);
+
+        if (request === 'gameover') {
+          await this.receiveGameoverTransaction(null, tx, 0, this.app);
+        } else {
+          await this.receiveStopGameTransaction(tx.from[0].publicKey, tx.returnMessage());
+        }
+      }
+    }
+  }
+
+  /*
   When my game logic shows that I have reached a losing condition and need to notify the opponents
   */
   async sendStopGameTransaction(reason = 'forfeit') {

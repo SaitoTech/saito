@@ -91,6 +91,7 @@ class GameTemplate extends ModTemplate {
     this.game = {};
     this.moves = [];
     this.future = [];
+    this.deferred_game_end = []; // stopgame/gameover txs parked while engine halted/active
     this.description = 'Peer to peer gaming on the blockchain';
     this.endmoves = [];
     this.commands = [];
@@ -1015,10 +1016,14 @@ class GameTemplate extends ModTemplate {
       // gameover requests
       //
       if (txmsg.request === 'gameover') {
-        await this.receiveGameoverTransaction(blk, tx, conf, this.app);
+        if (!this.deferGameEndTransactionIfBusy('gameover', tx)) {
+          await this.receiveGameoverTransaction(blk, tx, conf, this.app);
+        }
       } else if (txmsg.request === 'stopgame') {
         // stopgame requests
-        await this.receiveStopGameTransaction(tx.from[0].publicKey, txmsg);
+        if (!this.deferGameEndTransactionIfBusy('stopgame', tx)) {
+          await this.receiveStopGameTransaction(tx.from[0].publicKey, txmsg);
+        }
       } else if (txmsg.request === 'game') {
         //
         // TODO - poker init fails if this is commented out
@@ -1235,9 +1240,13 @@ class GameTemplate extends ModTemplate {
             }
           } else if (message.request == 'game relay update') {
             if (gametxmsg.request == 'gameover') {
-              await this.receiveGameoverTransaction(null, gametx, 0, app);
+              if (!this.deferGameEndTransactionIfBusy('gameover', gametx)) {
+                await this.receiveGameoverTransaction(null, gametx, 0, app);
+              }
             } else if (gametxmsg.request == 'stopgame') {
-              await this.receiveStopGameTransaction(gametx.from[0].publicKey, gametxmsg);
+              if (!this.deferGameEndTransactionIfBusy('stopgame', gametx)) {
+                await this.receiveStopGameTransaction(gametx.from[0].publicKey, gametxmsg);
+              }
             } else {
               this.receiveMetaMessage(gametx);
             }

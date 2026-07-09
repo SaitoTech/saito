@@ -300,10 +300,24 @@ class GameUI {
 
       this.shot_clock = setTimeout(() => {
         this.clearShotClock();
+
+        //
+        // the UI may have been re-rendered (or repurposed entirely, e.g. by a
+        // game-over) since the clock was armed -- only auto-click a control
+        // that still matches the selector we were armed for
+        //
+        let clickable = elem.isConnected ? elem : document.querySelector(target);
+        if (!clickable) {
+          console.warn(
+            `GT [setShotClock] not auto-clicking '${target}' -- control was replaced or removed`
+          );
+          return;
+        }
+
         if (callback) {
           callback();
         }
-        elem.click();
+        clickable.click();
       }, timer);
 
       $('.animated-mask').animate({ width: '0px' }, timer);
