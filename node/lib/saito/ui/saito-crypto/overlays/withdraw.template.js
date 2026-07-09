@@ -173,8 +173,8 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
               <section class="withdraw-confirm-overlay__recipient" aria-labelledby="withdraw-confirm-recipient-label">
                 <div class="withdraw-confirm-overlay__summary-label" id="withdraw-confirm-recipient-label">TO</div>
-                <div class="withdraw-confirm-counterparty counterparty-details hide-element" id="withdraw-confirm-counterparty"></div>
                 <div class="withdraw-confirm-overlay__chain-address" id="withdraw-confirm-address"></div>
+                <div class="withdraw-confirm-counterparty counterparty-details hide-element" id="withdraw-confirm-counterparty"></div>
               </section>
 
               <section class="withdraw-confirm-overlay__fee-row" aria-labelledby="withdraw-confirm-fee-label">
@@ -221,12 +221,8 @@ module.exports = (app, mod, publickey = '', address = '') => {
           <button type="button" class="saito-button-primary" id="withdraw-confirm">Confirm send</button>
         </div>
 
-        <div class="saito-button-row withdraw-overlay__actions hide-element" id="withdraw-footer-pending">
-          <span class="withdraw-confirm-overlay__pending-label" id="withdraw-pending-label">Broadcasting…</span>
-        </div>
-
         <div class="saito-button-row withdraw-overlay__actions hide-element" id="withdraw-footer-success">
-          <a class="saito-button-secondary" id="withdraw-view-history" href="/explorer">View on Explorer</a>
+          <a class="saito-button-secondary" id="withdraw-view-history" href="#">View history</a>
           <button type="button" class="saito-button-primary" id="withdraw-done">Done</button>
         </div>
 
