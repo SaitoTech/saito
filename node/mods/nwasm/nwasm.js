@@ -590,7 +590,7 @@ class Nwasm extends OnePlayerGameTemplate {
 			vault_data.slip2_utxokey = nft.slip2?.utxo_key;
 			vault_data.slip3_utxokey = nft.slip3?.utxo_key;
 			vault_data.file_id = txmsg.data?.file_id;
-			vault_mod.sendAccessFileRequest(vault_data, (base64) => {
+			vault_mod.sendAccessFileRequest(vault_data, null, (base64) => {
 				if (!base64) {
 					console.log('ERROR: cannot load from Vault');
 					return;

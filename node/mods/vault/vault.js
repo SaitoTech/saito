@@ -90,6 +90,29 @@ class Vault extends ModTemplate {
 				}
 			};
 		}
+
+		if (type === 'saito-nft-media') {
+			return {
+				class: ['vault'],
+				returnMediaDisplay(nft) {
+					if (!nft?.json) {
+						return null;
+					}
+					try {
+						const obj = JSON.parse(nft.json);
+						const backgroundImage = obj.file_access_script
+							? '/vault/img/crystal_key_min.png'
+							: '/vault/img/jade_key_min.png';
+						return {
+							backgroundImage,
+							innerHtml: `<div class="nft-card-text">${nft.json}</div>`
+						};
+					} catch (err) {
+						return null;
+					}
+				}
+			};
+		}
 		return null;
 	}
 
@@ -113,15 +136,11 @@ class Vault extends ModTemplate {
 
 	async handlePeerTransaction(app, tx = null, peer, mycallback) {
 
-console.log("handle peer transaction -- vault");
-
 		if (tx == null) {
 			return 0;
 		}
 
 		let txmsg = tx.returnMessage();
-
-console.log(txmsg.request);
 
 		if (!txmsg.request || !mycallback) {
 			return 0;
@@ -160,7 +179,7 @@ console.log("NORMAL vault access file 1");
 					console.log(
 						'--------------------------------\nCALLING RUST SCRIPT VALIDATOR\n--------------------------------'
 					);
-					ok = await app.core.scripting.evaluate_with_transaction(access_script, tx);
+					ok = await app.core.scripting.evaluateWithTransaction(access_script, tx);
 					console.log(
 						'--------------------------------\nSCRIPT VALIDATION RESULT:\n\n' +
 							(ok ? 'true' : 'false') +

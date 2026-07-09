@@ -2361,6 +2361,7 @@ dependencies = [
  "criterion",
  "futures",
  "hex",
+ "js-sys",
  "lazy_static",
  "log",
  "merkle",

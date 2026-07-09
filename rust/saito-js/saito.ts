@@ -529,14 +529,26 @@ export default class Saito {
           return await wasm.evaluate_script(script);
         },
 
-        evaluate_with_transaction: async (script: any , tx?: Transaction): Promise<number> => {
+        mergeWitness: (script: any, witness: any): any => {
           if (typeof script !== "string") {
             script = JSON.stringify(script);
           }
-	  if (tx) {
-    	    tx.packData();
-    	    return await wasm.evaluate_script_with_transaction(script, tx.wasmTransaction);
-  	  }
+
+          if (typeof witness !== "string") {
+            witness = JSON.stringify(witness);
+          }
+
+          return JSON.parse(wasm.merge_witness(script, witness));
+        },
+
+        evaluateWithTransaction: async (script: any, tx?: Transaction): Promise<number> => {
+          if (typeof script !== "string") {
+            script = JSON.stringify(script);
+          }
+          if (tx) {
+            tx.packData();
+            return await wasm.evaluate_script_with_transaction(script, tx.wasmTransaction);
+          }
 
           return await wasm.evaluate_script(script);
         },
@@ -579,22 +591,12 @@ export default class Saito {
         idOrHash: string | number | bigint,
         includeTransactions: boolean = false
       ) => {
-        return wrapper.getBlock(
-          idOrHash,
-          includeTransactions
-        );
+        return wrapper.getBlock(idOrHash, includeTransactions);
       };
 
-      blockchain.getBlocks = async (
-        count: number,
-        includeOffchain: boolean = false
-      ) => {
-        return wrapper.getBlocks(
-          count,
-          includeOffchain
-        );
+      blockchain.getBlocks = async (count: number, includeOffchain: boolean = false) => {
+        return wrapper.getBlocks(count, includeOffchain);
       };
-
     }
 
     console.log("CORE OBJECT");
@@ -763,9 +765,7 @@ export default class Saito {
   }
 
   public async updateBalanceFrom(snapshot: BalanceSnapshot) {
-    console.info("[IMPORT_TRACE] before updateBalanceFrom (saito.ts)");
     await Saito.getLibInstance().update_from_balance_snapshot(snapshot.instance);
-    console.info("[IMPORT_TRACE] after updateBalanceFrom (saito.ts)");
   }
 
   public async addPendingTx(tx: Transaction) {

@@ -3,6 +3,19 @@ const Summary = require('../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../summary');
 const { summaryDomId } = require('./summary-cache');
 
+const GRADIENT_CLASSES = [
+	'gradient-1',
+	'gradient-2',
+	'gradient-3',
+	'gradient-4',
+	'gradient-5',
+	'gradient-6',
+	'gradient-7',
+	'gradient-8',
+	'gradient-9',
+	'gradient-10'
+];
+
 class Teaser {
 	constructor(app, mod, summary = null, container = '') {
 		this.app = app;
@@ -37,40 +50,46 @@ class Teaser {
 			return;
 		}
 
-		if (!summary.hasLoadedImage?.()) {
-			return;
-		}
-
-		const image = summary.returnImage();
-		Teaser.updateMediaFromUrl(app, summaryDomId(summary), image);
+		Teaser.applyMediaDisplay(app, summaryDomId(summary), summary.returnMediaDisplay());
 	}
 
-	static updateMediaFromUrl(app, dom_id, image_url = '') {
-		if (!dom_id || !image_url) {
-			return;
-		}
-
+	static applyMediaDisplay(app, dom_id, display = {}) {
 		const media = Teaser.returnTeaserMedia(dom_id);
 		if (!media) {
 			return;
 		}
 
-		media.classList.remove(
-			'dreamscape-placeholder',
-			'gradient-1',
-			'gradient-2',
-			'gradient-3',
-			'gradient-4',
-			'gradient-5',
-			'gradient-6',
-			'gradient-7',
-			'gradient-8',
-			'gradient-9',
-			'gradient-10',
-			'teaser-media-loading'
-		);
-		media.classList.add('has-image');
-		media.style.background = `url(${image_url}) center / cover no-repeat`;
+		Teaser.setMediaLoading(app, dom_id, !!display.loading);
+		if (display.loading) {
+			return;
+		}
+
+		media.classList.remove('dreamscape-placeholder', 'has-image', 'teaser-media-loading', ...GRADIENT_CLASSES);
+
+		let content = media.querySelector('.teaser-media-content');
+		if (display.innerHtml) {
+			if (!content) {
+				content = document.createElement('div');
+				content.className = 'teaser-media-content';
+				media.insertBefore(content, media.firstChild);
+			}
+			content.innerHTML = display.innerHtml;
+		} else if (content) {
+			content.remove();
+		}
+
+		if (display.backgroundImage) {
+			media.classList.add('has-image');
+			media.style.background = `url(${display.backgroundImage}) center / cover no-repeat`;
+			return;
+		}
+
+		if (!display.innerHtml) {
+			media.classList.add('dreamscape-placeholder');
+			media.style.background = `url(${DREAMSCAPE_PLACEHOLDER}) center / cover no-repeat`;
+		} else {
+			media.style.background = '';
+		}
 	}
 
 	render(container = '') {
@@ -82,12 +101,13 @@ class Teaser {
 			return;
 		}
 
+		const display = this.summary.returnMediaDisplay();
 		const image = this.summary.hasLoadedImage()
 			? this.summary.returnImage()
 			: this.summary.returnPlaceholderImage();
-		const mediaClass = this.returnMediaClass(image);
-		const mediaBackground = this.returnMediaBackground(image);
-		const showLoading = this.summary.isImageLoading();
+		const mediaClass = this.returnMediaClass(image, display);
+		const mediaBackground = this.returnMediaBackground(image, display);
+		const showLoading = !!display.loading;
 		const badgeClass = this.summary.badge ? '' : 'hidden';
 		const identicon = this.app.keychain.returnIdenticon(this.summary.seller || '');
 		const templateData = {
@@ -106,22 +126,32 @@ class Teaser {
 			TeaserTemplate(templateData, this.cardId, mediaClass, mediaBackground, badgeClass, showLoading),
 			this.container
 		);
+
+		if (!display.loading) {
+			Teaser.applyMediaDisplay(this.app, this.cardId, display);
+		}
+
 		this.attachEvents();
 		this.beginMediaEnrichment();
 	}
 
 	beginMediaEnrichment() {
-		if (!this.summary.isImageLoading()) {
+		if (!this.summary.isImageLoading() || this.summary._media_enriched) {
 			return;
 		}
 
 		Teaser.setMediaLoading(this.app, this.cardId, true);
-		this.summary.enrichMedia();
+		this.summary.enrichMedia(() => {
+			Teaser.updateMedia(this.app, this.summary);
+		});
 	}
 
-	returnMediaClass(image = '') {
+	returnMediaClass(image = '', display = {}) {
 		if (this.summary.isDemo() && image?.startsWith?.('gradient-')) {
 			return image;
+		}
+		if (display.backgroundImage || display.innerHtml) {
+			return display.backgroundImage ? 'has-image' : 'has-media-content';
 		}
 		if (!image) {
 			return 'dreamscape-placeholder';
@@ -132,7 +162,10 @@ class Teaser {
 		return 'has-image';
 	}
 
-	returnMediaBackground(image = '') {
+	returnMediaBackground(image = '', display = {}) {
+		if (display.backgroundImage) {
+			return `url(${display.backgroundImage}) center / cover no-repeat`;
+		}
 		if (this.summary.isDemo() && image?.startsWith?.('gradient-')) {
 			return this.returnGradientForClass(image);
 		}

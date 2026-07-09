@@ -22,6 +22,11 @@ const {
 	extractTransactionsFromBlocks,
 	mergeBlockByHash,
 } = require('./lib/explorer-format');
+const {
+	EXPLORER_PRODUCE_BLOCK_REQUEST,
+	EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST,
+	allowsManualBlockProduction,
+} = require('./lib/manual-block-production');
 
 class Explorer extends ModTemplate {
 
@@ -742,6 +747,10 @@ class Explorer extends ModTemplate {
 		}
 	}
 
+	canExposeManualBlockProduction() {
+		return allowsManualBlockProduction(this.app);
+	}
+
 	async handlePeerTransaction(app, tx = null, peer, mycallback) {
 		if (tx == null) {
 			return 0;
@@ -752,6 +761,25 @@ class Explorer extends ModTemplate {
 		}
 
 		let txmsg = tx.returnMessage();
+
+		// Manual Token Supply admin controls. Disabled when spam is installed or
+		// the node is running in a production / non-producing consensus mode.
+		if (
+			txmsg?.request === EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST ||
+			txmsg?.request === EXPLORER_PRODUCE_BLOCK_REQUEST
+		) {
+			if (!allowsManualBlockProduction(app)) {
+				return 0;
+			}
+
+			if (txmsg.request === EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST) {
+				await app.wallet.produceBlockWithGt();
+			} else {
+				await app.wallet.produceBlockWithoutGt();
+			}
+			return 1;
+		}
+
 		let response = await handleExplorerRequest(app, txmsg, this);
 
 		if (response !== null) {

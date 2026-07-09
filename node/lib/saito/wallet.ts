@@ -206,10 +206,6 @@ export default class Wallet extends SaitoWallet {
         });
 
         this.options.isActivated = true;
-
-        app.connection.on('wallet-updated', async (payload: unknown) => {
-          console.log('************** wallet-updated ************', payload);
-        });
       }
 
       //
@@ -659,7 +655,7 @@ export default class Wallet extends SaitoWallet {
       }
 
       this.app.connection.on('wallet-updated', async () => {
-        await this.saveWallet();
+        await this.updateNFTList(); // triggers this.saveWallet() after updating NFTs from cache
       });
 
       this.app.connection.on('keychain-updated', () => {
@@ -737,10 +733,6 @@ export default class Wallet extends SaitoWallet {
    * Saves the current wallet state to local storage.
    */
   async saveWallet() {
-    console.info(
-      '[SAVE_TRACE] saveWallet called app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
     if (!this.app.options.wallet) {
       this.app.options.wallet = {};
     }
@@ -759,19 +751,10 @@ export default class Wallet extends SaitoWallet {
     }
 
     let slips = await this.getSlips();
-    console.info(
-      '[SAVE_TRACE] serializing wallet wasm_slips=' +
-        slips.length +
-        ' app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
     this.app.options.wallet.slips = slips.map((slip) => slip.toJson());
 
     await this.save();
     this.app.storage.saveOptions();
-    console.info(
-      '[SAVE_TRACE] saveWallet completed app_option_slips=' + this.app.options.wallet.slips.length
-    );
   }
 
   /////////////////////////
@@ -1305,7 +1288,6 @@ export default class Wallet extends SaitoWallet {
   }
 
   public async fetchBalanceSnapshot(key: string) {
-    console.info('[IMPORT_TRACE] before fetchBalanceSnapshot key=' + key);
     const balanceUrl = '/balance/' + key;
     try {
       console.log('fetching balance snapshot for key : ' + key);
@@ -1334,20 +1316,8 @@ export default class Wallet extends SaitoWallet {
           `[BALANCE FETCH] snapshot parsed file=${snapshot.file_name} rows=${snapshot.rows.length} expected_balance_nolan=${expectedBalance.toString()}`
         );
         const beforeSlipCount = (await this.getSlips()).length;
-        console.info(
-          '[IMPORT_TRACE] before updateBalanceFrom wasm_slips=' +
-            beforeSlipCount +
-            ' app_option_slips=' +
-            (this.app.options.wallet?.slips?.length ?? 0)
-        );
         await S.getInstance().updateBalanceFrom(snapshot);
         const afterSlipCount = (await this.getSlips()).length;
-        console.info(
-          '[IMPORT_TRACE] after updateBalanceFrom wasm_slips=' +
-            afterSlipCount +
-            ' app_option_slips=' +
-            (this.app.options.wallet?.slips?.length ?? 0)
-        );
         console.log(
           `[BALANCE FETCH] wallet slips updated before=${beforeSlipCount} after=${afterSlipCount} added=${Math.max(
             0,
@@ -1360,7 +1330,6 @@ export default class Wallet extends SaitoWallet {
     } catch (error) {
       console.log('[BALANCE FETCH] request/update failed:', error);
     }
-    console.info('[IMPORT_TRACE] after fetchBalanceSnapshot key=' + key);
   }
 
   //
@@ -1455,15 +1424,7 @@ export default class Wallet extends SaitoWallet {
           this.app.options.wallet.pending = [];
 
           // Maybe stored our options in localForage
-          console.info(
-            '[IMPORT_TRACE] before resetOptionsFromKey app_option_slips=' +
-              (this.app.options.wallet?.slips?.length ?? 0)
-          );
           await this.app.storage.resetOptionsFromKey(publicKey);
-          console.info(
-            '[IMPORT_TRACE] after resetOptionsFromKey app_option_slips=' +
-              (this.app.options.wallet?.slips?.length ?? 0)
-          );
         } catch (err) {
           // console.error(err);
           return err;
@@ -1478,45 +1439,12 @@ export default class Wallet extends SaitoWallet {
 
     await this.app.modules.onUpgrade(type, privatekey, decrypted_wallet);
 
-    if (type == 'import') {
-      console.info(
-        '[IMPORT_TRACE] before resetBlockchain app_option_slips=' +
-          (this.app.options.wallet?.slips?.length ?? 0)
-      );
-    }
     await this.app.blockchain.resetBlockchain();
-    if (type == 'import') {
-      console.info(
-        '[IMPORT_TRACE] after resetBlockchain app_option_slips=' +
-          (this.app.options.wallet?.slips?.length ?? 0)
-      );
-      console.info(
-        '[IMPORT_TRACE] before fetchBalanceSnapshot app_option_slips=' +
-          (this.app.options.wallet?.slips?.length ?? 0)
-      );
-    }
 
     await this.fetchBalanceSnapshot(publicKey);
 
-    if (type == 'import') {
-      console.info(
-        '[IMPORT_TRACE] after fetchBalanceSnapshot app_option_slips=' +
-          (this.app.options.wallet?.slips?.length ?? 0)
-      );
-      console.info(
-        '[IMPORT_TRACE] before saveWallet app_option_slips=' +
-          (this.app.options.wallet?.slips?.length ?? 0)
-      );
-    }
-
     // console.log(JSON.parse(JSON.stringify(this.app.options.wallet)));
     await this.saveWallet();
-    if (type == 'import') {
-      console.info(
-        '[IMPORT_TRACE] after saveWallet app_option_slips=' +
-          (this.app.options.wallet?.slips?.length ?? 0)
-      );
-    }
     return true;
   }
 

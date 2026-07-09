@@ -716,12 +716,6 @@ impl Transaction {
 
     /// Runs when the chain is re-organized
     pub fn on_chain_reorganization(&self, utxoset: &mut UtxoSet, longest_chain: bool) {
-        info!(
-            "tx reorg : {:?} with {} inputs and {} outputs",
-            self.signature.to_hex(),
-            self.from.len(),
-            self.to.len()
-        );
         let mut input_slip_spendable = true;
         let mut output_slip_spendable = false;
 

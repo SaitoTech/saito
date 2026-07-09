@@ -231,7 +231,6 @@ impl InterfaceIO for WasmIoHandler {
                 MsgHandler::emit_interface_event("wallet-updated", "{}");
             }
             InterfaceEvent::OnTransactionPending() => {
-                info!("[tx-pending-trace] wasm_io_handler emit on-transaction-pending -> JS");
                 MsgHandler::emit_interface_event("on-transaction-pending", "{}");
             }
             InterfaceEvent::OnTransactionSent(payload) => {
@@ -325,12 +324,6 @@ impl InterfaceIO for WasmIoHandler {
     }
 
     async fn save_wallet(&self, wallet: &mut Wallet) -> Result<(), Error> {
-        info!(
-            "[SAVE_TRACE] wasm io save_wallet slips={} unspent={} balance={}",
-            wallet.slips.len(),
-            wallet.unspent_slips.len(),
-            wallet.get_available_balance()
-        );
         MsgHandler::save_wallet();
         // TODO : return error state
         Ok(())

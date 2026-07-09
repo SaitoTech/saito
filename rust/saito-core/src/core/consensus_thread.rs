@@ -129,14 +129,7 @@ impl ConsensusThread {
                 mempool.transactions.len()
             );
 
-            let cleared = self.txs_for_mempool.len();
             self.txs_for_mempool.clear();
-            if cleared > 0 {
-                info!(
-                    "[tx-pending-trace] produce_block cleared txs_for_mempool count={} (OnTransactionPending will NOT fire for these until/unless re-queued)",
-                    cleared
-                );
-            }
 
             return Some(block);
         }
@@ -240,11 +233,6 @@ impl ConsensusThread {
                 )
                 .await;
 
-            info!(
-                "[tx-pending-trace] bundle_block produced block id={} hash={} -> skipping network.propagate_transaction path",
-                block_id,
-                block_hash
-            );
             debug!("blocks added to blockchain");
             return true;
         } else {
@@ -254,23 +242,10 @@ impl ConsensusThread {
                     "since a block was not produced, propagating {:?} txs to peers",
                     self.txs_for_mempool.len()
                 );
-                info!(
-                    "[tx-pending-trace] bundle_block no block produced -> draining txs_for_mempool count={}",
-                    self.txs_for_mempool.len()
-                );
                 for tx in self.txs_for_mempool.drain(..) {
                     debug!("propagating tx : {} to peers", tx.signature.to_hex());
-                    info!(
-                        "[tx-pending-trace] bundle_block -> network.propagate_transaction sig={} type={:?}",
-                        tx.signature.to_hex(),
-                        tx.transaction_type
-                    );
                     txs_to_propagate.push(tx);
                 }
-            } else {
-                info!(
-                    "[tx-pending-trace] bundle_block no block produced but txs_for_mempool is empty"
-                );
             }
 
             let gt_tx_to_propagate: Option<Transaction> = if gt_result.is_some() && !gt_propagated {
@@ -448,7 +423,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             }
             ConsensusEvent::NewTransaction { transaction } => {
                 let sig = transaction.signature.to_hex();
-                let tx_type = transaction.transaction_type;
                 trace!(
                     "ConsensusThread::process_event : new transaction : {:?}",
                     sig
@@ -459,19 +433,9 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
 
                     trace!("adding golden ticket to mempool");
                     mempool.add_golden_ticket(transaction).await;
-                    info!(
-                        "[tx-pending-trace] NewTransaction queued as golden ticket sig={}",
-                        sig
-                    );
                 } else {
                     trace!("adding transaction to mempool");
                     self.txs_for_mempool.push(transaction);
-                    info!(
-                        "[tx-pending-trace] NewTransaction queued in txs_for_mempool sig={} type={:?} queue_len={}",
-                        sig,
-                        tx_type,
-                        self.txs_for_mempool.len()
-                    );
                 }
 
                 Some(())

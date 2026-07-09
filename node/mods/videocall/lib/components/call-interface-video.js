@@ -708,6 +708,17 @@ class CallInterfaceVideo {
 		primary.classList.remove(...layout_classes);
 		secondary.classList.remove(...layout_classes);
 
+		//
+		// Clear inline sizing left behind by applyGalleryGrid -- the same
+		// wrapper becomes a flex film strip in split layouts
+		//
+		for (const el of [primary, secondary]) {
+			el.style.gridTemplateColumns = '';
+			el.style.justifyContent = '';
+			el.style.alignContent = '';
+			el.style.overflowY = '';
+		}
+
 		if (this.local_container === this.remote_container) {
 			container.classList.remove('split-view', 'expanded', 'presentation');
 			container.classList.add('gallery-view');
@@ -831,7 +842,67 @@ class CallInterfaceVideo {
 			child.classList.add('flex-item');
 		});
 		this.updateCountClasses(container);
+		this.applyGalleryGrid(container);
 		this.adjustClassesAndCount(container);
+	}
+
+	//
+	// Best-fit gallery: pick the column count that maximizes tile size for
+	// the current stage dimensions and participant count. Handles vertical
+	// monitors for free (the math just yields fewer columns, more rows).
+	// Tile aspect must stay in sync with the CSS aspect-ratio rules.
+	//
+	applyGalleryGrid(container) {
+		if (!container?.classList.contains('gallery')) {
+			return;
+		}
+
+		const n = container.children.length;
+		const cs = window.getComputedStyle(container);
+		const gap = parseFloat(cs.gap) || 0;
+		const W =
+			container.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+		const H =
+			container.clientHeight - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0);
+
+		if (!n || W <= 0 || H <= 0) {
+			return;
+		}
+
+		const mobile = window.matchMedia('(max-width: 600px)').matches;
+		const aspect = mobile ? 3 / 4 : 4 / 3;
+
+		let best_cols = 1;
+		let best_width = 0;
+
+		for (let cols = 1; cols <= n; cols++) {
+			const rows = Math.ceil(n / cols);
+			const usable_w = W - gap * (cols - 1);
+			const usable_h = H - gap * (rows - 1);
+			const tile_w = Math.min(usable_w / cols, (usable_h / rows) * aspect);
+			if (tile_w > best_width) {
+				best_width = tile_w;
+				best_cols = cols;
+			}
+		}
+
+		//
+		// Don't shrink tiles into postage stamps in a crowded call -- clamp
+		// to a minimum size and let the container scroll vertically instead
+		//
+		const min_width = mobile ? W * 0.42 : 220;
+		if (best_width < min_width) {
+			best_cols = Math.max(1, Math.floor((W + gap) / (min_width + gap)));
+			best_width = (W - gap * (best_cols - 1)) / best_cols;
+		}
+
+		const rows = Math.ceil(n / best_cols);
+		const overflowing = rows * (best_width / aspect + gap) - gap > H;
+
+		container.style.gridTemplateColumns = `repeat(${best_cols}, ${Math.floor(best_width)}px)`;
+		container.style.justifyContent = 'center';
+		container.style.alignContent = overflowing ? 'start' : 'center';
+		container.style.overflowY = overflowing ? 'auto' : 'hidden';
 	}
 
 	updateCountClasses(element) {
@@ -870,12 +941,17 @@ class CallInterfaceVideo {
 				}
 
 				this.updateCountClasses(element);
+				this.applyGalleryGrid(element);
 			}
 		});
 		observer.observe(element);
 		element._sizing_observer = observer;
 	}
 
+	//
+	// Track each tile's orientation so CSS can decide between cropping and
+	// letterboxing the feed (see the tile-landscape/tile-portrait rules)
+	//
 	resizeBackground(element) {
 		if (element._bg_observer) {
 			return;
@@ -884,19 +960,10 @@ class CallInterfaceVideo {
 		const bg_observer = new ResizeObserver((entries) => {
 			for (let entry of entries) {
 				const element = entry.target;
-				const width = entry.contentRect.width;
-				const height = entry.contentRect.height;
-				const aspectRatio = width / height;
+				const aspectRatio = entry.contentRect.width / entry.contentRect.height;
 
-				element.classList.remove('video-fill', 'video-contain', 'video-cover');
-
-				if (aspectRatio > 16 / 9) {
-					element.classList.add('video-fill');
-				} else if (aspectRatio < 9 / 16) {
-					element.classList.add('video-contain');
-				} else {
-					element.classList.add('video-cover');
-				}
+				element.classList.remove('tile-landscape', 'tile-portrait');
+				element.classList.add(aspectRatio >= 1 ? 'tile-landscape' : 'tile-portrait');
 			}
 		});
 

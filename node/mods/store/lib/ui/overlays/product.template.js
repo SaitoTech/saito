@@ -80,11 +80,9 @@ module.exports = (view) => {
 
             <textarea id="store-product-note-input" class="store-product-note" placeholder="note to seller (size, color, delivery info, etc)"></textarea>
           </div>
-        </div>
-      </div>
 
-      <div class="store-product-footer">
-        <button class="store-product-buy">${view.actionText}</button>
+          <button class="store-product-buy">${view.actionText}</button>
+        </div>
       </div>
     </div>
   `;

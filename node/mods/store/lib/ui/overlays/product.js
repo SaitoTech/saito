@@ -78,10 +78,17 @@ class ProductOverlay {
 		const seller = summary.seller || 'anon-store';
 		const shortSeller = this.returnShortKey(seller);
 
-		const listingImage = summary.hasLoadedImage?.() ? summary.returnImage?.() || '' : '';
+		const display = summary.returnMediaDisplay?.() || {};
+		const listingImage =
+			display.backgroundImage ||
+			(summary.hasLoadedImage?.() ? summary.returnImage?.() || '' : '');
+		const placeholder =
+			display.loading || display.innerHtml
+				? ''
+				: summary.returnPlaceholderImage?.() || DREAMSCAPE_PLACEHOLDER;
 		const images = Array.isArray(summary.images)
 			? summary.images.filter(Boolean)
-			: [listingImage || summary.returnPlaceholderImage?.() || DREAMSCAPE_PLACEHOLDER];
+			: [listingImage || placeholder];
 
 		const normalizedImages = images.map((img) =>
 			img?.startsWith?.('gradient-') ? DREAMSCAPE_PLACEHOLDER : img
@@ -130,6 +137,49 @@ class ProductOverlay {
 		};
 	}
 
+	applyProductMedia(summary = this.summary) {
+		if (!(summary instanceof Summary)) {
+			return;
+		}
+
+		const display = summary.returnMediaDisplay?.() || {};
+		const media = document.querySelector('.store-product-media');
+		const mainImage = document.querySelector('.store-product-main-image');
+		if (!media) {
+			return;
+		}
+
+		let content = media.querySelector('.store-product-media-content');
+		if (display.loading) {
+			return;
+		}
+
+		if (display.innerHtml) {
+			if (mainImage) {
+				mainImage.style.display = 'none';
+			}
+			if (!content) {
+				content = document.createElement('div');
+				content.className = 'store-product-media-content';
+				content.style.cssText =
+					'position:absolute;inset:0;overflow:hidden;padding:12px;display:flex;align-items:center;justify-content:center;';
+				media.appendChild(content);
+			}
+			content.innerHTML = display.innerHtml;
+			return;
+		}
+
+		if (content) {
+			content.remove();
+		}
+		if (mainImage) {
+			mainImage.style.display = '';
+			if (display.backgroundImage) {
+				mainImage.setAttribute('src', display.backgroundImage);
+			}
+		}
+	}
+
 	attachEvents() {
 		const mainImage = document.querySelector('.store-product-main-image');
 		const thumbs = document.querySelectorAll('.store-product-thumb');
@@ -147,6 +197,10 @@ class ProductOverlay {
 
 		if (mainImage) {
 			mainImage.onerror = () => {
+				const display = this.summary?.returnMediaDisplay?.() || {};
+				if (display.innerHtml || display.loading) {
+					return;
+				}
 				mainImage.onerror = null;
 				this.beginOverlayEnrichment();
 			};
@@ -185,6 +239,7 @@ class ProductOverlay {
 		const view = this.returnViewModel(this.summary || {});
 		this.overlay.show(ProductTemplate(view));
 		this.attachEvents();
+		this.applyProductMedia();
 		this.beginOverlayEnrichment();
 	}
 
@@ -196,13 +251,13 @@ class ProductOverlay {
 
 		const refreshIfNeeded = () => {
 			this.render(summary);
-			if (!summary.image) {
+			if (summary.isImageLoading?.()) {
 				summary.enrichMedia(() => this.render(summary));
 			}
 		};
 
 		if (summary.listing_tx) {
-			if (!summary.image) {
+			if (summary.isImageLoading?.()) {
 				summary.enrichMedia(() => this.render(summary));
 			}
 			return;

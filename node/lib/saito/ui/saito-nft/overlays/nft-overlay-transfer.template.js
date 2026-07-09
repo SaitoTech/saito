@@ -8,7 +8,7 @@ module.exports = (app, mod, nft_overlay) => {
           <input class="saito-nft-input-field" id="nft-receiver-address"/>
           <label class="saito-nft-input-label">Amount</label>
           <div class="nft-send-amount-row">
-            <input class="saito-nft-input-field" id="nft-send-amount" placeholder="1" />
+            <input class="saito-nft-input-field" id="nft-send-amount" value="1" />
             <button type="button" class="nft-send-max-btn">MAX</button>
           </div>
         </div>

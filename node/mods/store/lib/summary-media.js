@@ -106,8 +106,10 @@ async function enrichSummaryMedia(summary) {
 		await ensureListingTransaction(summary);
 		if (summary.image) {
 			summary._image_source = 'archive';
-			notifySummaryUpdated(summary);
 		}
+
+		summary._media_enriched = true;
+		notifySummaryUpdated(summary);
 
 		return summary;
 	})();

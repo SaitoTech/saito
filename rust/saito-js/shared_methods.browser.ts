@@ -390,12 +390,10 @@ export class BrowserSharedMethods implements SharedMethods {
   }
 
   async saveWallet() {
-    console.info("[SAVE_TRACE] browser saveWallet called app_option_slips=???");
     this.app.options.wallet ??= {};
     this.app.options.wallet.publicKey = await this.app.wallet.getPublicKey();
     this.app.options.wallet.privateKey = await this.app.wallet.getPrivateKey();
     this.app.options.wallet.balance = await this.app.wallet.getBalance();
-    console.info("[SAVE_TRACE] browser saveWallet completed!!!");
   }
 
   async loadWallet() {

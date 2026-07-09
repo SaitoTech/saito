@@ -175,24 +175,8 @@ impl Slip {
     pub fn on_chain_reorganization(&self, utxoset: &mut UtxoSet, spendable: bool) {
         if self.amount > 0 {
             if spendable {
-                info!(
-                    "adding slip to utxo : {:?}-{:?}-{:?} with value : {:?} key: {:?}",
-                    self.block_id,
-                    self.tx_ordinal,
-                    self.slip_index,
-                    self.amount,
-                    self.utxoset_key.to_hex()
-                );
                 utxoset.insert(self.utxoset_key, spendable);
             } else {
-                info!(
-                    "removing slip from utxo : {:?}-{:?}-{:?} with value : {:?} key: {:?}",
-                    self.block_id,
-                    self.tx_ordinal,
-                    self.slip_index,
-                    self.amount,
-                    self.utxoset_key.to_hex()
-                );
                 utxoset.remove(&self.utxoset_key);
             }
         }

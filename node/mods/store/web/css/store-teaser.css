@@ -25,6 +25,30 @@
 	background-color: #132736;
 }
 
+.teaser-media.has-media-content {
+	background-color: #132736;
+}
+
+.teaser-media-content {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	padding: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.teaser-media-content .nft-card-text {
+	max-height: 100%;
+	overflow: hidden;
+	font-size: 1rem;
+	line-height: 1.3;
+	color: #ffffff;
+	text-align: left;
+	word-break: break-word;
+}
+
 .teaser-media-loading .teaser-media-loading-indicator {
 	opacity: 1;
 }
