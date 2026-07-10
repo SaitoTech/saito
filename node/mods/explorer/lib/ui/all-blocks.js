@@ -1,6 +1,6 @@
 const AllBlocksTemplate = require('./all-blocks.template');
 const { formatBlocksForTeaser } = require('../explorer-format');
-const { requestBlocksFromPeer } = require('../peer/client');
+const { sendExplorerPeerRequest } = require('../peer/client');
 
 const PAGE_SIZE = 25;
 
@@ -122,17 +122,25 @@ class AllBlocks {
 			return;
 		}
 
-		requestBlocksFromPeer(this.app, peer, { count: PAGE_SIZE, include_offchain: false }, (response) => {
-			this.loading = false;
-			if (response?.err || !response?.success) {
-				this.error = response?.error || 'Failed to load blocks.';
+		sendExplorerPeerRequest(this.app, 'request blocks', {
+			data: {
+				request: 'request blocks',
+				count: PAGE_SIZE,
+				include_offchain: false,
+			},
+			callback: (response) => {
+				this.loading = false;
+				if (response?.err || !response?.success) {
+					this.error = response?.error || 'Failed to load blocks.';
+					this.paint();
+					return;
+				}
+				const data = Array.isArray(response.data) ? response.data : [];
+				this.rawBlocks = data;
+				this.hasMore = data.length >= PAGE_SIZE;
 				this.paint();
-				return;
-			}
-			const data = Array.isArray(response.data) ? response.data : [];
-			this.rawBlocks = data;
-			this.hasMore = data.length >= PAGE_SIZE;
-			this.paint();
+			},
+			peer,
 		});
 	}
 
@@ -152,11 +160,14 @@ class AllBlocks {
 		this.loadingMore = true;
 		this.paint();
 
-		requestBlocksFromPeer(
-			this.app,
-			peer,
-			{ count: PAGE_SIZE, include_offchain: false, before_id: beforeId },
-			(response) => {
+		sendExplorerPeerRequest(this.app, 'request blocks', {
+			data: {
+				request: 'request blocks',
+				count: PAGE_SIZE,
+				include_offchain: false,
+				before_id: beforeId,
+			},
+			callback: (response) => {
 				this.loadingMore = false;
 				if (response?.err || !response?.success) {
 					this.hasMore = false;
@@ -171,8 +182,9 @@ class AllBlocks {
 					this.hasMore = data.length >= PAGE_SIZE;
 				}
 				this.paint();
-			}
-		);
+			},
+			peer,
+		});
 	}
 }
 

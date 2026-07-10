@@ -11,6 +11,7 @@
 .explorer-supply-header {
 	display: flex;
 	flex-direction: row;
+	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--explorer-space-3);
 }
@@ -72,6 +73,119 @@
 .explorer-supply-admin-button:disabled {
 	opacity: 0.55;
 	cursor: wait;
+}
+
+.explorer-supply-admin-button-add {
+	min-width: 2rem;
+	padding-inline: 0.5rem;
+	font-size: var(--explorer-text-base);
+	line-height: 1;
+}
+
+.explorer-supply-fee-input {
+	box-sizing: border-box;
+	width: 10ch;
+	min-width: 9ch;
+	max-width: 11ch;
+	margin: 0;
+	padding: 0.35rem 0.65rem;
+	border: 1px solid var(--explorer-border);
+	border-radius: var(--explorer-radius-sm);
+	background-color: var(--explorer-card);
+	color: var(--explorer-foreground);
+	font-family: var(--explorer-font-mono);
+	font-size: var(--explorer-text-xs);
+	line-height: var(--explorer-leading-snug);
+}
+
+.explorer-supply-fee-input::placeholder {
+	color: var(--explorer-muted-foreground);
+	opacity: 1;
+}
+
+.explorer-supply-fee-input:focus-visible {
+	outline: none;
+	border-color: color-mix(in oklch, var(--explorer-muted-foreground) 28%, var(--explorer-border));
+	box-shadow: var(--explorer-focus-ring);
+}
+
+.explorer-supply-fee-input:disabled {
+	opacity: 0.55;
+	cursor: wait;
+}
+
+.explorer-supply-produce-error {
+	margin: 0 0 var(--explorer-space-2);
+	padding: var(--explorer-space-2) var(--explorer-space-3);
+	border: 1px solid color-mix(in oklch, var(--explorer-destructive) 35%, var(--explorer-border));
+	border-radius: var(--explorer-radius-sm);
+	background-color: color-mix(in oklch, var(--explorer-destructive) 8%, var(--explorer-card));
+	color: var(--explorer-foreground);
+	font-size: var(--explorer-text-sm);
+}
+
+.explorer-supply-produce-error p {
+	margin: 0;
+}
+
+.explorer-supply-fee-input-error {
+	border-color: color-mix(in oklch, var(--explorer-destructive) 45%, var(--explorer-border));
+}
+
+.explorer-supply-fee-diagnostics {
+	flex: 1 1 100%;
+	width: 100%;
+	margin-top: var(--explorer-space-1);
+	padding: 0.5rem 0.65rem;
+	border: 1px solid var(--explorer-border);
+	border-radius: var(--explorer-radius-sm);
+	background: color-mix(in oklch, var(--explorer-card) 92%, var(--explorer-secondary));
+	font-family: var(--explorer-font-mono);
+	font-size: var(--explorer-text-xs);
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-fee-diagnostics-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	gap: 0.2rem;
+}
+
+.explorer-supply-fee-diagnostics-list li {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+}
+
+.explorer-supply-fee-step-icon {
+	display: inline-block;
+	width: 1rem;
+	text-align: center;
+	color: var(--explorer-muted-foreground);
+}
+
+.explorer-supply-fee-diagnostics-list li[data-state='pass'] {
+	color: var(--explorer-foreground);
+}
+
+.explorer-supply-fee-diagnostics-list li[data-state='pass'] .explorer-supply-fee-step-icon {
+	color: var(--explorer-primary);
+}
+
+.explorer-supply-fee-diagnostics-list li[data-state='fail'] {
+	color: color-mix(in oklch, var(--explorer-destructive) 80%, var(--explorer-foreground));
+}
+
+.explorer-supply-fee-diagnostics-list li[data-state='fail'] .explorer-supply-fee-step-icon {
+	color: var(--explorer-destructive);
+}
+
+.explorer-supply-fee-success {
+	margin: 0.45rem 0 0;
+	color: var(--explorer-foreground);
+	font-weight: var(--explorer-font-medium);
 }
 
 @media (max-width: 720px) {

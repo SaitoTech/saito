@@ -1,46 +1,63 @@
 /**
  * Manual block-production peer requests for the Token Supply admin controls.
- * Request names are module-prefixed (`explorer-…`) so routers can attribute them.
  */
+const EXPLORER_ENSURE_TEST_MODE_REQUEST = 'explorer-ensure-test-mode';
 const EXPLORER_PRODUCE_BLOCK_REQUEST = 'explorer-new-block-with-no-gt';
 const EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST = 'explorer-new-block-with-gt';
 
+function isSpamInstalled(app) {
+	return Boolean(app?.modules?.returnModule('spam'));
+}
+
+function isProductionNodeEnv() {
+	const nodeEnv = String(process.env.NODE_ENV || '')
+		.trim()
+		.toLowerCase();
+	return nodeEnv === 'prod' || nodeEnv === 'production';
+}
+
 /**
- * Whether Explorer may expose / honor manual produce-block controls.
- *
- * Disabled when:
- * - the spam module is installed (automated block/tx generation already owns timing)
- * - consensus.disable_block_production is set (Admin "production"/observer node mode)
- * - NODE_ENV is prod/production on the Node side (deployed hosts that set the env flag)
+ * Browser: whether manual block controls may be shown.
  */
-function allowsManualBlockProduction(app) {
-	if (!app) {
+function canShowManualBlockControls(app, mod) {
+	if (!app || !mod?.enable_manual_testing) {
 		return false;
 	}
 
-	if (app.modules?.returnModule('spam')) {
+	if (isSpamInstalled(app)) {
 		return false;
 	}
 
-	if (app.options?.consensus?.disable_block_production === true) {
+	if (app.BROWSER == 0 && isProductionNodeEnv()) {
 		return false;
 	}
 
-	// Server-side only: browsers do not reliably see process.env.
-	if (app.BROWSER == 0) {
-		const nodeEnv = String(process.env.NODE_ENV || '')
-			.trim()
-			.toLowerCase();
-		if (nodeEnv === 'prod' || nodeEnv === 'production') {
-			return false;
-		}
+	return true;
+}
+
+/**
+ * Server: whether Explorer may enter test mode or honor produce requests.
+ */
+function allowsManualTestingOnServer(app, mod) {
+	if (!app || !mod?.enable_manual_testing) {
+		return false;
+	}
+
+	if (isSpamInstalled(app)) {
+		return false;
+	}
+
+	if (app.BROWSER == 0 && isProductionNodeEnv()) {
+		return false;
 	}
 
 	return true;
 }
 
 module.exports = {
+	EXPLORER_ENSURE_TEST_MODE_REQUEST,
 	EXPLORER_PRODUCE_BLOCK_REQUEST,
 	EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST,
-	allowsManualBlockProduction,
+	canShowManualBlockControls,
+	allowsManualTestingOnServer,
 };

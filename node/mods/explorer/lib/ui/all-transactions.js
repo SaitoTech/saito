@@ -4,7 +4,7 @@ const {
 	extractTransactionsFromBlocks,
 	mergeBlockByHash,
 } = require('../explorer-format');
-const { requestBlocksFromPeer, requestBlockFromPeer } = require('../peer/client');
+const { sendExplorerPeerRequest } = require('../peer/client');
 const { detectTransactionModule } = require('../module-detect');
 
 const PAGE_SIZE = 25;
@@ -147,13 +147,28 @@ class AllTransactions {
 	}
 
 	requestBlockPromise(peer, identifier) {
+		const data = {
+			request: 'request block',
+			include_transactions: true,
+		};
+
+		if (typeof identifier === 'bigint' || typeof identifier === 'number') {
+			data.block_id = String(identifier);
+		} else {
+			data.hash = String(identifier);
+		}
+
 		return new Promise((resolve) => {
-			requestBlockFromPeer(this.app, peer, identifier, true, (response) => {
-				if (response?.success && response.data) {
-					resolve(response.data);
-					return;
-				}
-				resolve(null);
+			sendExplorerPeerRequest(this.app, 'request block', {
+				data,
+				callback: (response) => {
+					if (response?.success && response.data) {
+						resolve(response.data);
+						return;
+					}
+					resolve(null);
+				},
+				peer,
 			});
 		});
 	}
@@ -210,13 +225,29 @@ class AllTransactions {
 	}
 
 	requestBlocksPromise(peer, options) {
+		const count = options.count ?? 10;
+		const includeOffchain = options.include_offchain ?? true;
+		const data = {
+			request: 'request blocks',
+			count,
+			include_offchain: includeOffchain,
+		};
+
+		if (options.before_id != null) {
+			data.before_id = Number(options.before_id);
+		}
+
 		return new Promise((resolve) => {
-			requestBlocksFromPeer(this.app, peer, options, (response) => {
-				if (response?.err || !response?.success) {
-					resolve([]);
-					return;
-				}
-				resolve(Array.isArray(response.data) ? response.data : []);
+			sendExplorerPeerRequest(this.app, 'request blocks', {
+				data,
+				callback: (response) => {
+					if (response?.err || !response?.success) {
+						resolve([]);
+						return;
+					}
+					resolve(Array.isArray(response.data) ? response.data : []);
+				},
+				peer,
 			});
 		});
 	}

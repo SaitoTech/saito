@@ -41,6 +41,10 @@ export default class Block extends WasmWrapper<WasmBlock> {
     return "";
   }
 
+  public get timestamp(): number {
+    return Number(this.instance.timestamp);
+  }
+
   public get transactions(): Array<Transaction> {
     try {
       return this.instance.transactions.map((tx) => {

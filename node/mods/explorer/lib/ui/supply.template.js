@@ -89,19 +89,65 @@ function renderMatrixRows(rows = [], columns = []) {
 		.join('');
 }
 
-function renderBlockControls(showBlockControls = false) {
+function renderBlockControls(
+	showBlockControls = false,
+	produceBlockRequest = '',
+	produceBlockWithGtRequest = ''
+) {
 	if (!showBlockControls) {
 		return '';
 	}
 
 	return `
           <div class="explorer-supply-admin-controls" aria-label="Manual block production">
-            <button type="button" class="explorer-supply-admin-button" data-supply-produce-block>
-              Produce Block
+            <button
+              type="button"
+              class="explorer-supply-admin-button"
+              data-produce-block-request="${produceBlockRequest}"
+            >
+              Block
             </button>
-            <button type="button" class="explorer-supply-admin-button" data-supply-produce-block-gt>
-              Produce Block + Golden Ticket
+            <button
+              type="button"
+              class="explorer-supply-admin-button"
+              data-produce-block-request="${produceBlockWithGtRequest}"
+            >
+              Block w/ Ticket
             </button>
+            <input
+              type="text"
+              inputmode="decimal"
+              id="explorer-supply-fee-input"
+              class="explorer-supply-fee-input"
+              data-supply-fee-input
+              placeholder="Fee"
+              autocomplete="off"
+              aria-label="Fee in SAITO"
+            />
+            <button
+              type="button"
+              class="explorer-supply-admin-button explorer-supply-admin-button-add"
+              data-supply-create-transaction
+              aria-label="Add Fee"
+              title="Add Fee"
+            >
+              +
+            </button>
+          </div>
+          <div class="explorer-supply-fee-diagnostics" data-supply-fee-diagnostics hidden aria-live="polite">
+            <ul class="explorer-supply-fee-diagnostics-list">
+              <li data-fee-step="created" data-state="pending">
+                <span class="explorer-supply-fee-step-icon" data-fee-step-icon aria-hidden="true">…</span>
+                transaction created
+              </li>
+              <li data-fee-step="accepted" data-state="pending">
+                <span class="explorer-supply-fee-step-icon" data-fee-step-icon aria-hidden="true">…</span>
+                transaction accepted
+              </li>
+            </ul>
+            <p class="explorer-supply-fee-success" data-supply-fee-success hidden>
+              Fee added successfully.
+            </p>
           </div>
   `;
 }
@@ -109,11 +155,14 @@ function renderBlockControls(showBlockControls = false) {
 module.exports = ({
 	loading = false,
 	error = null,
+	produceError = null,
 	columns = [],
 	rows = [],
 	hasData = false,
 	fullWidth = false,
 	showBlockControls = false,
+	produceBlockRequest = '',
+	produceBlockWithGtRequest = '',
 }) => {
 	const headerCells = renderBlockHeaderCells(columns);
 	const bodyRows = renderMatrixRows(rows, columns);
@@ -122,7 +171,11 @@ module.exports = ({
 		containerClasses.push('full-width');
 	}
 	const toggleLabel = fullWidth ? 'Collapse supply dashboard' : 'Expand supply dashboard';
-	const blockControlsHtml = renderBlockControls(showBlockControls);
+	const blockControlsHtml = renderBlockControls(
+		showBlockControls,
+		produceBlockRequest,
+		produceBlockWithGtRequest
+	);
 
 	const tableHtml =
 		hasData && columns.length > 0
@@ -161,6 +214,14 @@ module.exports = ({
     `;
 	}
 
+	const produceErrorHtml = produceError
+		? `
+      <div class="explorer-supply-produce-error" role="alert">
+        <p>${produceError}</p>
+      </div>
+    `
+		: '';
+
 	return `
     <main class="explorer-content explorer-view-panel explorer-supply-page">
       <div class="${containerClasses.join(' ')}">
@@ -174,6 +235,7 @@ module.exports = ({
           </div>
           ${blockControlsHtml}
         </div>
+        ${produceErrorHtml}
 
         <div class="explorer-supply-dashboard explorer-card explorer-card-padded">
           <div class="explorer-supply-dashboard-toolbar">
