@@ -12,7 +12,8 @@ const { transitionView } = require('./lib/ui/transitions');
 const index = require('./index');
 const PeerService = require('saito-js/lib/peer_service').default;
 const { handleExplorerRequest } = require('./lib/peer/requests');
-const { requestBlocksFromPeer, requestBlockFromPeer, requestInfoFromPeer, requestSupplyFromPeer, requestAddressFromPeer } = require('./lib/peer/client');
+const { sendExplorerPeerRequest } = require('./lib/peer/client');
+const { success, failure } = require('./lib/peer/response');
 const ExplorerDatabase = require('./lib/database');
 const { buildBlockStatistics } = require('./lib/block-statistics');
 const { backfillSupplyStatistics } = require('./lib/supply-accounting');
@@ -23,10 +24,23 @@ const {
 	mergeBlockByHash,
 } = require('./lib/explorer-format');
 const {
+	EXPLORER_ENSURE_TEST_MODE_REQUEST,
 	EXPLORER_PRODUCE_BLOCK_REQUEST,
 	EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST,
-	allowsManualBlockProduction,
+	canShowManualBlockControls,
 } = require('./lib/manual-block-production');
+const {
+	enterExplorerTestMode: setExplorerTestMode,
+	ensureExplorerTestModeForManualAction,
+	runManualBlockProductionRequest,
+} = require('./lib/explorer-test-mode');
+const {
+	startManualProductionCountdown,
+	stopManualProductionCountdown,
+} = require('./lib/manual-production-countdown');
+const { produceExplorerBlockWithoutGt } = require('./lib/produce-block-without-gt');
+const { produceExplorerBlockWithGt } = require('./lib/produce-block-with-gt');
+const { logManualProduction } = require('./lib/manual-production-log');
 
 class Explorer extends ModTemplate {
 
@@ -76,6 +90,14 @@ class Explorer extends ModTemplate {
 		this.addressRows = [];
 		this.addressReady = false;
 		this.addressError = null;
+
+		this.test_mode = false;
+		this.enable_manual_testing = true;
+		this.manualProduction = null;
+		this.produceUiRequest = null;
+		this.produceUiTimerId = null;
+		this.simulationToolbarMessage = '';
+		this.simulationToolbarIsError = false;
 	}
 
 	returnServices() {
@@ -141,6 +163,7 @@ class Explorer extends ModTemplate {
 			this.search = new Search(this.app, this);
 		}
 		this.search.render('.explorer-search');
+		this.renderSimulationToolbar();
 	}
 
 	bindNavigation() {
@@ -509,11 +532,13 @@ class Explorer extends ModTemplate {
 
 		this.fetchChainInfo(app, peer);
 
-		requestBlocksFromPeer(
-			app,
-			peer,
-			{ count: 10, include_offchain: false },
-			async (response) => {
+		sendExplorerPeerRequest(app, 'request blocks', {
+			data: {
+				request: 'request blocks',
+				count: 10,
+				include_offchain: false,
+			},
+			callback: async (response) => {
 				if (response?.err) {
 					console.error('Explorer: block request failed (network)', {
 						peer: peer?.publicKey,
@@ -555,8 +580,9 @@ class Explorer extends ModTemplate {
 				if (this.activeView === 'address' && this.addressPublicKey) {
 					await this.fetchAddressData(app, peer, this.addressPublicKey);
 				}
-			}
-		);
+			},
+			peer,
+		});
 	}
 
 	fetchSupplyData(app, peer) {
@@ -565,7 +591,12 @@ class Explorer extends ModTemplate {
 		this.supplyView = null;
 
 		return new Promise((resolve) => {
-			requestSupplyFromPeer(app, peer, { count: SUPPLY_BLOCK_COUNT }, async (response) => {
+			sendExplorerPeerRequest(app, 'request supply', {
+				data: {
+					request: 'request supply',
+					count: SUPPLY_BLOCK_COUNT,
+				},
+				callback: async (response) => {
 				if (response?.err) {
 					console.error('Explorer: supply request failed (network)', {
 						peer: peer?.publicKey,
@@ -597,7 +628,9 @@ class Explorer extends ModTemplate {
 				this.supplyReady = true;
 				await this.refreshActiveView();
 				resolve();
-			});
+			},
+			peer,
+		});
 		});
 	}
 
@@ -607,7 +640,13 @@ class Explorer extends ModTemplate {
 		this.addressRows = [];
 
 		return new Promise((resolve) => {
-			requestAddressFromPeer(app, peer, publicKey, { count: 100 }, async (response) => {
+			sendExplorerPeerRequest(app, 'request address', {
+				data: {
+					request: 'request address',
+					publickey: String(publicKey),
+					count: 100,
+				},
+				callback: async (response) => {
 				if (response?.err) {
 					console.error('Explorer: address request failed (network)', {
 						peer: peer?.publicKey,
@@ -638,19 +677,36 @@ class Explorer extends ModTemplate {
 				this.addressReady = true;
 				await this.refreshActiveView();
 				resolve();
-			});
+			},
+			peer,
+		});
 		});
 	}
 
 	requestBlockFromPeerPromise(app, peer, identifier, includeTransactions = true) {
+		const data = {
+			request: 'request block',
+			include_transactions: includeTransactions,
+		};
+
+		if (typeof identifier === 'bigint' || typeof identifier === 'number') {
+			data.block_id = String(identifier);
+		} else {
+			data.hash = String(identifier);
+		}
+
 		return new Promise((resolve) => {
-			requestBlockFromPeer(app, peer, identifier, includeTransactions, (response) => {
+			sendExplorerPeerRequest(app, 'request block', {
+				data,
+				callback: (response) => {
 				if (response?.success && response.data) {
 					resolve(response.data);
 					return;
 				}
 				resolve(null);
-			});
+			},
+			peer,
+		});
 		});
 	}
 
@@ -705,7 +761,11 @@ class Explorer extends ModTemplate {
 		this.chainInfo = null;
 
 		return new Promise((resolve) => {
-			requestInfoFromPeer(app, peer, async (response) => {
+			sendExplorerPeerRequest(app, 'request info', {
+				data: {
+					request: 'request info',
+				},
+				callback: async (response) => {
 				if (response?.err) {
 					this.chainInfoError = 'Network error while fetching blockchain information.';
 					this.chainInfoReady = true;
@@ -727,7 +787,9 @@ class Explorer extends ModTemplate {
 				this.chainInfoReady = true;
 				await this.refreshActiveView();
 				resolve();
-			});
+			},
+			peer,
+		});
 		});
 	}
 
@@ -748,7 +810,65 @@ class Explorer extends ModTemplate {
 	}
 
 	canExposeManualBlockProduction() {
-		return allowsManualBlockProduction(this.app);
+		return canShowManualBlockControls(this.app, this);
+	}
+
+	setSimulationToolbarMessage(message, { isError = false } = {}) {
+		this.simulationToolbarMessage = message || '';
+		this.simulationToolbarIsError = Boolean(isError);
+		this.renderSimulationToolbar();
+	}
+
+	clearSimulationToolbarMessage() {
+		this.setSimulationToolbarMessage('');
+	}
+
+	renderSimulationToolbar() {
+		if (!this.browser_active) {
+			return;
+		}
+
+		const el = document.querySelector('[data-explorer-simulation-status]');
+		if (!el) {
+			return;
+		}
+
+		el.textContent = this.simulationToolbarMessage || '';
+		el.classList.toggle('is-error', Boolean(this.simulationToolbarIsError && this.simulationToolbarMessage));
+	}
+
+	async refreshSupplyAfterProduce() {
+		if (this.activeView === 'supply' && this.explorerPeer) {
+			await this.fetchSupplyData(this.app, this.explorerPeer);
+		} else if (this.activeView === 'supply' && this.supplyComponent) {
+			this.supplyComponent.paint();
+		}
+	}
+
+	async getBrowserLatestBlockId() {
+		try {
+			const blocks = await this.app.core.blockchain.getBlocks(1, false);
+			const latest = Array.isArray(blocks) && blocks.length ? blocks[0] : null;
+			const blockId = Number(latest?.id);
+			return Number.isFinite(blockId) ? blockId : 0;
+		} catch (err) {
+			return 0;
+		}
+	}
+
+	beginManualProductionUI(request) {
+		this.produceUiRequest = request;
+		this.setSimulationToolbarMessage('Mining Golden Ticket...');
+		return startManualProductionCountdown(this.app, this, request);
+	}
+
+	stopManualProductionUI() {
+		stopManualProductionCountdown(this);
+		this.produceUiRequest = null;
+	}
+
+	enterExplorerTestMode(app) {
+		setExplorerTestMode(app, this);
 	}
 
 	async handlePeerTransaction(app, tx = null, peer, mycallback) {
@@ -762,21 +882,39 @@ class Explorer extends ModTemplate {
 
 		let txmsg = tx.returnMessage();
 
-		// Manual Token Supply admin controls. Disabled when spam is installed or
-		// the node is running in a production / non-producing consensus mode.
-		if (
-			txmsg?.request === EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST ||
-			txmsg?.request === EXPLORER_PRODUCE_BLOCK_REQUEST
-		) {
-			if (!allowsManualBlockProduction(app)) {
-				return 0;
+		if (txmsg?.request === EXPLORER_ENSURE_TEST_MODE_REQUEST) {
+			const gate = ensureExplorerTestModeForManualAction(app, this);
+			if (!gate.ok) {
+				if (mycallback) {
+					mycallback(failure(gate.error));
+				}
+				return 1;
 			}
 
-			if (txmsg.request === EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST) {
-				await app.wallet.produceBlockWithGt();
-			} else {
-				await app.wallet.produceBlockWithoutGt();
+			if (mycallback) {
+				mycallback(success({ accepted: true }));
 			}
+			return 1;
+		}
+
+		const produceBlockHandlers = {
+			[EXPLORER_PRODUCE_BLOCK_REQUEST]: produceExplorerBlockWithoutGt,
+			[EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST]: produceExplorerBlockWithGt,
+		};
+		const produceExplorerBlock = produceBlockHandlers[txmsg?.request];
+
+		if (produceExplorerBlock) {
+			logManualProduction(
+				`handlePeerTransaction: produce request received type=${txmsg?.request}, ` +
+					`peer=${peer?.publicKey || '(unknown)'}`
+			);
+			runManualBlockProductionRequest(
+				app,
+				this,
+				produceExplorerBlock,
+				mycallback,
+				txmsg?.request
+			);
 			return 1;
 		}
 
@@ -855,7 +993,11 @@ class Explorer extends ModTemplate {
 	}
 
 	async onNewBlock(block, lc) {
-		if (this.app.BROWSER !== 0 || !block?.id || !this.database) {
+		if (this.app.BROWSER == 1) {
+			return;
+		}
+
+		if (!block?.id || !this.database) {
 			return;
 		}
 

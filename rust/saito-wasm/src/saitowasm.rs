@@ -1099,6 +1099,16 @@ pub async fn disable_producing_blocks_by_timer() {
         .produce_blocks_by_timer = false;
     // saito.as_mut().unwrap().mining_thread.enabled = true;
 }
+
+#[wasm_bindgen]
+pub async fn enable_producing_blocks_by_timer() {
+    let mut saito = SAITO.lock().await;
+    saito
+        .as_mut()
+        .unwrap()
+        .consensus_thread
+        .produce_blocks_by_timer = true;
+}
 #[wasm_bindgen]
 pub async fn produce_block_with_gt() -> bool {
     let mut saito = SAITO.lock().await;

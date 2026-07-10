@@ -34,6 +34,22 @@
 	max-width: 50.4rem;
 }
 
+.explorer-simulation-status {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin-left: auto;
+	text-align: right;
+	font-size: var(--explorer-text-sm);
+	color: var(--explorer-muted-foreground);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.explorer-simulation-status.is-error {
+	color: var(--explorer-destructive, #b42318);
+}
+
 .explorer-utility-bar .explorer-search-component {
 	width: 100%;
 	min-width: 0;

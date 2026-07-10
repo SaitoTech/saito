@@ -204,6 +204,17 @@ class GameQueue {
 
     this.halted = 0;
 
+    //
+    // process any stopgame / gameover that arrived while we were halted --
+    // these may end the game, in which case there is no queue to restart
+    //
+    if (this.deferred_game_end?.length) {
+      await this.processDeferredGameEndTransactions();
+      if (this.game.over) {
+        return;
+      }
+    }
+
     this.saveGame(this.game.id);
 
     await this.startQueue();

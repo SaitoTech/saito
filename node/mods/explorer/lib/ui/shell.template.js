@@ -4,6 +4,7 @@ module.exports = () => {
       <div class="explorer-utility-bar">
         <div class="explorer-container explorer-utility-inner">
           <div class="explorer-search"></div>
+          <div class="explorer-simulation-status" data-explorer-simulation-status aria-live="polite"></div>
         </div>
       </div>
 
