@@ -25,6 +25,7 @@ const {
 } = require('./lib/explorer-format');
 const {
 	EXPLORER_ENSURE_TEST_MODE_REQUEST,
+	EXPLORER_SUBMIT_FEE_TRANSACTION_REQUEST,
 	EXPLORER_PRODUCE_BLOCK_REQUEST,
 	EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST,
 	canShowManualBlockControls,
@@ -40,6 +41,7 @@ const {
 } = require('./lib/manual-production-countdown');
 const { produceExplorerBlockWithoutGt } = require('./lib/produce-block-without-gt');
 const { produceExplorerBlockWithGt } = require('./lib/produce-block-with-gt');
+const { handleExplorerSubmitFeeTransaction } = require('./lib/submit-fee-transaction');
 const { logManualProduction } = require('./lib/manual-production-log');
 
 class Explorer extends ModTemplate {
@@ -98,6 +100,7 @@ class Explorer extends ModTemplate {
 		this.produceUiTimerId = null;
 		this.simulationToolbarMessage = '';
 		this.simulationToolbarIsError = false;
+		this.pendingManualProduceTransactions = [];
 	}
 
 	returnServices() {
@@ -894,6 +897,11 @@ class Explorer extends ModTemplate {
 			if (mycallback) {
 				mycallback(success({ accepted: true }));
 			}
+			return 1;
+		}
+
+		if (txmsg?.request === EXPLORER_SUBMIT_FEE_TRANSACTION_REQUEST) {
+			handleExplorerSubmitFeeTransaction(app, this, txmsg, mycallback);
 			return 1;
 		}
 

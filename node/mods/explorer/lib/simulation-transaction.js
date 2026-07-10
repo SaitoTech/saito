@@ -1,3 +1,6 @@
+const { sendExplorerPeerRequest } = require('./peer/client');
+const { EXPLORER_SUBMIT_FEE_TRANSACTION_REQUEST } = require('./manual-block-production');
+
 /**
  * Parse a SAITO fee string for the simulation transaction control.
  * Returns { feeSaito } or { error }.
@@ -20,11 +23,41 @@ function parseSimulationFeeSaito(raw) {
 	return { feeSaito: trimmed };
 }
 
+function submitSignedFeeTransactionToExplorerServer(app, explorerPeer, newtx) {
+	return new Promise((resolve, reject) => {
+		if (!explorerPeer?.publicKey) {
+			reject(new Error('Explorer peer is not connected.'));
+			return;
+		}
+
+		sendExplorerPeerRequest(app, EXPLORER_SUBMIT_FEE_TRANSACTION_REQUEST, {
+			data: {
+				request: EXPLORER_SUBMIT_FEE_TRANSACTION_REQUEST,
+				serial_transaction: newtx.serialize_to_web(app),
+			},
+			peer: explorerPeer,
+			callback: (response) => {
+				if (response?.err) {
+					reject(response.err);
+					return;
+				}
+				if (!response?.success) {
+					reject(
+						new Error(response?.error || 'Explorer server rejected the transaction.')
+					);
+					return;
+				}
+				resolve(response);
+			},
+		});
+	});
+}
+
 /**
  * Browser Add Fee flow:
- *   wallet create → sign → propagateTransaction
+ *   wallet create → sign → send signed tx to Explorer server
  */
-async function addFeeTransaction(app, feeSaito, onStep) {
+async function addFeeTransaction(app, feeSaito, explorerPeer, onStep) {
 	const report = (step, ok) => {
 		if (typeof onStep === 'function') {
 			onStep(step, ok);
@@ -52,7 +85,7 @@ async function addFeeTransaction(app, feeSaito, onStep) {
 	report('created', true);
 
 	try {
-		await app.network.propagateTransaction(newtx);
+		await submitSignedFeeTransactionToExplorerServer(app, explorerPeer, newtx);
 	} catch (err) {
 		report('accepted', false);
 		throw err;

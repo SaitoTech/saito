@@ -785,21 +785,27 @@ export default class Saito {
     }
   }
 
-  public async produceBlockWithGt(): Promise<boolean> {
+  public async produceBlockWithGt(txs?: Transaction[]): Promise<boolean> {
     try {
-      return Saito.getLibInstance().produce_block_with_gt();
+      return Saito.getLibInstance().produce_block_with_gt(
+        txs?.map((tx) => tx.serialize())
+      );
     } catch (e) {
       console.error(e);
       return false;
     }
   }
 
-  public async produceBlockWithoutGt(): Promise<boolean> {
+  public async produceBlockWithoutGt(txs?: Transaction[]): Promise<boolean> {
     try {
-      return Saito.getLibInstance().produce_block_without_gt();
+      return Saito.getLibInstance().produce_block_without_gt(
+        txs?.map((tx) => tx.serialize())
+      );
     } catch (error) {
       console.error(error);
       return false;
     }
   }
+
 }
+

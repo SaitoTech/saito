@@ -6,20 +6,26 @@ const { logManualProduction, logManualProductionError } = require('./manual-prod
  * Wait for burn-fee timing, then call wallet.produceBlockWithoutGt() until one
  * new block has been added or the deadline passes.
  */
-async function produceExplorerBlockWithoutGt(app, startBlockId) {
+async function produceExplorerBlockWithoutGt(app, mod, startBlockId) {
 	logManualProduction(`produceExplorerBlockWithoutGt() entered (startBlockId=${startBlockId})`);
+
+	const feeTransactions = Array.isArray(mod?.pendingManualProduceTransactions)
+		? [...mod.pendingManualProduceTransactions]
+		: [];
 
 	try {
 		const heartbeatMs = getHeartbeatMs(app);
 
-		return await waitForManualBlockProduction(
+		const produced = await waitForManualBlockProduction(
 			app,
 			startBlockId,
 			async () => {
 				logManualProduction('Calling wallet.produceBlockWithoutGt()');
 				let result = false;
 				try {
-					result = await app.wallet.produceBlockWithoutGt();
+					result = await app.wallet.produceBlockWithoutGt(
+						feeTransactions.length ? feeTransactions : undefined
+					);
 				} catch (err) {
 					logManualProductionError('wallet.produceBlockWithoutGt', err);
 					throw err;
@@ -31,6 +37,12 @@ async function produceExplorerBlockWithoutGt(app, startBlockId) {
 				heartbeatMs,
 			}
 		);
+
+		if (produced && feeTransactions.length) {
+			mod.pendingManualProduceTransactions = [];
+		}
+
+		return produced;
 	} catch (err) {
 		logManualProductionError('produceExplorerBlockWithoutGt', err);
 		throw err;

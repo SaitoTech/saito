@@ -93,7 +93,7 @@ class Supply {
 			return;
 		}
 
-		root.querySelectorAll('.explorer-supply-admin-button').forEach((button) => {
+		root.querySelectorAll('.explorer-supply-admin-controls button.explorer-back-link').forEach((button) => {
 			button.disabled = isProducing;
 		});
 
@@ -247,7 +247,7 @@ class Supply {
 		this.resetFeeDiagnostics();
 		try {
 			await this.sendManualTestingRequest(EXPLORER_ENSURE_TEST_MODE_REQUEST);
-			await addFeeTransaction(this.app, parsed.feeSaito, (step, ok) => {
+			await addFeeTransaction(this.app, parsed.feeSaito, this.mod.explorerPeer, (step, ok) => {
 				this.updateFeeDiagnostic(step, ok);
 			});
 		} catch (err) {
