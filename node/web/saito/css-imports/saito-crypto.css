@@ -838,7 +838,7 @@
   --withdraw-control-border-hover: color-mix(in srgb, var(--saito-input-border-focus) 72%, var(--saito-input-border));
   --withdraw-control-action-bg: color-mix(in srgb, var(--saito-background-color) 78%, transparent);
   --withdraw-control-action-hover-bg: color-mix(in srgb, var(--saito-primary) 14%, transparent);
-  width: min(60rem, 96vw);
+  width: min(72rem, 96vw);
   max-width: 100%;
   height: var(--withdraw-overlay-height);
   max-height: var(--withdraw-overlay-height);
@@ -1064,7 +1064,11 @@
 }
 
 #withdrawal-form .withdraw-input-cont:not(.fixed-user) {
-  grid-template-columns: 1fr min-content min-content;
+  grid-template-columns: 1fr min-content;
+}
+
+#withdrawal-form .withdraw-paste-btn {
+  display: none !important;
 }
 
 #withdrawal-form .withdraw-input-cont {
@@ -1077,7 +1081,15 @@
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    opacity 0.333s ease,
+    transform 0.333s ease;
+}
+
+#withdrawal-form .withdraw-input-cont.withdraw-address-transition-out {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-0.35rem);
 }
 
 #withdrawal-form .withdraw-input-cont:hover {
@@ -1107,6 +1119,21 @@
   border: var(--border-thickness-thin) solid var(--withdraw-control-border);
   border-radius: var(--withdraw-control-radius);
   box-shadow: var(--saito-input-shadow);
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+#withdrawal-form .withdraw-address-preview--enter {
+  opacity: 0;
+  transform: translateY(0.35rem);
+}
+
+#withdrawal-form .withdraw-address-preview--enter-active {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 #withdrawal-form .withdraw-address-user.saito-user {
@@ -1690,6 +1717,14 @@
 @media screen and (max-width: 520px) {
   #withdrawal-form.withdraw-overlay {
     --withdraw-overlay-height: min(64rem, 96vh);
+  }
+
+  #withdrawal-form .withdraw-input-cont:not(.fixed-user) {
+    grid-template-columns: 1fr min-content min-content;
+  }
+
+  #withdrawal-form .withdraw-paste-btn {
+    display: flex !important;
   }
 
   #withdrawal-form .withdraw-token-picker {

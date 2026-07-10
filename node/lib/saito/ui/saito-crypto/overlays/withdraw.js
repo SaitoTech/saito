@@ -346,13 +346,44 @@ class Withdraw {
   }
 
   showAddressPreview() {
-    document.getElementById('withdraw-address-cont')?.classList.add('hide-element');
-    document.getElementById('withdraw-address-preview')?.classList.remove('hide-element');
+    const cont = document.getElementById('withdraw-address-cont');
+    const preview = document.getElementById('withdraw-address-preview');
+    if (!cont || !preview) {
+      return;
+    }
+
+    clearTimeout(this.addressPreviewTransitionTimer);
+
+    if (cont.classList.contains('hide-element')) {
+      preview.classList.remove('hide-element');
+      preview.classList.remove('withdraw-address-preview--enter');
+      preview.classList.add('withdraw-address-preview--enter-active');
+      return;
+    }
+
+    preview.classList.add('hide-element');
+    preview.classList.remove('withdraw-address-preview--enter-active');
+    cont.classList.add('withdraw-address-transition-out');
+
+    this.addressPreviewTransitionTimer = setTimeout(() => {
+      cont.classList.add('hide-element');
+      cont.classList.remove('withdraw-address-transition-out');
+      preview.classList.remove('hide-element');
+      preview.classList.add('withdraw-address-preview--enter');
+      requestAnimationFrame(() => {
+        preview.classList.add('withdraw-address-preview--enter-active');
+        preview.classList.remove('withdraw-address-preview--enter');
+      });
+    }, 333);
   }
 
   hideAddressPreview() {
-    document.getElementById('withdraw-address-preview')?.classList.add('hide-element');
-    document.getElementById('withdraw-address-cont')?.classList.remove('hide-element');
+    clearTimeout(this.addressPreviewTransitionTimer);
+    const preview = document.getElementById('withdraw-address-preview');
+    const cont = document.getElementById('withdraw-address-cont');
+    preview?.classList.add('hide-element');
+    preview?.classList.remove('withdraw-address-preview--enter', 'withdraw-address-preview--enter-active');
+    cont?.classList.remove('hide-element', 'withdraw-address-transition-out');
   }
 
   showAddressInputForEdit() {
