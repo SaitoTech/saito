@@ -76,9 +76,14 @@
 }
 
 .explorer-supply-admin-button-add {
-	min-width: 2rem;
-	padding-inline: 0.5rem;
-	font-size: var(--explorer-text-base);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 3.5rem;
+	height: 3.5rem;
+	min-width: 3.5rem;
+	padding: 0;
+	font-size: 1.4rem;
 	line-height: 1;
 }
 
@@ -91,7 +96,7 @@
 	padding: 0.35rem 0.65rem;
 	border: 1px solid var(--explorer-border);
 	border-radius: var(--explorer-radius-sm);
-	background-color: var(--explorer-card);
+	background-color: #fff;
 	color: var(--explorer-foreground);
 	font-family: var(--explorer-font-mono);
 	font-size: var(--explorer-text-xs);

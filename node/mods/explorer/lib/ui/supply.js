@@ -216,6 +216,33 @@ class Supply {
 			return;
 		}
 
+		const feeNolan = this.app.wallet.convertSaitoToNolan(parsed.feeSaito);
+		if (feeNolan > 0n) {
+			let balance = 0n;
+			try {
+				balance = await this.app.wallet.getBalance();
+			} catch (err) {
+				console.error('Explorer: failed to read wallet balance', err);
+				const message = 'Unable to read wallet balance.';
+				if (this.app.browser?.alert) {
+					this.app.browser.alert(message);
+				} else {
+					this.showFeeError(message);
+				}
+				return;
+			}
+
+			if (balance < feeNolan) {
+				const message = 'Your wallet does not have enough SAITO to pay this fee.';
+				if (this.app.browser?.alert) {
+					this.app.browser.alert(message);
+				} else {
+					this.showFeeError(message);
+				}
+				return;
+			}
+		}
+
 		this.setProducingState(true);
 		this.resetFeeDiagnostics();
 		try {
