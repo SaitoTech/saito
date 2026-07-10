@@ -313,8 +313,10 @@ class Withdraw {
                   <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
                 </div>`
           }
-          ${hasPublicKey ? '<div class="withdraw-address-external-match-label">Saito User Matched</div>' : ''}
-          <div class="withdraw-address-user-primary" title="${this.escapeHTML(primary)}">${this.escapeHTML(primary)}</div>
+          <div class="withdraw-address-user-primary" title="${this.escapeHTML(primary)}">
+            ${this.escapeHTML(primary)}
+            ${hasPublicKey ? '<span class="withdraw-address-external-match-label">Matched</span>' : ''}
+          </div>
           <div class="withdraw-address-user-secondary" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
         </div>
         <button type="button" class="withdraw-address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
