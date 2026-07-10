@@ -16,11 +16,12 @@ class Withdraw {
     this.ticker = '';
     this.pc = null;
     this.publicKey = '';
+    this.fixedRecipient = false;
     this.address = '';
     this.fee = null;
     this.feePending = false;
     this.lastTxHash = '';
-    this.amountConfirmed = false;
+    this.amountErrorMessage = '';
 
     this.errors = {
       amount: false,
@@ -33,6 +34,7 @@ class Withdraw {
     this.app.connection.on('saito-crypto-withdraw-render-request', async (obj) => {
       this.ticker = obj?.ticker || '';
       this.publicKey = obj?.address || '';
+      this.fixedRecipient = Boolean(this.publicKey && this.app.crypto.isPublicKey(this.publicKey));
 
       if (this.ticker) {
         await this.app.wallet.setPreferredCrypto(this.ticker);
@@ -45,7 +47,7 @@ class Withdraw {
   async render() {
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
-    this.amountConfirmed = false;
+    this.amountErrorMessage = '';
 
     if (this.publicKey) {
       this.address = await this.pc.returnAddressFromPublicKey(this.publicKey);
@@ -53,13 +55,16 @@ class Withdraw {
 
     if (document.getElementById('withdrawal-form')) {
       this.app.browser.replaceElementById(
-        WithdrawTemplate(this.app, this.mod, this.publicKey, this.address),
+        WithdrawTemplate(this.app, this.mod, this.publicKey, this.address, this.fixedRecipient),
         'withdrawal-form'
       );
     } else {
-      this.overlay.show(WithdrawTemplate(this.app, this.mod, this.publicKey, this.address), () => {
-        this.clear();
-      });
+      this.overlay.show(
+        WithdrawTemplate(this.app, this.mod, this.publicKey, this.address, this.fixedRecipient),
+        () => {
+          this.clear();
+        }
+      );
     }
 
     await this.loadCryptos();
@@ -162,73 +167,62 @@ class Withdraw {
     }
     input.value = String(value);
     this.normalizeAmountInput({ strictLocaleSeparators: false });
-    this.resetAmountConfirmation();
+    this.resetAmountValidation();
   }
 
   hasAmountInputValue() {
     return this.getAmountInputValue() !== '';
   }
 
-  resetAmountConfirmation() {
-    this.amountConfirmed = false;
-    const input = document.getElementById('withdraw-input-amount');
-    if (input) {
-      input.disabled = false;
-    }
+  resetAmountValidation() {
+    this.clearAmountError();
     this.updateAmountActionState();
     this.handleErrors();
   }
 
   updateAmountActionState() {
-    const hasAmount = this.hasAmountInputValue();
-    const hasValidAmount = hasAmount && this.errors['amount'] === false;
-    const maxBtn = document.getElementById('withdraw-max-btn');
-    const confirmBtn = document.getElementById('withdraw-amount-confirm-btn');
     const amountInput = document.getElementById('withdraw-input-amount');
+    const hasAmount = Boolean(amountInput?.value?.trim());
+    const hasValidAmount =
+      hasAmount && this.hasAmountInputValue() && this.errors['amount'] === false;
+    const hasInvalidAmount = hasAmount && !hasValidAmount;
+    const maxBtn = document.getElementById('withdraw-max-btn');
+    const status = document.getElementById('withdraw-amount-status');
+    const tooltip = document.getElementById('withdraw-amount-tooltip');
 
     maxBtn?.classList.toggle('hide-element', hasAmount);
 
-    if (confirmBtn) {
-      const icon = confirmBtn.querySelector('i');
-      confirmBtn.classList.toggle('hide-element', !hasValidAmount);
-      confirmBtn.classList.toggle('withdraw-amount-confirm-btn--active', this.amountConfirmed);
-      confirmBtn.disabled = !hasValidAmount;
-      confirmBtn.setAttribute('aria-pressed', this.amountConfirmed ? 'true' : 'false');
-      confirmBtn.title = this.amountConfirmed ? 'Edit amount' : 'Confirm amount';
-      confirmBtn.setAttribute(
+    if (status) {
+      const icon = status.querySelector('i');
+      status.classList.toggle('hide-element', !hasAmount);
+      status.classList.toggle('withdraw-amount-status--valid', hasValidAmount);
+      status.classList.toggle('withdraw-amount-status--invalid', hasInvalidAmount);
+      status.tabIndex = hasInvalidAmount ? 0 : -1;
+      status.setAttribute(
         'aria-label',
-        this.amountConfirmed ? 'Edit confirmed amount' : 'Confirm amount'
+        hasInvalidAmount ? this.amountErrorMessage : hasValidAmount ? 'Amount can be sent' : ''
       );
+      if (hasInvalidAmount) {
+        status.setAttribute('aria-describedby', 'withdraw-amount-tooltip');
+      } else {
+        status.removeAttribute('aria-describedby');
+      }
       if (icon) {
-        icon.className = 'fa-solid fa-check';
+        icon.className = hasInvalidAmount ? 'fa-solid fa-xmark' : 'fa-solid fa-check';
       }
     }
 
     if (amountInput) {
-      amountInput.disabled = this.amountConfirmed;
+      amountInput.setAttribute('aria-invalid', hasInvalidAmount ? 'true' : 'false');
+      if (hasInvalidAmount) {
+        amountInput.setAttribute('aria-describedby', 'withdraw-amount-tooltip');
+      } else {
+        amountInput.removeAttribute('aria-describedby');
+      }
     }
-  }
-
-  confirmAmountInput() {
-    this.normalizeAmountInput();
-    this.validateAmountInput();
-    if (this.errors['amount'] === false) {
-      this.amountConfirmed = true;
+    if (tooltip) {
+      tooltip.textContent = hasInvalidAmount ? this.amountErrorMessage : '';
     }
-    this.updateAmountActionState();
-    this.handleErrors();
-  }
-
-  editConfirmedAmount() {
-    this.amountConfirmed = false;
-    const input = document.getElementById('withdraw-input-amount');
-    if (input) {
-      input.disabled = false;
-      input.focus();
-      input.select();
-    }
-    this.updateAmountActionState();
-    this.handleErrors();
   }
 
   isNativeSaitoSelection() {
@@ -251,7 +245,7 @@ class Withdraw {
     if (form) {
       return form.dataset.fixedRecipient === 'true';
     }
-    return false;
+    return this.fixedRecipient;
   }
 
   renderSaitoRecipientPreview(publicKey = '') {
@@ -384,7 +378,10 @@ class Withdraw {
     const preview = document.getElementById('withdraw-address-preview');
     const cont = document.getElementById('withdraw-address-cont');
     preview?.classList.add('hide-element');
-    preview?.classList.remove('withdraw-address-preview--enter', 'withdraw-address-preview--enter-active');
+    preview?.classList.remove(
+      'withdraw-address-preview--enter',
+      'withdraw-address-preview--enter-active'
+    );
     cont?.classList.remove('hide-element', 'withdraw-address-transition-out');
   }
 
@@ -471,6 +468,17 @@ class Withdraw {
       return this.ticker || '';
     }
     return this.pc.chain_id === 'NATIVE' ? 'SAITO' : this.ticker;
+  }
+
+  getNativeDefaultFee() {
+    try {
+      const configuredFee =
+        this.app.wallet.default_fee ?? this.app.options?.wallet?.default_fee ?? BigInt(0);
+      const fee = Number(this.app.wallet.convertNolanToSaito(BigInt(configuredFee)));
+      return Number.isFinite(fee) && fee >= 0 ? fee : 0;
+    } catch (err) {
+      return 0;
+    }
   }
 
   formatFeeDisplay(amt) {
@@ -656,7 +664,6 @@ class Withdraw {
         counterpartyWrap.innerHTML = '';
       }
     }
-
   }
 
   async resolveRecipientPublicKey() {
@@ -798,6 +805,9 @@ class Withdraw {
     const n = Number(raw);
     this.available_balance = Number.isFinite(n) ? n : 0;
     el.textContent = `${this.app.browser.formatDecimals(String(this.available_balance))} ${this.ticker}`;
+    if (document.getElementById('withdraw-input-amount')?.value?.trim()) {
+      this.validateAmountInput();
+    }
   }
 
   async loadCryptos() {
@@ -916,14 +926,14 @@ class Withdraw {
     document.querySelector('#withdraw-input-address').value = '';
     document.querySelector('#withdraw-input-amount').value = '';
     this.hideAddressPreview();
-    this.resetAmountConfirmation();
+    this.resetAmountValidation();
     this.resetErrors();
 
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
     this.address = '';
     this.publicKey = '';
-    this.amountConfirmed = false;
+    this.amountErrorMessage = '';
 
     this.updateHeaderTitle();
     this.updateComposeLabels();
@@ -1075,22 +1085,16 @@ class Withdraw {
 
     const amtInput = document.querySelector('#withdraw-input-amount');
     if (amtInput) {
-      const clearAmountUi = () => {
-        this.clearAmountError();
-        this.handleErrors();
-      };
       amtInput.onfocus = () => {
         this.updateAmountActionState();
       };
       amtInput.oninput = () => {
         this.normalizeAmountInput();
-        this.resetAmountConfirmation();
         this.validateAmountInput();
       };
       amtInput.onpaste = () => {
         setTimeout(() => {
           this.normalizeAmountInput({ strictLocaleSeparators: false });
-          this.resetAmountConfirmation();
           this.validateAmountInput();
         }, 0);
       };
@@ -1102,20 +1106,7 @@ class Withdraw {
 
       amtInput.onchange = () => {
         this.normalizeAmountInput();
-        this.resetAmountConfirmation();
         this.validateAmountInput();
-      };
-    }
-
-    const amountConfirmBtn = document.getElementById('withdraw-amount-confirm-btn');
-    if (amountConfirmBtn) {
-      amountConfirmBtn.onclick = (e) => {
-        e.preventDefault();
-        if (this.amountConfirmed) {
-          this.editConfirmedAmount();
-        } else {
-          this.confirmAmountInput();
-        }
       };
     }
 
@@ -1213,7 +1204,7 @@ class Withdraw {
           return false;
         }
 
-        if (this.feePending || !this.amountConfirmed) {
+        if (this.feePending) {
           return false;
         }
 
@@ -1334,7 +1325,7 @@ class Withdraw {
       return;
     }
 
-    const current = this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee).toString();
+    const current = this.getNativeDefaultFee().toString();
     const input = await sprompt('Set network fee (SAITO):', current);
     if (input === false || input === undefined || input === '') {
       return;
@@ -1375,6 +1366,14 @@ class Withdraw {
       return;
     }
 
+    if (this.pc?.chain_id === 'NATIVE') {
+      this.fee = this.getNativeDefaultFee();
+      this.feePending = false;
+      this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(this.fee));
+      this.validateAmountInput();
+      return;
+    }
+
     const address = document.getElementById('withdraw-input-address')?.value?.trim() || '';
 
     if (!address) {
@@ -1402,15 +1401,23 @@ class Withdraw {
       this.fee = Number(amt);
       this.feePending = false;
       this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(amt));
-      this.handleErrors();
+      this.validateAmountInput();
     });
   }
 
   validateAmountInput() {
     this.clearAmountError();
 
+    const input = document.getElementById('withdraw-input-amount');
+    const hasInput = Boolean(input?.value?.trim());
     let amount = this.getAmountInputValue();
     let error_msg = null;
+
+    if (!hasInput) {
+      this.updateAmountActionState();
+      this.handleErrors();
+      return;
+    }
 
     if (amount != '') {
       if (this.isNftWithdrawSelection()) {
@@ -1422,12 +1429,12 @@ class Withdraw {
               ? BigInt(this._nft_balance_raw)
               : BigInt(Math.floor(Number(this.available_balance) || 0));
           if (want <= 0n) {
-            error_msg = 'Error: Amount should be greater than 0';
+            error_msg = 'Amount must be greater than 0';
           } else if (want > avail) {
-            error_msg = `Error: Insufficient NFT units (${avail.toString()} ${this.ticker} available)`;
+            error_msg = `Insufficient NFT units (${avail.toString()} ${this.ticker} available)`;
           }
         } catch (e) {
-          error_msg = 'Error: Enter a whole number of NFT units';
+          error_msg = 'Enter a whole number of NFT units';
         }
       } else {
         amount = Number(amount);
@@ -1436,21 +1443,20 @@ class Withdraw {
         this.fee = Number(this.fee);
 
         if (amount <= 0) {
-          error_msg = 'Error: Amount should be greater than 0';
+          error_msg = 'Amount must be greater than 0';
         } else if (amount > amount_avl) {
-          error_msg = `Error: Insufficent funds ( ${amount_avl} ${this.ticker} available)`;
+          error_msg = `Insufficient funds (${amount_avl} ${this.ticker} available)`;
         } else if (Number.isFinite(this.fee) && amount + this.fee > amount_avl) {
-          error_msg = `Error: Your withdrawal amount + transaction fee exceeds available balance. Please reduce the amount to cover withdrawal fee.`;
+          error_msg = 'The amount plus the network fee exceeds your available balance';
         }
       }
     } else {
-      error_msg = 'Error: No input';
+      error_msg = 'Enter a valid amount';
     }
 
     if (error_msg) {
       this.errors['amount'] = true;
-      document.querySelector('#withdraw-amount-error').innerHTML = error_msg;
-      this.amountConfirmed = false;
+      this.amountErrorMessage = error_msg;
     }
 
     this.updateAmountActionState();
@@ -1486,7 +1492,7 @@ class Withdraw {
       this.errors['amount'] != false ||
       this.errors['address'] != false ||
       this.feePending ||
-      !this.amountConfirmed;
+      !this.hasAmountInputValue();
     if (blocked) {
       if (!submit.getAttribute('disabled')) {
         submit.setAttribute('disabled', true);
@@ -1506,10 +1512,7 @@ class Withdraw {
 
   clearAmountError() {
     this.errors['amount'] = false;
-    const error = document.querySelector('#withdraw-amount-error');
-    if (error) {
-      error.innerHTML = '';
-    }
+    this.amountErrorMessage = '';
   }
 
   resetErrors() {
@@ -1532,13 +1535,14 @@ class Withdraw {
     this.ticker = null;
     this.pc = null;
     this.publicKey = '';
+    this.fixedRecipient = false;
     this.address = '';
     this.fee = null;
     this.feePending = false;
     this.lastTxHash = '';
     this.available_balance = 0;
     this._nft_balance_raw = null;
-    this.amountConfirmed = false;
+    this.amountErrorMessage = '';
   }
 }
 

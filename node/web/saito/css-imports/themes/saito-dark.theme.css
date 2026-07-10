@@ -10,7 +10,7 @@ html[data-theme='dark'] {
   --foreground: #fafaf9;
   --card: #1c1917;
   --card-foreground: #fafaf9;
-  --popover: #1c1917;
+  --popover: #161616;
   --popover-foreground: #fafaf9;
   --primary: #f54900;
   --primary-foreground: #fff7ed;
@@ -87,8 +87,8 @@ html[data-theme='dark'] {
   --saito-overlay-backdrop: var(--background-color-shim-normal);
   --saito-overlay-backdrop-stacked: var(--background-color-shim-light);
   --saito-overlay-panel-bg: var(--popover);
-  --saito-overlay-panel-surface-low: var(--card);
-  --saito-overlay-panel-surface: var(--card);
+  --saito-overlay-panel-surface-low: var(--popover);
+  --saito-overlay-panel-surface: var(--popover);
   --saito-overlay-panel-background: var(--popover);
   --saito-overlay-panel-border: var(--border);
   --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--foreground) 5%, transparent);
@@ -149,18 +149,18 @@ html[data-theme='dark'] {
   --saito-button-disabled-border: transparent;
 
   --saito-input-bg: var(--input);
-  --saito-input-bg-focus: color-mix(in srgb, var(--input) 80%, var(--card));
+  --saito-input-bg-focus: var(--input);
   --saito-input-fg: var(--foreground);
   --saito-input-fg-heavy: var(--foreground);
-  --saito-input-border: transparent;
-  --saito-input-border-focus: var(--ring);
+  --saito-input-border: var(--saito-border-color);
+  --saito-input-border-focus: var(--saito-border-color);
   --saito-input-placeholder: var(--muted-foreground);
-  --saito-input-radius: var(--radius);
+  --saito-input-radius: var(--saito-border-radius);
   --saito-input-shadow: var(--saito-elevation-0);
   --saito-input-font: inherit;
 
   /* feeds and content cards */
-  --saito-post-overlay-bg: var(--card);
+  --saito-post-overlay-bg: var(--popover);
   --saito-post-overlay-border: var(--border);
   --saito-post-overlay-shadow: var(--saito-elevation-0);
   --saito-post-textarea-bg: var(--input);
@@ -382,12 +382,20 @@ html[data-theme='dark'] .saito-input .text-input:not(.post-tweet-textarea) {
   box-shadow: none;
 }
 
+html[data-theme='dark'] textarea,
+html[data-theme='dark'] select,
+html[data-theme='dark'] input:not([type='checkbox']):not([type='radio']):not([type='range']),
+html[data-theme='dark'] .saito-input .text-input:not(.post-tweet-textarea) {
+  background-color: var(--saito-input-bg);
+  border-radius: var(--saito-border-radius);
+}
+
 html[data-theme='dark'] textarea:focus,
 html[data-theme='dark'] input:focus,
 html[data-theme='dark'] select:focus,
 html[data-theme='dark'] .saito-input .text-input:not(.post-tweet-textarea):focus,
 html[data-theme='dark'] .saito-input .text-input:not(.post-tweet-textarea):focus-within {
-  border-color: var(--ring);
+  border-color: var(--saito-input-border-focus);
   box-shadow: var(--saito-focus-ring);
 }
 

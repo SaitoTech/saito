@@ -1,6 +1,9 @@
-module.exports = (app, mod, publickey = '', address = '') => {
+module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = null) => {
   let identicon = null;
-  const fixedRecipient = Boolean(publickey && app.crypto.isPublicKey(publickey));
+  const fixedRecipient =
+    recipientIsFixed === null
+      ? Boolean(publickey && app.crypto.isPublicKey(publickey))
+      : recipientIsFixed;
 
   if (fixedRecipient) {
     identicon = app.keychain.returnIdenticon(publickey);
@@ -125,20 +128,20 @@ module.exports = (app, mod, publickey = '', address = '') => {
                 <button type="button" class="withdraw-max-btn" id="withdraw-max-btn" title="Use maximum amount">
                   MAX
                 </button>
-                <button
-                  type="button"
-                  class="withdraw-amount-confirm-btn hide-element"
-                  id="withdraw-amount-confirm-btn"
-                  title="Confirm amount"
-                  aria-label="Confirm amount"
-                  aria-pressed="false"
-                  disabled
+                <span
+                  class="withdraw-amount-status hide-element"
+                  id="withdraw-amount-status"
+                  role="status"
+                  aria-label=""
+                  tabindex="-1"
                 >
                   <i class="fa-solid fa-check" aria-hidden="true"></i>
-                </button>
-              </div>
-              <div class="withdraw-error-slot" aria-live="polite">
-                <div class="withdraw-error" id="withdraw-amount-error" role="alert"></div>
+                </span>
+                <div
+                  class="withdraw-amount-tooltip"
+                  id="withdraw-amount-tooltip"
+                  role="tooltip"
+                ></div>
               </div>
             </div>
           </div>

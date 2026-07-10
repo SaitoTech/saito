@@ -376,12 +376,12 @@
   min-width: unset;
   max-width: 100%;
   min-height: var(--withdraw-control-height, 4.5rem);
-  padding: 0.7rem 0.85rem;
+  padding: 0.8rem 1.1rem;
   margin: 0;
   box-sizing: border-box;
   border: var(--border-thickness-thin) solid var(--withdraw-control-border, var(--saito-input-border));
   border-radius: var(--withdraw-control-radius, var(--saito-input-radius));
-  background-color: var(--saito-input-bg);
+  background: var(--saito-input-bg);
   box-shadow: var(--saito-input-shadow);
   color: var(--saito-input-fg-heavy);
   font: inherit;
@@ -416,9 +416,9 @@
 
 #withdrawal-form #withdraw-step-one .withdraw-logo-cont {
   position: relative;
-  width: 1.75rem;
-  height: 1.75rem;
-  min-width: 1.75rem;
+  width: 2.3rem;
+  height: 2.3rem;
+  min-width: 2.3rem;
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
@@ -442,7 +442,7 @@
 #withdrawal-form #withdraw-step-one #withdraw-token-trigger-ticker {
   display: inline-flex;
   align-items: center;
-  font-size: 1.4rem;
+  font-size: 1.9rem;
   font-weight: 600;
   line-height: 1.15;
   white-space: nowrap;
@@ -455,7 +455,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 0.95rem;
+  font-size: 1.2rem;
   line-height: 1;
   opacity: 0.82;
 }
@@ -482,7 +482,7 @@
   margin: 0;
   padding: 0.18rem 0;
   list-style: none;
-  max-height: 14rem;
+  max-height: 20rem;
   overflow-y: auto;
   background: var(--saito-overlay-panel-bg, var(--saito-background-color));
   color: var(--saito-input-fg-heavy);
@@ -496,9 +496,9 @@
 #withdrawal-form #withdraw-step-one .withdraw-token-option {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.28rem 0.5rem;
-  min-height: 2.35rem;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  min-height: 4rem;
   cursor: pointer;
 }
 
@@ -507,20 +507,20 @@
 }
 
 #withdrawal-form #withdraw-step-one .withdraw-token-option[aria-selected='true'] {
-  background: color-mix(in srgb, var(--saito-primary) 14%, transparent);
+  background: var(--saito-input-bg-focus);
 }
 
 #withdrawal-form #withdraw-step-one .withdraw-token-option-logo {
-  width: 1.65rem;
-  height: 1.65rem;
+  width: 2.2rem;
+  height: 2.2rem;
   flex-shrink: 0;
   border-radius: 50%;
   object-fit: cover;
 }
 
 #withdrawal-form #withdraw-step-one .withdraw-token-option-chain {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.4rem;
+  height: 1.4rem;
   flex-shrink: 0;
   align-self: center;
   border-radius: 50%;
@@ -528,7 +528,7 @@
 }
 
 #withdrawal-form #withdraw-step-one .withdraw-token-option-ticker {
-  font-size: 1.25rem;
+  font-size: 1.8rem;
   font-weight: 600;
   line-height: 1.1;
   display: inline-flex;
@@ -826,22 +826,19 @@
 /* Wallet withdraw overlay (saito-crypto.withdraw)                            */
 /* -------------------------------------------------------------------------- */
 
-/*
- * Withdraw overlay layout: one fixed outer height; header + footer are intrinsic;
- * main flexes to fill the remainder (no stacked min-heights that overflow the form).
- */
+/* Content-sized overlay with a viewport cap; only the main section scrolls when needed. */
 #withdrawal-form.withdraw-overlay {
-  --withdraw-overlay-height: min(66rem, calc(100vh - 2rem));
-  --withdraw-control-height: 4.75rem;
+  --withdraw-overlay-max-height: calc(100vh - 2rem);
+  --withdraw-control-height: 6.2rem;
   --withdraw-control-radius: var(--saito-input-radius);
-  --withdraw-control-border: color-mix(in srgb, var(--saito-input-border) 86%, transparent);
+  --withdraw-control-border: var(--saito-input-border);
   --withdraw-control-border-hover: color-mix(in srgb, var(--saito-input-border-focus) 72%, var(--saito-input-border));
   --withdraw-control-action-bg: color-mix(in srgb, var(--saito-background-color) 78%, transparent);
   --withdraw-control-action-hover-bg: color-mix(in srgb, var(--saito-primary) 14%, transparent);
   width: min(72rem, 96vw);
   max-width: 100%;
-  height: var(--withdraw-overlay-height);
-  max-height: var(--withdraw-overlay-height);
+  height: auto;
+  max-height: var(--withdraw-overlay-max-height);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -854,11 +851,11 @@
 }
 
 #withdrawal-form .withdraw-overlay__surface {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 3rem;
+  gap: 2.4rem;
   width: 100%;
   box-sizing: border-box;
 }
@@ -868,7 +865,7 @@
 }
 
 #withdrawal-form .withdraw-overlay__main {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -877,7 +874,7 @@
 
 #withdrawal-form .withdraw-overlay__compose,
 #withdrawal-form .withdraw-overlay__review {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -905,30 +902,31 @@
 #withdrawal-form .withdraw-overlay__actions button,
 #withdrawal-form .withdraw-overlay__actions a {
   min-width: 14rem;
-  min-height: 4.5rem;
+  min-height: 5.5rem;
   margin: 0;
   flex: 0 1 calc(50% - 0.5rem);
   max-width: 20rem;
+  font-size: 1.8rem;
 }
 
 #withdrawal-form .withdraw-overlay__header.saito-overlay-form-header {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
+  grid-template-columns: 5.2rem minmax(0, 1fr);
   align-items: center;
   column-gap: 1.25rem;
   row-gap: 0.25rem;
   height: auto;
-  min-height: 5.5rem;
+  min-height: 6.8rem;
   max-height: none;
   padding: 0.85rem 1.35rem;
 }
 
 #withdrawal-form .withdraw-header-logo-cont {
-  width: 4.5rem;
-  height: 4.5rem;
-  max-width: 4.5rem;
-  max-height: 4.5rem;
+  width: 5.2rem;
+  height: 5.2rem;
+  max-width: 5.2rem;
+  max-height: 5.2rem;
   flex-shrink: 0;
 }
 
@@ -937,6 +935,9 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  box-sizing: border-box;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 50%;
 }
 
 #withdrawal-form .withdraw-header-logo-cont .chain-logo {
@@ -958,7 +959,7 @@
 
 #withdrawal-form .withdraw-overlay__title {
   margin: 0;
-  font-size: 2rem;
+  font-size: 2.4rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 1.2;
@@ -980,7 +981,7 @@
 }
 
 #withdrawal-form .withdraw-token-picker {
-  width: min(10.5rem, 42vw);
+  width: min(13.5rem, 42vw);
   max-width: 100%;
 }
 
@@ -1007,13 +1008,13 @@
   grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
   gap: 0.5rem 1.25rem;
   align-items: baseline;
-  font-size: 1.25rem;
+  font-size: 1.7rem;
   line-height: 1.35;
 }
 
 #withdrawal-form .withdraw-meta-line .withdraw-info-title {
   text-transform: capitalize;
-  font-size: 1.15rem;
+  font-size: 1.5rem;
   opacity: 0.72;
   white-space: nowrap;
 }
@@ -1049,18 +1050,22 @@
 }
 
 #withdrawal-form .withdraw-fee-edit-icon {
-  font-size: 0.95rem;
+  font-size: 1.25rem;
   opacity: 0.72;
 }
 
 #withdrawal-form .withdraw-field-label {
   display: block;
   margin-bottom: 0.35rem;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--saito-font-color) 72%, transparent);
+}
+
+#withdrawal-form .withdraw-field-group {
+  margin-inline: 0;
 }
 
 #withdrawal-form .withdraw-input-cont:not(.fixed-user) {
@@ -1072,6 +1077,7 @@
 }
 
 #withdrawal-form .withdraw-input-cont {
+  height: var(--withdraw-control-height);
   min-height: var(--withdraw-control-height);
   overflow: hidden;
   background-color: var(--saito-input-bg);
@@ -1113,8 +1119,11 @@
 }
 
 #withdrawal-form .withdraw-address-preview {
+  height: var(--withdraw-control-height);
   min-height: var(--withdraw-control-height);
-  padding: 0.8rem 1rem;
+  padding: 0.45rem 1.25rem;
+  box-sizing: border-box;
+  overflow: hidden;
   background-color: var(--saito-input-bg);
   border: var(--border-thickness-thin) solid var(--withdraw-control-border);
   border-radius: var(--withdraw-control-radius);
@@ -1152,7 +1161,7 @@
   grid-template-rows: auto auto;
   align-items: center;
   column-gap: 1rem;
-  row-gap: 0.65rem;
+  row-gap: 0.1rem;
   width: 100%;
   min-width: 0;
 }
@@ -1161,9 +1170,10 @@
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  font-size: 1.55rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.25;
   color: var(--saito-input-fg-heavy);
@@ -1188,7 +1198,7 @@
 
 #withdrawal-form .withdraw-address-external-match-label {
   margin-left: 0.65rem;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 1.25;
@@ -1208,8 +1218,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 4rem;
-  height: 4rem;
+  width: 3.4rem;
+  height: 3.4rem;
   border-radius: var(--saito-border-radius);
   color: color-mix(in srgb, var(--saito-font-color) 58%, transparent);
   background: color-mix(in srgb, var(--saito-background-color) 86%, transparent);
@@ -1220,13 +1230,20 @@
   grid-row: 1 / span 2;
 }
 
+#withdrawal-form .withdraw-address-preview .saito-identicon-box,
+#withdrawal-form .withdraw-identicon-container,
+#withdrawal-form .withdraw-identicon-container .saito-identicon {
+  width: 4.5rem;
+  height: 4.5rem;
+}
+
 #withdrawal-form .withdraw-address-user-primary {
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
-  font-size: 1.55rem;
+  font-size: 1.7rem;
   font-weight: 600;
   line-height: 1.25;
   color: var(--saito-input-fg-heavy);
@@ -1238,7 +1255,7 @@
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   line-height: 1.35;
   color: color-mix(in srgb, var(--saito-font-color) 68%, transparent);
 }
@@ -1249,21 +1266,37 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3.2rem;
-  min-width: 3.2rem;
-  height: 3.2rem;
+  width: 4.2rem;
+  min-width: 4.2rem;
+  height: 4.2rem;
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: var(--withdraw-control-radius);
   background: transparent;
   color: var(--saito-input-fg);
+  font-size: 1.8rem;
   cursor: pointer;
 }
 
 #withdrawal-form .withdraw-address-external button.withdraw-address-edit {
   grid-column: 2;
   grid-row: 1 / span 2;
+}
+
+#withdrawal-form .withdraw-address-external .withdraw-address-user-primary {
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+#withdrawal-form .withdraw-address-external .withdraw-address-user-secondary {
+  font-size: 1.1rem;
+  line-height: 1.15;
+}
+
+#withdrawal-form .withdraw-address-external .saito-identicon-box {
+  width: 3.4rem;
+  height: 3.4rem;
 }
 
 #withdrawal-form button.withdraw-address-edit:hover,
@@ -1276,12 +1309,13 @@
 #withdrawal-form .saito-overlay-form-input .withdraw-input-cont input {
   min-height: calc(var(--withdraw-control-height) - 2px);
   width: 100%;
-  padding: 0 1.35rem;
+  padding: 0 1.6rem;
   border: 0;
   border-radius: 0;
   box-shadow: none;
+  background: var(--saito-input-bg);
   color: var(--saito-input-fg-heavy);
-  font-size: 1.45rem;
+  font-size: 1.9rem;
 }
 
 #withdrawal-form .saito-overlay-form-input .withdraw-input-cont input:focus {
@@ -1307,11 +1341,11 @@
   margin: 0;
   padding: 0;
   border: none;
-  border-left: var(--border-thickness-thin) solid var(--withdraw-control-border);
   border-radius: 0;
   background: transparent;
   color: var(--saito-input-fg);
   font: inherit;
+  font-size: 1.8rem;
   letter-spacing: normal;
   text-transform: none;
   cursor: pointer;
@@ -1322,7 +1356,7 @@
 
 #withdrawal-form button.withdraw-options-cont:hover {
   font-weight: normal;
-  background: var(--withdraw-control-action-hover-bg);
+  background: transparent;
   color: var(--saito-primary);
 }
 
@@ -1336,26 +1370,26 @@
 }
 
 #withdrawal-form #withdraw-amount-cont {
+  position: relative;
   grid-template-columns: 1fr min-content;
   align-items: stretch;
 }
 
-#withdrawal-form .withdraw-max-btn,
-#withdrawal-form .withdraw-amount-confirm-btn {
+#withdrawal-form .withdraw-max-btn {
   flex-shrink: 0;
   align-self: center;
   margin: 0 0.45rem 0 0;
   min-width: unset;
   min-height: unset;
-  padding: 0.45rem 0.8rem;
-  font-size: 1.15rem;
+  padding: 0.6rem 1rem;
+  font-size: 1.4rem;
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: 0;
   border-radius: calc(var(--withdraw-control-radius) - 1px);
   color: var(--saito-input-fg-heavy);
-  background: var(--withdraw-control-action-bg);
-  border: var(--border-thickness-thin) solid var(--withdraw-control-border);
+  background: transparent;
+  border: 0;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -1363,38 +1397,83 @@
     color 0.15s ease;
 }
 
-#withdrawal-form .withdraw-amount-confirm-btn {
+#withdrawal-form .withdraw-amount-status {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  align-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3.2rem;
-  height: 3.2rem;
+  width: 4.2rem;
+  height: 4.2rem;
+  margin: 0 0.45rem 0 0;
   padding: 0;
-  color: color-mix(in srgb, var(--saito-input-fg) 42%, transparent);
+  border: var(--border-thickness-thin) solid transparent;
+  border-radius: calc(var(--withdraw-control-radius) - 1px);
+  background: transparent;
+  font-size: 1.8rem;
+  user-select: none;
+  touch-action: manipulation;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
-#withdrawal-form .withdraw-amount-confirm-btn--active {
+#withdrawal-form .withdraw-amount-status--valid {
   color: var(--saito-status-success);
   border-color: color-mix(in srgb, var(--saito-status-success) 55%, var(--withdraw-control-border));
   background: color-mix(in srgb, var(--saito-status-success) 12%, transparent);
 }
 
-#withdrawal-form .withdraw-max-btn:hover,
-#withdrawal-form .withdraw-amount-confirm-btn:hover {
-  background: var(--withdraw-control-action-hover-bg);
+#withdrawal-form .withdraw-amount-status--invalid {
+  color: var(--saito-status-danger);
+  border-color: color-mix(in srgb, var(--saito-status-danger) 62%, var(--withdraw-control-border));
+  background: color-mix(in srgb, var(--saito-status-danger) 12%, transparent);
+  cursor: help;
+}
+
+#withdrawal-form .withdraw-max-btn:hover {
+  background: transparent;
   border-color: var(--withdraw-control-border-hover);
   color: var(--saito-primary);
 }
 
-#withdrawal-form .withdraw-amount-confirm-btn--active:hover {
-  color: var(--saito-status-success);
-  border-color: color-mix(in srgb, var(--saito-status-success) 65%, var(--withdraw-control-border));
+#withdrawal-form .withdraw-amount-tooltip {
+  position: absolute;
+  z-index: 1;
+  inset: 0 5.1rem 0 0;
+  display: flex;
+  align-items: center;
+  padding: 0 1.6rem;
+  color: var(--saito-status-danger);
+  background: var(--saito-input-bg-focus);
+  font-size: 1.45rem;
+  font-weight: 500;
+  line-height: 1.3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
 }
 
 #withdrawal-form .withdraw-max-btn:focus-visible,
-#withdrawal-form .withdraw-amount-confirm-btn:focus-visible {
+#withdrawal-form .withdraw-amount-status--invalid:focus-visible {
   outline: none;
   box-shadow: var(--saito-focus-ring);
+}
+
+@media (hover: hover) {
+  #withdrawal-form .withdraw-amount-status--invalid:hover ~ .withdraw-amount-tooltip,
+  #withdrawal-form .withdraw-amount-status--invalid:focus-visible ~ .withdraw-amount-tooltip {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  #withdrawal-form .withdraw-amount-status--invalid:active ~ .withdraw-amount-tooltip {
+    opacity: 1;
+  }
 }
 
 #withdrawal-form .input-elements-container {
@@ -1412,7 +1491,7 @@
   visibility: hidden;
   margin: 0;
   padding: 0;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   line-height: 1.35;
   text-align: left;
   right: auto;
@@ -1536,7 +1615,7 @@
 
 #withdrawal-form .withdraw-send-result__title {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 600;
   line-height: 1.25;
   color: var(--saito-font-color);
@@ -1544,7 +1623,7 @@
 
 #withdrawal-form .withdraw-send-result__message {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   line-height: 1.45;
   color: color-mix(in srgb, var(--saito-font-color) 82%, transparent);
 }
@@ -1615,7 +1694,7 @@
 }
 
 #withdrawal-form .withdraw-confirm-overlay__summary-label {
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1623,14 +1702,14 @@
 }
 
 #withdrawal-form .withdraw-confirm-overlay__amount {
-  font-size: 2rem;
+  font-size: 2.2rem;
 }
 
 #withdrawal-form .withdraw-confirm-overlay__chain-address {
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
-  font-size: 1.45rem;
+  font-size: 1.6rem;
   letter-spacing: 0.02em;
   text-align: center;
   word-break: break-all;
@@ -1649,7 +1728,7 @@
   display: inline-flex;
   align-items: center;
   color: var(--saito-primary);
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   cursor: pointer;
 }
 
@@ -1666,7 +1745,7 @@
 }
 
 #withdrawal-form .withdraw-confirm-overlay__fee {
-  font-size: 1.5rem;
+  font-size: 1.7rem;
 }
 
 #withdrawal-form .withdraw-confirm-overlay__tx-inline {
@@ -1681,7 +1760,7 @@
 
 #withdrawal-form .withdraw-confirm-overlay__tx-hash {
   font-family: monospace;
-  font-size: 1.4rem;
+  font-size: 1.55rem;
   line-height: 1.3;
   min-width: 0;
   overflow: hidden;
@@ -1714,7 +1793,7 @@
 
 @media screen and (max-width: 520px) {
   #withdrawal-form.withdraw-overlay {
-    --withdraw-overlay-height: min(64rem, 96vh);
+    --withdraw-overlay-max-height: 96vh;
   }
 
   #withdrawal-form .withdraw-input-cont:not(.fixed-user) {
@@ -1726,7 +1805,7 @@
   }
 
   #withdrawal-form .withdraw-token-picker {
-    width: min(10.5rem, 100%);
+    width: min(12rem, 100%);
   }
 
   #withdrawal-form .withdraw-overlay__actions button,
