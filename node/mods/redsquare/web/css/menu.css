@@ -1,0 +1,190 @@
+.menu {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.5rem 0;
+}
+
+.menu-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 999px;
+  transition: background 0.15s;
+}
+
+.menu-logo:hover {
+  background: var(--saito-background-secondary, rgba(255, 255, 255, 0.08));
+}
+
+.menu-logo i {
+  font-size: 1.75rem;
+  color: var(--saito-primary, #e80000);
+}
+
+.menu-logo span {
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  margin-bottom: 0.15rem;
+  font-size: 1.2rem;
+  font-weight: 500;
+  position: relative;
+  transition: background 0.15s;
+}
+
+.menu-item:hover,
+.menu-item.active {
+  background: var(--saito-background-secondary, rgba(255, 255, 255, 0.08));
+}
+
+.menu-item.active {
+  font-weight: 700;
+}
+
+.menu-item i {
+  width: 1.5rem;
+  text-align: center;
+  font-size: 1.35rem;
+}
+
+.menu-badge {
+  position: absolute;
+  left: 1.65rem;
+  top: 0.55rem;
+  background: var(--saito-primary, #e80000);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.2rem;
+}
+
+.menu-post {
+  width: 100%;
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--saito-primary, #e80000);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.menu-post:hover {
+  opacity: 0.9;
+}
+
+.menu-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  margin-top: auto;
+  transition: background 0.15s;
+}
+
+.menu-user:hover {
+  background: var(--saito-background-secondary, rgba(255, 255, 255, 0.08));
+}
+
+.menu-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.menu-user-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-user-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-user-handle {
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.menu-user-more {
+  opacity: 0.6;
+}
+
+@media (max-width: 1100px) {
+  .menu-logo span,
+  .menu-item span,
+  .menu-user-info,
+  .menu-user-more {
+    display: none;
+  }
+
+  .menu-logo,
+  .menu-item {
+    justify-content: center;
+    padding: 0.85rem;
+  }
+
+  .menu-item {
+    gap: 0;
+  }
+
+  .menu-post {
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .menu-post::before {
+    content: '\f067';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 1.25rem;
+  }
+
+  .menu-user {
+    justify-content: center;
+    padding: 0.5rem;
+  }
+}

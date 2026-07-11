@@ -1,28 +1,15 @@
-module.exports = (mod) => {
-  let html = `
-    <div id="saito-container" class="saito-container">
+module.exports = () => {
+  return `
+    <div class="sidebar-left"></div>
 
-      <div class="saito-sidebar left">
-      </div>
+    <main class="main">
+      <div class="composer"></div>
+      <div class="tweet-manager"></div>
+    </main>
 
-      <div class="saito-main">
-         <div class="redsquare-load-new-tweets-container"></div>
-         <div class="tweet-container ${mod.curated ? 'active-curation' : ''}">
-          <div id="saito-loader-container" class="saito-loader-container">
-            <div class="saito-loader"></div>
-          </div>
-         </div>
-         <div class="redsquare-intersection" id="redsquare-intersection">
-           <div id="intersection-observer-trigger" class="intersection-observer-trigger deactivated"></div>
-         </div>
-         <div class="tweet-thread-holder" id="tweet-thread-holder"></div>
-      </div>
-
-      <div class="saito-sidebar redsquare-sidebar right hide-scrollbar">
-      </div>
-
-    </div>
+    <aside class="sidebar-right">
+      <div class="profile"></div>
+      <div class="sidebar"></div>
+    </aside>
   `;
-
-  return html;
 };

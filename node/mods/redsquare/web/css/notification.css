@@ -1,0 +1,53 @@
+.notification {
+  background: var(--saito-background-color, #1c1c23);
+  border: 1px solid var(--saito-border-color, #333);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.notification-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--saito-border-color, #333);
+}
+
+.notification-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--saito-border-color, #333);
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item i {
+  color: var(--saito-primary, #e80000);
+  margin-top: 0.15rem;
+}
+
+.notification-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.notification-user {
+  font-weight: 700;
+}
+
+.notification-time {
+  font-size: 0.875rem;
+  opacity: 0.6;
+}
