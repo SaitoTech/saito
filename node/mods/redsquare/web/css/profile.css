@@ -1,0 +1,71 @@
+.profile-title {
+  display: none;
+}
+
+.profile-card {
+  background: var(--saito-background-secondary, #16181c);
+  border-radius: 16px;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.profile-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 0.75rem;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.profile-name {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.profile-handle {
+  color: var(--saito-font-color-light, #71767b);
+  font-size: 0.9rem;
+}
+
+.profile-bio {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--saito-font-color, #e7e7e8);
+}
+
+.profile-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--saito-font-color-light, #71767b);
+  margin-bottom: 0.85rem;
+}
+
+.profile-stats strong {
+  color: var(--saito-font-color, #e7e7e8);
+  font-weight: 700;
+}
+
+.profile-view {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--saito-border-color, #536471);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.profile-view:hover {
+  background: var(--saito-background-color, rgba(255, 255, 255, 0.08));
+}

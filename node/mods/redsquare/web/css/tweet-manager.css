@@ -1,0 +1,23 @@
+.tweet-manager-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0 1rem;
+  height: 53px;
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--saito-border-color, #2f3336);
+}
+
+.tweet-manager-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.tweets {
+  display: flex;
+  flex-direction: column;
+}

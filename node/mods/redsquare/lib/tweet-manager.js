@@ -1,11 +1,11 @@
-const NotificationTemplate = require('./notification.template');
+const TweetManagerTemplate = require('./tweet-manager.template');
 
-class Notification {
+class TweetManager {
   constructor(app, mod, container = '') {
     this.app = app;
     this.mod = mod;
     this.container = container;
-    this.notifications = [];
+    this.tweets = [];
   }
 
   render(container = '') {
@@ -13,16 +13,21 @@ class Notification {
       this.container = container;
     }
 
-    this.notifications = this.mod.notifications;
+    this.tweets = this.mod.tweets;
 
     this.app.browser.replaceElementContentBySelector(
-      NotificationTemplate(this),
+      TweetManagerTemplate(this),
       this.container
     );
+
+    for (let tweet of this.tweets) {
+      tweet.render(`${this.container} .tweets`);
+    }
+
     this.attachEvents();
   }
 
   attachEvents() {}
 }
 
-module.exports = Notification;
+module.exports = TweetManager;
