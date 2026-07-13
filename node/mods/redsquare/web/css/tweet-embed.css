@@ -1,0 +1,65 @@
+/*
+ * Embedded Tweet — a nested .tweet inside the parent .tweet-embed region.
+ * Presentation only: nested embeds beyond one level are suppressed in CSS.
+ */
+
+.tweet-embed {
+  margin-top: var(--rs-tweet-block-gap);
+  width: 100%;
+  min-width: 0;
+}
+
+.tweet-embed > .tweet.tweet-embedded {
+  --tweet-current-avatar: var(--rs-tweet-embed-avatar, 3.25rem);
+  --tweet-current-pad-x: var(--rs-tweet-embed-pad-x, var(--rs-space-sm));
+  --tweet-current-pad-y: var(--rs-tweet-embed-pad-y, var(--rs-space-sm));
+  display: grid;
+  grid-template-columns: var(--tweet-current-avatar) minmax(0, 1fr);
+  column-gap: var(--rs-space-sm);
+  padding: var(--tweet-current-pad-y) var(--tweet-current-pad-x);
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  border-radius: var(--rs-radius);
+  background: var(--rs-layer-recessed);
+  cursor: pointer;
+  transition: background-color var(--rs-transition);
+}
+
+.tweet-embed > .tweet.tweet-embedded:hover {
+  background: var(--rs-surface-hover);
+}
+
+.tweet.tweet-embedded {
+  border-bottom: none;
+}
+
+.tweet-embedded .tweet-avatar {
+  width: var(--tweet-current-avatar);
+  height: var(--tweet-current-avatar);
+}
+
+.tweet-embedded .tweet-header {
+  min-height: var(--tweet-current-avatar);
+}
+
+body.redsquare-body .tweet-embedded .tweet-header .saito-address {
+  font-size: var(--font-size-tiny);
+}
+
+body.redsquare-body .tweet-embedded .tweet-header .saito-userline {
+  font-size: 1.2rem;
+}
+
+.tweet-embedded .tweet-body {
+  font-size: var(--font-size-tiny);
+  line-height: 1.45;
+}
+
+/* Suppress chain rail, footer, and further nesting inside embedded Tweets */
+.tweet-embedded .tweet-chain,
+.tweet-embedded .tweet-footer {
+  display: none;
+}
+
+.tweet-embedded .tweet-embed {
+  display: none;
+}

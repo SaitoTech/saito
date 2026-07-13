@@ -1,39 +1,31 @@
-module.exports = (notification) => {
-  let items = notification.notifications
-    .map((item) => {
-      let icon = 'fa-bell';
+module.exports = (notification, tweetHtml = '') => {
+  let icon = 'fa-bell';
 
-      if (item.type === 'like') {
-        icon = 'fa-heart';
-      }
-      if (item.type === 'reply') {
-        icon = 'fa-comment';
-      }
-      if (item.type === 'retweet') {
-        icon = 'fa-retweet';
-      }
-
-      return `
-        <li class="notification-item">
-          <i class="fa-solid ${icon}"></i>
-          <div class="notification-content">
-            <span class="notification-user">${item.user}</span>
-            <span class="notification-text">${item.text}</span>
-            <span class="notification-time">${item.time}</span>
-          </div>
-        </li>
-      `;
-    })
-    .join('');
+  if (notification.type === 'like') {
+    icon = 'fa-heart';
+  } else if (notification.type === 'reply') {
+    icon = 'fa-comment';
+  } else if (notification.type === 'retweet') {
+    icon = 'fa-repeat';
+  } else if (notification.type === 'mention') {
+    icon = 'fa-at';
+  }
 
   return `
-    <section class="notification">
-      <header class="notification-header">
-        <h2>Notifications</h2>
+    <article class="notification" data-id="${notification.signature}" data-tweet-id="${notification.tweet_signature}">
+      <header class="notification-meta">
+        <span class="notification-icon" aria-hidden="true">
+          <i class="fa-solid ${icon}"></i>
+        </span>
+        <div class="notification-summary">
+          <span class="notification-actor saito-address">${notification.actor_name}</span>
+          <span class="notification-text">${notification.text}</span>
+          <span class="notification-time saito-userline">${notification.time}</span>
+        </div>
       </header>
-      <ul class="notification-list">
-        ${items}
-      </ul>
-    </section>
+      <div class="notification-tweet">
+        ${tweetHtml}
+      </div>
+    </article>
   `;
 };

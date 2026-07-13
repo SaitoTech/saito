@@ -19,6 +19,14 @@ class Sidebar {
       { name: 'Alice Chen', handle: 'alice', avatar: '/saito/img/tiled-logo.svg' },
       { name: 'Richard P.', handle: 'rp', avatar: '/saito/img/dreamscape.png' }
     ];
+
+    this.leaderboard = [
+      { rank: 1, name: 'Saito Network', handle: 'saito', score: '12,480' },
+      { rank: 2, name: 'Alice Chen', handle: 'alice', score: '9,214' },
+      { rank: 3, name: 'Richard P.', handle: 'rp', score: '7,892' },
+      { rank: 4, name: 'Bob Martinez', handle: 'bob', score: '6,103' },
+      { rank: 5, name: 'Carol Okonkwo', handle: 'carol', score: '5,447' }
+    ];
   }
 
   render(container = '') {

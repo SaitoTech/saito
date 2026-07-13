@@ -1,37 +1,19 @@
-const SaitoOverlay = require('../../../lib/saito/ui/saito-overlay/saito-overlay');
-const ComposerTemplate = require('./composer.template');
+const ComposeOverlay = require('./ui/overlays/compose');
 
 class Composer {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.overlay = new SaitoOverlay(app, mod, true, true, false);
-
-    this.placeholder = 'What is happening?';
-    this.avatar = '/saito/img/dreamscape.png';
+    this.compose = mod.compose || new ComposeOverlay(app, mod);
   }
 
-  open() {
-    if (this.mod.profile?.avatar) {
-      this.avatar = this.mod.profile.avatar;
-    }
-
-    this.overlay.show(ComposerTemplate(this));
-    this.attachEvents();
-
-    setTimeout(() => {
-      let input = document.querySelector('.saito-overlay .composer-input');
-      if (input) {
-        input.focus();
-      }
-    }, 50);
+  open(options = {}) {
+    this.compose.open(options);
   }
 
   close() {
-    this.overlay.close();
+    this.compose.close();
   }
-
-  attachEvents() {}
 }
 
 module.exports = Composer;

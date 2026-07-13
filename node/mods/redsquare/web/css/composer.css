@@ -117,6 +117,102 @@
   border-radius: var(--rs-radius-pill);
 }
 
+.compose-image-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--rs-gap-tight);
+  padding: 0 var(--rs-space-sm) var(--rs-space-sm);
+}
+
+.compose-image-preview:empty {
+  display: none;
+}
+
+.compose-image-item {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 1;
+  border-radius: var(--rs-radius);
+  overflow: hidden;
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+}
+
+.compose-image-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.compose-image-remove {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--rs-radius-pill);
+  background: color-mix(in srgb, var(--rs-canvas) 72%, transparent);
+  color: var(--rs-text-strong);
+  cursor: pointer;
+}
+
+.compose-image-remove:hover {
+  background: var(--rs-surface-hover);
+}
+
+.compose-gif-placeholder {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-sm);
+  margin: 0 var(--rs-space-sm) var(--rs-space-sm);
+  padding: var(--rs-space-sm);
+  border-radius: var(--rs-radius);
+  border: var(--border-thickness-thin, 1px) dashed var(--rs-border-subtle);
+  color: var(--rs-text-muted, var(--saito-font-color-light));
+  font-size: var(--rs-body-sm, 1.4rem);
+}
+
+.compose-gif-placeholder.visible {
+  display: flex;
+}
+
+.compose-gif-placeholder p {
+  margin: 0;
+}
+
+.compose-gif-dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--saito-primary);
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.compose-char-count {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  font-size: var(--rs-body-sm, 1.35rem);
+  color: var(--rs-text-muted, var(--saito-font-color-light));
+  transition: color var(--rs-transition);
+}
+
+.compose-char-count.warning {
+  color: var(--saito-primary);
+}
+
+.compose-char-separator {
+  opacity: 0.72;
+}
+
 @media (max-width: 600px) {
   .composer {
     gap: var(--rs-space-xs);

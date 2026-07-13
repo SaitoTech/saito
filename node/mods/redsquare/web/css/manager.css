@@ -33,6 +33,85 @@
   flex-direction: column;
 }
 
+.manager-panel-hidden {
+  display: none;
+}
+
+article.tweet.tweet-enter {
+  animation: manager-tweet-enter 0.45s ease forwards;
+}
+
+@keyframes manager-tweet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.8rem) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.manager-scroll-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 8rem;
+  padding: var(--rs-feed-y) var(--rs-feed-x);
+  box-sizing: border-box;
+}
+
+.manager-scroll-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 5.5rem;
+  opacity: 1;
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.manager-scroll-loader .saito-loader {
+  width: 5.5rem;
+  height: 5.5rem;
+}
+
+.manager-scroll-loader .saito-loader::after {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.manager-scroll-end-message {
+  margin: 0;
+  max-width: 24rem;
+  text-align: center;
+  font-size: var(--rs-body-sm, 1.4rem);
+  line-height: 1.4;
+  color: var(--rs-text-muted, var(--saito-font-color-light));
+  opacity: 0;
+  transform: translateY(0.35rem);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.manager-scroll-footer[data-state='loading'] .manager-scroll-end-message {
+  display: none;
+}
+
+.manager-scroll-footer[data-state='end'] .manager-scroll-loader {
+  opacity: 0;
+  transform: scale(0.92);
+  pointer-events: none;
+  position: absolute;
+}
+
+.manager-scroll-footer[data-state='end'] .manager-scroll-end-message {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (max-width: 600px) {
   .manager-header {
     padding: var(--rs-feed-y) var(--rs-space-sm);

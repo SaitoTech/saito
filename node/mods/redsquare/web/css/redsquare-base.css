@@ -81,14 +81,29 @@ body.redsquare-body {
   --rs-tweet-text-gap: var(--saito-space-sm);
   --rs-tweet-block-gap: var(--saito-space-sm);
   --rs-tweet-pad-y: 1.2rem;
+  --rs-tweet-chain-width: var(--border-thickness-medium, 2px);
+  --rs-tweet-chain-color: var(--saito-border-color);
+
+  /* Focused tweet variant — single-tweet / detail presentation */
+  --rs-tweet-avatar-focused: 5rem;
+  --rs-tweet-focused-body: 2.3rem;
+  --rs-tweet-focused-leading: 3rem;
+  --rs-tweet-focused-pad-y: var(--saito-space-lg);
+
+  /* Embedded tweet proportions */
+  --rs-tweet-embed-avatar: 3.25rem;
+  --rs-tweet-embed-pad-x: var(--rs-space-sm);
+  --rs-tweet-embed-pad-y: var(--rs-space-sm);
 
   /* Nav layout — proportions only; type inherits from body / Saito menu */
-  --rs-nav-icon: 2.1rem;
-  --rs-nav-gap: 0.85rem;
+  --rs-nav-icon: 2.75rem;
+  --rs-nav-label: 2.15rem;
+  --rs-nav-gap: 1.15rem;
   --rs-nav-item-x: var(--saito-space-md);
   --rs-nav-item-y: 1.1rem;
-  --rs-nav-min-height: 4.4rem;
-  --rs-nav-post-height: 3.4rem;
+  --rs-nav-min-height: 5.2rem;
+  --rs-nav-post-height: 4.4rem;
+  --rs-col-pad-top: 1.2rem;
 
   --rs-btn-height-compact: 3.2rem;
   --rs-btn-height-sidebar: 2.6rem;
@@ -103,10 +118,17 @@ body.redsquare-body {
   --rs-panel-x: var(--rs-sidebar-pad);
   --rs-row-y: var(--rs-space-xs);
 
-  --rs-col-left: 20rem;
-  --rs-col-center: 72rem;
-  --rs-col-right: 24rem;
-  --rs-layout-width: 116rem;
+  --rs-col-left: 26rem;
+  --rs-col-center: 58rem;
+  --rs-col-right: 32rem;
+  /* Match saito-page-layout column gutters; columns + gaps = --saito-width (120rem @ 10px root) */
+  --rs-col-gap: 2rem;
+  /* Same horizontal inset as #saito-header (saito-header.css) — page content flows from header */
+  --rs-page-inset: max(2rem, calc((100vw - var(--saito-width)) / 2 + 0.5rem));
+  /* Nav icon/label offsets from left column edge (= logo left edge once inset matches) */
+  --rs-nav-cube-center: 2.5rem;
+  --rs-nav-wordmark-start: 4.7rem;
+  --rs-nav-hover-inset: calc(var(--rs-nav-cube-center) - (var(--rs-nav-icon) / 2));
 }
 
 /*
@@ -124,13 +146,17 @@ body.redsquare-body .tweet-header .saito-userline {
   color: var(--saito-font-color-secondary);
 }
 
-body.redsquare-body .tweet-text {
+body.redsquare-body .tweet-body {
   line-height: 2.2rem;
 }
 
 /*
  * Three-column shell — overrides default .saito-container grid
  * from saito-page-layout.css for this module's proportions.
+ *
+ * Horizontal alignment: --rs-page-inset must match #saito-header padding
+ * (saito-header.css). Prior fixes targeted .menu / .sidebar-* padding
+ * while the container used a different width variable and zero column-gap.
  */
 body.redsquare-body #saito-container.saito-container {
   background: var(--rs-canvas);
@@ -142,27 +168,31 @@ body.redsquare-body #saito-container.saito-container {
   height: calc(100% - var(--saito-header-height));
   max-height: none;
   margin: 0;
-  padding: 0 max(1rem, calc((100vw - var(--rs-layout-width)) / 2));
-  column-gap: 0;
+  padding: 0 var(--rs-page-inset);
+  column-gap: var(--rs-col-gap);
   grid-template-columns: var(--rs-col-left) minmax(0, var(--rs-col-center)) var(--rs-col-right);
-  justify-content: center;
   align-items: start;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 @media (max-width: 1200px) {
+  body.redsquare-body {
+    --saito-width: 100rem;
+  }
+
   body.redsquare-body #saito-container.saito-container {
-    column-gap: 0;
-    padding: 0 max(1rem, calc((100vw - 100rem) / 2));
-    grid-template-columns: 8rem minmax(0, 1fr) 30rem;
+    grid-template-columns: 9rem minmax(0, 1fr) 28rem;
   }
 }
 
 @media (max-width: 820px) {
+  body.redsquare-body {
+    --saito-width: 70rem;
+  }
+
   body.redsquare-body #saito-container.saito-container {
     grid-template-columns: 8rem minmax(0, 1fr);
-    column-gap: 0;
   }
 }
 
