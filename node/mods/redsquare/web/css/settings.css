@@ -1,12 +1,26 @@
 .settings {
-  background: var(--saito-background-color, #1c1c23);
-  border: 1px solid var(--saito-border-color, #333);
-  border-radius: 12px;
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--rs-canvas);
+}
+
+.settings-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: var(--rs-feed-y) var(--rs-feed-x);
+  border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  background: var(--rs-canvas);
 }
 
 .settings-header h2 {
-  margin: 0 0 1rem;
+  margin: 0;
+  font-family: var(--saito-font-heavy);
+  font-size: var(--rs-heading);
+  font-weight: normal;
+  line-height: 1.2;
+  color: var(--rs-text-strong);
 }
 
 .settings-list {
@@ -19,10 +33,24 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--saito-border-color, #333);
+  gap: var(--rs-space-sm);
+  padding: var(--rs-space-sm) var(--rs-feed-x);
+  border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  transition: background var(--rs-transition);
+}
+
+.settings-item:hover {
+  background: var(--rs-surface-hover);
 }
 
 .settings-item:last-child {
   border-bottom: none;
+}
+
+@media (max-width: 600px) {
+  .settings-header,
+  .settings-item {
+    padding-left: var(--rs-space-sm);
+    padding-right: var(--rs-space-sm);
+  }
 }

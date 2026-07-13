@@ -1,0 +1,190 @@
+/*
+ * RedSquare base layer — sits between Saito globals and component CSS.
+ *
+ *   Saito global styles (saito.css, themes, components)
+ *        ↓
+ *   redsquare-base.css  ← token aliases, feed extensions, scoped resets
+ *        ↓
+ *   Component CSS       ← layout and structure only
+ *
+ * Saito reference (10px root):
+ *   body { font-size: 1.6rem; line-height: 1.2; font-family: var(--saito-font) }
+ *   Typography: --font-size-h1…h6, --font-size-large/medium/tiny
+ *   Surfaces: --saito-background-color, --saito-surface-*, --saito-border-*
+ *   Components: .saito-user, .saito-identicon, .saito-button-*, .saito-notification-dot
+ *
+ * Rules:
+ *   - Alias --rs-* to Saito tokens; do not invent parallel color or type scales
+ *   - Extend global component classes; do not reimplement them in component CSS
+ *   - Component files: grid/flex/spacing only — inherit typography from body
+ */
+
+body.redsquare-body {
+  background: var(--saito-background-color);
+
+  /* Typography aliases — point at Saito globals */
+  --rs-caption: var(--font-size-tiny);
+  --rs-meta: var(--font-size-tiny);
+  --rs-meta-md: var(--font-size-medium);
+  --rs-heading: var(--font-size-h6);
+  --rs-section-title: var(--font-size-large);
+  --rs-lead: var(--font-size-large);
+
+  /* Surface / color aliases */
+  --rs-canvas: var(--saito-background-color);
+  --rs-layer-recessed: var(--saito-surface-color);
+  --rs-layer-base: var(--saito-surface-hover);
+  --rs-layer-raised: var(--saito-surface-selected);
+  --rs-layer-overlay: var(--saito-overlay-panel-bg);
+  --rs-layer-hover: var(--saito-surface-hover);
+  --rs-surface-feed: var(--saito-feed-bg, var(--saito-background-color));
+  --rs-surface-card: var(--saito-card-bg);
+  --rs-surface-inset: var(--saito-input-bg);
+  --rs-surface-hover: var(--saito-surface-hover);
+
+  --rs-border-subtle: var(--saito-border-color-light);
+  --rs-border: var(--saito-border-color);
+  --rs-border-strong: var(--saito-border-color-dark);
+
+  --rs-text: var(--saito-font-color);
+  --rs-text-strong: var(--saito-font-color-heavy);
+  --rs-text-muted: var(--saito-font-color-secondary);
+  --rs-text-faint: var(--saito-font-color-light);
+
+  --rs-accent: var(--saito-primary);
+  --rs-accent-fill: var(--saito-button-primary-bg);
+  --rs-accent-fill-hover: var(--saito-button-primary-bg-hover);
+  --rs-accent-on: var(--saito-button-primary-fg);
+
+  /* Spacing aliases */
+  --rs-space-xs: var(--saito-space-xs);
+  --rs-space-sm: var(--saito-space-sm);
+  --rs-space-md: var(--saito-space-md);
+  --rs-space-lg: var(--saito-space-lg);
+  --rs-space-xl: var(--saito-space-xl);
+  --rs-gap-tight: 0.2rem;
+
+  --rs-radius-sm: var(--saito-radius-sm);
+  --rs-radius: var(--saito-border-radius);
+  --rs-radius-pill: var(--saito-radius-full);
+  --rs-radius-media: var(--saito-radius-sm);
+
+  --rs-transition: 0.15s ease;
+
+  /* Identicon — matches .saito-identicon dimensions in saito-user.css */
+  --rs-identicon: 3.5rem;
+  --rs-identicon-radius: var(--saito-identicon-border-radius, var(--saito-border-radius));
+
+  /* Feed layout rhythm — RedSquare-specific proportions only */
+  --rs-tweet-avatar: 4.25rem;
+  --rs-tweet-header-gap: var(--saito-space-md);
+  --rs-tweet-text-gap: var(--saito-space-sm);
+  --rs-tweet-block-gap: var(--saito-space-sm);
+  --rs-tweet-pad-y: 1.2rem;
+
+  /* Nav layout — proportions only; type inherits from body / Saito menu */
+  --rs-nav-icon: 2.1rem;
+  --rs-nav-gap: 0.85rem;
+  --rs-nav-item-x: var(--saito-space-md);
+  --rs-nav-item-y: 1.1rem;
+  --rs-nav-min-height: 4.4rem;
+  --rs-nav-post-height: 3.4rem;
+
+  --rs-btn-height-compact: 3.2rem;
+  --rs-btn-height-sidebar: 2.6rem;
+  --rs-icon-btn: 3.2rem;
+  --rs-control-min: 3.4rem;
+  --rs-composer-min-height: 5rem;
+
+  --rs-feed-x: var(--saito-space-md);
+  --rs-feed-y: var(--saito-space-sm);
+  --rs-tweet-pad-x: var(--rs-feed-x);
+  --rs-sidebar-pad: var(--saito-space-md);
+  --rs-panel-x: var(--rs-sidebar-pad);
+  --rs-row-y: var(--rs-space-xs);
+
+  --rs-col-left: 20rem;
+  --rs-col-center: 72rem;
+  --rs-col-right: 24rem;
+  --rs-layout-width: 116rem;
+}
+
+/*
+ * Tweet feed — extend saito-user typography (see production redsquare-tweet.css).
+ * Header text uses .saito-address / .saito-userline; body inherits global font-size.
+ */
+body.redsquare-body .tweet-header .saito-address {
+  font-family: var(--saito-font-heavy);
+  font-size: var(--font-size-medium);
+  color: var(--saito-font-color-heavy);
+}
+
+body.redsquare-body .tweet-header .saito-userline {
+  font-size: 1.4rem;
+  color: var(--saito-font-color-secondary);
+}
+
+body.redsquare-body .tweet-text {
+  line-height: 2.2rem;
+}
+
+/*
+ * Three-column shell — overrides default .saito-container grid
+ * from saito-page-layout.css for this module's proportions.
+ */
+body.redsquare-body #saito-container.saito-container {
+  background: var(--rs-canvas);
+  position: absolute;
+  top: var(--saito-header-height);
+  left: 0;
+  right: 0;
+  width: 100vw;
+  height: calc(100% - var(--saito-header-height));
+  max-height: none;
+  margin: 0;
+  padding: 0 max(1rem, calc((100vw - var(--rs-layout-width)) / 2));
+  column-gap: 0;
+  grid-template-columns: var(--rs-col-left) minmax(0, var(--rs-col-center)) var(--rs-col-right);
+  justify-content: center;
+  align-items: start;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (max-width: 1200px) {
+  body.redsquare-body #saito-container.saito-container {
+    column-gap: 0;
+    padding: 0 max(1rem, calc((100vw - 100rem) / 2));
+    grid-template-columns: 8rem minmax(0, 1fr) 30rem;
+  }
+}
+
+@media (max-width: 820px) {
+  body.redsquare-body #saito-container.saito-container {
+    grid-template-columns: 8rem minmax(0, 1fr);
+    column-gap: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  body.redsquare-body #saito-container.saito-container {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 0;
+    padding: 0;
+  }
+}
+
+/*
+ * Compact controls — carve-out from global button defaults (saito-buttons.css).
+ * Buttons should carry .saito-button-primary / .saito-button-secondary in markup.
+ */
+body.redsquare-body .menu-post,
+body.redsquare-body .composer-submit,
+body.redsquare-body .profile-view,
+body.redsquare-body .sidebar-suggestion-follow,
+body.redsquare-body .composer-tool {
+  min-width: unset;
+  margin: 0;
+  text-transform: none;
+  letter-spacing: normal;
+}

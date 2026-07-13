@@ -1,18 +1,26 @@
 .notification {
-  background: var(--saito-background-color, #1c1c23);
-  border: 1px solid var(--saito-border-color, #333);
-  border-radius: 12px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--rs-canvas);
 }
 
 .notification-header {
-  padding: 1rem;
-  border-bottom: 1px solid var(--saito-border-color, #333);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: var(--rs-feed-y) var(--rs-feed-x);
+  border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  background: var(--rs-canvas);
 }
 
 .notification-header h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-family: var(--saito-font-heavy);
+  font-size: var(--rs-heading);
+  font-weight: normal;
+  line-height: 1.2;
+  color: var(--rs-text-strong);
 }
 
 .notification-list {
@@ -23,9 +31,14 @@
 
 .notification-item {
   display: flex;
-  gap: 0.75rem;
-  padding: 1rem;
-  border-bottom: 1px solid var(--saito-border-color, #333);
+  gap: var(--rs-space-sm);
+  padding: var(--rs-space-sm) var(--rs-feed-x);
+  border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  transition: background var(--rs-transition);
+}
+
+.notification-item:hover {
+  background: var(--rs-surface-hover);
 }
 
 .notification-item:last-child {
@@ -33,21 +46,41 @@
 }
 
 .notification-item i {
-  color: var(--saito-primary, #e80000);
-  margin-top: 0.15rem;
+  color: var(--rs-text-muted);
+  margin-top: 0.1rem;
+  font-size: var(--rs-meta-md);
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .notification-content {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: var(--rs-gap-tight);
+  min-width: 0;
 }
 
 .notification-user {
-  font-weight: 700;
+  font-family: var(--saito-font-medium);
+  font-size: var(--rs-meta-md);
+  line-height: 1.2;
+  color: var(--rs-text-strong);
+}
+
+.notification-text {
+  line-height: 2rem;
 }
 
 .notification-time {
-  font-size: 0.875rem;
-  opacity: 0.6;
+  font-size: var(--rs-meta);
+  line-height: 1.2;
+  color: var(--rs-text-muted);
+}
+
+@media (max-width: 600px) {
+  .notification-header,
+  .notification-item {
+    padding-left: var(--rs-space-sm);
+    padding-right: var(--rs-space-sm);
+  }
 }

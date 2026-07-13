@@ -3,8 +3,7 @@ module.exports = () => {
     <div class="sidebar-left"></div>
 
     <main class="main">
-      <div class="composer"></div>
-      <div class="tweet-manager"></div>
+      <div class="manager"></div>
     </main>
 
     <aside class="sidebar-right">

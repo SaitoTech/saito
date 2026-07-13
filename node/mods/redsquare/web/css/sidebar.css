@@ -1,50 +1,81 @@
-.sidebar-search {
-  position: relative;
-  margin-bottom: 0.25rem;
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-sm);
 }
 
-.sidebar-search i {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--saito-font-color-light, #71767b);
-  font-size: 0.9rem;
+.sidebar-search {
+  position: relative;
+}
+
+.sidebar-search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-xs);
+  min-height: var(--rs-btn-height-compact);
+  padding: 0 var(--rs-sidebar-pad);
+  border: var(--border-thickness-thin, 1px) solid transparent;
+  border-radius: var(--rs-radius-pill);
+  background: var(--rs-layer-recessed);
+  cursor: text;
+  transition:
+    border-color var(--rs-transition),
+    background var(--rs-transition);
+}
+
+.sidebar-search-field:focus-within {
+  border-color: var(--rs-border);
+  background: color-mix(in srgb, var(--rs-layer-recessed) 70%, var(--rs-layer-base) 30%);
+}
+
+.sidebar-search-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.6rem;
+  color: var(--saito-font-color-secondary);
+  font-size: var(--font-size-tiny);
+  line-height: 1;
   pointer-events: none;
 }
 
-.sidebar-search input {
-  width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.75rem;
-  border: none;
-  border-radius: 999px;
-  background: var(--saito-background-secondary, #202327);
-  color: inherit;
-  font-size: 0.95rem;
-  font-family: inherit;
+.sidebar-search-icon i {
+  display: block;
+  line-height: 1;
 }
 
-.sidebar-search input:focus {
-  outline: 1px solid var(--saito-primary, #e80000);
-  background: var(--saito-background-color, #000);
+.sidebar-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: calc(var(--rs-btn-height-compact) - 0.2rem);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--saito-input-fg);
+  font-size: var(--font-size-tiny);
 }
 
 .sidebar-search input::placeholder {
-  color: var(--saito-font-color-light, #71767b);
+  color: var(--saito-input-placeholder);
+}
+
+.sidebar-search input:focus {
+  outline: none;
 }
 
 .sidebar-panel {
-  background: var(--saito-background-secondary, #16181c);
-  border-radius: 16px;
-  padding: 0.75rem 0;
+  background: var(--rs-layer-recessed);
+  border: var(--border-thickness-thin, 1px) solid transparent;
+  border-radius: var(--rs-radius);
   overflow: hidden;
 }
 
-.sidebar-panel h3 {
+.sidebar-panel-title {
   margin: 0;
-  padding: 0.75rem 1rem;
-  font-size: 1.2rem;
-  font-weight: 800;
+  padding: var(--rs-sidebar-pad) var(--rs-sidebar-pad) var(--rs-space-xs);
+  font-family: var(--saito-font-heavy);
+  font-size: var(--rs-section-title);
 }
 
 .sidebar-trend-list,
@@ -55,113 +86,114 @@
 }
 
 .sidebar-trend {
-  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--rs-row-y) var(--rs-sidebar-pad);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--rs-transition);
 }
 
 .sidebar-trend:hover {
-  background: var(--saito-background-color, rgba(255, 255, 255, 0.03));
+  background: var(--rs-surface-hover);
 }
 
 .sidebar-trend-category {
   display: block;
-  font-size: 0.8rem;
-  color: var(--saito-font-color-light, #71767b);
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.1rem;
+  font-size: var(--font-size-tiny);
+  color: var(--saito-font-color-secondary);
 }
 
 .sidebar-trend-tag {
   display: block;
-  font-weight: 700;
-  font-size: 0.95rem;
+  margin-bottom: 0.1rem;
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-tiny);
 }
 
 .sidebar-trend-posts {
   display: block;
-  font-size: 0.8rem;
-  color: var(--saito-font-color-light, #71767b);
-  margin-top: 0.1rem;
+  font-size: var(--font-size-tiny);
+  color: var(--saito-font-color-secondary);
 }
 
 .sidebar-suggestion {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--rs-identicon) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  column-gap: var(--rs-space-xs);
+  padding: var(--rs-row-y) var(--rs-sidebar-pad);
 }
 
 .sidebar-suggestion-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: var(--rs-identicon);
+  height: var(--rs-identicon);
+  border-radius: var(--rs-identicon-radius);
+  border: none;
   object-fit: cover;
-  flex-shrink: 0;
 }
 
 .sidebar-suggestion-info {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  gap: 0.05rem;
   min-width: 0;
 }
 
 .sidebar-suggestion-name {
-  font-weight: 700;
-  font-size: 0.9rem;
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-tiny);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .sidebar-suggestion-handle {
-  font-size: 0.85rem;
-  color: var(--saito-font-color-light, #71767b);
+  font-size: var(--font-size-tiny);
+  color: var(--saito-font-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-suggestion-follow {
-  padding: 0.4rem 1rem;
-  border: none;
-  border-radius: 999px;
-  background: var(--saito-font-color, #eff3f4);
-  color: var(--saito-background-color, #0f1419);
-  font-weight: 700;
-  font-size: 0.85rem;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: opacity 0.15s;
-}
-
-.sidebar-suggestion-follow:hover {
-  opacity: 0.9;
+  white-space: nowrap;
+  border-radius: var(--rs-radius-pill);
 }
 
 .sidebar-more {
   display: block;
-  padding: 0.85rem 1rem;
-  color: var(--saito-primary, #e80000);
+  padding: var(--rs-row-y) var(--rs-sidebar-pad);
+  color: var(--saito-font-color-secondary);
+  font-size: var(--font-size-tiny);
   text-decoration: none;
-  font-size: 0.9rem;
+  transition:
+    background var(--rs-transition),
+    color var(--rs-transition);
 }
 
 .sidebar-more:hover {
-  text-decoration: underline;
+  background: var(--rs-surface-hover);
+  color: var(--saito-font-color);
+  text-decoration: none;
 }
 
 .sidebar-footer {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.75rem;
-  padding: 0.5rem 0.25rem;
-  font-size: 0.8rem;
-  color: var(--saito-font-color-light, #71767b);
+  gap: var(--rs-space-xs) var(--rs-space-sm);
+  padding: var(--rs-space-xs) var(--rs-sidebar-pad) 0;
+  font-size: var(--font-size-tiny);
+  color: var(--saito-font-color-light);
 }
 
 .sidebar-footer a {
   color: inherit;
   text-decoration: none;
+  transition: color var(--rs-transition);
 }
 
 .sidebar-footer a:hover {
-  text-decoration: underline;
+  color: var(--saito-font-color-secondary);
 }
