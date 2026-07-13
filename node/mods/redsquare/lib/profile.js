@@ -19,7 +19,24 @@ class Profile {
     this.attachEvents();
   }
 
-  attachEvents() {}
+  attachEvents() {
+    const root = document.querySelector(this.container);
+
+    if (!root || root.dataset.profileBound) {
+      return;
+    }
+
+    root.dataset.profileBound = '1';
+
+    const newPostBtn = root.querySelector('.profile-new-post');
+
+    if (newPostBtn) {
+      newPostBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.mod.compose?.open();
+      });
+    }
+  }
 }
 
 module.exports = Profile;

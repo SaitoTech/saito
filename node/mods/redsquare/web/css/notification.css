@@ -1,85 +1,77 @@
 .notification {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  background: var(--rs-canvas);
-}
-
-.notification-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding: var(--rs-feed-y) var(--rs-feed-x);
   border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
-  background: var(--rs-canvas);
+  cursor: pointer;
+  transition: background-color var(--rs-transition);
 }
 
-.notification-header h2 {
-  margin: 0;
-  font-family: var(--saito-font-heavy);
-  font-size: var(--rs-heading);
-  font-weight: normal;
-  line-height: 1.2;
-  color: var(--rs-text-strong);
-}
-
-.notification-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.notification-item {
-  display: flex;
-  gap: var(--rs-space-sm);
-  padding: var(--rs-space-sm) var(--rs-feed-x);
-  border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
-  transition: background var(--rs-transition);
-}
-
-.notification-item:hover {
+.notification:hover {
   background: var(--rs-surface-hover);
 }
 
-.notification-item:last-child {
+.notification:last-child {
   border-bottom: none;
 }
 
-.notification-item i {
-  color: var(--rs-text-muted);
-  margin-top: 0.1rem;
-  font-size: var(--rs-meta-md);
-  line-height: 1;
-  flex-shrink: 0;
+.notification-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--rs-space-sm);
+  padding: var(--rs-tweet-pad-y) var(--rs-tweet-pad-x) var(--rs-space-xs);
 }
 
-.notification-content {
+.notification-icon {
   display: flex;
-  flex-direction: column;
-  gap: var(--rs-gap-tight);
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--saito-font-color-secondary);
+  font-size: var(--font-size-tiny);
+  line-height: 1;
+}
+
+.notification-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
   min-width: 0;
 }
 
-.notification-user {
+.notification-actor {
   font-family: var(--saito-font-medium);
-  font-size: var(--rs-meta-md);
-  line-height: 1.2;
-  color: var(--rs-text-strong);
+  font-size: var(--font-size-medium);
+  color: var(--saito-font-color-heavy);
 }
 
 .notification-text {
-  line-height: 2rem;
+  font-size: var(--font-size-medium);
+  color: var(--saito-font-color);
 }
 
 .notification-time {
-  font-size: var(--rs-meta);
-  line-height: 1.2;
-  color: var(--rs-text-muted);
+  font-size: var(--font-size-tiny);
+  color: var(--saito-font-color-secondary);
+}
+
+.notification-tweet {
+  padding: 0 var(--rs-tweet-pad-x) var(--rs-tweet-pad-y);
+}
+
+.notification-tweet .tweet {
+  border-bottom: none;
+  padding-top: 0;
+  cursor: inherit;
+}
+
+.notification-tweet .tweet:hover {
+  background: transparent;
 }
 
 @media (max-width: 600px) {
-  .notification-header,
-  .notification-item {
+  .notification-meta,
+  .notification-tweet {
     padding-left: var(--rs-space-sm);
     padding-right: var(--rs-space-sm);
   }

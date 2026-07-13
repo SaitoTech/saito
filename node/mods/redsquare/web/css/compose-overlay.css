@@ -1,0 +1,374 @@
+.saito-overlay .compose-overlay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(54rem, 92vw);
+  max-height: min(88vh, 72rem);
+  border-radius: var(--rs-radius);
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  background: var(--rs-layer-overlay, var(--saito-overlay-panel-bg));
+  box-shadow: var(--saito-box-shadow, 0 1.2rem 3.2rem rgba(0, 0, 0, 0.28));
+  overflow: hidden;
+}
+
+.compose-overlay-header {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-sm);
+  padding: var(--rs-space-sm) var(--rs-space-md);
+  border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+}
+
+.compose-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--rs-icon-btn);
+  height: var(--rs-icon-btn);
+  padding: 0;
+  border: none;
+  border-radius: var(--rs-radius-pill);
+  background: transparent;
+  color: var(--rs-text-muted);
+  cursor: pointer;
+  transition:
+    background var(--rs-transition),
+    color var(--rs-transition);
+}
+
+.compose-close:hover {
+  background: var(--rs-surface-hover);
+  color: var(--rs-text-strong);
+}
+
+.compose-overlay-title {
+  margin: 0;
+  font-family: var(--saito-font-heavy);
+  font-size: var(--rs-heading);
+  font-weight: normal;
+  line-height: 1.2;
+  color: var(--rs-text-strong);
+}
+
+.compose-overlay-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-sm);
+  padding: var(--rs-space-md);
+  overflow-y: auto;
+}
+
+.compose-author {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-sm);
+}
+
+.compose-author-avatar {
+  width: var(--rs-identicon);
+  height: var(--rs-identicon);
+  border-radius: var(--rs-identicon-radius);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.compose-author-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.compose-author-name {
+  font-family: var(--saito-font-medium);
+  color: var(--rs-text-strong);
+  line-height: 1.2;
+}
+
+.compose-author-handle {
+  font-size: var(--font-size-tiny);
+  color: var(--rs-text-muted);
+  line-height: 1.2;
+}
+
+.compose-helper {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  color: var(--rs-text-muted);
+  line-height: 1.35;
+}
+
+.compose-editor {
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  border-radius: var(--rs-radius);
+  background: var(--rs-layer-recessed);
+  transition:
+    border-color var(--rs-transition),
+    background var(--rs-transition);
+}
+
+.compose-editor:focus-within {
+  border-color: var(--rs-border);
+  background: color-mix(in srgb, var(--rs-layer-recessed) 88%, var(--rs-layer-base) 12%);
+}
+
+.compose-input {
+  display: block;
+  width: 100%;
+  min-height: var(--rs-composer-min-height);
+  padding: var(--rs-space-sm);
+  border: none;
+  background: transparent;
+  color: var(--saito-input-fg);
+  font-size: inherit;
+  line-height: 2rem;
+  resize: vertical;
+}
+
+.compose-input::placeholder {
+  color: var(--saito-input-placeholder);
+}
+
+.compose-input:focus {
+  outline: none;
+}
+
+.compose-image-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--rs-gap-tight);
+}
+
+.compose-image-preview:empty {
+  display: none;
+}
+
+.compose-image-item {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 1;
+  border-radius: var(--rs-radius);
+  overflow: hidden;
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+}
+
+.compose-image-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.compose-image-remove {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--rs-radius-pill);
+  background: color-mix(in srgb, var(--rs-canvas) 78%, transparent);
+  color: var(--rs-text-strong);
+  cursor: pointer;
+}
+
+.compose-image-remove:hover {
+  background: var(--rs-surface-hover);
+}
+
+.compose-gif-placeholder {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-sm);
+  padding: var(--rs-space-sm);
+  border-radius: var(--rs-radius);
+  border: var(--border-thickness-thin, 1px) dashed var(--rs-border-subtle);
+  color: var(--rs-text-muted);
+  font-size: var(--font-size-tiny);
+}
+
+.compose-gif-placeholder.visible {
+  display: flex;
+}
+
+.compose-gif-placeholder p {
+  margin: 0;
+}
+
+.compose-gif-dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--saito-primary);
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.compose-overlay-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-sm);
+  padding: var(--rs-space-sm) var(--rs-space-md) var(--rs-space-md);
+  border-top: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+}
+
+.compose-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-gap-tight);
+}
+
+.compose-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--rs-icon-btn);
+  height: var(--rs-icon-btn);
+  padding: 0;
+  border: none;
+  border-radius: var(--rs-radius-pill);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--rs-transition);
+}
+
+.compose-tool i {
+  font-size: inherit;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: var(--saito-font-color-secondary) 1px;
+  transition: -webkit-text-stroke-color var(--rs-transition);
+}
+
+.compose-tool:hover {
+  background: var(--rs-surface-hover);
+}
+
+.compose-tool:hover i {
+  -webkit-text-stroke-color: var(--saito-font-color-heavy);
+}
+
+.compose-footer-end {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-sm);
+}
+
+.compose-char-count {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: var(--font-size-tiny);
+  color: var(--rs-text-muted);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--rs-transition);
+}
+
+.compose-char-count.warning {
+  color: var(--saito-primary);
+}
+
+.compose-char-separator {
+  opacity: 0.72;
+}
+
+.compose-submit {
+  position: relative;
+  min-width: 7.5rem;
+  border-radius: var(--rs-radius-pill);
+}
+
+.compose-submit-spinner {
+  display: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 2px solid color-mix(in srgb, var(--rs-accent-on) 35%, transparent);
+  border-top-color: var(--rs-accent-on);
+  border-radius: 50%;
+  animation: compose-submit-spin 0.8s linear infinite;
+}
+
+.compose-overlay--posting .compose-submit-label {
+  opacity: 0;
+}
+
+.compose-overlay--posting .compose-submit-spinner {
+  display: inline-block;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.compose-posting-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rs-space-sm);
+  background: color-mix(in srgb, var(--rs-layer-overlay, var(--saito-overlay-panel-bg)) 82%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 2;
+}
+
+.compose-overlay--posting .compose-posting-screen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.compose-posting-loader {
+  width: 4.5rem;
+  height: 4.5rem;
+}
+
+.compose-posting-loader .saito-loader {
+  width: 100%;
+  height: 100%;
+}
+
+.compose-posting-loader .saito-loader::after {
+  width: 3rem;
+  height: 3rem;
+}
+
+.compose-posting-message {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  color: var(--rs-text-muted);
+}
+
+@keyframes compose-submit-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .saito-overlay .compose-overlay {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .compose-overlay-body {
+    padding: var(--rs-space-sm);
+  }
+
+  .compose-overlay-footer {
+    padding: var(--rs-space-sm);
+  }
+
+  .compose-submit {
+    min-width: 6.8rem;
+  }
+}

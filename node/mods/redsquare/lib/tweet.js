@@ -18,6 +18,7 @@ class Tweet {
     this.updated_at = this.created_at;
     this.text = '';
     this.images = [];
+    this.embedded = null;
     this.link = '';
     this.likes = 0;
     this.replies = 0;
@@ -25,6 +26,7 @@ class Tweet {
     this.curated = 0;
     this.flagged = 0;
     this.is_reply = false;
+    this.critical_child = null;
     this.time = '';
 
     if (this.tx) {
@@ -53,6 +55,8 @@ class Tweet {
 
     const images = data.images;
     this.images = Array.isArray(images) ? images.slice() : images ? [images] : [];
+
+    this.embedded = this.normalizeEmbedded(data.embedded);
 
     this.created_at = Number(this.tx.timestamp) || Date.now();
     this.updated_at = Number(optional.edit_ts) || this.created_at;
@@ -123,17 +127,94 @@ class Tweet {
     return `${diffDays}d`;
   }
 
-  render(container = '') {
+  normalizeEmbedded(raw) {
+    if (!raw || typeof raw !== 'object') {
+      return null;
+    }
+
+    if (raw instanceof Tweet) {
+      return raw;
+    }
+
+    const created_at = Number(raw.created_at) || Date.now();
+    const publicKey = raw.publicKey != null ? String(raw.publicKey) : '';
+    const embedded = {
+      signature: raw.signature != null ? String(raw.signature) : '',
+      publicKey,
+      username: raw.username != null ? String(raw.username) : 'anon',
+      handle: raw.handle != null ? String(raw.handle) : 'anon',
+      avatar: raw.avatar != null ? String(raw.avatar) : '/saito/img/dreamscape.png',
+      created_at,
+      text: raw.text != null ? String(raw.text) : '',
+      images: Array.isArray(raw.images) ? raw.images.slice(0, 4) : [],
+      embedded: null,
+      likes: Number(raw.likes) || 0,
+      replies: Number(raw.replies) || 0,
+      retweets: Number(raw.retweets) || 0,
+      time: raw.time != null ? String(raw.time) : this.formatRelativeTime(created_at)
+    };
+
+    if (!raw.username && publicKey) {
+      this.resolveAuthorFor(embedded, publicKey);
+    }
+
+    return embedded;
+  }
+
+  resolveAuthorFor(target, publicKey) {
+    const authors = this.mod.mockAuthors || {};
+    const known = authors[publicKey];
+
+    if (known) {
+      target.username = known.name;
+      target.handle = known.handle;
+      target.avatar = known.avatar;
+      return;
+    }
+
+    const shortKey = publicKey ? publicKey.slice(0, 8) : 'anon';
+
+    target.username = shortKey;
+    target.handle = shortKey;
+    target.avatar = '/saito/img/dreamscape.png';
+  }
+
+  renderHTML(className = 'tweet') {
+    return TweetTemplate(this, className);
+  }
+
+  buildClassName(options = {}) {
+    const classes = ['tweet'];
+
+    if (options.focused) {
+      classes.push('focused');
+    } else if (this.is_reply && !options.chainPrev) {
+      classes.push('is-reply');
+    }
+
+    if (options.chainPrev) {
+      classes.push('chain-prev');
+    }
+
+    if (options.chainNext) {
+      classes.push('chain-next');
+    }
+
+    if (options.chainContinue) {
+      classes.push('chain-continue');
+    }
+
+    return classes.join(' ');
+  }
+
+  render(container = '', options = {}) {
     if (container) {
       this.container = container;
     }
 
-    const className = this.is_reply ? 'tweet is-reply' : 'tweet';
+    const className = this.buildClassName(options);
     this.app.browser.addElementToSelector(TweetTemplate(this, className), this.container);
-    this.attachEvents();
   }
-
-  attachEvents() {}
 }
 
 module.exports = Tweet;

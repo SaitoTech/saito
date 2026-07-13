@@ -48,6 +48,7 @@ class SaitoHeader extends UIModTemplate {
     this.web3_start_polling_timeout = null;
     this.can_update_header_msg = true;
     this.show_msg = true;
+    this.back_button_callback = null;
 
     this.loader = new SaitoLoader(this.app, this.mod, '#qrcode');
     this.saito_backup = new SaitoBackup(app, mod);
@@ -210,26 +211,7 @@ class SaitoHeader extends UIModTemplate {
     // In the future, we may want to parameterize what we replace the logo with
     //
     app.connection.on('saito-header-replace-logo', (callback = null) => {
-      let logo = document.querySelector('.saito-header-logo-wrapper');
-      if (logo) {
-        logo.classList.add('saito-header-logo-back');
-      }
-
-      if (!document.querySelector('.saito-back-button')) {
-        this.app.browser.addElementToSelector(
-          `<i class="saito-back-button fa-solid fa-arrow-left"></i>`,
-          '.saito-header-logo-wrapper'
-        );
-      }
-
-      logo = document.querySelector('.saito-header-logo-wrapper');
-      if (logo) {
-        logo.onclick = (e) => {
-          if (callback) {
-            callback(e);
-          }
-        };
-      }
+      this.enableBackButton(callback);
     });
 
     app.connection.on('saito-header-change-location', (new_path) => {
@@ -241,7 +223,7 @@ class SaitoHeader extends UIModTemplate {
     });
 
     app.connection.on('saito-header-reset-logo', () => {
-      this.resetHeaderLogo();
+      this.disableBackButton();
     });
 
     app.connection.on('saito-header-notification', (source_mod, unread) => {
@@ -254,7 +236,7 @@ class SaitoHeader extends UIModTemplate {
     });
 
     this.app.connection.on('saito-header-logo-change-request', (obj) => {
-      this.resetHeaderLogo();
+      this.disableBackButton();
     });
 
     const pendingListenerCount =
@@ -276,6 +258,38 @@ class SaitoHeader extends UIModTemplate {
         navigateWindow(this.header_location, 300);
       };
     }
+  }
+
+  enableBackButton(callback = null) {
+    this.back_button_callback = typeof callback === 'function' ? callback : null;
+
+    let logo = document.querySelector('.saito-header-logo-wrapper');
+
+    if (logo) {
+      logo.classList.add('saito-header-logo-back');
+    }
+
+    if (!document.querySelector('.saito-back-button')) {
+      this.app.browser.addElementToSelector(
+        `<i class="saito-back-button fa-solid fa-arrow-left"></i>`,
+        '.saito-header-logo-wrapper'
+      );
+    }
+
+    logo = document.querySelector('.saito-header-logo-wrapper');
+
+    if (logo) {
+      logo.onclick = (e) => {
+        if (this.back_button_callback) {
+          this.back_button_callback(e);
+        }
+      };
+    }
+  }
+
+  disableBackButton() {
+    this.back_button_callback = null;
+    this.resetHeaderLogo();
   }
 
   async render() {

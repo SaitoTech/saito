@@ -1,7 +1,8 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: var(--rs-space-sm);
+  gap: var(--rs-space-lg);
+  width: 100%;
 }
 
 .sidebar-search {
@@ -66,7 +67,7 @@
 
 .sidebar-panel {
   background: var(--rs-layer-recessed);
-  border: var(--border-thickness-thin, 1px) solid transparent;
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
   border-radius: var(--rs-radius);
   overflow: hidden;
 }
@@ -79,7 +80,8 @@
 }
 
 .sidebar-trend-list,
-.sidebar-suggestion-list {
+.sidebar-suggestion-list,
+.sidebar-leaderboard-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -160,6 +162,58 @@
 .sidebar-suggestion-follow {
   white-space: nowrap;
   border-radius: var(--rs-radius-pill);
+}
+
+.sidebar-leaderboard-item {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--rs-space-sm);
+  padding: var(--rs-space-sm) var(--rs-sidebar-pad);
+  transition: background var(--rs-transition);
+}
+
+.sidebar-leaderboard-item:hover {
+  background: var(--rs-surface-hover);
+}
+
+.sidebar-leaderboard-rank {
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-tiny);
+  color: var(--saito-font-color-secondary);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.sidebar-leaderboard-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.sidebar-leaderboard-name {
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-tiny);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-leaderboard-handle {
+  font-size: var(--font-size-tiny);
+  color: var(--saito-font-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-leaderboard-score {
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-tiny);
+  color: var(--saito-font-color-heavy);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .sidebar-more {

@@ -5,6 +5,23 @@ module.exports = (menu) => {
     badge = `<span class="saito-notification-dot menu-badge" aria-hidden="true">${menu.notification_count}</span>`;
   }
 
+  let chats = (menu.chats || [])
+    .map(
+      (chat) => `
+        <li class="menu-chat-item${chat.online ? ' online' : ''}">
+          <div class="menu-chat-identicon saito-identicon-box">
+            <img class="menu-chat-avatar saito-identicon" src="${chat.avatar}" alt="${chat.name}" />
+            <span class="online-status-indicator" aria-hidden="true"></span>
+          </div>
+          <div class="menu-chat-info">
+            <span class="menu-chat-name saito-address">${chat.name}</span>
+            <span class="menu-chat-preview saito-userline">${chat.preview}</span>
+          </div>
+        </li>
+      `
+    )
+    .join('');
+
   return `
     <nav class="menu">
       <ul class="menu-list saito-menu-select-subtle">
@@ -23,19 +40,25 @@ module.exports = (menu) => {
         </li>
         <li class="menu-item">
           <span class="menu-icon">
-            <i class="fa-solid fa-user"></i>
-          </span>
-          <span class="menu-label">Profile</span>
-        </li>
-        <li class="menu-item">
-          <span class="menu-icon">
             <i class="fa-solid fa-gear"></i>
           </span>
           <span class="menu-label">Settings</span>
         </li>
       </ul>
 
-      <button class="menu-post saito-button-primary small" type="button">Post</button>
+      <section class="menu-chat">
+        <header class="menu-chat-header sidebar-header">
+          <h3 class="menu-chat-title sidebar-title">Chats</h3>
+          <button class="menu-chat-options" type="button" aria-label="Chat options">
+            <i class="fa-solid fa-ellipsis"></i>
+          </button>
+        </header>
+        <div class="menu-chat-panel saito-sidebar-element">
+          <ul class="menu-chat-list">
+            ${chats}
+          </ul>
+        </div>
+      </section>
     </nav>
   `;
 };

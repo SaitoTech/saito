@@ -1,11 +1,199 @@
 const NotificationTemplate = require('./notification.template');
+const TweetTemplate = require('./tweet.template');
 
 class Notification {
-  constructor(app, mod, container = '') {
+  constructor(app, mod, data = {}) {
     this.app = app;
     this.mod = mod;
-    this.container = container;
-    this.notifications = [];
+    this.container = '';
+    this.tx = null;
+
+    this.signature = '';
+    this.tweet_signature = '';
+    this.type = '';
+    this.actor_publicKey = '';
+    this.actor_name = '';
+    this.actor_avatar = '/saito/img/dreamscape.png';
+    this.text = '';
+    this.count = 1;
+    this.created_at = Date.now();
+    this.time = '';
+    this.unread = true;
+
+    if (data && data.tx) {
+      this.tx = data.tx;
+      this.parseFromTransaction();
+      return;
+    }
+
+    this.parseFromData(data);
+  }
+
+  static fromTransaction(app, mod, tx) {
+    return new Notification(app, mod, { tx });
+  }
+
+  parseFromTransaction() {
+    if (!this.tx) {
+      return;
+    }
+
+    const txmsg = this.returnTxMessage();
+    const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+
+    this.signature = this.tx.signature != null ? String(this.tx.signature) : '';
+    this.created_at = Number(this.tx.timestamp) || Date.now();
+    this.actor_publicKey = this.extractPublicKey();
+    this.resolveActor(this.actor_publicKey);
+    this.time = this.formatRelativeTime(this.created_at);
+
+    if (txmsg.request === 'like tweet') {
+      this.type = 'like';
+      this.tweet_signature = data.signature != null ? String(data.signature) : '';
+    } else if (txmsg.request === 'retweet') {
+      this.type = 'retweet';
+      this.tweet_signature = data.signature != null ? String(data.signature) : '';
+    } else if (txmsg.request === 'create tweet') {
+      const mentions = data.mentions;
+      const hasMention = Array.isArray(mentions)
+        ? mentions.length > 0
+        : Boolean(mentions);
+
+      if (hasMention) {
+        this.type = 'mention';
+        this.tweet_signature = this.signature;
+      } else if (data.parent_id) {
+        this.type = 'reply';
+        this.tweet_signature = this.signature;
+      } else {
+        this.type = 'tweet';
+        this.tweet_signature = this.signature;
+      }
+    } else {
+      this.type = data.type != null ? String(data.type) : '';
+      this.tweet_signature =
+        data.tweet_signature != null
+          ? String(data.tweet_signature)
+          : data.signature != null
+            ? String(data.signature)
+            : '';
+    }
+
+    this.text = this.buildActionText();
+  }
+
+  parseFromData(data) {
+    if (!data || typeof data !== 'object') {
+      return;
+    }
+
+    this.signature = data.signature != null ? String(data.signature) : '';
+    this.tweet_signature = data.tweet_signature != null ? String(data.tweet_signature) : '';
+    this.type = data.type != null ? String(data.type) : '';
+    this.actor_publicKey = data.actor_publicKey != null ? String(data.actor_publicKey) : '';
+    this.actor_name = data.actor_name != null ? String(data.actor_name) : '';
+    this.actor_avatar =
+      data.actor_avatar != null ? String(data.actor_avatar) : '/saito/img/dreamscape.png';
+    this.text = data.text != null ? String(data.text) : '';
+    this.count = Number(data.count) > 0 ? Number(data.count) : 1;
+    this.created_at = Number(data.created_at) || Date.now();
+    this.time = data.time != null ? String(data.time) : this.formatRelativeTime(this.created_at);
+    this.unread = data.unread !== false;
+
+    if (!this.text) {
+      this.text = this.buildActionText();
+    }
+
+    if (!this.actor_name && this.actor_publicKey) {
+      this.resolveActor(this.actor_publicKey);
+    }
+  }
+
+  returnTxMessage() {
+    if (this.tx && typeof this.tx.returnMessage === 'function') {
+      return this.tx.returnMessage();
+    }
+
+    return this.tx && this.tx.msg && typeof this.tx.msg === 'object' ? this.tx.msg : {};
+  }
+
+  extractPublicKey() {
+    if (this.tx && this.tx.from && this.tx.from[0] && this.tx.from[0].publicKey) {
+      return String(this.tx.from[0].publicKey);
+    }
+
+    return '';
+  }
+
+  buildActionText() {
+    switch (this.type) {
+      case 'like':
+        if (this.count > 1) {
+          return `liked your post (${this.count})`;
+        }
+        return 'liked your post';
+      case 'reply':
+        return 'replied to your post';
+      case 'retweet':
+        return 'reposted your post';
+      case 'mention':
+        return 'mentioned you';
+      default:
+        return 'sent you a notification';
+    }
+  }
+
+  refreshActionText() {
+    this.text = this.buildActionText();
+  }
+
+  resolveActor(publicKey) {
+    const authors = this.mod.mockAuthors || {};
+    const known = authors[publicKey];
+
+    if (known) {
+      this.actor_name = known.name;
+      this.actor_avatar = known.avatar;
+      return;
+    }
+
+    this.actor_name = publicKey ? publicKey.slice(0, 8) : 'anon';
+    this.actor_avatar = '/saito/img/dreamscape.png';
+  }
+
+  formatRelativeTime(timestamp) {
+    const diffMs = Math.max(0, Date.now() - Number(timestamp));
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 60) {
+      return `${Math.max(1, diffMinutes)}m`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffHours < 24) {
+      return `${diffHours}h`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+
+    return `${diffDays}d`;
+  }
+
+  getReferencedTweet() {
+    return this.mod.getTweet(this.tweet_signature);
+  }
+
+  renderHTML() {
+    const tweet = this.getReferencedTweet();
+
+    if (!tweet) {
+      return '';
+    }
+
+    const tweetHtml = TweetTemplate(tweet, 'tweet', { hideControls: true });
+
+    return NotificationTemplate(this, tweetHtml);
   }
 
   render(container = '') {
@@ -13,16 +201,14 @@ class Notification {
       this.container = container;
     }
 
-    this.notifications = this.mod.notifications;
+    const html = this.renderHTML();
 
-    this.app.browser.replaceElementContentBySelector(
-      NotificationTemplate(this),
-      this.container
-    );
-    this.attachEvents();
+    if (!html) {
+      return;
+    }
+
+    this.app.browser.addElementToSelector(html, this.container);
   }
-
-  attachEvents() {}
 }
 
 module.exports = Notification;

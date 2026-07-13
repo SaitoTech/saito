@@ -1,11 +1,10 @@
-module.exports = (manager) => {
+module.exports = () => {
   return `
     <section class="manager">
-      <header class="manager-header">
-        <h2>${manager.title}</h2>
-      </header>
       <div class="manager-body">
-        <div class="manager-list"></div>
+        <div class="manager-list manager-timeline"></div>
+        <div class="manager-list manager-thread manager-panel-hidden"></div>
+        <div class="manager-list manager-notifications manager-panel-hidden"></div>
       </div>
     </section>
   `;

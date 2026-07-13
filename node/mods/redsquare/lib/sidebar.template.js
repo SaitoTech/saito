@@ -26,6 +26,21 @@ module.exports = (sidebar) => {
     )
     .join('');
 
+  let leaderboard = (sidebar.leaderboard || [])
+    .map(
+      (entry) => `
+        <li class="sidebar-leaderboard-item">
+          <span class="sidebar-leaderboard-rank">${entry.rank}</span>
+          <div class="sidebar-leaderboard-info">
+            <span class="sidebar-leaderboard-name">${entry.name}</span>
+            <span class="sidebar-leaderboard-handle">@${entry.handle}</span>
+          </div>
+          <span class="sidebar-leaderboard-score">${entry.score}</span>
+        </li>
+      `
+    )
+    .join('');
+
   return `
     <div class="sidebar">
       <div class="sidebar-search">
@@ -43,6 +58,14 @@ module.exports = (sidebar) => {
           ${trends}
         </ul>
         <a class="sidebar-more" href="#">Show more</a>
+      </section>
+
+      <section class="sidebar-panel sidebar-panel-leaderboard">
+        <h3 class="sidebar-panel-title">Leaderboard</h3>
+        <ul class="sidebar-leaderboard-list">
+          ${leaderboard}
+        </ul>
+        <a class="sidebar-more" href="#">View full leaderboard</a>
       </section>
 
       <section class="sidebar-panel sidebar-panel-suggestions">
