@@ -6,27 +6,27 @@ const DEFAULT_CHAR_LIMIT = 500;
 const POSTING_ANIMATION_MS = 500;
 
 class ComposeOverlay {
-  constructor(app, mod) {
+  constructor(app, mod, reply_to = null) {
     this.app = app;
     this.mod = mod;
-    this.overlay = new SaitoOverlay(app, mod, false, true, false);
+    this.overlay = new SaitoOverlay(app, mod, true, true, false);
 
     this.overlay_id = 'redsquare-compose-overlay';
     this.placeholder = 'What is happening?';
-    this.helper_text = 'Share something with the network.';
+    this.helper_text = 'Create a text post or drag-and-drop images…';
     this.avatar = '/saito/img/dreamscape.png';
     this.display_name = 'You';
-    this.handle = 'you';
     this.char_limit = DEFAULT_CHAR_LIMIT;
 
-    this.parent_tweet = null;
+    this.default_reply_to = reply_to;
+    this.reply_to = reply_to;
     this.images = [];
     this.posting = false;
     this.drag_drop_bound = false;
   }
 
   open(options = {}) {
-    this.parent_tweet = options.parentTweet || null;
+    this.reply_to = options.reply_to || options.parentTweet || this.default_reply_to;
     this.images = [];
     this.posting = false;
     this.drag_drop_bound = false;
@@ -35,14 +35,13 @@ class ComposeOverlay {
 
     this.avatar = profile.avatar || '/saito/img/dreamscape.png';
     this.display_name = profile.name || 'You';
-    this.handle = profile.handle || 'you';
 
-    if (this.parent_tweet) {
+    if (this.reply_to) {
       this.placeholder = 'Post your reply…';
-      this.helper_text = 'Add your reply to the conversation.';
+      this.helper_text = 'Add your reply or drag-and-drop images…';
     } else {
       this.placeholder = 'What is happening?';
-      this.helper_text = 'Share something with the network.';
+      this.helper_text = 'Create a text post or drag-and-drop images…';
     }
 
     this.overlay.show(ComposeTemplate(this));
@@ -60,7 +59,7 @@ class ComposeOverlay {
   close() {
     this.overlay.close();
     this.images = [];
-    this.parent_tweet = null;
+    this.reply_to = this.default_reply_to;
     this.posting = false;
   }
 
@@ -77,7 +76,7 @@ class ComposeOverlay {
 
     const input = root.querySelector('.compose-input');
     const submitBtn = root.querySelector('.compose-submit');
-    const closeBtn = root.querySelector('.compose-close');
+    const emojiBtn = root.querySelector('.compose-emoji-btn');
     const imageBtn = root.querySelector('.compose-image-btn');
     const gifBtn = root.querySelector('.compose-gif-btn');
     const fileInput = root.querySelector('.compose-file-input');
@@ -104,12 +103,12 @@ class ComposeOverlay {
       });
     }
 
-    if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
+    if (emojiBtn) {
+      emojiBtn.addEventListener('click', (e) => {
         e.preventDefault();
 
         if (!this.posting) {
-          this.close();
+          siteMessage('Emoji picker is coming soon.', 1500);
         }
       });
     }
@@ -278,7 +277,7 @@ class ComposeOverlay {
       </figure>
     `;
 
-    this.app.browser.addElementToSelector(html, `.saito-overlay #${this.overlay_id} .compose-image-preview`);
+    this.app.browser.addElementToSelector(html, `.saito-overlay #redsquare-compose-surface .compose-image-preview`);
     this.images.push(src);
 
     const item = container.querySelector(`.compose-image-item[data-index="${index}"]`);
@@ -320,9 +319,9 @@ class ComposeOverlay {
       data.images = this.images.slice();
     }
 
-    if (this.parent_tweet) {
-      data.parent_id = this.parent_tweet.signature || '';
-      data.thread_id = this.parent_tweet.thread_id || this.parent_tweet.signature || '';
+    if (this.reply_to) {
+      data.parent_id = this.reply_to.signature || '';
+      data.thread_id = this.reply_to.thread_id || this.reply_to.signature || '';
     }
 
     return data;
@@ -331,12 +330,12 @@ class ComposeOverlay {
   collectRecipientKeys() {
     const keys = [];
 
-    if (this.parent_tweet?.publicKey && !keys.includes(this.parent_tweet.publicKey)) {
-      keys.push(this.parent_tweet.publicKey);
+    if (this.reply_to?.publicKey && !keys.includes(this.reply_to.publicKey)) {
+      keys.push(this.reply_to.publicKey);
     }
 
-    if (this.parent_tweet?.tx?.to) {
-      for (const slip of this.parent_tweet.tx.to) {
+    if (this.reply_to?.tx?.to) {
+      for (const slip of this.reply_to.tx.to) {
         const publicKey = slip?.publicKey;
 
         if (publicKey && !keys.includes(publicKey)) {

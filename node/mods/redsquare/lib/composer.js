@@ -4,15 +4,15 @@ class Composer {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.compose = mod.compose || new ComposeOverlay(app, mod);
+    this.compose_overlay = mod.compose_overlay || new ComposeOverlay(app, mod);
   }
 
   open(options = {}) {
-    this.compose.open(options);
+    this.compose_overlay.open(options);
   }
 
   close() {
-    this.compose.close();
+    this.compose_overlay.close();
   }
 }
 

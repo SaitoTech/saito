@@ -1,6 +1,14 @@
 const NotificationTemplate = require('./notification.template');
 const TweetTemplate = require('./tweet.template');
 
+function returnMessage(tx) {
+  if (tx && typeof tx.returnMessage === 'function') {
+    return tx.returnMessage();
+  }
+
+  return tx && tx.msg && typeof tx.msg === 'object' ? tx.msg : {};
+}
+
 class Notification {
   constructor(app, mod, data = {}) {
     this.app = app;
@@ -38,14 +46,14 @@ class Notification {
       return;
     }
 
-    const txmsg = this.returnTxMessage();
+    const txmsg = returnMessage(this.tx);
     const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
 
     this.signature = this.tx.signature != null ? String(this.tx.signature) : '';
     this.created_at = Number(this.tx.timestamp) || Date.now();
     this.actor_publicKey = this.extractPublicKey();
-    this.resolveActor(this.actor_publicKey);
-    this.time = this.formatRelativeTime(this.created_at);
+    this.applyActor(this.actor_publicKey);
+    this.time = this.app.browser.formatRelativeTime(this.created_at);
 
     if (txmsg.request === 'like tweet') {
       this.type = 'like';
@@ -97,7 +105,8 @@ class Notification {
     this.text = data.text != null ? String(data.text) : '';
     this.count = Number(data.count) > 0 ? Number(data.count) : 1;
     this.created_at = Number(data.created_at) || Date.now();
-    this.time = data.time != null ? String(data.time) : this.formatRelativeTime(this.created_at);
+    this.time =
+      data.time != null ? String(data.time) : this.app.browser.formatRelativeTime(this.created_at);
     this.unread = data.unread !== false;
 
     if (!this.text) {
@@ -105,16 +114,8 @@ class Notification {
     }
 
     if (!this.actor_name && this.actor_publicKey) {
-      this.resolveActor(this.actor_publicKey);
+      this.applyActor(this.actor_publicKey);
     }
-  }
-
-  returnTxMessage() {
-    if (this.tx && typeof this.tx.returnMessage === 'function') {
-      return this.tx.returnMessage();
-    }
-
-    return this.tx && this.tx.msg && typeof this.tx.msg === 'object' ? this.tx.msg : {};
   }
 
   extractPublicKey() {
@@ -123,6 +124,17 @@ class Notification {
     }
 
     return '';
+  }
+
+  applyActor(publicKey) {
+    if (!publicKey) {
+      this.actor_name = 'anon';
+      this.actor_avatar = '/saito/img/dreamscape.png';
+      return;
+    }
+
+    this.actor_name = this.app.keychain.returnUsername(publicKey) || publicKey.slice(0, 8);
+    this.actor_avatar = this.app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
   }
 
   buildActionText() {
@@ -145,39 +157,6 @@ class Notification {
 
   refreshActionText() {
     this.text = this.buildActionText();
-  }
-
-  resolveActor(publicKey) {
-    const authors = this.mod.mockAuthors || {};
-    const known = authors[publicKey];
-
-    if (known) {
-      this.actor_name = known.name;
-      this.actor_avatar = known.avatar;
-      return;
-    }
-
-    this.actor_name = publicKey ? publicKey.slice(0, 8) : 'anon';
-    this.actor_avatar = '/saito/img/dreamscape.png';
-  }
-
-  formatRelativeTime(timestamp) {
-    const diffMs = Math.max(0, Date.now() - Number(timestamp));
-    const diffMinutes = Math.floor(diffMs / 60000);
-
-    if (diffMinutes < 60) {
-      return `${Math.max(1, diffMinutes)}m`;
-    }
-
-    const diffHours = Math.floor(diffMinutes / 60);
-
-    if (diffHours < 24) {
-      return `${diffHours}h`;
-    }
-
-    const diffDays = Math.floor(diffHours / 24);
-
-    return `${diffDays}d`;
   }
 
   getReferencedTweet() {

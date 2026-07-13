@@ -84,8 +84,7 @@ body.redsquare-body {
   --rs-tweet-chain-width: var(--border-thickness-medium, 2px);
   --rs-tweet-chain-color: var(--saito-border-color);
 
-  /* Focused tweet variant — single-tweet / detail presentation */
-  --rs-tweet-avatar-focused: 5rem;
+  /* Focused tweet variant — typography emphasis in thread view */
   --rs-tweet-focused-body: 2.3rem;
   --rs-tweet-focused-leading: 3rem;
   --rs-tweet-focused-pad-y: var(--saito-space-lg);
@@ -171,7 +170,7 @@ body.redsquare-body #saito-container.saito-container {
   padding: 0 var(--rs-page-inset);
   column-gap: var(--rs-col-gap);
   grid-template-columns: var(--rs-col-left) minmax(0, var(--rs-col-center)) var(--rs-col-right);
-  align-items: start;
+  align-items: stretch;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -206,13 +205,14 @@ body.redsquare-body #saito-container.saito-container {
 
 /*
  * Compact controls — carve-out from global button defaults (saito-buttons.css).
- * Buttons should carry .saito-button-primary / .saito-button-secondary in markup.
+ * Contextual menus and icon triggers use div[role="button"] + saito-menu-select-subtle.
  */
 body.redsquare-body .menu-post,
 body.redsquare-body .composer-submit,
 body.redsquare-body .profile-view,
 body.redsquare-body .sidebar-suggestion-follow,
-body.redsquare-body .composer-tool {
+body.redsquare-body .compose-tool,
+body.redsquare-body .settings-row-inline .saito-button-primary {
   min-width: unset;
   margin: 0;
   text-transform: none;
