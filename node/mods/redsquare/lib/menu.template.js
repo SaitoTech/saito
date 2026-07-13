@@ -49,9 +49,9 @@ module.exports = (menu) => {
       <section class="menu-chat">
         <header class="menu-chat-header sidebar-header">
           <h3 class="menu-chat-title sidebar-title">Chats</h3>
-          <button class="menu-chat-options" type="button" aria-label="Chat options">
+          <div class="menu-chat-options" role="button" tabindex="0" aria-label="Chat options">
             <i class="fa-solid fa-ellipsis"></i>
-          </button>
+          </div>
         </header>
         <div class="menu-chat-panel saito-sidebar-element">
           <ul class="menu-chat-list">

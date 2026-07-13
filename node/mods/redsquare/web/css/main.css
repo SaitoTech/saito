@@ -20,7 +20,6 @@
 .sidebar-left {
   position: sticky;
   top: 0;
-  align-self: start;
   padding: var(--rs-col-pad-top) 0 var(--rs-space-md);
   display: flex;
   flex-direction: column;
@@ -32,7 +31,6 @@
 .sidebar-right {
   position: sticky;
   top: 0;
-  align-self: start;
   display: flex;
   flex-direction: column;
   gap: var(--rs-space-lg);

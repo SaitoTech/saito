@@ -182,7 +182,6 @@
   min-width: 3.2rem;
   min-height: 3.2rem;
   padding: 0;
-  border: none;
   border-radius: var(--saito-radius-md);
   background: transparent;
   color: var(--saito-font-color-secondary);
@@ -192,9 +191,11 @@
     color var(--rs-transition);
 }
 
-.menu-chat-options:hover {
-  background: var(--rs-surface-hover);
+.menu-chat-options:hover,
+.menu-chat-options:focus-visible {
+  background: var(--saito-surface-hover);
   color: var(--saito-font-color-heavy);
+  outline: none;
 }
 
 .menu-chat-options i {

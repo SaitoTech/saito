@@ -1,5 +1,29 @@
 const TweetTemplate = require('./tweet.template');
 
+function returnMessage(tx) {
+  if (tx && typeof tx.returnMessage === 'function') {
+    return tx.returnMessage();
+  }
+
+  return tx && tx.msg && typeof tx.msg === 'object' ? tx.msg : {};
+}
+
+function authorFromPublicKey(app, publicKey) {
+  if (!publicKey) {
+    return {
+      username: 'anon',
+      handle: 'anon',
+      avatar: '/saito/img/dreamscape.png'
+    };
+  }
+
+  const username = app.keychain.returnUsername(publicKey) || publicKey.slice(0, 8);
+  const handle = app.keychain.returnIdentifierByPublicKey(publicKey, true) || publicKey.slice(0, 8);
+  const avatar = app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
+
+  return { username, handle, avatar };
+}
+
 class Tweet {
   constructor(app, mod, tx) {
     this.app = app;
@@ -40,7 +64,7 @@ class Tweet {
   }
 
   parseFromTransaction() {
-    const txmsg = this.returnTxMessage();
+    const txmsg = returnMessage(this.tx);
     const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
     const optional = this.tx.optional && typeof this.tx.optional === 'object' ? this.tx.optional : {};
 
@@ -70,16 +94,12 @@ class Tweet {
     this.is_reply = this.parent_id !== '';
 
     this.publicKey = this.extractPublicKey();
-    this.resolveAuthor(this.publicKey);
-    this.time = this.formatRelativeTime(this.created_at);
-  }
+    const author = authorFromPublicKey(this.app, this.publicKey);
 
-  returnTxMessage() {
-    if (this.tx && typeof this.tx.returnMessage === 'function') {
-      return this.tx.returnMessage();
-    }
-
-    return this.tx && this.tx.msg && typeof this.tx.msg === 'object' ? this.tx.msg : {};
+    this.username = author.username;
+    this.handle = author.handle;
+    this.avatar = author.avatar;
+    this.time = this.app.browser.formatRelativeTime(this.created_at);
   }
 
   extractPublicKey() {
@@ -88,43 +108,6 @@ class Tweet {
     }
 
     return '';
-  }
-
-  resolveAuthor(publicKey) {
-    const authors = this.mod.mockAuthors || {};
-    const known = authors[publicKey];
-
-    if (known) {
-      this.username = known.name;
-      this.handle = known.handle;
-      this.avatar = known.avatar;
-      return;
-    }
-
-    const shortKey = publicKey ? publicKey.slice(0, 8) : 'anon';
-
-    this.username = shortKey;
-    this.handle = shortKey;
-    this.avatar = '/saito/img/dreamscape.png';
-  }
-
-  formatRelativeTime(timestamp) {
-    const diffMs = Math.max(0, Date.now() - Number(timestamp));
-    const diffMinutes = Math.floor(diffMs / 60000);
-
-    if (diffMinutes < 60) {
-      return `${Math.max(1, diffMinutes)}m`;
-    }
-
-    const diffHours = Math.floor(diffMinutes / 60);
-
-    if (diffHours < 24) {
-      return `${diffHours}h`;
-    }
-
-    const diffDays = Math.floor(diffHours / 24);
-
-    return `${diffDays}d`;
   }
 
   normalizeEmbedded(raw) {
@@ -138,12 +121,13 @@ class Tweet {
 
     const created_at = Number(raw.created_at) || Date.now();
     const publicKey = raw.publicKey != null ? String(raw.publicKey) : '';
+    const author = authorFromPublicKey(this.app, publicKey);
     const embedded = {
       signature: raw.signature != null ? String(raw.signature) : '',
       publicKey,
-      username: raw.username != null ? String(raw.username) : 'anon',
-      handle: raw.handle != null ? String(raw.handle) : 'anon',
-      avatar: raw.avatar != null ? String(raw.avatar) : '/saito/img/dreamscape.png',
+      username: raw.username != null ? String(raw.username) : author.username,
+      handle: raw.handle != null ? String(raw.handle) : author.handle,
+      avatar: raw.avatar != null ? String(raw.avatar) : author.avatar,
       created_at,
       text: raw.text != null ? String(raw.text) : '',
       images: Array.isArray(raw.images) ? raw.images.slice(0, 4) : [],
@@ -151,32 +135,11 @@ class Tweet {
       likes: Number(raw.likes) || 0,
       replies: Number(raw.replies) || 0,
       retweets: Number(raw.retweets) || 0,
-      time: raw.time != null ? String(raw.time) : this.formatRelativeTime(created_at)
+      time:
+        raw.time != null ? String(raw.time) : this.app.browser.formatRelativeTime(created_at)
     };
 
-    if (!raw.username && publicKey) {
-      this.resolveAuthorFor(embedded, publicKey);
-    }
-
     return embedded;
-  }
-
-  resolveAuthorFor(target, publicKey) {
-    const authors = this.mod.mockAuthors || {};
-    const known = authors[publicKey];
-
-    if (known) {
-      target.username = known.name;
-      target.handle = known.handle;
-      target.avatar = known.avatar;
-      return;
-    }
-
-    const shortKey = publicKey ? publicKey.slice(0, 8) : 'anon';
-
-    target.username = shortKey;
-    target.handle = shortKey;
-    target.avatar = '/saito/img/dreamscape.png';
   }
 
   renderHTML(className = 'tweet') {
@@ -188,8 +151,6 @@ class Tweet {
 
     if (options.focused) {
       classes.push('focused');
-    } else if (this.is_reply && !options.chainPrev) {
-      classes.push('is-reply');
     }
 
     if (options.chainPrev) {
@@ -205,6 +166,27 @@ class Tweet {
     }
 
     return classes.join(' ');
+  }
+
+  incrementStat(field) {
+    const optionalKey =
+      field === 'likes' ? 'num_likes' : field === 'retweets' ? 'num_retweets' : 'num_replies';
+
+    if (!this.tx) {
+      return this;
+    }
+
+    if (!this.tx.optional || typeof this.tx.optional !== 'object') {
+      this.tx.optional = {};
+    }
+
+    const current = Number(this[field]) || Number(this.tx.optional[optionalKey]) || 0;
+    const next = current + 1;
+
+    this[field] = next;
+    this.tx.optional[optionalKey] = next;
+
+    return this;
   }
 
   render(container = '', options = {}) {

@@ -37,6 +37,34 @@
   display: none;
 }
 
+.manager-new-posts-banner {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.9rem var(--rs-feed-x);
+  border: none;
+  border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  border-radius: 0;
+  background: var(--saito-primary, var(--saito-primary-color, #4a90d9));
+  color: var(--saito-font-color-inverse, #fff);
+  font-family: var(--saito-font-heavy, var(--saito-font));
+  font-size: var(--rs-body-sm, 1.4rem);
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.manager-new-posts-banner-hidden {
+  display: none;
+}
+
+.manager-new-posts-banner:hover {
+  filter: brightness(1.05);
+}
+
 article.tweet.tweet-enter {
   animation: manager-tweet-enter 0.45s ease forwards;
 }

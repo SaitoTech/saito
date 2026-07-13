@@ -1127,6 +1127,25 @@ class Browser {
     return `${Math.floor(diff / 86400)} days ago`;
   }
 
+  formatRelativeTime(timestamp = 0) {
+    const diffMs = Math.max(0, Date.now() - Number(timestamp));
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 60) {
+      return `${Math.max(1, diffMinutes)}m`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffHours < 24) {
+      return `${diffHours}h`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+
+    return `${diffDays}d`;
+  }
+
   saneTimeFromTimestamp(timestamp, with_seconds = true) {
     var date = new Date(timestamp);
     var hours = date.getHours();

@@ -1,9 +1,13 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const Transaction = require('../../lib/saito/transaction').default;
 const Main = require('./lib/main');
-const Tweet = require('./lib/tweet');
-const Notification = require('./lib/notification');
 const Manager = require('./lib/manager');
+const Tweets = require('./lib/tweets');
+const Notifications = require('./lib/notifications');
+const ComposeOverlay = require('./lib/ui/overlays/compose');
+const TweetMenu = require('./lib/ui/overlays/tweet-menu');
+const SettingsOverlay = require('./lib/ui/overlays/settings');
 const index = require('./index');
 
 class RedSquare extends ModTemplate {
@@ -31,6 +35,8 @@ class RedSquare extends ModTemplate {
     this.tweets_timeline = [];
     this.tweets_orphans = {};
     this.tweets_loading = {};
+    this.tweets_earliest_ts = new Date().getTime();
+    this.tweets_latest_ts = 0;
 
     //
     // notifications data structures
@@ -40,49 +46,28 @@ class RedSquare extends ModTemplate {
     this.notifications_aggregate = {};
     this.notifications_unread_count = 0;
     this.notifications_last_viewed_ts = 0;
+    this.notifications_earliest_tweet_ts = new Date().getTime();
+    this.notifications_earliest_like_ts = new Date().getTime();
+    this.notifications_latest_ts = 0;
 
-    this.manager = null;
-    this.timeline_ready = false;
     this.peers = [];
-    this.profile = null;
-    this.mockAuthors = {
-      'redsquare-mock-pk-saito': {
-        name: 'Saito Network',
-        handle: 'saito',
-        avatar: '/saito/img/dreamscape.png'
-      },
-      'redsquare-mock-pk-rp': {
-        name: 'Richard P.',
-        handle: 'rp',
-        avatar: '/saito/img/tiled-logo.svg'
-      },
-      'redsquare-mock-pk-alice': {
-        name: 'Alice Chen',
-        handle: 'alice',
-        avatar: '/saito/img/dreamscape.png'
-      },
-      'redsquare-mock-pk-bob': {
-        name: 'Bob Martinez',
-        handle: 'bob',
-        avatar: '/saito/img/tiled-logo.svg'
-      },
-      'redsquare-mock-pk-carol': {
-        name: 'Carol Okonkwo',
-        handle: 'carol',
-        avatar: '/saito/img/dreamscape.png'
-      },
-      'redsquare-mock-pk-dave': {
-        name: 'Dave Kim',
-        handle: 'dave',
-        avatar: '/saito/img/tiled-logo.svg'
-      }
-    };
 
+    //
+    // UI components
+    //
     this.header = null;
     this.main = null;
-    this.compose = null;
+    this.profile = null;
+    this.manager = null;
+    this.compose_overlay = new ComposeOverlay(app, this);
+    this.tweet_menu = new TweetMenu(app, this);
+    this.settings_overlay = new SettingsOverlay(app, this);
+
+    this.curated = true;
+    this.passive_poll_interval_ms = 5 * 60 * 1000;
 
     this.styles = ['/saito/saito.css', '/redsquare/style.css'];
+
   }
 
   returnServices() {
@@ -100,13 +85,22 @@ class RedSquare extends ModTemplate {
   async initialize(app) {
     await super.initialize(app);
 
+    if (this.publicKey) {
+      this.peers.unshift({
+        peer: 'localhost',
+        publicKey: this.publicKey,
+        tweets_earliest_ts: this.tweets_earliest_ts,
+        tweets_latest_ts: this.tweets_latest_ts,
+        tweets_limit: 10,
+        busy: {}
+      });
+    }
+
     if (app.BROWSER) {
       this.manager = new Manager(app, this);
-      const ComposeOverlay = require('./lib/ui/overlays/compose');
-      this.compose = new ComposeOverlay(app, this);
 
       this.app.connection.on('redsquare-new-post', () => {
-        this.compose?.open();
+        this.compose_overlay?.open();
       });
 
       this.app.connection.on('redsquare-post-tweet', async (data, keys = []) => {
@@ -124,7 +118,46 @@ class RedSquare extends ModTemplate {
         following: 412,
         posts: 847
       };
+
+      this.loadOptions();
+
+      for (const tx of this.returnMockTransactions()) {
+        this.addTweet(tx);
+      }
     }
+  }
+
+  loadOptions() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    const rso = this.app.options.redsquare;
+
+    if (!rso) {
+      return;
+    }
+
+    if (rso.curated === false || rso.curated === 0) {
+      this.curated = false;
+    }
+
+    if (document?.querySelector) {
+      document.querySelector('#saito-container')?.classList.toggle('active-curation', this.curated);
+    }
+  }
+
+  saveOptions() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    if (!this.app.options.redsquare) {
+      this.app.options.redsquare = {};
+    }
+
+    this.app.options.redsquare.curated = this.curated;
+    this.app.storage.saveOptions();
   }
 
   //
@@ -141,13 +174,37 @@ class RedSquare extends ModTemplate {
     }
 
     this.registerPeer(peer);
+    this.startPassivePolling();
+    this.manager?.onPeersUpdated?.();
+  }
 
-    if (!this.timeline_ready) {
-      await this.loadCachedTransactions();
-      this.timeline_ready = true;
+  startPassivePolling() {
+    if (!this.app.BROWSER || this._passive_poll_timer) {
+      return;
     }
 
-    await this.ensureRendered();
+    const interval = this.passive_poll_interval_ms || 5 * 60 * 1000;
+
+    this._passive_poll_timer = setInterval(() => {
+      if (!this.browser_active || this.peers.length === 0) {
+        return;
+      }
+
+      this.loadTransactions('tweets', 'newer', (result) => {
+        if (result?.added?.length) {
+          this.manager?.onNewerContentLoaded?.(result);
+        }
+      });
+    }, interval);
+  }
+
+  stopPassivePolling() {
+    if (!this._passive_poll_timer) {
+      return;
+    }
+
+    clearInterval(this._passive_poll_timer);
+    this._passive_poll_timer = null;
   }
 
   registerPeer(peer) {
@@ -157,47 +214,512 @@ class RedSquare extends ModTemplate {
       return;
     }
 
-    if (!this.peers.find((p) => p.publicKey === publicKey)) {
-      this.peers.push({ peer, publicKey });
+    const existing = this.peers.find((p) => p.publicKey === publicKey);
+
+    if (existing) {
+      existing.peer = peer;
+      return;
     }
+
+    this.peers.push({
+      peer,
+      publicKey,
+      tweets_earliest_ts: new Date().getTime(),
+      tweets_latest_ts: 0,
+      tweets_limit: 10,
+      busy: {}
+    });
   }
 
-  async loadCachedTransactions() {
-    const txs = await this.fetchCachedTransactions();
-
-    for (const tx of txs) {
-      this.addTweet(tx);
+  //
+  // Canonical remote loading entry point.
+  //
+  loadTransactions(type, direction, callback) {
+    if (typeof callback !== 'function') {
+      return;
     }
 
-    const notificationTxs = await this.fetchCachedNotifications();
-
-    for (const tx of notificationTxs) {
-      this.addNotification(tx);
+    if (type !== 'tweets' && type !== 'notifications') {
+      callback({
+        type,
+        direction,
+        added: [],
+        updated: [],
+        ignored: [],
+        exhausted: true
+      });
+      return;
     }
-  }
 
-  async fetchCachedTransactions() {
-    if (typeof window !== 'undefined' && window.tweets?.length) {
-      const Transaction = require('../../lib/saito/transaction').default;
-      const txs = [];
+    if (direction !== 'older' && direction !== 'newer') {
+      callback({
+        type,
+        direction,
+        added: [],
+        updated: [],
+        ignored: [],
+        exhausted: true
+      });
+      return;
+    }
 
-      for (const serialized of window.tweets) {
-        const tx = new Transaction();
-        tx.deserialize_from_web(this.app, serialized);
-        txs.push(tx);
+    const isOlder = direction === 'older';
+
+    if (type === 'tweets') {
+      const busyKey = `tweets:${direction}`;
+
+      if (!this._load_busy) {
+        this._load_busy = {};
       }
 
-      return txs;
+      if (this._load_busy[busyKey]) {
+        this._load_busy[busyKey].push(callback);
+        return;
+      }
+
+      this._load_busy[busyKey] = [callback];
+
+      const added = [];
+      const updated = [];
+      const ignored = [];
+      const peer_exhausted = [];
+      let peers_remaining = 0;
+
+      const finishTweets = () => {
+        const exhausted =
+          added.length === 0 && peer_exhausted.length > 0 && peer_exhausted.every(Boolean);
+        const result = {
+          type,
+          direction,
+          added: added.slice(),
+          updated: updated.slice(),
+          ignored: ignored.slice(),
+          exhausted
+        };
+        const callbacks = this._load_busy[busyKey] || [];
+
+        this._load_busy[busyKey] = null;
+
+        for (const cb of callbacks) {
+          cb(result);
+        }
+      };
+
+      const processTweetTxs = (peer_obj, txs, older) => {
+        for (let i = 0; i < txs.length; i++) {
+          const tx = txs[i];
+
+          if (!tx) {
+            continue;
+          }
+
+          const working =
+            typeof tx.toJson === 'function' ? new Transaction(undefined, tx.toJson()) : tx;
+
+          if (!working) {
+            continue;
+          }
+
+          if (typeof working.decryptMessage === 'function') {
+            working.decryptMessage(this.app);
+          }
+
+          const signature = working.signature != null ? String(working.signature) : '';
+
+          if (!signature) {
+            continue;
+          }
+
+          const created_at = Number(tx.timestamp) || Date.now();
+          const updated_at = Number(tx.optional?.updated_at) || created_at;
+          const hadTweet = this.hasTweet(signature);
+          const tweet = this.addTweet(working);
+
+          if (!tweet) {
+            if (!ignored.includes(signature)) {
+              ignored.push(signature);
+            }
+          } else if (!hadTweet) {
+            if (!added.includes(signature)) {
+              added.push(signature);
+            }
+          } else if (!updated.includes(signature)) {
+            updated.push(signature);
+          }
+
+          if (older && created_at < peer_obj.tweets_earliest_ts) {
+            peer_obj.tweets_earliest_ts = created_at;
+            this.tweets_earliest_ts = Math.min(this.tweets_earliest_ts, peer_obj.tweets_earliest_ts);
+          }
+
+          if (updated_at > peer_obj.tweets_latest_ts) {
+            peer_obj.tweets_latest_ts = updated_at;
+            this.tweets_latest_ts = Math.max(this.tweets_latest_ts, updated_at);
+          }
+        }
+      };
+
+      const onPeerComplete = (peer_obj, txs, older, peerIndex) => {
+        const empty = !txs || txs.length === 0;
+
+        if (empty && older) {
+          peer_obj.tweets_earliest_ts = 0;
+
+          if (peer_obj.publicKey === this.publicKey) {
+            this.tweets_earliest_ts = 0;
+          }
+        }
+
+        peer_exhausted[peerIndex] = empty;
+        processTweetTxs(peer_obj, txs || [], older);
+        peers_remaining--;
+
+        if (peers_remaining <= 0) {
+          finishTweets();
+        }
+      };
+
+      for (let i = 0; i < this.peers.length; i++) {
+        const peer_obj = this.peers[i];
+        const eligible =
+          (isOlder &&
+            peer_obj.tweets_earliest_ts >= this.tweets_earliest_ts &&
+            peer_obj.tweets_earliest_ts > 0) ||
+          (!isOlder &&
+            (peer_obj.publicKey !== this.publicKey || peer_obj.peer === 'localhost'));
+
+        if (!eligible) {
+          continue;
+        }
+
+        const peerIndex = peers_remaining;
+        peers_remaining++;
+        peer_exhausted[peerIndex] = false;
+
+        if (isOlder && peer_obj.publicKey !== this.publicKey) {
+          this.app.network.sendRequestAsTransaction(
+            'load tweets',
+            { created_earlier_than: peer_obj.tweets_earliest_ts },
+            (txs) => {
+              const deserialized = [];
+
+              for (let t = 0; t < (txs || []).length; t++) {
+                const tx = new Transaction();
+                tx.deserialize_from_web(this.app, txs[t]);
+                deserialized.push(tx);
+              }
+
+              onPeerComplete(peer_obj, deserialized, true, peerIndex);
+            },
+            peer_obj.peer.publicKey
+          );
+        } else {
+          const obj = {
+            field1: 'RedSquare',
+            flagged: 0,
+            limit: peer_obj.tweets_limit
+          };
+
+          if (isOlder) {
+            obj.created_earlier_than = peer_obj.tweets_earliest_ts;
+          } else {
+            obj.updated_later_than = peer_obj.tweets_latest_ts;
+          }
+
+          const archivePeer = peer_obj.peer === 'localhost' ? 'localhost' : peer_obj.peer;
+
+          this.app.storage.loadTransactions(
+            obj,
+            (txs) => {
+              onPeerComplete(peer_obj, txs || [], isOlder, peerIndex);
+            },
+            archivePeer
+          );
+        }
+      }
+
+      if (peers_remaining === 0) {
+        const callbacks = this._load_busy[busyKey] || [];
+        this._load_busy[busyKey] = null;
+
+        for (const cb of callbacks) {
+          cb({
+            type,
+            direction,
+            added: [],
+            updated: [],
+            ignored: [],
+            exhausted: true
+          });
+        }
+      }
+
+      return;
     }
 
     //
-    // Development fallback until archive synchronization is wired.
+    // -------------------------------------------------------------------------
+    // notifications (localhost archive only)
+    // -------------------------------------------------------------------------
     //
-    return this.getMockTransactions();
+    const busyKey = `notifications:${direction}`;
+
+    if (!this._load_busy) {
+      this._load_busy = {};
+    }
+
+    if (this._load_busy[busyKey]) {
+      this._load_busy[busyKey].push(callback);
+      return;
+    }
+
+    this._load_busy[busyKey] = [callback];
+
+    const collected = [];
+    const added = [];
+    const updated = [];
+    const ignored = [];
+    let exhausted = false;
+    let queries = 0;
+    let queries_done = 0;
+
+    const finishNotifications = () => {
+      if (collected.length === 0) {
+        if (isOlder) {
+          this.notifications_earliest_tweet_ts = 0;
+          this.notifications_earliest_like_ts = 0;
+        }
+        exhausted = true;
+      }
+
+      for (let z = 0; z < collected.length; z++) {
+        const tx = collected[z];
+
+        if (!tx) {
+          continue;
+        }
+
+        const working =
+          typeof tx.toJson === 'function' ? new Transaction(undefined, tx.toJson()) : tx;
+
+        if (!working) {
+          continue;
+        }
+
+        if (typeof working.decryptMessage === 'function') {
+          working.decryptMessage(this.app);
+        }
+
+        const signature = working.signature != null ? String(working.signature) : '';
+
+        if (!signature) {
+          continue;
+        }
+
+        const ts = Number(tx.timestamp) || Date.now();
+        const hadNotification = this.hasNotification(signature);
+        const notification = this.addNotification(working);
+
+        if (!notification) {
+          if (!ignored.includes(signature)) {
+            ignored.push(signature);
+          }
+        } else if (notification.signature === signature && !hadNotification) {
+          if (!added.includes(signature)) {
+            added.push(signature);
+          }
+        } else if (notification.signature === signature && hadNotification) {
+          if (!updated.includes(signature)) {
+            updated.push(signature);
+          }
+        } else {
+          if (!updated.includes(notification.signature)) {
+            updated.push(notification.signature);
+          }
+
+          if (!ignored.includes(signature)) {
+            ignored.push(signature);
+          }
+        }
+
+        if (isOlder) {
+          const txmsg = tx.returnMessage ? tx.returnMessage() : tx.msg || {};
+
+          if (txmsg.request === 'like tweet') {
+            if (ts < this.notifications_earliest_like_ts) {
+              this.notifications_earliest_like_ts = ts;
+            }
+          } else if (ts < this.notifications_earliest_tweet_ts) {
+            this.notifications_earliest_tweet_ts = ts;
+          }
+        } else if (ts > this.notifications_latest_ts) {
+          this.notifications_latest_ts = ts;
+        }
+      }
+
+      const result = {
+        type,
+        direction,
+        added: added.slice(),
+        updated: updated.slice(),
+        ignored: ignored.slice(),
+        exhausted
+      };
+      const callbacks = this._load_busy[busyKey] || [];
+
+      this._load_busy[busyKey] = null;
+
+      for (const cb of callbacks) {
+        cb(result);
+      }
+    };
+
+    const onNotificationQueryDone = () => {
+      queries_done++;
+
+      if (queries_done >= queries) {
+        finishNotifications();
+      }
+    };
+
+    if (isOlder) {
+      if (this.notifications_earliest_tweet_ts) {
+        queries++;
+
+        this.app.storage.loadTransactions(
+          {
+            field1: 'RedSquare',
+            field3: this.publicKey,
+            created_earlier_than: this.notifications_earliest_tweet_ts,
+            limit: 10
+          },
+          (txs) => {
+            for (const tx of txs || []) {
+              if (tx.timestamp < this.notifications_earliest_tweet_ts) {
+                this.notifications_earliest_tweet_ts = tx.timestamp;
+              }
+              collected.push(tx);
+            }
+            onNotificationQueryDone();
+          },
+          'localhost'
+        );
+      }
+
+      if (this.notifications_earliest_like_ts) {
+        queries++;
+
+        this.app.storage.loadTransactions(
+          {
+            field1: 'RedSquareLike',
+            field3: this.publicKey,
+            created_earlier_than: this.notifications_earliest_like_ts,
+            limit: 10
+          },
+          (txs) => {
+            for (const tx of txs || []) {
+              if (tx.timestamp < this.notifications_earliest_like_ts) {
+                this.notifications_earliest_like_ts = tx.timestamp;
+              }
+              collected.push(tx);
+            }
+            onNotificationQueryDone();
+          },
+          'localhost'
+        );
+      }
+    } else {
+      queries++;
+
+      this.app.storage.loadTransactions(
+        {
+          field1: 'RedSquare',
+          field3: this.publicKey,
+          updated_later_than: this.notifications_latest_ts,
+          limit: 10
+        },
+        (txs) => {
+          for (const tx of txs || []) {
+            collected.push(tx);
+          }
+          onNotificationQueryDone();
+        },
+        'localhost'
+      );
+
+      queries++;
+
+      this.app.storage.loadTransactions(
+        {
+          field1: 'RedSquareLike',
+          field3: this.publicKey,
+          updated_later_than: this.notifications_latest_ts,
+          limit: 10
+        },
+        (txs) => {
+          for (const tx of txs || []) {
+            collected.push(tx);
+          }
+          onNotificationQueryDone();
+        },
+        'localhost'
+      );
+    }
+
+    if (queries === 0) {
+      const callbacks = this._load_busy[busyKey] || [];
+      this._load_busy[busyKey] = null;
+
+      for (const cb of callbacks) {
+        cb({
+          type,
+          direction,
+          added: [],
+          updated: [],
+          ignored: [],
+          exhausted: true
+        });
+      }
+    }
   }
 
-  async fetchCachedNotifications() {
-    return this.getMockNotificationTransactions();
+  async handlePeerTransaction(app, tx = null, peer, mycallback) {
+    if (tx == null || !mycallback) {
+      return 0;
+    }
+
+    const txmsg = tx.returnMessage();
+
+    if (!txmsg.request) {
+      return 0;
+    }
+
+    if (txmsg.request === 'load tweets' && txmsg.data?.created_earlier_than != undefined) {
+      const obj = {
+        field1: 'RedSquare',
+        flagged: 0,
+        limit: 10,
+        created_earlier_than: txmsg.data.created_earlier_than
+      };
+
+      this.app.storage.loadTransactions(
+        obj,
+        (txs) => {
+          const serialized = [];
+
+          for (const row of txs || []) {
+            serialized.push(row.serialize_to_web(this.app));
+          }
+
+          mycallback(serialized);
+        },
+        'localhost'
+      );
+
+      return 1;
+    }
+
+    return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
   //
@@ -249,6 +771,146 @@ class RedSquare extends ModTemplate {
     return newtx;
   }
 
+  async createLikeTweetTransaction(data = {}, keys = []) {
+    const payload = {};
+
+    if (data && typeof data === 'object') {
+      for (const key of Object.keys(data)) {
+        payload[key] = data[key];
+      }
+    }
+
+    if (payload.signature != null) {
+      payload.signature = String(payload.signature);
+    }
+
+    const newtx = await this.app.wallet.createUnsignedTransaction();
+    newtx.msg = {
+      module: this.name,
+      request: 'like tweet',
+      data: payload
+    };
+
+    for (const key of keys) {
+      if (key && key !== this.publicKey) {
+        newtx.addTo(key);
+      }
+    }
+
+    return newtx;
+  }
+
+  async createRetweetTransaction(data = {}, keys = []) {
+    const payload = {};
+
+    if (data && typeof data === 'object') {
+      for (const key of Object.keys(data)) {
+        payload[key] = data[key];
+      }
+    }
+
+    if (payload.signature != null) {
+      payload.signature = String(payload.signature);
+    }
+
+    const newtx = await this.app.wallet.createUnsignedTransaction();
+    newtx.msg = {
+      module: this.name,
+      request: 'retweet',
+      data: payload
+    };
+
+    for (const key of keys) {
+      if (key && key !== this.publicKey) {
+        newtx.addTo(key);
+      }
+    }
+
+    return newtx;
+  }
+
+  receiveTweetTransaction(tx) {
+    const tweet = this.addTweet(tx);
+
+    if (tweet?.parent_id) {
+      this.getTweet(tweet.parent_id)?.incrementStat('replies');
+    }
+
+    if (this.app.BROWSER && Notifications.isAddressedToUser(this, tx)) {
+      this.addNotification(tx);
+    }
+
+    return tweet;
+  }
+
+  receiveLikeTweetTransaction(tx) {
+    const txmsg = tx?.returnMessage?.() || tx?.msg || {};
+    const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
+
+    if (!targetSignature) {
+      return null;
+    }
+
+    const tweet = this.getTweet(targetSignature);
+
+    if (tweet) {
+      tweet.incrementStat('likes');
+    }
+
+    if (this.app.BROWSER) {
+      this.addNotification(tx);
+    }
+
+    return tweet;
+  }
+
+  receiveRetweetTransaction(tx) {
+    const txmsg = tx?.returnMessage?.() || tx?.msg || {};
+    const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
+
+    if (!targetSignature) {
+      return null;
+    }
+
+    const tweet = this.getTweet(targetSignature);
+
+    if (tweet) {
+      tweet.incrementStat('retweets');
+    }
+
+    if (this.app.BROWSER) {
+      this.addNotification(tx);
+    }
+
+    return tweet;
+  }
+
+  async onConfirmation(blk, tx, conf) {
+    if (conf !== 0) {
+      return;
+    }
+
+    const txmsg = tx.returnMessage();
+
+    if (txmsg.module && txmsg.module !== this.name) {
+      return;
+    }
+
+    switch (txmsg.request) {
+      case 'create tweet':
+        this.receiveTweetTransaction(tx);
+        break;
+      case 'like tweet':
+        this.receiveLikeTweetTransaction(tx);
+        break;
+      case 'retweet':
+        this.receiveRetweetTransaction(tx);
+        break;
+      default:
+        break;
+    }
+  }
+
   respondTo(type = '', obj) {
     if (type === 'saito-floating-menu') {
       return [
@@ -259,7 +921,7 @@ class RedSquare extends ModTemplate {
           disallowed_mods: ['arcade'],
           rank: 10,
           callback: (app) => {
-            this.compose?.open();
+            this.compose_overlay?.open();
           }
         },
         {
@@ -269,7 +931,7 @@ class RedSquare extends ModTemplate {
           disallowed_mods: ['arcade'],
           rank: 20,
           callback: (app) => {
-            this.compose?.open();
+            this.compose_overlay?.open();
             setTimeout(() => {
               document.querySelector('.saito-overlay .compose-file-input')?.click();
             }, 100);
@@ -282,494 +944,139 @@ class RedSquare extends ModTemplate {
   }
 
   //
-  // Tweet API
+  // Tweet API — delegated to lib/tweets.js
   //
 
   addTweet(tx) {
-    const tweet = new Tweet(this.app, this, tx);
-
-    if (!tweet.signature) {
-      return null;
-    }
-
-    if (!this.isValidTweetMessage(tweet)) {
-      return null;
-    }
-
-    if (this.hasTweet(tweet.signature)) {
-      return this.updateTweet(tx);
-    }
-
-    this.tweets[tweet.signature] = tweet;
-    this.indexTweetRelationships(tweet.signature);
-    this.insertTimeline(tweet.signature);
-    this.attachOrphans(tweet.signature);
-
-    return tweet;
+    return Tweets.addTweet(this, tx);
   }
 
   removeTweet(signature) {
-    if (!signature || !this.hasTweet(signature)) {
-      return false;
-    }
-
-    this.unindexTweetRelationships(signature);
-    this.removeFromTimeline(signature);
-    delete this.tweets[signature];
-
-    return true;
+    return Tweets.removeTweet(this, signature);
   }
 
   updateTweet(tx) {
-    const tweet = new Tweet(this.app, this, tx);
-
-    if (!tweet.signature) {
-      return null;
-    }
-
-    if (!this.isValidTweetMessage(tweet)) {
-      return null;
-    }
-
-    const existing = this.getTweet(tweet.signature);
-
-    if (!existing) {
-      return this.addTweet(tx);
-    }
-
-    const previousParent = existing.parent_id || '';
-
-    existing.updateFromTransaction(tx);
-
-    if ((existing.parent_id || '') !== previousParent) {
-      this.unindexTweetRelationships(tweet.signature);
-      this.indexTweetRelationships(tweet.signature);
-      this.removeFromTimeline(tweet.signature);
-      this.insertTimeline(tweet.signature);
-    } else {
-      this.resortTimeline();
-    }
-
-    return existing;
+    return Tweets.updateTweet(this, tx);
   }
 
   getTweet(signature) {
-    if (!signature) {
-      return null;
-    }
+    return Tweets.getTweet(this, signature);
+  }
 
-    return this.tweets[signature] || null;
+  showTweetInfo(tweet) {
+    return Tweets.showTweetInfo(this, tweet);
   }
 
   hasTweet(signature) {
-    return Boolean(signature && this.tweets[signature]);
+    return Tweets.hasTweet(this, signature);
   }
 
   isValidTweetMessage(tweet) {
-    const txmsg = tweet.returnTxMessage();
-
-    if (txmsg.module && txmsg.module !== this.name) {
-      return false;
-    }
-
-    if (txmsg.request && txmsg.request !== 'create tweet') {
-      return false;
-    }
-
-    return true;
+    return Tweets.isValidTweetMessage(this, tweet);
   }
 
   indexTweetRelationships(signature) {
-    const tweet = this.getTweet(signature);
-
-    if (!tweet || !tweet.parent_id) {
-      return;
-    }
-
-    const parentId = tweet.parent_id;
-
-    this.tweets_parents[signature] = parentId;
-
-    if (this.hasTweet(parentId)) {
-      this.addChildSignature(parentId, signature);
-      return;
-    }
-
-    if (!this.tweets_orphans[parentId]) {
-      this.tweets_orphans[parentId] = [];
-    }
-
-    if (!this.tweets_orphans[parentId].includes(signature)) {
-      this.tweets_orphans[parentId].push(signature);
-    }
+    return Tweets.indexTweetRelationships(this, signature);
   }
 
   unindexTweetRelationships(signature) {
-    const parentId = this.tweets_parents[signature];
-
-    if (parentId) {
-      this.removeChildSignature(parentId, signature);
-      delete this.tweets_parents[signature];
-    }
-
-    if (this.tweets_children[signature]) {
-      for (const childSignature of this.tweets_children[signature]) {
-        delete this.tweets_parents[childSignature];
-
-        if (!this.tweets_orphans[signature]) {
-          this.tweets_orphans[signature] = [];
-        }
-
-        if (!this.tweets_orphans[signature].includes(childSignature)) {
-          this.tweets_orphans[signature].push(childSignature);
-        }
-      }
-
-      delete this.tweets_children[signature];
-    }
-
-    for (const parentKey of Object.keys(this.tweets_orphans)) {
-      this.tweets_orphans[parentKey] = this.tweets_orphans[parentKey].filter((s) => s !== signature);
-
-      if (this.tweets_orphans[parentKey].length === 0) {
-        delete this.tweets_orphans[parentKey];
-      }
-    }
+    return Tweets.unindexTweetRelationships(this, signature);
   }
 
   addChildSignature(parentSignature, childSignature) {
-    if (!this.tweets_children[parentSignature]) {
-      this.tweets_children[parentSignature] = [];
-    }
-
-    if (!this.tweets_children[parentSignature].includes(childSignature)) {
-      this.tweets_children[parentSignature].push(childSignature);
-    }
-
-    this.updateCriticalChild(parentSignature);
+    return Tweets.addChildSignature(this, parentSignature, childSignature);
   }
 
   removeChildSignature(parentSignature, childSignature) {
-    const children = this.tweets_children[parentSignature];
-
-    if (!children) {
-      return;
-    }
-
-    this.tweets_children[parentSignature] = children.filter((s) => s !== childSignature);
-
-    if (this.tweets_children[parentSignature].length === 0) {
-      delete this.tweets_children[parentSignature];
-    }
-
-    this.updateCriticalChild(parentSignature);
+    return Tweets.removeChildSignature(this, parentSignature, childSignature);
   }
 
   updateCriticalChild(parentSignature) {
-    const parent = this.getTweet(parentSignature);
-
-    if (!parent) {
-      return;
-    }
-
-    const children = this.tweets_children[parentSignature] || [];
-
-    if (children.length === 0) {
-      parent.critical_child = null;
-      return;
-    }
-
-    let selected = null;
-    let selectedAt = -1;
-
-    for (const childSignature of children) {
-      const child = this.getTweet(childSignature);
-
-      if (!child) {
-        continue;
-      }
-
-      if (child.created_at >= selectedAt) {
-        selectedAt = child.created_at;
-        selected = childSignature;
-      }
-    }
-
-    parent.critical_child = selected;
+    return Tweets.updateCriticalChild(this, parentSignature);
   }
 
   attachOrphans(parentSignature) {
-    const orphans = this.tweets_orphans[parentSignature];
-
-    if (!orphans || orphans.length === 0) {
-      return;
-    }
-
-    for (const childSignature of orphans) {
-      this.tweets_parents[childSignature] = parentSignature;
-      this.addChildSignature(parentSignature, childSignature);
-    }
-
-    delete this.tweets_orphans[parentSignature];
+    return Tweets.attachOrphans(this, parentSignature);
   }
 
   insertTimeline(signature) {
-    const tweet = this.getTweet(signature);
-
-    if (!tweet || tweet.parent_id) {
-      return;
-    }
-
-    if (!this.tweets_timeline.includes(signature)) {
-      this.tweets_timeline.push(signature);
-    }
-
-    this.resortTimeline();
+    return Tweets.insertTimeline(this, signature);
   }
 
   removeFromTimeline(signature) {
-    this.tweets_timeline = this.tweets_timeline.filter((s) => s !== signature);
+    return Tweets.removeFromTimeline(this, signature);
   }
 
   resortTimeline() {
-    this.tweets_timeline.sort((a, b) => {
-      const tweetA = this.getTweet(a);
-      const tweetB = this.getTweet(b);
-
-      return (tweetB?.created_at || 0) - (tweetA?.created_at || 0);
-    });
+    return Tweets.resortTimeline(this);
   }
 
   //
-  // Notification API
+  // Notification API — delegated to lib/notifications.js
   //
 
   normalizeNotificationInput(input) {
-    if (!input) {
-      return null;
-    }
-
-    if (input.msg && input.signature != null) {
-      return Notification.fromTransaction(this.app, this, input);
-    }
-
-    return new Notification(this.app, this, input);
+    return Notifications.normalizeNotificationInput(this, input);
   }
 
   getNotificationAggregateKey(notification) {
-    if (!notification || notification.type !== 'like') {
-      return '';
-    }
-
-    if (!notification.actor_publicKey || !notification.tweet_signature) {
-      return '';
-    }
-
-    return `like:${notification.actor_publicKey}:${notification.tweet_signature}`;
+    return Notifications.getNotificationAggregateKey(this, notification);
   }
 
   getUnreadNotificationCount() {
-    return this.notifications_unread_count || 0;
+    return Notifications.getUnreadNotificationCount(this);
   }
 
   incrementUnreadNotifications(notification) {
-    if (!notification || notification.unread === false) {
-      return;
-    }
-
-    this.notifications_unread_count += 1;
+    return Notifications.incrementUnreadNotifications(this, notification);
   }
 
   markNotificationsViewed() {
-    this.notifications_unread_count = 0;
-    this.notifications_last_viewed_ts = Date.now();
-
-    for (const signature of this.notifications_timeline) {
-      const notification = this.getNotification(signature);
-
-      if (notification) {
-        notification.unread = false;
-      }
-    }
-
-    this.updateNotificationBadge();
+    return Notifications.markNotificationsViewed(this);
   }
 
   updateNotificationBadge() {
-    const count = this.getUnreadNotificationCount();
-
-    this.app.connection?.emit('redsquare-update-notifications', count);
-
-    if (this.main?.menu) {
-      this.main.menu.updateBadge(count);
-    }
+    return Notifications.updateNotificationBadge(this);
   }
 
   ensureNotificationTweet(notification) {
-    if (!notification?.tx) {
-      return;
-    }
-
-    const txmsg =
-      typeof notification.returnTxMessage === 'function'
-        ? notification.returnTxMessage()
-        : notification.tx.msg || {};
-
-    if (txmsg.request !== 'create tweet') {
-      return;
-    }
-
-    if (!this.hasTweet(notification.signature)) {
-      this.addTweet(notification.tx);
-    }
+    return Notifications.ensureNotificationTweet(this, notification);
   }
 
   aggregateLikeNotification(existing, incoming) {
-    existing.count = (existing.count || 1) + 1;
-    existing.created_at = Math.max(existing.created_at || 0, incoming.created_at || 0);
-    existing.time = existing.formatRelativeTime(existing.created_at);
-    existing.refreshActionText();
-    this.resortNotificationTimeline();
-    return existing;
+    return Notifications.aggregateLikeNotification(this, existing, incoming);
   }
 
   addNotification(input) {
-    const notification = this.normalizeNotificationInput(input);
-
-    if (!notification || !notification.signature || !notification.tweet_signature) {
-      return null;
-    }
-
-    this.ensureNotificationTweet(notification);
-
-    if (!this.hasTweet(notification.tweet_signature)) {
-      return null;
-    }
-
-    const aggregateKey = this.getNotificationAggregateKey(notification);
-
-    if (aggregateKey && this.notifications_aggregate[aggregateKey]) {
-      const existing = this.getNotification(this.notifications_aggregate[aggregateKey]);
-
-      if (existing) {
-        return this.aggregateLikeNotification(existing, notification);
-      }
-    }
-
-    if (this.hasNotification(notification.signature)) {
-      return this.updateNotification(input);
-    }
-
-    this.notifications[notification.signature] = notification;
-    this.insertNotificationTimeline(notification.signature);
-
-    if (aggregateKey) {
-      this.notifications_aggregate[aggregateKey] = notification.signature;
-    }
-
-    this.incrementUnreadNotifications(notification);
-    this.updateNotificationBadge();
-
-    return notification;
+    return Notifications.addNotification(this, input);
   }
 
   removeNotification(signature) {
-    if (!signature || !this.hasNotification(signature)) {
-      return false;
-    }
-
-    const notification = this.getNotification(signature);
-    const aggregateKey = this.getNotificationAggregateKey(notification);
-
-    if (aggregateKey && this.notifications_aggregate[aggregateKey] === signature) {
-      delete this.notifications_aggregate[aggregateKey];
-    }
-
-    if (notification?.unread) {
-      this.notifications_unread_count = Math.max(0, this.notifications_unread_count - 1);
-      this.updateNotificationBadge();
-    }
-
-    this.removeFromNotificationTimeline(signature);
-    delete this.notifications[signature];
-
-    return true;
+    return Notifications.removeNotification(this, signature);
   }
 
   updateNotification(input) {
-    const notification = this.normalizeNotificationInput(input);
-
-    if (!notification || !notification.signature) {
-      return null;
-    }
-
-    const existing = this.getNotification(notification.signature);
-
-    if (!existing) {
-      return this.addNotification(input);
-    }
-
-    existing.parseFromData({
-      signature: notification.signature,
-      tweet_signature: notification.tweet_signature,
-      type: notification.type,
-      actor_publicKey: notification.actor_publicKey,
-      actor_name: notification.actor_name,
-      actor_avatar: notification.actor_avatar,
-      text: notification.text,
-      count: notification.count,
-      created_at: notification.created_at,
-      time: notification.time,
-      unread: existing.unread
-    });
-
-    if (notification.tx) {
-      existing.tx = notification.tx;
-    }
-
-    existing.refreshActionText();
-    this.resortNotificationTimeline();
-
-    return existing;
+    return Notifications.updateNotification(this, input);
   }
 
   getNotification(signature) {
-    if (!signature) {
-      return null;
-    }
-
-    return this.notifications[signature] || null;
+    return Notifications.getNotification(this, signature);
   }
 
   hasNotification(signature) {
-    return Boolean(signature && this.notifications[signature]);
+    return Notifications.hasNotification(this, signature);
   }
 
   insertNotificationTimeline(signature) {
-    const notification = this.getNotification(signature);
-
-    if (!notification) {
-      return;
-    }
-
-    if (!this.notifications_timeline.includes(signature)) {
-      this.notifications_timeline.push(signature);
-    }
-
-    this.resortNotificationTimeline();
+    return Notifications.insertNotificationTimeline(this, signature);
   }
 
   removeFromNotificationTimeline(signature) {
-    this.notifications_timeline = this.notifications_timeline.filter((s) => s !== signature);
+    return Notifications.removeFromNotificationTimeline(this, signature);
   }
 
   resortNotificationTimeline() {
-    this.notifications_timeline.sort((a, b) => {
-      const notificationA = this.getNotification(a);
-      const notificationB = this.getNotification(b);
-
-      return (notificationB?.created_at || 0) - (notificationA?.created_at || 0);
-    });
+    return Notifications.resortNotificationTimeline(this);
   }
 
   async ensureRendered() {
@@ -809,7 +1116,7 @@ class RedSquare extends ModTemplate {
 
     expressapp.use(uri, express.static(webdir));
 
-    expressapp.get(uri, async function (req, res) {
+    expressapp.get(uri, function (req, res) {
       let html = index(app, self, app.build_number);
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
@@ -817,465 +1124,152 @@ class RedSquare extends ModTemplate {
     });
   }
 
-  getMockTransactions() {
-    return [
-      {
-        signature: 'redsquare-mock-tx-001',
-        timestamp: Date.now() - 2 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-saito',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text:
-              'Welcome to RedSquare — peer-to-peer social media on the Saito network. No servers. No silos. Just people talking to people.',
-            images: [],
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-001'
-          }
-        },
-        optional: {
-          num_likes: 248,
-          num_replies: 42,
-          num_retweets: 89
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-002',
-        timestamp: Date.now() - 4 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-rp',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text:
-              'We are rebuilding RedSquare from scratch. Same functionality eventually, dramatically simpler architecture. Readability over cleverness.',
-            images: [],
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-002'
-          }
-        },
-        optional: {
-          num_likes: 156,
-          num_replies: 23,
-          num_retweets: 41
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-003',
-        timestamp: Date.now() - 6 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-alice',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text:
-              'The new component hierarchy is so clean. Parents render children, templates own all HTML, and every file makes sense on first read.',
-            images: ['/saito/img/dreamscape.png'],
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-003'
-          }
-        },
-        optional: {
-          num_likes: 94,
-          num_replies: 12,
-          num_retweets: 18
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-004',
-        timestamp: Date.now() - 8 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-bob',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text:
-              'Transactions become Tweet objects exactly once. After that the app never re-parses raw network data. This is the way.',
-            images: [],
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-004'
-          }
-        },
-        optional: {
-          num_likes: 67,
-          num_replies: 8,
-          num_retweets: 15
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-005',
-        timestamp: Date.now() - 11 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-carol',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text:
-              'Just shipped a pull request that deletes 2,000 lines of abstraction nobody understood. The rewrite feels right.',
-            images: [],
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-005'
-          }
-        },
-        optional: {
-          num_likes: 312,
-          num_replies: 47,
-          num_retweets: 102
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-006',
-        timestamp: Date.now() - 14 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-dave',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text:
-              'Open source social on a blockchain that actually scales. If you have not tried RedSquare yet, now is a good time.',
-            images: ['/saito/img/dreamscape.png', '/saito/img/tiled-logo.svg'],
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-006'
-          }
-        },
-        optional: {
-          num_likes: 45,
-          num_replies: 6,
-          num_retweets: 11
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-007',
-        timestamp: Date.now() - 16 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-alice',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text: 'Three-image gallery layout — tall panel left, two stacked on the right.',
-            images: [
-              '/saito/img/dreamscape.png',
-              '/saito/img/tiled-logo.svg',
-              '/saito/img/dreamscape.png'
-            ],
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-007'
-          }
-        },
-        optional: {
-          num_likes: 38,
-          num_replies: 4,
-          num_retweets: 9
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-008',
-        timestamp: Date.now() - 18 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-bob',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text: 'Four images in a balanced grid. Mixed orientations crop gracefully.',
-            images: [
-              '/saito/img/dreamscape.png',
-              '/saito/img/tiled-logo.svg',
-              '/saito/img/tiled-logo.svg',
-              '/saito/img/dreamscape.png'
-            ],
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-008'
-          }
-        },
-        optional: {
-          num_likes: 52,
-          num_replies: 7,
-          num_retweets: 14
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-009',
-        timestamp: Date.now() - 20 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-carol',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text: 'Quoting this because it nails the architecture we are building toward.',
-            images: [],
-            embedded: {
-              signature: 'redsquare-mock-tx-002',
-              publicKey: 'redsquare-mock-pk-rp',
-              text:
-                'We are rebuilding RedSquare from scratch. Same functionality eventually, dramatically simpler architecture. Readability over cleverness.',
-              images: [],
-              created_at: Date.now() - 4 * 60 * 60 * 1000
-            },
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-009'
-          }
-        },
-        optional: {
-          num_likes: 81,
-          num_replies: 11,
-          num_retweets: 22
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-010',
-        timestamp: Date.now() - 22 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-dave',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text: 'Rich content block: commentary, gallery, and an embedded Tweet in one post.',
-            images: ['/saito/img/dreamscape.png', '/saito/img/tiled-logo.svg'],
-            embedded: {
-              signature: 'redsquare-mock-tx-001',
-              publicKey: 'redsquare-mock-pk-saito',
-              text:
-                'Welcome to RedSquare — peer-to-peer social media on the Saito network. No servers. No silos. Just people talking to people.',
-              images: [],
-              created_at: Date.now() - 2 * 60 * 60 * 1000
-            },
-            parent_id: '',
-            thread_id: 'redsquare-mock-tx-010'
-          }
-        },
-        optional: {
-          num_likes: 127,
-          num_replies: 19,
-          num_retweets: 34
-        }
-      },
-      {
-        signature: 'redsquare-mock-tx-011',
-        timestamp: Date.now() - 1.5 * 60 * 60 * 1000,
-        from: [
-          {
-            publicKey: 'redsquare-mock-pk-alice',
-            amount: '0',
-            type: 1,
-            index: 0,
-            blockId: '0',
-            txOrdinal: '0'
-          }
-        ],
-        msg: {
-          module: 'RedSquare',
-          request: 'create tweet',
-          data: {
-            text: 'This is exactly what decentralized social should feel like.',
-            images: [],
-            parent_id: 'redsquare-mock-tx-001',
-            thread_id: 'redsquare-mock-tx-001'
-          }
-        },
-        optional: {
-          num_likes: 18,
-          num_replies: 2,
-          num_retweets: 4
-        }
+  //
+  // Development-only fixtures for exercising the UI. Not part of production loading.
+  //
+  returnMockTransactions() {
+    const authors = [
+      'redsquare-mock-pk-saito',
+      'redsquare-mock-pk-alice',
+      'redsquare-mock-pk-bob',
+      'redsquare-mock-pk-carol'
+    ];
+    const now = Date.now();
+    const mockSig = (seed) => `${seed.toString(16).padStart(64, '0')}`;
+
+    const build = ({
+      seed,
+      author = 0,
+      text,
+      parent_id = '',
+      thread_id = '',
+      images = [],
+      embedded = null,
+      minutesAgo = 0,
+      optional = {}
+    }) => {
+      const signature = mockSig(seed);
+      const publicKey = authors[author % authors.length];
+      const timestamp = now - minutesAgo * 60 * 1000;
+      const data = {
+        text,
+        images,
+        parent_id,
+        thread_id: thread_id || (parent_id ? '' : signature)
+      };
+
+      if (embedded) {
+        data.embedded = embedded;
       }
+
+      if (parent_id && thread_id) {
+        data.thread_id = thread_id;
+      }
+
+      return {
+        signature,
+        timestamp,
+        from: [
+          {
+            publicKey,
+            amount: '0',
+            type: 1,
+            index: 0,
+            blockId: '0',
+            txOrdinal: '0'
+          }
+        ],
+        msg: {
+          module: this.name,
+          request: 'create tweet',
+          data
+        },
+        optional: {
+          num_likes: 12,
+          num_replies: 3,
+          num_retweets: 5,
+          ...optional
+        }
+      };
+    };
+
+    const normalSig = mockSig(1);
+    const threadRootSig = mockSig(2);
+    const threadReplySig = mockSig(3);
+    const embeddedSig = mockSig(8);
+
+    return [
+      build({
+        seed: 1,
+        author: 0,
+        minutesAgo: 60,
+        text: 'Welcome to RedSquare — a normal timeline post for UI development.'
+      }),
+      build({
+        seed: 5,
+        author: 1,
+        minutesAgo: 55,
+        parent_id: normalSig,
+        thread_id: normalSig,
+        text: 'This is a reply to the post above.',
+        optional: { num_likes: 4, num_replies: 0, num_retweets: 1 }
+      }),
+      build({
+        seed: 2,
+        author: 2,
+        minutesAgo: 45,
+        text: 'Thread root — open this post to walk the critical reply chain.'
+      }),
+      build({
+        seed: 3,
+        author: 3,
+        minutesAgo: 40,
+        parent_id: threadRootSig,
+        thread_id: threadRootSig,
+        text: 'First reply in the thread.',
+        optional: { num_likes: 6, num_replies: 1, num_retweets: 0 }
+      }),
+      build({
+        seed: 4,
+        author: 1,
+        minutesAgo: 35,
+        parent_id: threadReplySig,
+        thread_id: threadRootSig,
+        text: 'Second reply — continues the critical path.',
+        optional: { num_likes: 2, num_replies: 0, num_retweets: 0 }
+      }),
+      build({
+        seed: 6,
+        author: 0,
+        minutesAgo: 25,
+        text: 'Quote-posting another tweet below.',
+        embedded: {
+          signature: embeddedSig,
+          publicKey: authors[2],
+          text: 'Embedded tweet card — quoted content rendered inline.',
+          created_at: now - 30 * 60 * 1000,
+          images: [],
+          likes: 9,
+          replies: 2,
+          retweets: 1
+        }
+      }),
+      build({
+        seed: 7,
+        author: 3,
+        minutesAgo: 10,
+        text: 'Image gallery fixture with four placeholders.',
+        images: [
+          '/saito/img/dreamscape.png',
+          '/saito/img/dreamscape.png',
+          '/saito/img/dreamscape.png',
+          '/saito/img/dreamscape.png'
+        ],
+        optional: { num_likes: 28, num_replies: 6, num_retweets: 11 }
+      })
     ];
   }
 
-  getMockNotificationTransactions() {
-  const slip = (publicKey) => ({
-    publicKey,
-    amount: '0',
-    type: 1,
-    index: 0,
-    blockId: '0',
-    txOrdinal: '0'
-  });
-
-  return [
-    {
-      signature: 'redsquare-mock-like-001',
-      timestamp: Date.now() - 25 * 60 * 1000,
-      from: [slip('redsquare-mock-pk-alice')],
-      msg: {
-        module: 'RedSquare',
-        request: 'like tweet',
-        data: {
-          signature: 'redsquare-mock-tx-001'
-        }
-      }
-    },
-    {
-      signature: 'redsquare-mock-like-001b',
-      timestamp: Date.now() - 18 * 60 * 1000,
-      from: [slip('redsquare-mock-pk-alice')],
-      msg: {
-        module: 'RedSquare',
-        request: 'like tweet',
-        data: {
-          signature: 'redsquare-mock-tx-001'
-        }
-      }
-    },
-    {
-      signature: 'redsquare-mock-reply-notif-001',
-      timestamp: Date.now() - 90 * 60 * 1000,
-      from: [slip('redsquare-mock-pk-alice')],
-      msg: {
-        module: 'RedSquare',
-        request: 'create tweet',
-        data: {
-          text: 'This is exactly what decentralized social should feel like.',
-          images: [],
-          parent_id: 'redsquare-mock-tx-001',
-          thread_id: 'redsquare-mock-tx-001'
-        }
-      }
-    },
-    {
-      signature: 'redsquare-mock-retweet-001',
-      timestamp: Date.now() - 3 * 60 * 60 * 1000,
-      from: [slip('redsquare-mock-pk-rp')],
-      msg: {
-        module: 'RedSquare',
-        request: 'retweet',
-        data: {
-          signature: 'redsquare-mock-tx-009'
-        }
-      }
-    },
-    {
-      signature: 'redsquare-mock-like-002',
-      timestamp: Date.now() - 4 * 60 * 60 * 1000,
-      from: [slip('redsquare-mock-pk-bob')],
-      msg: {
-        module: 'RedSquare',
-        request: 'like tweet',
-        data: {
-          signature: 'redsquare-mock-tx-003'
-        }
-      }
-    },
-    {
-      signature: 'redsquare-mock-mention-001',
-      timestamp: Date.now() - 5 * 60 * 60 * 1000,
-      from: [slip('redsquare-mock-pk-carol')],
-      msg: {
-        module: 'RedSquare',
-        request: 'create tweet',
-        data: {
-          text: '@you the new notification architecture is looking clean.',
-          images: [],
-          parent_id: '',
-          thread_id: 'redsquare-mock-mention-001',
-          mentions: ['mock-user-public-key']
-        }
-      }
-    },
-    {
-      signature: 'redsquare-mock-like-003',
-      timestamp: Date.now() - 6 * 60 * 60 * 1000,
-      from: [slip('redsquare-mock-pk-dave')],
-      msg: {
-        module: 'RedSquare',
-        request: 'like tweet',
-        data: {
-          signature: 'redsquare-mock-tx-005'
-        }
-      }
-    }
-  ];
-  }
 }
 
 module.exports = RedSquare;

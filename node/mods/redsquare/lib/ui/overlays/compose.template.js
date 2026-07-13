@@ -1,61 +1,70 @@
+const TweetTemplate = require('../../tweet.template');
+
 module.exports = (compose) => {
-  const title = compose.parent_tweet ? 'Reply' : 'New post';
-  const submitLabel = compose.parent_tweet ? 'Reply' : 'Post';
+  const ariaLabel = compose.reply_to ? 'Reply' : 'Compose post';
+  const submitLabel = compose.reply_to ? 'Reply' : 'Post';
+
+  let replyPreview = '';
+
+  if (compose.reply_to) {
+    replyPreview = `
+      <div class="compose-reply-preview">
+        ${TweetTemplate(compose.reply_to, 'tweet', { hideControls: true })}
+      </div>
+    `;
+  }
 
   return `
-    <section class="compose-overlay" id="${compose.overlay_id}" aria-label="${title}">
-      <header class="compose-overlay-header">
-        <button class="compose-close" type="button" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <h2 class="compose-overlay-title">${title}</h2>
-      </header>
-
+    <div class="compose-overlay" id="${compose.overlay_id}" aria-label="${ariaLabel}">
       <div class="compose-overlay-body">
+        ${replyPreview}
+
         <div class="compose-author">
-          <img class="compose-author-avatar" src="${compose.avatar}" alt="" />
+          <img class="compose-author-avatar saito-identicon" src="${compose.avatar}" alt="" />
           <div class="compose-author-meta">
-            <span class="compose-author-name">${compose.display_name}</span>
-            <span class="compose-author-handle">@${compose.handle}</span>
+            <span class="saito-address compose-author-name">${compose.display_name}</span>
+            <p class="compose-helper">${compose.helper_text}</p>
           </div>
         </div>
 
-        <p class="compose-helper">${compose.helper_text}</p>
-
-        <div class="compose-editor">
+        <div class="compose-surface" id="redsquare-compose-surface">
           <textarea
             class="compose-input"
             placeholder="${compose.placeholder}"
-            rows="5"
+            rows="4"
             maxlength="${compose.char_limit}"
           ></textarea>
-        </div>
 
-        <div class="compose-gif-placeholder" aria-hidden="true">
-          <p>GIF search is coming soon.</p>
-          <button class="compose-gif-dismiss" type="button">Dismiss</button>
-        </div>
+          <div class="compose-gif-placeholder" aria-hidden="true">
+            <p>GIF search is coming soon.</p>
+            <span class="compose-gif-dismiss" role="button" tabindex="0">Dismiss</span>
+          </div>
 
-        <div class="compose-image-preview"></div>
+          <div class="compose-image-preview"></div>
+        </div>
       </div>
 
       <footer class="compose-overlay-footer">
-        <div class="compose-tools">
-          <button class="compose-tool compose-image-btn" type="button" title="Add image">
-            <i class="fa-regular fa-image"></i>
-          </button>
-          <button class="compose-tool compose-gif-btn" type="button" title="Add GIF">
+        <div class="compose-tools saito-menu-select-subtle">
+          <div class="compose-tool compose-emoji-btn" role="button" tabindex="0" title="Add emoji">
             <i class="fa-regular fa-face-smile"></i>
-          </button>
+          </div>
+          <div class="compose-tool compose-image-btn" role="button" tabindex="0" title="Add image">
+            <i class="fa-regular fa-image"></i>
+          </div>
+          <div class="compose-tool compose-gif-btn" role="button" tabindex="0" title="Add GIF">
+            <i class="fa-solid fa-photo-film"></i>
+          </div>
         </div>
 
-        <div class="compose-footer-end">
+        <div class="compose-footer-actions">
           <div class="compose-char-count" aria-live="polite">
             <span class="compose-char-current">0</span>
             <span class="compose-char-separator">/</span>
             <span class="compose-char-max">${compose.char_limit}</span>
           </div>
-          <button class="compose-submit saito-button-primary small" type="button">
+
+          <button class="compose-submit saito-button-primary" type="button">
             <span class="compose-submit-label">${submitLabel}</span>
             <span class="compose-submit-spinner" aria-hidden="true"></span>
           </button>
@@ -75,6 +84,6 @@ module.exports = (compose) => {
         accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
         hidden
       />
-    </section>
+    </div>
   `;
 };

@@ -93,18 +93,26 @@ class Menu {
 
     const homeItem = root.querySelector('.menu-item:nth-child(1)');
     const notificationsItem = root.querySelector('.menu-item:nth-child(2)');
+    const settingsItem = root.querySelector('.menu-item:nth-child(3)');
 
     if (homeItem) {
       homeItem.addEventListener('click', () => {
-        this.mod.manager?.showTimeline();
+        this.mod.manager?.renderTimeline();
         this.setActiveMenuItem(homeItem);
       });
     }
 
     if (notificationsItem) {
       notificationsItem.addEventListener('click', () => {
-        this.mod.manager?.showNotifications();
+        this.mod.manager?.renderNotifications();
         this.setActiveMenuItem(notificationsItem);
+      });
+    }
+
+    if (settingsItem) {
+      settingsItem.addEventListener('click', () => {
+        this.mod.settings_overlay?.open();
+        this.setActiveMenuItem(settingsItem);
       });
     }
   }

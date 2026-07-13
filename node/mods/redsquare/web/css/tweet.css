@@ -172,41 +172,15 @@
   text-decoration: underline;
 }
 
-.tweet.is-reply {
-  padding-left: var(--rs-tweet-pad-x);
-  margin-left: var(--rs-space-xl);
-}
-
 /*
  * Focused variant — modifier on the Tweet root only (.tweet.focused).
- * Add "focused" to an existing tweet element in devtools to preview.
- * Replies and siblings without the class keep timeline presentation.
+ * Typography only; horizontal layout matches every other tweet in the thread.
  */
 .tweet.focused {
-  --tweet-current-avatar: var(--rs-tweet-avatar-focused);
   --tweet-current-pad-y: var(--rs-tweet-focused-pad-y);
-  grid-template-columns: var(--rs-tweet-avatar-focused) minmax(0, 1fr);
-  column-gap: var(--rs-space-md);
-  padding: var(--rs-tweet-focused-pad-y) var(--rs-tweet-pad-x);
+  padding-top: var(--rs-tweet-focused-pad-y);
+  padding-bottom: var(--rs-tweet-focused-pad-y);
   cursor: default;
-}
-
-.tweet.focused .tweet-avatar {
-  width: var(--rs-tweet-avatar-focused);
-  height: var(--rs-tweet-avatar-focused);
-}
-
-.tweet.focused .tweet-content {
-  display: contents;
-}
-
-.tweet.focused .tweet-header {
-  grid-column: 2;
-  grid-row: 1;
-  height: auto;
-  min-height: var(--rs-tweet-avatar-focused);
-  justify-content: center;
-  gap: var(--rs-space-xs);
 }
 
 body.redsquare-body .tweet.focused .tweet-header .saito-address {
@@ -220,26 +194,8 @@ body.redsquare-body .tweet.focused .tweet-header .saito-userline {
 }
 
 .tweet.focused .tweet-body {
-  grid-column: 1 / -1;
-  margin-top: var(--rs-space-md);
   font-size: var(--rs-tweet-focused-body);
   line-height: var(--rs-tweet-focused-leading);
-}
-
-.tweet.focused .tweet-gallery {
-  grid-column: 1 / -1;
-  margin-top: var(--rs-space-md);
-}
-
-.tweet.focused .tweet-embed {
-  grid-column: 1 / -1;
-  margin-top: var(--rs-space-md);
-}
-
-.tweet.focused .tweet-footer {
-  grid-column: 1 / -1;
-  margin-top: var(--rs-space-md);
-  padding-top: var(--rs-space-xs);
 }
 
 @media (max-width: 600px) {
@@ -251,7 +207,8 @@ body.redsquare-body .tweet.focused .tweet-header .saito-userline {
 
   .tweet.focused {
     --tweet-current-pad-y: var(--rs-space-md);
-    padding: var(--rs-space-md) var(--rs-space-sm);
+    padding-top: var(--rs-space-md);
+    padding-bottom: var(--rs-space-md);
   }
 
   body.redsquare-body .tweet.focused .tweet-body {

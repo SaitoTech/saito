@@ -33,7 +33,7 @@ class Profile {
     if (newPostBtn) {
       newPostBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        this.mod.compose?.open();
+        this.mod.compose_overlay?.open();
       });
     }
   }

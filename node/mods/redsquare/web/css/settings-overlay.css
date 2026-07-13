@@ -1,0 +1,193 @@
+/*
+ * RedSquare settings overlay — panel layout only.
+ * Close control: standard SaitoOverlay closebox (saito-overlay.css).
+ * List rows: saito-menu-select-subtle (saito-buttons.css).
+ * Primary action: saito-button-primary in markup.
+ */
+
+.saito-overlay .settings-overlay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(52rem, 92vw);
+  max-height: min(88vh, 72rem);
+  border-radius: var(--rs-radius);
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  background: var(--rs-layer-overlay, var(--saito-overlay-panel-bg));
+  box-shadow: var(--saito-box-shadow, 0 1.2rem 3.2rem rgba(0, 0, 0, 0.28));
+  overflow: hidden;
+}
+
+.settings-overlay-header {
+  padding: var(--rs-tweet-pad-y) var(--rs-tweet-pad-x);
+  border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+}
+
+.settings-overlay-title {
+  margin: 0;
+  font-family: var(--saito-font-heavy);
+  font-size: var(--rs-heading);
+  font-weight: normal;
+  line-height: 1.2;
+  color: var(--rs-text-strong);
+}
+
+.settings-overlay-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-lg);
+  padding: var(--rs-space-lg) var(--rs-tweet-pad-x) var(--rs-space-xl);
+  overflow-y: auto;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-md);
+}
+
+.settings-section-title {
+  margin: 0;
+  font-family: var(--saito-font-heavy);
+  font-size: var(--rs-section-title);
+  font-weight: normal;
+  line-height: 1.2;
+  color: var(--rs-text-strong);
+}
+
+.settings-section-description {
+  margin: 0;
+  font-size: var(--font-size-medium);
+  line-height: 1.45;
+  color: var(--rs-text-muted);
+}
+
+.settings-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-md);
+  padding: var(--rs-space-sm) 0;
+}
+
+.settings-field-label {
+  font-size: var(--font-size-medium);
+  color: var(--rs-text);
+}
+
+.settings-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  padding: 0.25rem;
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  border-radius: var(--rs-radius-pill);
+  background: var(--rs-layer-recessed);
+  gap: 0.2rem;
+}
+
+.settings-toggle-option {
+  min-width: 9rem;
+  min-height: 3.6rem;
+  padding: 0 var(--rs-space-md);
+  border-radius: var(--rs-radius-pill);
+  background: transparent;
+  color: var(--rs-text-muted);
+  font-family: var(--saito-font);
+  font-size: var(--font-size-medium);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--rs-transition),
+    color var(--rs-transition),
+    box-shadow var(--rs-transition);
+}
+
+.settings-toggle-option.active {
+  background: var(--rs-layer-base);
+  color: var(--rs-text-strong);
+  box-shadow: 0 0.1rem 0.35rem color-mix(in srgb, var(--saito-background-color) 35%, transparent);
+}
+
+.settings-toggle-option:focus-visible {
+  outline: none;
+  box-shadow: var(--saito-focus-ring);
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-sm);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-md);
+  width: 100%;
+  min-height: 4.8rem;
+  padding: 0 var(--rs-space-md);
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  border-radius: var(--rs-radius);
+  background: var(--rs-layer-recessed);
+  color: var(--rs-text);
+  text-align: left;
+}
+
+.settings-row-action {
+  cursor: pointer;
+}
+
+.settings-row-inline {
+  justify-content: flex-end;
+  min-height: auto;
+  padding: var(--rs-space-sm) var(--rs-space-md);
+  border-style: dashed;
+  background: transparent;
+}
+
+.settings-row-inline .saito-button-primary {
+  margin: 0;
+}
+
+.settings-row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.2rem;
+  color: var(--rs-text-muted);
+  font-size: var(--font-size-medium);
+}
+
+.settings-row-label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-medium);
+  line-height: 1.2;
+  color: var(--rs-text-strong);
+}
+
+.settings-row-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--rs-text-faint);
+  font-size: 1.2rem;
+}
+
+@media (max-width: 600px) {
+  .settings-field {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settings-toggle {
+    width: 100%;
+  }
+
+  .settings-toggle-option {
+    flex: 1;
+    min-width: 0;
+  }
+}
