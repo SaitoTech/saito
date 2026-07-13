@@ -52,6 +52,7 @@ class Tweet {
     this.is_reply = false;
     this.critical_child = null;
     this.time = '';
+    this.retweeters = [];
 
     if (this.tx) {
       this.parseFromTransaction();
@@ -59,8 +60,94 @@ class Tweet {
   }
 
   updateFromTransaction(tx) {
+    const previousOptional =
+      this.tx && this.tx.optional && typeof this.tx.optional === 'object' ? this.tx.optional : {};
+    const previousLikes = Number(this.likes) || Number(previousOptional.num_likes) || 0;
+    const previousReplies = Number(this.replies) || Number(previousOptional.num_replies) || 0;
+    const previousRetweets = Number(this.retweets) || Number(previousOptional.num_retweets) || 0;
+    const previousRetweeters = Array.isArray(previousOptional.retweeters)
+      ? previousOptional.retweeters.slice()
+      : Array.isArray(this.retweeters)
+        ? this.retweeters.slice()
+        : [];
+    const previousRetweetedAt = Number(previousOptional.retweeted_at) || 0;
+    const previousUpdatedAt =
+      Number(this.updated_at) || Number(previousOptional.updated_at) || Number(this.tx?.timestamp) || 0;
+
     this.tx = tx || this.tx;
     this.parseFromTransaction();
+
+    if (!this.tx.optional || typeof this.tx.optional !== 'object') {
+      this.tx.optional = {};
+    }
+
+    const incomingOptional = this.tx.optional;
+
+    this.tx.optional.num_replies = Math.max(
+      previousReplies,
+      Number(incomingOptional.num_replies) || 0
+    );
+    this.tx.optional.num_likes = Math.max(previousLikes, Number(incomingOptional.num_likes) || 0);
+    this.tx.optional.num_retweets = Math.max(
+      previousRetweets,
+      Number(incomingOptional.num_retweets) || 0
+    );
+
+    this.replies = this.tx.optional.num_replies;
+    this.likes = this.tx.optional.num_likes;
+    this.retweets = this.tx.optional.num_retweets;
+
+    if (Number(incomingOptional.num_retweets) > previousRetweets) {
+      if (Array.isArray(incomingOptional.retweeters)) {
+        this.tx.optional.retweeters = incomingOptional.retweeters.slice();
+      }
+      if (incomingOptional.retweeted_at != null) {
+        this.tx.optional.retweeted_at = incomingOptional.retweeted_at;
+      }
+    } else if (previousRetweets > Number(incomingOptional.num_retweets) || 0) {
+      this.tx.optional.retweeters = previousRetweeters.slice();
+      if (previousRetweetedAt > 0) {
+        this.tx.optional.retweeted_at = previousOptional.retweeted_at;
+      }
+    } else {
+      const incomingRetweeters = Array.isArray(incomingOptional.retweeters)
+        ? incomingOptional.retweeters
+        : [];
+      this.tx.optional.retweeters =
+        incomingRetweeters.length >= previousRetweeters.length
+          ? incomingRetweeters.slice()
+          : previousRetweeters.slice();
+
+      const incomingRetweetedAt = Number(incomingOptional.retweeted_at) || 0;
+      if (incomingRetweetedAt >= previousRetweetedAt && incomingRetweetedAt > 0) {
+        this.tx.optional.retweeted_at = incomingOptional.retweeted_at;
+      } else if (previousRetweetedAt > 0) {
+        this.tx.optional.retweeted_at = previousOptional.retweeted_at;
+      }
+    }
+
+    this.retweeters = Array.isArray(this.tx.optional.retweeters)
+      ? this.tx.optional.retweeters.slice()
+      : [];
+
+    const mergedUpdatedAt = Math.max(
+      previousUpdatedAt,
+      Number(incomingOptional.updated_at) || Number(this.updated_at) || 0
+    );
+
+    if (mergedUpdatedAt > 0) {
+      this.tx.optional.updated_at = mergedUpdatedAt;
+      this.updated_at = mergedUpdatedAt;
+    }
+
+    const statsChanged =
+      this.likes !== previousLikes ||
+      this.replies !== previousReplies ||
+      this.retweets !== previousRetweets;
+
+    if (statsChanged) {
+      this.refreshControls();
+    }
   }
 
   parseFromTransaction() {
@@ -83,11 +170,13 @@ class Tweet {
     this.embedded = this.normalizeEmbedded(data.embedded);
 
     this.created_at = Number(this.tx.timestamp) || Date.now();
-    this.updated_at = Number(optional.edit_ts) || this.created_at;
+    this.updated_at =
+      Number(optional.updated_at) || Number(optional.edit_ts) || this.created_at;
 
     this.likes = Number(optional.num_likes) || 0;
     this.replies = Number(optional.num_replies) || 0;
     this.retweets = Number(optional.num_retweets) || 0;
+    this.retweeters = Array.isArray(optional.retweeters) ? optional.retweeters.slice() : [];
 
     this.curated = optional.curated ? 1 : 0;
     this.flagged = optional.flagged ? 1 : 0;
@@ -187,6 +276,28 @@ class Tweet {
     this.tx.optional[optionalKey] = next;
 
     return this;
+  }
+
+  refreshControls() {
+    if (!this.app.BROWSER || !this.signature) {
+      return;
+    }
+
+    const selectors = [
+      ['comment', this.replies],
+      ['like', this.likes],
+      ['retweet', this.retweets]
+    ];
+
+    for (const [tool, count] of selectors) {
+      const nodes = document.querySelectorAll(
+        `article.tweet[data-id="${this.signature}"] .tweet-tool-${tool} .tweet-tool-${tool}-count`
+      );
+
+      for (const node of nodes) {
+        node.textContent = String(count);
+      }
+    }
   }
 
   render(container = '', options = {}) {

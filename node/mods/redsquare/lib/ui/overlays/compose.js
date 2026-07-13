@@ -20,23 +20,37 @@ class ComposeOverlay {
 
     this.default_reply_to = reply_to;
     this.reply_to = reply_to;
+    this.mode = 'post';
     this.images = [];
     this.posting = false;
     this.drag_drop_bound = false;
   }
 
   open(options = {}) {
-    this.reply_to = options.reply_to || options.parentTweet || this.default_reply_to;
     this.images = [];
     this.posting = false;
     this.drag_drop_bound = false;
+
+    if (options.mode === 'retweet' || options.retweet_of) {
+      this.mode = 'retweet';
+      this.reply_to = options.retweet_of || options.reply_to || this.default_reply_to;
+    } else if (options.reply_to || options.parentTweet) {
+      this.mode = 'reply';
+      this.reply_to = options.reply_to || options.parentTweet;
+    } else {
+      this.mode = 'post';
+      this.reply_to = this.default_reply_to;
+    }
 
     const profile = this.mod.profile || {};
 
     this.avatar = profile.avatar || '/saito/img/dreamscape.png';
     this.display_name = profile.name || 'You';
 
-    if (this.reply_to) {
+    if (this.mode === 'retweet') {
+      this.placeholder = 'Add a comment…';
+      this.helper_text = 'Add optional commentary or leave empty to retweet…';
+    } else if (this.mode === 'reply') {
       this.placeholder = 'Post your reply…';
       this.helper_text = 'Add your reply or drag-and-drop images…';
     } else {
@@ -60,6 +74,7 @@ class ComposeOverlay {
     this.overlay.close();
     this.images = [];
     this.reply_to = this.default_reply_to;
+    this.mode = 'post';
     this.posting = false;
   }
 
@@ -319,9 +334,26 @@ class ComposeOverlay {
       data.images = this.images.slice();
     }
 
-    if (this.reply_to) {
+    if (this.mode === 'reply' && this.reply_to) {
       data.parent_id = this.reply_to.signature || '';
       data.thread_id = this.reply_to.thread_id || this.reply_to.signature || '';
+    }
+
+    return data;
+  }
+
+  buildRetweetData() {
+    const text = this.getText().trim();
+    const data = {
+      signature: this.reply_to?.signature || ''
+    };
+
+    if (text) {
+      data.text = text;
+    }
+
+    if (this.images.length > 0) {
+      data.images = this.images.slice();
     }
 
     return data;
@@ -353,9 +385,15 @@ class ComposeOverlay {
     }
 
     const text = this.getText().trim();
+    const isRetweet = this.mode === 'retweet';
 
-    if (this.images.length === 0 && text.length === 0) {
+    if (!isRetweet && this.images.length === 0 && text.length === 0) {
       siteMessage('Post Empty', 1000);
+      return;
+    }
+
+    if (isRetweet && !this.reply_to?.signature) {
+      siteMessage('Unable to retweet', 2500);
       return;
     }
 
@@ -372,8 +410,32 @@ class ComposeOverlay {
     });
 
     try {
-      const data = this.buildPostData();
       const keys = this.collectRecipientKeys();
+
+      if (isRetweet) {
+        const data = this.buildRetweetData();
+
+        const [, tx] = await Promise.all([
+          minimumAnimation,
+          (async () => {
+            const unsigned = await this.mod.createRetweetTransaction(data, keys);
+            await unsigned.sign();
+            await this.app.network.propagateTransaction(unsigned);
+            return unsigned;
+          })()
+        ]);
+
+        await this.mod.receiveRetweetTransaction(tx);
+
+        if (!this.mod.browser_active) {
+          siteMessage('Retweet sent', 1000);
+        }
+
+        this.close();
+        return;
+      }
+
+      const data = this.buildPostData();
 
       const [, tx] = await Promise.all([
         minimumAnimation,
@@ -385,7 +447,7 @@ class ComposeOverlay {
         })()
       ]);
 
-      const tweet = this.mod.addTweet(tx);
+      const tweet = await this.mod.receiveTweetTransaction(tx);
 
       if (tweet) {
         this.mod.manager?.onTweetPosted(tweet);
@@ -398,7 +460,7 @@ class ComposeOverlay {
       this.close();
     } catch (err) {
       console.error('RedSquare compose submit failed:', err);
-      siteMessage('Unable to post tweet', 2500);
+      siteMessage(isRetweet ? 'Unable to retweet' : 'Unable to post tweet', 2500);
       this.setPostingState(false);
       this.posting = false;
     }

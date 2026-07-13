@@ -2,7 +2,7 @@
  * RedSquare settings overlay — panel layout only.
  * Close control: standard SaitoOverlay closebox (saito-overlay.css).
  * List rows: saito-menu-select-subtle (saito-buttons.css).
- * Primary action: saito-button-primary in markup.
+ * Secondary action: saito-button-secondary (whitelist).
  */
 
 .saito-overlay .settings-overlay {
@@ -62,55 +62,92 @@
   color: var(--rs-text-muted);
 }
 
-.settings-field {
+.settings-preference-group {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--rs-space-md);
-  padding: var(--rs-space-sm) 0;
+  flex-direction: column;
+  gap: var(--rs-space-xs);
+  margin-top: var(--rs-space-xs);
 }
 
-.settings-field-label {
-  font-size: var(--font-size-medium);
-  color: var(--rs-text);
-}
-
-.settings-toggle {
-  display: inline-flex;
-  align-items: stretch;
-  padding: 0.25rem;
-  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
-  border-radius: var(--rs-radius-pill);
-  background: var(--rs-layer-recessed);
-  gap: 0.2rem;
-}
-
-.settings-toggle-option {
-  min-width: 9rem;
-  min-height: 3.6rem;
-  padding: 0 var(--rs-space-md);
-  border-radius: var(--rs-radius-pill);
+.settings-preference {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rs-space-sm);
+  margin: 0;
+  padding: var(--rs-space-sm) var(--rs-space-md);
+  border: var(--border-thickness-thin, 1px) solid transparent;
+  border-radius: var(--rs-radius);
   background: transparent;
-  color: var(--rs-text-muted);
-  font-family: var(--saito-font);
-  font-size: var(--font-size-medium);
-  line-height: 1;
+  color: var(--rs-text);
   cursor: pointer;
   transition:
     background var(--rs-transition),
-    color var(--rs-transition),
-    box-shadow var(--rs-transition);
+    border-color var(--rs-transition);
 }
 
-.settings-toggle-option.active {
+.settings-preference:hover {
+  background: var(--rs-layer-recessed);
+  border-color: var(--rs-border-subtle);
+}
+
+.settings-preference:has(input:focus-visible) {
+  border-color: var(--rs-input-border-focus, var(--rs-border));
+}
+
+.settings-preference input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.settings-preference-indicator {
+  position: relative;
+  flex-shrink: 0;
+  width: 1.8rem;
+  height: 1.8rem;
+  margin-top: 0.15rem;
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-strong, var(--rs-border-subtle));
+  border-radius: 50%;
+  background: var(--rs-layer-recessed);
+  box-sizing: border-box;
+}
+
+.settings-preference-indicator::after {
+  content: '';
+  position: absolute;
+  inset: 0.35rem;
+  border-radius: 50%;
+  background: var(--rs-text-strong);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity var(--rs-transition),
+    transform var(--rs-transition);
+}
+
+.settings-preference:has(input:checked) .settings-preference-indicator {
+  border-color: var(--rs-text-strong);
   background: var(--rs-layer-base);
-  color: var(--rs-text-strong);
-  box-shadow: 0 0.1rem 0.35rem color-mix(in srgb, var(--saito-background-color) 35%, transparent);
 }
 
-.settings-toggle-option:focus-visible {
-  outline: none;
-  box-shadow: var(--saito-focus-ring);
+.settings-preference:has(input:checked) .settings-preference-indicator::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.settings-preference-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-medium);
+  line-height: 1.4;
+  color: var(--rs-text);
+}
+
+.settings-preference:has(input:checked) .settings-preference-text {
+  color: var(--rs-text-strong);
 }
 
 .settings-list {
@@ -138,14 +175,14 @@
 }
 
 .settings-row-inline {
-  justify-content: flex-end;
+  justify-content: flex-start;
   min-height: auto;
-  padding: var(--rs-space-sm) var(--rs-space-md);
-  border-style: dashed;
+  padding: var(--rs-space-xs) 0 0;
+  border: none;
   background: transparent;
 }
 
-.settings-row-inline .saito-button-primary {
+.settings-row-inline .saito-button-secondary {
   margin: 0;
 }
 
@@ -174,20 +211,4 @@
   flex-shrink: 0;
   color: var(--rs-text-faint);
   font-size: 1.2rem;
-}
-
-@media (max-width: 600px) {
-  .settings-field {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .settings-toggle {
-    width: 100%;
-  }
-
-  .settings-toggle-option {
-    flex: 1;
-    min-width: 0;
-  }
 }

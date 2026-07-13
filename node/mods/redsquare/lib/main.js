@@ -14,8 +14,8 @@ class Main {
     this.menu = new Menu(app, mod, '.sidebar-left', this.composer);
     this.manager = mod.manager;
     this.manager.container = '.manager';
-    this.profile = new Profile(app, mod, '.profile');
-    this.sidebar = new Sidebar(app, mod, '.sidebar');
+    this.profile = new Profile(app, mod, '.sidebar-right > .profile');
+    this.sidebar = new Sidebar(app, mod, '.sidebar-right > .sidebar');
   }
 
   render(container = '') {

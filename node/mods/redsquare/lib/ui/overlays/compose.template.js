@@ -1,8 +1,17 @@
 const TweetTemplate = require('../../tweet.template');
 
 module.exports = (compose) => {
-  const ariaLabel = compose.reply_to ? 'Reply' : 'Compose post';
-  const submitLabel = compose.reply_to ? 'Reply' : 'Post';
+  const mode = compose.mode || 'post';
+  const ariaLabel =
+    mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Compose post';
+  const submitLabel =
+    mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Post';
+  const modeClass =
+    mode === 'retweet'
+      ? 'compose-overlay--retweet'
+      : mode === 'reply'
+        ? 'compose-overlay--reply'
+        : 'compose-overlay--post';
 
   let replyPreview = '';
 
@@ -15,32 +24,34 @@ module.exports = (compose) => {
   }
 
   return `
-    <div class="compose-overlay" id="${compose.overlay_id}" aria-label="${ariaLabel}">
+    <div class="compose-overlay ${modeClass}" id="${compose.overlay_id}" aria-label="${ariaLabel}">
       <div class="compose-overlay-body">
         ${replyPreview}
 
-        <div class="compose-author">
+        <div class="compose-composer">
           <img class="compose-author-avatar saito-identicon" src="${compose.avatar}" alt="" />
-          <div class="compose-author-meta">
-            <span class="saito-address compose-author-name">${compose.display_name}</span>
-            <p class="compose-helper">${compose.helper_text}</p>
+          <div class="compose-composer-main">
+            <div class="compose-author-meta">
+              <span class="saito-address compose-author-name">${compose.display_name}</span>
+              <p class="compose-helper">${compose.helper_text}</p>
+            </div>
+
+            <div class="compose-surface" id="redsquare-compose-surface">
+              <textarea
+                class="compose-input"
+                placeholder="${compose.placeholder}"
+                rows="4"
+                maxlength="${compose.char_limit}"
+              ></textarea>
+
+              <div class="compose-gif-placeholder" aria-hidden="true">
+                <p>GIF search is coming soon.</p>
+                <span class="compose-gif-dismiss" role="button" tabindex="0">Dismiss</span>
+              </div>
+
+              <div class="compose-image-preview"></div>
+            </div>
           </div>
-        </div>
-
-        <div class="compose-surface" id="redsquare-compose-surface">
-          <textarea
-            class="compose-input"
-            placeholder="${compose.placeholder}"
-            rows="4"
-            maxlength="${compose.char_limit}"
-          ></textarea>
-
-          <div class="compose-gif-placeholder" aria-hidden="true">
-            <p>GIF search is coming soon.</p>
-            <span class="compose-gif-dismiss" role="button" tabindex="0">Dismiss</span>
-          </div>
-
-          <div class="compose-image-preview"></div>
         </div>
       </div>
 
@@ -75,7 +86,7 @@ module.exports = (compose) => {
         <div class="compose-posting-loader">
           <div class="saito-loader"></div>
         </div>
-        <p class="compose-posting-message">Posting…</p>
+        <p class="compose-posting-message">${mode === 'retweet' ? 'Retweeting…' : 'Posting…'}</p>
       </div>
 
       <input

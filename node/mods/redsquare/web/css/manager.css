@@ -33,6 +33,19 @@
   flex-direction: column;
 }
 
+.manager-thread-context {
+  padding: var(--rs-space-sm) var(--rs-feed-x);
+  color: var(--rs-text-muted);
+  font-size: var(--font-size-tiny);
+  cursor: pointer;
+  transition: color var(--rs-transition);
+}
+
+.manager-thread-context:hover {
+  color: var(--rs-text-strong);
+  text-decoration: underline;
+}
+
 .manager-panel-hidden {
   display: none;
 }
@@ -81,63 +94,68 @@ article.tweet.tweet-enter {
   }
 }
 
-.manager-scroll-footer {
+.manager-feed-status {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
-  min-height: 8rem;
-  padding: var(--rs-feed-y) var(--rs-feed-x);
   box-sizing: border-box;
 }
 
-.manager-scroll-loader {
-  display: flex;
+.manager-feed-status-loader {
+  display: none;
   align-items: center;
   justify-content: center;
   width: 100%;
   min-height: 5.5rem;
-  opacity: 1;
-  transition: opacity 0.45s ease, transform 0.45s ease;
 }
 
-.manager-scroll-loader .saito-loader {
+.manager-feed-status-loader .saito-loader {
   width: 5.5rem;
   height: 5.5rem;
 }
 
-.manager-scroll-loader .saito-loader::after {
+.manager-feed-status-loader .saito-loader::after {
   width: 3.5rem;
   height: 3.5rem;
 }
 
-.manager-scroll-end-message {
+.manager-feed-status-message {
+  display: none;
   margin: 0;
   max-width: 24rem;
   text-align: center;
-  font-size: var(--rs-body-sm, 1.4rem);
+  font-size: var(--font-size-tiny);
   line-height: 1.4;
   color: var(--rs-text-muted, var(--saito-font-color-light));
-  opacity: 0;
-  transform: translateY(0.35rem);
-  transition: opacity 0.45s ease, transform 0.45s ease;
 }
 
-.manager-scroll-footer[data-state='loading'] .manager-scroll-end-message {
-  display: none;
+/* content — scroll sentinel only; no empty/end copy */
+.manager-feed-status[data-status='content'] {
+  min-height: 2.4rem;
+  padding: 1.2rem var(--rs-feed-x);
 }
 
-.manager-scroll-footer[data-state='end'] .manager-scroll-loader {
-  opacity: 0;
-  transform: scale(0.92);
-  pointer-events: none;
-  position: absolute;
+/* loading / empty / end — one visible status message */
+.manager-feed-status[data-status='loading'],
+.manager-feed-status[data-status='empty'],
+.manager-feed-status[data-status='end'] {
+  padding: 7rem var(--rs-feed-x) 5rem;
 }
 
-.manager-scroll-footer[data-state='end'] .manager-scroll-end-message {
-  opacity: 1;
-  transform: translateY(0);
+.manager-feed-status[data-status='loading'] .manager-feed-status-loader {
+  display: flex;
+}
+
+.manager-feed-status[data-status='loading'] .manager-feed-status-message,
+.manager-feed-status[data-status='empty'] .manager-feed-status-message,
+.manager-feed-status[data-status='end'] .manager-feed-status-message {
+  display: block;
+}
+
+.manager-feed-status[data-status='loading'] .manager-feed-status-message {
+  margin-top: var(--rs-space-md);
 }
 
 @media (max-width: 600px) {

@@ -16,10 +16,6 @@
   background: var(--rs-surface-hover);
 }
 
-.tweet:last-child {
-  border-bottom: none;
-}
-
 .tweet-avatar {
   grid-column: 1;
   grid-row: 1;

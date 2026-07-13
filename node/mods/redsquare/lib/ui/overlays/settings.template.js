@@ -18,8 +18,8 @@ module.exports = (app, mod) => {
           <i class="fa-solid fa-chevron-right"></i>
         </span>
       </div>
-      <div class="settings-row settings-row-inline disabled-option">
-        <button class="saito-button-primary small" id="add-whitelist" type="button">Add to whitelist</button>
+      <div class="settings-row settings-row-inline">
+        <button class="saito-button-secondary small" id="add-whitelist" type="button">Add to whitelist</button>
       </div>
     `;
   }
@@ -53,26 +53,32 @@ module.exports = (app, mod) => {
             preferences of your friends on the network.
           </p>
 
-          <div class="settings-field">
-            <span class="settings-field-label">RedSquare feed</span>
-            <div id="curation-toggle" class="settings-toggle${curated ? '' : ' active-right'}">
-              <div
-                class="settings-toggle-option${curated ? ' active' : ''}"
-                role="button"
-                tabindex="0"
-                data-view="curated"
-              >
-                Curated
-              </div>
-              <div
-                class="settings-toggle-option${curated ? '' : ' active'}"
-                role="button"
-                tabindex="0"
-                data-view="unfiltered"
-              >
-                Unfiltered
-              </div>
-            </div>
+          <div
+            id="curation-toggle"
+            class="settings-preference-group"
+            role="radiogroup"
+            aria-label="RedSquare feed preference"
+          >
+            <label class="settings-preference">
+              <input
+                type="radio"
+                name="redsquare-feed-curation"
+                value="curated"
+                ${curated ? 'checked' : ''}
+              />
+              <span class="settings-preference-indicator" aria-hidden="true"></span>
+              <span class="settings-preference-text">I would prefer a curated feed</span>
+            </label>
+            <label class="settings-preference">
+              <input
+                type="radio"
+                name="redsquare-feed-curation"
+                value="unfiltered"
+                ${curated ? '' : 'checked'}
+              />
+              <span class="settings-preference-indicator" aria-hidden="true"></span>
+              <span class="settings-preference-text">I would prefer a totally unfiltered feed</span>
+            </label>
           </div>
         </section>
 
