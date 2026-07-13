@@ -7,26 +7,32 @@
 
 .sidebar-search {
   position: relative;
+  width: 100%;
 }
 
+/*
+ * The field owns the search box chrome. Nested input must not paint a box —
+ * see redsquare-base.css framed-field reset (Saito input borders leak otherwise).
+ */
 .sidebar-search-field {
   display: flex;
   align-items: center;
   gap: var(--rs-space-xs);
+  width: 100%;
   min-height: var(--rs-btn-height-compact);
+  margin: 0;
   padding: 0 var(--rs-sidebar-pad);
-  border: var(--border-thickness-thin, 1px) solid transparent;
+  border: var(--border-thickness-thin, 1px) solid var(--rs-input-border, var(--rs-border-subtle));
   border-radius: var(--rs-radius-pill);
-  background: var(--rs-layer-recessed);
+  background: var(--rs-input-bg, var(--rs-layer-recessed));
+  box-sizing: border-box;
   cursor: text;
-  transition:
-    border-color var(--rs-transition),
-    background var(--rs-transition);
+  transition: border-color var(--rs-transition);
 }
 
 .sidebar-search-field:focus-within {
-  border-color: var(--rs-border);
-  background: color-mix(in srgb, var(--rs-layer-recessed) 70%, var(--rs-layer-base) 30%);
+  border-color: var(--rs-input-border-focus, var(--rs-border));
+  box-shadow: none;
 }
 
 .sidebar-search-icon {
@@ -46,23 +52,31 @@
   line-height: 1;
 }
 
-.sidebar-search input {
+.sidebar-search-field input {
   flex: 1;
   min-width: 0;
   min-height: calc(var(--rs-btn-height-compact) - 0.2rem);
+  margin: 0;
   padding: 0;
   border: none;
-  background: transparent;
-  color: var(--saito-input-fg);
-  font-size: var(--font-size-tiny);
-}
-
-.sidebar-search input::placeholder {
-  color: var(--saito-input-placeholder);
-}
-
-.sidebar-search input:focus {
   outline: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--rs-input-fg, var(--saito-input-fg));
+  font-size: var(--font-size-tiny);
+  font-family: inherit;
+}
+
+.sidebar-search-field input::placeholder {
+  color: var(--rs-input-placeholder, var(--saito-input-placeholder));
+}
+
+.sidebar-search-field input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+  background: transparent;
 }
 
 .sidebar-panel {

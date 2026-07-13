@@ -14,13 +14,17 @@ class Manager {
     this.mode = 'timeline';
     this.active_signature = '';
     this.active_thread_id = '';
+    this.active_profile_key = '';
 
     this.timeline_rendered = false;
     this.notifications_rendered = false;
     this.scroll_positions = {
       timeline: 0,
       notifications: 0,
-      thread: 0
+      thread: 0,
+      posts: 0,
+      replies: 0,
+      likes: 0
     };
 
     this.pagination = this.createPaginationState();
@@ -51,6 +55,24 @@ class Manager {
         exhausted: false,
         mockPage: 0,
         chain: []
+      },
+      posts: {
+        cursor: 0,
+        batchSize: 20,
+        loading: false,
+        exhausted: false
+      },
+      replies: {
+        cursor: 0,
+        batchSize: 20,
+        loading: false,
+        exhausted: false
+      },
+      likes: {
+        cursor: 0,
+        batchSize: 20,
+        loading: false,
+        exhausted: false
       }
     };
   }
@@ -61,6 +83,7 @@ class Manager {
     this.saveScrollPosition(previousMode);
     this.mode = 'timeline';
     this.active_signature = '';
+    this.active_profile_key = '';
     this.render();
 
     if (previousMode !== 'timeline') {
@@ -76,6 +99,7 @@ class Manager {
     this.saveScrollPosition();
     this.mod.markNotificationsViewed?.();
     this.mode = 'notifications';
+    this.active_profile_key = '';
     this.render();
     this.restoreScrollPosition('notifications');
     this.syncScrollFooter();
@@ -90,11 +114,50 @@ class Manager {
     this.mode = 'thread';
     this.active_signature = signature || '';
     this.active_thread_id = tweet ? tweet.thread_id || tweet.signature : '';
+    this.active_profile_key = '';
     this.scroll_positions.thread = 0;
     this.resetThreadPagination(signature);
     this.render();
     this.restoreScrollPosition('thread');
     this.syncScrollFooter();
+  }
+
+  renderPosts(publicKey = '') {
+    this.renderProfileView('posts', publicKey);
+  }
+
+  renderReplies(publicKey = '') {
+    this.renderProfileView('replies', publicKey);
+  }
+
+  renderLikes(publicKey = '') {
+    this.renderProfileView('likes', publicKey);
+  }
+
+  renderProfileView(mode, publicKey = '') {
+    this.saveScrollPosition();
+    this.mode = mode;
+    this.active_signature = '';
+    this.active_thread_id = '';
+    this.active_profile_key = publicKey || this.mod.publicKey || '';
+    this.scroll_positions[mode] = 0;
+
+    if (!this.pagination[mode]) {
+      this.pagination[mode] = {
+        cursor: 0,
+        batchSize: 20,
+        loading: false,
+        exhausted: false
+      };
+    } else {
+      this.pagination[mode].cursor = 0;
+      this.pagination[mode].loading = false;
+      this.pagination[mode].exhausted = false;
+    }
+
+    this.render();
+    this.restoreScrollPosition(mode);
+    this.syncFeedStatus();
   }
 
   render(container = '') {
@@ -112,6 +175,11 @@ class Manager {
       case 'notifications':
         this.paintNotifications();
         break;
+      case 'posts':
+      case 'replies':
+      case 'likes':
+        this.paintProfileView();
+        break;
       case 'timeline':
       default:
         this.paintTimeline();
@@ -121,12 +189,17 @@ class Manager {
     this.updateHeaderNavigation();
     this.attachEvents();
     this.syncScrollFooter();
+    this.syncProfileNav();
   }
 
   ensureShell() {
     const root = document.querySelector(this.container);
 
-    if (!root || root.querySelector('.manager-timeline')) {
+    if (
+      root &&
+      root.querySelector('.manager-timeline') &&
+      root.querySelector('.manager-profile')
+    ) {
       return;
     }
 
@@ -148,6 +221,8 @@ class Manager {
     const timeline = root.querySelector('.manager-timeline');
     const thread = root.querySelector('.manager-thread');
     const notifications = root.querySelector('.manager-notifications');
+    const profile = root.querySelector('.manager-profile');
+    const profileModes = this.mode === 'posts' || this.mode === 'replies' || this.mode === 'likes';
 
     if (timeline) {
       timeline.classList.toggle('manager-panel-hidden', this.mode !== 'timeline');
@@ -161,11 +236,19 @@ class Manager {
       notifications.classList.toggle('manager-panel-hidden', this.mode !== 'notifications');
     }
 
+    if (profile) {
+      profile.classList.toggle('manager-panel-hidden', !profileModes);
+    }
+
     if (this.mode !== 'timeline') {
       this.hideNewPostsBanner();
     } else if (this.pending_newer_tweets.length) {
       this.showNewPostsBanner();
     }
+  }
+
+  syncProfileNav() {
+    this.mod.main?.profile?.syncActiveNav(this.mode);
   }
 
   updateHeaderNavigation() {
@@ -226,15 +309,48 @@ class Manager {
   }
 
   getEndMessage() {
-    switch (this.mode) {
-      case 'notifications':
-        return "You're all caught up";
-      case 'thread':
-        return 'No more replies in this thread';
-      case 'timeline':
-      default:
-        return 'No more tweets available';
-    }
+    return this.getFeedStatusMessage('end');
+  }
+
+  getFeedStatusMessage(status) {
+    const messages = {
+      timeline: {
+        loading: 'Loading tweets...',
+        empty: 'No tweets yet.',
+        end: 'No more tweets.'
+      },
+      notifications: {
+        loading: 'Loading notifications...',
+        empty: 'No notifications.',
+        end: 'No more notifications.'
+      },
+      thread: {
+        loading: 'Loading replies...',
+        empty: 'No replies.',
+        end: 'No more replies.'
+      },
+      posts: {
+        loading: 'Loading posts...',
+        empty: 'No posts yet.',
+        end: 'No more posts.'
+      },
+      replies: {
+        loading: 'Loading replies...',
+        empty: 'No replies.',
+        end: 'No more replies.'
+      },
+      likes: {
+        loading: 'Loading likes...',
+        empty: 'No liked posts.',
+        end: 'No more liked posts.'
+      }
+    };
+
+    return messages[this.mode]?.[status] || '';
+  }
+
+  isProfileMode() {
+    return this.mode === 'posts' || this.mode === 'replies' || this.mode === 'likes';
   }
 
   getActivePanelElement() {
@@ -249,6 +365,10 @@ class Manager {
         return root.querySelector('.manager-thread');
       case 'notifications':
         return root.querySelector('.manager-notifications');
+      case 'posts':
+      case 'replies':
+      case 'likes':
+        return root.querySelector('.manager-profile');
       case 'timeline':
       default:
         return root.querySelector('.manager-timeline');
@@ -261,6 +381,10 @@ class Manager {
         return `${this.container} .manager-thread`;
       case 'notifications':
         return `${this.container} .manager-notifications`;
+      case 'posts':
+      case 'replies':
+      case 'likes':
+        return `${this.container} .manager-profile`;
       case 'timeline':
       default:
         return `${this.container} .manager-timeline`;
@@ -277,6 +401,7 @@ class Manager {
 
   paintTimeline() {
     if (this.timeline_rendered || this._timeline_bootstrapping) {
+      this.syncFeedStatus();
       return;
     }
 
@@ -289,15 +414,18 @@ class Manager {
     }
 
     this._timeline_bootstrapping = true;
+    this.syncFeedStatus();
 
     if (this.timeline_rendered) {
       this._timeline_bootstrapping = false;
+      this.syncFeedStatus();
       return;
     }
 
     this.appendTimelineBatch();
     this.timeline_rendered = true;
     this._timeline_bootstrapping = false;
+    this.syncFeedStatus();
 
     this.fetchRemoteTransactions('tweets', 'newer');
   }
@@ -308,6 +436,7 @@ class Manager {
     this.clearPanel(container);
     this.renderThreadContextLink(container);
     this.appendThreadBatch();
+    this.syncFeedStatus();
   }
 
   renderThreadContextLink(container) {
@@ -335,11 +464,64 @@ class Manager {
 
   paintNotifications() {
     if (this.notifications_rendered) {
+      this.syncFeedStatus();
       return;
     }
 
     this.appendNotificationsBatch();
     this.notifications_rendered = true;
+    this.syncFeedStatus();
+  }
+
+  paintProfileView() {
+    const container = this.getActivePanelSelector();
+
+    this.clearPanel(container);
+
+    const tweets = this.collectProfileTweets();
+
+    for (const tweet of tweets) {
+      tweet.render(container);
+    }
+
+    // Local profile views are a completed load — no contradictory empty+end.
+    const state = this.getPaginationState();
+    state.loading = false;
+    state.exhausted = true;
+    this.syncFeedStatus();
+  }
+
+  collectProfileTweets() {
+    const key = this.active_profile_key || '';
+    const tweets = Object.values(this.mod.tweets || {});
+
+    let filtered = tweets;
+
+    if (this.mode === 'posts') {
+      filtered = tweets.filter(
+        (tweet) => (!key || tweet.publicKey === key) && !tweet.parent_id
+      );
+    } else if (this.mode === 'replies') {
+      filtered = tweets.filter(
+        (tweet) => (!key || tweet.publicKey === key) && Boolean(tweet.parent_id)
+      );
+    } else if (this.mode === 'likes') {
+      filtered = tweets.filter((tweet) => {
+        const likers = tweet.tx?.optional?.likers;
+
+        if (Array.isArray(likers) && key) {
+          return likers.includes(key);
+        }
+
+        return false;
+      });
+    }
+
+    return filtered.sort((a, b) => {
+      const tsA = Number(a.updated_at) || Number(a.created_at) || Number(a.tx?.timestamp) || 0;
+      const tsB = Number(b.updated_at) || Number(b.created_at) || Number(b.tx?.timestamp) || 0;
+      return tsB - tsA;
+    });
   }
 
   appendTimelineBatch() {
@@ -348,6 +530,7 @@ class Manager {
     const container = this.getActivePanelSelector();
 
     if (signatures.length === 0) {
+      this.syncFeedStatus();
       return 0;
     }
 
@@ -361,6 +544,8 @@ class Manager {
 
     state.cursor += signatures.length;
 
+    this.syncFeedStatus();
+
     return signatures.length;
   }
 
@@ -370,6 +555,7 @@ class Manager {
     const container = this.getActivePanelSelector();
 
     if (signatures.length === 0) {
+      this.syncFeedStatus();
       return 0;
     }
 
@@ -383,6 +569,8 @@ class Manager {
 
     state.cursor += signatures.length;
 
+    this.syncFeedStatus();
+
     return signatures.length;
   }
 
@@ -392,6 +580,11 @@ class Manager {
     const container = this.getActivePanelSelector();
 
     if (signatures.length === 0) {
+      if (state.cursor >= state.chain.length) {
+        state.exhausted = true;
+      }
+
+      this.syncFeedStatus();
       return 0;
     }
 
@@ -409,6 +602,12 @@ class Manager {
     }
 
     state.cursor += signatures.length;
+
+    if (state.cursor >= state.chain.length) {
+      state.exhausted = true;
+    }
+
+    this.syncFeedStatus();
 
     return signatures.length;
   }
@@ -545,23 +744,16 @@ class Manager {
     }
   }
 
-  isTweetInActiveThread(tweet) {
-    if (!tweet || !this.active_thread_id) {
-      return false;
-    }
-
-    const threadId = tweet.thread_id || tweet.signature;
-    return threadId === this.active_thread_id;
-  }
-
   renderTimelineForNewPost() {
     this.saveScrollPosition();
     this.mode = 'timeline';
     this.active_signature = '';
+    this.active_profile_key = '';
     this.scroll_positions.timeline = 0;
     this.updateModeVisibility();
     this.updateHeaderNavigation();
     this.resetMenuToHome();
+    this.syncProfileNav();
 
     if (!this.timeline_rendered) {
       this.paintTimeline();
@@ -720,6 +912,8 @@ class Manager {
     this.attachThreadContext(root);
     this.attachTweetMenu(root);
     this.attachTweetReply(root);
+    this.attachTweetLike(root);
+    this.attachTweetRetweet(root);
     this.attachScrollEvents();
   }
 
@@ -770,7 +964,90 @@ class Manager {
       const tweet = this.mod.getTweet(signature);
 
       if (tweet) {
-        this.mod.compose_overlay?.open({ reply_to: tweet });
+        this.mod.compose_overlay?.open({ reply_to: tweet, mode: 'reply' });
+      }
+    });
+  }
+
+  attachTweetLike(root) {
+    if (!root || root.dataset.tweetLikeBound === '1') {
+      return;
+    }
+
+    root.dataset.tweetLikeBound = '1';
+
+    root.addEventListener('click', async (e) => {
+      const likeButton = e.target.closest('.tweet-tool-like');
+
+      if (!likeButton) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const tweetArticle = likeButton.closest('article.tweet');
+      const signature = tweetArticle?.getAttribute('data-id') || '';
+      const tweet = this.mod.getTweet(signature);
+
+      if (!tweet?.signature) {
+        return;
+      }
+
+      const keys = [];
+
+      if (tweet.publicKey) {
+        keys.push(tweet.publicKey);
+      }
+
+      if (tweet.tx?.to) {
+        for (const slip of tweet.tx.to) {
+          const publicKey = slip?.publicKey;
+
+          if (publicKey && !keys.includes(publicKey)) {
+            keys.push(publicKey);
+          }
+        }
+      }
+
+      try {
+        const unsigned = await this.mod.createLikeTweetTransaction(
+          { signature: tweet.signature },
+          keys
+        );
+        await unsigned.sign();
+        await this.app.network.propagateTransaction(unsigned);
+        await this.mod.receiveLikeTweetTransaction(unsigned);
+      } catch (err) {
+        console.error('RedSquare like failed:', err);
+        siteMessage('Unable to like tweet', 2500);
+      }
+    });
+  }
+
+  attachTweetRetweet(root) {
+    if (!root || root.dataset.tweetRetweetBound === '1') {
+      return;
+    }
+
+    root.dataset.tweetRetweetBound = '1';
+
+    root.addEventListener('click', (e) => {
+      const retweetButton = e.target.closest('.tweet-tool-retweet');
+
+      if (!retweetButton) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const tweetArticle = retweetButton.closest('article.tweet');
+      const signature = tweetArticle?.getAttribute('data-id') || '';
+      const tweet = this.mod.getTweet(signature);
+
+      if (tweet) {
+        this.mod.compose_overlay?.open({ mode: 'retweet', retweet_of: tweet });
       }
     });
   }
@@ -1001,7 +1278,7 @@ class Manager {
 
     this.prependNotifications(result.added);
     this.pagination.notifications.exhausted = false;
-    this.hideScrollFooter();
+    this.syncFeedStatus();
   }
 
   prependTimelineTweets(signatures) {
@@ -1129,7 +1406,7 @@ class Manager {
 
     this.prependTimelineTweets(signatures);
     this.pagination.timeline.exhausted = false;
-    this.hideScrollFooter();
+    this.syncFeedStatus();
 
     if (scrollToTop) {
       requestAnimationFrame(() => {
@@ -1153,7 +1430,7 @@ class Manager {
   loadMoreIfNeeded() {
     const state = this.getPaginationState();
 
-    if (state.loading || state.exhausted) {
+    if (state.loading || state.exhausted || this.isProfileMode()) {
       return;
     }
 
@@ -1163,12 +1440,12 @@ class Manager {
   async loadMore() {
     const state = this.getPaginationState();
 
-    if (state.loading || state.exhausted) {
+    if (state.loading || state.exhausted || this.isProfileMode()) {
       return;
     }
 
     state.loading = true;
-    this.showScrollFooter('loading');
+    this.syncFeedStatus();
 
     let continueLoading = false;
 
@@ -1220,6 +1497,7 @@ class Manager {
       });
     } finally {
       state.loading = false;
+      this.syncFeedStatus();
     }
 
     if (continueLoading) {
@@ -1232,76 +1510,135 @@ class Manager {
 
     if (result.added?.length) {
       this.appendLoadedItems(result);
-      this.hideScrollFooter();
+      this.syncFeedStatus();
       return this.isNearBottom();
     }
 
     if (result.exhausted) {
       state.exhausted = true;
-      this.showScrollFooter('end', this.getEndMessage());
     }
 
+    this.syncFeedStatus();
     return false;
   }
 
   ensureScrollFooter() {
+    return this.ensureFeedStatus();
+  }
+
+  ensureFeedStatus() {
     const panel = this.getActivePanelElement();
 
     if (!panel) {
       return null;
     }
 
-    let footer = panel.querySelector('.manager-scroll-footer');
+    let footer = panel.querySelector('.manager-feed-status');
 
+    // Upgrade leftover terminator from earlier builds.
     if (!footer) {
-      this.app.browser.addElementToSelector(ManagerScrollFooterTemplate(), panel);
-      footer = panel.querySelector('.manager-scroll-footer');
+      const legacy = panel.querySelector('.manager-feed-end');
+
+      if (legacy) {
+        legacy.remove();
+      }
+
+      this.app.browser.addElementToElement(ManagerScrollFooterTemplate(), panel);
+      footer = panel.querySelector('.manager-feed-status');
+    }
+
+    if (footer && footer.parentNode === panel) {
+      panel.appendChild(footer);
     }
 
     return footer;
   }
 
-  showScrollFooter(state, message = '') {
-    const footer = this.ensureScrollFooter();
+  getRenderedItemCount() {
+    const panel = this.getActivePanelElement();
+
+    if (!panel) {
+      return 0;
+    }
+
+    return panel.querySelectorAll('article.tweet, article.notification').length;
+  }
+
+  hasCompletedInitialLoad() {
+    if (this.isProfileMode()) {
+      return true;
+    }
+
+    if (this.mode === 'timeline') {
+      return this.timeline_rendered && !this._timeline_bootstrapping;
+    }
+
+    if (this.mode === 'notifications') {
+      return this.notifications_rendered;
+    }
+
+    if (this.mode === 'thread') {
+      return true;
+    }
+
+    return true;
+  }
+
+  /**
+   * Mutually exclusive feed UI status:
+   * loading | content | empty | end
+   */
+  resolveFeedStatus() {
+    const state = this.getPaginationState();
+
+    if (state.loading || this._timeline_bootstrapping) {
+      return 'loading';
+    }
+
+    const count = this.getRenderedItemCount();
+
+    if (count === 0) {
+      if (!this.hasCompletedInitialLoad()) {
+        return 'loading';
+      }
+
+      return 'empty';
+    }
+
+    if (state.exhausted) {
+      return 'end';
+    }
+
+    return 'content';
+  }
+
+  syncFeedStatus() {
+    const footer = this.ensureFeedStatus();
 
     if (!footer) {
       return;
     }
 
-    footer.dataset.state = state;
+    const status = this.resolveFeedStatus();
+    footer.dataset.status = status;
 
-    const endMessage = footer.querySelector('.manager-scroll-end-message');
+    const message = footer.querySelector('.manager-feed-status-message');
 
-    if (endMessage) {
-      endMessage.textContent = state === 'end' ? message || this.getEndMessage() : '';
+    if (message) {
+      message.textContent = status === 'content' ? '' : this.getFeedStatusMessage(status);
     }
+  }
+
+  showScrollFooter() {
+    this.syncFeedStatus();
   }
 
   hideScrollFooter() {
-    const panel = this.getActivePanelElement();
-
-    if (!panel) {
-      return;
-    }
-
-    const footer = panel.querySelector('.manager-scroll-footer');
-
-    if (footer) {
-      footer.remove();
-    }
+    this.syncFeedStatus();
   }
 
   syncScrollFooter() {
-    const state = this.getPaginationState();
-
-    if (state.exhausted) {
-      this.showScrollFooter('end', this.getEndMessage());
-      return;
-    }
-
-    if (!state.loading) {
-      this.hideScrollFooter();
-    }
+    this.syncFeedStatus();
   }
 
   static isTweetActionTarget(element) {

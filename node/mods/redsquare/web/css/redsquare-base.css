@@ -117,6 +117,19 @@ body.redsquare-body {
   --rs-panel-x: var(--rs-sidebar-pad);
   --rs-row-y: var(--rs-space-xs);
 
+  /*
+   * Form controls — calm RedSquare inputs. Do not lean on --saito-focus-ring
+   * (orange glow in noir). Scope all overrides to body.redsquare-body.
+   */
+  --rs-input-bg: var(--saito-input-bg, var(--rs-layer-recessed));
+  --rs-input-fg: var(--saito-input-fg);
+  --rs-input-placeholder: var(--saito-input-placeholder);
+  --rs-input-border: var(--rs-border-subtle);
+  --rs-input-border-focus: var(--rs-border);
+  --rs-input-radius: var(--rs-radius);
+  --rs-input-shadow: none;
+  --rs-input-shadow-focus: none;
+
   --rs-col-left: 26rem;
   --rs-col-center: 58rem;
   --rs-col-right: 32rem;
@@ -209,12 +222,108 @@ body.redsquare-body #saito-container.saito-container {
  */
 body.redsquare-body .menu-post,
 body.redsquare-body .composer-submit,
-body.redsquare-body .profile-view,
+body.redsquare-body .profile-new-post,
 body.redsquare-body .sidebar-suggestion-follow,
 body.redsquare-body .compose-tool,
-body.redsquare-body .settings-row-inline .saito-button-primary {
+body.redsquare-body .settings-row-inline .saito-button-secondary {
   min-width: unset;
   margin: 0;
   text-transform: none;
   letter-spacing: normal;
+}
+
+/*
+ * Inputs — RedSquare owns control chrome; Saito globals must not leak in.
+ *
+ * Saito (saito-form-elements.css) paints every `input` / `textarea` with
+ * border + focus ring. RedSquare redefines that under body.redsquare-body.
+ *
+ * Two patterns:
+ *   1. Standalone controls — get a single RedSquare border/background.
+ *   2. Framed fields (.compose-surface, .composer-surface,
+ *      .sidebar-search-field) — the FRAME owns border/radius/background;
+ *      nested inputs are fully chrome-free so they cannot draw a second box.
+ *
+ * Nested resets use selectors that outrank both Saito globals and the
+ * standalone rules below (do not rely on a weaker `.sidebar-search input`
+ * carve-out — earlier builds lost that fight to `input:not([type=…])`).
+ */
+body.redsquare-body textarea,
+body.redsquare-body select,
+body.redsquare-body input[type='text'],
+body.redsquare-body input[type='search'],
+body.redsquare-body input[type='email'],
+body.redsquare-body input[type='number'],
+body.redsquare-body input[type='password'],
+body.redsquare-body input[type='url'],
+body.redsquare-body input:not([type]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--rs-input-bg);
+  color: var(--rs-input-fg);
+  border: var(--border-thickness-thin, 1px) solid var(--rs-input-border);
+  border-radius: var(--rs-input-radius);
+  box-shadow: var(--rs-input-shadow);
+}
+
+body.redsquare-body textarea:focus,
+body.redsquare-body select:focus,
+body.redsquare-body input[type='text']:focus,
+body.redsquare-body input[type='search']:focus,
+body.redsquare-body input[type='email']:focus,
+body.redsquare-body input[type='number']:focus,
+body.redsquare-body input[type='password']:focus,
+body.redsquare-body input[type='url']:focus,
+body.redsquare-body input:not([type]):focus {
+  outline: none;
+  border-color: var(--rs-input-border-focus);
+  box-shadow: var(--rs-input-shadow-focus);
+}
+
+body.redsquare-body .compose-surface .compose-input,
+body.redsquare-body .composer-surface .composer-input,
+body.redsquare-body .sidebar-search-field input,
+body.redsquare-body .sidebar-search-field input[type='search'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+}
+
+body.redsquare-body .compose-surface .compose-input:focus,
+body.redsquare-body .composer-surface .composer-input:focus,
+body.redsquare-body .sidebar-search-field input:focus,
+body.redsquare-body .sidebar-search-field input[type='search']:focus {
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  border: none;
+  background: transparent;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+body.redsquare-body .compose-surface:focus-within,
+body.redsquare-body .composer-surface:focus-within,
+body.redsquare-body .sidebar-search-field:focus-within {
+  border-color: var(--rs-input-border-focus);
+  box-shadow: none;
+}
+
+/* WebKit search decorations draw a second chrome box; strip them. */
+body.redsquare-body .sidebar-search-field input[type='search']::-webkit-search-decoration,
+body.redsquare-body .sidebar-search-field input[type='search']::-webkit-search-cancel-button,
+body.redsquare-body .sidebar-search-field input[type='search']::-webkit-search-results-button,
+body.redsquare-body .sidebar-search-field input[type='search']::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
 }

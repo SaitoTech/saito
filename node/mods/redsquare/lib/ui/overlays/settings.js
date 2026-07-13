@@ -65,23 +65,23 @@ class SettingsOverlay {
       return;
     }
 
-    const options = container.querySelectorAll('.settings-toggle-option');
+    const options = container.querySelectorAll('input[name="redsquare-feed-curation"]');
 
     options.forEach((option) => {
-      option.addEventListener('click', () => {
-        options.forEach((item) => item.classList.remove('active'));
-        option.classList.add('active');
+      option.addEventListener('change', () => {
+        if (!option.checked) {
+          return;
+        }
 
-        const unfiltered = option.dataset.view === 'unfiltered';
+        const curated = option.value === 'curated';
 
-        container.classList.toggle('active-right', unfiltered);
-        this.mod.curated = !unfiltered;
+        this.mod.curated = curated;
         this.mod.saveOptions();
 
         const scroller = document.querySelector('#saito-container');
 
         if (scroller) {
-          scroller.classList.toggle('active-curation', !unfiltered);
+          scroller.classList.toggle('active-curation', curated);
         }
       });
     });

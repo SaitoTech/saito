@@ -4,6 +4,10 @@
  * Panel chrome (background, border, radius, shadow) and the close button are
  * inherited from the standard SaitoOverlay conventions (saito-overlay.css).
  * This file only lays out the compose content.
+ *
+ * Shared horizontal rhythm with tweets:
+ *   body pad-x == tweet pad-x; reply-preview tweets drop their own pad-x
+ *   so parent + composer avatars share one vertical axis.
  */
 
 .saito-overlay .compose-overlay {
@@ -18,45 +22,75 @@
 .compose-overlay-body {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-sm);
-  padding: var(--saito-space-lg);
+  gap: 0;
+  padding: var(--rs-space-lg) var(--rs-tweet-pad-x);
   overflow-y: auto;
 }
 
 /*
  * Reply preview — the tweet being replied to, rendered by the Tweet template.
- * Scrolls internally past max-height; fully non-interactive.
+ * Horizontal padding is stripped so the tweet avatar aligns with .compose-composer.
  */
 .compose-reply-preview {
   max-height: min(32vh, 26rem);
   overflow-y: auto;
+  margin: 0 calc(-1 * var(--rs-tweet-pad-x));
+  padding: 0 var(--rs-tweet-pad-x) var(--rs-space-md);
   border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
 }
 
 .compose-reply-preview article.tweet {
+  --tweet-current-pad-x: 0;
   pointer-events: none;
   cursor: default;
   border-bottom: none;
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 0;
+  padding-bottom: var(--rs-tweet-pad-y);
+  background: transparent;
 }
 
-.compose-author {
+.compose-reply-preview article.tweet:hover {
+  background: transparent;
+}
+
+/* Composer block — same avatar | content grid as .tweet */
+.compose-composer {
   display: grid;
   grid-template-columns: var(--rs-tweet-avatar) minmax(0, 1fr);
   column-gap: var(--rs-tweet-header-gap);
-  align-items: center;
+  align-items: start;
+  padding-top: var(--rs-space-lg);
+}
+
+.compose-overlay--reply .compose-composer,
+.compose-overlay--retweet .compose-composer {
+  padding-top: var(--rs-space-xl);
 }
 
 .compose-author-avatar {
+  grid-column: 1;
   width: var(--rs-tweet-avatar);
   height: var(--rs-tweet-avatar);
   border-radius: var(--rs-identicon-radius);
   object-fit: cover;
 }
 
+.compose-composer-main {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-tweet-text-gap);
+  min-width: 0;
+}
+
 .compose-author-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  justify-content: space-between;
+  gap: var(--rs-space-xs);
+  min-height: var(--rs-tweet-avatar);
   min-width: 0;
 }
 
@@ -69,24 +103,23 @@
   margin: 0;
   font-size: var(--font-size-tiny);
   line-height: 1.35;
-  color: var(--saito-font-color-secondary);
+  color: var(--rs-text-muted);
 }
 
 .compose-surface {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-xs);
-  padding: var(--saito-space-sm);
-  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
-  border-radius: var(--saito-border-radius);
-  background: var(--rs-layer-recessed);
-  transition:
-    border-color var(--rs-transition),
-    background var(--rs-transition);
+  gap: var(--rs-space-xs);
+  padding: var(--rs-space-sm);
+  border: var(--border-thickness-thin, 1px) solid var(--rs-input-border, var(--rs-border-subtle));
+  border-radius: var(--rs-input-radius, var(--rs-radius));
+  background: var(--rs-input-bg, var(--rs-layer-recessed));
+  transition: border-color var(--rs-transition);
 }
 
 .compose-surface:focus-within {
-  border-color: var(--rs-border);
+  border-color: var(--rs-input-border-focus, var(--rs-border));
+  box-shadow: none;
 }
 
 .compose-input {
@@ -95,19 +128,24 @@
   min-height: 8rem;
   padding: 0;
   border: none;
+  border-radius: 0;
   background: transparent;
-  color: var(--saito-input-fg);
+  box-shadow: none;
+  color: var(--rs-input-fg, var(--saito-input-fg));
   font-size: inherit;
   line-height: 2rem;
   resize: vertical;
 }
 
 .compose-input::placeholder {
-  color: var(--saito-input-placeholder);
+  color: var(--rs-input-placeholder, var(--saito-input-placeholder));
 }
 
 .compose-input:focus {
   outline: none;
+  border: none;
+  box-shadow: none;
+  background: transparent;
 }
 
 .compose-image-preview {
@@ -124,7 +162,7 @@
   position: relative;
   margin: 0;
   aspect-ratio: 1;
-  border-radius: var(--saito-radius-sm);
+  border-radius: var(--rs-radius-sm);
   overflow: hidden;
   border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
 }
@@ -147,25 +185,25 @@
   height: 2rem;
   padding: 0;
   border: none;
-  border-radius: var(--saito-radius-full);
+  border-radius: var(--rs-radius-pill);
   background: color-mix(in srgb, var(--saito-background-color) 80%, transparent);
-  color: var(--saito-font-color-heavy);
+  color: var(--rs-text-strong);
   cursor: pointer;
 }
 
 .compose-image-remove:hover {
-  background: var(--saito-surface-hover);
+  background: var(--rs-surface-hover);
 }
 
 .compose-gif-placeholder {
   display: none;
   align-items: center;
   justify-content: space-between;
-  gap: var(--saito-space-sm);
-  padding: var(--saito-space-xs) var(--saito-space-sm);
-  border-radius: var(--saito-radius-sm);
+  gap: var(--rs-space-sm);
+  padding: var(--rs-space-xs) var(--rs-space-sm);
+  border-radius: var(--rs-radius-sm);
   border: var(--border-thickness-thin, 1px) dashed var(--rs-border-subtle);
-  color: var(--saito-font-color-secondary);
+  color: var(--rs-text-muted);
   font-size: var(--font-size-tiny);
 }
 
@@ -179,7 +217,7 @@
 
 .compose-gif-dismiss {
   flex-shrink: 0;
-  color: var(--saito-primary);
+  color: var(--rs-accent);
   cursor: pointer;
 }
 
@@ -188,8 +226,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--saito-space-sm);
-  padding: var(--saito-space-sm) var(--saito-space-lg) var(--saito-space-md);
+  gap: var(--rs-space-sm);
+  padding: var(--rs-space-sm) var(--rs-tweet-pad-x) var(--rs-space-md);
   border-top: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
 }
 
@@ -197,9 +235,9 @@
 .compose-tools {
   display: flex;
   align-items: center;
-  gap: var(--saito-space-xs);
+  gap: var(--rs-space-xs);
   min-width: 0;
-  color: var(--saito-font-color-secondary);
+  color: var(--rs-text-muted);
 }
 
 .compose-tool {
@@ -208,7 +246,7 @@
   justify-content: center;
   width: var(--rs-icon-btn, 3.4rem);
   height: var(--rs-icon-btn, 3.4rem);
-  border-radius: var(--saito-radius-full);
+  border-radius: var(--rs-radius-pill);
   color: inherit;
   cursor: pointer;
   transition:
@@ -222,14 +260,14 @@
 }
 
 .compose-tool:hover {
-  background: var(--saito-surface-hover);
-  color: var(--saito-font-color-heavy);
+  background: var(--rs-surface-hover);
+  color: var(--rs-text-strong);
 }
 
 .compose-footer-actions {
   display: flex;
   align-items: center;
-  gap: var(--saito-space-md);
+  gap: var(--rs-space-md);
   flex-shrink: 0;
 }
 
@@ -238,14 +276,14 @@
   align-items: center;
   gap: 0.1rem;
   font-size: var(--font-size-tiny);
-  color: var(--saito-font-color-secondary);
+  color: var(--rs-text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   transition: color var(--rs-transition);
 }
 
 .compose-char-count.warning {
-  color: var(--saito-primary);
+  color: var(--rs-accent);
 }
 
 .compose-char-separator {
@@ -256,7 +294,7 @@
   position: relative;
   min-width: 11rem;
   min-height: var(--rs-nav-post-height, 4.4rem);
-  border-radius: var(--saito-radius-full);
+  border-radius: var(--rs-radius-pill);
 }
 
 .compose-submit-spinner {
@@ -288,7 +326,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--saito-space-sm);
+  gap: var(--rs-space-sm);
   background: color-mix(in srgb, var(--saito-overlay-panel-bg) 82%, transparent);
   opacity: 0;
   pointer-events: none;
@@ -319,7 +357,7 @@
 .compose-posting-message {
   margin: 0;
   font-size: var(--font-size-tiny);
-  color: var(--saito-font-color-secondary);
+  color: var(--rs-text-muted);
 }
 
 @keyframes compose-submit-spin {
@@ -335,11 +373,11 @@
   }
 
   .compose-overlay-body {
-    padding: var(--saito-space-md);
+    padding: var(--rs-space-md) var(--rs-tweet-pad-x);
   }
 
   .compose-overlay-footer {
-    padding: var(--saito-space-sm) var(--saito-space-md) var(--saito-space-md);
+    padding: var(--rs-space-sm) var(--rs-tweet-pad-x) var(--rs-space-md);
   }
 
   .compose-submit {

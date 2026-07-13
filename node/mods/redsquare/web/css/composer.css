@@ -29,18 +29,17 @@
 .composer-surface {
   display: flex;
   flex-direction: column;
-  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
-  border-radius: var(--rs-radius);
-  background: var(--rs-layer-recessed);
+  border: var(--border-thickness-thin, 1px) solid var(--rs-input-border, var(--rs-border-subtle));
+  border-radius: var(--rs-input-radius, var(--rs-radius));
+  background: var(--rs-input-bg, var(--rs-layer-recessed));
   overflow: hidden;
-  transition:
-    border-color var(--rs-transition),
-    background var(--rs-transition);
+  transition: border-color var(--rs-transition);
 }
 
 .composer-surface:focus-within {
-  border-color: var(--rs-border);
-  background: color-mix(in srgb, var(--rs-layer-recessed) 88%, var(--rs-layer-base) 12%);
+  border-color: var(--rs-input-border-focus, var(--rs-border));
+  background: var(--rs-input-bg, var(--rs-layer-recessed));
+  box-shadow: none;
 }
 
 .composer-input {
@@ -49,19 +48,24 @@
   min-height: var(--rs-composer-min-height);
   padding: var(--rs-space-sm) var(--rs-space-sm) var(--rs-space-xs);
   border: none;
+  border-radius: 0;
   background: transparent;
-  color: var(--saito-input-fg);
+  box-shadow: none;
+  color: var(--rs-input-fg, var(--saito-input-fg));
   font-size: inherit;
   line-height: 2rem;
   resize: none;
 }
 
 .composer-input::placeholder {
-  color: var(--saito-input-placeholder);
+  color: var(--rs-input-placeholder, var(--saito-input-placeholder));
 }
 
 .composer-input:focus {
   outline: none;
+  border: none;
+  box-shadow: none;
+  background: transparent;
 }
 
 .composer-actions {

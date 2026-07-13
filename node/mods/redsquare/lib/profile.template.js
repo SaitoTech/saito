@@ -1,20 +1,45 @@
 module.exports = (profile) => {
   let p = profile.profile || {};
+  const name = p.name || 'Profile';
+  const handle = p.handle != null ? String(p.handle).trim() : '';
+  const avatar = p.avatar || '/saito/img/dreamscape.png';
+  const banner = p.banner || avatar;
+  const bio = p.bio || '';
 
+  // Username / identifier only — never a public key in this slot.
+  const showHandle =
+    handle !== '' &&
+    handle.toLowerCase() !== 'anon' &&
+    handle.length <= 32 &&
+    !/^[0-9A-Fa-f]{16,}$/.test(handle);
+
+  const handleHtml = showHandle
+    ? `<span class="profile-handle">@${handle.replace(/^@/, '')}</span>`
+    : '';
+
+  // Injected into `.sidebar-right > .profile` — no outer `.profile` wrapper.
+  // Posts / Replies / Likes are navigation destinations, not tabs.
   return `
-    <section class="profile">
       <div class="profile-card">
-        <img class="profile-avatar" src="${p.avatar || '/saito/img/dreamscape.png'}" alt="${p.name || 'Profile'}" />
-        <span class="profile-name">${p.name || 'Profile'}</span>
-        <span class="profile-handle">@${p.handle || 'user'}</span>
-        <p class="profile-bio">${p.bio || ''}</p>
-        <div class="profile-stats">
-          <span class="profile-stat"><strong>${p.following || 0}</strong> Following</span>
-          <span class="profile-stat"><strong>${p.followers || 0}</strong> Followers</span>
+        <div class="profile-banner">
+          <img class="profile-banner-image" src="${banner}" alt="" />
         </div>
-        <button class="profile-new-post saito-button-primary small" type="button">New Post</button>
-        <button class="profile-view saito-button-secondary small" type="button">View profile</button>
+        <div class="profile-body">
+          <div class="profile-identity">
+            <img class="profile-avatar" src="${avatar}" alt="${name}" />
+            <div class="profile-identity-text">
+              <span class="profile-name">${name}</span>
+              ${handleHtml}
+            </div>
+          </div>
+          <p class="profile-bio">${bio}</p>
+          <nav class="profile-nav" aria-label="Profile navigation">
+            <div class="profile-nav-item" role="link" tabindex="0" data-profile-nav="posts">Posts</div>
+            <div class="profile-nav-item" role="link" tabindex="0" data-profile-nav="replies">Replies</div>
+            <div class="profile-nav-item" role="link" tabindex="0" data-profile-nav="likes">Likes</div>
+          </nav>
+          <button class="profile-new-post saito-button-primary" type="button">New Post</button>
+        </div>
       </div>
-    </section>
   `;
 };

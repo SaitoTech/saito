@@ -41,8 +41,8 @@ module.exports = (sidebar) => {
     )
     .join('');
 
+  // Injected into `.sidebar-right > .sidebar` — no outer `.sidebar` wrapper.
   return `
-    <div class="sidebar">
       <div class="sidebar-search">
         <label class="sidebar-search-field">
           <span class="sidebar-search-icon" aria-hidden="true">
@@ -82,6 +82,5 @@ module.exports = (sidebar) => {
         <a href="#">Privacy</a>
         <span>© 2026 Saito</span>
       </footer>
-    </div>
   `;
 };

@@ -5,6 +5,7 @@ module.exports = () => {
         <div class="manager-list manager-timeline"></div>
         <div class="manager-list manager-thread manager-panel-hidden"></div>
         <div class="manager-list manager-notifications manager-panel-hidden"></div>
+        <div class="manager-list manager-profile manager-panel-hidden"></div>
       </div>
     </section>
   `;

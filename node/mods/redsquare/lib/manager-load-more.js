@@ -109,7 +109,7 @@ function ingestThreadBatch(mod, threadId, parentSignature, page, batchSize) {
   return { added, updated, ignored };
 }
 
-async function loadThreadPage(mod, pagination, active_thread_id) {
+async function loadThreadPage(mod, pagination, active_thread_id, active_signature) {
   const pending = sliceUnrendered(pagination.chain, pagination.cursor, pagination.batchSize);
 
   if (pending.length > 0) {
@@ -120,7 +120,7 @@ async function loadThreadPage(mod, pagination, active_thread_id) {
     return makeLoadResult('thread', 'older', { exhausted: true });
   }
 
-  const parentSignature = pagination.chain[pagination.chain.length - 1] || '';
+  const parentSignature = active_signature || pagination.chain[0] || '';
 
   if (!parentSignature || !active_thread_id) {
     return makeLoadResult('thread', 'older', { exhausted: true });
@@ -146,12 +146,12 @@ async function loadThreadPage(mod, pagination, active_thread_id) {
   return makeLoadResult('thread', 'older', { ...buckets, exhausted: false });
 }
 
-async function loadMore({ mode, mod, pagination, active_thread_id }) {
+async function loadMore({ mode, mod, pagination, active_thread_id, active_signature }) {
   if (mode !== 'thread') {
     return makeLoadResult(mode || 'tweets', 'older', { exhausted: true });
   }
 
-  return loadThreadPage(mod, pagination.thread, active_thread_id);
+  return loadThreadPage(mod, pagination.thread, active_thread_id, active_signature);
 }
 
 module.exports = {

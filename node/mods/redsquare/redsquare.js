@@ -112,8 +112,9 @@ class RedSquare extends ModTemplate {
       this.profile = {
         name: 'Your Name',
         handle: 'you',
-        bio: 'Building on Saito. Open source enthusiast.',
+        bio: 'Building on Saito. Open source enthusiast. Say no to speed restrictions from people who dislike your opinions.',
         avatar: '/saito/img/dreamscape.png',
+        banner: '/saito/img/dreamscape.png',
         followers: 1284,
         following: 412,
         posts: 847
@@ -829,21 +830,84 @@ class RedSquare extends ModTemplate {
     return newtx;
   }
 
-  receiveTweetTransaction(tx) {
+  async receiveTweetTransaction(tx) {
     const tweet = this.addTweet(tx);
-
-    if (tweet?.parent_id) {
-      this.getTweet(tweet.parent_id)?.incrementStat('replies');
-    }
 
     if (this.app.BROWSER && Notifications.isAddressedToUser(this, tx)) {
       this.addNotification(tx);
     }
 
+    if (tweet?.parent_id && tweet.parent_id !== tweet.signature) {
+      const parent = this.getTweet(tweet.parent_id);
+      const interactionTs = Number(tx.timestamp) || Date.now();
+
+      if (parent?.tx) {
+        const parentTx = parent.tx;
+
+        if (!parentTx.optional || typeof parentTx.optional !== 'object') {
+          parentTx.optional = {};
+        }
+
+        const parentTs =
+          Number(parent.updated_at) ||
+          Number(parentTx.optional.updated_at) ||
+          Number(parentTx.timestamp) ||
+          0;
+
+        if (interactionTs > parentTs) {
+          parentTx.optional.num_replies = Number(parentTx.optional.num_replies) || 0;
+          parentTx.optional.num_replies += 1;
+          parentTx.optional.updated_at = interactionTs;
+          parent.replies = parentTx.optional.num_replies;
+          parent.updated_at = interactionTs;
+
+          await this.app.storage.updateTransaction(
+            parentTx,
+            { updated_at: interactionTs },
+            'localhost'
+          );
+
+          parent.refreshControls();
+        }
+      } else {
+        await new Promise((resolve) => {
+          this.app.storage.loadTransactions(
+            { sig: tweet.parent_id, field1: 'RedSquare' },
+            async (txs) => {
+              if (txs?.length > 0) {
+                const parentTx = txs[0];
+
+                if (!parentTx.optional || typeof parentTx.optional !== 'object') {
+                  parentTx.optional = {};
+                }
+
+                const parentTs =
+                  Number(parentTx.optional.updated_at) || Number(parentTx.timestamp) || 0;
+
+                if (interactionTs > parentTs) {
+                  parentTx.optional.num_replies = Number(parentTx.optional.num_replies) || 0;
+                  parentTx.optional.num_replies += 1;
+
+                  await this.app.storage.updateTransaction(
+                    parentTx,
+                    { updated_at: interactionTs },
+                    'localhost'
+                  );
+                }
+              }
+
+              resolve();
+            },
+            'localhost'
+          );
+        });
+      }
+    }
+
     return tweet;
   }
 
-  receiveLikeTweetTransaction(tx) {
+  async receiveLikeTweetTransaction(tx) {
     const txmsg = tx?.returnMessage?.() || tx?.msg || {};
     const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
 
@@ -851,10 +915,69 @@ class RedSquare extends ModTemplate {
       return null;
     }
 
+    const interactionTs = Number(tx.timestamp) || Date.now();
     const tweet = this.getTweet(targetSignature);
 
-    if (tweet) {
-      tweet.incrementStat('likes');
+    if (tweet?.tx) {
+      const targetTx = tweet.tx;
+
+      if (!targetTx.optional || typeof targetTx.optional !== 'object') {
+        targetTx.optional = {};
+      }
+
+      const targetTs =
+        Number(tweet.updated_at) ||
+        Number(targetTx.optional.updated_at) ||
+        Number(targetTx.timestamp) ||
+        0;
+
+      if (interactionTs > targetTs) {
+        targetTx.optional.num_likes = Number(targetTx.optional.num_likes) || 0;
+        targetTx.optional.num_likes += 1;
+        targetTx.optional.updated_at = interactionTs;
+        tweet.likes = targetTx.optional.num_likes;
+        tweet.updated_at = interactionTs;
+
+        await this.app.storage.updateTransaction(
+          targetTx,
+          { updated_at: interactionTs },
+          'localhost'
+        );
+
+        tweet.refreshControls();
+      }
+    } else {
+      await new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          { sig: targetSignature, field1: 'RedSquare' },
+          async (txs) => {
+            if (txs?.length > 0) {
+              const targetTx = txs[0];
+
+              if (!targetTx.optional || typeof targetTx.optional !== 'object') {
+                targetTx.optional = {};
+              }
+
+              const targetTs =
+                Number(targetTx.optional.updated_at) || Number(targetTx.timestamp) || 0;
+
+              if (interactionTs > targetTs) {
+                targetTx.optional.num_likes = Number(targetTx.optional.num_likes) || 0;
+                targetTx.optional.num_likes += 1;
+
+                await this.app.storage.updateTransaction(
+                  targetTx,
+                  { updated_at: interactionTs },
+                  'localhost'
+                );
+              }
+            }
+
+            resolve();
+          },
+          'localhost'
+        );
+      });
     }
 
     if (this.app.BROWSER) {
@@ -864,7 +987,7 @@ class RedSquare extends ModTemplate {
     return tweet;
   }
 
-  receiveRetweetTransaction(tx) {
+  async receiveRetweetTransaction(tx) {
     const txmsg = tx?.returnMessage?.() || tx?.msg || {};
     const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
 
@@ -872,10 +995,92 @@ class RedSquare extends ModTemplate {
       return null;
     }
 
+    const interactionTs = Number(tx.timestamp) || Date.now();
+    const retweeterKey =
+      tx.from && tx.from[0] && tx.from[0].publicKey ? String(tx.from[0].publicKey) : '';
     const tweet = this.getTweet(targetSignature);
 
-    if (tweet) {
-      tweet.incrementStat('retweets');
+    if (tweet?.tx) {
+      const targetTx = tweet.tx;
+
+      if (!targetTx.optional || typeof targetTx.optional !== 'object') {
+        targetTx.optional = {};
+      }
+
+      const targetTs =
+        Number(tweet.updated_at) ||
+        Number(targetTx.optional.updated_at) ||
+        Number(targetTx.timestamp) ||
+        0;
+
+      if (interactionTs > targetTs) {
+        targetTx.optional.num_retweets = Number(targetTx.optional.num_retweets) || 0;
+        targetTx.optional.num_retweets += 1;
+
+        if (!Array.isArray(targetTx.optional.retweeters)) {
+          targetTx.optional.retweeters = [];
+        }
+
+        if (retweeterKey && !targetTx.optional.retweeters.includes(retweeterKey)) {
+          targetTx.optional.retweeters.unshift(retweeterKey);
+        }
+
+        targetTx.optional.retweeted_at = interactionTs;
+        targetTx.optional.updated_at = interactionTs;
+        tweet.retweets = targetTx.optional.num_retweets;
+        tweet.retweeters = targetTx.optional.retweeters.slice();
+        tweet.updated_at = interactionTs;
+
+        await this.app.storage.updateTransaction(
+          targetTx,
+          { updated_at: interactionTs },
+          'localhost'
+        );
+
+        tweet.refreshControls();
+      }
+    } else {
+      await new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          { sig: targetSignature, field1: 'RedSquare' },
+          async (txs) => {
+            if (txs?.length > 0) {
+              const targetTx = txs[0];
+
+              if (!targetTx.optional || typeof targetTx.optional !== 'object') {
+                targetTx.optional = {};
+              }
+
+              const targetTs =
+                Number(targetTx.optional.updated_at) || Number(targetTx.timestamp) || 0;
+
+              if (interactionTs > targetTs) {
+                targetTx.optional.num_retweets = Number(targetTx.optional.num_retweets) || 0;
+                targetTx.optional.num_retweets += 1;
+
+                if (!Array.isArray(targetTx.optional.retweeters)) {
+                  targetTx.optional.retweeters = [];
+                }
+
+                if (retweeterKey && !targetTx.optional.retweeters.includes(retweeterKey)) {
+                  targetTx.optional.retweeters.unshift(retweeterKey);
+                }
+
+                targetTx.optional.retweeted_at = interactionTs;
+
+                await this.app.storage.updateTransaction(
+                  targetTx,
+                  { updated_at: interactionTs },
+                  'localhost'
+                );
+              }
+            }
+
+            resolve();
+          },
+          'localhost'
+        );
+      });
     }
 
     if (this.app.BROWSER) {
@@ -898,13 +1103,13 @@ class RedSquare extends ModTemplate {
 
     switch (txmsg.request) {
       case 'create tweet':
-        this.receiveTweetTransaction(tx);
+        await this.receiveTweetTransaction(tx);
         break;
       case 'like tweet':
-        this.receiveLikeTweetTransaction(tx);
+        await this.receiveLikeTweetTransaction(tx);
         break;
       case 'retweet':
-        this.receiveRetweetTransaction(tx);
+        await this.receiveRetweetTransaction(tx);
         break;
       default:
         break;
