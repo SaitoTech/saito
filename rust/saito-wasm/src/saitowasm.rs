@@ -1227,7 +1227,6 @@ pub async fn produce_block_with_gt(extra_txs: Option<Vec<Uint8Array>>) -> bool {
     false
 }
 
-
 #[wasm_bindgen]
 pub async fn produce_block_without_gt(extra_txs: Option<Vec<Uint8Array>>) -> bool {
     let mut saito = SAITO.lock().await;
@@ -1256,7 +1255,6 @@ pub async fn produce_block_without_gt(extra_txs: Option<Vec<Uint8Array>>) -> boo
                 .await;
         }
     }
-
 
     let public_key;
     let private_key;
