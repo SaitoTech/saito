@@ -1,7 +1,6 @@
 const MainTemplate = require('./main.template');
 const Menu = require('./menu');
 const Composer = require('./composer');
-const TweetManager = require('./tweet-manager');
 const Profile = require('./profile');
 const Sidebar = require('./sidebar');
 
@@ -11,9 +10,10 @@ class Main {
     this.mod = mod;
     this.container = container;
 
-    this.menu = new Menu(app, mod, '.sidebar-left');
-    this.composer = new Composer(app, mod, '.composer');
-    this.tweetManager = new TweetManager(app, mod, '.tweet-manager');
+    this.composer = new Composer(app, mod);
+    this.menu = new Menu(app, mod, '.sidebar-left', this.composer);
+    this.manager = mod.manager;
+    this.manager.container = '.manager';
     this.profile = new Profile(app, mod, '.profile');
     this.sidebar = new Sidebar(app, mod, '.sidebar');
   }
@@ -30,8 +30,7 @@ class Main {
     }
 
     this.menu.render();
-    this.composer.render();
-    this.tweetManager.render();
+    this.manager.render();
     this.profile.render();
     this.sidebar.render();
 
@@ -40,8 +39,7 @@ class Main {
 
   attachEvents() {
     this.menu.attachEvents();
-    this.composer.attachEvents();
-    this.tweetManager.attachEvents();
+    this.manager.attachEvents();
     this.profile.attachEvents();
     this.sidebar.attachEvents();
   }

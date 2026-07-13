@@ -3,19 +3,16 @@ module.exports = (profile) => {
 
   return `
     <section class="profile">
-      <h3 class="profile-title">Your profile</h3>
       <div class="profile-card">
         <img class="profile-avatar" src="${p.avatar || '/saito/img/dreamscape.png'}" alt="${p.name || 'Profile'}" />
-        <div class="profile-info">
-          <span class="profile-name">${p.name || 'Profile'}</span>
-          <span class="profile-handle">@${p.handle || 'user'}</span>
-        </div>
+        <span class="profile-name">${p.name || 'Profile'}</span>
+        <span class="profile-handle">@${p.handle || 'user'}</span>
         <p class="profile-bio">${p.bio || ''}</p>
         <div class="profile-stats">
-          <span><strong>${p.following || 0}</strong> Following</span>
-          <span><strong>${p.followers || 0}</strong> Followers</span>
+          <span class="profile-stat"><strong>${p.following || 0}</strong> Following</span>
+          <span class="profile-stat"><strong>${p.followers || 0}</strong> Followers</span>
         </div>
-        <button class="profile-view" type="button">View profile</button>
+        <button class="profile-view saito-button-secondary small" type="button">View profile</button>
       </div>
     </section>
   `;

@@ -1,0 +1,40 @@
+.manager {
+  position: relative;
+}
+
+.manager-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: var(--rs-feed-y) var(--rs-feed-x);
+  display: flex;
+  align-items: center;
+  min-height: var(--rs-btn-height-compact);
+  border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  background: var(--rs-canvas);
+}
+
+.manager-header h2 {
+  margin: 0;
+  font-family: var(--saito-font-heavy);
+  font-size: var(--rs-heading);
+  font-weight: normal;
+  line-height: 1.2;
+  color: var(--rs-text-strong);
+}
+
+.manager-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.manager-list {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 600px) {
+  .manager-header {
+    padding: var(--rs-feed-y) var(--rs-space-sm);
+  }
+}

@@ -1,4 +1,4 @@
-module.exports = (tweet) => {
+module.exports = (tweet, className = 'tweet') => {
   let images = '';
 
   if (tweet.images && tweet.images.length > 0) {
@@ -11,35 +11,34 @@ module.exports = (tweet) => {
   }
 
   return `
-    <article class="tweet">
-      <img class="tweet-avatar" src="${tweet.user.avatar}" alt="${tweet.user.name}" />
-      <div class="tweet-content">
+    <article class="${className}" data-id="${tweet.signature}">
+      <img class="tweet-avatar saito-identicon" src="${tweet.avatar}" alt="${tweet.username}" />
+      <div class="tweet-body">
         <div class="tweet-header">
-          <span class="tweet-name">${tweet.user.name}</span>
-          <span class="tweet-handle">@${tweet.user.handle}</span>
-          <span class="tweet-dot">·</span>
-          <span class="tweet-time">${tweet.time}</span>
+          <span class="saito-address">${tweet.username}</span>
+          <span class="saito-userline">${tweet.time}</span>
         </div>
-        <div class="tweet-body">
-          <p class="tweet-text">${tweet.text}</p>
-          ${images}
-        </div>
-        <div class="tweet-controls">
-          <button class="tweet-control tweet-control-reply" type="button">
-            <i class="fa-regular fa-comment"></i>
-            <span>${tweet.replies}</span>
-          </button>
-          <button class="tweet-control tweet-control-retweet" type="button">
-            <i class="fa-solid fa-retweet"></i>
-            <span>${tweet.retweets}</span>
-          </button>
-          <button class="tweet-control tweet-control-like" type="button">
-            <i class="fa-regular fa-heart"></i>
-            <span>${tweet.likes}</span>
-          </button>
-          <button class="tweet-control tweet-control-share" type="button">
-            <i class="fa-solid fa-arrow-up-from-bracket"></i>
-          </button>
+        <div class="tweet-text">${tweet.text}</div>
+        ${images}
+        <div class="tweet-controls saito-menu-select-subtle">
+          <div class="tweet-tool tweet-tool-comment" title="Reply/Comment">
+            <span class="tweet-tool-comment-count">${tweet.replies}</span>
+            <i class="far fa-comment"></i>
+          </div>
+          <div class="tweet-tool tweet-tool-retweet" title="Retweet/Quote-tweet">
+            <span class="tweet-tool-retweet-count">${tweet.retweets}</span>
+            <i class="fa fa-repeat"></i>
+          </div>
+          <div class="tweet-tool tweet-tool-like" title="Like tweet">
+            <span class="tweet-tool-like-count">${tweet.likes}</span>
+            <i class="far fa-heart"></i>
+          </div>
+          <div class="tweet-tool tweet-tool-share" title="Copy link to tweet">
+            <i class="fa-solid fa-share-nodes"></i>
+          </div>
+          <div class="tweet-tool tweet-tool-more" title="More options">
+            <i class="fa-solid fa-ellipsis"></i>
+          </div>
         </div>
       </div>
     </article>

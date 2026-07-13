@@ -20,7 +20,7 @@ module.exports = (sidebar) => {
             <span class="sidebar-suggestion-name">${user.name}</span>
             <span class="sidebar-suggestion-handle">@${user.handle}</span>
           </div>
-          <button class="sidebar-suggestion-follow" type="button">Follow</button>
+          <button class="sidebar-suggestion-follow saito-button-secondary small" type="button" aria-label="Follow ${user.name}">Follow</button>
         </li>
       `
     )
@@ -29,32 +29,36 @@ module.exports = (sidebar) => {
   return `
     <div class="sidebar">
       <div class="sidebar-search">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="search" placeholder="Search RedSquare" />
+        <label class="sidebar-search-field">
+          <span class="sidebar-search-icon" aria-hidden="true">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="search" placeholder="Search RedSquare" aria-label="Search RedSquare" />
+        </label>
       </div>
 
-      <div class="sidebar-panel">
-        <h3>Trends for you</h3>
+      <section class="sidebar-panel sidebar-panel-trends">
+        <h3 class="sidebar-panel-title">Trends for you</h3>
         <ul class="sidebar-trend-list">
           ${trends}
         </ul>
         <a class="sidebar-more" href="#">Show more</a>
-      </div>
+      </section>
 
-      <div class="sidebar-panel">
-        <h3>Who to follow</h3>
+      <section class="sidebar-panel sidebar-panel-suggestions">
+        <h3 class="sidebar-panel-title">Who to follow</h3>
         <ul class="sidebar-suggestion-list">
           ${suggestions}
         </ul>
         <a class="sidebar-more" href="#">Show more</a>
-      </div>
+      </section>
 
-      <div class="sidebar-footer">
+      <footer class="sidebar-footer">
         <a href="#">About</a>
         <a href="#">Terms</a>
         <a href="#">Privacy</a>
         <span>© 2026 Saito</span>
-      </div>
+      </footer>
     </div>
   `;
 };
