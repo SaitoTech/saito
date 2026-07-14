@@ -170,7 +170,10 @@ class Notification {
       return '';
     }
 
-    const tweetHtml = TweetTemplate(tweet, 'tweet', { hideControls: true });
+    const tweetHtml = TweetTemplate(tweet, 'tweet timeline', {
+      presentation: 'timeline',
+      hideControls: true
+    });
 
     return NotificationTemplate(this, tweetHtml);
   }

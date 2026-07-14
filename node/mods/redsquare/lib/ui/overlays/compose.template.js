@@ -1,4 +1,5 @@
 const TweetTemplate = require('../../tweet.template');
+const TweetHeaderTemplate = require('../../tweet-header.template');
 
 module.exports = (compose) => {
   const mode = compose.mode || 'post';
@@ -18,10 +19,19 @@ module.exports = (compose) => {
   if (compose.reply_to) {
     replyPreview = `
       <div class="compose-reply-preview">
-        ${TweetTemplate(compose.reply_to, 'tweet', { hideControls: true })}
+        ${TweetTemplate(compose.reply_to, 'tweet timeline', {
+          presentation: 'timeline',
+          hideControls: true
+        })}
       </div>
     `;
   }
+
+  const authorHeader = TweetHeaderTemplate({
+    presentation: 'compose',
+    name: compose.display_name,
+    secondary: compose.helper_text
+  });
 
   return `
     <div class="compose-overlay ${modeClass}" id="${compose.overlay_id}" aria-label="${ariaLabel}">
@@ -31,10 +41,7 @@ module.exports = (compose) => {
         <div class="compose-composer">
           <img class="compose-author-avatar saito-identicon" src="${compose.avatar}" alt="" />
           <div class="compose-composer-main">
-            <div class="compose-author-meta">
-              <span class="saito-address compose-author-name">${compose.display_name}</span>
-              <p class="compose-helper">${compose.helper_text}</p>
-            </div>
+            ${authorHeader}
 
             <div class="compose-surface" id="redsquare-compose-surface">
               <textarea

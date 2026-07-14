@@ -711,7 +711,10 @@ class Manager {
 
     if (globalIndex === 0) {
       options.focused = true;
+      options.presentation = 'focused';
     } else {
+      options.reply = true;
+      options.presentation = 'reply';
       options.chainPrev = true;
     }
 
@@ -890,13 +893,25 @@ class Manager {
     if (child) {
       options.chainNext = true;
       options.chainContinue = true;
+      options.presentation = 'root';
+      options.root = true;
     }
 
-    const html = TweetTemplate(tweet, tweet.buildClassName(options));
+    const html = TweetTemplate(tweet, tweet.buildClassName(options), options);
     this.app.browser.prependElementToSelector(html, container);
 
     this.pagination.timeline.cursor += 1;
     this.timeline_rendered = true;
+
+    if (child) {
+      const childOptions = { chainPrev: true, presentation: 'reply', reply: true };
+      const childHtml = TweetTemplate(child, child.buildClassName(childOptions), childOptions);
+      const parentEl = panel.querySelector(`article.tweet[data-id="${tweet.signature}"]`);
+
+      if (parentEl) {
+        parentEl.insertAdjacentHTML('afterend', childHtml);
+      }
+    }
 
     const element = panel.querySelector(`article.tweet[data-id="${tweet.signature}"]`);
     this.animateTweetInsertion(element);
@@ -914,8 +929,8 @@ class Manager {
       return;
     }
 
-    const options = { chainPrev: true };
-    const html = TweetTemplate(tweet, tweet.buildClassName(options));
+    const options = { chainPrev: true, presentation: 'reply', reply: true };
+    const html = TweetTemplate(tweet, tweet.buildClassName(options), options);
     const focusedEl = panel.querySelector(`article.tweet[data-id="${this.active_signature}"]`);
     const replies = panel.querySelectorAll(`article.tweet:not([data-id="${this.active_signature}"])`);
     const lastReply = replies.length ? replies[replies.length - 1] : null;
@@ -977,6 +992,11 @@ class Manager {
     if (child) {
       renderOptions.chainNext = true;
       renderOptions.chainContinue = true;
+      // Parent of a critical-child stub reads as conversation root.
+      if (!renderOptions.presentation && !renderOptions.focused) {
+        renderOptions.presentation = 'root';
+        renderOptions.root = true;
+      }
     }
 
     tweet.render(container, renderOptions);
@@ -985,7 +1005,11 @@ class Manager {
       return;
     }
 
-    const childOptions = { chainPrev: true };
+    const childOptions = {
+      chainPrev: true,
+      presentation: 'reply',
+      reply: true
+    };
 
     if (followFullChain) {
       this.renderTweetChain(child, container, childOptions, true);
@@ -1395,13 +1419,16 @@ class Manager {
       if (child) {
         options.chainNext = true;
         options.chainContinue = true;
+        options.presentation = 'root';
+        options.root = true;
       }
 
-      const html = TweetTemplate(tweet, tweet.buildClassName(options));
+      const html = TweetTemplate(tweet, tweet.buildClassName(options), options);
       this.app.browser.prependElementToSelector(html, container);
 
       if (child) {
-        const childHtml = TweetTemplate(child, child.buildClassName({ chainPrev: true }));
+        const childOptions = { chainPrev: true, presentation: 'reply', reply: true };
+        const childHtml = TweetTemplate(child, child.buildClassName(childOptions), childOptions);
         const parentEl = panel.querySelector(`article.tweet[data-id="${tweet.signature}"]`);
 
         if (parentEl) {
