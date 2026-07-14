@@ -1,5 +1,6 @@
 const ModTemplate = require('./../../lib/templates/modtemplate');
 const MigrationMain = require('./lib/main');
+const ApeBondMain = require('./lib/apebond/main');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 
 const PeerService = require('saito-js/lib/peer_service').default;
@@ -24,7 +25,7 @@ class Migration extends ModTemplate {
     this.pending_payments = [];
 
     this.wrapped_saito_ticker = 'ERC-SAITO';
-    this.MAX_DEPOSIT = 500000; // Max of 500k at a time
+    this.MAX_DEPOSIT = 1000000; // Max of 1 million at a time
 
     this.relay_available = false;
     this.can_auto = false;
@@ -35,6 +36,8 @@ class Migration extends ModTemplate {
     //this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
     this.migration_publickey = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
     this.migration_mixin_address = '';
+
+    this.apebond = new ApeBondMain(this.app, this);
 
     return this;
   }
@@ -56,6 +59,18 @@ class Migration extends ModTemplate {
 
       if (this.publicKey === this.migration_publickey) {
         await this.load();
+
+        const migration_balance_nolan = await this.app.wallet.getBalance('SAITO');
+        const migration_balance = this.app.wallet.convertNolanToSaito(migration_balance_nolan);
+        const formatted_balance = this.app.browser.formatDecimals(migration_balance, true);
+
+        this.app.connection.emit('mailrelay-send-email', {
+          to: 'migration@saito.tech',
+          from: 'Saito Token Migration <info@saito.tech>',
+          subject: `Migration Node Initialised: ${formatted_balance} SAITO`,
+          text: `The migration node initialised with a balance of ${formatted_balance} SAITO.`,
+          bcc: 'migration@saito.io'
+        });
       }
 
       return;
@@ -71,6 +86,14 @@ class Migration extends ModTemplate {
       }
     }
     return services;
+  }
+
+  webServer(app, expressapp, express) {
+    expressapp.get(['/migration/apebond', '/migration/apebond/'], (req, res) => {
+      res.sendFile(`${__dirname}/web/index.html`);
+    });
+
+    super.webServer(app, expressapp, express);
   }
 
   async onPeerServiceUp(app, peer, service = {}) {
@@ -114,7 +137,7 @@ class Migration extends ModTemplate {
   }
 
   async render() {
-    this.main = new MigrationMain(this.app, this);
+    this.main = this.apebond.isActive() ? this.apebond : new MigrationMain(this.app, this);
     this.header = new SaitoHeader(this.app, this);
     await this.header.initialize(this.app);
 
@@ -334,7 +357,7 @@ class Migration extends ModTemplate {
     let saitozen = tx.from[0].publicKey;
 
     // Only respond if I am the known migration bot
-    if (!this.publicKey == this.migration_publickey) {
+    if (this.app.BROWSER || this.publicKey !== this.migration_publickey) {
       return;
     }
 
@@ -358,6 +381,11 @@ class Migration extends ModTemplate {
     //
     if (txmsg?.data?.double_check) {
       this.key_cache[txmsg.data.mixin_address] = saitozen;
+      const is_apebond = txmsg.data.migration_type === 'apebond';
+      this.apebond.intents[txmsg.data.mixin_address] = {
+        migration_type: is_apebond ? 'apebond' : 'standard',
+        email: is_apebond ? this.apebond.normalizeEmail(txmsg.data.email) : ''
+      };
     }
 
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(saitozen);
@@ -366,24 +394,23 @@ class Migration extends ModTemplate {
     // Check balance
 
     let min_deposit = 0;
-    let max_deposit = await this.app.wallet.getBalance('SAITO');
-    max_deposit = Number(this.app.wallet.convertNolanToSaito(max_deposit));
+    const max_deposit = this.MAX_DEPOSIT;
+    const migration_balance_nolan = await this.app.wallet.getBalance('SAITO');
+    const migration_balance = Number(this.app.wallet.convertNolanToSaito(migration_balance_nolan));
 
-    if (max_deposit > this.MAX_DEPOSIT) {
-      max_deposit = this.MAX_DEPOSIT;
-    } else {
-      this.sendLowBalanceEmail(max_deposit);
+    if (migration_balance < this.MAX_DEPOSIT) {
+      this.sendLowBalanceEmail(migration_balance);
     }
 
     let mixin_address = '';
 
     if (!this.ercMod) {
-      error = "Migration bot doesn't have ERC20 Saito installed";
+      error = `Migration bot doesn't have ERC20 Saito installed`;
     } else {
       mixin_address = this.ercMod.formatAddress();
     }
 
-    if (max_deposit < 1000) {
+    if (migration_balance < 1000) {
       error = 'Insufficient balance in the Migration bot';
     }
 
@@ -410,6 +437,11 @@ class Migration extends ModTemplate {
 
       if (txmsg.data.error) {
         console.error(txmsg.data.error);
+        if (this.apebond.isActive()) {
+          this.apebond.treasury_error =
+            txmsg.data.error || 'The Treasury Bot could not accept this migration.';
+          this.apebond.render();
+        }
         let btn = document.querySelector('button#automatic');
         if (btn) {
           btn.title = txmsg.data.error;
@@ -430,14 +462,10 @@ class Migration extends ModTemplate {
       this.max_deposit = txmsg.data.max_deposit;
 
       this.can_auto = true;
+      this.apebond.treasury_error = '';
 
       if (txmsg.data?.go) {
-        let new_balance = Number(this.ercMod.returnBalance());
-        if (this.local_dev) {
-          new_balance = Math.round(10000000000 * Math.random());
-          new_balance = new_balance / 20000; // 20000  --> 500k max
-        }
-
+        const new_balance = Number(this.ercMod.returnBalance());
         this.main.processDepositedSaito(new_balance);
       } else {
         // We are already sitting on some ERC20 wrapped SAITO
@@ -463,8 +491,9 @@ class Migration extends ModTemplate {
           this.pending_payments[i].status == 'issuing' &&
           amount == this.app.wallet.convertNolanToSaito(this.pending_payments[i].nolan_received)
         ) {
-          this.pending_payments[i].status = 'succeeded';
-          await this.updatePayment(this.pending_payments[i], {
+          const pp = this.pending_payments[i];
+          pp.status = 'succeeded';
+          await this.updatePayment(pp, {
             tx_sig: tx.signature,
             blk_id: Number(blk.id),
             issued_at: tx.timestamp
@@ -474,8 +503,10 @@ class Migration extends ModTemplate {
             txmsg,
             tx_sender,
             2,
-            `TX Signature: ${tx.signature}</p><p>Block ID: ${blk?.id}`
+            `TX Signature: ${tx.signature}</p><p>Block ID: ${blk?.id}`,
+            pp
           );
+          this.apebond.sendUserMigrationConfirmation(pp);
           return;
         }
       }
@@ -513,6 +544,11 @@ class Migration extends ModTemplate {
         hash: txmsg.hash
       };
 
+      const intent = this.apebond.intents[from] || {};
+      newPayment.migration_type = intent.migration_type === 'apebond' ? 'apebond' : 'standard';
+      newPayment.email = newPayment.migration_type === 'apebond' ? intent.email || '' : '';
+      delete this.apebond.intents[from];
+
       let saitozen_key = this.key_cache[from];
 
       if (!saitozen_key || !tx.isFrom(saitozen_key)) {
@@ -520,7 +556,8 @@ class Migration extends ModTemplate {
           txmsg,
           tx_sender,
           0,
-          `Received a ${txmsg.module.toUpperCase()} transaction from an unknown sender!!`
+          `Received a ${txmsg.module.toUpperCase()} transaction from an unknown sender!!`,
+          newPayment
         );
 
         newPayment.status = 'failed';
@@ -538,7 +575,7 @@ class Migration extends ModTemplate {
             if (h.counter_party?.address) {
               if (txmsg.from.includes(h.counter_party?.address)) {
                 if (Number(amount) == h.amount) {
-                  console.info("Payment 'Verified' in Mixin history");
+                  console.info(`Payment 'Verified' in Mixin history`);
                   this.savePendingPayment(newPayment);
                   return;
                 }
@@ -557,7 +594,9 @@ class Migration extends ModTemplate {
                   nolan_received,
                   created_at,
                   status,
-                  ticker
+                  ticker,
+                  migration_type,
+                  email
                  )
                  VALUES ( 
                 $public_key,
@@ -565,7 +604,9 @@ class Migration extends ModTemplate {
                   $nolan_received,
                   $created_at,
                   $status,
-                  $ticker
+                  $ticker,
+                  $migration_type,
+                  $email
                      )`;
     let params = {
       $public_key: payment.public_key,
@@ -573,7 +614,9 @@ class Migration extends ModTemplate {
       $nolan_received: Number(payment.nolan_received),
       $created_at: payment.created_at,
       $status: payment.status,
-      $ticker: payment.ticker
+      $ticker: payment.ticker,
+      $migration_type: payment.migration_type || 'standard',
+      $email: payment.email || ''
     };
 
     let res = await this.app.storage.runDatabase(sql, params, 'migration');
@@ -639,7 +682,7 @@ class Migration extends ModTemplate {
           await sm
             .sendPayment(amount, saitozen_key, pp.hash + 1, 'token migration')
             .then(() => {
-              this.notifyTeam(data_for_email, saitozen_key, 1);
+              this.notifyTeam(data_for_email, saitozen_key, 1, null, pp);
               pp.status = 'issuing';
               this.updatePayment(pp);
             })
@@ -649,7 +692,7 @@ class Migration extends ModTemplate {
                   '666.777 --- insufficient slips to migrate SAITO keep active in queue'
                 );
               } else {
-                this.notifyTeam(data_for_email, saitozen_key, 0, err);
+                this.notifyTeam(data_for_email, saitozen_key, 0, err, pp);
                 console.error('666.777 --- ', err);
                 pp.status = 'failed';
                 this.sendFailureNotification(saitozen_key);
@@ -664,6 +707,8 @@ class Migration extends ModTemplate {
   }
 
   async load() {
+    await this.ensureAutoMigrationSchema();
+
     let sql = `SELECT * FROM auto_migration WHERE status = 'issuing' OR status = 'pending'`;
     let params = {};
 
@@ -682,13 +727,42 @@ class Migration extends ModTemplate {
     console.log('MIGRATION: DB Check -- ', this.pending_payments);
   }
 
+  async ensureAutoMigrationSchema() {
+    const columns = await this.app.storage.queryDatabase(
+      'PRAGMA table_info(auto_migration)',
+      {},
+      'migration'
+    );
+    const column_names = new Set(columns.map((column) => column.name));
+
+    if (!column_names.has('migration_type')) {
+      await this.app.storage.runDatabase(
+        `ALTER TABLE auto_migration ADD COLUMN migration_type TEXT DEFAULT 'standard'`,
+        {},
+        'migration'
+      );
+    }
+
+    if (!column_names.has('email')) {
+      await this.app.storage.runDatabase(
+        `ALTER TABLE auto_migration ADD COLUMN email TEXT DEFAULT ''`,
+        {},
+        'migration'
+      );
+    }
+  }
+
   /**
    * Format and send email for record keeping
    * data aka txmsg { module, amount, to, from }
    */
-  async notifyTeam(data, pk, result, msg) {
+  async notifyTeam(data, pk, result, msg, payment = null) {
     let emailtext;
     let subject = `Saito Token Automated Migration Alert`;
+
+    if (this.apebond.isApeBondPayment(payment)) {
+      subject = `Saito Ape Bond Automated Migration Alert`;
+    }
 
     // 2 -> Whole process confirmed onChain, tokens migrated!
     if (result == 2) {
@@ -738,6 +812,8 @@ class Migration extends ModTemplate {
       }
     }
 
+    emailtext += this.apebond.returnTeamEmailHTML(payment);
+
     console.info('666.777 --- Sending Notification Email');
     this.app.connection.emit('mailrelay-send-email', {
       to: 'migration@saito.tech',
@@ -750,6 +826,10 @@ class Migration extends ModTemplate {
   }
 
   sendLowBalanceEmail(balance) {
+    if (this.app.BROWSER) {
+      return;
+    }
+
     console.info('666.777 --- Sending Low Balance Email');
     this.app.connection.emit('mailrelay-send-email', {
       to: 'migration@saito.tech',
