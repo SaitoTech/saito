@@ -344,7 +344,8 @@ class Arcade extends ModTemplate {
   // let other modules know if we can render into any components
   //
   canRenderInto(qs) {
-    if (qs === '.redsquare-sidebar') {
+    // RedSquare ordered mount for My Games (InviteManager)
+    if (qs === '.redsquare-arcade') {
       return true;
     }
     if (qs === '.arcade-sidebar') {
@@ -367,7 +368,7 @@ class Arcade extends ModTemplate {
         this.attachStyleSheets();
       }
     }
-    if (qs == '.redsquare-sidebar') {
+    if (qs == '.redsquare-arcade') {
       if (!this.renderIntos[qs]) {
         this.styles = ['/arcade/style.css'];
         this.renderIntos[qs] = [];

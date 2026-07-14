@@ -16,9 +16,12 @@ module.exports = (sidebar) => {
 
   // Injected into `.sidebar-right > .sidebar` — no outer `.sidebar` wrapper.
   //
-  // `.redsquare-sidebar` is the module-injection mount (League / others via
-  // canRenderInto + renderInto). Rankings is a native RedSquare slot.
-  // Who to Follow remains a Sidebar-owned presentation slot (as before).
+  // Ordered module mounts (content owned by each module via canRenderInto/renderInto):
+  //   .redsquare-arcade      → Arcade InviteManager (My Games)
+  //   .redsquare-leaderboard → League Leaderboard
+  //   .redsquare-sidebar     → remaining peers (e.g. Limbo)
+  // Who to Follow remains a Sidebar-owned presentation slot until a recommendation
+  // module owns it.
   return `
       <div class="sidebar-search">
         <label class="sidebar-search-field">
@@ -28,6 +31,10 @@ module.exports = (sidebar) => {
           <input type="search" placeholder="Search RedSquare" aria-label="Search RedSquare" />
         </label>
       </div>
+
+      <div class="redsquare-arcade"></div>
+
+      <div class="redsquare-leaderboard"></div>
 
       <div class="redsquare-sidebar"></div>
 

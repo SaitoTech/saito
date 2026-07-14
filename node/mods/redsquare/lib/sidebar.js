@@ -26,12 +26,22 @@ class Sidebar {
 
     this.rankings.render(`${this.container} > .rankings`);
 
-    // League (and other modules) inject into `.redsquare-sidebar`.
-    if (this.app.modules?.renderInto) {
-      this.app.modules.renderInto('.redsquare-sidebar');
-    }
+    this.renderModuleMounts();
 
     this.attachEvents();
+  }
+
+  /**
+   * Ordered module injection — RedSquare owns sequence; peers own content.
+   */
+  renderModuleMounts() {
+    if (!this.app.modules?.renderInto) {
+      return;
+    }
+
+    this.app.modules.renderInto('.redsquare-arcade');
+    this.app.modules.renderInto('.redsquare-leaderboard');
+    this.app.modules.renderInto('.redsquare-sidebar');
   }
 
   attachEvents() {}

@@ -1309,12 +1309,22 @@ class RedSquare extends ModTemplate {
       this.main = new Main(this.app, this);
       this.addComponent(this.header);
       this.addComponent(this.main);
+
+      // Chat Manager owns chat — RedSquare only provides `.sidebar-left`.
+      for (const mod of this.app.modules.returnModulesRespondingTo('chat-manager')) {
+        const cm = mod.respondTo('chat-manager');
+        cm.container = '.sidebar-left';
+        cm.render_manager_to_screen = 1;
+        this.addComponent(cm);
+      }
     }
 
     await super.render();
 
-    // League (and peers) inject UI into `.redsquare-sidebar` via canRenderInto/renderInto.
+    // Ordered mounts: Arcade (My Games) → League (Leaderboard) → other peers.
     if (this.app.modules?.renderInto) {
+      await this.app.modules.renderInto('.redsquare-arcade');
+      await this.app.modules.renderInto('.redsquare-leaderboard');
       await this.app.modules.renderInto('.redsquare-sidebar');
     }
   }

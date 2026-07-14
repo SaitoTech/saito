@@ -2,6 +2,7 @@ const MainTemplate = require('./main.template');
 const Menu = require('./menu');
 const Composer = require('./composer');
 const Profile = require('./profile');
+const NewPost = require('./new-post');
 const Sidebar = require('./sidebar');
 
 class Main {
@@ -15,6 +16,7 @@ class Main {
     this.manager = mod.manager;
     this.manager.container = '.manager';
     this.profile = new Profile(app, mod, '.sidebar-right > .profile');
+    this.new_post = new NewPost(app, mod, '.sidebar-right > .new-post');
     this.sidebar = new Sidebar(app, mod, '.sidebar-right > .sidebar');
   }
 
@@ -32,6 +34,7 @@ class Main {
     this.menu.render();
     this.manager.render();
     this.profile.render();
+    this.new_post.render();
     this.sidebar.render();
 
     this.attachEvents();
@@ -41,6 +44,7 @@ class Main {
     this.menu.attachEvents();
     this.manager.attachEvents();
     this.profile.attachEvents();
+    this.new_post.attachEvents();
     this.sidebar.attachEvents();
   }
 }

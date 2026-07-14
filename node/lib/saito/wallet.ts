@@ -45,7 +45,32 @@ export default class Wallet extends SaitoWallet {
     if (publicKey == '') {
       publicKey = await this.getPublicKey();
     }
-    return this.createUnsignedTransaction(publicKey, amount, default_fee);
+
+    try {
+      return await this.createUnsignedTransaction(publicKey, amount, default_fee);
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      const fee_blocked =
+        default_fee > BigInt(0) &&
+        typeof msg === 'string' &&
+        msg.includes('insufficient SAITO balance');
+      //
+      // problem was not fee
+      //
+      if (!fee_blocked) {
+        throw err;
+      }
+      //
+      // maybe it is just fee
+      //
+      this.default_fee = BigInt(0);
+      if (!this.app.options.wallet) {
+        this.app.options.wallet = {};
+      }
+      this.app.options.wallet.default_fee = '0';
+      this.app.storage.saveOptions();
+      return await this.createUnsignedTransaction(publicKey, amount, BigInt(0));
+    }
   }
 
   public async createUnsignedTransaction(

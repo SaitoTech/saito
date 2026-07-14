@@ -302,14 +302,15 @@ class League extends ModTemplate {
 	}
 
 	canRenderInto(qs) {
-		if (qs == '.redsquare-sidebar') {
+		// RedSquare ordered mount for Leaderboard
+		if (qs == '.redsquare-leaderboard') {
 			return true;
 		}
 		return false;
 	}
 
 	renderInto(qs) {
-		if (qs == '.redsquare-sidebar') {
+		if (qs == '.redsquare-leaderboard') {
 			if (!this.renderIntos[qs]) {
 				this.renderIntos[qs] = [];
 				this.renderIntos[qs].push(new LeagueRankings(this.app, this, qs));

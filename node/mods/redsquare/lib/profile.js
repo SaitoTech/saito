@@ -29,15 +29,6 @@ class Profile {
 
     root.dataset.profileBound = '1';
 
-    const newPostBtn = root.querySelector('.profile-new-post');
-
-    if (newPostBtn) {
-      newPostBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.mod.compose_overlay?.open();
-      });
-    }
-
     root.addEventListener('click', (e) => {
       const item = e.target.closest('.profile-nav-item');
 

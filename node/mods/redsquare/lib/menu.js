@@ -13,27 +13,6 @@ class Menu {
       avatar: '/saito/img/dreamscape.png'
     };
     this.notification_count = 0;
-
-    this.chats = [
-      {
-        name: 'Alice Chen',
-        preview: 'The refactor is looking great on staging.',
-        avatar: '/saito/img/dreamscape.png',
-        online: true
-      },
-      {
-        name: 'Richard P.',
-        preview: 'Can you review the TweetManager changes?',
-        avatar: '/saito/img/tiled-logo.svg',
-        online: true
-      },
-      {
-        name: 'Saito Network',
-        preview: 'Welcome to RedSquare chat — coming soon.',
-        avatar: '/saito/img/dreamscape.png',
-        online: false
-      }
-    ];
   }
 
   render(container = '') {

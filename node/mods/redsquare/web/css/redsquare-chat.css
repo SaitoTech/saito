@@ -1,0 +1,82 @@
+/*
+ * Chat Manager embed — presentation only.
+ * Chat owns chat via respondTo('chat-manager'); RedSquare mounts it in `.sidebar-left`.
+ */
+
+body.redsquare-body .sidebar-left > .chat-manager {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: var(--rs-layer-recessed);
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  border-radius: var(--rs-radius);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+body.redsquare-body .sidebar-left .chat-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-xs);
+  margin: 0;
+  padding: var(--rs-sidebar-pad) var(--rs-sidebar-pad) var(--rs-space-xs);
+  min-height: 0;
+  color: var(--rs-text-strong, var(--saito-font-color-heavy));
+  text-transform: none;
+}
+
+body.redsquare-body .sidebar-left .chat-manager-title {
+  font-family: var(--saito-font-heavy);
+  font-size: var(--rs-section-title);
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+  color: inherit;
+}
+
+/* Overlay/mobile chrome — hide when Chat Manager is sidebar-embedded */
+body.redsquare-body .sidebar-left .chat-manager .close-chat-manager,
+body.redsquare-body .sidebar-left .chat-manager .alternate-close-button {
+  display: none;
+}
+
+body.redsquare-body .sidebar-left .chat-manager-options {
+  color: var(--rs-text-muted, var(--saito-font-color-secondary));
+  cursor: pointer;
+}
+
+body.redsquare-body .sidebar-left .chat-manager-list,
+body.redsquare-body .sidebar-left .chat-manager-list.saito-sidebar-element {
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  max-height: none;
+  overflow: visible;
+}
+
+body.redsquare-body .sidebar-left .chat-manager-list .saito-user {
+  padding: var(--rs-row-y) var(--rs-sidebar-pad);
+  border-radius: 0;
+  transition: background var(--rs-transition);
+}
+
+body.redsquare-body .sidebar-left .chat-manager-list .saito-user:hover {
+  background: var(--rs-surface-hover);
+}
+
+@media (max-width: 1200px) {
+  /*
+   * Narrow left column — nav icons stay; Chat Manager needs horizontal room
+   * and is suppressed here (same breakpoint as production RedSquare).
+   */
+  body.redsquare-body .sidebar-left > .chat-manager {
+    display: none;
+  }
+}
