@@ -295,6 +295,19 @@ impl Blockchain {
             }
         }
 
+        // Empty nodes may start from a parentless synchronization anchor. Once
+        // the parent is available, however, height is derived from that parent
+        // and cannot be used as independent chain weight.
+        if let Some(parent) = self.blocks.get(&block.previous_block_hash) {
+            if parent.id.checked_add(1) != Some(block_id) {
+                error!(
+                    "blockchain.add_block: block {} does not immediately follow parent {}",
+                    block_id, parent.id
+                );
+                return AddBlockResult::FailedNotValid;
+            }
+        }
+
         //
         // insert block into blockring index
         //
@@ -3195,6 +3208,90 @@ mod tests {
         };
 
         assert!(matches!(result, AddBlockResult::FailedNotValid));
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn add_block_rejects_non_contiguous_child_height_without_mutating_state() {
+        let mut t = TestManager::default();
+        t.initialize(100, 1_000_000_000).await;
+
+        let (block1_hash, block1_timestamp) = {
+            let blockchain = t.blockchain_lock.read().await;
+            let block1 = blockchain.get_latest_block().unwrap();
+            (block1.hash, block1.timestamp)
+        };
+
+        let block2 = t
+            .create_block(block1_hash, block1_timestamp + 120_000, 0, 0, 0, true)
+            .await;
+        let block2_hash = block2.hash;
+        let result = t.add_block(block2).await;
+        assert!(matches!(
+            result,
+            AddBlockResult::BlockAddedSuccessfully(_, true, _, _)
+        ));
+
+        let mut height_jumping_block = t
+            .create_block(block2_hash, block1_timestamp + 240_000, 0, 0, 0, true)
+            .await;
+        height_jumping_block.id += 1;
+        height_jumping_block.merkle_root = [0; 32];
+        height_jumping_block.generate().unwrap();
+        let private_key = t.wallet_lock.read().await.private_key;
+        height_jumping_block.sign(&private_key);
+        let height_jumping_block_hash = height_jumping_block.hash;
+
+        let (blocks_before, utxoset_before, genesis_block_id_before) = {
+            let blockchain = t.blockchain_lock.read().await;
+            (
+                blockchain.blocks.len(),
+                blockchain.utxoset.clone(),
+                blockchain.genesis_block_id,
+            )
+        };
+        let wallet_before = t.wallet_lock.read().await.clone();
+
+        let result = t.add_block(height_jumping_block).await;
+        assert!(matches!(result, AddBlockResult::FailedNotValid));
+
+        let blockchain = t.blockchain_lock.read().await;
+        assert_eq!(blockchain.get_latest_block_id(), 2);
+        assert_eq!(blockchain.get_latest_block_hash(), block2_hash);
+        assert_eq!(blockchain.last_block_id, 2);
+        assert_eq!(blockchain.blocks.len(), blocks_before);
+        assert!(!blockchain.blocks.contains_key(&height_jumping_block_hash));
+        assert!(!blockchain
+            .blockring
+            .contains_block_hash_at_block_id(4, height_jumping_block_hash));
+        assert_eq!(blockchain.utxoset, utxoset_before);
+        assert_eq!(blockchain.genesis_block_id, genesis_block_id_before);
+        drop(blockchain);
+
+        assert_eq!(*t.wallet_lock.read().await, wallet_before);
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn add_block_accepts_first_parentless_sync_anchor() {
+        let mut t = TestManager::default();
+        let mut anchor = Block::new();
+        anchor.id = 9;
+        anchor.timestamp = create_timestamp();
+        anchor.previous_block_hash = [0; 32];
+        anchor.is_valid = true;
+        anchor.generate().unwrap();
+        let anchor_hash = anchor.hash;
+
+        let result = t.add_block(anchor).await;
+        assert!(matches!(
+            result,
+            AddBlockResult::BlockAddedSuccessfully(hash, true, _, _) if hash == anchor_hash
+        ));
+
+        let blockchain = t.blockchain_lock.read().await;
+        assert_eq!(blockchain.get_latest_block_id(), 9);
+        assert_eq!(blockchain.get_latest_block_hash(), anchor_hash);
     }
 
     #[test]
