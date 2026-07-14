@@ -13,9 +13,9 @@
 }
 
 .composer-avatar {
-  width: var(--rs-identicon);
-  height: var(--rs-identicon);
-  border-radius: var(--rs-identicon-radius);
+  width: var(--rs-avatar-m);
+  height: var(--rs-avatar-m);
+  border-radius: var(--rs-avatar-radius);
   border: none;
   object-fit: cover;
   flex-shrink: 0;

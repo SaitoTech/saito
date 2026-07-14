@@ -1,90 +1,139 @@
+const TweetHeaderTemplate = require('./tweet-header.template');
+const TweetBodyTemplate = require('./tweet-body.template');
+const TweetGalleryTemplate = require('./tweet-gallery.template');
+const TweetFooterTemplate = require('./tweet-footer.template');
+
+function resolvePresentation(className = '', options = {}) {
+  if (options.presentation) {
+    return options.presentation;
+  }
+
+  if (options.embedded || String(className).includes('embedded')) {
+    return 'embedded';
+  }
+
+  if (options.focused || String(className).includes('focused')) {
+    return 'focused';
+  }
+
+  if (options.root || String(className).includes('root')) {
+    return 'root';
+  }
+
+  if (options.reply || String(className).includes('reply')) {
+    return 'reply';
+  }
+
+  return 'timeline';
+}
+
+function formatHandle(handle) {
+  const raw = handle != null ? String(handle).trim() : '';
+
+  if (!raw) {
+    return '';
+  }
+
+  return raw.startsWith('@') ? raw : `@${raw}`;
+}
+
+/**
+ * Secondary line content — filled by Tweet/compose, never by header logic.
+ */
+function resolveSecondary(tweet, presentation, options = {}) {
+  if (options.secondary != null) {
+    return String(options.secondary);
+  }
+
+  const handle = formatHandle(tweet.handle);
+  const time = tweet.time != null ? String(tweet.time) : '';
+
+  if (presentation === 'compose') {
+    return '';
+  }
+
+  if (presentation === 'focused') {
+    return handle;
+  }
+
+  // timeline | root | reply | embedded — single-line meta: @handle · time
+  if (handle && time) {
+    return `${handle} · ${time}`;
+  }
+
+  return handle || time;
+}
+
 const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
-  const embedded = options.embedded || className.includes('tweet-embedded');
+  const presentation = resolvePresentation(className, options);
+  const embedded = presentation === 'embedded' || options.embedded;
   const allowEmbed = options.allowEmbed !== false && !embedded;
+  const hideControls = embedded || options.hideControls || presentation === 'compose';
 
-  const hasText = tweet.text && String(tweet.text).trim() !== '';
-  const images = Array.isArray(tweet.images) ? tweet.images.slice(0, 4) : [];
-  const hasGallery = images.length > 0;
-  const hasEmbed = allowEmbed && tweet.embedded;
+  const header = TweetHeaderTemplate({
+    presentation,
+    name: tweet.username || '',
+    secondary: resolveSecondary(tweet, presentation, options)
+  });
 
-  let body = '';
-  if (hasText) {
-    body = `<div class="tweet-body">${tweet.text}</div>`;
-  }
+  const body = TweetBodyTemplate({
+    presentation,
+    text: tweet.text
+  });
 
-  let gallery = '';
-  if (hasGallery) {
-    const count = Math.min(images.length, 4);
-    const items = images
-      .map((img) => `<figure class="tweet-gallery-item"><img src="${img}" alt="" loading="lazy" /></figure>`)
-      .join('');
-
-    gallery = `
-      <div class="tweet-gallery count-${count}">
-        <div class="tweet-gallery-grid">
-          ${items}
-        </div>
-      </div>
-    `;
-  }
+  const gallery = TweetGalleryTemplate({
+    presentation,
+    images: tweet.images
+  });
 
   let embed = '';
-  if (hasEmbed) {
+
+  if (allowEmbed && tweet.embedded) {
     embed = `
       <div class="tweet-embed">
-        ${TweetTemplate(tweet.embedded, 'tweet tweet-embedded', { embedded: true, allowEmbed: false })}
+        ${TweetTemplate(tweet.embedded, 'tweet embedded', {
+          presentation: 'embedded',
+          embedded: true,
+          allowEmbed: false
+        })}
       </div>
     `;
   }
 
-  const chain = embedded
+  const footer = hideControls
     ? ''
-    : '<div class="tweet-chain" aria-hidden="true"></div>';
+    : TweetFooterTemplate({
+        presentation,
+        replies: tweet.replies,
+        retweets: tweet.retweets,
+        likes: tweet.likes
+      });
 
-  const footer = embedded || options.hideControls
-    ? ''
-    : `
-      <footer class="tweet-footer">
-        <div class="tweet-controls saito-menu-select-subtle">
-          <div class="tweet-tool tweet-tool-comment" title="Reply/Comment">
-            <span class="tweet-tool-comment-count">${tweet.replies}</span>
-            <i class="far fa-comment"></i>
-          </div>
-          <div class="tweet-tool tweet-tool-retweet" title="Retweet/Quote-tweet">
-            <span class="tweet-tool-retweet-count">${tweet.retweets}</span>
-            <i class="fa fa-repeat"></i>
-          </div>
-          <div class="tweet-tool tweet-tool-like" title="Like tweet">
-            <span class="tweet-tool-like-count">${tweet.likes}</span>
-            <i class="far fa-heart"></i>
-          </div>
-          <div class="tweet-tool tweet-tool-share" title="Copy link to tweet">
-            <i class="fa-solid fa-share-nodes"></i>
-          </div>
-          <div class="tweet-tool tweet-tool-more" title="More options">
-            <i class="fa-solid fa-ellipsis"></i>
-          </div>
-        </div>
-        <div class="tweet-show-more" role="button" tabindex="0">Show more posts</div>
-      </footer>
-    `;
+  // Absolute-style timestamp under body for focused (relative value for now).
+  const timeBlock =
+    presentation === 'focused' && tweet.time
+      ? `<div class="tweet-time ${presentation}">${tweet.time}</div>`
+      : '';
+
+  const chain = embedded ? '' : '<div class="tweet-chain" aria-hidden="true"></div>';
 
   return `
-    <article class="${className}" data-id="${tweet.signature}">
+    <article class="${className}" data-id="${tweet.signature}" data-presentation="${presentation}">
       ${chain}
       <img class="tweet-avatar saito-identicon" src="${tweet.avatar}" alt="${tweet.username}" />
       <div class="tweet-content">
-        <header class="tweet-header">
-          <span class="saito-address">${tweet.username}</span>
-          <span class="saito-userline">${tweet.time}</span>
-        </header>
+        ${header}
         ${body}
         ${gallery}
         ${embed}
+        ${timeBlock}
         ${footer}
       </div>
     </article>
   `;
 };
+
+TweetTemplate.resolvePresentation = resolvePresentation;
+TweetTemplate.formatHandle = formatHandle;
 
 module.exports = TweetTemplate;

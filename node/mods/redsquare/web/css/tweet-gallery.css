@@ -79,23 +79,35 @@
 }
 
 /* Focused variant — taller gallery ceiling */
-.tweet.focused .tweet-gallery.count-1 .tweet-gallery-item {
+.tweet.focused .tweet-gallery.count-1 .tweet-gallery-item,
+.tweet-gallery.focused.count-1 .tweet-gallery-item {
   max-height: 36rem;
 }
 
 .tweet.focused .tweet-gallery.count-2 .tweet-gallery-grid,
 .tweet.focused .tweet-gallery.count-3 .tweet-gallery-grid,
-.tweet.focused .tweet-gallery.count-4 .tweet-gallery-grid {
+.tweet.focused .tweet-gallery.count-4 .tweet-gallery-grid,
+.tweet-gallery.focused.count-2 .tweet-gallery-grid,
+.tweet-gallery.focused.count-3 .tweet-gallery-grid,
+.tweet-gallery.focused.count-4 .tweet-gallery-grid {
   max-height: 32rem;
 }
 
 /* Embedded tweets — proportionally smaller gallery */
-.tweet-embedded .tweet-gallery.count-1 .tweet-gallery-item {
+.tweet.embedded .tweet-gallery.count-1 .tweet-gallery-item,
+.tweet.tweet-embedded .tweet-gallery.count-1 .tweet-gallery-item,
+.tweet-gallery.embedded.count-1 .tweet-gallery-item {
   max-height: 18rem;
 }
 
-.tweet-embedded .tweet-gallery.count-2 .tweet-gallery-grid,
-.tweet-embedded .tweet-gallery.count-3 .tweet-gallery-grid,
-.tweet-embedded .tweet-gallery.count-4 .tweet-gallery-grid {
+.tweet.embedded .tweet-gallery.count-2 .tweet-gallery-grid,
+.tweet.embedded .tweet-gallery.count-3 .tweet-gallery-grid,
+.tweet.embedded .tweet-gallery.count-4 .tweet-gallery-grid,
+.tweet.tweet-embedded .tweet-gallery.count-2 .tweet-gallery-grid,
+.tweet.tweet-embedded .tweet-gallery.count-3 .tweet-gallery-grid,
+.tweet.tweet-embedded .tweet-gallery.count-4 .tweet-gallery-grid,
+.tweet-gallery.embedded.count-2 .tweet-gallery-grid,
+.tweet-gallery.embedded.count-3 .tweet-gallery-grid,
+.tweet-gallery.embedded.count-4 .tweet-gallery-grid {
   max-height: 16rem;
 }

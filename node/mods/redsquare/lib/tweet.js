@@ -236,9 +236,26 @@ class Tweet {
   }
 
   buildClassName(options = {}) {
-    const classes = ['tweet'];
+    const presentation =
+      options.presentation ||
+      (options.embedded
+        ? 'embedded'
+        : options.focused
+          ? 'focused'
+          : options.root
+            ? 'root'
+            : options.reply
+              ? 'reply'
+              : 'timeline');
 
-    if (options.focused) {
+    const classes = ['tweet', presentation];
+
+    // Back-compat alias while CSS migrates from .tweet-embedded
+    if (presentation === 'embedded') {
+      classes.push('tweet-embedded');
+    }
+
+    if (options.focused && presentation !== 'focused') {
       classes.push('focused');
     }
 
@@ -306,7 +323,23 @@ class Tweet {
     }
 
     const className = this.buildClassName(options);
-    this.app.browser.addElementToSelector(TweetTemplate(this, className), this.container);
+    this.app.browser.addElementToSelector(
+      TweetTemplate(this, className, {
+        ...options,
+        presentation:
+          options.presentation ||
+          (options.embedded
+            ? 'embedded'
+            : options.focused
+              ? 'focused'
+              : options.root
+                ? 'root'
+                : options.reply
+                  ? 'reply'
+                  : 'timeline')
+      }),
+      this.container
+    );
   }
 }
 

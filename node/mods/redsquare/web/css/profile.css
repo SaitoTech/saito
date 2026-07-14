@@ -52,14 +52,14 @@
   display: flex;
   align-items: flex-end;
   gap: var(--rs-space-sm);
-  margin-top: calc(var(--rs-identicon) / -2);
+  margin-top: calc(var(--rs-avatar-l) / -2);
   margin-bottom: var(--rs-space-sm);
 }
 
 .profile-avatar {
-  width: var(--rs-identicon);
-  height: var(--rs-identicon);
-  border-radius: var(--rs-identicon-radius);
+  width: var(--rs-avatar-l);
+  height: var(--rs-avatar-l);
+  border-radius: var(--rs-avatar-radius);
   border: var(--border-thickness-medium, 2px) solid var(--rs-layer-base);
   background: var(--rs-layer-base);
   object-fit: cover;

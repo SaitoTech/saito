@@ -71,28 +71,46 @@ body.redsquare-body {
 
   --rs-transition: 0.15s ease;
 
-  /* Identicon — matches .saito-identicon dimensions in saito-user.css */
-  --rs-identicon: 3.5rem;
-  --rs-identicon-radius: var(--saito-identicon-border-radius, var(--saito-border-radius));
+  /*
+   * Canonical avatar scale (10px root → rem ≈ px/10).
+   * Use these everywhere — do not invent one-off diameters.
+   *
+   *   XS  2.4rem  24px  quoted/embedded tweets, ultra-compact thumbs
+   *   S   3.2rem  32px  chat list, who-to-follow, notification clusters
+   *   M   4.0rem  40px  timeline, compose, focused (aligned with X desktop)
+   *   L   5.6rem  56px  profile card
+   */
+  --rs-avatar-xs: 2.4rem;
+  --rs-avatar-s: 3.2rem;
+  --rs-avatar-m: 4rem;
+  --rs-avatar-l: 5.6rem;
+  --rs-avatar-radius: var(--saito-identicon-border-radius, var(--saito-border-radius));
 
-  /* Feed layout rhythm — RedSquare-specific proportions only */
-  --rs-tweet-avatar: 4.25rem;
-  --rs-tweet-header-gap: var(--saito-space-md);
+  /* Semantic aliases — prefer these at call sites that name a role */
+  --rs-tweet-avatar: var(--rs-avatar-m);
+  --rs-tweet-embed-avatar: var(--rs-avatar-xs);
+  --rs-identicon: var(--rs-avatar-s);
+  --rs-identicon-radius: var(--rs-avatar-radius);
+
+  /*
+   * Feed rhythm — aligned with X desktop (~12×16 pad, 12px avatar gutter)
+   * while keeping RedSquare tokens (not cloning X chrome).
+   */
+  --rs-tweet-header-gap: 1.2rem;
   --rs-tweet-text-gap: var(--saito-space-sm);
-  --rs-tweet-block-gap: var(--saito-space-sm);
+  --rs-tweet-block-gap: 0.6rem;
   --rs-tweet-pad-y: 1.2rem;
   --rs-tweet-chain-width: var(--border-thickness-medium, 2px);
   --rs-tweet-chain-color: var(--saito-border-color);
 
-  /* Focused tweet variant — typography emphasis in thread view */
-  --rs-tweet-focused-body: 2.3rem;
-  --rs-tweet-focused-leading: 3rem;
-  --rs-tweet-focused-pad-y: var(--saito-space-lg);
+  /* Focused — modest type lift (~17px), not a second typography system */
+  --rs-tweet-focused-body: 1.7rem;
+  --rs-tweet-focused-leading: 2.4rem;
+  --rs-tweet-focused-pad-y: 1.2rem;
 
-  /* Embedded tweet proportions */
-  --rs-tweet-embed-avatar: 3.25rem;
-  --rs-tweet-embed-pad-x: var(--rs-space-sm);
-  --rs-tweet-embed-pad-y: var(--rs-space-sm);
+  /* Embedded / quote — denser than timeline */
+  --rs-tweet-embed-pad-x: 1.2rem;
+  --rs-tweet-embed-pad-y: 1rem;
 
   /* Nav layout — proportions only; type inherits from body / Saito menu */
   --rs-nav-icon: 2.75rem;
@@ -112,7 +130,8 @@ body.redsquare-body {
 
   --rs-feed-x: var(--saito-space-md);
   --rs-feed-y: var(--saito-space-sm);
-  --rs-tweet-pad-x: var(--rs-feed-x);
+  /* Tweet rows: ~16px horizontal inset (X desktop); feed chrome stays on --rs-feed-x */
+  --rs-tweet-pad-x: 1.6rem;
   --rs-sidebar-pad: var(--saito-space-md);
   --rs-panel-x: var(--rs-sidebar-pad);
   --rs-row-y: var(--rs-space-xs);
@@ -144,22 +163,41 @@ body.redsquare-body {
 }
 
 /*
- * Tweet feed — extend saito-user typography (see production redsquare-tweet.css).
- * Header text uses .saito-address / .saito-userline; body inherits global font-size.
+ * Tweet feed — header/body typography.
+ * Structure selectors use .tweet-header-primary / .tweet-header-secondary;
+ * .saito-address / .saito-userline remain as type hooks.
  */
+body.redsquare-body .tweet-header .tweet-header-primary,
 body.redsquare-body .tweet-header .saito-address {
   font-family: var(--saito-font-heavy);
   font-size: var(--font-size-medium);
+  font-weight: 700;
+  line-height: 1.3;
   color: var(--saito-font-color-heavy);
 }
 
+body.redsquare-body .tweet-header .tweet-header-secondary,
 body.redsquare-body .tweet-header .saito-userline {
-  font-size: 1.4rem;
+  font-family: var(--saito-font, inherit);
+  font-weight: 400;
   color: var(--saito-font-color-secondary);
 }
 
+/*
+ * Compact one-line headers (timeline / root / reply / embedded):
+ * hierarchy is weight + color, not a smaller meta size — matches X desktop.
+ */
+body.redsquare-body .tweet-header.timeline .tweet-header-secondary,
+body.redsquare-body .tweet-header.root .tweet-header-secondary,
+body.redsquare-body .tweet-header.reply .tweet-header-secondary,
+body.redsquare-body .tweet-header.embedded .tweet-header-secondary {
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+}
+
 body.redsquare-body .tweet-body {
-  line-height: 2.2rem;
+  line-height: 2rem;
+  font-size: var(--font-size-medium);
 }
 
 /*

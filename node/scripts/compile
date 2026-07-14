@@ -142,6 +142,7 @@ echo "Compiling Lite-Client JS..."
       rm -rf "$md/BUGS.txt"
       rm -rf "$md/DESCRIPTION.txt"
       rm -rf "$md/README.txt"
+      rm -rf "$md/"*-dump.txt
       rm -rf "$md/*.md"
       rm -rf "$md/README.md"
       rm -rf "$md/install.sh"

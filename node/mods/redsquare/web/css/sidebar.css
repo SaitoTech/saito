@@ -277,16 +277,16 @@ body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .saito-table-ra
 
 .sidebar-suggestion {
   display: grid;
-  grid-template-columns: var(--rs-identicon) minmax(0, 1fr) auto;
+  grid-template-columns: var(--rs-avatar-s) minmax(0, 1fr) auto;
   align-items: center;
   column-gap: var(--rs-space-xs);
   padding: var(--rs-row-y) var(--rs-sidebar-pad);
 }
 
 .sidebar-suggestion-avatar {
-  width: var(--rs-identicon);
-  height: var(--rs-identicon);
-  border-radius: var(--rs-identicon-radius);
+  width: var(--rs-avatar-s);
+  height: var(--rs-avatar-s);
+  border-radius: var(--rs-avatar-radius);
   border: none;
   object-fit: cover;
 }
