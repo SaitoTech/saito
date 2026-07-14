@@ -1,0 +1,76 @@
+.apebond-container {
+  max-width: 760px;
+  text-align: center;
+}
+
+.apebond-header {
+  width: 100%;
+  justify-content: center;
+}
+
+.apebond-subtitle {
+  width: 100%;
+  margin: 1rem 0 0.5rem;
+  font-size: 2.4rem;
+  font-weight: 600;
+  color: var(--saito-primary);
+}
+
+.apebond-intro:empty {
+  display: none;
+}
+
+.apebond-form-fields {
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.apebond-form-fields #apebond-migrate {
+  width: min(100%, 40rem);
+  min-height: 6rem;
+  font-size: 2.4rem;
+}
+
+.apebond-form-fields #apebond-email {
+  width: min(100%, 40rem);
+  padding: 1rem;
+  font-size: 2rem;
+}
+
+.apebond-treasury-status,
+.apebond-treasury-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 2rem;
+}
+
+.apebond-treasury-status .saito_spinner {
+  width: 5rem;
+  height: 5rem;
+}
+
+.apebond-treasury-error {
+  color: var(--saito-red);
+}
+
+.apebond-information {
+  max-width: 60rem;
+  font-size: 1.7rem;
+  line-height: 1.45;
+}
+
+.apebond-information p + p {
+  margin-top: 1.2rem;
+}
+
+.apebond-information .apebond-welcome {
+  margin-top: 2rem;
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+
+.apebond-welcome a {
+  color: var(--saito-primary);
+}
