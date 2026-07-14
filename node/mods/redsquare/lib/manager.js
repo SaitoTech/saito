@@ -186,10 +186,11 @@ class Manager {
         break;
     }
 
-    this.updateHeaderNavigation();
+    this.syncFeedHeader();
     this.attachEvents();
     this.syncScrollFooter();
     this.syncProfileNav();
+    this.mod.main?.new_post?.render();
   }
 
   ensureShell() {
@@ -197,6 +198,8 @@ class Manager {
 
     if (
       root &&
+      root.querySelector('.manager-header') &&
+      root.querySelector('.manager-header-back') &&
       root.querySelector('.manager-timeline') &&
       root.querySelector('.manager-profile')
     ) {
@@ -246,31 +249,62 @@ class Manager {
     } else if (this.pending_newer_tweets.length) {
       this.showNewPostsBanner();
     }
+
+    this.syncFeedHeader();
+  }
+
+  /**
+   * Feed-header chrome only — never touch the global Saito Header.
+   * Timeline: "Home". Navigable views: "← Post" / "← Profile" / etc.
+   */
+  syncFeedHeader() {
+    const root = document.querySelector(this.container);
+
+    if (!root) {
+      return;
+    }
+
+    const title = root.querySelector('.manager-header-title');
+    const back = root.querySelector('.manager-header-back');
+
+    const labels = {
+      timeline: 'Home',
+      notifications: 'Notifications',
+      thread: 'Post',
+      posts: 'Profile',
+      replies: 'Profile',
+      likes: 'Profile'
+    };
+
+    if (title) {
+      title.textContent = labels[this.mode] || 'Home';
+    }
+
+    const showBack = this.mode !== 'timeline';
+
+    if (back) {
+      back.hidden = !showBack;
+      back.setAttribute('aria-hidden', showBack ? 'false' : 'true');
+    }
+
+    root.classList.toggle('manager-has-back', showBack);
   }
 
   syncProfileNav() {
     this.mod.main?.profile?.syncActiveNav(this.mode);
   }
 
-  updateHeaderNavigation() {
-    const header = this.mod.header;
-
-    if (!header) {
-      return;
-    }
-
-    if (this.mode === 'timeline') {
-      header.disableBackButton();
-      return;
-    }
-
-    header.enableBackButton(() => {
-      this.renderTimeline();
-    });
+  navigateBackToTimeline() {
+    this.renderTimeline();
   }
 
   getScrollContainer() {
-    return document.querySelector('#saito-container') || document.querySelector('.saito-container');
+    return (
+      document.querySelector(`${this.container} .manager-body`) ||
+      document.querySelector('.manager-body') ||
+      document.querySelector('#saito-container') ||
+      document.querySelector('.saito-container')
+    );
   }
 
   saveScrollPosition(mode = this.mode) {
@@ -848,7 +882,7 @@ class Manager {
     this.active_profile_key = '';
     this.scroll_positions.timeline = 0;
     this.updateModeVisibility();
-    this.updateHeaderNavigation();
+    this.syncFeedHeader();
     this.resetMenuToHome();
     this.syncProfileNav();
 
@@ -1032,7 +1066,27 @@ class Manager {
     this.attachTweetReply(root);
     this.attachTweetLike(root);
     this.attachTweetRetweet(root);
+    this.attachFeedHeaderBack(root);
     this.attachScrollEvents();
+  }
+
+  attachFeedHeaderBack(root) {
+    if (!root || root.dataset.feedHeaderBackBound === '1') {
+      return;
+    }
+
+    root.dataset.feedHeaderBackBound = '1';
+
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('.manager-header-back');
+
+      if (!btn || !root.contains(btn) || btn.hidden) {
+        return;
+      }
+
+      e.preventDefault();
+      this.navigateBackToTimeline();
+    });
   }
 
   attachThreadContext(root) {

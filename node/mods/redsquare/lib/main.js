@@ -16,7 +16,7 @@ class Main {
     this.manager = mod.manager;
     this.manager.container = '.manager';
     this.profile = new Profile(app, mod, '.sidebar-right > .profile');
-    this.new_post = new NewPost(app, mod, '.sidebar-right > .new-post');
+    this.new_post = new NewPost(app, mod, '.manager-header-actions');
     this.sidebar = new Sidebar(app, mod, '.sidebar-right > .sidebar');
   }
 

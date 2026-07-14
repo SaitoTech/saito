@@ -1,13 +1,33 @@
-.sidebar-right > .new-post {
-  width: 100%;
-}
-
-.new-post-button {
-  width: 100%;
-  min-height: var(--rs-nav-post-height, 4.4rem);
-  border-radius: var(--rs-radius-pill);
-}
-
-body.redsquare-body .new-post-button {
+/*
+ * Compact New Post — lives in `.manager-header-actions`.
+ * Color from .saito-button-primary; geometry owned here (not the 18rem CTA).
+ */
+body.redsquare-body .manager-header .new-post-button,
+.manager-header .new-post-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  box-sizing: border-box;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  height: 3.2rem;
   margin: 0;
+  padding: 0 1.1rem;
+  border-radius: var(--rs-radius-pill);
+  font-size: var(--font-size-tiny);
+  font-family: var(--saito-font-medium);
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+body.redsquare-body .manager-header .new-post-button i {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1;
 }

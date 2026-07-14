@@ -66,6 +66,9 @@ class RedSquare extends ModTemplate {
     this.curated = true;
     this.passive_poll_interval_ms = 5 * 60 * 1000;
 
+    // Enables banner / description editing via the Profile module (SaitoProfile contract).
+    this.enable_profile_edits = true;
+
     this.styles = ['/saito/saito.css', '/redsquare/style.css'];
 
   }
@@ -109,15 +112,17 @@ class RedSquare extends ModTemplate {
         await this.app.network.propagateTransaction(tx);
       });
 
+      const key = this.publicKey || '';
       this.profile = {
-        name: 'Your Name',
-        handle: 'you',
-        bio: 'Building on Saito. Open source enthusiast. Say no to speed restrictions from people who dislike your opinions.',
-        avatar: '/saito/img/dreamscape.png',
-        banner: '/saito/img/dreamscape.png',
-        followers: 1284,
-        following: 412,
-        posts: 847
+        publicKey: key,
+        name: key ? this.app.keychain.returnUsername(key) || `Anon-${key.slice(0, 6)}` : 'Anonymous',
+        handle: '',
+        bio: '',
+        avatar: key
+          ? this.app.keychain.returnIdenticon(key) || '/saito/img/dreamscape.png'
+          : '/saito/img/dreamscape.png',
+        banner: '',
+        can_edit: Boolean(this.enable_profile_edits && key)
       };
 
       this.loadOptions();

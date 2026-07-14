@@ -1,31 +1,134 @@
+/*
+ * Manager = center-column stack.
+ *   .manager-header  → fixed chrome (not in the tweet scroller)
+ *   .manager-body    → only scrolling region (timeline / thread / …)
+ */
 .manager {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   position: relative;
 }
 
+/*
+ * Feed header — timeline chrome (title + actions).
+ * Lives outside .manager-body so it cannot scroll away with tweets.
+ */
 .manager-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding: var(--rs-feed-y) var(--rs-feed-x);
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 1;
   display: flex;
   align-items: center;
-  min-height: var(--rs-btn-height-compact);
+  justify-content: space-between;
+  gap: var(--rs-space-sm);
+  box-sizing: border-box;
+  height: var(--rs-feed-header-height, 5.6rem);
+  min-height: var(--rs-feed-header-height, 5.6rem);
+  padding: 0 var(--rs-tweet-pad-x);
   border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
-  background: var(--rs-canvas);
+  background: var(--rs-surface-feed, var(--rs-canvas));
 }
 
-.manager-header h2 {
+.manager-header-start {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/*
+ * Module back control — quiet icon, never primary/orange.
+ * Must outrank theme `button` fill when shown.
+ */
+html[data-theme] body.redsquare-body .manager-header-back,
+body.redsquare-body .manager-header-back,
+.manager-header-back {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 3.2rem;
+  height: 3.2rem;
+  min-width: 0;
+  min-height: 0;
   margin: 0;
-  font-family: var(--saito-font-heavy);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  color: var(--rs-text-strong, var(--saito-font-color-heavy));
+  font-size: 1.8rem;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+  line-height: 1;
+  transform: none;
+  filter: none;
+  transition:
+    background-color var(--rs-transition),
+    color var(--rs-transition);
+}
+
+html[data-theme] body.redsquare-body .manager-header-back:hover,
+html[data-theme] body.redsquare-body .manager-header-back:focus-visible,
+body.redsquare-body .manager-header-back:hover,
+body.redsquare-body .manager-header-back:focus-visible,
+.manager-header-back:hover,
+.manager-header-back:focus-visible {
+  background: var(--rs-surface-hover, rgba(255, 255, 255, 0.08));
+  background-image: none;
+  box-shadow: none;
+  color: var(--rs-text-strong, var(--saito-font-color-heavy));
+  outline: none;
+  transform: none;
+  filter: none;
+}
+
+.manager-header-back[hidden] {
+  display: none !important;
+}
+
+.manager-header-back i {
+  margin: 0;
+  line-height: 1;
+}
+
+.manager-header-title {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--saito-font-heavy, var(--saito-font-medium));
   font-size: var(--rs-heading);
   font-weight: normal;
   line-height: 1.2;
   color: var(--rs-text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--rs-space-sm);
 }
 
 .manager-body {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .manager-list {
@@ -34,7 +137,7 @@
 }
 
 .manager-thread-context {
-  padding: var(--rs-space-sm) var(--rs-feed-x);
+  padding: var(--rs-space-sm) var(--rs-tweet-pad-x);
   color: var(--rs-text-muted);
   font-size: var(--font-size-tiny);
   cursor: pointer;
@@ -51,13 +154,13 @@
 }
 
 .manager-new-posts-banner {
-  position: sticky;
-  top: 0;
-  z-index: 3;
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 1;
   display: block;
   width: 100%;
   margin: 0;
-  padding: 0.9rem var(--rs-feed-x);
+  padding: 0.9rem var(--rs-tweet-pad-x);
   border: none;
   border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
   border-radius: 0;
@@ -139,14 +242,14 @@ article.tweet.tweet-enter {
 /* content — scroll sentinel only; no empty/end copy */
 .manager-feed-status[data-status='content'] {
   min-height: 2.4rem;
-  padding: 1.2rem var(--rs-feed-x);
+  padding: 1.2rem var(--rs-tweet-pad-x);
 }
 
 /* loading / empty / end — one visible status chrome */
 .manager-feed-status[data-status='loading'],
 .manager-feed-status[data-status='empty'],
 .manager-feed-status[data-status='end'] {
-  padding: 7rem var(--rs-feed-x) 5rem;
+  padding: 7rem var(--rs-tweet-pad-x) 5rem;
 }
 
 .manager-feed-status[data-status='loading'] .manager-feed-status-loader {
@@ -165,6 +268,6 @@ article.tweet.tweet-enter {
 
 @media (max-width: 600px) {
   .manager-header {
-    padding: var(--rs-feed-y) var(--rs-space-sm);
+    padding: 0 var(--rs-space-sm);
   }
 }

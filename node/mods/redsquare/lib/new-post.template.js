@@ -1,8 +1,9 @@
 module.exports = (newPost) => {
-  // Injected into `.sidebar-right > .new-post` — not part of the Profile card.
+  // Injected into `.manager-header-actions` — compact feed-header control.
   return `
       <button class="new-post-button saito-button-primary" type="button">
-        New Post
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        <span>New Post</span>
       </button>
   `;
 };

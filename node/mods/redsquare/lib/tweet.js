@@ -12,13 +12,15 @@ function authorFromPublicKey(app, publicKey) {
   if (!publicKey) {
     return {
       username: 'anon',
-      handle: 'anon',
+      handle: '',
       avatar: '/saito/img/dreamscape.png'
     };
   }
 
-  const username = app.keychain.returnUsername(publicKey) || publicKey.slice(0, 8);
-  const handle = app.keychain.returnIdentifierByPublicKey(publicKey, true) || publicKey.slice(0, 8);
+  // Display name from keychain (registered identifier or Anon-xxxxxx).
+  // Handle/meta is always the public key — never duplicate the username.
+  const username = app.keychain.returnUsername(publicKey) || `Anon-${publicKey.slice(0, 6)}`;
+  const handle = `@${publicKey}`;
   const avatar = app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
 
   return { username, handle, avatar };

@@ -1,7 +1,7 @@
 const NewPostTemplate = require('./new-post.template');
 
 class NewPost {
-  constructor(app, mod, container = '') {
+  constructor(app, mod, container = '.manager-header-actions') {
     this.app = app;
     this.mod = mod;
     this.container = container;
@@ -12,7 +12,17 @@ class NewPost {
       this.container = container;
     }
 
-    this.app.browser.replaceElementContentBySelector(NewPostTemplate(this), this.container);
+    const slot = document.querySelector(this.container);
+
+    if (!slot) {
+      return;
+    }
+
+    // Shell usually ships the button; inject only if the slot is empty.
+    if (!slot.querySelector('.new-post-button')) {
+      this.app.browser.replaceElementContentBySelector(NewPostTemplate(this), this.container);
+    }
+
     this.attachEvents();
   }
 

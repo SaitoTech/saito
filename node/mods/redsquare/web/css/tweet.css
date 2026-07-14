@@ -92,7 +92,8 @@ body.redsquare-body .tweet-avatar.saito-identicon {
 }
 
 /* -------------------------------------------------------------------------
- * TweetHeader — shared structure; presentation classes change layout only.
+ * TweetHeader — compact (scan) vs expanded (read).
+ * Spacing stays local to the header; tweet layout does not encode it.
  * ------------------------------------------------------------------------- */
 
 .tweet-header {
@@ -109,7 +110,7 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   white-space: nowrap;
 }
 
-.tweet-header-secondary {
+.tweet-header-handle {
   flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
@@ -117,14 +118,28 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   white-space: nowrap;
 }
 
+.tweet-header-time {
+  flex: 0 0 auto;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.tweet-header-sep {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.tweet-header-sep-time {
+  /* sits immediately before the right-pinned time */
+  margin-left: 0;
+}
+
 /*
- * Compact single-line header: name · @handle · time
- * Used by timeline, root, reply, and embedded.
+ * Compact — one scanning line:
+ *   Username · @publickey… · 2m
+ * Username = intrinsic width; handle truncates; time always stays visible.
  */
-.tweet-header.timeline,
-.tweet-header.root,
-.tweet-header.reply,
-.tweet-header.embedded {
+.tweet-header.compact {
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: baseline;
@@ -133,10 +148,65 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   line-height: 1.3;
 }
 
+.tweet-header.compact .tweet-header-primary {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.tweet-header.compact .tweet-header-handle {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tweet-header.compact .tweet-header-sep-time {
+  margin-left: auto;
+}
+
+.tweet-header.compact .tweet-header-time {
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
 /*
- * Focused + compose: stacked two-line header.
+ * Expanded — focused/reading layout:
+ *   Username
+ *   @publickey
+ * Treated as one typographic block, vertically centered beside the avatar.
  */
-.tweet-header.focused,
+.tweet-header.expanded {
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-height: 0;
+  padding: 0;
+}
+
+.tweet-header.expanded .tweet-header-primary,
+.tweet-header.expanded .tweet-header-handle {
+  flex: none;
+  max-width: 100%;
+}
+
+.tweet-header.expanded .tweet-header-primary {
+  margin: 0;
+  padding: 0;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.tweet-header.expanded .tweet-header-handle {
+  margin: 0;
+  padding: 0;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Compose — intentionally unchanged stacked instructional header.
+ * Layout rules live in compose-overlay.css.
+ */
 .tweet-header.compose {
   flex-direction: column;
   justify-content: flex-start;
@@ -144,12 +214,18 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   min-height: 0;
 }
 
-.tweet-header.focused .tweet-header-primary,
-.tweet-header.focused .tweet-header-secondary,
 .tweet-header.compose .tweet-header-primary,
 .tweet-header.compose .tweet-header-secondary {
   flex: none;
   max-width: 100%;
+}
+
+.tweet-header-secondary {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tweet-body {
@@ -247,13 +323,13 @@ body.redsquare-body .tweet-avatar.saito-identicon {
 
 /*
  * Root — conversation parent / critical-child stub.
- * Same compact anatomy as timeline; slightly quieter secondary meta.
+ * Same compact anatomy as timeline; slightly quieter handle meta.
  */
 .tweet.root {
   --tweet-current-pad-y: var(--rs-tweet-pad-y, 1.2rem);
 }
 
-body.redsquare-body .tweet.root .tweet-header-secondary {
+body.redsquare-body .tweet.root .tweet-header.compact .tweet-header-handle {
   color: var(--rs-text-faint, var(--saito-font-color-light));
 }
 
@@ -274,16 +350,14 @@ body.redsquare-body .tweet.root .tweet-header-secondary {
   background: transparent;
 }
 
-body.redsquare-body .tweet-header.focused .tweet-header-primary {
+body.redsquare-body .tweet-header.expanded .tweet-header-primary {
   font-size: 1.6rem;
   line-height: 1.25;
-  white-space: normal;
 }
 
-body.redsquare-body .tweet-header.focused .tweet-header-secondary {
+body.redsquare-body .tweet-header.expanded .tweet-header-handle {
   font-size: var(--font-size-medium);
   line-height: 1.3;
-  white-space: normal;
 }
 
 .tweet-body.focused {
