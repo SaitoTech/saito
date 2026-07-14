@@ -1,17 +1,5 @@
 module.exports = (sidebar) => {
-  let trends = sidebar.trends
-    .map(
-      (trend) => `
-        <li class="sidebar-trend">
-          <span class="sidebar-trend-category">${trend.category}</span>
-          <span class="sidebar-trend-tag">${trend.tag}</span>
-          <span class="sidebar-trend-posts">${trend.posts}</span>
-        </li>
-      `
-    )
-    .join('');
-
-  let suggestions = sidebar.suggestions
+  const suggestions = (sidebar.suggestions || [])
     .map(
       (user) => `
         <li class="sidebar-suggestion">
@@ -26,22 +14,11 @@ module.exports = (sidebar) => {
     )
     .join('');
 
-  let leaderboard = (sidebar.leaderboard || [])
-    .map(
-      (entry) => `
-        <li class="sidebar-leaderboard-item">
-          <span class="sidebar-leaderboard-rank">${entry.rank}</span>
-          <div class="sidebar-leaderboard-info">
-            <span class="sidebar-leaderboard-name">${entry.name}</span>
-            <span class="sidebar-leaderboard-handle">@${entry.handle}</span>
-          </div>
-          <span class="sidebar-leaderboard-score">${entry.score}</span>
-        </li>
-      `
-    )
-    .join('');
-
   // Injected into `.sidebar-right > .sidebar` — no outer `.sidebar` wrapper.
+  //
+  // `.redsquare-sidebar` is the module-injection mount (League / others via
+  // canRenderInto + renderInto). Rankings is a native RedSquare slot.
+  // Who to Follow remains a Sidebar-owned presentation slot (as before).
   return `
       <div class="sidebar-search">
         <label class="sidebar-search-field">
@@ -52,21 +29,9 @@ module.exports = (sidebar) => {
         </label>
       </div>
 
-      <section class="sidebar-panel sidebar-panel-trends">
-        <h3 class="sidebar-panel-title">Trends for you</h3>
-        <ul class="sidebar-trend-list">
-          ${trends}
-        </ul>
-        <a class="sidebar-more" href="#">Show more</a>
-      </section>
+      <div class="redsquare-sidebar"></div>
 
-      <section class="sidebar-panel sidebar-panel-leaderboard">
-        <h3 class="sidebar-panel-title">Leaderboard</h3>
-        <ul class="sidebar-leaderboard-list">
-          ${leaderboard}
-        </ul>
-        <a class="sidebar-more" href="#">View full leaderboard</a>
-      </section>
+      <div class="rankings"></div>
 
       <section class="sidebar-panel sidebar-panel-suggestions">
         <h3 class="sidebar-panel-title">Who to follow</h3>

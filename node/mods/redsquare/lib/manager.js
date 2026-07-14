@@ -30,6 +30,7 @@ class Manager {
     this.pagination = this.createPaginationState();
     this.pending_newer_tweets = [];
     this._timeline_bootstrapping = false;
+    this._notifications_bootstrapping = false;
   }
 
   createPaginationState() {
@@ -103,7 +104,6 @@ class Manager {
     this.render();
     this.restoreScrollPosition('notifications');
     this.syncScrollFooter();
-    this.fetchRemoteTransactions('notifications', 'newer');
   }
 
   renderThread(signature) {
@@ -209,6 +209,7 @@ class Manager {
     this.pagination = this.createPaginationState();
     this.pending_newer_tweets = [];
     this._timeline_bootstrapping = false;
+    this._notifications_bootstrapping = false;
   }
 
   updateModeVisibility() {
@@ -321,7 +322,7 @@ class Manager {
       },
       notifications: {
         loading: 'Loading notifications...',
-        empty: 'No notifications.',
+        empty: "You're all caught up",
         end: 'No more notifications.'
       },
       thread: {
@@ -463,14 +464,107 @@ class Manager {
   }
 
   paintNotifications() {
-    if (this.notifications_rendered) {
+    if (this.notifications_rendered || this._notifications_bootstrapping) {
       this.syncFeedStatus();
       return;
     }
 
-    this.appendNotificationsBatch();
-    this.notifications_rendered = true;
+    this.bootstrapNotifications();
+  }
+
+  async bootstrapNotifications() {
+    if (this.notifications_rendered || this._notifications_bootstrapping) {
+      return;
+    }
+
+    this._notifications_bootstrapping = true;
     this.syncFeedStatus();
+
+    this.appendNotificationsBatch();
+
+    await this.loadNotificationDirection('newer');
+
+    if (this.getRenderedItemCount() === 0) {
+      await this.loadNotificationDirection('older');
+    }
+
+    this.notifications_rendered = true;
+    this._notifications_bootstrapping = false;
+
+    const state = this.pagination.notifications;
+
+    if (this.getRenderedItemCount() === 0) {
+      state.loading = false;
+      state.exhausted = true;
+    }
+
+    this.syncFeedStatus();
+  }
+
+  loadNotificationDirection(direction) {
+    return new Promise((resolve) => {
+      let settled = false;
+
+      const finish = (result) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+
+        if (direction === 'newer') {
+          this.handleNewerNotifications(result || {
+            type: 'notifications',
+            direction: 'newer',
+            added: [],
+            updated: [],
+            ignored: [],
+            exhausted: true
+          });
+        } else {
+          this.applyOlderLoadResult(
+            result || {
+              type: 'notifications',
+              direction: 'older',
+              added: [],
+              updated: [],
+              ignored: [],
+              exhausted: true
+            }
+          );
+        }
+
+        resolve();
+      };
+
+      const timer = setTimeout(() => {
+        finish({
+          type: 'notifications',
+          direction,
+          added: [],
+          updated: [],
+          ignored: [],
+          exhausted: true
+        });
+      }, 12000);
+
+      try {
+        this.mod.loadTransactions('notifications', direction, (result) => {
+          clearTimeout(timer);
+          finish(result);
+        });
+      } catch (err) {
+        clearTimeout(timer);
+        finish({
+          type: 'notifications',
+          direction,
+          added: [],
+          updated: [],
+          ignored: [],
+          exhausted: true
+        });
+      }
+    });
   }
 
   paintProfileView() {
@@ -1430,7 +1524,13 @@ class Manager {
   loadMoreIfNeeded() {
     const state = this.getPaginationState();
 
-    if (state.loading || state.exhausted || this.isProfileMode()) {
+    if (
+      state.loading ||
+      state.exhausted ||
+      this.isProfileMode() ||
+      this._notifications_bootstrapping ||
+      this._timeline_bootstrapping
+    ) {
       return;
     }
 
@@ -1440,7 +1540,13 @@ class Manager {
   async loadMore() {
     const state = this.getPaginationState();
 
-    if (state.loading || state.exhausted || this.isProfileMode()) {
+    if (
+      state.loading ||
+      state.exhausted ||
+      this.isProfileMode() ||
+      this._notifications_bootstrapping ||
+      this._timeline_bootstrapping
+    ) {
       return;
     }
 
@@ -1481,7 +1587,14 @@ class Manager {
       }
 
       await new Promise((resolve) => {
-        this.mod.loadTransactions(type, 'older', (result) => {
+        let settled = false;
+
+        const finish = (result) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
           continueLoading = this.applyOlderLoadResult(
             result || {
               type,
@@ -1493,7 +1606,35 @@ class Manager {
             }
           );
           resolve();
-        });
+        };
+
+        const timer = setTimeout(() => {
+          finish({
+            type,
+            direction: 'older',
+            added: [],
+            updated: [],
+            ignored: [],
+            exhausted: true
+          });
+        }, 12000);
+
+        try {
+          this.mod.loadTransactions(type, 'older', (result) => {
+            clearTimeout(timer);
+            finish(result);
+          });
+        } catch (err) {
+          clearTimeout(timer);
+          finish({
+            type,
+            direction: 'older',
+            added: [],
+            updated: [],
+            ignored: [],
+            exhausted: true
+          });
+        }
       });
     } finally {
       state.loading = false;
@@ -1514,10 +1655,8 @@ class Manager {
       return this.isNearBottom();
     }
 
-    if (result.exhausted) {
-      state.exhausted = true;
-    }
-
+    // Empty older page — stop. Near-bottom empty feeds would otherwise refetch forever.
+    state.exhausted = true;
     this.syncFeedStatus();
     return false;
   }
@@ -1535,13 +1674,11 @@ class Manager {
 
     let footer = panel.querySelector('.manager-feed-status');
 
-    // Upgrade leftover terminator from earlier builds.
+    // Upgrade leftover terminators from earlier builds.
     if (!footer) {
-      const legacy = panel.querySelector('.manager-feed-end');
-
-      if (legacy) {
-        legacy.remove();
-      }
+      panel
+        .querySelectorAll('.manager-feed-end, .manager-scroll-footer')
+        .forEach((node) => node.remove());
 
       this.app.browser.addElementToElement(ManagerScrollFooterTemplate(), panel);
       footer = panel.querySelector('.manager-feed-status');
@@ -1574,7 +1711,7 @@ class Manager {
     }
 
     if (this.mode === 'notifications') {
-      return this.notifications_rendered;
+      return this.notifications_rendered && !this._notifications_bootstrapping;
     }
 
     if (this.mode === 'thread') {
@@ -1591,7 +1728,7 @@ class Manager {
   resolveFeedStatus() {
     const state = this.getPaginationState();
 
-    if (state.loading || this._timeline_bootstrapping) {
+    if (state.loading || this._timeline_bootstrapping || this._notifications_bootstrapping) {
       return 'loading';
     }
 
@@ -1625,7 +1762,9 @@ class Manager {
     const message = footer.querySelector('.manager-feed-status-message');
 
     if (message) {
-      message.textContent = status === 'content' ? '' : this.getFeedStatusMessage(status);
+      // Loading is spinner-only — never keep empty/end copy under the loader.
+      message.textContent =
+        status === 'loading' || status === 'content' ? '' : this.getFeedStatusMessage(status);
     }
   }
 

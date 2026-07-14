@@ -1312,6 +1312,11 @@ class RedSquare extends ModTemplate {
     }
 
     await super.render();
+
+    // League (and peers) inject UI into `.redsquare-sidebar` via canRenderInto/renderInto.
+    if (this.app.modules?.renderInto) {
+      await this.app.modules.renderInto('.redsquare-sidebar');
+    }
   }
 
   webServer(app, expressapp, express, alternative_slug = null) {
