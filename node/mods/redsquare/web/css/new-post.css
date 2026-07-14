@@ -1,0 +1,13 @@
+.sidebar-right > .new-post {
+  width: 100%;
+}
+
+.new-post-button {
+  width: 100%;
+  min-height: var(--rs-nav-post-height, 4.4rem);
+  border-radius: var(--rs-radius-pill);
+}
+
+body.redsquare-body .new-post-button {
+  margin: 0;
+}

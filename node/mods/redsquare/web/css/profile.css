@@ -2,14 +2,18 @@
   margin: 0;
 }
 
+/*
+ * Card may not clip the overlapping identity row — overflow:hidden was hiding
+ * the username next to the banner-overlapping identicon.
+ */
 .profile-card {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   background: var(--rs-layer-base);
   border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
   border-radius: var(--rs-radius);
-  margin-bottom: var(--rs-space-xs);
+  margin-bottom: 0;
 }
 
 /*
@@ -46,17 +50,28 @@
   display: flex;
   flex-direction: column;
   padding: 0 var(--rs-sidebar-pad) var(--rs-space-md);
+  border-bottom-left-radius: var(--rs-radius);
+  border-bottom-right-radius: var(--rs-radius);
+  background: var(--rs-layer-base);
+  overflow: visible;
 }
 
+/*
+ * Identity: identicon overlaps the banner seam; name + @handle sit beside
+ * the lower half of the identicon so nothing is clipped by the banner.
+ */
 .profile-identity {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--rs-space-sm);
+  display: grid;
+  grid-template-columns: var(--rs-avatar-l) minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--rs-space-sm);
   margin-top: calc(var(--rs-avatar-l) / -2);
   margin-bottom: var(--rs-space-sm);
+  min-width: 0;
 }
 
 .profile-avatar {
+  grid-column: 1;
   width: var(--rs-avatar-l);
   height: var(--rs-avatar-l);
   border-radius: var(--rs-avatar-radius);
@@ -68,12 +83,14 @@
 }
 
 .profile-identity-text {
+  grid-column: 2;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   min-width: 0;
-  flex: 1;
-  padding-bottom: 0.2rem;
+  /* Keep name/handle in the clear zone below the banner edge */
+  padding-top: calc(var(--rs-avatar-l) / 2 + 0.2rem);
+  z-index: 1;
 }
 
 .profile-name {
@@ -170,14 +187,4 @@
 .profile-nav-item.active:hover {
   background: var(--rs-surface-hover);
   color: var(--saito-font-color-heavy);
-}
-
-.profile-new-post {
-  width: 100%;
-  min-height: var(--rs-nav-post-height, 4.4rem);
-  border-radius: var(--rs-radius-pill);
-}
-
-body.redsquare-body .profile-new-post {
-  margin-top: var(--rs-space-lg);
 }

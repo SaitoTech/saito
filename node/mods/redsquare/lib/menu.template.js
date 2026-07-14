@@ -5,23 +5,8 @@ module.exports = (menu) => {
     badge = `<span class="saito-notification-dot menu-badge" aria-hidden="true">${menu.notification_count}</span>`;
   }
 
-  let chats = (menu.chats || [])
-    .map(
-      (chat) => `
-        <li class="menu-chat-item${chat.online ? ' online' : ''}">
-          <div class="menu-chat-identicon saito-identicon-box">
-            <img class="menu-chat-avatar saito-identicon" src="${chat.avatar}" alt="${chat.name}" />
-            <span class="online-status-indicator" aria-hidden="true"></span>
-          </div>
-          <div class="menu-chat-info">
-            <span class="menu-chat-name saito-address">${chat.name}</span>
-            <span class="menu-chat-preview saito-userline">${chat.preview}</span>
-          </div>
-        </li>
-      `
-    )
-    .join('');
-
+  // Chat is owned by the Chat module (respondTo('chat-manager')) and mounts
+  // into `.sidebar-left` beside this menu — do not duplicate chat UI here.
   return `
     <nav class="menu">
       <ul class="menu-list saito-menu-select-subtle">
@@ -45,20 +30,6 @@ module.exports = (menu) => {
           <span class="menu-label">Settings</span>
         </li>
       </ul>
-
-      <section class="menu-chat">
-        <header class="menu-chat-header sidebar-header">
-          <h3 class="menu-chat-title sidebar-title">Chats</h3>
-          <div class="menu-chat-options" role="button" tabindex="0" aria-label="Chat options">
-            <i class="fa-solid fa-ellipsis"></i>
-          </div>
-        </header>
-        <div class="menu-chat-panel saito-sidebar-element">
-          <ul class="menu-chat-list">
-            ${chats}
-          </ul>
-        </div>
-      </section>
     </nav>
   `;
 };

@@ -19,6 +19,7 @@ module.exports = (profile) => {
 
   // Injected into `.sidebar-right > .profile` — no outer `.profile` wrapper.
   // Posts / Replies / Likes are navigation destinations, not tabs.
+  // New Post lives in its own sibling slot (`.new-post`), not inside this card.
   return `
       <div class="profile-card">
         <div class="profile-banner">
@@ -38,7 +39,6 @@ module.exports = (profile) => {
             <div class="profile-nav-item" role="link" tabindex="0" data-profile-nav="replies">Replies</div>
             <div class="profile-nav-item" role="link" tabindex="0" data-profile-nav="likes">Likes</div>
           </nav>
-          <button class="profile-new-post saito-button-primary" type="button">New Post</button>
         </div>
       </div>
   `;
