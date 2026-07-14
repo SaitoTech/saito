@@ -6,6 +6,8 @@ saitolitedocs
 .idea/
 .vs/*
 
+log.txt
+
 .compile.icloud
 .gen-issuance.ts.icloud
 .start.ts.icloud
