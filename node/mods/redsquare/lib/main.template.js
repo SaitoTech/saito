@@ -8,7 +8,6 @@ module.exports = () => {
 
     <aside class="sidebar-right">
       <div class="profile"></div>
-      <div class="new-post"></div>
       <div class="sidebar"></div>
     </aside>
   `;

@@ -1,13 +1,19 @@
 /*
  * RedSquare layout — column shell and sidebars only.
  * App-wide tokens and container overrides live in redsquare-base.css.
+ *
+ * Center column is a fixed-height flex stack: Home chrome stays put;
+ * only .manager-body scrolls (see manager.css).
  */
 
 .main {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   width: 100%;
+  overflow: hidden;
   border-left: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
   border-right: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
   border-top: none;
@@ -16,33 +22,45 @@
   background: var(--rs-canvas);
 }
 
+/*
+ * Side columns fill the shell height and scroll their own content.
+ * They are no longer sticky children of a page-level scroller.
+ */
 .sidebar-left {
-  position: sticky;
-  top: 0;
-  padding: var(--rs-col-pad-top) 0 var(--rs-space-md);
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: var(--rs-space-lg);
+  box-sizing: border-box;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
   width: 100%;
   min-width: 0;
+  padding: var(--rs-col-pad-top) 0 var(--rs-space-md);
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .sidebar-right {
-  position: sticky;
-  top: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--rs-space-lg);
-  padding: var(--rs-col-pad-top) 0 var(--rs-space-md);
+  gap: var(--rs-sidebar-gap);
+  box-sizing: border-box;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
   width: 100%;
   min-width: 0;
+  padding: var(--rs-col-pad-top) 0 var(--rs-space-md);
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .sidebar-right > .profile,
-.sidebar-right > .new-post,
 .sidebar-right > .sidebar {
   width: 100%;
+  flex-shrink: 0;
 }
 
 @media (max-width: 820px) {

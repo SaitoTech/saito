@@ -207,7 +207,10 @@ class TweetMenu {
     document.addEventListener('touchstart', this.onDocumentPointerDown, true);
     document.addEventListener('keydown', this.onDocumentKeyDown);
 
-    const scroller = document.querySelector('#saito-container') || document.querySelector('.saito-container');
+    const scroller =
+      document.querySelector('.manager-body') ||
+      document.querySelector('#saito-container') ||
+      document.querySelector('.saito-container');
 
     if (scroller) {
       scroller.addEventListener('scroll', this.onScrollClose, { passive: true });

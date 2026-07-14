@@ -73,23 +73,21 @@ body.redsquare-body {
 
   /*
    * Canonical avatar scale (10px root → rem ≈ px/10).
-   * Use these everywhere — do not invent one-off diameters.
+   * Page-wide standard is 38×38; Profile card keeps the larger identity mark.
    *
-   *   XS  2.4rem  24px  quoted/embedded tweets, ultra-compact thumbs
-   *   S   3.2rem  32px  chat list, who-to-follow, notification clusters
-   *   M   4.0rem  40px  timeline, compose, focused (aligned with X desktop)
-   *   L   5.6rem  56px  profile card
+   *   S/M  3.8rem  38px  timeline, embeds, chat, arcade, sidebar, etc.
+   *   L    6.8rem  68px  profile card only (banner overlap)
    */
-  --rs-avatar-xs: 2.4rem;
-  --rs-avatar-s: 3.2rem;
-  --rs-avatar-m: 4rem;
-  --rs-avatar-l: 5.6rem;
+  --rs-avatar-xs: 3.8rem;
+  --rs-avatar-s: 3.8rem;
+  --rs-avatar-m: 3.8rem;
+  --rs-avatar-l: 6.8rem;
   --rs-avatar-radius: var(--saito-identicon-border-radius, var(--saito-border-radius));
 
   /* Semantic aliases — prefer these at call sites that name a role */
   --rs-tweet-avatar: var(--rs-avatar-m);
-  --rs-tweet-embed-avatar: var(--rs-avatar-xs);
-  --rs-identicon: var(--rs-avatar-s);
+  --rs-tweet-embed-avatar: var(--rs-avatar-m);
+  --rs-identicon: var(--rs-avatar-m);
   --rs-identicon-radius: var(--rs-avatar-radius);
 
   /*
@@ -127,6 +125,7 @@ body.redsquare-body {
   --rs-icon-btn: 3.2rem;
   --rs-control-min: 3.4rem;
   --rs-composer-min-height: 5rem;
+  --rs-feed-header-height: 5.6rem;
 
   --rs-feed-x: var(--saito-space-md);
   --rs-feed-y: var(--saito-space-sm);
@@ -135,6 +134,8 @@ body.redsquare-body {
   --rs-sidebar-pad: var(--saito-space-md);
   --rs-panel-x: var(--rs-sidebar-pad);
   --rs-row-y: var(--rs-space-xs);
+  /* Vertical rhythm between right-rail cards (Profile, Leaderboard, …) */
+  --rs-sidebar-gap: var(--rs-space-lg);
 
   /*
    * Form controls — calm RedSquare inputs. Do not lean on --saito-focus-ring
@@ -164,7 +165,7 @@ body.redsquare-body {
 
 /*
  * Tweet feed — header/body typography.
- * Structure selectors use .tweet-header-primary / .tweet-header-secondary;
+ * Header modes: .tweet-header.compact | .expanded | .compose
  * .saito-address / .saito-userline remain as type hooks.
  */
 body.redsquare-body .tweet-header .tweet-header-primary,
@@ -176,6 +177,9 @@ body.redsquare-body .tweet-header .saito-address {
   color: var(--saito-font-color-heavy);
 }
 
+body.redsquare-body .tweet-header .tweet-header-handle,
+body.redsquare-body .tweet-header .tweet-header-time,
+body.redsquare-body .tweet-header .tweet-header-sep,
 body.redsquare-body .tweet-header .tweet-header-secondary,
 body.redsquare-body .tweet-header .saito-userline {
   font-family: var(--saito-font, inherit);
@@ -184,13 +188,12 @@ body.redsquare-body .tweet-header .saito-userline {
 }
 
 /*
- * Compact one-line headers (timeline / root / reply / embedded):
- * hierarchy is weight + color, not a smaller meta size — matches X desktop.
+ * Compact one-line headers: hierarchy is weight + color, not a smaller meta size.
+ * Matches X desktop scanning rhythm.
  */
-body.redsquare-body .tweet-header.timeline .tweet-header-secondary,
-body.redsquare-body .tweet-header.root .tweet-header-secondary,
-body.redsquare-body .tweet-header.reply .tweet-header-secondary,
-body.redsquare-body .tweet-header.embedded .tweet-header-secondary {
+body.redsquare-body .tweet-header.compact .tweet-header-handle,
+body.redsquare-body .tweet-header.compact .tweet-header-time,
+body.redsquare-body .tweet-header.compact .tweet-header-sep {
   font-size: var(--font-size-medium);
   line-height: 1.3;
 }
@@ -207,6 +210,10 @@ body.redsquare-body .tweet-body {
  * Horizontal alignment: --rs-page-inset must match #saito-header padding
  * (saito-header.css). Prior fixes targeted .menu / .sidebar-* padding
  * while the container used a different width variable and zero column-gap.
+ *
+ * Scroll ownership: this shell does NOT scroll. Columns are fixed-height;
+ * the timeline list (.manager-body) owns overflow. That keeps .manager-header
+ * pinned under Saito header without sticky hacks.
  */
 body.redsquare-body #saito-container.saito-container {
   background: var(--rs-canvas);
@@ -222,8 +229,14 @@ body.redsquare-body #saito-container.saito-container {
   column-gap: var(--rs-col-gap);
   grid-template-columns: var(--rs-col-left) minmax(0, var(--rs-col-center)) var(--rs-col-right);
   align-items: stretch;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+}
+
+/* Grid items must shrink so children can own overflow */
+body.redsquare-body #saito-container.saito-container > * {
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
 }
 
 @media (max-width: 1200px) {
@@ -261,10 +274,13 @@ body.redsquare-body #saito-container.saito-container {
 body.redsquare-body .menu-post,
 body.redsquare-body .composer-submit,
 body.redsquare-body .new-post-button,
+body.redsquare-body .profile-copy-key,
+body.redsquare-body .manager-header-back,
 body.redsquare-body .sidebar-suggestion-follow,
 body.redsquare-body .compose-tool,
 body.redsquare-body .settings-row-inline .saito-button-secondary {
   min-width: unset;
+  min-height: unset;
   margin: 0;
   text-transform: none;
   letter-spacing: normal;

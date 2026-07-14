@@ -11,7 +11,7 @@
 
 .tweet-embed > .tweet.embedded,
 .tweet-embed > .tweet.tweet-embedded {
-  --tweet-current-avatar: var(--rs-tweet-embed-avatar, var(--rs-avatar-xs));
+  --tweet-current-avatar: var(--rs-tweet-embed-avatar, var(--rs-avatar-m));
   --tweet-current-pad-x: var(--rs-tweet-embed-pad-x, 1.2rem);
   --tweet-current-pad-y: var(--rs-tweet-embed-pad-y, 1rem);
   --tweet-body-gap: 0.15rem;
@@ -48,12 +48,18 @@ body.redsquare-body .tweet.tweet-embedded .tweet-avatar.saito-identicon {
   height: var(--tweet-current-avatar);
 }
 
-body.redsquare-body .tweet-header.embedded .tweet-header-primary {
+body.redsquare-body .tweet.embedded .tweet-header.compact .tweet-header-primary,
+body.redsquare-body .tweet.tweet-embedded .tweet-header.compact .tweet-header-primary {
   font-size: var(--font-size-tiny);
   line-height: 1.25;
 }
 
-body.redsquare-body .tweet-header.embedded .tweet-header-secondary {
+body.redsquare-body .tweet.embedded .tweet-header.compact .tweet-header-handle,
+body.redsquare-body .tweet.embedded .tweet-header.compact .tweet-header-time,
+body.redsquare-body .tweet.embedded .tweet-header.compact .tweet-header-sep,
+body.redsquare-body .tweet.tweet-embedded .tweet-header.compact .tweet-header-handle,
+body.redsquare-body .tweet.tweet-embedded .tweet-header.compact .tweet-header-time,
+body.redsquare-body .tweet.tweet-embedded .tweet-header.compact .tweet-header-sep {
   font-size: var(--font-size-tiny);
   line-height: 1.25;
 }

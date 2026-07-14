@@ -23,6 +23,7 @@ module.exports = (sidebar) => {
   // Who to Follow remains a Sidebar-owned presentation slot until a recommendation
   // module owns it.
   return `
+      <!-- Search UI parked: styling kept in sidebar.css; re-enable when search is wired up.
       <div class="sidebar-search">
         <label class="sidebar-search-field">
           <span class="sidebar-search-icon" aria-hidden="true">
@@ -31,14 +32,13 @@ module.exports = (sidebar) => {
           <input type="search" placeholder="Search RedSquare" aria-label="Search RedSquare" />
         </label>
       </div>
+      -->
 
       <div class="redsquare-arcade"></div>
 
       <div class="redsquare-leaderboard"></div>
 
       <div class="redsquare-sidebar"></div>
-
-      <div class="rankings"></div>
 
       <section class="sidebar-panel sidebar-panel-suggestions">
         <h3 class="sidebar-panel-title">Who to follow</h3>

@@ -27,41 +27,29 @@ function resolvePresentation(className = '', options = {}) {
   return 'timeline';
 }
 
-function formatHandle(handle) {
-  const raw = handle != null ? String(handle).trim() : '';
-
-  if (!raw) {
-    return '';
+/**
+ * Public-key meta for headers — always the key, never a duplicate of the username.
+ */
+function formatHandle(tweet = {}) {
+  if (tweet.handle != null && String(tweet.handle).trim() !== '') {
+    const raw = String(tweet.handle).trim();
+    return raw.startsWith('@') ? raw : `@${raw}`;
   }
 
-  return raw.startsWith('@') ? raw : `@${raw}`;
+  const key = tweet.publicKey != null ? String(tweet.publicKey).trim() : '';
+  return key ? `@${key}` : '';
 }
 
-/**
- * Secondary line content — filled by Tweet/compose, never by header logic.
- */
-function resolveSecondary(tweet, presentation, options = {}) {
-  if (options.secondary != null) {
-    return String(options.secondary);
+function resolveHeaderMode(presentation) {
+  if (presentation === 'focused') {
+    return 'expanded';
   }
-
-  const handle = formatHandle(tweet.handle);
-  const time = tweet.time != null ? String(tweet.time) : '';
 
   if (presentation === 'compose') {
-    return '';
+    return 'compose';
   }
 
-  if (presentation === 'focused') {
-    return handle;
-  }
-
-  // timeline | root | reply | embedded — single-line meta: @handle · time
-  if (handle && time) {
-    return `${handle} · ${time}`;
-  }
-
-  return handle || time;
+  return 'compact';
 }
 
 const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
@@ -69,11 +57,24 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
   const embedded = presentation === 'embedded' || options.embedded;
   const allowEmbed = options.allowEmbed !== false && !embedded;
   const hideControls = embedded || options.hideControls || presentation === 'compose';
+  const mode = options.mode || resolveHeaderMode(presentation);
+
+  const handle =
+    options.handle != null ? String(options.handle) : mode === 'compose' ? '' : formatHandle(tweet);
+  const time =
+    options.time != null
+      ? String(options.time)
+      : mode === 'compact' && tweet.time
+        ? String(tweet.time)
+        : '';
 
   const header = TweetHeaderTemplate({
+    mode,
     presentation,
     name: tweet.username || '',
-    secondary: resolveSecondary(tweet, presentation, options)
+    handle,
+    time,
+    secondary: options.secondary != null ? String(options.secondary) : ''
   });
 
   const body = TweetBodyTemplate({
@@ -135,5 +136,6 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
 
 TweetTemplate.resolvePresentation = resolvePresentation;
 TweetTemplate.formatHandle = formatHandle;
+TweetTemplate.resolveHeaderMode = resolveHeaderMode;
 
 module.exports = TweetTemplate;
