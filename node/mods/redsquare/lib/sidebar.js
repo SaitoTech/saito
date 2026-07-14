@@ -1,31 +1,19 @@
 const SidebarTemplate = require('./sidebar.template');
+const Rankings = require('./rankings');
 
 class Sidebar {
   constructor(app, mod, container = '') {
     this.app = app;
     this.mod = mod;
     this.container = container;
+    this.rankings = new Rankings(app, mod);
 
-    this.trends = [
-      { category: 'Technology · Trending', tag: '#Saito', posts: '12.4K posts' },
-      { category: 'Web3 · Trending', tag: '#OpenSource', posts: '8,291 posts' },
-      { category: 'Trending in Network', tag: '#RedSquare', posts: '3,847 posts' },
-      { category: 'Politics · Trending', tag: '#Decentralization', posts: '2,156 posts' },
-      { category: 'Trending', tag: '#P2P', posts: '1,903 posts' }
-    ];
-
+    // Placeholder discovery list — same architecture as the prior Sidebar
+    // implementation. No external recommendation module exists in production.
     this.suggestions = [
       { name: 'Saito Network', handle: 'saito', avatar: '/saito/img/dreamscape.png' },
       { name: 'Alice Chen', handle: 'alice', avatar: '/saito/img/tiled-logo.svg' },
       { name: 'Richard P.', handle: 'rp', avatar: '/saito/img/dreamscape.png' }
-    ];
-
-    this.leaderboard = [
-      { rank: 1, name: 'Saito Network', handle: 'saito', score: '12,480' },
-      { rank: 2, name: 'Alice Chen', handle: 'alice', score: '9,214' },
-      { rank: 3, name: 'Richard P.', handle: 'rp', score: '7,892' },
-      { rank: 4, name: 'Bob Martinez', handle: 'bob', score: '6,103' },
-      { rank: 5, name: 'Carol Okonkwo', handle: 'carol', score: '5,447' }
     ];
   }
 
@@ -35,6 +23,14 @@ class Sidebar {
     }
 
     this.app.browser.replaceElementContentBySelector(SidebarTemplate(this), this.container);
+
+    this.rankings.render(`${this.container} > .rankings`);
+
+    // League (and other modules) inject into `.redsquare-sidebar`.
+    if (this.app.modules?.renderInto) {
+      this.app.modules.renderInto('.redsquare-sidebar');
+    }
+
     this.attachEvents();
   }
 

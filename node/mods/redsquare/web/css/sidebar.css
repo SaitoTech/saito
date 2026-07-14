@@ -79,6 +79,18 @@
   background: transparent;
 }
 
+/*
+ * Module-injection mount — League (and peers) renderInto('.redsquare-sidebar').
+ * Gap matches other sidebar cards so injected components stack like natives.
+ */
+.sidebar .redsquare-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-lg);
+  width: 100%;
+  min-width: 0;
+}
+
 .sidebar-panel {
   background: var(--rs-layer-recessed);
   border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
@@ -91,47 +103,176 @@
   padding: var(--rs-sidebar-pad) var(--rs-sidebar-pad) var(--rs-space-xs);
   font-family: var(--saito-font-heavy);
   font-size: var(--rs-section-title);
+  color: var(--rs-text-strong, var(--saito-font-color-heavy));
+  line-height: 1.3;
 }
 
-.sidebar-trend-list,
-.sidebar-suggestion-list,
-.sidebar-leaderboard-list {
+.sidebar-rankings-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.sidebar-trend {
+.sidebar-rankings-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--rs-space-sm);
+  padding: var(--rs-row-y) var(--rs-sidebar-pad);
+  cursor: default;
+  transition: background var(--rs-transition);
+}
+
+.sidebar-rankings-item:hover {
+  background: var(--rs-surface-hover);
+}
+
+.sidebar-rankings-game {
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-tiny);
+  color: var(--rs-text-strong, var(--saito-font-color));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-rankings-rank {
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-tiny);
+  color: var(--rs-text-muted, var(--saito-font-color-secondary));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/*
+ * League Leaderboard embed — restyle the foreign module so it reads as a
+ * native sidebar card. Do not change League behaviour; presentation only.
+ */
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--rs-layer-recessed);
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  border-radius: var(--rs-radius);
+  overflow: hidden;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings > .sidebar-header {
+  margin: 0;
+  padding: var(--rs-sidebar-pad) var(--rs-sidebar-pad) var(--rs-space-xs);
+  min-height: 0;
+  color: var(--rs-text-strong, var(--saito-font-color-heavy));
+  text-transform: none;
+  font-family: var(--saito-font-heavy);
+  font-size: var(--rs-section-title);
+  line-height: 1.3;
+}
+
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .sidebar-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  cursor: default;
+}
+
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .sidebar-title-text {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .sidebar-title-icon {
+  color: var(--rs-text-muted, var(--saito-font-color-secondary));
+  font-size: var(--font-size-tiny);
+  transform: none;
+}
+
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .saito-table.saito-sidebar-element,
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .saito-table {
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .saito-table-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  border-radius: 0;
+  font-size: var(--font-size-tiny);
+  grid-gap: 0;
+}
+
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .saito-table-row.league-leaderboard-ranking,
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .league-leaderboard-ranking {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--rs-space-sm);
+  grid-gap: 0;
+  width: 100%;
+  margin: 0;
   padding: var(--rs-row-y) var(--rs-sidebar-pad);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-sizing: border-box;
   cursor: pointer;
   transition: background var(--rs-transition);
 }
 
-.sidebar-trend:hover {
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .league-leaderboard-ranking:hover {
   background: var(--rs-surface-hover);
 }
 
-.sidebar-trend-category {
-  display: block;
-  margin-bottom: 0.1rem;
-  font-size: var(--font-size-tiny);
-  color: var(--saito-font-color-secondary);
-}
-
-.sidebar-trend-tag {
-  display: block;
-  margin-bottom: 0.1rem;
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .saito-table-gamename {
   font-family: var(--saito-font-medium);
   font-size: var(--font-size-tiny);
+  color: var(--rs-text-strong, var(--saito-font-color));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.sidebar-trend-posts {
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .saito-table-rank {
   display: block;
+  font-family: var(--saito-font-medium);
   font-size: var(--font-size-tiny);
-  color: var(--saito-font-color-secondary);
+  color: var(--rs-text-muted, var(--saito-font-color-secondary));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+  gap: 0;
+}
+
+body.redsquare-body .sidebar .redsquare-sidebar .league-rankings .saito-table-rank.saito-deemphasize {
+  color: var(--rs-text-muted, var(--saito-font-color-secondary));
+  opacity: 0.85;
+}
+
+.sidebar .rankings {
+  width: 100%;
+  min-width: 0;
+}
+
+.sidebar-suggestion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .sidebar-suggestion {
@@ -160,6 +301,7 @@
 .sidebar-suggestion-name {
   font-family: var(--saito-font-medium);
   font-size: var(--font-size-tiny);
+  color: var(--rs-text-strong, var(--saito-font-color));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -167,73 +309,50 @@
 
 .sidebar-suggestion-handle {
   font-size: var(--font-size-tiny);
-  color: var(--saito-font-color-secondary);
+  color: var(--rs-text-muted, var(--saito-font-color-secondary));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/*
+ * Follow — secondary / outlined control. Never the orange primary CTA.
+ * Stronger emphasis only on hover (and focus-visible).
+ */
 .sidebar-suggestion-follow {
   white-space: nowrap;
+  min-height: var(--rs-btn-height-sidebar, var(--rs-btn-height-compact));
+  padding: 0 var(--rs-space-sm);
   border-radius: var(--rs-radius-pill);
+  font-size: var(--font-size-tiny);
+  font-family: var(--saito-font-medium);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--rs-transition),
+    border-color var(--rs-transition),
+    color var(--rs-transition);
 }
 
-.sidebar-leaderboard-item {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: var(--rs-space-sm);
-  padding: var(--rs-space-sm) var(--rs-sidebar-pad);
-  transition: background var(--rs-transition);
+body.redsquare-body .sidebar-suggestion-follow.saito-button-secondary {
+  background: transparent;
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
+  color: var(--rs-text-strong, var(--saito-font-color));
+  box-shadow: none;
 }
 
-.sidebar-leaderboard-item:hover {
+body.redsquare-body .sidebar-suggestion-follow.saito-button-secondary:hover,
+body.redsquare-body .sidebar-suggestion-follow.saito-button-secondary:focus-visible {
   background: var(--rs-surface-hover);
-}
-
-.sidebar-leaderboard-rank {
-  font-family: var(--saito-font-medium);
-  font-size: var(--font-size-tiny);
-  color: var(--saito-font-color-secondary);
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.sidebar-leaderboard-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-  min-width: 0;
-}
-
-.sidebar-leaderboard-name {
-  font-family: var(--saito-font-medium);
-  font-size: var(--font-size-tiny);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sidebar-leaderboard-handle {
-  font-size: var(--font-size-tiny);
-  color: var(--saito-font-color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sidebar-leaderboard-score {
-  font-family: var(--saito-font-medium);
-  font-size: var(--font-size-tiny);
-  color: var(--saito-font-color-heavy);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  border-color: var(--rs-border);
+  color: var(--rs-text-strong, var(--saito-font-color));
+  outline: none;
 }
 
 .sidebar-more {
   display: block;
   padding: var(--rs-row-y) var(--rs-sidebar-pad);
-  color: var(--saito-font-color-secondary);
+  color: var(--rs-text-muted, var(--saito-font-color-secondary));
   font-size: var(--font-size-tiny);
   text-decoration: none;
   transition:
@@ -243,7 +362,7 @@
 
 .sidebar-more:hover {
   background: var(--rs-surface-hover);
-  color: var(--saito-font-color);
+  color: var(--rs-text-strong, var(--saito-font-color));
   text-decoration: none;
 }
 
