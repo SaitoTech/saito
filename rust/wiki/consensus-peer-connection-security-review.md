@@ -3,12 +3,12 @@
 ## Executive Summary
 
 This review identified nine major issues in the Rust consensus and peer-connection
-implementation: two Critical, six High, and one Medium. The most serious findings
+implementation: two Critical, five High, and two Medium. The most serious findings
 permit invalid consensus state, leave the Merkle commitment unenforced, allow a
 malicious peer to fabricate SPV wallet state, and expose native nodes to remote
 process termination.
 
-The review covers `saitocore_peer_refactor` at commit `cb1e510e`, compared with
+The review covers `saitocore_peer_refactor` at commit `4198bb24`, compared with
 `develop` at `34181603` and merge base `a1011abe`. None of the findings is unique
 to the reviewed branch tip relative to current `develop`. Several are historical
 peer-refactor regressions that are already present in `develop`; the remaining
@@ -26,9 +26,9 @@ Those checks do not exercise the adversarial paths described below.
 | F-02 | Critical | Merkle commitment is effectively unenforced | Full node and SPV | Pre-existing; present in `develop` |
 | F-03 | High | A malicious peer can fabricate SPV chain and wallet state | WASM/browser and native SPV | Refactor-era; present in `develop` |
 | F-04 | High | A malformed fetched block can terminate a native node | Native; WASM trap possible | Pre-existing; present in `develop` |
-| F-05 | High | Native public-key sends are never routable after handshake | Native | Peer-refactor regression; present in `develop` |
-| F-06 | High | Privileged messages are accepted before handshake verification | Shared core, native, and WASM | Peer-refactor regression; present in `develop` |
-| F-07 | High | Resource limits and global locking permit OOM or network-wide stalls | Native | Pre-existing and refactor-worsened |
+| F-05 | High (liveness) | Native public-key sends are never routable after handshake | Native | Peer-refactor regression; present in `develop` |
+| F-06 | Medium | Non-handshake messages are dispatched before handshake verification | Shared core, native, and WASM | Peer-refactor regression; present in `develop` |
+| F-07 | High | Resource limits and global locking permit OOM or global transport blocking | Native | Mostly pre-existing; still unmitigated |
 | F-08 | High | Invalid old and side-fork blocks execute success side effects | Full node/core | Pre-existing; present in `develop` |
 | F-09 | Medium | Configured-peer retries and reconnect identity lifecycle are broken | Native | Mixed pre-existing/refactor regression |
 
@@ -87,6 +87,9 @@ the candidate chain has been wound
 removes the candidate without rolling back those post-wind mutations. A gap can
 therefore be accepted when the supply check is skipped or remains equal, or it
 can leave corrupted state even when that final check rejects the candidate.
+The final acceptance of an arbitrary far-future gap is therefore not guaranteed
+on a mature full node, but the missing invariant and post-wind failure effects
+remain independently dangerous.
 
 Parent existence, signatures, burn-fee, golden-ticket, transaction, UTXO, and
 supply checks are meaningful controls, but none enforces height adjacency.
@@ -103,7 +106,7 @@ state mutation performed during winding.
 - **Severity:** Critical
 - **Confidence:** High
 - **Affected runtime:** Full nodes and SPV clients
-- **Required capability:** Produce and sign a valid candidate block
+- **Required capability:** Relay or serve a valid block body before the original arrives
 
 [`Block::generate`](../saito-core/src/core/consensus/block.rs#L1323-L1350)
 preserves every nonzero peer-supplied Merkle root, then computes the signed
@@ -123,9 +126,11 @@ The vulnerable condition is in
 [`Block::validate`](../saito-core/src/core/consensus/block.rs#L3320-L3328).
 Every nonzero incorrect root passes.
 
-From here, a block producer can sign one declared root and distribute differently
-ordered transaction bodies under the same header and block hash. Merkle leaves
-normally commit to transaction signature hashes in order
+From here, a block-serving peer can take an already valid signed block, reorder
+two suitable ordinary transactions, and retain the original declared root,
+header signature, and block hash. Merkle leaves normally commit to the ordered
+`Transaction::hash_for_signature` values, which are hashes of transaction
+signing preimages rather than transaction signatures
 ([`merkle.rs`](../saito-core/src/core/consensus/merkle.rs#L66-L92)), while output
 coordinates are regenerated from body order
 ([`transaction.rs`](../saito-core/src/core/consensus/transaction.rs#L532-L556))
@@ -200,7 +205,8 @@ The native runtime installs a global panic hook that exits the process with
 status 99
 ([`main.rs`](../saito-rust/src/main.rs#L448-L463)), and release builds use
 aborting panics ([`Cargo.toml`](../Cargo.toml#L10-L12)). WASM reaches the same
-verifier and can trap the invocation or force host-side reinitialization.
+panic path and can trap the invocation, but whether the application recovers,
+recreates the module, or terminates is host-dependent.
 
 Malformed structural buffers are returned safely, and HTTP fetches have a
 timeout, but neither control handles a semantically malformed block whose
@@ -213,7 +219,7 @@ error.
 
 ### F-05: Native Public-Key Sends Are Never Routable After Handshake
 
-- **Severity:** High
+- **Severity:** High for network functionality and liveness; Medium under a security-only rubric
 - **Confidence:** High
 - **Affected runtime:** Native only
 - **Required capability:** None; normal successful handshakes trigger the defect
@@ -239,14 +245,19 @@ This is a historical peer-refactor regression already present in current
 `develop`. No integration test covers handshake completion, native identity
 registration, and transaction propagation.
 
+No malicious actor is required to trigger this defect, and peer-ID control
+traffic and block broadcasts continue to function. Its High rating reflects the
+loss of native transaction and golden-ticket relay rather than a direct security
+boundary bypass.
+
 **Remediation direction:** Register and remove the public-key-to-peer-ID mapping
 atomically on handshake, identity replacement, and disconnect. Test duplicate
 identity replacement and surface propagation errors instead of discarding them.
 
-### F-06: Privileged Messages Are Accepted Before Handshake Verification
+### F-06: Non-Handshake Messages Are Dispatched Before Handshake Verification
 
-- **Severity:** High
-- **Confidence:** High
+- **Severity:** Medium
+- **Confidence:** High for the behavior; Medium for security impact
 - **Affected runtime:** Shared core, native, and WASM
 - **Required capability:** Open an unauthenticated peer connection
 
@@ -265,9 +276,17 @@ Gatekeeper permission getters exist
 ([`gatekeeper.rs`](../saito-core/src/core/network/gatekeeper.rs#L75-L94)) but are
 not used as a general authorization boundary. Only narrow request accounting is
 enforced. An unauthenticated client can therefore initiate transaction
-verification, manipulate sync and fetch metadata, set endpoints, and reach the
-SPV, panic, and resource paths described elsewhere in this report. Full-node
-transaction and block signatures still mitigate direct forged consensus state.
+verification, manipulate sync and fetch metadata, and set endpoints before the
+protocol records a verified key.
+
+This is a real state-machine regression, but the handshake proves possession of
+an arbitrary self-generated key rather than membership in an ACL or a trusted
+identity set. A malicious peer can complete it cheaply, Gatekeeper accounting is
+keyed by ephemeral peer ID, and the SPV and fetched-block issues remain reachable
+after successful verification. The gap should therefore be treated as protocol
+hardening and defense in depth, not as a necessary step in those higher-impact
+attack paths. Full-node transaction and block signatures also mitigate direct
+forged consensus state.
 
 The existing malformed-message test checks only that an unknown message type
 does not panic. It does not test which message classes are permitted before and
@@ -277,7 +296,7 @@ after verification.
 boundary. Before challenge verification, accept only the minimum handshake and
 disconnect control messages; reject or disconnect on all other message classes.
 
-### F-07: Resource Limits and Global Locking Permit OOM or Network-Wide Stalls
+### F-07: Resource Limits and Global Locking Permit OOM or Global Transport Blocking
 
 - **Severity:** High
 - **Confidence:** High
@@ -297,11 +316,12 @@ while awaiting the core channel
 Native send and broadcast paths hold the same lock across socket-write awaits
 ([`rust_io_handler.rs`](../saito-rust/src/rust_io_handler.rs#L72-L118)). A full
 core queue or slow socket can therefore block unrelated sends, disconnects, and
-registrations. Verification channels are bounded but allocated with capacities
-of one million entries
-([`main.rs`](../saito-rust/src/main.rs#L326-L341)), making the bound itself
-OOM-scale. Reader EOF is handled with `continue` instead of `break`, permitting
-a CPU hot loop and preventing normal cleanup.
+registrations while the awaited operation remains stalled. Verification channels
+are bounded but can retain up to one million owned requests
+([`main.rs`](../saito-rust/src/main.rs#L326-L341)); Tokio allocates queue storage
+lazily, but this configured retention bound remains OOM-scale. Reader EOF is
+handled with `continue` instead of `break`, permitting a CPU hot loop and
+preventing normal cleanup.
 
 The HTTP timeout, duplicate-fetch suppression, concurrency limit, 128-reference
 response cap, and finite channels reduce some exposure. None bounds bytes before
@@ -341,6 +361,9 @@ canonical. That limits direct invalid-chain finalization but does not undo the
 earlier persistence, resource, or mempool effects. Failure handling only adds
 transactions back for locally created blocks
 ([`blockchain.rs`](../saito-core/src/core/consensus/blockchain.rs#L923-L950)).
+Eventual deletion beyond the two-genesis-period retention window limits how long
+each candidate remains live, but it does not bound the number of unique variants
+within that window or prevent immediate mempool suppression.
 
 Existing old-block tests replay valid blocks and do not assert invalid-signature
 rejection, disk behavior, or mempool preservation.
@@ -386,34 +409,35 @@ reuse records on reconnect, and actively deduplicate stale identities.
 The strongest attack paths combine several findings rather than relying on one
 primitive in isolation.
 
-### Unauthenticated Native Node Termination
+### Malicious-Peer Native Node Termination
 
-An attacker first opens a WebSocket without completing the handshake. F-06 lets
-the socket set sync or endpoint state and advertise a block reference. The native
-node fetches the attacker's HTTP response, after which F-04 converts a duplicate
-input detected by `Block::generate` into a process-wide panic. The expected block
-hash check does not constrain the response because it executes after the unwrap.
-This route requires neither a valid transaction nor block-production rights.
+A malicious connected peer sets or supplies a fetch endpoint and advertises a
+block reference. The native node fetches the peer's HTTP response, after which
+F-04 converts a duplicate input detected by `Block::generate` into a process-wide
+panic. The expected block-hash check does not constrain the response because it
+executes after the unwrap. F-06 permits this sequence before handshake completion,
+but it remains reachable after a valid handshake and requires neither a valid
+transaction nor block-production rights.
 
 ### SPV Wallet Forgery
 
-F-06 permits sync messages before authentication, while F-03 lets the attacker
-provide an unanchored sequence of block references, install ghost blocks as the
-longest chain, and supply a final self-consistent block. SPV validation then
-skips every authenticity and state-transition check needed to protect the
-wallet. The result is counterfeit received funds, attacker-selected confirmation
-depth, or deletion of real local slips. Completing a valid handshake would not
-remove F-03; authentication reduces anonymous reachability but is not a chain
-proof.
+F-03 lets a malicious sync peer provide an unanchored sequence of block
+references, install ghost blocks as the longest chain, and supply a final
+self-consistent block. SPV validation then skips every authenticity and
+state-transition check needed to protect the wallet. The result is counterfeit
+received funds, attacker-selected confirmation depth, or deletion of real local
+slips. F-06 reduces the sequencing needed before this path can start, but
+authentication is not a chain proof and does not remove F-03.
 
 ### Consensus Divergence
 
-F-01 and F-02 require block-production capability, but their impact is broader.
-A height-jumping child can move height-indexed state without adding the implied
-number of blocks. Separately, the Merkle defect permits different ordered bodies
-under one signed block hash, allowing nodes to derive different UTXO keys without
-a cryptographic hash collision. These are consensus-invariant failures rather
-than ordinary peer-level denial of service.
+F-01 requires block-production capability: a height-jumping child can move
+height-indexed state without adding the implied number of blocks. F-02 does not;
+a peer that serves or relays an otherwise valid block first can reorder suitable
+ordinary transactions while retaining the signed header and block hash. Nodes
+can then derive different UTXO keys without a cryptographic hash collision. These
+are consensus-invariant failures rather than ordinary peer-level denial of
+service.
 
 ### Resource and Censorship Pressure
 
@@ -456,12 +480,13 @@ The recommended order is based on consensus impact, remote reachability, and the
 degree to which one issue enables another:
 
 1. Enforce parent-height adjacency and unconditional Merkle-root equality.
-2. Remove the fetched-block panic and close the pre-handshake authorization gap.
-3. Define and enforce an authenticated SPV header and proof trust model.
-4. Bound WebSocket, HTTP, channel, and per-peer work; remove global locks across
+2. Remove the fetched-block panic and define an authenticated SPV header and
+   proof trust model.
+3. Bound WebSocket, HTTP, channel, and per-peer work; remove global locks across
    awaits.
-5. Validate side-fork blocks before persistence or mempool mutation.
-6. Restore native public-key-to-peer-ID registration and cleanup.
+4. Validate side-fork blocks before persistence or mempool mutation.
+5. Restore native public-key-to-peer-ID registration and cleanup.
+6. Enforce the intended pre-handshake message state machine.
 7. Repair configured-peer retry, deduplication, and reconnect lifecycle.
 
 Every fix should add a negative test at the earliest boundary where the invalid
