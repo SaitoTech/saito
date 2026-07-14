@@ -2673,6 +2673,7 @@ class GameQueue {
         }
 
         let my_specific_game_id = game_self.game.id;
+        let my_queue_entry = game_self.game.queue[game_self.game.queue.length - 1];
         game_self.saveGame(game_self.game.id);
         game_self.halted = 1;
 
@@ -2687,10 +2688,21 @@ class GameQueue {
               if (game_self.game.id != my_specific_game_id) {
                 game_self.game = game_self.loadGame(my_specific_game_id);
               }
-              game_self.updateLog('payments issued...');
-              game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
               game_self.app.connection.emit('saito-crypto-send-confirm', robj);
+
+              //
+              // our SEND entry was at the tail when we halted, and the queue is
+              // frozen while we wait -- if the tail is no longer our entry, the
+              // queue changed underneath us (duplicate callback, or something
+              // else consumed it) and we must not splice a different command
+              //
+              if (game_self.game.queue[game_self.game.queue.length - 1] !== my_queue_entry) {
+                console.warn('GT [SEND] our entry is not at the end of the queue, ignoring callback');
+                return 0;
+              }
+              game_self.updateLog('payments issued...');
+              game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
               game_self.restartQueue();
               return 0;
@@ -2754,6 +2766,7 @@ class GameQueue {
         }
 
         let my_specific_game_id = game_self.game.id;
+        let my_queue_entry = game_self.game.queue[game_self.game.queue.length - 1];
         game_self.saveGame(game_self.game.id);
         game_self.halted = 1;
 
@@ -2775,6 +2788,16 @@ class GameQueue {
               game_self.game = game_self.loadGame(my_specific_game_id);
             }
 
+            //
+            // our RECEIVE entry was at the tail when we halted, and the queue is
+            // frozen while we wait -- if the tail is no longer our entry, the
+            // queue changed underneath us (duplicate callback, or something
+            // else consumed it) and we must not splice a different command
+            //
+            if (game_self.game.queue[game_self.game.queue.length - 1] !== my_queue_entry) {
+              console.warn('GT [RECEIVE] our entry is not at the end of the queue, ignoring callback');
+              return 0;
+            }
             game_self.updateLog('payments received...');
             game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
