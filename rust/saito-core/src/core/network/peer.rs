@@ -214,6 +214,10 @@ impl Peer {
         self.last_request_blockchain_has_more = has_more;
     }
 
+    pub(crate) fn require_sync_continuation(&mut self) {
+        self.last_request_blockchain_has_more = true;
+    }
+
     pub fn should_continue_chain_sync(&self) -> bool {
         self.is_syncing && !self.is_synced && self.last_request_blockchain_has_more
     }
