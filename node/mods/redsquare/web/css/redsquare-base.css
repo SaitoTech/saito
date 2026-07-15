@@ -212,8 +212,8 @@ body.redsquare-body .tweet-body {
  * while the container used a different width variable and zero column-gap.
  *
  * Scroll ownership: this shell does NOT scroll. Columns are fixed-height;
- * the timeline list (.manager-body) owns overflow. That keeps .manager-header
- * pinned under Saito header without sticky hacks.
+ * the center .manager owns overflow (feed scroll). Side columns scroll
+ * independently. Header timeline/detail behaviour lives in manager.css.
  */
 body.redsquare-body #saito-container.saito-container {
   background: var(--rs-canvas);
