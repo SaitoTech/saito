@@ -255,7 +255,9 @@ class Manager {
 
   /**
    * Feed-header chrome only — never touch the global Saito Header.
-   * Timeline: "Home". Navigable views: "← Post" / "← Profile" / etc.
+   * Also assigns scroll/header behaviour:
+   *   Timeline Mode → header in flow (scrolls away)
+   *   Detail Mode   → header sticky (back always available)
    */
   syncFeedHeader() {
     const root = document.querySelector(this.container);
@@ -266,6 +268,8 @@ class Manager {
 
     const title = root.querySelector('.manager-header-title');
     const back = root.querySelector('.manager-header-back');
+    const header = root.querySelector('.manager-header');
+    const scrollRoot = header?.parentElement || root;
 
     const labels = {
       timeline: 'Home',
@@ -280,6 +284,7 @@ class Manager {
       title.textContent = labels[this.mode] || 'Home';
     }
 
+    const isDetail = this.isDetailHeaderMode();
     const showBack = this.mode !== 'timeline';
 
     if (back) {
@@ -287,7 +292,16 @@ class Manager {
       back.setAttribute('aria-hidden', showBack ? 'false' : 'true');
     }
 
-    root.classList.toggle('manager-has-back', showBack);
+    scrollRoot.classList.toggle('manager-has-back', showBack);
+    scrollRoot.classList.toggle('manager--detail', isDetail);
+    scrollRoot.classList.toggle('manager--timeline', !isDetail);
+  }
+
+  /**
+   * Detail = sticky feed header. Everything else is Timeline (scroll-away).
+   */
+  isDetailHeaderMode() {
+    return this.mode === 'thread';
   }
 
   syncProfileNav() {
@@ -299,9 +313,14 @@ class Manager {
   }
 
   getScrollContainer() {
-    return (
+    const body =
       document.querySelector(`${this.container} .manager-body`) ||
-      document.querySelector('.manager-body') ||
+      document.querySelector('.manager-body');
+    const scroller = body?.closest('.manager');
+
+    return (
+      scroller ||
+      document.querySelector(this.container) ||
       document.querySelector('#saito-container') ||
       document.querySelector('.saito-container')
     );
@@ -1535,6 +1554,7 @@ class Manager {
 
     if (!banner) {
       const body = root.querySelector('.manager-body');
+      const host = body?.parentElement || root;
 
       banner = document.createElement('button');
       banner.className = 'manager-new-posts-banner';
@@ -1544,10 +1564,10 @@ class Manager {
         this.revealPendingNewerTweets();
       });
 
-      if (body) {
-        root.insertBefore(banner, body);
+      if (body && host) {
+        host.insertBefore(banner, body);
       } else {
-        root.prepend(banner);
+        host.prepend(banner);
       }
     }
 

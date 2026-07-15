@@ -2,8 +2,8 @@
  * RedSquare layout — column shell and sidebars only.
  * App-wide tokens and container overrides live in redsquare-base.css.
  *
- * Center column is a fixed-height flex stack: Home chrome stays put;
- * only .manager-body scrolls (see manager.css).
+ * Center column: .main is a fixed-height shell; .manager owns scrolling
+ * (timeline header scrolls away; detail header sticks — see manager.css).
  */
 
 .main {

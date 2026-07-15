@@ -1,7 +1,13 @@
 /*
- * Manager = center-column stack.
- *   .manager-header  → fixed chrome (not in the tweet scroller)
- *   .manager-body    → only scrolling region (timeline / thread / …)
+ * Manager = center-column scrollport.
+ *
+ *   .manager              → single overflow-y scroller for all modes
+ *   .manager-header       → in flow (timeline) or sticky (detail)
+ *   .manager-body         → layout wrapper; does not own scrolling
+ *
+ * Mode classes (set by Manager.syncFeedHeader):
+ *   .manager--timeline → header scrolls away with the feed
+ *   .manager--detail   → header sticks; back stays available
  */
 .manager {
   display: flex;
@@ -10,16 +16,12 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
 }
 
-/*
- * Feed header — timeline chrome (title + actions).
- * Lives outside .manager-body so it cannot scroll away with tweets.
- */
 .manager-header {
-  position: relative;
   flex: 0 0 auto;
   z-index: 1;
   display: flex;
@@ -32,6 +34,17 @@
   padding: 0 var(--rs-tweet-pad-x);
   border-bottom: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
   background: var(--rs-surface-feed, var(--rs-canvas));
+}
+
+/* Timeline: header is normal flow → scrolls off with tweets */
+.manager--timeline .manager-header {
+  position: relative;
+}
+
+/* Detail: header sticks to the top of .manager’s scrollport */
+.manager--detail .manager-header {
+  position: sticky;
+  top: 0;
 }
 
 .manager-header-start {
@@ -127,8 +140,7 @@ body.redsquare-body .manager-header-back:focus-visible,
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .manager-list {
