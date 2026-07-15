@@ -322,7 +322,25 @@ class Withdraw {
     this.attachAddressPreviewEvents();
   }
 
-  attachAddressPreviewEvents() {
+  renderInvalidRecipientPreview() {
+    const preview = document.getElementById('withdraw-address-preview');
+    if (!preview) {
+      return;
+    }
+
+    preview.innerHTML = `
+      <div class="withdraw-address-invalid" role="alert">
+        <div class="withdraw-address-invalid-message">${this.escapeHTML(`Error: Invalid ${this.ticker} address`)}</div>
+        <button type="button" class="withdraw-address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+          <i class="fa-solid fa-pen" aria-hidden="true"></i>
+        </button>
+      </div>
+    `;
+
+    this.attachAddressPreviewEvents({ preserveValue: true });
+  }
+
+  attachAddressPreviewEvents({ preserveValue = false } = {}) {
     const editBtn = document.getElementById('withdraw-address-edit');
     if (!editBtn) {
       return;
@@ -330,7 +348,7 @@ class Withdraw {
 
     const edit = (e) => {
       e.preventDefault();
-      this.showAddressInputForEdit();
+      this.showAddressInputForEdit({ preserveValue });
     };
 
     editBtn.onclick = edit;
@@ -385,14 +403,16 @@ class Withdraw {
     cont?.classList.remove('hide-element', 'withdraw-address-transition-out');
   }
 
-  showAddressInputForEdit() {
+  showAddressInputForEdit({ preserveValue = false } = {}) {
     this.hideAddressPreview();
     const input = document.getElementById('withdraw-input-address');
     if (input && !input.disabled) {
-      input.value = '';
       this.address = '';
       if (!this.isFixedRecipientForm()) {
         this.publicKey = '';
+      }
+      if (!preserveValue) {
+        input.value = '';
       }
       this.clearAddressError();
       void this.fetchWithdrawFee();
@@ -419,14 +439,18 @@ class Withdraw {
 
     const valid = this.pc.validateAddress(address);
     if (!valid) {
-      this.hideAddressPreview();
-      if (showError) {
-        const error = document.querySelector('#withdraw-address-error');
-        if (error) {
-          error.innerHTML = 'Error: Invalid ' + this.ticker + ' address';
-        }
-        this.errors['address'] = true;
+      this.address = '';
+      if (!this.isFixedRecipientForm()) {
+        this.publicKey = '';
       }
+      if (showError) {
+        this.errors['address'] = true;
+        this.renderInvalidRecipientPreview();
+        this.showAddressPreview();
+      } else {
+        this.hideAddressPreview();
+      }
+      this.handleErrors();
       return false;
     }
 
@@ -1471,13 +1495,10 @@ class Withdraw {
     let valid = this.pc.validateAddress(this.address);
 
     if (!valid) {
-      const error = document.querySelector('#withdraw-address-error');
-      if (error) {
-        error.innerHTML = 'Error: Invalid ' + this.ticker + ' address';
-      }
       this.errors['address'] = true;
       this.address = '';
-      this.hideAddressPreview();
+      this.renderInvalidRecipientPreview();
+      this.showAddressPreview();
     }
 
     this.handleErrors();
@@ -1504,10 +1525,6 @@ class Withdraw {
 
   clearAddressError() {
     this.errors['address'] = false;
-    const error = document.querySelector('#withdraw-address-error');
-    if (error) {
-      error.innerHTML = '';
-    }
   }
 
   clearAmountError() {

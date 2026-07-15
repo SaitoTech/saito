@@ -31,7 +31,6 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
         <div id="withdraw-step-one" class="withdraw-overlay__compose">
           <div class="withdraw-compose-top">
             <div class="withdraw-token-picker">
-              <label class="withdraw-field-label" for="withdraw-token-trigger">Token</label>
               <div class="saito-overlay-form-input">
                 <div class="token-dropdown">
                   <div class="withdraw-token-custom" id="withdraw-token-custom">
@@ -39,6 +38,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
                       type="button"
                       class="withdraw-token-trigger"
                       id="withdraw-token-trigger"
+                      aria-label="Select token"
                       aria-haspopup="listbox"
                       aria-expanded="false"
                       aria-controls="withdraw-token-menu"
@@ -108,9 +108,6 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
                 id="withdraw-address-preview"
                 aria-live="polite"
               ></div>
-              <div class="withdraw-error-slot" aria-live="polite">
-                <div class="withdraw-error" id="withdraw-address-error" role="alert"></div>
-              </div>
             </div>
 
             <div class="saito-overlay-form-input withdraw-field-group">
