@@ -979,12 +979,7 @@ class GameQueue {
         } else {
           //Otherwise we want to pause game processing
           game_self.treat_all_moves_as_future = 1;
-          game_self.app.connection.emit('arcade-game-ready-render-request', {
-            name: game_self.name,
-            slug: game_self.returnSlug(),
-            id: game_self.game.id,
-            status: 'ready'
-          });
+          game_self.emitGameReadyRender();
           // Move into game before processing anything else from the queue or future moves
           game_self.halted = 1;
           return 0;

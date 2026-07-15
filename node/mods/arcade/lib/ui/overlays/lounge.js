@@ -251,6 +251,25 @@ class LoungeOverlay {
 	  </div>`;
   }
 
+  //
+  // If the invite carries a crypto stake, route through the stake-consent
+  // overlay and run accept_callback (with the confirmed stake input) on
+  // approval; otherwise run it directly.
+  //
+  confirmStakeThen(game_mod, accept_callback) {
+    const opts = this.invite.options;
+    if (opts.crypto && (parseFloat(opts.stake) > 0 || parseFloat(opts.stake?.min) >= 0)) {
+      this.app.connection.emit('accept-game-stake', {
+        game_mod,
+        ticker: opts.crypto,
+        stake: opts.stake,
+        accept_callback
+      });
+    } else {
+      accept_callback();
+    }
+  }
+
   attachEvents() {
     let startBtn = document.getElementById('arcade-game-controls-start-game');
     if (startBtn && this.game_id != null) {
@@ -397,6 +416,39 @@ class LoungeOverlay {
     if (document.getElementById('arcade-game-controls-invite-join')) {
       document.getElementById('arcade-game-controls-invite-join').onclick = (e) => {
         this.mod.showShareLink(this.invite.game_id);
+      };
+    }
+
+    //
+    // join an in-progress open table: request a seat via the game module's
+    // FOLLOW/SHARE/JOIN flow (no observer involved)
+    //
+    if (document.getElementById('arcade-game-controls-join-table')) {
+      document.getElementById('arcade-game-controls-join-table').onclick = async (e) => {
+        let game_mod = this.app.modules.returnModuleBySlug(this.invite.game_slug);
+        let game_tx = this.mod.returnGameTransaction(this.invite.game_id);
+
+        if (!game_mod?.opengame || !game_tx || typeof game_mod.requestSeatAtTable !== 'function') {
+          console.warn('ARCADE: cannot join table -- module or game tx unavailable');
+          return;
+        }
+
+        this.overlay.remove();
+
+        const requestSeat = async () => {
+          let r = await game_mod.requestSeatAtTable(game_tx);
+          if (r === 'already-playing') {
+            navigateWindow(`/${this.invite.game_slug}`, 200);
+            return;
+          }
+          //
+          // show the initializing-game lounge (spinner); it transitions to
+          // "Game Ready / Start Game" when all players have signed us in
+          //
+          this.mod.render('lounge_overlay', { game_id: this.invite.game_id });
+        };
+
+        this.confirmStakeThen(game_mod, requestSeat);
       };
     }
 

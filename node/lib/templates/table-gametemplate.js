@@ -40,6 +40,120 @@ class GameTableTemplate extends GameTemplate {
     super.initializeGame();
   }
 
+  //
+  // Canonical hash of the consensus-critical game state at a hand boundary.
+  // Used by the mid-game JOIN protocol: every player signs the commitment of
+  // their own newround snapshot so a joiner can verify that the state they
+  // received is the state everyone agreed on. Consensus fields only -- never
+  // include per-client data (player, keys, step.players, player_names, queues).
+  //
+  returnStateCommitment(game_obj) {
+    let fields = {
+      id: game_obj.id,
+      players: game_obj.players,
+      round: game_obj?.state?.round || 0,
+      player_credit: game_obj?.state?.player_credit || [],
+      debt: game_obj?.state?.debt || []
+    };
+    Object.assign(fields, this.returnExtraCommitmentFields(game_obj));
+    return this.app.crypto.hash(JSON.stringify(fields));
+  }
+
+  //
+  // modules may override to commit additional consensus fields
+  //
+  returnExtraCommitmentFields(game_obj) {
+    return {};
+  }
+
+  pruneStateCommitments(keep = 5) {
+    if (!this.game.state_commitments) {
+      return;
+    }
+    let rounds = Object.keys(this.game.state_commitments)
+      .map(Number)
+      .sort((a, b) => a - b);
+    while (rounds.length > keep) {
+      delete this.game.state_commitments[rounds.shift()];
+    }
+  }
+
+  //
+  // Build the hand-boundary snapshot used to answer join requests: the game
+  // state stripped of secret card data and per-client bookkeeping. Sets
+  // this.cacheGame (in memory only -- a reload without a snapshot simply
+  // defers signing to the next newround) and returns the serialized string so
+  // callers can reuse it for a SHARE without re-serializing.
+  //
+  buildBoundarySnapshot() {
+    let deck = this.game.deck;
+    let pool = this.game.pool;
+    let commitments = this.game.state_commitments;
+
+    this.game.deck = [];
+    this.game.pool = [];
+    delete this.game.state_commitments;
+
+    let snapshot = JSON.stringify(this.game);
+
+    this.game.deck = deck;
+    this.game.pool = pool;
+    if (commitments !== undefined) {
+      this.game.state_commitments = commitments;
+    }
+
+    this.cacheGame = JSON.parse(snapshot);
+    return snapshot;
+  }
+
+  // the message every player signs to authorize a join
+  returnJoinSigMessage(pkey, round, commitment) {
+    return `ADDPLAYER ${pkey} ${round} ${commitment}`;
+  }
+
+  // has every current player signed off on this join?
+  hasAllPlayerSigs(pkey) {
+    let rec = this.joining[pkey];
+    if (!rec) {
+      return false;
+    }
+    for (let player of this.game.players) {
+      if (!rec.sigs?.[player]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // clear the pending-join state once we have taken (or are taking) our seat
+  finalizePendingJoin() {
+    delete this.game.pending_join;
+    if (this.pending_join_timeout) {
+      clearTimeout(this.pending_join_timeout);
+      this.pending_join_timeout = null;
+    }
+    if (this.browser_active) {
+      this.syncBodyGameClasses();
+    }
+    this.app.connection.emit('arcade-gametable-addplayer', this.game.id);
+  }
+
+  // re-run game initialization in place (shared by the seat handoff and the
+  // fewer-players reset)
+  reinitializeGameRun(delay = 0) {
+    const go = () => {
+      this.initialize_game_run = 0;
+      this.halted = 0;
+      this.refreshPlayerboxes();
+      this.initializeGameQueue(this.game.id);
+    };
+    if (delay) {
+      setTimeout(go, delay);
+    } else {
+      go();
+    }
+  }
+
   async render(app) {
     if (!this.game.options['open-table']) {
       console.info('GTT: Treat table game as standard (closed) game');
@@ -47,6 +161,17 @@ class GameTableTemplate extends GameTemplate {
     }
 
     await super.render(app);
+
+    //
+    // the first newround usually executes while players are still in the
+    // arcade lounge, and navigating into the game room wipes the in-memory
+    // snapshot -- rebuild it here so join requests can be serviced. at initial
+    // render the game is parked at its boundary, so the current state IS the
+    // snapshot.
+    //
+    if (this.game?.player && !this.cacheGame) {
+      this.buildBoundarySnapshot();
+    }
   }
 
   // Extension for table games
@@ -58,62 +183,72 @@ class GameTableTemplate extends GameTemplate {
     let txmsg = tx.returnMessage();
 
     if (txmsg.request == 'JOIN') {
-      let auths = 0;
       let data = txmsg.data;
       let pkey = data.pkey;
 
+      //
+      // make sure the joiner receives our sig rebroadcasts and the eventual
+      // boundary SHARE, regardless of FOLLOW/JOIN arrival order
+      //
+      this.addFollower(pkey);
+
       // Temporary storage here
       if (!this.joining[pkey]) {
-        this.joining[pkey] = data;
-      }
+        this.joining[pkey] = { pkey, sigs: {}, round: data.round || 0 };
 
-      //
-      // But update with each incoming confirmation
-      //
-      for (let i = 0; i < data.sigs.length; i++) {
-        if (data.sigs[i]) {
-          auths++;
-          this.joining[pkey].sigs[i] = data.sigs[i];
-        }
-      }
-
-      this.joining[pkey].round = Math.max(data.round, this.joining[pkey].round);
-
-      // I am a player, need to confirm...
-      if (this.game.player) {
-        if (!data.sigs[this.game.player - 1]) {
-          this.joining[pkey].sigs[this.game.player - 1] = this.app.crypto.signMessage(
-            `ADDPLAYER ${data.pkey}`,
-            await this.app.wallet.getPrivateKey()
+        //
+        // let seated players know right away
+        //
+        if (this.game.player && pkey !== this.publicKey) {
+          siteMessage(
+            `${this.app.keychain.returnUsername(pkey)} will join at the next round`,
+            3000
           );
-          this.joining[pkey].round = Math.max(data.round, this.currentRound());
-          this.sendMetaMessage('JOIN', this.joining[pkey]);
-          return;
         }
       }
 
-      if (auths == this.game.players.length) {
-        if (!this.toJoin.includes(pkey)) {
-          if (this.currentRound() >= this.joining[pkey].round) {
-            this.toJoin.push(pkey);
-            siteMessage(
-              `${
-                this.publicKey == pkey ? 'You' : this.app.keychain.returnUsername(pkey)
-              } will be dealt in next hand`,
-              2500
-            );
+      //
+      // merge incoming signatures -- keyed by signer pubkey, and only those
+      // that cryptographically verify against the signer's key
+      //
+      for (let signer in data.sigs || {}) {
+        let o = data.sigs[signer];
+        if (o?.sig && !this.joining[pkey].sigs[signer]) {
+          let msg = this.returnJoinSigMessage(pkey, o.round, o.commitment);
+          if (this.app.crypto.verifyMessage(msg, o.sig, signer)) {
+            this.joining[pkey].sigs[signer] = o;
+            this.joining[pkey].round = Math.max(this.joining[pkey].round, o.round);
           } else {
-            console.warn(
-              "GTT: Don't add player because other players have already started next round!"
-            );
+            console.warn(`GTT: invalid JOIN sig from ${signer} -- discarding`);
           }
         }
-        console.debug(
-          'GTT: JOIN SUCCESS:',
-          JSON.parse(JSON.stringify(this.toJoin)),
-          JSON.parse(JSON.stringify(this.joining))
-        );
       }
+
+      //
+      // I am a player: add my signature, anchored to my newround snapshot.
+      // If I have no snapshot yet (e.g. reloaded mid-hand), the resetCommand
+      // hook signs at the next newround instead.
+      //
+      if (this.game.player && !this.joining[pkey].sigs[this.publicKey]) {
+        if (this.cacheGame) {
+          await this.signJoinRequest(pkey);
+          return;
+        }
+        console.warn('GTT: no snapshot yet -- will sign join request at next newround');
+      }
+
+      //
+      // I am the joiner: verify + (if everyone has signed) enter the room.
+      // checkPendingJoinReady runs verifyPendingJoin itself, which may abort.
+      //
+      if (this.game.pending_join && pkey === this.publicKey) {
+        this.checkPendingJoinReady();
+        if (this.game.over) {
+          return; // aborted
+        }
+      }
+
+      this.countJoinAuths(pkey);
       return;
     }
 
@@ -134,6 +269,7 @@ class GameTableTemplate extends GameTemplate {
     if (txmsg.request == 'CANCEL') {
       this.toJoin = this.toJoin.filter((key) => key !== txmsg.my_key);
       this.toLeave = this.toLeave.filter((key) => key !== txmsg.my_key);
+      delete this.joining[txmsg.my_key];
       siteMessage(`${this.app.keychain.returnUsername(txmsg.my_key)} changed their mind`, 2500);
       return;
     }
@@ -145,37 +281,308 @@ class GameTableTemplate extends GameTemplate {
       return;
     }
 
+    //
+    // a joiner FOLLOWs us to get onto our accepted[] list and prompt a share
+    // of our latest hand-boundary state
+    //
+    if (txmsg.request == 'FOLLOW') {
+      this.addFollower(txmsg.my_key);
+      if (!tx.isFrom(this.publicKey)) {
+        if (this.cacheGame) {
+          this.sendMetaMessage('SHARE', JSON.stringify(this.cacheGame));
+        } else {
+          // no boundary snapshot yet -- ack now, share at the next newround
+          this.share_state_on_snapshot = true;
+          this.sendMetaMessage('SHARE', '');
+        }
+      }
+      return;
+    }
+
+    //
+    // only a pending joiner adopts shared state; seated players just keep
+    // their accepted[] list in sync
+    //
+    if (txmsg.request == 'SHARE') {
+      for (let i = 0; i < tx.to.length; i++) {
+        this.addFollower(tx.to[i].publicKey);
+      }
+      if (this.game?.pending_join && txmsg.game_id == this.game.id) {
+        this.adoptSharedTableState(tx);
+      }
+      return;
+    }
+
     super.receiveMetaMessage(tx);
+  }
+
+  //
+  // Adopt a hand-boundary snapshot received while waiting for a seat. If the
+  // snapshot already lists us as a player, the table seated us at the last
+  // boundary and we take our seat directly; otherwise we hold the pre-seat
+  // state (following as player 0) and record a commitment baseline so
+  // incoming signatures can be verified against exactly what we hold.
+  //
+  adoptSharedTableState(tx) {
+    let txmsg = tx.returnMessage();
+
+    // any response proves the table is live -- stop the no-response timer
+    if (this.pending_join_timeout && !this.join_ready_emitted) {
+      clearTimeout(this.pending_join_timeout);
+      this.pending_join_timeout = null;
+    }
+
+    if (!txmsg.data) {
+      console.info('GTT [SHARE] responder has no snapshot yet -- awaiting deferred share');
+      return;
+    }
+
+    console.info('GTT [SHARE] adopting shared table state', tx.from[0].publicKey);
+
+    let buffered_future = this.game?.future || [];
+    this.game = JSON.parse(txmsg.data);
+    this.game.live = true;
+
+    let my_seat = this.game.players.indexOf(this.publicKey);
+    if (my_seat >= 0) {
+      this.game.player = my_seat + 1;
+      delete this.game.pending_join;
+    } else {
+      this.game.player = 0;
+      this.game.pending_join = true;
+      if (!this.game.state_commitments) {
+        this.game.state_commitments = {};
+      }
+      this.game.state_commitments[this.game.state?.round || 0] =
+        this.returnStateCommitment(this.game);
+    }
+
+    //
+    // moves that raced ahead of this SHARE were buffered on the stub -- carry
+    // them over so we don't lose the first moves of the new hand (stale ones
+    // are discarded by processFutureMoves)
+    //
+    if (!Array.isArray(this.game.future)) {
+      this.game.future = [];
+    }
+    for (let ftx of buffered_future) {
+      if (!this.game.future.includes(ftx)) {
+        this.game.future.push(ftx);
+      }
+    }
+
+    this.saveGame(this.game.id);
+
+    if (my_seat >= 0) {
+      // seated via the boundary handoff
+      this.finalizePendingJoin();
+      if (this.gameBrowserActive()) {
+        this.reinitializeGameRun();
+      } else {
+        this.emitGameReadyRender();
+      }
+    } else {
+      // signatures may already be complete -- can we enter the room yet?
+      this.checkPendingJoinReady();
+    }
   }
 
   syncPlayerJoins() {
     for (let pkey in this.joining) {
-      if (!this.toJoin.includes(pkey)) {
-        if (this.currentRound() >= this.joining[pkey].round) {
-          let auths = 0;
-          for (let i = 0; i < this.joining[pkey].sigs.length; i++) {
-            if (this.joining[pkey].sigs[i]) {
-              auths++;
-            }
-          }
-          if (auths == this.game.players.length) {
-            this.toJoin.push(pkey);
-            siteMessage(
-              `${
-                this.publicKey == pkey ? 'You' : this.app.keychain.returnUsername(pkey)
-              } will be dealt in next hand`,
-              2500
-            );
-          } else {
-            console.warn('GTT: Still missing a confirmation...');
-          }
-        } else {
-          console.warn(
-            "GTT: Don't add player because other players have already started next round!"
-          );
+      this.countJoinAuths(pkey);
+    }
+  }
+
+  //
+  // sign a pending join request against our own newround snapshot and
+  // rebroadcast the updated request so other players / the joiner can merge
+  //
+  async signJoinRequest(pkey) {
+    if (!this.cacheGame || !this.joining[pkey]) {
+      return;
+    }
+
+    const round = this.cacheGame.state?.round || 0;
+    const commitment = this.returnStateCommitment(this.cacheGame);
+
+    this.joining[pkey].sigs[this.publicKey] = {
+      sig: this.app.crypto.signMessage(
+        this.returnJoinSigMessage(pkey, round, commitment),
+        await this.app.wallet.getPrivateKey()
+      ),
+      round,
+      commitment
+    };
+    this.joining[pkey].round = Math.max(this.joining[pkey].round, round);
+
+    this.sendMetaMessage('JOIN', this.joining[pkey]);
+  }
+
+  //
+  // a join is authorized once every CURRENT player has a verified signature
+  // on it (sigs from departed players are simply ignored)
+  //
+  countJoinAuths(pkey) {
+    if (!this.joining[pkey] || this.toJoin.includes(pkey)) {
+      return;
+    }
+
+    //
+    // the joiner does not self-authorize -- their seat arrives via the
+    // boundary state handoff, not via their own toJoin list
+    //
+    if (!this.game.player && pkey === this.publicKey) {
+      return;
+    }
+
+    if (!this.hasAllPlayerSigs(pkey)) {
+      return;
+    }
+
+    if (this.currentRound() >= this.joining[pkey].round) {
+      this.toJoin.push(pkey);
+      siteMessage(
+        `${
+          this.publicKey == pkey ? 'You' : this.app.keychain.returnUsername(pkey)
+        } will be dealt in next hand`,
+        2500
+      );
+      console.debug('GTT: JOIN SUCCESS:', JSON.parse(JSON.stringify(this.toJoin)));
+    } else {
+      console.warn("GTT: Don't add player because other players have already started next round!");
+    }
+  }
+
+  //
+  // joiner-side check: mutual consistency. we are not following the game, so
+  // we cannot compare sigs against our own experience of the state -- but
+  // every player who signs for the same round must commit to an IDENTICAL
+  // state, and no single player can forge the others' signatures. if we do
+  // hold a local baseline for a round (recorded while live-following), it
+  // must match as well.
+  //
+  verifyPendingJoin() {
+    let mine = this.joining[this.publicKey];
+    if (!mine) {
+      return true;
+    }
+
+    let commitments = {}; // round -> commitment
+    for (let signer in mine.sigs) {
+      let o = mine.sigs[signer];
+      if (o?.sig) {
+        if (commitments[o.round] && commitments[o.round] !== o.commitment) {
+          this.abortPendingJoin('players disagree about the table state');
+          return false;
+        }
+        commitments[o.round] = o.commitment;
+
+        let local = this.game.state_commitments?.[o.round];
+        if (local && local !== o.commitment) {
+          this.abortPendingJoin('table state does not match the state you were given');
+          return false;
         }
       }
     }
+    return true;
+  }
+
+  abortPendingJoin(reason) {
+    console.error('GTT: aborting join -- ' + reason);
+    this.sendMetaMessage('CANCEL');
+    delete this.joining[this.publicKey];
+    delete this.game.pending_join;
+    this.game.over = 2;
+    this.saveGame(this.game.id);
+    if (this.browser_active) {
+      this.syncBodyGameClasses();
+    }
+    salert(`Unable to join this table: ${reason}. Returning to Arcade.`);
+    this.exitGame();
+  }
+
+  //
+  // Request a seat at an in-progress open table (called from the arcade).
+  // Reuses the observer stub bootstrap (player = 0, accepted = invite
+  // players), FOLLOWs for the current state, and broadcasts a JOIN request
+  // for the seated players to sign. Signatures collect during the current
+  // hand; the seat is assigned (and the state handed off) when it ends.
+  //
+  async requestSeatAtTable(game_tx) {
+    let game_id = game_tx.signature;
+
+    if (this.doesGameExistLocally(game_id)) {
+      this.loadGame(game_id);
+      if (this.game?.players?.includes(this.publicKey)) {
+        return 'already-playing';
+      }
+    }
+
+    if (this.game?.id !== game_id) {
+      await this.initializeObserverMode(game_tx, true);
+    }
+
+    this.game.pending_join = true; // persisted -- survives navigation and reloads
+    this.game.initializing = 1; // arcade lounge shows the initializing spinner
+    this.join_ready_emitted = false;
+    this.saveGame(this.game.id);
+
+    //
+    // FOLLOW gets us onto every player's accepted[] list and prompts a SHARE
+    // of their latest hand-boundary snapshot
+    //
+    await this.sendMetaMessage('FOLLOW');
+
+    //
+    // broadcast the join request -- players sign against their own snapshots
+    //
+    this.joining[this.publicKey] = { pkey: this.publicKey, sigs: {}, round: 0 };
+    await this.sendMetaMessage('JOIN', this.joining[this.publicKey]);
+
+    //
+    // nobody home? don't leave the joiner staring at a spinner forever
+    //
+    this.pending_join_timeout = setTimeout(() => {
+      if (this.game?.pending_join && !this.join_ready_emitted) {
+        delete this.game.pending_join;
+        this.saveGame(this.game.id);
+        salert('Unable to join: the players did not respond. Try again later.');
+      }
+    }, 20000);
+
+    return 'requested';
+  }
+
+  //
+  // the joiner is cleared to enter the game room once (a) the shared state
+  // has been adopted and (b) every player has a verified signature over it.
+  // called from the JOIN merge path and from SHARE adoption, whichever
+  // completes last.
+  //
+  checkPendingJoinReady() {
+    if (!this.game?.pending_join || this.join_ready_emitted) {
+      return;
+    }
+
+    // verify first -- this can abort the join on a bad/conflicting commitment,
+    // and is worth doing even before we have adopted the state
+    if (!this.verifyPendingJoin()) {
+      return;
+    }
+
+    // state adopted (the stub has no state object) and everyone has signed?
+    if (!this.game?.state || !this.hasAllPlayerSigs(this.publicKey)) {
+      return;
+    }
+
+    this.join_ready_emitted = true;
+    if (this.pending_join_timeout) {
+      clearTimeout(this.pending_join_timeout);
+      this.pending_join_timeout = null;
+    }
+
+    siteMessage('Seat confirmed -- you will be dealt in at the next round', 3000);
+    this.emitGameReadyRender();
   }
 
   addPlayerLate(address) {
@@ -405,13 +812,7 @@ class GameTableTemplate extends GameTemplate {
     this.game.live = true;
     this.saveGame(this.game.id);
 
-    setTimeout(() => {
-      console.info('Re-initialize game with different players');
-      this.initialize_game_run = 0;
-      this.halted = 0;
-      this.refreshPlayerboxes();
-      this.initializeGameQueue(this.game.id);
-    }, 1000);
+    this.reinitializeGameRun(1000);
   }
 
   exitConfirmationTemplate() {
@@ -482,12 +883,41 @@ class GameTableTemplate extends GameTemplate {
 
     this.commands.unshift((game_self, gmv) => {
       if (gmv[0] === this.resetCommand) {
+        //
+        // record the consensus commitment for this snapshot round -- every
+        // client (including a pending joiner) executes this at an identical
+        // point in the queue, so the commitments are directly comparable
+        //
+        if (!this.game.state_commitments) {
+          this.game.state_commitments = {};
+        }
+        this.game.state_commitments[this.currentRound()] = this.returnStateCommitment(this.game);
+        this.pruneStateCommitments();
+
         if (this.game.player) {
-          this.cacheGame = JSON.parse(JSON.stringify(this.game));
-          //clear out cards
-          this.cacheGame.deck = [];
-          this.cacheGame.pool = [];
-          console.info('GTT: Save game state...', this.cacheGame);
+          let snapshot = this.buildBoundarySnapshot();
+
+          //
+          // sign any join requests we deferred for lack of a snapshot
+          //
+          for (let pkey in this.joining) {
+            if (pkey !== this.publicKey && !this.joining[pkey].sigs?.[this.publicKey]) {
+              this.signJoinRequest(pkey);
+            }
+          }
+
+          //
+          // send any state share we deferred (reuse the serialized snapshot)
+          //
+          if (this.share_state_on_snapshot) {
+            this.share_state_on_snapshot = false;
+            this.sendMetaMessage('SHARE', snapshot);
+          }
+        } else if (this.game.pending_join) {
+          //
+          // re-check any sigs whose round we have just caught up to
+          //
+          this.verifyPendingJoin();
         }
       }
       return 1;
@@ -511,7 +941,14 @@ class GameTableTemplate extends GameTemplate {
           }`
         );
         if (pkey === this.publicKey) {
-          this.app.connection.emit('arcade-gametable-addplayer', this.game.id);
+          this.finalizePendingJoin();
+        } else if (this.game.player === 1) {
+          //
+          // a joiner was seated but has not followed the game -- one seated
+          // player (seat 1) shares the post-seat boundary snapshot at the next
+          // newround so they can adopt their seat via state handoff
+          //
+          this.share_state_on_snapshot = true;
         }
 
         // Clear toJoin

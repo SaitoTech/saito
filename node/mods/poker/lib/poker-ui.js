@@ -55,6 +55,19 @@ class PokerUI {
     $('.game-playerbox-seat-1').appendTo('.mystuff');
 
     if (this.game.player == 0) {
+      //
+      // non-players have no seat, so displayPlayerNotice never builds the
+      // .status container for them -- give them one in the seat area so
+      // updateStatus() has a target for the waiting/observing banner
+      //
+      if (!document.querySelector('.mystuff .status')) {
+        this.app.browser.addElementToSelector(`<div class="status" id="status"></div>`, '.mystuff');
+      }
+      this.displayHand();
+    }
+
+    // observer controls are for true spectators, not players or pending joiners
+    if (this.game.player == 0 && !this.game.pending_join) {
       this?.observerControls?.render?.();
     } else {
       this?.observerControls?.remove?.();
@@ -81,7 +94,12 @@ class PokerUI {
 
   displayHand() {
     if (this.game.player == 0) {
-      this.updateStatus(`you are observing the game`, -1);
+      this.updateStatus(
+        this.game.pending_join
+          ? `Waiting to be dealt in -- you will join at the start of the next hand`
+          : `you are observing the game`,
+        -1
+      );
       return;
     }
 

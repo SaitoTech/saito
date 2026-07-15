@@ -132,41 +132,46 @@ class Poker extends GameTableTemplate {
 		let ngoa = {};
 		let crypto = '';
 		for (let i in sgoa) {
-			if (sgoa[i] != '') {
-				let okey = i;
-				let oval = sgoa[i];
+			try {
+				if (sgoa[i] != '') {
+					let okey = i;
+					let oval = sgoa[i];
 
-				let output_me = 1;
-				if (okey == 'chip') {
-					if (oval !== '0') {
-						okey = 'small blind';
-					} else {
-						output_me = 0;
+					let output_me = 1;
+					if (okey == 'chip') {
+						if (oval !== '0') {
+							okey = 'small blind';
+						} else {
+							output_me = 0;
+						}
+					}
+					if (okey == 'blind_mode') {
+						if (oval == 'increase') {
+							okey = 'mode';
+							oval = 'tournament';
+						} else {
+							output_me = 0;
+						}
+					}
+					if (okey == 'num_chips') {
+						okey = 'chips';
+					}
+
+					if (okey == 'eliminated') {
+						let str = '';
+						for (let key in oval) {
+							str += this.app.keychain.returnUsername(key) + ', ';
+						}
+						oval = str;
+					}
+
+					if (output_me == 1) {
+						ngoa[okey] = oval;
 					}
 				}
-				if (okey == 'blind_mode') {
-					if (oval == 'increase') {
-						okey = 'mode';
-						oval = 'tournament';
-					} else {
-						output_me = 0;
-					}
-				}
-				if (okey == 'num_chips') {
-					okey = 'chips';
-				}
-
-				if (okey == 'eliminated') {
-					let str = '';
-					for (let key in oval) {
-						str += this.app.keychain.returnUsername(key) + ', ';
-					}
-					oval = str;
-				}
-
-				if (output_me == 1) {
-					ngoa[okey] = oval;
-				}
+			} catch (err) {
+				console.error(err);
+				console.log(i, sgoa[i]);
 			}
 		}
 
@@ -174,7 +179,6 @@ class Poker extends GameTableTemplate {
 	}
 
 	async render(app) {
-
 		if (!this.browser_active) {
 			return;
 		}

@@ -112,7 +112,7 @@ module.exports = (app, mod, invite) => {
         }
         html += `<div id="arcade-game-controls-close-game" class="fat saito-button-secondary">cancel game</div>`;
       } else if (invite.empty_slots) {
-        html += `<div id="arcade-game-controls-watch-game" class="fat saito-button-primary">join table</div>`;
+        html += `<div id="arcade-game-controls-join-table" class="fat saito-button-primary">join table</div>`;
       } else if (invite.game_mod.enable_observer) {
         html += `<div id="arcade-game-controls-watch-game" class="fat saito-button-primary">watch game</div>`;
         if (invite.game_mod.doesGameExistLocally(invite.game_id)) {

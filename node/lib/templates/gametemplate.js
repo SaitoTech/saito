@@ -532,9 +532,7 @@ class GameTemplate extends ModTemplate {
       }
     }
 
-    if (this.game.player == 0) {
-      document.body.classList.add('observer-mode');
-    }
+    this.syncBodyGameClasses();
 
     //
     // load initial display preferences
@@ -914,7 +912,7 @@ class GameTemplate extends ModTemplate {
       if (this.game.id && !this._observer_stub_bootstrap) this.saveGame(this.game.id);
     }
 
-    if (this.game?.player === 0 && this.observerControls) {
+    if (this.game?.player === 0 && this.observerControls && !this.game?.pending_join) {
       this.observerControls.initialize(this.game.id);
     }
 
@@ -1460,50 +1458,6 @@ class GameTemplate extends ModTemplate {
 
     let txmsg = tx.returnMessage();
 
-    if (txmsg.request == 'FOLLOW') {
-      this.addFollower(txmsg.my_key);
-
-      // Don't send myself an empty game state!
-      if (!tx.isFrom(this.publicKey)) {
-        let state = this?.cacheGame ? JSON.stringify(this.cacheGame) : '';
-        this.sendMetaMessage('SHARE', state);
-      }
-      return;
-    }
-
-    if (txmsg.request == 'SHARE') {
-      if (this.expecting_state) {
-        console.info('GT [Meta] Player shared last game state', tx.from[0].publicKey);
-        // console.debug(JSON.parse(JSON.stringify(this.game)));
-
-        if (txmsg?.data != '') {
-          this.game = JSON.parse(txmsg.data);
-          this.game.player = 0;
-          this.game.live = true;
-          this.saveGame(this.game.id);
-
-          this.app.connection.emit('arcade-game-ready-render-request', {
-            name: this.name,
-            slug: this.returnSlug(),
-            id: this.game.id,
-            status: 'ready'
-          });
-
-          // So we only process once!
-          this.expecting_state = false;
-        } else {
-          this.initializeGameQueue(txmsg.game_id);
-        }
-      }
-
-      // Sanity check that everyone has the right people in the accepted[]
-      for (let i = 0; i < tx.to.length; i++) {
-        this.addFollower(tx.to[i].publicKey);
-      }
-
-      return;
-    }
-
     if (txmsg.request == 'CALL') {
       document.getElementById('start-group-video-chat').classList.add('notification');
       document.getElementById('start-group-video-chat').innerHTML = 'Join call';
@@ -1614,6 +1568,30 @@ class GameTemplate extends ModTemplate {
     }
 
     return 0;
+  }
+
+  //
+  // ask the arcade to show the "game ready / start game" lounge for this game
+  //
+  emitGameReadyRender() {
+    this.app.connection.emit('arcade-game-ready-render-request', {
+      name: this.name,
+      slug: this.returnSlug(),
+      id: this.game.id,
+      status: 'ready'
+    });
+  }
+
+  //
+  // keep the <body> game-state classes in sync with our seat. player 0 is a
+  // non-participant (observer or a table joiner waiting for a seat).
+  //
+  syncBodyGameClasses() {
+    if (!this.app.BROWSER || !document?.body) {
+      return;
+    }
+    document.body.classList.toggle('observer-mode', this.game?.player == 0);
+    document.body.classList.toggle('pending-join', !!this.game?.pending_join);
   }
 
   visibilityChange() {
@@ -1732,7 +1710,7 @@ class GameTemplate extends ModTemplate {
 
       console.log('INJECT GAME HTML:' + this.game.player);
 
-      if (this.game?.player === 0 && this.observerControls) {
+      if (this.game?.player === 0 && this.observerControls && !this.game?.pending_join) {
         console.log('and into observerControls...');
         this.observerControls.render();
       }

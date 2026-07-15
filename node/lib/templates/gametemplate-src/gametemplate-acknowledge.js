@@ -7,6 +7,19 @@
 
 class GameAcknowledge {
   playerAcknowledgeNotice(msg, mycallback) {
+    //
+    // non-players (observers / pending joiners) have no controls to click --
+    // auto-acknowledge after a short pause so the queue keeps moving
+    //
+    if (this.game.player == 0 && !Array.isArray(mycallback)) {
+      this.halted = 1;
+      setTimeout(async () => {
+        await mycallback();
+        this.halted = 0;
+      }, 1500);
+      return 0;
+    }
+
     let html = '';
     let options = null;
     if (Array.isArray(mycallback)) {
