@@ -613,6 +613,7 @@ impl SyncManager {
         let mut previous_block_id = cs.shared_ancestor_block_id;
         let mut previous_block_hash = cs.shared_ancestor_block_hash;
         let mut did_queue_any_blocks = false;
+        let mut deferred_payload = false;
 
         let is_local_chain_empty = {
             let blockchain = self.blockchain_lock.read().await;
@@ -675,6 +676,31 @@ impl SyncManager {
                     did_queue_any_blocks = true;
                 }
 
+                let block_is_pending = self
+                    .queue
+                    .contains_key(&(block_reference.block_id, block_reference.block_hash))
+                    || {
+                        let mempool = self.mempool_lock.read().await;
+                        mempool
+                            .blocks_queue
+                            .iter()
+                            .any(|block| block.hash == block_reference.block_hash)
+                    };
+
+                if block_is_pending {
+                    did_queue_any_blocks = true;
+                }
+
+                // A relevant block must update the SPV wallet before descendants
+                // become longest-chain ghosts. Otherwise the later ghost tip makes
+                // the fetched lower block a non-longest-chain insertion, so its
+                // wallet slips are never applied. Resume from that fetched block
+                // with a new RequestBlockchain instead of processing past it.
+                if block_is_pending && !is_last_block_in_chunk {
+                    deferred_payload = true;
+                    break;
+                }
+
                 previous_block_id = block_reference.block_id;
                 previous_block_hash = block_reference.block_hash;
                 continue;
@@ -697,6 +723,13 @@ impl SyncManager {
 
             previous_block_id = block_reference.block_id;
             previous_block_hash = block_reference.block_hash;
+        }
+
+        if deferred_payload {
+            let mut peers = network.peer_lock.write().await;
+            if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                peer.require_sync_continuation();
+            }
         }
 
         if !did_queue_any_blocks
@@ -766,5 +799,179 @@ impl SyncManager {
             info!(" --    -- yes -- mark as sync complete");
             peer.on_sync_complete();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::network::peer::Peer;
+    use crate::core::util::configuration::{
+        BlockchainConfig, ConsensusConfig, PeerConfig, Server, WalletConfig,
+    };
+    use crate::core::util::test::test_manager::test::TestManager;
+    use std::fmt::{Debug, Formatter};
+    use std::sync::Mutex;
+
+    struct SpvTestConfiguration {
+        blockchain: BlockchainConfig,
+        consensus: ConsensusConfig,
+        peers: Vec<PeerConfig>,
+    }
+
+    impl Default for SpvTestConfiguration {
+        fn default() -> Self {
+            Self {
+                blockchain: BlockchainConfig::default(),
+                consensus: ConsensusConfig::default(),
+                peers: vec![],
+            }
+        }
+    }
+
+    impl Debug for SpvTestConfiguration {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("SpvTestConfiguration").finish()
+        }
+    }
+
+    impl Configuration for SpvTestConfiguration {
+        fn get_server_configs(&self) -> Option<&Server> {
+            None
+        }
+
+        fn get_peer_configs(&self) -> &Vec<PeerConfig> {
+            &self.peers
+        }
+
+        fn get_blockchain_configs(&self) -> &BlockchainConfig {
+            &self.blockchain
+        }
+
+        fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+            &mut self.blockchain
+        }
+
+        fn get_block_fetch_url(&self) -> String {
+            String::new()
+        }
+
+        fn is_spv_mode(&self) -> bool {
+            true
+        }
+
+        fn is_browser(&self) -> bool {
+            true
+        }
+
+        fn replace(&mut self, _config: &dyn Configuration) {}
+
+        fn get_consensus_config(&self) -> Option<&ConsensusConfig> {
+            Some(&self.consensus)
+        }
+
+        fn get_consensus_config_mut(&mut self) -> Option<&mut ConsensusConfig> {
+            Some(&mut self.consensus)
+        }
+
+        fn get_config_path(&self) -> String {
+            String::new()
+        }
+
+        fn set_config_path(&mut self, _path: String) {}
+
+        fn save(&self) -> Result<(), Error> {
+            Ok(())
+        }
+
+        fn get_wallet_configs(&self) -> Option<&WalletConfig> {
+            None
+        }
+
+        fn get_wallet_configs_mut(&mut self) -> Option<&mut WalletConfig> {
+            None
+        }
+    }
+
+    #[tokio::test]
+    async fn spv_sync_does_not_advance_ghosts_past_pending_relevant_block() {
+        let t = TestManager::default();
+        let peer_id = 42;
+        let mut peer = Peer::new(peer_id, 0);
+        peer.is_connected = true;
+        peer.is_syncing = true;
+        peer.url = Some("ws://localhost:12101/wsopen".to_string());
+        t.peer_lock.write().await.peers.insert(peer_id, peer);
+
+        let mut sync = SyncManager::new(
+            t.blockchain_lock.clone(),
+            t.mempool_lock.clone(),
+            t.wallet_lock.clone(),
+            Arc::new(t.network.timer.clone()),
+            true,
+        );
+        let dispatched_block_ids = Arc::new(Mutex::new(vec![]));
+        let dispatched_block_ids_clone = dispatched_block_ids.clone();
+        let fetch_dispatcher: FetchDispatcher = Arc::new(move |_, _, _, block_id| {
+            dispatched_block_ids_clone.lock().unwrap().push(block_id);
+        });
+        let config_lock: Arc<RwLock<dyn Configuration + Send + Sync>> =
+            Arc::new(RwLock::new(SpvTestConfiguration::default()));
+
+        sync.process_blockchain_message(
+            BlockchainPeerMessage {
+                latest_known_block_id: 3,
+                latest_known_block_hash: [3; 32],
+                fork_id: [9; 32],
+                shared_ancestor_block_id: 0,
+                shared_ancestor_block_hash: [0; 32],
+                payload_earliest_block_id: 1,
+                payload_earliest_block_hash: [1; 32],
+                payload_latest_block_id: 3,
+                payload_latest_block_hash: [3; 32],
+                payload: vec![
+                    BlockReference {
+                        block_id: 1,
+                        block_hash: [1; 32],
+                        timestamp: 1,
+                        transactions: 1,
+                        has_golden_ticket: false,
+                    },
+                    BlockReference {
+                        block_id: 2,
+                        block_hash: [2; 32],
+                        timestamp: 2,
+                        transactions: 0,
+                        has_golden_ticket: false,
+                    },
+                    BlockReference {
+                        block_id: 3,
+                        block_hash: [3; 32],
+                        timestamp: 3,
+                        transactions: 0,
+                        has_golden_ticket: false,
+                    },
+                ],
+            },
+            peer_id,
+            config_lock,
+            &t.network,
+            &fetch_dispatcher,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(sync.queue.len(), 1);
+        assert!(sync.queue.contains_key(&(1, [1; 32])));
+        assert!(t.blockchain_lock.read().await.blocks.is_empty());
+        assert_eq!(*dispatched_block_ids.lock().unwrap(), vec![1]);
+
+        let peers = t.peer_lock.read().await;
+        assert!(
+            peers
+                .get_peer_by_id(peer_id)
+                .unwrap()
+                .last_request_blockchain_has_more
+        );
     }
 }

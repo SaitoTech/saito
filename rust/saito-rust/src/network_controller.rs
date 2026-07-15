@@ -39,6 +39,21 @@ use saito_core::core::util::configuration::Configuration;
 type SocketSender = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Message>;
 type SocketReceiver = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
+fn get_lite_block_keylist(peers: &Peers, requested_key: SaitoPublicKey) -> Vec<SaitoPublicKey> {
+    let mut keylist = peers
+        .get_peer_by_public_key(&requested_key)
+        .map(|peer| peer.key_list.clone())
+        .unwrap_or_default();
+
+    // The requested URL key identifies the primary wallet being served. KeyList
+    // messages add watched keys, but they are not guaranteed to contain this key.
+    if !keylist.contains(&requested_key) {
+        keylist.push(requested_key);
+    }
+
+    keylist
+}
+
 pub struct NetworkController {
     currently_queried_urls: Arc<Mutex<HashSet<String>>>,
     // Transport single source of truth: every live socket is keyed by peer_id only.
@@ -844,10 +859,7 @@ fn run_websocket_server(
 
                         let keylist = {
                             let peers = peer_lock.read().await;
-                            peers
-                                .get_peer_by_public_key(&key)
-                                .map(|p| p.key_list.clone())
-                                .unwrap_or_default()
+                            get_lite_block_keylist(&peers, key)
                         };
 
                         let mut buffer: Vec<u8> = Default::default();
@@ -900,4 +912,43 @@ fn run_websocket_server(
             SocketAddr::from_str((host + ":" + port.to_string().as_str()).as_str()).unwrap();
         warp::serve(routes).run(address).await;
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lite_block_keylist_includes_url_key_without_peer_keylist() {
+        let requested_key = [3; 33];
+        let mut peer = Peer::new(1, 0);
+        peer.public_key = Some(requested_key);
+        peer.is_connected = true;
+
+        let mut peers = Peers::default();
+        peers.peers.insert(peer.id, peer);
+
+        assert_eq!(
+            get_lite_block_keylist(&peers, requested_key),
+            vec![requested_key]
+        );
+    }
+
+    #[test]
+    fn lite_block_keylist_keeps_watched_keys_and_adds_url_key() {
+        let requested_key = [3; 33];
+        let watched_key = [4; 33];
+        let mut peer = Peer::new(1, 0);
+        peer.public_key = Some(requested_key);
+        peer.is_connected = true;
+        peer.key_list = vec![watched_key];
+
+        let mut peers = Peers::default();
+        peers.peers.insert(peer.id, peer);
+
+        assert_eq!(
+            get_lite_block_keylist(&peers, requested_key),
+            vec![watched_key, requested_key]
+        );
+    }
 }

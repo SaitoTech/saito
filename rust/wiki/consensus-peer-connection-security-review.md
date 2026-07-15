@@ -20,9 +20,15 @@ run tests as part of this report. Existing baseline evidence available during th
 review showed 16 network tests passing and `cargo check -p saito-rust` succeeding.
 Those checks do not exercise the adversarial paths described below.
 
+F-01 has since been remediated in the current uncommitted working tree for every
+block whose parent is available. The counts below describe the audited revision.
+An empty live node still intentionally treats the first peer-provided block as
+its local synchronization anchor, because this network does not require genesis
+history or an authenticated checkpoint for bootstrap.
+
 | ID | Severity | Finding | Runtime | Provenance |
 | --- | --- | --- | --- | --- |
-| F-01 | Critical | Block height is not bound to parent height | Full node/core | Pre-existing; present in `develop` |
+| F-01 | Critical | Block height is not bound to parent height | Full node/core | Pre-existing; remediated locally |
 | F-02 | Critical | Merkle commitment is effectively unenforced | Full node and SPV | Pre-existing; present in `develop` |
 | F-03 | High | A malicious peer can fabricate SPV chain and wallet state | WASM/browser and native SPV | Refactor-era; present in `develop` |
 | F-04 | High | A malformed fetched block can terminate a native node | Native; WASM trap possible | Pre-existing; present in `develop` |
@@ -64,13 +70,14 @@ untrusted work is bounded before allocation or queueing.
 - **Confidence:** High
 - **Affected runtime:** Full nodes and shared consensus code
 - **Required capability:** Produce an otherwise consensus-valid block
+- **Status:** Remediated in the current uncommitted working tree for known-parent blocks
 
-[`Blockchain::add_block`](../saito-core/src/core/consensus/blockchain.rs#L220-L296)
-checks that a parent hash exists but never requires `block.id` to equal the
+In the audited revision, [`Blockchain::add_block`](../saito-core/src/core/consensus/blockchain.rs#L220-L320)
+checked that a parent hash existed but never required `block.id` to equal the
 parent ID plus one. [`Block::validate`](../saito-core/src/core/consensus/block.rs#L2835-L2863)
-only asserts that the ID is nonzero. Fork selection follows parent hashes, counts
-actual entries, and separately requires only that the candidate tip ID exceed
-the current ID in
+only asserted that the ID was nonzero. Fork selection followed parent hashes,
+counted actual entries, and separately required only that the candidate tip ID
+exceed the current ID in
 [`is_new_chain_the_longest_chain`](../saito-core/src/core/consensus/blockchain.rs#L1222-L1280).
 
 We can therefore construct an otherwise valid direct child of the current tip
@@ -96,10 +103,28 @@ supply checks are meaningful controls, but none enforces height adjacency.
 Existing tests replay normally produced contiguous blocks and do not exercise a
 height gap or a post-wind supply failure.
 
-**Remediation direction:** Reject every non-genesis block whose ID is not exactly
-the parent ID plus one before inserting it into any index. Make reorganization
-and total-supply verification transactional, with a complete rollback for every
-state mutation performed during winding.
+**Implemented remediation:** `Blockchain::add_block` now uses checked arithmetic
+to reject a block unless its ID is exactly its available parent ID plus one. The
+guard runs before block-ring, block-map, wallet, UTXO, pruning, or persistence
+mutation. A regression test constructs and signs a `2 -> 4` child, confirms
+rejection, and verifies that the tip, block map, block ring, wallet, UTXO set,
+and genesis boundary remain unchanged. Normal `1 -> 2` admission is exercised
+through the same test. A companion regression preserves the decentralized
+bootstrap behavior by confirming that an empty node may accept a parentless
+retained-floor block as its first synchronization anchor.
+
+The invariant is intentionally conditional on the parent being available. An
+empty live node may start from a peer's retained floor and treats that first
+block as its local anchor; subsequent known-parent blocks must be contiguous.
+Consequently, an eclipsing bootstrap peer can influence an empty node's initial
+height view, but cannot make an established node accept a height-jumping child.
+This is part of the current decentralized bootstrap trust model rather than a
+remaining bypass of the established-chain admission rule.
+
+The independent post-wind total-supply rollback weakness remains unresolved and
+should be tracked separately. Reorganization and total-supply verification
+should ultimately be transactional, with a complete rollback for every state
+mutation performed during winding.
 
 ### F-02: Merkle Commitment Is Effectively Unenforced
 
@@ -107,11 +132,12 @@ state mutation performed during winding.
 - **Confidence:** High
 - **Affected runtime:** Full nodes and SPV clients
 - **Required capability:** Relay or serve a valid block body before the original arrives
+- **Status:** Fixed for full-node validation; SPV proof validation remains unresolved
 
 [`Block::generate`](../saito-core/src/core/consensus/block.rs#L1323-L1350)
 preserves every nonzero peer-supplied Merkle root, then computes the signed
-pre-hash and block hash around that value. Validation rejects a mismatch only
-when the supplied root is zero:
+pre-hash and block hash around that value. Before remediation, validation
+rejected a mismatch only when the supplied root was zero:
 
 ```rust
 if self.merkle_root == [0; 32]
@@ -124,7 +150,7 @@ if self.merkle_root == [0; 32]
 
 The vulnerable condition is in
 [`Block::validate`](../saito-core/src/core/consensus/block.rs#L3320-L3328).
-Every nonzero incorrect root passes.
+Every nonzero incorrect root passed.
 
 From here, a block-serving peer can take an already valid signed block, reorder
 two suitable ordinary transactions, and retain the original declared root,
@@ -141,13 +167,20 @@ The same defect removes the cryptographic basis for SPV membership proofs.
 
 Block signatures, fetched-hash comparisons, and individual transaction checks
 bind the declared root and validate each received body independently. They do
-not prove that the declared root commits to that body. Existing Merkle tests
-cover correct root generation but do not reject a nonzero mismatch.
+not prove that the declared root commits to that body.
 
-**Remediation direction:** Require unconditional equality between the declared
-and recomputed Merkle root for every full block before signature acceptance,
-fork comparison, persistence, or state mutation. Add negative tests using both
-a random nonzero root and a reordered transaction body.
+**Implemented remediation:** Full-node `Block::validate` now requires
+unconditional equality between the declared root and the root recomputed from
+the received transaction body. A regression test confirms that a correctly
+committed block still validates while the same valid body paired with a signed,
+nonzero incorrect root is rejected. This closes the full-block acceptance path,
+including reordered bodies because any order change produces a different
+computed root.
+
+SPV validation still returns before this check, and the current lite-block wire
+representation does not preserve enough authenticated subtree information to
+reconstruct the full root reliably. That remaining work is part of F-03 rather
+than this minimal full-node fix.
 
 ### F-03: A Malicious Peer Can Fabricate SPV Chain and Wallet State
 

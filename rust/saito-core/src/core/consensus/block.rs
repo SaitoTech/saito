@@ -3319,9 +3319,8 @@ impl Block {
         //
         // validate merkle root
         //
-        if self.merkle_root == [0; 32]
-            && self.merkle_root
-                != self.generate_merkle_root(configs.is_browser(), configs.is_spv_mode())
+        if self.merkle_root
+            != self.generate_merkle_root(configs.is_browser(), configs.is_spv_mode())
         {
             error!("merkle root is unset or is invalid false 1");
             return false;
@@ -3784,6 +3783,53 @@ mod tests {
 
         assert_eq!(block.merkle_root.len(), 32);
         assert_ne!(block.merkle_root, [0; 32]);
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn block_validation_rejects_nonzero_merkle_root_mismatch() {
+        let mut t = TestManager::default();
+        t.initialize(100, 1_000_000_000).await;
+
+        let latest_block = t.get_latest_block().await;
+        let mut valid_block = t
+            .create_block(
+                latest_block.hash,
+                latest_block.timestamp + 120_000,
+                0,
+                0,
+                0,
+                true,
+            )
+            .await;
+        assert_eq!(
+            valid_block.merkle_root,
+            valid_block.generate_merkle_root(false, false)
+        );
+
+        let mut invalid_block = valid_block.clone();
+        invalid_block.merkle_root = [0xff; 32];
+        assert_ne!(
+            invalid_block.merkle_root,
+            invalid_block.generate_merkle_root(false, false)
+        );
+        invalid_block.generate().unwrap();
+        let private_key = t.wallet_lock.read().await.private_key;
+        invalid_block.sign(&private_key);
+        invalid_block.generate_hash();
+
+        let blockchain = t.blockchain_lock.read().await;
+        let configs = t.config_lock.read().await;
+        assert!(
+            !invalid_block
+                .validate(&blockchain, &*configs, &t.storage, false)
+                .await
+        );
+        assert!(
+            valid_block
+                .validate(&blockchain, &*configs, &t.storage, false)
+                .await
+        );
     }
 
     #[tokio::test]
