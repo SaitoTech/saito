@@ -132,11 +132,12 @@ mutation performed during winding.
 - **Confidence:** High
 - **Affected runtime:** Full nodes and SPV clients
 - **Required capability:** Relay or serve a valid block body before the original arrives
+- **Status:** Fixed for full-node validation; SPV proof validation remains unresolved
 
 [`Block::generate`](../saito-core/src/core/consensus/block.rs#L1323-L1350)
 preserves every nonzero peer-supplied Merkle root, then computes the signed
-pre-hash and block hash around that value. Validation rejects a mismatch only
-when the supplied root is zero:
+pre-hash and block hash around that value. Before remediation, validation
+rejected a mismatch only when the supplied root was zero:
 
 ```rust
 if self.merkle_root == [0; 32]
@@ -149,7 +150,7 @@ if self.merkle_root == [0; 32]
 
 The vulnerable condition is in
 [`Block::validate`](../saito-core/src/core/consensus/block.rs#L3320-L3328).
-Every nonzero incorrect root passes.
+Every nonzero incorrect root passed.
 
 From here, a block-serving peer can take an already valid signed block, reorder
 two suitable ordinary transactions, and retain the original declared root,
@@ -166,13 +167,20 @@ The same defect removes the cryptographic basis for SPV membership proofs.
 
 Block signatures, fetched-hash comparisons, and individual transaction checks
 bind the declared root and validate each received body independently. They do
-not prove that the declared root commits to that body. Existing Merkle tests
-cover correct root generation but do not reject a nonzero mismatch.
+not prove that the declared root commits to that body.
 
-**Remediation direction:** Require unconditional equality between the declared
-and recomputed Merkle root for every full block before signature acceptance,
-fork comparison, persistence, or state mutation. Add negative tests using both
-a random nonzero root and a reordered transaction body.
+**Implemented remediation:** Full-node `Block::validate` now requires
+unconditional equality between the declared root and the root recomputed from
+the received transaction body. A regression test confirms that a correctly
+committed block still validates while the same valid body paired with a signed,
+nonzero incorrect root is rejected. This closes the full-block acceptance path,
+including reordered bodies because any order change produces a different
+computed root.
+
+SPV validation still returns before this check, and the current lite-block wire
+representation does not preserve enough authenticated subtree information to
+reconstruct the full root reliably. That remaining work is part of F-03 rather
+than this minimal full-node fix.
 
 ### F-03: A Malicious Peer Can Fabricate SPV Chain and Wallet State
 
