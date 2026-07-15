@@ -45,4 +45,13 @@ export default class Peer extends WasmWrapper<WasmPeer> {
   public get status(): string {
     return this.instance.status;
   }
+  public get host(): string {
+    return this.instance.host || "";
+  }
+  public get port(): number {
+    return this.instance.port || 0;
+  }
+  public get protocol(): string {
+    return this.instance.protocol || "";
+  }
 }

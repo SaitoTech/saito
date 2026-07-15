@@ -49,8 +49,7 @@ class CallScheduleJoin {
                     if (auto_join){
                       this.app.connection.emit('call-launch-enter-call');  
                     }else{
-                      await navigator.clipboard.writeText(this.link);
-                      siteMessage("Call link copied");
+                      await this.mod.copyInviteLink();
                     }
                     
                 }
@@ -81,8 +80,7 @@ class CallScheduleJoin {
         if (auto_join){
           this.app.connection.emit('call-launch-enter-call');  
         }else{
-          await navigator.clipboard.writeText(this.link);
-          siteMessage("Call link copied");
+          await this.mod.copyInviteLink();
         }
       }
     }

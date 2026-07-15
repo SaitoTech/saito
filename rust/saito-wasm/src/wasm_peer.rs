@@ -79,6 +79,60 @@ impl WasmPeer {
             "disconnected".into()
         }
     }
+
+    #[wasm_bindgen(getter = host)]
+    pub fn get_host(&self) -> JsString {
+        if !self.peer.endpoint.host.is_empty() {
+            return self.peer.endpoint.host.clone().into();
+        }
+        // Fallback: ws(s)://host:port/...
+        if let Some(url) = &self.peer.url {
+            if let Some((_scheme, rest)) = url.split_once("://") {
+                let authority = rest.split('/').next().unwrap_or_default();
+                let host = authority.split(':').next().unwrap_or_default();
+                return host.to_string().into();
+            }
+        }
+        "".into()
+    }
+
+    #[wasm_bindgen(getter = port)]
+    pub fn get_port(&self) -> u16 {
+        if self.peer.endpoint.port > 0 {
+            return self.peer.endpoint.port;
+        }
+        if let Some(url) = &self.peer.url {
+            if let Some((_scheme, rest)) = url.split_once("://") {
+                let authority = rest.split('/').next().unwrap_or_default();
+                if let Some(port_str) = authority.split(':').nth(1) {
+                    if let Ok(port) = port_str.parse::<u16>() {
+                        return port;
+                    }
+                }
+            }
+        }
+        0
+    }
+
+   #[wasm_bindgen(getter = protocol)]
+    pub fn get_protocol(&self) -> JsString {
+        if !self.peer.endpoint.protocol.is_empty() {
+            return self.peer.endpoint.protocol.clone().into();
+        }
+        if let Some(url) = &self.peer.url {
+            if let Some((scheme, _rest)) = url.split_once("://") {
+                let proto = match scheme {
+                    "wss" => "https",
+                    "ws" => "http",
+                    "https" => "https",
+                    "http" => "http",
+                    other => other,
+                };
+                return proto.to_string().into();
+            }
+        }
+        "".into()
+    }
 }
 
 impl WasmPeer {
