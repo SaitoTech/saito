@@ -1,7 +1,6 @@
 var saito = require('../../lib/saito/saito');
 var ModTemplate = require('../../lib/templates/modtemplate');
 const SettingsAppspace = require('./lib/appspace/main');
-const SettingsThemeSwitcherOverlay = require('./lib/theme-switcher-overlay');
 const AppSettings = require('./lib/settings-settings');
 
 class Settings extends ModTemplate {
@@ -63,41 +62,13 @@ class Settings extends ModTemplate {
 	}
 
 	/*
-	  Note: we are "hacking" the renderInto function to make sure when we render a settings 
-	  overlay that we have the style sheets attached. Otherwise it isn't used in the general
-	  module fitting into component in other module modality
-	  */
-	renderInto(qs) {
-		if (qs == '.theme-selector') {
-			if (!this.renderIntos[qs]) {
-				this.renderIntos[qs] = [];
-				this.renderIntos[qs].push(new SettingsThemeSwitcherOverlay(this.app, this, ''));
-			}
-			this.renderIntos[qs].forEach((comp) => {
-				comp.render();
-			});
-		}
-	}
-
-	/*
   	Note: Account Settings is hardcoded into saito-header
   	*/
 	respondTo(type = '') {
-		let settings_self = this;
-
 		if (type === 'saito-header') {
 			if (this.app.modules.returnActiveModule()) {
 				this.attachStyleSheets();
 				return [
-					{
-						text: 'Theme',
-						icon: 'saito-theme-icon fa-solid fa-moon',
-						rank: 120,
-						type: 'utilities',
-						callback: function (app, id) {
-							settings_self.renderInto('.theme-selector');
-						}
-					},
 					/*{
 						text: 'Sync Chain',
 						icon: 'fa-solid fa-link',

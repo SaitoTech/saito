@@ -1,8 +1,8 @@
 .saito-cta-progress {
   --saito-cta-progress-width: 86rem;
   width: min(95vw, var(--saito-cta-progress-width));
-  height: 4.2rem;
-  min-height: 3.6rem;
+  height: 4.5rem;
+  min-height: 4.5rem;
   position: relative;
   overflow: hidden;
   border-radius: var(--saito-button-radius, var(--saito-border-radius, 0.75rem));
@@ -53,9 +53,28 @@
   gap: 1.6rem;
 }
 
-.arcade-cta-section .saito-cta-progress,
 .stack-splash .saito-cta-progress {
   --saito-cta-progress-width: 118rem;
+}
+
+body .saito-cta :is(button, .saito-button-primary, .saito-button-secondary, .stack-btn-primary, .stack-btn-secondary, .limbo-option, .vault-btn, .stunx-precall-link) {
+  width: 100%;
+  height: 4.5rem;
+  min-height: 4.5rem;
+  margin: 0;
+}
+
+body .saito-cta :is(.saito-button-row, .stack-cta-buttons, .limbo-launch-options, .stunx-appspace-actions, .stun-button-row, .vault-cta) {
+  display: flex;
+  flex-flow: row nowrap;
+  width: 100%;
+  gap: 2rem;
+}
+
+body .saito-cta :is(.saito-button-row, .stack-cta-buttons, .limbo-launch-options, .stunx-appspace-actions, .stun-button-row, .vault-cta)
+  > :is(button, .saito-button-primary, .saito-button-secondary, .stack-btn-primary, .stack-btn-secondary, .limbo-option, .vault-btn, .stunx-precall-link) {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .saito-cta.saito-cta-loading button,
@@ -96,11 +115,5 @@ body.saito-cta-loader-complete::before {
 @supports not selector(body:has(.saito-cta)) {
   body.saito-cta-loader-active .pace {
     display: none;
-  }
-}
-
-@media (max-width: 720px) {
-  .saito-cta-progress {
-    height: 3.8rem;
   }
 }

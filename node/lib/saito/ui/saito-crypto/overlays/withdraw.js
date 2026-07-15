@@ -16,10 +16,12 @@ class Withdraw {
     this.ticker = '';
     this.pc = null;
     this.publicKey = '';
+    this.fixedRecipient = false;
     this.address = '';
     this.fee = null;
     this.feePending = false;
     this.lastTxHash = '';
+    this.amountErrorMessage = '';
 
     this.errors = {
       amount: false,
@@ -32,6 +34,7 @@ class Withdraw {
     this.app.connection.on('saito-crypto-withdraw-render-request', async (obj) => {
       this.ticker = obj?.ticker || '';
       this.publicKey = obj?.address || '';
+      this.fixedRecipient = Boolean(this.publicKey && this.app.crypto.isPublicKey(this.publicKey));
 
       if (this.ticker) {
         await this.app.wallet.setPreferredCrypto(this.ticker);
@@ -44,6 +47,7 @@ class Withdraw {
   async render() {
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
+    this.amountErrorMessage = '';
 
     if (this.publicKey) {
       this.address = await this.pc.returnAddressFromPublicKey(this.publicKey);
@@ -51,13 +55,16 @@ class Withdraw {
 
     if (document.getElementById('withdrawal-form')) {
       this.app.browser.replaceElementById(
-        WithdrawTemplate(this.app, this.mod, this.publicKey, this.address),
+        WithdrawTemplate(this.app, this.mod, this.publicKey, this.address, this.fixedRecipient),
         'withdrawal-form'
       );
     } else {
-      this.overlay.show(WithdrawTemplate(this.app, this.mod, this.publicKey, this.address), () => {
-        this.clear();
-      });
+      this.overlay.show(
+        WithdrawTemplate(this.app, this.mod, this.publicKey, this.address, this.fixedRecipient),
+        () => {
+          this.clear();
+        }
+      );
     }
 
     await this.loadCryptos();
@@ -74,6 +81,10 @@ class Withdraw {
     this.updateHeaderTitle();
     this.updateHeaderLogos();
     this.attachEvents();
+    await this.updateAddressUiFromInput({ fetchFee: false });
+    this.updateAmountActionState();
+    this.updateSuccessAction();
+    this.handleErrors();
   }
 
   updateHeaderTitle() {
@@ -104,11 +115,376 @@ class Withdraw {
     }
     if (this.isNftWithdrawSelection()) {
       amountLabel.textContent = 'Units';
-      amountInput.step = '1';
+      amountInput.inputMode = 'numeric';
     } else {
       amountLabel.textContent = 'Amount';
-      amountInput.step = '0.00000001';
+      amountInput.inputMode = 'decimal';
     }
+  }
+
+  getAmountMaxFractionDigits() {
+    return this.isNftWithdrawSelection() ? 0 : 8;
+  }
+
+  normalizeAmountInput(options = {}) {
+    const input = document.getElementById('withdraw-input-amount');
+    return this.app.browser.formatLocaleAmountInputElement(input, {
+      maxFractionDigits: this.getAmountMaxFractionDigits(),
+      strictLocaleSeparators: options.strictLocaleSeparators !== false
+    });
+  }
+
+  getAmountInputValue() {
+    const input = document.getElementById('withdraw-input-amount');
+    if (!input) {
+      return '';
+    }
+    const parsed = this.app.browser.parseLocaleAmount(input.value, {
+      maxFractionDigits: this.getAmountMaxFractionDigits(),
+      strictLocaleSeparators: true
+    });
+    return parsed.valid ? parsed.normalized : '';
+  }
+
+  getAmountInputDisplayValue() {
+    const input = document.getElementById('withdraw-input-amount');
+    if (!input) {
+      return '';
+    }
+    const value = this.getAmountInputValue();
+    return value
+      ? this.app.browser.formatLocaleAmount(value, {
+          maxFractionDigits: this.getAmountMaxFractionDigits(),
+          strictLocaleSeparators: false
+        })
+      : input.value;
+  }
+
+  setAmountInputValue(value = '') {
+    const input = document.getElementById('withdraw-input-amount');
+    if (!input) {
+      return;
+    }
+    input.value = String(value);
+    this.normalizeAmountInput({ strictLocaleSeparators: false });
+    this.resetAmountValidation();
+  }
+
+  hasAmountInputValue() {
+    return this.getAmountInputValue() !== '';
+  }
+
+  resetAmountValidation() {
+    this.clearAmountError();
+    this.updateAmountActionState();
+    this.handleErrors();
+  }
+
+  updateAmountActionState() {
+    const amountInput = document.getElementById('withdraw-input-amount');
+    const hasAmount = Boolean(amountInput?.value?.trim());
+    const hasValidAmount =
+      hasAmount && this.hasAmountInputValue() && this.errors['amount'] === false;
+    const hasInvalidAmount = hasAmount && !hasValidAmount;
+    const maxBtn = document.getElementById('withdraw-max-btn');
+    const status = document.getElementById('withdraw-amount-status');
+    const tooltip = document.getElementById('withdraw-amount-tooltip');
+
+    maxBtn?.classList.toggle('hide-element', hasAmount);
+
+    if (status) {
+      const icon = status.querySelector('i');
+      status.classList.toggle('hide-element', !hasAmount);
+      status.classList.toggle('withdraw-amount-status--valid', hasValidAmount);
+      status.classList.toggle('withdraw-amount-status--invalid', hasInvalidAmount);
+      status.tabIndex = hasInvalidAmount ? 0 : -1;
+      status.setAttribute(
+        'aria-label',
+        hasInvalidAmount ? this.amountErrorMessage : hasValidAmount ? 'Amount can be sent' : ''
+      );
+      if (hasInvalidAmount) {
+        status.setAttribute('aria-describedby', 'withdraw-amount-tooltip');
+      } else {
+        status.removeAttribute('aria-describedby');
+      }
+      if (icon) {
+        icon.className = hasInvalidAmount ? 'fa-solid fa-xmark' : 'fa-solid fa-check';
+      }
+    }
+
+    if (amountInput) {
+      amountInput.setAttribute('aria-invalid', hasInvalidAmount ? 'true' : 'false');
+      if (hasInvalidAmount) {
+        amountInput.setAttribute('aria-describedby', 'withdraw-amount-tooltip');
+      } else {
+        amountInput.removeAttribute('aria-describedby');
+      }
+    }
+    if (tooltip) {
+      tooltip.textContent = hasInvalidAmount ? this.amountErrorMessage : '';
+    }
+  }
+
+  isNativeSaitoSelection() {
+    return this.pc?.chain_id === 'NATIVE';
+  }
+
+  escapeHTML(value = '') {
+    return this.app?.browser?.escapeHTML
+      ? this.app.browser.escapeHTML(String(value))
+      : String(value);
+  }
+
+  returnRegisteredIdentifier(publicKey = '') {
+    const identifier = this.app.keychain.returnIdentifierByPublicKey(publicKey);
+    return identifier && identifier !== publicKey ? identifier : '';
+  }
+
+  isFixedRecipientForm() {
+    const form = document.getElementById('withdrawal-form');
+    if (form) {
+      return form.dataset.fixedRecipient === 'true';
+    }
+    return this.fixedRecipient;
+  }
+
+  renderSaitoRecipientPreview(publicKey = '') {
+    const preview = document.getElementById('withdraw-address-preview');
+    if (!preview || !publicKey) {
+      return;
+    }
+
+    const identifier = this.returnRegisteredIdentifier(publicKey);
+    const primary = identifier || publicKey;
+    const secondary = identifier ? publicKey : 'No registered name';
+    const identicon = this.app.keychain.returnIdenticon(publicKey);
+    const fixedRecipient = this.isFixedRecipientForm();
+
+    preview.innerHTML = `
+      <div class="saito-user withdraw-address-user" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
+        <div class="saito-identicon-box">
+          <img class="saito-identicon" src="${this.escapeHTML(identicon)}" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
+        </div>
+        <div class="saito-address withdraw-address-user-primary" title="${this.escapeHTML(primary)}">${this.escapeHTML(primary)}</div>
+        <div class="saito-userline withdraw-address-user-secondary" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
+        <button type="button" class="withdraw-address-edit ${fixedRecipient ? 'hide-element' : ''}" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+          <i class="fa-solid fa-pen" aria-hidden="true"></i>
+        </button>
+      </div>
+    `;
+
+    this.attachAddressPreviewEvents();
+  }
+
+  formatChainAddressForDisplay(address = '') {
+    const value = String(address || '');
+    return value.includes('|') ? value.split('|')[0] : value;
+  }
+
+  renderExternalRecipientPreview(address = '', publicKey = '') {
+    const preview = document.getElementById('withdraw-address-preview');
+    if (!preview || !address) {
+      return;
+    }
+
+    const displayAddress = this.formatChainAddressForDisplay(address);
+    const hasPublicKey = publicKey && this.app.crypto.isPublicKey(publicKey);
+    const identifier = hasPublicKey ? this.returnRegisteredIdentifier(publicKey) : '';
+    const primary = hasPublicKey ? identifier || publicKey : 'New/External Address';
+    const secondary = hasPublicKey ? publicKey : 'No matching Saito user';
+    const identicon = hasPublicKey ? this.app.keychain.returnIdenticon(publicKey) : '';
+
+    preview.innerHTML = `
+      <div class="withdraw-address-external">
+        <div class="withdraw-address-external-address" title="${this.escapeHTML(displayAddress)}">${this.escapeHTML(displayAddress)}</div>
+        <div class="withdraw-address-external-user ${hasPublicKey ? 'saito-user withdraw-address-external-user--matched' : 'withdraw-address-external-user--unknown'}" ${hasPublicKey ? `data-id="${this.escapeHTML(publicKey)}" data-disable="true"` : ''}>
+          ${
+            hasPublicKey
+              ? `<div class="saito-identicon-box">
+                  <img class="saito-identicon" src="${this.escapeHTML(identicon)}" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
+                </div>`
+              : `<div class="withdraw-address-external-unknown-icon">
+                  <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+                </div>`
+          }
+          <div class="withdraw-address-user-primary" title="${this.escapeHTML(primary)}">
+            ${this.escapeHTML(primary)}
+            ${hasPublicKey ? '<span class="withdraw-address-external-match-label">Matched</span>' : ''}
+          </div>
+          <div class="withdraw-address-user-secondary" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
+        </div>
+        <button type="button" class="withdraw-address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+          <i class="fa-solid fa-pen" aria-hidden="true"></i>
+        </button>
+      </div>
+    `;
+
+    this.attachAddressPreviewEvents();
+  }
+
+  renderInvalidRecipientPreview() {
+    const preview = document.getElementById('withdraw-address-preview');
+    if (!preview) {
+      return;
+    }
+
+    preview.innerHTML = `
+      <div class="withdraw-address-invalid" role="alert">
+        <div class="withdraw-address-invalid-message">${this.escapeHTML(`Error: Invalid ${this.ticker} address`)}</div>
+        <button type="button" class="withdraw-address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+          <i class="fa-solid fa-pen" aria-hidden="true"></i>
+        </button>
+      </div>
+    `;
+
+    this.attachAddressPreviewEvents({ preserveValue: true });
+  }
+
+  attachAddressPreviewEvents({ preserveValue = false } = {}) {
+    const editBtn = document.getElementById('withdraw-address-edit');
+    if (!editBtn) {
+      return;
+    }
+
+    const edit = (e) => {
+      e.preventDefault();
+      this.showAddressInputForEdit({ preserveValue });
+    };
+
+    editBtn.onclick = edit;
+    editBtn.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        edit(e);
+      }
+    };
+  }
+
+  showAddressPreview() {
+    const cont = document.getElementById('withdraw-address-cont');
+    const preview = document.getElementById('withdraw-address-preview');
+    if (!cont || !preview) {
+      return;
+    }
+
+    clearTimeout(this.addressPreviewTransitionTimer);
+
+    if (cont.classList.contains('hide-element')) {
+      preview.classList.remove('hide-element');
+      preview.classList.remove('withdraw-address-preview--enter');
+      preview.classList.add('withdraw-address-preview--enter-active');
+      return;
+    }
+
+    preview.classList.add('hide-element');
+    preview.classList.remove('withdraw-address-preview--enter-active');
+    cont.classList.add('withdraw-address-transition-out');
+
+    this.addressPreviewTransitionTimer = setTimeout(() => {
+      cont.classList.add('hide-element');
+      cont.classList.remove('withdraw-address-transition-out');
+      preview.classList.remove('hide-element');
+      preview.classList.add('withdraw-address-preview--enter');
+      requestAnimationFrame(() => {
+        preview.classList.add('withdraw-address-preview--enter-active');
+        preview.classList.remove('withdraw-address-preview--enter');
+      });
+    }, 333);
+  }
+
+  hideAddressPreview() {
+    clearTimeout(this.addressPreviewTransitionTimer);
+    const preview = document.getElementById('withdraw-address-preview');
+    const cont = document.getElementById('withdraw-address-cont');
+    preview?.classList.add('hide-element');
+    preview?.classList.remove(
+      'withdraw-address-preview--enter',
+      'withdraw-address-preview--enter-active'
+    );
+    cont?.classList.remove('hide-element', 'withdraw-address-transition-out');
+  }
+
+  showAddressInputForEdit({ preserveValue = false } = {}) {
+    this.hideAddressPreview();
+    const input = document.getElementById('withdraw-input-address');
+    if (input && !input.disabled) {
+      this.address = '';
+      if (!this.isFixedRecipientForm()) {
+        this.publicKey = '';
+      }
+      if (!preserveValue) {
+        input.value = '';
+      }
+      this.clearAddressError();
+      void this.fetchWithdrawFee();
+      this.handleErrors();
+      input.focus();
+    }
+  }
+
+  async updateAddressUiFromInput({ showError = false, fetchFee = true } = {}) {
+    const input = document.getElementById('withdraw-input-address');
+    if (!input || !this.pc) {
+      return false;
+    }
+
+    const address = input.value.trim();
+    if (!address) {
+      this.address = '';
+      if (!this.isFixedRecipientForm()) {
+        this.publicKey = '';
+      }
+      this.hideAddressPreview();
+      return false;
+    }
+
+    const valid = this.pc.validateAddress(address);
+    if (!valid) {
+      this.address = '';
+      if (!this.isFixedRecipientForm()) {
+        this.publicKey = '';
+      }
+      if (showError) {
+        this.errors['address'] = true;
+        this.renderInvalidRecipientPreview();
+        this.showAddressPreview();
+      } else {
+        this.hideAddressPreview();
+      }
+      this.handleErrors();
+      return false;
+    }
+
+    this.address = address;
+    this.clearAddressError();
+
+    if (this.isNativeSaitoSelection()) {
+      this.publicKey = address;
+      this.renderSaitoRecipientPreview(address);
+      this.showAddressPreview();
+    } else {
+      let publicKey = this.publicKey;
+      if (typeof this.pc.getSaitoPublicKey === 'function') {
+        try {
+          const resolvedPublicKey = await this.pc.getSaitoPublicKey(address);
+          if (resolvedPublicKey) {
+            this.publicKey = resolvedPublicKey;
+            publicKey = resolvedPublicKey;
+          }
+        } catch (err) {
+          console.warn('Withdraw: unable to resolve Saito public key for address', err);
+        }
+      }
+      this.renderExternalRecipientPreview(address, publicKey);
+      this.showAddressPreview();
+    }
+
+    if (fetchFee) {
+      await this.fetchWithdrawFee();
+    }
+
+    this.updateAmountActionState();
+    this.handleErrors();
+    return true;
   }
 
   formatFeeTicker() {
@@ -116,6 +492,17 @@ class Withdraw {
       return this.ticker || '';
     }
     return this.pc.chain_id === 'NATIVE' ? 'SAITO' : this.ticker;
+  }
+
+  getNativeDefaultFee() {
+    try {
+      const configuredFee =
+        this.app.wallet.default_fee ?? this.app.options?.wallet?.default_fee ?? BigInt(0);
+      const fee = Number(this.app.wallet.convertNolanToSaito(BigInt(configuredFee)));
+      return Number.isFinite(fee) && fee >= 0 ? fee : 0;
+    } catch (err) {
+      return 0;
+    }
   }
 
   formatFeeDisplay(amt) {
@@ -177,13 +564,13 @@ class Withdraw {
     const onReview = form?.dataset.withdrawStep === 'review';
     const footers = {
       review: document.getElementById('withdraw-footer-review'),
-      pending: document.getElementById('withdraw-footer-pending'),
       success: document.getElementById('withdraw-footer-success'),
       failed: document.getElementById('withdraw-footer-failed')
     };
 
     for (const key of Object.keys(footers)) {
-      footers[key]?.classList.toggle('hide-element', !onReview || key !== state);
+      const showFooter = onReview && key === state;
+      footers[key]?.classList.toggle('hide-element', !showFooter);
     }
 
     const spinner = document.getElementById('withdraw-confirm-spinner');
@@ -212,7 +599,7 @@ class Withdraw {
     const resultPanel = document.getElementById('withdraw-send-result');
     const resultTitle = document.getElementById('withdraw-send-result-title');
     const resultMessage = document.getElementById('withdraw-send-result-message');
-    const isResult = state === 'success' || state === 'failed';
+    const isResult = state === 'pending' || state === 'success' || state === 'failed';
 
     resultPanel?.classList.toggle('hide-element', !isResult);
 
@@ -237,8 +624,11 @@ class Withdraw {
       if (overlayTitle) {
         overlayTitle.textContent = 'Sending…';
       }
+      if (resultTitle) {
+        resultTitle.textContent = 'Broadcasting Transaction';
+      }
       if (resultMessage) {
-        resultMessage.textContent = '';
+        resultMessage.textContent = 'Waiting for the network to accept this transfer.';
       }
     } else {
       this.updateHeaderTitle();
@@ -251,14 +641,19 @@ class Withdraw {
   showReviewStep() {
     this.setWithdrawStep('review');
     this.setWithdrawState('review');
+    this.populateReviewDetails();
+
+    const confirmBtn = document.getElementById('withdraw-confirm');
+    confirmBtn?.focus();
+  }
+
+  populateReviewDetails() {
     this.hideSendResultMessage();
     this.hideTxRow();
 
-    const amount = Number(document.getElementById('withdraw-input-amount')?.value);
-
     const amountEl = document.getElementById('withdraw-confirm-amount');
     if (amountEl) {
-      amountEl.textContent = `${amount} ${this.ticker}`;
+      amountEl.textContent = `${this.getAmountInputDisplayValue()} ${this.ticker}`;
     }
 
     const addressEl = document.getElementById('withdraw-confirm-address');
@@ -287,17 +682,87 @@ class Withdraw {
         counterpartyWrap.classList.remove('hide-element');
         this.counterparty.publicKey = this.publicKey;
         this.counterparty.render();
-        if (this.app.keychain.returnIdentifierByPublicKey(this.publicKey)) {
-          this.counterparty.updateUserlineAddress(this.publicKey);
-        }
+        this.counterparty.updateUserline(this.publicKey, this.publicKey);
       } else {
         counterpartyWrap.classList.add('hide-element');
         counterpartyWrap.innerHTML = '';
       }
     }
+  }
 
-    const confirmBtn = document.getElementById('withdraw-confirm');
-    confirmBtn?.focus();
+  async resolveRecipientPublicKey() {
+    if (this.isNativeSaitoSelection()) {
+      this.publicKey = this.address;
+    } else if (typeof this.pc.getSaitoPublicKey === 'function') {
+      try {
+        const publicKey = await this.pc.getSaitoPublicKey(this.address);
+        if (publicKey) {
+          this.publicKey = publicKey;
+        }
+      } catch (err) {
+        console.warn('Withdraw: unable to resolve Saito public key for address', err);
+      }
+    } else if (!this.publicKey) {
+      this.publicKey = '';
+    }
+  }
+
+  getSenderExplorerKey() {
+    return this.app.wallet?.publicKey || this.app.wallet?.returnPublicKey?.() || '';
+  }
+
+  updateSuccessAction() {
+    const action = document.getElementById('withdraw-view-history');
+    if (!action) {
+      return;
+    }
+
+    if (this.isNativeSaitoSelection()) {
+      const key = this.getSenderExplorerKey();
+      action.textContent = 'View on Explorer';
+      action.href = key ? `/explorer/address/${encodeURIComponent(key)}` : '/explorer';
+    } else {
+      action.textContent = 'View history';
+      action.href = '#';
+    }
+  }
+
+  async sendWithdrawPayment() {
+    try {
+      const amount = this.getAmountInputValue();
+      const ticker = this.ticker;
+      const sender = this.pc.formatAddress();
+
+      this.populateReviewDetails();
+      this.setWithdrawStep('review');
+      this.setWithdrawState('pending');
+
+      const ts = new Date().getTime();
+      await this.app.wallet.sendPayment(
+        ticker,
+        [sender],
+        [this.address],
+        [amount],
+        btoa(sender + this.address + amount + ts),
+        async (res) => {
+          if (res.hash != '') {
+            this.withdrawBroadcastSuccessUi(res.hash);
+          } else {
+            const errMsg =
+              typeof res?.err === 'string'
+                ? res.err
+                : res?.err?.message
+                  ? String(res.err.message)
+                  : '';
+            this.showError(errMsg);
+          }
+        },
+        this?.publicKey
+      );
+    } catch (err) {
+      console.error('Send Error: ' + err);
+      this.showError(err?.message || String(err));
+    }
   }
 
   showComposeStep() {
@@ -364,6 +829,9 @@ class Withdraw {
     const n = Number(raw);
     this.available_balance = Number.isFinite(n) ? n : 0;
     el.textContent = `${this.app.browser.formatDecimals(String(this.available_balance))} ${this.ticker}`;
+    if (document.getElementById('withdraw-input-amount')?.value?.trim()) {
+      this.validateAmountInput();
+    }
   }
 
   async loadCryptos() {
@@ -481,11 +949,15 @@ class Withdraw {
 
     document.querySelector('#withdraw-input-address').value = '';
     document.querySelector('#withdraw-input-amount').value = '';
+    this.hideAddressPreview();
+    this.resetAmountValidation();
     this.resetErrors();
 
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
     this.address = '';
+    this.publicKey = '';
+    this.amountErrorMessage = '';
 
     this.updateHeaderTitle();
     this.updateComposeLabels();
@@ -508,9 +980,11 @@ class Withdraw {
       if (!text) {
         return;
       }
+      if (!this.isFixedRecipientForm()) {
+        this.publicKey = '';
+      }
       input.value = text.trim();
-      this.validateAddressInput();
-      await this.fetchWithdrawFee();
+      await this.updateAddressUiFromInput({ showError: true });
     } catch (e) {
       console.warn('withdraw paste:', e);
     }
@@ -621,28 +1095,42 @@ class Withdraw {
         this.handleErrors();
       };
       addrInput.onfocus = clearAddressUi;
-      addrInput.oninput = clearAddressUi;
+      addrInput.oninput = () => {
+        if (!this.isFixedRecipientForm()) {
+          this.publicKey = '';
+        }
+        clearAddressUi();
+        void this.updateAddressUiFromInput();
+      };
       addrInput.onblur = async () => {
-        this.validateAddressInput();
-        await this.fetchWithdrawFee();
+        await this.updateAddressUiFromInput({ showError: true });
       };
     }
 
     const amtInput = document.querySelector('#withdraw-input-amount');
     if (amtInput) {
-      const clearAmountUi = () => {
-        this.clearAmountError();
-        this.handleErrors();
+      amtInput.onfocus = () => {
+        this.updateAmountActionState();
       };
-      amtInput.onfocus = clearAmountUi;
-      amtInput.oninput = clearAmountUi;
+      amtInput.oninput = () => {
+        this.normalizeAmountInput();
+        this.validateAmountInput();
+      };
+      amtInput.onpaste = () => {
+        setTimeout(() => {
+          this.normalizeAmountInput({ strictLocaleSeparators: false });
+          this.validateAmountInput();
+        }, 0);
+      };
       amtInput.onblur = () => {
+        this.normalizeAmountInput();
+        this.updateAmountActionState();
         this.validateAmountInput();
       };
 
-      amtInput.onchange = (e) => {
-        let amount = document.querySelector('#withdraw-input-amount').value;
-        this.app.browser.validateAmountLimit(amount, e);
+      amtInput.onchange = () => {
+        this.normalizeAmountInput();
+        this.validateAmountInput();
       };
     }
 
@@ -717,9 +1205,13 @@ class Withdraw {
     const historyBtn = document.getElementById('withdraw-view-history');
     if (historyBtn) {
       historyBtn.onclick = (e) => {
-        e.preventDefault();
+        if (!this.isNativeSaitoSelection()) {
+          e.preventDefault();
+          this.overlay.close();
+          this.app.connection.emit('saito-crypto-details-render-request', this.ticker);
+          return;
+        }
         this.overlay.close();
-        this.app.connection.emit('saito-crypto-details-render-request', this.ticker);
       };
     }
 
@@ -728,10 +1220,9 @@ class Withdraw {
       form.onsubmit = async (e) => {
         e.preventDefault();
 
-        this.validateAddressInput();
+        await this.updateAddressUiFromInput({ showError: true });
         this.validateAmountInput();
-
-        this.publicKey = await this.pc.getSaitoPublicKey(this.address);
+        await this.resolveRecipientPublicKey();
 
         if (this.errors['amount'] != false || this.errors['address'] != false) {
           return false;
@@ -741,52 +1232,14 @@ class Withdraw {
           return false;
         }
 
-        this.showReviewStep();
+        await this.sendWithdrawPayment();
       };
 
       const confirmBtn = document.getElementById('withdraw-confirm');
       if (confirmBtn) {
         confirmBtn.onclick = async (e) => {
           e.preventDefault();
-
-          try {
-            let amount = document.querySelector('#withdraw-input-amount').value;
-
-            let ticker = this.ticker;
-            let sender = this.pc.formatAddress();
-
-            this.setWithdrawState('pending');
-            const pendingLabel = document.getElementById('withdraw-pending-label');
-            if (pendingLabel) {
-              pendingLabel.textContent = 'Broadcasting…';
-            }
-
-            let ts = new Date().getTime();
-            await this.app.wallet.sendPayment(
-              ticker,
-              [sender],
-              [this.address],
-              [amount],
-              btoa(sender + this.address + amount + ts),
-              async function (res) {
-                if (res.hash != '') {
-                  this_withdraw.withdrawBroadcastSuccessUi(res.hash);
-                } else {
-                  const errMsg =
-                    typeof res?.err === 'string'
-                      ? res.err
-                      : res?.err?.message
-                        ? String(res.err.message)
-                        : '';
-                  this_withdraw.showError(errMsg);
-                }
-              },
-              this?.publicKey
-            );
-          } catch (err) {
-            console.error('Send Error: ' + err);
-            this_withdraw.showError(err?.message || String(err));
-          }
+          await this.sendWithdrawPayment();
         };
       }
 
@@ -797,18 +1250,17 @@ class Withdraw {
           if (!document.querySelector('#withdraw-input-amount').disabled) {
             await this_withdraw.refreshAvailableBalanceDisplay();
             if (this_withdraw.isNftWithdrawSelection()) {
-              document.querySelector('#withdraw-input-amount').value = String(
+              this_withdraw.setAmountInputValue(
                 this_withdraw._nft_balance_raw != null
                   ? this_withdraw._nft_balance_raw
                   : this_withdraw.available_balance
               );
             } else {
               const fee = Number(this_withdraw.fee) || 0;
-              document.querySelector('#withdraw-input-amount').value = String(
-                this_withdraw.available_balance - fee
-              );
+              this_withdraw.setAmountInputValue(this_withdraw.available_balance - fee);
             }
             this_withdraw.validateAmountInput();
+            this_withdraw.updateAmountActionState();
           }
         };
       }
@@ -818,7 +1270,19 @@ class Withdraw {
           this.contacts.title = `Contacts with ${this.ticker}`;
           this.contacts.callback = async (key) => {
             this.publicKey = key;
-            await this.render();
+            const input = document.getElementById('withdraw-input-address');
+            if (input) {
+              let address = key;
+              if (
+                !this.isNativeSaitoSelection() &&
+                typeof this.pc.returnAddressFromPublicKey === 'function'
+              ) {
+                address = await this.pc.returnAddressFromPublicKey(key);
+              }
+              input.disabled = false;
+              input.value = address || '';
+            }
+            await this.updateAddressUiFromInput({ showError: true });
             this.clearAddressError();
             this.handleErrors();
           };
@@ -849,6 +1313,7 @@ class Withdraw {
   }
 
   withdrawBroadcastSuccessUi(hash = '') {
+    this.updateSuccessAction();
     this.setWithdrawState('success');
 
     if (hash && this.pc?.chain_id === 'NATIVE') {
@@ -884,7 +1349,7 @@ class Withdraw {
       return;
     }
 
-    const current = this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee).toString();
+    const current = this.getNativeDefaultFee().toString();
     const input = await sprompt('Set network fee (SAITO):', current);
     if (input === false || input === undefined || input === '') {
       return;
@@ -925,6 +1390,14 @@ class Withdraw {
       return;
     }
 
+    if (this.pc?.chain_id === 'NATIVE') {
+      this.fee = this.getNativeDefaultFee();
+      this.feePending = false;
+      this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(this.fee));
+      this.validateAmountInput();
+      return;
+    }
+
     const address = document.getElementById('withdraw-input-address')?.value?.trim() || '';
 
     if (!address) {
@@ -952,15 +1425,23 @@ class Withdraw {
       this.fee = Number(amt);
       this.feePending = false;
       this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(amt));
-      this.handleErrors();
+      this.validateAmountInput();
     });
   }
 
   validateAmountInput() {
     this.clearAmountError();
 
-    let amount = document.querySelector('#withdraw-input-amount').value;
+    const input = document.getElementById('withdraw-input-amount');
+    const hasInput = Boolean(input?.value?.trim());
+    let amount = this.getAmountInputValue();
     let error_msg = null;
+
+    if (!hasInput) {
+      this.updateAmountActionState();
+      this.handleErrors();
+      return;
+    }
 
     if (amount != '') {
       if (this.isNftWithdrawSelection()) {
@@ -972,12 +1453,12 @@ class Withdraw {
               ? BigInt(this._nft_balance_raw)
               : BigInt(Math.floor(Number(this.available_balance) || 0));
           if (want <= 0n) {
-            error_msg = 'Error: Amount should be greater than 0';
+            error_msg = 'Amount must be greater than 0';
           } else if (want > avail) {
-            error_msg = `Error: Insufficient NFT units (${avail.toString()} ${this.ticker} available)`;
+            error_msg = `Insufficient NFT units (${avail.toString()} ${this.ticker} available)`;
           }
         } catch (e) {
-          error_msg = 'Error: Enter a whole number of NFT units';
+          error_msg = 'Enter a whole number of NFT units';
         }
       } else {
         amount = Number(amount);
@@ -986,37 +1467,38 @@ class Withdraw {
         this.fee = Number(this.fee);
 
         if (amount <= 0) {
-          error_msg = 'Error: Amount should be greater than 0';
+          error_msg = 'Amount must be greater than 0';
         } else if (amount > amount_avl) {
-          error_msg = `Error: Insufficent funds ( ${amount_avl} ${this.ticker} available)`;
+          error_msg = `Insufficient funds (${amount_avl} ${this.ticker} available)`;
         } else if (Number.isFinite(this.fee) && amount + this.fee > amount_avl) {
-          error_msg = `Error: Your withdrawal amount + transaction fee exceeds available balance. Please reduce the amount to cover withdrawal fee.`;
+          error_msg = 'The amount plus the network fee exceeds your available balance';
         }
       }
     } else {
-      error_msg = 'Error: No input';
+      error_msg = 'Enter a valid amount';
     }
 
     if (error_msg) {
       this.errors['amount'] = true;
-      document.querySelector('#withdraw-amount-error').innerHTML = error_msg;
+      this.amountErrorMessage = error_msg;
     }
 
+    this.updateAmountActionState();
     this.handleErrors();
   }
 
   validateAddressInput() {
     this.clearAddressError();
 
-    this.address = document.querySelector('#withdraw-input-address').value;
+    this.address = document.querySelector('#withdraw-input-address')?.value?.trim() || '';
 
     let valid = this.pc.validateAddress(this.address);
 
     if (!valid) {
-      document.querySelector('#withdraw-address-error').innerHTML =
-        'Error: Invalid ' + this.ticker + ' address';
       this.errors['address'] = true;
       this.address = '';
+      this.renderInvalidRecipientPreview();
+      this.showAddressPreview();
     }
 
     this.handleErrors();
@@ -1028,7 +1510,10 @@ class Withdraw {
       return;
     }
     const blocked =
-      this.errors['amount'] != false || this.errors['address'] != false || this.feePending;
+      this.errors['amount'] != false ||
+      this.errors['address'] != false ||
+      this.feePending ||
+      !this.hasAmountInputValue();
     if (blocked) {
       if (!submit.getAttribute('disabled')) {
         submit.setAttribute('disabled', true);
@@ -1040,12 +1525,11 @@ class Withdraw {
 
   clearAddressError() {
     this.errors['address'] = false;
-    document.querySelector('#withdraw-address-error').innerHTML = '';
   }
 
   clearAmountError() {
     this.errors['amount'] = false;
-    document.querySelector('#withdraw-amount-error').innerHTML = '';
+    this.amountErrorMessage = '';
   }
 
   resetErrors() {
@@ -1059,10 +1543,6 @@ class Withdraw {
     this.handleErrors();
   }
 
-  hasFixedRecipient() {
-    return Boolean(this.publicKey && this.app.crypto.isPublicKey(this.publicKey));
-  }
-
   isNftWithdrawSelection() {
     return this.pc?.categories === 'NFT' && typeof this.pc?.nft_id === 'string' && this.pc.nft_id;
   }
@@ -1072,12 +1552,14 @@ class Withdraw {
     this.ticker = null;
     this.pc = null;
     this.publicKey = '';
+    this.fixedRecipient = false;
     this.address = '';
     this.fee = null;
     this.feePending = false;
     this.lastTxHash = '';
     this.available_balance = 0;
     this._nft_balance_raw = null;
+    this.amountErrorMessage = '';
   }
 }
 

@@ -2,7 +2,7 @@ module.exports = async (app, mod, build_number, server_publickey="") => {
   let html = `
 
   <!DOCTYPE html>
-  <html lang="en">
+  <html lang="en" data-theme="dark">
   
   <head>
     <meta charset="utf-8" />

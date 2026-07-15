@@ -1,6 +1,9 @@
-module.exports = (app, mod, publickey = '', address = '') => {
+module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = null) => {
   let identicon = null;
-  const fixedRecipient = Boolean(publickey && app.crypto.isPublicKey(publickey));
+  const fixedRecipient =
+    recipientIsFixed === null
+      ? Boolean(publickey && app.crypto.isPublicKey(publickey))
+      : recipientIsFixed;
 
   if (fixedRecipient) {
     identicon = app.keychain.returnIdenticon(publickey);
@@ -28,7 +31,6 @@ module.exports = (app, mod, publickey = '', address = '') => {
         <div id="withdraw-step-one" class="withdraw-overlay__compose">
           <div class="withdraw-compose-top">
             <div class="withdraw-token-picker">
-              <label class="withdraw-field-label" for="withdraw-token-trigger">Token</label>
               <div class="saito-overlay-form-input">
                 <div class="token-dropdown">
                   <div class="withdraw-token-custom" id="withdraw-token-custom">
@@ -36,6 +38,7 @@ module.exports = (app, mod, publickey = '', address = '') => {
                       type="button"
                       class="withdraw-token-trigger"
                       id="withdraw-token-trigger"
+                      aria-label="Select token"
                       aria-haspopup="listbox"
                       aria-expanded="false"
                       aria-controls="withdraw-token-menu"
@@ -100,20 +103,20 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
   html += `
               </div>
-              <div class="withdraw-error-slot" aria-live="polite">
-                <div class="withdraw-error" id="withdraw-address-error" role="alert"></div>
-              </div>
+              <div
+                class="withdraw-address-preview hide-element"
+                id="withdraw-address-preview"
+                aria-live="polite"
+              ></div>
             </div>
 
             <div class="saito-overlay-form-input withdraw-field-group">
               <label class="withdraw-field-label" for="withdraw-input-amount" id="withdraw-amount-label">Amount</label>
               <div class="withdraw-input-cont" id="withdraw-amount-cont">
                 <input
-                  type="number"
+                  type="text"
                   autocomplete="off"
-                  min="0"
-                  max="9999999999.99999999"
-                  step="0.00000001"
+                  inputmode="decimal"
                   class="withdraw-input-amount"
                   id="withdraw-input-amount"
                   value=""
@@ -122,9 +125,20 @@ module.exports = (app, mod, publickey = '', address = '') => {
                 <button type="button" class="withdraw-max-btn" id="withdraw-max-btn" title="Use maximum amount">
                   MAX
                 </button>
-              </div>
-              <div class="withdraw-error-slot" aria-live="polite">
-                <div class="withdraw-error" id="withdraw-amount-error" role="alert"></div>
+                <span
+                  class="withdraw-amount-status hide-element"
+                  id="withdraw-amount-status"
+                  role="status"
+                  aria-label=""
+                  tabindex="-1"
+                >
+                  <i class="fa-solid fa-check" aria-hidden="true"></i>
+                </span>
+                <div
+                  class="withdraw-amount-tooltip"
+                  id="withdraw-amount-tooltip"
+                  role="tooltip"
+                ></div>
               </div>
             </div>
           </div>
@@ -153,14 +167,14 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
             <div class="withdraw-confirm-overlay__review-details">
               <section class="withdraw-confirm-overlay__summary" aria-labelledby="withdraw-confirm-amount-label">
-                <div class="withdraw-confirm-overlay__summary-label" id="withdraw-confirm-amount-label">Amount</div>
+                <div class="withdraw-confirm-overlay__summary-label" id="withdraw-confirm-amount-label">Send</div>
                 <div class="withdraw-confirm-overlay__amount" id="withdraw-confirm-amount"></div>
               </section>
 
               <section class="withdraw-confirm-overlay__recipient" aria-labelledby="withdraw-confirm-recipient-label">
-                <div class="withdraw-confirm-overlay__summary-label" id="withdraw-confirm-recipient-label">Recipient</div>
-                <div class="withdraw-confirm-counterparty counterparty-details hide-element" id="withdraw-confirm-counterparty"></div>
+                <div class="withdraw-confirm-overlay__summary-label" id="withdraw-confirm-recipient-label">TO</div>
                 <div class="withdraw-confirm-overlay__chain-address" id="withdraw-confirm-address"></div>
+                <div class="withdraw-confirm-counterparty counterparty-details hide-element" id="withdraw-confirm-counterparty"></div>
               </section>
 
               <section class="withdraw-confirm-overlay__fee-row" aria-labelledby="withdraw-confirm-fee-label">
@@ -196,8 +210,9 @@ module.exports = (app, mod, publickey = '', address = '') => {
             form="withdrawal-form"
             class="withdraw-submit saito-button-primary"
             id="saito-overlay-submit"
+            disabled
           >
-            Review
+            Send
           </button>
         </div>
 
@@ -206,12 +221,8 @@ module.exports = (app, mod, publickey = '', address = '') => {
           <button type="button" class="saito-button-primary" id="withdraw-confirm">Confirm send</button>
         </div>
 
-        <div class="saito-button-row withdraw-overlay__actions hide-element" id="withdraw-footer-pending">
-          <span class="withdraw-confirm-overlay__pending-label" id="withdraw-pending-label">Broadcasting…</span>
-        </div>
-
         <div class="saito-button-row withdraw-overlay__actions hide-element" id="withdraw-footer-success">
-          <button type="button" class="saito-button-secondary" id="withdraw-view-history">View history</button>
+          <a class="saito-button-secondary" id="withdraw-view-history" href="#">View history</a>
           <button type="button" class="saito-button-primary" id="withdraw-done">Done</button>
         </div>
 

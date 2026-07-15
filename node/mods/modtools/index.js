@@ -6,7 +6,7 @@ module.exports = (app, mod) => {
 
   let html = `
   <!DOCTYPE html>
-  <html>
+  <html data-theme="dark">
     <head>
       <meta charset="utf-8">
       <meta http-equiv="X-UA-Compatible" content="IE=edge">

@@ -29,7 +29,7 @@ const CTA_CONTENT = {
   },
   swarmcast: {
     label: 'Swarmcast',
-    subtitle: 'PEER-TO-PEER BROADCASTING'
+    subtitle: 'Peer to Peer Streaming'
   },
   talk: {
     label: 'Saito Talk',
@@ -185,7 +185,8 @@ function styles() {
 
     .saito-cta-loader-progress {
       width: 100%;
-      height: 48px;
+      height: 45px;
+      min-height: 45px;
       position: relative;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -199,7 +200,10 @@ function styles() {
       inset: 0 auto 0 0;
       width: var(--saito-cta-loader-progress-value, 0%);
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--saito-cta-loader-primary-strong), var(--saito-cta-loader-primary));
+      background: var(
+        --saito-cta-action-background,
+        linear-gradient(90deg, var(--saito-cta-loader-primary-strong), var(--saito-cta-loader-primary))
+      );
       transition: width 0.16s ease-out;
     }
 
@@ -226,7 +230,8 @@ function styles() {
       }
 
       .saito-cta-loader-progress {
-        height: 42px;
+        height: 45px;
+        min-height: 45px;
       }
     }
   </style>`;

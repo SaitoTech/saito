@@ -60,8 +60,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 4rem;
-	width: min(95vw, 1180px);
+	gap: 2.4rem;
+	width: min(95vw, 860px);
 	padding: 3.2rem;
 	border-radius: calc(var(--saito-border-radius) + 0.15rem);
 	background: var(--saito-overlay-panel-background);
@@ -70,8 +70,8 @@
 }
 
 .arcade-cta-image-flip {
-	flex: 0 0 min(42vw, 50rem);
-	width: min(42vw, 50rem);
+	flex: 0 0 min(36vw, 31rem);
+	width: min(36vw, 31rem);
 	aspect-ratio: 1;
 	perspective: 1000px;
 	border-radius: calc(var(--saito-border-radius) + 0.35rem);
@@ -119,20 +119,20 @@
 }
 
 .arcade-cta-image-back-content {
-	padding: 3rem;
+	padding: 2rem;
 	color: var(--saito-font-color);
 }
 
 .arcade-cta-image-back-content h3 {
-	font-size: 2.4rem;
+	font-size: 2rem;
 	line-height: 1.3;
-	margin: 0 0 1.5rem;
+	margin: 0 0 1.2rem;
 	color: var(--saito-font-color-heavy, var(--saito-font-color));
 }
 
 .arcade-cta-image-back-content p {
-	font-size: 1.7rem;
-	line-height: 1.6;
+	font-size: 1.5rem;
+	line-height: 1.45;
 	margin: 0;
 }
 
@@ -142,12 +142,14 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	align-self: stretch;
+	justify-content: flex-end;
 	text-align: center;
 }
 
 .arcade-cta-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-arcade-icon-outline-label-horizontal.svg');
-	width: min(42rem, 100%);
+	width: min(36rem, 100%);
 	aspect-ratio: 381 / 134;
 	margin-bottom: 1.6rem;
 	position: relative;
@@ -177,10 +179,17 @@
 
 .arcade-cta-play-btn {
 	min-width: 17rem;
-	min-height: 6.4rem;
-	padding: 1.6rem 3.6rem;
+	height: 4.5rem;
+	min-height: 4.5rem;
+	padding: 0 3.6rem;
 	font-size: 1.7rem;
 	font-weight: 700;
+	background: var(--saito-cta-action-background, linear-gradient(90deg, #ff8a3d, #f54900));
+	box-shadow: var(--saito-cta-action-shadow, 0 0 32px -10px rgba(245, 73, 0, 0.48));
+}
+
+.arcade-cta-play-btn:hover {
+	background: var(--saito-cta-action-background, linear-gradient(90deg, #ff8a3d, #f54900));
 }
 
 .arcade-teasers {
@@ -377,8 +386,8 @@
 
 	.arcade-cta-image-flip {
 		flex-basis: auto;
-		width: min(100%, 34rem);
-		max-height: 34rem;
+		width: min(100%, 28rem);
+		max-height: 28rem;
 	}
 
 	.arcade-cta-subtitle {

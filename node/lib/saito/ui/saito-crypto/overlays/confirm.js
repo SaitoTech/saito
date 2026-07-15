@@ -119,11 +119,7 @@ class Confirm {
 
     this.counter_party.publicKey = details.publicKey;
     this.counter_party.render();
-
-    // Include publickey if the SaitoUser is going to be showing a name
-    if (this.app.keychain.returnIdentifierByPublicKey(details.publicKey)) {
-      this.counter_party.updateUserlineAddress(details.publicKey);
-    }
+    this.counter_party.updateUserline(details.publicKey, details.publicKey);
 
     if (details?.mycallback) {
       details.mycallback();

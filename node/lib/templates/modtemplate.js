@@ -39,11 +39,7 @@ class ModTemplate {
     this.eventListeners = [];
 
     this.theme_options = {
-      lite: 'fa-solid fa-sun',
-      raven: 'fa-solid fa-crow',
-      dark: 'fa-solid fa-moon',
-      noir: 'fa-solid fa-circle-half-stroke',
-      prism: 'fa-solid fa-gem'
+      dark: 'fa-solid fa-moon'
     };
 
     this.processedTxs = {};

@@ -227,7 +227,7 @@ class MixinModule extends CryptoModule {
 		}
 
 		for (let k of this.app.keychain.returnKeys()) {
-			if (k?.crypto_addresses[this.ticker]?.includes(user_id)) {
+			if (k?.crypto_addresses?.[this.ticker]?.includes(user_id)) {
 				return k.publicKey;
 			}
 		}
@@ -697,7 +697,7 @@ class MixinModule extends CryptoModule {
 			}
 
 			for (let k of this.app.keychain.returnKeys()) {
-				if (k?.crypto_addresses[this.ticker]?.includes(destination)) {
+				if (k?.crypto_addresses?.[this.ticker]?.includes(destination)) {
 					return k.crypto_addresses[this.ticker];
 				}
 			}

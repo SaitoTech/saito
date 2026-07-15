@@ -1,7 +1,7 @@
 module.exports = (app, mod, build_number) => {
 	return `
     <!DOCTYPE html>
-    <html>
+    <html data-theme="dark">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
