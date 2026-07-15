@@ -338,3 +338,43 @@
     padding: var(--saito-space-xl) var(--saito-space-md);
   }
 }
+
+@media screen and (max-width: 768px) {
+  .saito-overlay.saito-overlay-mobile-fullscreen.center-overlay {
+    inset: 0;
+    box-sizing: border-box;
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 1rem;
+    border-radius: 0;
+    transform: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: safe center;
+  }
+
+  .saito-overlay.saito-overlay-mobile-fullscreen > div:last-child,
+  .saito-overlay.saito-overlay-mobile-fullscreen > form {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0;
+    padding: 0 !important;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .saito-overlay.saito-overlay-mobile-fullscreen .saito-overlay-closebox {
+    position: fixed;
+    top: max(1rem, env(safe-area-inset-top));
+    right: max(1rem, env(safe-area-inset-right));
+  }
+}

@@ -221,12 +221,23 @@ function styles() {
 
     @media (max-width: 720px) {
       .saito-cta-loader-shell {
-        padding: 20px;
+        padding: 0;
       }
 
       .saito-cta-loader-card {
-        min-height: 240px;
+        width: 100vw;
+        max-width: none;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 100vh;
+        min-height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
         padding: 24px;
+        border: 0;
+        border-radius: 0;
+        overflow-y: auto;
+        justify-content: safe center;
       }
 
       .saito-cta-loader-progress {

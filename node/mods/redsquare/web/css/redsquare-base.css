@@ -429,10 +429,8 @@ body.redsquare-body .sidebar-search-field input[type='search'] {
   width: 100%;
   min-width: 0;
   margin: 0;
-  padding: 0;
   background: transparent;
   background-color: transparent;
-  border: none;
   border-radius: 0;
   box-shadow: none;
   outline: none;
@@ -445,7 +443,6 @@ body.redsquare-body .sidebar-search-field input[type='search']:focus {
   appearance: none;
   -webkit-appearance: none;
   outline: none;
-  border: none;
   background: transparent;
   background-color: transparent;
   box-shadow: none;

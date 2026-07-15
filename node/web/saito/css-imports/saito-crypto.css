@@ -1793,6 +1793,7 @@
 @media screen and (max-width: 520px) {
   #withdrawal-form.withdraw-overlay {
     --withdraw-overlay-height: min(52rem, 96vh);
+    border: none;
   }
 
   #withdrawal-form .withdraw-input-cont:not(.fixed-user) {

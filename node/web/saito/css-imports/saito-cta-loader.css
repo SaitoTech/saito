@@ -117,3 +117,43 @@ body.saito-cta-loader-complete::before {
     display: none;
   }
 }
+
+@media (max-width: 720px) {
+  body .saito-cta {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    box-sizing: border-box;
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 2.4rem;
+    border: 0;
+    border-radius: 0;
+    overflow-y: auto;
+    transform: none;
+    align-content: safe center;
+    justify-content: safe center;
+  }
+
+  body .saito-cta.saito-cta :is(.saito-button-row, .stack-cta-buttons, .limbo-launch-options, .stunx-appspace-actions, .stun-button-row, .vault-cta) {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 2rem;
+  }
+
+  body
+    .saito-cta.saito-cta
+    :is(.saito-button-row, .stack-cta-buttons, .limbo-launch-options, .stunx-appspace-actions, .stun-button-row, .vault-cta)
+    > :is(button, .saito-button-primary, .saito-button-secondary, .stack-btn-primary, .stack-btn-secondary, .limbo-option, .vault-btn, .stunx-precall-link) {
+    flex: 0 0 4.5rem;
+    width: 100%;
+  }
+}

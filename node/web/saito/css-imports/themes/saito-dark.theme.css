@@ -306,7 +306,7 @@ html[data-theme='dark'] .saito-header-hamburger-contents,
 html[data-theme='dark'] .saito-file-transfer-overlay,
 html[data-theme='dark'] .saito-module-overlay {
   background: var(--popover);
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--saito-radius-lg);
   box-shadow: var(--saito-overlay-panel-shadow);
 }

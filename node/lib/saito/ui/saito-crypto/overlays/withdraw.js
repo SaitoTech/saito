@@ -10,6 +10,7 @@ class Withdraw {
     this.mod = mod;
     this.container = container;
     this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.overlay.class = 'saito-overlay saito-overlay-mobile-fullscreen';
     this.contacts = new SaitoContacts(app, mod);
     this.counterparty = new SaitoUser(app, mod, '#withdrawal-form .withdraw-confirm-counterparty');
 
