@@ -206,11 +206,11 @@ class SaitoOverlay {
   /**
    * Close the callback (e.g. hide and remove if the callback has that option set)
    * Run the callback_on_close (if it exists)
-   * 
+   *
    * This is the preferred way to interact with a callback
    */
   close() {
-    if (this.callback_on_close){
+    if (this.callback_on_close) {
       this.callback_on_close();
       this.callback_on_close = null;
     }
@@ -224,13 +224,13 @@ class SaitoOverlay {
 
   /**
    * Hide the overlay, but leave it alive in the DOM so listeners/callbacks can still exist
-   */ 
+   */
   hide() {
     if (!document) {
       return;
     }
 
-    // Bro, it is callback_on_close, not callback_on_hide... 
+    // Bro, it is callback_on_close, not callback_on_hide...
     // use the API correctly, instead of changing component behavior
     if (this.callback_on_close != null) {
       this.callback_on_close();

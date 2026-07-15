@@ -42,7 +42,7 @@ class Videocall extends ModTemplate {
 			title: '🟥 Saito Talk',
 			url: 'https://saito.io/videocall/',
 			description: 'Peer to peer voice and video calling with no middleman',
-			image: '/videocall/img/splash.png'
+			image: '/videocall/img/video-call-og.png'
 		};
 
 		//When CallLauncher is rendered or game-menu triggers it

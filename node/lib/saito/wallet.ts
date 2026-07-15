@@ -1495,12 +1495,12 @@ export default class Wallet extends SaitoWallet {
     return S.getInstance().disableProducingBlocksByTimer();
   }
 
-  public async produceBlockWithGt() {
-    return S.getInstance().produceBlockWithGt();
+  public async produceBlockWithGt(txs?: Transaction[]) {
+    return S.getInstance().produceBlockWithGt(txs);
   }
 
-  public async produceBlockWithoutGt() {
-    return S.getInstance().produceBlockWithoutGt();
+  public async produceBlockWithoutGt(txs?: Transaction[]) {
+    return S.getInstance().produceBlockWithoutGt(txs);
   }
 
   /**

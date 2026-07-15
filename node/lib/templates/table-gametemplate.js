@@ -293,10 +293,7 @@ class GameTableTemplate extends GameTemplate {
       if (me >= 0 && this.game.state.debt[me] > 0) {
         for (let j = 0; j < this.game.state.debt.length && this.game.state.debt[me] > 0; j++) {
           if (this.game.state.debt[j] < 0) {
-            let amount_owed = Math.min(
-              Math.abs(this.game.state.debt[j]),
-              this.game.state.debt[me]
-            );
+            let amount_owed = Math.min(Math.abs(this.game.state.debt[j]), this.game.state.debt[me]);
             if (amount_owed > 0) {
               this.game.state.debt[me] -= amount_owed;
               this.game.state.debt[j] += amount_owed;

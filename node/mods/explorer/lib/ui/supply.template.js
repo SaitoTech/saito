@@ -102,14 +102,14 @@ function renderBlockControls(
           <div class="explorer-supply-admin-controls" aria-label="Manual block production">
             <button
               type="button"
-              class="explorer-supply-admin-button"
+              class="explorer-back-link explorer-back-link--label"
               data-produce-block-request="${produceBlockRequest}"
             >
               Block
             </button>
             <button
               type="button"
-              class="explorer-supply-admin-button"
+              class="explorer-back-link explorer-back-link--label"
               data-produce-block-request="${produceBlockWithGtRequest}"
             >
               Block w/ Ticket
@@ -126,7 +126,7 @@ function renderBlockControls(
             />
             <button
               type="button"
-              class="explorer-supply-admin-button explorer-supply-admin-button-add"
+              class="explorer-back-link"
               data-supply-create-transaction
               aria-label="Add Fee"
               title="Add Fee"

@@ -110,6 +110,19 @@ function requestVariantLabel(requestType) {
 	return requestType || 'unknown';
 }
 
+function normalizeManualProductionResult(result) {
+	if (result === true) {
+		return { blockProduced: true };
+	}
+	if (result === false || result == null) {
+		return { blockProduced: false };
+	}
+	if (typeof result === 'object' && result.blockProduced) {
+		return result;
+	}
+	return { blockProduced: false };
+}
+
 /**
  * Server produce request: test mode, wallet produce helper, callback when done.
  */
@@ -138,26 +151,28 @@ async function runManualBlockProductionRequest(
 			`runManualBlockProductionRequest: startBlockId=${begin.startBlockId}, variant=${variant}`
 		);
 
-		const produced = await produceExplorerBlock(app, begin.startBlockId);
+		const production = normalizeManualProductionResult(
+			await produceExplorerBlock(app, mod, begin.startBlockId)
+		);
 
-		if (produced) {
-			logManualProduction(`SUCCESS callback: block produced (start=${begin.startBlockId})`);
+		if (production.blockProduced) {
+			const payload = { blockProduced: true };
+			if (production.verificationWarning) {
+				payload.verificationWarning = production.verificationWarning;
+				logManualProduction(
+					`SUCCESS callback: block produced (start=${begin.startBlockId}), ` +
+						`verification warning=${production.verificationWarning}`
+				);
+			} else {
+				logManualProduction(`SUCCESS callback: block produced (start=${begin.startBlockId})`);
+			}
 			if (mycallback) {
-				mycallback(success({ blockProduced: true }));
+				mycallback(success(payload));
 			}
 			return;
 		}
 
 		const latestBlockId = Number(await app.blockchain.getLatestBlockId());
-		if (latestBlockId > begin.startBlockId) {
-			const reason = 'Produced block failed Explorer verification.';
-			logManualProduction(`FAILURE callback: ${reason} (current=${latestBlockId}, start=${begin.startBlockId})`);
-			if (mycallback) {
-				mycallback(failure(reason));
-			}
-			return;
-		}
-
 		const reason = 'Block production timed out.';
 		logManualProduction(
 			`FAILURE callback: ${reason} (current=${latestBlockId}, start=${begin.startBlockId})`

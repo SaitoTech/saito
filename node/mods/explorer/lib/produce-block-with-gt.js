@@ -12,10 +12,13 @@ const { logManualProduction, logManualProductionError } = require('./manual-prod
  * Mine one GT, wait for burn-fee timing, call wallet.produceBlockWithGt(), and
  * verify the resulting block contains that GT plus any waiting fee transactions.
  */
-async function produceExplorerBlockWithGt(app, startBlockId) {
+async function produceExplorerBlockWithGt(app, mod, startBlockId) {
 	const startId = Number(startBlockId) || 0;
 	const heartbeatMs = getHeartbeatMs(app);
 	const miningDeadline = Date.now() + Math.max(heartbeatMs * 8, 600_000);
+	const feeTransactions = Array.isArray(mod?.pendingManualProduceTransactions)
+		? [...mod.pendingManualProduceTransactions]
+		: [];
 
 	logManualProduction(`produceExplorerBlockWithGt() entered (startBlockId=${startId})`);
 
@@ -49,7 +52,9 @@ async function produceExplorerBlockWithGt(app, startBlockId) {
 				logManualProduction('Calling wallet.produceBlockWithGt()');
 				let result = false;
 				try {
-					result = await app.wallet.produceBlockWithGt();
+					result = await app.wallet.produceBlockWithGt(
+						feeTransactions.length ? feeTransactions : undefined
+					);
 				} catch (err) {
 					logManualProductionError('wallet.produceBlockWithGt', err);
 					throw err;
@@ -64,7 +69,11 @@ async function produceExplorerBlockWithGt(app, startBlockId) {
 
 		if (!produced) {
 			logManualProduction('GT production loop finished without new block');
-			return false;
+			return { blockProduced: false };
+		}
+
+		if (feeTransactions.length) {
+			mod.pendingManualProduceTransactions = [];
 		}
 
 		logManualProduction('Verifying produced GT block');
@@ -75,7 +84,14 @@ async function produceExplorerBlockWithGt(app, startBlockId) {
 			feeTxSignaturesBefore
 		);
 		logManualProduction(`GT block verification: ${verified ? 'passed' : 'failed'}`);
-		return verified;
+
+		return {
+			blockProduced: true,
+			verificationPassed: verified,
+			verificationWarning: verified
+				? undefined
+				: 'Explorer GT verification failed.',
+		};
 	} catch (err) {
 		logManualProductionError('produceExplorerBlockWithGt', err);
 		throw err;

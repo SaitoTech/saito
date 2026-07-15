@@ -34,89 +34,71 @@
 	flex-shrink: 0;
 }
 
-.explorer-supply-admin-button {
-	appearance: none;
-	-webkit-appearance: none;
-	display: inline-block;
-	margin: 0;
-	padding: 0.35rem 0.7rem;
-	border: 1px solid var(--explorer-border);
-	border-radius: var(--explorer-radius-sm);
-	background-color: color-mix(in oklch, var(--explorer-secondary) 88%, var(--explorer-card));
-	color: var(--explorer-muted-foreground);
-	font-family: var(--explorer-font-sans);
+/*
+ * Label variant of .explorer-back-link (canonical styles in explorer-block.css).
+ * Only overrides needed for uppercase text labels; all colour/size/hover come from back link.
+ */
+.explorer-page .explorer-supply-admin-controls button.explorer-back-link.explorer-back-link--label {
+	width: auto;
+	min-width: 0;
+	padding: 0 0.85rem;
 	font-size: var(--explorer-text-xs);
-	font-weight: var(--explorer-font-medium);
-	line-height: var(--explorer-leading-snug);
-	letter-spacing: var(--explorer-tracking-wide);
+	font-weight: var(--explorer-font-semibold);
 	text-transform: uppercase;
-	cursor: pointer;
-	box-shadow: none;
-	transition:
-		color var(--explorer-transition-fast),
-		background-color var(--explorer-transition-fast),
-		border-color var(--explorer-transition-fast);
+	letter-spacing: var(--explorer-tracking-wide);
+	line-height: 1;
 }
 
-.explorer-supply-admin-button:hover,
-.explorer-supply-admin-button:focus-visible {
-	color: var(--explorer-foreground);
-	background-color: var(--explorer-secondary);
-	border-color: color-mix(in oklch, var(--explorer-muted-foreground) 28%, var(--explorer-border));
-	outline: none;
-}
-
-.explorer-supply-admin-button:focus-visible {
-	box-shadow: var(--explorer-focus-ring);
-}
-
-.explorer-supply-admin-button:disabled {
+.explorer-page .explorer-supply-admin-controls button.explorer-back-link:disabled {
 	opacity: 0.55;
 	cursor: wait;
 }
 
-.explorer-supply-admin-button-add {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 3.5rem;
-	height: 3.5rem;
-	min-width: 3.5rem;
-	padding: 0;
-	font-size: 1.4rem;
-	line-height: 1;
-}
-
-.explorer-supply-fee-input {
+/*
+ * Fee field: match back-link height and radius; white field on grey border.
+ */
+.explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text'] {
 	box-sizing: border-box;
 	width: 10ch;
 	min-width: 9ch;
 	max-width: 11ch;
+	height: 3.5rem;
 	margin: 0;
-	padding: 0.35rem 0.65rem;
+	padding: 0 0.65rem;
 	border: 1px solid var(--explorer-border);
 	border-radius: var(--explorer-radius-sm);
+	appearance: none;
+	-webkit-appearance: none;
+	color-scheme: light;
 	background-color: #fff;
-	color: var(--explorer-foreground);
+	color: #1a1b21;
 	font-family: var(--explorer-font-mono);
 	font-size: var(--explorer-text-xs);
-	line-height: var(--explorer-leading-snug);
+	line-height: 3.5rem;
 }
 
-.explorer-supply-fee-input::placeholder {
-	color: var(--explorer-muted-foreground);
+.explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text']::placeholder {
+	color: #6b7280;
 	opacity: 1;
 }
 
-.explorer-supply-fee-input:focus-visible {
+.explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text']:focus,
+.explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text']:focus-visible {
 	outline: none;
 	border-color: color-mix(in oklch, var(--explorer-muted-foreground) 28%, var(--explorer-border));
 	box-shadow: var(--explorer-focus-ring);
+	background-color: #fff;
+	color: #1a1b21;
 }
 
-.explorer-supply-fee-input:disabled {
+.explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text']:disabled {
 	opacity: 0.55;
 	cursor: wait;
+	background-color: #fff;
+}
+
+.explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input-error {
+	border-color: color-mix(in oklch, var(--explorer-destructive) 45%, var(--explorer-border));
 }
 
 .explorer-supply-produce-error {
@@ -131,10 +113,6 @@
 
 .explorer-supply-produce-error p {
 	margin: 0;
-}
-
-.explorer-supply-fee-input-error {
-	border-color: color-mix(in oklch, var(--explorer-destructive) 45%, var(--explorer-border));
 }
 
 .explorer-supply-fee-diagnostics {

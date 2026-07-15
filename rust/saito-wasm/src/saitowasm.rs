@@ -1110,7 +1110,7 @@ pub async fn enable_producing_blocks_by_timer() {
         .produce_blocks_by_timer = true;
 }
 #[wasm_bindgen]
-pub async fn produce_block_with_gt() -> bool {
+pub async fn produce_block_with_gt(extra_txs: Option<Vec<Uint8Array>>) -> bool {
     let mut saito = SAITO.lock().await;
 
     let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
@@ -1126,6 +1126,18 @@ pub async fn produce_block_with_gt() -> bool {
     let configs = config_lock.read().await;
     let blockchain = blockchain_lock.read().await;
     let mut mempool = mempool_lock.write().await;
+
+    if let Some(extra_txs) = extra_txs {
+        for bytes in extra_txs {
+            let wasm_tx = WasmTransaction::deserialize(bytes)
+                .expect("failed to deserialize manual transaction");
+
+            mempool
+                .add_transaction_if_validates(wasm_tx.tx.clone(), &blockchain)
+                .await;
+        }
+    }
+
     let public_key;
     let private_key;
     {
@@ -1216,7 +1228,7 @@ pub async fn produce_block_with_gt() -> bool {
 }
 
 #[wasm_bindgen]
-pub async fn produce_block_without_gt() -> bool {
+pub async fn produce_block_without_gt(extra_txs: Option<Vec<Uint8Array>>) -> bool {
     let mut saito = SAITO.lock().await;
 
     let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
@@ -1232,6 +1244,18 @@ pub async fn produce_block_without_gt() -> bool {
     let configs = config_lock.read().await;
     let blockchain = blockchain_lock.read().await;
     let mut mempool = mempool_lock.write().await;
+
+    if let Some(extra_txs) = extra_txs {
+        for bytes in extra_txs {
+            let wasm_tx = WasmTransaction::deserialize(bytes)
+                .expect("failed to deserialize manual transaction");
+
+            mempool
+                .add_transaction_if_validates(wasm_tx.tx.clone(), &blockchain)
+                .await;
+        }
+    }
+
     let public_key;
     let private_key;
     {

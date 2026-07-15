@@ -25,7 +25,7 @@
 	position: relative;
 	margin-top: 50px;
 
-	color: #333
+	color: #333;
 	font-size: 20px;
 	order: 1;
 	max-width: 200px;
@@ -48,19 +48,32 @@
 	margin-top: 20px;
 }
 
-.selected .empty:hover {
-	background-color: rgba(240, 240, 240, 0.7);
-	border-radius: 10px;
-}
+/* hover feedback only on devices with a real pointer --
+   on touch screens these states stick to the last-tapped card */
+@media (hover: hover) {
+	.selected .empty:hover {
+		background-color: rgba(240, 240, 240, 0.7);
+		border-radius: 10px;
+	}
 
-.selected .valid:hover {
-	background-color: rgba(160, 255, 160, 0.85);
-	border-radius: 10px;
-}
+	.selected .valid:hover {
+		background-color: rgba(160, 255, 160, 0.85);
+		border-radius: 10px;
+	}
 
-.selected .invalid:hover {
-	background-color: rgba(255, 160, 160, 0.85);
-	border-radius: 10px;
+	.selected .invalid:hover {
+		background-color: rgba(255, 160, 160, 0.85);
+		border-radius: 10px;
+	}
+
+	.slot:hover {
+		filter: brightness(0.85);
+	}
+
+	.selected .slot:hover,
+	.nomoves .slot:hover {
+		filter: unset;
+	}
 }
 
 .rowbox {
@@ -86,6 +99,8 @@
 .selected .slot.empty {
 	width: 100%;
 	cursor: pointer;
+	/* keep card proportions (imgs are 200x306) so rows/columns of empty slots don't collapse */
+	aspect-ratio: 200 / 306;
 }
 
 .slot.empty,
@@ -94,23 +109,24 @@
 	cursor: unset;
 }
 
-.slot:hover {
-	filter: brightness(0.85);
-}
-
-.selected .slot:hover,
-.nomoves .slot:hover {
-	filter: unset;
-}
-
+/* the base transition governs the fast counterclockwise snap-back
+   when the misclick class is removed */
 .slot img,
 .animated_elem img {
 	width: 100%;
-	transition: transform 1s;
+	transition: transform 0.35s, filter 0.6s;
 }
 
+/* cards locked in winning position hold their glow through a reshuffle;
+   drop-shadow follows the card art's rounded corners, unlike box-shadow */
+.slot.locked img {
+	filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 7px rgba(120, 255, 140, 0.9));
+}
+
+/* slow clockwise spin out; the snap back uses the base transition above */
 .slot.misclick img {
 	transform: rotate(360deg);
+	transition: transform 0.8s, filter 0.6s;
 }
 
 @media screen and (orientation: landscape) and (max-height: 600px) {
@@ -143,7 +159,8 @@
 @media screen and (orientation: portrait) and (max-width: 600px) {
 	.gameboard {
 		grid-template-columns: 1fr;
-		grid-template-rows: 1fr 1fr;
+		/* board gets the height it needs; controls take the remainder */
+		grid-template-rows: minmax(0, 1fr) auto;
 	}
 
 	.logobox {
@@ -166,9 +183,42 @@
 		width: min(500px, 90vw);
 	}
 
+	/* compact horizontal action bar -- the engine default is a stacked
+	   list of 8rem-tall items, which starves the board of height
+	   (the min-height override lives in solitrio-hud.css, which loads later) */
+	.controls ul {
+		flex-direction: row;
+		width: 100%;
+	}
+
+	.controls ul li {
+		height: 4rem;
+		font-size: 1.4rem;
+		border-top: unset;
+		white-space: nowrap;
+	}
+
+	/*
+	  Transpose the board to fit the phone's aspect ratio: each game row
+	  becomes a column (4 across, 10 down). grid-auto-flow: column keeps
+	  the DOM order, so row1_slot1-10 fill the first column top-to-bottom.
+	  Slot ids and screen coordinates are untouched, so the game logic and
+	  move animations work unchanged.
+
+	  Cards are 200x306, so a 10-card column is ~3.8x the board width;
+	  the vh term caps the width so the whole board stays on screen.
+	*/
 	.rowbox {
-		max-width: 100vw;
 		order: 1;
+		margin: 0 auto;
+		padding: 10px;
+		align-self: center;
+		grid-auto-flow: column;
+		grid-template-columns: repeat(4, 1fr);
+		grid-template-rows: repeat(10, 1fr);
+		column-gap: min(12px, 3vw);
+		row-gap: min(5px, 0.6vh);
+		max-width: min(96vw, 27vh);
 	}
 }
 

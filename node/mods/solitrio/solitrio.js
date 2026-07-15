@@ -14,12 +14,12 @@ class Solitrio extends OnePlayerGameTemplate {
 		this.slug = 'solitrio';
 		this.game_length = 5; //Estimated number of minutes to complete a game
 		this.description =
-			"Once you've started playing Solitrio, how can you go back to old-fashioned Solitaire? This one-player card game is the perfect way to pass a flight from Hong Kong to pretty much anywhere. Arrange the cards on the table from 2-10 ordered by suite. Harder than it looks and wildly addictive.";
+			"Once you've started playing Solitrio, how can you go back to old-fashioned Solitaire? This one-player card game is the perfect way to pass a flight from Hong Kong to pretty much anywhere. Arrange the cards on the table from 2-10 ordered by suit. Harder than it looks and wildly addictive.";
 		this.categories = 'Games Cardgame One-player';
 		this.animationSpeed = 500;
 		this.card_img_dir = '/saito/img/arcade/cards';
 		this.app = app;
-		this.version = '1.1.4';
+		this.version = '1.1.5';
 	}
 
 	returnGameRulesHTML() {
@@ -53,13 +53,12 @@ class Solitrio extends OnePlayerGameTemplate {
 			if (this.game.state.game_started) {
 				this.game.queue = ['play'];
 			}
+			if (Array.isArray(this.game.pending_moves) && this.game.pending_moves.length) {
+				this.moves = this.game.pending_moves.slice();
+			}
 		}
 
 		console.log(JSON.parse(JSON.stringify(this.game.state)));
-
-		if (this.browser_active) {
-			$('.slot').css('min-height', $('.card').css('min-height'));
-		}
 	}
 
 	newRound() {
@@ -73,9 +72,11 @@ class Solitrio extends OnePlayerGameTemplate {
 
 		//Reset/Increment State
 		this.game.state.recycles_remaining = 2;
+		this.shuffle_kept = null;
 
 		if (this.browser_active) {
 			$('#rowbox').removeClass('nomoves');
+			$('.slot').removeClass('locked');
 		}
 	}
 
@@ -159,8 +160,17 @@ class Solitrio extends OnePlayerGameTemplate {
 		});
 
 		document.addEventListener('keydown', (e) => {
-			if (e.ctrlKey && e.key === 'z') {
+			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+				// Leave undo alone while typing (e.g. the chat box)
+				let t = e.target;
+				if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
+					return;
+				}
+				if (this.overlay?.visible) {
+					return;
+				}
 				if (this.moves?.length) {
+					e.preventDefault();
 					this.undoMove();
 				}
 			}
@@ -175,6 +185,23 @@ class Solitrio extends OnePlayerGameTemplate {
 		return state;
 	}
 
+	/*
+	  Card moves accumulate in this.moves and are only sent (via endTurn) on
+	  shuffle/win/lose, so we stash a copy in the game object and saveGame() to
+	  survive a page refresh. initializeGame restores them and handToBoard
+	  replays them on top of the last synced hand.
+	*/
+	savePendingMoves() {
+		this.game.pending_moves = this.moves.slice();
+		this.saveGame(this.game.id);
+	}
+
+	async endTurn(nextTarget = 0) {
+		this.game.pending_moves = [];
+		this.saveGame(this.game.id);
+		return super.endTurn(nextTarget);
+	}
+
 	async checkBoardStatus() {
 		//Use recycling function to check if in winning state
 		this.displayUserInterface();
@@ -185,17 +212,29 @@ class Solitrio extends OnePlayerGameTemplate {
 			this.endTurn();
 		} else if (!this.hasAvailableMoves()) {
 			if (this.game.state.recycles_remaining == 0) {
-				this.prependMove('lose');
+				// Any way of dismissing the overlay other than "Go back" concedes
+				// the round. overlay.close() runs this callback exactly once
+				// (hide() would fire it too, so the buttons must not call hide)
 				this.overlay.show(this.returnStatsHTML('Game over', 1), async () => {
+					this.prependMove('lose');
 					await this.clearTable();
 					this.endTurn();
 				});
-				$('.stats-menu-controls').html(
-					`<button id="undo" class="option saito-button-primary">Go back</button><button id="quit" class="option saito-button-primary">Start Next Game</button>`
-				);
-				this.attachHUDEvents();
-				$('.stats-menu-controls .saito-button-primary').on('click', () => {
-					this.overlay.hide();
+
+				let buttons = '';
+				if (this.moves.length) {
+					buttons += `<button id="game-over-undo" class="saito-button-primary">Go back</button>`;
+				}
+				buttons += `<button id="game-over-new" class="saito-button-primary">Start Next Game</button>`;
+				$('.stats-menu-controls').html(buttons);
+
+				$('#game-over-undo').on('click', () => {
+					// remove() closes the overlay without firing the loss callback
+					this.overlay.remove();
+					this.undoMove();
+				});
+				$('#game-over-new').on('click', () => {
+					this.overlay.close();
 				});
 			} else {
 				this.shuffleFlash();
@@ -225,6 +264,11 @@ class Solitrio extends OnePlayerGameTemplate {
 				return;
 			}
 
+			// card is still mid-animation and hasn't landed in this slot yet
+			if (!$(this).find('img').length) {
+				return;
+			}
+
 			solitrio_self.toggleCard(card);
 			let slot = solitrio_self.dynamicColoring(card);
 
@@ -237,6 +281,8 @@ class Solitrio extends OnePlayerGameTemplate {
 
 				solitrio_self.game.board[card] = JSON.parse(y);
 				solitrio_self.game.board[slot] = JSON.parse(x);
+
+				solitrio_self.savePendingMoves();
 
 				solitrio_self.untoggleCard(card);
 
@@ -276,7 +322,7 @@ class Solitrio extends OnePlayerGameTemplate {
 					}
 				);
 			} else {
-				$(this).toggleClass('misclick');
+				solitrio_self.flashCard(card);
 				solitrio_self.untoggleCard(card);
 			}
 		});
@@ -320,13 +366,14 @@ class Solitrio extends OnePlayerGameTemplate {
 					// selected must work in this context
 					if (solitrio_self.canCardPlaceInSlot(selected, card)) {
 						solitrio_self.prependMove(`move\t${selected}\t${card}`);
-						//solitrio_self.endTurn();
 
 						let x = JSON.stringify(solitrio_self.game.board[selected]);
 						let y = JSON.stringify(solitrio_self.game.board[card]);
 
 						solitrio_self.game.board[selected] = JSON.parse(y);
 						solitrio_self.game.board[card] = JSON.parse(x);
+
+						solitrio_self.savePendingMoves();
 
 						solitrio_self.untoggleCard(card);
 						solitrio_self.untoggleCard(selected);
@@ -354,13 +401,13 @@ class Solitrio extends OnePlayerGameTemplate {
 									'Hint: Try a ' +
 									cardValue +
 									' of ' +
-									solitrio_self.cardSuitHTML(solitrio_self.returnCardSuite(predecessor));
+									solitrio_self.cardSuitHTML(solitrio_self.returnCardSuit(predecessor));
 							else smartTip = 'Unfortunately, no card can go there';
 						} else {
 							smartTip = 'Hint: Try a 2 of any suit';
 						}
 						//Feedback
-						$(this).toggleClass('misclick');
+						solitrio_self.flashCard(card);
 						solitrio_self.untoggleCard(selected);
 						selected = '';
 						$('#rowbox').removeClass('selected');
@@ -417,19 +464,43 @@ class Solitrio extends OnePlayerGameTemplate {
 
 	dynamicColoring(card) {
 		let solitrio_self = this;
-		let availableSlot = null;
+		let validSlots = [];
 		$('.valid').removeClass('valid');
 		$('.invalid').removeClass('invalid');
 
 		$('.empty').each(function () {
 			if (solitrio_self.canCardPlaceInSlot(card, $(this).attr('id'))) {
-				availableSlot = $(this).attr('id');
+				validSlots.push($(this).attr('id'));
 				$(this).addClass('valid');
 			} else {
 				$(this).addClass('invalid');
 			}
 		});
-		return availableSlot;
+		return this.chooseDestination(card, validSlots);
+	}
+
+	/*
+	  Only a 2 can have multiple valid destinations (any open row start).
+	  A 2 played from mid-row goes to the top-most open row; once it sits
+	  at a row start, each further click moves it to the next open row
+	  (wrapping), so repeated clicks cycle it through all the open rows.
+	*/
+	chooseDestination(card, validSlots) {
+		if (!validSlots.length) {
+			return null;
+		}
+		if (validSlots.length > 1) {
+			validSlots.sort((a, b) => this.parseIndex(a) - this.parseIndex(b));
+			if (card.endsWith('_slot1')) {
+				let pos = this.parseIndex(card);
+				for (let slot of validSlots) {
+					if (this.parseIndex(slot) > pos) {
+						return slot;
+					}
+				}
+			}
+		}
+		return validSlots[0];
 	}
 
 	/*
@@ -439,13 +510,13 @@ class Solitrio extends OnePlayerGameTemplate {
   */
 	canCardPlaceInSlot(card, slot) {
 		let cardValue = this.returnCardNumber(card);
-		let cardSuit = this.returnCardSuite(card);
+		let cardSuit = this.returnCardSuit(card);
 
 		let predecessor = this.getPredecessor(slot);
 
 		if (predecessor) {
 			let predecessorValueNum = parseInt(this.returnCardNumber(predecessor));
-			let predecessorSuit = this.returnCardSuite(predecessor);
+			let predecessorSuit = this.returnCardSuit(predecessor);
 			if (cardValue == predecessorValueNum + 1 && cardSuit === predecessorSuit) return true;
 		} else {
 			//No predecessor, i.e. first position in row
@@ -469,14 +540,24 @@ class Solitrio extends OnePlayerGameTemplate {
 			let prevNum = 'none';
 			for (let j = 1; j <= 10; j++) {
 				let slot = `row${i}_slot${j}`;
-				let suite = this.returnCardSuite(slot);
-				if (suite === 'E') {
+				let suit = this.returnCardSuit(slot);
+				if (suit === 'E') {
 					if (prevNum != '10') return true;
 					prevNum = '10'; //Empty slot counts as a 10 because it is "blocking"
 				} else prevNum = this.returnCardNumber(slot);
 			}
 		}
 		return false;
+	}
+
+	/* spin a card to draw attention (misclick feedback and hints):
+	   slow clockwise out (0.8s), brief hold, fast snap back */
+	flashCard(divname) {
+		let el = $('#' + divname);
+		el.addClass('misclick');
+		setTimeout(() => {
+			el.removeClass('misclick');
+		}, 1100);
 	}
 
 	toggleCard(divname) {
@@ -519,6 +600,17 @@ class Solitrio extends OnePlayerGameTemplate {
 				let position = `row${i}_slot${j}`;
 				this.game.board[position] = this.game.deck[0].cards[this.game.deck[0].hand[indexCt++]];
 			}
+
+		// The hand only reflects moves that have round-tripped through endTurn,
+		// so replay any pending (unsent) moves, oldest first
+		for (let i = this.moves.length - 1; i >= 0; i--) {
+			let mv = this.moves[i].split('\t');
+			if (mv[0] === 'move') {
+				let temp = this.game.board[mv[1]];
+				this.game.board[mv[1]] = this.game.board[mv[2]];
+				this.game.board[mv[2]] = temp;
+			}
+		}
 	}
 
 	boardToHand() {
@@ -634,12 +726,19 @@ class Solitrio extends OnePlayerGameTemplate {
 	}
 
 	undoMove() {
-		let mv = this.moves.shift().split('\t');
+		// Skip past any non-card entries (e.g. win/lose markers) so we
+		// undo the last actual card move, and never shift an empty array
+		while (this.moves.length && this.moves[0].split('\t')[0] !== 'move') {
+			this.moves.shift();
+		}
 
-		if (mv[0] == 'lose' || mv[1] == 'win') {
-			this.undoMove();
+		if (!this.moves.length) {
+			this.savePendingMoves();
+			this.displayUserInterface();
 			return;
 		}
+
+		let mv = this.moves.shift().split('\t');
 
 		let card = mv[1];
 
@@ -657,6 +756,7 @@ class Solitrio extends OnePlayerGameTemplate {
 		$('#' + card).toggleClass('empty');
 		$('#rowbox').removeClass('selected');
 		this.untoggleAll();
+		this.savePendingMoves();
 		this.displayUserInterface();
 	}
 
@@ -665,10 +765,24 @@ class Solitrio extends OnePlayerGameTemplate {
 			return;
 		}
 		$('.slot').removeClass('empty');
+
+		// After a reshuffle, cards locked in winning position stay in place
+		// (highlighted) and only the remixed cards are redealt, at a
+		// snappier pace than the opening deal
+		let kept = null;
+		if (Array.isArray(this.shuffle_kept)) {
+			kept = this.shuffle_kept;
+			this.shuffle_kept = null;
+			timeInterval = Math.min(timeInterval, 40);
+		}
+
 		try {
 			//Want to add a timed delay for animated effect
 
 			for (let i in this.game.board) {
+				if (kept && kept.includes(i)) {
+					continue;
+				}
 				await this.timeout(timeInterval);
 				let divname = '#' + i;
 				$(divname).html(this.returnCardImageHTML(this.game.board[i]));
@@ -684,8 +798,15 @@ class Solitrio extends OnePlayerGameTemplate {
 				}
 			}
 
+			// let the locked highlight linger briefly after the redeal
+			if (kept) {
+				setTimeout(() => {
+					$('.slot.locked').removeClass('locked');
+				}, 1500);
+			}
+
 			//
-			// We will provide hints automatically until you win at least twice
+			// We will provide hints automatically until your first win
 			//
 			if (this.game.state.lifetime.wins < 1 && timeInterval > 0) {
 				this.provideHint();
@@ -804,27 +925,31 @@ no status atm, but this is to update the hud
 		}
 
 		let myarray = [];
+		let keptSlots = [];
 		/*
-      For each row of cards, if a 2 is in the left most position, 
+      For each row of cards, if a 2 is in the left most position,
       find the length of the sequential streak of same suit
     */
 		for (let i = 0; i < 4; i++) {
-			let rowsuite = 'none';
+			let rowsuit = 'none';
 
 			for (let j = 1; j < 10; j++) {
 				//Don't read last slot in each row
 
 				let slot = 'row' + (i + 1) + '_slot' + j;
-				let suite = this.returnCardSuite(slot);
+				let suit = this.returnCardSuit(slot);
 				let num = this.returnCardNumber(slot);
 
 				if (j == 1 && num == 2) {
-					rowsuite = suite;
+					rowsuit = suit;
 				}
 
-				if (rowsuite === suite && num == j + 1) {
+				if (rowsuit === suit && num == j + 1) {
 					rows[i] = j;
-					if (recycle) this.toggleCard(slot);
+					if (recycle) {
+						keptSlots.push(slot);
+						$('#' + slot).addClass('locked');
+					}
 				} else break;
 			}
 		}
@@ -846,8 +971,11 @@ no status atm, but this is to update the hud
 		let winningGame = myarray.length === 4;
 
 		if (recycle) {
-			//shuffle array, best method?
-			myarray.sort(() => Math.random() - 0.5);
+			// Fisher-Yates -- sort(() => Math.random() - 0.5) is biased
+			for (let i = myarray.length - 1; i > 0; i--) {
+				let j = Math.floor(Math.random() * (i + 1));
+				[myarray[i], myarray[j]] = [myarray[j], myarray[i]];
+			}
 
 			//refill board
 
@@ -857,6 +985,9 @@ no status atm, but this is to update the hud
 					this.game.board[divname] = myarray.shift();
 				}
 			}
+
+			// tell the post-shuffle redeal which cards never moved
+			this.shuffle_kept = keptSlots;
 
 			this.boardToHand();
 			this.endTurn();
@@ -879,7 +1010,7 @@ no status atm, but this is to update the hud
 			if (predecessor) {
 				let cardValue = parseInt(this.returnCardNumber(predecessor)) + 1;
 				if (cardValue < 11) {
-					targets.push(this.returnCardSuite(predecessor) + cardValue);
+					targets.push(this.returnCardSuit(predecessor) + cardValue);
 				}
 			} else {
 				targets = targets.concat(['D2', 'H2', 'S2', 'C2']);
@@ -888,13 +1019,17 @@ no status atm, but this is to update the hud
 
 		for (let i in this.game.board) {
 			if (targets.includes(this.game.board[i])) {
-				$(`#${i}`).toggleClass('misclick');
+				// a 2 already leading a row isn't a useful suggestion
+				if (this.returnCardNumber(i) == 2 && i.endsWith('_slot1')) {
+					continue;
+				}
+				this.flashCard(i);
 				await this.timeout(150);
 			}
 		}
 	}
 
-	returnCardSuite(slot) {
+	returnCardSuit(slot) {
 		let card = this.game.board[slot];
 		return card[0];
 	}

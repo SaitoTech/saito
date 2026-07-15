@@ -2,6 +2,7 @@
  * Manual block-production peer requests for the Token Supply admin controls.
  */
 const EXPLORER_ENSURE_TEST_MODE_REQUEST = 'explorer-ensure-test-mode';
+const EXPLORER_SUBMIT_FEE_TRANSACTION_REQUEST = 'explorer-submit-fee-transaction';
 const EXPLORER_PRODUCE_BLOCK_REQUEST = 'explorer-new-block-with-no-gt';
 const EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST = 'explorer-new-block-with-gt';
 
@@ -56,6 +57,7 @@ function allowsManualTestingOnServer(app, mod) {
 
 module.exports = {
 	EXPLORER_ENSURE_TEST_MODE_REQUEST,
+	EXPLORER_SUBMIT_FEE_TRANSACTION_REQUEST,
 	EXPLORER_PRODUCE_BLOCK_REQUEST,
 	EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST,
 	canShowManualBlockControls,

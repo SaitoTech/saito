@@ -5,11 +5,18 @@
 }
 
 .controls {
-	overflow-y: none;
+	overflow-y: hidden;
 	min-height: 160px;
 }
 .controls ul {
 	border-radius: 0.5rem;
+}
+
+/* portrait: the board needs the height (see solitrio-base.css) */
+@media screen and (orientation: portrait) and (max-width: 600px) {
+	.controls {
+		min-height: unset;
+	}
 }
 
 .stats-menu-controls {
