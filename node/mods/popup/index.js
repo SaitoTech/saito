@@ -2,7 +2,7 @@ module.exports = (app, mod, build_number) => {
   let html = `
 
 <!DOCTYPE html>
-<html lang="zh" class=""><head>
+<html lang="zh" class="" data-theme="dark"><head>
 <head>
 
   <meta name="description" content="${app.browser.escapeHTML(mod.description)}" />
@@ -68,4 +68,3 @@ module.exports = (app, mod, build_number) => {
 `;
   return html;
 }
-

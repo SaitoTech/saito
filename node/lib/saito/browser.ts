@@ -303,7 +303,7 @@ class Browser {
       this.browser_active = 1;
 
       const theme_from_document = document.documentElement.getAttribute('data-theme');
-      const theme = this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'noir';
+      const theme = this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'dark';
 
       this.switchTheme(theme);
     } catch (err) {
@@ -2577,6 +2577,20 @@ class Browser {
     return false;
   }
 
+  checkNFTThemes(): string[] | null {
+    // Wallet-backed theme discovery will populate this list in a future release.
+    return null;
+  }
+
+  isThemeAvailable(theme) {
+    const nft_themes = this.checkNFTThemes();
+    if (nft_themes === null) {
+      return theme === 'dark';
+    }
+
+    return theme === 'dark' || (Array.isArray(nft_themes) && nft_themes.includes(theme));
+  }
+
   switchTheme(theme) {
     let mod_obj = this.app.modules.returnActiveModule();
     let force_lite_for_game =
@@ -2584,6 +2598,8 @@ class Browser {
 
     if (force_lite_for_game) {
       theme = 'lite';
+    } else if (!this.isThemeAvailable(theme)) {
+      theme = 'dark';
     }
 
     document.documentElement.setAttribute('data-theme', theme);
@@ -2599,35 +2615,7 @@ class Browser {
           this.app.storage.saveOptions();
         }
       }
-
-      this.updateThemeInHeader(theme);
     }
-  }
-
-  updateThemeInHeader(theme) {
-    //Update header
-    setTimeout(() => {
-      let theme_icon_obj = document.querySelector('.saito-theme-icon');
-      let am = this.app.modules.returnActiveModule();
-
-      if (theme_icon_obj && am) {
-        let classes = theme_icon_obj.classList;
-        for (let c of classes) {
-          theme_icon_obj.classList.remove(c);
-        }
-
-        theme_icon_obj.classList.add('saito-theme-icon');
-        try {
-          let theme_classes = am.theme_options[theme].split(' ');
-          for (let t of theme_classes) {
-            theme_icon_obj.classList.add(t);
-          }
-        } catch (err) {
-          console.error(err);
-          console.debug(theme, am.theme_options);
-        }
-      }
-    }, 500);
   }
 
   isValidUrl(urlString) {

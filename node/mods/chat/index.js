@@ -5,7 +5,7 @@ module.exports = (app, mod, build_number, og_card) => {
 
   
   <!DOCTYPE html>
-  <html lang="en" data-theme="noir">
+  <html lang="en" data-theme="dark">
   
   <head>
 
