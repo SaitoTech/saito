@@ -22,11 +22,12 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 1.6rem;
+	justify-content: center;
+	gap: 2.4rem;
 }
 
 .limbo-splash-box {
-	width: min(95vw, 96rem);
+	width: min(95vw, 86rem);
 	height: fit-content;
 	flex: 0 0 auto;
 	padding: 3.2rem;
@@ -58,20 +59,10 @@
 }
 
 .limbo-splash-subtitle {
-	margin-top: 0.4rem;
 	color: var(--saito-font-color-secondary, var(--saito-font-color-light));
-	font-size: 1.35rem;
+	font-size: 1.25rem;
 	letter-spacing: 0.22em;
-	line-height: 1.5;
-	text-align: center;
-}
-
-.limbo-menu h1 {
-	margin: 0.4rem 0 1rem;
-	color: var(--saito-font-color-heavy, var(--saito-font-color));
-	font-size: 4.2rem;
-	font-weight: 700;
-	line-height: 1.2;
+	line-height: 1.4;
 	text-align: center;
 }
 
@@ -81,11 +72,15 @@
 
 .limbo-launch-options {
 	width: 100%;
-	max-width: 72rem;
 	display: flex;
 	flex-direction: row;
 	justify-content: center;
 	gap: 1.2rem;
+}
+
+.limbo-menu > .space-list-header:empty,
+.limbo-menu > .spaces-list:empty {
+	display: none;
 }
 
 .limbo-option {
@@ -636,15 +631,11 @@ video#local.noflip {
 
 	.limbo-splash-box {
 		width: 100%;
-		padding: 2rem 1.5rem;
+		padding: 2.4rem;
 	}
 
 	.limbo-splash-logo {
 		width: 100%;
-	}
-
-	.limbo-menu h1 {
-		font-size: 3rem;
 	}
 
 	.dream-controls .control-panel {

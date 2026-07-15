@@ -395,8 +395,9 @@ html[data-theme='dark'] input:focus,
 html[data-theme='dark'] select:focus,
 html[data-theme='dark'] .saito-input .text-input:not(.post-tweet-textarea):focus,
 html[data-theme='dark'] .saito-input .text-input:not(.post-tweet-textarea):focus-within {
-  border-color: var(--saito-input-border-focus);
-  box-shadow: var(--saito-focus-ring);
+  outline: none !important;
+  border-color: var(--saito-input-border) !important;
+  box-shadow: none !important;
 }
 
 html[data-theme='dark'] input::placeholder,

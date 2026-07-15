@@ -58,12 +58,14 @@
 
 .chat-splash-start {
 	width: 100%;
-	padding: 1.35rem 2rem;
+	height: 4.5rem;
+	min-height: 4.5rem;
+	padding: 0 2rem;
 	border: none;
 	border-radius: var(--saito-border-radius);
 	color: #fff;
-	background: linear-gradient(135deg, #ff914d, #f38239);
-	box-shadow: 0 0 32px -10px rgba(255, 145, 77, 0.55);
+	background: var(--saito-cta-action-background, linear-gradient(90deg, #ff8a3d, #f54900));
+	box-shadow: var(--saito-cta-action-shadow, 0 0 32px -10px rgba(245, 73, 0, 0.48));
 	transition:
 		transform 0.18s ease,
 		box-shadow 0.18s ease,
@@ -72,6 +74,7 @@
 
 .chat-splash-start:hover {
 	transform: translateY(-1px);
+	background: var(--saito-cta-action-background, linear-gradient(90deg, #ff8a3d, #f54900));
 	box-shadow: 0 0 36px -10px rgba(255, 145, 77, 0.55);
 	filter: brightness(1.03);
 }

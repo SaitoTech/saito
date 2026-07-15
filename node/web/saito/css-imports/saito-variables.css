@@ -262,6 +262,8 @@ font imports
   --saito-button-disabled-bg: var(--saito-background-color);
   --saito-button-disabled-fg: var(--saito-font-color-light);
   --saito-button-disabled-border: var(--saito-font-color-light);
+  --saito-cta-action-background: linear-gradient(90deg, #ff8a3d, #f54900);
+  --saito-cta-action-shadow: 0 0 32px -10px rgba(245, 73, 0, 0.48);
 
   --saito-input-bg: var(--saito-surface-color);
   --saito-input-bg-focus: var(--saito-surface-hover);
