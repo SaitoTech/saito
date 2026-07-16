@@ -144,10 +144,6 @@ class GameQueue {
    *  Game moves are processed through a queue.
    */
   async startQueue() {
-    console.log('[OBS_TRACE] startQueue()', {
-      halted: this.halted,
-      gaming_active: this.gaming_active
-    });
     console.info(
       `GT [startQueue] halted: (${this.halted}) , gaming_active (${this.gaming_active})`
     );
@@ -251,7 +247,6 @@ class GameQueue {
     // this indicates we are processing our queue
     //
     this.gaming_active = 1; // prevents future moves from getting added to the queue while it is processing
-    console.log('[OBS_TRACE] runQueue(): set gaming_active = 1');
     //
     //stash a copy of state before doing anything
     //

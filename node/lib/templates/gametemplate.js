@@ -277,7 +277,12 @@ class GameTemplate extends ModTemplate {
     // Want to handle SaitoTalk through the game menu -- not the saito-header
     this.disable_talk = true;
 
-    this.enable_observer = true;
+    // Observer (spectate / review) UI is disabled pending a rebuild of the
+    // GameObserver replay engine -- this flag gates the "watch game" / "review
+    // game" arcade buttons and the in-game Observer Link menu option. Flip back
+    // to true when the observer is functional again. (Does not affect the
+    // open-table join flow, which uses initializeObserverMode() directly.)
+    this.enable_observer = false;
 
     app.connection.on('update-username-in-game', () => {
       if (this.gameBrowserActive()) {
@@ -483,12 +488,6 @@ class GameTemplate extends ModTemplate {
       return 0;
     }
 
-    console.log('[OBS_TRACE] initializeHTML() (first run)', {
-      game_player: this.game?.player,
-      game_id: this.game?.id?.substring?.(0, 12),
-      browser_active: this.browser_active
-    });
-
     //
     // Query server to make sure you know and remember your new friends names
     this.app.connection.emit('registry-fetch-identifiers-and-update-dom', this.game.players);
@@ -562,9 +561,6 @@ class GameTemplate extends ModTemplate {
         } catch (_) {}
         return game_id === this.game.id;
       } catch (err) {
-        if (this.game?.player === 0) {
-          console.log('[OBS_TRACE] gameBrowserActive() catch', err?.message);
-        }
         return false;
       }
     }
@@ -574,10 +570,6 @@ class GameTemplate extends ModTemplate {
 
   async attachEvents(app) {
     if (this?.game?.id) {
-      console.log('[OBS_TRACE] attachEvents() calling initializeGameQueue', {
-        game_id: this.game.id?.substring?.(0, 12),
-        game_player: this.game?.player
-      });
       await this.initializeGameQueue(this.game.id);
     } else {
       document.documentElement.setAttribute('data-theme', 'lite');
@@ -761,10 +753,6 @@ class GameTemplate extends ModTemplate {
   async initializeObserverMode(tx, use_state = false) {
     let game_id = tx.signature;
     let txmsg = tx.returnMessage();
-    console.log('[OBS_TRACE] initializeObserverMode()', {
-      game_id: game_id?.substring?.(0, 12),
-      use_state
-    });
 
     // console.log(' !!!!!\n GT: OBSERVER MODE\n !!!!!\n', game_id, JSON.parse(JSON.stringify(txmsg)));
 
@@ -989,7 +977,6 @@ class GameTemplate extends ModTemplate {
           }
 
           if (this.isUnprocessedMoveQuickCheck(player_publickey, player_step, game_id) == -1) {
-            console.log('[OBS_TRACE] isUnprocessedMoveQuickCheck ignore move');
             return;
           }
 
@@ -1040,14 +1027,6 @@ class GameTemplate extends ModTemplate {
           const asFuture =
             this?.treat_all_moves_as_future || this.isFutureMove(tx.from[0].publicKey, txmsg);
           const asNext = !asFuture && this.isUnprocessedMove(tx.from[0].publicKey, txmsg);
-          console.log('[OBS_TRACE] onConfirmation(game move)', {
-            step: txmsg?.step?.game,
-            game_player: this.game?.player,
-            asFuture,
-            asNext,
-            gaming_active: this.gaming_active,
-            halted: this.halted
-          });
 
           //
           // cache recently received move
@@ -1213,15 +1192,6 @@ class GameTemplate extends ModTemplate {
               this?.treat_all_moves_as_future ||
               this.isFutureMove(gametx.from[0].publicKey, gametxmsg);
             const asNext = !asFuture && this.isUnprocessedMove(gametx.from[0].publicKey, gametxmsg);
-            if (this.game?.player === 0) {
-              console.log('[OBS_TRACE] handlePeerTransaction(game relay gamemove)', {
-                step: gametxmsg?.step?.game,
-                asFuture,
-                asNext,
-                gaming_active: this.gaming_active,
-                halted: this.halted
-              });
-            }
 
             //
             // cache recently received move

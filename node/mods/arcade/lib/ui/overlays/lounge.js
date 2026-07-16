@@ -167,17 +167,14 @@ class LoungeOverlay {
     //
     if (!game) {
       stateLabel = 'Observer Mode';
-      const hasArchive = this.observer_has_archive_data === true;
-      const message = hasArchive
-        ? 'You can watch this game.'
-        : 'This server does not yet have game data for this match.';
+      // Observer/spectate is disabled pending the GameObserver rebuild -- show a
+      // message instead of a (broken) Watch Game button. Restore the button
+      // when the observer is functional again.
       bodyHtml = `
 	  <div class="arcade-lounge-section arcade-lounge-section-game-id-message">
-		  <div class="arcade-lounge-message arcade-lounge-message-game-id">${message}</div>
+		  <div class="arcade-lounge-message arcade-lounge-message-game-id">This server does not have viewable game data for this match.</div>
 	  </div>`;
-      controlsHtml = hasArchive
-        ? `<button id="arcade-game-controls-watch-game" class="fat saito-button-primary">Watch Game</button>`
-        : `<button id="arcade-game-controls-watch-game" class="fat saito-button-primary" disabled>Watch Game</button>`;
+      controlsHtml = '';
     } else if (derivedState === 'INITIALIZING') {
       stateLabel = 'Initializing Game';
       bodyHtml = `

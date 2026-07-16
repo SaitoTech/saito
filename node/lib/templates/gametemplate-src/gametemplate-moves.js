@@ -294,13 +294,6 @@ class GameMoves {
   async addNextMove(gametx) {
     let gametxmsg = gametx.returnMessage();
     const guard = this.halted == 1 || this.gaming_active == 1 || this.game.initialize_game_run == 0;
-    console.log('[OBS_TRACE] addNextMove()', {
-      step: gametxmsg?.step?.game,
-      gaming_active: this.gaming_active,
-      halted: this.halted,
-      initialize_game_run: this.game.initialize_game_run,
-      guardTriggered: guard
-    });
 
     if (guard) {
       console.info(
@@ -357,7 +350,6 @@ class GameMoves {
 
       this.saveFutureMoves(this.game.id);
       this.saveGame(this.game.id);
-      console.log('[OBS_TRACE] addNextMove() accepted; calling startQueue()');
       await this.startQueue();
     } else {
       console.error('No queue in game engine');
@@ -420,10 +412,6 @@ class GameMoves {
     // this is always called after runQueue which locks the queue for newMoves while processing
     // but there are multiple paths out of the queue, so we unlock it here
     this.gaming_active = 0;
-    console.log('[OBS_TRACE] processFutureMoves(): set gaming_active = 0', {
-      futureLength: this.game.future?.length,
-      halted: this.halted
-    });
 
     //
     // process any stopgame / gameover that arrived while the queue was running
