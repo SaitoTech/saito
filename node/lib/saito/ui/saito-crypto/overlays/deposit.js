@@ -47,9 +47,9 @@ class Deposit {
     });
 
     this.messages = [
-      'this is taking a while',
-      'hang in there',
-      'it will come through eventually',
+      'waiting for the ETH network<br>this can take a while',
+      'we need 16 confirmations<br>hang in there',
+      'ETH is slow<br>patience is a virtue',
       'please remain on the line'
     ];
     this.gifs = [
