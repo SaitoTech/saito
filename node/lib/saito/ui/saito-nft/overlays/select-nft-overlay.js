@@ -97,6 +97,9 @@ class SelectNFT {
 
   async renderNFTList(filter) {
     const container = document.querySelector('#nft-list');
+    const instructionsEl = document.querySelector(
+      '.nft-list-container #nft-list-instructions'
+    );
 
     if (!container) {
       console.warn('Missing NFT-list container!');
@@ -106,16 +109,22 @@ class SelectNFT {
     await this.updateCardList();
 
     if (!this.card_list?.length) {
-      let html = `
-        <div class="instructions">
-            You do not have any NFTs in your wallet. 
-            If you have just created or been sent one, please wait a few minutes 
+      container.innerHTML = '<div class="send-nft-list"></div>';
+      if (instructionsEl) {
+        instructionsEl.innerHTML = `
+          <div class="instructions">
+            You do not have any NFTs in your wallet.
+            If you have just created or been sent one, please wait a few minutes
             for the network to confirm for your wallet.
-        </div>
-      `;
-      container.innerHTML = html;
+          </div>
+        `;
+      }
       return;
     } else {
+      if (instructionsEl) {
+        instructionsEl.innerHTML = '';
+      }
+
       // if nft-list contains nft
       let html = '<div class="send-nft-list"></div>';
       container.innerHTML = html;

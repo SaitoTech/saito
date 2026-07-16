@@ -6,37 +6,56 @@ class PublishSettingsOverlay {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.createNftOverlay = null;
     this.postState = {
       published: false,
       accessLevel: 'public', // 'public', 'private', 'subscription'
-      accessMode: 'transferable', // 'transferable' | 'non-transferable' (only relevant when accessLevel === 'private', default is 'transferable')
+      accessMode: 'transferable', // kept for publish intent; not shown in UI
       description: '',
       image: null,
       imageUrl: null,
       customCSS: ''
     };
+    // Wizard navigation + future check hooks (null = not yet resolved)
+    this.wizardState = {
+      step: 1,
+      hasSaito: null,
+      hasAccessKey: null,
+      isListedInStore: null
+    };
+    this._isSliding = false;
   }
 
-  render(postData = {}) {
-    // Merge provided post data with current state
+  render(postData = {}, options = {}) {
+    const { preserveStep = false } = options;
+
     this.postState = {
       ...this.postState,
       ...postData
     };
 
-    // Ensure accessMode is set correctly based on accessLevel
-    if (this.postState.accessLevel === 'private' && !this.postState.accessMode) {
-      this.postState.accessMode = 'transferable'; // Default for private posts is transferable (Flexible)
-    } else if (this.postState.accessLevel === 'public') {
-      this.postState.accessMode = null; // Public posts don't have access mode
+    if (!preserveStep) {
+      this.wizardState = {
+        step: 1,
+        hasSaito: null,
+        hasAccessKey: null,
+        isListedInStore: null
+      };
     }
 
-    // If editor has featured image, use it (authoritative source)
+    if (this.postState.accessLevel === 'private' || this.postState.accessLevel === 'subscription') {
+      if (!this.postState.accessMode) {
+        this.postState.accessMode = 'transferable';
+      }
+    } else if (this.postState.accessLevel === 'public') {
+      this.postState.accessMode = null;
+    }
+
     if (this.mod.create_post_ui && this.mod.create_post_ui.featuredImage) {
       this.postState.image = this.mod.create_post_ui.featuredImage;
     }
 
-    const html = PublishSettingsTemplate(this.app, this.mod, this.postState);
+    const html = PublishSettingsTemplate(this.app, this.mod, this.postState, this.wizardState);
     this.overlay.show(html);
 
     setTimeout(() => {
@@ -44,28 +63,82 @@ class PublishSettingsOverlay {
     }, 25);
   }
 
-  attachEvents() {
-    // Close overlay (click outside or close button)
-    const overlayCloseBtn = document.querySelector('.saito-overlay-close');
-    if (overlayCloseBtn) {
-      overlayCloseBtn.addEventListener('click', () => {
-        this.overlay.hide();
+  /**
+   * Re-render only the step panel + action buttons without remounting the overlay.
+   * Used for wizard Next/Back with horizontal slide animation.
+   */
+  async renderStep(direction = 'forward') {
+    if (this._isSliding) return;
+    this._isSliding = true;
+
+    const panel = document.querySelector('#stack-publish-step-panel');
+    const actionBar = document.querySelector('.stack-publish-global-action');
+    if (!panel) {
+      this._isSliding = false;
+      this.render(this.postState, { preserveStep: true });
+      return;
+    }
+
+    const exitClass =
+      direction === 'forward' ? 'stack-publish-slide-exit-left' : 'stack-publish-slide-exit-right';
+    const enterClass =
+      direction === 'forward' ? 'stack-publish-slide-enter-right' : 'stack-publish-slide-enter-left';
+
+    panel.classList.add(exitClass);
+    await this._wait(180);
+
+    const html = PublishSettingsTemplate(this.app, this.mod, this.postState, this.wizardState);
+    const temp = document.createElement('div');
+    temp.innerHTML = html.trim();
+
+    const newPanel = temp.querySelector('#stack-publish-step-panel');
+    const newActionBar = temp.querySelector('.stack-publish-global-action');
+
+    if (newPanel) {
+      newPanel.classList.add(enterClass);
+      panel.replaceWith(newPanel);
+      // Double rAF so the enter transform is painted before we ease to rest
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            newPanel.classList.remove(enterClass);
+            resolve();
+          });
+        });
       });
     }
 
-    // Access level checkbox cards (only one can be active)
+    if (actionBar && newActionBar) {
+      actionBar.replaceWith(newActionBar);
+    }
+
+    this.attachEvents();
+    await this._wait(220);
+    this._isSliding = false;
+  }
+
+  _wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  attachEvents() {
+    const overlayCloseBtn = document.querySelector('.saito-overlay-close');
+    if (overlayCloseBtn) {
+      overlayCloseBtn.onclick = () => {
+        this.overlay.hide();
+      };
+    }
+
     const accessCards = document.querySelectorAll('.stack-publish-access-card');
     const accessCheckboxes = document.querySelectorAll('.stack-publish-access-checkbox');
 
     accessCards.forEach((card) => {
-      card.addEventListener('click', (e) => {
-        // Don't trigger if clicking directly on the checkbox
+      card.onclick = (e) => {
         if (e.target.type === 'checkbox') return;
 
         const checkbox = card.querySelector('.stack-publish-access-checkbox');
         const accessValue = card.getAttribute('data-access');
 
-        // Uncheck all others
         accessCheckboxes.forEach((cb) => {
           if (cb !== checkbox) {
             cb.checked = false;
@@ -75,22 +148,18 @@ class PublishSettingsOverlay {
           }
         });
 
-        // Toggle this one
         checkbox.checked = true;
         card.classList.add('stack-publish-access-card-active');
-
         this.setAccessLevel(accessValue);
-      });
+      };
     });
 
-    // Checkbox change handlers (for direct checkbox clicks)
     accessCheckboxes.forEach((checkbox) => {
-      checkbox.addEventListener('change', (e) => {
+      checkbox.onchange = () => {
         const card = checkbox.closest('.stack-publish-access-card');
         const accessValue = card?.getAttribute('data-access');
 
         if (checkbox.checked) {
-          // Uncheck all others
           accessCheckboxes.forEach((cb) => {
             if (cb !== checkbox) {
               cb.checked = false;
@@ -100,54 +169,130 @@ class PublishSettingsOverlay {
             }
           });
           card?.classList.add('stack-publish-access-card-active');
-
           this.setAccessLevel(accessValue);
         } else {
-          // Prevent unchecking - at least one must be selected
           checkbox.checked = true;
         }
-      });
+      };
     });
 
-    // Delete draft button
+    // Icon-only delete (bare <i>, same pattern as choose-draft) — not a <button>
     const deleteDraftBtn = document.querySelector('#stack-publish-delete-draft-btn');
     if (deleteDraftBtn) {
-      deleteDraftBtn.addEventListener('click', (e) => {
+      deleteDraftBtn.onclick = (e) => {
         e.preventDefault();
         this.handleDeleteDraft();
-      });
+      };
+      deleteDraftBtn.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.handleDeleteDraft();
+        }
+      };
     }
 
-    // Primary action button (Publish)
-    const primaryBtn = document.querySelector('#stack-publish-primary-btn');
-    if (primaryBtn) {
-      primaryBtn.addEventListener('click', (e) => {
+    const backBtn = document.querySelector('#stack-publish-back-btn');
+    if (backBtn) {
+      backBtn.onclick = (e) => {
+        e.preventDefault();
+        this.handleBack();
+      };
+    }
+
+    const publishImmediately = document.querySelector('#stack-publish-immediately');
+    if (publishImmediately) {
+      publishImmediately.onclick = (e) => {
         e.preventDefault();
         this.handlePublish();
-      });
+      };
     }
 
-    // Access type radio buttons (for private posts)
-    const accessTypeRadios = document.querySelectorAll('.stack-publish-access-type-radio');
-    accessTypeRadios.forEach((radio) => {
-      radio.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          this.setAccessMode(e.target.value);
+    // Panel 2 — open Create NFT with Stack Access type pre-selected
+    const createKeysLink = document.querySelector('#stack-publish-create-keys-link');
+    if (createKeysLink) {
+      createKeysLink.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openCreateNft();
+      };
+    }
+
+    const tokensLink = document.querySelector('#stack-publish-tokens-link');
+    if (tokensLink) {
+      tokensLink.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Placeholder until token faucet / purchase flow is confirmed for this screen
+      };
+    }
+
+    const primaryBtn = document.querySelector('#stack-publish-primary-btn');
+    if (primaryBtn) {
+      primaryBtn.onclick = (e) => {
+        e.preventDefault();
+        const action = primaryBtn.getAttribute('data-action') || 'publish';
+        if (action === 'next') {
+          this.handleNext();
+        } else {
+          this.handlePublish();
         }
-      });
+      };
+    }
+  }
+
+  /**
+   * Open the shared Create NFT dialog with Stack Access type pre-selected.
+   * Prefers the header-owned instance so we do not register a second event listener.
+   */
+  openCreateNft() {
+    let createNft =
+      this.mod.header &&
+      this.mod.header.select_nft_overlay &&
+      this.mod.header.select_nft_overlay.create_nft_overlay;
+
+    if (!createNft) {
+      if (!this.createNftOverlay) {
+        const CreateNFT = require('../../../../../lib/saito/ui/saito-nft/overlays/create-overlay');
+        this.createNftOverlay = new CreateNFT(this.app, this.mod);
+      }
+      createNft = this.createNftOverlay;
+    }
+
+    createNft.render({
+      data: {
+        type: 'stack'
+      },
+      callback: (result) => {
+        if (result.status !== 'created') {
+          return;
+        }
+
+        // Stack-owned follow-up (Create NFT stays generic)
+        this.wizardState.hasAccessKey = true;
+        this.wizardState.createdNftId = result.nft_id || null;
+
+        if (this.mod.load && this.mod.save) {
+          const stackOptions = this.mod.load();
+          if (stackOptions && stackOptions.has_created_keys !== true) {
+            stackOptions.has_created_keys = true;
+            this.mod.save();
+          }
+        }
+
+        // Refresh current panel (checkboxes) without advancing the wizard
+        this.render(this.postState, { preserveStep: true });
+      }
     });
   }
 
   handleDeleteDraft() {
     if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
-      // Delete the draft transaction from the archive
       if (this.mod.create_post_ui && this.mod.create_post_ui.draftTransaction) {
         this.app.storage
           .deleteTransaction(this.mod.create_post_ui.draftTransaction, null, 'localhost')
           .then(() => {
-            this.mod.create_post_ui.draftTransaction = null; // Clear reference
+            this.mod.create_post_ui.draftTransaction = null;
 
-            // Clear the editor
             const editor = document.querySelector('#stack-post-body-editor');
             if (editor && this.mod.create_post_ui) {
               const { parseMarkdownToDocument, renderDocument } = require('../../post-document');
@@ -157,20 +302,17 @@ class PublishSettingsOverlay {
               this.mod.create_post_ui.updatePublishTriggerVisibility();
             }
 
-            // Clear title
             const titleInput = document.querySelector('#stack-post-title-input');
             if (titleInput) {
               titleInput.value = '';
             }
 
-            // Hide overlay and navigate back to front page
             this.overlay.hide();
 
-            // Navigate back to front page (main splash page)
             if (this.mod.main) {
               setTimeout(() => {
                 this.mod.main.render();
-              }, 100); // Small delay for smooth transition
+              }, 100);
             }
 
             siteMessage('Draft deleted', 1500);
@@ -180,7 +322,6 @@ class PublishSettingsOverlay {
             siteMessage('Failed to delete draft. Please try again.');
           });
       } else {
-        // If no draftTransaction, just clear editor and navigate back
         const editor = document.querySelector('#stack-post-body-editor');
         if (editor && this.mod.create_post_ui) {
           const { parseMarkdownToDocument, renderDocument } = require('../../post-document');
@@ -197,7 +338,6 @@ class PublishSettingsOverlay {
 
         this.overlay.hide();
 
-        // Navigate back to front page
         if (this.mod.main) {
           setTimeout(() => {
             this.mod.main.render();
@@ -210,94 +350,85 @@ class PublishSettingsOverlay {
   }
 
   setAccessLevel(level) {
-    this.postState.accessLevel = level; // 'public' or 'private'
-
-    // Reset accessMode when switching to public
-    if (level === 'public') {
-      this.postState.accessMode = null;
-    } else if ((level === 'private' || level === 'subscription') && !this.postState.accessMode) {
-      // Default to transferable (Flexible) for private posts
-      this.postState.accessMode = 'transferable';
-    }
-
-    // Update checkbox card states
-    const accessCards = document.querySelectorAll('.stack-publish-access-card');
-
-    accessCards.forEach((card) => {
-      const cardValue = card.getAttribute('data-access');
-      const checkbox = card.querySelector('.stack-publish-access-checkbox');
-
-      if (cardValue === level) {
-        checkbox.checked = true;
-        card.classList.add('stack-publish-access-card-active');
-      } else {
-        checkbox.checked = false;
-        card.classList.remove('stack-publish-access-card-active');
-      }
-    });
-
-    // Update educational content in middle column
-    this.updateEducationalContent(level);
-
-    // Re-render to show/hide access type selector
-    this.render(this.postState);
-  }
-
-  /**
-   * Set access mode for private posts (transferable or non-transferable)
-   *
-   * @param {string} mode - 'transferable' | 'non-transferable'
-   */
-  setAccessMode(mode) {
-    if (this.postState.accessLevel !== 'private') {
-      return; // Only valid for private posts
-    }
-
-    if (mode !== 'transferable' && mode !== 'non-transferable') {
-      console.warn('Stack: Invalid access mode:', mode);
+    // Only reset when the access type actually changes
+    if (this.postState.accessLevel === level) {
       return;
     }
 
-    this.postState.accessMode = mode;
+    this.postState.accessLevel = level;
 
-    // Update radio button states
-    const radios = document.querySelectorAll('.stack-publish-access-type-radio');
-    radios.forEach((radio) => {
-      radio.checked = radio.value === mode;
-    });
+    if (level === 'public') {
+      this.postState.accessMode = null;
+    } else if ((level === 'private' || level === 'subscription') && !this.postState.accessMode) {
+      this.postState.accessMode = 'transferable';
+    }
+
+    // Changing access type always returns to step 1
+    this.wizardState.step = 1;
+    this.wizardState.hasAccessKey = null;
+    this.wizardState.isListedInStore = null;
+    this.wizardState.hasSaito = null;
+
+    this.render(this.postState, { preserveStep: true });
+  }
+
+  handleBack() {
+    if (this.wizardState.step <= 1) {
+      this.overlay.hide();
+      return;
+    }
+
+    this.wizardState.step -= 1;
+    this.renderStep('back');
+  }
+
+  async handleNext() {
+    const level = this.postState.accessLevel;
+    if (level !== 'private' && level !== 'subscription') {
+      return;
+    }
+
+    const nextStep = this.wizardState.step + 1;
+
+    // Resolve stubbed checks when entering the relevant steps
+    if (nextStep === 2) {
+      const keyState = await this.resolveAccessKeyState();
+      this.wizardState.hasSaito = keyState.hasSaito;
+      this.wizardState.hasAccessKey = keyState.hasAccessKey;
+    } else if (nextStep === 3) {
+      const listingState = await this.resolveStoreListingState();
+      this.wizardState.isListedInStore = listingState.isListedInStore;
+    }
+
+    this.wizardState.step = Math.min(nextStep, 4);
+    await this.renderStep('forward');
   }
 
   /**
-   * Update the educational content in the middle column based on access level
+   * Future: check wallet SAITO balance and whether an appropriate Access Key NFT exists.
+   * Until wired, returns unresolved stubs so the UI shows the create path.
+   *
+   * @returns {Promise<{ hasSaito: boolean|null, hasAccessKey: boolean|null }>}
    */
-  updateEducationalContent(level) {
-    const educationalContentEl = document.querySelector('#stack-publish-educational-content');
-    if (!educationalContentEl) return;
+  async resolveAccessKeyState() {
+    // Placeholder — connect wallet balance + NFT inventory here
+    return {
+      hasSaito: null,
+      hasAccessKey: null
+    };
+  }
 
-    let content = '';
-    switch (level) {
-      case 'public':
-        content =
-          'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
-        break;
-      case 'private':
-        content =
-          'This post will only be readable by people you explicitly grant access to.\nYou control who can see it.';
-        break;
-      case 'subscription':
-        content =
-          'This post will only be readable by people with an active subscription\n This option is under development.';
-        break;
-      default:
-        content =
-          'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
-    }
-
-    // Render as paragraphs for proper line breaks
-    educationalContentEl.innerHTML = content
-      .split('\n')
-      .map((line) => `<p>${line}</p>`)
-      .join('');
+  /**
+   * Future: check whether the Access Key NFT is already listed in the Saito Store.
+   * Until wired, returns unresolved stub so the UI offers listing.
+   *
+   * @returns {Promise<{ isListedInStore: boolean|null }>}
+   */
+  async resolveStoreListingState() {
+    // Placeholder — connect Store listing lookup here
+    return {
+      isListedInStore: null
+    };
   }
 
   async handlePublish() {
@@ -329,8 +460,6 @@ class PublishSettingsOverlay {
     // ========================================================================
     // VALIDATION GUARD: Prevent publishing empty posts (no title AND no content)
     // ========================================================================
-    // Block only if BOTH title and content are empty
-    // Allow publishing if EITHER title OR content exists
     const titleEmpty = !title.trim();
     const contentEmpty = !content.trim();
 
@@ -340,21 +469,17 @@ class PublishSettingsOverlay {
     }
 
     try {
-      // PART 2 — TRANSACTION CREATION CHANGE: Include parent_id if editing
-      // If editor.parent_id exists, this is an edit - include parent_id in transaction data
       const parent_id =
         this.mod.create_post_ui && this.mod.create_post_ui.parent_id
           ? this.mod.create_post_ui.parent_id
           : null;
 
-      // Show appropriate message based on whether this is an update or new publish
       if (parent_id) {
         siteMessage('Updating post...', 1500);
       } else {
         siteMessage('Publishing post...', 1500);
       }
 
-      // Capture draft ID and transaction reference before publishing
       const draftIdToDelete = this.mod.create_post_ui
         ? this.mod.create_post_ui.activeDraftId
         : null;
@@ -362,7 +487,6 @@ class PublishSettingsOverlay {
         ? this.mod.create_post_ui.draftTransaction
         : null;
 
-      // Get featured image from editor state (authoritative source)
       const featuredImage =
         this.mod.create_post_ui && this.mod.create_post_ui.featuredImage
           ? this.mod.create_post_ui.featuredImage
@@ -371,13 +495,10 @@ class PublishSettingsOverlay {
       // ========================================================================
       // PUBLISH INTENT: Generate normalized intent object from UI selection
       // ========================================================================
-      // UI expresses intent, Stack handles script generation
       const visibility = this.postState.accessLevel || 'public';
 
-      // Map UI state to publish intent
       let publishIntent;
       if (visibility === 'public') {
-        // Public: access_mode must be null
         publishIntent = {
           visibility: 'public',
           access_mode: null,
@@ -385,17 +506,22 @@ class PublishSettingsOverlay {
           author: this.mod.publicKey
         };
       } else if (visibility === 'private') {
-        // Private: map accessMode to access_mode
-        // Default to 'transferable' (Flexible) if not set
         const accessMode = this.postState.accessMode || 'transferable';
         publishIntent = {
           visibility: 'private',
-          access_mode: accessMode, // 'transferable' | 'non-transferable'
+          access_mode: accessMode,
+          time_limit: null,
+          author: this.mod.publicKey
+        };
+      } else if (visibility === 'subscription') {
+        const accessMode = this.postState.accessMode || 'transferable';
+        publishIntent = {
+          visibility: 'subscription',
+          access_mode: accessMode,
           time_limit: null,
           author: this.mod.publicKey
         };
       } else {
-        // Fallback (should not happen)
         publishIntent = {
           visibility: 'public',
           access_mode: null,
@@ -404,12 +530,11 @@ class PublishSettingsOverlay {
         };
       }
 
-      // Create and propagate the transaction
       const publishedTx = await this.mod.createStackPostTransaction(
         {
           title,
           content,
-          image: featuredImage, // Featured/teaser image (singular)
+          image: featuredImage,
           images: Array.isArray(this.mod.create_post_ui?.images)
             ? this.mod.create_post_ui.images
             : [],
@@ -419,32 +544,19 @@ class PublishSettingsOverlay {
           subscriptionTier: this.postState.accessLevel === 'public' ? 'free' : 'paid',
           excerpt:
             this.postState.description || content.substring(0, 200).replace(/\n/g, ' ').trim(),
-          publishIntent: publishIntent, // Normalized intent object
-          accessLevel: this.postState.accessLevel, // Legacy: kept for backward compatibility
-          parent_id: parent_id // Include parent_id if editing (null for new posts)
+          publishIntent: publishIntent,
+          accessLevel: this.postState.accessLevel,
+          parent_id: parent_id
         },
         () => {
-          // This callback runs after network confirmation (may take time)
-          // State is already cleaned up below, this is just for final sync
           this.postState.published = true;
         }
       );
 
-      // ========================================================================
-      // OPTIMISTIC UPDATE: Apply immediate UI update for edits
-      // ========================================================================
-      // For edits (parent_id exists), apply optimistic update for immediate feedback
-      // New posts don't need this - they appear immediately via cache update below
       if (parent_id && this.mod.applyOptimisticPostUpdate) {
         this.mod.applyOptimisticPostUpdate(publishedTx);
       }
 
-      // ========================================================================
-      // OPTIMISTIC CACHE UPDATE: Add post to postsCache immediately
-      // ========================================================================
-      // Add to cache so it appears in Explore → My Posts immediately
-      // receiveStackPostTransaction will handle this again on confirmation, but
-      // it checks for duplicates, so it's safe to add optimistically here
       if (publishedTx && publishedTx.signature) {
         const txmsg = publishedTx.returnMessage();
         const from =
@@ -453,25 +565,19 @@ class PublishSettingsOverlay {
             : this.mod.publicKey;
 
         if (txmsg && txmsg.data && from) {
-          // ISSUE 2 — DUPLICATE POSTS AFTER EDITING: Remove old versions before adding new one
-          // Compute logical post ID for this transaction using canonical helper
           const incomingLogicalPostId = this.mod.getLogicalPostId(publishedTx);
-
-          // Extract parent_id from transaction message data (source of truth)
           const postParentId = txmsg.data.parent_id || null;
 
-          // Remove older versions of the same logical post from cache
           if (this.mod.postsCache) {
-            // Remove from allPosts: filter out posts that belong to the same logical post
             if (this.mod.postsCache.allPosts) {
               try {
                 this.mod.postsCache.allPosts = this.mod.postsCache.allPosts.filter((p) => {
-                  if (!p) return false; // Skip null/undefined entries
+                  if (!p) return false;
                   try {
                     return this.mod.getLogicalPostIdFromPost(p) !== incomingLogicalPostId;
                   } catch (err) {
                     console.warn('Stack: Error filtering post from allPosts cache:', err);
-                    return true; // Keep entry if we can't process it (safer than removing)
+                    return true;
                   }
                 });
               } catch (err) {
@@ -479,17 +585,16 @@ class PublishSettingsOverlay {
               }
             }
 
-            // Remove from byAuthor cache
             if (this.mod.postsCache.byAuthor && this.mod.postsCache.byAuthor.has(from)) {
               try {
                 const authorPosts = this.mod.postsCache.byAuthor.get(from);
                 const filteredAuthorPosts = authorPosts.filter((p) => {
-                  if (!p) return false; // Skip null/undefined entries
+                  if (!p) return false;
                   try {
                     return this.mod.getLogicalPostIdFromPost(p) !== incomingLogicalPostId;
                   } catch (err) {
                     console.warn('Stack: Error filtering post from byAuthor cache:', err);
-                    return true; // Keep entry if we can't process it (safer than removing)
+                    return true;
                   }
                 });
                 this.mod.postsCache.byAuthor.set(from, filteredAuthorPosts);
@@ -505,13 +610,11 @@ class PublishSettingsOverlay {
             publicKey: from,
             timestamp: txmsg.data.timestamp || publishedTx.timestamp,
             lastEdited: txmsg.data.timestamp || publishedTx.timestamp,
-            parent_id: postParentId // Store parent_id from transaction data
+            parent_id: postParentId
           };
 
-          // Add to transactionCache for immediate access
           this.mod.transactionCache[publishedTx.signature] = publishedTx;
 
-          // Add to allPosts (check for duplicates first)
           if (this.mod.postsCache && this.mod.postsCache.allPosts) {
             const existingIndex = this.mod.postsCache.allPosts.findIndex(
               (p) => p.sig === publishedTx.signature
@@ -519,12 +622,10 @@ class PublishSettingsOverlay {
             if (existingIndex < 0) {
               this.mod.postsCache.allPosts.push(post);
             } else {
-              // Update existing entry
               this.mod.postsCache.allPosts[existingIndex] = post;
             }
           }
 
-          // Add to byAuthor cache (check for duplicates first)
           if (this.mod.postsCache && this.mod.postsCache.byAuthor) {
             if (!this.mod.postsCache.byAuthor.has(from)) {
               this.mod.postsCache.byAuthor.set(from, []);
@@ -534,26 +635,18 @@ class PublishSettingsOverlay {
             if (existingIndex < 0) {
               authorPosts.push(post);
             } else {
-              // Update existing entry
               authorPosts[existingIndex] = post;
             }
           }
         }
       }
 
-      // ========================================================================
-      // PUBLISH CONSUMES DRAFT: Delete draft immediately after broadcasting
-      // ========================================================================
-      // [DRAFT-CHECK] Log draft deletion on publish
       console.log('[DRAFT-CHECK] Publishing post - deleting draft:', draftIdToDelete || 'N/A');
 
       if (draftIdToDelete && this.mod.deleteDraft) {
-        // Delete from archive and refresh in-memory draft list
         const deleted = await this.mod.deleteDraft(draftIdToDelete);
         console.log('[DRAFT-CHECK] Draft deleted from archive and memory:', deleted);
-        // After deletion, draft will not be returned by hasValidDrafts()
       } else if (draftTxToDelete) {
-        // Fallback: delete by transaction if we have it but no draftId
         try {
           await this.app.storage.deleteTransaction(draftTxToDelete, null, 'localhost');
           if (this.mod.refreshDrafts) {
@@ -565,9 +658,6 @@ class PublishSettingsOverlay {
         }
       }
 
-      // ========================================================================
-      // CLEAR SESSION-SCOPED DRAFT STATE
-      // ========================================================================
       if (this.mod.create_post_ui) {
         this.mod.create_post_ui.activeDraftId = null;
         this.mod.create_post_ui.draftTransaction = null;
@@ -575,13 +665,8 @@ class PublishSettingsOverlay {
         this.mod.create_post_ui.isPublished = true;
       }
 
-      // Hide overlay
       this.overlay.hide();
 
-      // ========================================================================
-      // IMMEDIATE TRANSITION TO VIEW POST
-      // ========================================================================
-      // Unmount editor before navigating to viewer
       if (
         this.mod.create_post_ui &&
         typeof this.mod.create_post_ui.onEditorUnmount === 'function'
@@ -589,16 +674,13 @@ class PublishSettingsOverlay {
         this.mod.create_post_ui.onEditorUnmount();
       }
 
-      // Initialize ViewPost component if needed
       if (!this.mod.viewPostComponent) {
         const ViewPost = require('../view-post');
         this.mod.viewPostComponent = new ViewPost(this.app, this.mod, '.saito-container');
       }
 
-      // Render View Post with the just-broadcast transaction
       this.mod.viewPostComponent.render(publishedTx);
 
-      // Update URL to reflect the published post
       if (publishedTx && publishedTx.signature) {
         const authorPublicKey = this.mod.publicKey;
         if (authorPublicKey) {
@@ -611,8 +693,6 @@ class PublishSettingsOverlay {
         }
       }
 
-      // Success message - use appropriate message based on whether this is an update or new publish
-      // Extract parent_id from transaction data (source of truth)
       const finalParentId = publishedTx
         ? publishedTx.returnMessage()?.data?.parent_id || null
         : null;
@@ -623,7 +703,6 @@ class PublishSettingsOverlay {
       }
     } catch (error) {
       console.error('Error publishing post:', error);
-      // Check parent_id again in error handler to determine appropriate message
       const parent_id =
         this.mod.create_post_ui && this.mod.create_post_ui.parent_id
           ? this.mod.create_post_ui.parent_id
@@ -638,7 +717,6 @@ class PublishSettingsOverlay {
   }
 
   handleViewPreview() {
-    // Close this overlay and open preview overlay
     this.overlay.hide();
     if (this.mod.previewOverlay) {
       this.mod.previewOverlay.render();

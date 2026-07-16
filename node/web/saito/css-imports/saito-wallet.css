@@ -717,17 +717,46 @@
     add nft utxo overlay
 */
 
-.create-nft-container,
-.nft-list-container {
+.create-nft-container {
   display: flex;
   flex-direction: column;
   gap: 2rem;
   padding: 2rem;
   min-width: 60rem;
+  justify-content: space-between;
 }
 
-.create-nft-container {
-  justify-content: space-between;
+.nft-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  width: 85vw;
+  height: 85vh;
+}
+
+/* Let the NFT list fill the taller browser overlay */
+.nft-list-container .nft-page,
+.nft-list-container .nft-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nft-list-container .send-nft-list {
+  max-height: none;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.nft-list-container .nft-list-instructions {
+  flex-shrink: 0;
+}
+
+.nft-list-container .instructions {
+  opacity: 0.8;
+  line-height: 1.5;
 }
 
 .nft-list {
@@ -880,12 +909,16 @@ textarea {
 }
 
 .create-nft-type-dropdown {
-  width: 12rem;
+  width: auto;
   color: var(--saito-font-color);
   background: var(--saito-background-color);
   padding: 0.5rem;
   border-radius: 0.5rem;
   font-size: 1.4rem;
+}
+
+.withdraw-info-cont:has(.create-nft-type-dropdown) {
+  text-align: left;
 }
 
 .create-nft-textarea {
@@ -1259,10 +1292,14 @@ nft cards
   }
 
   /* NFT */
-  .nft-list-container,
   .create-nft-container {
     width: 95vw;
     min-width: auto;
+  }
+
+  .nft-list-container {
+    width: 95vw;
+    height: 85vh;
   }
 
   .send-nft-list {

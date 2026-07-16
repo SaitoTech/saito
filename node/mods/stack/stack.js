@@ -1295,14 +1295,15 @@ class Stack extends ModTemplate {
   // Local State Management //
   ////////////////////////////
   /**
-   * Load persistent local UX state from app.options
-   * Initializes app.options.stack if it doesn't exist
-   * This is CLIENT-SIDE STATE ONLY - not authoritative
+   * Load persistent local UX state from app.options.
+   * Initializes app.options.stack defaults if they do not already exist.
+   * This is CLIENT-SIDE STATE ONLY - not authoritative.
    *
    * Structure:
    * app.options.stack = {
    *   posts: [ { sig, publicKey, timestamp, lastEdited, status } ],  // Lightweight references only
-   *   subscriptions: [ { publicKey, addedAt } ]  // List of subscribed creator publicKeys
+   *   subscriptions: [ { publicKey, addedAt } ],  // List of subscribed creator publicKeys
+   *   has_created_keys: false  // Whether user has created Stack access / subscription keys
    * }
    */
   load() {
@@ -1314,6 +1315,9 @@ class Stack extends ModTemplate {
     }
     if (!this.app.options.stack.subscriptions) {
       this.app.options.stack.subscriptions = [];
+    }
+    if (this.app.options.stack.has_created_keys === undefined) {
+      this.app.options.stack.has_created_keys = false;
     }
     // Note: app.options.stack is lightweight - no post bodies, images, or heavy data
     // Full post content must be loaded from archive transactions when needed

@@ -13,6 +13,7 @@ module.exports = (ui) => {
           </div>
       </div>
 
+      <div id="nft-list-instructions" class="nft-list-instructions"></div>
 
     </div>
   `;

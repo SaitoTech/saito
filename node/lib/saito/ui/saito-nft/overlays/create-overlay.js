@@ -10,18 +10,38 @@ class CreateNFT {
     this.nft_type = null;
     this.module_provided_nfts = [];
     this.file = null;
-    this.app.connection.on('saito-nft-create-render-request', () => {
+    // Dialog API state (optional data + single result callback)
+    this.data = null;
+    this.callback = null;
+    this.result = null;
+    this._resultDelivered = false;
+    this.app.connection.on('saito-nft-create-render-request', (options = {}) => {
       this.image = null;
-      this.render();
+      this.render(options);
     });
     this.enable_deposit = false;
   }
 
-  async render() {
+  /**
+   * Open the Create NFT overlay.
+   *
+   * @param {object} [options]
+   * @param {object} [options.data] - optional pre-populate values (type, title, ...)
+   * @param {function} [options.callback] - called once when the dialog finishes
+   */
+  async render(options = {}) {
+    this.data = options && typeof options === 'object' ? options.data || null : null;
+    this.callback =
+      options && typeof options.callback === 'function' ? options.callback : null;
+    this.result = null;
+    this._resultDelivered = false;
+
     this.reset();
     this.module_provided_nfts = [];
 
-    this.overlay.show(CreateNFTTemplate(this.app, this.mod, this));
+    this.overlay.show(CreateNFTTemplate(this.app, this.mod, this), () => {
+      this.deliverResult();
+    });
 
     for (const nft_mod of this.app.modules.respondTo('saito-create-nft', this.mod)) {
       let obj = nft_mod.respondTo('saito-create-nft', this.mod);
@@ -38,7 +58,6 @@ class CreateNFT {
         for (let z = 0; z < this.module_provided_nfts.length; z++) {
           let obj = this.module_provided_nfts[z];
           if (obj.title) {
-            let x = `<option value="${obj.class}">${obj.title}</option>`;
             let y = document.querySelector('#create-nft-type-dropdown');
             if (y) {
               const opt = document.createElement('option');
@@ -53,7 +72,46 @@ class CreateNFT {
       }
 
       this.attachEvents();
+      this.setDefaults();
     }, 0);
+  }
+
+  /**
+   * Apply optional pre-populate data. Sole consumer of this.data.
+   * Initially only selects NFT type and dispatches change for existing UI logic.
+   */
+  setDefaults() {
+    const data = this.data;
+    if (!data || typeof data !== 'object') {
+      return;
+    }
+
+    if (data.type != null && data.type !== '') {
+      const dropdown = document.querySelector('#create-nft-type-dropdown');
+      if (dropdown) {
+        dropdown.value = data.type;
+        dropdown.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    // Future: title, description, image, quantity, deposit
+  }
+
+  /**
+   * Invoke the dialog callback exactly once with the final result.
+   */
+  deliverResult() {
+    if (this._resultDelivered) {
+      return;
+    }
+    this._resultDelivered = true;
+
+    const cb = this.callback;
+    this.callback = null;
+
+    if (typeof cb === 'function') {
+      cb(this.result || { status: 'cancelled' });
+    }
   }
 
   async createObject() {
@@ -429,21 +487,35 @@ class CreateNFT {
         tx_msg.description = description;
       }
 
-      this.overlay.close();
-
+      // Mint before close so deliverResult can report "created" (not "cancelled")
       siteMessage('Minting NFT...', 3000);
 
-      let publickey = await this.app.wallet.getPublicKey();
-      let newtx = await this.app.wallet.createMintNFTTransaction(
-        BigInt(numNFT),
-        depositAmt,
-        tx_msg,
-        fee,
-        publickey,
-        this.nft_type
-      );
-      await newtx.sign();
-      await this.app.network.propagateTransaction(newtx);
+      try {
+        let publickey = await this.app.wallet.getPublicKey();
+        let newtx = await this.app.wallet.createMintNFTTransaction(
+          BigInt(numNFT),
+          depositAmt,
+          tx_msg,
+          fee,
+          publickey,
+          this.nft_type
+        );
+        await newtx.sign();
+        await this.app.network.propagateTransaction(newtx);
+
+        this.result = {
+          status: 'created',
+          tx: newtx,
+          signature: newtx.signature,
+          nft_id: this.app.wallet.computeNFTIdFromTx(newtx)
+        };
+      } catch (err) {
+        console.error('CreateNFT: mint failed', err);
+        siteMessage('Failed to mint NFT. Please try again.', 3000);
+        return;
+      }
+
+      this.overlay.close();
     };
   }
 
