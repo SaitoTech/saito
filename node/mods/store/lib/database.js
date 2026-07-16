@@ -387,25 +387,45 @@ class Database {
 	// --- summary (derived market aggregate) ---
 
 	async insertSummary(summary) {
-		await this.app.storage.runDatabase(
-			`INSERT INTO summary (
+		// TEMPORARY DIAGNOSTIC — remove after listing/summary null root cause is identified.
+		// Bypasses runDatabase so SQLite errors are visible (runDatabase swallows them).
+		const sql = `INSERT INTO summary (
 			  nft_id, price, title, description, image,
 			  quantity_available, updated_at
 			) VALUES (
 			  $nft_id, $price, $title, $description, $image,
 			  $quantity_available, $updated_at
-			)`,
-			{
-				$nft_id: summary.nft_id,
-				$price: Number(summary.price ?? 0),
-				$title: summary.title || '',
-				$description: summary.description || '',
-				$image: summary.image ?? null,
-				$quantity_available: Number(summary.quantity_available ?? 0),
-				$updated_at: summary.updated_at ?? Date.now()
-			},
-			this.dbname
-		);
+			)`;
+		const params = {
+			$nft_id: summary.nft_id,
+			$price: Number(summary.price ?? 0),
+			$title: summary.title || '',
+			$description: summary.description || '',
+			$image: summary.image ?? null,
+			$quantity_available: Number(summary.quantity_available ?? 0),
+			$updated_at: summary.updated_at ?? Date.now()
+		};
+
+		try {
+			const db = await this.app.storage.returnDatabaseByName(this.dbname);
+			const result = await db.run(sql, params);
+			console.error('Store DEBUG insertSummary OK', {
+				nft_id: params.$nft_id,
+				price: params.$price,
+				changes: result?.changes,
+				lastID: result?.lastID
+			});
+		} catch (err) {
+			console.error('Store DEBUG insertSummary FAILED', {
+				SQL: sql,
+				params,
+				error: err?.message || err
+			});
+			console.error(err);
+		}
+
+		const after = await this.returnSummaryByBucket(summary.nft_id, summary.price);
+		console.error('Store DEBUG insertSummary re-read returnSummaryByBucket', after);
 	}
 
 	async returnSummary(summary_id) {

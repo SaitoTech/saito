@@ -285,6 +285,7 @@ class NFTOverlay {
     let send_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
     let enable_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
     let disable_btn = document.querySelector('.saito-nft-footer-btn.disable-nft');
+    let sell_btn = document.querySelector('.saito-nft-footer-btn.sell-nft');
 
     //
     // contextual confirm buttons
@@ -515,6 +516,27 @@ class NFTOverlay {
         salert('NFT Disabled for Next Reload');
         this.app.storage.saveOptions();
         this.render();
+      };
+    }
+
+    //
+    // Sell on Store
+    //
+    const seller = this.app.modules.returnFirstRespondTo('saito-sell-nft');
+    if (sell_btn && seller) {
+      sell_btn.style.display = 'flex';
+      sell_btn.onclick = (e) => {
+        seller.render({
+          nft: this.nft,
+          callback: (obj) => {
+            if (obj.status === 'listed') {
+              this.overlay.close();
+              if (document.querySelector('.nft-list-container')) {
+                this.app.connection.emit('saito-nft-list-render-request');
+              }
+            }
+          }
+        });
       };
     }
   }

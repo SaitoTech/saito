@@ -87,7 +87,7 @@ module.exports = {
 		let newtx = await this.app.wallet.createNFTTransaction(
 			nft,
 			slip_public_key,
-			nft.amount ,
+			listing.quantity_total ?? nft.amount,
 			BigInt(0),
 			BigInt(0),
 			txmsg

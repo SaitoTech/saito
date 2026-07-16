@@ -100,13 +100,18 @@ class ListingOverlay {
 	async renderSelectMode() {
 		this.mode = 'select';
 		this.selectedNft = null;
-		this.overlay.show(ListingTemplate.selectTemplate());
+		this.overlay.show(ListingTemplate.selectTemplate(), () => {
+			if (typeof this.defaults?.callback === 'function') {
+				this.defaults.callback({ status: 'cancelled' });
+			}
+		});
 		await this.renderNftGrid();
 		this.attachSelectEvents();
 	}
 
 	async renderNftGrid() {
 		const container = document.querySelector('#store-listing-nft-list');
+		const instructionsEl = document.querySelector('#store-listing-nft-instructions');
 		if (!container) {
 			return;
 		}
@@ -118,12 +123,18 @@ class ListingOverlay {
 		container.innerHTML = '';
 
 		if (!nft_list.length) {
-			container.innerHTML = `
-        <div class="store-listing-empty">
-          You do not have any NFTs in your wallet yet.
-        </div>
-      `;
+			if (instructionsEl) {
+				instructionsEl.innerHTML = `
+          <div class="instructions">
+            You do not have any NFTs in your wallet yet.
+          </div>
+        `;
+			}
 			return;
+		}
+
+		if (instructionsEl) {
+			instructionsEl.innerHTML = '';
 		}
 
 		for (const rec of nft_list) {
@@ -145,8 +156,18 @@ class ListingOverlay {
 	async onNftSelected(nft) {
 		this.selectedNft = nft?.nft || nft;
 
-		if (this.selectedNft && !this.selectedNft.tx_fetched) {
-			await this.selectedNft.fetchTransaction();
+		if (this.selectedNft && (!this.selectedNft.tx_fetched || !this.selectedNft.image)) {
+			await new Promise((resolve) => {
+				let settled = false;
+				const finish = () => {
+					if (!settled) {
+						settled = true;
+						resolve();
+					}
+				};
+				this.selectedNft.fetchTransaction(finish);
+				setTimeout(finish, 5000);
+			});
 		}
 
 		this.resetListingFromNft(this.selectedNft);
@@ -156,8 +177,13 @@ class ListingOverlay {
 	renderConfigureMode() {
 		this.mode = 'configure';
 		const view = this.returnConfigureView(this.selectedNft);
-		this.overlay.show(ListingTemplate.configureTemplate(view));
+		this.overlay.show(ListingTemplate.configureTemplate(view), () => {
+			if (typeof this.defaults?.callback === 'function') {
+				this.defaults.callback({ status: 'cancelled' });
+			}
+		});
 		this.attachConfigureEvents();
+		this.setDefaults();
 	}
 
 	attachSelectEvents() {
@@ -189,6 +215,9 @@ class ListingOverlay {
 		if (editDesc) {
 			editDesc.onclick = (e) => {
 				e.preventDefault();
+				if (this.defaults?.locked?.includes('description')) {
+					return;
+				}
 				const next = prompt('Listing description', this.listing.description);
 				if (next !== null) {
 					this.listing.description = next.trim();
@@ -202,6 +231,9 @@ class ListingOverlay {
 		if (editPrice) {
 			editPrice.onclick = (e) => {
 				e.preventDefault();
+				if (this.defaults?.locked?.includes('price')) {
+					return;
+				}
 				const next = prompt('Price in SAITO', this.listing.price);
 				if (next !== null && next.trim()) {
 					const cleaned = next.trim().replace(/[^\d.]/g, '');
@@ -217,6 +249,9 @@ class ListingOverlay {
 		if (editAvailable) {
 			editAvailable.onclick = (e) => {
 				e.preventDefault();
+				if (this.defaults?.locked?.includes('quantity')) {
+					return;
+				}
 				const next = prompt(
 					`Available quantity (max ${this.max_quantity_total})`,
 					String(this.listing.quantity_total)
@@ -249,7 +284,13 @@ class ListingOverlay {
 		try {
 			const tx = await this.mod.createListAssetTransaction(this.selectedNft, this.listing);
 			await this.app.network.propagateTransaction(tx);
-			alert('Listing submitted');
+			if (typeof this.defaults?.callback === 'function') {
+				this.defaults.callback({
+					status: 'listed',
+					tx: tx
+				});
+				this.defaults.callback = null;
+			}
 			this.overlay.close();
 		} catch (err) {
 			console.error('Store: listing failed', err);
@@ -257,8 +298,66 @@ class ListingOverlay {
 		}
 	}
 
-	render() {
-		this.renderSelectMode();
+	setDefaults() {
+		if (this.defaults?.price) {
+			this.listing.price = String(this.defaults.price);
+			const priceEl = document.querySelector('#store-listing-price-text');
+			if (priceEl) {
+				priceEl.textContent = `${this.listing.price} SAITO`;
+			}
+			if (this.defaults.locked?.includes('price')) {
+				const affordance = document.querySelector('#store-listing-edit-price');
+				if (affordance) {
+					affordance.style.display = 'none';
+				}
+			}
+		}
+
+		if (this.defaults?.quantity) {
+			let qty = parseInt(this.defaults.quantity, 10);
+			if (!Number.isFinite(qty) || qty < 1) {
+				qty = 1;
+			}
+			if (qty > this.max_quantity_total) {
+				qty = this.max_quantity_total;
+			}
+			this.listing.quantity_total = qty;
+			this.listing.quantity_available = qty;
+			const qtyEl = document.querySelector('#store-listing-available-text');
+			if (qtyEl) {
+				qtyEl.textContent = String(qty);
+			}
+			if (this.defaults.locked?.includes('quantity')) {
+				const affordance = document.querySelector('#store-listing-edit-available');
+				if (affordance) {
+					affordance.style.display = 'none';
+				}
+			}
+		}
+
+		if (this.defaults?.description) {
+			this.listing.description = String(this.defaults.description);
+			const descEl = document.querySelector('#store-listing-desc-text');
+			if (descEl) {
+				descEl.textContent = this.listing.description || 'No description provided';
+			}
+			if (this.defaults.locked?.includes('description')) {
+				const affordance = document.querySelector('#store-listing-edit-desc');
+				if (affordance) {
+					affordance.style.display = 'none';
+				}
+			}
+		}
+	}
+
+	render(defaults = {}) {
+		this.defaults = defaults;
+
+		if (this.defaults?.nft) {
+			this.onNftSelected(this.defaults.nft);
+		} else {
+			this.renderSelectMode();
+		}
 	}
 }
 

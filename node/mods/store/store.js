@@ -113,6 +113,31 @@ class Store extends ModTemplate {
 		return super.handlePeerTransaction(app, tx, peer, mycallback);
 	}
 
+	respondTo(type = '') {
+		if (type === 'saito-sell-nft') {
+			return {
+				render: (defaults = {}) => {
+					if (!this.listing_overlay) {
+						if (this.main?.listing_overlay) {
+							this.listing_overlay = this.main.listing_overlay;
+						} else {
+							const ListingOverlay = require('./lib/ui/overlays/listing');
+							this.listing_overlay = new ListingOverlay(this.app, this);
+						}
+					}
+
+					if (this.app.BROWSER && typeof this.attachStyleSheets === 'function') {
+						this.attachStyleSheets();
+					}
+
+					this.listing_overlay.render(defaults);
+				}
+			};
+		}
+
+		return super.respondTo(type);
+	}
+
 	async render() {
 		if (!this.browser_active || !this.main) {
 			return;

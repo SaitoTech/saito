@@ -255,6 +255,60 @@ class PublishSettingsOverlay {
       };
     }
 
+    const listKeysLink = document.querySelector('#stack-list-access-key-link');
+    if (listKeysLink) {
+      listKeysLink.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const seller = this.app.modules.returnFirstRespondTo('saito-sell-nft');
+        if (!seller) {
+          return;
+        }
+
+        const nftList = this.app.options.wallet.nfts || [];
+        let rec = null;
+        for (const r of nftList) {
+          const nftType = this.app.wallet.extractNFTType(r.slip3?.utxo_key || '');
+          if (nftType !== 'stack') {
+            continue;
+          }
+          if (this.wizardState.pendingNftSignature && r.tx_sig === this.wizardState.pendingNftSignature) {
+            rec = r;
+            break;
+          }
+          if (this.wizardState.pendingNftId && r.id === this.wizardState.pendingNftId) {
+            rec = r;
+            break;
+          }
+          const creator = r.slip1?.public_key || '';
+          if (creator === this.mod.publicKey) {
+            rec = r;
+            break;
+          }
+        }
+        if (!rec) {
+          return;
+        }
+
+        const SaitoNFT = require('../../../../../lib/saito/ui/saito-nft/saito-nft');
+        const access_key_nft = new SaitoNFT(this.app, this.mod, null, rec);
+        const total =
+          Number(access_key_nft.getTotalAmount?.() || access_key_nft.amount || rec.amount || 1) || 1;
+
+        seller.render({
+          nft: access_key_nft,
+          quantity: Math.max(1, total - 1),
+          callback: (result) => {
+            if (result?.status === 'listed') {
+              this.wizardState.isListedInStore = true;
+              this.render(this.postState, { preserveStep: true });
+            }
+          }
+        });
+      };
+    }
+
     const tokensLink = document.querySelector('#stack-publish-tokens-link');
     if (tokensLink) {
       tokensLink.onclick = (e) => {
@@ -397,7 +451,7 @@ class PublishSettingsOverlay {
    * Open the shared Create NFT dialog with Stack Access type pre-selected.
    * Prefers the header-owned instance so we do not register a second event listener.
    */
-  openCreateNft() {
+  async openCreateNft() {
     let createNft =
       this.mod.header &&
       this.mod.header.select_nft_overlay &&
@@ -411,15 +465,42 @@ class PublishSettingsOverlay {
       createNft = this.createNftOverlay;
     }
 
-    const DREAMSCAPE = '/saito/img/dreamscape.png';
     const username =
       this.app.keychain.returnUsername(this.mod.publicKey) || 'this author';
 
-    createNft.render({
+    let wallet_balance = await this.app.wallet.getBalance('SAITO');
+    let quantity = 1;
+    if (Number(wallet_balance) > 100) {
+      quantity = 100;
+    } else if (Number(wallet_balance) > 10) {
+      quantity = 10;
+    }
+    this.wizardState.createQuantity = quantity;
+
+    let image;
+    try {
+      const imgPath =
+        this.postState.accessLevel === 'subscription'
+          ? '/stack/img/saito-stack-subscription.png'
+          : '/stack/img/saito-stack-access-key.png';
+      const response = await fetch(imgPath);
+      if (response.ok) {
+        const blob = await response.blob();
+        image = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch (err) {}
+
+    const defaults = {
       type: 'stack',
       title: 'Stack Access Key',
       description: `This NFT provides read-access to ${username}'s posts on Saito Stack.`,
-      image: DREAMSCAPE,
+      quantity: quantity,
+      deposit: quantity,
       locked: ['type'],
       callback: (obj) => {
         if (obj?.status === 'created') {
@@ -435,7 +516,12 @@ class PublishSettingsOverlay {
           this.render(this.postState, { preserveStep: true });
         }
       }
-    });
+    };
+    if (image) {
+      defaults.image = image;
+    }
+
+    createNft.render(defaults);
   }
 
   handleDeleteDraft() {
@@ -524,6 +610,7 @@ class PublishSettingsOverlay {
     this.wizardState.createNftStatus = null;
     this.wizardState.pendingNftId = null;
     this.wizardState.pendingNftSignature = null;
+    this.wizardState.createQuantity = null;
 
     this.render(this.postState, { preserveStep: true });
   }
@@ -566,18 +653,24 @@ class PublishSettingsOverlay {
 
     const nextStep = this.wizardState.step + 1;
 
-    // Resolve stubbed checks when entering the relevant steps
+    // Resolve checks when entering panel 2
     if (nextStep === 2) {
       const keyState = await this.resolveAccessKeyState();
       this.wizardState.hasSaito = keyState.hasSaito;
       this.wizardState.hasAccessKey = keyState.hasAccessKey;
       this.wizardState.createNftStatus = null;
-    } else if (nextStep === 3) {
-      const listingState = await this.resolveStoreListingState();
-      this.wizardState.isListedInStore = listingState.isListedInStore;
+
+      let wallet_balance = await this.app.wallet.getBalance('SAITO');
+      let quantity = 1;
+      if (Number(wallet_balance) > 100) {
+        quantity = 100;
+      } else if (Number(wallet_balance) > 10) {
+        quantity = 10;
+      }
+      this.wizardState.createQuantity = quantity;
     }
 
-    this.wizardState.step = Math.min(nextStep, 4);
+    this.wizardState.step = Math.min(nextStep, 2);
     await this.renderStep('forward');
   }
 

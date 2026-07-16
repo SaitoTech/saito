@@ -61,6 +61,7 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
     if (step === 2) {
       if (isPrivate || isSubscription) {
         const checklistSecondLabel = isWaiting ? `${keyLabel} Created` : `${keysLabel} Created`;
+        const createQuantity = wizardState.createQuantity || 1;
         const checklistHtml = `
           <div class="stack-publish-checklist stack-publish-checklist-matrix">
             <div class="stack-publish-check-row stack-publish-check-row-complete">
@@ -71,6 +72,16 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
               <span class="stack-publish-check-mark">${hasAccessKey ? '✓' : '○'}</span>
               <span>${checklistSecondLabel}</span>
             </div>
+            ${
+              isListedInStore
+                ? `
+            <div class="stack-publish-check-row stack-publish-check-row-complete">
+              <span class="stack-publish-check-mark">✓</span>
+              <span>${keysLabel} Listed</span>
+            </div>
+                `
+                : ''
+            }
           </div>
         `;
 
@@ -97,15 +108,30 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
           };
         }
 
+        if (isListedInStore) {
+          return {
+            title: '',
+            body: `
+              ${checklistHtml}
+              <div class="stack-publish-followup-state">
+                <p>Your listing should become active within a minute or two once the blockchain confirms it.</p>
+                <p>Go ahead and publish your post.</p>
+              </div>
+            `
+          };
+        }
+
         if (isConfirmed) {
           return {
             title: '',
             body: `
               ${checklistHtml}
               <div class="stack-publish-followup-state">
-                <p class="stack-publish-success-title">✓ ${keysLabel} Created</p>
                 <p>Your ${keysLabel} are now available in your wallet.</p>
                 <p>You can now publish your post or list your ${keysLabel} on the Saito Store.</p>
+                <p>
+                  <span id="stack-list-access-key-link" class="saito-anchor stack-publish-inline-link"><span>Click here to list your ${keysLabel} on the Saito Store.</span></span>
+                </p>
               </div>
             `
           };
@@ -130,18 +156,17 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
                     <div class="stack-publish-followup-state">
                       <p>Want more readers?</p>
                       <p>
-                        <span class="saito-anchor stack-publish-inline-link"><span>Click here to list your ${keysLabel} on the Saito Store.</span></span>
+                        <span id="stack-list-access-key-link" class="saito-anchor stack-publish-inline-link"><span>Click here to list your ${keysLabel} on the Saito Store.</span></span>
                       </p>
                     </div>
                   `
                   : `
                     <div class="stack-publish-followup-state">
-                      <p>Your wallet does not contain any ${keyLabel} that will allow YOU to read this post after it is published.</p>
-                      <p>If you have not already created one,</p>
+                      <p>Your readers will need ${isSubscription ? 'a Subscription Key' : 'an Access Key'} to read your post.</p>
                       <p>
                         <span id="stack-create-access-key-link" class="saito-anchor stack-publish-inline-link stack-publish-inline-link-strong"><span>CLICK HERE</span></span>
                       </p>
-                      <p>and we'll take care of it right now.</p>
+                      <p>and we'll create ${createQuantity} right now.</p>
                     </div>
                   `
             }
@@ -158,32 +183,9 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
       };
     }
 
-    if (step === 3) {
-      if (isListedInStore) {
-        return {
-          title: 'Store Listing',
-          body: `
-            <p>Your ${keyLabel} is already listed in the Saito Store.</p>
-            <p>Continue to publish your article.</p>
-          `
-        };
-      }
-      return {
-        title: 'Store Listing',
-        body: `
-          <p>List your ${keyLabel} in the Saito Store so readers can find it.</p>
-          <p>You can skip this and list it later if you prefer.</p>
-        `
-      };
-    }
-
-    // Step 4 — ready to publish
     return {
-      title: 'Ready to publish',
-      body: `
-        <p>Your access setup looks good.</p>
-        <p>Publish when you're ready.</p>
-      `
+      title: '',
+      body: ``
     };
   };
 
@@ -192,7 +194,7 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
   let primaryLabel = publishButtonText;
   let primaryAction = 'publish';
   if (isRestricted) {
-    if (step < 4) {
+    if (step < 2) {
       primaryLabel = 'Next →';
       primaryAction = 'next';
     } else {

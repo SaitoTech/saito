@@ -8,6 +8,7 @@ module.exports = {
       </div>
       <div class="store-listing-select-body hide-scrollbar">
         <div id="store-listing-nft-list" class="send-nft-list store-listing-nft-grid"></div>
+        <div id="store-listing-nft-instructions" class="nft-list-instructions"></div>
       </div>
     </div>
   `;
