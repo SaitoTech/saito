@@ -212,10 +212,13 @@ class SaitoOverlay {
   close() {
     if (this.callback_on_close) {
       this.callback_on_close();
-      this.callback_on_close = null;
     }
 
+    // avoid multi-trigger for callback_on_close
+    let x = this.callback_on_close;
+    this.callback_on_close = null;
     this.hide();
+    x = this.callback_on_close = x;
 
     if (this.removeOnClose) {
       this.remove();
@@ -230,8 +233,6 @@ class SaitoOverlay {
       return;
     }
 
-    // Bro, it is callback_on_close, not callback_on_hide...
-    // use the API correctly, instead of changing component behavior
     if (this.callback_on_close != null) {
       this.callback_on_close();
     }

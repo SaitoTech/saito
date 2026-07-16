@@ -21,7 +21,10 @@ class PublishSettingsOverlay {
       step: 1,
       hasSaito: null,
       hasAccessKey: null,
-      isListedInStore: null
+      isListedInStore: null,
+      createNftStatus: null,
+      pendingNftId: null,
+      pendingNftSignature: null
     };
     this._isSliding = false;
   }
@@ -39,7 +42,10 @@ class PublishSettingsOverlay {
         step: 1,
         hasSaito: null,
         hasAccessKey: null,
-        isListedInStore: null
+        isListedInStore: null,
+        createNftStatus: null,
+        pendingNftId: null,
+        pendingNftSignature: null
       };
     }
 
@@ -122,9 +128,33 @@ class PublishSettingsOverlay {
   }
 
   attachEvents() {
+    if (this._waitingInterval) {
+      clearInterval(this._waitingInterval);
+      this._waitingInterval = null;
+    }
+    if (this._countdownInterval) {
+      clearInterval(this._countdownInterval);
+      this._countdownInterval = null;
+    }
+
+    const isWaiting = this.wizardState.createNftStatus === 'waiting';
+    const keyPhrase =
+      this.postState.accessLevel === 'subscription' ? 'Subscription Key' : 'Access Key';
+    const keysPhrase =
+      this.postState.accessLevel === 'subscription' ? 'Subscription Keys' : 'Access Keys';
+    const waitingMessage = `You'll be back in control in just a moment. We're waiting for your ${keysPhrase} to arrive.`;
+
     const overlayCloseBtn = document.querySelector('.saito-overlay-close');
     if (overlayCloseBtn) {
       overlayCloseBtn.onclick = () => {
+        if (this._waitingInterval) {
+          clearInterval(this._waitingInterval);
+          this._waitingInterval = null;
+        }
+        if (this._countdownInterval) {
+          clearInterval(this._countdownInterval);
+          this._countdownInterval = null;
+        }
         this.overlay.hide();
       };
     }
@@ -195,6 +225,10 @@ class PublishSettingsOverlay {
     if (backBtn) {
       backBtn.onclick = (e) => {
         e.preventDefault();
+        if (isWaiting) {
+          siteMessage(waitingMessage, 3500);
+          return;
+        }
         this.handleBack();
       };
     }
@@ -203,12 +237,16 @@ class PublishSettingsOverlay {
     if (publishImmediately) {
       publishImmediately.onclick = (e) => {
         e.preventDefault();
+        if (isWaiting) {
+          siteMessage(waitingMessage, 3500);
+          return;
+        }
         this.handlePublish();
       };
     }
 
     // Panel 2 — open Create NFT with Stack Access type pre-selected
-    const createKeysLink = document.querySelector('#stack-publish-create-keys-link');
+    const createKeysLink = document.querySelector('#stack-create-access-key-link');
     if (createKeysLink) {
       createKeysLink.onclick = (e) => {
         e.preventDefault();
@@ -230,6 +268,10 @@ class PublishSettingsOverlay {
     if (primaryBtn) {
       primaryBtn.onclick = (e) => {
         e.preventDefault();
+        if (isWaiting) {
+          siteMessage(waitingMessage, 3500);
+          return;
+        }
         const action = primaryBtn.getAttribute('data-action') || 'publish';
         if (action === 'next') {
           this.handleNext();
@@ -237,6 +279,117 @@ class PublishSettingsOverlay {
           this.handlePublish();
         }
       };
+    }
+
+    if (isWaiting) {
+      const countdownEl = document.querySelector('#stack-publish-countdown');
+      const reassuranceEl = document.querySelector('#stack-publish-reassurance');
+      const reassuranceMessages = [
+        'Your wallet will update automatically.',
+        `We're waiting for the network to confirm your ${keyPhrase}.`,
+        'This usually takes around 30 seconds.'
+      ];
+      let seconds = 29;
+      let reassuranceIndex = 0;
+
+      if (countdownEl) {
+        countdownEl.textContent = String(seconds);
+      }
+
+      (async () => {
+        try {
+          await this.app.wallet.updateNFTList();
+          const nftList = this.app.options.wallet.nfts || [];
+          let found = false;
+
+          for (const rec of nftList) {
+            const nftType = this.app.wallet.extractNFTType(rec.slip3?.utxo_key || '');
+            if (nftType !== 'stack') {
+              continue;
+            }
+            if (this.wizardState.pendingNftSignature && rec.tx_sig === this.wizardState.pendingNftSignature) {
+              found = true;
+              break;
+            }
+            if (this.wizardState.pendingNftId && rec.id === this.wizardState.pendingNftId) {
+              found = true;
+              break;
+            }
+            const creator = rec.slip1?.public_key || '';
+            if (creator === this.mod.publicKey) {
+              found = true;
+              break;
+            }
+          }
+
+          if (found && this.wizardState.createNftStatus === 'waiting') {
+            if (this._waitingInterval) {
+              clearInterval(this._waitingInterval);
+              this._waitingInterval = null;
+            }
+            if (this._countdownInterval) {
+              clearInterval(this._countdownInterval);
+              this._countdownInterval = null;
+            }
+            this.wizardState.createNftStatus = 'confirmed';
+            this.wizardState.hasAccessKey = true;
+            this.render(this.postState, { preserveStep: true });
+          }
+        } catch (err) {
+          console.warn('Stack publish: waiting for Access Key', err);
+        }
+      })();
+
+      this._countdownInterval = setInterval(() => {
+        seconds -= 1;
+        if (countdownEl) {
+          countdownEl.textContent = String(Math.max(0, seconds));
+        }
+        if (seconds > 0 && seconds % 10 === 0 && reassuranceEl) {
+          reassuranceIndex = (reassuranceIndex + 1) % reassuranceMessages.length;
+          reassuranceEl.textContent = reassuranceMessages[reassuranceIndex];
+        }
+      }, 1000);
+
+      this._waitingInterval = setInterval(async () => {
+        try {
+          await this.app.wallet.updateNFTList();
+          const nftList = this.app.options.wallet.nfts || [];
+          let found = false;
+
+          for (const rec of nftList) {
+            const nftType = this.app.wallet.extractNFTType(rec.slip3?.utxo_key || '');
+            if (nftType !== 'stack') {
+              continue;
+            }
+            if (this.wizardState.pendingNftSignature && rec.tx_sig === this.wizardState.pendingNftSignature) {
+              found = true;
+              break;
+            }
+            if (this.wizardState.pendingNftId && rec.id === this.wizardState.pendingNftId) {
+              found = true;
+              break;
+            }
+            const creator = rec.slip1?.public_key || '';
+            if (creator === this.mod.publicKey) {
+              found = true;
+              break;
+            }
+          }
+
+          if (found) {
+            clearInterval(this._waitingInterval);
+            clearInterval(this._countdownInterval);
+            this._waitingInterval = null;
+            this._countdownInterval = null;
+            this.wizardState.createNftStatus = 'confirmed';
+            this.wizardState.hasAccessKey = true;
+            this.render(this.postState, { preserveStep: true });
+          }
+        } catch (err) {
+          console.warn('Stack publish: waiting for Access Key', err);
+        }
+      }, 2000);
     }
   }
 
@@ -258,29 +411,29 @@ class PublishSettingsOverlay {
       createNft = this.createNftOverlay;
     }
 
+    const DREAMSCAPE = '/saito/img/dreamscape.png';
+    const username =
+      this.app.keychain.returnUsername(this.mod.publicKey) || 'this author';
+
     createNft.render({
-      data: {
-        type: 'stack'
-      },
-      callback: (result) => {
-        if (result.status !== 'created') {
-          return;
+      type: 'stack',
+      title: 'Stack Access Key',
+      description: `This NFT provides read-access to ${username}'s posts on Saito Stack.`,
+      image: DREAMSCAPE,
+      locked: ['type'],
+      callback: (obj) => {
+        if (obj?.status === 'created') {
+          this.wizardState.hasAccessKey = true;
+          this.wizardState.createNftStatus = 'waiting';
+          this.wizardState.pendingNftId = obj.nft_id || null;
+          this.wizardState.pendingNftSignature = obj.signature || null;
+          this.render(this.postState, { preserveStep: true });
         }
 
-        // Stack-owned follow-up (Create NFT stays generic)
-        this.wizardState.hasAccessKey = true;
-        this.wizardState.createdNftId = result.nft_id || null;
-
-        if (this.mod.load && this.mod.save) {
-          const stackOptions = this.mod.load();
-          if (stackOptions && stackOptions.has_created_keys !== true) {
-            stackOptions.has_created_keys = true;
-            this.mod.save();
-          }
+        if (obj?.status === 'cancelled') {
+          this.wizardState.createNftStatus = 'cancelled';
+          this.render(this.postState, { preserveStep: true });
         }
-
-        // Refresh current panel (checkboxes) without advancing the wizard
-        this.render(this.postState, { preserveStep: true });
       }
     });
   }
@@ -368,11 +521,24 @@ class PublishSettingsOverlay {
     this.wizardState.hasAccessKey = null;
     this.wizardState.isListedInStore = null;
     this.wizardState.hasSaito = null;
+    this.wizardState.createNftStatus = null;
+    this.wizardState.pendingNftId = null;
+    this.wizardState.pendingNftSignature = null;
 
     this.render(this.postState, { preserveStep: true });
   }
 
   handleBack() {
+    if (this.wizardState.createNftStatus === 'waiting') {
+      const keysPhrase =
+        this.postState.accessLevel === 'subscription' ? 'Subscription Keys' : 'Access Keys';
+      siteMessage(
+        `You'll be back in control in just a moment. We're waiting for your ${keysPhrase} to arrive.`,
+        3500
+      );
+      return;
+    }
+
     if (this.wizardState.step <= 1) {
       this.overlay.hide();
       return;
@@ -383,6 +549,16 @@ class PublishSettingsOverlay {
   }
 
   async handleNext() {
+    if (this.wizardState.createNftStatus === 'waiting') {
+      const keysPhrase =
+        this.postState.accessLevel === 'subscription' ? 'Subscription Keys' : 'Access Keys';
+      siteMessage(
+        `You'll be back in control in just a moment. We're waiting for your ${keysPhrase} to arrive.`,
+        3500
+      );
+      return;
+    }
+
     const level = this.postState.accessLevel;
     if (level !== 'private' && level !== 'subscription') {
       return;
@@ -395,6 +571,7 @@ class PublishSettingsOverlay {
       const keyState = await this.resolveAccessKeyState();
       this.wizardState.hasSaito = keyState.hasSaito;
       this.wizardState.hasAccessKey = keyState.hasAccessKey;
+      this.wizardState.createNftStatus = null;
     } else if (nextStep === 3) {
       const listingState = await this.resolveStoreListingState();
       this.wizardState.isListedInStore = listingState.isListedInStore;
@@ -411,10 +588,30 @@ class PublishSettingsOverlay {
    * @returns {Promise<{ hasSaito: boolean|null, hasAccessKey: boolean|null }>}
    */
   async resolveAccessKeyState() {
-    // Placeholder — connect wallet balance + NFT inventory here
+    try {
+      await this.app.wallet.updateNFTList();
+      const nftList = this.app.options.wallet.nfts || [];
+
+      for (const rec of nftList) {
+        const nftType = this.app.wallet.extractNFTType(rec.slip3?.utxo_key || '');
+        if (nftType !== 'stack') {
+          continue;
+        }
+        const creator = rec.slip1?.public_key || '';
+        if (creator === this.mod.publicKey) {
+          return {
+            hasSaito: null,
+            hasAccessKey: true
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('Stack publish: resolveAccessKeyState', err);
+    }
+
     return {
       hasSaito: null,
-      hasAccessKey: null
+      hasAccessKey: false
     };
   }
 
@@ -432,6 +629,16 @@ class PublishSettingsOverlay {
   }
 
   async handlePublish() {
+    if (this.wizardState.createNftStatus === 'waiting') {
+      const keysPhrase =
+        this.postState.accessLevel === 'subscription' ? 'Subscription Keys' : 'Access Keys';
+      siteMessage(
+        `You'll be back in control in just a moment. We're waiting for your ${keysPhrase} to arrive.`,
+        3500
+      );
+      return;
+    }
+
     let wallet_balance = await this.app.wallet.getBalance('SAITO');
     if (Number(wallet_balance) == 0) {
       siteMessage('A Saito balance is needed to Publish Posts...', 3000);

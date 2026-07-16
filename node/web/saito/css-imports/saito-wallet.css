@@ -764,21 +764,6 @@
   user-select: none;
 }
 
-.nft-image-preview {
-  align-self: center;
-  max-width: min(56rem, 100%);
-  max-height: min(30rem, 50vh);
-  position: relative;
-}
-
-.nft-image-preview i {
-  position: absolute;
-  font-size: 2rem;
-  cursor: pointer;
-  top: -1rem;
-  right: -1rem;
-}
-
 .inputs {
   display: flex;
   gap: 2rem;
@@ -813,34 +798,6 @@ textarea {
   resize: none;
 }
 
-#nft-image-upload {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 2rem;
-  text-align: center;
-  border: 3px dotted;
-  height: 100%;
-  font-size: 2rem;
-  border-radius: 1rem;
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-  border-radius: 1rem;
-  min-height: 30rem;
-  cursor: pointer;
-}
-
-#nft-image-upload i {
-  font-size: 3.5rem;
-  color: var(--saito-surface-selected);
-}
-
-.nft-upload-text {
-  margin-left: 1rem;
-  font-size: 1.6rem;
-}
-
 .send-nft-list {
   max-height: min(76rem, 85vh);
   overflow-y: scroll;
@@ -853,79 +810,6 @@ textarea {
   /* 4: 94rem, 3: 70rem */
 }
 
-/*
-
-  file icon
-*/
-
-.nft-file-transfer {
-  border-radius: var(--saito-border-radius);
-  position: relative;
-  border: var(--border-thickness-thin) dashed var(--saito-file-transfer-border);
-  display: grid;
-  align-items: center;
-  padding: 1rem;
-  grid-template-columns: min-content 1fr;
-  grid-template-rows: 1fr 1fr;
-  row-gap: 1rem;
-  column-gap: 2rem;
-  justify-items: flex-end;
-  overflow: hidden;
-  background-color: var(--saito-file-transfer-bg);
-  color: var(--saito-file-transfer-fg);
-}
-
-.nft-file-transfer.complete {
-  border: var(--border-thickness-thin) solid var(--saito-file-transfer-border);
-}
-
-.nft-file-transfer.received {
-  grid-template-rows: unset;
-}
-
-.file-transfer-progress {
-  position: absolute;
-  left: 1px;
-  top: 1px;
-  height: calc(100% - 2px);
-  width: 0%;
-  background-color: var(--saito-primary);
-}
-
-.nft-file-transfer.received .file-transfer-progress {
-  background-color: var(--saito-secondary);
-}
-
-.nft-file-transfer i {
-  font-size: 4rem;
-  grid-row: 1 / span 2;
-  z-index: 1;
-  cursor: pointer;
-}
-
-.nft-file-transfer .file-name,
-.nft-file-transfer .file-size {
-  z-index: 1;
-}
-
-.create-nft-type-dropdown {
-  width: auto;
-  color: var(--saito-font-color);
-  background: var(--saito-background-color);
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  font-size: 1.4rem;
-}
-
-.withdraw-info-cont:has(.create-nft-type-dropdown) {
-  text-align: left;
-}
-
-.create-nft-textarea {
-  height: 30rem;
-  display: none;
-}
-
 .page-navigation {
   display: flex;
   flex-direction: row;
@@ -934,7 +818,10 @@ textarea {
   display: none;
 }
 
-.nft-creator,
+.create-nft-textarea {
+  height: 30rem;
+}
+
 .nft-receiver {
   display: flex;
   flex-direction: column;
@@ -948,14 +835,6 @@ textarea {
 
 .page-navigation.page1 {
   align-self: flex-end;
-}
-
-.create-nft-amount {
-  max-width: 8rem;
-  text-align: center;
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
-  padding: 0.3rem 0rem;
-  border-radius: var(--saito-border-radius);
 }
 
 .page-navigation.page2 {
@@ -1292,7 +1171,8 @@ nft cards
   }
 
   /* NFT */
-  .create-nft-container {
+  .create-nft-container,
+  .create-nft-overlay {
     width: 95vw;
     min-width: auto;
   }

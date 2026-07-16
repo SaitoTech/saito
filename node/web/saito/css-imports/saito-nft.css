@@ -254,56 +254,39 @@
 }
 
 /* ============================================
-   IMAGE & CONTENT
+   CREATE NFT OVERLAY
    ============================================ */
-.nft-creator {
-  padding: 1rem;
+.create-nft-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  min-width: 60rem;
+  justify-content: space-between;
 }
 
-/* Full-size image/textbox for provide-metadata overlay */
-.nft-creator-content-wrapper {
-  position: relative;
+.create-nft-overlay .header {
+  height: 6rem;
+  background: linear-gradient(
+    90deg,
+    var(--saito-primary) 0%,
+    var(--saito-primary) 20%,
+    transparent 100%
+  );
+  color: var(--saito-primary-text);
   width: 100%;
-  height: 100%;
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 300px;
-}
-
-.nft-creator .saito-nft-panel-body {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.nft-creator .saito-nft-image {
-  flex: 1 1 auto;
+  border-radius: 0.5rem;
+  padding-left: 1.6rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  min-height: 400px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
 }
 
-.nft-creator .textarea-container {
-  flex: 1 1 auto;
-  min-height: 300px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+.create-nft-overlay .header .title {
+  font-size: 2.5rem;
+  color: inherit;
 }
 
-.nft-creator.saito-nft-panel,
-.provide-metadata .saito-nft-panel.nft-metadata {
-  transform: translateX(0%);
-}
-
-.nft-creator-overlay.panels {
+.create-nft-overlay .body {
   position: relative;
   width: 100%;
   overflow-y: auto;
@@ -311,12 +294,240 @@
   height: 500px;
 }
 
-.saito-nft-panel.nft-metadata {
+.create-nft-overlay .body .primary,
+.create-nft-overlay .body .secondary {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  transition: transform 0.35s ease;
+  background: var(--saito-background-color);
+}
+
+.create-nft-overlay .body .primary {
+  padding: 1rem;
+  gap: 2rem;
+  transform: translateX(0);
+}
+
+.create-nft-overlay .body .secondary {
   transform: translateX(100%);
 }
 
-.provide-metadata .nft-creator.saito-nft-panel {
+.create-nft-overlay .body.provide-metadata .primary {
   transform: translateX(-100%);
+}
+
+.create-nft-overlay .body.provide-metadata .secondary {
+  transform: translateX(0);
+}
+
+.create-nft-overlay .primary > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.create-nft-overlay .primary > div:first-child > div {
+  color: var(--saito-font-color);
+  line-height: 2rem;
+  text-align: center;
+}
+
+.create-nft-overlay .primary > div:first-child > div:first-child {
+  text-align: left;
+}
+
+.create-nft-overlay .label {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.create-nft-overlay .primary select#create-nft-type-dropdown {
+  width: auto;
+  color: var(--saito-font-color);
+  background: var(--saito-background-color);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 1.4rem;
+}
+
+.create-nft-overlay .primary input {
+  max-width: 8rem;
+  text-align: center;
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
+  padding: 0.3rem 0;
+  border-radius: var(--saito-border-radius);
+}
+
+.create-nft-overlay .primary .upload {
+  flex: 1 1 auto;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.create-nft-overlay #nft-image-upload {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border: 3px dotted;
+  height: 100%;
+  font-size: 2rem;
+  border-radius: 1rem;
+  width: 100%;
+  min-height: 30rem;
+  cursor: pointer;
+}
+
+.create-nft-overlay #nft-image-upload i {
+  font-size: 3.5rem;
+  color: var(--saito-surface-selected);
+}
+
+.create-nft-overlay #nft-image-upload div {
+  margin-left: 1rem;
+  font-size: 1.6rem;
+}
+
+.create-nft-overlay #create-nft-textarea {
+  width: 100%;
+  height: 30rem;
+  padding: 0.5rem;
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
+  border-radius: var(--saito-input-radius);
+  resize: none;
+  display: none;
+}
+
+.create-nft-overlay .primary .upload .preview {
+  align-self: center;
+  max-width: min(56rem, 100%);
+  max-height: min(30rem, 50vh);
+  position: relative;
+}
+
+.create-nft-overlay .primary .upload .preview i {
+  position: absolute;
+  font-size: 2rem;
+  cursor: pointer;
+  top: -1rem;
+  right: -1rem;
+}
+
+.create-nft-overlay .primary .upload .file {
+  border-radius: var(--saito-border-radius);
+  position: relative;
+  border: var(--border-thickness-thin) dashed var(--saito-file-transfer-border);
+  display: grid;
+  align-items: center;
+  padding: 1rem;
+  grid-template-columns: min-content 1fr;
+  grid-template-rows: 1fr 1fr;
+  row-gap: 1rem;
+  column-gap: 2rem;
+  justify-items: flex-end;
+  overflow: hidden;
+  background-color: var(--saito-file-transfer-bg);
+  color: var(--saito-file-transfer-fg);
+}
+
+.create-nft-overlay .primary .upload .file i {
+  font-size: 4rem;
+  grid-row: 1 / span 2;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.create-nft-overlay .primary .upload .file .file-name,
+.create-nft-overlay .primary .upload .file .file-size {
+  z-index: 1;
+}
+
+.create-nft-overlay .primary .footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.create-nft-overlay .secondary > div:first-child {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+}
+
+.create-nft-overlay .secondary .label {
+  font-size: 13px;
+  margin: 12px 0 6px;
+  color: var(--saito-font-color);
+}
+
+.create-nft-overlay .secondary input,
+.create-nft-overlay .secondary textarea {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  color: var(--saito-font-color);
+  margin-top: 0.5rem;
+  margin-bottom: 2rem;
+  border: var(--border-thickness-medium) solid var(--saito-border-color);
+  border-radius: var(--saito-radius-sm);
+  cursor: text;
+  font-family: inherit;
+  transition: all 0.1s ease;
+}
+
+.create-nft-overlay .secondary input:hover,
+.create-nft-overlay .secondary textarea:hover {
+  background: var(--saito-surface-hover);
+}
+
+.create-nft-overlay .secondary input.ticker {
+  text-transform: uppercase;
+  display: none;
+}
+
+.create-nft-overlay .secondary .label.ticker {
+  display: none;
+}
+
+.create-nft-overlay .secondary .footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 0;
+  padding-top: 1.8rem;
+  border-top: var(--border-thickness-thin) solid var(--saito-border-color);
+  margin-top: auto;
+}
+
+@media (max-width: 768px) {
+  .create-nft-overlay .header {
+    background: linear-gradient(
+      90deg,
+      var(--saito-primary) 0%,
+      var(--saito-primary) 40%,
+      transparent 100%
+    );
+  }
 }
 
 /* Image wrapper for overlay positioning */
@@ -386,36 +597,6 @@
   max-height: 100%;
   object-fit: contain;
 }
-
-.saito-nft-metadata-box {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.2rem;
-  color: var(--saito-font-color);
-  margin-top: 0.5rem;
-  margin-bottom: 2rem;
-  border: var(--border-thickness-medium) solid var(--saito-border-color);
-  border-radius: var(--saito-radius-sm);
-  cursor: text;
-  font-family: inherit;
-  transition: all 0.1s ease;
-}
-
-.saito-nft-metadata-box:hover {
-  background: var(--saito-surface-hover);
-}
-
-.saito-nft-metadata-box.ticker {
-  text-transform: uppercase;
-}
-
-.saito-nft-metadata-box.ticker , .saito-nft-input-label.ticker {
-  display: none;
-}
-
 
 .saito-nft-description {
   font-size: 14px;
@@ -500,11 +681,6 @@
 .saito-nft-footer-btn.nft-info-delete-nft:hover {
   background-color: var(--saito-red-dark);
   border-color: var(--saito-red-dark);
-}
-
-.create-nft-container .saito-nft-panel-footer {
-  padding: 0;
-  padding-top: 1.8rem;
 }
 
 /* ============================================
