@@ -214,6 +214,7 @@ class FileUpload {
       this.overlay.hide();
       siteMessage('File Upload Successful..', 3000);
       this.file_info_overlay.sig = file_tx.signature;
+      this.file_info_overlay.nft_id = this.nft_id;
       this.file_info_overlay.render();
     };
 

@@ -7,29 +7,65 @@ class FileInfo {
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.sig = '';
+    this.nft_id = '';
+    this._countdownInterval = null;
+    this._onWalletUpdated = null;
   }
 
-  render() {
-    this.overlay.show(FileInfoTemplate(this.app, this.mod, this));
+  async render() {
+    if (this._countdownInterval) {
+      clearInterval(this._countdownInterval);
+      this._countdownInterval = null;
+    }
+    if (this._onWalletUpdated) {
+      this.app.connection.off('wallet-updated', this._onWalletUpdated);
+      this._onWalletUpdated = null;
+    }
 
-    const fileSizeMB = this.mod?.file?.size ? this.mod.file.size / (1024 * 1024) : 0;
+    this.overlay.show(FileInfoTemplate(this.app, this.mod, this), () => {
+      if (this._countdownInterval) {
+        clearInterval(this._countdownInterval);
+        this._countdownInterval = null;
+      }
+      if (this._onWalletUpdated) {
+        this.app.connection.off('wallet-updated', this._onWalletUpdated);
+        this._onWalletUpdated = null;
+      }
+    });
 
-    const MIN_DELAY = 2000;
-    const SIZE_DELAY = Math.min(fileSizeMB * 150, 3000);
-    const TOTAL_DELAY = MIN_DELAY + SIZE_DELAY;
+    // Same approach as RustScript confirmation waiting: 2 × heartbeat + short buffer.
+    let heartbeatMs = Number(this.app?.options?.consensus?.heartbeat_interval);
+    if (!Number.isFinite(heartbeatMs) || heartbeatMs <= 0) {
+      heartbeatMs = 30000;
+    }
+    const cycleSeconds = Math.round((2 * heartbeatMs) / 1000) + 2;
+    let seconds = cycleSeconds;
 
-    const start = Date.now();
+    const countdownEl = document.querySelector('#vault-file-info-countdown');
+    const statusEl = document.querySelector('#vault-file-info-status');
+    if (countdownEl) {
+      countdownEl.textContent = String(seconds);
+    }
 
-    const revealSuccess = () => {
-      const loading = document.querySelector('.vault-file-info-loading');
+    const showCompleted = () => {
+      if (this._countdownInterval) {
+        clearInterval(this._countdownInterval);
+        this._countdownInterval = null;
+      }
+      if (this._onWalletUpdated) {
+        this.app.connection.off('wallet-updated', this._onWalletUpdated);
+        this._onWalletUpdated = null;
+      }
+
+      const waiting = document.querySelector('.vault-file-info-waiting');
       const success = document.querySelector('.vault-file-info-success');
 
-      if (loading) {
-        loading.style.display = 'none';
+      if (waiting) {
+        waiting.style.display = 'none';
       }
 
       if (success) {
-        success.style.display = 'block';
+        success.style.display = 'flex';
         requestAnimationFrame(() => {
           success.style.transition = 'opacity 400ms ease';
           success.style.opacity = 1;
@@ -39,53 +75,60 @@ class FileInfo {
       this.attachEvents();
     };
 
-    const elapsed = Date.now() - start;
-    const remaining = Math.max(0, TOTAL_DELAY - elapsed);
+    const nftInWallet = () => {
+      if (!this.nft_id) {
+        return false;
+      }
+      const nfts = this.app.options?.wallet?.nfts || [];
+      for (let i = 0; i < nfts.length; i++) {
+        if (nfts[i]?.id === this.nft_id) {
+          return true;
+        }
+      }
+      return false;
+    };
 
-    setTimeout(revealSuccess, remaining);
+    try {
+      await this.app.wallet.updateNFTList();
+    } catch (err) {}
+
+    if (nftInWallet()) {
+      showCompleted();
+      return;
+    }
+
+    this._countdownInterval = setInterval(() => {
+      seconds -= 1;
+      if (seconds <= 0) {
+        if (statusEl) {
+          statusEl.textContent = 'Waiting for the next block...';
+        }
+        seconds = cycleSeconds;
+      }
+      if (countdownEl) {
+        countdownEl.textContent = String(seconds);
+      }
+    }, 1000);
+
+    this._onWalletUpdated = async () => {
+      try {
+        await this.app.wallet.updateNFTList();
+      } catch (err) {}
+      if (nftInWallet()) {
+        showCompleted();
+      }
+    };
+    this.app.connection.on('wallet-updated', this._onWalletUpdated);
   }
 
   attachEvents() {
     try {
-      let copyBtn = document.querySelector('.vault-copy-sig');
-      if (copyBtn) {
-        copyBtn.onclick = (e) => {
-          try {
-            navigator.clipboard.writeText(this.sig);
-            let icon_element = document.querySelector('.vault-copy-sig i');
-            if (icon_element) {
-              icon_element.classList.toggle('fa-copy');
-              icon_element.classList.toggle('fa-check');
-              setTimeout(() => {
-                icon_element.classList.toggle('fa-copy');
-                icon_element.classList.toggle('fa-check');
-              }, 1500);
-            }
-          } catch (err) {}
-        };
-      }
-
       if (document.getElementById('open-vault')) {
         document.getElementById('open-vault').onclick = (e) => {
           this.overlay.close();
           this.app.connection.emit('vault-file-access-render');
         };
       }
-
-      document.querySelector('.vault-sig-grid div').addEventListener('click', function (e) {
-        try {
-          const el = e.target;
-          if (el.select) {
-            el.select();
-          } else {
-            const range = document.createRange();
-            range.selectNodeContents(el);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-          }
-        } catch (err) {}
-      });
     } catch (err) {}
   }
 }

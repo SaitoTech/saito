@@ -11,7 +11,7 @@
   justify-content: center;
 }
 
-.vault-file-info-loading,
+.vault-file-info-waiting,
 .vault-file-info-success {
   width: 100%;
   height: 100%;
@@ -20,16 +20,16 @@
   justify-content: center;
 }
 
-.vault-file-info-loading {
+.vault-file-info-waiting {
   text-align: center;
 }
 
-.vault-file-info-loading * {
+.vault-file-info-waiting * {
   font-size: initial;
   line-height: normal;
 }
 
-.vault-file-info-loading-inner {
+.vault-file-info-waiting-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -53,11 +53,40 @@
   opacity: 0.65;
 }
 
+.vault-file-info-countdown {
+  font-size: 3.2rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  min-height: 1.2em;
+}
+
+.vault-file-info-status {
+  font-size: 1.5rem;
+  opacity: 0.65;
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
 .vault-file-info-success {
   flex-direction: column;
   text-align: center;
-  line-height: 4.6rem;
+  line-height: 1.55;
+  font-size: 1.8rem;
+  gap: 0.8rem;
+}
+
+.vault-file-info-success-checks {
   font-size: 2rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.vault-file-info-success p {
+  font-size: 1.7rem;
+  line-height: 1.5;
+  margin: 0.4rem 0;
+  opacity: 0.9;
 }
 
 .vault-sig-grid {
@@ -87,5 +116,3 @@
   opacity: 1;
   transform: scale(1.1);
 }
-
-
