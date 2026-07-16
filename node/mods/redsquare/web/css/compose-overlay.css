@@ -373,54 +373,6 @@ body.redsquare-body .compose-composer .tweet-header.compose .tweet-header-second
   }
 }
 
-@media (max-width: 768px) {
-  .saito-overlay.saito-overlay-mobile-fullscreen .compose-overlay {
-    height: calc(100vh - 2rem);
-    height: calc(100dvh - 2rem);
-    max-height: calc(100vh - 2rem);
-    max-height: calc(100dvh - 2rem);
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  .saito-overlay.saito-overlay-mobile-fullscreen .compose-overlay-body {
-    flex: 1 1 auto;
-    min-height: 0;
-    padding-top: max(5rem, calc(env(safe-area-inset-top) + 4rem));
-    border: 0;
-    box-shadow: none;
-  }
-
-  .saito-overlay.saito-overlay-mobile-fullscreen .compose-composer {
-    flex: 1 1 auto;
-    min-height: 0;
-    align-items: stretch;
-  }
-
-  .saito-overlay.saito-overlay-mobile-fullscreen .compose-composer-main,
-  .saito-overlay.saito-overlay-mobile-fullscreen .compose-surface {
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-
-  .saito-overlay.saito-overlay-mobile-fullscreen .compose-surface,
-  .saito-overlay.saito-overlay-mobile-fullscreen .compose-surface:focus-within {
-    border-radius: var(--saito-border-radius);
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .saito-overlay.saito-overlay-mobile-fullscreen .compose-input {
-    flex: 1 1 auto;
-    resize: none;
-  }
-
-  .saito-overlay.saito-overlay-mobile-fullscreen .compose-overlay-footer {
-    border-top: 0;
-  }
-}
-
 @media (max-width: 600px) {
   .saito-overlay .compose-overlay {
     width: 100%;

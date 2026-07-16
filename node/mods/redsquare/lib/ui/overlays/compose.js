@@ -10,7 +10,6 @@ class ComposeOverlay {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(app, mod, true, true, false);
-    this.overlay.class = 'saito-overlay saito-overlay-mobile-fullscreen';
 
     this.overlay_id = 'redsquare-compose-overlay';
     this.placeholder = 'What is happening?';

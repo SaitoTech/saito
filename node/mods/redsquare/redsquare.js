@@ -8,7 +8,6 @@ const Notifications = require('./lib/notifications');
 const ComposeOverlay = require('./lib/ui/overlays/compose');
 const TweetMenu = require('./lib/ui/overlays/tweet-menu');
 const SettingsOverlay = require('./lib/ui/overlays/settings');
-const SplashTemplate = require('./lib/splash.template');
 const index = require('./index');
 
 class RedSquare extends ModTemplate {
@@ -65,7 +64,6 @@ class RedSquare extends ModTemplate {
     this.settings_overlay = new SettingsOverlay(app, this);
 
     this.curated = true;
-    this.show_splash = true;
     this.passive_poll_interval_ms = 5 * 60 * 1000;
 
     // Enables banner / description editing via the Profile module (SaitoProfile contract).
@@ -150,10 +148,6 @@ class RedSquare extends ModTemplate {
       this.curated = false;
     }
 
-    this.show_splash = Object.prototype.hasOwnProperty.call(rso, 'show-splash')
-      ? rso['show-splash']
-      : true;
-
     if (document?.querySelector) {
       document.querySelector('#saito-container')?.classList.toggle('active-curation', this.curated);
     }
@@ -169,7 +163,6 @@ class RedSquare extends ModTemplate {
     }
 
     this.app.options.redsquare.curated = this.curated;
-    this.app.options.redsquare['show-splash'] = this.show_splash;
     this.app.storage.saveOptions();
   }
 
@@ -1129,31 +1122,6 @@ class RedSquare extends ModTemplate {
   }
 
   respondTo(type = '', obj) {
-    if (type === 'saito-header') {
-      if (this.browser_active) {
-        return [];
-      }
-
-      return [
-        {
-          text: 'RedSquare',
-          icon: 'fa-solid fa-square',
-          rank: 20,
-          type: 'navigation',
-          navigation: '/redsquare',
-          callback: () => {
-            navigateWindow('/redsquare');
-          },
-          event: (id) => {
-            this.app.connection.on('redsquare-update-notifications', (unread) => {
-              this.app.browser.addNotificationToId(unread, id);
-              this.app.connection.emit('saito-header-notification', 'redsquare', unread);
-            });
-          }
-        }
-      ];
-    }
-
     if (type === 'saito-floating-menu') {
       return [
         {
@@ -1364,27 +1332,6 @@ class RedSquare extends ModTemplate {
       await this.app.modules.renderInto('.redsquare-leaderboard');
       await this.app.modules.renderInto('.redsquare-sidebar');
     }
-
-    this.renderFirstVisitSplash();
-  }
-
-  renderFirstVisitSplash() {
-    if (
-      !this.app.BROWSER ||
-      !this.show_splash ||
-      document.querySelector('.redsquare-splash-overlay')
-    ) {
-      return;
-    }
-
-    document.body.insertAdjacentHTML('beforeend', SplashTemplate());
-
-    this.show_splash = false;
-    this.saveOptions();
-
-    document.querySelector('.redsquare-splash-join')?.addEventListener('click', () => {
-      document.querySelector('.redsquare-splash-overlay')?.remove();
-    });
   }
 
   webServer(app, expressapp, express, alternative_slug = null) {
