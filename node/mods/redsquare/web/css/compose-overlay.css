@@ -379,8 +379,20 @@ body.redsquare-body .compose-composer .tweet-header.compose .tweet-header-second
     max-height: 100vh;
   }
 
+.compose-surface {
+      width: calc(100vw - 2rem);
+      position: absolute;
+      right: 1rem;
+      top: 8.5rem;
+  }
+  
+  .compose-input {
+      height: calc(100vh - 35rem);
+  }
+
   .compose-overlay-body {
     padding: var(--rs-space-md) var(--rs-tweet-pad-x);
+    height: 100%;
   }
 
   .compose-overlay-footer {

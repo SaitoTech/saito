@@ -10,6 +10,7 @@ class ComposeOverlay {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(app, mod, true, true, false);
+    this.overlay.class = 'saito-overlay saito-overlay-mobile-fullscreen';
 
     this.overlay_id = 'redsquare-compose-overlay';
     this.placeholder = 'What is happening?';
@@ -286,9 +287,9 @@ class ComposeOverlay {
     const html = `
       <figure class="compose-image-item" data-index="${index}">
         <img src="${src}" alt="" />
-        <button class="compose-image-remove" type="button" title="Remove image" aria-label="Remove image">
+        <div class="compose-image-remove" role="button" tabindex="0" title="Remove image" aria-label="Remove image">
           <i class="fa-solid fa-xmark"></i>
-        </button>
+        </div>
       </figure>
     `;
 
@@ -299,10 +300,17 @@ class ComposeOverlay {
     const removeBtn = item?.querySelector('.compose-image-remove');
 
     if (removeBtn) {
-      removeBtn.addEventListener('click', (e) => {
+      const removeImage = (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.removeImageAt(index);
+      };
+
+      removeBtn.addEventListener('click', removeImage);
+      removeBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          removeImage(e);
+        }
       });
     }
   }

@@ -350,7 +350,7 @@
     height: 100dvh;
     max-height: none;
     margin: 0;
-    padding: 1rem;
+    padding: 0;
     border-radius: 0;
     transform: none;
     overflow-y: auto;
@@ -371,6 +371,7 @@
     border: 0;
     border-radius: 0;
     box-shadow: none;
+    height: calc(100% - 5rem);
   }
 
   .saito-overlay.saito-overlay-mobile-fullscreen .saito-overlay-closebox {

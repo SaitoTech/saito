@@ -11,6 +11,9 @@ font imports
     url('/saito/fonts/visuelt-black.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
 }
 @font-face {
   font-family: 'visuelt-light';
@@ -22,6 +25,9 @@ font imports
     url('/saito/fonts/visuelt-light.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
 }
 @font-face {
   font-family: 'visuelt-medium';
@@ -33,6 +39,9 @@ font imports
     url('/saito/fonts/visuelt-medium.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
 }
 @font-face {
   font-family: 'visuelt-regular';
@@ -44,6 +53,9 @@ font imports
     url('/saito/fonts/visuelt-regular.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
 }
 @font-face {
   font-family: 'p-word';
