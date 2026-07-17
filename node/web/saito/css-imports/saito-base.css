@@ -33,8 +33,8 @@ body {
   max-height: -webkit-fill-available;
   max-width: -webkit-fill-available;
   overflow: hidden;
-  background-color: var(--saito-background-color);
-  background-image: var(--saito-canvas-background);
+  background-color: var(--saito-background);
+  background-image: none;
   background-attachment: fixed;
   background-size: cover;
   transition: height 0.3s;
@@ -167,7 +167,12 @@ Divider
 
 hr {
   color: var(--saito-font-color-light);
+  border-color: var(--saito-border);
   margin: 2.5rem;
+}
+
+.saito-divider {
+  border-color: var(--saito-border);
 }
 
 /*-----------------------------------------------------------------

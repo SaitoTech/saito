@@ -1,6 +1,11 @@
 select {
   width: 100%;
   cursor: pointer;
+  font-size: 1.6rem;
+  border-color: var(--saito-input-border);
+  background: var(--saito-input-bg);
+  box-shadow: none;
+  padding: 1rem;
 }
 
 select,
@@ -52,6 +57,7 @@ Selects
 
 .saito-select .saito-slct {
   font-size: 2rem;
+  border-color: var(--saito-border);
 }
 
 .saito-slct {
@@ -65,19 +71,30 @@ Selects
 textarea,
 input {
   background-color: var(--saito-input-bg);
+  background: var(--saito-input-bg);
   color: var(--saito-input-fg-heavy);
   border: var(--border-thickness-thin) solid var(--saito-input-border);
-  box-shadow: var(--saito-input-shadow);
+  border-color: var(--saito-input-border);
+  box-shadow: none;
   font-family: var(--saito-input-font);
+  font-size: 1.6rem;
+  padding: 1rem;
 }
 
 
 
 
 textarea:focus, input:focus, select:focus {
-  outline: none;
-  border-color: var(--saito-input-border-focus);
-  box-shadow: var(--saito-focus-ring);
+  outline: none !important;
+  border-color: var(--saito-input-border) !important;
+  box-shadow: none !important;
+}
+
+textarea,
+select,
+input:not([type='checkbox']):not([type='radio']):not([type='range']) {
+  background-color: var(--saito-input-bg);
+  border-radius: var(--saito-border-radius);
 }
 
 
@@ -91,7 +108,7 @@ input[type="number"],
 input[type="password"],
 input[type="date"],
 input[type="datetime-local"] {
-  padding: var(--saito-space-md) var(--saito-space-lg);
+  padding: 1rem;
   font-size: 1.6rem;
   width: 20rem;  /* Min width ? */
   color: var(--saito-input-fg);
@@ -106,9 +123,10 @@ input[type="datetime-local"] {
   outline: none;
 }
 
-input::placeholder {
-  opacity: 80%;
-  color: var(--saito-input-placeholder);
+input::placeholder,
+textarea::placeholder {
+  opacity: 1;
+  color: var(--saito-muted-foreground);
 }
 
 input[type="text"],

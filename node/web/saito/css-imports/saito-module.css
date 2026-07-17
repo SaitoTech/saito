@@ -26,6 +26,7 @@
   background-blend-mode: soft-light;
   border-radius: var(--saito-border-radius);
   border: var(--border-thickness-thin) solid var(--saito-card-border-initial);
+  border-color: var(--saito-border);
   box-shadow: var(--saito-card-shadow);
   overflow: hidden;
   transition:
@@ -117,9 +118,9 @@
   width: min(90vw, 80rem);
   max-height: 70vh;
   overflow: auto;
-  background: var(--saito-overlay-panel-background);
-  border-radius: var(--saito-border-radius);
-  border: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
+  background: var(--saito-popover);
+  border-radius: var(--saito-radius-lg);
+  border: 0;
   box-shadow: var(--saito-overlay-panel-shadow);
   padding: var(--saito-space-xl);
   user-select: none;

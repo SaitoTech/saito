@@ -47,6 +47,7 @@
   /* side bar controls*/
   padding: var(--border-padding-normal);
   border-radius: var(--saito-border-radius);
+  border-color: var(--saito-border);
 }
 
 .sidebar-header {

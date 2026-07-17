@@ -27,6 +27,7 @@ Saito Table
   padding: 0.6rem var(--saito-space-md) var(--saito-space-xs);
   background: var(--saito-table-row-bg);
   border-radius: var(--saito-radius-sm);
+  border-color: var(--saito-border);
 }
 
 .saito-table-row:hover {
@@ -51,7 +52,7 @@ Saito Table
   text-transform: var(--saito-table-header-transform);
   font-size: var(--saito-table-header-size);
   letter-spacing: var(--saito-table-header-letter-spacing);
-  color: var(--saito-font-color-heavy);
+  color: var(--saito-muted-foreground);
   background: var(--saito-table-header-bg);
   border-radius: var(--saito-radius-sm);
 }
@@ -87,7 +88,7 @@ Saito Table
   text-transform: var(--saito-table-header-transform);
   font-size: var(--saito-table-header-size);
   letter-spacing: var(--saito-table-header-letter-spacing);
-  color: var(--saito-font-color-heavy);
+  color: var(--saito-muted-foreground);
   background: var(--saito-table-header-bg);
   font-family: var(--saito-font-medium);
 }
