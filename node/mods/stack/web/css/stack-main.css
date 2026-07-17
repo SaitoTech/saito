@@ -408,14 +408,14 @@
 }
 
 html[data-theme='noir'] .stack-cta-buttons .stack-btn-primary {
-  background: linear-gradient(135deg, var(--palette-primary), var(--palette-primary-dark));
+  background: linear-gradient(135deg, var(--saito-primary), var(--saito-primary-dark));
   border: 1px solid transparent;
-  color: var(--palette-on-primary);
+  color: var(--saito-primary-text);
 }
 
 html[data-theme='noir'] .stack-cta-buttons .stack-btn-secondary {
-  background: var(--palette-surface-2);
-  border: 1px solid var(--palette-outline-strong);
+  background: var(--saito-surface-hover);
+  border: 1px solid var(--saito-border-color-dark);
   color: var(--saito-font-color-heavy);
 }
 

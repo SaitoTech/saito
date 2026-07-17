@@ -95,97 +95,52 @@ font imports
   --saito-pink: #e98eaf;
   --saito-yellow-light: #e9ce93;
 
-  /* Theme semantic fallbacks */
-  --saito-background: var(--palette-bg);
-  --saito-foreground: var(--saito-gray-750);
-  --saito-card: var(--palette-surface-1);
-  --saito-card-foreground: var(--saito-foreground);
-  --saito-popover-surface: var(--palette-bg);
-  --saito-popover: var(--palette-overlay-gradient);
-  --saito-popover-foreground: var(--saito-foreground);
-  --saito-primary-foreground: var(--palette-on-primary);
-  --saito-secondary-foreground: var(--palette-on-secondary);
-  --saito-muted: var(--palette-surface-2);
-  --saito-muted-foreground: var(--saito-gray-600);
-  --saito-accent: var(--palette-surface-2);
-  --saito-accent-foreground: var(--saito-foreground);
-  --saito-destructive: var(--saito-red);
-  --saito-border: var(--palette-outline);
-  --saito-ring: var(--saito-primary);
-  --saito-chart-1: var(--saito-orange);
-  --saito-chart-2: var(--saito-orange);
-  --saito-chart-3: var(--saito-red);
-  --saito-chart-4: var(--saito-orange-dark);
-  --saito-chart-5: var(--saito-red-dark);
-  --saito-radius: 0.45rem;
-  --saito-sidebar: var(--saito-card);
-  --saito-sidebar-foreground: var(--saito-foreground);
-  --saito-sidebar-primary: var(--saito-primary);
-  --saito-sidebar-primary-foreground: var(--saito-primary-foreground);
-  --saito-sidebar-accent: var(--saito-accent);
-  --saito-sidebar-accent-foreground: var(--saito-accent-foreground);
-  --saito-sidebar-border: var(--saito-border);
-  --saito-sidebar-ring: var(--saito-ring);
-
-  /* Saito-prefixed palette bridge */
-  --saito-palette-primary: var(--saito-primary);
-  --saito-palette-primary-dark: var(--saito-chart-4);
-  --saito-palette-on-primary: var(--saito-primary-foreground);
-  --saito-palette-secondary: var(--saito-secondary);
-  --saito-palette-on-secondary: var(--saito-secondary-foreground);
-  --saito-palette-bg: var(--saito-background);
-  --saito-palette-bg-inverse: var(--saito-foreground);
-  --saito-palette-surface-1: var(--saito-card);
-  --saito-palette-surface-2: var(--saito-muted);
-  --saito-palette-surface-3: var(--saito-secondary);
-  --saito-palette-surface-inverse: var(--saito-foreground);
-  --saito-palette-outline: var(--saito-border);
-  --saito-palette-outline-strong: color-mix(in srgb, var(--saito-foreground) 18%, transparent);
-  --saito-palette-shadow: #000000;
-  --saito-palette-texture-overlay: none;
-  --saito-palette-bg-gradient: var(--saito-background);
-  --saito-palette-surface-gradient: var(--saito-card);
-  --saito-palette-overlay-gradient: var(--saito-popover);
-
-  /* Palette layer: themes can override these, while legacy --saito-* tokens keep working */
-  --palette-primary: var(--saito-orange);
-  --palette-primary-dark: var(--saito-orange-dark);
-  --palette-on-primary: var(--saito-white);
-  --palette-secondary: var(--saito-yellow-light);
-  --palette-on-secondary: var(--saito-white);
-  --palette-bg: #fff9f9;
-  --palette-bg-inverse: #4e4e4e;
-  --palette-surface-1: rgba(102, 102, 102, 0.125);
-  --palette-surface-2: rgba(102, 102, 102, 0.2);
-  --palette-surface-3: rgba(68, 68, 68, 0.33);
-  --palette-surface-inverse: rgba(255, 255, 255, 0.85);
-  --palette-outline: color-mix(in srgb, var(--saito-gray-200) 73%, transparent);
-  --palette-outline-strong: var(--saito-gray-750);
-  --palette-shadow: var(--saito-gray-900);
-  --palette-texture-overlay: url(/saito/img/tiled-logo.svg);
-  --palette-bg-gradient:
+  /* theme semantic colours */
+  --saito-background: #0c0a09;
+  --saito-foreground: #fafaf9;
+  --saito-card: #1c1917;
+  --saito-card-foreground: #fafaf9;
+  --saito-popover-surface: #202020;
+  --saito-popover:
     linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--palette-bg) 94%, var(--saito-white)) 0%,
-      color-mix(in srgb, var(--palette-bg) 98%, var(--saito-orange)) 46%,
-      var(--palette-bg) 100%
+      145deg,
+      #262626 0%,
+      color-mix(in srgb, #202020 92%, var(--saito-primary) 1%) 52%,
+      #202020 100%
     );
-  --palette-surface-gradient:
-    linear-gradient(180deg, color-mix(in srgb, var(--palette-surface-1) 92%, var(--saito-white)), var(--palette-surface-1));
-  --palette-overlay-gradient:
-    linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 94%, var(--saito-white)), var(--palette-bg));
+  --saito-popover-foreground: #fafaf9;
+  --saito-primary: #f54900;
+  --saito-primary-foreground: #fff7ed;
+  --saito-secondary: #27272a;
+  --saito-secondary-foreground: #fafafa;
+  --saito-muted: #292524;
+  --saito-muted-foreground: #a6a09b;
+  --saito-accent: #292524;
+  --saito-accent-foreground: #fafaf9;
+  --saito-destructive: #ff6467;
+  --saito-border: #ffffff1a;
+  --saito-ring: #79716b;
+  --saito-chart-1: #ffb86a;
+  --saito-chart-2: #ff6900;
+  --saito-chart-3: #f54900;
+  --saito-chart-4: #ca3500;
+  --saito-chart-5: #9f2d00;
+  --saito-sidebar: #1c1917;
+  --saito-sidebar-foreground: #fafaf9;
+  --saito-sidebar-primary: #ff6900;
+  --saito-sidebar-primary-foreground: #fff7ed;
+  --saito-sidebar-accent: #292524;
+  --saito-sidebar-accent-foreground: #fafaf9;
+  --saito-sidebar-border: #ffffff1a;
+  --saito-sidebar-ring: #79716b;
 
   --dreamscape:
     linear-gradient(125deg, #e8001e 30%, #0001 55%, #ff8235 80%),
     linear-gradient(40deg, #f7009b 15%, #f71f3d 25%, #f71f3d 65%, #e98eaf 75%, #0000),
     linear-gradient(180deg, #e9ce93, #f71f3d);
-
-  --saito-primary: var(--palette-primary);
   --saito-primary-dark: var(--saito-chart-4);
   --saito-primary-text: var(--saito-primary-foreground);
   --saito-primary-background: var(--saito-primary);
-
-  --saito-secondary: var(--palette-secondary);
   --saito-secondary-text: var(--saito-secondary-foreground);
 
   --saito-background-color: var(--saito-background);
@@ -236,10 +191,10 @@ font imports
   --saito-header-background: var(--saito-background);
 
   /* Box Shadows */
-  --saito-box-shadow-low: 0 1px 2px color-mix(in srgb, var(--saito-palette-shadow) 28%, transparent);
-  --saito-box-shadow: 0 8px 18px color-mix(in srgb, var(--saito-palette-shadow) 28%, transparent);
+  --saito-box-shadow-low: 0 1px 2px color-mix(in srgb, var(--saito-black) 28%, transparent);
+  --saito-box-shadow: 0 8px 18px color-mix(in srgb, var(--saito-black) 28%, transparent);
   --saito-box-shadow-high:
-    0 14px 34px color-mix(in srgb, var(--saito-palette-shadow) 38%, transparent);
+    0 14px 34px color-mix(in srgb, var(--saito-black) 38%, transparent);
   --saito-elevation-0: none;
   --saito-elevation-1: var(--saito-box-shadow-low);
   --saito-elevation-2: var(--saito-box-shadow);
@@ -272,8 +227,9 @@ font imports
   --saito-border-color-light: var(--saito-border);
   --saito-border-color: var(--saito-border);
   --saito-border-color-dark: var(--saito-border);
+  --saito-radius: 0.45rem;
   --saito-border-radius: var(--saito-radius);
-  --saito-identicon-border-radius: var(--saito-border-radius);
+  --saito-identicon-border-radius: var(--saito-radius);
   --saito-radius-sm: 0.35rem;
   --saito-radius-md: var(--saito-radius);
   --saito-radius-lg: 0.7rem;
@@ -296,7 +252,7 @@ font imports
   --border-thickness-fat: 5px;
   --border-thickness: var(--border-thickness-thin);
   --saito-border-color-general-dividers: var(--saito-border);
-  --border-color-general-dividers: var(--palette-outline-strong);
+  --border-color-general-dividers: var(--saito-border);
 
   /* Component semantics */
   --saito-focus-ring: 0 0 0 3px color-mix(in srgb, var(--saito-ring) 50%, transparent);
@@ -320,10 +276,10 @@ font imports
   --saito-input-bg-focus: var(--saito-input-bg);
   --saito-input-fg: var(--saito-foreground);
   --saito-input-fg-heavy: var(--saito-foreground);
-  --saito-input-border: var(--saito-border-color);
-  --saito-input-border-focus: var(--saito-border-color);
+  --saito-input-border: var(--saito-border);
+  --saito-input-border-focus: var(--saito-border);
   --saito-input-placeholder: var(--saito-muted-foreground);
-  --saito-input-radius: var(--saito-border-radius);
+  --saito-input-radius: var(--saito-radius);
   --saito-input-shadow: var(--saito-elevation-0);
   --saito-input-font: inherit;
 
@@ -393,7 +349,7 @@ font imports
   --saito-header-menu-shadow: var(--saito-overlay-panel-shadow);
   --saito-floating-action-bg: var(--saito-chart-2);
   --saito-floating-action-fg: var(--saito-primary-foreground);
-  --saito-floating-action-shadow: var(--saito-elevation-2);
+  --saito-floating-action-shadow: var(--saito-box-shadow);
   --saito-floating-menu-bg: var(--saito-popover-surface);
   --saito-floating-menu-border: var(--saito-border);
 

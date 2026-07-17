@@ -3,6 +3,44 @@
  */
 
 html[data-theme='lite'] {
+  /* theme semantic colours */
+  --saito-background: #ffffff;
+  --saito-foreground: #353535;
+  --saito-card: rgba(102, 102, 102, 0.125);
+  --saito-card-foreground: #353535;
+  --saito-popover-surface: #ffffff;
+  --saito-popover:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, #ffffff 88%, #ff8235 12%),
+      #ffffff
+    );
+  --saito-popover-foreground: #353535;
+  --saito-primary: #ff8235;
+  --saito-primary-foreground: #ffffff;
+  --saito-secondary: #e9ce93;
+  --saito-secondary-foreground: #ffffff;
+  --saito-muted: rgba(102, 102, 102, 0.2);
+  --saito-muted-foreground: #5d5d5d;
+  --saito-accent: rgba(102, 102, 102, 0.2);
+  --saito-accent-foreground: #353535;
+  --saito-destructive: #f71f3d;
+  --saito-border: color-mix(in srgb, #c9c9c9 73%, transparent);
+  --saito-ring: #ff8235;
+  --saito-chart-1: #ff8235;
+  --saito-chart-2: #ff8235;
+  --saito-chart-3: #f71f3d;
+  --saito-chart-4: #e57631;
+  --saito-chart-5: #e8001e;
+  --saito-sidebar: rgba(102, 102, 102, 0.125);
+  --saito-sidebar-foreground: #353535;
+  --saito-sidebar-primary: #ff8235;
+  --saito-sidebar-primary-foreground: #ffffff;
+  --saito-sidebar-accent: rgba(102, 102, 102, 0.2);
+  --saito-sidebar-accent-foreground: #353535;
+  --saito-sidebar-border: color-mix(in srgb, #c9c9c9 73%, transparent);
+  --saito-sidebar-ring: #ff8235;
+
   --palette-bg: #ffffff;
   --palette-bg-inverse: #4e4e4e;
   --palette-surface-1: rgba(102, 102, 102, 0.125);
