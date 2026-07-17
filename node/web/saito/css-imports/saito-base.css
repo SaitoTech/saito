@@ -33,8 +33,7 @@ body {
   max-height: -webkit-fill-available;
   max-width: -webkit-fill-available;
   overflow: hidden;
-  background-color: var(--saito-background);
-  background-image: none;
+  background: var(--saito-canvas-background, var(--saito-background));
   background-attachment: fixed;
   background-size: cover;
   transition: height 0.3s;

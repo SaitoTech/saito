@@ -145,7 +145,10 @@ font imports
 
   --saito-background-color: var(--saito-background);
   --saito-background-color-inverse: var(--saito-foreground);
-  --saito-canvas-background: var(--saito-background);
+  --saito-canvas-background:
+    radial-gradient(70vw 50vw at 50% 8%, rgba(245, 73, 0, 0.14), transparent 62%),
+    radial-gradient(45vw 35vw at 47% 46%, rgba(255, 184, 106, 0.08), transparent 68%),
+    var(--saito-background);
 
   /* panels, tables that sit above the background */
   --saito-surface-color: var(--saito-card);

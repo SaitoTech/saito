@@ -76,10 +76,12 @@ function styles() {
     }
 
     body.saito-cta-loader-active {
-      background:
+      background: var(
+        --saito-canvas-background,
         radial-gradient(70vw 50vw at 50% 8%, rgba(245, 73, 0, 0.14), transparent 62%),
         radial-gradient(45vw 35vw at 47% 46%, rgba(255, 184, 106, 0.08), transparent 68%),
-        #0c0a09;
+        #0c0a09
+      );
     }
 
     body.saito-cta-loader-active::before,
@@ -111,7 +113,6 @@ function styles() {
     }
 
     .saito-cta-loader-shell {
-      --saito-cta-loader-bg: #0c0a09;
       --saito-cta-loader-card: #1c1917;
       --saito-cta-loader-card-soft: #1b1e24;
       --saito-cta-loader-border: rgba(255, 255, 255, 0.1);
@@ -128,10 +129,12 @@ function styles() {
       justify-content: center;
       padding: 30px;
       color: var(--saito-cta-loader-text);
-      background:
+      background: var(
+        --saito-canvas-background,
         radial-gradient(70vw 50vw at 50% 8%, rgba(245, 73, 0, 0.14), transparent 62%),
         radial-gradient(45vw 35vw at 47% 46%, rgba(255, 184, 106, 0.08), transparent 68%),
-        var(--saito-cta-loader-bg);
+        #0c0a09
+      );
       opacity: 1;
       transition: opacity 0.34s ease;
     }
