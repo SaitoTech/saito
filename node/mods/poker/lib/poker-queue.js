@@ -400,11 +400,6 @@ class PokerQueue {
 						this.playerTurn();
 					} else {
 						this.displayPlayerNotice(`<div class="plog-update">thinking</div>`, player_to_go);
-						if (this.game.state.passed[this.game.player - 1]) {
-							//this.updateStatus('waiting for next round');
-						} else {
-							//this.updateStatus('waiting for ' + this.game.state.player_names[player_to_go - 1]);
-						}
 					}
 				}
 
@@ -794,6 +789,10 @@ class PokerQueue {
 
 				this.board.render(true);
 
+				if (this.game.player) {
+					this.updateStatus('waiting to ante');
+				}
+
 				let bbpi = this.game.state.big_blind_player - 1;
 				//
 				// Big Blind
@@ -817,6 +816,11 @@ class PokerQueue {
 					this.game.state.player_credit[bbpi] -= this.game.state.big_blind;
 				}
 
+				this.displayPlayerNotice(
+					'blind bets ' + this.formatWager(this.game.state.big_blind),
+					this.game.state.big_blind_player
+				);
+
 				//
 				// Small Blind
 				//
@@ -838,6 +842,11 @@ class PokerQueue {
 					this.game.state.player_pot[sbpi] += this.game.state.small_blind;
 					this.game.state.player_credit[sbpi] -= this.game.state.small_blind;
 				}
+
+				this.displayPlayerNotice(
+					'blind bets ' + this.formatWager(this.game.state.small_blind),
+					this.game.state.small_blind_player
+				);
 
 				/*if (!this.loadGamePreference('poker-hide-pot')) {
 					let html = `<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[bbpi]}</span></div>`;

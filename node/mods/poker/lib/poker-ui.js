@@ -55,14 +55,6 @@ class PokerUI {
     $('.game-playerbox-seat-1').appendTo('.mystuff');
 
     if (this.game.player == 0) {
-      //
-      // non-players have no seat, so displayPlayerNotice never builds the
-      // .status container for them -- give them one in the seat area so
-      // updateStatus() has a target for the waiting/observing banner
-      //
-      if (!document.querySelector('.mystuff .status')) {
-        this.app.browser.addElementToSelector(`<div class="status" id="status"></div>`, '.mystuff');
-      }
       this.displayHand();
     }
 
@@ -125,12 +117,11 @@ class PokerUI {
   }
 
   //
-  // Updates the status / text information body of player box
+  // Updates the status / text information body of player box.
+  // With no player specified this is "my" box -- for a non-player viewer
+  // (game.player == 0) that is the viewer box in seat 1.
   //
-  displayPlayerNotice(msg, player) {
-    if (!player) {
-      return;
-    }
+  displayPlayerNotice(msg, player = this.game.player) {
     if (player == this.game.player) {
       this.playerbox.updateBody(
         `<div class="status" id="status"></div><div class="controls" id="controls"></div>`,

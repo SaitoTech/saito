@@ -465,13 +465,6 @@ class CryptoModule extends ModTemplate {
       return;
     }
 
-    if (!Object.keys(this.transfers_inbound).length) {
-      // Cache the payment and quit
-      obj.timestamp = Date.now();
-      this.early_payments.push(obj);
-      return false;
-    }
-
     // Try chain address, fallback to SAITO publickey
     let sender = obj.sender_address || obj.sender;
 
@@ -492,6 +485,11 @@ class CryptoModule extends ModTemplate {
         }
       }
     }
+
+    // cache the payment if it doesn't match the inbound transfers
+    obj.timestamp = Date.now();
+    this.early_payments.push(obj);
+    return false;
   }
 
   /**

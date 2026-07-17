@@ -353,8 +353,9 @@ class GameTableTemplate extends GameTemplate {
       if (!this.game.state_commitments) {
         this.game.state_commitments = {};
       }
-      this.game.state_commitments[this.game.state?.round || 0] =
-        this.returnStateCommitment(this.game);
+      this.game.state_commitments[this.game.state?.round || 0] = this.returnStateCommitment(
+        this.game
+      );
     }
 
     //
@@ -731,6 +732,19 @@ class GameTableTemplate extends GameTemplate {
     }
   }
 
+  //
+  // To-do [note for Dave]
+  // This will make sure that debts for completed hands get processed when the player is leaving immediately
+  // through the menu.
+  // However, there is still a flaw about the current pot-stake that the player has bet in the live round,
+  // since we don't know who the ultimate winner will be.
+  //
+  // This might be the perfect place for the multisig spendable nfts
+  // (or it may be much simpler to put the entire stake in escrow, like that)
+  //
+  // Or it may be simpler to just simplify exitGame and not give them the opportunity to "Leave Now"
+  // and the standard pokerqueue logic will deal them out at the end of the hand for a clean exit
+  //
   async executeExitPayment({ receiver, amount, unique_hash, ticker }) {
     amount = this.app.crypto.convertFloatToSmartPrecision(parseFloat(amount));
 

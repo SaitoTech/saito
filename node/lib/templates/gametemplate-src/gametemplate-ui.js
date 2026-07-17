@@ -74,6 +74,19 @@ class GameUI {
   }
 
   updateStatus(str, force = 0) {
+    //
+    // no-op if this status is already on screen -- queue commands re-fire on
+    // every pass, and repainting the same status flickers the UI (and would
+    // needlessly clear the controls). the DOM check keeps this safe across
+    // body re-renders that empty the status container.
+    //
+    if (!force && str === this.game.status) {
+      let el = document.getElementById('status');
+      if (el && el.innerHTML === str) {
+        return;
+      }
+    }
+
     this.updateControls('', force);
 
     try {

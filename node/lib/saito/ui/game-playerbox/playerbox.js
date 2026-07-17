@@ -23,7 +23,7 @@ class GamePlayerBox {
       this.mod,
       `.game-playerbox-head-${this.player_number}`,
       publicKey,
-      `Player ${this.player_number}`,
+      this.player_number > 0 ? `Player ${this.player_number}` : '',
       '<div class="game-playerbox-icons"></div>'
     );
   }

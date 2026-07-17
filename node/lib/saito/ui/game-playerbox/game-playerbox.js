@@ -25,6 +25,20 @@ class GamePlayerbox {
     }
 
     //
+    // a local viewer without a seat (observer / pending table-joiner) gets a
+    // box too -- the view seating chart deliberately leaves seat 1 open for
+    // them. addressed as player_number 0 through the manager (returnBox).
+    //
+    if (
+      !this.mod.game.players.includes(this.mod.publicKey) &&
+      this.playerboxes.length == this.mod.game.players.length
+    ) {
+      this.playerboxes.push(
+        new GamePlayerbox(this.app, this.mod, this.container, this.mod.publicKey)
+      );
+    }
+
+    //
     // insert container
     //
     if (this.mode != 3) {
@@ -58,6 +72,12 @@ class GamePlayerbox {
           obj.classList.add(`game-playerbox-seat-${this.playerBox(i)}`);
         }
       }
+
+      // the viewer box takes the open seat 1
+      let viewer_box = document.querySelector('.game-playerbox-0');
+      if (viewer_box) {
+        viewer_box.classList.add('game-playerbox-seat-1');
+      }
     }
 
     this.attachEvents();
@@ -70,9 +90,7 @@ class GamePlayerbox {
   }
 
   onclick(fn = null, player_number) {
-    if (this.playerboxes.length >= player_number) {
-      this.playerboxes[player_number - 1].onclick(fn);
-    }
+    this.returnBox(player_number)?.onclick(fn);
   }
 
   hostVideo(apply_to_all = true) {
@@ -86,10 +104,21 @@ class GamePlayerbox {
   }
 
   addClass(content, player_number, target = 'game-playerbox') {
-    console.log('Add ' + content + ' to ' + player_number);
-    if (this.playerboxes.length >= player_number) {
-      this.playerboxes[player_number - 1].addClass(content, target);
+    this.returnBox(player_number)?.addClass(content, target);
+  }
+
+  //
+  // resolve a player_number to its box. 0 = the local viewer's box (a
+  // non-player observer / pending joiner).
+  //
+  returnBox(player_number) {
+    if (player_number == 0) {
+      return this.playerboxes.find((box) => box.player_number == 0) || null;
     }
+    if (player_number > 0 && this.playerboxes.length >= player_number) {
+      return this.playerboxes[player_number - 1];
+    }
+    return null;
   }
 
   //
@@ -101,45 +130,31 @@ class GamePlayerbox {
       return;
     }
 
-    if (this.playerboxes.length >= player_number) {
-      this.playerboxes[player_number - 1].updateBody(content);
-    }
+    this.returnBox(player_number)?.updateBody(content);
   }
 
   //
   // Graphics exists outside of the playerbox (for a players hand)
   //
   updateGraphics(content, player_number) {
-    if (this.playerboxes.length >= player_number) {
-      this.playerboxes[player_number - 1].updateGraphics(content);
-    }
+    this.returnBox(player_number)?.updateGraphics(content);
   }
 
   replaceGraphics(content, selector, player_number) {
-    if (this.playerboxes.length >= player_number) {
-      return this.playerboxes[player_number - 1].replaceGraphics(content, selector);
-    }
-
-    return null;
+    return this.returnBox(player_number)?.replaceGraphics(content, selector) ?? null;
   }
 
   //
   // Address, Userline, Icons are all part of the playerbox header
   //
   updateAddress(address, player_number) {
-    if (this.playerboxes.length >= player_number) {
-      this.playerboxes[player_number - 1].updateAddress(address);
-    }
+    this.returnBox(player_number)?.updateAddress(address);
   }
   updateUserline(userline, player_number) {
-    if (this.playerboxes.length >= player_number) {
-      this.playerboxes[player_number - 1].updateUserline(userline);
-    }
+    this.returnBox(player_number)?.updateUserline(userline);
   }
   updateIcons(content, player_number) {
-    if (this.playerboxes.length >= player_number) {
-      this.playerboxes[player_number - 1].updateIcons(content);
-    }
+    this.returnBox(player_number)?.updateIcons(content);
   }
 
   setActive(player_number, deactivate_others = true) {
