@@ -39,20 +39,20 @@ function isNormalOrAtrSlipType(type) {
   return type === SlipType.Normal || type === SlipType.ATR || type === 0 || type === 1;
 }
 
-const OpcodeChecksig = require('./lib/opcodes/CHECKSIG');
-const OpcodeCheckmultisig = require('./lib/opcodes/CHECKMULTISIG');
-const OpcodeCheckhash = require('./lib/opcodes/CHECKHASH');
-const OpcodeCheckfield = require('./lib/opcodes/CHECKFIELD');
-const OpcodeChecksender = require('./lib/opcodes/CHECKSENDER');
-const OpcodeCheckrecipient = require('./lib/opcodes/CHECKRECIPIENT');
-const OpcodeCheckpath = require('./lib/opcodes/CHECKPATH');
-const OpcodeCheckpathhop = require('./lib/opcodes/CHECKPATHHOP');
-const OpcodeImportfield = require('./lib/opcodes/IMPORTFIELD');
-const OpcodeSumfields = require('./lib/opcodes/SUMFIELDS');
-const OpcodeCheckown = require('./lib/opcodes/CHECKOWN');
-const OpcodeCheckownnft = require('./lib/opcodes/CHECKOWNNFT');
-const OpcodeCheckownnftwhere = require('./lib/opcodes/CHECKOWNNFTWHERE');
-const OpcodeChecktime = require('./lib/opcodes/CHECKTIME');
+const OpcodeChecksig = require('./lib/opcodes/checksig');
+const OpcodeCheckmultisig = require('./lib/opcodes/checkmultisig');
+const OpcodeCheckhash = require('./lib/opcodes/checkhash');
+const OpcodeCheckfield = require('./lib/opcodes/checkfield');
+const OpcodeChecksender = require('./lib/opcodes/checksender');
+const OpcodeCheckrecipient = require('./lib/opcodes/checkrecipient');
+const OpcodeCheckpath = require('./lib/opcodes/checkpath');
+const OpcodeCheckpathhop = require('./lib/opcodes/checkpathhop');
+const OpcodeImportfield = require('./lib/opcodes/importfield');
+const OpcodeSumfields = require('./lib/opcodes/sumfields');
+const OpcodeCheckown = require('./lib/opcodes/checkown');
+const OpcodeCheckownnft = require('./lib/opcodes/checkownnft');
+const OpcodeCheckownnftwhere = require('./lib/opcodes/checkownnftwhere');
+const OpcodeChecktime = require('./lib/opcodes/checktime');
 
 class Rustscript extends ModTemplate {
   constructor(app) {

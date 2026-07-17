@@ -553,11 +553,11 @@ class Arcade extends ModTemplate {
               );
               if (!exists_locally) {
                 //
-                // if this invite was created in the last 30 seconds, show it anyway
-                // as I may just not have received it online and refreshed...
+                // Same window as purge() INVITE_CUTOFF — keep my open invites
+                // visible for as long as others see them.
                 //
                 let msg = game_tx.returnMessage();
-                if (Date.now() - msg.timestamp > 30000) {
+                if (Date.now() - msg.timestamp > 2000000) {
                   continue;
                 }
               }
