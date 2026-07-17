@@ -15,6 +15,12 @@
 */
 }
 
+.settings-appspace-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
 .settings-appspace-warning-bar {
 	width: 100%;
 	box-sizing: border-box;
@@ -47,7 +53,6 @@ details.settings-appspace-section {
 
 details.settings-appspace-section[open] {
 	border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-border-color));
-	box-shadow: inset 3px 0 0 color-mix(in srgb, var(--saito-primary) 72%, transparent);
 }
 
 .settings-appspace-section-summary {
@@ -72,22 +77,8 @@ details.settings-appspace-section[open] {
 	content: '';
 }
 
-.settings-appspace-section-summary::after {
-	content: 'Expand';
-	font-family: var(--saito-font-medium);
-	font-size: 1.2rem;
-	letter-spacing: 0.03em;
-	opacity: 0.68;
-}
-
-details.settings-appspace-section[open] > .settings-appspace-section-summary::after {
-	content: 'Collapse';
-	color: var(--saito-primary);
-	opacity: 1;
-}
-
 .settings-appspace-section-summary:hover {
-	background: color-mix(in srgb, var(--saito-surface-hover) 88%, var(--saito-primary) 12%);
+    border: 1px solid color-mix(in srgb, var(--saito-primary) 24%, var(--saito-border-color));
 }
 
 .settings-appspace-section-summary:focus-visible {
@@ -96,7 +87,6 @@ details.settings-appspace-section[open] > .settings-appspace-section-summary::af
 }
 
 details.settings-appspace-section[open] > .settings-appspace-section-summary {
-	background: color-mix(in srgb, var(--saito-surface-color) 90%, var(--saito-primary) 10%);
 }
 
 .settings-appspace-section-summary h6 {
@@ -108,7 +98,6 @@ details.settings-appspace-section[open] > .settings-appspace-section-summary {
 	border: 0;
 	border-top: 1px solid color-mix(in srgb, var(--saito-primary) 24%, var(--saito-border-color));
 	border-radius: 0;
-	background: color-mix(in srgb, var(--saito-primary) 3%, transparent);
 	padding: 1rem;
 }
 
