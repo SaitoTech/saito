@@ -10,7 +10,14 @@ html[data-theme='dark'] {
   --foreground: #fafaf9;
   --card: #1c1917;
   --card-foreground: #fafaf9;
-  --popover: #161616;
+  --popover-surface: #202020;
+  --popover:
+    linear-gradient(
+      145deg,
+      #262626 0%,
+      color-mix(in srgb, #202020 92%, var(--primary) 1%) 52%,
+      #202020 100%
+    );
   --popover-foreground: #fafaf9;
   --primary: #f54900;
   --primary-foreground: #fff7ed;
@@ -22,7 +29,6 @@ html[data-theme='dark'] {
   --accent-foreground: #fafaf9;
   --destructive: #ff6467;
   --border: #ffffff1a;
-  --input: #161616;
   --ring: #79716b;
   --chart-1: #ffb86a;
   --chart-2: #ff6900;
@@ -86,9 +92,9 @@ html[data-theme='dark'] {
   --background-color-shim-dark: color-mix(in srgb, var(--background) 86%, transparent);
   --saito-overlay-backdrop: var(--background-color-shim-normal);
   --saito-overlay-backdrop-stacked: var(--background-color-shim-light);
-  --saito-overlay-panel-bg: var(--popover);
-  --saito-overlay-panel-surface-low: var(--popover);
-  --saito-overlay-panel-surface: var(--popover);
+  --saito-overlay-panel-bg: var(--popover-surface);
+  --saito-overlay-panel-surface-low: var(--popover-surface);
+  --saito-overlay-panel-surface: #262626;
   --saito-overlay-panel-background: var(--popover);
   --saito-overlay-panel-border: var(--border);
   --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--foreground) 5%, transparent);
@@ -99,8 +105,8 @@ html[data-theme='dark'] {
   --saito-modal-shadow: var(--saito-overlay-panel-shadow);
 
   /* fonts */
-  --saito-font: 'visuelt-regular', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --saito-font-medium: 'visuelt-medium', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --saito-font: 'visuelt-light', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --saito-font-medium: 'visuelt-regular', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --saito-font-heavy: 'visuelt-medium', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --saito-font-monospace: 'SF Mono', 'Fira Code', ui-monospace, monospace;
   --saito-font-color: var(--foreground);
@@ -143,13 +149,13 @@ html[data-theme='dark'] {
   --saito-button-secondary-bg-hover: var(--accent);
   --saito-button-secondary-fg: var(--secondary-foreground);
   --saito-button-secondary-fg-hover: var(--foreground);
-  --saito-button-secondary-border: transparent;
+  --saito-button-secondary-border: #fff3;
   --saito-button-disabled-bg: color-mix(in srgb, var(--secondary) 70%, transparent);
   --saito-button-disabled-fg: color-mix(in srgb, var(--muted-foreground) 64%, transparent);
   --saito-button-disabled-border: transparent;
 
-  --saito-input-bg: var(--input);
-  --saito-input-bg-focus: var(--input);
+  --saito-input-bg: #0003;
+  --saito-input-bg-focus: var(--saito-input-bg);
   --saito-input-fg: var(--foreground);
   --saito-input-fg-heavy: var(--foreground);
   --saito-input-border: var(--saito-border-color);
@@ -163,8 +169,8 @@ html[data-theme='dark'] {
   --saito-post-overlay-bg: var(--popover);
   --saito-post-overlay-border: var(--border);
   --saito-post-overlay-shadow: var(--saito-elevation-0);
-  --saito-post-textarea-bg: var(--input);
-  --saito-post-textarea-bg-focus: color-mix(in srgb, var(--input) 80%, var(--card));
+  --saito-post-textarea-bg: var(--saito-input-bg);
+  --saito-post-textarea-bg-focus: color-mix(in srgb, var(--saito-input-bg) 80%, var(--card));
   --saito-post-controls-bg: transparent;
   --saito-post-control-color: var(--chart-2);
   --saito-post-button-radius: var(--radius);
@@ -233,7 +239,7 @@ html[data-theme='dark'] {
   --saito-floating-action-bg: var(--chart-2);
   --saito-floating-action-fg: var(--primary-foreground);
   --saito-floating-action-shadow: var(--saito-elevation-2);
-  --saito-floating-menu-bg: var(--popover);
+  --saito-floating-menu-bg: var(--popover-surface);
   --saito-floating-menu-border: var(--border);
 
   --saito-file-transfer-panel-bg: var(--popover);
@@ -316,12 +322,13 @@ html[data-theme='dark'] .button,
 html[data-theme='dark'] .saito-button-primary,
 html[data-theme='dark'] .saito-button-secondary {
   box-shadow: none;
-  font-family: var(--saito-font-medium);
-  font-size: 1.4rem;
+  font-family: var(--saito-font);
+  font-size: 1.6rem;
   font-weight: 500;
   letter-spacing: 0;
   min-height: 3.6rem;
-  min-width: fit-content;
+  width: fit-content;
+  min-width: 20rem;
   padding: 0.75rem 1.2rem;
   text-transform: none;
   transition:
@@ -340,7 +347,7 @@ html[data-theme='dark'] .saito-button-primary:hover {
 
 html[data-theme='dark'] .saito-button-secondary:hover {
   color: var(--foreground);
-  filter: brightness(1.06);
+  filter: brightness(1.25);
 }
 
 html[data-theme='dark'] button.small,
@@ -355,9 +362,10 @@ html[data-theme='dark'] .saito-button-secondary.small {
 html[data-theme='dark'] button.fat,
 html[data-theme='dark'] .saito-button-primary.fat,
 html[data-theme='dark'] .saito-button-secondary.fat {
-  font-size: 1.6rem;
-  min-height: 4.8rem;
-  padding: 1rem 1.5rem;
+  font-size: 2rem;
+  height: 4.5rem;
+  min-height: 3rem;
+  padding: 0rem 2rem;
 }
 
 html[data-theme='dark'] button:disabled,
@@ -377,9 +385,11 @@ html[data-theme='dark'] textarea,
 html[data-theme='dark'] input,
 html[data-theme='dark'] select,
 html[data-theme='dark'] .saito-input .text-input:not(.post-tweet-textarea) {
-  font-size: 1.4rem;
-  border-color: var(--saito-input-border);
-  box-shadow: none;
+    font-size: 1.6rem;
+    border-color: var(--saito-input-border);
+    background: var(--saito-input-bg);
+    box-shadow: none;
+    padding: 1rem;
 }
 
 html[data-theme='dark'] textarea,

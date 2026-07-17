@@ -286,6 +286,22 @@ class SettingsAppspace {
 		let mod = this.mod;
 
 		try {
+			let settings_sections = Array.from(
+				document.querySelectorAll('.settings-appspace details.settings-appspace-section')
+			);
+			settings_sections.forEach((section) => {
+				section.ontoggle = () => {
+					if (!section.open) {
+						return;
+					}
+					settings_sections.forEach((other_section) => {
+						if (other_section !== section) {
+							other_section.open = false;
+						}
+					});
+				};
+			});
+
 			// Add this new event handler near the start of attachEvents
 			document.getElementById('profile-default-fee-input').onchange = (e) => {
 				let newDefaultFee = parseFloat(e.target.value);

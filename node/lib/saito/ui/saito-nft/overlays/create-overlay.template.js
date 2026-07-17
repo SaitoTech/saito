@@ -35,7 +35,7 @@ module.exports = (app, mod) => {
       <div>
         <div>
           <div class="label">NFT Type</div>
-          <select id="create-nft-type-dropdown" style="padding: 1rem 2.2rem 1rem 1.5rem; font-size: 1.6rem;">
+          <select id="create-nft-type-dropdown">
             <option value="image">Image</option>
             <option value="token">Token</option>
             <option value="text">Text</option>

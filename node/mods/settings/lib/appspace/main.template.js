@@ -54,11 +54,11 @@ module.exports = (app, mod, main) => {
 
     <div class="settings-appspace-header">
       <div class="settings-actions-container">
-        <div class="saito-button-secondary small" id="restore-privatekey-btn" title="Restore account from private key or seed phrase">Import Key</div>
-        <div class="saito-button-secondary small" id="restore-account-btn" title="Restore account by uploading json-file of wallet">Restore Wallet</div>
-        <div class="saito-button-secondary small" id="backup-account-btn" title="Download json-file copy of wallet">Backup Wallet</div>
-        <div class="saito-button-secondary small" id="nuke-account-btn" title="Wipe local storage and reload site with new key pair">Nuke Account</div>
-        <div class="saito-button-secondary small" id="clear-storage-btn" title="Removes local data storage, but keeps wallet intact">Clear Local Cache</div>
+        <div class="saito-button-secondary" id="restore-privatekey-btn" title="Restore account from private key or seed phrase">Import Key</div>
+        <div class="saito-button-secondary" id="restore-account-btn" title="Restore account by uploading json-file of wallet">Restore Wallet</div>
+        <div class="saito-button-secondary" id="backup-account-btn" title="Download json-file copy of wallet">Backup Wallet</div>
+        <div class="saito-button-secondary" id="nuke-account-btn" title="Wipe local storage and reload site with new key pair">Nuke Account</div>
+        <div class="saito-button-secondary" id="clear-storage-btn" title="Removes local data storage, but keeps wallet intact">Clear Cache</div>
       </div>
     </div>
 
