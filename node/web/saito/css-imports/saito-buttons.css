@@ -10,18 +10,26 @@ button,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: 0.2s;
-  letter-spacing: 1px;
-  font-size: 1.8rem;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    filter 0.16s ease;
+  letter-spacing: 0;
+  font-family: var(--saito-font);
+  font-size: 1.6rem;
+  font-weight: 500;
+  box-shadow: none;
   border-radius: var(--saito-button-radius);
   cursor: pointer;
   border: var(--border-thickness-thin) solid var(--saito-button-primary-border);
-  text-transform: capitalize;
-  padding: var(--saito-space-md);
+  text-transform: none;
+  padding: 0.75rem 1.2rem;
   margin: var(--saito-space-xs);
   white-space: nowrap;
-  min-width: 18rem;
-  min-height: 4.5rem;
+  width: fit-content;
+  min-width: 20rem;
+  min-height: 3.6rem;
   max-width: 100%;
 }
 
@@ -52,8 +60,10 @@ button:focus-visible,
 .saito-button-primary.disabled,
 .saito-button-primary[disabled] {
   background: var(--saito-button-disabled-bg);
-  color: var(--saito-font-color-primary);
+  color: var(--saito-button-disabled-fg);
   border: var(--border-thickness-thin) solid var(--saito-font-color-primary);
+  border-color: var(--saito-button-disabled-border);
+  filter: none;
   cursor: not-allowed;
 }
 
@@ -62,17 +72,22 @@ button:focus-visible,
   background: var(--saito-button-disabled-bg);
   color: var(--saito-button-disabled-fg);
   border: var(--border-thickness-thin) solid var(--saito-button-disabled-border);
+  border-color: var(--saito-button-disabled-border);
+  filter: none;
   cursor: not-allowed;
 }
 
 button:hover,
 .saito-button-primary:hover {
   background: var(--saito-button-primary-bg-hover);
+  color: var(--saito-primary-foreground);
+  filter: brightness(1.06);
 }
 
 .saito-button-secondary:hover {
   background: var(--saito-button-secondary-bg-hover);
-  color: var(--saito-button-secondary-fg-hover);
+  color: var(--saito-foreground);
+  filter: brightness(1.25);
 }
 
 .saito-button-primary.disabled:hover,
@@ -85,10 +100,10 @@ button:hover,
 button.small,
 .saito-button-primary.small,
 .saito-button-secondary.small {
-  padding: 0.75rem 0.7rem;
-  font-size: 1.4rem;
-  min-width: 4.5rem;
-  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 1.25rem;
+  min-width: 3.6rem;
+  min-height: 2.8rem;
 }
 
 .saito-button-secondary.small {
@@ -104,8 +119,42 @@ button.small,
 button.fat,
 .saito-button-primary.fat,
 .saito-button-secondary.fat {
-  height: 6rem;
+  height: 4.5rem;
   font-size: 2rem;
+  min-height: 3rem;
+  padding: 0rem 2rem;
+}
+
+.button {
+  box-shadow: none;
+  font-family: var(--saito-font);
+  font-size: 1.6rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  min-height: 3.6rem;
+  width: fit-content;
+  min-width: 20rem;
+  padding: 0.75rem 1.2rem;
+  text-transform: none;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    filter 0.16s ease;
+}
+
+.button:hover {
+  color: var(--saito-primary-foreground);
+  filter: brightness(1.06);
+}
+
+button:disabled,
+button.disabled,
+.button.disabled {
+  background: var(--saito-button-disabled-bg);
+  border-color: var(--saito-button-disabled-border);
+  color: var(--saito-button-disabled-fg);
+  filter: none;
 }
 
 button i {

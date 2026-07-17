@@ -8,11 +8,11 @@
   justify-content: space-between;
 
   /* pseudo overlay */
-  box-shadow: var(--saito-file-transfer-panel-shadow);
-  border-radius: var(--saito-border-radius);
+  box-shadow: var(--saito-overlay-panel-shadow);
+  border-radius: var(--saito-radius-lg);
   overflow: hidden;
-  background: var(--saito-file-transfer-panel-bg);
-  border: var(--border-thickness-thin) solid var(--saito-file-transfer-panel-border);
+  background: var(--saito-popover);
+  border: 0;
   position: fixed;
   /*left: 50%;
   top: 50%;

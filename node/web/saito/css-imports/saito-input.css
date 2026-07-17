@@ -9,26 +9,30 @@
 .saito-input .text-input:not(.post-tweet-textarea) {
   /*height: 100%;*/
   width: 100%;
-  padding: 1.2rem 3rem 1.2rem var(--saito-space-md);
+  padding: 1rem;
   cursor: text;
   border: var(--border-thickness-thin) solid transparent;
-  border-radius: var(--saito-input-radius);
+  border-radius: var(--saito-border-radius);
   font-size: 1.6rem;
   line-height: 2rem;
   outline: none;
-  background: var(--background-color-message-input, var(--saito-input-bg));
+  background: var(--saito-input-bg);
+  background-color: var(--saito-input-bg);
   color: var(--saito-input-fg);
   overflow-y: auto;
   word-break: break-word;
   min-height: 4.5rem;
   max-height: 12.5rem;
   height: fit-content;
+  border-color: var(--saito-input-border);
+  box-shadow: none;
 }
 
 .saito-input .text-input:not(.post-tweet-textarea):focus,
 .saito-input .text-input:not(.post-tweet-textarea):focus-within {
-  border-color: var(--saito-input-border-focus);
-  box-shadow: var(--saito-focus-ring);
+  outline: none !important;
+  border-color: var(--saito-input-border) !important;
+  box-shadow: none !important;
 }
 
 .saito-input-selection-box {
@@ -42,6 +46,7 @@
 	justify-content: space-between;
 	flex-direction: column;
 	border: var(--border-thickness-medium) solid var(--saito-overlay-panel-border);
+	border-color: var(--saito-border);
 	border-radius: var(--saito-border-radius);
 
 	/*
@@ -196,6 +201,7 @@ emoji-picker {
 	flex: 1;
 	background: var(--saito-overlay-panel-background);
 	border-radius: var(--saito-input-radius);
+	border-color: var(--saito-border);
 
 	/* for popping up over input field */
 	max-height: 200px;

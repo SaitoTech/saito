@@ -17,6 +17,8 @@
     padding 0.33s linear;
   color: var(--saito-header-color);
   background: transparent;
+  border-bottom: 1px solid var(--saito-border);
+  box-shadow: none;
 }
 
 #saito-header.wide-screen {
@@ -54,6 +56,11 @@
   cursor: pointer;
   height: 100%;
   fill: var(--saito-header-color);
+  filter: brightness(0) invert(1);
+}
+
+.saito-header-logo .cls-1 {
+  fill: var(--saito-foreground);
 }
 
 #saito-header-menu-toggle {
@@ -112,13 +119,13 @@
 
 .saito-header-hamburger-contents {
   display: block;
-  background: var(--saito-header-menu-bg);
+  background: var(--saito-popover);
   position: absolute;
   right: -40rem;
   top: var(--saito-header-height);
-  border-top: var(--border-thickness-thin) solid var(--saito-header-menu-border);
-  border-left: var(--border-thickness-thin) solid var(--saito-header-menu-border);
-  box-shadow: var(--saito-header-menu-shadow);
+  border: 0;
+  border-radius: var(--saito-radius-lg);
+  box-shadow: var(--saito-overlay-panel-shadow);
   transition:
     right 0.33s,
     width 0.33s;

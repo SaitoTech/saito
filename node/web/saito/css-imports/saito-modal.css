@@ -11,9 +11,9 @@ This alows for a header with a header with title to be added without extra CSS
   display: grid;
   grid-template-rows: min-content 1fr min-content; /* last item optional */
   max-height: 95vh;
-  border: 1px solid var(--saito-overlay-panel-border);
-  border-radius: var(--saito-border-radius);
-  background: var(--saito-overlay-panel-background);
+  border: 0;
+  border-radius: var(--saito-radius-lg);
+  background: var(--saito-popover);
   box-shadow: var(--saito-overlay-panel-shadow);
 }
 

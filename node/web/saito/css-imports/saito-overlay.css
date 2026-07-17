@@ -50,9 +50,10 @@
 
 .saito-overlay > div:last-child,
 .saito-overlay > form {
+  background: var(--saito-popover);
   box-shadow: var(--saito-overlay-panel-shadow);
-  border-radius: var(--saito-border-radius);
-  border: 1px solid var(--saito-overlay-panel-border);
+  border-radius: var(--saito-radius-lg);
+  border: 0;
 }
 
 .center-overlay {
