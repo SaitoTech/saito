@@ -1,7 +1,7 @@
 .settings-appspace {
 	display: flex;
 	flex-direction: column;
-	row-gap: 3rem;
+	row-gap: 1rem;
 	overflow: auto;
 	background: var(--saito-background-color);
 	color: var(--saito-font-color);
@@ -36,20 +36,32 @@
 }
 
 details.settings-appspace-section {
-	padding: 1rem;
+	padding: 0;
+	border: 1px solid var(--saito-border-color);
+	border-radius: var(--saito-border-radius);
+	background: var(--saito-surface-color);
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
+}
+
+details.settings-appspace-section[open] {
+	border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-border-color));
+	box-shadow: inset 3px 0 0 color-mix(in srgb, var(--saito-primary) 72%, transparent);
 }
 
 .settings-appspace-section-summary {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: 0.5rem;
-	padding: 0.5rem 0 0.75rem;
+	gap: 1rem;
+	min-height: 4.8rem;
+	padding: 1rem 1.25rem;
 	list-style: none;
 	cursor: pointer;
-	position: relative;
-	padding-left: 1.35rem;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
 }
 
 .settings-appspace-section-summary::-webkit-details-marker {
@@ -60,28 +72,43 @@ details.settings-appspace-section {
 	content: '';
 }
 
-.settings-appspace-section-summary::before {
-	content: '▸';
-	position: absolute;
-	left: 0;
-	top: 50%;
-	transform: translateY(-63%);
-	font-size: 0.85em;
-	opacity: 0.75;
-	transition: transform 0.15s ease;
+.settings-appspace-section-summary::after {
+	content: 'Expand';
+	font-family: var(--saito-font-medium);
+	font-size: 1.2rem;
+	letter-spacing: 0.03em;
+	opacity: 0.68;
 }
 
-details.settings-appspace-section[open] > .settings-appspace-section-summary::before {
-	transform: translateY(-50%) rotate(90deg);
+details.settings-appspace-section[open] > .settings-appspace-section-summary::after {
+	content: 'Collapse';
+	color: var(--saito-primary);
+	opacity: 1;
+}
+
+.settings-appspace-section-summary:hover {
+	background: color-mix(in srgb, var(--saito-surface-hover) 88%, var(--saito-primary) 12%);
+}
+
+.settings-appspace-section-summary:focus-visible {
+	outline: 2px solid color-mix(in srgb, var(--saito-primary) 70%, transparent);
+	outline-offset: -2px;
+}
+
+details.settings-appspace-section[open] > .settings-appspace-section-summary {
+	background: color-mix(in srgb, var(--saito-surface-color) 90%, var(--saito-primary) 10%);
 }
 
 .settings-appspace-section-summary h6 {
 	margin: 0;
+	margin-right: auto;
 }
 
 .settings-appspace-body details.settings-appspace-section > div {
-	border: 1px solid var(--saito-border-color);
-	border-radius: var(--saito-border-radius);
+	border: 0;
+	border-top: 1px solid color-mix(in srgb, var(--saito-primary) 24%, var(--saito-border-color));
+	border-radius: 0;
+	background: color-mix(in srgb, var(--saito-primary) 3%, transparent);
 	padding: 1rem;
 }
 
@@ -114,12 +141,14 @@ details.settings-appspace-section[open] > .settings-appspace-section-summary::be
 	width: 100%;
 	max-width: 100%;
 	margin: 0;
-	gap: 0.75rem;
+	column-gap: 1rem;
+	row-gap: 0.75rem;
 }
 
 .settings-appspace-header .settings-actions-container .saito-button-secondary {
 	justify-content: center;
 	text-align: center;
+	width: 100%;
 	min-width: 0;
 }
 
@@ -291,6 +320,11 @@ label.treated {
 	margin-right: 1rem;
 	cursor: pointer;
 }
+
+.settings-appspace-modules-container:not([open]) #settings-add-app {
+	display: none;
+}
+
 @media only screen and (max-width: 900px) {
 	/*.settings-appspace {
 		padding: 1.5rem;

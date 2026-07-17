@@ -33,6 +33,7 @@
 .arcade-central-panel {
 	max-height: 100%;
 	position: relative;
+	padding: 1rem;
 }
 
 .arcade-cta-section {

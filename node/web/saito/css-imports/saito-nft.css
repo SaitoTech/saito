@@ -291,7 +291,7 @@
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  height: 500px;
+  height: 5rem;
 }
 
 .create-nft-overlay .body .primary,
@@ -304,12 +304,10 @@
   flex-direction: column;
   min-height: 100%;
   transition: transform 0.35s ease;
-  background: var(--saito-background-color);
 }
 
 .create-nft-overlay .body .primary {
   padding: 1rem;
-  gap: 2rem;
   transform: translateX(0);
 }
 
@@ -344,23 +342,17 @@
 
 .create-nft-overlay .label {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 1rem;
 }
 
 .create-nft-overlay .primary select#create-nft-type-dropdown {
   width: auto;
   color: var(--saito-font-color);
-  background: var(--saito-background-color);
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  font-size: 1.4rem;
 }
 
 .create-nft-overlay .primary input {
   max-width: 8rem;
   text-align: center;
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
-  padding: 0.3rem 0;
   border-radius: var(--saito-border-radius);
 }
 
@@ -458,7 +450,7 @@
   align-items: center;
   width: 100%;
   gap: 2rem;
-  margin-top: 1rem;
+  padding: 0;
 }
 
 .create-nft-overlay .secondary > div:first-child {
@@ -472,7 +464,6 @@
 }
 
 .create-nft-overlay .secondary .label {
-  font-size: 13px;
   margin: 12px 0 6px;
   color: var(--saito-font-color);
 }

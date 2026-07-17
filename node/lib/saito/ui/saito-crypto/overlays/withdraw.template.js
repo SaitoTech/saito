@@ -208,7 +208,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
           <button
             type="submit"
             form="withdrawal-form"
-            class="withdraw-submit saito-button-primary"
+            class="withdraw-submit saito-button-primary fat"
             id="saito-overlay-submit"
             disabled
           >
@@ -217,18 +217,18 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
         </div>
 
         <div class="saito-button-row withdraw-overlay__actions hide-element" id="withdraw-footer-review">
-          <button type="button" class="saito-button-secondary" id="withdraw-edit">Edit</button>
-          <button type="button" class="saito-button-primary" id="withdraw-confirm">Confirm send</button>
+          <button type="button" class="saito-button-secondary fat" id="withdraw-edit">Edit</button>
+          <button type="button" class="saito-button-primary fat" id="withdraw-confirm">Confirm send</button>
         </div>
 
         <div class="saito-button-row withdraw-overlay__actions hide-element" id="withdraw-footer-success">
-          <a class="saito-button-secondary" id="withdraw-view-history" href="#">View history</a>
-          <button type="button" class="saito-button-primary" id="withdraw-done">Done</button>
+          <a class="saito-button-secondary fat" id="withdraw-view-history" href="#">View history</a>
+          <button type="button" class="saito-button-primary fat" id="withdraw-done">Done</button>
         </div>
 
         <div class="saito-button-row withdraw-overlay__actions hide-element" id="withdraw-footer-failed">
-          <button type="button" class="saito-button-secondary" id="withdraw-try-edit">Edit</button>
-          <button type="button" class="saito-button-primary" id="withdraw-try-again">Try again</button>
+          <button type="button" class="saito-button-secondary fat" id="withdraw-try-edit">Edit</button>
+          <button type="button" class="saito-button-primary fat" id="withdraw-try-again">Try again</button>
         </div>
       </footer>
     </div>
