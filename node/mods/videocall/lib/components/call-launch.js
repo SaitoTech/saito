@@ -3,7 +3,7 @@ const StunLaunchTemplate = require('./call-launch.template.js');
 const CallSetting = require('../components/call-setting.js');
 const SaitoLoader = require('../../../../lib/saito/ui/saito-loader/saito-loader.js');
 const CallScheduleJoin = require('./call-schedule-join.js');
-const CallScheduleWizard = require('../../../../lib/saito/ui/saito-calendar/saito-schedule-wizard.js');
+const SaitoScheduleWizard = require('../../../../lib/saito/ui/saito-calendar/saito-schedule-wizard.js');
 
 
 /**
@@ -121,8 +121,8 @@ class CallLaunch {
 		if (document.getElementById('createScheduleRoom')) {
 			
 			document.getElementById('createScheduleRoom').onclick = async (e) => {
-                const callScheduleWizard = new CallScheduleWizard(this.app, this.mod)
-                callScheduleWizard.callbackAfterSubmit = async (utcStartTime, duration, description = "", title = "") => {
+                const saitoScheduleWizard = new SaitoScheduleWizard(this.app, this.mod)
+                saitoScheduleWizard.callbackAfterSubmit = async (utcStartTime, duration, description = "", title = "") => {
 
                     //Creates public key for clal
                     const call_id = await this.mod.generateRoomId();
@@ -140,7 +140,6 @@ class CallLaunch {
 
                     this.app.keychain.addKey(call_id, { identifier: title || "Video Call", startTime:utcStartTime, duration, description, link: call_link });
         
-                    this.app.connection.emit('calendar-refresh-request');
                     this.app.connection.emit('close-preview-window', true); // rerender screen
 
                     let event_link =  this.app.browser.createEventInviteLink(this.app.keychain.returnKey(call_id));
@@ -149,7 +148,7 @@ class CallLaunch {
 
                 }
 
-                callScheduleWizard.render()
+                saitoScheduleWizard.render()
 
 			};
 		}

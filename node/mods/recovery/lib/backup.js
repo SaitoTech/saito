@@ -106,7 +106,7 @@ class Backup {
 			}
 
 			div.innerHTML = msg;
-			div.classList.add('centerme');
+			div.classList.add('centered');
 		}
 
 		this.loader.render();

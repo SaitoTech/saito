@@ -16,7 +16,7 @@ class RegisterUsername {
 	}
 
 	attachEvents() {
-		document.querySelector('.saito-overlay-form-input').select();
+		document.querySelector('.saito-input').select();
 
 		document.getElementById('login').onclick = (e) => {
 			this.overlay.remove();
@@ -26,7 +26,7 @@ class RegisterUsername {
 
 		document.querySelector('.saito-overlay-form-submit').onclick = (e) => {
 			e.preventDefault();
-			var identifier = document.querySelector('.saito-overlay-form-input').value;
+			var identifier = document.querySelector('.saito-input').value;
 			if (identifier) {
 				if (identifier.indexOf('@') > -1) {
 					identifier = identifier.substring(0, identifier.indexOf('@'));
@@ -40,7 +40,7 @@ class RegisterUsername {
 						.classList.add('saito-cached-loader', 'loading');
 
 					document.querySelector('.saito-overlay-form-text').remove();
-					document.querySelector('.saito-overlay-form-input').remove();
+					document.querySelector('.saito-input').remove();
 					document.querySelector('.saito-button-row').remove();
 					this.loader.render();
 					this.app.browser.addElementToId(

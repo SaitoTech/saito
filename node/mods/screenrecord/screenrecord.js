@@ -18,7 +18,7 @@ if (typeof globalThis !== 'undefined') {
 	}
 }
 const lamejs = require('lamejs');
-const VideoBox = require('../../lib/saito/ui/saito-videobox/video-box');
+const SaitoVideoBox = require('../../lib/saito/ui/saito-videobox/video-box');
 
 class Record extends ModTemplate {
 	constructor(app) {
@@ -357,7 +357,7 @@ class Record extends ModTemplate {
 				video: true
 			});
 			let stream_id = `stream_${this.publicKey}`;
-			this.videoBox = new VideoBox(this.app, this, this.publicKey);
+			this.videoBox = new SaitoVideoBox(this.app, this, this.publicKey);
 			this.videoBox.render(this.localStream);
 			let videoElement = document.querySelector('.saito-videobox');
 			if (videoElement) {

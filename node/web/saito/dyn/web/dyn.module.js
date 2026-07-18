@@ -4562,7 +4562,6 @@ var SaitoCalendarEvent = /*#__PURE__*/function () {
         bookmark.onclick = function (e) {
           _this2.app.keychain.addKey(_this2.event.publicKey, _this2.event);
           _this2.app.keychain.addWatchedPublicKey(_this2.event.publicKey);
-          _this2.app.connection.emit('calendar-refresh-request');
           _this2.overlay.close();
         };
       }
@@ -5211,7 +5210,7 @@ function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" 
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 var fs = __webpack_require__(858);
 var path = __webpack_require__(975);
-var SaitoEvent = __webpack_require__(814);
+var SaitoCalendarEvent = __webpack_require__(814);
 var JSON = __webpack_require__(13);
 var ModTemplate = /*#__PURE__*/function () {
   function ModTemplate(app, mod) {
@@ -5498,7 +5497,7 @@ var ModTemplate = /*#__PURE__*/function () {
                 console.log("Render", this.name);
                 event = JSON.parse(this.app.crypto.base64ToString(this.app.browser.returnURLParameter('event')));
                 if (!(this !== null && this !== void 0 && this.eventOverlay)) {
-                  this.eventOverlay = new SaitoEvent(this.app, this, event);
+                  this.eventOverlay = new SaitoCalendarEvent(this.app, this, event);
                   this.eventOverlay.render();
                 }
               }

@@ -639,11 +639,11 @@ class SaitoHeader extends UIModTemplate {
       };
     }
 
-    document.querySelector('.pubkey-containter').onclick = async (e) => {
+    document.querySelector('.pubkey-container').onclick = async (e) => {
       let public_key = document.getElementById('profile-public-key').dataset.add;
 
       await navigator.clipboard.writeText(public_key);
-      let icon_element = document.querySelector('.pubkey-containter i.fa-copy');
+      let icon_element = document.querySelector('.pubkey-container i.fa-copy');
       icon_element.classList.toggle('fa-copy');
       icon_element.classList.toggle('fa-check');
 
@@ -902,7 +902,7 @@ class SaitoHeader extends UIModTemplate {
     if (this.app.options.wallet?.backup_required) {
       // Display the (updated) user name for a few seconds before restoring the flashing warning
       setTimeout(() => {
-        // Make sure still neeeded!
+        // Make sure still needed!
         if (this.app.options.wallet?.backup_required) {
           // Backwards compatibility
           if (this.app.options.wallet.backup_required == 1) {
@@ -1091,7 +1091,7 @@ class SaitoHeader extends UIModTemplate {
             pb = ab = '0';
           }
 
-          menu_html += `<div class="saito-header-crypto ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
+          menu_html += `<div class="saito-header-crypto ${crypto_mod.isActivated() ? 'active' : 'inactive'}" data-ticker="${crypto_mod.ticker}">`;
           menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${logo_src}">`;
           if (sublogo_src) {
             menu_html += `<img class="chain-logo" src="${sublogo_src}">`;

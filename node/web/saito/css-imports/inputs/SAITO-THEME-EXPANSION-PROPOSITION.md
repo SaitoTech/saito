@@ -14,7 +14,7 @@
 The shared UI stack lives under:
 
 - **Aggregate stylesheet:** `web/saito/saito.css` — `@import` list for all shared pieces.
-- **Core tokens & chrome:** `web/saito/css-imports/saito-variables.css`, `saito-base.css`, component files (`saito-buttons.css`, `saito-overlay.css`, `saito-modal.css`, etc.).
+- **Core tokens & chrome:** `web/saito/css-imports/saito-variables.css`, `saito-base.css`, component files (`saito-buttons.css`, `ui/saito-overlay.css`, `saito-modal.css`, etc.).
 - **Theme overlays:** `web/saito/css-imports/themes/saito-dark.theme.css`, `saito-prism.theme.css`, `saito-raven.theme.css`.
 
 There are **no** alternate-prefix CSS files (e.g. `cyto-*.css`); implementation names are **`saito-*`**.
@@ -102,7 +102,7 @@ That document remains the design reference for the cinematic videocall flow; the
 1. **Palette layer (new)** — Raw aesthetic intent, mostly independent of legacy names:  
    `--palette-bg`, `--palette-bg-elevated`, `--palette-surface-1..n`, `--palette-primary`, `--palette-on-primary`, `--palette-outline`, `--palette-danger`, optional `--palette-gradient-primary`, `--palette-shadow-ambient`, etc.
 2. **Semantic / compatibility layer** — Existing `--saito-*` variables **reference** the palette layer in `saito-variables.css` and in each `html[data-theme]` block. Existing modules keep working.
-3. **Component layer** — `saito-buttons.css`, `saito-overlay.css`, `saito-modal.css`, etc. gradually prefer **semantic tokens** (`--saito-button-primary-bg`, `--saito-overlay-backdrop`, …) that default to palette-backed values.
+3. **Component layer** — `saito-buttons.css`, `ui/saito-overlay.css`, `saito-modal.css`, etc. gradually prefer **semantic tokens** (`--saito-button-primary-bg`, `--saito-overlay-backdrop`, …) that default to palette-backed values.
 
 This matches the videocall doc’s separation between **meaning** (surface tier) and **implementation** (hex).
 

@@ -13,7 +13,7 @@ module.exports = (app, mod) => {
       <div class="nft-creator">
 
         <div class="button-container">
-	  <div class="spinner-helper" style="display: none;">uploading...<p></p><div class="saito_spinner"></div></div>
+	  <div class="spinner-helper" style="display: none;">uploading...<p></p><div class="saito-spinner"></div></div>
           <div class="jade_key public-nft"><div class="key_level_info"><h5>RECOMMENDED</h5>NFT owner controls file</div></div>
           <div class="crystal_key private-nft"><div class="key_level_info"><h5>ADVANCED</h5>custom access restrictions</div></div>
         </div>

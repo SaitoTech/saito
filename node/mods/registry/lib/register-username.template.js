@@ -8,7 +8,7 @@ module.exports = (app, mod, msg) => {
         		<div class="saito-overlay-form-header-title">Register Username</div>
       		</div>
       		<div class="saito-overlay-form-text">${msg}</div>
-          	<input type="text" id="saito-overlay-form-input" class="saito-overlay-form-input" autocomplete="off" placeholder="username@saito" value="" />
+          	<input type="text" id="saito-overlay-form-input" class="saito-input" autocomplete="off" placeholder="username@saito" value="" />
       		<div class="saito-button-row">
 	   			<div id="login" class="saito-anchor"><span>or login/recover</span></div>
       			<button type="submit" class="saito-button-primary saito-overlay-form-submit" id="saito-overlay-submit">Register Username</button> 

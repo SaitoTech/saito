@@ -23,7 +23,7 @@
   gap: var(--saito-space-lg);
 }
 
-.sidebar-right > .profile,
+.sidebar-right > .redsquare-profile,
 .sidebar-right > .sidebar {
   flex-shrink: 0;
 }

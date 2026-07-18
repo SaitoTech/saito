@@ -1,4 +1,4 @@
-const VideoBox = require('../../../../lib/saito/ui/saito-videobox/video-box');
+const SaitoVideoBox = require('../../../../lib/saito/ui/saito-videobox/video-box');
 
 const CallInterfaceVideoTemplate = require('./call-interface-video.template');
 
@@ -570,7 +570,7 @@ class CallInterfaceVideo {
 	createVideoBox(peer, container = this.remote_container) {
 		if (!this.video_boxes[peer]) {
 			console.info('TALK [createVideoBox]: ', peer);
-			const videoBox = new VideoBox(this.app, this.mod, peer, container);
+			const videoBox = new SaitoVideoBox(this.app, this.mod, peer, container);
 			this.video_boxes[peer] = { video_box: videoBox };
 		}
 	}

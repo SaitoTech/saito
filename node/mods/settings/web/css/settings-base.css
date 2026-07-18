@@ -182,7 +182,7 @@ details.settings-appspace-section[open] > .settings-appspace-section-summary {
 	border-bottom: 1px dashed;
 }
 
-.settings-appspace-user-details .pubkey-containter {
+.settings-appspace-user-details .pubkey-container {
 	justify-content: initial;
 	gap: 1rem;
 }

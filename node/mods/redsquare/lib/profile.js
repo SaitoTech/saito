@@ -37,12 +37,12 @@ class Profile {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
 
-    return `<div class="saito-description-edit placeholder">${safe}</div>`;
+    return `<div class="redsquare-profile-description-edit placeholder">${safe}</div>`;
   }
 
   /**
    * Resolve what the sidebar profile card should show.
-   * Edit controls only for the viewing user's own key (same contract as SaitoProfile).
+   * Edit controls only for the viewing user's own key.
    */
   buildProfileData(publicKey = '') {
     const key = publicKey || this.mod.publicKey || '';
@@ -150,7 +150,9 @@ class Profile {
         return;
       }
 
-      const bannerEdit = e.target.closest('#saito-banner-edit, .saito-banner-edit');
+      const bannerEdit = e.target.closest(
+        '#redsquare-profile-banner-edit, .redsquare-profile-banner-edit'
+      );
       if (bannerEdit && root.contains(bannerEdit)) {
         e.preventDefault();
         e.stopPropagation();
@@ -161,7 +163,7 @@ class Profile {
         return;
       }
 
-      const descEdit = e.target.closest('.saito-profile-description.can-edit');
+      const descEdit = e.target.closest('.redsquare-profile-description.can-edit');
       if (descEdit && root.contains(descEdit)) {
         e.preventDefault();
         e.stopPropagation();
@@ -202,7 +204,9 @@ class Profile {
         return;
       }
 
-      const item = e.target.closest('.nav .item, .saito-banner-edit, .copy-key');
+      const item = e.target.closest(
+        '.nav .item, .redsquare-profile-banner-edit, .copy-key'
+      );
 
       if (!item || !root.contains(item)) {
         return;
@@ -214,7 +218,7 @@ class Profile {
   }
 
   /**
-   * Profile module DOM updates — same selectors SaitoProfile listens for.
+   * Apply Profile-module content updates to the RedSquare sidebar card.
    */
   applyProfileDomUpdate(publicKey, data) {
     if (!publicKey || !data) {
@@ -243,7 +247,7 @@ class Profile {
       }
 
       const container = document.querySelector(
-        `${this.container} .saito-profile-description, ${this.container} .bio`
+        `${this.container} .redsquare-profile-description`
       );
       if (container) {
         const canEdit = this.canEditProfile(publicKey);
@@ -258,7 +262,7 @@ class Profile {
             <div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">
               ${sanitized}
             </div>
-            ${canEdit ? `<div class="saito-description-edit"><i class="fas fa-pen"></i></div>` : ''}
+            ${canEdit ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>` : ''}
           `;
         }
       }

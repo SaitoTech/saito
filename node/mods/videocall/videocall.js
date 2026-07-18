@@ -9,7 +9,6 @@ const StreamManager = require('./lib/StreamManager');
 const AppSettings = require('./lib/stun-settings');
 const HomePage = require('./index');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
-const SaitoScheduleWizard = require('../../lib/saito/ui/saito-calendar/saito-schedule-wizard');
 
 class Videocall extends ModTemplate {
 	constructor(app) {
@@ -235,57 +234,6 @@ class Videocall extends ModTemplate {
 			}
 		}
 
-		if (type === 'saito-scheduler') {
-			this.attachStyleSheets();
-
-			return [
-				{
-					text: 'Schedule a call',
-					icon: this.icon,
-					callback: function (app, day, month, year) {
-						let schedule_wizard = new SaitoScheduleWizard(app, call_self);
-
-						schedule_wizard.defaultDate = { day, month, year };
-
-						schedule_wizard.callbackAfterSubmit = async function (
-							utcStartTime,
-							duration,
-							description = '',
-							title = ''
-						) {
-							//Creates public key for clal
-							const call_id = await call_self.generateRoomId();
-
-							const room_obj = {
-								call_id,
-								scheduled: true,
-								call_peers: [],
-								startTime: utcStartTime,
-								duration,
-								description
-							};
-
-							let call_link = call_self.generateCallLink(room_obj);
-
-							app.keychain.addKey(call_id, {
-								identifier: title || 'Video Call',
-								startTime: utcStartTime,
-								duration,
-								profile: { description },
-								link: call_link
-							});
-							app.connection.emit('calendar-refresh-request');
-
-							let event_link = app.browser.createEventInviteLink(app.keychain.returnKey(call_id));
-
-							await navigator.clipboard.writeText(event_link);
-							siteMessage('Invitation link copied to clipboard', 3500);
-						};
-						schedule_wizard.render();
-					}
-				}
-			];
-		}
 		//
 		//Game-Menu passes the game_mod as the obj, so we can test if we even want to add the option
 		//

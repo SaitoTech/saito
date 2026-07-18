@@ -1,7 +1,7 @@
 const saito = require('../../lib/saito/saito');
 const Transaction = require('../../lib/saito/transaction').default;
 const ModTemplate = require('../../lib/templates/modtemplate');
-const PhotoUploader = require('../../lib/saito/ui/saito-photo-uploader/saito-photo-uploader');
+const SaitoPhotoUploader = require('../../lib/saito/ui/saito-photo-uploader/saito-photo-uploader');
 const UpdateDescription = require('./lib/ui/update-description');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const SaitoProfile = require('../../lib/saito/ui/saito-profile/saito-profile');
@@ -81,7 +81,7 @@ class Profile extends ModTemplate {
 		});
 
 		app.connection.on('profile-edit-banner', (profile_key) => {
-			this.photoUploader = new PhotoUploader(this.app, this.mod, 'banner');
+			this.photoUploader = new SaitoPhotoUploader(this.app, this.mod, 'banner');
 			this.photoUploader.callbackAfterUpload = async (photo) => {
 				let banner = await this.app.browser.resizeImg(photo);
 				this.sendProfileTransaction({ banner }, profile_key);

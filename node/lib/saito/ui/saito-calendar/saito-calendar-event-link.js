@@ -40,7 +40,6 @@ class SaitoCalendarEvent {
       bookmark.onclick = (e) => {
         this.app.keychain.addKey(this.event.publicKey, this.event);
         this.app.keychain.addWatchedPublicKey(this.event.publicKey);
-        this.app.connection.emit('calendar-refresh-request');
         this.overlay.close();
       };
     }

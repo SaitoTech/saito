@@ -20,7 +20,7 @@ module.exports = (app, contacts, keylist = null) => {
 
     html += `<div class="saito-user">`;
     if (shared) {
-      html += `<i class="fa-solid fa-lock secure_contact_notice"></i>`;
+      html += `<i class="fa-solid fa-lock secure-contact-notice"></i>`;
     }
     html += `<div class="saito-identicon-box"><img class="saito-identicon" src="${imgsrc}"></div>
 	                  ${name}

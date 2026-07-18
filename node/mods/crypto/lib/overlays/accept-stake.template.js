@@ -9,7 +9,7 @@ module.exports = (app, mod, sobj) => {
 	return `  
   <div class="saito-crypto-transfer" id="approve-crypto-request-container">
     
-    <h2 class="auth_title">Enable In-Game Crypto</h2>
+    <h2 class="auth-title">Enable In-Game Crypto</h2>
     <div class="wallet-balance">
          <div class="balance-amount">${app.browser.returnBalanceHTML(sobj.stake, true)}</div>
          <div class="deposit-ticker">${sobj.ticker}</div>
@@ -20,8 +20,8 @@ module.exports = (app, mod, sobj) => {
     </div>
 
     <div class="crypto-stake-offer-btn-container">
-      <div class="saito-button-primary crypto_transfer_btn secondary" id="enable_staking_no">no, thanks</div>
-      <div class="saito-button-primary crypto_transfer_btn" id="enable_staking_yes">yes, i'm in</div>
+      <div class="saito-button-primary crypto-transfer-btn secondary" id="enable_staking_no">no, thanks</div>
+      <div class="saito-button-primary crypto-transfer-btn" id="enable_staking_yes">yes, i'm in</div>
     </div>
   </div>
   `;

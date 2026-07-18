@@ -5,10 +5,10 @@ module.exports = (app, mod, nft_overlay) => {
         <section id='transfer-info-panel'>
           <h2 class="saito-nft-mode-title">Send NFT</h2>
           <label class="saito-nft-input-label">Recipient Address</label>
-          <input class="saito-nft-input-field" id="nft-receiver-address"/>
+          <input class="saito-input" id="nft-receiver-address"/>
           <label class="saito-nft-input-label">Amount</label>
           <div class="nft-send-amount-row">
-            <input class="saito-nft-input-field" id="nft-send-amount" value="1" />
+            <input class="saito-input" id="nft-send-amount" value="1" />
             <button type="button" class="nft-send-max-btn">MAX</button>
           </div>
         </section>

@@ -5,7 +5,7 @@ module.exports = (app, self) => {
   return `  
   <div class="saito-crypto-transfer" id="approve-crypto-request-container">
     
-    <h2 class="auth_title">Enable In-Game Crypto</h2>
+    <h2 class="auth-title">Enable In-Game Crypto</h2>
     <div class="stake-input-container">
         <input autocomplete="off" id="amount_to_stake_input" class="saito-input stake" 
           type="number" min="${self.min_stake}" max="${self.max_stake}" step="0.00000001" value="${default_bet}" >
@@ -23,8 +23,8 @@ module.exports = (app, self) => {
     </div>
 
     <div class="crypto-stake-offer-btn-container">
-      <div class="saito-button-primary crypto_transfer_btn secondary" id="enable_staking_no">no, thanks</div>
-      <div class="saito-button-primary crypto_transfer_btn" id="enable_staking_yes">yes, i'm in</div>
+      <div class="saito-button-primary crypto-transfer-btn secondary" id="enable_staking_no">no, thanks</div>
+      <div class="saito-button-primary crypto-transfer-btn" id="enable_staking_yes">yes, i'm in</div>
     </div>
   </div>
   `;

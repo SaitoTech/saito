@@ -931,7 +931,7 @@
   max-width: 100%;
 }
 
-.withdraw-token-picker .saito-overlay-form-input {
+.withdraw-token-picker .saito-overlay-form-field {
   margin: 0;
   max-width: none;
 }
@@ -1785,12 +1785,12 @@ button.withdraw-options-cont:hover i {
   background: none;
 }
 
-.saito-crypto-transfer .auth_title {
+.saito-crypto-transfer .auth-title {
   margin: 0;
   font-size: 1.7em;
 }
 
-input[type='checkbox'].ignore_checkbox {
+input[type='checkbox'].ignore-checkbox {
   border: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
   vertical-align: bottom;
   position: relative;
@@ -1879,7 +1879,7 @@ input[type='checkbox'].ignore_checkbox {
   line-height: 2.8rem;
 }
 
-.crypto_transfer_btn.secondary {
+.crypto-transfer-btn.secondary {
   background: none;
   color: var(--saito-crypto-transfer-fg);
   border: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
@@ -1910,7 +1910,7 @@ input[type='checkbox'].ignore_checkbox {
   cursor: pointer;
 }
 
-.crypto_transfer_btn.hidden {
+.crypto-transfer-btn.hidden {
   display: none;
 }
 
@@ -2379,7 +2379,7 @@ input[type='checkbox'].ignore_checkbox {
 .withdraw-input-cont.fixed-user {
   grid-template-columns: min-content 1fr;
 }
-.saito-overlay-form-input .withdraw-input-cont input {
+.saito-overlay-form-field .withdraw-input-cont input {
   border: none;
   outline: none;
   overflow: hidden;
@@ -2389,20 +2389,20 @@ input[type='checkbox'].ignore_checkbox {
   background-color: var(--saito-background-color) !important;
 }
 /* Hide arrows, Chrome, Safari, Edge, Opera */
-.saito-overlay-form-input input::-webkit-outer-spin-button,
-.saito-overlay-form-input input::-webkit-inner-spin-button {
+.saito-overlay-form-field input::-webkit-outer-spin-button,
+.saito-overlay-form-field input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 /* Firefox */
-.saito-overlay-form-input input[type='number'] {
+.saito-overlay-form-field input[type='number'] {
   -moz-appearance: textfield;
 }
 /* Fully override Chrome's autofill styling */
-.saito-overlay-form-input input:-webkit-autofill,
-.saito-overlay-form-input input:-webkit-autofill:hover,
-.saito-overlay-form-input input:-webkit-autofill:focus,
-.saito-overlay-form-input input:-webkit-autofill:active {
+.saito-overlay-form-field input:-webkit-autofill,
+.saito-overlay-form-field input:-webkit-autofill:hover,
+.saito-overlay-form-field input:-webkit-autofill:focus,
+.saito-overlay-form-field input:-webkit-autofill:active {
   -webkit-text-fill-color: var(--saito-font-color) !important;
   caret-color: var(--saito-primary) !important;
   background-color: var(--saito-background-color) !important;
@@ -2449,7 +2449,7 @@ input[type='checkbox'].ignore_checkbox {
   overflow: auto;
   flex-direction: row;
 }
-.input-elements-container .saito-overlay-form-input {
+.input-elements-container .saito-overlay-form-field {
   width: 100%;
 }
 /* Withdraw: right-aligned Send + clearer button definition */
@@ -2475,7 +2475,7 @@ input[type='checkbox'].ignore_checkbox {
   justify-content: space-between;
   gap: 0.5rem;
 }
-.vault-scripting-intro.dropdown-cont .saito-overlay-form-input {
+.vault-scripting-intro.dropdown-cont .saito-overlay-form-field {
   flex: 1;
   margin: 0;
   max-width: fit-content;

@@ -1,5 +1,5 @@
 const html2canvas = require('html2canvas');
-const VideoBox = require('../saito-videobox/video-box');
+const SaitoVideoBox = require('../saito-videobox/video-box');
 
 class StreamCapturer {
   constructor(app, mod, logo) {
@@ -990,7 +990,7 @@ class StreamCapturer {
         video: true
       });
       let stream_id = `stream_${publicKey}`;
-      this.videoBox = new VideoBox(this.app, this, publicKey);
+      this.videoBox = new SaitoVideoBox(this.app, this, publicKey);
       this.videoBox.render(this.videoBoxStream);
       let videoElement = document.querySelector('.saito-videobox');
       if (videoElement) {

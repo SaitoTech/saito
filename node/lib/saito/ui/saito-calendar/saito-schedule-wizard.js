@@ -2,7 +2,7 @@ const SaitoOverlay = require('../saito-overlay/saito-overlay.js');
 const SaitoLoader = require('../saito-loader/saito-loader.js');
 const ScheduleWizardTemplate = require('./saito-schedule-wizard.template.js');
 
-class CallScheduleWizard {
+class SaitoScheduleWizard {
   constructor(app, mod, name = '') {
     this.app = app;
     this.mod = mod;
@@ -94,4 +94,4 @@ class CallScheduleWizard {
   }
 }
 
-module.exports = CallScheduleWizard;
+module.exports = SaitoScheduleWizard;

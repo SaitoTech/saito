@@ -216,22 +216,6 @@ class Limbo extends ModTemplate {
 			}
 		}
 
-		if (type === 'saito-scheduler') {
-			this.attachStyleSheets();
-			super.render(this.app, this);
-			return [
-				{
-					text: 'Schedule a swarmcast',
-					icon: this.icon_fa,
-					callback: function (app, day, month, year) {
-						//>>>>>>>>>>>>>>>>>>>>
-						const wizard = new DreamWizard(app, mod_self, { defaultDate: { day, month, year } });
-						wizard.render();
-					}
-				}
-			];
-		}
-
 		if (type === 'call-actions') {
 			if (this.browser_active) {
 				return null;
@@ -1736,7 +1720,6 @@ class Limbo extends ModTemplate {
 
 			let event_link = this.app.browser.createEventInviteLink(this.app.keychain.returnKey(id));
 
-			this.app.connection.emit('calendar-refresh-request');
 			await navigator.clipboard.writeText(event_link);
 			siteMessage('Invitation link copied to clipboard', 3500);
 		};

@@ -29,7 +29,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
         <div id="withdraw-step-one" class="withdraw-overlay__compose">
           <div class="withdraw-compose-top">
             <div class="withdraw-token-picker">
-              <div class="saito-overlay-form-input">
+              <div class="saito-overlay-form-field">
                 <div class="token-dropdown">
                   <div class="withdraw-token-custom" id="withdraw-token-custom">
                     <button
@@ -70,7 +70,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
           </div>
 
           <div class="input-elements-container">
-            <div class="saito-overlay-form-input withdraw-field-group">
+            <div class="saito-overlay-form-field withdraw-field-group">
               <label class="withdraw-field-label" for="withdraw-input-address">Recipient address</label>
               <div class="withdraw-input-cont ${fixedRecipient ? 'fixed-user' : ''}" id="withdraw-address-cont">`;
 
@@ -82,7 +82,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
                 <input
                   type="text"
                   autocomplete="off"
-                  class="saito-input withdraw_address"
+                  class="saito-input withdraw-address"
                   ${fixedRecipient ? 'disabled' : ''}
                   value="${address}"
                   id="withdraw-input-address"
@@ -108,7 +108,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
               ></div>
             </div>
 
-            <div class="saito-overlay-form-input withdraw-field-group">
+            <div class="saito-overlay-form-field withdraw-field-group">
               <label class="withdraw-field-label" for="withdraw-input-amount" id="withdraw-amount-label">Amount</label>
               <div class="withdraw-input-cont" id="withdraw-amount-cont">
                 <input
@@ -145,7 +145,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
         <div id="withdraw-step-two" class="withdraw-overlay__review hide-element">
           <div class="withdraw-confirm-overlay__body">
             <div class="withdraw-confirm-overlay__status" id="withdraw-confirm-status" aria-live="polite">
-              <div class="saito_spinner spinner withdraw-confirm-overlay__spinner" id="withdraw-confirm-spinner"></div>
+              <div class="saito-spinner spinner withdraw-confirm-overlay__spinner" id="withdraw-confirm-spinner"></div>
               <i
                 id="withdraw-confirm-icon-success"
                 class="withdraw-confirm-overlay__result-icon withdraw-confirm-overlay__result-icon--success fa-solid fa-circle-check hide-element"

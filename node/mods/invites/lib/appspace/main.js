@@ -1,6 +1,5 @@
 const InvitesAppspaceTemplate = require('./main.template.js');
 const InviteTemplate = require('./invite.template.js');
-//const SaitoScheduler = require('./../../../../lib/saito/ui/saito-scheduler/saito-scheduler');
 
 class InvitesAppspace {
 	constructor(app, mod, container = '') {

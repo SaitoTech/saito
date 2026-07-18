@@ -189,11 +189,11 @@
   max-width: 40rem;
 }
 
-.chat-popup .saito-link-info {
+.chat-popup .saito-link-preview-info {
   padding: 1rem;
 }
 
-.chat-popup .saito-treated-link[data-link='local_link'] .saito-link-img.has-picture {
+.chat-popup .saito-treated-link[data-link='local_link'] .saito-link-preview-img.has-picture {
   max-height: 10rem;
 }
 

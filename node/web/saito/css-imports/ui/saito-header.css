@@ -31,7 +31,7 @@
   /* redefining base variable in game-layout doesn't work if people push themes on games */
   background: transparent;
   backdrop-filter: none;
-  z-index: 90; /* to be the same as game-menu was */
+  z-index: 90;
 }
 
 #saito-header.game .saito-header-logo-wrapper,
@@ -141,7 +141,7 @@
   right: 0;
 }
 
-.saito-header-hamburger-contents.show-wallet .wallet-infoo {
+.saito-header-hamburger-contents.show-wallet .wallet-info {
   height: 0;
   margin: 0;
 }
@@ -324,9 +324,9 @@
   margin-right: 0.5rem;
 }
 
-#saito-header .pubkey-containter,
-.saito-crypto-deposit .pubkey-containter,
-.payment-box .pubkey-containter {
+#saito-header .pubkey-container,
+.saito-crypto-deposit .pubkey-container,
+.payment-box .pubkey-container {
   display: flex;
   flex-direction: row;
   width: 75%;
@@ -350,9 +350,9 @@
   padding: 0.4rem;
 }
 
-#saito-header .pubkey-containter:hover i,
-.saito-crypto-deposit .pubkey-containter:hover i,
-.payment-box .pubkey-containter:hover i {
+#saito-header .pubkey-container:hover i,
+.saito-crypto-deposit .pubkey-container:hover i,
+.payment-box .pubkey-container:hover i {
   transform: scale(1.1);
 }
 
@@ -360,7 +360,7 @@
   transform: scale(1.1);
 }
 
-.wallet-infoo {
+.wallet-info {
   display: flex;
   position: relative;
   flex-direction: column;
@@ -465,7 +465,7 @@
   padding: 0.5rem 1rem;
 }
 
-.saito-header-crypto.unactive {
+.saito-header-crypto.inactive {
   filter: grayscale(100%) opacity(75%);
 }
 
@@ -536,7 +536,7 @@
     font-size: 30px;
   }
 
-  .wallet-infoo {
+  .wallet-info {
     margin-top: 0.5rem;
     height: 85px;
     gap: 0;
@@ -548,7 +548,7 @@
     overflow: hidden;
   }
 
-  .show-qr .wallet-infoo {
+  .show-qr .wallet-info {
     margin-top: 1.5rem;
     height: 265px;
     gap: 1rem;

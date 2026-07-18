@@ -244,10 +244,10 @@ class SaitoPurchaseOverlay {
     ///////////////////
     // Deposit form
     ///////////////////
-    if (document.querySelector('.payment-box .pubkey-containter')) {
-      document.querySelector('.payment-box .pubkey-containter').onclick = (e) => {
+    if (document.querySelector('.payment-box .pubkey-container')) {
+      document.querySelector('.payment-box .pubkey-container').onclick = (e) => {
         navigator.clipboard.writeText(this.destination);
-        let icon_element = document.querySelector('.payment-box .pubkey-containter i');
+        let icon_element = document.querySelector('.payment-box .pubkey-container i');
         icon_element.classList.toggle('fa-copy');
         icon_element.classList.toggle('fa-check');
         setTimeout(() => {

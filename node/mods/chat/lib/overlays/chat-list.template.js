@@ -20,7 +20,7 @@ module.exports = (app, chat_mod) => {
 		let shared = '';
 
 		if (app.keychain.hasSharedSecret(identicon_source)) {
-			shared = `<i class="fa-solid fa-lock secure_contact_notice"></i>`;
+			shared = `<i class="fa-solid fa-lock secure-contact-notice"></i>`;
 		}
 
 		html += `

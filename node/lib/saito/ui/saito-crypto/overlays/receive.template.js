@@ -17,12 +17,12 @@ module.exports = function cryptoReceiveOverlayTemplate(details) {
     data-receive-mode="interactive"
   >
     <header class="crypto-receive-overlay__header">
-      <h2 class="auth_title crypto-receive-overlay__title" id="crypto_receive_title">Receiving Payment</h2>
+      <h2 class="auth-title crypto-receive-overlay__title" id="crypto_receive_title">Receiving Payment</h2>
     </header>
 
     <div class="crypto-receive-overlay__body">
       <div class="crypto-receive-overlay__status" aria-live="polite">
-        <div class="saito_spinner spinner crypto-receive-overlay__spinner" id="crypto_receive_spinner"></div>
+        <div class="saito-spinner spinner crypto-receive-overlay__spinner" id="crypto_receive_spinner"></div>
         <i
           id="crypto_receive_icon_success"
           class="game-crypto-icon crypto-receive-overlay__result-icon crypto-receive-overlay__result-icon--success fa-solid fa-circle-check"
@@ -56,7 +56,7 @@ module.exports = function cryptoReceiveOverlayTemplate(details) {
     <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--interactive">
       <button
         type="button"
-        class="saito-button-primary crypto_transfer_btn crypto-receive-overlay__close-btn"
+        class="saito-button-primary crypto-transfer-btn crypto-receive-overlay__close-btn"
         id="crypto_receive_close"
       >
         Close
@@ -66,7 +66,7 @@ module.exports = function cryptoReceiveOverlayTemplate(details) {
           type="checkbox"
           checked
           id="crypto_receive_ignore"
-          class="saito-checkbox ignore_checkbox crypto-receive-overlay__ignore-checkbox"
+          class="saito-checkbox ignore-checkbox crypto-receive-overlay__ignore-checkbox"
         />
         <span class="crypto-receive-overlay__ignore-label">Don't wait for confirmation</span>
       </label>

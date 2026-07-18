@@ -18,7 +18,7 @@ class CryptoInadequate {
 	}
 
 	attachEvents(callback = null) {
-		document.querySelector('.crypto_transfer_btn').onclick = (e) => {
+		document.querySelector('.crypto-transfer-btn').onclick = (e) => {
 			this.overlay.hide();
 		};
 	}

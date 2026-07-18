@@ -86,7 +86,7 @@ class RedSquare extends ModTemplate {
     this.show_splash = true;
     this.passive_poll_interval_ms = 5 * 60 * 1000;
 
-    // Enables banner / description editing via the Profile module (SaitoProfile contract).
+    // Enables banner / description editing via Profile-module events.
     this.enable_profile_edits = true;
 
     this.styles = ['/saito/saito.css', '/redsquare/style.css'];

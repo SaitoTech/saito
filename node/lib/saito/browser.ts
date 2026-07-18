@@ -1227,7 +1227,7 @@ class Browser {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         background: rgba(0, 0, 0, 0.7); z-index: 1000; border-radius: inherit;
       ">
-        <div class="saito_spinner" style="width: 4rem; height: 4rem;"></div>
+        <div class="saito-spinner" style="width: 4rem; height: 4rem;"></div>
         <div style="color: white; margin-top: 1rem; font-size: 1.4rem;">Reading file...</div>
       </div>
     `;

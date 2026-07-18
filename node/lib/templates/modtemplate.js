@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const HomePage = require('./index');
-const SaitoEvent = require('./../saito/ui/saito-calendar/saito-calendar-event-link');
+const SaitoCalendarEvent = require('./../saito/ui/saito-calendar/saito-calendar-event-link');
 
 const JSON = require('json-bigint');
 
@@ -298,7 +298,7 @@ class ModTemplate {
         this.app.crypto.base64ToString(this.app.browser.returnURLParameter('event'))
       );
       if (!this?.eventOverlay) {
-        this.eventOverlay = new SaitoEvent(this.app, this, event);
+        this.eventOverlay = new SaitoCalendarEvent(this.app, this, event);
         this.eventOverlay.render();
       }
     }
