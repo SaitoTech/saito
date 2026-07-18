@@ -24,7 +24,7 @@ module.exports = (app, mod, day, month, year, events) => {
     let em = d.minutes;
 
     events_html += `
-			<div class="saito-calendar-event">
+			<article class="saito-calendar-event">
 				<div><strong>Event:</strong> ${invite?.title ? invite.title : invite.mod}</div>
 				<div><strong>Time:</strong> ${eh}:${em}</div>`;
 
@@ -33,27 +33,24 @@ module.exports = (app, mod, day, month, year, events) => {
     }
 
     if (invite?.link) {
-      events_html += `<a class="" href="${invite.link}">Join Event</a>`;
+      events_html += `<a href="${invite.link}">Join Event</a>`;
     }
-    events_html += `</div>`;
+    events_html += `</article>`;
   }
 
   let html = `
 		<div class="saito-modal saito-modal-calendar" id="saito-modal-calendar">
-			<div class="saito-modal-calendar-tabs">
+			<nav class="saito-modal-calendar-tabs">
 				<div class="saito-tab-button active" >Today's Events</div>
 				<div class="saito-tab-button" >Schedule Event</div>
-			</div>
-			<div class="saito-calendar-events">
+			</nav>
+			<section class="saito-calendar-events">
 				<div class="saito-calendar-events-date">${day}/${month}/${year}</div>
 				<div class="saito-calendar-events-details" id="tab1">${events_html}</div>
 				<div class="saito-calendar-events-details" id="tab2" style="display:none;">
-				<div class="saito-modal-calendar-content">
-				<div class="saito-calendar-event-actions"> 
+					<div class="saito-calendar-event-actions"></div>
 				</div>
-				</div> 
-				</div>
-			</div>
+			</section>
 		</div>
 	`;
 

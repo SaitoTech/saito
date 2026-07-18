@@ -2,13 +2,12 @@ module.exports = (app, event) => {
   const formattedStartTime = new Date(event.startTime).toLocaleString();
 
   let html = `
-    <div class="call-schedule-launch-main-container">
+    <main class="call-schedule-launch-main-container">
      <div class="saito-header-logo-wrapper" id="redsquare-link">
             <img class="saito-header-logo" alt="Logo" src="/saito/img/logo.svg" />
         </div>
-        <div class="call-schedule-launch">
-            <div class="call-schedule-launch-container">
-                <h4>${event.identifier}</h4>
+            <section class="call-schedule-launch-container">
+                <h2>${event.identifier}</h2>
                 <div class="call-details">
                     <p><strong>Start Time:</strong> ${formattedStartTime}</p>
                     <p><strong>Duration:</strong> ${event.duration}</p>
@@ -23,9 +22,8 @@ module.exports = (app, event) => {
     html += `<div id="enter-call-button" class="saito-button-primary">Join</div>`;
   }
 
-  html += `</div>
-        </div>
-    <div>
+  html += `</section>
+    </main>
     `;
 
   return html;

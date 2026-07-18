@@ -2,15 +2,13 @@ module.exports = (ui) => {
   let html = `
     <div class="nft-list-container">
 
-      <div class="saito-overlay-form-header">
-         <div class="saito-overlay-form-header-title">${ui?.title ? ui.title : 'MY NFTs'}</div>
+      <header class="saito-overlay-form-header">
+         <h2 class="saito-overlay-form-header-title">${ui?.title ? ui.title : 'MY NFTs'}</h2>
          <div id="create-nft" class="create-nft-btn"><i class="fa-solid fa-plus"></i></div>
-      </div>
+      </header>
 
-      <div id="page1" class="nft-page">
-          <div class="nft-list" id="nft-list">
-            <!-- renderNft() in send-nft.js will fill this -->
-          </div>
+      <div class="nft-list" id="nft-list">
+        <!-- renderNft() will fill this -->
       </div>
 
       <div id="nft-list-instructions" class="nft-list-instructions"></div>

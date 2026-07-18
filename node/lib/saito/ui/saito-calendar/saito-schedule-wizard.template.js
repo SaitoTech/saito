@@ -19,13 +19,12 @@ module.exports = (app, mod, wizard) => {
   }
 
   let html = `
-    <div class="call-schedule-wizard-container">
-                <h4>Schedule a ${wizard.name}</h4>
-                <form id="scheduleForm">
+    <form class="call-schedule-wizard-container" id="scheduleForm">
+                <h2>Schedule a ${wizard.name}</h2>
                     <label for="startTime">Start Time:</label>
-                    <input type="datetime-local" id="startTime" min="${localDateTime}" value="${localDateTime}" required>         
+                    <input type="datetime-local" class="saito-input" id="startTime" min="${localDateTime}" value="${localDateTime}" required>         
                     <label for="duration">Duration:</label>
-                    <select class="saito-select" id="duration" required>
+                    <select class="saito-form-select" id="duration" required>
                         <option value="15 minutes">15 minutes</option>
                         <option value="30 minutes">30 minutes</option>
                         <option value="45 minutes">45 minutes</option>
@@ -33,17 +32,16 @@ module.exports = (app, mod, wizard) => {
                     </select>`;
   if (!wizard?.title) {
     html += ` <label for="title">Title</label>
-                  <input type="text" name="title" id="title" placeholder="${mod.name}" value="${mod.name}"></input>`;
+                  <input type="text" class="saito-input" name="title" id="title" placeholder="${mod.name}" value="${mod.name}">`;
   }
 
   if (!wizard?.description) {
     html += `   <label for="description">Description:</label>
-                    <textarea id="description" rows="4"></textarea>`;
+                    <textarea class="saito-textarea" id="description" rows="4"></textarea>`;
   }
 
-  html += `<button type="submit">Add to Calendar</button>
-                </form>
-            <div>`;
+  html += `<button type="submit" class="saito-button-primary">Add to Calendar</button>
+            </form>`;
 
   return html;
 };

@@ -2,7 +2,7 @@ module.exports = () => {
   return `
       <form id="login-template" class="saito-overlay-form">
         <div class="saito-overlay-form-header">
-          <div class="saito-overlay-form-header-title">Decrypt Wallet</div>
+          <h2 class="saito-overlay-form-header-title">Decrypt Wallet</h2>
         </div>
         <div class="saito-overlay-form-text">Provide your email address and password to decrypt your wallet</div>
         <input type="text" id="saito-overlay-form-input" class="saito-overlay-form-input saito-overlay-form-email" placeholder="address@domain.com" value="" />

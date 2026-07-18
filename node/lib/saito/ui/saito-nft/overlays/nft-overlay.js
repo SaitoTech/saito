@@ -6,6 +6,9 @@ class NFTOverlay {
   constructor(app, mod, attach_events = true) {
     this.app = app;
     this.mod = mod;
+    if (app?.browser?.addStylesheet) {
+      app.browser.addStylesheet('/saito/ui/nft-overlays.css');
+    }
     this.overlay = new SaitoOverlay(this.app, this.mod);
 
     this.overlay.callback_on_close = () => {
