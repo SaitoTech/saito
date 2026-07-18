@@ -46,9 +46,6 @@ Selects
   display: flex;
   justify-content: center;
 }
-.saito-select:hover::after {
-  color: var(--saito-button-primary-fg) !important;
-}
 .saito-select .saito-slct {
   font-size: 2rem;
   border-color: var(--saito-border);
