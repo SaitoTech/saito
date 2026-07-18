@@ -203,11 +203,11 @@ module.exports = (app, mod, nft_overlay) => {
         ${splitSlidersHtml}
       </div>
       <div class="saito-nft-split-utxo"></div>
-      <div class="saito-nft-panel-footer">
+      <footer class="saito-nft-panel-footer">
         ${deleteFooterHtml}
         ${footerSpacerHtml}
         ${mergeButtonHtml}
-      </div>
+      </footer>
     </div>
   `;
 };

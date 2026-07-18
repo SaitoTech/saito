@@ -1,10 +1,10 @@
 module.exports = (app, mod, deposit_self) => {
   let html = `
         <div id="saito-deposit-form" class="saito-crypto-deposit-container saito-overlay-size narrow">
-            <div class="saito-overlay-form-header">
+            <header class="saito-overlay-form-header">
                 <h2 class="saito-overlay-form-header-title">${deposit_self.title}</h2>
-            </div>
-           <div class="saito-crypto-wallet-state">`;
+            </header>
+           <section class="saito-crypto-wallet-state">`;
   if (!deposit_self.migration) {
     html += `<div class="wallet-balance">
                    <div class="balance-amount">0</div>
@@ -18,7 +18,7 @@ module.exports = (app, mod, deposit_self) => {
                     </div>
                    <i class="fas fa-copy"></i>
                </div>
-           </div>
+           </section>
 
            `;
 
@@ -29,13 +29,13 @@ module.exports = (app, mod, deposit_self) => {
   }
 
   html += `
-        <div class="saito-button-row">
+        <footer class="saito-button-row">
            <div class="network-confirmations">
                 <span class="network-confirmations-count">0</span> network confirmations
            </div>
            <div class="get-saito-tokens"></div>
            <button type="button" class="saito-button-primary" id='submit'>Done</button> 
-        </div>
+        </footer>
 
         </div>
 

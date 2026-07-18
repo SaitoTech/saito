@@ -4,7 +4,7 @@ module.exports = (app, link_self) => {
 
   let html = `
       <div class="saito-modal saito-modal-share-link">
-         <div class="saito-modal-title">Share Options</div>
+         <h2 class="saito-modal-title">Share Options</h2>
          <div class="saito-modal-content saito-menu-select-heavy">
            <div id="copy-invite-link" class="saito-modal-menu-option"><i class="fas fa-link"></i><div>Copy ${game} Link</div></div>`;
 

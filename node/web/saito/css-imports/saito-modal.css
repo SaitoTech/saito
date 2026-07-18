@@ -18,6 +18,7 @@ This alows for a header with a header with title to be added without extra CSS
 }
 
 .saito-modal-title {
+  margin: 0;
   font-size: 3rem;
   padding: unset;
   padding-bottom: 0.5rem;
