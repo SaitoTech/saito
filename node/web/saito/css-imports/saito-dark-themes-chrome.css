@@ -3,36 +3,36 @@
  * Chrome needs explicit option colors and color-scheme metadata.
  *----------------------------------------------------------------*/
 
-html[data-theme='dark'] {
+html {
   scrollbar-width: thin;
   scrollbar-color: var(--saito-border-color) var(--saito-background-color);
   color-scheme: dark;
 }
 
-html[data-theme='dark'] select option {
+html select option {
   background-color: var(--saito-background-color);
   color: var(--saito-font-color);
 }
 
-html[data-theme='dark'] ::-webkit-scrollbar {
+html ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-html[data-theme='dark'] ::-webkit-scrollbar-track {
+html ::-webkit-scrollbar-track {
   background: var(--saito-background-color);
 }
 
-html[data-theme='dark'] ::-webkit-scrollbar-thumb {
+html ::-webkit-scrollbar-thumb {
   background: var(--saito-border-color);
   border-radius: 4px;
 }
 
-html[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+html ::-webkit-scrollbar-thumb:hover {
   background: var(--saito-primary);
 }
 
-html[data-theme='dark'] ::selection {
+html ::selection {
   background: var(--saito-primary);
   color: var(--saito-primary-text);
 }
