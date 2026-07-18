@@ -67,26 +67,26 @@ html[data-theme='noir'] .saito-overlay > .store-product-overlay.store-listing-ov
 	line-height: 1.5;
 }
 
-/* Noir select mode: scoped NFT card readability (does not touch global .nft-card) */
-.store-listing-overlay.store-listing-mode-select .nft-card {
+/* Noir select mode: scoped NFT card readability (does not touch global .saito-nft-card) */
+.store-listing-overlay.store-listing-mode-select .saito-nft-card {
 	background-color: #ffffff;
 	color: #111827;
 	border-color: #d2d9e2;
 }
 
-.store-listing-overlay.store-listing-mode-select .nft-card-id,
-.store-listing-overlay.store-listing-mode-select .nft-card-info-amount,
-.store-listing-overlay.store-listing-mode-select .nft-card-info-deposit,
-.store-listing-overlay.store-listing-mode-select .nft-card-info-title {
+.store-listing-overlay.store-listing-mode-select .saito-nft-card-id,
+.store-listing-overlay.store-listing-mode-select .saito-nft-card-info-amount,
+.store-listing-overlay.store-listing-mode-select .saito-nft-card-info-deposit,
+.store-listing-overlay.store-listing-mode-select .saito-nft-card-info-title {
 	color: #374151;
 }
 
-.store-listing-overlay.store-listing-mode-select .nft-card-title {
+.store-listing-overlay.store-listing-mode-select .saito-nft-card-title {
 	color: #ffffff;
 	background-color: rgba(0, 0, 0, 0.55);
 }
 
-.store-listing-overlay.store-listing-mode-select .nft-card-text {
+.store-listing-overlay.store-listing-mode-select .saito-nft-card-text {
 	color: #1f2937;
 	background: #f3f4f6;
 }

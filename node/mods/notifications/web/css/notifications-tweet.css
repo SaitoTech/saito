@@ -149,7 +149,7 @@
   border-radius: 12px;
 }
 
-.notifications-notifications .tweet .link-preview {
+.notifications-notifications .tweet .saito-link-preview {
   margin-top: 8px;
 }
 
@@ -233,7 +233,7 @@
 }
 
 .notifications-notifications .tweet .media:empty,
-.notifications-notifications .tweet .link-preview:empty,
+.notifications-notifications .tweet .saito-link-preview:empty,
 .notifications-notifications .tweet .quoted:empty {
   display: none;
 }

@@ -276,7 +276,7 @@ class FileShareOverlay {
 			}
 		}
 
-		let close = document.querySelector(this.qs + ' .icon-button#close');
+		let close = document.querySelector(this.qs + ' .saito-icon-button#close');
 		if (close) {
 			close.onclick = async (e) => {
 				const hasSelectedFile = !!this.mod.outgoing_files[this.fileId]?.file;
@@ -295,7 +295,7 @@ class FileShareOverlay {
 			};
 		}
 
-		let resize = document.querySelector(this.qs + ' .icon-button#resize');
+		let resize = document.querySelector(this.qs + ' .saito-icon-button#resize');
 		if (resize) {
 			resize.onclick = (e) => {
 				let overlay = document.querySelector(this.qs);

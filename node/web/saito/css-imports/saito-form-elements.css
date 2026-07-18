@@ -1,35 +1,115 @@
+/* ----------------------------------------------------------------
+ Form elements — bare input/textarea/select are reset-only;
+ appearance is opt-in via Saito component classes.
+-----------------------------------------------------------------*//* Browser / reset only — no component chrome */input,
+textarea,
 select {
-  width: 100%;
-  cursor: pointer;
-  font-size: 1.6rem;
-  border-color: var(--saito-input-border);
-  background: var(--saito-input-bg);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 0;
   box-shadow: none;
-  padding: 1rem;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  outline: none;
 }
-select,
-::picker(select) {
-/*  appearance: base-select;*/
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+/* Hide number spinners (browser chrome, not component look) */input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+/* File inputs stay invisible when used as hidden pickers */input[type='file'] {
+  cursor: pointer;
+}
+input[type='hidden'] {
+  display: none;
 }
 /* ----------------------------------------------------------------
-Selects
------------------------------------------------------------------*/
-.saito-select {
+ Text fields — input.saito-input / .saito-form-input / overlay inputs
+ (div.saito-input is the composer shell in saito-input.css)
+-----------------------------------------------------------------*/input.saito-input,
+input.saito-form-input,
+input.saito-overlay-form-input,
+textarea.saito-textarea,
+textarea.saito-overlay-form-input,
+select.saito-slct,
+select.saito-form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--saito-input-bg);
+  color: var(--saito-input-fg-heavy);
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
+  font-family: var(--saito-input-font);
+  font-size: 1.6rem;
+  padding: 1rem;
+  border-radius: var(--saito-input-radius);
+  width: 100%;
+  max-width: 100%;
+  cursor: text;
+}
+select.saito-slct,
+select.saito-form-select {
+  cursor: pointer;
+  color: var(--saito-input-fg);
+}
+textarea.saito-textarea,
+textarea.saito-overlay-form-input {
+  resize: none;
+}
+input.saito-input::placeholder,
+input.saito-form-input::placeholder,
+input.saito-overlay-form-input::placeholder,
+textarea.saito-textarea::placeholder,
+textarea.saito-overlay-form-input::placeholder {
+  opacity: 1;
+  color: var(--saito-muted-foreground);
+}
+input.saito-input[type='text'],
+input.saito-input[type='email'],
+input.saito-input[type='number'],
+input.saito-input[type='password'],
+input.saito-input[type='date'],
+input.saito-input[type='datetime-local'],
+input.saito-input[type='search'],
+input.saito-form-input[type='text'],
+input.saito-form-input[type='email'],
+input.saito-form-input[type='number'],
+input.saito-form-input[type='password'],
+input.saito-form-input[type='date'],
+input.saito-form-input[type='datetime-local'],
+input.saito-form-input[type='search'] {
+  width: 100%;
+}
+/* ----------------------------------------------------------------
+ Custom select wrapper (chevron control around select.saito-slct)
+-----------------------------------------------------------------*/.saito-select {
   position: relative;
   display: flex;
-  width: 20em;
+  width: 100.01%;
   height: 3em;
   line-height: 3;
   background-color: transparent;
   overflow: hidden;
-  width: 100.01%;
   border-radius: 0 var(--saito-input-radius) var(--saito-input-radius) 0;
   outline: none;
-  background-color: transparent;
   cursor: pointer;
 }
 .saito-select::after {
-  content: "\25BC";
+  content: '\25BC';
   position: absolute;
   top: 0;
   right: 0;
@@ -37,8 +117,6 @@ Selects
   background-color: var(--saito-button-primary-bg);
   cursor: pointer;
   pointer-events: none;
-  -webkit-transition: 0.25s all ease;
-  -o-transition: 0.25s all ease;
   transition: 0.25s all ease;
   border-radius: 0 var(--saito-input-radius) var(--saito-input-radius) 0;
   height: 100%;
@@ -49,76 +127,14 @@ Selects
 .saito-select .saito-slct {
   font-size: 2rem;
   border-color: var(--saito-border);
-}
-.saito-slct {
-  appearance: none;
-  background-color: var(--saito-input-bg);
-  color: var(--saito-input-fg);
-  border-radius: var(--saito-input-radius);
   padding: 0 var(--saito-space-md);
 }
-textarea,
-input {
-  background-color: var(--saito-input-bg);
-  background: var(--saito-input-bg);
-  color: var(--saito-input-fg-heavy);
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
-  border-color: var(--saito-input-border);
-  box-shadow: none;
-  font-family: var(--saito-input-font);
-  font-size: 1.6rem;
-  padding: 1rem;
-}
-textarea:focus, input:focus, select:focus {
-  outline: none !important;
-  border-color: var(--saito-input-border) !important;
-  box-shadow: none !important;
-}
-textarea,
-select,
-input:not([type='checkbox']):not([type='radio']):not([type='range']) {
-  background-color: var(--saito-input-bg);
-  border-radius: var(--saito-border-radius);
-}
 /* ----------------------------------------------------------------
-text and password inputs
------------------------------------------------------------------*/
-input[type="text"],
-input[type="email"],
-input[type="number"],
-input[type="password"],
-input[type="date"],
-input[type="datetime-local"] {
-  padding: 1rem;
-  font-size: 1.6rem;
-  width: 20rem;  /* Min width ? */
-  color: var(--saito-input-fg);
-  border-radius: var(--saito-input-radius);
-  background-color: var(--saito-input-bg);
-  font-family: var(--saito-input-font);
-}
-input[type="text"]:focus,
-input[type="password"]:focus,
-input[type="datetime-local"] {
-  outline: none;
-}
-input::placeholder,
-textarea::placeholder {
-  opacity: 1;
-  color: var(--saito-muted-foreground);
-}
-input[type="text"],
-input[type="password"],
-select {
-  width: 100%;
-}
-/* ----------------------------------------------------------------
-checkbox input
------------------------------------------------------------------*/
-input[type="checkbox"] {
+ Checkbox
+-----------------------------------------------------------------*/input.saito-checkbox[type='checkbox'],
+.saito-checkbox {
   appearance: none;
   -webkit-appearance: none;
-  border: none;
   border: var(--border-thickness-thin) solid var(--saito-input-border-focus);
   width: 2rem;
   height: 2rem;
@@ -128,10 +144,11 @@ input[type="checkbox"] {
   position: relative;
   display: inline-block;
 }
-input[type="checkbox"]::after {
-  font-family: "Font Awesome 5 Free";
+input.saito-checkbox[type='checkbox']::after,
+.saito-checkbox::after {
+  font-family: 'Font Awesome 5 Free';
   font-weight: 900;
-  content: "\f00c";
+  content: '\f00c';
   position: relative;
   display: flex;
   justify-content: center;
@@ -141,17 +158,19 @@ input[type="checkbox"]::after {
   font-size: 1.6rem;
   opacity: 0;
 }
-input[type="checkbox"]:checked {
+input.saito-checkbox[type='checkbox']:checked,
+.saito-checkbox:checked {
   background-color: var(--saito-primary);
 }
-input[type="checkbox"]:checked::after {
+input.saito-checkbox[type='checkbox']:checked::after,
+.saito-checkbox:checked::after {
   color: var(--saito-primary-text);
   opacity: 1;
 }
 /* ----------------------------------------------------------------
-radio inputs
------------------------------------------------------------------*/
-input[type="radio"] {
+ Radio
+-----------------------------------------------------------------*/input.saito-radio[type='radio'],
+.saito-radio {
   appearance: none;
   -webkit-appearance: none;
   border: var(--border-thickness-thin) solid var(--saito-input-border-focus);
@@ -160,10 +179,12 @@ input[type="radio"] {
   margin: 0 0.5rem;
   border-radius: 3px;
   position: relative;
+  cursor: pointer;
 }
-input[type="radio"]::after {
+input.saito-radio[type='radio']::after,
+.saito-radio::after {
   font-weight: 900;
-  content: "";
+  content: '';
   width: 1.5rem;
   height: 1.5rem;
   background-color: var(--saito-primary);
@@ -177,22 +198,22 @@ input[type="radio"]::after {
   opacity: 0;
   border-radius: 3px;
 }
-input[type="radio"]:checked::after {
+input.saito-radio[type='radio']:checked::after,
+.saito-radio:checked::after {
   color: var(--saito-primary-text);
   opacity: 1;
 }
 /* ----------------------------------------------------------------
-Range inputs
------------------------------------------------------------------*/
-input[type="range"] {
+ Range
+-----------------------------------------------------------------*/input.saito-range[type='range'],
+.saito-range {
   -webkit-appearance: none;
+  appearance: none;
   margin: 1.8rem 0;
   width: 100%;
 }
-input[type="range"]:focus {
-  outline: none;
-}
-input[type="range"]::-webkit-slider-runnable-track {
+input.saito-range[type='range']::-webkit-slider-runnable-track,
+.saito-range::-webkit-slider-runnable-track {
   width: 100%;
   height: 0.6rem;
   cursor: pointer;
@@ -201,7 +222,8 @@ input[type="range"]::-webkit-slider-runnable-track {
   border-radius: 0.5rem;
   border: var(--border-color-general-dividers);
 }
-input[type="range"]::-webkit-slider-thumb {
+input.saito-range[type='range']::-webkit-slider-thumb,
+.saito-range::-webkit-slider-thumb {
   box-shadow: var(--saito-elevation-2);
   border: 1px solid var(--color-contrast);
   height: 3rem;
@@ -212,7 +234,8 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   margin-top: -1.2rem;
 }
-input[type="range"]::-moz-range-track {
+input.saito-range[type='range']::-moz-range-track,
+.saito-range::-moz-range-track {
   width: 100%;
   height: 0.6rem;
   cursor: pointer;
@@ -221,22 +244,25 @@ input[type="range"]::-moz-range-track {
   border-radius: 0.5rem;
   border: var(--border-color-general-dividers);
 }
-input[type="range"]::-moz-range-thumb {
+input.saito-range[type='range']::-moz-range-thumb,
+.saito-range::-moz-range-thumb {
   box-shadow: var(--saito-elevation-2);
   border: 1px solid var(--color-contrast);
   height: 3rem;
   width: 2rem;
-  border-radius: .5rem;
+  border-radius: 0.5rem;
   background: var(--saito-surface-inverse);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
   margin-top: -1.2rem;
 }
-input[type="range"]:focus::-webkit-slider-runnable-track {
+input.saito-range[type='range']:focus::-webkit-slider-runnable-track,
+.saito-range:focus::-webkit-slider-runnable-track {
   background: var(--saito-primary);
 }
-input[type="range"]::-ms-track {
+input.saito-range[type='range']::-ms-track,
+.saito-range::-ms-track {
   width: 100%;
   height: 8.4px;
   cursor: pointer;
@@ -245,18 +271,21 @@ input[type="range"]::-ms-track {
   border-width: 1.6rem 0;
   color: transparent;
 }
-input[type="range"]::-ms-fill-lower {
+input.saito-range[type='range']::-ms-fill-lower,
+.saito-range::-ms-fill-lower {
   background: var(--saito-primary);
   border: var(--border-color-general-dividers);
   border-radius: 0.5rem;
   box-shadow: var(--saito-elevation-2);
 }
-input[type="range"]::-ms-fill-upper {
+input.saito-range[type='range']::-ms-fill-upper,
+.saito-range::-ms-fill-upper {
   border: var(--border-color-general-dividers);
   border-radius: 0.5rem;
   box-shadow: var(--saito-elevation-2);
 }
-input[type="range"]::-ms-thumb {
+input.saito-range[type='range']::-ms-thumb,
+.saito-range::-ms-thumb {
   box-shadow: var(--saito-elevation-2);
   border: 1px solid var(--color-contrast);
   height: 3.6rem;
@@ -265,13 +294,14 @@ input[type="range"]::-ms-thumb {
   background: var(--saito-surface-inverse);
   cursor: pointer;
 }
-input[type="range"]:focus::-ms-fill-lower {
+input.saito-range[type='range']:focus::-ms-fill-lower,
+.saito-range:focus::-ms-fill-lower {
   background: var(--saito-primary);
 }
-input[type="range"]:focus::-ms-fill-upper {
+input.saito-range[type='range']:focus::-ms-fill-upper,
+.saito-range:focus::-ms-fill-upper {
   background: var(--saito-primary);
 }
 /***************************************************
- * the cool toggle switch element for RS - curation
- * (hoping it is more generally applicable)
- * *************************************************/
+ * Toggle switch
+ ***************************************************/

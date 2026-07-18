@@ -537,3 +537,9 @@
 	letter-spacing: 0.2rem;
 	font-weight: bold;
 }
+
+/* Moved from saito-header.css */
+#saito-header.arcade {
+  padding: 1rem max(1.5rem, calc((100vw - var(--saito-arcade-width)) / 2 + 1rem));
+  padding-left: max(1.5rem, calc((100vw - var(--saito-arcade-width)) / 4 + 1rem));
+}

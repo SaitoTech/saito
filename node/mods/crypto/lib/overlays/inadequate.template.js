@@ -1,6 +1,6 @@
 module.exports  = (app, sobj) => {
 	return `  
-  <div class="game-crypto-transfer-manager-container">
+  <div class="saito-crypto-transfer">
     
     <h2 class="auth_title">Inadequate ${sobj.ticker}</h2>
 
@@ -12,7 +12,7 @@ Some players do not have any ${sobj.ticker}.
 Once all players have ${sobj.ticker} available in their wallets you can use this method to propose a crypto-game.
     </div>
 
-    <div class="button saito-button-primary crypto_transfer_btn primary" id="exit_staking">understand</div>
+    <div class="saito-button-primary crypto_transfer_btn primary" id="exit_staking">understand</div>
 
   </div>
   `;

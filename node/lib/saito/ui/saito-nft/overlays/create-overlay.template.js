@@ -25,7 +25,7 @@ module.exports = (app, mod) => {
   const title = saitoItems[Math.floor(Math.random() * saitoItems.length)];
 
   return `
-<div class="create-nft-overlay">
+<div class="saito-nft-create">
   <header class="header">
     <h2 class="title">Create Saito NFT</h2>
   </header>
@@ -33,7 +33,7 @@ module.exports = (app, mod) => {
   <div class="body">
     <section class="primary">
       <div class="create-nft-field-row">
-        <div class="create-nft-field">
+        <div class="create-nft-field create-nft-field-start">
           <label class="label" for="create-nft-type-dropdown">NFT Type</label>
           <select id="create-nft-type-dropdown" class="saito-form-select">
             <option value="image">Image</option>

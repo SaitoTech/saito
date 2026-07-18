@@ -13,67 +13,8 @@ input[type='datetime-local'] {
   overflow: auto;
 }
 
-.call-schedule-wizard-container input,
-.call-schedule-wizard-container textarea,
-.call-schedule-wizard-container select {
-  width: 100%;
-  padding: 1.2rem 2rem;
-  margin: 0.8rem 0;
-  border-radius: 0.5rem;
-  box-sizing: border-box;
-}
+/* schedule wizard/event-link styles live in saito-scheduler.css */
 
-.call-schedule-wizard-container select {
-  color: var(--saito-font-color);
-}
-
-.call-schedule-wizard-container h2 {
-  margin: 0 0 1rem 0;
-  font-size: 2.4rem;
-}
-
-.call-schedule-wizard-container {
-  width: min(550px, 98vw);
-  padding: 2rem 3rem;
-  border-radius: var(--saito-border-radius);
-  border: 1px solid var(--saito-overlay-panel-border);
-  background: var(--saito-overlay-panel-background);
-  color: var(--saito-font-color);
-  box-sizing: border-box;
-}
-
-/* Call schedule launcher */
-
-.call-schedule-launch-main-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 2.5rem 1.5rem;
-  box-sizing: border-box;
-}
-
-.call-schedule-launch-container {
-  padding: 3rem;
-  border-radius: 8px;
-  border: 1px solid var(--saito-border-color);
-  width: min(550px, 98vw);
-  box-sizing: border-box;
-}
-
-.call-schedule-launch-container h2 {
-  margin-bottom: 2rem;
-}
-
-.call-details {
-  border-radius: 0.5rem;
-  margin-bottom: 2rem;
-}
-
-.call-details p {
-  margin: 10px 0;
-}
 
 /* Call schedule join */
 
@@ -135,28 +76,18 @@ input[type='datetime-local'] {
 /* Media Queries for Responsiveness */
 
 @media screen and (max-width: 600px) {
-  .call-schedule-wizard-container,
-  .call-schedule-launch-container,
   .call-schedule-join-container,
   .call-schedule-card-container {
     width: 100%;
     padding: 1.5rem;
   }
-  .call-schedule-wizard-container input,
-  .call-schedule-wizard-container textarea,
-  .call-schedule-wizard-container select {
-    padding: 1rem 1.5rem;
-  }
-  .call-schedule-launch-container {
-    padding: 2rem;
-  }
 }
 
 /*@media screen and (max-width: 400px) {
-    .call-schedule-wizard-container, .call-schedule-launch-container, .call-schedule-join-container, .call-schedule-card-container {
+    .saito-schedule-wizard, .saito-calendar-event-link-body, .call-schedule-join-container, .call-schedule-card-container {
         padding: 1rem;
     }
-    .call-schedule-wizard-container input, .call-schedule-wizard-container textarea, .call-schedule-wizard-container select {
+    .saito-schedule-wizard input, .saito-schedule-wizard textarea, .saito-schedule-wizard select {
         padding: 0.8rem 1.2rem;
     }
 }*/

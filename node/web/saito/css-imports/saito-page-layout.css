@@ -61,13 +61,13 @@
   font-family: var(--saito-font);
 }
 
-.sidebar-header > div {
+.sidebar-header > * {
   width: fit-content;
   cursor: pointer;
   transition: transform 0.4s;
 }
 
-.sidebar-header > div.sidebar-title {
+.sidebar-header .sidebar-title {
   cursor: default;
 }
 

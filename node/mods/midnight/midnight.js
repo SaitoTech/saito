@@ -434,7 +434,7 @@ class Midnight extends GameTemplate {
 			html += `<div id="${s}">${this.skills[s].icon} : ${this.skills[s].name}</div>`;
 		}
 		html += `</div>
-            <button class="button" id="confirm_btn">CONFIRM</button>`;
+            <button class="saito-button-primary" id="confirm_btn">CONFIRM</button>`;
 		this.updateStatus(html);
 		let skills = [];
 		$('.special_skills div').on('click', function () {

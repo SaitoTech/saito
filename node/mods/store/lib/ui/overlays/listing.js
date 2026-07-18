@@ -56,7 +56,7 @@ class ListingOverlay {
 
 		const textContent =
 			nft.text || nft.json || nft.js || nft.css || nft.description || 'NFT content';
-		return `<div class="nft-card-text store-listing-media-text">${this.escapeHtml(textContent)}</div>`;
+		return `<div class="saito-nft-card-text store-listing-media-text">${this.escapeHtml(textContent)}</div>`;
 	}
 
 	returnFileType(nft) {

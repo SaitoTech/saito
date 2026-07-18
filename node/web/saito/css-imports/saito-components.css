@@ -29,7 +29,7 @@
   height: 1.5rem;
   background-color: var(--saito-notification-online-bg);
 }
-.online .online-status-indicator:after, .stun .online-status-indicator:after {
+.online .online-status-indicator:after {
   display: block;
   top: 3.9rem;
   left: 3.75rem;
@@ -38,12 +38,6 @@
 .online-status-indicator i {
   display: none;
   position: absolute;
-}
-.stun .online-status-indicator i {
-  display: block;
-  top: 2.9rem;
-  left: 2.75rem;
-  font-size: 8px;
 }
 .busy .online-status-indicator:after {
   background-color: var(--saito-notification-busy-bg);

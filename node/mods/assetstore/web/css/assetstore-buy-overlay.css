@@ -16,13 +16,13 @@
     overflow-y: scroll;
 }
 
-.nft-details-right .nft-card-title {
+.nft-details-right .store-card-title {
     font-size: 2.4rem;
     padding-top: 1rem;
     padding-bottom: 1rem;
 }
 
-.nft-details-right .nft-card-description {
+.nft-details-right .store-card-description {
     font-size: 1.6rem;
     line-height: 2.5rem;
 }

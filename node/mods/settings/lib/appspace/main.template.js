@@ -31,7 +31,7 @@ module.exports = (app, mod, main) => {
       modules_html += `
         <div class="settings-appspace-app" data-id="${shortName}">
             <div class="saito-switch">
-              <input type="checkbox"  id="${i}" class="modules_mods_checkbox" name="modules_mods_${i}" ${CHECKED}>
+              <input type="checkbox"  id="${i}" class="saito-checkbox modules_mods_checkbox" name="modules_mods_${i}" ${CHECKED}>
             </div>
             <div>${fullName}</div>`;
 
@@ -85,7 +85,7 @@ module.exports = (app, mod, main) => {
           <div class="default-fee-containter">
             <input type="number"
                    id="profile-default-fee-input"
-                   class="profile-default-fee"
+                   class="saito-input profile-default-fee"
                    step="0.000000001"
                    min="0"
                    value="${app.wallet.convertNolanToSaito(app.wallet.default_fee)}"

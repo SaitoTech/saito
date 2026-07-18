@@ -91,7 +91,6 @@
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: inherit;
 }
 
 .chat-manager .saito-user:hover {
@@ -186,15 +185,15 @@
   display: block;
 }
 
-.chat-popup .link-preview {
+.chat-popup .saito-link-preview {
   max-width: 40rem;
 }
 
-.chat-popup .link-info {
+.chat-popup .saito-link-info {
   padding: 1rem;
 }
 
-.chat-popup .saito-treated-link[data-link='local_link'] .link-img.has-picture {
+.chat-popup .saito-treated-link[data-link='local_link'] .saito-link-img.has-picture {
   max-height: 10rem;
 }
 
@@ -692,7 +691,7 @@
   text-align: center;
 }
 
-.chat-footer > .chat-input-submit.button-mouse-over {
+.chat-footer > .chat-input-submit.saito-button-mouse-over {
   align-self: center;
   display: flex;
   align-items: center;
@@ -704,7 +703,7 @@
 }
 
 .chat-footer > .chat-input-submit:hover {
-  animation: button-mouse-over-pulse 0.9s ease-in-out infinite;
+  animation: saito-button-mouse-over-pulse 0.9s ease-in-out infinite;
   transform: scale(1.06);
 }
 
@@ -755,8 +754,8 @@
 }
 
 .chat-main-container .chat-body {
-  background-color: unset;
-  background-image: unset;
+  background-color: transparent;
+  background-image: none;
 }
 
 .chat-main-container .saito-sidebar.left {
@@ -774,7 +773,7 @@
 }
 
 .saito-chat-button:hover {
-  font-style: unset;
+  font-style: normal;
   color: var(--saito-font-color-heavy); /* testing */
 }
 
@@ -849,9 +848,8 @@
 }
 
 .chat-manager-overlay .chat-manager-list.saito-sidebar-element {
-  box-shadow: unset;
-  padding: unset;
-  border: unset;
+  padding: 0;
+  border: 0;
 }
 
 .floating-cm-overlay .alternate-close-button {

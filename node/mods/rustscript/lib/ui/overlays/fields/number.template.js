@@ -11,7 +11,7 @@ module.exports = (options) => {
       type="text"
       inputmode="numeric"
       pattern="[0-9]*"
-      class="rs-prompt-value rs-prompt-number-input"
+      class="saito-input rs-prompt-value rs-prompt-number-input"
       value="${safeValue}"
       placeholder="${placeholder}"
       autocomplete="off"

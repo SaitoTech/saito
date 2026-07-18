@@ -72,13 +72,13 @@ module.exports = (view) => {
 							view.showQuantity
 								? `<div class="store-product-qty-selector">
                 <label for="store-product-qty-input">Quantity:</label>
-                <input id="store-product-qty-input" type="number" min="1" max="${view.supply}" value="1" />
+                <input class="saito-input" id="store-product-qty-input" type="number" min="1" max="${view.supply}" value="1" />
                 <span class="store-product-qty-max">(max ${view.supply})</span>
               </div>`
 								: ''
 						}
 
-            <textarea id="store-product-note-input" class="store-product-note" placeholder="note to seller (size, color, delivery info, etc)"></textarea>
+            <textarea id="store-product-note-input" class="saito-textarea store-product-note" placeholder="note to seller (size, color, delivery info, etc)"></textarea>
           </div>
 
           <button class="store-product-buy">${view.actionText}</button>

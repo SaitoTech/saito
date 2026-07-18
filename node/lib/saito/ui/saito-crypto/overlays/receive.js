@@ -1,7 +1,7 @@
 /**
  * In-game crypto receive overlay — waiting for / confirming inbound payment.
  *
- * Presentation: `web/saito/css-imports/saito-crypto.css` (`.crypto-receive-overlay`).
+ * Presentation: `mods/crypto/web/css/crypto-overlays.css` (`.crypto-receive-overlay`).
  */
 
 const ReceiveTemplate = require('./receive.template');

@@ -455,7 +455,7 @@ function adso_clicked(evt) {
 			lastdefinition +
 			'"/>';
 		html_insert +=
-			'<input type="text" id="add_translation" class="adso_add_translation" name="translation" />';
+			'<input type="text" id="add_translation" class="saito-input adso_add_translation" name="translation" />';
 		html_insert +=
 			'<br /><input type="submit" value="edit" onsubmit="adso_resegment_submission(); is_tooltip_locked = 0; hide_tooltip(); return false;" /> ';
 		html_insert += '</form></center>';
@@ -1505,7 +1505,7 @@ function edit_row_num(num) {
 	var thisrowform =
 		'<form name="edit_form" action="" method="POST" onsubmit="update_row_edit(\'' +
 		numrow +
-		'\');return false;"><input type="text" name="row_edit" class="' +
+		'\');return false;"><input type="text" name="row_edit" class="saito-input ' +
 		numrow +
 		'" value="' +
 		newtextvalue +
@@ -1538,7 +1538,7 @@ function edit_comment(comment_id) {
 	var ourReplacementHTML =
 		'<div id="comment_text_' +
 		comment_id +
-		'" class="comment_text"><textarea id="adso_new_editing_textarea" rows="10" cols="60">' +
+		'" class="comment_text"><textarea class="saito-textarea" id="adso_new_editing_textarea" rows="10" cols="60">' +
 		convertforediting(existing_value) +
 		'</textarea><div><input type="button" value="SAVE" class="saveButton" /><input type="hidden" value="CANCEL" class="cancelButton" /></div></div>';
 	$('#comment_text_' + comment_id)

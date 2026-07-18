@@ -50,10 +50,16 @@ class BuySaito extends ModTemplate {
     this.local_dev = false;
 
     this.purchase_overlay = new SaitoPurchaseOverlay(app, this);
+
+    this.styles = ['/buy/style.css'];
   }
 
   async initialize(app) {
     await super.initialize(app);
+
+    if (app.BROWSER) {
+      this.attachStyleSheets();
+    }
 
     if (!this.app.BROWSER) {
       this.mixin_mod = app.modules.returnModule('Mixin');

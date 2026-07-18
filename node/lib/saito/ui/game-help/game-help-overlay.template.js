@@ -3,7 +3,7 @@ module.exports = () => {
         <div class="game-help-overlay">
           <div class="game-help-overlay-title"></div>
           <div class="game-help-overlay-text"></div>
-          <div class="game-help-overlay-optout"><input type="checkbox" name="dontshowme" value="true"/> don't show again </div>
+          <div class="game-help-overlay-optout"><input type="checkbox" class="saito-checkbox" name="dontshowme" value="true"/> don't show again </div>
         </div>
   `;
 };

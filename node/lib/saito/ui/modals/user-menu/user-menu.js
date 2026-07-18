@@ -95,7 +95,7 @@ class UserMenu {
 
   addMenuItem(item, id) {
     document.querySelector('#saito-user-menu .saito-modal-content').innerHTML += `
-          <div id="${id}" class="saito-modal-menu-option"><i class="${item.icon}"></i><div>${item.text}</div></div>
+          <div id="${id}" class="saito-modal-menu-option"><i class="${item.icon}"></i><div class="saito-modal-menu-option-label">${item.text}</div></div>
         `;
   }
 }

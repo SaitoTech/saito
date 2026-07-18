@@ -10,11 +10,11 @@ module.exports = (publicKey) => {
 
       <input
         type="text"
-        id="admin-public-key"
+        class="saito-input" id="admin-public-key"
         value="${publicKey}"
       />
 
-      <button id="submit-admin-key" type="submit">
+      <button id="submit-admin-key" type="submit" class="saito-button-primary">
         Yes, Let's Get Started!
       </button>
     </div>

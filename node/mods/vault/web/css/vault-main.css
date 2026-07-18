@@ -188,3 +188,39 @@ body.vault {
 #saito-container .vault-access-textlink:hover {
   opacity: 1;
 }
+
+/* CTA loader hooks — moved from saito-cta-loader.css */
+body .saito-cta .vault-btn {
+  width: 100%;
+  height: 4.5rem;
+  min-height: 4.5rem;
+  margin: 0;
+}
+body .saito-cta .vault-cta {
+  display: flex;
+  flex-flow: row nowrap;
+  width: 100%;
+  gap: 2rem;
+}
+body .saito-cta .vault-cta > .vault-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.saito-cta.saito-cta-loading .vault-btn {
+  cursor: wait;
+  filter: grayscale(0.18) brightness(0.82);
+  opacity: 0.62;
+  pointer-events: none;
+}
+@media (max-width: 720px) {
+  body .saito-cta.saito-cta .vault-cta {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 2rem;
+  }
+  body .saito-cta.saito-cta .vault-cta > .vault-btn {
+    flex: 0 0 4.5rem;
+    width: 100%;
+  }
+}

@@ -78,7 +78,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
       <h2>Buy SAITO</h2>
 
       <div class='purchase-saito-prompt'>I want ...&nbsp; 
-        <select class="purchase-saito-amount" id="purchase-saito-amount">
+        <select class="saito-form-select purchase-saito-amount" id="purchase-saito-amount">
       	  <option id="1000" value="1000">1,000 SAITO</option>
       	  <option id="10000" value="10000">10,000 SAITO</option>
       	  <option id="50000" value="50000" selected>50,000 SAITO</option>

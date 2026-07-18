@@ -410,7 +410,7 @@ class GameTestSuite extends GameTemplate {
       <h3 class="overlay-title">Select a Web3 Crypto:</h3>
       <div class="overlay-input">
         <label for="crypto">Crypto:</label>
-        <select name="crypto">
+        <select class="saito-form-select" name="crypto">
           <option value="" selected>None</option>
     `;
 		for (let i = 0; i < this.app.modules.mods.length; i++) {

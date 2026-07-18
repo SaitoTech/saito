@@ -105,7 +105,7 @@ class Vault extends ModTemplate {
 							: '/vault/img/jade_key_min.png';
 						return {
 							backgroundImage,
-							innerHtml: `<div class="nft-card-text">${nft.json}</div>`
+							innerHtml: `<div class="saito-nft-card-text">${nft.json}</div>`
 						};
 					} catch (err) {
 						return null;

@@ -9,6 +9,11 @@ class SaitoCrypto {
     this.app = app;
     this.mod = mod;
 
+    // Feature CSS lives in mods/crypto (not the design-system bundle).
+    if (app?.browser?.addStylesheet) {
+      app.browser.addStylesheet('/crypto/style.css');
+    }
+
     //'saito-crypto-deposit-render-request'
     this.deposit_overlay = new Deposit(app, mod);
 

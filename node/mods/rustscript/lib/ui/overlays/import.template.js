@@ -29,7 +29,7 @@ module.exports = {
     <section class="rs-import-p2sh">
       <h3 class="rs-import-p2sh-heading">Import from P2SH Link</h3>
       <div class="rs-import-p2sh-row">
-        <input type="text" class="rs-import-p2sh-input" placeholder="Paste P2SH link…" spellcheck="false" autocomplete="off" />
+        <input type="text" class="saito-input rs-import-p2sh-input" placeholder="Paste P2SH link…" spellcheck="false" autocomplete="off" />
         <button type="button" class="rs-btn rs-btn-secondary rs-import-p2sh-btn" data-action="import-p2sh-link">Import</button>
       </div>
     </section>

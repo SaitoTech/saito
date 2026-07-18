@@ -1,4 +1,4 @@
-.cropper-overlay {
+.saito-photo-cropper {
 	height: min(100vh, 70rem);
 	width: min(100vw, 80rem);
 	text-align: center;
@@ -14,13 +14,13 @@
 	gap: 1rem;
 }
 
-.photo-cropper {
+.saito-photo-cropper .photo-cropper {
 	width: 100%;
 	height: 100%;
 	display: block;
 }
 
-.photo-cropper img {
+.saito-photo-cropper .photo-cropper img {
 	display: block;
 	max-width: 100%;
 }
@@ -33,11 +33,11 @@
 /* Media Queries for different screen sizes */
 
 @media (max-width: 768px) {
-	.cropper-overlay {
+	.saito-photo-cropper {
 		padding: 1rem;
 	}
 
-	.photo-cropper {
+	.saito-photo-cropper .photo-cropper {
 		/*height: 60vh;*/
 		/* Increase height on smaller screens */
 		/*width: 95vw;*/
@@ -49,7 +49,7 @@
 }
 
 @media (max-width: 480px) {
-	.photo-cropper {
+	.saito-photo-cropper .photo-cropper {
 		/*height: 70vh;*/
 		/* Further increase height on very small screens */
 		/*width: 98vw;*/

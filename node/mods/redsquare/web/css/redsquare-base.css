@@ -107,12 +107,9 @@ body.redsquare-body #saito-container.saito-container > * {
   }
 }
 
-/* Beat saito-buttons min-size */
+/* Beat saito-button component min-size */
 .new-post,
-.copy-key,
-.manager .back,
 .sidebar .follow,
-.compose .tool,
 .settings .row.inline .saito-button-secondary {
   min-width: unset;
   min-height: unset;

@@ -1760,7 +1760,7 @@ class Chat extends ModTemplate {
                     msg += saniText;
                   }
 
-                  msg += `<div class='link-preview link-${block[z].signature}'></div>`;
+                  msg += `<div class='saito-link-preview link-${block[z].signature}'></div>`;
                   if (!group?.links) {
                     group.links = {};
                   }

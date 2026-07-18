@@ -100,7 +100,7 @@ class OpcodesOverlay {
       <div class="rustscript-overlay rs-overlay-panel rs-overlay-panel-wide rs-opcode-ref-overlay">
         <div class="rs-opcode-ref-overlay-head">
           <h2 class="rs-opcode-ref-overlay-title">Opcode Reference</h2>
-          <select class="rs-opcode-ref-overlay-select" aria-label="Select opcode"></select>
+          <select class="saito-form-select rs-opcode-ref-overlay-select" aria-label="Select opcode"></select>
         </div>
         <div class="rs-opcode-ref-overlay-body" aria-live="polite"></div>
       </div>

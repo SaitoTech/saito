@@ -5,16 +5,16 @@ module.exports = {
     const formFieldsHtml = `
       <label class="rs-publish-field">
         <span class="rs-publish-field-label">Destination Address</span>
-        <input type="text" class="rs-publish-input rs-unlock-destination" value="${destinationPublicKey}" spellcheck="false" />
+        <input type="text" class="saito-input rs-publish-input rs-unlock-destination" value="${destinationPublicKey}" spellcheck="false" />
       </label>
       <div class="rs-publish-field-row">
         <label class="rs-publish-field rs-publish-field-half">
           <span class="rs-publish-field-label">Amount (SAITO)</span>
-          <input type="text" class="rs-publish-input rs-unlock-amount" inputmode="decimal" value="${amount}" spellcheck="false" readonly />
+          <input type="text" class="saito-input rs-publish-input rs-unlock-amount" inputmode="decimal" value="${amount}" spellcheck="false" readonly />
         </label>
         <label class="rs-publish-field rs-publish-field-half">
           <span class="rs-publish-field-label">Fee (SAITO)</span>
-          <input type="text" class="rs-publish-input rs-unlock-fee" inputmode="decimal" value="${fee}" spellcheck="false" />
+          <input type="text" class="saito-input rs-publish-input rs-unlock-fee" inputmode="decimal" value="${fee}" spellcheck="false" />
         </label>
       </div>`;
 

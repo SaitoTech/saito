@@ -4,19 +4,19 @@ module.exports = (app, mod) => {
 			<div class="stun-settings-shell">
 			<fieldset class="saito-grid stun-settings-privacy">
 			<legend class="settings-label">Enable direct calls on Saito Talk from:</legend>
-			<input type="radio" id="all" name="stun-privacy" value="all" ${
+			<input class="saito-radio" type="radio" id="all" name="stun-privacy" value="all" ${
 	privacy == 'all' ? 'checked' : ''
 }/>
 			<label for="all">Anyone</label>
-			<input type="radio" id="key" name="stun-privacy" value="key" ${
+			<input class="saito-radio" type="radio" id="key" name="stun-privacy" value="key" ${
 	privacy == 'key' ? 'checked' : ''
 }/>
 			<label for="key">Acquaintances</label>
-			<input type="radio" id="dh" name="stun-privacy" value="dh" ${
+			<input class="saito-radio" type="radio" id="dh" name="stun-privacy" value="dh" ${
 	privacy == 'dh' ? 'checked' : ''
 }/>
 			<label for="dh">Friends</label>
-			<input type="radio" id="none" name="stun-privacy" value="none" ${
+			<input class="saito-radio" type="radio" id="none" name="stun-privacy" value="none" ${
 	privacy == 'none' ? 'checked' : ''
 }/>
 			<label for="none">No one</label>
@@ -26,8 +26,8 @@ module.exports = (app, mod) => {
 	if (mod?.streams?.active){
 		html += `<fieldset class="stun-input-settings cinematic-inputs">
             <legend class="stun-input-settings-label">Adjust Inputs</legend>
-            <select style="display:none" class="saito-select" id="video-input"></select>
-            <select style="display:none" class="saito-select" id="audio-input"></select>
+            <select style="display:none" class="saito-form-select" id="video-input"></select>
+            <select style="display:none" class="saito-form-select" id="audio-input"></select>
             <button style="display:none" id="test-mic" class="chat-settings-test-mic">Test Microphone</button>
             <div style="display:none" class="chat-settings-audio-controls">
             <i id="toggle-playback" class="fas fa-play chat-settings-toggle-icon"></i>

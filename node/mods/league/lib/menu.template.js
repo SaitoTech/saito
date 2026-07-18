@@ -15,20 +15,20 @@ module.exports = (app, mod, league) => {
         <div class="league-component-existing-league-controls">`;
 
 	if (league.rank < 0 && league.admin) {
-		html += `<button class="league-button league-join-button">Join</button>`;
+		html += `<button class="league-button league-join-button saito-button-primary">Join</button>`;
 	}
 
-	html += `<button class="league-button league-view-button">View</button>`;
+	html += `<button class="league-button league-view-button saito-button-primary">View</button>`;
 
 	if (!league.admin) {
-		html += `<button class="league-button league-edit-button">Edit</button>`;
-		html += `<button class="league-button league-sudo-button">Admin</button>`;
+		html += `<button class="league-button league-edit-button saito-button-primary">Edit</button>`;
+		html += `<button class="league-button league-sudo-button saito-button-primary">Admin</button>`;
 	}
 
 	if (mod.publicKey == league.admin) {
-		html += `<button class="league-button league-edit-button">Edit</button>`;
-		html += `<button class="league-button league-invite-button">Invite</button>`;
-		html += `<button class="league-button league-delete-button">Delete</button>`;
+		html += `<button class="league-button league-edit-button saito-button-primary">Edit</button>`;
+		html += `<button class="league-button league-invite-button saito-button-primary">Invite</button>`;
+		html += `<button class="league-button league-delete-button saito-button-primary">Delete</button>`;
 	}
 
 	html += `</div></div>`;

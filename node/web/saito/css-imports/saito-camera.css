@@ -42,19 +42,19 @@
   cursor: pointer;
 }
 
-.first-phase {
+.saito-camera .first-phase {
   visibility: hidden;
 }
 
-.video .first-phase {
+.saito-camera.video .first-phase {
   visibility: visible;
 }
 
-.second-phase {
+.saito-camera .second-phase {
   visibility: visible;
 }
 
-.video .second-phase {
+.saito-camera.video .second-phase {
   visibility: hidden;
 }
 

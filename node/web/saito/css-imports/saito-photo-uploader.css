@@ -1,10 +1,10 @@
-.uploader-uploaded-photo {
+.saito-photo-uploader .uploader-uploaded-photo {
     height: auto;
     object-fit: cover;
     width: 100%;
 }
 
-.photo-uploader {
+.saito-photo-uploader {
     background-color: var(--saito-background-color);
     height: 33rem;
     width: 70rem;
@@ -25,20 +25,20 @@
 }
 
 @media (max-width: 768px) {
-    .photo-uploader {
+    .saito-photo-uploader {
         width: 90vw;
         padding: 5vw;
     }
 }
 
 @media (max-width: 480px) {
-    .photo-uploader {
+    .saito-photo-uploader {
         width: 95vw;
         font-size: calc(14px + 1vw);
     }
 }
 
-.uploader-content {
+.saito-photo-uploader .uploader-content {
     display: none;
     height: 100%;
     width: 100%;
@@ -46,7 +46,7 @@
     position: absolute;
 }
 
-.uploader-actions {
+.saito-photo-uploader .uploader-actions {
     width: calc(100% - 10rem);
     position: absolute;
     bottom: 0;
@@ -56,16 +56,16 @@
     z-index: 10;
 }
 
-.uploader-actions> :nth-child(1) {
+.saito-photo-uploader .remove-photo {
     margin-right: 1rem;
 }
 
 @media (max-width: 768px) {
-    .uploader-actions {
+    .saito-photo-uploader .uploader-actions {
         flex-direction: column;
         justify-content: center;
     }
-    .uploader-actions> :nth-child(1) {
+    .saito-photo-uploader .remove-photo {
         margin-right: 0;
         margin-bottom: 1rem;
     }

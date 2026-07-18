@@ -58,7 +58,7 @@
 }
 
 /* Get hyperspecific so default button css can be overridden*/
-#advanced-options-overlay-container .button.game-wizard-advanced-return-btn {
+#advanced-options-overlay-container .game-wizard-advanced-return-btn {
 	font-size: 1.8rem;
 	height: 4.8rem;
 	padding: 1rem;
@@ -249,12 +249,10 @@
  *
  * Ownership:
  *   .saito-multi-select_btn  → continuous fill, outer radius, clip (collapsed)
- *   .saito-multi-btn         → transparent; no radius / own gradient (Noir otherwise wins)
+ *   .saito-multi-btn         → transparent; no radius / own gradient
  *   ::after                  → transparent chevron; square join; divider only
  *
- * Noir paints every `button` with a per-box gradient + full radius. Leaving that
- * on the primary half creates the black notch (radius gap) and colour mismatch
- * (gradient restarts / solid chevron). Parent owns the paint instead.
+ * Parent owns the paint on the collapsed split surface.
  */
 .saito-multi-select_btn {
 	overflow: hidden;
@@ -319,67 +317,24 @@
 	min-height: 4.8rem;
 	margin: 0;
 	margin-bottom: -1px;
-	padding: 0;
-	border: none;
-	border-radius: 0;
-	background: transparent;
-	background-image: none;
-	box-shadow: none;
-	color: inherit;
 	font-size: 2rem;
-	font-weight: inherit;
-	letter-spacing: normal;
-	text-transform: none;
-	transform: none;
-	filter: none;
 }
 
-/*
- * Outrank theme `html[data-theme] button` rules so halves never own their own
- * gradient or radius while collapsed into the split surface.
- */
-html[data-theme] .saito-multi-select_btn:not(.showAll) .saito-multi-btn,
-html[data-theme] .saito-multi-select_btn:not(.showAll) .saito-multi-select_btn_options button {
-	border: none;
-	border-radius: 0;
-	background: transparent;
-	background-image: none;
-	box-shadow: none;
-	transform: none;
-	filter: none;
-	color: inherit;
-}
-
-.saito-multi-select_btn:not(.showAll):hover .saito-multi-select_btn_options button:first-child,
-html[data-theme] .saito-multi-select_btn:not(.showAll):hover .saito-multi-select_btn_options button:first-child {
+.saito-multi-select_btn:not(.showAll):hover .saito-multi-select_btn_options button:first-child {
 	background: color-mix(in srgb, var(--saito-button-primary-fg, #fff) 10%, transparent);
-	background-image: none;
-	box-shadow: none;
-	transform: none;
-	filter: none;
-	color: inherit;
 }
 
-.saito-multi-select_btn.showAll .saito-multi-select_btn_options button,
-html[data-theme] .saito-multi-select_btn.showAll .saito-multi-select_btn_options button {
+.saito-multi-select_btn.showAll .saito-multi-select_btn_options button {
 	margin-bottom: 0.4rem;
 	border: 1px solid transparent;
 	border-radius: var(--saito-button-radius, var(--saito-input-radius));
 	background: var(--saito-button-primary-bg, var(--saito-primary));
-	background-image: var(--saito-button-primary-bg, none);
 	color: var(--saito-button-primary-fg, var(--saito-font-color));
 }
 
-.saito-multi-select_btn.showAll .saito-multi-select_btn_options button:hover,
-html[data-theme] .saito-multi-select_btn.showAll .saito-multi-select_btn_options button:hover {
+.saito-multi-select_btn.showAll .saito-multi-select_btn_options button:hover {
 	filter: brightness(1.03);
 	color: var(--saito-button-primary-fg, var(--saito-white));
-}
-
-.saito-multi-btn {
-	width: 100%;
-	min-height: 4.8rem;
-	margin: 0;
 }
 
 .arcade-wizard-form {

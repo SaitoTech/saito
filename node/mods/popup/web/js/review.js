@@ -356,11 +356,11 @@ function return_error_finished_html() {
            </div> \
    	   <div style="margin-top:5px"><div style="padding-top:20px;width:100%;float:left;text-align:center;font-size:1.7em;color:#888"> \
 	     <div style="font-size:1.2em"> \
-	       <span style="font-size:0.8em;padding:15px;">english:</span> <br/><input type="text" id="missing_english" value="' +
+	       <span style="font-size:0.8em;padding:15px;">english:</span> <br/><input class="saito-input" type="text" id="missing_english" value="' +
 		english +
 		'" style="text-align:center;background-color:#F7F7F7;border:0px solid black;border-bottom:1px dashed #333;font-size:1.3em;width:600px;" /> \
 	       <p style="margin-top:10px" /> \
-	       <span style="font-size:0.8em;padding:15px;">pinyin:</span> <br/><input type="text" id="missing_pinyin" value="" style="text-align:center;background-color:#F7F7F7;border:0px solid black;border-bottom:1px dashed #333;font-size:1.3em;width:600px;" /> \
+	       <span style="font-size:0.8em;padding:15px;">pinyin:</span> <br/><input class="saito-input" type="text" id="missing_pinyin" value="" style="text-align:center;background-color:#F7F7F7;border:0px solid black;border-bottom:1px dashed #333;font-size:1.3em;width:600px;" /> \
 	       <p style="margin-top:10px" /> \
 	       <input style="font-size:0.6em;margin-top:10px;" type="button" onclick="updateMissing()" value="Update Vocabulary List" /> \
 	   </div> '

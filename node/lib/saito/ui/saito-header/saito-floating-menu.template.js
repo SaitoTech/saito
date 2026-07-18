@@ -1,6 +1,6 @@
 module.exports = () => {
   return `
-    <div id="saito-floating-menu" class="saito-floating-container">
+    <div id="saito-floating-menu" class="saito-floating-menu">
         <div class="saito-floating-menu-mask" id="saito-floating-menu-mask"></div>
         <div class="saito-floating-item-container main"></div>
         <div class="saito-floating-item-container alt"></div>

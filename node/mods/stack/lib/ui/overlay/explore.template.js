@@ -30,7 +30,7 @@ module.exports = (app, mod, subs = []) => {
           </div>
         </div>
       <div class='stack-explorer-mobile-header'>
-        <select class="stack-explorer-mobile-selector">`;
+        <select class="saito-form-select stack-explorer-mobile-selector">`;
   for (let z = 0; z < subs.length; z++) {
     let active = subs[z].publickey == pk ? 'selected' : '';
     html += `<option value="${subs[z].publickey}" ${active}>${subs[z].label}</option>`;

@@ -1,6 +1,6 @@
 module.exports = () => {
   return `
-      <form id="login-template" class="saito-overlay-form">
+      <form id="login-template" class="saito-recovery">
         <div class="saito-overlay-form-header">
           <div class="saito-overlay-form-header-title">Account Login</div>
         </div>

@@ -1,5 +1,5 @@
 .saito-overlay,
-.saito-overlay > div:last-child,
+.saito-overlay > .saito-overlay-panel,
 .saito-overlay > form {
   border: none !important;
 }

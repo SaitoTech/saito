@@ -7,24 +7,24 @@ module.exports  = (app, mod) => {
 			<fieldset class="saito-grid">
 				<legend class="settings-label">Notifications</legend>
 
-				<input type="checkbox" id="audio-notifications" ${mod?.audio_notifications ? "checked":"" }/>
+				<input class="saito-checkbox" type="checkbox" id="audio-notifications" ${mod?.audio_notifications ? "checked":"" }/>
 				<label for="audio-notifications">incoming message chime</label>
 
 				<fieldset id="sensitivity-fieldset" class="saito-grid" ${mod?.audio_notifications ? "" : `style="display:none;"`}>
 					<legend class="settings-label">Sensitivity</legend>
-					<input type="radio" id="all" name="chime-threshold" value="all" ${mod?.audio_notifications=="all" ? "checked": "" }/>
+					<input class="saito-radio" type="radio" id="all" name="chime-threshold" value="all" ${mod?.audio_notifications=="all" ? "checked": "" }/>
 					<label for="all">All messages</label>
-					<input type="radio" id="groups" name="chime-threshold" value="groups" ${mod?.audio_notifications=="groups" ? "checked": "" }/>
+					<input class="saito-radio" type="radio" id="groups" name="chime-threshold" value="groups" ${mod?.audio_notifications=="groups" ? "checked": "" }/>
 					<label for="groups">Unopened groups</label>
-					<input type="radio" id="tabs" name="chime-threshold" value="tabs" ${mod?.audio_notifications=="tabs" ? "checked": "" }/>
+					<input class="saito-radio" type="radio" id="tabs" name="chime-threshold" value="tabs" ${mod?.audio_notifications=="tabs" ? "checked": "" }/>
 					<label for="tabs">Hidden tab</label>
 				</fieldset>
 
 				<fieldset id="chime-fieldset" class="saito-grid" ${mod?.audio_notifications ? "" : `style="display:none;"`}>
 					<legend class="settings-label">Chimes</legend>
-					<input type="radio" id="Glass" name="chat-chime" value="Glass" ${mod?.audio_chime=="Glass" ? "checked": "" }/>
+					<input class="saito-radio" type="radio" id="Glass" name="chat-chime" value="Glass" ${mod?.audio_chime=="Glass" ? "checked": "" }/>
 					<div class="flex-row"><label for="Glass">Chime A</label><i data-id="Glass" class="sound-preview fa-solid fa-volume-low"></i></div>
-					<input type="radio" id="Taptap" name="chat-chime" value="Taptap" ${mod?.audio_chime=="Taptap" ? "checked": "" }/>
+					<input class="saito-radio" type="radio" id="Taptap" name="chat-chime" value="Taptap" ${mod?.audio_chime=="Taptap" ? "checked": "" }/>
 					<div class="flex-row"><label for="Taptap">Chime B</label><i data-id="Taptap" class="sound-preview fa-solid fa-volume-low"></i></div>
 				</fieldset>
 
@@ -33,7 +33,7 @@ module.exports  = (app, mod) => {
 
 
 			<fieldset class="saito-grid">
-				<input type="checkbox" id="auto-open" ${mod.auto_open_community ? "checked":"" }/>
+				<input class="saito-checkbox" type="checkbox" id="auto-open" ${mod.auto_open_community ? "checked":"" }/>
 				<label for="auto-open">always open community chat</label>
 			</fieldset>
 

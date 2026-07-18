@@ -406,8 +406,7 @@ const VoteLayout = ({ app, mod }) => {
               </div>
               <div className="card-content">
                 <div className="form-group">
-                  <input
-                    className="input"
+                  <input                     className="saito-input"
                     placeholder="Poll Description"
                     value={newElection.description}
                     onChange={(e) => setNewElection({ ...newElection, description: e.target.value })}
@@ -415,15 +414,13 @@ const VoteLayout = ({ app, mod }) => {
                   <div className="date-input-group">
                     <label>Poll Duration:</label>
                     <div className="date-inputs">
-                      <input
-                        className="input"
+                      <input                         className="saito-input"
                         type="datetime-local"
                         placeholder="Start Date"
                         value={newElection.startDate}
                         onChange={(e) => setNewElection({ ...newElection, startDate: e.target.value })}
                       />
-                      <input
-                        className="input"
+                      <input                         className="saito-input"
                         type="datetime-local"
                         placeholder="End Date"
                         value={newElection.endDate}
@@ -433,8 +430,7 @@ const VoteLayout = ({ app, mod }) => {
                   </div>
                   <div className="number-input-group">
                     <label>Number of Options:</label>
-                    <input
-                      className="input"
+                    <input                       className="saito-input"
                       type="number"
                       min="2"
                       max="256"
@@ -444,16 +440,15 @@ const VoteLayout = ({ app, mod }) => {
                   </div>
                   <div className="candidates-section">
                     {newElection.candidateNames.map((name, index) => (
-                      <input
-                        key={index}
-                        className="input"
+                      <input                         key={index}
+                        className="saito-input"
                         placeholder={`Option ${index + 1} Name`}
                         value={name}
                         onChange={(e) => updateCandidateName(index, e.target.value)}
                       />
                     ))}
                   </div>
-                  <button className="button primary" onClick={handleCreateElection}>
+                  <button className="saito-button-primary" onClick={handleCreateElection}>
                     {newElection.isEditing ? 'Update Poll' : 'Create Poll'}
                   </button>
                 </div>

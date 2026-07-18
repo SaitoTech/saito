@@ -302,12 +302,7 @@
 		overflow-y: hidden;
 	}
 
-	.split-view .side-videos .video-box-container-large {
-		height: 100%;
-		width: auto;
-	}
-}
-
+	.split-view .side-videos 
 .gallery,
 .side-videos {
 	resize: both;
@@ -330,7 +325,7 @@
  * StreamManager.getLocalMedia, so cover-cropping is minimal for
  * desktop feeds. Keep in sync with the aspect ratio in applyGalleryGrid().
  */
-.gallery .video-box-container-large {
+.gallery .saito-videobox {
 	aspect-ratio: 4 / 3;
 	width: 100%;
 }
@@ -347,18 +342,18 @@
  * Film-strip thumbnails hold a fixed aspect and scroll when the call is
  * crowded, instead of squeezing everyone thinner
  */
-.side-videos .video-box-container-large {
+.side-videos .saito-videobox {
 	aspect-ratio: 4 / 3;
 	flex: 0 0 auto;
 }
 
-.side-videos.tall .video-box-container-large,
-.side-videos.square .video-box-container-large {
+.side-videos.tall .saito-videobox,
+.side-videos.square .saito-videobox {
 	width: 100%;
 	height: auto;
 }
 
-.side-videos.wide .video-box-container-large {
+.side-videos.wide .saito-videobox {
 	height: 100%;
 	width: auto;
 }
@@ -392,10 +387,10 @@
  * Tile orientation (tile-landscape/tile-portrait) is set by a ResizeObserver;
  * feed orientation (.portrait) is set when the video starts playing.
  */
-.videocall-primary .video-box-container-large.portrait.tile-landscape video,
-.videocall-primary .video-box-container-large.tile-portrait:not(.portrait) video,
-.gallery .video-box-container-large.portrait.tile-landscape video,
-.gallery .video-box-container-large.tile-portrait:not(.portrait) video {
+.videocall-primary .saito-videobox.portrait.tile-landscape video,
+.videocall-primary .saito-videobox.tile-portrait:not(.portrait) video,
+.gallery .saito-videobox.portrait.tile-landscape video,
+.gallery .saito-videobox.tile-portrait:not(.portrait) video {
 	object-fit: contain;
 }
 
@@ -413,7 +408,7 @@
 /* 4. Video boxes + per-tile info overlays                             */
 /* ------------------------------------------------------------------ */
 
-.video-box-container-large {
+.saito-videobox {
 	display: flex;
 	width: 100%;
 	max-height: 100%;
@@ -424,7 +419,7 @@
 	flex: 1;
 }
 
-.stun-chatbox .video-box-container-large {
+.stun-chatbox .saito-videobox {
 	position: relative;
 	cursor: pointer;
 	overflow: hidden;
@@ -440,7 +435,7 @@
 		var(--stun-noir-shadow-soft);
 }
 
-.expanded-video .video-box-container-large {
+.expanded-video .saito-videobox {
 	width: 100%;
 	height: 100%;
 	opacity: 0;
@@ -448,14 +443,14 @@
 	animation-fill-mode: forwards;
 }
 
-.presentation .video-box-container-large {
+.presentation .saito-videobox {
 	width: 100%;
 	opacity: 0;
 	animation: fade-in 0.5s ease-in;
 	animation-fill-mode: forwards;
 }
 
-.presentation-side-videos .video-box-container-large {
+.presentation-side-videos .saito-videobox {
 	height: fit-content;
 }
 
@@ -497,20 +492,7 @@ video#local {
 	display: none;
 }
 
-.video-box-container-large video {
-	width: 100%;
-	height: 100%;
-	max-width: 100%;
-	object-fit: cover;
-	max-height: calc(100svh - 150px);
-	z-index: 2;
-	border-radius: inherit;
-	border: none;
-}
 
-.video-box-container-large.portrait video {
-	height: 100%;
-}
 
 video#presentation {
 	object-fit: contain;
@@ -594,38 +576,12 @@ video#presentation {
 	box-shadow: 0 0 24px -10px var(--stun-noir-accent-2);
 }
 
-.video-box-container-large canvas#oscilloscope {
-	position: absolute;
-	width: min(60vw, 40dvh);
-	height: min(60vw, 40dvh);
-	border-radius: 50%;
-	border: 2px solid var(--saito-border-color-dark);
-	background-image: url(/saito/img/saito-background-icon.svg);
-	background-color: var(--stun-noir-canvas-bg);
-	background-size: 66%;
-	background-repeat: no-repeat;
-	background-position: center;
-}
 
 /* ------------------------------------------------------------------ */
 /* 5. Connection messages + spinners                                   */
 /* ------------------------------------------------------------------ */
 
-.video-box-container-large > #connection-message {
-	color: var(--saito-white);
-	width: 50%;
-	line-height: 1.5;
-	position: absolute;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 10;
-}
 
-.video-box-container-large > #connection-message > p {
-	color: var(--saito-white);
-	font-size: 2.8rem;
-}
 
 #reconnect-button {
 	color: var(--saito-white);
@@ -1252,7 +1208,7 @@ video#presentation {
 		grid-template-columns: minmax(100px, 1fr);
 	}
 
-	.video-box-container-large canvas#oscilloscope {
+	.saito-videobox canvas#oscilloscope {
 		width: 10rem;
 		height: 10rem;
 	}
@@ -1299,11 +1255,11 @@ video#presentation {
 		margin-right: 0.5rem;
 	}
 
-	.video-box-container-large > #connection-message {
+	.saito-videobox > #connection-message {
 		width: 100%;
 	}
 
-	.video-box-container-large > #connection-message p {
+	.saito-videobox > #connection-message p {
 		font-size: 2rem;
 	}
 
@@ -1352,7 +1308,7 @@ video#presentation {
 		overflow: hidden;
 	}
 
-	.stun-chatbox .video-container-large.split-view .videocall-primary .video-box-container-large {
+	.stun-chatbox .video-container-large.split-view .videocall-primary .saito-videobox {
 		border-radius: 0;
 		border: none;
 	}
@@ -1366,14 +1322,14 @@ video#presentation {
 		overflow: visible;
 	}
 
-	.stun-chatbox .video-container-large.split-view .side-videos .video-box-container-large {
+	.stun-chatbox .video-container-large.split-view .side-videos .saito-videobox {
 		aspect-ratio: 3 / 4;
 		width: 100%;
 		height: auto;
 	}
 
 	/* phones send portrait video -- shape gallery tiles to match */
-	.gallery .video-box-container-large {
+	.gallery .saito-videobox {
 		aspect-ratio: 3 / 4;
 	}
 	.stun-chatbox .video-container-large.split-view .side-videos .call-icons {

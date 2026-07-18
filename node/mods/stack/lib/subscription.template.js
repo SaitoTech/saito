@@ -10,11 +10,11 @@ module.exports = (app, mod, author, subscription = null) => {
       </div>
       <div class="stack-subscription-actions">
         ${isSubscribed ? `
-          <button class="stack-btn stack-btn-secondary stack-unsubscribe-btn" data-author="${author}">
+          <button class="saito-button-secondary stack-unsubscribe-btn" data-author="${author}">
             Unsubscribe
           </button>
         ` : `
-          <button class="stack-btn stack-btn-primary stack-subscribe-btn" data-author="${author}">
+          <button class="saito-button-primary stack-subscribe-btn" data-author="${author}">
             Subscribe
           </button>
         `}

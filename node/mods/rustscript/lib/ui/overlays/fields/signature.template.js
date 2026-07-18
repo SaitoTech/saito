@@ -23,7 +23,7 @@ module.exports = (options) => {
   if (!canAutoSign) {
     manualBlock = `
       <label class="rs-prompt-label" for="rs-prompt-signature-value">Signature</label>
-      <textarea id="rs-prompt-signature-value" class="rs-prompt-value rs-prompt-signature-value" spellcheck="false" placeholder="hex signature">${safeValue}</textarea>
+      <textarea id="rs-prompt-signature-value" class="saito-textarea rs-prompt-value rs-prompt-signature-value" spellcheck="false" placeholder="hex signature">${safeValue}</textarea>
     `;
   }
 

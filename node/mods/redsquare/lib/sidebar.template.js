@@ -29,7 +29,7 @@ module.exports = (sidebar) => {
           <span class="search-icon" aria-hidden="true">
             <i class="fa-solid fa-magnifying-glass"></i>
           </span>
-          <input type="search" placeholder="Search RedSquare" aria-label="Search RedSquare" />
+          <input type="search" class="saito-input" placeholder="Search RedSquare" aria-label="Search RedSquare" />
         </label>
       </div>
       -->

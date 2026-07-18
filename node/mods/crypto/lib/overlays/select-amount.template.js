@@ -1,12 +1,12 @@
 module.exports = (app, mod, form) => {
   let html = `
 
-    <div class="game-crypto-transfer-manager-container saito-overlay-size narrow" id="stake-crypto-request-container">
+    <div class="saito-crypto-transfer saito-overlay-size narrow" id="stake-crypto-request-container">
 
       <h2 class="auth_title">Amount to Stake?</h2>
       
       <div class="stake-input-container">
-        <input autocomplete="off" id="amount_to_stake_input" class="stake" 
+        <input autocomplete="off" id="amount_to_stake_input" class="saito-input stake" 
         type="number" min="0" max="9999999999.99999999" step="0.00000001" value="${form?.stake || '0'}" >`;
 
   let fee = 0;
@@ -44,7 +44,7 @@ module.exports = (app, mod, form) => {
 
     html += `<div class="token-dropdown">
                 ${img_html}</div>
-                <select class="withdraw-select-crypto" id="stake-select-crypto">${opt_html}</select>
+                <select class="saito-form-select withdraw-select-crypto" id="stake-select-crypto">${opt_html}</select>
              </div>`;
   }
 
@@ -64,12 +64,12 @@ module.exports = (app, mod, form) => {
   if (mod.max_match >= 0) {
     html += `
         <div class="crypto-stake-confirm-container">
-          <input type="checkbox" name="crypto-stake-odds" id="crypto-stake-odds">
+          <input class="saito-checkbox" type="checkbox" name="crypto-stake-odds" id="crypto-stake-odds">
           <label for="crypto-stake-odds" class="commentary">set lower stake for opponent</label>
         </div>
 
         <div id="opponent-minimum-stake" class="stake-input-container hidden">
-          <input autocomplete="off" id="minimum_accepted_stake" class="stake" 
+          <input autocomplete="off" id="minimum_accepted_stake" class="saito-input stake" 
           type="number" min="0" max="${mod.max_balance}" step="0.00000001" value="0" >
           <div class="crypto-ticker">${form.ticker}</div>
           <div class="stake-input-error" id="stake-opponent-error"></div>
@@ -79,12 +79,12 @@ module.exports = (app, mod, form) => {
   html += `
 
       <div class="crypto-stake-confirm-container">
-        <input type="checkbox" checked name="crypto-stake-confirm-input" id="crypto-stake-confirm-input">
+        <input class="saito-checkbox" type="checkbox" checked name="crypto-stake-confirm-input" id="crypto-stake-confirm-input">
         <label for="crypto-stake-confirm-input" class="commentary">authorize in-game transfer ${warning_msg}</label>
         <div class="stake-input-error" id="stake-checkbox-error"></div>
       </div>
 
-      <div class="button saito-button-primary crypto_amount_btn" id="enable_staking_yes">confirm</div>
+      <div class="saito-button-primary crypto_amount_btn" id="enable_staking_yes">confirm</div>
 
     </div>
  

@@ -179,7 +179,7 @@ class SaitoHeader extends UIModTemplate {
         const addressContainer = document.querySelector('#profile-public-key');
         if (addressContainer) {
           addressContainer.dataset.add = '';
-          addressContainer.innerHTML = '<div>generating keys...</div>';
+          addressContainer.innerHTML = '<div class="profile-public-key-text">generating keys...</div>';
           addressContainer.classList.add('generate-keys');
         }
         this.loader.show();
@@ -518,7 +518,7 @@ class SaitoHeader extends UIModTemplate {
     let html = `     
       <li id="${id}" data-id="${item.text}" class="saito-header-appspace-option ${item.type}" ${item?.navigation ? `data-navigation="${item.navigation}"` : ''}>
         ${icon}
-        <span>${item.text}</span></li>`;
+        <span class="saito-menu-item-label">${item.text}</span></li>`;
 
     let menu = document.querySelector(`.saito-header-menu-section .${keyword}-menu > ul`);
     if (menu) {
@@ -1091,7 +1091,7 @@ class SaitoHeader extends UIModTemplate {
             pb = ab = '0';
           }
 
-          menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
+          menu_html += `<div class="saito-header-crypto ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
           menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${logo_src}">`;
           if (sublogo_src) {
             menu_html += `<img class="chain-logo" src="${sublogo_src}">`;
@@ -1119,7 +1119,7 @@ class SaitoHeader extends UIModTemplate {
     //
     //
     //
-    Array.from(document.querySelectorAll('.saito-crypto-details')).forEach((c) => {
+    Array.from(document.querySelectorAll('.saito-header-crypto')).forEach((c) => {
       c.onclick = (e) => {
         this.app.connection.emit(
           'saito-crypto-details-render-request',

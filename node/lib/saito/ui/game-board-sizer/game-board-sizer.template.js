@@ -6,7 +6,7 @@ module.exports = (maxZoom) => {
       </button>
       <div class="game-board-sizer-control">
         <button type="button" class="game-board-sizer-step" data-board-zoom="-1" aria-label="Shrink board">-</button>
-        <input type="range" min="2" max="${maxZoom}" value="100" aria-label="Board zoom" />
+        <input type="range" class="saito-range" min="2" max="${maxZoom}" value="100" aria-label="Board zoom" />
         <button type="button" class="game-board-sizer-step" data-board-zoom="1" aria-label="Magnify board">+</button>
       </div>
     </div>

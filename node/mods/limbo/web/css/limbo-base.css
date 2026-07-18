@@ -348,11 +348,11 @@
 	text-align: right;
 }
 
-.dream-controls .video-box-container-large {
+.dream-controls .saito-videobox {
 	height: 100%;
 }
 
-.dream-controls .video-box-container-large video#presentation {
+.dream-controls .saito-videobox video#presentation {
 	object-fit: cover;
 }
 
@@ -432,12 +432,6 @@ video#local.noflip {
 .dream-wizard h1 {
 	font-size: 4rem;
 }
-
-.dream-wizard .button {
-	margin: 1rem 0;
-	flex: 1;
-}
-
 .dream-wizard .cast-mode {
 	display: flex;
 	justify-content: space-evenly;
@@ -477,7 +471,7 @@ video#local.noflip {
 	margin: 1rem 0;
 }
 
-.dream-wizard .post-tweet-textarea {
+.dream-wizard .saito-textarea {
 	min-height: 10rem;
 }
 
@@ -563,13 +557,13 @@ video#local.noflip {
 		border-left: unset;
 	}
 
-	.video-box-container-large > #connection-message {
+	.saito-videobox > #connection-message {
 		width: fit-content;
 		height: 7rem;
 		top: 100%;
 	}
 
-	.dream-controls .video-box-container-large video {
+	.dream-controls .saito-videobox video {
 		position: relative;
 	}
 
@@ -684,3 +678,47 @@ video#local.noflip {
 	gap: 1.5rem;
 	align-items: center;
 }
+
+/* Moved from saito-profile.css */
+.limbo-floating-overlay .saito-profile-header-row .saito-identicon-box .saito-overlaid-icon {
+  left: 50%;
+  width: 6rem;
+  height: 6rem;
+}
+
+/* CTA loader hooks — moved from saito-cta-loader.css */
+body .saito-cta .limbo-option {
+  width: 100%;
+  height: 4.5rem;
+  min-height: 4.5rem;
+  margin: 0;
+}
+body .saito-cta .limbo-launch-options {
+  display: flex;
+  flex-flow: row nowrap;
+  width: 100%;
+  gap: 2rem;
+}
+body .saito-cta .limbo-launch-options > .limbo-option {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.saito-cta.saito-cta-loading .limbo-option {
+  cursor: wait;
+  filter: grayscale(0.18) brightness(0.82);
+  opacity: 0.62;
+  pointer-events: none;
+}
+@media (max-width: 720px) {
+  body .saito-cta.saito-cta .limbo-launch-options {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 2rem;
+  }
+  body .saito-cta.saito-cta .limbo-launch-options > .limbo-option {
+    flex: 0 0 4.5rem;
+    width: 100%;
+  }
+}
+

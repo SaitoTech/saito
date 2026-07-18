@@ -194,31 +194,10 @@ html:has(.stack-create-post-page) {
 /* This class enforces identical geometry so elements align visually */
 .stack-create-post-page .stack-editor-primary-control {
   width: 100%;
-  min-width: 0; /* Override global button min-width: 18rem to allow container-defined width */
-  margin: 0; /* No margin - container padding provides spacing */
+  min-width: 0;
+  margin: 0;
   padding: 1rem 1.5rem;
-  box-sizing: border-box; /* Padding and border included in width calculation */
-}
-
-/* Publish/Update Button */
-.stack-create-post-page .stack-editor-publish-btn {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: var(--saito-primary-text);
-  background: var(--saito-primary);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-  font-family: inherit;
-}
-
-.stack-create-post-page .stack-editor-publish-btn:hover {
-  opacity: 0.9;
-}
-
-.stack-create-post-page .stack-editor-publish-btn:active {
-  opacity: 0.8;
+  box-sizing: border-box;
 }
 
 /* Help Section */
@@ -848,15 +827,6 @@ html:has(.stack-create-post-page) {
   font-size: 1.8rem;
   font-weight: 600;
   color: var(--saito-font-color-heavy, var(--saito-font-color));
-}
-
-.stack-btn-full-width {
-  width: 100%;
-  margin-bottom: 0.75rem;
-}
-
-.stack-btn-full-width:last-child {
-  margin-bottom: 0;
 }
 
 /* Image Upload Area */

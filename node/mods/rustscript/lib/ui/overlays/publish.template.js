@@ -29,7 +29,7 @@ module.exports = {
       <label class="rs-publish-field">
         <span class="rs-publish-field-label">Script Hash</span>
         <div class="rs-publish-input-copy-row">
-          <input type="text" class="rs-publish-input rs-publish-address" readonly value="${p2shAddress}" spellcheck="false" />
+          <input type="text" class="saito-input rs-publish-input rs-publish-address" readonly value="${p2shAddress}" spellcheck="false" />
           <button type="button" class="rs-publish-copy-btn" data-action="publish-copy-hash" title="Copy script hash" aria-label="Copy script hash">
             <i class="fa-solid fa-copy rs-publish-copy-icon" aria-hidden="true"></i>
           </button>
@@ -38,11 +38,11 @@ module.exports = {
       <div class="rs-publish-field-row">
         <label class="rs-publish-field rs-publish-field-half">
           <span class="rs-publish-field-label">Amount (SAITO)</span>
-          <input type="text" class="rs-publish-input rs-publish-amount" inputmode="decimal" value="${amount}" spellcheck="false" />
+          <input type="text" class="saito-input rs-publish-input rs-publish-amount" inputmode="decimal" value="${amount}" spellcheck="false" />
         </label>
         <label class="rs-publish-field rs-publish-field-half">
           <span class="rs-publish-field-label">Fee (SAITO)</span>
-          <input type="text" class="rs-publish-input rs-publish-fee" inputmode="decimal" value="${fee}" spellcheck="false" />
+          <input type="text" class="saito-input rs-publish-input rs-publish-fee" inputmode="decimal" value="${fee}" spellcheck="false" />
         </label>
       </div>`;
 

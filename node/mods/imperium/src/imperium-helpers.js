@@ -131,7 +131,7 @@
         <div style="top:0;left:0;margin-right: 20px;">
 
             <label for="game_length ">Game Length:</label>
-            <select name="game_length">
+            <select class="saito-form-select" name="game_length">
               <option value="4">4 VP</option>
               <option value="6">6 VP</option>
               <option value="8" selected>8 VP</option>
@@ -148,7 +148,7 @@
     for (let i = 1; i <= player_upper_limit; i++) {
       html += `
             <label for="player${i}" class="game-players-options game-players-options-${i}p">Player ${i}:</label>
-            <select name="player${i}" id="game-players-select-${i}p" class="game-players-options game-players-options-${i}p">
+            <select name="player${i}" id="game-players-select-${i}p" class="saito-form-select game-players-options game-players-options-${i}p">
               <option value="random" default>random</option>
               <option value="faction1" default>Sol Federation</option>
               <option value="faction2">Universities of Jol Nar</option>

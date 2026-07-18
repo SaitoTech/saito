@@ -17,7 +17,6 @@
   margin-bottom: 10px;
 }
 
-
 /* ================================
    Server Info
    ================================ */
@@ -47,8 +46,6 @@
   color: #666;
   margin-top: 6px;
 }
-
-
 
 /* ================================
    Configured Peers List
@@ -95,7 +92,6 @@
   background: #d85c5c;
 }
 
-
 /* ================================
    Add Peer – Table-like Form
    ================================ */
@@ -119,28 +115,11 @@
   gap: 12px;
   align-items: stretch;
 }
-
-/* Normalize inputs + selects */
 .peer-form-row input,
-.peer-form-row select {
-  height: 44px;
-  padding: 12px 14px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  background: #fff;
-}
-
-/* Add Peer button matches inputs */
+.peer-form-row select,
 .peer-form-row button {
   height: 44px;
-  padding: 0 22px;
-  font-size: 14px;
-  border-radius: 6px;
-  white-space: nowrap;
 }
-
-
 /* ================================
    Save Actions
    ================================ */
@@ -156,7 +135,6 @@
 .peer-actions button[disabled] {
   opacity: 0.5;
 }
-
 
 /* ================================
    Mobile Responsiveness
@@ -185,7 +163,6 @@
     justify-self: flex-start;
   }
 }
-
 
 .admin-peers-divider {
   margin: 40px 0;

@@ -23,7 +23,7 @@ class GameArcade {
       html = `<input type="hidden" class="game-wizard-players-select" name="game-wizard-players-select" value="${this.minPlayers}">`;
       html += this.returnSingularGameOption();
     } else {
-      html += `<div class="overlay-input"><select class="game-wizard-players-select" name="game-wizard-players-select">`;
+      html += `<div class="overlay-input"><select class="saito-form-select game-wizard-players-select" name="game-wizard-players-select">`;
       for (let p = this.minPlayers; p <= this.maxPlayers; p++) {
         html += `<option value="${p}" ${
           p === this.minPlayers ? 'selected default' : ''
@@ -101,7 +101,7 @@ class GameArcade {
 
   /**
    * Semi-Advanced options interface in Arcade allows 2 player games to elevate a separate option in lieu of # players
-   * Should be a <select>
+   * Should be a <select class="saito-form-select">
    */
   returnSingularGameOption() {
     return '';

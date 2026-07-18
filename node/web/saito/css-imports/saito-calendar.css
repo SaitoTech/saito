@@ -160,15 +160,15 @@
   border-radius: var(--saito-border-radius);
 }
 
-.prev-date {
+.saito-calendar .prev-date {
   color: var(--saito-calendar-muted-past-color);
 }
 
-.next-date {
+.saito-calendar .next-date {
   color: var(--saito-calendar-muted-past-color);
 }
 
-.today {
+.saito-calendar .today {
   background-color: var(--saito-primary);
   color: var(--saito-primary-text);
   border-radius: var(--saito-border-radius);

@@ -218,7 +218,7 @@ class SettingsAppspace {
 					let option_name = key.split('_');
 					html += `<div class="settings-appspace-app">
 			              <div class="saito-switch">
-			                <input type="checkbox" id="${key}" class="crypto_transfers_checkbox" name="${key}" 
+			                <input type="checkbox" id="${key}" class="saito-checkbox crypto_transfers_checkbox" name="${key}" 
 			                ${parseInt(gameprefs[key]) == 1 ? `checked="checked"` : ``}">
 			              </div>
 			              <div class="settings-appspace-crypto-transfer-name">${option_name[2]} ${option_name[3]}</div>

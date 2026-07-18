@@ -81,8 +81,8 @@
   font-weight: 600;
 }
 
-/* Empty .media / .link-preview wrappers must not reserve margin (whitespace-only :empty fallback) */
+/* Empty .media / .saito-link-preview wrappers must not reserve margin (whitespace-only :empty fallback) */
 .notifications-notifications .tweet .media:empty,
-.notifications-notifications .tweet .link-preview:empty {
+.notifications-notifications .tweet .saito-link-preview:empty {
   display: none;
 }

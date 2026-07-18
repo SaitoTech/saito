@@ -46,7 +46,7 @@ class SaitoLink {
     // replace element or insert into page
     //
     if (this.url) {
-      let qs = this.container + ' > .link-preview';
+      let qs = this.container + ' > .saito-link-preview';
 
       if (document.querySelector(qs)) {
         this.app.browser.replaceElementBySelector(SaitoLinkTemplate(this), qs);

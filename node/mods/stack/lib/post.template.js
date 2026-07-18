@@ -25,7 +25,7 @@ module.exports = (app, mod, post) => {
         ` : ''}
       </div>
       <div class="stack-post-actions">
-        <button class="stack-btn stack-btn-link" data-action="read-more">
+        <button class="stack-btn-link" data-action="read-more">
           Read More
         </button>
       </div>

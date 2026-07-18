@@ -2315,6 +2315,7 @@ class Browser {
         }
         let wrapper = document.createElement('div');
         wrapper.id = 'saito-alert';
+        wrapper.className = 'saito-alert';
         let html = `<div id="saito-alert-shim">
                       <div id="saito-alert-box">
                         <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
@@ -2352,6 +2353,7 @@ class Browser {
         return new Promise((resolve, reject) => {
           let wrapper = document.createElement('div');
           wrapper.id = 'saito-alert';
+        wrapper.className = 'saito-alert';
           let html = `<div id="saito-alert-shim">
                         <div id="saito-alert-box">
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
@@ -2395,6 +2397,7 @@ class Browser {
         return new Promise((resolve, reject) => {
           let wrapper = document.createElement('div');
           wrapper.id = 'saito-alert';
+        wrapper.className = 'saito-alert';
           let html = `<div id="saito-alert-shim">
                         <div id="saito-alert-box">
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>

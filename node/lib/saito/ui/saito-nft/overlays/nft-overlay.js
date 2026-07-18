@@ -7,7 +7,7 @@ class NFTOverlay {
     this.app = app;
     this.mod = mod;
     if (app?.browser?.addStylesheet) {
-      app.browser.addStylesheet('/saito/ui/nft-overlays.css');
+      app.browser.addStylesheet('/saito/ui/saito-nft.css');
     }
     this.overlay = new SaitoOverlay(this.app, this.mod);
 
@@ -130,7 +130,7 @@ class NFTOverlay {
         siteMessage('NFT Deletion in Process...', 2000);
         this.overlay.close();
         this.app.connection.emit('saito-nft-list-close-request');
-        if (document.querySelector('.nft-list-container')) {
+        if (document.querySelector('.saito-nft-list')) {
           this.app.connection.emit('saito-nft-list-render-request');
         }
       };
@@ -211,7 +211,7 @@ class NFTOverlay {
           // Close the overlay listing your nfts
           this.app.connection.emit('saito-nft-list-close-request');
 
-          if (document.querySelector('.nft-list-container')) {
+          if (document.querySelector('.saito-nft-list')) {
             this.app.connection.emit('saito-nft-list-render-request');
           }
         };
@@ -451,7 +451,7 @@ class NFTOverlay {
           siteMessage(`NFT sent to ${receiver}`, 3000);
           this.overlay.close();
 
-          if (document.querySelector('.nft-list-container')) {
+          if (document.querySelector('.saito-nft-list')) {
             this.app.connection.emit('saito-nft-list-render-request');
           }
         } catch (err) {
@@ -534,7 +534,7 @@ class NFTOverlay {
           callback: (obj) => {
             if (obj.status === 'listed') {
               this.overlay.close();
-              if (document.querySelector('.nft-list-container')) {
+              if (document.querySelector('.saito-nft-list')) {
                 this.app.connection.emit('saito-nft-list-render-request');
               }
             }
@@ -561,7 +561,7 @@ class NFTOverlay {
       siteMessage('Merge NFT tx sent', 2000);
       this.overlay.close();
 
-      if (document.querySelector('.nft-list-container')) {
+      if (document.querySelector('.saito-nft-list')) {
         this.app.connection.emit('saito-nft-list-render-request');
       }
     } catch (err) {
@@ -781,7 +781,7 @@ class NFTOverlay {
           siteMessage('Split NFT tx sent', 2000);
           this.overlay.close();
 
-          if (document.querySelector('.nft-list-container')) {
+          if (document.querySelector('.saito-nft-list')) {
             this.app.connection.emit('saito-nft-list-render-request');
           }
         } catch (err) {

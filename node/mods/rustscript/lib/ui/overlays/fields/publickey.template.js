@@ -8,7 +8,7 @@ module.exports = (value) => {
   <div class="rs-prompt-publickey-field">
     <input
       type="text"
-      class="rs-prompt-value rs-prompt-publickey-input"
+      class="saito-input rs-prompt-value rs-prompt-publickey-input"
       value="${safeValue}"
       placeholder="Saito public key"
       autocomplete="off"

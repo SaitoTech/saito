@@ -21,7 +21,7 @@ module.exports = (mod) => {
   html += `
     <div class="module-config-header">
       <h1 class="admin-header" id ="admin-header">Update Saito Modules</h1>
-      <button id="modconfig-button" disabled>Save</button>
+      <button id="modconfig-button" class="saito-button-primary" disabled>Save</button>
     </div>
     <div class="mod-config-table">
   `;
@@ -30,7 +30,7 @@ module.exports = (mod) => {
     const enabled = lite.includes(`${m}/${m}`) || core.includes(`${m}/${m}`);
     if (enabled || DEFAULT_MODULES.includes(m)) {
       html += `
-        <input type="checkbox" id="mod-${m}" name="${m}" ${enabled ? "checked" : ""}/>
+        <input class="saito-checkbox" type="checkbox" id="mod-${m}" name="${m}" ${enabled ? "checked" : ""}/>
         <label for="mod-${m}">${m}</label>
       `;
     }

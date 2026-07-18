@@ -164,9 +164,9 @@ module.exports = (app, mod, nft_overlay) => {
           <div class="split-slider-wrapper">
             <div class="split-number-box split-number-left-utxo-${utxoIdx}" id="split-number-left-utxo-${utxoIdx}">0</div>
             <div class="fancy-slider-bar" id="split-slider-utxo-${utxoIdx}">
-              <div class="split-half split-left-utxo-${utxoIdx}" id="split-left-utxo-${utxoIdx}"></div>
+              <div class="split-half split-half-left split-left-utxo-${utxoIdx}" id="split-left-utxo-${utxoIdx}"></div>
               <div class="split-bar split-bar-utxo-${utxoIdx}" id="split-bar-utxo-${utxoIdx}"></div>
-              <div class="split-half split-right-utxo-${utxoIdx}" id="split-right-utxo-${utxoIdx}"></div>
+              <div class="split-half split-half-right split-right-utxo-${utxoIdx}" id="split-right-utxo-${utxoIdx}"></div>
             </div>
             <div class="split-number-box split-number-right-utxo-${utxoIdx}" id="split-number-right-utxo-${utxoIdx}">0</div>
           </div>

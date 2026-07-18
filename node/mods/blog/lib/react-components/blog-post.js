@@ -18,7 +18,7 @@ const BlogPost = ({ app, mod, post, publicKey, onEditClick, onDeleteClick }) => 
           <div className="post-actions">
             {post.publicKey === mod.publicKey && (
               <>
-                <div className="action-button">
+                <div className="saito-icon-button">
                   <Pencil
                     onClick={() => {
                       onEditClick(post);
@@ -26,7 +26,7 @@ const BlogPost = ({ app, mod, post, publicKey, onEditClick, onDeleteClick }) => 
                     size={20}
                   />
                 </div>
-                <div className="action-button">
+                <div className="saito-icon-button">
                   <Trash2
                     size={20}
                     onClick={async () => {
@@ -39,7 +39,7 @@ const BlogPost = ({ app, mod, post, publicKey, onEditClick, onDeleteClick }) => 
                 </div>
               </>
             )}
-            <div className="action-button">
+            <div className="saito-icon-button">
               <Upload
                 size={20}
                 onClick={() => {

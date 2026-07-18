@@ -10,7 +10,7 @@ module.exports  = (app, mod, is_dialing = true) => {
 		html += `<div class="video_switch">
 	      	<label class="switch_label" for="video_call_switch">Enable Video</label>
 			<label class="switch">
-			  <input type="checkbox" id="video_call_switch">
+			  <input class="saito-checkbox" type="checkbox" id="video_call_switch">
 			  <span class="slider round"></span>
 			</label>
 		</div>

@@ -498,7 +498,7 @@ class Limbo extends ModTemplate {
               const btn_prompt = dream.mode == 'audio' ? 'Listen' : 'Watch';
 
               overlay.show(
-                `<div class="saito-join-space-overlay"><div id="join-btn" class="button saito-button-primary">${btn_prompt} Now</div></div>`,
+                `<div class="saito-join-space-overlay"><div id="join-btn" class="saito-button-primary">${btn_prompt} Now</div></div>`,
                 () => {
                   window.history.replaceState('', '', `/${this.returnSlug()}/`);
                   this.dreamer = null;

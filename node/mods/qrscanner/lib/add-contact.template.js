@@ -14,8 +14,8 @@ module.exports  = ({ publickey }) => {
         <i id="back-button" class="icon-med fas fa-arrow-left"></i>
         <h1 style="justify-self: center">Add Contact</h1>
       </div>
-      <input id="add-contact-publickey" type="text" placeholder="Publickey" value="${publickey}">
-      <button style="margin: 0; padding: 1em; width: 100%;" id="add-contact-add-button">ADD</button>
+      <input id="add-contact-publickey" type="text" class="saito-input" placeholder="Publickey" value="${publickey}">
+      <button style="margin: 0; padding: 1em; width: 100%;" id="add-contact-add-button" class="saito-button-primary">ADD</button>
     </div>
   `;
 };

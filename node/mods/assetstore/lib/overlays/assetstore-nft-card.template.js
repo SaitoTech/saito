@@ -14,8 +14,8 @@ module.exports = (app, mod, nft) => {
 
   let html = `
 
-<div class="store-card nft-card ${nft.metadata?.active == 0 ? 'pending' : ''}" id="nft-listing-${nft.tx_sig}">
-  <div class="store-card-image nft-card-img">
+<div class="store-card ${nft.metadata?.active == 0 ? 'pending' : ''}" id="nft-listing-${nft.tx_sig}">
+  <div class="store-card-image">
     <div class="store-card-overlay">
       <button class="store-buy-now-btn">Buy Now</button>
       <img class="store-nft-identicon nft-identicon" src="${identicon}" alt="NFT Identicon">
@@ -23,7 +23,7 @@ module.exports = (app, mod, nft) => {
   </div>
   <div class="store-card-info">
     <div class="store-card-title">${nft?.title || 'Vintage Saito NFT'}</div>
-    <div><span class="nft-card-type">${nft.returnType()}</span></div>
+    <div><span class="store-card-type">${nft.returnType()}</span></div>
     <div class="store-card-details">by ${app.keychain.returnUsername(nft.creator).toLowerCase()}</div>
     <div class="store-card-details">${app.browser.formatTimeDifference(nft.metadata.created_at)}</div>
     <!--div>Units: ${nft.getTotalAmount()}</div-->

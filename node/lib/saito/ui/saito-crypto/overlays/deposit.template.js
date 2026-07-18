@@ -1,6 +1,6 @@
 module.exports = (app, mod, deposit_self) => {
   let html = `
-        <div id="saito-deposit-form" class="saito-crypto-deposit-container saito-overlay-size narrow">
+        <div id="saito-deposit-form" class="saito-crypto-deposit saito-overlay-size narrow">
             <header class="saito-overlay-form-header">
                 <h2 class="saito-overlay-form-header-title">${deposit_self.title}</h2>
             </header>
