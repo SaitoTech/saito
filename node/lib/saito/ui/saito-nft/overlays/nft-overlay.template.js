@@ -15,20 +15,18 @@ module.exports = (app, mod, nft_overlay) => {
 
   return `
   <div class="saito-nft-overlay-container">
-    <div class="saito-nft-overlay header">
+    <header class="saito-nft-overlay header">
       <div class="saito-nft-header-left">
         <div class="saito-identicon-box">
           <img class="saito-identicon" src="${identicon}" data-disable="true" />
         </div>
         <div class="saito-nft-header-text">
-          <div class="saito-nft-header-title">${title}</div>
+          <h2 class="saito-nft-header-title">${title}</h2>
           <div class="saito-nft-header-sub">by ${nft.creator}</div>
         </div>
       </div>
-      <div class="saito-nft-header-right">
-        <div class="saito-nft-header-btn"><i class="fa-solid fa-bars"></i></div>
-      </div>
-    </div>
+      <button type="button" class="saito-nft-header-btn" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+    </header>
     <div class="saito-nft-overlay panels">
       ${viewPanel}
       ${transferPanel}

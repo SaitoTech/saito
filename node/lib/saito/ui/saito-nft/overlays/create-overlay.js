@@ -5,6 +5,9 @@ class CreateNFT {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
+    if (app?.browser?.addStylesheet) {
+      app.browser.addStylesheet('/saito/ui/nft-overlays.css');
+    }
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.help_overlay = new SaitoOverlay(this.app, this.mod);
     this.enable_deposit = false;
@@ -266,7 +269,7 @@ class CreateNFT {
             </div>
 
             <div class="create-nft-deposit-container">
-              <input id="create-nft-enable-deposit" type="checkbox">
+              <input id="create-nft-enable-deposit" type="checkbox" class="saito-checkbox">
               <span>let me manually specify the deposit</span>
             </div>
           </div>

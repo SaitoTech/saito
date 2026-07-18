@@ -1,6 +1,6 @@
 module.exports = (link) => {
   let html = `
-  <div class="link-preview">
+  <div class="saito-link-preview">
           <a class="saito-link" `;
 
   let info = ['title', 'display_url', 'description'];
@@ -44,23 +44,21 @@ module.exports = (link) => {
     img_src = link.src;
   }
 
-  html += `href="${link.url}">
-            <div class="link-container">`;
+  html += `href="${link.url}">`;
   if (include_graphics) {
-    html += `<div class="link-img ${link.show_photo ? 'has-picture' : ''}">
+    html += `<div class="saito-link-img ${link.show_photo ? 'has-picture' : ''}">
                 <img src="${img_src}">
               </div>`;
   }
   if (info.length > 0) {
-    html += `<div class="link-info">`;
+    html += `<div class="saito-link-info">`;
     for (let i = 0; i < info.length; i++) {
-      html += `<div class="link-${info[i]}">${link[info[i]]}</div>`;
+      html += `<div class="saito-link-${info[i]}">${link[info[i]]}</div>`;
     }
     html += '</div>';
   }
 
   html += `
-            </div>
           </a>
         </div>
     `;

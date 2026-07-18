@@ -19,6 +19,10 @@ class SaitoNFTCard {
   async render() {
     let this_self = this;
 
+    if (this.app?.browser?.addStylesheet) {
+      this.app.browser.addStylesheet('/saito/ui/nft-overlays.css');
+    }
+
     if (!document.querySelector(this.container)) {
       return;
     }

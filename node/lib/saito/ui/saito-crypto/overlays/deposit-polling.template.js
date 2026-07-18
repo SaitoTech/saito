@@ -1,7 +1,7 @@
 module.exports = (ticker = '') => {
   return `<div id="saito-deposit-form" class="saito-crypto-deposit-container saito-overlay-size narrow">
             <div class="saito-overlay-form-header">
-                <div class="saito-overlay-form-header-title">Depositing...</div>
+                <h2 class="saito-overlay-form-header-title">Depositing...</h2>
                 <div class="saito-overlay-form-header-content">${ticker}</div>
             </div>
             <div class="saito-crypto-deposit-content">

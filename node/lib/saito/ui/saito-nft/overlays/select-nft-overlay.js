@@ -9,6 +9,9 @@ class SelectNFT {
   constructor(app, mod, attach_events = true) {
     this.app = app;
     this.mod = mod;
+    if (app?.browser?.addStylesheet) {
+      app.browser.addStylesheet('/saito/ui/nft-overlays.css');
+    }
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.create_nft_overlay = new CreateNFT(this.app, this.mod);
     this.nft_overlay = new NFTOverlay(this.app, this.mod);

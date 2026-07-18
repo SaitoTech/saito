@@ -26,16 +26,16 @@ module.exports = (app, mod) => {
 
   return `
 <div class="create-nft-overlay">
-  <div class="header">
-    <div class="title">Create Saito NFT</div>
-  </div>
+  <header class="header">
+    <h2 class="title">Create Saito NFT</h2>
+  </header>
 
   <div class="body">
-    <div class="primary">
-      <div>
-        <div>
-          <div class="label">NFT Type</div>
-          <select id="create-nft-type-dropdown">
+    <section class="primary">
+      <div class="create-nft-field-row">
+        <div class="create-nft-field">
+          <label class="label" for="create-nft-type-dropdown">NFT Type</label>
+          <select id="create-nft-type-dropdown" class="saito-form-select">
             <option value="image">Image</option>
             <option value="token">Token</option>
             <option value="text">Text</option>
@@ -44,9 +44,9 @@ module.exports = (app, mod) => {
             <option value="js">Javascript</option>
           </select>
         </div>
-        <div>
-          <span class="label">Quantity</span>
-          <input
+        <div class="create-nft-field">
+          <label class="label" for="create-nft-amount">Quantity</label>
+          <input class="saito-input"
             type="text"
             inputmode="numeric"
             pattern="\\d*"
@@ -55,9 +55,9 @@ module.exports = (app, mod) => {
             value="1"
           />
         </div>
-        <div>
-          <span class="label">Deposit</span>
-          <input
+        <div class="create-nft-field">
+          <label class="label" for="create-nft-deposit">Deposit</label>
+          <input class="saito-input"
             type="text"
             inputmode="numeric"
             pattern="\\d*"
@@ -74,33 +74,33 @@ module.exports = (app, mod) => {
           <i class="fa-solid fa-file-image"></i>
           <div>drag-and-drop image to upload</div>
         </div>
-        <textarea id="create-nft-textarea"></textarea>
+        <textarea id="create-nft-textarea" class="saito-textarea"></textarea>
       </div>
 
-      <div class="footer">
+      <footer class="footer">
         <div class="saito-anchor" id="create-nft-help-link"><span>need help?</span></div>
         <div class="get-saito-tokens"></div>
-        <button id="next-step">Next Step</button>
+        <button id="next-step" class="saito-button-primary">Next Step</button>
+      </footer>
+    </section>
+
+    <section class="secondary">
+      <div class="create-nft-fields">
+        <label class="label" for="create-nft-title">Title</label>
+        <input type="text" id="create-nft-title" class="title saito-input" placeholder="${title}" />
+
+        <label class="label ticker" for="create-nft-ticker">Ticker</label>
+        <input type="text" id="create-nft-ticker" class="ticker saito-input" placeholder="optional" />
+
+        <label class="label" for="create-nft-description">Description</label>
+        <textarea id="create-nft-description" class="description saito-textarea" rows="4" placeholder="description (optional)"></textarea>
       </div>
-    </div>
 
-    <div class="secondary">
-      <div>
-        <div class="label">Title</div>
-        <input type="text" class="title" placeholder="${title}" />
-
-        <div class="label ticker">Ticker</div>
-        <input type="text" class="ticker" placeholder="optional" />
-
-        <div class="label">Description</div>
-        <textarea class="description" rows="4" placeholder="description (optional)"></textarea>
-      </div>
-
-      <div class="footer">
+      <footer class="footer">
         <button id="back-btn" class="saito-button-secondary">Back</button>
         <button id="create_nft" class="saito-nft-footer-btn">Confirm</button>
-      </div>
-    </div>
+      </footer>
+    </section>
   </div>
 </div>
 `;

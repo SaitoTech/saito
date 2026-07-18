@@ -2,7 +2,7 @@ module.exports = (app, mod, deposit_self) => {
   let html = `
         <div id="saito-deposit-form" class="saito-crypto-deposit-container saito-overlay-size narrow">
             <div class="saito-overlay-form-header">
-                <div class="saito-overlay-form-header-title">${deposit_self.title}</div>
+                <h2 class="saito-overlay-form-header-title">${deposit_self.title}</h2>
             </div>
            <div class="saito-crypto-wallet-state">`;
   if (!deposit_self.migration) {

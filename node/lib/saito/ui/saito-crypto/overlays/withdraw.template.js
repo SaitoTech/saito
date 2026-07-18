@@ -22,9 +22,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
     <div class="withdraw-overlay__surface">
       <header class="saito-overlay-form-header withdraw-overlay__header">
         <div class="crypto-logo-container withdraw-header-logo-cont" id="withdraw-header-logo-cont"></div>
-        <div class="saito-overlay-form-header-title">
-          <h2 class="withdraw-overlay__title" id="withdraw-overlay-title">Send</h2>
-        </div>
+        <h2 class="saito-overlay-form-header-title withdraw-overlay__title" id="withdraw-overlay-title">Send</h2>
       </header>
 
       <main class="withdraw-overlay__main">
@@ -50,7 +48,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
                       <div class="withdraw-token-trigger-caret" aria-hidden="true">▾</div>
                     </button>
                     <ul id="withdraw-token-menu" class="withdraw-token-menu hide-element" role="listbox"></ul>
-                    <select class="withdraw-select-crypto hide-element" id="withdraw-select-crypto" aria-hidden="true" tabindex="-1"></select>
+                    <select class="saito-form-select withdraw-select-crypto hide-element" id="withdraw-select-crypto" aria-hidden="true" tabindex="-1"></select>
                   </div>
                 </div>
               </div>
@@ -84,7 +82,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
                 <input
                   type="text"
                   autocomplete="off"
-                  class="withdraw_address"
+                  class="saito-input withdraw_address"
                   ${fixedRecipient ? 'disabled' : ''}
                   value="${address}"
                   id="withdraw-input-address"
@@ -117,7 +115,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
                   type="text"
                   autocomplete="off"
                   inputmode="decimal"
-                  class="withdraw-input-amount"
+                  class="saito-input withdraw-input-amount"
                   id="withdraw-input-amount"
                   value=""
                   required

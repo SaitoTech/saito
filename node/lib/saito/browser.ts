@@ -394,6 +394,28 @@ class Browser {
     });
   }
 
+  /**
+   * Attach a stylesheet once (for feature UI CSS that lives outside saito.css).
+   */
+  addStylesheet(href) {
+    if (typeof document === 'undefined' || !href) {
+      return;
+    }
+    const links = document.querySelectorAll('link[rel="stylesheet"]');
+    for (let i = 0; i < links.length; i++) {
+      try {
+        if (links[i].getAttribute('href')?.includes(href)) {
+          return;
+        }
+      } catch (err) {}
+    }
+    const s = document.createElement('link');
+    s.rel = 'stylesheet';
+    s.type = 'text/css';
+    s.href = href + (this.app?.build_number ? `?v=${this.app.build_number}` : '');
+    document.querySelector('head')?.appendChild(s);
+  }
+
   determineActiveModule() {
     const current_url = window.location.toString();
     const myurl = new URL(current_url);
@@ -1241,7 +1263,7 @@ class Browser {
       <form id="uploader_${id}" class="saito-file-uploader" style="display:none">
         <p>Upload multiple files with the file dialog or by dragging and dropping images onto the dashed region</p>
         <input type="file" id="hidden_file_element_${id}" multiple accept="*" class="treated hidden_file_element_${id}">
-        <label class="button" class="hidden_file_element_button" id="hidden_file_element_button_${id}" for="hidden_file_element_${id}">Select some files</label>
+        <label class="hidden_file_element_button" id="hidden_file_element_button_${id}" for="hidden_file_element_${id}">Select some files</label>
       </form>
     `;
 
@@ -2297,7 +2319,7 @@ class Browser {
                       <div id="saito-alert-box">
                         <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
                         <div class="saito-button-row">
-                          <button id="alert-ok">OK</button>
+                          <button id="alert-ok" class="saito-button-primary">OK</button>
                         </div>
                       </div>
                     </div>`;
@@ -2335,7 +2357,7 @@ class Browser {
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
                           <div class="saito-button-row">
                             <button class='saito-button-secondary' id="alert-cancel">Cancel</button>
-                            <button id="alert-ok">OK</button>
+                            <button id="alert-ok" class="saito-button-primary">OK</button>
                           </div>
                         </div>
                       </div>`;
@@ -2376,7 +2398,7 @@ class Browser {
           let html = `<div id="saito-alert-shim">
                         <div id="saito-alert-box">
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
-                          <div class="alert-prompt"><input type="text" id="promptval" class="promptval" placeholder="${suggestion}" /></div>
+                          <div class="alert-prompt"><input type="text" id="promptval" class="promptval saito-input" placeholder="${suggestion}" /></div>
                           <div class="saito-button-row">
                             <button class='saito-button-secondary' id="alert-cancel">Cancel</button>
                             <button id="alert-ok" class="saito-button-primary">OK</button>

@@ -10,7 +10,7 @@ module.exports = (app, mod) => {
               <img class="crypto-logo" src="${logo}">
               ${sublogo ? `<img class="chain-logo" src="${sublogo}">` : ''}
             </div>
-            <div class="saito-overlay-form-header-title">${mod.name}</div>
+            <h2 class="saito-overlay-form-header-title">${mod.name}</h2>
             ${
               mod.address
                 ? `<div class="mobile-only460 pubkey-container">
