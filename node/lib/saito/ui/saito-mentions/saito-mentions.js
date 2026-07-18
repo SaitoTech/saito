@@ -308,7 +308,7 @@ class SaitoMentions {
       this.menuRef.style.top = this.top + 'px';
     } else {
       // Need to check if we are using keys to scroll down
-      let selec = this.menuRef.querySelector('.menu-item.selected');
+      let selec = this.menuRef.querySelector('.saito-mentions-item.selected');
       if (selec) {
         if (selec.getBoundingClientRect().bottom > this.menuRef.getBoundingClientRect().bottom) {
           selec.scrollIntoView(false);
@@ -337,7 +337,7 @@ class SaitoMentions {
     // username div
     const div = document.createElement('div');
     div.setAttribute('role', 'option');
-    div.className = 'menu-item';
+    div.className = 'saito-mentions-item';
     if (idx === this.active) {
       div.classList.add('selected');
       div.setAttribute('aria-selected', '');

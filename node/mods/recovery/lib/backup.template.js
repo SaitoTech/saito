@@ -18,7 +18,7 @@ module.exports = () => {
           </div>
       	
       		<div class="saito-overlay-form-checkbox-container">	
-	      		<input type="checkbox" class="saito-overlay-subform-checkbox" checked />
+	      		<input type="checkbox" class="saito-checkbox saito-overlay-subform-checkbox" checked />
 	      		<div class="saito-overlay-subform-text">
 	      			save an encrypted copy on-chain, 
 	      			so I can recover my account quickly and easily on any device

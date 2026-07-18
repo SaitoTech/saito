@@ -199,7 +199,7 @@ class DBModTemplate extends ModTemplate {
         default:
           body += '<div>' + field[0].replace(/_/g, ' ') + '</div>';
           body +=
-            "<div><input class='input' id='" +
+            "<div><input class='saito-input input' id='" +
             field[0] +
             "' data-dbname='" +
             dbname +
@@ -246,7 +246,7 @@ class DBModTemplate extends ModTemplate {
             default:
               body += '<div>' + row.name.replace('_id', '').replace(/_/g, ' ') + '</div>';
               body +=
-                "<div><input class='input' id='" +
+                "<div><input class='saito-input input' id='" +
                 row.name +
                 "' data-dbname='" +
                 dbname +

@@ -12,7 +12,7 @@ const VideoCallSettingsTemplate = (mod, app) => {
                     <input id="videocall-option-input-focus" ${
                         display_mode === 'focus' ? `checked` : ``
                       } type="radio" value="focus"
-                      name="videocall-option-input" class="videocall-option-input">
+                      name="videocall-option-input" class="saito-radio videocall-option-input">
 
                     <label class="videocall-option-label ${display_mode === 'focus' ? `active` : ``}" for="videocall-option-input-focus">
                       <i class="fa-solid fa-users-viewfinder"></i>
@@ -22,7 +22,7 @@ const VideoCallSettingsTemplate = (mod, app) => {
                     <input id="videocall-option-input-gallery" ${
                         display_mode === 'gallery' ? `checked` : ``
                       } type="radio" value="gallery"
-                      name="videocall-option-input" class="videocall-option-input">
+                      name="videocall-option-input" class="saito-radio videocall-option-input">
 
                     <label class="videocall-option-label ${
                       display_mode === 'gallery' ? `active` : ``
@@ -35,7 +35,7 @@ const VideoCallSettingsTemplate = (mod, app) => {
                     <input id="videocall-option-input-speaker" ${
                         display_mode === 'speaker' ? `checked` : ``
                       } type="radio" value="speaker"
-                      name="videocall-option-input" class="videocall-option-input">
+                      name="videocall-option-input" class="saito-radio videocall-option-input">
                     <label class="videocall-option-label ${
                       display_mode === 'speaker' ? `active` : ``
                     }" for="videocall-option-input-speaker">

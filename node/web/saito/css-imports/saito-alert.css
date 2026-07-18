@@ -1,3 +1,9 @@
+.saito-alert {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+}
+
 #saito-alert-shim {
   z-index: 2000;
   background-color: var(--saito-alert-backdrop);

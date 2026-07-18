@@ -485,7 +485,7 @@ class NFTCryptoModule extends CryptoModule {
       } catch (err) {
         console.warn('withdraw NFT: updateNFTList', err);
       }
-      if (document.querySelector('.nft-list-container')) {
+      if (document.querySelector('.saito-nft-list')) {
         this_withdraw.app.connection.emit('saito-nft-list-render-request');
       }
     */

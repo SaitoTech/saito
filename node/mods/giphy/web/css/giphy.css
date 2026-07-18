@@ -39,12 +39,9 @@
 	align-items: center;
 	justify-content: center;
 }
-
 .saito-gif-search input {
 	margin-right: 0.5rem;
 	width: calc(100% - 45px);
-	padding: 1rem;
-	border-radius: 0.5rem;
 }
 
 .saito-gif-search i {

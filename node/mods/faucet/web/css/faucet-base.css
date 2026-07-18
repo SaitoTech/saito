@@ -113,7 +113,7 @@
    Arcade overlay (crypto transfer shell)
 -----------------------------------------------------------------*/
 
-.game-crypto-transfer-manager-container.faucet-overlay {
+.saito-crypto-transfer.faucet-overlay {
   min-width: min(55rem, 95vw);
 }
 
@@ -153,4 +153,8 @@
 
 #faucet-request-container[data-faucet-state='success'] #faucet_success_icon {
   display: block;
+}
+/* Faucet render target — formerly saito-buttons.css */
+.get-saito-tokens {
+  display: flex;
 }

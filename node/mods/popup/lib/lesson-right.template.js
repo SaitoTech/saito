@@ -26,19 +26,19 @@ module.exports = (lesson, popup_self) => {
      <form class="text_controls">	
 
 	<br />
-	<input type="radio" name="display_select" onclick="switch_display_mode('simplified')" value="simplified" ${simplified_checked}> simplified <div style="display:inline" class="red">漢字</div>
+	<input class="saito-radio" type="radio" name="display_select" onclick="switch_display_mode('simplified')" value="simplified" ${simplified_checked}> simplified <div style="display:inline" class="red">漢字</div>
 
 	<br />
-	<input type="radio" name="display_select" onclick="switch_display_mode('traditional')" value="traditional" ${traditional_checked}> traditional <div style="display:inline" class="red">漢字</div>
+	<input class="saito-radio" type="radio" name="display_select" onclick="switch_display_mode('traditional')" value="traditional" ${traditional_checked}> traditional <div style="display:inline" class="red">漢字</div>
       </form>
 
       <form class="vocab_controls">
 
 	<br />
-	<input type="checkbox" id="display_english" onclick="switch_display_mode('english')" ${display_english_checked}> display translation
+	<input class="saito-checkbox" type="checkbox" id="display_english" onclick="switch_display_mode('english')" ${display_english_checked}> display translation
 
 	<br />
-	<input type="checkbox" id="display_pinyin" onclick="switch_display_mode('pinyin')" ${display_pinyin_checked}> display pinyin
+	<input class="saito-checkbox" type="checkbox" id="display_pinyin" onclick="switch_display_mode('pinyin')" ${display_pinyin_checked}> display pinyin
 
       </div>
 

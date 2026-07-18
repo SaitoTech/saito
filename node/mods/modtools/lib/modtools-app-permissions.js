@@ -104,7 +104,7 @@ class ModtoolsAppPermissions {
               <div class="app-permission-option">
                   <div class="app-name">${key.toUpperCase()}</div>
                   <div class="overlay-input">
-                  <select data-app-name="${key.toLowerCase()}" class="app-options-select" >
+                  <select data-app-name="${key.toLowerCase()}" class="saito-form-select app-options-select" >
                       <option value="*" ${apps[key] == '*'  ? `selected` : ``}>Allow all</option>
                       <option value="!" ${apps[key] == '!'  ? `selected` : ``}>None</option>
                       <option value="$" ${apps[key] == '$'  ? `selected` : ``}>Fee-bearing</option>

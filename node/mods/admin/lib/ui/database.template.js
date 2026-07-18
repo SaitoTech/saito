@@ -18,7 +18,7 @@ return `
     <div class="admin-database-query">
 
       <label>Select Database</label>
-      <select id="admin-database-select"${selectDisabled}>
+      <select class="saito-form-select" id="admin-database-select"${selectDisabled}>
         ${selectContent}
       </select>
 
@@ -28,11 +28,11 @@ return `
       </div>
 
       <label>SQL Query</label>
-      <textarea id="admin-sql-input"
+      <textarea class="saito-textarea" id="admin-sql-input"
         placeholder="SELECT * FROM table LIMIT 20;">
       </textarea>
 
-      <button id="query-database-button">
+      <button id="query-database-button" class="saito-button-primary">
         Run Query
       </button>
 

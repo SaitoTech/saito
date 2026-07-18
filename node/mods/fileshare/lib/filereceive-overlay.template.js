@@ -3,8 +3,8 @@ module.exports = (mod, fro, file) => {
 	let html = `
 	<div id='file-transfer-${fro.fileId}-${fro.sender}' class='saito-file-transfer-overlay'>
 		<div class="pseudo-overlay-controls">
-            <div class="icon-button" id="resize"><i class="fa-solid fa-window-minimize"></i></div>
-            <div class="icon-button" id="close"><i class="fas fa-times"></i></div>
+            <div class="saito-icon-button" id="resize"><i class="fa-solid fa-window-minimize"></i></div>
+            <div class="saito-icon-button" id="close"><i class="fas fa-times"></i></div>
         </div>
 		<h1>Saito Fileshare</h1>
       	<div class="contact"></div>

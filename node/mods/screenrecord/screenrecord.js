@@ -359,7 +359,7 @@ class Record extends ModTemplate {
 			let stream_id = `stream_${this.publicKey}`;
 			this.videoBox = new VideoBox(this.app, this, this.publicKey);
 			this.videoBox.render(this.localStream);
-			let videoElement = document.querySelector('.video-box-container-large');
+			let videoElement = document.querySelector('.saito-videobox');
 			if (videoElement) {
 				videoElement.style.position = 'absolute';
 				videoElement.style.top = '100px';

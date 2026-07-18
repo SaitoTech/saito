@@ -3,7 +3,7 @@ module.exports = (app, mod) => {
     <h3 class="overlay-title">${mod.name} Options</h3>
       <div class="overlay-input">
         <label for="card_set">Prearranged Supplies:</label>
-        <select name="card_set">
+        <select class="saito-form-select" name="card_set">
           <option value="random" selected default>None (Random)</option>
           <option value="firstgame">First Game</option>
           <option value="bigmoney">Big Money</option>
@@ -13,7 +13,7 @@ module.exports = (app, mod) => {
         </select>
       </div>
       <div class="overlay-input">
-        <input type="checkbox" name="second" />
+        <input class="saito-checkbox" type="checkbox" name="second" />
         <label for"second">Use Second Edition Cards</label>
       </div>
   `;

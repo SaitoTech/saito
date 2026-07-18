@@ -252,7 +252,7 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
                   name="stack-publish-access"
                   value="public"
                   ${isPublic ? 'checked' : ''}
-                  class="stack-publish-access-checkbox"
+                  class="saito-checkbox stack-publish-access-checkbox"
                 />
                 <div class="stack-publish-access-card-content">
                   <div class="stack-publish-access-card-label">Public</div>
@@ -265,7 +265,7 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
                   name="stack-publish-access"
                   value="private"
                   ${isPrivate ? 'checked' : ''}
-                  class="stack-publish-access-checkbox"
+                  class="saito-checkbox stack-publish-access-checkbox"
                 />
                 <div class="stack-publish-access-card-content">
                   <div class="stack-publish-access-card-label">Private</div>
@@ -278,7 +278,7 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
                   name="stack-publish-access"
                   value="subscription"
                   ${isSubscription ? 'checked' : ''}
-                  class="stack-publish-access-checkbox"
+                  class="saito-checkbox stack-publish-access-checkbox"
                 />
                 <div class="stack-publish-access-card-content">
                   <div class="stack-publish-access-card-label">Subscription</div>

@@ -52,21 +52,6 @@
   display: flex;
   gap: 1rem;
 }
-
-.action-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  color: var(--saito-font-color);
-  opacity: 0.6;
-  transition: opacity 0.2s ease;
-}
-
-.action-button:hover {
-  opacity: 1;
-}
-
 @media (max-width: 768px) {
   .post-actions {
     width: 100%;

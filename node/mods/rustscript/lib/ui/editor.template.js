@@ -10,6 +10,6 @@ module.exports = (role) => {
   ${PanelMenu.shouldShowForScriptPanel() ? PanelMenu.markup(menuId) : ''}
 </header>
 <div class="rustscript-editor-guided rs-panel-semantic rs-semantic-grid ${paneClass}" data-rs-editor-role="${role}"></div>
-<textarea class="rustscript-editor-expert rs-panel-textarea" spellcheck="false" hidden></textarea>
+<textarea class="saito-textarea rustscript-editor-expert rs-panel-textarea" spellcheck="false" hidden></textarea>
 `;
 };

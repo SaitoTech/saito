@@ -49,7 +49,7 @@ module.exports = (game_mod, invite_obj = {}) => {
   `;
 
   if (game_mod.maxPlayers == 1) {
-    /*html += `<select name="invite_type" style="display:none;">
+    /*html += `<select class="saito-form-select" name="invite_type" style="display:none;">
               <option value="single" selected default></option>
              </select>
     `;*/

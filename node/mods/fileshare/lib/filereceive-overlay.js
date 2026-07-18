@@ -223,7 +223,7 @@ class FileReceiveOverlay {
 			}
 		}
 
-		let close = div.querySelector(".icon-button#close");
+		let close = div.querySelector(".saito-icon-button#close");
 		if (close){
 			close.onclick = async (e) => {
 				if (this.ready){
@@ -242,7 +242,7 @@ class FileReceiveOverlay {
 		}
 
 
-		let resize = div.querySelector(".icon-button#resize");
+		let resize = div.querySelector(".saito-icon-button#resize");
 		if (resize){
 			resize.onclick = (e) => {
 				div.classList.toggle("minimize");

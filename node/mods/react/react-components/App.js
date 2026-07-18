@@ -153,14 +153,14 @@ const App = ({ app, mod }) => {
 
             <div className="message-send-container">
                 <h4>Send a message</h4>
-                <input
+                <input class="saito-input"
                     type="text"
                     value={publicKey}
                     onChange={(e) => setPublicKey(e.target.value)}
                     placeholder="Recipient's Public Key"
                 />
 
-                <input
+                <input class="saito-input"
                     type="text"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}

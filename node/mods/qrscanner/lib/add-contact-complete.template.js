@@ -15,8 +15,8 @@ module.exports  = () => {
         <i id="back-button" class="icon-med fas fa-arrow-left"></i>
         <h3 style="justify-self: center">Your request has been sent</h3>
       </div>
-      <button style="margin: 0; width: 100%;padding: 1em;font-size: 1.2em;" onclick="location.href='/email'"><i class="far fa-envelope"></i>Email</button>
-      <button style="margin: 0; width: 100%;padding: 1em;font-size: 1.2em;" onclick="location.href='/chat'"><i class="far fa-comments"></i>Chat</button>
+      <button class="saito-button-primary" style="margin: 0; width: 100%;padding: 1em;font-size: 1.2em;" onclick="location.href='/email'"><i class="far fa-envelope"></i>Email</button>
+      <button class="saito-button-primary" style="margin: 0; width: 100%;padding: 1em;font-size: 1.2em;" onclick="location.href='/chat'"><i class="far fa-comments"></i>Chat</button>
     </div>
   `;
 };

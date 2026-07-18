@@ -18,7 +18,7 @@ module.exports = (app, mod) => {
               <input 
                 type="text" 
                 id="stack-post-title-input" 
-                class="stack-post-title-input" 
+                class="saito-input stack-post-title-input" 
                 placeholder="Give your post a working title"
               />
             </div>
@@ -52,7 +52,7 @@ module.exports = (app, mod) => {
               </div>
             </div>
             
-            <button class="stack-editor-publish-btn stack-editor-primary-control" id="stack-editor-publish-btn">
+            <button class="saito-button-primary stack-editor-publish-btn stack-editor-primary-control" id="stack-editor-publish-btn">
               Publish
             </button>
             

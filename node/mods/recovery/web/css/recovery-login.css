@@ -1,0 +1,14 @@
+/* Recovery login wallet picker — formerly saito-user.css */
+.wallet-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.wallet-selection .saito-user {
+  padding: 1rem;
+  border: 1px solid var(--saito-border-color-light);
+  border-radius: var(--saito-border-radius);
+  width: unset;
+}

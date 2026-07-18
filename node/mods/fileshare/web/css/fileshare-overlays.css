@@ -6,17 +6,12 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-
-  /* pseudo overlay */
+  background: var(--saito-popover);
   box-shadow: var(--saito-overlay-panel-shadow);
   border-radius: var(--saito-radius-lg);
-  overflow: hidden;
-  background: var(--saito-popover);
   border: 0;
+  overflow: hidden;
   position: fixed;
-  /*left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);*/
   left: 0;
   bottom: 0;
   z-index: 50;
@@ -36,16 +31,12 @@
   justify-content: flex-end;
 }
 
-.pseudo-overlay-controls .icon-button {
+.pseudo-overlay-controls .saito-icon-button {
   width: 2.75rem;
   height: 2.75rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
 }
 
-.pseudo-overlay-controls .icon-button:hover {
+.pseudo-overlay-controls .saito-icon-button:hover {
   background-color: var(--saito-primary);
   color: var(--saito-primary-text);
 }

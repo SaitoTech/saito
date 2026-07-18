@@ -23,12 +23,12 @@ class SellNFTOverlay extends NFTDetailsOverlay {
         <div id='transfer-info-panel' class="saito-nft-description">
           <h2 class="saito-nft-mode-title">List NFT for sale</h2>
           <div class="listing-inputs">
-            <input type="text" placeholder="sale price (SAITO)" id="nft-buy-price" autocomplete="off" inputmode="decimal" pattern="^[0-9]+(\.[0-9]{1,8})?$" title="Enter a decimal amount up to 8 decimals (min 0.00000001, max 100000000)" />
+            <input class="saito-input" type="text" placeholder="sale price (SAITO)" id="nft-buy-price" autocomplete="off" inputmode="decimal" pattern="^[0-9]+(\.[0-9]{1,8})?$" title="Enter a decimal amount up to 8 decimals (min 0.00000001, max 100000000)" />
           </div>
           <div class="listing-inputs">
-            <input id="seller-email" type="email" value="${key?.email || ''}" placeholder="email (optional)"></input>
+            <input class="saito-input" id="seller-email" type="email" value="${key?.email || ''}" placeholder="email (optional)"></input>
           </div>
-          <textarea id="nft-buy-description" autocomplete="off" title="" rows="4"  placeholder="${this.nft.description || 'description (optional)'}"></textarea>
+          <textarea class="saito-textarea" id="nft-buy-description" autocomplete="off" title="" rows="4"  placeholder="${this.nft.description || 'description (optional)'}"></textarea>
         </div>
     `;
 

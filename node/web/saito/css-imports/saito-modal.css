@@ -3,7 +3,10 @@ NOTE: the .saito-model class is a grid with two sectiions
 This alows for a header with a header with title to be added without extra CSS
 */
 
-.saito-modal {
+.saito-modal,
+.saito-contacts,
+.saito-share-link,
+.saito-user-menu {
   min-width: 70rem;
   height: min-content;
   max-width: 80vw;
@@ -11,16 +14,11 @@ This alows for a header with a header with title to be added without extra CSS
   display: grid;
   grid-template-rows: min-content 1fr min-content; /* last item optional */
   max-height: 95vh;
-  border: 0;
-  border-radius: var(--saito-radius-lg);
-  background: var(--saito-popover);
-  box-shadow: var(--saito-overlay-panel-shadow);
 }
 
 .saito-modal-title {
   margin: 0;
   font-size: 3rem;
-  padding: unset;
   padding-bottom: 0.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -31,7 +29,7 @@ This alows for a header with a header with title to be added without extra CSS
   overflow: auto;
 }
 
-.saito-modal-share-link {
+.saito-share-link {
   background-color: var(--saito-background-color);
 }
 
@@ -47,9 +45,7 @@ This alows for a header with a header with title to be added without extra CSS
 
 /* We want to trigger the click event on the container */
 
-.saito-contact .saito-user .saito-identicon-box,
-.saito-contact .saito-user .saito-userline,
-.saito-contact .saito-user .saito-address {
+.saito-contact .saito-user {
   pointer-events: none;
 }
 
@@ -77,12 +73,12 @@ This alows for a header with a header with title to be added without extra CSS
   font-size: 20px;
 }
 
-.saito-modal .saito-modal-content .saito-user .saito-identicon-box {
+.saito-modal-content .saito-user .saito-identicon-box {
   width: 4.5rem;
   height: 4.5rem;
 }
 
-.saito-modal-menu .saito-modal-title .saito-user {
+.saito-user-menu .saito-modal-title .saito-user {
   height: 6rem;
   padding: 0 1.25rem;
   cursor: default;
@@ -91,7 +87,7 @@ This alows for a header with a header with title to be added without extra CSS
   white-space: nowrap;
 }
 
-.saito-modal-menu .saito-modal-title .saito-user .saito-identicon-box {
+.saito-user-menu .saito-modal-title .saito-identicon-box {
   width: 5.5rem;
   height: 5.5rem;
 }
@@ -138,7 +134,8 @@ This alows for a header with a header with title to be added without extra CSS
   margin-right: 2rem;
 }
 
-.saito-modal-menu-option > div {
+.saito-modal-menu-option > div,
+.saito-modal-menu-option-label {
   float: left;
   margin-right: 2rem;
   font-size: 2rem;
@@ -176,11 +173,10 @@ This alows for a header with a header with title to be added without extra CSS
 #saito-confirm-add-publickey > .saito-address {
   width: 100%;
   max-width: 100%;
-  overflow: inherit;
+  overflow: visible;
   display: block;
   height: auto;
   word-break: break-word;
-  text-overflow: inherit;
   white-space: break-spaces;
   text-align: center;
   margin-top: 5rem;
@@ -193,10 +189,6 @@ This alows for a header with a header with title to be added without extra CSS
 
 .saito-modal-title .saito-user .saito-address {
   font-size: 4rem;
-}
-
-.share-link {
-  color: var(--saito-font-color);
 }
 
 /* Exclusively for modal-add-user-confirm.template */
@@ -223,7 +215,6 @@ This alows for a header with a header with title to be added without extra CSS
 /* LIST SELECTION MODAL */
 
 .game-selection-list-overlay {
-  background: var(--saito-overlay-panel-background);
   max-height: 90vh;
   overflow-y: scroll;
   font-size: 2rem;
@@ -250,14 +241,6 @@ This alows for a header with a header with title to be added without extra CSS
   pointer-events: none;
   top: 5px;
   right: 0;
-}
-
-/* Exclusively for modal-add-user-confirm.template */
-
-.confirm-modal-wrapper {
-  font-size: 1.5em;
-  padding: 1.5em;
-  font-weight: bold;
 }
 
 .register-modal-controls {
@@ -290,7 +273,7 @@ This alows for a header with a header with title to be added without extra CSS
 
 /* Identicons aren't clickable in modals menus */
 
-.saito-modal-menu .saito-identicon-box {
+.saito-user-menu .saito-identicon-box {
   cursor: default;
 }
 
@@ -322,13 +305,14 @@ This alows for a header with a header with title to be added without extra CSS
   .saito-modal-menu-option > i {
     font-size: 2.2rem;
   }
-  .saito-modal-menu-option > div {
+  .saito-modal-menu-option > div,
+  .saito-modal-menu-option-label {
     font-size: 2rem;
   }
 }
 
 @media only screen and (max-width: 525px) {
-  .saito-modal-menu .saito-modal-title .saito-user {
+  .saito-user-menu .saito-modal-title .saito-user {
     margin: 0;
   }
   .saito-modal-menu-option {

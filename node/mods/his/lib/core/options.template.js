@@ -3,7 +3,7 @@ module.exports = () => {
         <div class="overlay-input">
 
           <label for="deck">Deck:</label>
-          <select name="deck" id="deckselect">
+          <select class="saito-form-select" name="deck" id="deckselect">
             <option value="original">original</option>
             <option class="testing" value="testing">testing</option>
           </select>

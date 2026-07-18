@@ -2,7 +2,7 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
   let identicon = app.keychain.returnIdenticon(mod.publicKey);
 
   let html = `
-   <header id="saito-header" class="${headerClass}">
+   <header id="saito-header" class="saito-header ${headerClass}">
         <div class="saito-header-logo-wrapper">
             <img class="saito-header-logo" alt="Logo" src="/saito/img/logo.svg" />
         </div>
@@ -24,11 +24,11 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                               <span class="balance-amount-decimal">00</span>
                             </span>
                             </div>
-                           <select class="wallet-select-crypto" id="wallet-select-crypto"></select>
+                           <select class="saito-form-select wallet-select-crypto" id="wallet-select-crypto"></select>
                        </div>
                        
                        <div class="pubkey-containter">
-                           <div class="profile-public-key generate-keys" id="profile-public-key"><div>generating keys...</div></div>
+                           <div class="profile-public-key generate-keys" id="profile-public-key"><div class="profile-public-key-text">generating keys...</div></div>
                            <i class="fas fa-copy"></i>
                        </div>
                        <div class="pubkey-mobile-wrapper">

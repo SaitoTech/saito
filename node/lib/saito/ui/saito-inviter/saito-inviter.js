@@ -32,7 +32,7 @@ class SaitoInviter {
       });
 
       let html = `
-	<input type="text" placeholder="address" id="saito-invite-address" class="saito-invite-address" />
+	<input type="text" placeholder="address" id="saito-invite-address" class="saito-invite-address saito-input" />
 	<div class="saito-button-secondary small saito-invite-button" id="saito-invite-button">invite</div>
       `;
 

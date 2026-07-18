@@ -217,7 +217,7 @@ class PublishNFTFlow {
   onNftSelected(card) {
     this.selectedCard = card;
 
-    document.querySelectorAll('.rs-publish-nft-list .nft-card').forEach((el) => {
+    document.querySelectorAll('.rs-publish-nft-list .saito-nft-card').forEach((el) => {
       el.classList.remove('is-selected');
     });
     const cardEl = document.querySelector(card.my_qs);

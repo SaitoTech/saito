@@ -5,7 +5,7 @@ module.exports = (app, mod) => {
 	return `
 			<fieldset class="saito-grid">
 			<legend class="settings-label">Module Debug Mode</legend>
-			<input type="checkbox" id="show" ${eo ? 'checked' : ''}/> 
+			<input class="saito-checkbox" type="checkbox" id="show" ${eo ? 'checked' : ''}/> 
    			<label for="show">Verbose Logging <span class="note">I want to know what is happening</span></label>
 			</fieldset>
 			`;

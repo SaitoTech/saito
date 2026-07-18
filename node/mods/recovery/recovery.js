@@ -14,6 +14,7 @@ class Recovery extends ModTemplate {
 		this.description = 'Secure wallet backup and recovery';
 		this.categories = 'Utilities Core';
 		this.class = 'utility';
+		this.styles = ['/recovery/style.css'];
 		this.backup_overlay = new SaitoBackup(app, this);
 		this.login_overlay = new SaitoLogin(app, this);
 		this.key_entry = new KeyEntry(app, this);
@@ -56,6 +57,10 @@ class Recovery extends ModTemplate {
 
 	async initialize(app) {
 		await super.initialize(app);
+
+		if (app.BROWSER) {
+			this.attachStyleSheets();
+		}
 
 		/// Clean up detritus in the wallet
 		if (this.app.options.wallet) {

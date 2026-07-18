@@ -19,7 +19,7 @@ module.exports = (app, mod, this_self) => {
             <div class="store-link store-absolute-icon"><i class="fa-solid fa-link"></i></div>
           </div>
         </div>
-        <select class="saito-store-explorer-mobile">
+        <select class="saito-form-select saito-store-explorer-mobile">
           <option value="${mod.SAITO_OFFICIAL_PUBLICKEY}">home</option>
           <option value="${mod.publicKey}">my store</option>
         </select>

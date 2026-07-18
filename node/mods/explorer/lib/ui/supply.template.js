@@ -118,7 +118,7 @@ function renderBlockControls(
               type="text"
               inputmode="decimal"
               id="explorer-supply-fee-input"
-              class="explorer-supply-fee-input"
+              class="saito-input explorer-supply-fee-input"
               data-supply-fee-input
               placeholder="Fee"
               autocomplete="off"

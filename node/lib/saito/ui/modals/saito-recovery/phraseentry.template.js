@@ -1,6 +1,6 @@
 module.exports = () => {
   return `
-      <form id="key-entry-template" class="saito-overlay-form">
+      <form id="key-entry-template" class="saito-recovery">
         <div class="saito-overlay-form-header">
           <h2 class="saito-overlay-form-header-title">Seed Phrase Recovery</h2>
         </div>

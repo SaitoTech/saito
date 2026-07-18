@@ -28,10 +28,10 @@ module.exports = (app, mod) => {
             and build your community on Saito.
           </p>
           <div class="stack-cta-buttons">
-            <button class="stack-btn-primary" id="stack-create-post-btn">
+            <button class="saito-button-primary" id="stack-create-post-btn">
               <i class="fa-solid fa-plus"></i> Create Post
             </button>
-            <button class="stack-btn-secondary" id="stack-get-started-btn">
+            <button class="saito-button-secondary" id="stack-get-started-btn">
               Learn More
             </button>
           </div>

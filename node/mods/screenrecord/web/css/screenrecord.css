@@ -37,11 +37,6 @@
 	text-align: center;
 	margin-bottom: 2rem;
 }
-
-.screenrecord-wizard .button {
-	margin: 1rem 0;
-}
-
 .screenrecord-wizard .record-mode {
 	display: flex;
 	justify-content: space-evenly;

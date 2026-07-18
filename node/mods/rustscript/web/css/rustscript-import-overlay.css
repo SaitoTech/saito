@@ -196,36 +196,5 @@ body:has(.saito-container.rustscript) .rs-import-loading-lead {
   color: #999;
 }
 
-/*
- * Global Saito button hover reset — noir theme applies orange ambient glow to any
- * raw <button> that is not .saito-button-secondary (see saito-noir.theme.css).
- * RustScript uses custom button classes; strip leaked glow/filter/transform first.
- */
-html[data-theme='noir'] body:has(.saito-container.rustscript) .saito-container.rustscript button:hover,
-html[data-theme='noir'] body:has(.saito-container.rustscript) .saito-container.rustscript button:focus-visible,
-html[data-theme='noir'] body:has(.saito-container.rustscript) .saito-overlay button:hover,
-html[data-theme='noir'] body:has(.saito-container.rustscript) .saito-overlay button:focus-visible,
-html[data-theme='noir'] body:has(.saito-container.rustscript) .rs-onboarding-overlay button:hover,
-html[data-theme='noir'] body:has(.saito-container.rustscript) .rs-onboarding-overlay button:focus-visible,
-body:has(.saito-container.rustscript) .saito-container.rustscript button:hover,
-body:has(.saito-container.rustscript) .saito-container.rustscript button:focus-visible,
-body:has(.saito-container.rustscript) .saito-overlay button:hover,
-body:has(.saito-container.rustscript) .saito-overlay button:focus-visible,
-body:has(.saito-container.rustscript) .rs-onboarding-overlay button:hover,
-body:has(.saito-container.rustscript) .rs-onboarding-overlay button:focus-visible {
-  filter: none !important;
-  animation: none !important;
-  opacity: 1 !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
 
-html[data-theme='noir'] body:has(.saito-container.rustscript) .saito-container.rustscript button:focus-visible,
-html[data-theme='noir'] body:has(.saito-container.rustscript) .saito-overlay button:focus-visible,
-html[data-theme='noir'] body:has(.saito-container.rustscript) .rs-onboarding-overlay button:focus-visible,
-body:has(.saito-container.rustscript) .saito-container.rustscript button:focus-visible,
-body:has(.saito-container.rustscript) .saito-overlay button:focus-visible,
-body:has(.saito-container.rustscript) .rs-onboarding-overlay button:focus-visible {
-  outline: 2px solid #666 !important;
-  outline-offset: 2px;
-}
+

@@ -205,7 +205,7 @@ class MigrationMain {
    * */
   processDepositedSaito(new_balance) {
     let html = `
-          <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container saito-overlay-size narrow">
+          <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit saito-overlay-size narrow">
               <div class="saito-overlay-form-header">
                   <div class="saito-overlay-form-header-title">Deposited</div>
               </div>

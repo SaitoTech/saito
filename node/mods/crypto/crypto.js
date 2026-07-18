@@ -31,6 +31,10 @@ class Crypto extends ModTemplate {
 	async initialize(app) {
 		await super.initialize(app);
 
+		if (app.BROWSER) {
+			this.attachStyleSheets();
+		}
+
 		//
 		// Turn on crypto for all games that don't explicity opt out
 		//
@@ -315,7 +319,7 @@ try {
 		let html = `
         <div class="overlay-input">
           <label for="crypto">Crypto:</label>
-          <select id="crypto" name="crypto">
+          <select class="saito-form-select" id="crypto" name="crypto">
             <option value="" selected>none</option>`;
 
 		let listed = [];
@@ -330,7 +334,7 @@ try {
 
 		html += `<div id="stake_input" class="overlay-input" style="display:none;">
                 <label for="stake">Stake:</label>
-                <select id="stake" name="stake">`;
+                <select class="saito-form-select" id="stake" name="stake">`;
 
 		for (let i = 1; i < values.length; i++) {
 			html += `<option value="${values[i]}" >${values[i]}</option>`;

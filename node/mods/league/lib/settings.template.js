@@ -14,9 +14,9 @@ module.exports = (app, mod) => {
 	for (let l of mod.leagues) {
 		if (mod.watch_list[l.id]) {
 			html += `<div class="left-align">${l.name}</div>
-					 <div><input type="radio" id="${l.name}-all" name="${l.name}" value="all" ${mod.watch_list[l.id] == 'all' ? 'checked' : ''}/></div>
-					 <div><input type="radio" id="${l.name}-some" name="${l.name}" value="some" ${mod.watch_list[l.id] == 'some' ? 'checked' : ''}/></div>
-					 <div><input type="radio" id="${l.name}-none" name="${l.name}" value="none" ${mod.watch_list[l.id] == 'none' ? 'checked' : ''}/></div>
+					 <div><input class="saito-radio" type="radio" id="${l.name}-all" name="${l.name}" value="all" ${mod.watch_list[l.id] == 'all' ? 'checked' : ''}/></div>
+					 <div><input class="saito-radio" type="radio" id="${l.name}-some" name="${l.name}" value="some" ${mod.watch_list[l.id] == 'some' ? 'checked' : ''}/></div>
+					 <div><input class="saito-radio" type="radio" id="${l.name}-none" name="${l.name}" value="none" ${mod.watch_list[l.id] == 'none' ? 'checked' : ''}/></div>
 					 `;
 		}
 	}

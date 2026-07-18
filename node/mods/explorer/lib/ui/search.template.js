@@ -8,7 +8,7 @@ module.exports = ({
           <div class="explorer-search">
             <input
               type="search"
-              class="explorer-search-input"
+              class="saito-input explorer-search-input"
               placeholder="${placeholder}"
               aria-label="Search by block hash or user public key"
               autocomplete="off"

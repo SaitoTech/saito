@@ -1,3 +1,83 @@
+/* Shared schedule wizard + calendar event-link */
+.saito-schedule-wizard input,
+.saito-schedule-wizard textarea,
+.saito-schedule-wizard select {
+  width: 100%;
+  padding: 1.2rem 2rem;
+  margin: 0.8rem 0;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+}
+
+.saito-schedule-wizard select {
+  color: var(--saito-font-color);
+}
+
+.saito-schedule-wizard h2 {
+  margin: 0 0 1rem 0;
+  font-size: 2.4rem;
+}
+
+.saito-schedule-wizard {
+  width: min(550px, 98vw);
+  padding: 2rem 3rem;
+  border-radius: var(--saito-border-radius);
+  border: 1px solid var(--saito-overlay-panel-border);
+  background: var(--saito-overlay-panel-background);
+  color: var(--saito-font-color);
+  box-sizing: border-box;
+}
+
+/* Call schedule launcher */
+
+.saito-calendar-event-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2.5rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.saito-calendar-event-link-body {
+  padding: 3rem;
+  border-radius: 8px;
+  border: 1px solid var(--saito-border-color);
+  width: min(550px, 98vw);
+  box-sizing: border-box;
+}
+
+.saito-calendar-event-link-body h2 {
+  margin-bottom: 2rem;
+}
+
+.call-details {
+  border-radius: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.call-details p {
+  margin: 10px 0;
+}
+
+@media screen and (max-width: 600px) {
+  .saito-schedule-wizard,
+  .saito-calendar-event-link-body {
+    width: 100%;
+    padding: 1.5rem;
+  }
+  .saito-schedule-wizard input,
+  .saito-schedule-wizard textarea,
+  .saito-schedule-wizard select {
+    padding: 1rem 1.5rem;
+  }
+  .saito-calendar-event-link-body {
+    padding: 2rem;
+  }
+}
+
+/* Legacy scheduler shell (if still referenced) */
 .saito-scheduler {
   min-width: 50rem;
   background-color: #fff;

@@ -19,7 +19,7 @@ module.exports = (app, mod, wizard) => {
   }
 
   let html = `
-    <form class="call-schedule-wizard-container" id="scheduleForm">
+    <form class="saito-schedule-wizard" id="scheduleForm">
                 <h2>Schedule a ${wizard.name}</h2>
                     <label for="startTime">Start Time:</label>
                     <input type="datetime-local" class="saito-input" id="startTime" min="${localDateTime}" value="${localDateTime}" required>         

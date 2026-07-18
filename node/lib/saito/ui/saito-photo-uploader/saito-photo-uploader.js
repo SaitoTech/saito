@@ -30,7 +30,7 @@ class PhotoUploader {
   }
 
   attachEvents() {
-    this.app.browser.addDragAndDropFileUploadToElement('photo-uploader', async (result) => {
+    this.app.browser.addDragAndDropFileUploadToElement('saito-photo-uploader', async (result) => {
       try {
         this.photoCropper.render(result);
       } catch (error) {

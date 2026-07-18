@@ -20,7 +20,7 @@ module.exports = (app, mod, witness_overlay = {}) => {
         <div class="witness-textarea-container">
           <label class="witness-textarea-label" for="witness-access-script-textarea">Access Script:</label>
           <textarea
-            class="witness-access-script-textarea"
+            class="saito-textarea witness-access-script-textarea"
             id="witness-access-script-textarea"
             spellcheck="false"
           ></textarea>
@@ -30,7 +30,7 @@ module.exports = (app, mod, witness_overlay = {}) => {
         <div class="create-nft-btn-row">
             <div class="create-nft-help-link" id="witness-help-link">need help?</div>    
             <div class="saito-button-row">
-                 <button id="download_with_witness_btn">Download File</button>
+                 <button id="download_with_witness_btn" class="saito-button-primary">Download File</button>
             </div>
         </div>
 `;

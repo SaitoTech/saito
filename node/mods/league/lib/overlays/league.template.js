@@ -71,7 +71,7 @@ module.exports = (app, mod, league) => {
 												}">${league.contact}</div>
                         ${
 													newPlayer || league.unverified || (league.admin && !isMember)
-														? `<button id="league-chat-button" class="saito-user-fourth-elem-large">League Chat</button>`
+														? `<button id="league-chat-button" class="saito-user-fourth-elem-large saito-button-primary">League Chat</button>`
 														: ''
 												}
                     </div>`;

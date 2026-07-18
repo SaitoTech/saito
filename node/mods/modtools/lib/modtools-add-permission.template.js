@@ -8,7 +8,7 @@ module.exports = (app, mod) => {
 
 		    <div class="modtools-app-permission-dropdowns">
 				<div class="overlay-input">
-					<select id="modtools-add-permission-app" class="app-options-select">
+					<select id="modtools-add-permission-app" class="saito-form-select app-options-select">
 	`;
 
 					for (let i = 0; i < mods.length; i++) {	
@@ -24,7 +24,7 @@ module.exports = (app, mod) => {
 				</div>
 
 				<div class="overlay-input">
-					<select id="modtools-add-permission-option" class="app-options-select">
+					<select id="modtools-add-permission-option" class="saito-form-select app-options-select">
 						<option value="*" >Allow all</option>
 	                 	<option value="!" >None</option>
 	                 	<option value="$" >Fee-bearing</option>

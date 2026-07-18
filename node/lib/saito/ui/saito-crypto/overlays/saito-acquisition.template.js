@@ -1,6 +1,6 @@
 module.exports = () => {
   return `
-        <article class="get-saito-overlay">
+        <article class="saito-crypto-acquire">
         <header class="saito-overlay-form-header">
             <h2 class="saito-overlay-form-header-title">Get SAITO</h2>
         </header>

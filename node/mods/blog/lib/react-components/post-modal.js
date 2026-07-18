@@ -390,7 +390,7 @@ const PostModal = ({ app, mod, onSubmit, post }) => {
       <div className="left-column">
         {/* <div className="filter-container">
           <label className="filter-label">Tags</label>
-          <input
+          <input class="saito-input"
             type="text"
             name="tags"
             value={formData.tags}
@@ -436,7 +436,7 @@ const PostModal = ({ app, mod, onSubmit, post }) => {
               </label>
             </>
           </div>
-          <input
+          <input class="saito-input"
             type="text"
             name="imageUrl"
             placeholder="image URL"
@@ -514,7 +514,7 @@ const PostModal = ({ app, mod, onSubmit, post }) => {
       <div className="center-column">
         <form onSubmit={handleSubmit} className="editor-form">
           <div className="form-group">
-            <input
+            <input class="saito-input"
               type="text"
               name="title"
               value={formData.title}
@@ -528,7 +528,7 @@ const PostModal = ({ app, mod, onSubmit, post }) => {
           <div className="form-group">
             <div ref={editorRef} className="editor-content" />
             {editorMode !== 'rich' && !showPreview && (
-              <textarea
+              <textarea class="saito-textarea"
                 name="content"
                 value={formData.content}
                 onChange={handleChange}

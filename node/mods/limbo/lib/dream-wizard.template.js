@@ -54,18 +54,18 @@ module.exports = DreamWizardTemplate = (app, mod, options) => {
 	}
 
 	html += `<label for="dream-wizard-identifier">Title the space</label> 
-	 <input type="text" name="dream-wizard-identifier" id="dream-wizard-identifier" placeholder="${default_title}" value="${default_title}"></input>
+	 <input class="saito-input" type="text" name="dream-wizard-identifier" id="dream-wizard-identifier" placeholder="${default_title}" value="${default_title}"></input>
 	 <label for="dream-wizard-description">Add a description</label> 
-	 <textarea id="dream-wizard-description" class="post-tweet-textarea text-input" placeholder="What are you talking about?">${default_description}</textarea>  
+	 <textarea id="dream-wizard-description" class="saito-textarea text-input" placeholder="What are you talking about?">${default_description}</textarea>  
 	<div class="saito-button-row">
 	`;
 
 	if (options?.mode || options?.defaultDate){
-		html += `<button id="dream-schedule-btn" class="button ${options?.defaultDate ? 'saito-button-primary' : 'saito-button-secondary'}">Schedule for Later</button>`;	
+		html += `<button id="dream-schedule-btn" class="${options?.defaultDate ? 'saito-button-primary' : 'saito-button-secondary'}">Schedule for Later</button>`;	
 	}
 
 	if (!options?.defaultDate){
-		html += `<div id="dream-wizard-btn" class="button saito-button-primary">Start Casting Now</div></div>`;	
+		html += `<div id="dream-wizard-btn" class="saito-button-primary">Start Casting Now</div></div>`;	
 	}
 	
 

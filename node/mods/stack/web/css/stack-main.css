@@ -392,8 +392,8 @@
   align-self: start;
 }
 
-.stack-cta-buttons .stack-btn-primary,
-.stack-cta-buttons .stack-btn-secondary {
+.stack-cta-buttons .saito-button-primary,
+.stack-cta-buttons .saito-button-secondary {
   min-width: 17rem;
   min-height: 6.4rem;
   padding: 1.6rem 3.6rem;
@@ -405,18 +405,6 @@
   font-size: 1.7rem;
   font-weight: 700;
   line-height: 1;
-}
-
-html[data-theme='noir'] .stack-cta-buttons .stack-btn-primary {
-  background: linear-gradient(135deg, var(--saito-primary), var(--saito-primary-dark));
-  border: 1px solid transparent;
-  color: var(--saito-primary-text);
-}
-
-html[data-theme='noir'] .stack-cta-buttons .stack-btn-secondary {
-  background: var(--saito-surface-hover);
-  border: 1px solid var(--saito-border-color-dark);
-  color: var(--saito-font-color-heavy);
 }
 
 @media (max-width: 768px) {
@@ -595,45 +583,7 @@ html[data-theme='noir'] .stack-cta-buttons .stack-btn-secondary {
   border-top: 1px solid var(--saito-border-color);
 }
 
-/* Buttons */
-.stack-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1em;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.stack-btn-primary {
-  background: var(--saito-primary);
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 500;
-  padding: 1.2rem 2.5rem;
-}
-
-.stack-btn-primary:hover {
-  background: var(--saito-primary-dark);
-  transform: translateY(-2px);
-}
-
-.stack-btn-secondary {
-  background: var(--saito-background-color);
-  color: var(--saito-font-color-heavy, var(--saito-font-color));
-  border: 1px solid var(--saito-border-color);
-  font-size: 1.5rem;
-  font-weight: 500;
-  padding: 1.2rem 2.5rem;
-}
-
-.stack-btn-secondary:hover {
-  background: var(--saito-border-color);
-}
-
+/* Link-style control (not a DS button) */
 .stack-btn-link {
   background: none;
   color: var(--saito-primary);
@@ -669,24 +619,6 @@ html[data-theme='noir'] .stack-cta-buttons .stack-btn-secondary {
   margin-bottom: 8px;
   font-weight: bold;
   color: var(--saito-font-color);
-}
-
-.stack-form-group input,
-.stack-form-group textarea,
-.stack-form-group select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--saito-border-color);
-  border-radius: 6px;
-  font-size: 1em;
-  font-family: inherit;
-  background: var(--saito-background-color);
-  color: var(--saito-font-color);
-}
-
-.stack-form-group textarea {
-  resize: vertical;
-  min-height: 150px;
 }
 
 .stack-form-actions {
@@ -775,3 +707,43 @@ html[data-theme='noir'] .stack-cta-buttons .stack-btn-secondary {
 /* ============================================
    EXPLORE OVERLAY
    ============================================ */
+
+/* CTA loader hooks — moved from saito-cta-loader.css */
+.stack-splash .saito-cta-progress {
+  --saito-cta-progress-width: 118rem;
+}
+body .saito-cta :is(.saito-button-primary, .saito-button-secondary) {
+  width: 100%;
+  height: 4.5rem;
+  min-height: 4.5rem;
+  margin: 0;
+}
+body .saito-cta .stack-cta-buttons {
+  display: flex;
+  flex-flow: row nowrap;
+  width: 100%;
+  gap: 2rem;
+}
+body .saito-cta .stack-cta-buttons > :is(.saito-button-primary, .saito-button-secondary) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.saito-cta.saito-cta-loading .saito-button-primary,
+.saito-cta.saito-cta-loading .saito-button-secondary {
+  cursor: wait;
+  filter: grayscale(0.18) brightness(0.82);
+  opacity: 0.62;
+  pointer-events: none;
+}
+@media (max-width: 720px) {
+  body .saito-cta.saito-cta .stack-cta-buttons {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 2rem;
+  }
+  body .saito-cta.saito-cta .stack-cta-buttons > :is(.saito-button-primary, .saito-button-secondary) {
+    flex: 0 0 4.5rem;
+    width: 100%;
+  }
+}

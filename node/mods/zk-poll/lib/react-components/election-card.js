@@ -172,13 +172,13 @@ const ElectionCard = ({
                         <div className="election-actions">
                             <div
                                 onClick={handleEdit}
-                                className="election-icon-button"
+                                className="saito-icon-button"
                             >
                                 <Edit2 className="election-icon" />
                             </div>
                             <div
                                 onClick={() => handleDelete(election.signature)}
-                                className="election-icon-button"
+                                className="saito-icon-button"
                             >
                                 <Trash2 className="election-icon" />
                             </div>
@@ -200,6 +200,7 @@ const ElectionCard = ({
                             <div key={index} style={style.candidateItem}>
                                 <input
                                     type="radio"
+                                    className="saito-radio"
                                     name={`election-${election.id}`}
                                     style={style.radio}
                                     checked={selectedCandidates[election.id] === index}

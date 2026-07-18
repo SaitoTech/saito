@@ -1,43 +1,19 @@
-.notification-item {
-    padding-top: 1rem;
+/* Shared notification-dot positioning (design system) */
+
+.saito-user:hover .saito-notification-dot {
+  background-color: var(--saito-notification-ring);
+  color: var(--saito-font-color);
 }
 
-.notification-tweet {
-  cursor: pointer;
-  padding: 1.5rem 0rem;
-  position: relative;
+.hamburger-container .saito-notification-dot {
+  bottom: unset;
+  top: -20%;
+  left: unset;
+  right: -10%;
 }
 
-.notification-item:hover {
-  background-color: var(--saito-notification-hover-bg);
-}
-
-.notifications-empty {
-  margin-left: 1rem;
-  display: flex;
-  margin-left: 40%;
-  margin-top: 4rem;
-}
-
-.notifications-empty p {
-  font-size: 1.8rem;
-}
-
-.notifications-empty span {
-  margin-right: 1rem;
-  font-size: 1.8rem;
-}
-
-.redsquare-notifications .tweet .tweet-header {
-  padding: 2rem 0rem;
-}
-
-.redsquare-notifications .tweet .tweet-body {
-  min-height: 5rem;
-  overflow-y: hidden;
-}
-
-.saito-chat-notifications{
+/* Chat notification badges — left in shared bundle; chat ownership out of scope for this pass */
+.saito-chat-notifications {
   position: absolute;
   width: 20%;
   height: 100%;
@@ -55,17 +31,4 @@
   left: unset;
   height: 3rem;
   min-width: 3rem;
-}
-
-.saito-user:hover .saito-notification-dot{
-  background-color: var(--saito-notification-ring);
-  color: var(--saito-font-color);
-}
-
-
-#saito-header-menu-toggle .saito-notification-dot {
-  bottom: unset;
-  top: -20%;
-  left: unset;
-  right: -10%; 
 }

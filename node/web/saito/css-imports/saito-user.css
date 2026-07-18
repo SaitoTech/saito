@@ -30,7 +30,7 @@ Saito Identicon
 Saito Username  --- Partially duplicated in saito-base
 -----------------------------------------------------------------*/
 
-.saito-user > .saito-address-long:nth-child(2) {
+.saito-user > .saito-address-long {
   grid-column-end: 4;
   display: flex;
   flex-direction: row;
@@ -95,7 +95,6 @@ Saito User
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: inherit;
 }
 
 .saito-user .saito-datetime {
@@ -123,16 +122,3 @@ Saito User
 /****************************
  * Account Login
  * *************************/
-.wallet-selection {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.wallet-selection .saito-user {
-  padding: 1rem;
-  border: 1px solid var(--saito-border-color-light);
-  border-radius: var(--saito-border-radius);
-  width: unset;
-}

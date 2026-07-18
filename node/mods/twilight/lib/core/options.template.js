@@ -4,7 +4,7 @@ module.exports = () => {
 
 
           <label for="deck">Deck:</label>
-          <select name="deck" id="deckselect" onchange='
+          <select class="saito-form-select" name="deck" id="deckselect" onchange='
             if ($("#deckselect").val() == "saito") {
               $(".saito_edition").prop("checked",true);
               try {

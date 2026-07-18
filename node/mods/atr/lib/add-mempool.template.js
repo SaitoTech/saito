@@ -3,12 +3,12 @@ module.exports = (app, mod) => {
 	let html = `
 	    <div class="atr-add-mempool-overlay">
             <label>Fee</label>
-            <input value="0" id="fee">
+            <input class="saito-input" value="0" id="fee">
             <!--
             <label>Inputs</label>
-            <input value="" id="inputs">
+            <input class="saito-input" value="" id="inputs">
             <label>Outputs</label>
-            <input value="" id="outputs">
+            <input class="saito-input" value="" id="outputs">
             -->
             <button class="saito-button-primary add_transaction" id="add_transaction">Add Transaction</button>
         </div>

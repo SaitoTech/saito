@@ -6,7 +6,7 @@ class CreateNFT {
     this.app = app;
     this.mod = mod;
     if (app?.browser?.addStylesheet) {
-      app.browser.addStylesheet('/saito/ui/nft-overlays.css');
+      app.browser.addStylesheet('/saito/ui/saito-nft.css');
     }
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.help_overlay = new SaitoOverlay(this.app, this.mod);
@@ -60,7 +60,7 @@ class CreateNFT {
     }
 
     if (this.defaults?.title) {
-      let title = document.querySelector('.create-nft-overlay .secondary input.title');
+      let title = document.querySelector('.saito-nft-create .secondary input.title');
       title.value = this.defaults.title;
       if (this.defaults.locked?.includes('title')) {
         title.readOnly = true;
@@ -69,7 +69,7 @@ class CreateNFT {
 
     if (this.defaults?.description) {
       let description = document.querySelector(
-        '.create-nft-overlay .secondary textarea.description'
+        '.saito-nft-create .secondary textarea.description'
       );
       description.value = this.defaults.description;
       if (this.defaults.locked?.includes('description')) {
@@ -320,8 +320,8 @@ class CreateNFT {
       const uploadEl = document.querySelector('#nft-image-upload');
       const textarea = document.querySelector('#create-nft-textarea');
 
-      document.querySelector('.create-nft-overlay .upload .file')?.remove();
-      document.querySelector('.create-nft-overlay .upload .preview')?.remove();
+      document.querySelector('.saito-nft-create .upload .file')?.remove();
+      document.querySelector('.saito-nft-create .upload .preview')?.remove();
 
       let processed = false;
 
@@ -337,9 +337,9 @@ class CreateNFT {
         if (uploadText) {
           uploadText.innerHTML = 'upload token logo/image (optional)';
         }
-        document.querySelector('.create-nft-overlay .secondary .label.ticker').style.display =
+        document.querySelector('.saito-nft-create .secondary .label.ticker').style.display =
           'block';
-        document.querySelector('.create-nft-overlay .secondary input.ticker').style.display =
+        document.querySelector('.saito-nft-create .secondary input.ticker').style.display =
           'block';
         uploadEl.style.display = 'flex';
         textarea.style.display = 'none';
@@ -395,9 +395,11 @@ class CreateNFT {
     const nextStep = document.getElementById('next-step');
     if (nextStep) {
       nextStep.onclick = () => {
-        const body = document.querySelector('.create-nft-overlay .body');
-        body.classList.add('provide-metadata');
-        const titleEl = document.querySelector('.create-nft-overlay .header .title');
+        const root = document.querySelector('.saito-nft-create');
+        if (root) {
+          root.classList.add('provide-metadata');
+        }
+        const titleEl = document.querySelector('.saito-nft-create .header .title');
         if (titleEl) {
           titleEl.innerHTML = 'Provide Metadata';
         }
@@ -407,9 +409,11 @@ class CreateNFT {
     const backBtn = document.getElementById('back-btn');
     if (backBtn) {
       backBtn.onclick = () => {
-        const body = document.querySelector('.create-nft-overlay .body');
-        body.classList.remove('provide-metadata');
-        const titleEl = document.querySelector('.create-nft-overlay .header .title');
+        const root = document.querySelector('.saito-nft-create');
+        if (root) {
+          root.classList.remove('provide-metadata');
+        }
+        const titleEl = document.querySelector('.saito-nft-create .header .title');
         if (titleEl) {
           titleEl.innerHTML = 'Create NFT';
         }
@@ -459,13 +463,13 @@ class CreateNFT {
       };
 
       let ticker = (
-        document.querySelector('.create-nft-overlay .secondary input.ticker').value || ''
+        document.querySelector('.saito-nft-create .secondary input.ticker').value || ''
       ).toUpperCase();
-      let title_el = document.querySelector('.create-nft-overlay .secondary input.title');
+      let title_el = document.querySelector('.saito-nft-create .secondary input.title');
       let title = title_el.value || title_el.getAttribute('placeholder') || '';
       title = title.trim();
 
-      let desc_field = document.querySelector('.create-nft-overlay .secondary textarea.description');
+      let desc_field = document.querySelector('.saito-nft-create .secondary textarea.description');
       let description = desc_field?.innerText || desc_field?.value || desc_field.innerHTML || '';
       description = description.trim();
 
@@ -535,7 +539,7 @@ class CreateNFT {
             `;
     }
 
-    this.app.browser.addElementToSelector(html, '.create-nft-overlay .primary .upload');
+    this.app.browser.addElementToSelector(html, '.saito-nft-create .primary .upload');
     document.querySelector('#nft-image-upload').style.display = 'none';
   }
 

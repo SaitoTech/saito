@@ -20,7 +20,7 @@ class SaitoNFTCard {
     let this_self = this;
 
     if (this.app?.browser?.addStylesheet) {
-      this.app.browser.addStylesheet('/saito/ui/nft-overlays.css');
+      this.app.browser.addStylesheet('/saito/ui/saito-nft.css');
     }
 
     if (!document.querySelector(this.container)) {
@@ -92,19 +92,19 @@ class SaitoNFTCard {
 
     console.log('Insert fetched NFT details into CARD');
 
-    let type = document.querySelector(this.my_qs + ' .nft-card-type');
+    let type = document.querySelector(this.my_qs + ' .saito-nft-card-type');
     if (type) {
       type.innerHTML = this.nft.returnType();
     }
 
     if (this.nft.title) {
       try {
-        let telm = document.querySelector(this.my_qs + ' .nft-card-title');
+        let telm = document.querySelector(this.my_qs + ' .saito-nft-card-title');
         telm.innerHTML = this.nft.title;
       } catch (err) {}
     }
 
-    let elm = document.querySelector(this.my_qs + ' .nft-card-img');
+    let elm = document.querySelector(this.my_qs + ' .saito-nft-card-img');
     if (elm) {
       const display = this.nft.returnMediaDisplay();
 

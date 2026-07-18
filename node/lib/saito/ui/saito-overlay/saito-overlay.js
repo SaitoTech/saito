@@ -159,6 +159,11 @@ class SaitoOverlay {
           overlay_el.innerHTML =
             `<div id="saito-overlay-closebox${this.ordinal}" class="saito-overlay-closebox"><i class="fas fa-times-circle saito-overlay-closebox-btn"></i></div>` +
             html;
+          for (const child of overlay_el.children) {
+            if (!child.classList.contains('saito-overlay-closebox')) {
+              child.classList.add('saito-overlay-panel');
+            }
+          }
           //Close by clicking on closebox
           let closebox_qs = `#saito-overlay-closebox${this.ordinal}`;
           let closebox_el = document.querySelector(closebox_qs);

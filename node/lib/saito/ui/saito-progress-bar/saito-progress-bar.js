@@ -27,7 +27,7 @@ class SaitoProgressBar {
       this.closeTimer = null;
     }
 
-    let myqs = this.container + ' #saito-loader-container';
+    let myqs = this.container + ' #saito-progress-bar-container';
     myqs = myqs.trim();
 
     if (document.querySelector(myqs)) {
@@ -42,7 +42,7 @@ class SaitoProgressBar {
   }
 
   finish(message = 'Loaded!') {
-    let elem = document.querySelector(`${this.container} #saito-loader-container`);
+    let elem = document.querySelector(`${this.container} #saito-progress-bar-container`);
     if (elem) {
       elem.classList.remove('active');
       this.render(message);
@@ -52,7 +52,7 @@ class SaitoProgressBar {
 
   remove(delay = 1000) {
     this.closeTimer = setTimeout(() => {
-      let selector = this.container + ' #saito-loader-container';
+      let selector = this.container + ' #saito-progress-bar-container';
       selector = selector.trim();
 
       if (document.querySelector(selector)) {

@@ -190,20 +190,14 @@
 /* -----------------------------------------------------------------
  * Explorer action controls
  *
- * A single, deliberate treatment for utility actions and disclosure
- * toggles in the block view (metadata toggle, Export, Unlock, TXMSG
- * payload). These are secondary utilities, not calls to action, so
- * they read as subtle blue links with a dashed underline rather than
- * filled buttons. Selectors use `body:has(.explorer-page)` so they
- * beat global Saito theme rules such as
- * `html[data-theme='noir'] button:not(.saito-button-secondary)`
- * (higher specificity than `.explorer-page button` alone). `display:
- * inline-block` (never flex) is required so the dashed underline
- * renders across the control text.
+ * Secondary utilities (metadata toggle, Export, Unlock, TXMSG) read as
+ * subtle blue links with a dashed underline rather than filled buttons.
+ * `display: inline-block` (never flex) is required so the dashed
+ * underline renders across the control text.
  * ----------------------------------------------------------------- */
-body:has(.explorer-page) .explorer-page .explorer-action,
-body:has(.explorer-page) .explorer-page a.explorer-action,
-body:has(.explorer-page) .explorer-page button.explorer-action {
+.explorer-page .explorer-action,
+.explorer-page a.explorer-action,
+.explorer-page button.explorer-action {
 	appearance: none;
 	-webkit-appearance: none;
 	display: inline-block;
@@ -238,9 +232,9 @@ body:has(.explorer-page) .explorer-page button.explorer-action {
 		text-decoration-color var(--explorer-transition-fast);
 }
 
-body:has(.explorer-page) .explorer-page .explorer-action:hover,
-body:has(.explorer-page) .explorer-page a.explorer-action:hover,
-body:has(.explorer-page) .explorer-page button.explorer-action:hover {
+.explorer-page .explorer-action:hover,
+.explorer-page a.explorer-action:hover,
+.explorer-page button.explorer-action:hover {
 	background: none;
 	background-image: none;
 	color: var(--explorer-link-hover);
@@ -250,15 +244,15 @@ body:has(.explorer-page) .explorer-page button.explorer-action:hover {
 	transform: none;
 }
 
-body:has(.explorer-page) .explorer-page .explorer-action:focus-visible,
-body:has(.explorer-page) .explorer-page a.explorer-action:focus-visible,
-body:has(.explorer-page) .explorer-page button.explorer-action:focus-visible {
+.explorer-page .explorer-action:focus-visible,
+.explorer-page a.explorer-action:focus-visible,
+.explorer-page button.explorer-action:focus-visible {
 	outline: none;
 	border-radius: var(--explorer-radius-sm);
 	box-shadow: var(--explorer-focus-ring);
 }
 
-body:has(.explorer-page) .explorer-page .explorer-action i {
+.explorer-page .explorer-action i {
 	margin-right: var(--explorer-space-1);
 	font-size: 0.85em;
 	line-height: 1;
@@ -296,7 +290,7 @@ body:has(.explorer-page) .explorer-page .explorer-action i {
 	color: var(--explorer-muted-foreground);
 }
 
-body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns {
+.explorer-page button.explorer-block-fetch-txns {
 	appearance: none;
 	flex: 0 0 auto;
 	margin: 0;
@@ -322,7 +316,7 @@ body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns {
 	transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns:hover {
+.explorer-page button.explorer-block-fetch-txns:hover {
 	background: var(--explorer-link);
 	background-image: none;
 	color: var(--explorer-card);
@@ -331,12 +325,12 @@ body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns:hover {
 	transform: none;
 }
 
-body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns:focus-visible {
+.explorer-page button.explorer-block-fetch-txns:focus-visible {
 	outline: none;
 	box-shadow: var(--explorer-focus-ring);
 }
 
-body:has(.explorer-page) .explorer-page button.explorer-block-fetch-txns[disabled] {
+.explorer-page button.explorer-block-fetch-txns[disabled] {
 	opacity: 0.6;
 	cursor: default;
 }

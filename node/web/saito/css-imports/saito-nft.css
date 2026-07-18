@@ -252,7 +252,7 @@
 /* ============================================
    CREATE NFT OVERLAY
    ============================================ */
-.create-nft-overlay {
+.saito-nft-create {
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -261,7 +261,7 @@
   justify-content: space-between;
 }
 
-.create-nft-overlay .header {
+.saito-nft-create .header {
   height: 6rem;
   background: linear-gradient(
     90deg,
@@ -277,13 +277,13 @@
   align-items: center;
 }
 
-.create-nft-overlay .header .title {
+.saito-nft-create .header .title {
   margin: 0;
   font-size: 2.5rem;
   color: inherit;
 }
 
-.create-nft-overlay .body {
+.saito-nft-create .body {
   position: relative;
   width: 100%;
   overflow-y: auto;
@@ -291,8 +291,8 @@
   height: 50rem;
 }
 
-.create-nft-overlay .body .primary,
-.create-nft-overlay .body .secondary {
+.saito-nft-create .primary,
+.saito-nft-create .secondary {
   position: absolute;
   top: 0;
   left: 0;
@@ -303,57 +303,57 @@
   transition: transform 0.35s ease;
 }
 
-.create-nft-overlay .body .primary {
+.saito-nft-create .primary {
   padding: 1rem;
   transform: translateX(0);
 }
 
-.create-nft-overlay .body .secondary {
+.saito-nft-create .secondary {
   transform: translateX(100%);
 }
 
-.create-nft-overlay .body.provide-metadata .primary {
+.saito-nft-create.provide-metadata .primary {
   transform: translateX(-100%);
 }
 
-.create-nft-overlay .body.provide-metadata .secondary {
+.saito-nft-create.provide-metadata .secondary {
   transform: translateX(0);
 }
 
-.create-nft-overlay .create-nft-field-row {
+.saito-nft-create .create-nft-field-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
 }
 
-.create-nft-overlay .create-nft-field {
+.saito-nft-create .create-nft-field {
   color: var(--saito-font-color);
   line-height: 2rem;
   text-align: center;
 }
 
-.create-nft-overlay .create-nft-field:first-child {
+.saito-nft-create .create-nft-field.create-nft-field-start {
   text-align: left;
 }
 
-.create-nft-overlay .label {
+.saito-nft-create .label {
   display: block;
   margin-bottom: 1rem;
 }
 
-.create-nft-overlay .primary select#create-nft-type-dropdown {
+#create-nft-type-dropdown {
   width: auto;
   color: var(--saito-font-color);
 }
 
-.create-nft-overlay .primary input {
+.saito-nft-create .primary input {
   max-width: 8rem;
   text-align: center;
   border-radius: var(--saito-border-radius);
 }
 
-.create-nft-overlay .primary .upload {
+.saito-nft-create .primary .upload {
   flex: 1 1 auto;
   min-height: 300px;
   display: flex;
@@ -362,7 +362,7 @@
   align-items: center;
 }
 
-.create-nft-overlay #nft-image-upload {
+.saito-nft-create #nft-image-upload {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -376,17 +376,17 @@
   cursor: pointer;
 }
 
-.create-nft-overlay #nft-image-upload i {
+.saito-nft-create #nft-image-upload i {
   font-size: 3.5rem;
   color: var(--saito-surface-selected);
 }
 
-.create-nft-overlay #nft-image-upload div {
+.saito-nft-create #nft-image-upload div {
   margin-left: 1rem;
   font-size: 1.6rem;
 }
 
-.create-nft-overlay #create-nft-textarea {
+.saito-nft-create #create-nft-textarea {
   width: 100%;
   height: 30rem;
   padding: 0.5rem;
@@ -396,14 +396,14 @@
   display: none;
 }
 
-.create-nft-overlay .primary .upload .preview {
+.saito-nft-create .preview {
   align-self: center;
   max-width: min(56rem, 100%);
   max-height: min(30rem, 50vh);
   position: relative;
 }
 
-.create-nft-overlay .primary .upload .preview i {
+.saito-nft-create .preview i {
   position: absolute;
   font-size: 2rem;
   cursor: pointer;
@@ -411,7 +411,7 @@
   right: -1rem;
 }
 
-.create-nft-overlay .primary .upload .file {
+.saito-nft-create .file {
   border-radius: var(--saito-border-radius);
   position: relative;
   border: var(--border-thickness-thin) dashed var(--saito-file-transfer-border);
@@ -428,19 +428,19 @@
   color: var(--saito-file-transfer-fg);
 }
 
-.create-nft-overlay .primary .upload .file i {
+.saito-nft-create .file i {
   font-size: 4rem;
   grid-row: 1 / span 2;
   z-index: 1;
   cursor: pointer;
 }
 
-.create-nft-overlay .primary .upload .file .file-name,
-.create-nft-overlay .primary .upload .file .file-size {
+.saito-nft-create .file-name,
+.saito-nft-create .file-size {
   z-index: 1;
 }
 
-.create-nft-overlay .primary .footer {
+.saito-nft-create .primary .footer {
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
@@ -450,7 +450,7 @@
   padding: 0;
 }
 
-.create-nft-overlay .create-nft-fields {
+.saito-nft-create .create-nft-fields {
   position: relative;
   width: 100%;
   height: 100%;
@@ -460,13 +460,13 @@
   min-height: 300px;
 }
 
-.create-nft-overlay .secondary .label {
+.saito-nft-create .secondary .label {
   margin: 12px 0 6px;
   color: var(--saito-font-color);
 }
 
-.create-nft-overlay .secondary input,
-.create-nft-overlay .secondary textarea {
+.saito-nft-create .secondary input,
+.saito-nft-create .secondary textarea {
   width: 100%;
   display: flex;
   align-items: center;
@@ -483,21 +483,21 @@
   transition: all 0.1s ease;
 }
 
-.create-nft-overlay .secondary input:hover,
-.create-nft-overlay .secondary textarea:hover {
+.saito-nft-create .secondary input:hover,
+.saito-nft-create .secondary textarea:hover {
   background: var(--saito-surface-hover);
 }
 
-.create-nft-overlay .secondary input.ticker {
+.saito-nft-create .secondary input.ticker {
   text-transform: uppercase;
   display: none;
 }
 
-.create-nft-overlay .secondary .label.ticker {
+.saito-nft-create .secondary .label.ticker {
   display: none;
 }
 
-.create-nft-overlay .secondary .footer {
+.saito-nft-create .secondary .footer {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
@@ -508,7 +508,7 @@
 }
 
 @media (max-width: 768px) {
-  .create-nft-overlay .header {
+  .saito-nft-create .header {
     background: linear-gradient(
       90deg,
       var(--saito-primary) 0%,
@@ -827,7 +827,7 @@
 }
 
 /* Left half: border-radius only on right (inward) side */
-.split-half:first-child {
+.split-half-left {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   border-top-right-radius: 6px;
@@ -835,7 +835,7 @@
 }
 
 /* Right half: border-radius only on left (inward) side */
-.split-half:last-child {
+.split-half-right {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
   border-top-left-radius: 6px;
@@ -1234,7 +1234,7 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
   min-width: 60rem;
   justify-content: space-between;
 }
-.nft-list-container {
+.saito-nft-list {
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -1243,31 +1243,27 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
   height: 85vh;
 }
 /* Let the NFT list fill the taller browser overlay */
-.nft-list-container .nft-list {
+.saito-nft-list .nft-list {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
-.nft-list-container .send-nft-list {
+.saito-nft-list .send-nft-list {
   max-height: none;
   flex: 1;
   overflow-y: auto;
 }
-.nft-list-container .nft-list-instructions {
+.saito-nft-list .nft-list-instructions {
   flex-shrink: 0;
 }
-.nft-list-container .instructions {
+.saito-nft-list .instructions {
   opacity: 0.8;
   line-height: 1.5;
 }
 .nft-list {
   min-height: 24rem;
   user-select: none;
-}
-.inputs {
-  display: flex;
-  gap: 2rem;
 }
 .data-table tr.total_supply_value {
   background-color: var(--saito-wallet-nft-summary-bg);
@@ -1278,16 +1274,12 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
 .data-table tr.total_supply.total_supply_value {
   background-color: var(--saito-wallet-nft-total-bg);
 }
-.inputs div {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
 .textarea-container {
   display: flex;
   flex-direction: column;
 }
-textarea {
+.saito-nft-create textarea,
+.textarea-container textarea {
   width: 100%;
   height: 100px;
   padding: 0.5rem;
@@ -1363,7 +1355,7 @@ input.split-half {
 nft cards
 
 */
-.nft-card {
+.saito-nft-card {
   position: relative;
   width: 22rem;
   height: 24rem;
@@ -1376,14 +1368,14 @@ nft cards
   background-color: var(--saito-background-color);
   flex: 0 0 22rem;
 }
-.nft-card:hover {
+.saito-nft-card:hover {
   cursor: pointer;
   border: var(--border-thickness-thin) solid var(--saito-primary);
 }
-.nft-card.nft-selected {
+.saito-nft-card.nft-selected {
   border: var(--border-thickness-thin) solid var(--saito-primary);
 }
-.nft-card-title {
+.saito-nft-card-title {
   position: absolute;
   width: 20rem;
   color: var(--saito-font-color);
@@ -1394,7 +1386,7 @@ nft cards
   padding: 0 1rem;
   overflow: hidden;
 }
-.nft-card-img {
+.saito-nft-card-img {
   width: 100%;
   height: 100%;
   background-position: center;
@@ -1407,16 +1399,16 @@ nft cards
   border-bottom-left-radius: unset;
   border-bottom-right-radius: unset;
 }
-.nft-card-img img,
-.nft-card-img i {
+.saito-nft-card-img img,
+.saito-nft-card-img i {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   font-size: 4rem;
 }
-.nft-card-info-amount,
-.nft-card-info-deposit {
+.saito-nft-card-info-amount,
+.saito-nft-card-info-deposit {
   font-family: monospace;
   font-size: 1.2rem;
   text-align: center;
@@ -1430,7 +1422,7 @@ nft cards
   border-radius: 50%;
   align-self: center;
 }
-.nft-card-details {
+.saito-nft-card-details {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -1440,18 +1432,18 @@ nft cards
   gap: 1rem;
   position: relative;
 }
-.nft-card-deposit {
+.saito-nft-card-deposit {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   text-align: center;
 }
-.nft-card-amount {
+.saito-nft-card-amount {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
-.nft-card-text {
+.saito-nft-card-text {
   font-family: monospace;
   font-size: 1.2rem;
   display: -webkit-box;
@@ -1482,11 +1474,11 @@ to {
 }
 @media screen and (max-width: 768px) {
 .create-nft-container,
-  .create-nft-overlay {
+  .saito-nft-create {
     width: 95vw;
     min-width: auto;
   }
-.nft-list-container {
+.saito-nft-list {
     width: 95vw;
     height: 85vh;
   }

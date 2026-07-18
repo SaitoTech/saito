@@ -71,7 +71,7 @@ body:has(.saito-container.rustscript) {
   font-size: 1.6rem;
 }
 
-/* Override global Saito button chrome inside the workstation */
+/* Layout resets for custom workstation controls */
 .saito-container.rustscript .rs-cmd-btn,
 .saito-container.rustscript .rs-mode-btn,
 .saito-container.rustscript .rs-panel-ref-action,
@@ -79,11 +79,6 @@ body:has(.saito-container.rustscript) {
   min-width: 0;
   max-width: none;
   margin: 0;
-  appearance: none;
-  -webkit-appearance: none;
-  text-transform: none;
-  letter-spacing: normal;
-  box-shadow: none;
 }
 
 /* Panel row — flex child between main top gutter and command bar */

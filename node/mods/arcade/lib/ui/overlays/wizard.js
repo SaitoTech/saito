@@ -86,7 +86,7 @@ class GameWizard {
         document.querySelector('.arcade-wizard-advanced-text').style.visibility = 'hidden';
       }
     } else {
-      let accept_button = `<div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn button saito-button-primary">Accept</div>`;
+      let accept_button = `<div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn saito-button-primary">Accept</div>`;
       if (!advancedOptions.includes(accept_button)) {
         advancedOptions += accept_button;
       }

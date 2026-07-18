@@ -1,7 +1,7 @@
 module.exports = () => `
 <div class="rustscript-overlay rs-prompt-overlay rs-prompt-hash">
   <h2 class="rs-prompt-title">Provide Text to Hash</h2>
-  <textarea class="rs-prompt-hash-input" spellcheck="false" placeholder="Enter text to hash"></textarea>
+  <textarea class="saito-textarea rs-prompt-hash-input" spellcheck="false" placeholder="Enter text to hash"></textarea>
   <div class="rs-prompt-hash-output-row">
     <output class="rs-prompt-hash-output" aria-live="polite">—</output>
     <button type="button" class="rs-prompt-copy-hash" title="Copy hash" aria-label="Copy hash">

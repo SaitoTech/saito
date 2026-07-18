@@ -471,7 +471,7 @@ class SaitoNFT {
     if (this.js) {
       return {
         backgroundImage: '',
-        innerHtml: `<div class="nft-card-text">${this.js}</div>`,
+        innerHtml: `<div class="saito-nft-card-text">${this.js}</div>`,
         loading: false,
         failed: false
       };
@@ -480,7 +480,7 @@ class SaitoNFT {
     if (this.css) {
       return {
         backgroundImage: '',
-        innerHtml: `<div class="nft-card-text">${this.css}</div>`,
+        innerHtml: `<div class="saito-nft-card-text">${this.css}</div>`,
         loading: false,
         failed: false
       };
@@ -489,7 +489,7 @@ class SaitoNFT {
     if (this.text) {
       return {
         backgroundImage: '',
-        innerHtml: `<div class="nft-card-text">${this.text}</div>`,
+        innerHtml: `<div class="saito-nft-card-text">${this.text}</div>`,
         loading: false,
         failed: false
       };
@@ -498,7 +498,7 @@ class SaitoNFT {
     if (this.json) {
       return {
         backgroundImage: '',
-        innerHtml: `<div class="nft-card-text">${this.json}</div>`,
+        innerHtml: `<div class="saito-nft-card-text">${this.json}</div>`,
         loading: false,
         failed: false
       };

@@ -49,14 +49,14 @@ module.exports = (mod) => {
         <h2>Add Peer</h2>
         <div class="peer-form">
 <div class="peer-form-row">
-  <input id="peer-host" placeholder="host (e.g. saito.io)" />
-  <input id="peer-port" type="number" placeholder="port" />
-  <select id="peer-protocol">
+  <input class="saito-input" id="peer-host" placeholder="host (e.g. saito.io)" />
+  <input class="saito-input" id="peer-port" type="number" placeholder="port" />
+  <select class="saito-form-select" id="peer-protocol">
     <option value="https">https</option>
     <option value="http">http</option>
   </select>
-  <input id="peer-key" placeholder="public key (optional)" />
-  <button id="add-peer-btn">Add Peer</button>
+  <input class="saito-input" id="peer-key" placeholder="public key (optional)" />
+  <button id="add-peer-btn" class="saito-button-primary">Add Peer</button>
 </div>
         </div>
       </div>
@@ -71,7 +71,7 @@ module.exports = (mod) => {
           These peers are currently connected to your node at runtime.
         </p>
 
-        <button id="refresh-live-peers-button">
+        <button id="refresh-live-peers-button" class="saito-button-primary">
           Refresh Live Peers
         </button>
 
@@ -84,7 +84,7 @@ module.exports = (mod) => {
       </div>
 
       <div class="peer-actions">
-        <button id="save-peers" disabled>Save Changes</button>
+        <button id="save-peers" class="saito-button-primary" disabled>Save Changes</button>
       </div>
 
     </div>

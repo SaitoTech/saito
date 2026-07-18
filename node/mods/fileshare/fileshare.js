@@ -18,6 +18,8 @@ class Fileshare extends ModTemplate {
 
 		this.stun = null;
 
+		this.styles = ['/fileshare/style.css'];
+
 		this.outgoing_files = {};
 		/***********
 		fileId (randomly generated code) -> { obj } mapping
@@ -87,6 +89,7 @@ class Fileshare extends ModTemplate {
 		await super.initialize(app);
 
 		if (app.BROWSER) {
+			this.attachStyleSheets();
 			try {
 				this.stun = app.modules.returnFirstRespondTo('peer-manager');
 			} catch (err) {

@@ -6,7 +6,7 @@
  *   - saito-crypto-send-confirm-open-request → show overlay + run `mycallback` once
  *   - saito-crypto-send-confirm          → apply success / failure result
  *
- * Presentation: `web/saito/css-imports/saito-crypto.css` (`.crypto-send-confirm-overlay`).
+ * Presentation: `mods/crypto/web/css/crypto-overlays.css` (`.crypto-send-confirm-overlay`).
  */
 
 const ConfirmTemplate = require('./confirm.template');

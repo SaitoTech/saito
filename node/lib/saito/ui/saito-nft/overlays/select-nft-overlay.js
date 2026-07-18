@@ -10,7 +10,7 @@ class SelectNFT {
     this.app = app;
     this.mod = mod;
     if (app?.browser?.addStylesheet) {
-      app.browser.addStylesheet('/saito/ui/nft-overlays.css');
+      app.browser.addStylesheet('/saito/ui/saito-nft.css');
     }
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.create_nft_overlay = new CreateNFT(this.app, this.mod);
@@ -101,7 +101,7 @@ class SelectNFT {
   async renderNFTList(filter) {
     const container = document.querySelector('#nft-list');
     const instructionsEl = document.querySelector(
-      '.nft-list-container #nft-list-instructions'
+      '.saito-nft-list #nft-list-instructions'
     );
 
     if (!container) {

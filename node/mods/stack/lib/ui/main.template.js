@@ -31,10 +31,10 @@ module.exports = (app, mod) => {
             Create a subscription-based blog, use NFTs to limit access, and build your audience on your own terms.
           </p>
           <div class="stack-cta-buttons">
-            <button class="stack-btn-primary" id="stack-create-post-btn">
+            <button class="saito-button-primary" id="stack-create-post-btn">
               <i class="fa-solid fa-pen"></i> Start Writing
             </button>
-            <button class="stack-btn-secondary" id="stack-get-started-btn">
+            <button class="saito-button-secondary" id="stack-get-started-btn">
               Browse Posts
             </button>
           </div>

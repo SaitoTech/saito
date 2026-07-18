@@ -1,7 +1,7 @@
 module.exports = (app, mod) => {
 	let html = `<div class="overlay-input">
         <label for="best_of">Best of:</label>
-        <select name="best_of">
+        <select class="saito-form-select" name="best_of">
           <option value="1">1</>
           <option value="3" selected>3</>
           <option value="5">5</>

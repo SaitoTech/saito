@@ -424,7 +424,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
         </div>
         <div className="filter-container">
           <label className="filter-label">Filter by</label>
-          <select
+          <select class="saito-form-select"
             value={selectedUser.username}
             onChange={(e) => {
               const selected = USERS.find((user) => user.username === e.target.value);
@@ -442,7 +442,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
 
       <div className="center-column">
         {!showPostModal && (
-          <div id="saito-floating-menu" className="saito-floating-container">
+          <div id="saito-floating-menu" className="saito-floating-menu">
             <div
               onClick={() => {
                 scrollToTop();

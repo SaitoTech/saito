@@ -9,10 +9,10 @@ module.exports = (options) => {
   const safeSubmit = String(submitLabel ?? 'Apply');
 
   const inputBlock = multiline
-    ? `<textarea class="rs-prompt-value rs-prompt-generic-input" spellcheck="false" placeholder="${safePlaceholder}">${safeValue}</textarea>`
+    ? `<textarea class="saito-textarea rs-prompt-value rs-prompt-generic-input" spellcheck="false" placeholder="${safePlaceholder}">${safeValue}</textarea>`
     : `<input
       type="text"
-      class="rs-prompt-value rs-prompt-single-input"
+      class="saito-input rs-prompt-value rs-prompt-single-input"
       value="${safeValue.replace(/"/g, '&quot;')}"
       placeholder="${safePlaceholder}"
       autocomplete="off"

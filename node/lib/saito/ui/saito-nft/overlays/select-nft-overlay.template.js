@@ -1,6 +1,6 @@
 module.exports = (ui) => {
   let html = `
-    <div class="nft-list-container">
+    <div class="saito-nft-list">
 
       <header class="saito-overlay-form-header">
          <h2 class="saito-overlay-form-header-title">${ui?.title ? ui.title : 'MY NFTs'}</h2>

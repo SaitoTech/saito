@@ -58,7 +58,7 @@ module.exports = (app, mod, group, isStatic = false) => {
           </div>
 
           <div class="chat-footer">
-            <i class="fa-regular fa-paper-plane chat-input-submit button-mouse-over" id="chat-input-submit"></i>
+            <i class="fa-regular fa-paper-plane chat-input-submit saito-button-mouse-over" id="chat-input-submit"></i>
           	<div class="saito-mentions-list hidden" id="saito-mentions-list"></div>
           </div>
 

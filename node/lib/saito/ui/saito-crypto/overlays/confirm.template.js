@@ -12,7 +12,7 @@ module.exports = function cryptoSendConfirmOverlayTemplate(details) {
 
   return `
   <div
-    class="game-crypto-transfer-manager-container crypto-send-confirm-overlay"
+    class="saito-crypto-transfer crypto-send-confirm-overlay"
     id="crypto-send-confirm-root"
     data-confirm-state="pending"
     data-confirm-mode="${details?.trusted ? 'trusted' : 'interactive'}"

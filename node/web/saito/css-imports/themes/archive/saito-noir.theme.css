@@ -192,7 +192,7 @@ html[data-theme='noir'] {
   --saito-wallet-error-color: var(--saito-status-danger);
 }
 
-html[data-theme='noir'] .saito-overlay > div:last-child,
+html[data-theme='noir'] .saito-overlay > .saito-overlay-panel,
 html[data-theme='noir'] .saito-overlay > form,
 html[data-theme='noir'] .saito-modal,
 html[data-theme='noir'] .saito-header-hamburger-contents,
@@ -200,7 +200,7 @@ html[data-theme='noir'] .saito-file-transfer-overlay {
   backdrop-filter: blur(12px);
 }
 
-html[data-theme='noir'] .saito-overlay > div:last-child,
+html[data-theme='noir'] .saito-overlay > .saito-overlay-panel,
 html[data-theme='noir'] .saito-overlay > form,
 html[data-theme='noir'] .saito-modal {
   border: 1px solid var(--saito-overlay-panel-border);

@@ -11,7 +11,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
 
   let html = `
   <form
-    class="saito-overlay-form withdraw-overlay"
+    class="saito-crypto-withdraw"
     id="withdrawal-form"
     action="/"
     method="POST"

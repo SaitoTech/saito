@@ -992,7 +992,7 @@ class StreamCapturer {
       let stream_id = `stream_${publicKey}`;
       this.videoBox = new VideoBox(this.app, this, publicKey);
       this.videoBox.render(this.videoBoxStream);
-      let videoElement = document.querySelector('.video-box-container-large');
+      let videoElement = document.querySelector('.saito-videobox');
       if (videoElement) {
         videoElement.style.position = 'absolute';
         videoElement.style.top = '100px';

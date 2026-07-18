@@ -2,11 +2,11 @@ module.exports = (app, event) => {
   const formattedStartTime = new Date(event.startTime).toLocaleString();
 
   let html = `
-    <main class="call-schedule-launch-main-container">
+    <main class="saito-calendar-event-link">
      <div class="saito-header-logo-wrapper" id="redsquare-link">
             <img class="saito-header-logo" alt="Logo" src="/saito/img/logo.svg" />
         </div>
-            <section class="call-schedule-launch-container">
+            <section class="saito-calendar-event-link-body">
                 <h2>${event.identifier}</h2>
                 <div class="call-details">
                     <p><strong>Start Time:</strong> ${formattedStartTime}</p>

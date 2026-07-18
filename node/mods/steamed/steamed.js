@@ -1237,8 +1237,8 @@ class Steamed extends GameTemplate {
 			html += `<div>...or...</div>`;
 		}
 
-		html += `<li><input type="checkbox" id="dontshowme" value="false"/> don't show me any more hints...</li>
-                  <button>${cont > 0 ? 'Continue' : 'Okay'}</button>
+		html += `<li><input class="saito-checkbox" type="checkbox" id="dontshowme" value="false"/> don't show me any more hints...</li>
+                  <button class="saito-button-primary">${cont > 0 ? 'Continue' : 'Okay'}</button>
                 </div>`;
 
 		return html;

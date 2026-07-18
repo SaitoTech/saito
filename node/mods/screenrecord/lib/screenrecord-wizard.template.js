@@ -25,7 +25,7 @@ module.exports = (app, mod, options) => {
   <h5 class="screenrecord-wizard-title">What do you want to record?</h5>
 `;
 
-   let video = document.querySelector('.video-box-container-large');
+   let video = document.querySelector('.saito-videobox');
 
 		html += `
 	<div class="record-mode">

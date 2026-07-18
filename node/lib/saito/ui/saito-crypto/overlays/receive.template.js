@@ -11,7 +11,7 @@ module.exports = function cryptoReceiveOverlayTemplate(details) {
 
   return `
   <div
-    class="game-crypto-transfer-manager-container crypto-receive-overlay"
+    class="saito-crypto-transfer crypto-receive-overlay"
     id="receive-crypto-request-root"
     data-receive-state="pending"
     data-receive-mode="interactive"

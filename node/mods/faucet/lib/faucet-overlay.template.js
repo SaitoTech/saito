@@ -3,7 +3,7 @@ module.exports = (app, mod) => {
 
 	return `
   <div
-    class="game-crypto-transfer-manager-container faucet-overlay"
+    class="saito-crypto-transfer faucet-overlay"
     id="faucet-request-container"
     data-faucet-state="idle"
   >

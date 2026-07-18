@@ -102,10 +102,6 @@ h6 {
   font-size: var(--font-size-h6);
 }
 
-textarea {
-  resize: none;
-}
-
 iframe {
   border: none;
 }
@@ -365,8 +361,16 @@ Media Queries
   }
 }
 
-/* Temporary global suppression of focus highlighting on form controls. */
-:where(input, textarea, select):is(:focus, :focus-visible) {
+/* Focus chrome for opted-in form components only */
+:where(
+  input.saito-input,
+  input.saito-form-input,
+  input.saito-overlay-form-input,
+  textarea.saito-textarea,
+  textarea.saito-overlay-form-input,
+  select.saito-slct,
+  select.saito-form-select
+):is(:focus, :focus-visible) {
   outline: none !important;
   border-color: var(--saito-input-border) !important;
   box-shadow: var(--saito-input-shadow) !important;
@@ -374,7 +378,6 @@ Media Queries
 
 :where(button, .saito-button-primary, .saito-button-secondary):is(:focus, :focus-visible) {
   outline: none !important;
-  box-shadow: none !important;
 }
 
 :where([contenteditable='true'], .saito-input .text-input):is(:focus, :focus-visible, :focus-within) {
@@ -383,17 +386,7 @@ Media Queries
   box-shadow: none !important;
 }
 
-:where(.post-tweet-textarea):is(:focus, :focus-visible) {
-  background: var(--saito-post-textarea-bg) !important;
-}
-
 :where(.saito-input-contact):is(:focus, :focus-visible) {
   background-color: transparent !important;
 }
 
-:where(.withdraw-input-cont):focus-within {
-  outline: none !important;
-  border-color: var(--saito-input-border) !important;
-  background-color: var(--saito-input-bg) !important;
-  box-shadow: var(--saito-input-shadow) !important;
-}

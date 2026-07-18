@@ -1,5 +1,5 @@
 module.exports = (app, contacts, keylist = null) => {
-  let html = `<div id="saito-contacts-modal" class="saito-modal contacts">
+  let html = `<div id="saito-contacts-modal" class="saito-contacts">
                 <h2 class="saito-modal-title">${contacts.title}</h2>
                 <div class="saito-modal-content saito-menu-select-heavy">
               `;

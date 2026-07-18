@@ -45,7 +45,7 @@ module.exports = () => {
           <span class="timeline-start">1</span>
           <input type="range"
                  id="game-observer-state-slider"
-                 class="game-observer-state-slider"
+                 class="saito-range game-observer-state-slider"
                  min="0"
                  max="0"
                  value="0">

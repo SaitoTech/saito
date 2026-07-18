@@ -4,7 +4,7 @@ module.exports = (app, mod) => {
   let sublogo = rtn_val.sub_logo;
 
   let html = `
-    <div class="crypto-details-overlay ">
+    <div class="saito-crypto-details ">
         <header class="saito-overlay-form-header">
             <div class="crypto-logo-container">
               <img class="crypto-logo" src="${logo}">

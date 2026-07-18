@@ -135,7 +135,7 @@ class CallInterfaceVideo {
 				return;
 			}
 
-			document.querySelectorAll('.video-box-container-large').forEach((item) => {
+			document.querySelectorAll('.saito-videobox').forEach((item) => {
 				if (item.id === `stream${peer}`) {
 					if (item.classList.contains('speaker')) {
 						return;
@@ -767,7 +767,7 @@ class CallInterfaceVideo {
 			.querySelectorAll('.videocall-primary, .videocall-secondary')
 			.forEach((c) => this.setupContainer(c));
 
-		document.querySelectorAll('.video-box-container-large').forEach((item) => {
+		document.querySelectorAll('.saito-videobox').forEach((item) => {
 			this.resizeBackground(item);
 		});
 	}
