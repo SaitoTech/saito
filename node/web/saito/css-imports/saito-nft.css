@@ -1023,42 +1023,6 @@
   justify-content: flex-end;
 }
 
-/* Legacy styles for backward compatibility */
-.nft-details-split-utxo {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  column-gap: 2rem;
-  padding: 0.8rem 0;
-  border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
-}
-
-.nft-details-split-utxo:last-child {
-  border-bottom: none;
-}
-
-.utxo-idx {
-  font-weight: 600;
-  min-width: 2rem;
-}
-
-.utxo-amount {
-  font-weight: 600;
-  min-width: 4rem;
-}
-
-.utxo-deposit {
-  color: var(--saito-font-color);
-  min-width: 4rem;
-}
-
-.utxo-actions {
-  display: flex;
-  gap: 1rem;
-  margin-left: auto;
-  align-items: center;
-}
-
 .utxo-deposit-btn,
 .utxo-split-btn,
 .utxo-delete-btn {
@@ -1172,7 +1136,7 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
 }
 
 /* ============================================
-   CREATE NFT (keep for compatibility)
+   CREATE NFT
    ============================================ */
 .create-nft-btn-row {
   display: flex;
@@ -1207,10 +1171,7 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
   gap: 1rem;
 }
 
-/* NFT list/card rules formerly in saito-wallet.css */
- * Older (but still used) NFT stuff
- * 
- ********************************************/
+/* NFT list/card */
 .create-nft-btn {
   margin-left: auto;
   padding: 1.2rem;
