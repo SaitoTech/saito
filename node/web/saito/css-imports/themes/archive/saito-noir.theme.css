@@ -185,7 +185,6 @@ html[data-theme='noir'] {
   --saito-chat-shell-bg: var(--saito-post-textarea-bg);
   --saito-chat-active-bg: var(--palette-surface-3);
   --saito-chat-header-shadow: var(--saito-elevation-0);
-  --saito-calendar-event-border: var(--saito-card-border);
   --saito-wallet-panel-bg: var(--saito-overlay-panel-background);
   --saito-wallet-panel-fg: var(--saito-font-color);
   --saito-wallet-muted-color: var(--saito-font-color-secondary);

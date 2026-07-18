@@ -59,9 +59,6 @@ This alows for a header with a header with title to be added without extra CSS
   text-shadow: 2px 2px 2px var(--saito-black);
 }
 
-.saito-contact.unconfirmed {
-  filter: brightness(0.7) grayscale(1);
-}
 
 .saito-modal-title + .saito-modal-content {
   border-top: var(--border-thickness-thick) solid var(--border-color-general-dividers);
@@ -146,115 +143,11 @@ This alows for a header with a header with title to be added without extra CSS
   height: 3rem;
 }
 
-.saito-modal-text-input {
-  margin-left: 3rem;
-  margin-right: 3rem;
-  width: 50rem;
-  max-width: 50rem;
-  margin-top: 0.75rem;
-}
-
-#saito-confirm-add-publickey {
-  background: var(--saito-modal-background);
-  height: auto;
-  width: 30vh;
-  border-radius: 1.5rem;
-  padding: 2rem;
-}
-
-#saito-confirm-add-publickey .saito-identicon-box {
-  display: inline-block;
-  margin-left: 50%;
-  transform: translateX(-50%);
-  width: 8rem;
-  height: 8rem;
-}
-
-#saito-confirm-add-publickey > .saito-address {
-  width: 100%;
-  max-width: 100%;
-  overflow: visible;
-  display: block;
-  height: auto;
-  word-break: break-word;
-  white-space: break-spaces;
-  text-align: center;
-  margin-top: 5rem;
-  margin-bottom: 1rem;
-}
-
-#saito-confirm-add-publickey > .saito-contact-status {
-  text-align: center;
-}
 
 .saito-modal-title .saito-user .saito-address {
   font-size: 4rem;
 }
 
-/* Exclusively for modal-add-user-confirm.template */
-
-.confirm-modal-wrapper {
-  font-size: 1.5em;
-  padding: 1.5em;
-  font-weight: bold;
-}
-
-.welcome-invite-box {
-  min-width: 200px;
-  min-height: 120px;
-  max-width: 325px;
-  padding: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  font-size: 25px;
-  border: 1px solid var(--saito-border-color);
-  margin: 1em;
-}
-
-/* LIST SELECTION MODAL */
-
-.game-selection-list-overlay {
-  max-height: 90vh;
-  overflow-y: scroll;
-  font-size: 2rem;
-  min-width: 400px;
-}
-
-.selection-list li {
-  cursor: pointer;
-  border-bottom: 1px solid transparent;
-  padding: 10px 0px 10px 20px;
-  list-style: none;
-}
-
-.selection-list li:hover {
-  background-color: var(--saito-surface-selected);
-}
-
-.selection-list li .tiptext {
-  width: fit-content;
-  background-color: var(--saito-chip-bg);
-  color: var(--saito-chip-fg) !important;
-  min-width: 0px;
-  padding: 3px;
-  pointer-events: none;
-  top: 5px;
-  right: 0;
-}
-
-.register-modal-controls {
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: space-between;
-  align-items: center;
-}
-
-#signup {
-  margin: 0;
-  width: 15px;
-  height: 21px;
-}
 
 .saito-overlaid-icon {
   color: var(--saito-chip-fg);
@@ -289,12 +182,6 @@ This alows for a header with a header with title to be added without extra CSS
   }
   .saito-modal > * {
     max-width: 100%;
-  }
-  .modal-content-blank {
-    width: 100%;
-  }
-  i.fas.fa-arrow-right {
-    right: -1em;
   }
 }
 

@@ -82,12 +82,6 @@
 
 /* Spinning loader */
 
-.game-loader-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 .game-loader-spinner {
   margin: auto;
   border: 16px solid var(--saito-primary);
@@ -98,17 +92,6 @@
   width: 5em;
   height: 5em;
   margin-top: 3rem;
-}
-
-.observer-loader-spinner {
-  margin: auto;
-  border: 6px solid var(--saito-primary);
-  border-top: 6px solid var(--saito-white);
-
-  border-radius: 50%;
-  animation: spin 1.5s linear infinite;
-  width: 3rem;
-  height: 3rem;
 }
 
 @keyframes spin {

@@ -229,12 +229,10 @@
 .saito-overlay-form-inputs > input[type='text'],
 .saito-overlay-form > input[type='text'],
 .saito-recovery > input[type='text'],
-.saito-backup > input[type='text'],
 .saito-crypto-withdraw > input[type='text'],
 .saito-overlay-form-input[type='text'],
 .saito-overlay-form > input[type='password'],
 .saito-recovery > input[type='password'],
-.saito-backup > input[type='password'],
 .saito-crypto-withdraw > input[type='password'] {
   height: 6rem;
   font-size: 2.3rem;
@@ -273,8 +271,6 @@
 .saito-recovery textarea.saito-overlay-form-input,
 .saito-recovery input.saito-input,
 .saito-recovery input.saito-overlay-form-input,
-.saito-backup textarea.saito-textarea,
-.saito-backup input.saito-input,
 .saito-crypto-withdraw textarea.saito-textarea,
 .saito-crypto-withdraw input.saito-input {
   border: var(--border-thickness-thin) solid var(--border-color-general-dividers);

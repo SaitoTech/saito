@@ -106,20 +106,6 @@
   display: flex;
 }
 
-.saito-follow {
-  font-size: 1.5rem;
-  color: var(--saito-font-color-light);
-  display: flex;
-  flex-direction: row;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-.saito-follow-count {
-  color: var(--saito-font-color-heavy);
-  font-weight: bold;
-}
-
 .saito-profile-header-row {
   display: grid;
   grid-template-columns: min-content 1fr;
