@@ -9,10 +9,10 @@ module.exports = (profile) => {
 
   const keyHtml = publicKey
     ? `
-      <div class="profile-key-row">
-        <span class="profile-public-key" title="${publicKey}">${publicKey}</span>
+      <div class="key-row">
+        <span class="public-key" title="${publicKey}">${publicKey}</span>
         <button
-          class="profile-copy-key"
+          class="copy-key"
           type="button"
           data-profile-key="${publicKey}"
           aria-label="Copy address"
@@ -29,11 +29,11 @@ module.exports = (profile) => {
     : '';
 
   const bioClass = [
-    'profile-bio',
+    'bio',
     'saito-profile-description',
     canEdit ? 'can-edit' : '',
     !bio && canEdit ? 'empty' : '',
-    !bio && !canEdit ? 'profile-bio-empty' : ''
+    !bio && !canEdit ? 'empty' : ''
   ]
     .filter(Boolean)
     .join(' ');
@@ -47,32 +47,32 @@ module.exports = (profile) => {
   } else if (canEdit) {
     bioInner = profile.emptyBioPlaceholderHtml
       ? profile.emptyBioPlaceholderHtml()
-      : `<div class="saito-description-edit profile-bio-placeholder"></div>`;
+      : `<div class="saito-description-edit placeholder"></div>`;
   }
 
   const bannerStyle = banner ? ` style="background-image: url('${banner}')"` : '';
 
   // Injected into `.sidebar-right > .profile` — no outer `.profile` wrapper.
   // Posts / Replies / Likes are navigation destinations, not tabs.
-  // Compose lives in the feed header (`.manager-header-actions`), not here.
+  // Compose lives in the feed header (`.actions`), not here.
   return `
-      <div class="profile-card" data-profile-key="${publicKey}">
-        <div id="profile-banner-${publicKey}" class="profile-banner saito-profile-banner profile-banner-${publicKey}" data-id="${publicKey}"${bannerStyle}>
+      <div class="card" data-profile-key="${publicKey}">
+        <div id="banner-${publicKey}" class="banner saito-profile-banner banner-${publicKey}" data-id="${publicKey}"${bannerStyle}>
           ${bannerEditHtml}
         </div>
-        <div class="profile-body">
-          <div class="profile-identity">
-            <img class="profile-avatar" src="${avatar}" alt="${name}" />
-            <div class="profile-identity-text">
-              <span class="profile-name">${name}</span>
+        <div class="body">
+          <div class="identity">
+            <img class="avatar" src="${avatar}" alt="${name}" />
+            <div class="text">
+              <span class="name">${name}</span>
               ${keyHtml}
             </div>
           </div>
           <div class="${bioClass}">${bioInner}</div>
-          <nav class="profile-nav" aria-label="Profile navigation">
-            <div class="profile-nav-item" role="link" tabindex="0" data-profile-nav="posts">Posts</div>
-            <div class="profile-nav-item" role="link" tabindex="0" data-profile-nav="replies">Replies</div>
-            <div class="profile-nav-item" role="link" tabindex="0" data-profile-nav="likes">Likes</div>
+          <nav class="nav" aria-label="Profile navigation">
+            <div class="item" role="link" tabindex="0" data-profile-nav="posts">Posts</div>
+            <div class="item" role="link" tabindex="0" data-profile-nav="replies">Replies</div>
+            <div class="item" role="link" tabindex="0" data-profile-nav="likes">Likes</div>
           </nav>
         </div>
       </div>

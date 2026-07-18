@@ -1,0 +1,73 @@
+/* Sidebar — stack + suggestion grid */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+}
+
+.redsquare-arcade,
+.redsquare-leaderboard,
+.redsquare-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  min-width: 0;
+}
+
+.redsquare-arcade:empty,
+.redsquare-leaderboard:empty,
+.redsquare-sidebar:empty {
+  display: none;
+}
+
+.panel-title {
+  margin: 0;
+  padding: var(--saito-space-md) var(--saito-space-md) var(--saito-space-xs);
+}
+
+.suggestion-list {
+  list-style: none;
+}
+
+.suggestion {
+  display: grid;
+  grid-template-columns: 3.8rem minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--saito-space-xs);
+  padding: var(--saito-space-xs) var(--saito-space-md);
+}
+
+.sidebar .avatar {
+  width: 3.8rem;
+  height: 3.8rem;
+  object-fit: cover;
+}
+
+.sidebar .info {
+  min-width: 0;
+}
+
+.sidebar .name,
+.sidebar .handle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar .follow {
+  min-height: 2.6rem;
+  padding: 0 var(--saito-space-sm);
+}
+
+.sidebar .more {
+  display: block;
+  padding: var(--saito-space-xs) var(--saito-space-md);
+}
+
+.sidebar .footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--saito-space-xs) var(--saito-space-sm);
+  padding: var(--saito-space-xs) var(--saito-space-md) 0;
+}

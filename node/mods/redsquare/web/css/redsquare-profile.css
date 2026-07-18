@@ -1,0 +1,127 @@
+/* Profile — banner height, avatar overlap, nav strip */
+
+.profile .card {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile .banner,
+.profile .saito-profile-banner {
+  position: relative;
+  height: 8.5rem;
+  overflow: hidden;
+  background: var(--saito-surface-color) url(/saito/img/dreamscape.png) center / cover;
+}
+
+.profile .saito-banner-edit {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.profile .body {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile .identity {
+  display: grid;
+  grid-template-columns: 6.8rem minmax(0, 1fr);
+  column-gap: var(--saito-space-sm);
+  margin: calc(6.8rem * -0.32) 0 var(--saito-space-sm);
+  padding: 0 var(--saito-space-md);
+  min-width: 0;
+}
+
+.profile .avatar {
+  width: 6.8rem;
+  height: 6.8rem;
+  z-index: 1;
+}
+
+.profile .text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-top: calc(6.8rem * 0.32 + 0.15rem);
+}
+
+.profile .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 2.2rem;
+}
+
+.public-key {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Size only — beats saito-buttons min-width; theme colours still apply */
+.copy-key {
+  width: 2.2rem;
+  height: 2.2rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+
+/* Beat .saito-profile-description flex/margins */
+.profile .bio,
+.profile .saito-profile-description {
+  flex: none;
+  margin: 0;
+  padding: 0 var(--saito-space-md) var(--saito-space-sm);
+  overflow: hidden;
+}
+
+.profile .bio.empty:not(.can-edit) {
+  display: none;
+}
+
+.profile .saito-profile-description.can-edit {
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.profile .saito-description-edit {
+  display: none;
+}
+
+.profile .saito-profile-description.can-edit .saito-description-edit {
+  display: flex;
+}
+
+.profile .saito-profile-description.can-edit.empty .saito-description-edit {
+  display: block;
+}
+
+.profile .nav {
+  display: flex;
+}
+
+.profile .nav .item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem 0.4rem;
+  cursor: pointer;
+  user-select: none;
+}

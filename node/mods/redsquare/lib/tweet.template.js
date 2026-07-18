@@ -78,7 +78,6 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
   });
 
   const body = TweetBodyTemplate({
-    presentation,
     text:
       tweet.app && tweet.app.browser
         ? tweet.app.browser.sanitize(tweet.app.browser.markupMentions(tweet?.text || ''), true)
@@ -86,7 +85,6 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
   });
 
   const gallery = TweetGalleryTemplate({
-    presentation,
     images: tweet.images
   });
 
@@ -94,7 +92,7 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
 
   if (allowEmbed && tweet.embedded) {
     embed = `
-      <div class="tweet-embed">
+      <div class="embed">
         ${TweetTemplate(tweet.embedded, 'tweet embedded', {
           presentation: 'embedded',
           embedded: true,
@@ -107,7 +105,6 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
   const footer = hideControls
     ? ''
     : TweetFooterTemplate({
-        presentation,
         replies: tweet.replies,
         retweets: tweet.retweets,
         likes: tweet.likes
@@ -116,16 +113,16 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
   // Absolute-style timestamp under body for focused (relative value for now).
   const timeBlock =
     presentation === 'focused' && tweet.time
-      ? `<div class="tweet-time ${presentation}">${tweet.time}</div>`
+      ? `<div class="posted">${tweet.time}</div>`
       : '';
 
-  const chain = embedded ? '' : '<div class="tweet-chain" aria-hidden="true"></div>';
+  const chain = embedded ? '' : '<div class="chain" aria-hidden="true"></div>';
 
   return `
-    <article class="${className}" data-id="${tweet.signature}" data-presentation="${presentation}">
+    <article class="${className}" data-id="${tweet.signature}">
       ${chain}
-      <img class="tweet-avatar saito-identicon" src="${tweet.avatar}" alt="${tweet.username}" />
-      <div class="tweet-content">
+      <img class="avatar saito-identicon" src="${tweet.avatar}" alt="${tweet.username}" />
+      <div class="content">
         ${header}
         ${body}
         ${gallery}

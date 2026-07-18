@@ -63,7 +63,7 @@ class ComposeOverlay {
     this.attachEvents();
 
     setTimeout(() => {
-      const input = this.getRoot()?.querySelector('.compose-input');
+      const input = this.getRoot()?.querySelector('.input');
 
       if (input) {
         input.focus();
@@ -80,7 +80,7 @@ class ComposeOverlay {
   }
 
   getRoot() {
-    return document.querySelector('.saito-overlay .compose-overlay');
+    return document.querySelector('.saito-overlay .compose');
   }
 
   attachEvents() {
@@ -90,14 +90,14 @@ class ComposeOverlay {
       return;
     }
 
-    const input = root.querySelector('.compose-input');
-    const submitBtn = root.querySelector('.compose-submit');
-    const emojiBtn = root.querySelector('.compose-emoji-btn');
-    const imageBtn = root.querySelector('.compose-image-btn');
-    const gifBtn = root.querySelector('.compose-gif-btn');
-    const fileInput = root.querySelector('.compose-file-input');
-    const gifPlaceholder = root.querySelector('.compose-gif-placeholder');
-    const gifDismiss = root.querySelector('.compose-gif-dismiss');
+    const input = root.querySelector('.input');
+    const submitBtn = root.querySelector('.submit');
+    const emojiBtn = root.querySelector('.tool.emoji');
+    const imageBtn = root.querySelector('.tool.image');
+    const gifBtn = root.querySelector('.tool.gif');
+    const fileInput = root.querySelector('.file-input');
+    const gifPlaceholder = root.querySelector('.gif-placeholder');
+    const gifDismiss = root.querySelector('.gif-dismiss');
 
     if (input) {
       input.addEventListener('input', () => {
@@ -193,16 +193,16 @@ class ComposeOverlay {
       return;
     }
 
-    root.classList.toggle('compose-overlay--posting', active);
+    root.classList.toggle('posting', active);
 
-    const screen = root.querySelector('.compose-posting-screen');
+    const screen = root.querySelector('.posting-screen');
 
     if (screen) {
       screen.setAttribute('aria-hidden', active ? 'false' : 'true');
     }
 
     root.querySelectorAll('button, textarea, input').forEach((el) => {
-      if (el.classList.contains('compose-file-input')) {
+      if (el.classList.contains('file-input')) {
         return;
       }
 
@@ -211,7 +211,7 @@ class ComposeOverlay {
   }
 
   getText() {
-    const input = this.getRoot()?.querySelector('.compose-input');
+    const input = this.getRoot()?.querySelector('.input');
     return input ? input.value : '';
   }
 
@@ -222,8 +222,8 @@ class ComposeOverlay {
       return;
     }
 
-    const current = root.querySelector('.compose-char-current');
-    const countWrap = root.querySelector('.compose-char-count');
+    const current = root.querySelector('.char-count .current');
+    const countWrap = root.querySelector('.char-count');
     const length = this.getText().length;
 
     if (current) {
@@ -277,7 +277,7 @@ class ComposeOverlay {
   }
 
   addImagePreview(src) {
-    const container = this.getRoot()?.querySelector('.compose-image-preview');
+    const container = this.getRoot()?.querySelector('.image-preview');
 
     if (!container || !src) {
       return;
@@ -285,19 +285,19 @@ class ComposeOverlay {
 
     const index = this.images.length;
     const html = `
-      <figure class="compose-image-item" data-index="${index}">
+      <figure class="image-item" data-index="${index}">
         <img src="${src}" alt="" />
-        <div class="compose-image-remove" role="button" tabindex="0" title="Remove image" aria-label="Remove image">
+        <div class="image-remove" role="button" tabindex="0" title="Remove image" aria-label="Remove image">
           <i class="fa-solid fa-xmark"></i>
         </div>
       </figure>
     `;
 
-    this.app.browser.addElementToSelector(html, `.saito-overlay #redsquare-compose-surface .compose-image-preview`);
+    this.app.browser.addElementToSelector(html, `.saito-overlay #redsquare-compose-surface .image-preview`);
     this.images.push(src);
 
-    const item = container.querySelector(`.compose-image-item[data-index="${index}"]`);
-    const removeBtn = item?.querySelector('.compose-image-remove');
+    const item = container.querySelector(`.image-item[data-index="${index}"]`);
+    const removeBtn = item?.querySelector('.image-remove');
 
     if (removeBtn) {
       const removeImage = (e) => {
@@ -318,7 +318,7 @@ class ComposeOverlay {
   removeImageAt(index) {
     this.images.splice(index, 1);
 
-    const container = this.getRoot()?.querySelector('.compose-image-preview');
+    const container = this.getRoot()?.querySelector('.image-preview');
 
     if (!container) {
       return;

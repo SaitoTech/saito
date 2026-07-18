@@ -1193,7 +1193,7 @@ class RedSquare extends ModTemplate {
           callback: (app) => {
             this.compose_overlay?.open();
             setTimeout(() => {
-              document.querySelector('.saito-overlay .compose-file-input')?.click();
+              document.querySelector('.saito-overlay .compose .file-input')?.click();
             }, 100);
           }
         }

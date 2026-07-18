@@ -2,11 +2,11 @@ module.exports = (menu) => {
   const items = menu.actions
     .map(
       (action) => `
-    <div class="tweet-menu-item" role="menuitem" tabindex="0" data-action="${action.id}">
-      <span class="tweet-menu-icon" aria-hidden="true">
+    <div class="item" role="menuitem" tabindex="0" data-action="${action.id}">
+      <span class="icon" aria-hidden="true">
         <i class="fa-solid ${action.icon}"></i>
       </span>
-      <span class="tweet-menu-label">${action.label}</span>
+      <span class="label">${action.label}</span>
     </div>
   `
     )

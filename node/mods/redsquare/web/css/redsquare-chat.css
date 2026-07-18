@@ -1,156 +1,58 @@
-/*
- * Chat Manager embed — presentation only.
- * Chat owns chat via respondTo('chat-manager'); RedSquare mounts it in `.sidebar-left`.
- *
- * Preferred earlier RedSquare look: tighter rows, S/M avatars (3.8rem ≈ 45.6px @ 12px root), cleaner hierarchy.
- * Keep Chat's unread .saito-notification-dot badge; do not restyle it away.
- */
+/* Chat embed — denser rows; hide overlay chrome */
 
-body.redsquare-body .sidebar-left > .chat-manager {
+.sidebar-left > .chat-manager {
   display: flex;
   flex-direction: column;
-  width: 100%;
   min-width: 0;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  background: var(--rs-layer-recessed);
-  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle);
-  border-radius: var(--rs-radius);
   overflow: hidden;
-  box-sizing: border-box;
-  /* Override global chat-manager grid for sidebar density */
   grid-template-rows: none;
 }
 
-body.redsquare-body .sidebar-left .chat-manager-header {
+.sidebar-left .chat-manager-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: var(--rs-space-xs);
-  margin: 0;
-  padding: 0.8rem var(--rs-sidebar-pad) 0.4rem;
-  min-height: 0;
-  color: var(--rs-text-strong, var(--saito-font-color-heavy));
-  text-transform: none;
+  padding: 0.8rem var(--saito-space-md) 0.4rem;
 }
 
-body.redsquare-body .sidebar-left .chat-manager-title {
-  font-family: var(--saito-font-heavy);
-  font-size: var(--rs-section-title);
-  font-weight: normal;
-  letter-spacing: normal;
-  text-transform: none;
-  color: inherit;
-}
-
-/* Overlay/mobile chrome — hide when Chat Manager is sidebar-embedded */
-body.redsquare-body .sidebar-left .chat-manager .close-chat-manager,
-body.redsquare-body .sidebar-left .chat-manager .alternate-close-button {
+.sidebar-left .close-chat-manager,
+.sidebar-left .alternate-close-button {
   display: none;
 }
 
-body.redsquare-body .sidebar-left .chat-manager-options {
-  color: var(--rs-text-muted, var(--saito-font-color-secondary));
-  cursor: pointer;
-}
-
-body.redsquare-body .sidebar-left .chat-manager-list,
-body.redsquare-body .sidebar-left .chat-manager-list.saito-sidebar-element {
-  margin: 0;
+.sidebar-left .chat-manager-list {
   padding: 0.2rem 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
   max-height: none;
-  min-height: 0;
-  overflow: visible;
-  gap: 0;
 }
 
-/* Tighter chat rows — preferred earlier density; keep unread badge */
-body.redsquare-body .sidebar-left .chat-manager-list .saito-user {
-  grid-template-columns: var(--rs-avatar-m) minmax(0, 1fr) auto;
-  grid-template-rows: auto auto;
-  align-items: center;
+.sidebar-left .saito-user {
+  grid-template-columns: 3.8rem minmax(0, 1fr) auto;
   column-gap: 0.8rem;
-  row-gap: 0.1rem;
-  min-height: 0;
-  margin: 0;
-  padding: 0.55rem var(--rs-sidebar-pad);
-  border-radius: 0;
+  padding: 0.55rem var(--saito-space-md);
   overflow: hidden;
-  transition: background var(--rs-transition);
 }
 
-body.redsquare-body .sidebar-left .chat-manager-list .saito-user:hover {
-  background: var(--rs-surface-hover);
+.sidebar-left .saito-identicon-box,
+.sidebar-left .saito-identicon {
+  width: 3.8rem;
+  height: 3.8rem;
 }
 
-body.redsquare-body .sidebar-left .chat-manager-list .saito-identicon-box {
-  width: var(--rs-avatar-m);
-  height: var(--rs-avatar-m);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-body.redsquare-body .sidebar-left .chat-manager-list .saito-identicon-box .saito-identicon,
-body.redsquare-body .sidebar-left .chat-manager-list .saito-identicon {
-  width: var(--rs-avatar-m);
-  height: var(--rs-avatar-m);
-  border-radius: var(--rs-avatar-radius);
-  object-fit: cover;
-}
-
-body.redsquare-body .sidebar-left .chat-manager-list .saito-address {
-  min-width: 0;
-  max-width: 100%;
-  align-self: end;
-  font-size: var(--font-size-tiny);
-  font-weight: 500;
-  line-height: 1.25;
-  color: var(--rs-text-strong, var(--saito-font-color-heavy));
-}
-
-body.redsquare-body .sidebar-left .chat-manager-list .chat-group-name {
-  min-width: 0;
-  max-width: 100%;
+.sidebar-left .saito-address,
+.sidebar-left .chat-group-name,
+.sidebar-left .saito-userline {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-body.redsquare-body .sidebar-left .chat-manager-list .saito-userline {
-  font-size: 1.25rem;
-  line-height: 1.3;
-  height: auto;
-  color: var(--rs-text-muted, var(--saito-font-color-secondary));
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-body.redsquare-body .sidebar-left .chat-manager-list .saito-chat-notifications {
-  align-self: center;
-}
-
-/* Unread badge — keep Chat's native .saito-notification-dot */
-body.redsquare-body .sidebar-left .chat-manager-list .saito-notification-dot {
-  display: flex;
-}
-
-body.redsquare-body .sidebar-left .chat-manager-list .online-status-indicator:after,
-body.redsquare-body .sidebar-left .chat-manager-list .stun .online-status-indicator i {
-  top: calc(var(--rs-avatar-m) - 0.15rem);
-  left: calc(var(--rs-avatar-m) - 0.15rem);
+.sidebar-left .online-status-indicator:after,
+.sidebar-left .stun .online-status-indicator i {
+  top: calc(3.8rem - 0.15rem);
+  left: calc(3.8rem - 0.15rem);
 }
 
 @media (max-width: 1200px) {
-  /*
-   * Narrow left column — nav icons stay; Chat Manager needs horizontal room
-   * and is suppressed here (same breakpoint as production RedSquare).
-   */
-  body.redsquare-body .sidebar-left > .chat-manager {
+  .sidebar-left > .chat-manager {
     display: none;
   }
 }

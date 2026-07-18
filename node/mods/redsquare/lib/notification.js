@@ -170,7 +170,7 @@ class Notification {
       return '';
     }
 
-    const tweetHtml = TweetTemplate(tweet, 'tweet timeline', {
+    const tweetHtml = TweetTemplate(tweet, 'tweet slot', {
       presentation: 'timeline',
       hideControls: true
     });

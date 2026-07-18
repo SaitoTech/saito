@@ -36,12 +36,12 @@ module.exports = ({
 
   if (resolvedMode === 'compose') {
     const secondaryHtml = secondary
-      ? `<span class="tweet-header-secondary saito-userline">${secondary}</span>`
+      ? `<span class="secondary saito-userline">${secondary}</span>`
       : '';
 
     return `
-    <header class="tweet-header compose">
-      <span class="tweet-header-primary saito-address">${name}</span>
+    <header class="header compose">
+      <span class="primary saito-address">${name}</span>
       ${secondaryHtml}
     </header>
   `;
@@ -49,12 +49,12 @@ module.exports = ({
 
   if (resolvedMode === 'expanded') {
     const handleHtml = handle
-      ? `<span class="tweet-header-handle saito-userline">${handle}</span>`
+      ? `<span class="handle saito-userline">${handle}</span>`
       : '';
 
     return `
-    <header class="tweet-header expanded">
-      <span class="tweet-header-primary saito-address">${name}</span>
+    <header class="header expanded">
+      <span class="primary saito-address">${name}</span>
       ${handleHtml}
     </header>
   `;
@@ -63,15 +63,15 @@ module.exports = ({
   // compact — identity group: Username · time
   const parts = [];
 
-  parts.push(`<span class="tweet-header-primary saito-address">${name}</span>`);
+  parts.push(`<span class="primary saito-address">${name}</span>`);
 
   if (time) {
-    parts.push(`<span class="tweet-header-sep tweet-header-sep-time" aria-hidden="true">·</span>`);
-    parts.push(`<time class="tweet-header-time saito-userline">${time}</time>`);
+    parts.push(`<span class="sep time" aria-hidden="true">·</span>`);
+    parts.push(`<time class="time saito-userline">${time}</time>`);
   }
 
   return `
-    <header class="tweet-header compact">
+    <header class="header compact">
       ${parts.join('\n      ')}
     </header>
   `;

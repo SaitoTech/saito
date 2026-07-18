@@ -250,11 +250,11 @@ class Tweet {
               ? 'reply'
               : 'timeline');
 
-    const classes = ['tweet', presentation];
+    // Default timeline presentation has no modifier — root is just `.tweet`.
+    const classes = ['tweet'];
 
-    // Back-compat alias while CSS migrates from .tweet-embedded
-    if (presentation === 'embedded') {
-      classes.push('tweet-embedded');
+    if (presentation && presentation !== 'timeline') {
+      classes.push(presentation);
     }
 
     if (options.focused && presentation !== 'focused') {
@@ -310,7 +310,7 @@ class Tweet {
 
     for (const [tool, count] of selectors) {
       const nodes = document.querySelectorAll(
-        `article.tweet[data-id="${this.signature}"] .tweet-tool-${tool} .tweet-tool-${tool}-count`
+        `article.tweet[data-id="${this.signature}"] .tool.${tool} .count`
       );
 
       for (const node of nodes) {

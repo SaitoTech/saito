@@ -1,7 +1,7 @@
-module.exports = ({ presentation = 'timeline', text = '' } = {}) => {
+module.exports = ({ text = '' } = {}) => {
   if (!text || String(text).trim() === '') {
     return '';
   }
 
-  return `<div class="tweet-body ${presentation}">${text}</div>`;
+  return `<div class="body">${text}</div>`;
 };

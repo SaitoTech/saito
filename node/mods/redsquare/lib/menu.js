@@ -35,19 +35,19 @@ class Menu {
       return;
     }
 
-    const icon = root.querySelector('.menu-item:nth-child(2) .menu-icon');
+    const icon = root.querySelector('.item:nth-child(2) .icon');
 
     if (!icon) {
       return;
     }
 
-    let badge = icon.querySelector('.menu-badge');
+    let badge = icon.querySelector('.badge');
 
     if (count > 0) {
       if (!badge) {
         this.app.browser.addElementToSelector(
-          `<span class="saito-notification-dot menu-badge" aria-hidden="true">${count}</span>`,
-          `${this.container} .menu-item:nth-child(2) .menu-icon`
+          `<span class="saito-notification-dot badge" aria-hidden="true">${count}</span>`,
+          `${this.container} .item:nth-child(2) .icon`
         );
         return;
       }
@@ -70,9 +70,9 @@ class Menu {
 
     root.dataset.menuBound = '1';
 
-    const homeItem = root.querySelector('.menu-item:nth-child(1)');
-    const notificationsItem = root.querySelector('.menu-item:nth-child(2)');
-    const settingsItem = root.querySelector('.menu-item:nth-child(3)');
+    const homeItem = root.querySelector('.item:nth-child(1)');
+    const notificationsItem = root.querySelector('.item:nth-child(2)');
+    const settingsItem = root.querySelector('.item:nth-child(3)');
 
     if (homeItem) {
       homeItem.addEventListener('click', () => {
@@ -103,7 +103,7 @@ class Menu {
       return;
     }
 
-    root.querySelectorAll('.menu-item').forEach((item) => {
+    root.querySelectorAll('.item').forEach((item) => {
       item.classList.toggle('active', item === activeItem);
     });
   }

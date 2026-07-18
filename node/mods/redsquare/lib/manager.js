@@ -198,10 +198,10 @@ class Manager {
 
     if (
       root &&
-      root.querySelector('.manager-header') &&
-      root.querySelector('.manager-header-back') &&
-      root.querySelector('.manager-timeline') &&
-      root.querySelector('.manager-profile')
+      root.querySelector('.header') &&
+      root.querySelector('.back') &&
+      root.querySelector('.list[data-panel="timeline"]') &&
+      root.querySelector('.list[data-panel="profile"]')
     ) {
       return;
     }
@@ -222,26 +222,26 @@ class Manager {
       return;
     }
 
-    const timeline = root.querySelector('.manager-timeline');
-    const thread = root.querySelector('.manager-thread');
-    const notifications = root.querySelector('.manager-notifications');
-    const profile = root.querySelector('.manager-profile');
+    const timeline = root.querySelector('.list[data-panel="timeline"]');
+    const thread = root.querySelector('.list[data-panel="thread"]');
+    const notifications = root.querySelector('.list[data-panel="notifications"]');
+    const profile = root.querySelector('.list[data-panel="profile"]');
     const profileModes = this.mode === 'posts' || this.mode === 'replies' || this.mode === 'likes';
 
     if (timeline) {
-      timeline.classList.toggle('manager-panel-hidden', this.mode !== 'timeline');
+      timeline.hidden = this.mode !== 'timeline';
     }
 
     if (thread) {
-      thread.classList.toggle('manager-panel-hidden', this.mode !== 'thread');
+      thread.hidden = this.mode !== 'thread';
     }
 
     if (notifications) {
-      notifications.classList.toggle('manager-panel-hidden', this.mode !== 'notifications');
+      notifications.hidden = this.mode !== 'notifications';
     }
 
     if (profile) {
-      profile.classList.toggle('manager-panel-hidden', !profileModes);
+      profile.hidden = !profileModes;
     }
 
     if (this.mode !== 'timeline') {
@@ -266,9 +266,9 @@ class Manager {
       return;
     }
 
-    const title = root.querySelector('.manager-header-title');
-    const back = root.querySelector('.manager-header-back');
-    const header = root.querySelector('.manager-header');
+    const title = root.querySelector('.title');
+    const back = root.querySelector('.back');
+    const header = root.querySelector('.header');
     const scrollRoot = header?.parentElement || root;
 
     const labels = {
@@ -292,9 +292,9 @@ class Manager {
       back.setAttribute('aria-hidden', showBack ? 'false' : 'true');
     }
 
-    scrollRoot.classList.toggle('manager-has-back', showBack);
-    scrollRoot.classList.toggle('manager--detail', isDetail);
-    scrollRoot.classList.toggle('manager--timeline', !isDetail);
+    scrollRoot.classList.toggle('has-back', showBack);
+    scrollRoot.classList.toggle('detail', isDetail);
+    scrollRoot.classList.toggle('timeline', !isDetail);
   }
 
   /**
@@ -314,8 +314,8 @@ class Manager {
 
   getScrollContainer() {
     const body =
-      document.querySelector(`${this.container} .manager-body`) ||
-      document.querySelector('.manager-body');
+      document.querySelector(`${this.container} .body`) ||
+      document.querySelector('.manager .body');
     const scroller = body?.closest('.manager');
 
     return (
@@ -351,7 +351,7 @@ class Manager {
   }
 
   resetMenuToHome() {
-    const homeItem = document.querySelector('.sidebar-left .menu-item:nth-child(1)');
+    const homeItem = document.querySelector('.sidebar-left .item:nth-child(1)');
 
     if (homeItem && this.mod.main?.menu) {
       this.mod.main.menu.setActiveMenuItem(homeItem);
@@ -416,32 +416,32 @@ class Manager {
 
     switch (this.mode) {
       case 'thread':
-        return root.querySelector('.manager-thread');
+        return root.querySelector('.list[data-panel="thread"]');
       case 'notifications':
-        return root.querySelector('.manager-notifications');
+        return root.querySelector('.list[data-panel="notifications"]');
       case 'posts':
       case 'replies':
       case 'likes':
-        return root.querySelector('.manager-profile');
+        return root.querySelector('.list[data-panel="profile"]');
       case 'timeline':
       default:
-        return root.querySelector('.manager-timeline');
+        return root.querySelector('.list[data-panel="timeline"]');
     }
   }
 
   getActivePanelSelector() {
     switch (this.mode) {
       case 'thread':
-        return `${this.container} .manager-thread`;
+        return `${this.container} .list[data-panel="thread"]`;
       case 'notifications':
-        return `${this.container} .manager-notifications`;
+        return `${this.container} .list[data-panel="notifications"]`;
       case 'posts':
       case 'replies':
       case 'likes':
-        return `${this.container} .manager-profile`;
+        return `${this.container} .list[data-panel="profile"]`;
       case 'timeline':
       default:
-        return `${this.container} .manager-timeline`;
+        return `${this.container} .list[data-panel="timeline"]`;
     }
   }
 
@@ -485,7 +485,7 @@ class Manager {
   }
 
   paintThread() {
-    const container = `${this.container} .manager-thread`;
+    const container = `${this.container} .list[data-panel="thread"]`;
 
     this.clearPanel(container);
     this.renderThreadContextLink(container);
@@ -508,7 +508,7 @@ class Manager {
 
     const root = this.getThreadRoot(this.active_signature);
     const html = `
-      <div class="manager-thread-context" role="button" tabindex="0" data-root="${root}">
+      <div class="thread-context" role="button" tabindex="0" data-root="${root}">
         View entire thread
       </div>
     `;
@@ -933,7 +933,7 @@ class Manager {
       return;
     }
 
-    const container = `${this.container} .manager-timeline`;
+    const container = `${this.container} .list[data-panel="timeline"]`;
     const panel = document.querySelector(container);
 
     if (!panel) {
@@ -975,7 +975,7 @@ class Manager {
       return;
     }
 
-    const container = `${this.container} .manager-thread`;
+    const container = `${this.container} .list[data-panel="thread"]`;
     const panel = document.querySelector(container);
 
     if (!panel) {
@@ -1016,10 +1016,10 @@ class Manager {
       return;
     }
 
-    element.classList.add('tweet-enter');
+    element.classList.add('enter');
 
     const onEnd = () => {
-      element.classList.remove('tweet-enter');
+      element.classList.remove('enter');
       element.removeEventListener('animationend', onEnd);
     };
 
@@ -1097,7 +1097,7 @@ class Manager {
     root.dataset.feedHeaderBackBound = '1';
 
     root.addEventListener('click', (e) => {
-      const btn = e.target.closest('.manager-header-back');
+      const btn = e.target.closest('.back');
 
       if (!btn || !root.contains(btn) || btn.hidden) {
         return;
@@ -1116,7 +1116,7 @@ class Manager {
     root.dataset.threadContextBound = '1';
 
     root.addEventListener('click', (e) => {
-      const link = e.target.closest('.manager-thread-context');
+      const link = e.target.closest('.thread-context');
 
       if (!link) {
         return;
@@ -1141,7 +1141,7 @@ class Manager {
     root.dataset.tweetReplyBound = '1';
 
     root.addEventListener('click', (e) => {
-      const replyButton = e.target.closest('.tweet-tool-comment');
+      const replyButton = e.target.closest('.tool.comment');
 
       if (!replyButton) {
         return;
@@ -1168,7 +1168,7 @@ class Manager {
     root.dataset.tweetLikeBound = '1';
 
     root.addEventListener('click', async (e) => {
-      const likeButton = e.target.closest('.tweet-tool-like');
+      const likeButton = e.target.closest('.tool.like');
 
       if (!likeButton) {
         return;
@@ -1224,7 +1224,7 @@ class Manager {
     root.dataset.tweetRetweetBound = '1';
 
     root.addEventListener('click', (e) => {
-      const retweetButton = e.target.closest('.tweet-tool-retweet');
+      const retweetButton = e.target.closest('.tool.retweet');
 
       if (!retweetButton) {
         return;
@@ -1251,7 +1251,7 @@ class Manager {
     root.dataset.tweetMenuBound = '1';
 
     root.addEventListener('click', (e) => {
-      const moreButton = e.target.closest('.tweet-tool-more');
+      const moreButton = e.target.closest('.tool.more');
 
       if (!moreButton) {
         return;
@@ -1473,7 +1473,7 @@ class Manager {
   }
 
   prependTimelineTweets(signatures) {
-    const container = `${this.container} .manager-timeline`;
+    const container = `${this.container} .list[data-panel="timeline"]`;
     const panel = document.querySelector(container);
 
     if (!panel || !signatures?.length) {
@@ -1515,7 +1515,7 @@ class Manager {
   }
 
   prependNotifications(signatures) {
-    const container = `${this.container} .manager-notifications`;
+    const container = `${this.container} .list[data-panel="notifications"]`;
     const panel = document.querySelector(container);
 
     if (!panel || !signatures?.length) {
@@ -1550,14 +1550,14 @@ class Manager {
       return;
     }
 
-    let banner = root.querySelector('.manager-new-posts-banner');
+    let banner = root.querySelector('.new-posts-banner');
 
     if (!banner) {
-      const body = root.querySelector('.manager-body');
+      const body = root.querySelector('.body');
       const host = body?.parentElement || root;
 
       banner = document.createElement('button');
-      banner.className = 'manager-new-posts-banner';
+      banner.className = 'new-posts-banner';
       banner.type = 'button';
       banner.textContent = 'New posts available';
       banner.addEventListener('click', () => {
@@ -1572,18 +1572,16 @@ class Manager {
     }
 
     banner.hidden = false;
-    banner.classList.remove('manager-new-posts-banner-hidden');
   }
 
   hideNewPostsBanner() {
-    const banner = document.querySelector(`${this.container} .manager-new-posts-banner`);
+    const banner = document.querySelector(`${this.container} .new-posts-banner`);
 
     if (!banner) {
       return;
     }
 
     banner.hidden = true;
-    banner.classList.add('manager-new-posts-banner-hidden');
   }
 
   revealPendingNewerTweets() {
@@ -1773,16 +1771,16 @@ class Manager {
       return null;
     }
 
-    let footer = panel.querySelector('.manager-feed-status');
+    let footer = panel.querySelector('.feed-status');
 
     // Upgrade leftover terminators from earlier builds.
     if (!footer) {
       panel
-        .querySelectorAll('.manager-feed-end, .manager-scroll-footer')
+        .querySelectorAll('.feed-end, .scroll-footer')
         .forEach((node) => node.remove());
 
       this.app.browser.addElementToElement(ManagerScrollFooterTemplate(), panel);
-      footer = panel.querySelector('.manager-feed-status');
+      footer = panel.querySelector('.feed-status');
     }
 
     if (footer && footer.parentNode === panel) {
@@ -1860,7 +1858,7 @@ class Manager {
     const status = this.resolveFeedStatus();
     footer.dataset.status = status;
 
-    const message = footer.querySelector('.manager-feed-status-message');
+    const message = footer.querySelector('.message');
 
     if (message) {
       // Loading is spinner-only — never keep empty/end copy under the loader.
@@ -1886,7 +1884,7 @@ class Manager {
       return false;
     }
 
-    return Boolean(element.closest('.tweet-controls, .tweet-show-more, .tweet-tool'));
+    return Boolean(element.closest('.controls, .show-more, .tool'));
   }
 
   static resolveClickedSignature(element) {

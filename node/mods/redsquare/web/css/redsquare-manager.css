@@ -1,0 +1,139 @@
+/* Manager — feed scrollport + header layout */
+
+.manager {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.manager .header {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+  height: 5.6rem;
+  padding: 0 1.6rem;
+  background: var(--saito-feed-bg, var(--saito-background-color));
+}
+
+.manager.detail .header {
+  position: sticky;
+  top: 0;
+}
+
+.manager .start {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.manager .back {
+  width: 3.2rem;
+  height: 3.2rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+
+.manager .title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager .body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.new-posts-banner {
+  display: block;
+  padding: 0.9rem 1.6rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.new-posts-banner[hidden] {
+  display: none;
+}
+
+.feed-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.feed-status .loader {
+  display: none;
+  min-height: 7rem;
+}
+
+.feed-status .saito-loader {
+  position: relative;
+  width: 5.5rem;
+  height: 5.5rem;
+}
+
+.feed-status .saito-loader::after {
+  top: 50%;
+  left: 50%;
+  width: 3.5rem;
+  height: 3.5rem;
+  background-attachment: scroll;
+}
+
+.feed-status .message {
+  display: none;
+  max-width: 24rem;
+  text-align: center;
+}
+
+.feed-status[data-status='content'] {
+  min-height: 2.4rem;
+  padding: 1.2rem 1.6rem;
+}
+
+.feed-status[data-status='loading'],
+.feed-status[data-status='empty'],
+.feed-status[data-status='end'] {
+  padding: 7rem 1.6rem 5rem;
+}
+
+.feed-status[data-status='loading'] .loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feed-status[data-status='empty'] .message,
+.feed-status[data-status='end'] .message {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .manager .header {
+    padding: 0 var(--saito-space-sm);
+  }
+}
+
+.new-post {
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  height: 3.2rem;
+  padding: 0 1.1rem;
+}
+
+.new-post i {
+  margin: 0;
+}
