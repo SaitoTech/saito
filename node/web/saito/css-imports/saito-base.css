@@ -361,11 +361,7 @@ Media Queries
 /* Focus chrome for opted-in form components only */
 :where(
   input.saito-input,
-  input.saito-form-input,
-  input.saito-overlay-form-input,
   textarea.saito-textarea,
-  textarea.saito-overlay-form-input,
-  select.saito-slct,
   select.saito-form-select
 ):is(:focus, :focus-visible) {
   outline: none !important;

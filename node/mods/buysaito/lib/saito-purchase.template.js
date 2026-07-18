@@ -10,7 +10,7 @@ module.exports = (app, mod, self) => {
 
       <div class="pqrcode qrcode" id="pqrcode"></div>
 
-      <div class="pubkey-containter" title="${self.destination}">
+      <div class="pubkey-container" title="${self.destination}">
          <div class="profile-public-key" id="profile-public-key">`;
 
   if (self.destination.length > 28) {

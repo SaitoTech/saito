@@ -1,6 +1,6 @@
 const videoBoxTemplate = require('./video-box.template');
 
-class VideoBox {
+class SaitoVideoBox {
   constructor(app, mod, peer, container_class = '') {
     this.app = app;
     this.mod = mod;
@@ -490,4 +490,4 @@ class VideoBox {
   }
 }
 
-module.exports = VideoBox;
+module.exports = SaitoVideoBox;

@@ -395,9 +395,6 @@ font imports
   --saito-wallet-panel-fg: var(--saito-foreground);
   --saito-wallet-muted-color: var(--saito-muted-foreground);
   --saito-wallet-error-color: var(--saito-destructive);
-  --saito-wallet-nft-summary-bg: color-mix(in srgb, var(--saito-chart-2) 16%, var(--saito-card));
-  --saito-wallet-nft-payout-bg: color-mix(in srgb, var(--saito-chart-1) 12%, var(--saito-card));
-  --saito-wallet-nft-total-bg: color-mix(in srgb, var(--saito-secondary) 72%, var(--saito-card));
   --saito-file-transfer-bg: var(--saito-secondary);
   --saito-file-transfer-fg: var(--saito-secondary-foreground);
   --saito-file-transfer-border: var(--saito-border);

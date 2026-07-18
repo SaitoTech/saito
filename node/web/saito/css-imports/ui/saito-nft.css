@@ -674,19 +674,9 @@
   color: var(--saito-font-color);
 }
 
-.saito-nft-input-field {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: var(--saito-input-radius);
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
+.saito-nft-panel-send input.saito-input {
   margin-bottom: 10px;
   height: max-content;
-  transition: border-color 0.2s ease;
-}
-
-.saito-nft-input-field:focus {
-  outline: none;
-  border-color: var(--saito-primary);
 }
 
 .nft-send-amount-row {
@@ -696,7 +686,7 @@
   margin-bottom: 10px;
 }
 
-.nft-send-amount-row .saito-nft-input-field {
+.nft-send-amount-row input.saito-input {
   margin-bottom: 0;
 }
 
@@ -1225,15 +1215,6 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
 .nft-list {
   min-height: 24rem;
   user-select: none;
-}
-.data-table tr.total_supply_value {
-  background-color: var(--saito-wallet-nft-summary-bg);
-}
-.data-table tr.payout_value {
-  background-color: var(--saito-wallet-nft-payout-bg);
-}
-.data-table tr.total_supply.total_supply_value {
-  background-color: var(--saito-wallet-nft-total-bg);
 }
 .textarea-container {
   display: flex;

@@ -2,7 +2,7 @@ const OnePlayerGameTemplate = require('../../lib/templates/oneplayer-gametemplat
 const BeleagueredGameRulesTemplate = require('./lib/beleaguered-game-rules.template');
 const htmlTemplate = require('./lib/game-html.template');
 
-const CardStack = require('../../lib/saito/ui/game-cardstack/game-cardstack');
+const GameCardStack = require('../../lib/saito/ui/game-cardstack/game-cardstack');
 
 //////////////////
 // CONSTRUCTOR  //
@@ -120,7 +120,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 
 		this.cardStacks = {};
 		for (let slot of this.stacks) {
-			this.cardStacks[slot] = new CardStack(app, this, slot);
+			this.cardStacks[slot] = new GameCardStack(app, this, slot);
 			this.cardStacks[slot].card_width = Math.ceil(dynamic_card_size);
 		}
 

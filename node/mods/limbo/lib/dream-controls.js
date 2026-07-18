@@ -1,4 +1,4 @@
-const VideoBox = require('../../../lib/saito/ui/saito-videobox/video-box');
+const SaitoVideoBox = require('../../../lib/saito/ui/saito-videobox/video-box');
 const DreamControlTemplate = require("./dream-controls.template");
 
 class DreamControls{
@@ -6,7 +6,7 @@ class DreamControls{
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
-		this.video = new VideoBox(app, mod, "local", "video-preview");
+		this.video = new SaitoVideoBox(app, mod, "local", "video-preview");
 		this.video.display_wave_form = true;
 		this.timer_interval = null;
 		this.callbacks = {};

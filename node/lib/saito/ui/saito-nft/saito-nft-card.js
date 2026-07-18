@@ -109,7 +109,7 @@ class SaitoNFTCard {
       const display = this.nft.returnMediaDisplay();
 
       if (display.loading) {
-        elm.innerHTML = `<div class="saito_spinner spinner"></div>`;
+        elm.innerHTML = `<div class="saito-spinner spinner"></div>`;
         elm.style.backgroundImage = '';
         return;
       }

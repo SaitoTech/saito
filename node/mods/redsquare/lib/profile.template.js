@@ -25,39 +25,37 @@ module.exports = (profile) => {
     : '';
 
   const bannerEditHtml = canEdit
-    ? `<i id="saito-banner-edit" class="saito-banner-edit fas fa-camera" role="button" tabindex="0" aria-label="Edit banner"></i>`
+    ? `<i id="redsquare-profile-banner-edit" class="redsquare-profile-banner-edit fas fa-camera" role="button" tabindex="0" aria-label="Edit banner"></i>`
     : '';
 
-  const bioClass = [
-    'bio',
-    'saito-profile-description',
+  const descriptionClass = [
+    'redsquare-profile-description',
     canEdit ? 'can-edit' : '',
-    !bio && canEdit ? 'empty' : '',
-    !bio && !canEdit ? 'empty' : ''
+    !bio ? 'empty' : ''
   ]
     .filter(Boolean)
     .join(' ');
 
-  let bioInner = '';
+  let descriptionInner = '';
   if (bio) {
-    bioInner = `
+    descriptionInner = `
       <div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">${bio}</div>
-      ${canEdit ? `<div class="saito-description-edit"><i class="fas fa-pen"></i></div>` : ''}
+      ${canEdit ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>` : ''}
     `;
   } else if (canEdit) {
-    bioInner = profile.emptyBioPlaceholderHtml
+    descriptionInner = profile.emptyBioPlaceholderHtml
       ? profile.emptyBioPlaceholderHtml()
-      : `<div class="saito-description-edit placeholder"></div>`;
+      : `<div class="redsquare-profile-description-edit placeholder"></div>`;
   }
 
   const bannerStyle = banner ? ` style="background-image: url('${banner}')"` : '';
 
-  // Injected into `.sidebar-right > .profile` — no outer `.profile` wrapper.
+  // Injected into `.sidebar-right > .redsquare-profile` — no outer wrapper here.
   // Posts / Replies / Likes are navigation destinations, not tabs.
   // Compose lives in the feed header (`.actions`), not here.
   return `
       <div class="card" data-profile-key="${publicKey}">
-        <div id="banner-${publicKey}" class="banner saito-profile-banner banner-${publicKey}" data-id="${publicKey}"${bannerStyle}>
+        <div id="banner-${publicKey}" class="redsquare-profile-banner banner-${publicKey}" data-id="${publicKey}"${bannerStyle}>
           ${bannerEditHtml}
         </div>
         <div class="body">
@@ -68,7 +66,7 @@ module.exports = (profile) => {
               ${keyHtml}
             </div>
           </div>
-          <div class="${bioClass}">${bioInner}</div>
+          <div class="${descriptionClass}">${descriptionInner}</div>
           <nav class="nav" aria-label="Profile navigation">
             <div class="item" role="link" tabindex="0" data-profile-nav="posts">Posts</div>
             <div class="item" role="link" tabindex="0" data-profile-nav="replies">Replies</div>

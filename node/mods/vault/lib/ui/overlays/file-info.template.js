@@ -7,7 +7,7 @@ module.exports = (app, mod, file_info = {}) => {
       <div class="vault-loading-title">Upload complete</div>
       <div class="vault-loading-subtext">Waiting for your Vault Key…</div>
       <div class="vault-loading-spinner">
-        <div class="saito_spinner"></div>
+        <div class="saito-spinner"></div>
       </div>
       <div class="vault-file-info-countdown" id="vault-file-info-countdown">—</div>
       <div class="vault-file-info-status" id="vault-file-info-status">

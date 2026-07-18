@@ -1,9 +1,9 @@
-const SaitoLinkTemplate = require('./link.template');
+const SaitoLinkPreviewTemplate = require('./saito-link-preview.template');
 
 /**
- *  Class to pretty print a link (in Chat or RedSquare)
+ * Open Graph / URL preview card (chat and other rich-message surfaces).
  */
-class SaitoLink {
+class SaitoLinkPreview {
   constructor(app, mod, container = '', url = '', link_properties = null) {
     this.app = app;
     this.mod = mod;
@@ -42,16 +42,13 @@ class SaitoLink {
   }
 
   render() {
-    //
-    // replace element or insert into page
-    //
     if (this.url) {
       let qs = this.container + ' > .saito-link-preview';
 
       if (document.querySelector(qs)) {
-        this.app.browser.replaceElementBySelector(SaitoLinkTemplate(this), qs);
+        this.app.browser.replaceElementBySelector(SaitoLinkPreviewTemplate(this), qs);
       } else if (document.querySelector(this.container)) {
-        this.app.browser.addElementToSelector(SaitoLinkTemplate(this), this.container);
+        this.app.browser.addElementToSelector(SaitoLinkPreviewTemplate(this), this.container);
       }
 
       this.attachEvents();
@@ -66,13 +63,9 @@ class SaitoLink {
           this.show_photo = false;
           console.warn('Saito image load failed! \n', this.title, this.src);
           if (this.src.toLowerCase().includes('saito')) {
-            //
-            // Fallback if missing our own hosted photo
             this.src = '/saito/img/backgrounds/red_cube_dark.jpg';
             this.show_photo = true;
           } else if (!this.app.browser.urlRegexp().test(this.src) && !this.src.includes('data:')) {
-            //
-            // Fall back for raw data
             let img_type = 'jpeg';
             if (this.src.charAt(0) == 'i') {
               img_type = 'png';
@@ -93,4 +86,4 @@ class SaitoLink {
   }
 }
 
-module.exports = SaitoLink;
+module.exports = SaitoLinkPreview;

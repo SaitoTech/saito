@@ -78,7 +78,7 @@ class Rustscript extends ModTemplate {
       '/rustscript/css/rustscript-publish-overlay.css',
       '/rustscript/css/rustscript-publish-nft.css',
       '/rustscript/css/rustscript-import-overlay.css',
-      '/saito/css-imports/saito-nft.css'
+      '/saito/css-imports/ui/saito-nft.css'
     ];
 
     this.icon = 'fas fa-code';

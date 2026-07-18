@@ -1,7 +1,7 @@
-const GamePlayerboxManagerTemplate = require('./game-playerbox.template');
-const GamePlayerbox = require('./playerbox');
+const GamePlayerboxTemplate = require('./game-playerbox.template');
+const GamePlayerBox = require('./playerbox');
 
-class GamePlayerboxManager {
+class GamePlayerbox {
   constructor(app, mod, container = '') {
     this.app = app;
     this.mod = mod;
@@ -19,7 +19,7 @@ class GamePlayerboxManager {
     if (this.playerboxes.length < this.mod.game.players.length) {
       for (let i = 0; i < this.mod.game.players.length; i++) {
         this.playerboxes.push(
-          new GamePlayerbox(this.app, this.mod, this.container, this.mod.game.players[i], i + 1)
+          new GamePlayerBox(this.app, this.mod, this.container, this.mod.game.players[i], i + 1)
         );
       }
     }
@@ -30,12 +30,12 @@ class GamePlayerboxManager {
     if (this.mode != 3) {
       if (document.querySelector('.game-playerbox-manager')) {
         this.app.browser.replaceElementBySelector(
-          GamePlayerboxManagerTemplate(this.app, this.mod),
+          GamePlayerboxTemplate(this.app, this.mod),
           '.game-playerbox-manager'
         );
       } else {
         this.app.browser.addElementToSelectorOrDom(
-          GamePlayerboxManagerTemplate(this.app, this.mod),
+          GamePlayerboxTemplate(this.app, this.mod),
           this.container
         );
       }
@@ -302,4 +302,4 @@ class GamePlayerboxManager {
   }
 }
 
-module.exports = GamePlayerboxManager;
+module.exports = GamePlayerbox;

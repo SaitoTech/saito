@@ -39,14 +39,11 @@ input[type='hidden'] {
   display: none;
 }
 /* ----------------------------------------------------------------
- Text fields — input.saito-input / .saito-form-input / overlay inputs
+ Text fields — input.saito-input / textarea.saito-textarea / select.saito-form-select
  (div.saito-input is the composer shell in saito-input.css)
------------------------------------------------------------------*/input.saito-input,
-input.saito-form-input,
-input.saito-overlay-form-input,
+-----------------------------------------------------------------*/
+input.saito-input,
 textarea.saito-textarea,
-textarea.saito-overlay-form-input,
-select.saito-slct,
 select.saito-form-select {
   appearance: none;
   -webkit-appearance: none;
@@ -61,20 +58,15 @@ select.saito-form-select {
   max-width: 100%;
   cursor: text;
 }
-select.saito-slct,
 select.saito-form-select {
   cursor: pointer;
   color: var(--saito-input-fg);
 }
-textarea.saito-textarea,
-textarea.saito-overlay-form-input {
+textarea.saito-textarea {
   resize: none;
 }
 input.saito-input::placeholder,
-input.saito-form-input::placeholder,
-input.saito-overlay-form-input::placeholder,
-textarea.saito-textarea::placeholder,
-textarea.saito-overlay-form-input::placeholder {
+textarea.saito-textarea::placeholder {
   opacity: 1;
   color: var(--saito-muted-foreground);
 }
@@ -84,51 +76,10 @@ input.saito-input[type='number'],
 input.saito-input[type='password'],
 input.saito-input[type='date'],
 input.saito-input[type='datetime-local'],
-input.saito-input[type='search'],
-input.saito-form-input[type='text'],
-input.saito-form-input[type='email'],
-input.saito-form-input[type='number'],
-input.saito-form-input[type='password'],
-input.saito-form-input[type='date'],
-input.saito-form-input[type='datetime-local'],
-input.saito-form-input[type='search'] {
+input.saito-input[type='search'] {
   width: 100%;
 }
-/* ----------------------------------------------------------------
- Custom select wrapper (chevron control around select.saito-slct)
------------------------------------------------------------------*/.saito-select {
-  position: relative;
-  display: flex;
-  width: 100.01%;
-  height: 3em;
-  line-height: 3;
-  background-color: transparent;
-  overflow: hidden;
-  border-radius: 0 var(--saito-input-radius) var(--saito-input-radius) 0;
-  outline: none;
-  cursor: pointer;
-}
-.saito-select::after {
-  content: '\25BC';
-  position: absolute;
-  top: 0;
-  right: 0;
-  color: var(--saito-button-primary-fg);
-  background-color: var(--saito-button-primary-bg);
-  cursor: pointer;
-  pointer-events: none;
-  transition: 0.25s all ease;
-  border-radius: 0 var(--saito-input-radius) var(--saito-input-radius) 0;
-  height: 100%;
-  width: 5rem;
-  display: flex;
-  justify-content: center;
-}
-.saito-select .saito-slct {
-  font-size: 2rem;
-  border-color: var(--saito-border);
-  padding: 0 var(--saito-space-md);
-}
+
 /* ----------------------------------------------------------------
  Checkbox
 -----------------------------------------------------------------*/input.saito-checkbox[type='checkbox'],

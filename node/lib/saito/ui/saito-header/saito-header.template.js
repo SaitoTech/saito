@@ -13,7 +13,7 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
            <div class="saito-header-hamburger-contents">
                <!-------- wallet start --------->
                <div class="saito-header-profile">
-                   <div class="wallet-infoo">
+                   <div class="wallet-info">
                        <div id="qrcode"></div>
                        <div class="wallet-balance">
                            <img class="wallet-identicon" src="${identicon}">
@@ -27,7 +27,7 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                            <select class="saito-form-select wallet-select-crypto" id="wallet-select-crypto"></select>
                        </div>
                        
-                       <div class="pubkey-containter">
+                       <div class="pubkey-container">
                            <div class="profile-public-key generate-keys" id="profile-public-key"><div class="profile-public-key-text">generating keys...</div></div>
                            <i class="fas fa-copy"></i>
                        </div>

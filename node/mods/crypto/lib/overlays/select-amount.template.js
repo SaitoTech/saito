@@ -3,7 +3,7 @@ module.exports = (app, mod, form) => {
 
     <div class="saito-crypto-transfer saito-overlay-size narrow" id="stake-crypto-request-container">
 
-      <h2 class="auth_title">Amount to Stake?</h2>
+      <h2 class="auth-title">Amount to Stake?</h2>
       
       <div class="stake-input-container">
         <input autocomplete="off" id="amount_to_stake_input" class="saito-input stake" 

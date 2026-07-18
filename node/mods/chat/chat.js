@@ -1,5 +1,5 @@
 const SaitoUserTemplate = require('./../../lib/saito/ui/saito-user/saito-user.template.js');
-const Link = require('./../../lib/saito/ui/saito-link/link');
+const SaitoLinkPreview = require('./../../lib/saito/ui/saito-link-preview/saito-link-preview');
 const saito = require('../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
 const ChatMain = require('./lib/appspace/main');
@@ -1766,7 +1766,7 @@ class Chat extends ModTemplate {
                   }
 
                   if (!group.links[block[z].signature]) {
-                    group.links[block[z].signature] = new Link(
+                    group.links[block[z].signature] = new SaitoLinkPreview(
                       this.app,
                       this,
                       `.link-${block[z].signature}`,

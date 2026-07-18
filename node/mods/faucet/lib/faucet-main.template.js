@@ -19,7 +19,7 @@ module.exports = (app, mod) => {
       <div class="faucet-amount">${amountLabel}</div>
 
       <div class="faucet-status">
-        <div class="saito_spinner spinner" id="faucet_spinner"></div>
+        <div class="saito-spinner spinner" id="faucet_spinner"></div>
         <i
           id="faucet_success_icon"
           class="faucet-success-icon fa-solid fa-circle-check"

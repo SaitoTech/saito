@@ -1,4 +1,4 @@
-const PhotoUploaderTemplate = (app, mod) => {
+const SaitoPhotoUploaderTemplate = (app, mod) => {
   return `
 	<div id="saito-photo-uploader" class="saito-photo-uploader ">
 		Click to select or drag and drop to upload an image
@@ -12,4 +12,4 @@ const PhotoUploaderTemplate = (app, mod) => {
 	</div>`;
 };
 
-module.exports = PhotoUploaderTemplate;
+module.exports = SaitoPhotoUploaderTemplate;

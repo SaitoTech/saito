@@ -18,7 +18,7 @@ class SaitoRecover {
       this.modal_overlay.show(PhraseTemplate());
     }
 
-    document.querySelector('.saito-overlay-form-input').focus();
+    document.querySelector('.saito-input, .saito-textarea').focus();
 
     this.attachEvents();
   }

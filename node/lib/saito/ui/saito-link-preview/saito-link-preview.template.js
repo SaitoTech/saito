@@ -1,20 +1,19 @@
-module.exports = (link) => {
+module.exports = (preview) => {
   let html = `
   <div class="saito-link-preview">
-          <a class="saito-link" `;
+          <a `;
 
   let info = ['title', 'display_url', 'description'];
 
   let include_graphics = true;
 
-  if (!link.url.includes(window.location.host)) {
+  if (!preview.url.includes(window.location.host)) {
     html += `target="_blank" rel='noopener noreferrer' `;
   } else {
     html += `data-link="local_link" `;
 
-    //info = ['title', 'description'];
-    let index = link.url.indexOf(window.location.host) + window.location.host.length + 1;
-    let slug = link.url.substring(index);
+    let index = preview.url.indexOf(window.location.host) + window.location.host.length + 1;
+    let slug = preview.url.substring(index);
     if (slug.includes('/')) {
       slug = slug.split('/')[0];
     }
@@ -22,10 +21,10 @@ module.exports = (link) => {
       slug = slug.split('?')[0];
     }
 
-    let filters = link.app.modules.returnFirstRespondTo('saito-filter-link', {
-      modname: link.mod.returnName(),
+    let filters = preview.app.modules.returnFirstRespondTo('saito-filter-link', {
+      modname: preview.mod.returnName(),
       slug,
-      url: link.url
+      url: preview.url
     });
 
     if (filters?.info) {
@@ -35,25 +34,23 @@ module.exports = (link) => {
     if (filters?.no_photo) {
       include_graphics = false;
     }
-
-    // ---> Use a respondTo to further customize which info to include and add a class...
   }
 
   let img_src = '/saito/img/dreamscape.png';
-  if (link.src) {
-    img_src = link.src;
+  if (preview.src) {
+    img_src = preview.src;
   }
 
-  html += `href="${link.url}">`;
+  html += `href="${preview.url}">`;
   if (include_graphics) {
-    html += `<div class="saito-link-img ${link.show_photo ? 'has-picture' : ''}">
+    html += `<div class="saito-link-preview-img ${preview.show_photo ? 'has-picture' : ''}">
                 <img src="${img_src}">
               </div>`;
   }
   if (info.length > 0) {
-    html += `<div class="saito-link-info">`;
+    html += `<div class="saito-link-preview-info">`;
     for (let i = 0; i < info.length; i++) {
-      html += `<div class="saito-link-${info[i]}">${link[info[i]]}</div>`;
+      html += `<div class="saito-link-preview-${info[i].replace(/_/g, '-')}">${preview[info[i]]}</div>`;
     }
     html += '</div>';
   }

@@ -308,7 +308,7 @@ class Stack extends ModTemplate {
       "
     >
       <div
-        class="saito_spinner"
+        class="saito-spinner"
         style="width:8rem;height:8rem;"
       ></div>
 

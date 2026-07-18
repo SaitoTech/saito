@@ -12,7 +12,7 @@ module.exports = (app, mod, deposit_self) => {
                </div>`;
   }
   html += `<div id="deposit-qrcode" class="qrcode"></div>
-               <div class="pubkey-containter">
+               <div class="pubkey-container">
                    <div class="profile-public-key" id="profile-public-key">
                         ${deposit_self.address.slice(0, 8)}...${deposit_self.address.slice(-8)}
                     </div>

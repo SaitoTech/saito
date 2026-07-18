@@ -7,9 +7,9 @@ module.exports = (app, mod) => {
     id="faucet-request-container"
     data-faucet-state="idle"
   >
-    <h2 class="auth_title" id="faucet_title">Testnet Faucet</h2>
+    <h2 class="auth-title" id="faucet_title">Testnet Faucet</h2>
 
-    <div class="saito_spinner spinner" id="faucet_spinner"></div>
+    <div class="saito-spinner spinner" id="faucet_spinner"></div>
     <i
       id="faucet_success_icon"
       class="game-crypto-icon fa-solid fa-circle-check"

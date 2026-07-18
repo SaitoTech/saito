@@ -103,7 +103,7 @@
   }
 }
 
-.saito_spinner {
+.saito-spinner {
   display: inline-block;
   width: 50%;
   min-width: 4rem;
@@ -116,7 +116,7 @@
 }
 
 /* Fill parent - parent must have position: relative and dimensions */
-.saito_spinner.saito_spinner-fill {
+.saito-spinner.saito-spinner-fill {
   position: absolute;
   inset: 0;
   width: 100%;

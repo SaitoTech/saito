@@ -72,9 +72,9 @@ class Deposit {
   }
 
   attachEvents() {
-    document.querySelector('#saito-deposit-form .pubkey-containter').onclick = (e) => {
+    document.querySelector('#saito-deposit-form .pubkey-container').onclick = (e) => {
       navigator.clipboard.writeText(this.address);
-      let icon_element = document.querySelector('#saito-deposit-form .pubkey-containter i');
+      let icon_element = document.querySelector('#saito-deposit-form .pubkey-container i');
       icon_element.classList.toggle('fa-copy');
       icon_element.classList.toggle('fa-check');
       setTimeout(() => {

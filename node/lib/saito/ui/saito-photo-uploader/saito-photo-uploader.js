@@ -1,8 +1,8 @@
-const PhotoUploaderTemplate = require('./saito-photo-uploader.template');
+const SaitoPhotoUploaderTemplate = require('./saito-photo-uploader.template');
 const SaitoOverlay = require('../saito-overlay/saito-overlay');
 const SaitoPhotoCropper = require('../saito-photo-cropper/saito-photo-cropper');
 
-class PhotoUploader {
+class SaitoPhotoUploader {
   constructor(app, mod, type = 'banner') {
     this.app = app;
     this.mod = mod;
@@ -23,7 +23,7 @@ class PhotoUploader {
   }
 
   render(image) {
-    this.overlay.show(PhotoUploaderTemplate(this.app, this.mod));
+    this.overlay.show(SaitoPhotoUploaderTemplate(this.app, this.mod));
     this.image = image;
     this.handleRender();
     this.attachEvents();
@@ -82,4 +82,4 @@ class PhotoUploader {
   }
 }
 
-module.exports = PhotoUploader;
+module.exports = SaitoPhotoUploader;

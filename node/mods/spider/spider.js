@@ -1,7 +1,7 @@
 const OnePlayerGameTemplate = require('../../lib/templates/oneplayer-gametemplate');
 const SpiderGameRulesTemplate = require('./lib/spider-game-rules.template');
 const AppSettings = require('./lib/spider-settings');
-const CardStack = require('../../lib/saito/ui/game-cardstack/game-cardstack');
+const GameCardStack = require('../../lib/saito/ui/game-cardstack/game-cardstack');
 const htmlTemplate = require('./lib/game-html.template');
 
 //////////////////
@@ -133,7 +133,7 @@ class Spider extends OnePlayerGameTemplate {
 
 		this.cardStacks = [];
 		for (let i = 0; i < 10; i++) {
-			this.cardStacks.push(new CardStack(app, this, i));
+			this.cardStacks.push(new GameCardStack(app, this, i));
 			//
 			//Copy Board state from memory if it exists
 			//
