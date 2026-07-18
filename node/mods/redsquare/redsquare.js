@@ -22,6 +22,11 @@ class RedSquare extends ModTemplate {
     this.categories = 'Social Entertainment';
     this.icon_fa = 'fas fa-square-full';
 
+//
+// enable shortlinks
+//
+    this.shortlinks_enabled = 1;
+
     this.possibleHome = 1;
     this.use_floating_plus = 1;
 
@@ -50,6 +55,19 @@ class RedSquare extends ModTemplate {
     this.notifications_earliest_tweet_ts = new Date().getTime();
     this.notifications_earliest_like_ts = new Date().getTime();
     this.notifications_latest_ts = 0;
+
+    //
+    // This is the default Open Graph Card for Redsquare
+    // If we have a link to a specific tweet, we will use a different object to populate the
+    // generated html in the webserver
+    //
+    this.social = {
+      twitter: '@SaitoOfficial',
+      title: '🟥 Saito RedSquare - Web3 Social Media',
+      url: 'https://saito.io/redsquare/',
+      description: 'Peer to peer Web3 social media platform',
+      image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png'
+    };
 
     this.peers = [];
 

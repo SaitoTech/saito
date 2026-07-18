@@ -184,7 +184,7 @@ body.redsquare-body .sidebar .redsquare-arcade .arcade-invite .arcade-invite-ide
   height: auto;
 }
 
-/* ~36px — match existing invite cards; do not use page feed avatar scale */
+/* 3.6rem ≈ 43.2px @ 12px root — match existing invite cards; do not use page feed avatar scale */
 body.redsquare-body .sidebar .redsquare-arcade .arcade-invite .saito-identicon-box,
 body.redsquare-body .sidebar .redsquare-arcade .arcade-invite .arcade-invite-requested,
 body.redsquare-body .sidebar .redsquare-arcade .arcade-invite .arcade-invite-slot {

@@ -2,7 +2,7 @@
  * Chat Manager embed — presentation only.
  * Chat owns chat via respondTo('chat-manager'); RedSquare mounts it in `.sidebar-left`.
  *
- * Preferred earlier RedSquare look: tighter rows, 38px avatars, cleaner hierarchy.
+ * Preferred earlier RedSquare look: tighter rows, S/M avatars (3.8rem ≈ 45.6px @ 12px root), cleaner hierarchy.
  * Keep Chat's unread .saito-notification-dot badge; do not restyle it away.
  */
 

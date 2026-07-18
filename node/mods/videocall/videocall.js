@@ -25,6 +25,12 @@ class Videocall extends ModTemplate {
 		this.request_no_interrupts = true; // Don't let chat popup inset into /videocall
 		this.isRelayConnected = false;
 
+		//
+		// short URLS
+		//
+		this.shortlinks_enabled = 1;
+
+
 		this.screen_share = false;
 
 		this.styles = ['/videocall/style.css'];
@@ -103,7 +109,6 @@ class Videocall extends ModTemplate {
 	 *  - game-menu options
 	 *
 	 */
-
 	async initialize(app) {
 		await super.initialize(app);
 
@@ -155,19 +160,6 @@ class Videocall extends ModTemplate {
 			await super.render();
 		}
 	}
-
-	// renderInto(qs) {
-	// 	if (qs == '.saito-overlay' || qs == 'body') {
-	// 		if (!this.renderIntos[qs]) {
-	// 			this.renderIntos[qs] = [];
-	// 			this.renderIntos[qs].push(new CallLauncher(this.app, this, qs));
-	// 		}
-	// 		this.attachStyleSheets();
-	// 		this.renderIntos[qs].forEach((comp) => {
-	// 			comp.render();
-	// 		});
-	// 	}
-	// }
 
 	async renderInto(qs) {
 		if (qs == '.saito-overlay') {
@@ -1136,9 +1128,14 @@ class Videocall extends ModTemplate {
 		return call_link;
 	}
 
-	copyInviteLink() {
-		navigator.clipboard.writeText(this.generateCallLink());
-		siteMessage('Invite link copied to clipboard', 1500);
+	async copyInviteLink() {
+alert("copy invite link!");
+  	  const link = await this.createShortLink(
+  	    this.generateCallLink()
+  	  );
+alert("link is: " + link);
+  	  await navigator.clipboard.writeText(link);
+  	  siteMessage("Invite link copied to clipboard", 1500);
 	}
 
 	webServer(app, expressapp, express) {

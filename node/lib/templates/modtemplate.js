@@ -23,6 +23,8 @@ class ModTemplate {
     this.categories = '';
     this.sqlcache = {};
     this.sqlcache_enabled = 0;
+    this.shortlinks_enabled = 0;
+    this.shortlink_cache = {};
     this.services = [];
     this.components = []; // modules or UI objects
     this.request_no_interrupts = false; // if you don't want your module to have other modules insert HTML components, you can request it here.
@@ -116,6 +118,22 @@ class ModTemplate {
         }
       }
     }
+
+    //
+    // shortlinks
+    //
+    if (this.shortlinks_enabled) {
+      let template_sql = `${__dirname}/sql/shortlinks1.sql`;
+      if (fs.existsSync(template_sql)) {
+        try {
+          let data = fs.readFileSync(template_sql, 'utf8');
+          await app.storage.executeDatabase(data, dbname);
+        } catch (err) {
+          console.error("Error installing shortlinks table:", err);
+        }
+      }
+    }
+
   }
 
   static importFunctions() {
@@ -230,6 +248,9 @@ class ModTemplate {
 
           this.db_tables.push(tablename);
         }
+      }
+      if (this.enable_shortlinks) {
+        this.db_tables.push("shortlinks");
       }
     }
 
@@ -500,6 +521,241 @@ class ModTemplate {
       });
     }
   }
+  registerShortLinkRoutes(app, expressapp, express) {
+
+    if (!this.shortlinks_enabled) {
+      return;
+    }
+
+    expressapp.get(
+      "/" + this.returnSlug() + "/s/:code",
+      async (req, res) => {
+
+	const user_agent = (req.headers["user-agent"] || "").toLowerCase();
+	const is_bot = /bot|crawler|spider|facebookexternalhit|twitterbot|slackbot|discordbot|linkedinbot|telegrambot|whatsapp/i.test(user_agent);
+        const dbname = this.dbname || this.returnSlug();
+        const rows = await this.app.storage.queryDatabase(
+          `SELECT * FROM shortlinks WHERE shortlink = $code LIMIT 1`,
+          {
+            $code: req.params.code
+          },
+          dbname
+        );
+
+        if (!rows || rows.length === 0) {
+          res.status(404).sendFile(
+            path.join(__dirname, "../../web/404.html")
+          );
+          return;
+        }
+
+        const row = rows[0];
+        const now = Date.now();
+
+
+	//
+	// bots get Open Graph
+	//
+	if (is_bot) {
+
+	  const social = this.social || {};
+
+	  const title =
+	    row.title ||
+	    social.title ||
+	    this.returnName();
+
+	  const description =
+	    social.description || "";
+
+	  const image =
+	    social.image || "";
+
+	  const url =
+	    `${req.protocol}://${req.get("host")}${req.originalUrl}`;
+
+	  res.send(`
+		<!DOCTYPE html>
+			<html>
+			<head>
+				<meta charset="utf-8">
+				<title>${title}</title>
+
+				<meta property="og:title" content="${title}">
+				<meta property="og:description" content="${description}">
+				<meta property="og:image" content="${image}">
+				<meta property="og:url" content="${url}">
+				<meta property="og:type" content="website">
+
+				<meta name="twitter:card" content="summary_large_image">
+				<meta name="twitter:title" content="${title}">
+				<meta name="twitter:description" content="${description}">
+				<meta name="twitter:image" content="${image}">
+
+			</head>
+
+			<body>
+				${title}
+			</body>
+
+		</html>
+	  `);
+
+	  return;
+
+	}
+
+
+        if (row.expires_at > 0 && row.expires_at < now) {
+          res.status(404).send("Shortlink expired");
+          return;
+        }
+
+        if (row.max_uses > 0 && row.uses >= row.max_uses) {
+          res.status(404).send("Shortlink has expired");
+          return;
+        }
+
+        await this.app.storage.runDatabase(
+          `UPDATE shortlinks SET uses = uses + 1 WHERE shortlink = $code`,
+          {
+            $code: row.shortlink
+          },
+          dbname
+        );
+
+
+        try {
+          const target = new URL(row.link, `${req.protocol}://${req.get("host")}`);
+          if (target.hostname !== req.hostname) {
+            res.status(400).send("Invalid shortlink target");
+            return;
+          }
+          res.redirect(302, target.href);
+        } catch (err) {
+          res.status(400).send("Invalid shortlink target");
+        }
+
+      }
+    );
+
+  } 
+
+
+  //
+  // createShortLink
+  //
+  // Requests a shortlink from the server that served this page.
+  // Returns the shortened URL on success or the original URL on failure.
+  //
+  async createShortLink(longUrl) {
+
+    if (!this.shortlinks_enabled || !this.app.BROWSER) {
+      return longUrl;
+    }
+
+    if (this.shortlink_cache[longUrl]) {
+      return this.shortlink_cache[longUrl];
+    }
+
+    if (!longUrl || typeof longUrl !== "string") {
+      return longUrl;
+    }
+
+    let serving_peer = null;
+
+    try {
+      let page_host = window.location.hostname.toLowerCase();
+      let page_port = window.location.port;
+      if (!page_port) {
+        page_port = window.location.protocol === "https:" ? "443" : "80";
+      }
+      const peers = await this.app.network.getPeers();
+      for (let i = 0; i < peers.length; i++) {
+        const p = peers[i];
+        const peer_host = String(p.host || "").toLowerCase();
+        let peer_port = String(p.port || "");
+        if (!peer_port || peer_port === "0") {
+          peer_port = p.protocol === "https" ? "443" : "80";
+        }
+        const host_match =
+          peer_host === page_host ||
+          (
+            (peer_host === "localhost" || peer_host === "127.0.0.1") &&
+            (page_host === "localhost" || page_host === "127.0.0.1")
+          );
+        if (host_match && peer_port === String(page_port)) {
+          serving_peer = p;
+          break;
+        }
+      }
+    } catch (err) {
+      serving_peer = null;
+    }
+
+    if (!serving_peer) {
+      return longUrl;
+    }
+
+    const request = this.name.toLowerCase() + " create shortlink";
+
+    return await Promise.race([
+      new Promise((resolve) => {
+        this.app.network.sendRequestAsTransaction(
+
+          request,
+
+	  {
+	    link: longUrl,
+	    title: "",
+	    expires_at: 0,
+	    max_uses: 0,
+	    uses: 0
+	  },
+
+          (res) => {
+            if (
+              !res ||
+              res.err ||
+              !res.shortlink ||
+              !res.shortlink.startsWith("/")
+            ) {
+              resolve(longUrl);
+              return;
+            }
+	    this.shortlink_cache[longUrl] =  (window.location.origin + res.shortlink);
+            resolve(window.location.origin + res.shortlink);
+          },
+          serving_peer.publicKey
+        );
+
+      }),
+
+      new Promise((resolve) => {
+        setTimeout(() => resolve(longUrl), 8000);
+      })
+    ]);
+
+  }
+  async pruneShortLinks() {
+
+    if (!this.shortlinks_enabled) {
+      return;
+    }
+
+    const dbname = this.dbname || this.returnSlug();
+    const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    await this.app.storage.runDatabase(
+      `
+        DELETE FROM shortlinks
+        WHERE created_at < $cutoff
+      `,
+      {
+        $cutoff: cutoff
+      },
+      dbname
+    );
+  }
 
   //
   // UPDATE BLOCKCHAIN SYNC
@@ -732,6 +988,119 @@ class ModTemplate {
 
         return 0;
       }
+    }
+
+    //
+    // shortlinks — create
+    //
+    if (this.shortlinks_enabled) {
+
+      const expected_request = this.name.toLowerCase() + " create shortlink";
+
+
+      if (txmsg?.request === expected_request) {
+
+console.log("### SHORTLINK REGISTRATION ####")
+console.log("### SHORTLINK REGISTRATION ####")
+console.log("### SHORTLINK REGISTRATION ####")
+
+        if (!mycallback) {
+          return 0;
+        }
+
+        const data = txmsg.data || {};
+
+        if (!data.link || typeof data.link !== "string") {
+          mycallback({
+            err: "invalid_link",
+            shortlink: "",
+            code: "",
+            expires_at: 0
+          });
+          return 1;
+        }
+
+        const dbname = this.dbname || this.returnSlug();
+console.log("dbname: ");
+
+        const response = {
+          err: "insert_failed",
+          shortlink: "",
+          code: "",
+          expires_at: Number(data.expires_at) || 0
+        };
+
+        for (let attempt = 0; attempt < 5; attempt++) {
+console.log("ATTEMPT !!!!!");
+          const code = Math.random().toString(36).substring(2, 10);
+          try {
+            await this.app.storage.runDatabase(
+              `INSERT INTO shortlinks (
+                id,
+                shortlink,
+                link,
+                title,
+                creator,
+                created_at,
+                expires_at,
+                max_uses,
+                uses
+              ) VALUES (
+                $id,
+                $shortlink,
+                $link,
+                $title,
+                $creator,
+                $created_at,
+                $expires_at,
+                $max_uses,
+                $uses
+              )`,
+              {
+                $id: code,
+                $shortlink: code,
+                $link: data.link,
+                $title: data.title || "",
+                $creator: peer?.publicKey || "",
+                $created_at: Date.now(),
+                $expires_at: response.expires_at,
+                $max_uses: Number(data.max_uses) || 0,
+                $uses: Number(data.uses) || 0
+              },
+
+              dbname
+
+            );
+
+            response.err = "";
+            response.code = code;
+            response.shortlink = "/" + this.returnSlug() + "/s/" + code;
+
+console.log("break!");
+            break;
+
+          } catch (err) {
+            // collision or insert failure, retry
+console.log("collusion or insert failure!!!!!");
+          }
+
+        }
+
+        mycallback(response);
+
+
+	this.shortlink_prune_counter++;
+
+	if (this.shortlink_prune_counter >= 100) {
+	    this.shortlink_prune_counter = 0;
+	    this.pruneShortLinks().catch((err) => {
+  	      console.error(err);
+	    });
+	}
+
+        return 1;
+      }
+
     }
 
     return 0;

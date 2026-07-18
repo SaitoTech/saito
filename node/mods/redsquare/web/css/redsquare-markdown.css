@@ -1,0 +1,142 @@
+/*
+ * Markdown inside RedSquare tweets only.
+ *
+ * sanitize() → marked emits global tags (h1–h6, p, table, …) that inherit
+ * Saito page-scale typography. Scope overrides to .tweet .tweet-body so
+ * feed posts keep a single tweet body size (Twitter-like), while still
+ * allowing bold, italics, all-caps headers, and table structure.
+ */
+
+.tweet .tweet-body,
+.tweet .tweet-body * {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.tweet .tweet-body strong,
+.tweet .tweet-body b {
+  font-weight: 700;
+}
+
+.tweet .tweet-body em,
+.tweet .tweet-body i {
+  font-style: italic;
+}
+
+.tweet .tweet-body h1,
+.tweet .tweet-body h2,
+.tweet .tweet-body h3,
+.tweet .tweet-body h4,
+.tweet .tweet-body h5,
+.tweet .tweet-body h6 {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 700;
+  font-family: inherit;
+  line-height: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: inherit;
+}
+
+.tweet .tweet-body p,
+.tweet .tweet-body ul,
+.tweet .tweet-body ol,
+.tweet .tweet-body li,
+.tweet .tweet-body blockquote,
+.tweet .tweet-body pre,
+.tweet .tweet-body code,
+.tweet .tweet-body hr,
+.tweet .tweet-body span,
+.tweet .tweet-body a,
+.tweet .tweet-body div {
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+}
+
+.tweet .tweet-body ul,
+.tweet .tweet-body ol {
+  padding-left: 1.4em;
+}
+
+.tweet .tweet-body li {
+  display: list-item;
+}
+
+.tweet .tweet-body blockquote {
+  border-left: 2px solid var(--saito-primary, currentColor);
+  padding-left: 0.5rem;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.tweet .tweet-body code {
+  font-family: var(--saito-font-monospace, monospace);
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.tweet .tweet-body pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tweet .tweet-body a {
+  color: var(--saito-primary);
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Tables keep structure; cells stay on tweet body type size */
+.tweet .tweet-body table {
+  display: table;
+  width: 100%;
+  max-width: 100%;
+  margin: 0.4rem 0;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.tweet .tweet-body thead {
+  display: table-header-group;
+}
+
+.tweet .tweet-body tbody {
+  display: table-row-group;
+}
+
+.tweet .tweet-body tr {
+  display: table-row;
+}
+
+.tweet .tweet-body th,
+.tweet .tweet-body td {
+  display: table-cell;
+  padding: 0.25rem 0.5rem;
+  border: var(--border-thickness-thin, 1px) solid var(--rs-border-subtle, var(--saito-border));
+  font-size: inherit;
+  line-height: inherit;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.tweet .tweet-body th {
+  font-weight: 700;
+  text-align: left;
+}
+
+.tweet .tweet-body caption {
+  display: table-caption;
+  caption-side: top;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: left;
+  margin-bottom: 0.25rem;
+}

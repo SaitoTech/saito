@@ -7,8 +7,8 @@
  *        ↓
  *   Component CSS       ← layout and structure only
  *
- * Saito reference (10px root):
- *   body { font-size: 1.6rem; line-height: 1.2; font-family: var(--saito-font) }
+ * Saito reference (12px root; 1rem = 12px):
+ *   body { font-size: 1.6rem (~19.2px); line-height: 1.2; font-family: var(--saito-font) }
  *   Typography: --font-size-h1…h6, --font-size-large/medium/tiny
  *   Surfaces: --saito-background-color, --saito-surface-*, --saito-border-*
  *   Components: .saito-user, .saito-identicon, .saito-button-*, .saito-notification-dot
@@ -158,11 +158,11 @@ body.redsquare-body {
   --rs-transition: 0.15s ease;
 
   /*
-   * Canonical avatar scale (10px root → rem ≈ px/10).
-   * Page-wide standard is 38×38; Profile card keeps the larger identity mark.
+   * Canonical avatar scale (12px root → 1rem = 12px).
+   * Page-wide S/M standard; Profile card keeps the larger identity mark.
    *
-   *   S/M  3.8rem  38px  timeline, embeds, chat, arcade, sidebar, etc.
-   *   L    6.8rem  68px  profile card only (banner overlap)
+   *   S/M  3.8rem  ~45.6px  timeline, embeds, chat, arcade, sidebar, etc.
+   *   L    6.8rem  ~81.6px  profile card only (banner overlap)
    */
   --rs-avatar-xs: 3.8rem;
   --rs-avatar-s: 3.8rem;
@@ -177,8 +177,8 @@ body.redsquare-body {
   --rs-identicon-radius: var(--rs-avatar-radius);
 
   /*
-   * Feed rhythm — aligned with X desktop (~12×16 pad, 12px avatar gutter)
-   * while keeping RedSquare tokens (not cloning X chrome).
+   * Feed rhythm (12px root): pad-y 1.2rem (~14.4px), avatar gutter 1.2rem (~14.4px),
+   * pad-x 1.6rem (~19.2px). Tuned toward X-like proportions; px follow the root.
    */
   --rs-tweet-header-gap: 1.2rem;
   --rs-tweet-text-gap: var(--saito-space-sm);
@@ -187,7 +187,7 @@ body.redsquare-body {
   --rs-tweet-chain-width: var(--border-thickness-medium, 2px);
   --rs-tweet-chain-color: var(--saito-border-color);
 
-  /* Focused — modest type lift (~17px), not a second typography system */
+  /* Focused — modest type lift (1.7rem ≈ 20.4px @ 12px root), not a second typography system */
   --rs-tweet-focused-body: 1.7rem;
   --rs-tweet-focused-leading: 2.4rem;
   --rs-tweet-focused-pad-y: 1.2rem;
@@ -215,7 +215,7 @@ body.redsquare-body {
 
   --rs-feed-x: var(--saito-space-md);
   --rs-feed-y: var(--saito-space-sm);
-  /* Tweet rows: ~16px horizontal inset (X desktop); feed chrome stays on --rs-feed-x */
+  /* Tweet rows: 1.6rem (~19.2px @ 12px root) horizontal inset; feed chrome stays on --rs-feed-x */
   --rs-tweet-pad-x: 1.6rem;
   --rs-sidebar-pad: var(--saito-space-md);
   --rs-panel-x: var(--rs-sidebar-pad);
@@ -239,7 +239,7 @@ body.redsquare-body {
   --rs-col-left: 26rem;
   --rs-col-center: 58rem;
   --rs-col-right: 32rem;
-  /* Match saito-page-layout column gutters; columns + gaps = --saito-width (120rem @ 10px root) */
+  /* Match saito-page-layout column gutters; columns + gaps = --saito-width (120rem ≈ 1440px @ 12px root) */
   --rs-col-gap: 2rem;
   /* Same horizontal inset as #saito-header (saito-header.css) — page content flows from header */
   --rs-page-inset: max(2rem, calc((100vw - var(--saito-width)) / 2 + 0.5rem));

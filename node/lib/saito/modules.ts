@@ -831,6 +831,14 @@ class Mods {
     return null;
   }
 
+  registerShortLinkRoutes(expressapp = null, express = null) {
+    for (let i = 0; i < this.mods.length; i++) {
+      if (this.mods[i].shortlinks_enabled) {
+        this.mods[i].registerShortLinkRoutes(this.app, expressapp, express);
+      }
+    }
+    return null;
+  }
   webServer(expressapp = null, express = null) {
     let base_module = this.app.options?.defaultModule || 'website';
     for (let i = 0; i < this.mods.length; i++) {

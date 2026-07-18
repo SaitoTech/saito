@@ -120,7 +120,6 @@ body.redsquare-body .tweet-avatar.saito-identicon {
 
 .tweet-header-time {
   flex: 0 0 auto;
-  margin-left: auto;
   white-space: nowrap;
 }
 
@@ -129,20 +128,16 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   white-space: nowrap;
 }
 
-.tweet-header-sep-time {
-  /* sits immediately before the right-pinned time */
-  margin-left: 0;
-}
-
 /*
- * Compact — one scanning line:
- *   Username · @publickey… · 2m
- * Username = intrinsic width; handle truncates; time always stays visible.
+ * Compact — one scanning identity line:
+ *   Username · 2m
+ * Name + separator + time stay one logical group (not edge-pinned).
  */
 .tweet-header.compact {
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: baseline;
+  justify-content: flex-start;
   gap: var(--tweet-header-gap);
   min-height: 0;
   line-height: 1.3;
@@ -153,18 +148,8 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   min-width: 0;
 }
 
-.tweet-header.compact .tweet-header-handle {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.tweet-header.compact .tweet-header-sep-time {
-  margin-left: auto;
-}
-
 .tweet-header.compact .tweet-header-time {
   flex: 0 0 auto;
-  margin-left: 0;
 }
 
 /*
@@ -172,6 +157,7 @@ body.redsquare-body .tweet-avatar.saito-identicon {
  *   Username
  *   @publickey
  * Treated as one typographic block, vertically centered beside the avatar.
+ * Public key stays on one line and ellipsizes if it would overflow.
  */
 .tweet-header.expanded {
   flex-direction: column;
@@ -180,6 +166,7 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   gap: 0.2rem;
   min-height: 0;
   padding: 0;
+  width: 100%;
 }
 
 .tweet-header.expanded .tweet-header-primary,
@@ -192,15 +179,18 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   margin: 0;
   padding: 0;
   line-height: 1.25;
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tweet-header.expanded .tweet-header-handle {
   margin: 0;
   padding: 0;
   line-height: 1.3;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /*
@@ -248,11 +238,17 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   margin-top: var(--rs-tweet-block-gap);
 }
 
+/*
+ * Action row — equal flex columns so comment/repost/like/share absorb
+ * horizontal space; first tool hugs content-left, overflow hugs content-right
+ * (tweet pad-x only — no extra inset from centered min-width boxes).
+ */
 .tweet-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--rs-gap-tight);
+  justify-content: flex-start;
+  width: 100%;
+  gap: 0;
   padding: 0;
   color: var(--saito-font-color-secondary);
   user-select: none;
@@ -261,14 +257,23 @@ body.redsquare-body .tweet-avatar.saito-identicon {
 .tweet-controls > .tweet-tool {
   position: relative;
   display: flex;
+  flex: 1 1 0;
   align-items: center;
   justify-content: center;
-  min-width: var(--rs-control-min);
+  min-width: 0;
   padding: 0.2rem 0;
   border-radius: var(--rs-radius);
   background: transparent;
   color: inherit;
   cursor: pointer;
+}
+
+.tweet-controls > .tweet-tool:first-child {
+  justify-content: flex-start;
+}
+
+.tweet-controls > .tweet-tool:last-child {
+  justify-content: flex-end;
 }
 
 .tweet-controls i {
@@ -277,6 +282,14 @@ body.redsquare-body .tweet-avatar.saito-identicon {
   margin: 0 var(--rs-space-xs);
   text-align: center;
   color: inherit;
+}
+
+.tweet-controls > .tweet-tool:first-child i {
+  margin-left: 0;
+}
+
+.tweet-controls > .tweet-tool:last-child i {
+  margin-right: 0;
 }
 
 .tweet-controls span {

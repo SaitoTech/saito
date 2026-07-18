@@ -31,7 +31,6 @@ class Archive extends ModTemplate {
 
 		this.name = 'Archive';
 		this.slug = 'archive';
-		this.dependencies = ['Scripting'];
 		this.description = 'Supports the saving and serving of network transactions';
 		this.categories = 'Utilities Core';
 		this.class = 'utility';

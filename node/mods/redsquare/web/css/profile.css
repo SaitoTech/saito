@@ -76,7 +76,7 @@
 /*
  * ~32% of avatar into the banner (lower = more below the seam so name + key
  * sit inside the avatar’s vertical span). Text pad tracks that overlap, plus
- * 0.15rem so the display name clears the banner by ~4px of breathing room.
+ * 0.15rem (~1.8px @ 12px root) so the display name clears the banner with a little breathing room.
  */
 .profile-identity {
   display: grid;

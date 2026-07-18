@@ -2,7 +2,7 @@
  * Reusable tweet header.
  *
  * Modes (layout only — markup stays shared):
- *   compact  — one line: Username · @publickey · time
+ *   compact  — one line identity group: Username · time
  *   expanded — two lines: Username / @publickey
  *   compose  — stacked name + instructional secondary (compose overlay)
  *
@@ -60,15 +60,10 @@ module.exports = ({
   `;
   }
 
-  // compact — Username · @publickey · time (time pinned right; handle truncates)
+  // compact — identity group: Username · time
   const parts = [];
 
   parts.push(`<span class="tweet-header-primary saito-address">${name}</span>`);
-
-  if (handle) {
-    parts.push(`<span class="tweet-header-sep" aria-hidden="true">·</span>`);
-    parts.push(`<span class="tweet-header-handle saito-userline">${handle}</span>`);
-  }
 
   if (time) {
     parts.push(`<span class="tweet-header-sep tweet-header-sep-time" aria-hidden="true">·</span>`);

@@ -759,16 +759,9 @@ class Server {
       return;
     });
 
-    // TODO : add a env variable? to enable this testing feature
     if (false) {
       this.provideTesterAPI(expressApp);
     }
-
-    // expressApp.get("/check-build", (req, res) => {
-    //   // res.sendFile(this.web_dir);
-    //   this.app.modules.webServer(expressApp, express);
-    //   res.send()
-    // })
 
     expressApp.get('/saito/saito.js', (req, res) => {
       //
@@ -835,6 +828,7 @@ class Server {
     // res.write -- have to use res.end()
     // res.send --- is combination of res.write() and res.end()
     //
+    this.app.modules.registerShortLinkRoutes(expressApp, express);
     this.app.modules.webServer(expressApp, express);
 
     // Default for base directory (can be overridden by a module)

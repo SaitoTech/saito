@@ -79,7 +79,10 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
 
   const body = TweetBodyTemplate({
     presentation,
-    text: tweet.text
+    text:
+      tweet.app && tweet.app.browser
+        ? tweet.app.browser.sanitize(tweet.app.browser.markupMentions(tweet?.text || ''), true)
+        : tweet.text
   });
 
   const gallery = TweetGalleryTemplate({

@@ -28,7 +28,6 @@ class Stack extends ModTemplate {
     this.app = app;
     this.name = 'Stack';
     this.slug = 'stack';
-    this.dependencies = ['Scripting'];
     this.description = 'Permissioned blogging platform - an open-source alternative to Substack';
     this.categories = 'Social Media Blogging Publishing';
     this.icon_fa = 'fa-solid fa-newspaper';

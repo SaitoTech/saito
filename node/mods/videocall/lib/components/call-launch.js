@@ -169,18 +169,15 @@ class CallLaunch {
 		if (document.querySelector(".stunx-precall-link")) {
 			document.querySelector(".stunx-precall-link").onclick = async (e) => {
 				let mode = e.currentTarget.dataset.id;
-				let call_link = "";
 				if (mode == "join"){
-					call_link =  this.mod.generateCallLink(this.mod.room_obj);
+					await this.mod.copyInviteLink();
 				}else if (mode == "create"){
-					call_link = this.mod.createRoom();
+					this.mod.createRoom();
+					await this.mod.copyInviteLink();
 				}else{
 					this.callScheduleJoin.render(false);
 					return;
 				}
-
-				await navigator.clipboard.writeText(call_link);
-				siteMessage("Call link copied");
 			}
 		}
 	}
