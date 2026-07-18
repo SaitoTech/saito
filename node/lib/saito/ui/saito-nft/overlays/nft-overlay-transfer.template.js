@@ -2,7 +2,7 @@ module.exports = (app, mod, nft_overlay) => {
   let html = `
     <div class="saito-nft-panel saito-nft-panel-send">
       <div class="saito-nft-panel-body">
-        <div id='transfer-info-panel'>
+        <section id='transfer-info-panel'>
           <h2 class="saito-nft-mode-title">Send NFT</h2>
           <label class="saito-nft-input-label">Recipient Address</label>
           <input class="saito-nft-input-field" id="nft-receiver-address"/>
@@ -11,7 +11,7 @@ module.exports = (app, mod, nft_overlay) => {
             <input class="saito-nft-input-field" id="nft-send-amount" value="1" />
             <button type="button" class="nft-send-max-btn">MAX</button>
           </div>
-        </div>
+        </section>
   `;
 
   let splitUtxosHtml = '';
@@ -64,10 +64,10 @@ module.exports = (app, mod, nft_overlay) => {
         </div>
       </div>
       
-      <div class="saito-nft-panel-footer">
+      <footer class="saito-nft-panel-footer">
         <button class="saito-nft-footer-btn saito-button-secondary saito-nft-cancel-btn">Cancel</button>
         <button class="saito-nft-footer-btn saito-nft-confirm-btn">Send</button>
-      </div>
+      </footer>
     </div>
     `;
 

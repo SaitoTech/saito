@@ -7,13 +7,13 @@ module.exports = (app, publicKey) => {
 
   return `
    <div class="saito-modal saito-modal-menu" id="saito-user-menu">
-     <div class="saito-modal-title">
+     <h2 class="saito-modal-title">
       <div class="saito-user">
         <div class="saito-identicon-box"><img class="saito-identicon" src="${imgsrc}"></div>
         ${name}
         <div class="saito-userline">${publicKey}</div>
       </div>
-     </div>
+     </h2>
      <div class="saito-modal-content saito-menu-select-heavy">
      </div>
    </div>

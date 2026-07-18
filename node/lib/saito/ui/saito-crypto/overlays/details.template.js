@@ -5,7 +5,7 @@ module.exports = (app, mod) => {
 
   let html = `
     <div class="crypto-details-overlay ">
-        <div class="saito-overlay-form-header">
+        <header class="saito-overlay-form-header">
             <div class="crypto-logo-container">
               <img class="crypto-logo" src="${logo}">
               ${sublogo ? `<img class="chain-logo" src="${sublogo}">` : ''}
@@ -19,8 +19,8 @@ module.exports = (app, mod) => {
                   </div>`
                 : ''
             }
-        </div>
-        <div class="wallet-details">
+        </header>
+        <section class="wallet-details">
   `;
 
   if (!mod.isActivated()) {
@@ -29,7 +29,7 @@ module.exports = (app, mod) => {
               <span>activate now</span>
             </div>
             <div id="saito-details-loader"></div>
-        </div>
+        </section>
     </div>`;
   } else {
     html += `
@@ -66,9 +66,9 @@ module.exports = (app, mod) => {
 
     html += `
             </div>
-        </div>
+        </section>
 
-        <div class="transaction-history">
+        <section class="transaction-history">
           <div class='transaction-grid-header'>
             <h6>Transaction History</h6>
             <button class="saito-button-secondary small" id='fetch-history'>refresh</button>
@@ -81,7 +81,7 @@ module.exports = (app, mod) => {
             <div class="saitox-header-item">To/From</div>
             <div class="saitox-header-item saito-only">Memo</div>
           </div>
-        </div>
+        </section>
       </div>
     `;
   }

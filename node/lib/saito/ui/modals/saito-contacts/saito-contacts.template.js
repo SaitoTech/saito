@@ -1,6 +1,6 @@
 module.exports = (app, contacts, keylist = null) => {
   let html = `<div id="saito-contacts-modal" class="saito-modal contacts">
-                <div class="saito-modal-title">${contacts.title}</div>
+                <h2 class="saito-modal-title">${contacts.title}</h2>
                 <div class="saito-modal-content saito-menu-select-heavy">
               `;
 
@@ -15,7 +15,7 @@ module.exports = (app, contacts, keylist = null) => {
     let html = `<div class="saito-contact" data-id="${public_key}">`;
 
     if (contacts.multi_select) {
-      html += `<input type="checkbox" data-id="${public_key}"/>`;
+      html += `<input type="checkbox" class="saito-checkbox" data-id="${public_key}"/>`;
     }
 
     html += `<div class="saito-user">`;

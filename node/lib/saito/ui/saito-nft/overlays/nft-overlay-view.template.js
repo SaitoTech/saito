@@ -25,16 +25,14 @@ module.exports = (app, mod, nft_overlay) => {
   return `
     <div class="saito-nft-panel saito-nft-panel-view active">
       <div class="saito-nft-panel-body saito-nft-panel-body-view">
-        <div class="saito-nft-image-wrapper">
-          ${imageHtml}
-        </div>
+        ${imageHtml}
       </div>
-      <div class="saito-nft-panel-footer">
+      <footer class="saito-nft-panel-footer">
         <button class="saito-nft-footer-btn enable-nft" style="display:none;">Enable</button>
         <button class="saito-nft-footer-btn disable-nft" style="display:none;">Disable</button>
         <button class="saito-nft-footer-btn sell-nft" style="display:none;">List on Store</button>
         <button class="saito-nft-footer-btn send-nft">Transfer</button>
-      </div>
+      </footer>
     </div>
   `;
 };
