@@ -37,7 +37,7 @@ class SettingsOverlay {
   }
 
   getRoot() {
-    return document.querySelector('.saito-overlay .settings-overlay');
+    return document.querySelector('.saito-overlay .settings');
   }
 
   getModtools() {

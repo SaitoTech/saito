@@ -185,7 +185,7 @@ class TweetMenu {
       return;
     }
 
-    this.menuEl.querySelectorAll('.tweet-menu-item').forEach((button) => {
+    this.menuEl.querySelectorAll('.item').forEach((button) => {
       button.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -208,7 +208,7 @@ class TweetMenu {
     document.addEventListener('keydown', this.onDocumentKeyDown);
 
     const scroller =
-      document.querySelector('.manager-body')?.closest('.manager') ||
+      document.querySelector('.manager .body')?.closest('.manager') ||
       document.querySelector('.manager') ||
       document.querySelector('#saito-container') ||
       document.querySelector('.saito-container');

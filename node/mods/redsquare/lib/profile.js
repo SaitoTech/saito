@@ -37,7 +37,7 @@ class Profile {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
 
-    return `<div class="saito-description-edit profile-bio-placeholder">${safe}</div>`;
+    return `<div class="saito-description-edit placeholder">${safe}</div>`;
   }
 
   /**
@@ -125,7 +125,7 @@ class Profile {
     root.dataset.profileBound = '1';
 
     root.addEventListener('click', (e) => {
-      const copyBtn = e.target.closest('.profile-copy-key');
+      const copyBtn = e.target.closest('.copy-key');
       if (copyBtn && root.contains(copyBtn)) {
         e.preventDefault();
         e.stopPropagation();
@@ -172,7 +172,7 @@ class Profile {
         return;
       }
 
-      const item = e.target.closest('.profile-nav-item');
+      const item = e.target.closest('.nav .item');
 
       if (!item || !root.contains(item)) {
         return;
@@ -202,7 +202,7 @@ class Profile {
         return;
       }
 
-      const item = e.target.closest('.profile-nav-item, .saito-banner-edit, .profile-copy-key');
+      const item = e.target.closest('.nav .item, .saito-banner-edit, .copy-key');
 
       if (!item || !root.contains(item)) {
         return;
@@ -232,7 +232,7 @@ class Profile {
       if (this.mod.profile) {
         this.mod.profile.banner = banner;
       }
-      document.querySelectorAll(`.profile-banner-${publicKey}`).forEach((el) => {
+      document.querySelectorAll(`.banner-${publicKey}`).forEach((el) => {
         el.style.backgroundImage = `url('${banner}')`;
       });
     }
@@ -243,7 +243,7 @@ class Profile {
       }
 
       const container = document.querySelector(
-        `${this.container} .saito-profile-description, ${this.container} .profile-bio`
+        `${this.container} .saito-profile-description, ${this.container} .bio`
       );
       if (container) {
         const canEdit = this.canEditProfile(publicKey);
@@ -265,7 +265,7 @@ class Profile {
     }
 
     if (image) {
-      document.querySelectorAll(`${this.container} .profile-avatar`).forEach((el) => {
+      document.querySelectorAll(`${this.container} .avatar`).forEach((el) => {
         el.src = image;
       });
       if (this.mod.profile) {
@@ -287,7 +287,7 @@ class Profile {
     const activeView =
       mode === 'posts' || mode === 'replies' || mode === 'likes' ? mode : '';
 
-    root.querySelectorAll('.profile-nav-item').forEach((item) => {
+    root.querySelectorAll('.nav .item').forEach((item) => {
       const view = item.getAttribute('data-profile-nav') || '';
       const active = Boolean(activeView) && view === activeView;
       item.classList.toggle('active', active);

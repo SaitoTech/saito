@@ -1,23 +1,4 @@
-/*
- * RedSquare base layer — sits between Saito globals and component CSS.
- *
- *   Saito global styles (saito.css, themes, components)
- *        ↓
- *   redsquare-base.css  ← token aliases, feed extensions, scoped resets
- *        ↓
- *   Component CSS       ← layout and structure only
- *
- * Saito reference (12px root; 1rem = 12px):
- *   body { font-size: 1.6rem (~19.2px); line-height: 1.2; font-family: var(--saito-font) }
- *   Typography: --font-size-h1…h6, --font-size-large/medium/tiny
- *   Surfaces: --saito-background-color, --saito-surface-*, --saito-border-*
- *   Components: .saito-user, .saito-identicon, .saito-button-*, .saito-notification-dot
- *
- * Rules:
- *   - Alias --rs-* to Saito tokens; do not invent parallel color or type scales
- *   - Extend global component classes; do not reimplement them in component CSS
- *   - Component files: grid/flex/spacing only — inherit typography from body
- */
+/* RedSquare base — page shell + compact-control size beats */
 
 .redsquare-splash-overlay {
   position: fixed;
@@ -37,7 +18,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   width: min(95vw, 860px);
   padding: 3.2rem;
   gap: 2.4rem;
@@ -49,12 +29,9 @@
 
 .redsquare-splash-logo {
   --saito-cta-logo-mask: url('/saito/icons/saito-redsquare-icon-outline-label-horizontal.svg');
-  display: block;
   position: relative;
   width: min(560px, 84vw);
-  max-width: 100%;
   aspect-ratio: 381 / 134;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
 .saito-cta:hover .redsquare-splash-logo {
@@ -70,8 +47,6 @@
 }
 
 .redsquare-splash-subtitle {
-  color: var(--saito-font-color-secondary, #abaaae);
-  font-size: 1.25rem;
   letter-spacing: 0.22em;
   text-align: center;
   text-transform: uppercase;
@@ -80,229 +55,11 @@
 .redsquare-splash-join {
   width: 100%;
   height: 4.5rem;
-  min-height: 4.5rem;
   padding: 0 2rem;
-  border: none;
-  border-radius: var(--saito-border-radius);
-  color: #fff;
-  background: var(--saito-cta-action-background, linear-gradient(90deg, #ff8a3d, #f54900));
-  box-shadow: var(--saito-cta-action-shadow, 0 0 32px -10px rgba(245, 73, 0, 0.48));
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    filter 0.18s ease;
 }
 
-.redsquare-splash-join:hover {
-  transform: translateY(-1px);
-  background: var(--saito-cta-action-background, linear-gradient(90deg, #ff8a3d, #f54900));
-  box-shadow: 0 0 36px -10px rgba(255, 145, 77, 0.55);
-  filter: brightness(1.03);
-}
-
-.redsquare-splash-join:active {
-  transform: translateY(0);
-  filter: brightness(0.98);
-}
-
-body.redsquare-body {
-  background: var(--saito-background-color);
-
-  /* Typography aliases — point at Saito globals */
-  --rs-caption: var(--font-size-tiny);
-  --rs-meta: var(--font-size-tiny);
-  --rs-meta-md: var(--font-size-medium);
-  --rs-heading: var(--font-size-h6);
-  --rs-section-title: var(--font-size-large);
-  --rs-lead: var(--font-size-large);
-
-  /* Surface / color aliases */
-  --rs-canvas: var(--saito-background-color);
-  --rs-layer-recessed: var(--saito-surface-color);
-  --rs-layer-base: var(--saito-surface-hover);
-  --rs-layer-raised: var(--saito-surface-selected);
-  --rs-layer-overlay: var(--saito-overlay-panel-bg);
-  --rs-layer-hover: var(--saito-surface-hover);
-  --rs-surface-feed: var(--saito-feed-bg, var(--saito-background-color));
-  --rs-surface-card: var(--saito-card-bg);
-  --rs-surface-inset: var(--saito-input-bg);
-  --rs-surface-hover: var(--saito-surface-hover);
-
-  --rs-border-subtle: var(--saito-border-color-light);
-  --rs-border: var(--saito-border-color);
-  --rs-border-strong: var(--saito-border-color-dark);
-
-  --rs-text: var(--saito-font-color);
-  --rs-text-strong: var(--saito-font-color-heavy);
-  --rs-text-muted: var(--saito-font-color-secondary);
-  --rs-text-faint: var(--saito-font-color-light);
-
-  --rs-accent: var(--saito-primary);
-  --rs-accent-fill: var(--saito-button-primary-bg);
-  --rs-accent-fill-hover: var(--saito-button-primary-bg-hover);
-  --rs-accent-on: var(--saito-button-primary-fg);
-
-  /* Spacing aliases */
-  --rs-space-xs: var(--saito-space-xs);
-  --rs-space-sm: var(--saito-space-sm);
-  --rs-space-md: var(--saito-space-md);
-  --rs-space-lg: var(--saito-space-lg);
-  --rs-space-xl: var(--saito-space-xl);
-  --rs-gap-tight: 0.2rem;
-
-  --rs-radius-sm: var(--saito-radius-sm);
-  --rs-radius: var(--saito-border-radius);
-  --rs-radius-pill: var(--saito-radius-full);
-  --rs-radius-media: var(--saito-radius-sm);
-
-  --rs-transition: 0.15s ease;
-
-  /*
-   * Canonical avatar scale (12px root → 1rem = 12px).
-   * Page-wide S/M standard; Profile card keeps the larger identity mark.
-   *
-   *   S/M  3.8rem  ~45.6px  timeline, embeds, chat, arcade, sidebar, etc.
-   *   L    6.8rem  ~81.6px  profile card only (banner overlap)
-   */
-  --rs-avatar-xs: 3.8rem;
-  --rs-avatar-s: 3.8rem;
-  --rs-avatar-m: 3.8rem;
-  --rs-avatar-l: 6.8rem;
-  --rs-avatar-radius: var(--saito-identicon-border-radius, var(--saito-border-radius));
-
-  /* Semantic aliases — prefer these at call sites that name a role */
-  --rs-tweet-avatar: var(--rs-avatar-m);
-  --rs-tweet-embed-avatar: var(--rs-avatar-m);
-  --rs-identicon: var(--rs-avatar-m);
-  --rs-identicon-radius: var(--rs-avatar-radius);
-
-  /*
-   * Feed rhythm (12px root): pad-y 1.2rem (~14.4px), avatar gutter 1.2rem (~14.4px),
-   * pad-x 1.6rem (~19.2px). Tuned toward X-like proportions; px follow the root.
-   */
-  --rs-tweet-header-gap: 1.2rem;
-  --rs-tweet-text-gap: var(--saito-space-sm);
-  --rs-tweet-block-gap: 0.6rem;
-  --rs-tweet-pad-y: 1.2rem;
-  --rs-tweet-chain-width: var(--border-thickness-medium, 2px);
-  --rs-tweet-chain-color: var(--saito-border-color);
-
-  /* Focused — modest type lift (1.7rem ≈ 20.4px @ 12px root), not a second typography system */
-  --rs-tweet-focused-body: 1.7rem;
-  --rs-tweet-focused-leading: 2.4rem;
-  --rs-tweet-focused-pad-y: 1.2rem;
-
-  /* Embedded / quote — denser than timeline */
-  --rs-tweet-embed-pad-x: 1.2rem;
-  --rs-tweet-embed-pad-y: 1rem;
-
-  /* Nav layout — proportions only; type inherits from body / Saito menu */
-  --rs-nav-icon: 2.75rem;
-  --rs-nav-label: 2.15rem;
-  --rs-nav-gap: 1.15rem;
-  --rs-nav-item-x: var(--saito-space-md);
-  --rs-nav-item-y: 1.1rem;
-  --rs-nav-min-height: 5.2rem;
-  --rs-nav-post-height: 4.4rem;
-  --rs-col-pad-top: 1.2rem;
-
-  --rs-btn-height-compact: 3.2rem;
-  --rs-btn-height-sidebar: 2.6rem;
-  --rs-icon-btn: 3.2rem;
-  --rs-control-min: 3.4rem;
-  --rs-composer-min-height: 5rem;
-  --rs-feed-header-height: 5.6rem;
-
-  --rs-feed-x: var(--saito-space-md);
-  --rs-feed-y: var(--saito-space-sm);
-  /* Tweet rows: 1.6rem (~19.2px @ 12px root) horizontal inset; feed chrome stays on --rs-feed-x */
-  --rs-tweet-pad-x: 1.6rem;
-  --rs-sidebar-pad: var(--saito-space-md);
-  --rs-panel-x: var(--rs-sidebar-pad);
-  --rs-row-y: var(--rs-space-xs);
-  /* Vertical rhythm between right-rail cards (Profile, Leaderboard, …) */
-  --rs-sidebar-gap: var(--rs-space-lg);
-
-  /*
-   * Form controls — calm RedSquare inputs. Do not lean on --saito-focus-ring
-   * (orange glow in noir). Scope all overrides to body.redsquare-body.
-   */
-  --rs-input-bg: var(--saito-input-bg, var(--rs-layer-recessed));
-  --rs-input-fg: var(--saito-input-fg);
-  --rs-input-placeholder: var(--saito-input-placeholder);
-  --rs-input-border: var(--rs-border-subtle);
-  --rs-input-border-focus: var(--rs-border);
-  --rs-input-radius: var(--rs-radius);
-  --rs-input-shadow: none;
-  --rs-input-shadow-focus: none;
-
-  --rs-col-left: 26rem;
-  --rs-col-center: 58rem;
-  --rs-col-right: 32rem;
-  /* Match saito-page-layout column gutters; columns + gaps = --saito-width (120rem ≈ 1440px @ 12px root) */
-  --rs-col-gap: 2rem;
-  /* Same horizontal inset as #saito-header (saito-header.css) — page content flows from header */
-  --rs-page-inset: max(2rem, calc((100vw - var(--saito-width)) / 2 + 0.5rem));
-  /* Nav icon/label offsets from left column edge (= logo left edge once inset matches) */
-  --rs-nav-cube-center: 2.5rem;
-  --rs-nav-wordmark-start: 4.7rem;
-  --rs-nav-hover-inset: calc(var(--rs-nav-cube-center) - (var(--rs-nav-icon) / 2));
-}
-
-/*
- * Tweet feed — header/body typography.
- * Header modes: .tweet-header.compact | .expanded | .compose
- * .saito-address / .saito-userline remain as type hooks.
- */
-body.redsquare-body .tweet-header .tweet-header-primary,
-body.redsquare-body .tweet-header .saito-address {
-  font-family: var(--saito-font-heavy);
-  font-size: var(--font-size-medium);
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--saito-font-color-heavy);
-}
-
-body.redsquare-body .tweet-header .tweet-header-handle,
-body.redsquare-body .tweet-header .tweet-header-time,
-body.redsquare-body .tweet-header .tweet-header-sep,
-body.redsquare-body .tweet-header .tweet-header-secondary,
-body.redsquare-body .tweet-header .saito-userline {
-  font-family: var(--saito-font, inherit);
-  font-weight: 400;
-  color: var(--saito-font-color-secondary);
-}
-
-/*
- * Compact one-line headers: hierarchy is weight + color, not a smaller meta size.
- * Matches X desktop scanning rhythm.
- */
-body.redsquare-body .tweet-header.compact .tweet-header-handle,
-body.redsquare-body .tweet-header.compact .tweet-header-time,
-body.redsquare-body .tweet-header.compact .tweet-header-sep {
-  font-size: var(--font-size-medium);
-  line-height: 1.3;
-}
-
-body.redsquare-body .tweet-body {
-  line-height: 2rem;
-  font-size: var(--font-size-medium);
-}
-
-/*
- * Three-column shell — overrides default .saito-container grid
- * from saito-page-layout.css for this module's proportions.
- *
- * Horizontal alignment: --rs-page-inset must match #saito-header padding
- * (saito-header.css). Prior fixes targeted .menu / .sidebar-* padding
- * while the container used a different width variable and zero column-gap.
- *
- * Scroll ownership: this shell does NOT scroll. Columns are fixed-height;
- * the center .manager owns overflow (feed scroll). Side columns scroll
- * independently. Header timeline/detail behaviour lives in manager.css.
- */
+/* Beat .saito-container — scoped to RS body only */
 body.redsquare-body #saito-container.saito-container {
-  background: var(--rs-canvas);
   position: absolute;
   top: var(--saito-header-height);
   left: 0;
@@ -310,15 +67,12 @@ body.redsquare-body #saito-container.saito-container {
   width: 100vw;
   height: calc(100% - var(--saito-header-height));
   max-height: none;
-  margin: 0;
-  padding: 0 var(--rs-page-inset);
-  column-gap: var(--rs-col-gap);
-  grid-template-columns: var(--rs-col-left) minmax(0, var(--rs-col-center)) var(--rs-col-right);
-  align-items: stretch;
+  padding: 0 max(2rem, calc((100vw - var(--saito-width)) / 2 + 0.5rem));
+  column-gap: 2rem;
+  grid-template-columns: 26rem minmax(0, 58rem) 32rem;
   overflow: hidden;
 }
 
-/* Grid items must shrink so children can own overflow */
 body.redsquare-body #saito-container.saito-container > * {
   min-width: 0;
   min-height: 0;
@@ -353,117 +107,14 @@ body.redsquare-body #saito-container.saito-container > * {
   }
 }
 
-/*
- * Compact controls — carve-out from global button defaults (saito-buttons.css).
- * Contextual menus and icon triggers use div[role="button"] + saito-menu-select-subtle.
- */
-body.redsquare-body .menu-post,
-body.redsquare-body .composer-submit,
-body.redsquare-body .new-post-button,
-body.redsquare-body .profile-copy-key,
-body.redsquare-body .manager-header-back,
-body.redsquare-body .sidebar-suggestion-follow,
-body.redsquare-body .compose-tool,
-body.redsquare-body .settings-row-inline .saito-button-secondary {
+/* Beat saito-buttons min-size */
+.new-post,
+.copy-key,
+.manager .back,
+.sidebar .follow,
+.compose .tool,
+.settings .row.inline .saito-button-secondary {
   min-width: unset;
   min-height: unset;
   margin: 0;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-/*
- * Inputs — RedSquare owns control chrome; Saito globals must not leak in.
- *
- * Saito (saito-form-elements.css) paints every `input` / `textarea` with
- * border + focus ring. RedSquare redefines that under body.redsquare-body.
- *
- * Two patterns:
- *   1. Standalone controls — get a single RedSquare border/background.
- *   2. Framed fields (.compose-surface, .composer-surface,
- *      .sidebar-search-field) — the FRAME owns border/radius/background;
- *      nested inputs are fully chrome-free so they cannot draw a second box.
- *
- * Nested resets use selectors that outrank both Saito globals and the
- * standalone rules below (do not rely on a weaker `.sidebar-search input`
- * carve-out — earlier builds lost that fight to `input:not([type=…])`).
- */
-body.redsquare-body textarea,
-body.redsquare-body select,
-body.redsquare-body input[type='text'],
-body.redsquare-body input[type='search'],
-body.redsquare-body input[type='email'],
-body.redsquare-body input[type='number'],
-body.redsquare-body input[type='password'],
-body.redsquare-body input[type='url'],
-body.redsquare-body input:not([type]) {
-  appearance: none;
-  -webkit-appearance: none;
-  background-color: var(--rs-input-bg);
-  color: var(--rs-input-fg);
-  border: var(--border-thickness-thin, 1px) solid var(--rs-input-border);
-  border-radius: var(--rs-input-radius);
-  box-shadow: var(--rs-input-shadow);
-}
-
-body.redsquare-body textarea:focus,
-body.redsquare-body select:focus,
-body.redsquare-body input[type='text']:focus,
-body.redsquare-body input[type='search']:focus,
-body.redsquare-body input[type='email']:focus,
-body.redsquare-body input[type='number']:focus,
-body.redsquare-body input[type='password']:focus,
-body.redsquare-body input[type='url']:focus,
-body.redsquare-body input:not([type]):focus {
-  outline: none;
-  border-color: var(--rs-input-border-focus);
-  box-shadow: var(--rs-input-shadow-focus);
-}
-
-body.redsquare-body .compose-surface .compose-input,
-body.redsquare-body .composer-surface .composer-input,
-body.redsquare-body .sidebar-search-field input,
-body.redsquare-body .sidebar-search-field input[type='search'] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 100%;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  outline: none;
-}
-
-body.redsquare-body .compose-surface .compose-input:focus,
-body.redsquare-body .composer-surface .composer-input:focus,
-body.redsquare-body .sidebar-search-field input:focus,
-body.redsquare-body .sidebar-search-field input[type='search']:focus {
-  appearance: none;
-  -webkit-appearance: none;
-  outline: none;
-  border: none;
-  background: transparent;
-  background-color: transparent;
-  box-shadow: none;
-}
-
-body.redsquare-body .compose-surface:focus-within,
-body.redsquare-body .composer-surface:focus-within,
-body.redsquare-body .sidebar-search-field:focus-within {
-  border-color: var(--rs-input-border-focus);
-  box-shadow: none;
-}
-
-/* WebKit search decorations draw a second chrome box; strip them. */
-body.redsquare-body .sidebar-search-field input[type='search']::-webkit-search-decoration,
-body.redsquare-body .sidebar-search-field input[type='search']::-webkit-search-cancel-button,
-body.redsquare-body .sidebar-search-field input[type='search']::-webkit-search-results-button,
-body.redsquare-body .sidebar-search-field input[type='search']::-webkit-search-results-decoration {
-  -webkit-appearance: none;
-  appearance: none;
-  display: none;
 }

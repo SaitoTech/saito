@@ -13,17 +13,17 @@ module.exports = (notification, tweetHtml = '') => {
 
   return `
     <article class="notification" data-id="${notification.signature}" data-tweet-id="${notification.tweet_signature}">
-      <header class="notification-meta">
-        <span class="notification-icon" aria-hidden="true">
+      <header class="meta">
+        <span class="icon" aria-hidden="true">
           <i class="fa-solid ${icon}"></i>
         </span>
-        <div class="notification-summary">
-          <span class="notification-actor saito-address">${notification.actor_name}</span>
-          <span class="notification-text">${notification.text}</span>
-          <span class="notification-time saito-userline">${notification.time}</span>
+        <div class="summary">
+          <span class="actor saito-address">${notification.actor_name}</span>
+          <span class="text">${notification.text}</span>
+          <span class="time saito-userline">${notification.time}</span>
         </div>
       </header>
-      <div class="notification-tweet">
+      <div class="slot">
         ${tweetHtml}
       </div>
     </article>

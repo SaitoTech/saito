@@ -1,0 +1,41 @@
+/* Columns — scroll ownership */
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebar-left,
+.sidebar-right {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 1.2rem 0 var(--saito-space-md);
+  overflow-x: hidden;
+  overflow-y: auto;
+  gap: var(--saito-space-lg);
+}
+
+.sidebar-right > .profile,
+.sidebar-right > .sidebar {
+  flex-shrink: 0;
+}
+
+@media (max-width: 820px) {
+  .sidebar-right {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .sidebar-left {
+    display: none;
+  }
+}

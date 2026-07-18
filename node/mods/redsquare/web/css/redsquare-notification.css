@@ -1,0 +1,36 @@
+/* Notification — meta grid + tweet slot */
+
+.notification {
+  cursor: pointer;
+}
+
+.notification .meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--saito-space-sm);
+  padding: 1.2rem 1.6rem var(--saito-space-xs);
+}
+
+.notification .icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.notification .summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  min-width: 0;
+}
+
+.notification .slot {
+  padding: 0 1.6rem 1.2rem;
+}
+
+@media (max-width: 600px) {
+  .notification .meta,
+  .notification .slot {
+    padding-left: var(--saito-space-sm);
+    padding-right: var(--saito-space-sm);
+  }
+}
