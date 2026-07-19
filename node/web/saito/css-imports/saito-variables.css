@@ -61,7 +61,6 @@ font imports
   font-family: 'p-word';
   src: url('/saito/fonts/password.ttf') format('truetype');
 }
-
 @font-face {
   font-family: 'digital-7';
   src: url('/saito/fonts/digital-7.mono.ttf') format('truetype');
@@ -173,8 +172,7 @@ font imports
   --saito-highlight: color-mix(in srgb, var(--saito-foreground) 8%, transparent);
   --saito-highlight-heavy: color-mix(in srgb, var(--saito-foreground) 14%, transparent);
 
-  /* Background Shim Colors */
-
+  /* background shim colors */
   --saito-background-color-shim-light: color-mix(in srgb, var(--saito-background) 58%, transparent);
   --saito-background-color-shim-normal: color-mix(in srgb, var(--saito-background) 72%, transparent);
   --saito-background-color-shim-dark: color-mix(in srgb, var(--saito-background) 86%, transparent);
@@ -186,17 +184,14 @@ font imports
   --saito-overlay-panel-bg: var(--saito-popover-surface);
   --saito-overlay-panel-surface-low: var(--saito-popover-surface);
   --saito-overlay-panel-surface: #262626;
-  --saito-overlay-panel-background:
-    var(--saito-popover);
+  --saito-overlay-panel-background: var(--saito-popover);
   --saito-overlay-panel-border: var(--saito-border);
   --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--saito-foreground) 5%, transparent);
-  --saito-overlay-panel-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.36);
+  --saito-overlay-panel-shadow: 0 12px 30px rgba(0, 0, 0, 0.36);
   --saito-modal-background: var(--saito-popover);
   --saito-modal-texture: none;
   --saito-modal-border: var(--saito-border);
   --saito-modal-shadow: var(--saito-overlay-panel-shadow);
-
   --saito-heart-animation: url('/redsquare/images/heart-orange.png');
 
   /* Main Theme */
@@ -208,8 +203,7 @@ font imports
   /* Box Shadows */
   --saito-box-shadow-low: 0 1px 2px color-mix(in srgb, var(--saito-black) 28%, transparent);
   --saito-box-shadow: 0 8px 18px color-mix(in srgb, var(--saito-black) 28%, transparent);
-  --saito-box-shadow-high:
-    0 14px 34px color-mix(in srgb, var(--saito-black) 38%, transparent);
+  --saito-box-shadow-high: 0 14px 34px color-mix(in srgb, var(--saito-black) 38%, transparent);
   --saito-elevation-0: none;
   --saito-elevation-1: var(--saito-box-shadow-low);
   --saito-elevation-2: var(--saito-box-shadow);
@@ -379,14 +373,11 @@ font imports
   --saito-tooltip-shadow: var(--saito-overlay-panel-shadow);
   --saito-tooltip-radius: var(--saito-radius);
 
-  --saito-chat-background:
-    var(--saito-background);
+  --saito-chat-background: var(--saito-background);
   --saito-chat-background-image: none;
   --saito-chat-shell-bg: var(--saito-card);
-  --saito-bubble-background:
-    var(--saito-card);
-  --saito-bubble-shadow:
-    var(--saito-elevation-0);
+  --saito-bubble-background: var(--saito-card);
+  --saito-bubble-shadow: var(--saito-elevation-0);
   --saito-chat-active-bg: var(--saito-accent);
   --saito-chat-header-shadow: var(--saito-elevation-0);
   --saito-chat-notification-gradient: linear-gradient(90deg, transparent, var(--saito-chart-2), transparent);
