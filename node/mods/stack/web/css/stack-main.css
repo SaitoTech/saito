@@ -85,14 +85,14 @@
   }
 
   .stack-cta-section {
-    flex-direction: column;
-    gap: 2rem;
-    padding: 1.5rem;
-    min-height: auto;
-    height: auto;
-    display: grid;
-    /*grid-template-rows: minmax(0, 1fr) minmax(0, max-content);*/
-    grid-template-rows: minmax(0, min-content) minmax(min-content, 1fr);
+      gap: 2rem;
+      padding: 0;
+      min-height: auto;
+      height: auto;
+      border: none;
+      background: transparent;
+      flex-direction: column;
+      align-self: center;
   }
 }
 

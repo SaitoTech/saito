@@ -81,7 +81,7 @@
 
 .saito-crypto-details .wallet-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.2rem;
   padding: 1rem;
   justify-content: space-between;
@@ -113,11 +113,12 @@
   margin-top: auto;
 }
 
+/*
 .saito-button-grid .saito-button-primary,
 .saito-button-grid .saito-button-secondary {
   min-width: unset;
 }
-
+*/
 .transaction-history {
   display: grid;
   flex-grow: 1;

@@ -139,6 +139,7 @@ details.settings-appspace-section[open] > .settings-appspace-section-summary {
 	text-align: center;
 	width: 100%;
 	min-width: 0;
+    max-width: calc(32% - 0.333rem);
 }
 
 .settings-actions-container {

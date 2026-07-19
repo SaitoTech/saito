@@ -3,7 +3,7 @@ module.exports = (app, mod) => {
 	let html = `
 			<div class="stun-settings-shell">
 			<fieldset class="saito-grid stun-settings-privacy">
-			<legend class="settings-label">Enable direct calls on Saito Talk from:</legend>
+			<legend class="settings-label videocall-settings-heading">Enable Direct Calls on Saito Talk From:</legend>
 			<input class="saito-radio" type="radio" id="all" name="stun-privacy" value="all" ${
 	privacy == 'all' ? 'checked' : ''
 }/>
@@ -25,7 +25,7 @@ module.exports = (app, mod) => {
 
 	if (mod?.streams?.active){
 		html += `<fieldset class="stun-input-settings cinematic-inputs">
-            <legend class="stun-input-settings-label">Adjust Inputs</legend>
+			<legend class="stun-input-settings-label videocall-settings-heading">Adjust Inputs</legend>
             <select style="display:none" class="saito-form-select" id="video-input"></select>
             <select style="display:none" class="saito-form-select" id="audio-input"></select>
             <button style="display:none" id="test-mic" class="chat-settings-test-mic">Test Microphone</button>

@@ -177,7 +177,7 @@
   gap: 1.6rem;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
 }
 
 /* Mobile: 40% solid primary before fade for better text readability */
@@ -325,7 +325,6 @@
   .bottom-mobile-overlay.center-overlay {
     top: unset;
     bottom: 0;
-    transform: translateX(-50%);
   }
 
   .saito-overlay-size.wide {
@@ -334,7 +333,7 @@
 }
 
 @media screen and (max-width: 768px) {
-  .saito-overlay.saito-overlay-mobile-fullscreen.center-overlay {
+  .saito-overlay {
     inset: 0;
     box-sizing: border-box;
     width: 100vw;
@@ -343,19 +342,18 @@
     height: 100dvh;
     max-height: none;
     margin: 0;
-    padding: 0;
+    padding: 6rem 1rem 0;
     border-radius: 0;
     transform: none;
     overflow-y: auto;
     overscroll-behavior: contain;
-    display: flex !important;
-    flex-direction: column;
-    justify-content: safe center;
+    background: var(--saito-canvas-background, var(--saito-background));
   }
 
-  .saito-overlay.saito-overlay-mobile-fullscreen > .saito-overlay-panel,
-  .saito-overlay.saito-overlay-mobile-fullscreen > form {
-    flex: 0 0 auto;
+  
+
+  .saito-overlay > .saito-overlay-panel,
+  .saito-overlay > form {
     box-sizing: border-box;
     width: 100% !important;
     max-width: 100% !important;
@@ -365,9 +363,10 @@
     border-radius: 0;
     box-shadow: none;
     height: calc(100% - 5rem);
+    background: transparent;
   }
 
-  .saito-overlay.saito-overlay-mobile-fullscreen .saito-overlay-closebox {
+  .saito-overlay .saito-overlay-closebox {
     position: fixed;
     top: max(1rem, env(safe-area-inset-top));
     right: max(1rem, env(safe-area-inset-right));

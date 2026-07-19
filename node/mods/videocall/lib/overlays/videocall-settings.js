@@ -10,7 +10,7 @@ class VideoCallSettings {
 
 	render() {
 		this.saitoOverlay.show(VideoCallSettingsTemplate(this.mod, this.app));
-		this.mod.loadSettings('.videocall-setting-grid-item');
+		this.mod.loadSettings('.videocall-settings-content');
 
 		this.attachEvents();
 	}
