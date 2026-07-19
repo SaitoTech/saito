@@ -1077,11 +1077,11 @@ class Videocall extends ModTemplate {
 	}
 
 	async copyInviteLink() {
-alert("copy invite link!");
+//alert("copy invite link!");
   	  const link = await this.createShortLink(
   	    this.generateCallLink()
   	  );
-alert("link is: " + link);
+//alert("link is: " + link);
   	  await navigator.clipboard.writeText(link);
   	  siteMessage("Invite link copied to clipboard", 1500);
 	}

@@ -180,27 +180,31 @@ class QRScanner extends ModTemplate {
 		this.video = video;
 		this.canvas = canvas;
 
-		this.canvas_context = this.canvas.getContext('2d');
-		this.decoder = new Worker('/qrscanner/quirc_worker.js');
-		this.decoder.onmessage = (msg) => {
-			this.onDecoderMessage(msg);
-		};
-
 		try {
+			this.canvas_context = this.canvas.getContext('2d');
+			this.decoder = new Worker('/qrscanner/quirc_worker.js');
+			this.decoder.onmessage = (msg) => {
+				this.onDecoderMessage(msg);
+			};
+
 			let stream = await navigator.mediaDevices.getUserMedia(this.constraints);
 			this.handleSuccess(stream);
 		} catch (err) {
 			this.handleError(err);
+			return;
 		}
 
 		this.startQRDecoderInitializationLoop();
 	}
 
 	stop() {
-		this.decoder.terminate();
-		if (this.video) {
+		this.decoder?.terminate();
+		this.decoder = null;
+		if (this.video?.srcObject) {
 			this.video.srcObject.getTracks().forEach((track) => track.stop());
 		}
+		this.isStreamInit = false;
+		this.scanner_callback = null;
 		if (document.querySelector('.qrscanner-container')) {
 			document.querySelector('.qrscanner-container').remove();
 		}
@@ -275,8 +279,9 @@ class QRScanner extends ModTemplate {
 		// we know what we want to do (callback provided)
 		//
 		if (this.scanner_callback != null) {
+			const callback = this.scanner_callback;
 			this.stop();
-			this.scanner_callback(msg);
+			callback(msg);
 			return;
 		}
 
@@ -338,7 +343,11 @@ class QRScanner extends ModTemplate {
 	}
 
 	handleError(error) {
-		//console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+		console.error('QRScanner: unable to start camera', error);
+		this.stop();
+		if (typeof siteMessage === 'function') {
+			siteMessage('Unable to access the camera. Check this site\'s camera permission.', 4000);
+		}
 	}
 }
 

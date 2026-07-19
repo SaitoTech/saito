@@ -302,7 +302,12 @@
 		overflow-y: hidden;
 	}
 
-	.split-view .side-videos 
+	.split-view .side-videos .saito-videobox {
+		height: 100%;
+		width: auto;
+	}
+}
+
 .gallery,
 .side-videos {
 	resize: both;
@@ -1181,6 +1186,12 @@ video#presentation {
 	letter-spacing: -0.02em;
 }
 
+.videocall-settings-content {
+	display: grid;
+	align-content: start;
+	gap: 1.2rem;
+}
+
 .stun-settings-shell {
 	display: grid;
 	gap: 1.2rem;
@@ -1198,9 +1209,60 @@ video#presentation {
 	margin-bottom: 1rem;
 }
 
+.videocall-settings-content legend.videocall-settings-heading {
+	color: var(--saito-font-color-heavy);
+	letter-spacing: normal;
+	text-transform: none;
+}
+
 /* ------------------------------------------------------------------ */
 /* 11. Media queries                                                   */
 /* ------------------------------------------------------------------ */
+
+@media screen and (max-width: 768px) {
+	.videocall-settings-modal {
+		grid-template-rows: min-content minmax(0, 1fr);
+		height: 100%;
+		max-height: none;
+		border: 0 !important;
+		border-radius: 0;
+	}
+
+	.videocall-settings-modal > .saito-modal-title {
+		padding: 0 0 1rem;
+	}
+
+	.videocall-settings-content {
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		gap: 1rem;
+		min-height: 0;
+		overflow-y: auto;
+	}
+
+	.videocall-layout-options,
+	.stun-settings-privacy {
+		grid-template-columns: 2rem minmax(0, 1fr);
+		align-content: start;
+		gap: 0.8rem 1rem;
+		width: 100%;
+		margin: 0;
+		padding: 1.2rem;
+	}
+
+	.videocall-option-label {
+		grid-template-columns: 2.4rem minmax(0, 1fr);
+		gap: 1rem;
+		min-height: 4.4rem;
+		padding: 0.8rem 1rem;
+	}
+
+	.stun-settings-shell {
+		flex: 0 0 auto;
+		gap: 1rem;
+	}
+}
 
 @media screen and (max-width: 900px) {
 	.stun-chatbox main {

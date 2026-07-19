@@ -3,12 +3,12 @@ const VideoCallSettingsTemplate = (mod, app) => {
   let display_mode = mod.layout;
 
 	let html = `
-            <div class="saito-modal saito-modal-menu videocall-setting-grid-item" id="saito-user-menu">
+            <div class="saito-modal saito-modal-menu videocall-setting-grid-item videocall-settings-modal" id="saito-user-menu">
                <div class="saito-modal-title">${mod.returnName()} Settings</div>
-               <div class="saito-modal-content videocall-setting-grid-item">
+               <div class="saito-modal-content videocall-settings-content">
 
-                <fieldset class="saito-grid">
-                  <legend class="settings-label">Videocall Layout</legend>
+                <fieldset class="saito-grid videocall-layout-options">
+                  <legend class="settings-label videocall-settings-heading">Video Call Layout</legend>
                     <input id="videocall-option-input-focus" ${
                         display_mode === 'focus' ? `checked` : ``
                       } type="radio" value="focus"

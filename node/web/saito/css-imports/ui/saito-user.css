@@ -78,6 +78,7 @@ Saito User
   grid-row-start: 1;
   grid-row-end: span 1;
   font-size: 1.5rem;
+  whitespace: nowrap;
 }
 
 .saito-user[data-disable='true'] > .saito-address,

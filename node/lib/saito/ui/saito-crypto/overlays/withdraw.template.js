@@ -94,6 +94,9 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
                 <button type="button" class="withdraw-options-cont withdraw-paste-btn" id="withdraw-paste-btn" title="Paste address">
                   <i class="fa-solid fa-paste" aria-hidden="true"></i>
                 </button>
+                <button type="button" class="withdraw-options-cont withdraw-qr-scan-btn" id="withdraw-qr-scan-btn" title="Scan QR code" aria-label="Scan recipient QR code">
+                  <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
+                </button>
                 <button type="button" class="withdraw-options-cont" id="address-book" title="Contacts">
                   <i class="fa-solid fa-users" aria-hidden="true"></i>
                 </button>`;
