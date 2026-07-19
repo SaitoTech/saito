@@ -314,6 +314,11 @@ Media Queries
 -----------------------------------------------------------------*/
 
 @media screen and (max-width: 768px) {
+
+  :root {
+    font-size: 10px;
+  }
+    
   body {
     font-size: 1.45rem;
   }
