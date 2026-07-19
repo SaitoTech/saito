@@ -5,14 +5,14 @@
 .qrscanner-container {
 	width: 100vw;
 	height: 100vh;
-	position: absolute;
+	position: fixed;
 	top: 0;
 	left: 0;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: space-evenly;
-	z-index: 16;
+	z-index: 2001;
 }
 
 .qr-video-container {

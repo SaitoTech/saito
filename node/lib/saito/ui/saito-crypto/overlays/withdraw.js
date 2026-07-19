@@ -969,25 +969,38 @@ class Withdraw {
     this.closeTokenMenu();
   }
 
-  async pasteAddress() {
+  async applyAddressInputValue(value) {
     const input = document.getElementById('withdraw-input-address');
     if (!input || input.disabled) {
       return;
     }
+
+    const address = typeof value === 'string' ? value.trim() : '';
+    if (!address) {
+      return;
+    }
+
     input.focus();
+    if (!this.isFixedRecipientForm()) {
+      this.publicKey = '';
+    }
+    input.value = address;
+    await this.updateAddressUiFromInput({ showError: true });
+  }
+
+  async pasteAddress() {
     try {
       const text = await navigator.clipboard.readText();
-      if (!text) {
-        return;
-      }
-      if (!this.isFixedRecipientForm()) {
-        this.publicKey = '';
-      }
-      input.value = text.trim();
-      await this.updateAddressUiFromInput({ showError: true });
+      await this.applyAddressInputValue(text);
     } catch (e) {
       console.warn('withdraw paste:', e);
     }
+  }
+
+  scanAddress() {
+    this.app.connection.emit('scanner-start-scanner', (data) => {
+      void this.applyAddressInputValue(data);
+    });
   }
 
   async copyWithFeedback(button, text) {
@@ -1143,6 +1156,18 @@ class Withdraw {
         e.preventDefault();
         e.stopPropagation();
         void this.pasteAddress();
+      };
+    }
+
+    const scanBtn = document.getElementById('withdraw-qr-scan-btn');
+    if (scanBtn) {
+      scanBtn.onmousedown = (e) => {
+        e.preventDefault();
+      };
+      scanBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.scanAddress();
       };
     }
 

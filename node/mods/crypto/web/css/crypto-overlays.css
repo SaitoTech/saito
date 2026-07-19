@@ -2539,3 +2539,31 @@ input[type='checkbox'].ignore-checkbox {
   bottom: 8%;
   right: 8%;
 }
+
+.withdraw-input-cont .withdraw-qr-scan-btn {
+  display: none !important;
+}
+
+@media screen and (max-width: 768px) {
+  #withdraw-address-cont:not(.fixed-user) {
+    grid-template-columns: minmax(0, 1fr) repeat(2, min-content);
+  }
+
+  #withdraw-address-cont button.withdraw-options-cont {
+    width: 4rem;
+    min-width: 4rem;
+    margin: 0;
+    padding: 0;
+    font-size: 1.7rem;
+  }
+
+  #withdraw-address-cont .withdraw-qr-scan-btn {
+    display: flex !important;
+  }
+}
+
+@media screen and (max-width: 520px) {
+  #withdraw-address-cont:not(.fixed-user) {
+    grid-template-columns: minmax(0, 1fr) repeat(3, min-content);
+  }
+}
