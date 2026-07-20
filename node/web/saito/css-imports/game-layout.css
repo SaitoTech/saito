@@ -30,6 +30,10 @@
   --saito-header-height: 4rem;
 }
 
+html.game {
+    font-size: 10px;
+}
+
 body {
   position: relative;
   background-color: #4e4e4e;
