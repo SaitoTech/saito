@@ -16,10 +16,9 @@
 	-webkit-overflow-scrolling: touch;
 }
 
-/* Wide product overlays — Saito default overlay is min-content */
-.saito-overlay:has(> .listing-detail),
-.saito-overlay:has(> .nft-picker) {
-	width: min(94vw, 78rem);
+/* Listing detail — wide product sheet (NFT picker sizes itself in store-nft-picker.css) */
+.saito-overlay:has(> .listing-detail) {
+	width: min(92vw, 96rem);
 	max-width: calc(100vw - 2 * var(--saito-space-md));
 }
 
@@ -28,9 +27,8 @@
 		padding: var(--saito-space-lg) var(--saito-space-lg);
 	}
 
-	.saito-overlay:has(> .listing-detail),
-	.saito-overlay:has(> .nft-picker) {
-		width: min(96vw, 78rem);
+	.saito-overlay:has(> .listing-detail) {
+		width: min(96vw, 96rem);
 		max-width: calc(100vw - 2 * var(--saito-space-sm));
 	}
 }
@@ -42,8 +40,7 @@
 			max(var(--saito-space-md), env(safe-area-inset-left, 0px));
 	}
 
-	.saito-overlay:has(> .listing-detail),
-	.saito-overlay:has(> .nft-picker) {
+	.saito-overlay:has(> .listing-detail) {
 		width: 100vw;
 		max-width: 100vw;
 		margin: 0;

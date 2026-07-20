@@ -1,5 +1,6 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ListingDetailTemplate = require('./listing-detail.template');
+const ListingFieldEdit = require('./listing-field-edit');
 const Summary = require('../../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
 const { summaryBucketKey } = require('../summary-cache');
@@ -19,6 +20,7 @@ class ListingDetailOverlay {
 		this.app = app;
 		this.mod = mod;
 		this.overlay = new SaitoOverlay(app, mod);
+		this.field_edit = new ListingFieldEdit(app, mod);
 		this.mode = 'view';
 		this.summary = null;
 		this.selectedNft = null;
@@ -165,8 +167,8 @@ class ListingDetailOverlay {
 		return {
 			identicon: this.app?.keychain?.returnIdenticon?.(seller) || '',
 			listingTitle,
-			seller,
-			shortSeller,
+			seller: this.escapeHtml(seller),
+			shortSeller: this.escapeHtml(shortSeller),
 			images: normalizedImages,
 			hasGallery: normalizedImages.length > 1,
 			primaryLabel,
@@ -190,10 +192,21 @@ class ListingDetailOverlay {
 	returnEditView(nft) {
 		const seller = this.mod.publicKey || 'anon-store';
 		const priceNum = Number(this.listing.price) || 1;
+		const creator =
+			(typeof nft?.returnCreator === 'function' ? nft.returnCreator() : null) ||
+			nft?.creator ||
+			nft?.slip1?.publicKey ||
+			nft?.slip1?.public_key ||
+			'';
+		const nftId = nft?.id || nft?.uuid || '';
+		const nftIdenticon =
+			this.app?.keychain?.returnIdenticon?.(nftId || creator || seller) || '';
 
 		return {
 			listingTitle: this.escapeHtml(this.listing.title),
-			shortSeller: returnShortKey(seller),
+			seller: this.escapeHtml(seller),
+			creatorDisplay: this.escapeHtml(creator ? returnShortKey(creator) : 'Unknown creator'),
+			nftIdenticon,
 			mediaHtml: this.returnMediaHtml(nft),
 			description: this.escapeHtml(this.listing.description),
 			priceDisplay: `${priceNum} SAITO`,
@@ -374,87 +387,112 @@ class ListingDetailOverlay {
 			return;
 		}
 
-		const backBtn = root.querySelector('[data-action="back"]');
-		if (backBtn) {
-			backBtn.onclick = (e) => {
-				e.preventDefault();
-				if (typeof this.onBack === 'function') {
-					this.onBack(this.defaults);
-				}
-			};
-		}
+		const openFieldEdit = (field) => {
+			if (this.defaults?.locked?.includes(field.lockKey || field.name)) {
+				return;
+			}
 
-		const editTitle = root.querySelector('[data-edit="title"]');
-		if (editTitle) {
-			editTitle.onclick = (e) => {
-				e.preventDefault();
-				const next = prompt('Listing title', this.listing.title);
-				if (next !== null && next.trim()) {
-					this.listing.title = next.trim();
-					root.querySelector('[data-field="title"]').textContent = this.listing.title;
-				}
-			};
-		}
-
-		const editDesc = root.querySelector('[data-edit="description"]');
-		if (editDesc) {
-			editDesc.onclick = (e) => {
-				e.preventDefault();
-				if (this.defaults?.locked?.includes('description')) {
-					return;
-				}
-				const next = prompt('Listing description', this.listing.description);
-				if (next !== null) {
-					this.listing.description = next.trim();
-					root.querySelector('[data-field="description"]').textContent =
-						this.listing.description || 'No description provided';
-				}
-			};
-		}
-
-		const editPrice = root.querySelector('[data-edit="price"]');
-		if (editPrice) {
-			editPrice.onclick = (e) => {
-				e.preventDefault();
-				if (this.defaults?.locked?.includes('price')) {
-					return;
-				}
-				const next = prompt('Price in SAITO', this.listing.price);
-				if (next !== null && next.trim()) {
-					const cleaned = next.trim().replace(/[^\d.]/g, '');
-					if (cleaned) {
-						this.listing.price = cleaned;
-						root.querySelector('[data-field="price"]').textContent = `${cleaned} SAITO`;
+			this.field_edit.render({
+				title: field.title,
+				value: field.value,
+				multiline: !!field.multiline,
+				inputType: field.inputType || 'text',
+				placeholder: field.placeholder || '',
+				onSave: (raw) => {
+					const result = field.parse(raw);
+					if (result === false) {
+						return false;
 					}
+					field.apply(result);
+					return true;
 				}
-			};
-		}
+			});
+		};
 
-		const editAvailable = root.querySelector('[data-edit="available"]');
-		if (editAvailable) {
-			editAvailable.onclick = (e) => {
-				e.preventDefault();
-				if (this.defaults?.locked?.includes('quantity')) {
-					return;
+		root.querySelector('[data-edit="title"]')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			openFieldEdit({
+				name: 'title',
+				title: 'Edit Title',
+				value: this.listing.title,
+				placeholder: 'Listing title',
+				parse: (raw) => {
+					const next = String(raw || '').trim();
+					return next || false;
+				},
+				apply: (next) => {
+					this.listing.title = next;
+					root.querySelector('[data-field="title"]').textContent = next;
 				}
-				const next = prompt(
-					`Available quantity (max ${this.max_quantity_total})`,
-					String(this.listing.quantity_total)
-				);
-				if (next !== null && next.trim()) {
-					let qty = parseInt(next.trim(), 10);
+			});
+		});
+
+		root.querySelector('[data-edit="description"]')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			openFieldEdit({
+				name: 'description',
+				lockKey: 'description',
+				title: 'Edit Description',
+				value: this.listing.description,
+				multiline: true,
+				placeholder: 'Describe this listing',
+				parse: (raw) => String(raw ?? '').trim(),
+				apply: (next) => {
+					this.listing.description = next;
+					root.querySelector('[data-field="description"]').textContent =
+						next || 'No description provided.';
+				}
+			});
+		});
+
+		root.querySelector('[data-edit="price"]')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			openFieldEdit({
+				name: 'price',
+				lockKey: 'price',
+				title: 'Edit Price',
+				value: String(this.listing.price),
+				inputType: 'text',
+				placeholder: 'Price in SAITO',
+				parse: (raw) => {
+					const cleaned = String(raw || '')
+						.trim()
+						.replace(/[^\d.]/g, '');
+					return cleaned || false;
+				},
+				apply: (cleaned) => {
+					this.listing.price = cleaned;
+					root.querySelector('[data-field="price"]').textContent = `${cleaned} SAITO`;
+				}
+			});
+		});
+
+		root.querySelector('[data-edit="available"]')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			openFieldEdit({
+				name: 'available',
+				lockKey: 'quantity',
+				title: 'Edit Available Quantity',
+				value: String(this.listing.quantity_total),
+				inputType: 'number',
+				placeholder: `1–${this.max_quantity_total}`,
+				parse: (raw) => {
+					let qty = parseInt(String(raw || '').trim(), 10);
 					if (!Number.isFinite(qty) || qty < 1) {
-						qty = 1;
+						return false;
 					}
 					if (qty > this.max_quantity_total) {
 						qty = this.max_quantity_total;
 					}
+					return qty;
+				},
+				apply: (qty) => {
 					this.listing.quantity_total = qty;
 					this.listing.quantity_available = qty;
 					root.querySelector('[data-field="available"]').textContent = String(qty);
 				}
-			};
-		}
+			});
+		});
 
 		const submitBtn = root.querySelector('[data-action="submit"]');
 		if (submitBtn) {

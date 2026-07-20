@@ -57,6 +57,18 @@
 	opacity: 0.7;
 }
 
+.store > .menu .heading {
+	min-height: auto;
+	margin: 0;
+	padding: var(--saito-space-sm) 1.1rem var(--saito-space-xs);
+	pointer-events: none;
+	cursor: default;
+}
+
+.store > .menu .heading .sidebar-title {
+	cursor: default;
+}
+
 /* —— Main column —— */
 
 .store > .manager {
@@ -180,6 +192,11 @@
 	.store > .menu .divider {
 		flex: 1 0 100%;
 		margin: var(--saito-space-sm) 0;
+	}
+
+	.store > .menu .heading {
+		flex: 1 0 100%;
+		padding-inline: var(--saito-space-sm);
 	}
 
 	.store > .manager {

@@ -37,7 +37,7 @@ module.exports = {
         <img class="saito-identicon" src="${view.identicon}" alt="" />
         <div class="meta">
           <h2 class="title" id="listing-detail-title">${view.listingTitle}</h2>
-          <p class="seller">${view.shortSeller}</p>
+          <p class="creator">${view.shortSeller}</p>
         </div>
       </header>
 
@@ -64,6 +64,7 @@ module.exports = {
 
           <section class="section meta-facts">
             <dl class="facts">
+              <div><dt>Seller</dt><dd class="seller-key">${view.seller}</dd></div>
               <div><dt>Type</dt><dd>${view.productType}</dd></div>
               <div><dt>File</dt><dd>${view.fileType}</dd></div>
               <div><dt>Listed</dt><dd>${view.createdDate}</dd></div>
@@ -86,13 +87,13 @@ module.exports = {
 		return `
     <article class="listing-detail edit">
       <header>
-        <button type="button" class="saito-icon-button back" data-action="back" aria-label="Back to NFT selection">←</button>
+        <img class="saito-identicon" src="${view.nftIdenticon}" alt="" />
         <div class="meta">
           <h2 class="title">
             <span data-field="title">${view.listingTitle}</span>
-            <button type="button" class="saito-icon-button" data-edit="title" aria-label="Edit title">✎</button>
+            <button type="button" class="saito-icon-button" data-edit="title" aria-label="Edit title"><i class="fas fa-pen" aria-hidden="true"></i></button>
           </h2>
-          <p class="seller">${view.shortSeller}</p>
+          <p class="creator">${view.creatorDisplay}</p>
         </div>
       </header>
 
@@ -108,7 +109,7 @@ module.exports = {
             <p class="label">Price</p>
             <p class="amount">
               <span data-field="price">${view.priceDisplay}</span>
-              <button type="button" class="saito-icon-button" data-edit="price" aria-label="Edit price">✎</button>
+              <button type="button" class="saito-icon-button" data-edit="price" aria-label="Edit price"><i class="fas fa-pen" aria-hidden="true"></i></button>
             </p>
           </section>
 
@@ -116,12 +117,13 @@ module.exports = {
             <h3 class="label">Description</h3>
             <p class="text">
               <span data-field="description">${description}</span>
-              <button type="button" class="saito-icon-button" data-edit="description" aria-label="Edit description">✎</button>
+              <button type="button" class="saito-icon-button" data-edit="description" aria-label="Edit description"><i class="fas fa-pen" aria-hidden="true"></i></button>
             </p>
           </section>
 
           <section class="section meta-facts">
             <dl class="facts">
+              <div><dt>Seller</dt><dd class="seller-key">${view.seller}</dd></div>
               <div><dt>Type</dt><dd>${view.productType}</dd></div>
               <div><dt>File</dt><dd>${view.fileType}</dd></div>
               <div><dt>Listed</dt><dd>${view.createdDate}</dd></div>
@@ -129,7 +131,7 @@ module.exports = {
                 <dt>Available</dt>
                 <dd>
                   <span data-field="available">${view.supply}</span>
-                  <button type="button" class="saito-icon-button" data-edit="available" aria-label="Edit available quantity">✎</button>
+                  <button type="button" class="saito-icon-button" data-edit="available" aria-label="Edit available quantity"><i class="fas fa-pen" aria-hidden="true"></i></button>
                 </dd>
               </div>
             </dl>

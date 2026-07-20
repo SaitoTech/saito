@@ -1161,24 +1161,57 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
   gap: 1rem;
 }
 
-/* NFT list/card */
-.create-nft-btn {
-  margin: 0;
-  padding: 1.2rem;
-  display: flex;
-  font-size: 3rem;
+/* Create NFT — My NFTs list header only (.saito-nft-list).
+   Compact square sibling of Saito primary/secondary buttons. */
+.saito-nft-list > .saito-overlay-form-header > .create-nft-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  min-width: 3.6rem;
+  min-height: 3.6rem;
+  margin: 0 1.6rem 0 0;
+  padding: 0;
+  border: var(--border-thickness-thin) solid var(--saito-button-secondary-border);
+  border-radius: var(--saito-button-radius);
+  background: var(--saito-button-secondary-bg);
+  color: var(--saito-primary-text);
+  font-size: 1.6rem;
+  line-height: 1;
   cursor: pointer;
-}
-.create-nft-btn:hover {
-  transform: scale(1.1);
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    filter 0.16s ease;
 }
 
-.create-nft-btn i {
-    border: 3px solid var(--saito-primary-text);
-    border-radius: 50%;
-    padding: 1rem;
+.saito-nft-list > .saito-overlay-form-header > .create-nft-btn:hover {
+  background: var(--saito-button-secondary-bg-hover);
+  color: var(--saito-primary-text);
+  filter: brightness(1.25);
+}
+
+.saito-nft-list > .saito-overlay-form-header > .create-nft-btn:active {
+  filter: brightness(0.95);
+}
+
+.saito-nft-list > .saito-overlay-form-header > .create-nft-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--saito-focus-ring);
+}
+
+.saito-nft-list > .saito-overlay-form-header > .create-nft-btn i {
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  font-size: inherit;
+  line-height: 1;
+  color: inherit;
 }
 
 

@@ -1,12 +1,14 @@
-/* Namespace: .listing-detail — layout only; panel chrome from .saito-overlay-panel */
+/* Namespace: .listing-detail — product / listing workspace */
 
 .listing-detail {
 	display: flex;
 	flex-direction: column;
-	width: min(94vw, 78rem);
+	width: min(92vw, 96rem);
 	max-width: 100%;
-	max-height: min(90vh, 56rem);
-	max-height: min(90dvh, 56rem);
+	height: min(90vh, 64rem);
+	height: min(90dvh, 64rem);
+	max-height: min(90vh, 64rem);
+	max-height: min(90dvh, 64rem);
 	overflow: hidden;
 	box-sizing: border-box;
 }
@@ -14,62 +16,119 @@
 .listing-detail > header {
 	display: flex;
 	align-items: center;
-	gap: var(--saito-space-md);
+	gap: var(--saito-space-sm);
 	flex: 0 0 auto;
-	padding: var(--saito-space-lg) var(--saito-space-xl);
+	padding: var(--saito-space-sm) var(--saito-space-xl);
 	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
 }
 
-.listing-detail > header .saito-identicon,
-.listing-detail > header .saito-icon-button.back {
+.listing-detail > header .saito-identicon {
 	flex: 0 0 auto;
-	width: 2.75rem;
-	height: 2.75rem;
-	min-width: 2.75rem;
-	min-height: 2.75rem;
+	width: 4.6rem;
+	height: 4.6rem;
+	min-width: 4.6rem;
+	min-height: 4.6rem;
+	border: none;
 	border-radius: var(--saito-radius-md);
 	object-fit: cover;
 }
 
-.listing-detail > header .saito-identicon {
-	border: none;
+/* Pencil sits on the text baseline — not a oversized hit slab hanging below */
+.listing-detail .saito-icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 0;
+	min-height: 0;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0.1rem 0.25rem;
+	vertical-align: baseline;
+	font-size: 1.15rem;
+	line-height: 1;
 }
 
-.listing-detail .saito-icon-button {
-	min-width: 2.75rem;
-	min-height: 2.75rem;
-	vertical-align: middle;
+.listing-detail .saito-icon-button i {
+	display: block;
+	line-height: 1;
 }
 
 .listing-detail .meta {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 0.15rem;
 	min-width: 0;
+	flex: 1 1 auto;
 }
 
 .listing-detail .title {
 	margin: 0;
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: baseline;
+	column-gap: var(--saito-space-xs);
 	font-size: var(--font-size-large);
 	font-family: var(--saito-font-medium);
 	line-height: 1.2;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.listing-detail .title [data-field] {
+	flex: 1 1 auto;
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.listing-detail .seller {
-	margin: var(--saito-space-xs) 0 0;
+.listing-detail .title .saito-icon-button {
+	flex: 0 0 auto;
+}
+
+.listing-detail .amount,
+.listing-detail .text,
+.listing-detail .facts dd {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	column-gap: var(--saito-space-xs);
+	row-gap: 0;
+}
+
+.listing-detail .amount [data-field],
+.listing-detail .text [data-field],
+.listing-detail .facts dd [data-field] {
+	min-width: 0;
+}
+
+.listing-detail .amount .saito-icon-button,
+.listing-detail .text .saito-icon-button,
+.listing-detail .facts dd .saito-icon-button {
+	flex: 0 0 auto;
+}
+
+.listing-detail .creator {
+	margin: 0;
 	font-size: var(--font-size-tiny);
+	line-height: 1.25;
 	color: var(--saito-font-color-secondary);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .listing-detail > .body {
 	display: grid;
-	grid-template-columns: minmax(0, 1.25fr) minmax(16rem, 0.85fr);
+	grid-template-columns: minmax(0, 1.45fr) minmax(22rem, 0.95fr);
 	gap: var(--saito-space-xl);
 	flex: 1 1 auto;
 	min-height: 0;
-	padding: var(--saito-space-xl);
-	overflow: auto;
-	-webkit-overflow-scrolling: touch;
+	padding: var(--saito-space-lg) var(--saito-space-xl) var(--saito-space-xl);
+	overflow: hidden;
+	align-items: stretch;
 }
 
 .listing-detail .gallery {
@@ -77,11 +136,14 @@
 	flex-direction: column;
 	gap: var(--saito-space-md);
 	min-width: 0;
+	min-height: 0;
+	height: 100%;
 }
 
 .listing-detail .media {
 	position: relative;
-	min-height: 28rem;
+	flex: 1 1 auto;
+	min-height: 0;
 	overflow: hidden;
 	background: var(--saito-muted);
 	border-radius: var(--saito-radius-lg);
@@ -114,6 +176,7 @@
 
 .listing-detail .thumbs {
 	display: flex;
+	flex: 0 0 auto;
 	gap: var(--saito-space-sm);
 	overflow-x: auto;
 	padding-bottom: 2px;
@@ -161,8 +224,13 @@
 .listing-detail .details {
 	display: flex;
 	flex-direction: column;
-	gap: var(--saito-space-xl);
+	gap: var(--saito-space-lg);
 	min-width: 0;
+	min-height: 0;
+	height: 100%;
+	overflow: auto;
+	-webkit-overflow-scrolling: touch;
+	padding-right: var(--saito-space-xs);
 }
 
 .listing-detail .section {
@@ -173,7 +241,7 @@
 }
 
 .listing-detail .section + .section {
-	padding-top: var(--saito-space-lg);
+	padding-top: var(--saito-space-md);
 	border-top: var(--border-thickness-thin) solid var(--saito-border-color);
 }
 
@@ -216,7 +284,7 @@
 
 .listing-detail .facts > div {
 	display: grid;
-	grid-template-columns: 7rem minmax(0, 1fr);
+	grid-template-columns: 7.5rem minmax(0, 1fr);
 	gap: var(--saito-space-sm);
 	align-items: baseline;
 	min-width: 0;
@@ -238,11 +306,21 @@
 	content: none;
 }
 
+.listing-detail .seller-key {
+	font-family: var(--saito-font-mono, ui-monospace, monospace);
+	font-size: 1.15rem;
+	line-height: 1.4;
+	word-break: break-all;
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
 .listing-detail .checkout {
 	display: flex;
 	flex-direction: column;
 	margin-top: auto;
 	gap: var(--saito-space-md);
+	padding-top: var(--saito-space-md);
 }
 
 .listing-detail .quantity {
@@ -280,28 +358,49 @@
 	min-height: 2.75rem;
 }
 
+/* Field-edit dialog — spacing on top of saito-overlay-form */
+.store-listing-field-edit.saito-overlay-form {
+	gap: var(--saito-space-xxl);
+	padding: var(--saito-space-xxl);
+}
+
+.store-listing-field-edit .saito-button-row {
+	margin-top: var(--saito-space-sm);
+}
+
 @media (max-width: 900px) {
 	.listing-detail {
-		width: min(96vw, 78rem);
-		max-height: min(92dvh, 56rem);
+		width: min(96vw, 96rem);
+		height: min(92dvh, 64rem);
+		max-height: min(92dvh, 64rem);
 	}
 
 	.listing-detail > header {
-		padding: var(--saito-space-md) var(--saito-space-lg);
+		padding: var(--saito-space-sm) var(--saito-space-lg);
 	}
 
 	.listing-detail > .body {
 		grid-template-columns: 1fr;
 		gap: var(--saito-space-lg);
-		padding: var(--saito-space-lg);
+		padding: var(--saito-space-md) var(--saito-space-lg) var(--saito-space-lg);
+		overflow: auto;
+	}
+
+	.listing-detail .gallery {
+		height: auto;
+		min-height: 22rem;
 	}
 
 	.listing-detail .media {
-		min-height: 20rem;
+		min-height: 22rem;
+		aspect-ratio: 4 / 3;
+		flex: 0 0 auto;
 	}
 
 	.listing-detail .details {
-		gap: var(--saito-space-lg);
+		height: auto;
+		overflow: visible;
+		padding-right: 0;
 	}
 
 	.listing-detail .amount {
@@ -317,6 +416,7 @@
 	.listing-detail {
 		width: 100%;
 		max-width: 100%;
+		height: auto;
 		max-height: none;
 	}
 

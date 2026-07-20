@@ -81,6 +81,12 @@ class NftPickerOverlay {
 			});
 		}
 
+		// Avoid treating a successful pick as a cancel when the picker closes.
+		if (this.defaults) {
+			this.defaults.callback = null;
+		}
+		this.overlay.close();
+
 		if (typeof this.onSelect === 'function') {
 			this.onSelect(selected, this.defaults);
 		}

@@ -6,7 +6,7 @@ class Menu {
 		this.mod = mod;
 		this.container = container;
 		this.onNavigate = onNavigate;
-		this.active = 'featured';
+		this.active = 'all';
 	}
 
 	render(container = '') {
