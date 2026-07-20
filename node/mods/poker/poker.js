@@ -127,6 +127,20 @@ class Poker extends GameTableTemplate {
 		}
 	}
 
+	//
+	// Consensus fields specific to poker that a late joiner must be able to
+	// verify (beyond the engine's id/players/round/credit/debt). The dealer
+	// button drives the blinds and turn order, so a joiner seated against a
+	// different button than the table would desync immediately.
+	//
+	returnExtraCommitmentFields(game_obj) {
+		return {
+			button_player: game_obj?.state?.button_player || 0,
+			small_blind: game_obj?.state?.small_blind || 0,
+			big_blind: game_obj?.state?.big_blind || 0
+		};
+	}
+
 	returnShortGameOptionsArray(options) {
 		let sgoa = super.returnShortGameOptionsArray(options);
 		let ngoa = {};
@@ -158,11 +172,9 @@ class Poker extends GameTableTemplate {
 					}
 
 					if (okey == 'eliminated') {
-						let str = '';
-						for (let key in oval) {
-							str += this.app.keychain.returnUsername(key) + ', ';
-						}
-						oval = str;
+						// rendered as its own "cashed out" section in the arcade lounge,
+						// not as a game-options row
+						output_me = 0;
 					}
 
 					if (output_me == 1) {

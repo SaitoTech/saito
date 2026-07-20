@@ -503,6 +503,30 @@ class GameTableTemplate extends GameTemplate {
   }
 
   //
+  // Voluntarily revoke a pending seat request (from the arcade lounge). Unlike
+  // abortPendingJoin this is user-initiated and not an error, so it just
+  // withdraws quietly and hides the abandoned stub from the arcade.
+  //
+  cancelPendingJoin(game_id = this.game?.id) {
+    if (game_id && this.game?.id !== game_id) {
+      this.loadGame(game_id);
+    }
+    if (!this.game?.pending_join) {
+      return;
+    }
+    if (this.pending_join_timeout) {
+      clearTimeout(this.pending_join_timeout);
+      this.pending_join_timeout = null;
+    }
+    this.sendMetaMessage('CANCEL');
+    delete this.joining[this.publicKey];
+    delete this.game.pending_join;
+    this.game.over = 2; // hide the abandoned stub from arcade continue-lists
+    this.saveGame(this.game.id);
+    siteMessage('Cancelled your seat request', 2500);
+  }
+
+  //
   // Request a seat at an in-progress open table (called from the arcade).
   // Reuses the observer stub bootstrap (player = 0, accepted = invite
   // players), FOLLOWs for the current state, and broadcasts a JOIN request
@@ -583,7 +607,15 @@ class GameTableTemplate extends GameTemplate {
     }
 
     siteMessage('Seat confirmed -- you will be dealt in at the next round', 3000);
-    this.emitGameReadyRender();
+
+    //
+    // the ready-render drives the arcade "Start Game" lounge -- only meaningful
+    // while the joiner is still in the arcade. if they already clicked into the
+    // game room, skip it (they get seated in place via the state handoff).
+    //
+    if (!this.gameBrowserActive()) {
+      this.emitGameReadyRender();
+    }
   }
 
   addPlayerLate(address) {

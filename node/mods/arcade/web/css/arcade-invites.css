@@ -31,7 +31,8 @@
 	backdrop-filter: blur(3px);
 }
 
-.arcade-invite-identicons .arcade-invite-requested {
+.arcade-invite-identicons .arcade-invite-requested,
+.arcade-invite-identicons .arcade-invite-pending {
 	opacity: 0.6;
 	filter: grayscale(0.7);
 }

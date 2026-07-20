@@ -25,7 +25,7 @@ class Arcade extends ModTemplate {
     this.slug = 'arcade';
     this.sudo = false;
     this.description =
-			'Interface for creating and joining games coded for the Saito Open Source Game Engine.';
+      'Interface for creating and joining games coded for the Saito Open Source Game Engine.';
     this.categories = 'Games Entertainment Appspace';
     this.icon = 'fas fa-gamepad';
     this.styles = ['/arcade/style.css'];
@@ -237,6 +237,17 @@ class Arcade extends ModTemplate {
           if (game.over) {
             continue;
           }
+          //
+          // Only shadow the server's record with locally-reconstructed state if
+          // we are actually a player. A player who left or was eliminated is
+          // still in game.accepted, but their local roster is stale -- and
+          // because addGame() is first-writer-wins, that stale pseudo-tx would
+          // block the server's authoritative record for the whole session
+          // (surviving refresh, since it is rebuilt from the wallet each time).
+          //
+          if (!game.players.includes(this.publicKey)) {
+            continue;
+          }
           let game_tx = await this.createPseudoTransaction(game);
           this.addGame(game_tx, 'active');
 
@@ -333,7 +344,7 @@ class Arcade extends ModTemplate {
         this.lounge_overlay.game_id = data.game_id != null ? data.game_id : null;
         this.lounge_overlay.observer_has_archive_data = data.observer_has_archive_data === true;
         this.lounge_overlay.observer_game_module_slug =
-					data.game_module_slug != null ? data.game_module_slug : null;
+          data.game_module_slug != null ? data.game_module_slug : null;
         this.lounge_overlay.render();
       }
       return;
@@ -423,9 +434,9 @@ class Arcade extends ModTemplate {
             const game_module_slug = urlParams.get('game');
             if (
               game_tx &&
-							!from_archive &&
-							game_tx.msg.request !== 'cancel' &&
-							game_tx.msg.request !== 'closed'
+              !from_archive &&
+              game_tx.msg.request !== 'cancel' &&
+              game_tx.msg.request !== 'closed'
             ) {
               this.addGame(game_tx);
               if (this.isAvailableGame(game_tx)) {
@@ -470,8 +481,11 @@ class Arcade extends ModTemplate {
   }
 
   async createPseudoTransaction(game) {
-
-    let game_tx = await this.app.wallet.createUnsignedTransaction(this.publicKey, BigInt(0), BigInt(0));
+    let game_tx = await this.app.wallet.createUnsignedTransaction(
+      this.publicKey,
+      BigInt(0),
+      BigInt(0)
+    );
 
     if (game.accepted) {
       game.accepted.forEach((player) => {
@@ -539,7 +553,6 @@ class Arcade extends ModTemplate {
     let arcade_self = this;
 
     if (service.service == 'arcade') {
-
       this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
         if (txs?.length > 0) {
           for (let serial_tx of txs) {
@@ -588,9 +601,9 @@ class Arcade extends ModTemplate {
           );
           if (
             game_tx &&
-						!from_archive &&
-						game_tx.msg.request !== 'cancel' &&
-						game_tx.msg.request !== 'closed'
+            !from_archive &&
+            game_tx.msg.request !== 'cancel' &&
+            game_tx.msg.request !== 'closed'
           ) {
             arcade_self.addGame(game_tx);
             if (arcade_self.isAvailableGame(game_tx)) {
@@ -631,35 +644,35 @@ class Arcade extends ModTemplate {
     //
     if (service.service === 'archive') {
       /*for (let game of this.app.options.games) {
-				if (game?.over) {
-					continue;
-				}
+        if (game?.over) {
+          continue;
+        }
 
-				let game_mod = this.app.modules.returnModule(game.module);
+        let game_mod = this.app.modules.returnModule(game.module);
 
-				if (!game_mod) {
-					continue;
-				}
+        if (!game_mod) {
+          continue;
+        }
 
-				this.app.storage.loadTransactions(
-					{
-						field1: game.module,
-						field4: game.id
-					},
-					async (txs) => {
-						if (txs?.length > 0) {
-							for (let i = txs.length - 1; i >= 0; i--) {
-								// arcade
-								await this.onConfirmation(-1, txs[i], 0);
+        this.app.storage.loadTransactions(
+          {
+            field1: game.module,
+            field4: game.id
+          },
+          async (txs) => {
+            if (txs?.length > 0) {
+              for (let i = txs.length - 1; i >= 0; i--) {
+                // arcade
+                await this.onConfirmation(-1, txs[i], 0);
 
-								// game mod
-								await game_mod.onConfirmation(-1, txs[i], 0);
-							}
-						}
-					},
-					peer
-				);
-			}*/
+                // game mod
+                await game_mod.onConfirmation(-1, txs[i], 0);
+              }
+            }
+          },
+          peer
+        );
+      }*/
     }
   }
 
@@ -766,6 +779,10 @@ class Arcade extends ModTemplate {
 
           if (txmsg.request === 'game') {
             await arcade_self.receiveGameStepTransaction(tx);
+          }
+
+          if (txmsg.request === 'JOIN' || txmsg.request === 'LEAVE' || txmsg.request === 'CANCEL') {
+            arcade_self.receiveGametableMeta(tx);
           }
 
           //
@@ -913,6 +930,9 @@ class Arcade extends ModTemplate {
           if (txmsg.request === 'game') {
             await this.receiveGameStepTransaction(tx);
           }
+        }
+        if (txmsg.request === 'JOIN' || txmsg.request === 'LEAVE' || txmsg.request === 'CANCEL') {
+          this.receiveGametableMeta(tx);
         }
       }
 
@@ -1101,7 +1121,7 @@ class Arcade extends ModTemplate {
       }
     } else if (
       game.tx.msg.options?.desired_opponent_publickey &&
-			tx.isFrom(game.tx.msg.options.desired_opponent_publickey)
+      tx.isFrom(game.tx.msg.options.desired_opponent_publickey)
     ) {
       if (this.publicKey == game.tx.msg.originator) {
         siteMessage('Your game invite was declined', 5000);
@@ -1177,7 +1197,7 @@ class Arcade extends ModTemplate {
       game.tx.msg.method = txmsg.reason;
       game.tx.msg.time_finished = txmsg.timestamp;
     } else {
-      console.warn('Game not found, arcade can\'t process gameover tx');
+      console.warn("Game not found, arcade can't process gameover tx");
     }
   }
 
@@ -1310,6 +1330,8 @@ class Arcade extends ModTemplate {
         game.tx.msg.players.push(tx.from[0].publicKey);
         game.tx.msg.players_sigs.push(txmsg.invite_sig);
 
+        // Move player from tentatitive to full on...
+        this.clearTentative(txmsg.game_id, tx.from[0].publicKey);
         this.removeGame(txmsg.game_id);
         this.addGame(game.tx);
         this.renderInvites();
@@ -1335,8 +1357,8 @@ class Arcade extends ModTemplate {
     //
     if (
       game.tx.msg.players.length >= game.tx.msg.players_needed &&
-			game.tx.msg.request !== 'accepted' &&
-			game.tx.msg.request !== 'active'
+      game.tx.msg.request !== 'accepted' &&
+      game.tx.msg.request !== 'active'
     ) {
       //
       // Temporarily change it so we don't process additional joins
@@ -1348,7 +1370,7 @@ class Arcade extends ModTemplate {
       //
       if (
         game.tx.msg.originator == this.publicKey ||
-				(tx.isFrom(this.publicKey) && game.tx.msg.options?.async_dealing)
+        (tx.isFrom(this.publicKey) && game.tx.msg.options?.async_dealing)
       ) {
         let newtx = await this.createAcceptTransaction(game.tx);
         if (!newtx) {
@@ -1432,6 +1454,7 @@ class Arcade extends ModTemplate {
 
       game.tx.msg.options.eliminated[tx.from[0].publicKey] = txmsg.data;
 
+      this.clearTentative(txmsg.game_id, tx.from[0].publicKey);
       this.removeGame(txmsg.game_id);
       this.addGame(game.tx);
       this.renderInvites();
@@ -1735,6 +1758,71 @@ class Arcade extends ModTemplate {
     };
   }
 
+  //
+  // tentative roster lives ON the invite tx message so it survives
+  // serialization to clients that fetch the invite list cold (needed to gate
+  // the "join" button on table capacity)
+  //
+  returnTentative(game_id) {
+    let record = this.games[game_id];
+    if (!record?.tx?.msg) {
+      return { join: [], leave: [] };
+    }
+    if (!record.tx.msg.tentative) {
+      record.tx.msg.tentative = { join: [], leave: [] };
+    }
+    return record.tx.msg.tentative;
+  }
+
+  //
+  // record intent to join/leave an open table (from the game's JOIN/LEAVE
+  // metas), so the lounge can show pending players before the roster is
+  // finalized on-chain
+  //
+  receiveGametableMeta(tx) {
+    let txmsg = tx.returnMessage();
+    let game_id = txmsg.game_id;
+    if (!game_id || !this.games[game_id]) {
+      return;
+    }
+
+    let t = this.returnTentative(game_id);
+    let roster = this.games[game_id].tx.msg.players || [];
+
+    if (txmsg.request === 'JOIN') {
+      // the joiner is data.pkey (JOIN metas are rebroadcast by each signer)
+      let pkey = txmsg.data?.pkey;
+      if (pkey && !t.join.includes(pkey) && !roster.includes(pkey)) {
+        t.join.push(pkey);
+        this.renderInvites();
+      }
+    } else if (txmsg.request === 'LEAVE') {
+      let pkey = txmsg.my_key;
+      if (pkey && !t.leave.includes(pkey)) {
+        t.leave.push(pkey);
+        this.renderInvites();
+      }
+    } else if (txmsg.request === 'CANCEL') {
+      let pkey = txmsg.my_key;
+      let before = t.join.length + t.leave.length;
+      t.join = t.join.filter((k) => k !== pkey);
+      t.leave = t.leave.filter((k) => k !== pkey);
+      if (t.join.length + t.leave.length !== before) {
+        this.renderInvites();
+      }
+    }
+  }
+
+  clearTentative(game_id, pkey) {
+    let record = this.games[game_id];
+    let t = record?.tx?.msg?.tentative;
+    if (!t) {
+      return;
+    }
+    t.join = t.join.filter((k) => k !== pkey);
+    t.leave = t.leave.filter((k) => k !== pkey);
+  }
+
   returnGameTransaction(game_id) {
     let record = this.returnGame(game_id);
     if (record.tx) {
@@ -1765,7 +1853,7 @@ class Arcade extends ModTemplate {
       let g = record.tx;
       if (
         (record.status === 'mine' || record.status === 'open') &&
-				g.timestamp < now - INVITE_CUTOFF
+        g.timestamp < now - INVITE_CUTOFF
       ) {
         this.removeGame(g.signature);
         this.addGame(g, 'closed');
@@ -2046,20 +2134,21 @@ class Arcade extends ModTemplate {
     const image = game_mod?.respondTo?.('arcade-games')?.image || '';
     const headerImageStyle = image ? ` style="background-image: url('${image}')"` : '';
     const html = `
-					  <div class="arcade-lounge arcade-lounge--ready-popup">
-					    <div class="arcade-lounge-header">
-					      <div class="arcade-lounge-header-image"${headerImageStyle}></div>
-					      <div class="arcade-lounge-header-title">${name}</div>
-					      <div class="arcade-lounge-header-desc">Game Ready</div>
-					    </div>
-					    <div class="arcade-lounge-body">
-					      <p class="arcade-lounge-message">Your table is set. Start when you are ready.</p>
-					    </div>
-					    <div class="saito-button-row auto-size">
-					      <button type="button" class="fat saito-button-secondary arcade-ready-popup-dismiss">Later</button>
-					      <button type="button" class="fat saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
-					    </div>
-					  </div>`;		this.ready_popup_overlay.show(html);
+            <div class="arcade-lounge arcade-lounge--ready-popup">
+              <div class="arcade-lounge-header">
+                <div class="arcade-lounge-header-image"${headerImageStyle}></div>
+                <div class="arcade-lounge-header-title">${name}</div>
+                <div class="arcade-lounge-header-desc">Game Ready</div>
+              </div>
+              <div class="arcade-lounge-body">
+                <p class="arcade-lounge-message">Your table is set. Start when you are ready.</p>
+              </div>
+              <div class="saito-button-row auto-size">
+                <button type="button" class="fat saito-button-secondary arcade-ready-popup-dismiss">Later</button>
+                <button type="button" class="fat saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
+              </div>
+            </div>`;
+    this.ready_popup_overlay.show(html);
 
     setTimeout(() => {
       const startBtn = document.querySelector('.arcade-ready-popup-start');
@@ -2090,8 +2179,8 @@ class Arcade extends ModTemplate {
     if (accepted_game_tx) {
       accepted_game_msg = accepted_game_tx.msg;
       const game_mod =
-				this.app.modules.returnModule(accepted_game_msg.game) ||
-				this.app.modules.returnModuleBySlug(accepted_game_msg.game);
+        this.app.modules.returnModule(accepted_game_msg.game) ||
+        this.app.modules.returnModuleBySlug(accepted_game_msg.game);
 
       data.game = game_mod?.returnSlug?.() ?? accepted_game_msg.game;
       data.game_id = game_sig;

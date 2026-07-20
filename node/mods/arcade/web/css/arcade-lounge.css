@@ -120,6 +120,33 @@
 	filter: grayscale(0.7);
 }
 
+/* pending / leaving open-table roster changes */
+.arcade-lounge-playerbox.pending,
+.arcade-lounge-playerbox.leaving,
+.arcade-lounge-playerbox.eliminated {
+	opacity: 0.65;
+	filter: grayscale(0.8);
+}
+
+.arcade-lounge-playerbox.eliminated {
+	opacity: 0.5;
+}
+
+.arcade-lounge-player-note {
+	align-self: center;
+	font-size: 0.85em;
+	font-style: italic;
+	opacity: 0.85;
+}
+
+.arcade-lounge-eliminated-label {
+	margin: 1rem 0 0.5rem;
+	font-size: 0.85em;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	opacity: 0.7;
+}
+
 .arcade-lounge .saito-table-row.arcade-lounge-player-row {
 	display: grid;
 	grid-template-columns: min-content 1fr min-content 1fr;

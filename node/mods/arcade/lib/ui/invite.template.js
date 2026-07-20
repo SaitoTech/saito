@@ -27,6 +27,20 @@ module.exports = (app, mod, invite) => {
     html += '</div>';
   }
 
+  // render tentative joiners (pending seat requests)
+  const tentative_join = invite.tentative?.join || [];
+  for (let i = 0; i < tentative_join.length; i++) {
+    const pkey = tentative_join[i];
+    if (invite.players.includes(pkey)) {
+      continue;
+    }
+    html += `
+          <div class="saito-identicon-box arcade-invite-pending">
+            <img class="saito-module-identicon saito-identicon" id-${pkey}"
+            				src="${app.keychain.returnIdenticon(pkey)}">
+          </div>`;
+  }
+
   // render players who are requested to join (their slot isnt empty)
   for (let i = 0; i < invite.desired_opponent_publickeys.length; i++) {
     html += `

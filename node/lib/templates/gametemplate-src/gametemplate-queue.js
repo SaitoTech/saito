@@ -2282,7 +2282,7 @@ class GameQueue {
           //console.info('GT: Halt game for observer checkpoint');
           game_self.halted = 1;
           game_self.saveGame(game_self.game.id);
-          game_self.observerControls.updateStatus('Pause for Observer Checkpoint');
+          game_self.observerControls?.updateStatus('Pause for Observer Checkpoint');
           return 0;
         }
         return 1;
@@ -2688,7 +2688,9 @@ class GameQueue {
               // else consumed it) and we must not splice a different command
               //
               if (game_self.game.queue[game_self.game.queue.length - 1] !== my_queue_entry) {
-                console.warn('GT [SEND] our entry is not at the end of the queue, ignoring callback');
+                console.warn(
+                  'GT [SEND] our entry is not at the end of the queue, ignoring callback'
+                );
                 return 0;
               }
               game_self.updateLog('payments issued...');
@@ -2785,7 +2787,9 @@ class GameQueue {
             // else consumed it) and we must not splice a different command
             //
             if (game_self.game.queue[game_self.game.queue.length - 1] !== my_queue_entry) {
-              console.warn('GT [RECEIVE] our entry is not at the end of the queue, ignoring callback');
+              console.warn(
+                'GT [RECEIVE] our entry is not at the end of the queue, ignoring callback'
+              );
               return 0;
             }
             game_self.updateLog('payments received...');

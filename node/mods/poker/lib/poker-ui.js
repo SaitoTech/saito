@@ -59,11 +59,7 @@ class PokerUI {
     }
 
     // observer controls are for true spectators, not players or pending joiners
-    if (this.game.player == 0 && !this.game.pending_join) {
-      this?.observerControls?.render?.();
-    } else {
-      this?.observerControls?.remove?.();
-    }
+    // if (this.game.player == 0 && !this.game.pending_join) {}
   }
 
   displayButton() {

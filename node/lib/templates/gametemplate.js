@@ -901,7 +901,7 @@ class GameTemplate extends ModTemplate {
     }
 
     if (this.game?.player === 0 && this.observerControls && !this.game?.pending_join) {
-      this.observerControls.initialize(this.game.id);
+      //this.observerControls.initialize(this.game.id);
     }
 
     //
@@ -1682,7 +1682,7 @@ class GameTemplate extends ModTemplate {
 
       if (this.game?.player === 0 && this.observerControls && !this.game?.pending_join) {
         console.log('and into observerControls...');
-        this.observerControls.render();
+        //this.observerControls.render();
       }
     }
     this.game_template_injected = 1;

@@ -166,6 +166,9 @@ class Invite {
       if (txmsg.options['game-wizard-players-select-max'] && txmsg.options['open-table']) {
         this.invite_data.max_players = parseInt(txmsg.options['game-wizard-players-select-max']);
       }
+
+      // tentative (pending) roster changes ride on the invite message
+      this.invite_data.tentative = txmsg.tentative || { join: [], leave: [] };
     }
 
     // calculate empty slots
@@ -182,9 +185,15 @@ class Invite {
         this.invite_data.max_players &&
         !this.invite_data.time_finished
       ) {
+        //
+        // pending joiners occupy future seats -- count them so we never invite
+        // someone to join a table that is (or is about to be) full. pending
+        // leavers stay counted until they actually leave.
+        //
+        let pending = this.invite_data.tentative?.join?.length || 0;
         this.invite_data.empty_slots = Math.max(
           0,
-          this.invite_data.max_players - this.invite_data.players.length
+          this.invite_data.max_players - this.invite_data.players.length - pending
         );
         if (this.invite_data.empty_slots) {
           this.invite_data.empty_slots = 1;

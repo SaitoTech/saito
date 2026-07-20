@@ -127,7 +127,7 @@ class LoungeOverlay {
 		const bodyHtml = this._buildReadyBody(game, state, game_mod);
 		const controlsHtml = `
 	  <div id="arcade-game-controls-start-game" class="fat saito-button-primary">Start Game</div>
-	  <div id="arcade-game-controls-close-game" class="fat saito-button-secondary">Cancel</div>`;
+	  <div id="arcade-game-controls-close-game" class="fat saito-button-secondary">Hide</div>`;
 
 		const descEl = root.querySelector('.arcade-lounge-header-desc');
 		const bodyEl = root.querySelector('.arcade-lounge-body');
@@ -188,7 +188,7 @@ class LoungeOverlay {
       bodyHtml = this._buildReadyBody(game, state, game_mod);
       controlsHtml = `
 	  <div id="arcade-game-controls-start-game" class="fat saito-button-primary">Start Game</div>
-	  <div id="arcade-game-controls-close-game" class="fat saito-button-secondary">Cancel</div>`;
+	  <div id="arcade-game-controls-close-game" class="fat saito-button-secondary">Hide</div>`;
     } else {
       stateLabel = 'Game completed';
       bodyHtml = '';
@@ -221,6 +221,15 @@ class LoungeOverlay {
   _buildReadyBody(record, state, game_mod) {
     const players = state?.players || record?.tx?.msg?.players || [];
     const options = state?.options || record?.tx?.msg?.options || {};
+    const tentative = record?.tx?.msg?.tentative || { join: [], leave: [] };
+    const leaving = new Set(tentative.leave || []);
+
+    //
+    // cashouts come from the arcade invite record (populated by the leave tx
+    // as "<n> CHIPS" strings), NOT the in-game boolean map on state.options
+    //
+    const eliminated = record?.tx?.msg?.options?.eliminated || {};
+
     let optsHtml = '';
     if (game_mod && typeof game_mod.returnShortGameOptionsArray === 'function') {
       const sgoa = game_mod.returnShortGameOptionsArray(options);
@@ -230,20 +239,46 @@ class LoungeOverlay {
         }
       }
     }
+
+    const playerRow = (pkey, extraClass = '', note = '') => `
+		  <div class="arcade-lounge-playerbox saito-table-row ${extraClass}" id="invite-user-${pkey}">
+		    <div class="saito-identicon-box"><img class="saito-identicon" src="${this.app.keychain.returnIdenticon(pkey)}"></div>
+		    ${this.app.browser.returnAddressHTML(pkey)}
+		    ${note ? `<div class="arcade-lounge-player-note">${note}</div>` : '<div class="online-status-indicator"></div>'}
+		  </div>`;
+
     let playersHtml = '';
     for (let i = 0; i < players.length; i++) {
       const pkey = players[i];
-      playersHtml += `
-		  <div class="arcade-lounge-playerbox saito-table-row" id="invite-user-${pkey}">
-		    <div class="saito-identicon-box"><img class="saito-identicon" src="${this.app.keychain.returnIdenticon(pkey)}"></div>
-		    ${this.app.browser.returnAddressHTML(pkey)}
-		    <div class="online-status-indicator"></div>
-		  </div>`;
+      const isLeaving = leaving.has(pkey);
+      playersHtml += playerRow(pkey, isLeaving ? 'leaving' : '', isLeaving ? 'leaving next hand' : '');
     }
+    // tentative joiners not yet seated
+    for (const pkey of tentative.join || []) {
+      if (!players.includes(pkey)) {
+        playersHtml += playerRow(pkey, 'pending', 'joining next hand');
+      }
+    }
+
+    let eliminatedHtml = '';
+    for (const pkey in eliminated) {
+      if (players.includes(pkey)) {
+        continue;
+      }
+      const amt = typeof eliminated[pkey] === 'string' ? eliminated[pkey] : '';
+      eliminatedHtml += playerRow(pkey, 'eliminated', amt ? `cashed out ${amt}` : 'left the table');
+    }
+    const eliminatedSection = eliminatedHtml
+      ? `<div class="arcade-lounge-eliminated-label">Cashed out</div>
+	    <div class="arcade-lounge-players arcade-lounge-eliminated">${eliminatedHtml}
+	    </div>`
+      : '';
+
     return `
 	  <div class="arcade-lounge-section hide-scrollbar">
 	    <div class="arcade-lounge-players">${playersHtml}
 	    </div>
+	    ${eliminatedSection}
 	    <div class="saito-table"><div class="saito-table-body">${optsHtml}</div></div>
 	  </div>`;
   }
@@ -446,6 +481,29 @@ class LoungeOverlay {
         };
 
         this.confirmStakeThen(game_mod, requestSeat);
+      };
+    }
+
+    //
+    // viewer with a pending seat request: continue into the game room to wait
+    //
+    if (document.getElementById('arcade-game-controls-continue-join')) {
+      document.getElementById('arcade-game-controls-continue-join').onclick = (e) => {
+        this.overlay.remove();
+        navigateWindow(`/${this.invite.game_slug}`, 200);
+      };
+    }
+
+    //
+    // ... or revoke the pending seat request (CANCEL meta, not a game cancel)
+    //
+    if (document.getElementById('arcade-game-controls-cancel-tentative')) {
+      document.getElementById('arcade-game-controls-cancel-tentative').onclick = (e) => {
+        let game_mod = this.app.modules.returnModuleBySlug(this.invite.game_slug);
+        if (typeof game_mod?.cancelPendingJoin === 'function') {
+          game_mod.cancelPendingJoin(this.invite.game_id);
+        }
+        this.overlay.remove();
       };
     }
 
