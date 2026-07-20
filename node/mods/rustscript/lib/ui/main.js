@@ -517,7 +517,7 @@ class RustscriptMain {
     const html = `
       <div class="rustscript-overlay">
         <h2>Generate Expert Script</h2>
-        <textarea class="saito-textarea rs-expert-input" spellcheck="false" placeholder="CHECKSIG[publickey=&quot;alice&quot;]&#10;AND&#10;IMPORTFIELD[field=&quot;duration&quot;]"></textarea>
+        <textarea class="saito-textarea rs-expert-input" spellcheck="false" placeholder="CHECKSIG[publickey=&quot;alice&quot;]&#10;AND&#10;IMPORTFIELD[key=&quot;duration&quot;]"></textarea>
         <p class="rs-prompt-validation rs-expert-generate-error" hidden role="alert"></p>
         <div class="overlay-actions overlay-actions-apply-only">
           <button type="button" class="rs-expert-generate-btn rs-prompt-primary">Generate</button>

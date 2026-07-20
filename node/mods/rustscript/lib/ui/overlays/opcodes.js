@@ -64,6 +64,24 @@ class OpcodeReference {
     if (name === 'CHECKSIG') {
       return 'Returns true if signature validates against message and publickey.';
     }
+    if (name === 'IMPORTFIELD') {
+      return 'Returns true if the signed witness value verifies, then stores it under key.';
+    }
+    if (name === 'IMPORTARRAY') {
+      return 'Returns true if the signed witness array verifies, then stores it under key.';
+    }
+    if (name === 'SETFIELD') {
+      return 'Returns true after copying value into a writable context.* destination.';
+    }
+    if (name === 'SETARRAY') {
+      return 'Returns true after replacing a context location with a deep-cloned source array.';
+    }
+    if (name === 'SETARRAYFIELD') {
+      return 'Returns true after writing a field on each destination object from a parallel source.';
+    }
+    if (name === 'ARRAYIFY') {
+      return 'Returns true after replacing a context value with deep clones of itself.';
+    }
     return 'Returns boolean — true when the opcode condition is satisfied.';
   }
 

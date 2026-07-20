@@ -11,9 +11,55 @@ use serde_json::{json, Value};
 use js_sys;
 
 use super::opcodes::{
-    CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere, CheckPath,
-    CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime, ImportField, SumFields,
+    Arrayify, CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere,
+    CheckPath, CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime, ImportArray,
+    ImportField, SetArray, SetArrayField, SetField, SumFields,
 };
+
+/// Canonical JSON serialization used by script hashing and signed imports.
+///
+/// Objects emit keys in sorted order. Arrays preserve element order. Scalars
+/// use the same encoding as `Script::hash`.
+pub fn canonical_json(value: &Value) -> String {
+    match value {
+        Value::Null => "null".to_string(),
+        Value::Bool(b) => {
+            if *b {
+                "true".to_string()
+            } else {
+                "false".to_string()
+            }
+        }
+        Value::Number(n) => serde_json::to_string(&Value::Number(n.clone())).unwrap(),
+        Value::String(s) => serde_json::to_string(s).unwrap(),
+        Value::Array(arr) => {
+            let mut out = String::from('[');
+            for (i, item) in arr.iter().enumerate() {
+                if i > 0 {
+                    out.push(',');
+                }
+                out.push_str(&canonical_json(item));
+            }
+            out.push(']');
+            out
+        }
+        Value::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let mut out = String::from('{');
+            for (i, key) in keys.iter().enumerate() {
+                if i > 0 {
+                    out.push(',');
+                }
+                out.push_str(&serde_json::to_string(key).unwrap());
+                out.push(':');
+                out.push_str(&canonical_json(&map[*key]));
+            }
+            out.push('}');
+            out
+        }
+    }
+}
 
 pub const TEST_SCRIPT: &str = r#"{
   "op": "CHECKHASH",
@@ -237,10 +283,15 @@ impl Script {
             //
             // refresh "script" and "witness"
             //
+            // Object `reference` embeds witness values into the locking script.
+            // String `reference` is a normal script parameter (e.g. SETFIELD / ARRAYIFY).
+            //
             context["script"] = json!({});
             context["witness"] = json!({});
             if let Some(reference) = node.get("reference") {
-                context["witness"] = reference.clone();
+                if reference.is_object() {
+                    context["witness"] = reference.clone();
+                }
             }
             if let Some(witness) = node.get("witness") {
                 if let (Some(dst), Some(src)) =
@@ -263,7 +314,7 @@ impl Script {
                         continue;
                     }
 
-                    if k == "reference" {
+                    if k == "reference" && v.is_object() {
                         continue;
                     }
 
@@ -291,8 +342,28 @@ impl Script {
                     return ImportField::validate(context, tx, blk);
                 }
 
+                "IMPORTARRAY" => {
+                    return ImportArray::validate(context, tx, blk);
+                }
+
                 "SUMFIELDS" => {
                     return SumFields::validate(context, tx, blk);
+                }
+
+                "SETFIELD" => {
+                    return SetField::validate(context, tx, blk);
+                }
+
+                "SETARRAY" => {
+                    return SetArray::validate(context, tx, blk);
+                }
+
+                "SETARRAYFIELD" => {
+                    return SetArrayField::validate(context, tx, blk);
+                }
+
+                "ARRAYIFY" => {
+                    return Arrayify::validate(context, tx, blk);
                 }
 
                 "CHECKFIELD" => {
@@ -539,7 +610,7 @@ impl Script {
 #[cfg(test)]
 mod tests {
     use crate::core::defs::PrintForLog;
-    use serde_json::json;
+    use serde_json::{json, Value};
 
     use super::Script;
 
@@ -728,11 +799,11 @@ mod tests {
         script.parse(
             &serde_json::to_string(&json!({
                 "op": "IMPORTFIELD",
-                "field": "duration",
+                "key": "duration",
                 "publickey": pk.to_base58(),
                 "hash": binding_hash,
                 "witness": {
-                    "duration": duration,
+                    "value": duration,
                     "signature": sig
                 }
             }))
@@ -749,11 +820,11 @@ mod tests {
         let mut script = Script::new();
         script.parse(&serde_json::to_string(&json!({
             "op": "IMPORTFIELD",
-            "field": "duration",
+            "key": "duration",
             "publickey": pk.to_base58(),
             "hash": "binding123",
             "witness": {
-                "duration": 42,
+                "value": 42,
                 "signature": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
             }
         })).unwrap());
@@ -865,11 +936,11 @@ mod tests {
                 "args": [
                     {
                         "op": "IMPORTFIELD",
-                        "field": "duration",
+                        "key": "duration",
                         "publickey": pk.to_base58(),
                         "hash": binding_hash,
                         "witness": {
-                            "duration": duration,
+                            "value": duration,
                             "signature": sig
                         }
                     },
@@ -879,6 +950,7 @@ mod tests {
                         "b": "__opcodes.importfield.duration",
                         "into": "expiry"
                     },
+
                     {
                         "op": "CHECKFIELD",
                         "field": "__opcodes.sumfields.expiry",
@@ -891,6 +963,2083 @@ mod tests {
         );
 
         assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    fn sign_importarray_value(
+        value: &Value,
+        binding_hash: &str,
+        sk: &crate::core::defs::SaitoPrivateKey,
+    ) -> String {
+        let value_string = super::canonical_json(value);
+        let canonical = format!("{value_string}|{binding_hash}");
+        let digest = crate::core::util::crypto::hash(canonical.as_bytes()).to_hex();
+        crate::core::util::crypto::sign(digest.as_bytes(), sk).to_hex()
+    }
+
+    #[test]
+    fn validate_importarray_signed_witness_succeeds() {
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let binding_hash = "array-binding";
+        let value = json!([
+            { "public_key": "alice", "amount": 100 },
+            { "public_key": "bob", "amount": 50 }
+        ]);
+        let sig = sign_importarray_value(&value, binding_hash, &sk);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "IMPORTARRAY",
+                "key": "successors",
+                "publickey": pk.to_base58(),
+                "hash": binding_hash,
+                "witness": {
+                    "value": value,
+                    "signature": sig
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_importarray_invalid_signature_fails() {
+        let (pk, _) = crate::core::util::crypto::generate_keys();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "IMPORTARRAY",
+                "key": "successors",
+                "publickey": pk.to_base58(),
+                "hash": "array-binding",
+                "witness": {
+                    "value": [{ "public_key": "alice", "amount": 100 }],
+                    "signature": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_importarray_missing_key_fails() {
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let binding_hash = "array-binding";
+        let value = json!([{ "public_key": "alice", "amount": 100 }]);
+        let sig = sign_importarray_value(&value, binding_hash, &sk);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "IMPORTARRAY",
+                "publickey": pk.to_base58(),
+                "hash": binding_hash,
+                "witness": {
+                    "value": value,
+                    "signature": sig
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_importarray_missing_value_fails() {
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let binding_hash = "array-binding";
+        let value = json!([{ "public_key": "alice", "amount": 100 }]);
+        let sig = sign_importarray_value(&value, binding_hash, &sk);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "IMPORTARRAY",
+                "key": "successors",
+                "publickey": pk.to_base58(),
+                "hash": binding_hash,
+                "witness": {
+                    "signature": sig
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_importarray_empty_array_succeeds() {
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let binding_hash = "empty-array-binding";
+        let value = json!([]);
+        let sig = sign_importarray_value(&value, binding_hash, &sk);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "IMPORTARRAY",
+                "key": "successors",
+                "publickey": pk.to_base58(),
+                "hash": binding_hash,
+                "witness": {
+                    "value": value,
+                    "signature": sig
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_importarray_nested_object_arrays_succeeds() {
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let binding_hash = "nested-array-binding";
+        let value = json!([
+            {
+                "public_key": "alice",
+                "meta": { "tier": 1, "tags": ["a", "b"] },
+                "amount": 100
+            },
+            {
+                "public_key": "bob",
+                "meta": { "tier": 2, "tags": ["c"] },
+                "amount": 50
+            }
+        ]);
+        let sig = sign_importarray_value(&value, binding_hash, &sk);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "IMPORTARRAY",
+                "key": "successors",
+                "publickey": pk.to_base58(),
+                "hash": binding_hash,
+                "witness": {
+                    "value": value,
+                    "signature": sig
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_importarray_canonical_serialization_is_key_order_independent() {
+        let left = json!([{ "amount": 100, "public_key": "alice" }]);
+        let right = json!([{ "public_key": "alice", "amount": 100 }]);
+        assert_eq!(super::canonical_json(&left), super::canonical_json(&right));
+
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let binding_hash = "canonical-binding";
+        let sig = sign_importarray_value(&left, binding_hash, &sk);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "IMPORTARRAY",
+                "key": "successors",
+                "publickey": pk.to_base58(),
+                "hash": binding_hash,
+                "witness": {
+                    "value": right,
+                    "signature": sig
+                }
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setfield_literal_into_opcodes_succeeds() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setfield.owner",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setfield.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setfield_copies_resolved_reference() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SUMFIELDS",
+                        "a": 10,
+                        "b": 5,
+                        "into": "expiry"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setfield.version",
+                        "value": "__opcodes.sumfields.expiry"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setfield.version",
+                        "operator": "==",
+                        "value": 15
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setfield_rejects_script_destination() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETFIELD",
+                "reference": "context.script.hash",
+                "value": "tampered"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setfield_rejects_witness_destination() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETFIELD",
+                "reference": "context.witness.signature",
+                "value": "tampered"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setfield_rejects_tx_destination() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETFIELD",
+                "reference": "tx.from.0.amount",
+                "value": 1
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setfield_rejects_blk_destination() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETFIELD",
+                "reference": "blk.timestamp",
+                "value": 1
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setfield_rejects_missing_context_prefix() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETFIELD",
+                "reference": "__opcodes.setfield.owner",
+                "value": "alice"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setfield_missing_value_fails() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETFIELD",
+                "reference": "context.constitution.owner"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setfield_nested_object_and_array_index_succeeds() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setfield.children",
+                        "value": [{ "reference": "old" }, { "reference": "keep" }]
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setfield.children[0].reference",
+                        "value": "new"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setfield.children.0.reference",
+                        "operator": "==",
+                        "value": "new"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setfield_constitution_path_succeeds() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.constitution.owner",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setfield.owner",
+                        "value": 1
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setfield.owner",
+                        "operator": "==",
+                        "value": 1
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_literal_dimension_succeeds() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice", "version": 1 }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": 2
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.1.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_deep_copies_are_independent() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "nested": { "v": 1 } }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": 2
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto.0.nested.v",
+                        "value": 99
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.0.nested.v",
+                        "operator": "==",
+                        "value": 99
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.1.nested.v",
+                        "operator": "==",
+                        "value": 1
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_dimension_from_array_length() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.sizes",
+                        "value": [1, 2, 3]
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "__opcodes.arrayify.sizes"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.2.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_dimension_from_object_key_count() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.meta",
+                        "value": { "a": 1, "b": 2 }
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "bob" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "__opcodes.arrayify.meta"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.1.owner",
+                        "operator": "==",
+                        "value": "bob"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_tx_to_p2sh_dimension() {
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+
+        let mut p2sh0 = Slip::default();
+        p2sh0.slip_type = SlipType::Normal;
+        p2sh0.public_key[0] = 0x00;
+        p2sh0.public_key[1] = 0x11;
+
+        let mut p2sh1 = Slip::default();
+        p2sh1.slip_type = SlipType::Normal;
+        p2sh1.public_key[0] = 0x00;
+        p2sh1.public_key[1] = 0x22;
+
+        let mut p2sh2 = Slip::default();
+        p2sh2.slip_type = SlipType::Normal;
+        p2sh2.public_key[0] = 0x00;
+        p2sh2.public_key[1] = 0x33;
+
+        let mut normal = Slip::default();
+        normal.slip_type = SlipType::Normal;
+        normal.public_key[0] = 0x01;
+
+        tx.to.push(p2sh0);
+        tx.to.push(normal);
+        tx.to.push(p2sh1);
+        tx.to.push(p2sh2);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.to.p2sh"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.2.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto.3.owner",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        // three P2SH outs => indices 0..2 exist; writing index 3 must fail
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.to.p2sh"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.2.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_tx_from_p2sh_dimension() {
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+
+        let mut p2sh0 = Slip::default();
+        p2sh0.slip_type = SlipType::Normal;
+        p2sh0.public_key[0] = 0x00;
+
+        let mut p2sh1 = Slip::default();
+        p2sh1.slip_type = SlipType::Normal;
+        p2sh1.public_key[0] = 0x00;
+        p2sh1.public_key[1] = 0x02;
+
+        let mut normal = Slip::default();
+        normal.slip_type = SlipType::Normal;
+        normal.public_key[0] = 0x01;
+
+        tx.from.push(p2sh0);
+        tx.from.push(normal);
+        tx.from.push(p2sh1);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.from.p2sh"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.1.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto.2.owner",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.from.p2sh"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.1.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_tx_from_dimension() {
+        use crate::core::consensus::slip::Slip;
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+        tx.from.push(Slip::default());
+        tx.from.push(Slip::default());
+        tx.from.push(Slip::default());
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.from"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.2.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto.3.owner",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.from"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.2.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_tx_to_dimension() {
+        use crate::core::consensus::slip::Slip;
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+        tx.to.push(Slip::default());
+        tx.to.push(Slip::default());
+        tx.to.push(Slip::default());
+        tx.to.push(Slip::default());
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.to"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.3.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto.4.owner",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.to"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.3.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_tx_path_dimension() {
+        use crate::core::consensus::hop::Hop;
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+        tx.path.push(Hop::default());
+        tx.path.push(Hop::default());
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.path"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.1.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto.2.owner",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "dimension": "tx.path"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.arrayify.proto.1.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_arrayify_rejects_script_destination() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "ARRAYIFY",
+                "reference": "context.script.hash",
+                "dimension": 2
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_arrayify_rejects_missing_target() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "ARRAYIFY",
+                "reference": "context.constitution",
+                "dimension": 2
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_arrayify_rejects_missing_context_prefix() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.arrayify.proto",
+                        "value": { "owner": "alice" }
+                    },
+                    {
+                        "op": "ARRAYIFY",
+                        "reference": "__opcodes.arrayify.proto",
+                        "dimension": 2
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setarray_copies_context_array() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.src",
+                        "value": [{ "id": 1 }, { "id": 2 }]
+                    },
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "__opcodes.setarray.src"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setarray.dst.0.id",
+                        "operator": "==",
+                        "value": 1
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setarray.dst.1.id",
+                        "operator": "==",
+                        "value": 2
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarray_replaces_existing_destination() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.dst",
+                        "value": [{ "id": "old" }]
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.src",
+                        "value": [{ "id": "new0" }, { "id": "new1" }]
+                    },
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "__opcodes.setarray.src"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setarray.dst.0.id",
+                        "operator": "==",
+                        "value": "new0"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setarray.dst.1.id",
+                        "operator": "==",
+                        "value": "new1"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarray_deep_copy_is_independent() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.src",
+                        "value": [{ "nested": { "v": 1 } }]
+                    },
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "__opcodes.setarray.src"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.dst.0.nested.v",
+                        "value": 99
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setarray.dst.0.nested.v",
+                        "operator": "==",
+                        "value": 99
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setarray.src.0.nested.v",
+                        "operator": "==",
+                        "value": 1
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarray_from_importarray() {
+        let (pk, sk) = crate::core::util::crypto::generate_keys();
+        let binding_hash = "setarray-import";
+        let value = json!([
+            { "public_key": "alice", "amount": 100 },
+            { "public_key": "bob", "amount": 50 }
+        ]);
+        let sig = sign_importarray_value(&value, binding_hash, &sk);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "IMPORTARRAY",
+                        "key": "successors",
+                        "publickey": pk.to_base58(),
+                        "hash": binding_hash,
+                        "witness": {
+                            "value": value,
+                            "signature": sig
+                        }
+                    },
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.copied",
+                        "source": "__opcodes.importarray.successors"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setarray.copied.0.amount",
+                        "operator": "==",
+                        "value": 100
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setarray.copied.1.amount",
+                        "operator": "==",
+                        "value": 50
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarray_from_tx_from() {
+        use crate::core::consensus::slip::Slip;
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+        tx.from.push(Slip::default());
+        tx.from.push(Slip::default());
+        tx.from.push(Slip::default());
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "tx.from"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.dst.3",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "tx.from"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.marker",
+                        "value": 1
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.setarray.marker",
+                        "operator": "==",
+                        "value": 1
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarray_from_tx_to() {
+        use crate::core::consensus::slip::Slip;
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+        tx.to.push(Slip::default());
+        tx.to.push(Slip::default());
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "tx.to"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.dst.2",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETARRAY",
+                "destination": "context.__opcodes.setarray.dst",
+                "source": "tx.to"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarray_from_tx_path() {
+        use crate::core::consensus::hop::Hop;
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+        tx.path.push(Hop::default());
+        tx.path.push(Hop::default());
+        tx.path.push(Hop::default());
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "tx.path"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.dst.3",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETARRAY",
+                "destination": "context.__opcodes.setarray.dst",
+                "source": "tx.path"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarray_from_tx_from_p2sh() {
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+
+        let mut p2sh0 = Slip::default();
+        p2sh0.slip_type = SlipType::Normal;
+        p2sh0.public_key[0] = 0x00;
+
+        let mut p2sh1 = Slip::default();
+        p2sh1.slip_type = SlipType::Normal;
+        p2sh1.public_key[0] = 0x00;
+        p2sh1.public_key[1] = 0x02;
+
+        let mut normal = Slip::default();
+        normal.slip_type = SlipType::Normal;
+        normal.public_key[0] = 0x01;
+
+        tx.from.push(p2sh0);
+        tx.from.push(normal);
+        tx.from.push(p2sh1);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "tx.from.p2sh"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.dst.2",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETARRAY",
+                "destination": "context.__opcodes.setarray.dst",
+                "source": "tx.from.p2sh"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarray_from_tx_to_p2sh() {
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+
+        let mut p2sh0 = Slip::default();
+        p2sh0.slip_type = SlipType::Normal;
+        p2sh0.public_key[0] = 0x00;
+
+        let mut normal = Slip::default();
+        normal.slip_type = SlipType::Normal;
+        normal.public_key[0] = 0x01;
+
+        let mut p2sh1 = Slip::default();
+        p2sh1.slip_type = SlipType::Normal;
+        p2sh1.public_key[0] = 0x00;
+        p2sh1.public_key[1] = 0x03;
+
+        tx.to.push(p2sh0);
+        tx.to.push(normal);
+        tx.to.push(p2sh1);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "tx.to.p2sh"
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.dst.2",
+                        "value": "overflow"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 0);
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETARRAY",
+                "destination": "context.__opcodes.setarray.dst",
+                "source": "tx.to.p2sh"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarray_rejects_script_destination() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.src",
+                        "value": [1, 2]
+                    },
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.script.hash",
+                        "source": "__opcodes.setarray.src"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setarray_rejects_non_array_source() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.setarray.src",
+                        "value": { "not": "array" }
+                    },
+                    {
+                        "op": "SETARRAY",
+                        "destination": "context.__opcodes.setarray.dst",
+                        "source": "__opcodes.setarray.src"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setarray_rejects_missing_source() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETARRAY",
+                "destination": "context.__opcodes.setarray.dst",
+                "source": "__opcodes.setarray.missing"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setarrayfield_equal_lengths() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{}, {}]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": ["alice", "bob"],
+                        "field": "owner"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.1.owner",
+                        "operator": "==",
+                        "value": "bob"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_source_shorter_repeats_last() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{}, {}, {}]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": ["alice", "bob"],
+                        "field": "owner"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.1.owner",
+                        "operator": "==",
+                        "value": "bob"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.2.owner",
+                        "operator": "==",
+                        "value": "bob"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_scalar_broadcast() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{}, {}, {}]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": 5,
+                        "field": "percentage"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.percentage",
+                        "operator": "==",
+                        "value": 5
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.2.percentage",
+                        "operator": "==",
+                        "value": 5
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_overwrites_existing_field() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{ "owner": "old", "keep": 1 }]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": ["new"],
+                        "field": "owner"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.owner",
+                        "operator": "==",
+                        "value": "new"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.keep",
+                        "operator": "==",
+                        "value": 1
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_creates_missing_field() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{ "keep": 1 }]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": ["alice"],
+                        "field": "owner"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.owner",
+                        "operator": "==",
+                        "value": "alice"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.keep",
+                        "operator": "==",
+                        "value": 1
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_from_tx_from() {
+        use crate::core::consensus::slip::Slip;
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+        tx.from.push(Slip::default());
+        tx.from.push(Slip::default());
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{}, {}]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": "tx.from",
+                        "field": "slip"
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": ["a", "b"],
+                        "field": "tag"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.tag",
+                        "operator": "==",
+                        "value": "a"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.1.tag",
+                        "operator": "==",
+                        "value": "b"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_from_tx_to() {
+        use crate::core::consensus::slip::Slip;
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+        tx.to.push(Slip::default());
+        tx.to.push(Slip::default());
+        tx.to.push(Slip::default());
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{}, {}, {}]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": "tx.to",
+                        "field": "slip"
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": "ok",
+                        "field": "tag"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.2.tag",
+                        "operator": "==",
+                        "value": "ok"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_from_tx_path() {
+        use crate::core::consensus::hop::Hop;
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+        tx.path.push(Hop::default());
+        tx.path.push(Hop::default());
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{}, {}]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": "tx.path",
+                        "field": "hop"
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": ["x", "y"],
+                        "field": "tag"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.tag",
+                        "operator": "==",
+                        "value": "x"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.1.tag",
+                        "operator": "==",
+                        "value": "y"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_from_tx_from_p2sh() {
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+
+        let mut p2sh0 = Slip::default();
+        p2sh0.slip_type = SlipType::Normal;
+        p2sh0.public_key[0] = 0x00;
+
+        let mut normal = Slip::default();
+        normal.slip_type = SlipType::Normal;
+        normal.public_key[0] = 0x01;
+
+        let mut p2sh1 = Slip::default();
+        p2sh1.slip_type = SlipType::Normal;
+        p2sh1.public_key[0] = 0x00;
+        p2sh1.public_key[1] = 0x02;
+
+        tx.from.push(p2sh0);
+        tx.from.push(normal);
+        tx.from.push(p2sh1);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{}, {}]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": "tx.from.p2sh",
+                        "field": "slip"
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": ["p0", "p1"],
+                        "field": "tag"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.tag",
+                        "operator": "==",
+                        "value": "p0"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.1.tag",
+                        "operator": "==",
+                        "value": "p1"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_from_tx_to_p2sh() {
+        use crate::core::consensus::slip::{Slip, SlipType};
+        use crate::core::consensus::transaction::Transaction;
+
+        let mut tx = Transaction::default();
+
+        let mut p2sh0 = Slip::default();
+        p2sh0.slip_type = SlipType::Normal;
+        p2sh0.public_key[0] = 0x00;
+
+        let mut normal = Slip::default();
+        normal.slip_type = SlipType::Normal;
+        normal.public_key[0] = 0x01;
+
+        tx.to.push(p2sh0);
+        tx.to.push(normal);
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{}]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": "tx.to.p2sh",
+                        "field": "slip"
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": "only",
+                        "field": "tag"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.saf.dest.0.tag",
+                        "operator": "==",
+                        "value": "only"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_setarrayfield_rejects_script_destination() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETARRAYFIELD",
+                "destination": "context.script.hash",
+                "source": ["a"],
+                "field": "owner"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setarrayfield_rejects_non_object_elements() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": ["not-object"]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": ["alice"],
+                        "field": "owner"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setarrayfield_rejects_empty_source_array() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.__opcodes.saf.dest",
+                        "value": [{}]
+                    },
+                    {
+                        "op": "SETARRAYFIELD",
+                        "destination": "context.__opcodes.saf.dest",
+                        "source": [],
+                        "field": "owner"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_setarrayfield_rejects_missing_destination() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SETARRAYFIELD",
+                "destination": "context.__opcodes.saf.missing",
+                "source": ["alice"],
+                "field": "owner"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
     }
 
     #[test]

@@ -1,36 +1,39 @@
 /**
- * Purpose: IMPORTFIELD opcode — verify a signed witness value and store it
- * under `key` in context.__opcodes.importfield.
+ * Purpose: IMPORTARRAY opcode — verify a signed witness array and store it
+ * under `key` in context.__opcodes.importarray.
  *
  * Language shape (KEY / VALUE):
  *   script.key           — variable name to create
- *   witness.value        — imported value
- *   witness.signature    — authorizes that value
- *   script.hash          — contextual binding (unchanged)
+ *   witness.value        — imported array
+ *   witness.signature    — authorizes that array
+ *   script.hash          — contextual binding (same as IMPORTFIELD)
  *
- * digest = HASH(value | binding_hash)
+ * digest = HASH(canonical_json(value) | binding_hash)
  */
 
 module.exports = {
-  name: 'IMPORTFIELD',
+  name: 'IMPORTARRAY',
   description: `
-Imports a signed value into VARS under a named key.
+Imports a signed array into VARS under a named key.
 
-Verifies that witness.value was signed by an authorized publickey over a
-binding hash (literal or VAR reference), then writes the value into
-context.__opcodes.importfield[key].
+Verifies that witness.value (an array) was signed by an authorized publickey
+over a binding hash (literal or VAR reference), then writes the array into
+context.__opcodes.importarray[key].
 
 Typical use:
-- import subscription duration
-- import tier, scope, flags, etc.
+- import successor payment schedules
+- import allow-lists, hop sets, etc.
 `,
   exampleScript: {
-    op: 'IMPORTFIELD',
-    key: 'duration',
+    op: 'IMPORTARRAY',
+    key: 'successors',
     publickey: '__opcodes.checkownnftwhere.creator',
     hash: '__opcodes.checkownnftwhere.nft_id',
     witness: {
-      value: '<integer>',
+      value: [
+        { public_key: '<publickey>', amount: 100 },
+        { public_key: '<publickey>', amount: 50 }
+      ],
       signature: '<hex_signature>'
     }
   },
@@ -38,7 +41,7 @@ Typical use:
     key: 'string',
     publickey: 'reference',
     hash: 'reference',
-    value: 'integer',
+    value: 'array',
     signature: 'signature'
   },
 
@@ -88,14 +91,14 @@ Typical use:
     if (typeof signature === 'string') {
       signature = resolveRef(context, signature);
     }
-    if (typeof value !== 'string' && typeof value !== 'number') {
+    if (!Array.isArray(value)) {
       return false;
     }
     if (typeof signature !== 'string' || signature.length === 0) {
       return false;
     }
 
-    const canonical_string = String(value) + '|' + binding_hash;
+    const canonical_string = canonicalJson(value) + '|' + binding_hash;
     const digest = context.app.crypto.hash(canonical_string);
 
     if (context.app.crypto.verifyMessage(digest, signature, signer_pubkey) !== true) {
@@ -105,14 +108,42 @@ Typical use:
     if (!context.__opcodes) {
       context.__opcodes = {};
     }
-    if (!context.__opcodes.importfield) {
-      context.__opcodes.importfield = {};
+    if (!context.__opcodes.importarray) {
+      context.__opcodes.importarray = {};
     }
-    context.__opcodes.importfield[key] = value;
+    context.__opcodes.importarray[key] = value;
 
     return true;
   }
 };
+
+/** Match Rust `canonical_json`: sorted object keys, stable array order. */
+function canonicalJson(value) {
+  if (value === null) {
+    return 'null';
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  if (typeof value === 'number') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return '[' + value.map(canonicalJson).join(',') + ']';
+  }
+  if (value && typeof value === 'object') {
+    const keys = Object.keys(value).sort();
+    return (
+      '{' +
+      keys.map((k) => JSON.stringify(k) + ':' + canonicalJson(value[k])).join(',') +
+      '}'
+    );
+  }
+  return 'null';
+}
 
 function resolveRef(root, ref) {
   if (typeof ref !== 'string') {

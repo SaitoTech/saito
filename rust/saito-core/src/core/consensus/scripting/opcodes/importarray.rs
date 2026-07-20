@@ -4,47 +4,34 @@ use crate::core::defs::{PrintForLog, SaitoPublicKey, SaitoSignature};
 use crate::core::util::crypto::{self, verify};
 use serde_json::{json, Value};
 
-use super::super::script::resolve_ref;
+use super::super::script::{canonical_json, resolve_ref};
 
-/// IMPORTFIELD — verify a signed witness value and store it under `key` in
-/// `context.__opcodes.importfield`.
+/// IMPORTARRAY — verify a signed witness array and store it under `key` in
+/// `context.__opcodes.importarray`.
 ///
 /// Script shape:
 /// ```json
 /// {
-///   "op": "IMPORTFIELD",
-///   "key": "duration",
+///   "op": "IMPORTARRAY",
+///   "key": "successors",
 ///   "publickey": "...",
 ///   "hash": "...",
-///   "witness": { "value": 42, "signature": "..." }
+///   "witness": {
+///     "value": [{ "public_key": "...", "amount": 100 }],
+///     "signature": "..."
+///   }
 /// }
 /// ```
 ///
-/// Signature digest: `HASH(value | binding_hash)`.
-pub struct ImportField {
+/// Signature digest: `HASH(canonical_json(value) | binding_hash)`.
+pub struct ImportArray {
     pub name: String,
     pub description: String,
     pub script: String,
     pub schema: Value,
 }
 
-fn value_to_string(value: &Value) -> Option<String> {
-    match value {
-        Value::String(s) => Some(s.clone()),
-        Value::Number(n) => {
-            if let Some(u) = n.as_u64() {
-                Some(u.to_string())
-            } else if let Some(i) = n.as_i64() {
-                Some(i.to_string())
-            } else {
-                None
-            }
-        }
-        _ => None,
-    }
-}
-
-impl ImportField {
+impl ImportArray {
     pub fn validate(context: &mut Value, tx: Option<&Transaction>, blk: Option<&Block>) -> u8 {
         let key = context["script"]["key"].as_str().unwrap_or("").to_string();
         if key.is_empty() {
@@ -66,7 +53,7 @@ impl ImportField {
         let value = resolve_ref(&context["witness"]["value"], context, tx, blk);
         let signature = resolve_ref(&context["witness"]["signature"], context, tx, blk);
 
-        if !value.is_string() && !value.is_number() {
+        if !value.is_array() {
             return 0;
         }
 
@@ -75,9 +62,7 @@ impl ImportField {
             _ => return 0,
         };
 
-        let Some(value_string) = value_to_string(&value) else {
-            return 0;
-        };
+        let value_string = canonical_json(&value);
         let canonical_string = format!("{value_string}|{binding_hash}");
         let digest = crypto::hash(canonical_string.as_bytes()).to_hex();
 
@@ -100,15 +85,15 @@ impl ImportField {
             context["__opcodes"] = json!({});
         }
         if !context["__opcodes"]
-            .get("importfield")
+            .get("importarray")
             .map(|v| v.is_object())
             .unwrap_or(false)
         {
-            context["__opcodes"]["importfield"] = json!({});
+            context["__opcodes"]["importarray"] = json!({});
         }
 
-        if let Some(importfield) = context["__opcodes"]["importfield"].as_object_mut() {
-            importfield.insert(key, value);
+        if let Some(importarray) = context["__opcodes"]["importarray"].as_object_mut() {
+            importarray.insert(key, value);
         }
 
         1
