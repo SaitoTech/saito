@@ -1,5 +1,5 @@
-const TeasersTemplate = require('./teasers.template');
 const Teaser = require('./teaser');
+const { getSummariesForSale } = require('./summary-cache');
 
 class Teasers {
 	constructor(app, mod, container = '') {
@@ -21,18 +21,16 @@ class Teasers {
 			return;
 		}
 
-		let targetSelector = this.container;
-		if (this.container !== '.store-teasers') {
-			this.app.browser.replaceElementContentBySelector(TeasersTemplate(), this.container);
-			targetSelector = '.store-teasers';
-		} else {
-			this.app.browser.replaceElementContentBySelector('', this.container);
+		const el = document.querySelector(this.container);
+		if (!el) {
+			return;
 		}
 
-		const { getSummariesForSale } = require('./summary-cache');
+		el.innerHTML = '';
+
 		const items = getSummariesForSale(this.mod);
 		for (const item of items) {
-			const teaser = new Teaser(this.app, this.mod, item, targetSelector);
+			const teaser = new Teaser(this.app, this.mod, item, this.container);
 			teaser.render();
 		}
 	}

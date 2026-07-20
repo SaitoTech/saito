@@ -1,25 +1,30 @@
-module.exports = (data = {}, cardId = '', mediaClass = '', mediaBackground = '', badgeClass = '', showLoading = false) => {
-	const actionSlot = data.has_action_text || data.show_buy_now
-		? `<div class="card-action-slot">Buy Now</div>`
+module.exports = (data = {}, cardId = '', mediaClass = '', mediaBackground = '', showLoading = false) => {
+	const badge = data.has_action_text || data.show_buy_now
+		? `<span class="badge">Buy Now</span>`
 		: '';
-	const loadingSlot = showLoading
-		? `<div class="teaser-media-loading-indicator" aria-hidden="true"></div>`
+	const loader = showLoading
+		? `<i class="fas fa-spinner fa-spin loader" aria-hidden="true"></i>`
 		: '';
+	const loadingClass = showLoading ? ' loading' : '';
+	const subtitle = data.subtitle
+		? `<p class="subtitle">${data.subtitle}</p>`
+		: '';
+	const label = data.title
+		? `View listing: ${String(data.title).replace(/"/g, '&quot;')}`
+		: 'View listing';
 
 	return `
-    <div class="store-teaser" id="${cardId}">
-      <div class="teaser-media ${mediaClass}${showLoading ? ' teaser-media-loading' : ''}" style="background: ${mediaBackground};">
-        ${loadingSlot}
-        ${actionSlot}
-        <div class="teaser-identicon">
-          <img src="${data.identicon}" />
-        </div>
+    <article class="teaser" id="${cardId}" role="button" tabindex="0" aria-label="${label}">
+      <div class="media ${mediaClass}${loadingClass}" style="background: ${mediaBackground};">
+        ${loader}
+        ${badge}
+        <img class="saito-identicon" src="${data.identicon}" alt="" />
       </div>
-      <div class="teaser-info">
-        <div class="teaser-title">${data.title}</div>
-        <div class="teaser-subtitle">${data.subtitle}</div>
-        <div class="teaser-seller">seller: ${data.seller}</div>
+      <div class="info">
+        <h3 class="title">${data.title}</h3>
+        ${subtitle}
+        <p class="seller">${data.seller}</p>
       </div>
-    </div>
+    </article>
   `;
 };

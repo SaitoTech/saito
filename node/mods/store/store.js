@@ -117,17 +117,35 @@ class Store extends ModTemplate {
 		if (type === 'saito-sell-nft') {
 			return {
 				render: (defaults = {}) => {
-					if (!this.listing_overlay) {
-						if (this.main?.listing_overlay) {
-							this.listing_overlay = this.main.listing_overlay;
-						} else {
-							const ListingOverlay = require('./lib/ui/overlays/listing');
-							this.listing_overlay = new ListingOverlay(this.app, this);
-						}
-					}
-
 					if (this.app.BROWSER && typeof this.attachStyleSheets === 'function') {
 						this.attachStyleSheets();
+					}
+
+					if (this.main?.openSell) {
+						this.main.openSell(defaults);
+						return;
+					}
+
+					if (!this.listing_overlay) {
+						const NftPickerOverlay = require('./lib/ui/overlays/nft-picker');
+						const ListingDetailOverlay = require('./lib/ui/overlays/listing-detail');
+						const nft_picker = new NftPickerOverlay(this.app, this);
+						const listing_detail = new ListingDetailOverlay(this.app, this);
+						nft_picker.onSelect = (nft, defs) => {
+							listing_detail.render({ mode: 'edit', nft, defaults: defs });
+						};
+						listing_detail.onBack = (defs) => {
+							nft_picker.render(defs || {});
+						};
+						this.listing_overlay = {
+							render: (defs = {}) => {
+								if (defs?.nft) {
+									listing_detail.render({ mode: 'edit', nft: defs.nft, defaults: defs });
+								} else {
+									nft_picker.render(defs);
+								}
+							}
+						};
 					}
 
 					this.listing_overlay.render(defaults);

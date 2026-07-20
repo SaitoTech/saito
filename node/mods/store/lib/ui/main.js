@@ -1,28 +1,51 @@
 const MainTemplate = require('./main.template');
-const Teasers = require('./teasers');
-const ProductOverlay = require('./overlays/product');
-const ListingOverlay = require('./overlays/listing');
-const PurchaseFlow = require('./overlays/purchase');
+const Menu = require('./menu');
+const Manager = require('./manager');
+const NftPickerOverlay = require('./overlays/nft-picker');
+const ListingDetailOverlay = require('./overlays/listing-detail');
+const PurchaseOverlay = require('./overlays/purchase');
 
 class Main {
 	constructor(app, mod, container = '.saito-container') {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
-		this.teasers = new Teasers(this.app, this.mod, '.store-teasers');
+
+		this.menu = new Menu(app, mod, '', (view) => this.onNavigate(view));
+		this.manager = new Manager(app, mod, '', {
+			onSell: () => this.openSell()
+		});
+		this.nft_picker = null;
+		this.listing_detail = null;
+		this.purchase_overlay = null;
+
+		// Compatibility aliases for existing callers (store.respondTo, teaser, detail buy).
 		this.product_overlay = null;
 		this.listing_overlay = null;
 		this.purchase_flow = null;
 
 		this.app.connection.on('store-render-listings', () => {
-			this.teasers.render('.store-teasers');
+			this.manager.renderListings();
 		});
 	}
 
 	async initialize() {
-		this.product_overlay = new ProductOverlay(this.app, this.mod);
-		this.listing_overlay = new ListingOverlay(this.app, this.mod);
-		this.purchase_flow = new PurchaseFlow(this.app, this.mod);
+		this.nft_picker = new NftPickerOverlay(this.app, this.mod);
+		this.listing_detail = new ListingDetailOverlay(this.app, this.mod);
+		this.purchase_overlay = new PurchaseOverlay(this.app, this.mod);
+
+		this.nft_picker.onSelect = (nft, defaults) => {
+			this.listing_detail.render({ mode: 'edit', nft, defaults });
+		};
+		this.listing_detail.onBack = (defaults) => {
+			this.nft_picker.render(defaults || {});
+		};
+
+		this.product_overlay = this.listing_detail;
+		this.purchase_flow = this.purchase_overlay;
+		this.listing_overlay = {
+			render: (defaults = {}) => this.openSell(defaults)
+		};
 	}
 
 	render(container = '') {
@@ -36,48 +59,48 @@ class Main {
 		}
 
 		this.app.browser.replaceElementContentBySelector(MainTemplate(), this.container);
-		this.teasers.render('.store-teasers');
-		this.attachEvents();
+
+		this.menu.render(`${this.container} .store > .menu`);
+		this.manager.render(`${this.container} .store > .manager`);
 	}
 
-	attachEvents() {
-		const sellBtn = document.querySelector('#store-sell-btn');
-		if (sellBtn) {
-			sellBtn.onclick = (e) => {
-				e.preventDefault();
-				this.setActiveMenuItem('sell');
-				this.listing_overlay.render();
-			};
+	onNavigate(view = '') {
+		if (view === 'featured') {
+			this.manager.show('browse');
+			this.manager.scrollToTop();
+			return;
 		}
 
-		document.querySelectorAll('.store-menu-item').forEach((item) => {
-			item.onclick = (e) => {
-				e.preventDefault();
-				const view = item.dataset.view || '';
-				this.setActiveMenuItem(view);
-
-				if (view === 'featured' || view === 'all') {
-					this.scrollToListings();
-				}
-
-				if (view === 'sell') {
-					this.listing_overlay.render();
-				}
-			};
-		});
-	}
-
-	setActiveMenuItem(view = '') {
-		document.querySelectorAll('.store-menu-item').forEach((item) => {
-			item.classList.toggle('active', item.dataset.view === view);
-		});
-	}
-
-	scrollToListings() {
-		const listings = document.querySelector('#store-listings');
-		if (listings) {
-			listings.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		if (view === 'all') {
+			this.manager.show('browse');
+			this.manager.scrollToListings();
+			return;
 		}
+
+		if (view === 'my-listings') {
+			this.manager.show('my-listings');
+			return;
+		}
+
+		if (view === 'sales') {
+			this.manager.show('sales');
+			return;
+		}
+
+		if (view === 'sell') {
+			this.openSell();
+		}
+	}
+
+	openSell(defaults = {}) {
+		this.menu.setActive('sell');
+
+		if (defaults?.nft) {
+			this.listing_detail.render({ mode: 'edit', nft: defaults.nft, defaults });
+			return;
+		}
+
+		this.nft_picker.render(defaults);
 	}
 }
 

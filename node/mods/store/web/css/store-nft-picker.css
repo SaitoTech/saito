@@ -1,0 +1,101 @@
+/* Namespace: .nft-picker — layout only; panel chrome from .saito-overlay-panel;
+   NFT grid from .send-nft-list / .saito-nft-card */
+
+.nft-picker {
+	display: flex;
+	flex-direction: column;
+	width: min(94vw, 64rem);
+	max-width: 100%;
+	max-height: min(88vh, 52rem);
+	max-height: min(88dvh, 52rem);
+	overflow: hidden;
+	box-sizing: border-box;
+}
+
+.nft-picker > header {
+	flex: 0 0 auto;
+	padding: var(--saito-space-xl) var(--saito-space-xl) var(--saito-space-lg);
+	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
+}
+
+.nft-picker > header h2 {
+	margin: 0 0 var(--saito-space-xs);
+	font-size: var(--font-size-h6);
+	font-family: var(--saito-font-medium);
+	letter-spacing: -0.01em;
+}
+
+.nft-picker > header p {
+	margin: 0;
+	max-width: 36rem;
+	font-size: var(--font-size-medium);
+	line-height: 1.45;
+	color: var(--saito-font-color-secondary);
+}
+
+.nft-picker > .body {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+	padding: var(--saito-space-xl);
+	overflow: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.nft-picker .send-nft-list {
+	width: 100%;
+	max-width: 100%;
+	max-height: none;
+}
+
+.nft-picker .status:not(:empty) {
+	margin-top: auto;
+	padding-top: var(--saito-space-xl);
+}
+
+.nft-picker .empty {
+	min-height: 16rem;
+}
+
+@media (max-width: 900px) {
+	.nft-picker {
+		width: min(96vw, 64rem);
+		max-height: min(92dvh, 52rem);
+	}
+
+	.nft-picker > header,
+	.nft-picker > .body {
+		padding: var(--saito-space-lg);
+	}
+
+	.nft-picker .empty {
+		min-height: 12rem;
+	}
+}
+
+@media (max-width: 600px) {
+	.nft-picker {
+		width: 100%;
+		max-width: 100%;
+		max-height: none;
+	}
+
+	.nft-picker > header {
+		padding: var(--saito-space-md);
+		padding-top: max(var(--saito-space-md), env(safe-area-inset-top, 0px));
+	}
+
+	.nft-picker > header h2 {
+		font-size: var(--font-size-large);
+	}
+
+	.nft-picker > .body {
+		padding: var(--saito-space-md);
+		padding-bottom: calc(var(--saito-space-lg) + env(safe-area-inset-bottom, 0px));
+	}
+
+	.nft-picker .empty {
+		min-height: 10rem;
+	}
+}

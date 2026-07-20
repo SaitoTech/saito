@@ -1,41 +1,33 @@
 module.exports = {
 	pendingOverlay({ listingTitle = '' } = {}) {
-		const title = listingTitle ? `Order Submitted` : 'Order Submitted';
 		return `
-<div class="store-purchase-overlay store-purchase-waiting is-pending">
-  <div class="store-purchase-inner">
-    <div class="rs-confirmation-stack">
-      <div class="rs-publish-spinner" aria-hidden="true">
-        <span class="rs-publish-spinner-box"></span>
-        <span class="rs-publish-spinner-box"></span>
-        <span class="rs-publish-spinner-box"></span>
-        <span class="rs-publish-spinner-box"></span>
-      </div>
-      <h2 class="store-purchase-title rs-confirmation-title">${title}</h2>
-      <p class="store-purchase-lead">Your purchase has been submitted to the network.</p>
-      <div class="rs-confirmation-subtitle store-purchase-subtitle" aria-live="polite">waiting for confirmation...</div>
-      <div class="rs-confirmation-timer">
-        <span class="rs-confirmation-timer-label">expected time to next block</span>
-        <span class="rs-confirmation-countdown" aria-live="polite">—</span>
-        <span class="rs-confirmation-timer-unit">seconds</span>
-      </div>
+<article class="purchase pending" aria-labelledby="purchase-pending-title" aria-live="polite">
+  <div class="stack">
+    <div class="saito-spinner" aria-hidden="true"></div>
+    <h2 class="title" id="purchase-pending-title">Order submitted</h2>
+    <p class="lead">Your purchase is on the network.</p>
+    <p class="subtitle rs-confirmation-subtitle" aria-live="polite">waiting for confirmation...</p>
+    <div class="timer">
+      <span class="timer-label">expected time to next block</span>
+      <span class="countdown rs-confirmation-countdown" aria-live="polite">—</span>
+      <span class="timer-unit">seconds</span>
     </div>
   </div>
-</div>`;
+</article>`;
 	},
 
 	processingOverlay({ listingTitle = '' } = {}) {
 		return `
-<div class="store-purchase-overlay store-purchase-waiting is-processing">
-  <div class="store-purchase-inner">
-    <div class="store-purchase-success-icon" aria-hidden="true">✓</div>
-    <h2 class="store-purchase-title">Payment Confirmed</h2>
-    <p class="store-purchase-lead">
-      The Store is processing your order${listingTitle ? ` for <strong>${listingTitle}</strong>` : ''}.
-      Your NFT should arrive momentarily.
+<article class="purchase confirmed" aria-labelledby="purchase-confirmed-title">
+  <div class="stack">
+    <div class="success" aria-hidden="true"><i class="fas fa-check"></i></div>
+    <h2 class="title" id="purchase-confirmed-title">Payment confirmed</h2>
+    <p class="lead">
+      The Store is fulfilling your order${listingTitle ? ` for <strong>${listingTitle}</strong>` : ''}.
+      Your NFT should arrive shortly.
     </p>
-    <button type="button" class="store-purchase-close-btn" data-action="purchase-close">Close</button>
+    <button type="button" class="saito-button-primary" data-action="purchase-close">Close</button>
   </div>
-</div>`;
+</article>`;
 	}
 };
