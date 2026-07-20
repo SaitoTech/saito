@@ -52,7 +52,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     ${CtaLoader.head('vault')}
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
-    <link rel="stylesheet" type="text/css" href="/vault/style.css" />
+    <link rel="stylesheet" type="text/css" href="/vault/style.css?v=${build_number}" />
 
     <title>The Vault</title>
   
