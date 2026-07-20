@@ -165,12 +165,12 @@
 	width: fit-content;
 }
 
-.minimize .timer .counter {
+.minimize .stun-chatbox .timer .counter {
 	font-size: 1.8rem;
 	min-width: unset;
 }
 
-.minimize .stun-identicon-list {
+.minimize .stun-chatbox .stun-identicon-list {
 	gap: 0.6rem;
 	margin-right: 0.6rem;
 }
@@ -692,7 +692,7 @@ video#presentation {
 /* 7. Footer toolbar + controls                                        */
 /* ------------------------------------------------------------------ */
 
-.footer {
+.stun-chatbox .footer {
 	justify-content: center;
 	align-items: center;
 	gap: 5rem;
@@ -711,13 +711,14 @@ video#presentation {
 	gap: 1.8rem;
 	padding: 2.2rem;
 	background: var(--stun-noir-glass);
+	-webkit-backdrop-filter: blur(12px);
 	backdrop-filter: blur(12px);
 	border: 1px solid var(--stun-noir-outline-strong);
 	border-radius: 2rem;
 	box-shadow: var(--stun-noir-shadow);
 }
 
-.footer .timer {
+.stun-toolbar-shell .timer {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -727,7 +728,7 @@ video#presentation {
 	min-width: 0;
 }
 
-.timer .counter {
+.stun-toolbar-shell .timer .counter {
 	color: var(--stun-noir-accent);
 	font-size: 1.8rem;
 	min-width: 7rem;
@@ -736,7 +737,7 @@ video#presentation {
 	text-align: right;
 }
 
-.users-on-call {
+.stun-toolbar-shell .users-on-call {
 	display: flex;
 	align-items: center;
 	justify-content: space-evenly;
@@ -747,20 +748,20 @@ video#presentation {
 	border: 1px solid var(--stun-noir-outline-strong);
 }
 
-.stun-identicon-list {
+.stun-toolbar-shell .stun-identicon-list {
 	display: flex;
 	gap: 1rem;
 	margin-right: 1rem;
 }
 
-.stun-identicon-list img {
+.stun-toolbar-shell .stun-identicon-list img {
 	width: 5rem;
 	height: 5rem;
 	border-radius: 999px;
 	border: 1px solid var(--stun-noir-outline-strong);
 }
 
-.users-on-call .invite-control {
+.stun-toolbar-shell .users-on-call .invite-control {
 	width: 5rem;
 	height: 5rem;
 	display: flex;
@@ -772,25 +773,25 @@ video#presentation {
 	transition: background-color 0.18s ease, border-color 0.18s ease;
 }
 
-.users-on-call .invite-control:hover,
-.users-on-call .invite-control:focus-visible {
+.stun-toolbar-shell .users-on-call .invite-control:hover,
+.stun-toolbar-shell .users-on-call .invite-control:focus-visible {
 	background-color: var(--stun-noir-accent);
 	border-color: var(--stun-noir-accent);
 	outline: none;
 }
 
-.users-on-call .invite-control:hover i,
-.users-on-call .invite-control:focus-visible i {
+.stun-toolbar-shell .users-on-call .invite-control:hover i,
+.stun-toolbar-shell .users-on-call .invite-control:focus-visible i {
 	color: var(--saito-button-primary-fg);
 }
 
-.control-panel {
+.stun-toolbar-shell .control-panel {
 	display: flex;
 	gap: 1rem;
 	align-items: center;
 }
 
-.control-list {
+.stun-toolbar-shell .control-list {
 	display: flex;
 	align-items: center;
 	border-radius: 999px;
@@ -801,7 +802,7 @@ video#presentation {
 	width: fit-content;
 }
 
-.control-list .icon_click_area {
+.stun-toolbar-shell .control-list .icon_click_area {
 	width: 5rem;
 	height: 5rem;
 	display: flex;
@@ -812,20 +813,20 @@ video#presentation {
 	border-radius: 999px;
 }
 
-.control-list .icon_click_area.disabled {
+.stun-toolbar-shell .control-list .icon_click_area.disabled {
 	background-color: var(--stun-noir-outline);
 }
 
-.control-list .icon_click_area.disabled i {
+.stun-toolbar-shell .control-list .icon_click_area.disabled i {
 	color: var(--stun-noir-text);
 }
 
-.call-controls .audio-control.disabled i,
-.call-controls .video-control.disabled i {
+.stun-toolbar-shell .call-controls .audio-control.disabled i,
+.stun-toolbar-shell .call-controls .video-control.disabled i {
 	color: var(--stun-noir-text);
 }
 
-.control-list .icon_click_area label {
+.stun-toolbar-shell .control-list .icon_click_area label {
 	position: absolute;
 	color: var(--stun-noir-text-muted);
 	bottom: -2.3rem;
@@ -837,13 +838,13 @@ video#presentation {
 	transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease;
 }
 
-.control-list .icon_click_area:hover label {
+.stun-toolbar-shell .control-list .icon_click_area:hover label {
 	opacity: 1;
 	transform: translateY(0);
 	color: var(--stun-noir-text);
 }
 
-.icon_click_area i {
+:is(.stun-toolbar-shell, .video-control-panel) .icon_click_area i {
 	color: var(--stun-noir-text);
 	transition: all 0.2s;
 	font-size: 2rem;
@@ -852,49 +853,49 @@ video#presentation {
 	text-align: center;
 }
 
-.icon_click_area {
+:is(.stun-toolbar-shell, .video-control-panel) .icon_click_area {
 	cursor: pointer;
 }
 
-.icon_click_area.not-clickable {
+:is(.stun-toolbar-shell, .video-control-panel) .icon_click_area.not-clickable {
 	cursor: default;
 }
 
-.icon_click_area:hover i {
+:is(.stun-toolbar-shell, .video-control-panel) .icon_click_area:hover i {
 	transform: scale(1.2);
 }
 
-.icon_click_area:hover i.disconnect_btn {
+:is(.stun-toolbar-shell, .video-control-panel) .icon_click_area:hover i.disconnect_btn {
 	transform: rotate(135deg);
 	color: var(--saito-red);
 }
 
-.disconnect-control.icon_click_area {
+:is(.stun-toolbar-shell, .video-control-panel) .disconnect-control.icon_click_area {
 	background: var(--stun-noir-danger);
 }
 
-.disconnect-control.icon_click_area i {
+:is(.stun-toolbar-shell, .video-control-panel) .disconnect-control.icon_click_area i {
 	color: var(--stun-noir-danger-text);
 }
 
-.disconnect-control.icon_click_area:hover i.disconnect_btn {
+:is(.stun-toolbar-shell, .video-control-panel) .disconnect-control.icon_click_area:hover i.disconnect_btn {
 	color: var(--stun-noir-text);
 }
 
-.onair.recording {
+.stun-toolbar-shell .onair.recording {
 	background-color: var(--saito-red);
 }
 
-.onair.recording i {
+.stun-toolbar-shell .onair.recording i {
 	color: var(--saito-white);
 	animation: pulsate 1s ease-in-out infinite;
 }
 
-.record-container.recording {
+.stun-toolbar-shell .record-container.recording {
 	background-color: var(--saito-red);
 }
 
-.record-container.recording i {
+.stun-toolbar-shell .record-container.recording i {
 	color: var(--saito-white);
 	animation: pulsate 1s ease-in-out infinite;
 }
@@ -1283,7 +1284,7 @@ video#presentation {
 		overflow-y: auto;
 	}
 
-	.footer {
+	.stun-chatbox .footer {
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
@@ -1296,17 +1297,17 @@ video#presentation {
 		gap: 1.2rem;
 	}
 
-	.footer .timer,
-	.control-panel {
+	.stun-toolbar-shell .timer,
+	.stun-toolbar-shell .control-panel {
 		justify-content: center;
 		flex-wrap: wrap;
 	}
 
-	.control-panel {
+	.stun-toolbar-shell .control-panel {
 		gap: 3rem;
 	}
 
-	.control-list .icon_click_area label {
+	.stun-toolbar-shell .control-list .icon_click_area label {
 		bottom: -2rem;
 	}
 }
@@ -1338,17 +1339,17 @@ video#presentation {
 		padding: 0.75rem 2rem;
 	}
 
-	.control-list .icon_click_area,
-	.users-on-call .invite-control {
+	.stun-toolbar-shell .control-list .icon_click_area,
+	.stun-toolbar-shell .users-on-call .invite-control {
 		width: 3.75rem;
 		height: 3.75rem;
 	}
 
-	.icon_click_area i {
+	.stun-toolbar-shell .icon_click_area i {
 		font-size: 1.8rem;
 	}
 
-	.control-list label {
+	.stun-toolbar-shell .control-list label {
 		display: none;
 	}
 
@@ -1411,14 +1412,14 @@ video#presentation {
 		width: 2rem;
 		height: 2rem;
 	}
-	.stun-identicon-list img {
+	.stun-toolbar-shell .stun-identicon-list img {
 		width: 3rem;
 		height: 3rem;
 	}
 }
 
 @media screen and (max-width: 395px) {
-	.icon_click_area i {
+	.stun-toolbar-shell .icon_click_area i {
 		font-size: 1.6rem;
 	}
 }

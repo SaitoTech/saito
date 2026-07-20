@@ -261,9 +261,8 @@
 }
 
 .saito-overlay-subform-text {
-  font-size: 2rem;
   flex-grow: 1;
-  line-height: 3rem;
+  line-height: 2.5rem;
 }
 
 .saito-overlay-form textarea.saito-textarea,
@@ -304,6 +303,10 @@
   padding: 0;
 }
 
+.saito-overlay-auto-backup .saito-overlay-subform {
+    grid-template-columns: 3fr 1fr;
+}
+
 @media screen and (max-width: 600px) {
   .maximized-overlay .saito-overlay-closebox {
     top: 0.5rem;
@@ -318,6 +321,7 @@
     grid-column: span 2;
   }
 
+  
   .module-settings-overlay {
     padding: var(--saito-space-md);
   }

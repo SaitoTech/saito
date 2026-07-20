@@ -984,15 +984,26 @@ html:has(.stack-create-post-page) {
 
   .stack-create-post-page {
     /* Remove min-height: 100vh on mobile - allow natural growth */
-    padding-top: calc(var(--saito-header-height, 60px) + 3rem); /* Slightly less top spacing on mobile */
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+    padding: var(--saito-header-height, 6rem) 0 0 0; /* Slightly less top spacing on mobile */
     /* Body/html owns scrolling on mobile too */
     overflow: visible;
   }
 
-  .stack-create-post-container {
-    padding: 0;
+  .stack-create-post-page .stack-post-body-editor {
+    min-height: 33vh;
+    height: calc(100dvh - 50rem);
+   }
+
+  .stack-create-post-page .stack-create-post-container {
+    padding: 1rem;
+    width: 100vw;
+  }
+  
+  .stack-create-post-page .stack-document-column {
+      width: 100%;
+  }
+  .stack-create-post-page .stack-post-title-input {
+      font-size: 2.75rem;     
   }
 
   .stack-create-post-page .stack-editor-sidebar {

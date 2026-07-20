@@ -81,7 +81,7 @@
 
 .saito-crypto-details .wallet-actions {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: 0.2rem;
   padding: 1rem;
   justify-content: space-between;
@@ -2559,6 +2559,15 @@ input[type='checkbox'].ignore-checkbox {
 
   #withdraw-address-cont .withdraw-qr-scan-btn {
     display: flex !important;
+  }
+
+  .saito-crypto-details .main-balance {
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 1rem;
+      justify-content: center;
   }
 }
 

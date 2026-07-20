@@ -463,6 +463,13 @@ body .saito-cta :is(.stunx-appspace-actions, .stun-button-row) > :is(.stunx-prec
   flex: 1 1 0;
   min-width: 0;
 }
+body .saito-cta :is(.stunx-appspace-actions, .stun-button-row) > .stunx-precall-link {
+  flex: none;
+  width: 4.5rem;
+  min-width: 4.5rem;
+  box-sizing: border-box;
+  padding-inline: 0;
+}
 @media (max-width: 720px) {
   body .saito-cta.saito-cta :is(.stunx-appspace-actions, .stun-button-row) {
     flex-direction: column;

@@ -116,10 +116,11 @@
   font-size: 1.33rem;
 }
 
+/*
 .saito-menu li > i + .saito-menu-item-label {
   margin-left: 3.8rem;
 }
-
+*/
 .saito-menu i::before {
   -webkit-text-stroke-color: var(--saito-menu-icon-color);
   -webkit-text-stroke-width: 1px;

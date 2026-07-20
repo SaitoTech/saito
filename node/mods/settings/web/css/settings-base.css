@@ -139,7 +139,6 @@ details.settings-appspace-section[open] > .settings-appspace-section-summary {
 	text-align: center;
 	width: 100%;
 	min-width: 0;
-    max-width: calc(32% - 0.333rem);
 }
 
 .settings-actions-container {
@@ -322,6 +321,12 @@ label.treated {
 	.settings-appspace-modules {
 		grid-template-columns: repeat(4, 1fr);
 	}
+}
+
+@media only screen and (max-width: 768px) {
+    .settings-appspace-header .settings-actions-container .saito-button-secondary {
+        max-width: calc(32% - 0.333rem);
+    }
 }
 
 @media only screen and (max-width: 650px) {
