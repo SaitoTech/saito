@@ -1,140 +1,130 @@
-
-/* ---------------------------
-   THE VAULT — Upload Overlay
-   Standalone CSS (no body.scripting)
-   --------------------------- */
-
-/* Base tokens (override in your global theme if desired) */
-:root {
-  --vault-bg: #141414;
-  --vault-surface: #181818;
-  --vault-panel: #1c1c1c;
-  --vault-border: #383838;
-  --vault-text: #e6e6e6;
-  --vault-muted: #9a9a9a;
-  --vault-accent: #fca311;
-  --vault-focus: 0 0 0 3px rgba(252,163,17,0.18);
-  --vault-radius: 8px;
-  --vault-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  --vault-font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", "Fira Code", monospace;
-  --vault-zindex: 1000;
-}
-
-.vault-upload-overlay .nft-creator .button-container {
-    display: none;
-    flex-direction: row;
-    column-gap: 1rem;
-    cursor: pointer;
-}
-
-.vault-upload-overlay .nft-creator .button-container .private-nft , .nft-creator .button-container .public-nft {
-    height: 30rem;
-    width: 27rem;
-    border: 2px dashed var(--saito-font-color);
-    border-radius: 0.5rem;
-}
-
-#vault-file-upload {
-    border: 3px dotted var(--saito-border-color, #999);
-    height: 30rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    font-size: 1.6rem;
-    border-radius: 1rem;
-    width: 55rem;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-#vault-file-upload:hover {
-    border-color: var(--saito-primary, var(--saito-font-color));
-    background: rgba(255, 255, 255, 0.02);
-    transform: translateY(-2px);
-}
-
-#vault-file-upload i {
-    font-size: 4rem;
-    color: var(--saito-surface-selected, var(--saito-font-color));
-    opacity: 0.8;
-}
-
-.vault-file-upload-text {
-    color: var(--saito-font-color);
-    font-size: 1.6rem;
-}
-
-.vault-upload-notice {
-    width: 55rem;
-    min-width: 55rem;
-    width: 55rem;
-    min-width: 55rem;
-    height: 30rem;
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-    padding: 6rem;
-    font-size: 3.4rem;
-    line-height: 3em;
-}
-
 .vault-upload-overlay {
   width: max-content;
   max-width: calc(100vw - 40px);
   padding: 24px;
-  border-radius: var(--vault-radius);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   gap: 18px;
   box-sizing: border-box;
-  font-family: var(--vault-font-sans);
-  z-index: var(--vault-zindex);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  z-index: 1000;
 }
 
-.vault-upload-input {
+.vault-upload-overlay .nft-creator .button-container {
   display: none;
-}
-
-.vault-upload-button {
-  padding: 10px 16px;
-  border-radius: 6px;
-  background: var(--vault-panel);
-  color: var(--vault-text);
-  border: 1px solid var(--vault-border);
-  cursor: pointer;
-  font-size: 0.98rem;
-  transition: background 140ms ease, color 140ms ease, transform 80ms ease;
-  min-width: 120px;
-}
-
-.confirm-button.disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  background: var(--vault-panel);
-  color: var(--vault-muted);
-  border-color: var(--vault-border);
-  pointer-events: none;
-  transform: none !important;
-}
-
-.vault-hint {
-  font-size: 0.86rem;
-  color: var(--vault-muted);
-}
-
-.vault-file-preview {
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 10px;
-  background: rgba(255,255,255,0.01);
-  border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.02);
-  color: var(--vault-text);
-  font-size: 0.95rem;
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.vault-upload-overlay .nft-creator .button-container .private-nft,
+.vault-upload-overlay .nft-creator .button-container .public-nft {
+  height: 30rem;
+  width: 27rem;
+  border: 2px dashed var(--saito-font-color);
+  border-radius: 0.5rem;
+}
+
+.vault-upload-overlay .spinner-helper {
+  display: none;
+  min-width: 450px;
+  font-size: 3rem;
+  line-height: 8rem;
+  text-align: center;
+}
+
+.vault-upload-overlay .key_level_info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px 0;
+  background: #0008;
+  opacity: 0.9;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  text-align: center;
+  cursor: pointer;
+}
+
+.vault-upload-overlay .key_level_info h5 {
+  margin-bottom: 0.5rem;
+}
+
+.vault-upload-overlay .crystal_key,
+.vault-upload-overlay .jade_key {
+  position: relative;
+  width: min(450px, 100%) !important;
+  max-width: 100%;
+  background-size: cover;
+  background-position: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 3px solid transparent;
+}
+
+.vault-upload-overlay .crystal_key {
+  background-image: url('/vault/img/crystal_key.png');
+}
+
+.vault-upload-overlay .jade_key {
+  background-image: url('/vault/img/jade_key.png');
+}
+
+.vault-upload-overlay .jade_key:hover,
+.vault-upload-overlay .crystal_key:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+  border-color: var(--saito-primary-text);
+  filter: brightness(1.1);
+}
+
+.vault-upload-overlay .jade_key:hover .key_level_info,
+.vault-upload-overlay .crystal_key:hover .key_level_info {
+  padding: 15px 0;
+  background: var(--saito-primary);
+  color: var(--saito-primary-text);
+  opacity: 1;
+}
+
+.vault-upload-overlay #vault-file-upload {
+  border: 3px dotted var(--saito-border-color, #999);
+  height: 30rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: min(55rem, 100%);
+  max-width: 100%;
+  box-sizing: border-box;
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.vault-upload-overlay #vault-file-upload:hover {
+  border-color: var(--saito-primary, var(--saito-font-color));
+  background: rgba(255, 255, 255, 0.02);
+  transform: translateY(-2px);
+}
+
+.vault-upload-overlay #vault-file-upload i {
+  color: var(--saito-surface-selected, var(--saito-font-color));
+  font-size: 4rem;
+  opacity: 0.8;
+}
+
+.vault-upload-overlay .vault-file-upload-text {
+  color: var(--saito-font-color);
+  font-size: 1.6rem;
 }
 
 @media (max-width: 620px) {
@@ -145,31 +135,15 @@
     border-radius: 10px 10px 0 0;
   }
 
-  .vault-upload-title {
-    font-size: 1rem;
+  .vault-upload-overlay .nft-creator,
+  .vault-upload-overlay .textarea-container {
+    width: 100%;
+    min-width: 0;
   }
 
-  .vault-upload-dropzone {
-    padding: 26px 12px;
-    font-size: 0.95rem;
-  }
-
-  .vault-upload-button {
-    min-width: 100px;
-    padding: 10px 14px;
+  .vault-upload-overlay .nft-creator .button-container .private-nft,
+  .vault-upload-overlay .nft-creator .button-container .public-nft {
+    width: 100% !important;
+    max-width: 100%;
   }
 }
-
-@media (prefers-contrast: more) {
-  :root {
-    --vault-border: #777;
-    --vault-panel: #111;
-    --vault-accent: #ffd27a;
-  }
-
-  .vault-upload-dropzone {
-    border-style: solid;
-  }
-}
-
-

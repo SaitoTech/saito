@@ -1,226 +1,67 @@
-.spinner-helper {
-  text-align: center;
-  min-width: 450px;
-  font-size: 3rem;
-  line-height: 8rem;
-  display: none;
-}
-
-.key_level_info {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  padding: 10px 0;
-  background: #0008;
-  opacity: 0.9;
-  transition: all 0.3s ease;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.key_level_info h5 {
-  margin-bottom: 0.5rem;
-}
-
-.crystal_key {
-  position: relative;
-  background-image: url('/vault/img/crystal_key.png');
-  background-size: cover;
-  background-posiiton: center;
-  width: 450px !important;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 3px solid transparent;
-}
-
-.jade_key {
-  position: relative;
-  background-image: url('/vault/img/jade_key.png');
-  background-size: cover;
-  background-posiiton: center;
-  width: 450px !important;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 3px solid transparent;
-}
-
-.jade_key:hover,
-.crystal_key:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
-  border-color: var(--saito-primary-text);
-  filter: brightness(1.1);
-}
-
-.jade_key:hover .key_level_info,
-.crystal_key:hover .key_level_info {
-  opacity: 1;
-  background: var(--saito-primary);
-  color: var(--saito-primary-text);
-  padding: 15px 0;
-}
-
-.copper_key {
-  background-image: url('/vault/img/copper_key.png');
-  background-size: cover;
-  width: 450px !important;
-}
-
-.vault-rotating-word {
-  transition: opacity 0.4s ease-in-out;
-  display: inline-block;
-  min-width: 130px;
-  text-align: left;
-  color: var(--saito-primary-text);
-  font-weight: bolder;
-}
-
-.vault-rotating-word.fade-out {
-  opacity: 0;
-}
-
-body.vault {
-  background:
-    radial-gradient(ellipse at top, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)) no-repeat,
-    #0f1c2c;
-  background-position: center -120px;
-  background-size: 100% 100%;
-  min-height: 100vh;
-
-  & #saito-header {
-    background: transparent;
-  }
-
-  & #saito-container {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-}
-
-.vault-hero {
-  text-align: center;
-  max-width: 80%;
-  width: 100%;
-  margin: 0 auto;
-  padding: 0 20px;
-  padding-top: 18vh;
-
-  & h1 {
-    font-size: 8rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    letter-spacing: 0.4px;
-  }
-  & h2 {
-    font-size: 3rem;
-    font-weight: 300;
-    line-height: 1.55;
-    color: #d6d6d6;
-    margin-bottom: 2.3rem;
-  }
-}
-
-.vault-cta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
-
-.vault-btn.primary {
-  background: var(--saito-primary);
-  color: var(--saito-primary-text);
-  border: none;
-  padding: 2rem 4rem;
-  font-size: 2.6rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    opacity 0.2s ease;
-}
-
-.vault-btn.primary:hover {
-  transform: translateY(-2px);
-  opacity: 0.95;
-}
-
-.vault-btn.primary:active {
-  transform: translateY(0);
-  opacity: 0.85;
+body.vault .saito-container {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0;
 }
 
 .saito-vault {
+  display: grid;
+  place-items: center;
   width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 0 20px;
+  min-height: 100%;
+  padding: 3rem;
 }
 
-.saito-vault-layout {
+.vault-cta-card {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 80px);
-  width: 100%;
-  max-width: 920px;
+  align-items: center;
+  justify-content: center;
+  gap: 2.4rem;
+  background: var(--saito-overlay-panel-background);
 }
 
-.vault-nfts .send-nft-list {
-  padding: 5px;
+.vault-cta-logo {
+  --saito-cta-logo-mask: url('/saito/icons/saito-vault-icon-outline-label-horizontal.svg');
+  position: relative;
+  display: block;
+  width: min(56rem, 84vw);
+  max-width: 100%;
+  aspect-ratio: 381 / 134;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-#saito-container .vault-access-textlink {
-  margin-top: auto;
+.saito-cta:hover .vault-cta-logo {
+  --saito-cta-logo-mask: url('/saito/icons/saito-vault-icon-solid-label-horizontal.svg');
+}
+
+.vault-cta-logo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  -webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+  mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+}
+
+.vault-cta-tagline {
+  color: var(--saito-font-color-secondary);
+  font-size: 1.5rem;
+  letter-spacing: 0.22em;
+  line-height: 1.5;
   text-align: center;
-  font-size: 1.9rem;
-  padding-bottom: 60px;
-  opacity: 0.8;
-  cursor: pointer;
-  color: var(--saito-primary-text);
-  text-decoration: underline dashed;
-  text-underline-offset: 0.25em;
+  text-transform: uppercase;
 }
 
-#saito-container .vault-access-textlink:hover {
-  opacity: 1;
+.vault-cta-card .saito-button-primary {
+  background: var(--saito-cta-action-background);
+  box-shadow: var(--saito-cta-action-shadow);
 }
 
-/* CTA loader hooks — moved from saito-cta-loader.css */
-body .saito-cta .vault-btn {
-  width: 100%;
-  height: 4.5rem;
-  min-height: 4.5rem;
-  margin: 0;
-}
-body .saito-cta .vault-cta {
-  display: flex;
-  flex-flow: row nowrap;
-  width: 100%;
-  gap: 2rem;
-}
-body .saito-cta .vault-cta > .vault-btn {
-  flex: 1 1 0;
-  min-width: 0;
-}
-.saito-cta.saito-cta-loading .vault-btn {
-  cursor: wait;
-  filter: grayscale(0.18) brightness(0.82);
-  opacity: 0.62;
-  pointer-events: none;
-}
-@media (max-width: 720px) {
-  body .saito-cta.saito-cta .vault-cta {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    width: 100%;
-    gap: 2rem;
-  }
-  body .saito-cta.saito-cta .vault-cta > .vault-btn {
-    flex: 0 0 4.5rem;
-    width: 100%;
+@media (min-width: 721px) {
+  .vault-cta-card {
+    width: min(95vw, 86rem);
+    padding: 3.2rem;
+    border: 1px solid var(--saito-overlay-panel-border);
+    border-radius: calc(var(--saito-border-radius) + 0.15rem);
+    box-shadow: var(--saito-overlay-panel-shadow);
   }
 }

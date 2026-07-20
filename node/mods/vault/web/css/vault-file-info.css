@@ -1,35 +1,36 @@
 .vault-file-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(520px, 100%);
+  max-width: 100%;
+  min-width: 0;
+  min-height: 360px;
   padding: 2.5rem;
   font-size: 2.4rem;
   line-height: 3.6rem;
-  min-width: 520px;
-  width: 520px;
-  min-height: 360px;
   user-select: none;
+}
+
+.vault-file-info .vault-file-info-waiting,
+.vault-file-info .vault-file-info-success {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.vault-file-info-waiting,
-.vault-file-info-success {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.vault-file-info-waiting {
+.vault-file-info .vault-file-info-waiting {
   text-align: center;
 }
 
-.vault-file-info-waiting * {
+.vault-file-info .vault-file-info-waiting * {
   font-size: initial;
   line-height: normal;
 }
 
-.vault-file-info-waiting-inner {
+.vault-file-info .vault-file-info-waiting-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -37,82 +38,53 @@
   gap: 1.6rem;
 }
 
-.vault-loading-title {
+.vault-file-info .vault-loading-title {
   font-size: 2.4rem;
   font-weight: 500;
   opacity: 0.9;
 }
 
-.vault-loading-spinner img {
-  width: 56px;
-  height: 56px;
-}
-
-.vault-loading-subtext {
+.vault-file-info .vault-loading-subtext {
   font-size: 1.6rem;
   opacity: 0.65;
 }
 
-.vault-file-info-countdown {
+.vault-file-info .vault-file-info-countdown {
+  min-height: 1.2em;
   font-size: 3.2rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
-  min-height: 1.2em;
 }
 
-.vault-file-info-status {
-  font-size: 1.5rem;
-  opacity: 0.65;
+.vault-file-info .vault-file-info-status {
   max-width: 36rem;
+  font-size: 1.5rem;
   line-height: 1.45;
+  opacity: 0.65;
 }
 
-.vault-file-info-success {
+.vault-file-info .vault-file-info-success {
   flex-direction: column;
-  text-align: center;
-  line-height: 1.55;
-  font-size: 1.8rem;
   gap: 0.8rem;
+  font-size: 1.8rem;
+  line-height: 1.55;
+  text-align: center;
 }
 
-.vault-file-info-success-checks {
+.vault-file-info .vault-file-info-success-checks {
   font-size: 2rem;
   font-weight: 500;
   line-height: 1.4;
 }
 
-.vault-file-info-success p {
+.vault-file-info .vault-file-info-success p {
+  margin: 0.4rem 0;
   font-size: 1.7rem;
   line-height: 1.5;
-  margin: 0.4rem 0;
   opacity: 0.9;
 }
 
-.vault-sig-grid {
-  margin-top: 1rem;
-  display: grid;
-  grid-template-columns: minmax(10rem, 1fr) 20px;
-}
-
-.vault-sig-grid div {
-  border: 1px solid var(--saito-gray-700);
-  background: #0005;
-  padding: 0.5rem 1rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 80vw;
-  min-width: 450px;
-  border-radius: var(--saito-border-radius);
-}
-
-#vault-copy-sig {
-  opacity: 0.9;
-  padding: 1.25rem;
-  margin-left: 0.5rem;
-}
-
-#vault-copy-sig:hover {
-  opacity: 1;
-  transform: scale(1.1);
+.vault-file-info-waiting .saito-spinner {
+    min-width: 7rem;
 }

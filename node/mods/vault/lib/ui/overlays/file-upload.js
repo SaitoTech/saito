@@ -18,11 +18,15 @@ class FileUpload {
   }
 
   render() {
-    this.overlay.show(FileUploadTemplate(this.app, this.mod, this));
-    setTimeout(() => this.attachEvents(), 25);
+    const isMobile =
+      this.app.browser.isMobileBrowser() ||
+      (typeof window !== 'undefined' && window.innerWidth <= 768);
+
+    this.overlay.show(FileUploadTemplate(this.app, this.mod, isMobile));
+    this.attachEvents(isMobile);
   }
 
-  attachEvents() {
+  attachEvents(openFilePicker = false) {
     try {
       document.querySelector('.vault-upload-overlay .nft-creator .button-container').style.display =
         'none';
@@ -78,6 +82,10 @@ class FileUpload {
         },
         true
       );
+
+      if (openFilePicker) {
+        document.querySelector('#hidden_file_element_vault-file-upload')?.click();
+      }
 
       //
       // nft-binding buttons

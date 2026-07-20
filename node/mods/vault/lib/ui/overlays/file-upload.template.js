@@ -1,6 +1,7 @@
-module.exports = (app, mod) => {
+module.exports = (app, mod, isMobile = false) => {
+  const uploadPrompt = isMobile ? 'Tap to Add File' : 'Drag and Drop File to Upload';
   let html = `
-<div class="vault-upload-overlay">
+<div class="vault-upload-overlay saito-overlay-form saito-app-overlay">
 
       <div class="saito-overlay-form-header">
          <div class="saito-overlay-form-header-title">
@@ -10,7 +11,7 @@ module.exports = (app, mod) => {
          </div>
       </div>
 
-      <div class="nft-creator">
+      <div class="nft-creator saito-app-body">
 
         <div class="button-container">
 	  <div class="spinner-helper" style="display: none;">uploading...<p></p><div class="saito-spinner"></div></div>
@@ -21,7 +22,7 @@ module.exports = (app, mod) => {
         <div class="textarea-container">
           <div class="saito-app-upload active-tab paste_event" id="vault-file-upload">
             <i class="fa-solid fa-file-arrow-up"></i>
-            <div class="vault-file-upload-text">drag-and-drop file to upload</div>
+            <div class="vault-file-upload-text">${uploadPrompt}</div>
     	  </div>
         </div>
       </div>
