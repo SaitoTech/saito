@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_1" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" viewBox="77.2 71.25 273.4 314.29">
+  <defs>
+    <style>
+      .outline {
+        fill: none;
+        stroke: #fff;
+        stroke-miterlimit: 10;
+        stroke-width: 9px;
+      }
+
+      .solid,
+      .label {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <title>Saito Shop Outline Icon</title>
+    <polygon class="outline" points="213.9 75.75 81.7 152.07 81.7 304.71 213.9 381.04 346.1 304.71 346.1 152.07 213.9 75.75"/>
+    <rect class="outline" x="145.96" y="162" width="137.6" height="138.16"/>
+    <path class="outline" d="M240.18,162c-.18-14.09-11.66-25.46-25.79-25.46s-25.61,11.37-25.79,25.46h51.58Z"/>
+</svg>
