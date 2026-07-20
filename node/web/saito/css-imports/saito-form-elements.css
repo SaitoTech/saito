@@ -86,7 +86,7 @@ input.saito-input[type='search'] {
 .saito-checkbox {
   appearance: none;
   -webkit-appearance: none;
-  border: var(--border-thickness-thin) solid var(--saito-input-border-focus);
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
   width: 2rem;
   height: 2rem;
   margin: 3px 0.5rem;
@@ -118,13 +118,19 @@ input.saito-checkbox[type='checkbox']:checked::after,
   color: var(--saito-primary-text);
   opacity: 1;
 }
+input.saito-checkbox[type='checkbox']:focus-visible,
+.saito-checkbox:focus-visible {
+  outline: none;
+  border-color: var(--saito-input-border-focus);
+  box-shadow: var(--saito-focus-ring);
+}
 /* ----------------------------------------------------------------
  Radio
 -----------------------------------------------------------------*/input.saito-radio[type='radio'],
 .saito-radio {
   appearance: none;
   -webkit-appearance: none;
-  border: var(--border-thickness-thin) solid var(--saito-input-border-focus);
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
   width: 2rem;
   height: 2rem;
   margin: 0 0.5rem;
@@ -153,6 +159,12 @@ input.saito-radio[type='radio']:checked::after,
 .saito-radio:checked::after {
   color: var(--saito-primary-text);
   opacity: 1;
+}
+input.saito-radio[type='radio']:focus-visible,
+.saito-radio:focus-visible {
+  outline: none;
+  border-color: var(--saito-input-border-focus);
+  box-shadow: var(--saito-focus-ring);
 }
 /* ----------------------------------------------------------------
  Range

@@ -285,8 +285,10 @@ font imports
   --saito-input-bg-focus: var(--saito-input-bg);
   --saito-input-fg: var(--saito-foreground);
   --saito-input-fg-heavy: var(--saito-foreground);
-  --saito-input-border: var(--saito-border);
-  --saito-input-border-focus: var(--saito-border);
+  /* Control outlines — distinct from decorative --saito-border hairlines.
+   * Resting: ~3:1 on dark surfaces. Focus: reuse --saito-ring (focus/outline color). */
+  --saito-input-border: color-mix(in srgb, var(--saito-foreground) 35%, transparent);
+  --saito-input-border-focus: var(--saito-ring);
   --saito-input-placeholder: var(--saito-muted-foreground);
   --saito-input-radius: var(--saito-radius);
   --saito-input-shadow: var(--saito-elevation-0);

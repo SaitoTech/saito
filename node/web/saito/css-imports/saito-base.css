@@ -364,8 +364,8 @@ Media Queries
   select.saito-form-select
 ):is(:focus, :focus-visible) {
   outline: none !important;
-  border-color: var(--saito-input-border) !important;
-  box-shadow: var(--saito-input-shadow) !important;
+  border-color: var(--saito-input-border-focus) !important;
+  box-shadow: var(--saito-focus-ring) !important;
 }
 
 :where(button, .saito-button-primary, .saito-button-secondary):is(:focus, :focus-visible) {

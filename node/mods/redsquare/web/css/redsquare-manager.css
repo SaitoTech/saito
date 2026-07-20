@@ -25,7 +25,10 @@
   min-height: 5.6rem;
   padding: 0 var(--saito-space-lg);
   background: var(--saito-background);
+  border-bottom: var(--border-thickness-thin) solid var(--saito-border);
 }
+
+/* Header is omitted from the DOM when the view does not require chrome. */
 
 .manager > .body {
   flex: 1 1 auto;

@@ -1,4 +1,5 @@
 const ManagerTemplate = require('./manager.template');
+const ManagerHeaderTemplate = require('./manager-header.template');
 const ManagerScrollFooterTemplate = require('./manager-scroll-footer.template');
 const ManagerLoadMore = require('./manager-load-more');
 const TweetTemplate = require('./tweet.template');
@@ -31,6 +32,18 @@ class Manager {
     this.pending_newer_tweets = [];
     this._timeline_bootstrapping = false;
     this._notifications_bootstrapping = false;
+
+    // Per-view Manager chrome. Desktop always shows the header.
+    // On compact viewports, header renders only when `header: true`
+    // (navigation and/or context the bottom nav does not already provide).
+    this.viewChrome = {
+      timeline: { header: false },
+      notifications: { header: false },
+      thread: { header: true },
+      posts: { header: true },
+      replies: { header: true },
+      likes: { header: true }
+    };
   }
 
   createPaginationState() {
@@ -198,8 +211,7 @@ class Manager {
 
     if (
       root &&
-      root.querySelector('.header') &&
-      root.querySelector('.back') &&
+      root.querySelector('.body') &&
       root.querySelector('.list[data-panel="timeline"]') &&
       root.querySelector('.list[data-panel="profile"]')
     ) {
@@ -254,8 +266,9 @@ class Manager {
   }
 
   /**
-   * Feed-header chrome only — never touch the global Saito Header.
-   * Header is pinned to the top of `.manager`; `.body` is the scrollport.
+   * Feed-header chrome — mounted only when the active view requires it.
+   * Decision point: after mode is set, before/with paint. Desktop always mounts;
+   * compact viewports respect each view's `viewChrome.header` declaration.
    */
   syncFeedHeader() {
     const root = document.querySelector(this.container);
@@ -264,34 +277,90 @@ class Manager {
       return;
     }
 
-    const title = root.querySelector('.title');
-    const back = root.querySelector('.back');
+    const showHeader = this.requiresHeader();
+    let header = root.querySelector(':scope > .header');
 
-    const labels = {
-      timeline: 'Home',
-      notifications: 'Notifications',
-      thread: 'Post',
-      posts: 'Profile',
-      replies: 'Profile',
-      likes: 'Profile'
-    };
+    if (showHeader) {
+      if (!header) {
+        const body = root.querySelector(':scope > .body');
 
-    if (title) {
-      title.textContent = labels[this.mode] || 'Home';
+        if (body) {
+          body.insertAdjacentHTML('beforebegin', ManagerHeaderTemplate());
+        } else {
+          root.insertAdjacentHTML('afterbegin', ManagerHeaderTemplate());
+        }
+
+        header = root.querySelector(':scope > .header');
+
+        // Fresh actions slot — allow New Post to bind again.
+        const actions = header?.querySelector('.actions');
+
+        if (actions) {
+          delete actions.dataset.newPostBound;
+        }
+      }
+
+      const title = header?.querySelector('.title');
+      const back = header?.querySelector('.back');
+
+      const labels = {
+        timeline: 'Home',
+        notifications: 'Notifications',
+        thread: 'Post',
+        posts: 'Profile',
+        replies: 'Profile',
+        likes: 'Profile'
+      };
+
+      if (title) {
+        title.textContent = labels[this.mode] || 'Home';
+      }
+
+      const isDetail = this.isDetailHeaderMode();
+      const showBack = this.mode !== 'timeline';
+
+      if (back) {
+        back.hidden = !showBack;
+        back.setAttribute('aria-hidden', showBack ? 'false' : 'true');
+      }
+
+      root.classList.toggle('has-back', showBack);
+      root.classList.toggle('detail', isDetail);
+      root.classList.toggle('timeline', !isDetail);
+    } else if (header) {
+      header.remove();
+      root.classList.remove('has-back', 'detail');
+      root.classList.add('timeline');
     }
 
-    const isDetail = this.isDetailHeaderMode();
-    // Back is for leaving the Home timeline — never on timeline itself.
-    const showBack = this.mode !== 'timeline';
+    root.classList.toggle('has-header', showHeader);
+  }
 
-    if (back) {
-      back.hidden = !showBack;
-      back.setAttribute('aria-hidden', showBack ? 'false' : 'true');
+  /**
+   * Whether the active view requires Manager header chrome.
+   * Desktop: always. Compact: only when the view declares `header: true`.
+   */
+  requiresHeader(mode = this.mode) {
+    if (!this.isCompactViewport()) {
+      return true;
     }
 
-    root.classList.toggle('has-back', showBack);
-    root.classList.toggle('detail', isDetail);
-    root.classList.toggle('timeline', !isDetail);
+    const chrome = this.viewChrome[mode];
+
+    if (chrome && typeof chrome.header === 'boolean') {
+      return chrome.header;
+    }
+
+    // Unknown views keep the header (navigation/context by default).
+    return true;
+  }
+
+  isCompactViewport() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+
+    return window.matchMedia('(max-width: 600px)').matches;
   }
 
   /**
@@ -1080,6 +1149,30 @@ class Manager {
     this.attachTweetRetweet(root);
     this.attachFeedHeaderBack(root);
     this.attachScrollEvents();
+    this.attachViewportChrome();
+  }
+
+  attachViewportChrome() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    if (this._viewportChromeBound) {
+      return;
+    }
+
+    this._viewportChromeBound = true;
+    this._compactViewportQuery = window.matchMedia('(max-width: 600px)');
+
+    const onChange = () => {
+      this.syncFeedHeader();
+    };
+
+    if (typeof this._compactViewportQuery.addEventListener === 'function') {
+      this._compactViewportQuery.addEventListener('change', onChange);
+    } else if (typeof this._compactViewportQuery.addListener === 'function') {
+      this._compactViewportQuery.addListener(onChange);
+    }
   }
 
   attachFeedHeaderBack(root) {

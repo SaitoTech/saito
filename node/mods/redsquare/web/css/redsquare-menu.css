@@ -62,6 +62,11 @@
   left: auto;
 }
 
+/* Chat is a mobile bottom-nav affordance only — desktop uses the Chat sidebar. */
+.menu .item[data-nav='chat'] {
+  display: none;
+}
+
 @media (max-width: 1200px) {
   .menu .item {
     grid-template-columns: 2.75rem;
@@ -109,6 +114,10 @@
     min-height: 4.4rem;
     padding: var(--saito-space-xs) 0.2rem;
     border-radius: var(--saito-radius);
+  }
+
+  .menu .item[data-nav='chat'] {
+    display: flex;
   }
 
   .menu .icon {
