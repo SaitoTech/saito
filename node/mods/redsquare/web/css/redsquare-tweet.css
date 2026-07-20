@@ -1,27 +1,12 @@
-/* Tweet — grid, chain, gallery, embed (layout only) */
+/* Namespace: .tweet — internal layout only */
 
 .tweet {
   position: relative;
   display: grid;
-  grid-template-columns: 3.8rem minmax(0, 1fr);
-  column-gap: 1.2rem;
-  padding: 1.2rem 1.6rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--saito-space-md);
+  padding: var(--saito-space-md) var(--saito-space-lg);
   cursor: pointer;
-}
-
-.tweet.enter {
-  animation: tweet-enter 0.45s ease forwards;
-}
-
-@keyframes tweet-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-0.8rem) scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 .tweet.slot {
@@ -32,20 +17,21 @@
 .tweet.preview {
   pointer-events: none;
   cursor: default;
-  padding: 0 0 1.2rem;
+  padding: 0 0 var(--saito-space-md);
 }
 
 .tweet .avatar {
   align-self: start;
-  width: 3.8rem;
-  height: 3.8rem;
   z-index: 1;
 }
 
+/* Thread connector — centered on the avatar column */
 .tweet .chain {
   position: absolute;
-  inset: 0 auto 0 1.6rem;
-  width: 3.8rem;
+  top: 0;
+  bottom: 0;
+  left: var(--saito-space-lg);
+  width: 3.5rem;
   pointer-events: none;
 }
 
@@ -58,20 +44,20 @@
   content: '';
   position: absolute;
   left: 50%;
-  width: var(--border-thickness-medium, 2px);
+  width: var(--border-thickness-medium);
   transform: translateX(-50%);
-  background: var(--saito-border-color);
+  background: var(--saito-border);
   opacity: 0;
 }
 
 .tweet.chain-prev .chain::before {
   top: 0;
-  bottom: calc(100% - 1.2rem);
+  bottom: calc(100% - var(--saito-space-md));
   opacity: 1;
 }
 
 .tweet.chain-next .chain::after {
-  top: calc(1.2rem + 3.8rem);
+  top: calc(var(--saito-space-md) + 3.5rem);
   bottom: 0;
   opacity: 1;
 }
@@ -86,6 +72,18 @@
   display: flex;
   min-width: 0;
   overflow: hidden;
+}
+
+.tweet .header.compact {
+  align-items: baseline;
+  gap: var(--saito-space-xs);
+}
+
+.tweet .header.expanded,
+.tweet .header.compose {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
 }
 
 .tweet .primary,
@@ -104,23 +102,6 @@
   flex: 1 1 0;
 }
 
-.tweet .time,
-.tweet .sep {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.tweet .header.compact {
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
-.tweet .header.expanded {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
-}
-
 .tweet .header.expanded .primary,
 .tweet .header.expanded .handle,
 .tweet .header.compose .primary,
@@ -129,25 +110,25 @@
   max-width: 100%;
 }
 
-.tweet .header.compose {
-  flex-direction: column;
-  align-self: start;
-  gap: 0.15rem;
+.tweet .time,
+.tweet .sep {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .tweet .body {
-  margin-top: 0.1rem;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
 .tweet .posted {
-  margin-top: 0.6rem;
-  padding-top: 0.6rem;
+  margin-top: var(--saito-space-sm);
+  padding-top: var(--saito-space-sm);
+  color: var(--saito-muted-foreground);
 }
 
 .tweet .footer {
-  margin-top: 0.6rem;
+  margin-top: var(--saito-space-sm);
 }
 
 .tweet .controls {
@@ -185,27 +166,22 @@
   margin-right: 0;
 }
 
+/* Footer always includes .show-more; feature flag .tweet.show-more is unused — hide */
 .tweet .show-more {
   display: none;
-  margin-top: 0.6rem;
-  cursor: pointer;
-}
-
-.tweet.show-more .show-more {
-  display: block;
 }
 
 .tweet.focused {
-  padding-bottom: 1.4rem;
+  padding-bottom: var(--saito-space-lg);
   cursor: default;
 }
 
 .tweet.focused .body {
-  margin-top: 0.8rem;
+  margin-top: var(--saito-space-sm);
 }
 
 .tweet .gallery {
-  margin-top: 0.6rem;
+  margin-top: var(--saito-space-sm);
   min-width: 0;
 }
 
@@ -262,24 +238,14 @@
   max-height: 32rem;
 }
 
-.tweet.embedded .gallery.count-1 .item {
-  max-height: 18rem;
-}
-
-.tweet.embedded .gallery.count-2 .grid,
-.tweet.embedded .gallery.count-3 .grid,
-.tweet.embedded .gallery.count-4 .grid {
-  max-height: 16rem;
-}
-
 .tweet .embed {
-  margin-top: 0.6rem;
+  margin-top: var(--saito-space-sm);
   min-width: 0;
 }
 
 .tweet .embed > .tweet.embedded {
-  column-gap: 0.8rem;
-  padding: 1rem 1.2rem;
+  column-gap: var(--saito-space-sm);
+  padding: var(--saito-space-md);
 }
 
 .tweet.embedded .chain,
@@ -289,17 +255,20 @@
 }
 
 .tweet.embedded .body {
-  margin-top: 0.15rem;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 5;
   overflow: hidden;
 }
 
-.tweet .body,
-.tweet .body * {
-  font-size: inherit;
-  line-height: inherit;
+.tweet.embedded .gallery.count-1 .item {
+  max-height: 18rem;
+}
+
+.tweet.embedded .gallery.count-2 .grid,
+.tweet.embedded .gallery.count-3 .grid,
+.tweet.embedded .gallery.count-4 .grid {
+  max-height: 16rem;
 }
 
 .tweet .body :is(h1, h2, h3, h4, h5, h6) {
@@ -312,24 +281,11 @@
 
 @media (max-width: 600px) {
   .tweet {
-    padding: 1.2rem var(--saito-space-sm);
+    padding: var(--saito-space-md) var(--saito-space-sm);
     column-gap: var(--saito-space-sm);
   }
 
   .tweet .chain {
     left: var(--saito-space-sm);
-  }
-
-  .tweet.focused {
-    padding-top: var(--saito-space-md);
-    padding-bottom: var(--saito-space-md);
-  }
-
-  .tweet.focused.chain-prev .chain::before {
-    bottom: calc(100% - var(--saito-space-md));
-  }
-
-  .tweet.focused.chain-next .chain::after {
-    top: calc(var(--saito-space-md) + 3.8rem);
   }
 }

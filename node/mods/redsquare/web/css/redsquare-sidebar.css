@@ -1,36 +1,30 @@
-/* Sidebar — stack + suggestion grid */
+/* Namespace: .sidebar — stack + Who to Follow / footer internals.
+ * Mounts are stacked here; card chrome belongs to Saito (or child modules).
+ */
 
 .sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-lg);
-}
-
-.redsquare-arcade,
-.redsquare-leaderboard,
-.redsquare-sidebar {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-lg);
   min-width: 0;
 }
 
-.redsquare-arcade:empty,
-.redsquare-leaderboard:empty,
-.redsquare-sidebar:empty {
+.sidebar > .redsquare-sidebar:empty {
   display: none;
 }
 
-.panel-title {
+.sidebar .panel-title {
   margin: 0;
   padding: var(--saito-space-md) var(--saito-space-md) var(--saito-space-xs);
 }
 
-.suggestion-list {
+.sidebar .suggestion-list {
   list-style: none;
+  display: flex;
+  flex-direction: column;
 }
 
-.suggestion {
+.sidebar .suggestion {
   display: grid;
   grid-template-columns: 3.8rem minmax(0, 1fr) auto;
   align-items: center;
@@ -42,9 +36,12 @@
   width: 3.8rem;
   height: 3.8rem;
   object-fit: cover;
+  border-radius: var(--saito-radius);
 }
 
 .sidebar .info {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
@@ -56,8 +53,7 @@
 }
 
 .sidebar .follow {
-  min-height: 2.6rem;
-  padding: 0 var(--saito-space-sm);
+  margin: 0;
 }
 
 .sidebar .more {

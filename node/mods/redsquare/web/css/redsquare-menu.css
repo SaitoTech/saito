@@ -1,45 +1,26 @@
-/* Menu — header-aligned rail layout */
-
-.menu {
-  display: flex;
-  flex-direction: column;
-  padding-left: calc(2.5rem - (2.75rem / 2));
-  user-select: none;
-}
+/* Namespace: .menu — left nav hierarchy on Saito menu tokens */
 
 .menu .list {
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
 }
 
 .menu .item {
-  position: relative;
-  isolation: isolate;
   display: grid;
   grid-template-columns: 2.75rem minmax(0, 1fr);
   align-items: center;
-  column-gap: 1.15rem;
-  min-height: 5.2rem;
-  padding: 1.1rem var(--saito-space-md);
-  padding-left: calc(4.7rem - 2.5rem - (2.75rem / 2) - 1.15rem);
-  cursor: pointer;
+  column-gap: var(--saito-space-md);
+  min-height: 4.8rem;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border-radius: var(--saito-radius-full);
 }
 
-.menu .item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: calc(-1 * (2.5rem - (2.75rem / 2)));
-  z-index: -1;
-}
-
-.menu .saito-menu-select-subtle .item:hover {
-  background-color: transparent;
-}
-
-.menu .item:hover::before {
-  background-color: var(--saito-surface-selected);
+/* Persistent selection — Saito menu-select only defines :hover, not .active */
+.menu .item.active {
+  background-color: var(--saito-menu-item-active-bg);
+  color: var(--saito-menu-item-hover-fg);
 }
 
 .menu .icon {
@@ -49,58 +30,45 @@
   justify-content: center;
   width: 2.75rem;
   height: 2.75rem;
-  justify-self: center;
 }
 
 .menu .icon i {
-  font-size: 2.75rem;
+  font-size: 2.4rem;
   line-height: 1;
 }
 
+/* Same outline treatment as .saito-menu icons */
 .menu .icon i::before {
-  -webkit-text-stroke: var(--saito-font-color) 1px;
+  -webkit-text-stroke: 1px var(--saito-menu-icon-color);
   color: transparent;
-  font-size: smaller;
+}
+
+.menu .item:hover .icon i::before,
+.menu .item.active .icon i::before {
+  -webkit-text-stroke-color: var(--saito-menu-icon-hover-color);
 }
 
 .menu .label {
-  font-size: 2.15rem;
-  line-height: 1.1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-large);
 }
 
-.menu .item.active .icon i::before {
-  -webkit-text-stroke: var(--saito-font-color-heavy) 2px;
-}
-
-.menu .icon .badge {
-  position: absolute;
-  top: -0.3rem;
-  right: -0.55rem;
+/* Dot defaults to left: 3.5rem — pin to icon corner in this rail */
+.menu .icon .saito-notification-dot {
+  top: -0.25rem;
+  right: -0.45rem;
   left: auto;
-  min-width: 2.1rem;
-  min-height: 2.1rem;
-  padding: 0 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  pointer-events: none;
 }
 
 @media (max-width: 1200px) {
-  .menu {
-    padding-left: 0;
-    align-items: flex-end;
-  }
-
   .menu .item {
-    display: flex;
-    justify-content: flex-end;
-    padding: 1.1rem var(--saito-space-sm);
-  }
-
-  .menu .item::before {
-    left: 0;
+    grid-template-columns: 2.75rem;
+    justify-content: center;
+    justify-items: center;
+    padding-inline: var(--saito-space-xs);
   }
 
   .menu .label {

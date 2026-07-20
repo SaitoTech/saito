@@ -1,4 +1,14 @@
-/* Leaderboard embed — name|rank rows */
+/* Namespace: .redsquare-leaderboard — internal row layout only */
+
+.redsquare-leaderboard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.redsquare-leaderboard:empty {
+  display: none;
+}
 
 .redsquare-leaderboard .sidebar-header {
   padding: var(--saito-space-md) var(--saito-space-md) var(--saito-space-xs);
@@ -6,21 +16,21 @@
 
 .redsquare-leaderboard .sidebar-title {
   display: flex;
+  align-items: center;
   justify-content: space-between;
 }
 
 .redsquare-leaderboard .saito-table-body {
-  display: flex;
-  flex-direction: column;
   max-height: none;
+  overflow: visible;
 }
 
 .redsquare-leaderboard .league-leaderboard-ranking {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--saito-space-sm);
+  align-items: center;
   padding: var(--saito-space-xs) var(--saito-space-md);
-  cursor: pointer;
 }
 
 .redsquare-leaderboard .saito-table-gamename {

@@ -1,12 +1,9 @@
-/* Manager — feed scrollport + header layout */
+/* Namespace: .manager — feed chrome only (not tweet content) */
 
 .manager {
-  display: flex;
-  flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -18,10 +15,12 @@
   justify-content: space-between;
   gap: var(--saito-space-sm);
   height: 5.6rem;
-  padding: 0 1.6rem;
-  background: var(--saito-feed-bg, var(--saito-background-color));
+  padding: 0 var(--saito-space-lg);
+  background: var(--saito-background);
 }
 
+/* Timeline: header is in normal flow and scrolls away.
+ * Thread/detail: header sticks while the feed scrolls. */
 .manager.detail .header {
   position: sticky;
   top: 0;
@@ -30,17 +29,22 @@
 .manager .start {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--saito-space-md);
   min-width: 0;
   flex: 1 1 auto;
 }
 
 .manager .back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
   width: 3.2rem;
   height: 3.2rem;
-  min-width: 0;
-  min-height: 0;
   padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 
 .manager .title {
@@ -49,74 +53,74 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: var(--font-size-h6);
 }
 
-.manager .body {
-  flex: 1 1 auto;
-  min-height: 0;
+.manager .actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
-.new-posts-banner {
+.manager .new-post {
+  margin: 0;
+}
+
+.manager .new-posts-banner {
   display: block;
-  padding: 0.9rem 1.6rem;
+  width: 100%;
+  padding: var(--saito-space-sm) var(--saito-space-lg);
+  border: none;
+  background: var(--saito-card);
+  color: var(--saito-foreground);
   text-align: center;
   cursor: pointer;
 }
 
-.new-posts-banner[hidden] {
-  display: none;
+.manager .thread-context {
+  padding: var(--saito-space-md) var(--saito-space-lg);
+  color: var(--saito-primary);
+  cursor: pointer;
 }
 
-.feed-status {
+.manager .feed-status {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.feed-status .loader {
+.manager .feed-status .loader,
+.manager .feed-status .message {
   display: none;
-  min-height: 7rem;
 }
 
-.feed-status .saito-loader {
-  position: relative;
-  width: 5.5rem;
-  height: 5.5rem;
-}
-
-.feed-status .saito-loader::after {
-  top: 50%;
-  left: 50%;
-  width: 3.5rem;
-  height: 3.5rem;
-  background-attachment: scroll;
-}
-
-.feed-status .message {
-  display: none;
+.manager .feed-status .message {
   max-width: 24rem;
+  margin: 0;
   text-align: center;
+  color: var(--saito-muted-foreground);
 }
 
-.feed-status[data-status='content'] {
+.manager .feed-status[data-status='content'] {
   min-height: 2.4rem;
-  padding: 1.2rem 1.6rem;
+  padding: var(--saito-space-md) var(--saito-space-lg);
 }
 
-.feed-status[data-status='loading'],
-.feed-status[data-status='empty'],
-.feed-status[data-status='end'] {
-  padding: 7rem 1.6rem 5rem;
+.manager .feed-status[data-status='loading'],
+.manager .feed-status[data-status='empty'],
+.manager .feed-status[data-status='end'] {
+  padding: 7rem var(--saito-space-lg) 5rem;
 }
 
-.feed-status[data-status='loading'] .loader {
+.manager .feed-status[data-status='loading'] .loader {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 7rem;
 }
 
-.feed-status[data-status='empty'] .message,
-.feed-status[data-status='end'] .message {
+.manager .feed-status[data-status='empty'] .message,
+.manager .feed-status[data-status='end'] .message {
   display: block;
 }
 
@@ -124,16 +128,14 @@
   .manager .header {
     padding: 0 var(--saito-space-sm);
   }
-}
 
-.new-post {
-  width: auto;
-  min-width: 0;
-  min-height: 0;
-  height: 3.2rem;
-  padding: 0 1.1rem;
-}
-
-.new-post i {
-  margin: 0;
+  .manager .thread-context,
+  .manager .new-posts-banner,
+  .manager .feed-status[data-status='content'],
+  .manager .feed-status[data-status='loading'],
+  .manager .feed-status[data-status='empty'],
+  .manager .feed-status[data-status='end'] {
+    padding-left: var(--saito-space-sm);
+    padding-right: var(--saito-space-sm);
+  }
 }

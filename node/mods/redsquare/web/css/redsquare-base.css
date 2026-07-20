@@ -1,79 +1,25 @@
-/* RedSquare base — page shell + compact-control size beats */
+/* Page shell — width cluster, gutters, header alignment, breakpoints.
+ * Geometry tokens live here (loaded first) so --saito-width cannot drift.
+ */
 
-.redsquare-splash-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  color: var(--saito-white, #fff);
-  background:
-    radial-gradient(60vw 60vw at 50% -20%, rgba(255, 145, 77, 0.12), transparent),
-    #0d0e11;
+body.redsquare-body {
+  --rs-rail-left: 26rem;
+  --rs-rail-right: 32rem;
+  --rs-feed-width: 58rem;
+  --saito-width: calc(
+    var(--rs-rail-left) + var(--saito-space-xl) + var(--rs-feed-width) + var(--saito-space-xl) +
+      var(--rs-rail-right)
+  );
 }
 
-.redsquare-splash-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: min(95vw, 860px);
-  padding: 3.2rem;
-  gap: 2.4rem;
-  border: 1px solid var(--saito-overlay-panel-border);
-  border-radius: calc(var(--saito-border-radius) + 0.15rem);
-  background: var(--saito-overlay-panel-background);
-  box-shadow: var(--saito-overlay-panel-shadow);
-}
-
-.redsquare-splash-logo {
-  --saito-cta-logo-mask: url('/saito/icons/saito-redsquare-icon-outline-label-horizontal.svg');
-  position: relative;
-  width: min(560px, 84vw);
-  aspect-ratio: 381 / 134;
-}
-
-.saito-cta:hover .redsquare-splash-logo {
-  --saito-cta-logo-mask: url('/saito/icons/saito-redsquare-icon-solid-label-horizontal.svg');
-}
-
-.redsquare-splash-logo::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  -webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
-  mask: var(--saito-cta-logo-mask) center / contain no-repeat;
-}
-
-.redsquare-splash-subtitle {
-  letter-spacing: 0.22em;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.redsquare-splash-join {
-  width: 100%;
-  height: 4.5rem;
-  padding: 0 2rem;
-}
-
-/* Beat .saito-container — scoped to RS body only */
-body.redsquare-body #saito-container.saito-container {
-  position: absolute;
-  top: var(--saito-header-height);
-  left: 0;
-  right: 0;
-  width: 100vw;
-  height: calc(100% - var(--saito-header-height));
-  max-height: none;
+body.redsquare-body #saito-container {
+  grid-template-columns: var(--rs-rail-left) auto var(--rs-rail-right);
+  column-gap: var(--saito-space-xl);
   padding: 0 max(2rem, calc((100vw - var(--saito-width)) / 2 + 0.5rem));
-  column-gap: 2rem;
-  grid-template-columns: 26rem minmax(0, 58rem) 32rem;
   overflow: hidden;
 }
 
-body.redsquare-body #saito-container.saito-container > * {
+body.redsquare-body #saito-container > * {
   min-width: 0;
   min-height: 0;
   max-height: 100%;
@@ -81,37 +27,27 @@ body.redsquare-body #saito-container.saito-container > * {
 
 @media (max-width: 1200px) {
   body.redsquare-body {
-    --saito-width: 100rem;
-  }
-
-  body.redsquare-body #saito-container.saito-container {
-    grid-template-columns: 9rem minmax(0, 1fr) 28rem;
+    --rs-rail-left: 9rem;
+    --rs-rail-right: 28rem;
   }
 }
 
 @media (max-width: 820px) {
   body.redsquare-body {
-    --saito-width: 70rem;
+    --rs-rail-left: 8rem;
+    --rs-rail-right: 0rem;
+    --saito-width: calc(var(--rs-rail-left) + var(--saito-space-xl) + var(--rs-feed-width));
   }
 
-  body.redsquare-body #saito-container.saito-container {
-    grid-template-columns: 8rem minmax(0, 1fr);
+  body.redsquare-body #saito-container {
+    grid-template-columns: var(--rs-rail-left) minmax(0, 1fr);
   }
 }
 
 @media (max-width: 600px) {
-  body.redsquare-body #saito-container.saito-container {
+  body.redsquare-body #saito-container {
     grid-template-columns: minmax(0, 1fr);
     column-gap: 0;
     padding: 0;
   }
-}
-
-/* Beat saito-button component min-size */
-.new-post,
-.sidebar .follow,
-.settings .row.inline .saito-button-secondary {
-  min-width: unset;
-  min-height: unset;
-  margin: 0;
 }
