@@ -2,8 +2,10 @@
  * Reusable tweet header.
  *
  * Modes (layout only — markup stays shared):
- *   compact  — one line identity group: Username · time
- *   expanded — two lines: Username / @publickey
+ *   compact  — timeline scan line: Username · time
+ *   expanded — detail identity block:
+ *                row 1: Username                    Timestamp
+ *                row 2: Public key
  *   compose  — stacked name + instructional secondary (compose overlay)
  *
  * Callers should not need to know layout internals.
@@ -48,25 +50,28 @@ module.exports = ({
   }
 
   if (resolvedMode === 'expanded') {
+    const timeHtml = time ? `<time class="time saito-userline">${time}</time>` : '';
     const handleHtml = handle
       ? `<span class="handle saito-userline">${handle}</span>`
       : '';
 
+    // Identity owns name, time, and key. Body is a sibling — never a time host.
     return `
     <header class="header expanded">
       <span class="primary saito-address">${name}</span>
+      ${timeHtml}
       ${handleHtml}
     </header>
   `;
   }
 
-  // compact — identity group: Username · time
+  // compact — Username · time (no public key on the timeline)
   const parts = [];
 
   parts.push(`<span class="primary saito-address">${name}</span>`);
 
   if (time) {
-    parts.push(`<span class="sep time" aria-hidden="true">·</span>`);
+    parts.push(`<span class="sep" aria-hidden="true">·</span>`);
     parts.push(`<time class="time saito-userline">${time}</time>`);
   }
 

@@ -18,9 +18,9 @@ function authorFromPublicKey(app, publicKey) {
   }
 
   // Display name from keychain (registered identifier or Anon-xxxxxx).
-  // Handle/meta is always the public key — never duplicate the username.
+  // Meta/handle storage is the raw public key — never an @username, never duplicate the name.
   const username = app.keychain.returnUsername(publicKey) || `Anon-${publicKey.slice(0, 6)}`;
-  const handle = `@${publicKey}`;
+  const handle = publicKey;
   const avatar = app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
 
   return { username, handle, avatar };

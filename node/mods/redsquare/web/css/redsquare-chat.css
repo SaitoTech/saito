@@ -1,8 +1,9 @@
-/* Namespace: chat embed in .sidebar-left — layout only; chrome stays in Saito chat */
+/* Namespace: chat embed in .sidebar-left — same title→panel rhythm as right rail */
 
 .sidebar-left > .chat-manager {
   display: flex;
   flex-direction: column;
+  gap: var(--saito-space-sm);
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;

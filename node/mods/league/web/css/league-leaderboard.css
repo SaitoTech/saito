@@ -51,15 +51,9 @@
 	font-size: 1.5rem;
 }
 
-.league-rankings .saito-table {
-	padding: 1rem;
-	border: 1px solid var(--saito-border-color);
-	background: var(--saito-background-color);
-}
-
 .league-rankings {
 	display: flex;
 	flex-direction: column;
-	gap: 1rem;
+	gap: var(--saito-space-sm);
 	user-select: none;
 }

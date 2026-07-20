@@ -11,11 +11,17 @@ module.exports = (compose) => {
   let replyPreview = '';
 
   if (compose.reply_to) {
+    const tweet = compose.reply_to;
+    const className =
+      typeof tweet.buildClassName === 'function'
+        ? tweet.buildClassName({ presentation: 'focused', focused: true })
+        : 'tweet focused';
+
     replyPreview = `
       <div class="reply-preview">
-        ${TweetTemplate(compose.reply_to, 'tweet preview', {
-          presentation: 'timeline',
-          hideControls: true
+        ${TweetTemplate(tweet, className, {
+          presentation: 'focused',
+          focused: true
         })}
       </div>
     `;

@@ -3,11 +3,9 @@ module.exports = (sidebar) => {
     .map(
       (user) => `
         <li class="suggestion">
-          <img class="avatar" src="${user.avatar}" alt="${user.name}" />
-          <div class="info">
-            <span class="name">${user.name}</span>
-            <span class="handle">@${user.handle}</span>
-          </div>
+          <img class="avatar saito-identicon" src="${user.avatar}" alt="${user.name}" />
+          <span class="name saito-address">${user.name}</span>
+          <span class="handle saito-userline">@${user.handle}</span>
           <button class="follow saito-button-secondary small" type="button" aria-label="Follow ${user.name}">Follow</button>
         </li>
       `
@@ -21,7 +19,7 @@ module.exports = (sidebar) => {
   //   .redsquare-leaderboard → League Leaderboard
   //   .redsquare-sidebar     → remaining peers (e.g. Limbo)
   // Who to Follow remains a Sidebar-owned presentation slot until a recommendation
-  // module owns it.
+  // module owns it. Header/surface classes match Chats + Leaderboard (Saito primitives).
   return `
       <!-- Search UI parked: styling kept in sidebar.css; re-enable when search is wired up.
       <div class="search">
@@ -40,9 +38,11 @@ module.exports = (sidebar) => {
 
       <div class="redsquare-sidebar"></div>
 
-      <section class="panel suggestions">
-        <h3 class="panel-title">Who to follow</h3>
-        <ul class="suggestion-list">
+      <section class="suggestions">
+        <h5 class="sidebar-header">
+          <div class="sidebar-title">Who to Follow</div>
+        </h5>
+        <ul class="suggestion-list saito-sidebar-element">
           ${suggestions}
         </ul>
         <a class="more" href="#">Show more</a>

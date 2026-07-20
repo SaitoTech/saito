@@ -53,7 +53,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-large);
 }
 
 /* Dot defaults to left: 3.5rem — pin to icon corner in this rail */
@@ -73,5 +72,64 @@
 
   .menu .label {
     display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .menu {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    width: 100%;
+    background: var(--saito-background);
+    border-top: var(--border-thickness-thin) solid var(--saito-border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .menu .list {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-around;
+    gap: 0;
+    margin: 0;
+    padding: var(--saito-space-xs) var(--saito-space-sm);
+    min-height: var(--rs-mobile-nav-height);
+  }
+
+  .menu .item {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1rem;
+    min-width: 0;
+    min-height: 4.4rem;
+    padding: var(--saito-space-xs) 0.2rem;
+    border-radius: var(--saito-radius);
+  }
+
+  .menu .icon {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+
+  .menu .icon i {
+    font-size: 2.1rem;
+  }
+
+  .menu .label {
+    display: block;
+    max-width: 100%;
+    font-size: var(--font-size-tiny);
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .menu .icon .saito-notification-dot {
+    top: -0.15rem;
+    right: -0.35rem;
   }
 }

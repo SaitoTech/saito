@@ -1,6 +1,33 @@
-/* Namespace: .manager — feed chrome only (not tweet content) */
+/* Namespace: .manager — feed chrome only (not tweet content)
+ *
+ * Column ownership:
+ *   .manager  → flex column shell (fills .main)
+ *   .header   → pinned chrome (never scrolls)
+ *   .body     → sole scrollport for feed panels
+ */
 
 .manager {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.manager > .header {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+  flex: 0 0 auto;
+  min-height: 5.6rem;
+  padding: 0 var(--saito-space-lg);
+  background: var(--saito-background);
+}
+
+.manager > .body {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
@@ -8,25 +35,7 @@
   overflow-y: auto;
 }
 
-.manager .header {
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--saito-space-sm);
-  height: 5.6rem;
-  padding: 0 var(--saito-space-lg);
-  background: var(--saito-background);
-}
-
-/* Timeline: header is in normal flow and scrolls away.
- * Thread/detail: header sticks while the feed scrolls. */
-.manager.detail .header {
-  position: sticky;
-  top: 0;
-}
-
-.manager .start {
+.manager > .header .start {
   display: flex;
   align-items: center;
   gap: var(--saito-space-md);
@@ -34,7 +43,8 @@
   flex: 1 1 auto;
 }
 
-.manager .back {
+/* display must not override the HTML [hidden] attribute — Home has no Back */
+.manager > .header .back:not([hidden]) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -47,22 +57,25 @@
   cursor: pointer;
 }
 
-.manager .title {
+.manager > .header .title {
   margin: 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-h6);
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
+  line-height: 1.2;
 }
 
-.manager .actions {
+.manager > .header .actions {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
+  gap: var(--saito-space-sm);
 }
 
-.manager .new-post {
+.manager > .header .new-post {
   margin: 0;
 }
 
@@ -125,8 +138,13 @@
 }
 
 @media (max-width: 600px) {
-  .manager .header {
+  .manager > .header {
     padding: 0 var(--saito-space-sm);
+  }
+
+  /* Floating + is the only compose affordance on mobile */
+  .manager > .header .new-post {
+    display: none;
   }
 
   .manager .thread-context,

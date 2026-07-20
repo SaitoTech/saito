@@ -5,25 +5,37 @@ module.exports = (menu) => {
     badge = `<span class="saito-notification-dot badge" aria-hidden="true">${menu.notification_count}</span>`;
   }
 
-  // Chat is owned by the Chat module (respondTo('chat-manager')) and mounts
-  // into `.sidebar-left` beside this menu — do not duplicate chat UI here.
+  const chatItem = menu.has_chat
+    ? `
+        <li class="item" data-nav="chat">
+          <span class="icon">
+            <i class="fa-solid fa-comments"></i>
+          </span>
+          <span class="label">Chat</span>
+        </li>
+      `
+    : '';
+
+  // Chat list UI stays in the Chat module (`.sidebar-left > .chat-manager`).
+  // Mobile opens the existing chat-manager overlay — no duplicate chat UI here.
   return `
     <nav class="menu">
       <ul class="list saito-menu-select-subtle">
-        <li class="item active">
+        <li class="item active" data-nav="home">
           <span class="icon">
             <i class="fa-solid fa-house"></i>
           </span>
           <span class="label">Home</span>
         </li>
-        <li class="item">
+        <li class="item" data-nav="notifications">
           <span class="icon">
             <i class="fa-solid fa-bell"></i>
             ${badge}
           </span>
           <span class="label">Notifications</span>
         </li>
-        <li class="item">
+        ${chatItem}
+        <li class="item" data-nav="settings">
           <span class="icon">
             <i class="fa-solid fa-gear"></i>
           </span>

@@ -31,9 +31,6 @@
 .chat-manager .chat-manager-title {
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 1.55rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
 }
 
 .chat-popup-img-overlay-box {
@@ -126,10 +123,6 @@
   line-height: 1.55;
 }
 
-.chat-manager-list.saito-sidebar-element {
-  padding: 0.8rem;
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
-}
 
 .new-notification {
   background: var(--saito-chat-notification-gradient);
@@ -850,6 +843,7 @@
 .chat-manager-overlay .chat-manager-list.saito-sidebar-element {
   padding: 0;
   border: 0;
+  background: transparent;
 }
 
 .floating-cm-overlay .alternate-close-button {

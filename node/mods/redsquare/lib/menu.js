@@ -13,6 +13,7 @@ class Menu {
       avatar: '/saito/img/dreamscape.png'
     };
     this.notification_count = 0;
+    this.has_chat = false;
   }
 
   render(container = '') {
@@ -21,6 +22,7 @@ class Menu {
     }
 
     this.notification_count = this.mod.getUnreadNotificationCount?.() || 0;
+    this.has_chat = this.app.modules.returnModulesRespondingTo('chat-manager').length > 0;
 
     this.app.browser.replaceElementContentBySelector(MenuTemplate(this), this.container);
     this.attachEvents();
@@ -35,7 +37,7 @@ class Menu {
       return;
     }
 
-    const icon = root.querySelector('.item:nth-child(2) .icon');
+    const icon = root.querySelector('[data-nav="notifications"] .icon');
 
     if (!icon) {
       return;
@@ -47,7 +49,7 @@ class Menu {
       if (!badge) {
         this.app.browser.addElementToSelector(
           `<span class="saito-notification-dot badge" aria-hidden="true">${count}</span>`,
-          `${this.container} .item:nth-child(2) .icon`
+          `${this.container} [data-nav="notifications"] .icon`
         );
         return;
       }
@@ -61,6 +63,21 @@ class Menu {
     }
   }
 
+  openChat() {
+    const chatMod = this.app.modules.returnModulesRespondingTo('chat-manager')[0];
+
+    if (!chatMod) {
+      return;
+    }
+
+    if (!chatMod.chat_manager_overlay) {
+      const ChatManagerOverlay = require('../../chat/lib/overlays/chat-manager');
+      chatMod.chat_manager_overlay = new ChatManagerOverlay(this.app, chatMod);
+    }
+
+    chatMod.chat_manager_overlay.render();
+  }
+
   attachEvents() {
     const root = document.querySelector(this.container);
 
@@ -70,9 +87,10 @@ class Menu {
 
     root.dataset.menuBound = '1';
 
-    const homeItem = root.querySelector('.item:nth-child(1)');
-    const notificationsItem = root.querySelector('.item:nth-child(2)');
-    const settingsItem = root.querySelector('.item:nth-child(3)');
+    const homeItem = root.querySelector('[data-nav="home"]');
+    const notificationsItem = root.querySelector('[data-nav="notifications"]');
+    const chatItem = root.querySelector('[data-nav="chat"]');
+    const settingsItem = root.querySelector('[data-nav="settings"]');
 
     if (homeItem) {
       homeItem.addEventListener('click', () => {
@@ -88,10 +106,17 @@ class Menu {
       });
     }
 
+    if (chatItem) {
+      chatItem.addEventListener('click', () => {
+        // Overlay action — same pattern as Settings; chat UI stays in Chat module.
+        this.openChat();
+      });
+    }
+
     if (settingsItem) {
       settingsItem.addEventListener('click', () => {
+        // Settings is an overlay, not a destination — keep the current view's nav state.
         this.mod.settings_overlay?.open();
-        this.setActiveMenuItem(settingsItem);
       });
     }
   }

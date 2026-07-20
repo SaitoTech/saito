@@ -1,11 +1,11 @@
-/* Namespace: .sidebar — stack + Who to Follow / footer internals.
- * Mounts are stacked here; card chrome belongs to Saito (or child modules).
+/* Namespace: .sidebar — stack + Who to Follow / legal footer.
+ * One section rhythm: title → gap → panel → gap → next title (same --saito-space-sm).
  */
 
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-lg);
+  gap: var(--saito-space-sm);
   min-width: 0;
 }
 
@@ -13,57 +13,70 @@
   display: none;
 }
 
-.sidebar .panel-title {
-  margin: 0;
-  padding: var(--saito-space-md) var(--saito-space-md) var(--saito-space-xs);
+.sidebar .suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  min-width: 0;
 }
 
 .sidebar .suggestion-list {
   list-style: none;
   display: flex;
   flex-direction: column;
+  margin: 0;
+  min-width: 0;
 }
 
 .sidebar .suggestion {
   display: grid;
-  grid-template-columns: 3.8rem minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--saito-space-sm);
   align-items: center;
-  column-gap: var(--saito-space-xs);
-  padding: var(--saito-space-xs) var(--saito-space-md);
+  padding-block: var(--saito-space-xs);
 }
 
-.sidebar .avatar {
-  width: 3.8rem;
-  height: 3.8rem;
+.sidebar .suggestion .avatar {
+  grid-row: 1 / -1;
   object-fit: cover;
-  border-radius: var(--saito-radius);
 }
 
-.sidebar .info {
-  display: flex;
-  flex-direction: column;
+.sidebar .suggestion .name {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
 }
 
-.sidebar .name,
-.sidebar .handle {
+.sidebar .suggestion .handle {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--saito-muted-foreground);
 }
 
-.sidebar .follow {
+.sidebar .suggestion .follow {
+  grid-column: 3;
+  grid-row: 1 / -1;
   margin: 0;
 }
 
 .sidebar .more {
-  display: block;
-  padding: var(--saito-space-xs) var(--saito-space-md);
+  align-self: flex-start;
+  color: var(--saito-muted-foreground);
 }
 
 .sidebar .footer {
   display: flex;
   flex-wrap: wrap;
   gap: var(--saito-space-xs) var(--saito-space-sm);
-  padding: var(--saito-space-xs) var(--saito-space-md) 0;
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-tiny);
+}
+
+.sidebar .footer a {
+  color: inherit;
 }

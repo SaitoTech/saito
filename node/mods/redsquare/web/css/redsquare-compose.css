@@ -1,1 +1,261 @@
-/* Namespace: .compose */
+/* Namespace: .compose — overlay content layout (shell owned by SaitoOverlay).
+ * Shared family: title/content/controls/footer — Compose, Reply, Retweet, Quote.
+ */
+
+.compose {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(54rem, 92vw);
+  max-height: min(88vh, 72rem);
+  overflow: hidden;
+}
+
+/* Flow only — Tweet owns its own inset; composer owns compose-area inset. */
+.compose .body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Placement + scroll cap. No padding — Tweet owns layout. */
+.compose .reply-preview {
+  max-height: min(32vh, 26rem);
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.compose .composer {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  column-gap: var(--saito-space-md);
+  align-items: start;
+  padding: var(--saito-space-lg);
+}
+
+.compose .avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.compose .main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  min-width: 0;
+}
+
+.compose .header.compose .secondary {
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-tiny);
+}
+
+.compose .surface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  min-width: 0;
+}
+
+.compose .input {
+  width: 100%;
+  min-height: 8rem;
+  padding: 0;
+  resize: vertical;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  color: inherit;
+  font: inherit;
+  line-height: 1.45;
+}
+
+.compose .input:focus {
+  outline: none;
+}
+
+.compose .image-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.2rem;
+}
+
+.compose .image-preview:empty {
+  display: none;
+}
+
+.compose .image-item {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--saito-radius);
+}
+
+.compose .image-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.compose .image-remove {
+  position: absolute;
+  top: var(--saito-space-xs);
+  right: var(--saito-space-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, var(--saito-background) 72%, transparent);
+  color: inherit;
+  cursor: pointer;
+}
+
+.compose .gif-placeholder {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+  padding: var(--saito-space-xs) 0;
+  color: var(--saito-muted-foreground);
+}
+
+.compose .gif-placeholder.visible {
+  display: flex;
+}
+
+.compose .gif-dismiss {
+  cursor: pointer;
+  color: var(--saito-primary);
+}
+
+.compose .footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+  flex: 0 0 auto;
+  padding: var(--saito-space-sm) var(--saito-space-lg) var(--saito-space-md);
+  border-top: var(--border-thickness-thin) solid var(--saito-border);
+}
+
+.compose .tools {
+  display: flex;
+  gap: var(--saito-space-xs);
+}
+
+.compose .tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: var(--saito-radius);
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
+}
+
+.compose .actions {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-md);
+}
+
+.compose .char-count {
+  display: flex;
+  gap: 0.1rem;
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-tiny);
+}
+
+.compose .char-count.warning {
+  color: var(--saito-primary);
+}
+
+.compose .submit {
+  position: relative;
+  margin: 0;
+  min-width: 11rem;
+}
+
+.compose .submit .spinner {
+  display: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 2px solid color-mix(in srgb, var(--saito-button-primary-fg) 35%, transparent);
+  border-top-color: var(--saito-button-primary-fg);
+  border-radius: 50%;
+  animation: compose-submit-spin 0.8s linear infinite;
+}
+
+.compose.posting .submit .label {
+  opacity: 0;
+}
+
+.compose.posting .submit .spinner {
+  display: inline-block;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.compose .posting-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--saito-space-sm);
+  background: color-mix(in srgb, var(--saito-overlay-panel-bg) 88%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.compose.posting .posting-screen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.compose .posting-message {
+  margin: 0;
+  color: var(--saito-muted-foreground);
+}
+
+.compose .posting-loader {
+  width: 4rem;
+  height: 4rem;
+}
+
+@keyframes compose-submit-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .compose {
+    width: 100%;
+    max-height: 100vh;
+  }
+
+  .compose .composer,
+  .compose .footer {
+    padding-left: var(--saito-space-md);
+    padding-right: var(--saito-space-md);
+  }
+
+  .compose .input {
+    min-height: 12rem;
+  }
+}

@@ -14,7 +14,7 @@
 .redsquare-profile-banner {
   position: relative;
   width: 100%;
-  height: 8.5rem;
+  height: 6.5rem;
   overflow: hidden;
   background-color: var(--saito-card);
   background-image: url(/saito/img/dreamscape.png);
@@ -62,7 +62,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
 }
 
 .redsquare-profile .key-row {
@@ -117,7 +117,6 @@
   cursor: pointer;
   align-items: flex-end;
   justify-content: center;
-  font-size: var(--font-size-medium);
 }
 
 .redsquare-profile-description.can-edit .redsquare-profile-description-edit {
@@ -140,13 +139,11 @@
   padding: var(--saito-space-sm) var(--saito-space-xs);
   cursor: pointer;
   text-transform: capitalize;
-}
-
-.redsquare-profile .nav .item:hover {
-  color: var(--saito-primary);
+  color: var(--saito-muted-foreground);
 }
 
 .redsquare-profile .nav .item.active {
+  color: var(--saito-foreground);
   text-decoration: underline dashed;
   text-underline-offset: 0.5rem;
 }

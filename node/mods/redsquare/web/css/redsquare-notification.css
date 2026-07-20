@@ -1,1 +1,64 @@
-/* Namespace: .notification */
+/* Namespace: .notification — feed list rhythm inherited from tweets */
+
+.notification {
+  cursor: pointer;
+  border-bottom: var(--border-thickness-thin) solid var(--saito-border);
+}
+
+.notification .meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--saito-space-sm);
+  align-items: start;
+  padding: var(--saito-space-md) var(--saito-space-lg) var(--saito-space-xs);
+}
+
+.notification .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--saito-muted-foreground);
+}
+
+.notification .summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.notification .actor {
+  font-family: var(--saito-font-medium);
+}
+
+.notification .text {
+  color: var(--saito-muted-foreground);
+}
+
+.notification .time {
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-tiny);
+}
+
+.notification .slot {
+  padding: 0 var(--saito-space-lg) var(--saito-space-md);
+}
+
+/* Nested tweet is content, not a second chrome panel */
+.notification .slot > .tweet {
+  padding: var(--saito-space-sm) 0 0;
+  border-bottom: none;
+  cursor: inherit;
+}
+
+@media (max-width: 600px) {
+  .notification .meta,
+  .notification .slot {
+    padding-left: var(--saito-space-sm);
+    padding-right: var(--saito-space-sm);
+  }
+}

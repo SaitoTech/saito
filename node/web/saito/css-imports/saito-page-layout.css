@@ -44,10 +44,10 @@
 }
 
 .saito-sidebar-element {
-  /* side bar controls*/
   padding: var(--border-padding-normal);
+  border: var(--border-thickness-thin) solid var(--saito-border);
   border-radius: var(--saito-border-radius);
-  border-color: var(--saito-border);
+  background: var(--saito-card);
 }
 
 .sidebar-header {
@@ -64,7 +64,6 @@
 .sidebar-header > * {
   width: fit-content;
   cursor: pointer;
-  transition: transform 0.4s;
 }
 
 .sidebar-header .sidebar-title {

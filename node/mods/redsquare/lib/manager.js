@@ -255,9 +255,7 @@ class Manager {
 
   /**
    * Feed-header chrome only — never touch the global Saito Header.
-   * Also assigns scroll/header behaviour:
-   *   Timeline Mode → header in flow (scrolls away)
-   *   Detail Mode   → header sticky (back always available)
+   * Header is pinned to the top of `.manager`; `.body` is the scrollport.
    */
   syncFeedHeader() {
     const root = document.querySelector(this.container);
@@ -268,8 +266,6 @@ class Manager {
 
     const title = root.querySelector('.title');
     const back = root.querySelector('.back');
-    const header = root.querySelector('.header');
-    const scrollRoot = header?.parentElement || root;
 
     const labels = {
       timeline: 'Home',
@@ -285,6 +281,7 @@ class Manager {
     }
 
     const isDetail = this.isDetailHeaderMode();
+    // Back is for leaving the Home timeline — never on timeline itself.
     const showBack = this.mode !== 'timeline';
 
     if (back) {
@@ -292,13 +289,13 @@ class Manager {
       back.setAttribute('aria-hidden', showBack ? 'false' : 'true');
     }
 
-    scrollRoot.classList.toggle('has-back', showBack);
-    scrollRoot.classList.toggle('detail', isDetail);
-    scrollRoot.classList.toggle('timeline', !isDetail);
+    root.classList.toggle('has-back', showBack);
+    root.classList.toggle('detail', isDetail);
+    root.classList.toggle('timeline', !isDetail);
   }
 
   /**
-   * Detail = sticky feed header. Everything else is Timeline (scroll-away).
+   * Detail views show Back; thread is the primary detail case.
    */
   isDetailHeaderMode() {
     return this.mode === 'thread';
@@ -313,13 +310,9 @@ class Manager {
   }
 
   getScrollContainer() {
-    const body =
-      document.querySelector(`${this.container} .body`) ||
-      document.querySelector('.manager .body');
-    const scroller = body?.closest('.manager');
-
     return (
-      scroller ||
+      document.querySelector(`${this.container} .body`) ||
+      document.querySelector('.manager .body') ||
       document.querySelector(this.container) ||
       document.querySelector('#saito-container') ||
       document.querySelector('.saito-container')
@@ -351,7 +344,7 @@ class Manager {
   }
 
   resetMenuToHome() {
-    const homeItem = document.querySelector('.sidebar-left .item:nth-child(1)');
+    const homeItem = document.querySelector('.sidebar-left [data-nav="home"]');
 
     if (homeItem && this.mod.main?.menu) {
       this.mod.main.menu.setActiveMenuItem(homeItem);
