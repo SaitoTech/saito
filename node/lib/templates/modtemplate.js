@@ -129,11 +129,10 @@ class ModTemplate {
           let data = fs.readFileSync(template_sql, 'utf8');
           await app.storage.executeDatabase(data, dbname);
         } catch (err) {
-          console.error("Error installing shortlinks table:", err);
+          console.error('Error installing shortlinks table:', err);
         }
       }
     }
-
   }
 
   static importFunctions() {
@@ -250,7 +249,7 @@ class ModTemplate {
         }
       }
       if (this.enable_shortlinks) {
-        this.db_tables.push("shortlinks");
+        this.db_tables.push('shortlinks');
       }
     }
 
@@ -522,59 +521,48 @@ class ModTemplate {
     }
   }
   registerShortLinkRoutes(app, expressapp, express) {
-
     if (!this.shortlinks_enabled) {
       return;
     }
 
-    expressapp.get(
-      "/" + this.returnSlug() + "/s/:code",
-      async (req, res) => {
-
-	const user_agent = (req.headers["user-agent"] || "").toLowerCase();
-	const is_bot = /bot|crawler|spider|facebookexternalhit|twitterbot|slackbot|discordbot|linkedinbot|telegrambot|whatsapp/i.test(user_agent);
-        const dbname = this.dbname || this.returnSlug();
-        const rows = await this.app.storage.queryDatabase(
-          `SELECT * FROM shortlinks WHERE shortlink = $code LIMIT 1`,
-          {
-            $code: req.params.code
-          },
-          dbname
+    expressapp.get('/' + this.returnSlug() + '/s/:code', async (req, res) => {
+      const user_agent = (req.headers['user-agent'] || '').toLowerCase();
+      const is_bot =
+        /bot|crawler|spider|facebookexternalhit|twitterbot|slackbot|discordbot|linkedinbot|telegrambot|whatsapp/i.test(
+          user_agent
         );
+      const dbname = this.dbname || this.returnSlug();
+      const rows = await this.app.storage.queryDatabase(
+        `SELECT * FROM shortlinks WHERE shortlink = $code LIMIT 1`,
+        {
+          $code: req.params.code
+        },
+        dbname
+      );
 
-        if (!rows || rows.length === 0) {
-          res.status(404).sendFile(
-            path.join(__dirname, "../../web/404.html")
-          );
-          return;
-        }
+      if (!rows || rows.length === 0) {
+        res.status(404).sendFile(path.join(__dirname, '../../web/404.html'));
+        return;
+      }
 
-        const row = rows[0];
-        const now = Date.now();
+      const row = rows[0];
+      const now = Date.now();
 
+      //
+      // bots get Open Graph
+      //
+      if (is_bot) {
+        const social = this.social || {};
 
-	//
-	// bots get Open Graph
-	//
-	if (is_bot) {
+        const title = row.title || social.title || this.returnName();
 
-	  const social = this.social || {};
+        const description = social.description || '';
 
-	  const title =
-	    row.title ||
-	    social.title ||
-	    this.returnName();
+        const image = social.image || '';
 
-	  const description =
-	    social.description || "";
+        const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 
-	  const image =
-	    social.image || "";
-
-	  const url =
-	    `${req.protocol}://${req.get("host")}${req.originalUrl}`;
-
-	  res.send(`
+        res.send(`
 		<!DOCTYPE html>
 			<html>
 			<head>
@@ -601,46 +589,39 @@ class ModTemplate {
 		</html>
 	  `);
 
-	  return;
-
-	}
-
-
-        if (row.expires_at > 0 && row.expires_at < now) {
-          res.status(404).send("Shortlink expired");
-          return;
-        }
-
-        if (row.max_uses > 0 && row.uses >= row.max_uses) {
-          res.status(404).send("Shortlink has expired");
-          return;
-        }
-
-        await this.app.storage.runDatabase(
-          `UPDATE shortlinks SET uses = uses + 1 WHERE shortlink = $code`,
-          {
-            $code: row.shortlink
-          },
-          dbname
-        );
-
-
-        try {
-          const target = new URL(row.link, `${req.protocol}://${req.get("host")}`);
-          if (target.hostname !== req.hostname) {
-            res.status(400).send("Invalid shortlink target");
-            return;
-          }
-          res.redirect(302, target.href);
-        } catch (err) {
-          res.status(400).send("Invalid shortlink target");
-        }
-
+        return;
       }
-    );
 
-  } 
+      if (row.expires_at > 0 && row.expires_at < now) {
+        res.status(404).send('Shortlink expired');
+        return;
+      }
 
+      if (row.max_uses > 0 && row.uses >= row.max_uses) {
+        res.status(404).send('Shortlink has expired');
+        return;
+      }
+
+      await this.app.storage.runDatabase(
+        `UPDATE shortlinks SET uses = uses + 1 WHERE shortlink = $code`,
+        {
+          $code: row.shortlink
+        },
+        dbname
+      );
+
+      try {
+        const target = new URL(row.link, `${req.protocol}://${req.get('host')}`);
+        if (target.hostname !== req.hostname) {
+          res.status(400).send('Invalid shortlink target');
+          return;
+        }
+        res.redirect(302, target.href);
+      } catch (err) {
+        res.status(400).send('Invalid shortlink target');
+      }
+    });
+  }
 
   //
   // createShortLink
@@ -649,7 +630,6 @@ class ModTemplate {
   // Returns the shortened URL on success or the original URL on failure.
   //
   async createShortLink(longUrl) {
-
     if (!this.shortlinks_enabled || !this.app.BROWSER) {
       return longUrl;
     }
@@ -658,7 +638,7 @@ class ModTemplate {
       return this.shortlink_cache[longUrl];
     }
 
-    if (!longUrl || typeof longUrl !== "string") {
+    if (!longUrl || typeof longUrl !== 'string') {
       return longUrl;
     }
 
@@ -668,22 +648,20 @@ class ModTemplate {
       let page_host = window.location.hostname.toLowerCase();
       let page_port = window.location.port;
       if (!page_port) {
-        page_port = window.location.protocol === "https:" ? "443" : "80";
+        page_port = window.location.protocol === 'https:' ? '443' : '80';
       }
       const peers = await this.app.network.getPeers();
       for (let i = 0; i < peers.length; i++) {
         const p = peers[i];
-        const peer_host = String(p.host || "").toLowerCase();
-        let peer_port = String(p.port || "");
-        if (!peer_port || peer_port === "0") {
-          peer_port = p.protocol === "https" ? "443" : "80";
+        const peer_host = String(p.host || '').toLowerCase();
+        let peer_port = String(p.port || '');
+        if (!peer_port || peer_port === '0') {
+          peer_port = p.protocol === 'https' ? '443' : '80';
         }
         const host_match =
           peer_host === page_host ||
-          (
-            (peer_host === "localhost" || peer_host === "127.0.0.1") &&
-            (page_host === "localhost" || page_host === "127.0.0.1")
-          );
+          ((peer_host === 'localhost' || peer_host === '127.0.0.1') &&
+            (page_host === 'localhost' || page_host === '127.0.0.1'));
         if (host_match && peer_port === String(page_port)) {
           serving_peer = p;
           break;
@@ -697,54 +675,45 @@ class ModTemplate {
       return longUrl;
     }
 
-    const request = this.name.toLowerCase() + " create shortlink";
+    const request = this.name.toLowerCase() + ' create shortlink';
 
     return await Promise.race([
       new Promise((resolve) => {
         this.app.network.sendRequestAsTransaction(
-
           request,
 
-	  {
-	    link: longUrl,
-	    title: "",
-	    expires_at: 0,
-	    max_uses: 0,
-	    uses: 0
-	  },
+          {
+            link: longUrl,
+            title: '',
+            expires_at: 0,
+            max_uses: 0,
+            uses: 0
+          },
 
           (res) => {
-            if (
-              !res ||
-              res.err ||
-              !res.shortlink ||
-              !res.shortlink.startsWith("/")
-            ) {
+            if (!res || res.err || !res.shortlink || !res.shortlink.startsWith('/')) {
               resolve(longUrl);
               return;
             }
-	    this.shortlink_cache[longUrl] =  (window.location.origin + res.shortlink);
+            this.shortlink_cache[longUrl] = window.location.origin + res.shortlink;
             resolve(window.location.origin + res.shortlink);
           },
           serving_peer.publicKey
         );
-
       }),
 
       new Promise((resolve) => {
         setTimeout(() => resolve(longUrl), 8000);
       })
     ]);
-
   }
   async pruneShortLinks() {
-
     if (!this.shortlinks_enabled) {
       return;
     }
 
     const dbname = this.dbname || this.returnSlug();
-    const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
     await this.app.storage.runDatabase(
       `
         DELETE FROM shortlinks
@@ -994,15 +963,12 @@ class ModTemplate {
     // shortlinks — create
     //
     if (this.shortlinks_enabled) {
-
-      const expected_request = this.name.toLowerCase() + " create shortlink";
-
+      const expected_request = this.name.toLowerCase() + ' create shortlink';
 
       if (txmsg?.request === expected_request) {
-
-console.log("### SHORTLINK REGISTRATION ####")
-console.log("### SHORTLINK REGISTRATION ####")
-console.log("### SHORTLINK REGISTRATION ####")
+        console.log('### SHORTLINK REGISTRATION ####');
+        console.log('### SHORTLINK REGISTRATION ####');
+        console.log('### SHORTLINK REGISTRATION ####');
 
         if (!mycallback) {
           return 0;
@@ -1010,28 +976,28 @@ console.log("### SHORTLINK REGISTRATION ####")
 
         const data = txmsg.data || {};
 
-        if (!data.link || typeof data.link !== "string") {
+        if (!data.link || typeof data.link !== 'string') {
           mycallback({
-            err: "invalid_link",
-            shortlink: "",
-            code: "",
+            err: 'invalid_link',
+            shortlink: '',
+            code: '',
             expires_at: 0
           });
           return 1;
         }
 
         const dbname = this.dbname || this.returnSlug();
-console.log("dbname: ");
+        console.log('dbname: ');
 
         const response = {
-          err: "insert_failed",
-          shortlink: "",
-          code: "",
+          err: 'insert_failed',
+          shortlink: '',
+          code: '',
           expires_at: Number(data.expires_at) || 0
         };
 
         for (let attempt = 0; attempt < 5; attempt++) {
-console.log("ATTEMPT !!!!!");
+          console.log('ATTEMPT !!!!!');
           const code = Math.random().toString(36).substring(2, 10);
           try {
             await this.app.storage.runDatabase(
@@ -1060,8 +1026,8 @@ console.log("ATTEMPT !!!!!");
                 $id: code,
                 $shortlink: code,
                 $link: data.link,
-                $title: data.title || "",
-                $creator: peer?.publicKey || "",
+                $title: data.title || '',
+                $creator: peer?.publicKey || '',
                 $created_at: Date.now(),
                 $expires_at: response.expires_at,
                 $max_uses: Number(data.max_uses) || 0,
@@ -1069,38 +1035,33 @@ console.log("ATTEMPT !!!!!");
               },
 
               dbname
-
             );
 
-            response.err = "";
+            response.err = '';
             response.code = code;
-            response.shortlink = "/" + this.returnSlug() + "/s/" + code;
+            response.shortlink = '/' + this.returnSlug() + '/s/' + code;
 
-console.log("break!");
+            console.log('break!');
             break;
-
           } catch (err) {
             // collision or insert failure, retry
-console.log("collusion or insert failure!!!!!");
+            console.log('collusion or insert failure!!!!!');
           }
-
         }
 
         mycallback(response);
 
+        this.shortlink_prune_counter++;
 
-	this.shortlink_prune_counter++;
-
-	if (this.shortlink_prune_counter >= 100) {
-	    this.shortlink_prune_counter = 0;
-	    this.pruneShortLinks().catch((err) => {
-  	      console.error(err);
-	    });
-	}
+        if (this.shortlink_prune_counter >= 100) {
+          this.shortlink_prune_counter = 0;
+          this.pruneShortLinks().catch((err) => {
+            console.error(err);
+          });
+        }
 
         return 1;
       }
-
     }
 
     return 0;

@@ -100,9 +100,7 @@ class SelectNFT {
 
   async renderNFTList(filter) {
     const container = document.querySelector('#nft-list');
-    const instructionsEl = document.querySelector(
-      '.saito-nft-list #nft-list-instructions'
-    );
+    const instructionsEl = document.querySelector('.saito-nft-list #nft-list-instructions');
 
     if (!container) {
       console.warn('Missing NFT-list container!');

@@ -2353,7 +2353,7 @@ class Browser {
         return new Promise((resolve, reject) => {
           let wrapper = document.createElement('div');
           wrapper.id = 'saito-alert';
-        wrapper.className = 'saito-alert';
+          wrapper.className = 'saito-alert';
           let html = `<div id="saito-alert-shim">
                         <div id="saito-alert-box">
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
@@ -2397,7 +2397,7 @@ class Browser {
         return new Promise((resolve, reject) => {
           let wrapper = document.createElement('div');
           wrapper.id = 'saito-alert';
-        wrapper.className = 'saito-alert';
+          wrapper.className = 'saito-alert';
           let html = `<div id="saito-alert-shim">
                         <div id="saito-alert-box">
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
@@ -2734,7 +2734,8 @@ class Browser {
 
   getLocaleNumberSeparators(locale = null) {
     const resolvedLocale =
-      locale || (this.app.BROWSER && window?.navigator?.language ? window.navigator.language : 'en-US');
+      locale ||
+      (this.app.BROWSER && window?.navigator?.language ? window.navigator.language : 'en-US');
     const parts = Intl.NumberFormat(resolvedLocale).formatToParts(12345.6);
     return {
       locale: resolvedLocale,

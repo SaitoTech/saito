@@ -208,12 +208,9 @@ impl Arrayify {
             return 0;
         }
 
-        let Some(dimension) = resolve_dimension(
-            &context["script"]["dimension"].clone(),
-            context,
-            tx,
-            blk,
-        ) else {
+        let Some(dimension) =
+            resolve_dimension(&context["script"]["dimension"].clone(), context, tx, blk)
+        else {
             return 0;
         };
 

@@ -179,7 +179,8 @@ class SaitoHeader extends UIModTemplate {
         const addressContainer = document.querySelector('#profile-public-key');
         if (addressContainer) {
           addressContainer.dataset.add = '';
-          addressContainer.innerHTML = '<div class="profile-public-key-text">generating keys...</div>';
+          addressContainer.innerHTML =
+            '<div class="profile-public-key-text">generating keys...</div>';
           addressContainer.classList.add('generate-keys');
         }
         this.loader.show();

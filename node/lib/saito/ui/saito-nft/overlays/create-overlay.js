@@ -17,7 +17,6 @@ class CreateNFT {
   }
 
   render(defaults = {}) {
-
     this.defaults = defaults;
     this.reset();
 
@@ -68,9 +67,7 @@ class CreateNFT {
     }
 
     if (this.defaults?.description) {
-      let description = document.querySelector(
-        '.saito-nft-create .secondary textarea.description'
-      );
+      let description = document.querySelector('.saito-nft-create .secondary textarea.description');
       description.value = this.defaults.description;
       if (this.defaults.locked?.includes('description')) {
         description.readOnly = true;
@@ -100,7 +97,6 @@ class CreateNFT {
   }
 
   async createObject() {
-
     let obj = {};
     this.nft_type = document.querySelector('#create-nft-type-dropdown').value;
     let processed = false;
@@ -339,8 +335,7 @@ class CreateNFT {
         }
         document.querySelector('.saito-nft-create .secondary .label.ticker').style.display =
           'block';
-        document.querySelector('.saito-nft-create .secondary input.ticker').style.display =
-          'block';
+        document.querySelector('.saito-nft-create .secondary input.ticker').style.display = 'block';
         uploadEl.style.display = 'flex';
         textarea.style.display = 'none';
       }

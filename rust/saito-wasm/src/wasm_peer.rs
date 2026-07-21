@@ -114,7 +114,7 @@ impl WasmPeer {
         0
     }
 
-   #[wasm_bindgen(getter = protocol)]
+    #[wasm_bindgen(getter = protocol)]
     pub fn get_protocol(&self) -> JsString {
         if !self.peer.endpoint.protocol.is_empty() {
             return self.peer.endpoint.protocol.clone().into();

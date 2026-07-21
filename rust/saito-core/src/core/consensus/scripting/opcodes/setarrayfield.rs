@@ -89,10 +89,7 @@ fn p2sh_slips_to_values(slips: &[Slip]) -> Option<Vec<Value>> {
     value.as_array().map(|a| a.clone())
 }
 
-fn resolve_special_collection(
-    name: &str,
-    tx: Option<&Transaction>,
-) -> Option<Vec<Value>> {
+fn resolve_special_collection(name: &str, tx: Option<&Transaction>) -> Option<Vec<Value>> {
     match name {
         "tx.from" => tx.and_then(|t| slips_to_values(&t.from)),
         "tx.to" => tx.and_then(|t| slips_to_values(&t.to)),
@@ -157,7 +154,10 @@ impl SetArrayField {
             return 0;
         }
 
-        let field = context["script"]["field"].as_str().unwrap_or("").to_string();
+        let field = context["script"]["field"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
         if field.is_empty() {
             return 0;
         }
