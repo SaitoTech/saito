@@ -1,4 +1,4 @@
-body.vault .saito-container {
+body.vault-body .saito-container {
   grid-template-columns: minmax(0, 1fr);
   padding: 0;
 }

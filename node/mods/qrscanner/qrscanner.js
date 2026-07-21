@@ -88,7 +88,7 @@ class QRScanner extends ModTemplate {
 
 	attachEvents(app) {
 		let scanner_self = this;
-		document.querySelector('.launch-scanner').addEventListener('click', function (e) {
+		document.querySelector('.qrscanner-launch')?.addEventListener('click', function (e) {
 			scanner_self.startScanner();
 		});
 	}

@@ -244,10 +244,10 @@ class SaitoPurchaseOverlay {
     ///////////////////
     // Deposit form
     ///////////////////
-    if (document.querySelector('.payment-box .pubkey-container')) {
-      document.querySelector('.payment-box .pubkey-container').onclick = (e) => {
+    if (document.querySelector('.buysaito-payment-box .pubkey-container')) {
+      document.querySelector('.buysaito-payment-box .pubkey-container').onclick = (e) => {
         navigator.clipboard.writeText(this.destination);
-        let icon_element = document.querySelector('.payment-box .pubkey-container i');
+        let icon_element = document.querySelector('.buysaito-payment-box .pubkey-container i');
         icon_element.classList.toggle('fa-copy');
         icon_element.classList.toggle('fa-check');
         setTimeout(() => {
@@ -416,10 +416,10 @@ class SaitoPurchaseOverlay {
       //
       // locate timer element
       //
-      let el = document.querySelector('.payment-box .timer');
+      let el = document.querySelector('.buysaito-payment-box .timer');
 
       if (!el) {
-        console.log('[countdown] .payment-box .timer not found — stopping interval');
+        console.log('[countdown] .buysaito-payment-box .timer not found — stopping interval');
         clearInterval(this.countdown_interval);
         this.countdown_interval = null;
         return;

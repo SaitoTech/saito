@@ -1,6 +1,6 @@
 module.exports = (app, mod, self) => {
   let html = `
-    <div class="payment-box saito-overlay-size narrow">
+    <div class="buysaito-payment-box saito-overlay-size narrow">
 
       <div class='saito-purchase-deposit-header'>Awaiting Payment</div>
 

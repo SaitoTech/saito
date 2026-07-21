@@ -55,7 +55,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
   
     <style type="text/css">
 
-    body::before {
+    body.buysaito-body::before {
       content: "";
       opacity: 1;
       z-index: 160;
@@ -72,9 +72,9 @@ module.exports = (app, mod, build_number = '', og_card) => {
   </style>
   </head>
   
-  <body>
-    <div class="main">
-    <div class="withdraw-container">
+  <body class="buysaito-body">
+    <div class="buysaito-main">
+    <div class="buysaito-withdraw-container">
       <h2>Buy SAITO</h2>
 
       <div class='purchase-saito-prompt'>I want ...&nbsp; 
@@ -91,7 +91,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
         <button class="saito-button-primary buysaito-button fat" id="buysaito-button" disabled >Get Quote</button>
       </div>
       </div>
-      <div class="footer-note">Already have SAITO?<br>Visit our <a href="/migration">migration portal</a>.</div>
+      <div class="buysaito-footer-note">Already have SAITO?<br>Visit our <a href="/migration">migration portal</a>.</div>
     </div>
 
   </body>

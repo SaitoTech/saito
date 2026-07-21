@@ -38,9 +38,12 @@
 
 /*
  * Quieter section titles — match left-nav scale; casing from markup (not uppercase).
- * Long-term this belongs on Saito .sidebar-header; RS overrides for this app only.
+ * Zero margin: Saito h1–h6 { margin-bottom: 1rem } still applies in .sidebar
+ * (unlike .saito-sidebar h5 { margin: 0 }). Long-term this belongs on Saito.
  */
-body.redsquare-body .sidebar-header {
+body.redsquare-body .sidebar .sidebar-header {
+  margin: 0;
+  margin-block: 0;
   min-height: 0;
   font-size: inherit;
   font-family: inherit;

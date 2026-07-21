@@ -248,7 +248,7 @@ details.settings-appspace-section[open] > .settings-appspace-section-summary {
 	text-transform: capitalize;
 }
 
-label.treated {
+.settings-appspace label.treated {
 	display: none;
 }
 
@@ -267,7 +267,7 @@ label.treated {
 
 /*json tree */
 
-.jsontree_node {
+.settings-appspace .jsontree_node {
 	list-style: none;
 }
 

@@ -114,12 +114,12 @@ class Login {
 			this.modal_overlay.closebox = false;
 			this.modal_overlay.show(LoginSelectionTemplate());
 			for (let r of rows) {
-				let user = new SaitoUser(this.app, this.mod, '.wallet-selection', r.publickey, r.publickey);
+				let user = new SaitoUser(this.app, this.mod, '.recovery-wallet-selection', r.publickey, r.publickey);
 				user.data_disable = true;
 				user.render();
 			}
 
-			Array.from(document.querySelectorAll('.wallet-selection .saito-user')).forEach((elem) => {
+			Array.from(document.querySelectorAll('.recovery-wallet-selection .saito-user')).forEach((elem) => {
 				elem.onclick = (e) => {
 					let pkey = e.currentTarget.dataset.id;
 					console.log(pkey);

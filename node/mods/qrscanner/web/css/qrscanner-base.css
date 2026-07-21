@@ -1,6 +1,4 @@
-.container {
-	display: block;
-}
+/* QR Scanner overlay — all rules owned by .qrscanner-container */
 
 .qrscanner-container {
 	width: 100vw;
@@ -15,7 +13,7 @@
 	z-index: 2001;
 }
 
-.qr-video-container {
+.qrscanner-container .qr-video-container {
 	background-color: black;
 	position: absolute;
 	top: 0;
@@ -25,7 +23,8 @@
 	overflow: hidden;
 }
 
-.qr-video-container video {
+.qrscanner-container .qr-video-container video,
+.qrscanner-container video.qr-video {
 	/* Make video to at least 100% wide and tall */
 	min-width: 100%;
 	min-height: 100%;
@@ -39,11 +38,7 @@
 	transform: translate(-50%, -50%);
 }
 
-video {
-	/* object-fit: cover; */
-}
-
-.scanline {
+.qrscanner-container .scanline {
 	border: 1px solid transparent;
 	border-radius: 50%;
 	width: 78vw;
@@ -51,12 +46,12 @@ video {
 	left: 11vw;
 	top: 3vh;
 	z-index: 9999999;
-	animation: scanning 2s infinite;
+	animation: qrscanner-scanning 2s infinite;
 	animation-timing-function: cubic-bezier();
 	box-shadow: 0 0 15px 10px var(--saito-primary);
 }
 
-.qr-target {
+.qrscanner-container .qr-target {
 	position: relative;
 	width: min(80vw, 80vh);
 	height: min(80vw, 80vh);
@@ -65,10 +60,10 @@ video {
 	z-index: 999999;
 }
 
-.qr-target:before,
-.qr-target:after,
-.qr-target > :first-child:before,
-.qr-target > :first-child:after {
+.qrscanner-container .qr-target:before,
+.qrscanner-container .qr-target:after,
+.qrscanner-container .qr-target > :first-child:before,
+.qrscanner-container .qr-target > :first-child:after {
 	position: absolute;
 	width: 10%;
 	height: 10%;
@@ -79,7 +74,7 @@ video {
 
 /* top left corner */
 
-.qr-target:before {
+.qrscanner-container .qr-target:before {
 	top: 0;
 	left: 0;
 	border-width: 2px 0 0 2px;
@@ -87,7 +82,7 @@ video {
 
 /* top right corner */
 
-.qr-target:after {
+.qrscanner-container .qr-target:after {
 	top: 0;
 	right: 0;
 	border-width: 2px 2px 0 0;
@@ -95,7 +90,7 @@ video {
 
 /* bottom right corner */
 
-.qr-target > :first-child:before {
+.qrscanner-container .qr-target > :first-child:before {
 	bottom: 0;
 	right: 0;
 	border-width: 0 2px 2px 0;
@@ -103,13 +98,13 @@ video {
 
 /* bottom left corner */
 
-.qr-target > :first-child:after {
+.qrscanner-container .qr-target > :first-child:after {
 	bottom: 0;
 	left: 0;
 	border-width: 0 0 2px 2px;
 }
 
-.close-scanner {
+.qrscanner-container .close-scanner {
 	z-index: 1000;
 	border: 3px solid transparent;
 	width: 6rem;
@@ -124,12 +119,12 @@ video {
 	cursor: pointer;
 }
 
-.close-scanner:hover {
+.qrscanner-container .close-scanner:hover {
 	border: 3px solid var(--saito-white);
 	color: var(--saito-white);
 }
 
-@keyframes scanning {
+@keyframes qrscanner-scanning {
 	0% {
 		transform: translateY(5vw);
 		opacity: 0;
@@ -147,12 +142,7 @@ video {
 }
 
 @media only screen and (orientation: landscape) {
-	/*.qrcode img {
-		margin: 5vw 35vw;
-		width: 30vw;
-		display: block;
-	}*/
-	.scanner-placeholder {
+	.qrscanner-container .scanner-placeholder {
 		border: 3px solid var(--saito-red);
 		margin: 2vh auto;
 		height: 80vh;
@@ -161,19 +151,20 @@ video {
 }
 
 @media only screen and (orientation: portrait) {
-	/*.qrcode img {
-		margin: 20vw;
-		width: 60vw;
-		display: block;
-	}*/
-	.scanner-placeholder {
+	.qrscanner-container .scanner-placeholder {
 		border: 3px solid var(--saito-red);
 		margin: 10vw;
 		height: 80vw;
 	}
 }
 
-.launch-scanner {
+/* Stub / demo page chrome (web/index.html) */
+body.qrscanner-body .qrscanner-page {
+	display: block;
+	padding: 2rem;
+}
+
+body.qrscanner-body .qrscanner-launch {
 	margin: 0 10vw;
 	width: 80% !important;
 }

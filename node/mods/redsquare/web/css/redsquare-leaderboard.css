@@ -5,11 +5,17 @@
 .redsquare-leaderboard {
   display: flex;
   flex-direction: column;
+  /* Spacing owned by .league-rankings. */
+  gap: 0;
   min-width: 0;
 }
 
 .redsquare-leaderboard:empty {
   display: none;
+}
+
+.redsquare-leaderboard .league-rankings {
+  gap: var(--saito-space-sm);
 }
 
 .redsquare-leaderboard .saito-table-body {

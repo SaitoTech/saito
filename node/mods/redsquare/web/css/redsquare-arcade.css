@@ -3,7 +3,8 @@
 .redsquare-arcade {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-sm);
+  /* Spacing owned by .arcade-invite — avoid double gap with the mount. */
+  gap: 0;
   min-width: 0;
 }
 

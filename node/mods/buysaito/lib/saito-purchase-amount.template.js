@@ -26,7 +26,7 @@ module.exports = (app, mod, self) => {
       <div class='crypto-box'>
         <div>${data.ticker}</div>
         <div class="crypto-logo-container">${logo}</div>
-        <input type="number" autocomplete="off" min="0" max="9999999999.99999999" step="0.00000001" class="saito-input input-amount" id="input-amount" value="" required="" placeholder="amount to spend">
+        <input type="number" autocomplete="off" min="0" max="9999999999.99999999" step="0.00000001" class="saito-input buysaito-input-amount" id="input-amount" value="" required="" placeholder="amount to spend">
       </div>
       <div class='crypto-box'>
         <div>SAITO</div>

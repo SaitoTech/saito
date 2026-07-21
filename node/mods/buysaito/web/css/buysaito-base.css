@@ -1,6 +1,6 @@
 /* BuySaito page + purchase overlays */
 
-.main {
+body.buysaito-body .buysaito-main {
   background-image: url(/saito/img/tiled-logo.svg);
   background-color: var(--saito-background-color);
   position: fixed;
@@ -13,7 +13,7 @@
   padding: min(100px, 10vh) 1rem;
 }
 
-.withdraw-container {
+body.buysaito-body .buysaito-withdraw-container {
   display: flex;
   flex-direction: column;
   max-width: min(800px, 100%);
@@ -47,13 +47,13 @@
   padding: 5px;
 }
 
-.footer-note {
+.buysaito-footer-note {
   margin-top: auto;
   text-align: center;
 }
 
 @media screen and (max-width: 600px) {
-  .withdraw-container {
+  body.buysaito-body .buysaito-withdraw-container {
     margin: 0;
     padding: 7rem min(5rem, 10vw);
   }
@@ -70,7 +70,7 @@
   .saito-purchase-deposit-header {
     font-size: 2rem;
   }
-  .payment-box.saito-overlay-size {
+  .buysaito-payment-box.saito-overlay-size {
     max-height: 100vh;
   }
 }
@@ -90,7 +90,7 @@
   gap: 1rem;
 }
 
-.purchase-container .footer-note {
+.purchase-container .buysaito-footer-note {
   font-size: var(--font-size-medium);
   font-style: italic;
 }
@@ -173,7 +173,7 @@
   color: var(--saito-primary);
 }
 
-.payment-box {
+.buysaito-payment-box {
   padding: 2.5rem;
   width: 420px;
   height: 600px;
@@ -260,7 +260,7 @@
   max-width: 19rem;
 }
 
-input.input-amount {
+.buysaito-input-amount {
   width: unset;
   flex-grow: 1;
   max-width: 19rem;
@@ -319,7 +319,7 @@ input.input-amount {
   }
 
   .expected_amount,
-  input.input-amount {
+  .buysaito-input-amount {
     max-width: 13rem;
     padding: 1rem;
   }

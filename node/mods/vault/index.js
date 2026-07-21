@@ -57,7 +57,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
     <title>The Vault</title>
   
     <style type="text/css">
-    body::before {
+    body.vault-body::before {
       content: "";
       opacity: 1;
       z-index: 160;
@@ -121,7 +121,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
   </style>
   </head>
   
-  <body class="vault saito-cta-loader-active">
+  <body class="vault-body saito-cta-loader-active">
     ${CtaLoader.loader('vault')}
     <div class="saito-container" id="saito-container">
     </div>
