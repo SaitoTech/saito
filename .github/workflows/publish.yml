@@ -16,6 +16,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.22.2'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+          cache-dependency-path: rust/saito-wasm/package-lock.json
+
+      - name: Update npm
+        run: npm install -g npm@12.0.1
+
       - name: Check fixed dependency versions
         run: node scripts/check_fixed_dependency_versions.js
 
@@ -26,17 +37,6 @@ jobs:
         run: ./scripts/update_version.sh
         shell: bash
         working-directory: ./rust
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20.x'
-          registry-url: 'https://registry.npmjs.org'
-          cache: npm
-          cache-dependency-path: rust/saito-wasm/package-lock.json
-
-      - name: Update npm
-        run: npm install -g npm@latest
 
       - name: get latest saito-wasm version
         run: |
