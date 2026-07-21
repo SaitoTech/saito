@@ -31,22 +31,52 @@ function applyListingTransaction(summary, tx) {
 		summary.listing_signature = tx.signature;
 	}
 
-	const txmsg = tx.returnMessage?.() || {};
-	const listing = txmsg.listing || {};
+	const txmsg = typeof tx.returnMessage === 'function' ? tx.returnMessage() : {};
+	const listing = txmsg?.listing || {};
 
-	if (listing.title && !summary.title) {
-		summary.title = listing.title;
-	}
-	if (listing.description != null && listing.description !== '' && !summary.description) {
-		summary.description = listing.description;
+	const title = String(listing.title || txmsg.title || '').trim();
+	if (title && !String(summary.title || '').trim()) {
+		summary.title = title;
 	}
 
-	const nft = new SaitoNFT(summary.app, summary.mod, tx, null);
-	summary.nft = nft;
+	const description = listing.description ?? txmsg.description;
+	if (description != null && description !== '' && !summary.description) {
+		summary.description = String(description);
+	}
 
-	const image = nft.returnImage?.() || '';
-	if (image) {
-		summary.image = image;
+	if (!summary.seller) {
+		const seller = tx.from?.[0]?.publicKey || '';
+		if (seller) {
+			summary.seller = seller;
+		}
+	}
+
+	if (!Number(summary.price)) {
+		const raw_price = listing.price ?? txmsg.price;
+		if (raw_price != null && raw_price !== '') {
+			const converted = Number(
+				summary.app?.wallet?.convertSaitoToNolan?.(raw_price) ?? raw_price ?? 0
+			);
+			if (Number.isFinite(converted) && converted > 0) {
+				summary.price = converted;
+			}
+		}
+	}
+
+	try {
+		const nft = new SaitoNFT(summary.app, summary.mod, tx, null);
+		summary.nft = nft;
+
+		if (!String(summary.title || '').trim() && nft.title) {
+			summary.title = nft.title;
+		}
+
+		const image = nft.returnImage?.() || '';
+		if (image) {
+			summary.image = image;
+		}
+	} catch (err) {
+		console.warn('Store: applyListingTransaction NFT parse failed', err?.message || err);
 	}
 
 	return summary;

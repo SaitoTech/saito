@@ -51,10 +51,33 @@ module.exports = {
 	async createListAssetTransaction(nft, listing = {}) {
 
 		//
-		// ensure NFT is loaded
+		// Wallet NFT records keep slips + tx_sig only. Listing needs the mint/transfer
+		// tx (txmsg). Prefer a tx already attached; otherwise hydrate from Archive.
 		//
-		if (!nft.tx) {
+		if (!nft?.tx && typeof nft?.fetchTransaction === 'function') {
+			await new Promise((resolve) => {
+				let settled = false;
+				const finish = () => {
+					if (!settled) {
+						settled = true;
+						resolve();
+					}
+				};
+				nft.fetchTransaction(finish);
+				setTimeout(finish, 8000);
+			});
+		}
+
+		if (!nft?.tx) {
 			throw new Error('NFT transaction is missing — cannot list without original NFT data');
+		}
+
+		if (!nft.txmsg && typeof nft.buildNFTData === 'function') {
+			nft.buildNFTData(nft.tx);
+		}
+
+		if (!nft.txmsg) {
+			throw new Error('NFT transaction message is missing — cannot list without original NFT data');
 		}
 
 		//

@@ -34,7 +34,6 @@ module.exports = (app, mod, build_number) => {
 
   <link rel="stylesheet" href="/saito/saito.css" />
   <link rel="stylesheet" href="/store/style.css">
-  <link rel="stylesheet" href="/store/css/store-purchase-overlay.css">
       </head>
       <body>
         <div id="saito-container" class="saito-container"></div>

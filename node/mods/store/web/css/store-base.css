@@ -1,66 +1,48 @@
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
+/* Page shell under #saito-header */
+
+.saito-container.store-container {
+	display: block;
+	position: absolute;
+	top: var(--saito-header-height);
+	width: 100%;
+	height: calc(100% - var(--saito-header-height));
+	max-width: none;
+	margin: 0;
+	padding: var(--saito-space-xl) max(var(--saito-space-lg), calc((100vw - var(--saito-width)) / 2));
+	overflow-x: hidden;
+	overflow-y: auto;
+	grid-template-columns: unset;
+	column-gap: unset;
+	-webkit-overflow-scrolling: touch;
 }
 
-button {
-	font: inherit;
+/* Listing detail — wide product sheet (NFT picker sizes itself in store-nft-picker.css) */
+.saito-overlay:has(> .listing-detail) {
+	width: min(92vw, 96rem);
+	max-width: calc(100vw - 2 * var(--saito-space-md));
 }
 
-/* Store overlay alignment overrides for stable prototype layout */
-.teaser-media {
-	position: relative !important;
+@media (max-width: 900px) {
+	.saito-container.store-container {
+		padding: var(--saito-space-lg) var(--saito-space-lg);
+	}
+
+	.saito-overlay:has(> .listing-detail) {
+		width: min(96vw, 96rem);
+		max-width: calc(100vw - 2 * var(--saito-space-sm));
+	}
 }
 
-.teaser-identicon {
-	position: absolute !important;
-	top: 12px !important;
-	right: 12px !important;
-	width: 32px !important;
-	height: 32px !important;
-	border-radius: 50% !important;
-	overflow: hidden !important;
-	background: #ffffff !important;
-}
+@media (max-width: 600px) {
+	.saito-container.store-container {
+		padding: var(--saito-space-md) max(var(--saito-space-md), env(safe-area-inset-right, 0px))
+			calc(var(--saito-space-xl) + env(safe-area-inset-bottom, 0px))
+			max(var(--saito-space-md), env(safe-area-inset-left, 0px));
+	}
 
-.teaser-identicon img {
-	width: 100% !important;
-	height: 100% !important;
-	object-fit: cover !important;
-	display: block !important;
-}
-
-.card-action-slot {
-	position: absolute !important;
-	top: 12px !important;
-	left: 12px !important;
-	height: 32px !important;
-	max-width: 60% !important;
-	padding: 0 12px !important;
-	background: #ffffff !important;
-	color: #111827 !important;
-	border-radius: 8px !important;
-	display: flex !important;
-	align-items: center !important;
-	font-size: 13px !important;
-	font-weight: 500 !important;
-	line-height: 1 !important;
-	white-space: nowrap !important;
-	overflow: hidden !important;
-	text-overflow: ellipsis !important;
-}
-
-/* Prevent Saito overlay wrapper from compressing the purchase overlay */
-.saito-overlay:has(> .store-product-overlay) {
-	width: min(90vw, 1400px);
-	max-width: 100vw;
-}
-
-.saito-overlay > .store-product-overlay .store-product-note,
-.saito-overlay > .store-product-overlay .store-product-qty-selector input {
-	background-color: #ffffff;
-	color: #111827;
-	border-color: #d2d9e2;
-	box-shadow: none;
+	.saito-overlay:has(> .listing-detail) {
+		width: 100vw;
+		max-width: 100vw;
+		margin: 0;
+	}
 }

@@ -7,7 +7,7 @@ class NFTOverlay {
     this.app = app;
     this.mod = mod;
     if (app?.browser?.addStylesheet) {
-      app.browser.addStylesheet('/saito/ui/saito-nft.css');
+      app.browser.addStylesheet('/saito/css-imports/ui/saito-nft.css');
     }
     this.overlay = new SaitoOverlay(this.app, this.mod);
 

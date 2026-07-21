@@ -1,12 +1,8 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PurchaseTemplate = require('./purchase.template');
 const { ConfirmationWaitingUI } = require('../../../../rustscript/lib/ui/confirmation_waiting');
-const { isDemoNftId } = require('../../summary-media');
-
-function parseListingUnitPrice(price = '') {
-	const match = String(price).match(/[\d.]+/);
-	return match ? match[0] : null;
-}
+const { startPurchase } = require('../purchase-service');
+const PurchaseLifecycle = require('../purchase-lifecycle');
 
 function escapeHtml(text = '') {
 	return String(text)
@@ -16,7 +12,7 @@ function escapeHtml(text = '') {
 		.replace(/"/g, '&quot;');
 }
 
-class PurchaseFlow {
+class PurchaseOverlay {
 	constructor(app, mod) {
 		this.app = app;
 		this.mod = mod;
@@ -28,6 +24,8 @@ class PurchaseFlow {
 		this.step = null;
 		this.pendingTxSignature = '';
 		this.listingTitle = '';
+		this.nft_id = '';
+		this.quantity = 1;
 		this.confirmationWaiting = null;
 
 		this.app.connection.on('store-purchase-asset', (data) => {
@@ -36,100 +34,75 @@ class PurchaseFlow {
 		this.app.connection.on('store-new-block', (data) => {
 			this.onStoreNewBlock(data);
 		});
+		this.app.connection.on('store-order-refund', () => {
+			this.onStoreOrderRefund();
+		});
+		this.app.connection.on('store-purchase-lifecycle', (purchase) => {
+			this.onLifecycleChange(purchase);
+		});
+	}
+
+	lifecycle() {
+		return this.mod.purchase_lifecycle || null;
 	}
 
 	async startPurchase(summary, quantity = 1) {
-		if (!summary?.nft_id || isDemoNftId(summary.nft_id)) {
-			salert('This item is not available for purchase.');
-			return;
-		}
-
-		if (!this.mod.store_public_key) {
-			salert('Store is not connected. Please wait for the Store service to come online.');
-			return;
-		}
-
-		const unit_price = parseListingUnitPrice(summary.returnPrice?.() || summary.price);
-		if (!unit_price || Number(unit_price) <= 0) {
-			salert('This item does not have a valid price.');
-			return;
-		}
-
-		quantity = Math.max(1, Math.min(Number(quantity) || 1, summary.returnQuantity?.() || 1));
-		const fee = String(this.mod.fee || 0);
-		const unit_nolan = BigInt(this.app.wallet.convertSaitoToNolan(unit_price) ?? 0);
-		const fee_nolan = BigInt(this.app.wallet.convertSaitoToNolan(fee) ?? 0);
-		const total_nolan = unit_nolan * BigInt(quantity) + fee_nolan;
-
-		if (total_nolan <= 0n) {
-			salert('Unable to calculate purchase total.');
-			return;
-		}
-
-		const wallet_balance = await this.app.wallet.getBalance();
-
-		this.listingTitle = summary.returnTitle?.() || summary.title || 'this item';
-
-		let newtx = null;
-		try {
-			newtx = await this.mod.createPurchaseAssetTransaction(
-				summary,
-				{ price: unit_price, fee, quantity },
-				total_nolan
-			);
-		} catch (err) {
-			console.error('Store: createPurchaseAssetTransaction failed', err);
-			salert(err?.message || 'Could not create purchase transaction.');
-			return;
-		}
-
-		this.pendingTxSignature = newtx.signature || '';
-		if (!this.pendingTxSignature) {
-			salert('Purchase transaction was not signed.');
-			return;
-		}
-
-		this.mod.main?.product_overlay?.overlay?.hide?.();
-
-		if (wallet_balance < total_nolan) {
-			this.app.connection.emit(
-				'saito-purchase-launch',
-				this.app.wallet.convertNolanToSaito(total_nolan),
-				this.mod.store_public_key,
-				newtx.serialize_to_web(this.app),
-				`Purchase ${summary.returnTitle?.() || 'Store item'}`
-			);
-			this.openWaiting();
-			return;
-		}
-
-		try {
-			await this.app.network.propagateTransaction(newtx);
-		} catch (err) {
-			salert(err?.message || 'Could not submit purchase transaction.');
-			this.pendingTxSignature = '';
-			return;
-		}
-
-		this.openWaiting();
+		return startPurchase(this.app, this.mod, this, summary, quantity);
 	}
 
-	openWaiting() {
+	render(step = 'waiting') {
+		if (step === 'fulfilling' || step === 'processing') {
+			this.openFulfilling();
+			return;
+		}
+		if (step === 'complete') {
+			this.openComplete();
+			return;
+		}
+		this.openWaiting(this.listingTitle, this.pendingTxSignature);
+	}
+
+	openWaiting(listingTitle = '', pendingTxSignature = '', meta = {}) {
+		this.listingTitle = listingTitle || this.listingTitle;
+		this.pendingTxSignature = pendingTxSignature || this.pendingTxSignature;
+		if (meta.nft_id) {
+			this.nft_id = String(meta.nft_id);
+		}
+		if (meta.quantity) {
+			this.quantity = Math.max(1, Number(meta.quantity) || 1);
+		}
+
 		this.step = 'waiting';
-		this.show(PurchaseTemplate.pendingOverlay({ listingTitle: this.listingTitle }));
-		this.confirmationWaiting = new ConfirmationWaitingUI(
-			this.app,
-			'.store-purchase-waiting.is-pending'
+		this.show(
+			PurchaseTemplate.pendingOverlay({
+				listingTitle: escapeHtml(this.listingTitle)
+			})
 		);
+		this.confirmationWaiting = new ConfirmationWaitingUI(this.app, '.purchase.pending');
 		this.confirmationWaiting.start();
 	}
 
-	openProcessing() {
+	openFulfilling() {
 		this.confirmationWaiting?.stop();
 		this.confirmationWaiting = null;
-		this.step = 'processing';
-		this.show(PurchaseTemplate.processingOverlay({ listingTitle: escapeHtml(this.listingTitle) }));
-		this.bindProcessingEvents();
+		this.step = 'fulfilling';
+		this.show(
+			PurchaseTemplate.fulfillingOverlay({
+				listingTitle: escapeHtml(this.listingTitle)
+			})
+		);
+	}
+
+	openComplete() {
+		this.confirmationWaiting?.stop();
+		this.confirmationWaiting = null;
+		this.step = 'complete';
+		this.show(
+			PurchaseTemplate.completeOverlay({
+				listingTitle: escapeHtml(this.listingTitle)
+			})
+		);
+		this.attachEvents();
 	}
 
 	show(html) {
@@ -152,9 +125,8 @@ class PurchaseFlow {
 		this.confirmationWaiting?.stop();
 		this.confirmationWaiting = null;
 		document.querySelector('.saito-container')?.classList.remove('store-purchase-modal-open');
+		// Keep lifecycle / listing-hide / pendingTxSignature — only clear presentation step.
 		this.step = null;
-		this.pendingTxSignature = '';
-		this.listingTitle = '';
 	}
 
 	applyOverlayLayout() {
@@ -183,25 +155,53 @@ class PurchaseFlow {
 		}
 	}
 
-	bindProcessingEvents() {
-		const root = document.querySelector('.store-purchase-waiting.is-processing');
+	attachEvents() {
+		const root = document.querySelector('.purchase.complete');
 		if (!root) {
 			return;
 		}
+
+		root.querySelector('[data-action="view-nfts"]')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			this.openMyNfts();
+		});
+
 		root.querySelector('[data-action="purchase-close"]')?.addEventListener('click', () => {
+			const active = this.lifecycle()?.returnActivePurchase?.();
+			if (active?.phase === PurchaseLifecycle.PHASE.COMPLETE) {
+				this.lifecycle()?.dismiss(active.id);
+			}
 			this.hide();
 		});
 	}
 
+	openMyNfts() {
+		const active = this.lifecycle()?.returnActivePurchase?.();
+		if (active?.phase === PurchaseLifecycle.PHASE.COMPLETE) {
+			this.lifecycle()?.dismiss(active.id);
+		}
+		this.hide();
+		this.app.connection.emit('saito-nft-list-render-request');
+	}
+
 	onStoreNewBlock({ blk } = {}) {
-		if (!this.pendingTxSignature || this.step !== 'waiting' || !blk) {
+		if (!this.pendingTxSignature || !blk) {
 			return;
 		}
 
-		this.confirmationWaiting?.onNewBlockWithoutConfirmation();
+		if (this.step === 'waiting') {
+			this.confirmationWaiting?.onNewBlockWithoutConfirmation();
+			const purchase = this.lifecycle()?.findByPurchaseTx(this.pendingTxSignature);
+			if (purchase && purchase.phase === PurchaseLifecycle.PHASE.CONFIRMING) {
+				this.lifecycle()?.setPhase(purchase.id, PurchaseLifecycle.PHASE.CONFIRMING, {
+					status: 'Purchasing NFT…',
+					detail: 'Waiting for next block…'
+				});
+			}
+		}
 	}
 
-	onStorePurchaseAsset({ blk, tx, conf } = {}) {
+	onStorePurchaseAsset({ conf, tx } = {}) {
 		if (Number(conf) !== 0) {
 			return;
 		}
@@ -213,15 +213,58 @@ class PurchaseFlow {
 		if (this.pendingTxSignature && tx.signature !== this.pendingTxSignature) {
 			return;
 		}
-		this.onPurchaseConfirmed();
+		this.onPaymentConfirmed();
 	}
 
-	onPurchaseConfirmed() {
-		if (this.step !== 'waiting') {
+	onStoreOrderRefund() {
+		const purchase = this.lifecycle()?.findByPurchaseTx(this.pendingTxSignature);
+		if (!purchase) {
 			return;
 		}
-		this.openProcessing();
+		this.lifecycle()?.setPhase(purchase.id, PurchaseLifecycle.PHASE.DISMISSED, {
+			status: 'Purchase refunded',
+			detail: 'The Store could not fulfill this order.'
+		});
+		if (this.step) {
+			this.hide();
+		}
+	}
+
+	onPaymentConfirmed() {
+		this.lifecycle()?.markPaymentConfirmed(this.pendingTxSignature);
+
+		if (this.step === 'waiting') {
+			this.openFulfilling();
+		}
+	}
+
+	onLifecycleChange(purchase) {
+		if (!purchase) {
+			return;
+		}
+
+		const matches =
+			!this.pendingTxSignature ||
+			purchase.purchase_tx_signature === this.pendingTxSignature;
+
+		if (!matches) {
+			return;
+		}
+
+		if (purchase.phase === PurchaseLifecycle.PHASE.COMPLETE) {
+			this.listingTitle = purchase.title || this.listingTitle;
+			this.pendingTxSignature = purchase.purchase_tx_signature;
+			this.nft_id = purchase.nft_id;
+			if (this.step !== 'complete') {
+				this.openComplete();
+			}
+			return;
+		}
+
+		if (purchase.phase === PurchaseLifecycle.PHASE.FULFILLING && this.step === 'waiting') {
+			this.openFulfilling();
+		}
 	}
 }
 
-module.exports = PurchaseFlow;
+module.exports = PurchaseOverlay;

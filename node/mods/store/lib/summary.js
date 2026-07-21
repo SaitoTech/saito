@@ -120,11 +120,19 @@ class Summary {
 	}
 
 	returnTitle() {
-		return this.title || this.nft?.title || 'Untitled Item';
+		this.hydrateFromListingTransaction();
+		const title = String(this.title || this.nft?.title || '').trim();
+		return title || 'Untitled Item';
 	}
 
 	returnDescription() {
+		this.hydrateFromListingTransaction();
 		return this.description ?? this.nft?.description ?? '';
+	}
+
+	returnSeller() {
+		this.hydrateFromListingTransaction();
+		return String(this.seller || '').trim();
 	}
 
 	returnQuantity() {
@@ -132,11 +140,43 @@ class Summary {
 	}
 
 	returnPrice() {
-		const nolan = BigInt(this.price ?? 0);
-		if (nolan > 0n && this.app?.wallet?.convertNolanToSaito) {
-			return `${this.app.wallet.convertNolanToSaito(nolan)} SAITO`;
+		this.hydrateFromListingTransaction();
+		try {
+			const nolan = BigInt(this.price ?? 0);
+			if (nolan > 0n && this.app?.wallet?.convertNolanToSaito) {
+				return `${this.app.wallet.convertNolanToSaito(nolan)} SAITO`;
+			}
+			if (nolan > 0n) {
+				return String(nolan);
+			}
+		} catch (err) {
+			// Non-integral / unexpected price values should not blank the card.
 		}
-		return String(this.price ?? '');
+		const raw = this.price;
+		if (raw != null && raw !== '' && Number(raw) !== 0) {
+			return String(raw);
+		}
+		return '';
+	}
+
+	/**
+	 * Pull display fields from an already-attached listing tx when Summary
+	 * surface fields are empty (same source listing detail uses after open).
+	 */
+	hydrateFromListingTransaction() {
+		if (!this.listing_tx) {
+			return this;
+		}
+		const hasTitle = !!String(this.title || '').trim();
+		const hasSeller = !!String(this.seller || '').trim();
+		const hasPrice = Number(this.price) > 0;
+		if (hasTitle && hasSeller && hasPrice && this.nft) {
+			return this;
+		}
+		// Lazy require avoids the summary ↔ summary-media ↔ archive cycle.
+		const { applyListingTransaction } = require('./summary-media');
+		applyListingTransaction(this, this.listing_tx);
+		return this;
 	}
 
 	isActive() {

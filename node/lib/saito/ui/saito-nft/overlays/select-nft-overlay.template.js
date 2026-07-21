@@ -3,8 +3,8 @@ module.exports = (ui) => {
     <div class="saito-nft-list">
 
       <header class="saito-overlay-form-header">
+         <button type="button" id="create-nft" class="create-nft-btn" aria-label="Create NFT"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
          <h2 class="saito-overlay-form-header-title">${ui?.title ? ui.title : 'MY NFTs'}</h2>
-         <div id="create-nft" class="create-nft-btn"><i class="fa-solid fa-plus"></i></div>
       </header>
 
       <div class="nft-list" id="nft-list">

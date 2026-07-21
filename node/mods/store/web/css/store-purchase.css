@@ -1,0 +1,160 @@
+/* Namespace: .purchase / .listing-progress — tx progress dialogs */
+
+.saito-container.store-purchase-modal-open {
+	pointer-events: none;
+}
+
+/* Shell: center dialog; pointer-events so backdrop still receives clicks */
+.saito-overlay.store-purchase-overlay-shell {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--saito-space-md);
+	box-sizing: border-box;
+	pointer-events: none;
+}
+
+.saito-overlay.store-purchase-overlay-shell > :is(.purchase, .listing-progress) {
+	pointer-events: auto;
+	width: min(92vw, 36rem);
+	max-width: 100%;
+	max-height: min(90dvh, 40rem);
+	overflow: auto;
+	padding: var(--saito-space-xxl) var(--saito-space-xl);
+	box-sizing: border-box;
+	-webkit-overflow-scrolling: touch;
+}
+
+:is(.purchase, .listing-progress) .stack {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--saito-space-md);
+	text-align: center;
+	min-width: 0;
+}
+
+:is(.purchase, .listing-progress) .title {
+	margin: 0;
+	font-size: var(--font-size-h6);
+	font-family: var(--saito-font-medium);
+	letter-spacing: -0.01em;
+}
+
+:is(.purchase, .listing-progress) .lead,
+:is(.purchase, .listing-progress) .subtitle {
+	margin: 0;
+	max-width: 28rem;
+	font-size: var(--font-size-medium);
+	line-height: 1.5;
+	color: var(--saito-font-color-secondary);
+	overflow-wrap: anywhere;
+}
+
+:is(.purchase, .listing-progress) .subtitle {
+	min-height: 3em;
+}
+
+:is(.purchase, .listing-progress) .saito-spinner {
+	width: 4rem;
+	min-width: 4rem;
+	margin-bottom: var(--saito-space-sm);
+}
+
+:is(.purchase, .listing-progress) .timer {
+	width: 100%;
+	max-width: 18rem;
+	margin-top: var(--saito-space-lg);
+	padding-top: var(--saito-space-lg);
+	border-top: var(--border-thickness-thin) solid var(--saito-border-color);
+}
+
+:is(.purchase, .listing-progress) .timer-label,
+:is(.purchase, .listing-progress) .timer-unit {
+	display: block;
+	font-size: var(--font-size-tiny);
+	letter-spacing: 0.04em;
+	text-transform: lowercase;
+	color: var(--saito-font-color-secondary);
+}
+
+:is(.purchase, .listing-progress) .countdown {
+	display: inline-block;
+	margin: var(--saito-space-sm) 0;
+	font-size: var(--font-size-h5);
+	font-family: var(--saito-font-heavy);
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+}
+
+:is(.purchase, .listing-progress) .success {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 3.5rem;
+	height: 3.5rem;
+	margin-bottom: var(--saito-space-xs);
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--saito-primary) 18%, transparent);
+	color: var(--saito-primary);
+	font-size: var(--font-size-large);
+}
+
+:is(.purchase, .listing-progress) .stack > .saito-button-primary {
+	margin-top: var(--saito-space-lg);
+	min-width: 10rem;
+	min-height: 2.75rem;
+}
+
+:is(.purchase, .listing-progress) .stack > .saito-button-secondary {
+	min-width: 10rem;
+	min-height: 2.75rem;
+}
+
+.purchase.fulfilling .subtitle {
+	min-height: 1.5em;
+}
+
+/* Saito ≤768px clears panel background — restore dialog surface */
+@media (max-width: 768px) {
+	.saito-overlay.store-purchase-overlay-shell > :is(.purchase, .listing-progress) {
+		background: var(--saito-overlay-panel-background);
+		border-radius: var(--saito-radius-lg);
+		box-shadow: var(--saito-overlay-panel-shadow);
+	}
+}
+
+@media (max-width: 600px) {
+	.saito-overlay.store-purchase-overlay-shell {
+		padding: max(var(--saito-space-md), env(safe-area-inset-top, 0px))
+			max(var(--saito-space-md), env(safe-area-inset-right, 0px))
+			max(var(--saito-space-md), env(safe-area-inset-bottom, 0px))
+			max(var(--saito-space-md), env(safe-area-inset-left, 0px));
+		align-items: flex-end;
+	}
+
+	.saito-overlay.store-purchase-overlay-shell > :is(.purchase, .listing-progress) {
+		width: 100%;
+		max-height: min(88dvh, 40rem);
+		padding: var(--saito-space-xl) var(--saito-space-lg);
+		border-radius: var(--saito-radius-lg) var(--saito-radius-lg) 0 0;
+	}
+
+	:is(.purchase, .listing-progress) .title {
+		font-size: var(--font-size-large);
+	}
+
+	:is(.purchase, .listing-progress) .countdown {
+		font-size: var(--font-size-h6);
+	}
+
+	:is(.purchase, .listing-progress) .stack > .saito-button-primary {
+		width: 100%;
+		min-width: 0;
+	}
+
+	:is(.purchase, .listing-progress) .stack > .saito-button-secondary {
+		width: 100%;
+		min-width: 0;
+	}
+}

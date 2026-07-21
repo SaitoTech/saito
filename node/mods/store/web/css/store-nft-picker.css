@@ -1,0 +1,115 @@
+/* Namespace: .nft-picker — large NFT browser workspace.
+   Overlay shell owns 90vw×90vh; this panel fills it. */
+
+.saito-overlay:has(> .nft-picker) {
+	width: min(90vw, 140rem);
+	height: min(90vh, 90dvh);
+	max-width: 90vw;
+	max-height: 90vh;
+}
+
+.nft-picker {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	max-height: none;
+	overflow: hidden;
+	box-sizing: border-box;
+}
+
+.nft-picker > header {
+	flex: 0 0 auto;
+	padding: var(--saito-space-lg) var(--saito-space-xl);
+	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
+}
+
+.nft-picker > header h2 {
+	margin: 0 0 var(--saito-space-xs);
+	font-size: var(--font-size-h6);
+	font-family: var(--saito-font-medium);
+	letter-spacing: -0.01em;
+}
+
+.nft-picker > header p {
+	margin: 0;
+	max-width: 40rem;
+	font-size: var(--font-size-medium);
+	line-height: 1.45;
+	color: var(--saito-font-color-secondary);
+}
+
+/* Content receives remaining viewport — not the header */
+.nft-picker > .body {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+	padding: var(--saito-space-xl);
+	overflow: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+/* Override global .send-nft-list (max-content / 94rem / 85vh) so the grid fills the workspace */
+.nft-picker .send-nft-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	gap: var(--saito-space-lg);
+	width: 100%;
+	max-width: 100%;
+	max-height: none;
+	height: auto;
+	overflow: visible;
+}
+
+.nft-picker .status:not(:empty) {
+	margin-top: var(--saito-space-xl);
+	flex: 0 0 auto;
+}
+
+.nft-picker .empty {
+	min-height: 16rem;
+}
+
+@media (max-width: 900px) {
+	.nft-picker > header,
+	.nft-picker > .body {
+		padding: var(--saito-space-lg);
+	}
+
+	.nft-picker .send-nft-list {
+		gap: var(--saito-space-md);
+		justify-content: center;
+	}
+}
+
+@media (max-width: 600px) {
+	.saito-overlay:has(> .nft-picker) {
+		width: 100vw;
+		height: 100dvh;
+		max-width: 100vw;
+		max-height: 100dvh;
+		margin: 0;
+	}
+
+	.nft-picker > header {
+		padding: var(--saito-space-md);
+		padding-top: max(var(--saito-space-md), env(safe-area-inset-top, 0px));
+	}
+
+	.nft-picker > header h2 {
+		font-size: var(--font-size-large);
+	}
+
+	.nft-picker > .body {
+		padding: var(--saito-space-md);
+		padding-bottom: calc(var(--saito-space-lg) + env(safe-area-inset-bottom, 0px));
+	}
+
+	.nft-picker .empty {
+		min-height: 10rem;
+	}
+}

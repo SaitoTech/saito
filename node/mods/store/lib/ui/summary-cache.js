@@ -6,6 +6,10 @@ function summaryBucketKey(nft_id = '', price = 0) {
 }
 
 function summaryDomId(summary) {
+	// Prefer listing signature so multiple listings for the same nft:price stay distinct.
+	if (summary?.listing_signature) {
+		return `store-teaser-${encodeURIComponent(summary.listing_signature)}`;
+	}
 	const key = summaryBucketKey(summary?.nft_id, summary?.price);
 	return `store-teaser-${encodeURIComponent(key)}`;
 }
@@ -26,7 +30,15 @@ function removeSummaryFromCache(mod, nft_id, price) {
 }
 
 function getSummariesForSale(mod) {
-	const summaries = Object.values(mod.summaries).filter((summary) => summary.isActive());
+	const summaries = Object.values(mod.summaries).filter((summary) => {
+		if (!summary.isActive()) {
+			return false;
+		}
+		if (mod.purchase_lifecycle?.isListingHidden?.(summary)) {
+			return false;
+		}
+		return true;
+	});
 	if (summaries.length > 0) {
 		return summaries;
 	}

@@ -20,7 +20,7 @@ class SaitoNFTCard {
     let this_self = this;
 
     if (this.app?.browser?.addStylesheet) {
-      this.app.browser.addStylesheet('/saito/ui/saito-nft.css');
+      this.app.browser.addStylesheet('/saito/css-imports/ui/saito-nft.css');
     }
 
     if (!document.querySelector(this.container)) {

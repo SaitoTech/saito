@@ -34,7 +34,7 @@ class Teaser {
 
 	static returnTeaserMedia(dom_id) {
 		const card = Teaser.returnTeaserCard(dom_id);
-		return card?.querySelector('.teaser-media') ?? null;
+		return card?.querySelector('.media') ?? null;
 	}
 
 	static setMediaLoading(app, dom_id, loading = false) {
@@ -42,7 +42,7 @@ class Teaser {
 		if (!media) {
 			return;
 		}
-		media.classList.toggle('teaser-media-loading', loading);
+		media.classList.toggle('loading', loading);
 	}
 
 	static updateMedia(app, summary) {
@@ -51,6 +51,53 @@ class Teaser {
 		}
 
 		Teaser.applyMediaDisplay(app, summaryDomId(summary), summary.returnMediaDisplay());
+		Teaser.applyInfoDisplay(summary);
+	}
+
+	static applyInfoDisplay(summary) {
+		if (!(summary instanceof Summary)) {
+			return;
+		}
+
+		const card = Teaser.returnTeaserCard(summaryDomId(summary));
+		if (!card) {
+			return;
+		}
+
+		summary.hydrateFromListingTransaction?.();
+
+		const titleEl = card.querySelector('.info .title');
+		if (titleEl) {
+			titleEl.textContent = summary.returnTitle() || 'Untitled Item';
+		}
+
+		const seller = summary.returnSeller?.() || summary.seller || '';
+		const shortSeller =
+			!seller || seller.length <= 18
+				? seller || 'anon'
+				: `${seller.slice(0, 8)}…${seller.slice(-6)}`;
+
+		let sellerEl = card.querySelector('.info .seller');
+		if (shortSeller) {
+			if (!sellerEl) {
+				sellerEl = document.createElement('p');
+				sellerEl.className = 'seller';
+				const titleNode = card.querySelector('.info .title');
+				titleNode?.insertAdjacentElement('afterend', sellerEl);
+			}
+			sellerEl.textContent = shortSeller;
+		}
+
+		const price = summary.returnPrice?.() || '';
+		let priceEl = card.querySelector('.info .price');
+		if (price) {
+			if (!priceEl) {
+				priceEl = document.createElement('p');
+				priceEl.className = 'price';
+				card.querySelector('.info')?.appendChild(priceEl);
+			}
+			priceEl.textContent = price;
+		}
 	}
 
 	static applyMediaDisplay(app, dom_id, display = {}) {
@@ -64,13 +111,13 @@ class Teaser {
 			return;
 		}
 
-		media.classList.remove('dreamscape-placeholder', 'has-image', 'teaser-media-loading', ...GRADIENT_CLASSES);
+		media.classList.remove('placeholder', 'has-image', 'loading', 'has-media-content', ...GRADIENT_CLASSES);
 
-		let content = media.querySelector('.teaser-media-content');
+		let content = media.querySelector('.media-content');
 		if (display.innerHtml) {
 			if (!content) {
 				content = document.createElement('div');
-				content.className = 'teaser-media-content';
+				content.className = 'media-content';
 				media.insertBefore(content, media.firstChild);
 			}
 			content.innerHTML = display.innerHtml;
@@ -85,7 +132,7 @@ class Teaser {
 		}
 
 		if (!display.innerHtml) {
-			media.classList.add('dreamscape-placeholder');
+			media.classList.add('placeholder');
 			media.style.background = `url(${DREAMSCAPE_PLACEHOLDER}) center / cover no-repeat`;
 		} else {
 			media.style.background = '';
@@ -107,32 +154,42 @@ class Teaser {
 			: this.summary.returnPlaceholderImage();
 		const mediaClass = this.returnMediaClass(image, display);
 		const mediaBackground = this.returnMediaBackground(image, display);
-		const showLoading = !!display.loading;
-		const badgeClass = this.summary.badge ? '' : 'hidden';
-		const identicon = this.app.keychain.returnIdenticon(this.summary.seller || '');
+		const isPending = !!this.summary.pending;
+		const showLoading = !!display.loading || isPending;
+		const seller = this.summary.returnSeller?.() || this.summary.seller || '';
+		const identicon = this.app.keychain.returnIdenticon(seller);
+		const shortSeller =
+			!seller || seller.length <= 18
+				? seller || 'anon'
+				: `${seller.slice(0, 8)}…${seller.slice(-6)}`;
+		const price = this.summary.returnPrice?.() || '';
 		const templateData = {
-			title: this.summary.returnTitle(),
-			subtitle: this.summary.subtitle || '',
-			seller: this.summary.seller || '',
+			title: this.summary.returnTitle() || 'Untitled Item',
+			price,
+			seller: shortSeller,
 			identicon,
+			pending: isPending,
 			show_buy_now:
-				this.summary.show_buy_now ??
-				this.summary.can_buy ??
-				this.summary.badge ??
-				false
+				!isPending &&
+				(this.summary.show_buy_now ??
+					this.summary.can_buy ??
+					this.summary.badge ??
+					false)
 		};
 
 		this.app.browser.addElementToSelector(
-			TeaserTemplate(templateData, this.cardId, mediaClass, mediaBackground, badgeClass, showLoading),
+			TeaserTemplate(templateData, this.cardId, mediaClass, mediaBackground, showLoading),
 			this.container
 		);
 
-		if (!display.loading) {
+		if (!display.loading && !isPending) {
 			Teaser.applyMediaDisplay(this.app, this.cardId, display);
 		}
 
 		this.attachEvents();
-		this.beginMediaEnrichment();
+		if (!isPending) {
+			this.beginMediaEnrichment();
+		}
 	}
 
 	beginMediaEnrichment() {
@@ -154,7 +211,7 @@ class Teaser {
 			return display.backgroundImage ? 'has-image' : 'has-media-content';
 		}
 		if (!image) {
-			return 'dreamscape-placeholder';
+			return 'placeholder';
 		}
 		if (image.startsWith('gradient-')) {
 			return image;
@@ -193,14 +250,32 @@ class Teaser {
 
 	attachEvents() {
 		const teaserCard = Teaser.returnTeaserCard(this.cardId);
-		if (teaserCard) {
-			teaserCard.onclick = (e) => {
-				e.preventDefault();
-				if (this.mod.main?.product_overlay) {
-					this.mod.main.product_overlay.render(this.summary);
-				}
-			};
+		if (!teaserCard) {
+			return;
 		}
+
+		const open = (e) => {
+			e.preventDefault();
+			if (this.summary?.pending) {
+				if (typeof siteMessage === 'function') {
+					siteMessage('This listing is still being confirmed by the network.', 3500);
+				} else {
+					alert('This listing is still being confirmed by the network.');
+				}
+				return;
+			}
+			const detail = this.mod.main?.listing_detail || this.mod.main?.product_overlay;
+			if (detail) {
+				detail.render(this.summary);
+			}
+		};
+
+		teaserCard.onclick = open;
+		teaserCard.onkeydown = (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				open(e);
+			}
+		};
 	}
 }
 

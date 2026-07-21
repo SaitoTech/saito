@@ -117,17 +117,35 @@ class Store extends ModTemplate {
 		if (type === 'saito-sell-nft') {
 			return {
 				render: (defaults = {}) => {
-					if (!this.listing_overlay) {
-						if (this.main?.listing_overlay) {
-							this.listing_overlay = this.main.listing_overlay;
-						} else {
-							const ListingOverlay = require('./lib/ui/overlays/listing');
-							this.listing_overlay = new ListingOverlay(this.app, this);
-						}
-					}
-
 					if (this.app.BROWSER && typeof this.attachStyleSheets === 'function') {
 						this.attachStyleSheets();
+					}
+
+					if (this.main?.openSell) {
+						this.main.openSell(defaults);
+						return;
+					}
+
+					if (!this.listing_overlay) {
+						const NftPickerOverlay = require('./lib/ui/overlays/nft-picker');
+						const ListingDetailOverlay = require('./lib/ui/overlays/listing-detail');
+						const nft_picker = new NftPickerOverlay(this.app, this);
+						const listing_detail = new ListingDetailOverlay(this.app, this);
+						nft_picker.onSelect = (nft, defs) => {
+							listing_detail.render({ mode: 'edit', nft, defaults: defs });
+						};
+						listing_detail.onBack = (defs) => {
+							nft_picker.render(defs || {});
+						};
+						this.listing_overlay = {
+							render: (defs = {}) => {
+								if (defs?.nft) {
+									listing_detail.render({ mode: 'edit', nft: defs.nft, defaults: defs });
+								} else {
+									nft_picker.render(defs);
+								}
+							}
+						};
 					}
 
 					this.listing_overlay.render(defaults);
@@ -138,12 +156,65 @@ class Store extends ModTemplate {
 		return super.respondTo(type);
 	}
 
+	/**
+	 * Path for a creator storefront: /store/<publickey>
+	 */
+	returnStorefrontPath(publicKey = '') {
+		const key = String(publicKey || '').trim();
+		if (!key) {
+			return '/' + encodeURI(this.returnSlug());
+		}
+		return `/${encodeURI(this.returnSlug())}/${encodeURIComponent(key)}`;
+	}
+
+	/**
+	 * Absolute shareable URL for a creator storefront.
+	 */
+	returnStorefrontUrl(publicKey = '') {
+		const path = this.returnStorefrontPath(publicKey);
+		if (this.app.BROWSER && typeof window !== 'undefined' && window.location?.origin) {
+			return `${window.location.origin}${path}`;
+		}
+		return path;
+	}
+
 	async render() {
 		if (!this.browser_active || !this.main) {
 			return;
 		}
 
 		await super.render();
+
+		const storefrontKey = this.returnStorefrontKeyFromPath();
+		if (storefrontKey) {
+			await this.main.openStorefront(storefrontKey, { updateUrl: false });
+		}
+	}
+
+	/**
+	 * Parse /store/<publickey> from the current browser path.
+	 */
+	returnStorefrontKeyFromPath() {
+		if (!this.app.BROWSER || typeof window === 'undefined') {
+			return '';
+		}
+
+		const pathname = window.location.pathname || '';
+		const slug = '/' + this.slug;
+		if (!pathname.startsWith(slug)) {
+			return '';
+		}
+
+		const segments = pathname
+			.substring(slug.length)
+			.split('/')
+			.filter((seg) => seg.length > 0);
+
+		if (segments.length === 1 && segments[0] !== 'cache') {
+			return decodeURIComponent(segments[0]);
+		}
+
+		return '';
 	}
 
 	async onConfirmation(blk, tx, conf = 0) {
@@ -205,6 +276,13 @@ class Store extends ModTemplate {
 		const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
 		const self = this;
 
+		const sendStoreHtml = (req, res) => {
+			const html = index(app, self, app.build_number);
+			res.setHeader('Content-type', 'text/html');
+			res.charset = 'UTF-8';
+			return res.send(html);
+		};
+
 		expressapp.get(`${uri}/cache/:nft_id.img`, function (req, res) {
 			const nft_id = decodeURIComponent(String(req.params.nft_id || ''));
 			if (!nft_id) {
@@ -215,12 +293,11 @@ class Store extends ModTemplate {
 
 		expressapp.use(uri, express.static(webdir));
 
-		expressapp.get(uri, async function (req, res) {
-			const html = index(app, self, app.build_number);
-			res.setHeader('Content-type', 'text/html');
-			res.charset = 'UTF-8';
-			return res.send(html);
-		});
+		// /store — main browse shell
+		expressapp.get(uri, sendStoreHtml);
+
+		// /store/<publickey> — creator storefront shell (client routes after load)
+		expressapp.get(`${uri}/:publickey`, sendStoreHtml);
 	}
 
 }
