@@ -24,8 +24,8 @@ jobs:
           cache: npm
           cache-dependency-path: rust/saito-wasm/package-lock.json
 
-      # - name: Update npm
-      #   run: npm install -g npm@12.0.1
+      - name: Update npm
+        run: npm install -g npm@12.0.1
 
       - name: Check fixed dependency versions
         run: node scripts/check_fixed_dependency_versions.js
