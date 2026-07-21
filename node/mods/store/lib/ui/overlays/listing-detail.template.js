@@ -32,12 +32,12 @@ module.exports = {
 			: '';
 
 		return `
-    <article class="listing-detail">
+    <article class="listing-detail view">
       <header>
         <img class="saito-identicon" src="${view.identicon}" alt="" />
         <div class="meta">
-          <h2 class="title" id="listing-detail-title">${view.listingTitle}</h2>
-          <p class="creator">${view.shortSeller}</p>
+          <h2 class="title" id="listing-detail-title"><span class="title-text">${view.listingTitle}</span></h2>
+          <p class="creator">${view.seller}</p>
         </div>
       </header>
 
@@ -64,7 +64,6 @@ module.exports = {
 
           <section class="section meta-facts">
             <dl class="facts">
-              <div><dt>Seller</dt><dd class="seller-key">${view.seller}</dd></div>
               <div><dt>Type</dt><dd>${view.productType}</dd></div>
               <div><dt>File</dt><dd>${view.fileType}</dd></div>
               <div><dt>Listed</dt><dd>${view.createdDate}</dd></div>
@@ -90,8 +89,7 @@ module.exports = {
         <img class="saito-identicon" src="${view.nftIdenticon}" alt="" />
         <div class="meta">
           <h2 class="title">
-            <span data-field="title">${view.listingTitle}</span>
-            <button type="button" class="saito-icon-button" data-edit="title" aria-label="Edit title"><i class="fas fa-pen" aria-hidden="true"></i></button>
+            <span class="title-text" data-field="title">${view.listingTitle}</span><button type="button" class="saito-icon-button" data-edit="title" aria-label="Edit title"><i class="fas fa-pen" aria-hidden="true"></i></button>
           </h2>
           <p class="creator">${view.creatorDisplay}</p>
         </div>
@@ -108,30 +106,26 @@ module.exports = {
           <section class="section price">
             <p class="label">Price</p>
             <p class="amount">
-              <span data-field="price">${view.priceDisplay}</span>
-              <button type="button" class="saito-icon-button" data-edit="price" aria-label="Edit price"><i class="fas fa-pen" aria-hidden="true"></i></button>
+              <span data-field="price">${view.priceDisplay}</span><button type="button" class="saito-icon-button" data-edit="price" aria-label="Edit price"><i class="fas fa-pen" aria-hidden="true"></i></button>
             </p>
           </section>
 
           <section class="section description">
             <h3 class="label">Description</h3>
             <p class="text">
-              <span data-field="description">${description}</span>
-              <button type="button" class="saito-icon-button" data-edit="description" aria-label="Edit description"><i class="fas fa-pen" aria-hidden="true"></i></button>
+              <span data-field="description">${description}</span><button type="button" class="saito-icon-button" data-edit="description" aria-label="Edit description"><i class="fas fa-pen" aria-hidden="true"></i></button>
             </p>
           </section>
 
           <section class="section meta-facts">
             <dl class="facts">
-              <div><dt>Seller</dt><dd class="seller-key">${view.seller}</dd></div>
               <div><dt>Type</dt><dd>${view.productType}</dd></div>
               <div><dt>File</dt><dd>${view.fileType}</dd></div>
               <div><dt>Listed</dt><dd>${view.createdDate}</dd></div>
               <div>
                 <dt>Available</dt>
                 <dd>
-                  <span data-field="available">${view.supply}</span>
-                  <button type="button" class="saito-icon-button" data-edit="available" aria-label="Edit available quantity"><i class="fas fa-pen" aria-hidden="true"></i></button>
+                  <span data-field="available">${view.supply}</span><button type="button" class="saito-icon-button" data-edit="available" aria-label="Edit available quantity"><i class="fas fa-pen" aria-hidden="true"></i></button>
                 </dd>
               </div>
             </dl>

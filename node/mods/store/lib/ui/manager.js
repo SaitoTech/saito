@@ -1,5 +1,6 @@
 const ManagerTemplate = require('./manager.template');
 const BrowseView = require('./browse-view');
+const StorefrontView = require('./storefront-view');
 const EmptyPanel = require('./empty-panel');
 
 class Manager {
@@ -13,11 +14,8 @@ class Manager {
 		this.browse = new BrowseView(app, mod, '', {
 			onSell: callbacks.onSell
 		});
-		this.my_listings = new EmptyPanel(app, mod, {
-			title: 'No listings yet',
-			body: 'Items you put up for sale will appear here.',
-			actionLabel: 'Sell Something',
-			onAction: () => this.onSell?.()
+		this.storefront = new StorefrontView(app, mod, '', {
+			onSell: callbacks.onSell
 		});
 		this.sales = new EmptyPanel(app, mod, {
 			title: 'No sales yet',
@@ -39,7 +37,7 @@ class Manager {
 		this.app.browser.replaceElementContentBySelector(ManagerTemplate(), this.container);
 
 		this.browse.render(`${this.container} [data-panel="browse"]`);
-		this.my_listings.render(`${this.container} [data-panel="my-listings"]`);
+		this.storefront.render(`${this.container} [data-panel="my-listings"]`);
 		this.sales.render(`${this.container} [data-panel="sales"]`);
 
 		this.show(this.activePanel);
@@ -57,6 +55,14 @@ class Manager {
 			const match = el.getAttribute('data-panel') === this.activePanel;
 			el.classList.toggle('is-active', match);
 		});
+	}
+
+	/**
+	 * Open the creator storefront panel for a public key (My Listings / /store/<pk>).
+	 */
+	showStorefront(publicKey = '') {
+		this.show('my-listings');
+		return this.storefront.show(publicKey);
 	}
 
 	scrollToTop() {

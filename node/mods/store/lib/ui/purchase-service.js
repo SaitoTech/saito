@@ -59,6 +59,7 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
 		return;
 	}
 
+	// Close Buy NFT overlay immediately on successful submit.
 	mod.main?.listing_detail?.overlay?.hide?.();
 	mod.main?.product_overlay?.overlay?.hide?.();
 
@@ -70,7 +71,7 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
 			newtx.serialize_to_web(app),
 			`Purchase ${summary.returnTitle?.() || 'Store item'}`
 		);
-		purchaseOverlay.openWaiting(listingTitle, pendingTxSignature);
+		beginLocalPurchaseLifecycle(mod, purchaseOverlay, summary, pendingTxSignature, quantity, listingTitle);
 		return;
 	}
 
@@ -81,7 +82,33 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
 		return;
 	}
 
-	purchaseOverlay.openWaiting(listingTitle, pendingTxSignature);
+	beginLocalPurchaseLifecycle(mod, purchaseOverlay, summary, pendingTxSignature, quantity, listingTitle);
+}
+
+function beginLocalPurchaseLifecycle(
+	mod,
+	purchaseOverlay,
+	summary,
+	pendingTxSignature,
+	quantity,
+	listingTitle
+) {
+	const lifecycle = mod.purchase_lifecycle;
+	if (lifecycle) {
+		lifecycle.begin({
+			summary,
+			purchaseTxSignature: pendingTxSignature,
+			quantity
+		});
+	} else {
+		// Fallback: still hide immediately if lifecycle is unavailable.
+		mod.app.connection.emit('store-render-listings');
+	}
+
+	purchaseOverlay.openWaiting(listingTitle, pendingTxSignature, {
+		nft_id: summary.nft_id,
+		quantity
+	});
 }
 
 module.exports = {

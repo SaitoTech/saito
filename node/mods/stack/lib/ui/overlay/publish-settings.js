@@ -24,7 +24,9 @@ class PublishSettingsOverlay {
       isListedInStore: null,
       createNftStatus: null,
       pendingNftId: null,
-      pendingNftSignature: null
+      pendingNftSignature: null,
+      // Same-session mint tx — wallet NFT records keep slips/tx_sig only.
+      pendingNftTx: null
     };
     this._isSliding = false;
   }
@@ -45,7 +47,8 @@ class PublishSettingsOverlay {
         isListedInStore: null,
         createNftStatus: null,
         pendingNftId: null,
-        pendingNftSignature: null
+        pendingNftSignature: null,
+        pendingNftTx: null
       };
     }
 
@@ -292,7 +295,34 @@ class PublishSettingsOverlay {
         }
 
         const SaitoNFT = require('../../../../../lib/saito/ui/saito-nft/saito-nft');
-        const access_key_nft = new SaitoNFT(this.app, this.mod, null, rec);
+        // Prefer the mint tx retained from create (wallet records do not store full txs).
+        const access_key_nft = new SaitoNFT(
+          this.app,
+          this.mod,
+          this.wizardState.pendingNftTx || null,
+          rec
+        );
+        if (!access_key_nft.tx && typeof access_key_nft.fetchTransaction === 'function') {
+          await new Promise((resolve) => {
+            let settled = false;
+            const finish = () => {
+              if (!settled) {
+                settled = true;
+                resolve();
+              }
+            };
+            access_key_nft.fetchTransaction(finish);
+            setTimeout(finish, 8000);
+          });
+        }
+        if (!access_key_nft.tx) {
+          siteMessage(
+            'Could not load the Access Key transaction yet. Wait a moment and try again.',
+            4000
+          );
+          return;
+        }
+
         const total =
           Number(access_key_nft.getTotalAmount?.() || access_key_nft.amount || rec.amount || 1) || 1;
 
@@ -508,6 +538,7 @@ class PublishSettingsOverlay {
           this.wizardState.createNftStatus = 'waiting';
           this.wizardState.pendingNftId = obj.nft_id || null;
           this.wizardState.pendingNftSignature = obj.signature || null;
+          this.wizardState.pendingNftTx = obj.tx || null;
           this.render(this.postState, { preserveStep: true });
         }
 
@@ -610,6 +641,7 @@ class PublishSettingsOverlay {
     this.wizardState.createNftStatus = null;
     this.wizardState.pendingNftId = null;
     this.wizardState.pendingNftSignature = null;
+    this.wizardState.pendingNftTx = null;
     this.wizardState.createQuantity = null;
 
     this.render(this.postState, { preserveStep: true });

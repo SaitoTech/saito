@@ -12,7 +12,7 @@ class Teasers {
 		});
 	}
 
-	render(container = '') {
+	render(container = '', items = null) {
 		if (container) {
 			this.container = container;
 		}
@@ -28,8 +28,8 @@ class Teasers {
 
 		el.innerHTML = '';
 
-		const items = getSummariesForSale(this.mod);
-		for (const item of items) {
+		const list = Array.isArray(items) ? items : getSummariesForSale(this.mod);
+		for (const item of list) {
 			const teaser = new Teaser(this.app, this.mod, item, this.container);
 			teaser.render();
 		}

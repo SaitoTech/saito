@@ -97,8 +97,10 @@ module.exports = (app, mod) => {
       </div>
 
       <footer class="footer">
-        <button id="back-btn" class="saito-button-secondary">Back</button>
-        <button id="create_nft" class="saito-nft-footer-btn">Confirm</button>
+        <button type="button" id="back-btn" class="saito-nft-create-back-btn" aria-label="Back">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        </button>
+        <button type="button" id="create_nft" class="saito-button-primary">Confirm</button>
       </footer>
     </section>
   </div>

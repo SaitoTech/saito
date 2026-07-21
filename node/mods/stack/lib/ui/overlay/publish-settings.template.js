@@ -31,8 +31,9 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
         return {
           title: '',
           body: `
-            <p>Anyone can read this article.</p>
-            <p>Click to publish immediately to the network.</p>
+            <div class="stack-publish-option-copy">
+              <p class="stack-publish-option-heading">Public Post</p>
+            </div>
           `
         };
       }
@@ -40,9 +41,13 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
         return {
           title: '',
           body: `
-            <p>You control who has access.</p>
-            <p>Readers must have an NFT you create to access your posts.</p>
-            <p>Click NEXT to create or manage your access keys.</p>
+            <div class="stack-publish-option-copy">
+              <p class="stack-publish-option-heading">Restricted Post</p>
+              <ul class="stack-publish-option-points">
+                <li>Readers must have an Access Key.</li>
+                <li>Click NEXT to manage access controls.</li>
+              </ul>
+            </div>
           `
         };
       }
@@ -50,9 +55,13 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
         return {
           title: '',
           body: `
-            <p>You control who has access.</p>
-            <p>Readers must have an NFT Subscription to your content.</p>
-            <p>Click NEXT to create or manage your subscription keys.</p>
+            <div class="stack-publish-option-copy">
+              <p class="stack-publish-option-heading">Restricted Post</p>
+              <ul class="stack-publish-option-points">
+                <li>Readers must have an Active Subscription.</li>
+                <li>Click NEXT to manage access controls.</li>
+              </ul>
+            </div>
           `
         };
       }
@@ -114,8 +123,11 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
             body: `
               ${checklistHtml}
               <div class="stack-publish-followup-state">
-                <p>Your listing should become active within a minute or two once the blockchain confirms it.</p>
-                <p>Go ahead and publish your post.</p>
+                <p class="stack-publish-followup-heading">Ready to publish</p>
+                <ul class="stack-publish-followup-points">
+                  <li>Your Store listing will activate once the blockchain confirms it.</li>
+                  <li>Go ahead and publish your post.</li>
+                </ul>
               </div>
             `
           };
@@ -127,11 +139,15 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
             body: `
               ${checklistHtml}
               <div class="stack-publish-followup-state">
-                <p>Your ${keysLabel} are now available in your wallet.</p>
-                <p>You can now publish your post or list your ${keysLabel} on the Saito Store.</p>
-                <p>
-                  <span id="stack-list-access-key-link" class="saito-anchor stack-publish-inline-link"><span>Click here to list your ${keysLabel} on the Saito Store.</span></span>
-                </p>
+                <p class="stack-publish-followup-heading">Your ${keysLabel} are in your wallet</p>
+                <div class="stack-publish-suggestion">
+                  <p class="stack-publish-suggestion-label">Helpful next step</p>
+                  <ul class="stack-publish-followup-points">
+                    <li>
+                      <span id="stack-list-access-key-link" class="saito-anchor stack-publish-inline-link"><span>List your ${keysLabel} on the Saito Store</span></span>
+                    </li>
+                  </ul>
+                </div>
               </div>
             `
           };
@@ -140,33 +156,40 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
         return {
           title: '',
           body: `
-            <p>${isSubscription ? 'Readers need a Subscription Key' : 'Readers need an Access Key'}</p>
             ${checklistHtml}
             ${
               wizardState.createNftStatus === 'cancelled'
                 ? `
                   <div class="stack-publish-followup-state">
-                    <p>Having trouble?</p>
-                    <p>You can publish immediately without creating any ${keysLabel}.</p>
-                    <p>You can also create Stack ${keyLabel} NFTs later from your wallet.</p>
+                    <p class="stack-publish-followup-heading">Having trouble?</p>
+                    <ul class="stack-publish-followup-points">
+                      <li>You can publish now without creating ${keysLabel}.</li>
+                      <li>You can also create Stack ${keyLabel} NFTs later from your wallet.</li>
+                    </ul>
                   </div>
                 `
                 : hasAccessKey
                   ? `
                     <div class="stack-publish-followup-state">
-                      <p>Want more readers?</p>
-                      <p>
-                        <span id="stack-list-access-key-link" class="saito-anchor stack-publish-inline-link"><span>Click here to list your ${keysLabel} on the Saito Store.</span></span>
-                      </p>
+                      <div class="stack-publish-suggestion">
+                        <p class="stack-publish-suggestion-label">Helpful next step</p>
+                        <ul class="stack-publish-followup-points">
+                          <li>
+                            <span id="stack-list-access-key-link" class="saito-anchor stack-publish-inline-link"><span>List your ${keysLabel} on the Saito Store</span></span>
+                          </li>
+                        </ul>
+                      </div>
                     </div>
                   `
                   : `
                     <div class="stack-publish-followup-state">
-                      <p>Your readers will need ${isSubscription ? 'a Subscription Key' : 'an Access Key'} to read your post.</p>
-                      <p>
-                        <span id="stack-create-access-key-link" class="saito-anchor stack-publish-inline-link stack-publish-inline-link-strong"><span>CLICK HERE</span></span>
-                      </p>
-                      <p>and we'll create ${createQuantity} right now.</p>
+                      <p class="stack-publish-followup-heading">Create ${createQuantity} ${keysLabel}</p>
+                      <ul class="stack-publish-followup-points">
+                        <li>
+                          <span id="stack-create-access-key-link" class="saito-anchor stack-publish-inline-link stack-publish-inline-link-strong"><span>Click here</span></span>
+                          to mint them now.
+                        </li>
+                      </ul>
                     </div>
                   `
             }

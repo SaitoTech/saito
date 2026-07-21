@@ -1,9 +1,6 @@
 module.exports = () => {
 	return `
     <ul class="list saito-menu-select-subtle" role="list">
-      <li class="heading sidebar-header">
-        <span class="sidebar-title">Browse</span>
-      </li>
       <li class="item active" role="button" tabindex="0" data-view="all">All Listings</li>
       <li class="item" role="button" tabindex="0" data-view="themes">Themes</li>
       <li class="item" role="button" tabindex="0" data-view="tokens">Tokens &amp; NFTs</li>

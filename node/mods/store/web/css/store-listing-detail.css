@@ -16,9 +16,10 @@
 .listing-detail > header {
 	display: flex;
 	align-items: center;
-	gap: var(--saito-space-sm);
+	gap: var(--saito-space-md);
 	flex: 0 0 auto;
-	padding: var(--saito-space-sm) var(--saito-space-xl);
+	/* Symmetric vertical rhythm; extra right inset clears Saito closebox */
+	padding: var(--saito-space-lg) 5.25rem var(--saito-space-lg) var(--saito-space-xl);
 	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
 }
 
@@ -33,20 +34,23 @@
 	object-fit: cover;
 }
 
-/* Pencil sits on the text baseline — not a oversized hit slab hanging below */
+/* Pencil sits on the text baseline, immediately beside the value */
 .listing-detail .saito-icon-button {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	flex: 0 0 auto;
 	min-width: 0;
 	min-height: 0;
 	width: auto;
 	height: auto;
 	margin: 0;
-	padding: 0.1rem 0.25rem;
+	padding: 0.05rem 0.2rem;
 	vertical-align: baseline;
 	font-size: 1.15rem;
 	line-height: 1;
+	position: relative;
+	z-index: 2;
 }
 
 .listing-detail .saito-icon-button i {
@@ -58,25 +62,29 @@
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
-	gap: 0.15rem;
+	gap: 0.2rem;
 	min-width: 0;
 	flex: 1 1 auto;
 }
 
+/* Title + edit icon = one inline unit; text truncates, icon never clipped */
 .listing-detail .title {
 	margin: 0;
-	display: flex;
+	display: inline-flex;
+	flex-direction: row;
 	flex-wrap: nowrap;
 	align-items: baseline;
-	column-gap: var(--saito-space-xs);
+	gap: 0.4rem;
+	width: fit-content;
+	max-width: 100%;
 	font-size: var(--font-size-large);
 	font-family: var(--saito-font-medium);
 	line-height: 1.2;
-	overflow: hidden;
-	white-space: nowrap;
+	overflow: visible;
 }
 
-.listing-detail .title [data-field] {
+.listing-detail .title .title-text,
+.listing-detail .title [data-field='title'] {
 	flex: 1 1 auto;
 	min-width: 0;
 	overflow: hidden;
@@ -86,6 +94,9 @@
 
 .listing-detail .title .saito-icon-button {
 	flex: 0 0 auto;
+	margin: 0;
+	/* Keep pen optically on the title baseline */
+	transform: translateY(0.05em);
 }
 
 .listing-detail .amount,
@@ -94,7 +105,7 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
-	column-gap: var(--saito-space-xs);
+	column-gap: 0.45rem;
 	row-gap: 0;
 }
 
@@ -112,12 +123,13 @@
 
 .listing-detail .creator {
 	margin: 0;
-	font-size: var(--font-size-tiny);
-	line-height: 1.25;
+	font-family: var(--saito-font-mono, ui-monospace, monospace);
+	font-size: 1.15rem;
+	line-height: 1.35;
 	color: var(--saito-font-color-secondary);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	word-break: break-all;
+	overflow-wrap: anywhere;
+	white-space: normal;
 }
 
 .listing-detail > .body {
@@ -126,9 +138,22 @@
 	gap: var(--saito-space-xl);
 	flex: 1 1 auto;
 	min-height: 0;
-	padding: var(--saito-space-lg) var(--saito-space-xl) var(--saito-space-xl);
+	/* Equal top/bottom + left/right — same token as header horizontal inset */
+	padding: var(--saito-space-xl);
 	overflow: hidden;
 	align-items: stretch;
+	box-sizing: border-box;
+}
+
+/* Buy + Create share the same details column rhythm */
+.listing-detail.view .details,
+.listing-detail.edit .details {
+	gap: var(--saito-space-lg);
+}
+
+.listing-detail.view .section + .section:not(.checkout),
+.listing-detail.edit .section + .section:not(.checkout) {
+	padding-top: var(--saito-space-md);
 }
 
 .listing-detail .gallery {
@@ -240,7 +265,7 @@
 	min-width: 0;
 }
 
-.listing-detail .section + .section {
+.listing-detail .section + .section:not(.checkout) {
 	padding-top: var(--saito-space-md);
 	border-top: var(--border-thickness-thin) solid var(--saito-border-color);
 }
@@ -315,6 +340,16 @@
 	white-space: normal;
 }
 
+/* Buy overlay — checkout is the primary action cluster */
+.listing-detail.view .checkout {
+	gap: var(--saito-space-lg);
+	padding-top: var(--saito-space-lg);
+}
+
+.listing-detail.view .note {
+	min-height: 11rem;
+}
+
 .listing-detail .checkout {
 	display: flex;
 	flex-direction: column;
@@ -376,13 +411,13 @@
 	}
 
 	.listing-detail > header {
-		padding: var(--saito-space-sm) var(--saito-space-lg);
+		padding: var(--saito-space-lg) 5rem var(--saito-space-lg) var(--saito-space-lg);
 	}
 
 	.listing-detail > .body {
 		grid-template-columns: 1fr;
 		gap: var(--saito-space-lg);
-		padding: var(--saito-space-md) var(--saito-space-lg) var(--saito-space-lg);
+		padding: var(--saito-space-lg);
 		overflow: auto;
 	}
 
@@ -423,19 +458,25 @@
 	.listing-detail > header {
 		padding: var(--saito-space-md);
 		padding-top: max(var(--saito-space-md), env(safe-area-inset-top, 0px));
+		padding-right: 4.5rem;
 	}
 
 	.listing-detail .title {
 		font-size: var(--font-size-medium);
+	}
+
+	.listing-detail .title .title-text,
+	.listing-detail .title [data-field='title'] {
 		white-space: normal;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		-webkit-box-orient: vertical;
+		text-overflow: ellipsis;
 	}
 
 	.listing-detail > .body {
 		padding: var(--saito-space-md);
-		padding-bottom: calc(var(--saito-space-lg) + env(safe-area-inset-bottom, 0px));
+		padding-bottom: calc(var(--saito-space-md) + env(safe-area-inset-bottom, 0px));
 		gap: var(--saito-space-md);
 	}
 
@@ -449,7 +490,7 @@
 		height: 3.25rem;
 	}
 
-	.listing-detail .section + .section {
+	.listing-detail .section + .section:not(.checkout) {
 		padding-top: var(--saito-space-md);
 	}
 
@@ -468,6 +509,6 @@
 	}
 
 	.listing-detail .note {
-		min-height: 4.5rem;
+		min-height: 9rem;
 	}
 }

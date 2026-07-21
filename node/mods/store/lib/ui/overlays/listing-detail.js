@@ -205,7 +205,7 @@ class ListingDetailOverlay {
 		return {
 			listingTitle: this.escapeHtml(this.listing.title),
 			seller: this.escapeHtml(seller),
-			creatorDisplay: this.escapeHtml(creator ? returnShortKey(creator) : 'Unknown creator'),
+			creatorDisplay: this.escapeHtml(creator || 'Unknown creator'),
 			nftIdenticon,
 			mediaHtml: this.returnMediaHtml(nft),
 			description: this.escapeHtml(this.listing.description),
@@ -564,6 +564,7 @@ class ListingDetailOverlay {
 		try {
 			const tx = await this.mod.createListAssetTransaction(this.selectedNft, this.listing);
 			await this.app.network.propagateTransaction(tx);
+
 			if (typeof this.defaults?.callback === 'function') {
 				this.defaults.callback({
 					status: 'listed',
@@ -571,10 +572,49 @@ class ListingDetailOverlay {
 				});
 				this.defaults.callback = null;
 			}
-			this.overlay.close();
+
+			this.beginListingProgress(tx);
 		} catch (err) {
 			console.error('Store: listing failed', err);
 			alert(err?.message || 'Listing failed');
+		}
+	}
+
+	beginListingProgress(tx) {
+		if (!this.mod.listing_lifecycle) {
+			const ListingLifecycle = require('../listing-lifecycle');
+			this.mod.listing_lifecycle = new ListingLifecycle(this.app, this.mod);
+		}
+
+		const entry = this.mod.listing_lifecycle.begin({
+			nft: this.selectedNft,
+			listing: this.listing,
+			listingTx: tx,
+			sellerPublicKey: this.mod.publicKey
+		});
+
+		// Close create-listing UI without treating it as cancel.
+		this.overlay.close();
+
+		const openProgress = () => {
+			if (!this.mod.listing_progress) {
+				const ListingProgressOverlay = require('./listing-progress');
+				this.mod.listing_progress = new ListingProgressOverlay(this.app, this.mod);
+			}
+			this.mod.listing_progress.openWaiting(
+				entry?.title || this.listing?.title || '',
+				tx.signature
+			);
+		};
+
+		// Progress overlay first so the user never sees a silent close.
+		openProgress();
+
+		// Switch Store underneath to Your Store (when the Store page is active).
+		if (this.mod.main?.openStorefront && this.mod.publicKey) {
+			Promise.resolve(this.mod.main.openStorefront(this.mod.publicKey)).catch((err) => {
+				console.warn('Store: openStorefront after list failed', err?.message || err);
+			});
 		}
 	}
 
@@ -592,6 +632,8 @@ class ListingDetailOverlay {
 		};
 
 		if (summary.listing_tx) {
+			summary.hydrateFromListingTransaction?.();
+			this.renderView(summary);
 			if (summary.isImageLoading?.()) {
 				summary.enrichMedia(() => this.renderView(summary));
 			}

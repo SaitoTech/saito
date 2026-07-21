@@ -51,6 +51,53 @@ class Teaser {
 		}
 
 		Teaser.applyMediaDisplay(app, summaryDomId(summary), summary.returnMediaDisplay());
+		Teaser.applyInfoDisplay(summary);
+	}
+
+	static applyInfoDisplay(summary) {
+		if (!(summary instanceof Summary)) {
+			return;
+		}
+
+		const card = Teaser.returnTeaserCard(summaryDomId(summary));
+		if (!card) {
+			return;
+		}
+
+		summary.hydrateFromListingTransaction?.();
+
+		const titleEl = card.querySelector('.info .title');
+		if (titleEl) {
+			titleEl.textContent = summary.returnTitle() || 'Untitled Item';
+		}
+
+		const seller = summary.returnSeller?.() || summary.seller || '';
+		const shortSeller =
+			!seller || seller.length <= 18
+				? seller || 'anon'
+				: `${seller.slice(0, 8)}…${seller.slice(-6)}`;
+
+		let sellerEl = card.querySelector('.info .seller');
+		if (shortSeller) {
+			if (!sellerEl) {
+				sellerEl = document.createElement('p');
+				sellerEl.className = 'seller';
+				const titleNode = card.querySelector('.info .title');
+				titleNode?.insertAdjacentElement('afterend', sellerEl);
+			}
+			sellerEl.textContent = shortSeller;
+		}
+
+		const price = summary.returnPrice?.() || '';
+		let priceEl = card.querySelector('.info .price');
+		if (price) {
+			if (!priceEl) {
+				priceEl = document.createElement('p');
+				priceEl.className = 'price';
+				card.querySelector('.info')?.appendChild(priceEl);
+			}
+			priceEl.textContent = price;
+		}
 	}
 
 	static applyMediaDisplay(app, dom_id, display = {}) {
@@ -107,23 +154,27 @@ class Teaser {
 			: this.summary.returnPlaceholderImage();
 		const mediaClass = this.returnMediaClass(image, display);
 		const mediaBackground = this.returnMediaBackground(image, display);
-		const showLoading = !!display.loading;
-		const identicon = this.app.keychain.returnIdenticon(this.summary.seller || '');
-		const seller = this.summary.seller || '';
+		const isPending = !!this.summary.pending;
+		const showLoading = !!display.loading || isPending;
+		const seller = this.summary.returnSeller?.() || this.summary.seller || '';
+		const identicon = this.app.keychain.returnIdenticon(seller);
 		const shortSeller =
 			!seller || seller.length <= 18
 				? seller || 'anon'
 				: `${seller.slice(0, 8)}…${seller.slice(-6)}`;
+		const price = this.summary.returnPrice?.() || '';
 		const templateData = {
-			title: this.summary.returnTitle(),
-			subtitle: this.summary.subtitle || '',
+			title: this.summary.returnTitle() || 'Untitled Item',
+			price,
 			seller: shortSeller,
 			identicon,
+			pending: isPending,
 			show_buy_now:
-				this.summary.show_buy_now ??
-				this.summary.can_buy ??
-				this.summary.badge ??
-				false
+				!isPending &&
+				(this.summary.show_buy_now ??
+					this.summary.can_buy ??
+					this.summary.badge ??
+					false)
 		};
 
 		this.app.browser.addElementToSelector(
@@ -131,12 +182,14 @@ class Teaser {
 			this.container
 		);
 
-		if (!display.loading) {
+		if (!display.loading && !isPending) {
 			Teaser.applyMediaDisplay(this.app, this.cardId, display);
 		}
 
 		this.attachEvents();
-		this.beginMediaEnrichment();
+		if (!isPending) {
+			this.beginMediaEnrichment();
+		}
 	}
 
 	beginMediaEnrichment() {
@@ -203,6 +256,14 @@ class Teaser {
 
 		const open = (e) => {
 			e.preventDefault();
+			if (this.summary?.pending) {
+				if (typeof siteMessage === 'function') {
+					siteMessage('This listing is still being confirmed by the network.', 3500);
+				} else {
+					alert('This listing is still being confirmed by the network.');
+				}
+				return;
+			}
 			const detail = this.mod.main?.listing_detail || this.mod.main?.product_overlay;
 			if (detail) {
 				detail.render(this.summary);
