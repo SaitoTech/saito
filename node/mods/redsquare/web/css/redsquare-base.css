@@ -3,12 +3,12 @@
  */
 
 body.redsquare-body {
-  --rs-rail-left: 26rem;
-  --rs-rail-right: 32rem;
-  --rs-feed-width: 58rem;
+  --redsquare-rail-left: 26rem;
+  --redsquare-rail-right: 32rem;
+  --redsquare-feed-width: 58rem;
   --saito-width: calc(
-    var(--rs-rail-left) + var(--saito-space-xl) + var(--rs-feed-width) + var(--saito-space-xl) +
-      var(--rs-rail-right)
+    var(--redsquare-rail-left) + var(--saito-space-xl) + var(--redsquare-feed-width) + var(--saito-space-xl) +
+      var(--redsquare-rail-right)
   );
 
   /*
@@ -25,7 +25,7 @@ body.redsquare-body {
 }
 
 body.redsquare-body #saito-container {
-  grid-template-columns: var(--rs-rail-left) auto var(--rs-rail-right);
+  grid-template-columns: var(--redsquare-rail-left) auto var(--redsquare-rail-right);
   column-gap: var(--saito-space-xl);
   padding: 0 max(2rem, calc((100vw - var(--saito-width)) / 2 + 0.5rem));
   overflow: hidden;
@@ -39,26 +39,26 @@ body.redsquare-body #saito-container > * {
 
 @media (max-width: 1200px) {
   body.redsquare-body {
-    --rs-rail-left: 9rem;
-    --rs-rail-right: 28rem;
+    --redsquare-rail-left: 9rem;
+    --redsquare-rail-right: 28rem;
   }
 }
 
 @media (max-width: 820px) {
   body.redsquare-body {
-    --rs-rail-left: 8rem;
-    --rs-rail-right: 0rem;
-    --saito-width: calc(var(--rs-rail-left) + var(--saito-space-xl) + var(--rs-feed-width));
+    --redsquare-rail-left: 8rem;
+    --redsquare-rail-right: 0rem;
+    --saito-width: calc(var(--redsquare-rail-left) + var(--saito-space-xl) + var(--redsquare-feed-width));
   }
 
   body.redsquare-body #saito-container {
-    grid-template-columns: var(--rs-rail-left) minmax(0, 1fr);
+    grid-template-columns: var(--redsquare-rail-left) minmax(0, 1fr);
   }
 }
 
 @media (max-width: 600px) {
   body.redsquare-body {
-    --rs-mobile-nav-height: 5.2rem;
+    --redsquare-mobile-nav-height: 5.2rem;
   }
 
   body.redsquare-body #saito-container {
@@ -66,7 +66,7 @@ body.redsquare-body #saito-container > * {
     grid-template-rows: minmax(0, 1fr);
     column-gap: 0;
     padding: 0;
-    padding-bottom: calc(var(--rs-mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--redsquare-mobile-nav-height) + env(safe-area-inset-bottom, 0px));
   }
 
   /*

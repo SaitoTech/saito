@@ -6,7 +6,7 @@
   justify-self: start;
   display: flex;
   flex-direction: column;
-  width: var(--rs-feed-width);
+  width: var(--redsquare-feed-width);
   max-width: 100%;
   height: 100%;
   overflow: hidden;
