@@ -9,10 +9,12 @@ class SettingsOverlay {
     this.overlay = new SaitoOverlay(app, mod, true, true, false);
     this.contacts = new SaitoContacts(app, mod, true);
     this.overlay_id = 'redsquare-settings-overlay';
+    this.container = '';
     this.onEscapeKeyDown = this.onEscapeKeyDown.bind(this);
   }
 
   open() {
+    this.container = '';
     this.overlay.show(SettingsTemplate(this.app, this.mod), () => {
       document.removeEventListener('keydown', this.onEscapeKeyDown);
     });
@@ -24,7 +26,29 @@ class SettingsOverlay {
     this.overlay.close();
   }
 
+  renderInto(container = '') {
+    const host = document.querySelector(container);
+
+    if (!host) {
+      return false;
+    }
+
+    document.removeEventListener('keydown', this.onEscapeKeyDown);
+    this.container = container;
+    this.app.browser.replaceElementContentBySelector(
+      SettingsTemplate(this.app, this.mod),
+      container
+    );
+    this.attachEvents();
+    return true;
+  }
+
   rerender() {
+    if (this.container) {
+      this.renderInto(this.container);
+      return;
+    }
+
     if (!this.getRoot()) {
       this.open();
       return;
@@ -37,6 +61,16 @@ class SettingsOverlay {
   }
 
   getRoot() {
+    if (this.container) {
+      const host = document.querySelector(this.container);
+
+      if (!host || host.hidden) {
+        return null;
+      }
+
+      return host.querySelector('.settings');
+    }
+
     return document.querySelector('.saito-overlay .settings');
   }
 
@@ -51,7 +85,9 @@ class SettingsOverlay {
       return;
     }
 
-    document.addEventListener('keydown', this.onEscapeKeyDown);
+    if (!this.container) {
+      document.addEventListener('keydown', this.onEscapeKeyDown);
+    }
 
     this.attachCurationToggle(root);
     this.attachWhitelistEvents(root);

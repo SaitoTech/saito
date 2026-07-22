@@ -2,7 +2,7 @@
  * Feed width is owned here (.main), not by the page grid track.
  */
 
-.main {
+body.redsquare-body #saito-container > .main {
   justify-self: start;
   display: flex;
   flex-direction: column;
@@ -10,6 +10,10 @@
   max-width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.redsquare-mobile-view {
+  display: none;
 }
 
 .sidebar-left,
@@ -53,7 +57,7 @@ body.redsquare-body .sidebar .sidebar-header {
   color: inherit;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1365px) {
   .sidebar-left {
     padding-inline: var(--saito-space-xs);
   }
@@ -81,11 +85,25 @@ body.redsquare-body .sidebar .sidebar-header {
     display: none;
   }
 
-  .main {
+  body.redsquare-body #saito-container > .main {
     width: 100%;
     height: 100%;
     min-height: 0;
     align-self: stretch;
     justify-self: stretch;
+  }
+
+  body.redsquare-body #saito-container > .main > [data-mobile-view][hidden] {
+    display: none !important;
+  }
+
+  .redsquare-mobile-view:not([hidden]) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
   }
 }

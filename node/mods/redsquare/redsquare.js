@@ -90,7 +90,7 @@ class RedSquare extends ModTemplate {
     this.enable_profile_edits = true;
 
     this.styles = ['/saito/saito.css', '/redsquare/style.css'];
-
+    this.postScripts = ['/saito/lib/emoji-picker/emoji-picker.js'];
   }
 
   returnServices() {
@@ -1365,11 +1365,11 @@ class RedSquare extends ModTemplate {
       this.addComponent(this.header);
       this.addComponent(this.main);
 
-      // Chat Manager owns chat — RedSquare only provides `.sidebar-left`.
-      for (const mod of this.app.modules.returnModulesRespondingTo('chat-manager')) {
-        const cm = mod.respondTo('chat-manager');
-        cm.container = '.sidebar-left';
-        cm.render_manager_to_screen = 1;
+      // Chat remains optional and owns its UI; RedSquare only supplies containers.
+      const cm = this.app.modules.returnFirstRespondTo?.('chat-manager') || null;
+      this.main.setChatManager(cm);
+
+      if (this.main.hasChatCapability()) {
         this.addComponent(cm);
       }
     }

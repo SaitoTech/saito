@@ -7,6 +7,7 @@
   display: flex;
   flex-direction: column;
   width: min(54rem, 92vw);
+  height: 100%;
   max-height: min(88vh, 72rem);
   overflow: hidden;
 }
@@ -18,8 +19,7 @@
   flex: 1 1 auto;
   min-height: 0;
   padding: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 /* Placement + scroll cap. No padding — Tweet owns layout. */
@@ -33,7 +33,9 @@
   display: grid;
   grid-template-columns: 3.5rem minmax(0, 1fr);
   column-gap: var(--saito-space-md);
-  align-items: start;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: var(--saito-space-lg);
 }
 
@@ -43,10 +45,12 @@
 }
 
 .compose .main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-xs);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  row-gap: var(--saito-space-xs);
+  height: 100%;
   min-width: 0;
+  min-height: 0;
 }
 
 .compose .header.compose .secondary {
@@ -55,17 +59,21 @@
 }
 
 .compose .surface {
-  display: flex;
-  flex-direction: column;
-  gap: var(--saito-space-xs);
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(8rem, 1fr) auto;
+  row-gap: var(--saito-space-xs);
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .compose .input {
   width: 100%;
+  height: 100%;
   min-height: 8rem;
   padding: 0;
-  resize: vertical;
+  resize: none;
   border: none;
   background: transparent;
   box-shadow: none;
@@ -119,22 +127,79 @@
   cursor: pointer;
 }
 
-.compose .gif-placeholder {
+.compose .compose-picker {
+  position: absolute;
+  inset: 0;
   display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--saito-space-sm);
-  padding: var(--saito-space-xs) 0;
-  color: var(--saito-muted-foreground);
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: var(--border-thickness-thin) solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-overlay-panel-background);
+  z-index: 1;
 }
 
-.compose .gif-placeholder.visible {
+.compose .compose-picker.visible {
   display: flex;
 }
 
-.compose .gif-dismiss {
-  cursor: pointer;
+.compose .compose-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  padding: var(--saito-space-xs) var(--saito-space-sm);
+  border-bottom: var(--border-thickness-thin) solid var(--saito-border);
   color: var(--saito-primary);
+}
+
+.compose .compose-picker-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--saito-muted-foreground);
+}
+
+.compose .emoji-picker-host,
+.compose .gif-picker-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.compose .emoji-picker-host .compose-emoji-picker {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  --background: var(--saito-overlay-panel-bg);
+  --border-color: var(--saito-border);
+  --indicator-color: var(--saito-primary);
+  --input-border-color: var(--saito-input-border);
+  --input-font-color: var(--saito-input-fg);
+  --input-placeholder-color: var(--saito-muted-foreground);
+  --outline-color: var(--saito-primary);
+  --category-font-color: var(--saito-foreground);
+  --button-active-background: var(--saito-surface-selected);
+  --button-hover-background: var(--saito-surface-hover);
+}
+
+.saito-overlay .compose .gif-picker-content .saito-gif-container {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  padding: var(--saito-space-sm);
+  border-radius: 0;
+  background: transparent;
 }
 
 .compose .footer {
@@ -156,11 +221,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3.2rem;
-  height: 3.2rem;
+  width: 4.4rem;
+  height: 4.4rem;
   border-radius: var(--saito-radius);
   color: var(--saito-muted-foreground);
   cursor: pointer;
+}
+
+.compose .tool i {
+  font-size: 2.4rem;
 }
 
 .compose .actions {
@@ -184,6 +253,11 @@
   position: relative;
   margin: 0;
   min-width: 11rem;
+}
+
+.compose .file-input,
+.compose .file-input + label {
+  display: none;
 }
 
 .compose .submit .spinner {
@@ -243,7 +317,35 @@
   }
 }
 
+@media (max-width: 768px) {
+  body.redsquare-body .saito-overlay > .compose {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .compose .footer {
+    padding-bottom: max(var(--saito-space-md), env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @media (max-width: 600px) {
+  body.redsquare-body .saito-floating-plus-btn {
+    transition: none;
+  }
+
+  body.redsquare-body .saito-floating-menu.activated .saito-floating-plus-btn {
+    transform: none;
+  }
+
+  body.redsquare-body .saito-floating-menu-mask {
+    display: none;
+  }
+
+  body.redsquare-body .saito-floating-item-container {
+    transition: opacity 120ms ease-out;
+  }
+
   .compose {
     width: 100%;
     max-height: 100vh;

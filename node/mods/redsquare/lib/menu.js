@@ -22,7 +22,7 @@ class Menu {
     }
 
     this.notification_count = this.mod.getUnreadNotificationCount?.() || 0;
-    this.has_chat = this.app.modules.returnModulesRespondingTo('chat-manager').length > 0;
+    this.has_chat = this.mod.main?.hasChatCapability?.() || false;
 
     this.app.browser.replaceElementContentBySelector(MenuTemplate(this), this.container);
     this.attachEvents();
@@ -63,21 +63,6 @@ class Menu {
     }
   }
 
-  openChat() {
-    const chatMod = this.app.modules.returnModulesRespondingTo('chat-manager')[0];
-
-    if (!chatMod) {
-      return;
-    }
-
-    if (!chatMod.chat_manager_overlay) {
-      const ChatManagerOverlay = require('../../chat/lib/overlays/chat-manager');
-      chatMod.chat_manager_overlay = new ChatManagerOverlay(this.app, chatMod);
-    }
-
-    chatMod.chat_manager_overlay.render();
-  }
-
   attachEvents() {
     const root = document.querySelector(this.container);
 
@@ -94,6 +79,7 @@ class Menu {
 
     if (homeItem) {
       homeItem.addEventListener('click', () => {
+        this.mod.main?.showMobileView('feed');
         this.mod.manager?.renderTimeline();
         this.setActiveMenuItem(homeItem);
       });
@@ -101,6 +87,7 @@ class Menu {
 
     if (notificationsItem) {
       notificationsItem.addEventListener('click', () => {
+        this.mod.main?.showMobileView('feed');
         this.mod.manager?.renderNotifications();
         this.setActiveMenuItem(notificationsItem);
       });
@@ -108,14 +95,20 @@ class Menu {
 
     if (chatItem) {
       chatItem.addEventListener('click', () => {
-        // Overlay action — same pattern as Settings; chat UI stays in Chat module.
-        this.openChat();
+        if (this.mod.main?.showMobileView('chat')) {
+          this.setActiveMenuItem(chatItem);
+        }
       });
     }
 
     if (settingsItem) {
       settingsItem.addEventListener('click', () => {
-        // Settings is an overlay, not a destination — keep the current view's nav state.
+        if (this.mod.main?.showMobileView('settings')) {
+          this.setActiveMenuItem(settingsItem);
+          return;
+        }
+
+        // Desktop keeps the existing RedSquare settings overlay.
         this.mod.settings_overlay?.open();
       });
     }
