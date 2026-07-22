@@ -2,7 +2,7 @@
    Standalone /faucet page (migration / buysaito layout)
 -----------------------------------------------------------------*/
 
-.main {
+.faucet-main {
   background-image: url(/saito/img/tiled-logo.svg);
   background-color: var(--saito-background-color);
   position: fixed;

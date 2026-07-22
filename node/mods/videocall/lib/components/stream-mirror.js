@@ -62,9 +62,9 @@ class StreamMirror {
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 1rem;
+            gap: 10px;
             background: rgba(0, 0, 0, 0.5);
-            padding: 0.5rem 1rem;
+            padding: 5px 10px;
             border-radius: 8px;
             z-index: 10;
         `;
@@ -104,7 +104,7 @@ class StreamMirror {
 
                 newControl.style.cssText = `
                     cursor: pointer;
-                    padding: 0.5rem;
+                    padding: 5px;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
@@ -199,5 +199,3 @@ class StreamMirror {
 }
 
 module.exports = StreamMirror;
-
- 

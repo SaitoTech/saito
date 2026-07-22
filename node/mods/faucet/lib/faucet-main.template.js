@@ -2,7 +2,7 @@ module.exports = (app, mod) => {
 	const amountLabel = `${app.wallet.convertNolanToSaito(mod.amount)} SAITO`;
 
 	return `
-  <div class="main">
+  <div class="main faucet-main">
     <div
       class="saito-overlay-form withdraw-container faucet-container faucet-page"
       id="faucet-request-container"

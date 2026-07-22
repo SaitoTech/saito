@@ -109,7 +109,8 @@ font imports
   /* theme semantic colours */
   --saito-background: #0c0a09;
   --saito-foreground: #fafaf9;
-  --saito-card: #0c0907;
+  --saito-card-base: #18120c;
+  --saito-card: linear-gradient(135deg, #18120c33, #18120c99);
   --saito-card-foreground: #fafaf9;
   --saito-popover-surface: #202020;
   --saito-popover:
@@ -162,7 +163,7 @@ font imports
     var(--saito-background);
 
   /* panels, tables that sit above the background */
-  --saito-surface-color: var(--saito-card);
+  --saito-surface-color: var(--saito-card-base);
   --saito-surface-text: var(--saito-foreground);
   --saito-surface-hover: var(--saito-accent);
   --saito-surface-selected: var(--saito-secondary);
@@ -298,7 +299,11 @@ font imports
   --saito-post-overlay-border: var(--saito-border);
   --saito-post-overlay-shadow: var(--saito-elevation-0);
   --saito-post-textarea-bg: var(--saito-input-bg);
-  --saito-post-textarea-bg-focus: color-mix(in srgb, var(--saito-input-bg) 80%, var(--saito-card));
+  --saito-post-textarea-bg-focus: color-mix(
+    in srgb,
+    var(--saito-input-bg) 80%,
+    var(--saito-card-base)
+  );
   --saito-post-controls-bg: transparent;
   --saito-post-control-color: var(--saito-chart-2);
   --saito-post-button-radius: var(--saito-radius);
@@ -312,8 +317,8 @@ font imports
   --saito-table-header-size: inherit;
   --saito-table-header-letter-spacing: 0;
 
-  --saito-card-bg: var(--saito-card);
-  --saito-card-bg-hover: color-mix(in srgb, var(--saito-card) 86%, var(--saito-accent));
+  --saito-card-bg: var(--saito-card-base);
+  --saito-card-bg-hover: color-mix(in srgb, var(--saito-card-base) 86%, var(--saito-accent));
   --saito-card-border-initial: var(--saito-border);
   --saito-card-border: var(--saito-border);
   --saito-card-shadow: var(--saito-elevation-0);
@@ -333,7 +338,7 @@ font imports
   --saito-status-code-bg: var(--saito-background);
   --saito-control-ring-shadow: 0 0 0 2px var(--saito-background);
 
-  --saito-link-preview-bg: var(--saito-card);
+  --saito-link-preview-bg: var(--saito-card-base);
   --saito-link-preview-border: var(--saito-border);
 
   --saito-menu-item-active-bg: var(--saito-accent);
@@ -376,7 +381,7 @@ font imports
   --saito-tooltip-radius: var(--saito-radius);
 
   --saito-chat-background: var(--saito-background);
-  --saito-chat-background-image: none;
+  --saito-chat-background-image: var(--saito-card);
   --saito-chat-shell-bg: var(--saito-card);
   --saito-bubble-background: var(--saito-card);
   --saito-bubble-shadow: var(--saito-elevation-0);

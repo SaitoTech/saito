@@ -5,6 +5,8 @@
   display: grid;
   grid-template-rows: minmax(4.2rem, auto) 1fr;
   user-select: none;
+  background-color: var(--saito-chat-background);
+  background-image: var(--saito-chat-background-image);
 }
 
 .chat-manager .saito-userline {
@@ -752,7 +754,7 @@
 }
 
 .chat-main-container .saito-sidebar.left {
-  background-color: var(--saito-chat-shell-bg);
+  background: var(--saito-chat-shell-bg);
 }
 
 .saito-chat-button {
