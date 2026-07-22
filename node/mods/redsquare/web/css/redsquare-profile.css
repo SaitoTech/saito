@@ -16,7 +16,7 @@
   width: 100%;
   height: 6.5rem;
   overflow: hidden;
-  background-color: var(--saito-card);
+  background-color: var(--saito-card-base);
   background-image: url(/saito/img/dreamscape.png);
   background-size: cover;
   background-position: center;
