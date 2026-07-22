@@ -107,44 +107,44 @@ font imports
   --saito-yellow-light: #e9ce93;
 
   /* theme semantic colours */
-  --saito-background: #0c0a09;
-  --saito-foreground: #fafaf9;
-  --saito-card-base: #18120c;
-  --saito-card: linear-gradient(135deg, #18120c33, #18120c99);
-  --saito-card-foreground: #fafaf9;
-  --saito-popover-surface: #202020;
+  --saito-background: #090a09;
+  --saito-foreground: #f3f0ea;
+  --saito-card-base: #171817;
+  --saito-card: linear-gradient(135deg, #191a19, #151615);
+  --saito-card-foreground: #f3f0ea;
+  --saito-popover-surface: #191a19;
   --saito-popover:
     linear-gradient(
       145deg,
-      #262626 0%,
-      color-mix(in srgb, #202020 92%, var(--saito-primary) 1%) 52%,
-      #202020 100%
+      #1d1e1d 0%,
+      color-mix(in srgb, #191a19 96%, var(--saito-primary) 1%) 52%,
+      #171817 100%
     );
-  --saito-popover-foreground: #fafaf9;
-  --saito-primary: #f54900;
-  --saito-primary-foreground: #fff7ed;
-  --saito-secondary: #27272a;
-  --saito-secondary-foreground: #fafafa;
-  --saito-muted: #292524;
-  --saito-muted-foreground: #a6a09b;
-  --saito-accent: #292524;
-  --saito-accent-foreground: #fafaf9;
-  --saito-destructive: #ff6467;
-  --saito-border: #ffffff1a;
-  --saito-ring: #79716b;
-  --saito-chart-1: #ffb86a;
-  --saito-chart-2: #ff6900;
-  --saito-chart-3: #f54900;
-  --saito-chart-4: #ca3500;
-  --saito-chart-5: #9f2d00;
-  --saito-sidebar: #1c1917;
-  --saito-sidebar-foreground: #fafaf9;
-  --saito-sidebar-primary: #ff6900;
-  --saito-sidebar-primary-foreground: #fff7ed;
-  --saito-sidebar-accent: #292524;
-  --saito-sidebar-accent-foreground: #fafaf9;
-  --saito-sidebar-border: #ffffff1a;
-  --saito-sidebar-ring: #79716b;
+  --saito-popover-foreground: #f3f0ea;
+  --saito-primary: #c43b08;
+  --saito-primary-foreground: #fff8f2;
+  --saito-secondary: #202120;
+  --saito-secondary-foreground: #f3f0ea;
+  --saito-muted: #20201f;
+  --saito-muted-foreground: #9e9990;
+  --saito-accent: #282824;
+  --saito-accent-foreground: #f3f0ea;
+  --saito-destructive: #e0524d;
+  --saito-border: #32312e;
+  --saito-ring: #8f8174;
+  --saito-chart-1: #ffad66;
+  --saito-chart-2: #ff6500;
+  --saito-chart-3: #dd4708;
+  --saito-chart-4: #b93205;
+  --saito-chart-5: #85270a;
+  --saito-sidebar: #151615;
+  --saito-sidebar-foreground: #f3f0ea;
+  --saito-sidebar-primary: #c43b08;
+  --saito-sidebar-primary-foreground: #fff8f2;
+  --saito-sidebar-accent: #202120;
+  --saito-sidebar-accent-foreground: #f3f0ea;
+  --saito-sidebar-border: #32312e;
+  --saito-sidebar-ring: #8f8174;
 
   --dreamscape:
     linear-gradient(125deg, #e8001e 30%, #0001 55%, #ff8235 80%),
@@ -158,8 +158,16 @@ font imports
   --saito-background-color: var(--saito-background);
   --saito-background-color-inverse: var(--saito-foreground);
   --saito-canvas-background:
-    radial-gradient(70vw 50vw at 50% 8%, rgba(245, 73, 0, 0.14), transparent 62%),
-    radial-gradient(45vw 35vw at 47% 46%, rgba(255, 184, 106, 0.08), transparent 68%),
+    radial-gradient(
+      70vw 50vw at 50% 8%,
+      color-mix(in srgb, var(--saito-primary) 14%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      45vw 35vw at 47% 46%,
+      color-mix(in srgb, var(--saito-chart-1) 8%, transparent),
+      transparent 68%
+    ),
     var(--saito-background);
 
   /* panels, tables that sit above the background */
@@ -184,7 +192,7 @@ font imports
   --saito-overlay-backdrop-stacked: var(--saito-background-color-shim-light);
   --saito-overlay-panel-bg: var(--saito-popover-surface);
   --saito-overlay-panel-surface-low: var(--saito-popover-surface);
-  --saito-overlay-panel-surface: #262626;
+  --saito-overlay-panel-surface: #1d1e1d;
   --saito-overlay-panel-background: var(--saito-popover);
   --saito-overlay-panel-border: var(--saito-border);
   --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--saito-foreground) 5%, transparent);
@@ -275,14 +283,14 @@ font imports
   --saito-button-secondary-bg-hover: var(--saito-accent);
   --saito-button-secondary-fg: var(--saito-secondary-foreground);
   --saito-button-secondary-fg-hover: var(--saito-foreground);
-  --saito-button-secondary-border: #fff3;
+  --saito-button-secondary-border: var(--saito-border);
   --saito-button-disabled-bg: color-mix(in srgb, var(--saito-secondary) 70%, transparent);
   --saito-button-disabled-fg: color-mix(in srgb, var(--saito-muted-foreground) 64%, transparent);
   --saito-button-disabled-border: transparent;
-  --saito-cta-action-background: linear-gradient(90deg, #ff8a3d, #f54900);
-  --saito-cta-action-shadow: 0 0 32px -10px rgba(245, 73, 0, 0.48);
+  --saito-cta-action-background: linear-gradient(90deg, #dd4708, #b93205);
+  --saito-cta-action-shadow: 0 0 32px -10px rgba(196, 59, 8, 0.42);
 
-  --saito-input-bg: #0003;
+  --saito-input-bg: var(--saito-secondary);
   --saito-input-bg-focus: var(--saito-input-bg);
   --saito-input-fg: var(--saito-foreground);
   --saito-input-fg-heavy: var(--saito-foreground);

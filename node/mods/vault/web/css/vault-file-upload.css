@@ -112,6 +112,7 @@
   border-radius: 1rem;
   transition: all 0.3s ease;
   font-size: 1.6rem;
+  color: var(--saito-foreground);
   cursor: pointer;
 }
 
@@ -123,14 +124,12 @@
 
 .vault-upload-overlay #vault-file-upload i {
   display: block;
-  color: var(--saito-primary);
   font-size: 4rem;
   line-height: 1;
   opacity: 1;
 }
 
 .vault-upload-overlay .vault-file-upload-text {
-  color: var(--saito-font-color);
   font-size: 1.6rem;
 }
 

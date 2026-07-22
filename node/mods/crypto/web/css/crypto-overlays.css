@@ -1286,9 +1286,10 @@ button.withdraw-address-edit:focus-visible {
   font-size: 1.9rem;
 }
 
-.withdraw-input-cont input:focus {
-  border: 0;
-  box-shadow: none;
+.withdraw-input-cont input:is(:focus, :focus-visible) {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .withdraw-input-cont input:disabled {
@@ -1330,7 +1331,7 @@ button.withdraw-options-cont:hover {
 
 button.withdraw-options-cont:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--saito-primary) 50%, transparent);
+  box-shadow: none;
 }
 
 button.withdraw-options-cont:hover i {
@@ -2371,7 +2372,7 @@ input[type='checkbox'].ignore-checkbox {
   align-items: center;
 }
 .withdraw-input-cont {
-  background: var(--saito-background-color);
+  background: var(--saito-input-bg);
   border: var(--border-thickness-thin) solid var(--saito-border-color);
   display: grid;
   grid-template-columns: 1fr min-content;
@@ -2387,7 +2388,7 @@ input[type='checkbox'].ignore-checkbox {
   text-overflow: ellipsis;
   width: 99%;
   autocomplete: off;
-  background-color: var(--saito-background-color) !important;
+  background-color: var(--saito-input-bg) !important;
 }
 /* Hide arrows, Chrome, Safari, Edge, Opera */
 .saito-overlay-form-field input::-webkit-outer-spin-button,
@@ -2400,17 +2401,17 @@ input[type='checkbox'].ignore-checkbox {
   -moz-appearance: textfield;
 }
 /* Fully override Chrome's autofill styling */
-.saito-overlay-form-field input:-webkit-autofill,
-.saito-overlay-form-field input:-webkit-autofill:hover,
-.saito-overlay-form-field input:-webkit-autofill:focus,
-.saito-overlay-form-field input:-webkit-autofill:active {
+.saito-crypto-withdraw .saito-overlay-form-field input:-webkit-autofill,
+.saito-crypto-withdraw .saito-overlay-form-field input:-webkit-autofill:hover,
+.saito-crypto-withdraw .saito-overlay-form-field input:-webkit-autofill:focus,
+.saito-crypto-withdraw .saito-overlay-form-field input:-webkit-autofill:active {
   -webkit-text-fill-color: var(--saito-font-color) !important;
   caret-color: var(--saito-primary) !important;
-  background-color: var(--saito-background-color) !important;
+  background-color: var(--saito-input-bg) !important;
   border: none !important;
   outline: none !important;
-  -webkit-box-shadow: 0 0 0px 1000px var(--saito-background-color) inset !important;
-  box-shadow: 0 0 0px 1000px var(--saito-background-color) inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--saito-input-bg) inset !important;
+  box-shadow: 0 0 0px 1000px var(--saito-input-bg) inset !important;
 }
 .withdraw-options-cont,
 .withdraw-input-cont > i {
@@ -2509,9 +2510,9 @@ input[type='checkbox'].ignore-checkbox {
   box-shadow: var(--saito-input-shadow) !important;
 }
 
-.saito-overlay-form .token-dropdown {
+.saito-crypto-withdraw .token-dropdown {
   color: var(--saito-font-color);
-  background: var(--saito-background-color);
+  background: var(--saito-input-bg);
 }
 
 .crypto-logo-container {
