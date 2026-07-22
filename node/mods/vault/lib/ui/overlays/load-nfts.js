@@ -1,6 +1,7 @@
 const LoadNFTsTemplate = require('./load-nfts.template');
 const SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const FileUploadOverlay = require('./file-upload');
 const WitnessOverlay = require('./witness');
 
 class LoadNFTs {
@@ -8,6 +9,7 @@ class LoadNFTs {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.file_upload_overlay = new FileUploadOverlay(this.app, this.mod);
     this.witness_overlay = new WitnessOverlay(this.app, this.mod);
 
     this.nft_list = [];
@@ -125,10 +127,15 @@ class LoadNFTs {
       container.innerHTML = html;
     } else if (!this.vault_nfts || this.vault_nfts.length === 0) {
       let html = `
-        <div class="instructions">
-          You do not have any NFT keys in your wallet. 
-          If you have just created or been sent one, please wait a few minutes 
-          for the network to confirm for your wallet.
+        <div class="vault-empty-state">
+          <div class="instructions">
+            You do not have any NFT keys in your wallet.
+            If you have just created or been sent one, please wait a few minutes
+            for the network to confirm for your wallet.
+          </div>
+          <button type="button" class="saito-button-primary" data-vault-upload>
+            add item to vault
+          </button>
         </div>
       `;
       container.innerHTML = html;
@@ -176,6 +183,14 @@ class LoadNFTs {
   }
 
   attachEvents() {
+    const uploadButtons = document.querySelectorAll('.vault-nfts [data-vault-upload]');
+    uploadButtons.forEach((uploadButton) => {
+      uploadButton.onclick = () => {
+        this.overlay.close();
+        this.file_upload_overlay.render();
+      };
+    });
+
     let items = document.querySelectorAll('.vault-nft-item');
     if (!items || items.length === 0) {
       return;

@@ -22,8 +22,46 @@
   overflow-y: auto;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1365px) {
   .sidebar-left > .chat-manager {
     display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  body.redsquare-body[data-redsquare-mobile-view='chat'] .saito-floating-menu {
+    display: none;
+  }
+
+  .redsquare-mobile-chat {
+    position: relative;
+  }
+
+  .redsquare-mobile-chat > .chat-manager {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: minmax(4.2rem, auto) minmax(0, 1fr);
+  }
+
+  .redsquare-mobile-chat .chat-manager-list {
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+  }
+
+  .redsquare-mobile-chat .close-chat-manager,
+  .redsquare-mobile-chat .alternate-close-button {
+    display: none;
+  }
+
+  .redsquare-mobile-chat > .chat-static {
+    position: absolute;
+    inset: 0 0 var(--saito-space-xs);
+    z-index: 1;
+    min-width: 0;
+    min-height: 0;
+    background: var(--saito-background);
   }
 }

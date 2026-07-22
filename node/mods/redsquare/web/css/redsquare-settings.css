@@ -153,6 +153,11 @@
     max-height: 100vh;
   }
 
+  .redsquare-mobile-settings .settings {
+    height: 100%;
+    max-height: none;
+  }
+
   .settings > .header,
   .settings .body {
     padding-left: var(--saito-space-md);

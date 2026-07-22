@@ -37,7 +37,7 @@ body.redsquare-body #saito-container > * {
   max-height: 100%;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1365px) {
   body.redsquare-body {
     --redsquare-rail-left: 9rem;
     --redsquare-rail-right: 28rem;
@@ -48,7 +48,9 @@ body.redsquare-body #saito-container > * {
   body.redsquare-body {
     --redsquare-rail-left: 8rem;
     --redsquare-rail-right: 0rem;
-    --saito-width: calc(var(--redsquare-rail-left) + var(--saito-space-xl) + var(--redsquare-feed-width));
+    --saito-width: calc(
+      var(--redsquare-rail-left) + var(--saito-space-xl) + var(--redsquare-feed-width)
+    );
   }
 
   body.redsquare-body #saito-container {
@@ -69,13 +71,9 @@ body.redsquare-body #saito-container > * {
     padding-bottom: calc(var(--redsquare-mobile-nav-height) + env(safe-area-inset-bottom, 0px));
   }
 
-  /*
-   * Float above the mobile nav — independent FAB, not part of the bar.
-   * ~9rem from the viewport bottom clears nav + safe-area with clear separation.
-   * z-index above the nav (40), below overlays (90+).
-   */
+  /* Float above the mobile nav with the same inset used at the right edge. */
   body.redsquare-body .saito-floating-menu {
-    bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--redsquare-mobile-nav-height) + 1.5rem + env(safe-area-inset-bottom, 0px));
     right: max(1.5rem, env(safe-area-inset-right, 0px));
     z-index: 45;
   }
