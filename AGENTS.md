@@ -24,6 +24,371 @@ Use this file as the combined project and Codex runtime guide. Keep context smal
 - Do not add comments that restate obvious code, narrate simple assignments, or compensate for confusing names or structure that can be clarified directly.
 - When changing behavior, update nearby stale comments in the same scope so comments remain trustworthy.
 
+## Saito Module CSS Development Practices
+
+Reusable instructions for writing and simplifying CSS in Saito application modules (e.g. RedSquare). Derived from architectural guidance used during the RedSquare CSS cleanup.
+
+These rules apply to **module CSS** that sits on top of Saito. Saito is the design system; the module is an application that consumes it. These rules override any conflicting CSS or general development guidance elsewhere in this file.
+
+### 1. Roles
+
+**Saito owns appearance and shared UI.**
+
+Saito already owns:
+
+- typography
+- colours
+- spacing scales
+- buttons
+- forms
+- avatars
+- notification badges
+- cards
+- overlays
+- global CSS variables
+- common UI behaviour
+
+**The module consumes those.**
+
+It must not:
+
+- recreate them
+- rename them
+- invent another abstraction layer on top of them
+
+Unacceptable:
+
+```css
+--rs-layer-recessed: var(--saito-surface-color);
+```
+
+Correct:
+
+```css
+background: var(--saito-surface-color);
+```
+
+Rule of thumb: **If Saito already has a variable, use it directly.**
+
+Do not invent aliases.
+Do not invent semantic design tokens.
+Do not create variables “for future flexibility.”
+
+### 2. What module CSS is for
+
+Module CSS exists almost entirely to **position components**.
+
+It should primarily define:
+
+- layout
+- positioning
+- orientation
+- flex / grid
+- visibility
+- overflow
+- gaps / alignment
+- responsive behaviour
+- relationships between components
+
+It should **not** redefine appearance.
+
+If a declaration affects typography, colour, radius, buttons, inputs, cards, shadows, hover colours, or form styling, it probably belongs in Saito, not the module.
+
+Before adding any rule, ask:
+
+1. Does this exist because the module needs a layout?
+2. Or am I recreating something Saito already provides?
+
+If Saito already provides it, delete the rule.
+
+### 3. Component ownership
+
+#### One file, one component, one namespace
+
+Each UI component owns:
+
+- its HTML structure
+- its CSS
+- its descendants
+- its presentation
+
+Each CSS file owns exactly one component / namespace:
+
+| File | Namespace |
+|------|-----------|
+| `…-manager.css` | `.manager` |
+| `…-tweet.css` | `.tweet` |
+| `…-profile.css` | `.profile` |
+
+#### Short descendant names
+
+The namespace comes from the root. Descendants must **not** repeat the component name.
+
+Good:
+
+```css
+.tweet .header
+.tweet .footer
+.tweet .controls
+```
+
+Bad:
+
+```css
+.tweet-header
+.tweet-footer
+.tweet-controls
+```
+
+HTML should match: `class="header"` inside `class="tweet"`, not `class="tweet-header"`.
+
+#### Parents own layout; children own themselves
+
+- Manager decides **where** Tweets appear.
+- Tweet decides **how** a Tweet is rendered.
+- Sidebar decides **where** Profile appears.
+- Profile decides **how** a Profile is rendered.
+
+Buttons and inputs should never know where they live.
+Tweets should never know whether they sit inside Notifications or Profiles.
+
+#### Do not cross ownership boundaries
+
+No component styles inside another component.
+
+Bad:
+
+```css
+.manager .tweet .header
+.manager .tweet .body
+.sidebar .profile .body .text
+```
+
+Instead, the parent adds **state/modifier classes on the child’s root**. The child interprets those modifiers.
+
+Good:
+
+```css
+.tweet.focused
+.tweet.embedded
+.tweet.chain-next
+.tweet.chain-prev
+```
+
+If a selector nests several component names, it is probably violating ownership.
+
+Prefer moving layout responsibility **upward**. Each component should be independently renderable.
+
+#### Base / integration CSS
+
+Overrides of generic Saito styling (page shell, `#saito-container`, integration with `saito.css`) belong in a **base** stylesheet for the module — not scattered through component files.
+
+### 4. Specificity
+
+Prefer short selectors.
+
+Prefer:
+
+```css
+.tweet
+```
+
+instead of:
+
+```css
+body.redsquare-body .manager .tweet
+```
+
+unless the longer selector is **genuinely required** to override Saito.
+
+Rules:
+
+- Every level of selector nesting must justify itself.
+- Do not increase specificity merely to be safe.
+- Increase specificity only when necessary to override an existing rule.
+- Delete specificity that no longer serves a purpose.
+
+Shared generic names (`.header`, `.body`, `.avatar`) may need a single parent scope (`.manager .header`). Unique class names should stand alone (`.tweet`, `.feed-status`).
+
+### 5. Cascade, inheritance, and minimal declarations
+
+Trust the cascade.
+Trust inheritance.
+Trust Saito.
+
+Selectors should contain only the declarations that make that selector unique.
+
+Bad (defensive defaults):
+
+```css
+.profile {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+```
+
+Good (unless a removed declaration demonstrably fixes rendering):
+
+```css
+.profile {
+  display: flex;
+  flex-direction: column;
+}
+```
+
+Minimal CSS is preferred over explicit CSS.
+Prefer inheritance over overriding.
+Prefer relying on Saito over recreating Saito.
+
+Delete any declaration that merely restates Saito’s appearance or the browser/Saito reset.
+
+### 6. CSS custom properties
+
+#### A custom property is not a local variable
+
+Do **not** create variables simply to avoid repeating a literal.
+Do **not** create variables so modifier classes can assign different values.
+
+Discouraged (variables as local mutable state):
+
+```css
+.tweet {
+  --tweet-current-pad-x: 1.6rem;
+  padding: var(--tweet-current-pad-y) var(--tweet-current-pad-x);
+}
+
+.tweet.embedded {
+  --tweet-current-pad-x: 1.2rem;
+}
+```
+
+Preferred (explicit layouts):
+
+```css
+.tweet {
+  padding: 1.2rem 1.6rem;
+}
+
+.tweet.embedded {
+  padding: 1rem 1.2rem;
+}
+```
+
+#### When a custom property may exist
+
+For each variable, ask:
+
+1. Is this **overriding a variable defined by Saito**?
+2. Is this **exposing configuration** that another component is expected to override?
+3. Is this representing **browser or runtime state**?
+
+If the answer to all three is “no”, remove the variable and use a literal.
+
+Earlier formulation of the same idea:
+
+1. Saito defines a variable that is incorrect for this context, and the module overrides it; **or**
+2. A value is shared between multiple rules **and** changing it represents a meaningful module concept.
+
+Otherwise use a literal.
+
+Never create variables because they “might” become configurable or “look cleaner.”
+If a value is not overridden anywhere, it almost certainly should not be a variable.
+
+**Modules must not invent their own variable system.**
+Inherit Saito variables where appropriate; otherwise use ordinary CSS declarations.
+
+Unacceptable aliases (rename-only):
+
+```css
+--rs-layer-base
+--rs-layer-raised
+--rs-border
+--rs-text
+--rs-space-sm
+```
+
+Use the Saito variable directly.
+
+### 7. Simplification over reorganization
+
+The task is not to make CSS look more organized.
+The task is to make it **substantially smaller**.
+
+Delete:
+
+- unnecessary CSS
+- redundant CSS
+- duplicate CSS
+- aliases
+- unjustified variables
+- useless specificity
+- defensive resets
+- unnecessary comments
+
+Expect:
+
+- fewer selectors
+- fewer declarations
+- fewer CSS variables
+- fewer overrides
+- fewer resets
+- fewer comments
+- fewer aliases
+
+The ideal module stylesheet is surprisingly small.
+The objective is not clever CSS. The objective is **obvious CSS**.
+
+**If removing a rule produces identical rendering, that rule should not exist.**
+
+**If two implementations render identically, the one with fewer lines is the correct implementation.**
+
+### 8. Visual and behavioural constraints
+
+When refactoring or reducing CSS:
+
+- Preserve rendered appearance (visually identical unless the task explicitly changes design).
+- Do not redesign, “modernize,” or tweak spacing/colours/typography under the guise of cleanup.
+- Do not break JavaScript that depends on class names, `querySelector` / `closest`, event delegation, data attributes, or DOM structure. Update JS when renaming classes; behaviour must remain identical.
+
+### 9. Working method
+
+1. Assume every declaration is unnecessary until proven.
+2. Prefer delete-then-add-back over incremental trimming when reducing large stylesheets.
+3. Add back only the minimum declaration or specificity that fixes a proven regression.
+4. Do not reorganize for its own sake while reducing.
+5. Keep ownership boundaries clean while deleting.
+
+Before keeping a rule, ask:
+
+- Does this change layout/positioning the module uniquely needs?
+- Does Saito already provide this?
+- Does inheritance already provide this?
+- Is this crossing a component boundary?
+- Is this specificity only “to be safe”?
+- Is this variable only a local rename or mutable local state?
+
+If the answer fails those tests, delete it.
+
+### 10. Quick checklist
+
+- [ ] Using Saito tokens/classes directly (no module aliases)
+- [ ] Layout/positioning only; appearance from Saito
+- [ ] One CSS file → one component namespace
+- [ ] Short descendants; no `component-part` prefixing
+- [ ] Parents arrange; children render; no deep cross-component selectors
+- [ ] Shortest selector that works; specificity only to beat Saito when required
+- [ ] No defensive width/margin/box-sizing resets unless proven necessary
+- [ ] No custom properties except Saito overrides / real shared config / runtime state
+- [ ] Modifier layouts written as explicit declarations, not variable reassignment
+- [ ] Fewer lines than before for the same rendering
+- [ ] JS selectors and behaviour still correct
+
 ## Rust Locking
 
 - When adding, changing, or debugging lock-related Rust code, follow the `LOCK_ORDER_*` constants in `saito-core/src/core/defs.rs` whenever multiple locks may be acquired.
