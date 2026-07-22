@@ -486,8 +486,10 @@ html:has(.stack-create-post-page) {
   font-weight: 500; /* Slightly heavier for visibility */
 }
 
-.stack-create-post-page .stack-post-title-input:focus {
+.stack-create-post-page .stack-post-title-input:is(:focus, :focus-visible) {
   opacity: 1;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .stack-create-post-page .stack-post-body-field {
@@ -1099,4 +1101,3 @@ html:has(.stack-create-post-page) {
     font-size: 1.4rem;
   }
 }
-

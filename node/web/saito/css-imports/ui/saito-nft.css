@@ -364,8 +364,10 @@
 
 .saito-nft-create #nft-image-upload {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 1rem;
   text-align: center;
   border: 3px dotted;
   height: 100%;
@@ -373,16 +375,16 @@
   border-radius: 1rem;
   width: 100%;
   min-height: 30rem;
+  color: var(--saito-foreground);
   cursor: pointer;
 }
 
 .saito-nft-create #nft-image-upload i {
-  font-size: 3.5rem;
-  color: var(--saito-surface-selected);
+  font-size: 4rem;
+  line-height: 1;
 }
 
 .saito-nft-create #nft-image-upload div {
-  margin-left: 1rem;
   font-size: 1.6rem;
 }
 

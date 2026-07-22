@@ -226,6 +226,10 @@
 	margin-left: 0px;
 }
 
+.arcade-sidebar .chat-manager {
+	background: transparent;
+}
+
 /******************************************
  *  Base teaser card styles (restored from
  *  former arcade-game-selector-overlay.css)
