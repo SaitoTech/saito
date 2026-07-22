@@ -1,16 +1,6 @@
-/* Page shell — width cluster, gutters, header alignment, breakpoints.
- * Geometry tokens live here (loaded first) so --saito-width cannot drift.
- */
+/* Page shell visuals. Container geometry is grouped at the bottom of this file. */
 
 body.redsquare-body {
-  --redsquare-rail-left: 26rem;
-  --redsquare-rail-right: 32rem;
-  --redsquare-feed-width: 58rem;
-  --saito-width: calc(
-    var(--redsquare-rail-left) + var(--saito-space-xl) + var(--redsquare-feed-width) + var(--saito-space-xl) +
-      var(--redsquare-rail-right)
-  );
-
   /*
    * Quiet workspace canvas — keep Saito warmth, drop the branded radial “explosion”.
    * Only --saito-canvas-background is overridden; --saito-background stays the warm base.
@@ -24,8 +14,23 @@ body.redsquare-body {
     var(--saito-background);
 }
 
+/*
+ * Container sizing
+ *
+ * Desktop: full left rail + feed + right rail.
+ * 1365px: compact left rail.
+ * 820px: remove the right rail.
+ * 600px: feed-only mobile layout above the bottom navigation.
+ */
+body.redsquare-body {
+  --redsquare-rail-left: 26rem;
+  --redsquare-rail-right: 100%;
+  --redsquare-feed-width: 100%;
+  --saito-width: min(100vw, 1485px);
+}
+
 body.redsquare-body #saito-container {
-  grid-template-columns: var(--redsquare-rail-left) auto var(--redsquare-rail-right);
+  grid-template-columns: var(--redsquare-rail-left) 11fr 5fr;
   column-gap: var(--saito-space-xl);
   padding: 0 max(2rem, calc((100vw - var(--saito-width)) / 2 + 0.5rem));
   overflow: hidden;
@@ -35,6 +40,16 @@ body.redsquare-body #saito-container > * {
   min-width: 0;
   min-height: 0;
   max-height: 100%;
+}
+
+body.redsquare-body #saito-container > .main {
+  justify-self: start;
+  display: flex;
+  flex-direction: column;
+  width: var(--redsquare-feed-width);
+  max-width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 @media (max-width: 1365px) {
@@ -48,9 +63,6 @@ body.redsquare-body #saito-container > * {
   body.redsquare-body {
     --redsquare-rail-left: 8rem;
     --redsquare-rail-right: 0rem;
-    --saito-width: calc(
-      var(--redsquare-rail-left) + var(--saito-space-xl) + var(--redsquare-feed-width)
-    );
   }
 
   body.redsquare-body #saito-container {
@@ -69,6 +81,18 @@ body.redsquare-body #saito-container > * {
     column-gap: 0;
     padding: 0;
     padding-bottom: calc(var(--redsquare-mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.redsquare-body #saito-container > .main {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    align-self: stretch;
+    justify-self: stretch;
+  }
+
+  body.redsquare-body #saito-container > .main > [data-mobile-view][hidden] {
+    display: none !important;
   }
 
   /* Float above the mobile nav with the same inset used at the right edge. */
