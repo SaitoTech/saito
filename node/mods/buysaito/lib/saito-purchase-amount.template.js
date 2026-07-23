@@ -17,21 +17,29 @@ module.exports = (app, mod, self) => {
     logo += `<img class='chain-logo' src='${results?.sub_logo}'>`;
   }
 
-  let url = data.icon_url || `/${data.ticker.toLowerCase()}/img/logo.png`;
+  let saito_img = '/saito/img/saito-icon.png';
+  let saito_results = app.modules.getRespondTos('crypto-logo', { ticker: 'SAITO' }).shift();
+
+  if (saito_results?.img) {
+    saito_img = saito_results.img;
+  }
+
+  let saito_logo = `<img class='crypto-logo' src='${saito_img}'>`;
+  if (saito_results?.sub_logo) {
+    saito_logo += `<img class='chain-logo' src='${saito_results.sub_logo}'>`;
+  }
 
   let html = `
-    <div class="amount-selection-box saito-overlay-size narrow">
+    <div class="amount-selection-box saito-overlay-panel saito-overlay-size narrow">
 
       <div class='saito-purchase-deposit-header'>Select Amount</div>
       <div class='crypto-box'>
-        <div>${data.ticker}</div>
-        <div class="crypto-logo-container">${logo}</div>
-        <input type="number" autocomplete="off" min="0" max="9999999999.99999999" step="0.00000001" class="saito-input buysaito-input-amount" id="input-amount" value="" required="" placeholder="amount to spend">
+        <div class="amount-selection-logo">${logo}</div>
+        <input type="number" autocomplete="off" min="0" max="9999999999.99999999" step="0.00000001" class="saito-input buysaito-input-amount" id="input-amount" value="" required="" aria-label="Amount in ${data.ticker}" placeholder="${data.ticker}">
       </div>
       <div class='crypto-box'>
-        <div>SAITO</div>
-        <div>(approx)</div>
-        <div class="expected_amount"></div>
+        <div class="amount-selection-logo">${saito_logo}</div>
+        <input type="text" class="saito-input expected_amount" aria-label="Approximate amount in SAITO" placeholder="SAITO (approx.)" readonly>
       </div>
 
       <div class="saito-button-row auto-size">

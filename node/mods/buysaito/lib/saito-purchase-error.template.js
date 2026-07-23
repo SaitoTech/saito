@@ -1,6 +1,6 @@
 module.exports = () => {
   return `
-    <div class="saito-purchase-error saito-overlay-size narrow loader-interstitial-overlay">
+    <div class="saito-purchase-error saito-overlay-panel saito-overlay-size narrow loader-interstitial-overlay">
       <div class="container-header">Friendly Notice</div> 
       <div class="container-body">Due to heavy use, the hot wallet will need to be refilled to complete your purchase.</div>
       <div class="container-body">The team have been notified and will resupply the hot wallet as soon as possible.</div>

@@ -250,7 +250,8 @@ Scrollbars
   line-height: 2rem;
 }
 
-.hidden {
+.hidden,
+.hideme {
   display: none;
 }
 
@@ -381,4 +382,3 @@ Media Queries
 :where(.saito-input-contact):is(:focus, :focus-visible) {
   background-color: transparent !important;
 }
-
