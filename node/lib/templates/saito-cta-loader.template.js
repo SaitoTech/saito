@@ -62,7 +62,10 @@ function preload(logos = []) {
   });
 
   return hrefs
-    .map((href) => `<link rel="preload" as="image" type="image/svg+xml" fetchpriority="high" href="${href}" />`)
+    .map(
+      (href) =>
+        `<link rel="preload" as="image" type="image/svg+xml" fetchpriority="high" href="${href}" />`
+    )
     .join('\n');
 }
 
