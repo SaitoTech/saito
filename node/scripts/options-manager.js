@@ -2,19 +2,23 @@
 
 /**
  * Saito Options File Manager
- * 
- * A command-line tool for managing encrypted Saito options files.
- * Supports decryption, pretty printing, and re-encryption with new passwords.
- * 
+ *
+ * A command-line tool for managing Saito options files.
+ *
+ * The options file is plaintext JSON. Only the wallet private key is encrypted at rest,
+ * and only when a password is set. Options files in the legacy format -- where the whole
+ * file was encrypted -- are still readable here, and are migrated to the current format
+ * by the encrypt/decrypt commands.
+ *
  * Usage:
  *   node options-manager.js [command] [options]
  *   npm run options-manager [command] [options]
- * 
+ *
  * Commands:
- *   decrypt    - Decrypt and display the options file
- *   encrypt    - Encrypt the options file with a new password
- *   status     - Check if the options file is encrypted
- * 
+ *   decrypt    - Write out the options file with a plaintext private key
+ *   encrypt    - Write out the options file with an encrypted private key
+ *   status     - Report the format of the options file
+ *
  * Options:
  *   --file, -f     Path to options file (default: config/options)
  *   --password, -p Password for encryption/decryption
@@ -33,9 +37,13 @@ const base58 = require('base-58');
 const CryptoJS = node_cryptojs.CryptoJS;
 const JsonFormatter = node_cryptojs.JsonFormatter;
 
+// camelCasing is what Saito writes, lowercase is kept for older options files
+const PRIVATE_KEY_FIELDS = ['privateKey', 'privatekey'];
+
 class OptionsManager {
   constructor() {
     this.defaultOptionsPath = path.resolve(__dirname, '../config', 'options');
+    this.promptedPassword = null;
   }
 
   /**
@@ -48,6 +56,30 @@ class OptionsManager {
     } catch (_e) {
       return false;
     }
+  }
+
+  /**
+   * Check if a string is a usable wallet private key
+   */
+  isValidPrivateKey(key) {
+    return typeof key === 'string' && /^[0-9a-fA-F]{64}$/.test(key);
+  }
+
+  /**
+   * Return the name of the wallet field holding an encrypted private key, or null if the
+   * key is already plaintext (or absent)
+   */
+  returnEncryptedPrivateKeyField(options) {
+    if (!options || !options.wallet) {
+      return null;
+    }
+    for (const field of PRIVATE_KEY_FIELDS) {
+      const stored = options.wallet[field];
+      if (stored && !this.isValidPrivateKey(stored)) {
+        return field;
+      }
+    }
+    return null;
   }
 
   /**
@@ -158,13 +190,14 @@ class OptionsManager {
   }
 
   /**
-   * Get password from various sources
+   * Get password from various sources. A prompted password is remembered for the rest of
+   * the command, since one command can need to unlock both the file and the private key.
    */
   async getPassword(options, prompt = 'Enter password: ') {
     if (options.password) {
       return options.password;
     }
-    
+
     if (options.secret) {
       return this.readPasswordFromFile(options.secret);
     }
@@ -173,7 +206,31 @@ class OptionsManager {
       return process.env.SAITO_PASS;
     }
 
-    return await this.readPasswordFromPrompt(prompt);
+    if (this.promptedPassword === null) {
+      this.promptedPassword = await this.readPasswordFromPrompt(prompt);
+    }
+
+    return this.promptedPassword;
+  }
+
+  /**
+   * Get the password to encrypt with. Kept separate from getPassword so it is never
+   * satisfied by a password the user typed to unlock the existing file.
+   */
+  async getNewPassword(args) {
+    if (args.newPassword) {
+      return args.newPassword;
+    }
+
+    if (args.newSecret) {
+      return this.readPasswordFromFile(args.newSecret);
+    }
+
+    if (process.env.SAITO_PASS) {
+      return process.env.SAITO_PASS;
+    }
+
+    return await this.readPasswordFromPrompt('Enter new encryption password: ');
   }
 
   /**
@@ -250,13 +307,82 @@ class OptionsManager {
   }
 
   /**
+   * Read an options file into a plain object with a plaintext private key, handling both
+   * the current format and the legacy fully encrypted one.
+   */
+  async returnPlaintextOptions(filepath, args) {
+    const content = this.readOptionsFile(filepath);
+    let plaintextContent = content;
+    let legacy = false;
+
+    // legacy format : the whole file was encrypted
+    if (this.isAesEncrypted(content)) {
+      legacy = true;
+      const password = await this.getPassword(args, 'Enter current password: ');
+      plaintextContent = this.decryptOptionsString(content, password);
+
+      if (!plaintextContent) {
+        throw new Error('Failed to decrypt options file - invalid password or corrupted data');
+      }
+    }
+
+    let options;
+    try {
+      options = JSON.parse(plaintextContent);
+    } catch (err) {
+      throw new Error('File content is not valid JSON');
+    }
+
+    const field = this.returnEncryptedPrivateKeyField(options);
+    if (field) {
+      const password = await this.getPassword(args, 'Enter current password: ');
+      let decrypted = null;
+      try {
+        decrypted = this.decryptOptionsString(options.wallet[field], password);
+      } catch (err) {
+        decrypted = null;
+      }
+
+      if (!this.isValidPrivateKey(decrypted)) {
+        throw new Error(
+          `Failed to decrypt the wallet ${field} - invalid password. The options file has not been modified.`
+        );
+      }
+
+      options.wallet[field] = decrypted;
+    }
+
+    return { options, legacy, wasPrivateKeyEncrypted: !!field };
+  }
+
+  /**
+   * Return a copy of the options with the wallet private key encrypted
+   */
+  returnOptionsWithEncryptedPrivateKey(options, password) {
+    if (!options.wallet) {
+      return options;
+    }
+
+    const encrypted = Object.assign({}, options);
+    encrypted.wallet = Object.assign({}, options.wallet);
+
+    for (const field of PRIVATE_KEY_FIELDS) {
+      if (this.isValidPrivateKey(encrypted.wallet[field])) {
+        encrypted.wallet[field] = this.encryptOptionsString(encrypted.wallet[field], password);
+      }
+    }
+
+    return encrypted;
+  }
+
+  /**
    * Check status of options file
    */
   async checkStatus(options) {
     const filepath = options.file || this.defaultOptionsPath;
-    
+
     console.log(`Options file: ${filepath}`);
-    
+
     if (!fs.existsSync(filepath)) {
       console.log('Status: File does not exist');
       return;
@@ -264,19 +390,29 @@ class OptionsManager {
 
     try {
       const content = this.readOptionsFile(filepath);
-      const isEncrypted = this.isAesEncrypted(content);
-      
-      console.log(`Status: ${isEncrypted ? 'Encrypted' : 'Not encrypted'}`);
       console.log(`Size: ${content.length} bytes`);
-      
-      if (!isEncrypted) {
-        try {
-          const parsed = JSON.parse(content);
-          console.log(`JSON structure: ${Object.keys(parsed).length} top-level keys`);
-        } catch (err) {
-          console.log('Warning: File content is not valid JSON');
-        }
+
+      if (this.isAesEncrypted(content)) {
+        console.log('Status: Legacy format - the whole file is encrypted');
+        console.log('Run the decrypt or encrypt command to migrate it to the current format');
+        return;
       }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(content);
+      } catch (err) {
+        console.log('Status: Unrecognized - file is neither encrypted nor valid JSON');
+        return;
+      }
+
+      const field = this.returnEncryptedPrivateKeyField(parsed);
+      if (field) {
+        console.log(`Status: Readable JSON, wallet ${field} is encrypted`);
+      } else {
+        console.log('Status: Readable JSON, private key is not encrypted');
+      }
+      console.log(`JSON structure: ${Object.keys(parsed).length} top-level keys`);
     } catch (err) {
       console.error(`Error checking status: ${err.message}`);
       process.exit(1);
@@ -284,52 +420,34 @@ class OptionsManager {
   }
 
   /**
-   * Decrypt and display options file
+   * Write out the options file with a plaintext private key, or display it
    */
-  async decrypt(options) {
-    const filepath = options.file || this.defaultOptionsPath;
-    
+  async decrypt(args) {
+    const filepath = args.file || this.defaultOptionsPath;
+
     try {
-      const content = this.readOptionsFile(filepath);
-      
-      if (!this.isAesEncrypted(content)) {
-        console.log('File is not encrypted. Displaying content:');
-        console.log();
-        
-        if (options.pretty) {
-          try {
-            const parsed = JSON.parse(content);
-            console.log(this.formatJsonOnePerLine(parsed));
-          } catch (err) {
-            console.log(content);
-          }
-        } else {
-          console.log(content);
-        }
-        return;
-      }
+      const { options, legacy, wasPrivateKeyEncrypted } = await this.returnPlaintextOptions(
+        filepath,
+        args
+      );
 
-      const password = await this.getPassword(options, 'Enter decryption password: ');
-      const decrypted = this.decryptOptionsString(content, password);
-      
-      if (!decrypted) {
-        throw new Error('Decryption failed - invalid password or corrupted data');
-      }
-
-      console.log('Successfully decrypted options file:');
-      console.log();
-      
-      if (options.pretty) {
-        try {
-          const parsed = JSON.parse(decrypted);
-          console.log(this.formatJsonOnePerLine(parsed));
-        } catch (err) {
-          console.log(decrypted);
-        }
+      if (!legacy && !wasPrivateKeyEncrypted) {
+        console.log('Nothing is encrypted. Displaying content:');
       } else {
-        console.log(decrypted);
+        console.log('Successfully decrypted options file:');
       }
+      console.log();
 
+      const output = args.pretty
+        ? this.formatJsonOnePerLine(options)
+        : JSON.stringify(options, null, 4);
+
+      if (args.output) {
+        this.writeOptionsFile(args.output, output);
+        console.log(`Wrote decrypted options file to: ${args.output}`);
+      } else {
+        console.log(output);
+      }
     } catch (err) {
       console.error(`Decryption error: ${err.message}`);
       process.exit(1);
@@ -337,59 +455,37 @@ class OptionsManager {
   }
 
   /**
-   * Encrypt options file with new password
+   * Write out the options file with the wallet private key encrypted
    */
-  async encrypt(options) {
-    const filepath = options.file || this.defaultOptionsPath;
-    const outputPath = options.output || filepath;
-    
+  async encrypt(args) {
+    const filepath = args.file || this.defaultOptionsPath;
+    const outputPath = args.output || filepath;
+
     try {
-      const content = this.readOptionsFile(filepath);
-      let plaintextContent = content;
-      
-      // If file is already encrypted, decrypt it first
-      if (this.isAesEncrypted(content)) {
-        console.log('File is already encrypted. Decrypting first...');
-        const oldPassword = await this.getPassword(options, 'Enter current password: ');
-        plaintextContent = this.decryptOptionsString(content, oldPassword);
-        
-        if (!plaintextContent) {
-          throw new Error('Failed to decrypt existing file - invalid password');
-        }
+      const { options, legacy } = await this.returnPlaintextOptions(filepath, args);
+
+      if (legacy) {
+        console.log('File is in the legacy fully encrypted format. Migrating...');
       }
 
-      // Validate JSON
-      try {
-        JSON.parse(plaintextContent);
-      } catch (err) {
-        throw new Error('File content is not valid JSON');
-      }
-
-      // Get new password
-      const newPassword = await this.getPassword(
-        { password: options.newPassword, secret: options.newSecret },
-        'Enter new encryption password: '
-      );
-
+      const newPassword = await this.getNewPassword(args);
       if (!newPassword) {
         throw new Error('Password is required for encryption');
       }
 
-      // Encrypt with new password
-      const encrypted = this.encryptOptionsString(plaintextContent, newPassword);
-      
-      // Write encrypted content
-      this.writeOptionsFile(outputPath, encrypted);
-      
-      console.log(`Successfully encrypted options file to: ${outputPath}`);
-      
-      // Verify encryption worked
-      if (this.isAesEncrypted(encrypted)) {
-        console.log('Encryption verified successfully');
-      } else {
-        console.warn('Warning: Encryption verification failed');
+      const encrypted = this.returnOptionsWithEncryptedPrivateKey(options, newPassword);
+
+      if (!this.returnEncryptedPrivateKeyField(encrypted)) {
+        console.warn(
+          'Warning: no wallet private key found to encrypt. The options file has not been modified.'
+        );
+        return;
       }
 
+      this.writeOptionsFile(outputPath, JSON.stringify(encrypted, null, 4));
+
+      console.log(`Successfully encrypted the wallet private key in: ${outputPath}`);
+      console.log('The rest of the options file remains readable JSON.');
     } catch (err) {
       console.error(`Encryption error: ${err.message}`);
       process.exit(1);
@@ -449,20 +545,24 @@ class OptionsManager {
     console.log(`
 Saito Options File Manager
 
+The options file is plaintext JSON. Only the wallet private key is encrypted at rest.
+Options files in the legacy format -- where the whole file was encrypted -- are still
+readable, and are migrated to the current format by the encrypt/decrypt commands.
+
 Usage:
   node options-manager.js [command] [options]
   npm run options-manager [command] [options]
 
 Commands:
-  status     Check if the options file is encrypted
-  decrypt    Decrypt and display the options file
-  encrypt    Encrypt the options file with a new password
+  status     Report the format of the options file
+  decrypt    Write out the options file with a plaintext private key
+  encrypt    Write out the options file with an encrypted private key
 
 Options:
   --file, -f         Path to options file (default: config/options)
-  --password, -p     Password for encryption/decryption
-  --secret, -s       Path to file containing password
-  --output, -o       Output file path (for encrypt command)
+  --password, -p     Password the file is currently protected with
+  --secret, -s       Path to file containing that password
+  --output, -o       Output file path (defaults to stdout for decrypt, in place for encrypt)
   --new-password     New password for encryption (encrypt command)
   --new-secret       Path to file with new password (encrypt command)
   --pretty           Pretty print JSON output
@@ -472,19 +572,22 @@ Environment Variables:
   SAITO_PASS         Password for encryption/decryption (if not provided via options)
 
 Examples:
-  # Check if options file is encrypted
+  # Report the format of the options file
   node options-manager.js status
 
-  # Decrypt and pretty print options file
+  # Print the options file with a plaintext private key
   node options-manager.js decrypt --pretty
 
   # Decrypt with password from file
   node options-manager.js decrypt --secret /path/to/password.txt
 
-  # Encrypt options file with new password
-  node options-manager.js encrypt --password mypassword
+  # Remove encryption from the private key, in place
+  node options-manager.js decrypt --password mypassword --output config/options
 
-  # Re-encrypt with different password
+  # Encrypt the private key with a new password
+  node options-manager.js encrypt --new-password mypassword
+
+  # Re-encrypt the private key with a different password
   node options-manager.js encrypt --password oldpass --new-password newpass
 `);
   }
