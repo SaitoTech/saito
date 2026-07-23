@@ -303,8 +303,7 @@ class Browser {
       this.browser_active = 1;
 
       const theme_from_document = document.documentElement.getAttribute('data-theme');
-      const theme =
-        this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'noir';
+      const theme = this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'noir';
 
       this.switchTheme(theme);
     } catch (err) {
@@ -2581,8 +2580,7 @@ class Browser {
   switchTheme(theme) {
     let mod_obj = this.app.modules.returnActiveModule();
     let force_lite_for_game =
-      mod_obj?.is_game_template === true ||
-      document.documentElement.classList.contains('game');
+      mod_obj?.is_game_template === true || document.documentElement.classList.contains('game');
 
     if (force_lite_for_game) {
       theme = 'lite';
