@@ -1,7 +1,7 @@
 const SalesViewTemplate = require('./sales-view.template');
 
 const OWN_STORE_DESCRIPTION =
-	"This page shows items actively listed on your store. If you are new to Saito visit our 'Guide for Sellers' which explains how the sales process works. The dropdown to your left can be used to browse your listings by category. When sharing your store online, share the following address, which is specific to your store:";
+	'This page shows items actively listed on your store. If you are new to Saito visit our <a class="saito-text-link" href="https://wiki.saito.io" target="_blank" rel="noopener noreferrer">Guide for Sellers</a> which explains how the sales process works. The dropdown to your left can be used to browse your listings by category. When sharing your store online, share the following address, which is specific to your store:';
 
 class SalesView {
 	constructor(app, mod, container = '', callbacks = {}) {
@@ -26,7 +26,7 @@ class SalesView {
 		this.app.browser.replaceElementContentBySelector(
 			SalesViewTemplate({
 				title: 'Your Store',
-				description: this.escapeHtml(OWN_STORE_DESCRIPTION),
+				description: OWN_STORE_DESCRIPTION,
 				shareUrl: this.escapeHtml(shareUrl),
 				showCopy: !!shareUrl
 			}),

@@ -27,13 +27,14 @@ class PurchaseLifecycle {
 		this._checkingWallet = false;
 
 		this.app.connection.on('wallet-updated', () => {
-			this.checkWalletForArrival();
+			// Wallet already ran updateNFTList; only inspect options here.
+			void this.checkWalletForArrival({ sync: false });
 		});
 		this.app.connection.on('on-nft-received', (payload) => {
 			this.onNftReceived(payload);
 		});
 		this.app.connection.on('store-new-block', () => {
-			this.checkWalletForArrival();
+			void this.checkWalletForArrival();
 		});
 	}
 
@@ -304,14 +305,14 @@ class PurchaseLifecycle {
 		}
 	}
 
-	async checkWalletForArrival() {
+	async checkWalletForArrival({ sync = true } = {}) {
 		if (this._checkingWallet || !this.hasPendingPurchases()) {
 			return;
 		}
 
 		this._checkingWallet = true;
 		try {
-			if (typeof this.app.wallet?.updateNFTList === 'function') {
+			if (sync && typeof this.app.wallet?.updateNFTList === 'function') {
 				await this.app.wallet.updateNFTList();
 			}
 

@@ -10,10 +10,10 @@ module.exports = ({
 
 	const urlRow = shareUrl
 		? `<div class="storefront-url-row">
-        <p class="storefront-url" data-storefront-url title="${shareUrl}">${shareUrl}</p>
+        <a class="saito-text-link storefront-url" data-storefront-url href="${shareUrl}" title="${shareUrl}">${shareUrl}</a>
         ${
 					showCopy
-						? `<button type="button" class="storefront-copy" data-action="copy-url" aria-label="Copy storefront URL" title="Copy URL">
+						? `<button type="button" class="saito-icon-button" data-action="copy-url" aria-label="Copy storefront URL" title="Copy URL">
             <i class="fas fa-copy" aria-hidden="true"></i>
           </button>`
 						: ''

@@ -114,10 +114,10 @@ class Withdraw {
       return;
     }
     if (this.isNftWithdrawSelection()) {
-      amountLabel.textContent = 'Units';
+      amountLabel.textContent = 'units';
       amountInput.inputMode = 'numeric';
     } else {
-      amountLabel.textContent = 'Amount';
+      amountLabel.textContent = 'amount';
       amountInput.inputMode = 'decimal';
     }
   }
@@ -261,13 +261,13 @@ class Withdraw {
     const fixedRecipient = this.isFixedRecipientForm();
 
     preview.innerHTML = `
-      <div class="saito-user withdraw-address-user" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
+      <div class="saito-user address-user" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
         <div class="saito-identicon-box">
           <img class="saito-identicon" src="${this.escapeHTML(identicon)}" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
         </div>
-        <div class="saito-address withdraw-address-user-primary" title="${this.escapeHTML(primary)}">${this.escapeHTML(primary)}</div>
-        <div class="saito-userline withdraw-address-user-secondary" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
-        <button type="button" class="withdraw-address-edit ${fixedRecipient ? 'hide-element' : ''}" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+        <div class="saito-address" title="${this.escapeHTML(primary)}">${this.escapeHTML(primary)}</div>
+        <div class="saito-userline" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
+        <button type="button" class="saito-icon-button address-edit ${fixedRecipient ? 'hide-element' : ''}" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
           <i class="fa-solid fa-pen" aria-hidden="true"></i>
         </button>
       </div>
@@ -295,25 +295,25 @@ class Withdraw {
     const identicon = hasPublicKey ? this.app.keychain.returnIdenticon(publicKey) : '';
 
     preview.innerHTML = `
-      <div class="withdraw-address-external">
-        <div class="withdraw-address-external-address" title="${this.escapeHTML(displayAddress)}">${this.escapeHTML(displayAddress)}</div>
-        <div class="withdraw-address-external-user ${hasPublicKey ? 'saito-user withdraw-address-external-user--matched' : 'withdraw-address-external-user--unknown'}" ${hasPublicKey ? `data-id="${this.escapeHTML(publicKey)}" data-disable="true"` : ''}>
+      <div class="address-external">
+        <div class="address-external-address" title="${this.escapeHTML(displayAddress)}">${this.escapeHTML(displayAddress)}</div>
+        <div class="address-external-user ${hasPublicKey ? 'saito-user address-external-user--matched' : 'address-external-user--unknown'}" ${hasPublicKey ? `data-id="${this.escapeHTML(publicKey)}" data-disable="true"` : ''}>
           ${
             hasPublicKey
               ? `<div class="saito-identicon-box">
                   <img class="saito-identicon" src="${this.escapeHTML(identicon)}" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
                 </div>`
-              : `<div class="withdraw-address-external-unknown-icon">
+              : `<div class="address-external-unknown-icon">
                   <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
                 </div>`
           }
-          <div class="withdraw-address-user-primary" title="${this.escapeHTML(primary)}">
+          <div class="saito-address" title="${this.escapeHTML(primary)}">
             ${this.escapeHTML(primary)}
-            ${hasPublicKey ? '<span class="withdraw-address-external-match-label">Matched</span>' : ''}
+            ${hasPublicKey ? '<span class="address-match-label">Matched</span>' : ''}
           </div>
-          <div class="withdraw-address-user-secondary" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
+          <div class="saito-userline" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
         </div>
-        <button type="button" class="withdraw-address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+        <button type="button" class="saito-icon-button address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
           <i class="fa-solid fa-pen" aria-hidden="true"></i>
         </button>
       </div>
@@ -329,9 +329,9 @@ class Withdraw {
     }
 
     preview.innerHTML = `
-      <div class="withdraw-address-invalid" role="alert">
-        <div class="withdraw-address-invalid-message">${this.escapeHTML(`Error: Invalid ${this.ticker} address`)}</div>
-        <button type="button" class="withdraw-address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+      <div class="address-invalid" role="alert">
+        <div class="address-invalid-message">${this.escapeHTML(`Error: Invalid ${this.ticker} address`)}</div>
+        <button type="button" class="saito-icon-button address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
           <i class="fa-solid fa-pen" aria-hidden="true"></i>
         </button>
       </div>
@@ -370,23 +370,23 @@ class Withdraw {
 
     if (cont.classList.contains('hide-element')) {
       preview.classList.remove('hide-element');
-      preview.classList.remove('withdraw-address-preview--enter');
-      preview.classList.add('withdraw-address-preview--enter-active');
+      preview.classList.remove('address-preview--enter');
+      preview.classList.add('address-preview--enter-active');
       return;
     }
 
     preview.classList.add('hide-element');
-    preview.classList.remove('withdraw-address-preview--enter-active');
-    cont.classList.add('withdraw-address-transition-out');
+    preview.classList.remove('address-preview--enter-active');
+    cont.classList.add('address-transition-out');
 
     this.addressPreviewTransitionTimer = setTimeout(() => {
       cont.classList.add('hide-element');
-      cont.classList.remove('withdraw-address-transition-out');
+      cont.classList.remove('address-transition-out');
       preview.classList.remove('hide-element');
-      preview.classList.add('withdraw-address-preview--enter');
+      preview.classList.add('address-preview--enter');
       requestAnimationFrame(() => {
-        preview.classList.add('withdraw-address-preview--enter-active');
-        preview.classList.remove('withdraw-address-preview--enter');
+        preview.classList.add('address-preview--enter-active');
+        preview.classList.remove('address-preview--enter');
       });
     }, 333);
   }
@@ -396,11 +396,8 @@ class Withdraw {
     const preview = document.getElementById('withdraw-address-preview');
     const cont = document.getElementById('withdraw-address-cont');
     preview?.classList.add('hide-element');
-    preview?.classList.remove(
-      'withdraw-address-preview--enter',
-      'withdraw-address-preview--enter-active'
-    );
-    cont?.classList.remove('hide-element', 'withdraw-address-transition-out');
+    preview?.classList.remove('address-preview--enter', 'address-preview--enter-active');
+    cont?.classList.remove('hide-element', 'address-transition-out');
   }
 
   showAddressInputForEdit({ preserveValue = false } = {}) {
@@ -1360,10 +1357,8 @@ class Withdraw {
 
   updateFeeEditability() {
     const wrap = document.getElementById('withdraw-fee-wrap');
-    const icon = document.getElementById('withdraw-fee-edit-icon');
     const isNative = this.pc?.chain_id === 'NATIVE';
-    wrap?.classList.toggle('withdraw-fee-wrap--editable', isNative);
-    icon?.classList.toggle('hide-element', !isNative);
+    wrap?.classList.toggle('fee-wrap--editable', isNative);
     if (wrap) {
       wrap.title = isNative ? 'Click to set the network fee' : '';
     }

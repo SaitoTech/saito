@@ -680,7 +680,17 @@ export default class Wallet extends SaitoWallet {
       }
 
       this.app.connection.on('wallet-updated', async () => {
-        await this.updateNFTList(); // triggers this.saveWallet() after updating NFTs from cache
+        const { persisted } = await this.updateNFTList();
+        if (
+          persisted &&
+          this.app.BROWSER &&
+          typeof (globalThis as unknown as { siteMessage?: Function }).siteMessage === 'function'
+        ) {
+          (globalThis as unknown as { siteMessage: Function }).siteMessage(
+            'NFT updated in wallet',
+            3000
+          );
+        }
       });
 
       this.app.connection.on('keychain-updated', () => {

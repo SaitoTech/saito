@@ -1,6 +1,6 @@
 /* Non-lounge overlay rules. Lounge structure lives in arcade-lounge.css */
 
-.overlay-invite-manager > .arcade-invite {
+.overlay-invite-manager > .arcade-invites {
 	margin-bottom: 0.5rem;
 }
 

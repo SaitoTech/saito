@@ -78,7 +78,7 @@ class StorefrontView {
 		this.app.browser.replaceElementContentBySelector(
 			StorefrontViewTemplate({
 				title: this.escapeHtml(rawTitle),
-				description: isOwn ? this.escapeHtml(OWN_STORE_DESCRIPTION) : '',
+				description: isOwn ? OWN_STORE_DESCRIPTION : '',
 				shareUrl: this.escapeHtml(shareUrl),
 				loading: !!this.publicKey && this.loading,
 				showCopy: isOwn && !!shareUrl,

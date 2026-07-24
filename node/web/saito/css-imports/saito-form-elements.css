@@ -47,7 +47,7 @@ textarea.saito-textarea,
 select.saito-form-select {
   appearance: none;
   -webkit-appearance: none;
-  background: var(--saito-input-bg);
+  background-color: var(--saito-input-bg);
   color: var(--saito-input-fg-heavy);
   border: var(--border-thickness-thin) solid var(--saito-input-border);
   font-family: var(--saito-input-font);
@@ -61,6 +61,11 @@ select.saito-form-select {
 select.saito-form-select {
   cursor: pointer;
   color: var(--saito-input-fg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a6a09b' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2rem 0.8rem;
+  padding-right: 3.2rem;
 }
 textarea.saito-textarea {
   resize: none;

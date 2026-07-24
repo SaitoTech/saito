@@ -110,10 +110,8 @@ class FileInfo {
       }
     }, 1000);
 
-    this._onWalletUpdated = async () => {
-      try {
-        await this.app.wallet.updateNFTList();
-      } catch (err) {}
+    this._onWalletUpdated = () => {
+      // Wallet owns updateNFTList on wallet-updated; only inspect synced options here.
       if (nftInWallet()) {
         showCompleted();
       }

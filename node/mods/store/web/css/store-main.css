@@ -156,61 +156,23 @@
 	max-width: 100%;
 	font-size: var(--font-size-small);
 	line-height: 1.35;
-	color: var(--saito-font-color-secondary);
-	opacity: 0.8;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	user-select: all;
 	min-width: 0;
-	flex: 1 1 auto;
+	flex: 0 1 auto;
 }
 
 .store .storefront-url-row {
 	display: flex;
 	align-items: center;
-	gap: 0.75rem;
+	justify-content: flex-start;
+	gap: 0.55rem;
 	margin-top: 0.55rem;
-	min-width: 0;
+	width: fit-content;
 	max-width: 100%;
-}
-
-.store .storefront-copy {
-	flex: 0 0 auto;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 2.4rem;
-	height: 2.4rem;
-	margin: 0;
-	padding: 0;
-	border: none;
-	border-radius: var(--saito-border-radius);
-	background: transparent;
-	color: var(--saito-font-color-secondary);
-	cursor: pointer;
-	opacity: 0.75;
-	transition:
-		opacity 0.15s ease,
-		color 0.15s ease,
-		background-color 0.15s ease;
-}
-
-.store .storefront-copy:hover {
-	opacity: 1;
-	color: var(--saito-font-color);
-	background: color-mix(in srgb, var(--saito-foreground) 8%, transparent);
-}
-
-.store .storefront-copy:focus-visible {
-	outline: none;
-	box-shadow: var(--saito-focus-ring);
-	opacity: 1;
-}
-
-.store .storefront-copy i {
-	font-size: 1.5rem;
-	line-height: 1;
+	min-width: 0;
 }
 
 .store .storefront-status {
@@ -258,19 +220,9 @@
 	color: var(--saito-font-color-secondary);
 }
 
-.store .hero .tagline a {
-	color: inherit;
-	text-decoration: underline;
-	text-underline-offset: 0.15em;
-}
-
-.store .hero .tagline a:hover {
-	color: var(--saito-font-color);
-}
-
 .store .hero .toolbar-row {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	gap: var(--saito-space-md);
 	width: 100%;
@@ -305,7 +257,7 @@
 }
 
 .store .storefront-hero .toolbar-row {
-	align-items: center;
+	align-items: flex-start;
 }
 
 .store .storefront-hero .title {

@@ -20,11 +20,11 @@ class LoadNFTs {
     });
 
     app.connection.on('wallet-updated', async () => {
-      // re-render send-nft overlay if its open
+      // Wallet owns updateNFTList; refresh UI from options when this overlay is open.
       if (this.overlay.visible) {
-        //  this doesn't seem to trigger when NFT is just newly created by wallet
-        //  if (this.overlay.visible && (updated.length > 0 || persisted)) {
-        this.render();
+        this.nft_list = this.app.options.wallet?.nfts || [];
+        await this.filterNFTList();
+        await this.renderNFTList();
       }
     });
   }
@@ -47,7 +47,7 @@ class LoadNFTs {
 
   async fetchNFTList() {
     //
-    // make sure wallet cache is fresh
+    // make sure wallet cache is fresh (explicit open / user action)
     //
     await this.app.wallet.updateNFTList();
 

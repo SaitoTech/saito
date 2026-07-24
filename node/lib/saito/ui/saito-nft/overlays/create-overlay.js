@@ -394,9 +394,9 @@ class CreateNFT {
         if (root) {
           root.classList.add('provide-metadata');
         }
-        const titleEl = document.querySelector('.saito-nft-create .header .title');
+        const titleEl = document.getElementById('create-nft-overlay-title');
         if (titleEl) {
-          titleEl.innerHTML = 'Provide Metadata';
+          titleEl.textContent = 'Provide Metadata';
         }
       };
     }
@@ -408,9 +408,9 @@ class CreateNFT {
         if (root) {
           root.classList.remove('provide-metadata');
         }
-        const titleEl = document.querySelector('.saito-nft-create .header .title');
+        const titleEl = document.getElementById('create-nft-overlay-title');
         if (titleEl) {
-          titleEl.innerHTML = 'Create NFT';
+          titleEl.textContent = 'Create NFT';
         }
       };
     }

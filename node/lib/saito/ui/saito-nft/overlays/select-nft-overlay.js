@@ -34,20 +34,12 @@ class SelectNFT {
         this.overlay.close();
       });
 
-      app.connection.on('wallet-updated', async () => {
-        const { updated, rebroadcast, persisted } = await this.app.wallet.updateNFTList();
-
-        if (persisted) {
-          siteMessage(`NFT updated in wallet`, 3000);
-        }
-
-        // re-render send-nft overlay if its open
+      // Wallet owns updateNFTList on wallet-updated; UI only refreshes from options.
+      app.connection.on('wallet-updated', () => {
         if (this.overlay.visible) {
-          //  this doesn't seem to trigger when NFT is just newly created by wallet
-          //  if (this.overlay.visible && (updated.length > 0 || persisted)) {
           this.render();
         } else {
-          this.updateCardList();
+          void this.updateCardList();
         }
       });
     }
@@ -64,7 +56,6 @@ class SelectNFT {
   }
 
   async updateCardList() {
-    await this.app.wallet.updateNFTList();
     let nft_list = this.app.options.wallet.nfts || [];
 
     // We want to avoid recreating the cards every time we look launch the overlay

@@ -55,10 +55,22 @@ a:hover {
   opacity: 0.8;
 }
 
-.saito-text-link {
-  font-weight: bold;
+/* Inline text link — dashed underline, subtle by default, brightens on hover */
+.saito-text-link,
+a.saito-text-link {
+  font-weight: inherit;
   cursor: pointer;
-  color: var(--saito-primary);
+  color: var(--saito-font-color-secondary, var(--saito-muted-foreground));
+  text-decoration: underline dashed;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 0.15em;
+  opacity: 1;
+}
+
+.saito-text-link:hover,
+a.saito-text-link:hover {
+  color: var(--saito-font-color, var(--saito-foreground));
+  opacity: 1;
 }
 
 /* ----------------------------------------------------------------
