@@ -82,7 +82,15 @@ class Warehouse {
 				row.longest_chain_listed = longest_chain ? 1 : 0;
 			}
 			if (sold) {
-				row.longest_chain_sold = longest_chain ? 1 : 0;
+				if (longest_chain) {
+					row.longest_chain_sold = 1;
+				} else {
+					// Mirror DB clear: sale left LC → listing is active again.
+					row.block_id_sold = 0;
+					row.block_hash_sold = '';
+					row.transaction_id_sold = 0;
+					row.longest_chain_sold = 0;
+				}
 			}
 		}
 
@@ -568,6 +576,67 @@ class Warehouse {
 
 	returnActiveSummaries() {
 		return Object.values(this.summaries).filter((summary) => summary.isActive());
+	}
+
+	/**
+	 * Seller Admin / public storefront inventory from warehouse listings.
+	 * Returns Summary-compatible objects ready for Teaser rendering.
+	 */
+	async returnSellerInventory(seller = '') {
+		const key = String(seller || '').trim();
+		if (!key || this.app.BROWSER) {
+			return { seller: key, active: [], sold: [] };
+		}
+
+		const active_rows = await this.db.returnActiveListingsForSeller(key);
+		const sold_rows = await this.db.returnSoldListingsForSeller(key);
+
+		const active = [];
+		for (const row of active_rows || []) {
+			const summary = await this.summaryFromListingRow(row, { sold: false });
+			if (summary) {
+				active.push(summary);
+			}
+		}
+
+		const sold = [];
+		for (const row of sold_rows || []) {
+			const summary = await this.summaryFromListingRow(row, { sold: true });
+			if (summary) {
+				sold.push(summary);
+			}
+		}
+
+		return { seller: key, active, sold };
+	}
+
+	async summaryFromListingRow(row, { sold = false } = {}) {
+		if (!row?.nft_id) {
+			return null;
+		}
+
+		const price = Number(row.price ?? 0);
+		const qty = Math.max(0, Number(row.quantity ?? 0) || 0);
+		const meta = (await this.db.returnSummaryByBucket(row.nft_id, price)) || {};
+		const image =
+			meta.image ||
+			(row.nft_id && this.mod.image_cache?.[row.nft_id]) ||
+			null;
+
+		return new Summary(this.app, this.mod, {
+			nft_id: row.nft_id,
+			seller: row.seller || '',
+			category: row.category || meta.category || STORE_CATEGORIES.OTHER,
+			title: String(meta.title || '').trim(),
+			description: String(meta.description ?? '').trim(),
+			image,
+			price,
+			quantity_available: sold ? 0 : qty,
+			quantity_total: qty,
+			listing_signature: row.signature || '',
+			updated_at: Number(row.updated_at || row.created_at || meta.updated_at || 0),
+			status: sold ? 0 : 1
+		});
 	}
 
 	/**

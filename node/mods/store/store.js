@@ -122,6 +122,20 @@ class Store extends ModTemplate {
 			}
 		}
 
+		if (txmsg?.request === 'load-seller-inventory') {
+			if (!this.app.BROWSER && mycallback != null) {
+				const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+				const seller = String(data.seller || '').trim();
+				const result = await this.warehouse.returnSellerInventory(seller);
+				mycallback({
+					seller: result.seller,
+					active: (result.active || []).map((summary) => summary.serialize()),
+					sold: (result.sold || []).map((summary) => summary.serialize())
+				});
+				return 1;
+			}
+		}
+
 		return super.handlePeerTransaction(app, tx, peer, mycallback);
 	}
 
@@ -169,7 +183,7 @@ class Store extends ModTemplate {
 	}
 
 	/**
-	 * Path for a creator storefront: /store/<publickey>
+	 * Path for a public creator storefront: /store/<publickey>
 	 */
 	returnStorefrontPath(publicKey = '') {
 		const key = String(publicKey || '').trim();
@@ -180,10 +194,32 @@ class Store extends ModTemplate {
 	}
 
 	/**
-	 * Absolute shareable URL for a creator storefront.
+	 * Path for seller administration: /store/<publickey>/admin
+	 */
+	returnAdminPath(publicKey = '') {
+		const base = this.returnStorefrontPath(publicKey);
+		if (!String(publicKey || '').trim()) {
+			return base;
+		}
+		return `${base}/admin`;
+	}
+
+	/**
+	 * Absolute shareable URL for a public creator storefront.
 	 */
 	returnStorefrontUrl(publicKey = '') {
 		const path = this.returnStorefrontPath(publicKey);
+		if (this.app.BROWSER && typeof window !== 'undefined' && window.location?.origin) {
+			return `${window.location.origin}${path}`;
+		}
+		return path;
+	}
+
+	/**
+	 * Absolute URL for seller administration.
+	 */
+	returnAdminUrl(publicKey = '') {
+		const path = this.returnAdminPath(publicKey);
 		if (this.app.BROWSER && typeof window !== 'undefined' && window.location?.origin) {
 			return `${window.location.origin}${path}`;
 		}
@@ -197,24 +233,28 @@ class Store extends ModTemplate {
 
 		await super.render();
 
-		const storefrontKey = this.returnStorefrontKeyFromPath();
-		if (storefrontKey) {
-			await this.main.openStorefront(storefrontKey, { updateUrl: false });
+		const route = this.returnStoreRouteFromPath();
+		if (route.publicKey) {
+			await this.main.openStorefront(route.publicKey, {
+				updateUrl: false,
+				admin: route.admin
+			});
 		}
 	}
 
 	/**
-	 * Parse /store/<publickey> from the current browser path.
+	 * Parse /store/<publickey> or /store/<publickey>/admin from the current path.
+	 * @returns {{ publicKey: string, admin: boolean }}
 	 */
-	returnStorefrontKeyFromPath() {
+	returnStoreRouteFromPath() {
 		if (!this.app.BROWSER || typeof window === 'undefined') {
-			return '';
+			return { publicKey: '', admin: false };
 		}
 
 		const pathname = window.location.pathname || '';
 		const slug = '/' + this.slug;
 		if (!pathname.startsWith(slug)) {
-			return '';
+			return { publicKey: '', admin: false };
 		}
 
 		const segments = pathname
@@ -223,10 +263,31 @@ class Store extends ModTemplate {
 			.filter((seg) => seg.length > 0);
 
 		if (segments.length === 1 && segments[0] !== 'cache') {
-			return decodeURIComponent(segments[0]);
+			return {
+				publicKey: decodeURIComponent(segments[0]),
+				admin: false
+			};
 		}
 
-		return '';
+		if (
+			segments.length === 2 &&
+			segments[0] !== 'cache' &&
+			segments[1] === 'admin'
+		) {
+			return {
+				publicKey: decodeURIComponent(segments[0]),
+				admin: true
+			};
+		}
+
+		return { publicKey: '', admin: false };
+	}
+
+	/**
+	 * Parse /store/<publickey> (or admin) public key from the current browser path.
+	 */
+	returnStorefrontKeyFromPath() {
+		return this.returnStoreRouteFromPath().publicKey;
 	}
 
 	async onConfirmation(blk, tx, conf = 0) {
@@ -308,7 +369,10 @@ class Store extends ModTemplate {
 		// /store — main browse shell
 		expressapp.get(uri, sendStoreHtml);
 
-		// /store/<publickey> — creator storefront shell (client routes after load)
+		// /store/<publickey>/admin — seller administration shell (client routes after load)
+		expressapp.get(`${uri}/:publickey/admin`, sendStoreHtml);
+
+		// /store/<publickey> — public creator storefront shell (client routes after load)
 		expressapp.get(`${uri}/:publickey`, sendStoreHtml);
 	}
 

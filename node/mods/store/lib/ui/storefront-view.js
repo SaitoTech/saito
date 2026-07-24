@@ -1,10 +1,7 @@
 const StorefrontViewTemplate = require('./storefront-view.template');
 const Teasers = require('./teasers');
 const EmptyPanel = require('./empty-panel');
-const {
-	loadListingTransactionsForSeller,
-	summariesFromListingTransactions
-} = require('../archive');
+const { loadSellerInventory } = require('./browse-listings');
 
 class StorefrontView {
 	constructor(app, mod, container = '', callbacks = {}) {
@@ -14,7 +11,11 @@ class StorefrontView {
 		this.onSell = callbacks.onSell;
 		this.onViewChange = callbacks.onViewChange;
 		this.publicKey = '';
-		this.summaries = [];
+		/** @type {import('../summary')[]} */
+		this.activeSummaries = [];
+		/** @type {import('../summary')[]} */
+		this.soldSummaries = [];
+		this.inventoryLoaded = false;
 		this.loading = false;
 		this.loadToken = 0;
 		this.successArmed = false;
@@ -28,47 +29,38 @@ class StorefrontView {
 			actionLabel: 'Add New Listing',
 			onAction: () => this.onSell?.()
 		});
+		/** @type {'public' | 'admin' | 'admin-denied'} */
+		this.viewMode = 'public';
+		/** @type {'home' | 'active'} Admin content section when viewMode is admin */
+		this.adminSection = 'home';
 
+		// Progress overlay complete → refresh inventory from warehouse (no local injection).
 		this.app.connection.on('store-listing-lifecycle', (entry) => {
-			if (!this.publicKey || !this.container) {
+			if (!this.publicKey || entry?.phase !== 'complete') {
 				return;
 			}
-
-			if (
-				entry?.phase === 'complete' &&
-				entry.summary &&
-				this.isOwnStorefront()
-			) {
-				const sig = entry.listing_signature || '';
-				const idx = this.summaries.findIndex(
-					(s) =>
-						(sig && s.listing_signature === sig) ||
-						(s.nft_id === entry.nft_id && Number(s.price) === Number(entry.price))
-				);
-				if (idx >= 0) {
-					this.summaries[idx] = entry.summary;
-				} else {
-					this.summaries.unshift(entry.summary);
-				}
-
-				if (this.successArmed && !this.successDismissed) {
-					this.successVisible = true;
-					this.renderSuccessBanner();
-				}
+			if (this.successArmed && !this.successDismissed && this.isAdminHome()) {
+				this.successVisible = true;
+				this.renderSuccessBanner();
 			}
-
-			if (this.loading) {
-				this.renderTeasersOnly();
-				return;
+			if (this.isOwnStorefront() || this.viewMode === 'public') {
+				this.reloadInventory().then(() => {
+					const manager = this.mod.main?.manager;
+					if (manager?.activePanel === 'sales' && this.inventoryLoaded) {
+						manager.sales.show(this.soldSummaries);
+					}
+				});
 			}
-
-			this.renderResults();
 		});
 	}
 
 	armSuccessBanner() {
 		this.successArmed = true;
 		this.successDismissed = false;
+		this.successVisible = false;
+	}
+
+	clearSuccessBanner() {
 		this.successVisible = false;
 	}
 
@@ -81,10 +73,18 @@ class StorefrontView {
 			return;
 		}
 
-		const isOwn = this.isOwnStorefront();
-		const rawTitle = isOwn
-			? 'My Saito Store'
-			: this.app.keychain?.returnUsername?.(this.publicKey) || 'Store';
+		if (this.viewMode === 'admin-denied') {
+			this.app.browser.replaceElementContentBySelector(
+				StorefrontViewTemplate({
+					adminDenied: true
+				}),
+				this.container
+			);
+			return;
+		}
+
+		const isDashboard = this.isAdminMode();
+		const rawTitle = this.app.keychain?.returnUsername?.(this.publicKey) || 'Store';
 		const shareUrl = this.publicKey ? this.mod.returnStorefrontUrl?.(this.publicKey) || '' : '';
 
 		this.app.browser.replaceElementContentBySelector(
@@ -92,9 +92,13 @@ class StorefrontView {
 				title: this.escapeHtml(rawTitle),
 				description: '',
 				shareUrl,
-				loading: !!this.publicKey && this.loading,
-				isDashboard: isOwn,
-				showSuccess: isOwn && this.successVisible
+				loading:
+					!!this.publicKey &&
+					this.loading &&
+					(this.viewMode === 'public' || this.isAdminActive()),
+				isDashboard,
+				adminSection: this.adminSection,
+				showSuccess: this.isAdminHome() && this.successVisible
 			}),
 			this.container
 		);
@@ -106,8 +110,11 @@ class StorefrontView {
 			return;
 		}
 
+		if (this.isAdminHome()) {
+			return;
+		}
+
 		if (this.loading) {
-			this.renderTeasersOnly();
 			return;
 		}
 
@@ -116,13 +123,12 @@ class StorefrontView {
 
 	renderSuccessBanner() {
 		const root = document.querySelector(this.container);
-		if (!root || !this.isOwnStorefront()) {
+		if (!root || !this.isAdminHome()) {
 			return;
 		}
 
 		let banner = root.querySelector('[data-listing-success]');
 		if (this.successVisible && !banner) {
-			// Full re-render keeps dashboard + catalog in sync.
 			this.render();
 			return;
 		}
@@ -171,13 +177,6 @@ class StorefrontView {
 			this.onSell?.();
 		});
 
-		root.querySelector('[data-action="review-sales"]')?.addEventListener('click', (e) => {
-			e.preventDefault();
-			if (typeof this.onViewChange === 'function') {
-				this.onViewChange('sold');
-			}
-		});
-
 		root.querySelector('[data-action="dismiss-success"]')?.addEventListener('click', (e) => {
 			e.preventDefault();
 			this.successVisible = false;
@@ -188,36 +187,76 @@ class StorefrontView {
 	}
 
 	/**
-	 * Show a creator storefront for the given public key.
-	 * Renders the shell immediately, then loads archive listings asynchronously.
+	 * Show a creator storefront or admin view for the given public key.
+	 * Loads warehouse inventory via load-seller-inventory (active for display).
+	 * @param {string} publicKey
+	 * @param {{ viewMode?: 'public' | 'admin' | 'admin-denied', adminSection?: 'home' | 'active' }} [opts]
 	 */
-	async show(publicKey = '') {
+	async show(publicKey = '', { viewMode = 'public', adminSection = 'home' } = {}) {
 		const nextKey = String(publicKey || '').trim();
 		if (!nextKey) {
 			return;
 		}
 
+		const nextViewMode =
+			viewMode === 'admin' || viewMode === 'admin-denied' ? viewMode : 'public';
+		const nextSection = adminSection === 'active' ? 'active' : 'home';
+		const reuseAdminData =
+			this.publicKey === nextKey &&
+			this.viewMode === 'admin' &&
+			nextViewMode === 'admin' &&
+			this.inventoryLoaded &&
+			!this.loading;
+
 		this.publicKey = nextKey;
-		this.summaries = [];
+		this.viewMode = nextViewMode;
+		this.adminSection = nextSection;
+
+		if (this.viewMode === 'admin-denied') {
+			this.loading = false;
+			this.render();
+			return;
+		}
+
+		// Switch Store Admin ↔ Active Listings without refetching when data is warm.
+		if (reuseAdminData && nextSection === 'home') {
+			this.render();
+			return;
+		}
+		if (reuseAdminData && nextSection === 'active' && !this.loading) {
+			this.render();
+			return;
+		}
+
+		this.inventoryLoaded = false;
+		await this.reloadInventory();
+	}
+
+	async reloadInventory() {
+		if (!this.publicKey) {
+			return;
+		}
+
 		this.loading = true;
 		const token = ++this.loadToken;
-
 		this.render();
 
 		try {
-			const txs = await loadListingTransactionsForSeller(this.app, this.publicKey);
+			const inventory = await loadSellerInventory(this.app, this.mod, this.publicKey);
 			if (token !== this.loadToken) {
 				return;
 			}
-			this.summaries = this.mergeSummaries(
-				this.summaries,
-				summariesFromListingTransactions(this.app, this.mod, txs)
-			);
+			this.activeSummaries = inventory.active || [];
+			this.soldSummaries = inventory.sold || [];
+			this.inventoryLoaded = true;
 		} catch (err) {
-			console.warn('Store: storefront archive load failed', err?.message || err);
+			console.warn('Store: load-seller-inventory failed', err?.message || err);
 			if (token !== this.loadToken) {
 				return;
 			}
+			this.activeSummaries = [];
+			this.soldSummaries = [];
+			this.inventoryLoaded = true;
 		}
 
 		if (token !== this.loadToken) {
@@ -233,115 +272,16 @@ class StorefrontView {
 		return !!this.publicKey && !!walletKey && this.publicKey === walletKey;
 	}
 
-	mergeSummaries(existing = [], incoming = []) {
-		const bySig = new Map();
-		const byBucket = new Map();
-
-		const remember = (summary) => {
-			if (!summary) {
-				return;
-			}
-			if (summary.listing_signature) {
-				bySig.set(summary.listing_signature, summary);
-			}
-			if (summary.nft_id) {
-				byBucket.set(`${summary.nft_id}:${Number(summary.price) || 0}`, summary);
-			}
-		};
-
-		for (const summary of existing) {
-			remember(summary);
-		}
-
-		for (const summary of incoming) {
-			const prior =
-				(summary.listing_signature && bySig.get(summary.listing_signature)) ||
-				(summary.nft_id
-					? byBucket.get(`${summary.nft_id}:${Number(summary.price) || 0}`)
-					: null);
-
-			if (!prior) {
-				remember(summary);
-				continue;
-			}
-
-			remember(this.preferRicherSummary(prior, summary));
-		}
-
-		const merged = [];
-		const seen = new Set();
-		for (const summary of [...bySig.values(), ...byBucket.values()]) {
-			const key = summary.listing_signature || `${summary.nft_id}:${Number(summary.price) || 0}`;
-			if (seen.has(key)) {
-				continue;
-			}
-			seen.add(key);
-			merged.push(summary);
-		}
-		return merged;
+	isAdminMode() {
+		return this.viewMode === 'admin' && this.isOwnStorefront();
 	}
 
-	preferRicherSummary(a, b) {
-		const score = (summary) => {
-			let n = 0;
-			if (String(summary?.title || '').trim()) {
-				n += 4;
-			}
-			if (summary?.seller) {
-				n += 2;
-			}
-			if (Number(summary?.price) > 0) {
-				n += 2;
-			}
-			if (summary?.listing_tx) {
-				n += 1;
-			}
-			if (summary?.image) {
-				n += 1;
-			}
-			return n;
-		};
-
-		if (score(a) >= score(b)) {
-			if (!a.listing_tx && b.listing_tx) {
-				a.listing_tx = b.listing_tx;
-			}
-			if (!a.listing_signature && b.listing_signature) {
-				a.listing_signature = b.listing_signature;
-			}
-			if (!a.nft && b.nft) {
-				a.nft = b.nft;
-			}
-			a.pending = false;
-			return a;
-		}
-
-		if (!b.listing_tx && a.listing_tx) {
-			b.listing_tx = a.listing_tx;
-		}
-		if (!String(b.title || '').trim() && a.title) {
-			b.title = a.title;
-		}
-		if (!b.seller && a.seller) {
-			b.seller = a.seller;
-		}
-		if (!Number(b.price) && Number(a.price)) {
-			b.price = a.price;
-		}
-		b.pending = false;
-		return b;
+	isAdminHome() {
+		return this.isAdminMode() && this.adminSection !== 'active';
 	}
 
-	renderTeasersOnly() {
-		const teasersEl = document.querySelector(`${this.container} .teasers`);
-		if (!teasersEl) {
-			return;
-		}
-		const visible = this.returnVisibleSummaries();
-		if (!visible.length) {
-			return;
-		}
-		this.teasers.render(`${this.container} .teasers`, visible);
+	isAdminActive() {
+		return this.isAdminMode() && this.adminSection === 'active';
 	}
 
 	renderResults() {
@@ -363,13 +303,17 @@ class StorefrontView {
 			emptyHost.className = 'storefront-empty';
 			teasersEl.appendChild(emptyHost);
 
-			const isOwn = this.isOwnStorefront();
-			this.empty.title = 'No listings yet';
-			this.empty.body = isOwn
-				? 'Items you put up for sale will appear here.'
-				: 'This creator has not published any listings yet.';
-			this.empty.actionLabel = isOwn ? 'Add New Listing' : '';
-			this.empty.onAction = isOwn ? () => this.onSell?.() : null;
+			if (this.isAdminActive()) {
+				this.empty.title = 'No active listings.';
+				this.empty.body = '';
+				this.empty.actionLabel = '+ Add New Listing';
+				this.empty.onAction = () => this.onSell?.();
+			} else {
+				this.empty.title = 'No listings yet';
+				this.empty.body = 'This creator has not published any listings yet.';
+				this.empty.actionLabel = '';
+				this.empty.onAction = null;
+			}
 			this.empty.render(`${this.container} .storefront-empty`);
 			return;
 		}
@@ -378,22 +322,7 @@ class StorefrontView {
 	}
 
 	returnVisibleSummaries() {
-		const pending = this.isOwnStorefront()
-			? this.mod.listing_lifecycle?.returnPendingSummariesForSeller?.(this.publicKey) || []
-			: [];
-
-		const pendingSigs = new Set(
-			pending.map((s) => s.listing_signature).filter(Boolean)
-		);
-
-		const confirmed = this.filterHiddenListings(this.summaries).filter((summary) => {
-			if (summary.listing_signature && pendingSigs.has(summary.listing_signature)) {
-				return false;
-			}
-			return true;
-		});
-
-		return [...pending, ...confirmed];
+		return this.filterHiddenListings(this.activeSummaries);
 	}
 
 	filterHiddenListings(summaries = []) {

@@ -359,16 +359,82 @@ class Database {
 	}
 
 	async updateListingsSoldChainState(block_id, block_hash, longest_chain) {
+		const on_lc = !!longest_chain;
+		// When a sale leaves the longest chain, clear sold anchors so the row
+		// becomes active again (active SQL requires block_id_sold = 0).
+		if (!on_lc) {
+			await this.app.storage.runDatabase(
+				`UPDATE listings
+				 SET block_id_sold = 0,
+				     block_hash_sold = '',
+				     transaction_id_sold = 0,
+				     longest_chain_sold = 0,
+				     updated_at = $updated_at
+				 WHERE block_id_sold = $block_id AND block_hash_sold = $block_hash
+				   AND block_id_sold > 0`,
+				{
+					$block_id: Number(block_id) || 0,
+					$block_hash: String(block_hash || ''),
+					$updated_at: Date.now()
+				},
+				this.dbname
+			);
+			return;
+		}
+
 		await this.app.storage.runDatabase(
-			`UPDATE listings SET longest_chain_sold = $longest_chain
+			`UPDATE listings SET longest_chain_sold = 1
 			 WHERE block_id_sold = $block_id AND block_hash_sold = $block_hash`,
 			{
 				$block_id: Number(block_id) || 0,
-				$block_hash: String(block_hash || ''),
-				$longest_chain: longest_chain ? 1 : 0
+				$block_hash: String(block_hash || '')
 			},
 			this.dbname
 		);
+	}
+
+	async returnActiveListingsForSeller(seller = '') {
+		const key = String(seller || '').trim();
+		if (!key) {
+			return [];
+		}
+		try {
+			return await this.app.storage.queryDatabase(
+				`SELECT * FROM listings
+				 WHERE seller = $seller
+				   AND on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND block_id_sold = 0
+				   AND longest_chain_sold = 0
+				 ORDER BY created_at DESC`,
+				{ $seller: key },
+				this.dbname
+			);
+		} catch (err) {
+			return [];
+		}
+	}
+
+	async returnSoldListingsForSeller(seller = '') {
+		const key = String(seller || '').trim();
+		if (!key) {
+			return [];
+		}
+		try {
+			return await this.app.storage.queryDatabase(
+				`SELECT * FROM listings
+				 WHERE seller = $seller
+				   AND on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND block_id_sold > 0
+				   AND longest_chain_sold = 1
+				 ORDER BY block_id_sold DESC, created_at DESC`,
+				{ $seller: key },
+				this.dbname
+			);
+		} catch (err) {
+			return [];
+		}
 	}
 
 	async scanListingsForSummaryRebuild() {

@@ -66,12 +66,34 @@
 }
 
 .nft-picker .status:not(:empty) {
-	margin-top: var(--saito-space-xl);
 	flex: 0 0 auto;
 }
 
+/* Top-aligned empty copy — do not vertically center in the body */
 .nft-picker .empty {
-	min-height: 16rem;
+	justify-content: flex-start;
+	min-height: 0;
+	padding: 0;
+	max-width: none;
+}
+
+/* Same bottom instruction strip as .saito-nft-list .nft-list-instructions */
+.nft-picker > .nft-list-instructions {
+	flex: 0 0 auto;
+	padding: var(--saito-space-lg) var(--saito-space-xl);
+	border-top: var(--border-thickness-thin) solid var(--saito-border-color);
+}
+
+.nft-picker > .nft-list-instructions[hidden] {
+	display: none;
+}
+
+.nft-picker .nft-list-instructions .instructions {
+	margin: 0;
+	opacity: 0.8;
+	line-height: 1.5;
+	font-size: var(--font-size-medium);
+	color: var(--saito-font-color-secondary);
 }
 
 @media (max-width: 900px) {
@@ -109,7 +131,8 @@
 		padding-bottom: calc(var(--saito-space-lg) + env(safe-area-inset-bottom, 0px));
 	}
 
-	.nft-picker .empty {
-		min-height: 10rem;
+	.nft-picker > .nft-list-instructions {
+		padding: var(--saito-space-md);
+		padding-bottom: calc(var(--saito-space-md) + env(safe-area-inset-bottom, 0px));
 	}
 }

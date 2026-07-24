@@ -10,6 +10,7 @@ class NftPickerOverlay {
 		this.card_list = [];
 		this.defaults = {};
 		this.onSelect = null;
+		this.create_nft_overlay = null;
 	}
 
 	render(defaults = {}) {
@@ -27,6 +28,7 @@ class NftPickerOverlay {
 	async renderNftGrid() {
 		const container = document.querySelector('.nft-picker [data-nft-grid]');
 		const statusEl = document.querySelector('.nft-picker [data-nft-status]');
+		const instructionsEl = document.querySelector('.nft-picker [data-nft-instructions]');
 		if (!container) {
 			return;
 		}
@@ -41,11 +43,20 @@ class NftPickerOverlay {
 			if (statusEl) {
 				statusEl.innerHTML = NftPickerTemplate.emptyInstructions();
 			}
+			if (instructionsEl) {
+				instructionsEl.hidden = false;
+				instructionsEl.innerHTML = NftPickerTemplate.createPrompt();
+				this.attachEmptyEvents();
+			}
 			return;
 		}
 
 		if (statusEl) {
 			statusEl.innerHTML = '';
+		}
+		if (instructionsEl) {
+			instructionsEl.hidden = true;
+			instructionsEl.innerHTML = '';
 		}
 
 		for (const rec of nft_list) {
@@ -62,6 +73,52 @@ class NftPickerOverlay {
 			this.card_list.push(card);
 			await card.render();
 		}
+	}
+
+	attachEmptyEvents() {
+		const createLink = document.getElementById('nft-picker-create-link');
+		if (!createLink) {
+			return;
+		}
+
+		const open = (e) => {
+			e.preventDefault();
+			this.openCreateNft();
+		};
+
+		createLink.onclick = open;
+		createLink.onkeydown = (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				this.openCreateNft();
+			}
+		};
+	}
+
+	/**
+	 * Close the picker and open Create NFT.
+	 * Prefers the header-owned instance so we do not register a second listener.
+	 */
+	openCreateNft() {
+		if (this.defaults) {
+			this.defaults.callback = null;
+		}
+		this.overlay.close();
+
+		let createNft =
+			this.mod.header &&
+			this.mod.header.select_nft_overlay &&
+			this.mod.header.select_nft_overlay.create_nft_overlay;
+
+		if (!createNft) {
+			if (!this.create_nft_overlay) {
+				const CreateNFT = require('../../../../../lib/saito/ui/saito-nft/overlays/create-overlay');
+				this.create_nft_overlay = new CreateNFT(this.app, this.mod);
+			}
+			createNft = this.create_nft_overlay;
+		}
+
+		createNft.render();
 	}
 
 	async handleSelect(nft) {

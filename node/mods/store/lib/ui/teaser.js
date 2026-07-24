@@ -3,19 +3,6 @@ const Summary = require('../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../summary');
 const { summaryDomId } = require('./summary-cache');
 
-const GRADIENT_CLASSES = [
-	'gradient-1',
-	'gradient-2',
-	'gradient-3',
-	'gradient-4',
-	'gradient-5',
-	'gradient-6',
-	'gradient-7',
-	'gradient-8',
-	'gradient-9',
-	'gradient-10'
-];
-
 class Teaser {
 	constructor(app, mod, summary = null, container = '') {
 		this.app = app;
@@ -111,7 +98,7 @@ class Teaser {
 			return;
 		}
 
-		media.classList.remove('placeholder', 'has-image', 'loading', 'has-media-content', ...GRADIENT_CLASSES);
+		media.classList.remove('placeholder', 'has-image', 'loading', 'has-media-content');
 
 		let content = media.querySelector('.media-content');
 		if (display.innerHtml) {
@@ -154,8 +141,7 @@ class Teaser {
 			: this.summary.returnPlaceholderImage();
 		const mediaClass = this.returnMediaClass(image, display);
 		const mediaBackground = this.returnMediaBackground(image, display);
-		const isPending = !!this.summary.pending;
-		const showLoading = !!display.loading || isPending;
+		const showLoading = !!display.loading;
 		const seller = this.summary.returnSeller?.() || this.summary.seller || '';
 		const identicon = this.app.keychain.returnIdenticon(seller);
 		const shortSeller =
@@ -168,13 +154,7 @@ class Teaser {
 			price,
 			seller: shortSeller,
 			identicon,
-			pending: isPending,
-			show_buy_now:
-				!isPending &&
-				(this.summary.show_buy_now ??
-					this.summary.can_buy ??
-					this.summary.badge ??
-					false)
+			show_buy_now: this.summary.show_buy_now ?? this.summary.can_buy ?? this.summary.badge ?? false
 		};
 
 		this.app.browser.addElementToSelector(
@@ -182,14 +162,12 @@ class Teaser {
 			this.container
 		);
 
-		if (!display.loading && !isPending) {
+		if (!display.loading) {
 			Teaser.applyMediaDisplay(this.app, this.cardId, display);
 		}
 
 		this.attachEvents();
-		if (!isPending) {
-			this.beginMediaEnrichment();
-		}
+		this.beginMediaEnrichment();
 	}
 
 	beginMediaEnrichment() {
@@ -204,17 +182,11 @@ class Teaser {
 	}
 
 	returnMediaClass(image = '', display = {}) {
-		if (this.summary.isDemo() && image?.startsWith?.('gradient-')) {
-			return image;
-		}
 		if (display.backgroundImage || display.innerHtml) {
 			return display.backgroundImage ? 'has-image' : 'has-media-content';
 		}
 		if (!image) {
 			return 'placeholder';
-		}
-		if (image.startsWith('gradient-')) {
-			return image;
 		}
 		return 'has-image';
 	}
@@ -223,29 +195,10 @@ class Teaser {
 		if (display.backgroundImage) {
 			return `url(${display.backgroundImage}) center / cover no-repeat`;
 		}
-		if (this.summary.isDemo() && image?.startsWith?.('gradient-')) {
-			return this.returnGradientForClass(image);
-		}
-		if (!image || image.startsWith('gradient-')) {
+		if (!image) {
 			return `url(${DREAMSCAPE_PLACEHOLDER}) center / cover no-repeat`;
 		}
 		return `url(${image}) center / cover no-repeat`;
-	}
-
-	returnGradientForClass(mediaClass = 'gradient-1') {
-		const gradients = {
-			'gradient-1': 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
-			'gradient-2': 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-			'gradient-3': 'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)',
-			'gradient-4': 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
-			'gradient-5': 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)',
-			'gradient-6': 'linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)',
-			'gradient-7': 'linear-gradient(135deg, #22c55e 0%, #3b82f6 100%)',
-			'gradient-8': 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)',
-			'gradient-9': 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
-			'gradient-10': 'linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%)'
-		};
-		return gradients[mediaClass] || gradients['gradient-1'];
 	}
 
 	attachEvents() {
@@ -256,14 +209,6 @@ class Teaser {
 
 		const open = (e) => {
 			e.preventDefault();
-			if (this.summary?.pending) {
-				if (typeof siteMessage === 'function') {
-					siteMessage('This listing is still being confirmed by the network.', 3500);
-				} else {
-					alert('This listing is still being confirmed by the network.');
-				}
-				return;
-			}
 			const detail = this.mod.main?.listing_detail || this.mod.main?.product_overlay;
 			if (detail) {
 				detail.render(this.summary);

@@ -55,9 +55,15 @@ class Main {
 	}
 
 	onPathChange() {
-		const storefrontKey = this.mod.returnStorefrontKeyFromPath?.() || '';
-		if (storefrontKey) {
-			this.openStorefront(storefrontKey, { updateUrl: false });
+		const route = this.mod.returnStoreRouteFromPath?.() || {
+			publicKey: '',
+			admin: false
+		};
+		if (route.publicKey) {
+			this.openStorefront(route.publicKey, {
+				updateUrl: false,
+				admin: !!route.admin
+			});
 			return;
 		}
 		this.menu.setMode('browse');
@@ -105,8 +111,23 @@ class Main {
 	}
 
 	onNavigate(view = '', opts = {}) {
-		if (view === 'my-store') {
-			this.openStorefront(this.mod.publicKey);
+		if (view === 'my-store' || view === 'store-admin') {
+			this.openStorefront(this.mod.publicKey, { admin: true });
+			return;
+		}
+
+		if (view === 'active') {
+			this.openStorefront(this.mod.publicKey, {
+				updateUrl: true,
+				celebrate: false,
+				admin: true,
+				dashboardView: 'active'
+			});
+			return;
+		}
+
+		if (view === 'sold') {
+			this.openSales();
 			return;
 		}
 
@@ -136,10 +157,19 @@ class Main {
 	}
 
 	/**
-	 * Open a creator storefront / seller dashboard.
-	 * Own key → My Saito Store dashboard; other keys → public storefront.
+	 * Open a creator storefront or seller admin page.
+	 * Public /store/<pk> always shows the public storefront (even for the owner).
+	 * Admin /store/<pk>/admin requires the logged-in wallet to match <pk>.
 	 */
-	async openStorefront(publicKey = '', { updateUrl = true, celebrate = false } = {}) {
+	async openStorefront(
+		publicKey = '',
+		{
+			updateUrl = true,
+			celebrate = false,
+			dashboardView = 'store-admin',
+			admin = false
+		} = {}
+	) {
 		const key = String(publicKey || this.mod.publicKey || '').trim();
 		if (!key) {
 			return;
@@ -147,16 +177,39 @@ class Main {
 
 		const isOwn = !!this.mod.publicKey && key === this.mod.publicKey;
 
-		if (isOwn) {
-			this.menu.setMode('dashboard', { storeMode: 'active' });
-			if (celebrate) {
-				this.manager.storefront.armSuccessBanner();
+		if (admin) {
+			if (isOwn) {
+				const view = celebrate
+					? 'store-admin'
+					: ['store-admin', 'active'].includes(dashboardView)
+						? dashboardView
+						: 'store-admin';
+				this.menu.setMode('dashboard', { dashboardView: view });
+				if (celebrate) {
+					this.manager.storefront.armSuccessBanner();
+				}
+				await this.manager.showStorefront(key, {
+					viewMode: 'admin',
+					adminSection: view === 'active' ? 'active' : 'home'
+				});
+			} else {
+				if (this.menu.mode === 'dashboard') {
+					this.menu.setMode('browse');
+				}
+				await this.manager.showStorefront(key, { viewMode: 'admin-denied' });
 			}
-		} else if (this.menu.mode === 'dashboard') {
+
+			if (updateUrl) {
+				this.setAdminUrl(key);
+			}
+			return;
+		}
+
+		if (this.menu.mode === 'dashboard') {
 			this.menu.setMode('browse');
 		}
 
-		await this.manager.showStorefront(key);
+		await this.manager.showStorefront(key, { viewMode: 'public' });
 
 		if (updateUrl) {
 			this.setStorefrontUrl(key);
@@ -164,8 +217,11 @@ class Main {
 	}
 
 	openSales() {
-		this.menu.setMode('dashboard', { storeMode: 'sold' });
+		this.menu.setMode('dashboard', { dashboardView: 'sold' });
 		this.manager.showSales();
+		if (this.mod.publicKey) {
+			this.setAdminUrl(this.mod.publicKey);
+		}
 	}
 
 	onStoreModeChange(mode = 'active') {
@@ -173,7 +229,12 @@ class Main {
 			this.openSales();
 			return;
 		}
-		this.openStorefront(this.mod.publicKey, { updateUrl: true, celebrate: false });
+		this.openStorefront(this.mod.publicKey, {
+			updateUrl: true,
+			celebrate: false,
+			admin: true,
+			dashboardView: 'active'
+		});
 	}
 
 	setBrowseUrl() {
@@ -193,6 +254,16 @@ class Main {
 		const path = this.mod.returnStorefrontPath?.(publicKey);
 		if (path && window.location.pathname !== path) {
 			history.pushState({ store: 'storefront', publicKey }, '', path);
+		}
+	}
+
+	setAdminUrl(publicKey = '') {
+		if (!this.app.BROWSER || typeof history === 'undefined' || !publicKey) {
+			return;
+		}
+		const path = this.mod.returnAdminPath?.(publicKey);
+		if (path && window.location.pathname !== path) {
+			history.pushState({ store: 'admin', publicKey }, '', path);
 		}
 	}
 

@@ -10,7 +10,7 @@ class Menu {
 		this.onStoreModeChange = callbacks.onStoreModeChange || null;
 		this.active = 'all';
 		this.mode = 'browse';
-		this.storeMode = 'active';
+		this.dashboardView = 'store-admin';
 	}
 
 	render(container = '') {
@@ -30,7 +30,7 @@ class Menu {
 
 		const html =
 			this.mode === 'dashboard'
-				? MenuTemplate.dashboard({ storeMode: this.storeMode })
+				? MenuTemplate.dashboard({ dashboardView: this.dashboardView })
 				: MenuTemplate.browse();
 
 		this.app.browser.replaceElementContentBySelector(html, this.container);
@@ -42,34 +42,53 @@ class Menu {
 		this.attachEvents();
 	}
 
-	setMode(mode = 'browse', { storeMode = this.storeMode } = {}) {
+	setMode(mode = 'browse', { dashboardView = this.dashboardView, storeMode } = {}) {
 		this.mode = mode === 'dashboard' ? 'dashboard' : 'browse';
-		this.storeMode = storeMode === 'sold' ? 'sold' : 'active';
+		if (storeMode === 'sold') {
+			this.dashboardView = 'sold';
+		} else if (storeMode === 'active') {
+			this.dashboardView = dashboardView === 'active' ? 'active' : 'store-admin';
+		} else if (dashboardView) {
+			this.dashboardView = ['store-admin', 'active', 'sold'].includes(dashboardView)
+				? dashboardView
+				: 'store-admin';
+		}
 		this.render();
 	}
 
-	setStoreMode(storeMode = 'active') {
-		this.storeMode = storeMode === 'sold' ? 'sold' : 'active';
+	setDashboardView(dashboardView = 'store-admin') {
+		this.dashboardView = ['store-admin', 'active', 'sold'].includes(dashboardView)
+			? dashboardView
+			: 'store-admin';
 		if (this.mode !== 'dashboard' || !this.container) {
 			return;
 		}
-		const select = document.querySelector(`${this.container} [data-action="store-mode"]`);
-		if (select) {
-			select.value = this.storeMode;
-		}
+		this.setActive(this.dashboardView);
+	}
+
+	/** @deprecated Prefer setDashboardView — kept for callers that still pass storeMode. */
+	setStoreMode(storeMode = 'active') {
+		this.setDashboardView(storeMode === 'sold' ? 'sold' : 'store-admin');
 	}
 
 	setActive(view = '') {
-		this.active = view;
-		if (!this.container || this.mode !== 'browse') {
+		if (this.mode === 'dashboard') {
+			this.dashboardView = ['store-admin', 'active', 'sold'].includes(view)
+				? view
+				: this.dashboardView;
+		} else {
+			this.active = view;
+		}
+		if (!this.container) {
 			return;
 		}
 		const root = document.querySelector(this.container);
 		if (!root) {
 			return;
 		}
+		const current = this.mode === 'dashboard' ? this.dashboardView : this.active;
 		root.querySelectorAll('.item').forEach((item) => {
-			const on = item.dataset.view === view;
+			const on = item.dataset.view === current;
 			item.classList.toggle('active', on);
 			item.setAttribute('aria-current', on ? 'page' : 'false');
 		});
@@ -109,17 +128,6 @@ class Menu {
 				e.preventDefault();
 				if (typeof this.onSell === 'function') {
 					this.onSell();
-				}
-			};
-		}
-
-		const modeSelect = root.querySelector('[data-action="store-mode"]');
-		if (modeSelect) {
-			modeSelect.onchange = (e) => {
-				const mode = e.target.value === 'sold' ? 'sold' : 'active';
-				this.storeMode = mode;
-				if (typeof this.onStoreModeChange === 'function') {
-					this.onStoreModeChange(mode);
 				}
 			};
 		}

@@ -1,19 +1,13 @@
-const Summary = require('../summary');
-const { syncSummaryCache } = require('./summary-cache');
-const { mapNFTTypeToCategory } = require('../categories');
-
 const PHASE = {
-	SUBMITTED: 'submitted',
 	CONFIRMING: 'confirming',
 	COMPLETE: 'complete',
 	DISMISSED: 'dismissed'
 };
 
 /**
- * Tracks outstanding Store listings for the current browser session.
- * Owns local pending listing shims and emits `store-listing-lifecycle`.
- *
- * Future: multiple simultaneous listings, retries, failed broadcasts.
+ * Progress tracking for an in-flight listing broadcast.
+ * Does not fabricate or inject listing teaser / Summary objects —
+ * warehouse inventory is the source of truth after confirmation.
  */
 class ListingLifecycle {
 	constructor(app, mod) {
@@ -30,7 +24,7 @@ class ListingLifecycle {
 	}
 
 	/**
-	 * Begin tracking a listing after the tx is broadcast.
+	 * Begin tracking a listing after the tx is broadcast (progress UI only).
 	 */
 	begin({
 		nft = null,
@@ -49,48 +43,17 @@ class ListingLifecycle {
 			listingTx?.from?.[0]?.publicKey ||
 			'';
 
-		const price_nolan = Number(
-			this.app.wallet?.convertSaitoToNolan?.(listing.price ?? 0) ?? 0
-		);
-		const qty = Math.max(1, Number(listing.quantity_total ?? nft?.amount ?? 1) || 1);
 		const title = String(listing.title || nft?.title || 'Untitled Item').trim();
-		const description = String(listing.description ?? nft?.description ?? '').trim();
-		const image = nft?.returnImage?.() || nft?.image || null;
-		const nft_type =
-			(typeof nft?.returnType === 'function' ? nft.returnType() : null) || nft?.nft_type || '';
-
-		const summary = new Summary(this.app, this.mod, {
-			nft_id,
-			seller,
-			category: mapNFTTypeToCategory(nft_type),
-			title,
-			description,
-			price: price_nolan,
-			quantity_available: qty,
-			quantity_total: qty,
-			listing_signature: signature,
-			listing_tx: listingTx,
-			nft,
-			image,
-			pending: true,
-			badge: false
-		});
-		summary.pending = true;
-		if (listingTx) {
-			summary.hydrateFromListingTransaction();
-		}
 
 		const entry = {
 			id: `${signature}:${Date.now()}`,
 			nft_id,
 			seller,
-			price: price_nolan,
 			listing_signature: signature,
 			title,
 			phase: PHASE.CONFIRMING,
 			status: 'Listing Submitted',
 			detail: 'Waiting for confirmation…',
-			summary,
 			started_at: Date.now(),
 			completed_at: 0
 		};
@@ -121,25 +84,11 @@ class ListingLifecycle {
 	}
 
 	returnActiveListing() {
-		const pending = this.listings.find(
-			(l) => l.phase === PHASE.SUBMITTED || l.phase === PHASE.CONFIRMING
-		);
+		const pending = this.listings.find((l) => l.phase === PHASE.CONFIRMING);
 		if (pending) {
 			return pending;
 		}
 		return this.listings.find((l) => l.phase === PHASE.COMPLETE) || null;
-	}
-
-	returnPendingSummariesForSeller(sellerPublicKey = '') {
-		const seller = String(sellerPublicKey || '').trim();
-		return this.listings
-			.filter(
-				(l) =>
-					(l.phase === PHASE.SUBMITTED || l.phase === PHASE.CONFIRMING) &&
-					(!seller || l.seller === seller)
-			)
-			.map((l) => l.summary)
-			.filter(Boolean);
 	}
 
 	setPhase(id, phase, { status = '', detail = '' } = {}) {
@@ -157,32 +106,19 @@ class ListingLifecycle {
 		}
 		if (phase === PHASE.COMPLETE) {
 			entry.completed_at = Date.now();
-			if (entry.summary) {
-				entry.summary.pending = false;
-			}
 		}
 
 		this.emit(entry);
 		return entry;
 	}
 
-	markConfirmed(listingTxSignature = '', confirmedTx = null) {
+	markConfirmed(listingTxSignature = '') {
 		const entry = this.findByListingTx(listingTxSignature);
 		if (!entry) {
 			return null;
 		}
 		if (entry.phase === PHASE.COMPLETE || entry.phase === PHASE.DISMISSED) {
 			return entry;
-		}
-
-		if (confirmedTx && entry.summary) {
-			entry.summary.listing_tx = confirmedTx;
-			entry.summary.listing_signature = confirmedTx.signature || entry.listing_signature;
-		}
-
-		if (entry.summary) {
-			entry.summary.pending = false;
-			syncSummaryCache(this.mod, entry.summary);
 		}
 
 		const updated = this.setPhase(entry.id, PHASE.COMPLETE, {
@@ -218,12 +154,11 @@ class ListingLifecycle {
 		if (!txmsg || txmsg.module !== 'Store' || txmsg.request !== 'list-asset') {
 			return;
 		}
-		// Fulfillments are also list-asset; only match tracked listing signatures.
 		if (txmsg.fulfill_sale) {
 			return;
 		}
 
-		this.markConfirmed(tx.signature, tx);
+		this.markConfirmed(tx.signature);
 	}
 
 	emitActive() {

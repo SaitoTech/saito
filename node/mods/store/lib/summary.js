@@ -1,7 +1,6 @@
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
 const {
 	DREAMSCAPE_PLACEHOLDER,
-	isDemoNftId,
 	ensureListingTransaction,
 	enrichSummaryMedia
 } = require('./summary-media');
@@ -36,21 +35,11 @@ class Summary {
 		this._media_enriched = data._media_enriched || false;
 	}
 
-	isDemo() {
-		return isDemoNftId(this.nft_id);
-	}
-
 	returnPlaceholderImage() {
-		if (this.isDemo() && this.image?.startsWith?.('gradient-')) {
-			return this.image;
-		}
 		return DREAMSCAPE_PLACEHOLDER;
 	}
 
 	isImageLoading() {
-		if (this.isDemo()) {
-			return false;
-		}
 		return this.returnMediaDisplay().loading;
 	}
 
@@ -59,15 +48,6 @@ class Summary {
 	}
 
 	returnMediaDisplay() {
-		if (this.isDemo()) {
-			return {
-				backgroundImage: '',
-				innerHtml: '',
-				loading: false,
-				failed: false
-			};
-		}
-
 		if (this.nft?.returnMediaDisplay) {
 			const display = this.nft.returnMediaDisplay();
 			if (!display.loading || !this._media_enriched) {
@@ -114,7 +94,7 @@ class Summary {
 
 	returnCacheImageUrl() {
 		const nft_id = String(this.nft_id ?? '');
-		if (!nft_id || this.isDemo()) {
+		if (!nft_id) {
 			return '';
 		}
 		const slug = this.mod?.returnSlug?.() || 'store';
@@ -175,7 +155,6 @@ class Summary {
 		if (hasTitle && hasSeller && hasPrice && this.nft) {
 			return this;
 		}
-		// Lazy require avoids the summary ↔ summary-media ↔ archive cycle.
 		const { applyListingTransaction } = require('./summary-media');
 		applyListingTransaction(this, this.listing_tx);
 		return this;
@@ -240,145 +219,7 @@ class Summary {
 	}
 }
 
-function returnDemoSummaries(app, mod) {
-	const rows = [
-		{
-			nft_id: 'store-demo-1',
-			title: '3 SAITO',
-			subtitle: 'Archival Series',
-			price: 300000000,
-			seller: 'anon-szuhff',
-			image: 'gradient-1',
-			badge: true,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		},
-		{
-			nft_id: 'store-demo-2',
-			title: '5 SAITO',
-			subtitle: 'Genesis Drop',
-			price: 500000000,
-			seller: 'anon-kx9pld',
-			image: 'gradient-2',
-			badge: false,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		},
-		{
-			nft_id: 'store-demo-3',
-			title: '8 SAITO',
-			subtitle: 'Creator Bundle',
-			price: 800000000,
-			seller: 'anon-vq2mtn',
-			image: 'gradient-3',
-			badge: true,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		},
-		{
-			nft_id: 'store-demo-4',
-			title: '12 SAITO',
-			subtitle: 'Community Special',
-			price: 1200000000,
-			seller: 'anon-hf7rqp',
-			image: 'gradient-4',
-			badge: false,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		},
-		{
-			nft_id: 'store-demo-5',
-			title: '15 SAITO',
-			subtitle: 'Founders Capsule',
-			price: 1500000000,
-			seller: 'anon-ly3gca',
-			image: 'gradient-5',
-			badge: true,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		},
-		{
-			nft_id: 'store-demo-6',
-			title: '20 SAITO',
-			subtitle: 'Limited Vault',
-			price: 2000000000,
-			seller: 'anon-nr8wse',
-			image: 'gradient-6',
-			badge: false,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		},
-		{
-			nft_id: 'store-demo-7',
-			title: '25 SAITO',
-			subtitle: 'Verified Set',
-			price: 2500000000,
-			seller: 'anon-bm4qzt',
-			image: 'gradient-7',
-			badge: true,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		},
-		{
-			nft_id: 'store-demo-8',
-			title: '30 SAITO',
-			subtitle: 'Collector Tier',
-			price: 3000000000,
-			seller: 'anon-pd1yuk',
-			image: 'gradient-8',
-			badge: false,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		},
-		{
-			nft_id: 'store-demo-9',
-			title: '40 SAITO',
-			subtitle: 'Premium Relay',
-			price: 4000000000,
-			seller: 'anon-tj6xev',
-			image: 'gradient-9',
-			badge: true,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		},
-		{
-			nft_id: 'store-demo-10',
-			title: '55 SAITO',
-			subtitle: 'Legendary Pack',
-			price: 5500000000,
-			seller: 'anon-qw5nfr',
-			image: 'gradient-10',
-			badge: false,
-			quantity_total: 1,
-			quantity_available: 1,
-			quantity_reserved: 0,
-			status: SUMMARY_STATUS_ACTIVE
-		}
-	];
-
-	return rows.map((data) => new Summary(app, mod, data));
-}
-
 module.exports = Summary;
 module.exports.SUMMARY_STATUS_ACTIVE = SUMMARY_STATUS_ACTIVE;
 module.exports.SUMMARY_STATUS_INACTIVE = SUMMARY_STATUS_INACTIVE;
 module.exports.DREAMSCAPE_PLACEHOLDER = DREAMSCAPE_PLACEHOLDER;
-module.exports.returnDemoSummaries = returnDemoSummaries;

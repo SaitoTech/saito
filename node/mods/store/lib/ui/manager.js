@@ -62,16 +62,29 @@ class Manager {
 	}
 
 	/**
-	 * Open the creator storefront panel for a public key (My Store / /store/<pk>).
+	 * Open the creator storefront / admin panel for a public key.
+	 * @param {string} publicKey
+	 * @param {{ viewMode?: 'public' | 'admin' | 'admin-denied', adminSection?: 'home' | 'active' }} [opts]
 	 */
-	showStorefront(publicKey = '') {
+	showStorefront(publicKey = '', { viewMode = 'public', adminSection = 'home' } = {}) {
 		this.show('my-listings');
-		return this.storefront.show(publicKey);
+		return this.storefront.show(publicKey, { viewMode, adminSection });
 	}
 
 	showSales() {
 		this.show('sales');
-		this.sales.render(`${this.container} [data-panel="sales"]`);
+		const seller = String(this.mod.publicKey || '').trim();
+		const sf = this.storefront;
+		// Reuse the same warehouse payload Active Listings already loaded.
+		if (
+			seller &&
+			sf.publicKey === seller &&
+			sf.inventoryLoaded &&
+			!sf.loading
+		) {
+			return this.sales.show(sf.soldSummaries);
+		}
+		return this.sales.show();
 	}
 
 	scrollToListings() {

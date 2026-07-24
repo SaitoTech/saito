@@ -1,5 +1,4 @@
 const Teaser = require('./teaser');
-const { getSummariesForSale } = require('./summary-cache');
 
 class Teasers {
 	constructor(app, mod, container = '') {
@@ -12,7 +11,7 @@ class Teasers {
 		});
 	}
 
-	render(container = '', items = null) {
+	render(container = '', items = []) {
 		if (container) {
 			this.container = container;
 		}
@@ -28,7 +27,7 @@ class Teasers {
 
 		el.innerHTML = '';
 
-		const list = Array.isArray(items) ? items : getSummariesForSale(this.mod);
+		const list = Array.isArray(items) ? items : [];
 		for (const item of list) {
 			const teaser = new Teaser(this.app, this.mod, item, this.container);
 			teaser.render();

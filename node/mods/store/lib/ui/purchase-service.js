@@ -1,5 +1,3 @@
-const { isDemoNftId } = require('../summary-media');
-
 function parseListingUnitPrice(price = '') {
 	const match = String(price).match(/[\d.]+/);
 	return match ? match[0] : null;
@@ -10,7 +8,7 @@ function parseListingUnitPrice(price = '') {
  * Calls back into PurchaseOverlay for waiting / confirmed presentation.
  */
 async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
-	if (!summary?.nft_id || isDemoNftId(summary.nft_id)) {
+	if (!summary?.nft_id) {
 		salert('This item is not available for purchase.');
 		return;
 	}

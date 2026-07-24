@@ -710,6 +710,9 @@
 /* -------------------------------------------------------------------------- */
 
 .saito-crypto-withdraw {
+  /* Same horizontal inset for every inline trailing control (people icon, MAX, etc.).
+     Matches input.saito-input’s horizontal padding so field chrome shares one edge. */
+  --withdraw-inline-action-inset: var(--saito-space-md);
   width: min(60rem, 95vw);
   max-width: 100%;
   box-sizing: border-box;
@@ -921,33 +924,42 @@
   padding-right: 1rem;
 }
 
-.saito-crypto-withdraw .input-row.fixed-user > .input-actions {
-  grid-column: 2;
-}
-
 .saito-crypto-withdraw .input-actions {
-  grid-column: 1;
-  grid-row: 1;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: var(--withdraw-inline-action-inset);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--saito-space-xs);
   min-width: 0;
   width: auto;
-  margin-right: var(--saito-space-xs);
-  justify-self: end;
+  margin: 0;
+  padding: 0;
   z-index: 2;
+  pointer-events: none;
 }
 
-.saito-crypto-withdraw .withdraw-options-cont {
-  display: flex;
+/* Trailing controls share one box model: flush to the actions strip’s end edge */
+.saito-crypto-withdraw .input-actions > .withdraw-options-cont,
+.saito-crypto-withdraw .input-actions > #withdraw-max-btn,
+.saito-crypto-withdraw .input-actions > .withdraw-amount-status {
+  pointer-events: auto;
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
+  justify-content: flex-end;
   border: 0;
   background: none;
   box-shadow: none;
+  filter: none;
+}
+
+.saito-crypto-withdraw .withdraw-options-cont {
+  width: 2.4rem;
+  height: 2.4rem;
   color: var(--saito-muted-foreground);
   cursor: pointer;
 }
@@ -1016,6 +1028,8 @@
   column-gap: 1rem;
   width: 100%;
   min-width: 0;
+  padding-inline-end: var(--withdraw-inline-action-inset);
+  box-sizing: border-box;
 }
 
 .saito-crypto-withdraw .address-external {
@@ -1027,6 +1041,8 @@
   row-gap: 0.1rem;
   width: 100%;
   min-width: 0;
+  padding-inline-end: var(--withdraw-inline-action-inset);
+  box-sizing: border-box;
 }
 
 .saito-crypto-withdraw .address-external-address {
@@ -1117,6 +1133,8 @@
   align-items: center;
   width: 100%;
   min-width: 0;
+  padding-inline-end: var(--withdraw-inline-action-inset);
+  box-sizing: border-box;
 }
 
 .saito-crypto-withdraw .address-invalid-message {
@@ -1138,12 +1156,10 @@
 
 .saito-crypto-withdraw #withdraw-max-btn {
   flex: 0 0 auto;
-  margin: 0;
   min-width: unset;
-  border: 0;
-  background: none;
-  box-shadow: none;
-  filter: none;
+  color: inherit;
+  cursor: pointer;
+  line-height: 1;
 }
 
 .saito-crypto-withdraw #withdraw-max-btn:hover,
@@ -1158,13 +1174,9 @@
   position: relative;
   z-index: 2;
   flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
   width: 3.2rem;
   height: 3.2rem;
-  margin: 0;
-  padding: 0;
   user-select: none;
   touch-action: manipulation;
 }
@@ -1186,7 +1198,7 @@
   top: 0;
   bottom: 0;
   left: 0;
-  right: calc(8.5rem + var(--saito-space-xs));
+  right: calc(8.5rem + var(--withdraw-inline-action-inset));
   display: flex;
   align-items: center;
   padding: 0 1rem;

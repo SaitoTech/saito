@@ -30,7 +30,7 @@
 	padding: 0;
 }
 
-/* All category rows share identical base typography — including All Listings / My Saito Store */
+/* All category / admin rows share identical base typography */
 .store > .menu .item {
 	display: flex;
 	align-items: center;
@@ -106,20 +106,6 @@
 	border: none;
 	background: var(--saito-primary);
 	color: #ffffff;
-}
-
-/* —— Seller dashboard sidebar only —— */
-
-.store > .menu.dashboard > .saito-button-primary {
-	width: 100%;
-	min-width: 0;
-	margin: 0;
-	white-space: normal;
-}
-
-.store > .menu.dashboard .mode-select {
-	width: 100%;
-	margin: 0;
 }
 
 /* —— Main column —— */
@@ -219,14 +205,27 @@
 .store .storefront-url {
 	margin: 0;
 	max-width: 100%;
+	padding: 0.55rem 0.85rem;
+	border: var(--border-thickness-thin) solid var(--saito-border-color);
+	border-radius: var(--saito-border-radius);
+	background: color-mix(in srgb, #ffffff 8%, transparent);
+	color: color-mix(in srgb, #ffffff 94%, var(--saito-font-color-secondary));
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+		'Courier New', monospace;
 	font-size: var(--font-size-small);
-	line-height: 1.35;
+	line-height: 1.4;
+	text-decoration: none;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	user-select: all;
 	min-width: 0;
-	flex: 1 1 auto;
+}
+
+.store .storefront-url:hover,
+.store .storefront-url:focus-visible {
+	color: #ffffff;
+	text-decoration: none;
 }
 
 .store .storefront-url-row {
@@ -235,14 +234,13 @@
 	justify-content: flex-start;
 	flex-wrap: wrap;
 	gap: var(--saito-space-sm);
-	width: 100%;
+	width: fit-content;
 	max-width: 100%;
 	min-width: 0;
+	margin: var(--saito-space-xs) 0;
 }
 
-.store .storefront-url-row .saito-button-secondary {
-	margin: 0;
-	min-width: 0;
+.store .storefront-url-row .saito-icon-button {
 	flex: 0 0 auto;
 }
 
@@ -298,7 +296,33 @@
 	margin: var(--saito-space-sm) 0 0;
 	font-size: var(--font-size-medium);
 	line-height: 1.45;
-	color: var(--saito-font-color-secondary);
+	color: color-mix(in srgb, #ffffff 88%, var(--saito-font-color-secondary));
+}
+
+/* Seller admin shell — top padding aligns with first sidebar nav item */
+.store .storefront-admin {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	padding-top: var(--saito-space-xs);
+	min-width: 0;
+}
+
+.store .admin-denied {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 16rem;
+	padding: var(--saito-space-xxl) var(--saito-space-lg);
+	text-align: center;
+}
+
+.store .admin-denied .body {
+	margin: 0;
+	max-width: 28rem;
+	font-size: var(--font-size-medium);
+	line-height: 1.5;
+	color: var(--saito-font-color);
 }
 
 /* Seller dashboard welcome (main column only — not .menu.dashboard) */
@@ -327,28 +351,13 @@
 	color: var(--saito-font-color-secondary);
 }
 
-.store .seller-home .share {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-xs);
-	min-width: 0;
-}
-
-.store .seller-home .label {
-	margin: 0;
-	font-size: var(--font-size-small);
-	font-family: var(--saito-font-medium);
-	color: var(--saito-font-color);
-}
-
 .store .seller-home .actions {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--saito-space-sm);
 }
 
-.store .seller-home .actions .saito-button-primary,
-.store .seller-home .actions .saito-button-secondary {
+.store .seller-home .actions .saito-button-primary {
 	margin: 0;
 	min-width: 0;
 }
@@ -391,15 +400,28 @@
 	color: var(--saito-font-color-secondary);
 }
 
-.store .sales-catalog > .title {
-	margin: 0;
-	font-size: var(--font-size-large);
-	font-family: var(--saito-font-medium);
-	line-height: 1.25;
+.store .sales-panel {
+	display: flex;
+	flex-direction: column;
+	gap: var(--saito-space-md);
+	min-width: 0;
 }
 
-.store .sales-placeholder {
-	margin: var(--saito-space-md) 0 0;
+.store .sales-panel > .title {
+	margin: 0;
+	font-size: var(--font-size-large);
+	font-family: var(--saito-font-heavy);
+	line-height: 1.25;
+	color: var(--saito-font-color);
+}
+
+.store .sales-panel .sales-content {
+	min-width: 0;
+}
+
+.store .sales-panel .body {
+	margin: 0;
+	max-width: 40rem;
 	font-size: var(--font-size-medium);
 	line-height: 1.5;
 	color: var(--saito-font-color-secondary);
@@ -582,8 +604,7 @@
 		flex-wrap: wrap;
 	}
 
-	.store .seller-home .actions .saito-button-primary,
-	.store .seller-home .actions .saito-button-secondary {
+	.store .seller-home .actions .saito-button-primary {
 		flex: 1 1 auto;
 	}
 

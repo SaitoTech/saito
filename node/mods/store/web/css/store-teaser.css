@@ -74,22 +74,6 @@
 	white-space: nowrap;
 }
 
-.teaser .badge.pending {
-	background: color-mix(in srgb, var(--saito-primary) 22%, var(--saito-background));
-	color: var(--saito-foreground);
-}
-
-.teaser.is-pending {
-	opacity: 0.78;
-	cursor: default;
-}
-
-.teaser.is-pending:hover {
-	background-color: var(--saito-card-bg);
-	border-color: var(--saito-card-border-initial);
-	box-shadow: var(--saito-card-shadow);
-}
-
 .teaser .saito-identicon {
 	position: absolute;
 	right: var(--saito-space-sm);

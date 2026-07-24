@@ -3,10 +3,6 @@ const { loadTransactionFromArchive } = require('./archive');
 
 const DREAMSCAPE_PLACEHOLDER = '/saito/img/dreamscape.png';
 
-function isDemoNftId(nft_id = '') {
-	return String(nft_id).startsWith('store-demo-');
-}
-
 function tryLoadImageUrl(url = '') {
 	return new Promise((resolve) => {
 		if (!url || typeof Image === 'undefined') {
@@ -113,7 +109,7 @@ async function ensureListingTransaction(summary) {
 }
 
 async function enrichSummaryMedia(summary) {
-	if (!summary || summary.image || isDemoNftId(summary.nft_id)) {
+	if (!summary || summary.image) {
 		return summary;
 	}
 
@@ -149,7 +145,6 @@ async function enrichSummaryMedia(summary) {
 
 module.exports = {
 	DREAMSCAPE_PLACEHOLDER,
-	isDemoNftId,
 	tryLoadImageUrl,
 	applyListingTransaction,
 	ensureListingTransaction,

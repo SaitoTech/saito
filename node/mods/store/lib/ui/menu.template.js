@@ -25,22 +25,25 @@ function browseTemplate() {
   `;
 }
 
-/** Seller admin sidebar — isolated from marketplace chrome. */
-function dashboardTemplate({ storeMode = 'active' } = {}) {
-	const activeSelected = storeMode === 'sold' ? '' : ' selected';
-	const soldSelected = storeMode === 'sold' ? ' selected' : '';
+/** Seller admin sidebar — vertical nav matching marketplace item chrome. */
+function dashboardTemplate({ dashboardView = 'store-admin' } = {}) {
+	const view = ['store-admin', 'active', 'sold'].includes(dashboardView)
+		? dashboardView
+		: 'store-admin';
+
+	const item = (id, label) => {
+		const on = view === id;
+		const active = on ? ' active' : '';
+		const current = on ? 'page' : 'false';
+		return `<li class="item${active}" role="button" tabindex="0" data-view="${id}" aria-current="${current}">${label}</li>`;
+	};
 
 	return `
     <ul class="list saito-menu-select-subtle" role="list">
-      <li class="item active" role="button" tabindex="0" data-view="my-store">My Saito Store</li>
-      <li class="divider" role="separator"></li>
+      ${item('store-admin', 'Store Admin')}
+      ${item('active', 'Active Listings')}
+      ${item('sold', 'Sold Listings')}
     </ul>
-    <select class="saito-form-select mode-select" data-action="store-mode" aria-label="Store listings filter">
-      <option value="active"${activeSelected}>Active Listings</option>
-      <option value="sold"${soldSelected}>Completed Sales</option>
-    </select>
-    <div class="divider" role="separator"></div>
-    <button type="button" class="saito-button-primary" data-action="list-item">List Another Item</button>
   `;
 }
 

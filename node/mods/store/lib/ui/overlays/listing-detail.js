@@ -138,13 +138,9 @@ class ListingDetailOverlay {
 			display.loading || display.innerHtml
 				? ''
 				: summary.returnPlaceholderImage?.() || DREAMSCAPE_PLACEHOLDER;
-		const images = Array.isArray(summary.images)
+		const normalizedImages = Array.isArray(summary.images)
 			? summary.images.filter(Boolean)
 			: [listingImage || placeholder];
-
-		const normalizedImages = images.map((img) =>
-			img?.startsWith?.('gradient-') ? DREAMSCAPE_PLACEHOLDER : img
-		);
 
 		const priceValue = summary.returnPrice?.() || summary.price || summary.reserve_price || '';
 		const bidValue = summary.current_bid || summary.currentBid || '';
@@ -610,10 +606,13 @@ class ListingDetailOverlay {
 		// Progress overlay first so the user never sees a silent close.
 		openProgress();
 
-		// Switch Store underneath to the seller dashboard (when the Store page is active).
+		// Switch Store underneath to the seller admin page (when the Store page is active).
 		if (this.mod.main?.openStorefront && this.mod.publicKey) {
 			Promise.resolve(
-				this.mod.main.openStorefront(this.mod.publicKey, { celebrate: true })
+				this.mod.main.openStorefront(this.mod.publicKey, {
+					celebrate: true,
+					admin: true
+				})
 			).catch((err) => {
 				console.warn('Store: openStorefront after list failed', err?.message || err);
 			});
