@@ -18,20 +18,18 @@ body.redsquare-body {
  * Container sizing
  *
  * Desktop: full left rail + feed + right rail.
- * 1365px: compact left rail.
+ * 1488px: compact left rail.
  * 820px: remove the right rail.
  * 600px: feed-only mobile layout above the bottom navigation.
  */
 body.redsquare-body {
-  --redsquare-rail-left: 26rem;
-  --redsquare-rail-right: 100%;
-  --redsquare-feed-width: 100%;
-  --saito-width: min(100vw, 1485px);
+  /* Saito's gutter formula removes 1rem from this width, leaving a 120rem content grid. */
+  --saito-width: 121rem;
 }
 
 body.redsquare-body #saito-container {
-  grid-template-columns: var(--redsquare-rail-left) 11fr 5fr;
-  column-gap: var(--saito-space-xl);
+  grid-template-columns: 27rem 62rem 31rem;
+  column-gap: 0;
   padding: 0 max(2rem, calc((100vw - var(--saito-width)) / 2 + 0.5rem));
   overflow: hidden;
 }
@@ -46,27 +44,21 @@ body.redsquare-body #saito-container > .main {
   justify-self: start;
   display: flex;
   flex-direction: column;
-  width: var(--redsquare-feed-width);
+  width: 100%;
   max-width: 100%;
   height: 100%;
   overflow: hidden;
 }
 
-@media (max-width: 1365px) {
-  body.redsquare-body {
-    --redsquare-rail-left: 9rem;
-    --redsquare-rail-right: 28rem;
+@media (max-width: 1488px) {
+  body.redsquare-body #saito-container {
+    grid-template-columns: 8rem minmax(0, 1fr) 30rem;
   }
 }
 
 @media (max-width: 820px) {
-  body.redsquare-body {
-    --redsquare-rail-left: 8rem;
-    --redsquare-rail-right: 0rem;
-  }
-
   body.redsquare-body #saito-container {
-    grid-template-columns: var(--redsquare-rail-left) minmax(0, 1fr);
+    grid-template-columns: 8rem minmax(0, 1fr);
   }
 }
 

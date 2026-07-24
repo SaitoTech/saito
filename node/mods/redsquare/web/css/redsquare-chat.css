@@ -23,7 +23,7 @@
   overflow-y: auto;
 }
 
-@media (max-width: 1365px) {
+@media (max-width: 1488px) {
   .sidebar-left > .chat-manager {
     display: none;
   }
