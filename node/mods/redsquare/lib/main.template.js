@@ -1,6 +1,6 @@
 module.exports = () => {
   return `
-    <div class="sidebar-left"></div>
+    <div class="sidebar-left hide-scrollbar"></div>
 
     <main class="main">
       <div class="manager" data-mobile-view="feed"></div>
@@ -8,7 +8,7 @@ module.exports = () => {
       <section class="redsquare-mobile-view redsquare-mobile-settings" data-mobile-view="settings" hidden></section>
     </main>
 
-    <aside class="sidebar-right">
+    <aside class="sidebar-right hide-scrollbar">
       <div class="redsquare-profile"></div>
       <div class="sidebar"></div>
     </aside>

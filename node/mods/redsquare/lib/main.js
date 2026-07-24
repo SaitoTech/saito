@@ -116,12 +116,120 @@ class Main {
     this.attachEvents();
   }
 
+  attachSidebarScrollSync() {
+    const root = document.querySelector(this.container);
+    const scroller = root?.querySelector('.manager .body');
+
+    if (!scroller || scroller.dataset.sidebarScrollSyncBound === '1') {
+      return;
+    }
+
+    scroller.dataset.sidebarScrollSyncBound = '1';
+
+    let previousScrollTop = scroller.scrollTop;
+    let frame = null;
+
+    scroller.addEventListener(
+      'scroll',
+      () => {
+        if (frame !== null) {
+          return;
+        }
+
+        frame = window.requestAnimationFrame(() => {
+          frame = null;
+
+          const currentScrollTop = scroller.scrollTop;
+          const scrollDelta = currentScrollTop - previousScrollTop;
+          previousScrollTop = currentScrollTop;
+
+          if (scrollDelta === 0 || this.isCompactViewport()) {
+            return;
+          }
+
+          root.querySelectorAll('.sidebar-left, .sidebar-right').forEach((sidebar) => {
+            if (sidebar.clientHeight > 0 && sidebar.scrollHeight > sidebar.clientHeight) {
+              sidebar.scrollTop += scrollDelta;
+            }
+          });
+        });
+      },
+      { passive: true }
+    );
+  }
+
+  canConsumeWheel(target, root, scrollDelta) {
+    let element = target?.nodeType === 1 ? target : target?.parentElement;
+
+    while (element && element !== root) {
+      const overflowY = window.getComputedStyle(element).overflowY;
+
+      if (
+        (overflowY === 'auto' || overflowY === 'scroll') &&
+        element.scrollHeight > element.clientHeight
+      ) {
+        const maxScrollTop = element.scrollHeight - element.clientHeight;
+
+        if (
+          (scrollDelta < 0 && element.scrollTop > 0) ||
+          (scrollDelta > 0 && element.scrollTop < maxScrollTop)
+        ) {
+          return true;
+        }
+      }
+
+      element = element.parentElement;
+    }
+
+    return false;
+  }
+
+  attachFeedWheelScroll() {
+    const root = document.querySelector(this.container);
+    const scroller = root?.querySelector('.manager .body');
+
+    if (!root || !scroller || root.dataset.feedWheelScrollBound === '1') {
+      return;
+    }
+
+    root.dataset.feedWheelScrollBound = '1';
+
+    root.addEventListener(
+      'wheel',
+      (event) => {
+        if (
+          event.defaultPrevented ||
+          event.ctrlKey ||
+          event.deltaY === 0 ||
+          this.isCompactViewport() ||
+          scroller.contains(event.target) ||
+          this.canConsumeWheel(event.target, root, event.deltaY)
+        ) {
+          return;
+        }
+
+        const deltaScale =
+          event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? scroller.clientHeight : 1;
+        const previousScrollTop = scroller.scrollTop;
+
+        scroller.scrollTop += event.deltaY * deltaScale;
+
+        if (scroller.scrollTop !== previousScrollTop) {
+          event.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+  }
+
   attachEvents() {
     this.menu.attachEvents();
     this.manager.attachEvents();
     this.profile.attachEvents();
     this.new_post.attachEvents();
     this.sidebar.attachEvents();
+    this.attachSidebarScrollSync();
+    this.attachFeedWheelScroll();
   }
 }
 
