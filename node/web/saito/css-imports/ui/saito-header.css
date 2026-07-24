@@ -312,6 +312,11 @@
   border-radius: inherit;
 }
 
+/* Wallet / Back label toggle — scoped so Fileshare can keep its own .hideme */
+#saito-header .wallet-btn .hideme {
+  display: none;
+}
+
 #saito-header .wallet-btn:hover {
   color: var(--saito-primary-text);
   background: var(--saito-primary);

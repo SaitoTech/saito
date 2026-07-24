@@ -960,7 +960,7 @@ class SaitoHeader extends UIModTemplate {
           }
 
           addressContainer.dataset.add = add;
-          addressContainer.innerHTML = `${add.slice(0, 8)}...${add.slice(-8)}`;
+          addressContainer.textContent = add;
 
           document.querySelector('#qrcode').style.visibility = 'hidden';
           document.querySelector('#qrcode').style.opacity = '0';

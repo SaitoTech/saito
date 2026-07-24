@@ -18,6 +18,7 @@ const { loadTransactionFromArchive } = require('./archive');
 const { initializeImageCache } = require('./images');
 const { executeListingScript, returnCreatedNftTuples, returnSpentNftTuples } = require('./scripting');
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
+const { mapNFTTypeToCategory, STORE_CATEGORIES, normalizePage, normalizePageSize, isStoreCategory } = require('./categories');
 
 class Warehouse {
 	constructor(app, mod) {
@@ -534,10 +535,12 @@ class Warehouse {
 			const nft_id = bucket.nft_id;
 			const price = Number(bucket.price ?? 0);
 			const prev = existing_by_bucket[summaryBucketKey(nft_id, price)] || {};
+			const active_listing = await this.db.returnActiveListingForBucket(nft_id, price);
 
 			await this.db.insertSummary({
 				nft_id,
 				price,
+				category: prev.category || active_listing?.category || STORE_CATEGORIES.OTHER,
 				title: prev.title || '',
 				description: prev.description || '',
 				image: null,
@@ -548,9 +551,11 @@ class Warehouse {
 			const row = await this.db.returnSummaryByBucket(nft_id, price);
 			if (row) {
 				const summary = new Summary(this.app, this.mod, row);
-				const listing = await this.db.returnActiveListingForBucket(nft_id, price);
-				if (listing?.signature) {
-					summary.listing_signature = listing.signature;
+				if (active_listing?.signature) {
+					summary.listing_signature = active_listing.signature;
+				}
+				if (active_listing?.category) {
+					summary.category = active_listing.category;
 				}
 				const key = summaryBucketKey(nft_id, price);
 				this.summaries[key] = summary;
@@ -563,6 +568,47 @@ class Warehouse {
 
 	returnActiveSummaries() {
 		return Object.values(this.summaries).filter((summary) => summary.isActive());
+	}
+
+	/**
+	 * Active marketplace summaries with optional category filter and page window.
+	 * category '' / omitted = all listings.
+	 */
+	returnActiveSummariesPage({ category = '', page = 1, page_size = 24 } = {}) {
+		const page_num = normalizePage(page);
+		const size = normalizePageSize(page_size);
+		const filter = String(category || '').trim();
+
+		let all = this.returnActiveSummaries();
+		if (filter) {
+			if (!isStoreCategory(filter)) {
+				all = [];
+			} else {
+				all = all.filter((summary) => String(summary.category || '') === filter);
+			}
+		}
+
+		// Stable newest-first browse order when timestamps exist.
+		all.sort((a, b) => Number(b.updated_at || 0) - Number(a.updated_at || 0));
+
+		const total = all.length;
+		const total_pages = total === 0 ? 0 : Math.ceil(total / size);
+		const safe_page = total_pages === 0 ? 1 : Math.min(page_num, total_pages);
+		const start = (safe_page - 1) * size;
+		const listings = all.slice(start, start + size);
+
+		return {
+			listings,
+			category: filter,
+			pagination: {
+				page: safe_page,
+				page_size: size,
+				total,
+				total_pages,
+				has_next: total_pages > 0 && safe_page < total_pages,
+				has_previous: total_pages > 0 && safe_page > 1
+			}
+		};
 	}
 
 	async returnSummaryByBucket(nft_id, price) {
@@ -628,6 +674,7 @@ class Warehouse {
 			});
 
 		await this.persistSummaryMetadata(listing.nft_id, listing.price, txmsg);
+		await this.persistSummaryCategory(listing);
 		await this.syncSummaryToCache(listing.nft_id, listing.price);
 
 		const image = nft.returnImage?.() || '';
@@ -654,6 +701,14 @@ class Warehouse {
 		await this.db.updateSummaryMetadata(nft_id, price, { title, description });
 	}
 
+	async persistSummaryCategory(listing) {
+		if (!listing?.nft_id) {
+			return;
+		}
+		const category = listing.category || STORE_CATEGORIES.OTHER;
+		await this.db.updateSummaryCategory(listing.nft_id, listing.price, category);
+	}
+
 	async syncSummaryToCache(nft_id, price) {
 		const row = await this.db.returnSummaryByBucket(nft_id, price);
 		if (!row) {
@@ -665,6 +720,9 @@ class Warehouse {
 		if (listing?.signature) {
 			summary.listing_signature = listing.signature;
 		}
+		if (listing?.category) {
+			summary.category = listing.category;
+		}
 		const key = summaryBucketKey(nft_id, price);
 		this.summaries[key] = summary;
 		this.mod.summaries = this.summaries;
@@ -675,13 +733,17 @@ class Warehouse {
 	async ensureSummaryForListing(listing) {
 		const existing = await this.db.returnSummaryByBucket(listing.nft_id, listing.price);
 		if (existing) {
-			return existing;
+			if (listing.category) {
+				await this.db.updateSummaryCategory(listing.nft_id, listing.price, listing.category);
+			}
+			return this.db.returnSummaryByBucket(listing.nft_id, listing.price);
 		}
 
 		const now = Date.now();
 		await this.db.insertSummary({
 			nft_id: listing.nft_id,
 			price: listing.price,
+			category: listing.category || STORE_CATEGORIES.OTHER,
 			title: '',
 			description: '',
 			image: null,
@@ -728,10 +790,17 @@ class Warehouse {
 		const price_nolan = Number(this.app.wallet.convertSaitoToNolan(meta.price ?? 0) ?? 0);
 		const change_qty = inventory_triple[0]?.amount;
 
+		const nft_type =
+			(typeof nft?.returnType === 'function' ? nft.returnType() : null) ||
+			nft?.nft_type ||
+			'';
+		const category = mapNFTTypeToCategory(nft_type);
+
 		return {
 			signature: tx.signature,
 			nft_id: String(nft.id || nft.uuid || meta.nft_id || ''),
 			seller: fulfill.seller || tx.from?.[0]?.publicKey || '',
+			category,
 			quantity: Number(change_qty ?? nft.amount ?? inventory_triple[0]?.amount ?? 1) || 1,
 			price: price_nolan,
 			access_hash: txmsg.access_hash || '',
@@ -813,6 +882,7 @@ class Warehouse {
 			await this.db.insertSummary({
 				nft_id,
 				price: Number(price ?? 0),
+				category: STORE_CATEGORIES.OTHER,
 				title: '',
 				description: '',
 				image: null,

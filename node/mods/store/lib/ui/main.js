@@ -24,7 +24,8 @@ class Main {
 
 		this.menu = new Menu(app, mod, '', (view) => this.onNavigate(view));
 		this.manager = new Manager(app, mod, '', {
-			onSell: () => this.openSell()
+			onSell: () => this.openSell(),
+			onStoreModeChange: (mode) => this.onStoreModeChange(mode)
 		});
 		this.purchase_status = new PurchaseStatus(app, mod, '', {
 			onShowProgress: () => this.reopenPurchaseProgress(),
@@ -41,7 +42,7 @@ class Main {
 		this.purchase_flow = null;
 
 		this.app.connection.on('store-render-listings', () => {
-			this.manager.renderListings();
+			this.manager.reloadBrowsePage();
 		});
 
 		if (this.app.BROWSER && typeof window !== 'undefined') {
@@ -57,6 +58,7 @@ class Main {
 		}
 		this.manager.show('browse');
 		this.menu.setActive('all');
+		this.loadBrowsePage({ category: '', page: 1 });
 	}
 
 	async initialize() {
@@ -97,7 +99,7 @@ class Main {
 		this.purchase_status.render(`${this.container} .store > .main-column > .purchase-status-slot`);
 	}
 
-	onNavigate(view = '') {
+	onNavigate(view = '', opts = {}) {
 		if (view === 'featured') {
 			this.manager.show('browse');
 			this.setBrowseUrl();
@@ -108,7 +110,7 @@ class Main {
 		if (view === 'all') {
 			this.manager.show('browse');
 			this.setBrowseUrl();
-			this.manager.scrollToListings();
+			this.loadBrowsePage({ category: '', page: 1, scroll: true });
 			return;
 		}
 
@@ -118,13 +120,29 @@ class Main {
 		}
 
 		if (view === 'sales') {
-			this.manager.show('sales');
+			this.openSales();
 			return;
 		}
 
 		if (view === 'sell') {
 			this.openSell();
+			return;
 		}
+
+		// Category browse (data-category from menu items).
+		if (Object.prototype.hasOwnProperty.call(opts, 'category')) {
+			this.manager.show('browse');
+			this.setBrowseUrl();
+			this.loadBrowsePage({
+				category: String(opts.category || ''),
+				page: 1,
+				scroll: true
+			});
+		}
+	}
+
+	loadBrowsePage({ category = '', page = 1, scroll = false } = {}) {
+		return this.manager.loadBrowsePage({ category, page, scroll });
 	}
 
 	/**
@@ -143,6 +161,19 @@ class Main {
 		if (updateUrl) {
 			this.setStorefrontUrl(key);
 		}
+	}
+
+	openSales() {
+		this.menu.setActive('my-listings');
+		this.manager.showSales();
+	}
+
+	onStoreModeChange(mode = 'active') {
+		if (mode === 'sold') {
+			this.openSales();
+			return;
+		}
+		this.openStorefront(this.mod.publicKey);
 	}
 
 	setBrowseUrl() {

@@ -1,5 +1,6 @@
 const Summary = require('../summary');
 const { syncSummaryCache } = require('./summary-cache');
+const { mapNFTTypeToCategory } = require('../categories');
 
 const PHASE = {
 	SUBMITTED: 'submitted',
@@ -55,10 +56,13 @@ class ListingLifecycle {
 		const title = String(listing.title || nft?.title || 'Untitled Item').trim();
 		const description = String(listing.description ?? nft?.description ?? '').trim();
 		const image = nft?.returnImage?.() || nft?.image || null;
+		const nft_type =
+			(typeof nft?.returnType === 'function' ? nft.returnType() : null) || nft?.nft_type || '';
 
 		const summary = new Summary(this.app, this.mod, {
 			nft_id,
 			seller,
+			category: mapNFTTypeToCategory(nft_type),
 			title,
 			description,
 			price: price_nolan,

@@ -1,5 +1,6 @@
 /** Listing is reserved for an in-flight settlement until confirmed or reset. */
 const LISTING_SETTLEMENT_PENDING_BLOCK_ID = -1;
+const { STORE_CATEGORIES } = require('./categories');
 
 class Database {
 	constructor(app, mod) {
@@ -22,7 +23,11 @@ class Database {
 			'ALTER TABLE listings ADD COLUMN block_id_sold INTEGER NOT NULL DEFAULT 0',
 			'ALTER TABLE listings ADD COLUMN block_hash_sold TEXT NOT NULL DEFAULT ""',
 			'ALTER TABLE listings ADD COLUMN transaction_id_sold INTEGER NOT NULL DEFAULT 0',
-			'ALTER TABLE listings ADD COLUMN longest_chain_sold INTEGER NOT NULL DEFAULT 0'
+			'ALTER TABLE listings ADD COLUMN longest_chain_sold INTEGER NOT NULL DEFAULT 0',
+			'ALTER TABLE listings ADD COLUMN category TEXT DEFAULT "Other"'
+		];
+		const summary_columns = [
+			'ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"'
 		];
 		const order_columns = [
 			'ALTER TABLE orders ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1',
@@ -38,7 +43,7 @@ class Database {
 			'ALTER TABLE orders ADD COLUMN longest_chain_received INTEGER NOT NULL DEFAULT 1'
 		];
 
-		for (const sql of [...listing_columns, ...order_columns]) {
+		for (const sql of [...listing_columns, ...summary_columns, ...order_columns]) {
 			try {
 				await this.app.storage.runDatabase(sql, {}, this.dbname);
 			} catch (err) {
@@ -131,7 +136,7 @@ class Database {
 	async insertListingRow(row) {
 		await this.app.storage.runDatabase(
 			`INSERT INTO listings (
-			  signature, nft_id, seller, quantity, price,
+			  signature, nft_id, seller, category, quantity, price,
 			  access_hash, access_script, p2sh_address, slip_id,
 			  block_id_listed, block_hash_listed, transaction_id_listed, longest_chain_listed,
 			  block_id_sold, block_hash_sold, transaction_id_sold, longest_chain_sold,
@@ -139,7 +144,7 @@ class Database {
 			  utxo_slip1, utxo_slip2, utxo_slip3,
 			  created_at, updated_at
 			) VALUES (
-			  $signature, $nft_id, $seller, $quantity, $price,
+			  $signature, $nft_id, $seller, $category, $quantity, $price,
 			  $access_hash, $access_script, $p2sh_address, $slip_id,
 			  $block_id_listed, $block_hash_listed, $transaction_id_listed, $longest_chain_listed,
 			  $block_id_sold, $block_hash_sold, $transaction_id_sold, $longest_chain_sold,
@@ -151,6 +156,7 @@ class Database {
 				$signature: row.signature,
 				$nft_id: row.nft_id,
 				$seller: row.seller || '',
+				$category: row.category || STORE_CATEGORIES.OTHER,
 				$quantity: Number(row.quantity ?? 1),
 				$price: Number(row.price ?? 0),
 				$access_hash: row.access_hash || '',
@@ -390,15 +396,16 @@ class Database {
 		// TEMPORARY DIAGNOSTIC — remove after listing/summary null root cause is identified.
 		// Bypasses runDatabase so SQLite errors are visible (runDatabase swallows them).
 		const sql = `INSERT INTO summary (
-			  nft_id, price, title, description, image,
+			  nft_id, price, category, title, description, image,
 			  quantity_available, updated_at
 			) VALUES (
-			  $nft_id, $price, $title, $description, $image,
+			  $nft_id, $price, $category, $title, $description, $image,
 			  $quantity_available, $updated_at
 			)`;
 		const params = {
 			$nft_id: summary.nft_id,
 			$price: Number(summary.price ?? 0),
+			$category: summary.category || STORE_CATEGORIES.OTHER,
 			$title: summary.title || '',
 			$description: summary.description || '',
 			$image: summary.image ?? null,
@@ -494,6 +501,22 @@ class Database {
 				$price: Number(price ?? 0),
 				$title: String(title || ''),
 				$description: String(description || ''),
+				$updated_at: Date.now()
+			},
+			this.dbname
+		);
+	}
+
+	async updateSummaryCategory(nft_id, price, category = STORE_CATEGORIES.OTHER) {
+		await this.app.storage.runDatabase(
+			`UPDATE summary
+			 SET category = $category,
+			     updated_at = $updated_at
+			 WHERE nft_id = $nft_id AND price = $price`,
+			{
+				$nft_id: nft_id,
+				$price: Number(price ?? 0),
+				$category: String(category || STORE_CATEGORIES.OTHER),
 				$updated_at: Date.now()
 			},
 			this.dbname

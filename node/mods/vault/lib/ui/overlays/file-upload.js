@@ -139,7 +139,7 @@ class FileUpload {
     let numNFT = 1;
     let depositAmt = BigInt(this.app.wallet.convertSaitoToNolan(1));
     let fee = BigInt(0n);
-    let nft_type = 'vault';
+    let nft_type = 'vault-nft-key';
 
     let balance = await this.app.wallet.getBalance();
     if (balance < depositAmt) {

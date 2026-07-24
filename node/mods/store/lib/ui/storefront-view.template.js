@@ -1,7 +1,36 @@
-module.exports = ({ title = 'Your Store', shareUrl = '', loading = true } = {}) => {
-	const urlHtml = shareUrl
-		? `<p class="storefront-url" data-storefront-url>${shareUrl}</p>`
+module.exports = ({
+	title = 'Your Store',
+	description = '',
+	shareUrl = '',
+	loading = true,
+	showCopy = false,
+	showViewSelect = false,
+	activeView = 'active'
+} = {}) => {
+	const viewSelect = showViewSelect
+		? `<select class="saito-form-select storefront-view-select" data-action="store-view" aria-label="Store view">
+          <option value="active"${activeView === 'active' ? ' selected' : ''}>Active Listings</option>
+          <option value="sold"${activeView === 'sold' ? ' selected' : ''}>Already Sold</option>
+        </select>`
 		: '';
+
+	const descriptionHtml = description
+		? `<p class="description">${description}</p>`
+		: '';
+
+	const urlRow =
+		shareUrl
+			? `<div class="storefront-url-row">
+        <p class="storefront-url" data-storefront-url title="${shareUrl}">${shareUrl}</p>
+        ${
+					showCopy
+						? `<button type="button" class="storefront-copy" data-action="copy-url" aria-label="Copy storefront URL" title="Copy URL">
+            <i class="fas fa-copy" aria-hidden="true"></i>
+          </button>`
+						: ''
+				}
+      </div>`
+			: '';
 
 	const status = loading
 		? `<div class="storefront-status" data-storefront-status role="status" aria-live="polite">
@@ -12,10 +41,12 @@ module.exports = ({ title = 'Your Store', shareUrl = '', loading = true } = {}) 
 
 	return `
     <section class="hero storefront-hero">
-      <div class="copy">
-        <h1>${title}</h1>
-        ${urlHtml}
+      <div class="toolbar-row">
+        <h2 class="title">${title}</h2>
+        ${viewSelect}
       </div>
+      ${descriptionHtml}
+      ${urlRow}
     </section>
     <section class="catalog storefront-catalog">
       ${status}

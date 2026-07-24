@@ -1238,66 +1238,11 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
 }
 
 /* Create NFT — My NFTs list header only (.saito-nft-list).
-   Compact utility square: dark fill, white +, subtle white border.
-   Layout: [+] MY NFTs */
+   Appearance: .saito-button-square. Layout: [+] MY NFTs */
 .saito-nft-list > .saito-overlay-form-header {
   justify-content: flex-start;
   gap: 1.2rem;
   padding-right: 1.6rem;
-}
-
-.saito-nft-list > .saito-overlay-form-header > .create-nft-btn {
-  box-sizing: border-box;
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 3.6rem;
-  height: 3.6rem;
-  min-width: 3.6rem;
-  min-height: 3.6rem;
-  margin: 0;
-  padding: 0;
-  border: var(--border-thickness-thin) solid rgba(255, 255, 255, 0.35);
-  border-radius: var(--saito-button-radius);
-  background: #0009;
-  color: #fff;
-  font-size: 1.6rem;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0.9;
-  transition:
-    background-color 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease,
-    opacity 0.16s ease;
-}
-
-.saito-nft-list > .saito-overlay-form-header > .create-nft-btn:hover {
-  background: #000c;
-  border-color: rgba(255, 255, 255, 0.55);
-  color: #fff;
-  opacity: 1;
-}
-
-.saito-nft-list > .saito-overlay-form-header > .create-nft-btn:active {
-  background: #000000b3;
-  opacity: 1;
-}
-
-.saito-nft-list > .saito-overlay-form-header > .create-nft-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--saito-focus-ring);
-}
-
-.saito-nft-list > .saito-overlay-form-header > .create-nft-btn i {
-  margin: 0;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  font-size: inherit;
-  line-height: 1;
-  color: inherit;
 }
 
 

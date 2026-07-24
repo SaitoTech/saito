@@ -1,9 +1,12 @@
+const { STORE_CATEGORIES } = require('./categories');
+
 class Listing {
 	constructor(data = {}) {
 		this.id = data.id ?? 0;
 		this.signature = data.signature || '';
 		this.nft_id = data.nft_id || '';
 		this.seller = data.seller || '';
+		this.category = data.category || STORE_CATEGORIES.OTHER;
 		this.quantity = data.quantity ?? 1;
 		this.price = data.price ?? 0;
 		this.access_hash = data.access_hash || '';

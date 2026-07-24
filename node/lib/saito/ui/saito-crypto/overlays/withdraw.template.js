@@ -20,16 +20,16 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
     ${fixedRecipient ? 'data-fixed-recipient="true"' : ''}
   >
     <div class="withdraw-overlay__surface">
-      <header class="saito-overlay-form-header withdraw-overlay__header">
+      <header class="withdraw-overlay__header">
         <div class="crypto-logo-container withdraw-header-logo-cont" id="withdraw-header-logo-cont"></div>
-        <h2 class="saito-overlay-form-header-title withdraw-overlay__title" id="withdraw-overlay-title">Send</h2>
+        <h2 class="withdraw-overlay__title" id="withdraw-overlay-title">Send</h2>
       </header>
 
       <main class="withdraw-overlay__main">
         <div id="withdraw-step-one" class="withdraw-overlay__compose">
           <div class="withdraw-compose-top">
             <div class="withdraw-token-picker">
-              <div class="saito-overlay-form-field">
+              <div class="withdraw-field-group">
                 <div class="token-dropdown">
                   <div class="withdraw-token-custom" id="withdraw-token-custom">
                     <button
@@ -70,7 +70,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
           </div>
 
           <div class="input-elements-container">
-            <div class="saito-overlay-form-field withdraw-field-group">
+            <div class="withdraw-field-group">
               <label class="withdraw-field-label" for="withdraw-input-address">Recipient address</label>
               <div class="withdraw-input-cont ${fixedRecipient ? 'fixed-user' : ''}" id="withdraw-address-cont">`;
 
@@ -91,13 +91,13 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
 
   if (!fixedRecipient) {
     html += `
-                <button type="button" class="withdraw-options-cont withdraw-paste-btn" id="withdraw-paste-btn" title="Paste address">
+                <button type="button" class="saito-icon-button withdraw-options-cont withdraw-paste-btn" id="withdraw-paste-btn" title="Paste address">
                   <i class="fa-solid fa-paste" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="withdraw-options-cont withdraw-qr-scan-btn" id="withdraw-qr-scan-btn" title="Scan QR code" aria-label="Scan recipient QR code">
+                <button type="button" class="saito-icon-button withdraw-options-cont withdraw-qr-scan-btn" id="withdraw-qr-scan-btn" title="Scan QR code" aria-label="Scan recipient QR code">
                   <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="withdraw-options-cont" id="address-book" title="Contacts">
+                <button type="button" class="saito-icon-button withdraw-options-cont" id="address-book" title="Contacts">
                   <i class="fa-solid fa-users" aria-hidden="true"></i>
                 </button>`;
   }
@@ -111,7 +111,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
               ></div>
             </div>
 
-            <div class="saito-overlay-form-field withdraw-field-group">
+            <div class="withdraw-field-group">
               <label class="withdraw-field-label" for="withdraw-input-amount" id="withdraw-amount-label">Amount</label>
               <div class="withdraw-input-cont" id="withdraw-amount-cont">
                 <input
@@ -123,7 +123,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
                   value=""
                   required
                 >
-                <button type="button" class="withdraw-max-btn" id="withdraw-max-btn" title="Use maximum amount">
+                <button type="button" class="saito-button-secondary small withdraw-max-btn" id="withdraw-max-btn" title="Use maximum amount">
                   MAX
                 </button>
                 <span

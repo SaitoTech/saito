@@ -1,7 +1,7 @@
 const ManagerTemplate = require('./manager.template');
 const BrowseView = require('./browse-view');
 const StorefrontView = require('./storefront-view');
-const EmptyPanel = require('./empty-panel');
+const SalesView = require('./sales-view');
 
 class Manager {
 	constructor(app, mod, container = '', callbacks = {}) {
@@ -10,18 +10,23 @@ class Manager {
 		this.container = container;
 		this.activePanel = 'browse';
 		this.onSell = callbacks.onSell;
+		this.onStoreModeChange = callbacks.onStoreModeChange;
+
+		const onViewChange = (mode) => {
+			if (typeof this.onStoreModeChange === 'function') {
+				this.onStoreModeChange(mode);
+			}
+		};
 
 		this.browse = new BrowseView(app, mod, '', {
 			onSell: callbacks.onSell
 		});
 		this.storefront = new StorefrontView(app, mod, '', {
-			onSell: callbacks.onSell
+			onSell: callbacks.onSell,
+			onViewChange
 		});
-		this.sales = new EmptyPanel(app, mod, {
-			title: 'No sales yet',
-			body: 'Completed sales will show up in this space.',
-			actionLabel: 'Sell Something',
-			onAction: () => this.onSell?.()
+		this.sales = new SalesView(app, mod, '', {
+			onViewChange
 		});
 	}
 
@@ -46,6 +51,10 @@ class Manager {
 	show(panel = 'browse') {
 		this.activePanel = panel || 'browse';
 
+		if (!this.container) {
+			return;
+		}
+
 		const root = document.querySelector(this.container);
 		if (!root) {
 			return;
@@ -65,6 +74,11 @@ class Manager {
 		return this.storefront.show(publicKey);
 	}
 
+	showSales() {
+		this.show('sales');
+		this.sales.render(`${this.container} [data-panel="sales"]`);
+	}
+
 	scrollToTop() {
 		const shell = document.querySelector('.saito-container.store-container');
 		if (shell) {
@@ -80,6 +94,22 @@ class Manager {
 
 	renderListings() {
 		this.browse.renderListings();
+	}
+
+	loadBrowsePage({ category = '', page = 1, scroll = false } = {}) {
+		this.show('browse');
+		return this.browse.loadPage({ category, page, scroll });
+	}
+
+	reloadBrowsePage() {
+		if (this.activePanel !== 'browse') {
+			return;
+		}
+		return this.browse.loadPage({
+			category: this.browse.category,
+			page: this.browse.page,
+			scroll: false
+		});
 	}
 }
 

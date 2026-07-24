@@ -319,3 +319,58 @@ span.saito-anchor {
   outline: none;
 }
 
+/* Compact square icon action — dark translucent fill, white border */
+.saito-button-square {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  min-width: 3.6rem;
+  min-height: 3.6rem;
+  margin: 0;
+  padding: 0;
+  border: var(--border-thickness-thin) solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--saito-button-radius);
+  background: #0009;
+  color: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.9;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.saito-button-square:hover {
+  background: #000c;
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #fff;
+  opacity: 1;
+}
+
+.saito-button-square:active {
+  background: #000000b3;
+  opacity: 1;
+}
+
+.saito-button-square:focus-visible {
+  outline: none;
+  box-shadow: var(--saito-focus-ring);
+}
+
+.saito-button-square i {
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  font-size: inherit;
+  line-height: 1;
+  color: inherit;
+}
+

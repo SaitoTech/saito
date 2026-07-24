@@ -93,7 +93,8 @@ class Vault extends ModTemplate {
 
 		if (type === 'saito-nft-media') {
 			return {
-				class: ['vault'],
+				// Canonical access-key type; "vault" kept for legacy keys already on-chain.
+				class: ['vault-nft-key', 'vault'],
 				returnMediaDisplay(nft) {
 					if (!nft?.json) {
 						return null;

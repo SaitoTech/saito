@@ -8,7 +8,8 @@
 	height: calc(100% - var(--saito-header-height));
 	max-width: none;
 	margin: 0;
-	padding: var(--saito-space-xl) max(var(--saito-space-lg), calc((100vw - var(--saito-width)) / 2));
+	padding: 0.5rem max(var(--saito-space-lg), calc((100vw - var(--saito-width)) / 2))
+		var(--saito-space-xl);
 	overflow-x: hidden;
 	overflow-y: auto;
 	grid-template-columns: unset;
@@ -24,7 +25,7 @@
 
 @media (max-width: 900px) {
 	.saito-container.store-container {
-		padding: var(--saito-space-lg) var(--saito-space-lg);
+		padding: 0.5rem var(--saito-space-lg) var(--saito-space-lg);
 	}
 
 	.saito-overlay:has(> .listing-detail) {
@@ -35,7 +36,7 @@
 
 @media (max-width: 600px) {
 	.saito-container.store-container {
-		padding: var(--saito-space-md) max(var(--saito-space-md), env(safe-area-inset-right, 0px))
+		padding: 0.5rem max(var(--saito-space-md), env(safe-area-inset-right, 0px))
 			calc(var(--saito-space-xl) + env(safe-area-inset-bottom, 0px))
 			max(var(--saito-space-md), env(safe-area-inset-left, 0px));
 	}

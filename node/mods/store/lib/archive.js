@@ -1,5 +1,6 @@
 const Summary = require('./summary');
 const SaitoNFT = require('../../../lib/saito/ui/saito-nft/saito-nft');
+const { mapNFTTypeToCategory } = require('./categories');
 
 /**
  * Load a transaction from the Archive module (localhost first, then a remote peer).
@@ -111,6 +112,8 @@ function summaryFromListingTransaction(app, mod, tx) {
 	const qty = Number(listing.quantity_total ?? nft.amount ?? 1) || 1;
 	const seller = tx.from?.[0]?.publicKey || '';
 	const nft_id = String(nft.id || nft.uuid || listing.nft_id || '').trim();
+	const nft_type =
+		(typeof nft?.returnType === 'function' ? nft.returnType() : null) || nft?.nft_type || '';
 
 	if (!nft_id) {
 		return null;
@@ -119,6 +122,7 @@ function summaryFromListingTransaction(app, mod, tx) {
 	return new Summary(app, mod, {
 		nft_id,
 		seller,
+		category: mapNFTTypeToCategory(nft_type),
 		title: String(listing.title || txmsg.title || nft.title || '').trim(),
 		description: String(listing.description ?? txmsg.description ?? nft.description ?? '').trim(),
 		price: price_nolan,

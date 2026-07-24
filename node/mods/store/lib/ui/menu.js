@@ -25,6 +25,9 @@ class Menu {
 
 	setActive(view = '') {
 		this.active = view;
+		if (!this.container) {
+			return;
+		}
 		const root = document.querySelector(this.container);
 		if (!root) {
 			return;
@@ -38,9 +41,10 @@ class Menu {
 
 	activate(item) {
 		const view = item.dataset.view || '';
+		const category = item.dataset.category != null ? item.dataset.category : undefined;
 		this.setActive(view);
 		if (typeof this.onNavigate === 'function') {
-			this.onNavigate(view);
+			this.onNavigate(view, { category });
 		}
 	}
 

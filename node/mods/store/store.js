@@ -6,6 +6,7 @@ const Warehouse = require('./lib/warehouse');
 const transactions = require('./lib/transactions');
 const { serveCachedImageResponse } = require('./lib/images');
 const { syncSummaryCache } = require('./lib/ui/summary-cache');
+const { DEFAULT_PAGE_SIZE, normalizePage, normalizePageSize } = require('./lib/categories');
 const index = require('./index');
 
 class Store extends ModTemplate {
@@ -76,9 +77,14 @@ class Store extends ModTemplate {
 			return;
 		}
 
+		if (this.main?.loadBrowsePage) {
+			this.main.loadBrowsePage({ category: '', page: 1 });
+			return;
+		}
+
 		this.app.network.sendRequestAsTransaction(
 			'load-listings',
-			{ module: 'Store' },
+			{ module: 'Store', category: '', page: 1, page_size: DEFAULT_PAGE_SIZE },
 			(response) => {
 				console.log('Store: loadListings response', response);
 				if (response?.listings) {
@@ -101,10 +107,16 @@ class Store extends ModTemplate {
 
 		if (txmsg?.request === 'load-listings') {
 			if (!this.app.BROWSER && mycallback != null) {
+				const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+				const result = this.warehouse.returnActiveSummariesPage({
+					category: data.category || '',
+					page: normalizePage(data.page),
+					page_size: normalizePageSize(data.page_size)
+				});
 				mycallback({
-					listings: this.warehouse
-						.returnActiveSummaries()
-						.map((summary) => summary.serialize())
+					listings: result.listings.map((summary) => summary.serialize()),
+					category: result.category,
+					pagination: result.pagination
 				});
 				return 1;
 			}

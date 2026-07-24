@@ -321,7 +321,8 @@ class Nwasm extends OnePlayerGameTemplate {
 						'localhost'
 					);
 				}
-				if (nft_type === 'vault') {
+				// Vault access keys: canonical vault-nft-key; legacy "vault" still accepted.
+				if (nft_type === 'vault-nft-key' || nft_type === 'vault') {
 					this.app.storage.loadTransactions(
 						{ sig: nft_sig },
 						async (txs) => {
