@@ -158,3 +158,47 @@
     margin-bottom: 0.25rem;
   }
 }
+
+/*
+  Desktop chrome compensation for the 12px root.
+  Same gate as saito-header.css: mobile/game keep 10px root + base rem.
+*/
+@media screen and (min-width: 769px) {
+  html:not(.game) .saito-header-menu-section {
+    padding: calc(1rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-menu li {
+    padding: calc(1rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-menu ul {
+    column-gap: calc(1.5rem * 10 / 12);
+    row-gap: calc(2rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section hr {
+    margin: calc(1.5rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-header-appspace-option > i {
+    font-size: calc(2.75rem * 10 / 12);
+    margin-bottom: calc(0.75rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-module-menu-icon-wrap {
+    width: calc(3.2rem * 10 / 12);
+    height: calc(3.2rem * 10 / 12);
+    margin-bottom: calc(0.75rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-header-appspace-option > i.navigation-symbol {
+    font-size: calc(1.4rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-menu-item-label {
+    max-width: calc(10rem * 10 / 12);
+    padding: calc(0.5rem * 10 / 12);
+    font-size: calc(1.33rem * 10 / 12);
+  }
+}
