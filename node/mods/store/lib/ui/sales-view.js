@@ -1,18 +1,10 @@
 const SalesViewTemplate = require('./sales-view.template');
-const EmptyPanel = require('./empty-panel');
 
 class SalesView {
-	constructor(app, mod, container = '', callbacks = {}) {
+	constructor(app, mod, container = '') {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
-		this.onSell = callbacks.onSell;
-		this.empty = new EmptyPanel(app, mod, {
-			title: 'No listings',
-			actionLabel: 'List Item',
-			actionIcon: 'fa-plus',
-			onAction: () => this.onSell?.()
-		});
 	}
 
 	render(container = '') {
@@ -24,12 +16,7 @@ class SalesView {
 			return;
 		}
 
-		this.app.browser.replaceElementContentBySelector(
-			SalesViewTemplate(),
-			this.container
-		);
-
-		this.empty.render(`${this.container} .storefront-empty`);
+		this.app.browser.replaceElementContentBySelector(SalesViewTemplate(), this.container);
 	}
 }
 

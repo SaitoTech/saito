@@ -1,20 +1,14 @@
 const BrowseViewTemplate = require('./browse-view.template');
 const CatalogFooterTemplate = require('./catalog-footer.template');
-const Hero = require('./hero');
 const Teasers = require('./teasers');
 const { loadListingsPage } = require('./browse-listings');
 const { DEFAULT_PAGE_SIZE } = require('../categories');
 
 class BrowseView {
-	constructor(app, mod, container = '', callbacks = {}) {
+	constructor(app, mod, container = '') {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
-		this.hero = new Hero(app, mod, '', {
-			onBrowse: () => this.scrollToListings(),
-			onSell: callbacks.onSell,
-			onStorefront: callbacks.onStorefront
-		});
 		this.teasers = new Teasers(app, mod, '.teasers');
 
 		this.category = '';
@@ -37,7 +31,6 @@ class BrowseView {
 		}
 
 		this.app.browser.replaceElementContentBySelector(BrowseViewTemplate(), this.container);
-		this.hero.render(`${this.container} .store-cta`);
 		this.teasers.container = `${this.container} .teasers`;
 		this.renderCatalog();
 	}

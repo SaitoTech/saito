@@ -100,6 +100,22 @@
 	font-size: var(--font-size-large);
 }
 
+/* Listing complete — calm green check, no primary halo */
+.listing-progress.complete .success {
+	width: auto;
+	height: auto;
+	border-radius: 0;
+	background: none;
+	color: var(--saito-status-success);
+	font-size: 5rem;
+	line-height: 1;
+}
+
+.listing-progress.complete .title {
+	font-size: var(--font-size-h5);
+	font-family: var(--saito-font-heavy);
+}
+
 :is(.purchase, .listing-progress) .stack > .saito-button-primary {
 	margin-top: var(--saito-space-lg);
 	min-width: 10rem;
@@ -109,6 +125,10 @@
 :is(.purchase, .listing-progress) .stack > .saito-button-secondary {
 	min-width: 10rem;
 	min-height: 2.75rem;
+}
+
+.saito-overlay.store-purchase-overlay-shell > .saito-overlay-closebox {
+	pointer-events: auto;
 }
 
 .purchase.fulfilling .subtitle {

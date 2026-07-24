@@ -1,13 +1,16 @@
 const MenuTemplate = require('./menu.template');
 
 class Menu {
-	constructor(app, mod, container = '', onNavigate = null) {
+	constructor(app, mod, container = '', callbacks = {}) {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
-		this.onNavigate = onNavigate;
+		this.onNavigate = callbacks.onNavigate || null;
+		this.onSell = callbacks.onSell || null;
+		this.onStoreModeChange = callbacks.onStoreModeChange || null;
 		this.active = 'all';
-		this.storefrontKey = this.mod.publicKey || '';
+		this.mode = 'browse';
+		this.storeMode = 'active';
 	}
 
 	render(container = '') {
@@ -19,45 +22,57 @@ class Menu {
 			return;
 		}
 
-		const shareUrl = this.returnShareUrl();
-		this.app.browser.replaceElementContentBySelector(
-			MenuTemplate({ shareUrl }),
-			this.container
-		);
-		this.setActive(this.active);
+		const root = document.querySelector(this.container);
+		if (root) {
+			root.classList.toggle('marketplace', this.mode === 'browse');
+			root.classList.toggle('dashboard', this.mode === 'dashboard');
+		}
+
+		const html =
+			this.mode === 'dashboard'
+				? MenuTemplate.dashboard({ storeMode: this.storeMode })
+				: MenuTemplate.browse();
+
+		this.app.browser.replaceElementContentBySelector(html, this.container);
+
+		if (this.mode === 'browse') {
+			this.setActive(this.active);
+		}
+
 		this.attachEvents();
+	}
+
+	setMode(mode = 'browse', { storeMode = this.storeMode } = {}) {
+		this.mode = mode === 'dashboard' ? 'dashboard' : 'browse';
+		this.storeMode = storeMode === 'sold' ? 'sold' : 'active';
+		this.render();
+	}
+
+	setStoreMode(storeMode = 'active') {
+		this.storeMode = storeMode === 'sold' ? 'sold' : 'active';
+		if (this.mode !== 'dashboard' || !this.container) {
+			return;
+		}
+		const select = document.querySelector(`${this.container} [data-action="store-mode"]`);
+		if (select) {
+			select.value = this.storeMode;
+		}
 	}
 
 	setActive(view = '') {
 		this.active = view;
-		if (!this.container) {
+		if (!this.container || this.mode !== 'browse') {
 			return;
 		}
 		const root = document.querySelector(this.container);
 		if (!root) {
 			return;
 		}
-		root.querySelectorAll('[data-view]').forEach((item) => {
+		root.querySelectorAll('.item').forEach((item) => {
 			const on = item.dataset.view === view;
 			item.classList.toggle('active', on);
 			item.setAttribute('aria-current', on ? 'page' : 'false');
 		});
-		this.updateContextControls(root);
-	}
-
-	setStorefrontKey(publicKey = '') {
-		this.storefrontKey = String(publicKey || this.mod.publicKey || '').trim();
-		const root = document.querySelector(this.container);
-		if (root) {
-			this.updateContextControls(root);
-		}
-	}
-
-	setStoreView(mode = 'active') {
-		const select = document.querySelector(`${this.container} [data-action="store-view"]`);
-		if (select) {
-			select.value = mode === 'sold' ? 'sold' : 'active';
-		}
 	}
 
 	activate(item) {
@@ -75,7 +90,7 @@ class Menu {
 			return;
 		}
 
-		root.querySelectorAll('[data-view]').forEach((item) => {
+		root.querySelectorAll('.item').forEach((item) => {
 			item.onclick = (e) => {
 				e.preventDefault();
 				this.activate(item);
@@ -88,121 +103,25 @@ class Menu {
 			};
 		});
 
-		const viewSelect = root.querySelector('[data-action="store-view"]');
-		if (viewSelect) {
-			const navigate = (value) => {
-				const view = value === 'sold' ? 'sales' : 'my-listings';
-				this.setActive('my-listings');
-				if (typeof this.onNavigate === 'function') {
-					this.onNavigate(view);
-				}
-			};
-			viewSelect.onchange = (e) => navigate(e.target.value);
-			viewSelect.onpointerdown = () => {
-				if (this.active !== 'my-listings') {
-					navigate(viewSelect.value);
-				}
-			};
-		}
-
-		const storeToggle = root.querySelector('[data-action="toggle-store-view"]');
-		if (storeToggle) {
-			const navigate = (e) => {
+		const cta = root.querySelector('[data-action="list-item"]');
+		if (cta) {
+			cta.onclick = (e) => {
 				e.preventDefault();
-				const targetView = storeToggle.dataset.targetView || 'all';
-				this.setActive(targetView);
-				if (typeof this.onNavigate === 'function') {
-					this.onNavigate(targetView);
-				}
-			};
-			storeToggle.onclick = navigate;
-			storeToggle.onkeydown = (e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					navigate(e);
+				if (typeof this.onSell === 'function') {
+					this.onSell();
 				}
 			};
 		}
 
-		const shareBtn = root.querySelector('[data-action="share-storefront"]');
-		if (shareBtn) {
-			shareBtn.onclick = async (e) => {
-				e.preventDefault();
-				const raw = this.returnShareUrl();
-				if (!raw) {
-					return;
-				}
-
-				const mobile =
-					window.matchMedia?.('(max-width: 900px)').matches ||
-					Number(navigator.maxTouchPoints) > 0;
-
-				if (!mobile || !navigator.share) {
-					await this.copyStorefrontUrl(root);
-					return;
-				}
-
-				try {
-					await navigator.share({
-						title: 'Saito Store',
-						url: raw
-					});
-				} catch (err) {
-					if (err?.name !== 'AbortError') {
-						console.warn('Store: share storefront failed', err?.message || err);
-					}
+		const modeSelect = root.querySelector('[data-action="store-mode"]');
+		if (modeSelect) {
+			modeSelect.onchange = (e) => {
+				const mode = e.target.value === 'sold' ? 'sold' : 'active';
+				this.storeMode = mode;
+				if (typeof this.onStoreModeChange === 'function') {
+					this.onStoreModeChange(mode);
 				}
 			};
-		}
-	}
-
-	updateContextControls(root) {
-		const listingsOpen = this.active === 'my-listings';
-		const storeToggle = root.querySelector('[data-action="toggle-store-view"]');
-		if (storeToggle) {
-			storeToggle.textContent = listingsOpen ? 'Saito Store' : 'My Listings';
-			storeToggle.dataset.targetView = listingsOpen ? 'all' : 'my-listings';
-		}
-
-		const shareBtn = root.querySelector('[data-action="share-storefront"]');
-		if (shareBtn) {
-			const label = listingsOpen ? 'Share My Store' : 'Share Saito Store';
-			shareBtn.setAttribute('aria-label', label);
-			shareBtn.setAttribute('title', label);
-		}
-
-		const shareUrl = root.querySelector('[data-storefront-url]');
-		if (shareUrl) {
-			shareUrl.textContent = this.returnShareUrl();
-		}
-	}
-
-	returnShareUrl() {
-		const publicKey = this.active === 'my-listings' ? this.storefrontKey : '';
-		return this.mod.returnStorefrontUrl?.(publicKey) || '';
-	}
-
-	async copyStorefrontUrl(root) {
-		const raw = this.returnShareUrl();
-		if (!raw) {
-			return;
-		}
-
-		try {
-			if (navigator.clipboard?.writeText) {
-				await navigator.clipboard.writeText(raw);
-			} else {
-				const input = document.createElement('input');
-				input.value = raw;
-				document.body.appendChild(input);
-				input.select();
-				document.execCommand('copy');
-				input.remove();
-			}
-			if (typeof siteMessage === 'function') {
-				siteMessage('Storefront URL copied', 1500);
-			}
-		} catch (err) {
-			console.warn('Store: copy storefront URL failed', err?.message || err);
 		}
 	}
 }

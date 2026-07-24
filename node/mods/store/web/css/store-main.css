@@ -9,11 +9,14 @@
 	min-width: 0;
 }
 
-/* —— Menu rail —— */
+/* —— Menu rail (shared item chrome; mode-specific rules below) —— */
 
 .store > .menu {
 	position: sticky;
 	top: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--saito-space-xs);
 	padding-block: var(--saito-space-xs);
 	min-width: 0;
 }
@@ -27,6 +30,7 @@
 	padding: 0;
 }
 
+/* All category rows share identical base typography — including All Listings / My Saito Store */
 .store > .menu .item {
 	display: flex;
 	align-items: center;
@@ -43,54 +47,79 @@
 	box-shadow: var(--saito-focus-ring);
 }
 
-/* Persistent selection — Saito menu-select only defines :hover */
+/* Selected = bold only; hover still from .saito-menu-select-subtle */
 .store > .menu .item.active {
-	background-color: var(--saito-menu-item-active-bg);
-	color: var(--saito-menu-item-hover-fg);
-	font-family: var(--saito-font-medium);
+	font-family: var(--saito-font-heavy);
 }
 
 .store > .menu .divider {
 	height: 1px;
 	margin: var(--saito-space-md) var(--saito-space-sm);
 	background: var(--saito-border-color);
-	opacity: 0.7;
 }
 
-.store > .menu .my-listings-box {
-	display: flex;
-	flex-direction: column;
-	align-items: stretch;
-	gap: var(--saito-space-md);
-	padding: var(--saito-space-lg);
-}
-
-.store > .menu .my-listings-box .storefront-view-select {
+/* Sidebar owns CTA width — stretch to the navigation column / list edges */
+.store > .menu.marketplace > .store-list-for-sale {
 	width: 100%;
-	min-width: 0;
-	margin: 0;
-	padding: 0.55rem 0.9rem;
-	font-size: var(--font-size-small);
-	line-height: 1.3;
-	cursor: pointer;
 }
 
-.store > .menu .my-listings-box .sidebar-action {
+/*
+ * .store-list-for-sale — OWNED ONLY by the marketplace "List Item for Sale" control.
+ * Appearance only. Width comes from .store > .menu (sidebar).
+ * Do not reuse. Do not attach saito-button-* or other button utilities.
+ */
+.store-list-for-sale {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: var(--saito-space-sm);
+	justify-content: center;
+	box-sizing: border-box;
+	height: 92px;
+	padding: 1.2rem 1.4rem;
+	appearance: none;
+	-webkit-appearance: none;
+	border: none;
+	outline: none;
+	border-radius: 11px;
+	box-shadow: none;
+	filter: none;
+	background: var(--saito-primary);
+	color: #ffffff;
+	font-family: var(--saito-font);
+	font-size: 20px;
+	font-weight: 500;
+	letter-spacing: 0;
+	line-height: 1.25;
+	text-align: center;
+	text-transform: none;
+	white-space: normal;
+	cursor: pointer;
+	transition: none;
+}
+
+.store-list-for-sale:hover,
+.store-list-for-sale:focus,
+.store-list-for-sale:focus-visible,
+.store-list-for-sale:active {
+	outline: none;
+	box-shadow: none;
+	filter: none;
+	border: none;
+	background: var(--saito-primary);
+	color: #ffffff;
+}
+
+/* —— Seller dashboard sidebar only —— */
+
+.store > .menu.dashboard > .saito-button-primary {
 	width: 100%;
 	min-width: 0;
 	margin: 0;
+	white-space: normal;
 }
 
-.store > .menu .my-listings-box .share-icon {
-	display: none;
-}
-
-.store > .menu .my-listings-box .guide-link {
-	text-decoration: none;
+.store > .menu.dashboard .mode-select {
+	width: 100%;
+	margin: 0;
 }
 
 /* —— Main column —— */
@@ -117,7 +146,7 @@
 	display: block;
 }
 
-/* Hero + catalog participate in .manager flex gap */
+/* Panels participate in .manager flex gap */
 .store > .main-column > .manager > [data-panel="browse"].is-active,
 .store > .main-column > .manager > [data-panel="my-listings"].is-active,
 .store > .main-column > .manager > [data-panel="sales"].is-active {
@@ -187,6 +216,36 @@
 	margin-left: auto;
 }
 
+.store .storefront-url {
+	margin: 0;
+	max-width: 100%;
+	font-size: var(--font-size-small);
+	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	user-select: all;
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.store .storefront-url-row {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	flex-wrap: wrap;
+	gap: var(--saito-space-sm);
+	width: 100%;
+	max-width: 100%;
+	min-width: 0;
+}
+
+.store .storefront-url-row .saito-button-secondary {
+	margin: 0;
+	min-width: 0;
+	flex: 0 0 auto;
+}
+
 .store .storefront-status {
 	display: flex;
 	flex-direction: column;
@@ -211,25 +270,97 @@
 	color: var(--saito-font-color-secondary);
 }
 
-/* Compact informational banner — not a page title */
-.store .hero {
-	display: flex;
-	align-items: stretch;
-	justify-content: space-between;
-	gap: var(--saito-space-md);
-	padding: 0 0 var(--saito-space-sm);
-	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
-	min-height: 0;
+/* Post-listing success — neon green, not primary orange */
+.store .listing-success {
+	position: relative;
+	margin: 0 0 var(--saito-space-lg);
+	padding: var(--saito-space-lg) 3.5rem var(--saito-space-lg) var(--saito-space-lg);
+	border: var(--border-thickness-thin) solid var(--saito-green);
+	border-radius: var(--saito-border-radius);
+	background: color-mix(in srgb, var(--saito-green) 14%, transparent);
 }
 
-.store .hero .tagline {
+.store .listing-success .close {
+	position: absolute;
+	top: var(--saito-space-sm);
+	right: var(--saito-space-sm);
+}
+
+.store .listing-success .title {
+	margin: 0;
+	font-size: var(--font-size-large);
+	font-family: var(--saito-font-heavy);
+	line-height: 1.3;
+	color: var(--saito-font-color);
+}
+
+.store .listing-success .body {
+	margin: var(--saito-space-sm) 0 0;
+	font-size: var(--font-size-medium);
+	line-height: 1.45;
+	color: var(--saito-font-color-secondary);
+}
+
+/* Seller dashboard welcome (main column only — not .menu.dashboard) */
+.store .seller-home {
+	display: flex;
+	flex-direction: column;
+	gap: var(--saito-space-md);
+	padding: 0 0 var(--saito-space-xl);
+	margin: 0 0 var(--saito-space-lg);
+	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
+}
+
+.store .seller-home .title {
+	margin: 0;
+	font-size: var(--font-size-large);
+	font-family: var(--saito-font-heavy);
+	line-height: 1.25;
+	color: var(--saito-font-color);
+}
+
+.store .seller-home .body {
+	margin: 0;
+	max-width: 48rem;
+	font-size: var(--font-size-medium);
+	line-height: 1.5;
+	color: var(--saito-font-color-secondary);
+}
+
+.store .seller-home .share {
+	display: flex;
+	flex-direction: column;
+	gap: var(--saito-space-xs);
+	min-width: 0;
+}
+
+.store .seller-home .label {
+	margin: 0;
+	font-size: var(--font-size-small);
+	font-family: var(--saito-font-medium);
+	color: var(--saito-font-color);
+}
+
+.store .seller-home .actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--saito-space-sm);
+}
+
+.store .seller-home .actions .saito-button-primary,
+.store .seller-home .actions .saito-button-secondary {
 	margin: 0;
 	min-width: 0;
-	flex: 1 1 auto;
-	font-size: 1.5rem;
-	font-weight: normal;
-	line-height: 1.4;
-	color: var(--saito-font-color-secondary);
+}
+
+/* Public storefront header */
+.store .hero {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0;
+	padding: 0 0 var(--saito-space-sm);
+	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
 }
 
 .store .hero .toolbar-row {
@@ -244,38 +375,34 @@
 .store .hero .title {
 	margin: 0;
 	min-width: 0;
-	font-size: var(--font-size-medium);
+	font-size: var(--font-size-large);
 	font-family: var(--saito-font-medium);
 	font-weight: normal;
-	line-height: 1.35;
+	line-height: 1.25;
 	color: var(--saito-font-color);
 }
 
-.store .hero .saito-button-primary,
-.store .hero .saito-button-secondary {
-	flex: 0 0 auto;
-	align-self: stretch;
-	box-sizing: border-box;
-	height: auto;
-	min-height: 0;
+.store .hero .description {
+	margin: 0.45rem 0 0;
+	max-width: 72rem;
+	font-size: 1.5rem;
+	font-weight: normal;
+	line-height: 1.4;
+	color: var(--saito-font-color-secondary);
+}
+
+.store .sales-catalog > .title {
 	margin: 0;
-	white-space: nowrap;
-}
-
-.store .storefront-hero {
-	flex-direction: column;
-	align-items: stretch;
-	gap: 0;
-}
-
-.store .storefront-hero .toolbar-row {
-	align-items: flex-start;
-}
-
-.store .storefront-hero .title {
 	font-size: var(--font-size-large);
 	font-family: var(--saito-font-medium);
 	line-height: 1.25;
+}
+
+.store .sales-placeholder {
+	margin: var(--saito-space-md) 0 0;
+	font-size: var(--font-size-medium);
+	line-height: 1.5;
+	color: var(--saito-font-color-secondary);
 }
 
 .store .catalog {
@@ -416,35 +543,6 @@
 	min-height: 2.75rem;
 }
 
-.store .storefront-empty {
-	grid-column: 1 / -1;
-	width: 100%;
-}
-
-.store .storefront-empty .empty {
-	flex-direction: row;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: var(--saito-space-lg);
-	width: 100%;
-	max-width: none;
-}
-
-.store .storefront-empty .empty h2 {
-	margin: 0;
-}
-
-.store .storefront-empty .empty .saito-button-primary {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--saito-space-sm);
-	margin: 0 0 0 auto;
-}
-
-.store .storefront-empty .empty .action-icon {
-	font-size: 1.8rem;
-}
-
 @media (max-width: 900px) {
 	.store {
 		grid-template-columns: 1fr;
@@ -466,18 +564,6 @@
 		margin: var(--saito-space-sm) 0;
 	}
 
-	.store > .menu .my-listings-box {
-		flex: 1 0 100%;
-	}
-
-	.store > .menu .my-listings-box .copy-icon {
-		display: none;
-	}
-
-	.store > .menu .my-listings-box .share-icon {
-		display: inline-block;
-	}
-
 	.store > .main-column > .manager {
 		gap: var(--saito-space-md);
 	}
@@ -492,17 +578,19 @@
 		flex: 1 1 auto;
 	}
 
-	.store .hero {
-		flex-direction: column;
-		align-items: stretch;
-		gap: var(--saito-space-sm);
-		padding-bottom: var(--saito-space-sm);
+	.store .hero .toolbar-row {
+		flex-wrap: wrap;
 	}
 
-	.store .hero .saito-button-primary,
-	.store .hero .saito-button-secondary {
-		width: 100%;
-		min-height: 3.6rem;
+	.store .seller-home .actions .saito-button-primary,
+	.store .seller-home .actions .saito-button-secondary {
+		flex: 1 1 auto;
+	}
+
+	.store .storefront-url {
+		white-space: normal;
+		overflow-wrap: anywhere;
+		text-overflow: unset;
 	}
 
 	.store .empty,
@@ -521,22 +609,8 @@
 		gap: var(--saito-space-sm);
 	}
 
-	.store .hero {
-		padding: 0 0 var(--saito-space-sm);
-		gap: var(--saito-space-sm);
-	}
-
 	.store .catalog {
 		gap: var(--saito-space-md);
-	}
-
-	.store .storefront-empty .empty {
-		flex-direction: column;
-		align-items: flex-start;
-	}
-
-	.store .storefront-empty .empty .saito-button-primary {
-		margin-left: 0;
 	}
 
 	.store .empty,

@@ -12,16 +12,20 @@ class StorefrontView {
 		this.mod = mod;
 		this.container = container;
 		this.onSell = callbacks.onSell;
+		this.onViewChange = callbacks.onViewChange;
 		this.publicKey = '';
 		this.summaries = [];
 		this.loading = false;
 		this.loadToken = 0;
+		this.successArmed = false;
+		this.successVisible = false;
+		this.successDismissed = false;
 
 		this.teasers = new Teasers(app, mod, '');
 		this.empty = new EmptyPanel(app, mod, {
-			title: 'No listings',
-			actionLabel: 'List Item',
-			actionIcon: 'fa-plus',
+			title: 'No listings yet',
+			body: 'Items you put up for sale will appear here.',
+			actionLabel: 'Add New Listing',
 			onAction: () => this.onSell?.()
 		});
 
@@ -46,16 +50,26 @@ class StorefrontView {
 				} else {
 					this.summaries.unshift(entry.summary);
 				}
+
+				if (this.successArmed && !this.successDismissed) {
+					this.successVisible = true;
+					this.renderSuccessBanner();
+				}
 			}
 
 			if (this.loading) {
-				// Archive may still be loading — still show pending / just-confirmed cards.
 				this.renderTeasersOnly();
 				return;
 			}
 
 			this.renderResults();
 		});
+	}
+
+	armSuccessBanner() {
+		this.successArmed = true;
+		this.successDismissed = false;
+		this.successVisible = false;
 	}
 
 	render(container = '') {
@@ -69,30 +83,108 @@ class StorefrontView {
 
 		const isOwn = this.isOwnStorefront();
 		const rawTitle = isOwn
-			? 'My Listings'
+			? 'My Saito Store'
 			: this.app.keychain?.returnUsername?.(this.publicKey) || 'Store';
+		const shareUrl = this.publicKey ? this.mod.returnStorefrontUrl?.(this.publicKey) || '' : '';
+
 		this.app.browser.replaceElementContentBySelector(
 			StorefrontViewTemplate({
 				title: this.escapeHtml(rawTitle),
+				description: '',
+				shareUrl,
 				loading: !!this.publicKey && this.loading,
-				showViewSelect: isOwn
+				isDashboard: isOwn,
+				showSuccess: isOwn && this.successVisible
 			}),
 			this.container
 		);
 
 		this.teasers.container = `${this.container} .teasers`;
+		this.attachHeaderEvents(shareUrl);
 
 		if (!this.publicKey) {
 			return;
 		}
 
 		if (this.loading) {
-			// Pending shims should appear immediately under the progress overlay.
 			this.renderTeasersOnly();
 			return;
 		}
 
 		this.renderResults();
+	}
+
+	renderSuccessBanner() {
+		const root = document.querySelector(this.container);
+		if (!root || !this.isOwnStorefront()) {
+			return;
+		}
+
+		let banner = root.querySelector('[data-listing-success]');
+		if (this.successVisible && !banner) {
+			// Full re-render keeps dashboard + catalog in sync.
+			this.render();
+			return;
+		}
+		if (!this.successVisible && banner) {
+			banner.remove();
+		}
+	}
+
+	attachHeaderEvents(shareUrl = '') {
+		const root = document.querySelector(this.container);
+		if (!root) {
+			return;
+		}
+
+		const copyBtn = root.querySelector('[data-action="copy-url"]');
+		if (copyBtn) {
+			copyBtn.onclick = async (e) => {
+				e.preventDefault();
+				const urlEl = root.querySelector('[data-storefront-url]');
+				const raw = (urlEl?.getAttribute('href') || urlEl?.textContent || shareUrl || '').trim();
+				if (!raw) {
+					return;
+				}
+				try {
+					if (navigator.clipboard?.writeText) {
+						await navigator.clipboard.writeText(raw);
+					} else {
+						const input = document.createElement('input');
+						input.value = raw;
+						document.body.appendChild(input);
+						input.select();
+						document.execCommand('copy');
+						input.remove();
+					}
+					if (typeof siteMessage === 'function') {
+						siteMessage('Storefront URL copied', 1500);
+					}
+				} catch (err) {
+					console.warn('Store: copy storefront URL failed', err?.message || err);
+				}
+			};
+		}
+
+		root.querySelector('[data-action="list-item"]')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			this.onSell?.();
+		});
+
+		root.querySelector('[data-action="review-sales"]')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			if (typeof this.onViewChange === 'function') {
+				this.onViewChange('sold');
+			}
+		});
+
+		root.querySelector('[data-action="dismiss-success"]')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			this.successVisible = false;
+			this.successDismissed = true;
+			this.successArmed = false;
+			root.querySelector('[data-listing-success]')?.remove();
+		});
 	}
 
 	/**
@@ -126,7 +218,6 @@ class StorefrontView {
 			if (token !== this.loadToken) {
 				return;
 			}
-			// Keep any local / pending-confirmed summaries already present.
 		}
 
 		if (token !== this.loadToken) {
@@ -142,9 +233,6 @@ class StorefrontView {
 		return !!this.publicKey && !!walletKey && this.publicKey === walletKey;
 	}
 
-	/**
-	 * Prefer richer local summaries (pending → confirmed) over sparse archive rows.
-	 */
 	mergeSummaries(existing = [], incoming = []) {
 		const bySig = new Map();
 		const byBucket = new Map();
@@ -276,10 +364,11 @@ class StorefrontView {
 			teasersEl.appendChild(emptyHost);
 
 			const isOwn = this.isOwnStorefront();
-			this.empty.title = 'No listings';
-			this.empty.body = '';
-			this.empty.actionLabel = isOwn ? 'List Item' : '';
-			this.empty.actionIcon = isOwn ? 'fa-plus' : '';
+			this.empty.title = 'No listings yet';
+			this.empty.body = isOwn
+				? 'Items you put up for sale will appear here.'
+				: 'This creator has not published any listings yet.';
+			this.empty.actionLabel = isOwn ? 'Add New Listing' : '';
 			this.empty.onAction = isOwn ? () => this.onSell?.() : null;
 			this.empty.render(`${this.container} .storefront-empty`);
 			return;
@@ -304,7 +393,6 @@ class StorefrontView {
 			return true;
 		});
 
-		// Pending shims first so the user sees the item being confirmed.
 		return [...pending, ...confirmed];
 	}
 

@@ -8,7 +8,6 @@ class EmptyPanel {
 		this.title = options.title || '';
 		this.body = options.body || '';
 		this.actionLabel = options.actionLabel || '';
-		this.actionIcon = options.actionIcon || '';
 		this.action = options.action || 'sell';
 		this.onAction = options.onAction || null;
 	}
@@ -27,7 +26,6 @@ class EmptyPanel {
 				title: this.title,
 				body: this.body,
 				actionLabel: this.actionLabel,
-				actionIcon: this.actionIcon,
 				action: this.action
 			}),
 			this.container

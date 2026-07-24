@@ -9,18 +9,20 @@ class Manager {
 		this.mod = mod;
 		this.container = container;
 		this.activePanel = 'browse';
-		this.onSell = callbacks.onSell;
+		this.onStoreModeChange = callbacks.onStoreModeChange;
 
-		this.browse = new BrowseView(app, mod, '', {
-			onSell: callbacks.onSell,
-			onStorefront: callbacks.onStorefront
-		});
+		const onViewChange = (mode) => {
+			if (typeof this.onStoreModeChange === 'function') {
+				this.onStoreModeChange(mode);
+			}
+		};
+
+		this.browse = new BrowseView(app, mod, '');
 		this.storefront = new StorefrontView(app, mod, '', {
-			onSell: callbacks.onSell
+			onSell: callbacks.onSell,
+			onViewChange
 		});
-		this.sales = new SalesView(app, mod, '', {
-			onSell: callbacks.onSell
-		});
+		this.sales = new SalesView(app, mod, '');
 	}
 
 	render(container = '') {
@@ -60,7 +62,7 @@ class Manager {
 	}
 
 	/**
-	 * Open the creator storefront panel for a public key (My Listings / /store/<pk>).
+	 * Open the creator storefront panel for a public key (My Store / /store/<pk>).
 	 */
 	showStorefront(publicKey = '') {
 		this.show('my-listings');
@@ -70,15 +72,6 @@ class Manager {
 	showSales() {
 		this.show('sales');
 		this.sales.render(`${this.container} [data-panel="sales"]`);
-	}
-
-	scrollToTop() {
-		const shell = document.querySelector('.saito-container.store-container');
-		if (shell) {
-			shell.scrollTo({ top: 0, behavior: 'smooth' });
-			return;
-		}
-		document.querySelector('.store .hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 	}
 
 	scrollToListings() {

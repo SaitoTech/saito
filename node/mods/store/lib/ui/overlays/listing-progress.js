@@ -41,6 +41,7 @@ class ListingProgressOverlay {
 		this.listingTitle = listingTitle || this.listingTitle;
 		this.listingTxSignature = listingTxSignature || this.listingTxSignature;
 		this.step = 'waiting';
+		this.overlay.clickBackdropToClose = false;
 
 		this.show(
 			ListingProgressTemplate.pendingOverlay({
@@ -55,11 +56,8 @@ class ListingProgressOverlay {
 		this.confirmationWaiting?.stop();
 		this.confirmationWaiting = null;
 		this.step = 'complete';
-		this.show(
-			ListingProgressTemplate.completeOverlay({
-				listingTitle: escapeHtml(this.listingTitle)
-			})
-		);
+		this.overlay.clickBackdropToClose = true;
+		this.show(ListingProgressTemplate.completeOverlay());
 		this.attachEvents();
 	}
 
@@ -70,6 +68,7 @@ class ListingProgressOverlay {
 			this.onOverlayClosed();
 		});
 		this.applyOverlayLayout();
+		this.bindBackdropClose();
 	}
 
 	hide() {
@@ -79,11 +78,37 @@ class ListingProgressOverlay {
 		this.overlay.close();
 	}
 
+	dismissIfComplete() {
+		const active = this.lifecycle()?.returnActiveListing?.();
+		if (active?.phase === ListingLifecycle.PHASE.COMPLETE) {
+			this.lifecycle()?.dismiss(active.id);
+		}
+	}
+
 	onOverlayClosed() {
+		if (this.step === 'complete') {
+			this.dismissIfComplete();
+		}
 		this.confirmationWaiting?.stop();
 		this.confirmationWaiting = null;
 		document.querySelector('.saito-container')?.classList.remove('store-purchase-modal-open');
 		this.step = null;
+		this.overlay.clickBackdropToClose = false;
+	}
+
+	bindBackdropClose() {
+		const backdrop = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
+		if (!backdrop) {
+			return;
+		}
+		if (this.overlay.clickBackdropToClose) {
+			backdrop.onclick = (e) => {
+				e.preventDefault();
+				this.hide();
+			};
+		} else {
+			backdrop.onclick = () => {};
+		}
 	}
 
 	applyOverlayLayout() {
@@ -110,6 +135,31 @@ class ListingProgressOverlay {
 		if (typeof this.overlay.pullOverlayToFront === 'function') {
 			this.overlay.pullOverlayToFront();
 		}
+
+		requestAnimationFrame(() => this.positionClosebox());
+	}
+
+	/**
+	 * Place the standard Saito closebox slightly outside the dialog’s top-right,
+	 * not inset inside the full-screen maximized shell.
+	 */
+	positionClosebox() {
+		const el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+		const closebox = document.getElementById(`saito-overlay-closebox${this.overlay.ordinal}`);
+		const panel = el?.querySelector('.listing-progress');
+		if (!el || !closebox || !panel) {
+			return;
+		}
+
+		const shellRect = el.getBoundingClientRect();
+		const panelRect = panel.getBoundingClientRect();
+		const offset = 10;
+
+		closebox.style.top = `${panelRect.top - shellRect.top - offset}px`;
+		closebox.style.right = `${shellRect.right - panelRect.right - offset}px`;
+		closebox.style.left = 'auto';
+		closebox.style.display = 'block';
+		closebox.style.pointerEvents = 'auto';
 	}
 
 	attachEvents() {
@@ -118,32 +168,10 @@ class ListingProgressOverlay {
 			return;
 		}
 
-		root.querySelector('[data-action="view-listing"]')?.addEventListener('click', (e) => {
-			e.preventDefault();
-			this.viewListing();
-		});
-
 		root.querySelector('[data-action="listing-continue"]')?.addEventListener('click', (e) => {
 			e.preventDefault();
-			const active = this.lifecycle()?.returnActiveListing?.();
-			if (active?.phase === ListingLifecycle.PHASE.COMPLETE) {
-				this.lifecycle()?.dismiss(active.id);
-			}
 			this.hide();
 		});
-	}
-
-	viewListing() {
-		const active = this.lifecycle()?.returnActiveListing?.();
-		const summary = active?.summary || null;
-		if (active?.phase === ListingLifecycle.PHASE.COMPLETE) {
-			this.lifecycle()?.dismiss(active.id);
-		}
-		this.hide();
-
-		if (summary && this.mod.main?.listing_detail) {
-			this.mod.main.listing_detail.render(summary);
-		}
 	}
 
 	onStoreNewBlock({ blk } = {}) {

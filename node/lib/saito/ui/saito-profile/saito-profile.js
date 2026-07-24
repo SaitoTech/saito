@@ -15,12 +15,17 @@ class SaitoProfile {
         return;
       }
 
+      // Profile module emits the complete profile object. Absence means unset.
       let { banner, description, image } = data;
 
+      const bannerNodes = Array.from(document.querySelectorAll(`.profile-banner-${publicKey}`));
       if (banner) {
-        const qs = `.profile-banner-${publicKey}`;
-        Array.from(document.querySelectorAll(qs)).forEach((element) => {
+        bannerNodes.forEach((element) => {
           element.style.backgroundImage = `url('${banner}')`;
+        });
+      } else {
+        bannerNodes.forEach((element) => {
+          element.style.backgroundImage = '';
         });
       }
 
@@ -56,9 +61,9 @@ class SaitoProfile {
       // Slight hack to plug banner image into blog posts since we aren't using this yet...
       //
       let userImage = image || banner || null;
+      const imageNodes = Array.from(document.querySelectorAll(`.profile-image-${publicKey}`));
       if (userImage) {
-        const qs = `.profile-image-${publicKey}`;
-        Array.from(document.querySelectorAll(qs)).forEach((element) => {
+        imageNodes.forEach((element) => {
           element.src = userImage;
         });
       }

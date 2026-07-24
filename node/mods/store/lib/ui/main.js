@@ -22,10 +22,14 @@ class Main {
 			this.mod.listing_lifecycle = new ListingLifecycle(app, mod);
 		}
 
-		this.menu = new Menu(app, mod, '', (view) => this.onNavigate(view));
+		this.menu = new Menu(app, mod, '', {
+			onNavigate: (view, opts) => this.onNavigate(view, opts),
+			onSell: () => this.openSell(),
+			onStoreModeChange: (mode) => this.onStoreModeChange(mode)
+		});
 		this.manager = new Manager(app, mod, '', {
 			onSell: () => this.openSell(),
-			onStorefront: () => this.openStorefront(this.mod.publicKey)
+			onStoreModeChange: (mode) => this.onStoreModeChange(mode)
 		});
 		this.purchase_status = new PurchaseStatus(app, mod, '', {
 			onShowProgress: () => this.reopenPurchaseProgress(),
@@ -56,8 +60,9 @@ class Main {
 			this.openStorefront(storefrontKey, { updateUrl: false });
 			return;
 		}
-		this.manager.show('browse');
+		this.menu.setMode('browse');
 		this.menu.setActive('all');
+		this.manager.show('browse');
 		this.loadBrowsePage({ category: '', page: 1 });
 	}
 
@@ -100,37 +105,22 @@ class Main {
 	}
 
 	onNavigate(view = '', opts = {}) {
-		if (view === 'featured') {
-			this.manager.show('browse');
-			this.setBrowseUrl();
-			this.manager.scrollToTop();
+		if (view === 'my-store') {
+			this.openStorefront(this.mod.publicKey);
 			return;
 		}
 
 		if (view === 'all') {
+			this.menu.setMode('browse');
 			this.manager.show('browse');
 			this.setBrowseUrl();
 			this.loadBrowsePage({ category: '', page: 1, scroll: true });
 			return;
 		}
 
-		if (view === 'my-listings') {
-			this.openStorefront(this.mod.publicKey);
-			return;
-		}
-
-		if (view === 'sales') {
-			this.openSales();
-			return;
-		}
-
-		if (view === 'sell') {
-			this.openSell();
-			return;
-		}
-
 		// Category browse (data-category from menu items).
 		if (Object.prototype.hasOwnProperty.call(opts, 'category')) {
+			this.menu.setMode('browse');
 			this.manager.show('browse');
 			this.setBrowseUrl();
 			this.loadBrowsePage({
@@ -146,18 +136,26 @@ class Main {
 	}
 
 	/**
-	 * Open a creator storefront view. Defaults to the logged-in wallet key.
-	 * Foundation for public /store/<publickey> storefronts.
+	 * Open a creator storefront / seller dashboard.
+	 * Own key → My Saito Store dashboard; other keys → public storefront.
 	 */
-	async openStorefront(publicKey = '', { updateUrl = true } = {}) {
+	async openStorefront(publicKey = '', { updateUrl = true, celebrate = false } = {}) {
 		const key = String(publicKey || this.mod.publicKey || '').trim();
 		if (!key) {
 			return;
 		}
 
-		this.menu.setStorefrontKey(key);
-		this.menu.setActive('my-listings');
-		this.menu.setStoreView('active');
+		const isOwn = !!this.mod.publicKey && key === this.mod.publicKey;
+
+		if (isOwn) {
+			this.menu.setMode('dashboard', { storeMode: 'active' });
+			if (celebrate) {
+				this.manager.storefront.armSuccessBanner();
+			}
+		} else if (this.menu.mode === 'dashboard') {
+			this.menu.setMode('browse');
+		}
+
 		await this.manager.showStorefront(key);
 
 		if (updateUrl) {
@@ -166,10 +164,16 @@ class Main {
 	}
 
 	openSales() {
-		this.menu.setStorefrontKey(this.mod.publicKey);
-		this.menu.setActive('my-listings');
-		this.menu.setStoreView('sold');
+		this.menu.setMode('dashboard', { storeMode: 'sold' });
 		this.manager.showSales();
+	}
+
+	onStoreModeChange(mode = 'active') {
+		if (mode === 'sold') {
+			this.openSales();
+			return;
+		}
+		this.openStorefront(this.mod.publicKey, { updateUrl: true, celebrate: false });
 	}
 
 	setBrowseUrl() {
@@ -228,8 +232,6 @@ class Main {
 	}
 
 	openSell(defaults = {}) {
-		this.menu.setActive('sell');
-
 		if (defaults?.nft) {
 			this.listing_detail.render({ mode: 'edit', nft: defaults.nft, defaults });
 			return;

@@ -7,6 +7,9 @@ const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const SaitoProfile = require('../../lib/saito/ui/saito-profile/saito-profile');
 const pageHome = require('./index');
 
+// Keychain profile-index keys that are metadata, not archived tx signatures.
+const PROFILE_INDEX_META_KEYS = new Set(['tx_sig', 'archive_nodes', 'archive']);
+
 class Profile extends ModTemplate {
 	constructor(app) {
 		super(app);
@@ -15,7 +18,13 @@ class Profile extends ModTemplate {
 		this.slug = 'profile';
 		this.description = 'Profile Module';
 		this.archive_public_key;
+
+		// publicKey → complete profile object (authoritative local snapshot)
 		this.cache = {};
+		// publicKey → true once we have attempted a full load into cache
+		this.profile_ready = {};
+		// publicKey → in-flight ensureProfileLoaded promise
+		this.profile_loading = {};
 		this.enable_profile_edits = true;
 
 		this.social = {
@@ -29,55 +38,8 @@ class Profile extends ModTemplate {
 		app.connection.on('profile-fetch-content-and-update-dom', async (key) => {
 			console.info('profile-fetch-content-and-update-dom --- ' + key);
 
-			//
-			// If not cached, check if my friend... archives
-			//
-			if (!this.cache[key]) {
-				if (this.app.keychain.isWatched(key)) {
-					let returned_key = this.app.keychain.returnKey(key);
-
-					if (returned_key?.profile) {
-						this.cache[key] = await this.fetchProfileFromArchive(returned_key);
-						console.debug(
-							'PROFILE: cache from local Archive of my watched key',
-							key,
-							this.cache[key]
-						);
-					}
-				}
-			}
-
-			if (this.cache[key]) {
-				this.app.connection.emit('profile-update-dom', key, this.cache[key]);
-				return;
-			}
-
-			this.cache[key] = {};
-
-			//
-			// fallback to remote storage
-			//
-
-			this.app.storage.loadTransactions(
-				{ field1: 'Profile', field2: key },
-				async (txs) => {
-					let data_found = {};
-					if (txs?.length > 0) {
-						//Go reverse order for oldest first
-						for (let i = txs.length - 1; i >= 0; i--) {
-							let txmsg = txs[i].returnMessage();
-							Object.assign(data_found, txmsg.data);
-						}
-
-						console.debug('PROFILE: cache from remote archive', key, this.cache[key], data_found);
-						Object.assign(this.cache[key], data_found);
-						this.app.connection.emit('profile-update-dom', key, this.cache[key]);
-					} else {
-						console.debug('No profile txs for: ' + key);
-					}
-				},
-				null
-			);
+			const profile = await this.ensureProfileLoaded(key);
+			this.app.connection.emit('profile-update-dom', key, profile);
 		});
 
 		app.connection.on('profile-edit-banner', (profile_key) => {
@@ -120,33 +82,31 @@ class Profile extends ModTemplate {
 			console.debug('PROFILE -- check friends keys in Archive!');
 
 			for (let key of keys_to_check) {
-				// Save an empty profile, so we don't keep querying on every page load...
-				// if we are watching them, we will get the tx when they update...
-				//
+				// Save an empty profile index so we don't keep querying on every page load.
+				// Live updates still arrive via onConfirmation once we are watching them.
 				app.keychain.addKey(key.publicKey, { profile: {} });
 
-				//
-				//Check remote archives
-				//
-				app.storage.loadTransactions(
-					{ field1: 'Profile', field2: key.publicKey },
-					async (txs) => {
-						let txs_found = {};
-						// We want to get the most recent tx for description/image/banner
-						if (txs?.length > 0) {
-							for (let i = txs.length - 1; i >= 0; i--) {
-								let txmsg = txs[i].returnMessage();
-								for (let k in txmsg.data) {
-									txs_found[k] = txs[i];
-								}
-							}
+				const txs = await this.loadProfileTransactions(key.publicKey, peer);
+				const profile = this.buildProfileFromTransactions(txs);
+				this.setCachedProfile(key.publicKey, profile);
+
+				const authoritative = this.selectAuthoritativeTransaction(txs);
+				if (authoritative) {
+					await this.receiveProfileTransaction(authoritative);
+				} else if (txs.length > 0) {
+					// Legacy incremental history: persist newest tx per field until a snapshot exists
+					const newestFirst = this.sortProfileTransactionsNewestFirst(txs);
+					const txs_found = {};
+					for (let i = newestFirst.length - 1; i >= 0; i--) {
+						const txmsg = newestFirst[i].returnMessage();
+						for (const field in txmsg?.data || {}) {
+							txs_found[field] = newestFirst[i];
 						}
-						for (let k in txs_found) {
-							await this.receiveProfileTransaction(txs_found[k]);
-						}
-					},
-					peer
-				);
+					}
+					for (const field in txs_found) {
+						await this.receiveProfileTransaction(txs_found[field]);
+					}
+				}
 			}
 		}
 	}
@@ -156,8 +116,6 @@ class Profile extends ModTemplate {
 		let param = this.app.browser.returnURLParameter('load_key');
 		if (param) {
 			let key = JSON.parse(this.app.crypto.base64ToString(param));
-
-			//console.log("My key: ", this.publicKey, "Wanted Key: ", key.publicKey);
 
 			if (key.publicKey !== this.publicKey) {
 				let result = await this.app.wallet.onUpgrade('import', key.privateKey);
@@ -185,30 +143,251 @@ class Profile extends ModTemplate {
 	}
 
 	/**
-	 * Asynchronously sends a transaction to update a user's profile.
+	 * Return the cached complete profile for a public key (may be empty).
+	 * Own wallet profile is sourced from app.options.profile when cache is cold.
+	 */
+	returnProfile(publicKey = '') {
+		const key = publicKey || this.publicKey;
+		if (key === this.publicKey) {
+			this.ensureOwnProfileCached();
+		}
+		return Object.assign({}, this.cache[key] || {});
+	}
+
+	/**
+	 * Seed cache for the local wallet from app.options.profile (no network I/O).
+	 */
+	ensureOwnProfileCached() {
+		if (!this.publicKey) {
+			return {};
+		}
+		if (this.profile_ready[this.publicKey] && this.cache[this.publicKey]) {
+			return this.cache[this.publicKey];
+		}
+		const saved =
+			this.app.options?.profile && typeof this.app.options.profile === 'object'
+				? this.app.options.profile
+				: {};
+		return this.setCachedProfile(this.publicKey, saved);
+	}
+
+	/**
+	 * Persist the local wallet's complete profile into app.options.
+	 */
+	saveOwnProfileOptions(profile = {}) {
+		if (!this.app.BROWSER) {
+			return;
+		}
+		this.app.options.profile = Object.assign({}, profile || {});
+		this.app.storage.saveOptions();
+	}
+
+	/**
+	 * Apply a partial update to the local profile object.
+	 * Pass null/undefined for a field to remove it (supports field deletion).
 	 *
-	 * @param {Object} data { image, banner, description, archive: {publicKey}}
+	 * @param {string} publicKey
+	 * @param {Object} data partial field updates
+	 * @returns {Object} complete profile after update
+	 */
+	applyLocalProfileUpdate(publicKey, data = {}) {
+		if (publicKey === this.publicKey) {
+			this.ensureOwnProfileCached();
+		} else if (!this.cache[publicKey]) {
+			this.cache[publicKey] = {};
+		}
+
+		for (const field of Object.keys(data)) {
+			const value = data[field];
+			if (value === null || typeof value === 'undefined') {
+				delete this.cache[publicKey][field];
+			} else {
+				this.cache[publicKey][field] = value;
+			}
+		}
+
+		this.profile_ready[publicKey] = true;
+
+		if (publicKey === this.publicKey) {
+			this.saveOwnProfileOptions(this.cache[publicKey]);
+		}
+
+		return this.cache[publicKey];
+	}
+
+	setCachedProfile(publicKey, profile = {}) {
+		this.cache[publicKey] = Object.assign({}, profile || {});
+		this.profile_ready[publicKey] = true;
+		if (publicKey === this.publicKey && this.app.BROWSER) {
+			this.saveOwnProfileOptions(this.cache[publicKey]);
+		}
+		return this.cache[publicKey];
+	}
+
+	/**
+	 * Load a profile into cache when the UI asks for it.
+	 * Own wallet uses app.options only — never blocks on network during init/send.
+	 */
+	async ensureProfileLoaded(publicKey) {
+		if (!publicKey) {
+			return {};
+		}
+
+		if (publicKey === this.publicKey) {
+			return this.ensureOwnProfileCached();
+		}
+
+		if (this.profile_ready[publicKey]) {
+			if (!this.cache[publicKey]) {
+				this.cache[publicKey] = {};
+			}
+			return this.cache[publicKey];
+		}
+
+		if (!this.app.BROWSER) {
+			return this.setCachedProfile(publicKey, {});
+		}
+
+		if (this.profile_loading[publicKey]) {
+			return this.profile_loading[publicKey];
+		}
+
+		this.profile_loading[publicKey] = (async () => {
+			let profile = null;
+
+			if (this.app.keychain.isWatched(publicKey)) {
+				const returned_key = this.app.keychain.returnKey(publicKey);
+				if (returned_key?.profile) {
+					profile = await this.fetchProfileFromArchive(returned_key);
+				}
+			}
+
+			if (profile === null) {
+				const txs = await this.loadProfileTransactions(publicKey, null);
+				profile = this.buildProfileFromTransactions(txs);
+			}
+
+			return this.setCachedProfile(publicKey, profile || {});
+		})();
+
+		try {
+			return await this.profile_loading[publicKey];
+		} finally {
+			delete this.profile_loading[publicKey];
+		}
+	}
+
+	loadProfileTransactions(publicKey, peer = null) {
+		return new Promise((resolve) => {
+			this.app.storage.loadTransactions(
+				// limit 100: enough legacy incremental history for migration;
+				// snapshot-era profiles only need the newest tx.
+				{ field1: 'Profile', field2: publicKey, limit: 100 },
+				(txs) => resolve(txs || []),
+				peer
+			);
+		});
+	}
+
+	/**
+	 * Reconstruct profile content from archived txs.
 	 *
+	 * New snapshot txs (msg.snapshot) are authoritative — newest wins.
+	 * Legacy incremental txs are merged oldest → newest for migration.
+	 */
+	buildProfileFromTransactions(txs = []) {
+		if (!txs?.length) {
+			return {};
+		}
+
+		const newestFirst = this.sortProfileTransactionsNewestFirst(txs);
+
+		for (let i = 0; i < newestFirst.length; i++) {
+			const txmsg = newestFirst[i].returnMessage();
+			if (this.isSnapshotMessage(txmsg)) {
+				return Object.assign({}, txmsg.data || {});
+			}
+		}
+
+		// Legacy incremental history: merge oldest → newest
+		const data = {};
+		for (let i = newestFirst.length - 1; i >= 0; i--) {
+			const txmsg = newestFirst[i].returnMessage();
+			if (txmsg?.data) {
+				Object.assign(data, txmsg.data);
+			}
+		}
+		return data;
+	}
+
+	/**
+	 * Newest snapshot tx if any; otherwise null (legacy-only history).
+	 */
+	selectAuthoritativeTransaction(txs = []) {
+		if (!txs?.length) {
+			return null;
+		}
+
+		const newestFirst = this.sortProfileTransactionsNewestFirst(txs);
+		for (let i = 0; i < newestFirst.length; i++) {
+			const txmsg = newestFirst[i].returnMessage();
+			if (this.isSnapshotMessage(txmsg)) {
+				return newestFirst[i];
+			}
+		}
+		return null;
+	}
+
+	isSnapshotMessage(txmsg) {
+		return Boolean(txmsg && (txmsg.snapshot === 1 || txmsg.snapshot === true));
+	}
+
+	sortProfileTransactionsNewestFirst(txs = []) {
+		return txs.slice().sort((a, b) => {
+			const ta = Number(a?.timestamp) || 0;
+			const tb = Number(b?.timestamp) || 0;
+			return tb - ta;
+		});
+	}
+
+	/**
+	 * Update profile fields and broadcast a complete snapshot transaction.
+	 *
+	 * Callers may pass a partial update (e.g. `{ description }`). The module
+	 * merges that into the local complete profile, then serializes the full
+	 * object. Pass `null`/`undefined` for a field to remove it.
+	 *
+	 * @param {Object} data partial update { image, banner, description, archive, ... }
 	 **/
-	async sendProfileTransaction(data) {
+	async sendProfileTransaction(data = {}) {
+		// Own profile is local state (app.options.profile) — do not await network I/O.
+		const snapshot = Object.assign(
+			{},
+			this.applyLocalProfileUpdate(this.publicKey, data)
+		);
+
 		this.app.connection.emit('saito-header-update-message', { msg: 'broadcasting profile update' });
 
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
 		newtx.msg = {
 			module: this.name,
 			request: 'update profile',
-			data
+			snapshot: 1,
+			data: snapshot
 		};
 
 		await newtx.sign();
 
-		this.app.connection.emit('profile-update-dom', this.publicKey, data);
+		this.app.connection.emit('profile-update-dom', this.publicKey, snapshot);
 
 		await this.app.network.propagateTransaction(newtx);
 	}
 
 	/**
 	 * Processes a received transaction to update a user's profile.
+	 *
+	 * Snapshot txs replace the cached profile entirely.
+	 * Legacy incremental txs merge into cache (migration / in-flight old peers).
 	 *
 	 * @param {Object} tx - The transaction object received, containing data to be processed.
 	 **/
@@ -221,63 +400,68 @@ class Profile extends ModTemplate {
 		}
 
 		let txmsg = tx.returnMessage();
+		const incoming = txmsg?.data && typeof txmsg.data === 'object' ? txmsg.data : {};
 
-		//
-		// Update (server) cache with profile data
-		//
-		if (!this.cache[from]) {
-			this.cache[from] = {};
+		if (this.isSnapshotMessage(txmsg)) {
+			this.setCachedProfile(from, incoming);
+		} else {
+			// Legacy incremental update — merge until that user publishes a snapshot
+			if (from === this.publicKey) {
+				this.ensureOwnProfileCached();
+			} else if (!this.cache[from]) {
+				this.cache[from] = {};
+			}
+			Object.assign(this.cache[from], incoming);
+			this.profile_ready[from] = true;
+			if (from === this.publicKey) {
+				this.saveOwnProfileOptions(this.cache[from]);
+			}
 		}
 
-		Object.assign(this.cache[from], txmsg.data);
-
-		//
-		// If we follow the key, save the indices (tx sig) in our keychain
-		// and archive the transactions
-		//
 		if (this.app.BROWSER && this.app.keychain.isWatched(from)) {
-			console.info(`PROFILE UPDATE for ${this.app.keychain.returnUsername(from)}: `, txmsg.data);
+			console.info(`PROFILE UPDATE for ${this.app.keychain.returnUsername(from)}: `, incoming);
 
-			let data = {};
+			const returned_key = this.app.keychain.returnKey(from);
+			const previous_index = Object.assign({}, returned_key?.profile || {});
 
-			for (let key in txmsg.data) {
-				if (key == 'archive') {
-					data[key] = txmsg.data[key];
-				} else {
-					data[key] = tx.signature;
+			if (this.isSnapshotMessage(txmsg)) {
+				// Snapshot replaces all prior local Profile txs for this key
+				await this.deleteIndexedProfileTransactions(previous_index);
+
+				const profile_index = { tx_sig: tx.signature };
+				if (previous_index.archive_nodes) {
+					profile_index.archive_nodes = previous_index.archive_nodes;
 				}
-			}
 
-			let returned_key = this.app.keychain.returnKey(from);
-
-			let profile = Object.assign({}, returned_key?.profile);
-
-			// Clear out old profile transactions...
-			for (let field in txmsg.data) {
-				if (profile[field]) {
-					await this.app.storage.deleteTransaction(profile[field], '', 'localhost');
+				this.app.keychain.addKey(from, { profile: profile_index });
+			} else {
+				// Legacy incremental: only replace archived txs for fields in this update
+				for (const field of Object.keys(incoming)) {
+					const prior = previous_index[field];
+					if (typeof prior === 'string' && prior) {
+						await this.app.storage.deleteTransaction(prior, '', 'localhost');
+					}
 				}
+
+				const profile_index = Object.assign({}, previous_index);
+				for (const field of Object.keys(incoming)) {
+					if (field === 'archive') {
+						profile_index[field] = incoming[field];
+					} else {
+						profile_index[field] = tx.signature;
+					}
+				}
+				delete profile_index.tx_sig;
+
+				this.app.keychain.addKey(from, { profile: profile_index });
 			}
-
-			profile = Object.assign(profile, data);
-
-			//console.log("New profile: ", profile);
-
-			this.app.keychain.addKey(from, { profile });
 
 			await this.saveProfileTransaction(tx);
 		} else if (!this.app.BROWSER) {
-			//
-			// Save update transaction in archive if server
-			//
 			await this.saveProfileTransaction(tx);
 		}
 
-		//
-		// Update my UI to confirm that tx was received on chain
-		//
 		if (tx.isFrom(this.publicKey)) {
-			// Clear the saito-header notification from sendProfileTransaction
 			this.app.connection.emit('saito-header-update-message', { msg: '' });
 			siteMessage('Profile updated', 2000);
 		}
@@ -287,40 +471,44 @@ class Profile extends ModTemplate {
 		}
 	}
 
-	//
-	//  LOAD PROFILE VALUES FUNCTIONS
-	//
+	/**
+	 * Load profile content for a watched key from the local archive.
+	 * Uses newest snapshot when present; otherwise merges legacy incremental txs.
+	 */
 	async fetchProfileFromArchive(key) {
 		console.info('PROFILE: Fetching local profile for: ', key);
 		return this.app.storage.loadTransactions(
-			{ field2: key.publicKey, field1: 'Profile' },
-			(txs) => {
-				if (txs?.length > 0) {
-					let obj = {};
-					for (let tx of txs) {
-						//console.log("PROFILE: local archive returned txs (inside)!");
-						let txmsg = tx.returnMessage();
-
-						for (let field in key.profile) {
-							if (key.profile[field] === tx.signature) {
-								if (txmsg.data[field]) {
-									obj[field] = txmsg.data[field];
-								}
-							}
-						}
-					}
-					return obj;
-				}
-				return null;
-			},
+			{ field2: key.publicKey, field1: 'Profile', limit: 100 },
+			(txs) => this.buildProfileFromTransactions(txs),
 			'localhost'
 		);
 	}
 
-	//
-	// Every profile update saves a new transaction to the archive, and in the keychain
-	// we store the signature of the most recent update so that we can pull that up
-	//
+	/**
+	 * Delete previously indexed local Profile txs (snapshot and/or legacy per-field).
+	 */
+	async deleteIndexedProfileTransactions(profile_index = {}) {
+		const sigs = new Set();
+
+		if (profile_index.tx_sig && typeof profile_index.tx_sig === 'string') {
+			sigs.add(profile_index.tx_sig);
+		}
+
+		for (const field of Object.keys(profile_index)) {
+			if (PROFILE_INDEX_META_KEYS.has(field)) {
+				continue;
+			}
+			const value = profile_index[field];
+			if (typeof value === 'string' && value) {
+				sigs.add(value);
+			}
+		}
+
+		for (const sig of sigs) {
+			await this.app.storage.deleteTransaction(sig, '', 'localhost');
+		}
+	}
+
 	async saveProfileTransaction(tx) {
 		await this.app.storage.saveTransaction(tx, { field1: 'Profile', preserve: 1 }, 'localhost');
 	}
@@ -335,8 +523,6 @@ class Profile extends ModTemplate {
 			let updatedSocial = Object.assign({}, mod_self.social);
 
 			updatedSocial.url = reqBaseURL + encodeURI(mod_self.returnSlug());
-
-			// Need to insert profile stuff!
 
 			let html = pageHome(app, mod_self, app.build_number, updatedSocial);
 			if (!res.finished) {

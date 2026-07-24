@@ -20,19 +20,14 @@ module.exports = {
 </article>`;
 	},
 
-	completeOverlay({ listingTitle = '' } = {}) {
-		const lead = listingTitle
-			? `<strong>${listingTitle}</strong> is now available in your Store.`
-			: 'Your NFT is now available in your Store.';
-
+	completeOverlay() {
 		return `
 <article class="listing-progress complete" aria-labelledby="listing-progress-complete-title">
   <div class="stack">
     <div class="success" aria-hidden="true"><i class="fas fa-check"></i></div>
-    <h2 class="title" id="listing-progress-complete-title">Listing Published</h2>
-    <p class="lead">${lead}</p>
-    <button type="button" class="saito-button-primary" data-action="view-listing">View Listing</button>
-    <button type="button" class="saito-button-secondary" data-action="listing-continue">Continue</button>
+    <h2 class="title" id="listing-progress-complete-title">Listing Successful</h2>
+    <p class="lead">You have successfully added an item to your Saito Store.</p>
+    <button type="button" class="saito-button-primary" data-action="listing-continue">Continue</button>
   </div>
 </article>`;
 	}

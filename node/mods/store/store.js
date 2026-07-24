@@ -36,10 +36,6 @@ class Store extends ModTemplate {
 
 		await super.initialize(app);
 
-		if (this.app.BROWSER) {
-			this.initializeStoreOptions();
-		}
-
 		if (!this.app.BROWSER) {
 			this.store_public_key = this.publicKey;
 			await this.warehouse.initialize();
@@ -54,36 +50,6 @@ class Store extends ModTemplate {
 			await this.main.initialize();
 			this.addComponent(this.main);
 		}
-	}
-
-	initializeStoreOptions() {
-		if (
-			!this.app.options.store ||
-			typeof this.app.options.store !== 'object' ||
-			Array.isArray(this.app.options.store)
-		) {
-			this.app.options.store = {};
-		}
-
-		if (typeof this.app.options.store.hasStore !== 'boolean') {
-			this.app.options.store.hasStore = false;
-			this.app.storage.saveOptions();
-		}
-	}
-
-	setHasStore() {
-		if (!this.app.BROWSER) {
-			return;
-		}
-
-		this.initializeStoreOptions();
-		if (this.app.options.store.hasStore) {
-			return;
-		}
-
-		this.app.options.store.hasStore = true;
-		this.app.storage.saveOptions();
-		this.app.connection.emit('store-has-store-updated', true);
 	}
 
 	returnServices() {

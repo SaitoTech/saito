@@ -564,7 +564,6 @@ class ListingDetailOverlay {
 		try {
 			const tx = await this.mod.createListAssetTransaction(this.selectedNft, this.listing);
 			await this.app.network.propagateTransaction(tx);
-			this.mod.setHasStore();
 
 			if (typeof this.defaults?.callback === 'function') {
 				this.defaults.callback({
@@ -611,9 +610,11 @@ class ListingDetailOverlay {
 		// Progress overlay first so the user never sees a silent close.
 		openProgress();
 
-		// Switch Store underneath to Your Store (when the Store page is active).
+		// Switch Store underneath to the seller dashboard (when the Store page is active).
 		if (this.mod.main?.openStorefront && this.mod.publicKey) {
-			Promise.resolve(this.mod.main.openStorefront(this.mod.publicKey)).catch((err) => {
+			Promise.resolve(
+				this.mod.main.openStorefront(this.mod.publicKey, { celebrate: true })
+			).catch((err) => {
 				console.warn('Store: openStorefront after list failed', err?.message || err);
 			});
 		}
