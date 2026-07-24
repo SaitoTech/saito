@@ -374,11 +374,12 @@ Media Queries
 :where(
   input.saito-input,
   textarea.saito-textarea,
-  select.saito-form-select
+  select.saito-form-select,
+  .saito-form-control
 ):is(:focus, :focus-visible) {
   outline: none !important;
-  border-color: var(--saito-input-border-focus) !important;
-  box-shadow: var(--saito-focus-ring) !important;
+  border-color: var(--saito-input-border) !important;
+  box-shadow: none !important;
 }
 
 :where(button, .saito-button-primary, .saito-button-secondary):is(:focus, :focus-visible) {

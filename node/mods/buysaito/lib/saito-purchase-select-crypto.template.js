@@ -24,7 +24,7 @@ module.exports = (app, mod, self) => {
     .join('');
 
   return `
-    <div class="purchase-container saito-overlay-panel saito-overlay-size wide" id="purchase-container">
+    <div class="purchase-container saito-overlay-panel saito-overlay-size" id="purchase-container">
       <header class="saito-overlay-form-header">
         <h2 class="saito-overlay-form-header-title">Get Saito</h2>
       </header>

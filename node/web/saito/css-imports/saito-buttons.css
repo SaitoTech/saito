@@ -70,15 +70,13 @@ button.disabled {
 
 .saito-button-primary:focus-visible,
 .saito-button-secondary:focus-visible {
-  box-shadow: var(--saito-focus-ring);
+  box-shadow: none;
 }
 
 .saito-button-primary.disabled,
 .saito-button-primary[disabled] {
   background: var(--saito-button-disabled-bg);
   color: var(--saito-button-disabled-fg);
-  border: var(--border-thickness-thin) solid var(--saito-font-color-primary);
-  border-color: var(--saito-button-disabled-border);
   filter: none;
   cursor: not-allowed;
 }
@@ -87,8 +85,6 @@ button.disabled {
 .saito-button-secondary[disabled] {
   background: var(--saito-button-disabled-bg);
   color: var(--saito-button-disabled-fg);
-  border: var(--border-thickness-thin) solid var(--saito-button-disabled-border);
-  border-color: var(--saito-button-disabled-border);
   filter: none;
   cursor: not-allowed;
 }
@@ -303,9 +299,9 @@ span.saito-anchor {
   min-height: 2.4rem;
   padding: 0;
   margin: 0;
-  background: transparent;
-  border: var(--border-thickness-thin) solid var(--saito-border);
-  border-radius: var(--saito-border-radius);
+  background: var(--saito-input-bg);
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
+  border-radius: var(--saito-input-radius);
   cursor: pointer;
   color: var(--saito-font-color-secondary, var(--saito-muted-foreground));
   opacity: 1;
@@ -315,13 +311,13 @@ span.saito-anchor {
 }
 
 .saito-icon-button:hover {
-  border-color: color-mix(in srgb, var(--saito-foreground) 55%, transparent);
+  border-color: var(--saito-input-border);
   color: var(--saito-font-color, var(--saito-foreground));
-  background: transparent;
+  background: var(--saito-input-bg);
 }
 
 .saito-icon-button:focus-visible {
-  box-shadow: var(--saito-focus-ring);
+  box-shadow: none;
   outline: none;
 }
 
@@ -346,7 +342,7 @@ span.saito-anchor {
   min-height: 3.6rem;
   margin: 0;
   padding: 0;
-  border: var(--border-thickness-thin) solid rgba(255, 255, 255, 0.35);
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
   border-radius: var(--saito-button-radius);
   background: #0009;
   color: #fff;
@@ -363,7 +359,7 @@ span.saito-anchor {
 
 .saito-button-square:hover {
   background: #000c;
-  border-color: rgba(255, 255, 255, 0.55);
+  border-color: var(--saito-input-border);
   color: #fff;
   opacity: 1;
 }
@@ -375,7 +371,7 @@ span.saito-anchor {
 
 .saito-button-square:focus-visible {
   outline: none;
-  box-shadow: var(--saito-focus-ring);
+  box-shadow: none;
 }
 
 .saito-button-square i {
@@ -387,4 +383,3 @@ span.saito-anchor {
   line-height: 1;
   color: inherit;
 }
-

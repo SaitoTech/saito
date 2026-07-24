@@ -27,26 +27,29 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
     <div id="withdraw-step-one" class="compose">
       <div class="compose-top">
         <div class="token-picker">
-          <div class="token-dropdown">
-            <div class="token-custom" id="withdraw-token-custom">
-              <button
-                type="button"
-                class="token-trigger saito-button-secondary"
-                id="withdraw-token-trigger"
-                aria-label="Select token"
-                aria-haspopup="listbox"
-                aria-expanded="false"
-                aria-controls="withdraw-token-menu"
-              >
-                <div class="token-trigger-left">
-                  <div id="withdraw-logo-cont" class="token-logo"></div>
-                  <span id="withdraw-token-trigger-ticker"></span>
-                </div>
-                <div class="token-trigger-caret" aria-hidden="true">▾</div>
-              </button>
-              <ul id="withdraw-token-menu" class="token-menu hide-element" role="listbox"></ul>
-              <select class="saito-form-select withdraw-select-crypto hide-element" id="withdraw-select-crypto" aria-hidden="true" tabindex="-1"></select>
-            </div>
+          <div class="token-custom" id="withdraw-token-custom">
+            <button
+              type="button"
+              class="token-trigger saito-button-secondary"
+              id="withdraw-token-trigger"
+              aria-label="Select token"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-controls="withdraw-token-menu"
+            >
+              <div class="token-trigger-left">
+                <div id="withdraw-logo-cont" class="token-logo"></div>
+                <span id="withdraw-token-trigger-ticker"></span>
+              </div>
+              <div class="token-trigger-caret" aria-hidden="true">▾</div>
+            </button>
+            <ul
+              id="withdraw-token-menu"
+              class="token-menu saito-form-dropdown hide-element"
+              role="listbox"
+              popover="manual"
+            ></ul>
+            <select class="saito-form-select withdraw-select-crypto hide-element" id="withdraw-select-crypto" aria-hidden="true" tabindex="-1"></select>
           </div>
         </div>
 
@@ -83,15 +86,15 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
 
   if (!fixedRecipient) {
     html += `
-              <button type="button" class="saito-icon-button withdraw-options-cont withdraw-paste-btn" id="withdraw-paste-btn" title="Paste address">
+              <div class="withdraw-options-cont withdraw-paste-btn" id="withdraw-paste-btn" title="Paste address" role="button" tabindex="0" aria-label="Paste address">
                 <i class="fa-solid fa-paste" aria-hidden="true"></i>
-              </button>
-              <button type="button" class="saito-icon-button withdraw-options-cont" id="withdraw-qr-scan-btn" title="Scan QR code" aria-label="Scan recipient QR code">
+              </div>
+              <div class="withdraw-options-cont" id="withdraw-qr-scan-btn" title="Scan QR code" role="button" tabindex="0" aria-label="Scan recipient QR code">
                 <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
-              </button>
-              <button type="button" class="saito-icon-button withdraw-options-cont" id="address-book" title="Contacts">
+              </div>
+              <div class="withdraw-options-cont" id="address-book" title="Contacts" role="button" tabindex="0" aria-label="Open contacts">
                 <i class="fa-solid fa-users" aria-hidden="true"></i>
-              </button>`;
+              </div>`;
   }
 
   html += `
@@ -117,7 +120,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
               required
             >
             <div class="input-actions">
-              <button type="button" class="saito-button-secondary small" id="withdraw-max-btn" title="Use maximum amount">
+              <button type="button" id="withdraw-max-btn" title="Use maximum amount">
                 MAX
               </button>
               <span

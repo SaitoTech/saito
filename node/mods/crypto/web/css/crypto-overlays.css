@@ -300,17 +300,6 @@
    Field chrome comes from Saito; this is crypto-specific control layout.
    ----------------------------------------------------------------- */
 
-.saito-crypto-withdraw .token-dropdown {
-  display: block;
-  position: relative;
-  border: none;
-  background: none;
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  gap: 0;
-}
-
 .saito-crypto-withdraw .token-custom {
   position: relative;
   width: 100%;
@@ -382,8 +371,7 @@
   opacity: 0.82;
 }
 
-.saito-crypto-withdraw .withdraw-select-crypto.hide-element,
-.saito-crypto-withdraw .token-dropdown select.hide-element {
+.saito-crypto-withdraw .withdraw-select-crypto.hide-element {
   position: absolute !important;
   width: 1px !important;
   height: 1px !important;
@@ -396,20 +384,11 @@
 }
 
 .saito-crypto-withdraw .token-menu {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 2px);
   z-index: 120;
-  margin: 0;
   padding: 0.18rem 0;
   list-style: none;
   max-height: 20rem;
   overflow-y: auto;
-  background: var(--saito-popover-surface);
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
-  border-radius: var(--saito-input-radius);
-  box-shadow: var(--saito-overlay-panel-shadow);
 }
 
 .saito-crypto-withdraw .withdraw-token-option {
@@ -419,11 +398,6 @@
   padding: var(--saito-space-sm) var(--saito-space-md);
   min-height: 4rem;
   cursor: pointer;
-}
-
-.saito-crypto-withdraw .withdraw-token-option:hover,
-.saito-crypto-withdraw .withdraw-token-option[aria-selected='true'] {
-  background-color: var(--saito-input-bg-focus);
 }
 
 .saito-crypto-withdraw .withdraw-token-option-logo {
@@ -444,11 +418,6 @@
   display: inline-flex;
   align-items: center;
   line-height: 1.1;
-}
-
-.saito-crypto-withdraw .withdraw-token-option--focused {
-  outline: 2px solid color-mix(in srgb, var(--saito-primary) 65%, transparent);
-  outline-offset: -2px;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -904,15 +873,15 @@
   width: 100%;
 }
 
-/* Same input column width for recipient + amount; trailing actions share a fixed rail */
+/* Full-width fields with actions layered into the input's right-hand space */
 .saito-crypto-withdraw .input-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 8.5rem;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  column-gap: var(--saito-space-xs);
   width: 100%;
   min-width: 0;
   overflow: visible;
+  position: relative;
 }
 
 .saito-crypto-withdraw .input-row > input.saito-input {
@@ -922,12 +891,21 @@
   min-width: 0;
 }
 
+.saito-crypto-withdraw #withdraw-address-cont:not(.fixed-user) > input.saito-input {
+  padding-right: 4rem;
+}
+
+.saito-crypto-withdraw #withdraw-amount-cont > input.saito-input {
+  padding-right: 9rem;
+}
+
 .saito-crypto-withdraw .input-row > .identicon-slot {
   display: none;
 }
 
 .saito-crypto-withdraw .input-row.fixed-user {
-  grid-template-columns: 3.6rem minmax(0, 1fr) 8.5rem;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  column-gap: var(--saito-space-xs);
 }
 
 .saito-crypto-withdraw .input-row.fixed-user > .identicon-slot {
@@ -940,22 +918,46 @@
 
 .saito-crypto-withdraw .input-row.fixed-user > input.saito-input {
   grid-column: 2;
+  padding-right: 1rem;
 }
 
 .saito-crypto-withdraw .input-row.fixed-user > .input-actions {
-  grid-column: 3;
+  grid-column: 2;
 }
 
 .saito-crypto-withdraw .input-actions {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 1;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--saito-space-xs);
   min-width: 0;
-  width: 100%;
-  position: relative;
+  width: auto;
+  margin-right: var(--saito-space-xs);
+  justify-self: end;
+  z-index: 2;
+}
+
+.saito-crypto-withdraw .withdraw-options-cont {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
+}
+
+.saito-crypto-withdraw .withdraw-options-cont:hover {
+  color: var(--saito-foreground);
+}
+
+.saito-crypto-withdraw .withdraw-options-cont:focus-visible {
+  outline: none;
 }
 
 .saito-crypto-withdraw .withdraw-paste-btn,
@@ -985,7 +987,7 @@
   display: flex;
   align-items: center;
   width: 100%;
-  max-width: calc(100% - 8.5rem - var(--saito-space-xs));
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   opacity: 1;
@@ -1138,6 +1140,18 @@
   flex: 0 0 auto;
   margin: 0;
   min-width: unset;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.saito-crypto-withdraw #withdraw-max-btn:hover,
+.saito-crypto-withdraw #withdraw-max-btn:focus-visible {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  filter: none;
 }
 
 .saito-crypto-withdraw .withdraw-amount-status {
@@ -1399,11 +1413,19 @@
   .saito-crypto-withdraw #withdraw-qr-scan-btn {
     display: flex !important;
   }
+
+  .saito-crypto-withdraw #withdraw-address-cont:not(.fixed-user) > input.saito-input {
+    padding-right: 7rem;
+  }
 }
 
 @media screen and (max-width: 520px) {
   .saito-crypto-withdraw .withdraw-paste-btn {
     display: flex !important;
+  }
+
+  .saito-crypto-withdraw #withdraw-address-cont:not(.fixed-user) > input.saito-input {
+    padding-right: 10rem;
   }
 
   .saito-crypto-withdraw .token-picker {
@@ -1417,14 +1439,6 @@
 
   .saito-crypto-withdraw .meta-stack {
     justify-self: start;
-  }
-
-  .saito-crypto-withdraw .input-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .saito-crypto-withdraw .address-preview {
-    max-width: 100%;
   }
 
   .saito-crypto-withdraw .actions button,
@@ -1891,19 +1905,8 @@ input[type='checkbox'].ignore-checkbox {
   display: flex;
   position: relative;
   padding: 0 0.5rem;
-  border-radius: var(--saito-border-radius);
-  /*
-  unapplied experiment
-   border: 1px solid
-    color-mix(in srgb, var(--saito-border-color) 50%, var(--saito-font-color-heavy) 50%);*/
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
   gap: 0.25rem;
   align-items: center;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--saito-background-color) 88%, var(--saito-primary) 12%),
-    color-mix(in srgb, var(--saito-background-color) 96%, black)
-  );
 }
 .withdraw-logo-cont {
   position: relative;
@@ -1938,41 +1941,6 @@ input[type='checkbox'].ignore-checkbox {
   font-size: 1.8rem;
   text-align: center;
 }
-/* Hidden native select + custom token menu (withdraw overlay) */
-.saito-crypto-withdraw .token-dropdown select.hide-element,
-.saito-crypto-withdraw .withdraw-select-crypto.hide-element {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  border: none !important;
-  clip: rect(0, 0, 0, 0);
-}
-
-/* Hide arrows, Chrome, Safari, Edge, Opera */
-.saito-crypto-withdraw input::-webkit-outer-spin-button,
-.saito-crypto-withdraw input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-/* Firefox */
-.saito-crypto-withdraw input[type='number'] {
-  -moz-appearance: textfield;
-}
-/* Fully override Chrome's autofill styling without erasing field chrome */
-.saito-crypto-withdraw input.saito-input:-webkit-autofill,
-.saito-crypto-withdraw input.saito-input:-webkit-autofill:hover,
-.saito-crypto-withdraw input.saito-input:-webkit-autofill:focus,
-.saito-crypto-withdraw input.saito-input:-webkit-autofill:active {
-  -webkit-text-fill-color: var(--saito-font-color) !important;
-  caret-color: var(--saito-primary) !important;
-  -webkit-box-shadow: 0 0 0px 1000px var(--saito-input-bg) inset !important;
-  box-shadow: 0 0 0px 1000px var(--saito-input-bg) inset !important;
-}
-
 .saito-overlay-form-submit,
 .saito-overlay-form-subtext {
   grid-column: span 2;
@@ -2014,11 +1982,6 @@ input[type='checkbox'].ignore-checkbox {
 /* Moved from saito-table.css / saito-base.css */
 .crypto-timestamp {
   font-family: var(--saito-font-monospace);
-}
-
-.saito-overlay-form .token-dropdown {
-  color: var(--saito-font-color);
-  background: var(--saito-background-color);
 }
 
 .crypto-logo-container {

@@ -277,16 +277,15 @@ font imports
   --saito-button-primary-bg: var(--saito-primary);
   --saito-button-primary-bg-hover: var(--saito-chart-4);
   --saito-button-primary-fg: var(--saito-primary-foreground);
-  --saito-button-primary-border: transparent;
-  --saito-button-radius: var(--saito-radius);
+  --saito-button-primary-border: var(--saito-input-border);
+  --saito-button-radius: var(--saito-input-radius);
   --saito-button-secondary-bg: var(--saito-secondary);
   --saito-button-secondary-bg-hover: var(--saito-accent);
   --saito-button-secondary-fg: var(--saito-secondary-foreground);
   --saito-button-secondary-fg-hover: var(--saito-foreground);
-  --saito-button-secondary-border: var(--saito-border);
+  --saito-button-secondary-border: var(--saito-input-border);
   --saito-button-disabled-bg: color-mix(in srgb, var(--saito-secondary) 70%, transparent);
   --saito-button-disabled-fg: color-mix(in srgb, var(--saito-muted-foreground) 64%, transparent);
-  --saito-button-disabled-border: transparent;
   --saito-cta-action-background: linear-gradient(90deg, #dd4708, #b93205);
   --saito-cta-action-shadow: 0 0 32px -10px rgba(196, 59, 8, 0.42);
 
@@ -294,10 +293,8 @@ font imports
   --saito-input-bg-focus: var(--saito-input-bg);
   --saito-input-fg: var(--saito-foreground);
   --saito-input-fg-heavy: var(--saito-foreground);
-  /* Control outlines — distinct from decorative --saito-border hairlines.
-   * Resting: ~3:1 on dark surfaces. Focus: reuse --saito-ring (focus/outline color). */
-  --saito-input-border: color-mix(in srgb, var(--saito-foreground) 35%, transparent);
-  --saito-input-border-focus: var(--saito-ring);
+  --saito-input-border: var(--saito-border);
+  --saito-input-border-focus: var(--saito-input-border);
   --saito-input-placeholder: var(--saito-muted-foreground);
   --saito-input-radius: var(--saito-radius);
   --saito-input-shadow: var(--saito-elevation-0);

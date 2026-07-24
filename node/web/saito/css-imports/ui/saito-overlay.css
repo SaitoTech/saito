@@ -267,15 +267,6 @@
 }
 
 .saito-overlay-form textarea.saito-textarea,
-.saito-overlay-form input.saito-input,
-.saito-recovery textarea.saito-textarea,
-.saito-recovery input.saito-input,
-.saito-crypto-withdraw textarea.saito-textarea,
-.saito-crypto-withdraw input.saito-input {
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
-}
-
-.saito-overlay-form textarea.saito-textarea,
 .saito-recovery textarea.saito-textarea {
   font-size: 2.2rem;
   height: 13rem;

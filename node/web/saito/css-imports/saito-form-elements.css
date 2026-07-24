@@ -58,6 +58,44 @@ select.saito-form-select {
   max-width: 100%;
   cursor: text;
 }
+
+.saito-form-control {
+  background-color: var(--saito-input-bg);
+  color: var(--saito-input-fg-heavy);
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
+  border-radius: var(--saito-input-radius);
+}
+
+.saito-form-dropdown {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  scrollbar-width: none;
+  background-color: var(--saito-popover-surface);
+  color: var(--saito-popover-foreground);
+  border: var(--border-thickness-thin) solid var(--saito-border);
+  border-radius: var(--saito-input-radius);
+}
+
+.saito-form-dropdown::-webkit-scrollbar {
+  display: none;
+}
+
+.saito-form-dropdown-option:hover,
+.saito-form-dropdown-option[aria-selected='true'] {
+  background-color: var(--saito-input-bg-focus);
+}
+
+input.saito-input:-webkit-autofill,
+input.saito-input:-webkit-autofill:hover,
+input.saito-input:-webkit-autofill:focus,
+input.saito-input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--saito-input-fg-heavy) !important;
+  caret-color: var(--saito-primary) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--saito-input-bg) inset !important;
+  box-shadow: 0 0 0 1000px var(--saito-input-bg) inset !important;
+}
+
 select.saito-form-select {
   cursor: pointer;
   color: var(--saito-input-fg);
@@ -126,8 +164,8 @@ input.saito-checkbox[type='checkbox']:checked::after,
 input.saito-checkbox[type='checkbox']:focus-visible,
 .saito-checkbox:focus-visible {
   outline: none;
-  border-color: var(--saito-input-border-focus);
-  box-shadow: var(--saito-focus-ring);
+  border-color: var(--saito-input-border);
+  box-shadow: none;
 }
 /* ----------------------------------------------------------------
  Radio
@@ -168,8 +206,8 @@ input.saito-radio[type='radio']:checked::after,
 input.saito-radio[type='radio']:focus-visible,
 .saito-radio:focus-visible {
   outline: none;
-  border-color: var(--saito-input-border-focus);
-  box-shadow: var(--saito-focus-ring);
+  border-color: var(--saito-input-border);
+  box-shadow: none;
 }
 /* ----------------------------------------------------------------
  Range

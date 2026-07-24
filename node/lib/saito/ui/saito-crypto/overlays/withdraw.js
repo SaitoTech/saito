@@ -45,6 +45,7 @@ class Withdraw {
   }
 
   async render() {
+    this.closeTokenMenu();
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
     this.amountErrorMessage = '';
@@ -867,7 +868,7 @@ class Withdraw {
 
         if (menu) {
           const li = document.createElement('li');
-          li.className = 'withdraw-token-option';
+          li.className = 'withdraw-token-option saito-form-dropdown-option';
           li.setAttribute('role', 'option');
           li.setAttribute('aria-selected', show_me ? 'true' : 'false');
           li.dataset.ticker = crypto_mod.ticker;
@@ -886,15 +887,84 @@ class Withdraw {
     }
   }
 
+  positionTokenMenu() {
+    const menu = document.getElementById('withdraw-token-menu');
+    const trigger = document.getElementById('withdraw-token-trigger');
+    if (!menu || !trigger) {
+      return;
+    }
+
+    const viewportGap = 8;
+    const triggerGap = 2;
+    const triggerRect = trigger.getBoundingClientRect();
+    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 10;
+    const preferredMaxHeight = 20 * rootFontSize;
+    const desiredHeight = Math.min(preferredMaxHeight, menu.scrollHeight);
+    const spaceBelow = window.innerHeight - triggerRect.bottom - viewportGap - triggerGap;
+    const spaceAbove = triggerRect.top - viewportGap - triggerGap;
+    const openAbove = spaceAbove > spaceBelow && spaceBelow < desiredHeight;
+    const availableHeight = Math.max(0, openAbove ? spaceAbove : spaceBelow);
+    const menuHeight = Math.min(desiredHeight, availableHeight);
+    const menuWidth = Math.min(triggerRect.width, window.innerWidth - 2 * viewportGap);
+    const menuLeft = Math.min(
+      Math.max(viewportGap, triggerRect.left),
+      window.innerWidth - viewportGap - menuWidth
+    );
+
+    menu.style.left = `${menuLeft}px`;
+    menu.style.top = `${
+      openAbove
+        ? Math.max(viewportGap, triggerRect.top - triggerGap - menuHeight)
+        : triggerRect.bottom + triggerGap
+    }px`;
+    menu.style.width = `${menuWidth}px`;
+    menu.style.maxHeight = `${menuHeight}px`;
+  }
+
+  openTokenMenu() {
+    const menu = document.getElementById('withdraw-token-menu');
+    const trigger = document.getElementById('withdraw-token-trigger');
+    if (!menu || !trigger) {
+      return;
+    }
+
+    menu.classList.remove('hide-element');
+    if (typeof menu.showPopover === 'function' && !menu.matches(':popover-open')) {
+      menu.showPopover();
+    }
+    this.positionTokenMenu();
+    trigger.setAttribute('aria-expanded', 'true');
+
+    this._closeTokenMenuOnViewportChange ||= () => this.closeTokenMenu();
+    this._tokenMenuScrollContainer = trigger.closest('.compose');
+    window.addEventListener('resize', this._closeTokenMenuOnViewportChange);
+    window.addEventListener('scroll', this._closeTokenMenuOnViewportChange);
+    this._tokenMenuScrollContainer?.addEventListener(
+      'scroll',
+      this._closeTokenMenuOnViewportChange
+    );
+  }
+
   closeTokenMenu() {
     const menu = document.getElementById('withdraw-token-menu');
     const trigger = document.getElementById('withdraw-token-trigger');
     if (menu) {
+      if (typeof menu.hidePopover === 'function' && menu.matches(':popover-open')) {
+        menu.hidePopover();
+      }
       menu.classList.add('hide-element');
     }
-    if (trigger) {
-      trigger.setAttribute('aria-expanded', 'false');
+    trigger?.setAttribute('aria-expanded', 'false');
+
+    if (this._closeTokenMenuOnViewportChange) {
+      window.removeEventListener('resize', this._closeTokenMenuOnViewportChange);
+      window.removeEventListener('scroll', this._closeTokenMenuOnViewportChange);
+      this._tokenMenuScrollContainer?.removeEventListener(
+        'scroll',
+        this._closeTokenMenuOnViewportChange
+      );
     }
+    this._tokenMenuScrollContainer = null;
   }
 
   focusTokenOption(index) {
@@ -1031,8 +1101,7 @@ class Withdraw {
         e.stopPropagation();
         const open = menu.classList.contains('hide-element');
         if (open) {
-          menu.classList.remove('hide-element');
-          trigger.setAttribute('aria-expanded', 'true');
+          this.openTokenMenu();
           const currentIdx = Array.from(menu.querySelectorAll('.withdraw-token-option')).findIndex(
             (li) => li.dataset.ticker === this.ticker
           );
@@ -1063,8 +1132,7 @@ class Withdraw {
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           e.preventDefault();
           if (!open) {
-            menu.classList.remove('hide-element');
-            trigger.setAttribute('aria-expanded', 'true');
+            this.openTokenMenu();
           }
           const options = Array.from(menu.querySelectorAll('.withdraw-token-option'));
           let idx = this._tokenMenuFocusIndex;
@@ -1322,6 +1390,17 @@ class Withdraw {
           this.contacts.render(contactsWithCrypto);
         };
       }
+
+      document
+        .querySelectorAll('.saito-crypto-withdraw .withdraw-options-cont[role="button"]')
+        .forEach((control) => {
+          control.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              control.click();
+            }
+          };
+        });
     }
   }
 
@@ -1568,6 +1647,7 @@ class Withdraw {
   }
 
   clear() {
+    this.closeTokenMenu();
     this.resetErrors();
     this.ticker = null;
     this.pc = null;

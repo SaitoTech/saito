@@ -1,6 +1,6 @@
 module.exports = (app, mod, msg) => {
 	if (!msg) {
-		msg = `Registering a username is free and makes it easier to engage socially on the network. You are currently being displayed as <em>${app.keychain.returnUsername(mod.publicKey)}</em>`;
+		msg = `Registering a username is optional and free.<br>You are currently being displayed as <em>${app.keychain.returnUsername(mod.publicKey)}</em>`;
 	}
 	return `
 		<form id="register-username-template" class="saito-overlay-form"> 
