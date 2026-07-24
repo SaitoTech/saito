@@ -1,3 +1,5 @@
+const CtaLoader = require('../../lib/templates/saito-cta-loader.template');
+
 module.exports = (app, mod, build_number) => {
 	return `
     <!DOCTYPE html>
@@ -14,8 +16,8 @@ module.exports = (app, mod, build_number) => {
 
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="application-name" content="saito.io redsquare" />
-  <meta name="apple-mobile-web-app-title" content="🟥 Saito P2P RedSquare" />
+  <meta name="application-name" content="saito.io store" />
+  <meta name="apple-mobile-web-app-title" content="Saito Store" />
   <meta name="theme-color" content="#FFFFFF" />
   <meta name="msapplication-navbutton-color" content="#FFFFFF" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -32,10 +34,13 @@ module.exports = (app, mod, build_number) => {
   <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
   <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
 
-  <link rel="stylesheet" href="/saito/saito.css" />
-  <link rel="stylesheet" href="/store/style.css">
+  ${CtaLoader.head('store')}
+  <link rel="stylesheet" href="/saito/saito.css?v=${build_number}" />
+  <link rel="stylesheet" href="/store/style.css?v=${build_number}">
+  <title>Saito Store</title>
       </head>
-      <body>
+      <body class="saito-cta-loader-active">
+        ${CtaLoader.loader('store')}
         <div id="saito-container" class="saito-container"></div>
       </body>
       <script type="text/javascript" src="/saito/saito.js?build=${build_number}"></script>

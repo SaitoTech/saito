@@ -564,6 +564,7 @@ class ListingDetailOverlay {
 		try {
 			const tx = await this.mod.createListAssetTransaction(this.selectedNft, this.listing);
 			await this.app.network.propagateTransaction(tx);
+			this.mod.setHasStore();
 
 			if (typeof this.defaults?.callback === 'function') {
 				this.defaults.callback({

@@ -5,7 +5,13 @@ class Hero {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
+		this.onBrowse = callbacks.onBrowse;
 		this.onSell = callbacks.onSell;
+		this.onStorefront = callbacks.onStorefront;
+
+		this.app.connection.on('store-has-store-updated', () => {
+			this.updateOwnerAction();
+		});
 	}
 
 	render(container = '') {
@@ -17,23 +23,69 @@ class Hero {
 			return;
 		}
 
-		this.app.browser.replaceElementContentBySelector(HeroTemplate(), this.container);
+		this.app.browser.replaceElementContentBySelector(
+			HeroTemplate({ hasStore: this.hasStore() }),
+			this.container
+		);
 		this.attachEvents();
+	}
+
+	hasStore() {
+		return this.app.options.store?.hasStore === true;
+	}
+
+	updateOwnerAction() {
+		const button = document.querySelector(`${this.container} [data-action="owner"]`);
+		if (button) {
+			button.textContent = this.hasStore() ? 'My Listings' : 'Sell Something';
+		}
+	}
+
+	dismiss() {
+		const root = document.querySelector(this.container);
+		if (!root) {
+			return;
+		}
+
+		root.classList.add('dissolve');
+		setTimeout(() => root.remove(), 220);
 	}
 
 	attachEvents() {
 		const root = document.querySelector(this.container);
-		const sellBtn = root?.querySelector('[data-action="sell"]');
-		if (!sellBtn) {
+		if (!root) {
 			return;
 		}
 
-		sellBtn.onclick = (e) => {
-			e.preventDefault();
-			if (typeof this.onSell === 'function') {
-				this.onSell();
-			}
-		};
+		const browseBtn = root.querySelector('[data-action="browse"]');
+		if (browseBtn) {
+			browseBtn.onclick = (e) => {
+				e.preventDefault();
+				this.dismiss();
+				if (typeof this.onBrowse === 'function') {
+					this.onBrowse();
+				}
+			};
+		}
+
+		const ownerBtn = root.querySelector('[data-action="owner"]');
+		if (ownerBtn) {
+			ownerBtn.onclick = (e) => {
+				e.preventDefault();
+				this.dismiss();
+
+				if (this.hasStore()) {
+					if (typeof this.onStorefront === 'function') {
+						this.onStorefront();
+					}
+					return;
+				}
+
+				if (typeof this.onSell === 'function') {
+					this.onSell();
+				}
+			};
+		}
 	}
 }
 

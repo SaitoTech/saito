@@ -10,23 +10,16 @@ class Manager {
 		this.container = container;
 		this.activePanel = 'browse';
 		this.onSell = callbacks.onSell;
-		this.onStoreModeChange = callbacks.onStoreModeChange;
-
-		const onViewChange = (mode) => {
-			if (typeof this.onStoreModeChange === 'function') {
-				this.onStoreModeChange(mode);
-			}
-		};
 
 		this.browse = new BrowseView(app, mod, '', {
-			onSell: callbacks.onSell
+			onSell: callbacks.onSell,
+			onStorefront: callbacks.onStorefront
 		});
 		this.storefront = new StorefrontView(app, mod, '', {
-			onSell: callbacks.onSell,
-			onViewChange
+			onSell: callbacks.onSell
 		});
 		this.sales = new SalesView(app, mod, '', {
-			onViewChange
+			onSell: callbacks.onSell
 		});
 	}
 

@@ -1,5 +1,4 @@
 const StorefrontViewTemplate = require('./storefront-view.template');
-const { OWN_STORE_DESCRIPTION } = require('./sales-view');
 const Teasers = require('./teasers');
 const EmptyPanel = require('./empty-panel');
 const {
@@ -13,7 +12,6 @@ class StorefrontView {
 		this.mod = mod;
 		this.container = container;
 		this.onSell = callbacks.onSell;
-		this.onViewChange = callbacks.onViewChange;
 		this.publicKey = '';
 		this.summaries = [];
 		this.loading = false;
@@ -21,9 +19,9 @@ class StorefrontView {
 
 		this.teasers = new Teasers(app, mod, '');
 		this.empty = new EmptyPanel(app, mod, {
-			title: 'No listings yet',
-			body: 'Items you put up for sale will appear here.',
-			actionLabel: 'Add New Listing',
+			title: 'No listings',
+			actionLabel: 'List Item',
+			actionIcon: 'fa-plus',
 			onAction: () => this.onSell?.()
 		});
 
@@ -71,25 +69,18 @@ class StorefrontView {
 
 		const isOwn = this.isOwnStorefront();
 		const rawTitle = isOwn
-			? 'Your Store'
+			? 'My Listings'
 			: this.app.keychain?.returnUsername?.(this.publicKey) || 'Store';
-		const shareUrl = this.publicKey ? this.mod.returnStorefrontUrl?.(this.publicKey) || '' : '';
-
 		this.app.browser.replaceElementContentBySelector(
 			StorefrontViewTemplate({
 				title: this.escapeHtml(rawTitle),
-				description: isOwn ? OWN_STORE_DESCRIPTION : '',
-				shareUrl: this.escapeHtml(shareUrl),
 				loading: !!this.publicKey && this.loading,
-				showCopy: isOwn && !!shareUrl,
-				showViewSelect: isOwn,
-				activeView: 'active'
+				showViewSelect: isOwn
 			}),
 			this.container
 		);
 
 		this.teasers.container = `${this.container} .teasers`;
-		this.attachHeaderEvents(shareUrl);
 
 		if (!this.publicKey) {
 			return;
@@ -102,52 +93,6 @@ class StorefrontView {
 		}
 
 		this.renderResults();
-	}
-
-	attachHeaderEvents(shareUrl = '') {
-		const root = document.querySelector(this.container);
-		if (!root) {
-			return;
-		}
-
-		const copyBtn = root.querySelector('[data-action="copy-url"]');
-		if (copyBtn) {
-			copyBtn.onclick = async (e) => {
-				e.preventDefault();
-				const urlEl = root.querySelector('[data-storefront-url]');
-				const raw = (urlEl?.textContent || shareUrl || '').trim();
-				if (!raw) {
-					return;
-				}
-				try {
-					if (navigator.clipboard?.writeText) {
-						await navigator.clipboard.writeText(raw);
-					} else {
-						const input = document.createElement('input');
-						input.value = raw;
-						document.body.appendChild(input);
-						input.select();
-						document.execCommand('copy');
-						input.remove();
-					}
-					if (typeof siteMessage === 'function') {
-						siteMessage('Storefront URL copied', 1500);
-					}
-				} catch (err) {
-					console.warn('Store: copy storefront URL failed', err?.message || err);
-				}
-			};
-		}
-
-		const viewSelect = root.querySelector('[data-action="store-view"]');
-		if (viewSelect) {
-			viewSelect.onchange = (e) => {
-				const mode = e.target.value === 'sold' ? 'sold' : 'active';
-				if (typeof this.onViewChange === 'function') {
-					this.onViewChange(mode);
-				}
-			};
-		}
 	}
 
 	/**
@@ -331,11 +276,10 @@ class StorefrontView {
 			teasersEl.appendChild(emptyHost);
 
 			const isOwn = this.isOwnStorefront();
-			this.empty.title = 'No listings yet';
-			this.empty.body = isOwn
-				? 'Items you put up for sale will appear here.'
-				: 'This creator has not published any listings yet.';
-			this.empty.actionLabel = isOwn ? 'Add New Listing' : '';
+			this.empty.title = 'No listings';
+			this.empty.body = '';
+			this.empty.actionLabel = isOwn ? 'List Item' : '';
+			this.empty.actionIcon = isOwn ? 'fa-plus' : '';
 			this.empty.onAction = isOwn ? () => this.onSell?.() : null;
 			this.empty.render(`${this.container} .storefront-empty`);
 			return;

@@ -25,7 +25,7 @@ class Main {
 		this.menu = new Menu(app, mod, '', (view) => this.onNavigate(view));
 		this.manager = new Manager(app, mod, '', {
 			onSell: () => this.openSell(),
-			onStoreModeChange: (mode) => this.onStoreModeChange(mode)
+			onStorefront: () => this.openStorefront(this.mod.publicKey)
 		});
 		this.purchase_status = new PurchaseStatus(app, mod, '', {
 			onShowProgress: () => this.reopenPurchaseProgress(),
@@ -155,7 +155,9 @@ class Main {
 			return;
 		}
 
+		this.menu.setStorefrontKey(key);
 		this.menu.setActive('my-listings');
+		this.menu.setStoreView('active');
 		await this.manager.showStorefront(key);
 
 		if (updateUrl) {
@@ -164,16 +166,10 @@ class Main {
 	}
 
 	openSales() {
+		this.menu.setStorefrontKey(this.mod.publicKey);
 		this.menu.setActive('my-listings');
+		this.menu.setStoreView('sold');
 		this.manager.showSales();
-	}
-
-	onStoreModeChange(mode = 'active') {
-		if (mode === 'sold') {
-			this.openSales();
-			return;
-		}
-		this.openStorefront(this.mod.publicKey);
 	}
 
 	setBrowseUrl() {
