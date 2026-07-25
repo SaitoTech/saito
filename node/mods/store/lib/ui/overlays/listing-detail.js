@@ -592,19 +592,32 @@ class ListingDetailOverlay {
 		// Close create-listing UI without treating it as cancel.
 		this.overlay.close();
 
-		const openProgress = () => {
-			if (!this.mod.listing_progress) {
-				const ListingProgressOverlay = require('./listing-progress');
-				this.mod.listing_progress = new ListingProgressOverlay(this.app, this.mod);
-			}
-			this.mod.listing_progress.openWaiting(
-				entry?.title || this.listing?.title || '',
-				tx.signature
-			);
-		};
+		const title = entry?.title || this.listing?.title || '';
+		const safeTitle = String(title)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;');
+		const lead = safeTitle
+			? `Your listing for <strong>${safeTitle}</strong> has been broadcast to the Saito network.`
+			: 'Your listing has been broadcast to the Saito network.';
 
 		// Progress overlay first so the user never sees a silent close.
-		openProgress();
+		this.mod.transaction_monitor.render({
+			tx,
+			title: 'Listing Submitted',
+			lead,
+			successTitle: 'Listing Successful',
+			successLead: 'You have successfully added an item to your Saito Store.',
+			callback: (result) => {
+				if (result?.status === 'cancelled') {
+					const active = this.mod.listing_lifecycle?.returnActiveListing?.();
+					if (active) {
+						this.mod.listing_lifecycle.dismiss(active.id);
+					}
+				}
+			}
+		});
 
 		// Switch Store underneath to the seller admin page (when the Store page is active).
 		if (this.mod.main?.openStorefront && this.mod.publicKey) {

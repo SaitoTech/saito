@@ -7,7 +7,6 @@ const PurchaseOverlay = require('./overlays/purchase');
 const PurchaseLifecycle = require('./purchase-lifecycle');
 const PurchaseStatus = require('./purchase-status');
 const ListingLifecycle = require('./listing-lifecycle');
-const ListingProgressOverlay = require('./overlays/listing-progress');
 
 class Main {
 	constructor(app, mod, container = '.saito-container') {
@@ -38,7 +37,6 @@ class Main {
 		this.nft_picker = null;
 		this.listing_detail = null;
 		this.purchase_overlay = null;
-		this.listing_progress = null;
 
 		// Compatibility aliases for existing callers (store.respondTo, teaser, detail buy).
 		this.product_overlay = null;
@@ -76,8 +74,6 @@ class Main {
 		this.nft_picker = new NftPickerOverlay(this.app, this.mod);
 		this.listing_detail = new ListingDetailOverlay(this.app, this.mod);
 		this.purchase_overlay = new PurchaseOverlay(this.app, this.mod);
-		this.listing_progress = new ListingProgressOverlay(this.app, this.mod);
-		this.mod.listing_progress = this.listing_progress;
 
 		this.nft_picker.onSelect = (nft, defaults) => {
 			this.listing_detail.render({ mode: 'edit', nft, defaults });

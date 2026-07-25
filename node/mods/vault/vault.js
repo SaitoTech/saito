@@ -42,6 +42,11 @@ class Vault extends ModTemplate {
 	}
 
 	async initialize(app) {
+		if (this.app.BROWSER) {
+			const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+			this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+		}
+
 		if (this.browser_active) {
 			this.main = new VaultMain(app, this, '.saito-container');
 			this.addComponent(this.main);

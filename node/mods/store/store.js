@@ -41,6 +41,11 @@ class Store extends ModTemplate {
 			await this.warehouse.initialize();
 		}
 
+		if (this.app.BROWSER) {
+			const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+			this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+		}
+
 		if (this.browser_active) {
 			this.header = new SaitoHeader(this.app, this);
 			await this.header.initialize(this.app);
