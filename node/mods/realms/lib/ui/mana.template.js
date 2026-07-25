@@ -1,4 +1,4 @@
-module.exports  = () => {
+module.exports = () => {
   return `
   <svg class="mana-pie" viewBox="0 0 100 100">
     <path class="mana red" d="" />

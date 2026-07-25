@@ -1,13 +1,11 @@
 @font-face {
-  font-family: "Inter-Medium";
-  src: local("Inter-Medium"),
-    url("/graffiti/font/Inter-Medium.ttf");
+  font-family: 'Inter-Medium';
+  src: local('Inter-Medium'), url('/graffiti/font/Inter-Medium.ttf');
 }
 
 @font-face {
-  font-family: "Inter-Bold";
-  src: local("Inter-Bold"),
-    url("/graffiti/font/Inter-Bold.ttf");
+  font-family: 'Inter-Bold';
+  src: local('Inter-Bold'), url('/graffiti/font/Inter-Bold.ttf');
 }
 
 * {
@@ -20,17 +18,17 @@
   --side-column-min-width: 12rem;
   --topbar-button-size: 3rem;
   --color-picker-button-size: 1.6rem;
-  --secondary-border-color:            #3c3c3c;
-  --display-background-color:          #555555;
-  --non-display-background-color:      #2d2d2d;
-  --tool-setting-adjuster-left-color:  #aaaaaa;
+  --secondary-border-color: #3c3c3c;
+  --display-background-color: #555555;
+  --non-display-background-color: #2d2d2d;
+  --tool-setting-adjuster-left-color: #aaaaaa;
   --tool-setting-adjuster-right-color: #ffffff;
-  --selected-button-background-color:  #505050;
-  --selected-button-bordertop-color:   #dddddd;
-  --hovered-button-background-color:   #404040;
-  --submit-button-background-color:    #1d961d;
-  --disabled-button-icon-color:        #7a7a7a;
-  --text-color:                        #ffffff;
+  --selected-button-background-color: #505050;
+  --selected-button-bordertop-color: #dddddd;
+  --hovered-button-background-color: #404040;
+  --submit-button-background-color: #1d961d;
+  --disabled-button-icon-color: #7a7a7a;
+  --text-color: #ffffff;
 }
 
 #color-picker-button {
@@ -60,18 +58,21 @@
   top: 50%;
   transform: translateY(-50%);
   border-radius: 0.25rem;
-  background: linear-gradient(90deg, 
-    #f00   0.00%, 
-    #ff0  16.67%, 
-    #0f0  33.33%, 
-    #0ff  50.00%, 
-    #00f  66.67%, 
-    #f0f  83.33%, 
-    #f00 100.00%
+  background: linear-gradient(
+    90deg,
+    #f00 0%,
+    #ff0 16.67%,
+    #0f0 33.33%,
+    #0ff 50%,
+    #00f 66.67%,
+    #f0f 83.33%,
+    #f00 100%
   );
 }
 
-html, body, main {
+html,
+body,
+main {
   width: 100%;
   height: 100%;
   user-select: none;
@@ -112,7 +113,7 @@ main {
 }
 
 #title {
-  font-family: "Inter-Medium";
+  font-family: 'Inter-Medium';
   font-size: 1.2rem;
 }
 
@@ -126,9 +127,15 @@ main {
   border-left: 0.5px solid var(--display-background-color);
 }
 
-#controls-segment { justify-content: flex-start; }
-#tools-segment    { justify-content: center;     }
-#wallet-segment   { justify-content: flex-end;   }
+#controls-segment {
+  justify-content: flex-start;
+}
+#tools-segment {
+  justify-content: center;
+}
+#wallet-segment {
+  justify-content: flex-end;
+}
 
 button {
   border: none;
@@ -232,12 +239,12 @@ button:enabled > i {
 }
 
 .selected-tool-text {
-  font-family: "Inter-Bold";
+  font-family: 'Inter-Bold';
   font-size: 1rem;
 }
 
 .tool-settings-list .text {
-  font-family: "Inter-Medium";
+  font-family: 'Inter-Medium';
   font-size: 0.875rem;
 }
 
@@ -285,7 +292,7 @@ button:enabled > i {
   width: 1rem;
   height: 1rem;
   outline: 1px solid #ffffff;
-  border:  1px solid #cccccc;
+  border: 1px solid #cccccc;
 }
 
 #hue-handle {
@@ -308,9 +315,15 @@ button:enabled > i {
 }
 
 @keyframes fade {
-  0%   { opacity: 1.0; }
-  50%  { opacity: 0.7; }
-  100% { opacity: 1.0; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 input {

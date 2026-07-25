@@ -16,243 +16,243 @@ const FaucetOverlayTemplate = require('./lib/faucet-overlay.template');
 //
 //
 class Faucet extends ModTemplate {
-	constructor(app) {
-		super(app);
+  constructor(app) {
+    super(app);
 
-		this.name = 'Faucet';
-		this.slug = 'faucet';
+    this.name = 'Faucet';
+    this.slug = 'faucet';
 
-		this.description = 'Testnet Faucet for Testing and Application Development';
-		this.categories = 'Utility Ecommerce NFTs';
+    this.description = 'Testnet Faucet for Testing and Application Development';
+    this.categories = 'Utility Ecommerce NFTs';
 
-		this.icon_fa = 'fa-solid fa-faucet';
-		this.styles = ['/faucet/style.css'];
+    this.icon_fa = 'fa-solid fa-faucet';
+    this.styles = ['/faucet/style.css'];
 
-		this.amount = BigInt(10000000000);
-		this.overlay = new SaitoOverlay(app, this, false);
+    this.amount = BigInt(10000000000);
+    this.overlay = new SaitoOverlay(app, this, false);
 
-		this.payouts = {};
+    this.payouts = {};
 
-		this.social = {
-			twitter: '@SaitoOfficial',
-			title: '🟥 Saito Faucet',
-			url: 'https://saito.io/faucet/',
-			description: 'Get Testnet Saito',
-			image: 'https://saito.tech/wp-content/uploads/2023/11/faucet-300x300.png'
-		};
-	}
+    this.social = {
+      twitter: '@SaitoOfficial',
+      title: '🟥 Saito Faucet',
+      url: 'https://saito.io/faucet/',
+      description: 'Get Testnet Saito',
+      image: 'https://saito.tech/wp-content/uploads/2023/11/faucet-300x300.png'
+    };
+  }
 
-	async render() {
-		//
-		// browsers only!
-		//
-		if (!this.app.BROWSER || !this.browser_active) {
-			return;
-		}
+  async render() {
+    //
+    // browsers only!
+    //
+    if (!this.app.BROWSER || !this.browser_active) {
+      return;
+    }
 
-		this.header = new SaitoHeader(this.app, this);
-		await this.header.initialize(this.app);
-		this.header.header_class = 'arcade';
-		this.addComponent(this.header);
+    this.header = new SaitoHeader(this.app, this);
+    await this.header.initialize(this.app);
+    this.header.header_class = 'arcade';
+    this.addComponent(this.header);
 
-		await super.render();
+    await super.render();
 
-		this.app.browser.addElementToDom(FaucetMainTemplate(this.app, this));
+    this.app.browser.addElementToDom(FaucetMainTemplate(this.app, this));
 
-		this.setFaucetState('idle');
-		this.attachEvents();
-	}
+    this.setFaucetState('idle');
+    this.attachEvents();
+  }
 
-	canRenderInto(querySelector = '') {
-		console.log('Faucet: canRenderInto -- ', querySelector);
-		if (!this.browser_active) {
-			if (querySelector == '.get-saito-tokens') {
-				return true;
-			}
-		}
+  canRenderInto(querySelector = '') {
+    console.log('Faucet: canRenderInto -- ', querySelector);
+    if (!this.browser_active) {
+      if (querySelector == '.get-saito-tokens') {
+        return true;
+      }
+    }
 
-		return false;
-	}
+    return false;
+  }
 
-	async renderInto(querySelector = '') {
-		if (querySelector == '.get-saito-tokens') {
-			this.styles = ['/faucet/style.css'];
-			this.attachStyleSheets();
-			this.app.browser.addElementToSelector(
-				`<div class='saito-faucet-button saito-button-secondary'><i class='${this.icon_fa}'></i></div>`,
-				querySelector
-			);
+  async renderInto(querySelector = '') {
+    if (querySelector == '.get-saito-tokens') {
+      this.styles = ['/faucet/style.css'];
+      this.attachStyleSheets();
+      this.app.browser.addElementToSelector(
+        `<div class='saito-faucet-button saito-button-secondary'><i class='${this.icon_fa}'></i></div>`,
+        querySelector
+      );
 
-			setTimeout(() => {
-				document.querySelector('.saito-faucet-button').onclick = (e) => {
-					this.overlay.show(FaucetOverlayTemplate(this.app, this));
-					this.setFaucetState('idle');
-					this.attachEvents();
-				};
-			}, 50);
-		}
-	}
+      setTimeout(() => {
+        document.querySelector('.saito-faucet-button').onclick = (e) => {
+          this.overlay.show(FaucetOverlayTemplate(this.app, this));
+          this.setFaucetState('idle');
+          this.attachEvents();
+        };
+      }, 50);
+    }
+  }
 
-	setFaucetState(state = 'idle') {
-		const root = document.getElementById('faucet-request-container');
-		if (!root) {
-			return;
-		}
+  setFaucetState(state = 'idle') {
+    const root = document.getElementById('faucet-request-container');
+    if (!root) {
+      return;
+    }
 
-		root.dataset.faucetState = state;
+    root.dataset.faucetState = state;
 
-		const title = document.getElementById('faucet_title');
-		const closeBtn = document.getElementById('faucet-close-btn');
+    const title = document.getElementById('faucet_title');
+    const closeBtn = document.getElementById('faucet-close-btn');
 
-		const titles = {
-			idle: 'Testnet Faucet',
-			pending: 'Requesting Tokens',
-			success: 'Tokens Received'
-		};
+    const titles = {
+      idle: 'Testnet Faucet',
+      pending: 'Requesting Tokens',
+      success: 'Tokens Received'
+    };
 
-		const closeLabels = {
-			idle: 'Close',
-			pending: 'Close',
-			success: 'Continue'
-		};
+    const closeLabels = {
+      idle: 'Close',
+      pending: 'Close',
+      success: 'Continue'
+    };
 
-		if (title) {
-			title.textContent = titles[state] || titles.idle;
-		}
-		if (closeBtn) {
-			closeBtn.textContent = closeLabels[state] || closeLabels.idle;
-		}
-	}
+    if (title) {
+      title.textContent = titles[state] || titles.idle;
+    }
+    if (closeBtn) {
+      closeBtn.textContent = closeLabels[state] || closeLabels.idle;
+    }
+  }
 
-	closeFaucetOverlay() {
-		if (document.querySelector('.saito-overlay #faucet-request-container')) {
-			this.overlay.close();
-		}
-	}
+  closeFaucetOverlay() {
+    if (document.querySelector('.saito-overlay #faucet-request-container')) {
+      this.overlay.close();
+    }
+  }
 
-	attachEvents() {
-		let btn = document.getElementById('faucet-button');
-		if (btn) {
-			btn.onclick = async (e) => {
-				siteMessage('Creating Faucet Request...', 3000);
-				this.setFaucetState('pending');
+  attachEvents() {
+    let btn = document.getElementById('faucet-button');
+    if (btn) {
+      btn.onclick = async (e) => {
+        siteMessage('Creating Faucet Request...', 3000);
+        this.setFaucetState('pending');
 
-				let tx = await this.createFaucetTransaction();
-				this.app.network.propagateTransaction(tx);
+        let tx = await this.createFaucetTransaction();
+        this.app.network.propagateTransaction(tx);
 
-				siteMessage('Broadcasting Faucet Request to Server...', 5000);
-			};
-		}
+        siteMessage('Broadcasting Faucet Request to Server...', 5000);
+      };
+    }
 
-		let closeBtn = document.getElementById('faucet-close-btn');
-		if (closeBtn) {
-			closeBtn.onclick = () => {
-				this.closeFaucetOverlay();
-			};
-		}
-	}
+    let closeBtn = document.getElementById('faucet-close-btn');
+    if (closeBtn) {
+      closeBtn.onclick = () => {
+        this.closeFaucetOverlay();
+      };
+    }
+  }
 
-	async onConfirmation(blk, tx, conf = 0) {
-		//
-		// only process the first conf
-		//
-		if (conf != 0) {
-			return;
-		}
+  async onConfirmation(blk, tx, conf = 0) {
+    //
+    // only process the first conf
+    //
+    if (conf != 0) {
+      return;
+    }
 
-		//
-		// sanity check
-		//
-		if (this.hasSeenTransaction(tx, blk)) {
-			return;
-		}
+    //
+    // sanity check
+    //
+    if (this.hasSeenTransaction(tx, blk)) {
+      return;
+    }
 
-		let txmsg = tx.returnMessage();
+    let txmsg = tx.returnMessage();
 
-		if (txmsg.request === 'faucet request') {
-			if (!this.app.BROWSER) {
-				await this.receiveFaucetRequestTransaction(tx, blk);
-			} else {
-				if (tx.isFrom(this.publicKey)) {
-					siteMessage('Faucet Token Request on chain...', 5000);
-				}
-			}
-			return;
-		}
+    if (txmsg.request === 'faucet request') {
+      if (!this.app.BROWSER) {
+        await this.receiveFaucetRequestTransaction(tx, blk);
+      } else {
+        if (tx.isFrom(this.publicKey)) {
+          siteMessage('Faucet Token Request on chain...', 5000);
+        }
+      }
+      return;
+    }
 
-		if (txmsg.request === 'faucet issuance') {
-			if (tx.isTo(this.publicKey) && this.app.BROWSER) {
-				siteMessage('Faucet Payment Received...', 3000);
-				this.setFaucetState('success');
-			}
-			return;
-		}
-	}
+    if (txmsg.request === 'faucet issuance') {
+      if (tx.isTo(this.publicKey) && this.app.BROWSER) {
+        siteMessage('Faucet Payment Received...', 3000);
+        this.setFaucetState('success');
+      }
+      return;
+    }
+  }
 
-	async createFaucetTransaction() {
-		//
-		// create the wrapper transaction
-		//
-		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
-		newtx.msg = {
-			module: 'Faucet',
-			request: 'faucet request'
-		};
-		await newtx.sign();
-		return newtx;
-	}
+  async createFaucetTransaction() {
+    //
+    // create the wrapper transaction
+    //
+    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
+    newtx.msg = {
+      module: 'Faucet',
+      request: 'faucet request'
+    };
+    await newtx.sign();
+    return newtx;
+  }
 
-	async receiveFaucetRequestTransaction(tx = null, blk = null) {
-		//
-		// sanity check transaction is valid
-		//
-		if (tx == null || blk == null) {
-			return;
-		}
+  async receiveFaucetRequestTransaction(tx = null, blk = null) {
+    //
+    // sanity check transaction is valid
+    //
+    if (tx == null || blk == null) {
+      return;
+    }
 
-		let receiver = tx.from[0].publicKey;
+    let receiver = tx.from[0].publicKey;
 
-		let ts = Date.now();
-		if (this.payouts[receiver]) {
-			if (ts - this.payouts[receiver] < 3600000) {
-				return;
-			}
-		}
+    let ts = Date.now();
+    if (this.payouts[receiver]) {
+      if (ts - this.payouts[receiver] < 3600000) {
+        return;
+      }
+    }
 
-		this.payouts[receiver] = ts;
+    this.payouts[receiver] = ts;
 
-		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-			receiver,
-			this.amount
-		);
-		newtx.msg = {
-			module: 'Faucet',
-			request: 'faucet issuance'
-		};
-		await newtx.sign();
-		this.app.network.propagateTransaction(newtx);
-	}
+    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+      receiver,
+      this.amount
+    );
+    newtx.msg = {
+      module: 'Faucet',
+      request: 'faucet issuance'
+    };
+    await newtx.sign();
+    this.app.network.propagateTransaction(newtx);
+  }
 
-	webServer(app, expressapp, express) {
-		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-		let faucet_self = this;
+  webServer(app, expressapp, express) {
+    let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+    let faucet_self = this;
 
-		expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
-			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+    expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+      let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 
-			let updatedSocial = Object.assign({}, faucet_self.social);
+      let updatedSocial = Object.assign({}, faucet_self.social);
 
-			let html = FaucetHome(app, faucet_self, app.build_number, updatedSocial);
-			if (!res.finished) {
-				res.setHeader('Content-type', 'text/html');
-				res.charset = 'UTF-8';
-				return res.send(html);
-			}
-			return;
-		});
+      let html = FaucetHome(app, faucet_self, app.build_number, updatedSocial);
+      if (!res.finished) {
+        res.setHeader('Content-type', 'text/html');
+        res.charset = 'UTF-8';
+        return res.send(html);
+      }
+      return;
+    });
 
-		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
-	}
+    expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
+  }
 }
 
 module.exports = Faucet;

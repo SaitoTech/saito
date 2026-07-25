@@ -1,5 +1,4 @@
 module.exports = DreamSpaceTemplate = (videoEnabled) => {
-
   let html = `
     <div class="dream-controls" id="dream-controls">
       <div class="video-preview">
@@ -13,5 +12,5 @@ module.exports = DreamSpaceTemplate = (videoEnabled) => {
       </div>
     </div>`;
 
-    return html;
+  return html;
 };

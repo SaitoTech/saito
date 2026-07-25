@@ -74,7 +74,10 @@ class Tweet {
         : [];
     const previousRetweetedAt = Number(previousOptional.retweeted_at) || 0;
     const previousUpdatedAt =
-      Number(this.updated_at) || Number(previousOptional.updated_at) || Number(this.tx?.timestamp) || 0;
+      Number(this.updated_at) ||
+      Number(previousOptional.updated_at) ||
+      Number(this.tx?.timestamp) ||
+      0;
 
     this.tx = tx || this.tx;
     this.parseFromTransaction();
@@ -155,7 +158,8 @@ class Tweet {
   parseFromTransaction() {
     const txmsg = returnMessage(this.tx);
     const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
-    const optional = this.tx.optional && typeof this.tx.optional === 'object' ? this.tx.optional : {};
+    const optional =
+      this.tx.optional && typeof this.tx.optional === 'object' ? this.tx.optional : {};
 
     this.signature = this.tx.signature != null ? String(this.tx.signature) : '';
     this.text = data.text != null ? String(data.text) : '';
@@ -172,8 +176,7 @@ class Tweet {
     this.embedded = this.normalizeEmbedded(data.embedded);
 
     this.created_at = Number(this.tx.timestamp) || Date.now();
-    this.updated_at =
-      Number(optional.updated_at) || Number(optional.edit_ts) || this.created_at;
+    this.updated_at = Number(optional.updated_at) || Number(optional.edit_ts) || this.created_at;
 
     this.likes = Number(optional.num_likes) || 0;
     this.replies = Number(optional.num_replies) || 0;
@@ -226,8 +229,7 @@ class Tweet {
       likes: Number(raw.likes) || 0,
       replies: Number(raw.replies) || 0,
       retweets: Number(raw.retweets) || 0,
-      time:
-        raw.time != null ? String(raw.time) : this.app.browser.formatRelativeTime(created_at)
+      time: raw.time != null ? String(raw.time) : this.app.browser.formatRelativeTime(created_at)
     };
 
     return embedded;

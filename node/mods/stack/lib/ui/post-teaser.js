@@ -2,7 +2,7 @@ const PostTeaserTemplate = require('./post-teaser.template');
 
 /**
  * PostTeaser UI Component
- * 
+ *
  * Standard Saito UI component for displaying blog post previews.
  * Follows the standard Saito UI pattern with constructor(app, mod, container, transaction).
  */
@@ -18,7 +18,7 @@ class PostTeaser {
    * Render the post teaser into the container.
    * If container is provided, inserts HTML into DOM.
    * Returns HTML string for batch rendering scenarios.
-   * 
+   *
    * @returns {string} HTML string of the rendered teaser
    */
   render() {
@@ -33,7 +33,7 @@ class PostTeaser {
     if (this.container) {
       // Use a unique selector based on transaction signature
       const signature = this.transaction.signature || '';
-      const selector = signature 
+      const selector = signature
         ? `${this.container} .stack-post-teaser[data-tx-signature="${signature}"]`
         : `${this.container} .stack-post-teaser:last-child`;
 

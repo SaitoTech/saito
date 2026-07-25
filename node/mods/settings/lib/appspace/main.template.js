@@ -1,16 +1,8 @@
 module.exports = (app, mod, main) => {
   let publicKey = mod.publicKey;
-  let key = app.keychain.returnKey({ publicKey: publicKey });
-  let identifier = key?.identifier || app.keychain.returnIdentifierByPublicKey(publicKey) || '';
-  let username_cell;
-
-  if (identifier) {
-    username_cell = `<div class="username" id="settings-username">${identifier}</div>`;
-  } else if (key?.has_registered_username) {
-    username_cell = `<div class="username" id="settings-username">registering…</div>`;
-  } else {
-    username_cell = `<button type="button" id="register-identifier-btn" class="saito-button-secondary small">register username <i class="fas fa-pen" aria-hidden="true"></i></button>`;
-  }
+  let privateKey = main.privateKey || '';
+  let username = app.keychain.returnUsername(publicKey);
+  let privateKeyMasked = privateKey ? '*'.repeat(privateKey.length) : '';
 
   let modules_html = '';
 
@@ -52,8 +44,7 @@ module.exports = (app, mod, main) => {
         <div class="saito-button-secondary" id="show-phrase" title="View wallet seed phrase">Seed Phrase</div>
         <div class="saito-button-secondary" id="restore-account-btn" title="Restore account by uploading json-file of wallet">Restore Wallet</div>
         <div class="saito-button-secondary" id="backup-account-btn" title="Download json-file copy of wallet">Backup Wallet</div>
-        <div class="saito-button-secondary" id="clear-storage-btn" title="Removes local data storage, but keeps wallet intact">Clear Cache</div>
-        <div class="saito-button-secondary" id="nuke-account-btn" title="Wipe local storage and reload site with new key pair">Nuke Account</div>
+        <div class="saito-button-secondary" id="nuke-account-btn" title="Erase all local Saito data and reset this browser to a fresh installation">Nuke</div>
       </div>
     </div>
 
@@ -65,18 +56,27 @@ module.exports = (app, mod, main) => {
         </summary>
         <div class="settings-appspace-user-details">
           <div class="settings-field-label">username</div>
-          ${username_cell}
+          <div class="settings-field-control">
+            <div class="username" id="settings-username">${username}</div>
+            <button type="button" id="register-identifier-btn" class="saito-icon-button" title="Edit or register username" aria-label="Edit or register username">
+              <i class="fas fa-pen" aria-hidden="true"></i>
+            </button>
+          </div>
 
           <div class="settings-field-label">public key</div>
-          <div class="pubkey-grid" data-id="${publicKey}" title="Copy public key">
-            <div>${publicKey}</div>
-            <i class="fas fa-copy" aria-hidden="true"></i>
+          <div class="settings-field-control pubkey-grid" data-id="${publicKey}" title="Copy public key">
+            <div class="settings-field-value">${publicKey}</div>
+            <button type="button" class="saito-icon-button" aria-label="Copy public key">
+              <i class="fas fa-copy" aria-hidden="true"></i>
+            </button>
           </div>
 
           <div class="settings-field-label">private key</div>
-          <div class="pubkey-grid" data-id="${main.privateKey || ''}" title="Copy private key">
-            <div>************</div>
-            <i class="fas fa-copy" aria-hidden="true"></i>
+          <div class="settings-field-control pubkey-grid" data-id="${privateKey}" title="Copy private key">
+            <div class="settings-field-value">${privateKeyMasked}</div>
+            <button type="button" class="saito-icon-button" aria-label="Copy private key">
+              <i class="fas fa-copy" aria-hidden="true"></i>
+            </button>
           </div>
 
           <div class="settings-field-label">default fee</div>

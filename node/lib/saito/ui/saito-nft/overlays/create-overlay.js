@@ -248,9 +248,7 @@ class CreateNFT {
           <div class="saito-overlay-form-header-title">Deposit</div>
         </div>
         <div class="saito-overlay-form-text">
-          <p>SAITO deposits circulate within assets and can be recovered by destroying them.</p>
-          <p>Changing the deposit amount is possible, but can affect the persistence of the token on the network.</p>
-          <p>Custom deposits are recommended for advanced users only.</p>
+          <p>SAITO deposits circulate within assets and can be recovered by destroying the NFT. Changing the deposit amount may affect the persistence of the NFT on the network. Custom deposits are recommended for advanced users only.</p>
         </div>
         <label class="create-nft-deposit-container" for="create-nft-enable-deposit">
           <input id="create-nft-enable-deposit" type="checkbox" class="saito-checkbox" />

@@ -1,5 +1,4 @@
-module.exports = () => { 
-
+module.exports = () => {
   let html = `
       <div class="pay-overlay" id="pay-overlay">
 	<div class="qrcode"></div>
@@ -9,9 +8,4 @@ module.exports = () => {
       </div>
   `;
   return html;
-
-}
-
-
-
-
+};

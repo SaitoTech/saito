@@ -73,8 +73,7 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
         ? formatPublicKey(tweet)
         : '';
 
-  const time =
-    options.time != null ? String(options.time) : tweet.time ? String(tweet.time) : '';
+  const time = options.time != null ? String(options.time) : tweet.time ? String(tweet.time) : '';
 
   const header = TweetHeaderTemplate({
     mode,

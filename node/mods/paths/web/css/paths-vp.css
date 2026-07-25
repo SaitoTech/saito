@@ -1,17 +1,17 @@
 .game.paths {
-.vp-overlay {
-	width: 90vw;
-    	height: auto;
-	max-height: 90vh;
-    	padding: 2rem;
-    	font-size: 2rem;
-        background-image: url('/paths/img/backgrounds/trench.png');
-        background-size: cover;
-    	background: #f4f4f4;
-    	padding: 1em;
-    	border-radius: 5px;
-    	font-family: monospace;
-    	white-space: pre-wrap;
-    	overflow-y: auto;
-}
+  .vp-overlay {
+    width: 90vw;
+    height: auto;
+    max-height: 90vh;
+    padding: 2rem;
+    font-size: 2rem;
+    background-image: url('/paths/img/backgrounds/trench.png');
+    background-size: cover;
+    background: #f4f4f4;
+    padding: 1em;
+    border-radius: 5px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    overflow-y: auto;
+  }
 }

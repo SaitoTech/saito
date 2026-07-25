@@ -24,7 +24,9 @@
   padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .arcade-observer-btn:hover {
@@ -106,6 +108,10 @@
 }
 
 @keyframes arcade-observer-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

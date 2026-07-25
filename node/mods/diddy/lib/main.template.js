@@ -1,5 +1,5 @@
 module.exports = () => {
-    return `
+  return `
     <div class="main-container">
         <!-- Top Bar with Coin Icon Image, Game Name, Level, and Per Tap Button -->
         <div class="top-bar">

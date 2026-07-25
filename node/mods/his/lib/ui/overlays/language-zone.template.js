@@ -1,5 +1,5 @@
 module.exports = () => {
-	let html = `
+  let html = `
       <div class="language-zone-overlay" id="language-zone-overlay">
 	<div>
           <div class="status"></div>
@@ -10,5 +10,5 @@ module.exports = () => {
         </div>
       </div>
   `;
-	return html;
+  return html;
 };

@@ -1,46 +1,46 @@
 function renderMetaRow(row) {
-	const valueClass = `explorer-block-meta-value${row.mono ? ' explorer-block-meta-value-mono' : ''}${row.numeric ? ' explorer-block-meta-value-numeric' : ''}`;
+  const valueClass = `explorer-block-meta-value${row.mono ? ' explorer-block-meta-value-mono' : ''}${row.numeric ? ' explorer-block-meta-value-numeric' : ''}`;
 
-	return `
+  return `
       <dt class="explorer-block-meta-label">${row.label}</dt>
       <dd class="${valueClass}">${row.value}</dd>
     `;
 }
 
 function renderBadge(badge) {
-	if (!badge?.label) {
-		return '';
-	}
+  if (!badge?.label) {
+    return '';
+  }
 
-	const stateClass = badge.active ? ' explorer-block-badge-active' : ' explorer-block-badge-muted';
-	return `<span class="explorer-block-badge${stateClass}">${badge.label}</span>`;
+  const stateClass = badge.active ? ' explorer-block-badge-active' : ' explorer-block-badge-muted';
+  return `<span class="explorer-block-badge${stateClass}">${badge.label}</span>`;
 }
 
 function renderDetailTable(rows = []) {
-	if (!rows.length) {
-		return '';
-	}
+  if (!rows.length) {
+    return '';
+  }
 
-	const body = rows
-		.map(
-			(row) => `
+  const body = rows
+    .map(
+      (row) => `
       <tr class="explorer-info-row">
         <th class="explorer-info-label" scope="row">${row.label}</th>
         <td class="explorer-info-value${row.numeric ? ' explorer-info-numeric' : ''}${row.mono ? ' explorer-mono' : ''}">
           ${
-						row.html
-							? row.value
-							: row.link
-							? `<span class="explorer-link explorer-info-link">${row.value}</span>`
-							: row.value
-					}
+            row.html
+              ? row.value
+              : row.link
+                ? `<span class="explorer-link explorer-info-link">${row.value}</span>`
+                : row.value
+          }
         </td>
       </tr>
     `
-		)
-		.join('');
+    )
+    .join('');
 
-	return `
+  return `
     <div class="explorer-info-table-wrap">
       <table class="explorer-info-table">
         <tbody>${body}</tbody>
@@ -50,26 +50,26 @@ function renderDetailTable(rows = []) {
 }
 
 module.exports = ({ primary = [], detail = [], badges = null } = {}) => {
-	const badgeHtml =
-		badges?.goldenTicket || badges?.longestChain
-			? `
+  const badgeHtml =
+    badges?.goldenTicket || badges?.longestChain
+      ? `
       <div class="explorer-block-badges" aria-label="Block status">
         ${renderBadge(badges.goldenTicket)}
         ${renderBadge(badges.longestChain)}
       </div>
     `
-			: '';
+      : '';
 
-	const primaryHtml = primary.length
-		? `
+  const primaryHtml = primary.length
+    ? `
       <dl class="explorer-block-meta">
         ${primary.map(renderMetaRow).join('')}
       </dl>
     `
-		: '';
+    : '';
 
-	const detailToggle = detail.length
-		? `
+  const detailToggle = detail.length
+    ? `
       <div class="explorer-block-meta-footer">
         <button type="button" class="explorer-action explorer-block-meta-toggle" aria-expanded="false">
           View full block metadata
@@ -79,13 +79,13 @@ module.exports = ({ primary = [], detail = [], badges = null } = {}) => {
         ${renderDetailTable(detail)}
       </div>
     `
-		: '';
+    : '';
 
-	if (!primaryHtml && !detailToggle && !badgeHtml) {
-		return '';
-	}
+  if (!primaryHtml && !detailToggle && !badgeHtml) {
+    return '';
+  }
 
-	return `
+  return `
     <div class="explorer-block-summary-panel">
       ${badgeHtml}
       ${primaryHtml}

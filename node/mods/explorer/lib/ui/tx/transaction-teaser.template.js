@@ -1,5 +1,5 @@
 module.exports = (tx) => {
-	return `
+  return `
     <div class="explorer-feed-item explorer-tx-teaser" role="button" tabindex="0" aria-expanded="false">
       <span class="explorer-feed-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
       <div class="explorer-feed-main">

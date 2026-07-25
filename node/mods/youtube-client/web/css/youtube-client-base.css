@@ -1,33 +1,33 @@
 .container {
-	width: fit-content;
-	margin: auto;
-	margin-top: 10rem;
-	display: flex;
-	gap: 3rem;
-	flex-direction: column;
+  width: fit-content;
+  margin: auto;
+  margin-top: 10rem;
+  display: flex;
+  gap: 3rem;
+  flex-direction: column;
 }
 
 .yt-stream {
-	width: min(550px, 98vw);
-	padding: 3rem;
-	border-radius: 0.5rem;
-	border: 1px solid var(--saito-border);
-	background-color: var(--saito-background);
-	color: var(--saito-gray-200);
-	display: flex;
-	flex-direction: column;
-	gap: 2rem;
+  width: min(550px, 98vw);
+  padding: 3rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--saito-border);
+  background-color: var(--saito-background);
+  color: var(--saito-gray-200);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .yt-stream-title {
-	font-size: 3rem
+  font-size: 3rem;
 }
 
 .yt-stream-title .fa-youtube {
-	color: #f70004;
+  color: #f70004;
 }
 
 #yt-stream-btn {
-	width: fit-content;
-	align-self: flex-end;
+  width: fit-content;
+  align-self: flex-end;
 }

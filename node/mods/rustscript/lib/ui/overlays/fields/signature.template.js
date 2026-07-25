@@ -1,10 +1,5 @@
 module.exports = (options) => {
-  const {
-    pkDisplay,
-    msgDisplay,
-    canAutoSign,
-    currentValue
-  } = options;
+  const { pkDisplay, msgDisplay, canAutoSign, currentValue } = options;
 
   const safePk = String(pkDisplay ?? '')
     .replace(/&/g, '&amp;')

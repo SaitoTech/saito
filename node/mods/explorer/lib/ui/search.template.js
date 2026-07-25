@@ -1,7 +1,5 @@
-module.exports = ({
-	placeholder = 'Search by Block Hash or User Publickey'
-} = {}) => {
-	return `
+module.exports = ({ placeholder = 'Search by Block Hash or User Publickey' } = {}) => {
+  return `
     <section class="explorer-search-component" aria-label="Search">
       <form class="explorer-search-form" action="#" method="get">
         <div class="explorer-search-box">

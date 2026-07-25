@@ -1,7 +1,7 @@
 module.exports = (count = 5) => {
-	const rows = Array.from({ length: count })
-		.map(
-			() => `
+  const rows = Array.from({ length: count })
+    .map(
+      () => `
       <div class="explorer-tx-skeleton-row">
         <div class="explorer-skeleton-line explorer-skeleton-icon"></div>
         <div class="explorer-tx-skeleton-body">
@@ -14,10 +14,10 @@ module.exports = (count = 5) => {
         </div>
       </div>
     `
-		)
-		.join('');
+    )
+    .join('');
 
-	return `
+  return `
     <div class="explorer-tx-skeleton-list" aria-hidden="true">
       ${rows}
     </div>

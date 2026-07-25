@@ -1,22 +1,21 @@
-const path = require("path");
-const TerserPlugin = require("terser-webpack-plugin");
+const path = require('path');
+const TerserPlugin = require('terser-webpack-plugin');
 // const saitoJs = require('saito-js');
 
-const webpack = require("webpack");
+const webpack = require('webpack');
 
 let minimize = false;
 let devtool = undefined;
-let entrypoint = "./../mods/settlers/settlers.js";
-let outputfile = "dyn.module.js";
+let entrypoint = './../mods/settlers/settlers.js';
+let outputfile = 'dyn.module.js';
 
-
-if (process.argv.indexOf("entrypoint")) {
-  let app_path = ((process.argv[2]).split("--entrypoint="))[1];
+if (process.argv.indexOf('entrypoint')) {
+  let app_path = process.argv[2].split('--entrypoint=')[1];
   console.log('app_path:', app_path);
   entrypoint = `../../dist/${app_path}`;
 }
 
-console.log('entrypoint:',entrypoint);
+console.log('entrypoint:', entrypoint);
 
 webpack(
   {
@@ -35,55 +34,55 @@ webpack(
             output: {
               ecma: 2022
             },
-	    parse: { ecma: 2022 }
+            parse: { ecma: 2022 }
           }
-        }),
-      ],
+        })
+      ]
     },
-    target: "web",
+    target: 'web',
     // node: {
     //     fs: "empty",
     // },
-    externalsType:'global',
+    externalsType: 'global',
     // externalsPresets:{
     //   web:true
     // },
-    externals:{
-      "saito-js":"saito-js",
-      "saito-js/lib/transaction":"saito-js/lib/transaction",
-      "saito-js/lib":"saito-js/lib",
-      "saito-js/lib/slip":"saito-js/lib/slip",
-      "saito-js/lib/block":"saito-js/lib/block",
+    externals: {
+      'saito-js': 'saito-js',
+      'saito-js/lib/transaction': 'saito-js/lib/transaction',
+      'saito-js/lib': 'saito-js/lib',
+      'saito-js/lib/slip': 'saito-js/lib/slip',
+      'saito-js/lib/block': 'saito-js/lib/block'
     },
     // Path to your entry point. From this file Webpack will begin his work
     entry: [path.resolve(__dirname, entrypoint)],
     output: {
-      path: path.resolve(__dirname, "../../dist/dyn/web"),
+      path: path.resolve(__dirname, '../../dist/dyn/web'),
       filename: outputfile,
-      library:{
-        name:'Dyn',
-        type:'window'
+      library: {
+        name: 'Dyn',
+        type: 'window'
       }
     },
     resolve: {
       // Add '.ts' and '.tsx' as resolvable extensions.
       //extensions: ["", ".webpack.js", ".web.js", ".ts", ".tsx", ".js"],
-      extensions: [".webpack.js", ".web.js", ".ts", ".tsx", ".js",".template.js"],
+      extensions: ['.webpack.js', '.web.js', '.ts', '.tsx', '.js', '.template.js'],
       fallback: {
         fs: false,
         tls: false,
         net: false,
-        path: require.resolve("path-browserify"),
+        path: require.resolve('path-browserify'),
         zlib: false,
         http: false,
         https: false,
-        stream: require.resolve("stream-browserify"),
-        buffer: require.resolve("buffer"),
-        crypto: require.resolve("crypto-browserify"),
-        "crypto-browserify": require.resolve("crypto-browserify"),
+        stream: require.resolve('stream-browserify'),
+        buffer: require.resolve('buffer'),
+        crypto: require.resolve('crypto-browserify'),
+        'crypto-browserify': require.resolve('crypto-browserify')
         // "saito-js":false,
         // "saito-wasm":require.resolve("saito-wasm"),
-      },
+      }
     },
     module: {
       rules: [
@@ -91,31 +90,33 @@ webpack(
         {
           test: /\.tsx?$/,
           exclude: /(node_modules)/,
-          use: [{
-            loader: 'ts-loader',
-            options: {
-                configFile:path.resolve(__dirname, "./tsconfig.json")
+          use: [
+            {
+              loader: 'ts-loader',
+              options: {
+                configFile: path.resolve(__dirname, './tsconfig.json')
+              }
             }
-          }]
+          ]
         },
         // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
         {
           test: /\.js$/,
-          exclude: [ /(node_modules)/, /[\\/]node_modules[\\/]@noble[\\/]/ ],
+          exclude: [/(node_modules)/, /[\\/]node_modules[\\/]@noble[\\/]/],
           use: [
-            "source-map-loader",
+            'source-map-loader',
             {
-              loader: "babel-loader",
+              loader: 'babel-loader',
               options: {
-                presets: ["@babel/preset-env"],
+                presets: ['@babel/preset-env'],
                 sourceMaps: false,
                 cacheCompression: false,
                 cacheDirectory: true,
-	        babelrc: false,
- 	        configFile: path.resolve(__dirname, "./babel.config.js")
-              },
-            },
-          ],
+                babelrc: false,
+                configFile: path.resolve(__dirname, './babel.config.js')
+              }
+            }
+          ]
         },
         {
           test: /\.mjs$/,
@@ -123,21 +124,21 @@ webpack(
           // type: "javascript/auto",
           use: [
             {
-              loader: "babel-loader",
+              loader: 'babel-loader',
               options: {
-		babelrc: false,
-		configFile: path.resolve(__dirname, "./babel.config.js"),
-                presets: ["@babel/preset-env"],
+                babelrc: false,
+                configFile: path.resolve(__dirname, './babel.config.js'),
+                presets: ['@babel/preset-env'],
                 sourceMaps: false,
                 cacheCompression: false,
-                cacheDirectory: true,
-              },
-            },
-          ],
+                cacheDirectory: true
+              }
+            }
+          ]
         },
         {
           test: /html$/,
-          exclude: [/(mods)/, /(email)/],
+          exclude: [/(mods)/, /(email)/]
         },
         {
           test: /\.(png|svg|jpg|jpeg|gif)$/i,
@@ -145,7 +146,7 @@ webpack(
           //   loader: 'file-loader',
           //   options: {}
           // }],
-          type: "asset/inline"
+          type: 'asset/inline'
         },
         // {
         //   test: /\.wasm$/,
@@ -155,32 +156,31 @@ webpack(
         {
           test: /\.zip$/,
           exclude: [
-            path.resolve(__dirname, "../mods/devtools/bundler"),
-            path.resolve(__dirname, "../mods/devtools/mods"),
-          ],
-        },
-      ],
+            path.resolve(__dirname, '../mods/devtools/bundler'),
+            path.resolve(__dirname, '../mods/devtools/mods')
+          ]
+        }
+      ]
     },
     plugins: [
       // Work around for Buffer is undefined:
       // https://github.com/webpack/changelog-v5/issues/10
       new webpack.ProvidePlugin({
-        Buffer: ["buffer", "Buffer"],
+        Buffer: ['buffer', 'Buffer']
       }),
       new webpack.ProvidePlugin({
-        process: "process/browser",
-      }),
+        process: 'process/browser'
+      })
     ],
     experiments: {
       asyncWebAssembly: true,
       // syncWebAssembly: true,
-      outputModule:true,
+      outputModule: true
     },
-    mode: "production",
-    devtool: devtool,
+    mode: 'production',
+    devtool: devtool
   },
   (err, stats) => {
-
     if (err) {
       console.error(err);
       process.exit(1);
@@ -191,6 +191,5 @@ webpack(
       console.error(info.errors);
       process.exit(1);
     }
-
   }
 );

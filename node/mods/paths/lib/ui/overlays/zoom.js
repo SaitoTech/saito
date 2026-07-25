@@ -2,227 +2,230 @@ const ZoomTemplate = require('./zoom.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class ZoomOverlay {
+  constructor(app, mod) {
+    this.app = app;
+    this.mod = mod;
+    this.visible = false;
+    this.overlay = new SaitoOverlay(app, mod);
+    this.spaces_onclick_callback = null;
+  }
 
-	constructor(app, mod) {
-		this.app = app;
-		this.mod = mod;
-		this.visible = false;
-		this.overlay = new SaitoOverlay(app, mod);
-		this.spaces_onclick_callback = null;
-	}
+  pullHudOverOverlay() {
+    let overlay_zindex = parseInt(this.overlay.zIndex);
+    if (document.querySelector('.hud')) {
+      document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
+      this.mod.hud.zIndex = overlay_zindex + 1;
+    }
+  }
 
-	pullHudOverOverlay() {
-		let overlay_zindex = parseInt(this.overlay.zIndex);
-		if (document.querySelector('.hud')) {
-			document.querySelector('.hud').style.zIndex = overlay_zindex + 1;
-			this.mod.hud.zIndex = overlay_zindex + 1;
-		}
-	}
+  pushHudUnderOverlay() {
+    let overlay_zindex = parseInt(this.overlay.zIndex);
+    if (document.querySelector('.hud')) {
+      document.querySelector('.hud').style.zIndex = overlay_zindex - 2;
+      this.mod.hud.zIndex = overlay_zindex - 2;
+    }
+  }
 
-	pushHudUnderOverlay() {
-		let overlay_zindex = parseInt(this.overlay.zIndex);
-		if (document.querySelector('.hud')) {
-			document.querySelector('.hud').style.zIndex = overlay_zindex - 2;
-			this.mod.hud.zIndex = overlay_zindex - 2;
-		}
-	}
+  scrollTo(spacekey = '') {
+    let top = 0;
+    let left = 0;
 
+    if (spacekey != '') {
+      top = this.mod.game.spaces[spacekey].top;
+      left = this.mod.game.spaces[spacekey].left;
+    }
 
+    return this.scrollToCoordinates(top, left);
+  }
 
-	scrollTo(spacekey="") {
+  scrollToCoordinates(top = 0, left = 0) {
+    let zoomOverlay = document.querySelector('.zoom-overlay');
+    if (!zoomOverlay) {
+      try {
+        this.render();
+        zoomOverlay = document.querySelector('.zoom-overlay');
+      } catch (err) {
+        return 0;
+      }
+    }
 
-		let top = 0;
-		let left = 0;
+    const zoomWidth = zoomOverlay.clientWidth;
+    const zoomHeight = zoomOverlay.clientHeight;
 
-		if (spacekey != "") {
-			top = this.mod.game.spaces[spacekey].top;
-			left = this.mod.game.spaces[spacekey].left;
-		}
+    let scrollLeft = left - zoomWidth / 2;
+    let scrollTop = top - zoomHeight / 2;
+    if (scrollLeft < 0) {
+      scrollLeft = 0;
+    }
+    if (scrollTop < 0) {
+      scrollTop = 0;
+    }
 
-		return this.scrollToCoordinates(top, left);
+    let board = document.querySelector('.zoom-overlay .gameboard');
+    board.style.transition = 'transform 0.5s ease';
+    board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
+  }
 
-	}
+  showControls() {
+    let ob1 = document.querySelector('.zoom-overlay .status');
+    let ob2 = document.querySelector('.zoom-overlay .controls');
+    if (ob1) {
+      ob1.style.display = 'block';
+    }
+    if (ob2) {
+      ob2.style.display = 'block';
+    }
+  }
 
-	scrollToCoordinates(top=0, left=0) {
+  hideControls() {
+    let ob1 = document.querySelector('.zoom-overlay .status');
+    let ob2 = document.querySelector('.zoom-overlay .controls');
+    if (ob1) {
+      ob1.style.display = 'none';
+    }
+    if (ob2) {
+      ob2.style.display = 'none';
+    }
+  }
 
-			let zoomOverlay = document.querySelector(".zoom-overlay");
-			if (!zoomOverlay) { 
-				try {
-					this.render();
-					zoomOverlay = document.querySelector(".zoom-overlay");	
-				} catch (err) {
-					return 0;
-				}
-			}
+  hide() {
+    this.visible = false;
+    this.overlay.hide();
+  }
 
-			const zoomWidth = zoomOverlay.clientWidth;
-			const zoomHeight = zoomOverlay.clientHeight;
+  renderAtSpacekey(spacekey = '') {
+    this.visible = true;
+    console.log('spacekey: ' + spacekey);
 
-  			let scrollLeft = left - zoomWidth / 2;
-  			let scrollTop = top - zoomHeight / 2;
-			if (scrollLeft < 0) { scrollLeft = 0; }
-			if (scrollTop < 0) { scrollTop = 0; }
+    let s = this.mod.game.spaces[spacekey];
+    this.renderAtCoordinates(s.top, s.left);
 
-			let board = document.querySelector(".zoom-overlay .gameboard");	
-			board.style.transition = "transform 0.5s ease";
-			board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
+    return 0;
+  }
 
-	}
+  renderAtCoordinates(top = 0, left = 0) {
+    this.render();
+    let zoomOverlay = document.querySelector('.zoom-overlay');
+    let board = document.querySelector('.zoom-overlay .gameboard');
 
-	showControls() {
-	  let ob1 = document.querySelector(".zoom-overlay .status");
-	  let ob2 = document.querySelector(".zoom-overlay .controls");
-	  if (ob1) { ob1.style.display = "block"; }
-	  if (ob2) { ob2.style.display = "block"; }
-	}
+    const zoomWidth = zoomOverlay.clientWidth;
+    const zoomHeight = zoomOverlay.clientHeight;
 
-	hideControls() {
-	  let ob1 = document.querySelector(".zoom-overlay .status");
-	  let ob2 = document.querySelector(".zoom-overlay .controls");
-	  if (ob1) { ob1.style.display = "none"; }
-	  if (ob2) { ob2.style.display = "none"; }
-	}
+    const boardWidth = board.offsetWidth;
+    const boardHeight = board.offsetHeight;
 
-	hide() {
-		this.visible = false;
-		this.overlay.hide();
-	}
+    let scrollLeft = left - zoomWidth / 2;
+    let scrollTop = top - zoomHeight / 2;
 
+    // keep board
+    scrollLeft = Math.max(0, Math.min(scrollLeft, boardWidth - zoomWidth));
+    scrollTop = Math.max(0, Math.min(scrollTop, boardHeight - zoomHeight));
 
-        renderAtSpacekey(spacekey="") {
-		
-                this.visible = true;
-console.log("spacekey: " + spacekey);
+    if (scrollLeft < 0) {
+      scrollLeft = 0;
+    }
+    if (scrollTop < 0) {
+      scrollTop = 0;
+    }
 
-		let s = this.mod.game.spaces[spacekey];
-		this.renderAtCoordinates(s.top, s.left);
+    // funky slide
+    board.style.transition = '';
+    board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
 
-                return 0;
+    // remove status
+    let status = document.querySelector('.zoom-overlay .status');
+    status.style.display = 'none';
+    let controls = document.querySelector('.zoom-overlay .controls');
+    controls.style.display = 'none';
 
-        }
+    this.attachEvents();
 
-	renderAtCoordinates(top=0, left=0) {
+    //
+    // pull loss overlay over if it is visible
+    //
+    let lossOverlay = document.querySelector('.loss-overlay');
+    if (lossOverlay) {
+      lossOverlay = lossOverlay.parentElement;
+      if (lossOverlay.style.zIndex < zoomOverlay.style.zIndex) {
+        lossOverlay.style.zIndex = zoomOverlay.style.zIndex + 1;
+      }
+    }
+  }
 
-		this.render();
-		let zoomOverlay = document.querySelector(".zoom-overlay");	
-		let board = document.querySelector(".zoom-overlay .gameboard");
+  render() {
+    this.pushHudUnderOverlay();
 
-		const zoomWidth = zoomOverlay.clientWidth;
-		const zoomHeight = zoomOverlay.clientHeight;
+    //
+    // if already visible, don't reload
+    //
+    if (this.visible == true) {
+      if (document.querySelector('.zoom_overlay')) {
+        return;
+      }
+    }
 
-		const boardWidth = board.offsetWidth;
-		const boardHeight = board.offsetHeight;
+    this.visible = true;
+    this.overlay.show(ZoomTemplate());
 
-  		let scrollLeft = left - zoomWidth / 2;
-  		let scrollTop = top - zoomHeight / 2;
+    let dw = document.querySelector('.zoom-overlay');
+    let gb = document.querySelector('.gameboard');
 
-		// keep board
-		scrollLeft = Math.max(0, Math.min(scrollLeft, boardWidth - zoomWidth));
-		scrollTop = Math.max(0, Math.min(scrollTop, boardHeight - zoomHeight));
+    let gb2 = gb.cloneNode(true);
+    gb2.removeAttribute('id');
+    gb2.removeAttribute('style');
+    gb2.classList.add('gameboard-clone');
 
-		if (scrollLeft < 0) { scrollLeft = 0; }
-		if (scrollTop < 0) { scrollTop = 0; }
+    dw.appendChild(gb2);
 
-		// funky slide
-		board.style.transition = "";
-		board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
+    $('.gameboard-clone').draggable({});
 
-		// remove status
-		let status = document.querySelector('.zoom-overlay .status');
-		status.style.display = 'none';
-		let controls = document.querySelector('.zoom-overlay .controls');
-		controls.style.display = 'none';
+    this.attachEvents();
+  }
 
-		this.attachEvents();
+  attachEvents() {
+    //
+    // add tiles
+    //
+    for (let key in this.mod.game.spaces) {
+      let qs = '.zoom-overlay .gameboard .' + key;
+      if (!document.querySelector(qs)) {
+        console.log('qs: ' + qs);
+      } else {
+        document.querySelector(qs).onclick = (e) => {
+          let space_id = e.currentTarget.id;
+          //
+          // we have clicked on a space. if there is a callback attached to the
+          // zoom overlay, we are going to execute that callback. this is used
+          // when we want people to use the zoom overlay to select something.
+          //
+          if (this.spaces_onclick_callback != null) {
+            //
+            // trigger if selectable
+            //
+            let can_trigger = false;
+            let tkey = `.${key}`;
+            document.querySelectorAll(tkey).forEach((el) => {
+              if (el.classList.contains('selectable')) {
+                can_trigger = true;
+              }
+            });
+            if (can_trigger) {
+              this.spaces_onclick_callback(space_id);
+            }
 
-		//
-		// pull loss overlay over if it is visible
-		//
-		let lossOverlay = document.querySelector(".loss-overlay");
-		if (lossOverlay) {
-		  lossOverlay = lossOverlay.parentElement;
-		  if (lossOverlay.style.zIndex < zoomOverlay.style.zIndex) {
-		    lossOverlay.style.zIndex = zoomOverlay.style.zIndex + 1;
-		  }
-		}
-
-	}
-
-	render() {
-
-		this.pushHudUnderOverlay();
-
-		//
-		// if already visible, don't reload
-		//
-		if (this.visible == true) {
-			if (document.querySelector('.zoom_overlay')) {
-				return;
-			}
-		}
-
-		this.visible = true;
-		this.overlay.show(ZoomTemplate());
-
-		let dw = document.querySelector('.zoom-overlay');
-		let gb = document.querySelector('.gameboard');
-
-		let gb2 = gb.cloneNode(true);
-		gb2.removeAttribute('id');
-		gb2.removeAttribute('style');
-		gb2.classList.add('gameboard-clone');
-
-		dw.appendChild(gb2);
-
-		$('.gameboard-clone').draggable({});
-
-		this.attachEvents();
-	}
-
-	attachEvents() {
-		//
-		// add tiles
-		//
-		for (let key in this.mod.game.spaces) {
-			let qs = '.zoom-overlay .gameboard .' + key;
-			if (!document.querySelector(qs)) {
-				console.log('qs: ' + qs);
-			} else {
-				document.querySelector(qs).onclick = (e) => {
-					let space_id = e.currentTarget.id;
-					//
-					// we have clicked on a space. if there is a callback attached to the
-					// zoom overlay, we are going to execute that callback. this is used
-					// when we want people to use the zoom overlay to select something.
-					//
-					if (this.spaces_onclick_callback != null) {
-						//
-						// trigger if selectable
-						//
-						let can_trigger = false;
-						let tkey = `.${key}`;
-						document.querySelectorAll(tkey).forEach((el) => {
-							if (el.classList.contains('selectable')) {
-								can_trigger = true;
-							}
-						});
-						if (can_trigger) {
-							this.spaces_onclick_callback(space_id);
-						}
-
-						//
-						// otherwise we will show the detailed VIEW of the space, since people
-						// are trying to click on a space but it isn't selectable, which means
-						// letting them see for themselves what is heree.
-						//
-					} else {
-console.log("ID: " + space_id);
-						this.mod.displaySpaceDetailedView(space_id);
-					}
-				};
-			}
-		}
-	}
+            //
+            // otherwise we will show the detailed VIEW of the space, since people
+            // are trying to click on a space but it isn't selectable, which means
+            // letting them see for themselves what is heree.
+            //
+          } else {
+            console.log('ID: ' + space_id);
+            this.mod.displaySpaceDetailedView(space_id);
+          }
+        };
+      }
+    }
+  }
 }
 
 module.exports = ZoomOverlay;

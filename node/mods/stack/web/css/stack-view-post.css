@@ -270,7 +270,7 @@
 }
 
 .stack-view-post-content pre {
-  background: var(--saito-background-inverse);
+  background: var(--saito-foreground);
   color: var(--saito-background);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 0.9rem;

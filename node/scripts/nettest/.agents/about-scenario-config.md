@@ -183,8 +183,8 @@ Scenario rule:
 The WASM/JS API exposes:
 
 ```ts
-S.getInstance().disableProducingBlocksByTimer()
-wallet.disableProducingBlocksByTimer()
+S.getInstance().disableProducingBlocksByTimer();
+wallet.disableProducingBlocksByTimer();
 ```
 
 This sets `consensus_thread.produce_blocks_by_timer = false`. It is a runtime API, not currently a scenario `options.conf` field. Use config-level `disable_block_production` for scenario files.

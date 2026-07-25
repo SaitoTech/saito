@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	return `
+  return `
 			<div class="main" id="main">
 				<div class="board shogun-main">
 					<div class="shop"><i class="fa-solid fa-shop"></i></div>
@@ -9,4 +9,4 @@ module.exports = (app, mod) => {
 				<div id="trash_can" class="trash_can"></div>
 			</div>
 	`;
-}
+};

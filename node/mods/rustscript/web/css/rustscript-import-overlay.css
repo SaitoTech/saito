@@ -2,12 +2,15 @@
  * RustScript import transaction overlay — reuses publish overlay shell + tokens.
  */
 
-body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell:has(.rs-import-overlay) {
+body:has(.saito-container.rustscript)
+  .saito-overlay.rs-publish-overlay-shell:has(.rs-import-overlay) {
   width: 100vw !important;
   height: 100dvh !important;
 }
 
-body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell:has(.rs-import-overlay) > .rs-publish-overlay {
+body:has(.saito-container.rustscript)
+  .saito-overlay.rs-publish-overlay-shell:has(.rs-import-overlay)
+  > .rs-publish-overlay {
   width: min(92vw, 620px) !important;
   max-height: min(90vh, 720px) !important;
   height: auto !important;
@@ -21,9 +24,9 @@ body:has(.saito-container.rustscript) .rs-import-inner {
 }
 
 body:has(.saito-container.rustscript) .rs-import-title {
-  margin: 0 0 24px;
-  padding-right: 44px;
-  font-size: 28px;
+  margin: 0 0 var(--saito-space-xl);
+  padding-right: 4.4rem;
+  font-size: 2.8rem;
   font-weight: 700;
   line-height: 1.25;
   color: #fafafa;
@@ -80,7 +83,7 @@ body:has(.saito-container.rustscript) .rs-import-dropzone-icon svg {
 
 body:has(.saito-container.rustscript) .rs-import-dropzone-lead {
   margin: 0 0 6px;
-  font-size: 16px;
+  font-size: var(--font-size-medium);
   font-weight: 400;
   color: #c8c8c8;
   text-align: center;
@@ -89,7 +92,7 @@ body:has(.saito-container.rustscript) .rs-import-dropzone-lead {
 
 body:has(.saito-container.rustscript) .rs-import-dropzone-click {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-medium);
   font-weight: 400;
   color: #888;
   text-align: center;
@@ -112,7 +115,7 @@ body:has(.saito-container.rustscript) .rs-import-error {
   border-radius: 8px;
   background: rgba(120, 30, 30, 0.25);
   color: #f0a8a8;
-  font-size: 14px;
+  font-size: var(--font-size-medium);
   line-height: 1.45;
 }
 
@@ -122,7 +125,7 @@ body:has(.saito-container.rustscript) .rs-import-divider {
   gap: 16px;
   margin: 28px 0 24px;
   color: #666;
-  font-size: 12px;
+  font-size: var(--font-size-tiny);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -138,7 +141,7 @@ body:has(.saito-container.rustscript) .rs-import-divider::after {
 
 body:has(.saito-container.rustscript) .rs-import-p2sh-heading {
   margin: 0 0 20px;
-  font-size: 16px;
+  font-size: var(--font-size-medium);
   font-weight: 600;
   color: #e0e0e0;
 }
@@ -161,7 +164,7 @@ body:has(.saito-container.rustscript) .rs-import-p2sh-input {
   background: #0a0a0a;
   color: #f2f2f2;
   font-family: var(--rustscript-font-mono);
-  font-size: 15px;
+  font-size: var(--font-size-medium);
   line-height: 1.35;
   outline: none;
 }
@@ -187,14 +190,11 @@ body:has(.saito-container.rustscript) .rs-import-loading-inner {
 body:has(.saito-container.rustscript) .rs-import-loading-title {
   margin: 24px 0 8px;
   padding-right: 0;
-  font-size: 24px;
+  font-size: 2.4rem;
 }
 
 body:has(.saito-container.rustscript) .rs-import-loading-lead {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-size-medium);
   color: #999;
 }
-
-
-

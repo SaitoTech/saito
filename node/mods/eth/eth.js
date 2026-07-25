@@ -2,31 +2,31 @@ const saito = require('./../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
 
 class ETH extends ModTemplate {
-	constructor(app) {
-		super(app);
+  constructor(app) {
+    super(app);
 
-		this.appname = 'ETH';
-		this.name = 'ETH';
-		this.slug = 'eth';
-		this.ticker = 'ETH';
-		this.description = 'Adds support for Mixin-powered Ethereum transfers on the Saito Network';
-		this.categories = 'Utility Cryptocurrency Finance';
+    this.appname = 'ETH';
+    this.name = 'ETH';
+    this.slug = 'eth';
+    this.ticker = 'ETH';
+    this.description = 'Adds support for Mixin-powered Ethereum transfers on the Saito Network';
+    this.categories = 'Utility Cryptocurrency Finance';
 
-		// MIXIN STUFF
-		this.asset_id = '43d61dcd-e413-450d-80b8-101d5e903357';
-		this.chain_id = '43d61dcd-e413-450d-80b8-101d5e903357';
-	}
+    // MIXIN STUFF
+    this.asset_id = '43d61dcd-e413-450d-80b8-101d5e903357';
+    this.chain_id = '43d61dcd-e413-450d-80b8-101d5e903357';
+  }
 
-	respondTo(type = '', obj) {
-		if (type == 'mixin-crypto') {
-			return {
-				name: this.name,
-				ticker: this.ticker,
-				description: this.description,
-				asset_id: this.asset_id
-			};
-		}
-		/*if (type == 'crypto-logo') {
+  respondTo(type = '', obj) {
+    if (type == 'mixin-crypto') {
+      return {
+        name: this.name,
+        ticker: this.ticker,
+        description: this.description,
+        asset_id: this.asset_id
+      };
+    }
+    /*if (type == 'crypto-logo') {
 			if (obj?.ticker == this.ticker) {
 				return {
 					img: `/eth/img/logo2.png`
@@ -34,8 +34,8 @@ class ETH extends ModTemplate {
 			}
 		}*/
 
-		return null;
-	}
+    return null;
+  }
 }
 
 module.exports = ETH;

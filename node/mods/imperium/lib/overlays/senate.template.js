@@ -1,5 +1,5 @@
-module.exports  = () => {
-	let html = `
+module.exports = () => {
+  let html = `
 
     <div class="senate-overlay">
       <div class="senate-agenda-card"></div>
@@ -8,5 +8,5 @@ module.exports  = () => {
 
   `;
 
-	return html;
+  return html;
 };

@@ -1,8 +1,6 @@
 module.exports = (mod) => {
-
   const options = mod?.server_info?.options || {};
-  const block_production_enabled =
-    options.consensus?.disable_block_production === false;
+  const block_production_enabled = options.consensus?.disable_block_production === false;
 
   return `
     <div class="admin-dashboard">
@@ -86,4 +84,3 @@ module.exports = (mod) => {
 </div>
   `;
 };
-

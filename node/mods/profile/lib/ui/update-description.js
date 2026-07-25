@@ -3,41 +3,35 @@ const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overl
 const SaitoLoader = require('../../../../lib/saito/ui/saito-loader/saito-loader');
 
 class UpdateDescription {
-    constructor(app, mod, key = null) {
-        this.app = app;
-        this.mod = mod;
-        this.overlay = new SaitoOverlay(this.app, this.mod);
-        this.loader = new SaitoLoader(
-            this.app,
-            this.mod,
-            '.saito-overlay-form'
-        );
-        this.key = key;
-    }
+  constructor(app, mod, key = null) {
+    this.app = app;
+    this.mod = mod;
+    this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.loader = new SaitoLoader(this.app, this.mod, '.saito-overlay-form');
+    this.key = key;
+  }
 
-    render(description) {
-        this.overlay.show(UpdateDescriptionTemplate(description));
-        this.attachEvents();
-    }
+  render(description) {
+    this.overlay.show(UpdateDescriptionTemplate(description));
+    this.attachEvents();
+  }
 
-    attachEvents() {
+  attachEvents() {
+    const inputBox = document.getElementById('saito-overlay-form-input');
 
-        const inputBox = document.getElementById('saito-overlay-form-input');
+    inputBox.select();
 
-        inputBox.select();
+    document.querySelector('.saito-overlay-form-submit').onclick = (e) => {
+      e.preventDefault();
 
-        document.querySelector('.saito-overlay-form-submit').onclick = (e) => {
-            e.preventDefault();
+      var description = inputBox.innerText || inputBox.value;
 
-            var description = inputBox.innerText || inputBox.value;
+      console.log('update-description: ', description);
 
-            console.log("update-description: ", description);
-
-            this.mod.sendProfileTransaction({ description }, this.key);
-            this.overlay.remove()
-
-        };
-    }
+      this.mod.sendProfileTransaction({ description }, this.key);
+      this.overlay.remove();
+    };
+  }
 }
 
 module.exports = UpdateDescription;

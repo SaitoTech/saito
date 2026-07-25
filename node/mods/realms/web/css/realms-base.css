@@ -1,62 +1,62 @@
 .game.realms {
-.card .cardimg,
-.card img {
-	width: inherit;
-	height: inherit;
-	max-width: inherit;
-	position: relative;
-}
+  .card .cardimg,
+  .card img {
+    width: inherit;
+    height: inherit;
+    max-width: inherit;
+    position: relative;
+  }
 
-.cardbox-card .card {
-	height: 55vh;
-	width: calc(55vh * 0.72);
-}
+  .cardbox-card .card {
+    height: 55vh;
+    width: calc(55vh * 0.72);
+  }
 
-.game-cardbox {
+  .game-cardbox {
     top: 7.5vh;
-    width: calc(75vh * 0.730);
-}
+    width: calc(75vh * 0.73);
+  }
 
-body {
-	font-family: arial, helvetica, sans-serif;
-	font-size: 13px;
-	padding: 0px;
-	margin: 0px;
-	overflow: hidden;
-	position: fixed;
-	width: 100vw;
-	height: 100vh;
-}
+  body {
+    font-family: arial, helvetica, sans-serif;
+    font-size: 13px;
+    padding: 0px;
+    margin: 0px;
+    overflow: hidden;
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+  }
 
-.main {
-	background-image: url(/saito/img/arcade/greenfelt.jpg);
-	background-size: cover;
-	position: fixed;
-	width: 100vw;
-	height: 100vh;
-}
+  .main {
+    background-image: url(/saito/img/arcade/greenfelt.jpg);
+    background-size: cover;
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+  }
 
-.gameboard {
-}
+  .gameboard {
+  }
 
-.end-turn {
-	cursor: pointer;
-	text-decoration: underline;
-}
+  .end-turn {
+    cursor: pointer;
+    text-decoration: underline;
+  }
 
-.end-turn:hover {
-	font-weight: bold;
-}
+  .end-turn:hover {
+    font-weight: bold;
+  }
 
-.graveyard {
-	position: absolute;
-	top: 50vh;
-	right: 0;
-	width: 25px;
-}
+  .graveyard {
+    position: absolute;
+    top: 50vh;
+    right: 0;
+    width: 25px;
+  }
 
-.hud-card,
-.showcard {
-	cursor: pointer;
-}
+  .hud-card,
+  .showcard {
+    cursor: pointer;
+  }
 }

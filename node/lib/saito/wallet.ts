@@ -13,6 +13,8 @@ const getUuid = require('uuid-by-string');
 const CryptoModule = require('../templates/cryptomodule');
 const NFTCryptoModule = require('../templates/nftcryptomodule');
 
+declare function sconfirm(message: string): Promise<boolean>;
+
 interface PreferredTx {
   sig: string;
   ts: number;
@@ -720,8 +722,8 @@ export default class Wallet extends SaitoWallet {
   }
 
   /**
-   * Generates a new keypair for the user, resets all stored wallet info, and saves
-   * the new wallet to local storage.
+   * Generates a new keypair, wipes all local browser persistence, loads fresh
+   * options, and saves the new wallet. Used by Nuke for a full local reset.
    */
   async resetWallet() {
     //
@@ -733,9 +735,13 @@ export default class Wallet extends SaitoWallet {
       await this.app.blockchain.resetBlockchain();
     }
 
-    await this.app.storage.clearLocalForage();
-    await this.app.storage.resetOptions();
-    await this.app.storage.removeAllLocalApplications();
+    if (this.app.BROWSER) {
+      // Single implementation of browser wipe (formerly Clear Cache + Nuke clears).
+      await this.app.storage.resetBrowserInstallation();
+      await this.app.storage.loadFreshOptions();
+    } else {
+      await this.app.storage.resetOptions();
+    }
 
     //
     // keychain
@@ -1383,38 +1389,11 @@ export default class Wallet extends SaitoWallet {
 
     if (type == 'nuke') {
       if (this.app.BROWSER) {
-        let risky = false;
-        for (let crypto of this.app.wallet.returnInstalledCryptos()) {
-          if (!crypto.isActivated()) {
-            continue;
-          }
-          if (Number(crypto.returnDisplayBalance()) > 0) {
-            risky = true;
-            break;
-          }
-        }
-
-        if (risky) {
-          // Alternate language from mod/settings
-
-          //await sconfirm('This will wipe out your wallet and delete your data....');
-          //await sconfirm('This will reset/nuke your account, do you wish to proceed?');
-
-          let ok = await confirm(
-            'This wallet contains web3 crypto assets whose keys will be lost if not already backed-up. Continue?'
-          );
-          if (!ok) {
-            return false;
-          }
-        }
-
-        if (this.app.keychain.returnKey(publicKey)?.identifier) {
-          let ok = await confirm(
-            'This wallet has a registerd username which will be lost if not already backed-up. Continue?'
-          );
-          if (!ok) {
-            return false;
-          }
+        let ok = await sconfirm(
+          'Delete all existing data and restore this browser to a fresh state?'
+        );
+        if (!ok) {
+          return false;
         }
       }
 

@@ -1,5 +1,5 @@
 module.exports = (lesson) => {
-	return `
+  return `
     <div class="teaser" id="${lesson.id}">
       <div class="photo" style="background-image: url('https://popupchinese.com/data/${lesson.id}/teaser.jpg');"></div>
       <div class="title">

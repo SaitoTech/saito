@@ -1,5 +1,5 @@
 module.exports = (description) => {
-	return `
+  return `
 		<form class="saito-overlay-form update-description-overlay"> 
 	        <div class="saito-overlay-form-header">
 	          <div class="saito-overlay-form-header-title">Update Description</div>

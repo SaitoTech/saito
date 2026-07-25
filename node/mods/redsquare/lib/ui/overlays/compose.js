@@ -402,7 +402,10 @@ class ComposeOverlay {
       </figure>
     `;
 
-    this.app.browser.addElementToSelector(html, `.saito-overlay #redsquare-compose-surface .image-preview`);
+    this.app.browser.addElementToSelector(
+      html,
+      `.saito-overlay #redsquare-compose-surface .image-preview`
+    );
     this.images.push(src);
 
     const item = container.querySelector(`.image-item[data-index="${index}"]`);

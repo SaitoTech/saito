@@ -27,7 +27,9 @@ function isWitnessValueMissing(value) {
 
 function prepareAccessScript(access_script, vault_entry = null) {
   let script =
-    typeof access_script === 'string' ? JSON.parse(access_script) : JSON.parse(JSON.stringify(access_script));
+    typeof access_script === 'string'
+      ? JSON.parse(access_script)
+      : JSON.parse(JSON.stringify(access_script));
 
   const op = script?.op;
   const witnessFields = WITNESS_FIELDS_BY_OP[op];
@@ -49,7 +51,11 @@ function prepareAccessScript(access_script, vault_entry = null) {
         script.witness[field] = '';
       }
     }
-  } else if (script.witness && typeof script.witness === 'object' && !Array.isArray(script.witness)) {
+  } else if (
+    script.witness &&
+    typeof script.witness === 'object' &&
+    !Array.isArray(script.witness)
+  ) {
     for (const key of Object.keys(script.witness)) {
       if (script.witness[key] === undefined || script.witness[key] === null) {
         script.witness[key] = '';

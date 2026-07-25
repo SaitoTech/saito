@@ -585,13 +585,11 @@
   display: none;
 }
 
-.crypto-receive-overlay[data-receive-mode='trusted']
-  .crypto-receive-overlay__footer--interactive {
+.crypto-receive-overlay[data-receive-mode='trusted'] .crypto-receive-overlay__footer--interactive {
   display: none;
 }
 
-.crypto-receive-overlay[data-receive-mode='interactive']
-  .crypto-receive-overlay__footer--trusted {
+.crypto-receive-overlay[data-receive-mode='interactive'] .crypto-receive-overlay__footer--trusted {
   display: none;
 }
 
@@ -647,7 +645,8 @@
 }
 
 /* Pending: spinner only; success / failure: icons only */
-.crypto-send-confirm-overlay[data-confirm-state='pending'] .crypto-send-confirm-overlay__result-icon {
+.crypto-send-confirm-overlay[data-confirm-state='pending']
+  .crypto-send-confirm-overlay__result-icon {
   display: none !important;
 }
 
@@ -703,10 +702,8 @@
   text-align: center;
 }
 
-.saito-crypto-transfer.send-crypto-overlay[data-send-state='success']
-  .send-crypto-overlay__spinner,
-.saito-crypto-transfer.send-crypto-overlay[data-send-state='failed']
-  .send-crypto-overlay__spinner {
+.saito-crypto-transfer.send-crypto-overlay[data-send-state='success'] .send-crypto-overlay__spinner,
+.saito-crypto-transfer.send-crypto-overlay[data-send-state='failed'] .send-crypto-overlay__spinner {
   display: none;
 }
 
@@ -1014,7 +1011,6 @@
     opacity 0.2s ease,
     transform 0.2s ease;
 }
-
 
 .saito-crypto-withdraw .address-preview--enter {
   opacity: 0;
@@ -2034,12 +2030,12 @@ input[type='checkbox'].ignore-checkbox {
   }
 
   .saito-crypto-details .main-balance {
-      position: relative;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 1rem;
-      justify-content: center;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    justify-content: center;
   }
 }
 

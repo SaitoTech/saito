@@ -1,5 +1,5 @@
 module.exports = (mod) => {
-	return `
+  return `
 		<form id="register-whitelist-key-template" class="saito-overlay-form"> 
 	      	<div class="saito-overlay-form-header">
 	        	<div class="saito-overlay-form-header-title">Add Key to Peer Whitelist</div>

@@ -5,7 +5,11 @@ const ast_execute = require('./lib/rustscript/ast_execute');
 const tokenize = require('./lib/rustscript/semantic_to_tokens');
 const parse = require('./lib/rustscript/tokens_to_ast');
 const { build_test_script_from_create, lockingView } = require('./lib/ui/script_build');
-const { downloadTransactionFile, serializeTransactionToWeb, transactionExportFilename } = require('./lib/transaction_io');
+const {
+  downloadTransactionFile,
+  serializeTransactionToWeb,
+  transactionExportFilename
+} = require('./lib/transaction_io');
 const Transaction = require('./../../lib/saito/transaction').default;
 const Slip = require('./../../lib/saito/slip').default;
 const { TransactionType } = require('saito-js/lib/transaction');
@@ -128,7 +132,6 @@ class Rustscript extends ModTemplate {
         this.opcodes[key].opcode = op;
       }
     });
-
   }
 
   async render() {
@@ -410,11 +413,18 @@ class Rustscript extends ModTemplate {
       }
     }
 
-    if (!clone || typeof clone !== 'object' || typeof clone.op !== 'string' || clone.op.length === 0) {
+    if (
+      !clone ||
+      typeof clone !== 'object' ||
+      typeof clone.op !== 'string' ||
+      clone.op.length === 0
+    ) {
       return false;
     }
 
-    const execContext = context.opcodes ? context : Object.assign({}, context, { opcodes: this.opcodes });
+    const execContext = context.opcodes
+      ? context
+      : Object.assign({}, context, { opcodes: this.opcodes });
     const result = ast_execute(clone, execContext);
     return result === true;
   }
@@ -630,10 +640,7 @@ class Rustscript extends ModTemplate {
 
     const txmsg = typeof tx.returnMessage === 'function' ? tx.returnMessage() : tx.msg || {};
     const p2shAddress =
-      txmsg.p2sh_address ||
-      txmsg.p2shAddress ||
-      this._findP2shOutputAddress(tx) ||
-      '';
+      txmsg.p2sh_address || txmsg.p2shAddress || this._findP2shOutputAddress(tx) || '';
 
     const lockedSlip = this._findLockedOutputSlip(tx, p2shAddress);
     if (!lockedSlip) {
@@ -645,20 +652,19 @@ class Rustscript extends ModTemplate {
     const lockedNftSlips =
       assetType === 'nft' ? this._findLockedNftSlipTriplet(tx, p2shAddress) : null;
 
+    const accessScriptRaw =
+      Array.isArray(txmsg.access_scripts) && txmsg.access_scripts.length > 0
+        ? txmsg.access_scripts[0]
+        : txmsg.access_script || txmsg.accessScript || '';
 
-const accessScriptRaw =
-  (Array.isArray(txmsg.access_scripts) && txmsg.access_scripts.length > 0)
-    ? txmsg.access_scripts[0]
-    : (txmsg.access_script || txmsg.accessScript || '');
+    const accessScript = accessScriptRaw ? JSON.parse(accessScriptRaw) : {};
+    const hash = this.app.core.scripting.hash(accessScript);
+    const p2shHash = txmsg.scripthash || hash || '';
 
-const accessScript = accessScriptRaw ? JSON.parse(accessScriptRaw) : {};
-const hash = this.app.core.scripting.hash(accessScript);
-const p2shHash = txmsg.scripthash || hash || '';
-
-const hasAccessScript =
-  typeof accessScriptRaw === 'string'
-    ? accessScriptRaw.trim().length > 0
-    : accessScriptRaw && typeof accessScriptRaw === 'object';
+    const hasAccessScript =
+      typeof accessScriptRaw === 'string'
+        ? accessScriptRaw.trim().length > 0
+        : accessScriptRaw && typeof accessScriptRaw === 'object';
 
     this.unlockContext = {
       sourceTxSignature: tx.signature || '',
@@ -669,8 +675,7 @@ const hasAccessScript =
       lockedNftSlips,
       nftId: txmsg.nft_id || '',
       nftAmount: txmsg.nft_amount || '',
-      nftTxmsg:
-        txmsg.nft_txmsg && typeof txmsg.nft_txmsg === 'object' ? txmsg.nft_txmsg : null,
+      nftTxmsg: txmsg.nft_txmsg && typeof txmsg.nft_txmsg === 'object' ? txmsg.nft_txmsg : null,
       importCategory: hasAccessScript ? 'guided' : 'expert',
       sourceTxmsg: txmsg
     };
@@ -783,7 +788,11 @@ const hasAccessScript =
       throw new Error('Destination public key is required');
     }
 
-    if (ctx.assetType === 'nft' && Array.isArray(ctx.lockedNftSlips) && ctx.lockedNftSlips.length === 3) {
+    if (
+      ctx.assetType === 'nft' &&
+      Array.isArray(ctx.lockedNftSlips) &&
+      ctx.lockedNftSlips.length === 3
+    ) {
       return this.broadcastNftSolution({ destinationPublicKey, feeSaito });
     }
 
@@ -826,7 +835,7 @@ const hasAccessScript =
     tx.msg = {
       module: this.name,
       request: 'spend p2sh',
-      access_scripts: [ accessScript ],
+      access_scripts: [accessScript],
       scripthash: ctx.p2shHash,
       p2sh_address: ctx.p2shAddress,
       destination: destinationPublicKey,
@@ -895,7 +904,7 @@ const hasAccessScript =
       module: this.name,
       request: 'spend p2sh',
       asset_type: 'nft',
-      access_scripts: [ accessScript ],
+      access_scripts: [accessScript],
       scripthash: ctx.p2shHash,
       p2sh_address: ctx.p2shAddress,
       destination: destinationPublicKey,

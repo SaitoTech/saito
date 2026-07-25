@@ -188,9 +188,9 @@ class ConfirmationWaitingUI {
     if (!el) {
       return;
     }
-    el.innerHTML = MISSED_BLOCK_LINES.map((line) => `<span class="rs-confirmation-subtitle-line">${line}</span>`).join(
-      ''
-    );
+    el.innerHTML = MISSED_BLOCK_LINES.map(
+      (line) => `<span class="rs-confirmation-subtitle-line">${line}</span>`
+    ).join('');
   }
 }
 

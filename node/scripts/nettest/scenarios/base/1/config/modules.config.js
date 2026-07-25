@@ -1,7 +1,7 @@
 export default {
   core: [
-    "atr/atr.js",
-    "blog/blog.js",
+    'atr/atr.js',
+    'blog/blog.js',
     //"egld/egld.js",
     'redsquare/redsquare.js',
     'mixin/mixin.js',
@@ -13,7 +13,7 @@ export default {
     'chat/chat.js',
     'chess/chess.js',
     'crypto/crypto.js',
-    "disburse/disburse.js",
+    'disburse/disburse.js',
     //'monarchy/monarchy.js',
     //"devtools/devtools.js",
     'encrypt/encrypt.js',
@@ -63,8 +63,8 @@ export default {
     'youtube-server/youtube-server.js'
   ],
   lite: [
-    "atr/atr.js",
-    "blog/blog.js",
+    'atr/atr.js',
+    'blog/blog.js',
     //"egld/egld.js",
     'redsquare/redsquare.js',
     'mixin/mixin.js',
@@ -76,7 +76,7 @@ export default {
     'chat/chat.js',
     'chess/chess.js',
     'crypto/crypto.js',
-    "disburse/disburse.js",
+    'disburse/disburse.js',
     //"devtools/devtools.js",
     //'monarchy/monarchy.js',
     'encrypt/encrypt.js',

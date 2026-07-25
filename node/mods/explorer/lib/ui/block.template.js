@@ -4,26 +4,23 @@ const BlockSummaryTemplate = require('./block-summary.template');
 const TransactionSkeletonTemplate = require('./tx/transaction-skeleton.template');
 
 module.exports = ({
-	blockHash = '',
-	loading = true,
-	loadingMessage = 'Loading block…',
-	error = null,
-	block = null,
-	expandedSignature = null,
-	canFetchTransactions = false,
-	fetchingTransactions = false,
-	fetchTransactionsError = null,
+  blockHash = '',
+  loading = true,
+  loadingMessage = 'Loading block…',
+  error = null,
+  block = null,
+  expandedSignature = null,
+  canFetchTransactions = false,
+  fetchingTransactions = false,
+  fetchTransactionsError = null
 } = {}) => {
-	const title = loading && !block
-		? 'Block'
-		: error
-			? 'Block unavailable'
-			: `Block ${block?.number ?? ''}`;
+  const title =
+    loading && !block ? 'Block' : error ? 'Block unavailable' : `Block ${block?.number ?? ''}`;
 
-	let body = '';
+  let body = '';
 
-	if (loading && !block) {
-		body = `
+  if (loading && !block) {
+    body = `
       <div class="explorer-block-loading" aria-busy="true" aria-live="polite">
         <p class="explorer-block-loading-message">${loadingMessage}</p>
         <div class="explorer-block-summary explorer-block-summary-skeleton">
@@ -31,15 +28,15 @@ module.exports = ({
             <table class="explorer-info-table">
               <tbody>
                 ${Array.from({ length: 7 })
-									.map(
-										() => `
+                  .map(
+                    () => `
                   <tr class="explorer-info-row">
                     <th class="explorer-info-label"><div class="explorer-skeleton-line explorer-skeleton-line-sm"></div></th>
                     <td class="explorer-info-value"><div class="explorer-skeleton-line"></div></td>
                   </tr>
                 `
-									)
-									.join('')}
+                  )
+                  .join('')}
               </tbody>
             </table>
           </div>
@@ -52,17 +49,17 @@ module.exports = ({
         </section>
       </div>
     `;
-	} else if (error) {
-		body = `
+  } else if (error) {
+    body = `
       <div class="explorer-teaser-loading explorer-teaser-error">
         <p class="explorer-teaser-loading-title">Unable to load block</p>
         <p class="explorer-teaser-loading-message">${error}</p>
       </div>
     `;
-	} else if (block) {
-		const txRows = (block.transactions || []).map((tx) => {
-			const isExpanded = expandedSignature && tx.signatureRaw === expandedSignature;
-			return `
+  } else if (block) {
+    const txRows = (block.transactions || []).map((tx) => {
+      const isExpanded = expandedSignature && tx.signatureRaw === expandedSignature;
+      return `
           <div class="explorer-tx-row${isExpanded ? ' is-expanded' : ''}" data-tx-signature="${tx.signatureRaw}">
             ${TransactionTeaserTemplate(tx)}
             <div class="explorer-tx-row-expanded">
@@ -70,10 +67,10 @@ module.exports = ({
             </div>
           </div>
         `;
-		});
+    });
 
-		const spvNotice = canFetchTransactions
-			? `
+    const spvNotice = canFetchTransactions
+      ? `
         <div class="explorer-block-spv-notice">
           <p class="explorer-block-spv-text">This is a lightweight (SPV) copy of the block from your local node, so most transactions are hidden.</p>
           <button type="button" class="explorer-block-fetch-txns"${fetchingTransactions ? ' disabled aria-busy="true"' : ''}>
@@ -82,15 +79,15 @@ module.exports = ({
           ${fetchTransactionsError ? `<p class="explorer-block-spv-error" role="alert">${fetchTransactionsError}</p>` : ''}
         </div>
       `
-			: '';
+      : '';
 
-		body = `
+    body = `
       <div class="explorer-block-summary">
         ${BlockSummaryTemplate({
-					primary: block.summaryPrimary || [],
-					detail: block.summaryDetail || [],
-					badges: block.summaryBadges || null,
-				})}
+          primary: block.summaryPrimary || [],
+          detail: block.summaryDetail || [],
+          badges: block.summaryBadges || null
+        })}
       </div>
       <section class="explorer-block-transactions" aria-label="Block transactions">
         <div class="explorer-panel-header">
@@ -99,16 +96,16 @@ module.exports = ({
         ${spvNotice}
         <div class="explorer-tx-list explorer-feed">
           ${
-						txRows.length
-							? txRows.join('')
-							: '<div class="explorer-teaser-loading"><p class="explorer-teaser-loading-message">No transactions in this block.</p></div>'
-					}
+            txRows.length
+              ? txRows.join('')
+              : '<div class="explorer-teaser-loading"><p class="explorer-teaser-loading-message">No transactions in this block.</p></div>'
+          }
         </div>
       </section>
     `;
-	}
+  }
 
-	return `
+  return `
     <main class="explorer-content explorer-view-panel">
       <div class="explorer-container explorer-stack">
         <div class="explorer-block-header">

@@ -628,14 +628,16 @@ class Manager {
         settled = true;
 
         if (direction === 'newer') {
-          this.handleNewerNotifications(result || {
-            type: 'notifications',
-            direction: 'newer',
-            added: [],
-            updated: [],
-            ignored: [],
-            exhausted: true
-          });
+          this.handleNewerNotifications(
+            result || {
+              type: 'notifications',
+              direction: 'newer',
+              added: [],
+              updated: [],
+              ignored: [],
+              exhausted: true
+            }
+          );
         } else {
           this.applyOlderLoadResult(
             result || {
@@ -707,9 +709,7 @@ class Manager {
     let filtered = tweets;
 
     if (this.mode === 'posts') {
-      filtered = tweets.filter(
-        (tweet) => (!key || tweet.publicKey === key) && !tweet.parent_id
-      );
+      filtered = tweets.filter((tweet) => (!key || tweet.publicKey === key) && !tweet.parent_id);
     } else if (this.mode === 'replies') {
       filtered = tweets.filter(
         (tweet) => (!key || tweet.publicKey === key) && Boolean(tweet.parent_id)
@@ -760,7 +760,10 @@ class Manager {
 
   appendNotificationsBatch() {
     const state = this.pagination.notifications;
-    const signatures = this.mod.notifications_timeline.slice(state.cursor, state.cursor + state.batchSize);
+    const signatures = this.mod.notifications_timeline.slice(
+      state.cursor,
+      state.cursor + state.batchSize
+    );
     const container = this.getActivePanelSelector();
 
     if (signatures.length === 0) {
@@ -1047,7 +1050,9 @@ class Manager {
     const options = { chainPrev: true, presentation: 'reply', reply: true };
     const html = TweetTemplate(tweet, tweet.buildClassName(options), options);
     const focusedEl = panel.querySelector(`article.tweet[data-id="${this.active_signature}"]`);
-    const replies = panel.querySelectorAll(`article.tweet:not([data-id="${this.active_signature}"])`);
+    const replies = panel.querySelectorAll(
+      `article.tweet:not([data-id="${this.active_signature}"])`
+    );
     const lastReply = replies.length ? replies[replies.length - 1] : null;
     const anchor = lastReply || focusedEl;
 
@@ -1861,9 +1866,7 @@ class Manager {
 
     // Upgrade leftover terminators from earlier builds.
     if (!footer) {
-      panel
-        .querySelectorAll('.feed-end, .scroll-footer')
-        .forEach((node) => node.remove());
+      panel.querySelectorAll('.feed-end, .scroll-footer').forEach((node) => node.remove());
 
       this.app.browser.addElementToElement(ManagerScrollFooterTemplate(), panel);
       footer = panel.querySelector('.feed-status');

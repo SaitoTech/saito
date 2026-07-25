@@ -2,19 +2,19 @@
 
 /**
  * Saito Options File Manager
- * 
+ *
  * A command-line tool for managing encrypted Saito options files.
  * Supports decryption, pretty printing, and re-encryption with new passwords.
- * 
+ *
  * Usage:
  *   node options-manager.js [command] [options]
  *   npm run options-manager [command] [options]
- * 
+ *
  * Commands:
  *   decrypt    - Decrypt and display the options file
  *   encrypt    - Encrypt the options file with a new password
  *   status     - Check if the options file is encrypted
- * 
+ *
  * Options:
  *   --file, -f     Path to options file (default: config/options)
  *   --password, -p Password for encryption/decryption
@@ -99,7 +99,7 @@ class OptionsManager {
         input: process.stdin,
         output: process.stdout
       });
-      
+
       return new Promise((resolve) => {
         rl.question(message, (password) => {
           rl.close();
@@ -133,7 +133,7 @@ class OptionsManager {
           break;
       }
     };
-    
+
     stdin.on('data', onData);
 
     return new Promise((resolve) => {
@@ -164,7 +164,7 @@ class OptionsManager {
     if (options.password) {
       return options.password;
     }
-    
+
     if (options.secret) {
       return this.readPasswordFromFile(options.secret);
     }
@@ -183,7 +183,7 @@ class OptionsManager {
     if (!fs.existsSync(filepath)) {
       throw new Error(`Options file not found: ${filepath}`);
     }
-    
+
     try {
       return fs.readFileSync(filepath, 'utf8');
     } catch (err) {
@@ -201,7 +201,7 @@ class OptionsManager {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      
+
       fs.writeFileSync(filepath, content, 'utf8');
     } catch (err) {
       throw new Error(`Failed to write options file: ${err.message}`);
@@ -214,7 +214,7 @@ class OptionsManager {
   formatJsonOnePerLine(obj, indent = 0) {
     const spaces = '  '.repeat(indent);
     let result = '';
-    
+
     if (Array.isArray(obj)) {
       result += '[\n';
       obj.forEach((item, index) => {
@@ -245,7 +245,7 @@ class OptionsManager {
     } else {
       result = JSON.stringify(obj);
     }
-    
+
     return result;
   }
 
@@ -254,9 +254,9 @@ class OptionsManager {
    */
   async checkStatus(options) {
     const filepath = options.file || this.defaultOptionsPath;
-    
+
     console.log(`Options file: ${filepath}`);
-    
+
     if (!fs.existsSync(filepath)) {
       console.log('Status: File does not exist');
       return;
@@ -265,10 +265,10 @@ class OptionsManager {
     try {
       const content = this.readOptionsFile(filepath);
       const isEncrypted = this.isAesEncrypted(content);
-      
+
       console.log(`Status: ${isEncrypted ? 'Encrypted' : 'Not encrypted'}`);
       console.log(`Size: ${content.length} bytes`);
-      
+
       if (!isEncrypted) {
         try {
           const parsed = JSON.parse(content);
@@ -288,14 +288,14 @@ class OptionsManager {
    */
   async decrypt(options) {
     const filepath = options.file || this.defaultOptionsPath;
-    
+
     try {
       const content = this.readOptionsFile(filepath);
-      
+
       if (!this.isAesEncrypted(content)) {
         console.log('File is not encrypted. Displaying content:');
         console.log();
-        
+
         if (options.pretty) {
           try {
             const parsed = JSON.parse(content);
@@ -311,14 +311,14 @@ class OptionsManager {
 
       const password = await this.getPassword(options, 'Enter decryption password: ');
       const decrypted = this.decryptOptionsString(content, password);
-      
+
       if (!decrypted) {
         throw new Error('Decryption failed - invalid password or corrupted data');
       }
 
       console.log('Successfully decrypted options file:');
       console.log();
-      
+
       if (options.pretty) {
         try {
           const parsed = JSON.parse(decrypted);
@@ -329,7 +329,6 @@ class OptionsManager {
       } else {
         console.log(decrypted);
       }
-
     } catch (err) {
       console.error(`Decryption error: ${err.message}`);
       process.exit(1);
@@ -342,17 +341,17 @@ class OptionsManager {
   async encrypt(options) {
     const filepath = options.file || this.defaultOptionsPath;
     const outputPath = options.output || filepath;
-    
+
     try {
       const content = this.readOptionsFile(filepath);
       let plaintextContent = content;
-      
+
       // If file is already encrypted, decrypt it first
       if (this.isAesEncrypted(content)) {
         console.log('File is already encrypted. Decrypting first...');
         const oldPassword = await this.getPassword(options, 'Enter current password: ');
         plaintextContent = this.decryptOptionsString(content, oldPassword);
-        
+
         if (!plaintextContent) {
           throw new Error('Failed to decrypt existing file - invalid password');
         }
@@ -377,19 +376,18 @@ class OptionsManager {
 
       // Encrypt with new password
       const encrypted = this.encryptOptionsString(plaintextContent, newPassword);
-      
+
       // Write encrypted content
       this.writeOptionsFile(outputPath, encrypted);
-      
+
       console.log(`Successfully encrypted options file to: ${outputPath}`);
-      
+
       // Verify encryption worked
       if (this.isAesEncrypted(encrypted)) {
         console.log('Encryption verified successfully');
       } else {
         console.warn('Warning: Encryption verification failed');
       }
-
     } catch (err) {
       console.error(`Encryption error: ${err.message}`);
       process.exit(1);
@@ -415,7 +413,7 @@ class OptionsManager {
 
     for (let i = 2; i < argv.length; i++) {
       const arg = argv[i];
-      
+
       if (arg === '--help' || arg === '-h') {
         args.help = true;
       } else if (arg === '--pretty') {
@@ -536,7 +534,7 @@ Examples:
 // Run if called directly
 if (require.main === module) {
   const manager = new OptionsManager();
-  manager.run().catch(err => {
+  manager.run().catch((err) => {
     console.error(`Fatal error: ${err.message}`);
     process.exit(1);
   });

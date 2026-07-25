@@ -13,20 +13,23 @@ body:has(.saito-container.rustscript) .saito-overlay > .rustscript-overlay {
   border-radius: var(--rs-control-radius, 4px) !important;
   box-shadow: var(--rs-overlay-shadow) !important;
   overflow: hidden;
-  background: var(--rustscript-surface);
+  background-color: var(--rustscript-surface, #181818) !important;
+  background-image: none !important;
 }
 
 body:has(.saito-container.rustscript) .rustscript-overlay {
-  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
+  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x)
+    var(--rs-overlay-padding-bottom);
   color: #ececec;
-  background: var(--rustscript-surface);
+  background-color: var(--rustscript-surface, #181818);
+  background-image: none;
   width: min(820px, 94vw);
   max-width: 94vw;
   display: flex;
   flex-direction: column;
   gap: var(--rs-overlay-gap);
   box-sizing: border-box;
-  font-size: 16px;
+  font-size: var(--rs-overlay-body-size, var(--font-size-medium));
 }
 
 body:has(.saito-container.rustscript) .rustscript-overlay h2,
@@ -45,10 +48,10 @@ body:has(.saito-container.rustscript) .rustscript-overlay label,
 body:has(.saito-container.rustscript) .rustscript-overlay .rs-prompt-label,
 body:has(.saito-container.rustscript) .rustscript-overlay .rs-overlay-hint {
   font-family: var(--rustscript-font-mono);
-  font-size: 13px;
+  font-size: var(--rs-overlay-label-size, var(--font-size-tiny));
   font-weight: 600;
   color: #a8a8a8;
-  margin: 0 0 8px;
+  margin: 0 0 var(--saito-space-sm);
   display: block;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -58,10 +61,10 @@ body:has(.saito-container.rustscript) .rustscript-overlay textarea,
 body:has(.saito-container.rustscript) .rustscript-overlay .rs-expert-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 14px 16px;
+  padding: var(--saito-space-md) var(--saito-space-lg);
   min-height: 140px;
   font-family: var(--rustscript-font-mono);
-  font-size: 15px;
+  font-size: var(--rs-overlay-input-font-size, var(--font-size-medium));
   font-weight: 500;
   line-height: 1.45;
   background: #0c0c0c;
@@ -102,10 +105,10 @@ body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-single
 body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-number-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 14px 16px;
+  padding: var(--saito-space-md) var(--saito-space-lg);
   min-height: var(--rs-control-height);
   font-family: var(--rustscript-font-mono);
-  font-size: 15px;
+  font-size: var(--rs-overlay-input-font-size, var(--font-size-medium));
   font-weight: 500;
   line-height: 1.45;
   background: #0c0c0c;
@@ -142,9 +145,9 @@ body:has(.saito-container.rustscript) .overlay-actions-split .rs-prompt-apply {
 
 body:has(.saito-container.rustscript) .rs-prompt-validation {
   margin: 0;
-  padding: 10px 12px;
+  padding: var(--saito-space-sm) var(--saito-space-md);
   border-radius: var(--rs-control-radius, 4px);
-  font-size: 14px;
+  font-size: var(--font-size-medium);
   line-height: 1.45;
   color: #f0c878;
   background: rgba(252, 163, 17, 0.12);
@@ -179,7 +182,7 @@ body:has(.saito-container.rustscript) .rs-prompt-number-field {
 
 body:has(.saito-container.rustscript) .rs-prompt-number-input {
   min-height: var(--rs-control-height);
-  font-size: 15px;
+  font-size: var(--rs-overlay-input-font-size, var(--font-size-medium));
 }
 
 body:has(.saito-container.rustscript) .rs-prompt-generic-input {
@@ -190,13 +193,13 @@ body:has(.saito-container.rustscript) .rs-prompt-logical-select {
   width: 100%;
   box-sizing: border-box;
   height: var(--rs-control-height);
-  padding: 0 36px 0 16px;
+  padding: 0 36px 0 var(--saito-space-lg);
   border: 1px solid #4a4a4a;
   border-radius: var(--rs-control-radius, 4px);
   background: #0c0c0c;
   color: #efefef;
   font-family: var(--rustscript-font-mono);
-  font-size: 15px;
+  font-size: var(--rs-overlay-input-font-size, var(--font-size-medium));
   font-weight: 700;
   letter-spacing: 0.06em;
   appearance: none;
@@ -209,11 +212,11 @@ body:has(.saito-container.rustscript) .rs-prompt-logical-select {
 
 body:has(.saito-container.rustscript) .rs-prompt-logical-explain {
   margin: 6px 0 0;
-  padding: 14px 16px;
+  padding: var(--saito-space-md) var(--saito-space-lg);
   border-radius: var(--rs-control-radius, 4px);
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 15px;
+  font-size: var(--font-size-medium);
   line-height: 1.55;
   color: #c8c8c8;
 }
@@ -229,12 +232,12 @@ body:has(.saito-container.rustscript) .rs-prompt-hash-output {
   flex: 1;
   min-height: 56px;
   margin: 0;
-  padding: 14px 16px;
+  padding: var(--saito-space-md) var(--saito-space-lg);
   border-radius: var(--rs-control-radius, 4px);
   border: 1px solid rgba(92, 184, 106, 0.35);
   background: #080808;
   font-family: var(--rustscript-font-mono);
-  font-size: 14px;
+  font-size: var(--font-size-medium);
   font-weight: 500;
   line-height: 1.5;
   color: #b8f0c0;
@@ -284,7 +287,7 @@ body:has(.saito-container.rustscript) .rs-prompt-publickey-field {
 
 body:has(.saito-container.rustscript) .rs-prompt-publickey-input {
   min-height: var(--rs-control-height);
-  font-size: 15px;
+  font-size: var(--rs-overlay-input-font-size, var(--font-size-medium));
 }
 
 body:has(.saito-container.rustscript) .rs-prompt-sign-wallet {
@@ -295,13 +298,13 @@ body:has(.saito-container.rustscript) .rs-prompt-sign-wallet {
 body:has(.saito-container.rustscript) .rs-prompt-signature-readonly {
   width: 100%;
   box-sizing: border-box;
-  padding: 14px 16px;
+  padding: var(--saito-space-md) var(--saito-space-lg);
   min-height: var(--rs-control-height);
   border-radius: var(--rs-control-radius, 4px);
   border: 1px solid #4a4a4a;
   background: #080808;
   font-family: var(--rustscript-font-mono);
-  font-size: 14px;
+  font-size: var(--font-size-medium);
   font-weight: 500;
   line-height: 1.45;
   color: #d8d8d8;

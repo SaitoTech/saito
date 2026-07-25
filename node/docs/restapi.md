@@ -2,11 +2,11 @@
 
 ## Table of Content
 
--   [REST API](#REST-API)
-    -   [Websocket Connection](#Websocket-Connection)
-    -   [Peer Requests](#Peer-Requests)
-    -   [Block Data Endpoints](#Block-Data-endpoints)
-    -   [Other RESTFUL Endpoints](#Other-RESTFUL-Endpoints)
+- [REST API](#REST-API)
+  - [Websocket Connection](#Websocket-Connection)
+  - [Peer Requests](#Peer-Requests)
+  - [Block Data Endpoints](#Block-Data-endpoints)
+  - [Other RESTFUL Endpoints](#Other-RESTFUL-Endpoints)
 
 The API for interacting with Saito's Core code is quite minimalistic. Additional APIs will be provided later through modules which nodes can opt to install or not depending on their preferences. The Saito philosophy is always that nodes only provide the services which they are incentived to provide.
 
@@ -217,8 +217,8 @@ This message informs the peer that a new block has been found or that the peer s
 
 **Message Data**:
 
--   bhash: the block hash
--   bid: the block id
+- bhash: the block hash
+- bid: the block id
 
 **Example**:
 
@@ -232,8 +232,8 @@ This message requests a block from the peer. The peer will then reply with a 'bl
 
 **Message Data**:
 
--   hash: from hash
--   last_hash: to hash
+- hash: from hash
+- last_hash: to hash
 
 **Example**:
 
@@ -247,11 +247,11 @@ This message sends arrays of data which indicate to a lite client which blocks i
 
 **Message Data**:
 
--   start: previous block hash of starting block
--   prehash: array of hashes of block signatures
--   bid: array of block ids
--   ts: array of timestamps
--   txs: array of 0 and 1 indicating if block contains tx related to keylist
+- start: previous block hash of starting block
+- prehash: array of hashes of block signatures
+- bid: array of block ids
+- ts: array of timestamps
+- txs: array of 0 and 1 indicating if block contains tx related to keylist
 
 **Example**:
 
@@ -272,11 +272,11 @@ This message is used to send a transaction to a peer.
 
 **Message Data**:
 
--   start: previous block hash of starting block
--   prehash: array of hashes of block signatures
--   bid: array of block ids
--   ts: array of timestamps
--   txs: array of 0 and 1 indicating if block contains tx related to keylist
+- start: previous block hash of starting block
+- prehash: array of hashes of block signatures
+- bid: array of block ids
+- ts: array of timestamps
+- txs: array of 0 and 1 indicating if block contains tx related to keylist
 
 **Example**:
 
@@ -289,7 +289,7 @@ peer.sendRequest("transaction, JSON.stringify(tx.transaction));
 
 **Message Data**:
 
--   [array of pubkeys]
+- [array of pubkeys]
 
 **Example**:
 

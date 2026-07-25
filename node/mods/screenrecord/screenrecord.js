@@ -7,760 +7,762 @@ const ScreenRecordControls = require('./lib/screenrecord-lite-controls');
 // requiring them, causing "X is not defined" errors in browser/bundler
 // contexts. Exposing the classes globally before loading lamejs fixes it.
 if (typeof globalThis !== 'undefined') {
-	if (typeof globalThis.MPEGMode === 'undefined') {
-		globalThis.MPEGMode = require('lamejs/src/js/MPEGMode');
-	}
-	if (typeof globalThis.Lame === 'undefined') {
-		globalThis.Lame = require('lamejs/src/js/Lame');
-	}
-	if (typeof globalThis.BitStream === 'undefined') {
-		globalThis.BitStream = require('lamejs/src/js/BitStream');
-	}
+  if (typeof globalThis.MPEGMode === 'undefined') {
+    globalThis.MPEGMode = require('lamejs/src/js/MPEGMode');
+  }
+  if (typeof globalThis.Lame === 'undefined') {
+    globalThis.Lame = require('lamejs/src/js/Lame');
+  }
+  if (typeof globalThis.BitStream === 'undefined') {
+    globalThis.BitStream = require('lamejs/src/js/BitStream');
+  }
 }
 const lamejs = require('lamejs');
 const SaitoVideoBox = require('../../lib/saito/ui/saito-videobox/video-box');
 
 class Record extends ModTemplate {
-	constructor(app) {
-		super(app);
-		this.app = app;
-		this.name = 'Screenrecord';
-		this.slug = 'screenrecord';
-		this.description = 'Recording Module';
-		this.categories = 'Utilities Communications';
-		this.class = 'utility';
-		this.record_video = false;
+  constructor(app) {
+    super(app);
+    this.app = app;
+    this.name = 'Screenrecord';
+    this.slug = 'screenrecord';
+    this.description = 'Recording Module';
+    this.categories = 'Utilities Communications';
+    this.class = 'utility';
+    this.record_video = false;
 
-		this.styles = ['/screenrecord/style.css'];
-		this.streamData = [];
-		this.chunks = [];
-		this.mediaRecorder = null;
-		this.is_capturing_stream = false;
+    this.styles = ['/screenrecord/style.css'];
+    this.streamData = [];
+    this.chunks = [];
+    this.mediaRecorder = null;
+    this.is_capturing_stream = false;
 
-		//
-		// NOTE: there is deliberately no mid-recording stream swap here. The
-		// StreamCapturer records through a stable canvas track + audio mixer
-		// track, so layout changes and joining/leaving participants never
-		// require restarting the MediaRecorder (which would either discard
-		// earlier chunks or concatenate webm segments most players can't read).
-		//
+    //
+    // NOTE: there is deliberately no mid-recording stream swap here. The
+    // StreamCapturer records through a stable canvas track + audio mixer
+    // track, so layout changes and joining/leaving participants never
+    // require restarting the MediaRecorder (which would either discard
+    // earlier chunks or concatenate webm segments most players can't read).
+    //
 
-		this.app.connection.on('interrupt-screen-recording', async () => {
-			// Don't stop until the game ends...
-			if (this.type === 'game') return;
+    this.app.connection.on('interrupt-screen-recording', async () => {
+      // Don't stop until the game ends...
+      if (this.type === 'game') return;
 
-			if (this?.mediaRecorder) {
-				await this.stopRecording();
-			}
-		});
+      if (this?.mediaRecorder) {
+        await this.stopRecording();
+      }
+    });
 
-		//
-		// Someone joined the call after we started recording -- they never got
-		// the original 'start recording' message, so tell them now (and add
-		// them to members so our eventual 'stop recording' reaches them too)
-		//
-		this.app.connection.on('videocall-add-party', (publicKey) => {
-			if (!this.mediaRecorder || this.type !== 'videocall') {
-				return;
-			}
-			if (publicKey === this.publicKey) {
-				return;
-			}
-			if (!this.members.includes(publicKey)) {
-				this.members.push(publicKey);
-			}
-			this.sendStartRecordingTransaction([publicKey], true);
-		});
-	}
+    //
+    // Someone joined the call after we started recording -- they never got
+    // the original 'start recording' message, so tell them now (and add
+    // them to members so our eventual 'stop recording' reaches them too)
+    //
+    this.app.connection.on('videocall-add-party', (publicKey) => {
+      if (!this.mediaRecorder || this.type !== 'videocall') {
+        return;
+      }
+      if (publicKey === this.publicKey) {
+        return;
+      }
+      if (!this.members.includes(publicKey)) {
+        this.members.push(publicKey);
+      }
+      this.sendStartRecordingTransaction([publicKey], true);
+    });
+  }
 
-	respondTo(type, obj) {
-		if (type === 'record-actions') {
-			this.attachStyleSheets();
-			super.render(this.app, this);
-			let is_recording = false;
-			if (this.mediaRecorder) {
-				is_recording = true;
-			}
+  respondTo(type, obj) {
+    if (type === 'record-actions') {
+      this.attachStyleSheets();
+      super.render(this.app, this);
+      let is_recording = false;
+      if (this.mediaRecorder) {
+        is_recording = true;
+      }
 
-			return [
-				{
-					text: 'Record',
-					icon: `fas fa-record-vinyl record-icon ${this.mediaRecorder ? 'recording' : ''}`,
-					hook: `record-container ${this.mediaRecorder ? 'recording' : ''}`,
-					callback: async function (app) {
-						let { container, streams, useMicrophone, callbackAfterRecord, members } = obj;
-						if (container) {
-							if (!this.mediaRecorder) {
-								let screenRecordWizard = new screenrecordWizard(this.app, this, {
-									container,
-									members,
-									callbackAfterRecord,
-									type: 'videocall'
-								});
-								screenRecordWizard.render();
-							} else {
-								this.stopRecording();
-							}
-						}
-					}.bind(this)
-				}
-			];
-		}
+      return [
+        {
+          text: 'Record',
+          icon: `fas fa-record-vinyl record-icon ${this.mediaRecorder ? 'recording' : ''}`,
+          hook: `record-container ${this.mediaRecorder ? 'recording' : ''}`,
+          callback: async function (app) {
+            let { container, streams, useMicrophone, callbackAfterRecord, members } = obj;
+            if (container) {
+              if (!this.mediaRecorder) {
+                let screenRecordWizard = new screenrecordWizard(this.app, this, {
+                  container,
+                  members,
+                  callbackAfterRecord,
+                  type: 'videocall'
+                });
+                screenRecordWizard.render();
+              } else {
+                this.stopRecording();
+              }
+            }
+          }.bind(this)
+        }
+      ];
+    }
 
-		if (type === 'screenrecord-videocall-limbo') {
-			this.attachStyleSheets();
-			super.render(this.app, this);
-			let is_recording = false;
-			if (this.mediaRecorder) {
-				is_recording = true;
-			}
+    if (type === 'screenrecord-videocall-limbo') {
+      this.attachStyleSheets();
+      super.render(this.app, this);
+      let is_recording = false;
+      if (this.mediaRecorder) {
+        is_recording = true;
+      }
 
-			return {
-				startStreamingVideoCall: async () => {
-					try {
-						this.videoCallStreamCapturer = new StreamCapturer(this.app, this, this.logo);
-						let stream = this.videoCallStreamCapturer.captureVideoCallStreams(true);
-						return stream;
-					} catch (error) {
-						console.log('error streaming video call', error);
-					}
-				},
+      return {
+        startStreamingVideoCall: async () => {
+          try {
+            this.videoCallStreamCapturer = new StreamCapturer(this.app, this, this.logo);
+            let stream = this.videoCallStreamCapturer.captureVideoCallStreams(true);
+            return stream;
+          } catch (error) {
+            console.log('error streaming video call', error);
+          }
+        },
 
-				stopStreamingVideoCall: async () => {
-					if (this.videoCallStreamCapturer) {
-						this.videoCallStreamCapturer.stopCaptureVideoCallStreams();
-						this.videoCallStreamCapturer = null;
-					} else {
-						console.log('No stream to stop?');
-					}
-				}
-			};
-		}
-		if (type === 'screenrecord-game-limbo') {
-			this.attachStyleSheets();
-			super.render(this.app, this);
-			let is_recording = false;
-			if (this.mediaRecorder) {
-				is_recording = true;
-			}
+        stopStreamingVideoCall: async () => {
+          if (this.videoCallStreamCapturer) {
+            this.videoCallStreamCapturer.stopCaptureVideoCallStreams();
+            this.videoCallStreamCapturer = null;
+          } else {
+            console.log('No stream to stop?');
+          }
+        }
+      };
+    }
+    if (type === 'screenrecord-game-limbo') {
+      this.attachStyleSheets();
+      super.render(this.app, this);
+      let is_recording = false;
+      if (this.mediaRecorder) {
+        is_recording = true;
+      }
 
-			return {
-				startStreamingGame: async (options) => {
-					let stream;
-					try {
-						let { includeCamera, container } = options;
-						this.gameStreamCapturer = new StreamCapturer(this.app, this, this.logo);
-						this.gameStreamCapturer.view_window = container;
-						stream = await this.gameStreamCapturer.captureGameStream(includeCamera);
-						stream;
+      return {
+        startStreamingGame: async (options) => {
+          let stream;
+          try {
+            let { includeCamera, container } = options;
+            this.gameStreamCapturer = new StreamCapturer(this.app, this, this.logo);
+            this.gameStreamCapturer.view_window = container;
+            stream = await this.gameStreamCapturer.captureGameStream(includeCamera);
+            stream;
 
-						this.is_streaming_game = true;
-						return stream;
-					} catch (error) {
-						console.log('error streaming video call', error);
-					}
-				},
+            this.is_streaming_game = true;
+            return stream;
+          } catch (error) {
+            console.log('error streaming video call', error);
+          }
+        },
 
-				stopStreamingGame: async () => {
-					this.is_streaming_game = false;
-					if (this.gameStreamCapturer) {
-						this.gameStreamCapturer.stopCaptureGameStream();
-						this.gameStreamCapturer = null;
-					} else {
-						console.log('No stream to stop?');
-					}
-				},
+        stopStreamingGame: async () => {
+          this.is_streaming_game = false;
+          if (this.gameStreamCapturer) {
+            this.gameStreamCapturer.stopCaptureGameStream();
+            this.gameStreamCapturer = null;
+          } else {
+            console.log('No stream to stop?');
+          }
+        },
 
-				isCapturingStream: () => {
-					if (this.gameStreamCapturer) {
-						return this.gameStreamCapturer.is_capturing_stream;
-					} else {
-						return false;
-					}
-				}
-			};
-		}
+        isCapturingStream: () => {
+          if (this.gameStreamCapturer) {
+            return this.gameStreamCapturer.is_capturing_stream;
+          } else {
+            return false;
+          }
+        }
+      };
+    }
 
-		if (type === 'game-menu') {
-			this.attachStyleSheets();
-			if (!obj.recordOptions) return;
-			if (obj.recordOptions.active === false) {
-				return;
-			}
-			let menu = {
-				//id: 'game-share',
-				//text: 'Share',
-				submenus: []
-			};
+    if (type === 'game-menu') {
+      this.attachStyleSheets();
+      if (!obj.recordOptions) return;
+      if (obj.recordOptions.active === false) {
+        return;
+      }
+      let menu = {
+        //id: 'game-share',
+        //text: 'Share',
+        submenus: []
+      };
 
-			menu.submenus.push({
-				parent: 'game-share',
-				text: 'Record game',
-				id: 'record-stream',
-				class: 'record-stream',
-				callback: async function (app, game_mod) {
-					let { container, callbackAfterRecord } = game_mod.recordOptions;
-					if (!this.mediaRecorder) {
-						let screenRecordWizard = new screenrecordWizard(this.app, this, {
-							container,
-							members: game_mod.game.players,
-							callbackAfterRecord,
-							type: 'game'
-						});
-						screenRecordWizard.render();
-						game_mod.menu.hideSubMenus();
-					} else {
-						this.stopRecording();
-					}
-				}.bind(this)
-			});
+      menu.submenus.push({
+        parent: 'game-share',
+        text: 'Record game',
+        id: 'record-stream',
+        class: 'record-stream',
+        callback: async function (app, game_mod) {
+          let { container, callbackAfterRecord } = game_mod.recordOptions;
+          if (!this.mediaRecorder) {
+            let screenRecordWizard = new screenrecordWizard(this.app, this, {
+              container,
+              members: game_mod.game.players,
+              callbackAfterRecord,
+              type: 'game'
+            });
+            screenRecordWizard.render();
+            game_mod.menu.hideSubMenus();
+          } else {
+            this.stopRecording();
+          }
+        }.bind(this)
+      });
 
-			return menu;
-		}
+      return menu;
+    }
 
-		// if (type === "dream-controls") {
-		// 	let audioEnabled = true;
-		// 	let videoIcon = this.videoBox ? "fas fa-video" : "fas fa-video-slash";
-		// 	let audioIcon =  audioEnabled ? "fas fa-microphone" : 'fas fa-microphone-slash';
+    // if (type === "dream-controls") {
+    // 	let audioEnabled = true;
+    // 	let videoIcon = this.videoBox ? "fas fa-video" : "fas fa-video-slash";
+    // 	let audioIcon =  audioEnabled ? "fas fa-microphone" : 'fas fa-microphone-slash';
 
-		// 	const streams = this.app.modules.getRespondTos('media-request');
+    // 	const streams = this.app.modules.getRespondTos('media-request');
 
-		// 	let x = [
-		// 		{
-		// 			text: `Video control`,
-		// 			icon: videoIcon,
-		// 			callback: (app, id, combined_stream) => {
-		// 				const iconElement = document.querySelector(`#dream_controls_menu_item_${id} i`);
-		// 				if (this.videoBox) {
-		// 					this.removeVideoBox(true);
-		// 					iconElement.classList.replace('fa-video', 'fa-video-slash');
-		// 				} else {
-		// 					this.getOrCreateVideoBox();
-		// 					iconElement.classList.replace('fa-video-slash', 'fa-video');
-		// 				}
-		// 			},
-		// 			style: ""
-		// 		},
-		// 		{
-		// 			text: `Audio control`,
-		// 			icon: audioIcon,
-		// 			callback: (app, id, combined_stream) => {
-		// 				const iconElement = document.querySelector(`#dream_controls_menu_item_${id} i`);
-		// 				let audioEnabled;
-		// 				if(this.gameStreamCapturer.localStream){
-		// 					audioEnabled = true
-		// 				}else {
-		// 					audioEnabled = false
-		// 				}
-		// 				if (audioEnabled) {
-		// 					iconElement.classList.replace('fa-microphone', 'fa-microphone-slash');
-		// 					this.gameStreamCapturer.stopLocalAudio()
-		// 				} else {
-		// 					iconElement.classList.replace('fa-microphone-slash', 'fa-microphone');
-		// 					this.gameStreamCapturer.getLocalAudio()
-		// 				}
-		// 			},
-		// 			style: ""
-		// 		}
-		// 	];
+    // 	let x = [
+    // 		{
+    // 			text: `Video control`,
+    // 			icon: videoIcon,
+    // 			callback: (app, id, combined_stream) => {
+    // 				const iconElement = document.querySelector(`#dream_controls_menu_item_${id} i`);
+    // 				if (this.videoBox) {
+    // 					this.removeVideoBox(true);
+    // 					iconElement.classList.replace('fa-video', 'fa-video-slash');
+    // 				} else {
+    // 					this.getOrCreateVideoBox();
+    // 					iconElement.classList.replace('fa-video-slash', 'fa-video');
+    // 				}
+    // 			},
+    // 			style: ""
+    // 		},
+    // 		{
+    // 			text: `Audio control`,
+    // 			icon: audioIcon,
+    // 			callback: (app, id, combined_stream) => {
+    // 				const iconElement = document.querySelector(`#dream_controls_menu_item_${id} i`);
+    // 				let audioEnabled;
+    // 				if(this.gameStreamCapturer.localStream){
+    // 					audioEnabled = true
+    // 				}else {
+    // 					audioEnabled = false
+    // 				}
+    // 				if (audioEnabled) {
+    // 					iconElement.classList.replace('fa-microphone', 'fa-microphone-slash');
+    // 					this.gameStreamCapturer.stopLocalAudio()
+    // 				} else {
+    // 					iconElement.classList.replace('fa-microphone-slash', 'fa-microphone');
+    // 					this.gameStreamCapturer.getLocalAudio()
+    // 				}
+    // 			},
+    // 			style: ""
+    // 		}
+    // 	];
 
-		// 	// Hide icons if videocall streams exist
-		// 	if (streams.length > 0) {
-		// 		x.forEach(control => {
-		// 			control.style = 'hidden-control';
-		// 		});
-		// 	}
+    // 	// Hide icons if videocall streams exist
+    // 	if (streams.length > 0) {
+    // 		x.forEach(control => {
+    // 			control.style = 'hidden-control';
+    // 		});
+    // 	}
 
-		// 	return x;
-		// }
-	}
+    // 	return x;
+    // }
+  }
 
-	async handlePeerTransaction(app, tx = null, peer, mycallback) {
-		if (tx == null) {
-			return;
-		}
-		let message = tx.returnMessage();
+  async handlePeerTransaction(app, tx = null, peer, mycallback) {
+    if (tx == null) {
+      return;
+    }
+    let message = tx.returnMessage();
 
-		if (message.module === 'screenrecord') {
-			if (this.app.BROWSER === 1) {
-				if (this.hasSeenTransaction(tx)) return;
-				if (tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
-					this.receiveRecordingMessage(message, tx.from[0].publicKey);
-				}
-			}
-		}
-	}
+    if (message.module === 'screenrecord') {
+      if (this.app.BROWSER === 1) {
+        if (this.hasSeenTransaction(tx)) return;
+        if (tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
+          this.receiveRecordingMessage(message, tx.from[0].publicKey);
+        }
+      }
+    }
+  }
 
-	onConfirmation(blk, tx, conf) {
-		if (tx == null) {
-			return;
-		}
+  onConfirmation(blk, tx, conf) {
+    if (tx == null) {
+      return;
+    }
 
-		let message = tx.returnMessage();
-		if (conf == 0) {
-			if (message.module === 'screenrecord') {
-				if (this.app.BROWSER === 1) {
-					if (this.hasSeenTransaction(tx, blk)) return;
+    let message = tx.returnMessage();
+    if (conf == 0) {
+      if (message.module === 'screenrecord') {
+        if (this.app.BROWSER === 1) {
+          if (this.hasSeenTransaction(tx, blk)) return;
 
-					if (tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
-						this.receiveRecordingMessage(message, tx.from[0].publicKey);
-					}
-				}
-			}
-		}
-	}
+          if (tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
+            this.receiveRecordingMessage(message, tx.from[0].publicKey);
+          }
+        }
+      }
+    }
+  }
 
-	//
-	// Shared handling for recording signals, which arrive over relay (instant)
-	// and may be re-delivered on chain -- hasSeenTransaction dedupes the pair
-	//
-	receiveRecordingMessage(message, sender) {
-		let username = this.app.keychain.returnUsername(sender);
+  //
+  // Shared handling for recording signals, which arrive over relay (instant)
+  // and may be re-delivered on chain -- hasSeenTransaction dedupes the pair
+  //
+  receiveRecordingMessage(message, sender) {
+    let username = this.app.keychain.returnUsername(sender);
 
-		if (message.request === 'recording countdown') {
-			this.showCountdown(message.seconds || 5, sender);
-		}
+    if (message.request === 'recording countdown') {
+      this.showCountdown(message.seconds || 5, sender);
+    }
 
-		if (message.request === 'start recording') {
-			//
-			// message.ongoing means we joined a call that was already being
-			// recorded -- word it in the present tense
-			//
-			siteMessage(
-				message.ongoing
-					? `${username} is recording this call`
-					: `${username} started recording their screen`,
-				2500
-			);
-			this.updateUIForRecordingStart(sender);
-		}
+    if (message.request === 'start recording') {
+      //
+      // message.ongoing means we joined a call that was already being
+      // recorded -- word it in the present tense
+      //
+      siteMessage(
+        message.ongoing
+          ? `${username} is recording this call`
+          : `${username} started recording their screen`,
+        2500
+      );
+      this.updateUIForRecordingStart(sender);
+    }
 
-		if (message.request === 'stop recording') {
-			siteMessage(`${username} stopped recording their screen`, 1500);
-			this.updateUIForRecordingStop();
-		}
-	}
+    if (message.request === 'stop recording') {
+      siteMessage(`${username} stopped recording their screen`, 1500);
+      this.updateUIForRecordingStop();
+    }
+  }
 
-	onPeerHandshakeComplete() {
-		if (this.app.BROWSER === 1) {
-			this.logo = new Image();
-			this.logo.src = '/saito/img/logo.svg';
-		}
-	}
+  onPeerHandshakeComplete() {
+    if (this.app.BROWSER === 1) {
+      this.logo = new Image();
+      this.logo.src = '/saito/img/logo.svg';
+    }
+  }
 
-	async getOrCreateVideoBox(stream) {
-		if (!this.videoBox) {
-			const streams = this.app.modules.getRespondTos('media-request');
-			if (streams.length > 0) return;
+  async getOrCreateVideoBox(stream) {
+    if (!this.videoBox) {
+      const streams = this.app.modules.getRespondTos('media-request');
+      if (streams.length > 0) return;
 
-			this.localStream = await navigator.mediaDevices.getUserMedia({
-				video: true
-			});
-			let stream_id = `stream_${this.publicKey}`;
-			this.videoBox = new SaitoVideoBox(this.app, this, this.publicKey);
-			this.videoBox.render(this.localStream);
-			let videoElement = document.querySelector('.saito-videobox');
-			if (videoElement) {
-				videoElement.style.position = 'absolute';
-				videoElement.style.top = '100px';
-				videoElement.style.width = '350px';
-				videoElement.style.height = '350px';
-				videoElement.style.resize = 'both';
-				videoElement.style.overflow = 'auto';
-				videoElement.classList.add('game-video-box');
-				this.app.browser.makeDraggable(stream_id);
-			}
-		}
-		return this.videoBox;
-	}
+      this.localStream = await navigator.mediaDevices.getUserMedia({
+        video: true
+      });
+      let stream_id = `stream_${this.publicKey}`;
+      this.videoBox = new SaitoVideoBox(this.app, this, this.publicKey);
+      this.videoBox.render(this.localStream);
+      let videoElement = document.querySelector('.saito-videobox');
+      if (videoElement) {
+        videoElement.style.position = 'absolute';
+        videoElement.style.top = '100px';
+        videoElement.style.width = '350px';
+        videoElement.style.height = '350px';
+        videoElement.style.resize = 'both';
+        videoElement.style.overflow = 'auto';
+        videoElement.classList.add('game-video-box');
+        this.app.browser.makeDraggable(stream_id);
+      }
+    }
+    return this.videoBox;
+  }
 
-	removeVideoBox(forceRemove = false) {
-		if (!forceRemove) {
-			if (this.is_recording_game || this.is_streaming_game) {
-				return;
-			}
-			if (this.videoBox) {
-				this.localStream.getTracks().forEach((track) => {
-					track.stop();
-				});
-				this.localStream = null;
-				this.videoBox.remove();
-				this.videoBox = null;
-			}
-		} else {
-			if (this.videoBox) {
-				this.localStream.getTracks().forEach((track) => {
-					track.stop();
-				});
-				this.localStream = null;
-				this.videoBox.remove();
-				this.videoBox = null;
-			}
-		}
-	}
+  removeVideoBox(forceRemove = false) {
+    if (!forceRemove) {
+      if (this.is_recording_game || this.is_streaming_game) {
+        return;
+      }
+      if (this.videoBox) {
+        this.localStream.getTracks().forEach((track) => {
+          track.stop();
+        });
+        this.localStream = null;
+        this.videoBox.remove();
+        this.videoBox = null;
+      }
+    } else {
+      if (this.videoBox) {
+        this.localStream.getTracks().forEach((track) => {
+          track.stop();
+        });
+        this.localStream = null;
+        this.videoBox.remove();
+        this.videoBox = null;
+      }
+    }
+  }
 
-	async initializeMediaRecorder(stream) {
-		//
-		// each recording starts fresh -- chunks from a previous session would
-		// corrupt the output file
-		//
-		this.chunks = [];
-		let mimeType =
-			stream.getVideoTracks().length > 0
-				? 'video/webm; codecs="vp8, opus"'
-				: 'audio/webm; codecs="opus"';
+  async initializeMediaRecorder(stream) {
+    //
+    // each recording starts fresh -- chunks from a previous session would
+    // corrupt the output file
+    //
+    this.chunks = [];
+    let mimeType =
+      stream.getVideoTracks().length > 0
+        ? 'video/webm; codecs="vp8, opus"'
+        : 'audio/webm; codecs="opus"';
 
-		let options = {
-			mimeType: mimeType,
-			videoBitsPerSecond: stream.getVideoTracks().length > 0 ? 1.5 * 1024 * 1024 : undefined,
-			audioBitsPerSecond: 320 * 1024
-		};
+    let options = {
+      mimeType: mimeType,
+      videoBitsPerSecond: stream.getVideoTracks().length > 0 ? 1.5 * 1024 * 1024 : undefined,
+      audioBitsPerSecond: 320 * 1024
+    };
 
-		try {
-			if (MediaRecorder.isTypeSupported(mimeType)) {
-				this.mediaRecorder = new MediaRecorder(stream, options);
-			} else {
-				console.warn(`${mimeType} is not supported, using default codec`);
-				this.mediaRecorder = new MediaRecorder(stream);
-			}
+    try {
+      if (MediaRecorder.isTypeSupported(mimeType)) {
+        this.mediaRecorder = new MediaRecorder(stream, options);
+      } else {
+        console.warn(`${mimeType} is not supported, using default codec`);
+        this.mediaRecorder = new MediaRecorder(stream);
+      }
 
-			this.mediaRecorder.onstart = (event) => {
-				console.log('media recorder started');
-			};
-			this.mediaRecorder.ondataavailable = (event) => {
-				if (event.data.size > 0) {
-					console.log('new data available', event.data);
-					this.chunks.push(event.data);
-				}
-			};
+      this.mediaRecorder.onstart = (event) => {
+        console.log('media recorder started');
+      };
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          console.log('new data available', event.data);
+          this.chunks.push(event.data);
+        }
+      };
 
-			this.mediaRecorder.start();
-		} catch (error) {
-			console.error('Error creating MediaRecorder:', error);
-			throw error;
-		}
-	}
+      this.mediaRecorder.start();
+    } catch (error) {
+      console.error('Error creating MediaRecorder:', error);
+      throw error;
+    }
+  }
 
-	async startRecording(options) {
-		let { container, members, callbackAfterRecord, type, includeCamera } = options;
-		console.log(options, 'options');
+  async startRecording(options) {
+    let { container, members, callbackAfterRecord, type, includeCamera } = options;
+    console.log(options, 'options');
 
-		// initialize variables
-		this.type = type;
-		this.members = members;
-		this.recording_target_selector = null;
+    // initialize variables
+    this.type = type;
+    this.members = members;
+    this.recording_target_selector = null;
 
-		if (type === 'videocall') {
-			this.recorderVideoCallStreamCapture = new StreamCapturer(this.app, this, this.logo);
-			this.recorderVideoCallStreamCapture.view_window = '.video-container-large';
-			this.recording_target_selector = this.recorderVideoCallStreamCapture.view_window;
-			let stream = this.recorderVideoCallStreamCapture.captureVideoCallStreams(includeCamera);
-			this.initializeMediaRecorder(stream);
-		} else if (type === 'game') {
-			let stream;
-			this.gameRecordCapturer = new StreamCapturer(this.app, this, this.logo);
-			this.gameRecordCapturer.view_window = container;
-			this.recording_target_selector = container;
-			this.is_recording_game = true;
-			stream = await this.gameRecordCapturer.captureGameStream(includeCamera);
-			this.initializeMediaRecorder(stream);
+    if (type === 'videocall') {
+      this.recorderVideoCallStreamCapture = new StreamCapturer(this.app, this, this.logo);
+      this.recorderVideoCallStreamCapture.view_window = '.video-container-large';
+      this.recording_target_selector = this.recorderVideoCallStreamCapture.view_window;
+      let stream = this.recorderVideoCallStreamCapture.captureVideoCallStreams(includeCamera);
+      this.initializeMediaRecorder(stream);
+    } else if (type === 'game') {
+      let stream;
+      this.gameRecordCapturer = new StreamCapturer(this.app, this, this.logo);
+      this.gameRecordCapturer.view_window = container;
+      this.recording_target_selector = container;
+      this.is_recording_game = true;
+      stream = await this.gameRecordCapturer.captureGameStream(includeCamera);
+      this.initializeMediaRecorder(stream);
 
-			// show controls
-			this.screenrecordControls = new ScreenRecordControls(this.app, this);
-			this.screenrecordControls.render();
-			let recordButton = document.getElementById('record-stream');
-			if (recordButton) {
-				recordButton.textContent = 'Stop recording';
-			}
-		}
+      // show controls
+      this.screenrecordControls = new ScreenRecordControls(this.app, this);
+      this.screenrecordControls.render();
+      let recordButton = document.getElementById('record-stream');
+      if (recordButton) {
+        recordButton.textContent = 'Stop recording';
+      }
+    }
 
-		this.sendStartRecordingTransaction(members);
-		this.updateUIForRecordingStart();
-	}
+    this.sendStartRecordingTransaction(members);
+    this.updateUIForRecordingStart();
+  }
 
-	async downloadMedia(url, type, callbackAfterRecord) {
-		let defaultFileName = type === 'video' ? 'saito_video.webm' : 'saitio_audio.mp3';
-		let placeholder = type === 'video' ? 'saito_video' : 'saito_audio';
-		const a = document.createElement('a');
-		a.style.display = 'none';
-		a.href = url;
-		const fileName =
-			(await sprompt('Please enter a recording name', placeholder)) || defaultFileName;
-		a.download = fileName;
-		document.body.appendChild(a);
-		a.click();
-		setTimeout(() => {
-			document.body.removeChild(a);
-			URL.revokeObjectURL(url);
-		}, 100);
-		// if (callbackAfterRecord) {
-		// 	callbackAfterRecord(blob);
-		// }
-		// this.callbackAfterStopRecording()
-	}
+  async downloadMedia(url, type, callbackAfterRecord) {
+    let defaultFileName = type === 'video' ? 'saito_video.webm' : 'saitio_audio.mp3';
+    let placeholder = type === 'video' ? 'saito_video' : 'saito_audio';
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    const fileName =
+      (await sprompt('Please enter a recording name', placeholder)) || defaultFileName;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    // if (callbackAfterRecord) {
+    // 	callbackAfterRecord(blob);
+    // }
+    // this.callbackAfterStopRecording()
+  }
 
-	async processAudio(blob) {
-		const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-		const arrayBuffer = await blob.arrayBuffer();
-		const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-		const mp3Encoder = new lamejs.Mp3Encoder(1, audioBuffer.sampleRate, 128);
-		const samples = audioBuffer.getChannelData(0);
-		const mp3Data = [];
-		const int16Samples = new Int16Array(samples.length);
-		for (let i = 0; i < samples.length; i++) {
-			int16Samples[i] = samples[i] * 32767; // Convert float to int16
-		}
-		for (let i = 0; i < int16Samples.length; i += 576) {
-			const chunk = int16Samples.subarray(i, i + 576);
-			const mp3buf = mp3Encoder.encodeBuffer(chunk);
-			if (mp3buf.length > 0) {
-				mp3Data.push(new Int8Array(mp3buf));
-			}
-		}
-		const mp3buf = mp3Encoder.flush();
-		if (mp3buf.length > 0) {
-			mp3Data.push(new Int8Array(mp3buf));
-		}
-		const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
-		const url = URL.createObjectURL(mp3Blob);
-		return url;
-	}
+  async processAudio(blob) {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const mp3Encoder = new lamejs.Mp3Encoder(1, audioBuffer.sampleRate, 128);
+    const samples = audioBuffer.getChannelData(0);
+    const mp3Data = [];
+    const int16Samples = new Int16Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      int16Samples[i] = samples[i] * 32767; // Convert float to int16
+    }
+    for (let i = 0; i < int16Samples.length; i += 576) {
+      const chunk = int16Samples.subarray(i, i + 576);
+      const mp3buf = mp3Encoder.encodeBuffer(chunk);
+      if (mp3buf.length > 0) {
+        mp3Data.push(new Int8Array(mp3buf));
+      }
+    }
+    const mp3buf = mp3Encoder.flush();
+    if (mp3buf.length > 0) {
+      mp3Data.push(new Int8Array(mp3buf));
+    }
+    const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+    const url = URL.createObjectURL(mp3Blob);
+    return url;
+  }
 
-	async stopRecording() {
-		if (this.recorderVideoCallStreamCapture) {
-			this.recorderVideoCallStreamCapture.stopCaptureVideoCallStreams();
-			this.recorderVideoCallStreamCapture = null;
-		}
+  async stopRecording() {
+    if (this.recorderVideoCallStreamCapture) {
+      this.recorderVideoCallStreamCapture.stopCaptureVideoCallStreams();
+      this.recorderVideoCallStreamCapture = null;
+    }
 
-		if (this.gameRecordCapturer) {
-			this.is_recording_game = false;
-			this.gameRecordCapturer.stopCaptureGameStream();
-			this.gameRecordCapturer = null;
-		}
+    if (this.gameRecordCapturer) {
+      this.is_recording_game = false;
+      this.gameRecordCapturer.stopCaptureGameStream();
+      this.gameRecordCapturer = null;
+    }
 
-		if (this.screenrecordControls) {
-			this.screenrecordControls.remove();
-			this.screenrecordControls = null;
-		}
+    if (this.screenrecordControls) {
+      this.screenrecordControls.remove();
+      this.screenrecordControls = null;
+    }
 
-		//
-		// Update the UI and tell peers the recording ended NOW -- the filename
-		// prompt in downloadMedia can sit open indefinitely and must not delay
-		// the stop notification
-		//
-		this.updateUIForRecordingStop();
-		this.sendStopRecordingTransaction(this.members);
-		this.members = [];
+    //
+    // Update the UI and tell peers the recording ended NOW -- the filename
+    // prompt in downloadMedia can sit open indefinitely and must not delay
+    // the stop notification
+    //
+    this.updateUIForRecordingStop();
+    this.sendStopRecordingTransaction(this.members);
+    this.members = [];
 
-		if (this.mediaRecorder) {
-			const recorder = this.mediaRecorder;
-			this.mediaRecorder = null;
+    if (this.mediaRecorder) {
+      const recorder = this.mediaRecorder;
+      this.mediaRecorder = null;
 
-			let fn = () => {
-				return new Promise((resolve, reject) => {
-					try {
-						recorder.onstop = async () => {
-							const blob = new Blob(this.chunks, { type: 'video/webm' });
-							const hasVideo = this.chunks.some(
-								(chunk) => chunk.type.includes('video') || chunk.type === 'video/webm'
-							);
+      let fn = () => {
+        return new Promise((resolve, reject) => {
+          try {
+            recorder.onstop = async () => {
+              const blob = new Blob(this.chunks, { type: 'video/webm' });
+              const hasVideo = this.chunks.some(
+                (chunk) => chunk.type.includes('video') || chunk.type === 'video/webm'
+              );
 
-							if (hasVideo) {
-								console.log('chunk has video', this.chunks);
-								const url = URL.createObjectURL(blob);
-								// const url = await this.processVideo(this.chunks);
-								await this.downloadMedia(url, 'video');
-								resolve();
-							} else {
-								let url = await this.processAudio(blob);
-								await this.downloadMedia(url, 'audio');
-								resolve();
-							}
-						};
-					} catch (error) {
-						reject();
-					}
+              if (hasVideo) {
+                console.log('chunk has video', this.chunks);
+                const url = URL.createObjectURL(blob);
+                // const url = await this.processVideo(this.chunks);
+                await this.downloadMedia(url, 'video');
+                resolve();
+              } else {
+                let url = await this.processAudio(blob);
+                await this.downloadMedia(url, 'audio');
+                resolve();
+              }
+            };
+          } catch (error) {
+            reject();
+          }
 
-					recorder.stop();
-				});
-			};
+          recorder.stop();
+        });
+      };
 
-			await fn();
-		}
-		// if (this.localStream) {
-		// 	this.localStream.getTracks().forEach((track) => track.stop());
-		// 	this.localStream = null;
-		// }
+      await fn();
+    }
+    // if (this.localStream) {
+    // 	this.localStream.getTracks().forEach((track) => track.stop());
+    // 	this.localStream = null;
+    // }
 
-		// this.removeVideoBox()
-	}
+    // this.removeVideoBox()
+  }
 
-	//
-	// Full-screen count-in overlay. Shown to the recorder before recording
-	// starts and mirrored to everyone else in the call so nobody is surprised.
-	//
-	showCountdown(seconds = 5, sender = null) {
-		let existingCountdown = document.getElementById('screenrecord-countdown-overlay');
-		if (existingCountdown) {
-			existingCountdown.remove();
-		}
+  //
+  // Full-screen count-in overlay. Shown to the recorder before recording
+  // starts and mirrored to everyone else in the call so nobody is surprised.
+  //
+  showCountdown(seconds = 5, sender = null) {
+    let existingCountdown = document.getElementById('screenrecord-countdown-overlay');
+    if (existingCountdown) {
+      existingCountdown.remove();
+    }
 
-		let label =
-			sender && sender !== this.publicKey
-				? `${this.app.keychain.returnUsername(sender)} starts recording in`
-				: 'Recording starts in';
+    let label =
+      sender && sender !== this.publicKey
+        ? `${this.app.keychain.returnUsername(sender)} starts recording in`
+        : 'Recording starts in';
 
-		let countdown = document.createElement('div');
-		countdown.id = 'screenrecord-countdown-overlay';
-		countdown.className = 'screenrecord-countdown-overlay';
-		countdown.setAttribute('aria-live', 'assertive');
-		countdown.innerHTML = `
+    let countdown = document.createElement('div');
+    countdown.id = 'screenrecord-countdown-overlay';
+    countdown.className = 'screenrecord-countdown-overlay';
+    countdown.setAttribute('aria-live', 'assertive');
+    countdown.innerHTML = `
 			<div class="screenrecord-countdown-label">${label}</div>
 			<div class="screenrecord-countdown-number">${seconds}</div>
 		`;
-		document.body.appendChild(countdown);
+    document.body.appendChild(countdown);
 
-		let countNumber = countdown.querySelector('.screenrecord-countdown-number');
-		let countLabel = countdown.querySelector('.screenrecord-countdown-label');
-		let count = seconds;
+    let countNumber = countdown.querySelector('.screenrecord-countdown-number');
+    let countLabel = countdown.querySelector('.screenrecord-countdown-label');
+    let count = seconds;
 
-		return new Promise((resolve) => {
-			const interval = setInterval(() => {
-				count--;
-				countNumber.textContent = count;
+    return new Promise((resolve) => {
+      const interval = setInterval(() => {
+        count--;
+        countNumber.textContent = count;
 
-				if (count <= 0) {
-					clearInterval(interval);
-					countdown.classList.add('screenrecord-countdown-started');
-					if (countLabel) {
-						countLabel.textContent = 'Recording started';
-					}
-					setTimeout(() => {
-						countdown.remove();
-						resolve();
-					}, 500);
-				}
-			}, 1000);
-		});
-	}
+        if (count <= 0) {
+          clearInterval(interval);
+          countdown.classList.add('screenrecord-countdown-started');
+          if (countLabel) {
+            countLabel.textContent = 'Recording started';
+          }
+          setTimeout(() => {
+            countdown.remove();
+            resolve();
+          }, 500);
+        }
+      }, 1000);
+    });
+  }
 
-	async sendCountdownTransaction(keys = [], seconds = 5) {
-		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
-		try {
-			newtx.msg = {
-				module: 'screenrecord',
-				request: 'recording countdown',
-				seconds
-			};
-			for (let peer of keys) {
-				if (peer != this.publicKey) {
-					newtx.addTo(peer);
-				}
-			}
+  async sendCountdownTransaction(keys = [], seconds = 5) {
+    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
+    try {
+      newtx.msg = {
+        module: 'screenrecord',
+        request: 'recording countdown',
+        seconds
+      };
+      for (let peer of keys) {
+        if (peer != this.publicKey) {
+          newtx.addTo(peer);
+        }
+      }
 
-			await newtx.sign();
+      await newtx.sign();
 
-			this.app.connection.emit('relay-transaction', newtx);
-		} catch (error) {
-			console.log('error sending recording countdown transaction', error);
-		}
-	}
+      this.app.connection.emit('relay-transaction', newtx);
+    } catch (error) {
+      console.log('error sending recording countdown transaction', error);
+    }
+  }
 
-	async sendStartRecordingTransaction(keys, ongoing = false) {
-		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
-		try {
-			newtx.msg = {
-				module: 'screenrecord',
-				request: 'start recording',
-				// true when notifying a late joiner that recording is already underway
-				ongoing
-			};
-			for (let peer of keys) {
-				if (peer != this.publicKey) {
-					newtx.addTo(peer);
-				}
-			}
+  async sendStartRecordingTransaction(keys, ongoing = false) {
+    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
+    try {
+      newtx.msg = {
+        module: 'screenrecord',
+        request: 'start recording',
+        // true when notifying a late joiner that recording is already underway
+        ongoing
+      };
+      for (let peer of keys) {
+        if (peer != this.publicKey) {
+          newtx.addTo(peer);
+        }
+      }
 
-			await newtx.sign();
+      await newtx.sign();
 
-			this.app.connection.emit('relay-transaction', newtx);
-			this.app.network.propagateTransaction(newtx);
-		} catch (error) {
-			console.log('error sending start recording transaction', error);
-		}
-	}
+      this.app.connection.emit('relay-transaction', newtx);
+      this.app.network.propagateTransaction(newtx);
+    } catch (error) {
+      console.log('error sending start recording transaction', error);
+    }
+  }
 
-	async sendStopRecordingTransaction(keys) {
-		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
+  async sendStopRecordingTransaction(keys) {
+    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
 
-		newtx.msg = {
-			module: 'screenrecord',
-			request: 'stop recording'
-		};
+    newtx.msg = {
+      module: 'screenrecord',
+      request: 'stop recording'
+    };
 
-		for (let peer of keys) {
-			if (peer != this.publicKey) {
-				newtx.addTo(peer);
-			}
-		}
+    for (let peer of keys) {
+      if (peer != this.publicKey) {
+        newtx.addTo(peer);
+      }
+    }
 
-		await newtx.sign();
+    await newtx.sign();
 
-		this.app.connection.emit('relay-transaction', newtx);
-		this.app.network.propagateTransaction(newtx);
-	}
+    this.app.connection.emit('relay-transaction', newtx);
+    this.app.network.propagateTransaction(newtx);
+  }
 
-	updateUIForRecordingStart(remote_sender = null) {
-		const recordIcon = document.querySelector('.fa-record-vinyl');
-		if (recordIcon) {
-			console.log('updating UI for recording start');
-			recordIcon.classList.add('recording');
+  updateUIForRecordingStart(remote_sender = null) {
+    const recordIcon = document.querySelector('.fa-record-vinyl');
+    if (recordIcon) {
+      console.log('updating UI for recording start');
+      recordIcon.classList.add('recording');
 
-			const container = recordIcon.parentElement;
-			container.classList.add('recording');
+      const container = recordIcon.parentElement;
+      container.classList.add('recording');
 
-			//
-			// Recording is not exclusive -- the button stays clickable so you can
-			// record too, but the label/tooltip say who is already recording
-			//
-			const label = container.querySelector('label');
-			if (remote_sender) {
-				container.title = `${this.app.keychain.returnUsername(remote_sender)} is recording the call`;
-				if (label) label.innerText = 'Recording';
-			} else {
-				container.title = 'Stop recording';
-				if (label) label.innerText = 'Stop';
-			}
-		}
+      //
+      // Recording is not exclusive -- the button stays clickable so you can
+      // record too, but the label/tooltip say who is already recording
+      //
+      const label = container.querySelector('label');
+      if (remote_sender) {
+        container.title = `${this.app.keychain.returnUsername(remote_sender)} is recording the call`;
+        if (label) label.innerText = 'Recording';
+      } else {
+        container.title = 'Stop recording';
+        if (label) label.innerText = 'Stop';
+      }
+    }
 
-		const recordingTarget = document.querySelector(this.recording_target_selector || '.video-container-large');
-		if (recordingTarget) {
-			recordingTarget.classList.add('screenrecord-recording-border');
-		}
-	}
+    const recordingTarget = document.querySelector(
+      this.recording_target_selector || '.video-container-large'
+    );
+    if (recordingTarget) {
+      recordingTarget.classList.add('screenrecord-recording-border');
+    }
+  }
 
-	updateUIForRecordingStop() {
-		const recordIcon = document.querySelector('.fa-record-vinyl');
-		if (recordIcon) {
-			recordIcon.classList.remove('recording');
+  updateUIForRecordingStop() {
+    const recordIcon = document.querySelector('.fa-record-vinyl');
+    if (recordIcon) {
+      recordIcon.classList.remove('recording');
 
-			const container = recordIcon.parentElement;
-			container.classList.remove('recording');
-			container.title = 'Record the call';
+      const container = recordIcon.parentElement;
+      container.classList.remove('recording');
+      container.title = 'Record the call';
 
-			const label = container.querySelector('label');
-			if (label) label.innerText = 'Record';
-		}
+      const label = container.querySelector('label');
+      if (label) label.innerText = 'Record';
+    }
 
-		document.querySelectorAll('.screenrecord-recording-border').forEach((recordingTarget) => {
-			recordingTarget.classList.remove('screenrecord-recording-border');
-		});
+    document.querySelectorAll('.screenrecord-recording-border').forEach((recordingTarget) => {
+      recordingTarget.classList.remove('screenrecord-recording-border');
+    });
 
-		const recordButtonGame = document.getElementById('record-stream');
-		if (recordButtonGame) {
-			recordButtonGame.textContent = 'Record game';
-		}
-	}
+    const recordButtonGame = document.getElementById('record-stream');
+    if (recordButtonGame) {
+      recordButtonGame.textContent = 'Record game';
+    }
+  }
 }
 
 module.exports = Record;

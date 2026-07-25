@@ -1,3 +1,3 @@
 module.exports = (app, mod) => {
-	return `<div class="gameboard"></div>`;
-}
+  return `<div class="gameboard"></div>`;
+};

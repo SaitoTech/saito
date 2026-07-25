@@ -9,17 +9,20 @@ module.exports = (app, mod, author, subscription = null) => {
         <div class="stack-subscription-tier">${tier === 'paid' ? 'Paid Subscription' : 'Free Subscription'}</div>
       </div>
       <div class="stack-subscription-actions">
-        ${isSubscribed ? `
+        ${
+          isSubscribed
+            ? `
           <button class="saito-button-secondary stack-unsubscribe-btn" data-author="${author}">
             Unsubscribe
           </button>
-        ` : `
+        `
+            : `
           <button class="saito-button-primary stack-subscribe-btn" data-author="${author}">
             Subscribe
           </button>
-        `}
+        `
+        }
       </div>
     </div>
   `;
 };
-

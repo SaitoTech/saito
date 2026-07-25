@@ -4,245 +4,273 @@
  */
 
 .settings-appspace {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-md);
-	width: min(90rem, 95vw);
-	max-height: 90vh;
-	overflow: hidden;
-	box-sizing: border-box;
-	color: var(--saito-popover-foreground, inherit);
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  width: min(90rem, 95vw);
+  max-height: 90vh;
+  overflow: hidden;
+  box-sizing: border-box;
+  color: var(--saito-popover-foreground, inherit);
 }
 
 .settings-appspace-body {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-md);
-	flex: 1 1 auto;
-	min-height: 0;
-	overflow-y: auto;
-	overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Deliberate alert strip (not Saito panel chrome) */
 .settings-appspace-warning-bar {
-	display: none;
-	align-items: center;
-	gap: var(--saito-space-sm);
-	padding: var(--saito-space-sm) var(--saito-space-md);
-	border-radius: var(--saito-radius);
-	background: var(--saito-primary);
-	color: var(--saito-primary-foreground);
-	border-bottom: 2px solid var(--saito-red, #c0392b);
-	font-weight: 600;
-	line-height: 1.35;
+  display: none;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border-radius: var(--saito-radius);
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+  border-bottom: 2px solid var(--saito-red, #c0392b);
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .settings-appspace-warning-bar-text {
-	flex: 1;
-	min-width: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 /* Accordion — inherit overlay panel surface; border + caret for affordance */
 .settings-appspace-section {
-	border: 1px solid var(--saito-border);
-	border-radius: var(--saito-radius);
-	background: transparent;
-}
-
-.settings-appspace-section[open] {
-	border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-border));
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: transparent;
 }
 
 .settings-appspace-section-summary {
-	display: flex;
-	align-items: center;
-	gap: var(--saito-space-sm);
-	padding: var(--saito-space-sm) var(--saito-space-md);
-	list-style: none;
-	cursor: pointer;
-	border-radius: inherit;
-	transition: background-color 0.16s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  list-style: none;
+  cursor: pointer;
+  border-radius: inherit;
+  transition: background-color 0.16s ease;
+}
+
+.settings-appspace-section[open] > .settings-appspace-section-summary {
+  background: color-mix(in srgb, var(--saito-primary) 10%, transparent);
 }
 
 .settings-appspace-section-summary:hover {
-	background: color-mix(in srgb, var(--saito-primary) 10%, transparent);
+  background: color-mix(in srgb, var(--saito-primary) 14%, transparent);
 }
 
 .settings-appspace-section-summary::-webkit-details-marker {
-	display: none;
+  display: none;
 }
 
 .settings-appspace-section-summary::marker {
-	content: '';
+  content: '';
 }
 
 .settings-appspace-section-summary:focus-visible {
-	outline: 2px solid color-mix(in srgb, var(--saito-primary) 70%, transparent);
-	outline-offset: -2px;
+  outline: 2px solid color-mix(in srgb, var(--saito-primary) 70%, transparent);
+  outline-offset: -2px;
 }
 
 .settings-section-caret {
-	flex: 0 0 auto;
-	width: 1em;
-	text-align: center;
-	color: var(--saito-muted-foreground);
-	transition: transform 0.18s ease;
+  flex: 0 0 auto;
+  width: 1em;
+  text-align: center;
+  color: var(--saito-muted-foreground);
+  transition: transform 0.18s ease;
 }
 
 .settings-appspace-section[open] > .settings-appspace-section-summary .settings-section-caret {
-	transform: rotate(90deg);
-	color: var(--saito-primary);
+  transform: rotate(90deg);
+  color: var(--saito-primary);
 }
 
 .settings-appspace-section-summary h6 {
-	margin: 0;
-	margin-right: auto;
-	font-size: inherit;
-	font-weight: 600;
-	text-transform: none;
-	color: inherit;
+  margin: 0;
+  margin-right: auto;
+  font-size: inherit;
+  font-weight: 600;
+  text-transform: none;
+  color: inherit;
 }
 
 .settings-appspace-section > div {
-	border-top: 1px solid
-		color-mix(in srgb, var(--saito-primary) 18%, var(--saito-border));
-	padding: var(--saito-space-md);
+  border-top: 1px solid color-mix(in srgb, var(--saito-primary) 18%, var(--saito-border));
+  padding: var(--saito-space-md);
 }
 
 .settings-section-note {
-	margin-bottom: var(--saito-space-md);
-	color: var(--saito-muted-foreground);
+  margin-bottom: var(--saito-space-md);
+  color: var(--saito-muted-foreground);
 }
 
 .settings-field-label {
-	color: var(--saito-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
-/* Equal-width action header */
+/* Equal-width action header — full-bleed bar across the overlay */
+.settings-appspace-header {
+  width: 100%;
+}
+
 .settings-appspace-header .settings-actions-container {
-	display: grid;
-	grid-template-columns: repeat(6, minmax(0, 1fr));
-	gap: var(--saito-space-sm) var(--saito-space-md);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--saito-space-sm);
+  width: 100%;
 }
 
 .settings-appspace-header .settings-actions-container .saito-button-secondary {
-	justify-content: center;
-	width: 100%;
-	min-width: 0;
-	margin: 0;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  color: var(--saito-foreground);
+  background: color-mix(in srgb, var(--saito-status-success) 12%, var(--saito-secondary));
+  border-color: color-mix(in srgb, var(--saito-status-success) 32%, var(--saito-border));
+  filter: none;
 }
 
+.settings-appspace-header .settings-actions-container .saito-button-secondary:hover {
+  color: var(--saito-foreground);
+  background: color-mix(in srgb, var(--saito-status-success) 20%, var(--saito-secondary));
+  border-color: color-mix(in srgb, var(--saito-status-success) 48%, var(--saito-border));
+  filter: none;
+}
+
+.settings-appspace-header .settings-actions-container .saito-button-secondary:active {
+  background: color-mix(in srgb, var(--saito-status-success) 26%, var(--saito-secondary));
+  border-color: color-mix(in srgb, var(--saito-status-success) 55%, var(--saito-border));
+}
+
+/* Wallet fields — consistent form/table rhythm */
 .settings-appspace-user-details {
-	display: grid;
-	grid-template-columns: 9rem minmax(0, 1fr);
-	column-gap: var(--saito-space-lg);
-	row-gap: var(--saito-space-md);
-	align-items: center;
-	max-width: 100%;
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  column-gap: var(--saito-space-lg);
+  row-gap: var(--saito-space-md);
+  align-items: center;
+  max-width: 100%;
 }
 
 .settings-appspace-user-details > * {
-	min-width: 0;
+  min-width: 0;
+}
+
+.settings-field-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  min-height: 2.4rem;
+}
+
+.settings-field-value,
+.settings-appspace-user-details .username {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--saito-font-monospace);
+  line-height: 1.4;
+}
+
+.settings-appspace-user-details .username {
+  font-family: var(--saito-font);
 }
 
 .settings-fee-control {
-	max-width: 14rem;
+  max-width: 14rem;
 }
 
 .pubkey-grid {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
-	align-items: center;
-	gap: var(--saito-space-md);
-	font-family: var(--saito-font-monospace);
-	cursor: pointer;
+  font-family: var(--saito-font-monospace);
+  cursor: pointer;
 }
 
-.pubkey-grid div {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.pubkey-grid i {
-	color: var(--saito-muted-foreground);
-}
-
-.pubkey-grid:hover i {
-	color: var(--saito-primary);
+.pubkey-grid .settings-field-value {
+  font-family: inherit;
 }
 
 /* Module / crypto grids — lighter cards; checkbox inherits Saito */
 .settings-appspace-modules {
-	display: grid;
-	grid-gap: var(--saito-space-sm);
-	grid-template-columns: repeat(5, minmax(0, 1fr));
-	width: 100%;
+  display: grid;
+  grid-gap: var(--saito-space-sm);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: 100%;
 }
 
 .settings-appspace-app {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) auto;
-	align-items: center;
-	gap: var(--saito-space-xs);
-	padding: var(--saito-space-xs) var(--saito-space-sm);
-	border-radius: var(--saito-radius);
-	cursor: pointer;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--saito-space-xs);
+  padding: var(--saito-space-xs) var(--saito-space-sm);
+  border-radius: var(--saito-radius);
+  cursor: pointer;
 }
 
 .settings-appspace-app .saito-checkbox {
-	margin: 0;
+  margin: 0;
 }
 
 .saito-switch {
-	display: flex;
-	align-items: center;
-	justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .settings-appspace-app > div {
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-appspace-app > i {
-	color: var(--saito-muted-foreground);
+  color: var(--saito-muted-foreground);
 }
 
 .settings-appspace-crypto-transfer-name {
-	text-transform: capitalize;
+  text-transform: capitalize;
 }
 
 .settings-appspace-debug-content {
-	margin: 0;
+  margin: 0;
 }
 
 .settings-appspace .jsontree_node {
-	list-style: none;
+  list-style: none;
 }
 
 .settings-appspace-storage-content {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--saito-space-xl);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--saito-space-xl);
 }
 
 .settings-appspace-localstorage-info,
 .settings-appspace-indexdb-info {
-	display: grid;
-	grid-template-columns: 11rem minmax(0, 1fr);
-	column-gap: var(--saito-space-md);
-	row-gap: var(--saito-space-xs);
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  column-gap: var(--saito-space-md);
+  row-gap: var(--saito-space-xs);
 }
 
 .settings-appspace-localstorage-info .title,
 .settings-appspace-indexdb-info .title {
-	margin: 0;
-	grid-column: 1 / -1;
-	font-weight: 600;
+  margin: 0;
+  grid-column: 1 / -1;
+  font-weight: 600;
 }
 
 .settings-appspace-localstorage-info .quota,
@@ -251,70 +279,70 @@
 .settings-appspace-indexdb-info .quota,
 .settings-appspace-indexdb-info .usage,
 .settings-appspace-indexdb-info .percent {
-	font-family: var(--saito-font-monospace);
-	text-align: right;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	overflow: hidden;
+  font-family: var(--saito-font-monospace);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .settings-appspace-build-info-grid {
-	display: grid;
-	grid-template-columns: 9rem minmax(0, 1fr);
-	column-gap: var(--saito-space-lg);
-	row-gap: var(--saito-space-sm);
-	align-items: center;
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  column-gap: var(--saito-space-lg);
+  row-gap: var(--saito-space-sm);
+  align-items: center;
 }
 
 .settings-appspace-build-value {
-	font-family: var(--saito-font-monospace);
-	word-break: break-all;
+  font-family: var(--saito-font-monospace);
+  word-break: break-all;
 }
 
 .settings-installed-mod-header #settings-add-app {
-	margin-left: auto;
+  margin-left: auto;
 }
 
 .settings-appspace-modules-container:not([open]) #settings-add-app {
-	display: none;
+  display: none;
 }
 
 @media only screen and (max-width: 900px) {
-	.settings-appspace-modules {
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-	}
+  .settings-appspace-modules {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 @media only screen and (max-width: 768px) {
-	.settings-appspace {
-		max-height: none;
-		width: 100%;
-		height: 100%;
-	}
+  .settings-appspace {
+    max-height: none;
+    width: 100%;
+    height: 100%;
+  }
 
-	.settings-appspace-body {
-		flex: 1 1 auto;
-	}
+  .settings-appspace-body {
+    flex: 1 1 auto;
+  }
 }
 
 @media only screen and (max-width: 650px) {
-	.settings-appspace-modules {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-	}
+  .settings-appspace-modules {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 
-	.settings-appspace-user-details,
-	.settings-appspace-build-info-grid {
-		grid-template-columns: 8rem minmax(0, 1fr);
-	}
+  .settings-appspace-user-details,
+  .settings-appspace-build-info-grid {
+    grid-template-columns: 8rem minmax(0, 1fr);
+  }
 
-	.settings-appspace-header .settings-actions-container {
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
-	}
+  .settings-appspace-header .settings-actions-container {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  }
 }
 
 @media only screen and (max-width: 500px) {
-	.settings-appspace-modules {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		grid-gap: var(--saito-space-xs);
-	}
+  .settings-appspace-modules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-gap: var(--saito-space-xs);
+  }
 }

@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
  	      <div class="league-rankings">
 	        <h5 class="sidebar-header">
 	        	<div class="sidebar-title">

@@ -1,157 +1,157 @@
 /* Namespace: .purchase — purchase progress dialog */
 
 .saito-container.store-purchase-modal-open {
-	pointer-events: none;
+  pointer-events: none;
 }
 
 /* Shell: center dialog; pointer-events so backdrop still receives clicks */
 .saito-overlay.store-purchase-overlay-shell {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: var(--saito-space-md);
-	box-sizing: border-box;
-	pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--saito-space-md);
+  box-sizing: border-box;
+  pointer-events: none;
 }
 
 .saito-overlay.store-purchase-overlay-shell > .purchase {
-	pointer-events: auto;
-	width: min(92vw, 36rem);
-	max-width: 100%;
-	max-height: min(90dvh, 40rem);
-	overflow: auto;
-	padding: var(--saito-space-xxl) var(--saito-space-xl);
-	box-sizing: border-box;
-	-webkit-overflow-scrolling: touch;
+  pointer-events: auto;
+  width: min(92vw, 36rem);
+  max-width: 100%;
+  max-height: min(90dvh, 40rem);
+  overflow: auto;
+  padding: var(--saito-space-xxl) var(--saito-space-xl);
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 .purchase .stack {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: var(--saito-space-md);
-	text-align: center;
-	min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-md);
+  text-align: center;
+  min-width: 0;
 }
 
 .purchase .title {
-	margin: 0;
-	font-size: 2rem;
-	font-family: var(--saito-font-medium);
-	letter-spacing: -0.01em;
+  margin: 0;
+  font-size: 2rem;
+  font-family: var(--saito-font-medium);
+  letter-spacing: -0.01em;
 }
 
 .purchase .lead,
 .purchase .subtitle {
-	margin: 0;
-	max-width: 28rem;
-	font-size: var(--font-size-medium);
-	line-height: 1.5;
-	color: var(--saito-muted-foreground);
-	overflow-wrap: anywhere;
+  margin: 0;
+  max-width: 28rem;
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
+  overflow-wrap: anywhere;
 }
 
 .purchase .subtitle {
-	min-height: 3em;
+  min-height: 3em;
 }
 
 .purchase .saito-spinner {
-	width: 4rem;
-	min-width: 4rem;
-	margin-bottom: var(--saito-space-sm);
+  width: 4rem;
+  min-width: 4rem;
+  margin-bottom: var(--saito-space-sm);
 }
 
 .purchase .timer {
-	width: 100%;
-	max-width: 18rem;
-	margin-top: var(--saito-space-lg);
-	padding-top: var(--saito-space-lg);
-	border-top: 1px solid var(--saito-border);
+  width: 100%;
+  max-width: 18rem;
+  margin-top: var(--saito-space-lg);
+  padding-top: var(--saito-space-lg);
+  border-top: 1px solid var(--saito-border);
 }
 
 .purchase .timer-label,
 .purchase .timer-unit {
-	display: block;
-	font-size: var(--font-size-tiny);
-	letter-spacing: 0.04em;
-	text-transform: lowercase;
-	color: var(--saito-muted-foreground);
+  display: block;
+  font-size: var(--font-size-tiny);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--saito-muted-foreground);
 }
 
 .purchase .countdown {
-	display: inline-block;
-	margin: var(--saito-space-sm) 0;
-	font-size: 2.5rem;
-	font-family: var(--saito-font-heavy);
-	font-variant-numeric: tabular-nums;
-	line-height: 1;
+  display: inline-block;
+  margin: var(--saito-space-sm) 0;
+  font-size: 2.5rem;
+  font-family: var(--saito-font-heavy);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .purchase .success {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 3.5rem;
-	height: 3.5rem;
-	margin-bottom: var(--saito-space-xs);
-	border-radius: 50%;
-	background: color-mix(in srgb, var(--saito-primary) 18%, transparent);
-	color: var(--saito-primary);
-	font-size: var(--font-size-large);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: var(--saito-space-xs);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--saito-primary) 18%, transparent);
+  color: var(--saito-primary);
+  font-size: var(--font-size-large);
 }
 
 .purchase .stack > .saito-button-primary {
-	margin-top: var(--saito-space-lg);
-	min-width: 10rem;
-	min-height: 2.75rem;
+  margin-top: var(--saito-space-lg);
+  min-width: 10rem;
+  min-height: 2.75rem;
 }
 
 .purchase .stack > .saito-button-secondary {
-	min-width: 10rem;
-	min-height: 2.75rem;
+  min-width: 10rem;
+  min-height: 2.75rem;
 }
 
 .saito-overlay.store-purchase-overlay-shell > .saito-overlay-closebox {
-	pointer-events: auto;
+  pointer-events: auto;
 }
 
 .purchase.fulfilling .subtitle {
-	min-height: 1.5em;
+  min-height: 1.5em;
 }
 
 /* Dialog surface on mobile: .retain-surface on .purchase */
 
 @media (max-width: 600px) {
-	.saito-overlay.store-purchase-overlay-shell {
-		padding: max(var(--saito-space-md), env(safe-area-inset-top, 0px))
-			max(var(--saito-space-md), env(safe-area-inset-right, 0px))
-			max(var(--saito-space-md), env(safe-area-inset-bottom, 0px))
-			max(var(--saito-space-md), env(safe-area-inset-left, 0px));
-		align-items: flex-end;
-	}
+  .saito-overlay.store-purchase-overlay-shell {
+    padding: max(var(--saito-space-md), env(safe-area-inset-top, 0px))
+      max(var(--saito-space-md), env(safe-area-inset-right, 0px))
+      max(var(--saito-space-md), env(safe-area-inset-bottom, 0px))
+      max(var(--saito-space-md), env(safe-area-inset-left, 0px));
+    align-items: flex-end;
+  }
 
-	.saito-overlay.store-purchase-overlay-shell > .purchase {
-		width: 100%;
-		max-height: min(88dvh, 40rem);
-		padding: var(--saito-space-xl) var(--saito-space-lg);
-		border-radius: var(--saito-radius-lg) var(--saito-radius-lg) 0 0;
-	}
+  .saito-overlay.store-purchase-overlay-shell > .purchase {
+    width: 100%;
+    max-height: min(88dvh, 40rem);
+    padding: var(--saito-space-xl) var(--saito-space-lg);
+    border-radius: var(--saito-radius-lg) var(--saito-radius-lg) 0 0;
+  }
 
-	.purchase .title {
-		font-size: var(--font-size-large);
-	}
+  .purchase .title {
+    font-size: var(--font-size-large);
+  }
 
-	.purchase .countdown {
-		font-size: 2rem;
-	}
+  .purchase .countdown {
+    font-size: 2rem;
+  }
 
-	.purchase .stack > .saito-button-primary {
-		width: 100%;
-		min-width: 0;
-	}
+  .purchase .stack > .saito-button-primary {
+    width: 100%;
+    min-width: 0;
+  }
 
-	.purchase .stack > .saito-button-secondary {
-		width: 100%;
-		min-width: 0;
-	}
+  .purchase .stack > .saito-button-secondary {
+    width: 100%;
+    min-width: 0;
+  }
 }

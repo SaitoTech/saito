@@ -46,8 +46,7 @@ class Profile {
    */
   buildProfileData(publicKey = '') {
     const key = publicKey || this.mod.publicKey || '';
-    const avatar =
-      (key && this.app.keychain.returnIdenticon(key)) || '/saito/img/dreamscape.png';
+    const avatar = (key && this.app.keychain.returnIdenticon(key)) || '/saito/img/dreamscape.png';
 
     // Display name from keychain: registered identifier, else Anon-xxxxxx.
     // Do not use returnIdentifierByPublicKey(..., true) alone — that returns the
@@ -145,7 +144,10 @@ class Profile {
           }
         };
         if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText(key).then(done).catch(() => {});
+          navigator.clipboard
+            .writeText(key)
+            .then(done)
+            .catch(() => {});
         }
         return;
       }
@@ -204,9 +206,7 @@ class Profile {
         return;
       }
 
-      const item = e.target.closest(
-        '.nav .item, .redsquare-profile-banner-edit, .copy-key'
-      );
+      const item = e.target.closest('.nav .item, .redsquare-profile-banner-edit, .copy-key');
 
       if (!item || !root.contains(item)) {
         return;
@@ -242,9 +242,7 @@ class Profile {
       el.style.backgroundImage = banner ? `url('${banner}')` : '';
     });
 
-    const container = document.querySelector(
-      `${this.container} .redsquare-profile-description`
-    );
+    const container = document.querySelector(`${this.container} .redsquare-profile-description`);
     if (container) {
       const canEdit = this.canEditProfile(publicKey);
       container.classList.toggle('can-edit', canEdit);
@@ -272,8 +270,7 @@ class Profile {
         this.mod.profile.avatar = image;
       }
     } else {
-      const fallback =
-        this.app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
+      const fallback = this.app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
       avatarNodes.forEach((el) => {
         el.src = fallback;
       });
@@ -293,8 +290,7 @@ class Profile {
       return;
     }
 
-    const activeView =
-      mode === 'posts' || mode === 'replies' || mode === 'likes' ? mode : '';
+    const activeView = mode === 'posts' || mode === 'replies' || mode === 'likes' ? mode : '';
 
     root.querySelectorAll('.nav .item').forEach((item) => {
       const view = item.getAttribute('data-profile-nav') || '';

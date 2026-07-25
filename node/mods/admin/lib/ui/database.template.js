@@ -1,5 +1,5 @@
 module.exports = (mod) => {
-  let dbOptions = "";
+  let dbOptions = '';
   if (mod?.server_info?.databases && mod.server_info.databases.length > 0) {
     for (let db of mod.server_info.databases) {
       dbOptions += `<option value="${db.dbname}">${db.module}</option>`;
@@ -8,9 +8,9 @@ module.exports = (mod) => {
   const selectContent = dbOptions
     ? `<option value="">-- Select Database --</option>${dbOptions}`
     : `<option>No Databases Found</option>`;
-  const selectDisabled = !dbOptions ? " disabled" : "";
+  const selectDisabled = !dbOptions ? ' disabled' : '';
 
-return `
+  return `
   <div class="admin-database">
 
     <h1>Database Console</h1>
@@ -45,5 +45,4 @@ return `
 
   </div>
 `;
-
 };

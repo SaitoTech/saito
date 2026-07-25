@@ -1,6 +1,5 @@
 module.exports = LimboHelpOverlayTemplate = (app, mod) => {
-
-	return `
+  return `
 		<div class="dream-wizard">
 			<div class="saito-modal-title">Swarmcasting</div>
             <div class="saito-modal-tagline">Where live conversations happen</div>

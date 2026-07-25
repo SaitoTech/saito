@@ -75,9 +75,11 @@ function metaScriptKeys(opDef) {
     }
   }
   const witnessKeys = new Set(
-    Object.keys(opDef?.exampleScript?.witness && typeof opDef.exampleScript.witness === 'object'
-      ? opDef.exampleScript.witness
-      : {})
+    Object.keys(
+      opDef?.exampleScript?.witness && typeof opDef.exampleScript.witness === 'object'
+        ? opDef.exampleScript.witness
+        : {}
+    )
   );
   const schema = opDef?.schema;
   if (schema && typeof schema === 'object' && !Array.isArray(schema) && !schema.script) {
@@ -206,18 +208,17 @@ function materializeNode(node, mod, role) {
           ? deepClone(node.witness)
           : {};
       for (const wKey of metaRequiredKeys(opDef)) {
-        if (witness[wKey] === undefined && Object.prototype.hasOwnProperty.call(witnessTemplate, wKey)) {
+        if (
+          witness[wKey] === undefined &&
+          Object.prototype.hasOwnProperty.call(witnessTemplate, wKey)
+        ) {
           witness[wKey] = deepClone(witnessTemplate[wKey]);
         }
       }
       if (Object.keys(witness).length > 0) {
         out.witness = witness;
       }
-    } else if (
-      node.witness &&
-      typeof node.witness === 'object' &&
-      !Array.isArray(node.witness)
-    ) {
+    } else if (node.witness && typeof node.witness === 'object' && !Array.isArray(node.witness)) {
       out.witness = deepClone(node.witness);
     }
     if (
@@ -280,11 +281,18 @@ class SemanticScriptView {
         }
         if (key === 'required') {
           const val = obj[key];
-          if (val && typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0) {
+          if (
+            val &&
+            typeof val === 'object' &&
+            !Array.isArray(val) &&
+            Object.keys(val).length === 0
+          ) {
             return false;
           }
         }
-        return Object.prototype.hasOwnProperty.call(obj, key) || opDef.exampleScript?.[key] !== undefined;
+        return (
+          Object.prototype.hasOwnProperty.call(obj, key) || opDef.exampleScript?.[key] !== undefined
+        );
       });
       for (const key of Object.keys(obj)) {
         if (key === 'witness' || keys.includes(key)) {
@@ -292,7 +300,12 @@ class SemanticScriptView {
         }
         if (key === 'required') {
           const val = obj[key];
-          if (!val || typeof val !== 'object' || Array.isArray(val) || Object.keys(val).length === 0) {
+          if (
+            !val ||
+            typeof val !== 'object' ||
+            Array.isArray(val) ||
+            Object.keys(val).length === 0
+          ) {
             continue;
           }
         }
@@ -313,7 +326,12 @@ class SemanticScriptView {
       }
       if (key === 'required') {
         const val = obj[key];
-        if (val && typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0) {
+        if (
+          val &&
+          typeof val === 'object' &&
+          !Array.isArray(val) &&
+          Object.keys(val).length === 0
+        ) {
           return false;
         }
       }
@@ -453,7 +471,11 @@ class SemanticScriptView {
   renderEditableValue(value, path, keyName) {
     const fieldKind = this.fieldKindFor(path, keyName);
     const placeholderKey =
-      keyName === 'msg' ? 'text' : fieldKind === 'text' ? 'text' : String(keyName || 'input').toLowerCase();
+      keyName === 'msg'
+        ? 'text'
+        : fieldKind === 'text'
+          ? 'text'
+          : String(keyName || 'input').toLowerCase();
     const meta = placeholderMeta(`<${placeholderKey}>`) || {
       label: String(keyName || 'Value'),
       hint: 'Click to edit',
@@ -653,9 +675,7 @@ class SemanticScriptView {
       if (isNested) {
         const section = document.createElement('div');
         section.className = 'rs-semantic-section';
-        section.appendChild(
-          this.renderValue(item, childPath, depth + 1, index < arr.length - 1)
-        );
+        section.appendChild(this.renderValue(item, childPath, depth + 1, index < arr.length - 1));
         inner.appendChild(section);
       } else {
         const row = this.createRow(depth + 1, 'rs-semantic-row-value');
@@ -722,8 +742,7 @@ class SemanticScriptView {
         witnessObj[fieldName] = witness[fieldName];
       } else {
         const placeholder = witnessPlaceholderFromMeta(this.mod, obj.op, fieldName);
-        witnessObj[fieldName] =
-          typeof placeholder === 'string' ? placeholder : placeholder;
+        witnessObj[fieldName] = typeof placeholder === 'string' ? placeholder : placeholder;
       }
     }
 
@@ -853,10 +872,7 @@ class RustscriptEditor {
 
 function isEmptyScriptRoot(value) {
   return (
-    value &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    Object.keys(value).length === 0
+    value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0
   );
 }
 

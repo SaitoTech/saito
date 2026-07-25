@@ -67,7 +67,9 @@ class UnlockFlow {
       ctx?.assetType === 'nft' && ctx?.lockedNftSlips?.[1]
         ? BigInt(ctx.lockedNftSlips[1].amount || 0)
         : BigInt(ctx?.lockedSlip?.amount || 0);
-    const defaultFee = this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee || BigInt(0));
+    const defaultFee = this.app.wallet.convertNolanToSaito(
+      this.app.wallet.default_fee || BigInt(0)
+    );
     const fee = defaultFee && defaultFee !== '0.00' ? defaultFee : '0.001';
     const feeNolan = this.app.wallet.convertSaitoToNolan(fee);
     const outputNolan = lockedNolan > feeNolan ? lockedNolan - feeNolan : BigInt(0);

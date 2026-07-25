@@ -1,58 +1,52 @@
 const CardTemplate = require('./card.template');
 
 class CardOverlay {
-	constructor(app, mod) {
-		this.app = app;
-		this.mod = mod;
-	}
+  constructor(app, mod) {
+    this.app = app;
+    this.mod = mod;
+  }
 
+  //obj = {player, card: cardname}
 
-	//obj = {player, card: cardname}
+  render(obj = {}) {
+    let settlers_self = this.mod;
 
-	render(obj={}) {
+    let player = obj.player;
+    let cardname = obj.card;
+    let card;
 
-		let settlers_self = this.mod;
+    for (let i = 0; i < this.mod.deck.length; i++) {
+      if (this.mod.deck[i].card === cardname) {
+        card = this.mod.deck[i];
+        break;
+      }
+    }
 
-		let player = obj.player;
-		let cardname = obj.card;
-		let card;
+    if (!card) {
+      console.error('Card not found', cardname);
+      return;
+    }
 
-		for (let i = 0; i < this.mod.deck.length; i++) {
-			if (this.mod.deck[i].card === cardname) {
-				card = this.mod.deck[i];
-				break;
-			}
-		}
+    if (!obj?.cardtext) {
+      let cardtext = card.text.toLowerCase();
+      if (player == this.mod.game.player) {
+        cardtext =
+          'You' + cardtext.replace('earns', 'earn').replace('moves', 'move').replace('is', 'are');
+      } else {
+        cardtext = this.mod.game.playerNames[player - 1] + cardtext;
+      }
+      card.cardtext = cardtext;
+    } else {
+      card.cardtext = obj.cardtext;
+    }
 
-		if (!card){
-			console.error("Card not found", cardname);
-			return;
-		}
+    settlers_self.hud.showPopup(CardTemplate(card), 3500);
 
-		if (!obj?.cardtext){
-			let cardtext = card.text.toLowerCase();
-			if (player == this.mod.game.player){
-				cardtext = "You" + cardtext.replace("earns", "earn").replace("moves", "move").replace("is", "are");
-			}else{
-				cardtext = this.mod.game.playerNames[player - 1] + cardtext;
-			}
-			card.cardtext = cardtext;
-		}else{
-			card.cardtext = obj.cardtext;
-		}
+    // this will clear any ACKNOWLEDGE
+    this.attachEvents();
+  }
 
-
-		settlers_self.hud.showPopup(CardTemplate(card), 3500);
-			
-		// this will clear any ACKNOWLEDGE
-		this.attachEvents();
-
-	}
-
-	attachEvents() {
-
-	}
-
+  attachEvents() {}
 }
 
 module.exports = CardOverlay;

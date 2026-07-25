@@ -1,247 +1,247 @@
 /* Game Advanced Options Styling*/
 
 #advanced-options-overlay-container {
-	min-width: min(50rem, 95vw);
-	min-height: min(40rem, 95vh);
-	display: flex;
-	padding: 2.5rem;
-	flex-direction: column;
-	border: 1px solid var(--saito-primary);
-	gap: 2rem;
-	max-width: 95vw;
-	max-height: 95vh;
-	overflow-y: auto;
-	overflow-x: hidden;
-	background: var(--saito-gray-850);
-	user-select: none;
-	color: var(--saito-white);
+  min-width: min(50rem, 95vw);
+  min-height: min(40rem, 95vh);
+  display: flex;
+  padding: 2.5rem;
+  flex-direction: column;
+  border: 1px solid var(--saito-primary);
+  gap: 2rem;
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--saito-gray-850);
+  user-select: none;
+  color: var(--saito-white);
 }
 
 #advanced-options-overlay-container > * {
-	max-width: 100%;
+  max-width: 100%;
 }
 
 #advanced-options-overlay-container select {
-	text-transform: capitalize;
-	background: inherit;
-	color: inherit;
-	border: 1px solid var(--saito-primary);
-	font-size: 2.5rem;
-	padding: 1rem;
-	height: 5rem;
+  text-transform: capitalize;
+  background: inherit;
+  color: inherit;
+  border: 1px solid var(--saito-primary);
+  font-size: 2.5rem;
+  padding: 1rem;
+  height: 5rem;
 }
 
 #advanced-options-overlay-container .options_notice {
-	margin-bottom: 1.2rem;
-	font-style: italic;
-	text-align: center;
+  margin-bottom: 1.2rem;
+  font-style: italic;
+  text-align: center;
 }
 
 .arcade-wizard-advanced {
-	display: block;
-	text-align: left;
+  display: block;
+  text-align: left;
 }
 
 .arcade-wizard-advanced .list-header {
-	color: var(--saito-primary);
+  color: var(--saito-primary);
 }
 
 #advanced-options-overlay-container label {
-	margin: 1rem 0 0.5rem;
+  margin: 1rem 0 0.5rem;
 }
 
 .overlay-input label {
-	line-height: 3rem;
-	white-space: nowrap;
-	margin-right: 1rem;
-	align-self: center;
+  line-height: 3rem;
+  white-space: nowrap;
+  margin-right: 1rem;
+  align-self: center;
 }
 
 /* Get hyperspecific so default button css can be overridden*/
 #advanced-options-overlay-container .game-wizard-advanced-return-btn {
-	font-size: 1.8rem;
-	height: 4.8rem;
-	padding: 1rem;
-	text-align: center;
-	text-transform: uppercase;
-	width: 100%;
-	margin: 0;
+  font-size: 1.8rem;
+  height: 4.8rem;
+  padding: 1rem;
+  text-align: center;
+  text-transform: uppercase;
+  width: 100%;
+  margin: 0;
 }
 
 /* Game Advanced Options Styling*/
 
 .arcade-wizard-options-toggle {
-	padding-top: 1rem;
+  padding-top: 1rem;
 }
 
 .arcade-wizard-options-toggle-text {
-	border-bottom: 1px dashed;
-	cursor: pointer;
+  border-bottom: 1px dashed;
+  cursor: pointer;
 }
 
 .game-wizard-invite {
-	width: 100%;
-	min-height: 7rem;
-	display: block !important;
-	padding: 0rem !important;
+  width: 100%;
+  min-height: 7rem;
+  display: block !important;
+  padding: 0rem !important;
 }
 
 .game-wizard-other-btns {
-	display: none;
-	/* display: flex; */
-	flex-direction: row;
-	justify-content: space-between;
+  display: none;
+  /* display: flex; */
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .arcade-wizard {
-	padding: 2rem;
-	border-radius: inherit;
-	color: var(--saito-foreground);
-	background: var(--saito-gray-850);
-	border: 1px solid var(--saito-gray-850);
-	user-select: none;
-	display: flex;
-	flex-direction: column;
-	justify-content: space-around;
+  padding: 2rem;
+  border-radius: inherit;
+  color: var(--saito-foreground);
+  background: var(--saito-gray-850);
+  border: 1px solid var(--saito-gray-850);
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
 }
 
 .arcade-wizard .arcade-wizard-container {
-	min-height: 17rem;
-	display: grid;
-	grid-template-columns: 3fr 7fr;
-	grid-gap: 1.5rem;
+  min-height: 17rem;
+  display: grid;
+  grid-template-columns: 3fr 7fr;
+  grid-gap: 1.5rem;
 }
 
 .arcade-wizard .arcade-wizard-image {
-	background-position: center;
-	background-repeat: no-repeat;
-	background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .arcade-wizard .arcade-wizard-image img {
-	width: 100%;
-	object-fit: cover;
-	height: 100%;
+  width: 100%;
+  object-fit: cover;
+  height: 100%;
 }
 
 .arcade-wizard-title {
-	font-size: 3.5rem;
-	margin-bottom: 1rem;
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
 }
 
 .arcade-wizard-description {
-	font-size: 2rem;
-	line-height: 3rem;
+  font-size: 2rem;
+  line-height: 3rem;
 }
 
 .arcade-wizard-controls {
-	display: grid;
-	grid-template-columns: 3fr 7fr;
-	grid-gap: 1rem;
-	margin-top: 2rem;
+  display: grid;
+  grid-template-columns: 3fr 7fr;
+  grid-gap: 1rem;
+  margin-top: 2rem;
 }
 
 .arcade-wizard select,
 #advanced-options-overlay-container select {
-	background: inherit;
-	color: inherit;
-	width: 100%;
-	border: 1px solid var(--saito-primary);
+  background: inherit;
+  color: inherit;
+  width: 100%;
+  border: 1px solid var(--saito-primary);
 }
 
 .arcade-wizard select {
-	font-size: 2rem;
-	appearance: none;
-	padding: 0 1rem;
-	border-radius: 0 1rem 1rem 0;
+  font-size: 2rem;
+  appearance: none;
+  padding: 0 1rem;
+  border-radius: 0 1rem 1rem 0;
 }
 
 #advanced-options-overlay-container select {
-	font-size: 2.4rem;
-	padding: 1rem;
-	height: 5rem;
-	border-radius: 0;
+  font-size: 2.4rem;
+  padding: 1rem;
+  height: 5rem;
+  border-radius: 0;
 }
 
 .arcade-wizard select:focus {
-	outline: none;
+  outline: none;
 }
 
 .arcade-wizard select option,
 #advanced-options-overlay-container select option {
-	background: var(--saito-background);
+  background: var(--saito-background);
 }
 
 .saito-select::after {
-	border-left: 1px solid var(--saito-primary);
+  border-left: 1px solid var(--saito-primary);
 }
 
 .overlay-input {
-	color: var(--saito-foreground);
-	background: transparent;
+  color: var(--saito-foreground);
+  background: transparent;
 }
 
 .arcade-wizard-controls .overlay-input {
-	position: relative;
-	display: flex;
-	width: 20em;
-	height: 3em;
-	line-height: 3;
-	overflow: hidden;
-	width: 100%;
-	outline: none;
-	border: none;
-	color: var(--saito-foreground);
-	background: transparent;
+  position: relative;
+  display: flex;
+  width: 20em;
+  height: 3em;
+  line-height: 3;
+  overflow: hidden;
+  width: 100%;
+  outline: none;
+  border: none;
+  color: var(--saito-foreground);
+  background: transparent;
 }
 
 .arcade-wizard-controls .settings {
-	display: flex;
-	flex-direction: column;
-	row-gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  row-gap: 1rem;
 }
 
 .arcade-wizard-controls .overlay-input::after {
-	content: '\25BC';
-	position: absolute;
-	top: 0;
-	right: 0;
-	padding: 0 1em;
-	color: var(--saito-white);
-	background: var(--saito-primary);
-	cursor: pointer;
-	pointer-events: none;
-	-webkit-transition: 0.25s all ease;
-	-o-transition: 0.25s all ease;
-	transition: 0.25s all ease;
-	border-radius: 0 1rem 1rem 0;
-	border-left: 1px solid var(--saito-primary);
-	width: 5rem;
-	display: flex;
-	justify-content: center;
+  content: '\25BC';
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0 1em;
+  color: var(--saito-white);
+  background: var(--saito-primary);
+  cursor: pointer;
+  pointer-events: none;
+  -webkit-transition: 0.25s all ease;
+  -o-transition: 0.25s all ease;
+  transition: 0.25s all ease;
+  border-radius: 0 1rem 1rem 0;
+  border-left: 1px solid var(--saito-primary);
+  width: 5rem;
+  display: flex;
+  justify-content: center;
 }
 
 .saito-module-intro-title {
-	font-size: 2.5rem;
-	font-weight: bold;
-	position: relative;
-	white-space: nowrap;
-	margin-bottom: 0.5rem;
-	padding-top: 0.5rem;
+  font-size: 2.5rem;
+  font-weight: bold;
+  position: relative;
+  white-space: nowrap;
+  margin-bottom: 0.5rem;
+  padding-top: 0.5rem;
 }
 
 .saito-module-intro-description {
-	font-size: 1.9rem;
-	line-height: 2.8rem;
+  font-size: 1.9rem;
+  line-height: 2.8rem;
 }
 
 .arcade-wizard .arcade-game-details {
-	font-size: 1.6rem;
-	margin: 0.4rem;
+  font-size: 1.6rem;
+  margin: 0.4rem;
 }
 
 .arcade-game-details .detail_row {
-	margin: 0.4rem 0;
+  margin: 0.4rem 0;
 }
 
 /*
@@ -255,195 +255,196 @@
  * Parent owns the paint on the collapsed split surface.
  */
 .saito-multi-select_btn {
-	overflow: hidden;
+  overflow: hidden;
 }
 
 .saito-multi-select_btn.saito-select {
-	position: relative;
-	display: flex;
-	width: 100%;
-	height: 4.8rem;
-	margin-top: 0;
-	line-height: 3;
-	overflow: hidden;
-	border: 1px solid transparent;
-	border-radius: var(--saito-radius, var(--saito-radius));
-	background: var(--saito-button-primary-background, var(--saito-primary));
-	color: var(--saito-button-primary-foreground, var(--saito-foreground));
-	box-shadow: none;
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 4.8rem;
+  margin-top: 0;
+  line-height: 3;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--saito-radius, var(--saito-radius));
+  background: var(--saito-button-primary-background, var(--saito-primary));
+  color: var(--saito-button-primary-foreground, var(--saito-foreground));
+  box-shadow: none;
 }
 
 .saito-multi-select_btn.saito-select::after {
-	align-items: center;
-	height: 100%;
-	line-height: 1;
-	border-radius: 0;
-	border-left: 1px solid color-mix(in srgb, var(--saito-button-primary-foreground, #fff) 28%, transparent);
-	background: transparent;
-	background-color: transparent;
-	color: var(--saito-button-primary-foreground, var(--saito-foreground));
-	box-shadow: none;
+  align-items: center;
+  height: 100%;
+  line-height: 1;
+  border-radius: 0;
+  border-left: 1px solid
+    color-mix(in srgb, var(--saito-button-primary-foreground, #fff) 28%, transparent);
+  background: transparent;
+  background-color: transparent;
+  color: var(--saito-button-primary-foreground, var(--saito-foreground));
+  box-shadow: none;
 }
 
 .saito-multi-select_btn_options,
 .saito-multi-select_btn_options.saito-slct {
-	width: calc(100% - 5rem);
-	padding: 0 !important;
-	border: none;
-	border-radius: 0;
-	background: transparent;
-	background-color: transparent;
-	color: inherit;
+  width: calc(100% - 5rem);
+  padding: 0 !important;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  background-color: transparent;
+  color: inherit;
 }
 
 /* Expanded menu — children paint themselves again; parent stops clipping */
 .saito-multi-select_btn.showAll {
-	overflow: visible;
-	height: auto;
-	background: transparent;
-	border: none;
-	border-radius: 0;
-	box-shadow: none;
+  overflow: visible;
+  height: auto;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .saito-multi-select_btn.showAll.saito-select::after {
-	display: none;
+  display: none;
 }
 
 .saito-multi-select_btn_options button,
 .saito-multi-btn {
-	display: block;
-	width: 100%;
-	min-height: 4.8rem;
-	margin: 0;
-	margin-bottom: -1px;
-	font-size: 2rem;
+  display: block;
+  width: 100%;
+  min-height: 4.8rem;
+  margin: 0;
+  margin-bottom: -1px;
+  font-size: 2rem;
 }
 
 .saito-multi-select_btn:not(.showAll):hover .saito-multi-select_btn_options button:first-child {
-	background: color-mix(in srgb, var(--saito-button-primary-foreground, #fff) 10%, transparent);
+  background: color-mix(in srgb, var(--saito-button-primary-foreground, #fff) 10%, transparent);
 }
 
 .saito-multi-select_btn.showAll .saito-multi-select_btn_options button {
-	margin-bottom: 0.4rem;
-	border: 1px solid transparent;
-	border-radius: var(--saito-radius, var(--saito-radius));
-	background: var(--saito-button-primary-background, var(--saito-primary));
-	color: var(--saito-button-primary-foreground, var(--saito-foreground));
+  margin-bottom: 0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--saito-radius, var(--saito-radius));
+  background: var(--saito-button-primary-background, var(--saito-primary));
+  color: var(--saito-button-primary-foreground, var(--saito-foreground));
 }
 
 .saito-multi-select_btn.showAll .saito-multi-select_btn_options button:hover {
-	filter: brightness(1.03);
-	color: var(--saito-button-primary-foreground, var(--saito-white));
+  filter: brightness(1.03);
+  color: var(--saito-button-primary-foreground, var(--saito-white));
 }
 
 .arcade-wizard-form {
-	display: grid;
-	grid-gap: 1em;
-	grid-template-columns: 1fr;
+  display: grid;
+  grid-gap: 1em;
+  grid-template-columns: 1fr;
 }
 
 .arcade-game-publisher-message {
-	margin-top: 1rem;
-	font-size: 1.3rem;
-	line-height: 2.5rem;
+  margin-top: 1rem;
+  font-size: 1.3rem;
+  line-height: 2.5rem;
 }
 
 #arcade-advance-opt {
-	margin: 1rem 0;
-	text-transform: lowercase;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
+  margin: 1rem 0;
+  text-transform: lowercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .arcade-wizard-advanced-text {
-	border-bottom: 1px dashed;
-	font-size: 2rem;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+  border-bottom: 1px dashed;
+  font-size: 2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .arcade-wizard-actions {
-	display: flex;
-	flex-direction: row;
-	justify-content: flex-end;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
 }
 
 .game-invite-btn {
-	min-width: 25rem;
-	height: 4.8rem;
+  min-width: 25rem;
+  height: 4.8rem;
 }
 
 .twilight-advanced-options-container {
-	display: flex;
-	gap: 2rem;
-	flex-direction: column;
-	min-width: 75vw;
-	max-width: 100rem;
+  display: flex;
+  gap: 2rem;
+  flex-direction: column;
+  min-width: 75vw;
+  max-width: 100rem;
 }
 
 .twilight-advanced-options-container div {
-	display: grid;
-	gap: 1rem;
+  display: grid;
+  gap: 1rem;
 }
 
 .arcade-wizard-advanced {
-	display: block;
-	padding-left: 20px;
+  display: block;
+  padding-left: 20px;
 }
 
 .arcade-wizard-advanced li {
-	width: 20rem;
+  width: 20rem;
 }
 
 .arcade-wizard-advanced ul {
-	display: flex;
-	gap: 1rem;
-	flex-direction: row;
-	flex-wrap: wrap;
-	justify-content: space-between;
+  display: flex;
+  gap: 1rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .arcade-wizard-advanced li {
-	display: grid;
-	grid-template-columns: 0.25fr 1fr;
+  display: grid;
+  grid-template-columns: 0.25fr 1fr;
 }
 
 @media screen and (max-width: 1000px) {
-	.arcade-wizard-advanced li {
-		width: 15rem;
-	}
+  .arcade-wizard-advanced li {
+    width: 15rem;
+  }
 }
 
 @media screen and (max-width: 700px) {
-	.arcade-wizard-container {
-		display: flex !important;
-		flex-direction: column;
-	}
-	.arcade-wizard-controls {
-		display: flex !important;
-		flex-direction: column-reverse;
-	}
-	.arcade-wizard {
-		font-size: 1.8rem;
-	}
+  .arcade-wizard-container {
+    display: flex !important;
+    flex-direction: column;
+  }
+  .arcade-wizard-controls {
+    display: flex !important;
+    flex-direction: column-reverse;
+  }
+  .arcade-wizard {
+    font-size: 1.8rem;
+  }
 
-	.arcade-wizard-actions button {
-		width: 100%;
-		min-width: unset;
-	}
+  .arcade-wizard-actions button {
+    width: 100%;
+    min-width: unset;
+  }
 
-	.arcade-wizard-title {
-		font-size: 2.8rem;
-	}
+  .arcade-wizard-title {
+    font-size: 2.8rem;
+  }
 
-	.arcade-wizard-description,
-	.saito-multi-select_btn_options button,
-	.arcade-wizard-advanced-text,
-	.arcade-wizard select {
-		font-size: 1.6rem;
-		line-height: 2rem;
-	}
+  .arcade-wizard-description,
+  .saito-multi-select_btn_options button,
+  .arcade-wizard-advanced-text,
+  .arcade-wizard select {
+    font-size: 1.6rem;
+    line-height: 2rem;
+  }
 }

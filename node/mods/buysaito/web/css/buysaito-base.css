@@ -77,12 +77,13 @@ body.buysaito-body .buysaito-withdraw-container {
   overflow: hidden;
 }
 
-.saito-overlay > .saito-overlay-panel:is(
-  .purchase-container,
-  .amount-selection-box,
-  .buysaito-payment-box,
-  .loader-interstitial-overlay
-) {
+.saito-overlay
+  > .saito-overlay-panel:is(
+    .purchase-container,
+    .amount-selection-box,
+    .buysaito-payment-box,
+    .loader-interstitial-overlay
+  ) {
   border: 1px solid var(--saito-border);
 }
 
@@ -425,12 +426,13 @@ body.buysaito-body .buysaito-withdraw-container {
 }
 
 @media screen and (max-width: 768px) {
-  .saito-overlay > .saito-overlay-panel:is(
-    .purchase-container,
-    .amount-selection-box,
-    .buysaito-payment-box,
-    .loader-interstitial-overlay
-  ) {
+  .saito-overlay
+    > .saito-overlay-panel:is(
+      .purchase-container,
+      .amount-selection-box,
+      .buysaito-payment-box,
+      .loader-interstitial-overlay
+    ) {
     border: 0;
   }
 }

@@ -1,8 +1,8 @@
 module.exports = (app, mod, msg) => {
-	if (!msg) {
-		msg = `Registering a username is optional and free.`;
-	}
-	return `
+  if (!msg) {
+    msg = `Registering a username is optional and free.`;
+  }
+  return `
 		<form id="register-username-template" class="saito-overlay-form"> 
       		<div class="saito-overlay-form-header">
         		<div class="saito-overlay-form-header-title">Register Username</div>

@@ -18,30 +18,30 @@ const AppSettings = require('./lib/poker-settings');
 // CONSTRUCTOR  //
 //////////////////
 class Poker extends GameTableTemplate {
-	constructor(app) {
-		super(app);
+  constructor(app) {
+    super(app);
 
-		this.app = app;
-		this.name = 'Poker';
-		this.slug = 'poker';
-		this.title = 'Saito Poker';
-		this.description = `Texas Hold\'em Poker for the Saito Arcade. With five cards on the table and two in your hand, can you bet and bluff your way to victory? 
+    this.app = app;
+    this.name = 'Poker';
+    this.slug = 'poker';
+    this.title = 'Saito Poker';
+    this.description = `Texas Hold\'em Poker for the Saito Arcade. With five cards on the table and two in your hand, can you bet and bluff your way to victory? 
 				<br> Play with up to five other players for fun or wager integrated web3 cryptocurrencies through your handy Saito Wallets`;
-		this.categories = 'Games Cardgame Casino';
-		this.card_img_dir = '/saito/img/arcade/cards';
-		this.card_img = 'new_red';
-		this.felt = 'green';
-		this.theme = 'threed';
-		this.icon = 'fa-solid fa-diamond';
+    this.categories = 'Games Cardgame Casino';
+    this.card_img_dir = '/saito/img/arcade/cards';
+    this.card_img = 'new_red';
+    this.felt = 'green';
+    this.theme = 'threed';
+    this.icon = 'fa-solid fa-diamond';
 
-		this.minPlayers = 2;
-		this.maxPlayers = 6;
+    this.minPlayers = 2;
+    this.maxPlayers = 6;
 
-		this.stats = new PokerStats(app, this);
-		this.board = new GameBoard(app, this);
-		this.pot = new Pot(app, this);
+    this.stats = new PokerStats(app, this);
+    this.board = new GameBoard(app, this);
+    this.pot = new Pot(app, this);
 
-		/********************
+    /********************
 		*********************
 		*********************
 		***
@@ -73,330 +73,330 @@ class Poker extends GameTableTemplate {
 		*********************
 		********************/
 
-		this.updateHTML = '';
+    this.updateHTML = '';
 
-		this.sort_priority = 1;
-	}
+    this.sort_priority = 1;
+  }
 
-	initializeGame() {
-		//
-		// test crypto hand scoring
-		//
-		// this is just convenience code for checking why two hands
-		// might not score properly. please leave this in for now.
-		//
-		//let hand1 = ["S8","S7","H3","H5","C2","S6","H4"];
-		//let hand2 = ["C10","D2","H3","H5","C2","S6","H4"];
-		//console.log("TESTING HAND SCORING");
-		//let score1 = this.scoreHand(hand1);
-		//let score2 = this.scoreHand(hand2);
-		//let winner = this.pickWinner(score1, score2);
-		//console.log("score1: " + JSON.stringify(score1));
-		//console.log("score2: " + JSON.stringify(score2));
-		//console.log("winner: " + JSON.stringify(winner));
+  initializeGame() {
+    //
+    // test crypto hand scoring
+    //
+    // this is just convenience code for checking why two hands
+    // might not score properly. please leave this in for now.
+    //
+    //let hand1 = ["S8","S7","H3","H5","C2","S6","H4"];
+    //let hand2 = ["C10","D2","H3","H5","C2","S6","H4"];
+    //console.log("TESTING HAND SCORING");
+    //let score1 = this.scoreHand(hand1);
+    //let score2 = this.scoreHand(hand2);
+    //let winner = this.pickWinner(score1, score2);
+    //console.log("score1: " + JSON.stringify(score1));
+    //console.log("score2: " + JSON.stringify(score2));
+    //console.log("winner: " + JSON.stringify(winner));
 
-		super.initializeGame();
+    super.initializeGame();
 
-		//
-		// CHIPS or CRYPTO ?
-		//
-		this.settleNow = false;
-		this.settle_every_hand = false;
+    //
+    // CHIPS or CRYPTO ?
+    //
+    this.settleNow = false;
+    this.settle_every_hand = false;
 
-		if (this.game.player == 0) {
-			if (!this.game.pool[0]) {
-				this.addPool();
-			}
-		}
+    if (this.game.player == 0) {
+      if (!this.game.pool[0]) {
+        this.addPool();
+      }
+    }
 
-		//
-		// initialize game state
-		//
-		if (!this.game?.state) {
-			this.game.state = this.returnState(this.game.players.length);
-			this.initializeGameStake(this.game.crypto, this.game.stake);
-			this.game.stats = this.returnStats();
-			this.startRound(); // DOM update on new round
-		}
+    //
+    // initialize game state
+    //
+    if (!this.game?.state) {
+      this.game.state = this.returnState(this.game.players.length);
+      this.initializeGameStake(this.game.crypto, this.game.stake);
+      this.game.stats = this.returnStats();
+      this.startRound(); // DOM update on new round
+    }
 
-		//
-		// browsers display UI
-		//
-		if (this.browser_active) {
-			this.board.render();
-		}
-	}
+    //
+    // browsers display UI
+    //
+    if (this.browser_active) {
+      this.board.render();
+    }
+  }
 
-	//
-	// Consensus fields specific to poker that a late joiner must be able to
-	// verify (beyond the engine's id/players/round/credit/debt). The dealer
-	// button drives the blinds and turn order, so a joiner seated against a
-	// different button than the table would desync immediately.
-	//
-	returnExtraCommitmentFields(game_obj) {
-		return {
-			button_player: game_obj?.state?.button_player || 0,
-			small_blind: game_obj?.state?.small_blind || 0,
-			big_blind: game_obj?.state?.big_blind || 0
-		};
-	}
+  //
+  // Consensus fields specific to poker that a late joiner must be able to
+  // verify (beyond the engine's id/players/round/credit/debt). The dealer
+  // button drives the blinds and turn order, so a joiner seated against a
+  // different button than the table would desync immediately.
+  //
+  returnExtraCommitmentFields(game_obj) {
+    return {
+      button_player: game_obj?.state?.button_player || 0,
+      small_blind: game_obj?.state?.small_blind || 0,
+      big_blind: game_obj?.state?.big_blind || 0
+    };
+  }
 
-	returnShortGameOptionsArray(options) {
-		let sgoa = super.returnShortGameOptionsArray(options);
-		let ngoa = {};
-		let crypto = '';
-		for (let i in sgoa) {
-			try {
-				if (sgoa[i] != '') {
-					let okey = i;
-					let oval = sgoa[i];
+  returnShortGameOptionsArray(options) {
+    let sgoa = super.returnShortGameOptionsArray(options);
+    let ngoa = {};
+    let crypto = '';
+    for (let i in sgoa) {
+      try {
+        if (sgoa[i] != '') {
+          let okey = i;
+          let oval = sgoa[i];
 
-					let output_me = 1;
-					if (okey == 'chip') {
-						if (oval !== '0') {
-							okey = 'small blind';
-						} else {
-							output_me = 0;
-						}
-					}
-					if (okey == 'blind_mode') {
-						if (oval == 'increase') {
-							okey = 'mode';
-							oval = 'tournament';
-						} else {
-							output_me = 0;
-						}
-					}
-					if (okey == 'num_chips') {
-						okey = 'chips';
-					}
+          let output_me = 1;
+          if (okey == 'chip') {
+            if (oval !== '0') {
+              okey = 'small blind';
+            } else {
+              output_me = 0;
+            }
+          }
+          if (okey == 'blind_mode') {
+            if (oval == 'increase') {
+              okey = 'mode';
+              oval = 'tournament';
+            } else {
+              output_me = 0;
+            }
+          }
+          if (okey == 'num_chips') {
+            okey = 'chips';
+          }
 
-					if (okey == 'eliminated') {
-						// rendered as its own "cashed out" section in the arcade lounge,
-						// not as a game-options row
-						output_me = 0;
-					}
+          if (okey == 'eliminated') {
+            // rendered as its own "cashed out" section in the arcade lounge,
+            // not as a game-options row
+            output_me = 0;
+          }
 
-					if (output_me == 1) {
-						ngoa[okey] = oval;
-					}
-				}
-			} catch (err) {
-				console.error(err);
-				console.log(i, sgoa[i]);
-			}
-		}
+          if (output_me == 1) {
+            ngoa[okey] = oval;
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        console.log(i, sgoa[i]);
+      }
+    }
 
-		return ngoa;
-	}
+    return ngoa;
+  }
 
-	async render(app) {
-		if (!this.browser_active) {
-			return;
-		}
-		if (this.initialize_game_run) {
-			return;
-		}
+  async render(app) {
+    if (!this.browser_active) {
+      return;
+    }
+    if (this.initialize_game_run) {
+      return;
+    }
 
-		await this.injectGameHTML(htmlTemplate());
+    await this.injectGameHTML(htmlTemplate());
 
-		//
-		// ADD MENU
-		//
-		this.menu.addMenuOption('game-game', 'Game');
-		this.menu.addSubMenuOption('game-game', {
-			text: 'How to Play',
-			id: 'game-rules',
-			class: 'game-rules',
-			callback: function (app, game_mod) {
-				game_mod.menu.hideSubMenus();
-				game_mod.overlay.show(game_mod.returnGameRulesHTML());
-			}
-		});
-		this.menu.addSubMenuOption('game-game', {
-			text: 'Stats',
-			id: 'game-stats',
-			class: 'game-stats',
-			callback: function (app, game_mod) {
-				game_mod.menu.hideSubMenus();
-				game_mod.stats.toggle();
-			}
-		});
+    //
+    // ADD MENU
+    //
+    this.menu.addMenuOption('game-game', 'Game');
+    this.menu.addSubMenuOption('game-game', {
+      text: 'How to Play',
+      id: 'game-rules',
+      class: 'game-rules',
+      callback: function (app, game_mod) {
+        game_mod.menu.hideSubMenus();
+        game_mod.overlay.show(game_mod.returnGameRulesHTML());
+      }
+    });
+    this.menu.addSubMenuOption('game-game', {
+      text: 'Stats',
+      id: 'game-stats',
+      class: 'game-stats',
+      callback: function (app, game_mod) {
+        game_mod.menu.hideSubMenus();
+        game_mod.stats.toggle();
+      }
+    });
 
-		this.menu.addSubMenuOption('game-game', {
-			text: 'Settings',
-			id: 'game-settings',
-			class: 'game-settings',
-			callback: function (app, game_mod) {
-				game_mod.loadSettings();
-			}
-		});
+    this.menu.addSubMenuOption('game-game', {
+      text: 'Settings',
+      id: 'game-settings',
+      class: 'game-settings',
+      callback: function (app, game_mod) {
+        game_mod.loadSettings();
+      }
+    });
 
-		//default by device
-		this.theme = this.app.browser.isMobileBrowser() ? 'flat' : 'threed';
-		if (this.loadGamePreference('poker-theme')) {
-			this.theme = this.loadGamePreference('poker-theme');
-		}
-		if (this.loadGamePreference('poker-cards')) {
-			this.card_img = this.loadGamePreference('poker-cards');
-		}
-		if (this.loadGamePreference('poker-felt')) {
-			this.felt = this.loadGamePreference('poker-felt');
-		}
+    //default by device
+    this.theme = this.app.browser.isMobileBrowser() ? 'flat' : 'threed';
+    if (this.loadGamePreference('poker-theme')) {
+      this.theme = this.loadGamePreference('poker-theme');
+    }
+    if (this.loadGamePreference('poker-cards')) {
+      this.card_img = this.loadGamePreference('poker-cards');
+    }
+    if (this.loadGamePreference('poker-felt')) {
+      this.felt = this.loadGamePreference('poker-felt');
+    }
 
-		this.cardfan.container = '.mystuff';
+    this.cardfan.container = '.mystuff';
 
-		await super.render(app);
+    await super.render(app);
 
-		this.board.render();
-		this.playerbox.mode = 2;
-		this.refreshPlayerboxes();
-		this.menu.addChatMenu();
-		this.menu.render();
-		this.log.render();
-		this.displayButton();
-		this.insertCryptoLogo(this.game?.options?.crypto);
+    this.board.render();
+    this.playerbox.mode = 2;
+    this.refreshPlayerboxes();
+    this.menu.addChatMenu();
+    this.menu.render();
+    this.log.render();
+    this.displayButton();
+    this.insertCryptoLogo(this.game?.options?.crypto);
 
-		//
-		// gametabletemplate adds a scoreboard DIV that shows HIDE / LEAVE / JOIN instructions
-		// which we are going to hide to prevent UI / UX clutter, but leave functional so as to
-		// enable faster experimentation.
-		//
-		if (document.querySelector('.game-scoreboard')) {
-			document.querySelector('.game-scoreboard').style.display = 'none';
-		}
-	}
+    //
+    // gametabletemplate adds a scoreboard DIV that shows HIDE / LEAVE / JOIN instructions
+    // which we are going to hide to prevent UI / UX clutter, but leave functional so as to
+    // enable faster experimentation.
+    //
+    if (document.querySelector('.game-scoreboard')) {
+      document.querySelector('.game-scoreboard').style.display = 'none';
+    }
+  }
 
-	async receiveStopGameTransaction(resigning_player, txmsg) {
-		console.log('Poker: receiveStopGameTransaction', txmsg, resigning_player);
+  async receiveStopGameTransaction(resigning_player, txmsg) {
+    console.log('Poker: receiveStopGameTransaction', txmsg, resigning_player);
 
-		if (this.publicKey === resigning_player) {
-			super.receiveStopGameTransaction(resigning_player, txmsg);
-			return;
-		}
+    if (this.publicKey === resigning_player) {
+      super.receiveStopGameTransaction(resigning_player, txmsg);
+      return;
+    }
 
-		let loser = -1;
-		for (let i = 0; i < this.game.players.length; i++) {
-			if (this.game.players[i] == resigning_player) {
-				loser = i + 1;
-				break;
-			}
-		}
+    let loser = -1;
+    for (let i = 0; i < this.game.players.length; i++) {
+      if (this.game.players[i] == resigning_player) {
+        loser = i + 1;
+        break;
+      }
+    }
 
-		if (loser < 0) {
-			console.log('Player is not in the game');
-			return;
-		}
+    if (loser < 0) {
+      console.log('Player is not in the game');
+      return;
+    }
 
-		if (txmsg?.deck) {
-			if (!this.game?.opponent_decks) {
-				this.game.opponent_decks = {};
-			}
-			if (!this.game.opponent_decks[`${loser}`]) {
-				this.game.opponent_decks[`${loser}`] = txmsg.deck;
-			}
-		}
+    if (txmsg?.deck) {
+      if (!this.game?.opponent_decks) {
+        this.game.opponent_decks = {};
+      }
+      if (!this.game.opponent_decks[`${loser}`]) {
+        this.game.opponent_decks[`${loser}`] = txmsg.deck;
+      }
+    }
 
-		this.displayPlayerNotice(`<div class="plog-update">left the table</div>`, loser);
-		this.playerbox.addClass('folded', loser);
+    this.displayPlayerNotice(`<div class="plog-update">left the table</div>`, loser);
+    this.playerbox.addClass('folded', loser);
 
-		this.updateLog(this.game.state.player_names[loser - 1] + ' left the table');
+    this.updateLog(this.game.state.player_names[loser - 1] + ' left the table');
 
-		if (!this.game.state.passed[loser - 1]) {
-			this.game.stats[resigning_player].folds++;
-			this.game.state.passed[loser - 1] = 1;
-			this.game.state.last_fold = loser;
-		}
+    if (!this.game.state.passed[loser - 1]) {
+      this.game.stats[resigning_player].folds++;
+      this.game.state.passed[loser - 1] = 1;
+      this.game.state.last_fold = loser;
+    }
 
-		await super.receiveStopGameTransaction(resigning_player, txmsg);
+    await super.receiveStopGameTransaction(resigning_player, txmsg);
 
-		if (this.game.target == loser) {
-			this.game.state.plays_since_last_raise--;
-			this.startQueue();
-		}
-	}
+    if (this.game.target == loser) {
+      this.game.state.plays_since_last_raise--;
+      this.startQueue();
+    }
+  }
 
-	endTurn(nextTarget = 0) {
-		if (this.browser_active) {
-			this.updateStatus('submitting move to peers...');
-			$('.option').off();
-		}
+  endTurn(nextTarget = 0) {
+    if (this.browser_active) {
+      this.updateStatus('submitting move to peers...');
+      $('.option').off();
+    }
 
-		if (this.shot_clock) {
-			clearTimeout(this.shot_clock);
-			this.shot_clock = null;
-		}
+    if (this.shot_clock) {
+      clearTimeout(this.shot_clock);
+      this.shot_clock = null;
+    }
 
-		this.game_help.hide();
+    this.game_help.hide();
 
-		super.endTurn(nextTarget);
-	}
+    super.endTurn(nextTarget);
+  }
 
-	returnGameRulesHTML() {
-		return PokerGameRulesTemplate(this.app, this);
-	}
+  returnGameRulesHTML() {
+    return PokerGameRulesTemplate(this.app, this);
+  }
 
-	returnAdvancedOptions() {
-		return PokerGameOptionsTemplate(this.app, this);
-	}
+  returnAdvancedOptions() {
+    return PokerGameOptionsTemplate(this.app, this);
+  }
 
-	// Extension of game engine stub for advanced stake selection before starting a game
+  // Extension of game engine stub for advanced stake selection before starting a game
 
-	attachAdvancedOptionsEventListeners() {
-		let blindModeInput = document.getElementById('blind_mode');
-		let numChips = document.getElementById('num_chips');
-		let blindDisplay = document.getElementById('blind_explainer');
-		let crypto = document.getElementById('crypto');
-		let stakeValue = document.getElementById('stake');
-		let chipInput = document.getElementById('chip_wrapper');
-		//let stake = document.getElementById("stake");
+  attachAdvancedOptionsEventListeners() {
+    let blindModeInput = document.getElementById('blind_mode');
+    let numChips = document.getElementById('num_chips');
+    let blindDisplay = document.getElementById('blind_explainer');
+    let crypto = document.getElementById('crypto');
+    let stakeValue = document.getElementById('stake');
+    let chipInput = document.getElementById('chip_wrapper');
+    //let stake = document.getElementById("stake");
 
-		const updateChips = function () {
-			if (numChips && stakeValue && chipInput /*&& stake*/) {
-				if (crypto.value == '') {
-					chipInput.style.display = 'none';
-					stake.value = '0';
-				} else {
-					let nChips = parseInt(numChips.value);
-					let stakeAmt = parseFloat(stakeValue.value);
-					let jsMath = stakeAmt / nChips;
-					chipInput.style.display = 'block';
-				}
-			}
-		};
+    const updateChips = function () {
+      if (numChips && stakeValue && chipInput /*&& stake*/) {
+        if (crypto.value == '') {
+          chipInput.style.display = 'none';
+          stake.value = '0';
+        } else {
+          let nChips = parseInt(numChips.value);
+          let stakeAmt = parseFloat(stakeValue.value);
+          let jsMath = stakeAmt / nChips;
+          chipInput.style.display = 'block';
+        }
+      }
+    };
 
-		if (blindModeInput && blindDisplay) {
-			blindModeInput.onchange = function () {
-				if (blindModeInput.value == 'static') {
-					blindDisplay.textContent =
-						'Small blind is one chip, big blind is two chips throughout the game';
-				} else {
-					blindDisplay.textContent =
-						'Small blind starts at one chip, and increments by 1 every 5 rounds';
-				}
-			};
-		}
+    if (blindModeInput && blindDisplay) {
+      blindModeInput.onchange = function () {
+        if (blindModeInput.value == 'static') {
+          blindDisplay.textContent =
+            'Small blind is one chip, big blind is two chips throughout the game';
+        } else {
+          blindDisplay.textContent =
+            'Small blind starts at one chip, and increments by 1 every 5 rounds';
+        }
+      };
+    }
 
-		if (crypto) {
-			crypto.onchange = updateChips;
-		}
-		if (numChips) {
-			numChips.onchange = updateChips;
-		}
-	}
+    if (crypto) {
+      crypto.onchange = updateChips;
+    }
+    if (numChips) {
+      numChips.onchange = updateChips;
+    }
+  }
 
-	loadSettings(container = null) {
-		if (!container) {
-			this.overlay.show(
-				`<div class="module-settings-overlay"><h2>${this.returnName()} Settings</h2></div>`
-			);
-			container = '.module-settings-overlay';
-			this.overlay.setBackgroundColor('#0001');
-		}
+  loadSettings(container = null) {
+    if (!container) {
+      this.overlay.show(
+        `<div class="module-settings-overlay"><h2>${this.returnName()} Settings</h2></div>`
+      );
+      container = '.module-settings-overlay';
+      this.overlay.setBackgroundColor('#0001');
+    }
 
-		let as = new AppSettings(this.app, this, container);
-		as.render();
-	}
+    let as = new AppSettings(this.app, this, container);
+    as.render();
+  }
 }
 
 Poker.importFunctions(PokerState, PokerStake, PokerQueue, PokerUI, PokerCards);

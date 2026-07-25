@@ -77,7 +77,9 @@ class PublishFlow {
     this.p2shAddress = address;
     this.p2shHash = hash;
 
-    const defaultFee = this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee || BigInt(0));
+    const defaultFee = this.app.wallet.convertNolanToSaito(
+      this.app.wallet.default_fee || BigInt(0)
+    );
     const fee = defaultFee && defaultFee !== '0.00' ? defaultFee : '0.001';
     this.availableBalanceNolan = await this.app.wallet.getBalance();
 
@@ -276,18 +278,20 @@ class PublishFlow {
       this.mainUi?.welcomeOverlay?.render('splash');
     });
 
-    root.querySelector('[data-action="publish-copy-address"]')?.addEventListener('click', async () => {
-      const address =
-        root.querySelector('.rs-publish-address-recap')?.dataset.address || this.p2shAddress;
-      if (!address) {
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(address);
-      } catch (_err) {
-        /* clipboard unavailable */
-      }
-    });
+    root
+      .querySelector('[data-action="publish-copy-address"]')
+      ?.addEventListener('click', async () => {
+        const address =
+          root.querySelector('.rs-publish-address-recap')?.dataset.address || this.p2shAddress;
+        if (!address) {
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(address);
+        } catch (_err) {
+          /* clipboard unavailable */
+        }
+      });
 
     root.querySelector('[data-action="publish-spend"]')?.addEventListener('click', async () => {
       const tx = this.lastPublishedTx;

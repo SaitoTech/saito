@@ -2,10 +2,10 @@ const SaitoOverlay = require('../../../../lib/saito/ui/saito-overlay/saito-overl
 const AuthTemplate = require('./auth.template');
 
 const AUTH_STATUS = {
-	SUCCESS: 'success',
-	CANCELLED: 'cancelled',
-	ERROR: 'error',
-	REJECTED: 'rejected'
+  SUCCESS: 'success',
+  CANCELLED: 'cancelled',
+  ERROR: 'error',
+  REJECTED: 'rejected'
 };
 
 /**
@@ -26,185 +26,186 @@ const AUTH_STATUS = {
  *   }
  */
 class Auth {
-	constructor(app, mod) {
-		this.app = app;
-		this.mod = mod;
-		if (app?.browser?.addStylesheet) {
-			app.browser.addStylesheet('/faucet/style.css');
-		}
-		this.overlay = new SaitoOverlay(this.app, this.mod);
-		this.callback = null;
-		this.title = '';
-		this.message = '';
-		this.activeProviders = [];
+  constructor(app, mod) {
+    this.app = app;
+    this.mod = mod;
+    if (app?.browser?.addStylesheet) {
+      app.browser.addStylesheet('/faucet/style.css');
+    }
+    this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.callback = null;
+    this.title = '';
+    this.message = '';
+    this.activeProviders = [];
 
-		/** Full registry — filter via render({ providers: [...] }). */
-		this.providers = [
-			{
-				id: 'github',
-				name: 'GitHub',
-				icon: 'fa-brands fa-github'
-			},
-			{
-				id: 'twitter',
-				name: 'X',
-				icon: 'fa-brands fa-x-twitter'
-			}
-		];
-	}
+    /** Full registry — filter via render({ providers: [...] }). */
+    this.providers = [
+      {
+        id: 'github',
+        name: 'GitHub',
+        icon: 'fa-brands fa-github'
+      },
+      {
+        id: 'twitter',
+        name: 'X',
+        icon: 'fa-brands fa-x-twitter'
+      }
+    ];
+  }
 
-	/**
-	 * Show the auth overlay.
-	 *
-	 * @param {object|function} [options]
-	 * @param {string} [options.title]
-	 * @param {string} [options.message] Plain text; blank lines become separate paragraphs
-	 * @param {string[]} [options.providers] Provider ids to show (subset of registry)
-	 * @param {function} [options.callback]
-	 */
-	render(options = {}) {
-		// Back-compat: render(callback)
-		if (typeof options === 'function') {
-			options = { callback: options };
-		}
+  /**
+   * Show the auth overlay.
+   *
+   * @param {object|function} [options]
+   * @param {string} [options.title]
+   * @param {string} [options.message] Plain text; blank lines become separate paragraphs
+   * @param {string[]} [options.providers] Provider ids to show (subset of registry)
+   * @param {function} [options.callback]
+   */
+  render(options = {}) {
+    // Back-compat: render(callback)
+    if (typeof options === 'function') {
+      options = { callback: options };
+    }
 
-		const opts = options && typeof options === 'object' ? options : {};
+    const opts = options && typeof options === 'object' ? options : {};
 
-		this.title = String(opts.title || 'Welcome to Saito').trim() || 'Welcome to Saito';
-		this.message = String(
-			opts.message ||
-				`To continue, please verify one of your existing online accounts.
+    this.title = String(opts.title || 'Welcome to Saito').trim() || 'Welcome to Saito';
+    this.message = String(
+      opts.message ||
+        `To continue, please verify one of your existing online accounts.
 
 We never post on your behalf.`
-		);
-		this.callback = typeof opts.callback === 'function' ? opts.callback : null;
-		this.activeProviders = this.resolveProviders(opts.providers);
+    );
+    this.callback = typeof opts.callback === 'function' ? opts.callback : null;
+    this.activeProviders = this.resolveProviders(opts.providers);
 
-		this.overlay.show(
-			AuthTemplate({
-				title: this.title,
-				message: this.message,
-				providers: this.activeProviders
-			}),
-			() => {
-				this.finish({
-					status: AUTH_STATUS.CANCELLED,
-					provider: null,
-					identity: null,
-					error: null
-				});
-			}
-		);
+    this.overlay.show(
+      AuthTemplate({
+        title: this.title,
+        message: this.message,
+        providers: this.activeProviders
+      }),
+      () => {
+        this.finish({
+          status: AUTH_STATUS.CANCELLED,
+          provider: null,
+          identity: null,
+          error: null
+        });
+      }
+    );
 
-		this.attachEvents();
-	}
+    this.attachEvents();
+  }
 
-	resolveProviders(requested) {
-		const ids = Array.isArray(requested) && requested.length
-			? requested.map((id) => String(id || '').trim()).filter(Boolean)
-			: this.providers.map((p) => p.id);
+  resolveProviders(requested) {
+    const ids =
+      Array.isArray(requested) && requested.length
+        ? requested.map((id) => String(id || '').trim()).filter(Boolean)
+        : this.providers.map((p) => p.id);
 
-		const resolved = [];
-		for (const id of ids) {
-			const provider = this.providers.find((p) => p.id === id);
-			if (provider) {
-				resolved.push(provider);
-			}
-		}
-		return resolved.length ? resolved : [...this.providers];
-	}
+    const resolved = [];
+    for (const id of ids) {
+      const provider = this.providers.find((p) => p.id === id);
+      if (provider) {
+        resolved.push(provider);
+      }
+    }
+    return resolved.length ? resolved : [...this.providers];
+  }
 
-	attachEvents() {
-		const root = document.querySelector('.auth');
-		if (!root) {
-			return;
-		}
+  attachEvents() {
+    const root = document.querySelector('.auth');
+    if (!root) {
+      return;
+    }
 
-		root.querySelectorAll('[data-auth-provider]').forEach((btn) => {
-			btn.onclick = (e) => {
-				e.preventDefault();
-				const id = btn.getAttribute('data-auth-provider');
-				const provider = this.activeProviders.find((p) => p.id === id);
-				if (provider) {
-					this.authenticate(provider);
-				}
-			};
-		});
+    root.querySelectorAll('[data-auth-provider]').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        const id = btn.getAttribute('data-auth-provider');
+        const provider = this.activeProviders.find((p) => p.id === id);
+        if (provider) {
+          this.authenticate(provider);
+        }
+      };
+    });
 
-		const cancelBtn = root.querySelector('[data-auth-cancel]');
-		if (cancelBtn) {
-			cancelBtn.onclick = (e) => {
-				e.preventDefault();
-				this.cancel();
-			};
-		}
-	}
+    const cancelBtn = root.querySelector('[data-auth-cancel]');
+    if (cancelBtn) {
+      cancelBtn.onclick = (e) => {
+        e.preventDefault();
+        this.cancel();
+      };
+    }
+  }
 
-	/**
-	 * Stub — later replaced with Auth.js OAuth for the given provider.
-	 * @param {{ id: string, name?: string, icon?: string }} provider
-	 */
-	authenticate(provider) {
-		if (!provider?.id) {
-			this.finish({
-				status: AUTH_STATUS.ERROR,
-				provider: null,
-				identity: null,
-				error: 'Unknown authentication provider'
-			});
-			this.overlay.close();
-			return;
-		}
+  /**
+   * Stub — later replaced with Auth.js OAuth for the given provider.
+   * @param {{ id: string, name?: string, icon?: string }} provider
+   */
+  authenticate(provider) {
+    if (!provider?.id) {
+      this.finish({
+        status: AUTH_STATUS.ERROR,
+        provider: null,
+        identity: null,
+        error: 'Unknown authentication provider'
+      });
+      this.overlay.close();
+      return;
+    }
 
-		// Stub identity — Auth.js will populate real fields later.
-		this.finish({
-			status: AUTH_STATUS.SUCCESS,
-			provider: provider.id,
-			identity: Auth.emptyIdentity(provider.id),
-			error: null
-		});
-		this.overlay.close();
-	}
+    // Stub identity — Auth.js will populate real fields later.
+    this.finish({
+      status: AUTH_STATUS.SUCCESS,
+      provider: provider.id,
+      identity: Auth.emptyIdentity(provider.id),
+      error: null
+    });
+    this.overlay.close();
+  }
 
-	cancel() {
-		this.finish({
-			status: AUTH_STATUS.CANCELLED,
-			provider: null,
-			identity: null,
-			error: null
-		});
-		this.overlay.close();
-	}
+  cancel() {
+    this.finish({
+      status: AUTH_STATUS.CANCELLED,
+      provider: null,
+      identity: null,
+      error: null
+    });
+    this.overlay.close();
+  }
 
-	/**
-	 * Invoke the caller callback once. Nulls the callback before close so the
-	 * overlay dismiss hook does not double-fire (Create NFT pattern).
-	 */
-	finish(result) {
-		if (typeof this.callback !== 'function') {
-			return;
-		}
-		const cb = this.callback;
-		this.callback = null;
-		cb({
-			status: result.status || AUTH_STATUS.ERROR,
-			provider: result.provider ?? null,
-			identity: result.identity ?? null,
-			error: result.error ?? null
-		});
-	}
+  /**
+   * Invoke the caller callback once. Nulls the callback before close so the
+   * overlay dismiss hook does not double-fire (Create NFT pattern).
+   */
+  finish(result) {
+    if (typeof this.callback !== 'function') {
+      return;
+    }
+    const cb = this.callback;
+    this.callback = null;
+    cb({
+      status: result.status || AUTH_STATUS.ERROR,
+      provider: result.provider ?? null,
+      identity: result.identity ?? null,
+      error: result.error ?? null
+    });
+  }
 
-	static emptyIdentity(providerId = null) {
-		return {
-			provider: providerId,
-			provider_id: null,
-			username: null,
-			display_name: null,
-			email: null,
-			avatar: null,
-			metadata: {}
-		};
-	}
+  static emptyIdentity(providerId = null) {
+    return {
+      provider: providerId,
+      provider_id: null,
+      username: null,
+      display_name: null,
+      email: null,
+      avatar: null,
+      metadata: {}
+    };
+  }
 }
 
 Auth.STATUS = AUTH_STATUS;

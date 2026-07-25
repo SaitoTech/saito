@@ -4,17 +4,16 @@ class StatusHeader {
   constructor(app, mod, containerSelector) {
     this.app = app;
     this.mod = mod;
-    this.container = ".saito-header";
+    this.container = '.saito-header';
   }
 
   async render() {
     this.app.browser.addElementToSelector(StatusHeaderTemplate(this.app, this.mod), this.container);
-    
+
     this.attachEvents();
   }
 
   attachEvents() {
-
     const hamburgerButton = document.getElementById('hamburger-button');
     const dropdownMenu = document.getElementById('dropdown-menu');
     const menuContainer = document.getElementById('menu-container');
@@ -30,18 +29,13 @@ class StatusHeader {
     hamburgerButton.addEventListener('click', toggleMenu);
 
     document.addEventListener('mousedown', (event) => {
-      if (
-        isMenuOpen &&
-        !menuContainer.contains(event.target)
-      ) {
+      if (isMenuOpen && !menuContainer.contains(event.target)) {
         isMenuOpen = false;
         dropdownMenu.style.display = 'none';
         hamburgerButton.setAttribute('aria-expanded', 'false');
       }
     });
-
   }
-
 }
 
 module.exports = StatusHeader;

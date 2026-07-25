@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
       <div class="review-overlay" id="review-overlay">
         <div id="lightbox_header" class="lightbox_header"></div>
         <div id="test_container" class="test_container">

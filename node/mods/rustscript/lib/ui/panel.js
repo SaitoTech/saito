@@ -77,11 +77,13 @@ class PanelReferenceView {
   }
 
   bindEvents() {
-    this.container?.querySelector('[data-action="move-to-testing"]')?.addEventListener('click', () => {
-      if (typeof this.lastContext?.onMoveToTesting === 'function') {
-        this.lastContext.onMoveToTesting();
-      }
-    });
+    this.container
+      ?.querySelector('[data-action="move-to-testing"]')
+      ?.addEventListener('click', () => {
+        if (typeof this.lastContext?.onMoveToTesting === 'function') {
+          this.lastContext.onMoveToTesting();
+        }
+      });
 
     this.container?.querySelector('[data-action="publish"]')?.addEventListener('click', () => {
       if (typeof this.lastContext?.onPublish === 'function') {
@@ -89,11 +91,13 @@ class PanelReferenceView {
       }
     });
 
-    this.container?.querySelector('[data-action="unlock-solution"]')?.addEventListener('click', () => {
-      if (typeof this.lastContext?.onUnlockSolution === 'function') {
-        this.lastContext.onUnlockSolution();
-      }
-    });
+    this.container
+      ?.querySelector('[data-action="unlock-solution"]')
+      ?.addEventListener('click', () => {
+        if (typeof this.lastContext?.onUnlockSolution === 'function') {
+          this.lastContext.onUnlockSolution();
+        }
+      });
   }
 }
 

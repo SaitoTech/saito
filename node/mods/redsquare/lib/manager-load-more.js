@@ -16,7 +16,11 @@ const MOCK_AUTHOR_KEYS = [
 
 const MAX_MOCK_PAGES = 2;
 
-function makeLoadResult(type, direction, { added = [], updated = [], ignored = [], exhausted = false } = {}) {
+function makeLoadResult(
+  type,
+  direction,
+  { added = [], updated = [], ignored = [], exhausted = false } = {}
+) {
   return {
     type,
     direction,

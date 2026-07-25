@@ -1,5 +1,5 @@
 module.exports = () => {
-	let html = `
+  let html = `
           <div class="build-overlay hide-scrollbar">
 	    <div class="build-controls">
               <div class="fewer-units"><i class="fa fa-caret-left"></i></div>
@@ -9,5 +9,5 @@ module.exports = () => {
 	    <div class="build-submit">confirm and build</div>
           </div>
   `;
-	return html;
+  return html;
 };

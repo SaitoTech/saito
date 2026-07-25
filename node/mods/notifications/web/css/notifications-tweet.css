@@ -270,7 +270,7 @@
 }
 
 .notifications-notifications .tweet.is_parent_focus .text {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* Legacy pseudo connectors (disabled by !important; overlay draws lines in main.js) */

@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
     <form id="backup-template" class="saito-overlay-auto-backup saito-overlay-form">
         <div class="saito-overlay-form-header">
           <div class="saito-overlay-form-header-title" id="saito-overlay-form-header-title">EASY ACCOUNT RECOVERY</div>

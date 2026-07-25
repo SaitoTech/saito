@@ -6,22 +6,18 @@ html {
 }
 
 /*
- * Canonical horizontal inset — measured from .saito-container workspace padding (16px).
- * Shared by header content, panel row, and command bar.
+ * Tokens on body:has(...) so portaled SaitoOverlays inherit them.
+ * (Overlays are siblings of .saito-container, not descendants.)
+ * Typography rem values assume Saito html { font-size: 10px }.
  */
 body:has(.saito-container.rustscript) {
   --rs-page-gutter: 16px;
-}
 
-/*
- * Mount shell — standard Saito .saito-container sits below #saito-header.
- * RustScript workspace lives inside the container only.
- */
-.saito-container.rustscript {
-  --rs-control-height: 44px;
+  --rs-control-height: 4.4rem;
   --rs-control-border: 2px solid #3d3d3d;
   --rs-control-radius: 4px;
   --rs-control-radius-chrome: 2px;
+
   --rustscript-background: #141414;
   --rustscript-surface: #181818;
   --rustscript-panel: #1c1c1c;
@@ -41,7 +37,13 @@ body:has(.saito-container.rustscript) {
   --rustscript-create-glow: rgba(196, 92, 106, 0.14);
   --rustscript-test-edge: rgba(252, 163, 17, 0.28);
   --rustscript-test-glow: rgba(252, 163, 17, 0.08);
+}
 
+/*
+ * Mount shell — standard Saito .saito-container sits below #saito-header.
+ * RustScript workspace lives inside the container only.
+ */
+.saito-container.rustscript {
   display: flex;
   flex-direction: column;
   grid-template-columns: unset;
@@ -117,7 +119,10 @@ body:has(.saito-container.rustscript) {
 }
 
 /* Keep guidance panel visible during witness testing — hosts Unlock / Publish actions */
-.saito-container.rustscript .rustscript-body > #rustscript-editor-test:not([hidden]) ~ #rustscript-panel {
+.saito-container.rustscript
+  .rustscript-body
+  > #rustscript-editor-test:not([hidden])
+  ~ #rustscript-panel {
   flex: 0 1 min(320px, 30%);
   min-width: 240px;
   max-width: 400px;

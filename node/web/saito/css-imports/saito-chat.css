@@ -15,7 +15,8 @@
   /*flex: 1;*/
   position: relative;
   display: grid;
-  grid-template-rows: minmax(4.2rem, auto) 1fr;
+  /* Content-sized header — avoid empty band under CHATS before the list */
+  grid-template-rows: auto 1fr;
   user-select: none;
   background-color: var(--saito-chat-background);
   background-image: var(--saito-chat-background-image);
@@ -39,6 +40,8 @@
 
 .chat-manager-header {
   min-width: 0;
+  min-height: 0;
+  margin: 0;
   padding: 0 0.4rem;
 }
 
@@ -124,6 +127,8 @@
   min-height: 22rem;
   max-height: 100%; /*calc(100% - 5rem);*/
   position: relative;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .chat-manager-list .saito-address {
@@ -809,7 +814,7 @@
 }
 
 .chat-manager-options {
-  height: 100%;
+  min-height: 3.6rem;
   min-width: 3.6rem;
   display: flex;
   align-items: center;

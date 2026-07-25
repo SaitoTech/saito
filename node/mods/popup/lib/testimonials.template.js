@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
 <div style="color:#666666;font-size:1.75rem">
 
 <div class="rotate_right">

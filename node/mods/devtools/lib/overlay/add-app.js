@@ -4,66 +4,66 @@ const InstallOverlay = require('./install-app.js');
 const Transaction = require('../../../../lib/saito/transaction').default;
 
 class AddAppOverlay {
-	constructor(app, mod) {
-		this.app = app;
-		this.mod = mod;
-		this.overlay = new SaitoOverlay(app, mod);
-		this.installOverlay = new InstallOverlay(app, mod);
+  constructor(app, mod) {
+    this.app = app;
+    this.mod = mod;
+    this.overlay = new SaitoOverlay(app, mod);
+    this.installOverlay = new InstallOverlay(app, mod);
 
-		this.app.connection.on(
-			'saito-app-app-render-request',
-			() => {
-				this.render();
-			}
-		);
-	}
+    this.app.connection.on('saito-app-app-render-request', () => {
+      this.render();
+    });
+  }
 
-	render() {
-		this.overlay.show(AddAppOverlayTemplate(this.app, this.mod));
-		this.attachEvents();
-	}
+  render() {
+    this.overlay.show(AddAppOverlayTemplate(this.app, this.mod));
+    this.attachEvents();
+  }
 
-	attachEvents() {
-		try {
-			let this_self = this;
-			this.app.browser.addDragAndDropFileUploadToElement(`saito-app-upload`, async (filesrc) => {
-				document.querySelector('.saito-app-upload').innerHTML = 'Uploading file...';
-				
-				let data = "";
-				if (filesrc && filesrc.indexOf('data:application/octet-stream;base64,') >= 0) {
-					data = this.app.crypto.base64ToString(filesrc);
-				} else {
-					data = typeof filesrc === 'string' ? filesrc : '';
-				}
+  attachEvents() {
+    try {
+      let this_self = this;
+      this.app.browser.addDragAndDropFileUploadToElement(
+        `saito-app-upload`,
+        async (filesrc) => {
+          document.querySelector('.saito-app-upload').innerHTML = 'Uploading file...';
 
-				let newtx = new Transaction();
-				newtx.deserialize_from_web(this_self.app, data);
+          let data = '';
+          if (filesrc && filesrc.indexOf('data:application/octet-stream;base64,') >= 0) {
+            data = this.app.crypto.base64ToString(filesrc);
+          } else {
+            data = typeof filesrc === 'string' ? filesrc : '';
+          }
 
-		          	let msg = newtx.returnMessage();
+          let newtx = new Transaction();
+          newtx.deserialize_from_web(this_self.app, data);
 
-				this_self.installOverlay.bin = msg.bin;
-				this_self.installOverlay.categories = msg.categories;
-				this_self.installOverlay.description = msg.description;
-				this_self.installOverlay.image = msg.image;
-				this_self.installOverlay.publisher = msg.publisher;
-				this_self.installOverlay.request = msg.request;
-				this_self.installOverlay.name = msg.name;
-				this_self.installOverlay.version = msg.version;
-				this_self.installOverlay.tx = newtx;
-				this_self.installOverlay.tx_json = data;
-				this_self.installOverlay.slug = msg.slug;
+          let msg = newtx.returnMessage();
 
-				this_self.installOverlay.render();
-				this_self.overlay.close();
+          this_self.installOverlay.bin = msg.bin;
+          this_self.installOverlay.categories = msg.categories;
+          this_self.installOverlay.description = msg.description;
+          this_self.installOverlay.image = msg.image;
+          this_self.installOverlay.publisher = msg.publisher;
+          this_self.installOverlay.request = msg.request;
+          this_self.installOverlay.name = msg.name;
+          this_self.installOverlay.version = msg.version;
+          this_self.installOverlay.tx = newtx;
+          this_self.installOverlay.tx_json = data;
+          this_self.installOverlay.slug = msg.slug;
 
-			}, true, false, true);
-
-		} catch(err) {
-			console.error("Error: ", err);
-			salert("An error occurred while getting application details. Check console for details.");
-		}
-
-	}
+          this_self.installOverlay.render();
+          this_self.overlay.close();
+        },
+        true,
+        false,
+        true
+      );
+    } catch (err) {
+      console.error('Error: ', err);
+      salert('An error occurred while getting application details. Check console for details.');
+    }
+  }
 }
 
 module.exports = AddAppOverlay;

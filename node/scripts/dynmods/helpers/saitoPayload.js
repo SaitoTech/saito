@@ -15,8 +15,8 @@ const minimalApp = {
   crypto: {
     stringToBase64(s) {
       return Buffer.from(s, 'utf-8').toString('base64');
-    },
-  },
+    }
+  }
 };
 
 /**
@@ -33,7 +33,7 @@ function buildSaitoPayload(msg) {
     signature: '',
     type: 0,
     buffer: Buffer.from(JSON.stringify(msg), 'utf-8').toString('base64'),
-    txs_replacements: 1,
+    txs_replacements: 1
   };
   const tx = new Transaction(undefined, jsonobj);
   const result = tx.serialize_to_web(minimalApp);

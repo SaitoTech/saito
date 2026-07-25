@@ -1,5 +1,4 @@
-module.exports = () => { 
-
+module.exports = () => {
   let help = ``;
   let advice = ``;
 
@@ -11,9 +10,4 @@ module.exports = () => {
       </div>
   `;
   return html;
-
-}
-
-
-
-
+};

@@ -1,558 +1,310 @@
-/* ============================================
-   PUBLISH OVERLAY - GUIDED PUBLISH FLOW
-   Header (title + trash) above both columns
-   ============================================ */
+/* Stack publish overlay — layout / composition only.
+   Appearance from Saito tokens + shared button/link/checkbox components. */
 
-/* Overlay Container - Desktop-first, wide modal */
 .stack-publish-overlay {
   position: relative;
-  max-width: 1100px;
+  box-sizing: border-box;
   width: min(1100px, 90vw);
+  max-width: 1100px;
   max-height: 90vh;
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--saito-background);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   padding: 0;
 }
 
 @media (min-width: 769px) {
   .stack-publish-overlay {
-    max-width: 1100px;
     width: min(1100px, 85vw);
   }
 }
 
-/* Mobile: full screen takeover */
 @media (max-width: 768px) {
   .stack-publish-overlay {
-    max-width: 100vw;
     width: 100vw;
-    max-height: 100vh;
-    height: 100vh;
-    border-radius: 0;
+    max-width: none;
+    max-height: none;
+    height: 100%;
   }
 }
 
-/* Content Container */
 .stack-publish-content {
-  padding: 3rem 3.5rem 2.5rem;
   display: flex;
   flex-direction: column;
-  min-height: 46rem;
+  gap: var(--saito-space-xl);
+  padding: var(--saito-space-xxl) var(--saito-space-xxl) var(--saito-space-xl);
+  min-height: 0;
 }
 
 @media (max-width: 768px) {
   .stack-publish-content {
-    padding: 2.5rem 1.5rem 2rem;
-    min-height: 0;
+    padding: var(--saito-space-xl) var(--saito-space-lg) var(--saito-space-lg);
   }
 }
 
-/* ============================================
-   HEADER — title + trash in one flex row
-   Close (X) is injected by SaitoOverlay on the
-   parent .saito-overlay, not inside this panel.
-   When maximized, close moves inside the panel
-   corner; reserve space so trash sits beside it.
-   ============================================ */
-
+/* Header — title + trash */
 .stack-publish-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
-  margin: 0 0 1.5rem 0;
+  gap: var(--saito-space-md);
   flex-shrink: 0;
+  margin: 0;
 }
 
 .maximized-overlay .stack-publish-header {
-  /* Closebox sits at top/right 1rem inside maximized overlays */
   padding-right: 5rem;
 }
 
 .stack-publish-overlay-title {
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: var(--saito-foreground);
-  margin: 0;
-  line-height: 1.3;
-  letter-spacing: 0.15rem;
   flex: 1;
   min-width: 0;
+  margin: 0;
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-large);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--saito-foreground);
 }
 
-@media (min-width: 769px) {
-  .stack-publish-overlay-title {
-    font-size: 1.75rem;
-  }
-}
-
-/* Two-column layout: selector + explanation */
+/* Two-column workflow */
 .stack-publish-cards {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 2rem;
+  grid-template-columns: minmax(16rem, 1fr) minmax(0, 2fr);
+  gap: var(--saito-space-lg);
   align-items: stretch;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 @media (max-width: 768px) {
   .stack-publish-cards {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: var(--saito-space-md);
   }
 }
 
-/* Individual Card */
 .stack-publish-card {
-  background: var(--saito-background-secondary, var(--saito-background));
-  border: 1px solid var(--saito-border);
-  border-radius: 10px;
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  gap: var(--saito-space-md);
   min-height: 0;
+  padding: var(--saito-space-lg);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card);
 }
 
-@media (max-width: 768px) {
-  .stack-publish-card {
-    padding: 1.5rem;
-  }
-}
-
-/* Card Title (explanation panel heading) */
 .stack-publish-card-title {
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: var(--saito-foreground);
-  margin: 0 0 1.5rem 0;
+  margin: 0;
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-large);
+  font-weight: 500;
   line-height: 1.3;
+  color: var(--saito-foreground);
 }
 
-@media (min-width: 769px) {
-  .stack-publish-card-title {
-    font-size: 2rem;
-  }
-}
-
-/* ============================================
-   LEFT COLUMN: ACCESS CONTROL
-   ============================================ */
-
+/* Left: access options */
 .stack-publish-card-access {
-  display: flex;
-  flex-direction: column;
+	gap: var(--saito-space-md);
+	min-height: 0;
 }
 
-/* Access Cards Container */
 .stack-publish-access-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  flex: 1;
-  justify-content: flex-start;
+	display: flex;
+	flex-direction: column;
+	gap: var(--saito-space-sm);
+	flex: 1;
+	min-height: 0;
 }
 
-/* Individual Access Card — taller tap targets, same width/typography */
 .stack-publish-access-card {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 1.6rem 1.35rem;
-  border: 2px solid var(--saito-border);
-  border-radius: 10px;
-  background: var(--saito-background);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 5.5rem;
+	display: flex;
+	align-items: center;
+	gap: var(--saito-space-md);
+	flex: 1 1 0;
+	min-height: 4.8rem;
+	padding: var(--saito-space-md) var(--saito-space-lg);
+	border: 1px solid var(--saito-border);
+	border-radius: var(--saito-radius);
+	background: var(--saito-secondary);
+	cursor: pointer;
+	transition:
+		border-color 0.16s ease,
+		background-color 0.16s ease;
 }
 
 .stack-publish-access-card:hover {
-  border-color: var(--saito-primary);
-  background: var(--saito-background-secondary, var(--saito-background));
+  border-color: color-mix(in srgb, var(--saito-primary) 55%, var(--saito-border));
+  background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-secondary));
 }
 
 .stack-publish-access-card-active {
   border-color: var(--saito-primary);
-  border-width: 2px;
-  background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background) 88%);
+  background: color-mix(in srgb, var(--saito-primary) 14%, var(--saito-secondary));
 }
 
 .stack-publish-access-checkbox {
   margin: 0;
-  width: 1.5rem;
-  height: 1.5rem;
-  cursor: pointer;
   flex-shrink: 0;
-  accent-color: var(--saito-primary);
 }
 
 .stack-publish-access-card-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  min-width: 0;
 }
 
 .stack-publish-access-card-label {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--saito-foreground);
-  line-height: 1.35;
   margin: 0;
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--saito-foreground);
 }
 
-@media (min-width: 769px) {
-  .stack-publish-access-card-label {
-    font-size: 1.65rem;
-  }
-}
-
-/* ============================================
-   RIGHT: EXPLANATION / STEP PANEL
-   ============================================ */
-
+/* Right: explanation / wizard step */
 .stack-publish-card-main {
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
-  min-height: 24rem;
 }
 
 .stack-publish-step-panel {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  flex: 1;
+  gap: var(--saito-space-md);
+  min-height: 0;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
   will-change: transform, opacity;
 }
 
 .stack-publish-educational-content {
-  font-size: 1.35rem;
-  line-height: 1.55;
-  color: var(--saito-foreground);
-  opacity: 0.88;
-  padding-top: 0;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	gap: var(--saito-space-lg);
+	justify-content: flex-start;
+	min-height: 18rem;
+	color: var(--saito-muted-foreground);
+	font-size: var(--font-size-medium);
+	line-height: 1.5;
 }
 
 .stack-publish-educational-content > p {
-  font-size: inherit;
-  line-height: inherit;
-  margin: 0 0 0.85rem 0;
+	margin: 0;
+	font-size: inherit;
+	line-height: inherit;
 }
 
-.stack-publish-educational-content > p:last-child {
-  margin-bottom: 0;
-}
-
-/* Step-1 option copy: type first, details second */
-.stack-publish-option-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  max-width: 34rem;
+.stack-publish-option-copy,
+.stack-publish-followup-state {
+	display: flex;
+	flex-direction: column;
+	gap: var(--saito-space-md);
+	max-width: 40rem;
 }
 
 .stack-publish-option-heading {
-  margin: 0;
-  font-size: 1.7rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--saito-foreground);
-  opacity: 1;
+	margin: 0;
+	font-family: var(--saito-font-medium);
+	font-size: var(--font-size-large);
+	font-weight: 500;
+	line-height: 1.3;
+	color: var(--saito-foreground);
 }
 
-.stack-publish-option-points {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+.stack-publish-guidance {
+	margin: 0;
+	font-size: var(--font-size-medium);
+	font-weight: 400;
+	line-height: 1.5;
+	color: var(--saito-muted-foreground);
 }
 
-.stack-publish-option-points li {
-  position: relative;
-  margin: 0;
-  padding-left: 1.35rem;
-  font-size: 1.2rem;
-  font-weight: 400;
-  line-height: 1.55;
-  color: var(--saito-foreground);
-  opacity: 0.78;
+.stack-publish-option-points,
+.stack-publish-followup-points {
+	display: flex;
+	flex-direction: column;
+	gap: var(--saito-space-sm);
+	margin: 0;
+	padding: 0;
+	list-style: none;
 }
 
-.stack-publish-option-points li::before {
-  content: '▸';
-  position: absolute;
-  left: 0;
-  top: 0;
-  color: var(--saito-muted-foreground, var(--saito-foreground));
-  opacity: 0.7;
+.stack-publish-option-points li,
+.stack-publish-followup-points li {
+	position: relative;
+	margin: 0;
+	padding-left: 1.4rem;
+	font-size: var(--font-size-medium);
+	font-weight: 400;
+	line-height: 1.5;
+	color: var(--saito-muted-foreground);
 }
 
-@media (min-width: 769px) {
-  .stack-publish-educational-content {
-    font-size: 1.4rem;
-  }
-
-  .stack-publish-option-heading {
-    font-size: 1.85rem;
-  }
-
-  .stack-publish-option-points li {
-    font-size: 1.25rem;
-  }
+.stack-publish-option-points li::before,
+.stack-publish-followup-points li::before {
+	content: '▸';
+	position: absolute;
+	left: 0;
+	top: 0;
+	color: var(--saito-muted-foreground);
 }
 
-/* Panel 2 checklist — matrix green-on-black; primary visual on completion step */
+/* Success / checklist panel — Saito status success, not custom neon */
 .stack-publish-checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 0 0 1.25rem 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--saito-space-sm);
+	margin: 0;
 }
 
 .stack-publish-checklist-matrix {
-  background: #0a0a0a;
-  border: 1px solid #39ff14;
-  border-radius: 8px;
-  padding: 1.35rem 1.5rem;
-  margin: 0 0 1.25rem 0;
+	gap: var(--saito-space-md);
+	margin: 0;
+	padding: var(--saito-space-lg);
+	border: 1px solid color-mix(in srgb, var(--saito-status-success) 48%, var(--saito-border));
+	border-radius: var(--saito-radius);
+	background: color-mix(in srgb, var(--saito-status-success) 12%, var(--saito-card));
 }
 
 .stack-publish-check-row {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  font-size: 1.45rem;
-  color: #39ff14;
-  cursor: default;
-  opacity: 0.55;
+	display: flex;
+	align-items: center;
+	gap: var(--saito-space-md);
+	font-size: var(--font-size-medium);
+	font-weight: 500;
+	line-height: 1.35;
+	color: color-mix(in srgb, var(--saito-status-success) 55%, var(--saito-muted-foreground));
+	cursor: default;
 }
 
 .stack-publish-check-row-complete {
-  color: #39ff14;
-  opacity: 1;
+	color: var(--saito-status-success);
 }
 
 .stack-publish-check-mark {
-  flex-shrink: 0;
-  width: 1.5rem;
-  text-align: center;
-  font-weight: 700;
+	flex-shrink: 0;
+	width: 1.6rem;
+	text-align: center;
+	font-weight: 700;
 }
 
-.stack-publish-waiting-panel {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+/* Links — shared Saito text-link language */
+.stack-publish-educational-content .saito-text-link,
+.stack-publish-immediately.saito-text-link {
+	font-size: inherit;
+	line-height: inherit;
 }
 
-.stack-publish-waiting-panel p {
-  font-size: inherit;
-  line-height: inherit;
+.stack-publish-immediately.saito-text-link {
+	font-size: var(--font-size-medium);
 }
 
-.stack-publish-waiting-divider {
-  height: 1px;
-  background: color-mix(in srgb, #39ff14 35%, transparent);
-  margin: 0.5rem 0 1.75rem 0;
-}
-
-.stack-publish-countdown {
-  font-size: 3.2rem;
-  font-weight: 700;
-  line-height: 1.1;
-  margin: 0.25rem 0;
-  color: var(--saito-foreground);
-}
-
-.stack-publish-reassurance {
-  margin-top: 1rem;
-  opacity: 0.85;
-}
-
-.stack-publish-success-title {
-  color: #39ff14;
-  font-weight: 700;
-  font-size: 2rem;
-}
-
-.stack-publish-card-main-waiting .stack-publish-educational-content {
-  justify-content: flex-start;
-}
-
-.stack-publish-first-time {
-  margin-top: 0.5rem;
-}
-
-.stack-publish-inline-link {
-  display: inline;
-}
-
-.stack-publish-inline-link-strong {
-  font-weight: 600;
-}
-
-.stack-publish-followup-state,
-.stack-publish-confirmation-state {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.15rem;
-  max-width: 34rem;
-}
-
-.stack-publish-followup-heading {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--saito-foreground);
-  opacity: 0.95;
-}
-
-.stack-publish-suggestion {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.stack-publish-suggestion-label {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--saito-muted-foreground, var(--saito-foreground));
-  opacity: 0.75;
-}
-
-.stack-publish-followup-points {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.stack-publish-followup-points li {
-  position: relative;
-  margin: 0;
-  padding-left: 1.35rem;
-  font-size: 1.2rem;
-  font-weight: 400;
-  line-height: 1.55;
-  color: var(--saito-foreground);
-  opacity: 0.8;
-}
-
-.stack-publish-followup-points li::before {
-  content: '▸';
-  position: absolute;
-  left: 0;
-  top: 0;
-  color: var(--saito-muted-foreground, var(--saito-foreground));
-  opacity: 0.7;
-}
-
-.stack-publish-followup-points .stack-publish-inline-link {
-  font-size: inherit;
-  line-height: inherit;
-}
-
-.stack-publish-confirmation-title {
-  color: #39ff14;
-  font-weight: 700;
-}
-
-.stack-publish-confirmation-progress {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 0.5rem 0;
-}
-
-.stack-publish-confirmation-progress span {
-  width: 0.8rem;
-  height: 0.8rem;
-  border-radius: 50%;
-  background: #39ff14;
-  animation: stack-publish-confirmation-pulse 1.2s infinite ease-in-out;
-}
-
-.stack-publish-confirmation-progress span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.stack-publish-confirmation-progress span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-.stack-publish-confirmation-time {
-  opacity: 0.8;
-}
-
-@keyframes stack-publish-confirmation-pulse {
-  0%,
-  80%,
-  100% {
-    opacity: 0.35;
-    transform: scale(0.85);
-  }
-
-  40% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Status / info panel — reserved at bottom of Panel 2 */
-.stack-publish-status-panel {
-  margin-top: auto;
-  padding: 1.25rem 1.5rem;
-  border-radius: 8px;
-  border: 1px solid var(--saito-border);
-  font-size: 1.5rem;
-  line-height: 1.5;
-  min-height: 4.5rem;
-}
-
-.stack-publish-status-panel-hidden {
-  display: none;
-}
-
-.stack-publish-status-info {
-  background: color-mix(in srgb, var(--saito-foreground) 6%, var(--saito-background) 94%);
-  border-color: var(--saito-border);
-  color: var(--saito-foreground);
-}
-
-.stack-publish-status-warning {
-  background: color-mix(in srgb, #e6a800 14%, var(--saito-background) 86%);
-  border-color: color-mix(in srgb, #e6a800 45%, var(--saito-border));
-  color: var(--saito-foreground);
-}
-
-.stack-publish-status-error {
-  background: color-mix(in srgb, var(--saito-red, #dc3545) 12%, var(--saito-background) 88%);
-  border-color: color-mix(in srgb, var(--saito-red, #dc3545) 40%, var(--saito-border));
-  color: var(--saito-foreground);
-}
-
-.stack-publish-status-ready {
-  background: color-mix(in srgb, #2e8b57 12%, var(--saito-background) 88%);
-  border-color: color-mix(in srgb, #2e8b57 40%, var(--saito-border));
-  color: var(--saito-foreground);
-}
-
-/* Horizontal slide transitions */
+/* Slide transitions */
 .stack-publish-slide-exit-left {
   transform: translateX(-28px);
   opacity: 0;
@@ -573,54 +325,29 @@
   opacity: 0;
 }
 
-/* ============================================
-   DELETE DRAFT — in header flex row (not absolute)
-   Bare <i> avoids global `button i { margin }` offset.
-   ============================================ */
-
-.stack-publish-delete-draft-icon {
+/* Delete draft — shared icon button */
+.stack-publish-header .saito-icon-button {
   flex-shrink: 0;
-  color: var(--saito-foreground);
-  opacity: 0.5;
-  cursor: pointer;
-  font-size: 1.6rem;
-  line-height: 1;
-  display: inline-block;
-  transition: opacity 150ms ease, color 150ms ease;
 }
 
-.stack-publish-delete-draft-icon:hover {
-  opacity: 1;
-  color: var(--saito-red, #f71f3d);
+.stack-publish-header .saito-icon-button:hover {
+  color: var(--saito-destructive, var(--saito-red));
+  border-color: color-mix(in srgb, var(--saito-destructive, var(--saito-red)) 45%, var(--saito-border));
 }
 
-.stack-publish-delete-draft-icon:focus {
-  outline: 2px solid var(--saito-primary);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-.stack-publish-delete-draft-icon:active {
-  opacity: 0.85;
-}
-
-/* ============================================
-   GLOBAL ACTIONS — secondary left + primary right
-   ============================================ */
-
+/* Global actions */
 .stack-publish-global-action {
-  margin-top: 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1.5rem;
-  padding-top: 0;
+  gap: var(--saito-space-lg);
   flex-shrink: 0;
+  margin: 0;
+  padding: 0;
 }
 
 @media (max-width: 768px) {
   .stack-publish-global-action {
-    margin-top: 1.25rem;
     flex-direction: column-reverse;
     align-items: stretch;
   }
@@ -629,10 +356,10 @@
 .stack-publish-global-action-left {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  min-height: 2.5rem;
+  gap: var(--saito-space-md);
   flex: 1;
   min-width: 0;
+  min-height: 3.6rem;
 }
 
 .stack-publish-action-spacer {
@@ -640,152 +367,28 @@
   min-height: 1px;
 }
 
-/* Secondary bypass — same treatment as "or login/recover" */
-.stack-publish-immediately.saito-anchor {
-  font-size: 1.5rem;
-  color: var(--saito-foreground);
-  opacity: 0.8;
-}
-
-.stack-publish-immediately.saito-anchor:hover {
-  opacity: 1;
-}
-
-/*
- * Back — compact square secondary control (My NFTs "+" / NFT create Back treatment).
- */
-.stack-publish-global-action .stack-publish-back-btn {
-  box-sizing: border-box;
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 4.4rem;
-  height: 4.4rem;
-  min-width: 4.4rem;
-  min-height: 4.4rem;
+.stack-publish-global-action .saito-button-primary {
+  flex-shrink: 0;
   margin: 0;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: var(--saito-radius, 0.8rem);
-  background: #0009;
-  color: #fff;
-  box-shadow: none;
-  text-transform: none;
-  letter-spacing: normal;
-  font-weight: 500;
-  font-size: 1.6rem;
-  cursor: pointer;
-  opacity: 0.9;
-  transition:
-    background-color 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease,
-    opacity 0.16s ease;
+  min-width: 14rem;
 }
 
-.stack-publish-global-action .stack-publish-back-btn i {
-  margin: 0;
-  font-size: 1.6rem;
-  line-height: 1;
-  color: inherit;
+.stack-publish-global-action .saito-button-square {
+  flex-shrink: 0;
 }
 
-.stack-publish-global-action .stack-publish-back-btn:hover:not(:disabled) {
-  background: #000c;
-  border-color: rgba(255, 255, 255, 0.55);
-  color: #fff;
-  opacity: 1;
-  transform: none;
-  box-shadow: none;
-}
-
-.stack-publish-global-action .stack-publish-back-btn:active:not(:disabled) {
-  background: #000000b3;
-  opacity: 1;
-  transform: none;
-}
-
-.stack-publish-global-action .stack-publish-back-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--saito-focus-ring);
-}
-
-.stack-publish-global-action .stack-publish-back-btn:disabled {
-  opacity: 0.4;
+.stack-publish-global-action .saito-button-primary:disabled,
+.stack-publish-primary-action-btn-disabled {
   cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
-  .stack-publish-global-action .stack-publish-back-btn {
-    width: 4.4rem;
-    min-width: 4.4rem;
+  .stack-publish-global-action .saito-button-primary {
+    width: 100%;
+    min-width: 0;
   }
 
   .stack-publish-global-action-left {
     justify-content: flex-start;
-  }
-}
-
-.stack-publish-primary-action-btn {
-  padding: 1.625rem 3rem;
-  border: none;
-  background: var(--saito-primary);
-  color: var(--saito-primary-foreground, var(--saito-background));
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-  min-width: 15rem;
-  flex-shrink: 0;
-}
-
-@media (min-width: 769px) {
-  .stack-publish-primary-action-btn {
-    font-size: 2rem;
-    padding: 1.75rem 3.5rem;
-    font-weight: 700;
-    min-width: 18rem;
-  }
-}
-
-.stack-publish-primary-action-btn:hover {
-  opacity: 0.95;
-  transform: translateY(-1px);
-  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.2);
-}
-
-.stack-publish-primary-action-btn:active {
-  transform: translateY(0);
-}
-
-.stack-publish-primary-action-btn:disabled,
-.stack-publish-primary-action-btn.stack-publish-primary-action-btn-disabled {
-  background: color-mix(in srgb, var(--saito-foreground) 18%, var(--saito-background) 82%);
-  color: color-mix(in srgb, var(--saito-foreground) 55%, transparent);
-  box-shadow: none;
-  cursor: not-allowed;
-  opacity: 0.7;
-  transform: none;
-}
-
-.stack-publish-primary-action-btn:disabled:hover,
-.stack-publish-primary-action-btn.stack-publish-primary-action-btn-disabled:hover {
-  opacity: 0.7;
-  transform: none;
-  box-shadow: none;
-}
-
-@media (max-width: 768px) {
-  .stack-publish-primary-action-btn {
-    padding: 1.5rem 2.5rem;
-    font-size: 1.8rem;
-    width: 100%;
-    min-width: 0;
   }
 }

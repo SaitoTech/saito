@@ -88,19 +88,39 @@ class Stack extends ModTemplate {
   ////////////////////////////
   // Initialization        //
   ////////////////////////////
-  async initialize(app) {
-    await super.initialize(app);
+	async initialize(app) {
+		await super.initialize(app);
 
-    // Load persistent local UX state
-    this.load();
+		if (this.app.BROWSER) {
+			const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+			this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+		}
 
-    // Server: prime transactionCache and postsCache so we can serve posts with initial HTML
-    if (!this.app.BROWSER) {
-      this.prefetchStackCache().catch((err) => {
-        console.debug('Stack: prefetchStackCache failed', err);
-      });
-    }
-  }
+		// Load persistent local UX state
+		this.load();
+
+		// Server: prime transactionCache and postsCache so we can serve posts with initial HTML
+		if (!this.app.BROWSER) {
+			this.prefetchStackCache().catch((err) => {
+				console.debug('Stack: prefetchStackCache failed', err);
+			});
+		}
+	}
+
+	shouldAffixCallbackToModule(modname, tx = null) {
+		if (modname === this.name) {
+			return 1;
+		}
+		// Allow the shared transaction monitor to receive NFT mint confirmations.
+		if (
+			this.transaction_monitor?.tx &&
+			tx?.signature &&
+			tx.signature === this.transaction_monitor.tx.signature
+		) {
+			return 1;
+		}
+		return 0;
+	}
 
   /**
    * Server-only: fetch last 5 Saito Official posts and last 5 other recent public Stack posts
@@ -548,44 +568,42 @@ class Stack extends ModTemplate {
             value_obj.delegate = true;
           }
 
+          //
+          // we want to extend the routing path from the point where *we*
+          // most recently acquired authority over the NFT, not from the
+          // end of the existing routing path. This prevents merchants who
+          // repeatedly sell inventory from accumulating customer history
+          // into future transfers, etc.
+          //
+          const my_publickey = await this_mod.app.wallet.getPublicKey();
 
-	  //
-	  // we want to extend the routing path from the point where *we*
-	  // most recently acquired authority over the NFT, not from the
-	  // end of the existing routing path. This prevents merchants who
-	  // repeatedly sell inventory from accumulating customer history
-	  // into future transfers, etc.
-	  //
-	  const my_publickey = await this_mod.app.wallet.getPublicKey();
+          if (Array.isArray(tx.msg.data.path) && tx.msg.data.path.length > 0) {
+            let last_inbound = -1;
+            for (let i = 0; i < tx.msg.data.path.length; i++) {
+              if (tx.msg.data.path[i].to === my_publickey) {
+                last_inbound = i;
+              }
+            }
+            if (last_inbound >= 0) {
+              tx.msg.data.path = tx.msg.data.path.slice(0, last_inbound + 1);
+            }
+          }
 
-	  if (Array.isArray(tx.msg.data.path) && tx.msg.data.path.length > 0) {
-	    let last_inbound = -1;
-	    for (let i = 0; i < tx.msg.data.path.length; i++) {
-	      if (tx.msg.data.path[i].to === my_publickey) {
-	        last_inbound = i;
-	      }
-	    }
-	    if (last_inbound >= 0) {
-	      tx.msg.data.path = tx.msg.data.path.slice(0, last_inbound + 1);
-	    }
-	  }
+          const value_json = JSON.stringify(value_obj);
+          const value_b64 = Buffer.from(value_json).toString('base64');
 
-	  const value_json = JSON.stringify(value_obj);
-	  const value_b64 = Buffer.from(value_json).toString('base64');
+          const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
+          const hash_digest = this_mod.app.crypto.hash(canonical_string);
+          const privatekey = await this_mod.app.wallet.getPrivateKey();
+          const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
 
-	  const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
-	  const hash_digest = this_mod.app.crypto.hash(canonical_string);
-	  const privatekey = await this_mod.app.wallet.getPrivateKey();
-	  const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
+          tx.msg.data.path.push({
+            to: receiver,
+            value: value_b64,
+            sig: sig
+          });
 
-	  tx.msg.data.path.push({
-	    to: receiver,
-	    value: value_b64,
-	    sig: sig
-	  });
-
-	  return tx;
-
+          return tx;
         }
       };
     }
@@ -728,8 +746,7 @@ class Stack extends ModTemplate {
       return '';
     }
 
-    const access_script =
-      typeof script === 'string' ? script : JSON.stringify(script);
+    const access_script = typeof script === 'string' ? script : JSON.stringify(script);
     return this.app.core.scripting.hash(access_script);
   }
 

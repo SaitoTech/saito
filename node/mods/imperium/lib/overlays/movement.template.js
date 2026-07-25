@@ -1,5 +1,5 @@
-module.exports  = () => {
-	return `
+module.exports = () => {
+  return `
     <div class="how_to_play_overlay" id="how_to_play_overlay">
       <h2>Moving Ships:</h2>
 

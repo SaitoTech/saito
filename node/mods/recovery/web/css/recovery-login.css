@@ -1,15 +1,15 @@
 /* Recovery login wallet picker — layout + light card chrome on choices */
 
 .recovery-wallet-selection {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: var(--saito-space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-md);
 }
 
 .recovery-wallet-selection .saito-user {
-	width: unset;
-	padding: var(--saito-space-md);
-	border: 1px solid var(--saito-border);
-	border-radius: var(--saito-radius);
+  width: unset;
+  padding: var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
 }

@@ -165,7 +165,10 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   appearance: none;
   -webkit-appearance: none;
-  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    color 0.12s;
 }
 
 .saito-container.rustscript .rs-panel-menu-trigger:hover {
@@ -189,7 +192,9 @@
   transition: transform 0.14s ease;
 }
 
-.saito-container.rustscript .rs-panel-menu-trigger[aria-expanded='true'] .rs-panel-menu-trigger-icon {
+.saito-container.rustscript
+  .rs-panel-menu-trigger[aria-expanded='true']
+  .rs-panel-menu-trigger-icon {
   transform: rotate(90deg);
 }
 
@@ -231,7 +236,9 @@
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
 }
 
 .saito-container.rustscript .rs-panel-menu-item:hover {

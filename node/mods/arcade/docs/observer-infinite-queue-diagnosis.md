@@ -16,6 +16,7 @@ The queue never advances because of a **guard in `addNextMove()`** combined with
    - Same pattern in the constructor’s playback loop: `this.game_mod.game.future.push(...)`.
 
 2. **Observer then runs the engine with a tight loop:**
+
    ```javascript
    while (true) {
      if (this.game_mod.processFutureMoves()) {
@@ -29,13 +30,15 @@ The queue never advances because of a **guard in `addNextMove()`** combined with
 3. **`processFutureMoves()`** finds the next move in `future`, splices it out, and calls **`addNextMove(ftx)`**.
 
 4. **`addNextMove()` (gametemplate-moves.js:253)** uses this guard:
+
    ```javascript
    const guard = this.halted == 1 || this.gaming_active == 1 || this.game.initialize_game_run == 0;
    if (guard) {
-     await this.addFutureMove(gametx);  // move goes BACK to future
+     await this.addFutureMove(gametx); // move goes BACK to future
      return;
    }
    ```
+
    When the observer’s game was loaded from storage (or is a stub), **`game.initialize_game_run` is 0 or undefined**. So the guard is true.
 
 5. So **the first (and every) archive move is never applied**: it is sent back to `future` via `addFutureMove()`. The queue never gets that move’s `turn[]` and **`initializeGameQueue()` is never called** (it is only reached after the guard, when `!this.browser_active`). So **`initialize_game_run` stays 0**.
@@ -52,6 +55,7 @@ The queue never advances because of a **guard in `addNextMove()`** combined with
    - `QUEUE: [..., "init"]` (unchanged)
 
 So **`init` repeats** because:
+
 - No move is ever accepted (guard keeps sending it back to `future`).
 - The game never reaches “initialized” (`initialize_game_run` stays 0).
 - The queue is never extended or consumed; the same `init` (or last command) is executed every time.
@@ -60,16 +64,16 @@ So **`init` repeats** because:
 
 ## 2. Minimal Code Path Responsible
 
-| Step | Location | What happens |
-|------|----------|--------------|
-| 1 | **GameObserver** `download()` callback | Push all `this.txs` into `game_mod.game.future` (direct push, no `addFutureMove()`). |
-| 2 | Same callback | `while (true) { if (processFutureMoves()) runQueue(); else break; }` |
-| 3 | **gametemplate-moves.js** `processFutureMoves()` | Finds next move in `future`, splices it, calls `addNextMove(ftx)`. |
-| 4 | **gametemplate-moves.js** `addNextMove()` | Guard `this.game.initialize_game_run == 0` is true → `addFutureMove(gametx)` → move back in `future`, return. Queue and step are unchanged; `initializeGameQueue()` is never run. |
-| 5 | **processFutureMoves()** | Returns `1`. |
-| 6 | **GameObserver** loop | Calls `runQueue()`. |
-| 7 | **gametemplate-queue.js** `runQueue()` | Processes last queue entry (e.g. `"init"`). Command returns `0`; queue length unchanged. Returns `0`. |
-| 8 | Loop | Back to step 2; same move is still in `future`, so same cycle. |
+| Step | Location                                         | What happens                                                                                                                                                                      |
+| ---- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | **GameObserver** `download()` callback           | Push all `this.txs` into `game_mod.game.future` (direct push, no `addFutureMove()`).                                                                                              |
+| 2    | Same callback                                    | `while (true) { if (processFutureMoves()) runQueue(); else break; }`                                                                                                              |
+| 3    | **gametemplate-moves.js** `processFutureMoves()` | Finds next move in `future`, splices it, calls `addNextMove(ftx)`.                                                                                                                |
+| 4    | **gametemplate-moves.js** `addNextMove()`        | Guard `this.game.initialize_game_run == 0` is true → `addFutureMove(gametx)` → move back in `future`, return. Queue and step are unchanged; `initializeGameQueue()` is never run. |
+| 5    | **processFutureMoves()**                         | Returns `1`.                                                                                                                                                                      |
+| 6    | **GameObserver** loop                            | Calls `runQueue()`.                                                                                                                                                               |
+| 7    | **gametemplate-queue.js** `runQueue()`           | Processes last queue entry (e.g. `"init"`). Command returns `0`; queue length unchanged. Returns `0`.                                                                             |
+| 8    | Loop                                             | Back to step 2; same move is still in `future`, so same cycle.                                                                                                                    |
 
 The minimal responsible path is: **Observer direct push to `game.future`** → **processFutureMoves** → **addNextMove** (guard) → **addFutureMove** (move back to future) → **runQueue** (runs `init`, returns 0) → repeat.
 
@@ -119,7 +123,12 @@ Add these **temporarily** in the indicated files to confirm the diagnosis at run
 ```javascript
 // DIAG: observer init loop
 if (guard && this.game.player === 0) {
-  console.log('[OBS_DIAG] addNextMove DEFERRED (guard): initialize_game_run=', this.game.initialize_game_run, 'move step=', gametxmsg?.step?.game);
+  console.log(
+    '[OBS_DIAG] addNextMove DEFERRED (guard): initialize_game_run=',
+    this.game.initialize_game_run,
+    'move step=',
+    gametxmsg?.step?.game
+  );
 }
 ```
 
@@ -127,14 +136,26 @@ if (guard && this.game.player === 0) {
 
 ```javascript
 // DIAG: observer init loop
-console.log('[OBS_DIAG] download callback: playback_status=', this.playback_status, 'txs.length=', this.txs?.length, 'game.initialize_game_run=', this.game_mod?.game?.initialize_game_run);
+console.log(
+  '[OBS_DIAG] download callback: playback_status=',
+  this.playback_status,
+  'txs.length=',
+  this.txs?.length,
+  'game.initialize_game_run=',
+  this.game_mod?.game?.initialize_game_run
+);
 ```
 
 ### In `game-observer.js` — at the very start of the `if (this.playback_status === "init")` block, before the `for (let tx of this.txs)` loop:
 
 ```javascript
 // DIAG: observer init loop
-console.log('[OBS_DIAG] initial sync: about to push', this.txs.length, 'txs to future; game.initialize_game_run=', this.game_mod?.game?.initialize_game_run);
+console.log(
+  '[OBS_DIAG] initial sync: about to push',
+  this.txs.length,
+  'txs to future; game.initialize_game_run=',
+  this.game_mod?.game?.initialize_game_run
+);
 ```
 
 **What to look for when reproducing:**

@@ -1,12 +1,11 @@
 module.exports = (app, mod, sobj) => {
-
-  let warning_msg = "(0 network fees)";
+  let warning_msg = '(0 network fees)';
   let fee = mod.includeFeeInMax(sobj.ticker);
-  if (fee){
+  if (fee) {
     warning_msg = `(${fee} ${sobj.ticker})`;
   }
 
-	return `  
+  return `  
   <div class="saito-crypto-transfer" id="approve-crypto-request-container">
     
     <h2 class="auth-title">Enable In-Game Crypto</h2>
@@ -26,7 +25,6 @@ module.exports = (app, mod, sobj) => {
   </div>
   `;
 };
-
 
 /*
     <div class="stake-input-container">

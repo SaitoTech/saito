@@ -424,7 +424,8 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
         </div>
         <div className="filter-container">
           <label className="filter-label">Filter by</label>
-          <select class="saito-form-select"
+          <select
+            class="saito-form-select"
             value={selectedUser.username}
             onChange={(e) => {
               const selected = USERS.find((user) => user.username === e.target.value);

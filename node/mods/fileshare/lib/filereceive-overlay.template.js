@@ -1,6 +1,6 @@
 module.exports = (mod, fro, file) => {
-	let safeFileName = mod.app.browser.escapeHTML(file?.name || 'file');
-	let html = `
+  let safeFileName = mod.app.browser.escapeHTML(file?.name || 'file');
+  let html = `
 	<div id='file-transfer-${fro.fileId}-${fro.sender}' class='saito-file-transfer-overlay'>
 		<div class="pseudo-overlay-controls">
             <div class="saito-icon-button" id="resize"><i class="fa-solid fa-window-minimize"></i></div>
@@ -39,5 +39,5 @@ module.exports = (mod, fro, file) => {
 
 	</div>`;
 
-	return html;
+  return html;
 };

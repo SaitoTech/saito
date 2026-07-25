@@ -1,29 +1,35 @@
-module.exports = ({ blocks = [], loading = false, loadingMore = false, hasMore = true, error = null } = {}) => {
-	let rows = '';
+module.exports = ({
+  blocks = [],
+  loading = false,
+  loadingMore = false,
+  hasMore = true,
+  error = null
+} = {}) => {
+  let rows = '';
 
-	if (error) {
-		rows = `
+  if (error) {
+    rows = `
       <div class="explorer-teaser-loading explorer-teaser-error">
         <p class="explorer-teaser-loading-title">Unable to load blocks</p>
         <p class="explorer-teaser-loading-message">${error}</p>
       </div>
     `;
-	} else if (loading && !blocks.length) {
-		rows = `
+  } else if (loading && !blocks.length) {
+    rows = `
       <div class="explorer-teaser-loading">
         <p class="explorer-teaser-loading-message">Loading blocks from the network…</p>
       </div>
     `;
-	} else if (!blocks.length) {
-		rows = `
+  } else if (!blocks.length) {
+    rows = `
       <div class="explorer-teaser-loading">
         <p class="explorer-teaser-loading-message">No blocks available yet.</p>
       </div>
     `;
-	} else {
-		rows = blocks
-			.map(
-				(block) => `
+  } else {
+    rows = blocks
+      .map(
+        (block) => `
       <div class="explorer-feed-item" role="button" tabindex="0" data-block-hash="${block.hash}">
         <span class="explorer-feed-icon" aria-hidden="true"><i class="fas fa-cube"></i></span>
         <div class="explorer-feed-main">
@@ -41,17 +47,17 @@ module.exports = ({ blocks = [], loading = false, loadingMore = false, hasMore =
         <span class="explorer-feed-badge">${block.reward}</span>
       </div>
     `
-			)
-			.join('');
-	}
+      )
+      .join('');
+  }
 
-	const loadMoreHtml = loadingMore
-		? '<div class="explorer-load-more"><span class="explorer-load-more-text">Loading more blocks…</span></div>'
-		: hasMore && blocks.length
-			? '<div class="explorer-load-more"><button type="button" class="explorer-load-more-btn">Load more blocks</button></div>'
-			: '';
+  const loadMoreHtml = loadingMore
+    ? '<div class="explorer-load-more"><span class="explorer-load-more-text">Loading more blocks…</span></div>'
+    : hasMore && blocks.length
+      ? '<div class="explorer-load-more"><button type="button" class="explorer-load-more-btn">Load more blocks</button></div>'
+      : '';
 
-	return `
+  return `
     <main class="explorer-content explorer-view-panel">
       <div class="explorer-container explorer-stack">
         <div class="explorer-block-header">

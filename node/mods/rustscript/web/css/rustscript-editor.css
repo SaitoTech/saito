@@ -255,11 +255,17 @@
   box-sizing: border-box;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
+.saito-container.rustscript
+  .rustscript-editor-locking
+  .rs-semantic-section[data-key='required']
+  .rs-semantic-block-inner {
   border-left-color: rgba(196, 92, 106, 0.25);
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
+.saito-container.rustscript
+  .rustscript-editor-unlocking
+  .rs-semantic-section[data-key='required']
+  .rs-semantic-block-inner {
   border-left-color: rgba(252, 163, 17, 0.28);
 }
 
@@ -327,7 +333,9 @@
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
-  transition: color 0.12s, text-decoration-color 0.12s;
+  transition:
+    color 0.12s,
+    text-decoration-color 0.12s;
 }
 
 .saito-container.rustscript .rustscript-editor-locking .rs-semantic-opcode {
@@ -365,7 +373,9 @@
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
-  transition: color 0.12s, text-decoration-color 0.12s;
+  transition:
+    color 0.12s,
+    text-decoration-color 0.12s;
 }
 
 .saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-op:hover {
@@ -445,7 +455,9 @@
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
-  transition: color 0.12s, text-decoration-color 0.12s;
+  transition:
+    color 0.12s,
+    text-decoration-color 0.12s;
 }
 
 .saito-container.rustscript .rustscript-editor-guided .rs-value-resolved:hover {

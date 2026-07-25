@@ -1,5 +1,3 @@
-class Shape {
-
-}
+class Shape {}
 
 export default Shape;

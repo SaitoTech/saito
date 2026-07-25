@@ -1,5 +1,6 @@
 /*
- * RustScript onboarding — px typography (Saito :root is 10px; do not use rem here).
+ * RustScript onboarding — rem typography on Saito's 10px root
+ * (same scale as --font-size-*).
  */
 
 body:has(.saito-container.rustscript) .rs-onboarding-overlay {
@@ -15,7 +16,8 @@ body:has(.saito-container.rustscript) .rs-onboarding-overlay {
 }
 
 body:has(.saito-container.rustscript) .rs-onboarding-overlay-backdrop,
-body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop'].rs-onboarding-overlay-backdrop {
+body:has(.saito-container.rustscript)
+  [id^='saito-overlay-backdrop'].rs-onboarding-overlay-backdrop {
   background: rgba(14, 16, 20, 0.96) !important;
   backdrop-filter: blur(6px);
 }
@@ -37,16 +39,16 @@ body:has(.saito-container.rustscript) .rs-onboarding-overlay.center-overlay {
 
 body:has(.saito-container.rustscript) .rs-onboard-appspace,
 .rs-onboarding-overlay .rs-onboard-appspace {
-  --rs-onboard-fs-brand: 32px;
-  --rs-onboard-fs-prompt: 20px;
-  --rs-onboard-fs-step: 22px;
-  --rs-onboard-fs-option-title: 19px;
-  --rs-onboard-fs-option-desc: 16px;
-  --rs-onboard-fs-kicker: 11px;
-  --rs-onboard-fs-lead: 17px;
-  --rs-onboard-fs-template-name: 18px;
-  --rs-onboard-fs-template-desc: 15px;
-  --rs-onboard-fs-back: 16px;
+  --rs-onboard-fs-brand: 3.2rem;
+  --rs-onboard-fs-prompt: var(--font-size-large);
+  --rs-onboard-fs-step: 2.2rem;
+  --rs-onboard-fs-option-title: var(--font-size-large);
+  --rs-onboard-fs-option-desc: var(--font-size-medium);
+  --rs-onboard-fs-kicker: var(--font-size-tiny);
+  --rs-onboard-fs-lead: var(--font-size-medium);
+  --rs-onboard-fs-template-name: var(--font-size-large);
+  --rs-onboard-fs-template-desc: var(--font-size-medium);
+  --rs-onboard-fs-back: var(--font-size-medium);
 
   --rs-onboard-text: #eceff4;
   --rs-onboard-text-strong: #ffffff;
@@ -68,8 +70,7 @@ body:has(.saito-container.rustscript) .rs-onboard-appspace,
   padding: 40px 24px;
   box-sizing: border-box;
   background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(252, 163, 17, 0.1), transparent 55%),
-    #15171b;
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(252, 163, 17, 0.1), transparent 55%), #15171b;
   color: var(--rs-onboard-text);
   font-family: var(--rustscript-font-sans, 'Inter', system-ui, sans-serif);
   font-size: var(--rs-onboard-fs-lead);
@@ -209,7 +210,9 @@ body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-opt
   background: var(--rs-onboard-card) !important;
   color: var(--rs-onboard-text) !important;
   text-align: left;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   box-sizing: border-box;
 }
 
@@ -303,11 +306,19 @@ body:has(.saito-container.rustscript) .rs-onboard-option-chevron,
   font-size: 22px;
   line-height: 1;
   color: var(--rs-onboard-text-muted);
-  transition: color 0.15s, transform 0.15s;
+  transition:
+    color 0.15s,
+    transform 0.15s;
 }
 
-body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-option:hover .rs-onboard-option-chevron,
-.rs-onboarding-overlay .rs-onboard-appspace button.rs-onboard-option:hover .rs-onboard-option-chevron {
+body:has(.saito-container.rustscript)
+  .rs-onboard-appspace
+  button.rs-onboard-option:hover
+  .rs-onboard-option-chevron,
+.rs-onboarding-overlay
+  .rs-onboard-appspace
+  button.rs-onboard-option:hover
+  .rs-onboard-option-chevron {
   color: var(--rs-onboard-accent);
   transform: translateX(2px);
 }
@@ -388,7 +399,9 @@ body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-tem
   color: var(--rs-onboard-text) !important;
   text-align: left;
   box-sizing: border-box;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 body:has(.saito-container.rustscript) .rs-onboard-appspace button.rs-onboard-template:hover,

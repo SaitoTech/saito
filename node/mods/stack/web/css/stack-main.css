@@ -78,12 +78,12 @@
   }
 
   .stack-cta-section {
-      gap: 2rem;
-      padding: 0;
-      min-height: auto;
-      height: auto;
-      flex-direction: column;
-      align-self: center;
+    gap: 2rem;
+    padding: 0;
+    min-height: auto;
+    height: auto;
+    flex-direction: column;
+    align-self: center;
   }
 }
 
@@ -142,11 +142,7 @@
 }
 
 .stack-cta-image-placeholder {
-  background: linear-gradient(
-    135deg,
-    var(--saito-primary) 0%,
-    var(--saito-chart-4, #4a90e2) 100%
-  );
+  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-chart-4, #4a90e2) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -733,7 +729,10 @@ body .saito-cta .stack-cta-buttons > :is(.saito-button-primary, .saito-button-se
     width: 100%;
     gap: 2rem;
   }
-  body .saito-cta.saito-cta .stack-cta-buttons > :is(.saito-button-primary, .saito-button-secondary) {
+  body
+    .saito-cta.saito-cta
+    .stack-cta-buttons
+    > :is(.saito-button-primary, .saito-button-secondary) {
     flex: 0 0 4.5rem;
     width: 100%;
   }

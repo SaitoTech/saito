@@ -5,67 +5,67 @@
  */
 
 .vault-upload-overlay {
-	width: min(42rem, 95vw);
-	gap: var(--saito-space-md);
+  width: min(42rem, 95vw);
+  gap: var(--saito-space-md);
 }
 
 .vault-upload-overlay .nft-creator .key-step {
-	display: none;
-	flex-direction: column;
-	align-items: stretch;
-	gap: var(--saito-space-md);
-	width: 100%;
-	min-width: 0;
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--saito-space-md);
+  width: 100%;
+  min-width: 0;
 }
 
 /* Supporting copy — same scale as .saito-nft-header-sub */
 .vault-upload-overlay .nft-creator .key-step .saito-overlay-form-text {
-	padding: 0;
-	margin: 0;
-	font-size: 1.7rem;
-	line-height: 1.4;
-	color: var(--saito-muted-foreground);
+  padding: 0;
+  margin: 0;
+  font-size: 1.7rem;
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
 }
 
 .vault-upload-overlay .nft-creator .key-step .key-artwork {
-	width: 100%;
-	aspect-ratio: 3 / 2;
-	max-height: 22rem;
-	border-radius: var(--saito-radius-lg, 0.5rem);
-	background-size: cover;
-	background-position: center;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  max-height: 22rem;
+  border-radius: var(--saito-radius-lg, 0.5rem);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .vault-upload-overlay .nft-creator .key-step .key-artwork.jade {
-	background-image: url('/vault/img/jade_key.png');
+  background-image: url('/vault/img/jade_key.png');
 }
 
 .vault-upload-overlay .nft-creator .key-step .key-artwork.crystal {
-	background-image: url('/vault/img/crystal_key.png');
+  background-image: url('/vault/img/crystal_key.png');
 }
 
 .vault-upload-overlay .nft-creator .key-step .saito-button-row {
-	margin-top: 0;
+  margin-top: 0;
 }
 
 .vault-upload-overlay .spinner-helper {
-	display: none;
-	width: 100%;
-	min-width: 0;
-	font-size: 3rem;
-	line-height: 8rem;
-	text-align: center;
+  display: none;
+  width: 100%;
+  min-width: 0;
+  font-size: 3rem;
+  line-height: 8rem;
+  text-align: center;
 }
 
 .vault-upload-overlay .key-step.is-uploading .saito-overlay-form-text,
 .vault-upload-overlay .key-step.is-uploading .key-artwork,
 .vault-upload-overlay .key-step.is-uploading .saito-button-row {
-	display: none;
+  display: none;
 }
 
 .vault-upload-overlay .key-step.is-uploading .spinner-helper {
-	display: block;
+  display: block;
 }
 
 /*
@@ -73,63 +73,63 @@
  * Hero canvas proportions — tall target, not a compact form strip.
  */
 .vault-upload-overlay .textarea-container {
-	display: flex;
-	flex-direction: column;
-	width: 100%;
-	min-height: min(32rem, 50vh);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: min(32rem, 50vh);
 }
 
 .vault-upload-overlay #vault-file-upload {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: var(--saito-space-md);
-	width: 100%;
-	max-width: 100%;
-	height: min(32rem, 50vh);
-	min-height: min(32rem, 50vh);
-	padding: var(--saito-space-xl);
-	box-sizing: border-box;
-	border: 1px solid var(--saito-border);
-	border-radius: var(--saito-radius);
-	background-color: var(--saito-secondary);
-	color: var(--saito-muted-foreground);
-	text-align: center;
-	font-size: 1.6rem;
-	cursor: pointer;
-	transition:
-		border-color 0.16s ease,
-		background-color 0.16s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--saito-space-md);
+  width: 100%;
+  max-width: 100%;
+  height: min(32rem, 50vh);
+  min-height: min(32rem, 50vh);
+  padding: var(--saito-space-xl);
+  box-sizing: border-box;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background-color: var(--saito-secondary);
+  color: var(--saito-muted-foreground);
+  text-align: center;
+  font-size: 1.6rem;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease;
 }
 
 .vault-upload-overlay #vault-file-upload:hover {
-	border-color: var(--saito-primary);
+  border-color: var(--saito-primary);
 }
 
 .vault-upload-overlay #vault-file-upload i {
-	display: block;
-	font-size: 3.2rem;
-	line-height: 1;
-	color: var(--saito-muted-foreground);
+  display: block;
+  font-size: 3.2rem;
+  line-height: 1;
+  color: var(--saito-muted-foreground);
 }
 
 .vault-upload-overlay .vault-file-upload-text {
-	margin: 0;
-	font-size: 1.6rem;
-	line-height: 1.4;
-	color: var(--saito-muted-foreground);
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
 }
 
 @media (max-width: 768px) {
-	.vault-upload-overlay .nft-creator,
-	.vault-upload-overlay .textarea-container,
-	.vault-upload-overlay .nft-creator .key-step {
-		width: 100%;
-		min-width: 0;
-	}
+  .vault-upload-overlay .nft-creator,
+  .vault-upload-overlay .textarea-container,
+  .vault-upload-overlay .nft-creator .key-step {
+    width: 100%;
+    min-width: 0;
+  }
 
-	.vault-upload-overlay .nft-creator .key-step .key-artwork {
-		max-height: min(22rem, 40vh);
-	}
+  .vault-upload-overlay .nft-creator .key-step .key-artwork {
+    max-height: min(22rem, 40vh);
+  }
 }

@@ -10,64 +10,64 @@ import Wallet from '../../lib/saito/wallet';
 import Blockchain from '../../lib/saito/blockchain';
 
 function getCommandLineArg(key) {
-	const prefix = key + '=';
-	const arg = process.argv.find((arg) => arg.startsWith(prefix));
-	return arg ? arg.slice(prefix.length) : null;
+  const prefix = key + '=';
+  const arg = process.argv.find((arg) => arg.startsWith(prefix));
+  return arg ? arg.slice(prefix.length) : null;
 }
 
 export async function startServer() {
-	Error.stackTraceLimit = 20;
-	const app = new Saito({
-		mod_paths: mods_config.core
-	});
+  Error.stackTraceLimit = 20;
+  const app = new Saito({
+    mod_paths: mods_config.core
+  });
 
-	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-	// @ts-ignore
-	app.storage = new StorageCore(app);
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  app.storage = new StorageCore(app);
 
-	app.BROWSER = 0;
-	app.SPVMODE = 0;
-	// set basedir
-	global.__webdir = __dirname + '/lib/saito/web/';
-	await app.storage.initialize();
-	let privateKey = app.options.wallet?.privateKey || '';
-	let logLevelArg = getCommandLineArg('l') || getCommandLineArg('loglevel');
-	let envLogLevel = process.env.SAITO_LOG_LEVEL;
-	let logLevel = parseLogLevel(logLevelArg || envLogLevel || 'info');
+  app.BROWSER = 0;
+  app.SPVMODE = 0;
+  // set basedir
+  global.__webdir = __dirname + '/lib/saito/web/';
+  await app.storage.initialize();
+  let privateKey = app.options.wallet?.privateKey || '';
+  let logLevelArg = getCommandLineArg('l') || getCommandLineArg('loglevel');
+  let envLogLevel = process.env.SAITO_LOG_LEVEL;
+  let logLevel = parseLogLevel(logLevelArg || envLogLevel || 'info');
 
-	await initS(
-		app.options,
-		new ServerSharedMethods(app),
-		new Factory(),
-		privateKey,
-		logLevel,
-		BigInt(1),
-		true,
-	).then(() => {});
+  await initS(
+    app.options,
+    new ServerSharedMethods(app),
+    new Factory(),
+    privateKey,
+    logLevel,
+    BigInt(1),
+    true
+  ).then(() => {});
 
-	// enable it for ATR testing
-	//await S.getInstance().disableProducingBlocksByTimer();
+  // enable it for ATR testing
+  //await S.getInstance().disableProducingBlocksByTimer();
 
-	app.wallet = (await S.getInstance().getWallet()) as Wallet;
-	app.wallet.app = app;
-	app.blockchain = (await S.getInstance().getBlockchain()) as Blockchain;
-	app.blockchain.app = app;
-	app.server = new Server(app);
-	app.core = S.getInstance().getCore();
+  app.wallet = (await S.getInstance().getWallet()) as Wallet;
+  app.wallet.app = app;
+  app.blockchain = (await S.getInstance().getBlockchain()) as Blockchain;
+  app.blockchain.app = app;
+  app.server = new Server(app);
+  app.core = S.getInstance().getCore();
 
-	await app.init();
+  await app.init();
 
-	if (app.options.blockchain?.fork_id) {
-		await app.blockchain.setForkId(app.options.blockchain!.fork_id);
-	}
+  if (app.options.blockchain?.fork_id) {
+    await app.blockchain.setForkId(app.options.blockchain!.fork_id);
+  }
 
-	S.getInstance().start();
+  S.getInstance().start();
 
-	const { protocol, host, port } = app.options.server;
+  const { protocol, host, port } = app.options.server;
 
-	const localServer = `${protocol}://${host}:${port}`;
+  const localServer = `${protocol}://${host}:${port}`;
 
-	console.log(`
+  console.log(`
 
                                            
                      ◼◼◼                   
@@ -117,7 +117,7 @@ export async function startServer() {
 
   `);
 
-	return app;
+  return app;
 }
 
 export default startServer;

@@ -34,7 +34,7 @@ body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop'].rs-publish-
   height: 100vh !important;
   height: 100dvh !important;
   margin: 0 !important;
-  background: rgba(6, 6, 8, 0.86) !important;
+  background: rgba(6, 6, 8, 0.92) !important;
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
   pointer-events: auto !important;
@@ -66,12 +66,15 @@ body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell {
 }
 
 /* Choice step — compact centered dialog */
-body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell:has(.rs-publish-choice) {
+body:has(.saito-container.rustscript)
+  .saito-overlay.rs-publish-overlay-shell:has(.rs-publish-choice) {
   width: 100vw !important;
   height: 100dvh !important;
 }
 
-body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell:has(.rs-publish-choice) > .rs-publish-overlay {
+body:has(.saito-container.rustscript)
+  .saito-overlay.rs-publish-overlay-shell:has(.rs-publish-choice)
+  > .rs-publish-overlay {
   width: min(92vw, 640px) !important;
   max-height: min(88vh, 540px) !important;
   height: auto !important;
@@ -79,14 +82,18 @@ body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell:ha
 }
 
 /* Send / review step — wide review surface */
-body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell:has(.rs-publish-send) > .rs-publish-overlay {
+body:has(.saito-container.rustscript)
+  .saito-overlay.rs-publish-overlay-shell:has(.rs-publish-send)
+  > .rs-publish-overlay {
   width: min(94vw, 1480px) !important;
   height: min(88vh, calc(100dvh - 2.5rem)) !important;
   max-height: min(88vh, calc(100dvh - 2.5rem)) !important;
   flex: 0 1 auto !important;
 }
 
-body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell > .rs-publish-overlay {
+body:has(.saito-container.rustscript)
+  .saito-overlay.rs-publish-overlay-shell
+  > .rs-publish-overlay {
   flex: 0 1 auto;
   display: flex;
   flex-direction: column;
@@ -100,10 +107,11 @@ body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell > 
   border: var(--rs-overlay-border) !important;
   border-radius: var(--rs-control-radius) !important;
   box-shadow: var(--rs-overlay-shadow) !important;
-  background: #181818 !important;
+  background-color: var(--rustscript-surface, #181818) !important;
+  background-image: none !important;
   color: #ececec;
   box-sizing: border-box;
-  font-size: 18px;
+  font-size: var(--font-size-medium);
   font-family: var(--rustscript-font-sans);
   line-height: 1.45;
   text-transform: none;
@@ -117,7 +125,8 @@ body:has(.saito-container.rustscript) .rs-publish-workspace-inner {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
+  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x)
+    var(--rs-overlay-padding-bottom);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -144,19 +153,19 @@ body:has(.saito-container.rustscript) .rs-publish-overlay pre {
 
 body:has(.saito-container.rustscript) .rs-publish-title {
   flex-shrink: 0;
-  margin: 0 0 28px;
-  padding-right: 44px;
-  font-size: 28px;
+  margin: 0 0 var(--saito-space-xl);
+  padding-right: 4.4rem;
+  font-size: 2.8rem;
   font-weight: 700;
   line-height: 1.25;
   color: #f6f6f6;
 }
 
 body:has(.saito-container.rustscript) .rs-publish-title-choice {
-  margin: 0 0 36px;
-  padding-right: 44px;
+  margin: 0 0 var(--saito-space-xxl);
+  padding-right: 4.4rem;
   font-family: var(--rustscript-font-sans);
-  font-size: 32px;
+  font-size: 3.2rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.015em;
@@ -165,8 +174,8 @@ body:has(.saito-container.rustscript) .rs-publish-title-choice {
 }
 
 body:has(.saito-container.rustscript) .rs-publish-lead {
-  margin: 0 0 16px;
-  font-size: 18px;
+  margin: 0 0 var(--saito-space-lg);
+  font-size: var(--font-size-medium);
   line-height: 1.5;
   color: #a8a8a8;
 }
@@ -217,7 +226,8 @@ body:has(.saito-container.rustscript) .rs-publish-asset-media {
 }
 
 body:has(.saito-container.rustscript) .rs-publish-asset-saito .rs-publish-asset-media {
-  background: radial-gradient(circle at 50% 40%, rgba(252, 163, 17, 0.18) 0%, transparent 62%), #0a0a0a;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(252, 163, 17, 0.18) 0%, transparent 62%), #0a0a0a;
 }
 
 body:has(.saito-container.rustscript) .rs-publish-asset-nft .rs-publish-asset-img {
@@ -241,13 +251,18 @@ body:has(.saito-container.rustscript) .rs-publish-asset-name {
   z-index: 1;
   flex-shrink: 0;
   padding: 12px 16px 14px;
-  font-size: 15px;
+  font-size: var(--font-size-tiny);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   text-align: center;
   color: #f0f0f0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 38%, rgba(0, 0, 0, 0.88) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.55) 38%,
+    rgba(0, 0, 0, 0.88) 100%
+  );
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   pointer-events: none;
 }
@@ -262,7 +277,7 @@ body:has(.saito-container.rustscript) .rs-publish-asset-badge {
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #999;
   font-family: var(--rustscript-font-mono);
-  font-size: 10px;
+  font-size: var(--font-size-tiny);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -322,14 +337,14 @@ body:has(.saito-container.rustscript) .rs-publish-send-form {
 body:has(.saito-container.rustscript) .rs-publish-script-readonly {
   flex: 1 1 auto;
   margin: 0;
-  padding: 14px 16px 12px 16px;
+  padding: var(--saito-space-md) var(--saito-space-lg) var(--saito-space-md) var(--saito-space-lg);
   min-height: 0;
   overflow: auto;
   border: none;
   border-radius: var(--rs-control-radius-chrome);
   background: #0c0c0c;
   font-family: var(--rustscript-font-mono);
-  font-size: 16px;
+  font-size: var(--font-size-medium);
   line-height: 1.58;
   color: #e8e8e8;
   white-space: pre-wrap;
@@ -407,7 +422,7 @@ body:has(.saito-container.rustscript) .rs-publish-copy-btn:hover {
 
 body:has(.saito-container.rustscript) .rs-publish-field-label {
   font-family: var(--rustscript-font-mono);
-  font-size: 15px;
+  font-size: var(--font-size-tiny);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -417,14 +432,14 @@ body:has(.saito-container.rustscript) .rs-publish-field-label {
 body:has(.saito-container.rustscript) .rs-publish-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 14px 16px;
-  min-height: 52px;
+  padding: var(--saito-space-md) var(--saito-space-lg);
+  min-height: var(--rs-control-height);
   border: 1px solid #444;
   border-radius: var(--rs-control-radius-chrome);
   background: #0a0a0a;
   color: #f2f2f2;
   font-family: var(--rustscript-font-mono);
-  font-size: 17px;
+  font-size: var(--font-size-medium);
   line-height: 1.35;
   outline: none;
 }
@@ -433,7 +448,7 @@ body:has(.saito-container.rustscript) .rs-publish-input[readonly] {
   color: #b8f0c0;
   border-color: rgba(92, 184, 106, 0.35);
   word-break: break-all;
-  font-size: 14px;
+  font-size: var(--font-size-medium);
 }
 
 body:has(.saito-container.rustscript) .rs-publish-error {
@@ -484,7 +499,9 @@ body:has(.saito-container.rustscript)
   flex: 0 1 auto !important;
 }
 
-body:has(.saito-container.rustscript) .rs-confirmation-waiting.is-pending .rs-publish-workspace-inner {
+body:has(.saito-container.rustscript)
+  .rs-confirmation-waiting.is-pending
+  .rs-publish-workspace-inner {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -518,7 +535,7 @@ body:has(.saito-container.rustscript) .rs-confirmation-waiting.is-pending .rs-co
   max-width: none;
   margin: 0 0 20px;
   padding-right: 0;
-  font-size: 32px;
+  font-size: 3.2rem;
   line-height: 1.25;
 }
 
@@ -528,10 +545,12 @@ body:has(.saito-container.rustscript) .rs-publish-waiting .rs-publish-title {
   margin-right: auto;
 }
 
-body:has(.saito-container.rustscript) .rs-confirmation-waiting.is-pending .rs-confirmation-subtitle {
+body:has(.saito-container.rustscript)
+  .rs-confirmation-waiting.is-pending
+  .rs-confirmation-subtitle {
   max-width: 480px;
   margin: 0 auto 4px;
-  font-size: 21px;
+  font-size: var(--font-size-large);
   line-height: 1.5;
 }
 
@@ -549,7 +568,7 @@ body:has(.saito-container.rustscript) .rs-confirmation-subtitle {
 body:has(.saito-container.rustscript) .rs-confirmation-subtitle-line {
   display: block;
   margin: 0 0 8px;
-  font-size: 21px;
+  font-size: var(--font-size-large);
   line-height: 1.5;
 }
 
@@ -587,22 +606,26 @@ body:has(.saito-container.rustscript) .rs-confirmation-timer {
   margin-right: auto;
 }
 
-body:has(.saito-container.rustscript) .rs-confirmation-waiting.is-pending .rs-confirmation-timer-label {
-  font-size: 14px;
+body:has(.saito-container.rustscript)
+  .rs-confirmation-waiting.is-pending
+  .rs-confirmation-timer-label {
+  font-size: var(--font-size-tiny);
   margin-bottom: 10px;
 }
 
 body:has(.saito-container.rustscript) .rs-confirmation-timer-label {
   display: block;
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: var(--font-size-tiny);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: lowercase;
   color: #888;
 }
 
-body:has(.saito-container.rustscript) .rs-confirmation-waiting.is-pending .rs-confirmation-countdown {
+body:has(.saito-container.rustscript)
+  .rs-confirmation-waiting.is-pending
+  .rs-confirmation-countdown {
   font-size: 38px;
 }
 
@@ -616,15 +639,17 @@ body:has(.saito-container.rustscript) .rs-confirmation-countdown {
   line-height: 1.1;
 }
 
-body:has(.saito-container.rustscript) .rs-confirmation-waiting.is-pending .rs-confirmation-timer-unit {
-  font-size: 15px;
+body:has(.saito-container.rustscript)
+  .rs-confirmation-waiting.is-pending
+  .rs-confirmation-timer-unit {
+  font-size: var(--font-size-medium);
   margin-top: 6px;
 }
 
 body:has(.saito-container.rustscript) .rs-confirmation-timer-unit {
   display: block;
   margin-top: 4px;
-  font-size: 13px;
+  font-size: var(--font-size-tiny);
   color: #666;
   text-transform: lowercase;
 }
@@ -742,7 +767,7 @@ body:has(.saito-container.rustscript) .rs-publish-address-recap {
   margin: 8px auto 0;
   max-width: 520px;
   font-family: var(--rustscript-font-mono);
-  font-size: 13px;
+  font-size: var(--font-size-tiny);
   line-height: 1.4;
   color: #555;
   word-break: break-all;
@@ -750,7 +775,9 @@ body:has(.saito-container.rustscript) .rs-publish-address-recap {
 
 /* Publish success actions — green hover; default emphasis on Create New Script */
 
-body:has(.saito-container.rustscript) .rs-publish-success-actions .rs-publish-success-btn:hover:not(:disabled) {
+body:has(.saito-container.rustscript)
+  .rs-publish-success-actions
+  .rs-publish-success-btn:hover:not(:disabled) {
   border-color: #62c070;
   background: linear-gradient(180deg, #62c070 0%, #357a44 100%);
   color: #fff;

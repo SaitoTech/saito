@@ -1,16 +1,16 @@
 .game.his {
-.rdebater_tile {
-	z-index: 30;
-	position: relative;
-	float: left;
-	width: 65px;
-}
+  .rdebater_tile {
+    z-index: 30;
+    position: relative;
+    float: left;
+    width: 65px;
+  }
 
-.religious_conflict_sheet .debaters-tile {
-    	background-size: contain;
-    	background-repeat: no-repeat;
-    	background-position: center;
-    	height: auto !important;
-    	width: auto !important;
-}
+  .religious_conflict_sheet .debaters-tile {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    height: auto !important;
+    width: auto !important;
+  }
 }

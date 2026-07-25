@@ -5,427 +5,427 @@
 .small-audio-chatbox,
 .videocall-setting-grid-item,
 .stun-settings-shell {
-	--stun-noir-bg: var(--saito-background);
-	--stun-noir-surface-low: var(--saito-popover, var(--saito-background));
-	--stun-noir-surface: var(--saito-popover, var(--saito-card));
-	--stun-noir-surface-high: var(--saito-accent);
-	--stun-noir-surface-bright: var(--saito-secondary);
-	--stun-noir-text: var(--saito-foreground);
-	--stun-noir-text-muted: var(--saito-muted-foreground);
-	--stun-noir-accent: var(--saito-primary);
-	--stun-noir-accent-2: var(--saito-chart-4);
-	--stun-noir-accent-strong: var(--saito-primary);
-	--stun-noir-outline: var(--saito-border);
-	--stun-noir-outline-strong: var(--saito-border);
-	--stun-noir-radius: var(--saito-radius);
-	--stun-noir-shadow: var(--saito-elevation-3);
-	--stun-noir-shadow-soft: var(--saito-elevation-2);
-	--stun-noir-shadow-audio: var(--saito-elevation-3);
-	--stun-noir-glass: var(--saito-popover);
-	--stun-noir-glass-soft: var(--saito-card);
-	--stun-noir-glass-strong: var(--saito-accent);
-	--stun-noir-surface-overlay: var(--saito-popover);
-	--stun-noir-surface-overlay-strong: var(--saito-popover);
-	--stun-noir-white-soft: color-mix(in srgb, var(--saito-foreground) 8%, transparent);
-	--stun-noir-accent-soft: color-mix(in srgb, var(--saito-primary) 14%, transparent);
-	--stun-noir-accent-splash: color-mix(in srgb, var(--saito-primary) 22%, transparent);
-	--stun-noir-accent-splash-2: color-mix(in srgb, var(--saito-secondary) 12%, transparent);
-	--stun-noir-accent-glow: color-mix(in srgb, var(--saito-primary) 38%, transparent);
-	--stun-noir-accent-glow-strong: color-mix(in srgb, var(--saito-primary) 55%, transparent);
-	--stun-noir-accent-glow-soft: color-mix(in srgb, var(--saito-primary) 30%, transparent);
-	--stun-noir-accent-glow-pulse: color-mix(in srgb, var(--saito-primary) 50%, transparent);
-	--stun-noir-secondary-glow-pulse: color-mix(in srgb, var(--saito-secondary) 50%, transparent);
-	--stun-noir-title-contrast: var(--saito-primary-foreground);
-	--stun-noir-danger: var(--saito-destructive);
-	--stun-noir-danger-text: var(--saito-primary-foreground);
-	--stun-noir-icon-dark: var(--saito-background);
-	--stun-noir-slider-bg: var(--saito-secondary);
-	--stun-noir-slider-knob: var(--saito-background);
-	--stun-noir-canvas-bg: var(--saito-background);
-	--stun-noir-border-light: var(--saito-border);
-	--stun-noir-toggle-bg: var(--saito-accent);
-	--stun-noir-legacy-gradient-start: var(--saito-primary);
-	--stun-noir-legacy-gradient-end: var(--saito-secondary);
+  --stun-noir-bg: var(--saito-background);
+  --stun-noir-surface-low: var(--saito-popover, var(--saito-background));
+  --stun-noir-surface: var(--saito-popover, var(--saito-card));
+  --stun-noir-surface-high: var(--saito-accent);
+  --stun-noir-surface-bright: var(--saito-secondary);
+  --stun-noir-text: var(--saito-foreground);
+  --stun-noir-text-muted: var(--saito-muted-foreground);
+  --stun-noir-accent: var(--saito-primary);
+  --stun-noir-accent-2: var(--saito-chart-4);
+  --stun-noir-accent-strong: var(--saito-primary);
+  --stun-noir-outline: var(--saito-border);
+  --stun-noir-outline-strong: var(--saito-border);
+  --stun-noir-radius: var(--saito-radius);
+  --stun-noir-shadow: var(--saito-elevation-3);
+  --stun-noir-shadow-soft: var(--saito-elevation-2);
+  --stun-noir-shadow-audio: var(--saito-elevation-3);
+  --stun-noir-glass: var(--saito-popover);
+  --stun-noir-glass-soft: var(--saito-card);
+  --stun-noir-glass-strong: var(--saito-accent);
+  --stun-noir-surface-overlay: var(--saito-popover);
+  --stun-noir-surface-overlay-strong: var(--saito-popover);
+  --stun-noir-white-soft: color-mix(in srgb, var(--saito-foreground) 8%, transparent);
+  --stun-noir-accent-soft: color-mix(in srgb, var(--saito-primary) 14%, transparent);
+  --stun-noir-accent-splash: color-mix(in srgb, var(--saito-primary) 22%, transparent);
+  --stun-noir-accent-splash-2: color-mix(in srgb, var(--saito-secondary) 12%, transparent);
+  --stun-noir-accent-glow: color-mix(in srgb, var(--saito-primary) 38%, transparent);
+  --stun-noir-accent-glow-strong: color-mix(in srgb, var(--saito-primary) 55%, transparent);
+  --stun-noir-accent-glow-soft: color-mix(in srgb, var(--saito-primary) 30%, transparent);
+  --stun-noir-accent-glow-pulse: color-mix(in srgb, var(--saito-primary) 50%, transparent);
+  --stun-noir-secondary-glow-pulse: color-mix(in srgb, var(--saito-secondary) 50%, transparent);
+  --stun-noir-title-contrast: var(--saito-primary-foreground);
+  --stun-noir-danger: var(--saito-destructive);
+  --stun-noir-danger-text: var(--saito-primary-foreground);
+  --stun-noir-icon-dark: var(--saito-background);
+  --stun-noir-slider-bg: var(--saito-secondary);
+  --stun-noir-slider-knob: var(--saito-background);
+  --stun-noir-canvas-bg: var(--saito-background);
+  --stun-noir-border-light: var(--saito-border);
+  --stun-noir-toggle-bg: var(--saito-accent);
+  --stun-noir-legacy-gradient-start: var(--saito-primary);
+  --stun-noir-legacy-gradient-end: var(--saito-secondary);
 }
 
-html[data-theme="noir"] .stun-appspace,
-html[data-theme="noir"] .stun-chatbox,
-html[data-theme="noir"] .small-audio-chatbox,
-html[data-theme="noir"] .videocall-setting-grid-item,
-html[data-theme="noir"] .stun-settings-shell {
-	--stun-noir-bg: #0d0e11;
-	--stun-noir-surface-low: #121316;
-	--stun-noir-surface: #181a1d;
-	--stun-noir-surface-high: #1e2023;
-	--stun-noir-surface-bright: #2a2c31;
-	--stun-noir-text: #f2f0f4;
-	--stun-noir-text-muted: #abaaae;
-	--stun-noir-accent: #ff914d;
-	--stun-noir-accent-2: #f38239;
-	--stun-noir-accent-strong: #fb9532;
-	--stun-noir-outline: rgba(71, 72, 75, 0.35);
-	--stun-noir-outline-strong: rgba(71, 72, 75, 0.45);
-	--stun-noir-radius: 0.75rem;
-	--stun-noir-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
-	--stun-noir-shadow-soft: 0 12px 24px rgba(0, 0, 0, 0.28);
-	--stun-noir-shadow-audio: 0 16px 28px rgba(0, 0, 0, 0.4);
-	--stun-noir-glass: rgba(36, 38, 42, 0.72);
-	--stun-noir-glass-soft: rgba(36, 38, 42, 0.65);
-	--stun-noir-glass-strong: rgba(36, 38, 42, 0.75);
-	--stun-noir-surface-overlay: rgba(13, 14, 17, 0.55);
-	--stun-noir-surface-overlay-strong: rgba(13, 14, 17, 0.6);
-	--stun-noir-white-soft: rgba(255, 255, 255, 0.02);
-	--stun-noir-accent-soft: rgba(255, 145, 77, 0.12);
-	--stun-noir-accent-splash: rgba(255, 145, 77, 0.2);
-	--stun-noir-accent-splash-2: rgba(243, 130, 57, 0.08);
-	--stun-noir-accent-glow: rgba(255, 145, 77, 0.35);
-	--stun-noir-accent-glow-strong: rgba(255, 145, 77, 0.55);
-	--stun-noir-accent-glow-soft: rgba(255, 145, 77, 0.3);
-	--stun-noir-accent-glow-pulse: rgba(255, 145, 77, 0.5);
-	--stun-noir-secondary-glow-pulse: rgba(251, 149, 50, 0.5);
-	--stun-noir-title-contrast: #241105;
-	--stun-noir-danger: #ff7351;
-	--stun-noir-danger-text: #2b0d02;
-	--stun-noir-icon-dark: #16171a;
-	--stun-noir-slider-bg: #ccc;
-	--stun-noir-slider-knob: #fff;
-	--stun-noir-canvas-bg: #222;
-	--stun-noir-border-light: #e5e5e59d;
-	--stun-noir-toggle-bg: #4a4a4a;
-	--stun-noir-legacy-gradient-start: #f30c4f;
-	--stun-noir-legacy-gradient-end: #f8c062;
+html[data-theme='noir'] .stun-appspace,
+html[data-theme='noir'] .stun-chatbox,
+html[data-theme='noir'] .small-audio-chatbox,
+html[data-theme='noir'] .videocall-setting-grid-item,
+html[data-theme='noir'] .stun-settings-shell {
+  --stun-noir-bg: #0d0e11;
+  --stun-noir-surface-low: #121316;
+  --stun-noir-surface: #181a1d;
+  --stun-noir-surface-high: #1e2023;
+  --stun-noir-surface-bright: #2a2c31;
+  --stun-noir-text: #f2f0f4;
+  --stun-noir-text-muted: #abaaae;
+  --stun-noir-accent: #ff914d;
+  --stun-noir-accent-2: #f38239;
+  --stun-noir-accent-strong: #fb9532;
+  --stun-noir-outline: rgba(71, 72, 75, 0.35);
+  --stun-noir-outline-strong: rgba(71, 72, 75, 0.45);
+  --stun-noir-radius: 0.75rem;
+  --stun-noir-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+  --stun-noir-shadow-soft: 0 12px 24px rgba(0, 0, 0, 0.28);
+  --stun-noir-shadow-audio: 0 16px 28px rgba(0, 0, 0, 0.4);
+  --stun-noir-glass: rgba(36, 38, 42, 0.72);
+  --stun-noir-glass-soft: rgba(36, 38, 42, 0.65);
+  --stun-noir-glass-strong: rgba(36, 38, 42, 0.75);
+  --stun-noir-surface-overlay: rgba(13, 14, 17, 0.55);
+  --stun-noir-surface-overlay-strong: rgba(13, 14, 17, 0.6);
+  --stun-noir-white-soft: rgba(255, 255, 255, 0.02);
+  --stun-noir-accent-soft: rgba(255, 145, 77, 0.12);
+  --stun-noir-accent-splash: rgba(255, 145, 77, 0.2);
+  --stun-noir-accent-splash-2: rgba(243, 130, 57, 0.08);
+  --stun-noir-accent-glow: rgba(255, 145, 77, 0.35);
+  --stun-noir-accent-glow-strong: rgba(255, 145, 77, 0.55);
+  --stun-noir-accent-glow-soft: rgba(255, 145, 77, 0.3);
+  --stun-noir-accent-glow-pulse: rgba(255, 145, 77, 0.5);
+  --stun-noir-secondary-glow-pulse: rgba(251, 149, 50, 0.5);
+  --stun-noir-title-contrast: #241105;
+  --stun-noir-danger: #ff7351;
+  --stun-noir-danger-text: #2b0d02;
+  --stun-noir-icon-dark: #16171a;
+  --stun-noir-slider-bg: #ccc;
+  --stun-noir-slider-knob: #fff;
+  --stun-noir-canvas-bg: #222;
+  --stun-noir-border-light: #e5e5e59d;
+  --stun-noir-toggle-bg: #4a4a4a;
+  --stun-noir-legacy-gradient-start: #f30c4f;
+  --stun-noir-legacy-gradient-end: #f8c062;
 }
 
 .stun-appspace {
-	width: 100vw;
-	height: 100dvh;
-	left: 0;
-	top: 0;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	position: relative;
-	padding: 3rem;
-	color: var(--saito-foreground);
-	background: var(--saito-canvas-wash);
-	font-family: var(--saito-font);
+  width: 100vw;
+  height: 100dvh;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 3rem;
+  color: var(--saito-foreground);
+  background: var(--saito-canvas-wash);
+  font-family: var(--saito-font);
 }
 
 .stun-minimal-appspace {
-	padding: 2rem;
-	justify-content: space-between;
-	width: min(400px, 98vw);
-	height: min(600px, 80vh);
+  padding: 2rem;
+  justify-content: space-between;
+  width: min(400px, 98vw);
+  height: min(600px, 80vh);
 }
 
 .stun-button-row {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
 .stun-button-row .saito-button-primary {
-	min-width: 15rem;
-	padding: 1.5rem;
+  min-width: 15rem;
+  padding: 1.5rem;
 }
 
 /* Overlay media-setup dialog: card chrome (not CTA splash shell) */
 .videocall-media-settings {
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	width: min(95vw, 860px);
-	padding: 3.2rem;
-	gap: 2.4rem;
-	border-radius: calc(var(--saito-radius) + 0.15rem);
-	background: var(--saito-card);
-	background-image: none;
-	box-shadow: var(--saito-elevation-0);
-	border: 1px solid var(--saito-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: min(95vw, 860px);
+  padding: 3.2rem;
+  gap: 2.4rem;
+  border-radius: calc(var(--saito-radius) + 0.15rem);
+  background: var(--saito-card);
+  background-image: none;
+  box-shadow: var(--saito-elevation-0);
+  border: 1px solid var(--saito-border);
 }
 
 .stun-appspace-footer {
-	width: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	color: var(--saito-muted-foreground);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--saito-muted-foreground);
 }
 
 .stun-appspace-footer > div {
-	display: flex;
-	align-items: center;
-	gap: 0.8rem;
-	padding: 0.5rem 0.8rem;
-	border-radius: 999px;
-	transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  transition: all 0.2s ease;
 }
 
 .stun-appspace-footer > div:hover {
-	color: var(--saito-foreground);
-	background-color: var(--saito-accent);
+  color: var(--saito-foreground);
+  background-color: var(--saito-accent);
 }
 
 .my-stun-container-info {
-	display: none;
-	font-size: 1.75rem;
+  display: none;
+  font-size: 1.75rem;
 }
 
 .stun-talk-logo {
-	--saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-outline-label-horizontal.svg');
-	width: min(560px, 84vw);
-	display: block;
-	position: relative;
-	aspect-ratio: 381 / 134;
-	filter: drop-shadow(0 0 18px var(--stun-noir-accent-glow-soft));
-	max-width: min(560px, 84vw);
+  --saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-outline-label-horizontal.svg');
+  width: min(560px, 84vw);
+  display: block;
+  position: relative;
+  aspect-ratio: 381 / 134;
+  filter: drop-shadow(0 0 18px var(--stun-noir-accent-glow-soft));
+  max-width: min(560px, 84vw);
 }
 
 .saito-cta:hover .stun-talk-logo {
-	--saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-solid-label-horizontal.svg');
+  --saito-cta-logo-mask: url('/saito/icons/saito-talk-icon-solid-label-horizontal.svg');
 }
 
 .stun-talk-logo::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
-	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+  content: '';
+  position: absolute;
+  inset: 0;
+  -webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+  mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }
 
 .stun-subtitle {
-	text-transform: uppercase;
-	letter-spacing: 0.22em;
-	color: var(--saito-muted-foreground);
-	font-size: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--saito-muted-foreground);
+  font-size: 1.25rem;
 }
 
 .stunx-appspace-launch-call-btn {
-	width: 100%;
+  width: 100%;
 }
 
 .stunx-appspace-actions {
-	display: flex;
-	align-items: center;
-	width: 100%;
-	gap: 1.2rem;
-	margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 1.2rem;
+  margin-bottom: 0.4rem;
 }
 .stunx-precall-link {
-	min-width: 5.2rem;
-	min-height: 5.2rem;
-	font-size: 2rem;
+  min-width: 5.2rem;
+  min-height: 5.2rem;
+  font-size: 2rem;
 }
 .stunx-appspace-splash {
-	text-align: center;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 1.4rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
 }
 
 .stun-appspace-navigation {
-	width: 80%;
-	max-width: 900px;
-	display: flex;
-	flex-direction: row-reverse;
-	justify-content: end;
-	padding: 5rem;
-	gap: 3rem;
+  width: 80%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: end;
+  padding: 5rem;
+  gap: 3rem;
 }
 
 .stun-appspace-navigation div a {
-	display: flex;
-	flex-direction: row;
-	gap: 0.5rem;
-	font-size: 2rem;
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  font-size: 2rem;
 }
 
 .stun-appspace-navigation div a:hover i::before {
-	content: '\f08e';
+  content: '\f08e';
 }
 
 .videocall-media-settings-header {
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	gap: 0.4rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .videocall-media-settings-header h2 {
-	margin: 0;
-	font-family: var(--saito-font);
-	font-size: 2.2rem;
-	font-weight: 500;
-	letter-spacing: -0.02em;
+  margin: 0;
+  font-family: var(--saito-font);
+  font-size: 2.2rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
 .videocall-media-settings-header p {
-	margin: 0;
-	font-size: 1.4rem;
-	color: var(--saito-muted-foreground);
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--saito-muted-foreground);
 }
 
 /** Dialer **/
 
 .video_switch {
-	display: flex;
-	align-items: center;
-	justify-content: space-evenly;
-	font-size: 1.8rem;
-	width: 80%;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  font-size: 1.8rem;
+  width: 80%;
 }
 
 .video_switch.deactivated {
-	pointer-events: none;
-	color: var(--saito-muted-foreground);
+  pointer-events: none;
+  color: var(--saito-muted-foreground);
 }
 
 .switch {
-	position: relative;
-	display: inline-block;
-	width: 60px;
-	height: 34px;
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
 }
 
 .switch input {
-	opacity: 0;
-	width: 0;
-	height: 0;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
 .slider {
-	position: absolute;
-	cursor: pointer;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background-color: var(--stun-noir-slider-bg);
-	transition: 0.4s;
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--stun-noir-slider-bg);
+  transition: 0.4s;
 }
 
 .slider:before {
-	position: absolute;
-	content: '';
-	height: 26px;
-	width: 26px;
-	left: 4px;
-	bottom: 4px;
-	background-color: var(--stun-noir-slider-knob);
-	transition: 0.4s;
+  position: absolute;
+  content: '';
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: var(--stun-noir-slider-knob);
+  transition: 0.4s;
 }
 
 input:checked + .slider {
-	background-color: var(--stun-noir-accent);
+  background-color: var(--stun-noir-accent);
 }
 
 input:focus + .slider {
-	box-shadow: 0 0 1px var(--stun-noir-accent);
+  box-shadow: 0 0 1px var(--stun-noir-accent);
 }
 
 input:checked + .slider:before {
-	transform: translateX(26px);
+  transform: translateX(26px);
 }
 
 .slider.round {
-	border-radius: 34px;
+  border-radius: 34px;
 }
 
 .slider.round:before {
-	border-radius: 50%;
+  border-radius: 50%;
 }
 
 .stun-minimal-appspace .chat-appspace-settings div {
-	width: 100%;
+  width: 100%;
 }
 
 .stun-minimal-appspace .chat-settings-toggle-icons {
-	display: none;
+  display: none;
 }
 
 .stun-minimal-appspace .chat-settings-preview {
-	width: 100% !important;
+  width: 100% !important;
 }
 
 .stun-phone-notice {
-	font-style: italic;
+  font-style: italic;
 }
 
 @media screen and (max-width: 900px) {
-	.staun-appspace-cards {
-		flex-direction: column;
-		width: 100%;
-	}
+  .staun-appspace-cards {
+    flex-direction: column;
+    width: 100%;
+  }
 
-	.chat-settings-preview-section {
-		width: unset;
-	}
+  .chat-settings-preview-section {
+    width: unset;
+  }
 
-	.stun-appspace-content {
-		gap: 1.6rem;
-		padding: 2.1rem;
-		width: 100vw;
-		height: 100vh;
-	}
+  .stun-appspace-content {
+    gap: 1.6rem;
+    padding: 2.1rem;
+    width: 100vw;
+    height: 100vh;
+  }
 
-	.stun-input-settings {
-		padding: 0;
-	}
+  .stun-input-settings {
+    padding: 0;
+  }
 }
 
 @media (max-width: 600px) {
-	.stun-appspace {
-		padding: 0;
-	}
+  .stun-appspace {
+    padding: 0;
+  }
 
-	.stun-appspace-content {
-		gap: 2rem;
-		height: 100%;
-		justify-content: space-evenly;
-	}
+  .stun-appspace-content {
+    gap: 2rem;
+    height: 100%;
+    justify-content: space-evenly;
+  }
 
-	#createRoom {
-		width: 100%;
-	}
+  #createRoom {
+    width: 100%;
+  }
 
-	.stun-appspace-navigation {
-		gap: 2rem;
-		padding: 2rem;
-		justify-content: center;
-	}
+  .stun-appspace-navigation {
+    gap: 2rem;
+    padding: 2rem;
+    justify-content: center;
+  }
 
-	.stunx-appspace-launch-call-btn {
-		width: 100%;
-	}
+  .stunx-appspace-launch-call-btn {
+    width: 100%;
+  }
 
-	.stunx-appspace-actions {
-		order: 2;
-		flex-direction: column;
-	}
+  .stunx-appspace-actions {
+    order: 2;
+    flex-direction: column;
+  }
 
-	.stunx-precall-link {
-		width: 100%;
-	}
+  .stunx-precall-link {
+    width: 100%;
+  }
 
-	.stun-minimal-appspace {
-		padding: 1rem;
-	}
+  .stun-minimal-appspace {
+    padding: 1rem;
+  }
 
-	.stun-button-row .saito-button-primary {
-		min-width: 12rem;
-	}
+  .stun-button-row .saito-button-primary {
+    min-width: 12rem;
+  }
 
-	.stun-appspace-footer {
-		flex-direction: column;
-		align-items: stretch;
-	}
+  .stun-appspace-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* Moved from saito-components.css */
@@ -455,7 +455,10 @@ body .saito-cta :is(.stunx-appspace-actions, .stun-button-row) {
   width: 100%;
   gap: 2rem;
 }
-body .saito-cta :is(.stunx-appspace-actions, .stun-button-row) > :is(.stunx-precall-link, .saito-button-primary, .saito-button-secondary) {
+body
+  .saito-cta
+  :is(.stunx-appspace-actions, .stun-button-row)
+  > :is(.stunx-precall-link, .saito-button-primary, .saito-button-secondary) {
   flex: 1 1 0;
   min-width: 0;
 }
@@ -473,7 +476,10 @@ body .saito-cta :is(.stunx-appspace-actions, .stun-button-row) > .stunx-precall-
     width: 100%;
     gap: 2rem;
   }
-  body .saito-cta.saito-cta :is(.stunx-appspace-actions, .stun-button-row) > :is(.stunx-precall-link, .saito-button-primary, .saito-button-secondary) {
+  body
+    .saito-cta.saito-cta
+    :is(.stunx-appspace-actions, .stun-button-row)
+    > :is(.stunx-precall-link, .saito-button-primary, .saito-button-secondary) {
     flex: 0 0 4.5rem;
     width: 100%;
   }

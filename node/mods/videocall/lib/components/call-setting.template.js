@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
     <div class="videocall-media-settings">
         <div class="videocall-media-settings-header">
             <h2>Media Setup</h2>
@@ -31,4 +31,3 @@ module.exports = () => {
     </div>
      `;
 };
-

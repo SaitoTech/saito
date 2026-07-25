@@ -1,8 +1,7 @@
 module.exports = (app, mod) => {
+  let eo = app.options.settings?.debug || false;
 
-	let eo = app.options.settings?.debug || false;
-
-	return `
+  return `
 			<fieldset class="saito-grid">
 			<legend class="settings-label">Module Debug Mode</legend>
 			<input class="saito-checkbox" type="checkbox" id="show" ${eo ? 'checked' : ''}/> 

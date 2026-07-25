@@ -1,11 +1,11 @@
 .stun-invite {
-	color: var(--saito-foreground);
-	padding: 3rem;
-	line-height: 3rem;
-	min-width: 40rem;
-	/* compact radius vs default overlay-panel lg */
-	border-radius: var(--saito-radius);
+  color: var(--saito-foreground);
+  padding: 3rem;
+  line-height: 3rem;
+  min-width: 40rem;
+  /* compact radius vs default overlay-panel lg */
+  border-radius: var(--saito-radius);
 }
 .stun-invite .saito-button-secondary {
-	margin: 0px;
+  margin: 0px;
 }

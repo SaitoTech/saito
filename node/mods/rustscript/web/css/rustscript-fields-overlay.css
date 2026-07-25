@@ -13,7 +13,8 @@ body:has(.saito-container.rustscript) .saito-overlay > .rs-prompt-overlay {
   border-radius: var(--rs-control-radius, 4px) !important;
   box-shadow: var(--rs-overlay-shadow) !important;
   overflow: hidden;
-  background: var(--rustscript-surface, #181818);
+  background-color: var(--rustscript-surface, #181818) !important;
+  background-image: none !important;
 }
 
 body:has(.saito-container.rustscript) .rs-prompt-overlay {
@@ -22,7 +23,8 @@ body:has(.saito-container.rustscript) .rs-prompt-overlay {
   display: flex;
   flex-direction: column;
   gap: var(--rs-overlay-gap);
-  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
+  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x)
+    var(--rs-overlay-padding-bottom);
   box-sizing: border-box;
 }
 
@@ -54,7 +56,10 @@ body:has(.saito-container.rustscript) .rs-prompt-overlay .overlay-actions-split 
   justify-content: space-between;
 }
 
-body:has(.saito-container.rustscript) .rs-prompt-overlay .overlay-actions-split .rs-prompt-use-mine {
+body:has(.saito-container.rustscript)
+  .rs-prompt-overlay
+  .overlay-actions-split
+  .rs-prompt-use-mine {
   flex: 1 1 auto;
   min-width: 0;
 }

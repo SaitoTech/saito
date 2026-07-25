@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
 
 	    <div id="tutorial03-main">
 

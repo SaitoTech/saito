@@ -11,15 +11,19 @@ body:has(.saito-container.rustscript) .saito-overlay:has(> .rs-opcode-ref-overla
 body:has(.saito-container.rustscript) .saito-overlay > .rs-opcode-ref-overlay {
   border: var(--rs-overlay-border) !important;
   box-shadow: var(--rs-overlay-shadow) !important;
+  background-color: var(--rustscript-surface, #181818) !important;
+  background-image: none !important;
 }
 
 body:has(.saito-container.rustscript) .rs-opcode-ref-overlay {
   width: min(860px, 94vw);
   max-width: 94vw;
   max-height: 88vh;
-  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
+  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x)
+    var(--rs-overlay-padding-bottom);
   gap: 0;
-  background: var(--rustscript-surface);
+  background-color: var(--rustscript-surface, #181818);
+  background-image: none;
   border-radius: var(--rs-control-radius, 4px);
   box-sizing: border-box;
 }
@@ -58,7 +62,7 @@ body:has(.saito-container.rustscript) .rs-opcode-ref-overlay-select {
   background: #0c0c0c;
   color: #efefef;
   font-family: var(--rustscript-font-mono);
-  font-size: 0.95em;
+  font-size: var(--font-size-medium);
   font-weight: 700;
   letter-spacing: 0.05em;
   appearance: none;

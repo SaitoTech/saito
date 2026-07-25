@@ -1,29 +1,29 @@
 module.exports = (app, chat_mod) => {
-	let html = `<div id="saito-chats-modal" class="saito-modal">
+  let html = `<div id="saito-chats-modal" class="saito-modal">
                 <div class="saito-modal-title">My Chats</div>
                 <div class="saito-modal-content saito-menu-select-heavy">
               `;
 
-	for (let group of chat_mod.groups) {
-		let identicon_source = group.id;
+  for (let group of chat_mod.groups) {
+    let identicon_source = group.id;
 
-		if (group.members.length == 2) {
-			for (let mem of group.members) {
-				if (mem !== chat_mod.publicKey) {
-					identicon_source = mem;
-				}
-			}
-		}
+    if (group.members.length == 2) {
+      for (let mem of group.members) {
+        if (mem !== chat_mod.publicKey) {
+          identicon_source = mem;
+        }
+      }
+    }
 
-		let imgsrc = app.keychain.returnIdenticon(identicon_source);
+    let imgsrc = app.keychain.returnIdenticon(identicon_source);
 
-		let shared = '';
+    let shared = '';
 
-		if (app.keychain.hasSharedSecret(identicon_source)) {
-			shared = `<i class="fa-solid fa-lock secure-contact-notice"></i>`;
-		}
+    if (app.keychain.hasSharedSecret(identicon_source)) {
+      shared = `<i class="fa-solid fa-lock secure-contact-notice"></i>`;
+    }
 
-		html += `
+    html += `
 			 <div class="saito-contact" data-id="${group.id}">
 			 <div class="saito-user" data-id="${group.id}" data-disable="true">
 			    ${shared}
@@ -34,9 +34,9 @@ module.exports = (app, chat_mod) => {
 			    <div class="saito-userline">${group.txs.length} messages</div>    
 			  </div>
 			 </div>`;
-	}
+  }
 
-	html += '</div></div>';
+  html += '</div></div>';
 
-	return html;
+  return html;
 };

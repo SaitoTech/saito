@@ -1,6 +1,6 @@
 module.exports = {
-	pending({ title = '', lead = '', subtitle = '' } = {}) {
-		return `
+  pending({ title = '', lead = '', subtitle = '' } = {}) {
+    return `
 <article class="saito-transaction-monitor" aria-live="polite">
   <div class="stack">
     <div class="saito-spinner" aria-hidden="true"></div>
@@ -14,10 +14,10 @@ module.exports = {
     </div>
   </div>
 </article>`;
-	},
+  },
 
-	complete({ title = '', lead = '', actionLabel = 'Continue' } = {}) {
-		return `
+  complete({ title = '', lead = '', actionLabel = 'Continue' } = {}) {
+    return `
 <article class="saito-transaction-monitor">
   <div class="stack">
     <div class="success" aria-hidden="true"><i class="fas fa-check"></i></div>
@@ -26,5 +26,5 @@ module.exports = {
     <button type="button" class="saito-button-primary" data-action="continue">${actionLabel}</button>
   </div>
 </article>`;
-	}
+  }
 };

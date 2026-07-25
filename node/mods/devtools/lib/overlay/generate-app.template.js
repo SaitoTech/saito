@@ -1,8 +1,7 @@
 module.exports = InstallAppOverlayTemplate = (app, mod, this_self) => {
+  console.log('template mod details:', this_self.mod_details);
 
-  console.log("template mod details:", this_self.mod_details);
-
-	return `
+  return `
   <div class="saito-module-overlay saito-app-install-overlay">
     <div class="saito-module-header" style="background-image: url(${this_self.mod_details.image});">
       <h1 class="saito-module-titlebar">${this_self.mod_details.name}</h1>

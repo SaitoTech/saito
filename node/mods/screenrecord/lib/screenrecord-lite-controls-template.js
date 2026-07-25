@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	let html = `
+  let html = `
       <div class="screenrecord-controls" id="screenrecord-controls">
         <div class="control-panel">
           <div class="recording-status">
@@ -11,13 +11,13 @@ module.exports = (app, mod) => {
           </div>  
           <div class="control-list">`;
 
-	html += `<div class="record-disconnect-control icon_click_area">
+  html += `<div class="record-disconnect-control icon_click_area">
                <i class="fa-solid fa-x"></i>
             </div>`;
 
-	html += `</div>
+  html += `</div>
         </div>
       </div>`;
 
-	return html;
+  return html;
 };

@@ -4,15 +4,15 @@ import { Globe, UserSquare, PlusSquare, ShieldCheck, X } from 'lucide-react';
 import FilterSort from './react-components/filter-sort';
 import ZKInfoBox from './react-components/info-box';
 
-
-
 const VoteLayout = ({ app, mod }) => {
   const [activeTab, setActiveTab] = useState('All Polls');
   const [newElection, setNewElection] = useState({
     description: '',
     numCandidates: 2,
     candidateNames: ['', ''],
-    startDate: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
+    startDate: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16),
     endDate: ''
   });
   const [elections, setElections] = useState([]);
@@ -30,13 +30,10 @@ const VoteLayout = ({ app, mod }) => {
   const [sortOption, setSortOption] = useState('newest');
   const [searchTerm, setSearchTerm] = useState('');
 
-
   useEffect(() => {
     refreshElections();
   }, [activeTab]);
 
-
-  
   const getElectionStatus = (startDate, endDate) => {
     const now = new Date().getTime();
     const start = new Date(startDate).getTime();
@@ -60,10 +57,9 @@ const VoteLayout = ({ app, mod }) => {
     });
   };
 
-
   const handleCreateElection = async () => {
     if (!newElection.startDate || !newElection.endDate) {
-      window.salert("Please set both start and end dates");
+      window.salert('Please set both start and end dates');
       return;
     }
 
@@ -71,45 +67,53 @@ const VoteLayout = ({ app, mod }) => {
     const endTime = new Date(newElection.endDate).getTime();
 
     if (startTime >= endTime) {
-      window.salert("End date must be after start date");
+      window.salert('End date must be after start date');
       return;
     }
 
     try {
       if (newElection.isEditing) {
-        await mod.sendUpdateElectionTransaction({
-          signature: newElection.signature,
-          description: newElection.description,
-          candidateNames: newElection.candidateNames,
-          startDate: newElection.startDate,
-          endDate: newElection.endDate
-        }, (result) => {
-          if (result.success) {
-            window.siteMessage("Poll updated successfully", 2000);
-            setActiveTab('All Polls');
-            setNewElection({
-              description: '',
-              numCandidates: 2,
-              candidateNames: ['', ''],
-              startDate: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
-              endDate: '',
-              isEditing: false
-            });
-            fetchElections();
-          } else {
-            window.salert(result.message || "Could not update poll");
+        await mod.sendUpdateElectionTransaction(
+          {
+            signature: newElection.signature,
+            description: newElection.description,
+            candidateNames: newElection.candidateNames,
+            startDate: newElection.startDate,
+            endDate: newElection.endDate
+          },
+          (result) => {
+            if (result.success) {
+              window.siteMessage('Poll updated successfully', 2000);
+              setActiveTab('All Polls');
+              setNewElection({
+                description: '',
+                numCandidates: 2,
+                candidateNames: ['', ''],
+                startDate: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000)
+                  .toISOString()
+                  .slice(0, 16),
+                endDate: '',
+                isEditing: false
+              });
+              fetchElections();
+            } else {
+              window.salert(result.message || 'Could not update poll');
+            }
           }
-        });
+        );
       } else {
-        let result = await mod.sendCreateElectionTransaction({
-          numCandidates: newElection.numCandidates,
-          candidateNames: newElection.candidateNames,
-          description: newElection.description,
-          startDate: newElection.startDate,
-          endDate: newElection.endDate
-        }, () => {
-          fetchElections()
-        });
+        let result = await mod.sendCreateElectionTransaction(
+          {
+            numCandidates: newElection.numCandidates,
+            candidateNames: newElection.candidateNames,
+            description: newElection.description,
+            startDate: newElection.startDate,
+            endDate: newElection.endDate
+          },
+          () => {
+            fetchElections();
+          }
+        );
 
         if (result) {
           setActiveTab('All Polls');
@@ -117,12 +121,14 @@ const VoteLayout = ({ app, mod }) => {
             description: '',
             numCandidates: 2,
             candidateNames: ['', ''],
-            startDate: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
+            startDate: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000)
+              .toISOString()
+              .slice(0, 16),
             endDate: ''
           });
           fetchElections();
         } else {
-          window.salert("Could not create poll");
+          window.salert('Could not create poll');
         }
       }
     } catch (err) {
@@ -131,12 +137,11 @@ const VoteLayout = ({ app, mod }) => {
   };
 
   const handleSelection = (electionId, index) => {
-    setSelectedCandidates(prev => ({
+    setSelectedCandidates((prev) => ({
       ...prev,
       [electionId]: index
     }));
   };
-
 
   const fetchElections = async () => {
     try {
@@ -164,99 +169,102 @@ const VoteLayout = ({ app, mod }) => {
         });
       }
     } catch (err) {
-      setError("Failed to fetch elections");
+      setError('Failed to fetch elections');
     }
   };
 
-
-
   const refreshElections = () => {
-    fetchElections()
-  }
-
+    fetchElections();
+  };
 
   const handleVote = async (signature, electionId, candidateIndex) => {
-    setLoadingStates(prev => ({ ...prev, [electionId]: true }));
+    setLoadingStates((prev) => ({ ...prev, [electionId]: true }));
     try {
-      const election = elections.find(e => e.id === electionId);
+      const election = elections.find((e) => e.id === electionId);
       const now = new Date().getTime();
       const start = new Date(election.startDate).getTime();
       const end = new Date(election.endDate).getTime();
 
       if (now < start) {
-        throw new Error("Election has not started yet");
+        throw new Error('Election has not started yet');
       }
       if (now > end) {
-        throw new Error("Election has ended");
+        throw new Error('Election has ended');
       }
 
       const nonce = Math.floor(Math.random() * 1000000000);
-      await mod.sendSubmitVoteTransaction({
-        signature,
-        electionId,
-        candidateIndex,
-        nonce,
-      }, (result) => {
-        console.log(result)
-        if (result.success === false) {
-          console.log('an error occured', result.message)
-          window.salert(result.message)
-        } else {
-          window.siteMessage('Vote submitted successfully', 2000)
-          fetchElections();
+      await mod.sendSubmitVoteTransaction(
+        {
+          signature,
+          electionId,
+          candidateIndex,
+          nonce
+        },
+        (result) => {
+          console.log(result);
+          if (result.success === false) {
+            console.log('an error occured', result.message);
+            window.salert(result.message);
+          } else {
+            window.siteMessage('Vote submitted successfully', 2000);
+            fetchElections();
+          }
         }
-      });
-      setSelectedCandidates(prev => ({ ...prev, [electionId]: undefined }));
+      );
+      setSelectedCandidates((prev) => ({ ...prev, [electionId]: undefined }));
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoadingStates(prev => ({ ...prev, [electionId]: false }));
+      setLoadingStates((prev) => ({ ...prev, [electionId]: false }));
     }
   };
 
-
   const handleFinalizeAll = async (elections) => {
     try {
-      const eligibleElections = elections.filter(election => {
+      const eligibleElections = elections.filter((election) => {
         const status = getElectionStatus(election.startDate, election.endDate);
-        return status === 'ended' &&
-          election.status !== "finalized"
+        return status === 'ended' && election.status !== 'finalized';
       });
 
       for (const election of eligibleElections) {
-        await mod.sendFinalizeElectionTransaction({
-          signature: election.signature,
-          electionId: election.id
-        }, (result) => {
-          if (result.success) {
-            setFinalizedElections(prev => new Set([...prev, election.id]));
+        await mod.sendFinalizeElectionTransaction(
+          {
+            signature: election.signature,
+            electionId: election.id
+          },
+          (result) => {
+            if (result.success) {
+              setFinalizedElections((prev) => new Set([...prev, election.id]));
+            }
           }
-        });
+        );
       }
       if (eligibleElections.length > 0) {
         fetchElections();
       }
     } catch (err) {
-      setError("Error finalizing elections: " + err.message);
+      setError('Error finalizing elections: ' + err.message);
     }
   };
 
   const handleFinalize = async (signature, electionId) => {
     try {
-      await mod.sendFinalizeElectionTransaction({
-        signature,
-        electionId
-      }, (result) => {
-        if (result.success) {
-          setFinalizedElections(prev => new Set([...prev, electionId]));
-          fetchElections();
+      await mod.sendFinalizeElectionTransaction(
+        {
+          signature,
+          electionId
+        },
+        (result) => {
+          if (result.success) {
+            setFinalizedElections((prev) => new Set([...prev, electionId]));
+            fetchElections();
+          }
         }
-      });
+      );
     } catch (err) {
       setError(err.message);
     }
   };
-
 
   const updateCandidateName = (index, name) => {
     const newNames = [...newElection.candidateNames];
@@ -265,7 +273,7 @@ const VoteLayout = ({ app, mod }) => {
   };
 
   const updateNumCandidates = (num) => {
-    if (num > 5) return salert("Poll options shouldn't exceed 5")
+    if (num > 5) return salert("Poll options shouldn't exceed 5");
     const candidateNames = [...newElection.candidateNames];
     while (candidateNames.length < num) {
       candidateNames.push('');
@@ -285,14 +293,14 @@ const VoteLayout = ({ app, mod }) => {
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(election =>
+      filtered = filtered.filter((election) =>
         election.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Apply status filter
     if (filterOptions.status !== 'all') {
-      filtered = filtered.filter(election => {
+      filtered = filtered.filter((election) => {
         const status = getElectionStatus(election.startDate, election.endDate);
         return status === filterOptions.status;
       });
@@ -300,7 +308,7 @@ const VoteLayout = ({ app, mod }) => {
 
     // Apply vote range filter
     if (filterOptions.voteRange !== 'all') {
-      filtered = filtered.filter(election => {
+      filtered = filtered.filter((election) => {
         const voteCount = voteCounts[election.id] || 0;
         switch (filterOptions.voteRange) {
           case '0-10':
@@ -339,25 +347,27 @@ const VoteLayout = ({ app, mod }) => {
   };
 
   return (
-    <div className="layout" style={{
-      display: 'flex',
-      position: 'relative'
-    }}>
-
-      <div className="left-column" style={{
-        display: 'block',
-        position: 'relative',
-        left: 0
-      }}>
-
+    <div
+      className="layout"
+      style={{
+        display: 'flex',
+        position: 'relative'
+      }}
+    >
+      <div
+        className="left-column"
+        style={{
+          display: 'block',
+          position: 'relative',
+          left: 0
+        }}
+      >
         <div className="tab-buttons">
-
           <button
             className={`tab-button ${activeTab === 'create' ? 'active' : ''}`}
             onClick={() => setActiveTab('create')}
           >
             <PlusSquare size={18} className="mr-2" />
-
             Create Poll
           </button>
           <button
@@ -368,7 +378,6 @@ const VoteLayout = ({ app, mod }) => {
             onClick={() => setActiveTab('All Polls')}
           >
             <Globe size={18} className="mr-2" />
-
             All Polls
           </button>
 
@@ -380,24 +389,19 @@ const VoteLayout = ({ app, mod }) => {
             onClick={() => setActiveTab('My Polls')}
           >
             <UserSquare size={18} className="mr-2" />
-
             My Polls
           </button>
-
         </div>
       </div>
 
-      <div className="center-column" style={{
-        maxWidth: '900px',
-      }}>
+      <div
+        className="center-column"
+        style={{
+          maxWidth: '900px'
+        }}
+      >
         <div className="voting-system">
-          {error && (
-            <div className="alert error">
-              {error}
-            </div>
-          )}
-
-
+          {error && <div className="alert error">{error}</div>}
 
           {activeTab === 'create' && (
             <div className="card">
@@ -406,31 +410,41 @@ const VoteLayout = ({ app, mod }) => {
               </div>
               <div className="card-content">
                 <div className="form-group">
-                  <input                     className="saito-input"
+                  <input
+                    className="saito-input"
                     placeholder="Poll Description"
                     value={newElection.description}
-                    onChange={(e) => setNewElection({ ...newElection, description: e.target.value })}
+                    onChange={(e) =>
+                      setNewElection({ ...newElection, description: e.target.value })
+                    }
                   />
                   <div className="date-input-group">
                     <label>Poll Duration:</label>
                     <div className="date-inputs">
-                      <input                         className="saito-input"
+                      <input
+                        className="saito-input"
                         type="datetime-local"
                         placeholder="Start Date"
                         value={newElection.startDate}
-                        onChange={(e) => setNewElection({ ...newElection, startDate: e.target.value })}
+                        onChange={(e) =>
+                          setNewElection({ ...newElection, startDate: e.target.value })
+                        }
                       />
-                      <input                         className="saito-input"
+                      <input
+                        className="saito-input"
                         type="datetime-local"
                         placeholder="End Date"
                         value={newElection.endDate}
-                        onChange={(e) => setNewElection({ ...newElection, endDate: e.target.value })}
+                        onChange={(e) =>
+                          setNewElection({ ...newElection, endDate: e.target.value })
+                        }
                       />
                     </div>
                   </div>
                   <div className="number-input-group">
                     <label>Number of Options:</label>
-                    <input                       className="saito-input"
+                    <input
+                      className="saito-input"
                       type="number"
                       min="2"
                       max="256"
@@ -440,7 +454,8 @@ const VoteLayout = ({ app, mod }) => {
                   </div>
                   <div className="candidates-section">
                     {newElection.candidateNames.map((name, index) => (
-                      <input                         key={index}
+                      <input
+                        key={index}
                         className="saito-input"
                         placeholder={`Option ${index + 1} Name`}
                         value={name}
@@ -458,14 +473,15 @@ const VoteLayout = ({ app, mod }) => {
 
           {(activeTab === 'All Polls' || activeTab === 'My Polls') && (
             <div className="elections-list">
-             
-              <ZKInfoBox/>
+              <ZKInfoBox />
 
               <FilterSort
                 filterOptions={filterOptions}
                 sortOption={sortOption}
                 searchTerm={searchTerm}
-                onFilterChange={(key, value) => setFilterOptions(prev => ({ ...prev, [key]: value }))}
+                onFilterChange={(key, value) =>
+                  setFilterOptions((prev) => ({ ...prev, [key]: value }))
+                }
                 onSortChange={(value) => setSortOption(value)}
                 onSearchChange={(value) => setSearchTerm(value)}
               />
@@ -505,11 +521,11 @@ const VoteLayout = ({ app, mod }) => {
                   <p>
                     {activeTab === 'My Polls'
                       ? "You haven't created any polls yet"
-                      : "Create a new poll to get started"}
+                      : 'Create a new poll to get started'}
                   </p>
                 </div>
               ) : (
-                getFilteredAndSortedElections().map(election => (
+                getFilteredAndSortedElections().map((election) => (
                   <ElectionCard
                     key={election.id}
                     election={election}
@@ -529,7 +545,6 @@ const VoteLayout = ({ app, mod }) => {
               )}
             </div>
           )}
-
         </div>
       </div>
     </div>

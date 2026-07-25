@@ -4,29 +4,34 @@
  */
 
 body:has(.saito-container.rustscript) {
-  --rs-overlay-padding-top: 28px;
-  --rs-overlay-padding-x: 32px;
-  --rs-overlay-padding-bottom: 24px;
-  --rs-overlay-gap: 18px;
+  --rs-overlay-padding-top: var(--saito-space-xl);
+  --rs-overlay-padding-x: var(--saito-space-xxl);
+  --rs-overlay-padding-bottom: var(--saito-space-xl);
+  --rs-overlay-gap: var(--saito-space-lg);
   --rs-overlay-border: 2px solid #4a4a4a;
   --rs-overlay-shadow: 0 24px 64px rgba(0, 0, 0, 0.68), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  --rs-overlay-title-size: 22px;
+
+  /* Align with Saito type scale (html 10px → rem): large / medium / tiny */
+  --rs-overlay-title-size: var(--font-size-large);
   --rs-overlay-title-weight: 700;
-  --rs-overlay-title-spacing: 0.06em;
-  --rs-overlay-title-margin: 0 0 24px;
-  --rs-overlay-lead-size: 16px;
-  --rs-overlay-footer-gap: 12px;
-  --rs-overlay-footer-margin-top: 8px;
+  --rs-overlay-title-spacing: 0.04em;
+  --rs-overlay-title-margin: 0 0 var(--saito-space-xl);
+  --rs-overlay-lead-size: var(--font-size-medium);
+  --rs-overlay-label-size: var(--font-size-tiny);
+  --rs-overlay-input-font-size: var(--font-size-medium);
+  --rs-overlay-body-size: var(--font-size-medium);
+  --rs-overlay-footer-gap: var(--saito-space-md);
+  --rs-overlay-footer-margin-top: var(--saito-space-sm);
 
-  --rs-btn-primary-height: 44px;
-  --rs-btn-primary-min-width: 148px;
-  --rs-btn-primary-padding: 0 28px;
-  --rs-btn-primary-font-size: 14px;
+  --rs-btn-primary-height: var(--rs-control-height);
+  --rs-btn-primary-min-width: 14.8rem;
+  --rs-btn-primary-padding: 0 var(--saito-space-xl);
+  --rs-btn-primary-font-size: 1.6rem;
 
-  --rs-btn-secondary-height: 40px;
-  --rs-btn-secondary-min-width: 120px;
-  --rs-btn-secondary-padding: 0 22px;
-  --rs-btn-secondary-font-size: 13px;
+  --rs-btn-secondary-height: 4rem;
+  --rs-btn-secondary-min-width: 12rem;
+  --rs-btn-secondary-padding: 0 var(--saito-space-lg);
+  --rs-btn-secondary-font-size: var(--font-size-medium);
 
   --rs-btn-card-min-height: 168px;
   --rs-btn-card-visual-max: 140px;
@@ -52,9 +57,25 @@ body:has(.saito-container.rustscript) .saito-overlay > .rs-overlay-panel {
   border-radius: var(--rs-control-radius, 4px) !important;
   box-shadow: var(--rs-overlay-shadow) !important;
   overflow: hidden;
-  background: var(--rustscript-surface, #181818);
+  background-color: var(--rustscript-surface, #181818) !important;
+  background-image: none !important;
   color: #ececec;
   box-sizing: border-box;
+}
+
+/*
+ * Kill Saito popover wash on every RustScript modal panel.
+ * Overlays are portaled outside .saito-container; without an inherited
+ * --rustscript-surface the shorthand `background: var(...)` was invalid
+ * and left Saito's translucent wash showing through.
+ */
+body:has(.saito-container.rustscript) .saito-overlay > .rustscript-overlay,
+body:has(.saito-container.rustscript) .saito-overlay > .rs-prompt-overlay,
+body:has(.saito-container.rustscript) .saito-overlay > .rs-opcode-ref-overlay,
+body:has(.saito-container.rustscript) .saito-overlay > .rs-publish-overlay,
+body:has(.saito-container.rustscript) .saito-overlay > .rs-overlay-panel {
+  background-color: var(--rustscript-surface, #181818) !important;
+  background-image: none !important;
 }
 
 /* ── Panel layout ── */
@@ -63,9 +84,10 @@ body:has(.saito-container.rustscript) .rs-overlay-panel {
   display: flex;
   flex-direction: column;
   gap: var(--rs-overlay-gap);
-  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
+  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x)
+    var(--rs-overlay-padding-bottom);
   font-family: var(--rustscript-font-sans);
-  font-size: 16px;
+  font-size: var(--rs-overlay-body-size);
   line-height: 1.45;
 }
 
@@ -101,10 +123,10 @@ body:has(.saito-container.rustscript) .rs-overlay-title {
 }
 
 body:has(.saito-container.rustscript) .rs-overlay-title.rs-overlay-title-lg {
-  font-size: 28px;
+  font-size: 2.8rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  margin-bottom: 32px;
+  margin-bottom: var(--saito-space-xxl);
 }
 
 body:has(.saito-container.rustscript) .rs-overlay-lead {
@@ -116,10 +138,10 @@ body:has(.saito-container.rustscript) .rs-overlay-lead {
 
 body:has(.saito-container.rustscript) .rs-overlay-label {
   font-family: var(--rustscript-font-mono);
-  font-size: 13px;
+  font-size: var(--rs-overlay-label-size);
   font-weight: 600;
   color: #a8a8a8;
-  margin: 0 0 8px;
+  margin: 0 0 var(--saito-space-sm);
   display: block;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -159,7 +181,12 @@ body:has(.saito-container.rustscript) .rs-btn {
   line-height: 1;
   cursor: pointer;
   text-align: center;
-  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.1s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s,
+    transform 0.1s;
 }
 
 body:has(.saito-container.rustscript) .rs-btn-primary {
@@ -260,10 +287,10 @@ body:has(.saito-container.rustscript) .rs-overlay-input,
 body:has(.saito-container.rustscript) .rs-overlay-panel textarea.rs-overlay-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 14px 16px;
+  padding: var(--saito-space-md) var(--saito-space-lg);
   min-height: var(--rs-control-height);
   font-family: var(--rustscript-font-mono);
-  font-size: 15px;
+  font-size: var(--rs-overlay-input-font-size);
   font-weight: 500;
   line-height: 1.45;
   background: #0c0c0c;
@@ -279,9 +306,9 @@ body:has(.saito-container.rustscript) .rs-overlay-input:focus {
 
 body:has(.saito-container.rustscript) .rs-overlay-validation {
   margin: 0;
-  padding: 10px 12px;
+  padding: var(--saito-space-sm) var(--saito-space-md);
   border-radius: var(--rs-control-radius, 4px);
-  font-size: 14px;
+  font-size: var(--font-size-medium);
   line-height: 1.45;
   color: #f0c878;
   background: rgba(252, 163, 17, 0.12);
@@ -293,27 +320,48 @@ body:has(.saito-container.rustscript) .rs-overlay-validation[hidden] {
 }
 
 /*
- * RustScript-owned modal backdrops only — do not restyle global Saito overlay backdrops
- * (Settings/Account and other modules rely on default z-index stacking).
+ * RustScript-owned modal backdrops — mostly opaque, slight translucency.
+ * Includes field/opcode/expert dialogs that use the default Saito backdrop
+ * (no dedicated backdrop class).
  */
 body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop'].rs-publish-overlay-backdrop,
-body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop'].rs-overlay-backdrop {
+body:has(.saito-container.rustscript) [id^='saito-overlay-backdrop'].rs-overlay-backdrop,
+body:has(.saito-container.rustscript):has(.rs-prompt-overlay, .rs-opcode-ref-overlay)
+  [id^='saito-overlay-backdrop']:not(.rs-onboarding-overlay-backdrop) {
   top: 0 !important;
   left: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
   height: 100dvh !important;
-  background: rgba(6, 6, 8, 0.82) !important;
+  background: rgba(6, 6, 8, 0.9) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   pointer-events: auto !important;
   z-index: var(--rs-overlay-z-backdrop) !important;
 }
 
+/* Expert script overlay (plain .rustscript-overlay, not publish shell) */
+body:has(.saito-container.rustscript):has(
+    .rustscript-overlay:not(.rs-publish-overlay):not(.rs-prompt-overlay)
+  )
+  [id^='saito-overlay-backdrop']:not(.rs-onboarding-overlay-backdrop):not(
+    .rs-publish-overlay-backdrop
+  ) {
+  background: rgba(6, 6, 8, 0.9) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 /* Close control — Saito default placement (above/right of panel, outside chrome) */
-body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell > .saito-overlay-closebox,
-body:has(.saito-container.rustscript) .saito-overlay:has(> .rustscript-overlay) > .saito-overlay-closebox,
-body:has(.saito-container.rustscript) .saito-overlay:has(> .rs-overlay-panel) > .saito-overlay-closebox {
+body:has(.saito-container.rustscript)
+  .saito-overlay.rs-publish-overlay-shell
+  > .saito-overlay-closebox,
+body:has(.saito-container.rustscript)
+  .saito-overlay:has(> .rustscript-overlay)
+  > .saito-overlay-closebox,
+body:has(.saito-container.rustscript)
+  .saito-overlay:has(> .rs-overlay-panel)
+  > .saito-overlay-closebox {
   display: flex !important;
   align-items: center;
   justify-content: center;
@@ -328,15 +376,22 @@ body:has(.saito-container.rustscript) .saito-overlay:has(> .rs-overlay-panel) > 
   z-index: var(--rs-overlay-z-controls);
 }
 
-body:has(.saito-container.rustscript) .saito-overlay.rs-publish-overlay-shell.maximized-overlay > .saito-overlay-closebox,
-body:has(.saito-container.rustscript) .saito-overlay:has(> .rustscript-overlay).maximized-overlay > .saito-overlay-closebox {
+body:has(.saito-container.rustscript)
+  .saito-overlay.rs-publish-overlay-shell.maximized-overlay
+  > .saito-overlay-closebox,
+body:has(.saito-container.rustscript)
+  .saito-overlay:has(> .rustscript-overlay).maximized-overlay
+  > .saito-overlay-closebox {
   top: 1rem;
   right: 1rem;
 }
 
 /* Field / opcode / expert overlays — panel above backdrop */
 body:has(.saito-container.rustscript) .saito-overlay:has(> .rs-prompt-overlay),
-body:has(.saito-container.rustscript) .saito-overlay:has(> .rustscript-overlay):not(.rs-onboarding-overlay):not(.rs-publish-overlay-shell) {
+body:has(.saito-container.rustscript)
+  .saito-overlay:has(> .rustscript-overlay):not(.rs-onboarding-overlay):not(
+    .rs-publish-overlay-shell
+  ) {
   z-index: var(--rs-overlay-z-panel) !important;
 }
 

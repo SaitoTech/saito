@@ -1,10 +1,9 @@
-import Shape from "./shape.js";
-import Rectangle from "./rectangle.js";
-import Utils from "./utils.js";
-
+import Shape from './shape.js';
+import Rectangle from './rectangle.js';
+import Utils from './utils.js';
 
 class Pixel extends Shape {
-  constructor({position, rgbaColor}) {
+  constructor({ position, rgbaColor }) {
     super();
 
     this.position = position;

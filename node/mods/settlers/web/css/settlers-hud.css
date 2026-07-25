@@ -1,32 +1,31 @@
 .game.settlers {
-.hud, .hud-long {
-	width: 55rem;
-	max-width: 100vw;
-	z-index: 50;
-	padding: 3px 0 0 0;
-	height: auto;
-}
+  .hud,
+  .hud-long {
+    width: 55rem;
+    max-width: 100vw;
+    z-index: 50;
+    padding: 3px 0 0 0;
+    height: auto;
+  }
 
-/* Wrapper for settlers status messages? */
+  /* Wrapper for settlers status messages? */
 
-.hud-header {
-	display: none;
-}
+  .hud-header {
+    display: none;
+  }
 
-.hud-body {
-	min-height: 12rem;
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	justify-content: space-around;
-	padding: 0 0 1rem;
-}
+  .hud-body {
+    min-height: 12rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    padding: 0 0 1rem;
+  }
 
+  /* override default #efefef background */
 
-
-/* override default #efefef background */
-
-.hud-body .status {
+  .hud-body .status {
     background-color: transparent;
     box-shadow: none;
     padding: 0;
@@ -37,201 +36,196 @@
     align-items: flex-start;
     padding: 0.5rem 0.4rem 0.5rem 1.6rem;
     gap: 0.75rem;
-}
+  }
 
-.hud-status-card-list{
-	display: flex;
-}
+  .hud-status-card-list {
+    display: flex;
+  }
 
+  /* hide scrollbars */
 
-/* hide scrollbars */
+  .hud .controls {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow-y: auto;
+    overflow-x: auto;
+    /*min-height: 4.5rem;*/
+    margin: 0.5rem;
+    padding: 0.45rem 0.6rem 0.65rem;
+    box-sizing: border-box;
+  }
 
-.hud .controls {
-	-ms-overflow-style: none;
-	scrollbar-width: none;
-	overflow-y: auto;
-	overflow-x: auto;
-	/*min-height: 4.5rem;*/
-	margin: 0.5rem;
-	padding: 0.45rem 0.6rem 0.65rem;
-	box-sizing: border-box;
-}
+  .hud .controls ul {
+    min-height: 7.5rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    min-width: max-content;
+    align-items: center;
+  }
 
-.hud .controls ul {
-	min-height: 7.5rem;
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	gap: 1rem;
-	width: 100%;
-	min-width: max-content;
-	align-items: center;
-}
+  .hud .controls ul li {
+    background: linear-gradient(180deg, #dfd4b6, #bda878);
+    padding: 0.55rem 0.4rem 0.45rem;
+    border: 3px solid #424143;
+    border-radius: 1rem;
+    list-style: none;
+    height: 7rem;
+    width: 7rem;
+    font-size: 2.6rem;
+    color: rgba(51, 24, 0, 0.35);
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    opacity: 0.48;
+    position: relative;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition:
+      background 140ms ease,
+      box-shadow 140ms ease,
+      color 140ms ease,
+      opacity 140ms ease,
+      transform 140ms ease;
+  }
 
+  .hud .controls ul li#rolldice {
+    margin-left: 2rem;
+    width: 9rem;
+    overflow: hidden;
+  }
 
-.hud .controls ul li {
-	background: linear-gradient(180deg, #dfd4b6, #bda878);
-	padding: 0.55rem 0.4rem 0.45rem;
-	border: 3px solid #424143;
-	border-radius: 1rem;
-	list-style: none;
-	height: 7rem;
-	width: 7rem;
-	font-size: 2.6rem;
-	color: rgba(51, 24, 0, 0.35);
-	cursor: default;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 0.25rem;
-	opacity: 0.48;
-	position: relative;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
-	transition:
-		background 140ms ease,
-		box-shadow 140ms ease,
-		color 140ms ease,
-		opacity 140ms ease,
-		transform 140ms ease;
-}
+  .settlers-control-label {
+    font-size: 1.15rem;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
 
-.hud .controls ul li#rolldice {
-	margin-left: 2rem;
-	width: 9rem;
-	overflow: hidden;
-}
+  .hud .controls ul li i {
+    z-index: 2;
+  }
 
-.settlers-control-label {
-	font-size: 1.15rem;
-	line-height: 1;
-	text-transform: uppercase;
-	letter-spacing: 0;
-	font-weight: 700;
-}
+  .animated-mask {
+    z-index: 1;
+    background-color: chocolate;
+  }
 
+  .hud .controls ul > div {
+    width: 7rem;
+  }
 
-.hud .controls ul li i {
-	z-index: 2;
-}
+  .hud .controls ul li.enabled {
+    background: linear-gradient(180deg, #f0df9a, #b79e76);
+    color: var(--text-color);
+    cursor: pointer;
+    opacity: 1;
+    box-shadow:
+      0 3px 8px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
 
-.animated-mask {
-	z-index: 1;
-	background-color: chocolate;
-}
+  .hud .controls ul li.enabled:hover {
+    background: linear-gradient(180deg, #f8e87c, #c7a969);
+    box-shadow:
+      0 5px 14px rgba(0, 0, 0, 0.28),
+      0 0 0 2px rgba(255, 255, 255, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    transform: translate(-1px, -1px);
+  }
 
-.hud .controls ul > div {
-	width: 7rem;
-}
+  .hud .controls ul li.primary-action.enabled {
+    background: linear-gradient(180deg, #ffd45c, #b87527);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      0 0 0 2px rgba(255, 212, 92, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
 
-.hud .controls ul li.enabled {
-	background: linear-gradient(180deg, #f0df9a, #b79e76);
-	color: var(--text-color);
-	cursor: pointer;
-	opacity: 1;
-	box-shadow:
-		0 3px 8px rgba(0, 0, 0, 0.22),
-		inset 0 1px 0 rgba(255, 255, 255, 0.45);
-}
+  .hud .controls ul li.primary-action.enabled:hover {
+    background: linear-gradient(180deg, #ffe17e, #ca8530);
+  }
 
-.hud .controls ul li.enabled:hover {
-	background: linear-gradient(180deg, #f8e87c, #c7a969);
-	box-shadow:
-		0 5px 14px rgba(0, 0, 0, 0.28),
-		0 0 0 2px rgba(255, 255, 255, 0.45),
-		inset 0 1px 0 rgba(255, 255, 255, 0.55);
-	transform: translate(-1px, -1px);
-}
+  /* rp updates */
 
-.hud .controls ul li.primary-action.enabled {
-	background: linear-gradient(180deg, #ffd45c, #b87527);
-	box-shadow:
-		0 4px 12px rgba(0, 0, 0, 0.3),
-		0 0 0 2px rgba(255, 212, 92, 0.38),
-		inset 0 1px 0 rgba(255, 255, 255, 0.5);
-}
+  .hud {
+    overflow: visible;
+  }
 
-.hud .controls ul li.primary-action.enabled:hover {
-	background: linear-gradient(180deg, #ffe17e, #ca8530);
-}
+  .player-notice img {
+    max-width: 45px;
+  }
 
-/* rp updates */
+  @media only screen and (max-width: 600px) and (orientation: portrait) {
+    .saitoa {
+      padding: 0.5rem;
+    }
 
-.hud {
-	overflow: visible;
-}
+    .hud {
+      margin-bottom: 0;
+    }
 
-.player-notice img {
-	max-width: 45px;
-}
+    .hud-body {
+      width: calc(100% - 2rem);
+    }
 
-@media only screen and (max-width: 600px) and (orientation: portrait) {
-	.saitoa {
-		padding: 0.5rem;
-	}
+    body .player-box {
+      height: auto;
+      width: 100%;
+      display: block;
+      top: 0px;
+      z-index: 200;
+      max-width: 90vw;
+      margin-left: 5vw;
+      margin-right: 5vw;
+      margin-top: 5vw;
+    }
 
-	.hud{
-		margin-bottom: 0;
-	}
+    .hud-body .controls ul {
+      gap: 0.5rem;
+    }
 
-	.hud-body {
-		width: calc(100% - 2rem);
-	}
+    .hud-body .controls ul li {
+      min-width: 10rem;
+      border-width: 2px;
+      padding: 0.25rem 0.5rem;
+      height: 6.5rem;
+      font-size: 2.4rem;
+    }
 
-	body .player-box {
-		height: auto;
-		width: 100%;
-		display: block;
-		top: 0px;
-		z-index: 200;
-		max-width: 90vw;
-		margin-left: 5vw;
-		margin-right: 5vw;
-		margin-top: 5vw;
-	}
+    .controls {
+      margin-top: unset;
+    }
 
-	.hud-body .controls ul {
-		gap: 0.5rem;
-	}
+    .hud .controls ul {
+      gap: 0.5rem;
+    }
 
-	.hud-body .controls ul li {
-		min-width: 10rem;
-		border-width: 2px;
-		padding: 0.25rem 0.5rem;
-		height: 6.5rem;
-		font-size: 2.4rem;
-	}
+    .hud .controls ul li#rolldice {
+      margin-left: 0.5rem;
+    }
 
-	.controls {
-		margin-top: unset;
-	}
+    .settlers-control-label {
+      font-size: 1rem;
+    }
+  }
 
-	.hud .controls ul {
-		gap: 0.5rem;
-	}
+  @media only screen and (max-height: 600px) and (orientation: landscape) {
+    .hud {
+      max-width: 50vw;
+      max-height: 50vh;
+      margin-bottom: 1rem;
+    }
 
-	.hud .controls ul li#rolldice {
-		margin-left: 0.5rem;
-	}
-
-	.settlers-control-label {
-		font-size: 1rem;
-	}
-
-}
-
-
-@media only screen and (max-height: 600px) and (orientation: landscape) {
-	.hud {
-		max-width: 50vw;
-		max-height: 50vh;
-		margin-bottom: 1rem;
-	}
-
-	.hud.hud-long {
-		left: unset;
-		transform: unset;
-		right: 2rem;
-	}
-}
+    .hud.hud-long {
+      left: unset;
+      transform: unset;
+      right: 2rem;
+    }
+  }
 }

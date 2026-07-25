@@ -3,10 +3,8 @@ const TweetHeaderTemplate = require('../../tweet-header.template');
 
 module.exports = (compose) => {
   const mode = compose.mode || 'post';
-  const ariaLabel =
-    mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Compose post';
-  const submitLabel =
-    mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Post';
+  const ariaLabel = mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Compose post';
+  const submitLabel = mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Post';
 
   let replyPreview = '';
 

@@ -1,5 +1,5 @@
 module.exports = InvitesAppspaceTemplate = (app, mod) => {
-	return `
+  return `
 
   <div class="invites-appspace">
 

@@ -1,23 +1,24 @@
 module.exports = (mod) => {
-
   const options = mod?.server_info?.options || {};
-  const home_app = options.defaultModule || "";
+  const home_app = options.defaultModule || '';
 
   let splash_apps = [
-    { id: "redsquare", label: "RedSquare" },
-    { id: "arcade", label: "Arcade" },
-    { id: "store", label: "Store" },
-    { id: "other", label: "Other" }
+    { id: 'redsquare', label: 'RedSquare' },
+    { id: 'arcade', label: 'Arcade' },
+    { id: 'store', label: 'Store' },
+    { id: 'other', label: 'Other' }
   ];
 
-  let splash_html = splash_apps.map(app => {
-    let selected = home_app === app.id ? "selected" : "";
-    return `
+  let splash_html = splash_apps
+    .map((app) => {
+      let selected = home_app === app.id ? 'selected' : '';
+      return `
       <div class="splash-card ${selected}" data-app="${app.id}">
         <div class="splash-title">${app.label}</div>
       </div>
     `;
-  }).join("");
+    })
+    .join('');
 
   return `
     <div class="node-setup">
@@ -86,4 +87,3 @@ module.exports = (mod) => {
     </div>
   `;
 };
-

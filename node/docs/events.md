@@ -25,7 +25,7 @@ app.connector.emit('connection_up', peer);
 // receiving event
 //
 app.connection.on('connection_up', (peer) => {
-	console.log('Connected to: ' + peer.peer.publickey);
+  console.log('Connected to: ' + peer.peer.publickey);
 });
 ```
 

@@ -1,6 +1,6 @@
 module.exports = (app, mod) => {
-	return `
+  return `
 		<div class="gameboard" id="gameboard">
 		</div>
 `;
-}
+};

@@ -59,11 +59,13 @@ html:has(.stack-create-post-page) {
   overflow: visible;
   /* Ensure page can grow naturally with content */
   height: auto;
-  
+
   /* Mount-only transition: fade + micro-translate */
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity 150ms ease-out, transform 150ms ease-out;
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
 }
 
 .stack-create-post-page.stack-create-post-page-mounted {
@@ -218,7 +220,7 @@ html:has(.stack-create-post-page) {
 }
 
 .stack-cheatsheet-title {
- text-align: center;
+  text-align: center;
 }
 
 .stack-create-post-page .stack-editor-help {
@@ -472,7 +474,16 @@ html:has(.stack-create-post-page) {
   border: none;
   background: transparent;
   color: var(--saito-foreground);
-  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  font-family: var(
+    --saito-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif
+  );
   outline: none;
   transition: opacity 0.2s ease;
   text-align: left;
@@ -513,7 +524,16 @@ html:has(.stack-create-post-page) {
   border: none;
   background: transparent;
   color: var(--saito-foreground);
-  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  font-family: var(
+    --saito-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif
+  );
   outline: none;
   cursor: text;
   text-align: left;
@@ -534,7 +554,7 @@ html:has(.stack-create-post-page) {
 }
 
 .stack-create-post-page .stack-post-body-editor.stack-editor-empty > p:first-child::before {
-  content: "Start writing..."; /* Placeholder text - matches data-placeholder on editor */
+  content: 'Start writing...'; /* Placeholder text - matches data-placeholder on editor */
   color: var(--saito-foreground);
   opacity: 0.5;
   pointer-events: none;
@@ -558,7 +578,7 @@ html:has(.stack-create-post-page) {
 .stack-create-post-page .stack-post-body-editor > h5,
 .stack-create-post-page .stack-post-body-editor > h6,
 .stack-create-post-page .stack-post-body-editor > figure,
-.stack-create-post-page .stack-post-body-editor > div[data-block-type="rawhtml"] {
+.stack-create-post-page .stack-post-body-editor > div[data-block-type='rawhtml'] {
   margin: 0;
   margin-bottom: 1.8rem; /* Improved paragraph spacing - visually distinct */
   padding: 0;
@@ -567,10 +587,10 @@ html:has(.stack-create-post-page) {
 }
 
 /* Code blocks - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > pre[data-block-type="code"] {
-  background: var(--saito-background-inverse);
+.stack-create-post-page .stack-post-body-editor > pre[data-block-type='code'] {
+  background: var(--saito-foreground);
   color: var(--saito-background);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 0.9rem;
   line-height: 1.5;
   padding: 1rem 1.25rem;
@@ -771,7 +791,7 @@ html:has(.stack-create-post-page) {
   border-radius: 50%;
 }
 
-.stack-post-body-editor > div[data-block-type="rawhtml"] {
+.stack-post-body-editor > div[data-block-type='rawhtml'] {
   margin: 1rem 0;
 }
 
@@ -994,18 +1014,18 @@ html:has(.stack-create-post-page) {
   .stack-create-post-page .stack-post-body-editor {
     min-height: 33vh;
     height: calc(100dvh - 50rem);
-   }
+  }
 
   .stack-create-post-page .stack-create-post-container {
     padding: 1rem;
     width: 100vw;
   }
-  
+
   .stack-create-post-page .stack-document-column {
-      width: 100%;
+    width: 100%;
   }
   .stack-create-post-page .stack-post-title-input {
-      font-size: 2.75rem;     
+    font-size: 2.75rem;
   }
 
   .stack-create-post-page .stack-editor-sidebar {

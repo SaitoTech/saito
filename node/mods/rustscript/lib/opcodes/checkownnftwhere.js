@@ -88,9 +88,7 @@ Required fields:
     }
 
     const nft_type =
-      context.app &&
-      context.app.wallet &&
-      typeof context.app.wallet.extractNFTType === 'function'
+      context.app && context.app.wallet && typeof context.app.wallet.extractNFTType === 'function'
         ? context.app.wallet.extractNFTType(utxo3)
         : null;
     const creator = slip1.publicKey;

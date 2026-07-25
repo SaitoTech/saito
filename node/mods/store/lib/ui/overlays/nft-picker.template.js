@@ -1,5 +1,5 @@
 const NftPickerTemplate = () => {
-	return `
+  return `
     <div class="nft-picker">
       <header>
         <h2>Select an NFT</h2>
@@ -15,7 +15,7 @@ const NftPickerTemplate = () => {
 };
 
 NftPickerTemplate.emptyInstructions = () => {
-	return `
+  return `
     <div class="empty">
       <h3>No NFTs in this wallet.</h3>
     </div>
@@ -23,7 +23,7 @@ NftPickerTemplate.emptyInstructions = () => {
 };
 
 NftPickerTemplate.createPrompt = () => {
-	return `
+  return `
     <div class="instructions">
       Don't have any NFTs in your wallet? Why not
       <span class="saito-anchor" id="nft-picker-create-link" role="button" tabindex="0">

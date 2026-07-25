@@ -1,27 +1,26 @@
-
 module.exports = (mod) => {
-
   const options = mod?.server_info?.options || {};
   const peers = options.peers || [];
-  const endpoint =
-    options.server?.endpoint || {
-      host: options?.server?.host,
-      port: options?.server?.port,
-      protocol: options?.server?.protocol
-    };
+  const endpoint = options.server?.endpoint || {
+    host: options?.server?.host,
+    port: options?.server?.port,
+    protocol: options?.server?.protocol
+  };
 
-  let peers_html = peers.map((peer, i) => {
-    const url = `${peer.protocol}://${peer.host}:${peer.port}`;
-    return `
+  let peers_html = peers
+    .map((peer, i) => {
+      const url = `${peer.protocol}://${peer.host}:${peer.port}`;
+      return `
       <div class="peer-row" data-index="${i}">
         <div class="peer-main">
           <strong>${url}</strong>
-          ${peer.publicKey ? `<div class="peer-key">${peer.publicKey}</div>` : ""}
+          ${peer.publicKey ? `<div class="peer-key">${peer.publicKey}</div>` : ''}
         </div>
         <button class="peer-remove">Remove</button>
       </div>
     `;
-  }).join("");
+    })
+    .join('');
 
   return `
     <div class="admin-peers">
@@ -90,4 +89,3 @@ module.exports = (mod) => {
     </div>
   `;
 };
-

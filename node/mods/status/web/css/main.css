@@ -10,7 +10,7 @@ body {
   color: #fff;
   padding: 2rem 1rem;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .status-header h1 {
@@ -29,7 +29,7 @@ body {
 .status-main p {
   font-size: 1.5rem;
   color: #333;
-} 
+}
 
 #status-container {
   margin-top: 2rem;
@@ -40,5 +40,4 @@ body {
 }
 
 #status-container > * {
-  
 }

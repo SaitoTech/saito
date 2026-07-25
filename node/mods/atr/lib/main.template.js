@@ -1,6 +1,5 @@
 module.exports = (app, mod) => {
-
-	let html = `
+  let html = `
 
 		<div class="dashboard-container">
     <div class="header">
@@ -427,5 +426,5 @@ module.exports = (app, mod) => {
 </div>
 	`;
 
-	return html;
-}
+  return html;
+};

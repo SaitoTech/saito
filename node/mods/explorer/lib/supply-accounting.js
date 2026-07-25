@@ -1,8 +1,7 @@
 const ISSUANCE_TRANSACTION_TYPE = 6;
 const NOLAN_PER_SAITO = 100_000_000n;
 const DEFAULT_SUPPLY_NOLAN = 7_000_000_000n * NOLAN_PER_SAITO;
-const EMPTY_BLOCK_HASH =
-	'0000000000000000000000000000000000000000000000000000000000000000';
+const EMPTY_BLOCK_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 
 function toBigInt(value) {
   if (value === undefined || value === null || value === '') {
@@ -54,13 +53,13 @@ function normalizeTransaction(tx) {
 
     return {
       type: tx.type ?? tx.transaction_type ?? json.type ?? json.transaction_type,
-      to: Array.isArray(tx.to) ? tx.to : json.to || [],
+      to: Array.isArray(tx.to) ? tx.to : json.to || []
     };
   }
 
   return {
     type: tx.type ?? tx.transaction_type,
-    to: Array.isArray(tx.to) ? tx.to : [],
+    to: Array.isArray(tx.to) ? tx.to : []
   };
 }
 
@@ -106,17 +105,17 @@ function readHeaderBuckets(block) {
     treasury: toBigInt(block?.treasury),
     graveyard: toBigInt(block?.graveyard),
     total_fees: toBigInt(block?.totalFees),
-    previous_block_unpaid: toBigInt(block?.previousBlockUnpaid),
+    previous_block_unpaid: toBigInt(block?.previousBlockUnpaid)
   };
 }
 
 function deriveUtxoFromSupply(totalSupply, buckets, blockId = '') {
   const utxo =
-		totalSupply -
-		buckets.treasury -
-		buckets.graveyard -
-		buckets.total_fees -
-		buckets.previous_block_unpaid;
+    totalSupply -
+    buckets.treasury -
+    buckets.graveyard -
+    buckets.total_fees -
+    buckets.previous_block_unpaid;
 
   if (utxo < 0n) {
     console.warn('Explorer: negative derived UTXO for supply accounting', {
@@ -125,7 +124,7 @@ function deriveUtxoFromSupply(totalSupply, buckets, blockId = '') {
       treasury: buckets.treasury.toString(),
       graveyard: buckets.graveyard.toString(),
       total_fees: buckets.total_fees.toString(),
-      previous_block_unpaid: buckets.previous_block_unpaid.toString(),
+      previous_block_unpaid: buckets.previous_block_unpaid.toString()
     });
   }
 
@@ -191,7 +190,7 @@ async function computeSupplyBuckets(app, mod, block) {
   return {
     utxo,
     total_supply: totalSupply,
-    ...buckets,
+    ...buckets
   };
 }
 
@@ -224,7 +223,7 @@ async function buildBlockSupplyStats(app, mod, block) {
     previousBlockUnpaid,
     hasGoldenTicket,
     treasury,
-    graveyard,
+    graveyard
   } = block;
 
   const supply = await computeSupplyBuckets(app, mod, block);
@@ -259,7 +258,7 @@ async function buildBlockSupplyStats(app, mod, block) {
     previous_block_unpaid: toStorage(previousBlockUnpaid),
     has_golden_ticket: toStorage(hasGoldenTicket),
     utxo: toStorage(supply.utxo),
-    total_supply: toStorage(supply.total_supply),
+    total_supply: toStorage(supply.total_supply)
   };
 
   return stats;
@@ -315,5 +314,5 @@ module.exports = {
   backfillSupplyStatistics,
   sumIssuanceFromBlock,
   isGenesisBlock,
-  toStorage,
+  toStorage
 };

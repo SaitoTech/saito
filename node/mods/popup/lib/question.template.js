@@ -1,5 +1,5 @@
 module.exports = (question, popup_self) => {
-	return `
+  return `
     <div id="lesson_question_6047" class="lesson_question">
       <table>
 	<tbody><tr>

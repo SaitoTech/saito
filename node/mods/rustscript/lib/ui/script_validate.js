@@ -56,7 +56,10 @@ function validateScriptStructure(ast, options = {}) {
       errors.push({ path, message: '"witness" must be a plain object when present' });
     }
 
-    if (node.required != null && (typeof node.required !== 'object' || Array.isArray(node.required))) {
+    if (
+      node.required != null &&
+      (typeof node.required !== 'object' || Array.isArray(node.required))
+    ) {
       errors.push({ path, message: '"required" must be a plain object when present' });
     }
   }
@@ -113,7 +116,11 @@ function inferFieldKindFromPath(path) {
 }
 
 function resolveFieldOverlayKind(value, path) {
-  const pathArr = Array.isArray(path) ? path : String(path || '').split('.').filter(Boolean);
+  const pathArr = Array.isArray(path)
+    ? path
+    : String(path || '')
+        .split('.')
+        .filter(Boolean);
 
   if (typeof value === 'string' && isPlaceholder(value)) {
     const meta = placeholderMeta(value);
@@ -149,7 +156,9 @@ function resolveFieldOverlayKind(value, path) {
   }
 
   if (pathArr.length && String(pathArr[pathArr.length - 1]).toLowerCase() === 'op') {
-    const op = String(value || '').trim().toUpperCase();
+    const op = String(value || '')
+      .trim()
+      .toUpperCase();
     if (op === 'AND' || op === 'OR' || op === 'NOT' || op === 'THEN') {
       return 'logical';
     }
@@ -259,7 +268,10 @@ function evaluateScriptStatus(lockingScript) {
       validation: validateScriptStructure(lockingScript)
     };
   }
-  const placeholders = collectPlaceholders(lockingScript, [], { skipRequired: true, skipWitness: true });
+  const placeholders = collectPlaceholders(lockingScript, [], {
+    skipRequired: true,
+    skipWitness: true
+  });
   const validation = validateScriptStructure(lockingScript);
   if (!validation.valid || placeholders.length > 0) {
     return { state: 'warn', placeholders, validation };

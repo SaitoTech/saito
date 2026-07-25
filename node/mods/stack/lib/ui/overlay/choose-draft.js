@@ -26,7 +26,7 @@ class ChooseDraftOverlay {
     // [DRAFT-CHECK] Log overlay render decision
     // ========================================================================
     console.log('[DRAFT-CHECK] ChooseDraftOverlay.render() called, skipDiscovery=' + skipDiscovery);
-    
+
     // Double-check that valid drafts exist (defensive check)
     const hasValidDrafts = this.mod.hasValidDrafts && this.mod.hasValidDrafts();
     if (!hasValidDrafts) {
@@ -44,10 +44,10 @@ class ChooseDraftOverlay {
     const drafts = this.mod.getDrafts();
     const draftCount = drafts ? drafts.length : 0;
     console.log('[DRAFT-CHECK] Rendering overlay with draftCount=' + draftCount);
-    
+
     const html = ChooseDraftTemplate(this.app, this.mod, drafts, draftCount);
     this.overlay.show(html);
-    
+
     setTimeout(() => {
       this.attachEvents();
     }, 25);
@@ -78,7 +78,7 @@ class ChooseDraftOverlay {
 
     // Draft row click handlers (up to 3 drafts)
     const draftRows = document.querySelectorAll('.stack-choose-draft-row[data-draft-id]');
-    draftRows.forEach(row => {
+    draftRows.forEach((row) => {
       const draftId = row.getAttribute('data-draft-id');
       if (draftId) {
         row.addEventListener('click', async (e) => {
@@ -86,7 +86,7 @@ class ChooseDraftOverlay {
           if (e.target.closest('.stack-choose-draft-row-delete')) {
             return;
           }
-          
+
           const intent = { mode: 'select', draftId: draftId };
           this.overlay.hide();
           if (this.mod.create_post_ui) {
@@ -98,7 +98,7 @@ class ChooseDraftOverlay {
 
     // Delete icon click handlers (stop propagation to prevent row selection)
     const deleteIcons = document.querySelectorAll('.stack-choose-draft-row-delete');
-    deleteIcons.forEach(icon => {
+    deleteIcons.forEach((icon) => {
       const draftId = icon.getAttribute('data-draft-id');
       if (draftId) {
         icon.addEventListener('click', (e) => {
@@ -125,7 +125,7 @@ class ChooseDraftOverlay {
     // Return intent and re-initialize editor with it
     const intent = { mode: 'select', draftId: draftId };
     this.overlay.hide();
-    
+
     if (this.mod.create_post_ui) {
       await this.mod.create_post_ui.initializeDocument(intent);
     }
@@ -140,7 +140,7 @@ class ChooseDraftOverlay {
       const mostRecent = drafts[0];
       const intent = { mode: 'resume', draftId: mostRecent.id };
       this.overlay.hide();
-      
+
       if (this.mod.create_post_ui) {
         await this.mod.create_post_ui.initializeDocument(intent);
       }
@@ -157,12 +157,11 @@ class ChooseDraftOverlay {
   handleCreateNew() {
     const intent = { mode: 'new' };
     this.overlay.hide();
-    
+
     if (this.mod.create_post_ui) {
       this.mod.create_post_ui.initializeDocument(intent);
     }
   }
-
 
   /**
    * Handle deleting a draft
@@ -185,8 +184,8 @@ class ChooseDraftOverlay {
     // ========================================================================
     // deleteDraft() already calls refreshDrafts() which updates this.mod.drafts
     // No need to call discoverDrafts() again - deleteDraft() handles it
-    const deleted = await this.mod.deleteDraft && this.mod.deleteDraft(draftId);
-    
+    const deleted = (await this.mod.deleteDraft) && this.mod.deleteDraft(draftId);
+
     if (!deleted) {
       console.error('Stack: Failed to delete draft');
       return;
@@ -199,11 +198,11 @@ class ChooseDraftOverlay {
     // 1. Deleted from archive
     // 2. Removed from this.mod.drafts immediately
     // 3. Called refreshDrafts() which updated this.mod.drafts from archive
-    // 
+    //
     // We skip discoverDrafts() in render() to prevent race conditions where
     // the archive query might still see the old draft before deletion propagates.
     // We trust that this.mod.drafts is already correct.
-    // 
+    //
     // This ensures the deleted draft disappears immediately and "Create New Post"
     // appears if draftCount < 3
     await this.render(true); // skipDiscovery = true
@@ -211,4 +210,3 @@ class ChooseDraftOverlay {
 }
 
 module.exports = ChooseDraftOverlay;
-

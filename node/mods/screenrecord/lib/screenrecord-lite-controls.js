@@ -1,114 +1,106 @@
-
 const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ScreenrecordLiteControlsTemplate = require('./screenrecord-lite-controls-template');
 
-
 class ScreenRecordControls {
+  constructor(app, mod, options = {}) {
+    this.app = app;
+    this.mod = mod;
+    // this.options = options;
+    this.timer_interval = null;
+    this.overlay = new SaitoOverlay(app, mod);
+    this.startTime = new Date().getTime();
 
-    constructor(app, mod, options = {}) {
-		this.app = app;
-		this.mod = mod;
-		// this.options = options;
-		this.timer_interval = null;
-		this.overlay = new SaitoOverlay(app, mod);
-		this.startTime = new Date().getTime();
+    this.callbacks = {};
+    this.started_timeout = null;
+  }
 
-		this.callbacks = {};
-		this.started_timeout = null;
-
-	}
-
-
-    render() {
-		if (!document.getElementById("screenrecord-controls")){
-			this.app.browser.addElementToDom(ScreenrecordLiteControlsTemplate(this.app, this.mod));
-			this.app.browser.makeDraggable("screenrecord-controls");
-
-		}
-
-		this.showStartedCue();
-        this.startTimer()
-		this.attachEvents();
-
-		
-	}
-
-    attachEvents(){
-        if (document.querySelector(".screenrecord-controls .record-disconnect-control")){
-			document.querySelector(".screenrecord-controls .record-disconnect-control").onclick = async () => {	
-				this.mod.stopRecording()
-			}
-		}
+  render() {
+    if (!document.getElementById('screenrecord-controls')) {
+      this.app.browser.addElementToDom(ScreenrecordLiteControlsTemplate(this.app, this.mod));
+      this.app.browser.makeDraggable('screenrecord-controls');
     }
 
-    startTimer() {
+    this.showStartedCue();
+    this.startTimer();
+    this.attachEvents();
+  }
 
-		if (this.timer_interval) {
-			return;
-		}
-		let seconds = new Date().getTime();
-		seconds -= this.startTime;
-		seconds = seconds / 1000;
+  attachEvents() {
+    if (document.querySelector('.screenrecord-controls .record-disconnect-control')) {
+      document.querySelector('.screenrecord-controls .record-disconnect-control').onclick =
+        async () => {
+          this.mod.stopRecording();
+        };
+    }
+  }
 
-		const timer = () => {
-			let timerElement = document.querySelector('.screenrecord-controls .counter');
-			seconds++;
+  startTimer() {
+    if (this.timer_interval) {
+      return;
+    }
+    let seconds = new Date().getTime();
+    seconds -= this.startTime;
+    seconds = seconds / 1000;
 
-			// Get hours
-			let hours = Math.floor(seconds / 3600);
-			// Get minutes
-			let minutes = Math.floor((seconds - hours * 3600) / 60);
-			// Get seconds
-			let secs = Math.floor(seconds % 60);
+    const timer = () => {
+      let timerElement = document.querySelector('.screenrecord-controls .counter');
+      seconds++;
 
-			if (hours > 0) {
-				hours = `0${hours}:`;
-			} else {
-				hours = '';
-			}
-			if (minutes < 10) {
-				minutes = `0${minutes}`;
-			}
-			if (secs < 10) {
-				secs = `0${secs}`;
-			}
+      // Get hours
+      let hours = Math.floor(seconds / 3600);
+      // Get minutes
+      let minutes = Math.floor((seconds - hours * 3600) / 60);
+      // Get seconds
+      let secs = Math.floor(seconds % 60);
 
-			timerElement.innerHTML = `${hours}${minutes}:${secs}`;
-		};
+      if (hours > 0) {
+        hours = `0${hours}:`;
+      } else {
+        hours = '';
+      }
+      if (minutes < 10) {
+        minutes = `0${minutes}`;
+      }
+      if (secs < 10) {
+        secs = `0${secs}`;
+      }
 
-		this.timer_interval = setInterval(timer, 1000);
-	}
+      timerElement.innerHTML = `${hours}${minutes}:${secs}`;
+    };
 
-    stopTimer() {
-		clearInterval(this.timer_interval);
-		this.timer_interval = null;
-	}
+    this.timer_interval = setInterval(timer, 1000);
+  }
 
-	showStartedCue() {
-		let controls = document.getElementById('screenrecord-controls');
-		if (!controls) {
-			return;
-		}
-		controls.classList.add('recording-started');
-		if (this.started_timeout) {
-			clearTimeout(this.started_timeout);
-		}
-		this.started_timeout = setTimeout(() => {
-			controls.classList.remove('recording-started');
-			this.started_timeout = null;
-		}, 1800);
-	}
+  stopTimer() {
+    clearInterval(this.timer_interval);
+    this.timer_interval = null;
+  }
 
-    remove(){
-		this.stopTimer();
-		if (this.started_timeout) {
-			clearTimeout(this.started_timeout);
-			this.started_timeout = null;
-		}
-		if (document.getElementById("screenrecord-controls")){
-			document.getElementById("screenrecord-controls").remove();
-		}
-	}
+  showStartedCue() {
+    let controls = document.getElementById('screenrecord-controls');
+    if (!controls) {
+      return;
+    }
+    controls.classList.add('recording-started');
+    if (this.started_timeout) {
+      clearTimeout(this.started_timeout);
+    }
+    this.started_timeout = setTimeout(() => {
+      controls.classList.remove('recording-started');
+      this.started_timeout = null;
+    }, 1800);
+  }
+
+  remove() {
+    this.stopTimer();
+    if (this.started_timeout) {
+      clearTimeout(this.started_timeout);
+      this.started_timeout = null;
+    }
+    if (document.getElementById('screenrecord-controls')) {
+      document.getElementById('screenrecord-controls').remove();
+    }
+  }
 }
 
-module.exports = ScreenRecordControls
+module.exports = ScreenRecordControls;

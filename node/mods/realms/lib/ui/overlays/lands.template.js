@@ -1,8 +1,8 @@
 module.exports = () => {
-	let html = `
+  let html = `
   		<div class="lands-overlay hide-scrollbar">
   		</div>
 	`;
 
-	return html;
+  return html;
 };

@@ -1,5 +1,5 @@
-module.exports  = (unit) => {
-	return `
+module.exports = (unit) => {
+  return `
     <div class="unit-element">
       <div class="unit-box-ship unit-box-ship-${unit.type}"></div>
       <div class="unit-box">

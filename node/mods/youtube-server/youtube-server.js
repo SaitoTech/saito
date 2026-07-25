@@ -42,8 +42,8 @@ class YoutubeServer extends ModTemplate {
       console.info('yt - on connection fired');
       let match;
       if (!(match = req.url.match(/^\/rtmp\/(.*)$/))) {
-        console.log("aaa terminating...");
-        ws.terminate(); 
+        console.log('aaa terminating...');
+        ws.terminate();
         return;
       }
 
@@ -51,31 +51,44 @@ class YoutubeServer extends ModTemplate {
       console.log('Target RTMP URL:', rtmpUrl);
 
       const ffmpeg = child_process.spawn('ffmpeg', [
-        '-i', '-',
+        '-i',
+        '-',
 
-        '-vcodec', 'libx264',
+        '-vcodec',
+        'libx264',
 
-        '-b:a', '160k',
+        '-b:a',
+        '160k',
 
-        '-ab', '128k',
+        '-ab',
+        '128k',
 
-        '-ac', '2',
+        '-ac',
+        '2',
 
-        '-af', "adelay=1|1",
+        '-af',
+        'adelay=1|1',
 
-        '-async', '1',
+        '-async',
+        '1',
 
-        '-c:a', 'aac',
+        '-c:a',
+        'aac',
 
-        '-ar', '44100',
+        '-ar',
+        '44100',
 
-        '-r', '25',
+        '-r',
+        '25',
 
-        '-s', '1920x1080',
+        '-s',
+        '1920x1080',
 
-        '-vb', '660k',
+        '-vb',
+        '660k',
 
-        '-f', 'flv',
+        '-f',
+        'flv',
         rtmpUrl
       ]);
 
@@ -121,8 +134,8 @@ class YoutubeServer extends ModTemplate {
       console.log('youtube server got connection');
       let match;
 
-      let rtmp_url = (req.url).split("url=")[1];
-      console.log("wss request url:", rtmp_url);
+      let rtmp_url = req.url.split('url=')[1];
+      console.log('wss request url:', rtmp_url);
 
       if (rtmp_url == null) {
         console.log('terminating youtube connection');
@@ -134,26 +147,41 @@ class YoutubeServer extends ModTemplate {
       console.log('Target RTMP URL:', rtmpUrl);
 
       const ffmpeg = child_process.spawn('ffmpeg', [
-        '-thread_queue_size', '4096',
-        '-i', '-',
+        '-thread_queue_size',
+        '4096',
+        '-i',
+        '-',
 
-        '-vcodec', 'libx264',
-        '-preset', 'veryfast',
-        '-bufsize', '12000k',   
-        '-maxrate', '6000k',     
-        '-b:v', '4500k',         
-        '-g', '60',
-        '-r', '30',
-        '-s', '1920x1080',
+        '-vcodec',
+        'libx264',
+        '-preset',
+        'veryfast',
+        '-bufsize',
+        '12000k',
+        '-maxrate',
+        '6000k',
+        '-b:v',
+        '4500k',
+        '-g',
+        '60',
+        '-r',
+        '30',
+        '-s',
+        '1920x1080',
 
         // Audio settings
-        '-c:a', 'aac',
-        '-b:a', '160k',
-        '-ar', '44100',
-        '-ac', '2',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '160k',
+        '-ar',
+        '44100',
+        '-ac',
+        '2',
 
         // Output format
-        '-f', 'flv',
+        '-f',
+        'flv',
         rtmpUrl
       ]);
 
@@ -162,7 +190,6 @@ class YoutubeServer extends ModTemplate {
         ws.terminate();
       });
 
-  
       ffmpeg.stdin.on('error', (e) => {
         console.log('FFmpeg STDIN Error', e);
       });
@@ -178,7 +205,7 @@ class YoutubeServer extends ModTemplate {
       });
 
       ws.on('close', (e) => {
-        console.log("youtube server socket closed");
+        console.log('youtube server socket closed');
         ffmpeg.kill('SIGINT');
       });
     });
@@ -193,7 +220,7 @@ class YoutubeServer extends ModTemplate {
     });
     wss.on('terminate', (code, signal) => {
       console.log('terminating youtube connection');
-    })
+    });
   }
   // async onWebSocketServer(wss) {
   //   const child_process = require('child_process');

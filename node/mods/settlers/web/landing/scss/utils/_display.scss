@@ -2,54 +2,54 @@
 	# Display
 ========================================================================== */
 .d-none {
-	display: none;
+  display: none;
 }
 
 .d-sm-none {
-	@include breakpoint(small, true) {
-		display: none;
-	}
+  @include breakpoint(small, true) {
+    display: none;
+  }
 }
 
 .d-md-none {
-	@include breakpoint(medium, true) {
-		display: none;
-	}
+  @include breakpoint(medium, true) {
+    display: none;
+  }
 }
 
 .d-lg-none {
-	@include breakpoint(wide, true) {
-		display: none;
-	}
+  @include breakpoint(wide, true) {
+    display: none;
+  }
 }
 
 .d-block {
-	display: block;
+  display: block;
 }
 
 .d-sm-block {
-	@include breakpoint(small, true) {
-		display: block;
-	}
+  @include breakpoint(small, true) {
+    display: block;
+  }
 }
 
 .d-md-block {
-	@include breakpoint(medium, true) {
-		display: block;
-	}
+  @include breakpoint(medium, true) {
+    display: block;
+  }
 }
 
 .d-lg-block {
-	@include breakpoint(wide, true) {
-		display: block;
-	}
+  @include breakpoint(wide, true) {
+    display: block;
+  }
 }
 
 // ------------------------------------- Visibility
 .visible {
-	visibility: visible !important;
+  visibility: visible !important;
 }
 
 .invisible {
-	visibility: hidden !important;
+  visibility: hidden !important;
 }

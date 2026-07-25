@@ -1,80 +1,80 @@
 .game.realms {
-#realms-board {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  height: 100vh;
-  padding: 20px;
-  background: #1b1b1b;
-  margin-top: 4vh;
-  max-height: 95vh;
-}
+  #realms-board {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    height: 100vh;
+    padding: 20px;
+    background: #1b1b1b;
+    margin-top: 4vh;
+    max-height: 95vh;
+  }
 
-.battlefield {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  padding: 10px;
-  border: 2px solid #444;
-  border-radius: 8px;
-  background: #2a2a2a;
-  flex-direction: column;
-}
+  .battlefield {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px;
+    border: 2px solid #444;
+    border-radius: 8px;
+    background: #2a2a2a;
+    flex-direction: column;
+  }
 
-.card-container {
-  width: 100px;
-  height: 140px;
-  border: 2px dashed #777;
-  border-radius: 6px;
-  background: #111;
-  position: relative;
-  transition: transform 0.2s ease;
-  overflow: hidden;
-}
+  .card-container {
+    width: 100px;
+    height: 140px;
+    border: 2px dashed #777;
+    border-radius: 6px;
+    background: #111;
+    position: relative;
+    transition: transform 0.2s ease;
+    overflow: hidden;
+  }
 
-.card-container:hover {
-  transform: scale(1.05);
-  border-color: #fff;
-}
+  .card-container:hover {
+    transform: scale(1.05);
+    border-color: #fff;
+  }
 
-.card-container img {
+  .card-container img {
     width: 100%;
     position: absolute;
     top: +4px;
     left: 0px;
     transform: scale(1.2);
-}
+  }
 
-/* for modifiers / effects attached to cards */
-.card-container .modifier {
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 20px;
-  border-radius: 4px;
-  background: #444;
-  color: #eee;
-  font-size: 12px;
-  text-align: center;
-  line-height: 20px;
-}
+  /* for modifiers / effects attached to cards */
+  .card-container .modifier {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 20px;
+    border-radius: 4px;
+    background: #444;
+    color: #eee;
+    font-size: 12px;
+    text-align: center;
+    line-height: 20px;
+  }
 
-.can_event {
-  outline: 1px solid green;
-  outline-offset: 2px;
-  box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
-  transition: 0.12s ease-in-out;
-  cursor: pointer;
-}
+  .can_event {
+    outline: 1px solid green;
+    outline-offset: 2px;
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+    transition: 0.12s ease-in-out;
+    cursor: pointer;
+  }
 
-.can_attack {
-  outline: 1px dashed red;
-  outline-offset: 2px;
-  box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
-  transition: 0.12s ease-in-out;
-  cursor: pointer;
-  transform: scale(1.03);
-}
+  .can_attack {
+    outline: 1px dashed red;
+    outline-offset: 2px;
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+    transition: 0.12s ease-in-out;
+    cursor: pointer;
+    transform: scale(1.03);
+  }
 }

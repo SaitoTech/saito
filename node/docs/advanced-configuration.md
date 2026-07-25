@@ -2,11 +2,11 @@
 
 ## Table of Contents
 
--   Configuration Files
--   Common Configuration Issues
-    -   Change Server Host/Port/Protocol
-    -   Adding Peers
-    -   Add / Remove Modules
+- Configuration Files
+- Common Configuration Issues
+  - Change Server Host/Port/Protocol
+  - Adding Peers
+  - Add / Remove Modules
 
 ### Configuration Files
 
@@ -20,7 +20,7 @@ This is a javascript file used during the Saito compilation process that specifi
 
 ### Common Configuration Issues
 
--   Change Server Host/Port/Protocol
+- Change Server Host/Port/Protocol
 
 Your Saito server automatically generates a configuration/options file for the lite-clients that connect to it. These lite-clients will need to know the host / port / protocol they should use to connect to your blockchain node. If they cannot connect to the blockchain their applications will (usually) load but be unable to send transactions.
 
@@ -39,7 +39,7 @@ Once you have made changes to your options file, be sure to recompile your javas
 
 If you need to hardcode anything for the lite-clients that connect to your server you can also create the file /web/options.client and manually provide whatever options file you prefer. Only new clients will download this file. Existing clients will continue to use their previous version unless explicitly forced to refresh their wallet.
 
--   Adding Peers
+- Adding Peers
 
 You can manually specify peers for your node to connect to by adding entries to the peers array in your options file. Your options file should have at least one peer defined. If you are servicing lite-clients, Saito will automatically list your server as the first peer when it generates the options file that is fed to its lite-clients.
 
@@ -55,7 +55,7 @@ Once you have made changes to your options file, be sure to recompile your javas
 
 If you need to hardcode anything for the lite-clients that connect to your server you can also create the file /web/options.client and manually provide whatever options file you prefer. Only new clients will download this file. Existing clients will continue to use their previous version unless explicitly forced to refresh their wallet.
 
--   Adding/Removing Modules
+- Adding/Removing Modules
 
 If the file /config/modules.config.js exists, that is the file Saito will use to decide what modules you wish to run on your full-node, as well as which modules should be bundled into the saito.js file that is fed out to lite-clients.
 

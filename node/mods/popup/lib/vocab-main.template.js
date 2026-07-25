@@ -1,3 +1,3 @@
 module.exports = () => {
-	return `<div class="vocabulary"></div>`;
+  return `<div class="vocabulary"></div>`;
 };

@@ -1,6 +1,6 @@
 module.exports = (app, row) => {
-	if (row) {
-		return `<div class="archive-row">
+  if (row) {
+    return `<div class="archive-row">
 					<div>${row.id}</div>
 					<div>${row.publicKey}</div>
 					<div id="${row.sig}">${row.sig}</div>
@@ -16,8 +16,8 @@ module.exports = (app, row) => {
 					<div>${row.preserve}</div>
 					<div class="saito-button-secondary delete-me" data-id="${row.sig}">delete</div>
 				</div>`;
-	} else {
-		return `<div class="archive-header archive-row">
+  } else {
+    return `<div class="archive-header archive-row">
 					<div>ID</div>
 					<div>From</div>
 					<div>sig</div>
@@ -32,5 +32,5 @@ module.exports = (app, row) => {
 					<div>TX</div>
 					<div>SAVE</div>
 				</div>`;
-	}
+  }
 };

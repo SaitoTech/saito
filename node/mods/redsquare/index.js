@@ -1,6 +1,5 @@
 const CtaLoader = require('../../lib/templates/saito-cta-loader.template');
 module.exports = (app, mod, build_number, og_card = mod.social) => {
-
   return `
     <!DOCTYPE html>
     <html lang="en" data-theme="dark">

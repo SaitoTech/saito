@@ -17,38 +17,35 @@ class NodeCard {
   }
 
   async render() {
+    try {
+      // Insert template and capture our root element
+      const html = NodeCardTemplate(this.app, this.mod, {
+        title: this.props.title
+      });
+      this.app.browser.addElementToSelector(html, this.container);
 
-try {
-    // Insert template and capture our root element
-    const html = NodeCardTemplate(this.app, this.mod, {
-      title: this.props.title
-    });
-    this.app.browser.addElementToSelector(html, this.container);
+      // Our root is the last appended node-card
+      const containerEl = document.querySelector(this.container);
+      this.root = containerEl.lastElementChild;
+      this.contentEl = this.root.querySelector('.node-card-content');
 
-    // Our root is the last appended node-card
-    const containerEl = document.querySelector(this.container);
-    this.root = containerEl.lastElementChild;
-    this.contentEl = this.root.querySelector('.node-card-content');
+      this.hookTabButtons();
+      this.hookCloseButton();
 
-    this.hookTabButtons();
-    this.hookCloseButton();
-
-    // Initial load and render content
-    await this.loadData();
-} catch (err) {
-    console.log("Status Mod: " + err);
-}
-
+      // Initial load and render content
+      await this.loadData();
+    } catch (err) {
+      console.log('Status Mod: ' + err);
+    }
   }
 
   async loadData() {
     if (!this.contentEl) return;
     try {
-        const data = await this.fetchData('json/peers');
+      const data = await this.fetchData('json/peers');
 
-        this.stats = {};
-        this.peers = Array.isArray(data?.peers) ? data.peers : [];
-
+      this.stats = {};
+      this.peers = Array.isArray(data?.peers) ? data.peers : [];
     } catch (e) {
       console.error('Error loading data:', e);
       this.contentEl.textContent = 'Error loading data';
@@ -73,8 +70,8 @@ try {
         keyList: peer.keyList,
         synctype: peer.synctype,
         services: peer.services,
-        status: peer.status,
-      })),
+        status: peer.status
+      }))
     };
   }
 
@@ -86,32 +83,28 @@ try {
     }
   }
 
-
   buildSummary() {
     const peers = this.peers;
 
-    const fmtVersion = v => (
-      typeof v.major === 'number' &&
-      typeof v.minor === 'number' &&
-      typeof v.patch === 'number'
+    const fmtVersion = (v) =>
+      typeof v.major === 'number' && typeof v.minor === 'number' && typeof v.patch === 'number'
         ? `${v.major}.${v.minor}.${v.patch}`
-        : '—'
-    );
+        : '—';
 
     let nodeType = 'lite';
 
     const summary = {
       nodeType,
-      blockHeight   : '—',
-      walletVersion : '—',
-      coreVersion   : '—',
+      blockHeight: '—',
+      walletVersion: '—',
+      coreVersion: '—'
     };
 
     if (Object.keys(this.props.options).length > 0) {
-      summary.nodeType      = nodeType;
-      summary.blockHeight   = this.props.options.blockchain.last_block_id;
+      summary.nodeType = nodeType;
+      summary.blockHeight = this.props.options.blockchain.last_block_id;
       summary.walletVersion = this.props.options.wallet.version;
-      summary.coreVersion =  '—';
+      summary.coreVersion = '—';
     }
 
     if (Object.keys(this.props.config).length > 0) {
@@ -136,15 +129,13 @@ try {
     `;
   }
 
-
   renderContent() {
     if (!this.contentEl || !this.root) return;
     this.contentEl.innerHTML = '';
-    const activeTab = this.root.querySelector('.node-card-tab-btn.active')
-      .dataset.tab;
+    const activeTab = this.root.querySelector('.node-card-tab-btn.active').dataset.tab;
 
-    console.log("node-card options: ", this.props.options);
-    console.log("node-card configs: ", this.props.config);
+    console.log('node-card options: ', this.props.options);
+    console.log('node-card configs: ', this.props.config);
 
     let ip = '';
     let pubkey = '';
@@ -166,17 +157,13 @@ try {
     this.contentEl.setAttribute('data-key', pubkey);
 
     if (activeTab === 'summary') {
-
       let summaryHtml = this.buildSummary();
       this.contentEl.innerHTML = summaryHtml;
-    
     } else if (activeTab === 'peerStats') {
-    
       jsonTree.create(this.peers, this.contentEl);
-    
     } else if (activeTab === 'peers') {
-      console.log("this.peers:", this.peers);
-      this.peers.forEach(p => {
+      console.log('this.peers:', this.peers);
+      this.peers.forEach((p) => {
         this.contentEl.appendChild(this.makePeerLink(p));
       });
     }
@@ -184,16 +171,14 @@ try {
 
   makePeerLink(peer) {
     let this_self = this;
-    console.log("make peer link");
-    console.log("peer: ", peer);
+    console.log('make peer link');
+    console.log('peer: ', peer);
     let url = '';
-   const el = document.createElement('div');
+    const el = document.createElement('div');
 
-    let block_fetch_url = "";
+    let block_fetch_url = '';
 
-    if (
-      block_fetch_url == ""
-    ) {
+    if (block_fetch_url == '') {
       url = `
         <div class="peer-link-info">
           <div class="peer-title-container">
@@ -201,7 +186,7 @@ try {
           </div>
           <div class="perr-pubkey">${peer.publicKey}</div>
         </div>
-      `
+      `;
 
       el.className = 'peer-item browser';
       el.innerHTML = `<span>${url}</span>`;
@@ -209,35 +194,36 @@ try {
       url = `${peer.static_peer_config.protocol}://${peer.static_peer_config.host}`;
       if (
         (peer.static_peer_config.protocol === 'https' && peer.static_peer_config.port !== 443) ||
-        (peer.static_peer_config.protocol === 'http'  && peer.static_peer_config.port !== 80)
+        (peer.static_peer_config.protocol === 'http' && peer.static_peer_config.port !== 80)
       ) {
         url += `:${peer.static_peer_config.port}`;
       }
 
       el.className = 'peer-item';
       el.innerHTML = `<span>${url}</span><i>↗</i>`;
-    } 
+    }
 
     el.onclick = () => {
       if (!el.classList.contains('browser')) {
-
-        document.querySelectorAll(`.node-card-content[data-key="${peer.public_key}"]`).forEach(match => {
-          const parent = match.parentElement;
-          if (parent) parent.remove();
-        });
+        document
+          .querySelectorAll(`.node-card-content[data-key="${peer.public_key}"]`)
+          .forEach((match) => {
+            const parent = match.parentElement;
+            if (parent) parent.remove();
+          });
 
         this_self.props.onExplore(url, peer);
       }
-    }
+    };
     return el;
   }
 
   hookTabButtons() {
-    this.root.querySelectorAll('.node-card-tab-btn').forEach(btn => {
+    this.root.querySelectorAll('.node-card-tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         this.root
           .querySelectorAll('.node-card-tab-btn')
-          .forEach(b => b.classList.toggle('active', b === btn));
+          .forEach((b) => b.classList.toggle('active', b === btn));
         this.renderContent();
       });
     });

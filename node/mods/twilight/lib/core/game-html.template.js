@@ -1,5 +1,5 @@
 export default (app, mod) => {
-	return `<div id="main" class="main" style="display: all">
+  return `<div id="main" class="main" style="display: all">
 			<div class="gameboard" id="gameboard">
 				<div class="china_card_status" id="china_card_status"></div>
 

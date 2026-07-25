@@ -106,8 +106,8 @@
   }
 
   .vault-nfts .vault-nft-item {
-      flex-basis: auto;
-      width: min(20rem, 46%);
-      min-width: 12rem;
+    flex-basis: auto;
+    width: min(20rem, 46%);
+    min-width: 12rem;
   }
 }

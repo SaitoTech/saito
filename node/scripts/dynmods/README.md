@@ -1,6 +1,4 @@
-
 DYNAMIC MODULE COMPILATION:
-
 
 1.
 
@@ -10,13 +8,11 @@ This generates .zip files for each module and places them in /dist/mods/zip
 
 It then compiles the modules into /dist/mods/saito/*.saito dynamic mods
 
-- - - - - - - 
-
+---
 
 ## zipmods.sh
 
 This zips the modules and copies them into /dist/mods/zip. It is run by compile.js
-
 
 ## dyn-mod-compile.sh
 

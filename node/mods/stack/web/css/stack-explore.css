@@ -439,11 +439,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    var(--saito-primary) 0%,
-    var(--saito-chart-4, #4a90e2) 100%
-  );
+  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-chart-4, #4a90e2) 100%);
   color: white;
   font-size: 3rem;
   opacity: 0.3;

@@ -1,19 +1,26 @@
 module.exports = (lesson, popup_self) => {
+  let intro = lesson.content.replaceAll('\\', '');
+  intro = intro.replaceAll('\n\n', '<p></p>');
 
-	let intro = lesson.content.replaceAll('\\', '');
-	intro = intro.replaceAll('\n\n', '<p></p>');
+  let simplified_checked = '';
+  let traditional_checked = '';
+  let display_english_checked = '';
+  let display_pinyin_checked = '';
 
-	let simplified_checked = "";
-	let traditional_checked = "";
-	let display_english_checked = "";
-	let display_pinyin_checked = "";
+  if (popup_self.app.options.popup.display.simplified) {
+    simplified_checked = ' checked';
+  }
+  if (popup_self.app.options.popup.display.traditional) {
+    traditional_checked = ' checked';
+  }
+  if (popup_self.app.options.popup.display.pinyin) {
+    display_pinyin_checked = ' checked';
+  }
+  if (popup_self.app.options.popup.display.english) {
+    display_english_checked = ' checked';
+  }
 
-	if (popup_self.app.options.popup.display.simplified) { simplified_checked = " checked"; }
-	if (popup_self.app.options.popup.display.traditional) { traditional_checked = " checked"; }
-	if (popup_self.app.options.popup.display.pinyin) { display_pinyin_checked = " checked"; }
-	if (popup_self.app.options.popup.display.english) { display_english_checked = " checked"; }
-
-	let html = `
+  let html = `
      <div class="lesson-sidebar">
        <img id="podcast_photo" src="https://popupchinese.com/data/${lesson.id}/image.jpg" class="podcast_photo">
        <audio controls="" style="margin-top:5px">
@@ -46,7 +53,5 @@ module.exports = (lesson, popup_self) => {
 
    `;
 
-
-   return html;
-
+  return html;
 };

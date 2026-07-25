@@ -1,5 +1,5 @@
-module.exports  = () => {
-	return `
+module.exports = () => {
+  return `
     <div class="how_to_play_overlay" id="how_to_play_overlay">
 <h2 style="clear:both;margin-top:35px;">Faction Abilities:</h2>
 <div style="padding-left: 30px">

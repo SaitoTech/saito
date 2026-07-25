@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	return `
+  return `
 			<div id="main" class="main" style="display: all">
 			<div class="gameboard" id="gameboard">
 				<div class="player_field" id="opponent">
@@ -27,4 +27,4 @@ module.exports = (app, mod) => {
 			</div>
 		</div>
 `;
-}
+};

@@ -1,8 +1,7 @@
 module.exports = () => {
+  let help = 'Pirate Attacks';
 
-	let help = 'Pirate Attacks';
-
-	let html = `
+  let html = `
       <div class="piracy-overlay" id="piracy-overlay">
 	<div class="help">${help}</div>
 	<div class="piracy-grid">
@@ -16,5 +15,5 @@ module.exports = () => {
 	</div>
       </div>
   `;
-	return html;
+  return html;
 };

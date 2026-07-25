@@ -1,5 +1,5 @@
-module.exports  = (app, mod) => {
-	return `
+module.exports = (app, mod) => {
+  return `
 
     <div  style="" class="modal fade" id="buttonsModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog" role="document">

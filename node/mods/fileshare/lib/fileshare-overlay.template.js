@@ -1,5 +1,5 @@
 module.exports = (fso) => {
-	let html = `
+  let html = `
 	<div id='file-transfer-${fso.fileId}-${fso.recipient}' class='saito-file-transfer-overlay'>
 		<div class="pseudo-overlay-controls">
             <div class="saito-icon-button" id="resize"><i class="fa-solid fa-window-minimize"></i></div>
@@ -35,7 +35,7 @@ module.exports = (fso) => {
 
 	</div>`;
 
-	return html;
+  return html;
 };
 
 /*

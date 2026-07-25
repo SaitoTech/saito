@@ -7,48 +7,48 @@ const { logManualProduction, logManualProductionError } = require('./manual-prod
  * new block has been added or the deadline passes.
  */
 async function produceExplorerBlockWithoutGt(app, mod, startBlockId) {
-	logManualProduction(`produceExplorerBlockWithoutGt() entered (startBlockId=${startBlockId})`);
+  logManualProduction(`produceExplorerBlockWithoutGt() entered (startBlockId=${startBlockId})`);
 
-	const feeTransactions = Array.isArray(mod?.pendingManualProduceTransactions)
-		? [...mod.pendingManualProduceTransactions]
-		: [];
+  const feeTransactions = Array.isArray(mod?.pendingManualProduceTransactions)
+    ? [...mod.pendingManualProduceTransactions]
+    : [];
 
-	try {
-		const heartbeatMs = getHeartbeatMs(app);
+  try {
+    const heartbeatMs = getHeartbeatMs(app);
 
-		const produced = await waitForManualBlockProduction(
-			app,
-			startBlockId,
-			async () => {
-				logManualProduction('Calling wallet.produceBlockWithoutGt()');
-				let result = false;
-				try {
-					result = await app.wallet.produceBlockWithoutGt(
-						feeTransactions.length ? feeTransactions : undefined
-					);
-				} catch (err) {
-					logManualProductionError('wallet.produceBlockWithoutGt', err);
-					throw err;
-				}
-				logManualProduction(`wallet.produceBlockWithoutGt() returned: ${result}`);
-				return result;
-			},
-			{
-				heartbeatMs,
-			}
-		);
+    const produced = await waitForManualBlockProduction(
+      app,
+      startBlockId,
+      async () => {
+        logManualProduction('Calling wallet.produceBlockWithoutGt()');
+        let result = false;
+        try {
+          result = await app.wallet.produceBlockWithoutGt(
+            feeTransactions.length ? feeTransactions : undefined
+          );
+        } catch (err) {
+          logManualProductionError('wallet.produceBlockWithoutGt', err);
+          throw err;
+        }
+        logManualProduction(`wallet.produceBlockWithoutGt() returned: ${result}`);
+        return result;
+      },
+      {
+        heartbeatMs
+      }
+    );
 
-		if (produced && feeTransactions.length) {
-			mod.pendingManualProduceTransactions = [];
-		}
+    if (produced && feeTransactions.length) {
+      mod.pendingManualProduceTransactions = [];
+    }
 
-		return produced;
-	} catch (err) {
-		logManualProductionError('produceExplorerBlockWithoutGt', err);
-		throw err;
-	}
+    return produced;
+  } catch (err) {
+    logManualProductionError('produceExplorerBlockWithoutGt', err);
+    throw err;
+  }
 }
 
 module.exports = {
-	produceExplorerBlockWithoutGt,
+  produceExplorerBlockWithoutGt
 };

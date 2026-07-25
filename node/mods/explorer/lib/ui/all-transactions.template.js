@@ -1,29 +1,35 @@
-module.exports = ({ transactions = [], loading = false, loadingMore = false, hasMore = true, error = null } = {}) => {
-	let rows = '';
+module.exports = ({
+  transactions = [],
+  loading = false,
+  loadingMore = false,
+  hasMore = true,
+  error = null
+} = {}) => {
+  let rows = '';
 
-	if (error) {
-		rows = `
+  if (error) {
+    rows = `
       <div class="explorer-teaser-loading explorer-teaser-error">
         <p class="explorer-teaser-loading-title">Unable to load transactions</p>
         <p class="explorer-teaser-loading-message">${error}</p>
       </div>
     `;
-	} else if (loading && !transactions.length) {
-		rows = `
+  } else if (loading && !transactions.length) {
+    rows = `
       <div class="explorer-teaser-loading">
         <p class="explorer-teaser-loading-message">Loading transactions from the network…</p>
       </div>
     `;
-	} else if (!transactions.length) {
-		rows = `
+  } else if (!transactions.length) {
+    rows = `
       <div class="explorer-teaser-loading">
         <p class="explorer-teaser-loading-message">No transactions available yet.</p>
       </div>
     `;
-	} else {
-		rows = transactions
-			.map(
-				(tx) => `
+  } else {
+    rows = transactions
+      .map(
+        (tx) => `
       <div class="explorer-feed-item explorer-all-tx-row" role="button" tabindex="0" data-tx-signature="${tx.signature}" data-block-hash="${tx.blockHash}" data-block-id="${tx.blockId}">
         <span class="explorer-feed-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
         <div class="explorer-feed-main">
@@ -42,17 +48,17 @@ module.exports = ({ transactions = [], loading = false, loadingMore = false, has
         <span class="explorer-feed-badge">${tx.amount}</span>
       </div>
     `
-			)
-			.join('');
-	}
+      )
+      .join('');
+  }
 
-	const loadMoreHtml = loadingMore
-		? '<div class="explorer-load-more"><span class="explorer-load-more-text">Loading more transactions…</span></div>'
-		: hasMore && transactions.length
-			? '<div class="explorer-load-more"><button type="button" class="explorer-load-more-btn">Load more transactions</button></div>'
-			: '';
+  const loadMoreHtml = loadingMore
+    ? '<div class="explorer-load-more"><span class="explorer-load-more-text">Loading more transactions…</span></div>'
+    : hasMore && transactions.length
+      ? '<div class="explorer-load-more"><button type="button" class="explorer-load-more-btn">Load more transactions</button></div>'
+      : '';
 
-	return `
+  return `
     <main class="explorer-content explorer-view-panel">
       <div class="explorer-container explorer-stack">
         <div class="explorer-block-header">

@@ -1,5 +1,4 @@
 module.exports = DreamControlsTemplate = (mod) => {
-
   let html = `
     <div class="dream-controls" id="dream-controls">
       <div class="video-preview"></div>
@@ -13,14 +12,13 @@ module.exports = DreamControlsTemplate = (mod) => {
             <i class="fa fa-microphone"> </i>
           </div>`;
 
-
-  if (mod?.localStream?.getVideoTracks().length > 0){
+  if (mod?.localStream?.getVideoTracks().length > 0) {
     html += `<div class="video-control icon_click_area">
             <i class="fas fa-video"></i>
           </div>`;
   }
 
-  if (mod?.screenStream){
+  if (mod?.screenStream) {
     html += `<div class="screen-control icon_click_area">
             <i class="fa-solid fa-display"></i>
           </div>`;
@@ -33,6 +31,5 @@ module.exports = DreamControlsTemplate = (mod) => {
       </div>
     </div>`;
 
-
-    return html;
+  return html;
 };

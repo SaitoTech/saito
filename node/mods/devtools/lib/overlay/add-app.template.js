@@ -1,6 +1,5 @@
 module.exports = AddAppOverlayTemplate = (app, mod) => {
-
-	return `
+  return `
     <div class="saito-overlay-form saito-app-overlay" id="saito-app-overlay">
 
         <div class="saito-app-body">

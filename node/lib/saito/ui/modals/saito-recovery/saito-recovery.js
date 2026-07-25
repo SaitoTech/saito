@@ -24,8 +24,7 @@ class SaitoRecover {
 
   focusPrimaryInput() {
     let input =
-      document.getElementById('private-key-input') ||
-      document.getElementById('seed-phrase-input');
+      document.getElementById('private-key-input') || document.getElementById('seed-phrase-input');
     if (!input) {
       return;
     }

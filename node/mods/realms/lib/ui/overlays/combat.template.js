@@ -17,5 +17,3 @@ module.exports = () => {
     </div>
   `;
 };
-
-

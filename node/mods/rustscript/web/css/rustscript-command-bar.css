@@ -59,7 +59,10 @@
   min-width: 124px;
   opacity: 0;
   transform: translateX(12px);
-  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s linear 0.22s;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    visibility 0s linear 0.22s;
   pointer-events: none;
   visibility: hidden;
 }
@@ -69,18 +72,21 @@
   transform: translateX(0);
   pointer-events: auto;
   visibility: visible;
-  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    visibility 0s;
 }
 
 /* ── Actions ── */
 
 .saito-container.rustscript .rs-cmd-btn {
-  height: 40px;
-  min-width: 124px;
-  padding: 0 20px;
+  height: 4rem;
+  min-width: 12.4rem;
+  padding: 0 var(--saito-space-xl);
   border-radius: 4px;
   font-family: var(--rustscript-font-mono);
-  font-size: 14px;
+  font-size: 1.6rem;
   font-weight: 600;
   line-height: 1;
   letter-spacing: 0.03em;
@@ -90,7 +96,11 @@
   -webkit-appearance: none;
   margin: 0;
   text-transform: none;
-  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
 }
 
 .saito-container.rustscript .rs-cmd-secondary {
@@ -161,12 +171,15 @@
   background: #555;
   border: 2px solid #777;
   box-sizing: border-box;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .saito-container.rustscript .rs-progress-label {
   font-family: var(--rustscript-font-sans);
-  font-size: 14px;
+  font-size: var(--font-size-medium);
   font-weight: 500;
   letter-spacing: 0.01em;
   line-height: 1.2;
@@ -277,7 +290,7 @@
   background: transparent;
   color: #888;
   font-family: var(--rustscript-font-mono);
-  font-size: 13px;
+  font-size: var(--font-size-tiny);
   font-weight: 500;
   letter-spacing: 0.04em;
   line-height: 1.2;
@@ -287,7 +300,10 @@
   margin: 0;
   text-transform: none;
   box-shadow: none;
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
+  transition:
+    color 0.12s,
+    background 0.12s,
+    border-color 0.12s;
 }
 
 .saito-container.rustscript .rs-mode-btn:hover:not(.is-active) {

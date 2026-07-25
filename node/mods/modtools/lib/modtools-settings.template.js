@@ -1,21 +1,27 @@
 module.exports = (app, mod) => {
-
-	let html = `
+  let html = `
 			<div id="modtools-settings" class="saito-module-settings">
 	`;
 
+  let public_c = '';
+  let friends_c = '';
+  let custom_c = '';
+  let none_c = '';
 
-	let public_c = "";
-	let friends_c = "";
-	let custom_c = "";
-	let none_c = "";
+  if (mod.permissions.mode == 'none') {
+    none_c = 'checked';
+  }
+  if (mod.permissions.mode == 'public') {
+    public_c = 'checked';
+  }
+  if (mod.permissions.mode == 'friends') {
+    friends_c = 'checked';
+  }
+  if (mod.permissions.mode == 'custom') {
+    custom_c = 'checked';
+  }
 
-	if (mod.permissions.mode == "none") { none_c = "checked"; }
-	if (mod.permissions.mode == "public") { public_c = "checked"; }
-	if (mod.permissions.mode == "friends") { friends_c = "checked"; }
-	if (mod.permissions.mode == "custom") { custom_c = "checked"; }
-
-	html += `
+  html += `
 
             <fieldset class="saito-grid">
             	<legend class="settings-label">Who Moderates:</legend>
@@ -36,22 +42,21 @@ module.exports = (app, mod) => {
 
 	`;
 
-//        if (app.options.modtools.whitelist.length > 0){
-                html += `<fieldset id="whitelisted-accounts" class="saito-grid settings-link">
+  //        if (app.options.modtools.whitelist.length > 0){
+  html += `<fieldset id="whitelisted-accounts" class="saito-grid settings-link">
                 <i class="fa-regular fa-face-smile-beam"></i>
                 <label>Manage Whitelisted Accounts (${app.options.modtools.whitelist.length})</label>
                 <div id="add-whitelist" class="saito-grid-extra-button saito-button-secondary">Add</div>
                 </fieldset>`;
-//        }
+  //        }
 
-//        if (app.options.modtools.blacklist.length > 0){
-                html += `<fieldset id="blacklisted-accounts" class="saito-grid settings-link">
+  //        if (app.options.modtools.blacklist.length > 0){
+  html += `<fieldset id="blacklisted-accounts" class="saito-grid settings-link">
                 <i class="fa-solid fa-ban"></i>
                 <label>Manage Blocked Accounts (${app.options.modtools.blacklist.length})</label>
                 </fieldset>`;
 
-
-                /*html += `
+  /*html += `
                 <fieldset id="modtools-apps" class="saito-grid">
 	            	<legend class="settings-label">App Permissions:</legend>
 	            	<div class="modtools-app-permissions" id="modtools-app-permissions">
@@ -61,11 +66,11 @@ module.exports = (app, mod) => {
 					<div class="saito-button-primary small" id="modtools-apps-add-new">+</div>
                 </fieldset>`;
                 */
-//        }
+  //        }
 
-	html += `
+  html += `
 			</div>
 	`;
 
-	return html;
-}
+  return html;
+};

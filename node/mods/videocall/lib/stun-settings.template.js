@@ -1,30 +1,30 @@
 module.exports = (app, mod) => {
-	let privacy = app.options.stun?.settings?.privacy || 'all';
-	let html = `
+  let privacy = app.options.stun?.settings?.privacy || 'all';
+  let html = `
 			<div class="stun-settings-shell">
 			<fieldset class="saito-grid stun-settings-privacy">
 			<legend class="settings-label videocall-settings-heading">Enable Direct Calls on Saito Talk From:</legend>
 			<input class="saito-radio" type="radio" id="all" name="stun-privacy" value="all" ${
-	privacy == 'all' ? 'checked' : ''
-}/>
+        privacy == 'all' ? 'checked' : ''
+      }/>
 			<label for="all">Anyone</label>
 			<input class="saito-radio" type="radio" id="key" name="stun-privacy" value="key" ${
-	privacy == 'key' ? 'checked' : ''
-}/>
+        privacy == 'key' ? 'checked' : ''
+      }/>
 			<label for="key">Acquaintances</label>
 			<input class="saito-radio" type="radio" id="dh" name="stun-privacy" value="dh" ${
-	privacy == 'dh' ? 'checked' : ''
-}/>
+        privacy == 'dh' ? 'checked' : ''
+      }/>
 			<label for="dh">Friends</label>
 			<input class="saito-radio" type="radio" id="none" name="stun-privacy" value="none" ${
-	privacy == 'none' ? 'checked' : ''
-}/>
+        privacy == 'none' ? 'checked' : ''
+      }/>
 			<label for="none">No one</label>
 			</fieldset>
 			`;
 
-	if (mod?.streams?.active){
-		html += `<fieldset class="stun-input-settings cinematic-inputs">
+  if (mod?.streams?.active) {
+    html += `<fieldset class="stun-input-settings cinematic-inputs">
 			<legend class="stun-input-settings-label videocall-settings-heading">Adjust Inputs</legend>
             <select style="display:none" class="saito-form-select" id="video-input"></select>
             <select style="display:none" class="saito-form-select" id="audio-input"></select>
@@ -37,9 +37,9 @@ module.exports = (app, mod) => {
               <div id="progress" class="chat-settings-progress"></div>
             </div>
         </fieldset>`;
-	}
+  }
 
-	html += `</div>`;
+  html += `</div>`;
 
-	return html;
+  return html;
 };

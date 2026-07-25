@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
     <div class="store">
       <nav class="menu marketplace" aria-label="Store"></nav>
       <div class="main-column">

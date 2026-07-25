@@ -1,32 +1,32 @@
 .record-container.recording {
-	background-color: #ff3434;
-	color: var(--saito-white);
+  background-color: #ff3434;
+  color: var(--saito-white);
 }
 
 .record-container.recording label,
 .record-container.recording .record-icon,
 .record-icon.recording {
-	color: var(--saito-white);
+  color: var(--saito-white);
 }
 
 .record-icon.recording {
-	animation: pulsate 1s ease-in-out infinite;
+  animation: pulsate 1s ease-in-out infinite;
 }
 
 .screenrecord-recording-border {
-	border-radius: var(--saito-radius);
-	outline: 3px solid #ff3434;
-	outline-offset: -3px;
+  border-radius: var(--saito-radius);
+  outline: 3px solid #ff3434;
+  outline-offset: -3px;
 }
 
 .screenrecord-wizard {
-	position: relative;
-	width: min(550px, 98vw);
-	padding: 2rem 3rem;
-	border-radius: 0.5rem;
-	border: 1px solid var(--saito-border);
-	background-color: var(--saito-background);
-	color: var(--saito-gray-200);
+  position: relative;
+  width: min(550px, 98vw);
+  padding: 2rem 3rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--saito-border);
+  background-color: var(--saito-background);
+  color: var(--saito-gray-200);
 }
 
 /* .screenrecord-wizard h1{
@@ -34,200 +34,200 @@
 } */
 
 .screenrecord-wizard-title {
-	text-align: center;
-	margin-bottom: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
 }
 .screenrecord-wizard .record-mode {
-	display: flex;
-	justify-content: space-evenly;
-	align-items: center;
-	font-size: 6rem;
-	margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  font-size: 6rem;
+  margin-bottom: 2rem;
 }
 
 .screenrecord-wizard .record-mode i {
-	padding: 2rem;
-	border-radius: 2rem;
-	/* border: 1px solid var(--saito-border); */
-	text-align: center;
-	min-width: 12rem;
+  padding: 2rem;
+  border-radius: 2rem;
+  /* border: 1px solid var(--saito-border); */
+  text-align: center;
+  min-width: 12rem;
 }
 
 .record-mode-option {
-	cursor: pointer;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 1rem;
-	padding: 1rem;
-	border-radius: 2rem;
-	border: 1px solid var(--saito-border);
-	margin: 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 2rem;
+  border: 1px solid var(--saito-border);
+  margin: 1rem;
 }
 
 .screenrecord-countdown-overlay {
-	position: fixed;
-	inset: 0;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	gap: 1rem;
-	background: rgba(0, 0, 0, 0.46);
-	color: var(--saito-white);
-	pointer-events: none;
-	text-align: center;
-	z-index: 10000;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.46);
+  color: var(--saito-white);
+  pointer-events: none;
+  text-align: center;
+  z-index: 10000;
 }
 
 .screenrecord-countdown-label {
-	font-size: 1.8rem;
-	letter-spacing: 0;
-	text-transform: uppercase;
+  font-size: 1.8rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .screenrecord-countdown-number {
-	display: grid;
-	place-items: center;
-	width: 12rem;
-	height: 12rem;
-	border: 4px solid var(--saito-primary, #ff3434);
-	border-radius: 50%;
-	font-size: 7rem;
-	font-weight: 700;
-	line-height: 1;
-	animation: screenrecord-countdown-pop 1s ease-in-out infinite;
+  display: grid;
+  place-items: center;
+  width: 12rem;
+  height: 12rem;
+  border: 4px solid var(--saito-primary, #ff3434);
+  border-radius: 50%;
+  font-size: 7rem;
+  font-weight: 700;
+  line-height: 1;
+  animation: screenrecord-countdown-pop 1s ease-in-out infinite;
 }
 
 .screenrecord-countdown-overlay.screenrecord-countdown-started .screenrecord-countdown-number {
-	border-color: #ff3434;
-	background: #ff3434;
-	color: var(--saito-white);
-	box-shadow: 0 0 0 1rem rgba(255, 52, 52, 0.18);
-	animation: screenrecord-started-flash 0.5s ease-out;
+  border-color: #ff3434;
+  background: #ff3434;
+  color: var(--saito-white);
+  box-shadow: 0 0 0 1rem rgba(255, 52, 52, 0.18);
+  animation: screenrecord-started-flash 0.5s ease-out;
 }
 
 @keyframes screenrecord-countdown-pop {
-	0% {
-		transform: scale(0.92);
-	}
-	35% {
-		transform: scale(1);
-	}
-	100% {
-		transform: scale(0.92);
-	}
+  0% {
+    transform: scale(0.92);
+  }
+  35% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.92);
+  }
 }
 
 @keyframes screenrecord-started-flash {
-	0% {
-		transform: scale(0.85);
-	}
-	100% {
-		transform: scale(1.08);
-	}
+  0% {
+    transform: scale(0.85);
+  }
+  100% {
+    transform: scale(1.08);
+  }
 }
 
 .screenrecord-wizard .record-mode .selected {
-	color: var(--saito-foreground);
-	border-width: 3px;
-	text-shadow: 1px 1px 5px var(--saito-black);
-	box-shadow: 1px 1px 5px 1px var(--saito-black);
+  color: var(--saito-foreground);
+  border-width: 3px;
+  text-shadow: 1px 1px 5px var(--saito-black);
+  box-shadow: 1px 1px 5px 1px var(--saito-black);
 }
 
 .record-mode label {
-	font-size: 3rem;
+  font-size: 3rem;
 }
 
 .pulsate {
-	animation: pulsate 1s infinite;
-	/* color: red !important; */
+  animation: pulsate 1s infinite;
+  /* color: red !important; */
 }
 
 @keyframes pulsate {
-	0% {
-		transform: scale(1);
-	}
-	50% {
-		transform: scale(1.2);
-	}
-	100% {
-		transform: scale(1);
-	}
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* floating Control panel  */
 
 .screenrecord-controls {
-	position: absolute;
-	top: 2rem;
-	left: 2rem;
-	width: 100%;
-	height: 100%;
-	border-radius: var(--saito-radius);
-	background-color: #000D;
-	width: unset;
-	height: unset;
-	display: flex;
-	z-index: 1000;
-	cursor: grab;
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--saito-radius);
+  background-color: #000d;
+  width: unset;
+  height: unset;
+  display: flex;
+  z-index: 1000;
+  cursor: grab;
 }
 
 .screenrecord-controls .control-panel {
-	padding: 2px;
-	gap: 2rem;
-	align-items: center;
-	display: flex;
+  padding: 2px;
+  gap: 2rem;
+  align-items: center;
+  display: flex;
 }
 
 .screenrecord-controls .timer {
-	text-align: right;
+  text-align: right;
 }
 
 .screenrecord-controls .recording-status {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	padding: 0 0.8rem;
-	font-size: 1.3rem;
-	font-weight: 700;
-	color: var(--saito-white);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.8rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--saito-white);
 }
 
 .screenrecord-controls .recording-dot {
-	width: 0.9rem;
-	height: 0.9rem;
-	border-radius: 50%;
-	background: #ff3434;
-	box-shadow: 0 0 0 0 rgba(255, 52, 52, 0.55);
-	animation: recording-dot-pulse 1.4s infinite;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: #ff3434;
+  box-shadow: 0 0 0 0 rgba(255, 52, 52, 0.55);
+  animation: recording-dot-pulse 1.4s infinite;
 }
 
 .screenrecord-controls.recording-started {
-	animation: recording-controls-started 1.8s ease-out;
+  animation: recording-controls-started 1.8s ease-out;
 }
 
 @keyframes recording-dot-pulse {
-	70% {
-		box-shadow: 0 0 0 0.8rem rgba(255, 52, 52, 0);
-	}
-	100% {
-		box-shadow: 0 0 0 0 rgba(255, 52, 52, 0);
-	}
+  70% {
+    box-shadow: 0 0 0 0.8rem rgba(255, 52, 52, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 52, 52, 0);
+  }
 }
 
 @keyframes recording-controls-started {
-	0% {
-		box-shadow: 0 0 0 0 rgba(255, 52, 52, 0.65);
-	}
-	35% {
-		box-shadow: 0 0 0 1rem rgba(255, 52, 52, 0);
-	}
-	100% {
-		box-shadow: none;
-	}
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 52, 52, 0.65);
+  }
+  35% {
+    box-shadow: 0 0 0 1rem rgba(255, 52, 52, 0);
+  }
+  100% {
+    box-shadow: none;
+  }
 }
 
 .hidden-control {
-	display: none !important;
+  display: none !important;
 }

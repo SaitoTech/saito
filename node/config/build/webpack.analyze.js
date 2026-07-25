@@ -4,8 +4,6 @@ const merge = require('webpack-merge');
 const common = require('./webpack.config.js');
 
 module.exports = merge(common, {
-  plugins: [
-    new BundleAnalyzerPlugin()
-  ],
+  plugins: [new BundleAnalyzerPlugin()],
   mode: 'production'
 });

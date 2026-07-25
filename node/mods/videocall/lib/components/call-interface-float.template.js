@@ -1,5 +1,5 @@
-module.exports  = () => {
-	return `
+module.exports = () => {
+  return `
     <div class="small-audio-chatbox" id="small-audio-chatbox">
       <div class="control-panel">
         <div class="timer">

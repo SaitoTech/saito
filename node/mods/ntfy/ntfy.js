@@ -2,14 +2,14 @@ const ModTemplate = require('../../lib/templates/modtemplate.js');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 class NTFY extends ModTemplate {
-    constructor(app) {
-        super(app);
+  constructor(app) {
+    super(app);
 
-        this.name = 'ntfy';
-        this.slug = 'ntfy';
-        this.description = 'Module to send notifications to ntfy server.';
-        this.categories = 'Utilities';
-        this.class = 'utility';
+    this.name = 'ntfy';
+    this.slug = 'ntfy';
+    this.description = 'Module to send notifications to ntfy server.';
+    this.categories = 'Utilities';
+    this.class = 'utility';
 
     this.name = 'NTFY';
     this.deascription = 'Integrates on-chain messages with mobile phones';
@@ -165,9 +165,7 @@ class NTFY extends ModTemplate {
     notification.title = 'Notification Service Activated';
     notification.message = 'The notification module at ' + url + ' has been activated';
     notification.tags = ['exclamation'];
-    notification.actions = [
-      { action: 'view', label: 'Saito', url: url }
-    ];
+    notification.actions = [{ action: 'view', label: 'Saito', url: url }];
 
     try {
       //fetch('https://ntfy.hda0.net/basic/publish?message=this+is+a+js+test');
