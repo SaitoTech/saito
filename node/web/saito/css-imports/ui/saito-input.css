@@ -5,22 +5,18 @@ div.saito-input {
 	min-height: fit-content;
 	overflow: visible;
 }
+/* Composer field: chrome from .saito-form-control; sizing is intrinsic here */
 div.saito-input .text-input {
-  /*height: 100%;*/
   width: 100%;
-  padding: 1rem;
   cursor: text;
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
-  border-radius: var(--saito-border-radius);
-  font-size: 1.6rem;
-  line-height: 2rem;
-  background: var(--saito-input-bg);
-  color: var(--saito-input-fg);
   overflow-y: auto;
   word-break: break-word;
   min-height: 4.5rem;
   max-height: 12.5rem;
   height: fit-content;
+  font-size: 1.6rem;
+  line-height: 2rem;
+  padding: 1rem;
 }
 .saito-input-selection-box {
 	position: absolute;

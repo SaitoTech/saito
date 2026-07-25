@@ -169,3 +169,20 @@ textarea {
 .saito-overlay-backdrop {
   backdrop-filter: blur(2px);
 }
+
+/* Add App overlay — drop zone layout (moved out of shared Overlay form kit) */
+.saito-app-overlay .saito-app-body .saito-app-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 20rem;
+  padding: var(--saito-space-xl);
+  box-sizing: border-box;
+  border: var(--border-thickness-medium) dashed var(--saito-input-border);
+  border-radius: var(--saito-input-radius);
+  background-color: var(--saito-input-bg);
+  color: var(--saito-muted-foreground);
+  text-align: center;
+  cursor: pointer;
+}

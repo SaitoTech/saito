@@ -334,7 +334,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 0;
+  min-height: min(24rem, 40vh);
 }
 
 .saito-nft-create #nft-image-upload {
@@ -345,7 +345,8 @@
   gap: var(--saito-space-md);
   text-align: center;
   width: 100%;
-  min-height: 16rem;
+  height: min(24rem, 40vh);
+  min-height: min(24rem, 40vh);
   padding: var(--saito-space-xl);
   box-sizing: border-box;
   border: var(--border-thickness-thin) solid var(--saito-input-border);
@@ -369,16 +370,31 @@
 
 .saito-nft-create #create-nft-textarea {
   width: 100%;
-  min-height: 16rem;
+  height: min(24rem, 40vh);
+  min-height: min(24rem, 40vh);
   resize: none;
   display: none;
 }
 
+/* Same footprint as #nft-image-upload so image selection does not resize the dialog */
 .saito-nft-create .preview {
-  align-self: center;
-  max-width: min(56rem, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: min(24rem, 40vh);
+  max-width: 100%;
   max-height: min(24rem, 40vh);
   position: relative;
+  overflow: hidden;
+}
+
+.saito-nft-create .preview img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 .saito-nft-create .preview i {
@@ -430,7 +446,7 @@
   padding: 0;
 }
 
-.saito-nft-create .primary .footer #create-nft-help-link {
+.saito-nft-create .primary .footer .get-saito-tokens {
   margin-right: auto;
 }
 
@@ -616,25 +632,20 @@
   border-color: var(--saito-red-dark);
 }
 
-/* ============================================
-   FORM ELEMENTS
-   ============================================ */
+/* Form layout only — inputs inherit saito-form-elements */
 .saito-nft-input-label {
-  font-size: 13px;
-  margin: 12px 0 6px;
-  color: var(--saito-font-color);
+  margin: var(--saito-space-md) 0 var(--saito-space-sm, 0.5rem);
 }
 
 .saito-nft-panel-send input.saito-input {
-  margin-bottom: 10px;
-  height: max-content;
+  margin-bottom: var(--saito-space-sm, 1rem);
 }
 
 .nft-send-amount-row {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  margin-bottom: 10px;
+  gap: var(--saito-space-sm, 0.8rem);
+  margin-bottom: var(--saito-space-sm, 1rem);
 }
 
 .nft-send-amount-row input.saito-input {
@@ -642,25 +653,12 @@
 }
 
 .nft-send-max-btn {
-  border: 1px solid rgba(170, 170, 170, 0.3);
-  background: transparent;
-  color: var(--saito-font-color);
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  font-size: 1.2rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.nft-send-max-btn:hover {
-  background: rgba(170, 170, 170, 0.08);
+  flex: 0 0 auto;
 }
 
 .saito-nft-mode-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: var(--saito-font-color);
+  margin-bottom: var(--saito-space-lg);
+  font-size: var(--font-size-h6);
 }
 
 /* ============================================
@@ -1092,24 +1090,55 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
   width: max-content;
 }
 
-.create-nft-help-overlay {
-  height: auto;
-  width: 55rem;
+/* Deposit field — locked default still looks like a normal Saito input */
+.create-nft-deposit-wrap {
+  position: relative;
   display: flex;
-  padding: 2rem;
-  flex-direction: column;
-  gap: 2rem;
+  align-items: center;
+  width: 100%;
 }
 
-.create-nft-help-text {
-  line-height: 2.8rem;
-  font-size: 2rem;
+.create-nft-deposit-wrap .create-nft-deposit-lock {
+  position: absolute;
+  right: var(--saito-space-md);
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.create-nft-deposit-wrap.is-locked .create-nft-deposit-lock {
+  opacity: 0.85;
+}
+
+.create-nft-deposit-wrap.is-locked #create-nft-deposit {
+  cursor: pointer;
+  padding-right: 3.2rem;
+}
+
+/* Help overlay — inherits saito-overlay-form; layout polish only */
+.create-nft-help-overlay {
+  width: min(48rem, 95vw);
+}
+
+.create-nft-help-overlay .saito-overlay-form-text p:last-child {
+  color: var(--saito-muted-foreground);
 }
 
 .create-nft-deposit-container {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--saito-space-md);
+  cursor: pointer;
+  margin: 0;
+  color: inherit;
+}
+
+.create-nft-deposit-container .saito-checkbox {
+  margin: 0;
+  flex: 0 0 auto;
 }
 
 /* Create NFT — My NFTs list header only (.saito-nft-list).

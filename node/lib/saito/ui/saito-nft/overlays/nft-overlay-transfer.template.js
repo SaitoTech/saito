@@ -9,7 +9,7 @@ module.exports = (app, mod, nft_overlay) => {
           <label class="saito-nft-input-label">Amount</label>
           <div class="nft-send-amount-row">
             <input class="saito-input" id="nft-send-amount" value="1" />
-            <button type="button" class="nft-send-max-btn">MAX</button>
+            <button type="button" class="saito-button-secondary small nft-send-max-btn">MAX</button>
           </div>
         </section>
   `;

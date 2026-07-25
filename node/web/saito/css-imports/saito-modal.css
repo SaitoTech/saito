@@ -1,6 +1,6 @@
 /*
-NOTE: the .saito-model class is a grid with two sectiions
-This alows for a header with a header with title to be added without extra CSS
+  SaitoModal — layout shell for pickers / menus.
+  Typography and control appearance inherit the Saito design system.
 */
 
 .saito-modal,
@@ -10,18 +10,18 @@ This alows for a header with a header with title to be added without extra CSS
   min-width: 70rem;
   height: min-content;
   max-width: 80vw;
+  max-height: 95vh;
   padding: var(--border-padding-wide);
   display: grid;
-  grid-template-rows: min-content 1fr min-content; /* last item optional */
-  max-height: 95vh;
+  grid-template-rows: min-content 1fr min-content;
 }
 
 .saito-modal-title {
   margin: 0;
-  font-size: 3rem;
-  padding-bottom: 0.5rem;
+  padding-bottom: var(--saito-space-sm, 0.5rem);
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: var(--font-size-h5);
   color: var(--saito-font-color-heavy);
 }
 
@@ -37,14 +37,13 @@ This alows for a header with a header with title to be added without extra CSS
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--saito-space-md);
+  margin-top: var(--saito-space-sm, 0.5rem);
+  padding: var(--saito-space-sm, 0.5rem);
   border-radius: var(--saito-border-radius);
-  padding: 0.5rem;
-  margin-top: 0.5rem;
 }
 
-/* We want to trigger the click event on the container */
-
+/* Click events target the contact container, not nested user chrome */
 .saito-contact .saito-user {
   pointer-events: none;
 }
@@ -58,7 +57,6 @@ This alows for a header with a header with title to be added without extra CSS
   text-shadow: 2px 2px 2px var(--saito-black);
 }
 
-
 .saito-modal-title + .saito-modal-content {
   border-top: var(--border-thickness-thick) solid var(--border-color-general-dividers);
 }
@@ -66,7 +64,6 @@ This alows for a header with a header with title to be added without extra CSS
 .saito-modal-content .saito-user {
   height: 5rem;
   align-items: center;
-  font-size: 20px;
 }
 
 .saito-modal-content .saito-user .saito-identicon-box {
@@ -75,12 +72,12 @@ This alows for a header with a header with title to be added without extra CSS
 }
 
 .saito-user-menu .saito-modal-title .saito-user {
+  width: calc(100% - 2.5rem);
   height: 6rem;
   padding: 0 1.25rem;
-  cursor: default;
   align-items: center;
-  width: calc(100% - 2.5rem);
   white-space: nowrap;
+  cursor: default;
 }
 
 .saito-user-menu .saito-modal-title .saito-identicon-box {
@@ -88,97 +85,83 @@ This alows for a header with a header with title to be added without extra CSS
   height: 5.5rem;
 }
 
-/* saito-modal-menu
-/* theming for a simple menu with font-awesome icon and text in a two col grid */
-
-.saito-modal-menu-option {
-  font-size: 3rem;
-  height: 6rem;
-  padding: 1.5rem 3rem;
-  display: grid;
-  align-items: center;
-  grid-gap: 1rem;
-  grid-template-columns: 4rem 1fr;
-  cursor: pointer;
-  position: relative;
-  border-radius: var(--saito-border-radius);
-  margin-top: 0.25rem;
-}
-
-.saito-modal-tagline {
-  margin-top: 0.5rem;
-  margin-bottom: 1rem;
-  font-style: italic;
-}
-
-.saito-modal-point {
-  font-size: 2rem;
-  padding: 0.5rem;
-  display: grid;
-  align-items: center;
-  grid-gap: 2rem;
-  grid-template-columns: 4rem 1fr;
-}
-
-.saito-modal-point i {
-  font-size: 3rem;
-  justify-self: center;
-}
-
-.saito-modal-menu-option > i {
-  justify-self: center;
-  margin-right: 2rem;
-}
-
-.saito-modal-menu-option > div,
-.saito-modal-menu-option-label {
-  float: left;
-  margin-right: 2rem;
-  font-size: 2rem;
-  vertical-align: middle;
-  margin-bottom: auto;
-  margin-top: auto;
-  line-height: 3rem;
-  height: 3rem;
-}
-
-
-.saito-modal-title .saito-user .saito-address {
-  font-size: 4rem;
-}
-
-
-.saito-overlaid-icon {
-  color: var(--saito-chip-fg);
-  position: absolute;
-  left: 34%;
-  top: 34%;
-  background: var(--saito-chip-bg);
-  width: min(90%, 5rem);
-  height: min(90%, 5rem);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 50%;
-  border: 1px solid var(--saito-font-color);
-}
-
-/* Identicons aren't clickable in modals menus */
-
 .saito-user-menu .saito-identicon-box {
   cursor: default;
 }
 
-/* mobile modals */
+/* Menu options — layout + touch density; type from design tokens */
+.saito-modal-menu-option {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  align-items: center;
+  gap: var(--saito-space-md);
+  height: 6rem;
+  margin-top: 0.25rem;
+  padding: 1.5rem 3rem;
+  border-radius: var(--saito-border-radius);
+  font-size: var(--font-size-h6);
+  cursor: pointer;
+  position: relative;
+}
+
+.saito-modal-tagline {
+  margin: var(--saito-space-sm, 0.5rem) 0 var(--saito-space-md);
+  font-style: italic;
+}
+
+.saito-modal-point {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  align-items: center;
+  gap: var(--saito-space-lg);
+  padding: var(--saito-space-sm, 0.5rem);
+  font-size: var(--font-size-h6);
+}
+
+.saito-modal-point i {
+  justify-self: center;
+  font-size: var(--font-size-h5);
+}
+
+.saito-modal-menu-option > i {
+  justify-self: center;
+}
+
+.saito-modal-menu-option > div,
+.saito-modal-menu-option-label {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.saito-modal-title .saito-user .saito-address {
+  font-size: var(--font-size-h4);
+}
+
+.saito-overlaid-icon {
+  position: absolute;
+  left: 34%;
+  top: 34%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: min(90%, 5rem);
+  height: min(90%, 5rem);
+  border-radius: 50%;
+  border: 1px solid var(--saito-font-color);
+  background: var(--saito-chip-bg);
+  color: var(--saito-chip-fg);
+}
 
 @media only screen and (max-width: 1000px) {
   .saito-modal {
+    width: 90vw;
     min-width: unset;
     max-width: unset;
-    padding: 1rem;
-    width: 90vw;
+    padding: var(--saito-space-md);
     grid-template-columns: 100%;
   }
+
   .saito-modal > * {
     max-width: 100%;
   }
@@ -188,19 +171,13 @@ This alows for a header with a header with title to be added without extra CSS
   .saito-modal-menu-option {
     margin: 0 1rem;
   }
-  .saito-modal-menu-option > i {
-    font-size: 2.2rem;
-  }
-  .saito-modal-menu-option > div,
-  .saito-modal-menu-option-label {
-    font-size: 2rem;
-  }
 }
 
 @media only screen and (max-width: 525px) {
   .saito-user-menu .saito-modal-title .saito-user {
     margin: 0;
   }
+
   .saito-modal-menu-option {
     margin: 0;
     padding: 1.5rem 1rem;
@@ -208,19 +185,19 @@ This alows for a header with a header with title to be added without extra CSS
 }
 
 .qr-share-overlay {
-  padding: 2rem;
-  border: var(--saito-border);
   width: max-content;
+  padding: var(--saito-space-lg);
+  border: var(--saito-border);
 }
 
 .qr-share-header {
-  font-size: 3rem;
   display: flex;
   justify-content: center;
+  font-size: var(--font-size-h5);
 }
 
 #qr-share-link {
-  margin: 2rem;
+  margin: var(--saito-space-lg);
 }
 
 #qr-share-link img,
@@ -228,8 +205,8 @@ This alows for a header with a header with title to be added without extra CSS
   height: auto;
   max-width: 24rem;
   width: 24vh;
-  border: var(--border-thickness-medium) solid var(--saito-primary);
   padding: var(--border-padding-normal);
+  border: var(--border-thickness-medium) solid var(--saito-primary);
   border-radius: var(--saito-border-radius);
   background: var(--saito-background-color);
 }

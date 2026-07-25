@@ -189,6 +189,7 @@ class CreateNFT {
   enableDepositInput() {
     const amountInput = document.getElementById('create-nft-amount');
     const depositInput = document.getElementById('create-nft-deposit');
+    const depositWrap = document.getElementById('create-nft-deposit-wrap');
 
     if (!amountInput || !depositInput) return;
 
@@ -196,10 +197,9 @@ class CreateNFT {
     // Auto deposit (readonly, synced)
     //
     if (!this.enable_deposit) {
-      // Make deposit uneditable
+      // Locked: same Saito input appearance; editing disabled via readonly only
       depositInput.setAttribute('readonly', 'readonly');
-      depositInput.style.border = 'none';
-      depositInput.style.cursor = 'not-allowed';
+      depositWrap?.classList.add('is-locked');
 
       //
       // Attach sync listener
@@ -228,10 +228,8 @@ class CreateNFT {
     // Manual deposit
     //
     else {
-      // Re-enable editing
       depositInput.removeAttribute('readonly');
-      depositInput.style.border = '';
-      depositInput.style.cursor = 'text';
+      depositWrap?.classList.remove('is-locked');
 
       //
       // Remove sync listener
@@ -243,44 +241,76 @@ class CreateNFT {
     }
   }
 
+  openDepositHelpOverlay() {
+    this.help_overlay.show(`
+      <form class="saito-overlay-form create-nft-help-overlay">
+        <div class="saito-overlay-form-header">
+          <div class="saito-overlay-form-header-title">Deposit</div>
+        </div>
+        <div class="saito-overlay-form-text">
+          <p>SAITO deposits circulate within assets and can be recovered by destroying them.</p>
+          <p>Changing the deposit amount is possible, but can affect the persistence of the token on the network.</p>
+          <p>Custom deposits are recommended for advanced users only.</p>
+        </div>
+        <label class="create-nft-deposit-container" for="create-nft-enable-deposit">
+          <input id="create-nft-enable-deposit" type="checkbox" class="saito-checkbox" />
+          <span>Let me manually specify the deposit</span>
+        </label>
+      </form>
+    `);
+
+    const cbox = document.querySelector('#create-nft-enable-deposit');
+    if (!cbox) {
+      return;
+    }
+
+    cbox.checked = this.enable_deposit;
+    cbox.onchange = () => {
+      if (!cbox.checked) {
+        this.enable_deposit = false;
+        this.enableDepositInput();
+        return;
+      }
+
+      this.enable_deposit = true;
+      this.enableDepositInput();
+      this.help_overlay.close();
+
+      const depositInput = document.getElementById('create-nft-deposit');
+      if (depositInput) {
+        requestAnimationFrame(() => {
+          depositInput.focus({ preventScroll: true });
+          if (typeof depositInput.select === 'function') {
+            depositInput.select();
+          }
+        });
+      }
+    };
+  }
+
   attachEvents() {
     this.enableDepositInput();
 
-    // Help Overlay
-    const helpLink = document.querySelector('#create-nft-help-link');
-    if (helpLink) {
-      helpLink.onclick = (e) => {
-        e.preventDefault();
-
-        this.help_overlay.show(`
-          <div class="create-nft-help-overlay">
-            <div class="create-nft-help-text">
-    Creating an NFT requires a deposit of SAITO per NFT created. This 
-    circulates with the NFT and ensures the network can track and 
-    transfer it. Destroying the NFT will recover the deposit.
-            <p></p>
-    You can manually change the deposit amount, just be aware that 
-    removing the deposit completely will result in the network 
-    automatically pruning the NFT after a single genesis period.
-            </div>
-
-            <div class="create-nft-deposit-container">
-              <input id="create-nft-enable-deposit" type="checkbox" class="saito-checkbox">
-              <span>let me manually specify the deposit</span>
-            </div>
-          </div>
-        `);
-
-        const cbox = document.querySelector('#create-nft-enable-deposit');
-        if (cbox) {
-          cbox.checked = this.enable_deposit;
-
-          cbox.onchange = () => {
-            this.enable_deposit = cbox.checked;
-            this.enableDepositInput();
-          };
+    const depositInput = document.getElementById('create-nft-deposit');
+    const depositWrap = document.getElementById('create-nft-deposit-wrap');
+    if (depositInput && depositWrap) {
+      const openIfLocked = (e) => {
+        if (this.enable_deposit || !depositInput.hasAttribute('readonly')) {
+          return;
         }
+        e.preventDefault();
+        this.openDepositHelpOverlay();
       };
+      depositWrap.addEventListener('click', openIfLocked);
+      depositInput.addEventListener('keydown', (e) => {
+        if (this.enable_deposit || !depositInput.hasAttribute('readonly')) {
+          return;
+        }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.openDepositHelpOverlay();
+        }
+      });
     }
 
     // Upload
@@ -521,7 +551,7 @@ class CreateNFT {
     let html = ``;
     if (fileInfo.isImage) {
       html = `<div class="preview">
-                      <img style="max-height: inherit; max-width: inherit; height: inherit; width: inherit" src="${data}"/>
+                      <img src="${data}" alt="" />
               </div>`;
     } else {
       html = `
@@ -620,6 +650,7 @@ class CreateNFT {
     this.nft_type = null;
     this.module_provided_nfts = [];
     this.file = null;
+    this.enable_deposit = false;
   }
 }
 

@@ -32,10 +32,20 @@ class Settings extends ModTemplate {
 		//
 		this.app.connection.on('registry-update-identifier', (publickey) => {
 			if (publickey === this.publicKey) {
-				if (document.getElementById('register-identifier-btn')) {
-					let username = app.keychain.returnIdentifierByPublicKey(this.publicKey);
-					document.getElementById('register-identifier-btn').innerHTML = username;
-					document.getElementById('register-identifier-btn').onclick = null;
+				let username = app.keychain.returnIdentifierByPublicKey(this.publicKey);
+				if (!username) {
+					return;
+				}
+				let btn = document.getElementById('register-identifier-btn');
+				let existing = document.getElementById('settings-username');
+				if (btn) {
+					let el = document.createElement('div');
+					el.className = 'username';
+					el.id = 'settings-username';
+					el.textContent = username;
+					btn.replaceWith(el);
+				} else if (existing) {
+					existing.textContent = username;
 				}
 			}
 		});

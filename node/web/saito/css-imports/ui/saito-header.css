@@ -60,10 +60,6 @@
   cursor: pointer;
 }
 
-.saito-header-logo-wrapper img,
-.saito-header-logo-wrapper i::before {
-}
-
 .saito-back-button {
   position: absolute;
   font-size: 40px;

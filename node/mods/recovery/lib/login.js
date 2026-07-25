@@ -40,7 +40,6 @@ class Login {
 			let email = document.querySelector('.saito-overlay-form-email').value;
 			let password = document.querySelector('.saito-overlay-form-password').value;
 
-			//document.querySelector(".saito-overlay-form-text").remove();
 			document.querySelector('.saito-overlay-form-email').remove();
 			document.querySelector('.saito-overlay-form-password').remove();
 			document.querySelector('.saito-button-row').remove();
@@ -52,17 +51,34 @@ class Login {
 			this.mod.restoreWallet(email, password);
 		};
 
-		if (document.getElementById('input-private-key')) {
-			document.getElementById('input-private-key').onclick = () => {
-				this.hide();
-				this.mod.key_entry.render();
+		let openPrivateKey = () => {
+			this.hide();
+			this.mod.key_entry.render('key');
+		};
+		let openSeedPhrase = () => {
+			this.hide();
+			this.mod.key_entry.render('phrase');
+		};
+
+		let privateKeyLink = document.getElementById('restore-private-key');
+		if (privateKeyLink) {
+			privateKeyLink.onclick = openPrivateKey;
+			privateKeyLink.onkeydown = (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					openPrivateKey();
+				}
 			};
 		}
 
-		if (document.getElementById('upload-file')) {
-			document.getElementById('upload-file').onclick = () => {
-				this.hide();
-				this.mod.key_entry.loadFile();
+		let seedPhraseLink = document.getElementById('restore-seed-phrase');
+		if (seedPhraseLink) {
+			seedPhraseLink.onclick = openSeedPhrase;
+			seedPhraseLink.onkeydown = (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					openSeedPhrase();
+				}
 			};
 		}
 	}

@@ -118,6 +118,36 @@
   user-select: none;
 }
 
+/* Lightweight shell used when modules inject settings into an overlay */
+.module-settings-overlay {
+  display: flex;
+  flex-direction: column;
+  min-width: min(800px, 95vw);
+  min-height: min(400px, 90vh);
+  max-width: 95vw;
+  max-height: 95vh;
+  padding: var(--saito-space-xl);
+  border-radius: var(--saito-border-radius);
+  border: var(--border-thickness-medium) solid var(--saito-overlay-panel-border);
+}
+
+.module-settings-overlay .saito-module-settings {
+  overflow-y: auto;
+  padding: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.module-settings-overlay .saito-module-settings::-webkit-scrollbar {
+  display: none;
+}
+
+@media screen and (max-width: 600px) {
+  .module-settings-overlay {
+    padding: var(--saito-space-md);
+  }
+}
+
 .saito-module-header {
   background: var(--saito-header-background);
   background-size: cover;

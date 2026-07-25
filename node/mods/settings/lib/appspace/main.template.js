@@ -1,16 +1,15 @@
 module.exports = (app, mod, main) => {
   let publicKey = mod.publicKey;
   let key = app.keychain.returnKey({ publicKey: publicKey });
-  let identifier_registered;
+  let identifier = key?.identifier || app.keychain.returnIdentifierByPublicKey(publicKey) || '';
+  let username_cell;
 
-  if (key?.identifier) {
-    identifier_registered = `<div class="username">${key.identifier}</div>`;
+  if (identifier) {
+    username_cell = `<div class="username" id="settings-username">${identifier}</div>`;
+  } else if (key?.has_registered_username) {
+    username_cell = `<div class="username" id="settings-username">registering…</div>`;
   } else {
-    if (key?.has_registered_username) {
-      identifier_registered = `<div class="register-identifier-btn">Registering...</div>`;
-    } else {
-      identifier_registered = `<div id="register-identifier-btn" class="register-identifier-btn">Register a username</div>`;
-    }
+    username_cell = `<button type="button" id="register-identifier-btn" class="saito-button-secondary small">register username <i class="fas fa-pen" aria-hidden="true"></i></button>`;
   }
 
   let modules_html = '';
@@ -24,23 +23,18 @@ module.exports = (app, mod, main) => {
 
       let CHECKED = app.options.modules[i].active ? 'CHECKED' : '';
 
-      // filter out core modules
-      //if (!mod || mod?.class !== 'utility') {
-      //if (!mod) {
-
       modules_html += `
         <div class="settings-appspace-app" data-id="${shortName}">
             <div class="saito-switch">
-              <input type="checkbox"  id="${i}" class="saito-checkbox modules_mods_checkbox" name="modules_mods_${i}" ${CHECKED}>
+              <input type="checkbox" id="${i}" class="saito-checkbox modules_mods_checkbox" name="modules_mods_${i}" ${CHECKED}>
             </div>
             <div>${fullName}</div>`;
 
       if (mod?.hasSettings()) {
-        modules_html += `<i class="fas fa-cog"></i>`;
+        modules_html += `<i class="fas fa-cog" aria-hidden="true"></i>`;
       }
 
       modules_html += '</div>';
-      //}
     }
   } catch (err) {
     console.error(err);
@@ -48,44 +42,48 @@ module.exports = (app, mod, main) => {
 
   let html = `
 
-  <div class="settings-appspace saito-overlay-size wide tall">
+  <div class="settings-appspace saito-overlay-size wide">
 
     <div id="settings-appspace-warning-bar" class="settings-appspace-warning-bar" style="display: none;" role="alert" aria-live="polite"></div>
 
     <div class="settings-appspace-header">
       <div class="settings-actions-container">
         <div class="saito-button-secondary" id="restore-privatekey-btn" title="Restore account from private key or seed phrase">Import Key</div>
+        <div class="saito-button-secondary" id="show-phrase" title="View wallet seed phrase">Seed Phrase</div>
         <div class="saito-button-secondary" id="restore-account-btn" title="Restore account by uploading json-file of wallet">Restore Wallet</div>
         <div class="saito-button-secondary" id="backup-account-btn" title="Download json-file copy of wallet">Backup Wallet</div>
-        <div class="saito-button-secondary" id="nuke-account-btn" title="Wipe local storage and reload site with new key pair">Nuke Account</div>
         <div class="saito-button-secondary" id="clear-storage-btn" title="Removes local data storage, but keeps wallet intact">Clear Cache</div>
+        <div class="saito-button-secondary" id="nuke-account-btn" title="Wipe local storage and reload site with new key pair">Nuke Account</div>
       </div>
     </div>
 
     <div class="settings-appspace-body">
       <details class="settings-appspace-section" open>
-        <summary class="settings-appspace-section-summary"><h6>Wallet</h6></summary>
+        <summary class="settings-appspace-section-summary">
+          <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+          <h6>wallet</h6>
+        </summary>
         <div class="settings-appspace-user-details">
-          <div>Username:</div>
-          ${identifier_registered}
+          <div class="settings-field-label">username</div>
+          ${username_cell}
 
-          <div>Public Key:</div>
-          <div class="pubkey-grid" data-id="${publicKey}">
+          <div class="settings-field-label">public key</div>
+          <div class="pubkey-grid" data-id="${publicKey}" title="Copy public key">
             <div>${publicKey}</div>
-            <i class="fas fa-copy" id="copy-public-key"></i>
+            <i class="fas fa-copy" aria-hidden="true"></i>
           </div>
 
-          <div>Private Key:</div>
-          <div class="settings-actions-container">
-            <div id="show-phrase" class="saito-button-secondary small">view seed phrase <i class="fa-solid fa-eye"></i></div>
-            <div id="copy-private-key" class="saito-button-secondary small">copy private key <i class="fas fa-copy"></i></div>
+          <div class="settings-field-label">private key</div>
+          <div class="pubkey-grid" data-id="${main.privateKey || ''}" title="Copy private key">
+            <div>************</div>
+            <i class="fas fa-copy" aria-hidden="true"></i>
           </div>
 
-          <div>Default Fee:</div>
-          <div class="default-fee-containter">
+          <div class="settings-field-label">default fee</div>
+          <div class="settings-fee-control">
             <input type="number"
                    id="profile-default-fee-input"
-                   class="saito-input profile-default-fee"
+                   class="saito-input"
                    step="0.000000001"
                    min="0"
                    value="${app.wallet.convertNolanToSaito(app.wallet.default_fee)}"
@@ -96,8 +94,11 @@ module.exports = (app, mod, main) => {
 
       <details class="settings-appspace-section settings-appspace-modules-container">
         <summary class="settings-appspace-section-summary settings-installed-mod-header">
-          <h6>Installed Modules</h6>
-          <i id="settings-add-app" class="fa-solid fa-plus" role="button" tabindex="0" aria-label="Add application"></i>
+          <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+          <h6>installed modules</h6>
+          <button type="button" id="settings-add-app" class="saito-button-square" aria-label="Add application">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          </button>
         </summary>
         <div class="settings-appspace-modules saito-menu-select-subtle">
           ${modules_html}
@@ -105,45 +106,56 @@ module.exports = (app, mod, main) => {
       </details>
 
       <details class="settings-appspace-section settings-appspace-crypto-transfer-container">
-        <summary class="settings-appspace-section-summary"><h6>In-Game Crypto Transfers</h6></summary>
-        <div id="settings-appspace-crypto-transfer" class="settings-appspace-modules">
+        <summary class="settings-appspace-section-summary">
+          <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+          <h6>in-game crypto transfers</h6>
+        </summary>
+        <div id="settings-appspace-crypto-transfer" class="settings-appspace-modules saito-menu-select-subtle">
         </div>
       </details>
 
       <details class="settings-appspace-section settings-appspace-debug">
-        <summary class="settings-appspace-section-summary"><h6>Debug Info</h6></summary>
-        <!--div id="settings-edit-json">Edit wallet options</div-->
-        <div>Advanced: ALT-select items to mark them (OPT-select in MacOS), then <span class="saito-text-link" id="delete_marked">click here to delete selected entries</span></div>
+        <summary class="settings-appspace-section-summary">
+          <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+          <h6>debug info</h6>
+        </summary>
+        <div class="settings-section-note">Advanced: ALT-select items to mark them (OPT-select in MacOS), then <span class="saito-text-link" id="delete_marked">click here to delete selected entries</span></div>
         <div class="settings-appspace-debug-content" id="settings-appspace-debug-content"></div>
       </details>
 
       <details class="settings-appspace-section settings-storage-info">
-        <summary class="settings-appspace-section-summary"><h6>Storage Info</h6></summary>
+        <summary class="settings-appspace-section-summary">
+          <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+          <h6>storage info</h6>
+        </summary>
         <div class="settings-appspace-storage-content">
 
           <div class="settings-appspace-localstorage-info">
-            <div class="title">Local Storage</div><div></div>
-            <div>Quota (Bytes)</div><div class="quota"></div>
-            <div>Usage (Bytes)</div><div class="usage"></div>
-            <div>Used (%)</div><div class="percent"></div>
+            <div class="title">local storage</div>
+            <div>quota (bytes)</div><div class="quota"></div>
+            <div>usage (bytes)</div><div class="usage"></div>
+            <div>used (%)</div><div class="percent"></div>
           </div>
 
           <div class="settings-appspace-indexdb-info">
-            <div class="title">IndexDB</div><div></div>
-            <div>Quota (Bytes)</div><div class="quota"></div>
-            <div>Usage (Bytes)</div><div class="usage"></div>
-            <div>Used (%)</div><div class="percent"></div>
+            <div class="title">indexedDB</div>
+            <div>quota (bytes)</div><div class="quota"></div>
+            <div>usage (bytes)</div><div class="usage"></div>
+            <div>used (%)</div><div class="percent"></div>
           </div>
 
         </div>
       </details>
 
       <details class="settings-appspace-section settings-appspace-build-info">
-        <summary class="settings-appspace-section-summary"><h6>Build Information</h6></summary>
+        <summary class="settings-appspace-section-summary">
+          <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+          <h6>build information</h6>
+        </summary>
         <div class="settings-appspace-build-info-grid">
-          <div>Browser Build Number:</div>
+          <div class="settings-field-label">browser build</div>
           <div id="settings-browser-build-value" class="settings-appspace-build-value">${String(app.build_number)}</div>
-          <div>Node Peer Build Number:</div>
+          <div class="settings-field-label">node peer build</div>
           <div id="settings-node-peer-build-value" class="settings-appspace-build-value">—</div>
         </div>
       </details>

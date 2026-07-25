@@ -1,34 +1,36 @@
+/*
+ * Settings appspace — layout / hierarchy only.
+ * Panel chrome: .saito-overlay-panel. Controls: Saito buttons / inputs / checkbox.
+ */
+
 .settings-appspace {
 	display: flex;
 	flex-direction: column;
-	row-gap: 1rem;
-	overflow: auto;
-	background: var(--saito-background-color);
-	color: var(--saito-font-color);
-	border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
-	border-radius: var(--saito-border-radius);
-	box-shadow: var(--saito-box-shadow);
-	/*
-	width: min(95vw, 100rem);
-	height: min(800px, 95vh);
-	padding: 2rem;
-*/
+	gap: var(--saito-space-md);
+	width: min(90rem, 95vw);
+	max-height: 90vh;
+	overflow: hidden;
+	box-sizing: border-box;
+	color: var(--saito-popover-foreground, inherit);
 }
 
 .settings-appspace-body {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: var(--saito-space-md);
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 }
 
+/* Deliberate alert strip (not Saito panel chrome) */
 .settings-appspace-warning-bar {
-	width: 100%;
-	box-sizing: border-box;
+	display: none;
 	align-items: center;
-	gap: 0.75rem;
-	padding: 0.85rem 1.25rem;
-	margin: 0;
-	border-radius: var(--saito-border-radius) var(--saito-border-radius) 0 0;
+	gap: var(--saito-space-sm);
+	padding: var(--saito-space-sm) var(--saito-space-md);
+	border-radius: var(--saito-border-radius);
 	background: var(--saito-primary);
 	color: var(--saito-primary-text);
 	border-bottom: var(--border-thickness-medium) solid var(--saito-red, #c0392b);
@@ -36,37 +38,35 @@
 	line-height: 1.35;
 }
 
-.settings-appspace-warning-bar .settings-appspace-warning-bar-text {
+.settings-appspace-warning-bar-text {
 	flex: 1;
 	min-width: 0;
 }
 
-details.settings-appspace-section {
-	padding: 0;
-	border: 1px solid var(--saito-border-color);
+/* Accordion — inherit overlay panel surface; border + caret for affordance */
+.settings-appspace-section {
+	border: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
 	border-radius: var(--saito-border-radius);
-	background: var(--saito-surface-color);
-	transition:
-		border-color 0.15s ease,
-		box-shadow 0.15s ease;
+	background: transparent;
 }
 
-details.settings-appspace-section[open] {
-	border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-border-color));
+.settings-appspace-section[open] {
+	border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-overlay-panel-border));
 }
 
 .settings-appspace-section-summary {
 	display: flex;
 	align-items: center;
-	flex-wrap: wrap;
-	gap: 1rem;
-	min-height: 4.8rem;
-	padding: 1rem 1.25rem;
+	gap: var(--saito-space-sm);
+	padding: var(--saito-space-sm) var(--saito-space-md);
 	list-style: none;
 	cursor: pointer;
-	transition:
-		background-color 0.15s ease,
-		color 0.15s ease;
+	border-radius: inherit;
+	transition: background-color 0.16s ease;
+}
+
+.settings-appspace-section-summary:hover {
+	background: color-mix(in srgb, var(--saito-primary) 10%, transparent);
 }
 
 .settings-appspace-section-summary::-webkit-details-marker {
@@ -77,195 +77,148 @@ details.settings-appspace-section[open] {
 	content: '';
 }
 
-.settings-appspace-section-summary:hover {
-    border: 1px solid color-mix(in srgb, var(--saito-primary) 24%, var(--saito-border-color));
-}
-
 .settings-appspace-section-summary:focus-visible {
 	outline: 2px solid color-mix(in srgb, var(--saito-primary) 70%, transparent);
 	outline-offset: -2px;
 }
 
-details.settings-appspace-section[open] > .settings-appspace-section-summary {
+.settings-section-caret {
+	flex: 0 0 auto;
+	width: 1em;
+	text-align: center;
+	color: var(--saito-muted-foreground);
+	transition: transform 0.18s ease;
+}
+
+.settings-appspace-section[open] > .settings-appspace-section-summary .settings-section-caret {
+	transform: rotate(90deg);
+	color: var(--saito-primary);
 }
 
 .settings-appspace-section-summary h6 {
 	margin: 0;
 	margin-right: auto;
+	font-size: inherit;
+	font-weight: 600;
+	text-transform: none;
+	color: inherit;
 }
 
-.settings-appspace-body details.settings-appspace-section > div {
-	border: 0;
-	border-top: 1px solid color-mix(in srgb, var(--saito-primary) 24%, var(--saito-border-color));
-	border-radius: 0;
-	padding: 1rem;
+.settings-appspace-section > div {
+	border-top: var(--border-thickness-thin) solid
+		color-mix(in srgb, var(--saito-primary) 18%, var(--saito-overlay-panel-border));
+	padding: var(--saito-space-md);
 }
 
-.settings-appspace-build-info {
-	padding: 0 1rem 1rem;
+.settings-section-note {
+	margin-bottom: var(--saito-space-md);
+	color: var(--saito-muted-foreground);
 }
 
-.settings-appspace-build-info-grid {
-	display: grid;
-	grid-template-columns: minmax(12rem, auto) minmax(0, 1fr);
-	grid-column-gap: 1.5rem;
-	grid-row-gap: 0.75rem;
-	align-items: center;
-	padding: 0.5rem 0 0;
+.settings-field-label {
+	color: var(--saito-muted-foreground);
 }
 
-.settings-appspace-build-value {
-	font-family: 'Courier New', Courier, monospace;
-	word-break: break-all;
-}
-
-.settings-appspace-header {
-	width: 100%;
-	box-sizing: border-box;
-}
-
+/* Equal-width action header */
 .settings-appspace-header .settings-actions-container {
 	display: grid;
-	grid-template-columns: repeat(5, minmax(0, 1fr));
-	width: 100%;
-	max-width: 100%;
-	margin: 0;
-	column-gap: 1rem;
-	row-gap: 0.75rem;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: var(--saito-space-sm) var(--saito-space-md);
 }
 
 .settings-appspace-header .settings-actions-container .saito-button-secondary {
 	justify-content: center;
-	text-align: center;
 	width: 100%;
 	min-width: 0;
-}
-
-.settings-actions-container {
-	display: flex;
-	flex-flow: row-reverse;
-	margin-right: 1rem;
-	gap: 1rem;
-	justify-content: left;
-}
-
-.settings-actions-container .saito-button-secondary {
 	margin: 0;
-	padding: 0.8rem 0.7rem;
-	display: flex;
-	align-items: center;
-	justify-content: space-evenly;
-	gap: 0.5rem;
 }
 
 .settings-appspace-user-details {
 	display: grid;
-	grid-template-columns: 10rem max-content;
-	grid-template-rows: repeat(3, 1fr);
-	grid-column-gap: 1.5rem;
-	grid-row-gap: 0.75rem;
-	padding: 1rem;
-	max-width: 100%;
-	overflow: auto;
+	grid-template-columns: 9rem minmax(0, 1fr);
+	column-gap: var(--saito-space-lg);
+	row-gap: var(--saito-space-md);
 	align-items: center;
+	max-width: 100%;
 }
 
-.settings-appspace-user-details > div {
-	width: 100%;
+.settings-appspace-user-details > * {
 	min-width: 0;
 }
 
-.settings-appspace-user-details > div.register-identifier-btn {
-	width: fit-content;
-	cursor: pointer;
-	font-style: italic;
-	border-bottom: 1px dashed;
-}
-
-.settings-appspace-user-details .pubkey-container {
-	justify-content: initial;
-	gap: 1rem;
-}
-
-.profile-default-fee {
-	width: 100% !important;
-	padding: 0.66rem 1rem !important;
-}
-
-.settings-appspace-modules {
-	display: grid;
-	grid-gap: 1.5rem;
-	grid-template-columns: repeat(5, 1fr);
-	margin: 1rem auto;
-	width: calc(100% - 2rem);
-}
-
-.settings-appspace-app {
-	display: grid;
-	grid-template-columns: 2.4rem 1fr min-content;
-	align-items: center;
-	padding: 0 0.5rem;
-	border: 1px solid var(--saito-border-color);
-	border-radius: var(--saito-border-radius);
-	height: 4rem;
-	gap: 0.5rem;
-	width: 100%;
-	cursor: pointer;
+.settings-fee-control {
+	max-width: 14rem;
 }
 
 .pubkey-grid {
 	display: grid;
-	grid-template-columns: minmax(10rem, 1fr) 20px;
-	width: 100%;
+	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: center;
-	font-family: monospace;
-	gap: 1rem;
+	gap: var(--saito-space-md);
+	font-family: var(--saito-font-monospace);
 	cursor: pointer;
 }
 
 .pubkey-grid div {
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 40rem;
-}
-
-.saito-switch {
-	height: 100%;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-}
-
-.settings-appspace-app > div {
 	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+}
+
+.pubkey-grid i {
+	color: var(--saito-muted-foreground);
+}
+
+.pubkey-grid:hover i {
+	color: var(--saito-primary);
+}
+
+/* Module / crypto grids — lighter cards; checkbox inherits Saito */
+.settings-appspace-modules {
+	display: grid;
+	grid-gap: var(--saito-space-sm);
+	grid-template-columns: repeat(5, minmax(0, 1fr));
 	width: 100%;
 }
 
-.settings-appspace-app .settings-appspace-crypto-transfer-name {
-	text-transform: capitalize;
-}
-
-.settings-appspace label.treated {
-	display: none;
-}
-
-.settings-appspace-debug-content {
-	margin: 1rem 0;
-}
-
-#settings-edit-json {
-	text-decoration: underline;
+.settings-appspace-app {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--saito-space-xs);
+	padding: var(--saito-space-xs) var(--saito-space-sm);
+	border-radius: var(--saito-border-radius);
 	cursor: pointer;
 }
 
-#settings-edit-json:hover {
-	text-decoration: none;
+.settings-appspace-app .saito-checkbox {
+	margin: 0;
 }
 
-/*json tree */
+.saito-switch {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.settings-appspace-app > div {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.settings-appspace-app > i {
+	color: var(--saito-muted-foreground);
+}
+
+.settings-appspace-crypto-transfer-name {
+	text-transform: capitalize;
+}
+
+.settings-appspace-debug-content {
+	margin: 0;
+}
 
 .settings-appspace .jsontree_node {
 	list-style: none;
@@ -274,40 +227,52 @@ details.settings-appspace-section[open] > .settings-appspace-section-summary {
 .settings-appspace-storage-content {
 	display: flex;
 	flex-wrap: wrap;
-	padding: 1rem;
-	gap: 3rem;
+	gap: var(--saito-space-xl);
 }
 
 .settings-appspace-localstorage-info,
 .settings-appspace-indexdb-info {
 	display: grid;
-	grid-template-columns: 12rem 20rem;
+	grid-template-columns: 11rem minmax(0, 1fr);
+	column-gap: var(--saito-space-md);
+	row-gap: var(--saito-space-xs);
 }
 
 .settings-appspace-localstorage-info .title,
 .settings-appspace-indexdb-info .title {
-	font-size: larger;
-	margin: 0.5rem 0;
+	margin: 0;
+	grid-column: 1 / -1;
+	font-weight: 600;
 }
 
-.settings-appspace-localstorage-info div:nth-child(2n + 0),
-.settings-appspace-indexdb-info div:nth-child(2n + 0) {
-	font-family: 'Courier New', Courier, monospace;
+.settings-appspace-localstorage-info .quota,
+.settings-appspace-localstorage-info .usage,
+.settings-appspace-localstorage-info .percent,
+.settings-appspace-indexdb-info .quota,
+.settings-appspace-indexdb-info .usage,
+.settings-appspace-indexdb-info .percent {
+	font-family: var(--saito-font-monospace);
 	text-align: right;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	overflow: hidden;
 }
 
-.settings-installed-mod-header {
-	display: flex;
-	justify-content: space-between;
+.settings-appspace-build-info-grid {
+	display: grid;
+	grid-template-columns: 9rem minmax(0, 1fr);
+	column-gap: var(--saito-space-lg);
+	row-gap: var(--saito-space-sm);
+	align-items: center;
 }
 
-#settings-add-app {
-	font-size: 3rem;
-	margin-right: 1rem;
-	cursor: pointer;
+.settings-appspace-build-value {
+	font-family: var(--saito-font-monospace);
+	word-break: break-all;
+}
+
+.settings-installed-mod-header #settings-add-app {
+	margin-left: auto;
 }
 
 .settings-appspace-modules-container:not([open]) #settings-add-app {
@@ -315,58 +280,41 @@ details.settings-appspace-section[open] > .settings-appspace-section-summary {
 }
 
 @media only screen and (max-width: 900px) {
-	/*.settings-appspace {
-		padding: 1.5rem;
-	}*/
 	.settings-appspace-modules {
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 	}
 }
 
 @media only screen and (max-width: 768px) {
-    .settings-appspace-header .settings-actions-container .saito-button-secondary {
-        max-width: calc(32% - 0.333rem);
-    }
+	.settings-appspace {
+		max-height: none;
+		width: 100%;
+		height: 100%;
+	}
+
+	.settings-appspace-body {
+		flex: 1 1 auto;
+	}
 }
 
 @media only screen and (max-width: 650px) {
-	/*.settings-appspace {
-		padding: 1rem;
-		padding-top: 2rem;
-		height: 99vh;
-		width: 99vw;
-	}*/
 	.settings-appspace-modules {
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
-	.settings-appspace-user-details {
-		grid-template-columns: 9rem 1fr;
+
+	.settings-appspace-user-details,
+	.settings-appspace-build-info-grid {
+		grid-template-columns: 8rem minmax(0, 1fr);
 	}
 
 	.settings-appspace-header .settings-actions-container {
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
 	}
-
-	.settings-appspace-user-details .settings-actions-container {
-		gap: 0.6rem;
-		margin-right: 0.5rem;
-		flex-wrap: nowrap;
-		justify-content: flex-end;
-	}
-
-	.settings-appspace-user-details .settings-actions-container .saito-button-secondary {
-		padding: 0.4rem 0.3rem;
-		display: block;
-		white-space: nowrap;
-		max-height: 3.5rem;
-		text-overflow: ellipsis;
-		overflow: hidden;
-	}
 }
 
 @media only screen and (max-width: 500px) {
 	.settings-appspace-modules {
-		grid-template-columns: repeat(2, 1fr);
-		grid-gap: 0.5rem;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-gap: var(--saito-space-xs);
 	}
 }

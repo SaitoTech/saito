@@ -512,20 +512,6 @@ class SettingsAppspace {
 				};
 			});
 
-			document.getElementById('copy-private-key').onclick = (e) => {
-				navigator.clipboard.writeText(this.privateKey);
-				let icon_element = document.querySelector('#copy-private-key i');
-				if (icon_element) {
-					icon_element.classList.toggle('fa-copy');
-					icon_element.classList.toggle('fa-check');
-
-					setTimeout(() => {
-						icon_element.classList.toggle('fa-copy');
-						icon_element.classList.toggle('fa-check');
-					}, 1500);
-				}
-			};
-
 			document.getElementById('restore-privatekey-btn').onclick = async (e) => {
 				this.recover.render();
 			};

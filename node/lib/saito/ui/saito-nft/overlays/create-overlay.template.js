@@ -57,15 +57,20 @@ module.exports = (app, mod) => {
         </div>
         <div class="field">
           <label class="label" for="create-nft-deposit">deposit</label>
-          <input class="saito-input"
-            type="text"
-            inputmode="numeric"
-            pattern="\\d*"
-            placeholder="1"
-            oninput="this.value = this.value.replace(/\\D+/g, '')"
-            id="create-nft-deposit"
-            value="1"
-          />
+          <div class="create-nft-deposit-wrap is-locked" id="create-nft-deposit-wrap">
+            <input class="saito-input"
+              type="text"
+              inputmode="numeric"
+              pattern="\\d*"
+              placeholder="1"
+              oninput="this.value = this.value.replace(/\\D+/g, '')"
+              id="create-nft-deposit"
+              value="1"
+              readonly
+              aria-describedby="create-nft-deposit-lock"
+            />
+            <i class="fa-solid fa-lock create-nft-deposit-lock" id="create-nft-deposit-lock" aria-hidden="true" title="Default deposit"></i>
+          </div>
         </div>
       </div>
 
@@ -78,7 +83,6 @@ module.exports = (app, mod) => {
       </div>
 
       <footer class="footer">
-        <div class="saito-anchor saito-deemphasize" id="create-nft-help-link"><span>need help?</span></div>
         <div class="get-saito-tokens"></div>
         <button type="button" id="next-step" class="saito-button-primary">Next Step</button>
       </footer>

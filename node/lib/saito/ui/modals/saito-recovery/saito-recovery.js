@@ -18,9 +18,21 @@ class SaitoRecover {
       this.modal_overlay.show(PhraseTemplate());
     }
 
-    document.querySelector('.saito-input, .saito-textarea').focus();
-
     this.attachEvents();
+    this.focusPrimaryInput();
+  }
+
+  focusPrimaryInput() {
+    let input =
+      document.getElementById('private-key-input') ||
+      document.getElementById('seed-phrase-input');
+    if (!input) {
+      return;
+    }
+    // Defer until overlay is painted so paste works without an extra click
+    requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+    });
   }
 
   attachEvents() {

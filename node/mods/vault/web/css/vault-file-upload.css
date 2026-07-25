@@ -69,9 +69,16 @@
 }
 
 /*
- * Drop zone: same surface tokens as Create NFT #nft-image-upload
- * (input bg / border / radius). No new colours.
+ * Drop zone: same surface tokens as Create NFT #nft-image-upload.
+ * Hero canvas proportions — tall target, not a compact form strip.
  */
+.vault-upload-overlay .textarea-container {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	min-height: min(32rem, 50vh);
+}
+
 .vault-upload-overlay #vault-file-upload {
 	display: flex;
 	flex-direction: column;
@@ -80,8 +87,8 @@
 	gap: var(--saito-space-md);
 	width: 100%;
 	max-width: 100%;
-	min-height: 16rem;
-	height: auto;
+	height: min(32rem, 50vh);
+	min-height: min(32rem, 50vh);
 	padding: var(--saito-space-xl);
 	box-sizing: border-box;
 	border: var(--border-thickness-thin) solid var(--saito-input-border);
