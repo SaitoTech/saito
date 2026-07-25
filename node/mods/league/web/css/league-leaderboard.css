@@ -22,7 +22,7 @@
 
 .league-leaderboard .saito-table-header {
 	text-align: center;
-	border-bottom: 1px solid var(--border-color-general-dividers);
+	border-bottom: 1px solid var(--saito-border);
 	position: sticky;
 	top: 0px;
 	z-index: 3;
@@ -34,12 +34,12 @@
 }
 
 .saito-table-row.league-leaderboard-ranking {
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 	background: none;
 }
 
 .my-leaderboard-position {
-	border: var(--border-thickness-thin) solid var(--saito-border-color);
+	border: 1px solid var(--saito-border);
 }
 
 .my-leaderboard-position > div:first-child {

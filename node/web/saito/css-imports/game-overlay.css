@@ -94,7 +94,7 @@
 /** For various common overlays**/
 
 .rules-overlay {
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
   padding: 4rem;
 
   /* No scrollbars */
@@ -136,7 +136,7 @@
   width: min(800px, 95vw);
   overflow-y: auto;
   border-radius: 2%;
-  border: 2px solid var(--saito-border-color-dark);
+  border: 2px solid var(--saito-border);
   cursor: grab;
 }
 
@@ -375,8 +375,8 @@ Useful declarations for game stats
 .debug_overlay {
   max-height: 90vh;
   max-width: 92vw;
-  background: var(--saito-background-color);
-  color: var(--saito-font-color);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
   padding: 3rem;
   padding-left: 2rem;
   overflow: auto;

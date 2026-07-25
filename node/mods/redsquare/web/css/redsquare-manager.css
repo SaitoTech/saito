@@ -25,7 +25,7 @@
   min-height: 5.6rem;
   padding: 0 var(--saito-space-lg);
   background: var(--saito-background);
-  border-bottom: var(--border-thickness-thin) solid var(--saito-border);
+  border-bottom: 1px solid var(--saito-border);
 }
 
 /* Header is omitted from the DOM when the view does not require chrome. */
@@ -87,7 +87,7 @@
   width: 100%;
   padding: var(--saito-space-sm) var(--saito-space-lg);
   border: none;
-  background: var(--saito-card);
+  background: var(--saito-card-wash);
   color: var(--saito-foreground);
   text-align: center;
   cursor: pointer;

@@ -6,9 +6,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background: var(--saito-popover);
-  box-shadow: var(--saito-overlay-panel-shadow);
-  border-radius: var(--saito-radius-lg);
+  /* historically borderless; keep unique vs shared panel border */
   border: 0;
   overflow: hidden;
   position: fixed;
@@ -38,7 +36,7 @@
 
 .pseudo-overlay-controls .saito-icon-button:hover {
   background-color: var(--saito-primary);
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
 }
 
 .saito-file-transfer-overlay.minimize {
@@ -90,7 +88,7 @@
 }
 
 .teleporter-status .fa-xmark {
-  color: var(--saito-status-danger);
+  color: var(--saito-destructive);
   font-size: 2.8rem;
 }
 
@@ -106,9 +104,9 @@
 
 /**** Temporary for developing file transfer in chat ***/
 .saito-file-transfer {
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
   position: relative;
-  border: var(--border-thickness-thin) dashed var(--saito-file-transfer-border);
+  border: 1px dashed var(--saito-border);
   display: grid;
   align-items: center;
   padding: 1rem;
@@ -118,12 +116,12 @@
   column-gap: 2rem;
   justify-items: flex-end;
   overflow: hidden;
-  background-color: var(--saito-file-transfer-bg);
-  color: var(--saito-file-transfer-fg);
+  background-color: var(--saito-secondary);
+  color: var(--saito-secondary-foreground);
 }
 
 .saito-file-transfer.complete {
-  border: var(--border-thickness-thin) solid var(--saito-file-transfer-border);
+  border: 1px solid var(--saito-border);
 }
 
 .saito-file-transfer.received {

@@ -20,7 +20,7 @@
 	flex: 0 0 auto;
 	/* Symmetric vertical rhythm; extra right inset clears Saito closebox */
 	padding: var(--saito-space-lg) 5.25rem var(--saito-space-lg) var(--saito-space-xl);
-	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
+	border-bottom: 1px solid var(--saito-border);
 }
 
 .listing-detail > header .saito-identicon {
@@ -30,7 +30,7 @@
 	min-width: 4.6rem;
 	min-height: 4.6rem;
 	border: none;
-	border-radius: var(--saito-radius-md);
+	border-radius: var(--saito-radius);
 	object-fit: cover;
 }
 
@@ -126,7 +126,7 @@
 	font-family: var(--saito-font-mono, ui-monospace, monospace);
 	font-size: 1.15rem;
 	line-height: 1.35;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 	word-break: break-all;
 	overflow-wrap: anywhere;
 	white-space: normal;
@@ -217,7 +217,7 @@
 	min-height: 2.75rem;
 	padding: 0;
 	overflow: hidden;
-	border: var(--border-thickness-medium) solid transparent;
+	border: 2px solid transparent;
 	border-radius: var(--saito-radius-sm);
 	background: var(--saito-muted);
 	cursor: pointer;
@@ -267,7 +267,7 @@
 
 .listing-detail .section + .section:not(.checkout) {
 	padding-top: var(--saito-space-md);
-	border-top: var(--border-thickness-thin) solid var(--saito-border-color);
+	border-top: 1px solid var(--saito-border);
 }
 
 .listing-detail .label {
@@ -276,12 +276,12 @@
 	font-family: var(--saito-font-medium);
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .listing-detail .amount {
 	margin: 0;
-	font-size: var(--font-size-h5);
+	font-size: 2.5rem;
 	font-family: var(--saito-font-heavy);
 	line-height: 1.15;
 	letter-spacing: -0.02em;
@@ -293,7 +293,7 @@
 	margin: 0;
 	font-size: var(--font-size-medium);
 	line-height: 1.5;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 	overflow-wrap: anywhere;
 }
 
@@ -324,7 +324,7 @@
 }
 
 .listing-detail .facts dt {
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .listing-detail .facts dt::after {
@@ -368,7 +368,7 @@
 .listing-detail .quantity label {
 	margin: 0;
 	font-size: var(--font-size-tiny);
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .listing-detail .quantity input {
@@ -378,7 +378,7 @@
 
 .listing-detail .hint {
 	font-size: var(--font-size-tiny);
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .listing-detail .note {
@@ -439,7 +439,7 @@
 	}
 
 	.listing-detail .amount {
-		font-size: var(--font-size-h6);
+		font-size: 2rem;
 	}
 
 	.listing-detail .facts > div {
@@ -503,8 +503,8 @@
 		background: linear-gradient(
 			180deg,
 			transparent 0%,
-			var(--saito-overlay-panel-bg) 28%,
-			var(--saito-overlay-panel-bg) 100%
+			var(--saito-card) 28%,
+			var(--saito-card) 100%
 		);
 	}
 

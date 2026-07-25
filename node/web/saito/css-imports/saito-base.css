@@ -22,7 +22,7 @@
 
 body {
   line-height: 1.2;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-family: var(--saito-font);
   margin: 0;
   font-size: 1.6rem;
@@ -33,7 +33,7 @@ body {
   max-height: -webkit-fill-available;
   max-width: -webkit-fill-available;
   overflow: hidden;
-  background: var(--saito-canvas-background, var(--saito-background));
+  background: var(--saito-canvas-wash);
   background-attachment: fixed;
   background-size: cover;
   transition: height 0.3s;
@@ -46,7 +46,6 @@ body {
 a {
   text-decoration: none;
   cursor: pointer;
-  /*color: rgb(29, 155, 240);*/
   color: var(--saito-primary);
 }
 
@@ -55,21 +54,18 @@ a:hover {
   opacity: 0.8;
 }
 
-/* Inline text link — dashed underline, subtle by default, brightens on hover */
-.saito-text-link,
-a.saito-text-link {
+.saito-text-link, a.saito-text-link {
   font-weight: inherit;
   cursor: pointer;
-  color: var(--saito-font-color-secondary, var(--saito-muted-foreground));
+  color: var(--saito-muted-foreground);
   text-decoration: underline dashed;
   text-decoration-thickness: from-font;
   text-underline-offset: 0.15em;
   opacity: 1;
 }
 
-.saito-text-link:hover,
-a.saito-text-link:hover {
-  color: var(--saito-font-color, var(--saito-foreground));
+.saito-text-link:hover, a.saito-text-link:hover {
+  color: var(--saito-foreground);
   opacity: 1;
 }
 
@@ -91,27 +87,27 @@ h6 {
 }
 
 h1 {
-  font-size: var(--font-size-h1);
+  font-size: 5rem;
 }
 
 h2 {
-  font-size: var(--font-size-h2);
+  font-size: 4.5rem;
 }
 
 h3 {
-  font-size: var(--font-size-h3);
+  font-size: 4rem;
 }
 
 h4 {
-  font-size: var(--font-size-h4);
+  font-size: 3.5rem;
 }
 
 h5 {
-  font-size: var(--font-size-h5);
+  font-size: 2.5rem;
 }
 
 h6 {
-  font-size: var(--font-size-h6);
+  font-size: 2rem;
 }
 
 iframe {
@@ -173,7 +169,7 @@ Divider
 -----------------------------------------------------------------*/
 
 hr {
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   border-color: var(--saito-border);
   margin: 2.5rem;
 }
@@ -193,7 +189,7 @@ Scrollbars
   background: linear-gradient(
     90deg,
     transparent 0 45%,
-    var(--saito-border-color) 45% 55%,
+    var(--saito-border) 45% 55%,
     transparent 55% 100%
   );
   */
@@ -268,18 +264,18 @@ Scrollbars
 }
 
 #site-message-wrapper {
-  border: var(--border-thickness-medium) solid var(--saito-primary);
+  border: 2px solid var(--saito-primary);
   min-width: 500px;
   max-width: 100vw;
   padding: 3rem;
   font-size: var(--font-size-large);
   background: var(--saito-primary);
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   position: fixed;
   bottom: min(5rem, 10vh);
   left: min(5rem, 5vw);
   z-index: 200;
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
   user-select: none;
   cursor: default;
   transition: all 0.5s;
@@ -378,7 +374,7 @@ Media Queries
   .saito-form-control
 ):is(:focus, :focus-visible) {
   outline: none !important;
-  border-color: var(--saito-input-border) !important;
+  border-color: var(--saito-border) !important;
   box-shadow: none !important;
 }
 

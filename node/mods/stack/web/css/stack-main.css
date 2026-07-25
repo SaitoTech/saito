@@ -46,14 +46,14 @@
   width: 48px;
   height: 48px;
   border-radius: 8px;
-  background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
+  background: var(--saito-background);
+  border: 1px solid var(--saito-border);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .stack-subscriptions-toggle:hover {
@@ -62,21 +62,14 @@
   transform: scale(1.05);
 }
 
-/* CTA Section - centered vertically on desktop */
+/* CTA Section - centered vertically on desktop; chrome from .saito-cta */
 .stack-cta-section {
   flex: 0 1 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: row;
   gap: 4rem;
-  padding: 3.2rem;
   max-width: 1180px;
   margin: 0 auto;
   width: min(95vw, 1180px);
-  border-radius: calc(var(--saito-border-radius) + 0.15rem);
-  background: var(--saito-overlay-panel-background);
-  box-shadow: var(--saito-overlay-panel-shadow);
-  border: 1px solid var(--saito-overlay-panel-border);
 }
 
 @media (max-width: 768px) {
@@ -89,8 +82,6 @@
       padding: 0;
       min-height: auto;
       height: auto;
-      border: none;
-      background: transparent;
       flex-direction: column;
       align-self: center;
   }
@@ -125,8 +116,8 @@
 
 .stack-cta-image-back {
   transform: rotateY(180deg);
-  background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
+  background: var(--saito-background);
+  border: 1px solid var(--saito-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -154,7 +145,7 @@
   background: linear-gradient(
     135deg,
     var(--saito-primary) 0%,
-    var(--saito-primary-dark, #4a90e2) 100%
+    var(--saito-chart-4, #4a90e2) 100%
   );
   display: flex;
   align-items: center;
@@ -173,7 +164,7 @@
 
 .stack-cta-image-back-content {
   text-align: left; /* Left-align for explanation panel feel */
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   transform: rotateY(0deg);
   width: 100%;
   height: 100%;
@@ -197,7 +188,7 @@
 .stack-cta-image-back-content h3 {
   font-size: 2.4rem; /* 24px - clear section title */
   margin: 0 0 1.5rem 0;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.01em;
@@ -207,7 +198,7 @@
   font-size: 1.6rem; /* 16px minimum - readable body text */
   line-height: 1.6;
   margin: 0 0 2rem 0;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   opacity: 1;
   font-weight: 400;
 }
@@ -222,11 +213,11 @@
 .stack-features-list li {
   padding: 0.75rem 0;
   font-size: 1.6rem; /* 16px minimum - readable list items */
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   opacity: 1;
   font-weight: 400;
   line-height: 1.6;
-  border-bottom: 1px solid var(--saito-border-color);
+  border-bottom: 1px solid var(--saito-border);
 }
 
 .stack-features-list li:last-child {
@@ -252,7 +243,7 @@
 }
 
 .stack-learn-more-btn:hover {
-  color: var(--saito-primary-dark, var(--saito-primary));
+  color: var(--saito-chart-4, var(--saito-primary));
   text-decoration-thickness: 2px;
 }
 
@@ -361,7 +352,7 @@
 
 .stack-cta-subtitle {
   margin: 0 0 4rem;
-  color: var(--saito-font-color-secondary, var(--saito-font-color-light));
+  color: var(--saito-muted-foreground);
   font-size: 1.5rem;
   letter-spacing: 0.22em;
   line-height: 1.5;
@@ -372,14 +363,14 @@
   font-size: 5rem;
   font-weight: 700;
   margin: 0 0 1.5rem 0;
-  color: var(--saito-font-color-heavy, var(--saito-font-color));
+  color: var(--saito-foreground);
   line-height: 1.2;
 }
 
 .stack-cta-description {
   font-size: 1.8rem;
   line-height: 1.7;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   margin: 0 0 2.5rem 0;
   font-weight: 300;
   padding: 0 1rem;
@@ -397,7 +388,7 @@
   min-width: 17rem;
   min-height: 6.4rem;
   padding: 1.6rem 3.6rem;
-  border-radius: var(--saito-button-radius, var(--saito-border-radius));
+  border-radius: var(--saito-radius, var(--saito-radius));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -436,7 +427,7 @@
   text-align: center;
   margin-bottom: 40px;
   padding-bottom: 20px;
-  border-bottom: 2px solid var(--saito-border-color);
+  border-bottom: 2px solid var(--saito-border);
 }
 
 .stack-header h1 {
@@ -447,7 +438,7 @@
 
 .stack-subtitle {
   font-size: 1.9rem; /* 19px - explicit rem for consistency */
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   margin-top: 10px;
 }
 
@@ -464,8 +455,8 @@
 }
 
 .stack-sidebar-section {
-  background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
+  background: var(--saito-background);
+  border: 1px solid var(--saito-border);
   border-radius: 8px;
   padding: 20px;
 }
@@ -475,7 +466,7 @@
   margin-bottom: 15px;
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--saito-font-color-heavy, var(--saito-font-color));
+  color: var(--saito-foreground);
 }
 
 .stack-publications-list,
@@ -494,8 +485,8 @@
 }
 
 .stack-post {
-  background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
+  background: var(--saito-background);
+  border: 1px solid var(--saito-border);
   border-radius: 8px;
   padding: 25px;
   transition: box-shadow 0.3s ease;
@@ -514,7 +505,7 @@
   align-items: center;
   gap: 15px;
   font-size: 1.4rem; /* 14px minimum - metadata text */
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
 }
 
 .stack-post-author {
@@ -523,7 +514,7 @@
 }
 
 .stack-post-date {
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
 }
 
 .stack-tier-badge {
@@ -546,18 +537,18 @@
 .stack-post-title {
   font-size: 2.9rem; /* 29px - explicit rem for consistency */
   margin: 0 0 10px 0;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .stack-post-excerpt {
   font-size: 1.8rem; /* 18px - explicit rem for consistency */
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   margin-bottom: 15px;
   font-style: italic;
 }
 
 .stack-post-body {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   line-height: 1.6;
   margin-bottom: 15px;
 }
@@ -580,7 +571,7 @@
 .stack-post-actions {
   margin-top: 20px;
   padding-top: 15px;
-  border-top: 1px solid var(--saito-border-color);
+  border-top: 1px solid var(--saito-border);
 }
 
 /* Link-style control (not a DS button) */
@@ -592,13 +583,13 @@
 }
 
 .stack-btn-link:hover {
-  color: var(--saito-primary-dark);
+  color: var(--saito-chart-4);
 }
 
 /* Create Post Form */
 .stack-create-post {
-  background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
+  background: var(--saito-background);
+  border: 1px solid var(--saito-border);
   border-radius: 8px;
   padding: 30px;
   max-width: 800px;
@@ -618,7 +609,7 @@
   display: block;
   margin-bottom: 8px;
   font-weight: bold;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .stack-form-actions {
@@ -633,10 +624,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   border-radius: 6px;
   margin-bottom: 10px;
-  background: var(--saito-background-color);
+  background: var(--saito-background);
 }
 
 .stack-subscription-info {
@@ -645,13 +636,13 @@
 
 .stack-subscription-author {
   font-weight: bold;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   margin-bottom: 4px;
 }
 
 .stack-subscription-tier {
   font-size: 1.4rem; /* 14px minimum - tier text */
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
 }
 
 .stack-subscribe-btn,
@@ -664,7 +655,7 @@
 .stack-loading {
   text-align: center;
   padding: 40px;
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   font-size: 1.8rem; /* 18px - explicit rem for consistency */
 }
 

@@ -222,7 +222,7 @@
 
 .league-wizard-rankings-select {
 	color: var(--saito-white);
-	border-color: var(--saito-border-color);
+	border-color: var(--saito-border);
 }
 
 .league-wizard-game-invite {

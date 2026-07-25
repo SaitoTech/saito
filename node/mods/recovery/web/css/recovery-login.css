@@ -10,6 +10,6 @@
 .recovery-wallet-selection .saito-user {
 	width: unset;
 	padding: var(--saito-space-md);
-	border: var(--border-thickness-thin) solid var(--saito-border);
-	border-radius: var(--saito-border-radius);
+	border: 1px solid var(--saito-border);
+	border-radius: var(--saito-radius);
 }

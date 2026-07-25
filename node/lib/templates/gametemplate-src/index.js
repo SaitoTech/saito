@@ -97,7 +97,7 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
         left: 50%;
         top: 50%;
         border-radius: 1rem;
-        border: 1px solid var(--saito-border-color);
+        border: 1px solid var(--saito-border);
         transform: translate(-50%,-50%);
       }
 
@@ -111,7 +111,7 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
         justify-content: center;
         align-items: center;
         background-color: rgba(230, 230, 230, 0.7);
-        border: 1px solid var(--saito-border-color);
+        border: 1px solid var(--saito-border);
         border-radius: 1rem;
       }
 
@@ -127,7 +127,7 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
         justify-content: space-between;
         align-items: center;
         background-color: rgba(230, 230, 230, 0.5);
-        border: 1px solid var(--saito-border-color);
+        border: 1px solid var(--saito-border);
         border-radius: 1rem;
         padding-top: 2rem;
       }

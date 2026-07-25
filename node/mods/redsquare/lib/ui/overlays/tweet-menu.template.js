@@ -13,7 +13,7 @@ module.exports = (menu) => {
     .join('');
 
   return `
-    <nav class="tweet-menu saito-menu-select-subtle" role="menu" aria-label="Tweet options">
+    <nav class="tweet-menu saito-overlay-panel compact saito-menu-select-subtle" role="menu" aria-label="Tweet options">
       ${items}
     </nav>
   `;

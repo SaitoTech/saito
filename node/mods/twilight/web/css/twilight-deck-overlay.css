@@ -4,7 +4,7 @@
 	max-height: 90vh;
 	min-height: 90vh;
 	overflow-y: auto;
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 }
 
 .deck-overlay h1 {

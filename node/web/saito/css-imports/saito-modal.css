@@ -21,8 +21,8 @@
   padding-bottom: var(--saito-space-sm, 0.5rem);
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: var(--font-size-h5);
-  color: var(--saito-font-color-heavy);
+  font-size: 2.5rem;
+  color: var(--saito-foreground);
 }
 
 .saito-modal-content {
@@ -30,7 +30,7 @@
 }
 
 .saito-share-link {
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
 }
 
 .saito-contact {
@@ -40,7 +40,7 @@
   gap: var(--saito-space-md);
   margin-top: var(--saito-space-sm, 0.5rem);
   padding: var(--saito-space-sm, 0.5rem);
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
 }
 
 /* Click events target the contact container, not nested user chrome */
@@ -53,12 +53,12 @@
   left: 3rem;
   top: 0;
   z-index: 2;
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   text-shadow: 2px 2px 2px var(--saito-black);
 }
 
 .saito-modal-title + .saito-modal-content {
-  border-top: var(--border-thickness-thick) solid var(--border-color-general-dividers);
+  border-top: 3px solid var(--saito-border);
 }
 
 .saito-modal-content .saito-user {
@@ -98,8 +98,8 @@
   height: 6rem;
   margin-top: 0.25rem;
   padding: 1.5rem 3rem;
-  border-radius: var(--saito-border-radius);
-  font-size: var(--font-size-h6);
+  border-radius: var(--saito-radius);
+  font-size: 2rem;
   cursor: pointer;
   position: relative;
 }
@@ -115,12 +115,12 @@
   align-items: center;
   gap: var(--saito-space-lg);
   padding: var(--saito-space-sm, 0.5rem);
-  font-size: var(--font-size-h6);
+  font-size: 2rem;
 }
 
 .saito-modal-point i {
   justify-self: center;
-  font-size: var(--font-size-h5);
+  font-size: 2.5rem;
 }
 
 .saito-modal-menu-option > i {
@@ -135,7 +135,7 @@
 }
 
 .saito-modal-title .saito-user .saito-address {
-  font-size: var(--font-size-h4);
+  font-size: 3.5rem;
 }
 
 .saito-overlaid-icon {
@@ -148,9 +148,9 @@
   width: min(90%, 5rem);
   height: min(90%, 5rem);
   border-radius: 50%;
-  border: 1px solid var(--saito-font-color);
-  background: var(--saito-chip-bg);
-  color: var(--saito-chip-fg);
+  border: 1px solid var(--saito-foreground);
+  background: var(--saito-secondary);
+  color: var(--saito-secondary-foreground);
 }
 
 @media only screen and (max-width: 1000px) {
@@ -193,7 +193,7 @@
 .qr-share-header {
   display: flex;
   justify-content: center;
-  font-size: var(--font-size-h5);
+  font-size: 2.5rem;
 }
 
 #qr-share-link {
@@ -206,7 +206,7 @@
   max-width: 24rem;
   width: 24vh;
   padding: var(--border-padding-normal);
-  border: var(--border-thickness-medium) solid var(--saito-primary);
-  border-radius: var(--saito-border-radius);
-  background: var(--saito-background-color);
+  border: 2px solid var(--saito-primary);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
 }

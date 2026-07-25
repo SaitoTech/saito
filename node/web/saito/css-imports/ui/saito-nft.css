@@ -1,4 +1,10 @@
 /* NFT overlay / card UI — owned by lib/saito/ui/saito-nft */
+:root {
+  --saito-status-code-foreground: #10b981;
+  --saito-status-code-background: var(--saito-background);
+  --saito-control-ring-shadow: 0 0 0 2px var(--saito-background);
+}
+
 /* ============================================
    NFT OVERLAY CONTAINER
    ============================================ */
@@ -17,7 +23,7 @@
    ============================================ */
 .saito-nft-overlay.header {
   padding: 14px 18px;
-  border-bottom: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
+  border-bottom: 1px solid var(--saito-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -46,7 +52,7 @@
 
 .saito-nft-header-sub {
   font-size: 1.7rem;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -94,7 +100,7 @@
   height: auto;
   min-height: 100%;
   transition: transform 0.35s ease;
-  background: var(--saito-background-color);
+  background: var(--saito-background);
 }
 
 .saito-nft-panel-view {
@@ -177,16 +183,16 @@
 .nft-info-table {
   width: 100%;
   margin-bottom: 2rem;
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
-  border-radius: var(--saito-radius-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
   overflow: hidden;
-  background: var(--saito-surface-hover);
+  background: var(--saito-accent);
 }
 
 .nft-info-row {
   display: grid;
   grid-template-columns: 120px 1fr;
-  border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
+  border-bottom: 1px solid var(--saito-border);
   padding: 0.8rem 1rem;
   align-items: start;
 }
@@ -202,13 +208,13 @@
 
 .nft-info-label {
   font-weight: bold;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-size: 1.6rem;
   margin-right: 1rem;
 }
 
 .nft-info-value {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-size: 1.6rem;
   word-break: break-word;
   line-height: 1.5;
@@ -225,18 +231,18 @@
   flex-direction: column;
   gap: 0.3rem;
   padding: 0.6rem;
-  background: var(--saito-surface-color);
+  background: var(--saito-card);
   border-radius: var(--saito-radius-sm);
 }
 
 .nft-info-metadata-key {
   font-weight: 600;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-size: 1.3rem;
 }
 
 .nft-info-metadata-value {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-size: 1.3rem;
   word-break: break-word;
   white-space: pre-wrap;
@@ -244,7 +250,7 @@
 }
 
 .nft-info-metadata-empty {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-style: italic;
   font-size: 1.3rem;
 }
@@ -349,9 +355,9 @@
   min-height: min(24rem, 40vh);
   padding: var(--saito-space-xl);
   box-sizing: border-box;
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
-  border-radius: var(--saito-input-radius);
-  background-color: var(--saito-input-bg);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background-color: var(--saito-secondary);
   cursor: pointer;
 }
 
@@ -416,9 +422,9 @@
   column-gap: var(--saito-space-md);
   justify-items: flex-end;
   overflow: hidden;
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
-  border-radius: var(--saito-input-radius);
-  background-color: var(--saito-input-bg);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background-color: var(--saito-secondary);
 }
 
 .saito-nft-create .file i {
@@ -511,8 +517,8 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.2rem;
-  background: var(--saito-background-color);
-  border: var(--border-thickness-medium) solid var(--saito-border-color);
+  background: var(--saito-background);
+  border: 2px solid var(--saito-border);
   border-radius: var(--saito-radius-lg);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -521,7 +527,7 @@
 
 .saito-nft-description-text-overlay {
   font-size: 1.6rem;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   line-height: 1.5;
   word-break: break-word;
   text-align: center;
@@ -549,7 +555,7 @@
 
 .saito-nft-description {
   font-size: 14px;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   line-height: 1.4;
   max-width: 100%;
   max-height: 30vh;
@@ -568,7 +574,7 @@
 }
 
 .saito-nft-description.editable:hover {
-  background: var(--saito-surface-selected);
+  background: var(--saito-secondary);
   transform: translateY(-1px);
 }
 
@@ -584,8 +590,8 @@
   overflow: hidden;
   overflow-y: auto;
   white-space: pre-wrap;
-  color: var(--saito-status-code-fg);
-  background: var(--saito-status-code-bg);
+  color: var(--saito-status-code-foreground);
+  background: var(--saito-status-code-background);
   font-size: 1.75rem;
 }
 
@@ -597,7 +603,7 @@
   gap: 12px;
   justify-content: flex-end;
   padding: 1rem 1.8rem;
-  border-top: var(--border-thickness-thin) solid var(--saito-border-color);
+  border-top: 1px solid var(--saito-border);
   transition: opacity 0.3s ease-in-out;
   margin-top: auto;
 }
@@ -611,7 +617,7 @@
 .saito-nft-footer-btn {
   flex: 1;
   padding: 12px 24px;
-  border-radius: var(--saito-radius-md);
+  border-radius: var(--saito-radius);
   font-weight: 600;
   max-width: 20rem;
   transition: all 0.2s ease;
@@ -658,7 +664,7 @@
 
 .saito-nft-mode-title {
   margin-bottom: var(--saito-space-lg);
-  font-size: var(--font-size-h6);
+  font-size: 2rem;
 }
 
 /* ============================================
@@ -679,7 +685,7 @@
   bottom: 0;
   width: 100%;
   height: 100%;
-  background: var(--saito-background-color);
+  background: var(--saito-background);
   padding: 2rem;
   display: flex;
   flex-direction: column;
@@ -705,10 +711,10 @@
 .split-instructions {
   font-size: 2.2rem;
   line-height: 1.6;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   margin-bottom: 2rem;
   padding: 0.3rem;
-  border-radius: var(--saito-radius-md);
+  border-radius: var(--saito-radius);
   max-width: 600px;
   width: 100%;
   font-weight: 500;
@@ -729,8 +735,8 @@
   overflow: hidden;
   position: relative;
   align-items: center;
-  background: var(--saito-background-color);
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
+  background: var(--saito-background);
+  border: 1px solid var(--saito-border);
   padding: 0;
   height: 50px;
 }
@@ -741,12 +747,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--saito-background-color);
-  border: var(--border-thickness-medium) solid var(--saito-primary);
+  background: var(--saito-background);
+  border: 2px solid var(--saito-primary);
   border-radius: 8px;
   font-size: 2.4rem;
   font-weight: 700;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   box-shadow: var(--saito-elevation-1);
   user-select: none;
 }
@@ -761,7 +767,7 @@
   -moz-user-select: none;
   -ms-user-select: none;
   cursor: default;
-  background: var(--saito-surface-selected);
+  background: var(--saito-secondary);
   transition: background 0.2s ease;
 }
 
@@ -801,7 +807,7 @@
   left: 50%;
   width: 3px;
   height: 20px;
-  background: var(--saito-primary-text);
+  background: var(--saito-primary-foreground);
   border-radius: 2px;
   transform: translateX(-50%);
 }
@@ -815,14 +821,14 @@
 }
 
 .split-bar:hover {
-  background: var(--saito-primary-dark);
+  background: var(--saito-chart-4);
   box-shadow:
     var(--saito-control-ring-shadow),
     var(--saito-elevation-2);
 }
 
 .split-bar:active {
-  background: var(--saito-primary-dark);
+  background: var(--saito-chart-4);
 }
 
 /* Split buttons container */
@@ -850,7 +856,7 @@
   border-radius: var(--saito-radius-sm);
   border: none;
   background: var(--saito-primary);
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   font-weight: 600;
   font-size: 1.3rem;
   cursor: pointer;
@@ -860,20 +866,20 @@
 
 /* Return button styling (left-aligned, secondary style) */
 .split-return-button {
-  background: var(--saito-surface-selected);
-  color: var(--saito-font-color);
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
 }
 
 .split-return-button:hover {
-  background: var(--saito-surface-hover);
+  background: var(--saito-accent);
   border-color: var(--saito-primary);
 }
 
 .split-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: var(--saito-button-disabled-bg);
+  background: var(--saito-button-disabled-background);
 }
 
 .split-button:not(:disabled):hover {
@@ -888,15 +894,15 @@
 }
 
 .atomize-button {
-  background: var(--saito-primary-text);
+  background: var(--saito-primary-foreground);
   color: var(--saito-primary);
 }
 
 .atomize-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: var(--saito-button-disabled-bg);
-  color: var(--saito-button-disabled-fg);
+  background: var(--saito-button-disabled-background);
+  color: var(--saito-button-disabled-foreground);
 }
 
 /* ============================================
@@ -910,7 +916,7 @@
 
 .nft-slips-title {
   font-weight: bold;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-size: 1.4rem;
   margin-bottom: 1rem;
 }
@@ -925,9 +931,9 @@
   flex: 1 1 250px;
   max-width: 200px;
   padding: 1.2rem;
-  background: var(--saito-surface-hover);
-  border-radius: var(--saito-radius-md);
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
+  background: var(--saito-accent);
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
@@ -942,12 +948,12 @@
 
 .nft-slip-box-label {
   font-weight: bold;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-size: 1.3rem;
 }
 
 .nft-slip-box-value {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-size: 1.3rem;
   word-break: break-word;
   text-align: right;
@@ -958,7 +964,7 @@
   gap: 1rem;
   margin-top: 0.5rem;
   padding-top: 0.8rem;
-  border-top: var(--border-thickness-thin) solid var(--saito-border-color);
+  border-top: 1px solid var(--saito-border);
   justify-content: flex-end;
 }
 
@@ -976,7 +982,7 @@
 .utxo-deposit-btn:hover,
 .utxo-split-btn:hover,
 .utxo-delete-btn:hover {
-  background: var(--saito-surface-selected);
+  background: var(--saito-secondary);
   transform: translateX(2px);
 }
 
@@ -1022,7 +1028,7 @@
   text-decoration: underline dashed;
   text-underline-offset: 0.25em;
   border-radius: 0;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   display: flex;
   align-items: center;
   gap: 0.8rem;
@@ -1200,8 +1206,8 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
   width: 100%;
   height: 100px;
   padding: 0.5rem;
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
-  border-radius: var(--saito-input-radius);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
   resize: none;
 }
 .send-nft-list {
@@ -1228,9 +1234,9 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
   gap: 3rem;
 }
 .nft-creator > .saito-file-transfer {
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
   position: relative;
-  border: var(--border-thickness-thin) dashed var(--saito-file-transfer-border);
+  border: 1px dashed var(--saito-border);
   display: grid;
   align-items: center;
   padding: 2rem;
@@ -1240,19 +1246,19 @@ html[data-theme='noir'] .saito-nft-panel-send .nft-advanced-toggle:active {
   column-gap: 2rem;
   justify-items: flex-end;
   overflow: hidden;
-  background-color: var(--saito-file-transfer-bg);
-  color: var(--saito-file-transfer-fg);
+  background-color: var(--saito-secondary);
+  color: var(--saito-secondary-foreground);
 }
 .fancy-slider-bar {
   position: relative;
   width: 100%;
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
   display: flex;
   align-items: center;
   z-index: 10;
   padding: 0;
   height: 4.5rem;
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
 }
 .split-half {
   display: flex;
@@ -1278,25 +1284,25 @@ nft cards
   height: 24rem;
   display: flex;
   flex-direction: column;
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
-  border-radius: var(--saito-border-radius);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
   overflow: hidden;
   padding: 1rem;
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
   flex: 0 0 22rem;
 }
 .saito-nft-card:hover {
   cursor: pointer;
-  border: var(--border-thickness-thin) solid var(--saito-primary);
+  border: 1px solid var(--saito-primary);
 }
 .saito-nft-card.nft-selected {
-  border: var(--border-thickness-thin) solid var(--saito-primary);
+  border: 1px solid var(--saito-primary);
 }
 .saito-nft-card-title {
   position: absolute;
   width: 20rem;
-  color: var(--saito-font-color);
-  background-color: var(--background-color-shim-dark);
+  color: var(--saito-foreground);
+  background-color: color-mix(in srgb, var(--saito-black) 70%, transparent);
   z-index: 9;
   top: 18px;
   line-height: 4rem;
@@ -1310,7 +1316,7 @@ nft cards
   background-size: cover;
   background-repeat: no-repeat;
   background-image: url('/saito/img/dreamscape.png');
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
   position: relative;
   overflow: hidden;
   border-bottom-left-radius: unset;
@@ -1368,9 +1374,9 @@ nft cards
   -webkit-line-clamp: 10;
   overflow: hidden;
   white-space: pre;
-  color: var(--saito-status-code-fg);
+  color: var(--saito-status-code-foreground);
   padding: 5px;
-  background: var(--saito-status-code-bg);
+  background: var(--saito-status-code-background);
   height: 100%;
 }
 @keyframes spin {

@@ -33,11 +33,11 @@
 
 .post-header {
   margin-bottom: 2rem;
-  background: var(--saito-background-color);
+  background: var(--saito-background);
   padding-bottom: 1rem;
   top: -2rem;
   padding-top: 0.5rem;
-  border-bottom: 1px solid var(--saito-border-color);
+  border-bottom: 1px solid var(--saito-border);
 }
 
 .post-title {

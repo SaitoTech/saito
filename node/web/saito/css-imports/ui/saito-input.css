@@ -28,17 +28,14 @@ div.saito-input .text-input {
 	align-items: center;
 	justify-content: space-between;
 	flex-direction: column;
-	border: var(--border-thickness-medium) solid var(--saito-overlay-panel-border);
-	border-color: var(--saito-border);
-	border-radius: var(--saito-border-radius);
+	/* thicker than default overlay-panel border for chat resize visibility */
+	border-width: 2px;
 
 	/*
 	We can't control for if user resizes chat-popup, better to have visibile borders
 	border-top: none;
 	border-left: none;
 	*/
-	background: var(--saito-overlay-panel-background);
-	box-shadow: var(--saito-overlay-panel-shadow);
 }
 .saito-mention {
 	cursor: pointer;
@@ -49,7 +46,7 @@ div.saito-input .text-input {
 	width: fit-content;
 }
 .saito-mention:hover {
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 }* + .saito-mention {
 	margin-left: 8px;
 }
@@ -86,8 +83,9 @@ div.saito-input .text-input {
 	justify-content: space-evenly;
 	width: 100%;
 	height: 5rem;
-	background: var(--saito-overlay-panel-background);
-	border-top: 1px var(--border-color-general-dividers);
+	background-color: var(--saito-popover);
+	background-image: var(--saito-popover-wash);
+	border-top: 1px var(--saito-border);
 }
 .selection-box-tabs i {
 	font-size: 2.5rem;
@@ -144,9 +142,6 @@ emoji-picker {
 	font-size: 2rem;
 	overflow: auto;
 	flex: 1;
-	background: var(--saito-overlay-panel-background);
-	border-radius: var(--saito-input-radius);
-	border-color: var(--saito-border);
 
 	/* for popping up over input field */
 	max-height: 200px;
@@ -176,7 +171,7 @@ emoji-picker {
 	font-size: 2rem;
 }
 .saito-input-quote blockquote {
-	background-color: var(--saito-surface-selected);
+	background-color: var(--saito-secondary);
 	cursor: default;
 }
 .saito-input-quote .cancel-quote {
@@ -194,18 +189,15 @@ emoji-picker {
 }
 .saito-input-quote .cancel-quote:hover {
 	background-color: var(--saito-primary);
-	color: var(--saito-primary-text);
+	color: var(--saito-primary-foreground);
 }
 /* saito mentions list */.saito-mentions-list {
-	background: var(--saito-overlay-panel-background);
 	position: absolute;
 	z-index: 104;
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 	max-height: 30rem;
-	border: 1px solid var(--saito-overlay-panel-border);
 	overflow-y: scroll;
 	font-size: 1.6rem;
-	border-radius: var(--saito-input-radius);
 	padding: 0.5rem 0 0.5rem 0.2rem;
 	max-width: 100%;
 	width: 36rem;
@@ -229,7 +221,7 @@ emoji-picker {
 }
 .saito-mentions-item.selected {
 	background-color: var(--saito-primary);
-	color: var(--saito-primary-text);
+	color: var(--saito-primary-foreground);
 }
 .saito-mentions-item:hover {
 	cursor: pointer;
@@ -244,8 +236,8 @@ emoji-picker {
 	gap: 0.5rem;
 }
 .saito-mentions-contact:hover .saito-mentions-item {
-	background-color: var(--saito-background-color);
-	color: var(--saito-font-color);
+	background-color: var(--saito-background);
+	color: var(--saito-foreground);
 }
 @media only screen and (max-width: 768px) {
 .saito-input-large .selection-box-tabs {

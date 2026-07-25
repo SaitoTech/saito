@@ -5,28 +5,28 @@
 .small-audio-chatbox,
 .videocall-setting-grid-item,
 .stun-settings-shell {
-	--stun-noir-bg: var(--saito-background-color);
-	--stun-noir-surface-low: var(--saito-overlay-panel-surface-low, var(--saito-background-color));
-	--stun-noir-surface: var(--saito-overlay-panel-bg, var(--saito-surface-color));
-	--stun-noir-surface-high: var(--saito-surface-hover);
-	--stun-noir-surface-bright: var(--saito-surface-selected);
-	--stun-noir-text: var(--saito-font-color);
-	--stun-noir-text-muted: var(--saito-font-color-secondary);
+	--stun-noir-bg: var(--saito-background);
+	--stun-noir-surface-low: var(--saito-popover, var(--saito-background));
+	--stun-noir-surface: var(--saito-popover, var(--saito-card));
+	--stun-noir-surface-high: var(--saito-accent);
+	--stun-noir-surface-bright: var(--saito-secondary);
+	--stun-noir-text: var(--saito-foreground);
+	--stun-noir-text-muted: var(--saito-muted-foreground);
 	--stun-noir-accent: var(--saito-primary);
-	--stun-noir-accent-2: var(--saito-primary-dark);
+	--stun-noir-accent-2: var(--saito-chart-4);
 	--stun-noir-accent-strong: var(--saito-primary);
-	--stun-noir-outline: var(--saito-overlay-panel-border);
-	--stun-noir-outline-strong: var(--saito-border-color);
-	--stun-noir-radius: var(--saito-border-radius);
-	--stun-noir-shadow: var(--saito-overlay-panel-shadow);
-	--stun-noir-shadow-soft: var(--saito-box-shadow);
-	--stun-noir-shadow-audio: var(--saito-overlay-panel-shadow);
-	--stun-noir-glass: var(--saito-overlay-panel-bg);
-	--stun-noir-glass-soft: var(--saito-surface-color);
-	--stun-noir-glass-strong: var(--saito-surface-hover);
-	--stun-noir-surface-overlay: var(--saito-overlay-panel-bg);
-	--stun-noir-surface-overlay-strong: var(--saito-overlay-panel-background);
-	--stun-noir-white-soft: color-mix(in srgb, var(--saito-font-color) 8%, transparent);
+	--stun-noir-outline: var(--saito-border);
+	--stun-noir-outline-strong: var(--saito-border);
+	--stun-noir-radius: var(--saito-radius);
+	--stun-noir-shadow: var(--saito-elevation-3);
+	--stun-noir-shadow-soft: var(--saito-elevation-2);
+	--stun-noir-shadow-audio: var(--saito-elevation-3);
+	--stun-noir-glass: var(--saito-popover);
+	--stun-noir-glass-soft: var(--saito-card);
+	--stun-noir-glass-strong: var(--saito-accent);
+	--stun-noir-surface-overlay: var(--saito-popover);
+	--stun-noir-surface-overlay-strong: var(--saito-popover);
+	--stun-noir-white-soft: color-mix(in srgb, var(--saito-foreground) 8%, transparent);
 	--stun-noir-accent-soft: color-mix(in srgb, var(--saito-primary) 14%, transparent);
 	--stun-noir-accent-splash: color-mix(in srgb, var(--saito-primary) 22%, transparent);
 	--stun-noir-accent-splash-2: color-mix(in srgb, var(--saito-secondary) 12%, transparent);
@@ -35,15 +35,15 @@
 	--stun-noir-accent-glow-soft: color-mix(in srgb, var(--saito-primary) 30%, transparent);
 	--stun-noir-accent-glow-pulse: color-mix(in srgb, var(--saito-primary) 50%, transparent);
 	--stun-noir-secondary-glow-pulse: color-mix(in srgb, var(--saito-secondary) 50%, transparent);
-	--stun-noir-title-contrast: var(--saito-primary-text);
-	--stun-noir-danger: var(--saito-status-danger);
-	--stun-noir-danger-text: var(--saito-primary-text);
-	--stun-noir-icon-dark: var(--saito-surface-inverse-text);
-	--stun-noir-slider-bg: var(--saito-surface-selected);
-	--stun-noir-slider-knob: var(--saito-background-color);
-	--stun-noir-canvas-bg: var(--saito-background-color);
-	--stun-noir-border-light: var(--saito-border-color);
-	--stun-noir-toggle-bg: var(--saito-surface-hover);
+	--stun-noir-title-contrast: var(--saito-primary-foreground);
+	--stun-noir-danger: var(--saito-destructive);
+	--stun-noir-danger-text: var(--saito-primary-foreground);
+	--stun-noir-icon-dark: var(--saito-background);
+	--stun-noir-slider-bg: var(--saito-secondary);
+	--stun-noir-slider-knob: var(--saito-background);
+	--stun-noir-canvas-bg: var(--saito-background);
+	--stun-noir-border-light: var(--saito-border);
+	--stun-noir-toggle-bg: var(--saito-accent);
 	--stun-noir-legacy-gradient-start: var(--saito-primary);
 	--stun-noir-legacy-gradient-end: var(--saito-secondary);
 }
@@ -107,18 +107,13 @@ html[data-theme="noir"] .stun-settings-shell {
 	justify-content: center;
 	position: relative;
 	padding: 3rem;
-	color: var(--saito-font-color);
-	background: var(--saito-canvas-background);
+	color: var(--saito-foreground);
+	background: var(--saito-canvas-wash);
 	font-family: var(--saito-font);
 }
 
 .stun-minimal-appspace {
 	padding: 2rem;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	background: var(--saito-overlay-panel-background);
-	color: var(--saito-font-color);
 	justify-content: space-between;
 	width: min(400px, 98vw);
 	height: min(600px, 80vh);
@@ -137,7 +132,7 @@ html[data-theme="noir"] .stun-settings-shell {
 	padding: 1.5rem;
 }
 
-.stun-appspace-content,
+/* Overlay media-setup dialog: card chrome (not CTA splash shell) */
 .videocall-media-settings {
 	display: flex;
 	flex-direction: column;
@@ -146,10 +141,11 @@ html[data-theme="noir"] .stun-settings-shell {
 	width: min(95vw, 860px);
 	padding: 3.2rem;
 	gap: 2.4rem;
-	border-radius: calc(var(--saito-border-radius) + 0.15rem);
-	background: var(--saito-overlay-panel-background);
-	box-shadow: var(--saito-overlay-panel-shadow);
-	border: 1px solid var(--saito-overlay-panel-border);
+	border-radius: calc(var(--saito-radius) + 0.15rem);
+	background: var(--saito-card);
+	background-image: none;
+	box-shadow: var(--saito-elevation-0);
+	border: 1px solid var(--saito-border);
 }
 
 .stun-appspace-footer {
@@ -158,7 +154,7 @@ html[data-theme="noir"] .stun-settings-shell {
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .stun-appspace-footer > div {
@@ -171,8 +167,8 @@ html[data-theme="noir"] .stun-settings-shell {
 }
 
 .stun-appspace-footer > div:hover {
-	color: var(--saito-font-color-heavy);
-	background-color: var(--saito-surface-hover);
+	color: var(--saito-foreground);
+	background-color: var(--saito-accent);
 }
 
 .my-stun-container-info {
@@ -205,7 +201,7 @@ html[data-theme="noir"] .stun-settings-shell {
 .stun-subtitle {
 	text-transform: uppercase;
 	letter-spacing: 0.22em;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 	font-size: 1.25rem;
 }
 
@@ -273,7 +269,7 @@ html[data-theme="noir"] .stun-settings-shell {
 .videocall-media-settings-header p {
 	margin: 0;
 	font-size: 1.4rem;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 /** Dialer **/
@@ -288,7 +284,7 @@ html[data-theme="noir"] .stun-settings-shell {
 
 .video_switch.deactivated {
 	pointer-events: none;
-	color: var(--saito-font-color-light);
+	color: var(--saito-muted-foreground);
 }
 
 .switch {
@@ -437,7 +433,7 @@ input:checked + .slider:before {
   display: block;
   top: 3.9rem;
   left: 3.75rem;
-  border: var(--border-thickness-medium) solid var(--saito-notification-ring);
+  border: 2px solid var(--saito-background);
 }
 .stun .online-status-indicator i {
   display: block;

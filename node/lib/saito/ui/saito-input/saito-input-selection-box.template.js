@@ -45,7 +45,7 @@ module.exports = (input_self) => {
   }
 
   let html = `
-  <div id="saito-input-selection-box" class="saito-input-selection-box" style="bottom:${bottom}px; left:${left}px; max-height:${top}px;">
+  <div id="saito-input-selection-box" class="saito-input-selection-box saito-overlay-panel compact" style="bottom:${bottom}px; left:${left}px; max-height:${top}px;">
     <div class="selection-box-window">
       <div class="selection-box-pane ${
         !input_self.open_tab || input_self.open_tab == 'emoji-window' ? 'active-tab' : ''

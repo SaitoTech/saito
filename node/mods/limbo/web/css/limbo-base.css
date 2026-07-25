@@ -18,25 +18,6 @@
 	align-items: center;
 }
 
-.limbo-menu {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 2.4rem;
-}
-
-.limbo-splash-box {
-	width: min(95vw, 86rem);
-	height: fit-content;
-	flex: 0 0 auto;
-	padding: 3.2rem;
-	border-radius: calc(var(--saito-border-radius) + 0.15rem);
-	background: var(--saito-overlay-panel-background);
-	box-shadow: var(--saito-overlay-panel-shadow);
-	border: 1px solid var(--saito-overlay-panel-border);
-}
-
 .limbo-splash-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-swarmcast-icon-outline-label-horizontal.svg');
 	width: min(56rem, 84vw);
@@ -59,7 +40,7 @@
 }
 
 .limbo-splash-subtitle {
-	color: var(--saito-font-color-secondary, var(--saito-font-color-light));
+	color: var(--saito-muted-foreground);
 	font-size: 1.25rem;
 	letter-spacing: 0.22em;
 	line-height: 1.4;
@@ -88,8 +69,8 @@
 	flex-direction: row;
 	align-items: center;
 	gap: 1rem;
-	border-radius: var(--saito-border-radius);
-	border: 1px solid var(--saito-overlay-panel-border);
+	border-radius: var(--saito-radius);
+	border: 1px solid var(--saito-border);
 	background: var(--saito-button-background, var(--saito-primary));
 	color: var(--saito-button-color, #fff);
 	padding: 1.35rem 2rem;
@@ -137,8 +118,8 @@
 }
 
 .spaces-list .saito-profile {
-	border-radius: var(--saito-border-radius);
-	border: 1px solid var(--saito-border-color);
+	border-radius: var(--saito-radius);
+	border: 1px solid var(--saito-border);
 	cursor: pointer;
 	overflow: hidden;
 	height: 300px;
@@ -221,9 +202,9 @@
 	height: min-content;
 	max-height: 80vh;
 	padding: 1rem;
-	border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
-	border-radius: var(--saito-border-radius);
-	background-color: var(--saito-background-color);
+	border: 1px solid var(--saito-border);
+	border-radius: var(--saito-radius);
+	background-color: var(--saito-background);
 	background-image: url(/saito/img/tiled-logo.svg);
 	display: flex;
 	flex-direction: column;
@@ -257,9 +238,9 @@
 
 .limbo-sidebar {
 	width: 100%;
-	background: var(--saito-background-color);
+	background: var(--saito-background);
 	height: calc(100vh - var(--saito-header-height));
-	border-left: 1px solid var(--saito-border-color);
+	border-left: 1px solid var(--saito-border);
 	display: grid;
 	grid-template-rows: min-content auto;
 }
@@ -323,8 +304,8 @@
 	display: grid;
 	grid-template-rows: 1fr;
 	grid-template-columns: minmax(0px, 1fr);
-	border-radius: var(--saito-border-radius);
-	background-color: var(--saito-background-color);
+	border-radius: var(--saito-radius);
+	background-color: var(--saito-background);
 	background-image: url(/saito/img/tiled-logo.svg);
 }
 
@@ -365,9 +346,9 @@
 	position: absolute;
 	bottom: 4rem;
 	left: 1rem;
-	border: 1px solid var(--saito-border-color);
+	border: 1px solid var(--saito-border);
 	padding: 0.5rem;
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 	background-color: #0004;
 	z-index: 9;
 }
@@ -425,7 +406,7 @@ video#local.noflip {
 	padding: 2rem 3rem;
 	border-radius: 0.5rem;
 	border: 1px solid;
-	background-color: var(--saito-background-color);
+	background-color: var(--saito-background);
 	color: var(--saito-gray-200);
 }
 
@@ -461,7 +442,7 @@ video#local.noflip {
 }
 
 .dream-wizard .cast-mode .selected {
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 	border-width: 2px;
 	/*text-shadow: 1px 1px 5px var(--saito-black);*/
 	box-shadow: 1px 1px 4px 1px var(--saito-black);
@@ -489,7 +470,7 @@ video#local.noflip {
 }
 
 .dream-wizard .wizard-footer > div:hover {
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 }
 
 .dream-controls .video-call-info {
@@ -623,11 +604,6 @@ video#local.noflip {
 		margin-bottom: 2rem;
 	}
 
-	.limbo-splash-box {
-		width: 100%;
-		padding: 2.4rem;
-	}
-
 	.limbo-splash-logo {
 		width: 100%;
 	}
@@ -645,7 +621,7 @@ video#local.noflip {
 	padding: 3rem;
 	border-radius: 0.5rem;
 	border: 1px solid;
-	background-color: var(--saito-background-color);
+	background-color: var(--saito-background);
 	color: var(--saito-gray-200);
 	display: flex;
 	flex-direction: column;

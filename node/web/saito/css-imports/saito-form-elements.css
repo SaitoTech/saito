@@ -47,23 +47,22 @@ textarea.saito-textarea,
 select.saito-form-select {
   appearance: none;
   -webkit-appearance: none;
-  background-color: var(--saito-input-bg);
-  color: var(--saito-input-fg-heavy);
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
-  font-family: var(--saito-input-font);
+  background-color: var(--saito-secondary);
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
   font-size: 1.6rem;
   padding: 1rem;
-  border-radius: var(--saito-input-radius);
+  border-radius: var(--saito-radius);
   width: 100%;
   max-width: 100%;
   cursor: text;
 }
 
 .saito-form-control {
-  background-color: var(--saito-input-bg);
-  color: var(--saito-input-fg-heavy);
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
-  border-radius: var(--saito-input-radius);
+  background-color: var(--saito-secondary);
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
 }
 
 .saito-form-dropdown {
@@ -71,10 +70,10 @@ select.saito-form-select {
   inset: auto;
   margin: 0;
   scrollbar-width: none;
-  background-color: var(--saito-popover-surface);
+  background-color: var(--saito-popover);
   color: var(--saito-popover-foreground);
-  border: var(--border-thickness-thin) solid var(--saito-border);
-  border-radius: var(--saito-input-radius);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
 }
 
 .saito-form-dropdown::-webkit-scrollbar {
@@ -83,22 +82,22 @@ select.saito-form-select {
 
 .saito-form-dropdown-option:hover,
 .saito-form-dropdown-option[aria-selected='true'] {
-  background-color: var(--saito-input-bg-focus);
+  background-color: var(--saito-secondary);
 }
 
 input.saito-input:-webkit-autofill,
 input.saito-input:-webkit-autofill:hover,
 input.saito-input:-webkit-autofill:focus,
 input.saito-input:-webkit-autofill:active {
-  -webkit-text-fill-color: var(--saito-input-fg-heavy) !important;
+  -webkit-text-fill-color: var(--saito-foreground) !important;
   caret-color: var(--saito-primary) !important;
-  -webkit-box-shadow: 0 0 0 1000px var(--saito-input-bg) inset !important;
-  box-shadow: 0 0 0 1000px var(--saito-input-bg) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--saito-secondary) inset !important;
+  box-shadow: 0 0 0 1000px var(--saito-secondary) inset !important;
 }
 
 select.saito-form-select {
   cursor: pointer;
-  color: var(--saito-input-fg);
+  color: var(--saito-foreground);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a6a09b' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
@@ -129,7 +128,7 @@ input.saito-input[type='search'] {
 .saito-checkbox {
   appearance: none;
   -webkit-appearance: none;
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
+  border: 1px solid var(--saito-border);
   width: 2rem;
   height: 2rem;
   margin: 3px 0.5rem;
@@ -158,13 +157,13 @@ input.saito-checkbox[type='checkbox']:checked,
 }
 input.saito-checkbox[type='checkbox']:checked::after,
 .saito-checkbox:checked::after {
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   opacity: 1;
 }
 input.saito-checkbox[type='checkbox']:focus-visible,
 .saito-checkbox:focus-visible {
   outline: none;
-  border-color: var(--saito-input-border);
+  border-color: var(--saito-border);
   box-shadow: none;
 }
 /* ----------------------------------------------------------------
@@ -173,7 +172,7 @@ input.saito-checkbox[type='checkbox']:focus-visible,
 .saito-radio {
   appearance: none;
   -webkit-appearance: none;
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
+  border: 1px solid var(--saito-border);
   width: 2rem;
   height: 2rem;
   margin: 0 0.5rem;
@@ -200,13 +199,13 @@ input.saito-radio[type='radio']::after,
 }
 input.saito-radio[type='radio']:checked::after,
 .saito-radio:checked::after {
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   opacity: 1;
 }
 input.saito-radio[type='radio']:focus-visible,
 .saito-radio:focus-visible {
   outline: none;
-  border-color: var(--saito-input-border);
+  border-color: var(--saito-border);
   box-shadow: none;
 }
 /* ----------------------------------------------------------------
@@ -226,7 +225,7 @@ input.saito-range[type='range']::-webkit-slider-runnable-track,
   box-shadow: var(--saito-elevation-2);
   background: var(--saito-primary);
   border-radius: 0.5rem;
-  border: var(--border-color-general-dividers);
+  border: var(--saito-border);
 }
 input.saito-range[type='range']::-webkit-slider-thumb,
 .saito-range::-webkit-slider-thumb {
@@ -235,7 +234,7 @@ input.saito-range[type='range']::-webkit-slider-thumb,
   height: 3rem;
   width: 2rem;
   border-radius: 0.5rem;
-  background: var(--saito-surface-inverse);
+  background: var(--saito-foreground);
   cursor: pointer;
   -webkit-appearance: none;
   margin-top: -1.2rem;
@@ -248,7 +247,7 @@ input.saito-range[type='range']::-moz-range-track,
   box-shadow: var(--saito-elevation-2);
   background: var(--saito-primary);
   border-radius: 0.5rem;
-  border: var(--border-color-general-dividers);
+  border: var(--saito-border);
 }
 input.saito-range[type='range']::-moz-range-thumb,
 .saito-range::-moz-range-thumb {
@@ -257,7 +256,7 @@ input.saito-range[type='range']::-moz-range-thumb,
   height: 3rem;
   width: 2rem;
   border-radius: 0.5rem;
-  background: var(--saito-surface-inverse);
+  background: var(--saito-foreground);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -280,13 +279,13 @@ input.saito-range[type='range']::-ms-track,
 input.saito-range[type='range']::-ms-fill-lower,
 .saito-range::-ms-fill-lower {
   background: var(--saito-primary);
-  border: var(--border-color-general-dividers);
+  border: var(--saito-border);
   border-radius: 0.5rem;
   box-shadow: var(--saito-elevation-2);
 }
 input.saito-range[type='range']::-ms-fill-upper,
 .saito-range::-ms-fill-upper {
-  border: var(--border-color-general-dividers);
+  border: var(--saito-border);
   border-radius: 0.5rem;
   box-shadow: var(--saito-elevation-2);
 }
@@ -297,7 +296,7 @@ input.saito-range[type='range']::-ms-thumb,
   height: 3.6rem;
   width: 1.6rem;
   border-radius: 0.5rem;
-  background: var(--saito-surface-inverse);
+  background: var(--saito-foreground);
   cursor: pointer;
 }
 input.saito-range[type='range']:focus::-ms-fill-lower,

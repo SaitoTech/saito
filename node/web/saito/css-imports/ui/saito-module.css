@@ -22,11 +22,11 @@
   align-items: center;
   background-size: cover;
   background-position: center;
-  background-color: var(--saito-card-bg);
+  background-color: var(--saito-card);
   background-blend-mode: soft-light;
-  border-radius: var(--saito-border-radius);
-  border: var(--border-thickness-thin) solid var(--saito-border);
-  box-shadow: var(--saito-card-shadow);
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
+  box-shadow: var(--saito-elevation-0);
   overflow: hidden;
   transition:
     background-color 0.2s,
@@ -36,10 +36,10 @@
 }
 
 .saito-module:hover {
-  background-color: var(--saito-card-bg-hover);
-  border-color: var(--saito-card-border);
-  box-shadow: var(--saito-card-shadow-hover);
-  transform: var(--saito-card-transform-hover);
+  background-color: color-mix(in srgb, var(--saito-card) 86%, var(--saito-accent));
+  border-color: var(--saito-border);
+  box-shadow: var(--saito-elevation-0);
+  transform: none;
 }
 
 .saito-module-titlebar {
@@ -52,20 +52,20 @@
   white-space: nowrap;
   overflow-wrap: break-word;
   opacity: 0.8;
-  background: var(--saito-chip-bg);
-  border-radius: var(--saito-border-radius);
+  background: var(--saito-secondary);
+  border-radius: var(--saito-radius);
 }
 
 .saito-module-titlebar-title {
   margin: 0.25rem;
-  color: var(--saito-chip-fg);
+  color: var(--saito-secondary-foreground);
   font-size: 2rem;
 }
 
 .saito-module-titlebar-details {
   font-size: 1.4rem;
   text-transform: uppercase;
-  color: var(--saito-chip-fg);
+  color: var(--saito-secondary-foreground);
 }
 
 .saito-game-details {
@@ -127,8 +127,8 @@
   max-width: 95vw;
   max-height: 95vh;
   padding: var(--saito-space-xl);
-  border-radius: var(--saito-border-radius);
-  border: var(--border-thickness-medium) solid var(--saito-overlay-panel-border);
+  border-radius: var(--saito-radius);
+  border: 2px solid var(--saito-border);
 }
 
 .module-settings-overlay .saito-module-settings {
@@ -149,7 +149,7 @@
 }
 
 .saito-module-header {
-  background: var(--saito-header-background);
+  background: var(--saito-background);
   background-size: cover;
   background-position: center;
   padding: var(--saito-space-xs);
@@ -162,15 +162,15 @@
 }
 
 .saito-module-overlay .saito-module-titlebar {
-  background: var(--saito-header-background);
-  color: var(--saito-header-color);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
 }
 
 .saito-module-details,
 fieldset.saito-grid {
   padding: var(--saito-space-xl);
-  border-radius: var(--saito-radius-md);
-  border: var(--border-thickness-thin) solid var(--saito-card-border);
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
 }
 
 .saito-module-details {

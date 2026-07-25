@@ -308,7 +308,7 @@ i.link_icon.private {
 
 .league-join-overlay-box,
 .league-edit-overlay-box {
-	background: var(--saito-background-color);
+	background: var(--saito-background);
 	padding: 1.5rem;
 	border-radius: 1rem;
 	width: 60rem;
@@ -327,7 +327,7 @@ i.link_icon.private {
 .email-box .warning {
 	font-size: 0.9em;
 	font-style: italic;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .admin-name {
@@ -410,7 +410,7 @@ i.link_icon.private {
 }
 
 .league-edit-overlay-box .box {
-	border: 1px solid var(--saito-border-color);
+	border: 1px solid var(--saito-border);
 	padding: 1rem;
 	margin-bottom: 1rem;
 	min-height: 25vh;

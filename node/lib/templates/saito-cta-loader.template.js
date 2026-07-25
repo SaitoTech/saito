@@ -77,7 +77,7 @@ function styles() {
 
     body.saito-cta-loader-active {
       background: var(
-        --saito-canvas-background,
+        --saito-canvas-wash,
         radial-gradient(70vw 50vw at 50% 8%, rgba(245, 73, 0, 0.14), transparent 62%),
         radial-gradient(45vw 35vw at 47% 46%, rgba(255, 184, 106, 0.08), transparent 68%),
         #0c0a09
@@ -130,7 +130,7 @@ function styles() {
       padding: 30px;
       color: var(--saito-cta-loader-text);
       background: var(
-        --saito-canvas-background,
+        --saito-canvas-wash,
         radial-gradient(70vw 50vw at 50% 8%, rgba(245, 73, 0, 0.14), transparent 62%),
         radial-gradient(45vw 35vw at 47% 46%, rgba(255, 184, 106, 0.08), transparent 68%),
         #0c0a09

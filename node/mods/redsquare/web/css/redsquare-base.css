@@ -3,9 +3,9 @@
 body.redsquare-body {
   /*
    * Quiet workspace canvas — keep Saito warmth, drop the branded radial “explosion”.
-   * Only --saito-canvas-background is overridden; --saito-background stays the warm base.
+   * Only --saito-canvas-wash is overridden; --saito-background stays the warm base.
    */
-  --saito-canvas-background:
+  --saito-canvas-wash:
     radial-gradient(
       90vw 42vw at 50% -8%,
       color-mix(in srgb, var(--saito-primary) 5%, transparent),

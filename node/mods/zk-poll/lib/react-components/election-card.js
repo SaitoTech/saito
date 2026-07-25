@@ -68,7 +68,7 @@ const ElectionCard = ({
             borderRadius: '8px',
             padding: '24px',
             color: 'white',
-            border: '1px solid var(--saito-border-color)'
+            border: '1px solid var(--saito-border)'
         },
         header: {
             display: 'flex',

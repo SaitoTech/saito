@@ -276,8 +276,8 @@ class Stack extends ModTemplate {
     if (container) {
       container.innerHTML = `
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem;">
-          <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
-          <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Loading blog post for you…</p>
+          <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
+          <p style="color: var(--saito-muted-foreground); font-size: 1.6rem;">Loading blog post for you…</p>
         </div>
       `;
     }
@@ -315,7 +315,7 @@ class Stack extends ModTemplate {
       <div
         style="
           font-size: 2.5rem;
-          color: var(--saito-font-color-light);
+          color: var(--saito-muted-foreground);
           text-align: center;
         "
       >
@@ -326,9 +326,9 @@ class Stack extends ModTemplate {
           } else {
             container.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem; text-align: center;">
-              <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
-              <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">Unable to load this blog post</h3>
-              <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
+              <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
+              <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">Unable to load this blog post</h3>
+              <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
                 The blog post you're looking for could not be found. It may have been deleted, or you may not have permission to view it.
               </p>
             </div>
@@ -347,9 +347,9 @@ class Stack extends ModTemplate {
       if (container) {
         container.innerHTML = `
           <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem; text-align: center;">
-            <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
-            <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">Unable to load this blog post</h3>
-            <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
+            <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
+            <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">Unable to load this blog post</h3>
+            <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
               An error occurred while loading the blog post. Please try again later.
             </p>
           </div>
@@ -366,9 +366,9 @@ class Stack extends ModTemplate {
     if (container) {
       container.innerHTML = `
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem; text-align: center;">
-          <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
-          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">Invalid URL</h3>
-          <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
+          <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
+          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">Invalid URL</h3>
+          <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
             The URL you requested is not valid. Please check the URL and try again.
           </p>
         </div>

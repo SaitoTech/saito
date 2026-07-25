@@ -2317,7 +2317,7 @@ class Browser {
         wrapper.id = 'saito-alert';
         wrapper.className = 'saito-alert';
         let html = `<div id="saito-alert-shim">
-                      <div id="saito-alert-box">
+                      <div id="saito-alert-box" class="saito-overlay-panel compact">
                         <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
                         <div class="saito-button-row">
                           <button id="alert-ok" class="saito-button-primary">OK</button>
@@ -2355,7 +2355,7 @@ class Browser {
           wrapper.id = 'saito-alert';
           wrapper.className = 'saito-alert';
           let html = `<div id="saito-alert-shim">
-                        <div id="saito-alert-box">
+                        <div id="saito-alert-box" class="saito-overlay-panel compact">
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
                           <div class="saito-button-row">
                             <button class='saito-button-secondary' id="alert-cancel">Cancel</button>
@@ -2399,7 +2399,7 @@ class Browser {
           wrapper.id = 'saito-alert';
           wrapper.className = 'saito-alert';
           let html = `<div id="saito-alert-shim">
-                        <div id="saito-alert-box">
+                        <div id="saito-alert-box" class="saito-overlay-panel compact">
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
                           <div class="alert-prompt"><input type="text" id="promptval" class="promptval saito-input" placeholder="${suggestion}" /></div>
                           <div class="saito-button-row">

@@ -1,5 +1,10 @@
 /* Namespace: .store — page composition (layout only; menu hover from .saito-menu-select-subtle) */
 
+:root {
+  --saito-empty-state-title-foreground: var(--saito-foreground);
+  --saito-empty-state-text-foreground: var(--saito-muted-foreground);
+}
+
 .store {
 	display: grid;
 	grid-template-columns: 15rem minmax(0, 1fr);
@@ -39,7 +44,7 @@
 	border-radius: var(--saito-radius-full);
 	font-size: var(--font-size-medium);
 	line-height: 1.3;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .store > .menu .item:focus-visible {
@@ -55,7 +60,7 @@
 .store > .menu .divider {
 	height: 1px;
 	margin: var(--saito-space-md) var(--saito-space-sm);
-	background: var(--saito-border-color);
+	background: var(--saito-border);
 }
 
 /* Sidebar owns CTA width — stretch to the navigation column / list edges */
@@ -149,9 +154,9 @@
 .store .purchase-status {
 	margin: 0 0 var(--saito-space-lg);
 	padding: var(--saito-space-md) var(--saito-space-lg);
-	border: var(--border-thickness-thin) solid var(--saito-border-color);
-	border-radius: var(--saito-border-radius);
-	background: var(--saito-card-bg, transparent);
+	border: 1px solid var(--saito-border);
+	border-radius: var(--saito-radius);
+	background: var(--saito-card, transparent);
 }
 
 .store .purchase-status .body {
@@ -192,7 +197,7 @@
 .store .purchase-status .detail {
 	margin: 0.2rem 0 0;
 	font-size: var(--font-size-small);
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .store .purchase-status .actions {
@@ -206,10 +211,10 @@
 	margin: 0;
 	max-width: 100%;
 	padding: 0.55rem 0.85rem;
-	border: var(--border-thickness-thin) solid var(--saito-border-color);
-	border-radius: var(--saito-border-radius);
+	border: 1px solid var(--saito-border);
+	border-radius: var(--saito-radius);
 	background: color-mix(in srgb, #ffffff 8%, transparent);
-	color: color-mix(in srgb, #ffffff 94%, var(--saito-font-color-secondary));
+	color: color-mix(in srgb, #ffffff 94%, var(--saito-muted-foreground));
 	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
 		'Courier New', monospace;
 	font-size: var(--font-size-small);
@@ -265,7 +270,7 @@
 .store .storefront-status p {
 	margin: 0;
 	font-size: var(--font-size-medium);
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 /* Post-listing success — neon green, not primary orange */
@@ -273,8 +278,8 @@
 	position: relative;
 	margin: 0 0 var(--saito-space-lg);
 	padding: var(--saito-space-lg) 3.5rem var(--saito-space-lg) var(--saito-space-lg);
-	border: var(--border-thickness-thin) solid var(--saito-green);
-	border-radius: var(--saito-border-radius);
+	border: 1px solid var(--saito-green);
+	border-radius: var(--saito-radius);
 	background: color-mix(in srgb, var(--saito-green) 14%, transparent);
 }
 
@@ -289,14 +294,14 @@
 	font-size: var(--font-size-large);
 	font-family: var(--saito-font-heavy);
 	line-height: 1.3;
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 }
 
 .store .listing-success .body {
 	margin: var(--saito-space-sm) 0 0;
 	font-size: var(--font-size-medium);
 	line-height: 1.45;
-	color: color-mix(in srgb, #ffffff 88%, var(--saito-font-color-secondary));
+	color: color-mix(in srgb, #ffffff 88%, var(--saito-muted-foreground));
 }
 
 /* Seller admin shell — top padding aligns with first sidebar nav item */
@@ -322,7 +327,7 @@
 	max-width: 28rem;
 	font-size: var(--font-size-medium);
 	line-height: 1.5;
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 }
 
 /* Seller dashboard welcome (main column only — not .menu.dashboard) */
@@ -332,7 +337,7 @@
 	gap: var(--saito-space-md);
 	padding: 0 0 var(--saito-space-xl);
 	margin: 0 0 var(--saito-space-lg);
-	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
+	border-bottom: 1px solid var(--saito-border);
 }
 
 .store .seller-home .title {
@@ -340,7 +345,7 @@
 	font-size: var(--font-size-large);
 	font-family: var(--saito-font-heavy);
 	line-height: 1.25;
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 }
 
 .store .seller-home .body {
@@ -348,7 +353,7 @@
 	max-width: 48rem;
 	font-size: var(--font-size-medium);
 	line-height: 1.5;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .store .seller-home .actions {
@@ -369,7 +374,7 @@
 	align-items: stretch;
 	gap: 0;
 	padding: 0 0 var(--saito-space-sm);
-	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
+	border-bottom: 1px solid var(--saito-border);
 }
 
 .store .hero .toolbar-row {
@@ -388,7 +393,7 @@
 	font-family: var(--saito-font-medium);
 	font-weight: normal;
 	line-height: 1.25;
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 }
 
 .store .hero .description {
@@ -397,7 +402,7 @@
 	font-size: 1.5rem;
 	font-weight: normal;
 	line-height: 1.4;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .store .sales-panel {
@@ -412,7 +417,7 @@
 	font-size: var(--font-size-large);
 	font-family: var(--saito-font-heavy);
 	line-height: 1.25;
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 }
 
 .store .sales-panel .sales-content {
@@ -424,7 +429,7 @@
 	max-width: 40rem;
 	font-size: var(--font-size-medium);
 	line-height: 1.5;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .store .catalog {
@@ -455,7 +460,7 @@
 .store .catalog-status p {
 	margin: 0;
 	font-size: var(--font-size-medium);
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .store .catalog-footer {
@@ -474,7 +479,7 @@
 	margin: 0;
 	font-size: var(--font-size-small);
 	line-height: 1.4;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 	opacity: 0.85;
 }
 
@@ -496,21 +501,21 @@
 .store .catalog-pagination .nav-btn,
 .store .catalog-pagination .page-btn {
 	appearance: none;
-	border: var(--border-thickness-thin) solid var(--saito-border-color);
+	border: 1px solid var(--saito-border);
 	background: transparent;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 	font: inherit;
 	font-size: var(--font-size-small);
 	line-height: 1;
 	min-height: 2.25rem;
 	padding: 0.55rem 0.85rem;
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 	cursor: pointer;
 }
 
 .store .catalog-pagination .page-btn.is-active {
 	border-color: var(--saito-primary);
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 	font-family: var(--saito-font-medium);
 }
 
@@ -549,7 +554,7 @@
 	margin: 0 0 var(--saito-space-sm);
 	font-size: var(--font-size-large);
 	font-family: var(--saito-font-medium);
-	color: var(--saito-empty-state-title-color);
+	color: var(--saito-empty-state-title-foreground);
 }
 
 .store .empty p,
@@ -557,7 +562,7 @@
 	margin: 0;
 	font-size: var(--font-size-medium);
 	line-height: 1.5;
-	color: var(--saito-empty-state-text-color);
+	color: var(--saito-empty-state-text-foreground);
 }
 
 .store .empty .saito-button-primary {

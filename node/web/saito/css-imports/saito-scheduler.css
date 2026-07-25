@@ -8,15 +8,12 @@
   width: min(550px, 98vw);
   padding: var(--saito-space-xl) var(--saito-space-xxl);
   box-sizing: border-box;
-  border-radius: var(--saito-border-radius);
-  border: 1px solid var(--saito-overlay-panel-border);
-  background: var(--saito-overlay-panel-background);
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .saito-schedule-wizard h2 {
   margin: 0;
-  font-size: var(--font-size-h6);
+  font-size: 2rem;
 }
 
 .saito-calendar-event-link {
@@ -33,8 +30,8 @@
   width: min(550px, 98vw);
   padding: var(--saito-space-xxl);
   box-sizing: border-box;
-  border-radius: var(--saito-border-radius);
-  border: 1px solid var(--saito-border-color);
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
 }
 
 .saito-calendar-event-link-body h2 {

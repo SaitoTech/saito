@@ -25,13 +25,13 @@ Saito Table
   grid-template-columns: 1fr min-content;
   grid-gap: var(--saito-space-xs);
   padding: 0.6rem var(--saito-space-md) var(--saito-space-xs);
-  background: var(--saito-table-row-bg);
+  background: transparent;
   border-radius: var(--saito-radius-sm);
   border-color: var(--saito-border);
 }
 
 .saito-table-row:hover {
-  background: var(--saito-table-row-bg-hover);
+  background: color-mix(in srgb, var(--saito-muted) 78%, transparent);
 }
 
 .saito-table-rank {
@@ -49,11 +49,11 @@ Saito Table
   padding: 0.6rem var(--saito-space-md) var(--saito-space-xs);
   width: 100%;
   text-align: center;
-  text-transform: var(--saito-table-header-transform);
-  font-size: var(--saito-table-header-size);
-  letter-spacing: var(--saito-table-header-letter-spacing);
+  text-transform: none;
+  font-size: inherit;
+  letter-spacing: 0;
   color: var(--saito-muted-foreground);
-  background: var(--saito-table-header-bg);
+  background: transparent;
   border-radius: var(--saito-radius-sm);
 }
 
@@ -65,7 +65,7 @@ Saito Table
   font-size: 1.5rem;
   width: 100%;
   position: relative;
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
   max-height: 100%;
   height: fit-content;
   position: relative;
@@ -79,17 +79,17 @@ Saito Table
   align-items: center;
   justify-content: flex-end; /* Right Justify */
   padding: 0 0.5rem;
-  border-bottom: 1px solid var(--saito-table-border);
+  border-bottom: 1px solid var(--saito-border);
   min-height: 3rem;
 }
 
 .saitox-header-item {
   text-align: center;
-  text-transform: var(--saito-table-header-transform);
-  font-size: var(--saito-table-header-size);
-  letter-spacing: var(--saito-table-header-letter-spacing);
+  text-transform: none;
+  font-size: inherit;
+  letter-spacing: 0;
   color: var(--saito-muted-foreground);
-  background: var(--saito-table-header-bg);
+  background: transparent;
   font-family: var(--saito-font-medium);
 }
 

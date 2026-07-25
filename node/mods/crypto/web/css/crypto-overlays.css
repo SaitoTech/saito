@@ -1,4 +1,10 @@
 /* Crypto / wallet overlay UI — owned by mods/crypto (loaded via /crypto/style.css) */
+:root {
+  --saito-crypto-transfer-background: var(--saito-background);
+  --saito-crypto-transfer-foreground: var(--saito-foreground);
+  --saito-crypto-transfer-border: var(--saito-border);
+}
+
 .saito-crypto-deposit {
   display: flex;
   flex-direction: column;
@@ -38,7 +44,7 @@
   min-height: 700px;
   max-height: calc(100vh - var(--saito-header-height));
   padding: 2rem;
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -284,10 +290,10 @@
   display: flex;
   height: 3rem;
   width: 100%;
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   background: var(--saito-highlight);
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
-  border-radius: var(--saito-border-radius);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
   overflow: hidden;
 }
 
@@ -741,7 +747,7 @@
   max-height: 3.6rem;
   flex-shrink: 0;
   overflow: hidden;
-  border-radius: var(--saito-button-radius);
+  border-radius: var(--saito-radius);
   display: block;
 }
 
@@ -1142,7 +1148,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--saito-status-danger);
+  color: var(--saito-destructive);
 }
 
 .saito-crypto-withdraw .address-invalid .address-edit {
@@ -1186,7 +1192,7 @@
 }
 
 .saito-crypto-withdraw .withdraw-amount-status--invalid {
-  color: var(--saito-status-danger);
+  color: var(--saito-destructive);
   cursor: help;
 }
 
@@ -1202,7 +1208,7 @@
   display: flex;
   align-items: center;
   padding: 0 1rem;
-  color: var(--saito-status-danger);
+  color: var(--saito-destructive);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
@@ -1319,7 +1325,7 @@
 }
 
 .saito-crypto-withdraw[data-withdraw-state='failed'] .send-result-message {
-  color: var(--saito-status-danger);
+  color: var(--saito-destructive);
 }
 
 .saito-crypto-withdraw .confirm-tx {
@@ -1350,7 +1356,7 @@
 }
 
 .saito-crypto-withdraw[data-withdraw-state='failed'] .confirm-result-icon--failure {
-  color: var(--saito-status-danger);
+  color: var(--saito-destructive);
 }
 
 .saito-crypto-withdraw .confirm-block {
@@ -1465,8 +1471,8 @@
   max-width: 95vw;
   align-items: center;
 
-  color: var(--saito-crypto-transfer-fg);
-  background: var(--saito-crypto-transfer-bg);
+  color: var(--saito-crypto-transfer-foreground);
+  background: var(--saito-crypto-transfer-background);
   border-radius: var(--saito-radius-lg);
   display: flex;
   flex-direction: column;
@@ -1477,8 +1483,8 @@
 }
 
 .saito-crypto-transfer .token-dropdown {
-  color: var(--saito-crypto-transfer-fg);
-  background: var(--saito-crypto-transfer-bg);
+  color: var(--saito-crypto-transfer-foreground);
+  background: var(--saito-crypto-transfer-background);
 }
 
 .saito-overlay:has(.saito-crypto-transfer) {
@@ -1491,7 +1497,7 @@
 }
 
 input[type='checkbox'].ignore-checkbox {
-  border: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
+  border: 1px solid var(--saito-crypto-transfer-border);
   vertical-align: bottom;
   position: relative;
 }
@@ -1521,7 +1527,7 @@ input[type='checkbox'].ignore-checkbox {
 .stake-input-error {
   position: absolute;
   display: none;
-  color: var(--saito-status-danger);
+  color: var(--saito-destructive);
   font-size: 1.6rem;
   top: 105%;
   left: 1rem;
@@ -1535,9 +1541,9 @@ input[type='checkbox'].ignore-checkbox {
 .saito-crypto-transfer .stake {
   background: none;
   border: none;
-  color: var(--saito-crypto-transfer-fg);
+  color: var(--saito-crypto-transfer-foreground);
   border-radius: 0;
-  border-bottom: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
+  border-bottom: 1px solid var(--saito-crypto-transfer-border);
   text-align: center;
   padding: 1rem;
   font-size: 4rem;
@@ -1581,8 +1587,8 @@ input[type='checkbox'].ignore-checkbox {
 
 .crypto-transfer-btn.secondary {
   background: none;
-  color: var(--saito-crypto-transfer-fg);
-  border: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
+  color: var(--saito-crypto-transfer-foreground);
+  border: 1px solid var(--saito-crypto-transfer-border);
 }
 
 #cryptoManagerFeedback {
@@ -1665,8 +1671,8 @@ input[type='checkbox'].ignore-checkbox {
   height: 18rem;
   width: 18rem;
   border: 1rem solid var(--saito-white);
-  border-radius: var(--saito-border-radius);
-  background: var(--saito-background-color);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
   visibility: inherit;
 }
 .saito-crypto-transfer .spinner {
@@ -1701,7 +1707,7 @@ input[type='checkbox'].ignore-checkbox {
 }
 
 .saito-crypto-transfer .counterparty-details .saito-user > .saito-address {
-  color: var(--saito-crypto-transfer-fg);
+  color: var(--saito-crypto-transfer-foreground);
   font-size: 1.2em;
 }
 
@@ -1986,7 +1992,7 @@ input[type='checkbox'].ignore-checkbox {
   max-width: fit-content;
 }
 .saito-history-msg {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 /********************************************
  * 
@@ -2010,7 +2016,7 @@ input[type='checkbox'].ignore-checkbox {
 .crypto-logo-container .crypto-logo {
   height: 4rem;
   width: 4rem;
-  border: 3px solid var(--saito-button-secondary-fg);
+  border: 3px solid var(--saito-button-secondary-foreground);
   border-radius: 50%;
 }
 

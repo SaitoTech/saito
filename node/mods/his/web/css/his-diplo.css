@@ -94,7 +94,7 @@
 .diplomacy-overlay .left .controls2 ul li {
     background-color: whitesmoke;
     height: 8rem;
-    border-top: 1px solid var(--saito-border-color);
+    border-top: 1px solid var(--saito-border);
     width: 100%;
     font-size: 1.8rem;
     display: list-item;
@@ -129,7 +129,7 @@
 .diplomacy-overlay .right .submit {
     background-color: whitesmoke;
     height: 5rem;
-    border-top: 1px solid var(--saito-border-color);
+    border-top: 1px solid var(--saito-border);
     width: 100%;
     font-size: 1.8rem;
     display: list-item;

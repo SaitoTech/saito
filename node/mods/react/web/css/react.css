@@ -14,7 +14,7 @@ button {
 }
 
 .message-send-container {
-        border: 1px solid var(--saito-border-color);
+        border: 1px solid var(--saito-border);
         padding: 1rem;
         margin-bottom: 2rem;
         
@@ -29,7 +29,7 @@ button {
 
 
 .received-messages-container {
-    border: 1px solid var(--saito-border-color);
+    border: 1px solid var(--saito-border);
     border-radius: 0.5rem;
     padding: 1rem;
     max-height: 15rem;
@@ -47,7 +47,7 @@ button {
 
 
 .block-container {
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   padding: 1rem;
   overflow: scroll;
   height: 30rem;
@@ -61,7 +61,7 @@ button {
 
 .block-info {
     padding: 1rem;
-    border: 1px solid var(--saito-border-color);
+    border: 1px solid var(--saito-border);
 }
 
 .block-info h3 {
@@ -91,7 +91,7 @@ button {
     align-items: center;
     margin-bottom: 2rem;
     padding: 1rem;
-    border: 1px solid var(--saito-border-color);
+    border: 1px solid var(--saito-border);
 }
 
 .identicon {

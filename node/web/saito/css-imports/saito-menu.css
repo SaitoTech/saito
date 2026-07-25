@@ -13,17 +13,17 @@
   align-items: center;
   font-size: 1.92rem;
   position: relative;
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
 }
 
 .saito-menu li:active {
   /* newly added state, for use in Sangre3000 -only so far */
-  background: var(--saito-menu-item-active-bg);
+  background: var(--saito-accent);
 }
 
 .saito-menu li:hover p {
-  background-color: var(--saito-menu-item-hover-bg);
-  color: var(--saito-menu-item-hover-fg);
+  background-color: var(--saito-accent);
+  color: var(--saito-accent-foreground);
 }
 
 .saito-menu li > i {
@@ -122,18 +122,18 @@
 }
 */
 .saito-menu i::before {
-  -webkit-text-stroke-color: var(--saito-menu-icon-color);
+  -webkit-text-stroke-color: var(--saito-muted-foreground);
   -webkit-text-stroke-width: 1px;
   color: transparent;
 }
 
 .saito-menu li:hover i::before {
-  -webkit-text-stroke-color: var(--saito-menu-icon-hover-color);
-  color: var(--saito-menu-icon-hover-color);
+  -webkit-text-stroke-color: var(--saito-foreground);
+  color: var(--saito-foreground);
 }
 
 .utilities-menu li:hover i::before {
-  -webkit-text-stroke-color: var(--saito-primary-text);
+  -webkit-text-stroke-color: var(--saito-primary-foreground);
   color: transparent;
 }
 

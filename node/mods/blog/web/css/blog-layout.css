@@ -43,7 +43,7 @@ body {
 /* Left Column */
 .left-column {
   width: 100%;
-  border-right: 1px solid var(--saito-border-color);
+  border-right: 1px solid var(--saito-border);
   padding: 2rem;
   padding-top: 3.5rem; /* to align with blog list */
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05);
@@ -68,7 +68,7 @@ body {
 .filter-container select {
   width: 100%;
   padding: 1rem;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   border-radius: 0.5rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
@@ -76,14 +76,14 @@ body {
 .filter-select {
   width: 100%;
   padding: 8px;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   border-radius: 0.5rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: var(--saito-border-color);
+  border-color: var(--saito-border);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 

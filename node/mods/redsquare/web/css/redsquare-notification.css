@@ -2,7 +2,7 @@
 
 .notification {
   cursor: pointer;
-  border-bottom: var(--border-thickness-thin) solid var(--saito-border);
+  border-bottom: 1px solid var(--saito-border);
 }
 
 .notification .meta {

@@ -42,10 +42,10 @@
 
 .search-input {
   padding: 0.4rem 2rem 0.4rem 0.8rem; /* Top/bottom, Right (for icon), Left */
-  border-radius: var(--saito-border-radius, 5px);
-  border: 1px solid var(--saito-border-color-medium, #ccc);
-  background-color: var(--saito-background-color, #fff);
-  color: var(--saito-font-color, #333);
+  border-radius: var(--saito-radius, 5px);
+  border: 1px solid var(--saito-border-medium, #ccc);
+  background-color: var(--saito-background, #fff);
+  color: var(--saito-foreground, #333);
   min-width: 375px; /* Increased width by 50% */
   font-size: 0.9rem;
   transition: border-color 0.2s ease; /* Add transition for focus */
@@ -59,7 +59,7 @@
 }
 
 .search-input::placeholder {
-  color: var(--saito-font-color-muted, #999);
+  color: var(--saito-foreground-muted, #999);
 }
 
 .search-icon {
@@ -70,7 +70,7 @@
   pointer-events: none; /* Icon doesn't block input clicks */
   display: inline-flex; /* Align SVG within span */
   align-items: center;
-  color: var(--saito-font-color-muted, #777); /* Icon color */
+  color: var(--saito-foreground-muted, #777); /* Icon color */
 }
 
 .search-icon svg {
@@ -104,8 +104,8 @@
   top: 100%; /* Position below the button */
   right: 0;
   background-color: var(--saito-background-overlay, white);
-  border: 1px solid var(--saito-border-color, #ccc);
-  border-radius: var(--saito-border-radius, 4px);
+  border: 1px solid var(--saito-border, #ccc);
+  border-radius: var(--saito-radius, 4px);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   list-style: none;
   padding: 0.5rem 0;
@@ -118,7 +118,7 @@
 .header-dropdown-menu li a {
   display: block;
   padding: 0.5rem 1rem;
-  color: var(--saito-font-color, #333);
+  color: var(--saito-foreground, #333);
   text-decoration: none;
   white-space: nowrap;
 }

@@ -8,7 +8,7 @@
   width: 90vw;
   height: 85vh;
   max-height: 85vh;
-  background: var(--saito-background-color);
+  background: var(--saito-background);
   border-radius: 12px;
   padding: 0;
   display: flex;
@@ -24,8 +24,8 @@
 .stack-explore-sidebar {
   width: 320px; /* Wider for comfortable identity display */
   min-width: 320px;
-  border-right: 1px solid var(--saito-border-color);
-  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  border-right: 1px solid var(--saito-border);
+  background: var(--saito-background-secondary, var(--saito-background));
   display: flex;
   flex-direction: column;
   /* No overflow - overlay handles scroll */
@@ -41,7 +41,7 @@
   margin-bottom: 0px;
   border-bottom: none;
   background: var(--saito-primary);
-  color: var(--saito-font-color-inverse);
+  color: var(--saito-background);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -51,7 +51,7 @@
   font-size: 2rem;
   font-weight: 800;
   margin: 0;
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   text-shadow: 1px 1px 1px var(--saito-black);
   line-height: 1.3;
   flex: 1;
@@ -96,9 +96,9 @@
   padding: 1.2rem 2rem;
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--saito-border-color);
+  border-bottom: 1px solid var(--saito-border);
   border-top: none; /* No top border */
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   text-align: left;
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -124,7 +124,7 @@
 
 /* Inactive state - muted icon */
 .stack-explore-subscription-item i {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   opacity: 0.6;
   font-size: 1.4rem; /* 14px minimum */
   width: 1.6rem; /* Fixed width for alignment */
@@ -140,7 +140,7 @@
 /* Hover state - desktop only, uses primary color */
 @media (hover: hover) {
   .stack-explore-subscription-item:hover {
-    background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background-color) 88%);
+    background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background) 88%);
     border-left: 3px solid var(--saito-primary);
     padding-left: calc(2rem - 3px); /* Adjust padding to account for border */
   }
@@ -151,33 +151,33 @@
   }
 
   .stack-explore-subscription-item.active:hover {
-    background: color-mix(in srgb, var(--saito-primary) 15%, var(--saito-background-color) 85%);
+    background: color-mix(in srgb, var(--saito-primary) 15%, var(--saito-background) 85%);
   }
 }
 
 /* Active state - subtle indication, NO left border by default */
 .stack-explore-subscription-item.active {
-  background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-background-color) 92%);
-  color: var(--saito-font-color);
+  background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-background) 92%);
+  color: var(--saito-foreground);
   font-weight: 500;
   /* No left border by default - only on hover */
 }
 
 .stack-explore-subscription-item.active i {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   opacity: 0.9;
 }
 
 .stack-explore-subscription-item.active span {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 /* Contextual Help Note - Bottom of left panel */
 .stack-explore-help-note {
   margin-top: auto;
   /*padding: 1.5rem 2rem 1.5rem 2rem;  Top and bottom padding, horizontal padding */
-  border-top: 1px solid var(--saito-border-color);
-  background: color-mix(in srgb, var(--saito-background-color) 98%, var(--saito-font-color) 2%);
+  border-top: 1px solid var(--saito-border);
+  background: color-mix(in srgb, var(--saito-background) 98%, var(--saito-foreground) 2%);
   opacity: 0.7;
   cursor: pointer;
 }
@@ -187,7 +187,7 @@
   padding: 1.5rem 2rem 1.5rem 2rem;
   font-size: 1.4rem; /* 14px minimum - readable but subtle */
   line-height: 1.5;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-weight: 400;
 }
 
@@ -207,9 +207,9 @@
   padding: 1rem 1.25rem; /* More generous padding */
   margin-bottom: 0.75rem;
   background: transparent;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   border-radius: 8px;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -222,13 +222,13 @@
 }
 
 .stack-explore-filter-btn:hover {
-  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  background: var(--saito-background-secondary, var(--saito-background));
   border-color: var(--saito-primary);
 }
 
 .stack-explore-filter-btn.active {
-  background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background-color) 88%);
-  color: var(--saito-font-color);
+  background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background) 88%);
+  color: var(--saito-foreground);
   border-color: var(--saito-primary);
   font-weight: 500;
 }
@@ -236,10 +236,10 @@
 .stack-explore-search-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   border-radius: 8px;
-  background: var(--saito-background-color);
-  color: var(--saito-font-color);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
   font-size: 1.6rem; /* 16px minimum - input text */
   outline: none;
   transition: border-color 0.2s ease;
@@ -265,7 +265,7 @@
 .stack-explore-main-header {
   margin-bottom: 2.5rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid var(--saito-border-color);
+  border-bottom: 1px solid var(--saito-border);
   flex-shrink: 0;
   display: flex;
   justify-content: space-between; /* Left: SaitoUser, Right: action button - never shifts */
@@ -298,7 +298,7 @@
 
 .stack-explore-subscribe-btn {
   background: var(--saito-primary);
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   border: none;
   border-radius: 8px;
   padding: 0.8rem 1.6rem;
@@ -312,7 +312,7 @@
 }
 
 .stack-explore-subscribe-btn:hover {
-  background: var(--saito-primary-dark);
+  background: var(--saito-chart-4);
   transform: translateY(-1px);
 }
 
@@ -369,12 +369,12 @@
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .stack-explore-subtitle {
   font-size: 1.8rem;
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   margin: 0;
 }
 
@@ -402,8 +402,8 @@
    ============================================ */
 
 .stack-explore-post-card {
-  background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
+  background: var(--saito-background);
+  border: 1px solid var(--saito-border);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -423,7 +423,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: var(--saito-background-color);
+  background: var(--saito-background);
 }
 
 .stack-explore-post-image img {
@@ -442,7 +442,7 @@
   background: linear-gradient(
     135deg,
     var(--saito-primary) 0%,
-    var(--saito-primary-dark, #4a90e2) 100%
+    var(--saito-chart-4, #4a90e2) 100%
   );
   color: white;
   font-size: 3rem;
@@ -462,7 +462,7 @@
   align-items: center;
   margin-bottom: 0.75rem;
   font-size: 1.4rem; /* 14px minimum - metadata text */
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
 }
 
 .stack-explore-post-author {
@@ -471,21 +471,21 @@
 }
 
 .stack-explore-post-date {
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
 }
 
 .stack-explore-post-title {
   font-size: 1.4rem;
   font-weight: 600;
   margin: 0 0 0.75rem 0;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   line-height: 1.3;
 }
 
 .stack-explore-post-excerpt {
   font-size: 1.6rem; /* 16px minimum - excerpt text */
   line-height: 1.6;
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   margin: 0 0 1rem 0;
   flex: 1;
   display: -webkit-box;
@@ -496,7 +496,7 @@
 
 .stack-explore-read-more-btn {
   background: transparent;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   color: var(--saito-primary);
   padding: 0.75rem 1.25rem;
   border-radius: 8px;
@@ -531,7 +531,7 @@
 .stack-explore-empty-message {
   font-size: 1.8rem; /* 18px - readable body text */
   line-height: 1.6;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   margin: 0 0 1.5rem 0;
   max-width: 500px;
 }
@@ -556,12 +556,12 @@
 .stack-explore-empty {
   text-align: center;
   padding: 4rem 2rem;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .stack-explore-empty-icon {
   font-size: 4rem;
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   margin-bottom: 1.5rem;
   opacity: 0.5;
 }
@@ -569,12 +569,12 @@
 .stack-explore-empty h3 {
   font-size: 1.8rem;
   margin: 0 0 1rem 0;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .stack-explore-empty p {
   font-size: 1.8rem;
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   margin: 0 0 2rem 0;
 }
 
@@ -596,8 +596,8 @@
   .saito-overlay-closebox:has(+ .stack-explore-overlay) {
     background:
       linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 18%, transparent), transparent),
-      color-mix(in srgb, var(--saito-surface-color) 84%, var(--saito-primary));
-    border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-overlay-panel-border));
+      color-mix(in srgb, var(--saito-card) 84%, var(--saito-primary));
+    border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-border));
   }
 
   .stack-explore-sidebar {
@@ -614,7 +614,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
-    background: var(--saito-background-color);
+    background: var(--saito-background);
   }
 
   .stack-explorer-mobile-selector {

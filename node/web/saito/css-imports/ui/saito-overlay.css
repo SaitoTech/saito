@@ -47,16 +47,31 @@
   width: min(400px, 90vw);
 }
 
-/* Shared panel chrome for overlay content and peer panels */
-.saito-overlay > .saito-overlay-panel,
+/* Shared elevated panel chrome — class owns presentation anywhere it appears.
+   Overlay forms / file-transfer / hamburger share the same surface. */
+.saito-overlay-panel,
 .saito-overlay > form,
 .saito-file-transfer-overlay,
-.saito-header-hamburger-contents {
-  background-color: var(--saito-popover-surface);
-  background-image: var(--saito-popover);
-  box-shadow: var(--saito-overlay-panel-shadow);
+.saito-header-hamburger-contents,
+.stun-invite {
+  background-color: var(--saito-popover);
+  background-image: var(--saito-popover-wash);
+  box-shadow: var(--saito-elevation-3);
   border-radius: var(--saito-radius-lg);
-  border: 1px solid var(--saito-overlay-panel-border);
+  border: 1px solid var(--saito-border);
+}
+
+/* Compact floating menus / pickers (smaller radius + mid elevation) */
+.saito-overlay-panel.compact {
+  box-shadow: var(--saito-elevation-2);
+  border-radius: var(--saito-radius);
+}
+
+/* Keep dialog surface on mobile when overlay host goes full-bleed */
+.saito-overlay-panel.retain-surface {
+  background-color: var(--saito-popover);
+  background-image: var(--saito-popover-wash);
+  box-shadow: var(--saito-elevation-3);
 }
 
 .center-overlay {
@@ -75,9 +90,9 @@
   top: -1rem;
   right: -1rem;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--saito-surface-inverse) 12%, transparent), transparent),
-    color-mix(in srgb, var(--saito-surface-color) 84%, var(--saito-primary));
-  border: 1px solid color-mix(in srgb, var(--saito-primary) 42%, var(--saito-overlay-panel-border));
+    linear-gradient(180deg, color-mix(in srgb, var(--saito-foreground) 12%, transparent), transparent),
+    color-mix(in srgb, var(--saito-card) 84%, var(--saito-primary));
+  border: 1px solid color-mix(in srgb, var(--saito-primary) 42%, var(--saito-border));
   box-shadow:
     0 1.2rem 3rem color-mix(in srgb, var(--saito-black) 28%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--saito-white) 16%, transparent);
@@ -119,7 +134,7 @@
   width: 1.45rem;
   height: 2px;
   border-radius: 999px;
-  background: var(--saito-primary-text);
+  background: var(--saito-primary-foreground);
   transform-origin: center;
 }
 
@@ -179,7 +194,7 @@
     var(--saito-primary) 20%,
     transparent 100%
   );
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
 }
 
 @media (max-width: 768px) {
@@ -195,7 +210,7 @@
 
 .saito-overlay-form-header-title {
   margin: 0;
-  font-size: var(--font-size-h6);
+  font-size: 2rem;
   font-family: var(--saito-font-medium);
   text-transform: uppercase;
   white-space: nowrap;
@@ -226,8 +241,8 @@
   grid-template-columns: min-content 1fr;
   gap: var(--saito-space-md);
   padding: var(--saito-space-md);
-  border: var(--border-thickness-thin) dashed var(--saito-border);
-  border-radius: var(--saito-border-radius);
+  border: 1px dashed var(--saito-border);
+  border-radius: var(--saito-radius);
 }
 
 .saito-overlay-subform.centered {
@@ -285,11 +300,11 @@
     transform: none;
     overflow-y: auto;
     overscroll-behavior: contain;
-    background: var(--saito-canvas-background, var(--saito-background));
+    background: var(--saito-canvas-wash);
   }
 
-  .saito-overlay > .saito-overlay-panel,
-  .saito-overlay > form {
+  .saito-overlay > .saito-overlay-panel:not(.retain-surface),
+  .saito-overlay > form:not(.retain-surface) {
     box-sizing: border-box;
     width: 100% !important;
     max-width: 100% !important;
@@ -300,6 +315,7 @@
     box-shadow: none;
     height: calc(100% - 5rem);
     background: transparent;
+    background-image: none;
   }
 
   .saito-overlay .saito-overlay-closebox {

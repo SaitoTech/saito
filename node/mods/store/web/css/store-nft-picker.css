@@ -22,12 +22,12 @@
 .nft-picker > header {
 	flex: 0 0 auto;
 	padding: var(--saito-space-lg) var(--saito-space-xl);
-	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
+	border-bottom: 1px solid var(--saito-border);
 }
 
 .nft-picker > header h2 {
 	margin: 0 0 var(--saito-space-xs);
-	font-size: var(--font-size-h6);
+	font-size: 2rem;
 	font-family: var(--saito-font-medium);
 	letter-spacing: -0.01em;
 }
@@ -37,7 +37,7 @@
 	max-width: 40rem;
 	font-size: var(--font-size-medium);
 	line-height: 1.45;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 /* Content receives remaining viewport — not the header */
@@ -81,7 +81,7 @@
 .nft-picker > .nft-list-instructions {
 	flex: 0 0 auto;
 	padding: var(--saito-space-lg) var(--saito-space-xl);
-	border-top: var(--border-thickness-thin) solid var(--saito-border-color);
+	border-top: 1px solid var(--saito-border);
 }
 
 .nft-picker > .nft-list-instructions[hidden] {
@@ -93,7 +93,7 @@
 	opacity: 0.8;
 	line-height: 1.5;
 	font-size: var(--font-size-medium);
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 @media (max-width: 900px) {

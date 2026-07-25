@@ -19,7 +19,7 @@ body:has(.explorer-page) .saito-container {
 }
 
 body:has(.explorer-page) {
-	--saito-header-color: var(--explorer-foreground);
+	--saito-header-foreground: var(--explorer-foreground);
 	background-color: var(--explorer-muted);
 }
 

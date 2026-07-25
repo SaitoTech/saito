@@ -6,8 +6,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--saito-card);
-  border: var(--border-thickness-thin) solid var(--saito-border);
+  background: var(--saito-card-wash);
+  border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
 }
 
@@ -16,7 +16,7 @@
   width: 100%;
   height: 6.5rem;
   overflow: hidden;
-  background-color: var(--saito-card-base);
+  background-color: var(--saito-card);
   background-image: url(/saito/img/dreamscape.png);
   background-size: cover;
   background-position: center;
@@ -47,7 +47,7 @@
   height: 6.8rem;
   z-index: 1;
   object-fit: cover;
-  border: var(--border-thickness-medium) solid var(--saito-background);
+  border: 2px solid var(--saito-background);
   border-radius: var(--saito-radius);
 }
 

@@ -4,8 +4,8 @@
    ============================================ */
 
 .stack-post-teaser {
-  background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
+  background: var(--saito-background);
+  border: 1px solid var(--saito-border);
   border-left: 3px solid transparent; /* Space for hover accent */
   border-radius: 12px;
   overflow: hidden;
@@ -19,7 +19,7 @@
 }
 
 .stack-post-teaser:hover {
-  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  background: var(--saito-background-secondary, var(--saito-background));
   border-color: var(--saito-primary);
   border-left-color: var(--saito-primary); /* Primary color accent on hover */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -33,7 +33,7 @@
   flex-shrink: 0;
   aspect-ratio: 16 / 10; /* Editorial aspect ratio */
   overflow: hidden;
-  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  background: var(--saito-background-secondary, var(--saito-background));
 }
 
 .stack-post-teaser-image img {
@@ -63,7 +63,7 @@
   font-size: 2.2rem; /* 22px - larger, more scannable */
   font-weight: 600;
   margin: 0 0 1rem 0;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 3; /* Clamp to 3 lines max */
@@ -80,7 +80,7 @@
 .stack-post-teaser-description {
   font-size: 1.7rem; /* 17px - readable body text */
   line-height: 1.6;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   opacity: 0.85;
   margin: 0 0 1.25rem 0;
   display: -webkit-box;
@@ -97,7 +97,7 @@
 
 .stack-post-teaser-date {
   font-size: 1.4rem; /* 14px minimum - subtle but readable */
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   opacity: 0.6;
   font-weight: 400;
   line-height: 1.4;
@@ -133,7 +133,7 @@
   .stack-post-teaser {
     flex-direction: column;
     min-height: auto;
-    border-left: 1px solid var(--saito-border-color);
+    border-left: 1px solid var(--saito-border);
     border-top: 3px solid transparent; /* Space for hover accent on mobile */
   }
 

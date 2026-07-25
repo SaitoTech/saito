@@ -1,8 +1,8 @@
 /* Shared notification-dot positioning (design system) */
 
 .saito-user:hover .saito-notification-dot {
-  background-color: var(--saito-notification-ring);
-  color: var(--saito-font-color);
+  background-color: var(--saito-background);
+  color: var(--saito-foreground);
 }
 
 .hamburger-container .saito-notification-dot {

@@ -45,9 +45,9 @@
 
 .saito-sidebar-element {
   padding: var(--border-padding-normal);
-  border: var(--border-thickness-thin) solid var(--saito-border);
-  border-radius: var(--saito-border-radius);
-  background: var(--saito-card);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card-wash);
 }
 
 .sidebar-header {
@@ -56,7 +56,7 @@
   font-size: 2rem;
   justify-content: space-between;
   min-height: 40px;
-  color: var(--saito-font-color-heavy);
+  color: var(--saito-foreground);
   text-transform: uppercase;
   font-family: var(--saito-font);
 }

@@ -2,7 +2,7 @@
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
 }
 
 .filter-sort__container {
@@ -30,8 +30,8 @@
   flex: 1;
 }
 .filter-sort__select option {
-  background-color: var(--saito-background-color);
-  color: var(--saito-font-color);
+  background-color: var(--saito-background);
+  color: var(--saito-foreground);
   padding: 4px;
 }
 

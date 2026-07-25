@@ -33,7 +33,7 @@
   /* Position relative, part of normal document flow - NOT fixed or absolute */
   position: relative;
   /* Content grows naturally - no height constraints */
-  background: var(--saito-background-color);
+  background: var(--saito-background);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -85,7 +85,7 @@
   font-size: 4.2rem; /* 42px - large, calm typography */
   font-weight: 700;
   line-height: 1.2;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   margin: 0 0 1.25rem 0; /* Tighter spacing to subtitle */
   letter-spacing: -0.02em;
 }
@@ -99,7 +99,7 @@
   font-size: 2.4rem; /* 24px - smaller than title, larger than body */
   font-weight: 400;
   line-height: 1.5;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   opacity: 0.75; /* Slightly more subdued than title */
   margin: 0 0 2rem 0; /* Clear separation to attribution row */
 }
@@ -114,7 +114,7 @@
   margin-bottom: 2.5rem; /* Reduced spacing to body text for better flow */
   flex-wrap: wrap;
   /* Subtle background band - very low opacity tint */
-  background: color-mix(in srgb, var(--saito-font-color) 3%, var(--saito-background-color) 97%);
+  background: color-mix(in srgb, var(--saito-foreground) 3%, var(--saito-background) 97%);
   /* Minimal vertical padding inside band */
   padding-top: 1.25rem;
   padding-bottom: 1.25rem;
@@ -134,7 +134,7 @@
 }
 
 .stack-view-post-author-container .saito-userline {
-  color: var(--saito-font-color-secondary);
+  color: var(--saito-muted-foreground);
 }
 
 /* Action Icons - Right side, compact cluster */
@@ -154,8 +154,8 @@
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid var(--saito-border-color);
-  color: var(--saito-font-color);
+  border: 1px solid var(--saito-border);
+  color: var(--saito-foreground);
   opacity: 0.6; /* Low contrast by default */
   cursor: pointer;
   transition: all 0.2s ease;
@@ -188,7 +188,7 @@
 .stack-view-post-content {
   font-size: 2rem; /* 20px - optimized for reading */
   line-height: 1.75; /* Comfortable for long-form reading */
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-weight: 400;
 }
 
@@ -205,7 +205,7 @@
 .stack-view-post-content h6 {
   margin: 3rem 0 1.25rem 0; /* More space above, tighter below */
   font-weight: 600;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   line-height: 1.3;
 }
 
@@ -256,13 +256,13 @@
   padding: 0 0 0 2rem;
   border-left: 3px solid var(--saito-primary);
   font-style: italic;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   opacity: 0.85;
   line-height: 1.75;
 }
 
 .stack-view-post-content code {
-  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  background: var(--saito-background-secondary, var(--saito-background));
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
   font-size: 1.8rem;
@@ -270,8 +270,8 @@
 }
 
 .stack-view-post-content pre {
-  background: var(--saito-background-color-inverse);
-  color: var(--saito-font-color-inverse);
+  background: var(--saito-background-inverse);
+  color: var(--saito-background);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 0.9rem;
   line-height: 1.5;
@@ -325,7 +325,7 @@
 .stack-view-post-inline-image figcaption {
   margin-top: 1rem;
   font-size: 1.6rem; /* 16px minimum */
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   opacity: 0.7;
   font-style: italic;
   text-align: center;
@@ -336,7 +336,7 @@
   margin-top: 4rem; /* Generous space after body content */
   padding-top: 2rem;
   padding-bottom: 2rem;
-  border-top: 1px solid var(--saito-border-color);
+  border-top: 1px solid var(--saito-border);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2rem;
@@ -350,7 +350,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   border-radius: 12px;
   text-align: center;
   width: 100%;
@@ -361,7 +361,7 @@
 .stack-view-post-error {
   padding: 4rem 2rem;
   text-align: center;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   font-size: 1.8rem;
 }
 

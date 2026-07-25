@@ -108,7 +108,7 @@
 
 /* saito add ons */
 .jsontree_label {
-    color: var(--saito-font-color);
+    color: var(--saito-foreground);
 }
 
 .jsontree_value_string, 
@@ -118,7 +118,7 @@
 }
 
 .jsontree_expand-button {
-    background-color: var(--saito-font-color);
+    background-color: var(--saito-foreground);
     -webkit-mask-image: url(icons.svg);
     mask-image: url(icons.svg);
     background-image: none;

@@ -5,7 +5,7 @@ module.exports = {
 			: 'Purchasing NFT…';
 
 		return `
-<article class="purchase pending" aria-labelledby="purchase-pending-title" aria-live="polite">
+<article class="purchase pending saito-overlay-panel retain-surface" aria-labelledby="purchase-pending-title" aria-live="polite">
   <div class="stack">
     <div class="saito-spinner" aria-hidden="true"></div>
     <h2 class="title" id="purchase-pending-title">Purchasing NFT…</h2>
@@ -26,7 +26,7 @@ module.exports = {
 			: 'The Store is fulfilling your order.';
 
 		return `
-<article class="purchase fulfilling" aria-labelledby="purchase-fulfilling-title" aria-live="polite">
+<article class="purchase fulfilling saito-overlay-panel retain-surface" aria-labelledby="purchase-fulfilling-title" aria-live="polite">
   <div class="stack">
     <div class="saito-spinner" aria-hidden="true"></div>
     <h2 class="title" id="purchase-fulfilling-title">Payment confirmed</h2>
@@ -42,7 +42,7 @@ module.exports = {
 			: 'Your NFT has arrived in your wallet.';
 
 		return `
-<article class="purchase complete" aria-labelledby="purchase-complete-title">
+<article class="purchase complete saito-overlay-panel retain-surface" aria-labelledby="purchase-complete-title">
   <div class="stack">
     <div class="success" aria-hidden="true"><i class="fas fa-check"></i></div>
     <h2 class="title" id="purchase-complete-title">NFT received!</h2>

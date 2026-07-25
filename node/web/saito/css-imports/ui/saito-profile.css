@@ -22,13 +22,13 @@
 .saito-profile-tab:hover {
   color: var(--saito-primary);
   background-color: var(--background-color-button-sidebar);
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
 }
 
 .saito-profile-menu .active {
   text-decoration: underline dashed;
   text-underline-offset: 0.5rem;
-  /*border-bottom: 1px dashed var(--saito-font-color);*/
+  /*border-bottom: 1px dashed var(--saito-foreground);*/
 }
 
 .saito-profile-banner {
@@ -42,7 +42,7 @@
 }
 
 .saito-profile-header-row .saito-identicon-box {
-  border: var(--border-thickness-medium) solid var(--border-color-identicon-square-profile);
+  border: 2px solid var(--border-color-identicon-square-profile);
   width: 10rem;
   height: 10rem;
   background-size: cover;

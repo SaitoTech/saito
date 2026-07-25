@@ -29,8 +29,8 @@
 	background-position: center;
 	background-color: transparent;
 	background-blend-mode: normal;
-	border-radius: var(--saito-border-radius);
-	border: var(--border-thickness-thin) solid var(--saito-border);
+	border-radius: var(--saito-radius);
+	border: 1px solid var(--saito-border);
 }
 
 .arcade-invite .header {
@@ -50,7 +50,7 @@
 	overflow: hidden;
 	pointer-events: none;
 	background: rgba(0, 0, 0, 0.5);
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 	opacity: 1;
 }
 
@@ -61,7 +61,7 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: var(--saito-chip-fg, var(--saito-foreground));
+	color: var(--saito-secondary-foreground, var(--saito-foreground));
 }
 
 .arcade-invite .title {
@@ -119,13 +119,11 @@
 }
 
 .arcade-invite .slot {
-	border: 1px solid var(--saito-border-color, var(--saito-border));
+	border: 1px solid var(--saito-border);
 	box-shadow: -1px -1px #000;
-	background-color: var(
-		--background-color-shim-light,
-		color-mix(in srgb, var(--saito-foreground) 8%, transparent)
+	background-color: color-mix(in srgb, var(--saito-black) 40%, transparent) 8%, transparent)
 	);
-	border-radius: var(--saito-radius-md, var(--saito-border-radius));
+	border-radius: var(--saito-radius);
 }
 
 .arcade-invite .badge {
@@ -144,10 +142,10 @@
 	font-weight: bold;
 	text-align: center;
 	text-transform: uppercase;
-	color: var(--saito-primary-text, var(--saito-primary-foreground));
+	color: var(--saito-primary-foreground);
 	background-color: var(--saito-primary);
-	border: 1px solid var(--saito-border-color, var(--saito-border));
-	border-radius: var(--saito-radius-md, var(--saito-border-radius));
+	border: 1px solid var(--saito-border);
+	border-radius: var(--saito-radius);
 }
 
 /*
@@ -174,7 +172,7 @@
 	color: var(--saito-white);
 	text-shadow: 1px 1px 2px var(--saito-black);
 	background-color: var(--saito-primary);
-	color: var(--saito-primary-text);
-	border-radius: var(--saito-radius-md);
-	border: 3px solid var(--saito-background-color);
+	color: var(--saito-primary-foreground);
+	border-radius: var(--saito-radius);
+	border: 3px solid var(--saito-background);
 }

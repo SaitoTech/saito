@@ -1,6 +1,6 @@
 .saito-gif-container {
 	border-radius: 0.5rem;
-	background-color: var(--saito-background-color);
+	background-color: var(--saito-background);
 	position: relative;
 	overflow-y: auto;
 	overflow-x: hidden;

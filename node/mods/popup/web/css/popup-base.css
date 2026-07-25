@@ -17,8 +17,8 @@
 }
 
 .saito-menu > ul > li:hover {
-	background-color: var(--saito-background-color);
-	color: var(--saito-font-color);
+	background-color: var(--saito-background);
+	color: var(--saito-foreground);
 }
 
 

@@ -13,10 +13,10 @@
 	flex-direction: column;
 	min-width: 0;
 	overflow: hidden;
-	border-radius: var(--saito-border-radius);
-	background: var(--saito-card-bg);
-	border: var(--border-thickness-thin) solid var(--saito-card-border-initial);
-	box-shadow: var(--saito-card-shadow);
+	border-radius: var(--saito-radius);
+	background: var(--saito-card);
+	border: 1px solid var(--saito-border);
+	box-shadow: var(--saito-elevation-0);
 	cursor: pointer;
 	transition:
 		background-color 0.2s,
@@ -31,9 +31,9 @@
 
 @media (hover: hover) and (pointer: fine) {
 	.teaser:hover {
-		background-color: var(--saito-card-bg-hover);
-		border-color: var(--saito-card-border);
-		box-shadow: var(--saito-card-shadow-hover);
+		background-color: color-mix(in srgb, var(--saito-card) 86%, var(--saito-accent));
+		border-color: var(--saito-border);
+		box-shadow: var(--saito-elevation-0);
 	}
 }
 
@@ -82,7 +82,7 @@
 	width: 2.2rem;
 	height: 2.2rem;
 	border-radius: 50%;
-	border: var(--border-thickness-medium) solid color-mix(in srgb, var(--saito-background) 55%, transparent);
+	border: 2px solid color-mix(in srgb, var(--saito-background) 55%, transparent);
 	object-fit: cover;
 }
 
@@ -128,7 +128,7 @@
 .teaser .seller {
 	margin: 0;
 	font-size: var(--font-size-tiny);
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;

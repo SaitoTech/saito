@@ -6,7 +6,7 @@
 
 #saito-alert-shim {
   z-index: 2000;
-  background-color: var(--saito-alert-backdrop);
+  background-color: color-mix(in srgb, var(--saito-background) 86%, transparent);
   position: absolute;
   width: 100%;
   height: 100%;
@@ -17,18 +17,16 @@
   width: 75vw;
   max-width: 70rem;
   transition: all 500ms ease-in-out;
-  background: var(--saito-alert-bg);
   margin: auto;
   position: relative;
   top: -100%;
-  border: var(--border-thickness-thin) solid var(--saito-alert-border);
-  border-radius: var(--saito-radius-md);
   padding: 1.5rem;
-  color: var(--saito-alert-fg);
+  color: var(--saito-popover-foreground);
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  box-shadow: var(--saito-alert-shadow);
+  /* slightly softer than elevation-2; keep unique alert drop */
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.36);
 }
 
 .saito-alert-message {

@@ -36,7 +36,7 @@
 
 .purchase .title {
 	margin: 0;
-	font-size: var(--font-size-h6);
+	font-size: 2rem;
 	font-family: var(--saito-font-medium);
 	letter-spacing: -0.01em;
 }
@@ -47,7 +47,7 @@
 	max-width: 28rem;
 	font-size: var(--font-size-medium);
 	line-height: 1.5;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 	overflow-wrap: anywhere;
 }
 
@@ -66,7 +66,7 @@
 	max-width: 18rem;
 	margin-top: var(--saito-space-lg);
 	padding-top: var(--saito-space-lg);
-	border-top: var(--border-thickness-thin) solid var(--saito-border-color);
+	border-top: 1px solid var(--saito-border);
 }
 
 .purchase .timer-label,
@@ -75,13 +75,13 @@
 	font-size: var(--font-size-tiny);
 	letter-spacing: 0.04em;
 	text-transform: lowercase;
-	color: var(--saito-font-color-secondary);
+	color: var(--saito-muted-foreground);
 }
 
 .purchase .countdown {
 	display: inline-block;
 	margin: var(--saito-space-sm) 0;
-	font-size: var(--font-size-h5);
+	font-size: 2.5rem;
 	font-family: var(--saito-font-heavy);
 	font-variant-numeric: tabular-nums;
 	line-height: 1;
@@ -119,14 +119,7 @@
 	min-height: 1.5em;
 }
 
-/* Saito ≤768px clears panel background — restore dialog surface */
-@media (max-width: 768px) {
-	.saito-overlay.store-purchase-overlay-shell > .purchase {
-		background: var(--saito-overlay-panel-background);
-		border-radius: var(--saito-radius-lg);
-		box-shadow: var(--saito-overlay-panel-shadow);
-	}
-}
+/* Dialog surface on mobile: .retain-surface on .purchase */
 
 @media (max-width: 600px) {
 	.saito-overlay.store-purchase-overlay-shell {
@@ -149,7 +142,7 @@
 	}
 
 	.purchase .countdown {
-		font-size: var(--font-size-h6);
+		font-size: 2rem;
 	}
 
 	.purchase .stack > .saito-button-primary {

@@ -2,7 +2,7 @@
 
 body.buysaito-body .buysaito-main {
   background-image: url(/saito/img/tiled-logo.svg);
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
   position: fixed;
   width: 100vw;
   height: 100vh;
@@ -24,7 +24,7 @@ body.buysaito-body .buysaito-withdraw-container {
   align-items: center;
   padding: 7rem;
   border-radius: 1rem;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   background: linear-gradient(135deg, #0008, #0000);
 }
 
@@ -36,14 +36,14 @@ body.buysaito-body .buysaito-withdraw-container {
 }
 
 .purchase-saito-amount {
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   width: max-content;
   height: 100%;
   font-size: 2.2rem;
   color: inherit;
   text-align: right;
-  background: var(--saito-background-color);
-  border-radius: var(--saito-border-radius);
+  background: var(--saito-background);
+  border-radius: var(--saito-radius);
   padding: 5px;
 }
 
@@ -83,14 +83,14 @@ body.buysaito-body .buysaito-withdraw-container {
   .buysaito-payment-box,
   .loader-interstitial-overlay
 ) {
-  border: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
+  border: 1px solid var(--saito-border);
 }
 
 .purchase-container .buysaito-footer-note {
   margin-top: auto;
   padding-top: 1.5rem;
-  border-top: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
-  color: var(--saito-font-color-secondary);
+  border-top: 1px solid var(--saito-border);
+  color: var(--saito-muted-foreground);
   font-size: 1.4rem;
   font-style: normal;
   line-height: 1.5;
@@ -128,11 +128,11 @@ body.buysaito-body .buysaito-withdraw-container {
   gap: 1.2rem;
   min-height: 7.2rem;
   padding: 1.1rem 1.4rem;
-  border: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
+  border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius-lg);
-  background: color-mix(in srgb, var(--saito-popover-surface) 94%, var(--saito-foreground));
-  box-shadow: inset 0 1px 0 var(--saito-overlay-panel-border-highlight);
-  color: var(--saito-font-color);
+  background: color-mix(in srgb, var(--saito-popover) 94%, var(--saito-foreground));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--saito-foreground) 5%, transparent);
+  color: var(--saito-foreground);
   cursor: pointer;
   text-align: left;
   transition:
@@ -158,7 +158,7 @@ body.buysaito-body .buysaito-withdraw-container {
   width: 4.6rem;
   height: 4.6rem;
   border-radius: 50%;
-  border: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
+  border: 1px solid var(--saito-border);
   background: var(--saito-highlight);
   box-shadow: 0 0.6rem 1.8rem color-mix(in srgb, var(--saito-black) 18%, transparent);
 }
@@ -176,14 +176,14 @@ body.buysaito-body .buysaito-withdraw-container {
   bottom: -0.2rem;
   width: 1.8rem;
   height: 1.8rem;
-  border: 2px solid var(--saito-popover-surface);
+  border: 2px solid var(--saito-popover);
   border-radius: 50%;
-  background: var(--saito-popover-surface);
+  background: var(--saito-popover);
 }
 
 .purchase-crypto-item:hover {
-  border-color: color-mix(in srgb, var(--saito-primary) 62%, var(--saito-overlay-panel-border));
-  background: color-mix(in srgb, var(--saito-primary) 9%, var(--saito-popover-surface));
+  border-color: color-mix(in srgb, var(--saito-primary) 62%, var(--saito-border));
+  background: color-mix(in srgb, var(--saito-primary) 9%, var(--saito-popover));
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--saito-primary) 14%, transparent),
     0 0.8rem 2.4rem color-mix(in srgb, var(--saito-black) 22%, transparent);
@@ -191,13 +191,13 @@ body.buysaito-body .buysaito-withdraw-container {
 }
 
 .purchase-crypto-item:active {
-  box-shadow: inset 0 1px 0 var(--saito-overlay-panel-border-highlight);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--saito-foreground) 5%, transparent);
   transform: translateY(0) scale(0.99);
 }
 
 .purchase-select-crypto-msg {
   margin: 2rem 0 1.6rem;
-  color: var(--saito-font-color-secondary);
+  color: var(--saito-muted-foreground);
   font-size: 1.5rem;
   font-weight: 400;
   letter-spacing: 0.22em;
@@ -228,7 +228,7 @@ body.buysaito-body .buysaito-withdraw-container {
   max-height: calc(100svh - 4rem);
   overflow-y: auto;
   border-radius: var(--saito-radius-lg);
-  box-shadow: var(--saito-overlay-panel-shadow);
+  box-shadow: var(--saito-elevation-3);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -293,7 +293,7 @@ body.buysaito-body .buysaito-withdraw-container {
   }
 
   & .details {
-    border: var(--border-thickness-thin) solid var(--saito-border-color);
+    border: 1px solid var(--saito-border);
     border-radius: var(--saito-radius-lg);
     padding: 15px;
     display: flex;
@@ -349,7 +349,7 @@ body.buysaito-body .buysaito-withdraw-container {
   place-items: center;
   width: 4.6rem;
   height: 4.6rem;
-  border: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
+  border: 1px solid var(--saito-border);
   border-radius: 50%;
   background: var(--saito-highlight);
   box-shadow: 0 0.6rem 1.8rem color-mix(in srgb, var(--saito-black) 18%, transparent);
@@ -368,9 +368,9 @@ body.buysaito-body .buysaito-withdraw-container {
   bottom: -0.2rem;
   width: 1.8rem;
   height: 1.8rem;
-  border: 2px solid var(--saito-popover-surface);
+  border: 2px solid var(--saito-popover);
   border-radius: 50%;
-  background: var(--saito-popover-surface);
+  background: var(--saito-popover);
 }
 
 .crypto-box > input.saito-input {

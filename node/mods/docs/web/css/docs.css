@@ -42,7 +42,7 @@ body.docs #saito-header:hover,
 body.docs #saito-header.docs-expanded {
   height: var(--docs-expanded);
   padding: 0 1rem;
-  background: var(--saito-header-background, #1a1a1a);
+  background: var(--saito-background, #1a1a1a);
   overflow: visible;
 }
 

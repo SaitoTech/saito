@@ -151,7 +151,7 @@
 
 .cardct img {
 	width: 100%;
-	border: 1px solid var(--saito-border-color);
+	border: 1px solid var(--saito-border);
 	border-radius: 0.35rem;
 }
 

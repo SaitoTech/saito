@@ -9,7 +9,7 @@
 
 .left-column {
   width: 256px;
-  border-right: 1px solid var(--saito-border-color);
+  border-right: 1px solid var(--saito-border);
   padding: 24px;
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05);
 }
@@ -84,7 +84,7 @@
 }
 .tab-button:hover {
   background: var(--saito-primary) !important;
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-elevation-2);
   border: none;
 }
 
@@ -96,16 +96,16 @@
 
 .card {
   /* background: white; */
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   margin-bottom: 16px;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   overflow: hidden;
 }
 
 .card-header {
   padding: 16px;
-  border-bottom: 1px solid var(--saito-border-color);
+  border-bottom: 1px solid var(--saito-border);
 }
 
 .card-header h5 {
@@ -207,7 +207,7 @@
 .spinner {
   width: 1.6rem;
   height:  1.6rem;
-  border: 2px solid var(--saito-border-color);
+  border: 2px solid var(--saito-border);
   border-top: 2px solid transparent;
   border-radius: 50%;
   animation: spin 1s linear infinite;

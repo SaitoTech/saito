@@ -30,7 +30,7 @@
 	width: min(60vw, 40dvh);
 	height: min(60vw, 40dvh);
 	border-radius: 50%;
-	border: 2px solid var(--saito-border-color-dark);
+	border: 2px solid var(--saito-border);
 	background-image: url(/saito/img/saito-background-icon.svg);
 	background-color: var(--stun-noir-canvas-bg);
 	background-size: 66%;

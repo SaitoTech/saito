@@ -11,7 +11,7 @@
 .modtools-main-container .saito-module-details-box {
   background-color: var(--saito-primary);
   padding: 1rem;
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
 }
 
 .modtools-main-container .saito-module-title {

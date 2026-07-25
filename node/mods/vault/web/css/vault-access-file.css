@@ -29,9 +29,9 @@
   overflow: hidden;
   padding: 1rem;
   box-sizing: border-box;
-  background: var(--saito-card);
+  background: var(--saito-card-wash);
   border: 1px solid var(--saito-border);
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
   box-shadow: 0 4px 12px #0000000f;
   cursor: pointer;
   transition:
@@ -51,7 +51,7 @@
   max-width: 100%;
   min-width: 0;
   height: auto;
-  border-radius: calc(var(--saito-border-radius) - 0.25rem);
+  border-radius: calc(var(--saito-radius) - 0.25rem);
   object-fit: cover;
 }
 
@@ -78,10 +78,10 @@
   align-items: center;
   justify-content: center;
   padding: 0.4rem 0.75rem;
-  color: var(--saito-button-primary-fg);
-  background: var(--saito-button-primary-bg);
-  border: var(--border-thickness-thin) solid var(--saito-button-primary-border);
-  border-radius: var(--saito-button-radius);
+  color: var(--saito-button-primary-foreground);
+  background: var(--saito-button-primary-background);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
   font-size: 1.5rem;
   font-weight: 600;
   white-space: nowrap;
@@ -89,7 +89,7 @@
 
 .vault-nfts .vault-nft-download-btn:hover {
   color: var(--saito-primary-foreground);
-  background: var(--saito-button-primary-bg-hover);
+  background: var(--saito-button-primary-background-hover);
 }
 
 .vault-nfts .vault-nft-download-btn:focus-visible {

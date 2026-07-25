@@ -19,9 +19,9 @@
     /* margin: 0 auto; */
     padding: 2.5rem;
     text-align: center;
-    background: var(--saito-background-color);
-    border-radius: var(--saito-border-radius);
-    box-shadow: var(--saito-overlay-panel-shadow);
+    background: var(--saito-background);
+    border-radius: var(--saito-radius);
+    box-shadow: var(--saito-elevation-3);
     min-width: 300px;
     display: flex;
     flex-direction: column;
@@ -43,7 +43,7 @@
 	max-width: 32rem;
 	padding: 2rem;
 	grid-gap: 1.25rem;
-	box-shadow: var(--saito-box-shadow);
+	box-shadow: var(--saito-elevation-2);
 }
 
 .arcade-lounge--ready-popup .arcade-lounge-header-title {

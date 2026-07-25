@@ -1,6 +1,6 @@
 module.exports  = (comp, auto_join) => {
     let html = `
-        <div class="call-schedule-join-container">
+        <div class="call-schedule-join-container saito-overlay-panel">
             <h4>Scheduled Calls</h4>
             <div class="scheduled-calls">`;
     

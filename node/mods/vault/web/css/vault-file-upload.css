@@ -91,9 +91,9 @@
 	min-height: min(32rem, 50vh);
 	padding: var(--saito-space-xl);
 	box-sizing: border-box;
-	border: var(--border-thickness-thin) solid var(--saito-input-border);
-	border-radius: var(--saito-input-radius);
-	background-color: var(--saito-input-bg);
+	border: 1px solid var(--saito-border);
+	border-radius: var(--saito-radius);
+	background-color: var(--saito-secondary);
 	color: var(--saito-muted-foreground);
 	text-align: center;
 	font-size: 1.6rem;

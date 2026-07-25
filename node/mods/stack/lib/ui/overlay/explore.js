@@ -232,8 +232,8 @@ class ExploreOverlay {
       grid.innerHTML = `
         <div class="stack-explore-loading" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 4rem 2rem;">
           <div style="text-align: center;">
-            <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
-            <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Fetching latest posts…</p>
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
+            <p style="color: var(--saito-muted-foreground); font-size: 1.6rem;">Fetching latest posts…</p>
           </div>
         </div>
       `;
@@ -252,9 +252,9 @@ class ExploreOverlay {
       if (author == this.mod.publicKey) {
         grid.innerHTML = `
         <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
-          <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
-          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">Welcome</h3>
-          <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
+          <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-muted-foreground); opacity: 0.5; margin-bottom: 2rem;"></i>
+          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">Welcome</h3>
+          <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
             You haven't published any posts yet. <span class="stack-alt-new-post saito-anchor">Get started now<span>
           </p>
         </div>
@@ -264,9 +264,9 @@ class ExploreOverlay {
         // Show empty state for reading
         grid.innerHTML = `
         <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
-          <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
-          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">No posts available</h3>
-          <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
+          <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-muted-foreground); opacity: 0.5; margin-bottom: 2rem;"></i>
+          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">No posts available</h3>
+          <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
             No posts are visible at this time. This may be because no posts have been published yet, or you may need to subscribe to see content from this creator.
           </p>
         </div>
@@ -419,15 +419,15 @@ class ExploreOverlay {
       if (!tx) {
         const errorHtml = `
           <div class="stack-view-post-error" style="padding: 4rem 2rem; text-align: center; max-width: 600px; margin: 0 auto;">
-            <i class="fa-solid fa-exclamation-circle" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
-            <h2 style="font-size: 2.4rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1.5rem 0;">Post Not Available</h2>
-            <p style="font-size: 1.8rem; color: var(--saito-font-color-light); margin: 0; line-height: 1.6;">
+            <i class="fa-solid fa-exclamation-circle" style="font-size: 4rem; color: var(--saito-muted-foreground); opacity: 0.5; margin-bottom: 2rem;"></i>
+            <h2 style="font-size: 2.4rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1.5rem 0;">Post Not Available</h2>
+            <p style="font-size: 1.8rem; color: var(--saito-muted-foreground); margin: 0; line-height: 1.6;">
               This post could not be loaded or is no longer available.
             </p>
             ${
   txSignature
     ? `
-              <p style="font-size: 1.4rem; color: var(--saito-font-color-light); margin: 1.5rem 0 0 0; opacity: 0.7; font-family: monospace; word-break: break-all;">
+              <p style="font-size: 1.4rem; color: var(--saito-muted-foreground); margin: 1.5rem 0 0 0; opacity: 0.7; font-family: monospace; word-break: break-all;">
                 ${txSignature.substring(0, 32)}...
               </p>
             `

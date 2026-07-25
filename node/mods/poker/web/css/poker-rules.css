@@ -64,7 +64,7 @@ img.mcard {
 	background: var(--saito-black);
 	color: var(--saito-white);
 	padding: 2rem;
-	border: 1px solid var(--saito-border-color);
+	border: 1px solid var(--saito-border);
 	border-radius: 5px;
 }
 

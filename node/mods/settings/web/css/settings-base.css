@@ -30,10 +30,10 @@
 	align-items: center;
 	gap: var(--saito-space-sm);
 	padding: var(--saito-space-sm) var(--saito-space-md);
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 	background: var(--saito-primary);
-	color: var(--saito-primary-text);
-	border-bottom: var(--border-thickness-medium) solid var(--saito-red, #c0392b);
+	color: var(--saito-primary-foreground);
+	border-bottom: 2px solid var(--saito-red, #c0392b);
 	font-weight: 600;
 	line-height: 1.35;
 }
@@ -45,13 +45,13 @@
 
 /* Accordion — inherit overlay panel surface; border + caret for affordance */
 .settings-appspace-section {
-	border: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
-	border-radius: var(--saito-border-radius);
+	border: 1px solid var(--saito-border);
+	border-radius: var(--saito-radius);
 	background: transparent;
 }
 
 .settings-appspace-section[open] {
-	border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-overlay-panel-border));
+	border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-border));
 }
 
 .settings-appspace-section-summary {
@@ -105,8 +105,8 @@
 }
 
 .settings-appspace-section > div {
-	border-top: var(--border-thickness-thin) solid
-		color-mix(in srgb, var(--saito-primary) 18%, var(--saito-overlay-panel-border));
+	border-top: 1px solid
+		color-mix(in srgb, var(--saito-primary) 18%, var(--saito-border));
 	padding: var(--saito-space-md);
 }
 
@@ -187,7 +187,7 @@
 	align-items: center;
 	gap: var(--saito-space-xs);
 	padding: var(--saito-space-xs) var(--saito-space-sm);
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 	cursor: pointer;
 }
 

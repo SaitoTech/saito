@@ -15,7 +15,7 @@
     top 0.33s linear,
     height 0.33s linear,
     padding 0.33s linear;
-  color: var(--saito-header-color);
+  color: var(--saito-foreground);
   background: transparent;
   border-bottom: 1px solid var(--saito-border);
   box-shadow: none;
@@ -41,8 +41,8 @@
 
 #saito-header.game .hamburger-container {
   padding: 0.5rem;
-  background: var(--saito-chip-bg);
-  border-radius: var(--saito-radius-md);
+  background: var(--saito-secondary);
+  border-radius: var(--saito-radius);
   margin-top: 1rem;
 }
 
@@ -50,7 +50,7 @@
   width: 15rem;
   cursor: pointer;
   height: 100%;
-  fill: var(--saito-header-color);
+  fill: var(--saito-foreground);
   filter: brightness(0) invert(1);
 }
 
@@ -68,7 +68,7 @@
   transition: transform 0.2s;
   top: 0;
   left: 0;
-  color: var(--saito-header-color);
+  color: var(--saito-foreground);
   background: transparent;
   background-size: 100vw;
   background-position-x: min(-2rem, calc(- (100vw - var(--saito-width)) / 2 + 0.5rem));
@@ -130,7 +130,7 @@
   width: 40rem;
   height: calc(100svh - var(--saito-header-height) + 3px);
   overflow: hidden auto;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .saito-header-hamburger-contents.show-menu {
@@ -156,7 +156,7 @@
   height: calc(100vh - var(--saito-header-height));
   overflow: hidden;
   z-index: 19;
-  background: var(--background-color-shim-dark);
+  background: color-mix(in srgb, var(--saito-black) 70%, transparent);
   transition: opacity 0.33s;
 }
 
@@ -198,8 +198,8 @@
   We need a thick border and no padding for the qrcode to be scannable
   Do not add a padding
   */
-  border-radius: var(--saito-border-radius);
-  background: var(--saito-background-color);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
   visibility: inherit;
 }
 
@@ -228,13 +228,13 @@
 #saito-header .balance-amount:hover,
 .saito-crypto-deposit .balance-amount:hover,
 .saito-crypto-transfer .balance-amount:hover {
-  color: var(--saito-font-color-heavy);
+  color: var(--saito-foreground);
 }
 
 #saito-header .balance-amount.pending,
 .saito-crypto-deposit .balance-amount.pending,
 .saito-crypto-transfer .balance-amount.pending {
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   animation: fade-animation 1.5s infinite ease-in-out;
 }
 
@@ -289,9 +289,9 @@
 #saito-header .wallet-btn-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(3rem, 1fr));
-  background: var(--saito-background-color-inverse);
-  color: var(--saito-font-color-inverse);
-  border-radius: var(--saito-border-radius);
+  background: var(--saito-background-inverse);
+  color: var(--saito-background);
+  border-radius: var(--saito-radius);
   margin: 0.5rem 0;
   width: 95%;
   text-transform: uppercase;
@@ -314,7 +314,7 @@
 }
 
 #saito-header .wallet-btn:hover {
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   background: var(--saito-primary);
 }
 
@@ -375,7 +375,7 @@
   background: inherit;
   height: auto;
   overflow: hidden;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   margin: 1.5rem 0;
   transition: all 0.8s;
 }
@@ -509,7 +509,7 @@
 .crypto-logo-container .crypto-logo {
   height: 4rem;
   width: 4rem;
-  border: 3px solid var(--saito-button-secondary-fg);
+  border: 3px solid var(--saito-button-secondary-foreground);
   border-radius: 50%;
 }
 
@@ -523,13 +523,13 @@
 
 .header-crypto-balance {
   font: var(--saito-font-medium);
-  color: var(--saito-font-color-heavy);
+  color: var(--saito-foreground);
   font-size: 19px;
   align-self: flex-end;
 }
 
 .header-crypto-value {
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
 }
 
 /*   Crypto Menu */

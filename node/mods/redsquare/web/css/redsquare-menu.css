@@ -19,8 +19,8 @@
 
 /* Persistent selection — Saito menu-select only defines :hover, not .active */
 .menu .item.active {
-  background-color: var(--saito-menu-item-active-bg);
-  color: var(--saito-menu-item-hover-fg);
+  background-color: var(--saito-accent);
+  color: var(--saito-accent-foreground);
 }
 
 .menu .icon {
@@ -39,13 +39,13 @@
 
 /* Same outline treatment as .saito-menu icons */
 .menu .icon i::before {
-  -webkit-text-stroke: 1px var(--saito-menu-icon-color);
+  -webkit-text-stroke: 1px var(--saito-muted-foreground);
   color: transparent;
 }
 
 .menu .item:hover .icon i::before,
 .menu .item.active .icon i::before {
-  -webkit-text-stroke-color: var(--saito-menu-icon-hover-color);
+  -webkit-text-stroke-color: var(--saito-foreground);
 }
 
 .menu .label {
@@ -89,7 +89,7 @@
     z-index: 40;
     width: 100%;
     background: var(--saito-background);
-    border-top: var(--border-thickness-thin) solid var(--saito-border);
+    border-top: 1px solid var(--saito-border);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 

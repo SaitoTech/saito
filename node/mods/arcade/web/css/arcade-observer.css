@@ -3,7 +3,7 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  background: var(--background-color-shim-dark);
+  background: color-mix(in srgb, var(--saito-black) 70%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 9999;
@@ -18,9 +18,9 @@
 }
 
 .arcade-observer-btn {
-  background: var(--saito-surface-color);
-  border: 1px solid var(--saito-border-color);
-  color: var(--saito-font-color);
+  background: var(--saito-card);
+  border: 1px solid var(--saito-border);
+  color: var(--saito-foreground);
   padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
@@ -28,7 +28,7 @@
 }
 
 .arcade-observer-btn:hover {
-  background: var(--saito-surface-hover);
+  background: var(--saito-accent);
   border-color: var(--saito-primary);
 }
 
@@ -58,19 +58,19 @@
 .arcade-observer-loading-panel {
   position: relative;
   z-index: 1;
-  box-shadow: var(--saito-overlay-panel-shadow);
-  border: var(--border-thickness) solid var(--saito-overlay-panel-border);
+  box-shadow: var(--saito-elevation-3);
+  border: 1px solid var(--saito-border);
 }
 
 .arcade-observer-loading-inner {
   text-align: center;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .arcade-observer-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid var(--border-color-general-dividers);
+  border: 4px solid var(--saito-border);
   border-top-color: var(--saito-primary);
   border-radius: 50%;
   animation: arcade-observer-spin 1s linear infinite;
@@ -87,7 +87,7 @@
   height: 6px;
   background: var(--saito-overlay-backdrop-stacked);
   margin: 20px auto;
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
   overflow: hidden;
 }
 
@@ -102,7 +102,7 @@
   font-size: 14px;
   opacity: 0.8;
   margin-top: 10px;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 @keyframes arcade-observer-spin {

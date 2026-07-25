@@ -57,7 +57,7 @@
 }
 
 .ts-overlay {
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 	border: 5px solid blue;
 	border-right: 5px solid red;
 	border-bottom: 5px solid red;

@@ -613,7 +613,7 @@ stats overlay
 	text-align: center;
 	border-radius: 50%;
 	line-height: 2.7rem;
-	text-shadow: 1px 1px 1px var(--saito-font-color-heavy);
+	text-shadow: 1px 1px 1px var(--saito-foreground);
 	font-size: 2.2rem;
 }
 
@@ -626,7 +626,7 @@ stats overlay
 	width: 2.7rem;
 	height: 2.7rem;
 	text-align: center;
-	text-shadow: 1px 1px 1px var(--saito-font-color-heavy), -1px -1px 1px var(--saito-font-color-heavy), -1px 1px 1px var(--saito-font-color-heavy), 1px -1px 1px var(--saito-font-color-heavy);
+	text-shadow: 1px 1px 1px var(--saito-foreground), -1px -1px 1px var(--saito-foreground), -1px 1px 1px var(--saito-foreground), 1px -1px 1px var(--saito-foreground);
 	font-size: 2.8rem;
 }
 

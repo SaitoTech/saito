@@ -12,20 +12,6 @@
 		#0d0e11;
 }
 
-.chat-splash-content {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	width: min(95vw, 860px);
-	padding: 3.2rem;
-	gap: 2.4rem;
-	border-radius: calc(var(--saito-border-radius) + 0.15rem);
-	background: var(--saito-overlay-panel-background);
-	box-shadow: var(--saito-overlay-panel-shadow);
-	border: 1px solid var(--saito-overlay-panel-border);
-}
-
 .chat-splash-logo {
 	--saito-cta-logo-mask: url('/saito/icons/saito-chat-icon-outline-label-horizontal.svg');
 	display: block;
@@ -49,7 +35,7 @@
 }
 
 .chat-splash-subtitle {
-	color: var(--saito-font-color-secondary, #abaaae);
+	color: var(--saito-muted-foreground, #abaaae);
 	font-size: 1.25rem;
 	letter-spacing: 0.22em;
 	text-align: center;
@@ -62,7 +48,7 @@
 	min-height: 4.5rem;
 	padding: 0 2rem;
 	border: none;
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 	color: #fff;
 	background: var(--saito-cta-action-background, linear-gradient(90deg, #ff8a3d, #f54900));
 	box-shadow: var(--saito-cta-action-shadow, 0 0 32px -10px rgba(245, 73, 0, 0.48));
@@ -120,9 +106,9 @@
 	width: 30rem;
 	max-width: 50vw;
 	overflow: visible;
-	border-right: var(--border-thickness) solid var(--saito-border-color);
+	border-right: 1px solid var(--saito-border);
 	padding: 1.2rem 1rem;
-	background: var(--saito-background-color);
+	background: var(--saito-background);
 }
 
 .chat-main-container .saito-sidebar.right {
@@ -133,7 +119,7 @@
 }
 
 .chat-main-container .chat-header {
-	background-color: var(--saito-background-color);
+	background-color: var(--saito-background);
 	cursor: default;
 }
 
@@ -146,7 +132,7 @@
 	margin-bottom: 1.5rem;
 	/*position: absolute;
 	bottom: 0;*/
-	background: var(--saito-background-color);
+	background: var(--saito-background);
 }
 
 .chat-main-container .chat-body {
@@ -158,14 +144,14 @@
 }
 
 .chat-main-container .text-input {
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius);
 	box-shadow: none;
 }
 
 .chat-main-container .text-input:focus,
 .chat-main-container .text-input:focus-within {
-	border-color: var(--saito-input-border-focus);
-	box-shadow: 0 0 0 1px color-mix(in srgb, var(--saito-input-border-focus) 34%, transparent);
+	border-color: var(--saito-border);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--saito-border) 34%, transparent);
 }
 
 .chat-footer > i {
@@ -178,7 +164,7 @@
 }
 
 .chat-footer > i:hover {
-	background-color: var(--saito-background-color);
+	background-color: var(--saito-background);
 	box-shadow: 0 0 1px var(--saito-primary);
 }
 

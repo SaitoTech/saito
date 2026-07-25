@@ -65,7 +65,7 @@
 
 .invites-appspace-section-icon {
 	font-size: 1.7rem;
-	color: var(--saito-font-color);
+	color: var(--saito-foreground);
 }
 
 .invites-appspace-invite > i {

@@ -96,7 +96,7 @@
 .game-menu ul.game-menu-sub-options li {
   max-width: unset;
   width: 100%;
-  border-bottom: 1px solid var(--saito-border-color-dark);
+  border-bottom: 1px solid var(--saito-border);
 }
 
 .game-menu-sub-option .game-menu-option-label {

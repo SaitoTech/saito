@@ -126,7 +126,7 @@ textarea {
 }
 
 #saito-app-generate-btn.active {
-  background: var(--saito-primary-background); /* has a gradient for shimmer effect */
+  background: var(--saito-primary); /* has a gradient for shimmer effect */
   background-size: 400% auto;
   animation: btn-shimmer 3s ease-in-out infinite alternate;
 }
@@ -179,9 +179,9 @@ textarea {
   min-height: 20rem;
   padding: var(--saito-space-xl);
   box-sizing: border-box;
-  border: var(--border-thickness-medium) dashed var(--saito-input-border);
-  border-radius: var(--saito-input-radius);
-  background-color: var(--saito-input-bg);
+  border: 2px dashed var(--saito-border);
+  border-radius: var(--saito-radius);
+  background-color: var(--saito-secondary);
   color: var(--saito-muted-foreground);
   text-align: center;
   cursor: pointer;
