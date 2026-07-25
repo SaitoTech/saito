@@ -289,7 +289,7 @@
 #saito-header .wallet-btn-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(3rem, 1fr));
-  background: var(--saito-background-inverse);
+  background: var(--saito-foreground);
   color: var(--saito-background);
   border-radius: var(--saito-radius);
   margin: 0.5rem 0;
