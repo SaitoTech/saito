@@ -1,25 +1,36 @@
 /*
- * Vault file-upload overlay.
- * Width / padding / gap come from .saito-overlay-form so Select File
- * and Basic Access Key share the same dialog shell.
+ * Vault file-upload overlay (Select File → Basic/Advanced Access Key).
+ * Shell uses .saito-overlay-form; width/gap tightened so both steps
+ * read as the same compact wizard.
  */
+
+.vault-upload-overlay {
+	width: min(42rem, 95vw);
+	gap: var(--saito-space-md);
+}
 
 .vault-upload-overlay .nft-creator .key-step {
 	display: none;
 	flex-direction: column;
 	align-items: stretch;
-	gap: var(--saito-space-lg);
+	gap: var(--saito-space-md);
 	width: 100%;
 	min-width: 0;
 }
 
+/* Supporting copy — same scale as .saito-nft-header-sub */
 .vault-upload-overlay .nft-creator .key-step .saito-overlay-form-text {
 	padding: 0;
+	margin: 0;
+	font-size: 1.7rem;
+	line-height: 1.4;
+	color: var(--saito-muted-foreground);
 }
 
 .vault-upload-overlay .nft-creator .key-step .key-artwork {
 	width: 100%;
 	aspect-ratio: 3 / 2;
+	max-height: 22rem;
 	border-radius: var(--saito-radius-lg, 0.5rem);
 	background-size: cover;
 	background-position: center;
@@ -57,39 +68,50 @@
 	display: block;
 }
 
+/*
+ * Drop zone: same surface tokens as Create NFT #nft-image-upload
+ * (input bg / border / radius). No new colours.
+ */
 .vault-upload-overlay #vault-file-upload {
-	border: 3px dotted var(--saito-border-color, #999);
-	height: 30rem;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 1rem;
+	gap: var(--saito-space-md);
 	width: 100%;
 	max-width: 100%;
-	padding: 2rem;
+	min-height: 16rem;
+	height: auto;
+	padding: var(--saito-space-xl);
 	box-sizing: border-box;
-	border-radius: 1rem;
-	transition: all 0.3s ease;
+	border: var(--border-thickness-thin) solid var(--saito-input-border);
+	border-radius: var(--saito-input-radius);
+	background-color: var(--saito-input-bg);
+	color: var(--saito-muted-foreground);
+	text-align: center;
 	font-size: 1.6rem;
-	color: var(--saito-foreground);
 	cursor: pointer;
+	transition:
+		border-color 0.16s ease,
+		background-color 0.16s ease;
 }
 
 .vault-upload-overlay #vault-file-upload:hover {
-	border-color: var(--saito-primary, var(--saito-font-color));
-	background: rgba(255, 255, 255, 0.02);
-	transform: translateY(-2px);
+	border-color: var(--saito-primary);
 }
 
 .vault-upload-overlay #vault-file-upload i {
 	display: block;
-	font-size: 4rem;
+	font-size: 3.2rem;
 	line-height: 1;
+	color: var(--saito-muted-foreground);
 }
 
 .vault-upload-overlay .vault-file-upload-text {
+	margin: 0;
 	font-size: 1.6rem;
+	line-height: 1.4;
+	color: var(--saito-muted-foreground);
 }
 
 @media (max-width: 768px) {
@@ -98,5 +120,9 @@
 	.vault-upload-overlay .nft-creator .key-step {
 		width: 100%;
 		min-width: 0;
+	}
+
+	.vault-upload-overlay .nft-creator .key-step .key-artwork {
+		max-height: min(22rem, 40vh);
 	}
 }
