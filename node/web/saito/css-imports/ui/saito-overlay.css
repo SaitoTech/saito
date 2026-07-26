@@ -240,9 +240,6 @@
   display: grid;
   grid-template-columns: min-content 1fr;
   gap: var(--saito-space-md);
-  padding: var(--saito-space-md);
-  border: 1px dashed var(--saito-border);
-  border-radius: var(--saito-radius);
 }
 
 .saito-overlay-subform.centered {
