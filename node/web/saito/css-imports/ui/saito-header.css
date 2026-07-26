@@ -293,7 +293,7 @@
   display: flex;
   gap: 0.5rem;
   margin: 1rem 0 3.5rem;
-  padding: 0.5rem;
+  padding: 0.5rem 0;
   width: fit-content;
   border: 1px solid var(--saito-border);
   border-radius: 999px;
@@ -314,6 +314,10 @@
 #saito-header .wallet-btn > span {
   position: absolute;
   top: calc(100% + 1rem);
+}
+
+#saito-header .wallet-btn-container:not(.saito-mode) #wallet-btn-get-saito {
+  display: none;
 }
 
 #saito-header .wallet-btn > i {
@@ -361,6 +365,7 @@
 #saito-header .wallet-identicon {
   width: 3.2rem;
   height: 3.2rem;
+  align-self: center;
   margin-right: 0.5rem;
 }
 
@@ -450,19 +455,24 @@
 #saito-header .wallet-balance {
   display: flex;
   height: 4.2rem;
-  align-items: center;
+  align-items: baseline;
   gap: 1rem;
 }
 
 #saito-header .wallet-balance select {
   width: auto;
-  height: 100%;
-  padding: 0;
+  height: auto;
+  padding: 0.4rem 2.6rem 0.4rem 0.6rem;
   border: 0;
-  background: inherit;
+  background-color: transparent;
+  background-position: right 0.6rem center;
   color: inherit;
   font-size: 2.2rem;
-  line-height: 1;
+  line-height: 1.2;
+}
+
+#saito-header .wallet-balance select option {
+  padding: 0.6rem 1rem;
 }
 
 .profile-public-key {
@@ -751,7 +761,7 @@
   html:not(.game) #saito-header .wallet-btn-container {
     gap: calc(0.5rem * 10 / 12);
     margin: calc(1rem * 10 / 12) 0 calc(3.5rem * 10 / 12);
-    padding: calc(0.5rem * 10 / 12);
+    padding: calc(0.5rem * 10 / 12) 0;
   }
 
   html:not(.game) #saito-header .wallet-btn {
@@ -794,6 +804,13 @@
 
   html:not(.game) #saito-header .wallet-balance select {
     font-size: calc(2.2rem * 10 / 12);
+    padding: calc(0.4rem * 10 / 12) calc(2.6rem * 10 / 12) calc(0.4rem * 10 / 12)
+      calc(0.6rem * 10 / 12);
+    background-position: right calc(0.6rem * 10 / 12) center;
+  }
+
+  html:not(.game) #saito-header .wallet-balance select option {
+    padding: calc(0.6rem * 10 / 12) calc(1rem * 10 / 12);
   }
 
   html:not(.game) #saito-header .hamburger-container {

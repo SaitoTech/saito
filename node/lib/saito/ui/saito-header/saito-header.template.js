@@ -59,6 +59,10 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                            <i class="fa-solid fa-wallet"></i>
                            <span>Wallet</span>
                        </div>
+                       <div class="wallet-btn" id="wallet-btn-get-saito">
+                           <i class="fa-solid fa-plus"></i>
+                           <span>Get Saito</span>
+                       </div>
                    </div>
 
                </div>

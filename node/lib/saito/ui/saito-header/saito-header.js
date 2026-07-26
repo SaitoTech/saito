@@ -642,6 +642,13 @@ class SaitoHeader extends UIModTemplate {
       };
     }
 
+    if (document.getElementById('wallet-btn-get-saito')) {
+      document.getElementById('wallet-btn-get-saito').onclick = () => {
+        this.app.connection.emit('saito-purchase-launch');
+        this.hideMenu();
+      };
+    }
+
     if (document.getElementById('toggle-qr')) {
       const qrButton = document.getElementById('toggle-qr');
       qrButton.onclick = () => {
@@ -974,6 +981,10 @@ class SaitoHeader extends UIModTemplate {
     let add = preferred_crypto.returnAddress();
 
     try {
+      document
+        .querySelector('.wallet-btn-container')
+        ?.classList.toggle('saito-mode', preferred_crypto.ticker.toUpperCase() === 'SAITO');
+
       //
       // insert address and qrcode
       //
