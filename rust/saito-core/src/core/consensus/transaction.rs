@@ -916,6 +916,15 @@ impl Transaction {
         while i < self.from.len() {
             let slip = &self.from[i];
 
+	    //
+	    // ATR transactions have already been validated.
+	    // Do not schedule P2SH script execution.
+	    //
+	    if self.transaction_type == TransactionType::ATR {
+	        i = self.from.len();
+    		continue;
+	    }
+
             //
             // skip bound slips, where publickey is not authorizer
             //
