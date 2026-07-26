@@ -222,10 +222,13 @@
 .saito-crypto-transfer .balance-amount {
   display: flex;
   align-items: baseline;
+}
+
+.saito-crypto-deposit .balance-amount,
+.saito-crypto-transfer .balance-amount {
   cursor: pointer;
 }
 
-#saito-header .balance-amount:hover,
 .saito-crypto-deposit .balance-amount:hover,
 .saito-crypto-transfer .balance-amount:hover {
   color: var(--saito-foreground);
@@ -287,41 +290,77 @@
 }
 
 #saito-header .wallet-btn-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(3rem, 1fr));
-  background: var(--saito-foreground);
-  color: var(--saito-background);
-  border-radius: var(--saito-radius);
-  margin: 0.5rem 0;
-  width: 95%;
-  text-transform: uppercase;
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0 3.5rem;
+  padding: 0.5rem;
+  width: fit-content;
+  border: 1px solid var(--saito-border);
+  border-radius: 999px;
+  background: var(--saito-card-wash);
 }
 
 #saito-header .wallet-btn {
   display: flex;
+  position: relative;
   cursor: pointer;
-  transition: all 0.2s;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-radius: inherit;
+  width: 7rem;
+  padding: 0;
+  color: var(--saito-muted-foreground);
 }
 
-/* Wallet / Back label toggle — scoped so Fileshare can keep its own .hideme */
-#saito-header .wallet-btn .hideme {
-  display: none;
+#saito-header .wallet-btn > span {
+  position: absolute;
+  top: calc(100% + 1rem);
+}
+
+#saito-header .wallet-btn > i {
+  display: flex;
+  width: 6rem;
+  height: 6rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+  font-size: 2rem;
+  transition:
+    transform 0.2s,
+    background 0.2s,
+    border-color 0.2s;
+}
+
+#saito-header .wallet-send-icon::before {
+  display: inline-block;
+  transform: rotate(45deg);
 }
 
 #saito-header .wallet-btn:hover {
-  color: var(--saito-primary-foreground);
+  color: var(--saito-foreground);
+}
+
+#saito-header .wallet-btn:hover > i {
+  transform: scale(1.1);
   background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+}
+
+#saito-header .saito-header-hamburger-contents.show-wallet #wallet-btn-switch > i {
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+}
+
+#saito-header .wallet-controls-separator {
+  width: 95%;
+  margin: 0 auto;
 }
 
 #saito-header .wallet-identicon {
   width: 3.2rem;
   height: 3.2rem;
-  margin: auto 0;
   margin-right: 0.5rem;
 }
 
@@ -342,16 +381,36 @@
   font-size: 1.6rem;
 }
 
-#saito-header .pubkey-mobile-wrapper {
-  display: none;
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
+#saito-header .wallet-address-row {
+  display: flex;
+  width: 95%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
-#saito-header .pubkey-mobile-wrapper i {
-  font-size: 3.2rem;
-  padding: 0.4rem;
+#saito-header .pubkey-mobile-wrapper {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#saito-header .wallet-mobile-action {
+  display: flex;
+  width: 4rem;
+  height: 4rem;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid var(--saito-border);
+  border-radius: 50%;
+  background: var(--saito-secondary);
+  color: var(--saito-foreground);
+}
+
+#saito-header .wallet-mobile-action i {
+  font-size: 1.8rem;
 }
 
 #saito-header .pubkey-container:hover i,
@@ -360,8 +419,16 @@
   transform: scale(1.1);
 }
 
-#saito-header .pubkey-mobile-wrapper > i:hover {
-  transform: scale(1.1);
+#saito-header .wallet-mobile-action:hover {
+  border-color: var(--saito-primary);
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+}
+
+#saito-header .saito-header-hamburger-contents.show-qr #toggle-qr {
+  border-color: var(--saito-primary);
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
 }
 
 .wallet-info {
@@ -373,35 +440,28 @@
   justify-content: space-around;
   width: 100%;
   background: inherit;
-  height: auto;
+  height: min(50vh, 27.3rem);
   overflow: hidden;
   color: var(--saito-foreground);
   margin: 1.5rem 0;
   transition: all 0.8s;
 }
 
-#saito-header .wallet-balance,
-.saito-crypto-deposit .wallet-balance,
-.saito-crypto-transfer .wallet-balance {
+#saito-header .wallet-balance {
   display: flex;
-  flex-direction: row;
-  gap: 1rem;
-  align-items: baseline;
   height: 4.2rem;
-  background: inherit;
+  align-items: center;
+  gap: 1rem;
 }
 
-#saito-header .wallet-balance select,
-.saito-crypto-deposit .wallet-balance select,
-.saito-crypto-transfer .wallet-balance select {
-  border: none;
+#saito-header .wallet-balance select {
   width: auto;
   height: 100%;
-  font-size: 2.2rem;
-  color: inherit;
-  background: inherit;
-  /* Form-select padding is for full inputs; here it clips the ticker in the fixed-height row */
   padding: 0;
+  border: 0;
+  background: inherit;
+  color: inherit;
+  font-size: 2.2rem;
   line-height: 1;
 }
 
@@ -489,6 +549,10 @@
   filter: grayscale(100%) opacity(75%);
 }
 
+.saito-header-crypto.selected {
+  background: var(--saito-highlight);
+}
+
 .crypto-logo-container {
   position: relative;
   max-width: 5rem;
@@ -558,7 +622,7 @@
 
   .wallet-info {
     margin-top: 0.5rem;
-    height: 85px;
+    height: 8.5rem;
     gap: 0;
   }
 
@@ -570,8 +634,7 @@
 
   .show-qr .wallet-info {
     margin-top: 1.5rem;
-    height: auto;
-    min-height: 265px;
+    height: 28.5rem;
     gap: 1rem;
   }
 
@@ -581,8 +644,13 @@
     visibility: visible;
   }
 
-  .pubkey-mobile-wrapper {
+  #saito-header .pubkey-mobile-wrapper {
     display: flex;
+  }
+
+  #saito-header .pubkey-container {
+    width: auto;
+    flex: 1;
   }
 }
 
@@ -681,14 +749,24 @@
   }
 
   html:not(.game) #saito-header .wallet-btn-container {
-    grid-template-columns: repeat(auto-fit, minmax(calc(3rem * 10 / 12), 1fr));
-    margin: calc(0.5rem * 10 / 12) 0;
+    gap: calc(0.5rem * 10 / 12);
+    margin: calc(1rem * 10 / 12) 0 calc(3.5rem * 10 / 12);
+    padding: calc(0.5rem * 10 / 12);
   }
 
   html:not(.game) #saito-header .wallet-btn {
-    gap: calc(0.75rem * 10 / 12);
-    padding: calc(1.5rem * 10 / 12);
+    width: calc(7rem * 10 / 12);
     font-size: calc(1.6rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .wallet-btn > span {
+    top: calc(100% + 1rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .wallet-btn > i {
+    width: calc(6rem * 10 / 12);
+    height: calc(6rem * 10 / 12);
+    font-size: calc(2rem * 10 / 12);
   }
 
   html:not(.game) #saito-header .wallet-identicon {
@@ -702,16 +780,6 @@
     min-height: calc(3.2rem * 10 / 12);
     gap: calc(1rem * 10 / 12);
     font-size: calc(1.6rem * 10 / 12);
-  }
-
-  html:not(.game) #saito-header .pubkey-mobile-wrapper {
-    bottom: calc(1rem * 10 / 12);
-    right: calc(1rem * 10 / 12);
-  }
-
-  html:not(.game) #saito-header .pubkey-mobile-wrapper i {
-    font-size: calc(3.2rem * 10 / 12);
-    padding: calc(0.4rem * 10 / 12);
   }
 
   html:not(.game) .wallet-info {

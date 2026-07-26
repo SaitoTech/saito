@@ -2,7 +2,7 @@ const Deposit = require('./overlays/deposit');
 const Withdraw = require('./overlays/withdraw');
 const Confirm = require('./overlays/confirm');
 const Receive = require('./overlays/receive');
-const Details = require('./overlays/details');
+const WalletHistory = require('./overlays/wallet-history');
 
 class SaitoCrypto {
   constructor(app, mod) {
@@ -27,7 +27,7 @@ class SaitoCrypto {
     //'saito-crypto-receive-render-request'
     this.receive_overlay = new Receive(app, mod);
 
-    this.details_overlay = new Details(app, mod);
+    this.wallet_history_overlay = new WalletHistory(app, mod);
   }
 }
 
