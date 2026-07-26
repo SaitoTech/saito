@@ -1,6 +1,8 @@
 /**
  * Shared left/right send panel — used by Publish and Broadcast Solution overlays.
  */
+const { buildRustscriptOverlay } = require('./overlay.shell');
+
 function buildSendPanelOverlay({
   extraRootClass = '',
   scriptDisplay = '',
@@ -14,21 +16,25 @@ function buildSendPanelOverlay({
     ? leftPanelHtml
     : `<pre class="rs-publish-script-readonly" spellcheck="false">${scriptDisplay}</pre>`;
 
-  return `
-<div class="rustscript-overlay rs-publish-overlay rs-publish-workspace rs-publish-send ${extraRootClass}">
-  <div class="rs-publish-send-panels">
-    <div class="rs-publish-send-column ${leftColumnClass}">
-      ${leftContent}
-    </div>
-    <div class="rs-publish-send-column rs-publish-send-form">
-      ${formFieldsHtml}
-      <p class="rs-publish-error ${errorExtraClass}" hidden></p>
-      <div class="rs-publish-send-actions">
-        ${actionButtonHtml}
+  const bodyHtml = `
+    <div class="rs-publish-send-panels">
+      <div class="rs-publish-send-column ${leftColumnClass}">
+        ${leftContent}
+      </div>
+      <div class="rs-publish-send-column rs-publish-send-form">
+        ${formFieldsHtml}
+        <p class="rs-publish-error ${errorExtraClass}" hidden></p>
+        <div class="rs-overlay-actions rs-overlay-actions-end">
+          ${actionButtonHtml}
+        </div>
       </div>
     </div>
-  </div>
-</div>`;
+  `;
+
+  return buildRustscriptOverlay({
+    className: `rs-overlay-workspace rs-publish-send ${extraRootClass}`,
+    bodyHtml
+  });
 }
 
 module.exports = { buildSendPanelOverlay };

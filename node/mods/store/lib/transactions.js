@@ -307,7 +307,7 @@ module.exports = {
       slipPublicKey(this.app, order_row.p2sh_address) || order_row.p2sh_address || '';
 
     const witness_log = (role) => ({
-      logRustScript: true,
+      logP2shScript: true,
       context: `createFulfillmentTransaction:${role}`
     });
 
@@ -610,8 +610,8 @@ module.exports = {
 
     const payment_pubkey = slipPublicKey(this.app, order.p2sh_address) || order.p2sh_address || '';
 
-    const { logAccessScriptsForRustscript } = require('./fulfillment-trace');
-    logAccessScriptsForRustscript(this.app, tx, {
+    const { logAccessScriptsForP2sh } = require('./fulfillment-trace');
+    logAccessScriptsForP2sh(this.app, tx, {
       operation: 'order-refund',
       payment_pubkey
     });

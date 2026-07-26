@@ -13,7 +13,7 @@ const optionIcon = (type) => {
 const WelcomeSplashTemplate = () => {
   return `
     <div class="rs-onboard-appspace" data-step="splash">
-      <div class="rs-onboard-panel rs-onboard-panel-centered">
+      <div class="rs-onboard-panel">
         <header class="rs-onboard-hero">
           <div class="rs-onboard-mark" aria-hidden="true">◈</div>
           <h1 class="rs-onboard-title">Saito Advanced Scripting</h1>
@@ -22,37 +22,35 @@ const WelcomeSplashTemplate = () => {
           </p>
         </header>
 
-        <section class="rs-onboard-choices-section">
-          <div class="rs-onboard-options">
-            <button type="button" class="rs-onboard-option rs-onboard-option-primary" data-path="create">
-              <span class="rs-onboard-option-icon">${optionIcon('create')}</span>
-              <span class="rs-onboard-option-body">
-                <span class="rs-onboard-option-kicker">Start here</span>
-                <span class="rs-onboard-option-title">Create New Script</span>
-                <span class="rs-onboard-option-desc">Launch the guided wizard to build a script from scratch or modify a template.</span>
-              </span>
-              <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
-            </button>
+        <div class="rs-onboard-options">
+          <button type="button" class="rs-onboard-option rs-onboard-option-primary" data-path="create">
+            <span class="rs-onboard-option-icon">${optionIcon('create')}</span>
+            <span class="rs-onboard-option-body">
+              <span class="rs-onboard-option-kicker">Start here</span>
+              <span class="rs-onboard-option-title">Create New Script</span>
+              <span class="rs-onboard-option-desc">Launch the guided wizard to build a script from scratch or modify a template.</span>
+            </span>
+            <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
+          </button>
 
-            <button type="button" class="rs-onboard-option" data-path="interact">
-              <span class="rs-onboard-option-icon">${optionIcon('import')}</span>
-              <span class="rs-onboard-option-body">
-                <span class="rs-onboard-option-title">Import Existing Script</span>
-                <span class="rs-onboard-option-desc">Import an existing script to test, verify, or unlock.</span>
-              </span>
-              <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
-            </button>
+          <button type="button" class="rs-onboard-option" data-path="interact">
+            <span class="rs-onboard-option-icon">${optionIcon('import')}</span>
+            <span class="rs-onboard-option-body">
+              <span class="rs-onboard-option-title">Import Existing Script</span>
+              <span class="rs-onboard-option-desc">Import an existing script to test, verify, or unlock.</span>
+            </span>
+            <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
+          </button>
 
-            <button type="button" class="rs-onboard-option" data-path="expert">
-              <span class="rs-onboard-option-icon">${optionIcon('expert')}</span>
-              <span class="rs-onboard-option-body">
-                <span class="rs-onboard-option-title">Expert Mode</span>
-                <span class="rs-onboard-option-desc">Direct access to the full scripting workstation.</span>
-              </span>
-              <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
-            </button>
-          </div>
-        </section>
+          <button type="button" class="rs-onboard-option" data-path="expert">
+            <span class="rs-onboard-option-icon">${optionIcon('expert')}</span>
+            <span class="rs-onboard-option-body">
+              <span class="rs-onboard-option-title">Expert Mode</span>
+              <span class="rs-onboard-option-desc">Direct access to the full scripting workstation.</span>
+            </span>
+            <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -61,41 +59,42 @@ const WelcomeSplashTemplate = () => {
 const WelcomeBuildChoiceTemplate = () => {
   return `
     <div class="rs-onboard-appspace" data-step="create-build">
-      <div class="rs-onboard-panel rs-onboard-panel-centered">
-        <button type="button" class="rs-onboard-back" data-action="back-splash">← Back</button>
-
-        <section class="rs-onboard-choices-section">
+      <div class="rs-onboard-panel">
+        <header class="rs-onboard-page-header">
+          <button type="button" class="saito-button-square rs-onboard-back" data-action="back-splash" aria-label="Back">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          </button>
           <h2 class="rs-onboard-prompt">What would you like to build?</h2>
+        </header>
 
-          <div class="rs-onboard-options">
-            <button type="button" class="rs-onboard-option" data-build="multisig">
-              <span class="rs-onboard-option-icon">${optionIcon('multisig')}</span>
-              <span class="rs-onboard-option-body">
-                <span class="rs-onboard-option-title">Multisig Wallet</span>
-                <span class="rs-onboard-option-desc">Require approval from multiple public keys before funds can be spent.</span>
-              </span>
-              <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
-            </button>
+        <div class="rs-onboard-options">
+          <button type="button" class="rs-onboard-option" data-build="multisig">
+            <span class="rs-onboard-option-icon">${optionIcon('multisig')}</span>
+            <span class="rs-onboard-option-body">
+              <span class="rs-onboard-option-title">Multisig Wallet</span>
+              <span class="rs-onboard-option-desc">Require approval from multiple public keys before funds can be spent.</span>
+            </span>
+            <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
+          </button>
 
-            <button type="button" class="rs-onboard-option" data-build="password-protected">
-              <span class="rs-onboard-option-icon">${optionIcon('lock')}</span>
-              <span class="rs-onboard-option-body">
-                <span class="rs-onboard-option-title">Password Protected</span>
-                <span class="rs-onboard-option-desc">Prove knowledge of a secret before funds can be spent.</span>
-              </span>
-              <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
-            </button>
+          <button type="button" class="rs-onboard-option" data-build="password-protected">
+            <span class="rs-onboard-option-icon">${optionIcon('lock')}</span>
+            <span class="rs-onboard-option-body">
+              <span class="rs-onboard-option-title">Password Protected</span>
+              <span class="rs-onboard-option-desc">Prove knowledge of a secret before funds can be spent.</span>
+            </span>
+            <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
+          </button>
 
-            <button type="button" class="rs-onboard-option" data-build="custom">
-              <span class="rs-onboard-option-icon">${optionIcon('custom')}</span>
-              <span class="rs-onboard-option-body">
-                <span class="rs-onboard-option-title">Custom Script</span>
-                <span class="rs-onboard-option-desc">Design something new from scratch using RustScript.</span>
-              </span>
-              <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
-            </button>
-          </div>
-        </section>
+          <button type="button" class="rs-onboard-option" data-build="custom">
+            <span class="rs-onboard-option-icon">${optionIcon('custom')}</span>
+            <span class="rs-onboard-option-body">
+              <span class="rs-onboard-option-title">Custom Script</span>
+              <span class="rs-onboard-option-desc">Design something new from scratch using RustScript.</span>
+            </span>
+            <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
+          </button>
+        </div>
       </div>
     </div>
   `;

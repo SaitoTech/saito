@@ -5,7 +5,7 @@ function parseListingUnitPrice(price = '') {
 
 /**
  * Purchase transaction orchestration — not a UI component.
- * Calls back into PurchaseOverlay for waiting / confirmed presentation.
+ * Starts local lifecycle tracking and opens Transaction Monitor for live confirmation.
  */
 async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
   if (!summary?.nft_id) {
@@ -75,7 +75,8 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
       summary,
       pendingTxSignature,
       quantity,
-      listingTitle
+      listingTitle,
+      newtx
     );
     return;
   }
@@ -93,7 +94,8 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
     summary,
     pendingTxSignature,
     quantity,
-    listingTitle
+    listingTitle,
+    newtx
   );
 }
 
@@ -103,7 +105,8 @@ function beginLocalPurchaseLifecycle(
   summary,
   pendingTxSignature,
   quantity,
-  listingTitle
+  listingTitle,
+  tx = null
 ) {
   const lifecycle = mod.purchase_lifecycle;
   if (lifecycle) {
@@ -117,10 +120,12 @@ function beginLocalPurchaseLifecycle(
     mod.app.connection.emit('store-render-listings');
   }
 
-  purchaseOverlay.openWaiting(listingTitle, pendingTxSignature, {
-    nft_id: summary.nft_id,
-    quantity
-  });
+  if (tx) {
+    purchaseOverlay.watchPurchase(tx, listingTitle, {
+      nft_id: summary.nft_id,
+      quantity
+    });
+  }
 }
 
 module.exports = {

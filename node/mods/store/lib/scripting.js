@@ -148,9 +148,9 @@ async function signAccessScriptWitness(app, access_script, message, options = {}
   executable.witness = { signatures: [signature] };
   const executable_string = JSON.stringify(executable);
 
-  if (options.logRustScript) {
-    const { dumpRustScriptEngineCall } = require('./fulfillment-trace');
-    dumpRustScriptEngineCall(options.context || 'signAccessScriptWitness', {
+  if (options.logP2shScript) {
+    const { dumpP2shScriptEngineCall } = require('./fulfillment-trace');
+    dumpP2shScriptEngineCall(options.context || 'signAccessScriptWitness', {
       locking_script: script,
       executable,
       executable_string

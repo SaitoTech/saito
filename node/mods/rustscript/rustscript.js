@@ -73,22 +73,7 @@ class Rustscript extends ModTemplate {
     this.description = 'Symbolic P2SH contract scripting';
     this.categories = 'Utility Programming Cryptography';
 
-    this.styles = [
-      '/rustscript/css/main.css',
-      '/rustscript/css/rustscript-header.css',
-      '/rustscript/css/rustscript-command-bar.css',
-      '/rustscript/css/rustscript-editor.css',
-      '/rustscript/css/rustscript-panel.css',
-      '/rustscript/css/rustscript-overlay-system.css',
-      '/rustscript/css/rustscript-welcome-overlay.css',
-      '/rustscript/css/rustscript-fields-overlay.css',
-      '/rustscript/css/rustscript-overlay.css',
-      '/rustscript/css/rustscript-opcodes-overlay.css',
-      '/rustscript/css/rustscript-publish-overlay.css',
-      '/rustscript/css/rustscript-publish-nft.css',
-      '/rustscript/css/rustscript-import-overlay.css',
-      '/saito/css-imports/ui/saito-nft.css'
-    ];
+    this.styles = ['/rustscript/style.css', '/saito/css-imports/ui/saito-nft.css'];
 
     this.icon = 'fas fa-code';
 
@@ -103,7 +88,12 @@ class Rustscript extends ModTemplate {
   }
 
   async initialize(app) {
-    super.initialize?.(app);
+    await super.initialize?.(app);
+
+    if (this.app.BROWSER) {
+      const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+      this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+    }
 
     [
       OpcodeChecksig,
@@ -452,22 +442,19 @@ class Rustscript extends ModTemplate {
     };
   }
 
-  async onConfirmation(blk, tx, conf) {
-    if (this.main?.publishFlow) {
-      this.main.publishFlow.handleConfirmation(blk, tx, conf);
+  shouldAffixCallbackToModule(modname, tx = null) {
+    if (modname === this.name) {
+      return 1;
     }
-    if (this.main?.unlockFlow) {
-      this.main.unlockFlow.handleConfirmation(blk, tx, conf);
+    // Allow the shared transaction monitor to receive confirmations it is watching.
+    if (
+      this.transaction_monitor?.tx &&
+      tx?.signature &&
+      tx.signature === this.transaction_monitor.tx.signature
+    ) {
+      return 1;
     }
-  }
-
-  async onNewBlock(blk, lc) {
-    if (this.main?.publishFlow) {
-      await this.main.publishFlow.checkBlockForPendingTx(blk);
-    }
-    if (this.main?.unlockFlow) {
-      await this.main.unlockFlow.checkBlockForPendingTx(blk);
-    }
+    return 0;
   }
 
   resetUnlockWorkflow() {
@@ -850,10 +837,6 @@ class Rustscript extends ModTemplate {
       throw new Error('Unlock transaction was not signed');
     }
 
-    if (this.main?.unlockFlow) {
-      this.main.unlockFlow.notePendingSignature(tx.signature);
-    }
-
     return tx;
   }
 
@@ -923,10 +906,6 @@ class Rustscript extends ModTemplate {
 
     if (!tx.signature) {
       throw new Error('Unlock transaction was not signed');
-    }
-
-    if (this.main?.unlockFlow) {
-      this.main.unlockFlow.notePendingSignature(tx.signature);
     }
 
     return tx;

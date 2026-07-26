@@ -1,5 +1,5 @@
 module.exports = () => `
-  <div class="redsquare-splash-overlay" data-saito-prerendered-cta="redsquare">
+  <div class="redsquare-splash-overlay" role="dialog" aria-modal="true" aria-label="Welcome to Red Square">
     <div class="redsquare-splash-content saito-cta">
       <div class="saito-cta-logo redsquare-splash-logo" role="img" aria-label="Red Square"></div>
       <div class="redsquare-splash-subtitle">PEER-TO-PEER SOCIAL</div>

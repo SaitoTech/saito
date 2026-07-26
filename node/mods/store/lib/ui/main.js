@@ -258,6 +258,10 @@ class Main {
     }
   }
 
+  /**
+   * Reopen Store-owned post-confirm overlays only.
+   * Does not recreate Transaction Monitor / confirmation waiting after dismiss or reload.
+   */
   reopenPurchaseProgress() {
     const purchase = this.mod.purchase_lifecycle?.returnActivePurchase?.();
     const overlay = this.purchase_overlay;
@@ -276,12 +280,7 @@ class Main {
     }
     if (purchase.phase === PurchaseLifecycle.PHASE.FULFILLING) {
       overlay.openFulfilling();
-      return;
     }
-    overlay.openWaiting(purchase.title, purchase.purchase_tx_signature, {
-      nft_id: purchase.nft_id,
-      quantity: purchase.quantity
-    });
   }
 
   openMyNfts() {

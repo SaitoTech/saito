@@ -86,10 +86,10 @@ function scriptHashForExecutable(app, executable) {
 }
 
 /**
- * Log exact script/witness parameters passed to or produced for RustScript evaluation.
+ * Log exact script/witness parameters for P2SH evaluation debugging.
  * Logging only — does not call the engine.
  */
-function dumpRustScriptEngineCall(
+function dumpP2shScriptEngineCall(
   context = '',
   { locking_script = null, executable = null, executable_string = '' } = {}
 ) {
@@ -101,7 +101,7 @@ function dumpRustScriptEngineCall(
 
   console.log('');
   console.log('######################################################################');
-  console.log('#################### RUSTSCRIPT ENGINE INPUT ####################');
+  console.log('#################### P2SH SCRIPT ENGINE INPUT ####################');
   console.log('######################################################################');
   if (context) {
     console.log(`Context: ${context}`);
@@ -399,16 +399,16 @@ function roleForP2shInput(app, slip, slip_index, payment_pubkey = '') {
 }
 
 /**
- * Print access_script + witness payloads for manual validation in Rustscript.
+ * Print access_script + witness payloads for manual P2SH validation.
  * Logs one block per P2SH input with locking script, executable JSON, and witness message.
  */
-function logAccessScriptsForRustscript(
+function logAccessScriptsForP2sh(
   app,
   tx,
   { operation = 'settlement', payment_pubkey = '' } = {}
 ) {
   if (!tx) {
-    logFulfillment('rustscript', 'transaction missing');
+    logFulfillment('p2sh', 'transaction missing');
     return;
   }
 
@@ -417,14 +417,14 @@ function logAccessScriptsForRustscript(
   const p2sh_indexes = listP2shInputIndexes(app, tx);
 
   if (!p2sh_indexes.length) {
-    logFulfillment('rustscript', `${operation}: no P2SH inputs`);
+    logFulfillment('p2sh', `${operation}: no P2SH inputs`);
     return;
   }
 
   const witness_message = String(tx.from[p2sh_indexes[0]]?.utxoKey || '');
 
   console.log('');
-  console.log(`========== Store P2SH / Rustscript (${operation}) ==========`);
+  console.log(`========== Store P2SH (${operation}) ==========`);
   console.log(`P2SH inputs: ${p2sh_indexes.length}`);
   console.log(
     `Witness message used to sign (from first P2SH input utxoKey, index ${p2sh_indexes[0]}):`
@@ -464,7 +464,7 @@ function logAccessScriptsForRustscript(
     console.log('Locking script (canonical, no witness):');
     console.log(JSON.stringify(locking_script, null, 2));
     console.log('');
-    console.log('Executable with witness (paste into Rustscript unlock / evaluate):');
+    console.log('Executable with witness (locking script + signed witness):');
     console.log(JSON.stringify(executable, null, 2));
     console.log('');
     console.log('tx.msg.access_scripts entry (exact submitted string):');
@@ -486,7 +486,7 @@ function logAccessScriptsForRustscript(
     console.log('');
   }
 
-  console.log(`========== end Store P2SH / Rustscript (${operation}) ==========`);
+  console.log(`========== end Store P2SH (${operation}) ==========`);
   console.log('');
 }
 
@@ -495,7 +495,7 @@ module.exports = {
   summarizeOrder,
   summarizeSlipForApp,
   listP2shInputIndexes,
-  logAccessScriptsForRustscript,
+  logAccessScriptsForP2sh,
   dumpFulfillmentAccessScripts,
-  dumpRustScriptEngineCall
+  dumpP2shScriptEngineCall
 };

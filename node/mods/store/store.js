@@ -289,6 +289,21 @@ class Store extends ModTemplate {
     return this.returnStoreRouteFromPath().publicKey;
   }
 
+  shouldAffixCallbackToModule(modname, tx = null) {
+    if (modname === this.name) {
+      return 1;
+    }
+    // Allow the shared transaction monitor to receive confirmations it is watching.
+    if (
+      this.transaction_monitor?.tx &&
+      tx?.signature &&
+      tx.signature === this.transaction_monitor.tx.signature
+    ) {
+      return 1;
+    }
+    return 0;
+  }
+
   async onConfirmation(blk, tx, conf = 0) {
     if (Number(conf) !== 0) {
       return;

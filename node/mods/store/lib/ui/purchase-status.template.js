@@ -12,16 +12,21 @@ module.exports = (purchase = null) => {
   }
 
   const isComplete = purchase.phase === 'complete';
+  const isFulfilling = purchase.phase === 'fulfilling';
   const title = escapeHtml(purchase.status || (isComplete ? 'NFT received!' : 'Purchasing NFT…'));
   const detail = escapeHtml(purchase.detail || '');
-  const actions = isComplete
-    ? `<div class="actions">
+  // Confirmation waiting is Transaction Monitor only — no "View progress" during confirming.
+  let actions = '';
+  if (isComplete) {
+    actions = `<div class="actions">
         <button type="button" class="saito-button-primary" data-action="view-nfts">View in My NFTs</button>
         <button type="button" class="saito-button-secondary" data-action="dismiss">Dismiss</button>
-      </div>`
-    : `<div class="actions">
+      </div>`;
+  } else if (isFulfilling) {
+    actions = `<div class="actions">
         <button type="button" class="saito-button-secondary" data-action="show-progress">View progress</button>
       </div>`;
+  }
 
   const spinner = isComplete
     ? `<div class="success" aria-hidden="true"><i class="fas fa-check"></i></div>`

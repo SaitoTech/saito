@@ -1,5 +1,6 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ImportTemplate = require('./import.template');
+const { applyPublishOverlayShell } = require('./overlay.shell');
 const { parseTransactionFile } = require('../../transaction_io');
 
 function escapeHtml(text) {
@@ -47,8 +48,7 @@ class ImportFlow {
   }
 
   show(html) {
-    const container = document.querySelector('.saito-container');
-    container?.classList.add('rs-publish-modal-open');
+    document.body.classList.add('rs-publish-modal-open');
     this.blockedRoot = document.querySelector('main.rustscript');
     if (this.blockedRoot) {
       this.blockedRoot.inert = true;
@@ -67,7 +67,7 @@ class ImportFlow {
   }
 
   onOverlayClosed() {
-    document.querySelector('.saito-container')?.classList.remove('rs-publish-modal-open');
+    document.body.classList.remove('rs-publish-modal-open');
     document.removeEventListener('keydown', this.onEscapeKey);
     if (this.blockedRoot) {
       this.blockedRoot.inert = false;
@@ -78,29 +78,7 @@ class ImportFlow {
   }
 
   applyOverlayLayout() {
-    const el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
-    const backdrop = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
-
-    if (el) {
-      el.classList.add('rs-publish-overlay-shell', 'maximized-overlay');
-      el.style.pointerEvents = 'none';
-    }
-    if (backdrop) {
-      backdrop.classList.add('rs-publish-overlay-backdrop');
-      backdrop.style.display = 'block';
-      backdrop.style.pointerEvents = 'auto';
-      backdrop.style.top = '0';
-      backdrop.style.left = '0';
-      backdrop.style.width = '100vw';
-      backdrop.style.height = '100dvh';
-      backdrop.style.zIndex = '100001';
-    }
-    if (el) {
-      el.style.zIndex = '100002';
-    }
-    if (typeof this.overlay.pullOverlayToFront === 'function') {
-      this.overlay.pullOverlayToFront();
-    }
+    applyPublishOverlayShell(this.overlay);
   }
 
   bindIdleEvents() {

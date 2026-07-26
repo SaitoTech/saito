@@ -2,7 +2,7 @@ const Slip = require('../../../lib/saito/slip').default;
 const { SlipType } = require('saito-js/lib/slip');
 const { isNFTTuple, signAccessScriptWitness } = require('./scripting');
 
-/** Saito SlipType::P2SH — matches rustscript store unlock pattern. */
+/** Saito SlipType::P2SH (not yet exported from saito-js SlipType enum). */
 const SLIP_TYPE_P2SH = 10;
 
 function isP2shPublicKey(app, publicKey = '') {

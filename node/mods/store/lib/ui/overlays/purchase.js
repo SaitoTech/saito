@@ -1,6 +1,5 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PurchaseTemplate = require('./purchase.template');
-const { ConfirmationWaitingUI } = require('../../../../rustscript/lib/ui/confirmation_waiting');
 const { startPurchase } = require('../purchase-service');
 const PurchaseLifecycle = require('../purchase-lifecycle');
 
@@ -26,13 +25,11 @@ class PurchaseOverlay {
     this.listingTitle = '';
     this.nft_id = '';
     this.quantity = 1;
-    this.confirmationWaiting = null;
+    /** True while the shared Transaction Monitor owns payment confirmation UX. */
+    this.watchingWithMonitor = false;
 
     this.app.connection.on('store-purchase-asset', (data) => {
       this.onStorePurchaseAsset(data);
-    });
-    this.app.connection.on('store-new-block', (data) => {
-      this.onStoreNewBlock(data);
     });
     this.app.connection.on('store-order-refund', () => {
       this.onStoreOrderRefund();
@@ -50,21 +47,31 @@ class PurchaseOverlay {
     return startPurchase(this.app, this.mod, this, summary, quantity);
   }
 
-  render(step = 'waiting') {
-    if (step === 'fulfilling' || step === 'processing') {
-      this.openFulfilling();
-      return;
-    }
+  render(step = 'fulfilling') {
     if (step === 'complete') {
       this.openComplete();
       return;
     }
-    this.openWaiting(this.listingTitle, this.pendingTxSignature);
+    this.openFulfilling();
   }
 
-  openWaiting(listingTitle = '', pendingTxSignature = '', meta = {}) {
+  /**
+   * Payment broadcast confirmation via shared Saito Transaction Monitor.
+   * After Continue, resume Store fulfillment UX (NFT arrival).
+   * Live UX only — not recreated after reload.
+   */
+  watchPurchase(tx, listingTitle = '', meta = {}) {
+    if (!tx?.signature) {
+      console.error('Store: watchPurchase requires a signed transaction');
+      return;
+    }
+    if (!this.mod.transaction_monitor) {
+      console.error('Store: transaction_monitor is not initialized');
+      return;
+    }
+
     this.listingTitle = listingTitle || this.listingTitle;
-    this.pendingTxSignature = pendingTxSignature || this.pendingTxSignature;
+    this.pendingTxSignature = tx.signature;
     if (meta.nft_id) {
       this.nft_id = String(meta.nft_id);
     }
@@ -73,18 +80,38 @@ class PurchaseOverlay {
     }
 
     this.step = 'waiting';
-    this.show(
-      PurchaseTemplate.pendingOverlay({
-        listingTitle: escapeHtml(this.listingTitle)
-      })
-    );
-    this.confirmationWaiting = new ConfirmationWaitingUI(this.app, '.purchase.pending');
-    this.confirmationWaiting.start();
+    this.watchingWithMonitor = true;
+
+    const lead = this.listingTitle
+      ? `Your purchase of ${this.listingTitle} is being broadcast to the Saito network.`
+      : 'Your purchase is being broadcast to the Saito network.';
+    const successLead = this.listingTitle
+      ? `The Store is fulfilling your order for ${this.listingTitle}.`
+      : 'The Store is fulfilling your order.';
+
+    this.mod.transaction_monitor.render({
+      tx,
+      title: 'Purchasing NFT',
+      lead,
+      subtitle: 'Waiting for confirmation...',
+      successTitle: 'Payment confirmed',
+      successLead,
+      successActionLabel: 'Continue',
+      callback: (result) => {
+        this.watchingWithMonitor = false;
+        if (result?.status === 'confirmed') {
+          // Lifecycle already advanced on chain confirm via store-purchase-asset.
+          // Continue only hands UI back to Store fulfillment.
+          this.openFulfilling();
+          return;
+        }
+        // Cancelled while waiting — lifecycle may still complete in background.
+        this.step = null;
+      }
+    });
   }
 
   openFulfilling() {
-    this.confirmationWaiting?.stop();
-    this.confirmationWaiting = null;
     this.step = 'fulfilling';
     this.show(
       PurchaseTemplate.fulfillingOverlay({
@@ -94,8 +121,6 @@ class PurchaseOverlay {
   }
 
   openComplete() {
-    this.confirmationWaiting?.stop();
-    this.confirmationWaiting = null;
     this.step = 'complete';
     this.show(
       PurchaseTemplate.completeOverlay({
@@ -122,8 +147,6 @@ class PurchaseOverlay {
   }
 
   onOverlayClosed() {
-    this.confirmationWaiting?.stop();
-    this.confirmationWaiting = null;
     document.querySelector('.saito-container')?.classList.remove('store-purchase-modal-open');
     // Keep lifecycle / listing-hide / pendingTxSignature — only clear presentation step.
     this.step = null;
@@ -184,23 +207,6 @@ class PurchaseOverlay {
     this.app.connection.emit('saito-nft-list-render-request');
   }
 
-  onStoreNewBlock({ blk } = {}) {
-    if (!this.pendingTxSignature || !blk) {
-      return;
-    }
-
-    if (this.step === 'waiting') {
-      this.confirmationWaiting?.onNewBlockWithoutConfirmation();
-      const purchase = this.lifecycle()?.findByPurchaseTx(this.pendingTxSignature);
-      if (purchase && purchase.phase === PurchaseLifecycle.PHASE.CONFIRMING) {
-        this.lifecycle()?.setPhase(purchase.id, PurchaseLifecycle.PHASE.CONFIRMING, {
-          status: 'Purchasing NFT…',
-          detail: 'Waiting for next block…'
-        });
-      }
-    }
-  }
-
   onStorePurchaseAsset({ conf, tx } = {}) {
     if (Number(conf) !== 0) {
       return;
@@ -213,7 +219,9 @@ class PurchaseOverlay {
     if (this.pendingTxSignature && tx.signature !== this.pendingTxSignature) {
       return;
     }
-    this.onPaymentConfirmed();
+
+    this.lifecycle()?.markPaymentConfirmed(this.pendingTxSignature);
+    // Monitor owns waiting → Continue → fulfilling; do not open Store UI here.
   }
 
   onStoreOrderRefund() {
@@ -225,16 +233,12 @@ class PurchaseOverlay {
       status: 'Purchase refunded',
       detail: 'The Store could not fulfill this order.'
     });
+    if (this.watchingWithMonitor) {
+      this.mod.transaction_monitor?.hide?.();
+      this.watchingWithMonitor = false;
+    }
     if (this.step) {
       this.hide();
-    }
-  }
-
-  onPaymentConfirmed() {
-    this.lifecycle()?.markPaymentConfirmed(this.pendingTxSignature);
-
-    if (this.step === 'waiting') {
-      this.openFulfilling();
     }
   }
 
@@ -254,15 +258,18 @@ class PurchaseOverlay {
       this.listingTitle = purchase.title || this.listingTitle;
       this.pendingTxSignature = purchase.purchase_tx_signature;
       this.nft_id = purchase.nft_id;
+      if (this.watchingWithMonitor) {
+        this.mod.transaction_monitor?.hide?.();
+        this.watchingWithMonitor = false;
+      }
       if (this.step !== 'complete') {
         this.openComplete();
       }
       return;
     }
 
-    if (purchase.phase === PurchaseLifecycle.PHASE.FULFILLING && this.step === 'waiting') {
-      this.openFulfilling();
-    }
+    // Fulfilling overlay opens only after the user Continues from the Transaction Monitor
+    // (or via reopenPurchaseProgress while already fulfilling). Never recreate confirmation UI.
   }
 }
 

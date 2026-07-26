@@ -44,7 +44,7 @@ class LogicalFieldOverlay {
     const host = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
     const root = host?.querySelector('.rs-prompt-logical');
     const select = root?.querySelector('.rs-prompt-logical-select');
-    const title = root?.querySelector('.rs-prompt-title');
+    const title = root?.querySelector('.rs-overlay-title');
     const explainEl = root?.querySelector('.rs-prompt-logical-explain');
     if (!root || !select) {
       return;

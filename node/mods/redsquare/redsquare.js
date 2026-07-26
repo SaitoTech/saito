@@ -1403,11 +1403,12 @@ class RedSquare extends ModTemplate {
 
     document.body.insertAdjacentHTML('beforeend', SplashTemplate());
 
-    this.show_splash = false;
-    this.saveOptions();
-
+    // Persist dismissal only when the user completes onboarding — not when the
+    // splash is merely shown. Otherwise a reload mid-splash permanently skips it.
     document.querySelector('.redsquare-splash-join')?.addEventListener('click', () => {
       document.querySelector('.redsquare-splash-overlay')?.remove();
+      this.show_splash = false;
+      this.saveOptions();
     });
   }
 
