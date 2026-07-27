@@ -91,6 +91,8 @@ class ComposeOverlay {
       return;
     }
 
+    this.mountPickersForViewport();
+
     const input = root.querySelector('.input');
     const submitBtn = root.querySelector('.submit');
     const emojiBtn = root.querySelector('.tool.emoji');
@@ -205,11 +207,14 @@ class ComposeOverlay {
       return;
     }
 
+    this.mountPickersForViewport();
+
     root.querySelectorAll('.compose-picker').forEach((picker) => {
       const visible = picker.classList.contains(`${type}-picker-panel`);
       picker.classList.toggle('visible', visible);
       picker.setAttribute('aria-hidden', visible ? 'false' : 'true');
     });
+    root.classList.add('picker-open');
 
     if (type === 'emoji' && typeof customElements !== 'undefined') {
       customElements.whenDefined('emoji-picker').then(() => {
@@ -224,6 +229,27 @@ class ComposeOverlay {
     }
   }
 
+  mountPickersForViewport() {
+    const root = this.getRoot();
+    const surface = root?.querySelector('.surface');
+
+    if (!root || !surface || typeof window === 'undefined') {
+      return;
+    }
+
+    // Desktop pickers participate in the overlay stack; mobile pickers stay over the input surface.
+    const isDesktop = window.matchMedia
+      ? window.matchMedia('(min-width: 769px)').matches
+      : window.innerWidth > 768;
+    const target = isDesktop ? root : surface;
+
+    root.querySelectorAll('.compose-picker').forEach((picker) => {
+      if (picker.parentElement !== target) {
+        target.appendChild(picker);
+      }
+    });
+  }
+
   hidePickers() {
     const root = this.getRoot();
 
@@ -235,6 +261,7 @@ class ComposeOverlay {
       picker.classList.remove('visible');
       picker.setAttribute('aria-hidden', 'true');
     });
+    root.classList.remove('picker-open');
 
     root.querySelector('.input')?.focus();
   }
