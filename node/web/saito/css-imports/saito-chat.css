@@ -31,23 +31,14 @@
   min-width: 0;
   height: auto;
   line-height: 1.55;
+  color: var(--saito-muted-foreground);
+  font-style: normal;
+  transition: color 0.2s;
 }
 
 .chat-manager .saito-userline .img-prev {
   max-width: 100%;
   cursor: pointer;
-}
-
-.chat-manager-header {
-  min-width: 0;
-  min-height: 0;
-  margin: 0;
-  padding: 0 0.4rem;
-}
-
-.chat-manager .chat-manager-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .chat-popup-img-overlay-box {
@@ -69,29 +60,17 @@
 }
 
 .chat-manager .saito-user {
-  grid-template-columns: 4rem minmax(0, 1fr) min-content;
+  grid-template-columns: min-content minmax(0, 1fr) min-content;
   grid-template-rows: 2rem 1.8rem;
   align-items: center;
-  column-gap: 1.1rem;
+  column-gap: 1rem;
   padding: 0.75rem 0.8rem;
   border-radius: var(--saito-radius);
   overflow: hidden;
-  min-height: 5.35rem;
   cursor: pointer;
   transition:
     background-color 0.2s,
     color 0.2s;
-}
-
-.chat-manager .saito-identicon-box {
-  width: 4rem;
-  height: 4rem;
-}
-
-.chat-manager .online-status-indicator:after,
-.chat-manager .stun .online-status-indicator i {
-  top: 3.85rem;
-  left: 3.85rem;
 }
 
 .chat-manager .saito-address {
@@ -107,17 +86,9 @@
   text-overflow: ellipsis;
 }
 
-.chat-manager .saito-user:hover {
-  background-color: color-mix(in srgb, var(--saito-card) 86%, var(--saito-accent));
-  color: var(--saito-foreground);
-}
-
-.chat-manager .saito-user:hover .saito-address {
-  color: inherit;
-}
-
+/* Hover from shared .saito-menu-select-heavy; keep secondary line in the active row. */
 .chat-manager .saito-user:hover .saito-userline {
-  color: var(--saito-muted-foreground);
+  color: inherit;
 }
 
 .chat-manager-list {
@@ -528,11 +499,6 @@
   align-self: end;
 }
 
-.chat-manager .saito-userline {
-  color: var(--saito-muted-foreground);
-  font-style: normal;
-}
-
 .saito-time-stamp {
   font-size: 1.4rem;
   text-align: center;
@@ -790,17 +756,11 @@
   color: var(--saito-foreground); /* testing */
 }
 
-/* Mobile Overlay */
+/* Chat manager header controls — only rendered when needed by template */
 
 .close-chat-manager {
-  margin-right: auto;
-  display: none;
   position: relative;
   height: 100%;
-}
-
-.chat-manager-overlay .close-chat-manager {
-  display: block;
 }
 
 .close-chat-manager i {
@@ -814,8 +774,6 @@
 }
 
 .chat-manager-options {
-  min-height: 3.6rem;
-  min-width: 3.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -854,24 +812,18 @@
   cursor: grab;
 }
 
-.alternate-close-button,
-.floating-cm-overlay .chat-manager-options,
-.chat-manager-overlay.floating-cm-overlay .close-chat-manager {
-  display: none;
+.alternate-close-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 30px;
 }
 
 .chat-manager-overlay .chat-manager-list.saito-sidebar-element {
   padding: 0;
   border: 0;
   background: transparent;
-}
-
-.floating-cm-overlay .alternate-close-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  width: 30px;
 }
 
 .chat-manager-overlay.floating-cm-overlay .chat-manager {

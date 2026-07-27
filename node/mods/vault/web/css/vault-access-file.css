@@ -1,6 +1,9 @@
 .vault-nfts .send-nft-list {
   align-content: flex-start;
   align-items: stretch;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 100%;
   padding: 0.5rem;
 }
 
@@ -23,8 +26,6 @@
   flex-direction: column;
   gap: 1.5rem;
   width: 22rem;
-  max-width: 100%;
-  min-width: 0;
   height: auto;
   overflow: hidden;
   padding: 1rem;
@@ -103,11 +104,5 @@
 
   .vault-nfts .send-nft-list {
     width: 100%;
-  }
-
-  .vault-nfts .vault-nft-item {
-    flex-basis: auto;
-    width: min(20rem, 46%);
-    min-width: 12rem;
   }
 }
