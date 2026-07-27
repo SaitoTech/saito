@@ -366,7 +366,7 @@ class NFTCryptoModule extends CryptoModule {
         }
 
         const from = tx.from || [];
-        for (let i = 0; i + 2 < from.length;) {
+        for (let i = 0; i + 2 < from.length; ) {
           if (!isNftInputTriple(from, i)) {
             i++;
             continue;
