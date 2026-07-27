@@ -292,49 +292,37 @@
 #saito-header .wallet-btn-container {
   display: flex;
   gap: 0.5rem;
-  margin: 1rem 0 3.5rem;
+  margin: 1rem 0 1.5rem;
   padding: 0.5rem 0;
   width: fit-content;
-  border: 1px solid var(--saito-border);
-  border-radius: 999px;
-  background: var(--saito-card-wash);
 }
 
 #saito-header .wallet-btn {
   display: flex;
-  position: relative;
   cursor: pointer;
   flex-direction: column;
   align-items: center;
+  gap: 1rem;
   width: 7rem;
   padding: 0;
   color: var(--saito-muted-foreground);
 }
 
-#saito-header .wallet-btn > span {
-  position: absolute;
-  top: calc(100% + 1rem);
-}
-
-#saito-header .wallet-btn-container:not(.saito-mode) #wallet-btn-get-saito {
+#saito-header #wallet-btn-get-saito {
   display: none;
 }
 
-#saito-header .wallet-btn > i {
+#saito-header .wallet-btn-container.show-get-saito #wallet-btn-get-saito {
   display: flex;
+}
+
+#saito-header .wallet-btn > .saito-icon-button {
   width: 6rem;
   height: 6rem;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 50%;
-  background: var(--saito-secondary);
-  color: var(--saito-foreground);
+}
+
+#saito-header .wallet-btn > .saito-icon-button i {
   font-size: 2rem;
-  transition:
-    transform 0.2s,
-    background 0.2s,
-    border-color 0.2s;
 }
 
 #saito-header .wallet-send-icon::before {
@@ -346,15 +334,8 @@
   color: var(--saito-foreground);
 }
 
-#saito-header .wallet-btn:hover > i {
+#saito-header .wallet-btn:hover > .saito-icon-button {
   transform: scale(1.1);
-  background: var(--saito-primary);
-  color: var(--saito-primary-foreground);
-}
-
-#saito-header .saito-header-hamburger-contents.show-wallet #wallet-btn-switch > i {
-  background: var(--saito-primary);
-  color: var(--saito-primary-foreground);
 }
 
 #saito-header .wallet-controls-separator {
@@ -547,7 +528,7 @@
 /* Header wallet crypto row */
 .saito-header-crypto {
   display: grid;
-  grid-template-columns: 5rem 1fr;
+  grid-template-columns: 5rem 1fr auto;
   grid-template-rows: 2fr 1fr;
   row-gap: 0.5rem;
   column-gap: 1rem;
@@ -604,6 +585,12 @@
 
 .header-crypto-value {
   color: var(--saito-muted-foreground);
+}
+
+.saito-header-crypto .header-crypto-history {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
 }
 
 /*   Crypto Menu */
@@ -760,22 +747,22 @@
 
   html:not(.game) #saito-header .wallet-btn-container {
     gap: calc(0.5rem * 10 / 12);
-    margin: calc(1rem * 10 / 12) 0 calc(3.5rem * 10 / 12);
+    margin: calc(1rem * 10 / 12) 0 calc(1.5rem * 10 / 12);
     padding: calc(0.5rem * 10 / 12) 0;
   }
 
   html:not(.game) #saito-header .wallet-btn {
+    gap: calc(1rem * 10 / 12);
     width: calc(7rem * 10 / 12);
     font-size: calc(1.6rem * 10 / 12);
   }
 
-  html:not(.game) #saito-header .wallet-btn > span {
-    top: calc(100% + 1rem * 10 / 12);
-  }
-
-  html:not(.game) #saito-header .wallet-btn > i {
+  html:not(.game) #saito-header .wallet-btn > .saito-icon-button {
     width: calc(6rem * 10 / 12);
     height: calc(6rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .wallet-btn > .saito-icon-button i {
     font-size: calc(2rem * 10 / 12);
   }
 
@@ -823,7 +810,7 @@
   }
 
   html:not(.game) .saito-header-crypto {
-    grid-template-columns: calc(5rem * 10 / 12) 1fr;
+    grid-template-columns: calc(5rem * 10 / 12) 1fr auto;
     row-gap: calc(0.5rem * 10 / 12);
     column-gap: calc(1rem * 10 / 12);
     height: calc(6rem * 10 / 12);

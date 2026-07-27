@@ -41,7 +41,10 @@
 /* saito header menu */
 
 .saito-header-menu-section {
-  padding: /*0.5rem*/ 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0 1rem 1.5rem;
 }
 
 .saito-header-menu-section .saito-menu ul {
@@ -49,6 +52,11 @@
   grid-template-columns: 1fr 1fr 1fr;
   column-gap: 1.5rem;
   row-gap: 2rem;
+  margin: 0;
+}
+
+.saito-header-menu-section .empty-menu-section {
+  display: none;
 }
 
 .empty-menu-section + hr {
@@ -56,7 +64,7 @@
 }
 
 .saito-header-menu-section hr {
-  margin: 1.5rem;
+  margin: 0;
   border-style: dashed;
 }
 
@@ -165,7 +173,8 @@
 */
 @media screen and (min-width: 769px) {
   html:not(.game) .saito-header-menu-section {
-    padding: calc(1rem * 10 / 12);
+    gap: calc(1.5rem * 10 / 12);
+    padding: 0 calc(1rem * 10 / 12) calc(1.5rem * 10 / 12);
   }
 
   html:not(.game) .saito-header-menu-section .saito-menu li {
@@ -178,7 +187,7 @@
   }
 
   html:not(.game) .saito-header-menu-section hr {
-    margin: calc(1.5rem * 10 / 12);
+    margin: 0;
   }
 
   html:not(.game) .saito-header-menu-section .saito-header-appspace-option > i {
