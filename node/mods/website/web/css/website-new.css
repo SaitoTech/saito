@@ -1,3 +1,5 @@
+@import url('./website-defi.css');
+
 /* ----------------------------------------------------------------
 font imports
 -----------------------------------------------------------------*/
@@ -361,31 +363,31 @@ h2 + p {
 }
 
 .card-link[data-app='chat'] .feature-card {
-  background: linear-gradient(145deg, #a34b88e8, #72318bf2);
+  background: linear-gradient(145deg, #ce4987eb, #9e2f8af2);
 }
 
 .card-link[data-app='redsquare'] .feature-card {
-  background: linear-gradient(145deg, #8f6a70f2, #7c6f6feb);
+  background: linear-gradient(145deg, #cb4787f2, #b35486eb);
 }
 
 .card-link[data-app='arcade'] .feature-card {
-  background: linear-gradient(145deg, #807975f2, #777170eb);
+  background: linear-gradient(145deg, #d85d84f2, #a34b88eb);
 }
 
 .card-link[data-app='talk'] .feature-card {
-  background: linear-gradient(145deg, #607773eb, #49676cf2);
+  background: linear-gradient(145deg, #29887ff2, #145971eb);
 }
 
 .card-link[data-app='stack'] .feature-card {
-  background: linear-gradient(145deg, #1f4c7af2, #56597aeb);
+  background: linear-gradient(145deg, #122f8cf2, #1f4c7aeb);
 }
 
 .card-link[data-app='vault'] .feature-card {
-  background: linear-gradient(145deg, #53398af2, #a34b88eb);
+  background: linear-gradient(145deg, #53398af2, #72318beb);
 }
 
 .card-link[data-app='store'] .feature-card {
-  background: linear-gradient(145deg, #7c6f6ff2, #8f6a70eb);
+  background: linear-gradient(145deg, #518979f2, #29887feb);
 }
 
 .feature-card::before {
@@ -1537,147 +1539,6 @@ object.saito-text {
 /* For SVG logo */
 .header-logo svg style {
   content: '.cls-1{fill:var(--menu-color, #fff)}';
-}
-
-#multiwallet {
-  background: var(--dreamscape);
-  min-height: calc(var(--vh) * 100);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  position: relative;
-  /* For nav pip tracking */
-}
-
-.multiwallet-content {
-  display: flex;
-  max-width: 1200px;
-  width: 100%;
-  gap: 2rem;
-}
-
-.multiwallet-text {
-  flex: 1;
-  color: white;
-  padding: 1rem;
-  justify-content: center;
-  display: flex;
-  flex-direction: column;
-}
-
-.multiwallet-text h1 {
-  font-size: 3rem;
-  margin-bottom: 1.5rem;
-  color: white;
-}
-
-.multiwallet-text p {
-  font-size: 1.2rem;
-  line-height: 1.6;
-}
-
-.multiwallet-logos {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo-container {
-  position: relative;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.logo-circle {
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 2rem;
-  transition: transform 0.3s ease;
-}
-
-.logo-disk object {
-  width: 60px;
-  height: 60px;
-  margin: auto;
-}
-
-.logo-circle span {
-  color: white;
-  font-weight: 500;
-  white-space: nowrap;
-  font-size: 2rem;
-}
-
-/* Position the logos in an arc */
-.logo-circle:nth-child(1) {
-  /* Bitcoin */
-  left: 10%;
-}
-
-.logo-circle:nth-child(2) {
-  /* Ethereum */
-  left: 0%;
-}
-
-.logo-circle:nth-child(3) {
-  /* Saito */
-  left: 6%;
-}
-
-.logo-circle:nth-child(4) {
-  /* MultiverseX */
-  left: 25%;
-}
-
-.nav a:nth-child(4).active {
-  background-color: white;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .multiwallet-content {
-    flex-direction: column;
-  }
-
-  .logo-container {
-    padding: 0 1rem;
-    gap: 1rem;
-  }
-
-  /* Adjust logo positions for mobile */
-  .logo-circle:nth-child(1) {
-    left: 50%;
-    top: 10%;
-    transform: translateX(-50%);
-  }
-
-  .logo-circle:nth-child(2) {
-    left: 50%;
-    top: 30%;
-    transform: translateX(-50%);
-  }
-
-  .logo-circle:nth-child(3) {
-    left: 50%;
-    top: 50%;
-    transform: translateX(-50%);
-  }
-
-  .logo-circle:nth-child(4) {
-    left: 50%;
-    top: 70%;
-    transform: translateX(-50%);
-  }
-
-  .logo-circle:hover {
-    transform: translateX(-50%) scale(1.1);
-  }
 }
 
 /* Hide menu in landing section */
