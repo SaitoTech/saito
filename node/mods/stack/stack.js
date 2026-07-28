@@ -200,6 +200,12 @@ class Stack extends ModTemplate {
     const pathname = window.location.pathname;
     const slug = '/' + this.slug;
 
+    if (pathname === slug && new URLSearchParams(window.location.search).get('publish') === '1') {
+      window.history.replaceState({}, '', slug);
+      await this.main.handleStartWriting();
+      return;
+    }
+
     // Check if pathname starts with /stack
     if (pathname.startsWith(slug)) {
       // Extract path segments after /stack
@@ -465,6 +471,19 @@ class Stack extends ModTemplate {
   // Inter-module Communication //
   ////////////////////////////
   respondTo(type = '', obj) {
+    if (type === 'redsquare-create') {
+      return {
+        id: 'stack-publish',
+        label: 'Publish',
+        image: '/saito/icons/saito-stack-icon-solid.svg',
+        callback: () => {
+          if (typeof navigateWindow === 'function') {
+            navigateWindow('/stack?publish=1');
+          }
+        }
+      };
+    }
+
     if (type === 'saito-header') {
       let x = [];
       if (!this.browser_active) {

@@ -66,6 +66,18 @@ class Vault extends ModTemplate {
   respondTo(type = '', obj) {
     let this_mod = this;
 
+    if (type === 'redsquare-create') {
+      return {
+        id: 'vault-share',
+        label: 'Share',
+        image: '/saito/icons/saito-vault-icon-solid.svg',
+        callback: () => {
+          this_mod.attachStyleSheets();
+          this_mod.access_file_overlay.file_upload_overlay.render();
+        }
+      };
+    }
+
     if (type === 'saito-header') {
       let x = [];
       if (!this.browser_active) {

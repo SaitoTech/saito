@@ -20,6 +20,9 @@ class Main {
     this.sidebar = new Sidebar(app, mod, '.sidebar-right > .sidebar');
     this.active_mobile_view = 'feed';
     this.chat_manager = null;
+    this.post_control_visible = true;
+    this.post_visibility_observer = null;
+    this.floating_post_resize_handler = null;
   }
 
   setChatManager(chatManager = null) {
@@ -75,6 +78,8 @@ class Main {
       this.syncChatManagerContainer();
       this.chat_manager.render();
     }
+
+    this.syncFloatingPostMenu();
 
     return true;
   }
@@ -222,6 +227,71 @@ class Main {
     );
   }
 
+  positionFloatingPostMenu() {
+    const root = document.querySelector(this.container);
+    const manager = root?.querySelector('.manager');
+    const menu = document.querySelector('#saito-floating-menu');
+
+    if (!manager || !menu) {
+      return;
+    }
+
+    const bounds = manager.getBoundingClientRect();
+    const rightInset = Math.max(0, window.innerWidth - bounds.right);
+    const bottomInset = Math.max(0, window.innerHeight - bounds.bottom);
+
+    menu.style.setProperty('--redsquare-feed-right-inset', `${rightInset}px`);
+    menu.style.setProperty('--redsquare-feed-bottom-inset', `${bottomInset}px`);
+  }
+
+  syncFloatingPostMenu() {
+    const menu = document.querySelector('#saito-floating-menu');
+
+    if (!menu) {
+      return;
+    }
+
+    const feedActive = !this.isCompactViewport() || this.active_mobile_view === 'feed';
+    const show = feedActive && !this.post_control_visible;
+
+    menu.classList.toggle('redsquare-post-offscreen', show);
+
+    if (show) {
+      this.positionFloatingPostMenu();
+    } else {
+      menu.classList.remove('activated');
+    }
+  }
+
+  attachFloatingPostVisibility() {
+    const root = document.querySelector(this.container);
+    const postControl = root?.querySelector('.sidebar-right > .redsquare-create');
+    const menu = document.querySelector('#saito-floating-menu');
+
+    this.post_visibility_observer?.disconnect();
+
+    if (this.floating_post_resize_handler) {
+      window.removeEventListener('resize', this.floating_post_resize_handler);
+    }
+
+    if (!postControl || !menu || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    this.post_visibility_observer = new IntersectionObserver(([entry]) => {
+      this.post_control_visible = entry.isIntersecting;
+      this.syncFloatingPostMenu();
+    });
+    this.post_visibility_observer.observe(postControl);
+
+    this.floating_post_resize_handler = () => {
+      if (!this.post_control_visible) {
+        this.positionFloatingPostMenu();
+      }
+    };
+    window.addEventListener('resize', this.floating_post_resize_handler, { passive: true });
+  }
+
   attachEvents() {
     this.menu.attachEvents();
     this.manager.attachEvents();
@@ -230,6 +300,7 @@ class Main {
     this.sidebar.attachEvents();
     this.attachSidebarScrollSync();
     this.attachFeedWheelScroll();
+    this.attachFloatingPostVisibility();
   }
 }
 

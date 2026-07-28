@@ -99,7 +99,7 @@
   max-height: 100%; /*calc(100% - 5rem);*/
   position: relative;
   margin-top: 0;
-  padding-top: 0;
+  padding: 0;
 }
 
 .chat-manager-list .saito-address {

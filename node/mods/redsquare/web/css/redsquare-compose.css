@@ -6,9 +6,27 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  gap: var(--saito-space-sm);
   width: min(54rem, 92vw);
   height: 100%;
   max-height: min(88dvh, 72rem);
+  overflow: hidden;
+}
+
+.compose.saito-overlay-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.compose .dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -131,13 +149,11 @@
   inset: 0;
   display: none;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background-color: var(--saito-popover);
-  background-image: var(--saito-popover-wash);
   z-index: 1;
 }
 
@@ -180,26 +196,23 @@
   display: flex;
   width: 100%;
   height: 100%;
+  --emoji-size: 1.67rem;
+  --emoji-vertical-offset: 0.08em;
   --background: var(--saito-popover);
   --border-color: var(--saito-border);
   --indicator-color: var(--saito-primary);
+  --input-background: var(--saito-secondary);
   --input-border-color: var(--saito-border);
+  --input-border-radius: var(--saito-radius);
   --input-font-color: var(--saito-foreground);
+  --input-font-size: 1.6rem;
+  --input-line-height: 1.5;
+  --input-padding: 1rem;
   --input-placeholder-color: var(--saito-muted-foreground);
   --outline-color: var(--saito-primary);
   --category-font-color: var(--saito-foreground);
   --button-active-background: var(--saito-secondary);
   --button-hover-background: var(--saito-accent);
-}
-
-.saito-overlay .compose .gif-picker-content .saito-gif-container {
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
-  padding: var(--saito-space-sm);
-  border-radius: 0;
-  background: transparent;
 }
 
 .compose .footer {
@@ -316,11 +329,45 @@
   }
 }
 
+@media (min-width: 769px) {
+  .compose .emoji-picker-host .compose-emoji-picker {
+    --num-columns: 10;
+  }
+
+  .compose {
+    height: auto;
+    max-height: min(94dvh, 110rem);
+    overflow: visible;
+  }
+
+  .compose .dialog {
+    height: auto;
+    max-height: min(88dvh, 72rem);
+  }
+
+  .compose .compose-picker {
+    position: absolute;
+    inset: calc(100% + var(--saito-space-sm)) 0 auto;
+    height: min(40dvh, 38rem);
+  }
+}
+
 @media (max-width: 768px) {
   body.redsquare-body .saito-overlay > .compose {
     height: 100%;
     min-height: 0;
     max-height: none;
+  }
+
+  .compose .dialog {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .compose .compose-picker {
+    box-shadow: none;
   }
 
   .compose .footer {

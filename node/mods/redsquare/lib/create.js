@@ -1,13 +1,13 @@
 const CreateTemplate = require('./create.template');
 
 /**
- * Sidebar Create — publishing actions (not identity, not navigation).
+ * Sidebar Create — RedSquare's primary post action plus publishing actions
+ * supplied by other modules.
  *
- * Built-in actions: Post, Tweet (left → right).
  * Extension:
- *   - `registerAction({ id, label, icon, onClick })` before/after render
+ *   - `registerAction({ id, label, icon?, image?, onClick })` before/after render
  *   - modules may `respondTo('redsquare-create')` with
- *     `{ id, label, icon?, callback(app, mod) }`
+ *     `{ id, label, icon?, image?, callback(app, mod) }`
  */
 class Create {
   constructor(app, mod, container = '') {
@@ -18,20 +18,15 @@ class Create {
   }
 
   /**
-   * Ordered create actions. Core first; module extras appended (deduped by id).
-   * Left → right: Post, Tweet (handlers unchanged).
+   * Ordered create actions. RedSquare is always first; module extras follow.
    */
   getActions() {
     const actions = [
       {
         id: 'post',
-        label: '+ Post',
+        label: 'Post',
+        image: '/saito/icons/saito-redsquare-icon-solid.svg',
         onClick: () => this.openPost()
-      },
-      {
-        id: 'tweet',
-        label: '+ Tweet',
-        onClick: () => this.openTweet()
       }
     ];
 
@@ -55,6 +50,7 @@ class Create {
         id: item.id,
         label: item.label,
         icon: item.icon || 'fa-solid fa-plus',
+        image: item.image,
         onClick: () => item.callback?.(this.app, this.mod)
       });
     }
@@ -78,29 +74,8 @@ class Create {
     }
   }
 
-  openTweet() {
-    this.mod.compose_overlay?.open();
-  }
-
   openPost() {
-    // TODO(redsquare-create): Wire Stack's create-post UI in-place once Stack
-    // exposes a stable cross-module entry (prefer respondTo('redsquare-create')
-    // from Stack, or a create_post_ui.openFromPeer() API). Until then, open Stack.
-    const stack = this.app.modules?.returnModule?.('Stack');
-
-    if (stack && typeof navigateWindow === 'function') {
-      navigateWindow('/stack');
-      return;
-    }
-
-    if (typeof navigateWindow === 'function') {
-      navigateWindow('/stack');
-      return;
-    }
-
-    console.info(
-      '[RedSquare Create] Post placeholder — Stack create hook not available in this session.'
-    );
+    this.mod.compose_overlay?.open();
   }
 
   render(container = '') {
@@ -126,6 +101,14 @@ class Create {
     root.dataset.createBound = '1';
 
     root.addEventListener('click', (e) => {
+      const toggle = e.target.closest('[data-create-toggle]');
+
+      if (toggle && root.contains(toggle)) {
+        e.preventDefault();
+        this.toggleMenu();
+        return;
+      }
+
       const btn = e.target.closest('[data-create]');
 
       if (!btn || !root.contains(btn)) {
@@ -137,8 +120,56 @@ class Create {
       const id = btn.getAttribute('data-create');
       const action = this.getActions().find((a) => a.id === id);
 
+      this.closeMenu();
       action?.onClick?.();
     });
+
+    root.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeMenu(true);
+      }
+    });
+
+    root.addEventListener('focusout', (e) => {
+      if (!root.contains(e.relatedTarget)) {
+        this.closeMenu();
+      }
+    });
+  }
+
+  toggleMenu() {
+    const root = document.querySelector(this.container);
+    const toggle = root?.querySelector('[data-create-toggle]');
+    const menu = root?.querySelector('[data-create-menu]');
+
+    if (!toggle || !menu) {
+      return;
+    }
+
+    const open = menu.hidden;
+    menu.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+
+    if (open) {
+      menu.querySelector('[data-create]')?.focus();
+    }
+  }
+
+  closeMenu(restoreFocus = false) {
+    const root = document.querySelector(this.container);
+    const toggle = root?.querySelector('[data-create-toggle]');
+    const menu = root?.querySelector('[data-create-menu]');
+
+    if (!toggle || !menu || menu.hidden) {
+      return;
+    }
+
+    menu.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+
+    if (restoreFocus) {
+      toggle.focus();
+    }
   }
 }
 

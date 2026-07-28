@@ -61,6 +61,7 @@ class ComposeOverlay {
     }
 
     this.overlay.show(ComposeTemplate(this));
+    this.getRoot()?.closest('.saito-overlay')?.classList.add('redsquare-compose-overlay-host');
     this.attachEvents();
 
     setTimeout(() => {
@@ -90,6 +91,8 @@ class ComposeOverlay {
     if (!root) {
       return;
     }
+
+    this.mountPickersForViewport();
 
     const input = root.querySelector('.input');
     const submitBtn = root.querySelector('.submit');
@@ -205,6 +208,8 @@ class ComposeOverlay {
       return;
     }
 
+    this.mountPickersForViewport();
+
     root.querySelectorAll('.compose-picker').forEach((picker) => {
       const visible = picker.classList.contains(`${type}-picker-panel`);
       picker.classList.toggle('visible', visible);
@@ -222,6 +227,27 @@ class ComposeOverlay {
         }
       });
     }
+  }
+
+  mountPickersForViewport() {
+    const root = this.getRoot();
+    const surface = root?.querySelector('.surface');
+
+    if (!root || !surface || typeof window === 'undefined') {
+      return;
+    }
+
+    // Desktop pickers anchor below the dialog; mobile pickers stay over the input surface.
+    const isDesktop = window.matchMedia
+      ? window.matchMedia('(min-width: 769px)').matches
+      : window.innerWidth > 768;
+    const target = isDesktop ? root : surface;
+
+    root.querySelectorAll('.compose-picker').forEach((picker) => {
+      if (picker.parentElement !== target) {
+        target.appendChild(picker);
+      }
+    });
   }
 
   hidePickers() {
