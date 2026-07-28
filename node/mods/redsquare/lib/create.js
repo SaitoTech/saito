@@ -45,11 +45,15 @@ class Create {
       if (!item?.id || !item?.label || seen.has(item.id)) {
         continue;
       }
+      const peer =
+        this.app.modules?.returnModuleByName?.(item.modname) ||
+        this.app.modules?.returnModule?.(item.modname);
+
       seen.add(item.id);
       actions.push({
         id: item.id,
         label: item.label,
-        icon: item.icon || 'fa-solid fa-plus',
+        icon: item.icon || peer?.icon_fa || peer?.icon || 'fa-solid fa-plus',
         image: item.image,
         onClick: () => item.callback?.(this.app, this.mod)
       });
