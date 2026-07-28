@@ -1,3 +1,7 @@
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+
 // Handle navigation dots
 const sections = document.querySelectorAll('section');
 const navLinks = document.querySelectorAll('.nav a');
@@ -369,16 +373,162 @@ loadScript('/saito/saito.js', async () => {
   await header.initialize(this.app);
 });
 
-// Scroll to second card on load
-document.addEventListener('DOMContentLoaded', () => {
-  const cardContainer = document.querySelector('.card-container');
-  if (cardContainer) {
-    // Wait for animations to complete
-    setTimeout(() => {
-      const secondCard = cardContainer.children[2]; // Index 2 because of spacer
-      if (secondCard) {
-        secondCard.scrollIntoView({ behavior: 'smooth', inline: 'center' });
-      }
-    }, 2000); // Adjust timing based on your animations
+function resetInitialSection() {
+  const pageContainer = document.querySelector('.container');
+  const hasDeepLink = window.location.hash && window.location.hash !== '#landing';
+
+  if (pageContainer && !hasDeepLink) {
+    pageContainer.scrollTop = 0;
   }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  resetInitialSection();
+
+  const carousel = document.querySelector('#feature-carousel');
+  const cards = Array.from(carousel?.querySelectorAll('.card-link') ?? []);
+  const controls = document.querySelector('.carousel-controls');
+  const previousButton = controls?.querySelector('.carousel-previous');
+  const nextButton = controls?.querySelector('.carousel-next');
+  const dots = Array.from(controls?.querySelectorAll('.carousel-dot') ?? []);
+
+  if (
+    !carousel ||
+    !previousButton ||
+    !nextButton ||
+    cards.length === 0 ||
+    dots.length !== cards.length
+  ) {
+    return;
+  }
+
+  let activeIndex = 0;
+  let pointerStart;
+  let suppressClickUntil = 0;
+
+  const positionClasses = ['active', 'prev-1', 'prev-2', 'next-1', 'next-2'];
+  const wrappedIndex = (index) => (index + cards.length) % cards.length;
+
+  const updateCoverflow = () => {
+    cards.forEach((card, index) => {
+      card.classList.remove(...positionClasses);
+
+      let difference = index - activeIndex;
+      const halfway = Math.floor(cards.length / 2);
+      if (difference > halfway) {
+        difference -= cards.length;
+      } else if (difference < -halfway) {
+        difference += cards.length;
+      }
+
+      const positionClass =
+        difference === 0
+          ? 'active'
+          : difference === -1
+            ? 'prev-1'
+            : difference === -2
+              ? 'prev-2'
+              : difference === 1
+                ? 'next-1'
+                : difference === 2
+                  ? 'next-2'
+                  : null;
+
+      if (positionClass) {
+        card.classList.add(positionClass);
+        card.removeAttribute('aria-hidden');
+        card.removeAttribute('tabindex');
+      } else {
+        card.setAttribute('aria-hidden', 'true');
+        card.tabIndex = -1;
+      }
+    });
+
+    dots.forEach((dot, index) => {
+      if (index === activeIndex) {
+        dot.setAttribute('aria-current', 'true');
+      } else {
+        dot.removeAttribute('aria-current');
+      }
+    });
+  };
+
+  const activateCard = (index) => {
+    activeIndex = wrappedIndex(index);
+    updateCoverflow();
+  };
+
+  previousButton.addEventListener('click', () => activateCard(activeIndex - 1));
+  nextButton.addEventListener('click', () => activateCard(activeIndex + 1));
+  cards.forEach((card, index) => {
+    card.addEventListener('click', (event) => {
+      if (index !== activeIndex) {
+        event.preventDefault();
+        activateCard(index);
+      }
+    });
+  });
+  dots.forEach((dot, index) => {
+    dot.addEventListener('click', () => activateCard(index));
+  });
+
+  carousel.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      activateCard(activeIndex - 1);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      activateCard(activeIndex + 1);
+    }
+  });
+
+  carousel.addEventListener(
+    'click',
+    (event) => {
+      if (Date.now() < suppressClickUntil) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    true
+  );
+
+  carousel.addEventListener('pointerdown', (event) => {
+    if (!event.isPrimary || event.pointerType === 'mouse') {
+      return;
+    }
+
+    pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  });
+
+  carousel.addEventListener('pointerup', (event) => {
+    if (!pointerStart || event.pointerId !== pointerStart.id) {
+      return;
+    }
+
+    const deltaX = event.clientX - pointerStart.x;
+    const deltaY = event.clientY - pointerStart.y;
+    pointerStart = null;
+
+    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) {
+      return;
+    }
+
+    suppressClickUntil = Date.now() + 500;
+    if (deltaX < 0) {
+      activateCard(activeIndex + 1);
+    } else {
+      activateCard(activeIndex - 1);
+    }
+  });
+
+  carousel.addEventListener('pointercancel', (event) => {
+    if (pointerStart?.id === event.pointerId) {
+      pointerStart = null;
+    }
+  });
+
+  updateCoverflow();
 });
+
+window.addEventListener('pageshow', resetInitialSection);

@@ -168,9 +168,10 @@
                 </div>
                 <!-- First vertical section with cards -->
                 <div class="feature-cards">
-                    <div class="card-container">
-                        <div class="card-spacer"></div>
-                        <a href="/chat" class="card-link">
+                    <h2 class="carousel-title">Experience Open Internet</h2>
+                    <div class="card-container" id="feature-carousel" role="region" aria-roledescription="carousel"
+                        aria-label="Saito applications" tabindex="0">
+                        <a href="/chat" class="card-link active" data-index="0" data-app="chat">
                             <div class="feature-card">
                                 <h1>Chat</h1>
                                 <div class="feature-icon-space" role="img" aria-label="Chat icon">
@@ -181,7 +182,7 @@
                             </div>
                         </a>
 
-                        <a href="/redsquare" class="card-link">
+                        <a href="/redsquare" class="card-link" data-index="1" data-app="redsquare">
                             <div class="feature-card">
                                 <h1>Red Square</h1>
                                 <div class="feature-icon-space" role="img" aria-label="Red Square icon">
@@ -192,7 +193,7 @@
                             </div>
                         </a>
 
-                        <a href="/arcade" class="card-link">
+                        <a href="/arcade" class="card-link" data-index="2" data-app="arcade">
                             <div class="feature-card">
                                 <h1>Arcade</h1>
                                 <div class="feature-icon-space" role="img" aria-label="Arcade icon">
@@ -203,17 +204,71 @@
                             </div>
                         </a>
 
-                        <a href="/videocall" class="card-link">
+                        <a href="/videocall" class="card-link" data-index="3" data-app="talk">
                             <div class="feature-card">
                                 <h1>Saito Talk</h1>
                                 <div class="feature-icon-space" role="img" aria-label="Saito Talk icon">
                                     <img src="/saito/icons/saito-talk-icon-outline.svg" alt="" class="feature-icon feature-icon-outline" aria-hidden="true">
                                     <img src="/saito/icons/saito-talk-icon-solid.svg" alt="" class="feature-icon feature-icon-solid" aria-hidden="true">
                                 </div>
-                                <p>Peer to peer video calls with no middlemen and no restictions.</p>
+                                <p>Peer-to-peer video calls with no middlemen and no restrictions.</p>
                             </div>
                         </a>
-                        <div class="card-spacer"></div>
+
+                        <a href="/stack" class="card-link" data-index="4" data-app="stack">
+                            <div class="feature-card">
+                                <h1>Stack</h1>
+                                <div class="feature-icon-space" role="img" aria-label="Stack icon">
+                                    <img src="/saito/icons/saito-stack-icon-outline.svg" alt="" class="feature-icon feature-icon-outline" aria-hidden="true">
+                                    <img src="/saito/icons/saito-stack-icon-solid.svg" alt="" class="feature-icon feature-icon-solid" aria-hidden="true">
+                                </div>
+                                <p>Open-source subscription publishing for creators and readers.</p>
+                            </div>
+                        </a>
+
+                        <a href="/vault" class="card-link" data-index="5" data-app="vault">
+                            <div class="feature-card">
+                                <h1>Vault</h1>
+                                <div class="feature-icon-space" role="img" aria-label="Vault icon">
+                                    <img src="/saito/icons/saito-vault-icon-outline.svg" alt="" class="feature-icon feature-icon-outline" aria-hidden="true">
+                                    <img src="/saito/icons/saito-vault-icon-solid.svg" alt="" class="feature-icon feature-icon-solid" aria-hidden="true">
+                                </div>
+                                <p>Key-controlled storage for private files and digital assets.</p>
+                            </div>
+                        </a>
+
+                        <a href="/store" class="card-link" data-index="6" data-app="store">
+                            <div class="feature-card">
+                                <h1>Store</h1>
+                                <div class="feature-icon-space" role="img" aria-label="Store icon">
+                                    <img src="/saito/icons/saito-store-icon-outline.svg" alt="" class="feature-icon feature-icon-outline" aria-hidden="true">
+                                    <img src="/saito/icons/saito-store-icon-solid.svg" alt="" class="feature-icon feature-icon-solid" aria-hidden="true">
+                                </div>
+                                <p>A peer-to-peer marketplace for browsing and trading products.</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="carousel-controls" role="group" aria-label="Choose a Saito application">
+                        <button class="carousel-button carousel-previous" type="button"
+                            aria-label="Show previous application" aria-controls="feature-carousel">❮</button>
+                        <div class="carousel-dots">
+                            <button class="carousel-dot" type="button" aria-label="Show Chat"
+                                aria-controls="feature-carousel" aria-current="true"></button>
+                            <button class="carousel-dot" type="button" aria-label="Show Red Square"
+                                aria-controls="feature-carousel"></button>
+                            <button class="carousel-dot" type="button" aria-label="Show Arcade"
+                                aria-controls="feature-carousel"></button>
+                            <button class="carousel-dot" type="button" aria-label="Show Saito Talk"
+                                aria-controls="feature-carousel"></button>
+                            <button class="carousel-dot" type="button" aria-label="Show Stack"
+                                aria-controls="feature-carousel"></button>
+                            <button class="carousel-dot" type="button" aria-label="Show Vault"
+                                aria-controls="feature-carousel"></button>
+                            <button class="carousel-dot" type="button" aria-label="Show Store"
+                                aria-controls="feature-carousel"></button>
+                        </div>
+                        <button class="carousel-button carousel-next" type="button"
+                            aria-label="Show next application" aria-controls="feature-carousel">❯</button>
                     </div>
                 </div>
 
@@ -222,12 +277,13 @@
                     <!-- Existing or future content -->
                 </div>
             </div>
-            <div class="scroll-caret">
+            <button class="scroll-caret" type="button" aria-label="Learn more about Saito">
+                <span>Learn More</span>
                 <svg width="40" height="20" viewBox="0 0 40 20">
                     <path d="M3 0 L20 17 L37 0" fill="none" stroke="currentColor" stroke-width="6"
                         stroke-linecap="round" />
                 </svg>
-            </div>
+            </button>
         </section>
 
         <!--section id="about">
