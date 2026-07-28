@@ -1,5 +1,6 @@
 /* Namespace: .redsquare-profile
  * Layout mirrors Saito profile hierarchy; HTML still uses RS-prefixed hooks.
+ * Composition goal: identity-first (name → key → bio → nav); utilities recede.
  */
 
 .redsquare-profile .card {
@@ -14,7 +15,7 @@
 .redsquare-profile-banner {
   position: relative;
   width: 100%;
-  height: 6.5rem;
+  height: 7.2rem;
   overflow: hidden;
   background-color: var(--saito-card);
   background-image: url(/saito/img/dreamscape.png);
@@ -23,48 +24,67 @@
 }
 
 .redsquare-profile-banner-edit {
+  box-sizing: border-box;
   position: absolute;
-  right: var(--saito-space-xs);
-  bottom: var(--saito-space-xs);
+  right: var(--saito-space-md);
+  bottom: var(--saito-space-md);
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  margin: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--saito-black) 52%, transparent);
+  color: var(--saito-foreground);
+  font-size: 1.15rem;
+  line-height: 1;
+  text-shadow: none;
   cursor: pointer;
-  color: var(--saito-gray-850);
-  text-shadow: 1px 1px 4px var(--saito-black);
+}
+
+.redsquare-profile-banner-edit:hover,
+.redsquare-profile-banner-edit:focus-visible {
+  background: color-mix(in srgb, var(--saito-black) 68%, transparent);
+  outline: none;
+}
+
+.redsquare-profile .body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .redsquare-profile .identity {
   display: grid;
-  grid-template-columns: 6.8rem minmax(0, 1fr);
-  column-gap: var(--saito-space-sm);
+  grid-template-columns: 5.6rem minmax(0, 1fr);
+  column-gap: var(--saito-space-md);
   align-items: start;
   min-width: 0;
-  /*
-   * Reference (DevTools screenshot): ~41% of the identicon overlaps the
-   * cover → pull-up 2.8rem. Space above biography matches ~1.6rem.
-   */
-  margin: -2.8rem 0 var(--saito-space-lg);
+  /* ~45% of avatar overlaps the banner */
+  margin: -2.5rem 0 var(--saito-space-md);
   padding-inline: var(--saito-space-md);
 }
 
 .redsquare-profile .avatar {
-  width: 6.8rem;
-  height: 6.8rem;
+  width: 5.6rem;
+  height: 5.6rem;
   z-index: 1;
   object-fit: cover;
-  border: 2px solid var(--saito-background);
+  border: 3px solid var(--saito-card-wash);
   border-radius: var(--saito-radius);
+  background: var(--saito-card-wash);
 }
 
 .redsquare-profile .text {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 0.35rem;
   min-width: 0;
-  /*
-   * Clear the cover (2.8rem), then ~0.85rem air above the username —
-   * measured from the reference screenshot.
-   */
-  padding-top: calc(2.8rem + 0.85rem);
+  /* Clear the banner overlap, then a little air before the name */
+  padding-top: calc(2.5rem + 0.75rem);
+  padding-right: 0.15rem;
 }
 
 .redsquare-profile .name {
@@ -72,59 +92,78 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--saito-font-medium);
-  line-height: 1.15;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--saito-foreground);
 }
 
-/* Slightly denser than the base hierarchy step; stays dominant over the key. */
+/* Name stays the primary signal — slightly above body, not oversized. */
 @media (min-width: 601px) {
   body.redsquare-body .redsquare-profile .name {
-    font-size: 1.33rem;
-    line-height: 1.15;
+    font-size: 1.45rem;
+    line-height: 1.25;
   }
 }
 
 .redsquare-profile .key-row {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 0.55rem;
   width: 100%;
   min-width: 0;
-  min-height: 0;
   margin: 0;
 }
 
 .redsquare-profile .public-key {
-  flex: 1 1 0;
-  width: 0;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.15;
+  line-height: 1.3;
   color: var(--saito-muted-foreground);
 }
 
 .redsquare-profile .copy-key {
+  box-sizing: border-box;
   flex: 0 0 auto;
+  align-self: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  min-width: 1.6rem;
+  min-height: 1.6rem;
   margin: 0;
-  /* Raise from the key line to the name+key centerline (reference). */
-  margin-top: -0.95rem;
-  align-self: flex-start;
-  width: 2rem;
-  height: 2rem;
-  min-width: 2rem;
-  min-height: 2rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--saito-radius-sm, 0.4rem);
+  color: var(--saito-muted-foreground);
+  opacity: 0.55;
+}
+
+.redsquare-profile .copy-key:hover,
+.redsquare-profile .copy-key:focus-visible {
+  background: transparent;
+  border: none;
+  color: var(--saito-foreground);
+  opacity: 1;
+}
+
+.redsquare-profile .copy-key:active {
+  transform: scale(0.94);
 }
 
 .redsquare-profile .copy-key i {
-  font-size: 1.15rem;
+  font-size: 1rem;
 }
 
 .redsquare-profile-description {
   margin: 0;
-  padding: 0 var(--saito-space-md) var(--saito-space-sm);
+  padding: 0 var(--saito-space-md) var(--saito-space-lg);
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.45;
+  color: var(--saito-foreground);
 }
 
 .redsquare-profile-description.empty:not(.can-edit) {
@@ -143,6 +182,7 @@
   cursor: pointer;
   align-items: flex-end;
   justify-content: center;
+  opacity: 0.45;
 }
 
 .redsquare-profile-description.can-edit .redsquare-profile-description-edit {
@@ -155,21 +195,47 @@
 
 .redsquare-profile .nav {
   display: flex;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--saito-border);
 }
 
 .redsquare-profile .nav .item {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--saito-space-sm) var(--saito-space-xs);
+  min-height: 3.6rem;
+  padding: var(--saito-space-md) var(--saito-space-xs);
+  border: none;
+  background: transparent;
   cursor: pointer;
   text-transform: capitalize;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.2;
   color: var(--saito-muted-foreground);
+}
+
+.redsquare-profile .nav .item:hover,
+.redsquare-profile .nav .item:focus-visible {
+  color: var(--saito-foreground);
+  outline: none;
 }
 
 .redsquare-profile .nav .item.active {
   color: var(--saito-foreground);
-  text-decoration: underline dashed;
-  text-underline-offset: 0.5rem;
+  text-decoration: none;
+}
+
+.redsquare-profile .nav .item.active::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 0;
+  height: 0.25rem;
+  border-radius: 0.25rem 0.25rem 0 0;
+  background: var(--saito-primary);
 }

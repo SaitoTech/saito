@@ -34,8 +34,8 @@ class Manager {
     this._notifications_bootstrapping = false;
 
     // Per-view Manager chrome. Header is navigation only (back + title).
-    // Home / notifications omit it so the feed begins with content.
-    // Thread and profile detail views keep it for back navigation.
+    // Home / notifications omit sticky chrome; Home uses a scrollable .feed-heading.
+    // Thread and profile detail views keep the pinned header for back navigation.
     this.viewChrome = {
       timeline: { header: false },
       notifications: { header: false },
@@ -211,6 +211,7 @@ class Manager {
     if (
       root &&
       root.querySelector('.body') &&
+      root.querySelector('.feed-heading') &&
       root.querySelector('.list[data-panel="timeline"]') &&
       root.querySelector('.list[data-panel="profile"]')
     ) {
@@ -237,6 +238,7 @@ class Manager {
     const thread = root.querySelector('.list[data-panel="thread"]');
     const notifications = root.querySelector('.list[data-panel="notifications"]');
     const profile = root.querySelector('.list[data-panel="profile"]');
+    const feedHeading = root.querySelector('.feed-heading');
     const profileModes = this.mode === 'posts' || this.mode === 'replies' || this.mode === 'likes';
 
     if (timeline) {
@@ -253,6 +255,11 @@ class Manager {
 
     if (profile) {
       profile.hidden = !profileModes;
+    }
+
+    // Home feed section title — scrolls with content; never on Post / other views.
+    if (feedHeading) {
+      feedHeading.hidden = this.mode !== 'timeline';
     }
 
     if (this.mode !== 'timeline') {

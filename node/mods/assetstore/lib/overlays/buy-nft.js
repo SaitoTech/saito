@@ -8,22 +8,39 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
   render(nft = null) {
     super.render(nft);
 
-    // Remove buttons (added below in AttachEvents)
-    Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
+    Array.from(document.querySelectorAll('.saito-nft-panel-view .saito-nft-capability')).forEach(
       (el) => (el.style.display = 'none')
     );
   }
 
   async attachEvents() {
+    await super.attachEvents();
+
     if (this.nft.metadata.active !== 1) {
       console.warn('NFT unavailable to purchase');
       return;
     }
-    // Use Enable/Disable buttons for controls...
-    let buy_with_saito_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
+    // Use Enable capability as Buy control
+    let buy_with_saito_btn = document.querySelector('.saito-nft-capability.enable-nft');
+    if (!buy_with_saito_btn) {
+      // Synthesize a buy control if enable isn't in the capability list for this NFT
+      const toolbar = document.querySelector('.saito-nft-capabilities');
+      if (toolbar) {
+        toolbar.insertAdjacentHTML(
+          'beforeend',
+          `<button type="button" class="saito-nft-capability enable-nft" data-capability="buy" data-description="Purchase this NFT with SAITO." aria-label="Buy" aria-pressed="false"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="saito-nft-capability-label">Buy</span></button>`
+        );
+        buy_with_saito_btn = document.querySelector('.saito-nft-capability.enable-nft');
+      }
+    }
+    if (!buy_with_saito_btn) {
+      return;
+    }
 
-    buy_with_saito_btn.innerHTML = 'Buy';
-    buy_with_saito_btn.style.display = 'block';
+    buy_with_saito_btn.style.display = 'inline-flex';
+    buy_with_saito_btn.setAttribute('aria-label', 'Buy');
+    buy_with_saito_btn.setAttribute('data-description', 'Purchase this NFT with SAITO.');
+    buy_with_saito_btn.innerHTML = `<i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="saito-nft-capability-label">Buy</span>`;
 
     let priceRaw = BigInt(this.nft.getBuyPriceSaito()); // BigInt -- Saito
     let fee = BigInt(this.mod?.fee || 0);

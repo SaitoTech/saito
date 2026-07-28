@@ -10,24 +10,40 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
   render(nft) {
     super.render(nft); // Will call attachEvents
 
-    Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
+    Array.from(document.querySelectorAll('.saito-nft-panel-view .saito-nft-capability')).forEach(
       (el) => (el.style.display = 'none')
     );
 
-    if (document.querySelector('.saito-nft-footer-btn.send-nft')) {
-      document.querySelector('.saito-nft-footer-btn.send-nft').style.display = 'flex';
-      document.querySelector('.saito-nft-footer-btn.send-nft').innerHTML = 'Remove Listing';
+    if (document.querySelector('.saito-nft-capability.send-nft')) {
+      const delist = document.querySelector('.saito-nft-capability.send-nft');
+      delist.style.display = 'inline-flex';
+      delist.setAttribute('aria-label', 'Remove Listing');
+      delist.setAttribute('data-description', 'Remove this NFT from the Saito Store.');
+      const label = delist.querySelector('.saito-nft-capability-label');
+      if (label) {
+        label.textContent = 'Remove Listing';
+      }
     }
 
-    if (document.querySelector('.saito-nft-footer-btn.enable-nft')) {
-      document.querySelector('.saito-nft-footer-btn.enable-nft').style.display = 'flex';
-      document.querySelector('.saito-nft-footer-btn.enable-nft').innerHTML =
-        `<i class="fa-solid fa-link"></i><span>Share</span>`;
+    if (document.querySelector('.saito-nft-capability.enable-nft')) {
+      const share = document.querySelector('.saito-nft-capability.enable-nft');
+      share.style.display = 'inline-flex';
+      share.innerHTML = `<i class="fa-solid fa-link" aria-hidden="true"></i><span class="saito-nft-capability-label">Share</span>`;
+      share.setAttribute('aria-label', 'Share');
+      share.setAttribute('data-description', 'Share a link to this listing.');
+    } else {
+      const toolbar = document.querySelector('.saito-nft-capabilities');
+      toolbar?.insertAdjacentHTML(
+        'beforeend',
+        `<button type="button" class="saito-nft-capability enable-nft" data-capability="share" data-description="Share a link to this listing." aria-label="Share" aria-pressed="false"><i class="fa-solid fa-link" aria-hidden="true"></i><span class="saito-nft-capability-label">Share</span></button>`
+      );
     }
   }
 
   attachEvents() {
-    let delist_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
+    super.attachEvents();
+
+    let delist_btn = document.querySelector('.saito-nft-capability.send-nft');
     if (delist_btn) {
       delist_btn.onclick = async (e) => {
         e.preventDefault();
@@ -98,7 +114,7 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
       };
     }
 
-    let share_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
+    let share_btn = document.querySelector('.saito-nft-capability.enable-nft');
     if (share_btn) {
       share_btn.onclick = (e) => {
         if (!this.link) {

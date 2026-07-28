@@ -49,6 +49,28 @@
   overflow-y: auto;
 }
 
+/* Home timeline section title — in scroll flow, not sticky chrome */
+.manager .feed-heading {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 5.2rem;
+  min-height: 5.2rem;
+  padding: 0 var(--saito-space-md);
+  margin: 0;
+  background: var(--saito-black);
+  border-bottom: 1px solid var(--saito-border);
+  color: var(--saito-foreground);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.manager .feed-heading[hidden] {
+  display: none;
+}
+
 .manager > .header .start {
   display: flex;
   align-items: center;
@@ -145,6 +167,11 @@
 @media (max-width: 600px) {
   .manager > .header {
     padding: 0.8rem var(--saito-space-sm);
+  }
+
+  .manager .feed-heading {
+    padding-left: var(--saito-space-sm);
+    padding-right: var(--saito-space-sm);
   }
 
   /* Floating + is the only compose affordance on mobile */

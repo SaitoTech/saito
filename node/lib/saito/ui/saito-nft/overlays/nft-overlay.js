@@ -1,6 +1,7 @@
 let NFTOverlayTemplate = require('./nft-overlay.template');
 let SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 let NFTAtomize = require('./nft-atomize');
+let NFTCapabilities = require('./nft-capabilities');
 
 class NFTOverlay {
   constructor(app, mod, attach_events = true) {
@@ -10,6 +11,7 @@ class NFTOverlay {
       app.browser.addStylesheet('/saito/css-imports/ui/saito-nft.css');
     }
     this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.capabilities = new NFTCapabilities(this.app, this.mod, this);
 
     this.overlay.callback_on_close = () => {
       if (this.atomizer) {
@@ -67,24 +69,12 @@ class NFTOverlay {
   }
 
   attachBaseEvent() {
-    let header_btn = document.querySelector('.saito-nft-header-btn');
-
-    //
-    // header info toggle
-    //
-    if (header_btn) {
-      header_btn.onclick = (e) => {
-        let p = document.querySelector('.saito-nft-overlay.panels');
-
-        if (p) {
-          if (p.classList.contains('saito-nft-mode-info')) {
-            p.classList.remove('saito-nft-mode-info');
-          } else {
-            p.classList.add('saito-nft-mode-info');
-          }
-        }
-
-        header_btn.classList.toggle('rotate');
+    let info_back_btn = document.querySelector('.saito-nft-info-back');
+    if (info_back_btn) {
+      info_back_btn.onclick = (e) => {
+        e.preventDefault();
+        document.querySelector('.saito-nft-overlay.panels')?.classList.remove('saito-nft-mode-info');
+        this.capabilities?.setActive('');
       };
     }
 
@@ -282,13 +272,15 @@ class NFTOverlay {
   }
 
   attachEvents() {
+    this.capabilities?.attachEvents();
+
     //
-    // buttons
+    // Capability action hooks (icons on artwork)
     //
-    let send_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
-    let enable_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
-    let disable_btn = document.querySelector('.saito-nft-footer-btn.disable-nft');
-    let sell_btn = document.querySelector('.saito-nft-footer-btn.sell-nft');
+    let send_btn = document.querySelector('.saito-nft-capability.send-nft');
+    let enable_btn = document.querySelector('.saito-nft-capability.enable-nft');
+    let disable_btn = document.querySelector('.saito-nft-capability.disable-nft');
+    let sell_btn = document.querySelector('.saito-nft-capability.sell-nft');
 
     //
     // contextual confirm buttons
@@ -312,25 +304,7 @@ class NFTOverlay {
       amount_input.value = a == null ? '0' : typeof a === 'bigint' ? a.toString() : String(a);
     };
 
-    //
-    // enable / disable
-    //
-    let can_enable = false;
-    let can_disable = false;
-
-    if (this.nft.css || this.nft.js) {
-      can_enable = true;
-    }
-
-    if (this.app.options?.permissions?.nfts) {
-      if (this.app.options.permissions.nfts.includes(this.nft.tx_sig)) {
-        can_enable = false;
-        can_disable = true;
-      }
-    }
-
-    enable_btn.style.display = can_enable ? 'flex' : 'none';
-    disable_btn.style.display = can_disable ? 'flex' : 'none';
+    // enable / disable visibility is owned by NFTCapabilities.list()
 
     if (advanced_toggle && advanced_container) {
       advanced_toggle.onclick = (e) => {
@@ -466,13 +440,16 @@ class NFTOverlay {
     //
     if (send_btn) {
       send_btn.onclick = (e) => {
-        document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-send');
+        document.querySelector('.saito-nft-overlay.panels')?.classList.add('saito-nft-mode-send');
+        document.querySelector('.saito-nft-overlay.panels')?.classList.remove('saito-nft-mode-info');
+        this.capabilities?.setActive('transfer');
       };
     }
 
     if (cancel_send_btn) {
       cancel_send_btn.onclick = (e) => {
-        document.querySelector('.saito-nft-overlay.panels').classList.remove('saito-nft-mode-send');
+        document.querySelector('.saito-nft-overlay.panels')?.classList.remove('saito-nft-mode-send');
+        this.capabilities?.setActive('');
       };
     }
 
@@ -527,7 +504,6 @@ class NFTOverlay {
     //
     const seller = this.app.modules.returnFirstRespondTo('saito-sell-nft');
     if (sell_btn && seller) {
-      sell_btn.style.display = 'flex';
       sell_btn.onclick = (e) => {
         seller.render({
           nft: this.nft,

@@ -25,7 +25,6 @@ module.exports = (app, mod, nft_overlay) => {
           <div class="saito-nft-header-sub">by ${nft.creator}</div>
         </div>
       </div>
-      <button type="button" class="saito-nft-header-btn" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
     </header>
     <div class="saito-nft-overlay panels">
       ${viewPanel}

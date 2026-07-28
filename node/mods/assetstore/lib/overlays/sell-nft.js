@@ -8,13 +8,19 @@ class SellNFTOverlay extends NFTDetailsOverlay {
   render(nft) {
     super.render(nft); // Will call attachEvents
 
-    Array.from(document.querySelectorAll('.saito-nft-panel-view .saito-nft-footer-btn')).forEach(
+    Array.from(document.querySelectorAll('.saito-nft-panel-view .saito-nft-capability')).forEach(
       (el) => (el.style.display = 'none')
     );
 
-    if (document.querySelector('.saito-nft-footer-btn.send-nft')) {
-      document.querySelector('.saito-nft-footer-btn.send-nft').innerHTML = 'List';
-      document.querySelector('.saito-nft-footer-btn.send-nft').style.display = 'flex';
+    if (document.querySelector('.saito-nft-capability.send-nft')) {
+      const list = document.querySelector('.saito-nft-capability.send-nft');
+      list.style.display = 'inline-flex';
+      list.setAttribute('aria-label', 'List');
+      list.setAttribute('data-description', 'List this NFT for sale in the Saito Store.');
+      const label = list.querySelector('.saito-nft-capability-label');
+      if (label) {
+        label.textContent = 'List on Store';
+      }
     }
 
     let key = this.app.keychain.returnKey(this.mod.publicKey);
@@ -23,7 +29,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
         <div id='transfer-info-panel' class="saito-nft-description">
           <h2 class="saito-nft-mode-title">List NFT for sale</h2>
           <div class="listing-inputs">
-            <input class="saito-input" type="text" placeholder="sale price (SAITO)" id="nft-buy-price" autocomplete="off" inputmode="decimal" pattern="^[0-9]+(\.[0-9]{1,8})?$" title="Enter a decimal amount up to 8 decimals (min 0.00000001, max 100000000)" />
+            <input class="saito-input" type="text" placeholder="sale price (SAITO)" id="nft-buy-price" autocomplete="off" inputmode="decimal" pattern="^[0-9]+(\\.[0-9]{1,8})?$" title="Enter a decimal amount up to 8 decimals (min 0.00000001, max 100000000)" />
           </div>
           <div class="listing-inputs">
             <input class="saito-input" id="seller-email" type="email" value="${key?.email || ''}" placeholder="email (optional)"></input>
@@ -44,10 +50,15 @@ class SellNFTOverlay extends NFTDetailsOverlay {
 
   attachEvents() {
     super.attachEvents();
-    document.querySelector('.saito-nft-footer-btn.enable-nft').style.display = 'none';
-    document.querySelector('.saito-nft-footer-btn.disable-nft').style.display = 'none';
+    document.querySelector('.saito-nft-capability.enable-nft')?.style.setProperty('display', 'none');
+    document
+      .querySelector('.saito-nft-capability.disable-nft')
+      ?.style.setProperty('display', 'none');
 
     let input = document.querySelector('#nft-buy-price');
+    if (!input) {
+      return;
+    }
     const MIN = 0.00000001;
     const MAX = 100000000;
 
@@ -82,18 +93,23 @@ class SellNFTOverlay extends NFTDetailsOverlay {
     });
 
     //
-    // send button click
+    // list capability → open listing / send panel
     //
-    let list_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
-    list_btn.onclick = (e) => {
-      document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-send');
-      setTimeout(() => {
-        console.log('autofocus on input price');
-        input.focus();
-      }, 50);
-    };
+    let list_btn = document.querySelector('.saito-nft-capability.send-nft');
+    if (list_btn) {
+      list_btn.onclick = (e) => {
+        document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-send');
+        setTimeout(() => {
+          console.log('autofocus on input price');
+          input.focus();
+        }, 50);
+      };
+    }
 
     let send_btn = document.querySelector('.saito-nft-footer-btn.saito-nft-confirm-btn');
+    if (!send_btn) {
+      return;
+    }
     send_btn.onclick = (e) => {
       e.preventDefault();
       const desc_field = document.querySelector('#nft-buy-description');

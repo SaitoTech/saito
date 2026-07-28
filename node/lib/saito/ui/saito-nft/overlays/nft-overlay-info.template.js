@@ -9,73 +9,74 @@ module.exports = (app, mod, nft_overlay) => {
     can_merge = true;
   }
 
-  // Extract NFT information
-  let nft_id = nft?.id || 'N/A';
-  let creator = nft?.creator || nft?.slip1?.public_key || 'N/A';
-
-  // Decode creation block info from slip3
-  let creationInfo = nft_overlay.decodeSlip3CreationInfo();
-  let block_id = creationInfo.block_id || 'N/A';
-  let tx_ordinal = creationInfo.tx_ordinal || 'N/A';
-  let block_display = block_id !== 'N/A' ? `${block_id}-${tx_ordinal}` : 'N/A';
-
-  // Extract metadata
-  let metadata = nft_overlay.extractMetadata();
-  let metadataHtml = '';
-  if (Object.keys(metadata).length > 0) {
-    metadataHtml = '<div class="nft-info-metadata">';
-    for (let key in metadata) {
-      let value = metadata[key];
-      if (typeof value === 'object') {
-        value = JSON.stringify(value, null, 2);
-      }
-      metadataHtml += `
-        <div class="nft-info-metadata-item">
-          <span class="nft-info-metadata-key">${key}:</span>
-          <span class="nft-info-metadata-value">${String(value)}</span>
-        </div>
-      `;
+  const isPresent = (v) => {
+    if (v == null) {
+      return false;
     }
-    metadataHtml += '</div>';
-  } else {
-    metadataHtml = '<div class="nft-info-metadata-empty">No additional metadata</div>';
-  }
+    const s = String(v).trim();
+    return s !== '' && s !== 'N/A';
+  };
 
-  // Build info table HTML
-  let createdInDisplay =
-    block_id !== 'N/A' && tx_ordinal !== 'N/A'
-      ? `block ${block_id}, transaction ${tx_ordinal}`
-      : 'N/A';
+  const escapeHtml = (v) =>
+    String(v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
 
-  let metadataRow = '';
-  if (Object.keys(metadata).length > 0) {
-    metadataRow = `
-      <div class="nft-info-row nft-info-row-metadata">
-        <div class="nft-info-label">metadata:</div>
-        <div class="nft-info-value">${metadataHtml}</div>
+  const infoRow = (label, value, { mono = true, prose = false } = {}) => {
+    if (!isPresent(value)) {
+      return '';
+    }
+    const valueClass = [
+      'nft-info-value',
+      mono ? 'nft-info-value-mono' : '',
+      prose ? 'nft-info-value-prose' : ''
+    ]
+      .filter(Boolean)
+      .join(' ');
+    return `
+      <div class="nft-info-row">
+        <div class="nft-info-label">${escapeHtml(label)}</div>
+        <div class="${valueClass}">${escapeHtml(value)}</div>
       </div>
     `;
+  };
+
+  let nft_id = nft?.id || '';
+  let creator = nft?.creator || nft?.slip1?.public_key || '';
+
+  let creationInfo = nft_overlay.decodeSlip3CreationInfo();
+  let block_id = creationInfo.block_id;
+  let tx_ordinal = creationInfo.tx_ordinal;
+  let createdInDisplay =
+    isPresent(block_id) && isPresent(tx_ordinal)
+      ? `Block ${block_id} · Transaction ${tx_ordinal}`
+      : '';
+
+  let metadata = nft_overlay.extractMetadata();
+  let metadataRows = '';
+  for (let key in metadata) {
+    let value = metadata[key];
+    if (value == null || value === '') {
+      continue;
+    }
+    if (typeof value === 'object') {
+      value = JSON.stringify(value, null, 2);
+    }
+    if (!isPresent(value)) {
+      continue;
+    }
+    metadataRows += infoRow(key, value, { mono: true, prose: String(value).includes('\n') });
   }
 
   let infoTableHtml = `
     <div class="nft-info-table">
-      <div class="nft-info-row">
-        <div class="nft-info-label">NFT ID:</div>
-        <div class="nft-info-value">${nft_id}</div>
-      </div>
-      <div class="nft-info-row">
-        <div class="nft-info-label">created by:</div>
-        <div class="nft-info-value">${creator}</div>
-      </div>
-      <div class="nft-info-row">
-        <div class="nft-info-label">created in:</div>
-        <div class="nft-info-value">${createdInDisplay}</div>
-      </div>
-      <div class="nft-info-row">
-        <div class="nft-info-label">description:</div>
-        <div class="nft-info-value">${nft.description || 'N/A'}</div>
-      </div>
-      ${metadataRow}
+      ${infoRow('NFT ID', nft_id)}
+      ${infoRow('Created By', creator)}
+      ${infoRow('Created In', createdInDisplay, { mono: false })}
+      ${infoRow('Description', nft.description, { mono: false, prose: true })}
+      ${metadataRows}
     </div>
   `;
 
@@ -91,68 +92,78 @@ module.exports = (app, mod, nft_overlay) => {
   let deleteFooterHtml = canDeleteFooter
     ? `<button type="button" class="saito-nft-footer-btn nft-info-delete-nft">Delete</button>`
     : '';
-  let footerSpacerHtml = canDeleteFooter || mergeButtonHtml ? `<span style="flex:1"></span>` : '';
+  let footerSpacerHtml = `<span class="saito-nft-footer-spacer"></span>`;
 
   let splitUtxosHtml = '';
   let splitSlidersHtml = '';
 
   if (all_slips.length > 0) {
-    // Generate slip boxes for all slips, not just when can_split
     for (let z = 0; z < all_slips.length; z++) {
       let utxoIdx = z + 1;
       let slip = all_slips[z];
 
-      // Get UUID from slip1: block_id-transaction_id-slip_id
-      let uuid = 'N/A';
+      let uuid = '';
       if (slip.slip1) {
-        let blockId = slip.slip1.block_id || 'N/A';
-        let txOrdinal = slip.slip1.tx_ordinal || 'N/A';
-        let slipIndex = slip.slip1.slip_index !== undefined ? slip.slip1.slip_index : 'N/A';
-        uuid = `${blockId}-${txOrdinal}-${slipIndex}`;
+        let blockId = slip.slip1.block_id;
+        let txOrdinal = slip.slip1.tx_ordinal;
+        let slipIndex = slip.slip1.slip_index;
+        if (isPresent(blockId) && isPresent(txOrdinal) && slipIndex !== undefined) {
+          uuid = `${blockId}-${txOrdinal}-${slipIndex}`;
+        }
       }
 
       let amount = Number(slip.slip1.amount) || 0;
+      let deposit = app.wallet.convertNolanToSaito(slip.slip2.amount);
       let splitButtonHtml = '',
         depositButtonHtml = '',
         deleteButtonHtml = '';
 
-      //can delete
       if (mod.publicKey == slip.slip2.public_key) {
-        deleteButtonHtml = `<div class="utxo-delete-btn" data-utxo-idx="${utxoIdx}">[ delete ]</div>`;
+        deleteButtonHtml = `<button type="button" class="utxo-delete-btn" data-utxo-idx="${utxoIdx}">delete</button>`;
       }
 
-      //can split!
       if (amount > 1 && mod.publicKey == slip.slip2.public_key) {
-        splitButtonHtml = `<div class="utxo-split-btn" data-utxo-idx="${utxoIdx}">[ split ]</div>`;
+        splitButtonHtml = `<button type="button" class="utxo-split-btn" data-utxo-idx="${utxoIdx}">split</button>`;
       }
 
       if (false && slip.slip2.public_key) {
-        depositButtonHtml = `<div class="utxo-deposit-btn" data-utxo-idx="${utxoIdx}">[ deposit ]</div>`;
+        depositButtonHtml = `<button type="button" class="utxo-deposit-btn" data-utxo-idx="${utxoIdx}">deposit</button>`;
       }
+
+      const slipRows = [
+        isPresent(uuid)
+          ? `<div class="nft-slip-box-row">
+              <div class="nft-slip-box-label">UUID</div>
+              <div class="nft-slip-box-value nft-slip-box-value-mono">${escapeHtml(uuid)}</div>
+            </div>`
+          : '',
+        `<div class="nft-slip-box-row">
+            <div class="nft-slip-box-label">Units</div>
+            <div class="nft-slip-box-value">${escapeHtml(slip.slip1.amount)}</div>
+          </div>`,
+        `<div class="nft-slip-box-row">
+            <div class="nft-slip-box-label">Deposit</div>
+            <div class="nft-slip-box-value">${escapeHtml(deposit)} SAITO</div>
+          </div>`
+      ].join('');
+
+      const actionsHtml =
+        deleteButtonHtml || depositButtonHtml || splitButtonHtml
+          ? `<div class="nft-slip-box-actions">
+              ${deleteButtonHtml}
+              ${depositButtonHtml}
+              ${splitButtonHtml}
+            </div>`
+          : '';
 
       splitUtxosHtml += `
         <div class="nft-slip-box utxo-${utxoIdx}" id="utxo_${utxoIdx}">
-          <div class="nft-slip-box-row">
-            <div class="nft-slip-box-label">UUID:</div>
-            <div class="nft-slip-box-value">${uuid}</div>
-          </div>
-          <div class="nft-slip-box-row">
-            <div class="nft-slip-box-label">units:</div>
-            <div class="nft-slip-box-value">${slip.slip1.amount}</div>
-          </div>
-          <div class="nft-slip-box-row">
-            <div class="nft-slip-box-label">deposit:</div>
-            <div class="nft-slip-box-value">${app.wallet.convertNolanToSaito(slip.slip2.amount)} SAITO</div>
-          </div>
-          <div class="nft-slip-box-actions">
-            ${deleteButtonHtml}
-            ${depositButtonHtml}
-            ${splitButtonHtml}
-          </div>
+          <div class="nft-slip-box-index">Slip ${utxoIdx}</div>
+          ${slipRows}
+          ${actionsHtml}
         </div>
       `;
 
-      // Create a hidden slider for each UTXO
       let canAtomize = all_slips[z].slip1.amount <= 100;
       let atomizeButtonHtml = `<button class="split-button atomize-button atomize-button-utxo-${utxoIdx}" ${canAtomize ? '' : "disabled title='atomize only supported for quantities of 100 or less' "}>atomize</button>`;
 
@@ -182,12 +193,11 @@ module.exports = (app, mod, nft_overlay) => {
     }
   }
 
-  // Build slips flex container HTML - show if there are any slips
   let slipsContainerHtml = '';
   if (all_slips.length > 0) {
     slipsContainerHtml = `
       <div class="nft-slips-container">
-        <div class="nft-slips-title">NFT UTXO / SLIPS</div>
+        <div class="nft-slips-title">UTXO / Slips</div>
         <div class="nft-slips-flex">
           ${splitUtxosHtml}
         </div>
@@ -204,8 +214,11 @@ module.exports = (app, mod, nft_overlay) => {
       </div>
       <div class="saito-nft-split-utxo"></div>
       <footer class="saito-nft-panel-footer">
-        ${deleteFooterHtml}
+        <button type="button" class="saito-button-square saito-nft-info-back" aria-label="Back">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        </button>
         ${footerSpacerHtml}
+        ${deleteFooterHtml}
         ${mergeButtonHtml}
       </footer>
     </div>
