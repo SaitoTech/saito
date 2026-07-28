@@ -1298,7 +1298,9 @@ class Withdraw {
         if (!this.isNativeSaitoSelection()) {
           e.preventDefault();
           this.overlay.close();
-          this.app.connection.emit('saito-crypto-details-render-request', this.ticker);
+          this.app.connection.emit('saito-crypto-wallet-history-render-request', {
+            ticker: this.ticker
+          });
           return;
         }
         this.overlay.close();

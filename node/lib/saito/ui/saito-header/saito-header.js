@@ -176,6 +176,8 @@ class SaitoHeader extends UIModTemplate {
       try {
         document.querySelector('#qrcode').innerHTML = '';
         document.querySelector('.balance-amount').innerHTML = '';
+        document.querySelector('#wallet-select-crypto').innerHTML =
+          `<option selected value="${ticker}">${ticker}</option>`;
         const addressContainer = document.querySelector('#profile-public-key');
         if (addressContainer) {
           addressContainer.dataset.add = '';
@@ -580,14 +582,18 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.querySelector('#saito-header-menu-toggle')) {
       document.querySelector('#saito-header-menu-toggle').addEventListener('click', () => {
-        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
+        const sidebar = document.querySelector('.saito-header-hamburger-contents');
+        sidebar.classList.remove('show-wallet');
+        sidebar.classList.remove('show-qr');
         this.toggleMenu();
       });
     }
 
     if (document.querySelector('.saito-header-backdrop')) {
       document.querySelector('.saito-header-backdrop').onclick = () => {
-        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
+        const sidebar = document.querySelector('.saito-header-hamburger-contents');
+        sidebar.classList.remove('show-wallet');
+        sidebar.classList.remove('show-qr');
         this.toggleMenu();
       };
     }
@@ -611,40 +617,67 @@ class SaitoHeader extends UIModTemplate {
       };
     }
 
-    if (document.getElementById('wallet-btn-details')) {
-      document.getElementById('wallet-btn-details').onclick = (e) => {
-        document.querySelector('.saito-header-hamburger-contents').classList.toggle('show-wallet');
-        Array.from(e.currentTarget.children).forEach((c) => {
-          c.classList.toggle('hideme');
-        });
+    if (document.getElementById('wallet-btn-switch')) {
+      document.getElementById('wallet-btn-switch').onclick = () => {
+        const sidebar = document.querySelector('.saito-header-hamburger-contents');
+        sidebar.classList.remove('show-qr');
+        sidebar.classList.toggle('show-wallet');
       };
     }
 
     if (document.getElementById('wallet-btn-nft')) {
-      document.getElementById('wallet-btn-nft').onclick = (e) => {
-        try {
-          const kids = document.querySelectorAll('#wallet-btn-details > *');
-          kids[0]?.classList.remove('hideme'); // wallet icon
-          kids[1]?.classList.remove('hideme'); // "Wallet" span
-          kids[2]?.classList.add('hideme'); // list icon
-          kids[3]?.classList.add('hideme'); // "Back" span
-        } catch (err) {}
+      document.getElementById('wallet-btn-nft').onclick = () => {
         document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         this.app.connection.emit('saito-nft-list-render-request');
+        this.hideMenu();
       };
     }
 
-    if (document.querySelector('.pubkey-mobile-wrapper')) {
-      document.querySelector('.pubkey-mobile-wrapper').onclick = (e) => {
-        document.querySelector('.saito-header-hamburger-contents').classList.toggle('show-qr');
+    if (document.getElementById('wallet-btn-get-saito')) {
+      document.getElementById('wallet-btn-get-saito').onclick = () => {
+        this.app.connection.emit('saito-purchase-launch');
+        this.hideMenu();
       };
     }
 
-    document.querySelector('.pubkey-container').onclick = async (e) => {
-      let public_key = document.getElementById('profile-public-key').dataset.add;
+    if (document.getElementById('toggle-qr')) {
+      const qrButton = document.getElementById('toggle-qr');
+      qrButton.onclick = () => {
+        const expanded = document
+          .querySelector('.saito-header-hamburger-contents')
+          .classList.toggle('show-qr');
+        qrButton.setAttribute('aria-expanded', expanded.toString());
+      };
+    }
 
+    if (document.getElementById('share-address')) {
+      const shareButton = document.getElementById('share-address');
+      if (typeof navigator.share !== 'function') {
+        shareButton.remove();
+      } else {
+        shareButton.onclick = async () => {
+          const address = document.getElementById('profile-public-key').dataset.add;
+          if (!address) {
+            return;
+          }
+
+          try {
+            await navigator.share({
+              text: address
+            });
+          } catch (err) {
+            if (err?.name !== 'AbortError') {
+              console.error('Unable to share wallet address', err);
+            }
+          }
+        };
+      }
+    }
+
+    document.querySelector('.pubkey-container').onclick = async () => {
+      const public_key = document.getElementById('profile-public-key').dataset.add;
       await navigator.clipboard.writeText(public_key);
-      let icon_element = document.querySelector('.pubkey-container i.fa-copy');
+      const icon_element = document.querySelector('.pubkey-container i.fa-copy');
       icon_element.classList.toggle('fa-copy');
       icon_element.classList.toggle('fa-check');
 
@@ -654,27 +687,19 @@ class SaitoHeader extends UIModTemplate {
       }, 800);
     };
 
-    //
-    // Change preferred (displayed) crypto currency
-    //
     if (document.getElementById('wallet-select-crypto')) {
       document.getElementById('wallet-select-crypto').onchange = async (e) => {
-        if (
-          !this.app.options.crypto[e.target.value] ||
-          !this.app.options.crypto[e.target.value].address
-        ) {
-          this.app.connection.emit('saito-header-install-crypto', e.target.value);
+        const ticker = e.target.value;
+        const cryptoMod = this.app.wallet.returnCryptoModuleByTicker(ticker);
+
+        if (!cryptoMod.isActivated()) {
+          this.app.connection.emit('saito-header-install-crypto', ticker);
         }
 
-        await app.wallet.setPreferredCrypto(e.target.value);
-
-        console.log(
-          'Change preferred crypto, restart polls on crypto balance and pending deposits'
-        );
+        await app.wallet.setPreferredCrypto(ticker);
         clearTimeout(this.web3_start_polling_timeout);
-
-        let preferred_crypto = this.app.wallet.returnPreferredCrypto();
-        preferred_crypto.startPolling();
+        this.app.wallet.returnPreferredCrypto().startPolling();
+        await this.renderCrypto(true);
       };
     }
 
@@ -685,6 +710,10 @@ class SaitoHeader extends UIModTemplate {
       let id = menu.getAttribute('id');
       let data_id = menu.getAttribute('data-id');
       let callback = this_header.callbacks[id];
+
+      if (typeof callback !== 'function') {
+        return;
+      }
 
       menu.addEventListener('click', async (e) => {
         this.toggleMenu();
@@ -771,18 +800,12 @@ class SaitoHeader extends UIModTemplate {
   }
 
   hideMenu() {
-    try {
-      const kids = document.querySelectorAll('#wallet-btn-details > *');
-      kids[0]?.classList.remove('hideme'); // wallet icon
-      kids[1]?.classList.remove('hideme'); // "Wallet" span
-      kids[2]?.classList.add('hideme'); // list icon
-      kids[3]?.classList.add('hideme'); // "Back" span
-    } catch (err) {}
+    const sidebar = document.querySelector('.saito-header-hamburger-contents');
+    sidebar.classList.remove('show-wallet');
+    sidebar.classList.remove('show-qr');
 
-    if (
-      document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
-    ) {
-      document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
+    if (sidebar.classList.contains('show-menu')) {
+      sidebar.classList.remove('show-menu');
       document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
     }
 
@@ -949,6 +972,9 @@ class SaitoHeader extends UIModTemplate {
     let add = preferred_crypto.returnAddress();
 
     try {
+      const wallet_button_container = document.querySelector('.wallet-btn-container');
+      wallet_button_container?.classList.remove('show-get-saito');
+
       //
       // insert address and qrcode
       //
@@ -973,18 +999,17 @@ class SaitoHeader extends UIModTemplate {
         }
       }
 
-      //
-      // dropdown crypto options
-      //
-      document.querySelector('.wallet-select-crypto').innerHTML = '';
-      for (let crypto_mod of available_cryptos) {
-        let options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${crypto_mod.ticker}</option>`;
-        this.app.browser.addElementToSelector(options_html, '.wallet-select-crypto');
-      }
-
       let b_elm = document.querySelector('.balance-amount');
       const cached_balance = preferred_crypto.balance;
       b_elm.innerHTML = this.app.browser.returnBalanceHTML(cached_balance);
+
+      const cryptoSelect = document.querySelector('.wallet-select-crypto');
+      cryptoSelect.innerHTML = available_cryptos
+        .map(
+          (cryptoMod) =>
+            `<option ${cryptoMod.ticker === preferred_crypto.ticker ? 'selected' : ''} value="${cryptoMod.ticker}">${cryptoMod.ticker}</option>`
+        )
+        .join('');
 
       if (flashDebug) {
         console.log('[header-mint-flash] renderCrypto painted cached balance first', {
@@ -998,6 +1023,18 @@ class SaitoHeader extends UIModTemplate {
 
       let ab = await preferred_crypto.getAvailableBalance();
       let pb = await preferred_crypto.getPendingBalance();
+      const available_balance = Number(ab);
+      const show_get_saito =
+        preferred_crypto.ticker.toUpperCase() === 'SAITO' &&
+        Number.isFinite(available_balance) &&
+        available_balance < 100;
+
+      if (
+        this.app.wallet.returnPreferredCryptoTicker().toUpperCase() ===
+        preferred_crypto.ticker.toUpperCase()
+      ) {
+        wallet_button_container?.classList.toggle('show-get-saito', show_get_saito);
+      }
 
       console.log('****** CHECKING BALANCES SAITO HEADER ******');
       console.log('available balance: ' + ab);
@@ -1076,6 +1113,7 @@ class SaitoHeader extends UIModTemplate {
         // get cryptos available
         //
         let crypto_mod = available_cryptos[i];
+        const is_activated = crypto_mod.isActivated();
 
         //
         // mixin handles logos
@@ -1085,24 +1123,39 @@ class SaitoHeader extends UIModTemplate {
         let sublogo_src = rtn_val.sub_logo;
 
         if (crypto_mod.ticker) {
-          if (crypto_mod.isActivated()) {
+          if (is_activated) {
             pb = await crypto_mod.getPendingBalance();
             ab = await crypto_mod.getAvailableBalance();
           } else {
             pb = ab = '0';
           }
 
-          menu_html += `<div class="saito-header-crypto ${crypto_mod.isActivated() ? 'active' : 'inactive'}" data-ticker="${crypto_mod.ticker}">`;
+          menu_html += `<div class="saito-header-crypto ${is_activated ? 'active' : 'inactive'} ${crypto_mod.ticker === preferred_crypto.ticker ? 'selected' : ''}" data-ticker="${crypto_mod.ticker}">`;
           menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${logo_src}">`;
           if (sublogo_src) {
             menu_html += `<img class="chain-logo" src="${sublogo_src}">`;
           }
           menu_html += `</div><div class="header-crypto-balance">${this.app.browser.formatDecimals(ab)} ${crypto_mod.ticker}</div>`;
 
-          if (crypto_mod.isActivated() && Number(pb) != Number(ab)) {
+          if (is_activated && Number(pb) != Number(ab)) {
             menu_html += `<div class="header-crypto-pending">${this.app.browser.formatDecimals(pb)} pending </div>`;
           } else {
             menu_html += '<div></div>';
+          }
+
+          if (is_activated) {
+            menu_html += `
+              <div
+                class="saito-icon-button header-crypto-history"
+                data-ticker="${crypto_mod.ticker}"
+                title="View ${crypto_mod.ticker} transaction history"
+                aria-label="View ${crypto_mod.ticker} transaction history"
+                role="button"
+                tabindex="0"
+              >
+                <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+              </div>
+            `;
           }
 
           menu_html += `</div>`;
@@ -1121,24 +1174,41 @@ class SaitoHeader extends UIModTemplate {
     //
     //
     Array.from(document.querySelectorAll('.saito-header-crypto')).forEach((c) => {
-      c.onclick = (e) => {
-        this.app.connection.emit(
-          'saito-crypto-details-render-request',
-          e.currentTarget.dataset.ticker
-        );
-        this.hideMenu();
+      c.onclick = async (e) => {
+        const ticker = e.currentTarget.dataset.ticker;
+        const cryptoMod = this.app.wallet.returnCryptoModuleByTicker(ticker);
+        if (!cryptoMod.isActivated()) {
+          this.app.connection.emit('saito-header-install-crypto', ticker);
+        }
+
+        await this.app.wallet.setPreferredCrypto(ticker);
+        clearTimeout(this.web3_start_polling_timeout);
+
+        const preferredCrypto = this.app.wallet.returnPreferredCrypto();
+        preferredCrypto.startPolling();
+
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
+        await this.renderCrypto(true);
       };
     });
 
-    if (document.querySelector('.balance-amount')) {
-      document.querySelector('.balance-amount').onclick = (e) => {
-        this.app.connection.emit(
-          'saito-crypto-details-render-request',
-          this.app.wallet.returnPreferredCryptoTicker()
-        );
+    Array.from(document.querySelectorAll('.header-crypto-history')).forEach((button) => {
+      const openHistory = (e) => {
+        e.stopPropagation();
+        this.app.connection.emit('saito-crypto-wallet-history-render-request', {
+          ticker: e.currentTarget.dataset.ticker
+        });
         this.hideMenu();
       };
-    }
+
+      button.onclick = openHistory;
+      button.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openHistory(e);
+        }
+      };
+    });
 
     console.log('done wallet update...' + preferred_crypto.ticker);
 
