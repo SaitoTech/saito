@@ -250,6 +250,70 @@ class StorageCore extends Storage {
     return null;
   }
 
+  //
+  // the options file itself is plaintext json. only the wallet private key is encrypted
+  // at rest, and only when SAITO_PASS is set. returns null if no password is available.
+  //
+  returnOptionsSecret() {
+    if (typeof process.env.SAITO_PASS == 'undefined') {
+      return null;
+    }
+    return this.app.crypto.toBase58(
+      this.app.crypto.stringToHex(
+        'BYTHEPRICKINGOFMYTHUMBSSOMETHINGWICKEDTHISWAYCOMES' + process.env.SAITO_PASS
+      )
+    );
+  }
+
+  isValidPrivateKey(privatekey) {
+    return typeof privatekey === 'string' && /^[0-9a-fA-F]{64}$/.test(privatekey);
+  }
+
+  //
+  // a private key which already looks like a private key is used as-is, anything else is
+  // assumed to be ciphertext and needs SAITO_PASS to unlock. mutates the options in place.
+  //
+  decryptWalletPrivateKey(options) {
+    if (!options || !options.wallet) {
+      return;
+    }
+
+    //
+    // camelCasing is what we write, lowercase is kept for options files written by
+    // versions predating the WASM switchover
+    //
+    for (const field of ['privateKey', 'privatekey']) {
+      const stored = options.wallet[field];
+      if (!stored || this.isValidPrivateKey(stored)) {
+        continue;
+      }
+
+      const secret = this.returnOptionsSecret();
+      if (!secret) {
+        throw new Error(
+          `the wallet ${field} in the options file is encrypted but SAITO_PASS is not set. ` +
+            `set SAITO_PASS to the password it was encrypted with, or replace the ${field} ` +
+            `value with a plaintext key.`
+        );
+      }
+
+      let decrypted = '';
+      try {
+        decrypted = this.app.crypto.aesDecrypt(stored, secret);
+      } catch (err) {
+        decrypted = '';
+      }
+      if (!this.isValidPrivateKey(decrypted)) {
+        throw new Error(
+          `could not decrypt the wallet ${field} in the options file. SAITO_PASS is most ` +
+            `likely incorrect. the options file has not been modified.`
+        );
+      }
+
+      options.wallet[field] = decrypted;
+    }
+  }
+
   /**
    * Load the options file
    */
@@ -266,26 +330,44 @@ class StorageCore extends Storage {
           .readFileSync(`${this.config_dir}/options`, this.file_encoding_load)
           .toString();
 
+        //
+        // legacy format : the whole options file was encrypted. we read it here so the node
+        // still starts, and the next save rewrites it as plaintext json with only the
+        // wallet private key encrypted.
+        //
         if (this.app.crypto.isAesEncrypted(optionsfile)) {
-          if (typeof process.env.SAITO_PASS != 'undefined') {
-            let secret =
-              'BYTHEPRICKINGOFMYTHUMBSSOMETHINGWICKEDTHISWAYCOMES' + process.env.SAITO_PASS;
-            secret = this.app.crypto.toBase58(this.app.crypto.stringToHex(secret));
-            try {
-              optionsfile = this.app.crypto.aesDecrypt(optionsfile, secret);
-            } catch (err) {
-              throw new Error('Invalid Password!');
-            }
-          } else {
-            throw new Error('Password needed!');
+          const secret = this.returnOptionsSecret();
+          if (!secret) {
+            throw new Error(
+              'the options file is fully encrypted but SAITO_PASS is not set. set SAITO_PASS ' +
+                'to the password it was encrypted with.'
+            );
           }
+          try {
+            optionsfile = this.app.crypto.aesDecrypt(optionsfile, secret);
+          } catch (err) {
+            optionsfile = '';
+          }
+          if (!optionsfile) {
+            throw new Error(
+              'could not decrypt the options file. SAITO_PASS is most likely incorrect. ' +
+                'the options file has not been modified.'
+            );
+          }
+          console.warn(
+            'loaded a legacy fully encrypted options file. it will be rewritten as plaintext ' +
+              'json with only the wallet private key encrypted on the next save.'
+          );
         }
 
         if (!optionsfile) {
           throw new Error('Options file empty!');
         }
 
-        this.app.options = Object.assign(this.app.options, JSON.parse(optionsfile));
+        const options = JSON.parse(optionsfile);
+        this.decryptWalletPrivateKey(options);
+
+        this.app.options = Object.assign(this.app.options, options);
 
         // this.convertOptionsBigInt(this.app.options);
 
@@ -293,8 +375,7 @@ class StorageCore extends Storage {
         this.app.options.spv_mode = false;
       } catch (err) {
         // this.app.logger.logError("Error Reading Options File", {message:"", stack: err});
-        // console.error(err);
-        // console.warn('options = ', optionsfile);
+        console.error('Error reading options file: ' + (err?.message || err));
         process.exit();
       }
     } else {
@@ -364,6 +445,29 @@ class StorageCore extends Storage {
     }
   }
 
+  //
+  // returns app.options as it should be written to disk. when SAITO_PASS is set the wallet
+  // private key is swapped for its ciphertext in a shallow copy, so the running app keeps
+  // holding the plaintext key.
+  //
+  returnOptionsForSaving() {
+    const secret = this.returnOptionsSecret();
+    if (!secret || !this.app.options.wallet) {
+      return this.app.options;
+    }
+
+    const options = Object.assign({}, this.app.options);
+    options.wallet = Object.assign({}, options.wallet);
+
+    for (const field of ['privateKey', 'privatekey']) {
+      if (this.isValidPrivateKey(options.wallet[field])) {
+        options.wallet[field] = this.app.crypto.aesEncrypt(options.wallet[field], secret);
+      }
+    }
+
+    return options;
+  }
+
   /**
    * Save the options file
    */
@@ -383,20 +487,19 @@ class StorageCore extends Storage {
       // console.error('Problem hashing app.options: ', err);
     }
 
-    try {
-      if (typeof process.env.SAITO_PASS != 'undefined') {
-        let secret = this.app.crypto.toBase58(
-          this.app.crypto.stringToHex(
-            'BYTHEPRICKINGOFMYTHUMBSSOMETHINGWICKEDTHISWAYCOMES' + process.env.SAITO_PASS
-          )
-        );
-        new_wallet_json = this.app.crypto.aesEncrypt(new_wallet_json, secret);
-      } else {
-        // Pretty print if not encrypted
-        new_wallet_json = JSON.stringify(JSON.parse(new_wallet_json), null, 4);
-      }
+    if (typeof new_wallet_json !== 'string') {
+      return;
+    }
 
-      fs.writeFileSync(`${this.config_dir}/options`, new_wallet_json, null);
+    try {
+      // the file stays readable json either way -- only the private key is ever ciphertext
+      const options_to_save = this.returnOptionsForSaving();
+
+      fs.writeFileSync(
+        `${this.config_dir}/options`,
+        JSON.stringify(options_to_save, null, 4),
+        null
+      );
 
       //Update hash
       this.wallet_options_hash = new_wallet_hash;
