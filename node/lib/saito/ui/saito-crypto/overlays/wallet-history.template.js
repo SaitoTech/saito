@@ -1,4 +1,7 @@
 module.exports = (mod, explorerUrl = '') => {
+  const balanceHeader =
+    mod.ticker === 'SAITO' ? '' : '<div class="saitox-header-item">Balance</div>';
+
   let html = `
     <div class="wallet-history">
       <header class="saito-overlay-form-header">
@@ -14,7 +17,7 @@ module.exports = (mod, explorerUrl = '') => {
           <div class="saitox-header-item">Time</div>
           <div class="saitox-header-item">Type</div>
           <div class="saitox-header-item">Amount</div>
-          <div class="saitox-header-item">Balance</div>
+          ${balanceHeader}
           <div class="saitox-header-item">To/From</div>
           <div class="saitox-header-item saito-only">Memo</div>
         </div>
