@@ -1,0 +1,103 @@
+/*
+ * Field prompt content — dark inputs inside .rustscript-overlay
+ */
+
+.rustscript-overlay textarea.rs-prompt-hash-input,
+.rustscript-overlay textarea.rs-prompt-generic-input,
+.rustscript-overlay textarea.rs-expert-input,
+.rustscript-overlay textarea.rs-prompt-signature-value,
+.rustscript-overlay input.rs-prompt-value,
+.rustscript-overlay input.rs-prompt-publickey-input,
+.rustscript-overlay input.rs-prompt-single-input,
+.rustscript-overlay input.rs-prompt-number-input,
+.rustscript-overlay .rs-prompt-hash-output,
+.rustscript-overlay .rs-prompt-signature-readonly,
+.rustscript-overlay select.rs-prompt-logical-select {
+  background: #0c0c0c;
+  color: #efefef;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  padding: var(--saito-space-md);
+  font-weight: 400;
+}
+
+.rustscript-overlay textarea.rs-prompt-hash-input,
+.rustscript-overlay textarea.rs-prompt-generic-input,
+.rustscript-overlay textarea.rs-expert-input,
+.rustscript-overlay textarea.rs-prompt-signature-value {
+  min-height: 12rem;
+  resize: vertical;
+  line-height: 1.5;
+  font-family: var(--rustscript-font-mono);
+}
+
+.rustscript-overlay input.rs-prompt-value,
+.rustscript-overlay input.rs-prompt-publickey-input,
+.rustscript-overlay input.rs-prompt-single-input,
+.rustscript-overlay input.rs-prompt-number-input {
+  min-height: var(--rs-control-height);
+  height: var(--rs-control-height);
+  padding: 0 var(--saito-space-md);
+}
+
+.rustscript-overlay select.rs-prompt-logical-select {
+  height: var(--rs-control-height);
+  padding: 0 var(--saito-space-md);
+  background-image: none;
+}
+
+.rustscript-overlay textarea.rs-prompt-hash-input:focus,
+.rustscript-overlay textarea.rs-prompt-generic-input:focus,
+.rustscript-overlay textarea.rs-expert-input:focus,
+.rustscript-overlay textarea.rs-prompt-signature-value:focus,
+.rustscript-overlay input.rs-prompt-value:focus,
+.rustscript-overlay input.rs-prompt-publickey-input:focus,
+.rustscript-overlay input.rs-prompt-single-input:focus,
+.rustscript-overlay input.rs-prompt-number-input:focus,
+.rustscript-overlay select.rs-prompt-logical-select:focus {
+  border-color: #666;
+}
+
+.rustscript-overlay .rs-prompt-validation[hidden] {
+  display: none !important;
+}
+
+.rustscript-overlay .rs-prompt-validation {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  line-height: 1.4;
+  color: #c07070;
+}
+
+.rustscript-overlay .rs-prompt-hash-output-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.rustscript-overlay .rs-prompt-hash-output {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-height: var(--rs-control-height);
+  min-width: 0;
+  padding: 0 var(--saito-space-md);
+  font-family: var(--rustscript-font-mono);
+  color: #c8c8c8;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rustscript-overlay.rs-prompt-signature .rs-prompt-signature-value {
+  min-height: 11rem;
+}
+
+.rustscript-overlay .rs-prompt-signature-readonly {
+  color: #c0c0c0;
+  overflow-wrap: anywhere;
+  font-family: var(--rustscript-font-mono);
+  line-height: 1.5;
+}

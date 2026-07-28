@@ -1,16 +1,16 @@
 /**
  * Access Script Templates for Stack Posts
- * 
+ *
  * This module provides canonical access script templates that map publish intents
  * to deterministic access control scripts. Scripts operate on NFT properties, not
  * specific NFT IDs, allowing reusable subscription NFTs.
- * 
+ *
  * All scripts are returned as JSON objects (not strings) for canonicalization.
  */
 
 /**
  * Get access script template for a publish intent
- * 
+ *
  * @param {Object} intent - Publish intent object
  * @param {string} intent.visibility - "public" | "private"
  * @param {string|null} intent.access_mode - null | "transferable" | "non-transferable"
@@ -35,7 +35,9 @@ function getAccessScriptForIntent(intent) {
   // Public posts: no access script
   if (intent.visibility === 'public') {
     if (intent.access_mode !== null || intent.time_limit !== null) {
-      throw new Error('getAccessScriptForIntent: public posts must have access_mode and time_limit as null');
+      throw new Error(
+        'getAccessScriptForIntent: public posts must have access_mode and time_limit as null'
+      );
     }
     return null;
   }
@@ -78,27 +80,27 @@ function getAccessScriptForIntent(intent) {
 
 /**
  * Private + Transferable: CHECKOWNNFTWHERE script
- * 
+ *
  * Validates:
  * - Submitter controls the NFT (via slips)
  * - NFT type === "stack"
  * - NFT creator === author public key
- * 
+ *
  * @param {string} authorPublicKey - Public key of the post author
  * @returns {Object} Access script object
  */
 function getPrivateTransferableScript(authorPublicKey) {
   return {
-    op: "CHECKOWNNFTWHERE",
+    op: 'CHECKOWNNFTWHERE',
     where: [
       {
-        field: "type",
-        operator: "==",
-        value: "stack"
+        field: 'type',
+        operator: '==',
+        value: 'stack'
       },
       {
-        field: "creator",
-        operator: "==",
+        field: 'creator',
+        operator: '==',
         value: authorPublicKey
       }
     ]
@@ -107,168 +109,161 @@ function getPrivateTransferableScript(authorPublicKey) {
 
 /**
  * Private + Non-Transferable: Chained constraints
- * 
+ *
  * Validates:
  * - CHECKPATH: NFT ownership path
  * - CHECKPATHHOP: Delegation constraint (prevents transfer)
  * - CHECKOWNNFTWHERE: Type and creator validation
- * 
+ *
  * @param {string} authorPublicKey - Public key of the post author
  * @returns {Object} Access script object
  */
 function getPrivateNonTransferableScript(authorPublicKey) {
   return {
-    op: "AND",
+    op: 'AND',
     args: [
       {
-        op: "CHECKOWNNFTWHERE",
+        op: 'CHECKOWNNFTWHERE',
         where: [
           {
-            field: "type",
-            operator: "==",
-            value: "stack"
+            field: 'type',
+            operator: '==',
+            value: 'stack'
           },
           {
-            field: "creator",
-            operator: "==",
+            field: 'creator',
+            operator: '==',
             value: authorPublicKey
           }
         ]
       },
       {
-        op: "CHECKPATHHOP",
-        selector: "FIRST",
+        op: 'CHECKPATHHOP',
+        selector: 'FIRST',
         where: [
           {
-            field: "value.delegate",
-            operator: "==",
+            field: 'value.delegate',
+            operator: '==',
             value: false,
-            type: "boolean"
+            type: 'boolean'
           }
         ],
         assert: [
           {
-            field: "to",
-            operator: "==",
-            value: "REQUESTER"
+            field: 'to',
+            operator: '==',
+            value: 'REQUESTER'
           }
         ],
-        publickey: authorPublicKey ,
-        hash: "__opcodes.checkownnftwhere.nft_id"
+        publickey: authorPublicKey,
+        hash: '__opcodes.checkownnftwhere.nft_id'
       }
     ]
   };
 }
 
-
 function getSubscriptionTransferableScript(authorPublicKey) {
   return {
-    op: "AND",
+    op: 'AND',
     args: [
-
-      { 
-	op: "CHECKOWNNFTWHERE",
+      {
+        op: 'CHECKOWNNFTWHERE',
         where: [
           {
-            field: "type",
-            operator: "==",
-            value: "stack"
+            field: 'type',
+            operator: '==',
+            value: 'stack'
           },
           {
-            field: "creator",
-            operator: "==",
+            field: 'creator',
+            operator: '==',
             value: authorPublicKey
           }
         ]
-
       },
 
       {
-        op: "CHECKPATHHOP",
-        selector: "FIRST",
-        where: [{ field: "value.delegate", operator: "==", value: false }],
-        publickey: authorPublicKey ,
-        hash: "__opcodes.checkownnftwhere.nft_id"
+        op: 'CHECKPATHHOP',
+        selector: 'FIRST',
+        where: [{ field: 'value.delegate', operator: '==', value: false }],
+        publickey: authorPublicKey,
+        hash: '__opcodes.checkownnftwhere.nft_id'
       },
 
       {
-        op: "IMPORTFIELD",
-        field: "duration",
-        publickey: authorPublicKey ,
-        hash: "__opcodes.checkownnftwhere.nft_id"
+        op: 'IMPORTFIELD',
+        field: 'duration',
+        publickey: authorPublicKey,
+        hash: '__opcodes.checkownnftwhere.nft_id'
       },
 
       {
-        op: "SUMFIELDS",
-        a: "__opcodes.checkpathhop.hop.value.timestamp",
-        b: "__opcodes.importfield.duration",
-        into: "expiry"
+        op: 'SUMFIELDS',
+        a: '__opcodes.checkpathhop.hop.value.timestamp',
+        b: '__opcodes.importfield.duration',
+        into: 'expiry'
       },
 
       {
-        op: "CHECKFIELD",
-        field: "__opcodes.sumfields.expiry",
-        operator: ">",
-        value: "NOW"
+        op: 'CHECKFIELD',
+        field: '__opcodes.sumfields.expiry',
+        operator: '>',
+        value: 'NOW'
       }
     ]
-  }
+  };
 }
 
 function getSubscriptionNonTransferableScript(authorPublicKey) {
   return {
-    op: "AND",
+    op: 'AND',
     args: [
-
       {
-        op: "CHECKOWNNFTWHERE",
+        op: 'CHECKOWNNFTWHERE',
         where: [
-          { field: "type", operator: "==", value: "stack" },
-          { field: "creator", operator: "==", value: authorPublicKey }
+          { field: 'type', operator: '==', value: 'stack' },
+          { field: 'creator', operator: '==', value: authorPublicKey }
         ]
       },
 
       {
-        op: "CHECKPATHHOP",
-        selector: "FIRST",
-        where: [
-          { field: "value.delegate", operator: "==", value: false }
-        ],
+        op: 'CHECKPATHHOP',
+        selector: 'FIRST',
+        where: [{ field: 'value.delegate', operator: '==', value: false }],
         publickey: authorPublicKey,
-        hash: "__opcodes.checkownnftwhere.nft_id"
+        hash: '__opcodes.checkownnftwhere.nft_id'
       },
 
       {
-        op: "IMPORTFIELD",
-        field: "duration",
+        op: 'IMPORTFIELD',
+        field: 'duration',
         publickey: authorPublicKey,
-        hash: "__opcodes.checkownnftwhere.nft_id"
+        hash: '__opcodes.checkownnftwhere.nft_id'
       },
 
       {
-        op: "SUMFIELDS",
-        a: "__opcodes.checkpathhop.hop.value.timestamp",
-        b: "__opcodes.importfield.duration",
-        into: "expiry"
+        op: 'SUMFIELDS',
+        a: '__opcodes.checkpathhop.hop.value.timestamp',
+        b: '__opcodes.importfield.duration',
+        into: 'expiry'
       },
 
       {
-        op: "CHECKFIELD",
-        field: "__opcodes.sumfields.expiry",
-        operator: ">",
-        value: "NOW"
+        op: 'CHECKFIELD',
+        field: '__opcodes.sumfields.expiry',
+        operator: '>',
+        value: 'NOW'
       },
 
       {
-        op: "CHECKFIELD",
-        field: "__opcodes.checkpathhop.hop.to",
-        operator: "==",
-        value: "REQUESTER"
+        op: 'CHECKFIELD',
+        field: '__opcodes.checkpathhop.hop.to',
+        operator: '==',
+        value: 'REQUESTER'
       }
     ]
   };
 }
-
 
 /**
  * Embed witness data into a witness-free locking script.
@@ -306,9 +301,7 @@ function embedWitnessInScript(lockingScript, witnessByOpcode) {
   return walk(lockingScript);
 }
 
-
 module.exports = {
   getAccessScriptForIntent,
   embedWitnessInScript
 };
-

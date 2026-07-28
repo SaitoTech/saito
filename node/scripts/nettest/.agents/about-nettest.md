@@ -131,6 +131,7 @@ This is the built-in way to turn a manually configured running network into a re
 README: two nodes with no blocks. Spammer and appsuite installed on node1. No spammer on node2.
 
 Observed:
+
 - node1 endpoint: `http://127.0.0.1:12101/`
 - node2 endpoint: `http://127.0.0.2:12102/`
 - node2 peers to node1 using `synctype: full`.
@@ -143,6 +144,7 @@ Observed:
 README: two nodes with no blocks. Minimal apps and no spammer installed on node1 and node2.
 
 Observed:
+
 - node1 endpoint: `http://127.0.0.1:12101/`
 - node2 endpoint: `http://127.0.0.2:12102/`
 - node2 peers to node1 using `synctype: full`.
@@ -154,6 +156,7 @@ Observed:
 README: two nodes with the same chain for ten blocks then both fork for ten blocks. Both nodes running spammer, only node1 running appsuite.
 
 Observed:
+
 - Similar endpoint and peer topology to base.
 - Includes `issuance.tsv` and `issuance.orig` in addition to base-style issuance files.
 - Includes preloaded block state: 20 `.sai` files under node1 and 20 `.sai` files under node2. The first ten blocks are shared; later blocks diverge for the fork test.

@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	return `
+  return `
         <div class="saito-gif-container">
            <div  class="saito-gif-search">
             <input class="saito-input" placeholder="Search For Gif" type="text" autofocus/>

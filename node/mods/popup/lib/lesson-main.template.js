@@ -1,9 +1,8 @@
 module.exports = (lesson) => {
+  let intro = lesson.content.replaceAll('\\', '');
+  intro = intro.replaceAll('\n\n', '<p></p>');
 
-	let intro = lesson.content.replaceAll('\\', '');
-	intro = intro.replaceAll('\n\n', '<p></p>');
-
-	return `
+  return `
        <div class="lesson-container">
 
        <div class="lesson-header"><div class="user">${lesson.username}</div> - <div class="title">${lesson.title}</div></div>

@@ -1,4 +1,10 @@
 /* Crypto / wallet overlay UI — owned by mods/crypto (loaded via /crypto/style.css) */
+:root {
+  --saito-crypto-transfer-background: var(--saito-background);
+  --saito-crypto-transfer-foreground: var(--saito-foreground);
+  --saito-crypto-transfer-border: var(--saito-border);
+}
+
 .saito-crypto-deposit {
   display: flex;
   flex-direction: column;
@@ -38,7 +44,7 @@
   min-height: 700px;
   max-height: calc(100vh - var(--saito-header-height));
   padding: 2rem;
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -284,10 +290,10 @@
   display: flex;
   height: 3rem;
   width: 100%;
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   background: var(--saito-highlight);
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
-  border-radius: var(--saito-border-radius);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
   overflow: hidden;
 }
 
@@ -296,93 +302,56 @@
 }
 
 /* -----------------------------------------------------------------
-   Withdraw overlay — unified token selector (single bordered control)
-   Overrides legacy split layout in saito-wallet.css via specificity.
+   Withdraw overlay — token picker (layout + listbox behaviour)
+   Field chrome comes from Saito; this is crypto-specific control layout.
    ----------------------------------------------------------------- */
 
-.saito-crypto-withdraw .token-dropdown {
-  display: block;
-  position: relative;
-  border: none;
-  background: none;
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  gap: 0;
-}
-
-.withdraw-token-custom {
+.saito-crypto-withdraw .token-custom {
   position: relative;
   width: 100%;
   min-width: 0;
 }
 
-.withdraw-token-trigger {
+.saito-crypto-withdraw .token-trigger {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 0.45rem;
+  gap: var(--saito-space-xs);
   width: 100%;
-  min-width: unset;
+  min-width: 0;
   max-width: 100%;
-  min-height: var(--withdraw-control-height, 4.5rem);
-  padding: 0.8rem 1.1rem;
   margin: 0;
   box-sizing: border-box;
-  border: var(--border-thickness-thin) solid var(--withdraw-control-border, var(--saito-input-border));
-  border-radius: var(--withdraw-control-radius, var(--saito-input-radius));
-  background: var(--saito-input-bg);
-  box-shadow: var(--saito-input-shadow);
-  color: var(--saito-input-fg-heavy);
-  font: inherit;
-  line-height: 1;
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    color 0.15s ease;
 }
 
-.withdraw-token-trigger:hover {
-  background-color: var(--saito-input-bg-focus);
-  border-color: var(--withdraw-control-border-hover, var(--saito-input-border-focus));
-}
-
-.withdraw-token-trigger:focus-visible {
-  outline: none;
-  border-color: var(--saito-input-border-focus);
-  box-shadow: var(--saito-focus-ring);
-}
-
-.withdraw-token-trigger-left {
+.saito-crypto-withdraw .token-trigger-left {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--saito-space-xs);
   min-width: 0;
   flex: 1;
 }
 
-.withdraw-logo-cont {
+.saito-crypto-withdraw .token-logo {
   position: relative;
   width: 2.3rem;
   height: 2.3rem;
   min-width: 2.3rem;
   flex-shrink: 0;
-  border-radius: 50%;
   overflow: hidden;
 }
 
-.withdraw-logo-cont .crypto-logo {
+.saito-crypto-withdraw .token-logo .crypto-logo {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.withdraw-logo-cont .chain-logo {
+.saito-crypto-withdraw .token-logo .chain-logo {
   position: absolute;
   width: auto;
   height: 34%;
@@ -390,29 +359,25 @@
   right: 6%;
 }
 
-#withdraw-token-trigger-ticker {
+.saito-crypto-withdraw #withdraw-token-trigger-ticker {
   display: inline-flex;
   align-items: center;
-  font-size: 1.9rem;
-  font-weight: 600;
-  line-height: 1.15;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.withdraw-token-trigger-caret {
+.saito-crypto-withdraw .token-trigger-caret {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 1.2rem;
   line-height: 1;
   opacity: 0.82;
 }
 
-.withdraw-select-crypto.hide-element,
-.saito-crypto-withdraw .token-dropdown select.hide-element {
+.saito-crypto-withdraw .withdraw-select-crypto.hide-element {
   position: absolute !important;
   width: 1px !important;
   height: 1px !important;
@@ -424,66 +389,41 @@
   clip: rect(0, 0, 0, 0);
 }
 
-.withdraw-token-menu {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 2px);
+.saito-crypto-withdraw .token-menu {
   z-index: 120;
-  margin: 0;
   padding: 0.18rem 0;
   list-style: none;
   max-height: 20rem;
   overflow-y: auto;
-  background: var(--saito-overlay-panel-bg, var(--saito-background-color));
-  color: var(--saito-input-fg-heavy);
-  border: var(--border-thickness-thin) solid var(--withdraw-control-border, var(--saito-input-border));
-  border-radius: var(--withdraw-control-radius, var(--saito-input-radius));
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--saito-white) 7%, transparent),
-    0 10px 24px color-mix(in srgb, var(--saito-black) 26%, transparent);
 }
 
-.withdraw-token-option {
+.saito-crypto-withdraw .withdraw-token-option {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.75rem 0.9rem;
+  gap: var(--saito-space-sm);
+  padding: var(--saito-space-sm) var(--saito-space-md);
   min-height: 4rem;
   cursor: pointer;
 }
 
-.withdraw-token-option:hover {
-  background-color: var(--saito-input-bg-focus);
-}
-
-.withdraw-token-option[aria-selected='true'] {
-  background: var(--saito-input-bg-focus);
-}
-
-.withdraw-token-option-logo {
+.saito-crypto-withdraw .withdraw-token-option-logo {
   width: 2.2rem;
   height: 2.2rem;
   flex-shrink: 0;
-  border-radius: 50%;
   object-fit: cover;
 }
 
-.withdraw-token-option-chain {
+.saito-crypto-withdraw .withdraw-token-option-chain {
   width: 1.4rem;
   height: 1.4rem;
   flex-shrink: 0;
-  align-self: center;
-  border-radius: 50%;
   object-fit: cover;
 }
 
-.withdraw-token-option-ticker {
-  font-size: 1.8rem;
-  font-weight: 600;
-  line-height: 1.1;
+.saito-crypto-withdraw .withdraw-token-option-ticker {
   display: inline-flex;
   align-items: center;
+  line-height: 1.1;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -645,13 +585,11 @@
   display: none;
 }
 
-.crypto-receive-overlay[data-receive-mode='trusted']
-  .crypto-receive-overlay__footer--interactive {
+.crypto-receive-overlay[data-receive-mode='trusted'] .crypto-receive-overlay__footer--interactive {
   display: none;
 }
 
-.crypto-receive-overlay[data-receive-mode='interactive']
-  .crypto-receive-overlay__footer--trusted {
+.crypto-receive-overlay[data-receive-mode='interactive'] .crypto-receive-overlay__footer--trusted {
   display: none;
 }
 
@@ -707,7 +645,8 @@
 }
 
 /* Pending: spinner only; success / failure: icons only */
-.crypto-send-confirm-overlay[data-confirm-state='pending'] .crypto-send-confirm-overlay__result-icon {
+.crypto-send-confirm-overlay[data-confirm-state='pending']
+  .crypto-send-confirm-overlay__result-icon {
   display: none !important;
 }
 
@@ -763,65 +702,73 @@
   text-align: center;
 }
 
-.saito-crypto-transfer.send-crypto-overlay[data-send-state='success']
-  .send-crypto-overlay__spinner,
-.saito-crypto-transfer.send-crypto-overlay[data-send-state='failed']
-  .send-crypto-overlay__spinner {
+.saito-crypto-transfer.send-crypto-overlay[data-send-state='success'] .send-crypto-overlay__spinner,
+.saito-crypto-transfer.send-crypto-overlay[data-send-state='failed'] .send-crypto-overlay__spinner {
   display: none;
 }
 
 /* -------------------------------------------------------------------------- */
-/* Wallet withdraw overlay (saito-crypto.withdraw)                            */
+/* Wallet withdraw overlay — canonical Saito overlay shell + layout only.     */
+/* Appearance: saito-overlay-form-header, saito-input, saito-button-*.        */
 /* -------------------------------------------------------------------------- */
 
-/* Fixed to the compose-step height; the main section scrolls when viewport-capped. */
 .saito-crypto-withdraw {
-  --withdraw-overlay-height: min(52rem, calc(100vh - 2rem));
-  --withdraw-control-height: 6.2rem;
-  --withdraw-control-radius: var(--saito-input-radius);
-  --withdraw-control-border: var(--saito-input-border);
-  --withdraw-control-border-hover: color-mix(in srgb, var(--saito-input-border-focus) 72%, var(--saito-input-border));
-  --withdraw-control-action-bg: color-mix(in srgb, var(--saito-background-color) 78%, transparent);
-  --withdraw-control-action-hover-bg: color-mix(in srgb, var(--saito-primary) 14%, transparent);
-  width: min(72rem, 96vw);
+  /* Same horizontal inset for every inline trailing control (people icon, MAX, etc.).
+     Matches input.saito-input’s horizontal padding so field chrome shares one edge. */
+  --withdraw-inline-action-inset: var(--saito-space-md);
+  width: min(60rem, 95vw);
   max-width: 100%;
-  height: var(--withdraw-overlay-height);
-  max-height: var(--withdraw-overlay-height);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: var(--saito-space-lg);
+  padding: var(--saito-space-xl);
   overflow: hidden;
 }
 
-.saito-crypto-withdraw.saito-overlay-form {
-  gap: 0;
-}
-
-.withdraw-overlay__surface {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2.4rem;
+.saito-crypto-withdraw > .saito-overlay-form-header {
+  flex: 0 0 auto;
   width: 100%;
   box-sizing: border-box;
+  justify-content: flex-start;
+  gap: 1.2rem;
+  /* Match canonical header inset; keep right pad so title doesn't crowd the close control */
+  padding-right: 1.6rem;
 }
 
-.withdraw-overlay__header {
-  flex: 0 0 auto;
-}
-
-.withdraw-overlay__main {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+.saito-crypto-withdraw > .saito-overlay-form-header .header-logo {
+  position: relative;
+  width: 3.6rem;
+  height: 3.6rem;
+  max-width: 3.6rem;
+  max-height: 3.6rem;
+  flex-shrink: 0;
   overflow: hidden;
+  border-radius: var(--saito-radius);
+  display: block;
 }
 
-.withdraw-overlay__compose,
-.withdraw-overlay__review {
+.saito-crypto-withdraw > .saito-overlay-form-header .header-logo .crypto-logo {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  display: block;
+  border: none;
+  border-radius: inherit;
+}
+
+.saito-crypto-withdraw > .saito-overlay-form-header .header-logo .chain-logo {
+  position: absolute;
+  width: auto;
+  height: 36%;
+  bottom: 8%;
+  right: 8%;
+}
+
+.saito-crypto-withdraw .compose,
+.saito-crypto-withdraw .review {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -830,139 +777,67 @@
   overflow-y: auto;
 }
 
-.withdraw-overlay__footer-bar {
-  flex: 0 0 auto;
-  flex-shrink: 0;
-  margin-top: 0;
-  padding-top: 1rem;
-  min-height: 6.5rem;
-  border-top: 1px solid color-mix(in srgb, var(--saito-border-color) 55%, transparent);
-  box-sizing: border-box;
-}
-
-.withdraw-overlay__actions {
-  justify-content: right;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  margin: 0;
-}
-
-.withdraw-overlay__actions button,
-.withdraw-overlay__actions a {
-  margin: 0;
-  flex: 0 1 calc(50% - 0.5rem);
-  max-width: 20rem;
-  font-size: 1.8rem;
-}
-
-.withdraw-overlay__header.saito-overlay-form-header {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: 5.2rem minmax(0, 1fr);
-  align-items: center;
-  column-gap: 1.25rem;
-  row-gap: 0.25rem;
-  height: auto;
-  min-height: 6.8rem;
-  max-height: none;
-  padding: 0.85rem 1.35rem;
-}
-
-.withdraw-header-logo-cont {
-  width: 5.2rem;
-  height: 5.2rem;
-  max-width: 5.2rem;
-  max-height: 5.2rem;
-  flex-shrink: 0;
-}
-
-.withdraw-header-logo-cont .crypto-logo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  box-sizing: border-box;
-  border: 1px solid var(--saito-border-color);
-  border-radius: 50%;
-}
-
-.withdraw-header-logo-cont .chain-logo {
-  position: absolute;
-  width: auto;
-  height: 36%;
-  bottom: 8%;
-  right: 8%;
-}
-
-.withdraw-overlay__header .saito-overlay-form-header-title {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  min-width: 0;
-  text-align: left;
-}
-
-.withdraw-overlay__title {
-  margin: 0;
-  font-size: 2.4rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  line-height: 1.2;
-  color: inherit;
-}
-
-.withdraw-overlay__compose {
-  gap: 1.6rem;
+.saito-crypto-withdraw .compose {
+  gap: var(--saito-space-lg);
   justify-content: flex-start;
-  box-sizing: border-box;
-  padding: 1rem;
+  width: 100%;
 }
 
-.withdraw-compose-top {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 1.2rem;
-}
-
-.withdraw-token-picker {
-  width: min(13.5rem, 42vw);
-  max-width: 100%;
-}
-
-.withdraw-token-picker .saito-overlay-form-field {
-  margin: 0;
-  max-width: none;
-}
-
-.withdraw-balance-fee-stack {
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
+.saito-crypto-withdraw .actions {
+  flex: 0 0 auto;
   justify-content: flex-end;
-  margin-left: auto;
+  align-items: center;
+  gap: var(--saito-space-md);
+  width: 100%;
+  margin: 0;
 }
 
-.withdraw-meta-line {
+/* Cancel saito-button-row's default margin-top so footer matches overlay gap rhythm */
+.saito-crypto-withdraw .saito-button-row.actions {
+  margin-top: 0;
+}
+
+.saito-crypto-withdraw .actions button,
+.saito-crypto-withdraw .actions a {
+  margin: 0;
+  flex: 0 1 auto;
+  max-width: 20rem;
+}
+
+.saito-crypto-withdraw .compose-top {
   display: grid;
-  grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
-  gap: 0.5rem 1.25rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--saito-space-lg);
+  width: 100%;
+}
+
+.saito-crypto-withdraw .token-picker {
+  width: 100%;
+  max-width: 18rem;
+  min-width: 0;
+}
+
+.saito-crypto-withdraw .meta-stack {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  column-gap: var(--saito-space-md);
+  row-gap: 0.25rem;
   align-items: baseline;
-  font-size: 1.7rem;
+  justify-self: end;
+  margin: 0;
+  width: max-content;
+  max-width: 100%;
   line-height: 1.35;
 }
 
-.withdraw-meta-line .withdraw-info-title {
-  text-transform: capitalize;
-  font-size: 1.5rem;
-  opacity: 0.72;
+.saito-crypto-withdraw .meta-label {
+  color: var(--saito-muted-foreground);
   white-space: nowrap;
+  text-align: left;
 }
 
-.withdraw-meta-line .withdraw-info-value {
+.saito-crypto-withdraw .meta-value {
   text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -970,107 +845,166 @@
   min-width: 0;
 }
 
-.withdraw-fee-value-wrap {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.35rem;
+.saito-crypto-withdraw .fee-value-wrap {
   min-width: 0;
-  justify-content: flex-end;
 }
 
-.withdraw-fee-wrap--editable {
+.saito-crypto-withdraw .fee-wrap--editable {
   cursor: pointer;
 }
 
-.withdraw-fee-wrap--editable .withdraw-info-value {
+.saito-crypto-withdraw .fee-wrap--editable .fee {
   text-decoration: underline dotted;
   text-underline-offset: 0.2rem;
 }
 
-.withdraw-fee-wrap--editable:hover .withdraw-info-value,
-.withdraw-fee-wrap--editable:hover .withdraw-fee-edit-icon {
-  color: var(--saito-primary);
+.saito-crypto-withdraw .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  margin: 0;
+  width: 100%;
 }
 
-.withdraw-fee-edit-icon {
-  font-size: 1.25rem;
-  opacity: 0.72;
-}
-
-.withdraw-field-label {
+.saito-crypto-withdraw .label {
   display: block;
-  margin-bottom: 0.35rem;
-  font-size: 1.5rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--saito-font-color) 72%, transparent);
+  margin: 0;
+  color: var(--saito-muted-foreground);
 }
 
-.withdraw-field-group {
-  margin-inline: 0;
+.saito-crypto-withdraw .fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  width: 100%;
 }
 
-.withdraw-input-cont:not(.fixed-user) {
-  grid-template-columns: 1fr min-content;
+/* Full-width fields with actions layered into the input's right-hand space */
+.saito-crypto-withdraw .input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  position: relative;
 }
 
-.withdraw-paste-btn {
+.saito-crypto-withdraw .input-row > input.saito-input {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.saito-crypto-withdraw #withdraw-address-cont:not(.fixed-user) > input.saito-input {
+  padding-right: 4rem;
+}
+
+.saito-crypto-withdraw #withdraw-amount-cont > input.saito-input {
+  padding-right: 9rem;
+}
+
+.saito-crypto-withdraw .input-row > .identicon-slot {
+  display: none;
+}
+
+.saito-crypto-withdraw .input-row.fixed-user {
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  column-gap: var(--saito-space-xs);
+}
+
+.saito-crypto-withdraw .input-row.fixed-user > .identicon-slot {
+  display: block;
+  grid-column: 1;
+  grid-row: 1;
+  width: 3.6rem;
+  height: 3.6rem;
+}
+
+.saito-crypto-withdraw .input-row.fixed-user > input.saito-input {
+  grid-column: 2;
+  padding-right: 1rem;
+}
+
+.saito-crypto-withdraw .input-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: var(--withdraw-inline-action-inset);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--saito-space-xs);
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Trailing controls share one box model: flush to the actions strip’s end edge */
+.saito-crypto-withdraw .input-actions > .withdraw-options-cont,
+.saito-crypto-withdraw .input-actions > #withdraw-max-btn,
+.saito-crypto-withdraw .input-actions > .withdraw-amount-status {
+  pointer-events: auto;
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.saito-crypto-withdraw .withdraw-options-cont {
+  width: 2.4rem;
+  height: 2.4rem;
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
+}
+
+.saito-crypto-withdraw .withdraw-options-cont:hover {
+  color: var(--saito-foreground);
+}
+
+.saito-crypto-withdraw .withdraw-options-cont:focus-visible {
+  outline: none;
+}
+
+.saito-crypto-withdraw .withdraw-paste-btn,
+.saito-crypto-withdraw #withdraw-qr-scan-btn {
   display: none !important;
 }
 
-.withdraw-input-cont {
-  height: var(--withdraw-control-height);
-  min-height: var(--withdraw-control-height);
-  overflow: hidden;
-  background-color: var(--saito-input-bg);
-  border: var(--border-thickness-thin) solid var(--withdraw-control-border);
-  border-radius: var(--withdraw-control-radius);
-  box-shadow: var(--saito-input-shadow);
+.saito-crypto-withdraw .input-row.address-transition-out {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-0.35rem);
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
     opacity 0.333s ease,
     transform 0.333s ease;
 }
 
-.withdraw-input-cont.withdraw-address-transition-out {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-0.35rem);
-}
-
-.withdraw-input-cont:hover {
-  background-color: var(--saito-input-bg-focus);
-  border-color: var(--withdraw-control-border-hover);
-}
-
-.withdraw-input-cont:focus-within {
-  background-color: var(--saito-input-bg-focus);
-  border-color: var(--saito-input-border-focus);
-  box-shadow: var(--saito-focus-ring);
-}
-
-.withdraw-input-cont.fixed-user {
-  grid-template-columns: min-content minmax(0, 1fr);
-}
-
-.withdraw-input-cont.fixed-user .withdraw-options-cont,
-.withdraw-input-cont.fixed-user button.withdraw-options-cont {
+.saito-crypto-withdraw .input-row.fixed-user .withdraw-options-cont {
   display: none !important;
 }
 
-.withdraw-address-preview {
-  height: var(--withdraw-control-height);
-  min-height: var(--withdraw-control-height);
-  padding: 0.45rem 1.25rem;
-  box-sizing: border-box;
+.saito-crypto-withdraw .input-row input.saito-input:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.saito-crypto-withdraw .address-preview {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
-  background-color: var(--saito-input-bg);
-  border: var(--border-thickness-thin) solid var(--withdraw-control-border);
-  border-radius: var(--withdraw-control-radius);
-  box-shadow: var(--saito-input-shadow);
   opacity: 1;
   transform: translateY(0);
   transition:
@@ -1078,17 +1012,17 @@
     transform 0.2s ease;
 }
 
-.withdraw-address-preview--enter {
+.saito-crypto-withdraw .address-preview--enter {
   opacity: 0;
   transform: translateY(0.35rem);
 }
 
-.withdraw-address-preview--enter-active {
+.saito-crypto-withdraw .address-preview--enter-active {
   opacity: 1;
   transform: translateY(0);
 }
 
-.withdraw-address-user.saito-user {
+.saito-crypto-withdraw .address-user.saito-user {
   display: grid;
   grid-template-columns: min-content minmax(0, 1fr) min-content;
   grid-template-rows: auto auto;
@@ -1096,9 +1030,11 @@
   column-gap: 1rem;
   width: 100%;
   min-width: 0;
+  padding-inline-end: var(--withdraw-inline-action-inset);
+  box-sizing: border-box;
 }
 
-.withdraw-address-external {
+.saito-crypto-withdraw .address-external {
   display: grid;
   grid-template-columns: minmax(0, 1fr) min-content;
   grid-template-rows: auto auto;
@@ -1107,22 +1043,20 @@
   row-gap: 0.1rem;
   width: 100%;
   min-width: 0;
+  padding-inline-end: var(--withdraw-inline-action-inset);
+  box-sizing: border-box;
 }
 
-.withdraw-address-external-address {
+.saito-crypto-withdraw .address-external-address {
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--saito-input-fg-heavy);
 }
 
-.withdraw-address-external-user {
+.saito-crypto-withdraw .address-external-user {
   grid-column: 1;
   grid-row: 2;
   display: grid;
@@ -1133,335 +1067,175 @@
   min-width: 0;
 }
 
-.withdraw-address-external-user .saito-identicon-box,
-.withdraw-address-external-unknown-icon {
+.saito-crypto-withdraw .address-external-user .saito-identicon-box,
+.saito-crypto-withdraw .address-external-unknown-icon {
   grid-column: 1;
   grid-row: 1 / span 2;
 }
 
-.withdraw-address-external-match-label {
+.saito-crypto-withdraw .address-match-label {
   margin-left: 0.65rem;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1.25;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--saito-status-success) 78%, var(--saito-font-color));
+  color: var(--saito-status-success);
 }
 
-.withdraw-address-external-user--matched .withdraw-address-user-primary {
+.saito-crypto-withdraw .address-external-user--matched .saito-address {
   grid-row: 1;
 }
 
-.withdraw-address-external-user--matched .withdraw-address-user-secondary {
+.saito-crypto-withdraw .address-external-user--matched .saito-userline {
   grid-row: 2;
 }
 
-.withdraw-address-external-unknown-icon {
+.saito-crypto-withdraw .address-external-unknown-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 3.4rem;
   height: 3.4rem;
-  border-radius: var(--saito-border-radius);
-  color: color-mix(in srgb, var(--saito-font-color) 58%, transparent);
-  background: color-mix(in srgb, var(--saito-background-color) 86%, transparent);
+  color: var(--saito-muted-foreground);
 }
 
-.withdraw-address-user .saito-identicon-box {
+.saito-crypto-withdraw .address-user .saito-identicon-box {
   grid-column: 1;
   grid-row: 1 / span 2;
 }
 
-.withdraw-address-preview .saito-identicon-box,
-.withdraw-identicon-container,
-.withdraw-identicon-container .saito-identicon {
-  width: 4.5rem;
-  height: 4.5rem;
+.saito-crypto-withdraw .address-preview .saito-identicon-box,
+.saito-crypto-withdraw .identicon-slot,
+.saito-crypto-withdraw .identicon-slot .saito-identicon {
+  width: 3.6rem;
+  height: 3.6rem;
 }
 
-.withdraw-address-user-primary {
+.saito-crypto-withdraw .address-user .saito-address {
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  font-size: 1.7rem;
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--saito-input-fg-heavy);
 }
 
-.withdraw-address-user-secondary {
+.saito-crypto-withdraw .address-user .saito-userline {
   grid-column: 2;
   grid-row: 2;
   min-width: 0;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  font-size: 1.3rem;
-  line-height: 1.35;
-  color: color-mix(in srgb, var(--saito-font-color) 68%, transparent);
 }
 
-button.withdraw-address-edit {
+.saito-crypto-withdraw .address-edit {
   grid-column: 3;
   grid-row: 1 / span 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 4.2rem;
-  min-width: 4.2rem;
-  height: 4.2rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--withdraw-control-radius);
-  background: transparent;
-  color: var(--saito-input-fg);
-  font-size: 1.8rem;
-  cursor: pointer;
 }
 
-.withdraw-address-external button.withdraw-address-edit {
+.saito-crypto-withdraw .address-external .address-edit {
   grid-column: 2;
   grid-row: 1 / span 2;
 }
 
-.withdraw-address-invalid {
+.saito-crypto-withdraw .address-invalid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) min-content;
   align-items: center;
   width: 100%;
-  height: 100%;
   min-width: 0;
+  padding-inline-end: var(--withdraw-inline-action-inset);
+  box-sizing: border-box;
 }
 
-.withdraw-address-invalid-message {
+.saito-crypto-withdraw .address-invalid-message {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--saito-status-danger);
-  font-size: 1.9rem;
-  font-weight: 500;
-  line-height: 1.25;
+  color: var(--saito-destructive);
 }
 
-.withdraw-address-invalid button.withdraw-address-edit {
+.saito-crypto-withdraw .address-invalid .address-edit {
   grid-column: 2;
   grid-row: 1;
 }
 
-.withdraw-address-external .withdraw-address-user-primary {
-  font-size: 1.35rem;
-  line-height: 1.1;
-}
-
-.withdraw-address-external .withdraw-address-user-secondary {
-  font-size: 1.1rem;
-  line-height: 1.15;
-}
-
-.withdraw-address-external .saito-identicon-box {
-  width: 3.4rem;
-  height: 3.4rem;
-}
-
-button.withdraw-address-edit:hover,
-button.withdraw-address-edit:focus-visible {
-  color: var(--saito-primary);
-  background: var(--withdraw-control-action-hover-bg);
-  outline: none;
-}
-
-.withdraw-input-cont input {
-  min-height: calc(var(--withdraw-control-height) - 2px);
-  width: 100%;
-  padding: 0 1.6rem;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background: var(--saito-input-bg);
-  color: var(--saito-input-fg-heavy);
-  font-size: 1.9rem;
-}
-
-.withdraw-input-cont input:focus {
-  border: 0;
-  box-shadow: none;
-}
-
-.withdraw-input-cont input:disabled {
-  opacity: 1;
-  color: var(--saito-input-fg-heavy);
-  cursor: default;
-}
-
-button.withdraw-options-cont {
-  appearance: none;
-  -webkit-appearance: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--withdraw-control-height);
-  min-width: var(--withdraw-control-height);
-  min-height: calc(var(--withdraw-control-height) - 2px);
-  margin: 0;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: var(--saito-input-fg);
-  font: inherit;
-  font-size: 1.8rem;
-  letter-spacing: normal;
-  text-transform: none;
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-
-button.withdraw-options-cont:hover {
-  font-weight: normal;
-  background: transparent;
-  color: var(--saito-primary);
-}
-
-button.withdraw-options-cont:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--saito-primary) 50%, transparent);
-}
-
-button.withdraw-options-cont:hover i {
-  transform: scale(1.15);
-}
-
-#withdraw-amount-cont {
+.saito-crypto-withdraw #withdraw-amount-cont {
   position: relative;
-  grid-template-columns: 1fr min-content;
-  align-items: stretch;
 }
 
-.withdraw-max-btn {
-  flex-shrink: 0;
-  align-self: center;
-  margin: 0 0.45rem 0 0;
+.saito-crypto-withdraw #withdraw-max-btn {
+  flex: 0 0 auto;
   min-width: unset;
-  min-height: unset;
-  padding: 0.6rem 1rem;
-  font-size: 1.4rem;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0;
-  border-radius: calc(var(--withdraw-control-radius) - 1px);
-  color: var(--saito-input-fg-heavy);
-  background: transparent;
-  border: 0;
+  color: inherit;
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
+  line-height: 1;
 }
 
-.withdraw-amount-status {
+.saito-crypto-withdraw #withdraw-max-btn:hover,
+.saito-crypto-withdraw #withdraw-max-btn:focus-visible {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.saito-crypto-withdraw .withdraw-amount-status {
   position: relative;
   z-index: 2;
-  flex-shrink: 0;
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
+  flex: 0 0 auto;
   justify-content: center;
-  width: 4.2rem;
-  height: 4.2rem;
-  margin: 0 0.45rem 0 0;
-  padding: 0;
-  border: var(--border-thickness-thin) solid transparent;
-  border-radius: calc(var(--withdraw-control-radius) - 1px);
-  background: transparent;
-  font-size: 1.8rem;
+  width: 3.2rem;
+  height: 3.2rem;
   user-select: none;
   touch-action: manipulation;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
 }
 
-.withdraw-amount-status--valid {
+.saito-crypto-withdraw .withdraw-amount-status--valid {
   color: var(--saito-status-success);
-  border-color: color-mix(in srgb, var(--saito-status-success) 55%, var(--withdraw-control-border));
-  background: color-mix(in srgb, var(--saito-status-success) 12%, transparent);
 }
 
-.withdraw-amount-status--invalid {
-  color: var(--saito-status-danger);
-  border-color: color-mix(in srgb, var(--saito-status-danger) 62%, var(--withdraw-control-border));
-  background: color-mix(in srgb, var(--saito-status-danger) 12%, transparent);
+.saito-crypto-withdraw .withdraw-amount-status--invalid {
+  color: var(--saito-destructive);
   cursor: help;
 }
 
-.withdraw-max-btn:hover {
-  background: transparent;
-  border-color: var(--withdraw-control-border-hover);
-  color: var(--saito-primary);
-}
-
-.withdraw-amount-tooltip {
+.saito-crypto-withdraw .withdraw-amount-tooltip {
+  grid-column: 1;
+  grid-row: 1;
   position: absolute;
   z-index: 1;
-  inset: 0 5.1rem 0 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: calc(8.5rem + var(--withdraw-inline-action-inset));
   display: flex;
   align-items: center;
-  padding: 0 1.6rem;
-  color: var(--saito-status-danger);
-  background: var(--saito-input-bg-focus);
-  font-size: 1.45rem;
-  font-weight: 500;
-  line-height: 1.3;
+  padding: 0 1rem;
+  color: var(--saito-destructive);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
 }
 
-.withdraw-max-btn:focus-visible,
-.withdraw-amount-status--invalid:focus-visible {
-  outline: none;
-  box-shadow: var(--saito-focus-ring);
-}
-
 @media (hover: hover) {
-  .withdraw-amount-status--invalid:hover ~ .withdraw-amount-tooltip,
-  .withdraw-amount-status--invalid:focus-visible ~ .withdraw-amount-tooltip {
+  .saito-crypto-withdraw
+    .input-actions:has(.withdraw-amount-status--invalid:hover)
+    ~ .withdraw-amount-tooltip,
+  .saito-crypto-withdraw
+    .input-actions:has(.withdraw-amount-status--invalid:focus-visible)
+    ~ .withdraw-amount-tooltip {
     opacity: 1;
   }
 }
 
 @media (hover: none) {
-  .withdraw-amount-status--invalid:active ~ .withdraw-amount-tooltip {
+  .saito-crypto-withdraw
+    .input-actions:has(.withdraw-amount-status--invalid:active)
+    ~ .withdraw-amount-tooltip {
     opacity: 1;
   }
 }
 
-.saito-crypto-withdraw .input-elements-container {
-  gap: 1.5rem;
-}
-
-.saito-crypto-withdraw[data-withdraw-state='review'] .withdraw-confirm-overlay__tx-row,
-.saito-crypto-withdraw[data-withdraw-state='pending'] .withdraw-confirm-overlay__tx-row,
-.saito-crypto-withdraw[data-withdraw-state='failed'] .withdraw-confirm-overlay__tx-row {
+.saito-crypto-withdraw[data-withdraw-state='review'] .confirm-tx,
+.saito-crypto-withdraw[data-withdraw-state='pending'] .confirm-tx,
+.saito-crypto-withdraw[data-withdraw-state='failed'] .confirm-tx {
   display: none !important;
 }
 
-.withdraw-overlay__review {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.withdraw-confirm-overlay__body {
+.saito-crypto-withdraw .confirm-body {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -1469,54 +1243,34 @@ button.withdraw-options-cont:hover i {
   width: 100%;
   min-height: 0;
   box-sizing: border-box;
-  padding: 0.75rem 0 1rem;
-  /*text-align: center;*/
-  gap: 1.25rem;
+  padding: 0;
+  gap: var(--saito-space-md);
 }
 
-/* Confirm: summary centered in the fixed panel */
-.saito-crypto-withdraw[data-withdraw-state='review'] .withdraw-confirm-overlay__body {
+.saito-crypto-withdraw[data-withdraw-state='review'] .confirm-body {
   justify-content: center;
-  gap: 2rem;
-  padding: 1rem;
+  gap: var(--saito-space-lg);
 }
 
-.saito-crypto-withdraw[data-withdraw-state='review'] .withdraw-confirm-overlay__status,
-.saito-crypto-withdraw[data-withdraw-state='review'] .withdraw-send-result,
-.saito-crypto-withdraw[data-withdraw-state='review'] .withdraw-confirm-overlay__tx-row {
+.saito-crypto-withdraw[data-withdraw-state='review'] .confirm-status,
+.saito-crypto-withdraw[data-withdraw-state='review'] .send-result,
+.saito-crypto-withdraw[data-withdraw-state='review'] .confirm-tx {
   display: none !important;
 }
 
-.saito-crypto-withdraw[data-withdraw-state='pending'] .withdraw-confirm-overlay__body {
+.saito-crypto-withdraw[data-withdraw-state='pending'] .confirm-body,
+.saito-crypto-withdraw[data-withdraw-state='success'] .confirm-body,
+.saito-crypto-withdraw[data-withdraw-state='failed'] .confirm-body {
   justify-content: center;
-  gap: 1.1rem;
-  padding-top: 0.75rem;
-  padding-bottom: 1rem;
 }
 
-.saito-crypto-withdraw[data-withdraw-state='pending'] .withdraw-confirm-overlay__tx-row {
+.saito-crypto-withdraw[data-withdraw-state='pending'] .confirm-details,
+.saito-crypto-withdraw[data-withdraw-state='success'] .confirm-details,
+.saito-crypto-withdraw[data-withdraw-state='failed'] .confirm-details {
   display: none !important;
 }
 
-.saito-crypto-withdraw[data-withdraw-state='pending'] .withdraw-confirm-overlay__review-details {
-  display: none !important;
-}
-
-/* Pending / success / failure: status and result text stay fixed in place. */
-.saito-crypto-withdraw[data-withdraw-state='success'] .withdraw-confirm-overlay__body,
-.saito-crypto-withdraw[data-withdraw-state='failed'] .withdraw-confirm-overlay__body {
-  justify-content: center;
-  gap: 1.1rem;
-  padding-top: 0.75rem;
-  padding-bottom: 1rem;
-}
-
-.saito-crypto-withdraw[data-withdraw-state='success'] .withdraw-confirm-overlay__review-details,
-.saito-crypto-withdraw[data-withdraw-state='failed'] .withdraw-confirm-overlay__review-details {
-  display: none !important;
-}
-
-.withdraw-confirm-overlay__status {
+.saito-crypto-withdraw .confirm-status {
   position: relative;
   display: flex;
   flex: 0 0 auto;
@@ -1526,187 +1280,122 @@ button.withdraw-options-cont:hover i {
   min-height: 5rem;
 }
 
-.saito-crypto-withdraw[data-withdraw-state='review'] .withdraw-confirm-overlay__status {
-  display: none;
-  min-height: 0;
-}
-
-.withdraw-confirm-overlay__review-details {
+.saito-crypto-withdraw .confirm-details {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.6rem;
+  gap: var(--saito-space-lg);
   width: 100%;
   max-width: 60rem;
   flex: 0 0 auto;
 }
 
-.withdraw-send-result {
+.saito-crypto-withdraw .send-result {
   display: none;
   flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--saito-space-xs);
   width: 100%;
   max-width: 38rem;
   text-align: center;
 }
 
-.saito-crypto-withdraw[data-withdraw-state='pending'] .withdraw-send-result,
-.saito-crypto-withdraw[data-withdraw-state='success'] .withdraw-send-result,
-.saito-crypto-withdraw[data-withdraw-state='failed'] .withdraw-send-result {
+.saito-crypto-withdraw[data-withdraw-state='pending'] .send-result,
+.saito-crypto-withdraw[data-withdraw-state='success'] .send-result,
+.saito-crypto-withdraw[data-withdraw-state='failed'] .send-result {
   display: flex;
 }
 
-.withdraw-send-result__title {
+.saito-crypto-withdraw .send-result-title {
   margin: 0;
-  font-size: 2rem;
-  font-weight: 600;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
   line-height: 1.25;
-  color: var(--saito-font-color);
 }
 
-.withdraw-send-result__message {
+.saito-crypto-withdraw .send-result-message {
   margin: 0;
-  font-size: 1.6rem;
+  color: var(--saito-muted-foreground);
   line-height: 1.45;
-  color: color-mix(in srgb, var(--saito-font-color) 82%, transparent);
 }
 
-.saito-crypto-withdraw[data-withdraw-state='failed'] .withdraw-send-result__message {
-  color: var(--saito-status-danger);
+.saito-crypto-withdraw[data-withdraw-state='failed'] .send-result-message {
+  color: var(--saito-destructive);
 }
 
-.withdraw-confirm-overlay__tx-row {
+.saito-crypto-withdraw .confirm-tx {
   flex: 0 0 auto;
   align-items: center;
   max-width: 54rem;
-  margin: 1.25rem auto 0;
+  margin: var(--saito-space-md) auto 0;
   text-align: center;
 }
 
-.withdraw-confirm-overlay__tx-row .withdraw-confirm-overlay__summary-label {
-  width: 100%;
-  text-align: center;
-}
-
-.withdraw-confirm-overlay__spinner {
+.saito-crypto-withdraw .confirm-spinner {
   display: none;
   width: 7rem;
   height: 7rem;
 }
 
-.withdraw-confirm-overlay__spinner.show {
+.saito-crypto-withdraw .confirm-spinner.show {
   display: block;
 }
 
-.withdraw-confirm-overlay__result-icon {
+.saito-crypto-withdraw .confirm-result-icon {
   font-size: 5rem;
   line-height: 1;
 }
 
-.saito-crypto-withdraw[data-withdraw-state='success'] .withdraw-confirm-overlay__result-icon--success {
+.saito-crypto-withdraw[data-withdraw-state='success'] .confirm-result-icon--success {
   color: var(--saito-status-success);
 }
 
-.saito-crypto-withdraw[data-withdraw-state='failed'] .withdraw-confirm-overlay__result-icon--failure {
-  color: var(--saito-status-danger);
+.saito-crypto-withdraw[data-withdraw-state='failed'] .confirm-result-icon--failure {
+  color: var(--saito-destructive);
 }
 
-.withdraw-confirm-overlay__summary,
-.withdraw-confirm-overlay__recipient,
-.withdraw-confirm-overlay__fee-row,
-.withdraw-confirm-overlay__tx-row {
+.saito-crypto-withdraw .confirm-block {
   display: flex;
   flex-direction: column;
   align-items: start;
-  gap: 0.5rem;
+  gap: var(--saito-space-xs);
   width: 100%;
   max-width: 60rem;
 }
 
-.withdraw-confirm-overlay__fee-row {
-    align-items: end;
-    margin: 1rem 0 0 0;
+.saito-crypto-withdraw .confirm-fee {
+  align-items: end;
+  margin-top: var(--saito-space-sm);
 }
 
-.withdraw-confirm-overlay__amount,
-.withdraw-confirm-counterparty{
-    padding: 1rem;
-    background-color: var(--saito-input-bg);
-    width: 100%;
-    border-radius: var(--saito-border-radius);
+.saito-crypto-withdraw .confirm-label {
+  color: var(--saito-muted-foreground);
 }
 
-.withdraw-confirm-overlay__summary-label {
-  font-size: 1.5rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--saito-font-color) 68%, transparent);
+.saito-crypto-withdraw .confirm-amount {
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
 }
 
-.withdraw-confirm-overlay__amount {
-  font-size: 2.2rem;
-}
-
-.withdraw-confirm-overlay__chain-address {
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
-    monospace;
-  font-size: 1.6rem;
-  letter-spacing: 0.02em;
-  text-align: center;
+.saito-crypto-withdraw .confirm-chain-address {
+  font-family: monospace;
   word-break: break-all;
   max-width: 100%;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--saito-border-radius);
-  background: color-mix(in srgb, var(--saito-background-color) 88%, var(--saito-primary) 12%);
-  border: 1px solid color-mix(in srgb, var(--saito-border-color) 50%, transparent);
 }
 
-.withdraw-confirm-overlay__chain-address::after {
-  content: none;
-}
-
-.withdraw-confirm-copy-btn {
-  display: inline-flex;
-  align-items: center;
-  color: var(--saito-primary);
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-
-.withdraw-confirm-copy-btn:hover {
-  opacity: 0.85;
-}
-
-.withdraw-confirm-counterparty {
-  width: 100%;
-}
-
-.withdraw-confirm-counterparty .saito-user {
-  justify-content: center;
-}
-
-.withdraw-confirm-overlay__fee {
-  font-size: 1.7rem;
-}
-
-.withdraw-confirm-overlay__tx-inline {
+.saito-crypto-withdraw .confirm-tx-inline {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--saito-space-xs);
   width: 100%;
   max-width: 100%;
 }
 
-.withdraw-confirm-overlay__tx-hash {
+.saito-crypto-withdraw .confirm-tx-hash {
   font-family: monospace;
-  font-size: 1.55rem;
-  line-height: 1.3;
   min-width: 0;
   overflow: hidden;
   text-align: center;
@@ -1714,12 +1403,7 @@ button.withdraw-options-cont:hover i {
   white-space: nowrap;
 }
 
-.withdraw-confirm-overlay__tx-inline .withdraw-confirm-copy-btn {
-  flex-shrink: 0;
-  padding: 0.25rem 0.35rem;
-}
-
-.withdraw-confirm-overlay__tx-inline .withdraw-confirm-copy-btn .visually-hidden {
+.saito-crypto-withdraw .confirm-tx-inline .visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -1731,31 +1415,48 @@ button.withdraw-options-cont:hover i {
   border: 0;
 }
 
-.withdraw-token-option--focused {
-  outline: 2px solid color-mix(in srgb, var(--saito-primary) 65%, transparent);
-  outline-offset: -2px;
+.saito-crypto-withdraw .withdraw-confirm-counterparty {
+  width: 100%;
 }
 
-@media screen and (max-width: 520px) {
-  .saito-crypto-withdraw {
-    --withdraw-overlay-height: min(52rem, 96vh);
-    border: none;
-  }
+.saito-crypto-withdraw .withdraw-confirm-counterparty .saito-user {
+  justify-content: center;
+}
 
-  .withdraw-input-cont:not(.fixed-user) {
-    grid-template-columns: 1fr min-content min-content;
-  }
-
-  .withdraw-paste-btn {
+@media screen and (max-width: 768px) {
+  .saito-crypto-withdraw #withdraw-qr-scan-btn {
     display: flex !important;
   }
 
-  .withdraw-token-picker {
-    width: min(12rem, 100%);
+  .saito-crypto-withdraw #withdraw-address-cont:not(.fixed-user) > input.saito-input {
+    padding-right: 7rem;
+  }
+}
+
+@media screen and (max-width: 520px) {
+  .saito-crypto-withdraw .withdraw-paste-btn {
+    display: flex !important;
   }
 
-  .withdraw-overlay__actions button,
-  .withdraw-overlay__actions a {
+  .saito-crypto-withdraw #withdraw-address-cont:not(.fixed-user) > input.saito-input {
+    padding-right: 10rem;
+  }
+
+  .saito-crypto-withdraw .token-picker {
+    max-width: none;
+  }
+
+  .saito-crypto-withdraw .compose-top {
+    grid-template-columns: 1fr;
+    row-gap: var(--saito-space-md);
+  }
+
+  .saito-crypto-withdraw .meta-stack {
+    justify-self: start;
+  }
+
+  .saito-crypto-withdraw .actions button,
+  .saito-crypto-withdraw .actions a {
     flex: 1 1 100%;
     max-width: 100%;
   }
@@ -1766,8 +1467,8 @@ button.withdraw-options-cont:hover i {
   max-width: 95vw;
   align-items: center;
 
-  color: var(--saito-crypto-transfer-fg);
-  background: var(--saito-crypto-transfer-bg);
+  color: var(--saito-crypto-transfer-foreground);
+  background: var(--saito-crypto-transfer-background);
   border-radius: var(--saito-radius-lg);
   display: flex;
   flex-direction: column;
@@ -1778,8 +1479,8 @@ button.withdraw-options-cont:hover i {
 }
 
 .saito-crypto-transfer .token-dropdown {
-  color: var(--saito-crypto-transfer-fg);
-  background: var(--saito-crypto-transfer-bg);
+  color: var(--saito-crypto-transfer-foreground);
+  background: var(--saito-crypto-transfer-background);
 }
 
 .saito-overlay:has(.saito-crypto-transfer) {
@@ -1792,7 +1493,7 @@ button.withdraw-options-cont:hover i {
 }
 
 input[type='checkbox'].ignore-checkbox {
-  border: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
+  border: 1px solid var(--saito-crypto-transfer-border);
   vertical-align: bottom;
   position: relative;
 }
@@ -1822,7 +1523,7 @@ input[type='checkbox'].ignore-checkbox {
 .stake-input-error {
   position: absolute;
   display: none;
-  color: var(--saito-status-danger);
+  color: var(--saito-destructive);
   font-size: 1.6rem;
   top: 105%;
   left: 1rem;
@@ -1836,9 +1537,9 @@ input[type='checkbox'].ignore-checkbox {
 .saito-crypto-transfer .stake {
   background: none;
   border: none;
-  color: var(--saito-crypto-transfer-fg);
+  color: var(--saito-crypto-transfer-foreground);
   border-radius: 0;
-  border-bottom: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
+  border-bottom: 1px solid var(--saito-crypto-transfer-border);
   text-align: center;
   padding: 1rem;
   font-size: 4rem;
@@ -1882,8 +1583,8 @@ input[type='checkbox'].ignore-checkbox {
 
 .crypto-transfer-btn.secondary {
   background: none;
-  color: var(--saito-crypto-transfer-fg);
-  border: var(--border-thickness-thin) solid var(--saito-crypto-transfer-border);
+  color: var(--saito-crypto-transfer-foreground);
+  border: 1px solid var(--saito-crypto-transfer-border);
 }
 
 #cryptoManagerFeedback {
@@ -1966,8 +1667,8 @@ input[type='checkbox'].ignore-checkbox {
   height: 18rem;
   width: 18rem;
   border: 1rem solid var(--saito-white);
-  border-radius: var(--saito-border-radius);
-  background: var(--saito-background-color);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
   visibility: inherit;
 }
 .saito-crypto-transfer .spinner {
@@ -2002,7 +1703,7 @@ input[type='checkbox'].ignore-checkbox {
 }
 
 .saito-crypto-transfer .counterparty-details .saito-user > .saito-address {
-  color: var(--saito-crypto-transfer-fg);
+  color: var(--saito-crypto-transfer-foreground);
   font-size: 1.2em;
 }
 
@@ -2218,19 +1919,8 @@ input[type='checkbox'].ignore-checkbox {
   display: flex;
   position: relative;
   padding: 0 0.5rem;
-  border-radius: var(--saito-border-radius);
-  /*
-  unapplied experiment
-   border: 1px solid
-    color-mix(in srgb, var(--saito-border-color) 50%, var(--saito-font-color-heavy) 50%);*/
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
   gap: 0.25rem;
   align-items: center;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--saito-background-color) 88%, var(--saito-primary) 12%),
-    color-mix(in srgb, var(--saito-background-color) 96%, black)
-  );
 }
 .withdraw-logo-cont {
   position: relative;
@@ -2265,193 +1955,9 @@ input[type='checkbox'].ignore-checkbox {
   font-size: 1.8rem;
   text-align: center;
 }
-/* Hidden native select + custom token menu (withdraw overlay) */
-.token-dropdown select.hide-element,
-.withdraw-select-crypto.hide-element {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  border: none !important;
-  clip: rect(0, 0, 0, 0);
-}
-.withdraw-token-custom {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-}
-.withdraw-token-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  width: 100%;
-  min-height: 45px;
-  padding: 0.5rem 0.75rem;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 1.8rem;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: var(--saito-border-radius);
-}
-.withdraw-token-trigger #withdraw-token-trigger-ticker {
-  display: inline-flex;
-  align-items: center;
-  line-height: 1.15;
-}
-.withdraw-token-trigger-caret {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 1.1rem;
-  line-height: 1;
-  opacity: 0.85;
-}
-.withdraw-token-menu {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 1px);
-  z-index: 120;
-  margin: 0;
-  padding: 0.25rem 0;
-  list-style: none;
-  max-height: 16rem;
-  overflow-y: auto;
-  background: color-mix(in srgb, var(--saito-background-color) 82%, black);
-  color: var(--saito-font-color);
-  border: 1px solid
-    color-mix(in srgb, var(--saito-border-color) 45%, var(--saito-font-color-heavy) 55%);
-  border-radius: var(--saito-border-radius);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--saito-border-color) 60%, transparent),
-    0 10px 28px rgba(0, 0, 0, 0.38);
-}
-.withdraw-token-option {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.38rem 0.6rem;
-  min-height: 2.75rem;
-  cursor: pointer;
-}
-.withdraw-token-option:hover {
-  background: color-mix(in srgb, var(--saito-primary) 9%, transparent);
-}
-.withdraw-token-option[aria-selected='true'] {
-  background: color-mix(in srgb, var(--saito-primary) 6%, transparent);
-}
-.withdraw-token-option-logo {
-  width: 2.2rem;
-  height: 2.2rem;
-  flex-shrink: 0;
-  border-radius: 50%;
-  object-fit: cover;
-}
-.withdraw-token-option-chain {
-  width: 1.45rem;
-  height: 1.45rem;
-  flex-shrink: 0;
-  align-self: center;
-  border-radius: 50%;
-  object-fit: cover;
-}
-.withdraw-token-option-ticker {
-  font-size: 1.45rem;
-  font-weight: 600;
-  line-height: 1.1;
-  display: inline-flex;
-  align-items: center;
-}
-.withdraw-input-cont {
-  background: var(--saito-background-color);
-  border: var(--border-thickness-thin) solid var(--saito-border-color);
-  display: grid;
-  grid-template-columns: 1fr min-content;
-  align-items: center;
-}
-.withdraw-input-cont.fixed-user {
-  grid-template-columns: min-content 1fr;
-}
-.saito-overlay-form-field .withdraw-input-cont input {
-  border: none;
-  outline: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 99%;
-  autocomplete: off;
-  background-color: var(--saito-background-color) !important;
-}
-/* Hide arrows, Chrome, Safari, Edge, Opera */
-.saito-overlay-form-field input::-webkit-outer-spin-button,
-.saito-overlay-form-field input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-/* Firefox */
-.saito-overlay-form-field input[type='number'] {
-  -moz-appearance: textfield;
-}
-/* Fully override Chrome's autofill styling */
-.saito-overlay-form-field input:-webkit-autofill,
-.saito-overlay-form-field input:-webkit-autofill:hover,
-.saito-overlay-form-field input:-webkit-autofill:focus,
-.saito-overlay-form-field input:-webkit-autofill:active {
-  -webkit-text-fill-color: var(--saito-font-color) !important;
-  caret-color: var(--saito-primary) !important;
-  background-color: var(--saito-background-color) !important;
-  border: none !important;
-  outline: none !important;
-  -webkit-box-shadow: 0 0 0px 1000px var(--saito-background-color) inset !important;
-  box-shadow: 0 0 0px 1000px var(--saito-background-color) inset !important;
-}
-.withdraw-options-cont,
-.withdraw-input-cont > i {
-  cursor: pointer;
-  padding: 1rem;
-  margin-left: 0.5rem;
-  font-size: 2rem;
-}
-.withdraw-options-cont {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.withdraw-options-cont:hover {
-  font-weight: bold;
-}
-.withdraw-options-cont:hover i {
-  transform: scale(1.15);
-}
-.withdraw-options-cont span {
-  font-size: 1.6rem;
-}
-.withdraw-input-cont.fixed-user .withdraw-options-cont {
-  display: none;
-}
 .saito-overlay-form-submit,
 .saito-overlay-form-subtext {
   grid-column: span 2;
-}
-.input-elements-container {
-  gap: 1rem;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: flex-start;
-  align-content: flex-start;
-  overflow: auto;
-  flex-direction: row;
-}
-.input-elements-container .saito-overlay-form-field {
-  width: 100%;
 }
 /* Withdraw: right-aligned Send + clearer button definition */
 .hide-element {
@@ -2481,18 +1987,8 @@ input[type='checkbox'].ignore-checkbox {
   margin: 0;
   max-width: fit-content;
 }
-#withdraw-step-one {
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
-}
-#withdraw-step-two {
-  gap: 3rem;
-  display: flex;
-  flex-direction: column;
-}
 .saito-history-msg {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 /********************************************
  * 
@@ -2500,18 +1996,6 @@ input[type='checkbox'].ignore-checkbox {
 /* Moved from saito-table.css / saito-base.css */
 .crypto-timestamp {
   font-family: var(--saito-font-monospace);
-}
-
-:where(.withdraw-input-cont):focus-within {
-  outline: none !important;
-  border-color: var(--saito-input-border) !important;
-  background-color: var(--saito-input-bg) !important;
-  box-shadow: var(--saito-input-shadow) !important;
-}
-
-.saito-overlay-form .token-dropdown {
-  color: var(--saito-font-color);
-  background: var(--saito-background-color);
 }
 
 .crypto-logo-container {
@@ -2528,7 +2012,7 @@ input[type='checkbox'].ignore-checkbox {
 .crypto-logo-container .crypto-logo {
   height: 4rem;
   width: 4rem;
-  border: 3px solid var(--saito-button-secondary-fg);
+  border: 3px solid var(--saito-button-secondary-foreground);
   border-radius: 50%;
 }
 
@@ -2540,39 +2024,23 @@ input[type='checkbox'].ignore-checkbox {
   right: 8%;
 }
 
-.withdraw-input-cont .withdraw-qr-scan-btn {
-  display: none !important;
-}
-
 @media screen and (max-width: 768px) {
   #withdraw-address-cont:not(.fixed-user) {
-    grid-template-columns: minmax(0, 1fr) repeat(2, min-content);
-  }
-
-  #withdraw-address-cont button.withdraw-options-cont {
-    width: 4rem;
-    min-width: 4rem;
-    margin: 0;
-    padding: 0;
-    font-size: 1.7rem;
-  }
-
-  #withdraw-address-cont .withdraw-qr-scan-btn {
-    display: flex !important;
+    flex-wrap: wrap;
   }
 
   .saito-crypto-details .main-balance {
-      position: relative;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 1rem;
-      justify-content: center;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    justify-content: center;
   }
 }
 
 @media screen and (max-width: 520px) {
   #withdraw-address-cont:not(.fixed-user) {
-    grid-template-columns: minmax(0, 1fr) repeat(3, min-content);
+    flex-wrap: wrap;
   }
 }

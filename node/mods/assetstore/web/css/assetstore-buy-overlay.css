@@ -1,30 +1,27 @@
-
 .assetstore-nft-data {
-    display: flex;
-    flex-direction: row;
-    column-gap: 2rem;
-    max-height: 60vh;
-    overflow-y: scroll;
+  display: flex;
+  flex-direction: row;
+  column-gap: 2rem;
+  max-height: 60vh;
+  overflow-y: scroll;
 }
 
 .assetstore-nft-data .nft-details-left {
-    width: 50%;
+  width: 50%;
 }
 
 .assetstore-nft-data .nft-details-right {
-    width: 50%;
-    overflow-y: scroll;
+  width: 50%;
+  overflow-y: scroll;
 }
 
 .nft-details-right .store-card-title {
-    font-size: 2.4rem;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+  font-size: 2.4rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 
 .nft-details-right .store-card-description {
-    font-size: 1.6rem;
-    line-height: 2.5rem;
+  font-size: 1.6rem;
+  line-height: 2.5rem;
 }
-
-

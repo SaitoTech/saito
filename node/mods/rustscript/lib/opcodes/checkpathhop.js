@@ -47,7 +47,11 @@ module.exports = {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {
       return false;
     }
-    if (!context.app || !context.app.crypto || typeof context.app.crypto.verifyRoutingPath !== 'function') {
+    if (
+      !context.app ||
+      !context.app.crypto ||
+      typeof context.app.crypto.verifyRoutingPath !== 'function'
+    ) {
       return false;
     }
 
@@ -71,9 +75,7 @@ module.exports = {
       binding_hash = '';
     }
 
-    if (
-      context.app.crypto.verifyRoutingPath(path, start_publickey, binding_hash) !== true
-    ) {
+    if (context.app.crypto.verifyRoutingPath(path, start_publickey, binding_hash) !== true) {
       return false;
     }
 

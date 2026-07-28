@@ -3,10 +3,8 @@ const TweetHeaderTemplate = require('../../tweet-header.template');
 
 module.exports = (compose) => {
   const mode = compose.mode || 'post';
-  const ariaLabel =
-    mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Compose post';
-  const submitLabel =
-    mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Post';
+  const ariaLabel = mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Compose post';
+  const submitLabel = mode === 'retweet' ? 'Retweet' : mode === 'reply' ? 'Reply' : 'Post';
 
   let replyPreview = '';
 
@@ -51,9 +49,34 @@ module.exports = (compose) => {
                 maxlength="${compose.char_limit}"
               ></textarea>
 
-              <div class="gif-placeholder" aria-hidden="true">
-                <p>GIF search is coming soon.</p>
-                <span class="gif-dismiss" role="button" tabindex="0">Dismiss</span>
+              <div class="compose-picker emoji-picker-panel" aria-hidden="true">
+                <div class="compose-picker-header">
+                  <span>Choose Emoji</span>
+                  <button
+                    class="compose-picker-close"
+                    type="button"
+                    aria-label="Close emoji picker"
+                  >
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+                <div class="emoji-picker-host">
+                  <emoji-picker class="compose-emoji-picker"></emoji-picker>
+                </div>
+              </div>
+
+              <div class="compose-picker gif-picker-panel" aria-hidden="true">
+                <div class="compose-picker-header">
+                  <span>Choose GIF</span>
+                  <button
+                    class="compose-picker-close"
+                    type="button"
+                    aria-label="Close GIF picker"
+                  >
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+                <div class="gif-picker-content"></div>
               </div>
 
               <div class="image-preview"></div>
@@ -82,7 +105,7 @@ module.exports = (compose) => {
             <span class="max">${compose.char_limit}</span>
           </div>
 
-          <button class="submit saito-button-primary" type="button">
+          <button class="submit saito-button-primary compact" type="button">
             <span class="label">${submitLabel}</span>
             <span class="spinner" aria-hidden="true"></span>
           </button>
@@ -97,7 +120,7 @@ module.exports = (compose) => {
       </div>
 
       <input
-        class="file-input"
+        class="file-input treated"
         type="file"
         accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
         hidden

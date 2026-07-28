@@ -26,15 +26,15 @@ module.exports = (app, mod) => {
 
   return `
 <div class="saito-nft-create">
-  <header class="header">
-    <h2 class="title">Create Saito NFT</h2>
+  <header class="saito-overlay-form-header">
+    <h2 class="saito-overlay-form-header-title" id="create-nft-overlay-title">Create NFT</h2>
   </header>
 
   <div class="body">
     <section class="primary">
-      <div class="create-nft-field-row">
-        <div class="create-nft-field create-nft-field-start">
-          <label class="label" for="create-nft-type-dropdown">NFT Type</label>
+      <div class="field-row">
+        <div class="field field-type">
+          <label class="label" for="create-nft-type-dropdown">nft type</label>
           <select id="create-nft-type-dropdown" class="saito-form-select">
             <option value="image">Image</option>
             <option value="token">Token</option>
@@ -44,8 +44,8 @@ module.exports = (app, mod) => {
             <option value="js">Javascript</option>
           </select>
         </div>
-        <div class="create-nft-field">
-          <label class="label" for="create-nft-amount">Quantity</label>
+        <div class="field">
+          <label class="label" for="create-nft-amount">quantity</label>
           <input class="saito-input"
             type="text"
             inputmode="numeric"
@@ -55,49 +55,53 @@ module.exports = (app, mod) => {
             value="1"
           />
         </div>
-        <div class="create-nft-field">
-          <label class="label" for="create-nft-deposit">Deposit</label>
-          <input class="saito-input"
-            type="text"
-            inputmode="numeric"
-            pattern="\\d*"
-            placeholder="1"
-            oninput="this.value = this.value.replace(/\\D+/g, '')"
-            id="create-nft-deposit"
-            value="1"
-          />
+        <div class="field">
+          <label class="label" for="create-nft-deposit">deposit</label>
+          <div class="create-nft-deposit-wrap is-locked" id="create-nft-deposit-wrap">
+            <input class="saito-input"
+              type="text"
+              inputmode="numeric"
+              pattern="\\d*"
+              placeholder="1"
+              oninput="this.value = this.value.replace(/\\D+/g, '')"
+              id="create-nft-deposit"
+              value="1"
+              readonly
+              aria-describedby="create-nft-deposit-lock"
+            />
+            <i class="fa-solid fa-lock create-nft-deposit-lock" id="create-nft-deposit-lock" aria-hidden="true" title="Default deposit"></i>
+          </div>
         </div>
       </div>
 
       <div class="upload">
         <div class="saito-app-upload active-tab paste_event" id="nft-image-upload">
-          <i class="fa-solid fa-file-image"></i>
-          <div>drag-and-drop image to upload</div>
+          <i class="fa-solid fa-file-image" aria-hidden="true"></i>
+          <div class="upload-hint">drag-and-drop image to upload</div>
         </div>
         <textarea id="create-nft-textarea" class="saito-textarea"></textarea>
       </div>
 
       <footer class="footer">
-        <div class="saito-anchor" id="create-nft-help-link"><span>need help?</span></div>
         <div class="get-saito-tokens"></div>
-        <button id="next-step" class="saito-button-primary">Next Step</button>
+        <button type="button" id="next-step" class="saito-button-primary">Next Step</button>
       </footer>
     </section>
 
     <section class="secondary">
       <div class="create-nft-fields">
-        <label class="label" for="create-nft-title">Title</label>
+        <label class="label" for="create-nft-title">title</label>
         <input type="text" id="create-nft-title" class="title saito-input" placeholder="${title}" />
 
-        <label class="label ticker" for="create-nft-ticker">Ticker</label>
+        <label class="label ticker" for="create-nft-ticker">ticker</label>
         <input type="text" id="create-nft-ticker" class="ticker saito-input" placeholder="optional" />
 
-        <label class="label" for="create-nft-description">Description</label>
+        <label class="label" for="create-nft-description">description</label>
         <textarea id="create-nft-description" class="description saito-textarea" rows="4" placeholder="description (optional)"></textarea>
       </div>
 
       <footer class="footer">
-        <button type="button" id="back-btn" class="saito-nft-create-back-btn" aria-label="Back">
+        <button type="button" id="back-btn" class="saito-button-square" aria-label="Back">
           <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
         </button>
         <button type="button" id="create_nft" class="saito-button-primary">Confirm</button>

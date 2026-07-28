@@ -16,8 +16,7 @@ module.exports = (menu) => {
       `
     : '';
 
-  // Chat list UI stays in the Chat module (`.sidebar-left > .chat-manager`).
-  // Mobile opens the existing chat-manager overlay — no duplicate chat UI here.
+  // Chat owns its UI; RedSquare only provides its desktop and mobile containers.
   return `
     <nav class="menu">
       <ul class="list saito-menu-select-subtle">

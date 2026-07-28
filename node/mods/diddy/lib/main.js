@@ -24,14 +24,14 @@ class DiddyMain {
       // console.log("Rendering DiddyMain...");
       // console.log("Energy from backend:", this.mod.diddy.energy, "/", this.mod.diddy.maxEnergy);
 
-      document.querySelector(".text-number").innerHTML = this.mod.diddy.count;
+      document.querySelector('.text-number').innerHTML = this.mod.diddy.count;
 
       const levelElement = document.getElementById('level');
       if (levelElement) {
         levelElement.innerHTML = `Level ${this.mod.diddy.level}`;
       }
 
-      const energyElement = document.getElementById("energy");
+      const energyElement = document.getElementById('energy');
       if (energyElement) {
         energyElement.innerText = `${this.mod.diddy.energy} / ${this.mod.diddy.maxEnergy}`;
       } else {
@@ -42,20 +42,20 @@ class DiddyMain {
     }
 
     this.attachEvents();
-    this.startRecharge(); 
+    this.startRecharge();
   }
 
   attachEvents() {
-    const characterImage = document.getElementById("character-image");
+    const characterImage = document.getElementById('character-image');
     if (characterImage) {
       characterImage.onclick = () => this.clickCoinButton();
     }
 
-    const walletButtonContainer = document.querySelector(".wallet-button-container");
+    const walletButtonContainer = document.querySelector('.wallet-button-container');
     if (walletButtonContainer) {
       walletButtonContainer.onclick = () => {
         // console.log("Wallet button container clicked!");
-        const saitoHeaderMenuToggle = document.getElementById("saito-header-menu-toggle");
+        const saitoHeaderMenuToggle = document.getElementById('saito-header-menu-toggle');
         if (saitoHeaderMenuToggle) {
           saitoHeaderMenuToggle.click();
           // console.log("Saito header menu toggle clicked successfully.");
@@ -66,7 +66,7 @@ class DiddyMain {
     } else {
       // console.error("Wallet button container not found in the DOM.");
     }
-}
+  }
 
   async clickCoinButton() {
     // console.log("Coin button clicked!");
@@ -101,7 +101,7 @@ class DiddyMain {
       levelElement.innerHTML = `Level ${this.mod.diddy.level}`;
     }
 
-    const energyElement = document.getElementById("energy");
+    const energyElement = document.getElementById('energy');
     if (energyElement) {
       energyElement.innerText = `${this.mod.diddy.energy} / ${this.mod.diddy.maxEnergy}`;
     }
@@ -114,7 +114,7 @@ class DiddyMain {
 
   startRecharge() {
     if (this.rechargeInterval) {
-      clearInterval(this.rechargeInterval); 
+      clearInterval(this.rechargeInterval);
     }
 
     let fractionalEnergy = 0;

@@ -63,9 +63,7 @@ class Notification {
       this.tweet_signature = data.signature != null ? String(data.signature) : '';
     } else if (txmsg.request === 'create tweet') {
       const mentions = data.mentions;
-      const hasMention = Array.isArray(mentions)
-        ? mentions.length > 0
-        : Boolean(mentions);
+      const hasMention = Array.isArray(mentions) ? mentions.length > 0 : Boolean(mentions);
 
       if (hasMention) {
         this.type = 'mention';

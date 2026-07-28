@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	return `
+  return `
       <div class="lessons">
         <div class="popup-intersection" id="popup-intersection"></div>
       </div>

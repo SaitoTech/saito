@@ -1,7 +1,7 @@
 module.exports = (input_self) => {
   let keys = input_self.findKeyOrIdentifier();
 
-  let contacts = `<div class="saito-input-contact-list">`;
+  let contacts = `<div class="saito-input-contact-list saito-overlay-panel compact">`;
 
   for (let key of keys) {
     //

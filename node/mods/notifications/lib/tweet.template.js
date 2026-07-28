@@ -1,20 +1,17 @@
 module.exports = (tweet) => {
-	const bridge_down = tweet.tx && tweet.tx.msg && tweet.tx.msg.bridge_down;
-	const threadClasses = `${tweet.parent_id ? ' has_parent' : ''}${bridge_down ? ' has_child' : ''}`;
-	const media_block =
-		tweet.media.length > 0
-			? `<div class="media">${tweet.media
-					.map(
-						(src) =>
-							`<img src="${src}" alt="" loading="lazy" />`
-					)
-					.join('')}</div>`
-			: '';
-	const link_block = tweet.link
-		? `<div class="link"><a href="${tweet.link}" target="_blank" rel="noreferrer noopener">${tweet.link}</a></div>`
-		: '';
+  const bridge_down = tweet.tx && tweet.tx.msg && tweet.tx.msg.bridge_down;
+  const threadClasses = `${tweet.parent_id ? ' has_parent' : ''}${bridge_down ? ' has_child' : ''}`;
+  const media_block =
+    tweet.media.length > 0
+      ? `<div class="media">${tweet.media
+          .map((src) => `<img src="${src}" alt="" loading="lazy" />`)
+          .join('')}</div>`
+      : '';
+  const link_block = tweet.link
+    ? `<div class="link"><a href="${tweet.link}" target="_blank" rel="noreferrer noopener">${tweet.link}</a></div>`
+    : '';
 
-	return `
+  return `
     <div class="tweet${threadClasses}" data-id="${tweet.signature}">
       <div class="header">
         <div class="avatar"></div>

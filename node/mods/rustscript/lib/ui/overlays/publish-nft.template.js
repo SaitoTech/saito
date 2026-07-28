@@ -23,36 +23,33 @@ module.exports = {
   sendOverlay({ p2shAddress, fee, selectedSummary = '' }) {
     const formFieldsHtml = `
       <label class="rs-publish-field">
-        <span class="rs-publish-field-label">Script Hash</span>
+        <span class="rs-overlay-label rs-publish-field-label">Script Hash</span>
         <div class="rs-publish-input-copy-row">
           <input type="text" class="saito-input rs-publish-input rs-publish-address" readonly value="${p2shAddress}" spellcheck="false" />
-          <button type="button" class="rs-publish-copy-btn" data-action="publish-copy-hash" title="Copy script hash" aria-label="Copy script hash">
-            <i class="fa-solid fa-copy rs-publish-copy-icon" aria-hidden="true"></i>
+          <button type="button" class="rs-copy-btn rs-publish-copy-btn" data-action="publish-copy-hash" title="Copy script hash" aria-label="Copy script hash">
+            <i class="fa-solid fa-copy" aria-hidden="true"></i>
           </button>
         </div>
       </label>
       <div class="rs-publish-field">
-        <span class="rs-publish-field-label">Selected NFT</span>
+        <span class="rs-overlay-label rs-publish-field-label">Selected NFT</span>
         <div class="rs-publish-nft-selected-slot">
           ${selectedSummary || selectedNftSummaryHtml({})}
         </div>
       </div>
       <div class="rs-publish-field">
-        <span class="rs-publish-field-label">NFT Units</span>
+        <span class="rs-overlay-label rs-publish-field-label">NFT Units</span>
         <div class="rs-publish-nft-amount-row">
           <input type="text" class="saito-input rs-publish-input rs-publish-nft-amount" inputmode="numeric" value="1" spellcheck="false" disabled />
           <button type="button" class="rs-btn rs-btn-secondary rs-publish-nft-max-btn" data-action="publish-nft-max" disabled>MAX</button>
         </div>
       </div>
       <label class="rs-publish-field">
-        <span class="rs-publish-field-label">Fee (SAITO)</span>
+        <span class="rs-overlay-label rs-publish-field-label">Fee (SAITO)</span>
         <input type="text" class="saito-input rs-publish-input rs-publish-fee" inputmode="decimal" value="${fee}" spellcheck="false" />
       </label>`;
 
-    const leftPanelHtml = `
-      <div class="rs-publish-nft-list-panel">
-        <div class="rs-publish-nft-list send-nft-list"></div>
-      </div>`;
+    const leftPanelHtml = `<div class="rs-publish-nft-list send-nft-list"></div>`;
 
     return buildSendPanelOverlay({
       extraRootClass: 'rs-publish-nft-send',

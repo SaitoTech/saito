@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
 
 .saito-header-logo {
         background-color: green;

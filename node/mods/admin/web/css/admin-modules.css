@@ -28,8 +28,6 @@
   font-size: 14px;
 }
 
-
-
 .mod-config-table {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -54,36 +52,41 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s, background 0.15s;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s,
+    background 0.15s;
   padding: 10px 12px;
   border-radius: 8px;
 }
 
-
 .mod-config-table label::before {
-  content: "";
+  content: '';
   width: 18px;
   height: 18px;
   border-radius: 4px;
   background: #ffffff;
   border: 1px solid #cfd4d9;
   flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .mod-config-table label:hover {
   transform: translateY(-2px);
   border-color: #c8d6cc;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
-.mod-config-table input[type="checkbox"]:checked + label {
+.mod-config-table input[type='checkbox']:checked + label {
   background: #f5fbf7;
   border-color: #4caf50;
-  box-shadow: 0 0 0 1px rgba(76,175,80,0.25);
+  box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.25);
 }
 
-.mod-config-table input[type="checkbox"]:checked + label::before {
+.mod-config-table input[type='checkbox']:checked + label::before {
   background: #4caf50;
   border-color: #4caf50;
 }
@@ -133,4 +136,3 @@
     box-shadow: none;
   }
 }
-

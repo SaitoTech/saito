@@ -1,131 +1,117 @@
 /*
- * RustScript NFT publish overlay — reuses publish send grid + saito-nft card styles.
+ * .rs-publish-nft-send — NFT publish variant
  */
 
-body:has(.saito-container.rustscript) .rs-publish-nft-send .rs-publish-send-nft-list {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-}
-
-body:has(.saito-container.rustscript) .rs-publish-nft-list-panel {
-  flex: 1 1 auto;
+.rs-publish-send-nft-list {
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
   height: 100%;
-  border-radius: var(--rs-control-radius-chrome);
-  background: #0c0c0c;
   overflow: hidden;
+  background: #0c0c0c;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-list {
+.rs-publish-nft-list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 10px 12px;
-  box-sizing: border-box;
+  padding: var(--saito-space-md);
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-list .saito-nft-card {
+.rs-publish-nft-list .saito-nft-card {
   cursor: pointer;
-  margin-bottom: 10px;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-list .saito-nft-card.is-selected {
-  border-color: rgba(98, 192, 112, 0.65);
-  box-shadow: inset 0 0 0 1px rgba(98, 192, 112, 0.35);
+.rs-publish-nft-list .saito-nft-card.is-selected {
+  border-color: rgba(63, 143, 76, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(63, 143, 76, 0.3);
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-empty {
-  padding: 24px 16px;
-  color: #999;
-  font-size: 15px;
-  line-height: 1.45;
+.rs-publish-nft-empty {
+  padding: var(--saito-space-xl) var(--saito-space-lg);
+  color: #888;
   text-align: center;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-selected {
+.rs-publish-nft-selected {
   display: flex;
-  gap: 12px;
+  gap: var(--saito-space-md);
   align-items: flex-start;
-  padding: 10px 12px;
+  padding: var(--saito-space-md);
+  min-height: 0;
   border: 1px solid #333;
-  border-radius: var(--rs-control-radius-chrome);
+  border-radius: 4px;
   background: #0a0a0a;
-  min-height: 72px;
-  box-sizing: border-box;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-selected-thumb {
-  flex: 0 0 56px;
-  width: 56px;
-  height: 56px;
+.rs-publish-nft-selected-thumb {
+  flex: 0 0 5.2rem;
+  width: 5.2rem;
+  height: 5.2rem;
   border-radius: 4px;
   background: #181818 center / cover no-repeat;
   border: 1px solid #333;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-selected-meta {
+.rs-publish-nft-selected-meta {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-selected-title {
-  font-size: 15px;
-  font-weight: 600;
+.rs-publish-nft-selected-title {
+  font-weight: 500;
+  line-height: 1.35;
+  margin: 0 0 var(--saito-space-xs);
   color: #f0f0f0;
-  margin-bottom: 6px;
   word-break: break-word;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-selected-row {
+.rs-publish-nft-selected-row {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 13px;
+  gap: var(--saito-space-sm);
+  font-size: var(--font-size-tiny);
   line-height: 1.4;
-  margin-bottom: 2px;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-selected-label {
+.rs-publish-nft-selected-label {
   color: #888;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-selected-value {
-  color: #ddd;
+.rs-publish-nft-selected-value {
+  color: #d0d0d0;
   text-align: right;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-amount-row {
+.rs-publish-nft-amount-row {
   display: flex;
-  gap: 8px;
+  gap: 0;
   align-items: stretch;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-amount-row .rs-publish-nft-amount {
+.rs-publish-nft-amount-row .rs-publish-nft-amount {
   flex: 1 1 auto;
   min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-max-btn {
+.rs-publish-nft-amount-row .rs-publish-nft-max-btn {
   flex: 0 0 auto;
-  min-width: 64px;
-  height: var(--rs-control-height);
+  align-self: stretch;
+  min-width: 6rem;
+  height: auto;
   min-height: var(--rs-control-height);
-  padding: 0 14px;
-  box-sizing: border-box;
-  box-shadow: none !important;
+  padding: 0 var(--saito-space-md);
+  border-radius: 0 4px 4px 0;
+  border-left: none;
 }
 
-body:has(.saito-container.rustscript) .rs-publish-nft-send .rs-publish-go-btn:disabled {
+.rs-publish-nft-send .rs-publish-go-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-body:has(.saito-container.rustscript) .rs-publish-nft-send .rs-publish-go-btn.is-active:not(:disabled) {
-  opacity: 1;
 }

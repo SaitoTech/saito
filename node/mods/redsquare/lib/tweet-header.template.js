@@ -51,9 +51,7 @@ module.exports = ({
 
   if (resolvedMode === 'expanded') {
     const timeHtml = time ? `<time class="time saito-userline">${time}</time>` : '';
-    const handleHtml = handle
-      ? `<span class="handle saito-userline">${handle}</span>`
-      : '';
+    const handleHtml = handle ? `<span class="handle saito-userline">${handle}</span>` : '';
 
     // Identity owns name, time, and key. Body is a sibling — never a time host.
     return `

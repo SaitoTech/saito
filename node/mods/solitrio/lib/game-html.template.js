@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	return `
+  return `
 			<div class="gameboard">
 			<div class="logobox">
 				<img src="/solitrio/img/logo_solitrio_small.png" />
@@ -55,4 +55,4 @@ module.exports = (app, mod) => {
 			</div>
 		</div>
 `;
-}
+};

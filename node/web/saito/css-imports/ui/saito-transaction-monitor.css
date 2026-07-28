@@ -1,0 +1,107 @@
+/* Namespace: .saito-transaction-monitor */
+
+.saito-transaction-monitor {
+	width: min(92vw, 36rem);
+	max-width: 100%;
+	max-height: min(90dvh, 40rem);
+	overflow: auto;
+	padding: var(--saito-space-xxl) var(--saito-space-xl);
+	box-sizing: border-box;
+	-webkit-overflow-scrolling: touch;
+}
+
+.saito-transaction-monitor .stack {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--saito-space-md);
+	text-align: center;
+	min-width: 0;
+}
+
+.saito-transaction-monitor .title {
+	margin: 0;
+	font-size: 2rem;
+	font-family: var(--saito-font-medium);
+	letter-spacing: -0.01em;
+}
+
+.saito-transaction-monitor .lead,
+.saito-transaction-monitor .subtitle {
+	margin: 0;
+	max-width: 28rem;
+	font-size: var(--font-size-medium);
+	line-height: 1.5;
+	color: var(--saito-muted-foreground);
+	overflow-wrap: anywhere;
+}
+
+.saito-transaction-monitor .subtitle {
+	min-height: 3em;
+}
+
+.saito-transaction-monitor .saito-spinner {
+	width: 4rem;
+	min-width: 4rem;
+	margin-bottom: var(--saito-space-sm);
+}
+
+.saito-transaction-monitor .timer {
+	width: 100%;
+	max-width: 18rem;
+	margin-top: var(--saito-space-lg);
+	padding-top: var(--saito-space-lg);
+	border-top: 1px solid var(--saito-border);
+}
+
+.saito-transaction-monitor .timer-label,
+.saito-transaction-monitor .timer-unit {
+	display: block;
+	font-size: var(--font-size-tiny);
+	letter-spacing: 0.04em;
+	text-transform: lowercase;
+	color: var(--saito-muted-foreground);
+}
+
+.saito-transaction-monitor .countdown {
+	display: inline-block;
+	margin: var(--saito-space-sm) 0;
+	font-size: 2.5rem;
+	font-family: var(--saito-font-heavy);
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+}
+
+.saito-transaction-monitor .success {
+	margin-bottom: var(--saito-space-xs);
+	color: var(--saito-status-success);
+	font-size: 5rem;
+	line-height: 1;
+}
+
+.saito-transaction-monitor .stack > .saito-button-primary {
+	margin-top: var(--saito-space-lg);
+	min-width: 10rem;
+	min-height: 2.75rem;
+}
+
+@media (max-width: 600px) {
+	.saito-transaction-monitor {
+		width: min(100vw, 36rem);
+		max-height: min(88dvh, 40rem);
+		padding: var(--saito-space-xl) var(--saito-space-lg);
+	}
+
+	.saito-transaction-monitor .title {
+		font-size: var(--font-size-large);
+	}
+
+	.saito-transaction-monitor .countdown {
+		font-size: 2rem;
+	}
+
+	.saito-transaction-monitor .stack > .saito-button-primary {
+		width: 100%;
+		min-width: 0;
+	}
+}

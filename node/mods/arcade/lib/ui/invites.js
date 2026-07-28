@@ -26,7 +26,7 @@ class InviteManager {
     //
     // replace element or insert into page (deletes invites for a full refresh)
     //
-    let target = this.container + ' .arcade-invite';
+    let target = this.container + ' .arcade-invites';
 
     if (document.querySelector(target)) {
       this.app.browser.replaceElementBySelector(InviteManagerTemplate(this.app, this.mod), target);

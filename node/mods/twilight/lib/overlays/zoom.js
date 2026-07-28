@@ -2,13 +2,14 @@ const ZoomTemplate = require('./zoom.template');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class ZoomOverlay {
-
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
     this.visible = false;
     this.overlay = new SaitoOverlay(app, mod, false, false, false);
-    this.overlay.callback_on_close = () => { this.visible = false; }
+    this.overlay.callback_on_close = () => {
+      this.visible = false;
+    };
 
     //
     // optional callback when selecting spaces via zoom
@@ -27,7 +28,6 @@ class ZoomOverlay {
   }
 
   render() {
-
     this.visible = true;
 
     this.overlay.show(ZoomTemplate());
@@ -36,7 +36,9 @@ class ZoomOverlay {
     let originalBoard = document.querySelector('#gameboard');
     let boardClone = document.querySelector('.gameboard-clone');
 
-    if (!originalBoard) { return; }
+    if (!originalBoard) {
+      return;
+    }
 
     if (!boardClone) {
       boardClone = originalBoard.cloneNode(true);
@@ -56,15 +58,17 @@ class ZoomOverlay {
   }
 
   attachEvents() {
+    if (!this.mod.countries) {
+      return;
+    }
 
-    if (!this.mod.countries) { return; }
-
-    const jq = (typeof jQuery !== 'undefined') ? jQuery : $;
+    const jq = typeof jQuery !== 'undefined' ? jQuery : $;
 
     for (let key in this.mod.countries) {
-
       let el = document.querySelector(`.zoom-overlay .gameboard-clone .${key}`);
-      if (!el) { continue; }
+      if (!el) {
+        continue;
+      }
 
       const country_id = key;
 
@@ -90,12 +94,15 @@ class ZoomOverlay {
   }
 
   forwardPlacementToGameboard(country_id, jq) {
-
     const board = document.getElementById('gameboard');
-    if (!board || !jq) { return; }
+    if (!board || !jq) {
+      return;
+    }
 
     const real = board.querySelector(`#${country_id}.country`);
-    if (!real) { return; }
+    if (!real) {
+      return;
+    }
 
     const $r = jq(real);
 
@@ -111,52 +118,47 @@ class ZoomOverlay {
     $r.trigger(jq.Event('mouseup', o));
   }
 
-
-  renderAtCountry(countrykey = "") {
-    if (!this.mod.countries || !this.mod.countries[countrykey]) { return; }
+  renderAtCountry(countrykey = '') {
+    if (!this.mod.countries || !this.mod.countries[countrykey]) {
+      return;
+    }
 
     let c = this.mod.countries[countrykey];
     this.renderAtCoordinates(c.top, c.left);
   }
 
+  renderAtCoordinates(x = 0, y = 0) {
+    const scale = 2;
 
+    this.render();
 
-renderAtCoordinates(x = 0, y = 0) {
+    const zoomOverlay = document.querySelector('.zoom-overlay');
+    const board = document.querySelector('.zoom-overlay .gameboard-clone');
 
-  const scale = 2;
+    if (!zoomOverlay || !board) return;
 
-  this.render();
+    const viewportWidth = zoomOverlay.clientWidth;
+    const viewportHeight = zoomOverlay.clientHeight;
 
-  const zoomOverlay = document.querySelector(".zoom-overlay");
-  const board = document.querySelector(".zoom-overlay .gameboard-clone");
+    const boardWidth = board.offsetWidth;
+    const boardHeight = board.offsetHeight;
 
-  if (!zoomOverlay || !board) return;
+    // compute translation in unscaled space
+    let translateX = -(x - viewportWidth / (2 * scale));
+    let translateY = -(y - viewportHeight / (2 * scale));
 
-  const viewportWidth = zoomOverlay.clientWidth;
-  const viewportHeight = zoomOverlay.clientHeight;
+    // clamp in unscaled space
+    const maxX = 0;
+    const maxY = 0;
+    const minX = viewportWidth / scale - boardWidth;
+    const minY = viewportHeight / scale - boardHeight;
 
-  const boardWidth = board.offsetWidth;
-  const boardHeight = board.offsetHeight;
+    translateX = Math.min(maxX, Math.max(translateX, minX));
+    translateY = Math.min(maxY, Math.max(translateY, minY));
 
-  // compute translation in unscaled space
-  let translateX = -(x - viewportWidth / (2 * scale));
-  let translateY = -(y - viewportHeight / (2 * scale));
-
-  // clamp in unscaled space
-  const maxX = 0;
-  const maxY = 0;
-  const minX = viewportWidth / scale - boardWidth;
-  const minY = viewportHeight / scale - boardHeight;
-
-  translateX = Math.min(maxX, Math.max(translateX, minX));
-  translateY = Math.min(maxY, Math.max(translateY, minY));
-
-  board.style.transformOrigin = "top left";
-  board.style.transform =
-    `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
-}
-
-
+    board.style.transformOrigin = 'top left';
+    board.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+  }
 }
 
 module.exports = ZoomOverlay;

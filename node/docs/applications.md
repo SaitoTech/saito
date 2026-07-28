@@ -69,10 +69,10 @@ Wallets. This creates and broadcasts a Saito transaction with this format:
 
 ```javascript
 tx.msg = {
-	module: 'AppStore',
-	request: 'submit module',
-	module_zip: appname.zip,
-	name: appname
+  module: 'AppStore',
+  request: 'submit module',
+  module_zip: appname.zip,
+  name: appname
 };
 ```
 
@@ -90,10 +90,10 @@ name as follows:
 const ModTemplate = require('../../lib/templates/modtemplate');
 
 class ModuleName extends ModTemplate {
-	constructor(app) {
-		super(app);
-		this.name = 'ModuleName';
-	}
+  constructor(app) {
+    super(app);
+    this.name = 'ModuleName';
+  }
 }
 
 module.exports = ModuleName;

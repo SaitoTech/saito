@@ -1,0 +1,93 @@
+/*
+ * .rs-panel-menu — floating ellipsis menu (no boxed chrome)
+ */
+
+.rs-panel-menu {
+  position: relative;
+}
+
+.rs-panel-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #9a9a9a;
+  transition:
+    color 0.12s,
+    background 0.12s;
+}
+
+.rs-panel-menu-trigger:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ddd;
+}
+
+.rustscript-editor-locking .rs-panel-menu-trigger {
+  color: rgba(212, 168, 174, 0.75);
+}
+
+.rustscript-editor-locking .rs-panel-menu-trigger:hover {
+  background: rgba(196, 92, 106, 0.12);
+  color: #e8c0c6;
+}
+
+.rustscript-editor-unlocking .rs-panel-menu-trigger {
+  color: rgba(184, 152, 88, 0.8);
+}
+
+.rustscript-editor-unlocking .rs-panel-menu-trigger:hover {
+  background: rgba(184, 152, 88, 0.12);
+  color: #d0b878;
+}
+
+.rs-panel-menu-trigger-icon {
+  display: block;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.rs-panel-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  min-width: 12.8rem;
+  padding: 0.35rem;
+  z-index: 5;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background: #181818;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.rs-panel-menu-dropdown[hidden] {
+  display: none !important;
+}
+
+.rs-panel-menu-item {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  font-size: var(--font-size-medium);
+  font-weight: 400;
+  line-height: 1.35;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border-radius: 3px;
+  color: #d8d8d8;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.rs-panel-menu-item:hover {
+  background: #242424;
+  color: #fff;
+}

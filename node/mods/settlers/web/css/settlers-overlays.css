@@ -1,30 +1,30 @@
 .game.settlers {
-.settlers-stats-overlay, .trade-overlay,
+  .settlers-stats-overlay, .trade-overlay,
 /*.rules-overlay,*/
 
 .settlers-selection-overlay, .bank-overlay, .dev-card-overlay, .build-overlay {
-	display: flex;
-	flex-direction: column;
-	gap: 2rem;
-	width: 650px;
-	max-width: 99vw;
-	max-height: 90vh;
-	overflow-x: hidden;
-	overflow-y: auto;
-	padding: min(4rem, 3vw, 5vh);
-	-ms-overflow-style: none;
-	/* IE and Edge */
-	scrollbar-width: none;
-	/* Firefox */
-}
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    width: 650px;
+    max-width: 99vw;
+    max-height: 90vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: min(4rem, 3vw, 5vh);
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
 
-.settlers-stats-overlay.winner {
+  .settlers-stats-overlay.winner {
     position: relative;
     background-color: #d3c38d88;
-}
+  }
 
-.settlers-stats-overlay.winner::before {
-	content: '';
+  .settlers-stats-overlay.winner::before {
+    content: '';
     position: absolute;
     width: 100%;
     height: 100%;
@@ -35,734 +35,750 @@
     left: 0;
     top: 0;
     z-index: -1;
-}
+  }
 
-.settlers-selection-overlay {
-	width: min(630px, 95vw);
-	align-items: center;
-}
+  .settlers-selection-overlay {
+    width: min(630px, 95vw);
+    align-items: center;
+  }
 
-.dev-card-overlay {
-	width: unset;
-	max-width: 85vw;
-}
+  .dev-card-overlay {
+    width: unset;
+    max-width: 85vw;
+  }
 
-.brick {
-	background-image: url(/settlers/img/cards/brick.png);
-	background-size: contain;
-	background-repeat: no-repeat;
-}
+  .brick {
+    background-image: url(/settlers/img/cards/brick.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
 
-.wool {
-	background-image: url(/settlers/img/cards/wool.png);
-	background-size: contain;
-	background-repeat: no-repeat;
-}
+  .wool {
+    background-image: url(/settlers/img/cards/wool.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
 
-.wheat {
-	background-image: url(/settlers/img/cards/wheat.png);
-	background-size: contain;
-	background-repeat: no-repeat;
-}
+  .wheat {
+    background-image: url(/settlers/img/cards/wheat.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
 
-.ore {
-	background-image: url(/settlers/img/cards/ore.png);
-	background-size: contain;
-	background-repeat: no-repeat;
-}
+  .ore {
+    background-image: url(/settlers/img/cards/ore.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
 
-.wood {
-	background-image: url(/settlers/img/cards/wood.png);
-	/* background-image: url(/settlers/img/cards/wood7.png); */
-	background-size: contain;
-	background-repeat: no-repeat;
-}
+  .wood {
+    background-image: url(/settlers/img/cards/wood.png);
+    /* background-image: url(/settlers/img/cards/wood7.png); */
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
 
-/*
+  /*
 stats overlay
 */
 
-.settlers-stats-overlay {
-	padding: min(2rem, 1.5vw, 2.5vh);
-	min-height: min(650px, 90vh);
-	width: 700px;
-}
+  .settlers-stats-overlay {
+    padding: min(2rem, 1.5vw, 2.5vh);
+    min-height: min(650px, 90vh);
+    width: 700px;
+  }
 
-.settlers-dice-histogram {
-	border-bottom: 1px solid var(--saito-black);
-	display: flex;
-	justify-content: space-around;
-	align-content: flex-end;
-	flex-wrap: wrap-reverse;
-	margin-top: 1.5rem;
-	min-height: 8rem;
-}
+  .settlers-dice-histogram {
+    border-bottom: 1px solid var(--saito-black);
+    display: flex;
+    justify-content: space-around;
+    align-content: flex-end;
+    flex-wrap: wrap-reverse;
+    margin-top: 1.5rem;
+    min-height: 8rem;
+  }
 
-.hover-hint {
-	cursor: help;
-}
+  .hover-hint {
+    cursor: help;
+  }
 
-.settlers-dice-bar {
-	width: calc(100% / 14);
-	height: 0;
-	background: #ab815f73;
-	border-bottom: none;
-	position: relative;
-}
+  .settlers-dice-bar {
+    width: calc(100% / 14);
+    height: 0;
+    background: #ab815f73;
+    border-bottom: none;
+    position: relative;
+  }
 
-.settlers-dice-bar.has_been_rolled {
-	border: 1px solid #000;
-	box-sizing: content-box;
-}
+  .settlers-dice-bar.has_been_rolled {
+    border: 1px solid #000;
+    box-sizing: content-box;
+  }
 
-.settlers-dice-bar.never_rolled {
-	border: none;
-}
+  .settlers-dice-bar.never_rolled {
+    border: none;
+  }
 
-.settlers-dice-bar.never_rolled .settlers-dice-count {
-	display: none;
-}
+  .settlers-dice-bar.never_rolled .settlers-dice-count {
+    display: none;
+  }
 
-.settlers-dice-count {
-	text-align: center;
-	font-size: 1.8rem;
-	position: absolute;
-	top: -2.3rem;
-	left: 50%;
-	transform: translateX(-50%);
-}
+  .settlers-dice-count {
+    text-align: center;
+    font-size: 1.8rem;
+    position: absolute;
+    top: -2.3rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 
-.settlers-dice-number {
-	width: calc(100% / 14);
-	text-align: center;
-	font-weight: bold;
-}
+  .settlers-dice-number {
+    width: calc(100% / 14);
+    text-align: center;
+    font-weight: bold;
+  }
 
-.settlers-number {
-	width: calc(100% / 14);
-	text-align: center;
-}
+  .settlers-number {
+    width: calc(100% / 14);
+    text-align: center;
+  }
 
-.settlers-dice-numbers {
-	display: flex;
-	justify-content: space-around;
-}
+  .settlers-dice-numbers {
+    display: flex;
+    justify-content: space-around;
+  }
 
+  .settlers-stats-total {
+    position: relative;
+    width: 4rem;
+    line-height: 4rem;
+    font-size: 1.8rem;
+    color: #fff;
+    text-align: center;
+    margin: 0.5rem;
+    background-color: #ffa400cc;
+    border-radius: 50%;
+    font-weight: bold;
+    height: 4rem;
+  }
 
-.settlers-stats-total {
-	position: relative;
-	width: 4rem;
-	line-height: 4rem;
-	font-size: 1.8rem;
-	color: #fff;
-	text-align: center;
-	margin: 0.5rem;
-	background-color: #ffa400cc;
-	border-radius: 50%;
-	font-weight: bold;
-	height: 4rem;
-}
+  .settlers-stats-resource-count {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--saito-white);
+    text-shadow: 1px 1px 3px var(--saito-black);
+    background: rgba(0, 0, 0, 0.4);
+    font-size: 2.4rem;
+    line-height: 3.1rem;
+    width: 3.2rem;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-.settlers-stats-resource-count {
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	color: var(--saito-white);
-	text-shadow: 1px 1px 3px var(--saito-black);
-	background: rgba(0, 0, 0, 0.4);
-	font-size: 2.4rem;
-	line-height: 3.1rem;
-	width: 3.2rem;
-	border-radius: 50%;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-}
+  .settlers-stats-caption {
+    text-align: left;
+    font-size: 3rem;
+  }
 
-.settlers-stats-caption {
-	text-align: left;
-	font-size: 3rem;
-}
+  .settlers-state-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
 
-.settlers-state-container {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
+  .settlers-state-container hr {
+    margin: 1rem;
+  }
 
-.settlers-state-container hr {
-	margin: 1rem;
-}
+  .settlers-stats-player {
+    font-size: 1.9rem;
+    line-height: 3rem;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: unset;
+    width: 100%;
+  }
 
-.settlers-stats-player {
-	font-size: 1.9rem;
-	line-height: 3rem;
-	opacity: 0.90;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	background: unset;
-	width: 100%;
-}
+  .settlers-stats-player.p1,
+  .settlers-stats-player.p2,
+  .settlers-stats-player.p3,
+  .settlers-stats-player.p4 {
+    background: transparent !important;
+    background-image: none !important;
+    border-bottom: 0;
+    text-decoration-line: underline;
+    text-decoration-thickness: 0.35rem;
+    text-underline-offset: 0.28rem;
+    text-decoration-skip-ink: none;
+  }
 
-.settlers-stats-player.p1,
-.settlers-stats-player.p2,
-.settlers-stats-player.p3,
-.settlers-stats-player.p4 {
-	background: transparent !important;
-	background-image: none !important;
-	border-bottom: 0;
-	text-decoration-line: underline;
-	text-decoration-thickness: 0.35rem;
-	text-underline-offset: 0.28rem;
-	text-decoration-skip-ink: none;
-}
+  .settlers-stats-player.p1 {
+    text-decoration-color: var(--p1-color);
+  }
 
-.settlers-stats-player.p1 {
-	text-decoration-color: var(--p1-color);
-}
+  .settlers-stats-player.p2 {
+    text-decoration-color: var(--p2-color);
+  }
 
-.settlers-stats-player.p2 {
-	text-decoration-color: var(--p2-color);
-}
+  .settlers-stats-player.p3 {
+    text-decoration-color: var(--p3-color);
+  }
 
-.settlers-stats-player.p3 {
-	text-decoration-color: var(--p3-color);
-}
+  .settlers-stats-player.p4 {
+    text-decoration-color: var(--p4-color);
+  }
 
-.settlers-stats-player.p4 {
-	text-decoration-color: var(--p4-color);
-}
+  .settlers-stats-player + .settlers-stats-row {
+    margin-top: 0.75rem;
+  }
 
-.settlers-stats-player+.settlers-stats-row {
-	margin-top: 0.75rem;
-}
+  .no-vp {
+    filter: brightness(65%) grayscale(30%) opacity(0.5);
+  }
 
-.no-vp {
-	filter: brightness(65%) grayscale(30%) opacity(0.50);
-}
+  .stats-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    font-size: 2rem;
+    text-transform: uppercase;
+  }
 
+  .stats-header .overlay-tab {
+    padding: 0.5rem 2rem;
+    cursor: pointer;
+    position: relative;
+    text-shadow: 1px 1px 1px #62616388;
+    max-width: 30%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
+  .stats-header .overlay-tab.active-tab {
+    text-shadow: 1px 1px 1px #626163;
+    border-bottom: 2px solid #424143;
+    min-width: fit-content;
+  }
 
-.stats-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-evenly;
-	font-size: 2rem;
-	text-transform: uppercase;
-}
+  .stats-header .overlay-tab.active-tab::after {
+    content: '';
+    position: absolute;
+    top: 31px;
+    font-size: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-shadow: 1px 1px 1px #626163;
+    width: 25%;
+    border: 4px solid #424143;
+    border-radius: 5px;
+  }
 
-.stats-header .overlay-tab {
-	padding: 0.5rem 2rem;
-	cursor: pointer;
-	position: relative;
-	text-shadow: 1px 1px 1px #62616388;
-	max-width: 30%;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
+  .overlay-page {
+    display: none;
+    padding: min(1rem, 1vw, 1.5vh);
+  }
 
-.stats-header .overlay-tab.active-tab {
-	text-shadow: 1px 1px 1px #626163;
-	border-bottom: 2px solid #424143;
-	min-width: fit-content;
-}
+  .overlay-page.active-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 
-.stats-header .overlay-tab.active-tab::after {
-	content: "";
-	position: absolute;
-	top: 31px;
-	font-size: 48px;
-	left: 50%;
-	transform: translateX(-50%);
-	text-shadow: 1px 1px 1px #626163;
-	width: 25%;
-	border: 4px solid #424143;
-	border-radius: 5px;
-}
-
-.overlay-page {
-	display: none;
-	padding: min(1rem, 1vw, 1.5vh);
-}
-
-.overlay-page.active-page {
-	display: flex;
-	flex-direction: column;
-	gap: 1.5rem;
-}
-
-/*********
+  /*********
  * 
  * Trading overlays
  * 
  * ********/
 
-.trade-overlay {
-	width: min(1000px, 90vw);
-}
+  .trade-overlay {
+    width: min(1000px, 90vw);
+  }
 
-.trade_overlay_title {
-	text-align: center;
-}
+  .trade_overlay_title {
+    text-align: center;
+  }
 
-.trade_overlay_offers {
-	display: grid;
-	width: 100%;
-	grid-template-columns: repeat(5, 1fr);
-	gap: 1rem;
-	margin: auto;
-}
+  .trade_overlay_offers {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    margin: auto;
+  }
 
-.trade_overlay_buttons {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	justify-content: space-evenly;
-	margin: 1em 0px;
-	font-size: 18px;
-}
+  .trade_overlay_buttons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+    margin: 1em 0px;
+    font-size: 18px;
+  }
 
-.trade_area {
-	position: relative;
-	height: min(22vh, 20vw);
-	width: calc(min(22vh, 20vw) * 0.7);
-	color: white;
-	font-size: 9rem;
-	max-width: 15rem;
-	max-height: 20rem;
-	border: 2px solid rgba(66, 65, 67, 0.2);
-	border-radius: 0.8rem;
-	overflow: hidden;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
-	transition:
-		box-shadow 140ms ease,
-		filter 140ms ease,
-		transform 140ms ease;
-}
+  .trade_area {
+    position: relative;
+    height: min(22vh, 20vw);
+    width: calc(min(22vh, 20vw) * 0.7);
+    color: white;
+    font-size: 9rem;
+    max-width: 15rem;
+    max-height: 20rem;
+    border: 2px solid rgba(66, 65, 67, 0.2);
+    border-radius: 0.8rem;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+    transition:
+      box-shadow 140ms ease,
+      filter 140ms ease,
+      transform 140ms ease;
+  }
 
-.trade_area:hover,
-.trade_area.has-count {
-	box-shadow:
-		0 6px 16px rgba(0, 0, 0, 0.24),
-		0 0 0 2px rgba(255, 212, 92, 0.34);
-}
+  .trade_area:hover,
+  .trade_area.has-count {
+    box-shadow:
+      0 6px 16px rgba(0, 0, 0, 0.24),
+      0 0 0 2px rgba(255, 212, 92, 0.34);
+  }
 
-.trade_area:hover {
-	transform: translateY(-1px);
-}
+  .trade_area:hover {
+    transform: translateY(-1px);
+  }
 
-.invalid_offer {
-	filter: grayscale(35%) brightness(0.72);
-	color: #ff5757;
-	box-shadow:
-		0 0 0 2px rgba(180, 45, 45, 0.62),
-		0 4px 12px rgba(0, 0, 0, 0.18);
-}
+  .invalid_offer {
+    filter: grayscale(35%) brightness(0.72);
+    color: #ff5757;
+    box-shadow:
+      0 0 0 2px rgba(180, 45, 45, 0.62),
+      0 4px 12px rgba(0, 0, 0, 0.18);
+  }
 
-.trade_resource_label {
-	position: absolute;
-	left: 0.5rem;
-	right: 0.5rem;
-	bottom: 0.45rem;
-	z-index: 4;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.35rem;
-	color: #fff;
-	font-size: 1.2rem;
-	line-height: 1;
-	text-transform: uppercase;
-	text-shadow: 1px 1px 2px #000;
-	pointer-events: none;
-}
+  .trade_resource_label {
+    position: absolute;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.45rem;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    color: #fff;
+    font-size: 1.2rem;
+    line-height: 1;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 2px #000;
+    pointer-events: none;
+  }
 
-.trade_resource_label span {
-	min-width: 1.8rem;
-	height: 1.8rem;
-	border-radius: 50%;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	background: rgba(51, 24, 0, 0.78);
-	border: 1px solid rgba(255, 255, 255, 0.45);
-	font-size: 1.1rem;
-}
+  .trade_resource_label span {
+    min-width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(51, 24, 0, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    font-size: 1.1rem;
+  }
 
-.trade_count_number {
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%);
-	transition: all 0.2s ease-in-out;
-	z-index: 2;
-	filter: drop-shadow(1px 1px 2px black);
-	width: 5.6rem;
-	height: 5.6rem;
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: rgba(51, 24, 0, 0.58);
-	font-size: 4.2rem;
-	line-height: 1;
-	box-sizing: border-box;
-}
+  .trade_count_number {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.2s ease-in-out;
+    z-index: 2;
+    filter: drop-shadow(1px 1px 2px black);
+    width: 5.6rem;
+    height: 5.6rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(51, 24, 0, 0.58);
+    font-size: 4.2rem;
+    line-height: 1;
+    box-sizing: border-box;
+  }
 
-.trade_count_number:empty {
-	background: transparent;
-	filter: none;
-}
+  .trade_count_number:empty {
+    background: transparent;
+    filter: none;
+  }
 
-.trade_count_arrow {
-	content: '';
-	width: 100%;
-	height: min(5rem, 50%);
-	position: absolute;
-	left: 0px;
-	z-index: 3;
-	background: #331800;
-	opacity: 0.16;
-	cursor: pointer;
-	pointer-events: none;
-	transition: all 0.2s ease-in-out;
-}
+  .trade_count_arrow {
+    content: '';
+    width: 100%;
+    height: min(5rem, 50%);
+    position: absolute;
+    left: 0px;
+    z-index: 3;
+    background: #331800;
+    opacity: 0.16;
+    cursor: pointer;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+  }
 
-.trade_area .trade_count_arrow.can_select,
-.trade_area:hover .trade_count_arrow.can_select {
-	opacity: 0.44;
-	pointer-events: unset;
-}
+  .trade_area .trade_count_arrow.can_select,
+  .trade_area:hover .trade_count_arrow.can_select {
+    opacity: 0.44;
+    pointer-events: unset;
+  }
 
-.trade_area:hover .trade_count_arrow.can_select {
-	opacity: 0.72;
-}
+  .trade_area:hover .trade_count_arrow.can_select {
+    opacity: 0.72;
+  }
 
-.trade_count_up {
-	top: 0px;
-	border-top-left-radius: 1rem;
-	border-top-right-radius: 1rem;
-}
+  .trade_count_up {
+    top: 0px;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+  }
 
-.trade_count_up::before {
-	content: '⌃';
-	font-size: 5rem;
-	color: #fff;
-	position: absolute;
-	left: 50%;
-	top: 80%;
-	transform: translate(-50%, -50%);
-	z-index: 3;
-	-webkit-text-stroke: #fff;
-}
+  .trade_count_up::before {
+    content: '⌃';
+    font-size: 5rem;
+    color: #fff;
+    position: absolute;
+    left: 50%;
+    top: 80%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    -webkit-text-stroke: #fff;
+  }
 
-.trade_count_down::after {
-	content: '⌄';
-	font-size: 5rem;
-	color: #fff;
-	position: absolute;
-	left: 50%;
-	top: 10%;
-	transform: translate(-50%, -50%);
-	z-index: 3;
-	-webkit-text-stroke: #fff;
-}
+  .trade_count_down::after {
+    content: '⌄';
+    font-size: 5rem;
+    color: #fff;
+    position: absolute;
+    left: 50%;
+    top: 10%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    -webkit-text-stroke: #fff;
+  }
 
-.trade_count_down {
-	bottom: 0;
-	border-bottom-left-radius: 1rem;
-	border-bottom-right-radius: 1rem;
-}
+  .trade_count_down {
+    bottom: 0;
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+  }
 
-/* Disable trade submit button in overlays */
+  /* Disable trade submit button in overlays */
 
-.trade_overlay_button.noselect {
-	opacity: 50%;
-	pointer-events: none;
-}
+  .trade_overlay_button.noselect {
+    opacity: 50%;
+    pointer-events: none;
+  }
 
-.trade_overlay_button {
-	padding: 0.5rem 1rem;
-	line-height: 4rem;
-	border: 4px solid #424143;
-	border-radius: 0.9rem;
-	min-width: 16rem;
-	max-width: 250px;
-	text-align: center;
-	background: rgba(255, 255, 255, 0.14);
-	transition:
-		background 140ms ease,
-		box-shadow 140ms ease,
-		transform 140ms ease;
-}
+  .trade_overlay_button {
+    padding: 0.5rem 1rem;
+    line-height: 4rem;
+    border: 4px solid #424143;
+    border-radius: 0.9rem;
+    min-width: 16rem;
+    max-width: 250px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.14);
+    transition:
+      background 140ms ease,
+      box-shadow 140ms ease,
+      transform 140ms ease;
+  }
 
-.trade_overlay_button.valid_trade:hover {
-	background-color: #ffd45c;
-	font-size: 18px;
-	cursor: pointer;
-	box-shadow: 0 5px 12px rgba(0, 0, 0, 0.22);
-	transform: translateY(-1px);
-}
+  .trade_overlay_button.valid_trade:hover {
+    background-color: #ffd45c;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.22);
+    transform: translateY(-1px);
+  }
 
-.vp-table img {
-	max-height: 4rem;
-}
+  .vp-table img {
+    max-height: 4rem;
+  }
 
-.stats-table {
-	font-size: 1.25em;
-	width: 100%;
-	text-align: center;
-	margin: 1em 0;
-}
+  .stats-table {
+    font-size: 1.25em;
+    width: 100%;
+    text-align: center;
+    margin: 1em 0;
+  }
 
-.stats-table caption {
-	font-size: 1.5em;
-}
+  .stats-table caption {
+    font-size: 1.5em;
+  }
 
-.stats-table td, .stats-table th {
-	width: 2em;
-	padding: 3px;
-}
+  .stats-table td,
+  .stats-table th {
+    width: 2em;
+    padding: 3px;
+  }
 
-.stats-table th:first-child {
-	width: 3em;
-	text-align: left;
-}
+  .stats-table th:first-child {
+    width: 3em;
+    text-align: left;
+  }
 
-.stats-table .icon, .stats-table .token {
-	width: 50px;
-	margin: 0 auto;
-	display: flex;
-	flex-direction: column;
-}
+  .stats-table .icon,
+  .stats-table .token {
+    width: 50px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
 
-.settlers-state-container .vproundel {
-	position: absolute;
-	width: 3rem;
-	line-height: 3rem;
-	font-size: 1.5rem;
-	color: #fff;
-	text-align: center;
-	margin: 0.5rem;
-	background-color: #ffa400cc;
-	border-radius: 50%;
-	font-weight: bold;
-	right: -2rem;
-	top: -1rem;
-	height: 3rem;
-}
+  .settlers-state-container .vproundel {
+    position: absolute;
+    width: 3rem;
+    line-height: 3rem;
+    font-size: 1.5rem;
+    color: #fff;
+    text-align: center;
+    margin: 0.5rem;
+    background-color: #ffa400cc;
+    border-radius: 50%;
+    font-weight: bold;
+    right: -2rem;
+    top: -1rem;
+    height: 3rem;
+  }
 
-.settlers-stats-row {
-	display: grid;
-	grid-template-columns: 12rem repeat(auto-fit, minmax(5rem, 1fr));
-	align-items: center;
-	margin-bottom: 0.5rem;
-}
+  .settlers-stats-row {
+    display: grid;
+    grid-template-columns: 12rem repeat(auto-fit, minmax(5rem, 1fr));
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
 
-.settlers-stat-num-alt {
-	font-size: 2rem;
-	justify-self: center;
-	opacity: 70%;
-}
+  .settlers-stat-num-alt {
+    font-size: 2rem;
+    justify-self: center;
+    opacity: 70%;
+  }
 
-.settlers-stat-num {
-	font-size: 3rem;
-	justify-self: center;
-}
+  .settlers-stat-num {
+    font-size: 3rem;
+    justify-self: center;
+  }
 
-.settlers-stats-vp {
-	position: relative;
-}
+  .settlers-stats-vp {
+    position: relative;
+  }
 
-.settlers-stats-card, .settlers-stats-vp {
-	display: flex;
-	justify-content: center;
-}
+  .settlers-stats-card,
+  .settlers-stats-vp {
+    display: flex;
+    justify-content: center;
+  }
 
-.hist-cards .settlers-stats-card {
-	display: flex;
-	justify-content: center;
-	transform: rotate(7deg);
-	margin: 0 0 0 -1rem;
-}
+  .hist-cards .settlers-stats-card {
+    display: flex;
+    justify-content: center;
+    transform: rotate(7deg);
+    margin: 0 0 0 -1rem;
+  }
 
-.hist-cards .settlers-stats-card.no-vp {
-	filter: brightness(60%) grayscale(15%);
-	transform: rotate(-7deg);
-}
+  .hist-cards .settlers-stats-card.no-vp {
+    filter: brightness(60%) grayscale(15%);
+    transform: rotate(-7deg);
+  }
 
-.settlers-hist-row.robber .hist-cards .settlers-stats-card {
-	transform: rotate(90deg);
-}
+  .settlers-hist-row.robber .hist-cards .settlers-stats-card {
+    transform: rotate(90deg);
+  }
 
+  .settlers-stats-card img,
+  .settlers-stats-vp img {
+    height: min(4rem, 10vw);
+    width: auto;
+  }
 
-.settlers-stats-card img, .settlers-stats-vp img {
-	height: min(4rem, 10vw);
-	width: auto;
-}
+  .settlers-stats-vp-count {
+    position: absolute;
+    top: 0rem;
+    right: -1rem;
+    background: #72634bed;
+    color: var(--saito-white);
+    width: 2.7rem;
+    text-align: center;
+    border-radius: 50%;
+    line-height: 2.7rem;
+    text-shadow: 1px 1px 1px var(--saito-foreground);
+    font-size: 2.2rem;
+  }
 
-.settlers-stats-vp-count {
-	position: absolute;
-	top: 0rem;
-	right: -1rem;
-	background: #72634bed;
-	color: var(--saito-white);
-	width: 2.7rem;
-	text-align: center;
-	border-radius: 50%;
-	line-height: 2.7rem;
-	text-shadow: 1px 1px 1px var(--saito-font-color-heavy);
-	font-size: 2.2rem;
-}
+  .settlers-stats-multiplier {
+    position: absolute;
+    bottom: 0.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--saito-white);
+    width: 2.7rem;
+    height: 2.7rem;
+    text-align: center;
+    text-shadow:
+      1px 1px 1px var(--saito-foreground),
+      -1px -1px 1px var(--saito-foreground),
+      -1px 1px 1px var(--saito-foreground),
+      1px -1px 1px var(--saito-foreground);
+    font-size: 2.8rem;
+  }
 
-.settlers-stats-multiplier {
-	position: absolute;
-	bottom: 0.25rem;
-	left: 50%;
-	transform: translateX(-50%);
-	color: var(--saito-white);
-	width: 2.7rem;
-	height: 2.7rem;
-	text-align: center;
-	text-shadow: 1px 1px 1px var(--saito-font-color-heavy), -1px -1px 1px var(--saito-font-color-heavy), -1px 1px 1px var(--saito-font-color-heavy), 1px -1px 1px var(--saito-font-color-heavy);
-	font-size: 2.8rem;
-}
+  /* Make the numbers more number-y */
 
-/* Make the numbers more number-y */
+  .settlers-stats-vp-count,
+  .settlers-stats-multiplier,
+  .settlers-stats-resource-count {
+    font-family: sans-serif;
+  }
 
-.settlers-stats-vp-count, .settlers-stats-multiplier, .settlers-stats-resource-count {
-	font-family: sans-serif;
-}
+  .settlers-stats-largest-road .settlers-stats-vp-count,
+  .settlers-stats-largest-army .settlers-stats-vp-count {
+    right: -0.5rem;
+  }
 
-.settlers-stats-largest-road .settlers-stats-vp-count, .settlers-stats-largest-army .settlers-stats-vp-count {
-	right: -0.5rem;
-}
+  #details-page {
+    overflow: hidden;
+  }
 
-#details-page {
-	overflow: hidden;
-}
+  .settlers-hist-row {
+    display: grid;
+    grid-template-columns: 8rem repeat(auto-fit, minmax(8rem, 1fr));
+    grid-gap: 2rem;
+    font-size: 1.8rem;
+    align-items: center;
+    padding: 1rem;
+  }
 
-.settlers-hist-row {
-	display: grid;
-	grid-template-columns: 8rem repeat(auto-fit, minmax(8rem, 1fr));
-	grid-gap: 2rem;
-	font-size: 1.8rem;
-	align-items: center;
-	padding: 1rem;
-}
+  .settlers-hist-row .roll {
+    display: flex;
+    justify-content: space-around;
+  }
 
-.settlers-hist-row .roll {
-	display: flex;
-	justify-content: space-around;
-}
+  .settlers-timeline-turn-lables {
+    display: flex;
+    justify-content: space-between;
+  }
 
-.settlers-timeline-turn-lables {
-	display: flex;
-	justify-content: space-between;
-}
+  .hist-cards {
+    display: flex;
+    max-width: 100%;
+    justify-content: center;
+  }
 
-.hist-cards {
-	display: flex;
-	max-width: 100%;
-	justify-content: center;
-}
+  .notice_overlay {
+    padding: 3rem;
+    font-size: 1.8rem;
+  }
 
-.notice_overlay {
-	padding: 3rem;
-	font-size: 1.8rem;
-}
+  .notice_overlay > div {
+    margin: 1rem;
+  }
 
-.notice_overlay>div {
-	margin: 1rem;
-}
+  .notice_overlay ul {
+    margin: 0 5rem;
+  }
 
-.notice_overlay ul {
-	margin: 0 5rem;
-}
+  .notice_overlay ul li {
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+  }
 
-.notice_overlay ul li {
-	margin-bottom: 0.5rem;
-	font-size: 2rem;
-}
+  @media screen and (orientation: portrait) and (max-width: 600px) {
+    .combined-player-stats {
+      display: flex;
+      flex-direction: column;
+    }
+    .settlers-stats-overlay {
+      min-height: unset;
+      height: min(800px, 85vh);
+      padding: 2rem 2vw;
+      gap: 1rem;
+    }
+    .vp-3p .settlers-stats-row img {
+      height: min(6.5rem, 13vw);
+    }
+    .splash_overlay h2 {
+      font-size: 3rem;
+    }
+    .notice_overlay {
+      padding: 1.5rem;
+    }
+    .notice_overlay ul {
+      margin: 0 2rem 0 3rem;
+    }
+    .notice_overlay ul li {
+      font-size: inherit;
+    }
+    .stats-header .overlay-tab {
+      padding: 0.5rem;
+    }
+    .settlers-stats-row {
+      grid-template-columns: 7rem repeat(auto-fit, minmax(4rem, 1fr));
+    }
+    .settlers-stats-card,
+    .settlers-stats-vp {
+      width: 100%;
+    }
+    .settlers-stats-card img,
+    .settlers-stats-vp img {
+      height: min(4rem, 9vw);
+    }
+    .settlers-stats-multiplier,
+    .settlers-stats-vp-count {
+      width: 2rem;
+      height: 2rem;
+      font-size: 2rem;
+    }
+    .settlers-stats-vp-count {
+      line-height: 2rem;
+    }
+    hr {
+      margin: 1.5rem;
+    }
 
-@media screen and (orientation: portrait) and (max-width: 600px) {
-	.combined-player-stats {
-		display: flex;
-		flex-direction: column;
-	}
-	.settlers-stats-overlay{
-		min-height: unset;
-		height: min(800px, 85vh);
-		padding: 2rem 2vw;
-		gap: 1rem;
-	}
-	.vp-3p .settlers-stats-row img {
-		height: min(6.5rem, 13vw);
-	}
-	.splash_overlay h2 {
-		font-size: 3rem;
-	}
-	.notice_overlay {
-		padding: 1.5rem;
-	}
-	.notice_overlay ul {
-		margin: 0 2rem 0 3rem;
-	}
-	.notice_overlay ul li {
-		font-size: inherit;
-	}
-	.stats-header .overlay-tab {
-		padding: 0.5rem;
-	}
-	.settlers-stats-row {
-		grid-template-columns: 7rem repeat(auto-fit, minmax(4rem, 1fr));
-	}
-	.settlers-stats-card, .settlers-stats-vp {
-		width: 100%;
-	}
-	.settlers-stats-card img, .settlers-stats-vp img {
-		height: min(4rem, 9vw);
-	}
-	.settlers-stats-multiplier, .settlers-stats-vp-count {
-		width: 2rem;
-		height: 2rem;
-		font-size: 2rem;
-	}
-	.settlers-stats-vp-count {
-		line-height: 2rem;
-	}
-	hr {
-		margin: 1.5rem;
-	}
+    .stats-header {
+      flex-wrap: wrap;
+    }
+    .stats-header .overlay-tab {
+      max-width: unset;
+    }
+    .stats-header .overlay-tab.active-tab {
+      order: 1;
+    }
 
-	.stats-header{
-		flex-wrap: wrap;
-	}
-	.stats-header .overlay-tab {
-		max-width: unset;
-	}
-	.stats-header .overlay-tab.active-tab{
-		order: 1;
-	}
+    .trade_area {
+      font-size: 5rem;
+    }
+  }
 
-	.trade_area{
-		font-size: 5rem;
-	}
-}
-
-@media screen and (orientation: landscape) and (max-height: 600px) {
-	.settlers-stats-overlay, .trade-overlay, .rules-overlay, .settlers-selection-overlay, .bank-overlay, .dev-card-overlay, .build-overlay {
-		max-height: 98vh;
-		gap: 0.5rem;
-	}
-	.trade-overlay {
-		display: grid;
-		grid-template-columns: 15rem 1fr;
-	}
-	.trade_overlay_buttons {
-		grid-column: 1 / span 2;
-	}
-}
+  @media screen and (orientation: landscape) and (max-height: 600px) {
+    .settlers-stats-overlay,
+    .trade-overlay,
+    .rules-overlay,
+    .settlers-selection-overlay,
+    .bank-overlay,
+    .dev-card-overlay,
+    .build-overlay {
+      max-height: 98vh;
+      gap: 0.5rem;
+    }
+    .trade-overlay {
+      display: grid;
+      grid-template-columns: 15rem 1fr;
+    }
+    .trade_overlay_buttons {
+      grid-column: 1 / span 2;
+    }
+  }
 }

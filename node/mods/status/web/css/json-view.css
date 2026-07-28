@@ -26,8 +26,8 @@
   font-size: 1.2em;
   margin-right: 5px;
   -webkit-user-select: none;
-     -moz-user-select: none;
-          user-select: none;
+  -moz-user-select: none;
+  user-select: none;
 }
 
 ._1UmXx::after {

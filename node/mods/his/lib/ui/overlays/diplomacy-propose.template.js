@@ -1,8 +1,7 @@
-module.exports  = (obj) => {
+module.exports = (obj) => {
+  let his_self = obj.mod;
 
-	let his_self = obj.mod;
-
-	let html = `
+  let html = `
 	  <div class="diplomacy-propose-overlay">
 	    <div class="help">do you wish to make a diplomatic proposal?</div>
 	    <div class="content">do you wish to make a diplomatic proposal?</div>
@@ -17,7 +16,5 @@ module.exports  = (obj) => {
 	  </div>
 	`;
 
-	return html;
-
+  return html;
 };
-

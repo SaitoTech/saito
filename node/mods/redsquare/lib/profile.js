@@ -46,8 +46,7 @@ class Profile {
    */
   buildProfileData(publicKey = '') {
     const key = publicKey || this.mod.publicKey || '';
-    const avatar =
-      (key && this.app.keychain.returnIdenticon(key)) || '/saito/img/dreamscape.png';
+    const avatar = (key && this.app.keychain.returnIdenticon(key)) || '/saito/img/dreamscape.png';
 
     // Display name from keychain: registered identifier, else Anon-xxxxxx.
     // Do not use returnIdentifierByPublicKey(..., true) alone — that returns the
@@ -145,7 +144,10 @@ class Profile {
           }
         };
         if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText(key).then(done).catch(() => {});
+          navigator.clipboard
+            .writeText(key)
+            .then(done)
+            .catch(() => {});
         }
         return;
       }
@@ -204,9 +206,7 @@ class Profile {
         return;
       }
 
-      const item = e.target.closest(
-        '.nav .item, .redsquare-profile-banner-edit, .copy-key'
-      );
+      const item = e.target.closest('.nav .item, .redsquare-profile-banner-edit, .copy-key');
 
       if (!item || !root.contains(item)) {
         return;
@@ -219,6 +219,7 @@ class Profile {
 
   /**
    * Apply Profile-module content updates to the RedSquare sidebar card.
+   * `data` is the complete profile object; missing fields are treated as unset.
    */
   applyProfileDomUpdate(publicKey, data) {
     if (!publicKey || !data) {
@@ -232,48 +233,49 @@ class Profile {
 
     const { banner, description, image } = data;
 
-    if (banner) {
-      if (this.mod.profile) {
-        this.mod.profile.banner = banner;
-      }
-      document.querySelectorAll(`.banner-${publicKey}`).forEach((el) => {
-        el.style.backgroundImage = `url('${banner}')`;
-      });
+    if (this.mod.profile) {
+      this.mod.profile.banner = banner || '';
+      this.mod.profile.bio = description || '';
     }
 
-    if (typeof description !== 'undefined') {
-      if (this.mod.profile) {
-        this.mod.profile.bio = description;
-      }
+    document.querySelectorAll(`.banner-${publicKey}`).forEach((el) => {
+      el.style.backgroundImage = banner ? `url('${banner}')` : '';
+    });
 
-      const container = document.querySelector(
-        `${this.container} .redsquare-profile-description`
-      );
-      if (container) {
-        const canEdit = this.canEditProfile(publicKey);
-        container.classList.toggle('can-edit', canEdit);
-        container.classList.toggle('empty', !description && canEdit);
+    const container = document.querySelector(`${this.container} .redsquare-profile-description`);
+    if (container) {
+      const canEdit = this.canEditProfile(publicKey);
+      container.classList.toggle('can-edit', canEdit);
+      container.classList.toggle('empty', !description && canEdit);
 
-        if (!description) {
-          container.innerHTML = canEdit ? this.emptyBioPlaceholderHtml() : '';
-        } else {
-          const sanitized = this.app.browser.sanitize(description, true).replaceAll('\n', '<br>');
-          container.innerHTML = `
+      if (!description) {
+        container.innerHTML = canEdit ? this.emptyBioPlaceholderHtml() : '';
+      } else {
+        const sanitized = this.app.browser.sanitize(description, true).replaceAll('\n', '<br>');
+        container.innerHTML = `
             <div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">
               ${sanitized}
             </div>
             ${canEdit ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>` : ''}
           `;
-        }
       }
     }
 
+    const avatarNodes = document.querySelectorAll(`${this.container} .avatar`);
     if (image) {
-      document.querySelectorAll(`${this.container} .avatar`).forEach((el) => {
+      avatarNodes.forEach((el) => {
         el.src = image;
       });
       if (this.mod.profile) {
         this.mod.profile.avatar = image;
+      }
+    } else {
+      const fallback = this.app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
+      avatarNodes.forEach((el) => {
+        el.src = fallback;
+      });
+      if (this.mod.profile) {
+        this.mod.profile.avatar = fallback;
       }
     }
   }
@@ -288,8 +290,7 @@ class Profile {
       return;
     }
 
-    const activeView =
-      mode === 'posts' || mode === 'replies' || mode === 'likes' ? mode : '';
+    const activeView = mode === 'posts' || mode === 'replies' || mode === 'likes' ? mode : '';
 
     root.querySelectorAll('.nav .item').forEach((item) => {
       const view = item.getAttribute('data-profile-nav') || '';

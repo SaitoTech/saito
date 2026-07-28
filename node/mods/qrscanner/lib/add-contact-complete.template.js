@@ -1,6 +1,6 @@
-module.exports  = () => {
-	// height: calc(100vh-5em);
-	return `
+module.exports = () => {
+  // height: calc(100vh-5em);
+  return `
     <div class="header"></div>
     <div
       style="

@@ -1,16 +1,16 @@
 module.exports = (slips = [], direction = 'From') => {
-	const hasSlips = slips.length > 0;
-	if (!hasSlips) {
-		const message =
-			direction.toLowerCase() === 'to'
-				? 'There are no outputs in this transaction.'
-				: 'There are no inputs in this transaction.';
-		return { hasSlips: false, html: `<p class="explorer-tx-empty-line">${message}</p>` };
-	}
+  const hasSlips = slips.length > 0;
+  if (!hasSlips) {
+    const message =
+      direction.toLowerCase() === 'to'
+        ? 'There are no outputs in this transaction.'
+        : 'There are no inputs in this transaction.';
+    return { hasSlips: false, html: `<p class="explorer-tx-empty-line">${message}</p>` };
+  }
 
-	const rows = slips
-		.map(
-			(slip) => `
+  const rows = slips
+    .map(
+      (slip) => `
       <tr class="explorer-slip-row">
         <td class="explorer-slip-pk">${slip.publicKey}</td>
         <td class="explorer-slip-amount explorer-slip-numeric">${slip.amount}</td>
@@ -20,12 +20,12 @@ module.exports = (slips = [], direction = 'From') => {
         <td class="explorer-slip-loc explorer-slip-numeric">${slip.slip}</td>
       </tr>
     `
-		)
-		.join('');
+    )
+    .join('');
 
-	return {
-		hasSlips: true,
-		html: `
+  return {
+    hasSlips: true,
+    html: `
     <div class="explorer-slip-table-wrap">
       <table class="explorer-slip-table">
         <colgroup>
@@ -50,5 +50,5 @@ module.exports = (slips = [], direction = 'From') => {
       </table>
     </div>
   `
-	};
+  };
 };

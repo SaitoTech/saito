@@ -1,6 +1,5 @@
-module.exports  = (app, mod, do_we_have_games_to_show) => {
-
-	let html = `
+module.exports = (app, mod, do_we_have_games_to_show) => {
+  let html = `
 
 		<div class="nwasm-libraries" id="nwasm-libraries">
 			The Saito Nintendo 64 emulator provides a user-friendly in-browser way to archive 
@@ -17,15 +16,13 @@ module.exports  = (app, mod, do_we_have_games_to_show) => {
 
 	`;
 
-
-	if (do_we_have_games_to_show > 0) {
-	    html = `
+  if (do_we_have_games_to_show > 0) {
+    html = `
 		<div class="nwasm-libraries saito-table" id="nwasm-libraries">
 	      		<div class="nwasm-library-introduction">Your library contains the following titles:</div>
 	    	</div>
 	    `;
-	}
+  }
 
-	return html;
-
+  return html;
 };

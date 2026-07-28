@@ -24,7 +24,7 @@
 }
 
 :root {
-  --background-color-shim-normal: var(--background-color-shim-dark);
+  --background-color-shim-normal: color-mix(in srgb, var(--saito-black) 70%, transparent);
 
   /* for the header */
   --saito-header-height: 4rem;
@@ -38,7 +38,7 @@ body {
   position: relative;
   background-color: #4e4e4e;
   background-image: url(/saito/img/tiled-logo.svg);
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
 }
 
 .main {
@@ -108,7 +108,7 @@ div.h3 {
   min-width: 400px;
   max-width: 750px;
   border: 1px solid var(--saito-primary);
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
   font-size: 1.6rem;
   font-style: italic;
   line-height: 2rem;
@@ -222,7 +222,7 @@ div.h3 {
 .saito-splash-info {
   position: relative;
   background-color: var(--saito-profile-background);
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   padding: min(5rem, 5vh) min(8rem, 5vw);
   min-height: min(300px, 30vh);
   margin-bottom: 4rem;
@@ -349,7 +349,7 @@ div.h3 {
 }
 
 .saito-splash-nav a {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   text-shadow: 1px 1px 2px var(--saito-black);
   filter: drop-shadow(1px 1px 1px var(--saito-black));
 }

@@ -57,7 +57,7 @@
 }
 
 #deposit-container {
-  background: var(--saito-background-color);
+  background: var(--saito-background);
   display: flex;
   height: 40rem;
   width: 50rem;
@@ -76,7 +76,7 @@
   font-size: 22px;
   position: relative;
   /*background-color: var(--saito-secondary);
-  color: var(--saito-secondary-text);*/
+  color: var(--saito-secondary-foreground);*/
   border-radius: 0.5rem;
   margin: 0.5rem;
   padding: 1rem;
@@ -116,8 +116,8 @@ select.saito-store-explorer-mobile option {
 }
 
 .store-active-tab {
-  background-color: var(--saito-surface-selected);
-  color: var(--saito-font-color-heavy);
+  background-color: var(--saito-secondary);
+  color: var(--saito-foreground);
 }
 
 .flashing-tab {
@@ -131,7 +131,7 @@ select.saito-store-explorer-mobile option {
     background-color: inherit;
   }
   50% {
-    background-color: var(--saito-highlight-heavy);
+    background-color: color-mix(in srgb, var(--saito-foreground) 14%, transparent);
   }
 }
 
@@ -158,7 +158,7 @@ select.saito-store-explorer-mobile option {
  ========================== */
 .asset-store-splash {
   position: absolute;
-  background: var(--saito-background-color);
+  background: var(--saito-background);
   top: 0;
   left: 50%;
   width: 100%;
@@ -272,7 +272,7 @@ select.saito-store-explorer-mobile option {
   .saito-sidebar.left {
     height: 8rem;
     flex-direction: row;
-    background: var(--saito-background-color);
+    background: var(--saito-background);
     width: 100%;
     z-index: 100;
   }

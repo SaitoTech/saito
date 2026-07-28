@@ -5,7 +5,11 @@ const ast_execute = require('./lib/rustscript/ast_execute');
 const tokenize = require('./lib/rustscript/semantic_to_tokens');
 const parse = require('./lib/rustscript/tokens_to_ast');
 const { build_test_script_from_create, lockingView } = require('./lib/ui/script_build');
-const { downloadTransactionFile, serializeTransactionToWeb, transactionExportFilename } = require('./lib/transaction_io');
+const {
+  downloadTransactionFile,
+  serializeTransactionToWeb,
+  transactionExportFilename
+} = require('./lib/transaction_io');
 const Transaction = require('./../../lib/saito/transaction').default;
 const Slip = require('./../../lib/saito/slip').default;
 const { TransactionType } = require('saito-js/lib/transaction');
@@ -69,22 +73,7 @@ class Rustscript extends ModTemplate {
     this.description = 'Symbolic P2SH contract scripting';
     this.categories = 'Utility Programming Cryptography';
 
-    this.styles = [
-      '/rustscript/css/main.css',
-      '/rustscript/css/rustscript-header.css',
-      '/rustscript/css/rustscript-command-bar.css',
-      '/rustscript/css/rustscript-editor.css',
-      '/rustscript/css/rustscript-panel.css',
-      '/rustscript/css/rustscript-overlay-system.css',
-      '/rustscript/css/rustscript-welcome-overlay.css',
-      '/rustscript/css/rustscript-fields-overlay.css',
-      '/rustscript/css/rustscript-overlay.css',
-      '/rustscript/css/rustscript-opcodes-overlay.css',
-      '/rustscript/css/rustscript-publish-overlay.css',
-      '/rustscript/css/rustscript-publish-nft.css',
-      '/rustscript/css/rustscript-import-overlay.css',
-      '/saito/css-imports/ui/saito-nft.css'
-    ];
+    this.styles = ['/rustscript/style.css', '/saito/css-imports/ui/saito-nft.css'];
 
     this.icon = 'fas fa-code';
 
@@ -99,7 +88,12 @@ class Rustscript extends ModTemplate {
   }
 
   async initialize(app) {
-    super.initialize?.(app);
+    await super.initialize?.(app);
+
+    if (this.app.BROWSER) {
+      const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+      this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+    }
 
     [
       OpcodeChecksig,
@@ -128,7 +122,6 @@ class Rustscript extends ModTemplate {
         this.opcodes[key].opcode = op;
       }
     });
-
   }
 
   async render() {
@@ -410,11 +403,18 @@ class Rustscript extends ModTemplate {
       }
     }
 
-    if (!clone || typeof clone !== 'object' || typeof clone.op !== 'string' || clone.op.length === 0) {
+    if (
+      !clone ||
+      typeof clone !== 'object' ||
+      typeof clone.op !== 'string' ||
+      clone.op.length === 0
+    ) {
       return false;
     }
 
-    const execContext = context.opcodes ? context : Object.assign({}, context, { opcodes: this.opcodes });
+    const execContext = context.opcodes
+      ? context
+      : Object.assign({}, context, { opcodes: this.opcodes });
     const result = ast_execute(clone, execContext);
     return result === true;
   }
@@ -442,22 +442,19 @@ class Rustscript extends ModTemplate {
     };
   }
 
-  async onConfirmation(blk, tx, conf) {
-    if (this.main?.publishFlow) {
-      this.main.publishFlow.handleConfirmation(blk, tx, conf);
+  shouldAffixCallbackToModule(modname, tx = null) {
+    if (modname === this.name) {
+      return 1;
     }
-    if (this.main?.unlockFlow) {
-      this.main.unlockFlow.handleConfirmation(blk, tx, conf);
+    // Allow the shared transaction monitor to receive confirmations it is watching.
+    if (
+      this.transaction_monitor?.tx &&
+      tx?.signature &&
+      tx.signature === this.transaction_monitor.tx.signature
+    ) {
+      return 1;
     }
-  }
-
-  async onNewBlock(blk, lc) {
-    if (this.main?.publishFlow) {
-      await this.main.publishFlow.checkBlockForPendingTx(blk);
-    }
-    if (this.main?.unlockFlow) {
-      await this.main.unlockFlow.checkBlockForPendingTx(blk);
-    }
+    return 0;
   }
 
   resetUnlockWorkflow() {
@@ -630,10 +627,7 @@ class Rustscript extends ModTemplate {
 
     const txmsg = typeof tx.returnMessage === 'function' ? tx.returnMessage() : tx.msg || {};
     const p2shAddress =
-      txmsg.p2sh_address ||
-      txmsg.p2shAddress ||
-      this._findP2shOutputAddress(tx) ||
-      '';
+      txmsg.p2sh_address || txmsg.p2shAddress || this._findP2shOutputAddress(tx) || '';
 
     const lockedSlip = this._findLockedOutputSlip(tx, p2shAddress);
     if (!lockedSlip) {
@@ -645,20 +639,19 @@ class Rustscript extends ModTemplate {
     const lockedNftSlips =
       assetType === 'nft' ? this._findLockedNftSlipTriplet(tx, p2shAddress) : null;
 
+    const accessScriptRaw =
+      Array.isArray(txmsg.access_scripts) && txmsg.access_scripts.length > 0
+        ? txmsg.access_scripts[0]
+        : txmsg.access_script || txmsg.accessScript || '';
 
-const accessScriptRaw =
-  (Array.isArray(txmsg.access_scripts) && txmsg.access_scripts.length > 0)
-    ? txmsg.access_scripts[0]
-    : (txmsg.access_script || txmsg.accessScript || '');
+    const accessScript = accessScriptRaw ? JSON.parse(accessScriptRaw) : {};
+    const hash = this.app.core.scripting.hash(accessScript);
+    const p2shHash = txmsg.scripthash || hash || '';
 
-const accessScript = accessScriptRaw ? JSON.parse(accessScriptRaw) : {};
-const hash = this.app.core.scripting.hash(accessScript);
-const p2shHash = txmsg.scripthash || hash || '';
-
-const hasAccessScript =
-  typeof accessScriptRaw === 'string'
-    ? accessScriptRaw.trim().length > 0
-    : accessScriptRaw && typeof accessScriptRaw === 'object';
+    const hasAccessScript =
+      typeof accessScriptRaw === 'string'
+        ? accessScriptRaw.trim().length > 0
+        : accessScriptRaw && typeof accessScriptRaw === 'object';
 
     this.unlockContext = {
       sourceTxSignature: tx.signature || '',
@@ -669,8 +662,7 @@ const hasAccessScript =
       lockedNftSlips,
       nftId: txmsg.nft_id || '',
       nftAmount: txmsg.nft_amount || '',
-      nftTxmsg:
-        txmsg.nft_txmsg && typeof txmsg.nft_txmsg === 'object' ? txmsg.nft_txmsg : null,
+      nftTxmsg: txmsg.nft_txmsg && typeof txmsg.nft_txmsg === 'object' ? txmsg.nft_txmsg : null,
       importCategory: hasAccessScript ? 'guided' : 'expert',
       sourceTxmsg: txmsg
     };
@@ -783,7 +775,11 @@ const hasAccessScript =
       throw new Error('Destination public key is required');
     }
 
-    if (ctx.assetType === 'nft' && Array.isArray(ctx.lockedNftSlips) && ctx.lockedNftSlips.length === 3) {
+    if (
+      ctx.assetType === 'nft' &&
+      Array.isArray(ctx.lockedNftSlips) &&
+      ctx.lockedNftSlips.length === 3
+    ) {
       return this.broadcastNftSolution({ destinationPublicKey, feeSaito });
     }
 
@@ -826,7 +822,7 @@ const hasAccessScript =
     tx.msg = {
       module: this.name,
       request: 'spend p2sh',
-      access_scripts: [ accessScript ],
+      access_scripts: [accessScript],
       scripthash: ctx.p2shHash,
       p2sh_address: ctx.p2shAddress,
       destination: destinationPublicKey,
@@ -839,10 +835,6 @@ const hasAccessScript =
 
     if (!tx.signature) {
       throw new Error('Unlock transaction was not signed');
-    }
-
-    if (this.main?.unlockFlow) {
-      this.main.unlockFlow.notePendingSignature(tx.signature);
     }
 
     return tx;
@@ -895,7 +887,7 @@ const hasAccessScript =
       module: this.name,
       request: 'spend p2sh',
       asset_type: 'nft',
-      access_scripts: [ accessScript ],
+      access_scripts: [accessScript],
       scripthash: ctx.p2shHash,
       p2sh_address: ctx.p2shAddress,
       destination: destinationPublicKey,
@@ -914,10 +906,6 @@ const hasAccessScript =
 
     if (!tx.signature) {
       throw new Error('Unlock transaction was not signed');
-    }
-
-    if (this.main?.unlockFlow) {
-      this.main.unlockFlow.notePendingSignature(tx.signature);
     }
 
     return tx;

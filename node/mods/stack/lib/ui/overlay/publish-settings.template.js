@@ -5,42 +5,39 @@
  * Private / Subscription open a lightweight wizard; Public publishes in one click.
  */
 module.exports = (app, mod, postState = {}, wizardState = {}) => {
-  const parent_id = mod.create_post_ui && mod.create_post_ui.parent_id ? mod.create_post_ui.parent_id : null;
-  const publishButtonText = parent_id ? 'Update' : 'Publish';
-  const accessLevel = postState.accessLevel || 'public';
-  const step = wizardState.step || 1;
+	const parent_id =
+		mod.create_post_ui && mod.create_post_ui.parent_id ? mod.create_post_ui.parent_id : null;
+	const publishButtonText = parent_id ? 'Update' : 'Publish';
+	const accessLevel = postState.accessLevel || 'public';
+	const step = wizardState.step || 1;
 
-  const isPublic = accessLevel === 'public';
-  const isPrivate = accessLevel === 'private';
-  const isSubscription = accessLevel === 'subscription';
-  const isRestricted = isPrivate || isSubscription;
+	const isPublic = accessLevel === 'public';
+	const isPrivate = accessLevel === 'private';
+	const isSubscription = accessLevel === 'subscription';
+	const isRestricted = isPrivate || isSubscription;
 
-  const keyLabel = isSubscription ? 'Subscription Key' : 'Access Key';
-  const keysLabel = isSubscription ? 'Subscription Keys' : 'Access Keys';
-  const hasAccessKey =
-    wizardState.hasAccessKey === true ||
-    wizardState.createNftStatus === 'waiting' ||
-    wizardState.createNftStatus === 'confirmed';
-  const isWaiting = wizardState.createNftStatus === 'waiting';
-  const isConfirmed = wizardState.createNftStatus === 'confirmed';
-  const isListedInStore = wizardState.isListedInStore === true;
+	const keyLabel = isSubscription ? 'Subscription Key' : 'Access Key';
+	const keysLabel = isSubscription ? 'Subscription Keys' : 'Access Keys';
+	const hasAccessKey =
+		wizardState.hasAccessKey === true || wizardState.createNftStatus === 'confirmed';
+	const isConfirmed = wizardState.createNftStatus === 'confirmed';
+	const isListedInStore = wizardState.isListedInStore === true;
+	const createQuantity = wizardState.createQuantity || 1;
 
-  const getStepContent = () => {
-    if (step === 1) {
-      if (isPublic) {
-        return {
-          title: '',
-          body: `
+	const getStepContent = () => {
+		if (step === 1) {
+			if (isPublic) {
+				return {
+					body: `
             <div class="stack-publish-option-copy">
-              <p class="stack-publish-option-heading">Public Post</p>
+              <p class="stack-publish-option-heading">Anyone can read.</p>
             </div>
           `
-        };
-      }
-      if (isPrivate) {
-        return {
-          title: '',
-          body: `
+				};
+			}
+			if (isPrivate) {
+				return {
+					body: `
             <div class="stack-publish-option-copy">
               <p class="stack-publish-option-heading">Restricted Post</p>
               <ul class="stack-publish-option-points">
@@ -49,12 +46,11 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
               </ul>
             </div>
           `
-        };
-      }
-      if (isSubscription) {
-        return {
-          title: '',
-          body: `
+				};
+			}
+			if (isSubscription) {
+				return {
+					body: `
             <div class="stack-publish-option-copy">
               <p class="stack-publish-option-heading">Restricted Post</p>
               <ul class="stack-publish-option-points">
@@ -63,15 +59,12 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
               </ul>
             </div>
           `
-        };
-      }
-    }
+				};
+			}
+		}
 
-    if (step === 2) {
-      if (isPrivate || isSubscription) {
-        const checklistSecondLabel = isWaiting ? `${keyLabel} Created` : `${keysLabel} Created`;
-        const createQuantity = wizardState.createQuantity || 1;
-        const checklistHtml = `
+		if (step === 2 && (isPrivate || isSubscription)) {
+			const checklistHtml = `
           <div class="stack-publish-checklist stack-publish-checklist-matrix">
             <div class="stack-publish-check-row stack-publish-check-row-complete">
               <span class="stack-publish-check-mark">✓</span>
@@ -79,194 +72,128 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
             </div>
             <div class="stack-publish-check-row${hasAccessKey ? ' stack-publish-check-row-complete' : ''}">
               <span class="stack-publish-check-mark">${hasAccessKey ? '✓' : '○'}</span>
-              <span>${checklistSecondLabel}</span>
+              <span>${keysLabel} Created</span>
             </div>
             ${
-              isListedInStore
-                ? `
+							isListedInStore
+								? `
             <div class="stack-publish-check-row stack-publish-check-row-complete">
               <span class="stack-publish-check-mark">✓</span>
               <span>${keysLabel} Listed</span>
             </div>
                 `
-                : ''
-            }
+								: ''
+						}
           </div>
         `;
 
-        if (isWaiting) {
-          return {
-            title: '',
-            body: `
-              <div class="stack-publish-waiting-panel">
-                ${checklistHtml}
-                <div class="stack-publish-waiting-divider"></div>
-                <p>Your ${keyLabel} has been broadcast to the Saito network.</p>
-                <p>Waiting for confirmation...</p>
-                <div class="stack-publish-confirmation-progress" aria-hidden="true">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-                <p>Estimated confirmation time:</p>
-                <p id="stack-publish-countdown" class="stack-publish-countdown">29</p>
-                <p>seconds remaining</p>
-                <p id="stack-publish-reassurance" class="stack-publish-reassurance">Your wallet will update automatically.</p>
-              </div>
-            `
-          };
-        }
-
-        if (isListedInStore) {
-          return {
-            title: '',
-            body: `
+			if (isListedInStore) {
+				return {
+					body: `
               ${checklistHtml}
               <div class="stack-publish-followup-state">
-                <p class="stack-publish-followup-heading">Ready to publish</p>
-                <ul class="stack-publish-followup-points">
-                  <li>Your Store listing will activate once the blockchain confirms it.</li>
-                  <li>Go ahead and publish your post.</li>
-                </ul>
+                <p class="stack-publish-guidance">Everything is Ready. Go ahead and publish your post.</p>
               </div>
             `
-          };
-        }
+				};
+			}
 
-        if (isConfirmed) {
-          return {
-            title: '',
-            body: `
+			if (isConfirmed || hasAccessKey) {
+				return {
+					body: `
               ${checklistHtml}
               <div class="stack-publish-followup-state">
-                <p class="stack-publish-followup-heading">Your ${keysLabel} are in your wallet</p>
-                <div class="stack-publish-suggestion">
-                  <p class="stack-publish-suggestion-label">Helpful next step</p>
-                  <ul class="stack-publish-followup-points">
-                    <li>
-                      <span id="stack-list-access-key-link" class="saito-anchor stack-publish-inline-link"><span>List your ${keysLabel} on the Saito Store</span></span>
-                    </li>
-                  </ul>
-                </div>
+                <p class="stack-publish-guidance">Would you like to list some ${keysLabel} for sale?</p>
+                <p class="stack-publish-guidance">
+                  <span id="stack-list-access-key-link" class="saito-text-link">▸ click here to upload to the Saito Store</span>
+                </p>
               </div>
             `
-          };
-        }
+				};
+			}
 
-        return {
-          title: '',
-          body: `
+			if (wizardState.createNftStatus === 'cancelled') {
+				return {
+					body: `
             ${checklistHtml}
-            ${
-              wizardState.createNftStatus === 'cancelled'
-                ? `
-                  <div class="stack-publish-followup-state">
-                    <p class="stack-publish-followup-heading">Having trouble?</p>
-                    <ul class="stack-publish-followup-points">
-                      <li>You can publish now without creating ${keysLabel}.</li>
-                      <li>You can also create Stack ${keyLabel} NFTs later from your wallet.</li>
-                    </ul>
-                  </div>
-                `
-                : hasAccessKey
-                  ? `
-                    <div class="stack-publish-followup-state">
-                      <div class="stack-publish-suggestion">
-                        <p class="stack-publish-suggestion-label">Helpful next step</p>
-                        <ul class="stack-publish-followup-points">
-                          <li>
-                            <span id="stack-list-access-key-link" class="saito-anchor stack-publish-inline-link"><span>List your ${keysLabel} on the Saito Store</span></span>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  `
-                  : `
-                    <div class="stack-publish-followup-state">
-                      <p class="stack-publish-followup-heading">Create ${createQuantity} ${keysLabel}</p>
-                      <ul class="stack-publish-followup-points">
-                        <li>
-                          <span id="stack-create-access-key-link" class="saito-anchor stack-publish-inline-link stack-publish-inline-link-strong"><span>Click here</span></span>
-                          to mint them now.
-                        </li>
-                      </ul>
-                    </div>
-                  `
-            }
+            <div class="stack-publish-followup-state">
+              <p class="stack-publish-guidance">You can publish now without creating ${keysLabel}, or create Stack ${keyLabel} NFTs later from your wallet.</p>
+            </div>
           `
-        };
-      }
-      // Fallback (should not reach for public)
-      return {
-        title: keyLabel,
-        body: `
-          <p>You'll need a ${keyLabel} for this post.</p>
-          <p>We'll help you create one.</p>
+				};
+			}
+
+			return {
+				body: `
+            ${checklistHtml}
+            <div class="stack-publish-followup-state">
+              <p class="stack-publish-guidance">Your wallet does not have any ${keysLabel}.</p>
+              <p class="stack-publish-guidance">
+                <span id="stack-create-access-key-link" class="saito-text-link">▸ click here to mint some now</span>
+              </p>
+            </div>
+          `
+			};
+		}
+
+		return {
+			body: `
+          <p class="stack-publish-guidance">You'll need a ${keyLabel} for this post. We'll help you create one.</p>
         `
-      };
-    }
+		};
+	};
 
-    return {
-      title: '',
-      body: ``
-    };
-  };
+	const stepContent = getStepContent();
 
-  const stepContent = getStepContent();
+	let primaryLabel = publishButtonText;
+	let primaryAction = 'publish';
+	if (isRestricted) {
+		if (step < 2) {
+			primaryLabel = 'Next →';
+			primaryAction = 'next';
+		} else {
+			primaryLabel = publishButtonText;
+			primaryAction = 'publish';
+		}
+	}
 
-  let primaryLabel = publishButtonText;
-  let primaryAction = 'publish';
-  if (isRestricted) {
-    if (step < 2) {
-      primaryLabel = 'Next →';
-      primaryAction = 'next';
-    } else {
-      primaryLabel = publishButtonText;
-      primaryAction = 'publish';
-    }
-  } else {
-    primaryAction = 'publish';
-  }
+	const showBack = isRestricted && step > 1;
+	const showPublishImmediately = isRestricted && step === 1;
 
-  const showBack = isRestricted && step > 1;
-  const showPublishImmediately = isRestricted && step === 1;
-  const waitingDisabled = isWaiting ? ' disabled' : '';
-
-  const leftActionHtml = (() => {
-    if (showBack) {
-      return `
-        <button id="stack-publish-back-btn" class="stack-publish-back-btn" type="button" aria-label="Back"${waitingDisabled}>
-          <i class="fa-solid fa-arrow-left"></i>
+	const leftActionHtml = (() => {
+		if (showBack) {
+			return `
+        <button id="stack-publish-back-btn" class="saito-button-square" type="button" aria-label="Back">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
         </button>
       `;
-    }
-    if (showPublishImmediately) {
-      return `
-        <div id="stack-publish-immediately" class="saito-anchor stack-publish-immediately">
-          <span>or skip access controls and publish immediately...</span>
-        </div>
+		}
+		if (showPublishImmediately) {
+			return `
+        <span id="stack-publish-immediately" class="saito-text-link stack-publish-immediately" role="button" tabindex="0">or skip access controls and publish immediately...</span>
       `;
-    }
-    return `<div class="stack-publish-action-spacer"></div>`;
-  })();
+		}
+		return `<div class="stack-publish-action-spacer"></div>`;
+	})();
 
-  return `
+	return `
     <div class="stack-publish-overlay">
       <div class="stack-publish-content">
         <div class="stack-publish-header">
           <h3 class="stack-publish-overlay-title">who can read this post?</h3>
-          <i
+          <button
+            type="button"
             id="stack-publish-delete-draft-btn"
-            class="fa-solid fa-trash stack-publish-delete-draft-icon"
+            class="saito-icon-button"
             title="Delete Draft"
-            role="button"
-            tabindex="0"
-          ></i>
+            aria-label="Delete Draft"
+          >
+            <i class="fa-solid fa-trash" aria-hidden="true"></i>
+          </button>
         </div>
 
         <div class="stack-publish-cards">
 
-          <!-- LEFT: ACCESS SELECTION -->
           <div class="stack-publish-card stack-publish-card-access">
             <div class="stack-publish-access-cards">
               <label class="stack-publish-access-card ${isPublic ? 'stack-publish-access-card-active' : ''}" data-access="public">
@@ -310,10 +237,8 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
             </div>
           </div>
 
-          <!-- RIGHT: EXPLANATION / WIZARD STEP -->
-          <div class="stack-publish-card stack-publish-card-main${isWaiting ? ' stack-publish-card-main-waiting' : ''}">
+          <div class="stack-publish-card stack-publish-card-main">
             <div id="stack-publish-step-panel" class="stack-publish-step-panel" data-step="${step}">
-              ${stepContent.title ? `<h3 class="stack-publish-card-title">${stepContent.title}</h3>` : ''}
               <div class="stack-publish-educational-content">
                 ${stepContent.body}
               </div>
@@ -328,9 +253,9 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
           </div>
           <button
             id="stack-publish-primary-btn"
-            class="stack-publish-primary-action-btn${isWaiting ? ' stack-publish-primary-action-btn-disabled' : ''}"
+            class="saito-button-primary"
             type="button"
-            data-action="${primaryAction}"${waitingDisabled}
+            data-action="${primaryAction}"
           >
             ${primaryLabel}
           </button>

@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
   return `
-  <div class="arcade-invite">
+  <div class="arcade-invites">
   </div>`;
 };

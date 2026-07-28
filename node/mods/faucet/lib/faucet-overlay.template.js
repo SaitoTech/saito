@@ -1,7 +1,7 @@
 module.exports = (app, mod) => {
-	const amountLabel = `${app.wallet.convertNolanToSaito(mod.amount)} SAITO`;
+  const amountLabel = `${app.wallet.convertNolanToSaito(mod.amount)} SAITO`;
 
-	return `
+  return `
   <div
     class="saito-crypto-transfer faucet-overlay"
     id="faucet-request-container"

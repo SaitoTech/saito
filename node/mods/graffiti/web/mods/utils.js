@@ -1,20 +1,25 @@
 class Utils {
-  static SIDES = ["left", "right", "top", "bottom"];
-  static DIRECTIONS = ["horizontal", "vertical"];
-  static CONTINOUS_COORDINATES_NAMES = ["x", "y"];
-
+  static SIDES = ['left', 'right', 'top', 'bottom'];
+  static DIRECTIONS = ['horizontal', 'vertical'];
+  static CONTINOUS_COORDINATES_NAMES = ['x', 'y'];
 
   static sign_fromSide(side) {
-    return {
-      left: -1, right:  +1,
-      top:  -1, bottom: +1
-    }[side] ?? 0;
+    return (
+      {
+        left: -1,
+        right: +1,
+        top: -1,
+        bottom: +1
+      }[side] ?? 0
+    );
   }
 
   static discreteCoordinateName_fromSide(side) {
     return {
-      left: "i", right:  "i",
-      top:  "j", bottom: "j"
+      left: 'i',
+      right: 'i',
+      top: 'j',
+      bottom: 'j'
     }[side];
   }
 
@@ -24,13 +29,15 @@ class Utils {
   }
 
   static continuousCoordinateName_fromDirection(direction) {
-    return {horizontal: "x", vertical: "y"}[direction];
+    return { horizontal: 'x', vertical: 'y' }[direction];
   }
 
   static transposedSide(side) {
     return {
-      left: "top",  right:  "bottom",
-      top:  "left", bottom: "right"
+      left: 'top',
+      right: 'bottom',
+      top: 'left',
+      bottom: 'right'
     }[side];
   }
 
@@ -39,11 +46,11 @@ class Utils {
   }
 
   static negativeSide_fromDirection(direction) {
-    return {horizontal: "left", vertical: "top"}[direction];
+    return { horizontal: 'left', vertical: 'top' }[direction];
   }
 
   static positiveSide_fromDirection(direction) {
-    return {horizontal: "right", vertical: "bottom"}[direction];
+    return { horizontal: 'right', vertical: 'bottom' }[direction];
   }
 
   static positiveSide_fromDimensionName(dimensionName) {
@@ -57,31 +64,30 @@ class Utils {
   }
 
   static direction_fromDimensionName(dimensionName) {
-    return {width: "horizontal", height: "vertical"}[dimensionName];
+    return { width: 'horizontal', height: 'vertical' }[dimensionName];
   }
 
   static dimensionName_fromDirection(direction) {
-    return {horizontal: "width", vertical: "height"}[direction];
+    return { horizontal: 'width', vertical: 'height' }[direction];
   }
 
   static sides_fromDirection(direction) {
-    return [
-      this.negativeSide_fromDirection(direction),
-      this.positiveSide_fromDirection(direction)
-    ];
+    return [this.negativeSide_fromDirection(direction), this.positiveSide_fromDirection(direction)];
   }
 
   static direction_fromSide(side) {
     return {
-      left: "horizontal", right:  "horizontal",
-      top:  "vertical",   bottom: "vertical"
+      left: 'horizontal',
+      right: 'horizontal',
+      top: 'vertical',
+      bottom: 'vertical'
     }[side];
   }
 
   static orthogonalSides(side) {
     const direction = this.direction_fromSide(side);
     const otherDirection = this.otherDirection(direction);
-    
+
     return this.sides_fromDirection(otherDirection);
   }
 
@@ -98,7 +104,9 @@ class Utils {
   }
 
   static objectMap(map, ...objs) {
-    return Object.fromEntries(Object.keys(objs[0]).map((key) => [key, map(...objs.map((obj) => obj[key]))]));
+    return Object.fromEntries(
+      Object.keys(objs[0]).map((key) => [key, map(...objs.map((obj) => obj[key]))])
+    );
   }
 
   static objectSum(obj1, obj2) {
@@ -126,7 +134,7 @@ class Utils {
   }
 
   static gcd(a, b) {
-    return (b !== 0) ? this.gcd(b, a % b) : a;
+    return b !== 0 ? this.gcd(b, a % b) : a;
   }
 
   static round(x, nbPlaces) {
@@ -139,8 +147,8 @@ class Utils {
     return Math.ceil(x * tenPower) / tenPower;
   }
 
-  static linearFunction({x1, y1}, {x2, y2}) {
-    return (x) => y1 + (y2 - y1)/(x2 - x1) * (x - x1);
+  static linearFunction({ x1, y1 }, { x2, y2 }) {
+    return (x) => y1 + ((y2 - y1) / (x2 - x1)) * (x - x1);
   }
 
   static boundedPercentageValue(old_value) {
@@ -159,7 +167,7 @@ class Utils {
     return Object.assign({}, obj);
   }
 
-  static px_fromRem(rem) {    
+  static px_fromRem(rem) {
     return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
   }
 }

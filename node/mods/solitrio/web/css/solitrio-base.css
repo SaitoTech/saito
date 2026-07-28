@@ -1,204 +1,208 @@
 .game.solitrio {
-.rules-overlay ul {
-	margin-left: 25px;
-}
+  .rules-overlay ul {
+    margin-left: 25px;
+  }
 
-.status-header {
-	height: 120px;
-}
+  .status-header {
+    height: 120px;
+  }
 
-#saito-alert-shim {
-	z-index: 100;
-}
+  #saito-alert-shim {
+    z-index: 100;
+  }
 
-.gameboard {
-	position: absolute;
-	background-image: url(/saito/img/arcade/greenfelt.jpg);
-	background-size: cover;
-	width: 100%;
-	height: 100%;
-	display: grid;
-	grid-template-columns: minmax(20%, max-content) 1fr;
-}
+  .gameboard {
+    position: absolute;
+    background-image: url(/saito/img/arcade/greenfelt.jpg);
+    background-size: cover;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(20%, max-content) 1fr;
+  }
 
-.logobox {
-	position: relative;
-	margin-top: 50px;
+  .logobox {
+    position: relative;
+    margin-top: 50px;
 
-	color: #333;
-	font-size: 20px;
-	order: 1;
-	max-width: 200px;
-	margin-left: auto;
-	margin-right: auto;
-	margin-top: 80px;
-}
+    color: #333;
+    font-size: 20px;
+    order: 1;
+    max-width: 200px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 80px;
+  }
 
-.logobox div {
-	border-radius: 5px;
-}
+  .logobox div {
+    border-radius: 5px;
+  }
 
-.logobox img {
-	width: 100%;
-	margin-bottom: 15px;
-}
+  .logobox img {
+    width: 100%;
+    margin-bottom: 15px;
+  }
 
-.status-header {
-	padding: 10px 5px;
-	margin-top: 20px;
-}
+  .status-header {
+    padding: 10px 5px;
+    margin-top: 20px;
+  }
 
-/* hover feedback only on devices with a real pointer --
+  /* hover feedback only on devices with a real pointer --
    on touch screens these states stick to the last-tapped card */
-@media (hover: hover) {
-	.selected .empty:hover {
-		background-color: rgba(240, 240, 240, 0.7);
-		border-radius: 10px;
-	}
+  @media (hover: hover) {
+    .selected .empty:hover {
+      background-color: rgba(240, 240, 240, 0.7);
+      border-radius: 10px;
+    }
 
-	.selected .valid:hover {
-		background-color: rgba(160, 255, 160, 0.85);
-		border-radius: 10px;
-	}
+    .selected .valid:hover {
+      background-color: rgba(160, 255, 160, 0.85);
+      border-radius: 10px;
+    }
 
-	.selected .invalid:hover {
-		background-color: rgba(255, 160, 160, 0.85);
-		border-radius: 10px;
-	}
+    .selected .invalid:hover {
+      background-color: rgba(255, 160, 160, 0.85);
+      border-radius: 10px;
+    }
 
-	.slot:hover {
-		filter: brightness(0.85);
-	}
+    .slot:hover {
+      filter: brightness(0.85);
+    }
 
-	.selected .slot:hover,
-	.nomoves .slot:hover {
-		filter: unset;
-	}
-}
+    .selected .slot:hover,
+    .nomoves .slot:hover {
+      filter: unset;
+    }
+  }
 
-.rowbox {
-	order: 2;
-	margin-top: 25px;
-	padding: 25px;
-	display: grid;
-	grid-template-columns: repeat(10, 1fr);
-	grid-template-rows: 1fr 1fr 1fr 1fr;
-	width: 1250px;
-	max-width: min(80vw, 156vh);
-	grid-gap: min(5px, 1vh);
-	height: fit-content;
-	transition: filter 1s;
-}
+  .rowbox {
+    order: 2;
+    margin-top: 25px;
+    padding: 25px;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+    width: 1250px;
+    max-width: min(80vw, 156vh);
+    grid-gap: min(5px, 1vh);
+    height: fit-content;
+    transition: filter 1s;
+  }
 
-.rowbox.nomoves {
-	transition: filter 1s;
-	filter: brightness(0.5);
-}
+  .rowbox.nomoves {
+    transition: filter 1s;
+    filter: brightness(0.5);
+  }
 
-.slot,
-.selected .slot.empty {
-	width: 100%;
-	cursor: pointer;
-	/* keep card proportions (imgs are 200x306) so rows/columns of empty slots don't collapse */
-	aspect-ratio: 200 / 306;
-}
+  .slot,
+  .selected .slot.empty {
+    width: 100%;
+    cursor: pointer;
+    /* keep card proportions (imgs are 200x306) so rows/columns of empty slots don't collapse */
+    aspect-ratio: 200 / 306;
+  }
 
-.slot.empty,
-.selected .slot,
-.nomoves .slot {
-	cursor: unset;
-}
+  .slot.empty,
+  .selected .slot,
+  .nomoves .slot {
+    cursor: unset;
+  }
 
-/* the base transition governs the fast counterclockwise snap-back
+  /* the base transition governs the fast counterclockwise snap-back
    when the misclick class is removed */
-.slot img,
-.animated_elem img {
-	width: 100%;
-	transition: transform 0.35s, filter 0.6s;
-}
+  .slot img,
+  .animated_elem img {
+    width: 100%;
+    transition:
+      transform 0.35s,
+      filter 0.6s;
+  }
 
-/* cards locked in winning position hold their glow through a reshuffle;
+  /* cards locked in winning position hold their glow through a reshuffle;
    drop-shadow follows the card art's rounded corners, unlike box-shadow */
-.slot.locked img {
-	filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 7px rgba(120, 255, 140, 0.9));
-}
+  .slot.locked img {
+    filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 7px rgba(120, 255, 140, 0.9));
+  }
 
-/* slow clockwise spin out; the snap back uses the base transition above */
-.slot.misclick img {
-	transform: rotate(360deg);
-	transition: transform 0.8s, filter 0.6s;
-}
+  /* slow clockwise spin out; the snap back uses the base transition above */
+  .slot.misclick img {
+    transform: rotate(360deg);
+    transition:
+      transform 0.8s,
+      filter 0.6s;
+  }
 
-@media screen and (orientation: landscape) and (max-height: 600px) {
-	.logobox {
-		order: 1;
-		margin-top: unset;
-		max-width: 150px;
-		max-height: 100vh;
-		height: fit-content;
-		top: 50vh;
-		transform: translateY(-50%);
-	}
+  @media screen and (orientation: landscape) and (max-height: 600px) {
+    .logobox {
+      order: 1;
+      margin-top: unset;
+      max-width: 150px;
+      max-height: 100vh;
+      height: fit-content;
+      top: 50vh;
+      transform: translateY(-50%);
+    }
 
-	.logobox img {
-		display: none;
-	}
+    .logobox img {
+      display: none;
+    }
 
-	.hidable {
-		display: none;
-	}
+    .hidable {
+      display: none;
+    }
 
-	.rowbox {
-		margin-top: 50vh;
-		transform: translateY(-50%);
-		padding: 15px;
-		order: 2;
-	}
-}
+    .rowbox {
+      margin-top: 50vh;
+      transform: translateY(-50%);
+      padding: 15px;
+      order: 2;
+    }
+  }
 
-@media screen and (orientation: portrait) and (max-width: 600px) {
-	.gameboard {
-		grid-template-columns: 1fr;
-		/* board gets the height it needs; controls take the remainder */
-		grid-template-rows: minmax(0, 1fr) auto;
-	}
+  @media screen and (orientation: portrait) and (max-width: 600px) {
+    .gameboard {
+      grid-template-columns: 1fr;
+      /* board gets the height it needs; controls take the remainder */
+      grid-template-rows: minmax(0, 1fr) auto;
+    }
 
-	.logobox {
-		order: 2;
-		max-width: unset;
-		margin: 5px auto;
-		font-size: 18px;
-		align-self: end;
-	}
+    .logobox {
+      order: 2;
+      max-width: unset;
+      margin: 5px auto;
+      font-size: 18px;
+      align-self: end;
+    }
 
-	.logobox img {
-		display: none;
-	}
+    .logobox img {
+      display: none;
+    }
 
-	.hidable {
-		display: none;
-	}
+    .hidable {
+      display: none;
+    }
 
-	.logobox .status {
-		width: min(500px, 90vw);
-	}
+    .logobox .status {
+      width: min(500px, 90vw);
+    }
 
-	/* compact horizontal action bar -- the engine default is a stacked
+    /* compact horizontal action bar -- the engine default is a stacked
 	   list of 8rem-tall items, which starves the board of height
 	   (the min-height override lives in solitrio-hud.css, which loads later) */
-	.controls ul {
-		flex-direction: row;
-		width: 100%;
-	}
+    .controls ul {
+      flex-direction: row;
+      width: 100%;
+    }
 
-	.controls ul li {
-		height: 4rem;
-		font-size: 1.4rem;
-		border-top: unset;
-		white-space: nowrap;
-	}
+    .controls ul li {
+      height: 4rem;
+      font-size: 1.4rem;
+      border-top: unset;
+      white-space: nowrap;
+    }
 
-	/*
+    /*
 	  Transpose the board to fit the phone's aspect ratio: each game row
 	  becomes a column (4 across, 10 down). grid-auto-flow: column keeps
 	  the DOM order, so row1_slot1-10 fill the first column top-to-bottom.
@@ -208,21 +212,21 @@
 	  Cards are 200x306, so a 10-card column is ~3.8x the board width;
 	  the vh term caps the width so the whole board stays on screen.
 	*/
-	.rowbox {
-		order: 1;
-		margin: 0 auto;
-		padding: 10px;
-		align-self: center;
-		grid-auto-flow: column;
-		grid-template-columns: repeat(4, 1fr);
-		grid-template-rows: repeat(10, 1fr);
-		column-gap: min(12px, 3vw);
-		row-gap: min(5px, 0.6vh);
-		max-width: min(96vw, 27vh);
-	}
-}
+    .rowbox {
+      order: 1;
+      margin: 0 auto;
+      padding: 10px;
+      align-self: center;
+      grid-auto-flow: column;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      column-gap: min(12px, 3vw);
+      row-gap: min(5px, 0.6vh);
+      max-width: min(96vw, 27vh);
+    }
+  }
 
-/* force landscape when on mobile
+  /* force landscape when on mobile
 This works for display, but it screws up the animations!!!!
 
 @media screen and (min-width: 320px) and (max-width: 767px) and (orientation: portrait) {
@@ -249,5 +253,5 @@ This works for display, but it screws up the animations!!!!
   }
 */
 
-/*}*/
+  /*}*/
 }

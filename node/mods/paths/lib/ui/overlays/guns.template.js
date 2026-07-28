@@ -1,5 +1,5 @@
 module.exports = () => {
-	let html = `
+  let html = `
     <div class="guns-overlay hide-scrollbar">
       <div class="help">Central Powers - start with Guns of August?</div>
       <div class="status">Central Powers - start with Guns of August?</div>
@@ -14,5 +14,5 @@ module.exports = () => {
       </div>
     </div>
   `;
-	return html;
+  return html;
 };

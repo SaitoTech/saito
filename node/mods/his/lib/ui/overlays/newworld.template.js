@@ -1,22 +1,52 @@
 module.exports = (his_self) => {
-	let help = `New World Bonus Phase`;
+  let help = `New World Bonus Phase`;
 
-	let cb = "";
+  let cb = '';
 
-	if (his_self.game.state.new_world_bonus['ottoman'] > 0)    { if (cb != "") { cb += ', '; } cb += `Turks (${his_self.game.state.new_world_bonus['ottoman']})`; }
-	if (his_self.game.state.new_world_bonus['hapsburg'] > 0)   { if (cb != "") { cb += ', '; } cb += `Hapburg (${his_self.game.state.new_world_bonus['hapsburg']})`; }
-	if (his_self.game.state.new_world_bonus['england'] > 0)    { if (cb != "") { cb += ', '; } cb += `English (${his_self.game.state.new_world_bonus['england']})`; }
-	if (his_self.game.state.new_world_bonus['france'] > 0)     { if (cb != "") { cb += ', '; } cb += `French (${his_self.game.state.new_world_bonus['france']})`; }
-	if (his_self.game.state.new_world_bonus['papacy'] > 0)     { if (cb != "") { cb += ', '; } cb += `Papacy (${his_self.game.state.new_world_bonus['papacy']})`; }
-	if (his_self.game.state.new_world_bonus['protestant'] > 0) { if (cb != "") { cb += ', '; } cb += `Prots (${his_self.game.state.new_world_bonus['protestant']})`; }
+  if (his_self.game.state.new_world_bonus['ottoman'] > 0) {
+    if (cb != '') {
+      cb += ', ';
+    }
+    cb += `Turks (${his_self.game.state.new_world_bonus['ottoman']})`;
+  }
+  if (his_self.game.state.new_world_bonus['hapsburg'] > 0) {
+    if (cb != '') {
+      cb += ', ';
+    }
+    cb += `Hapburg (${his_self.game.state.new_world_bonus['hapsburg']})`;
+  }
+  if (his_self.game.state.new_world_bonus['england'] > 0) {
+    if (cb != '') {
+      cb += ', ';
+    }
+    cb += `English (${his_self.game.state.new_world_bonus['england']})`;
+  }
+  if (his_self.game.state.new_world_bonus['france'] > 0) {
+    if (cb != '') {
+      cb += ', ';
+    }
+    cb += `French (${his_self.game.state.new_world_bonus['france']})`;
+  }
+  if (his_self.game.state.new_world_bonus['papacy'] > 0) {
+    if (cb != '') {
+      cb += ', ';
+    }
+    cb += `Papacy (${his_self.game.state.new_world_bonus['papacy']})`;
+  }
+  if (his_self.game.state.new_world_bonus['protestant'] > 0) {
+    if (cb != '') {
+      cb += ', ';
+    }
+    cb += `Prots (${his_self.game.state.new_world_bonus['protestant']})`;
+  }
 
-	if (cb === "") {
-	  cb = "no new world card bonuses this turn...";
-	} else {
-	  cb = "New World Card Bonuses: " + cb;
-	}
+  if (cb === '') {
+    cb = 'no new world card bonuses this turn...';
+  } else {
+    cb = 'New World Card Bonuses: ' + cb;
+  }
 
-	let html = `
+  let html = `
       <div class="new-world-overlay" id="new-world-overlay">
 	<div class="help">${help}</div>
 	<div class="content">
@@ -33,5 +63,5 @@ module.exports = (his_self) => {
 	<div class="card_bonuses">${cb}</div>
       </div>
   `;
-	return html;
+  return html;
 };

@@ -38,18 +38,18 @@
 
   & th,
   td {
-    border: 1px solid var(--saito-border-color);
+    border: 1px solid var(--saito-border);
     padding: 8px;
     text-align: left;
   }
 
   & th {
-    background-color: var(--saito-background-color);
+    background-color: var(--saito-background);
     font-weight: bold;
   }
 
   & tr:nth-child(even) {
-    background-color: var(--saito-background-color);
+    background-color: var(--saito-background);
   }
 
   /* Lists */
@@ -60,9 +60,9 @@
 
   /* Blockquotes */
   & blockquote {
-    border-left: 4px solid var(--saito-border-color);
+    border-left: 4px solid var(--saito-border);
     padding-left: 1em;
-    color: var(--saito-font-color);
+    color: var(--saito-foreground);
     font-style: italic;
   }
 
@@ -72,17 +72,17 @@
 
   /* Code blocks */
   & pre {
-    background: var(--background-color-shim-dark);
+    background: color-mix(in srgb, var(--saito-black) 70%, transparent);
     padding: 20px;
     border-radius: 10px;
-    color: var(--saito-primary-text);
+    color: var(--saito-primary-foreground);
     line-height: 1.5;
   }
 
   & code {
     font-family: monospace;
     padding: 0.2em 0.4em;
-    background: var(--saito-background-color);
+    background: var(--saito-background);
     border-radius: 3px;
     font-size: 0.9em;
   }
@@ -107,7 +107,7 @@
   /* Horizontal rule */
   & hr {
     border: 0;
-    border-top: 1px solid var(--saito-border-color);
+    border-top: 1px solid var(--saito-border);
     /* margin: 2em 0; */
   }
 
@@ -127,9 +127,9 @@
   & section {
     margin: 2rem 0;
     padding: 2rem;
-    border: 1px solid var(--saito-border-color);
+    border: 1px solid var(--saito-border);
     border-radius: 8px;
-    background: var(--saito-background-color);
+    background: var(--saito-background);
     display: flex;
     flex-direction: column;
     gap: 1rem;

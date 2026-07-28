@@ -1,0 +1,228 @@
+/*
+ * Publish / unlock — host chrome + content
+ */
+
+body.rustscript.rs-publish-modal-open main.rustscript .rs-publish-script {
+  pointer-events: none;
+}
+
+.saito-overlay.rs-publish-overlay-backdrop,
+[id^='saito-overlay-backdrop'].rs-publish-overlay-backdrop {
+  position: fixed;
+  display: block;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  pointer-events: auto;
+  z-index: 20;
+}
+
+.saito-overlay.rs-publish-overlay-shell {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  /* Saito center-overlay uses translate(-50%,-50%); neutralize it. */
+  left: 0;
+  top: 0;
+  transform: none;
+  overflow: visible;
+  z-index: 21;
+  /* Host is display:block (pullOverlayToFront). Do not rely on flex centering. */
+  display: block;
+  pointer-events: none;
+  background: transparent;
+  border: none;
+}
+
+/*
+ * Root cause of off-center overlays: the shell is full-viewport while
+ * pullOverlayToFront forces display:block, so flex align/justify never run.
+ * Center the panel with absolute positioning instead.
+ */
+.saito-overlay.rs-publish-overlay-shell > .rustscript-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  pointer-events: auto;
+}
+
+.rs-publish-asset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--saito-space-md);
+}
+
+.rs-publish-asset-card {
+  aspect-ratio: 4 / 3;
+  min-height: 0;
+}
+
+.rs-publish-asset-media {
+  display: block;
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+.rs-publish-asset-saito .rs-publish-asset-media {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(252, 163, 17, 0.14) 0%, transparent 62%), #0a0a0a;
+}
+
+.rs-publish-asset-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rs-publish-asset-nft .rs-publish-asset-img {
+  filter: grayscale(0.35) brightness(0.85);
+}
+
+.rs-publish-asset-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  font-size: var(--font-size-large);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  padding: var(--saito-space-md);
+  color: #f0f0f0;
+  text-align: center;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.5) 40%,
+    rgba(0, 0, 0, 0.86) 100%
+  );
+  pointer-events: none;
+}
+
+.rs-publish-send-panels {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 60fr 40fr;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.rs-publish-send-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rs-publish-send-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  padding: var(--saito-space-xl);
+  overflow-y: auto;
+}
+
+.rs-publish-send-form .rs-overlay-actions {
+  margin-top: auto;
+  padding-top: var(--saito-space-md);
+}
+
+.rs-publish-script-readonly {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--saito-space-xl);
+  overflow: auto;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.95em;
+  background: #101010;
+  color: #d0d0d0;
+  border-right: 1px solid #333;
+}
+
+.rs-publish-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.rs-publish-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--saito-space-md);
+  margin: 0;
+}
+
+.rs-publish-field-row .rs-publish-field {
+  margin: 0;
+}
+
+input.rs-publish-input {
+  min-height: var(--rs-control-height);
+  height: var(--rs-control-height);
+  padding: 0 var(--saito-space-md);
+  background: #0c0c0c;
+  color: #efefef;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  font-weight: 400;
+}
+
+input.rs-publish-input:focus {
+  border-color: #666;
+}
+
+input.rs-publish-input[readonly] {
+  color: #c8c8c8;
+  background: #0a0a0a;
+}
+
+.rs-publish-input-copy-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.rs-publish-input-copy-row input.rs-publish-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.rs-publish-error[hidden] {
+  display: none !important;
+}
+
+.rs-publish-error {
+  font-size: var(--font-size-tiny);
+  line-height: 1.4;
+  color: #c07070;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .rs-publish-asset-grid,
+  .rs-publish-send-panels,
+  .rs-publish-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .rs-publish-script-readonly {
+    border-right: none;
+    border-bottom: 1px solid #333;
+  }
+}

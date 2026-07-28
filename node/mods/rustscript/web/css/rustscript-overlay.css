@@ -1,318 +1,323 @@
-/* Shared RustScript overlays — expert syntax; extends overlay system */
+/*
+ * .rustscript-overlay — shared modal shell + RS buttons
+ */
 
-body:has(.saito-container.rustscript) .saito-overlay:has(> .rustscript-overlay) {
-  border: none !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+.saito-overlay:has(> .rustscript-overlay) {
+  border: none;
+  background: transparent;
   overflow: visible;
-}
-
-body:has(.saito-container.rustscript) .saito-overlay > .rustscript-overlay {
-  border: var(--rs-overlay-border) !important;
-  border-radius: var(--rs-control-radius, 4px) !important;
-  box-shadow: var(--rs-overlay-shadow) !important;
-  overflow: hidden;
-  background: var(--rustscript-surface);
-}
-
-body:has(.saito-container.rustscript) .rustscript-overlay {
-  padding: var(--rs-overlay-padding-top) var(--rs-overlay-padding-x) var(--rs-overlay-padding-bottom);
-  color: #ececec;
-  background: var(--rustscript-surface);
-  width: min(820px, 94vw);
-  max-width: 94vw;
-  display: flex;
-  flex-direction: column;
-  gap: var(--rs-overlay-gap);
-  box-sizing: border-box;
-  font-size: 16px;
-}
-
-body:has(.saito-container.rustscript) .rustscript-overlay h2,
-body:has(.saito-container.rustscript) .rustscript-overlay .rs-prompt-title {
-  margin: var(--rs-overlay-title-margin);
-  font-family: var(--rustscript-font-sans);
-  font-size: var(--rs-overlay-title-size);
-  font-weight: var(--rs-overlay-title-weight);
-  letter-spacing: var(--rs-overlay-title-spacing);
-  line-height: 1.25;
-  text-transform: none;
-  color: #f4f4f4;
-}
-
-body:has(.saito-container.rustscript) .rustscript-overlay label,
-body:has(.saito-container.rustscript) .rustscript-overlay .rs-prompt-label,
-body:has(.saito-container.rustscript) .rustscript-overlay .rs-overlay-hint {
-  font-family: var(--rustscript-font-mono);
-  font-size: 13px;
-  font-weight: 600;
-  color: #a8a8a8;
-  margin: 0 0 8px;
-  display: block;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-body:has(.saito-container.rustscript) .rustscript-overlay textarea,
-body:has(.saito-container.rustscript) .rustscript-overlay .rs-expert-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 14px 16px;
-  min-height: 140px;
-  font-family: var(--rustscript-font-mono);
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.45;
-  background: #0c0c0c;
-  color: #efefef;
-  border: 1px solid #4a4a4a;
-  border-radius: var(--rs-control-radius, 4px);
-  resize: vertical;
-  outline: none;
-}
-
-body:has(.saito-container.rustscript) .rustscript-overlay textarea::placeholder {
-  color: #8a8a8a;
-  opacity: 1;
-}
-
-body:has(.saito-container.rustscript) .rustscript-overlay .overlay-actions {
-  display: flex;
-  width: 100%;
-  gap: var(--rs-overlay-footer-gap);
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: var(--rs-overlay-footer-margin-top);
-  padding-top: 4px;
-}
-
-body:has(.saito-container.rustscript) .rustscript-overlay .overlay-actions .rs-btn,
-body:has(.saito-container.rustscript) .rustscript-overlay .overlay-actions button:not(.rs-btn) {
-  min-height: var(--rs-btn-primary-height);
-  height: var(--rs-btn-primary-height);
-  min-width: var(--rs-btn-primary-min-width);
-  padding: var(--rs-btn-primary-padding);
-  font-size: var(--rs-btn-primary-font-size);
-}
-
-body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-value,
-body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-publickey-input,
-body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-single-input,
-body:has(.saito-container.rustscript) .rustscript-overlay input.rs-prompt-number-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 14px 16px;
-  min-height: var(--rs-control-height);
-  font-family: var(--rustscript-font-mono);
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.45;
-  background: #0c0c0c;
-  color: #efefef;
-  border: 1px solid #4a4a4a;
-  border-radius: var(--rs-control-radius, 4px);
-  outline: none;
-}
-
-body:has(.saito-container.rustscript) .rustscript-overlay input::placeholder {
-  color: #8a8a8a;
-  opacity: 1;
-}
-
-body:has(.saito-container.rustscript) .overlay-actions-apply-only {
-  justify-content: flex-end;
-}
-
-body:has(.saito-container.rustscript) .overlay-actions-split {
-  justify-content: space-between;
-  align-items: stretch;
-  gap: var(--rs-overlay-footer-gap);
-}
-
-body:has(.saito-container.rustscript) .overlay-actions-split .rs-prompt-use-mine {
-  flex: 1 1 auto;
-  margin: 0;
-  min-width: 0;
-}
-
-body:has(.saito-container.rustscript) .overlay-actions-split .rs-prompt-apply {
-  flex: 0 0 auto;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-validation {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--rs-control-radius, 4px);
-  font-size: 14px;
-  line-height: 1.45;
-  color: #f0c878;
-  background: rgba(252, 163, 17, 0.12);
-  border: 1px solid rgba(252, 163, 17, 0.35);
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-validation[hidden] {
-  display: none !important;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-hash-input {
-  min-height: 120px;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-generic .rs-prompt-title {
-  margin-bottom: 24px;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-generic-single .rs-prompt-single-input {
-  min-height: var(--rs-control-height);
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-publickey-panel,
-body:has(.saito-container.rustscript) .rs-prompt-number-panel,
-body:has(.saito-container.rustscript) .rs-prompt-generic-single {
-  width: min(480px, 94vw);
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-number-field {
-  width: 100%;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-number-input {
-  min-height: var(--rs-control-height);
-  font-size: 15px;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-generic-input {
-  min-height: 168px;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-logical-select {
-  width: 100%;
-  box-sizing: border-box;
-  height: var(--rs-control-height);
-  padding: 0 36px 0 16px;
-  border: 1px solid #4a4a4a;
-  border-radius: var(--rs-control-radius, 4px);
-  background: #0c0c0c;
-  color: #efefef;
-  font-family: var(--rustscript-font-mono);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg fill='%23aaa' height='12' viewBox='0 0 24 24' width='12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  cursor: pointer;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-logical-explain {
-  margin: 6px 0 0;
-  padding: 14px 16px;
-  border-radius: var(--rs-control-radius, 4px);
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 15px;
-  line-height: 1.55;
-  color: #c8c8c8;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-hash-output-row {
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-  margin-top: 6px;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-hash-output {
-  flex: 1;
-  min-height: 56px;
-  margin: 0;
-  padding: 14px 16px;
-  border-radius: var(--rs-control-radius, 4px);
-  border: 1px solid rgba(92, 184, 106, 0.35);
-  background: #080808;
-  font-family: var(--rustscript-font-mono);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
-  color: #b8f0c0;
-  word-break: break-all;
-  display: block;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-copy-hash {
-  flex: 0 0 5.2rem;
-  width: 5.2rem;
-  height: 5.2rem;
-  min-height: 5.2rem;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--rs-control-radius, 4px);
-  border: 1px solid #4a4a4a;
-  background: #141414;
-  color: #c8c8c8;
-  cursor: pointer;
-  align-self: stretch;
   box-shadow: none;
 }
 
-body:has(.saito-container.rustscript) .rs-prompt-copy-icon {
-  font-size: 2rem;
-  line-height: 1;
-  pointer-events: none;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-copy-hash:hover {
-  color: #f0f0f0;
-  border-color: #666;
-  background: #1c1c1c;
-  box-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-publickey-field {
+.rustscript-overlay {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-publickey-input {
-  min-height: var(--rs-control-height);
-  font-size: 15px;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-sign-wallet {
-  align-self: flex-start;
-  margin: 4px 0 10px;
-}
-
-body:has(.saito-container.rustscript) .rs-prompt-signature-readonly {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 14px 16px;
-  min-height: var(--rs-control-height);
-  border-radius: var(--rs-control-radius, 4px);
-  border: 1px solid #4a4a4a;
-  background: #080808;
-  font-family: var(--rustscript-font-mono);
-  font-size: 14px;
-  font-weight: 500;
+  gap: var(--saito-space-lg);
+  padding: var(--saito-space-xl);
+  width: min(82rem, 94vw);
+  max-width: 94vw;
+  overflow: hidden;
+  pointer-events: auto;
+  position: relative;
+  font-size: var(--font-size-medium);
   line-height: 1.45;
-  color: #d8d8d8;
-  word-break: break-all;
+  font-weight: 400;
+  background: #1a1a1a;
+  color: #ececec;
+  border: 1px solid #4a4a4a;
+  border-radius: 6px;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
-body:has(.saito-container.rustscript) .rs-prompt-signature-message {
-  min-height: 72px;
-  white-space: pre-wrap;
+.rustscript-overlay.rs-overlay-prompt {
+  width: min(52rem, 94vw);
 }
 
-body:has(.saito-container.rustscript) .rs-prompt-signature-auto .overlay-actions {
-  margin-top: 8px;
+.rustscript-overlay.rs-overlay-wide {
+  width: min(86rem, 94vw);
+  max-height: 88vh;
+}
+
+.rustscript-overlay.rs-overlay-modal {
+  width: min(92vw, 64rem);
+  max-height: min(88vh, 54rem);
+  height: auto;
+  flex: 0 1 auto;
+}
+
+.rustscript-overlay.rs-overlay-workspace {
+  width: min(94vw, 148rem);
+  height: min(88vh, calc(100dvh - 2.5rem));
+  max-height: min(88vh, calc(100dvh - 2.5rem));
+  flex: 0 1 auto;
+  padding: 0;
+  gap: 0;
+}
+
+.rs-overlay-status .rs-overlay-body {
+  align-items: stretch;
+}
+
+.rs-overlay-status .rs-overlay-title {
+  text-align: left;
+}
+
+.rs-overlay-status .rs-overlay-title-loading {
+  text-align: center;
+  width: 100%;
+}
+
+.rs-overlay-title,
+.rustscript-overlay > h2 {
+  flex-shrink: 0;
+  margin: 0;
+  padding-right: 3.6rem;
+  font-size: var(--font-size-large);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  text-transform: none;
+  color: #f0f0f0;
+}
+
+.rs-overlay-title-hero {
+  font-size: 2.4rem;
+  letter-spacing: normal;
+}
+
+.rs-overlay-title-choice {
+  font-size: 2.4rem;
+  letter-spacing: normal;
+  line-height: 1.25;
+}
+
+.rs-overlay-title-loading {
+  font-size: 2rem;
+  letter-spacing: normal;
+  text-align: center;
+  padding-right: 0;
+}
+
+.rs-overlay-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-lg);
+}
+
+.rs-overlay-head .rs-overlay-title {
+  flex: 1;
+  min-width: 0;
+  padding-right: 0;
+}
+
+.rs-overlay-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+}
+
+.rs-overlay-workspace > .rs-overlay-body {
+  height: 100%;
+  gap: 0;
+}
+
+.rs-overlay-lead {
+  margin: 0;
+  line-height: 1.5;
+  color: #a8a8a8;
+}
+
+.rs-overlay-label {
+  display: block;
+  margin-bottom: var(--saito-space-xs);
+  font-size: var(--font-size-tiny);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  color: #a0a0a0;
+}
+
+.rs-overlay-actions {
+  flex-shrink: 0;
+  display: flex;
+  width: 100%;
+  gap: var(--saito-space-md);
+  align-items: center;
+  margin-top: var(--saito-space-xs);
+}
+
+.rs-overlay-actions-end {
+  justify-content: flex-end;
+}
+
+.rs-overlay-actions-split {
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.rs-overlay-actions-wrap {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.rs-overlay-actions-split .rs-btn-secondary {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rs-overlay-actions-split .rs-btn-primary {
+  flex: 0 0 auto;
+}
+
+.rs-overlay-actions-wrap > .rs-btn {
+  flex: 1 1 20rem;
+}
+
+.rs-btn {
+  border-radius: 4px;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 400;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.rs-btn-primary {
+  height: var(--rs-control-height);
+  min-width: 14rem;
+  padding: 0 var(--saito-space-xl);
+  font-size: 1.5rem;
+  border: 1px solid #3f8a4c;
+  background: linear-gradient(180deg, #3f8f4c 0%, #2a5e34 100%);
+  color: #f0fff2;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.rs-btn-primary:hover:not(:disabled) {
+  border-color: #52a860;
+  background: linear-gradient(180deg, #4ca85a 0%, #327040 100%);
+  color: #fff;
+}
+
+.rs-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rs-btn-secondary {
+  height: var(--rs-control-height);
+  min-width: 11rem;
+  padding: 0 var(--saito-space-lg);
+  font-size: var(--font-size-medium);
+  border: 1px solid #4a4a4a;
+  background: #222;
+  color: #e0e0e0;
+}
+
+.rs-btn-secondary:hover:not(:disabled) {
+  border-color: #646464;
+  background: #2a2a2a;
+  color: #fff;
+}
+
+.rs-btn:focus-visible {
+  outline: 2px solid #666;
+  outline-offset: 2px;
+}
+
+.rs-btn-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-height: 14rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #444;
+  background: #101010;
+  color: #f0f0f0;
+  text-transform: none;
+  letter-spacing: normal;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.12s,
+    box-shadow 0.15s;
+}
+
+.rs-btn-card:hover:not(:disabled):not(.is-disabled) {
+  border-color: #686868;
+  background: #161616;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.rs-btn-card:focus-visible {
+  border-color: #777;
+}
+
+.rs-btn-card.is-disabled,
+.rs-btn-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Attached copy control — pair with input/output in a stretch row */
+.rs-copy-btn {
+  flex: 0 0 var(--rs-control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  min-height: var(--rs-control-height);
+  height: auto;
+  padding: 0;
+  border: 1px solid #4a4a4a;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  background: #1a1a1a;
+  color: #d0d0d0;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    color 0.12s;
+}
+
+.rs-copy-btn:hover {
+  color: #fff;
+  border-color: #666;
+  background: #242424;
+}
+
+body.rustscript [id^='saito-overlay-backdrop']:not(.rs-onboarding-overlay-backdrop),
+body.rustscript .saito-overlay.rs-publish-overlay-backdrop,
+body.rustscript [id^='saito-overlay-backdrop'].rs-publish-overlay-backdrop {
+  background: rgba(6, 6, 8, 0.92) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+body.rustscript [id^='saito-overlay-backdrop'].rs-onboarding-overlay-backdrop {
+  background: rgba(14, 16, 20, 0.96) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+body.rustscript .saito-overlay:has(> .rustscript-overlay):not(.rs-onboarding-overlay) {
+  z-index: 100002;
 }

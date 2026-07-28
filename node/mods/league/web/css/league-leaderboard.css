@@ -1,59 +1,59 @@
 .league-leaderboard {
-	height: 100%;
+  height: 100%;
 }
 
 .league-leaderboard .saito-table {
-	display: grid;
-	grid-template-rows: min-content minmax(0, 1fr);
-	height: 100%;
+  display: grid;
+  grid-template-rows: min-content minmax(0, 1fr);
+  height: 100%;
 }
 
 /* To prevent expansion of sparse league tables and collapsing in populated ones, need a fixed height */
 .league-leaderboard .saito-table-body {
-	grid-template-rows: repeat(auto-fit, 3.2rem);
+  grid-template-rows: repeat(auto-fit, 3.2rem);
 }
 
 .league-leaderboard .saito-table-header,
 .league-leaderboard .saito-table-row {
-	grid-template-columns: 4rem auto 5rem 5rem 5rem;
-	padding: 6px;
-	padding-right: 12px;
+  grid-template-columns: 4rem auto 5rem 5rem 5rem;
+  padding: 6px;
+  padding-right: 12px;
 }
 
 .league-leaderboard .saito-table-header {
-	text-align: center;
-	border-bottom: 1px solid var(--border-color-general-dividers);
-	position: sticky;
-	top: 0px;
-	z-index: 3;
+  text-align: center;
+  border-bottom: 1px solid var(--saito-border);
+  position: sticky;
+  top: 0px;
+  z-index: 3;
 }
 
 .league-score-header {
-	text-decoration: underline dashed;
-	cursor: help;
+  text-decoration: underline dashed;
+  cursor: help;
 }
 
 .saito-table-row.league-leaderboard-ranking {
-	border-radius: var(--saito-border-radius);
-	background: none;
+  border-radius: var(--saito-radius);
+  background: none;
 }
 
 .my-leaderboard-position {
-	border: var(--border-thickness-thin) solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
 }
 
 .my-leaderboard-position > div:first-child {
-	font-size: 0;
+  font-size: 0;
 }
 
 .my-leaderboard-position > div:first-child::before {
-	content: '\22B3';
-	font-size: 1.5rem;
+  content: '\22B3';
+  font-size: 1.5rem;
 }
 
 .league-rankings {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-sm);
-	user-select: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  user-select: none;
 }

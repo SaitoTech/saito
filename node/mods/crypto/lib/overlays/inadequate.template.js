@@ -1,5 +1,5 @@
-module.exports  = (app, sobj) => {
-	return `  
+module.exports = (app, sobj) => {
+  return `  
   <div class="saito-crypto-transfer">
     
     <h2 class="auth-title">Inadequate ${sobj.ticker}</h2>

@@ -1,9 +1,5 @@
-module.exports  = (
-	resources_needed,
-	planet_cards,
-	trade_goods
-) => {
-	return `;
+module.exports = (resources_needed, planet_cards, trade_goods) => {
+  return `;
     <div class="resource-selection-overlay">
       <div class="resource-selection-title">SELECT <span class="resources_box">${resources_needed} resources</span>:</div>
       <div class="resource-selection-cards"></div>

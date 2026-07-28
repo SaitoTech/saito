@@ -1,505 +1,295 @@
-/* Editor panes — guided semantic JSON (rustscript2 panel parity) */
+/*
+ * .rustscript-editor — workstation editor + syntax colours
+ */
 
-.saito-container.rustscript .rustscript-editor {
+.rustscript-editor {
   display: flex;
   flex-direction: column;
-  flex: 1 1 0;
   width: 100%;
   min-height: 0;
   min-width: 0;
-  padding: 0;
   overflow: hidden;
   background: var(--rustscript-panel);
   border: 1px solid var(--rustscript-border);
   border-radius: 6px;
-  box-sizing: border-box;
 }
 
-.saito-container.rustscript .rustscript-editor-locking {
+.rustscript-editor-locking {
   border-color: var(--rustscript-create-edge);
-  box-shadow: inset 0 0 40px var(--rustscript-create-glow);
+  box-shadow: inset 0 0 28px var(--rustscript-create-glow);
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking {
+.rustscript-editor-unlocking {
   border-color: var(--rustscript-test-edge);
-  box-shadow: inset 0 0 32px var(--rustscript-test-glow);
+  box-shadow: inset 0 0 22px var(--rustscript-test-glow);
 }
 
-/* ── Panel header + recessed menu ── */
-
-.saito-container.rustscript .rs-panel-header {
+.rustscript-editor .rs-panel-header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 4px 10px 4px 6px;
-  box-sizing: border-box;
+  gap: var(--saito-space-sm);
+  min-height: 0;
+  padding: 0.55rem var(--saito-space-sm) 0.55rem var(--saito-space-md);
 }
 
-.saito-container.rustscript .rs-panel-header .rs-panel-menu {
-  margin-left: auto;
-}
-
-.saito-container.rustscript .rustscript-editor-locking .rs-panel-header {
-  background: rgba(80, 28, 36, 0.35);
+.rustscript-editor-locking .rs-panel-header {
+  background: rgba(70, 24, 32, 0.28);
   border-bottom: 1px solid var(--rustscript-create-edge);
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rs-panel-header {
-  background: rgba(90, 62, 12, 0.25);
+.rustscript-editor-unlocking .rs-panel-header {
+  background: rgba(72, 52, 12, 0.2);
   border-bottom: 1px solid var(--rustscript-test-edge);
 }
 
-.saito-container.rustscript .rustscript-editor-title {
+.rustscript-editor .rs-panel-title {
   flex: 1 1 auto;
   min-width: 0;
-  margin: 0;
-  padding: 0;
-  min-height: 0;
-  box-sizing: border-box;
   display: flex;
   align-items: center;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 800;
+  font-size: 1.05em;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   line-height: 1.25;
-  font-size: 1.18em;
-  font-family: var(--rustscript-font-sans);
-  background: transparent;
-  border-bottom: none;
+  text-transform: uppercase;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rustscript-editor-title {
-  color: #e8b4ba;
+.rustscript-editor-locking .rs-panel-title {
+  color: #d4a8ae;
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rustscript-editor-title {
-  color: #c8a860;
+.rustscript-editor-unlocking .rs-panel-title {
+  color: #b89858;
 }
 
-.saito-container.rustscript .rustscript-editor-guided {
+.rustscript-editor .rs-panel-menu {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.rustscript-editor-guided,
+.rustscript-editor textarea.rustscript-editor-expert {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  padding: 10px 12px;
-  box-sizing: border-box;
+  padding: var(--saito-space-md) var(--saito-space-md) var(--saito-space-md) var(--saito-space-lg);
+  font-size: 1em;
+  line-height: 1.55;
   font-family: var(--rustscript-font-mono);
-  font-size: 0.9em;
-  line-height: 1.32;
-  color: var(--rustscript-text);
   background: var(--rustscript-background);
-  text-transform: none;
-}
-
-.saito-container.rustscript .rustscript-editor-expert {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  margin: 0;
-  padding: 10px 12px;
+  color: var(--rustscript-text);
   border: none;
   border-radius: 0;
-  resize: none;
-  outline: none;
-  box-sizing: border-box;
-  font-family: var(--rustscript-font-mono);
-  font-size: 0.9em;
-  line-height: 1.28;
-  tab-size: 2;
-  color: var(--rustscript-text);
-  background: var(--rustscript-background);
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rustscript-editor-expert {
+.rustscript-editor textarea.rustscript-editor-expert {
+  width: 100%;
+  line-height: 1.5;
+}
+
+.rustscript-editor-locking .rustscript-editor-guided,
+.rustscript-editor-locking textarea.rustscript-editor-expert {
   background: #100a0c;
   color: #e8d4d6;
-  box-shadow: inset 0 0 28px rgba(196, 92, 106, 0.1);
+  box-shadow: inset 0 0 20px rgba(196, 92, 106, 0.08);
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rustscript-editor-expert {
+.rustscript-editor-unlocking .rustscript-editor-guided,
+.rustscript-editor-unlocking textarea.rustscript-editor-expert {
   background: #0f0d08;
   color: #e8e0c8;
-  box-shadow: inset 0 0 28px rgba(252, 163, 17, 0.1);
+  box-shadow: inset 0 0 20px rgba(252, 163, 17, 0.08);
 }
 
-/* Panel menu — harmonize with locking / unlocking headers */
-.saito-container.rustscript .rustscript-editor-locking .rs-panel-menu-trigger {
-  border-color: rgba(196, 92, 106, 0.35);
-  background: rgba(60, 20, 26, 0.5);
-  color: rgba(232, 180, 186, 0.85);
+.rustscript-editor-guided[hidden],
+.rustscript-editor textarea.rustscript-editor-expert[hidden] {
+  display: none !important;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-panel-menu-trigger:hover,
-.saito-container.rustscript .rustscript-editor-locking .rs-panel-menu-trigger:focus-visible {
-  border-color: rgba(196, 92, 106, 0.55);
-  background: rgba(70, 28, 34, 0.65);
-  color: #f0c8ce;
-}
-
-.saito-container.rustscript .rustscript-editor-unlocking .rs-panel-menu-trigger {
-  border-color: rgba(200, 168, 96, 0.35);
-  background: rgba(50, 38, 14, 0.45);
-  color: rgba(200, 168, 96, 0.9);
-}
-
-.saito-container.rustscript .rustscript-editor-unlocking .rs-panel-menu-trigger:hover,
-.saito-container.rustscript .rustscript-editor-unlocking .rs-panel-menu-trigger:focus-visible {
-  border-color: rgba(200, 168, 96, 0.55);
-  background: rgba(58, 44, 16, 0.6);
-  color: #dcc890;
-}
-
-/* Semantic JSON tree — single row / indent grid for both editor panes */
-.saito-container.rustscript .rustscript-editor-guided.rs-semantic-grid {
-  --rs-tree-row-h: 2em;
-  --rs-tree-row-gap: 0.22em;
-  --rs-tree-struct-gap: 0.08em;
-  --rs-tree-field-inset: 0.22em;
-  --rs-tree-indent: 1.25ch;
-  --rs-tree-inner-pad: 1.25ch;
-  --rs-tree-inner-margin: 0.25ch;
-  --rs-tree-col-gap: 0.25em;
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-tree {
-  margin: 0;
-  font-variant-ligatures: none;
-  font-feature-settings: 'liga' 0;
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row {
+.rs-semantic-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--rs-tree-col-gap);
-  padding-left: calc(var(--rs-depth, 0) * var(--rs-tree-indent));
-  min-height: var(--rs-tree-row-h);
-  line-height: var(--rs-tree-row-h);
-  margin: 0 0 var(--rs-tree-row-gap);
+  gap: 0.3em;
+  padding-left: calc(var(--rs-depth, 0) * 1.35ch);
+  min-height: 1.7em;
+  margin: 0 0 0.35em;
   white-space: pre-wrap;
-  word-break: break-word;
-  text-transform: none;
-  box-sizing: border-box;
+  line-height: 1.7em;
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-brace,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-value,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-key,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-comma {
-  min-height: var(--rs-tree-row-h);
-  line-height: var(--rs-tree-row-h);
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-brace {
-  min-height: auto;
-  line-height: 1.28;
-  margin-bottom: var(--rs-tree-struct-gap);
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-close {
-  min-height: auto;
-  line-height: 1.28;
-  margin-bottom: var(--rs-tree-row-gap);
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-row-key {
-  min-height: auto;
-  line-height: 1.28;
-  margin-bottom: var(--rs-tree-struct-gap);
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-block-inner {
-  padding-left: var(--rs-tree-inner-pad);
-  margin-left: var(--rs-tree-inner-margin);
-  margin-top: 0;
-  margin-bottom: var(--rs-tree-struct-gap);
+.rs-semantic-block-inner {
+  width: 100%;
+  margin-left: 0.35ch;
+  padding-left: 1.5ch;
   border-left: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-section {
-  margin: 0;
+.rustscript-editor-locking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
+  border-left-color: rgba(196, 92, 106, 0.22);
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-key,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-punct,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-brace,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-string,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-literal,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-inherited,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-placeholder-ghost,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode-readonly,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-readonly {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--rs-tree-row-h);
-  line-height: var(--rs-tree-row-h);
-  margin: 0;
-  padding: 0;
-  vertical-align: baseline;
-  text-transform: none;
+.rustscript-editor-unlocking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
+  border-left-color: rgba(252, 163, 17, 0.24);
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-placeholder-chip,
-.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
-  display: inline-flex;
-  align-items: center;
-  min-height: calc(var(--rs-tree-row-h) - (var(--rs-tree-field-inset) * 2));
-  line-height: calc(var(--rs-tree-row-h) - (var(--rs-tree-field-inset) * 2));
-  margin-block: var(--rs-tree-field-inset);
-  margin-inline: 0;
-  padding: 0 2px;
-  vertical-align: baseline;
-  box-sizing: border-box;
+.rs-semantic-section {
+  width: 100%;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
-  border-left-color: rgba(196, 92, 106, 0.25);
-}
-
-.saito-container.rustscript .rustscript-editor-unlocking .rs-semantic-section[data-key='required'] .rs-semantic-block-inner {
-  border-left-color: rgba(252, 163, 17, 0.28);
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-key {
+.rs-semantic-key {
   color: #8ec5ea;
-  font-weight: 500;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-semantic-key {
+.rustscript-editor-locking .rs-semantic-key {
   color: #9eb8e8;
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rs-semantic-key {
+.rustscript-editor-unlocking .rs-semantic-key {
   color: #e8c878;
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-string {
+.rs-semantic-string {
   color: #8fd49a;
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-literal {
+.rs-semantic-literal {
   color: #b8a0e0;
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-inherited,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode-readonly {
+.rs-semantic-inherited,
+.rs-semantic-opcode-readonly,
+.rs-semantic-logical-readonly {
   color: #6a9a72;
-  font-style: normal;
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rs-semantic-inherited {
+.rustscript-editor-unlocking .rs-semantic-inherited {
   color: #7a7060;
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-placeholder-ghost {
-  color: #555;
-  opacity: 0.65;
-  font-family: inherit;
-  font-size: inherit;
+.rs-semantic-placeholder-ghost,
+.rs-semantic-brace,
+.rs-semantic-punct {
+  color: #5a5a5a;
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-brace,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-punct {
-  color: #555;
-  opacity: 0.85;
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode {
-  display: inline-flex;
-  align-items: center;
-  margin-block: var(--rs-tree-field-inset);
-  margin-inline: 0;
-  padding: 0 2px;
-  border: none;
-  border-radius: 0;
-  background: transparent;
+.rs-semantic-opcode,
+.rs-semantic-logical-op {
   color: #8fd49a;
-  font-family: inherit;
-  font-size: inherit;
-  font-weight: 600;
-  line-height: calc(var(--rs-tree-row-h, 2em) - (var(--rs-tree-field-inset, 0.22em) * 2));
-  min-height: calc(var(--rs-tree-row-h, 2em) - (var(--rs-tree-field-inset, 0.22em) * 2));
-  cursor: pointer;
-  vertical-align: baseline;
+  font-weight: 500;
+  letter-spacing: 0.03em;
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
-  transition: color 0.12s, text-decoration-color 0.12s;
+  transition:
+    color 0.12s,
+    text-decoration-color 0.12s;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-semantic-opcode {
-  color: #8fd49a;
-}
-
-.saito-container.rustscript .rustscript-editor-unlocking .rs-semantic-opcode {
-  color: #9ad4a4;
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode:hover {
-  color: #b8f0c0 !important;
-  background: transparent !important;
+.rs-semantic-opcode:hover,
+.rs-semantic-logical-op:hover {
+  color: #b8f0c0;
   text-decoration-color: rgba(140, 200, 150, 0.55);
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
+.rs-semantic-logical-readonly {
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+/* Placeholder / example chips — visually distinct from resolved values */
+.rs-placeholder-chip {
   display: inline-flex;
   align-items: center;
-  margin-block: var(--rs-tree-field-inset);
-  margin-inline: 0;
-  padding: 0 2px;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: #8fd49a;
-  font-family: inherit;
-  font-size: inherit;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: calc(var(--rs-tree-row-h, 2em) - (var(--rs-tree-field-inset, 0.22em) * 2));
-  min-height: calc(var(--rs-tree-row-h, 2em) - (var(--rs-tree-field-inset, 0.22em) * 2));
-  cursor: pointer;
-  vertical-align: baseline;
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: 3px;
-  transition: color 0.12s, text-decoration-color 0.12s;
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-op:hover {
-  color: #b8f0c0 !important;
-  background: transparent !important;
-  text-decoration-color: rgba(140, 200, 150, 0.5);
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-readonly {
-  color: #6a9a72;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-placeholder-chip {
-  display: inline-flex;
-  align-items: center;
-  margin-block: var(--rs-tree-field-inset);
-  margin-inline: 0;
-  padding: 0 8px;
-  min-height: calc(var(--rs-tree-row-h, 2em) - (var(--rs-tree-field-inset, 0.22em) * 2));
-  cursor: pointer;
-  box-sizing: border-box;
+  padding: 0.05em 0.7rem;
   border-radius: 3px;
-  border: 1px solid rgba(252, 163, 17, 0.35);
-  background: rgba(252, 163, 17, 0.06);
-  color: #c89850;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: calc(var(--rs-tree-row-h, 2em) - (var(--rs-tree-field-inset, 0.22em) * 2));
-  vertical-align: baseline;
+  border: 1px dashed rgba(252, 163, 17, 0.4);
+  background: rgba(252, 163, 17, 0.05);
+  color: #b88840;
+  font-style: italic;
+  font-weight: 400;
+  opacity: 0.92;
   text-transform: none !important;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-placeholder-chip {
-  border-color: rgba(196, 92, 106, 0.4);
-  background: rgba(196, 92, 106, 0.08);
-  color: #c89098;
+.rustscript-editor-locking .rs-placeholder-chip {
+  border-color: rgba(196, 92, 106, 0.42);
+  background: rgba(196, 92, 106, 0.06);
+  color: #b87882;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-placeholder-chip:hover {
+.rustscript-editor-locking .rs-placeholder-chip:hover {
+  border-style: solid;
   border-color: rgba(196, 92, 106, 0.65);
-  background: rgba(196, 92, 106, 0.2);
-  color: #fce0e4 !important;
+  background: rgba(196, 92, 106, 0.16);
+  color: #f0d0d6;
+  opacity: 1;
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rs-placeholder-chip:hover {
+.rustscript-editor-unlocking .rs-placeholder-chip:hover {
+  border-style: solid;
   border-color: rgba(252, 163, 17, 0.65);
-  background: rgba(252, 163, 17, 0.2);
-  color: #ffe8b0 !important;
+  background: rgba(252, 163, 17, 0.16);
+  color: #ffe0a8;
+  opacity: 1;
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved {
-  display: inline-flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  margin-block: var(--rs-tree-field-inset);
-  margin-inline: 0;
-  padding: 0 2px;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-  max-width: 100%;
-  overflow: visible;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-all;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: 1.32;
-  min-height: calc(var(--rs-tree-row-h, 2em) - (var(--rs-tree-field-inset, 0.22em) * 2));
-  cursor: pointer;
-  vertical-align: baseline;
-  text-align: left;
-  text-transform: none;
+.rs-value-resolved {
   color: #b8d8bc;
+  font-style: normal;
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
-  transition: color 0.12s, text-decoration-color 0.12s;
+  transition:
+    color 0.12s,
+    text-decoration-color 0.12s;
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved:hover {
-  color: #d8f0dc !important;
-  background: transparent !important;
+.rs-value-resolved:hover {
+  color: #d8f0dc;
   text-decoration-color: rgba(140, 200, 150, 0.45);
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-value-resolved {
+.rustscript-editor-locking .rs-value-resolved {
   color: #d4b8be;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-value-resolved:hover {
-  color: #f0d8dc !important;
+.rustscript-editor-locking .rs-value-resolved:hover {
+  color: #f0d8dc;
   text-decoration-color: rgba(196, 92, 106, 0.45);
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rs-value-resolved {
+.rustscript-editor-unlocking .rs-value-resolved {
   color: #d8c890;
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rs-value-resolved:hover {
-  color: #f0e0b0 !important;
+.rustscript-editor-unlocking .rs-value-resolved:hover {
+  color: #f0e0b0;
   text-decoration-color: rgba(252, 163, 17, 0.45);
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved-warn {
+.rs-value-resolved-warn {
   color: #e8b060 !important;
   text-decoration-color: rgba(252, 163, 17, 0.35);
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved-complete {
+.rs-value-resolved-complete {
   color: #98b8a0 !important;
   text-decoration: none !important;
-  font-weight: 500;
-  opacity: 0.92;
+  font-weight: 400;
+  opacity: 0.9;
 }
 
-.saito-container.rustscript .rustscript-editor-locking .rs-value-resolved-complete {
+.rustscript-editor-locking .rs-value-resolved-complete {
   color: #a8a0a4 !important;
 }
 
-.saito-container.rustscript .rustscript-editor-unlocking .rs-value-resolved-complete {
+.rustscript-editor-unlocking .rs-value-resolved-complete {
   color: #a8a080 !important;
 }
 
-.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved-complete:hover {
+.rs-value-resolved-complete:hover {
   text-decoration: underline !important;
   text-decoration-color: rgba(140, 160, 145, 0.35) !important;
-}
-
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-opcode,
-.saito-container.rustscript .rustscript-editor-guided .rs-placeholder-chip,
-.saito-container.rustscript .rustscript-editor-guided .rs-value-resolved,
-.saito-container.rustscript .rustscript-editor-guided .rs-semantic-logical-op {
-  cursor: pointer;
 }

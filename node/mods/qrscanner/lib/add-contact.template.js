@@ -1,5 +1,5 @@
-module.exports  = ({ publickey }) => {
-	return `
+module.exports = ({ publickey }) => {
+  return `
     <div class="header"></div>
     <div
       style="

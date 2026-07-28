@@ -1,6 +1,6 @@
 .main {
   background-image: url(/saito/img/tiled-logo.svg);
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
   position: fixed;
   width: 100vw;
   height: 100vh;
@@ -19,7 +19,7 @@
   justify-content: center;
   align-items: center;
   border-radius: 1rem;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   padding: 7rem;
   background: linear-gradient(135deg, #0008, #0000);
 }
@@ -67,7 +67,7 @@
 .user-id-check {
   padding: 1rem;
   border: 1px solid;
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
 }
 
 .confirmation-block {

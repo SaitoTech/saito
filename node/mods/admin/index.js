@@ -1,4 +1,4 @@
-module.exports = async (app, mod, build_number, server_publickey="") => {
+module.exports = async (app, mod, build_number, server_publickey = '') => {
   let html = `
 
   <!DOCTYPE html>

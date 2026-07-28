@@ -4,8 +4,8 @@
   min-height: 2rem;
   padding: 1px 3px;
   border-radius: 0.5rem;
-  background-color: var(--saito-notification-bg);
-  color: var(--saito-notification-fg);
+  background-color: var(--saito-notification-background);
+  color: var(--saito-notification-foreground);
   position: absolute;
   left: 3.5rem;
   display: flex;
@@ -27,18 +27,18 @@
   border-radius: 100%;
   width: 1.5rem;
   height: 1.5rem;
-  background-color: var(--saito-notification-online-bg);
+  background-color: var(--saito-notification-online-background);
 }
 .online .online-status-indicator:after {
   display: block;
   top: 3.9rem;
   left: 3.75rem;
-  border: var(--border-thickness-medium) solid var(--saito-notification-ring);
+  border: 2px solid var(--saito-background);
 }
 .online-status-indicator i {
   display: none;
   position: absolute;
 }
 .busy .online-status-indicator:after {
-  background-color: var(--saito-notification-busy-bg);
+  background-color: var(--saito-notification-busy-background);
 }

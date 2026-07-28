@@ -24,8 +24,11 @@ module.exports = (app, mod, self) => {
     .join('');
 
   return `
-    <div class="purchase-container saito-overlay-size" id="purchase-container">
-      <h3 class="purchase-select-crypto-msg">Select Payment Method</h3>
+    <div class="purchase-container saito-overlay-panel saito-overlay-size" id="purchase-container">
+      <header class="saito-overlay-form-header">
+        <h2 class="saito-overlay-form-header-title">Get Saito</h2>
+      </header>
+      <h3 class="purchase-select-crypto-msg">Choose Payment Method</h3>
       <div class="purchase-crypto-list">
         ${cryptos_list}
       </div>

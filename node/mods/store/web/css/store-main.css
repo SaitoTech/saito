@@ -1,339 +1,649 @@
 /* Namespace: .store — page composition (layout only; menu hover from .saito-menu-select-subtle) */
 
-.store {
-	display: grid;
-	grid-template-columns: 15rem minmax(0, 1fr);
-	gap: var(--saito-space-xxl);
-	align-items: start;
-	width: 100%;
-	min-width: 0;
+:root {
+  --saito-empty-state-title-foreground: var(--saito-foreground);
+  --saito-empty-state-text-foreground: var(--saito-muted-foreground);
 }
 
-/* —— Menu rail —— */
+.store {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: var(--saito-space-xxl);
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+/* —— Menu rail (shared item chrome; mode-specific rules below) —— */
 
 .store > .menu {
-	position: sticky;
-	top: 0;
-	padding-block: var(--saito-space-xs);
-	min-width: 0;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  padding-block: var(--saito-space-xs);
+  min-width: 0;
 }
 
 .store > .menu .list {
-	list-style: none;
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-xs);
-	margin: 0;
-	padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  margin: 0;
+  padding: 0;
 }
 
+/* All category / admin rows share identical base typography */
 .store > .menu .item {
-	display: flex;
-	align-items: center;
-	min-height: 2.75rem;
-	padding: 0.85rem 1.1rem;
-	border-radius: var(--saito-radius-full);
-	font-size: var(--font-size-medium);
-	line-height: 1.3;
-	color: var(--saito-font-color-secondary);
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--saito-radius-full);
+  font-size: var(--font-size-medium);
+  line-height: 1.3;
+  color: var(--saito-muted-foreground);
 }
 
 .store > .menu .item:focus-visible {
-	outline: none;
-	box-shadow: var(--saito-focus-ring);
+  outline: none;
+  box-shadow: var(--saito-focus-ring);
 }
 
-/* Persistent selection — Saito menu-select only defines :hover */
+/* Selected = bold only; hover still from .saito-menu-select-subtle */
 .store > .menu .item.active {
-	background-color: var(--saito-menu-item-active-bg);
-	color: var(--saito-menu-item-hover-fg);
-	font-family: var(--saito-font-medium);
+  font-family: var(--saito-font-heavy);
 }
 
 .store > .menu .divider {
-	height: 1px;
-	margin: var(--saito-space-md) var(--saito-space-sm);
-	background: var(--saito-border-color);
-	opacity: 0.7;
+  height: 1px;
+  margin: var(--saito-space-md) var(--saito-space-sm);
+  background: var(--saito-border);
+}
+
+/* Sidebar owns CTA width — stretch to the navigation column / list edges */
+.store > .menu.marketplace > .store-list-for-sale {
+  width: 100%;
+}
+
+/*
+ * .store-list-for-sale — OWNED ONLY by the marketplace "List Item for Sale" control.
+ * Appearance only. Width comes from .store > .menu (sidebar).
+ * Do not reuse. Do not attach saito-button-* or other button utilities.
+ */
+.store-list-for-sale {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 92px;
+  padding: 1.2rem 1.4rem;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  outline: none;
+  border-radius: 11px;
+  box-shadow: none;
+  filter: none;
+  background: var(--saito-primary);
+  color: #ffffff;
+  font-family: var(--saito-font);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: none;
+  white-space: normal;
+  cursor: pointer;
+  transition: none;
+}
+
+.store-list-for-sale:hover,
+.store-list-for-sale:focus,
+.store-list-for-sale:focus-visible,
+.store-list-for-sale:active {
+  outline: none;
+  box-shadow: none;
+  filter: none;
+  border: none;
+  background: var(--saito-primary);
+  color: #ffffff;
 }
 
 /* —— Main column —— */
 
 .store > .main-column {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-lg);
-	min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
 }
 
 .store > .main-column > .manager {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-xxl);
-	min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: 0;
 }
 
 .store > .main-column > .manager > [data-panel] {
-	display: none;
+  display: none;
 }
 
 .store > .main-column > .manager > [data-panel].is-active {
-	display: block;
+  display: block;
 }
 
-/* Hero + catalog participate in .manager flex gap */
-.store > .main-column > .manager > [data-panel="browse"].is-active,
-.store > .main-column > .manager > [data-panel="my-listings"].is-active {
-	display: contents;
+/* Panels participate in .manager flex gap */
+.store > .main-column > .manager > [data-panel='browse'].is-active,
+.store > .main-column > .manager > [data-panel='my-listings'].is-active,
+.store > .main-column > .manager > [data-panel='sales'].is-active {
+  display: contents;
 }
 
-/* Lightweight purchase lifecycle strip */
+/* Lightweight purchase lifecycle strip — owns its own spacing when visible */
 .store .purchase-status-slot:empty,
+.store .purchase-status-slot:has(> [hidden]),
 .store .purchase-status[hidden] {
-	display: none;
+  display: none;
 }
 
 .store .purchase-status {
-	padding: var(--saito-space-md) var(--saito-space-lg);
-	border: var(--border-thickness-thin) solid var(--saito-border-color);
-	border-radius: var(--saito-border-radius);
-	background: var(--saito-card-bg, transparent);
+  margin: 0 0 var(--saito-space-lg);
+  padding: var(--saito-space-md) var(--saito-space-lg);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card, transparent);
 }
 
 .store .purchase-status .body {
-	display: flex;
-	align-items: center;
-	gap: var(--saito-space-md);
-	flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-md);
+  flex-wrap: wrap;
 }
 
 .store .purchase-status .saito-spinner {
-	width: 2.5rem;
-	min-width: 2.5rem;
+  width: 2.5rem;
+  min-width: 2.5rem;
 }
 
 .store .purchase-status .success {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2.5rem;
-	height: 2.5rem;
-	border-radius: 50%;
-	background: var(--saito-primary);
-	color: var(--saito-white, #fff);
-	flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--saito-primary);
+  color: var(--saito-white, #fff);
+  flex: 0 0 auto;
 }
 
 .store .purchase-status .copy {
-	flex: 1 1 12rem;
-	min-width: 0;
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .store .purchase-status .title {
-	margin: 0;
-	font-size: var(--font-size-medium);
-	font-family: var(--saito-font-medium);
+  margin: 0;
+  font-size: var(--font-size-medium);
+  font-family: var(--saito-font-medium);
 }
 
 .store .purchase-status .detail {
-	margin: 0.2rem 0 0;
-	font-size: var(--font-size-small);
-	color: var(--saito-font-color-secondary);
+  margin: 0.2rem 0 0;
+  font-size: var(--font-size-small);
+  color: var(--saito-muted-foreground);
 }
 
 .store .purchase-status .actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--saito-space-sm);
-	margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--saito-space-sm);
+  margin-left: auto;
 }
 
 .store .storefront-url {
-	margin: var(--saito-space-sm) 0 0;
-	font-size: var(--font-size-small);
-	line-height: 1.45;
-	color: var(--saito-font-color-secondary);
-	overflow-wrap: anywhere;
-	user-select: all;
+  margin: 0;
+  max-width: 100%;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, #ffffff 8%, transparent);
+  color: color-mix(in srgb, #ffffff 94%, var(--saito-muted-foreground));
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: var(--font-size-small);
+  line-height: 1.4;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: all;
+  min-width: 0;
+}
+
+.store .storefront-url:hover,
+.store .storefront-url:focus-visible {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.store .storefront-url-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: var(--saito-space-sm);
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  margin: var(--saito-space-xs) 0;
+}
+
+.store .storefront-url-row .saito-icon-button {
+  flex: 0 0 auto;
 }
 
 .store .storefront-status {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: var(--saito-space-md);
-	padding: var(--saito-space-xl) 0;
-	min-height: 12rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--saito-space-md);
+  padding: var(--saito-space-xl) 0;
+  min-height: 12rem;
 }
 
 .store .storefront-status[hidden] {
-	display: none;
+  display: none;
 }
 
 .store .storefront-status .saito-spinner {
-	width: 3.5rem;
-	min-width: 3.5rem;
+  width: 3.5rem;
+  min-width: 3.5rem;
 }
 
 .store .storefront-status p {
-	margin: 0;
-	font-size: var(--font-size-medium);
-	color: var(--saito-font-color-secondary);
+  margin: 0;
+  font-size: var(--font-size-medium);
+  color: var(--saito-muted-foreground);
 }
 
+/* Post-listing success — neon green, not primary orange */
+.store .listing-success {
+  position: relative;
+  margin: 0 0 var(--saito-space-lg);
+  padding: var(--saito-space-lg) 3.5rem var(--saito-space-lg) var(--saito-space-lg);
+  border: 1px solid var(--saito-green);
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, var(--saito-green) 14%, transparent);
+}
+
+.store .listing-success .close {
+  position: absolute;
+  top: var(--saito-space-sm);
+  right: var(--saito-space-sm);
+}
+
+.store .listing-success .title {
+  margin: 0;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-heavy);
+  line-height: 1.3;
+  color: var(--saito-foreground);
+}
+
+.store .listing-success .body {
+  margin: var(--saito-space-sm) 0 0;
+  font-size: var(--font-size-medium);
+  line-height: 1.45;
+  color: color-mix(in srgb, #ffffff 88%, var(--saito-muted-foreground));
+}
+
+/* Seller admin shell — top padding aligns with first sidebar nav item */
+.store .storefront-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: var(--saito-space-xs);
+  min-width: 0;
+}
+
+.store .admin-denied {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 16rem;
+  padding: var(--saito-space-xxl) var(--saito-space-lg);
+  text-align: center;
+}
+
+.store .admin-denied .body {
+  margin: 0;
+  max-width: 28rem;
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+  color: var(--saito-foreground);
+}
+
+/* Seller dashboard welcome (main column only — not .menu.dashboard) */
+.store .seller-home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  padding: 0 0 var(--saito-space-xl);
+  margin: 0 0 var(--saito-space-lg);
+  border-bottom: 1px solid var(--saito-border);
+}
+
+.store .seller-home .title {
+  margin: 0;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-heavy);
+  line-height: 1.25;
+  color: var(--saito-foreground);
+}
+
+.store .seller-home .body {
+  margin: 0;
+  max-width: 48rem;
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
+}
+
+.store .seller-home .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--saito-space-sm);
+}
+
+.store .seller-home .actions .saito-button-primary {
+  margin: 0;
+  min-width: 0;
+}
+
+/* Public storefront header */
 .store .hero {
-	display: flex;
-	align-items: flex-end;
-	justify-content: space-between;
-	gap: var(--saito-space-xl);
-	padding-bottom: var(--saito-space-xl);
-	border-bottom: var(--border-thickness-thin) solid var(--saito-border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0 0 var(--saito-space-sm);
+  border-bottom: 1px solid var(--saito-border);
 }
 
-.store .hero .copy {
-	min-width: 0;
-	max-width: 40rem;
+.store .hero .toolbar-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--saito-space-md);
+  width: 100%;
+  min-width: 0;
 }
 
-.store .hero h1 {
-	margin: 0 0 var(--saito-space-sm);
-	font-size: var(--font-size-h5);
-	font-family: var(--saito-font-heavy);
-	line-height: 1.1;
-	letter-spacing: -0.02em;
+.store .hero .title {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
+  font-weight: normal;
+  line-height: 1.25;
+  color: var(--saito-foreground);
 }
 
-.store .hero p {
-	margin: 0;
-	font-size: var(--font-size-medium);
-	line-height: 1.45;
-	color: var(--saito-font-color-secondary);
+.store .hero .description {
+  margin: 0.45rem 0 0;
+  max-width: 72rem;
+  font-size: 1.5rem;
+  font-weight: normal;
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
 }
 
-.store .hero .saito-button-primary {
-	flex: 0 0 auto;
+.store .sales-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: 0;
+}
+
+.store .sales-panel > .title {
+  margin: 0;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-heavy);
+  line-height: 1.25;
+  color: var(--saito-foreground);
+}
+
+.store .sales-panel .sales-content {
+  min-width: 0;
+}
+
+.store .sales-panel .body {
+  margin: 0;
+  max-width: 40rem;
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
 }
 
 .store .catalog {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-lg);
-	min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  min-width: 0;
+}
+
+.store .catalog-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--saito-space-md);
+  padding: var(--saito-space-xl) 0;
+  min-height: 10rem;
+}
+
+.store .catalog-status[hidden] {
+  display: none;
+}
+
+.store .catalog-status .saito-spinner {
+  width: 3.5rem;
+  min-width: 3.5rem;
+}
+
+.store .catalog-status p {
+  margin: 0;
+  font-size: var(--font-size-medium);
+  color: var(--saito-muted-foreground);
+}
+
+.store .catalog-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--saito-space-sm);
+  padding-top: var(--saito-space-sm);
+}
+
+.store .catalog-footer[hidden] {
+  display: none;
+}
+
+.store .catalog-info {
+  margin: 0;
+  font-size: var(--font-size-small);
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
+  opacity: 0.85;
+}
+
+.store .catalog-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  width: 100%;
+}
+
+.store .catalog-pagination .pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.store .catalog-pagination .nav-btn,
+.store .catalog-pagination .page-btn {
+  appearance: none;
+  border: 1px solid var(--saito-border);
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  font: inherit;
+  font-size: var(--font-size-small);
+  line-height: 1;
+  min-height: 2.25rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--saito-radius);
+  cursor: pointer;
+}
+
+.store .catalog-pagination .page-btn.is-active {
+  border-color: var(--saito-primary);
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+}
+
+.store .catalog-pagination .nav-btn:disabled,
+.store .catalog-pagination .page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.store .catalog-pagination .nav-btn:focus-visible,
+.store .catalog-pagination .page-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--saito-focus-ring);
+}
+
+.store .catalog-empty {
+  min-height: 14rem;
 }
 
 /* Empty panels — Saito empty-state tokens */
 .store .empty,
 .nft-picker .empty {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	justify-content: center;
-	min-height: 22rem;
-	padding: var(--saito-space-xxl) 0;
-	max-width: 28rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 22rem;
+  padding: var(--saito-space-xxl) 0;
+  max-width: 28rem;
 }
 
 .store .empty h2,
 .store .empty h3,
 .nft-picker .empty h2,
 .nft-picker .empty h3 {
-	margin: 0 0 var(--saito-space-sm);
-	font-size: var(--font-size-large);
-	font-family: var(--saito-font-medium);
-	color: var(--saito-empty-state-title-color);
+  margin: 0 0 var(--saito-space-sm);
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
+  color: var(--saito-empty-state-title-foreground);
 }
 
 .store .empty p,
 .nft-picker .empty p {
-	margin: 0;
-	font-size: var(--font-size-medium);
-	line-height: 1.5;
-	color: var(--saito-empty-state-text-color);
+  margin: 0;
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+  color: var(--saito-empty-state-text-foreground);
 }
 
 .store .empty .saito-button-primary {
-	margin-top: var(--saito-space-lg);
-	min-height: 2.75rem;
+  margin-top: var(--saito-space-lg);
+  min-height: 2.75rem;
 }
 
 @media (max-width: 900px) {
-	.store {
-		grid-template-columns: 1fr;
-		gap: var(--saito-space-xl);
-	}
+  .store {
+    grid-template-columns: 1fr;
+    gap: var(--saito-space-xl);
+  }
 
-	.store > .menu {
-		position: static;
-	}
+  .store > .menu {
+    position: static;
+  }
 
-	.store > .menu .list {
-		flex-direction: row;
-		flex-wrap: wrap;
-		gap: var(--saito-space-xs);
-	}
+  .store > .menu .list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--saito-space-xs);
+  }
 
-	.store > .menu .divider {
-		flex: 1 0 100%;
-		margin: var(--saito-space-sm) 0;
-	}
+  .store > .menu .divider {
+    flex: 1 0 100%;
+    margin: var(--saito-space-sm) 0;
+  }
 
-	.store > .main-column > .manager {
-		gap: var(--saito-space-xl);
-	}
+  .store > .main-column > .manager {
+    gap: var(--saito-space-md);
+  }
 
-	.store .purchase-status .actions {
-		margin-left: 0;
-		width: 100%;
-	}
+  .store .purchase-status .actions {
+    margin-left: 0;
+    width: 100%;
+  }
 
-	.store .purchase-status .actions .saito-button-primary,
-	.store .purchase-status .actions .saito-button-secondary {
-		flex: 1 1 auto;
-	}
+  .store .purchase-status .actions .saito-button-primary,
+  .store .purchase-status .actions .saito-button-secondary {
+    flex: 1 1 auto;
+  }
 
-	.store .hero {
-		flex-direction: column;
-		align-items: stretch;
-		gap: var(--saito-space-lg);
-	}
+  .store .hero .toolbar-row {
+    flex-wrap: wrap;
+  }
 
-	.store .hero .saito-button-primary {
-		width: 100%;
-	}
+  .store .seller-home .actions .saito-button-primary {
+    flex: 1 1 auto;
+  }
 
-	.store .empty,
-	.nft-picker .empty {
-		min-height: 16rem;
-		padding: var(--saito-space-xl) 0;
-	}
+  .store .storefront-url {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-overflow: unset;
+  }
+
+  .store .empty,
+  .nft-picker .empty {
+    min-height: 16rem;
+    padding: var(--saito-space-xl) 0;
+  }
 }
 
 @media (max-width: 600px) {
-	.store {
-		gap: var(--saito-space-lg);
-	}
+  .store {
+    gap: var(--saito-space-lg);
+  }
 
-	.store > .main-column > .manager {
-		gap: var(--saito-space-lg);
-	}
+  .store > .main-column > .manager {
+    gap: var(--saito-space-sm);
+  }
 
-	.store .hero {
-		padding-bottom: var(--saito-space-lg);
-		gap: var(--saito-space-md);
-	}
+  .store .catalog {
+    gap: var(--saito-space-md);
+  }
 
-	.store .hero h1 {
-		font-size: var(--font-size-h6);
-	}
-
-	.store .catalog {
-		gap: var(--saito-space-md);
-	}
-
-	.store .empty,
-	.nft-picker .empty {
-		min-height: 12rem;
-		padding: var(--saito-space-lg) 0;
-		max-width: none;
-	}
+  .store .empty,
+  .nft-picker .empty {
+    min-height: 12rem;
+    padding: var(--saito-space-lg) 0;
+    max-width: none;
+  }
 }

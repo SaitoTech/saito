@@ -69,15 +69,27 @@ async function getMetadataFromZip(zipPath) {
     let foundCategories = 0;
     let foundSlug = 0;
 
-    for (let i = 0; i < zipLines.length && i < 100 && (foundName === 0 || foundDescription === 0 || foundCategories === 0 || foundSlug === 0); i++) {
+    for (
+      let i = 0;
+      i < zipLines.length &&
+      i < 100 &&
+      (foundName === 0 || foundDescription === 0 || foundCategories === 0 || foundSlug === 0);
+      i++
+    ) {
       if (/this\.name/.test(zipLines[i]) && foundName === 0) {
         foundName = 1;
         if (zipLines[i].indexOf('=') > 0) {
           name = zipLines[i].substring(zipLines[i].indexOf('='));
           name = cleanString(name);
           name = name.replace(/^\s+|\s+$/gm, '');
-          if (name.length > 50) { name = 'Unknown'; foundName = 0; }
-          if (name === 'name') { name = 'Unknown'; foundName = 0; }
+          if (name.length > 50) {
+            name = 'Unknown';
+            foundName = 0;
+          }
+          if (name === 'name') {
+            name = 'Unknown';
+            foundName = 0;
+          }
         }
       }
       if (/this\.description/.test(zipLines[i]) && foundDescription === 0) {

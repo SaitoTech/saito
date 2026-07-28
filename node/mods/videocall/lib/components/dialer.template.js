@@ -1,13 +1,13 @@
-module.exports  = (app, mod, is_dialing = true) => {
-	let html = `
+module.exports = (app, mod, is_dialing = true) => {
+  let html = `
       <div class="stun-minimal-appspace saito-cta"> 
       	<h2>Saito Talk</h2>
       	<div>direct peer-to-peer chat</div>
       	<div class="stunx-splash-image"></div>
-      	<div class="contact"></div>`
+      	<div class="contact"></div>`;
 
-	if (is_dialing) {
-		html += `<div class="video_switch">
+  if (is_dialing) {
+    html += `<div class="video_switch">
 	      	<label class="switch_label" for="video_call_switch">Enable Video</label>
 			<label class="switch">
 			  <input class="saito-checkbox" type="checkbox" id="video_call_switch">
@@ -16,16 +16,16 @@ module.exports  = (app, mod, is_dialing = true) => {
 		</div>
 		<div class="saito-button-primary stunx-appspace-launch-call-btn" id="startcall">Call</div>
 		`;
-	} else {
-		html += `
+  } else {
+    html += `
 			<div id="stun-phone-notice" class="stun-phone-notice"> is <em>${mod.room_obj.ui}</em> calling you</div>
 			<div class="stun-button-row">
 				<div class="saito-button-primary" id="rejectcall">Reject</div>
 				<div class="saito-button-primary" id="answercall">Answer</div>
 			</div>`;
-	}
+  }
 
-	html += `</div>`;
+  html += `</div>`;
 
-	return html;
+  return html;
 };

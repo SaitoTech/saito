@@ -1,13 +1,12 @@
-const MainTemplate = require("./main.template");
-const AdminModulesUI = require("./modules");
-const AdminOverviewUI = require("./overview");
-const AdminOptionsUI = require("./options");
-const AdminPeersUI = require("./peers");
-const AdminDatabaseUI = require("./database");
+const MainTemplate = require('./main.template');
+const AdminModulesUI = require('./modules');
+const AdminOverviewUI = require('./overview');
+const AdminOptionsUI = require('./options');
+const AdminPeersUI = require('./peers');
+const AdminDatabaseUI = require('./database');
 
 class AdminMain {
-
-  constructor(app, mod, container = ".saito-container") {
+  constructor(app, mod, container = '.saito-container') {
     this.app = app;
     this.mod = mod;
     this.container = container;
@@ -18,11 +17,10 @@ class AdminMain {
     this.database_ui = new AdminDatabaseUI(app, mod);
   }
 
-  render(view="overview") {
-
-    if (need_to_set_key && view != "overview") {
-      alert("You need to set your Admin Key first...");
-      view = "overview";
+  render(view = 'overview') {
+    if (need_to_set_key && view != 'overview') {
+      alert('You need to set your Admin Key first...');
+      view = 'overview';
       return;
     }
 
@@ -30,67 +28,64 @@ class AdminMain {
     // admin key is priority
     //
     this.renderComponent(view);
-
   }
 
-  renderComponent(view="overview") {
-
-    if (need_to_set_key && view != "overview") {
-      alert("You need to set your Admin Key first...");
-      view = "overview";
+  renderComponent(view = 'overview') {
+    if (need_to_set_key && view != 'overview') {
+      alert('You need to set your Admin Key first...');
+      view = 'overview';
     }
 
-    document.querySelector(".saito-container").innerHTML = "";
+    document.querySelector('.saito-container').innerHTML = '';
     this.app.browser.addElementToSelector(MainTemplate(this.app, this.mod), this.container);
 
-    document.querySelectorAll(".saito-admin-nav-item").forEach((el) => {
-      el.classList.remove("active");
+    document.querySelectorAll('.saito-admin-nav-item').forEach((el) => {
+      el.classList.remove('active');
     });
     document.querySelectorAll(`.saito-admin-nav-item.${view}`).forEach((el) => {
-      el.classList.add("active");
+      el.classList.add('active');
     });
 
     this.setActivePanel(view);
 
-    if (view == "overview") {
+    if (view == 'overview') {
       this.overview_ui.render();
     }
 
-    if (view == "peers") {
+    if (view == 'peers') {
       this.peers_ui.render();
     }
 
-    if (view == "database") {
+    if (view == 'database') {
       this.database_ui.render();
     }
 
-    if (view == "modules") {
+    if (view == 'modules') {
       this.modules_ui.render();
     }
 
-    if (view == "options") {
+    if (view == 'options') {
       this.options_ui.render();
     }
 
     this.attachEvents();
   }
 
-
   setActivePanel(view) {
     const panels = {
-      overview: ".admin-overview",
-      modules: ".admin-modules",
-      peers: ".admin-peers",
-      database: ".admin-database",
-      blocks: ".admin-blocks",
-      mempool: ".admin-memepool",
-      options: ".admin-options"
+      overview: '.admin-overview',
+      modules: '.admin-modules',
+      peers: '.admin-peers',
+      database: '.admin-database',
+      blocks: '.admin-blocks',
+      mempool: '.admin-memepool',
+      options: '.admin-options'
     };
 
     Object.values(panels).forEach((selector) => {
       const el = document.querySelector(selector);
       if (el) {
-        el.style.display = "none";
+        el.style.display = 'none';
       }
     });
 
@@ -98,34 +93,31 @@ class AdminMain {
     if (active) {
       const el = document.querySelector(active);
       if (el) {
-        el.style.display = "";
+        el.style.display = '';
       }
     }
   }
 
   attachEvents() {
-    document.querySelectorAll("[data-admin-view]").forEach((el) => {
+    document.querySelectorAll('[data-admin-view]').forEach((el) => {
       el.onclick = (e) => {
-        const view = e.currentTarget.getAttribute("data-admin-view");
-	this.renderComponent(view);
+        const view = e.currentTarget.getAttribute('data-admin-view');
+        this.renderComponent(view);
       };
     });
   }
 
-
   updateHeader(msg) {
     try {
-      document.querySelector(".admin-header").innerHTML = msg;
+      document.querySelector('.admin-header').innerHTML = msg;
     } catch (err) {}
   }
 
   updateInfo(msg) {
     try {
-      document.querySelector(".admin-info").innerHTML = msg;
+      document.querySelector('.admin-info').innerHTML = msg;
     } catch (err) {}
   }
-
 }
 
 module.exports = AdminMain;
-

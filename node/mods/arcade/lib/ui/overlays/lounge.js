@@ -84,68 +84,68 @@ class LoungeOverlay {
     this.app.connection.emit('add-league-identifier-to-dom');
   }
 
-	_resolveGameIdContext() {
-		let game = this.mod.returnGame(this.game_id);
-		const state = game?.state;
-		const txGame = game?.tx?.msg?.game;
-		const stateModule = state?.module;
-		let game_mod =
-			this.app.modules.returnModule(txGame) ||
-			this.app.modules.returnModuleBySlug(stateModule || txGame || 'arcade') ||
-			this.app.modules.returnModule(stateModule);
-		if (!game_mod && this.observer_game_module_slug) {
-			game_mod = this.app.modules.returnModuleBySlug(this.observer_game_module_slug);
-		}
-		let slug =
-			game_mod?.returnSlug?.() ||
-			stateModule ||
-			txGame ||
-			this.observer_game_module_slug ||
-			'arcade';
-		let image = game_mod?.respondTo?.('arcade-games')?.image || '';
-		let gameName = (game_mod && (game_mod.returnName?.() || game_mod.name)) || txGame || slug;
-		return { game, state, game_mod, slug, image, gameName };
-	}
+  _resolveGameIdContext() {
+    let game = this.mod.returnGame(this.game_id);
+    const state = game?.state;
+    const txGame = game?.tx?.msg?.game;
+    const stateModule = state?.module;
+    let game_mod =
+      this.app.modules.returnModule(txGame) ||
+      this.app.modules.returnModuleBySlug(stateModule || txGame || 'arcade') ||
+      this.app.modules.returnModule(stateModule);
+    if (!game_mod && this.observer_game_module_slug) {
+      game_mod = this.app.modules.returnModuleBySlug(this.observer_game_module_slug);
+    }
+    let slug =
+      game_mod?.returnSlug?.() ||
+      stateModule ||
+      txGame ||
+      this.observer_game_module_slug ||
+      'arcade';
+    let image = game_mod?.respondTo?.('arcade-games')?.image || '';
+    let gameName = (game_mod && (game_mod.returnName?.() || game_mod.name)) || txGame || slug;
+    return { game, state, game_mod, slug, image, gameName };
+  }
 
-	_getLoungeRoot() {
-		if (!this.overlay?.visible) return null;
-		const el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
-		if (!el || el.style.display === 'none') return null;
-		return el.querySelector('.arcade-lounge');
-	}
+  _getLoungeRoot() {
+    if (!this.overlay?.visible) return null;
+    const el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
+    if (!el || el.style.display === 'none') return null;
+    return el.querySelector('.arcade-lounge');
+  }
 
-	/**
-	 * Transition an open initializing lounge to the ready state without re-showing the overlay.
-	 */
-	showGameReadyState() {
-		if (this.game_id == null || this.invite != null) return false;
-		const root = this._getLoungeRoot();
-		if (!root) return false;
+  /**
+   * Transition an open initializing lounge to the ready state without re-showing the overlay.
+   */
+  showGameReadyState() {
+    if (this.game_id == null || this.invite != null) return false;
+    const root = this._getLoungeRoot();
+    if (!root) return false;
 
-		const { game, state, game_mod, gameName } = this._resolveGameIdContext();
-		const stateLabel = 'Game Ready';
-		const bodyHtml = this._buildReadyBody(game, state, game_mod);
-		const controlsHtml = `
+    const { game, state, game_mod, gameName } = this._resolveGameIdContext();
+    const stateLabel = 'Game Ready';
+    const bodyHtml = this._buildReadyBody(game, state, game_mod);
+    const controlsHtml = `
 	  <div id="arcade-game-controls-start-game" class="fat saito-button-primary">Start Game</div>
 	  <div id="arcade-game-controls-close-game" class="fat saito-button-secondary">Hide</div>`;
 
-		const descEl = root.querySelector('.arcade-lounge-header-desc');
-		const bodyEl = root.querySelector('.arcade-lounge-body');
-		const controlsEl = root.querySelector('.arcade-lounge-controls');
-		const titleEl = root.querySelector('.arcade-lounge-header-title');
-		if (!descEl || !bodyEl || !controlsEl) return false;
+    const descEl = root.querySelector('.arcade-lounge-header-desc');
+    const bodyEl = root.querySelector('.arcade-lounge-body');
+    const controlsEl = root.querySelector('.arcade-lounge-controls');
+    const titleEl = root.querySelector('.arcade-lounge-header-title');
+    if (!descEl || !bodyEl || !controlsEl) return false;
 
-		if (titleEl) titleEl.textContent = gameName;
-		descEl.textContent = stateLabel;
-		bodyEl.innerHTML = bodyHtml;
-		controlsEl.innerHTML = controlsHtml;
-		this.attachEvents();
-		this.app.connection.emit('add-league-identifier-to-dom');
-		return true;
-	}
+    if (titleEl) titleEl.textContent = gameName;
+    descEl.textContent = stateLabel;
+    bodyEl.innerHTML = bodyHtml;
+    controlsEl.innerHTML = controlsHtml;
+    this.attachEvents();
+    this.app.connection.emit('add-league-identifier-to-dom');
+    return true;
+  }
 
-	_renderGameIdMode() {
-		const { game, state, game_mod, image, gameName } = this._resolveGameIdContext();
+  _renderGameIdMode() {
+    const { game, state, game_mod, image, gameName } = this._resolveGameIdContext();
 
     let derivedState;
     if (state && state.initializing === 1) {
@@ -251,7 +251,11 @@ class LoungeOverlay {
     for (let i = 0; i < players.length; i++) {
       const pkey = players[i];
       const isLeaving = leaving.has(pkey);
-      playersHtml += playerRow(pkey, isLeaving ? 'leaving' : '', isLeaving ? 'leaving next hand' : '');
+      playersHtml += playerRow(
+        pkey,
+        isLeaving ? 'leaving' : '',
+        isLeaving ? 'leaving next hand' : ''
+      );
     }
     // tentative joiners not yet seated
     for (const pkey of tentative.join || []) {

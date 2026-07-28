@@ -15,7 +15,7 @@
     top 0.33s linear,
     height 0.33s linear,
     padding 0.33s linear;
-  color: var(--saito-header-color);
+  color: var(--saito-foreground);
   background: transparent;
   border-bottom: 1px solid var(--saito-border);
   box-shadow: none;
@@ -41,8 +41,8 @@
 
 #saito-header.game .hamburger-container {
   padding: 0.5rem;
-  background: var(--saito-chip-bg);
-  border-radius: var(--saito-radius-md);
+  background: var(--saito-secondary);
+  border-radius: var(--saito-radius);
   margin-top: 1rem;
 }
 
@@ -50,7 +50,7 @@
   width: 15rem;
   cursor: pointer;
   height: 100%;
-  fill: var(--saito-header-color);
+  fill: var(--saito-foreground);
   filter: brightness(0) invert(1);
 }
 
@@ -58,10 +58,6 @@
   position: relative;
   height: 100%;
   cursor: pointer;
-}
-
-.saito-header-logo-wrapper img,
-.saito-header-logo-wrapper i::before {
 }
 
 .saito-back-button {
@@ -72,7 +68,7 @@
   transition: transform 0.2s;
   top: 0;
   left: 0;
-  color: var(--saito-header-color);
+  color: var(--saito-foreground);
   background: transparent;
   background-size: 100vw;
   background-position-x: min(-2rem, calc(- (100vw - var(--saito-width)) / 2 + 0.5rem));
@@ -134,7 +130,7 @@
   width: 40rem;
   height: calc(100svh - var(--saito-header-height) + 3px);
   overflow: hidden auto;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
 }
 
 .saito-header-hamburger-contents.show-menu {
@@ -160,7 +156,7 @@
   height: calc(100vh - var(--saito-header-height));
   overflow: hidden;
   z-index: 19;
-  background: var(--background-color-shim-dark);
+  background: color-mix(in srgb, var(--saito-black) 70%, transparent);
   transition: opacity 0.33s;
 }
 
@@ -202,8 +198,8 @@
   We need a thick border and no padding for the qrcode to be scannable
   Do not add a padding
   */
-  border-radius: var(--saito-border-radius);
-  background: var(--saito-background-color);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
   visibility: inherit;
 }
 
@@ -232,13 +228,13 @@
 #saito-header .balance-amount:hover,
 .saito-crypto-deposit .balance-amount:hover,
 .saito-crypto-transfer .balance-amount:hover {
-  color: var(--saito-font-color-heavy);
+  color: var(--saito-foreground);
 }
 
 #saito-header .balance-amount.pending,
 .saito-crypto-deposit .balance-amount.pending,
 .saito-crypto-transfer .balance-amount.pending {
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
   animation: fade-animation 1.5s infinite ease-in-out;
 }
 
@@ -293,9 +289,9 @@
 #saito-header .wallet-btn-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(3rem, 1fr));
-  background: var(--saito-background-color-inverse);
-  color: var(--saito-font-color-inverse);
-  border-radius: var(--saito-border-radius);
+  background: var(--saito-foreground);
+  color: var(--saito-background);
+  border-radius: var(--saito-radius);
   margin: 0.5rem 0;
   width: 95%;
   text-transform: uppercase;
@@ -312,8 +308,13 @@
   border-radius: inherit;
 }
 
+/* Wallet / Back label toggle — scoped so Fileshare can keep its own .hideme */
+#saito-header .wallet-btn .hideme {
+  display: none;
+}
+
 #saito-header .wallet-btn:hover {
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
   background: var(--saito-primary);
 }
 
@@ -374,7 +375,7 @@
   background: inherit;
   height: auto;
   overflow: hidden;
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   margin: 1.5rem 0;
   transition: all 0.8s;
 }
@@ -399,6 +400,9 @@
   font-size: 2.2rem;
   color: inherit;
   background: inherit;
+  /* Form-select padding is for full inputs; here it clips the ticker in the fixed-height row */
+  padding: 0;
+  line-height: 1;
 }
 
 .profile-public-key {
@@ -505,7 +509,7 @@
 .crypto-logo-container .crypto-logo {
   height: 4rem;
   width: 4rem;
-  border: 3px solid var(--saito-button-secondary-fg);
+  border: 3px solid var(--saito-button-secondary-foreground);
   border-radius: 50%;
 }
 
@@ -519,13 +523,13 @@
 
 .header-crypto-balance {
   font: var(--saito-font-medium);
-  color: var(--saito-font-color-heavy);
+  color: var(--saito-foreground);
   font-size: 19px;
   align-self: flex-end;
 }
 
 .header-crypto-value {
-  color: var(--saito-font-color-light);
+  color: var(--saito-muted-foreground);
 }
 
 /*   Crypto Menu */
@@ -585,5 +589,175 @@
 @media screen and (max-width: 420px) {
   #header-msg {
     font-size: 1.5rem;
+  }
+}
+
+/*
+  Desktop chrome compensation for the 12px root.
+  Header rem geometry was authored at 10px root. Mobile (≤768px) and
+  html.game already force 10px, so leave base rem values alone for those.
+  Scale only desktop non-game chrome back to the previous pixel footprint.
+*/
+@media screen and (min-width: 769px) {
+  html:not(.game) {
+    --saito-header-height: calc(7rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header {
+    padding: calc(1rem * 10 / 12)
+      max(calc(2rem * 10 / 12), calc((100vw - var(--saito-width)) / 2 + 0.5rem * 10 / 12));
+  }
+
+  html:not(.game) #saito-header.wide-screen {
+    padding: calc(1.3rem * 10 / 12) calc(3rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-logo {
+    width: calc(15rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-back-button {
+    padding: calc(0.75rem * 10 / 12);
+    background-position-x: min(calc(-2rem * 10 / 12), calc(-1 * (100vw - var(--saito-width)) / 2 + 0.5rem * 10 / 12));
+  }
+
+  html:not(.game) #saito-header-menu-toggle {
+    width: calc(4rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header-menu-toggle i {
+    font-size: calc(3rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-profile .saito-identicon-box .saito-identicon {
+    width: calc(4.9rem * 10 / 12);
+    height: calc(4.9rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-hamburger-contents {
+    right: calc(-40rem * 10 / 12);
+    width: calc(40rem * 10 / 12);
+  }
+
+  /* Must match html:not(.game) specificity so show-menu can still win on `right` */
+  html:not(.game) .saito-header-hamburger-contents.show-menu {
+    right: 0;
+  }
+
+  /* #qrcode is header-only; leave .saito-crypto-deposit / .payment-box QR at 12px scale */
+  html:not(.game) #qrcode {
+    height: calc(18rem * 10 / 12);
+  }
+
+  html:not(.game) #qrcode img,
+  html:not(.game) #qrcode svg {
+    height: calc(18rem * 10 / 12);
+    width: calc(18rem * 10 / 12);
+    border-width: calc(1rem * 10 / 12);
+  }
+
+  html:not(.game) .crypto-api-fetch-spinner {
+    right: calc(0.5rem * 10 / 12);
+    bottom: calc(0.5rem * 10 / 12);
+    width: calc(4rem * 10 / 12);
+    height: calc(4rem * 10 / 12);
+    font-size: calc(3.2rem * 10 / 12);
+  }
+
+  /* Balance display is menu chrome; scope to header so deposit/transfer overlays keep 12px type */
+  html:not(.game) #saito-header .balance-amount-whole,
+  html:not(.game) #saito-header .balance-amount-separator {
+    font-size: calc(3.5rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .balance-amount-decimal {
+    font-size: calc(2rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .balance-amount-segments--subunit .balance-amount-whole,
+  html:not(.game) #saito-header .balance-amount-segments--subunit .balance-amount-separator,
+  html:not(.game) #saito-header .balance-amount-segments--subunit .balance-amount-decimal {
+    font-size: calc(3.5rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .wallet-btn-container {
+    grid-template-columns: repeat(auto-fit, minmax(calc(3rem * 10 / 12), 1fr));
+    margin: calc(0.5rem * 10 / 12) 0;
+  }
+
+  html:not(.game) #saito-header .wallet-btn {
+    gap: calc(0.75rem * 10 / 12);
+    padding: calc(1.5rem * 10 / 12);
+    font-size: calc(1.6rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .wallet-identicon {
+    width: calc(3.2rem * 10 / 12);
+    height: calc(3.2rem * 10 / 12);
+    margin-right: calc(0.5rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .pubkey-container {
+    max-width: calc(38rem * 10 / 12);
+    min-height: calc(3.2rem * 10 / 12);
+    gap: calc(1rem * 10 / 12);
+    font-size: calc(1.6rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .pubkey-mobile-wrapper {
+    bottom: calc(1rem * 10 / 12);
+    right: calc(1rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .pubkey-mobile-wrapper i {
+    font-size: calc(3.2rem * 10 / 12);
+    padding: calc(0.4rem * 10 / 12);
+  }
+
+  html:not(.game) .wallet-info {
+    gap: calc(1rem * 10 / 12);
+    margin: calc(1.5rem * 10 / 12) 0;
+  }
+
+  html:not(.game) #saito-header .wallet-balance {
+    gap: calc(1rem * 10 / 12);
+    height: calc(4.2rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .wallet-balance select {
+    font-size: calc(2.2rem * 10 / 12);
+  }
+
+  html:not(.game) #saito-header .hamburger-container {
+    gap: calc(1rem * 10 / 12);
+  }
+
+  html:not(.game) #header-msg {
+    font-size: calc(2rem * 10 / 12);
+    padding-left: calc(2rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-crypto {
+    grid-template-columns: calc(5rem * 10 / 12) 1fr;
+    row-gap: calc(0.5rem * 10 / 12);
+    column-gap: calc(1rem * 10 / 12);
+    height: calc(6rem * 10 / 12);
+    padding: calc(0.5rem * 10 / 12) calc(1rem * 10 / 12);
+  }
+
+  /* .crypto-logo-container is shared with withdraw/details overlays — header only */
+  html:not(.game) .saito-header-crypto .crypto-logo-container {
+    max-width: calc(5rem * 10 / 12);
+    max-height: calc(5rem * 10 / 12);
+    height: calc(5rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-crypto .crypto-logo-container .crypto-logo {
+    height: calc(4rem * 10 / 12);
+    width: calc(4rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-wallet-menu {
+    gap: calc(0.5rem * 10 / 12);
   }
 }

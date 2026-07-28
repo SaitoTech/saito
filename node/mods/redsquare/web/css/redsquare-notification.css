@@ -2,7 +2,7 @@
 
 .notification {
   cursor: pointer;
-  border-bottom: var(--border-thickness-thin) solid var(--saito-border);
+  border-bottom: 1px solid var(--saito-border);
 }
 
 .notification .meta {
@@ -41,7 +41,6 @@
 
 .notification .time {
   color: var(--saito-muted-foreground);
-  font-size: var(--font-size-tiny);
 }
 
 .notification .slot {

@@ -1,29 +1,26 @@
 {
-	"compilerOptions": {
-		"module": "commonjs",
-		"target": "es2020",
-		"moduleResolution": "node",
-		"sourceMap": true,
-		 "jsx": "react",
-		"esModuleInterop": true,
-		"outDir": "./../../dist/ts",
-		"allowJs": true,
-		"resolveJsonModule": true,
-		"downlevelIteration": true,
-		"lib": [
-			"dom",
-			"es2022"
-		],
-		"paths": {
-			"saito-js/*": ["../../node_modules/saito-js/dist/*"],
-			"saito-js": ["../../node_modules/saito-js/dist/index.node"]
-		}
-	},
-	"exclude": [
-		"../../node_modules",
-		"../../lib/templates",
-		"../../dist/bundler",
-		"../../lib/saito/ui/**/*"
-	],
-	"include": ["../../lib/**/*.ts", "../../scripts/start.ts"]
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2020",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "jsx": "react",
+    "esModuleInterop": true,
+    "outDir": "./../../dist/ts",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "downlevelIteration": true,
+    "lib": ["dom", "es2022"],
+    "paths": {
+      "saito-js/*": ["../../node_modules/saito-js/dist/*"],
+      "saito-js": ["../../node_modules/saito-js/dist/index.node"]
+    }
+  },
+  "exclude": [
+    "../../node_modules",
+    "../../lib/templates",
+    "../../dist/bundler",
+    "../../lib/saito/ui/**/*"
+  ],
+  "include": ["../../lib/**/*.ts", "../../scripts/start.ts"]
 }

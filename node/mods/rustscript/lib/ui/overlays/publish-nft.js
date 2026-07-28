@@ -1,6 +1,7 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoNFTCard = require('./../../../../../lib/saito/ui/saito-nft/saito-nft-card');
 const PublishNFTTemplate = require('./publish-nft.template');
+const { applyPublishOverlayShell } = require('./overlay.shell');
 const { lockingView } = require('../script_build');
 
 function escapeHtml(text) {
@@ -79,7 +80,9 @@ class PublishNFTFlow {
     this.selectedCard = null;
     this.cardList = [];
 
-    const defaultFee = this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee || BigInt(0));
+    const defaultFee = this.app.wallet.convertNolanToSaito(
+      this.app.wallet.default_fee || BigInt(0)
+    );
     const fee = defaultFee && defaultFee !== '0.00' ? defaultFee : '0.001';
 
     this.step = 'send';
@@ -95,8 +98,7 @@ class PublishNFTFlow {
   }
 
   show(html) {
-    const container = document.querySelector('.saito-container');
-    container?.classList.add('rs-publish-modal-open');
+    document.body.classList.add('rs-publish-modal-open');
     this.blockedRoot = document.querySelector('main.rustscript');
     if (this.blockedRoot) {
       this.blockedRoot.inert = true;
@@ -115,7 +117,7 @@ class PublishNFTFlow {
   }
 
   onOverlayClosed() {
-    document.querySelector('.saito-container')?.classList.remove('rs-publish-modal-open');
+    document.body.classList.remove('rs-publish-modal-open');
     document.removeEventListener('keydown', this.onEscapeKey);
     if (this.blockedRoot) {
       this.blockedRoot.inert = false;
@@ -127,29 +129,7 @@ class PublishNFTFlow {
   }
 
   applyOverlayLayout() {
-    const el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
-    const backdrop = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
-
-    if (el) {
-      el.classList.add('rs-publish-overlay-shell', 'maximized-overlay');
-      el.style.pointerEvents = 'none';
-    }
-    if (backdrop) {
-      backdrop.classList.add('rs-publish-overlay-backdrop');
-      backdrop.style.display = 'block';
-      backdrop.style.pointerEvents = 'auto';
-      backdrop.style.top = '0';
-      backdrop.style.left = '0';
-      backdrop.style.width = '100vw';
-      backdrop.style.height = '100dvh';
-      backdrop.style.zIndex = '100001';
-    }
-    if (el) {
-      el.style.zIndex = '100002';
-    }
-    if (typeof this.overlay.pullOverlayToFront === 'function') {
-      this.overlay.pullOverlayToFront();
-    }
+    applyPublishOverlayShell(this.overlay);
   }
 
   async updateCardList() {
@@ -312,57 +292,58 @@ class PublishNFTFlow {
       amountInput.value = String(nft.getTotalAmount() || 0);
     });
 
-    root.querySelector('[data-action="publish-nft-broadcast"]')?.addEventListener('click', async () => {
-      showError('');
-      const nft = this.selectedCard?.nft;
-      if (!nft) {
-        showError('Select an NFT to publish.');
-        return;
-      }
-
-      const nftAmountRaw = root.querySelector('.rs-publish-nft-amount')?.value;
-      const feeRaw = root.querySelector('.rs-publish-fee')?.value;
-      const nftAmount = parseNftAmount(nftAmountRaw);
-      const fee = parseSaitoAmount(feeRaw, true);
-
-      if (!nftAmount) {
-        showError('Enter a valid NFT amount.');
-        return;
-      }
-      if (fee === null) {
-        showError('Enter a valid fee.');
-        return;
-      }
-
-      const totalAvailable = nft.getTotalAmount ? nft.getTotalAmount() : 0;
-      if (nftAmount > totalAvailable) {
-        showError(`Insufficient NFT units (${totalAvailable} available).`);
-        return;
-      }
-
-      const btn = root.querySelector('[data-action="publish-nft-broadcast"]');
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Publishing…';
-      }
-
-      try {
-        await this.broadcastPublishNft(nft, nftAmount, fee || '0');
-        this.hide();
-        this.publishFlow.pendingTxSignature = this.lastPendingSignature;
-        this.publishFlow.lastPublishedTx = this.lastPublishedTx;
-        this.publishFlow.p2shAddress = this.p2shAddress;
-        this.publishFlow.p2shHash = this.p2shHash;
-        this.publishFlow.openWaiting();
-      } catch (err) {
-        showError(err?.message || 'Could not publish the transaction.');
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'Publish';
-          this.syncPublishButtonState();
+    root
+      .querySelector('[data-action="publish-nft-broadcast"]')
+      ?.addEventListener('click', async () => {
+        showError('');
+        const nft = this.selectedCard?.nft;
+        if (!nft) {
+          showError('Select an NFT to publish.');
+          return;
         }
-      }
-    });
+
+        const nftAmountRaw = root.querySelector('.rs-publish-nft-amount')?.value;
+        const feeRaw = root.querySelector('.rs-publish-fee')?.value;
+        const nftAmount = parseNftAmount(nftAmountRaw);
+        const fee = parseSaitoAmount(feeRaw, true);
+
+        if (!nftAmount) {
+          showError('Enter a valid NFT amount.');
+          return;
+        }
+        if (fee === null) {
+          showError('Enter a valid fee.');
+          return;
+        }
+
+        const totalAvailable = nft.getTotalAmount ? nft.getTotalAmount() : 0;
+        if (nftAmount > totalAvailable) {
+          showError(`Insufficient NFT units (${totalAvailable} available).`);
+          return;
+        }
+
+        const btn = root.querySelector('[data-action="publish-nft-broadcast"]');
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'Publishing…';
+        }
+
+        try {
+          const tx = await this.broadcastPublishNft(nft, nftAmount, fee || '0');
+          this.hide();
+          this.publishFlow.lastPublishedTx = this.lastPublishedTx;
+          this.publishFlow.p2shAddress = this.p2shAddress;
+          this.publishFlow.p2shHash = this.p2shHash;
+          this.publishFlow.watchTransaction(tx);
+        } catch (err) {
+          showError(err?.message || 'Could not publish the transaction.');
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Publish';
+            this.syncPublishButtonState();
+          }
+        }
+      });
   }
 
   async broadcastPublishNft(nft, nftAmount, feeSaito) {
@@ -388,11 +369,11 @@ class PublishNFTFlow {
 
     await this.app.network.propagateTransaction(newtx);
 
-    this.lastPendingSignature = newtx.signature || '';
-    if (!this.lastPendingSignature) {
+    this.lastPublishedTx = newtx;
+
+    if (!newtx.signature) {
       throw new Error('Transaction was not signed.');
     }
-    this.lastPublishedTx = newtx;
 
     try {
       await this.app.wallet.updateNFTList();

@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	return `
+  return `
 
 
   <div id="content" class="content"></div>

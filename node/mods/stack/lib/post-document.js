@@ -1,6 +1,6 @@
 /**
  * Document Model for Stack Posts
- * 
+ *
  * Provides a structured document model layer between the editor UI and Markdown string.
  * The textarea still stores Markdown, but internally we work with Document structure.
  */
@@ -17,24 +17,24 @@
  * @property {string} type - "paragraph"
  * @property {string} id - Stable unique identifier
  * @property {string} text - Plain text content
- * 
+ *
  * @typedef {Object} Heading
  * @property {string} type - "heading"
  * @property {string} id - Stable unique identifier
  * @property {number} level - Heading level (1-6)
  * @property {string} text - Heading text
- * 
+ *
  * @typedef {Object} Image
  * @property {string} type - "image"
  * @property {string} id - Stable unique identifier
  * @property {string} src - Image source URL or data URI
  * @property {string} [caption] - Optional image caption/alt text
- * 
+ *
  * @typedef {Object} RawHTML
  * @property {string} type - "rawhtml"
  * @property {string} id - Stable unique identifier
  * @property {string} html - Raw HTML content
- * 
+ *
  * @typedef {Paragraph|Heading|Image|RawHTML} Block
  */
 
@@ -50,13 +50,13 @@ function generateBlockId(index, prefix = 'block') {
 
 /**
  * Parse Markdown string into Document structure
- * 
+ *
  * Converts Markdown into block objects:
  * - Headings (# ## ###) → Heading blocks
  * - Images (![alt](src)) → Image blocks
  * - Raw HTML tags → RawHTML blocks
  * - Everything else → Paragraph blocks
- * 
+ *
  * @param {string} markdown - Markdown string to parse
  * @returns {Document} Document with parsed blocks
  */
@@ -178,7 +178,7 @@ function parseMarkdownToDocument(markdown) {
       const alt = imageMatch[1] || '';
       let src = imageMatch[2] || '';
       const title = imageMatch[3] || '';
-      
+
       // Preserve stack:image: references (will be resolved during rendering)
       // For drafts loaded from storage, src may already be a data URL or stack:image: reference
 
@@ -218,13 +218,13 @@ function parseMarkdownToDocument(markdown) {
 
 /**
  * Serialize Document structure back to Markdown string
- * 
+ *
  * Converts blocks back into Markdown:
  * - Heading blocks → Markdown headings (# ## ###)
  * - Image blocks → Markdown image syntax (![alt](src))
  * - RawHTML blocks → Raw HTML (round-trips safely)
  * - Paragraph blocks → Plain text
- * 
+ *
  * @param {Document} doc - Document to serialize
  * @returns {string} Markdown string
  */
@@ -284,13 +284,13 @@ function serializeDocumentToMarkdown(doc) {
 
 /**
  * Render Document to DOM elements
- * 
+ *
  * Creates DOM nodes for each block type:
  * - Paragraph → <p>
  * - Heading → <h1>...<h6>
  * - Image → <img> with optional <figcaption>
  * - RawHTML → dangerouslySetInnerHTML
- * 
+ *
  * @param {Document} doc - Document to render
  * @param {HTMLElement} container - Container element to render into
  * @param {Object} options - Rendering options
@@ -331,7 +331,7 @@ function renderDocument(doc, container, options = {}) {
         element.className = 'stack-image-block';
         // Images are NOT contenteditable - they are block-level elements
         element.contentEditable = false;
-        
+
         const img = document.createElement('img');
         img.src = block.src || '';
         img.alt = block.caption || '';
@@ -395,4 +395,3 @@ module.exports = {
   renderDocument,
   generateBlockId
 };
-

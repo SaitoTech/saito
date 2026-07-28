@@ -1,5 +1,4 @@
 module.exports = (mod) => {
-
   if (!mod?.server_info?.module_config) {
     return `<p class="admin-modules-hint">Module configuration is not available from this node. Check that <code>config/modules.config.js</code> exists and is valid.</p>`;
   }
@@ -12,10 +11,10 @@ module.exports = (mod) => {
   const DEFAULT_MODULES = mod.returnDefaultModules();
 
   if (mod?.server_info?.module_config?.lite) {
-    lite = mod.server_info.module_config.lite.join(" ");
+    lite = mod.server_info.module_config.lite.join(' ');
   }
   if (mod?.server_info?.module_config?.core) {
-    core = mod.server_info.module_config.core.join(" ");
+    core = mod.server_info.module_config.core.join(' ');
   }
 
   html += `
@@ -30,7 +29,7 @@ module.exports = (mod) => {
     const enabled = lite.includes(`${m}/${m}`) || core.includes(`${m}/${m}`);
     if (enabled || DEFAULT_MODULES.includes(m)) {
       html += `
-        <input class="saito-checkbox" type="checkbox" id="mod-${m}" name="${m}" ${enabled ? "checked" : ""}/>
+        <input class="saito-checkbox" type="checkbox" id="mod-${m}" name="${m}" ${enabled ? 'checked' : ''}/>
         <label for="mod-${m}">${m}</label>
       `;
     }
@@ -39,4 +38,3 @@ module.exports = (mod) => {
   html += `</div>`;
   return html;
 };
-

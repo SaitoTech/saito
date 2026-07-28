@@ -25,7 +25,11 @@ module.exports = {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {
       return false;
     }
-    if (!context.app || !context.app.crypto || typeof context.app.crypto.verifyMessage !== 'function') {
+    if (
+      !context.app ||
+      !context.app.crypto ||
+      typeof context.app.crypto.verifyMessage !== 'function'
+    ) {
       return false;
     }
 

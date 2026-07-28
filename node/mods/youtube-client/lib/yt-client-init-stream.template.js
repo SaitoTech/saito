@@ -1,14 +1,13 @@
-module.exports  = (app,mod) => {
+module.exports = (app, mod) => {
+  if (app.options?.youtube?.stream_key != null) {
+    console.log('previous stream key:', app.options.youtube.stream_key);
+  }
 
-	if (app.options?.youtube?.stream_key != null) {
-		console.log("previous stream key:", app.options.youtube.stream_key);
-	}
-
-	let html = `
+  let html = `
     <div id="yt-stream" class="yt-stream">
 			<div class="yt-stream-title"><i class="fa-brands fa-youtube"></i> Youtube Live</div> 
 			<input class="saito-input" type="text" name="yt-stream-identifier" id="yt-stream-identifier"
-			value="${(app.options?.youtube?.stream_key != null ? app.options.youtube.stream_key : ``)}" 
+			value="${app.options?.youtube?.stream_key != null ? app.options.youtube.stream_key : ``}" 
 			placeholder="Enter youtube stream key">
 
 			<!--
@@ -24,5 +23,5 @@ module.exports  = (app,mod) => {
 		</div>
   `;
 
-	return html;
+  return html;
 };

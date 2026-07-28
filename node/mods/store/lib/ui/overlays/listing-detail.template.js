@@ -1,37 +1,37 @@
 module.exports = {
-	viewTemplate: (view) => {
-		const thumbs = view.hasGallery
-			? `<div class="thumbs" role="list">${view.images
-					.map(
-						(src, idx) => `
+  viewTemplate: (view) => {
+    const thumbs = view.hasGallery
+      ? `<div class="thumbs" role="list">${view.images
+          .map(
+            (src, idx) => `
           <button type="button" class="thumb${idx === 0 ? ' active' : ''}" role="listitem" data-src="${src}" aria-label="View image ${idx + 1}" aria-pressed="${idx === 0 ? 'true' : 'false'}">
             <img src="${src}" alt="" />
           </button>`
-					)
-					.join('')}</div>`
-			: '';
+          )
+          .join('')}</div>`
+      : '';
 
-		const description = view.hasDescription ? view.description : 'No description provided.';
-		const loader = view.imageLoading
-			? `<i class="fas fa-spinner fa-spin loader" aria-hidden="true"></i>`
-			: '';
-		const imageAlt = view.listingTitle
-			? String(view.listingTitle).replace(/"/g, '&quot;')
-			: 'Listing image';
+    const description = view.hasDescription ? view.description : 'No description provided.';
+    const loader = view.imageLoading
+      ? `<i class="fas fa-spinner fa-spin loader" aria-hidden="true"></i>`
+      : '';
+    const imageAlt = view.listingTitle
+      ? String(view.listingTitle).replace(/"/g, '&quot;')
+      : 'Listing image';
 
-		const quantity = view.showQuantity
-			? `<div class="quantity">
+    const quantity = view.showQuantity
+      ? `<div class="quantity">
           <label for="listing-qty">Quantity</label>
           <input class="saito-input" id="listing-qty" type="number" min="1" max="${view.supply}" value="1" />
           <span class="hint">max ${view.supply}</span>
         </div>`
-			: '';
+      : '';
 
-		const nextBid = view.showNextBid
-			? `<p class="next-bid">Next minimum bid ${view.nextBidDisplay}</p>`
-			: '';
+    const nextBid = view.showNextBid
+      ? `<p class="next-bid">Next minimum bid ${view.nextBidDisplay}</p>`
+      : '';
 
-		return `
+    return `
     <article class="listing-detail view">
       <header>
         <img class="saito-identicon" src="${view.identicon}" alt="" />
@@ -79,11 +79,11 @@ module.exports = {
       </div>
     </article>
   `;
-	},
+  },
 
-	editTemplate: (view) => {
-		const description = view.description || 'No description provided.';
-		return `
+  editTemplate: (view) => {
+    const description = view.description || 'No description provided.';
+    return `
     <article class="listing-detail edit">
       <header>
         <img class="saito-identicon" src="${view.nftIdenticon}" alt="" />
@@ -138,13 +138,13 @@ module.exports = {
       </div>
     </article>
   `;
-	},
+  },
 
-	mediaImage: (src) => {
-		return `<img class="image" src="${src}" alt="" />`;
-	},
+  mediaImage: (src) => {
+    return `<img class="image" src="${src}" alt="" />`;
+  },
 
-	mediaText: (text) => {
-		return `<div class="saito-nft-card-text media-text">${text}</div>`;
-	}
+  mediaText: (text) => {
+    return `<div class="saito-nft-card-text media-text">${text}</div>`;
+  }
 };

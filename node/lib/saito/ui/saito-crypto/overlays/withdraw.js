@@ -45,6 +45,7 @@ class Withdraw {
   }
 
   async render() {
+    this.closeTokenMenu();
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
     this.amountErrorMessage = '';
@@ -114,10 +115,10 @@ class Withdraw {
       return;
     }
     if (this.isNftWithdrawSelection()) {
-      amountLabel.textContent = 'Units';
+      amountLabel.textContent = 'units';
       amountInput.inputMode = 'numeric';
     } else {
-      amountLabel.textContent = 'Amount';
+      amountLabel.textContent = 'amount';
       amountInput.inputMode = 'decimal';
     }
   }
@@ -261,13 +262,13 @@ class Withdraw {
     const fixedRecipient = this.isFixedRecipientForm();
 
     preview.innerHTML = `
-      <div class="saito-user withdraw-address-user" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
+      <div class="saito-user address-user" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
         <div class="saito-identicon-box">
           <img class="saito-identicon" src="${this.escapeHTML(identicon)}" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
         </div>
-        <div class="saito-address withdraw-address-user-primary" title="${this.escapeHTML(primary)}">${this.escapeHTML(primary)}</div>
-        <div class="saito-userline withdraw-address-user-secondary" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
-        <button type="button" class="withdraw-address-edit ${fixedRecipient ? 'hide-element' : ''}" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+        <div class="saito-address" title="${this.escapeHTML(primary)}">${this.escapeHTML(primary)}</div>
+        <div class="saito-userline" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
+        <button type="button" class="saito-icon-button address-edit ${fixedRecipient ? 'hide-element' : ''}" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
           <i class="fa-solid fa-pen" aria-hidden="true"></i>
         </button>
       </div>
@@ -295,25 +296,25 @@ class Withdraw {
     const identicon = hasPublicKey ? this.app.keychain.returnIdenticon(publicKey) : '';
 
     preview.innerHTML = `
-      <div class="withdraw-address-external">
-        <div class="withdraw-address-external-address" title="${this.escapeHTML(displayAddress)}">${this.escapeHTML(displayAddress)}</div>
-        <div class="withdraw-address-external-user ${hasPublicKey ? 'saito-user withdraw-address-external-user--matched' : 'withdraw-address-external-user--unknown'}" ${hasPublicKey ? `data-id="${this.escapeHTML(publicKey)}" data-disable="true"` : ''}>
+      <div class="address-external">
+        <div class="address-external-address" title="${this.escapeHTML(displayAddress)}">${this.escapeHTML(displayAddress)}</div>
+        <div class="address-external-user ${hasPublicKey ? 'saito-user address-external-user--matched' : 'address-external-user--unknown'}" ${hasPublicKey ? `data-id="${this.escapeHTML(publicKey)}" data-disable="true"` : ''}>
           ${
             hasPublicKey
               ? `<div class="saito-identicon-box">
                   <img class="saito-identicon" src="${this.escapeHTML(identicon)}" data-id="${this.escapeHTML(publicKey)}" data-disable="true">
                 </div>`
-              : `<div class="withdraw-address-external-unknown-icon">
+              : `<div class="address-external-unknown-icon">
                   <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
                 </div>`
           }
-          <div class="withdraw-address-user-primary" title="${this.escapeHTML(primary)}">
+          <div class="saito-address" title="${this.escapeHTML(primary)}">
             ${this.escapeHTML(primary)}
-            ${hasPublicKey ? '<span class="withdraw-address-external-match-label">Matched</span>' : ''}
+            ${hasPublicKey ? '<span class="address-match-label">Matched</span>' : ''}
           </div>
-          <div class="withdraw-address-user-secondary" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
+          <div class="saito-userline" title="${this.escapeHTML(secondary)}">${this.escapeHTML(secondary)}</div>
         </div>
-        <button type="button" class="withdraw-address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+        <button type="button" class="saito-icon-button address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
           <i class="fa-solid fa-pen" aria-hidden="true"></i>
         </button>
       </div>
@@ -329,9 +330,9 @@ class Withdraw {
     }
 
     preview.innerHTML = `
-      <div class="withdraw-address-invalid" role="alert">
-        <div class="withdraw-address-invalid-message">${this.escapeHTML(`Error: Invalid ${this.ticker} address`)}</div>
-        <button type="button" class="withdraw-address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
+      <div class="address-invalid" role="alert">
+        <div class="address-invalid-message">${this.escapeHTML(`Error: Invalid ${this.ticker} address`)}</div>
+        <button type="button" class="saito-icon-button address-edit" id="withdraw-address-edit" title="Edit recipient address" aria-label="Edit recipient address">
           <i class="fa-solid fa-pen" aria-hidden="true"></i>
         </button>
       </div>
@@ -370,23 +371,23 @@ class Withdraw {
 
     if (cont.classList.contains('hide-element')) {
       preview.classList.remove('hide-element');
-      preview.classList.remove('withdraw-address-preview--enter');
-      preview.classList.add('withdraw-address-preview--enter-active');
+      preview.classList.remove('address-preview--enter');
+      preview.classList.add('address-preview--enter-active');
       return;
     }
 
     preview.classList.add('hide-element');
-    preview.classList.remove('withdraw-address-preview--enter-active');
-    cont.classList.add('withdraw-address-transition-out');
+    preview.classList.remove('address-preview--enter-active');
+    cont.classList.add('address-transition-out');
 
     this.addressPreviewTransitionTimer = setTimeout(() => {
       cont.classList.add('hide-element');
-      cont.classList.remove('withdraw-address-transition-out');
+      cont.classList.remove('address-transition-out');
       preview.classList.remove('hide-element');
-      preview.classList.add('withdraw-address-preview--enter');
+      preview.classList.add('address-preview--enter');
       requestAnimationFrame(() => {
-        preview.classList.add('withdraw-address-preview--enter-active');
-        preview.classList.remove('withdraw-address-preview--enter');
+        preview.classList.add('address-preview--enter-active');
+        preview.classList.remove('address-preview--enter');
       });
     }, 333);
   }
@@ -396,11 +397,8 @@ class Withdraw {
     const preview = document.getElementById('withdraw-address-preview');
     const cont = document.getElementById('withdraw-address-cont');
     preview?.classList.add('hide-element');
-    preview?.classList.remove(
-      'withdraw-address-preview--enter',
-      'withdraw-address-preview--enter-active'
-    );
-    cont?.classList.remove('hide-element', 'withdraw-address-transition-out');
+    preview?.classList.remove('address-preview--enter', 'address-preview--enter-active');
+    cont?.classList.remove('hide-element', 'address-transition-out');
   }
 
   showAddressInputForEdit({ preserveValue = false } = {}) {
@@ -870,7 +868,7 @@ class Withdraw {
 
         if (menu) {
           const li = document.createElement('li');
-          li.className = 'withdraw-token-option';
+          li.className = 'withdraw-token-option saito-form-dropdown-option';
           li.setAttribute('role', 'option');
           li.setAttribute('aria-selected', show_me ? 'true' : 'false');
           li.dataset.ticker = crypto_mod.ticker;
@@ -889,15 +887,84 @@ class Withdraw {
     }
   }
 
+  positionTokenMenu() {
+    const menu = document.getElementById('withdraw-token-menu');
+    const trigger = document.getElementById('withdraw-token-trigger');
+    if (!menu || !trigger) {
+      return;
+    }
+
+    const viewportGap = 8;
+    const triggerGap = 2;
+    const triggerRect = trigger.getBoundingClientRect();
+    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 10;
+    const preferredMaxHeight = 20 * rootFontSize;
+    const desiredHeight = Math.min(preferredMaxHeight, menu.scrollHeight);
+    const spaceBelow = window.innerHeight - triggerRect.bottom - viewportGap - triggerGap;
+    const spaceAbove = triggerRect.top - viewportGap - triggerGap;
+    const openAbove = spaceAbove > spaceBelow && spaceBelow < desiredHeight;
+    const availableHeight = Math.max(0, openAbove ? spaceAbove : spaceBelow);
+    const menuHeight = Math.min(desiredHeight, availableHeight);
+    const menuWidth = Math.min(triggerRect.width, window.innerWidth - 2 * viewportGap);
+    const menuLeft = Math.min(
+      Math.max(viewportGap, triggerRect.left),
+      window.innerWidth - viewportGap - menuWidth
+    );
+
+    menu.style.left = `${menuLeft}px`;
+    menu.style.top = `${
+      openAbove
+        ? Math.max(viewportGap, triggerRect.top - triggerGap - menuHeight)
+        : triggerRect.bottom + triggerGap
+    }px`;
+    menu.style.width = `${menuWidth}px`;
+    menu.style.maxHeight = `${menuHeight}px`;
+  }
+
+  openTokenMenu() {
+    const menu = document.getElementById('withdraw-token-menu');
+    const trigger = document.getElementById('withdraw-token-trigger');
+    if (!menu || !trigger) {
+      return;
+    }
+
+    menu.classList.remove('hide-element');
+    if (typeof menu.showPopover === 'function' && !menu.matches(':popover-open')) {
+      menu.showPopover();
+    }
+    this.positionTokenMenu();
+    trigger.setAttribute('aria-expanded', 'true');
+
+    this._closeTokenMenuOnViewportChange ||= () => this.closeTokenMenu();
+    this._tokenMenuScrollContainer = trigger.closest('.compose');
+    window.addEventListener('resize', this._closeTokenMenuOnViewportChange);
+    window.addEventListener('scroll', this._closeTokenMenuOnViewportChange);
+    this._tokenMenuScrollContainer?.addEventListener(
+      'scroll',
+      this._closeTokenMenuOnViewportChange
+    );
+  }
+
   closeTokenMenu() {
     const menu = document.getElementById('withdraw-token-menu');
     const trigger = document.getElementById('withdraw-token-trigger');
     if (menu) {
+      if (typeof menu.hidePopover === 'function' && menu.matches(':popover-open')) {
+        menu.hidePopover();
+      }
       menu.classList.add('hide-element');
     }
-    if (trigger) {
-      trigger.setAttribute('aria-expanded', 'false');
+    trigger?.setAttribute('aria-expanded', 'false');
+
+    if (this._closeTokenMenuOnViewportChange) {
+      window.removeEventListener('resize', this._closeTokenMenuOnViewportChange);
+      window.removeEventListener('scroll', this._closeTokenMenuOnViewportChange);
+      this._tokenMenuScrollContainer?.removeEventListener(
+        'scroll',
+        this._closeTokenMenuOnViewportChange
+      );
     }
+    this._tokenMenuScrollContainer = null;
   }
 
   focusTokenOption(index) {
@@ -1034,8 +1101,7 @@ class Withdraw {
         e.stopPropagation();
         const open = menu.classList.contains('hide-element');
         if (open) {
-          menu.classList.remove('hide-element');
-          trigger.setAttribute('aria-expanded', 'true');
+          this.openTokenMenu();
           const currentIdx = Array.from(menu.querySelectorAll('.withdraw-token-option')).findIndex(
             (li) => li.dataset.ticker === this.ticker
           );
@@ -1066,8 +1132,7 @@ class Withdraw {
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           e.preventDefault();
           if (!open) {
-            menu.classList.remove('hide-element');
-            trigger.setAttribute('aria-expanded', 'true');
+            this.openTokenMenu();
           }
           const options = Array.from(menu.querySelectorAll('.withdraw-token-option'));
           let idx = this._tokenMenuFocusIndex;
@@ -1325,6 +1390,17 @@ class Withdraw {
           this.contacts.render(contactsWithCrypto);
         };
       }
+
+      document
+        .querySelectorAll('.saito-crypto-withdraw .withdraw-options-cont[role="button"]')
+        .forEach((control) => {
+          control.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              control.click();
+            }
+          };
+        });
     }
   }
 
@@ -1360,10 +1436,8 @@ class Withdraw {
 
   updateFeeEditability() {
     const wrap = document.getElementById('withdraw-fee-wrap');
-    const icon = document.getElementById('withdraw-fee-edit-icon');
     const isNative = this.pc?.chain_id === 'NATIVE';
-    wrap?.classList.toggle('withdraw-fee-wrap--editable', isNative);
-    icon?.classList.toggle('hide-element', !isNative);
+    wrap?.classList.toggle('fee-wrap--editable', isNative);
     if (wrap) {
       wrap.title = isNative ? 'Click to set the network fee' : '';
     }
@@ -1573,6 +1647,7 @@ class Withdraw {
   }
 
   clear() {
+    this.closeTokenMenu();
     this.resetErrors();
     this.ticker = null;
     this.pc = null;

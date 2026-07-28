@@ -1,108 +1,178 @@
+/* InviteManager list — spacing between Invite cards (not card placement in host) */
+.arcade-invites {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+/* Invite card — Arcade-owned media invite component */
 .arcade-invite {
-	width: 100%;
-	padding-top: 0px;
-	display: flex;
-	flex-direction: column;
-	row-gap: 1rem;
-	user-select: none;
-	margin-bottom: 1rem;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+  width: 100%;
+  min-height: 11rem;
+  margin: 0;
+  padding: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
+  background-color: transparent;
+  background-blend-mode: normal;
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
 }
 
-.arcade-invite-players {
-	margin-bottom: -1rem;
+.arcade-invite .header {
+  position: static;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: calc(100% - 5rem);
+  width: auto;
+  min-height: 3.6rem;
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  overflow: hidden;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: var(--saito-radius);
+  opacity: 1;
 }
 
-.arcade-invite-actions {
-	margin: 0 0 0 auto;
+.arcade-invite .title,
+.arcade-invite .details {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--saito-secondary-foreground, var(--saito-foreground));
 }
 
-.arcade-invite-identicons {
-	min-width: min-content;
-	padding: 1rem;
+.arcade-invite .title {
+  font-size: 2rem;
+  line-height: 1.2;
 }
 
-.saito-sidebar .arcade-invite-identicons {
-	padding: 0.5rem;
-	column-gap: 0.75rem;
+.arcade-invite .details {
+  font-size: 1.4rem;
+  text-transform: uppercase;
 }
 
-.arcade-invite-identicons div {
-	height: 3.5rem;
-	backdrop-filter: blur(3px);
+.arcade-invite .actions {
+  position: static;
+  z-index: 1;
+  flex: 0 0 auto;
+  align-self: flex-end;
+  margin: 0;
+  width: auto;
 }
 
-.arcade-invite-identicons .arcade-invite-requested,
-.arcade-invite-identicons .arcade-invite-pending {
-	opacity: 0.6;
-	filter: grayscale(0.7);
+.arcade-invite .players {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  column-gap: 0.35rem;
 }
 
-.arcade-invite-slot {
-	height: 3.5rem;
-	width: 3.5rem;
-	border: 1px solid var(--saito-border-color);
-	box-shadow: -1px -1px #000;
-	background-color: var(--background-color-shim-light);
-	border-radius: var(--saito-radius-md);
+.arcade-invite .player,
+.arcade-invite .requested,
+.arcade-invite .slot,
+.arcade-invite .arcade-invite-pending {
+  width: 3.6rem;
+  height: 3.6rem;
+  overflow: hidden;
+  flex: 0 0 3.6rem;
+}
+
+.arcade-invite .player .saito-identicon,
+.arcade-invite .requested .saito-identicon,
+.arcade-invite .arcade-invite-pending .saito-identicon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.arcade-invite .requested,
+.arcade-invite .arcade-invite-pending {
+  opacity: 0.6;
+  filter: grayscale(0.7);
+}
+
+.arcade-invite .slot {
+  border: 1px solid var(--saito-border);
+  box-shadow: -1px -1px #000;
+  background-color: color-mix(in srgb, var(--saito-black) 40%, transparent) 8%, transparent)
+	);
+  border-radius: var(--saito-radius);
+}
+
+.arcade-invite .badge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  width: auto;
+  max-width: 100%;
+  padding: 0.35rem 0.75rem 0.35rem 0.55rem;
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--saito-primary-foreground);
+  background-color: var(--saito-primary);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
 }
 
 /*
-.my-turn {
-	border: solid 2px;
-}
-*/
-
-.arcade-invite-turn {
-	position: relative;
-}
-
-.arcade-invite-turn i {
-	display: none;
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%);
-	font-size: 2rem;
-	border-radius: 100%;
-	color: var(--saito-primary);
-	background-color: var(--saito-turquoise);
-	box-shadow: var(--saito-box-shadow);
-}
-
-.my-turn .arcade-invite-turn i {
-	display: block;
-}
-
+ * Standalone badge class still used by Arcade teasers / leaderboard rank chips.
+ * Not part of the Invite card tree — keep until those call sites are namespaced.
+ */
 .arcade-invite-badge {
-	position: absolute;
-	right: -0.75rem;
-	bottom: -0.75rem;
-	height: 100%;
-	width: 10rem;
-	max-width: 100%;
-	padding: 0 1rem 0 3.5rem;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	flex-wrap: wrap;
-	font-size: 2rem;
-	font-weight: bold;
-	text-transform: uppercase;
-	white-space: break-spaces;
-	color: var(--saito-white);
-	text-shadow: 1px 1px 2px var(--saito-black);
-	background-color: var(--saito-primary);
-	color: var(--saito-primary-text);
-	border-radius: var(--saito-radius-md);
-	border: 3px solid var(--saito-background-color);
-	/*clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);*/
-}
-
-.saito-game .arcade-invite-badge {
-  border: 1px solid var(--saito-border-color);
-  right: 0;
-  bottom: 0;
-  padding: 0 0 0 7px;
-  text-align: center;
+  position: absolute;
+  right: -0.75rem;
+  bottom: -0.75rem;
+  height: 100%;
+  width: 10rem;
+  max-width: 100%;
+  padding: 0 1rem 0 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 2rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  white-space: break-spaces;
+  color: var(--saito-white);
+  text-shadow: 1px 1px 2px var(--saito-black);
+  background-color: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+  border-radius: var(--saito-radius);
+  border: 3px solid var(--saito-background);
 }

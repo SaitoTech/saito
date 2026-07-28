@@ -136,11 +136,7 @@ function canonicalJson(value) {
   }
   if (value && typeof value === 'object') {
     const keys = Object.keys(value).sort();
-    return (
-      '{' +
-      keys.map((k) => JSON.stringify(k) + ':' + canonicalJson(value[k])).join(',') +
-      '}'
-    );
+    return '{' + keys.map((k) => JSON.stringify(k) + ':' + canonicalJson(value[k])).join(',') + '}';
   }
   return 'null';
 }

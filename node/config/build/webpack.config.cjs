@@ -1,23 +1,23 @@
-const path = require("path");
-const TerserPlugin = require("terser-webpack-plugin");
-const webpack = require("webpack");
+const path = require('path');
+const TerserPlugin = require('terser-webpack-plugin');
+const webpack = require('webpack');
 
 let minimize = true;
-let devtool = "source-map";
-let entrypoint = "../../dist/bundler/default/apps/browser/index.ts";
-let outputfile = "saito.js";
-if (process.argv.includes("dev")) {
+let devtool = 'source-map';
+let entrypoint = '../../dist/bundler/default/apps/browser/index.ts';
+let outputfile = 'saito.js';
+if (process.argv.includes('dev')) {
   minimize = false;
-  devtool = "eval";
+  devtool = 'eval';
 }
-if (process.argv.includes("web3")) {
-  entrypoint = "../../dist/bundler/default/apps/browser/web3index.ts";
-  outputfile = "web3saito.js";
+if (process.argv.includes('web3')) {
+  entrypoint = '../../dist/bundler/default/apps/browser/web3index.ts';
+  outputfile = 'web3saito.js';
 }
 webpack(
   {
     cache: {
-      type: "filesystem",
+      type: 'filesystem'
     },
     optimization: {
       minimize: minimize,
@@ -31,13 +31,13 @@ webpack(
             },
             output: {
               ecma: 2022
-             },
-	    parse: { ecma: 2022 }
+            },
+            parse: { ecma: 2022 }
           }
-        }),
+        })
       ],
       splitChunks: {
-        chunks: "async",
+        chunks: 'async',
         minSize: 20000,
         minRemainingSize: 0,
         minChunks: 1,
@@ -48,47 +48,47 @@ webpack(
           defaultVendors: {
             test: /[\\/]node_modules[\\/]/,
             priority: -10,
-            reuseExistingChunk: true,
+            reuseExistingChunk: true
           },
           default: {
             minChunks: 2,
             priority: -20,
-            reuseExistingChunk: true,
-          },
-        },
-      },
+            reuseExistingChunk: true
+          }
+        }
+      }
     },
-    target: "web",
+    target: 'web',
     // node: {
     //     fs: "empty",
     // },
     externals: [
       {
-        archiver: "archiver",
+        archiver: 'archiver'
       },
       {
-        child_process: "child_process",
+        child_process: 'child_process'
       },
       {
-        nodemailer: "nodemailer",
+        nodemailer: 'nodemailer'
       },
       {
-        jimp: "jimp",
+        jimp: 'jimp'
       },
       {
-        "image-resolve": "image-resolver",
+        'image-resolve': 'image-resolver'
       },
       {
-        sqlite: "sqlite",
+        sqlite: 'sqlite'
       },
       {
-        unzipper: "unzipper",
+        unzipper: 'unzipper'
       },
       {
-        webpack: "webpack",
+        webpack: 'webpack'
       },
       {
-        "node-turn": "node-turn",
+        'node-turn': 'node-turn'
       },
       // /^(image-resolver|\$)$/i,
       /\.txt /,
@@ -102,58 +102,55 @@ webpack(
       /\.sh$/,
       /\.zip$/,
       /\/web\//,
-      /\/www\//,
+      /\/www\//
     ],
     // Path to your entry point. From this file Webpack will begin his work
-    entry: ["babel-polyfill", path.resolve(__dirname, entrypoint)],
+    entry: ['babel-polyfill', path.resolve(__dirname, entrypoint)],
     output: {
-	  path: path.resolve(__dirname, '../../web/saito'),
-	  filename: outputfile,
-	  library: {
-	    type: 'var',
-	    name: 'saito_bundle'
-	  },
-	  module: false
+      path: path.resolve(__dirname, '../../web/saito'),
+      filename: outputfile,
+      library: {
+        type: 'var',
+        name: 'saito_bundle'
+      },
+      module: false
     },
     resolve: {
       // Add '.ts' and '.tsx' as resolvable extensions.
       //extensions: ["", ".webpack.js", ".web.js", ".ts", ".tsx", ".js"],
-      extensions: [".webpack.js", ".web.js", ".ts", ".tsx", ".js", ],
-      modules: [
-        path.resolve(__dirname, "../../node_modules"),
-        "node_modules"
-      ],
+      extensions: ['.webpack.js', '.web.js', '.ts', '.tsx', '.js'],
+      modules: [path.resolve(__dirname, '../../node_modules'), 'node_modules'],
       alias: {
-        "saito-js/saito": [
-          path.resolve(__dirname, "../../node_modules/saito-js/dist/saito.js"),
-          path.resolve(__dirname, "../../node_modules/saito-js/saito.js")
+        'saito-js/saito': [
+          path.resolve(__dirname, '../../node_modules/saito-js/dist/saito.js'),
+          path.resolve(__dirname, '../../node_modules/saito-js/saito.js')
         ],
-        "saito-js/index.web": [
-          path.resolve(__dirname, "../../node_modules/saito-js/dist/index.web.js"),
-          path.resolve(__dirname, "../../node_modules/saito-js/index.web.js")
+        'saito-js/index.web': [
+          path.resolve(__dirname, '../../node_modules/saito-js/dist/index.web.js'),
+          path.resolve(__dirname, '../../node_modules/saito-js/index.web.js')
         ],
-        "saito-js/lib": [
-          path.resolve(__dirname, "../../node_modules/saito-js/dist/lib"),
-          path.resolve(__dirname, "../../node_modules/saito-js/lib")
+        'saito-js/lib': [
+          path.resolve(__dirname, '../../node_modules/saito-js/dist/lib'),
+          path.resolve(__dirname, '../../node_modules/saito-js/lib')
         ],
-        "saito-js": [
-          path.resolve(__dirname, "../../node_modules/saito-js/dist"),
-          path.resolve(__dirname, "../../node_modules/saito-js")
+        'saito-js': [
+          path.resolve(__dirname, '../../node_modules/saito-js/dist'),
+          path.resolve(__dirname, '../../node_modules/saito-js')
         ]
       },
       fallback: {
         fs: false,
         tls: false,
         net: false,
-        path: require.resolve("path-browserify"),
+        path: require.resolve('path-browserify'),
         zlib: false,
         http: false,
         https: false,
-        stream: require.resolve("stream-browserify"),
-        buffer: require.resolve("buffer"),
-        crypto: require.resolve("crypto-browserify"),
-        "crypto-browserify": require.resolve("crypto-browserify"),
-      },
+        stream: require.resolve('stream-browserify'),
+        buffer: require.resolve('buffer'),
+        crypto: require.resolve('crypto-browserify'),
+        'crypto-browserify': require.resolve('crypto-browserify')
+      }
     },
     experiments: {
       asyncWebAssembly: true,
@@ -161,59 +158,57 @@ webpack(
       topLevelAwait: true,
       outputModule: false
     },
-    
+
     module: {
       rules: [
         // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
-	{
-	  test: /\.tsx?$/,
-	  include: [
-	    path.resolve(__dirname, "../../dist/bundler")
-	  ],
-	  use: {
-	    loader: "ts-loader",
-	    options: {
-	      configFile: path.resolve(__dirname, "./tsconfig.json"),
-	      transpileOnly: true
-	    }
-	  },
-	},
+        {
+          test: /\.tsx?$/,
+          include: [path.resolve(__dirname, '../../dist/bundler')],
+          use: {
+            loader: 'ts-loader',
+            options: {
+              configFile: path.resolve(__dirname, './tsconfig.json'),
+              transpileOnly: true
+            }
+          }
+        },
         // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
         // @noble: babel only (no source-map-loader) so Mixin SDK works in browser.
         {
           test: /\.js$/,
-	  exclude: /[\\/]node_modules[\\/]@noble[\\/]/,
+          exclude: /[\\/]node_modules[\\/]@noble[\\/]/,
           use: [
             {
-              loader: "babel-loader",
+              loader: 'babel-loader',
               options: {
                 root: path.resolve(__dirname, '.'),
-                rootMode: "upward",
-                presets: ["@babel/preset-env", "@babel/preset-react"],
+                rootMode: 'upward',
+                presets: ['@babel/preset-env', '@babel/preset-react'],
                 sourceMaps: false,
                 cacheCompression: false,
-                cacheDirectory: true,
-              },
-            },
-          ],
+                cacheDirectory: true
+              }
+            }
+          ]
         },
         {
           test: /\.js$/,
           exclude: /[\/]node_modules[\/]@noble[\/]/,
           use: [
-            "source-map-loader",
+            'source-map-loader',
             {
-              loader: "babel-loader",
+              loader: 'babel-loader',
               options: {
                 root: path.resolve(__dirname, '.'),
-                rootMode: "upward",
-                presets: ["@babel/preset-env", "@babel/preset-react"],
+                rootMode: 'upward',
+                presets: ['@babel/preset-env', '@babel/preset-react'],
                 sourceMaps: false,
                 cacheCompression: false,
-                cacheDirectory: true,
-              },
-            },
-          ],
+                cacheDirectory: true
+              }
+            }
+          ]
           // exclude: /(node_modules)/,
           // resolve: {
           //   fullySpecified:false
@@ -222,18 +217,18 @@ webpack(
         {
           test: /\.mjs$/,
           exclude: /(node_modules)/,
-          type: "javascript/auto",
+          type: 'javascript/auto'
           // resolve: {
           //   fullySpecified:false
           // }
         },
         {
           test: /html$/,
-          exclude: [/(mods)/, /(email)/],
+          exclude: [/(mods)/, /(email)/]
         },
         {
           test: /quirc\.js$/,
-          loader: "exports-loader",
+          loader: 'exports-loader'
         },
         // wasm files should not be processed but just be emitted and we want
         // to have their public URL.
@@ -247,63 +242,62 @@ webpack(
         // },
         {
           test: /\.wasm$/,
-           type: "asset/resource",
-           generator: {
-             filename: 'static/zkey/[name][hash][ext]'
-           }
-        },
-        {
-          test: /\.zkey$/,
-          type: "asset/resource",
+          type: 'asset/resource',
           generator: {
             filename: 'static/zkey/[name][hash][ext]'
           }
         },
-      
+        {
+          test: /\.zkey$/,
+          type: 'asset/resource',
+          generator: {
+            filename: 'static/zkey/[name][hash][ext]'
+          }
+        },
+
         {
           test: /\.ptau$/,
-          type: "asset/resource",
+          type: 'asset/resource',
           generator: {
             filename: 'static/zkey/[name][hash][ext]'
           }
         },
         {
           test: /\.circom$/,
-          type: "asset/resource",
+          type: 'asset/resource',
           generator: {
             filename: 'static/zkey/[name][hash][ext]'
           }
         },
-     
+
         {
           test: /\.zip$/,
           exclude: [
-            path.resolve(__dirname, "../mods/devtools/bundler"),
-            path.resolve(__dirname, "../mods/devtools/mods"),
-          ],
+            path.resolve(__dirname, '../mods/devtools/bundler'),
+            path.resolve(__dirname, '../mods/devtools/mods')
+          ]
         },
-        { 
-          test: /\.m?js/, 
-          resolve: { 
-            fullySpecified: false 
-          } 
+        {
+          test: /\.m?js/,
+          resolve: {
+            fullySpecified: false
+          }
         }
-      ],
-
+      ]
     },
     plugins: [
       // Work around for Buffer is undefined:
       // https://github.com/webpack/changelog-v5/issues/10
       new webpack.ProvidePlugin({
-        Buffer: ["buffer", "Buffer"],
+        Buffer: ['buffer', 'Buffer']
       }),
       new webpack.ProvidePlugin({
-        process: "process/browser",
-      }),
+        process: 'process/browser'
+      })
     ],
- 
-    mode: "production",
-    devtool: devtool,
+
+    mode: 'production',
+    devtool: devtool
   },
   (err, stats) => {
     if (err || stats.hasErrors()) {
@@ -316,6 +310,6 @@ webpack(
     //
     // Done processing
     //
-    console.log("Bundle Success!");
+    console.log('Bundle Success!');
   }
 );

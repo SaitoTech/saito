@@ -1,7 +1,6 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const UnlockTemplate = require('./unlock.template');
-const WaitingTemplate = require('./waiting.template');
-const { ConfirmationWaitingUI } = require('../confirmation_waiting');
+const { applyPublishOverlayShell } = require('./overlay.shell');
 
 function escapeHtml(text) {
   return String(text || '')
@@ -44,10 +43,8 @@ class UnlockFlow {
     this.overlay.nonBlocking = false;
 
     this.step = null;
-    this.pendingTxSignature = '';
     this.destinationPublicKey = '';
     this.blockedRoot = null;
-    this.confirmationWaiting = null;
 
     this.onEscapeKey = (event) => {
       if (event.key === 'Escape' && this.step) {
@@ -67,7 +64,9 @@ class UnlockFlow {
       ctx?.assetType === 'nft' && ctx?.lockedNftSlips?.[1]
         ? BigInt(ctx.lockedNftSlips[1].amount || 0)
         : BigInt(ctx?.lockedSlip?.amount || 0);
-    const defaultFee = this.app.wallet.convertNolanToSaito(this.app.wallet.default_fee || BigInt(0));
+    const defaultFee = this.app.wallet.convertNolanToSaito(
+      this.app.wallet.default_fee || BigInt(0)
+    );
     const fee = defaultFee && defaultFee !== '0.00' ? defaultFee : '0.001';
     const feeNolan = this.app.wallet.convertSaitoToNolan(fee);
     const outputNolan = lockedNolan > feeNolan ? lockedNolan - feeNolan : BigInt(0);
@@ -90,32 +89,35 @@ class UnlockFlow {
     this.bindSolutionEvents();
   }
 
-  openWaiting() {
-    this.step = 'waiting';
-    this.show(WaitingTemplate.pendingConfirmationOverlay({ extraClass: 'rs-unlock-waiting' }));
-    this.bindWaitingEvents();
-    this.confirmationWaiting = new ConfirmationWaitingUI(
-      this.app,
-      '.rs-unlock-waiting.rs-confirmation-waiting.is-pending'
-    );
-    this.confirmationWaiting.start();
-  }
+  /**
+   * Hand off unlock confirmation UX to the shared Saito Transaction Monitor.
+   */
+  watchTransaction(tx) {
+    if (!this.mod.transaction_monitor) {
+      console.error('RustScript: transaction_monitor is not initialized');
+      return;
+    }
 
-  openSuccess() {
-    this.confirmationWaiting?.stop();
-    this.confirmationWaiting = null;
-    this.step = 'success';
-    this.show(
-      UnlockTemplate.waitingOverlay({
-        destinationPublicKey: escapeHtml(this.destinationPublicKey)
-      })
-    );
-    this.bindWaitingEvents();
+    this.mod.transaction_monitor.render({
+      tx,
+      title: 'Unlocking Script',
+      lead: 'Your unlock transaction is being broadcast to the Saito network.',
+      subtitle: 'Waiting for confirmation...',
+      successTitle: 'Script Unlocked',
+      successLead:
+        'Your unlock transaction has been confirmed and the locked funds have been released.',
+      successActionLabel: 'Continue',
+      callback: (result) => {
+        if (result?.status === 'confirmed') {
+          this.mod.resetUnlockWorkflow();
+          this.mainUi?.welcomeOverlay?.render('splash');
+        }
+      }
+    });
   }
 
   show(html) {
-    const container = document.querySelector('.saito-container');
-    container?.classList.add('rs-publish-modal-open');
+    document.body.classList.add('rs-publish-modal-open');
     this.blockedRoot = document.querySelector('main.rustscript');
     if (this.blockedRoot) {
       this.blockedRoot.inert = true;
@@ -134,42 +136,17 @@ class UnlockFlow {
   }
 
   onOverlayClosed() {
-    this.confirmationWaiting?.stop();
-    this.confirmationWaiting = null;
-    document.querySelector('.saito-container')?.classList.remove('rs-publish-modal-open');
+    document.body.classList.remove('rs-publish-modal-open');
     document.removeEventListener('keydown', this.onEscapeKey);
     if (this.blockedRoot) {
       this.blockedRoot.inert = false;
       this.blockedRoot = null;
     }
     this.step = null;
-    this.pendingTxSignature = '';
   }
 
   applyOverlayLayout() {
-    const el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
-    const backdrop = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
-
-    if (el) {
-      el.classList.add('rs-publish-overlay-shell', 'maximized-overlay');
-      el.style.pointerEvents = 'none';
-    }
-    if (backdrop) {
-      backdrop.classList.add('rs-publish-overlay-backdrop');
-      backdrop.style.display = 'block';
-      backdrop.style.pointerEvents = 'auto';
-      backdrop.style.top = '0';
-      backdrop.style.left = '0';
-      backdrop.style.width = '100vw';
-      backdrop.style.height = '100dvh';
-      backdrop.style.zIndex = '100001';
-    }
-    if (el) {
-      el.style.zIndex = '100002';
-    }
-    if (typeof this.overlay.pullOverlayToFront === 'function') {
-      this.overlay.pullOverlayToFront();
-    }
+    applyPublishOverlayShell(this.overlay);
   }
 
   bindSolutionEvents() {
@@ -210,11 +187,12 @@ class UnlockFlow {
 
       try {
         this.destinationPublicKey = destination;
-        await this.mod.broadcastSolution({
+        const tx = await this.mod.broadcastSolution({
           destinationPublicKey: destination,
           feeSaito: fee || '0'
         });
-        this.openWaiting();
+        this.hide();
+        this.watchTransaction(tx);
       } catch (err) {
         showError(err?.message || 'Could not broadcast the unlock transaction.');
         if (btn) {
@@ -223,65 +201,6 @@ class UnlockFlow {
         }
       }
     });
-  }
-
-  bindWaitingEvents() {
-    const root = document.querySelector('.rs-unlock-waiting');
-    if (!root) {
-      return;
-    }
-
-    root.querySelector('[data-action="unlock-new-script"]')?.addEventListener('click', () => {
-      this.mod.resetUnlockWorkflow();
-      this.hide();
-      this.mainUi?.welcomeOverlay?.render('splash');
-    });
-  }
-
-  async checkBlockForPendingTx(blk) {
-    if (!this.pendingTxSignature || this.step !== 'waiting' || !blk) {
-      return;
-    }
-    try {
-      const txs = blk.transactions || [];
-      for (let i = 0; i < txs.length; i++) {
-        const tx = txs[i];
-        if (tx?.signature === this.pendingTxSignature) {
-          this.onUnlockConfirmed();
-          return;
-        }
-      }
-      this.confirmationWaiting?.onNewBlockWithoutConfirmation();
-    } catch (err) {
-      // keep waiting
-    }
-  }
-
-  onUnlockConfirmed() {
-    if (this.step !== 'waiting') {
-      return;
-    }
-    this.confirmationWaiting?.stop();
-    this.confirmationWaiting = null;
-    this.openSuccess();
-  }
-
-  handleConfirmation(blk, tx, conf) {
-    if (Number(conf) !== 0) {
-      return;
-    }
-    const txmsg = tx.returnMessage();
-    if (txmsg?.module !== this.mod.name || txmsg?.request !== 'spend p2sh') {
-      return;
-    }
-    if (this.pendingTxSignature && tx.signature !== this.pendingTxSignature) {
-      return;
-    }
-    this.onUnlockConfirmed();
-  }
-
-  notePendingSignature(signature) {
-    this.pendingTxSignature = signature || '';
   }
 }
 

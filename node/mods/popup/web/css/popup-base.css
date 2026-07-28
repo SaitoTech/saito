@@ -1,51 +1,49 @@
-
 .saito-main {
-	margin-top:1.5rem;
+  margin-top: 1.5rem;
 }
 
 .popup-container {
-	position: relative;
-	top: var(--saito-header-height);
-	padding-top: 0.5rem;
-	width: 1000px;
-	max-width: 1000px;
-	z-index: 0;
-	margin-left: auto;
-	margin-right: auto;
-	overflow-y: auto;
-	overflow-x: hidden;
+  position: relative;
+  top: var(--saito-header-height);
+  padding-top: 0.5rem;
+  width: 1000px;
+  max-width: 1000px;
+  z-index: 0;
+  margin-left: auto;
+  margin-right: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .saito-menu > ul > li:hover {
-	background-color: var(--saito-background-color);
-	color: var(--saito-font-color);
+  background-color: var(--saito-background);
+  color: var(--saito-foreground);
 }
 
-
 .user {
-	color: #9c1010;
-	font-weight: bold;
+  color: #9c1010;
+  font-weight: bold;
 }
 
 .level {
-	color: #9c1010;
-	font-weight: bold;
+  color: #9c1010;
+  font-weight: bold;
 }
 
 .title {
 }
 
 .red {
-	color: #9c1010;
+  color: #9c1010;
 }
 
 .odd {
-	background-color: #f7f7f7;
+  background-color: #f7f7f7;
 }
 
 .testimonial {
-	border-radius: 1rem;
-	padding: 2rem;
-	margin: 1rem;
-	background-color: #efefef;
+  border-radius: 1rem;
+  padding: 2rem;
+  margin: 1rem;
+  background-color: #efefef;
 }

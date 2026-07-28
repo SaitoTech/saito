@@ -46,18 +46,27 @@ function findSignatureContext(script, dotPath) {
 
   if (last === 'signature') {
     nodePath.pop();
-    if (nodePath[nodePath.length - 1] === 'witness' || nodePath[nodePath.length - 1] === 'required') {
+    if (
+      nodePath[nodePath.length - 1] === 'witness' ||
+      nodePath[nodePath.length - 1] === 'required'
+    ) {
       nodePath.pop();
     }
   } else if (typeof last === 'number' && nodePath[nodePath.length - 2] === 'signatures') {
     nodePath.pop();
     nodePath.pop();
-    if (nodePath[nodePath.length - 1] === 'witness' || nodePath[nodePath.length - 1] === 'required') {
+    if (
+      nodePath[nodePath.length - 1] === 'witness' ||
+      nodePath[nodePath.length - 1] === 'required'
+    ) {
       nodePath.pop();
     }
   } else if (last === 'signatures') {
     nodePath.pop();
-    if (nodePath[nodePath.length - 1] === 'witness' || nodePath[nodePath.length - 1] === 'required') {
+    if (
+      nodePath[nodePath.length - 1] === 'witness' ||
+      nodePath[nodePath.length - 1] === 'required'
+    ) {
       nodePath.pop();
     }
   }
@@ -80,7 +89,8 @@ function findSignatureContext(script, dotPath) {
     }
   }
 
-  const message = (node && pickMessage(node.msg ?? node.message)) || pickMessage(script?.msg ?? script?.message);
+  const message =
+    (node && pickMessage(node.msg ?? node.message)) || pickMessage(script?.msg ?? script?.message);
 
   return { message, requiredPublicKeys };
 }

@@ -67,4 +67,4 @@ module.exports = (app, mod, build_number) => {
 </html>
 `;
   return html;
-}
+};

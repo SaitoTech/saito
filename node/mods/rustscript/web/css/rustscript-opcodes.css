@@ -1,0 +1,67 @@
+/*
+ * Opcode reference content inside shared overlay shell.
+ */
+
+select.rs-opcode-ref-overlay-select {
+  flex: 0 0 auto;
+  min-width: 18rem;
+  max-width: 26rem;
+  height: var(--rs-control-height);
+  padding: 0 var(--saito-space-md);
+  background: #0c0c0c;
+  color: #efefef;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  background-image: none;
+  font-weight: 400;
+}
+
+select.rs-opcode-ref-overlay-select:focus {
+  border-color: #666;
+}
+
+.rs-opcode-ref-content {
+  min-height: 0;
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.rs-ref-lead {
+  margin: 0 0 var(--saito-space-lg);
+  line-height: 1.55;
+  color: #b8b8b8;
+}
+
+.rs-ref-section {
+  margin-bottom: var(--saito-space-lg);
+}
+
+.rs-ref-section-label {
+  margin: 0 0 var(--saito-space-sm);
+  font-size: var(--font-size-tiny);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  color: #a0a0a0;
+}
+
+.rs-ref-field-list {
+  margin: 0;
+  padding: 0 0 0 1.25em;
+  line-height: 1.65;
+}
+
+.rs-ref-example {
+  margin: 0;
+  padding: var(--saito-space-md);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.95em;
+  background: #0c0c0c;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #d0d0d0;
+}

@@ -1,332 +1,343 @@
 const StorefrontViewTemplate = require('./storefront-view.template');
 const Teasers = require('./teasers');
 const EmptyPanel = require('./empty-panel');
-const {
-	loadListingTransactionsForSeller,
-	summariesFromListingTransactions
-} = require('../archive');
+const { loadSellerInventory } = require('./browse-listings');
 
 class StorefrontView {
-	constructor(app, mod, container = '', callbacks = {}) {
-		this.app = app;
-		this.mod = mod;
-		this.container = container;
-		this.onSell = callbacks.onSell;
-		this.publicKey = '';
-		this.summaries = [];
-		this.loading = false;
-		this.loadToken = 0;
+  constructor(app, mod, container = '', callbacks = {}) {
+    this.app = app;
+    this.mod = mod;
+    this.container = container;
+    this.onSell = callbacks.onSell;
+    this.onViewChange = callbacks.onViewChange;
+    this.publicKey = '';
+    /** @type {import('../summary')[]} */
+    this.activeSummaries = [];
+    /** @type {import('../summary')[]} */
+    this.soldSummaries = [];
+    this.inventoryLoaded = false;
+    this.loading = false;
+    this.loadToken = 0;
+    this.successArmed = false;
+    this.successVisible = false;
+    this.successDismissed = false;
 
-		this.teasers = new Teasers(app, mod, '');
-		this.empty = new EmptyPanel(app, mod, {
-			title: 'No listings yet',
-			body: 'Items you put up for sale will appear here.',
-			actionLabel: 'Sell Something',
-			onAction: () => this.onSell?.()
-		});
+    this.teasers = new Teasers(app, mod, '');
+    this.empty = new EmptyPanel(app, mod, {
+      title: 'No listings yet',
+      body: 'Items you put up for sale will appear here.',
+      actionLabel: 'Add New Listing',
+      onAction: () => this.onSell?.()
+    });
+    /** @type {'public' | 'admin' | 'admin-denied'} */
+    this.viewMode = 'public';
+    /** @type {'home' | 'active'} Admin content section when viewMode is admin */
+    this.adminSection = 'home';
 
-		this.app.connection.on('store-listing-lifecycle', (entry) => {
-			if (!this.publicKey || !this.container) {
-				return;
-			}
+    // Progress overlay complete → refresh inventory from warehouse (no local injection).
+    this.app.connection.on('store-listing-lifecycle', (entry) => {
+      if (!this.publicKey || entry?.phase !== 'complete') {
+        return;
+      }
+      if (this.successArmed && !this.successDismissed && this.isAdminHome()) {
+        this.successVisible = true;
+        this.renderSuccessBanner();
+      }
+      if (this.isOwnStorefront() || this.viewMode === 'public') {
+        this.reloadInventory().then(() => {
+          const manager = this.mod.main?.manager;
+          if (manager?.activePanel === 'sales' && this.inventoryLoaded) {
+            manager.sales.show(this.soldSummaries);
+          }
+        });
+      }
+    });
+  }
 
-			if (
-				entry?.phase === 'complete' &&
-				entry.summary &&
-				this.isOwnStorefront()
-			) {
-				const sig = entry.listing_signature || '';
-				const idx = this.summaries.findIndex(
-					(s) =>
-						(sig && s.listing_signature === sig) ||
-						(s.nft_id === entry.nft_id && Number(s.price) === Number(entry.price))
-				);
-				if (idx >= 0) {
-					this.summaries[idx] = entry.summary;
-				} else {
-					this.summaries.unshift(entry.summary);
-				}
-			}
+  armSuccessBanner() {
+    this.successArmed = true;
+    this.successDismissed = false;
+    this.successVisible = false;
+  }
 
-			if (this.loading) {
-				// Archive may still be loading — still show pending / just-confirmed cards.
-				this.renderTeasersOnly();
-				return;
-			}
+  clearSuccessBanner() {
+    this.successVisible = false;
+  }
 
-			this.renderResults();
-		});
-	}
+  render(container = '') {
+    if (container) {
+      this.container = container;
+    }
 
-	render(container = '') {
-		if (container) {
-			this.container = container;
-		}
+    if (!this.container) {
+      return;
+    }
 
-		if (!this.container) {
-			return;
-		}
+    if (this.viewMode === 'admin-denied') {
+      this.app.browser.replaceElementContentBySelector(
+        StorefrontViewTemplate({
+          adminDenied: true
+        }),
+        this.container
+      );
+      return;
+    }
 
-		const isOwn = this.isOwnStorefront();
-		const rawTitle = isOwn
-			? 'Your Store'
-			: this.app.keychain?.returnUsername?.(this.publicKey) || 'Store';
-		const shareUrl = this.publicKey ? this.mod.returnStorefrontUrl?.(this.publicKey) || '' : '';
+    const isDashboard = this.isAdminMode();
+    const rawTitle = this.app.keychain?.returnUsername?.(this.publicKey) || 'Store';
+    const shareUrl = this.publicKey ? this.mod.returnStorefrontUrl?.(this.publicKey) || '' : '';
 
-		this.app.browser.replaceElementContentBySelector(
-			StorefrontViewTemplate({
-				title: this.escapeHtml(rawTitle),
-				shareUrl: this.escapeHtml(shareUrl),
-				loading: !!this.publicKey && this.loading
-			}),
-			this.container
-		);
+    this.app.browser.replaceElementContentBySelector(
+      StorefrontViewTemplate({
+        title: this.escapeHtml(rawTitle),
+        description: '',
+        shareUrl,
+        loading:
+          !!this.publicKey && this.loading && (this.viewMode === 'public' || this.isAdminActive()),
+        isDashboard,
+        adminSection: this.adminSection,
+        showSuccess: this.isAdminHome() && this.successVisible
+      }),
+      this.container
+    );
 
-		this.teasers.container = `${this.container} .teasers`;
+    this.teasers.container = `${this.container} .teasers`;
+    this.attachHeaderEvents(shareUrl);
 
-		if (!this.publicKey) {
-			return;
-		}
+    if (!this.publicKey) {
+      return;
+    }
 
-		if (this.loading) {
-			// Pending shims should appear immediately under the progress overlay.
-			this.renderTeasersOnly();
-			return;
-		}
+    if (this.isAdminHome()) {
+      return;
+    }
 
-		this.renderResults();
-	}
+    if (this.loading) {
+      return;
+    }
 
-	/**
-	 * Show a creator storefront for the given public key.
-	 * Renders the shell immediately, then loads archive listings asynchronously.
-	 */
-	async show(publicKey = '') {
-		const nextKey = String(publicKey || '').trim();
-		if (!nextKey) {
-			return;
-		}
+    this.renderResults();
+  }
 
-		this.publicKey = nextKey;
-		this.summaries = [];
-		this.loading = true;
-		const token = ++this.loadToken;
+  renderSuccessBanner() {
+    const root = document.querySelector(this.container);
+    if (!root || !this.isAdminHome()) {
+      return;
+    }
 
-		this.render();
+    let banner = root.querySelector('[data-listing-success]');
+    if (this.successVisible && !banner) {
+      this.render();
+      return;
+    }
+    if (!this.successVisible && banner) {
+      banner.remove();
+    }
+  }
 
-		try {
-			const txs = await loadListingTransactionsForSeller(this.app, this.publicKey);
-			if (token !== this.loadToken) {
-				return;
-			}
-			this.summaries = this.mergeSummaries(
-				this.summaries,
-				summariesFromListingTransactions(this.app, this.mod, txs)
-			);
-		} catch (err) {
-			console.warn('Store: storefront archive load failed', err?.message || err);
-			if (token !== this.loadToken) {
-				return;
-			}
-			// Keep any local / pending-confirmed summaries already present.
-		}
+  attachHeaderEvents(shareUrl = '') {
+    const root = document.querySelector(this.container);
+    if (!root) {
+      return;
+    }
 
-		if (token !== this.loadToken) {
-			return;
-		}
+    const copyBtn = root.querySelector('[data-action="copy-url"]');
+    if (copyBtn) {
+      copyBtn.onclick = async (e) => {
+        e.preventDefault();
+        const urlEl = root.querySelector('[data-storefront-url]');
+        const raw = (urlEl?.getAttribute('href') || urlEl?.textContent || shareUrl || '').trim();
+        if (!raw) {
+          return;
+        }
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(raw);
+          } else {
+            const input = document.createElement('input');
+            input.value = raw;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            input.remove();
+          }
+          if (typeof siteMessage === 'function') {
+            siteMessage('Storefront URL copied', 1500);
+          }
+        } catch (err) {
+          console.warn('Store: copy storefront URL failed', err?.message || err);
+        }
+      };
+    }
 
-		this.loading = false;
-		this.render();
-	}
+    root.querySelector('[data-action="list-item"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.onSell?.();
+    });
 
-	isOwnStorefront() {
-		const walletKey = this.mod.publicKey || '';
-		return !!this.publicKey && !!walletKey && this.publicKey === walletKey;
-	}
+    root.querySelector('[data-action="dismiss-success"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.successVisible = false;
+      this.successDismissed = true;
+      this.successArmed = false;
+      root.querySelector('[data-listing-success]')?.remove();
+    });
+  }
 
-	/**
-	 * Prefer richer local summaries (pending → confirmed) over sparse archive rows.
-	 */
-	mergeSummaries(existing = [], incoming = []) {
-		const bySig = new Map();
-		const byBucket = new Map();
+  /**
+   * Show a creator storefront or admin view for the given public key.
+   * Loads warehouse inventory via load-seller-inventory (active for display).
+   * @param {string} publicKey
+   * @param {{ viewMode?: 'public' | 'admin' | 'admin-denied', adminSection?: 'home' | 'active' }} [opts]
+   */
+  async show(publicKey = '', { viewMode = 'public', adminSection = 'home' } = {}) {
+    const nextKey = String(publicKey || '').trim();
+    if (!nextKey) {
+      return;
+    }
 
-		const remember = (summary) => {
-			if (!summary) {
-				return;
-			}
-			if (summary.listing_signature) {
-				bySig.set(summary.listing_signature, summary);
-			}
-			if (summary.nft_id) {
-				byBucket.set(`${summary.nft_id}:${Number(summary.price) || 0}`, summary);
-			}
-		};
+    const nextViewMode = viewMode === 'admin' || viewMode === 'admin-denied' ? viewMode : 'public';
+    const nextSection = adminSection === 'active' ? 'active' : 'home';
+    const reuseAdminData =
+      this.publicKey === nextKey &&
+      this.viewMode === 'admin' &&
+      nextViewMode === 'admin' &&
+      this.inventoryLoaded &&
+      !this.loading;
 
-		for (const summary of existing) {
-			remember(summary);
-		}
+    this.publicKey = nextKey;
+    this.viewMode = nextViewMode;
+    this.adminSection = nextSection;
 
-		for (const summary of incoming) {
-			const prior =
-				(summary.listing_signature && bySig.get(summary.listing_signature)) ||
-				(summary.nft_id
-					? byBucket.get(`${summary.nft_id}:${Number(summary.price) || 0}`)
-					: null);
+    if (this.viewMode === 'admin-denied') {
+      this.loading = false;
+      this.render();
+      return;
+    }
 
-			if (!prior) {
-				remember(summary);
-				continue;
-			}
+    // Switch Store Admin ↔ Active Listings without refetching when data is warm.
+    if (reuseAdminData && nextSection === 'home') {
+      this.render();
+      return;
+    }
+    if (reuseAdminData && nextSection === 'active' && !this.loading) {
+      this.render();
+      return;
+    }
 
-			remember(this.preferRicherSummary(prior, summary));
-		}
+    this.inventoryLoaded = false;
+    await this.reloadInventory();
+  }
 
-		const merged = [];
-		const seen = new Set();
-		for (const summary of [...bySig.values(), ...byBucket.values()]) {
-			const key = summary.listing_signature || `${summary.nft_id}:${Number(summary.price) || 0}`;
-			if (seen.has(key)) {
-				continue;
-			}
-			seen.add(key);
-			merged.push(summary);
-		}
-		return merged;
-	}
+  async reloadInventory() {
+    if (!this.publicKey) {
+      return;
+    }
 
-	preferRicherSummary(a, b) {
-		const score = (summary) => {
-			let n = 0;
-			if (String(summary?.title || '').trim()) {
-				n += 4;
-			}
-			if (summary?.seller) {
-				n += 2;
-			}
-			if (Number(summary?.price) > 0) {
-				n += 2;
-			}
-			if (summary?.listing_tx) {
-				n += 1;
-			}
-			if (summary?.image) {
-				n += 1;
-			}
-			return n;
-		};
+    this.loading = true;
+    const token = ++this.loadToken;
+    this.render();
 
-		if (score(a) >= score(b)) {
-			if (!a.listing_tx && b.listing_tx) {
-				a.listing_tx = b.listing_tx;
-			}
-			if (!a.listing_signature && b.listing_signature) {
-				a.listing_signature = b.listing_signature;
-			}
-			if (!a.nft && b.nft) {
-				a.nft = b.nft;
-			}
-			a.pending = false;
-			return a;
-		}
+    try {
+      const inventory = await loadSellerInventory(this.app, this.mod, this.publicKey);
+      if (token !== this.loadToken) {
+        return;
+      }
+      this.activeSummaries = inventory.active || [];
+      this.soldSummaries = inventory.sold || [];
+      this.inventoryLoaded = true;
+    } catch (err) {
+      console.warn('Store: load-seller-inventory failed', err?.message || err);
+      if (token !== this.loadToken) {
+        return;
+      }
+      this.activeSummaries = [];
+      this.soldSummaries = [];
+      this.inventoryLoaded = true;
+    }
 
-		if (!b.listing_tx && a.listing_tx) {
-			b.listing_tx = a.listing_tx;
-		}
-		if (!String(b.title || '').trim() && a.title) {
-			b.title = a.title;
-		}
-		if (!b.seller && a.seller) {
-			b.seller = a.seller;
-		}
-		if (!Number(b.price) && Number(a.price)) {
-			b.price = a.price;
-		}
-		b.pending = false;
-		return b;
-	}
+    if (token !== this.loadToken) {
+      return;
+    }
 
-	renderTeasersOnly() {
-		const teasersEl = document.querySelector(`${this.container} .teasers`);
-		if (!teasersEl) {
-			return;
-		}
-		const visible = this.returnVisibleSummaries();
-		if (!visible.length) {
-			return;
-		}
-		this.teasers.render(`${this.container} .teasers`, visible);
-	}
+    this.loading = false;
+    this.render();
+  }
 
-	renderResults() {
-		const status = document.querySelector(`${this.container} [data-storefront-status]`);
-		if (status) {
-			status.hidden = true;
-			status.innerHTML = '';
-		}
+  isOwnStorefront() {
+    const walletKey = this.mod.publicKey || '';
+    return !!this.publicKey && !!walletKey && this.publicKey === walletKey;
+  }
 
-		const teasersEl = document.querySelector(`${this.container} .teasers`);
-		if (!teasersEl) {
-			return;
-		}
+  isAdminMode() {
+    return this.viewMode === 'admin' && this.isOwnStorefront();
+  }
 
-		const visible = this.returnVisibleSummaries();
-		if (!visible.length) {
-			teasersEl.innerHTML = '';
-			const emptyHost = document.createElement('div');
-			emptyHost.className = 'storefront-empty';
-			teasersEl.appendChild(emptyHost);
+  isAdminHome() {
+    return this.isAdminMode() && this.adminSection !== 'active';
+  }
 
-			const isOwn = this.isOwnStorefront();
-			this.empty.title = 'No listings yet';
-			this.empty.body = isOwn
-				? 'Items you put up for sale will appear here.'
-				: 'This creator has not published any listings yet.';
-			this.empty.actionLabel = isOwn ? 'Sell Something' : '';
-			this.empty.onAction = isOwn ? () => this.onSell?.() : null;
-			this.empty.render(`${this.container} .storefront-empty`);
-			return;
-		}
+  isAdminActive() {
+    return this.isAdminMode() && this.adminSection === 'active';
+  }
 
-		this.teasers.render(`${this.container} .teasers`, visible);
-	}
+  renderResults() {
+    const status = document.querySelector(`${this.container} [data-storefront-status]`);
+    if (status) {
+      status.hidden = true;
+      status.innerHTML = '';
+    }
 
-	returnVisibleSummaries() {
-		const pending = this.isOwnStorefront()
-			? this.mod.listing_lifecycle?.returnPendingSummariesForSeller?.(this.publicKey) || []
-			: [];
+    const teasersEl = document.querySelector(`${this.container} .teasers`);
+    if (!teasersEl) {
+      return;
+    }
 
-		const pendingSigs = new Set(
-			pending.map((s) => s.listing_signature).filter(Boolean)
-		);
+    const visible = this.returnVisibleSummaries();
+    if (!visible.length) {
+      teasersEl.innerHTML = '';
+      const emptyHost = document.createElement('div');
+      emptyHost.className = 'storefront-empty';
+      teasersEl.appendChild(emptyHost);
 
-		const confirmed = this.filterHiddenListings(this.summaries).filter((summary) => {
-			if (summary.listing_signature && pendingSigs.has(summary.listing_signature)) {
-				return false;
-			}
-			return true;
-		});
+      if (this.isAdminActive()) {
+        this.empty.title = 'No active listings.';
+        this.empty.body = '';
+        this.empty.actionLabel = '+ Add New Listing';
+        this.empty.onAction = () => this.onSell?.();
+      } else {
+        this.empty.title = 'No listings yet';
+        this.empty.body = 'This creator has not published any listings yet.';
+        this.empty.actionLabel = '';
+        this.empty.onAction = null;
+      }
+      this.empty.render(`${this.container} .storefront-empty`);
+      return;
+    }
 
-		// Pending shims first so the user sees the item being confirmed.
-		return [...pending, ...confirmed];
-	}
+    this.teasers.render(`${this.container} .teasers`, visible);
+  }
 
-	filterHiddenListings(summaries = []) {
-		const lifecycle = this.mod.purchase_lifecycle;
-		if (!lifecycle?.isListingHidden) {
-			return summaries;
-		}
-		return summaries.filter((summary) => !lifecycle.isListingHidden(summary));
-	}
+  returnVisibleSummaries() {
+    return this.filterHiddenListings(this.activeSummaries);
+  }
 
-	escapeHtml(value = '') {
-		return String(value)
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#39;');
-	}
+  filterHiddenListings(summaries = []) {
+    const lifecycle = this.mod.purchase_lifecycle;
+    if (!lifecycle?.isListingHidden) {
+      return summaries;
+    }
+    return summaries.filter((summary) => !lifecycle.isListingHidden(summary));
+  }
+
+  escapeHtml(value = '') {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
 }
 
 module.exports = StorefrontView;

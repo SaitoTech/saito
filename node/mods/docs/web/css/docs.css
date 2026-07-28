@@ -29,7 +29,7 @@ body.docs #saito-header {
   min-height: 0;
   padding: 0 1rem;
   overflow: hidden;
-  background: var(--saito-primary, #E3361C);
+  background: var(--saito-primary, #e3361c);
   border-bottom: none;
   transition:
     height 0.25s ease,
@@ -42,7 +42,7 @@ body.docs #saito-header:hover,
 body.docs #saito-header.docs-expanded {
   height: var(--docs-expanded);
   padding: 0 1rem;
-  background: var(--saito-header-background, #1a1a1a);
+  background: var(--saito-background, #1a1a1a);
   overflow: visible;
 }
 
@@ -126,7 +126,7 @@ body.docs #saito-header.docs-expanded ~ #docs-main {
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   color: #fff;
   font-size: 13px;
   padding: 8px 16px;
@@ -153,7 +153,7 @@ body.docs #saito-header.docs-expanded ~ #docs-main {
   /* Disable hover expansion on touch — use .docs-expanded class instead */
   body.docs #saito-header:hover {
     height: var(--docs-collapsed);
-    background: var(--saito-primary, #E3361C);
+    background: var(--saito-primary, #e3361c);
     overflow: hidden;
   }
 

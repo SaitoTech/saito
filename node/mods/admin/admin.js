@@ -61,7 +61,6 @@ class Admin extends ModTemplate {
    * Admin communicates to the node through off-chain transactions
    */
   async handlePeerTransaction(app, tx = null, peer, mycallback) {
-
     if (this.app.BROWSER) {
       return 0;
     }
@@ -156,12 +155,12 @@ class Admin extends ModTemplate {
 
     if (txmsg.request === 'list-peers') {
       try {
-        console.log("################################################");
-        console.log("################################################");
-        console.log("################################################");
-        console.log("################################################");
-        console.log("################################################");
-        console.log("################################################");
+        console.log('################################################');
+        console.log('################################################');
+        console.log('################################################');
+        console.log('################################################');
+        console.log('################################################');
+        console.log('################################################');
         console.log(JSON.stringify(app.core.network.peers.get()));
         const peers = await this.app.network.getPeers();
         console.log(JSON.stringify(peers));

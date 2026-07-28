@@ -1,246 +1,127 @@
-/* ----------------------------------------------------------------
-font imports
------------------------------------------------------------------*/
-@font-face {
-  font-family: 'visuelt-black';
-  src: url('/saito/fonts/visuelt-black.eot');
-  src:
-    url('/saito/fonts/visuelt-black.eot?#iefix') format('embedded-opentype'),
-    url('/saito/fonts/visuelt-black.woff2') format('woff2'),
-    url('/saito/fonts/visuelt-black.woff') format('woff'),
-    url('/saito/fonts/visuelt-black.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  ascent-override: 102%;
-  descent-override: 30%;
-  line-gap-override: 0%;
-}
-@font-face {
-  font-family: 'visuelt-light';
-  src: url('/saito/fonts/visuelt-light.eot');
-  src:
-    url('/saito/fonts/visuelt-light.eot?#iefix') format('embedded-opentype'),
-    url('/saito/fonts/visuelt-light.woff2') format('woff2'),
-    url('/saito/fonts/visuelt-light.woff') format('woff'),
-    url('/saito/fonts/visuelt-light.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  ascent-override: 102%;
-  descent-override: 30%;
-  line-gap-override: 0%;
-}
-@font-face {
-  font-family: 'visuelt-medium';
-  src: url('/saito/fonts/visuelt-medium.eot');
-  src:
-    url('/saito/fonts/visuelt-medium.eot?#iefix') format('embedded-opentype'),
-    url('/saito/fonts/visuelt-medium.woff2') format('woff2'),
-    url('/saito/fonts/visuelt-medium.woff') format('woff'),
-    url('/saito/fonts/visuelt-medium.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  ascent-override: 102%;
-  descent-override: 30%;
-  line-gap-override: 0%;
-}
-@font-face {
-  font-family: 'visuelt-regular';
-  src: url('/saito/fonts/visuelt-regular.eot');
-  src:
-    url('/saito/fonts/visuelt-regular.eot?#iefix') format('embedded-opentype'),
-    url('/saito/fonts/visuelt-regular.woff2') format('woff2'),
-    url('/saito/fonts/visuelt-regular.woff') format('woff'),
-    url('/saito/fonts/visuelt-regular.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  ascent-override: 102%;
-  descent-override: 30%;
-  line-gap-override: 0%;
-}
-@font-face {
-  font-family: 'p-word';
-  src: url('/saito/fonts/password.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'digital-7';
-  src: url('/saito/fonts/digital-7.mono.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'digital-7';
-  src: url('/saito/fonts/digital-7.mono.italic.ttf') format('truetype');
-  font-weight: normal;
-  font-style: italic;
-}
-
 :root {
+  /* ============================================================
+     Saito design tokens — canonical public API (--saito-*)
+     ============================================================ */
+
+
+  /* ------------------------------------------------------------
+     Palette primitives
+     ------------------------------------------------------------ */
   --saito-white: #fff;
-  --saito-cta-logo: var(--saito-white);
-  --saito-gray-050: #f2f2f2;
-  --saito-gray-100: #e4e4e4;
-  --saito-gray-150: #d7d7d7;
+  --saito-black: #000;
   --saito-gray-200: #c9c9c9;
-  --saito-gray-250: #bcbcbc;
-  --saito-gray-300: #aeaeae;
-  --saito-gray-350: #a1a1a1;
-  --saito-gray-400: #939393;
-  --saito-gray-450: #868686;
-  --saito-gray-500: #787878;
-  --saito-gray-550: #6b6b6b;
   --saito-gray-600: #5d5d5d;
-  --saito-gray-650: #505050;
-  --saito-gray-700: #424242;
-  --saito-gray-750: #353535;
-  --saito-gray-800: #272727;
   --saito-gray-850: #1a1a1a;
   --saito-gray-900: #0c0c0c;
-  --saito-gray-950: #000000;
-  --saito-black: #000;
-
   --saito-red: #f71f3d;
   --saito-red-dark: #e8001e;
   --saito-green: #3df71f;
-  --saito-orange: #ff8235;
-  --saito-orange-dark: #e57631;
-  --saito-pink: #e98eaf;
   --saito-yellow-light: #e9ce93;
 
-  /* theme semantic colours */
-  --saito-background: #0c0a09;
-  --saito-foreground: #fafaf9;
-  --saito-card: #1c1917;
-  --saito-card-foreground: #fafaf9;
-  --saito-popover-surface: #202020;
-  --saito-popover:
+
+  /* ------------------------------------------------------------
+     Core semantic tokens
+     ------------------------------------------------------------ */
+  --saito-background: #090a09;
+  --saito-foreground: #f3f0ea;
+
+  --saito-card: #171817;
+  --saito-popover: #191a19;
+  --saito-popover-foreground: #f3f0ea;
+
+  --saito-primary: #f54900;
+  --saito-primary-foreground: #fff8f2;
+
+  --saito-secondary: #202120;
+  --saito-secondary-foreground: #f3f0ea;
+
+  --saito-muted: #20201f;
+  --saito-muted-foreground: #9e9990;
+
+  --saito-accent: #282824;
+  --saito-accent-foreground: #f3f0ea;
+
+  --saito-destructive: #e0524d;
+
+  --saito-border: #45423e;
+  --saito-ring: #8f8174;
+
+  --saito-radius: 0.45rem;
+
+  --saito-chart-1: #ffad66;
+  --saito-chart-2: #ff6500;
+  --saito-chart-4: #b93205;
+
+
+  /* ------------------------------------------------------------
+     Derived semantic tokens
+     ------------------------------------------------------------ */
+  --saito-highlight: color-mix(in srgb, var(--saito-foreground) 8%, transparent);
+
+  --saito-focus-ring: 0 0 0 2px color-mix(in srgb, var(--saito-ring) 50%, transparent);
+
+  --saito-overlay-backdrop: color-mix(in srgb, var(--saito-background) 72%, transparent);
+  --saito-overlay-backdrop-stacked: color-mix(in srgb, var(--saito-background) 58%, transparent);
+
+  --saito-elevation-0: none;
+  --saito-elevation-1: 0 1px 2px color-mix(in srgb, var(--saito-black) 28%, transparent);
+  --saito-elevation-2: 0 8px 18px color-mix(in srgb, var(--saito-black) 28%, transparent);
+  --saito-elevation-3: 0 14px 34px color-mix(in srgb, var(--saito-black) 38%, transparent);
+
+  --saito-status-success: #10b981;
+
+  --saito-notification-background: var(--saito-chart-2);
+  --saito-notification-foreground: var(--saito-primary-foreground);
+  --saito-notification-online-background: var(--saito-status-success);
+  --saito-notification-busy-background: var(--saito-muted-foreground);
+
+
+  /* ------------------------------------------------------------
+     Decorative tokens
+     ------------------------------------------------------------ */
+  --saito-card-wash: linear-gradient(135deg, #191a19, #151615);
+  --saito-popover-wash:
     linear-gradient(
       145deg,
-      #262626 0%,
-      color-mix(in srgb, #202020 92%, var(--saito-primary) 1%) 52%,
-      #202020 100%
+      #1d1e1d 0%,
+      color-mix(in srgb, var(--saito-popover) 96%, var(--saito-primary) 1%) 52%,
+      var(--saito-card) 100%
     );
-  --saito-popover-foreground: #fafaf9;
-  --saito-primary: #f54900;
-  --saito-primary-foreground: #fff7ed;
-  --saito-secondary: #27272a;
-  --saito-secondary-foreground: #fafafa;
-  --saito-muted: #292524;
-  --saito-muted-foreground: #a6a09b;
-  --saito-accent: #292524;
-  --saito-accent-foreground: #fafaf9;
-  --saito-destructive: #ff6467;
-  --saito-border: #ffffff1a;
-  --saito-ring: #79716b;
-  --saito-chart-1: #ffb86a;
-  --saito-chart-2: #ff6900;
-  --saito-chart-3: #f54900;
-  --saito-chart-4: #ca3500;
-  --saito-chart-5: #9f2d00;
-  --saito-sidebar: #1c1917;
-  --saito-sidebar-foreground: #fafaf9;
-  --saito-sidebar-primary: #ff6900;
-  --saito-sidebar-primary-foreground: #fff7ed;
-  --saito-sidebar-accent: #292524;
-  --saito-sidebar-accent-foreground: #fafaf9;
-  --saito-sidebar-border: #ffffff1a;
-  --saito-sidebar-ring: #79716b;
+  --saito-canvas-wash:
+    radial-gradient(
+      70vw 50vw at 50% 8%,
+      color-mix(in srgb, var(--saito-primary) 14%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      45vw 35vw at 47% 46%,
+      color-mix(in srgb, var(--saito-chart-1) 8%, transparent),
+      transparent 68%
+    ),
+    var(--saito-background);
 
   --dreamscape:
     linear-gradient(125deg, #e8001e 30%, #0001 55%, #ff8235 80%),
     linear-gradient(40deg, #f7009b 15%, #f71f3d 25%, #f71f3d 65%, #e98eaf 75%, #0000),
     linear-gradient(180deg, #e9ce93, #f71f3d);
-  --saito-primary-dark: var(--saito-chart-4);
-  --saito-primary-text: var(--saito-primary-foreground);
-  --saito-primary-background: var(--saito-primary);
-  --saito-secondary-text: var(--saito-secondary-foreground);
 
-  --saito-background-color: var(--saito-background);
-  --saito-background-color-inverse: var(--saito-foreground);
-  --saito-canvas-background:
-    radial-gradient(70vw 50vw at 50% 8%, rgba(245, 73, 0, 0.14), transparent 62%),
-    radial-gradient(45vw 35vw at 47% 46%, rgba(255, 184, 106, 0.08), transparent 68%),
-    var(--saito-background);
 
-  /* panels, tables that sit above the background */
-  --saito-surface-color: var(--saito-card);
-  --saito-surface-text: var(--saito-foreground);
-  --saito-surface-hover: var(--saito-accent);
-  --saito-surface-selected: var(--saito-secondary);
-  --saito-surface-inverse: var(--saito-foreground);
-  --saito-surface-inverse-text: var(--saito-background);
-
-  --saito-highlight: color-mix(in srgb, var(--saito-foreground) 8%, transparent);
-  --saito-highlight-heavy: color-mix(in srgb, var(--saito-foreground) 14%, transparent);
-
-  /* background shim colors */
-  --saito-background-color-shim-light: color-mix(in srgb, var(--saito-background) 58%, transparent);
-  --saito-background-color-shim-normal: color-mix(in srgb, var(--saito-background) 72%, transparent);
-  --saito-background-color-shim-dark: color-mix(in srgb, var(--saito-background) 86%, transparent);
-  --background-color-shim-light: color-mix(in srgb, var(--saito-black) 40%, transparent);
-  --background-color-shim-normal: color-mix(in srgb, var(--saito-black) 50%, transparent);
-  --background-color-shim-dark: color-mix(in srgb, var(--saito-black) 70%, transparent);
-  --saito-overlay-backdrop: var(--saito-background-color-shim-normal);
-  --saito-overlay-backdrop-stacked: var(--saito-background-color-shim-light);
-  --saito-overlay-panel-bg: var(--saito-popover-surface);
-  --saito-overlay-panel-surface-low: var(--saito-popover-surface);
-  --saito-overlay-panel-surface: #262626;
-  --saito-overlay-panel-background: var(--saito-popover);
-  --saito-overlay-panel-border: var(--saito-border);
-  --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--saito-foreground) 5%, transparent);
-  --saito-overlay-panel-shadow: 0 12px 30px rgba(0, 0, 0, 0.36);
-  --saito-modal-background: var(--saito-popover);
-  --saito-modal-texture: none;
-  --saito-modal-border: var(--saito-border);
-  --saito-modal-shadow: var(--saito-overlay-panel-shadow);
-  --saito-heart-animation: url('/redsquare/images/heart-orange.png');
-
-  /* Main Theme */
+  /* ------------------------------------------------------------
+     Layout, type, radius scale, spacing
+     ------------------------------------------------------------ */
   --saito-width: 1200px;
   --saito-header-height: 7rem;
-  --saito-header-color: var(--saito-foreground);
-  --saito-header-background: var(--saito-background);
 
-  /* Box Shadows */
-  --saito-box-shadow-low: 0 1px 2px color-mix(in srgb, var(--saito-black) 28%, transparent);
-  --saito-box-shadow: 0 8px 18px color-mix(in srgb, var(--saito-black) 28%, transparent);
-  --saito-box-shadow-high: 0 14px 34px color-mix(in srgb, var(--saito-black) 38%, transparent);
-  --saito-elevation-0: none;
-  --saito-elevation-1: var(--saito-box-shadow-low);
-  --saito-elevation-2: var(--saito-box-shadow);
-  --saito-elevation-3: var(--saito-box-shadow-high);
-
-  /* Fonts */
   --saito-font: 'visuelt-light', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --saito-font-medium: 'visuelt-regular', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --saito-font-heavy: 'visuelt-medium', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --saito-font-monospace: 'SF Mono', 'Fira Code', ui-monospace, monospace;
 
-  --font-size-h1: 5rem;
-  --font-size-h2: 4.5rem;
-  --font-size-h3: 4rem;
-  --font-size-h4: 3.5rem;
-  --font-size-h5: 2.5rem;
-  --font-size-h6: 2rem;
   --font-size-large: 2rem;
   --font-size-medium: 1.5rem;
   --font-size-tiny: 1.3rem;
 
-  --saito-font-color: var(--saito-foreground);
-  --saito-font-color-primary: var(--saito-foreground);
-  --saito-font-color-secondary: var(--saito-muted-foreground);
-  --saito-font-color-heavy: var(--saito-foreground);
-  --saito-font-color-light: var(--saito-muted-foreground);
-  --saito-font-color-inverse: var(--saito-background);
-
-  /* Border Padding */
-  --saito-border-color-light: var(--saito-border);
-  --saito-border-color: var(--saito-border);
-  --saito-border-color-dark: var(--saito-border);
-  --saito-radius: 0.45rem;
-  --saito-border-radius: var(--saito-radius);
-  --saito-identicon-border-radius: var(--saito-radius);
   --saito-radius-sm: 0.35rem;
-  --saito-radius-md: var(--saito-radius);
   --saito-radius-lg: 0.7rem;
   --saito-radius-full: 999px;
 
@@ -253,149 +134,4 @@ font imports
 
   --border-padding-normal: 1rem;
   --border-padding-wide: 2rem;
-
-  /* Borders */
-  --border-thickness-thin: 1px;
-  --border-thickness-medium: 2px;
-  --border-thickness-thick: 3px;
-  --border-thickness-fat: 5px;
-  --border-thickness: var(--border-thickness-thin);
-  --saito-border-color-general-dividers: var(--saito-border);
-  --border-color-general-dividers: var(--saito-border);
-
-  /* Component semantics */
-  --saito-focus-ring: 0 0 0 3px color-mix(in srgb, var(--saito-ring) 50%, transparent);
-  --saito-button-primary-bg: var(--saito-primary);
-  --saito-button-primary-bg-hover: var(--saito-chart-4);
-  --saito-button-primary-fg: var(--saito-primary-foreground);
-  --saito-button-primary-border: transparent;
-  --saito-button-radius: var(--saito-radius);
-  --saito-button-secondary-bg: var(--saito-secondary);
-  --saito-button-secondary-bg-hover: var(--saito-accent);
-  --saito-button-secondary-fg: var(--saito-secondary-foreground);
-  --saito-button-secondary-fg-hover: var(--saito-foreground);
-  --saito-button-secondary-border: #fff3;
-  --saito-button-disabled-bg: color-mix(in srgb, var(--saito-secondary) 70%, transparent);
-  --saito-button-disabled-fg: color-mix(in srgb, var(--saito-muted-foreground) 64%, transparent);
-  --saito-button-disabled-border: transparent;
-  --saito-cta-action-background: linear-gradient(90deg, #ff8a3d, #f54900);
-  --saito-cta-action-shadow: 0 0 32px -10px rgba(245, 73, 0, 0.48);
-
-  --saito-input-bg: #0003;
-  --saito-input-bg-focus: var(--saito-input-bg);
-  --saito-input-fg: var(--saito-foreground);
-  --saito-input-fg-heavy: var(--saito-foreground);
-  /* Control outlines — distinct from decorative --saito-border hairlines.
-   * Resting: ~3:1 on dark surfaces. Focus: reuse --saito-ring (focus/outline color). */
-  --saito-input-border: color-mix(in srgb, var(--saito-foreground) 35%, transparent);
-  --saito-input-border-focus: var(--saito-ring);
-  --saito-input-placeholder: var(--saito-muted-foreground);
-  --saito-input-radius: var(--saito-radius);
-  --saito-input-shadow: var(--saito-elevation-0);
-  --saito-input-font: inherit;
-
-  --saito-post-overlay-bg: var(--saito-popover);
-  --saito-post-overlay-border: var(--saito-border);
-  --saito-post-overlay-shadow: var(--saito-elevation-0);
-  --saito-post-textarea-bg: var(--saito-input-bg);
-  --saito-post-textarea-bg-focus: color-mix(in srgb, var(--saito-input-bg) 80%, var(--saito-card));
-  --saito-post-controls-bg: transparent;
-  --saito-post-control-color: var(--saito-chart-2);
-  --saito-post-button-radius: var(--saito-radius);
-  --saito-feed-bg: var(--saito-background);
-
-  --saito-table-row-bg: transparent;
-  --saito-table-row-bg-hover: color-mix(in srgb, var(--saito-muted) 78%, transparent);
-  --saito-table-header-bg: transparent;
-  --saito-table-border: var(--saito-border);
-  --saito-table-header-transform: none;
-  --saito-table-header-size: inherit;
-  --saito-table-header-letter-spacing: 0;
-
-  --saito-card-bg: var(--saito-card);
-  --saito-card-bg-hover: color-mix(in srgb, var(--saito-card) 86%, var(--saito-accent));
-  --saito-card-border-initial: var(--saito-border);
-  --saito-card-border: var(--saito-border);
-  --saito-card-shadow: var(--saito-elevation-0);
-  --saito-card-shadow-hover: var(--saito-elevation-0);
-  --saito-card-transform-hover: none;
-
-  --saito-chip-bg: var(--saito-secondary);
-  --saito-chip-fg: var(--saito-secondary-foreground);
-  --saito-chip-border: var(--saito-border);
-  --saito-muted-color: var(--saito-muted-foreground);
-
-  --saito-status-success: #10b981;
-  --saito-status-danger: var(--saito-destructive);
-  --saito-status-warning: var(--saito-chart-2);
-  --saito-status-info: var(--saito-chart-2);
-  --saito-status-code-fg: #10b981;
-  --saito-status-code-bg: var(--saito-background);
-  --saito-control-ring-shadow: 0 0 0 2px var(--saito-background);
-
-  --saito-link-preview-bg: var(--saito-card);
-  --saito-link-preview-border: var(--saito-border);
-
-  --saito-menu-item-active-bg: var(--saito-accent);
-  --saito-menu-item-hover-bg: var(--saito-accent);
-  --saito-menu-item-hover-fg: var(--saito-accent-foreground);
-  --saito-menu-icon-color: var(--saito-muted-foreground);
-  --saito-menu-icon-hover-color: var(--saito-foreground);
-
-  --saito-notification-bg: var(--saito-chart-2);
-  --saito-notification-fg: var(--saito-primary-foreground);
-  --saito-notification-hover-bg: var(--saito-accent);
-  --saito-notification-online-bg: var(--saito-status-success);
-  --saito-notification-busy-bg: var(--saito-muted-foreground);
-  --saito-notification-ring: var(--saito-background);
-
-  --saito-alert-backdrop: var(--saito-background-color-shim-dark);
-  --saito-alert-bg: var(--saito-popover);
-  --saito-alert-fg: var(--saito-popover-foreground);
-  --saito-alert-border: var(--saito-border);
-  --saito-alert-shadow: var(--saito-overlay-panel-shadow);
-
-  --saito-header-menu-bg: var(--saito-popover);
-  --saito-header-menu-border: var(--saito-border);
-  --saito-header-menu-shadow: var(--saito-overlay-panel-shadow);
-  --saito-floating-action-bg: var(--saito-chart-2);
-  --saito-floating-action-fg: var(--saito-primary-foreground);
-  --saito-floating-action-shadow: var(--saito-box-shadow);
-  --saito-floating-menu-bg: var(--saito-popover-surface);
-  --saito-floating-menu-border: var(--saito-border);
-
-  --saito-file-transfer-panel-bg: var(--saito-popover);
-  --saito-file-transfer-panel-border: var(--saito-border);
-  --saito-file-transfer-panel-shadow: var(--saito-overlay-panel-shadow);
-
-  --saito-tooltip-icon-color: var(--saito-chart-2);
-  --saito-tooltip-bg: var(--saito-popover);
-  --saito-tooltip-fg: var(--saito-popover-foreground);
-  --saito-tooltip-border: var(--saito-border);
-  --saito-tooltip-shadow: var(--saito-overlay-panel-shadow);
-  --saito-tooltip-radius: var(--saito-radius);
-
-  --saito-chat-background: var(--saito-background);
-  --saito-chat-background-image: none;
-  --saito-chat-shell-bg: var(--saito-card);
-  --saito-bubble-background: var(--saito-card);
-  --saito-bubble-shadow: var(--saito-elevation-0);
-  --saito-chat-active-bg: var(--saito-accent);
-  --saito-chat-header-shadow: var(--saito-elevation-0);
-  --saito-chat-notification-gradient: linear-gradient(90deg, transparent, var(--saito-chart-2), transparent);
-
-  --saito-wallet-panel-bg: var(--saito-popover);
-  --saito-wallet-panel-fg: var(--saito-foreground);
-  --saito-wallet-muted-color: var(--saito-muted-foreground);
-  --saito-wallet-error-color: var(--saito-destructive);
-  --saito-file-transfer-bg: var(--saito-secondary);
-  --saito-file-transfer-fg: var(--saito-secondary-foreground);
-  --saito-file-transfer-border: var(--saito-border);
-  --saito-crypto-transfer-bg: var(--saito-background);
-  --saito-crypto-transfer-fg: var(--saito-foreground);
-  --saito-crypto-transfer-border: var(--saito-border);
-
-  --saito-empty-state-icon-color: var(--saito-muted-foreground);
-  --saito-empty-state-title-color: var(--saito-foreground);
-  --saito-empty-state-text-color: var(--saito-muted-foreground);
 }

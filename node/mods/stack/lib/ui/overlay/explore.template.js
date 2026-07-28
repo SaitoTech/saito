@@ -55,7 +55,7 @@ module.exports = (app, mod, subs = []) => {
             <div class="saito-user" style="display: flex; align-items: center; gap: 1rem;">
               <div class="saito-userline" style="display: flex; align-items: center; gap: 1rem;">
                 <div class="saito-userline-identicon" style="width: 3.6rem; height: 3.6rem; border-radius: 50%; background: var(--saito-primary); opacity: 0.3;"></div>
-                <div class="saito-userline-name" style="font-size: 1.8rem; font-weight: 600; color: var(--saito-font-color);">Loading...</div>
+                <div class="saito-userline-name" style="font-size: 1.8rem; font-weight: 600; color: var(--saito-foreground);">Loading...</div>
               </div>
             </div>
           </div>
@@ -85,8 +85,8 @@ module.exports = (app, mod, subs = []) => {
             <!-- Loading state -->
             <div class="stack-explore-loading" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 4rem 2rem;">
               <div style="text-align: center;">
-                <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
-                <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Loading posts...</p>
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
+                <p style="color: var(--saito-muted-foreground); font-size: 1.6rem;">Loading posts...</p>
               </div>
             </div>
           </div>

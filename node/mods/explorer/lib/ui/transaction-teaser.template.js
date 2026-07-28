@@ -1,35 +1,35 @@
 module.exports = ({
-	transactions = [],
-	loading = false,
-	error = null,
-	loadingMessage = 'Fetching transaction data…',
+  transactions = [],
+  loading = false,
+  error = null,
+  loadingMessage = 'Fetching transaction data…'
 } = {}) => {
-	let body = '';
+  let body = '';
 
-	if (loading) {
-		body = `
+  if (loading) {
+    body = `
       <div class="explorer-teaser-loading">
         <p class="explorer-teaser-loading-title">Fetching transaction data</p>
         <p class="explorer-teaser-loading-message">${loadingMessage}</p>
       </div>
     `;
-	} else if (error) {
-		body = `
+  } else if (error) {
+    body = `
       <div class="explorer-teaser-loading explorer-teaser-error">
         <p class="explorer-teaser-loading-title">Unable to load transactions</p>
         <p class="explorer-teaser-loading-message">${error}</p>
       </div>
     `;
-	} else if (!transactions.length) {
-		body = `
+  } else if (!transactions.length) {
+    body = `
       <div class="explorer-teaser-loading">
         <p class="explorer-teaser-loading-message">No transactions available yet.</p>
       </div>
     `;
-	} else {
-		body = transactions
-			.map(
-				(tx) => `
+  } else {
+    body = transactions
+      .map(
+        (tx) => `
       <div class="explorer-feed-item" role="button" tabindex="0" data-tx-signature="${tx.signature}" data-block-hash="${tx.blockHash}" data-block-id="${tx.blockId}">
         <span class="explorer-feed-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
         <div class="explorer-feed-main">
@@ -47,11 +47,11 @@ module.exports = ({
         <span class="explorer-feed-badge">${tx.amount}</span>
       </div>
     `
-			)
-			.join('');
-	}
+      )
+      .join('');
+  }
 
-	return `
+  return `
     <section class="transaction-teaser explorer-panel" aria-label="Latest transactions">
       <div class="explorer-panel-header">
         <h2 class="explorer-heading explorer-m-0">Latest Transactions</h2>

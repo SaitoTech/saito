@@ -160,8 +160,13 @@ function resolveSourceArray(source, context) {
   }
 
   if (!context.tx || typeof context.tx !== 'object') {
-    if (source === 'tx.from' || source === 'tx.to' || source === 'tx.path'
-      || source === 'tx.from.p2sh' || source === 'tx.to.p2sh') {
+    if (
+      source === 'tx.from' ||
+      source === 'tx.to' ||
+      source === 'tx.path' ||
+      source === 'tx.from.p2sh' ||
+      source === 'tx.to.p2sh'
+    ) {
       return null;
     }
   }

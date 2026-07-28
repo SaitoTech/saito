@@ -260,6 +260,11 @@ export default class Saito {
           const wasmTx = await fn(...args);
           const tx = factory.createTransaction(wasmTx) as T;
           tx.timestamp = Date.now();
+          // Hydrate JS msg from WASM data so later msg mutations / packData()
+          // on sign() do not wipe NFT metadata (module, link, data, etc.).
+          if (typeof (tx as any).unpackData === "function") {
+            (tx as any).unpackData();
+          }
           return tx;
         };
       };

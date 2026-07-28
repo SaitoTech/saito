@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS summary (
 
   nft_id TEXT NOT NULL,
   price INTEGER NOT NULL DEFAULT 0,
+  category TEXT DEFAULT 'Other',
 
   title TEXT DEFAULT '',
   description TEXT DEFAULT '',

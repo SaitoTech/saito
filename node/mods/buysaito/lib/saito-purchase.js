@@ -125,6 +125,7 @@ class SaitoPurchaseOverlay {
       //
       // 1. user selects crypto
       //
+      this.overlay.closebox = true;
       this.overlay.show(SaitoPurchaseCryptoTemplate(this.app, this.mod, this));
     } else {
       if (!this.destination) {
@@ -191,6 +192,7 @@ class SaitoPurchaseOverlay {
           return;
         }
 
+        this.overlay.closebox = false;
         console.log(this.crypto_selected);
         await this.checkForLocalCrypto();
 
@@ -219,11 +221,11 @@ class SaitoPurchaseOverlay {
     if (input && output) {
       input.onchange = (e) => {
         let amount = input.value;
-        output.innerText = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
+        output.value = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
       };
       input.onkeyup = (e) => {
         let amount = input.value;
-        output.innerText = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
+        output.value = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
       };
     }
 

@@ -22,34 +22,35 @@ class Teasers extends ModTemplate {
         img: 'https://staging.saito.io/his/img/arcade/arcade.jpg',
         title: 'Here I Stand',
         link: 'https://wiki.saito.io/applications/his'
-      } ,
+      },
       {
         name: 'Paths',
         slug: 'paths',
         img: 'https://staging.saito.io/paths/img/arcade/arcade.jpg',
         title: 'Paths of Glory',
         link: 'https://wiki.saito.io/applications/paths'
-      } ,
+      },
       {
         name: 'Twilight',
         slug: 'twilight',
         img: 'https://staging.saito.io/twilight/img/arcade/arcade.jpg',
         title: 'Twilight',
         link: 'https://wiki.saito.io/applications/twilight'
-      } ,
-      { 
-	name : "Nintendo" , 
-	slug : "nwasm" , 
-	img : "https://staging.saito.io/nwasm/img/arcade/arcade.jpg" , 
-	title : "Nintendo" , 
-	link : "https://wiki.saito.io/applications/nwasm" 
-      } ,
-      { 
-	name : "Imperium" , 
-	slug : "imperium" , img : "https://staging.saito.io/imperium/img/arcade/arcade.jpg" , 
-	title : "Red Imperium" , 
-	link : "https://wiki.saito.io/applications/imperium" 
-      } 
+      },
+      {
+        name: 'Nintendo',
+        slug: 'nwasm',
+        img: 'https://staging.saito.io/nwasm/img/arcade/arcade.jpg',
+        title: 'Nintendo',
+        link: 'https://wiki.saito.io/applications/nwasm'
+      },
+      {
+        name: 'Imperium',
+        slug: 'imperium',
+        img: 'https://staging.saito.io/imperium/img/arcade/arcade.jpg',
+        title: 'Red Imperium',
+        link: 'https://wiki.saito.io/applications/imperium'
+      }
       /****
       { name : "Blackjack" , slug : "blackjack" , img : "https://staging.saito.io/blackjack/img/arcade/arcade.jpg" , title : "Blackjack" , link : "https://wiki.saito.io/tech/applications/blackjack" } ,
       { name : "Chess" , slug : "chess" , img : "https://staging.saito.io/chess/img/arcade/arcade.jpg" , title : "Chess" , link : "https://wiki.saito.io/tech/applications/chess" }     ,
@@ -98,7 +99,7 @@ class Teasers extends ModTemplate {
             console.log('**** adding teaser: ' + t.name);
             let tm = new TeaserModule(this.app, t.name, t.slug, t.title, t.img, t.link);
             tm.img = t.img;
-	    tm.is_teaser = true; 
+            tm.is_teaser = true;
             await tm.installModule(app);
             app.modules.mods.push(tm);
           }

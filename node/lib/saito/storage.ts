@@ -366,6 +366,140 @@ class Storage {
     }
   }
 
+  /**
+   * Load pristine /options without clearing storage.
+   * Used after resetBrowserInstallation() has already wiped local state.
+   */
+  async loadFreshOptions() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    try {
+      const response = await fetch(`/options`);
+      this.app.options = await response.json();
+      this.saveOptions();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  /**
+   * Best-effort deletion of every IndexedDB database in this origin.
+   * Falls back to known Saito DB names when indexedDB.databases() is unavailable.
+   */
+  async deleteAllIndexedDatabases() {
+    if (!this.app.BROWSER || typeof indexedDB === 'undefined') {
+      return;
+    }
+
+    try {
+      if (this.localDB) {
+        try {
+          await this.localDB.dropDb();
+        } catch (err) {
+          // Connection may already be closed or DB already gone.
+        }
+        this.localDB = null;
+      }
+
+      const knownNames = [
+        'localforage',
+        'keyvaluepairs',
+        'archive_db',
+        'dyn_mods_db',
+        'popup',
+        'emoji-picker-element-en',
+        'N64WASMDB'
+      ];
+
+      let names = knownNames;
+      if (typeof indexedDB.databases === 'function') {
+        try {
+          const dbs = await indexedDB.databases();
+          const discovered = (dbs || []).map((db) => db?.name).filter(Boolean);
+          names = Array.from(new Set([...knownNames, ...discovered]));
+        } catch (err) {
+          // Safari / older browsers may throw; keep knownNames fallback.
+        }
+      }
+
+      await Promise.all(names.map((name) => this.deleteIndexedDatabase(name)));
+    } catch (err) {
+      console.error('deleteAllIndexedDatabases:', err);
+    }
+  }
+
+  deleteIndexedDatabase(name) {
+    return new Promise((resolve) => {
+      if (!name) {
+        resolve(null);
+        return;
+      }
+      try {
+        const req = indexedDB.deleteDatabase(name);
+        req.onsuccess = () => resolve(null);
+        req.onerror = () => resolve(null);
+        req.onblocked = () => resolve(null);
+      } catch (err) {
+        resolve(null);
+      }
+    });
+  }
+
+  async clearCacheStorage() {
+    if (!this.app.BROWSER || typeof caches === 'undefined') {
+      return;
+    }
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    } catch (err) {
+      console.error('clearCacheStorage:', err);
+    }
+  }
+
+  async unregisterServiceWorkers() {
+    if (!this.app.BROWSER || !('serviceWorker' in navigator)) {
+      return;
+    }
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    } catch (err) {
+      console.error('unregisterServiceWorkers:', err);
+    }
+  }
+
+  /**
+   * Wipe all locally persisted browser state so the origin behaves like a
+   * brand-new Saito install. Does not create a wallet — callers reload or
+   * re-init afterward.
+   */
+  async resetBrowserInstallation() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    await this.clearLocalForage();
+    await this.removeAllLocalApplications();
+    await this.deleteAllIndexedDatabases();
+
+    try {
+      sessionStorage.clear();
+    } catch (err) {
+      console.error('sessionStorage.clear:', err);
+    }
+
+    try {
+      localStorage.clear();
+    } catch (err) {
+      console.error('localStorage.clear:', err);
+    }
+
+    await this.clearCacheStorage();
+    await this.unregisterServiceWorkers();
+  }
+
   async resetOptionsFromKey(publicKey) {
     if (this.app.BROWSER) {
       let wallet = await localforage.getItem(publicKey);

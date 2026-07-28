@@ -1,12 +1,11 @@
-const AdminKeyUI = require("./adminkey");
-const AdminDashboard = require("./dashboard");
-const AdminSetup = require("./setup");
-const OverviewTemplate = require("./overview.template");
-const jsonTree = require("json-tree-viewer");
+const AdminKeyUI = require('./adminkey');
+const AdminDashboard = require('./dashboard');
+const AdminSetup = require('./setup');
+const OverviewTemplate = require('./overview.template');
+const jsonTree = require('json-tree-viewer');
 
 class AdminOverviewUI {
-
-  constructor(app, mod, container = ".admin-overview") {
+  constructor(app, mod, container = '.admin-overview') {
     this.app = app;
     this.mod = mod;
     this.adminkey_ui = new AdminKeyUI(this.app, this.mod);
@@ -16,27 +15,22 @@ class AdminOverviewUI {
   }
 
   render() {
-
-    this.app.browser.replaceElementBySelector(
-      OverviewTemplate(this.app, this.mod),
-      this.container
-    );
-
+    this.app.browser.replaceElementBySelector(OverviewTemplate(this.app, this.mod), this.container);
 
     if (!need_to_set_key) {
-      this.updateHeader("Welcome back, Saito Admin!");
+      this.updateHeader('Welcome back, Saito Admin!');
 
       try {
         if (this.mod?.server_info?.options?.consensus?.disable_block_production == true) {
-          this.updateHeader("What are you trying to do?");
-          document.querySelector(".admin-server").style.display = "none";
-console.log("before setup ui render...");
+          this.updateHeader('What are you trying to do?');
+          document.querySelector('.admin-server').style.display = 'none';
+          console.log('before setup ui render...');
           this.setup_ui.render();
-console.log("after setup ui render...");
-	  return;
+          console.log('after setup ui render...');
+          return;
         }
       } catch (err) {
-console.log("ERRR: " +JSON.stringify(err));
+        console.log('ERRR: ' + JSON.stringify(err));
       }
 
       this.dashboard_ui.render();
@@ -45,20 +39,16 @@ console.log("ERRR: " +JSON.stringify(err));
       return;
     }
 
-
     this.attachEvents();
   }
 
-  attachEvents() {
-  }
+  attachEvents() {}
 
   updateHeader(msg) {
     try {
-      document.querySelector(".admin-header").innerHTML = msg; 
+      document.querySelector('.admin-header').innerHTML = msg;
     } catch (err) {}
   }
-
 }
 
 module.exports = AdminOverviewUI;
-

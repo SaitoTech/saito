@@ -1,6 +1,5 @@
 module.exports = () => {
-
-	return `
+  return `
 
 	    <div id="tutorial07-main" class="saito-container-dep">
 

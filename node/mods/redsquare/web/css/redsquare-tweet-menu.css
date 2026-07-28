@@ -8,10 +8,6 @@
   gap: var(--saito-space-xs);
   min-width: 22rem;
   padding: var(--saito-space-xs);
-  background: var(--saito-popover);
-  border: var(--border-thickness-thin) solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  box-shadow: var(--saito-overlay-panel-shadow);
   opacity: 0;
   transform: translateY(-0.35rem) scale(0.98);
   transform-origin: top right;

@@ -1,5 +1,5 @@
-module.exports  = (imperium_self, units) => {
-	return `
+module.exports = (imperium_self, units) => {
+  return `
     <div class="how-to-move-overlay hide-scrollbar">
 
 	<div class="title">How Movement Works</div>

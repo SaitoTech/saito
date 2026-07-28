@@ -1,3 +1,5 @@
+const { buildRustscriptOverlay } = require('../overlay.shell');
+
 module.exports = (options) => {
   const { title, value, multiline, placeholder, submitLabel } = options;
   const safeValue = String(value ?? '')
@@ -19,14 +21,13 @@ module.exports = (options) => {
       spellcheck="false"
     />`;
 
-  return `
-<div class="rustscript-overlay rs-prompt-overlay rs-prompt-generic${multiline ? ' rs-prompt-generic-multiline' : ' rs-prompt-generic-single'}">
-  <h2 class="rs-prompt-title">${safeTitle}</h2>
-  ${inputBlock}
-  <p class="rs-prompt-validation" hidden></p>
-  <div class="overlay-actions overlay-actions-apply-only">
-    <button type="button" class="rs-btn rs-btn-primary rs-prompt-apply">${safeSubmit}</button>
-  </div>
-</div>
-`;
+  return buildRustscriptOverlay({
+    className: `rs-overlay-prompt rs-prompt-generic${multiline ? ' rs-prompt-generic-multiline' : ' rs-prompt-generic-single'}`,
+    title: safeTitle,
+    bodyHtml: `
+      ${inputBlock}
+      <p class="rs-prompt-validation" hidden></p>
+    `,
+    actionsHtml: `<button type="button" class="rs-btn rs-btn-primary rs-prompt-apply">${safeSubmit}</button>`
+  });
 };

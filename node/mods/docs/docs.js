@@ -34,7 +34,7 @@ class Docs extends ModTemplate {
       title: 'Saito Docs',
       url: 'https://saito.io/docs/',
       description: 'End-to-end encrypted collaborative documents on Saito',
-      image: '/docs/img/splash.png',
+      image: '/docs/img/splash.png'
     };
 
     // Auth state
@@ -112,7 +112,6 @@ class Docs extends ModTemplate {
       // and redirects to /login automatically.
       this._showStatus('Authenticating…');
       this._loadIframe(`${SAITO_AUTH_RELAY}#${payload}`);
-
     } catch (err) {
       console.error('[Docs] Auth error:', err);
       this._showStatus('Auth failed — opening CryptPad normally');
@@ -131,13 +130,11 @@ class Docs extends ModTemplate {
   // ---------------------------------------------------------------------------
 
   async _deriveKeys(privkeyHex, pubkeyBase58) {
-    const privBytes = new Uint8Array(
-      privkeyHex.match(/.{1,2}/g).map((b) => parseInt(b, 16))
-    );
+    const privBytes = new Uint8Array(privkeyHex.match(/.{1,2}/g).map((b) => parseInt(b, 16)));
 
     return {
-      signingKey: Array.from(privBytes),   // Ed25519 secret key (64 bytes) as plain array
-      publicKey:  pubkeyBase58,            // Saito base58 public key (for username derivation)
+      signingKey: Array.from(privBytes), // Ed25519 secret key (64 bytes) as plain array
+      publicKey: pubkeyBase58 // Saito base58 public key (for username derivation)
     };
   }
 
@@ -149,9 +146,13 @@ class Docs extends ModTemplate {
     const iframe = document.getElementById('docs-iframe');
     if (!iframe) return;
 
-    iframe.addEventListener('load', () => {
-      this._hideStatus();
-    }, { once: true });
+    iframe.addEventListener(
+      'load',
+      () => {
+        this._hideStatus();
+      },
+      { once: true }
+    );
 
     iframe.src = url;
   }
@@ -177,7 +178,10 @@ class Docs extends ModTemplate {
 
     // Click outside header collapses it
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('#saito-header') && !e.target.closest('.saito-header-hamburger-contents')) {
+      if (
+        !e.target.closest('#saito-header') &&
+        !e.target.closest('.saito-header-hamburger-contents')
+      ) {
         header.classList.remove('docs-expanded');
       }
     });
@@ -231,7 +235,7 @@ class Docs extends ModTemplate {
   // ---------------------------------------------------------------------------
   // respondTo — register "Docs" in the Saito header nav on other pages
   // ---------------------------------------------------------------------------
-/*
+  /*
   respondTo(type) {
     if (type === 'saito-header') {
       return [

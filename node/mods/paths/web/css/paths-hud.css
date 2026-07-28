@@ -1,6 +1,6 @@
 .game.paths {
-.hud .hud-body {
-	overflow-y: auto;
-	height: unset;
-}
+  .hud .hud-body {
+    overflow-y: auto;
+    height: unset;
+  }
 }

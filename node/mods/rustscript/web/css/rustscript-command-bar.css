@@ -1,349 +1,284 @@
 /*
- * RustScript bottom command bar — px typography (Saito :root = 10px).
+ * .rs-command-bar — footer toolbar
  */
 
-.saito-container.rustscript .rs-command-bar {
+.rs-command-bar {
   flex: 0 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 20px;
-  min-height: 64px;
-  padding: 10px var(--rs-page-gutter);
-  background: linear-gradient(180deg, #161616 0%, #101010 100%);
-  border-top: 1px solid #383838;
-  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.4);
-  box-sizing: border-box;
+  gap: var(--saito-space-lg);
+  min-height: 5.6rem;
+  padding: var(--saito-space-sm) var(--saito-space-lg);
   position: relative;
   z-index: 4;
+  background: linear-gradient(180deg, #151515 0%, #101010 100%);
+  border-top: 1px solid #333;
+  box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.3);
 }
 
-.saito-container.rustscript .rs-command-bar-region {
+.rs-command-bar-left,
+.rs-command-bar-center,
+.rs-command-bar-right {
   display: flex;
   align-items: center;
   min-width: 0;
 }
 
-.saito-container.rustscript .rs-command-bar-left {
+.rs-command-bar-left {
   justify-content: flex-start;
-  gap: 10px;
-  min-width: 124px;
+  gap: var(--saito-space-md);
+  min-width: 12rem;
 }
 
-.saito-container.rustscript .rs-command-bar-center {
+.rs-command-bar-center {
   justify-content: center;
 }
 
-.saito-container.rustscript .rs-command-bar-right {
+.rs-command-bar-right {
   justify-content: flex-end;
+  gap: var(--saito-space-md);
 }
 
-.saito-container.rustscript .rs-command-bar-right-cluster {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.saito-container.rustscript .rs-publish-slot {
+.rs-publish-slot {
   display: grid;
   grid-template-columns: 0fr;
-  transition: grid-template-columns 0.22s ease;
   overflow: hidden;
 }
 
-.saito-container.rustscript .rs-publish-slot.is-visible {
+.rs-publish-slot.is-visible {
   grid-template-columns: 1fr;
 }
 
-.saito-container.rustscript .rs-publish-slot .rs-publish-script {
-  min-width: 124px;
-  opacity: 0;
-  transform: translateX(12px);
-  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s linear 0.22s;
-  pointer-events: none;
+.rs-publish-slot .rs-publish-script {
+  min-width: 12rem;
   visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 0.22s ease,
+    visibility 0.22s ease;
 }
 
-.saito-container.rustscript .rs-publish-slot.is-visible .rs-publish-script {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
+.rs-publish-slot.is-visible .rs-publish-script {
   visibility: visible;
-  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s;
+  pointer-events: auto;
+  opacity: 1;
 }
 
-/* ── Actions ── */
-
-.saito-container.rustscript .rs-cmd-btn {
-  height: 40px;
-  min-width: 124px;
-  padding: 0 20px;
-  border-radius: 4px;
-  font-family: var(--rustscript-font-mono);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  box-sizing: border-box;
-  appearance: none;
-  -webkit-appearance: none;
-  margin: 0;
-  text-transform: none;
-  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
-}
-
-.saito-container.rustscript .rs-cmd-secondary {
-  border: 1px solid #505050;
-  background: #222;
-  color: #e8e8e8;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.saito-container.rustscript .rs-cmd-secondary:hover {
-  border-color: #686868;
-  background: #2c2c2c;
-  color: #fff;
-  box-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
-}
-
-.saito-container.rustscript .rs-cmd-primary {
-  border: 1px solid #4a9a58;
-  background: linear-gradient(180deg, #52a860 0%, #2d6b38 100%);
-  color: #f0fff2;
-  font-weight: 700;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.saito-container.rustscript .rs-cmd-primary:hover {
-  border-color: #62c070;
-  background: linear-gradient(180deg, #62c070 0%, #357a44 100%);
-  color: #fff;
-  box-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
-}
-
-.saito-container.rustscript .rs-publish-script[hidden] {
+.rs-publish-script[hidden] {
   display: none !important;
 }
 
-/* ── Progress pipeline ── */
-
-.saito-container.rustscript .rs-progress-track {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 8px 16px;
-  border: 1px solid #3a3a3a;
-  border-radius: 6px;
-  background: #1a1a1a;
-  pointer-events: none;
-  user-select: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+.rs-cmd-btn {
+  height: var(--rs-control-height);
+  padding: 0 var(--saito-space-xl);
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  font-weight: 400;
+  text-transform: uppercase;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
 }
 
-.saito-container.rustscript .rs-progress-step {
+.rs-cmd-secondary {
+  border: 1px solid #4a4a4a;
+  background: #222;
+  color: #e0e0e0;
+}
+
+.rs-cmd-secondary:hover {
+  border-color: #646464;
+  background: #2a2a2a;
+  color: #fff;
+}
+
+.rs-cmd-primary {
+  border: 1px solid #3f8a4c;
+  background: linear-gradient(180deg, #3f8f4c 0%, #2a5e34 100%);
+  color: #f0fff2;
+}
+
+.rs-cmd-primary:hover {
+  border-color: #52a860;
+  background: linear-gradient(180deg, #4ca85a 0%, #327040 100%);
+  color: #fff;
+}
+
+.rs-progress-track {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 2px 4px;
+  padding: var(--saito-space-xs) var(--saito-space-md);
+  pointer-events: none;
+  border: 1px solid #383838;
+  border-radius: 4px;
+  background: #161616;
+}
+
+.rs-progress-step {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  padding: 0.15rem var(--saito-space-xs);
   white-space: nowrap;
 }
 
-.saito-container.rustscript .rs-progress-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.rs-progress-dot {
+  width: 0.85rem;
+  height: 0.85rem;
   flex-shrink: 0;
-  background: #555;
-  border: 2px solid #777;
-  box-sizing: border-box;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  border-radius: 50%;
+  background: #4a4a4a;
+  border: 1px solid #666;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }
 
-.saito-container.rustscript .rs-progress-label {
-  font-family: var(--rustscript-font-sans);
-  font-size: 14px;
-  font-weight: 500;
+.rs-progress-label {
+  font-size: var(--font-size-medium);
   letter-spacing: 0.01em;
   line-height: 1.2;
-  color: #c8c8c8;
+  font-weight: 400;
+  color: #b8b8b8;
   transition: color 0.2s;
 }
 
-.saito-container.rustscript .rs-progress-connector {
+.rs-progress-connector {
   display: block;
-  width: 36px;
-  height: 2px;
-  margin: 0 8px;
-  background: #555;
-  position: relative;
+  width: 3rem;
+  height: 0.15rem;
+  margin: 0 var(--saito-space-xs);
   flex-shrink: 0;
+  position: relative;
+  background: #4a4a4a;
   border-radius: 1px;
 }
 
-.saito-container.rustscript .rs-progress-connector::after {
+.rs-progress-connector::after {
   content: '';
   position: absolute;
-  right: -2px;
+  right: -0.15rem;
   top: 50%;
   transform: translateY(-50%);
-  border: 5px solid transparent;
-  border-left-color: #666;
+  border: 4px solid transparent;
+  border-left-color: #5a5a5a;
 }
 
-.saito-container.rustscript .rs-progress-step[data-state='idle'] .rs-progress-dot,
-.saito-container.rustscript .rs-progress-step[data-state='inactive'] .rs-progress-dot {
-  background: #3a3a3a;
-  border-color: #5a5a5a;
+.rs-progress-step[data-state='idle'] .rs-progress-dot,
+.rs-progress-step[data-state='inactive'] .rs-progress-dot {
+  background: #333;
+  border-color: #505050;
 }
 
-.saito-container.rustscript .rs-progress-step[data-state='idle'] .rs-progress-label,
-.saito-container.rustscript .rs-progress-step[data-state='inactive'] .rs-progress-label {
-  color: #9a9a9a;
+.rs-progress-step[data-state='idle'] .rs-progress-label,
+.rs-progress-step[data-state='inactive'] .rs-progress-label {
+  color: #888;
+}
+
+.rs-progress-step[data-state='warn'] .rs-progress-dot {
+  background: #b87818;
+  border-color: #d09030;
+}
+
+.rs-progress-step[data-state='warn'] .rs-progress-label {
+  color: #d8a848;
+}
+
+.rs-progress-step[data-state='ready'] .rs-progress-dot {
+  background: #3f8f4c;
+  border-color: #52a860;
+}
+
+.rs-progress-step[data-state='ready'] .rs-progress-label {
+  color: #8fd49a;
+}
+
+.rs-progress-connector[data-state='ready'] {
+  background: #3a6a44;
+}
+
+.rs-progress-connector[data-state='ready']::after {
+  border-left-color: #4a8a54;
+}
+
+.rs-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem;
+  pointer-events: auto;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background: #121212;
+}
+
+.rs-mode-sep {
+  display: none;
+}
+
+.rs-mode-btn {
+  padding: var(--saito-space-xs) var(--saito-space-md);
+  font-size: var(--font-size-tiny);
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #808080;
+  font-family: var(--rustscript-font-mono);
   font-weight: 400;
+  text-transform: none;
+  transition:
+    color 0.12s,
+    background 0.12s,
+    border-color 0.12s;
 }
 
-.saito-container.rustscript .rs-progress-step[data-state='warn'] .rs-progress-dot {
-  background: #d08818;
-  border-color: #e8a030;
-  box-shadow: none;
+.rs-mode-btn:hover:not(.is-active) {
+  color: #c0c0c0;
+  background: #1a1a1a;
+  border-color: #444;
 }
 
-.saito-container.rustscript .rs-progress-step[data-state='warn'] .rs-progress-label {
-  color: #f0c060;
-  font-weight: 600;
+.rs-mode-btn.is-active {
+  color: #c8e0cc;
+  font-weight: 500;
+  background: #16201c;
+  border-color: #3a6a44;
 }
 
-.saito-container.rustscript .rs-progress-step[data-state='ready'] .rs-progress-dot {
-  background: #52b060;
-  border-color: #6cd078;
-  box-shadow: none;
+.rs-mode-btn:focus-visible {
+  outline: 2px solid #555;
+  outline-offset: 2px;
 }
 
-.saito-container.rustscript .rs-progress-step[data-state='ready'] .rs-progress-label {
-  color: #b8f0c0;
-  font-weight: 600;
-}
-
-.saito-container.rustscript .rs-progress-connector[data-state='idle'] {
-  background: #555;
-}
-
-.saito-container.rustscript .rs-progress-connector[data-state='idle']::after {
-  border-left-color: #666;
-}
-
-.saito-container.rustscript .rs-progress-connector[data-state='ready'] {
-  background: #4a7a52;
-}
-
-.saito-container.rustscript .rs-progress-connector[data-state='ready']::after {
-  border-left-color: #5a9a62;
-}
-
-.saito-container.rustscript .rs-status-valid.is-actionable {
+.rs-status-valid.is-actionable {
   pointer-events: auto;
   cursor: pointer;
 }
 
-/* ── Mode selector — compact segmented control ── */
-
-.saito-container.rustscript .rs-mode-switch {
-  display: inline-flex;
-  align-items: stretch;
-  gap: 0;
-  height: auto;
-  padding: 3px;
-  border: 1px solid #444;
-  border-radius: 4px;
-  background: #141414;
-  box-shadow: none;
-}
-
-.saito-container.rustscript .rs-mode-sep {
-  display: none;
-}
-
-.saito-container.rustscript .rs-mode-btn {
-  min-width: 0;
-  min-height: 0;
-  padding: 7px 14px;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  background: transparent;
-  color: #888;
-  font-family: var(--rustscript-font-mono);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  margin: 0;
-  text-transform: none;
-  box-shadow: none;
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
-}
-
-.saito-container.rustscript .rs-mode-btn:hover:not(.is-active) {
-  color: #c8c8c8;
-  background: #1c1c1c;
-  border-color: #555;
-  box-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
-}
-
-.saito-container.rustscript .rs-mode-btn.is-active {
-  color: #d8eedc;
-  font-weight: 600;
-  background: #1a2420;
-  border-color: #4a7a52;
-  box-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
-}
-
-.saito-container.rustscript .rs-mode-btn:focus-visible {
-  outline: 2px solid #555;
-  outline-offset: 2px;
-  box-shadow: none !important;
-}
-
-@media (max-width: 1100px) {
-  .saito-container.rustscript .rs-progress-label {
-    font-size: 12px;
-  }
-
-  .saito-container.rustscript .rs-progress-connector {
-    width: 20px;
-    margin: 0 4px;
-  }
-}
-
 @media (max-width: 900px) {
-  .saito-container.rustscript .rs-command-bar {
+  .rs-command-bar {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    gap: 12px;
-    padding: 12px var(--rs-page-gutter) 0;
-    min-height: 0;
+    gap: var(--saito-space-md);
   }
 
-  .saito-container.rustscript .rs-command-bar-left,
-  .saito-container.rustscript .rs-command-bar-center,
-  .saito-container.rustscript .rs-command-bar-right {
+  .rs-command-bar-left,
+  .rs-command-bar-center,
+  .rs-command-bar-right {
     justify-content: center;
+    min-width: 0;
   }
 
-  .saito-container.rustscript .rs-progress-track {
-    flex-wrap: wrap;
-    justify-content: center;
-    max-width: 100%;
+  .rs-progress-label {
+    display: none;
+  }
+
+  .rs-progress-connector {
+    width: 2rem;
   }
 }

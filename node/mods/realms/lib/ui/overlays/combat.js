@@ -24,7 +24,7 @@ class CombatOverlay {
     let container = document.querySelector('.attackers-row');
     container.innerHTML = '';
 
-    this.attackers.forEach(attacker => {
+    this.attackers.forEach((attacker) => {
       const attackerDiv = document.createElement('div');
       attackerDiv.classList.add('attacker-slot');
       attackerDiv.setAttribute('data-attacker', attacker.key);
@@ -42,7 +42,7 @@ class CombatOverlay {
     let container = document.querySelector('.blockers-row');
     container.innerHTML = '';
 
-    this.attackers.forEach(attacker => {
+    this.attackers.forEach((attacker) => {
       const defenderSlot = document.createElement('div');
       defenderSlot.classList.add('defender-slot');
       defenderSlot.setAttribute('data-attacker', attacker.key);
@@ -51,11 +51,14 @@ class CombatOverlay {
           ${
             this.defenders[attacker.key]?.length
               ? this.defenders[attacker.key]
-                  .map((defKey, idx) => `
+                  .map(
+                    (defKey, idx) => `
                     <div class="defender-card" draggable="true" data-order="${idx}" data-card="${defKey}">
                       <img src="/realms/img/cards/${this.mod.deck[defKey].img}" class="card small">
                     </div>
-                  `).join('')
+                  `
+                  )
+                  .join('')
               : `<div class="empty-slot-text">click to add defender</div>`
           }
         </div>
@@ -68,7 +71,7 @@ class CombatOverlay {
 
   attachEvents() {
     // Click to select defenders
-    document.querySelectorAll('.defender-dropzone').forEach(zone => {
+    document.querySelectorAll('.defender-dropzone').forEach((zone) => {
       zone.onclick = (e) => {
         let attackerKey = zone.getAttribute('data-attacker');
         this.mod.hud.showSelectableDefenders((selectedDefKey) => {
@@ -92,14 +95,14 @@ class CombatOverlay {
     const draggables = document.querySelectorAll('.defender-card');
     const zones = document.querySelectorAll('.defender-dropzone');
 
-    draggables.forEach(el => {
+    draggables.forEach((el) => {
       el.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('card', e.target.dataset.card);
         e.dataTransfer.setData('attacker', e.target.closest('.defender-dropzone').dataset.attacker);
       });
     });
 
-    zones.forEach(zone => {
+    zones.forEach((zone) => {
       zone.addEventListener('dragover', (e) => e.preventDefault());
 
       zone.addEventListener('drop', (e) => {
@@ -110,7 +113,7 @@ class CombatOverlay {
 
         // Move defender between slots or reorder
         if (fromAttacker !== toAttacker) {
-          this.defenders[fromAttacker] = this.defenders[fromAttacker].filter(c => c !== card);
+          this.defenders[fromAttacker] = this.defenders[fromAttacker].filter((c) => c !== card);
           if (!this.defenders[toAttacker]) this.defenders[toAttacker] = [];
           this.defenders[toAttacker].push(card);
         } else {
@@ -126,4 +129,3 @@ class CombatOverlay {
 }
 
 module.exports = CombatOverlay;
-

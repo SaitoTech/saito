@@ -4,10 +4,10 @@
  * @constructor
  * */
 cycloa.AbstractAudioFairy = function () {
-	this.enabled = false; //supported or not.
-	this.data = undefined; //audio data buffer to fill
-	this.dataLength = 0; //length of the buffer
-	this.dataIndex = undefined; // the index of the buffer
+  this.enabled = false; //supported or not.
+  this.data = undefined; //audio data buffer to fill
+  this.dataLength = 0; //length of the buffer
+  this.dataIndex = undefined; // the index of the buffer
 };
 
 //called when all data buffer has been filled.
@@ -17,10 +17,7 @@ cycloa.AbstractAudioFairy.prototype.onDataFilled = function () {};
  * @constructor
  * */
 cycloa.AbstractVideoFairy = function () {
-	this.dispatchRendering = function (
-		/* Uint8Array */ nesBuffer,
-		/* Uint8 */ paletteMask
-	) {}; //called on vsync
+  this.dispatchRendering = function (/* Uint8Array */ nesBuffer, /* Uint8 */ paletteMask) {}; //called on vsync
 };
 
 /**

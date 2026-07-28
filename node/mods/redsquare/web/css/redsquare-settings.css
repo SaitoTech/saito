@@ -11,12 +11,11 @@
 .settings > .header {
   flex: 0 0 auto;
   padding: var(--saito-space-md) var(--saito-space-lg);
-  border-bottom: var(--border-thickness-thin) solid var(--saito-border);
+  border-bottom: 1px solid var(--saito-border);
 }
 
 .settings > .header .title {
   margin: 0;
-  font-size: var(--font-size-large);
   font-family: var(--saito-font-medium);
   line-height: 1.2;
 }
@@ -40,7 +39,6 @@
 
 .settings .section > .title {
   margin: 0;
-  font-size: var(--font-size-medium);
   font-family: var(--saito-font-medium);
   line-height: 1.3;
 }
@@ -80,7 +78,7 @@
   width: 1.8rem;
   height: 1.8rem;
   margin-top: 0.15rem;
-  border: var(--border-thickness-thin) solid var(--saito-input-border);
+  border: 1px solid var(--saito-border);
   border-radius: 50%;
 }
 
@@ -151,6 +149,11 @@
   .settings {
     width: 100%;
     max-height: 100vh;
+  }
+
+  .redsquare-mobile-settings .settings {
+    height: 100%;
+    max-height: none;
   }
 
   .settings > .header,

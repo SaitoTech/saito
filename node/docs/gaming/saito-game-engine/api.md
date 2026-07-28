@@ -270,7 +270,7 @@ this provides a method for players to reset the random number generator in the g
 
 ```javascript
 game_self.addMove(
-	'SECUREROLL\t1\taaab76f16ad484b2aa02d167272bf0a51cd8c6d5e0ddc9c44ba7f77f12c9940b\t3gHZjty6oghJ8rMCPnBbhRkRhq3xi2SsdwD93zK52kT3nRK6AZ6v7bvYtskdGh9KTb69zYhVxUm6d6PZELB9jMQJ'
+  'SECUREROLL\t1\taaab76f16ad484b2aa02d167272bf0a51cd8c6d5e0ddc9c44ba7f77f12c9940b\t3gHZjty6oghJ8rMCPnBbhRkRhq3xi2SsdwD93zK52kT3nRK6AZ6v7bvYtskdGh9KTb69zYhVxUm6d6PZELB9jMQJ'
 );
 ```
 
@@ -344,9 +344,7 @@ if games are initialized using a Web3 cryptocurrency, the game engine will autom
 #### RECEIVE [sender] [receiver] [amount] [timestamp] [ticker]
 
 ```javascript
-game_self.addMove(
-	'RECEIVE\t${sender}\t${receiver}\t${amount}\t${timestamp}\tDOT'
-);
+game_self.addMove('RECEIVE\t${sender}\t${receiver}\t${amount}\t${timestamp}\tDOT');
 ```
 
 the receiver will halt execution of the game until they have received payment from the sender in the AMOUNT of cryptocurrency TICKER. the payment must be authorized by the sender and then handled by a module accessible to the game engine (such as the DOT/KUSAMA/WESTEND module). the game engine will halt execution until the payment is received, but cannot enforce that payment is made in this situation.

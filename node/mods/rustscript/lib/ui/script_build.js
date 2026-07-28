@@ -34,9 +34,17 @@ function lockingView(node) {
 }
 
 const PLACEHOLDER_META = {
-  signature: { label: 'Signature', hint: 'Required signature for this condition', action: 'signature' },
+  signature: {
+    label: 'Signature',
+    hint: 'Required signature for this condition',
+    action: 'signature'
+  },
   signatures: { label: 'Signatures', hint: 'Required signatures (M-of-N)', action: 'text' },
-  publickey: { label: 'Public key', hint: 'Saito public key for this contract field', action: 'publickey' },
+  publickey: {
+    label: 'Public key',
+    hint: 'Saito public key for this contract field',
+    action: 'publickey'
+  },
   hash: { label: 'Hash', hint: 'Expected hash digest (Blake3)', action: 'hash' },
   msg: { label: 'Message', hint: 'Message that was signed', action: 'text' },
   text: { label: 'Text', hint: 'Text value for this field', action: 'text' },
@@ -168,7 +176,11 @@ function preserve_witness_in_tree(previous, next, opcodes) {
     delete merged.witness;
   }
 
-  if (merged.required && typeof merged.required === 'object' && Object.keys(merged.required).length === 0) {
+  if (
+    merged.required &&
+    typeof merged.required === 'object' &&
+    Object.keys(merged.required).length === 0
+  ) {
     delete merged.required;
   }
 

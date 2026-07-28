@@ -1,5 +1,5 @@
 module.exports = (app, mod, build_number) => {
-	return `
+  return `
     <!DOCTYPE html>
     <html data-theme="dark">
       <head>

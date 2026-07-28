@@ -17,7 +17,10 @@
   background: #fafafa;
   cursor: pointer;
   text-align: center;
-  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
 }
 
 .node-setup-card h2 {
@@ -27,7 +30,7 @@
 .node-setup-card:hover {
   transform: translateY(-3px);
   border-color: #4caf50;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
 }
 
 .node-setup-explainer {
@@ -51,7 +54,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .admin-cmd-line {
@@ -67,7 +72,9 @@
   background: #f5f5f5;
   color: #555;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .admin-copy-cmd:hover {
@@ -89,4 +96,3 @@
     grid-template-columns: 1fr;
   }
 }
-

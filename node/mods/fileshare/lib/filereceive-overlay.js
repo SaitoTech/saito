@@ -2,255 +2,242 @@ const FileReceiveOverlayTemplate = require('./filereceive-overlay.template');
 const SaitoUser = require('./../../../lib/saito/ui/saito-user/saito-user');
 
 class FileReceiveOverlay {
-	constructor(app, mod, fileId, sender = "") {
-		this.app = app;
-		this.mod = mod;
-		this.fileId = fileId || "generic";
-		this.sender = sender;
-		this.throttle_me = false;
-		this.ready = false;
-		this.divId = `file-transfer-${fileId}-${sender}`;
+  constructor(app, mod, fileId, sender = '') {
+    this.app = app;
+    this.mod = mod;
+    this.fileId = fileId || 'generic';
+    this.sender = sender;
+    this.throttle_me = false;
+    this.ready = false;
+    this.divId = `file-transfer-${fileId}-${sender}`;
 
-		//set up stun listeners for interruptions
-		this.onStunDataChannelClose = (peerId) => {
-			if (peerId == this.sender && this?.active) {
-				this.onConnectionFailure();
-			}
-		};
-		app.connection.on('stun-data-channel-close', this.onStunDataChannelClose);
-		this.onStunConnectionFailed = (peerId) => {
-			if (peerId == this.sender && this?.active) {
-				this.onConnectionFailure();
-			}
-		};
-		app.connection.on('stun-connection-failed', this.onStunConnectionFailed);
+    //set up stun listeners for interruptions
+    this.onStunDataChannelClose = (peerId) => {
+      if (peerId == this.sender && this?.active) {
+        this.onConnectionFailure();
+      }
+    };
+    app.connection.on('stun-data-channel-close', this.onStunDataChannelClose);
+    this.onStunConnectionFailed = (peerId) => {
+      if (peerId == this.sender && this?.active) {
+        this.onConnectionFailure();
+      }
+    };
+    app.connection.on('stun-connection-failed', this.onStunConnectionFailed);
 
-		this.onStunDataChannelOpen = (peerId) => {
-			if (peerId == this.sender && this?.active){
-				this.onConnectionSuccess();
-			}
-		};
-		app.connection.on("stun-data-channel-open", this.onStunDataChannelOpen);
+    this.onStunDataChannelOpen = (peerId) => {
+      if (peerId == this.sender && this?.active) {
+        this.onConnectionSuccess();
+      }
+    };
+    app.connection.on('stun-data-channel-open', this.onStunDataChannelOpen);
+  }
 
-	}
+  render(file) {
+    this.active = true;
+    this.senderUI = new SaitoUser(this.app, this.mod, `#${this.divId} .contact`, this.sender);
 
-	render(file) {
+    this.app.browser.addElementToDom(FileReceiveOverlayTemplate(this.mod, this, file));
 
-		this.active = true;
-		this.senderUI = new SaitoUser(this.app, this.mod, `#${this.divId} .contact`, this.sender);
+    this.senderUI.render();
+    this.attachEvents();
 
-		this.app.browser.addElementToDom(FileReceiveOverlayTemplate(this.mod, this, file));
+    if (this.mod.stun.hasConnection(file.sender)) {
+      this.onConnectionSuccess();
+    }
+  }
 
-		this.senderUI.render();
-		this.attachEvents();
+  remove() {
+    this.app.connection.removeListener('stun-data-channel-close', this.onStunDataChannelClose);
+    this.app.connection.removeListener('stun-connection-failed', this.onStunConnectionFailed);
+    this.app.connection.removeListener('stun-data-channel-open', this.onStunDataChannelOpen);
 
-		if (this.mod.stun.hasConnection(file.sender)) {
-			this.onConnectionSuccess();
-		}
+    if (document.getElementById(this.divId)) {
+      document.getElementById(this.divId).remove();
+    }
+    this.mod.reset(this.fileId);
+    this.ready = false;
+    this.active = false;
+  }
 
-	}
+  beginTransfer() {
+    let div = document.getElementById(this.divId);
 
-	remove(){
-		this.app.connection.removeListener('stun-data-channel-close', this.onStunDataChannelClose);
-		this.app.connection.removeListener('stun-connection-failed', this.onStunConnectionFailed);
-		this.app.connection.removeListener('stun-data-channel-open', this.onStunDataChannelOpen);
+    let field = div?.querySelector('#transfer-speed-row');
+    if (field) {
+      field.classList.remove('hideme');
+    }
 
-		if (document.getElementById(this.divId)){
-			document.getElementById(this.divId).remove();
-		}
-		this.mod.reset(this.fileId);
-		this.ready = false;
-		this.active = false;
-	}
+    let field2 = div?.querySelector('#file-transfer-buttons');
+    if (field2) {
+      field2.classList.remove('hideme');
+    }
 
-	beginTransfer() {
+    let field3 = div?.querySelector('.stun-phone-notice');
+    if (field3) {
+      field3.classList.add('hideme');
+    }
+  }
 
-		let div = document.getElementById(this.divId);
+  renderStats(stats) {
+    let div = document.getElementById(this.divId);
 
-		let field = div?.querySelector('#transfer-speed-row');
-		if (field){
-			field.classList.remove("hideme");
-		}	
+    if (!this.throttle_me) {
+      let field = div?.querySelector('#file-transfer-status');
+      if (field) {
+        field.innerHTML = `<span class="fixed-width">${stats.speed}</span>`;
+      }
+      this.throttle_me = true;
+      setTimeout(() => {
+        this.throttle_me = false;
+      }, 500);
+    }
 
-		let field2 = div?.querySelector("#file-transfer-buttons");
-		if (field2){
-			field2.classList.remove('hideme');
-		}
+    let progress_bar = div?.querySelector('.file-transfer-progress');
+    if (progress_bar) {
+      progress_bar.style.width = `${stats.percentage}%`;
+    }
+  }
 
-		let field3 = div?.querySelector(".stun-phone-notice");
-		if (field3){
-			field3.classList.add('hideme');
-		}
-	}
+  finishTransfer(blob) {
+    let div = document.getElementById(this.divId);
 
-	renderStats(stats){
-		let div = document.getElementById(this.divId);
+    let field = div?.querySelector('#file-transfer-status');
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-check"></i>`;
+    }
 
-		if (!this.throttle_me){
-			let field = div?.querySelector("#file-transfer-status");
-			if (field){
-				field.innerHTML = `<span class="fixed-width">${stats.speed}</span>`;
-			}
-			this.throttle_me = true;
-			setTimeout(()=>{
-				this.throttle_me = false;
-			}, 500);			
-		}
+    let progress_bar = div?.querySelector('.file-transfer-progress');
+    if (progress_bar) {
+      progress_bar.style.width = `100%`;
+    }
 
-		let progress_bar = div?.querySelector(".file-transfer-progress");
-		if (progress_bar){
-			progress_bar.style.width = `${stats.percentage}%`;
-		}
-	}
+    let field2 = div?.querySelector('.saito-file-transfer');
+    if (field2) {
+      field2.classList.add('complete');
+    }
 
-	finishTransfer(blob){
+    const received = new Blob(blob.receiveBuffer);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(received);
+    downloadLink.download = blob.name || 'download';
+    this.app.browser.addElementToId(downloadLink.outerHTML, this.divId);
 
-		let div = document.getElementById(this.divId);
+    let download_btn = div?.querySelector('#download-transfer');
+    if (download_btn) {
+      download_btn.classList.remove('hideme');
+      download_btn.onclick = () => {
+        document.querySelector(`#${this.divId} a`).click();
+        document.querySelector(`#${this.divId} a`).remove();
+        this.remove();
+      };
+    }
 
-		let field = div?.querySelector("#file-transfer-status");
-		if (field){
-			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
-		}
+    this.ready = true;
+  }
 
-		let progress_bar = div?.querySelector(".file-transfer-progress");
-		if (progress_bar){
-			progress_bar.style.width = `100%`;
-		}
+  onCancel() {
+    let div = document.getElementById(this.divId);
 
-		let field2 = div?.querySelector(".saito-file-transfer");
-		if (field2){
-			field2.classList.add("complete");
-		}
+    let field2 = div.querySelector('#file-transfer-buttons');
+    if (field2) {
+      field2.classList.add('hideme');
+    }
 
-		const received = new Blob(blob.receiveBuffer);
-		const downloadLink = document.createElement('a');
-		downloadLink.href = URL.createObjectURL(received);
-		downloadLink.download = blob.name || 'download';
-		this.app.browser.addElementToId(downloadLink.outerHTML, this.divId);
+    let field = div.querySelector('#file-transfer-status');
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+    }
 
-		let download_btn = div?.querySelector('#download-transfer');
-		if (download_btn){
-			download_btn.classList.remove("hideme");
-			download_btn.onclick = () => {
-				document.querySelector(`#${this.divId} a`).click();
-				document.querySelector(`#${this.divId} a`).remove();
-				this.remove();
-			}
-		}
+    let field3 = div.querySelector('#peer-permission-buttons');
+    if (field3) {
+      field3.classList.add('hideme');
+    }
+  }
 
-		this.ready = true;
-	}
-	
+  onConnectionSuccess() {
+    let div = document.getElementById(this.divId);
 
-	onCancel(){
+    let field = div.querySelector('#peer-connection-status');
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-check"></i>`;
+    }
 
-		let div = document.getElementById(this.divId);
+    let field2 = div.querySelector('#accept-file');
+    if (field2) {
+      field2.removeAttribute('disabled');
+    }
+  }
 
-		let field2 = div.querySelector("#file-transfer-buttons");
-		if (field2){
-			field2.classList.add('hideme');
-		}
+  onConnectionFailure() {
+    let div = document.getElementById(this.divId);
 
-		let field = div.querySelector("#file-transfer-status");
-		if (field){
-			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
-		}
+    let field = div.querySelector('#peer-connection-status');
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+    }
+  }
 
-		let field3 = div.querySelector("#peer-permission-buttons");
-		if (field3){
-			field3.classList.add('hideme');
-		}
+  attachEvents() {
+    this.app.browser.makeDraggable(this.divId, '', true);
+    let div = document.getElementById(this.divId);
 
-	}
+    let accept_btn = div.querySelector('#accept-file');
+    let reject_btn = div.querySelector('#reject-file');
 
+    if (accept_btn) {
+      accept_btn.onclick = () => {
+        this.mod.prepareToReceive(this.fileId);
 
-	onConnectionSuccess(){
-		let div = document.getElementById(this.divId);
+        let button_row = div.querySelector('#peer-permission-buttons');
+        if (button_row) {
+          button_row.remove();
+        }
+        this.beginTransfer();
+      };
+    }
 
-		let field = div.querySelector("#peer-connection-status");
-		if (field){
-			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
-		}
+    if (reject_btn) {
+      reject_btn.onclick = () => {
+        this.mod.sendRejectTransferTransaction(this.fileId, this.sender);
+        this.remove();
+      };
+    }
 
-		let field2 = div.querySelector("#accept-file");
-		if (field2){
-			field2.removeAttribute("disabled");
-		}
-	}
+    let cancel = div.querySelector('#cancel-transfer');
+    if (cancel) {
+      cancel.onclick = () => {
+        this.mod.interrupt(this.fileId, this.sender);
+        this.mod.sendRejectTransferTransaction(this.fileId, this.sender);
+      };
+    }
 
-	onConnectionFailure(){
-		let div = document.getElementById(this.divId);
+    let close = div.querySelector('.saito-icon-button#close');
+    if (close) {
+      close.onclick = async (e) => {
+        if (this.ready) {
+          let c = await sconfirm('Close without saving the file first?');
+          if (!c) {
+            return;
+          }
+        } else if (this.mod.incoming[this.fileId]?.sending) {
+          this.mod.interrupt(this.fileId, this.sender);
+        } else if (this.mod.incoming[this.fileId]) {
+          this.mod.sendRejectTransferTransaction(this.fileId, this.sender);
+        }
 
-		let field = div.querySelector("#peer-connection-status");
-		if (field){
-			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
-		}
-	}
+        this.remove();
+      };
+    }
 
-
-	attachEvents(){
-		this.app.browser.makeDraggable(this.divId, "", true);
-		let div = document.getElementById(this.divId);
-
-		let accept_btn = div.querySelector("#accept-file");
-		let reject_btn = div.querySelector("#reject-file");
-
-		if (accept_btn){
-			accept_btn.onclick = () => {
-				this.mod.prepareToReceive(this.fileId);
-
-				let button_row = div.querySelector('#peer-permission-buttons');
-				if (button_row){
-					button_row.remove();
-				}
-				this.beginTransfer();
-			}
-		}
-
-		if (reject_btn){
-			reject_btn.onclick = () => {
-
-				this.mod.sendRejectTransferTransaction(this.fileId, this.sender);
-				this.remove();
-			}
-		}
-
-		let cancel = div.querySelector('#cancel-transfer');
-		if (cancel){
-			cancel.onclick = () => {
-				this.mod.interrupt(this.fileId, this.sender);
-				this.mod.sendRejectTransferTransaction(this.fileId, this.sender);
-			}
-		}
-
-		let close = div.querySelector(".saito-icon-button#close");
-		if (close){
-			close.onclick = async (e) => {
-				if (this.ready){
-					let c = await sconfirm("Close without saving the file first?");
-					if (!c){
-						return;
-					}
-				}else if (this.mod.incoming[this.fileId]?.sending){
-					this.mod.interrupt(this.fileId, this.sender);	
-				}else if (this.mod.incoming[this.fileId]) {
-					this.mod.sendRejectTransferTransaction(this.fileId, this.sender);
-				}
-				
-				this.remove();
-			}
-		}
-
-
-		let resize = div.querySelector(".saito-icon-button#resize");
-		if (resize){
-			resize.onclick = (e) => {
-				div.classList.toggle("minimize");
-				div.removeAttribute("style");
-			}
-		}
-	}
+    let resize = div.querySelector('.saito-icon-button#resize');
+    if (resize) {
+      resize.onclick = (e) => {
+        div.classList.toggle('minimize');
+        div.removeAttribute('style');
+      };
+    }
+  }
 }
-
 
 module.exports = FileReceiveOverlay;

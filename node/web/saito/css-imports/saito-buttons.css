@@ -3,6 +3,17 @@
  .saito-button-primary / .saito-button-secondary
 -----------------------------------------------------------------*/
 
+:root {
+  --saito-button-primary-background: var(--saito-primary);
+  --saito-button-primary-background-hover: var(--saito-chart-4);
+  --saito-button-primary-foreground: var(--saito-primary-foreground);
+  --saito-button-secondary-background: var(--saito-secondary);
+  --saito-button-secondary-background-hover: var(--saito-accent);
+  --saito-button-secondary-foreground: var(--saito-secondary-foreground);
+  --saito-button-disabled-background: color-mix(in srgb, var(--saito-secondary) 70%, transparent);
+  --saito-button-disabled-foreground: color-mix(in srgb, var(--saito-muted-foreground) 64%, transparent);
+}
+
 /* Browser / reset only — no component chrome */
 button {
   appearance: none;
@@ -45,9 +56,9 @@ button.disabled {
   font-family: var(--saito-font);
   font-size: 1.6rem;
   font-weight: 500;
-  border-radius: var(--saito-button-radius);
+  border-radius: var(--saito-radius);
   cursor: pointer;
-  border: var(--border-thickness-thin) solid var(--saito-button-primary-border);
+  border: 1px solid var(--saito-border);
   padding: 0.75rem 1.2rem;
   margin: var(--saito-space-xs);
   white-space: nowrap;
@@ -58,49 +69,45 @@ button.disabled {
 }
 
 .saito-button-primary {
-  background: var(--saito-button-primary-bg);
-  color: var(--saito-button-primary-fg);
+  background: var(--saito-button-primary-background);
+  color: var(--saito-button-primary-foreground);
 }
 
 .saito-button-secondary {
-  color: var(--saito-button-secondary-fg);
-  background: var(--saito-button-secondary-bg);
-  border-color: var(--saito-button-secondary-border);
+  color: var(--saito-button-secondary-foreground);
+  background: var(--saito-button-secondary-background);
+  border-color: var(--saito-border);
 }
 
 .saito-button-primary:focus-visible,
 .saito-button-secondary:focus-visible {
-  box-shadow: var(--saito-focus-ring);
+  box-shadow: none;
 }
 
 .saito-button-primary.disabled,
 .saito-button-primary[disabled] {
-  background: var(--saito-button-disabled-bg);
-  color: var(--saito-button-disabled-fg);
-  border: var(--border-thickness-thin) solid var(--saito-font-color-primary);
-  border-color: var(--saito-button-disabled-border);
+  background: var(--saito-button-disabled-background);
+  color: var(--saito-button-disabled-foreground);
   filter: none;
   cursor: not-allowed;
 }
 
 .saito-button-secondary.disabled,
 .saito-button-secondary[disabled] {
-  background: var(--saito-button-disabled-bg);
-  color: var(--saito-button-disabled-fg);
-  border: var(--border-thickness-thin) solid var(--saito-button-disabled-border);
-  border-color: var(--saito-button-disabled-border);
+  background: var(--saito-button-disabled-background);
+  color: var(--saito-button-disabled-foreground);
   filter: none;
   cursor: not-allowed;
 }
 
 .saito-button-primary:hover {
-  background: var(--saito-button-primary-bg-hover);
+  background: var(--saito-button-primary-background-hover);
   color: var(--saito-primary-foreground);
   filter: brightness(1.06);
 }
 
 .saito-button-secondary:hover {
-  background: var(--saito-button-secondary-bg-hover);
+  background: var(--saito-button-secondary-background-hover);
   color: var(--saito-foreground);
   filter: brightness(1.25);
 }
@@ -109,7 +116,7 @@ button.disabled {
 .saito-button-primary[disabled]:hover,
 .saito-button-secondary.disabled:hover,
 .saito-button-secondary[disabled]:hover {
-  background: var(--saito-button-disabled-bg);
+  background: var(--saito-button-disabled-background);
 }
 
 .saito-button-primary.small,
@@ -120,12 +127,25 @@ button.disabled {
   min-height: 2.8rem;
 }
 
+/* Normal height, content-width — tighter horizontal padding only */
+.saito-button-primary.compact,
+.saito-button-secondary.compact {
+  min-width: 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.saito-button-primary.compact i,
+.saito-button-secondary.compact i {
+  margin: 0 0.45rem 0 0;
+}
+
 .saito-button-secondary.small {
   color: unset;
 }
 
 .saito-button-secondary.small:hover {
-  background: var(--saito-surface-selected);
+  background: var(--saito-secondary);
   color: unset;
 }
 
@@ -181,7 +201,6 @@ button.disabled {
 }
 
 .saito-button-row .saito-anchor {
-  margin-left: 1rem;
   margin-right: auto;
 }
 
@@ -214,7 +233,7 @@ span.saito-anchor {
 }
 
 .saito-anchor.clicked {
-  color: var(--saito-primary-dark);
+  color: var(--saito-chart-4);
 }
 
 .saito-anchor:hover {
@@ -229,8 +248,8 @@ span.saito-anchor {
 
 .saito-menu-select-subtle > div:not(.disabled-option):hover,
 .saito-menu-select-subtle > li:not(.disabled-option):hover {
-  background-color: var(--saito-surface-selected);
-  color: var(--saito-font-color-heavy);
+  background-color: var(--saito-secondary);
+  color: var(--saito-foreground);
 }
 
 .saito-menu-select-heavy > div,
@@ -242,7 +261,7 @@ span.saito-anchor {
 .saito-menu-select-heavy > div:not(.disabled-option):hover,
 .saito-menu-select-heavy > li:not(.disabled-option):hover {
   background-color: var(--saito-primary);
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
 }
 
 .saito-menu-select-heavy > .disabled-option,
@@ -290,32 +309,107 @@ span.saito-anchor {
 }
 
 
-/* Icon-only control — no filled chrome; used for overlay chrome, card actions, etc. */
+/* Icon-only control — bordered square always visible; hover brightens, never invents the box */
 .saito-icon-button {
+  box-sizing: border-box;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  min-width: 2.4rem;
+  min-height: 2.4rem;
+  padding: 0;
   margin: 0;
-  background: none;
-  border: none;
-  border-radius: var(--saito-border-radius);
+  background: var(--saito-secondary);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
   cursor: pointer;
-  color: inherit;
-  opacity: 0.7;
+  color: var(--saito-muted-foreground);
+  opacity: 1;
   transition:
-    opacity 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
     background-color 0.16s ease,
-    color 0.16s ease;
+    transform 0.16s ease;
 }
 
 .saito-icon-button:hover {
-  opacity: 1;
-  background-color: var(--saito-surface-selected, color-mix(in srgb, var(--saito-primary) 12%, transparent));
+  border-color: var(--saito-border);
+  color: var(--saito-foreground);
+  background: var(--saito-secondary);
+}
+
+.saito-icon-button:active {
+  color: var(--saito-foreground);
+  transform: scale(0.94);
 }
 
 .saito-icon-button:focus-visible {
-  box-shadow: var(--saito-focus-ring);
+  box-shadow: none;
   outline: none;
 }
 
+.saito-icon-button i {
+  margin: 0;
+  padding: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: inherit;
+}
+
+/* Compact square icon action — dark translucent fill, white border */
+.saito-button-square {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  min-width: 3.6rem;
+  min-height: 3.6rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: #0009;
+  color: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.9;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.saito-button-square:hover {
+  background: #000c;
+  border-color: var(--saito-border);
+  color: #fff;
+  opacity: 1;
+}
+
+.saito-button-square:active {
+  background: #000000b3;
+  opacity: 1;
+}
+
+.saito-button-square:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.saito-button-square i {
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  font-size: inherit;
+  line-height: 1;
+  color: inherit;
+}

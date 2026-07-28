@@ -1,86 +1,110 @@
 const ManagerTemplate = require('./manager.template');
 const BrowseView = require('./browse-view');
 const StorefrontView = require('./storefront-view');
-const EmptyPanel = require('./empty-panel');
+const SalesView = require('./sales-view');
 
 class Manager {
-	constructor(app, mod, container = '', callbacks = {}) {
-		this.app = app;
-		this.mod = mod;
-		this.container = container;
-		this.activePanel = 'browse';
-		this.onSell = callbacks.onSell;
+  constructor(app, mod, container = '', callbacks = {}) {
+    this.app = app;
+    this.mod = mod;
+    this.container = container;
+    this.activePanel = 'browse';
+    this.onStoreModeChange = callbacks.onStoreModeChange;
 
-		this.browse = new BrowseView(app, mod, '', {
-			onSell: callbacks.onSell
-		});
-		this.storefront = new StorefrontView(app, mod, '', {
-			onSell: callbacks.onSell
-		});
-		this.sales = new EmptyPanel(app, mod, {
-			title: 'No sales yet',
-			body: 'Completed sales will show up in this space.',
-			actionLabel: 'Sell Something',
-			onAction: () => this.onSell?.()
-		});
-	}
+    const onViewChange = (mode) => {
+      if (typeof this.onStoreModeChange === 'function') {
+        this.onStoreModeChange(mode);
+      }
+    };
 
-	render(container = '') {
-		if (container) {
-			this.container = container;
-		}
+    this.browse = new BrowseView(app, mod, '');
+    this.storefront = new StorefrontView(app, mod, '', {
+      onSell: callbacks.onSell,
+      onViewChange
+    });
+    this.sales = new SalesView(app, mod, '');
+  }
 
-		if (!this.container) {
-			return;
-		}
+  render(container = '') {
+    if (container) {
+      this.container = container;
+    }
 
-		this.app.browser.replaceElementContentBySelector(ManagerTemplate(), this.container);
+    if (!this.container) {
+      return;
+    }
 
-		this.browse.render(`${this.container} [data-panel="browse"]`);
-		this.storefront.render(`${this.container} [data-panel="my-listings"]`);
-		this.sales.render(`${this.container} [data-panel="sales"]`);
+    this.app.browser.replaceElementContentBySelector(ManagerTemplate(), this.container);
 
-		this.show(this.activePanel);
-	}
+    this.browse.render(`${this.container} [data-panel="browse"]`);
+    this.storefront.render(`${this.container} [data-panel="my-listings"]`);
+    this.sales.render(`${this.container} [data-panel="sales"]`);
 
-	show(panel = 'browse') {
-		this.activePanel = panel || 'browse';
+    this.show(this.activePanel);
+  }
 
-		const root = document.querySelector(this.container);
-		if (!root) {
-			return;
-		}
+  show(panel = 'browse') {
+    this.activePanel = panel || 'browse';
 
-		root.querySelectorAll('[data-panel]').forEach((el) => {
-			const match = el.getAttribute('data-panel') === this.activePanel;
-			el.classList.toggle('is-active', match);
-		});
-	}
+    if (!this.container) {
+      return;
+    }
 
-	/**
-	 * Open the creator storefront panel for a public key (My Listings / /store/<pk>).
-	 */
-	showStorefront(publicKey = '') {
-		this.show('my-listings');
-		return this.storefront.show(publicKey);
-	}
+    const root = document.querySelector(this.container);
+    if (!root) {
+      return;
+    }
 
-	scrollToTop() {
-		const shell = document.querySelector('.saito-container.store-container');
-		if (shell) {
-			shell.scrollTo({ top: 0, behavior: 'smooth' });
-			return;
-		}
-		document.querySelector('.store .hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-	}
+    root.querySelectorAll('[data-panel]').forEach((el) => {
+      const match = el.getAttribute('data-panel') === this.activePanel;
+      el.classList.toggle('is-active', match);
+    });
+  }
 
-	scrollToListings() {
-		this.browse.scrollToListings();
-	}
+  /**
+   * Open the creator storefront / admin panel for a public key.
+   * @param {string} publicKey
+   * @param {{ viewMode?: 'public' | 'admin' | 'admin-denied', adminSection?: 'home' | 'active' }} [opts]
+   */
+  showStorefront(publicKey = '', { viewMode = 'public', adminSection = 'home' } = {}) {
+    this.show('my-listings');
+    return this.storefront.show(publicKey, { viewMode, adminSection });
+  }
 
-	renderListings() {
-		this.browse.renderListings();
-	}
+  showSales() {
+    this.show('sales');
+    const seller = String(this.mod.publicKey || '').trim();
+    const sf = this.storefront;
+    // Reuse the same warehouse payload Active Listings already loaded.
+    if (seller && sf.publicKey === seller && sf.inventoryLoaded && !sf.loading) {
+      return this.sales.show(sf.soldSummaries);
+    }
+    return this.sales.show();
+  }
+
+  scrollToListings() {
+    this.browse.scrollToListings();
+  }
+
+  renderListings() {
+    this.browse.renderListings();
+  }
+
+  loadBrowsePage({ category = '', page = 1, scroll = false } = {}) {
+    this.show('browse');
+    return this.browse.loadPage({ category, page, scroll });
+  }
+
+  reloadBrowsePage() {
+    if (this.activePanel !== 'browse') {
+      return;
+    }
+    return this.browse.loadPage({
+      category: this.browse.category,
+      page: this.browse.page,
+      scroll: false
+    });
+  }
 }
 
 module.exports = Manager;

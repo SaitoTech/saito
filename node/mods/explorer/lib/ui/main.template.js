@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
     <main class="explorer-content explorer-view-panel">
       <div class="explorer-container explorer-stack">
         <h1 class="explorer-page-title">The Saito Blockchain Explorer</h1>

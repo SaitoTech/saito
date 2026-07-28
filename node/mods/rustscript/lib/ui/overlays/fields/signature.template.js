@@ -1,10 +1,7 @@
+const { buildRustscriptOverlay } = require('../overlay.shell');
+
 module.exports = (options) => {
-  const {
-    pkDisplay,
-    msgDisplay,
-    canAutoSign,
-    currentValue
-  } = options;
+  const { pkDisplay, msgDisplay, canAutoSign, currentValue } = options;
 
   const safePk = String(pkDisplay ?? '')
     .replace(/&/g, '&amp;')
@@ -22,29 +19,26 @@ module.exports = (options) => {
   let manualBlock = '';
   if (!canAutoSign) {
     manualBlock = `
-      <label class="rs-prompt-label" for="rs-prompt-signature-value">Signature</label>
+      <label class="rs-overlay-label" for="rs-prompt-signature-value">Signature</label>
       <textarea id="rs-prompt-signature-value" class="saito-textarea rs-prompt-value rs-prompt-signature-value" spellcheck="false" placeholder="hex signature">${safeValue}</textarea>
     `;
   }
 
-  const actions = canAutoSign
-    ? `<div class="overlay-actions overlay-actions-apply-only">
-        <button type="button" class="rs-btn rs-btn-primary rs-prompt-sign-wallet">Sign with My Key</button>
-      </div>`
-    : `<div class="overlay-actions overlay-actions-apply-only">
-        <button type="button" class="rs-btn rs-btn-primary rs-prompt-apply">Apply</button>
-      </div>`;
+  const actionsHtml = canAutoSign
+    ? `<button type="button" class="rs-btn rs-btn-primary rs-prompt-sign-wallet">Sign with My Key</button>`
+    : `<button type="button" class="rs-btn rs-btn-primary rs-prompt-apply">Apply</button>`;
 
-  return `
-<div class="rustscript-overlay rs-prompt-overlay rs-prompt-signature${canAutoSign ? ' rs-prompt-signature-auto' : ''}">
-  <h2 class="rs-prompt-title">Sign Message</h2>
-  <label class="rs-prompt-label">Required Publickey</label>
-  <div class="rs-prompt-signature-readonly">${safePk}</div>
-  <label class="rs-prompt-label">Message</label>
-  <div class="rs-prompt-signature-readonly rs-prompt-signature-message">${safeMsg}</div>
-  ${manualBlock}
-  <p class="rs-prompt-validation" hidden></p>
-  ${actions}
-</div>
-`;
+  return buildRustscriptOverlay({
+    className: `rs-overlay-prompt rs-prompt-signature${canAutoSign ? ' rs-prompt-signature-auto' : ''}`,
+    title: 'Sign Message',
+    bodyHtml: `
+      <label class="rs-overlay-label">Required Publickey</label>
+      <div class="rs-prompt-signature-readonly">${safePk}</div>
+      <label class="rs-overlay-label">Message</label>
+      <div class="rs-prompt-signature-readonly rs-prompt-signature-message">${safeMsg}</div>
+      ${manualBlock}
+      <p class="rs-prompt-validation" hidden></p>
+    `,
+    actionsHtml
+  });
 };

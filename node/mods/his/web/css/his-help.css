@@ -1,5 +1,5 @@
 .game.his {
-.game-help {
+  .game-help {
     cursor: pointer;
     position: absolute;
     display: block;
@@ -15,25 +15,27 @@
     transform: skew(+55deg);
     margin-left: -24rem;
     z-index: 999;
-}
+  }
 
-.game-help:hover {
+  .game-help:hover {
     background: #ee6600;
-}
+  }
 
-.game-help-hidden {
-  visibility: hidden;
-  opacity: 0;
-  transition: visibility 0s 1s, opacity 1s linear;
-}
+  .game-help-hidden {
+    visibility: hidden;
+    opacity: 0;
+    transition:
+      visibility 0s 1s,
+      opacity 1s linear;
+  }
 
-.game-help-visible {
-  visibility: visible;
-  opacity: 1;
-  transition: opacity 1s linear;
-}
+  .game-help-visible {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 1s linear;
+  }
 
-.game-help-text {
+  .game-help-text {
     font-size: 2.7rem;
     padding-top: 12rem;
     margin-left: 23rem;
@@ -44,5 +46,5 @@
     line-height: 3.5rem;
     letter-spacing: 0.1rem;
     font-weight: bold;
-}
+  }
 }

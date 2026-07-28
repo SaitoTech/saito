@@ -91,7 +91,9 @@ class PublishSettingsOverlay {
     const exitClass =
       direction === 'forward' ? 'stack-publish-slide-exit-left' : 'stack-publish-slide-exit-right';
     const enterClass =
-      direction === 'forward' ? 'stack-publish-slide-enter-right' : 'stack-publish-slide-enter-left';
+      direction === 'forward'
+        ? 'stack-publish-slide-enter-right'
+        : 'stack-publish-slide-enter-left';
 
     panel.classList.add(exitClass);
     await this._wait(180);
@@ -130,352 +132,209 @@ class PublishSettingsOverlay {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  attachEvents() {
-    if (this._waitingInterval) {
-      clearInterval(this._waitingInterval);
-      this._waitingInterval = null;
-    }
-    if (this._countdownInterval) {
-      clearInterval(this._countdownInterval);
-      this._countdownInterval = null;
-    }
+	attachEvents() {
+		const overlayCloseBtn = document.querySelector('.saito-overlay-close');
+		if (overlayCloseBtn) {
+			overlayCloseBtn.onclick = () => {
+				this.overlay.hide();
+			};
+		}
 
-    const isWaiting = this.wizardState.createNftStatus === 'waiting';
-    const keyPhrase =
-      this.postState.accessLevel === 'subscription' ? 'Subscription Key' : 'Access Key';
-    const keysPhrase =
-      this.postState.accessLevel === 'subscription' ? 'Subscription Keys' : 'Access Keys';
-    const waitingMessage = `You'll be back in control in just a moment. We're waiting for your ${keysPhrase} to arrive.`;
+		const accessCards = document.querySelectorAll('.stack-publish-access-card');
+		const accessCheckboxes = document.querySelectorAll('.stack-publish-access-checkbox');
 
-    const overlayCloseBtn = document.querySelector('.saito-overlay-close');
-    if (overlayCloseBtn) {
-      overlayCloseBtn.onclick = () => {
-        if (this._waitingInterval) {
-          clearInterval(this._waitingInterval);
-          this._waitingInterval = null;
-        }
-        if (this._countdownInterval) {
-          clearInterval(this._countdownInterval);
-          this._countdownInterval = null;
-        }
-        this.overlay.hide();
-      };
-    }
+		accessCards.forEach((card) => {
+			card.onclick = (e) => {
+				if (e.target.type === 'checkbox') {
+					return;
+				}
 
-    const accessCards = document.querySelectorAll('.stack-publish-access-card');
-    const accessCheckboxes = document.querySelectorAll('.stack-publish-access-checkbox');
+				const checkbox = card.querySelector('.stack-publish-access-checkbox');
+				const accessValue = card.getAttribute('data-access');
 
-    accessCards.forEach((card) => {
-      card.onclick = (e) => {
-        if (e.target.type === 'checkbox') return;
+				accessCheckboxes.forEach((cb) => {
+					if (cb !== checkbox) {
+						cb.checked = false;
+						cb.closest('.stack-publish-access-card')?.classList.remove(
+							'stack-publish-access-card-active'
+						);
+					}
+				});
 
-        const checkbox = card.querySelector('.stack-publish-access-checkbox');
-        const accessValue = card.getAttribute('data-access');
+				checkbox.checked = true;
+				card.classList.add('stack-publish-access-card-active');
+				this.setAccessLevel(accessValue);
+			};
+		});
 
-        accessCheckboxes.forEach((cb) => {
-          if (cb !== checkbox) {
-            cb.checked = false;
-            cb.closest('.stack-publish-access-card')?.classList.remove(
-              'stack-publish-access-card-active'
-            );
-          }
-        });
+		accessCheckboxes.forEach((checkbox) => {
+			checkbox.onchange = () => {
+				const card = checkbox.closest('.stack-publish-access-card');
+				const accessValue = card?.getAttribute('data-access');
 
-        checkbox.checked = true;
-        card.classList.add('stack-publish-access-card-active');
-        this.setAccessLevel(accessValue);
-      };
-    });
+				if (checkbox.checked) {
+					accessCheckboxes.forEach((cb) => {
+						if (cb !== checkbox) {
+							cb.checked = false;
+							cb.closest('.stack-publish-access-card')?.classList.remove(
+								'stack-publish-access-card-active'
+							);
+						}
+					});
+					card?.classList.add('stack-publish-access-card-active');
+					this.setAccessLevel(accessValue);
+				} else {
+					checkbox.checked = true;
+				}
+			};
+		});
 
-    accessCheckboxes.forEach((checkbox) => {
-      checkbox.onchange = () => {
-        const card = checkbox.closest('.stack-publish-access-card');
-        const accessValue = card?.getAttribute('data-access');
+		const deleteDraftBtn = document.querySelector('#stack-publish-delete-draft-btn');
+		if (deleteDraftBtn) {
+			deleteDraftBtn.onclick = (e) => {
+				e.preventDefault();
+				this.handleDeleteDraft();
+			};
+		}
 
-        if (checkbox.checked) {
-          accessCheckboxes.forEach((cb) => {
-            if (cb !== checkbox) {
-              cb.checked = false;
-              cb.closest('.stack-publish-access-card')?.classList.remove(
-                'stack-publish-access-card-active'
-              );
-            }
-          });
-          card?.classList.add('stack-publish-access-card-active');
-          this.setAccessLevel(accessValue);
-        } else {
-          checkbox.checked = true;
-        }
-      };
-    });
+		const backBtn = document.querySelector('#stack-publish-back-btn');
+		if (backBtn) {
+			backBtn.onclick = (e) => {
+				e.preventDefault();
+				this.handleBack();
+			};
+		}
 
-    // Icon-only delete (bare <i>, same pattern as choose-draft) — not a <button>
-    const deleteDraftBtn = document.querySelector('#stack-publish-delete-draft-btn');
-    if (deleteDraftBtn) {
-      deleteDraftBtn.onclick = (e) => {
-        e.preventDefault();
-        this.handleDeleteDraft();
-      };
-      deleteDraftBtn.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          this.handleDeleteDraft();
-        }
-      };
-    }
+		const publishImmediately = document.querySelector('#stack-publish-immediately');
+		if (publishImmediately) {
+			const publishNow = (e) => {
+				e.preventDefault();
+				this.handlePublish();
+			};
+			publishImmediately.onclick = publishNow;
+			publishImmediately.onkeydown = (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					publishNow(e);
+				}
+			};
+		}
 
-    const backBtn = document.querySelector('#stack-publish-back-btn');
-    if (backBtn) {
-      backBtn.onclick = (e) => {
-        e.preventDefault();
-        if (isWaiting) {
-          siteMessage(waitingMessage, 3500);
-          return;
-        }
-        this.handleBack();
-      };
-    }
+		// Panel 2 — open Create NFT with Stack Access type pre-selected
+		const createKeysLink = document.querySelector('#stack-create-access-key-link');
+		if (createKeysLink) {
+			createKeysLink.onclick = (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				this.openCreateNft();
+			};
+		}
 
-    const publishImmediately = document.querySelector('#stack-publish-immediately');
-    if (publishImmediately) {
-      publishImmediately.onclick = (e) => {
-        e.preventDefault();
-        if (isWaiting) {
-          siteMessage(waitingMessage, 3500);
-          return;
-        }
-        this.handlePublish();
-      };
-    }
+		const listKeysLink = document.querySelector('#stack-list-access-key-link');
+		if (listKeysLink) {
+			listKeysLink.onclick = async (e) => {
+				e.preventDefault();
+				e.stopPropagation();
 
-    // Panel 2 — open Create NFT with Stack Access type pre-selected
-    const createKeysLink = document.querySelector('#stack-create-access-key-link');
-    if (createKeysLink) {
-      createKeysLink.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.openCreateNft();
-      };
-    }
+				const seller = this.app.modules.returnFirstRespondTo('saito-sell-nft');
+				if (!seller) {
+					return;
+				}
 
-    const listKeysLink = document.querySelector('#stack-list-access-key-link');
-    if (listKeysLink) {
-      listKeysLink.onclick = async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+				const nftList = this.app.options.wallet.nfts || [];
+				let rec = null;
+				for (const r of nftList) {
+					const nftType = this.app.wallet.extractNFTType(r.slip3?.utxo_key || '');
+					if (nftType !== 'stack') {
+						continue;
+					}
+					if (
+						this.wizardState.pendingNftSignature &&
+						r.tx_sig === this.wizardState.pendingNftSignature
+					) {
+						rec = r;
+						break;
+					}
+					if (this.wizardState.pendingNftId && r.id === this.wizardState.pendingNftId) {
+						rec = r;
+						break;
+					}
+					const creator = r.slip1?.public_key || '';
+					if (creator === this.mod.publicKey) {
+						rec = r;
+						break;
+					}
+				}
+				if (!rec) {
+					return;
+				}
 
-        const seller = this.app.modules.returnFirstRespondTo('saito-sell-nft');
-        if (!seller) {
-          return;
-        }
+				const SaitoNFT = require('../../../../../lib/saito/ui/saito-nft/saito-nft');
+				// Prefer the mint tx retained from create (wallet records do not store full txs).
+				const access_key_nft = new SaitoNFT(
+					this.app,
+					this.mod,
+					this.wizardState.pendingNftTx || null,
+					rec
+				);
+				if (!access_key_nft.tx && typeof access_key_nft.fetchTransaction === 'function') {
+					await new Promise((resolve) => {
+						let settled = false;
+						const finish = () => {
+							if (!settled) {
+								settled = true;
+								resolve();
+							}
+						};
+						access_key_nft.fetchTransaction(finish);
+						setTimeout(finish, 8000);
+					});
+				}
+				if (!access_key_nft.tx) {
+					siteMessage(
+						'Could not load the Access Key transaction yet. Wait a moment and try again.',
+						4000
+					);
+					return;
+				}
 
-        const nftList = this.app.options.wallet.nfts || [];
-        let rec = null;
-        for (const r of nftList) {
-          const nftType = this.app.wallet.extractNFTType(r.slip3?.utxo_key || '');
-          if (nftType !== 'stack') {
-            continue;
-          }
-          if (this.wizardState.pendingNftSignature && r.tx_sig === this.wizardState.pendingNftSignature) {
-            rec = r;
-            break;
-          }
-          if (this.wizardState.pendingNftId && r.id === this.wizardState.pendingNftId) {
-            rec = r;
-            break;
-          }
-          const creator = r.slip1?.public_key || '';
-          if (creator === this.mod.publicKey) {
-            rec = r;
-            break;
-          }
-        }
-        if (!rec) {
-          return;
-        }
+				const total =
+					Number(access_key_nft.getTotalAmount?.() || access_key_nft.amount || rec.amount || 1) ||
+					1;
 
-        const SaitoNFT = require('../../../../../lib/saito/ui/saito-nft/saito-nft');
-        // Prefer the mint tx retained from create (wallet records do not store full txs).
-        const access_key_nft = new SaitoNFT(
-          this.app,
-          this.mod,
-          this.wizardState.pendingNftTx || null,
-          rec
-        );
-        if (!access_key_nft.tx && typeof access_key_nft.fetchTransaction === 'function') {
-          await new Promise((resolve) => {
-            let settled = false;
-            const finish = () => {
-              if (!settled) {
-                settled = true;
-                resolve();
-              }
-            };
-            access_key_nft.fetchTransaction(finish);
-            setTimeout(finish, 8000);
-          });
-        }
-        if (!access_key_nft.tx) {
-          siteMessage(
-            'Could not load the Access Key transaction yet. Wait a moment and try again.',
-            4000
-          );
-          return;
-        }
+				seller.render({
+					nft: access_key_nft,
+					quantity: Math.max(1, total - 1),
+					callback: (result) => {
+						if (result?.status === 'listed') {
+							this.wizardState.isListedInStore = true;
+							this.render(this.postState, { preserveStep: true });
+						}
+					}
+				});
+			};
+		}
 
-        const total =
-          Number(access_key_nft.getTotalAmount?.() || access_key_nft.amount || rec.amount || 1) || 1;
+		const tokensLink = document.querySelector('#stack-publish-tokens-link');
+		if (tokensLink) {
+			tokensLink.onclick = (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+			};
+		}
 
-        seller.render({
-          nft: access_key_nft,
-          quantity: Math.max(1, total - 1),
-          callback: (result) => {
-            if (result?.status === 'listed') {
-              this.wizardState.isListedInStore = true;
-              this.render(this.postState, { preserveStep: true });
-            }
-          }
-        });
-      };
-    }
-
-    const tokensLink = document.querySelector('#stack-publish-tokens-link');
-    if (tokensLink) {
-      tokensLink.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        // Placeholder until token faucet / purchase flow is confirmed for this screen
-      };
-    }
-
-    const primaryBtn = document.querySelector('#stack-publish-primary-btn');
-    if (primaryBtn) {
-      primaryBtn.onclick = (e) => {
-        e.preventDefault();
-        if (isWaiting) {
-          siteMessage(waitingMessage, 3500);
-          return;
-        }
-        const action = primaryBtn.getAttribute('data-action') || 'publish';
-        if (action === 'next') {
-          this.handleNext();
-        } else {
-          this.handlePublish();
-        }
-      };
-    }
-
-    if (isWaiting) {
-      const countdownEl = document.querySelector('#stack-publish-countdown');
-      const reassuranceEl = document.querySelector('#stack-publish-reassurance');
-      const reassuranceMessages = [
-        'Your wallet will update automatically.',
-        `We're waiting for the network to confirm your ${keyPhrase}.`,
-        'This usually takes around 30 seconds.'
-      ];
-      let seconds = 29;
-      let reassuranceIndex = 0;
-
-      if (countdownEl) {
-        countdownEl.textContent = String(seconds);
-      }
-
-      (async () => {
-        try {
-          await this.app.wallet.updateNFTList();
-          const nftList = this.app.options.wallet.nfts || [];
-          let found = false;
-
-          for (const rec of nftList) {
-            const nftType = this.app.wallet.extractNFTType(rec.slip3?.utxo_key || '');
-            if (nftType !== 'stack') {
-              continue;
-            }
-            if (this.wizardState.pendingNftSignature && rec.tx_sig === this.wizardState.pendingNftSignature) {
-              found = true;
-              break;
-            }
-            if (this.wizardState.pendingNftId && rec.id === this.wizardState.pendingNftId) {
-              found = true;
-              break;
-            }
-            const creator = rec.slip1?.public_key || '';
-            if (creator === this.mod.publicKey) {
-              found = true;
-              break;
-            }
-          }
-
-          if (found && this.wizardState.createNftStatus === 'waiting') {
-            if (this._waitingInterval) {
-              clearInterval(this._waitingInterval);
-              this._waitingInterval = null;
-            }
-            if (this._countdownInterval) {
-              clearInterval(this._countdownInterval);
-              this._countdownInterval = null;
-            }
-            this.wizardState.createNftStatus = 'confirmed';
-            this.wizardState.hasAccessKey = true;
-            this.render(this.postState, { preserveStep: true });
-          }
-        } catch (err) {
-          console.warn('Stack publish: waiting for Access Key', err);
-        }
-      })();
-
-      this._countdownInterval = setInterval(() => {
-        seconds -= 1;
-        if (countdownEl) {
-          countdownEl.textContent = String(Math.max(0, seconds));
-        }
-        if (seconds > 0 && seconds % 10 === 0 && reassuranceEl) {
-          reassuranceIndex = (reassuranceIndex + 1) % reassuranceMessages.length;
-          reassuranceEl.textContent = reassuranceMessages[reassuranceIndex];
-        }
-      }, 1000);
-
-      this._waitingInterval = setInterval(async () => {
-        try {
-          await this.app.wallet.updateNFTList();
-          const nftList = this.app.options.wallet.nfts || [];
-          let found = false;
-
-          for (const rec of nftList) {
-            const nftType = this.app.wallet.extractNFTType(rec.slip3?.utxo_key || '');
-            if (nftType !== 'stack') {
-              continue;
-            }
-            if (this.wizardState.pendingNftSignature && rec.tx_sig === this.wizardState.pendingNftSignature) {
-              found = true;
-              break;
-            }
-            if (this.wizardState.pendingNftId && rec.id === this.wizardState.pendingNftId) {
-              found = true;
-              break;
-            }
-            const creator = rec.slip1?.public_key || '';
-            if (creator === this.mod.publicKey) {
-              found = true;
-              break;
-            }
-          }
-
-          if (found) {
-            clearInterval(this._waitingInterval);
-            clearInterval(this._countdownInterval);
-            this._waitingInterval = null;
-            this._countdownInterval = null;
-            this.wizardState.createNftStatus = 'confirmed';
-            this.wizardState.hasAccessKey = true;
-            this.render(this.postState, { preserveStep: true });
-          }
-        } catch (err) {
-          console.warn('Stack publish: waiting for Access Key', err);
-        }
-      }, 2000);
-    }
-  }
+		const primaryBtn = document.querySelector('#stack-publish-primary-btn');
+		if (primaryBtn) {
+			primaryBtn.onclick = (e) => {
+				e.preventDefault();
+				const action = primaryBtn.getAttribute('data-action') || 'publish';
+				if (action === 'next') {
+					this.handleNext();
+				} else {
+					this.handlePublish();
+				}
+			};
+		}
+	}
 
   /**
    * Open the shared Create NFT dialog with Stack Access type pre-selected.
@@ -495,8 +354,7 @@ class PublishSettingsOverlay {
       createNft = this.createNftOverlay;
     }
 
-    const username =
-      this.app.keychain.returnUsername(this.mod.publicKey) || 'this author';
+    const username = this.app.keychain.returnUsername(this.mod.publicKey) || 'this author';
 
     let wallet_balance = await this.app.wallet.getBalance('SAITO');
     let quantity = 1;
@@ -525,29 +383,51 @@ class PublishSettingsOverlay {
       }
     } catch (err) {}
 
-    const defaults = {
-      type: 'stack',
-      title: 'Stack Access Key',
-      description: `This NFT provides read-access to ${username}'s posts on Saito Stack.`,
-      quantity: quantity,
-      deposit: quantity,
-      locked: ['type'],
-      callback: (obj) => {
-        if (obj?.status === 'created') {
-          this.wizardState.hasAccessKey = true;
-          this.wizardState.createNftStatus = 'waiting';
-          this.wizardState.pendingNftId = obj.nft_id || null;
-          this.wizardState.pendingNftSignature = obj.signature || null;
-          this.wizardState.pendingNftTx = obj.tx || null;
-          this.render(this.postState, { preserveStep: true });
-        }
+		const defaults = {
+			type: 'stack',
+			title: 'Stack Access Key',
+			description: `This NFT provides read-access to ${username}'s posts on Saito Stack.`,
+			quantity: quantity,
+			deposit: quantity,
+			locked: ['type'],
+			callback: (obj) => {
+				if (obj?.status === 'created') {
+					this.wizardState.createNftStatus = 'waiting';
+					this.wizardState.pendingNftId = obj.nft_id || null;
+					this.wizardState.pendingNftSignature = obj.signature || null;
+					this.wizardState.pendingNftTx = obj.tx || null;
 
-        if (obj?.status === 'cancelled') {
-          this.wizardState.createNftStatus = 'cancelled';
-          this.render(this.postState, { preserveStep: true });
-        }
-      }
-    };
+					const keyLabel =
+						this.postState.accessLevel === 'subscription'
+							? 'Subscription Key'
+							: 'Access Key';
+
+					this.overlay.hide();
+					this.watchTransaction(obj.tx, {
+						title: `Creating ${keyLabel}`,
+						lead: `Your ${keyLabel} is being broadcast to the Saito network.`,
+						subtitle: 'Waiting for confirmation...',
+						successTitle: `${keyLabel} Confirmed`,
+						successLead: `Your ${keyLabel} has been confirmed and is available in your wallet.`,
+						onConfirmed: () => {
+							this.wizardState.createNftStatus = 'confirmed';
+							this.wizardState.hasAccessKey = true;
+							this.render(this.postState, { preserveStep: true });
+						},
+						onCancelled: () => {
+							this.wizardState.createNftStatus = 'cancelled';
+							this.render(this.postState, { preserveStep: true });
+						}
+					});
+					return;
+				}
+
+				if (obj?.status === 'cancelled') {
+					this.wizardState.createNftStatus = 'cancelled';
+					this.render(this.postState, { preserveStep: true });
+				}
+			}
+		};
     if (image) {
       defaults.image = image;
     }
@@ -647,41 +527,21 @@ class PublishSettingsOverlay {
     this.render(this.postState, { preserveStep: true });
   }
 
-  handleBack() {
-    if (this.wizardState.createNftStatus === 'waiting') {
-      const keysPhrase =
-        this.postState.accessLevel === 'subscription' ? 'Subscription Keys' : 'Access Keys';
-      siteMessage(
-        `You'll be back in control in just a moment. We're waiting for your ${keysPhrase} to arrive.`,
-        3500
-      );
-      return;
-    }
+	handleBack() {
+		if (this.wizardState.step <= 1) {
+			this.overlay.hide();
+			return;
+		}
 
-    if (this.wizardState.step <= 1) {
-      this.overlay.hide();
-      return;
-    }
+		this.wizardState.step -= 1;
+		this.renderStep('back');
+	}
 
-    this.wizardState.step -= 1;
-    this.renderStep('back');
-  }
-
-  async handleNext() {
-    if (this.wizardState.createNftStatus === 'waiting') {
-      const keysPhrase =
-        this.postState.accessLevel === 'subscription' ? 'Subscription Keys' : 'Access Keys';
-      siteMessage(
-        `You'll be back in control in just a moment. We're waiting for your ${keysPhrase} to arrive.`,
-        3500
-      );
-      return;
-    }
-
-    const level = this.postState.accessLevel;
-    if (level !== 'private' && level !== 'subscription') {
-      return;
-    }
+	async handleNext() {
+		const level = this.postState.accessLevel;
+		if (level !== 'private' && level !== 'subscription') {
+			return;
+		}
 
     const nextStep = this.wizardState.step + 1;
 
@@ -753,23 +613,54 @@ class PublishSettingsOverlay {
     };
   }
 
-  async handlePublish() {
-    if (this.wizardState.createNftStatus === 'waiting') {
-      const keysPhrase =
-        this.postState.accessLevel === 'subscription' ? 'Subscription Keys' : 'Access Keys';
-      siteMessage(
-        `You'll be back in control in just a moment. We're waiting for your ${keysPhrase} to arrive.`,
-        3500
-      );
-      return;
-    }
+	watchTransaction(tx, {
+		title = 'Waiting for Confirmation',
+		lead = '',
+		subtitle = 'Waiting for confirmation...',
+		successTitle = 'Confirmed',
+		successLead = '',
+		onConfirmed = null,
+		onCancelled = null
+	} = {}) {
+		if (!this.mod.transaction_monitor) {
+			console.error('Stack: transaction_monitor is not initialized');
+			if (typeof onCancelled === 'function') {
+				onCancelled();
+			}
+			return;
+		}
 
-    let wallet_balance = await this.app.wallet.getBalance('SAITO');
-    if (Number(wallet_balance) == 0) {
-      siteMessage('A Saito balance is needed to Publish Posts...', 3000);
-      this.app.connection.emit('saito-purchase-launch');
-      return;
-    }
+		this.mod.transaction_monitor.render({
+			tx,
+			title,
+			lead,
+			subtitle,
+			successTitle,
+			successLead,
+			successActionLabel: 'Continue',
+			callback: (result) => {
+				if (result?.status === 'confirmed') {
+					if (typeof onConfirmed === 'function') {
+						onConfirmed(result);
+					}
+					return;
+				}
+				if (result?.status === 'cancelled') {
+					if (typeof onCancelled === 'function') {
+						onCancelled(result);
+					}
+				}
+			}
+		});
+	}
+
+	async handlePublish() {
+		let wallet_balance = await this.app.wallet.getBalance('SAITO');
+		if (Number(wallet_balance) == 0) {
+			siteMessage('A Saito balance is needed to Publish Posts...', 3000);
+			this.app.connection.emit('saito-purchase-launch');
+			return;
+		}
 
     const title = document.querySelector('#stack-post-title-input')
       ? document.querySelector('#stack-post-title-input').value || ''
@@ -990,70 +881,92 @@ class PublishSettingsOverlay {
         }
       }
 
-      if (this.mod.create_post_ui) {
-        this.mod.create_post_ui.activeDraftId = null;
-        this.mod.create_post_ui.draftTransaction = null;
-        this.mod.create_post_ui.sessionIntent = null;
-        this.mod.create_post_ui.isPublished = true;
-      }
+			if (this.mod.create_post_ui) {
+				this.mod.create_post_ui.activeDraftId = null;
+				this.mod.create_post_ui.draftTransaction = null;
+				this.mod.create_post_ui.sessionIntent = null;
+				this.mod.create_post_ui.isPublished = true;
+			}
 
-      this.overlay.hide();
+			this.overlay.hide();
 
-      if (
-        this.mod.create_post_ui &&
-        typeof this.mod.create_post_ui.onEditorUnmount === 'function'
-      ) {
-        this.mod.create_post_ui.onEditorUnmount();
-      }
+			if (
+				this.mod.create_post_ui &&
+				typeof this.mod.create_post_ui.onEditorUnmount === 'function'
+			) {
+				this.mod.create_post_ui.onEditorUnmount();
+			}
 
-      if (!this.mod.viewPostComponent) {
-        const ViewPost = require('../view-post');
-        this.mod.viewPostComponent = new ViewPost(this.app, this.mod, '.saito-container');
-      }
+			const isUpdate = !!parent_id;
+			this.watchTransaction(publishedTx, {
+				title: isUpdate ? 'Updating Post' : 'Publishing Post',
+				lead: isUpdate
+					? 'Your update is being broadcast to the Saito network.'
+					: 'Your post is being broadcast to the Saito network.',
+				subtitle: 'Waiting for confirmation...',
+				successTitle: isUpdate ? 'Post Updated' : 'Post Published',
+				successLead: isUpdate
+					? 'Your update has been confirmed and is now available on the network.'
+					: 'Your post has been confirmed and is now available on the network.',
+				onConfirmed: () => {
+					this.openPublishedPost(publishedTx);
+				},
+				onCancelled: () => {
+					// Transaction was already broadcast — still open the post view.
+					this.openPublishedPost(publishedTx);
+				}
+			});
+		} catch (error) {
+			console.error('Error publishing post:', error);
+			const parent_id =
+				this.mod.create_post_ui && this.mod.create_post_ui.parent_id
+					? this.mod.create_post_ui.parent_id
+					: null;
+			if (parent_id) {
+				siteMessage('Unable to update post', 3000);
+			} else {
+				siteMessage('Unable to publish post', 3000);
+			}
+			siteMessage('Failed to publish post. Please try again.');
+		}
+	}
 
-      this.mod.viewPostComponent.render(publishedTx);
+	openPublishedPost(publishedTx) {
+		if (!this.mod.viewPostComponent) {
+			const ViewPost = require('../view-post');
+			this.mod.viewPostComponent = new ViewPost(this.app, this.mod, '.saito-container');
+		}
 
-      if (publishedTx && publishedTx.signature) {
-        const authorPublicKey = this.mod.publicKey;
-        if (authorPublicKey) {
-          const canonicalUrl = `/${this.mod.slug}/${authorPublicKey}/${publishedTx.signature}`;
-          window.history.pushState(
-            { view: 'stack_post', publicKey: authorPublicKey, signature: publishedTx.signature },
-            null,
-            canonicalUrl
-          );
-        }
-      }
+		this.mod.viewPostComponent.render(publishedTx);
 
-      const finalParentId = publishedTx
-        ? publishedTx.returnMessage()?.data?.parent_id || null
-        : null;
-      if (finalParentId) {
-        siteMessage('Post updated', 1500);
-      } else {
-        siteMessage('Stack post published', 1500);
-      }
-    } catch (error) {
-      console.error('Error publishing post:', error);
-      const parent_id =
-        this.mod.create_post_ui && this.mod.create_post_ui.parent_id
-          ? this.mod.create_post_ui.parent_id
-          : null;
-      if (parent_id) {
-        siteMessage('Unable to update post', 3000);
-      } else {
-        siteMessage('Unable to publish post', 3000);
-      }
-      siteMessage('Failed to publish post. Please try again.');
-    }
-  }
+		if (publishedTx && publishedTx.signature) {
+			const authorPublicKey = this.mod.publicKey;
+			if (authorPublicKey) {
+				const canonicalUrl = `/${this.mod.slug}/${authorPublicKey}/${publishedTx.signature}`;
+				window.history.pushState(
+					{ view: 'stack_post', publicKey: authorPublicKey, signature: publishedTx.signature },
+					null,
+					canonicalUrl
+				);
+			}
+		}
 
-  handleViewPreview() {
-    this.overlay.hide();
-    if (this.mod.previewOverlay) {
-      this.mod.previewOverlay.render();
-    }
-  }
+		const finalParentId = publishedTx
+			? publishedTx.returnMessage()?.data?.parent_id || null
+			: null;
+		if (finalParentId) {
+			siteMessage('Post updated', 1500);
+		} else {
+			siteMessage('Stack post published', 1500);
+		}
+	}
+
+	handleViewPreview() {
+		this.overlay.hide();
+		if (this.mod.previewOverlay) {
+			this.mod.previewOverlay.render();
+		}
+	}
 }
 
 module.exports = PublishSettingsOverlay;

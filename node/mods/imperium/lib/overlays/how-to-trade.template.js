@@ -1,8 +1,5 @@
-module.exports  = (
-	imperium_self,
-	units
-) => {
-	return `
+module.exports = (imperium_self, units) => {
+  return `
     <div class="how-to-trade-overlay hide-scrollbar">
 
         <div class="title">Trade Goods</div>

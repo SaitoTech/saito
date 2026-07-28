@@ -24,12 +24,16 @@ class PanelReferenceView {
     const remaining = Number(context.remainingCount) || 0;
     const items = this.buildItems(phase, remaining);
 
-    this.container.innerHTML = `
-      <div class="rs-panel-ref rs-panel-ref-${phase}">
-        <ul class="rs-panel-ref-list">
-          ${items.join('')}
-        </ul>
-      </div>
+    let ref = this.container.querySelector(':scope > .rs-panel-ref');
+    if (!ref) {
+      ref = document.createElement('div');
+      this.container.appendChild(ref);
+    }
+    ref.className = `rs-panel-ref rs-panel-ref-${phase}`;
+    ref.innerHTML = `
+      <ul class="rs-panel-ref-list">
+        ${items.join('')}
+      </ul>
     `;
 
     this.bindEvents();
@@ -77,11 +81,13 @@ class PanelReferenceView {
   }
 
   bindEvents() {
-    this.container?.querySelector('[data-action="move-to-testing"]')?.addEventListener('click', () => {
-      if (typeof this.lastContext?.onMoveToTesting === 'function') {
-        this.lastContext.onMoveToTesting();
-      }
-    });
+    this.container
+      ?.querySelector('[data-action="move-to-testing"]')
+      ?.addEventListener('click', () => {
+        if (typeof this.lastContext?.onMoveToTesting === 'function') {
+          this.lastContext.onMoveToTesting();
+        }
+      });
 
     this.container?.querySelector('[data-action="publish"]')?.addEventListener('click', () => {
       if (typeof this.lastContext?.onPublish === 'function') {
@@ -89,11 +95,13 @@ class PanelReferenceView {
       }
     });
 
-    this.container?.querySelector('[data-action="unlock-solution"]')?.addEventListener('click', () => {
-      if (typeof this.lastContext?.onUnlockSolution === 'function') {
-        this.lastContext.onUnlockSolution();
-      }
-    });
+    this.container
+      ?.querySelector('[data-action="unlock-solution"]')
+      ?.addEventListener('click', () => {
+        if (typeof this.lastContext?.onUnlockSolution === 'function') {
+          this.lastContext.onUnlockSolution();
+        }
+      });
   }
 }
 
@@ -112,9 +120,8 @@ class RustscriptPanel {
       return;
     }
 
-    el.innerHTML = `<div class="rustscript-panel-reference"></div>`;
-    const refEl = el.querySelector('.rustscript-panel-reference');
-    this.referenceView.mount(refEl);
+    el.innerHTML = '';
+    this.referenceView.mount(el);
 
     const locking = lockingView(deepClone(this.mod.getScript()));
     const unlocking = this.main.testingUnlocked ? this.mod.getScript() : {};

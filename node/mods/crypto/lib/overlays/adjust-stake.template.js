@@ -1,5 +1,4 @@
 module.exports = (app, self) => {
-
   let default_bet = Math.min(self.match_stake, self.max_stake);
 
   return `  
@@ -11,7 +10,7 @@ module.exports = (app, self) => {
           type="number" min="${self.min_stake}" max="${self.max_stake}" step="0.00000001" value="${default_bet}" >
         <div class="crypto_msg">
           <div class="select_min">Min: ${self.min_stake}</div>
-          <div class="select_match ${(self.max_stake < self.match_stake) ? "nomatch" : ""}">Match: ${self.match_stake}</div>
+          <div class="select_match ${self.max_stake < self.match_stake ? 'nomatch' : ''}">Match: ${self.match_stake}</div>
           <div class="select_max">Max: ${Math.round(1000 * self.max_stake) / 1000}</div>
         </div>
         <div class="crypto-ticker">${self.ticker}</div>

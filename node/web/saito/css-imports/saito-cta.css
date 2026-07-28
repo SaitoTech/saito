@@ -1,0 +1,97 @@
+:root {
+  /* CTA component configuration */
+  --saito-cta-logo: var(--saito-white);
+  --saito-cta-action-background: linear-gradient(90deg, #dd4708, #b93205);
+  --saito-cta-action-shadow: 0 0 32px -10px rgba(196, 59, 8, 0.42);
+}
+
+/*
+ * .saito-cta — canonical CTA splash surface.
+ * Owns shared card chrome + desktop splash layout.
+ * Modules keep logo masks, artwork, and one-off layout only.
+ */
+.saito-cta {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.4rem;
+  width: min(95vw, 860px);
+  max-width: 100%;
+  padding: 3.2rem;
+  border-radius: calc(var(--saito-radius) + 0.15rem);
+  background: var(--saito-card);
+  box-shadow: var(--saito-elevation-0);
+  border: 1px solid var(--saito-border);
+}
+
+.saito-cta :is(.saito-button-primary, .saito-button-secondary) {
+  width: 100%;
+  height: 4.5rem;
+  min-height: 4.5rem;
+  margin: 0;
+}
+
+.saito-cta .saito-button-row {
+  display: flex;
+  flex-flow: row nowrap;
+  width: 100%;
+  gap: 2rem;
+}
+
+.saito-cta .saito-button-row > :is(.saito-button-primary, .saito-button-secondary) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+body:has(.saito-cta) .pace {
+  display: none;
+}
+
+.saito-cta-logo {
+  color: var(--saito-cta-logo, var(--saito-white, #fff));
+}
+
+.saito-cta-logo::after {
+  background: currentColor;
+}
+
+@media (max-width: 720px) {
+  .saito-cta {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    box-sizing: border-box;
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 2.4rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow-y: auto;
+    transform: none;
+    align-content: safe center;
+    justify-content: safe center;
+  }
+
+  .saito-cta .saito-button-row {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 2rem;
+  }
+
+  .saito-cta .saito-button-row > :is(.saito-button-primary, .saito-button-secondary) {
+    flex: 0 0 4.5rem;
+    width: 100%;
+  }
+}

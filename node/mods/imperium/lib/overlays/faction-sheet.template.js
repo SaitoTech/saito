@@ -1,9 +1,5 @@
-module.exports  = (
-	imperium_self,
-	player,
-	faction_name
-) => {
-	return `
+module.exports = (imperium_self, player, faction_name) => {
+  return `
 
   <div style="" class="faction-sheet p${player} bc${player}">
 

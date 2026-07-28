@@ -5,13 +5,13 @@
 
 html {
   scrollbar-width: thin;
-  scrollbar-color: var(--saito-border-color) var(--saito-background-color);
+  scrollbar-color: var(--saito-border) var(--saito-background);
   color-scheme: dark;
 }
 
 html select option {
-  background-color: var(--saito-background-color);
-  color: var(--saito-font-color);
+  background-color: var(--saito-background);
+  color: var(--saito-foreground);
 }
 
 html ::-webkit-scrollbar {
@@ -20,11 +20,11 @@ html ::-webkit-scrollbar {
 }
 
 html ::-webkit-scrollbar-track {
-  background: var(--saito-background-color);
+  background: var(--saito-background);
 }
 
 html ::-webkit-scrollbar-thumb {
-  background: var(--saito-border-color);
+  background: var(--saito-border);
   border-radius: 4px;
 }
 
@@ -34,5 +34,5 @@ html ::-webkit-scrollbar-thumb:hover {
 
 html ::selection {
   background: var(--saito-primary);
-  color: var(--saito-primary-text);
+  color: var(--saito-primary-foreground);
 }

@@ -5,16 +5,16 @@ Saito Identicon
 .saito-identicon {
   width: 3.5rem;
   height: 3.5rem;
-  border: var(--border-thickness-thin) solid var(--saito-background-color);
-  border-radius: var(--saito-border-radius);
-  background: var(--saito-background-color);
+  border: 1px solid var(--saito-background);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
 }
 
 .saito-identicon-box {
   width: 3.5rem;
   height: 3.5rem;
-  border: var(--border-thickness-thin) solid var(--saito-background-color);
-  border-radius: var(--saito-identicon-border-radius);
+  border: 1px solid var(--saito-background);
+  border-radius: var(--saito-radius);
   cursor: pointer; /* app.browser tries to turn all .saito-identicon into clickable target */
 }
 
@@ -72,7 +72,7 @@ Saito User
 }
 
 .saito-user > .saito-address {
-  color: var(--saito-font-color);
+  color: var(--saito-foreground);
   grid-column-start: 2;
   grid-column-end: span 1;
   grid-row-start: 1;

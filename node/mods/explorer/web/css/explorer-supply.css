@@ -5,33 +5,33 @@
  */
 
 .explorer-supply-page {
-	min-width: 0;
+  min-width: 0;
 }
 
 .explorer-supply-header {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--explorer-space-3);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--explorer-space-3);
 }
 
 .explorer-supply-header-text {
-	display: flex;
-	flex-direction: column;
-	gap: 0.1rem;
-	min-width: 0;
-	flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .explorer-supply-admin-controls {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: flex-end;
-	gap: var(--explorer-space-2);
-	margin-left: auto;
-	flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--explorer-space-2);
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 /*
@@ -39,442 +39,456 @@
  * Only overrides needed for uppercase text labels; all colour/size/hover come from back link.
  */
 .explorer-page .explorer-supply-admin-controls button.explorer-back-link.explorer-back-link--label {
-	width: auto;
-	min-width: 0;
-	padding: 0 0.85rem;
-	font-size: var(--explorer-text-xs);
-	font-weight: var(--explorer-font-semibold);
-	text-transform: uppercase;
-	letter-spacing: var(--explorer-tracking-wide);
-	line-height: 1;
+  width: auto;
+  min-width: 0;
+  padding: 0 0.85rem;
+  font-size: var(--explorer-text-xs);
+  font-weight: var(--explorer-font-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--explorer-tracking-wide);
+  line-height: 1;
 }
 
 .explorer-page .explorer-supply-admin-controls button.explorer-back-link:disabled {
-	opacity: 0.55;
-	cursor: wait;
+  opacity: 0.55;
+  cursor: wait;
 }
 
 /*
  * Fee field: match back-link height and radius; white field on grey border.
  */
 .explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text'] {
-	box-sizing: border-box;
-	width: 10ch;
-	min-width: 9ch;
-	max-width: 11ch;
-	height: 3.5rem;
-	margin: 0;
-	padding: 0 0.65rem;
-	border: 1px solid var(--explorer-border);
-	border-radius: var(--explorer-radius-sm);
-	appearance: none;
-	-webkit-appearance: none;
-	color-scheme: light;
-	background-color: #fff;
-	color: #1a1b21;
-	font-family: var(--explorer-font-mono);
-	font-size: var(--explorer-text-xs);
-	line-height: 3.5rem;
+  box-sizing: border-box;
+  width: 10ch;
+  min-width: 9ch;
+  max-width: 11ch;
+  height: 3.5rem;
+  margin: 0;
+  padding: 0 0.65rem;
+  border: 1px solid var(--explorer-border);
+  border-radius: var(--explorer-radius-sm);
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: light;
+  background-color: #fff;
+  color: #1a1b21;
+  font-family: var(--explorer-font-mono);
+  font-size: var(--explorer-text-xs);
+  line-height: 3.5rem;
 }
 
-.explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text']::placeholder {
-	color: #6b7280;
-	opacity: 1;
+.explorer-page
+  .explorer-supply-admin-controls
+  input.explorer-supply-fee-input[type='text']::placeholder {
+  color: #6b7280;
+  opacity: 1;
 }
 
 .explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text']:focus,
-.explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text']:focus-visible {
-	outline: none;
-	border-color: color-mix(in oklch, var(--explorer-muted-foreground) 28%, var(--explorer-border));
-	box-shadow: var(--explorer-focus-ring);
-	background-color: #fff;
-	color: #1a1b21;
+.explorer-page
+  .explorer-supply-admin-controls
+  input.explorer-supply-fee-input[type='text']:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklch, var(--explorer-muted-foreground) 28%, var(--explorer-border));
+  box-shadow: var(--explorer-focus-ring);
+  background-color: #fff;
+  color: #1a1b21;
 }
 
-.explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input[type='text']:disabled {
-	opacity: 0.55;
-	cursor: wait;
-	background-color: #fff;
+.explorer-page
+  .explorer-supply-admin-controls
+  input.explorer-supply-fee-input[type='text']:disabled {
+  opacity: 0.55;
+  cursor: wait;
+  background-color: #fff;
 }
 
 .explorer-page .explorer-supply-admin-controls input.explorer-supply-fee-input-error {
-	border-color: color-mix(in oklch, var(--explorer-destructive) 45%, var(--explorer-border));
+  border-color: color-mix(in oklch, var(--explorer-destructive) 45%, var(--explorer-border));
 }
 
 .explorer-supply-produce-error {
-	margin: 0 0 var(--explorer-space-2);
-	padding: var(--explorer-space-2) var(--explorer-space-3);
-	border: 1px solid color-mix(in oklch, var(--explorer-destructive) 35%, var(--explorer-border));
-	border-radius: var(--explorer-radius-sm);
-	background-color: color-mix(in oklch, var(--explorer-destructive) 8%, var(--explorer-card));
-	color: var(--explorer-foreground);
-	font-size: var(--explorer-text-sm);
+  margin: 0 0 var(--explorer-space-2);
+  padding: var(--explorer-space-2) var(--explorer-space-3);
+  border: 1px solid color-mix(in oklch, var(--explorer-destructive) 35%, var(--explorer-border));
+  border-radius: var(--explorer-radius-sm);
+  background-color: color-mix(in oklch, var(--explorer-destructive) 8%, var(--explorer-card));
+  color: var(--explorer-foreground);
+  font-size: var(--explorer-text-sm);
 }
 
 .explorer-supply-produce-error p {
-	margin: 0;
+  margin: 0;
 }
 
 .explorer-supply-fee-diagnostics {
-	flex: 1 1 100%;
-	width: 100%;
-	margin-top: var(--explorer-space-1);
-	padding: 0.5rem 0.65rem;
-	border: 1px solid var(--explorer-border);
-	border-radius: var(--explorer-radius-sm);
-	background: color-mix(in oklch, var(--explorer-card) 92%, var(--explorer-secondary));
-	font-family: var(--explorer-font-mono);
-	font-size: var(--explorer-text-xs);
-	color: var(--explorer-muted-foreground);
+  flex: 1 1 100%;
+  width: 100%;
+  margin-top: var(--explorer-space-1);
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--explorer-border);
+  border-radius: var(--explorer-radius-sm);
+  background: color-mix(in oklch, var(--explorer-card) 92%, var(--explorer-secondary));
+  font-family: var(--explorer-font-mono);
+  font-size: var(--explorer-text-xs);
+  color: var(--explorer-muted-foreground);
 }
 
 .explorer-supply-fee-diagnostics-list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	display: grid;
-	gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.2rem;
 }
 
 .explorer-supply-fee-diagnostics-list li {
-	display: flex;
-	align-items: center;
-	gap: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .explorer-supply-fee-step-icon {
-	display: inline-block;
-	width: 1rem;
-	text-align: center;
-	color: var(--explorer-muted-foreground);
+  display: inline-block;
+  width: 1rem;
+  text-align: center;
+  color: var(--explorer-muted-foreground);
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='pass'] {
-	color: var(--explorer-foreground);
+  color: var(--explorer-foreground);
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='pass'] .explorer-supply-fee-step-icon {
-	color: var(--explorer-primary);
+  color: var(--explorer-primary);
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='fail'] {
-	color: color-mix(in oklch, var(--explorer-destructive) 80%, var(--explorer-foreground));
+  color: color-mix(in oklch, var(--explorer-destructive) 80%, var(--explorer-foreground));
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='fail'] .explorer-supply-fee-step-icon {
-	color: var(--explorer-destructive);
+  color: var(--explorer-destructive);
 }
 
 .explorer-supply-fee-success {
-	margin: 0.45rem 0 0;
-	color: var(--explorer-foreground);
-	font-weight: var(--explorer-font-medium);
+  margin: 0.45rem 0 0;
+  color: var(--explorer-foreground);
+  font-weight: var(--explorer-font-medium);
 }
 
 @media (max-width: 720px) {
-	.explorer-supply-header {
-		flex-wrap: wrap;
-	}
+  .explorer-supply-header {
+    flex-wrap: wrap;
+  }
 
-	.explorer-supply-admin-controls {
-		width: 100%;
-		justify-content: flex-start;
-		margin-left: 0;
-	}
+  .explorer-supply-admin-controls {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
 }
 
 .explorer-supply-dashboard {
-	position: relative;
-	width: 100%;
-	min-width: 0;
-	overflow: visible;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
 }
 
 .explorer-supply-dashboard-toolbar {
-	position: relative;
+  position: relative;
 }
 
 .explorer-supply-width-toggle {
-	position: absolute;
-	top: -24px;
-	right: -24px;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 2.4rem;
-	height: 2.4rem;
-	padding: 0;
-	border: 0;
-	background: transparent;
-	color: var(--explorer-muted-foreground);
-	cursor: pointer;
-	transition:
-		color var(--explorer-transition-fast),
-		opacity var(--explorer-transition-fast);
+  position: absolute;
+  top: -24px;
+  right: -24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--explorer-muted-foreground);
+  cursor: pointer;
+  transition:
+    color var(--explorer-transition-fast),
+    opacity var(--explorer-transition-fast);
 }
 
 .explorer-supply-width-toggle:hover,
 .explorer-supply-width-toggle:focus-visible {
-	color: var(--explorer-foreground);
-	outline: none;
+  color: var(--explorer-foreground);
+  outline: none;
 }
 
 .explorer-supply-width-toggle:focus-visible {
-	box-shadow: 0 0 0 2px color-mix(in oklch, var(--explorer-ring) 35%, transparent);
-	border-radius: var(--explorer-radius-sm);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--explorer-ring) 35%, transparent);
+  border-radius: var(--explorer-radius-sm);
 }
 
 .explorer-supply-width-toggle i {
-	font-size: 1.6rem;
-	line-height: 1;
+  font-size: 1.6rem;
+  line-height: 1;
 }
 
 .explorer-supply-collapse-icon {
-	display: none;
+  display: none;
 }
 
 .explorer-container.full-width .explorer-supply-expand-icon {
-	display: none;
+  display: none;
 }
 
 .explorer-container.full-width .explorer-supply-collapse-icon {
-	display: inline-block;
+  display: inline-block;
 }
 
 .explorer-supply-status {
-	margin: 0 0 var(--explorer-space-3);
-	font-size: var(--explorer-text-sm);
-	color: var(--explorer-muted-foreground);
-	line-height: var(--explorer-leading-relaxed);
+  margin: 0 0 var(--explorer-space-3);
+  font-size: var(--explorer-text-sm);
+  color: var(--explorer-muted-foreground);
+  line-height: var(--explorer-leading-relaxed);
 }
 
 .explorer-supply-table-wrap {
-	width: 100%;
-	overflow-x: auto;
-	-webkit-overflow-scrolling: touch;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .explorer-supply-table {
-	width: 100%;
-	min-width: 72rem;
-	border-collapse: collapse;
-	font-size: var(--explorer-text-sm);
+  width: 100%;
+  min-width: 72rem;
+  border-collapse: collapse;
+  font-size: var(--explorer-text-sm);
 }
 
 .explorer-supply-table th,
 .explorer-supply-table td {
-	padding: var(--explorer-space-2) var(--explorer-space-2);
-	text-align: left;
-	vertical-align: middle;
-	border-bottom: 1px solid var(--explorer-border);
+  padding: var(--explorer-space-2) var(--explorer-space-2);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--explorer-border);
 }
 
 .explorer-supply-table thead th {
-	font-size: var(--explorer-text-xs);
-	font-weight: var(--explorer-font-semibold);
-	color: var(--explorer-muted-foreground);
-	background-color: var(--explorer-muted);
-	white-space: nowrap;
+  font-size: var(--explorer-text-xs);
+  font-weight: var(--explorer-font-semibold);
+  color: var(--explorer-muted-foreground);
+  background-color: var(--explorer-muted);
+  white-space: nowrap;
 }
 
 .explorer-supply-table thead th.explorer-supply-block-header {
-	text-align: right;
+  text-align: right;
 }
 
 .explorer-supply-table thead th.explorer-supply-block-header .explorer-supply-block-link {
-	display: inline-flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 0.15rem;
-	text-align: right;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  text-align: right;
 }
 
 .explorer-golden-ticket-icon {
-	font-size: 0.65rem;
-	line-height: 1;
-	color: color-mix(in oklch, var(--explorer-primary) 72%, var(--explorer-muted-foreground));
+  font-size: 0.65rem;
+  line-height: 1;
+  color: color-mix(in oklch, var(--explorer-primary) 72%, var(--explorer-muted-foreground));
 }
 
 .explorer-supply-table th.explorer-column-golden-ticket,
 .explorer-supply-table td.explorer-column-golden-ticket {
-	box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--explorer-primary) 7%, transparent);
+  box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--explorer-primary) 7%, transparent);
 }
 
 html[data-theme='dark'] .explorer-supply-table th.explorer-column-golden-ticket,
 html[data-theme='dark'] .explorer-supply-table td.explorer-column-golden-ticket {
-	box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--explorer-primary) 11%, transparent);
+  box-shadow: inset 0 0 0 9999px color-mix(in oklch, var(--explorer-primary) 11%, transparent);
 }
 
 .explorer-supply-table .explorer-supply-row-label {
-	font-family: var(--explorer-font-mono);
-	font-size: var(--explorer-text-xs);
-	color: var(--explorer-foreground);
-	white-space: nowrap;
+  font-family: var(--explorer-font-mono);
+  font-size: var(--explorer-text-xs);
+  color: var(--explorer-foreground);
+  white-space: nowrap;
 }
 
 .explorer-supply-table .explorer-supply-numeric {
-	text-align: right;
-	font-variant-numeric: tabular-nums;
-	white-space: nowrap;
-	font-size: var(--explorer-text-xs);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-size: var(--explorer-text-xs);
 }
 
 .explorer-supply-table tr.explorer-supply-highlight {
-	background-color: #fdeed5;
+  background-color: #fdeed5;
 }
 
 .explorer-supply-table tr.explorer-supply-invariant-row {
-	background-color: #d9e9dc;
-	border-top: 1px solid #b5cfba;
-	border-bottom: 1px solid #b5cfba;
+  background-color: #d9e9dc;
+  border-top: 1px solid #b5cfba;
+  border-bottom: 1px solid #b5cfba;
 }
 
 .explorer-supply-table tr.explorer-supply-invariant-row td {
-	background-color: #d9e9dc;
+  background-color: #d9e9dc;
 }
 
 .explorer-supply-table tr.explorer-supply-invariant-row .explorer-supply-row-label {
-	color: #2a5232;
-	font-weight: var(--explorer-font-semibold);
-	letter-spacing: 0.03em;
+  color: #2a5232;
+  font-weight: var(--explorer-font-semibold);
+  letter-spacing: 0.03em;
 }
 
 .explorer-supply-table tr.explorer-supply-invariant-row .explorer-supply-numeric {
-	color: #234a29;
-	font-weight: var(--explorer-font-semibold);
+  color: #234a29;
+  font-weight: var(--explorer-font-semibold);
 }
 
 .explorer-supply-table tr.explorer-payout-highlight {
-	background-color: color-mix(in oklch, var(--explorer-link) 12%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--explorer-link) 12%, var(--explorer-card));
 }
 
 .explorer-supply-table tr.explorer-supply-delta-divider td {
-	padding: 0;
-	height: 0;
-	border-bottom: 1px solid color-mix(in oklch, var(--explorer-muted-foreground) 22%, var(--explorer-border));
-	background-color: transparent;
+  padding: 0;
+  height: 0;
+  border-bottom: 1px solid
+    color-mix(in oklch, var(--explorer-muted-foreground) 22%, var(--explorer-border));
+  background-color: transparent;
 }
 
 .explorer-supply-table tr.explorer-supply-delta-divider:first-of-type td {
-	border-top: 1px solid color-mix(in oklch, var(--explorer-muted-foreground) 22%, var(--explorer-border));
+  border-top: 1px solid
+    color-mix(in oklch, var(--explorer-muted-foreground) 22%, var(--explorer-border));
 }
 
 .explorer-supply-table tr.explorer-supply-delta-section-row {
-	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
 }
 
 .explorer-supply-table tr.explorer-supply-delta-section-row td {
-	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
 }
 
 .explorer-supply-table tr.explorer-supply-delta-section-row .explorer-supply-row-label,
 .explorer-supply-table tr.explorer-supply-delta-section-row .explorer-supply-numeric {
-	font-size: var(--explorer-text-xs);
-	font-weight: var(--explorer-font-normal);
-	font-style: normal;
-	color: var(--explorer-muted-foreground);
+  font-size: var(--explorer-text-xs);
+  font-weight: var(--explorer-font-normal);
+  font-style: normal;
+  color: var(--explorer-muted-foreground);
 }
 
 .explorer-supply-table tr.explorer-supply-delta-section-row .explorer-supply-row-label {
-	padding-left: var(--explorer-space-3);
+  padding-left: var(--explorer-space-3);
 }
 
 .explorer-supply-net-flow-title td {
-	padding: var(--explorer-space-2) var(--explorer-space-2) var(--explorer-space-1);
-	border-bottom: 0;
-	font-size: var(--explorer-text-xs);
-	font-weight: var(--explorer-font-semibold);
-	letter-spacing: var(--explorer-tracking-wide);
-	text-transform: uppercase;
-	color: var(--explorer-muted-foreground);
-	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  padding: var(--explorer-space-2) var(--explorer-space-2) var(--explorer-space-1);
+  border-bottom: 0;
+  font-size: var(--explorer-text-xs);
+  font-weight: var(--explorer-font-semibold);
+  letter-spacing: var(--explorer-tracking-wide);
+  text-transform: uppercase;
+  color: var(--explorer-muted-foreground);
+  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
 }
 
 .explorer-supply-table tr.explorer-supply-net-flow-row {
-	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
 }
 
 .explorer-supply-table tr.explorer-supply-net-flow-row td {
-	background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--explorer-muted-foreground) 7%, var(--explorer-card));
 }
 
 .explorer-supply-table tr.explorer-supply-net-flow-row .explorer-supply-row-label,
 .explorer-supply-table tr.explorer-supply-net-flow-row .explorer-supply-numeric {
-	font-size: var(--explorer-text-xs);
-	font-weight: var(--explorer-font-normal);
-	color: var(--explorer-muted-foreground);
+  font-size: var(--explorer-text-xs);
+  font-weight: var(--explorer-font-normal);
+  color: var(--explorer-muted-foreground);
 }
 
 .explorer-supply-table tr.explorer-supply-net-flow-total-row .explorer-supply-row-label,
 .explorer-supply-table tr.explorer-supply-net-flow-total-row .explorer-supply-numeric {
-	font-weight: var(--explorer-font-semibold);
-	color: var(--explorer-foreground);
+  font-weight: var(--explorer-font-semibold);
+  color: var(--explorer-foreground);
 }
 
 .explorer-supply-net-flow-zero {
-	color: var(--explorer-muted-foreground);
+  color: var(--explorer-muted-foreground);
 }
 
 .explorer-supply-net-flow-positive {
-	color: color-mix(in oklch, #3b6ea8 78%, var(--explorer-foreground));
+  color: color-mix(in oklch, #3b6ea8 78%, var(--explorer-foreground));
 }
 
 .explorer-supply-net-flow-negative {
-	color: color-mix(in oklch, #9a6b2f 78%, var(--explorer-foreground));
+  color: color-mix(in oklch, #9a6b2f 78%, var(--explorer-foreground));
 }
 
 .explorer-supply-net-flow-muted {
-	color: var(--explorer-muted-foreground);
+  color: var(--explorer-muted-foreground);
 }
 
 .explorer-supply-net-flow-error {
-	color: var(--explorer-destructive);
-	font-weight: var(--explorer-font-semibold);
+  color: var(--explorer-destructive);
+  font-weight: var(--explorer-font-semibold);
 }
 
 .explorer-supply-delta-zero {
-	color: var(--explorer-muted-foreground);
+  color: var(--explorer-muted-foreground);
 }
 
 .explorer-supply-delta-positive {
-	color: color-mix(in oklch, #3b6ea8 78%, var(--explorer-foreground));
+  color: color-mix(in oklch, #3b6ea8 78%, var(--explorer-foreground));
 }
 
 .explorer-supply-delta-negative {
-	color: color-mix(in oklch, #9a6b2f 78%, var(--explorer-foreground));
+  color: color-mix(in oklch, #9a6b2f 78%, var(--explorer-foreground));
 }
 
 .explorer-supply-delta-muted {
-	color: var(--explorer-muted-foreground);
+  color: var(--explorer-muted-foreground);
 }
 
 .explorer-supply-unknown {
-	color: var(--explorer-muted-foreground);
-	font-weight: var(--explorer-font-semibold);
-	letter-spacing: 0.08em;
+  color: var(--explorer-muted-foreground);
+  font-weight: var(--explorer-font-semibold);
+  letter-spacing: 0.08em;
 }
 
 html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-highlight {
-	background-color: color-mix(in oklch, var(--explorer-primary) 18%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--explorer-primary) 18%, var(--explorer-card));
 }
 
 html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-invariant-row,
 html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-invariant-row td {
-	background-color: #1c3322;
-	border-top-color: #2f4f38;
-	border-bottom-color: #2f4f38;
+  background-color: #1c3322;
+  border-top-color: #2f4f38;
+  border-bottom-color: #2f4f38;
 }
 
-html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-invariant-row .explorer-supply-row-label,
-html[data-theme='dark'] .explorer-supply-table tr.explorer-supply-invariant-row .explorer-supply-numeric {
-	color: #a8cdb0;
+html[data-theme='dark']
+  .explorer-supply-table
+  tr.explorer-supply-invariant-row
+  .explorer-supply-row-label,
+html[data-theme='dark']
+  .explorer-supply-table
+  tr.explorer-supply-invariant-row
+  .explorer-supply-numeric {
+  color: #a8cdb0;
 }
 
 html[data-theme='dark'] .explorer-supply-table tr.explorer-payout-highlight {
-	background-color: color-mix(in oklch, var(--explorer-link) 16%, var(--explorer-card));
+  background-color: color-mix(in oklch, var(--explorer-link) 16%, var(--explorer-card));
 }
 
 .explorer-supply-block-link {
-	font-weight: var(--explorer-font-medium);
-	font-variant-numeric: tabular-nums;
+  font-weight: var(--explorer-font-medium);
+  font-variant-numeric: tabular-nums;
 }

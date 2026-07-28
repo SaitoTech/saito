@@ -6,91 +6,89 @@
 
 .saito-container.explorer-container,
 body:has(.explorer-page) .saito-container {
-	display: block;
-	width: 100%;
-	max-width: none;
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
-	grid-template-columns: unset;
-	column-gap: unset;
-	overflow-y: auto;
-	overflow-x: hidden;
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  grid-template-columns: unset;
+  column-gap: unset;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 body:has(.explorer-page) {
-	--saito-header-color: var(--explorer-foreground);
-	background-color: var(--explorer-muted);
+  --saito-header-foreground: var(--explorer-foreground);
+  background-color: var(--explorer-muted);
 }
 
 body:has(.explorer-page) #saito-header {
-	background: var(--explorer-card);
-	backdrop-filter: none;
-	border-bottom: 1px solid var(--explorer-border);
-	color: var(--explorer-foreground);
-	box-sizing: border-box;
-	width: 100%;
-	padding-inline: calc(
-		var(--explorer-gutter) + max(0px, (100vw - var(--explorer-max-width)) / 2)
-	);
+  background: var(--explorer-card);
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--explorer-border);
+  color: var(--explorer-foreground);
+  box-sizing: border-box;
+  width: 100%;
+  padding-inline: calc(var(--explorer-gutter) + max(0px, (100vw - var(--explorer-max-width)) / 2));
 }
 
 body:has(.explorer-page) #saito-header .saito-header-logo-wrapper {
-	display: flex;
-	align-items: center;
-	height: 100%;
-	opacity: 1;
-	visibility: visible;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Noir/dark/raven invert the logo for dark canvases; Explorer uses a light card header. */
 body:has(.explorer-page) #saito-header .saito-header-logo {
-	display: block;
-	width: 15rem;
-	height: auto;
-	max-height: 100%;
-	opacity: 1;
-	visibility: visible;
-	filter: brightness(0) saturate(100%);
-	fill: var(--explorer-foreground);
+  display: block;
+  width: 15rem;
+  height: auto;
+  max-height: 100%;
+  opacity: 1;
+  visibility: visible;
+  filter: brightness(0) saturate(100%);
+  fill: var(--explorer-foreground);
 }
 
 body:has(.explorer-page) #saito-header .saito-header-logo .cls-1 {
-	fill: var(--explorer-foreground);
+  fill: var(--explorer-foreground);
 }
 
 html[data-theme='noir'] body:has(.explorer-page) #saito-header .saito-header-logo,
 html[data-theme='dark'] body:has(.explorer-page) #saito-header .saito-header-logo,
 html[data-theme='raven'] body:has(.explorer-page) #saito-header .saito-header-logo,
 html[data-theme='prism'] body:has(.explorer-page) #saito-header .saito-header-logo {
-	filter: brightness(0) saturate(100%);
+  filter: brightness(0) saturate(100%);
 }
 
 html[data-theme='noir'] body:has(.explorer-page) #saito-header .saito-header-logo .cls-1,
 html[data-theme='dark'] body:has(.explorer-page) #saito-header .saito-header-logo .cls-1,
 html[data-theme='raven'] body:has(.explorer-page) #saito-header .saito-header-logo .cls-1 {
-	fill: var(--explorer-foreground);
+  fill: var(--explorer-foreground);
 }
 
 html[data-theme='dark'] body:has(.explorer-page) #saito-header .saito-header-logo {
-	filter: brightness(0) invert(1);
+  filter: brightness(0) invert(1);
 }
 
 body:has(.explorer-page) #saito-header-menu-toggle i,
 body:has(.explorer-page) #saito-header .header-msg {
-	color: var(--explorer-foreground);
+  color: var(--explorer-foreground);
 }
 
 body:has(.explorer-page) .saito-header-hamburger-contents,
 body:has(.explorer-page) .saito-header-menu {
-	border-color: var(--explorer-border);
+  border-color: var(--explorer-border);
 }
 
 @media (max-width: 48rem) {
-	body:has(.explorer-page) #saito-header {
-		padding-inline: max(
-			1.5rem,
-			calc(var(--explorer-gutter) + max(0px, (100vw - var(--explorer-max-width)) / 2))
-		);
-	}
+  body:has(.explorer-page) #saito-header {
+    padding-inline: max(
+      1.5rem,
+      calc(var(--explorer-gutter) + max(0px, (100vw - var(--explorer-max-width)) / 2))
+    );
+  }
 }

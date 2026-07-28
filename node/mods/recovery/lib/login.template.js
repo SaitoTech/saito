@@ -2,15 +2,16 @@ module.exports = () => {
   return `
       <form id="login-template" class="saito-recovery">
         <div class="saito-overlay-form-header">
-          <div class="saito-overlay-form-header-title">Account Login</div>
+          <div class="saito-overlay-form-header-title">Restore Account</div>
         </div>
-        <div class="saito-overlay-form-text">Provide your email address and password if you previously set up automatic backups. We will fetch your wallet and decrypt it for this browser.</div>
-        <input type="text" id="saito-overlay-form-input" class="saito-input saito-overlay-form-email" placeholder="address@domain.com" value="" />
-        <input type="text" id="saito-overlay-form-input" class="saito-input saito-overlay-form-password saito-password" placeholder="password" value="" />
+        <div class="saito-overlay-form-text">
+          <p>Restore an account by <span class="saito-text-link" id="restore-private-key" role="button" tabindex="0">importing your private key</span> or <span class="saito-text-link" id="restore-seed-phrase" role="button" tabindex="0">providing your seed phrase</span>.</p>
+          <p>The form below can be used to initiate a remote fetch-and-decrypt if you have previously enabled remote backup.</p>
+        </div>
+        <input type="email" id="saito-overlay-form-input" class="saito-input saito-overlay-form-email" placeholder="address@domain.com" value="" autocomplete="username" />
+        <input type="password" id="saito-overlay-form-input" class="saito-input saito-overlay-form-password saito-password" placeholder="password" value="" autocomplete="current-password" />
         <div class="saito-button-row">
-          <div class="saito-anchor" id="input-private-key"><span>Enter private key or seed phrase...</span></div>
-          <button type="button" class="saito-button-secondary fat" id="upload-file">Upload Wallet</button>
-          <button type="button" class="saito-button-primary fat saito-overlay-form-submit saito-overlay-login-submit" id="saito-overlay-submit">Download & Decrypt</button>
+          <button type="button" class="saito-button-primary saito-overlay-form-submit saito-overlay-login-submit" id="saito-overlay-submit">Restore</button>
         </div>
       </form>
   `;

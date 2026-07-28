@@ -1,12 +1,12 @@
-module.exports  = (imperium_self, tech) => {
-	let html = `
+module.exports = (imperium_self, tech) => {
+  let html = `
     <div class="tech-overlay hide-scrollbar">
   `;
 
-	for (let i = 0; i < tech.length; i++) {
-		let t = tech[i];
-		html += tech[i].returnCardImage();
-		/**
+  for (let i = 0; i < tech.length; i++) {
+    let t = tech[i];
+    html += tech[i].returnCardImage();
+    /**
     let p = "";
 
     for (let i = 0; i < t.prereqs.length; i++) {
@@ -25,11 +25,11 @@ module.exports  = (imperium_self, tech) => {
         </div>
       `;
 **/
-	}
+  }
 
-	html += `
+  html += `
     </div>
   `;
 
-	return html;
+  return html;
 };

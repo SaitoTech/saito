@@ -2,7 +2,7 @@
 
 body.buysaito-body .buysaito-main {
   background-image: url(/saito/img/tiled-logo.svg);
-  background-color: var(--saito-background-color);
+  background-color: var(--saito-background);
   position: fixed;
   width: 100vw;
   height: 100vh;
@@ -24,7 +24,7 @@ body.buysaito-body .buysaito-withdraw-container {
   align-items: center;
   padding: 7rem;
   border-radius: 1rem;
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   background: linear-gradient(135deg, #0008, #0000);
 }
 
@@ -36,14 +36,14 @@ body.buysaito-body .buysaito-withdraw-container {
 }
 
 .purchase-saito-amount {
-  border: 1px solid var(--saito-border-color);
+  border: 1px solid var(--saito-border);
   width: max-content;
   height: 100%;
   font-size: 2.2rem;
   color: inherit;
   text-align: right;
-  background: var(--saito-background-color);
-  border-radius: var(--saito-border-radius);
+  background: var(--saito-background);
+  border-radius: var(--saito-radius);
   padding: 5px;
 }
 
@@ -60,13 +60,6 @@ body.buysaito-body .buysaito-withdraw-container {
   .purchase-saito-prompt {
     text-align: center;
   }
-  .purchase-crypto-item {
-    flex: 0 1 13rem;
-    max-width: 16rem;
-  }
-  .purchase-container {
-    padding: 1rem 1rem;
-  }
   .saito-purchase-deposit-header {
     font-size: 2rem;
   }
@@ -78,21 +71,31 @@ body.buysaito-body .buysaito-withdraw-container {
 /***********************/
 
 .purchase-container {
-  background: var(--saito-background-color);
-  display: flex;
-  justify-content: space-between;
-  padding: 3rem;
-  font-size: 2rem;
   display: flex;
   flex-direction: column;
-  text-align: center;
-  font-size: 3rem;
-  gap: 1rem;
+  min-height: min(48rem, 80vh);
+  overflow: hidden;
+}
+
+.saito-overlay
+  > .saito-overlay-panel:is(
+    .purchase-container,
+    .amount-selection-box,
+    .buysaito-payment-box,
+    .loader-interstitial-overlay
+  ) {
+  border: 1px solid var(--saito-border);
 }
 
 .purchase-container .buysaito-footer-note {
-  font-size: var(--font-size-medium);
-  font-style: italic;
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--saito-border);
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+  font-style: normal;
+  line-height: 1.5;
+  text-align: left;
 }
 
 .loader-interstitial-overlay img {
@@ -111,50 +114,97 @@ body.buysaito-body .buysaito-withdraw-container {
 }
 
 .purchase-crypto-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.5rem;
-  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  gap: 1rem;
+  padding: 0.4rem;
+  min-height: 0;
   overflow-y: auto;
 }
 
 .purchase-crypto-item {
-  flex: 0 1 16rem;
-  max-width: 18rem;
-  aspect-ratio: 1 / 1;
-  padding: 1rem;
-  border: var(--border-thickness-medium) solid var(--saito-primary-dark);
-  border-radius: var(--saito-border-radius);
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  justify-content: center;
   align-items: center;
-  box-sizing: border-box;
+  gap: 1.2rem;
+  min-height: 7.2rem;
+  padding: 1.1rem 1.4rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-lg);
+  background: color-mix(in srgb, var(--saito-popover) 94%, var(--saito-foreground));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--saito-foreground) 5%, transparent);
+  color: var(--saito-foreground);
   cursor: pointer;
-  background-color: var(--saito-background-color);
-  color: var(--saito-font-color);
-  font-weight: bold;
-  transition: background-color 0.2s;
+  text-align: left;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.purchase-crypto-item > :first-child {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .purchase-crypto-logo-container {
-  width: 9rem;
-  height: 9rem;
-  border-radius: 50%;
-  overflow: hidden;
+  order: -1;
   position: relative;
+  display: grid;
+  flex: 0 0 4.6rem;
+  place-items: center;
+  width: 4.6rem;
+  height: 4.6rem;
+  border-radius: 50%;
+  border: 1px solid var(--saito-border);
+  background: var(--saito-highlight);
+  box-shadow: 0 0.6rem 1.8rem color-mix(in srgb, var(--saito-black) 18%, transparent);
+}
+
+.purchase-crypto-logo-container .crypto-logo {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: contain;
+}
+
+.purchase-crypto-logo-container .chain-logo {
+  position: absolute;
+  right: -0.2rem;
+  bottom: -0.2rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 2px solid var(--saito-popover);
+  border-radius: 50%;
+  background: var(--saito-popover);
 }
 
 .purchase-crypto-item:hover {
-  background: var(--saito-primary-dark);
-  color: var(--saito-primary-text);
-  text-shadow: 1px 1px 2px var(--saito-black);
+  border-color: color-mix(in srgb, var(--saito-primary) 62%, var(--saito-border));
+  background: color-mix(in srgb, var(--saito-primary) 9%, var(--saito-popover));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--saito-primary) 14%, transparent),
+    0 0.8rem 2.4rem color-mix(in srgb, var(--saito-black) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+.purchase-crypto-item:active {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--saito-foreground) 5%, transparent);
+  transform: translateY(0) scale(0.99);
 }
 
 .purchase-select-crypto-msg {
+  margin: 2rem 0 1.6rem;
+  color: var(--saito-muted-foreground);
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  line-height: 1.5;
   text-align: center;
+  text-transform: uppercase;
 }
 
 #purchase-crypto-generate {
@@ -175,10 +225,11 @@ body.buysaito-body .buysaito-withdraw-container {
 
 .buysaito-payment-box {
   padding: 2.5rem;
-  width: 420px;
-  height: 600px;
+  height: auto;
+  max-height: calc(100svh - 4rem);
+  overflow-y: auto;
   border-radius: var(--saito-radius-lg);
-  box-shadow: var(--saito-overlay-panel-shadow);
+  box-shadow: var(--saito-elevation-3);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -194,6 +245,48 @@ body.buysaito-body .buysaito-withdraw-container {
     font-size: 3rem;
   }
 
+  & .pqrcode {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: min(22rem, 100%);
+    aspect-ratio: 1;
+  }
+
+  & .pqrcode img,
+  & .pqrcode svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 10px solid var(--saito-white);
+    background: var(--saito-white);
+  }
+
+  & .pubkey-container {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    cursor: pointer;
+  }
+
+  & .pubkey-container .profile-public-key {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  & .pubkey-container > i {
+    display: block;
+    flex: 0 0 auto;
+  }
+
   & .instructions {
     display: flex;
     gap: 1.5rem;
@@ -201,7 +294,7 @@ body.buysaito-body .buysaito-withdraw-container {
   }
 
   & .details {
-    border: var(--border-thickness-thin) solid var(--saito-border-color);
+    border: 1px solid var(--saito-border);
     border-radius: var(--saito-radius-lg);
     padding: 15px;
     display: flex;
@@ -231,6 +324,10 @@ body.buysaito-body .buysaito-withdraw-container {
   }
 }
 
+.buysaito-payment-box.saito-overlay-size.narrow {
+  width: min(600px, 95vw);
+}
+
 /*  Numeric entry */
 .amount-selection-box {
   display: flex;
@@ -240,30 +337,52 @@ body.buysaito-body .buysaito-withdraw-container {
 }
 
 .crypto-box {
-  display: flex;
-  font-size: 2rem;
-  min-height: 4rem;
-  gap: 2rem;
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
+  gap: 1.2rem;
+  width: 100%;
 }
 
-.expected_amount {
-  padding: 1rem 1.5rem;
-  font-size: 1.6rem;
-  flex-grow: 1;
-  color: var(--saito-font-color);
-  border-radius: var(--saito-border-radius);
-  height: 41px;
-  background-color: var(--saito-background-color);
-  border: var(--border-thickness-thin) solid var(--saito-primary);
-  max-width: 19rem;
+.amount-selection-logo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 4.6rem;
+  height: 4.6rem;
+  border: 1px solid var(--saito-border);
+  border-radius: 50%;
+  background: var(--saito-highlight);
+  box-shadow: 0 0.6rem 1.8rem color-mix(in srgb, var(--saito-black) 18%, transparent);
 }
 
-.buysaito-input-amount {
-  width: unset;
-  flex-grow: 1;
-  max-width: 19rem;
+.amount-selection-logo .crypto-logo {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: contain;
+}
+
+.amount-selection-logo .chain-logo {
+  position: absolute;
+  right: -0.2rem;
+  bottom: -0.2rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 2px solid var(--saito-popover);
+  border-radius: 50%;
+  background: var(--saito-popover);
+}
+
+.crypto-box > input.saito-input {
+  width: 100%;
+  max-width: none;
+  height: 5.2rem;
+  margin: 0;
+}
+
+.crypto-box > input.saito-input[readonly] {
+  cursor: default;
 }
 
 .input-entry {
@@ -306,21 +425,51 @@ body.buysaito-body .buysaito-withdraw-container {
   }
 }
 
+@media screen and (max-width: 768px) {
+  .saito-overlay
+    > .saito-overlay-panel:is(
+      .purchase-container,
+      .amount-selection-box,
+      .buysaito-payment-box,
+      .loader-interstitial-overlay
+    ) {
+    border: 0;
+  }
+}
+
 @media screen and (max-width: 600px) {
-  .purchase-crypto-list {
-    font-size: smaller;
-  }
-  .purchase-crypto-item .crypto-logo {
-    width: 50%;
-    height: auto;
-  }
-  .crypto-box {
-    gap: 1rem;
+  .purchase-container {
+    min-height: 0;
   }
 
-  .expected_amount,
-  .buysaito-input-amount {
-    max-width: 13rem;
-    padding: 1rem;
+  .purchase-select-crypto-msg {
+    margin: 1.6rem 1rem 1.2rem;
+    font-size: 1.3rem;
+  }
+
+  .purchase-crypto-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0 1rem 1rem;
+  }
+
+  .purchase-crypto-item {
+    min-height: 6.4rem;
+    padding: 0.9rem 1.2rem;
+  }
+
+  .purchase-crypto-logo-container {
+    flex-basis: 4rem;
+    width: 4rem;
+    height: 4rem;
+  }
+
+  .purchase-container .buysaito-footer-note {
+    margin-right: 1rem;
+    margin-left: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .crypto-box {
+    gap: 1rem;
   }
 }

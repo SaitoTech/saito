@@ -22,11 +22,11 @@
   align-items: center;
   background-size: cover;
   background-position: center;
-  background-color: var(--saito-card-bg);
+  background-color: var(--saito-card);
   background-blend-mode: soft-light;
-  border-radius: var(--saito-border-radius);
-  border: var(--border-thickness-thin) solid var(--saito-border);
-  box-shadow: var(--saito-card-shadow);
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
+  box-shadow: var(--saito-elevation-0);
   overflow: hidden;
   transition:
     background-color 0.2s,
@@ -36,10 +36,10 @@
 }
 
 .saito-module:hover {
-  background-color: var(--saito-card-bg-hover);
-  border-color: var(--saito-card-border);
-  box-shadow: var(--saito-card-shadow-hover);
-  transform: var(--saito-card-transform-hover);
+  background-color: color-mix(in srgb, var(--saito-card) 86%, var(--saito-accent));
+  border-color: var(--saito-border);
+  box-shadow: var(--saito-elevation-0);
+  transform: none;
 }
 
 .saito-module-titlebar {
@@ -52,20 +52,20 @@
   white-space: nowrap;
   overflow-wrap: break-word;
   opacity: 0.8;
-  background: var(--saito-chip-bg);
-  border-radius: var(--saito-border-radius);
+  background: var(--saito-secondary);
+  border-radius: var(--saito-radius);
 }
 
 .saito-module-titlebar-title {
   margin: 0.25rem;
-  color: var(--saito-chip-fg);
+  color: var(--saito-secondary-foreground);
   font-size: 2rem;
 }
 
 .saito-module-titlebar-details {
   font-size: 1.4rem;
   text-transform: uppercase;
-  color: var(--saito-chip-fg);
+  color: var(--saito-secondary-foreground);
 }
 
 .saito-game-details {
@@ -118,8 +118,51 @@
   user-select: none;
 }
 
+/* Lightweight shell used when modules inject settings into an overlay.
+ * Density aligns with RedSquare `.settings` (title --font-size-large, ~52rem width). */
+.module-settings-overlay {
+  display: flex;
+  flex-direction: column;
+  width: min(52rem, 92vw);
+  min-width: 0;
+  min-height: 0;
+  max-width: 95vw;
+  max-height: min(88vh, 72rem);
+  padding: var(--saito-space-lg);
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
+  gap: var(--saito-space-md);
+}
+
+.module-settings-overlay > h2 {
+  margin: 0;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
+  font-weight: normal;
+  line-height: 1.2;
+}
+
+.module-settings-overlay .saito-module-settings {
+  overflow-y: auto;
+  padding: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.module-settings-overlay .saito-module-settings::-webkit-scrollbar {
+  display: none;
+}
+
+@media screen and (max-width: 600px) {
+  .module-settings-overlay {
+    width: 100%;
+    max-height: 100vh;
+    padding: var(--saito-space-md);
+  }
+}
+
 .saito-module-header {
-  background: var(--saito-header-background);
+  background: var(--saito-background);
   background-size: cover;
   background-position: center;
   padding: var(--saito-space-xs);
@@ -132,15 +175,15 @@
 }
 
 .saito-module-overlay .saito-module-titlebar {
-  background: var(--saito-header-background);
-  color: var(--saito-header-color);
+  background: var(--saito-background);
+  color: var(--saito-foreground);
 }
 
 .saito-module-details,
 fieldset.saito-grid {
-  padding: var(--saito-space-xl);
-  border-radius: var(--saito-radius-md);
-  border: var(--border-thickness-thin) solid var(--saito-card-border);
+  padding: 1.25rem var(--saito-space-md);
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
 }
 
 .saito-module-details {
@@ -161,7 +204,7 @@ fieldset.saito-grid {
 fieldset.saito-grid {
   display: grid;
   grid-template-columns: 2rem 1fr;
-  gap: var(--saito-space-xl);
+  gap: var(--saito-space-md);
   align-items: center;
   margin: var(--saito-space-md) 0;
   position: relative;
@@ -185,6 +228,16 @@ fieldset.saito-grid .note {
   cursor: pointer;
 }
 
+/* Same leading column for icons and checkboxes — drop form-control side margins. */
+fieldset.saito-grid > i,
+fieldset.saito-grid > .saito-checkbox,
+fieldset.saito-grid > input.saito-checkbox[type='checkbox'],
+fieldset.saito-grid > .saito-radio,
+fieldset.saito-grid > input.saito-radio[type='radio'] {
+  margin: 0;
+  justify-self: start;
+}
+
 .saito-grid-extra-button {
   position: absolute;
   right: 1rem;
@@ -194,9 +247,10 @@ fieldset.saito-grid .note {
 }
 
 .saito-grid i {
-  margin: 0 0.5rem;
-  font-size: 1.8rem;
+  margin: 0;
+  font-size: var(--font-size-medium);
   cursor: pointer;
+  color: var(--saito-muted-foreground);
 }
 
 .settings-link,
@@ -214,5 +268,5 @@ fieldset.saito-grid .note {
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 2rem;
+  gap: var(--saito-space-md);
 }

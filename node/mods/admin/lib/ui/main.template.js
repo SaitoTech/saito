@@ -41,5 +41,4 @@ module.exports = (app, mod) => {
     </div>
 
     `;
-}
-
+};

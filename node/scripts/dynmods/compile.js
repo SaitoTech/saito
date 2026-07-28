@@ -1,19 +1,15 @@
 #!/usr/bin/env node
 'use strict';
 
-
 const Module = require('module');
 const originalResolveFilename = Module._resolveFilename;
 
 Module._resolveFilename = function (request, parent, isMain, options) {
-
   if (request.startsWith('saito-js/lib/')) {
-
     // try normal npm layout first
     try {
       return originalResolveFilename.call(this, request, parent, isMain, options);
     } catch (err) {
-
       // fallback to legacy dist layout
       const alt = request.replace('saito-js/lib/', 'saito-js/dist/lib/');
       return originalResolveFilename.call(this, alt, parent, isMain, options);
@@ -22,8 +18,6 @@ Module._resolveFilename = function (request, parent, isMain, options) {
 
   return originalResolveFilename.call(this, request, parent, isMain, options);
 };
-
-
 
 /**
  * CLI Dynamic Module Compiler
@@ -111,7 +105,7 @@ function runZipmods() {
   const zipmodsPath = path.join(__dirname, 'zipmods.sh');
   execSync(`bash "${zipmodsPath}"`, {
     cwd: PROJECT_ROOT,
-    stdio: 'inherit',
+    stdio: 'inherit'
   });
 }
 
@@ -160,10 +154,9 @@ async function compileOne(zipFileName) {
     //const entry = appPath.replace(`${slug}/`, '');
     //execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
     execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${appPath}`, {
-
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
-      maxBuffer: 10 * 1024 * 1024,
+      maxBuffer: 10 * 1024 * 1024
     });
   } catch (err) {
     throw new Error(`Webpack failed: ${err.stderr ? err.stderr.toString() : err.message}`);
@@ -188,7 +181,7 @@ async function compileOne(zipFileName) {
     image: metadata.image || '',
     version: metadata.version || '1.0.0',
     publisher: '',
-    categories: metadata.categories || '',
+    categories: metadata.categories || ''
   };
 
   const saitoJson = buildSaitoPayload(msg);
@@ -225,7 +218,7 @@ async function runSingle(zipPath, slugArg) {
     execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
-      maxBuffer: 10 * 1024 * 1024,
+      maxBuffer: 10 * 1024 * 1024
     });
     if (!fs.existsSync(DYN_MODULE_JS)) throw new Error('Webpack did not produce dyn.module.js');
     const dynModuleBinary = fs.readFileSync(DYN_MODULE_JS, { encoding: 'binary' });
@@ -240,7 +233,7 @@ async function runSingle(zipPath, slugArg) {
       image: metadata.image || '',
       version: metadata.version || '1.0.0',
       publisher: '',
-      categories: metadata.categories || '',
+      categories: metadata.categories || ''
     };
     const saitoJson = buildSaitoPayload(msg);
     const outPath = path.join(SAITO_DIR, `${slug}.saito`);
@@ -270,13 +263,18 @@ async function run() {
 
   ensureDirs();
   const modsDir = path.join(PROJECT_ROOT, 'mods');
-  if (fs.existsSync(modsDir) && fs.readdirSync(modsDir).some((f) => fs.statSync(path.join(modsDir, f)).isDirectory())) {
+  if (
+    fs.existsSync(modsDir) &&
+    fs.readdirSync(modsDir).some((f) => fs.statSync(path.join(modsDir, f)).isDirectory())
+  ) {
     console.log('Running zipmods to create zips from mods/...\n');
     runZipmods();
   }
   const zips = getZipFiles();
   if (zips.length === 0) {
-    console.log('No .zip files found in dist/mods/zip/. Place module zips there, or ensure mods/ has at least one directory so zipmods can create them.');
+    console.log(
+      'No .zip files found in dist/mods/zip/. Place module zips there, or ensure mods/ has at least one directory so zipmods can create them.'
+    );
     return;
   }
 

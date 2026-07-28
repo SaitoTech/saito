@@ -1,5 +1,5 @@
-module.exports  = (round, turn) => {
-	return `
+module.exports = (round, turn) => {
+  return `
     <div class="turns" id="turns">
       <div class="round" id="round">${round}</div>
       <div class="turn" id="turn">${turn}</div>

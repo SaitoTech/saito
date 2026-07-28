@@ -1,8 +1,7 @@
-module.exports  = (obj, faction) => {
+module.exports = (obj, faction) => {
+  let his_self = obj.mod;
 
-	let his_self = obj.mod;
-
-	let html = `
+  let html = `
 	  <div class="diplomacy-overlay">
 	    <div class="left">
 	      <div class="status2">${his_self.returnFactionName(faction)}:  make offer to whom?</div>
@@ -24,7 +23,5 @@ module.exports  = (obj, faction) => {
 	  </div>
 	`;
 
-	return html;
-
+  return html;
 };
-

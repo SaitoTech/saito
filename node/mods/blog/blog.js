@@ -358,10 +358,10 @@ class Blog extends ModTemplate {
           let tx = txs[0];
           tx.msg.data.content = content;
           tx.msg.data.title = title;
-          (tx.msg.data.image = image),
+          ((tx.msg.data.image = image),
             (tx.msg.data.tags = tags),
             (tx.msg.data.imageUrl = imageUrl),
-            await this.app.storage.updateTransaction(tx, {}, 'localhost');
+            await this.app.storage.updateTransaction(tx, {}, 'localhost'));
         }
       },
       'localhost'

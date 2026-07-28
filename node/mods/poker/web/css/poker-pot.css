@@ -1,80 +1,80 @@
 .game.poker {
-.pot {
-  cursor: pointer;
-  position: absolute;
-  display: block;
-  width: 25rem;
-  height: 7rem;
-  overflow: hidden;
-  color: #fff;
-  top: calc(50% - 210px);
-  z-index: 89;
-  border-radius: 20rem;
-  user-select: none;
-  left: 50%;
-  transition: opacity 0.75s;
-  transform: translateX(-50%) scale(0.75);
-  background: url(/poker/img/simple-chip.svg);
-  background-size: contain;
-  background-repeat: no-repeat;
-  border: 1px solid #aaa8;
-  background-color: #0008;
-  padding: 1rem 1rem 1rem 8rem;
-  box-shadow: 5px 5px 3px #0008;
-}
+  .pot {
+    cursor: pointer;
+    position: absolute;
+    display: block;
+    width: 25rem;
+    height: 7rem;
+    overflow: hidden;
+    color: #fff;
+    top: calc(50% - 210px);
+    z-index: 89;
+    border-radius: 20rem;
+    user-select: none;
+    left: 50%;
+    transition: opacity 0.75s;
+    transform: translateX(-50%) scale(0.75);
+    background: url(/poker/img/simple-chip.svg);
+    background-size: contain;
+    background-repeat: no-repeat;
+    border: 1px solid #aaa8;
+    background-color: #0008;
+    padding: 1rem 1rem 1rem 8rem;
+    box-shadow: 5px 5px 3px #0008;
+  }
 
-.pot.invisible {
-  opacity: 0;
-}
+  .pot.invisible {
+    opacity: 0;
+  }
 
-.pot::after {
-  content: "POT";
-  position: absolute;
-  top: 50%;
-  left: 3.5rem;
-  font-size: 1.75rem;
-  font-weight: bolder;
-  transform: translate(-53%, -48%);
-}
+  .pot::after {
+    content: 'POT';
+    position: absolute;
+    top: 50%;
+    left: 3.5rem;
+    font-size: 1.75rem;
+    font-weight: bolder;
+    transform: translate(-53%, -48%);
+  }
 
-.potholder {
-  font-size: 2.4rem;
-  padding: 1rem;
-  height: 100%;
-  overflow: visible;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-}
+  .potholder {
+    font-size: 2.4rem;
+    padding: 1rem;
+    height: 100%;
+    overflow: visible;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+  }
 
-.potholder .line2 {
-  font-weight: bolder;
-  font-size: 3.4rem;
-}
+  .potholder .line2 {
+    font-weight: bolder;
+    font-size: 3.4rem;
+  }
 
-.potholder.squeeze {
-  justify-content: space-between;
-}
+  .potholder.squeeze {
+    justify-content: space-between;
+  }
 
-.potholder.squeeze > div {
-  text-align: center;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
+  .potholder.squeeze > div {
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
 
-.potholder.squeeze .line2 {
-  font-size: unset;
-}
+  .potholder.squeeze .line2 {
+    font-size: unset;
+  }
 
-.potholder.squeeze span {
-  font-weight: normal;
-}
+  .potholder.squeeze span {
+    font-weight: normal;
+  }
 
-/*  Details overlay */
-.pot-details-overlay {
+  /*  Details overlay */
+  .pot-details-overlay {
     min-width: 58rem;
     max-width: 90vw;
     min-height: 38rem;
@@ -86,51 +86,51 @@
     background-size: cover;
     font-size: 2rem;
     user-select: none;
-}
+  }
 
-.pot-details-overlay .saito-table-row {
+  .pot-details-overlay .saito-table-row {
     grid-template-columns: 1fr 1fr min-content;
     margin: 1rem 0;
     grid-gap: 2rem;
     align-items: center;
-    background: #CCCB;
-}
+    background: #cccb;
+  }
 
-.pot-details-overlay.crypto-stake .saito-table-row {
-  grid-template-columns: 1fr 1fr min-content 1fr;
-}
+  .pot-details-overlay.crypto-stake .saito-table-row {
+    grid-template-columns: 1fr 1fr min-content 1fr;
+  }
 
-.pot-details-overlay .saito-table-row:hover{
-    background: #222B;
-}
+  .pot-details-overlay .saito-table-row:hover {
+    background: #222b;
+  }
 
-.pot-details-overlay .player-name {
+  .pot-details-overlay .player-name {
     font-size: 2.2rem;
-}
-
-.pot-details-overlay .player-bet {
-    font-size: 2.6rem;    
-}
-
-@media screen and (max-width: 1000px) {
-  .pot {
-    top: calc(50% - 195px);
   }
-}
 
-.pulse {
-  animation: pulse 0.6s ease-in-out;
-}
+  .pot-details-overlay .player-bet {
+    font-size: 2.6rem;
+  }
 
-@keyframes pulse {
-  0% {
-    transform: scale(1);
+  @media screen and (max-width: 1000px) {
+    .pot {
+      top: calc(50% - 195px);
+    }
   }
-  50% {
-    transform: scale(1.1);
+
+  .pulse {
+    animation: pulse 0.6s ease-in-out;
   }
-  100% {
-    transform: scale(1);
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
-}
 }

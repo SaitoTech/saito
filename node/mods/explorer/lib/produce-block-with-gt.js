@@ -2,9 +2,9 @@ const { getHeartbeatMs } = require('./burn-fee-timing');
 const { mineAndSubmitOneGoldenTicket } = require('./golden-ticket-mining');
 const { waitForManualBlockProduction } = require('./manual-block-produce-wait');
 const {
-	getBlockHashAtHeight,
-	snapshotMempoolFeeTransactionSignatures,
-	verifyProducedGoldenTicketBlock,
+  getBlockHashAtHeight,
+  snapshotMempoolFeeTransactionSignatures,
+  verifyProducedGoldenTicketBlock
 } = require('./verify-golden-ticket-block');
 const { logManualProduction, logManualProductionError } = require('./manual-production-log');
 
@@ -13,91 +13,89 @@ const { logManualProduction, logManualProductionError } = require('./manual-prod
  * verify the resulting block contains that GT plus any waiting fee transactions.
  */
 async function produceExplorerBlockWithGt(app, mod, startBlockId) {
-	const startId = Number(startBlockId) || 0;
-	const heartbeatMs = getHeartbeatMs(app);
-	const miningDeadline = Date.now() + Math.max(heartbeatMs * 8, 600_000);
-	const feeTransactions = Array.isArray(mod?.pendingManualProduceTransactions)
-		? [...mod.pendingManualProduceTransactions]
-		: [];
+  const startId = Number(startBlockId) || 0;
+  const heartbeatMs = getHeartbeatMs(app);
+  const miningDeadline = Date.now() + Math.max(heartbeatMs * 8, 600_000);
+  const feeTransactions = Array.isArray(mod?.pendingManualProduceTransactions)
+    ? [...mod.pendingManualProduceTransactions]
+    : [];
 
-	logManualProduction(`produceExplorerBlockWithGt() entered (startBlockId=${startId})`);
+  logManualProduction(`produceExplorerBlockWithGt() entered (startBlockId=${startId})`);
 
-	try {
-		const previousBlockHash = await getBlockHashAtHeight(app, startId);
-		const feeTxSignaturesBefore = await snapshotMempoolFeeTransactionSignatures(app);
+  try {
+    const previousBlockHash = await getBlockHashAtHeight(app, startId);
+    const feeTxSignaturesBefore = await snapshotMempoolFeeTransactionSignatures(app);
 
-		logManualProduction(
-			`GT production prep: previousBlockHash=${previousBlockHash || '(unknown)'}, ` +
-				`feeTxsWaiting=${feeTxSignaturesBefore.length}`
-		);
+    logManualProduction(
+      `GT production prep: previousBlockHash=${previousBlockHash || '(unknown)'}, ` +
+        `feeTxsWaiting=${feeTxSignaturesBefore.length}`
+    );
 
-		logManualProduction('Mining started');
-		let gtTx;
-		try {
-			gtTx = await mineAndSubmitOneGoldenTicket(app, miningDeadline);
-		} catch (err) {
-			logManualProductionError('mineAndSubmitOneGoldenTicket', err);
-			throw err;
-		}
-		logManualProduction(
-			`Mining completed; GT submitted (signature=${gtTx?.signature ? String(gtTx.signature).slice(0, 16) + '...' : '(none)'})`
-		);
+    logManualProduction('Mining started');
+    let gtTx;
+    try {
+      gtTx = await mineAndSubmitOneGoldenTicket(app, miningDeadline);
+    } catch (err) {
+      logManualProductionError('mineAndSubmitOneGoldenTicket', err);
+      throw err;
+    }
+    logManualProduction(
+      `Mining completed; GT submitted (signature=${gtTx?.signature ? String(gtTx.signature).slice(0, 16) + '...' : '(none)'})`
+    );
 
-		logManualProduction('Entering production loop (wallet.produceBlockWithGt)');
+    logManualProduction('Entering production loop (wallet.produceBlockWithGt)');
 
-		const produced = await waitForManualBlockProduction(
-			app,
-			startId,
-			async () => {
-				logManualProduction('Calling wallet.produceBlockWithGt()');
-				let result = false;
-				try {
-					result = await app.wallet.produceBlockWithGt(
-						feeTransactions.length ? feeTransactions : undefined
-					);
-				} catch (err) {
-					logManualProductionError('wallet.produceBlockWithGt', err);
-					throw err;
-				}
-				logManualProduction(`wallet.produceBlockWithGt() returned: ${result}`);
-				return result;
-			},
-			{
-				heartbeatMs,
-			}
-		);
+    const produced = await waitForManualBlockProduction(
+      app,
+      startId,
+      async () => {
+        logManualProduction('Calling wallet.produceBlockWithGt()');
+        let result = false;
+        try {
+          result = await app.wallet.produceBlockWithGt(
+            feeTransactions.length ? feeTransactions : undefined
+          );
+        } catch (err) {
+          logManualProductionError('wallet.produceBlockWithGt', err);
+          throw err;
+        }
+        logManualProduction(`wallet.produceBlockWithGt() returned: ${result}`);
+        return result;
+      },
+      {
+        heartbeatMs
+      }
+    );
 
-		if (!produced) {
-			logManualProduction('GT production loop finished without new block');
-			return { blockProduced: false };
-		}
+    if (!produced) {
+      logManualProduction('GT production loop finished without new block');
+      return { blockProduced: false };
+    }
 
-		if (feeTransactions.length) {
-			mod.pendingManualProduceTransactions = [];
-		}
+    if (feeTransactions.length) {
+      mod.pendingManualProduceTransactions = [];
+    }
 
-		logManualProduction('Verifying produced GT block');
-		const verified = await verifyProducedGoldenTicketBlock(
-			app,
-			startId,
-			previousBlockHash,
-			feeTxSignaturesBefore
-		);
-		logManualProduction(`GT block verification: ${verified ? 'passed' : 'failed'}`);
+    logManualProduction('Verifying produced GT block');
+    const verified = await verifyProducedGoldenTicketBlock(
+      app,
+      startId,
+      previousBlockHash,
+      feeTxSignaturesBefore
+    );
+    logManualProduction(`GT block verification: ${verified ? 'passed' : 'failed'}`);
 
-		return {
-			blockProduced: true,
-			verificationPassed: verified,
-			verificationWarning: verified
-				? undefined
-				: 'Explorer GT verification failed.',
-		};
-	} catch (err) {
-		logManualProductionError('produceExplorerBlockWithGt', err);
-		throw err;
-	}
+    return {
+      blockProduced: true,
+      verificationPassed: verified,
+      verificationWarning: verified ? undefined : 'Explorer GT verification failed.'
+    };
+  } catch (err) {
+    logManualProductionError('produceExplorerBlockWithGt', err);
+    throw err;
+  }
 }
 
 module.exports = {
-	produceExplorerBlockWithGt,
+  produceExplorerBlockWithGt
 };

@@ -1,5 +1,5 @@
 module.exports = () => {
-	let html = `
+  let html = `
     <div class="flank-overlay hide-scrollbar">
       <div class="help">Flank Attack?</div>
       <div class="status">Attack as Flank Attank?</div>
@@ -11,5 +11,5 @@ module.exports = () => {
       </div>
     </div>
   `;
-	return html;
+  return html;
 };

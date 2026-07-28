@@ -1,0 +1,162 @@
+/*
+ * Import overlay — dropzone / P2SH
+ */
+
+.saito-overlay.rs-publish-overlay-shell:has(.rs-import-overlay) > .rustscript-overlay {
+  width: min(92vw, 62rem);
+  max-height: min(90vh, 72rem);
+  height: auto;
+  flex: 0 1 auto;
+}
+
+.rs-import-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 18rem;
+  padding: var(--saito-space-xl);
+  position: relative;
+  border: 1px dashed #4a4a4a;
+  border-radius: 6px;
+  background: #101010;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.rs-import-dropzone:hover {
+  border-color: #5a5a5a;
+  background: #141414;
+}
+
+.rs-import-dropzone.is-dragover {
+  border-color: #52a860;
+  background: rgba(63, 143, 76, 0.08);
+}
+
+.rs-import-dropzone-icon {
+  width: 3.6rem;
+  height: 3.6rem;
+  margin-bottom: var(--saito-space-md);
+  color: #989898;
+}
+
+.rs-import-dropzone-lead {
+  margin: 0 0 var(--saito-space-xs);
+  font-size: var(--font-size-large);
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  color: #ececec;
+}
+
+.rs-import-dropzone-click {
+  margin: 0;
+  line-height: 1.4;
+  text-align: center;
+  color: #989898;
+}
+
+.rs-import-error[hidden] {
+  display: none !important;
+}
+
+.rs-import-error {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  line-height: 1.45;
+  color: #c07070;
+}
+
+.rs-import-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-md);
+  font-size: var(--font-size-tiny);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #777;
+}
+
+.rs-import-divider::before,
+.rs-import-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #333;
+}
+
+.rs-import-p2sh-heading {
+  margin: 0 0 var(--saito-space-sm);
+  font-size: var(--font-size-large);
+  font-weight: 500;
+  line-height: 1.35;
+  color: #f0f0f0;
+}
+
+.rs-import-p2sh-row {
+  display: flex;
+  gap: var(--saito-space-md);
+  align-items: stretch;
+}
+
+input.rs-import-p2sh-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--rs-control-height);
+  padding: 0 var(--saito-space-md);
+  background: #0c0c0c;
+  color: #efefef;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  font-weight: 400;
+}
+
+input.rs-import-p2sh-input:focus {
+  border-color: #666;
+}
+
+.rs-import-p2sh-btn {
+  flex: 0 0 auto;
+  min-width: 9.6rem;
+}
+
+.rs-import-loading .rs-overlay-body {
+  align-items: center;
+  text-align: center;
+}
+
+.rs-import-loading .rs-publish-spinner {
+  display: flex;
+  gap: var(--saito-space-sm);
+  justify-content: center;
+}
+
+.rs-import-loading .rs-publish-spinner-box {
+  width: 0.85rem;
+  height: 0.85rem;
+  background: #3f8f4c;
+  animation: rs-publish-pulse 1s ease-in-out infinite;
+}
+
+.rs-import-loading .rs-publish-spinner-box:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.rs-import-loading .rs-publish-spinner-box:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.rs-import-loading .rs-publish-spinner-box:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+@keyframes rs-publish-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}

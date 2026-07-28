@@ -2,315 +2,315 @@ const FileShareOverlayTemplate = require('./fileshare-overlay.template');
 const SaitoUser = require('./../../../lib/saito/ui/saito-user/saito-user');
 
 class FileShareOverlay {
-	constructor(app, mod, fileId, recipient = '') {
-		this.app = app;
-		this.mod = mod;
-		this.fileId = fileId;
-		this.recipient = recipient;
-		this.throttle_me = false;
-		this.qs = `#file-transfer-${this.fileId}-${this.recipient}`;
-		this.onStunDataChannelOpen = (peerId) => {
-			console.debug('FILESHARE: stun-data-channel-open');
-			if (peerId == this.recipient && this?.active) {
-				this.onConnectionSuccess();
-			} else {
-				console.debug(
-					'FILESHARE: stun data channel not for fileshare!',
-					this?.active,
-					peerId,
-					this.recipient
-				);
-			}
-		};
-		app.connection.on('stun-data-channel-open', this.onStunDataChannelOpen);
+  constructor(app, mod, fileId, recipient = '') {
+    this.app = app;
+    this.mod = mod;
+    this.fileId = fileId;
+    this.recipient = recipient;
+    this.throttle_me = false;
+    this.qs = `#file-transfer-${this.fileId}-${this.recipient}`;
+    this.onStunDataChannelOpen = (peerId) => {
+      console.debug('FILESHARE: stun-data-channel-open');
+      if (peerId == this.recipient && this?.active) {
+        this.onConnectionSuccess();
+      } else {
+        console.debug(
+          'FILESHARE: stun data channel not for fileshare!',
+          this?.active,
+          peerId,
+          this.recipient
+        );
+      }
+    };
+    app.connection.on('stun-data-channel-open', this.onStunDataChannelOpen);
 
-		// stun-connection-timeout --> quit waiting
-		this.onStunConnectionClose = (peerId) => {
-			if (peerId == this.recipient && this?.active) {
-				console.debug('FILESHARE: stun-connection-close');
-				this.mod.stun.removePeerConnection(peerId);
-				this.onConnectionFailure();
-				this.active = false;
-			}
-		};
-		app.connection.on('stun-connection-close', this.onStunConnectionClose);
+    // stun-connection-timeout --> quit waiting
+    this.onStunConnectionClose = (peerId) => {
+      if (peerId == this.recipient && this?.active) {
+        console.debug('FILESHARE: stun-connection-close');
+        this.mod.stun.removePeerConnection(peerId);
+        this.onConnectionFailure();
+        this.active = false;
+      }
+    };
+    app.connection.on('stun-connection-close', this.onStunConnectionClose);
 
-		this.onStunDataChannelClose = (peerId) => {
-			if (peerId == this.recipient && this?.active) {
-				console.debug('FILESHARE: stun-data-channel-close');
-				this.onConnectionFailure();
-			}
-		};
-		app.connection.on('stun-data-channel-close', this.onStunDataChannelClose);
+    this.onStunDataChannelClose = (peerId) => {
+      if (peerId == this.recipient && this?.active) {
+        console.debug('FILESHARE: stun-data-channel-close');
+        this.onConnectionFailure();
+      }
+    };
+    app.connection.on('stun-data-channel-close', this.onStunDataChannelClose);
 
-		this.onStunConnectionFailed = (peerId) => {
-			if (peerId == this.recipient && this?.active) {
-				console.debug('FILESHARE: stun-connection-failed');
-				this.onConnectionFailure();
-				this.active = false;
-			}
-		};
-		app.connection.on('stun-connection-failed', this.onStunConnectionFailed);
-	}
+    this.onStunConnectionFailed = (peerId) => {
+      if (peerId == this.recipient && this?.active) {
+        console.debug('FILESHARE: stun-connection-failed');
+        this.onConnectionFailure();
+        this.active = false;
+      }
+    };
+    app.connection.on('stun-connection-failed', this.onStunConnectionFailed);
+  }
 
-	render(needs_file = true) {
-		this.active = true;
+  render(needs_file = true) {
+    this.active = true;
 
-		this.app.browser.addElementToDom(FileShareOverlayTemplate(this));
+    this.app.browser.addElementToDom(FileShareOverlayTemplate(this));
 
-		if (this.recipient) {
-			this.senderUI = new SaitoUser(this.app, this.mod, `${this.qs} .contact`, this.recipient);
-			this.senderUI.render();
-			if (this.mod.stun.hasConnection(this.recipient)) {
-				this.onConnectionSuccess();
-			}
-		}
+    if (this.recipient) {
+      this.senderUI = new SaitoUser(this.app, this.mod, `${this.qs} .contact`, this.recipient);
+      this.senderUI.render();
+      if (this.mod.stun.hasConnection(this.recipient)) {
+        this.onConnectionSuccess();
+      }
+    }
 
-		this.attachEvents(needs_file);
-	}
+    this.attachEvents(needs_file);
+  }
 
-	remove() {
-		this.app.connection.removeListener('stun-data-channel-open', this.onStunDataChannelOpen);
-		this.app.connection.removeListener('stun-connection-close', this.onStunConnectionClose);
-		this.app.connection.removeListener('stun-data-channel-close', this.onStunDataChannelClose);
-		this.app.connection.removeListener('stun-connection-failed', this.onStunConnectionFailed);
+  remove() {
+    this.app.connection.removeListener('stun-data-channel-open', this.onStunDataChannelOpen);
+    this.app.connection.removeListener('stun-connection-close', this.onStunConnectionClose);
+    this.app.connection.removeListener('stun-data-channel-close', this.onStunDataChannelClose);
+    this.app.connection.removeListener('stun-connection-failed', this.onStunConnectionFailed);
 
-		if (document.querySelector(this.qs)) {
-			document.querySelector(this.qs).remove();
-		}
-		this.mod.reset(this.fileId, this.recipient);
-		this.active = false;
-		this.fileId = null;
-	}
+    if (document.querySelector(this.qs)) {
+      document.querySelector(this.qs).remove();
+    }
+    this.mod.reset(this.fileId, this.recipient);
+    this.active = false;
+    this.fileId = null;
+  }
 
-	addRecipient(recipient) {
-		this.recipient = recipient;
-		this.senderUI = new SaitoUser(this.app, this.mod, `${this.qs} .contact`, this.recipient);
-		this.senderUI.render();
-		if (this.mod.stun.hasConnection(this.recipient)) {
-			this.onConnectionSuccess();
-		}
-	}
+  addRecipient(recipient) {
+    this.recipient = recipient;
+    this.senderUI = new SaitoUser(this.app, this.mod, `${this.qs} .contact`, this.recipient);
+    this.senderUI.render();
+    if (this.mod.stun.hasConnection(this.recipient)) {
+      this.onConnectionSuccess();
+    }
+  }
 
-	updateFileData(file) {
-		const safeFileName = this.app.browser.escapeHTML(file?.name || '');
-		let html = `<div class="saito-file-transfer" id="saito-file-transfer-${this.fileId}">
+  updateFileData(file) {
+    const safeFileName = this.app.browser.escapeHTML(file?.name || '');
+    let html = `<div class="saito-file-transfer" id="saito-file-transfer-${this.fileId}">
 					<div class="file-transfer-progress"></div>
 					<i class="fa-solid fa-file-export"></i>
 					<div class="file-name">${safeFileName}</div>
 					<div class="file-size fixed-width">${this.mod.calcSize(file.size)}</div>
 					</div>`;
 
-		this.app.browser.addElementToSelector(html, `${this.qs} .teleporter-file-data`);
-	}
+    this.app.browser.addElementToSelector(html, `${this.qs} .teleporter-file-data`);
+  }
 
-	beginTransfer() {
-		let field = document.querySelector(this.qs + ' #transfer-speed-row');
-		if (field) {
-			field.classList.remove('hideme');
-		}
+  beginTransfer() {
+    let field = document.querySelector(this.qs + ' #transfer-speed-row');
+    if (field) {
+      field.classList.remove('hideme');
+    }
 
-		/*let html = `<div class="saito-file-transfer received">
+    /*let html = `<div class="saito-file-transfer received">
 					<div class="file-transfer-progress"></div>
 					<div class="file-name">Confirmed</div>
 					<div class="file-size fixed-width">0.00%</div>
 					</div>`;
 		this.app.browser.addElementToSelector(html, `${this.qs} .teleporter-file-data`);
 		*/
-	}
+  }
 
-	renderStats(stats) {
-		if (!this.throttle_me) {
-			let field = document.querySelector(this.qs + ' #file-transfer-status');
-			if (field) {
-				field.innerHTML = `<span class="fixed-width">${stats.speed}</span>`;
-			}
-			this.throttle_me = true;
-			setTimeout(() => {
-				this.throttle_me = false;
-			}, 500);
-		}
-	}
+  renderStats(stats) {
+    if (!this.throttle_me) {
+      let field = document.querySelector(this.qs + ' #file-transfer-status');
+      if (field) {
+        field.innerHTML = `<span class="fixed-width">${stats.speed}</span>`;
+      }
+      this.throttle_me = true;
+      setTimeout(() => {
+        this.throttle_me = false;
+      }, 500);
+    }
+  }
 
-	updateRStats(percentage) {
-		if (percentage >= 100) {
-			percentage = 100;
+  updateRStats(percentage) {
+    if (percentage >= 100) {
+      percentage = 100;
 
-			let wrapper = document.querySelector(this.qs + ' .saito-file-transfer');
-			if (wrapper) {
-				wrapper.classList.add('complete');
-			}
+      let wrapper = document.querySelector(this.qs + ' .saito-file-transfer');
+      if (wrapper) {
+        wrapper.classList.add('complete');
+      }
 
-			let btn = document.querySelector(this.qs + ' #file-transfer-buttons');
-			if (btn) {
-				btn.classList.remove('hideme');
-			}
-		}
+      let btn = document.querySelector(this.qs + ' #file-transfer-buttons');
+      if (btn) {
+        btn.classList.remove('hideme');
+      }
+    }
 
-		let progress_bar = document.querySelector(this.qs + ' .file-transfer-progress');
-		if (progress_bar) {
-			progress_bar.style.width = `${percentage}%`;
-		}
+    let progress_bar = document.querySelector(this.qs + ' .file-transfer-progress');
+    if (progress_bar) {
+      progress_bar.style.width = `${percentage}%`;
+    }
 
-		/*let field = document.querySelector(this.qs + " .received .file-size");
+    /*let field = document.querySelector(this.qs + " .received .file-size");
 		if (field){
 			field.innerHTML = `${percentage}%`;
 		}*/
-	}
+  }
 
-	finishTransfer() {
-		this.active = false;
-		let field = document.querySelector(this.qs + ' #file-transfer-status');
-		if (field) {
-			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
-		}
-	}
+  finishTransfer() {
+    this.active = false;
+    let field = document.querySelector(this.qs + ' #file-transfer-status');
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-check"></i>`;
+    }
+  }
 
-	onPeerAccept() {
-		let field = document.querySelector(this.qs + ' #peer-accept-status');
-		if (field) {
-			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
-		}
-	}
+  onPeerAccept() {
+    let field = document.querySelector(this.qs + ' #peer-accept-status');
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-check"></i>`;
+    }
+  }
 
-	onPeerReject() {
-		let field = document.querySelector(this.qs + ' #peer-accept-status');
-		if (field) {
-			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
-		}
+  onPeerReject() {
+    let field = document.querySelector(this.qs + ' #peer-accept-status');
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+    }
 
-		this.active = false;
-	}
+    this.active = false;
+  }
 
-	onConnectionSuccess() {
-		let field = document.querySelector(this.qs + ' #peer-connection-status');
+  onConnectionSuccess() {
+    let field = document.querySelector(this.qs + ' #peer-connection-status');
 
-		if (field) {
-			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
-		}
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-check"></i>`;
+    }
 
-		let message_field = document.querySelector(this.qs + ' .teleporter-transfer-field');
-		if (message_field) {
-			message_field.innerHTML = '';
-			message_field.onclick = null;
-		}
-	}
+    let message_field = document.querySelector(this.qs + ' .teleporter-transfer-field');
+    if (message_field) {
+      message_field.innerHTML = '';
+      message_field.onclick = null;
+    }
+  }
 
-	onConnectionFailure() {
-		let field = document.querySelector(this.qs + ' #peer-connection-status');
-		if (field) {
-			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
-		}
+  onConnectionFailure() {
+    let field = document.querySelector(this.qs + ' #peer-connection-status');
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+    }
 
-		// If this is a failure to connection rather than dropped connection after starting to send
-		//
-		if (
-			this.mod.outgoing_files[this.fileId]?.file &&
-			!this.mod.outgoing_files[this.fileId]?.sending
-		) {
-			let message_field = document.querySelector(this.qs + ' .teleporter-transfer-field');
-			if (message_field) {
-				message_field.innerHTML = `Peer appears to be offline. <span class="saito-anchor">Send them a link?</span> `;
+    // If this is a failure to connection rather than dropped connection after starting to send
+    //
+    if (
+      this.mod.outgoing_files[this.fileId]?.file &&
+      !this.mod.outgoing_files[this.fileId]?.sending
+    ) {
+      let message_field = document.querySelector(this.qs + ' .teleporter-transfer-field');
+      if (message_field) {
+        message_field.innerHTML = `Peer appears to be offline. <span class="saito-anchor">Send them a link?</span> `;
 
-				message_field.onclick = (e) => {
-					this.mod.copyShareLink(this.fileId);
-				};
-			}
-		}
-	}
+        message_field.onclick = (e) => {
+          this.mod.copyShareLink(this.fileId);
+        };
+      }
+    }
+  }
 
-	onFile(file = null) {
-		let field = document.querySelector(this.qs + ' #file-selection-status');
-		if (!field) {
-			return;
-		}
-		if (!file || !file.size) {
-			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
-		} else {
-			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
-			let hidden_form = document.querySelector(this.qs + ' .saito-file-uploader.needs-file');
-			if (hidden_form) {
-				hidden_form.onclick = null;
-				hidden_form.classList.remove('needs-file');
-			}
-		}
-	}
+  onFile(file = null) {
+    let field = document.querySelector(this.qs + ' #file-selection-status');
+    if (!field) {
+      return;
+    }
+    if (!file || !file.size) {
+      field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+    } else {
+      field.innerHTML = `<i class="fa-solid fa-check"></i>`;
+      let hidden_form = document.querySelector(this.qs + ' .saito-file-uploader.needs-file');
+      if (hidden_form) {
+        hidden_form.onclick = null;
+        hidden_form.classList.remove('needs-file');
+      }
+    }
+  }
 
-	onCancel() {
-		let field = document.querySelector(this.qs + ' #file-transfer-status');
-		if (field) {
-			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
-		}
+  onCancel() {
+    let field = document.querySelector(this.qs + ' #file-transfer-status');
+    if (field) {
+      field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+    }
 
-		this.active = false;
-	}
+    this.active = false;
+  }
 
-	attachEvents(needs_file) {
-		this.app.browser.makeDraggable(`file-transfer-${this.fileId}-${this.recipient}`, '', true);
+  attachEvents(needs_file) {
+    this.app.browser.makeDraggable(`file-transfer-${this.fileId}-${this.recipient}`, '', true);
 
-		if (needs_file) {
-			let input = document.querySelector(this.qs + ` #hidden_file_element_uploader_overlay`);
-			if (input) {
-				input.addEventListener('change', (e) => {
-					this.mod.addFileUploader(input.files[0], this.fileId);
-					if (!this.recipient) {
-						let handle = document.querySelector(this.qs + ' .contact');
-						if (handle) {
-							handle.innerHTML = `<span class="saito-anchor">Copy file share link</span>`;
-							handle.onclick = (e) => {
-								this.mod.copyShareLink(this.fileId);
-							};
-						}
-					}
-					this.onFile(input.files[0]);
-				});
+    if (needs_file) {
+      let input = document.querySelector(this.qs + ` #hidden_file_element_uploader_overlay`);
+      if (input) {
+        input.addEventListener('change', (e) => {
+          this.mod.addFileUploader(input.files[0], this.fileId);
+          if (!this.recipient) {
+            let handle = document.querySelector(this.qs + ' .contact');
+            if (handle) {
+              handle.innerHTML = `<span class="saito-anchor">Copy file share link</span>`;
+              handle.onclick = (e) => {
+                this.mod.copyShareLink(this.fileId);
+              };
+            }
+          }
+          this.onFile(input.files[0]);
+        });
 
-				input.click();
+        input.click();
 
-				let hidden_form = document.querySelector(this.qs + ' .saito-file-uploader.needs-file');
-				if (hidden_form) {
-					hidden_form.onclick = () => {
-						input.click();
-					};
-				}
-			}
-		}
+        let hidden_form = document.querySelector(this.qs + ' .saito-file-uploader.needs-file');
+        if (hidden_form) {
+          hidden_form.onclick = () => {
+            input.click();
+          };
+        }
+      }
+    }
 
-		let close = document.querySelector(this.qs + ' .saito-icon-button#close');
-		if (close) {
-			close.onclick = async (e) => {
-				const hasSelectedFile = !!this.mod.outgoing_files[this.fileId]?.file;
-				const hasPeerConnection =
-					!!this.recipient && !!this.mod.stun?.hasConnection(this.recipient);
-				const shouldConfirmCancel = hasSelectedFile || hasPeerConnection;
+    let close = document.querySelector(this.qs + ' .saito-icon-button#close');
+    if (close) {
+      close.onclick = async (e) => {
+        const hasSelectedFile = !!this.mod.outgoing_files[this.fileId]?.file;
+        const hasPeerConnection =
+          !!this.recipient && !!this.mod.stun?.hasConnection(this.recipient);
+        const shouldConfirmCancel = hasSelectedFile || hasPeerConnection;
 
-				if (this?.active && this?.fileId && shouldConfirmCancel) {
-					let c = await sconfirm('Are you sure you want to cancel?');
-					if (!c) {
-						return;
-					}
-					this.mod.interrupt(this.fileId, this.recipient);
-				}
-				this.remove();
-			};
-		}
+        if (this?.active && this?.fileId && shouldConfirmCancel) {
+          let c = await sconfirm('Are you sure you want to cancel?');
+          if (!c) {
+            return;
+          }
+          this.mod.interrupt(this.fileId, this.recipient);
+        }
+        this.remove();
+      };
+    }
 
-		let resize = document.querySelector(this.qs + ' .saito-icon-button#resize');
-		if (resize) {
-			resize.onclick = (e) => {
-				let overlay = document.querySelector(this.qs);
-				overlay.classList.toggle('minimize');
-				overlay.removeAttribute('style');
-			};
-		}
+    let resize = document.querySelector(this.qs + ' .saito-icon-button#resize');
+    if (resize) {
+      resize.onclick = (e) => {
+        let overlay = document.querySelector(this.qs);
+        overlay.classList.toggle('minimize');
+        overlay.removeAttribute('style');
+      };
+    }
 
-		let alt_close = document.querySelector(this.qs + ' #download-transfer');
-		if (alt_close) {
-			alt_close.onclick = (e) => {
-				this.remove();
-			};
-		}
-	}
+    let alt_close = document.querySelector(this.qs + ' #download-transfer');
+    if (alt_close) {
+      alt_close.onclick = (e) => {
+        this.remove();
+      };
+    }
+  }
 }
 
 module.exports = FileShareOverlay;

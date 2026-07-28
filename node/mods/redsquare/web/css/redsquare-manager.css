@@ -20,12 +20,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--saito-space-sm);
+  gap: var(--saito-space-md);
   flex: 0 0 auto;
-  min-height: 5.6rem;
-  padding: 0 var(--saito-space-lg);
-  background: var(--saito-background);
-  border-bottom: var(--border-thickness-thin) solid var(--saito-border);
+  min-height: 5.2rem;
+  padding: 0.8rem var(--saito-space-md);
+  background: var(--saito-card-wash);
+  border-bottom: 1px solid var(--saito-border);
+}
+
+/*
+ * Desktop Option A — page title anchors the feed chrome.
+ * Content-sized height (no empty min-height), title-weighted.
+ */
+@media (min-width: 601px) {
+  .manager > .header {
+    min-height: 0;
+    padding: 0.7rem var(--saito-space-md) 0.55rem;
+  }
 }
 
 /* Header is omitted from the DOM when the view does not require chrome. */
@@ -46,18 +57,9 @@
   flex: 1 1 auto;
 }
 
-/* display must not override the HTML [hidden] attribute — Home has no Back */
-.manager > .header .back:not([hidden]) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 3.2rem;
-  height: 3.2rem;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
+/* Shared .saito-button-square owns appearance; keep [hidden] from being overridden. */
+.manager > .header .back[hidden] {
+  display: none;
 }
 
 .manager > .header .title {
@@ -66,8 +68,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-large);
-  font-family: var(--saito-font-medium);
+  /* Visuelt Medium — page-title for conversation / profile navigation chrome */
+  font-family: var(--saito-font-heavy);
   line-height: 1.2;
 }
 
@@ -87,7 +89,7 @@
   width: 100%;
   padding: var(--saito-space-sm) var(--saito-space-lg);
   border: none;
-  background: var(--saito-card);
+  background: var(--saito-card-wash);
   color: var(--saito-foreground);
   text-align: center;
   cursor: pointer;
@@ -142,7 +144,7 @@
 
 @media (max-width: 600px) {
   .manager > .header {
-    padding: 0 var(--saito-space-sm);
+    padding: 0.8rem var(--saito-space-sm);
   }
 
   /* Floating + is the only compose affordance on mobile */

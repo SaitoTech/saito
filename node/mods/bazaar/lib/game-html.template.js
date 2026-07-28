@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	return `
+  return `
 		<div class="gameboard" id="gameboard">
 			<div class="jaipur_board" style="display: none">
 				<div class="bonus_tokens"></div>
@@ -18,4 +18,4 @@ module.exports = (app, mod) => {
 			<div id="purchase_zone" class="purchase_zone"></div>
 		</div>
 `;
-}
+};

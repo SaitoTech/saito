@@ -33,9 +33,9 @@ class Manager {
     this._timeline_bootstrapping = false;
     this._notifications_bootstrapping = false;
 
-    // Per-view Manager chrome. Desktop always shows the header.
-    // On compact viewports, header renders only when `header: true`
-    // (navigation and/or context the bottom nav does not already provide).
+    // Per-view Manager chrome. Header is navigation only (back + title).
+    // Home / notifications omit it so the feed begins with content.
+    // Thread and profile detail views keep it for back navigation.
     this.viewChrome = {
       timeline: { header: false },
       notifications: { header: false },
@@ -203,7 +203,6 @@ class Manager {
     this.attachEvents();
     this.syncScrollFooter();
     this.syncProfileNav();
-    this.mod.main?.new_post?.render();
   }
 
   ensureShell() {
@@ -266,9 +265,8 @@ class Manager {
   }
 
   /**
-   * Feed-header chrome — mounted only when the active view requires it.
-   * Decision point: after mode is set, before/with paint. Desktop always mounts;
-   * compact viewports respect each view's `viewChrome.header` declaration.
+   * Feed-header chrome — mounted only when the active view needs navigation.
+   * Creation lives in the sidebar Create component, not here.
    */
   syncFeedHeader() {
     const root = document.querySelector(this.container);
@@ -291,13 +289,6 @@ class Manager {
         }
 
         header = root.querySelector(':scope > .header');
-
-        // Fresh actions slot — allow New Post to bind again.
-        const actions = header?.querySelector('.actions');
-
-        if (actions) {
-          delete actions.dataset.newPostBound;
-        }
       }
 
       const title = header?.querySelector('.title');
@@ -337,14 +328,10 @@ class Manager {
   }
 
   /**
-   * Whether the active view requires Manager header chrome.
-   * Desktop: always. Compact: only when the view declares `header: true`.
+   * Whether the active view requires Manager header chrome (back + title).
+   * Driven by `viewChrome.header` on all viewports.
    */
   requiresHeader(mode = this.mode) {
-    if (!this.isCompactViewport()) {
-      return true;
-    }
-
     const chrome = this.viewChrome[mode];
 
     if (chrome && typeof chrome.header === 'boolean') {
@@ -628,14 +615,16 @@ class Manager {
         settled = true;
 
         if (direction === 'newer') {
-          this.handleNewerNotifications(result || {
-            type: 'notifications',
-            direction: 'newer',
-            added: [],
-            updated: [],
-            ignored: [],
-            exhausted: true
-          });
+          this.handleNewerNotifications(
+            result || {
+              type: 'notifications',
+              direction: 'newer',
+              added: [],
+              updated: [],
+              ignored: [],
+              exhausted: true
+            }
+          );
         } else {
           this.applyOlderLoadResult(
             result || {
@@ -707,9 +696,7 @@ class Manager {
     let filtered = tweets;
 
     if (this.mode === 'posts') {
-      filtered = tweets.filter(
-        (tweet) => (!key || tweet.publicKey === key) && !tweet.parent_id
-      );
+      filtered = tweets.filter((tweet) => (!key || tweet.publicKey === key) && !tweet.parent_id);
     } else if (this.mode === 'replies') {
       filtered = tweets.filter(
         (tweet) => (!key || tweet.publicKey === key) && Boolean(tweet.parent_id)
@@ -760,7 +747,10 @@ class Manager {
 
   appendNotificationsBatch() {
     const state = this.pagination.notifications;
-    const signatures = this.mod.notifications_timeline.slice(state.cursor, state.cursor + state.batchSize);
+    const signatures = this.mod.notifications_timeline.slice(
+      state.cursor,
+      state.cursor + state.batchSize
+    );
     const container = this.getActivePanelSelector();
 
     if (signatures.length === 0) {
@@ -1047,7 +1037,9 @@ class Manager {
     const options = { chainPrev: true, presentation: 'reply', reply: true };
     const html = TweetTemplate(tweet, tweet.buildClassName(options), options);
     const focusedEl = panel.querySelector(`article.tweet[data-id="${this.active_signature}"]`);
-    const replies = panel.querySelectorAll(`article.tweet:not([data-id="${this.active_signature}"])`);
+    const replies = panel.querySelectorAll(
+      `article.tweet:not([data-id="${this.active_signature}"])`
+    );
     const lastReply = replies.length ? replies[replies.length - 1] : null;
     const anchor = lastReply || focusedEl;
 
@@ -1861,9 +1853,7 @@ class Manager {
 
     // Upgrade leftover terminators from earlier builds.
     if (!footer) {
-      panel
-        .querySelectorAll('.feed-end, .scroll-footer')
-        .forEach((node) => node.remove());
+      panel.querySelectorAll('.feed-end, .scroll-footer').forEach((node) => node.remove());
 
       this.app.browser.addElementToElement(ManagerScrollFooterTemplate(), panel);
       footer = panel.querySelector('.feed-status');

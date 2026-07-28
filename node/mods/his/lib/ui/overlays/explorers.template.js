@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
     <div class="explorers-overlay" id="explorers-overlay">
     </div>
   `;

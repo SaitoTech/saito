@@ -14,16 +14,14 @@ const PublishNFTFlow = require('./overlays/publish-nft');
 const UnlockFlow = require('./overlays/unlock');
 const ImportFlow = require('./overlays/import');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const { buildRustscriptOverlay } = require('./overlays/overlay.shell');
 const {
   evaluateWorkspaceStatus,
   deriveWorkflowIndicator,
   isWitnessPhaseComplete,
   resolveFieldOverlayKind
 } = require('./script_validate');
-const {
-  build_test_script_from_create,
-  lockingView
-} = require('./script_build');
+const { build_test_script_from_create, lockingView } = require('./script_build');
 const PanelMenu = require('./panel_menu');
 
 const MOUNT_SELECTOR = '.saito-container';
@@ -69,7 +67,7 @@ class RustscriptMain {
       return;
     }
 
-    container.classList.add('rustscript');
+    document.body.classList.add('rustscript');
 
     const workspaceQuery = `${MOUNT_SELECTOR} ${WORKSPACE_SELECTOR}`;
     if (container.querySelector(WORKSPACE_SELECTOR)) {
@@ -264,17 +262,9 @@ class RustscriptMain {
     this.importFlow?.hide?.();
 
     if (this.publishFlow) {
-      this.publishFlow.pendingTxSignature = '';
       this.publishFlow.p2shAddress = '';
       this.publishFlow.p2shHash = '';
       this.publishFlow.lastPublishedTx = null;
-      this.publishFlow.confirmationWaiting?.stop?.();
-      this.publishFlow.confirmationWaiting = null;
-    }
-    if (this.unlockFlow) {
-      this.unlockFlow.pendingTxSignature = '';
-      this.unlockFlow.confirmationWaiting?.stop?.();
-      this.unlockFlow.confirmationWaiting = null;
     }
   }
 
@@ -340,8 +330,7 @@ class RustscriptMain {
 
   applyWorkspaceUI() {
     const root = document.querySelector(`${MOUNT_SELECTOR} ${WORKSPACE_SELECTOR}`);
-    const container = document.querySelector(MOUNT_SELECTOR);
-    if (!root || !container) {
+    if (!root) {
       return;
     }
 
@@ -349,8 +338,8 @@ class RustscriptMain {
     root.classList.toggle('rs-workspace-guided', guided);
     root.classList.toggle('rs-workspace-locked', guided);
     root.classList.toggle('rs-workspace-unlocked', !guided);
-    container.classList.toggle('rs-workspace-guided', guided);
-    container.classList.toggle('rs-workspace-unlocked', !guided);
+    document.body.classList.toggle('rs-workspace-guided', guided);
+    document.body.classList.toggle('rs-workspace-unlocked', !guided);
 
     const locking = lockingView(this.mod.getScript());
     const unlocking = this.testingUnlocked ? this.mod.getScript() : {};
@@ -514,16 +503,15 @@ class RustscriptMain {
   }
 
   renderGenerateExpertOverlay() {
-    const html = `
-      <div class="rustscript-overlay">
-        <h2>Generate Expert Script</h2>
+    const html = buildRustscriptOverlay({
+      className: 'rs-overlay-prompt rs-expert-generate',
+      title: 'Generate Expert Script',
+      bodyHtml: `
         <textarea class="saito-textarea rs-expert-input" spellcheck="false" placeholder="CHECKSIG[publickey=&quot;alice&quot;]&#10;AND&#10;IMPORTFIELD[key=&quot;duration&quot;]"></textarea>
         <p class="rs-prompt-validation rs-expert-generate-error" hidden role="alert"></p>
-        <div class="overlay-actions overlay-actions-apply-only">
-          <button type="button" class="rs-expert-generate-btn rs-prompt-primary">Generate</button>
-        </div>
-      </div>
-    `;
+      `,
+      actionsHtml: `<button type="button" class="rs-btn rs-btn-primary rs-expert-generate-btn">Generate</button>`
+    });
     this.generateExpertOverlay.show(html);
     const input = document.querySelector('.rs-expert-input');
     if (input) {

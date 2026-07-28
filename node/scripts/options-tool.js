@@ -127,7 +127,11 @@ function promptHidden(question) {
       }
     });
     mutableStdout.muted = false;
-    const rl2 = readline.createInterface({ input: process.stdin, output: mutableStdout, terminal: true });
+    const rl2 = readline.createInterface({
+      input: process.stdin,
+      output: mutableStdout,
+      terminal: true
+    });
     mutableStdout.muted = true;
     rl2.question(question, (answer) => {
       console.log('');
@@ -231,5 +235,3 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-
-

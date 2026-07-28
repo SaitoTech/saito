@@ -10,10 +10,9 @@
   max-height: calc(100vh - 9rem);
 }
 
-
 .node-cards-area > .node-card:first-child {
   margin-left: 0;
 }
 .node-cards-area > .node-card:last-child {
   margin-right: 0;
-} 
+}

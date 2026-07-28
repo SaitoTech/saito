@@ -2,31 +2,31 @@ const saito = require('./../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
 
 class TRX extends ModTemplate {
-	constructor(app) {
-		super(app);
+  constructor(app) {
+    super(app);
 
-		this.appname = 'TRX';
-		this.name = 'TRX';
-		this.ticker = 'TRX';
-		this.slug = 'trx';
-		this.description = 'Adds support for Tron (TRX) transfers on the Saito Network';
-		this.categories = 'Cryptocurrency Finance';
-		// MIXIN STUFF
-		this.asset_id = '25dabac5-056a-48ff-b9f9-f67395dc407c';
-		this.chain_id = '25dabac5-056a-48ff-b9f9-f67395dc407c';
-		this.decimals = 8;
-	}
+    this.appname = 'TRX';
+    this.name = 'TRX';
+    this.ticker = 'TRX';
+    this.slug = 'trx';
+    this.description = 'Adds support for Tron (TRX) transfers on the Saito Network';
+    this.categories = 'Cryptocurrency Finance';
+    // MIXIN STUFF
+    this.asset_id = '25dabac5-056a-48ff-b9f9-f67395dc407c';
+    this.chain_id = '25dabac5-056a-48ff-b9f9-f67395dc407c';
+    this.decimals = 8;
+  }
 
-	respondTo(type = '', obj) {
-		if (type == 'mixin-crypto') {
-			return {
-				name: this.name,
-				ticker: this.ticker,
-				description: this.description,
-				asset_id: this.asset_id
-			};
-		}
-		/*if (type == 'crypto-logo') {
+  respondTo(type = '', obj) {
+    if (type == 'mixin-crypto') {
+      return {
+        name: this.name,
+        ticker: this.ticker,
+        description: this.description,
+        asset_id: this.asset_id
+      };
+    }
+    /*if (type == 'crypto-logo') {
 			if (obj?.ticker == this.ticker) {
 				return {
 					//
@@ -68,8 +68,8 @@ class TRX extends ModTemplate {
 				};
 			}
 		}*/
-		return null;
-	}
+    return null;
+  }
 }
 
 module.exports = TRX;

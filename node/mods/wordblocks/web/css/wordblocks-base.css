@@ -40,7 +40,7 @@
 	background-image: url('/wordblocks/img/slot2.png');
 	background-size: contain;
 	border-radius: 0.5rem;
-	border: 1px solid var(--saito-border-color);
+	border: 1px solid var(--saito-border);
 	display: flex;
 	justify-content: center;
 	align-items: center;

@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	return `
+  return `
 			<div class="gameboard" id="gameboard">
 
 			<!--- NAVAL SPACES --->
@@ -336,4 +336,4 @@ module.exports = (app, mod) => {
 			<div class="turntrack turntrack1" id="turntrack"></div>
 		</div>
 `;
-}
+};

@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
     <div class="explorer-page">
       <div class="explorer-utility-bar">
         <div class="explorer-container explorer-utility-inner">

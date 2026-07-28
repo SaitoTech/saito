@@ -1,8 +1,7 @@
 const VideoCallSettingsTemplate = (mod, app) => {
-
   let display_mode = mod.layout;
 
-	let html = `
+  let html = `
             <div class="saito-modal saito-modal-menu videocall-setting-grid-item videocall-settings-modal" id="saito-user-menu">
                <div class="saito-modal-title">${mod.returnName()} Settings</div>
                <div class="saito-modal-content videocall-settings-content">
@@ -10,8 +9,8 @@ const VideoCallSettingsTemplate = (mod, app) => {
                 <fieldset class="saito-grid videocall-layout-options">
                   <legend class="settings-label videocall-settings-heading">Video Call Layout</legend>
                     <input id="videocall-option-input-focus" ${
-                        display_mode === 'focus' ? `checked` : ``
-                      } type="radio" value="focus"
+                      display_mode === 'focus' ? `checked` : ``
+                    } type="radio" value="focus"
                       name="videocall-option-input" class="saito-radio videocall-option-input">
 
                     <label class="videocall-option-label ${display_mode === 'focus' ? `active` : ``}" for="videocall-option-input-focus">
@@ -20,8 +19,8 @@ const VideoCallSettingsTemplate = (mod, app) => {
                     </label>
 
                     <input id="videocall-option-input-gallery" ${
-                        display_mode === 'gallery' ? `checked` : ``
-                      } type="radio" value="gallery"
+                      display_mode === 'gallery' ? `checked` : ``
+                    } type="radio" value="gallery"
                       name="videocall-option-input" class="saito-radio videocall-option-input">
 
                     <label class="videocall-option-label ${
@@ -33,8 +32,8 @@ const VideoCallSettingsTemplate = (mod, app) => {
                     </label>
 
                     <input id="videocall-option-input-speaker" ${
-                        display_mode === 'speaker' ? `checked` : ``
-                      } type="radio" value="speaker"
+                      display_mode === 'speaker' ? `checked` : ``
+                    } type="radio" value="speaker"
                       name="videocall-option-input" class="saito-radio videocall-option-input">
                     <label class="videocall-option-label ${
                       display_mode === 'speaker' ? `active` : ``
@@ -50,7 +49,7 @@ const VideoCallSettingsTemplate = (mod, app) => {
          
       `;
 
-	return html;
+  return html;
 };
 
 module.exports = VideoCallSettingsTemplate;

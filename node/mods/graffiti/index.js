@@ -1,5 +1,5 @@
 module.exports = (app) => {
-  const title = "Saito Graffiti";
+  const title = 'Saito Graffiti';
 
   return `
     <!doctype html>

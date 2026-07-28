@@ -22,9 +22,9 @@ class RedSquare extends ModTemplate {
     this.categories = 'Social Entertainment';
     this.icon_fa = 'fas fa-square-full';
 
-//
-// enable shortlinks
-//
+    //
+    // enable shortlinks
+    //
     this.shortlinks_enabled = 1;
 
     this.possibleHome = 1;
@@ -90,7 +90,7 @@ class RedSquare extends ModTemplate {
     this.enable_profile_edits = true;
 
     this.styles = ['/saito/saito.css', '/redsquare/style.css'];
-
+    this.postScripts = ['/saito/lib/emoji-picker/emoji-picker.js'];
   }
 
   returnServices() {
@@ -135,7 +135,9 @@ class RedSquare extends ModTemplate {
       const key = this.publicKey || '';
       this.profile = {
         publicKey: key,
-        name: key ? this.app.keychain.returnUsername(key) || `Anon-${key.slice(0, 6)}` : 'Anonymous',
+        name: key
+          ? this.app.keychain.returnUsername(key) || `Anon-${key.slice(0, 6)}`
+          : 'Anonymous',
         handle: '',
         bio: '',
         avatar: key
@@ -380,7 +382,10 @@ class RedSquare extends ModTemplate {
 
           if (older && created_at < peer_obj.tweets_earliest_ts) {
             peer_obj.tweets_earliest_ts = created_at;
-            this.tweets_earliest_ts = Math.min(this.tweets_earliest_ts, peer_obj.tweets_earliest_ts);
+            this.tweets_earliest_ts = Math.min(
+              this.tweets_earliest_ts,
+              peer_obj.tweets_earliest_ts
+            );
           }
 
           if (updated_at > peer_obj.tweets_latest_ts) {
@@ -416,8 +421,7 @@ class RedSquare extends ModTemplate {
           (isOlder &&
             peer_obj.tweets_earliest_ts >= this.tweets_earliest_ts &&
             peer_obj.tweets_earliest_ts > 0) ||
-          (!isOlder &&
-            (peer_obj.publicKey !== this.publicKey || peer_obj.peer === 'localhost'));
+          (!isOlder && (peer_obj.publicKey !== this.publicKey || peer_obj.peer === 'localhost'));
 
         if (!eligible) {
           continue;
@@ -783,7 +787,9 @@ class RedSquare extends ModTemplate {
     }
 
     if (payload.mentions != null) {
-      payload.mentions = Array.isArray(payload.mentions) ? payload.mentions.slice() : [payload.mentions];
+      payload.mentions = Array.isArray(payload.mentions)
+        ? payload.mentions.slice()
+        : [payload.mentions];
     }
 
     const newtx = await this.app.wallet.createUnsignedTransaction();
@@ -1365,11 +1371,11 @@ class RedSquare extends ModTemplate {
       this.addComponent(this.header);
       this.addComponent(this.main);
 
-      // Chat Manager owns chat — RedSquare only provides `.sidebar-left`.
-      for (const mod of this.app.modules.returnModulesRespondingTo('chat-manager')) {
-        const cm = mod.respondTo('chat-manager');
-        cm.container = '.sidebar-left';
-        cm.render_manager_to_screen = 1;
+      // Chat remains optional and owns its UI; RedSquare only supplies containers.
+      const cm = this.app.modules.returnFirstRespondTo?.('chat-manager') || null;
+      this.main.setChatManager(cm);
+
+      if (this.main.hasChatCapability()) {
         this.addComponent(cm);
       }
     }
@@ -1397,11 +1403,12 @@ class RedSquare extends ModTemplate {
 
     document.body.insertAdjacentHTML('beforeend', SplashTemplate());
 
-    this.show_splash = false;
-    this.saveOptions();
-
+    // Persist dismissal only when the user completes onboarding — not when the
+    // splash is merely shown. Otherwise a reload mid-splash permanently skips it.
     document.querySelector('.redsquare-splash-join')?.addEventListener('click', () => {
       document.querySelector('.redsquare-splash-overlay')?.remove();
+      this.show_splash = false;
+      this.saveOptions();
     });
   }
 
@@ -1565,7 +1572,6 @@ class RedSquare extends ModTemplate {
       })
     ];
   }
-
 }
 
 module.exports = RedSquare;

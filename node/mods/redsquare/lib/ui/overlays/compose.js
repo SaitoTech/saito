@@ -24,12 +24,14 @@ class ComposeOverlay {
     this.images = [];
     this.posting = false;
     this.drag_drop_bound = false;
+    this.gif_picker_rendered = false;
   }
 
   open(options = {}) {
     this.images = [];
     this.posting = false;
     this.drag_drop_bound = false;
+    this.gif_picker_rendered = false;
 
     if (options.mode === 'retweet' || options.retweet_of) {
       this.mode = 'retweet';
@@ -95,8 +97,7 @@ class ComposeOverlay {
     const imageBtn = root.querySelector('.tool.image');
     const gifBtn = root.querySelector('.tool.gif');
     const fileInput = root.querySelector('.file-input');
-    const gifPlaceholder = root.querySelector('.gif-placeholder');
-    const gifDismiss = root.querySelector('.gif-dismiss');
+    const emojiPicker = root.querySelector('.compose-emoji-picker');
 
     if (input) {
       input.addEventListener('input', () => {
@@ -123,8 +124,14 @@ class ComposeOverlay {
         e.preventDefault();
 
         if (!this.posting) {
-          siteMessage('Emoji picker is coming soon.', 1500);
+          this.showPicker('emoji');
         }
+      });
+    }
+
+    if (emojiPicker) {
+      emojiPicker.addEventListener('emoji-click', (e) => {
+        this.insertEmoji(e.detail?.unicode);
       });
     }
 
@@ -149,24 +156,30 @@ class ComposeOverlay {
       });
     }
 
-    if (gifBtn && gifPlaceholder) {
+    if (gifBtn) {
       gifBtn.addEventListener('click', (e) => {
         e.preventDefault();
 
         if (!this.posting) {
-          gifPlaceholder.classList.add('visible');
-          gifPlaceholder.setAttribute('aria-hidden', 'false');
+          this.openGifPicker();
         }
       });
     }
 
-    if (gifDismiss && gifPlaceholder) {
-      gifDismiss.addEventListener('click', (e) => {
+    root.querySelectorAll('.compose-picker-close').forEach((closeBtn) => {
+      closeBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        gifPlaceholder.classList.remove('visible');
-        gifPlaceholder.setAttribute('aria-hidden', 'true');
+        this.hidePickers();
       });
-    }
+    });
+
+    root.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && root.querySelector('.compose-picker.visible')) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.hidePickers();
+      }
+    });
 
     if (!this.drag_drop_bound) {
       this.app.browser.addDragAndDropFileUploadToElement(
@@ -183,6 +196,103 @@ class ComposeOverlay {
     }
 
     this.updateCharacterCount();
+  }
+
+  showPicker(type) {
+    const root = this.getRoot();
+
+    if (!root) {
+      return;
+    }
+
+    root.querySelectorAll('.compose-picker').forEach((picker) => {
+      const visible = picker.classList.contains(`${type}-picker-panel`);
+      picker.classList.toggle('visible', visible);
+      picker.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    });
+
+    if (type === 'emoji' && typeof customElements !== 'undefined') {
+      customElements.whenDefined('emoji-picker').then(() => {
+        const search = this.getRoot()
+          ?.querySelector('.compose-emoji-picker')
+          ?.shadowRoot?.querySelector('input.search');
+
+        if (search && !this.app.browser.isMobileBrowser()) {
+          search.focus({ focusVisible: true });
+        }
+      });
+    }
+  }
+
+  hidePickers() {
+    const root = this.getRoot();
+
+    if (!root) {
+      return;
+    }
+
+    root.querySelectorAll('.compose-picker').forEach((picker) => {
+      picker.classList.remove('visible');
+      picker.setAttribute('aria-hidden', 'true');
+    });
+
+    root.querySelector('.input')?.focus();
+  }
+
+  insertEmoji(unicode) {
+    const input = this.getRoot()?.querySelector('.input');
+
+    if (!input || !unicode || this.posting) {
+      return;
+    }
+
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? start;
+    input.setRangeText(unicode, start, end, 'end');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  openGifPicker() {
+    if (this.images.length >= MAX_IMAGES) {
+      salert('Maximum 4 images allowed per tweet.');
+      return;
+    }
+
+    const root = this.getRoot();
+    const container = root?.querySelector('.gif-picker-content');
+
+    if (!root || !container) {
+      return;
+    }
+
+    this.showPicker('gif');
+
+    if (this.gif_picker_rendered) {
+      return;
+    }
+
+    const gifProvider = this.app.modules.returnFirstRespondTo?.('giphy');
+
+    if (!gifProvider?.renderInto) {
+      this.hidePickers();
+      siteMessage('GIF search is unavailable.', 1500);
+      return;
+    }
+
+    this.gif_picker_rendered = true;
+    gifProvider.renderInto(`#${this.overlay_id} .gif-picker-content`, (gifSource) => {
+      if (this.posting || !gifSource) {
+        return;
+      }
+
+      if (this.images.length >= MAX_IMAGES) {
+        salert('Maximum 4 images allowed per tweet.');
+      } else {
+        this.addImagePreview(gifSource);
+      }
+
+      this.hidePickers();
+    });
   }
 
   setPostingState(active) {
@@ -292,7 +402,10 @@ class ComposeOverlay {
       </figure>
     `;
 
-    this.app.browser.addElementToSelector(html, `.saito-overlay #redsquare-compose-surface .image-preview`);
+    this.app.browser.addElementToSelector(
+      html,
+      `.saito-overlay #redsquare-compose-surface .image-preview`
+    );
     this.images.push(src);
 
     const item = container.querySelector(`.image-item[data-index="${index}"]`);

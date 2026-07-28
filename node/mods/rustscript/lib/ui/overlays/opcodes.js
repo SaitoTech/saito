@@ -1,4 +1,5 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const { buildRustscriptOverlay } = require('./overlay.shell');
 
 class OpcodeReference {
   constructor(app, mod) {
@@ -26,27 +27,25 @@ class OpcodeReference {
       .join('');
 
     return `
-      <div class="rs-ref-doc">
-        <p class="rs-ref-lead">${this.escapeHtml(returns)}</p>
-        ${
-          required.length
-            ? `
-        <div class="rs-ref-section">
-          <p class="rs-ref-section-label">Required fields:</p>
-          <ul class="rs-ref-field-list">${requiredItems}</ul>
-        </div>`
-            : ''
-        }
-        ${
-          example
-            ? `
-        <div class="rs-ref-section">
-          <p class="rs-ref-section-label">Example:</p>
-          <pre class="rs-ref-example">${this.escapeHtml(example)}</pre>
-        </div>`
-            : ''
-        }
-      </div>
+      <p class="rs-ref-lead">${this.escapeHtml(returns)}</p>
+      ${
+        required.length
+          ? `
+      <div class="rs-ref-section">
+        <p class="rs-ref-section-label">Required fields:</p>
+        <ul class="rs-ref-field-list">${requiredItems}</ul>
+      </div>`
+          : ''
+      }
+      ${
+        example
+          ? `
+      <div class="rs-ref-section">
+        <p class="rs-ref-section-label">Example:</p>
+        <pre class="rs-ref-example">${this.escapeHtml(example)}</pre>
+      </div>`
+          : ''
+      }
     `;
   }
 
@@ -96,10 +95,7 @@ class OpcodeReference {
   }
 
   escapeHtml(text) {
-    return String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 }
 
@@ -114,15 +110,16 @@ class OpcodesOverlay {
 
   open(initialKey) {
     this.selectedKey = initialKey ? String(initialKey).toLowerCase() : null;
-    const html = `
-      <div class="rustscript-overlay rs-overlay-panel rs-overlay-panel-wide rs-opcode-ref-overlay">
-        <div class="rs-opcode-ref-overlay-head">
-          <h2 class="rs-opcode-ref-overlay-title">Opcode Reference</h2>
+    const html = buildRustscriptOverlay({
+      className: 'rs-overlay-wide rs-opcode-ref-overlay',
+      headHtml: `
+        <div class="rs-overlay-head">
+          <h2 class="rs-overlay-title">Opcode Reference</h2>
           <select class="saito-form-select rs-opcode-ref-overlay-select" aria-label="Select opcode"></select>
         </div>
-        <div class="rs-opcode-ref-overlay-body" aria-live="polite"></div>
-      </div>
-    `;
+      `,
+      bodyHtml: `<div class="rs-opcode-ref-content" aria-live="polite"></div>`
+    });
 
     this.overlay.show(html);
     this.populateSelect();
@@ -184,7 +181,7 @@ class OpcodesOverlay {
       select.value = normalized;
     }
 
-    const body = document.querySelector('.rs-opcode-ref-overlay-body');
+    const body = document.querySelector('.rs-opcode-ref-content');
     if (!body) {
       return;
     }

@@ -1,5 +1,5 @@
-module.exports = (terrain="") => {
-	let html = `
+module.exports = (terrain = '') => {
+  let html = `
     <div class="loss-overlay ${terrain}">
 
       <div class="help"></div>
@@ -302,5 +302,5 @@ module.exports = (terrain="") => {
       </div>
     </div>
   `;
-	return html;
+  return html;
 };

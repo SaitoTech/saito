@@ -1,7 +1,7 @@
 module.exports = (app, mod) => {
-	let html = `<div class="rules-overlay saito-overlay-size.narrow">
+  let html = `<div class="rules-overlay saito-overlay-size.narrow">
 	         Use cursors (awsd) to fly around, hold mouse button for laser, press spacebar for booomb. Have fun!
 	       </div>`;
 
-	return html;
+  return html;
 };

@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	return `
+  return `
     <ul>
           <li class="manager-menu absolute-beginners">Absolute Beginners</li>
           <li class="manager-menu elementary">Elementary</li>

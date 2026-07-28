@@ -1,34 +1,33 @@
 const StatsTemplate = (twilight_self, stats) => {
+  let us_bg = 0;
+  let ussr_bg = 0;
+  let round_us_vp = [];
+  let round_ussr_vp = [];
 
-	let us_bg = 0;
-	let ussr_bg = 0;
-	let round_us_vp = [];
-	let round_ussr_vp = [];
+  console.log('STATS: ' + JSON.stringify(stats));
+  for (var i in twilight_self.countries) {
+    let countryname = i;
+    if (twilight_self.countries[countryname].bg == 1) {
+      if (twilight_self.isControlled('us', i) == 1) {
+        us_bg++;
+      }
+      if (twilight_self.isControlled('ussr', i) == 1) {
+        ussr_bg++;
+      }
+    }
+  }
 
-	console.log('STATS: ' + JSON.stringify(stats));
-	for (var i in twilight_self.countries) {
-		let countryname = i;
-		if (twilight_self.countries[countryname].bg == 1) {
-			if (twilight_self.isControlled('us', i) == 1) {
-				us_bg++;
-			}
-			if (twilight_self.isControlled('ussr', i) == 1) {
-				ussr_bg++;
-			}
-		}
-	}
+  let us_coups = '0';
+  if (twilight_self.game.state.stats.us_coups.length > 0) {
+    us_coups = JSON.stringify(twilight_self.game.state.stats.us_coups);
+  }
 
-	let us_coups = '0';
-	if (twilight_self.game.state.stats.us_coups.length > 0) {
-		us_coups = JSON.stringify(twilight_self.game.state.stats.us_coups);
-	}
+  let ussr_coups = '0';
+  if (twilight_self.game.state.stats.ussr_coups.length > 0) {
+    ussr_coups = JSON.stringify(twilight_self.game.state.stats.ussr_coups);
+  }
 
-	let ussr_coups = '0';
-	if (twilight_self.game.state.stats.ussr_coups.length > 0) {
-		ussr_coups = JSON.stringify(twilight_self.game.state.stats.ussr_coups);
-	}
-
-	let html = `
+  let html = `
 
 <div class="statistics-overlay">
     <div class="gobal-stats-grid">
@@ -60,6 +59,6 @@ const StatsTemplate = (twilight_self, stats) => {
 
   `;
 
-	return html;
+  return html;
 };
 module.exports = StatsTemplate;

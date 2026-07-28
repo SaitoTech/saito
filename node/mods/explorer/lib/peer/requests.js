@@ -159,7 +159,7 @@ async function handleRequestInfo(app) {
     fees_last_block: readBlockString('totalFees'),
     atr_fees_last_block: readBlockString('totalFeesAtr'),
     golden_ticket_window: blocks.length,
-    golden_ticket_count: goldenTicketCount,
+    golden_ticket_count: goldenTicketCount
   });
 }
 
@@ -221,5 +221,5 @@ module.exports = {
   success,
   failure,
   blockToJson,
-  blockHeaderToJson,
+  blockHeaderToJson
 };

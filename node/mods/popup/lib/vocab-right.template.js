@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
 
 	<form style="margin-left: 80px;margin-top:0px;">
         <br>

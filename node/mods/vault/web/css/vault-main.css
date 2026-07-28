@@ -11,15 +11,6 @@ body.vault-body .saito-container {
   padding: 3rem;
 }
 
-.vault-cta-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2.4rem;
-  background: var(--saito-overlay-panel-background);
-}
-
 .vault-cta-logo {
   --saito-cta-logo-mask: url('/saito/icons/saito-vault-icon-outline-label-horizontal.svg');
   position: relative;
@@ -43,7 +34,7 @@ body.vault-body .saito-container {
 }
 
 .vault-cta-tagline {
-  color: var(--saito-font-color-secondary);
+  color: var(--saito-muted-foreground);
   font-size: 1.5rem;
   letter-spacing: 0.22em;
   line-height: 1.5;
@@ -54,14 +45,4 @@ body.vault-body .saito-container {
 .vault-cta-card .saito-button-primary {
   background: var(--saito-cta-action-background);
   box-shadow: var(--saito-cta-action-shadow);
-}
-
-@media (min-width: 721px) {
-  .vault-cta-card {
-    width: min(95vw, 86rem);
-    padding: 3.2rem;
-    border: 1px solid var(--saito-overlay-panel-border);
-    border-radius: calc(var(--saito-border-radius) + 0.15rem);
-    box-shadow: var(--saito-overlay-panel-shadow);
-  }
 }

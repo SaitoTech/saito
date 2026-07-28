@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
     <div class="league-main-container" id="league-main-container">
     <div class="saito-module">
       <div class="saito-module-details-box">

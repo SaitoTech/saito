@@ -4,7 +4,7 @@ module.exports = (input_self, placeholder = '') => {
   let html = `
 	<div class="saito-input saito-input-large">
 		<textarea class="saito-textarea text-input" name="post-tweet-textarea" id="post-tweet-textarea" placeholder="${placeholder}" rows="7" cols="60"></textarea>
-		<div class="saito-mentions-list hidden" id="saito-mentions-list"></div>
+		<div class="saito-mentions-list saito-overlay-panel compact hidden" id="saito-mentions-list"></div>
 		<!--div id="post-tweet-textarea" class="text-input saito-textarea" type="text" value="" autocomplete="off" placeholder="${placeholder}" contenteditable="true" rows="7" cols="60"></div-->
 		${SaitoInputControls(input_self)}
 

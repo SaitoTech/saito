@@ -83,7 +83,11 @@ function hasTweet(mod, signature) {
 function isValidTweetMessage(mod, tweet) {
   const tx = tweet.tx;
   const txmsg =
-    tx && typeof tx.returnMessage === 'function' ? tx.returnMessage() : tx?.msg && typeof tx.msg === 'object' ? tx.msg : {};
+    tx && typeof tx.returnMessage === 'function'
+      ? tx.returnMessage()
+      : tx?.msg && typeof tx.msg === 'object'
+        ? tx.msg
+        : {};
 
   if (txmsg.module && txmsg.module !== mod.name) {
     return false;

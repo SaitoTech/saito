@@ -13,17 +13,17 @@
   align-items: center;
   font-size: 1.92rem;
   position: relative;
-  border-radius: var(--saito-border-radius);
+  border-radius: var(--saito-radius);
 }
 
 .saito-menu li:active {
   /* newly added state, for use in Sangre3000 -only so far */
-  background: var(--saito-menu-item-active-bg);
+  background: var(--saito-accent);
 }
 
 .saito-menu li:hover p {
-  background-color: var(--saito-menu-item-hover-bg);
-  color: var(--saito-menu-item-hover-fg);
+  background-color: var(--saito-accent);
+  color: var(--saito-accent-foreground);
 }
 
 .saito-menu li > i {
@@ -122,18 +122,18 @@
 }
 */
 .saito-menu i::before {
-  -webkit-text-stroke-color: var(--saito-menu-icon-color);
+  -webkit-text-stroke-color: var(--saito-muted-foreground);
   -webkit-text-stroke-width: 1px;
   color: transparent;
 }
 
 .saito-menu li:hover i::before {
-  -webkit-text-stroke-color: var(--saito-menu-icon-hover-color);
-  color: var(--saito-menu-icon-hover-color);
+  -webkit-text-stroke-color: var(--saito-foreground);
+  color: var(--saito-foreground);
 }
 
 .utilities-menu li:hover i::before {
-  -webkit-text-stroke-color: var(--saito-primary-text);
+  -webkit-text-stroke-color: var(--saito-primary-foreground);
   color: transparent;
 }
 
@@ -156,5 +156,49 @@
     width: 2.8rem;
     height: 2.8rem;
     margin-bottom: 0.25rem;
+  }
+}
+
+/*
+  Desktop chrome compensation for the 12px root.
+  Same gate as saito-header.css: mobile/game keep 10px root + base rem.
+*/
+@media screen and (min-width: 769px) {
+  html:not(.game) .saito-header-menu-section {
+    padding: calc(1rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-menu li {
+    padding: calc(1rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-menu ul {
+    column-gap: calc(1.5rem * 10 / 12);
+    row-gap: calc(2rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section hr {
+    margin: calc(1.5rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-header-appspace-option > i {
+    font-size: calc(2.75rem * 10 / 12);
+    margin-bottom: calc(0.75rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-module-menu-icon-wrap {
+    width: calc(3.2rem * 10 / 12);
+    height: calc(3.2rem * 10 / 12);
+    margin-bottom: calc(0.75rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-header-appspace-option > i.navigation-symbol {
+    font-size: calc(1.4rem * 10 / 12);
+  }
+
+  html:not(.game) .saito-header-menu-section .saito-menu-item-label {
+    max-width: calc(10rem * 10 / 12);
+    padding: calc(0.5rem * 10 / 12);
+    font-size: calc(1.33rem * 10 / 12);
   }
 }

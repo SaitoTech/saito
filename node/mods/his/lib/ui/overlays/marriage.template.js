@@ -1,6 +1,5 @@
 module.exports = () => {
-
-	let html = `
+  let html = `
           <div class="marriage-overlay" id="marriage-overlay">
 	    <div class="help">Henry VIII is pleased with his marital progress...</div>
 	    <div class="tile tile1"></div>
@@ -12,6 +11,5 @@ module.exports = () => {
 	    <div class="tile tile7"></div>
           </div>
   	`;
-	return html;
+  return html;
 };
-

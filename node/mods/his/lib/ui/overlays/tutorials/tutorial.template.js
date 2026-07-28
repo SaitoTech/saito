@@ -1,10 +1,13 @@
-module.exports = (targs={}) => {
+module.exports = (targs = {}) => {
+  let help = '';
+  let content = '';
 
-  let help = "";
-  let content = "";
-
-  if (targs.help) { help = targs.help; }
-  if (targs.content) { content = targs.content; }
+  if (targs.help) {
+    help = targs.help;
+  }
+  if (targs.content) {
+    content = targs.content;
+  }
 
   return `
       <div class="tutorial-overlay" id="tutorial-overlay">
@@ -12,5 +15,4 @@ module.exports = (targs={}) => {
 	<div class="content">${content}</div>
       </div>
   `;
-
 };

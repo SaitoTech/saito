@@ -8,148 +8,155 @@
 body:has(.explorer-page),
 body.explorer-body-root,
 .explorer-page {
-	/* color — light (preset b3kI339ZA) */
-	--explorer-background: oklch(1 0 0);
-	--explorer-foreground: oklch(0.145 0 0);
-	--explorer-card: oklch(1 0 0);
-	--explorer-card-foreground: oklch(0.145 0 0);
-	--explorer-popover: oklch(1 0 0);
-	--explorer-popover-foreground: oklch(0.145 0 0);
-	--explorer-primary: oklch(0.553 0.195 38.402);
-	--explorer-primary-foreground: oklch(0.98 0.016 73.684);
-	--explorer-link: oklch(0.52 0.14 245);
-	--explorer-link-hover: oklch(0.45 0.16 245);
-	--explorer-secondary: oklch(0.967 0.001 286.375);
-	--explorer-secondary-foreground: oklch(0.21 0.006 285.885);
-	--explorer-muted: oklch(0.97 0 0);
-	--explorer-muted-foreground: oklch(0.48 0 0);
-	--explorer-accent: oklch(0.97 0 0);
-	--explorer-accent-foreground: oklch(0.205 0 0);
-	--explorer-destructive: oklch(0.577 0.245 27.325);
-	--explorer-destructive-foreground: oklch(0.98 0.016 73.684);
-	--explorer-border: oklch(0.922 0 0);
-	--explorer-input: oklch(0.922 0 0);
-	--explorer-ring: oklch(0.708 0 0);
+  /* color — light (preset b3kI339ZA) */
+  --explorer-background: oklch(1 0 0);
+  --explorer-foreground: oklch(0.145 0 0);
+  --explorer-card: oklch(1 0 0);
+  --explorer-card-foreground: oklch(0.145 0 0);
+  --explorer-popover: oklch(1 0 0);
+  --explorer-popover-foreground: oklch(0.145 0 0);
+  --explorer-primary: oklch(0.553 0.195 38.402);
+  --explorer-primary-foreground: oklch(0.98 0.016 73.684);
+  --explorer-link: oklch(0.52 0.14 245);
+  --explorer-link-hover: oklch(0.45 0.16 245);
+  --explorer-secondary: oklch(0.967 0.001 286.375);
+  --explorer-secondary-foreground: oklch(0.21 0.006 285.885);
+  --explorer-muted: oklch(0.97 0 0);
+  --explorer-muted-foreground: oklch(0.48 0 0);
+  --explorer-accent: oklch(0.97 0 0);
+  --explorer-accent-foreground: oklch(0.205 0 0);
+  --explorer-destructive: oklch(0.577 0.245 27.325);
+  --explorer-destructive-foreground: oklch(0.98 0.016 73.684);
+  --explorer-border: oklch(0.922 0 0);
+  --explorer-input: oklch(0.922 0 0);
+  --explorer-ring: oklch(0.708 0 0);
 
-	/* chart / data accent scale */
-	--explorer-chart-1: oklch(0.837 0.128 66.29);
-	--explorer-chart-2: oklch(0.705 0.213 47.604);
-	--explorer-chart-3: oklch(0.646 0.222 41.116);
-	--explorer-chart-4: oklch(0.553 0.195 38.402);
-	--explorer-chart-5: oklch(0.47 0.157 37.304);
+  /* chart / data accent scale */
+  --explorer-chart-1: oklch(0.837 0.128 66.29);
+  --explorer-chart-2: oklch(0.705 0.213 47.604);
+  --explorer-chart-3: oklch(0.646 0.222 41.116);
+  --explorer-chart-4: oklch(0.553 0.195 38.402);
+  --explorer-chart-5: oklch(0.47 0.157 37.304);
 
-	/* sidebar (reserved for future nav patterns) */
-	--explorer-sidebar: oklch(0.985 0 0);
-	--explorer-sidebar-foreground: oklch(0.145 0 0);
-	--explorer-sidebar-border: oklch(0.922 0 0);
+  /* sidebar (reserved for future nav patterns) */
+  --explorer-sidebar: oklch(0.985 0 0);
+  --explorer-sidebar-foreground: oklch(0.145 0 0);
+  --explorer-sidebar-border: oklch(0.922 0 0);
 
-	/* radius — preset "small" */
-	--explorer-radius: 0.45rem;
-	--explorer-radius-sm: 0.3rem;
-	--explorer-radius-lg: 0.6rem;
-	--explorer-radius-xl: 0.75rem;
+  /* radius — preset "small" */
+  --explorer-radius: 0.45rem;
+  --explorer-radius-sm: 0.3rem;
+  --explorer-radius-lg: 0.6rem;
+  --explorer-radius-xl: 0.75rem;
 
-	/* shadow — subtle nova-style elevation */
-	--explorer-shadow-xs: 0 1px 2px color-mix(in oklch, var(--explorer-foreground) 5%, transparent);
-	--explorer-shadow-sm: 0 1px 3px color-mix(in oklch, var(--explorer-foreground) 7%, transparent),
-		0 1px 2px color-mix(in oklch, var(--explorer-foreground) 4%, transparent);
-	--explorer-shadow-md: 0 4px 6px -1px color-mix(in oklch, var(--explorer-foreground) 8%, transparent),
-		0 2px 4px -2px color-mix(in oklch, var(--explorer-foreground) 5%, transparent);
-	--explorer-shadow-lg: 0 10px 15px -3px color-mix(in oklch, var(--explorer-foreground) 8%, transparent),
-		0 4px 6px -4px color-mix(in oklch, var(--explorer-foreground) 5%, transparent);
-	--explorer-shadow: var(--explorer-shadow-sm);
-	--explorer-focus-ring: 0 0 0 3px color-mix(in oklch, var(--explorer-ring) 45%, transparent);
+  /* shadow — subtle nova-style elevation */
+  --explorer-shadow-xs: 0 1px 2px color-mix(in oklch, var(--explorer-foreground) 5%, transparent);
+  --explorer-shadow-sm:
+    0 1px 3px color-mix(in oklch, var(--explorer-foreground) 7%, transparent),
+    0 1px 2px color-mix(in oklch, var(--explorer-foreground) 4%, transparent);
+  --explorer-shadow-md:
+    0 4px 6px -1px color-mix(in oklch, var(--explorer-foreground) 8%, transparent),
+    0 2px 4px -2px color-mix(in oklch, var(--explorer-foreground) 5%, transparent);
+  --explorer-shadow-lg:
+    0 10px 15px -3px color-mix(in oklch, var(--explorer-foreground) 8%, transparent),
+    0 4px 6px -4px color-mix(in oklch, var(--explorer-foreground) 5%, transparent);
+  --explorer-shadow: var(--explorer-shadow-sm);
+  --explorer-focus-ring: 0 0 0 3px color-mix(in oklch, var(--explorer-ring) 45%, transparent);
 
-	/* typography — scaled for Saito (:root font-size 10px, 1rem = 10px) */
-	--explorer-font-sans: 'Inter', var(--saito-font), ui-sans-serif, system-ui, -apple-system,
-		BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-	--explorer-font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
-		monospace;
+  /* typography — scaled for Saito (:root font-size 10px, 1rem = 10px) */
+  --explorer-font-sans:
+    'Inter', var(--saito-font), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --explorer-font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
-	--explorer-text-xs: 1.2rem;
-	--explorer-text-sm: 1.3rem;
-	--explorer-text-base: 1.5rem;
-	--explorer-text-lg: 1.8rem;
-	--explorer-text-xl: 2rem;
-	--explorer-text-2xl: 2.4rem;
-	--explorer-text-3xl: 3rem;
+  --explorer-text-xs: 1.2rem;
+  --explorer-text-sm: 1.3rem;
+  --explorer-text-base: 1.5rem;
+  --explorer-text-lg: 1.8rem;
+  --explorer-text-xl: 2rem;
+  --explorer-text-2xl: 2.4rem;
+  --explorer-text-3xl: 3rem;
 
-	--explorer-font-normal: 400;
-	--explorer-font-medium: 500;
-	--explorer-font-semibold: 600;
-	--explorer-font-bold: 700;
+  --explorer-font-normal: 400;
+  --explorer-font-medium: 500;
+  --explorer-font-semibold: 600;
+  --explorer-font-bold: 700;
 
-	--explorer-leading-none: 1;
-	--explorer-leading-tight: 1.25;
-	--explorer-leading-snug: 1.375;
-	--explorer-leading-normal: 1.5;
-	--explorer-leading-relaxed: 1.625;
+  --explorer-leading-none: 1;
+  --explorer-leading-tight: 1.25;
+  --explorer-leading-snug: 1.375;
+  --explorer-leading-normal: 1.5;
+  --explorer-leading-relaxed: 1.625;
 
-	--explorer-tracking-tight: -0.025em;
-	--explorer-tracking-normal: 0;
-	--explorer-tracking-wide: 0.025em;
-	--explorer-tracking-wider: 0.05em;
+  --explorer-tracking-tight: -0.025em;
+  --explorer-tracking-normal: 0;
+  --explorer-tracking-wide: 0.025em;
+  --explorer-tracking-wider: 0.05em;
 
-	/* spacing — Saito rem grid (1rem = 10px) */
-	--explorer-space-0: 0;
-	--explorer-space-1: 0.5rem;
-	--explorer-space-2: 1rem;
-	--explorer-space-3: 1.5rem;
-	--explorer-space-4: 2rem;
-	--explorer-space-5: 2.5rem;
-	--explorer-space-6: 3rem;
-	--explorer-space-8: 4rem;
-	--explorer-space-10: 5rem;
-	--explorer-space-12: 6rem;
-	--explorer-space-16: 8rem;
+  /* spacing — Saito rem grid (1rem = 10px) */
+  --explorer-space-0: 0;
+  --explorer-space-1: 0.5rem;
+  --explorer-space-2: 1rem;
+  --explorer-space-3: 1.5rem;
+  --explorer-space-4: 2rem;
+  --explorer-space-5: 2.5rem;
+  --explorer-space-6: 3rem;
+  --explorer-space-8: 4rem;
+  --explorer-space-10: 5rem;
+  --explorer-space-12: 6rem;
+  --explorer-space-16: 8rem;
 
-	/* layout */
-	--explorer-max-width: 140rem;
-	--explorer-gutter: max(2rem, calc((100vw - var(--explorer-max-width)) / 2));
-	--explorer-section-gap: var(--explorer-space-3);
-	--explorer-stack-gap: var(--explorer-space-3);
-	--explorer-grid-gap: var(--explorer-space-3);
-	--explorer-hero-bg: oklch(0.22 0.02 260);
-	--explorer-hero-bg-end: oklch(0.16 0.025 250);
+  /* layout */
+  --explorer-max-width: 140rem;
+  --explorer-gutter: max(2rem, calc((100vw - var(--explorer-max-width)) / 2));
+  --explorer-section-gap: var(--explorer-space-3);
+  --explorer-stack-gap: var(--explorer-space-3);
+  --explorer-grid-gap: var(--explorer-space-3);
+  --explorer-hero-bg: oklch(0.22 0.02 260);
+  --explorer-hero-bg-end: oklch(0.16 0.025 250);
 
-	/* motion */
-	--explorer-transition-fast: 120ms ease;
-	--explorer-transition: 150ms ease;
-	--explorer-transition-slow: 200ms ease;
+  /* motion */
+  --explorer-transition-fast: 120ms ease;
+  --explorer-transition: 150ms ease;
+  --explorer-transition-slow: 200ms ease;
 }
 
 html[data-theme='dark'] body:has(.explorer-page),
 html[data-theme='dark'] body.explorer-body-root,
 html[data-theme='dark'] .explorer-page {
-	--explorer-background: oklch(0.145 0 0);
-	--explorer-foreground: oklch(0.985 0 0);
-	--explorer-card: oklch(0.205 0 0);
-	--explorer-card-foreground: oklch(0.985 0 0);
-	--explorer-popover: oklch(0.205 0 0);
-	--explorer-popover-foreground: oklch(0.985 0 0);
-	--explorer-primary: oklch(0.47 0.157 37.304);
-	--explorer-primary-foreground: oklch(0.98 0.016 73.684);
-	--explorer-link: oklch(0.68 0.12 245);
-	--explorer-link-hover: oklch(0.75 0.1 245);
-	--explorer-secondary: oklch(0.274 0.006 286.033);
-	--explorer-secondary-foreground: oklch(0.985 0 0);
-	--explorer-muted: oklch(0.269 0 0);
-	--explorer-muted-foreground: oklch(0.708 0 0);
-	--explorer-accent: oklch(0.269 0 0);
-	--explorer-accent-foreground: oklch(0.985 0 0);
-	--explorer-destructive: oklch(0.704 0.191 22.216);
-	--explorer-destructive-foreground: oklch(0.985 0 0);
-	--explorer-border: oklch(1 0 0 / 10%);
-	--explorer-input: oklch(1 0 0 / 15%);
-	--explorer-ring: oklch(0.556 0 0);
-	--explorer-sidebar: oklch(0.205 0 0);
-	--explorer-sidebar-foreground: oklch(0.985 0 0);
-	--explorer-sidebar-border: oklch(1 0 0 / 10%);
-	--explorer-shadow-xs: 0 1px 2px color-mix(in oklch, var(--explorer-background) 50%, transparent);
-	--explorer-shadow-sm: 0 1px 3px color-mix(in oklch, var(--explorer-background) 55%, transparent),
-		0 1px 2px color-mix(in oklch, var(--explorer-background) 40%, transparent);
-	--explorer-shadow-md: 0 4px 6px -1px color-mix(in oklch, var(--explorer-background) 60%, transparent),
-		0 2px 4px -2px color-mix(in oklch, var(--explorer-background) 45%, transparent);
-	--explorer-shadow-lg: 0 10px 15px -3px color-mix(in oklch, var(--explorer-background) 65%, transparent),
-		0 4px 6px -4px color-mix(in oklch, var(--explorer-background) 50%, transparent);
+  --explorer-background: oklch(0.145 0 0);
+  --explorer-foreground: oklch(0.985 0 0);
+  --explorer-card: oklch(0.205 0 0);
+  --explorer-card-foreground: oklch(0.985 0 0);
+  --explorer-popover: oklch(0.205 0 0);
+  --explorer-popover-foreground: oklch(0.985 0 0);
+  --explorer-primary: oklch(0.47 0.157 37.304);
+  --explorer-primary-foreground: oklch(0.98 0.016 73.684);
+  --explorer-link: oklch(0.68 0.12 245);
+  --explorer-link-hover: oklch(0.75 0.1 245);
+  --explorer-secondary: oklch(0.274 0.006 286.033);
+  --explorer-secondary-foreground: oklch(0.985 0 0);
+  --explorer-muted: oklch(0.269 0 0);
+  --explorer-muted-foreground: oklch(0.708 0 0);
+  --explorer-accent: oklch(0.269 0 0);
+  --explorer-accent-foreground: oklch(0.985 0 0);
+  --explorer-destructive: oklch(0.704 0.191 22.216);
+  --explorer-destructive-foreground: oklch(0.985 0 0);
+  --explorer-border: oklch(1 0 0 / 10%);
+  --explorer-input: oklch(1 0 0 / 15%);
+  --explorer-ring: oklch(0.556 0 0);
+  --explorer-sidebar: oklch(0.205 0 0);
+  --explorer-sidebar-foreground: oklch(0.985 0 0);
+  --explorer-sidebar-border: oklch(1 0 0 / 10%);
+  --explorer-shadow-xs: 0 1px 2px color-mix(in oklch, var(--explorer-background) 50%, transparent);
+  --explorer-shadow-sm:
+    0 1px 3px color-mix(in oklch, var(--explorer-background) 55%, transparent),
+    0 1px 2px color-mix(in oklch, var(--explorer-background) 40%, transparent);
+  --explorer-shadow-md:
+    0 4px 6px -1px color-mix(in oklch, var(--explorer-background) 60%, transparent),
+    0 2px 4px -2px color-mix(in oklch, var(--explorer-background) 45%, transparent);
+  --explorer-shadow-lg:
+    0 10px 15px -3px color-mix(in oklch, var(--explorer-background) 65%, transparent),
+    0 4px 6px -4px color-mix(in oklch, var(--explorer-background) 50%, transparent);
 }

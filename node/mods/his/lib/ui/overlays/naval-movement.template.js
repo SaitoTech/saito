@@ -1,5 +1,5 @@
 module.exports = () => {
-	let html = `
+  let html = `
       <div class="naval-movement-overlay" id="naval-movement-overlay">
 	<div class="origin">
           <div class="sstatus"></div>
@@ -10,5 +10,5 @@ module.exports = () => {
         </div>
       </div>
   `;
-	return html;
+  return html;
 };

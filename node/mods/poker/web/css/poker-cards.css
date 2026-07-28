@@ -1,83 +1,85 @@
 .game.poker {
-.deal .card, .cardfan .card, .hand .card {
-	width: min(15vh,17vw);
-	height: calc(1.53 * min(15vh, 17vw));
-	max-width: 150px;
-	max-height: 230px;
-}
+  .deal .card,
+  .cardfan .card,
+  .hand .card {
+    width: min(15vh, 17vw);
+    height: calc(1.53 * min(15vh, 17vw));
+    max-width: 150px;
+    max-height: 230px;
+  }
 
-.deal .card {
-    position: relative;    
-}
+  .deal .card {
+    position: relative;
+  }
 
-.cardfan .card {
-  min-width: 100px;
-  min-height: 153px;
-  filter: drop-shadow(5px 5px 3px black);
-}
+  .cardfan .card {
+    min-width: 100px;
+    min-height: 153px;
+    filter: drop-shadow(5px 5px 3px black);
+  }
 
-.cardfan {
-  /* top: max(-10rem, -14vw); */
-  /* left: calc(50% - min(15vh,17vw)); */
-  top: 0rem;
-  left: calc(50% - 27.5%);
-  height: calc(1.53 * min(15vh, 17vw));
-  width: min(15vh,17vw);
-}
+  .cardfan {
+    /* top: max(-10rem, -14vw); */
+    /* left: calc(50% - min(15vh,17vw)); */
+    top: 0rem;
+    left: calc(50% - 27.5%);
+    height: calc(1.53 * min(15vh, 17vw));
+    width: min(15vh, 17vw);
+  }
 
-.cardfan.dragging {
+  .cardfan.dragging {
     position: fixed;
-}
+  }
 
-.cardfan > .card:nth-child(1), .hand > .card:nth-child(1) {
-  transform: rotate(0deg);
-  left: 0px;
-}
+  .cardfan > .card:nth-child(1),
+  .hand > .card:nth-child(1) {
+    transform: rotate(0deg);
+    left: 0px;
+  }
 
-.cardfan > .card:nth-child(2), .hand > .card:nth-child(2) {
-  transform: rotate(10deg);
-  left: 2.5rem;
-  top: 0.5rem;
-}
+  .cardfan > .card:nth-child(2),
+  .hand > .card:nth-child(2) {
+    transform: rotate(10deg);
+    left: 2.5rem;
+    top: 0.5rem;
+  }
 
-.cardFront, .cardBack {
+  .cardFront,
+  .cardBack {
     position: absolute; /* Ensure both sides overlap properly */
-    width: 100%;        /* Adjust as needed for your layout */
+    width: 100%; /* Adjust as needed for your layout */
     height: 100%;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     transition: transform 0.5s ease;
-}
+  }
 
-.cardFront {
+  .cardFront {
     transform: rotateY(0deg); /* Front side starts facing up */
-}
+  }
 
-.cardBack {
+  .cardBack {
     transform: rotateY(180deg); /* Back side starts flipped */
-}
+  }
 
-.flipped .cardFront {
+  .flipped .cardFront {
     transform: rotateY(180deg); /* Front side flips to back */
-}
+  }
 
-.flipped .cardBack {
+  .flipped .cardBack {
     display: block;
     transform: rotateY(0deg); /* Back side flips to front */
-}
+  }
 
+  .card.not_used {
+    filter: grayscale(100%) brightness(0.55);
+  }
 
-.card.not_used {
-	filter: grayscale(100%) brightness(0.55);
-}
-
-
-
-@media screen and (orientation: portrait) and (max-width: 600px) {
+  @media screen and (orientation: portrait) and (max-width: 600px) {
     .cardfan {
-	top: -80px;
-        left: calc(50% - min(15vh, 22vw));
-        transform: scale(1.5);
+      top: -80px;
+      left: calc(50% - min(15vh, 22vw));
+      transform: scale(1.5);
     }
-}
+  }
 }
