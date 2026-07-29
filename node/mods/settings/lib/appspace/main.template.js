@@ -40,7 +40,7 @@ module.exports = (app, mod, main) => {
 
     <div class="settings-appspace-header">
       <div class="settings-actions-container">
-        <div class="saito-button-secondary" id="restore-privatekey-btn" title="Restore account from private key or seed phrase">Import Key</div>
+        <div class="saito-button-secondary" id="restore-privatekey-btn" title="Wipe local data and restore account from private key or seed phrase">Import Key</div>
         <div class="saito-button-secondary" id="show-phrase" title="View wallet seed phrase">Seed Phrase</div>
         <div class="saito-button-secondary" id="restore-account-btn" title="Restore account by uploading json-file of wallet">Restore Wallet</div>
         <div class="saito-button-secondary" id="backup-account-btn" title="Download json-file copy of wallet">Backup Wallet</div>

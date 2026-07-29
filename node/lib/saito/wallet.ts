@@ -1407,7 +1407,8 @@ export default class Wallet extends SaitoWallet {
         try {
           let wobj = JSON.parse(decrypted_wallet);
 
-          await this.reset(false);
+          // Implicit Nuke: clear stale local state before installing the file.
+          await this.resetWallet();
 
           await this.setPublicKey(wobj.wallet.publicKey);
           await this.setPrivateKey(wobj.wallet.privateKey);
@@ -1428,17 +1429,26 @@ export default class Wallet extends SaitoWallet {
         // privatekey used for wallet importing
         //
         try {
+          // Implicit Nuke: wipe slips, pending txs, IndexedDB, and module state
+          // so leftover data from the previous key cannot block spends.
+          await this.resetWallet();
+
           publicKey = this.app.crypto.generatePublicKey(privatekey);
           await this.setPublicKey(publicKey);
           await this.setPrivateKey(privatekey);
+          if (!this.app.options.wallet) {
+            this.app.options.wallet = {};
+          }
           this.app.options.wallet.version = this.version;
           this.app.options.wallet.inputs = [];
           this.app.options.wallet.outputs = [];
           this.app.options.wallet.spends = [];
           this.app.options.wallet.pending = [];
+          this.app.options.wallet.slips = [];
 
-          // Maybe stored our options in localForage
-          await this.app.storage.resetOptionsFromKey(publicKey);
+          // Do not rehydrate options from IndexedDB for this key — resetWallet
+          // already cleared local persistence; restoring would reintroduce
+          // the stale state that prevents the imported key from sending.
         } catch (err) {
           // console.error(err);
           return err;
