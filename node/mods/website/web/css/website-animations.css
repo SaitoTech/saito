@@ -820,6 +820,52 @@ text {
   opacity: 0;
 }
 
+.portrait-callout {
+  display: none;
+}
+
+.portrait-label {
+  display: none;
+}
+
+#top_animation.portrait .landscape-callout {
+  display: none;
+}
+
+#top_animation.portrait .portrait-callout {
+  display: inline;
+}
+
+#top_animation.portrait .landscape-app-label {
+  display: none;
+}
+
+#top_animation.portrait .portrait-label {
+  display: inline;
+  font-size: 30px;
+}
+
+#top_animation.portrait #popup1 .portrait-callout text {
+  font-size: 46px;
+}
+
+#top_animation.portrait #spopup3 .portrait-callout text {
+  font-size: 36px;
+}
+
+#top_animation.portrait #node > path,
+#top_animation.portrait #node2 > path {
+  transform: scale(1.25);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+#top_animation.portrait #miner > g:last-child {
+  transform: scale(1.35);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 #popup1.vis {
   animation: popup1 0.6s ease-in-out forwards;
 }
@@ -1041,23 +1087,40 @@ text {
   #top_animation #infrastructure {
     opacity: 1;
   }
+
+  #top_animation.portrait {
+    max-width: 100%;
+  }
 }
 
 #anim_mobile {
   display: none;
   position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  transform: translateY(-50%);
-  z-index: 99;
-  box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.8);
-  width: 100%;
+  inset: 0;
+  z-index: 10000;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.8);
+  align-items: center;
+  justify-content: center;
 }
 
-#anim_mobile object {
+#anim_mobile.vis {
+  display: flex;
+}
+
+.animation-one-holder.mobile-overlay-holder {
+  position: static;
+}
+
+#top_animation.mobile-overlay {
   display: block;
-  background: #222;
+  position: absolute;
+  inset: 2.5rem 1rem 1rem;
+  z-index: 10001;
+  width: calc(100% - 2rem);
+  height: calc(100% - 3.5rem);
+  max-width: none;
+  margin: 0;
 }
 
 #start_anim_mobile {
@@ -1081,9 +1144,6 @@ text {
     position: static;
   }
 
-  #anim_mobile.vis {
-    display: block;
-  }
 }
 
 /* bottom animation */

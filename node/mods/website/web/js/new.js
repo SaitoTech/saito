@@ -143,17 +143,34 @@ $("#close_bttn").addEventListener("click", function () {
 }, false);
 */
 
+const mobileAnimationOverlay = document.getElementById('anim_mobile');
+const consensusAnimationSvg = document.getElementById('top_animation');
+const consensusAnimationHolder = consensusAnimationSvg.parentElement;
+const closeMobileAnimation = document.getElementById('close_anim_bttn');
+
 document.getElementById('start_anim_mobile').addEventListener(
   'click',
   function () {
-    document.getElementById('anim_mobile').classList.add('vis');
+    mobileAnimationOverlay.classList.add('vis');
+    consensusAnimationHolder.classList.add('mobile-overlay-holder');
+    consensusAnimationSvg.classList.add('mobile-overlay');
+    if (start_anim) {
+      if (pause) {
+        pause = false;
+      } else {
+        animID = requestAnimationFrame(animate);
+      }
+      start_anim = false;
+    }
   },
   false
 );
-document.getElementById('close_anim_bttn').addEventListener(
+closeMobileAnimation.addEventListener(
   'click',
   function () {
-    document.getElementById('anim_mobile').classList.remove('vis');
+    mobileAnimationOverlay.classList.remove('vis');
+    consensusAnimationHolder.classList.remove('mobile-overlay-holder');
+    consensusAnimationSvg.classList.remove('mobile-overlay');
   },
   false
 );
