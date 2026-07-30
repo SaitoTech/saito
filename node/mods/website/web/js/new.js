@@ -151,6 +151,7 @@ const closeMobileAnimation = document.getElementById('close_anim_bttn');
 document.getElementById('start_anim_mobile').addEventListener(
   'click',
   function () {
+    document.body.classList.add('consensus-animation-open');
     mobileAnimationOverlay.classList.add('vis');
     consensusAnimationHolder.classList.add('mobile-overlay-holder');
     consensusAnimationSvg.classList.add('mobile-overlay');
@@ -168,6 +169,7 @@ document.getElementById('start_anim_mobile').addEventListener(
 closeMobileAnimation.addEventListener(
   'click',
   function () {
+    document.body.classList.remove('consensus-animation-open');
     mobileAnimationOverlay.classList.remove('vis');
     consensusAnimationHolder.classList.remove('mobile-overlay-holder');
     consensusAnimationSvg.classList.remove('mobile-overlay');
