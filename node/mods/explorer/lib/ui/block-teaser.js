@@ -32,7 +32,7 @@ class BlockTeaser {
 
   attachEvents() {
     document
-      .querySelectorAll('.block-teaser .explorer-feed-item[data-block-hash]')
+      .querySelectorAll('.block-teaser .explorer-block-card[data-block-hash]')
       .forEach((el) => {
         const navigate = (event) => {
           if (event?.target?.closest('.explorer-pubkey-link')) {

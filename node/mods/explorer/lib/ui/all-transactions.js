@@ -75,7 +75,7 @@ class AllTransactions {
 
   attachEvents() {
     document
-      .querySelectorAll('.explorer-all-tx-feed .explorer-feed-item[data-tx-signature]')
+      .querySelectorAll('.explorer-all-tx-feed .explorer-transaction-card[data-tx-signature]')
       .forEach((el) => {
         const navigate = (event) => {
           if (event?.target?.closest('.explorer-pubkey-link')) {

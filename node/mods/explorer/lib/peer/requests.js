@@ -3,8 +3,28 @@ const { handleRequestSupply } = require('./supply');
 const { handleRequestAddress } = require('./address');
 const { requestParams, success, failure } = require('./response');
 
+function addBlockStatus(obj, block) {
+  try {
+    if (block.inLongestChain != null) {
+      obj.in_longest_chain = Boolean(block.inLongestChain);
+    }
+  } catch (err) {
+    // Keep the serialized value when the wrapper cannot expose this status.
+  }
+
+  try {
+    if (block.hasGoldenTicket != null) {
+      obj.has_golden_ticket = Boolean(block.hasGoldenTicket);
+    }
+  } catch (err) {
+    // Keep the serialized value when the wrapper cannot expose this status.
+  }
+
+  return obj;
+}
+
 function blockToJson(block) {
-  const obj = JSON.parse(block.toJson());
+  const obj = addBlockStatus(JSON.parse(block.toJson()), block);
   obj.transactions = (block.transactions || []).map((tx) => {
     const txjson = tx.toJson();
     txjson.msg = tx.returnMessage();
@@ -14,7 +34,7 @@ function blockToJson(block) {
 }
 
 function blockHeaderToJson(block) {
-  const obj = JSON.parse(block.toJson());
+  const obj = addBlockStatus(JSON.parse(block.toJson()), block);
   obj.transactions = [];
   return obj;
 }
@@ -33,9 +53,19 @@ async function handleRequestBlocks(app, txmsg) {
     const results = [];
     for (let id = beforeId - 1; id > 0 && results.length < count; id--) {
       try {
-        const block = await app.core.blockchain.getBlock(BigInt(id), false);
-        if (block) {
-          results.push(blockHeaderToJson(block));
+        if (includeOffchain) {
+          const hashes = await app.core.blockchain.getHashesAtId(BigInt(id));
+          for (let i = 0; i < hashes.length && results.length < count; i++) {
+            const block = await app.core.blockchain.getBlock(String(hashes[i]), false);
+            if (block) {
+              results.push(blockHeaderToJson(block));
+            }
+          }
+        } else {
+          const block = await app.core.blockchain.getBlock(BigInt(id), false);
+          if (block) {
+            results.push(blockHeaderToJson(block));
+          }
         }
       } catch (err) {
         break;

@@ -483,16 +483,7 @@ class Explorer extends ModTemplate {
     }
   }
 
-  async onPeerServiceUp(app, peer, service = {}) {
-    if (!app.BROWSER || !this.browser_active) {
-      return;
-    }
-
-    if (service.service !== 'Explorer') {
-      return;
-    }
-
-    this.explorerPeer = peer;
+  resetExplorerData() {
     this.blocksReady = false;
     this.transactionsReady = false;
     this.blocksError = null;
@@ -508,6 +499,19 @@ class Explorer extends ModTemplate {
     this.addressRows = [];
     this.addressReady = false;
     this.addressError = null;
+  }
+
+  async onPeerServiceUp(app, peer, service = {}) {
+    if (!app.BROWSER || !this.browser_active) {
+      return;
+    }
+
+    if (service.service !== 'Explorer') {
+      return;
+    }
+
+    this.explorerPeer = peer;
+    this.resetExplorerData();
 
     if (this.activeView === 'allBlocks') {
       this.cleanupListViews();
@@ -523,6 +527,19 @@ class Explorer extends ModTemplate {
       return;
     }
 
+    await this.requestExplorerOverview(app, peer);
+  }
+
+  async refreshHomeData() {
+    if (this.activeView !== 'home' || !this.explorerPeer) {
+      return;
+    }
+
+    this.resetExplorerData();
+    await this.requestExplorerOverview(this.app, this.explorerPeer);
+  }
+
+  async requestExplorerOverview(app, peer) {
     await this.refreshActiveView();
 
     this.fetchChainInfo(app, peer);
@@ -992,6 +1009,7 @@ class Explorer extends ModTemplate {
 
   async onNewBlock(block, lc) {
     if (this.app.BROWSER == 1) {
+      this.allBlocksComponent?.onNewBlock(block, Boolean(lc));
       return;
     }
 

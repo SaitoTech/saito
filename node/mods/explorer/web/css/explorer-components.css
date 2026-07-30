@@ -345,6 +345,13 @@
   align-self: center;
 }
 
+.explorer-feed-badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--explorer-space-1);
+}
+
 .explorer-feed-icon {
   background-color: var(--explorer-muted);
   color: var(--explorer-muted-foreground);
@@ -364,6 +371,11 @@
   text-align: right;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.explorer-feed-status-badge {
+  min-width: 2.5rem;
+  justify-content: center;
 }
 
 .explorer-feed-chevron {
@@ -516,6 +528,7 @@ body:has(.explorer-page) .explorer-page button.explorer-json-toggle {
   }
 
   .explorer-feed-badge,
+  .explorer-feed-badges,
   .explorer-feed-chevron {
     grid-column: 3;
     grid-row: 1 / span 2;

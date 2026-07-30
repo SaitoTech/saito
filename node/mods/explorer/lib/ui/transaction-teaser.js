@@ -36,7 +36,7 @@ class TransactionTeaser {
 
   attachEvents() {
     document
-      .querySelectorAll('.transaction-teaser .explorer-feed-item[data-tx-signature]')
+      .querySelectorAll('.transaction-teaser .explorer-transaction-card[data-tx-signature]')
       .forEach((el) => {
         const navigate = (event) => {
           if (event?.target?.closest('.explorer-pubkey-link')) {
