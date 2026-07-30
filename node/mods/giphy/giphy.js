@@ -103,21 +103,23 @@ class Giphy extends ModTemplate {
   }
 
   onPeerServiceUp(app, peer, service = {}) {
-    let gif_self = this;
+    if (this.app.BROWSER == 1) {
+      let gif_self = this;
 
-    if (service.service === 'giphy') {
-      app.network.sendRequestAsTransaction(
-        'get giphy auth',
-        {},
-        function (res) {
-          gif_self.auth = res;
-          // If UI is already opened, render once auth arrives.
-          if (gif_self.container || document.querySelector('.saito-gif-container')) {
-            gif_self.render();
-          }
-        },
-        peer.publicKey
-      );
+      if (service.service === 'giphy') {
+        app.network.sendRequestAsTransaction(
+          'get giphy auth',
+          {},
+          function (res) {
+            gif_self.auth = res;
+            // If UI is already opened, render once auth arrives.
+            if (gif_self.container || document.querySelector('.saito-gif-container')) {
+              gif_self.render();
+            }
+          },
+          peer.publicKey
+        );
+      }
     }
   }
 
