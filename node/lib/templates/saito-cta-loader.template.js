@@ -236,11 +236,11 @@ function styles() {
         min-height: 100dvh;
         max-height: 100vh;
         max-height: 100dvh;
-        padding: 24px;
+        padding: 20dvh 24px 24px;
         border: 0;
         border-radius: 0;
         overflow-y: auto;
-        justify-content: safe center;
+        justify-content: flex-start;
       }
 
       .saito-cta-loader-progress {
