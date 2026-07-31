@@ -3,7 +3,11 @@
   --saito-chat-background: var(--saito-background);
   --saito-chat-background-image: var(--saito-card-wash);
   --saito-chat-shell-background: var(--saito-card-wash);
-  --saito-bubble-background: var(--saito-card-wash);
+  --saito-bubble-background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--saito-popover) 88%, transparent),
+    color-mix(in srgb, var(--saito-card) 80%, transparent)
+  );
   --saito-bubble-shadow: var(--saito-elevation-0);
   --saito-chat-active-background: var(--saito-accent);
   --saito-chat-header-shadow: var(--saito-elevation-0);
@@ -476,6 +480,7 @@
   padding: 0.75rem;
   padding-right: 3rem;
   border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
   background: var(--saito-bubble-background);
   box-shadow: var(--saito-bubble-shadow);
   margin-right: 1rem;

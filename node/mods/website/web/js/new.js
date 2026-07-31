@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  let activeIndex = 0;
+  let activeIndex = 1;
   let pointerStart;
   let suppressClickUntil = 0;
 
