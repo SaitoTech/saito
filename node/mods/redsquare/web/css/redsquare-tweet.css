@@ -376,8 +376,35 @@
 
 @media (max-width: 600px) {
   .tweet {
-    padding: var(--saito-space-sm);
+    padding: 0.9rem var(--saito-space-sm);
     column-gap: var(--saito-space-sm);
+  }
+
+  .tweet .body {
+    line-height: 1.5;
+  }
+
+  .tweet .body + .gallery,
+  .tweet .body + .embed,
+  .tweet .gallery + .embed {
+    margin-top: var(--saito-space-sm);
+  }
+
+  .tweet .grid {
+    border-radius: var(--saito-radius);
+  }
+
+  .tweet .embed > .tweet.embedded {
+    padding: var(--saito-space-sm);
+  }
+
+  .tweet .footer {
+    margin-top: var(--saito-space-xs);
+  }
+
+  .tweet .controls .tool {
+    min-height: 2.8rem;
+    padding-block: 0.25rem;
   }
 
   .tweet .chain {
@@ -385,10 +412,10 @@
   }
 
   .tweet.chain-prev .chain::before {
-    bottom: calc(100% - var(--saito-space-sm));
+    bottom: calc(100% - 0.9rem);
   }
 
   .tweet.chain-next .chain::after {
-    top: calc(var(--saito-space-sm) + 3.5rem);
+    top: calc(0.9rem + 3.5rem);
   }
 }

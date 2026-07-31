@@ -162,7 +162,12 @@ body.redsquare-body .saito-floating-menu.redsquare-post-offscreen .saito-floatin
 
 @media (max-width: 600px) {
   body.redsquare-body {
-    --redsquare-mobile-nav-height: 5.2rem;
+    --redsquare-mobile-nav-height: 6rem;
+  }
+
+  body.redsquare-body .saito-cta-loader-card {
+    justify-content: flex-start;
+    padding-top: 20dvh;
   }
 
   body.redsquare-body #saito-container {

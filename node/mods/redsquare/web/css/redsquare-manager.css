@@ -145,6 +145,7 @@
 @media (max-width: 600px) {
   .manager > .body {
     padding: 0.5rem;
+    scroll-padding-bottom: var(--saito-space-md);
   }
 
   .manager > .header {
