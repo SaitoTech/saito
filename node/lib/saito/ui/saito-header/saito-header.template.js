@@ -15,6 +15,17 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                <div class="saito-header-profile">
                    <div class="wallet-info">
                        <div id="qrcode"></div>
+                       <div class="wallet-address-row">
+                           <div class="pubkey-container">
+                               <div class="profile-public-key generate-keys" id="profile-public-key"><div class="profile-public-key-text">generating keys...</div></div>
+                               <i class="fas fa-copy"></i>
+                           </div>
+                           <div class="pubkey-mobile-wrapper">
+                               <button type="button" class="wallet-mobile-action" id="share-address" aria-label="Share wallet address" title="Share wallet address">
+                                   <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+                               </button>
+                           </div>
+                       </div>
                        <div class="wallet-balance">
                            <img class="wallet-identicon" src="${identicon}" alt="">
                            <div class="balance-amount">
@@ -26,32 +37,20 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                            </div>
                            <select class="saito-form-select wallet-select-crypto" id="wallet-select-crypto" aria-label="Select cryptocurrency"></select>
                        </div>
-                       
-                       <div class="wallet-address-row">
-                           <div class="pubkey-container">
-                               <div class="profile-public-key generate-keys" id="profile-public-key"><div class="profile-public-key-text">generating keys...</div></div>
-                               <i class="fas fa-copy"></i>
-                           </div>
-                           <div class="pubkey-mobile-wrapper">
-                               <button type="button" class="wallet-mobile-action" id="toggle-qr" aria-label="Show receive QR code" aria-expanded="false" title="Show receive QR code">
-                                   <i class="fa-solid fa-qrcode" aria-hidden="true"></i>
-                               </button>
-                               <button type="button" class="wallet-mobile-action" id="share-address" aria-label="Share wallet address" title="Share wallet address">
-                                   <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
-                               </button>
-                           </div>
-                       </div>
+                   </div>
+                   <div class="wallet-get-saito-row" id="wallet-btn-get-saito">
+                       <span class="saito-text-link">Get SAITO</span>
                    </div>
                    <div class="wallet-btn-container">
                        <div class="wallet-btn" id="wallet-btn-withdraw">
                            <div class="saito-icon-button">
-                               <i class="fa-solid fa-arrow-up wallet-send-icon"></i>
+                               <i class="fa-solid fa-arrow-up"></i>
                            </div>
                            <span>Send</span>
                        </div>
                        <div class="wallet-btn" id="wallet-btn-nft">
                            <div class="saito-icon-button">
-                               <i class="fa-solid fa-shapes"></i>
+                               <span class="wallet-nft-icon" aria-hidden="true"></span>
                            </div>
                            <span>NFTs</span>
                        </div>
@@ -60,12 +59,6 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                                <i class="fa-solid fa-wallet"></i>
                            </div>
                            <span>Wallet</span>
-                       </div>
-                       <div class="wallet-btn" id="wallet-btn-get-saito">
-                           <div class="saito-icon-button">
-                               <i class="fa-solid fa-plus"></i>
-                           </div>
-                           <span>Get Saito</span>
                        </div>
                        <div class="wallet-btn" id="wallet-btn-settings">
                            <div class="saito-icon-button">

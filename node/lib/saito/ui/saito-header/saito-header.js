@@ -584,7 +584,6 @@ class SaitoHeader extends UIModTemplate {
       document.querySelector('#saito-header-menu-toggle').addEventListener('click', () => {
         const sidebar = document.querySelector('.saito-header-hamburger-contents');
         sidebar.classList.remove('show-wallet');
-        sidebar.classList.remove('show-qr');
         this.toggleMenu();
       });
     }
@@ -593,7 +592,6 @@ class SaitoHeader extends UIModTemplate {
       document.querySelector('.saito-header-backdrop').onclick = () => {
         const sidebar = document.querySelector('.saito-header-hamburger-contents');
         sidebar.classList.remove('show-wallet');
-        sidebar.classList.remove('show-qr');
         this.toggleMenu();
       };
     }
@@ -620,7 +618,6 @@ class SaitoHeader extends UIModTemplate {
     if (document.getElementById('wallet-btn-switch')) {
       document.getElementById('wallet-btn-switch').onclick = () => {
         const sidebar = document.querySelector('.saito-header-hamburger-contents');
-        sidebar.classList.remove('show-qr');
         sidebar.classList.toggle('show-wallet');
       };
     }
@@ -637,16 +634,6 @@ class SaitoHeader extends UIModTemplate {
       document.getElementById('wallet-btn-get-saito').onclick = () => {
         this.app.connection.emit('saito-purchase-launch');
         this.hideMenu();
-      };
-    }
-
-    if (document.getElementById('toggle-qr')) {
-      const qrButton = document.getElementById('toggle-qr');
-      qrButton.onclick = () => {
-        const expanded = document
-          .querySelector('.saito-header-hamburger-contents')
-          .classList.toggle('show-qr');
-        qrButton.setAttribute('aria-expanded', expanded.toString());
       };
     }
 
@@ -802,7 +789,6 @@ class SaitoHeader extends UIModTemplate {
   hideMenu() {
     const sidebar = document.querySelector('.saito-header-hamburger-contents');
     sidebar.classList.remove('show-wallet');
-    sidebar.classList.remove('show-qr');
 
     if (sidebar.classList.contains('show-menu')) {
       sidebar.classList.remove('show-menu');
@@ -972,8 +958,11 @@ class SaitoHeader extends UIModTemplate {
     let add = preferred_crypto.returnAddress();
 
     try {
-      const wallet_button_container = document.querySelector('.wallet-btn-container');
-      wallet_button_container?.classList.remove('show-get-saito');
+      const get_saito_link = document.querySelector('#wallet-btn-get-saito');
+      get_saito_link?.classList.toggle(
+        'show-get-saito',
+        preferred_crypto.ticker.toUpperCase() === 'SAITO'
+      );
 
       //
       // insert address and qrcode
@@ -1023,18 +1012,6 @@ class SaitoHeader extends UIModTemplate {
 
       let ab = await preferred_crypto.getAvailableBalance();
       let pb = await preferred_crypto.getPendingBalance();
-      const available_balance = Number(ab);
-      const show_get_saito =
-        preferred_crypto.ticker.toUpperCase() === 'SAITO' &&
-        Number.isFinite(available_balance) &&
-        available_balance < 100;
-
-      if (
-        this.app.wallet.returnPreferredCryptoTicker().toUpperCase() ===
-        preferred_crypto.ticker.toUpperCase()
-      ) {
-        wallet_button_container?.classList.toggle('show-get-saito', show_get_saito);
-      }
 
       console.log('****** CHECKING BALANCES SAITO HEADER ******');
       console.log('available balance: ' + ab);
