@@ -419,11 +419,15 @@ function formatBlocksForTeaser(app, blocks = []) {
       number: esc(app, block.id ?? ''),
       hash: esc(app, block.hash || ''),
       hashRaw: block.hash || '',
+      previousHash: esc(app, block.previous_block_hash || '—'),
+      previousHashRaw: block.previous_block_hash || '',
       time: esc(app, formatTimeAgo(app, block.timestamp)),
-      miner: buildPublicKeyLink(app, block.creator),
+      miner: buildPublicKeyLink(app, block.creator, block.creator),
+      minerRaw: esc(app, block.creator || ''),
       txns: txCount === null ? '…' : esc(app, String(txCount)),
       duration: '—',
-      reward: block.total_fees != null ? esc(app, formatSaito(block.total_fees)) : '—'
+      isLongestChain: Boolean(block.in_longest_chain),
+      hasGoldenTicket: Boolean(block.has_golden_ticket)
     };
   });
 }
@@ -454,18 +458,23 @@ function extractTransactionsFromBlocks(blocks = []) {
 }
 
 function formatTransactionsForTeaser(app, transactions = [], limit = 10) {
-  return transactions.slice(0, limit).map((tx) => ({
-    // Render the full signature and let CSS (.explorer-truncate) shorten it from
-    // the right only when the column is too narrow — never a middle ellipsis.
-    hash: esc(app, tx.signature || tx.hash || ''),
-    signature: esc(app, tx.signature || tx.hash || ''),
-    blockHash: esc(app, tx.block_hash || ''),
-    blockId: esc(app, tx.block_id != null ? String(tx.block_id) : ''),
-    time: esc(app, formatTimeAgo(app, tx.timestamp ?? tx.block_timestamp)),
-    from: buildPublicKeyLink(app, txPrimaryFrom(tx)),
-    to: buildPublicKeyLink(app, txPrimaryTo(tx)),
-    amount: esc(app, formatSaito(txTotalToAmount(tx)))
-  }));
+  return transactions.slice(0, limit).map((tx) => {
+    const from = txPrimaryFrom(tx);
+    const to = txPrimaryTo(tx);
+
+    return {
+      // Render full values and let the flexible card fields truncate only when needed.
+      hash: esc(app, tx.signature || tx.hash || ''),
+      signature: esc(app, tx.signature || tx.hash || ''),
+      blockHash: esc(app, tx.block_hash || ''),
+      blockId: esc(app, tx.block_id != null ? String(tx.block_id) : ''),
+      time: esc(app, formatTimeAgo(app, tx.timestamp ?? tx.block_timestamp)),
+      type: esc(app, formatTransactionTypeName(tx.type ?? tx.transaction_type)),
+      from: buildPublicKeyLink(app, from, from),
+      to: buildPublicKeyLink(app, to, to),
+      amount: esc(app, formatSaito(txTotalToAmount(tx)))
+    };
+  });
 }
 
 function slipDisplay(app, slip) {
