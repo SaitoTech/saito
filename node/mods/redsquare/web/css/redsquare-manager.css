@@ -1,4 +1,4 @@
-1/* Namespace: .manager — feed chrome only (not tweet content)
+/* Namespace: .manager — feed chrome only (not tweet content)
  *
  * Column ownership:
  *   .manager  → flex column shell (fills .main)
@@ -143,6 +143,10 @@
 }
 
 @media (max-width: 600px) {
+  .manager > .body {
+    padding: 0.5rem;
+  }
+
   .manager > .header {
     padding: 0.8rem var(--saito-space-sm);
   }

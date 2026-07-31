@@ -64,7 +64,7 @@
   min-width: 0;
   /* ~34% overlaps banner — avatar sits lower, more of it in the body */
   margin: -2.2rem 0 0.85rem;
-  padding: 0 1.4rem 0 1.5rem;
+  padding: 0 1rem;
 }
 
 .redsquare-profile .avatar {
@@ -158,7 +158,7 @@
 
 .redsquare-profile-description {
   margin: 0;
-  padding: 0 1.5rem 1rem;
+  padding: 0 1rem 1rem;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.5;

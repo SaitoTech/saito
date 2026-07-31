@@ -209,14 +209,15 @@
   position: fixed;
   bottom: 0px;
   border: 1px solid var(--saito-border);
-  background: var(--saito-chat-shell-background);
+  background-color: var(--saito-popover);
+  background-image: var(--saito-popover-wash);
   color: var(--saito-foreground);
   max-height: 100vh;
   min-width: 30rem;
   min-height: 20rem;
   height: 50rem;
   width: 36rem;
-  border-radius: var(--saito-radius);
+  border-radius: var(--saito-radius-lg);
   z-index: 20;
   /* making z-index greater than overlay so that users
      can chat or send each other their crypto address without
@@ -225,7 +226,7 @@
   /* So weird, at 15 it blocks the z-index 20 slide in menu*/
   /* reason: the slidein is child of saito header, so whatever z-index is assigned to saito header,
   the child (slidein menu) inherits it */
-  box-shadow: var(--saito-elevation-2);
+  box-shadow: var(--saito-elevation-3);
 }
 
 .chat-container,
@@ -289,6 +290,10 @@
   background-color: var(--saito-background);
 }
 
+.chat-container .chat-header {
+  background-color: var(--saito-popover);
+}
+
 .chat-header > .chat-header-nav {
   display: flex;
   align-items: end;
@@ -300,6 +305,10 @@
   border-top-right-radius: inherit;
   padding-left: 1rem;
   overflow: hidden; /* for extreme border radius */
+}
+
+.chat-container .chat-header-nav {
+  border-bottom: 0;
 }
 
 .chat-header > .chat-header-nav > i {
@@ -340,6 +349,10 @@
   grid-template-columns: minmax(0, 1fr) min-content;
   align-items: center;
   box-shadow: var(--saito-chat-header-shadow);
+}
+
+.chat-container .chat-header-info {
+  border-bottom: 1px solid var(--saito-border);
 }
 
 .chat-container.minimized .chat-header-info {
@@ -436,6 +449,17 @@
   overflow: clip auto;
   background-image: var(--saito-chat-background-image);
   background-color: var(--saito-chat-background);
+}
+
+.chat-container .chat-body {
+  background-color: var(--saito-background);
+  background-image:
+    linear-gradient(
+      180deg,
+      transparent,
+      color-mix(in srgb, var(--saito-black) 18%, transparent)
+    ),
+    url('/saito/img/tiled-logo.svg');
 }
 
 .chat-body > .saito-user {
@@ -628,6 +652,12 @@
   position: relative;
 }
 
+.chat-container .chat-footer {
+  padding: 0.75rem;
+  background-color: var(--saito-popover);
+  background-image: none;
+}
+
 .chat-container blockquote {
   color: inherit;
   line-height: 2.5rem;
@@ -651,12 +681,11 @@
   box-shadow: none;
 }
 
-/*
-.chat-footer .saito-input .text-input:not(.post-tweet-textarea):focus,
-.chat-footer .saito-input .text-input:not(.post-tweet-textarea):focus-within {
-  border-color: var(--saito-border);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--saito-border) 34%, transparent);
-}*/
+.chat-container .chat-footer .saito-input .text-input:not(.post-tweet-textarea),
+.chat-container .chat-footer .saito-input .text-input:not(.post-tweet-textarea):focus,
+.chat-container .chat-footer .saito-input .text-input:not(.post-tweet-textarea):focus-within {
+  border-color: var(--saito-border) !important;
+}
 
 /* This is the submit paper airplane icon */
 

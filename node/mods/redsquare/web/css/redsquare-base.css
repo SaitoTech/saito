@@ -191,7 +191,7 @@ body.redsquare-body .saito-floating-menu.redsquare-post-offscreen .saito-floatin
 
   /* Float above the mobile nav with the same inset used at the right edge. */
   body.redsquare-body .saito-floating-menu {
-    bottom: calc(var(--redsquare-mobile-nav-height) + 1.5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
     right: max(1.5rem, env(safe-area-inset-right, 0px));
     z-index: 45;
   }

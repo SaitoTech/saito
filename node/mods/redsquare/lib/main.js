@@ -191,9 +191,8 @@ class Main {
 
   attachFeedWheelScroll() {
     const root = document.querySelector(this.container);
-    const scroller = root?.querySelector('.manager .body');
 
-    if (!root || !scroller || root.dataset.feedWheelScrollBound === '1') {
+    if (!root || root.dataset.feedWheelScrollBound === '1') {
       return;
     }
 
@@ -202,7 +201,10 @@ class Main {
     root.addEventListener(
       'wheel',
       (event) => {
+        const scroller = root.querySelector('.manager .body');
+
         if (
+          !scroller ||
           event.defaultPrevented ||
           event.ctrlKey ||
           event.deltaY === 0 ||
