@@ -186,12 +186,15 @@
       margin-top: 5vw;
     }
 
-    .hud-body .controls ul {
+    .hud .controls ul {
+      min-width: 0;
       gap: 0.5rem;
     }
 
-    .hud-body .controls ul li {
-      min-width: 10rem;
+    .hud .controls ul li {
+      flex: 1 1 0;
+      min-width: 0;
+      width: auto;
       border-width: 2px;
       padding: 0.25rem 0.5rem;
       height: 6.5rem;
@@ -202,12 +205,9 @@
       margin-top: unset;
     }
 
-    .hud .controls ul {
-      gap: 0.5rem;
-    }
-
     .hud .controls ul li#rolldice {
-      margin-left: 0.5rem;
+      margin-left: 0;
+      width: auto;
     }
 
     .settlers-control-label {

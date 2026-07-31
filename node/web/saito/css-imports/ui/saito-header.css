@@ -32,6 +32,7 @@
   background: transparent;
   backdrop-filter: none;
   z-index: 90;
+  border: none;
 }
 
 #saito-header.game .saito-header-logo-wrapper,
