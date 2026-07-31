@@ -1,5 +1,5 @@
 .chat-sidebar {
-  width: 35rem;
+  width: 28rem;
   background: var(--saito-background);
   height: calc(100vh - var(--saito-header-height));
   border-left: 1px solid var(--saito-border); /* testing */
@@ -8,7 +8,73 @@
 }
 
 .chat-sidebar .saito-user {
-  font-size: 1.8rem;
+  font-size: 1.44rem;
   height: unset;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.chat-sidebar .saito-profile-banner {
+  padding-top: min(33.33%, 144px);
+}
+
+.chat-sidebar .saito-profile-header-row {
+  height: 4rem;
+  gap: 0.8rem;
+  margin-right: 0.4rem;
+  margin-bottom: 0.8rem;
+}
+
+.chat-sidebar .saito-profile-header-row .saito-identicon-box {
+  width: 8rem;
+  height: 8rem;
+  margin-top: -3.6rem;
+  margin-left: 0.8rem;
+  font-size: 3.2rem;
+}
+
+.chat-sidebar .saito-profile-header-row .saito-identicon-box .saito-overlaid-icon {
+  width: min(90%, 4rem);
+  height: min(90%, 4rem);
+}
+
+.chat-sidebar .saito-profile-username {
+  font-size: 1.76rem;
+}
+
+.chat-sidebar .saito-profile-key {
+  font-size: 1.12rem;
+}
+
+.chat-sidebar .saito-profile-description {
+  margin-left: 0.8rem;
+  margin-right: 0.4rem;
+  padding: 0.4rem;
+  font-size: 1.28rem;
+}
+
+.chat-sidebar .saito-description-edit {
+  font-size: 1.2rem;
+}
+
+.chat-sidebar .saito-profile .saito-modal-menu-option {
+  grid-template-columns: 3.2rem 1fr;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  font-size: 1.6rem;
+}
+
+.chat-sidebar .saito-profile .saito-modal-menu-option-label {
+  font-size: 1.44rem;
+}
+
+.chat-sidebar .saito-profile-menu {
+  margin-left: 0.16rem;
+}
+
+.chat-sidebar .saito-profile-menu .saito-profile-tab {
+  padding: 0.8rem;
+}
+
+.chat-sidebar .saito-profile-note {
+  margin-top: 0.4rem;
 }

@@ -1,4 +1,4 @@
-module.exports = (app, mod) => {
+module.exports = (app, mod, showCreationActions = false) => {
   let html = `<div class="saito-module-settings">`;
 
   if ('Notification' in window) {
@@ -39,10 +39,12 @@ module.exports = (app, mod) => {
 			`;
   }
 
-  html += `<fieldset id="add-publickey" class="saito-grid settings-link">
+  if (showCreationActions) {
+    html += `<fieldset id="add-publickey" class="saito-grid settings-link">
 			<i class="fa-solid fa-user-group"></i>
 			<label>add contact</label>
 		</fieldset>`;
+  }
 
   /* Intentionally disabled for now — restore by uncommenting. Handler remains in chat-manager-menu.js. */
   // html += `<fieldset id="add-contacts" class="saito-grid settings-link">
@@ -50,10 +52,12 @@ module.exports = (app, mod) => {
   // 		<label>new/open chat</label>
   // 	</fieldset>`;
 
-  html += `<fieldset id="create-group" class="saito-grid settings-link">
+  if (showCreationActions) {
+    html += `<fieldset id="create-group" class="saito-grid settings-link">
 			<i class="fa-solid fa-users"></i>
 			<label>new group</label>
 		</fieldset>`;
+  }
 
   html += `<fieldset id="edit-contacts" class="saito-grid settings-link">
 			<i class="fa-solid fa-users-gear"></i>

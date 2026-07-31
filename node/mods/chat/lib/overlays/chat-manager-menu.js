@@ -5,11 +5,13 @@ const ChatList = require('./chat-list');
 const ChatUserMenu = require('./chat-user-menu');
 
 class ChatManagerMenu {
-  constructor(app, mod, container = null) {
+  constructor(app, mod, container = null, showCreationActions = false) {
     this.app = app;
     this.mod = mod;
 
     this.container = container;
+    this.usesOverlay = !container;
+    this.showCreationActions = showCreationActions;
 
     this.contactList = new ContactsList(app, mod, true);
 
@@ -29,13 +31,14 @@ class ChatManagerMenu {
       this.container = '.module-settings-overlay';
     }
 
-    if (document.querySelector('.saito-module-settings')) {
-      this.app.browser.replaceElementBySelector(
-        chatMenuTemplate(this.app, this.mod),
-        '.saito-module-settings'
-      );
+    const container = document.querySelector(this.container);
+    const settings = container?.querySelector('.saito-module-settings');
+    const html = chatMenuTemplate(this.app, this.mod, this.showCreationActions);
+
+    if (settings) {
+      settings.outerHTML = html;
     } else {
-      this.app.browser.addElementToSelector(chatMenuTemplate(this.app, this.mod), this.container);
+      this.app.browser.addElementToSelector(html, this.container);
     }
 
     this.attachEvents();
@@ -43,18 +46,7 @@ class ChatManagerMenu {
 
   attachEvents() {
     if (document.getElementById('add-publickey')) {
-      document.getElementById('add-publickey').onclick = async (e) => {
-        let add = await sprompt('Enter Address of Contact to Add:');
-        if (add) {
-          if (this.app.crypto.isPublicKey(add)) {
-            salert(`Adding ${add} as Contact`);
-            this.app.keychain.addKey(add);
-            this.app.connection.emit('encrypt-key-exchange', add);
-          } else {
-            salert('Not a Network Address / Public Key');
-          }
-        }
-      };
+      document.getElementById('add-publickey').onclick = () => this.addContact();
     }
 
     if (document.getElementById('add-contacts')) {
@@ -73,26 +65,7 @@ class ChatManagerMenu {
     }
 
     if (document.getElementById('create-group')) {
-      document.getElementById('create-group').onclick = async (e) => {
-        this.contactList.multi_select = true;
-        this.contactList.title = 'Invite Contacts';
-
-        this.contactList.callback = (person) => {
-          person.push(this.mod.publicKey);
-          this.mod.sendCreateGroupTransaction(name, person);
-        };
-
-        let name = await sprompt('Choose a name for the group');
-        if (name) {
-          let myKeys = this.app.keychain.returnKeys();
-          if (myKeys.length > 0) {
-            this.contactList.render();
-          } else {
-            this.mod.sendCreateGroupTransaction(name);
-          }
-          this.overlay.close();
-        }
-      };
+      document.getElementById('create-group').onclick = () => this.createGroup();
     }
 
     if (document.getElementById('edit-contacts')) {
@@ -214,6 +187,59 @@ class ChatManagerMenu {
         preview.play();
       };
     });
+  }
+
+  async addContact() {
+    const address = await sprompt('Enter Address of Contact to Add:');
+    if (!address) {
+      return;
+    }
+
+    if (!this.app.crypto.isPublicKey(address)) {
+      salert('Not a Network Address / Public Key');
+      return;
+    }
+
+    salert(`Adding ${address} as Contact`);
+    this.app.keychain.addKey(address);
+    this.app.connection.emit('encrypt-key-exchange', address);
+  }
+
+  async createGroup() {
+    const name = await sprompt('Choose a name for the group');
+    if (!name) {
+      return;
+    }
+
+    this.contactList.multi_select = true;
+    this.contactList.title = 'Invite Contacts';
+    this.contactList.callback = (members) => {
+      members.push(this.mod.publicKey);
+      this.mod.sendCreateGroupTransaction(name, members);
+    };
+
+    if (this.app.keychain.returnKeys().length > 0) {
+      this.contactList.render();
+    } else {
+      this.mod.sendCreateGroupTransaction(name);
+    }
+
+    if (this.usesOverlay) {
+      this.overlay.close();
+    }
+  }
+
+  markAllRead() {
+    for (const group of this.mod.groups) {
+      group.unread = 0;
+      if (group.txs.length) {
+        group.last_read_message = group.txs[group.txs.length - 1].signature;
+      }
+      this.mod.saveChatGroup(group);
+      this.mod.chat_manager?.popups[group.id]?.updateNotification(0);
+    }
+
+    this.app.connection.emit('chat-manager-render-request');
   }
 }
 

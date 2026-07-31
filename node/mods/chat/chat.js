@@ -195,13 +195,14 @@ class Chat extends ModTemplate {
       this.chat_manager = new ChatManager(this.app, this);
       this.addComponent(this.chat_manager);
     }
-    this.chat_manager.container = '.saito-sidebar.left';
+    const mobile = window.innerWidth < 600;
 
-    if (
-      !(this.app.browser.isMobileBrowser(navigator.userAgent) && window.innerWidth < 750) &&
-      window.innerWidth > 599
-    ) {
+    this.chat_manager.container = '.chat-page-manager-content';
+
+    if (!mobile) {
       this.chat_manager.chat_popup_container = '.saito-main';
+    } else {
+      this.chat_manager.chat_popup_container = '';
     }
 
     this.chat_manager.render_popups_to_screen = 0;
@@ -241,6 +242,12 @@ class Chat extends ModTemplate {
       }
 
       window.history.replaceState({}, document.title, '/' + this.slug);
+    } else if (
+      !mobile &&
+      this.groups.length &&
+      !Object.values(this.chat_manager.popups).some((popup) => popup.is_rendered)
+    ) {
+      this.app.connection.emit('open-chat-with', { id: this.groups[0].id });
     }
   }
 

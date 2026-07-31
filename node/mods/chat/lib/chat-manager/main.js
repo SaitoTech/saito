@@ -53,13 +53,13 @@ class ChatManager {
       }
 
       if (group) {
+        const popupContainer = group?.target_container || this.chat_popup_container || '';
+
         if (!this.popups[group.id]) {
-          this.popups[group.id] = new ChatPopup(
-            this.app,
-            this.mod,
-            group?.target_container || this.chat_popup_container
-          );
+          this.popups[group.id] = new ChatPopup(this.app, this.mod, popupContainer);
           this.popups[group.id].group = group;
+        } else {
+          this.popups[group.id].setContainer(popupContainer);
         }
 
         let popup_rendered = 0;
@@ -339,14 +339,13 @@ class ChatManager {
 
         let gid = e.currentTarget.getAttribute('data-id');
         let group = this.mod.returnGroup(gid);
+        const popupContainer = group?.target_container || this.chat_popup_container || '';
 
         if (!this.popups[gid]) {
-          this.popups[gid] = new ChatPopup(
-            this.app,
-            this.mod,
-            group?.target_container || this.chat_popup_container
-          );
+          this.popups[gid] = new ChatPopup(this.app, this.mod, popupContainer);
           this.popups[gid].group = group;
+        } else {
+          this.popups[gid].setContainer(popupContainer);
         }
 
         if (this.mod.browser_active) {

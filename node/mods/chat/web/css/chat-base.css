@@ -74,6 +74,7 @@
   overflow-y: hidden;
   grid-template-columns: min-content auto;
   column-gap: unset;
+  background: transparent;
   /*margin: 0 max(0rem, calc(50vw - 65rem));
     max-width: 130rem;*/
 }
@@ -91,6 +92,7 @@
   flex-direction: column;
   gap: var(--saito-space-xs);
   grid-template-rows: none;
+  background: transparent;
 }
 
 .chat-main-container .chat-manager .saito-sidebar-header {
@@ -103,6 +105,7 @@
   max-height: none;
   margin-top: 0;
   padding-top: 0;
+  background: transparent;
 }
 
 .chat-main-container .chat-header,
@@ -118,13 +121,64 @@
 }
 
 .chat-main-container .saito-sidebar.left {
-  min-width: 20rem;
-  width: 30rem;
+  min-width: 34rem;
+  width: 34rem;
   max-width: 50vw;
   overflow: visible;
   border-right: 1px solid var(--saito-border);
   padding: var(--saito-space-sm) var(--saito-space-md);
-  background: var(--saito-background);
+  background: transparent;
+}
+
+.chat-page-manager {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.chat-page-manager-content {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-page-manager .chat-manager {
+  height: 100%;
+  min-height: 0;
+}
+
+.chat-page-manager .chat-manager-list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.chat-page-manager-settings {
+  display: none;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.chat-page-manager[data-chat-view='settings'] .chat-page-manager-content {
+  display: none;
+}
+
+.chat-page-manager[data-chat-view='settings'] .chat-page-manager-settings {
+  display: block;
+}
+
+.chat-page-manager-view-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.chat-page-manager-settings-content {
+  padding: var(--saito-space-md);
+}
+
+.chat-page-manager .chat-manager-mobile-menu {
+  display: flex;
 }
 
 .chat-main-container .saito-sidebar.right {
@@ -240,9 +294,11 @@
   .chat-main-container .saito-sidebar.left {
     max-width: unset;
     width: 100vw;
+    padding: 0;
     resize: none;
   }
-  .saito-main {
+
+  .chat-main-container .saito-main {
     display: none;
   }
 }

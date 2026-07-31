@@ -27,6 +27,8 @@ class ChatPopup {
     this.callbacks = {};
 
     this.closeFn = null;
+    this.hasCloseFn = false;
+    this.historyEntryActive = false;
 
     app.connection.on('chat-remove-fetch-button-request', (group_id) => {
       if (this.group?.id === group_id) {
@@ -101,6 +103,23 @@ class ChatPopup {
     this.is_scrolling = null;
     this.events_attached = false;
     this.app.connection.emit('chat-manager-render-request');
+  }
+
+  setContainer(container = '') {
+    const nextContainer = container || '';
+    if (this.container === nextContainer) {
+      return;
+    }
+
+    document.querySelector(`#chat-popup-${this.group?.id}`)?.remove();
+    this.container = nextContainer;
+    this.is_rendered = false;
+    this.is_scrolling = null;
+    this.events_attached = false;
+
+    if (this.input) {
+      this.input.display = this.container ? 'medium' : 'small';
+    }
   }
 
   activate() {
@@ -622,10 +641,13 @@ class ChatPopup {
       return;
     }
 
-    if (this.app.browser.isMobileBrowser()) {
+    if (this.app.browser.isMobileBrowser() || window.innerWidth < 600) {
       window.history.pushState('chat', '');
+      this.historyEntryActive = true;
       this.closeFn = window.onpopstate;
+      this.hasCloseFn = true;
       window.onpopstate = (e) => {
+        this.historyEntryActive = false;
         this.close();
       };
     }
@@ -733,7 +755,11 @@ class ChatPopup {
     };
 
     document.querySelector(`${popup_qs} .chat-header .chat-mobile-back`).onclick = (e) => {
-      this.close();
+      if (this.historyEntryActive) {
+        window.history.back();
+      } else {
+        this.close();
+      }
     };
 
     //
@@ -882,11 +908,13 @@ class ChatPopup {
 
   close() {
     this.manually_closed = true;
+    this.historyEntryActive = false;
     this.remove();
     this.app.storage.saveOptions();
-    if (this.closeFn) {
+    if (this.hasCloseFn) {
       window.onpopstate = this.closeFn;
       this.closeFn = null;
+      this.hasCloseFn = false;
     }
   }
 }

@@ -825,7 +825,7 @@
 
 .chat-manager-overlay {
   background-color: var(--saito-popover);
-  position: absolute;
+  position: fixed;
   left: 0;
   top: var(--saito-header-height);
   z-index: 90;
@@ -835,6 +835,77 @@
   border-radius: var(--saito-radius);
   height: fit-content;
   overflow: hidden;
+}
+
+.chat-manager-overlay-content {
+  height: 100%;
+}
+
+.chat-manager-overlay-settings,
+.chat-manager-mobile-menu {
+  display: none;
+}
+
+.chat-manager-mobile-menu {
+  align-items: stretch;
+  justify-content: space-around;
+  min-height: 6rem;
+  padding: 0.4rem var(--saito-space-xs) calc(0.55rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--saito-border);
+  background-color: var(--saito-popover);
+  background-image: var(--saito-popover-wash);
+}
+
+.chat-manager-mobile-menu .item {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  min-height: 5rem;
+  padding: 0.35rem 0.2rem;
+  border: 0;
+  border-radius: var(--saito-radius-lg);
+  color: var(--saito-muted-foreground);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.chat-manager-mobile-menu .item.active::before {
+  content: '';
+  position: absolute;
+  bottom: -0.3rem;
+  width: 2.6rem;
+  height: 0.2rem;
+  border-radius: var(--saito-radius);
+  background-color: var(--saito-primary);
+}
+
+.chat-manager-mobile-menu .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  font-size: 2.2rem;
+}
+
+.chat-manager-mobile-menu .label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 1.083rem;
+  line-height: 1.15;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-manager-mobile-menu .item.active .label {
+  font-family: var(--saito-font-medium);
 }
 
 .floating-cm-overlay .chat-manager-header {
@@ -871,10 +942,6 @@
 }
 
 @media screen and (max-width: 720px) {
-  .chat-manager-overlay .chat-manager-title {
-    display: none;
-  }
-
   .chat-header i.chat-sizing-icon {
     display: none;
   }
@@ -897,32 +964,63 @@
 
 @media screen and (max-width: 600px) {
   .chat-manager-overlay {
-    top: 0;
-    height: 100dvh;
+    top: var(--chat-manager-overlay-top, var(--saito-header-height));
+    bottom: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    height: auto;
     width: 100vw;
-    max-height: -webkit-fill-available;
-    max-width: -webkit-fill-available;
-    border-radius: unset;
-    transition: height 0.3s;
-  }
-
-  .chat-manager-overlay .chat-manager {
-    margin-left: auto;
-    margin-right: auto;
-    min-height: 25rem;
-    height: 100%;
-    grid-template-rows: var(--saito-header-height) 1fr;
-  }
-
-  .chat-manager-list {
+    max-height: none;
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
     background-color: var(--saito-background);
   }
 
-  .chat-manager-overlay .close-chat-manager i {
-    width: 45px;
-    height: 70px;
-    font-size: 3rem;
-    padding: 2rem 0.8rem;
+  .chat-manager-overlay-content {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .chat-manager-overlay .chat-manager {
+    min-height: 0;
+    height: 100%;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .chat-manager-overlay .chat-manager-list {
+    min-height: 0;
+    overflow-y: auto;
+    background-color: var(--saito-background);
+  }
+
+  .chat-manager-overlay-settings {
+    min-height: 0;
+    overflow-y: auto;
+    background-color: var(--saito-background);
+  }
+
+  .chat-manager-overlay[data-chat-overlay-view='settings'] .chat-manager-overlay-content {
+    display: none;
+  }
+
+  .chat-manager-overlay[data-chat-overlay-view='settings'] .chat-manager-overlay-settings {
+    display: block;
+  }
+
+  .chat-manager-overlay-view-title {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .chat-manager-overlay-settings-content {
+    padding: var(--saito-space-md);
+  }
+
+  .chat-manager-mobile-menu {
+    display: flex;
   }
 
   .chat-container {
