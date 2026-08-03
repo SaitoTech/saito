@@ -1069,6 +1069,127 @@ object.saito-text {
   }
 }
 
+#multiwallet {
+  background: var(--dreamscape);
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.multiwallet-content {
+  display: flex;
+  max-width: 1200px;
+  width: 100%;
+  gap: 2rem;
+}
+
+.multiwallet-text {
+  flex: 1;
+  color: white;
+  padding: 1rem;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.multiwallet-text h1 {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+.multiwallet-text p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+.multiwallet-logos {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.multiwallet-logos .logo-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.multiwallet-logos .logo-circle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  transition: transform 0.3s ease;
+}
+
+.multiwallet-logos .logo-disk object {
+  width: 60px;
+  height: 60px;
+  margin: auto;
+}
+
+.multiwallet-logos .logo-circle span {
+  color: white;
+  font-weight: 500;
+  white-space: nowrap;
+  font-size: 2rem;
+}
+
+.multiwallet-logos .logo-circle:nth-child(1) {
+  left: 10%;
+}
+
+.multiwallet-logos .logo-circle:nth-child(3) {
+  left: 6%;
+}
+
+.multiwallet-logos .logo-circle:nth-child(4) {
+  left: 25%;
+}
+
+@media (max-width: 768px) {
+  .multiwallet-content {
+    flex-direction: column;
+  }
+
+  .multiwallet-logos .logo-container {
+    padding: 0 1rem;
+    gap: 1rem;
+  }
+
+  .multiwallet-logos .logo-circle:nth-child(1) {
+    left: 50%;
+    top: 10%;
+    transform: translateX(-50%);
+  }
+
+  .multiwallet-logos .logo-circle:nth-child(2) {
+    left: 50%;
+    top: 30%;
+    transform: translateX(-50%);
+  }
+
+  .multiwallet-logos .logo-circle:nth-child(3) {
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%);
+  }
+
+  .multiwallet-logos .logo-circle:nth-child(4) {
+    left: 50%;
+    top: 70%;
+    transform: translateX(-50%);
+  }
+
+  .multiwallet-logos .logo-circle:hover {
+    transform: translateX(-50%) scale(1.1);
+  }
+}
+
 .community-content {
   display: flex;
   align-items: center;
