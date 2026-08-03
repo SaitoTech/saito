@@ -30,6 +30,9 @@ class ChatPopup {
     this.hasCloseFn = false;
     this.historyEntryActive = false;
 
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
+
     app.connection.on('chat-remove-fetch-button-request', (group_id) => {
       if (this.group?.id === group_id) {
         this.no_older_messages = true;
@@ -94,6 +97,8 @@ class ChatPopup {
   }
 
   remove() {
+    this.removeVisualViewportResizeHandler();
+
     let popup_qs = '#chat-popup-' + this.group.id;
     if (document.querySelector(popup_qs)) {
       document.querySelector(popup_qs).remove();
@@ -111,6 +116,7 @@ class ChatPopup {
       return;
     }
 
+    this.removeVisualViewportResizeHandler();
     document.querySelector(`#chat-popup-${this.group?.id}`)?.remove();
     this.container = nextContainer;
     this.is_rendered = false;
@@ -134,6 +140,31 @@ class ChatPopup {
     });
 
     document.querySelector(popup_qs).classList.add('active');
+  }
+
+  attachVisualViewportResizeHandler(chatPopup) {
+    if (this.container || !window.visualViewport) {
+      return;
+    }
+
+    this.removeVisualViewportResizeHandler();
+
+    this.visualViewport = window.visualViewport;
+    this.visualViewportResizeHandler = () => {
+      chatPopup.style.setProperty('--chat-viewport-height', `${this.visualViewport.height}px`);
+    };
+
+    this.visualViewportResizeHandler();
+    this.visualViewport.addEventListener('resize', this.visualViewportResizeHandler);
+  }
+
+  removeVisualViewportResizeHandler() {
+    if (this.visualViewport && this.visualViewportResizeHandler) {
+      this.visualViewport.removeEventListener('resize', this.visualViewportResizeHandler);
+    }
+
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
   }
 
   forceRender() {
@@ -642,6 +673,7 @@ class ChatPopup {
     }
 
     if (this.app.browser.isMobileBrowser() || window.innerWidth < 600) {
+      this.attachVisualViewportResizeHandler(chatPopup);
       window.history.pushState('chat', '');
       this.historyEntryActive = true;
       this.closeFn = window.onpopstate;
