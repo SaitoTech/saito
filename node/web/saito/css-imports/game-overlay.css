@@ -311,6 +311,7 @@ Useful declarations for game stats
   border: 2px solid var(--saito-black-heavy);
   box-shadow: 4px 4px 6px 4px black;
   max-height: 99vh;
+  color: var(--saito-accent);
 }
 
 .solitaire-stats-overlay hr {

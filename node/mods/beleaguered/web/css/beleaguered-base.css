@@ -1,257 +1,258 @@
 .game.beleaguered {
-  --beleaguered-card-width: min(15.5vh, 120px, 20vw);
-  --beleaguered-card-height: calc(var(--beleaguered-card-width) * 1.53);
-  --beleaguered-selection-blue: #4cc9f0;
-  --beleaguered-selection-green: #67f28f;
-  --beleaguered-selection-gold: #ffd166;
 
-  .logobox .status,
-  .logobox .status-header {
-    background-color: #fffe;
-    color: #333;
-  }
+	--beleaguered-card-width: min(15.5vh, 120px, 20vw);
+	--beleaguered-card-height: calc(var(--beleaguered-card-width) * 1.53);
+	--beleaguered-selection-blue: #4cc9f0;
+	--beleaguered-selection-green: #67f28f;
+	--beleaguered-selection-gold: #ffd166;
 
-  .status {
-    border-radius: 5px;
-    padding: 1rem;
-  }
+.logobox .status,
+.logobox .status-header {
+	background-color: #fffe;
+	color: #333;
+}
 
-  .rules-overlay ul {
-    margin-left: 25px;
-  }
+.status {
+	border-radius: 5px;
+	padding: 1rem;
+}
 
-  .rules-overlay table {
-    font-size: 1.5em;
-    margin: 0 auto;
-  }
+.rules-overlay ul {
+	margin-left: 25px;
+}
 
-  .rules-overlay th {
-    text-align: right;
-  }
+.rules-overlay table {
+	font-size: 1.5em;
+	margin: 0 auto;
+}
 
-  .rules-overlay td {
-    text-align: center;
-    width: 4em;
-  }
+.rules-overlay th {
+	text-align: right;
+}
 
-  .gameboard {
-    position: absolute;
-    background-image: url('/saito/img/arcade/greenfelt.jpg');
-    background-size: cover;
-    width: 100%;
-    height: 100%;
-    display: grid;
-    grid-template-columns: minmax(20%, max-content) 1fr;
-  }
+.rules-overlay td {
+	text-align: center;
+	width: 4em;
+}
 
-  .logobox {
-    position: relative;
-    font-size: 20px;
-    order: 1;
-    max-width: 200px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 80px;
-  }
+.gameboard {
+	position: absolute;
+	background-image: url('/saito/img/arcade/greenfelt.jpg');
+	background-size: cover;
+	width: 100%;
+	height: 100%;
+	display: grid;
+	grid-template-columns: minmax(20%, max-content) 1fr;
+}
 
-  .logobox img {
-    width: 100%;
-    margin-bottom: 15px;
-  }
+.logobox {
+	position: relative;
+	font-size: 20px;
+	order: 1;
+	max-width: 200px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 80px;
+}
 
-  .status-header {
-    padding: 10px 5px;
-    margin-top: 20px;
-    height: auto;
-    min-height: 160px;
-  }
+.logobox img {
+	width: 100%;
+	margin-bottom: 15px;
+}
 
-  .status_option {
-    cursor: pointer;
-    border-top: 1px solid rgba(0, 0, 0, 0.35);
-    border-radius: 0px;
-    min-height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 0.5rem;
-    text-align: center;
-  }
+.status-header {
+	padding: 10px 5px;
+	margin-top: 20px;
+	height: auto;
+	min-height: 160px;
+}
 
-  .status_option:hover {
-    color: #eee;
-    background-color: #222;
-  }
+.status_option {
+	cursor: pointer;
+	border-top: 1px solid rgba(0, 0, 0, 0.35);
+	border-radius: 0px;
+	min-height: 45px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 0.5rem;
+	text-align: center;
+}
 
-  .animated_elem img {
-    width: 100%;
-    border-radius: 8px;
-  }
+.status_option:hover {
+	color: #eee;
+	background-color: #222;
+}
 
-  /* Mark place you can put selected card*/
-  .card-slot.cs-selectable {
-    cursor: pointer;
-  }
+.animated_elem img {
+	width: 100%;
+	border-radius: 8px;
+}
 
-  .card-slot.cs-selectable img {
-    outline: 2px solid transparent;
-    transition:
-      filter 120ms ease,
-      transform 120ms ease,
-      box-shadow 120ms ease,
-      outline-color 120ms ease;
-  }
+/* Mark place you can put selected card*/
+.card-slot.cs-selectable {
+	cursor: pointer;
+}
 
-  .gameboard:not(.selected_state) .card-slot.cs-selectable img {
-    box-shadow:
-      0 0 0 2px rgba(255, 255, 255, 0.55),
-      0 0 14px rgba(76, 201, 240, 0.42);
-  }
+.card-slot.cs-selectable img {
+	outline: 2px solid transparent;
+	transition:
+		filter 120ms ease,
+		transform 120ms ease,
+		box-shadow 120ms ease,
+		outline-color 120ms ease;
+}
 
-  .gameboard:not(.selected_state) .card-slot.cs-selectable:hover img {
-    filter: brightness(1.08) saturate(1.08);
-    outline-color: var(--beleaguered-selection-blue);
-    transform: translateY(-3px);
-    box-shadow:
-      0 8px 18px rgba(0, 0, 0, 0.28),
-      0 0 0 3px rgba(76, 201, 240, 0.82),
-      0 0 20px rgba(76, 201, 240, 0.58);
-  }
+.gameboard:not(.selected_state) .card-slot.cs-selectable img {
+	box-shadow:
+		0 0 0 2px rgba(255, 255, 255, 0.55),
+		0 0 14px rgba(76, 201, 240, 0.42);
+}
 
-  .cardstack.cs-selectable,
-  .cs-empty.cs-selectable {
-    cursor: pointer;
-  }
+.gameboard:not(.selected_state) .card-slot.cs-selectable:hover img {
+	filter: brightness(1.08) saturate(1.08);
+	outline-color: var(--beleaguered-selection-blue);
+	transform: translateY(-3px);
+	box-shadow:
+		0 8px 18px rgba(0, 0, 0, 0.28),
+		0 0 0 3px rgba(76, 201, 240, 0.82),
+		0 0 20px rgba(76, 201, 240, 0.58);
+}
 
-  /* Color empty slots */
-  .cardstack.cs-selectable:hover,
-  .cs-empty.cs-selectable:hover {
-    border-color: var(--beleaguered-selection-green);
-    background-color: rgba(103, 242, 143, 0.3);
-    box-shadow:
-      inset 0 0 0 2px rgba(103, 242, 143, 0.75),
-      0 0 20px rgba(103, 242, 143, 0.42);
-  }
+.cardstack.cs-selectable,
+.cs-empty.cs-selectable {
+	cursor: pointer;
+}
 
-  .selected_state .card-slot.cs-selectable:not(.cs-selected) img {
-    box-shadow:
-      0 0 0 3px rgba(103, 242, 143, 0.78),
-      0 0 22px rgba(103, 242, 143, 0.48);
-  }
+/* Color empty slots */
+.cardstack.cs-selectable:hover,
+.cs-empty.cs-selectable:hover {
+	border-color: var(--beleaguered-selection-green);
+	background-color: rgba(103, 242, 143, 0.3);
+	box-shadow:
+		inset 0 0 0 2px rgba(103, 242, 143, 0.75),
+		0 0 20px rgba(103, 242, 143, 0.42);
+}
 
-  .selected_state .card-slot.cs-selectable:not(.cs-selected):hover img {
-    filter: brightness(1.08) saturate(1.12);
-    outline-color: var(--beleaguered-selection-green);
-    transform: translateY(-3px);
-  }
+.selected_state .card-slot.cs-selectable:not(.cs-selected) img {
+	box-shadow:
+		0 0 0 3px rgba(103, 242, 143, 0.78),
+		0 0 22px rgba(103, 242, 143, 0.48);
+}
 
-  .card-slot.cs-selected img {
-    filter: brightness(1.05) saturate(1.1);
-    outline-color: var(--beleaguered-selection-gold);
-    box-shadow:
-      0 0 0 3px rgba(255, 209, 102, 0.9),
-      0 0 24px rgba(255, 209, 102, 0.58);
-  }
+.selected_state .card-slot.cs-selectable:not(.cs-selected):hover img {
+	filter: brightness(1.08) saturate(1.12);
+	outline-color: var(--beleaguered-selection-green);
+	transform: translateY(-3px);
+}
 
-  .selected_state .card-slot.cs-selectable.cs-selected:hover img {
-    background-color: unset;
-    opacity: unset;
-    border-color: rgba(0, 0, 0, 0.6);
-    filter: brightness(0.95) saturate(0.9);
-    transform: none;
-    cursor: not-allowed;
-  }
+.card-slot.cs-selected img {
+	filter: brightness(1.05) saturate(1.1);
+	outline-color: var(--beleaguered-selection-gold);
+	box-shadow:
+		0 0 0 3px rgba(255, 209, 102, 0.9),
+		0 0 24px rgba(255, 209, 102, 0.58);
+}
 
-  .rowbox {
-    order: 2;
-    display: block;
-    width: 100%;
-    margin: auto;
-    position: relative;
-    display: grid;
-    grid-template-rows: repeat(4, var(--beleaguered-card-height));
-    grid-template-columns: minmax(0, 1fr) var(--beleaguered-card-width) minmax(0, 1fr);
-    grid-gap: min(10px, 1vh);
-  }
+.selected_state .card-slot.cs-selectable.cs-selected:hover img {
+	background-color: unset;
+	opacity: unset;
+	border-color: rgba(0, 0, 0, 0.6);
+	filter: brightness(0.95) saturate(0.9);
+	transform: none;
+	cursor: not-allowed;
+}
 
-  /*.cardstack .card-slot {
+.rowbox {
+	order: 2;
+	display: block;
+	width: 100%;
+	margin: auto;
+	position: relative;
+	display: grid;
+	grid-template-rows: repeat(4, var(--beleaguered-card-height));
+	grid-template-columns: minmax(0, 1fr) var(--beleaguered-card-width) minmax(0, 1fr);
+	grid-gap: min(10px, 1vh);
+}
+
+/*.cardstack .card-slot {
   width: unset;
 }*/
 
-  .card-slot {
-    position: absolute;
-    width: var(--beleaguered-card-width);
-    height: var(--beleaguered-card-height);
-    border-radius: 8px;
-  }
+.card-slot {
+	position: absolute;
+	width: var(--beleaguered-card-width);
+	height: var(--beleaguered-card-height);
+	border-radius: 8px;
+}
 
-  .card-slot img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.65);
-    background: white;
-  }
+.card-slot img {
+	width: 100%;
+	height: auto;
+	display: block;
+	border-radius: 8px;
+	border: 1px solid rgba(0, 0, 0, 0.65);
+	background: white;
+}
 
-  @media screen and (orientation: portrait) and (max-width: 550px) {
-    .gameboard {
-      grid-template-columns: unset;
-      grid-template-rows: auto 100px;
-    }
+@media screen and (orientation: portrait) and (max-width: 550px) {
+	.gameboard {
+		grid-template-columns: unset;
+		grid-template-rows: auto 100px;
+	}
 
-    .rowbox {
-      order: 1;
-    }
+	.rowbox {
+		order: 1;
+	}
 
-    .logobox {
-      margin-top: unset;
-      order: 2;
-      max-width: 90vw;
-    }
+	.logobox {
+		margin-top: unset;
+		order: 2;
+		max-width: 90vw;
+	}
 
-    .status {
-      padding: 0.5rem;
-    }
+	.status {
+		padding: 0.5rem;
+	}
 
-    .status_option {
-      border-top: unset;
-      border-left: 1px solid;
-      width: clamp(64px, 23vw, 96px);
-      height: 100%;
-      font-size: clamp(12px, 3.5vw, 16px);
-    }
+	.status_option {
+		border-top: unset;
+		border-left: 1px solid;
+		width: clamp(64px, 23vw, 96px);
+		height: 100%;
+		font-size: clamp(12px, 3.5vw, 16px);
+	}
 
-    .status_option:first-child {
-      border-left: unset;
-    }
+	.status_option:first-child {
+		border-left: unset;
+	}
 
-    .hidable {
-      display: none;
-    }
-    .controls {
-      margin-top: 0;
-      display: flex;
-      flex-direction: row;
-      height: 70px;
-    }
+	.hidable {
+		display: none;
+	}
+	.controls {
+		margin-top: 0;
+		display: flex;
+		flex-direction: row;
+		height: 70px;
+	}
 
-    .controls > .status_option:first-child {
-      border-top: unset;
-    }
-  }
+	.controls > .status_option:first-child {
+		border-top: unset;
+	}
+}
 
-  @media screen and (max-height: 500px) {
-    .hidable {
-      display: none;
-    }
+@media screen and (max-height: 500px) {
+	.hidable {
+		display: none;
+	}
 
-    .controls {
-      margin-top: 0;
-    }
+	.controls {
+		margin-top: 0;
+	}
 
-    .controls > .status_option:first-child {
-      border-top: unset;
-    }
-  }
+	.controls > .status_option:first-child {
+		border-top: unset;
+	}
+}
 }
