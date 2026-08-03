@@ -9,12 +9,29 @@ module.exports = (app, mod) => {
   >
     <h2 class="auth-title" id="faucet_title">Testnet Faucet</h2>
 
-    <div class="saito-spinner spinner" id="faucet_spinner"></div>
-    <i
-      id="faucet_success_icon"
-      class="game-crypto-icon fa-solid fa-circle-check"
-      aria-hidden="true"
-    ></i>
+    <div class="faucet-status">
+      <img
+        class="faucet-crypto-logo"
+        id="faucet_saito_logo"
+        src="/saito/img/saito-icon.png"
+        alt="Saito"
+      />
+      <div
+        class="saito-spinner spinner"
+        id="faucet_spinner"
+        role="status"
+        aria-label="Requesting testnet SAITO"
+        hidden
+        style="display: none"
+      ></div>
+      <i
+        id="faucet_success_icon"
+        class="faucet-success-icon fa-solid fa-circle-check"
+        aria-hidden="true"
+        hidden
+        style="display: none"
+      ></i>
+    </div>
 
     <div class="amount">${amountLabel}</div>
 

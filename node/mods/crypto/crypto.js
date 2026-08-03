@@ -207,7 +207,14 @@ try {
       let hook = document.querySelector('.game-wizard-crypto-hook');
 
       if (hook) {
-        hook.onclick = (e) => {
+        hook.onclick = async (e) => {
+          const balance = await this.app.wallet.getBalance('SAITO');
+          if (balance === 0n) {
+            siteMessage('A SAITO balance is needed to add a stake...', 3000);
+            this.app.connection.emit('saito-purchase-launch');
+            return;
+          }
+
           this.overlay = new CryptoSelectAmount(this.app, this);
           this.overlay.fixed = false;
 

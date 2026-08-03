@@ -19,7 +19,11 @@ class FileUpload {
     this.advanced = false;
   }
 
-  render() {
+  async render() {
+    if (!(await this.ensureBalance())) {
+      return;
+    }
+
     const isMobile =
       this.app.browser.isMobileBrowser() ||
       (typeof window !== 'undefined' && window.innerWidth <= 768);
@@ -84,7 +88,7 @@ class FileUpload {
 
   async ensureBalance() {
     const wallet_balance = await this.app.wallet.getBalance('SAITO');
-    if (Number(wallet_balance) < 1) {
+    if (wallet_balance === 0n) {
       siteMessage('Insufficient SAITO to Create Vault NFTs...', 3000);
       this.app.connection.emit('saito-purchase-launch');
       return false;

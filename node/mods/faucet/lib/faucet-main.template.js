@@ -19,11 +19,26 @@ module.exports = (app, mod) => {
       <div class="faucet-amount">${amountLabel}</div>
 
       <div class="faucet-status">
-        <div class="saito-spinner spinner" id="faucet_spinner"></div>
+        <img
+          class="faucet-crypto-logo"
+          id="faucet_saito_logo"
+          src="/saito/img/saito-icon.png"
+          alt="Saito"
+        />
+        <div
+          class="saito-spinner spinner"
+          id="faucet_spinner"
+          role="status"
+          aria-label="Requesting testnet SAITO"
+          hidden
+          style="display: none"
+        ></div>
         <i
           id="faucet_success_icon"
           class="faucet-success-icon fa-solid fa-circle-check"
           aria-hidden="true"
+          hidden
+          style="display: none"
         ></i>
       </div>
 

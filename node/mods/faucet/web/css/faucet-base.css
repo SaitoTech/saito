@@ -61,6 +61,12 @@
   height: 10rem;
 }
 
+.faucet-crypto-logo {
+  width: 10rem;
+  height: 10rem;
+  object-fit: contain;
+}
+
 .faucet-success-icon {
   font-size: 8rem;
   display: none;
@@ -136,16 +142,22 @@
    Shared faucet state machine
 -----------------------------------------------------------------*/
 
+#faucet-request-container {
+  background: #0008;
+}
+
 #faucet-request-container[data-faucet-state='idle'] .spinner,
 #faucet-request-container[data-faucet-state='idle'] #faucet_success_icon {
   display: none;
 }
 
+#faucet-request-container[data-faucet-state='pending'] #faucet_saito_logo,
 #faucet-request-container[data-faucet-state='pending'] #faucet-button,
 #faucet-request-container[data-faucet-state='pending'] #faucet_success_icon {
   display: none;
 }
 
+#faucet-request-container[data-faucet-state='success'] #faucet_saito_logo,
 #faucet-request-container[data-faucet-state='success'] #faucet-button,
 #faucet-request-container[data-faucet-state='success'] .spinner {
   display: none;

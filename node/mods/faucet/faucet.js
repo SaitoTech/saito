@@ -32,6 +32,22 @@ class Faucet extends ModTemplate {
     this.overlay = new SaitoOverlay(app, this, false);
 
     this.payouts = {};
+    this.closePurchaseOverlay = null;
+
+    if (app.BROWSER) {
+      app.connection.on('saito-purchase-overlay-open', (closeOverlay) => {
+        this.closePurchaseOverlay = closeOverlay;
+      });
+
+      app.connection.on('saito-purchase-launch', () => {
+        // Let the purchase module open first so this optional overlay sits above it.
+        setTimeout(() => {
+          const closePurchaseOverlay = this.closePurchaseOverlay;
+          this.closePurchaseOverlay = null;
+          this.openFaucetOverlay(closePurchaseOverlay);
+        }, 0);
+      });
+    }
 
     this.social = {
       twitter: '@SaitoOfficial',
@@ -85,12 +101,21 @@ class Faucet extends ModTemplate {
 
       setTimeout(() => {
         document.querySelector('.saito-faucet-button').onclick = (e) => {
-          this.overlay.show(FaucetOverlayTemplate(this.app, this));
-          this.setFaucetState('idle');
-          this.attachEvents();
+          this.openFaucetOverlay();
         };
       }, 50);
     }
+  }
+
+  openFaucetOverlay(closePurchaseOverlay = null) {
+    this.attachStyleSheets();
+    this.overlay.show(FaucetOverlayTemplate(this.app, this), () => {
+      if (typeof closePurchaseOverlay === 'function') {
+        closePurchaseOverlay();
+      }
+    });
+    this.setFaucetState('idle');
+    this.attachEvents();
   }
 
   setFaucetState(state = 'idle') {
@@ -103,6 +128,9 @@ class Faucet extends ModTemplate {
 
     const title = document.getElementById('faucet_title');
     const closeBtn = document.getElementById('faucet-close-btn');
+    const logo = document.getElementById('faucet_saito_logo');
+    const spinner = document.getElementById('faucet_spinner');
+    const successIcon = document.getElementById('faucet_success_icon');
 
     const titles = {
       idle: 'Testnet Faucet',
@@ -121,6 +149,18 @@ class Faucet extends ModTemplate {
     }
     if (closeBtn) {
       closeBtn.textContent = closeLabels[state] || closeLabels.idle;
+    }
+    if (logo) {
+      logo.hidden = state !== 'idle';
+      logo.style.display = state === 'idle' ? 'block' : 'none';
+    }
+    if (spinner) {
+      spinner.hidden = state !== 'pending';
+      spinner.style.display = state === 'pending' ? 'block' : 'none';
+    }
+    if (successIcon) {
+      successIcon.hidden = state !== 'success';
+      successIcon.style.display = state === 'success' ? 'block' : 'none';
     }
   }
 

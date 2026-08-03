@@ -465,6 +465,11 @@ class CreateNFT {
       }
 
       let balance = await this.app.wallet.getBalance();
+      if (balance === 0n) {
+        siteMessage('A SAITO balance is needed to create an NFT...', 3000);
+        this.app.connection.emit('saito-purchase-launch');
+        return;
+      }
 
       // value of nft (nolan)
       let depositAmt = parseInt(document.querySelector('#create-nft-deposit').value);

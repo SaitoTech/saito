@@ -25,6 +25,7 @@ class SaitoPurchaseOverlay {
     this.deposit_confirmed_by_user = false;
     this.reserved_until = 0;
     this.fancy_ui = true;
+    this.active = false;
 
     this.countdown_interval = null;
 
@@ -56,6 +57,10 @@ class SaitoPurchaseOverlay {
       'saito-purchase-launch',
       (amount, recipient = '', tx = null, description = '') => {
         this.reset();
+        this.active = true;
+        this.app.connection.emit('saito-purchase-overlay-open', () => {
+          this.close();
+        });
         this.amount = Number(amount);
         this.description = description;
         this.recipient = recipient || this.mod.publicKey;
@@ -70,6 +75,9 @@ class SaitoPurchaseOverlay {
           });
 
           this.timer = setTimeout(() => {
+            if (!this.active) {
+              return;
+            }
             this.mod.available_currencies = null;
             this.render();
           }, 5000);
@@ -84,7 +92,10 @@ class SaitoPurchaseOverlay {
         if (this.fancy_ui) {
           // More complicated but smoother transition while fetching info
           this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
-          setTimeout(() => {
+          this.timer = setTimeout(() => {
+            if (!this.active) {
+              return;
+            }
             this.render();
           }, 1000);
           this.fancy_ui = false;
@@ -95,9 +106,15 @@ class SaitoPurchaseOverlay {
     );
 
     app.connection.on('saito-purchase-cryptos', () => {
+      if (!this.active) {
+        return;
+      }
       console.log('saito-purchase-cryptos', this.mod.available_currencies);
       clearTimeout(this.timer);
-      setTimeout(() => {
+      this.timer = setTimeout(() => {
+        if (!this.active) {
+          return;
+        }
         this.fancy_ui = false;
         this.render();
       }, 1000);
@@ -106,7 +123,6 @@ class SaitoPurchaseOverlay {
 
   async render() {
     let self = this;
-    this.overlay.remove();
 
     console.debug(
       'SaitoPurchaseOverlay Rendering...',
@@ -117,9 +133,13 @@ class SaitoPurchaseOverlay {
     );
 
     if (!this.mod.available_currencies) {
+      this.overlay.remove();
       salert('Service currently not available');
       return;
     }
+
+    // Reuse this overlay's layer while advancing the purchase flow. Recreating
+    // it would move Get Saito above optional overlays opened in response to it.
 
     if (!this.crypto_selected) {
       //
@@ -472,6 +492,12 @@ class SaitoPurchaseOverlay {
     }
     salert(msg);
     this.reset();
+  }
+
+  close() {
+    this.active = false;
+    this.reset();
+    this.overlay.close();
   }
 
   reset() {
