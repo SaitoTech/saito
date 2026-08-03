@@ -554,6 +554,7 @@ class SaitoHeader extends UIModTemplate {
       games: 'saito-games-icon',
       redsquare: 'saito-redsquare-icon',
       saitotalk: 'saito-talk-icon',
+      store: 'saito-store-icon',
       swarmcast: 'saito-swarmcast-icon',
       talk: 'saito-talk-icon',
       vault: 'saito-vault-icon',

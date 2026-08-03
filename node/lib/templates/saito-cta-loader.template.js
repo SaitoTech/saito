@@ -5,6 +5,7 @@ const CTA_LOGOS = {
   games: 'saito-games-icon',
   redsquare: 'saito-redsquare-icon',
   stack: 'saito-stack-icon',
+  store: 'saito-store-icon',
   swarmcast: 'saito-swarmcast-icon',
   talk: 'saito-talk-icon',
   vault: 'saito-vault-icon'
@@ -26,6 +27,10 @@ const CTA_CONTENT = {
   stack: {
     label: 'Saito Stack',
     subtitle: 'PUBLISH WITHOUT PUBLISHERS'
+  },
+  store: {
+    label: 'Saito Store',
+    subtitle: 'PEER-TO-PEER COMMERCE'
   },
   swarmcast: {
     label: 'Swarmcast',

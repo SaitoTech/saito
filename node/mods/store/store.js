@@ -142,7 +142,26 @@ class Store extends ModTemplate {
     return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
-  respondTo(type = '') {
+  respondTo(type = '', obj) {
+    if (type === 'saito-header') {
+      if (this.browser_active) {
+        return [];
+      }
+
+      return [
+        {
+          text: 'Store',
+          icon: 'fa-solid fa-store',
+          rank: 15,
+          type: 'navigation',
+          navigation: '/store',
+          callback: () => {
+            navigateWindow('/store');
+          }
+        }
+      ];
+    }
+
     if (type === 'saito-sell-nft') {
       return {
         render: (defaults = {}) => {
@@ -182,7 +201,7 @@ class Store extends ModTemplate {
       };
     }
 
-    return super.respondTo(type);
+    return super.respondTo(type, obj);
   }
 
   /**
