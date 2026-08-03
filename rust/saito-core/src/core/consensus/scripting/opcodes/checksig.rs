@@ -1,4 +1,4 @@
-use super::super::script::{resolve_ref, resolved_value_to_message_string};
+use super::super::script::{resolve_ref, resolved_value_to_message_string, get_p2sh_auth_hash};
 use crate::core::consensus::block::Block;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::defs::{PrintForLog, SaitoPublicKey, SaitoSignature};
@@ -37,25 +37,32 @@ impl CheckSig {
     }
 
     pub fn validate(context: &mut Value, tx: Option<&Transaction>, blk: Option<&Block>) -> u8 {
-        let publickey = context["script"]["publickey"].as_str().unwrap_or("");
+        let publickey = context["script"]["publickey"].as_str().unwrap_or("").to_string();
 
         let resolved_msg = resolve_ref(&context["script"]["msg"], context, tx, blk);
         let message = resolved_value_to_message_string(&resolved_msg);
 
-        let signature = context["witness"]["signature"].as_str().unwrap_or("");
+	let signature = context["witness"]["signature"].as_str().unwrap_or("").to_string();
 
-        if publickey.is_empty() || message.is_empty() || signature.is_empty() {
-            return 0;
-        }
+	if publickey.is_empty() || message.is_empty() || signature.is_empty() {
+	    return 0;
+	}
 
-        let Ok(sig) = SaitoSignature::from_hex(signature) else {
+	let Some(p2sh_auth_hash) = get_p2sh_auth_hash(context, tx) else {
+	    return 0;
+	};
+
+	let p2sh_auth_message = format!("{message}|{p2sh_auth_hash}");
+
+	let Ok(sig) = SaitoSignature::from_hex(&signature) else {
+	    return 0;
+	};
+
+        let Ok(pk) = SaitoPublicKey::from_base58(&publickey) else {
             return 0;
         };
-        let Ok(pk) = SaitoPublicKey::from_base58(publickey) else {
-            return 0;
-        };
 
-        if verify(message.as_bytes(), &sig, &pk) {
+	if verify(p2sh_auth_message.as_bytes(), &sig, &pk) {
             1
         } else {
             0

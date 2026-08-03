@@ -13,6 +13,8 @@ const PublishFlow = require('./overlays/publish');
 const PublishNFTFlow = require('./overlays/publish-nft');
 const UnlockFlow = require('./overlays/unlock');
 const ImportFlow = require('./overlays/import');
+const SaveLaterFlow = require('./overlays/save-later');
+const PostPublishFlow = require('./overlays/post-publish');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const { buildRustscriptOverlay } = require('./overlays/overlay.shell');
 const {
@@ -47,6 +49,8 @@ class RustscriptMain {
     this.publishNftFlow = new PublishNFTFlow(app, mod, this, this.publishFlow);
     this.unlockFlow = new UnlockFlow(app, mod, this);
     this.importFlow = new ImportFlow(app, mod, this);
+    this.saveLaterFlow = new SaveLaterFlow(app, mod, this);
+    this.postPublishFlow = new PostPublishFlow(app, mod, this);
     this.generateExpertOverlay = new SaitoOverlay(app, mod, false);
 
     this.fieldOverlays = {
@@ -260,12 +264,30 @@ class RustscriptMain {
     this.publishNftFlow?.hide?.();
     this.unlockFlow?.hide?.();
     this.importFlow?.hide?.();
+    this.saveLaterFlow?.hide?.();
+    this.postPublishFlow?.hide?.();
 
     if (this.publishFlow) {
       this.publishFlow.p2shAddress = '';
       this.publishFlow.p2shHash = '';
       this.publishFlow.lastPublishedTx = null;
     }
+  }
+
+  /**
+   * After on-chain confirmation: leave the wizard, return to the main page,
+   * then show the Post Publish hand-off overlay above it.
+   */
+  async openPostPublish({ tx = null, p2shAddress = '', p2shHash = '' } = {}) {
+    const snapshot = {
+      tx,
+      p2shAddress: p2shAddress || '',
+      p2shHash: p2shHash || ''
+    };
+
+    await this.resetWorkspaceToFresh({ expertMode: false, workflow: 'create' });
+    this.welcomeOverlay?.render('splash');
+    this.postPublishFlow?.openOverlay(snapshot);
   }
 
   resetEditorShells() {
@@ -352,15 +374,29 @@ class RustscriptMain {
 
     const scriptReady = status.script.state === 'ready';
     const isExpert = !guided;
+    // Guided create → create + info. Guided test → test + info. Expert → create + test.
     const testLive = isExpert ? true : this.testingUnlocked && scriptReady;
-    const showMoveToTesting = guided && scriptReady && !this.testingUnlocked;
+    const createLive = isExpert ? true : !testLive;
+    const infoLive = guided;
+
+    root.classList.toggle('rs-workspace-testing', guided && testLive);
+    document.body.classList.toggle('rs-workspace-testing', guided && testLive);
 
     this.updateWorkspaceToggle();
     this.refreshStatusIndicators();
 
+    const createEditor = root.querySelector('#rustscript-editor-create');
     const testEditor = root.querySelector('#rustscript-editor-test');
+    const infoPanel = root.querySelector('#rustscript-panel');
+
+    if (createEditor) {
+      createEditor.hidden = !createLive;
+    }
     if (testEditor) {
       testEditor.hidden = !testLive;
+    }
+    if (infoPanel) {
+      infoPanel.hidden = !infoLive;
     }
   }
 

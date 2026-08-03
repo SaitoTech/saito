@@ -24,20 +24,27 @@ class Create {
     const actions = [
       {
         id: 'post',
-        label: 'Post',
+        label: 'New Tweet',
         image: '/saito/icons/saito-redsquare-icon-solid.svg',
         onClick: () => this.openPost()
       }
     ];
 
     const seen = new Set(actions.map((a) => a.id));
+    const labelOverrides = {
+      'stack-publish': 'New Article',
+      'vault-share': 'Share File'
+    };
 
     for (const action of this._extra_actions) {
       if (!action?.id || !action?.label || seen.has(action.id)) {
         continue;
       }
       seen.add(action.id);
-      actions.push(action);
+      actions.push({
+        ...action,
+        label: labelOverrides[action.id] || action.label
+      });
     }
 
     const peers = this.app.modules?.getRespondTos?.('redsquare-create') || [];
@@ -52,7 +59,7 @@ class Create {
       seen.add(item.id);
       actions.push({
         id: item.id,
-        label: item.label,
+        label: labelOverrides[item.id] || item.label,
         icon: item.icon || peer?.icon_fa || peer?.icon || 'fa-solid fa-plus',
         image: item.image,
         onClick: () => item.callback?.(this.app, this.mod)

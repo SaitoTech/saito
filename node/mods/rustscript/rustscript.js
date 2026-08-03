@@ -519,6 +519,21 @@ class Rustscript extends ModTemplate {
   }
 
   /**
+   * Shareable Pay-to-Script-Hash link — same InvitationLink builder used across Saito apps.
+   */
+  buildP2shShareLink({ p2shHash = '', p2shAddress = '' } = {}) {
+    const InvitationLink = require('../../lib/saito/ui/modals/saito-link/saito-link');
+    const linkObj = new InvitationLink(this.app, this, {
+      path: `/${this.returnSlug()}/`,
+      name: this.appname,
+      scripthash: p2shHash || '',
+      p2sh_address: p2shAddress || ''
+    });
+    linkObj.buildLink();
+    return linkObj.invite_link || '';
+  }
+
+  /**
    * Unified publish entry — SAITO or NFT to the derived P2SH address.
    * NFT path uses app.wallet.createNFTTransaction (wallet handles shard selection).
    */

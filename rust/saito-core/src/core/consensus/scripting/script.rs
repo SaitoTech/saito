@@ -3247,6 +3247,43 @@ fn resolve_p2sh_slip_field(slips: &[Slip], field: &str, p2sh_ordinal: usize) -> 
     Value::String(String::new())
 }
 
+/// Returns the cached P2SH authorization hash.
+///
+/// The hash is computed lazily the first time CHECKSIG or CHECKMULTISIG
+/// requests it, then cached in:
+///
+///     context["__p2sh_auth_hash"]
+///
+/// The hash is Blake3 over the concatenation of every output slip's
+/// serialize_output_for_signature() bytes.
+pub(crate) fn get_p2sh_auth_hash(
+    context: &mut Value,
+    tx: Option<&Transaction>,
+) -> Option<String> {
+
+    if let Some(existing) = context
+        .get("__p2sh_auth_hash")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+    {
+        return Some(existing.to_string());
+    }
+
+    let tx = tx?;
+
+    let mut buffer = Vec::new();
+    for slip in tx.to.iter() {
+        buffer.extend(slip.serialize_output_for_signature());
+    }
+    let p2sh_auth_hash = crypto::hash(&buffer).to_hex();
+    context["__p2sh_auth_hash"] =
+        Value::String(p2sh_auth_hash.clone());
+
+    Some(p2sh_auth_hash)
+}
+
+
+
 pub(crate) fn resolved_value_to_message_string(value: &Value) -> String {
     match value {
         Value::String(s) => s.clone(),

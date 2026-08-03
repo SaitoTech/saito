@@ -247,7 +247,15 @@ class PublishFlow {
       try {
         const tx = await this.broadcastPublish(amount, fee || '0');
         this.hide();
-        this.watchTransaction(tx);
+        this.watchTransaction(tx, {
+          onConfirmed: () => {
+            this.mainUi?.openPostPublish?.({
+              tx: this.lastPublishedTx || tx,
+              p2shAddress: this.p2shAddress,
+              p2shHash: this.p2shHash
+            });
+          }
+        });
       } catch (err) {
         showError(err?.message || 'Could not publish the transaction.');
         if (btn) {

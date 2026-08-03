@@ -40,36 +40,6 @@
   gap: var(--saito-space-md);
 }
 
-.rs-publish-slot {
-  display: grid;
-  grid-template-columns: 0fr;
-  overflow: hidden;
-}
-
-.rs-publish-slot.is-visible {
-  grid-template-columns: 1fr;
-}
-
-.rs-publish-slot .rs-publish-script {
-  min-width: 12rem;
-  visibility: hidden;
-  pointer-events: none;
-  opacity: 0;
-  transition:
-    opacity 0.22s ease,
-    visibility 0.22s ease;
-}
-
-.rs-publish-slot.is-visible .rs-publish-script {
-  visibility: visible;
-  pointer-events: auto;
-  opacity: 1;
-}
-
-.rs-publish-script[hidden] {
-  display: none !important;
-}
-
 .rs-cmd-btn {
   height: var(--rs-control-height);
   padding: 0 var(--saito-space-xl);

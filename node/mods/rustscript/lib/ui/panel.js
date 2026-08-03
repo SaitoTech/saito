@@ -48,31 +48,30 @@ class PanelReferenceView {
     }
 
     if (phase === 'required-complete') {
-      if (this.mod?.workflow === 'unlock') {
-        return [
-          '<li class="rs-panel-ref-success-msg">✓ Script successfully validates.</li>',
-          '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">This script is ready to unlock the locked funds.</li>',
-          `<li class="rs-panel-ref-actions">
-          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-unlock" data-action="unlock-solution">Unlock Funds</button>
-        </li>`
-        ];
-      }
+      const isUnlock = this.mod?.workflow === 'unlock';
+      const action = isUnlock ? 'unlock-solution' : 'publish';
+      const label = isUnlock ? 'spend script' : 'use script';
       return [
-        '<li class="rs-panel-ref-success-msg">✓ Script successfully validates.</li>',
-        '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">This script is ready to publish to the network.</li>',
-        `<li class="rs-panel-ref-actions">
-          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Publish to Network</button>
+        `<li class="rs-panel-ref-ready-banner" role="status">
+          <div class="rs-panel-ref-ready-banner-inner">your script is ready</div>
+        </li>`,
+        '<li class="rs-panel-ref-ready-prompt">What would you like to do now?</li>',
+        `<li class="rs-panel-ref-actions rs-panel-ref-actions-stack">
+          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-publish" data-action="${action}">${label}</button>
+          <button type="button" class="saito-text-link rs-panel-ref-save-later" data-action="save-later">or save for later...</button>
         </li>`
       ];
     }
 
     if (phase === 'script-ready') {
       return [
-        '<li class="rs-panel-ref-success-msg">✓ Your script is ready!</li>',
-        '<li class="rs-panel-ref-ready-msg rs-panel-ref-success-sub">Publish when you are ready, or test first if you like.</li>',
-        `<li class="rs-panel-ref-actions">
-          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Publish to Network</button>
-          <button type="button" class="rs-btn rs-btn-secondary rs-panel-ref-action rs-panel-ref-action-test" data-action="move-to-testing">Proceed to Test</button>
+        `<li class="rs-panel-ref-ready-banner" role="status">
+          <div class="rs-panel-ref-ready-banner-inner">your script is ready</div>
+        </li>`,
+        '<li class="rs-panel-ref-ready-prompt">What would you like to do now?</li>',
+        `<li class="rs-panel-ref-actions rs-panel-ref-actions-stack">
+          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">use script</button>
+          <button type="button" class="saito-text-link rs-panel-ref-save-later" data-action="save-later">or save for later...</button>
         </li>`
       ];
     }
@@ -92,6 +91,12 @@ class PanelReferenceView {
     this.container?.querySelector('[data-action="publish"]')?.addEventListener('click', () => {
       if (typeof this.lastContext?.onPublish === 'function') {
         this.lastContext.onPublish();
+      }
+    });
+
+    this.container?.querySelector('[data-action="save-later"]')?.addEventListener('click', () => {
+      if (typeof this.lastContext?.onSaveLater === 'function') {
+        this.lastContext.onSaveLater();
       }
     });
 
@@ -158,6 +163,7 @@ class RustscriptPanel {
       remainingCount: testLive ? remainingRequired : remainingScript,
       onMoveToTesting: () => this.moveToTesting(),
       onPublish: () => this.openPublish(),
+      onSaveLater: () => this.openSaveLater(),
       onUnlockSolution: () => this.openUnlockSolution()
     });
   }
@@ -170,6 +176,15 @@ class RustscriptPanel {
   openPublish() {
     if (this.main?.publishFlow && this.main.isScriptPublishable()) {
       this.main.publishFlow.openChoice();
+    }
+  }
+
+  openSaveLater() {
+    try {
+      const scriptPayload = this.mod.getScript();
+      this.mod.exportScriptDraft(scriptPayload);
+    } catch (_err) {
+      /* export failed */
     }
   }
 

@@ -98,19 +98,32 @@ body.buysaito-body .buysaito-withdraw-container {
   text-align: left;
 }
 
-.loader-interstitial-overlay img {
-  height: 15rem;
-}
-
-.loader-interstitial-overlay .container-header {
-  font-size: 3rem;
+.loader-interstitial-overlay {
+  display: flex;
+  flex-direction: column;
 }
 
 .loader-interstitial-overlay .container-body {
-  flex-grow: 1;
+  flex: 1 1 auto;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: var(--saito-space-lg);
+  min-height: 0;
+}
+
+.loader-interstitial-overlay .saito-spinner {
+  width: 4.8rem;
+  min-width: 4.8rem;
+}
+
+.loader-interstitial-overlay .loader-status-msg {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--saito-muted-foreground);
 }
 
 .purchase-crypto-list {

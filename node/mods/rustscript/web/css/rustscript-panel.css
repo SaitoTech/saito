@@ -63,19 +63,25 @@
 .rustscript-panel .rs-panel-ref-status-text,
 .rustscript-panel .rs-panel-ref-success-msg,
 .rustscript-panel .rs-panel-ref-ready-msg,
+.rustscript-panel .rs-panel-ref-ready-banner,
+.rustscript-panel .rs-panel-ref-ready-prompt,
 .rustscript-panel .rs-panel-ref-actions {
   padding-left: 0 !important;
 }
 
 .rustscript-panel .rs-panel-ref-status-text,
 .rustscript-panel .rs-panel-ref-success-msg,
-.rustscript-panel .rs-panel-ref-ready-msg {
+.rustscript-panel .rs-panel-ref-ready-msg,
+.rustscript-panel .rs-panel-ref-ready-banner,
+.rustscript-panel .rs-panel-ref-ready-prompt {
   line-height: 1.55;
 }
 
 .rustscript-panel .rs-panel-ref-status-text::before,
 .rustscript-panel .rs-panel-ref-success-msg::before,
 .rustscript-panel .rs-panel-ref-ready-msg::before,
+.rustscript-panel .rs-panel-ref-ready-banner::before,
+.rustscript-panel .rs-panel-ref-ready-prompt::before,
 .rustscript-panel .rs-panel-ref-actions::before {
   display: none;
 }
@@ -97,11 +103,79 @@
   color: #888;
 }
 
+/*
+ * Script-ready / spend-ready stack.
+ * NOTE: `.rs-panel-ref-list > li` is more specific than a bare
+ * `.rs-panel-ref-ready-*` margin rule, so spacing must target `li.class`.
+ * Rhythm: 1.5× the previous intended gaps (xl / md / md).
+ */
+.rustscript-panel .rs-panel-ref-list > li.rs-panel-ref-ready-banner {
+  margin: 0 0 3rem;
+}
+
+.rustscript-panel .rs-panel-ref-ready-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--saito-space-md) var(--saito-space-lg);
+  border: 1px solid color-mix(in srgb, var(--saito-status-success) 32%, var(--saito-border));
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, var(--saito-status-success) 7%, transparent);
+  color: var(--saito-status-success);
+  font-size: 1.05em;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+.rustscript-panel .rs-panel-ref-list > li.rs-panel-ref-ready-prompt {
+  margin: 0 0 1.5rem;
+  color: #d0d0d0;
+  font-size: 1.15em;
+}
+
 .rustscript-panel .rs-panel-ref-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--saito-space-md);
-  margin-top: var(--saito-space-sm);
+  margin-top: 0;
+}
+
+.rustscript-panel .rs-panel-ref-list > li.rs-panel-ref-actions-stack {
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 1.5rem;
+  margin-bottom: 0;
+}
+
+.rustscript-panel .rs-panel-ref-actions-stack .rs-panel-ref-action-publish {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 15rem;
+  max-width: 100%;
+  height: 7rem;
+  padding: 0 1.85rem;
+  font-size: 1.55rem;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+
+.rustscript-panel .rs-panel-ref-save-later {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  font-size: 1.25rem;
+  line-height: 1.4;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.rustscript-panel .rs-panel-ref-save-later:hover {
+  color: #d0d0d0;
 }
 
 .rustscript-panel .rs-panel-ref-action {
