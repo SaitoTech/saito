@@ -26,7 +26,15 @@ function getNotificationAggregateKey(mod, notification) {
 }
 
 function getUnreadNotificationCount(mod) {
-  return mod.notifications_unread_count || 0;
+  const unread = mod.notifications_unread_count || 0;
+
+  if (!mod.moderator_mode) {
+    return unread;
+  }
+
+  const reviewCount = typeof mod.moderate?.count === 'function' ? mod.moderate.count() : 0;
+
+  return unread + reviewCount;
 }
 
 function incrementUnreadNotifications(mod, notification) {

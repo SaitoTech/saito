@@ -1,0 +1,42 @@
+/* Namespace: .moderate — moderator review queue above notifications */
+
+.moderate {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--saito-border);
+}
+
+.moderate .header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+  padding: var(--saito-space-md) var(--saito-space-lg);
+}
+
+.moderate .title {
+  font-family: var(--saito-font-medium);
+  color: var(--saito-font-color);
+}
+
+.moderate .count {
+  color: var(--saito-font-color-dim);
+}
+
+.moderate .item {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--saito-border);
+}
+
+.moderate .item .tweet {
+  border-bottom: none;
+  cursor: default;
+}
+
+.moderate .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--saito-space-sm);
+  padding: 0 var(--saito-space-lg) var(--saito-space-md);
+}

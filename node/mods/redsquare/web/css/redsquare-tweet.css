@@ -475,3 +475,37 @@
     top: calc(0.9rem + 3.5rem);
   }
 }
+
+/* Moderated tweet mask — overlay keeps layout/scroll; reveal is presentation-only */
+.tweet.moderated .content {
+  filter: blur(6px);
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+}
+
+.tweet .moderation-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--saito-space-md);
+  background: color-mix(in srgb, var(--saito-background) 55%, transparent);
+  cursor: default;
+}
+
+.tweet .moderation-mask .moderation-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  text-align: center;
+  max-width: 24rem;
+}
+
+.tweet .moderation-mask .text {
+  color: var(--saito-font-color);
+  font-family: var(--saito-font-medium);
+}

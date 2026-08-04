@@ -753,11 +753,20 @@ class Manager {
 
   paintNotifications() {
     if (this.notifications_rendered || this._notifications_bootstrapping) {
+      this.renderModerateQueue();
       this.syncFeedStatus();
       return;
     }
 
     this.bootstrapNotifications();
+  }
+
+  renderModerateQueue() {
+    if (!this.mod.moderator_mode || !this.mod.moderate) {
+      return;
+    }
+
+    this.mod.moderate.render(this.getActivePanelSelector());
   }
 
   async bootstrapNotifications() {
@@ -768,6 +777,7 @@ class Manager {
     this._notifications_bootstrapping = true;
     this.syncFeedStatus();
 
+    this.renderModerateQueue();
     this.appendNotificationsBatch();
 
     await this.loadNotificationDirection('newer');
@@ -2108,6 +2118,7 @@ class Manager {
 
     this.pagination.notifications.cursor += signatures.length;
     this.notifications_rendered = true;
+    this.mod.moderate?.ensureTop?.();
   }
 
   showNewPostsBanner() {
@@ -2382,7 +2393,9 @@ class Manager {
       return 0;
     }
 
-    return panel.querySelectorAll('article.tweet, article.notification').length;
+    return [...panel.querySelectorAll('article.tweet, article.notification')].filter(
+      (el) => !el.closest('.moderate')
+    ).length;
   }
 
   hasCompletedInitialLoad() {

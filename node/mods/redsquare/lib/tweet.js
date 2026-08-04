@@ -51,6 +51,8 @@ class Tweet {
     this.retweets = 0;
     this.curated = 0;
     this.flagged = 0;
+    this.moderated = false;
+    this.moderated_revealed = false;
     this.is_reply = false;
     this.critical_child = null;
     this.time = '';
@@ -289,7 +291,100 @@ class Tweet {
       classes.push('chain-continue');
     }
 
+    if (this.showsModerationMask()) {
+      classes.push('moderated');
+    }
+
     return classes.join(' ');
+  }
+
+  showsModerationMask() {
+    return Boolean(this.flagged) || Boolean(this.moderated && !this.moderated_revealed);
+  }
+
+  /**
+   * Replace already-rendered tweet nodes in place (no timeline rebuild).
+   */
+  refresh() {
+    if (!this.app.BROWSER || !this.signature) {
+      return;
+    }
+
+    const nodes = document.querySelectorAll(`article.tweet[data-id="${this.signature}"]`);
+
+    if (!nodes.length) {
+      return;
+    }
+
+    for (const el of nodes) {
+      const className = this.syncModeratedClassName(el.className || 'tweet');
+      const html = TweetTemplate(this, className, {
+        presentation: this.presentationFromClassName(className),
+        embedded: /\bembedded\b/.test(className),
+        focused: /\bfocused\b/.test(className),
+        root: /\broot\b/.test(className),
+        reply: /\breply\b/.test(className),
+        chainPrev: /\bchain-prev\b/.test(className),
+        chainNext: /\bchain-next\b/.test(className),
+        chainContinue: /\bchain-continue\b/.test(className)
+      });
+      el.outerHTML = html;
+    }
+
+    this.attachModerationEvents();
+  }
+
+  syncModeratedClassName(className = 'tweet') {
+    const classes = new Set(
+      String(className)
+        .split(/\s+/)
+        .filter(Boolean)
+    );
+
+    classes.add('tweet');
+
+    if (this.showsModerationMask()) {
+      classes.add('moderated');
+    } else {
+      classes.delete('moderated');
+    }
+
+    return Array.from(classes).join(' ');
+  }
+
+  presentationFromClassName(className = '') {
+    if (/\bembedded\b/.test(className)) {
+      return 'embedded';
+    }
+    if (/\bfocused\b/.test(className)) {
+      return 'focused';
+    }
+    if (/\broot\b/.test(className)) {
+      return 'root';
+    }
+    if (/\breply\b/.test(className)) {
+      return 'reply';
+    }
+    return 'timeline';
+  }
+
+  attachModerationEvents() {
+    if (!this.app.BROWSER || !this.signature || this.flagged || !this.showsModerationMask()) {
+      return;
+    }
+
+    const buttons = document.querySelectorAll(
+      `article.tweet[data-id="${this.signature}"] .show-tweet`
+    );
+
+    for (const button of buttons) {
+      button.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.moderated_revealed = true;
+        this.refresh();
+      };
+    }
   }
 
   incrementStat(field) {
@@ -358,6 +453,8 @@ class Tweet {
       }),
       this.container
     );
+
+    this.attachModerationEvents();
   }
 }
 

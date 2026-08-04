@@ -114,21 +114,33 @@ class TweetMenu {
   }
 
   handleBlock(tweet) {
-    if (typeof this.mod.blockUser === 'function') {
-      this.mod.blockUser(tweet);
+    const publicKey = tweet?.publicKey || '';
+
+    if (!publicKey || publicKey === this.mod.publicKey) {
       return;
     }
 
-    alert('Awaiting implementation...');
+    this.app.connection.emit('saito-blacklist', { publicKey });
   }
 
-  handleReport(tweet) {
-    if (typeof this.mod.reportTweet === 'function') {
-      this.mod.reportTweet(tweet);
+  async handleReport(tweet) {
+    if (!tweet?.signature || tweet.flagged == 1) {
       return;
     }
 
-    alert('Awaiting implementation...');
+    try {
+      const tx = await this.mod.createFlagTweetTransaction({
+        signature: tweet.signature
+      });
+      await tx.sign();
+      await this.app.network.propagateTransaction(tx);
+
+      tweet.flagged = 1;
+      tweet.refresh();
+    } catch (err) {
+      console.error('RedSquare report failed:', err);
+      siteMessage('Unable to report tweet', 2500);
+    }
   }
 
   handleShowInfo(tweet) {

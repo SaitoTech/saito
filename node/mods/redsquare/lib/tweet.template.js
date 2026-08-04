@@ -120,6 +120,27 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
 
   const chain = embedded ? '' : '<div class="chain" aria-hidden="true"></div>';
 
+  const showMask = Boolean(tweet.flagged) || Boolean(tweet.moderated && !tweet.moderated_revealed);
+  const maskText = tweet.flagged
+    ? 'This tweet has been reported and is under review'
+    : 'This tweet has been moderated';
+  const showReveal = !tweet.flagged && tweet.moderated && !tweet.moderated_revealed;
+
+  const moderationMask = showMask
+    ? `
+      <div class="moderation-mask">
+        <div class="moderation-message">
+          <span class="text">${maskText}</span>
+          ${
+            showReveal
+              ? '<button type="button" class="saito-button-secondary small show-tweet">Show Tweet</button>'
+              : ''
+          }
+        </div>
+      </div>
+    `
+      : '';
+
   return `
     <article class="${className}" data-id="${tweet.signature}">
       ${chain}
@@ -131,6 +152,7 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
         ${embed}
         ${footer}
       </div>
+      ${moderationMask}
     </article>
   `;
 };

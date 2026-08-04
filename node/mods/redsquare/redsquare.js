@@ -9,6 +9,7 @@ const Notifications = require('./lib/notifications');
 const ComposeOverlay = require('./lib/ui/overlays/compose');
 const TweetMenu = require('./lib/ui/overlays/tweet-menu');
 const SettingsOverlay = require('./lib/ui/overlays/settings');
+const Moderate = require('./lib/ui/moderate');
 const SplashTemplate = require('./lib/splash.template');
 const index = require('./index');
 
@@ -89,6 +90,8 @@ class RedSquare extends ModTemplate {
     this.compose_overlay = new ComposeOverlay(app, this);
     this.tweet_menu = new TweetMenu(app, this);
     this.settings_overlay = new SettingsOverlay(app, this);
+    this.moderate = new Moderate(app, this);
+    this.moderator_mode = false;
 
     this.curated = true;
     this.show_splash = true;
@@ -157,6 +160,105 @@ class RedSquare extends ModTemplate {
       };
 
       this.loadOptions();
+
+      this.app.connection.on('modtools-lists-updated', () => {
+        this.applyModerationUpdates();
+      });
+
+      this.app.connection.on('modtools-on-server-whitelist', () => {
+        this.enterModeratorMode();
+      });
+    }
+  }
+
+  /**
+   * Trusted by connected server — load flagged tweets for the review queue.
+   */
+  async enterModeratorMode() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    this.moderator_mode = true;
+
+    const peers = this.returnTweetArchivePeers();
+    const results = await Promise.all(
+      peers.map((peer) =>
+        this.loadArchiveTransactions({ field1: 'RedSquare', flagged: 1, limit: 10 }, peer)
+      )
+    );
+
+    const bySignature = new Map();
+
+    for (const txs of results) {
+      for (const tx of txs || []) {
+        if (!tx) {
+          continue;
+        }
+
+        if (typeof tx.decryptMessage === 'function') {
+          await tx.decryptMessage(this.app);
+        }
+
+        const signature = tx.signature != null ? String(tx.signature) : '';
+
+        if (signature && !bySignature.has(signature)) {
+          bySignature.set(signature, tx);
+        }
+      }
+    }
+
+    this.moderate.setTransactions(Array.from(bySignature.values()));
+    this.updateNotificationBadge();
+
+    if (this.manager?.mode === 'notifications') {
+      this.moderate.render(`${this.manager.container} .list[data-panel="notifications"]`);
+    }
+  }
+
+  /**
+   * Re-check stored tweets after ModTools lists change.
+   * Marks moderated tweets and refreshes only those nodes — no timeline rebuild.
+   */
+  applyModerationUpdates() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    const bySignature = new Map();
+
+    for (const tweet of Object.values(this.tweets || {})) {
+      if (tweet?.signature) {
+        bySignature.set(tweet.signature, tweet);
+      }
+    }
+
+    for (const tweet of Object.values(this.profile_tweets || {})) {
+      if (tweet?.signature && !bySignature.has(tweet.signature)) {
+        bySignature.set(tweet.signature, tweet);
+      }
+    }
+
+    for (const tweet of bySignature.values()) {
+      if (!tweet.tx) {
+        continue;
+      }
+
+      const blocked = this.app.modules?.moderate?.(tweet.tx, this.name) === -1;
+
+      if (blocked === Boolean(tweet.moderated)) {
+        continue;
+      }
+
+      tweet.moderated = blocked;
+
+      if (!blocked) {
+        tweet.moderated_revealed = false;
+      }
+
+      if (typeof tweet.refresh === 'function') {
+        tweet.refresh();
+      }
     }
   }
 
@@ -971,6 +1073,68 @@ class RedSquare extends ModTemplate {
     return newtx;
   }
 
+  async createFlagTweetTransaction(data = {}, keys = []) {
+    const payload = {};
+
+    if (data && typeof data === 'object') {
+      for (const key of Object.keys(data)) {
+        payload[key] = data[key];
+      }
+    }
+
+    if (payload.signature != null) {
+      payload.signature = String(payload.signature);
+    }
+
+    const newtx = await this.app.wallet.createUnsignedTransaction();
+    newtx.msg = {
+      module: this.name,
+      request: 'flag tweet',
+      data: payload
+    };
+
+    for (const key of keys) {
+      if (key && key !== this.publicKey) {
+        newtx.addTo(key);
+      }
+    }
+
+    return newtx;
+  }
+
+  async createReviewTweetTransaction(data = {}, keys = []) {
+    const payload = {};
+
+    if (data && typeof data === 'object') {
+      for (const key of Object.keys(data)) {
+        payload[key] = data[key];
+      }
+    }
+
+    if (payload.signature != null) {
+      payload.signature = String(payload.signature);
+    }
+
+    if (payload.decision != null) {
+      payload.decision = String(payload.decision);
+    }
+
+    const newtx = await this.app.wallet.createUnsignedTransaction();
+    newtx.msg = {
+      module: this.name,
+      request: 'review tweet',
+      data: payload
+    };
+
+    for (const key of keys) {
+      if (key && key !== this.publicKey) {
+        newtx.addTo(key);
+      }
+    }
+
+    return newtx;
+  }
+
   returnInteractionTargetPublicKey(tx) {
     const actorPublicKey = tx?.from?.[0]?.publicKey || '';
     // The wallet's sender output precedes recipients in tx.to.
@@ -1446,6 +1610,119 @@ class RedSquare extends ModTemplate {
     return tweet;
   }
 
+  async receiveFlagTweetTransaction(tx, blk = null) {
+    const txmsg = tx?.returnMessage?.() || tx?.msg || {};
+    const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
+
+    if (!targetSignature) {
+      return null;
+    }
+
+    const interactionTs = Number(tx.timestamp) || Date.now();
+    const tweet = this.getTweet(targetSignature);
+
+    if (tweet?.tx) {
+      if (!tweet.tx.optional || typeof tweet.tx.optional !== 'object') {
+        tweet.tx.optional = {};
+      }
+
+      tweet.tx.optional.flagged = 1;
+      tweet.flagged = 1;
+
+      await this.app.storage.updateTransaction(
+        tweet.tx,
+        { updated_at: interactionTs, flagged: 1 },
+        'localhost'
+      );
+
+      tweet.refresh();
+      return tweet;
+    }
+
+    await new Promise((resolve) => {
+      this.app.storage.loadTransactions(
+        { sig: targetSignature, field1: 'RedSquare' },
+        async (txs) => {
+          if (txs?.length > 0) {
+            const archivedTx = txs[0];
+
+            if (!archivedTx.optional || typeof archivedTx.optional !== 'object') {
+              archivedTx.optional = {};
+            }
+
+            archivedTx.optional.flagged = 1;
+
+            await this.app.storage.updateTransaction(
+              archivedTx,
+              { updated_at: interactionTs, flagged: 1 },
+              'localhost'
+            );
+          }
+
+          resolve();
+        },
+        'localhost'
+      );
+    });
+
+    return null;
+  }
+
+  async receiveReviewTweetTransaction(tx, blk = null) {
+    const txmsg = tx?.returnMessage?.() || tx?.msg || {};
+    const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
+    const decision = txmsg?.data?.decision != null ? String(txmsg.data.decision) : '';
+
+    if (!targetSignature || (decision !== 'approve' && decision !== 'delete')) {
+      return null;
+    }
+
+    const interactionTs = Number(tx.timestamp) || Date.now();
+    const flagged = decision === 'approve' ? 0 : 1;
+
+    const applyReview = async (targetTx) => {
+      if (!targetTx.optional || typeof targetTx.optional !== 'object') {
+        targetTx.optional = {};
+      }
+
+      targetTx.optional.curated = 1;
+      targetTx.optional.flagged = flagged;
+
+      await this.app.storage.updateTransaction(
+        targetTx,
+        { updated_at: interactionTs, flagged },
+        'localhost'
+      );
+    };
+
+    const tweet = this.getTweet(targetSignature);
+
+    if (tweet?.tx) {
+      await applyReview(tweet.tx);
+      tweet.curated = 1;
+      tweet.flagged = flagged;
+    } else {
+      await new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          { sig: targetSignature, field1: 'RedSquare' },
+          async (txs) => {
+            if (txs?.length > 0) {
+              await applyReview(txs[0]);
+            }
+            resolve();
+          },
+          'localhost'
+        );
+      });
+    }
+
+    if (this.app.BROWSER && this.moderator_mode) {
+      this.moderate?.removeTweet?.(targetSignature);
+    }
+
+    return tweet || null;
+  }
+
   async onConfirmation(blk, tx, conf) {
     if (Number(conf) !== 0) {
       return;
@@ -1484,6 +1761,12 @@ class RedSquare extends ModTemplate {
         break;
       case 'retweet':
         await this.receiveRetweetTransaction(tx, blk);
+        break;
+      case 'flag tweet':
+        await this.receiveFlagTweetTransaction(tx, blk);
+        break;
+      case 'review tweet':
+        await this.receiveReviewTweetTransaction(tx, blk);
         break;
       default:
         break;
