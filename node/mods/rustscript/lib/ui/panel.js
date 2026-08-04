@@ -1,6 +1,12 @@
 const { evaluateWorkspaceStatus } = require('./script_validate');
 const { lockingView } = require('./script_build');
 const PanelMenu = require('./panel_menu');
+const {
+  unlockInputRows,
+  unlockOutputRows,
+  unlockTransactionPanelMarkup
+} = require('./unlock_tx_panel');
+const { removeOutputAt } = require('./unlock_tx_edit');
 
 class PanelReferenceView {
   constructor(app, mod) {
@@ -68,9 +74,11 @@ class PanelReferenceView {
         `<li class="rs-panel-ref-ready-banner" role="status">
           <div class="rs-panel-ref-ready-banner-inner">your script is ready</div>
         </li>`,
-        '<li class="rs-panel-ref-ready-prompt">What would you like to do now?</li>',
+        `<li class="rs-panel-ref-ready-copy">
+          Scripts control who can spend digital assets. The next step is to specify whether you want your script to protect a SAITO balance or an NFT.
+        </li>`,
         `<li class="rs-panel-ref-actions rs-panel-ref-actions-stack">
-          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">use script</button>
+          <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Choose Asset to Protect</button>
           <button type="button" class="saito-text-link rs-panel-ref-save-later" data-action="save-later">or save for later...</button>
         </li>`
       ];
@@ -150,6 +158,11 @@ class RustscriptPanel {
       phase = 'script-ready';
     }
 
+    if (this.shouldRenderUnlockTransactionPanel(testLive)) {
+      this.renderUnlockTransactionPanel(el);
+      return;
+    }
+
     if (PanelMenu.shouldShowForWitnessPanel(phase)) {
       el.insertAdjacentHTML(
         'afterbegin',
@@ -166,6 +179,87 @@ class RustscriptPanel {
       onSaveLater: () => this.openSaveLater(),
       onUnlockSolution: () => this.openUnlockSolution()
     });
+  }
+
+  shouldRenderUnlockTransactionPanel(testLive) {
+    return this.mod?.workflow === 'unlock' && !!testLive;
+  }
+
+  renderUnlockTransactionPanel(el) {
+    el.innerHTML = unlockTransactionPanelMarkup({
+      inputs: unlockInputRows(this.app, this.mod),
+      outputs: unlockOutputRows(this.app, this.mod),
+      selectedInputIndex: this.main?.selectedUnlockInputIndex ?? null,
+      mod: this.mod
+    });
+
+    el.querySelector('[data-action="set-fee"]')?.addEventListener('click', () => {
+      this.main?.unlockFeeFlow?.open?.();
+    });
+
+    el.querySelectorAll('.rs-tx-input[data-input-index]').forEach((card) => {
+      const activate = () => {
+        const index = Number(card.dataset.inputIndex) || 0;
+        const kind = card.dataset.kind === 'nft' ? 'nft' : 'saito';
+        this.selectUnlockInput(index, kind);
+      };
+      card.addEventListener('click', activate);
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          activate();
+        }
+      });
+    });
+
+    el.querySelectorAll('.rs-tx-output[role="button"]').forEach((card) => {
+      const activate = () => {
+        const index = Number(card.dataset.outputIndex);
+        this.confirmDeleteUnlockOutput(index);
+      };
+      card.addEventListener('click', activate);
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          activate();
+        }
+      });
+    });
+  }
+
+  selectUnlockInput(index, kind) {
+    const { isUnlockEditable, UNLOCK_SIGNED_ERROR } = require('./unlock_tx_fee');
+    if (!isUnlockEditable(this.mod)) {
+      window.alert(UNLOCK_SIGNED_ERROR);
+      return;
+    }
+    if (this.main) {
+      this.main.selectedUnlockInputIndex = index;
+    }
+    this.render();
+    this.main?.spendOutputFlow?.openForInput({ kind, inputIndex: index });
+  }
+
+  confirmDeleteUnlockOutput(index) {
+    if (!Number.isInteger(index) || index < 0) {
+      return;
+    }
+    const { isUnlockEditable, UNLOCK_SIGNED_ERROR } = require('./unlock_tx_fee');
+    if (!isUnlockEditable(this.mod)) {
+      window.alert(UNLOCK_SIGNED_ERROR);
+      return;
+    }
+    if (!window.confirm('Delete this output?')) {
+      return;
+    }
+    try {
+      if (removeOutputAt(this.mod, index, this.main)) {
+        this.render();
+        this.main?.refresh?.({ skipTestSync: true });
+      }
+    } catch (err) {
+      window.alert(err?.message || String(err));
+    }
   }
 
   async moveToTesting() {

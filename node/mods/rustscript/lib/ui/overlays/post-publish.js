@@ -103,7 +103,7 @@ class PostPublishFlow {
         return;
       }
       try {
-        this.mod.exportTransaction(tx, { prefix: 'rustscript-published' });
+        this.mod.exportTransaction(tx, { prefix: 'rustscript-tx' });
       } catch (_err) {
         /* export failed */
       }
@@ -116,21 +116,32 @@ class PostPublishFlow {
     root
       .querySelector('[data-action="post-publish-copy-link"]')
       ?.addEventListener('click', async () => {
+        const btn = root.querySelector('[data-action="post-publish-copy-link"]');
         const link =
           root.querySelector('.rs-post-publish-link')?.value || this.p2shLink || this.p2shAddress;
-        if (!link) {
+        if (!link || !btn) {
           return;
         }
         try {
           await navigator.clipboard.writeText(link);
+          btn.classList.add('is-copied');
+          const icon = btn.querySelector('.rs-copy-btn-icon');
+          if (icon) {
+            icon.classList.remove('fa-copy');
+            icon.classList.add('fa-check');
+          }
+          window.clearTimeout(this._copyResetTimer);
+          this._copyResetTimer = window.setTimeout(() => {
+            btn.classList.remove('is-copied');
+            if (icon) {
+              icon.classList.remove('fa-check');
+              icon.classList.add('fa-copy');
+            }
+          }, 1400);
         } catch (_err) {
           /* clipboard unavailable */
         }
       });
-
-    root.querySelector('[data-action="post-publish-done"]')?.addEventListener('click', () => {
-      this.hide();
-    });
   }
 }
 

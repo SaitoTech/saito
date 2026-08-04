@@ -1,5 +1,5 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const ImportTemplate = require('./import.template');
+const ImportContinueUnlockTemplate = require('./import-continue-unlock.template');
 const { applyPublishOverlayShell } = require('./overlay.shell');
 const { parseTransactionFile } = require('../../transaction_io');
 const { bindDropzone } = require('./import-dropzone');
@@ -19,7 +19,11 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-class ImportFlow {
+/**
+ * Import an in-progress unlock transaction into the existing Unlock workspace.
+ * Initialization differs from locking-tx import; the workspace does not.
+ */
+class ContinueUnlockImportFlow {
   constructor(app, mod, mainUi) {
     this.app = app;
     this.mod = mod;
@@ -44,7 +48,7 @@ class ImportFlow {
   open() {
     this.errorMessage = '';
     this.step = 'idle';
-    this.show(ImportTemplate.idleOverlay());
+    this.show(ImportContinueUnlockTemplate.idleOverlay());
     this.bindIdleEvents();
   }
 
@@ -83,17 +87,15 @@ class ImportFlow {
   }
 
   bindIdleEvents() {
-    const root = document.querySelector('.rs-import-overlay:not(.rs-import-loading):not(.rs-import-script-overlay)');
+    const root = document.querySelector(
+      '.rs-import-continue-unlock-overlay:not(.rs-import-loading)'
+    );
     if (!root) {
       return;
     }
 
     bindDropzone(root, {
       onFile: (file) => this.readAndProcessFile(file)
-    });
-
-    root.querySelector('[data-action="import-p2sh-link"]')?.addEventListener('click', () => {
-      alert('P2SH link import is coming soon.');
     });
   }
 
@@ -108,7 +110,7 @@ class ImportFlow {
       this._processing = false;
       this.errorMessage = 'Could not read the selected file.';
       this.step = 'idle';
-      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+      this.show(ImportContinueUnlockTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
       this.bindIdleEvents();
     });
     reader.addEventListener('load', (event) => {
@@ -120,35 +122,21 @@ class ImportFlow {
 
   async processFileText(text) {
     this.step = 'loading';
-    this.show(ImportTemplate.loadingOverlay());
+    this.show(ImportContinueUnlockTemplate.loadingOverlay());
 
-    let tx = null;
     let error = null;
     try {
-      tx = parseTransactionFile(this.app, text);
+      const tx = parseTransactionFile(this.app, text);
+      await this.mod.loadUnlockContinuation(tx);
+      await delay(MIN_LOAD_MS);
+      this.hide();
     } catch (err) {
-      error = err?.message || 'Could not parse transaction file.';
-    }
-
-    await delay(MIN_LOAD_MS);
-
-    if (error) {
+      error = err?.message || 'Could not load unlock transaction.';
+      await delay(MIN_LOAD_MS);
       this._processing = false;
       this.errorMessage = error;
       this.step = 'idle';
-      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
-      this.bindIdleEvents();
-      return;
-    }
-
-    try {
-      await this.mod.loadTransactionForWitness(tx);
-      this.hide();
-    } catch (err) {
-      this._processing = false;
-      this.errorMessage = err?.message || 'Could not load transaction into witness mode.';
-      this.step = 'idle';
-      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+      this.show(ImportContinueUnlockTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
       this.bindIdleEvents();
     } finally {
       if (this.step !== 'idle') {
@@ -158,4 +146,4 @@ class ImportFlow {
   }
 }
 
-module.exports = ImportFlow;
+module.exports = ContinueUnlockImportFlow;

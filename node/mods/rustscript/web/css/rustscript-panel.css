@@ -65,6 +65,7 @@
 .rustscript-panel .rs-panel-ref-ready-msg,
 .rustscript-panel .rs-panel-ref-ready-banner,
 .rustscript-panel .rs-panel-ref-ready-prompt,
+.rustscript-panel .rs-panel-ref-ready-copy,
 .rustscript-panel .rs-panel-ref-actions {
   padding-left: 0 !important;
 }
@@ -73,7 +74,8 @@
 .rustscript-panel .rs-panel-ref-success-msg,
 .rustscript-panel .rs-panel-ref-ready-msg,
 .rustscript-panel .rs-panel-ref-ready-banner,
-.rustscript-panel .rs-panel-ref-ready-prompt {
+.rustscript-panel .rs-panel-ref-ready-prompt,
+.rustscript-panel .rs-panel-ref-ready-copy {
   line-height: 1.55;
 }
 
@@ -82,6 +84,7 @@
 .rustscript-panel .rs-panel-ref-ready-msg::before,
 .rustscript-panel .rs-panel-ref-ready-banner::before,
 .rustscript-panel .rs-panel-ref-ready-prompt::before,
+.rustscript-panel .rs-panel-ref-ready-copy::before,
 .rustscript-panel .rs-panel-ref-actions::before {
   display: none;
 }
@@ -184,3 +187,354 @@
   font-size: var(--font-size-medium);
   line-height: 1.35;
 }
+
+/* Script Complete — welcoming guided next-step layout */
+.rustscript-panel .rs-panel-ref-script-ready .rs-panel-ref-list > li.rs-panel-ref-ready-banner {
+  margin: 0 0 calc(var(--saito-space-xxl) + var(--saito-space-md));
+}
+
+.rustscript-panel .rs-panel-ref-script-ready .rs-panel-ref-list > li.rs-panel-ref-ready-copy {
+  max-width: 36rem;
+  margin: 0 0 calc(var(--saito-space-xxl) + var(--saito-space-md));
+  color: #c4c4c4;
+  font-size: 1.2em;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+.rustscript-panel .rs-panel-ref-script-ready .rs-panel-ref-list > li.rs-panel-ref-actions-stack {
+  gap: calc(var(--saito-space-xxl) + var(--saito-space-md));
+}
+
+.rustscript-panel .rs-panel-ref-script-ready .rs-panel-ref-actions-stack .rs-panel-ref-action-publish {
+  min-width: 18rem;
+  height: 8rem;
+  padding: 0 2.4rem;
+  font-family: var(--rustscript-font-sans);
+  font-size: 1.65rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+}
+
+.rustscript-panel .rs-panel-ref-script-ready .rs-panel-ref-save-later {
+  font-family: var(--rustscript-font-sans);
+  font-size: 1.2rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+/*
+ * Unlock transaction panel — inputs / outputs editor.
+ */
+.rustscript-panel > .rs-panel-ref-unlock-tx {
+  padding: var(--saito-space-xl) var(--saito-space-xl);
+}
+
+.rs-tx-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2.4rem;
+  width: 100%;
+  margin: 0;
+}
+
+.rs-tx-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.rs-tx-section-title {
+  margin: 0;
+  font-size: 0.95em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.rs-tx-inputs .rs-tx-section-title {
+  color: #c4a878;
+}
+
+.rs-tx-outputs .rs-tx-section-title {
+  color: #a8c4ae;
+}
+
+.rs-tx-asset-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.rs-tx-asset {
+  display: block;
+  padding: 0.85rem 1rem;
+  border-radius: 5px;
+  background: #1a1a1a;
+  border: 1px solid #303030;
+}
+
+.rs-tx-asset-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.rs-tx-asset-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--saito-space-md);
+  min-width: 0;
+}
+
+.rs-tx-asset-title {
+  color: #ececec;
+  font-size: 1.1em;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+
+.rs-tx-asset-meta {
+  font-family: var(--rustscript-font-mono);
+  font-size: 0.88em;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rs-tx-asset-value {
+  flex: 0 0 auto;
+  font-size: 1.05em;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Inputs — warm orange/brown (assets being spent) */
+.rs-tx-asset.rs-tx-input {
+  cursor: pointer;
+  background: #1c1812;
+  border-color: rgba(184, 152, 88, 0.32);
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    box-shadow 0.14s ease;
+}
+
+.rs-tx-asset.rs-tx-input .rs-tx-asset-title {
+  color: #e8dcc0;
+}
+
+.rs-tx-asset.rs-tx-input .rs-tx-asset-meta {
+  color: #9a8a68;
+}
+
+.rs-tx-asset.rs-tx-input .rs-tx-asset-value {
+  color: #d0b878;
+}
+
+.rs-tx-asset.rs-tx-input:hover {
+  background: #241e14;
+  border-color: rgba(210, 170, 90, 0.48);
+  box-shadow: 0 0 0 1px rgba(184, 152, 88, 0.12);
+}
+
+.rs-tx-asset.rs-tx-input:focus-visible {
+  outline: none;
+  border-color: rgba(220, 180, 100, 0.55);
+  box-shadow: 0 0 0 2px rgba(184, 152, 88, 0.2);
+}
+
+.rs-tx-asset.rs-tx-input.is-selected,
+.rs-tx-asset.rs-tx-input[aria-pressed='true'] {
+  background: #2a2216;
+  border-color: rgba(220, 180, 100, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(184, 152, 88, 0.22);
+}
+
+/* Outputs — green (destinations created) */
+.rs-tx-asset.rs-tx-output {
+  cursor: pointer;
+  background: #1b201c;
+  border-color: rgba(100, 150, 110, 0.3);
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    box-shadow 0.14s ease;
+}
+
+.rs-tx-asset.rs-tx-output .rs-tx-asset-title {
+  color: #e4ece4;
+}
+
+.rs-tx-asset.rs-tx-output .rs-tx-asset-meta {
+  color: #8a9a8c;
+}
+
+.rs-tx-asset.rs-tx-output .rs-tx-asset-value {
+  color: #b8d4bc;
+}
+
+.rs-tx-asset.rs-tx-output:hover {
+  background: #212822;
+  border-color: rgba(120, 175, 130, 0.45);
+  box-shadow: 0 0 0 1px rgba(100, 160, 110, 0.12);
+}
+
+.rs-tx-asset.rs-tx-output:focus-visible {
+  outline: none;
+  border-color: rgba(130, 185, 140, 0.55);
+  box-shadow: 0 0 0 2px rgba(90, 150, 100, 0.22);
+}
+
+.rs-tx-empty {
+  margin: 0;
+  color: #8a8a8a;
+  font-size: 1.05em;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.rs-tx-hint {
+  margin: 0.15rem 0 0;
+  color: #6a6a64;
+  font-size: 0.88em;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.rs-tx-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--saito-space-md);
+  min-width: 0;
+}
+
+.rs-tx-section-head .rs-tx-section-title {
+  flex: 0 0 auto;
+}
+
+.rs-tx-fee-action,
+.rs-tx-fee-status {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.92em;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  cursor: pointer;
+  text-align: right;
+  white-space: nowrap;
+  text-transform: none;
+}
+
+.rs-tx-fee-action {
+  color: var(--saito-muted-foreground);
+  text-decoration: underline dashed;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 0.15em;
+}
+
+.rs-tx-fee-action:hover {
+  color: var(--saito-foreground);
+}
+
+.rs-tx-fee-status {
+  color: #a89878;
+  text-decoration: none;
+  cursor: default;
+}
+
+.rs-tx-fee-status:hover {
+  color: #a89878;
+}
+
+.rs-tx-fee-check {
+  color: #9aaa8c;
+  margin-left: 0.15em;
+}
+
+.rs-tx-asset-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  margin-left: 0.55em;
+  padding: 0.1em 0.45em;
+  border-radius: 3px;
+  border: 1px solid rgba(120, 120, 110, 0.35);
+  background: rgba(40, 40, 36, 0.55);
+  color: #9a9688;
+  font-size: 0.68em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.rs-tx-asset-badge i {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+/* Wallet fee inputs — cooler, quieter than locked inputs */
+.rs-tx-asset.rs-tx-input-wallet {
+  cursor: default;
+  background: #16181c;
+  border-color: rgba(100, 110, 130, 0.28);
+}
+
+.rs-tx-asset.rs-tx-input-wallet .rs-tx-asset-title {
+  color: #c8ccd4;
+}
+
+.rs-tx-asset.rs-tx-input-wallet .rs-tx-asset-meta {
+  color: #6e7688;
+}
+
+.rs-tx-asset.rs-tx-input-wallet .rs-tx-asset-value {
+  color: #9aa4b8;
+}
+
+/* Wallet change outputs — muted vs user destinations */
+.rs-tx-asset.rs-tx-output-change {
+  cursor: default;
+  background: #171a1c;
+  border-color: rgba(90, 110, 100, 0.28);
+}
+
+.rs-tx-asset.rs-tx-output-change:hover {
+  background: #171a1c;
+  border-color: rgba(90, 110, 100, 0.28);
+  box-shadow: none;
+}
+
+.rs-tx-asset.rs-tx-output-change .rs-tx-asset-title {
+  color: #c4cac6;
+}
+
+.rs-tx-asset.rs-tx-output-change .rs-tx-asset-meta {
+  color: #6e7a74;
+}
+
+.rs-tx-asset.rs-tx-output-change .rs-tx-asset-value {
+  color: #98a89c;
+}
+

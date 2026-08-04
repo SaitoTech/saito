@@ -791,10 +791,20 @@ class RustscriptEditor {
     }
 
     if (!el.querySelector('.rustscript-editor-guided')) {
-      el.innerHTML = EditorTemplate(this.role);
+      el.innerHTML = EditorTemplate(this.role, { workflow: this.mod?.workflow });
       const menuId = this.role === 'test' ? 'script-test' : 'script-create';
       if (el.querySelector('.rs-panel-menu')) {
         this.mod.main?.bindPanelMenu(el, menuId);
+      }
+    }
+
+    const titleEl = el.querySelector('.rs-panel-title');
+    if (titleEl) {
+      if (this.role === 'test') {
+        titleEl.textContent =
+          this.mod?.workflow === 'unlock' ? 'Unlock Transaction' : 'Test Script';
+      } else {
+        titleEl.textContent = 'Create Script';
       }
     }
 
@@ -884,6 +894,18 @@ function cloneForDisplay(mod, role) {
 async function commitExpert(editor, expertEl) {
   if (editor.displayMode !== 'expert') {
     return;
+  }
+  if (editor.mod?.workflow === 'unlock') {
+    const { isUnlockEditable } = require('./unlock_tx_fee');
+    if (!isUnlockEditable(editor.mod)) {
+      // Transaction is locked — restore the authorized script (guided witness overlays still work).
+      try {
+        expertEl.value = JSON.stringify(editor.mod.getScript(), null, 2);
+      } catch (_err) {
+        /* ignore */
+      }
+      return;
+    }
   }
   let parsed;
   try {

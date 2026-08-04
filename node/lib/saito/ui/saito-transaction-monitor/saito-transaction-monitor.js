@@ -147,19 +147,12 @@ class SaitoTransactionMonitor {
     this.stopCountdown();
 
     // Consensus timing lives in options (no blockchain getter).
-    const heartbeat = Number(this.app?.options?.consensus?.heartbeat_interval) || 30000;
-    const full_cycle = Math.round((2 * heartbeat) / 1000);
+    // Block production window is 2 × heartbeat (same rule as burn-fee readiness).
+    const heartbeatMs = this.getHeartbeatIntervalMs();
+    const blockWindowSeconds = Math.max(1, Math.round((2 * heartbeatMs) / 1000));
 
-    // Initial: remaining time until the next expected block
-    // (2 × heartbeat after the last block timestamp).
-    let seconds = full_cycle;
-    const last_ts = Number(this.app?.options?.blockchain?.last_timestamp || 0);
-    if (Number.isFinite(last_ts) && last_ts > 0) {
-      const elapsed = Math.max(0, Math.floor((Date.now() - last_ts) / 1000));
-      const remaining = full_cycle - elapsed;
-      // Already past the window → waiting for the following full cycle.
-      seconds = remaining > 0 ? remaining : full_cycle;
-    }
+    // First paint: remaining time in the current production window.
+    let seconds = this.getSecondsUntilNextBlockWindow(blockWindowSeconds);
 
     const renderSeconds = () => {
       const el = document.querySelector('.saito-transaction-monitor .countdown');
@@ -172,12 +165,48 @@ class SaitoTransactionMonitor {
 
     this._countdown_timer = setInterval(() => {
       seconds -= 1;
-      // Subsequent waits are a complete heartbeat period until the next block.
       if (seconds <= 0) {
-        seconds = full_cycle;
+        // Missed this window — always restart a full 2×heartbeat cycle.
+        // Do not reuse the initial partial "time until next block" remaining.
+        seconds = blockWindowSeconds;
       }
       renderSeconds();
     }, 1000);
+  }
+
+  /**
+   * Heartbeat interval in milliseconds from consensus options.
+   */
+  getHeartbeatIntervalMs() {
+    const raw = Number(this.app?.options?.consensus?.heartbeat_interval);
+    if (!Number.isFinite(raw) || raw <= 0) {
+      return 30000;
+    }
+    // Values below 1000 are almost certainly seconds, not milliseconds.
+    if (raw < 1000) {
+      return Math.round(raw * 1000);
+    }
+    return Math.round(raw);
+  }
+
+  /**
+   * Seconds remaining until the end of the current 2×heartbeat production window
+   * measured from the last block timestamp.
+   */
+  getSecondsUntilNextBlockWindow(blockWindowSeconds) {
+    const lastTs = Number(this.app?.options?.blockchain?.last_timestamp || 0);
+    if (!Number.isFinite(lastTs) || lastTs <= 0) {
+      return blockWindowSeconds;
+    }
+
+    const elapsedSec = Math.max(0, Math.floor((Date.now() - lastTs) / 1000));
+    const intoWindow = elapsedSec % blockWindowSeconds;
+    if (elapsedSec > 0 && intoWindow === 0) {
+      // Exactly on a window boundary — start a fresh full cycle.
+      return blockWindowSeconds;
+    }
+    const remaining = blockWindowSeconds - intoWindow;
+    return remaining > 0 ? remaining : blockWindowSeconds;
   }
 
   stopCountdown() {

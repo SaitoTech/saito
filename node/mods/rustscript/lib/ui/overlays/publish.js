@@ -92,48 +92,6 @@ class PublishFlow {
     this.bindSendEvents();
   }
 
-  /**
-   * Hand off broadcast confirmation UX to the shared Saito Transaction Monitor.
-   */
-  watchTransaction(tx, {
-    title = 'Publishing Script',
-    lead = 'Your script is being broadcast to the Saito network.',
-    subtitle = 'Waiting for confirmation...',
-    successTitle = 'Script Published',
-    successLead = 'Your script has been confirmed and is now available on the network.',
-    onConfirmed = null,
-    onCancelled = null
-  } = {}) {
-    if (!this.mod.transaction_monitor) {
-      console.error('RustScript: transaction_monitor is not initialized');
-      if (typeof onCancelled === 'function') {
-        onCancelled();
-      }
-      return;
-    }
-
-    this.mod.transaction_monitor.render({
-      tx,
-      title,
-      lead,
-      subtitle,
-      successTitle,
-      successLead,
-      successActionLabel: 'Continue',
-      callback: (result) => {
-        if (result?.status === 'confirmed') {
-          if (typeof onConfirmed === 'function') {
-            onConfirmed(result);
-          }
-          return;
-        }
-        if (result?.status === 'cancelled' && typeof onCancelled === 'function') {
-          onCancelled(result);
-        }
-      }
-    });
-  }
-
   show(html) {
     document.body.classList.add('rs-publish-modal-open');
     this.blockedRoot = document.querySelector('main.rustscript');
@@ -245,17 +203,18 @@ class PublishFlow {
       }
 
       try {
-        const tx = await this.broadcastPublish(amount, fee || '0');
-        this.hide();
-        this.watchTransaction(tx, {
-          onConfirmed: () => {
-            this.mainUi?.openPostPublish?.({
-              tx: this.lastPublishedTx || tx,
-              p2shAddress: this.p2shAddress,
-              p2shHash: this.p2shHash
-            });
+        await this.broadcastPublish(amount, fee || '0', {
+          callback: (result) => {
+            if (result?.status === 'confirmed') {
+              this.mainUi?.openPostPublish?.({
+                tx: this.lastPublishedTx,
+                p2shAddress: this.p2shAddress,
+                p2shHash: this.p2shHash
+              });
+            }
           }
         });
+        this.hide();
       } catch (err) {
         showError(err?.message || 'Could not publish the transaction.');
         if (btn) {
@@ -266,7 +225,7 @@ class PublishFlow {
     });
   }
 
-  async broadcastPublish(amountSaito, feeSaito) {
+  async broadcastPublish(amountSaito, feeSaito, { callback = null } = {}) {
     const locking = lockingView(this.mod.getScript());
     const hash = this.app.core.scripting.hash(locking);
     const address = this.app.core.scripting.address(locking);
@@ -286,20 +245,15 @@ class PublishFlow {
       throw new Error(this.insufficientBalanceMessage(balance));
     }
 
-    const newtx = await this.mod.publishScript({
+    const newtx = await this.mod.broadcastPublish({
       assetType: 'saito',
       locking,
       p2shAddress: address,
       p2shHash: hash,
       amountSaito,
-      feeSaito
+      feeSaito,
+      callback
     });
-
-    await this.app.network.propagateTransaction(newtx);
-
-    if (!newtx.signature) {
-      throw new Error('Transaction was not signed.');
-    }
 
     this.lastPublishedTx = newtx;
 
