@@ -1035,7 +1035,7 @@
     min-width: unset;
     width: 100vw;
     height: var(--chat-viewport-height, 100dvh);
-    transition: height 0.3s;
+    transition: none;
     max-height: -webkit-fill-available;
     max-width: -webkit-fill-available;
     border-radius: 0;
@@ -1070,7 +1070,7 @@
   /* emoji-picker breaks this */
   .chat-manager-overlay + .chat-container {
     height: var(--chat-viewport-height, 100dvh);
-    transition: height 0.3s;
+    transition: none;
     z-index: 91;
   }
 

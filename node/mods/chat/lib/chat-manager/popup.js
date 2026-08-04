@@ -32,6 +32,7 @@ class ChatPopup {
 
     this.visualViewport = null;
     this.visualViewportResizeHandler = null;
+    this.visualViewportResizeFrame = null;
 
     app.connection.on('chat-remove-fetch-button-request', (group_id) => {
       if (this.group?.id === group_id) {
@@ -151,7 +152,19 @@ class ChatPopup {
 
     this.visualViewport = window.visualViewport;
     this.visualViewportResizeHandler = () => {
+      const keepAtBottom = this.is_scrolling === null;
       chatPopup.style.setProperty('--chat-viewport-height', `${this.visualViewport.height}px`);
+
+      if (keepAtBottom) {
+        window.cancelAnimationFrame(this.visualViewportResizeFrame);
+        this.visualViewportResizeFrame = window.requestAnimationFrame(() => {
+          const chatBody = chatPopup.querySelector('.chat-body');
+          if (chatBody) {
+            chatBody.scrollTop = chatBody.scrollHeight;
+          }
+          this.visualViewportResizeFrame = null;
+        });
+      }
     };
 
     this.visualViewportResizeHandler();
@@ -159,12 +172,17 @@ class ChatPopup {
   }
 
   removeVisualViewportResizeHandler() {
+    if (this.visualViewportResizeFrame) {
+      window.cancelAnimationFrame(this.visualViewportResizeFrame);
+    }
+
     if (this.visualViewport && this.visualViewportResizeHandler) {
       this.visualViewport.removeEventListener('resize', this.visualViewportResizeHandler);
     }
 
     this.visualViewport = null;
     this.visualViewportResizeHandler = null;
+    this.visualViewportResizeFrame = null;
   }
 
   forceRender() {
