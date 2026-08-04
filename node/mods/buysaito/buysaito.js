@@ -66,6 +66,8 @@ class BuySaito extends ModTemplate {
       if (
         app.options?.server?.endpoint?.host == 'localhost' ||
         app.options?.server?.endpoint?.host.includes('staging') ||
+        app.options?.server?.endpoint?.host.includes('testnet') ||
+        app.options?.server?.endpoint?.host.includes('test') ||
         app.options?.server?.host.includes('staging')
       ) {
         this.authorized_public_key = this.publicKey;
