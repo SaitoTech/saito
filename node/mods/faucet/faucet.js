@@ -40,11 +40,15 @@ class Faucet extends ModTemplate {
       });
 
       app.connection.on('saito-purchase-launch', () => {
-        // Let the purchase module open first so this optional overlay sits above it.
+        // Let BuySaito initialize first, then cancel its pending availability check
+        // before replacing it with the testnet faucet.
         setTimeout(() => {
           const closePurchaseOverlay = this.closePurchaseOverlay;
           this.closePurchaseOverlay = null;
-          this.openFaucetOverlay(closePurchaseOverlay);
+          if (typeof closePurchaseOverlay === 'function') {
+            closePurchaseOverlay();
+          }
+          this.openFaucetOverlay();
         }, 0);
       });
     }
@@ -107,13 +111,9 @@ class Faucet extends ModTemplate {
     }
   }
 
-  openFaucetOverlay(closePurchaseOverlay = null) {
+  openFaucetOverlay() {
     this.attachStyleSheets();
-    this.overlay.show(FaucetOverlayTemplate(this.app, this), () => {
-      if (typeof closePurchaseOverlay === 'function') {
-        closePurchaseOverlay();
-      }
-    });
+    this.overlay.show(FaucetOverlayTemplate(this.app, this));
     this.setFaucetState('idle');
     this.attachEvents();
   }

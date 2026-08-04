@@ -76,11 +76,13 @@ class BuySaito extends ModTemplate {
       }
 
       setTimeout(() => {
-        if (this.mixin_mod && this.authorized_public_key === this.publicKey) {
+        if (this.mixin_mod?.bot && this.authorized_public_key === this.publicKey) {
           this.mixin_mod.createAccount();
           this.loadAltAccounts();
           this.loadPendingPayments();
           this.checkPrices();
+        } else if (this.authorized_public_key === this.publicKey) {
+          console.warn('BUYSAITO disabled: Mixin API credentials are not configured');
         }
       }, 2000);
     }
@@ -89,7 +91,7 @@ class BuySaito extends ModTemplate {
   returnServices() {
     let services = [];
     if (!this.app.BROWSER) {
-      if (this.publicKey == this.authorized_public_key) {
+      if (this.mixin_mod?.bot && this.publicKey == this.authorized_public_key) {
         services.push(new PeerService(null, 'buysaito'));
       }
     }
