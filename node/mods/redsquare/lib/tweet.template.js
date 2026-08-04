@@ -78,6 +78,7 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
   const header = TweetHeaderTemplate({
     mode,
     presentation,
+    publicKey: tweet.publicKey || '',
     name: tweet.username || '',
     handle,
     time: mode === 'compose' ? '' : time,
@@ -122,7 +123,7 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
   return `
     <article class="${className}" data-id="${tweet.signature}">
       ${chain}
-      <img class="avatar saito-identicon" src="${tweet.avatar}" alt="${tweet.username}" />
+      <img class="avatar saito-identicon" src="${tweet.avatar}" alt="${tweet.username}" data-id="${tweet.publicKey || ''}" />
       <div class="content">
         ${header}
         ${body}

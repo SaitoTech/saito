@@ -338,6 +338,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  cursor: pointer;
 }
 
 .tweet .gallery.count-1 .grid {
@@ -345,8 +346,16 @@
 }
 
 .tweet .gallery.count-1 .item {
-  aspect-ratio: 16 / 9;
   max-height: 30rem;
+}
+
+.tweet .gallery.count-1 .item img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 30rem;
+  margin-inline: auto;
+  object-fit: contain;
 }
 
 .tweet .gallery.count-2 .grid {
@@ -366,6 +375,10 @@
 }
 
 .tweet.focused .gallery.count-1 .item {
+  max-height: 36rem;
+}
+
+.tweet.focused .gallery.count-1 .item img {
   max-height: 36rem;
 }
 
@@ -404,6 +417,10 @@
 }
 
 .tweet.embedded .gallery.count-1 .item {
+  max-height: 18rem;
+}
+
+.tweet.embedded .gallery.count-1 .item img {
   max-height: 18rem;
 }
 

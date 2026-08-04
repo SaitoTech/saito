@@ -16,6 +16,7 @@ class Profile {
     this.mod = mod;
     this.container = container;
     this.profile = null;
+    this.profiles = {};
     this._dom_bound = false;
   }
 
@@ -56,7 +57,8 @@ class Profile {
       name = this.app.keychain.returnUsername(key) || `Anon-${key.slice(0, 6)}`;
     }
 
-    const existing = this.mod.profile || {};
+    const existing =
+      key === this.mod.publicKey ? this.mod.profile || {} : this.profiles[key] || {};
     const can_edit = this.canEditProfile(key);
     let bio = existing.bio || existing.description || '';
     if (bio && this.app.browser?.sanitize) {
@@ -84,13 +86,18 @@ class Profile {
     return publicKey === this.mod.publicKey;
   }
 
-  render(container = '') {
+  render(container = '', publicKey = '') {
     if (container) {
       this.container = container;
     }
 
-    this.profile = this.buildProfileData(this.mod.publicKey);
-    this.mod.profile = Object.assign({}, this.mod.profile || {}, this.profile);
+    const key = publicKey || this.mod.publicKey || '';
+    this.profile = this.buildProfileData(key);
+    this.profiles[key] = Object.assign({}, this.profiles[key] || {}, this.profile);
+
+    if (key === this.mod.publicKey) {
+      this.mod.profile = Object.assign({}, this.mod.profile || {}, this.profile);
+    }
 
     this.app.browser.replaceElementContentBySelector(ProfileTemplate(this), this.container);
     this.attachEvents();
@@ -152,9 +159,7 @@ class Profile {
         return;
       }
 
-      const bannerEdit = e.target.closest(
-        '#redsquare-profile-banner-edit, .redsquare-profile-banner-edit'
-      );
+      const bannerEdit = e.target.closest('.redsquare-profile-banner-edit');
       if (bannerEdit && root.contains(bannerEdit)) {
         e.preventDefault();
         e.stopPropagation();
@@ -233,7 +238,12 @@ class Profile {
 
     const { banner, description, image } = data;
 
-    if (this.mod.profile) {
+    this.profiles[publicKey] = Object.assign({}, this.profiles[publicKey] || {}, {
+      banner: banner || '',
+      bio: description || ''
+    });
+
+    if (publicKey === this.mod.publicKey && this.mod.profile) {
       this.mod.profile.banner = banner || '';
       this.mod.profile.bio = description || '';
     }
@@ -253,7 +263,7 @@ class Profile {
       } else {
         const sanitized = this.app.browser.sanitize(description, true).replaceAll('\n', '<br>');
         container.innerHTML = `
-            <div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">
+            <div class="profile-description-${publicKey}" data-id="${publicKey}">
               ${sanitized}
             </div>
             ${canEdit ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>` : ''}
@@ -266,7 +276,8 @@ class Profile {
       avatarNodes.forEach((el) => {
         el.src = image;
       });
-      if (this.mod.profile) {
+      this.profiles[publicKey].avatar = image;
+      if (publicKey === this.mod.publicKey && this.mod.profile) {
         this.mod.profile.avatar = image;
       }
     } else {
@@ -274,7 +285,8 @@ class Profile {
       avatarNodes.forEach((el) => {
         el.src = fallback;
       });
-      if (this.mod.profile) {
+      this.profiles[publicKey].avatar = fallback;
+      if (publicKey === this.mod.publicKey && this.mod.profile) {
         this.mod.profile.avatar = fallback;
       }
     }

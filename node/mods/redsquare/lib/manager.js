@@ -3,6 +3,7 @@ const ManagerHeaderTemplate = require('./manager-header.template');
 const ManagerScrollFooterTemplate = require('./manager-scroll-footer.template');
 const ManagerLoadMore = require('./manager-load-more');
 const TweetTemplate = require('./tweet.template');
+const SaitoImageOverlay = require('../../../lib/saito/ui/saito-image-overlay/saito-image-overlay');
 
 const SCROLL_THRESHOLD_PX = 240;
 
@@ -32,6 +33,12 @@ class Manager {
     this.pending_newer_tweets = [];
     this._timeline_bootstrapping = false;
     this._notifications_bootstrapping = false;
+    this.pending_route_signature = '';
+    this._route_load_signature = '';
+    this._route_load = null;
+    this._browser_history_bound = false;
+    this.image_overlay = null;
+    this.profile_cache = {};
 
     // Per-view Manager chrome. Header is navigation only (back + title).
     // Home / notifications omit sticky chrome.
@@ -91,13 +98,21 @@ class Manager {
     };
   }
 
-  renderTimeline() {
+  renderTimeline({ updateHistory = true } = {}) {
     const previousMode = this.mode;
 
     this.saveScrollPosition(previousMode);
     this.mode = 'timeline';
     this.active_signature = '';
+    this.active_thread_id = '';
     this.active_profile_key = '';
+
+    if (updateHistory) {
+      this.replaceTweetLocation();
+    }
+
+    this.mod.main?.showProfile?.(this.mod.publicKey);
+
     this.render();
 
     if (previousMode !== 'timeline') {
@@ -109,17 +124,29 @@ class Manager {
     this.syncPendingNewerTweets();
   }
 
+  renderHome() {
+    this.pending_route_signature = '';
+    this.replaceTweetLocation({ force: true });
+    this.renderTimeline({ updateHistory: false });
+  }
+
   renderNotifications() {
     this.saveScrollPosition();
     this.mod.markNotificationsViewed?.();
     this.mode = 'notifications';
+    this.active_signature = '';
+    this.active_thread_id = '';
     this.active_profile_key = '';
+    this.mod.main?.showProfile?.(this.mod.publicKey);
+    this.replaceTweetLocation();
     this.render();
     this.restoreScrollPosition('notifications');
     this.syncScrollFooter();
   }
 
-  renderThread(signature) {
+  renderThread(signature, { updateHistory = true } = {}) {
+    const previousMode = this.mode;
+
     this.saveScrollPosition();
 
     const tweet = this.mod.getTweet(signature);
@@ -128,32 +155,63 @@ class Manager {
     this.active_signature = signature || '';
     this.active_thread_id = tweet ? tweet.thread_id || tweet.signature : '';
     this.active_profile_key = '';
+    this.mod.main?.showProfile?.(this.mod.publicKey);
     this.scroll_positions.thread = 0;
+
+    if (updateHistory && signature && typeof window !== 'undefined') {
+      const url = this.mod.returnTweetUrl(signature);
+      const state = { redsquareView: 'thread', signature };
+
+      if (previousMode === 'thread') {
+        window.history.replaceState(state, '', url);
+      } else {
+        window.history.pushState(state, '', url);
+      }
+    }
+
     this.resetThreadPagination(signature);
     this.render();
     this.restoreScrollPosition('thread');
     this.syncScrollFooter();
   }
 
-  renderPosts(publicKey = '') {
-    this.renderProfileView('posts', publicKey);
+  renderPosts(publicKey = '', options = {}) {
+    this.renderProfileView('posts', publicKey, options);
   }
 
-  renderReplies(publicKey = '') {
-    this.renderProfileView('replies', publicKey);
+  renderReplies(publicKey = '', options = {}) {
+    this.renderProfileView('replies', publicKey, options);
   }
 
-  renderLikes(publicKey = '') {
-    this.renderProfileView('likes', publicKey);
+  renderLikes(publicKey = '', options = {}) {
+    this.renderProfileView('likes', publicKey, options);
   }
 
-  renderProfileView(mode, publicKey = '') {
+  renderProfileView(mode, publicKey = '', { updateHistory = true } = {}) {
+    const previousMode = this.mode;
+    const previousProfileKey = this.active_profile_key;
+
     this.saveScrollPosition();
     this.mode = mode;
     this.active_signature = '';
     this.active_thread_id = '';
     this.active_profile_key = publicKey || this.mod.publicKey || '';
     this.scroll_positions[mode] = 0;
+
+    if (updateHistory && typeof window !== 'undefined') {
+      const state = {
+        redsquareView: 'profile',
+        publicKey: this.active_profile_key,
+        tab: mode
+      };
+      const url = this.mod.returnUserUrl(this.active_profile_key);
+
+      if (this.isProfileViewMode(previousMode) && previousProfileKey === this.active_profile_key) {
+        window.history.replaceState(state, '', url);
+      } else {
+        window.history.pushState(state, '', url);
+      }
+    }
 
     if (!this.pagination[mode]) {
       this.pagination[mode] = {
@@ -168,9 +226,14 @@ class Manager {
       this.pagination[mode].exhausted = false;
     }
 
+    this.mod.main?.showProfile?.(this.active_profile_key);
     this.render();
     this.restoreScrollPosition(mode);
     this.syncFeedStatus();
+  }
+
+  isProfileViewMode(mode = this.mode) {
+    return mode === 'posts' || mode === 'replies' || mode === 'likes';
   }
 
   render(container = '') {
@@ -359,10 +422,133 @@ class Manager {
 
   syncProfileNav() {
     this.mod.main?.profile?.syncActiveNav(this.mode);
+    this.mod.main?.mobile_profile?.syncActiveNav(this.mode);
   }
 
   navigateBackToTimeline() {
-    this.renderTimeline();
+    if (
+      typeof window !== 'undefined' &&
+      (window.history.state?.redsquareView === 'thread' ||
+        window.history.state?.redsquareView === 'profile')
+    ) {
+      window.history.back();
+      return;
+    }
+
+    this.replaceTweetLocation();
+    this.renderTimeline({ updateHistory: false });
+  }
+
+  replaceTweetLocation({ force = false } = {}) {
+    if (
+      typeof window === 'undefined' ||
+      (!force &&
+        !this.mod.returnTweetSignatureFromLocation() &&
+        !this.mod.returnUserPublicKeyFromLocation())
+    ) {
+      return;
+    }
+
+    window.history.replaceState(
+      { redsquareView: 'timeline' },
+      '',
+      `/${encodeURI(this.mod.returnSlug())}/`
+    );
+  }
+
+  attachBrowserHistory() {
+    if (typeof window === 'undefined' || this._browser_history_bound) {
+      return;
+    }
+
+    this._browser_history_bound = true;
+    window.addEventListener('popstate', () => {
+      this.applyLocationRoute();
+    });
+  }
+
+  async applyLocationRoute({ refresh = false } = {}) {
+    const signature = this.mod.returnTweetSignatureFromLocation();
+    const publicKey = this.mod.returnUserPublicKeyFromLocation();
+
+    if (publicKey && !signature) {
+      if (this.app.crypto?.isPublicKey && !this.app.crypto.isPublicKey(publicKey)) {
+        this.renderTimeline({ updateHistory: false });
+        return null;
+      }
+
+      const canonicalPath = `/${encodeURI(this.mod.returnSlug())}/user/${encodeURIComponent(
+        publicKey
+      )}`;
+      const historyTab = typeof window !== 'undefined' ? window.history?.state?.tab : '';
+      const requestedTab = ['posts', 'replies', 'likes'].includes(historyTab)
+        ? historyTab
+        : this.isProfileMode() && this.active_profile_key === publicKey
+          ? this.mode
+          : 'posts';
+
+      if (typeof window !== 'undefined' && window.location.pathname !== canonicalPath) {
+        window.history.replaceState(
+          { redsquareView: 'profile', publicKey, tab: requestedTab },
+          '',
+          this.mod.returnUserUrl(publicKey)
+        );
+      }
+
+      if (!refresh && this.isProfileMode() && this.active_profile_key === publicKey) {
+        return publicKey;
+      }
+
+      this.renderProfileView(requestedTab, publicKey, { updateHistory: false });
+      return publicKey;
+    }
+
+    if (!signature) {
+      this.pending_route_signature = '';
+
+      if (this.mode === 'thread' || this.isProfileMode()) {
+        this.renderTimeline({ updateHistory: false });
+      }
+
+      return null;
+    }
+
+    if (!refresh && this.mode === 'thread' && this.active_signature === signature) {
+      return this.mod.getTweet(signature);
+    }
+
+    if (this._route_load && this._route_load_signature === signature) {
+      if (refresh) {
+        return this._route_load.then(() => this.applyLocationRoute({ refresh: true }));
+      }
+
+      return this._route_load;
+    }
+
+    this.pending_route_signature = signature;
+    this._route_load_signature = signature;
+    this._route_load = this.mod
+      .loadTweetThread(signature)
+      .then((tweet) => {
+        if (tweet && this.mod.returnTweetSignatureFromLocation() === signature) {
+          this.pending_route_signature = '';
+          this.renderThread(signature, { updateHistory: false });
+        }
+
+        return tweet;
+      })
+      .catch((err) => {
+        console.error('RedSquare shared tweet lookup failed:', err);
+        return null;
+      })
+      .finally(() => {
+        if (this._route_load_signature === signature) {
+          this._route_load_signature = '';
+          this._route_load = null;
+        }
+      });
+
+    return this._route_load;
   }
 
   getScrollContainer() {
@@ -676,48 +862,238 @@ class Manager {
 
     this.clearPanel(container);
 
-    const tweets = this.collectProfileTweets();
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(max-width: 820px)').matches
+    ) {
+      this.app.browser.addElementToSelector(
+        '<section class="redsquare-profile mobile"></section>',
+        container
+      );
+      this.mod.main?.showMobileProfile?.(this.active_profile_key);
+    }
 
-    for (const tweet of tweets) {
+    this.appendProfileBatch();
+
+    const state = this.getPaginationState();
+    const source = this.getActiveProfileSource();
+    state.exhausted = Boolean(source?.exhausted && state.cursor >= this.collectProfileTweets().length);
+    this.syncFeedStatus();
+
+    if (!state.exhausted && this.isNearBottom()) {
+      this.loadMore();
+    }
+  }
+
+  createProfileSourceState() {
+    return {
+      loading: false,
+      exhausted: false,
+      peers: {}
+    };
+  }
+
+  getProfileCache(publicKey = this.active_profile_key) {
+    const key = publicKey || '';
+
+    if (!this.profile_cache[key]) {
+      const cache = {
+        posts: [],
+        replies: [],
+        likes: [],
+        postSet: new Set(),
+        replySet: new Set(),
+        likeSet: new Set(),
+        author: this.createProfileSourceState(),
+        likesSource: this.createProfileSourceState()
+      };
+
+      for (const tweet of Object.values(this.mod.tweets || {})) {
+        if (tweet?.publicKey === key) {
+          this.addTweetToProfileCache(cache, tweet, tweet.parent_id ? 'replies' : 'posts');
+        }
+
+        if (Array.isArray(tweet?.likers) && tweet.likers.includes(key)) {
+          this.addTweetToProfileCache(cache, tweet, 'likes');
+        }
+      }
+
+      this.profile_cache[key] = cache;
+    }
+
+    return this.profile_cache[key];
+  }
+
+  addTweetToProfileCache(cache, tweet, mode) {
+    const signature = tweet?.signature || '';
+    const setName = mode === 'posts' ? 'postSet' : mode === 'replies' ? 'replySet' : 'likeSet';
+
+    if (!signature || cache[setName].has(signature)) {
+      return false;
+    }
+
+    cache[setName].add(signature);
+    cache[mode].push(signature);
+    cache[mode].sort((a, b) => {
+      const first = this.mod.getTweet(a);
+      const second = this.mod.getTweet(b);
+      return (Number(second?.created_at) || 0) - (Number(first?.created_at) || 0);
+    });
+    return true;
+  }
+
+  getActiveProfileSource() {
+    const cache = this.getProfileCache();
+    return this.mode === 'likes' ? cache.likesSource : cache.author;
+  }
+
+  returnProfilePeerKey(peer, index) {
+    if (peer === 'localhost') {
+      return 'localhost';
+    }
+
+    return peer?.publicKey || `peer-${index}`;
+  }
+
+  async loadProfileArchivePage() {
+    const publicKey = this.active_profile_key || '';
+    const mode = this.mode;
+    const cache = this.getProfileCache(publicKey);
+    const source = mode === 'likes' ? cache.likesSource : cache.author;
+
+    if (!publicKey || source.loading || source.exhausted) {
+      return 0;
+    }
+
+    if (this.app.modules?.moderateAddress?.(publicKey) === -1) {
+      source.exhausted = true;
+      return 0;
+    }
+
+    source.loading = true;
+    const limit = 20;
+    const peers = this.mod.returnTweetArchivePeers();
+
+    try {
+      const requests = peers.map(async (peer, index) => {
+        const peerKey = this.returnProfilePeerKey(peer, index);
+        const peerState = source.peers[peerKey] || {
+          cursor: Date.now() + 1,
+          exhausted: false
+        };
+        source.peers[peerKey] = peerState;
+
+        if (peerState.exhausted) {
+          return { peer, txs: [] };
+        }
+
+        const query = {
+          field1: mode === 'likes' ? 'RedSquareLike' : 'RedSquare',
+          field2: publicKey,
+          created_earlier_than: peerState.cursor,
+          limit
+        };
+
+        if (mode !== 'likes') {
+          query.flagged = 0;
+        }
+
+        const txs = await this.mod.loadArchiveTransactions(query, peer);
+        const timestamps = txs.map((tx) => Number(tx?.timestamp) || 0).filter(Boolean);
+
+        if (timestamps.length) {
+          peerState.cursor = Math.min(...timestamps);
+        }
+        if (txs.length < limit) {
+          peerState.exhausted = true;
+        }
+
+        return { peer, txs };
+      });
+      const pages = await Promise.all(requests);
+      let added = 0;
+
+      if (mode === 'likes') {
+        const signatures = new Set();
+
+        for (const { txs } of pages) {
+          for (const tx of txs) {
+            if (typeof tx?.decryptMessage === 'function') {
+              await tx.decryptMessage(this.app);
+            }
+            if (this.app.modules?.moderate?.(tx, this.mod.name) === -1) {
+              continue;
+            }
+            const message = tx?.returnMessage?.() || tx?.msg || {};
+            const signature = message.data?.signature;
+            if (signature != null && String(signature)) {
+              signatures.add(String(signature));
+            }
+          }
+        }
+
+        const targetPages = await Promise.all(
+          Array.from(signatures).flatMap((signature) =>
+            peers.map((peer) =>
+              this.mod.loadArchiveTransactions(
+                { sig: signature, field1: 'RedSquare', flagged: 0 },
+                peer
+              )
+            )
+          )
+        );
+        const tweets = await this.mod.cacheProfileTweetTransactions(targetPages.flat());
+
+        for (const tweet of tweets) {
+          if (this.addTweetToProfileCache(cache, tweet, 'likes')) {
+            added++;
+          }
+        }
+      } else {
+        const tweets = await this.mod.cacheProfileTweetTransactions(
+          pages.flatMap(({ txs }) => txs)
+        );
+
+        for (const tweet of tweets) {
+          if (tweet.publicKey !== publicKey) {
+            continue;
+          }
+          if (this.addTweetToProfileCache(cache, tweet, tweet.parent_id ? 'replies' : 'posts')) {
+            added++;
+          }
+        }
+      }
+
+      source.exhausted = Object.values(source.peers).every((peerState) => peerState.exhausted);
+      return added;
+    } finally {
+      source.loading = false;
+    }
+  }
+
+  appendProfileBatch() {
+    const state = this.getPaginationState();
+    const tweets = this.collectProfileTweets();
+    const batch = tweets.slice(state.cursor, state.cursor + state.batchSize);
+    const container = this.getActivePanelSelector();
+
+    for (const tweet of batch) {
       tweet.render(container);
     }
 
-    // Local profile views are a completed load — no contradictory empty+end.
-    const state = this.getPaginationState();
-    state.loading = false;
-    state.exhausted = true;
+    state.cursor += batch.length;
     this.syncFeedStatus();
+    return batch.length;
   }
 
   collectProfileTweets() {
-    const key = this.active_profile_key || '';
-    const tweets = Object.values(this.mod.tweets || {});
-
-    let filtered = tweets;
-
-    if (this.mode === 'posts') {
-      filtered = tweets.filter((tweet) => (!key || tweet.publicKey === key) && !tweet.parent_id);
-    } else if (this.mode === 'replies') {
-      filtered = tweets.filter(
-        (tweet) => (!key || tweet.publicKey === key) && Boolean(tweet.parent_id)
-      );
-    } else if (this.mode === 'likes') {
-      filtered = tweets.filter((tweet) => {
-        const likers = tweet.tx?.optional?.likers;
-
-        if (Array.isArray(likers) && key) {
-          return likers.includes(key);
-        }
-
-        return false;
-      });
+    if (this.app.modules?.moderateAddress?.(this.active_profile_key) === -1) {
+      return [];
     }
 
-    return filtered.sort((a, b) => {
-      const tsA = Number(a.updated_at) || Number(a.created_at) || Number(a.tx?.timestamp) || 0;
-      const tsB = Number(b.updated_at) || Number(b.created_at) || Number(b.tx?.timestamp) || 0;
-      return tsB - tsA;
-    });
+    const cache = this.getProfileCache();
+    return (cache[this.mode] || []).map((signature) => this.mod.getTweet(signature)).filter(Boolean);
   }
 
   appendTimelineBatch() {
@@ -950,7 +1326,9 @@ class Manager {
     this.saveScrollPosition();
     this.mode = 'timeline';
     this.active_signature = '';
+    this.active_thread_id = '';
     this.active_profile_key = '';
+    this.replaceTweetLocation();
     this.scroll_positions.timeline = 0;
     this.updateModeVisibility();
     this.syncFeedHeader();
@@ -1134,14 +1512,17 @@ class Manager {
     }
 
     this.attachTweetNavigation(root);
+    this.attachTweetImageViewer(root);
     this.attachThreadContext(root);
     this.attachTweetMenu(root);
     this.attachTweetReply(root);
     this.attachTweetLike(root);
     this.attachTweetRetweet(root);
+    this.attachTweetShare(root);
     this.attachFeedHeaderBack(root);
     this.attachScrollEvents();
     this.attachViewportChrome();
+    this.attachBrowserHistory();
   }
 
   attachViewportChrome() {
@@ -1321,6 +1702,42 @@ class Manager {
     });
   }
 
+  attachTweetShare(root) {
+    if (!root || root.dataset.tweetShareBound === '1') {
+      return;
+    }
+
+    root.dataset.tweetShareBound = '1';
+
+    root.addEventListener('click', async (e) => {
+      const shareButton = e.target.closest('.tool.share');
+
+      if (!shareButton) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const tweetArticle = shareButton.closest('article.tweet');
+      const signature = tweetArticle?.getAttribute('data-id') || '';
+
+      if (!signature) {
+        return;
+      }
+
+      const longUrl = this.mod.returnTweetUrl(signature);
+
+      try {
+        const url = await this.mod.createShortLink(longUrl);
+        this.app.browser.handleShare({ title: 'Saito RedSquare Post', url });
+      } catch (err) {
+        console.error('RedSquare share failed:', err);
+        this.app.browser.handleShare({ title: 'Saito RedSquare Post', url: longUrl });
+      }
+    });
+  }
+
   attachTweetMenu(root) {
     if (!root || root.dataset.tweetMenuBound === '1') {
       return;
@@ -1375,6 +1792,58 @@ class Manager {
       }
 
       this.renderThread(signature);
+    });
+  }
+
+  attachTweetImageViewer(root) {
+    if (!root || root.dataset.tweetImageViewerBound === '1') {
+      return;
+    }
+
+    root.dataset.tweetImageViewerBound = '1';
+
+    const openImage = (image) => {
+      const gallery = image.closest('.gallery');
+      const galleryImages = gallery ? Array.from(gallery.querySelectorAll('.grid img')) : [];
+      const imageIndex = galleryImages.indexOf(image);
+      const images = galleryImages
+        .map((galleryImage) => galleryImage.getAttribute('src') || '')
+        .filter(Boolean);
+
+      if (imageIndex < 0 || images.length === 0) {
+        return;
+      }
+
+      this.image_overlay = new SaitoImageOverlay(this.app, this.mod, images);
+      this.image_overlay.render(imageIndex);
+    };
+
+    root.addEventListener('click', (e) => {
+      const image = e.target.closest('.gallery img');
+
+      if (!image || !root.contains(image)) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      openImage(image);
+    });
+
+    root.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') {
+        return;
+      }
+
+      const image = e.target.closest('.gallery img');
+
+      if (!image || !root.contains(image)) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      openImage(image);
     });
   }
 
@@ -1455,6 +1924,17 @@ class Manager {
   }
 
   onPeersUpdated() {
+    if (this.pending_route_signature || this.mod.returnTweetSignatureFromLocation()) {
+      this.applyLocationRoute({ refresh: true });
+    }
+
+    if (this.isProfileMode()) {
+      const source = this.getActiveProfileSource();
+      source.exhausted = false;
+      this.getPaginationState().exhausted = false;
+      this.loadMoreIfNeeded();
+    }
+
     if (this.mode === 'timeline' && this.timeline_rendered) {
       this.fetchRemoteTransactions('tweets', 'newer');
     }
@@ -1717,7 +2197,6 @@ class Manager {
     if (
       state.loading ||
       state.exhausted ||
-      this.isProfileMode() ||
       this._notifications_bootstrapping ||
       this._timeline_bootstrapping
     ) {
@@ -1733,7 +2212,6 @@ class Manager {
     if (
       state.loading ||
       state.exhausted ||
-      this.isProfileMode() ||
       this._notifications_bootstrapping ||
       this._timeline_bootstrapping
     ) {
@@ -1746,6 +2224,24 @@ class Manager {
     let continueLoading = false;
 
     try {
+      if (this.isProfileMode()) {
+        const rendered = this.appendProfileBatch();
+
+        if (!rendered) {
+          await this.loadProfileArchivePage();
+          this.appendProfileBatch();
+        }
+
+        const source = this.getActiveProfileSource();
+        const available = this.collectProfileTweets().length;
+        state.exhausted = Boolean(source.exhausted && state.cursor >= available);
+        continueLoading = !state.exhausted && this.isNearBottom();
+        if (continueLoading) {
+          setTimeout(() => this.loadMoreIfNeeded(), 0);
+        }
+        return;
+      }
+
       if (this.mode === 'thread') {
         const result = await ManagerLoadMore.loadMore({
           mode: this.mode,
@@ -1973,7 +2469,7 @@ class Manager {
       return false;
     }
 
-    return Boolean(element.closest('.controls, .show-more, .tool'));
+    return Boolean(element.closest('.controls, .show-more, .tool, .gallery'));
   }
 
   static resolveClickedSignature(element) {

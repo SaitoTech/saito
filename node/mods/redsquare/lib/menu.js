@@ -80,7 +80,7 @@ class Menu {
     if (homeItem) {
       homeItem.addEventListener('click', () => {
         this.mod.main?.showMobileView('feed');
-        this.mod.manager?.renderTimeline();
+        this.mod.manager?.renderHome();
         this.setActiveMenuItem(homeItem);
       });
     }

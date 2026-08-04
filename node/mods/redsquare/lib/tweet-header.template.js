@@ -29,6 +29,7 @@ function resolveMode({ mode, presentation } = {}) {
 module.exports = ({
   mode,
   presentation,
+  publicKey = '',
   name = '',
   handle = '',
   time = '',
@@ -43,7 +44,7 @@ module.exports = ({
 
     return `
     <header class="header compose">
-      <span class="primary saito-address">${name}</span>
+      <span class="primary saito-address" data-id="${publicKey}">${name}</span>
       ${secondaryHtml}
     </header>
   `;
@@ -51,12 +52,14 @@ module.exports = ({
 
   if (resolvedMode === 'expanded') {
     const timeHtml = time ? `<time class="time saito-userline">${time}</time>` : '';
-    const handleHtml = handle ? `<span class="handle saito-userline">${handle}</span>` : '';
+    const handleHtml = handle
+      ? `<span class="handle saito-userline saito-add-user-menu" data-id="${publicKey}">${handle}</span>`
+      : '';
 
     // Identity owns name, time, and key. Body is a sibling — never a time host.
     return `
     <header class="header expanded">
-      <span class="primary saito-address">${name}</span>
+      <span class="primary saito-address" data-id="${publicKey}">${name}</span>
       ${timeHtml}
       ${handleHtml}
     </header>
@@ -66,7 +69,7 @@ module.exports = ({
   // compact — Username · time (no public key on the timeline)
   const parts = [];
 
-  parts.push(`<span class="primary saito-address">${name}</span>`);
+  parts.push(`<span class="primary saito-address" data-id="${publicKey}">${name}</span>`);
 
   if (time) {
     parts.push(`<span class="sep" aria-hidden="true">·</span>`);

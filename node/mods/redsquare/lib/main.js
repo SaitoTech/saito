@@ -16,6 +16,7 @@ class Main {
     this.manager = mod.manager;
     this.manager.container = '.manager';
     this.profile = new Profile(app, mod, '.sidebar-right > .redsquare-profile');
+    this.mobile_profile = new Profile(app, mod, '.manager .redsquare-profile.mobile');
     this.create = new Create(app, mod, '.sidebar-right > .redsquare-create');
     this.sidebar = new Sidebar(app, mod, '.sidebar-right > .sidebar');
     this.active_mobile_view = 'feed';
@@ -112,7 +113,10 @@ class Main {
 
     this.menu.render();
     this.manager.render();
-    this.profile.render();
+    const profileKey = this.manager.isProfileMode()
+      ? this.manager.active_profile_key
+      : this.mod.publicKey;
+    this.profile.render('', profileKey);
     this.create.render();
     this.sidebar.render();
 
@@ -346,6 +350,18 @@ class Main {
     this.attachSidebarScrollSync();
     this.attachFeedWheelScroll();
     this.attachFloatingPostVisibility();
+  }
+
+  showProfile(publicKey = '') {
+    this.profile.render('', publicKey || this.mod.publicKey);
+  }
+
+  showMobileProfile(publicKey = '') {
+    if (!document.querySelector(this.mobile_profile.container)) {
+      return;
+    }
+
+    this.mobile_profile.render('', publicKey || this.mod.publicKey);
   }
 }
 

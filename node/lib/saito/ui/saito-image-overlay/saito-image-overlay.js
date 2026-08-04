@@ -8,6 +8,7 @@ class SaitoImageOverlay {
     this.image_array = image_array;
     this.image_idx = 0;
     this.overlay = new SaitoOverlay(app, mod);
+    this.keydown_handler = null;
   }
 
   render(image_idx = -1) {
@@ -20,7 +21,8 @@ class SaitoImageOverlay {
       this.image_idx = image_idx;
     }
 
-    this.overlay.show(SaitoImageOverlayTemplate(this.app, this.mod));
+    this.detachEvents();
+    this.overlay.show(SaitoImageOverlayTemplate(this.app, this.mod), () => this.detachEvents());
 
     if (this.image_array.length == 1) {
       this.hideArrowLeft();
@@ -69,7 +71,7 @@ class SaitoImageOverlay {
     //
     // keypress events
     //
-    document.onkeydown = (event) => {
+    this.keydown_handler = (event) => {
       // left
       if (event.keyCode === 37) {
         let obj = document.getElementById('saito-img-arrow-box-left');
@@ -92,9 +94,20 @@ class SaitoImageOverlay {
 
       // right
       if (event.keyCode === 27) {
-        this.overlay.remove();
+        this.overlay.close();
       }
     };
+
+    document.addEventListener('keydown', this.keydown_handler);
+  }
+
+  detachEvents() {
+    if (!this.keydown_handler) {
+      return;
+    }
+
+    document.removeEventListener('keydown', this.keydown_handler);
+    this.keydown_handler = null;
   }
 
   showImage(idx) {

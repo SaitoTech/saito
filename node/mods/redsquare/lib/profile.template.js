@@ -25,7 +25,7 @@ module.exports = (profile) => {
     : '';
 
   const bannerEditHtml = canEdit
-    ? `<i id="redsquare-profile-banner-edit" class="redsquare-profile-banner-edit fas fa-camera" role="button" tabindex="0" aria-label="Edit banner"></i>`
+    ? `<i class="redsquare-profile-banner-edit fas fa-camera" role="button" tabindex="0" aria-label="Edit banner"></i>`
     : '';
 
   const descriptionClass = [
@@ -39,7 +39,7 @@ module.exports = (profile) => {
   let descriptionInner = '';
   if (bio) {
     descriptionInner = `
-      <div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">${bio}</div>
+      <div class="profile-description-${publicKey}" data-id="${publicKey}">${bio}</div>
       ${canEdit ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>` : ''}
     `;
   } else if (canEdit) {
@@ -55,7 +55,7 @@ module.exports = (profile) => {
   // Compose lives in Create (`.redsquare-create`), not here.
   return `
       <div class="card" data-profile-key="${publicKey}">
-        <div id="banner-${publicKey}" class="redsquare-profile-banner banner-${publicKey}" data-id="${publicKey}"${bannerStyle}>
+        <div class="redsquare-profile-banner banner-${publicKey}" data-id="${publicKey}"${bannerStyle}>
           ${bannerEditHtml}
         </div>
         <div class="body">
