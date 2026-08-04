@@ -5,10 +5,8 @@ module.exports = (notification, tweetHtml = '') => {
     icon = 'fa-heart';
   } else if (notification.type === 'reply') {
     icon = 'fa-comment';
-  } else if (notification.type === 'retweet') {
+  } else if (notification.type === 'retweet' || notification.type === 'quote') {
     icon = 'fa-repeat';
-  } else if (notification.type === 'mention') {
-    icon = 'fa-at';
   }
 
   return `

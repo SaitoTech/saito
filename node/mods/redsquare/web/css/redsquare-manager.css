@@ -7,6 +7,7 @@
  */
 
 .manager {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -85,14 +86,25 @@
 }
 
 .manager .new-posts-banner {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
   display: block;
-  width: 100%;
+  width: 16rem;
   padding: var(--saito-space-sm) var(--saito-space-lg);
-  border: none;
-  background: var(--saito-card-wash);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-lg);
+  margin: var(--saito-space-md) 0 0;
+  background: color-mix(in srgb, var(--saito-background) 33%, transparent);
   color: var(--saito-foreground);
   text-align: center;
   cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.manager .new-posts-banner[hidden] {
+  display: none;
 }
 
 .manager .thread-context {

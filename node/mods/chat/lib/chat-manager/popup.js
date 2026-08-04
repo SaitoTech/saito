@@ -154,6 +154,7 @@ class ChatPopup {
     this.visualViewportResizeHandler = () => {
       const keepAtBottom = this.is_scrolling === null;
       chatPopup.style.setProperty('--chat-viewport-height', `${this.visualViewport.height}px`);
+      chatPopup.style.setProperty('--chat-viewport-top', `${this.visualViewport.offsetTop}px`);
 
       if (keepAtBottom) {
         window.cancelAnimationFrame(this.visualViewportResizeFrame);
@@ -169,6 +170,7 @@ class ChatPopup {
 
     this.visualViewportResizeHandler();
     this.visualViewport.addEventListener('resize', this.visualViewportResizeHandler);
+    this.visualViewport.addEventListener('scroll', this.visualViewportResizeHandler);
   }
 
   removeVisualViewportResizeHandler() {
@@ -178,6 +180,7 @@ class ChatPopup {
 
     if (this.visualViewport && this.visualViewportResizeHandler) {
       this.visualViewport.removeEventListener('resize', this.visualViewportResizeHandler);
+      this.visualViewport.removeEventListener('scroll', this.visualViewportResizeHandler);
     }
 
     this.visualViewport = null;

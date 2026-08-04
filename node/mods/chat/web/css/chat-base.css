@@ -288,12 +288,18 @@
 
 @media screen and (max-width: 600px) {
   .chat-main-container.saito-container {
+    height: var(--chat-page-viewport-height, calc(100dvh - var(--saito-header-height)));
+    min-height: 0;
+    top: var(--chat-page-viewport-top, var(--saito-header-height));
     grid-template-columns: 1fr;
   }
 
   .chat-main-container .saito-sidebar.left {
+    height: 100%;
+    min-height: 0;
     max-width: unset;
     width: 100vw;
+    overflow: hidden;
     padding: 0;
     resize: none;
   }

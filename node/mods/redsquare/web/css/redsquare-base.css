@@ -156,6 +156,8 @@ body.redsquare-body .saito-floating-menu.redsquare-post-offscreen .saito-floatin
   }
 
   body.redsquare-body #saito-container {
+    top: var(--redsquare-page-viewport-top, var(--saito-header-height));
+    height: var(--redsquare-page-viewport-height, calc(100dvh - var(--saito-header-height)));
     grid-template-columns: 80px minmax(0, 1fr);
   }
 }

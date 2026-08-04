@@ -41,6 +41,10 @@ class RedSquare extends ModTemplate {
     this.tweets_timeline = [];
     this.tweets_orphans = {};
     this.tweets_loading = {};
+    this.tweet_archive_saves = {};
+    this.like_archive_saves = {};
+    this.retweet_archive_saves = {};
+    this.like_target_updates = {};
     this.tweets_earliest_ts = new Date().getTime();
     this.tweets_latest_ts = 0;
 
@@ -52,9 +56,11 @@ class RedSquare extends ModTemplate {
     this.notifications_aggregate = {};
     this.notifications_unread_count = 0;
     this.notifications_last_viewed_ts = 0;
-    this.notifications_earliest_tweet_ts = new Date().getTime();
     this.notifications_earliest_like_ts = new Date().getTime();
+    this.notifications_earliest_retweet_ts = new Date().getTime();
     this.notifications_latest_ts = 0;
+    this.notifications_contact_earliest_ts = {};
+    this.notifications_contact_latest_ts = {};
 
     //
     // This is the default Open Graph Card for Redsquare
@@ -84,7 +90,8 @@ class RedSquare extends ModTemplate {
 
     this.curated = true;
     this.show_splash = true;
-    this.passive_poll_interval_ms = 5 * 60 * 1000;
+    this.poll_block_interval = 5;
+    this.blocks_since_poll = 0;
 
     // Enables banner / description editing via Profile-module events.
     this.enable_profile_edits = true;
@@ -148,10 +155,6 @@ class RedSquare extends ModTemplate {
       };
 
       this.loadOptions();
-
-      for (const tx of this.returnMockTransactions()) {
-        this.addTweet(tx);
-      }
     }
   }
 
@@ -207,37 +210,38 @@ class RedSquare extends ModTemplate {
     }
 
     this.registerPeer(peer);
-    this.startPassivePolling();
     this.manager?.onPeersUpdated?.();
   }
 
-  startPassivePolling() {
-    if (!this.app.BROWSER || this._passive_poll_timer) {
+  onNewBlock(blk, lc) {
+    if (!this.app.BROWSER || !this.browser_active) {
+      this.blocks_since_poll = 0;
       return;
     }
 
-    const interval = this.passive_poll_interval_ms || 5 * 60 * 1000;
+    if (!lc) {
+      return;
+    }
 
-    this._passive_poll_timer = setInterval(() => {
-      if (!this.browser_active || this.peers.length === 0) {
-        return;
-      }
+    this.blocks_since_poll++;
 
+    if (this.blocks_since_poll < this.poll_block_interval) {
+      return;
+    }
+
+    this.blocks_since_poll = 0;
+
+    if (this.peers.length > 0) {
       this.loadTransactions('tweets', 'newer', (result) => {
-        if (result?.added?.length) {
-          this.manager?.onNewerContentLoaded?.(result);
-        }
+        this.manager?.onNewerContentLoaded?.(result, { announce: true });
       });
-    }, interval);
-  }
-
-  stopPassivePolling() {
-    if (!this._passive_poll_timer) {
-      return;
     }
 
-    clearInterval(this._passive_poll_timer);
-    this._passive_poll_timer = null;
+    if (this.publicKey) {
+      this.loadTransactions('notifications', 'newer', (result) => {
+        this.manager?.onNewerContentLoaded?.(result);
+      });
+    }
   }
 
   registerPeer(peer) {
@@ -313,9 +317,16 @@ class RedSquare extends ModTemplate {
       this._load_busy[busyKey] = [callback];
 
       const added = [];
+      const new_tweets = [];
       const updated = [];
       const ignored = [];
       const peer_exhausted = [];
+      // Polling uses updated_at so liked posts are returned too. Only creation time
+      // determines whether a downloaded post is new enough to announce.
+      const newest_known_tweet_ts = this.tweets_timeline.reduce((latest, signature) => {
+        const tweet = this.getTweet(signature);
+        return Math.max(latest, Number(tweet?.created_at) || 0);
+      }, 0);
       let peers_remaining = 0;
 
       const finishTweets = () => {
@@ -325,6 +336,7 @@ class RedSquare extends ModTemplate {
           type,
           direction,
           added: added.slice(),
+          new_tweets: new_tweets.slice(),
           updated: updated.slice(),
           ignored: ignored.slice(),
           exhausted
@@ -353,6 +365,11 @@ class RedSquare extends ModTemplate {
             continue;
           }
 
+          if (working !== tx) {
+            working.optional =
+              tx.optional && typeof tx.optional === 'object' ? { ...tx.optional } : {};
+          }
+
           if (typeof working.decryptMessage === 'function') {
             working.decryptMessage(this.app);
           }
@@ -375,6 +392,12 @@ class RedSquare extends ModTemplate {
           } else if (!hadTweet) {
             if (!added.includes(signature)) {
               added.push(signature);
+            }
+            if (this.app.BROWSER) {
+              this.addNotification(working);
+            }
+            if (!older && created_at > newest_known_tweet_ts && !new_tweets.includes(signature)) {
+              new_tweets.push(signature);
             }
           } else if (!updated.includes(signature)) {
             updated.push(signature);
@@ -482,6 +505,7 @@ class RedSquare extends ModTemplate {
             type,
             direction,
             added: [],
+            new_tweets: [],
             updated: [],
             ignored: [],
             exhausted: true
@@ -514,6 +538,14 @@ class RedSquare extends ModTemplate {
     const added = [];
     const updated = [];
     const ignored = [];
+    const contactKeys = Array.from(
+      new Set(
+        (this.app.keychain?.returnKeys?.() || [])
+          .map((key) => key?.publicKey)
+          .filter((publicKey) => publicKey && publicKey !== this.publicKey)
+      )
+    );
+    const contactArchivePeer = this.peers[0]?.peer || 'localhost';
     let exhausted = false;
     let queries = 0;
     let queries_done = 0;
@@ -521,8 +553,8 @@ class RedSquare extends ModTemplate {
     const finishNotifications = () => {
       if (collected.length === 0) {
         if (isOlder) {
-          this.notifications_earliest_tweet_ts = 0;
           this.notifications_earliest_like_ts = 0;
+          this.notifications_earliest_retweet_ts = 0;
         }
         exhausted = true;
       }
@@ -584,8 +616,10 @@ class RedSquare extends ModTemplate {
             if (ts < this.notifications_earliest_like_ts) {
               this.notifications_earliest_like_ts = ts;
             }
-          } else if (ts < this.notifications_earliest_tweet_ts) {
-            this.notifications_earliest_tweet_ts = ts;
+          } else if (txmsg.request === 'retweet') {
+            if (ts < this.notifications_earliest_retweet_ts) {
+              this.notifications_earliest_retweet_ts = ts;
+            }
           }
         } else if (ts > this.notifications_latest_ts) {
           this.notifications_latest_ts = ts;
@@ -618,26 +652,44 @@ class RedSquare extends ModTemplate {
     };
 
     if (isOlder) {
-      if (this.notifications_earliest_tweet_ts) {
+      for (const publicKey of contactKeys) {
+        if (
+          !Object.prototype.hasOwnProperty.call(this.notifications_contact_earliest_ts, publicKey)
+        ) {
+          this.notifications_contact_earliest_ts[publicKey] = Date.now();
+        }
+
+        const earliestTs = this.notifications_contact_earliest_ts[publicKey];
+
+        if (!earliestTs) {
+          continue;
+        }
+
         queries++;
 
         this.app.storage.loadTransactions(
           {
             field1: 'RedSquare',
-            field3: this.publicKey,
-            created_earlier_than: this.notifications_earliest_tweet_ts,
+            field2: publicKey,
+            created_earlier_than: earliestTs,
             limit: 10
           },
           (txs) => {
-            for (const tx of txs || []) {
-              if (tx.timestamp < this.notifications_earliest_tweet_ts) {
-                this.notifications_earliest_tweet_ts = tx.timestamp;
+            const rows = txs || [];
+
+            if (rows.length === 0) {
+              this.notifications_contact_earliest_ts[publicKey] = 0;
+            }
+
+            for (const tx of rows) {
+              if (tx.timestamp < this.notifications_contact_earliest_ts[publicKey]) {
+                this.notifications_contact_earliest_ts[publicKey] = tx.timestamp;
               }
               collected.push(tx);
             }
             onNotificationQueryDone();
           },
-          'localhost'
+          contactArchivePeer
         );
       }
 
@@ -663,12 +715,63 @@ class RedSquare extends ModTemplate {
           'localhost'
         );
       }
+
+      if (this.notifications_earliest_retweet_ts) {
+        queries++;
+
+        this.app.storage.loadTransactions(
+          {
+            field1: 'RedSquareRetweet',
+            field3: this.publicKey,
+            created_earlier_than: this.notifications_earliest_retweet_ts,
+            limit: 10
+          },
+          (txs) => {
+            for (const tx of txs || []) {
+              if (tx.timestamp < this.notifications_earliest_retweet_ts) {
+                this.notifications_earliest_retweet_ts = tx.timestamp;
+              }
+              collected.push(tx);
+            }
+            onNotificationQueryDone();
+          },
+          'localhost'
+        );
+      }
     } else {
+      for (const publicKey of contactKeys) {
+        const latestTs = this.notifications_contact_latest_ts[publicKey] || 0;
+
+        queries++;
+
+        this.app.storage.loadTransactions(
+          {
+            field1: 'RedSquare',
+            field2: publicKey,
+            created_later_than: latestTs,
+            limit: 10
+          },
+          (txs) => {
+            for (const tx of txs || []) {
+              const ts = Number(tx.timestamp) || 0;
+
+              if (ts > (this.notifications_contact_latest_ts[publicKey] || 0)) {
+                this.notifications_contact_latest_ts[publicKey] = ts;
+              }
+
+              collected.push(tx);
+            }
+            onNotificationQueryDone();
+          },
+          contactArchivePeer
+        );
+      }
+
       queries++;
 
       this.app.storage.loadTransactions(
         {
-          field1: 'RedSquare',
+          field1: 'RedSquareLike',
           field3: this.publicKey,
           updated_later_than: this.notifications_latest_ts,
           limit: 10
@@ -686,7 +789,7 @@ class RedSquare extends ModTemplate {
 
       this.app.storage.loadTransactions(
         {
-          field1: 'RedSquareLike',
+          field1: 'RedSquareRetweet',
           field3: this.publicKey,
           updated_later_than: this.notifications_latest_ts,
           limit: 10
@@ -866,10 +969,183 @@ class RedSquare extends ModTemplate {
     return newtx;
   }
 
-  async receiveTweetTransaction(tx) {
+  returnInteractionTargetPublicKey(tx) {
+    const actorPublicKey = tx?.from?.[0]?.publicKey || '';
+    // The wallet's sender output precedes recipients in tx.to.
+    const target = tx?.to?.find((slip) => slip?.publicKey && slip.publicKey !== actorPublicKey);
+
+    return target?.publicKey || '';
+  }
+
+  async saveTweet(tweet, blk = null) {
+    const signature = tweet?.tx?.signature;
+
+    if (!signature || !tweet.thread_id) {
+      return;
+    }
+
+    const previousSave = this.tweet_archive_saves[signature] || Promise.resolve();
+    const archiveSave = previousSave
+      .catch(() => {})
+      .then(() => this.saveTweetToArchive(tweet, blk));
+
+    this.tweet_archive_saves[signature] = archiveSave;
+
+    try {
+      await archiveSave;
+    } finally {
+      if (this.tweet_archive_saves[signature] === archiveSave) {
+        delete this.tweet_archive_saves[signature];
+      }
+    }
+  }
+
+  async saveTweetToArchive(tweet, blk = null) {
+    const signature = tweet.tx.signature;
+
+    const archiveOptions = {
+      field1: 'RedSquare',
+      preserve: 0,
+      field4: tweet.parent_id || '',
+      field5: tweet.thread_id,
+      updated_at:
+        Number(tweet.tx.optional?.updated_at) ||
+        Number(tweet.updated_at) ||
+        Number(tweet.tx.timestamp) ||
+        Date.now()
+    };
+    const targetPublicKey = this.returnInteractionTargetPublicKey(tweet.tx);
+
+    if (tweet.parent_id && targetPublicKey) {
+      archiveOptions.field3 = targetPublicKey;
+    }
+
+    if (blk) {
+      archiveOptions.block_hash = blk.hash;
+      archiveOptions.block_id = Number(blk.id);
+    }
+
+    const archivedTweets = await this.app.storage.loadTransactions(
+      { field1: 'RedSquare', sig: signature },
+      (txs) => txs || [],
+      'localhost'
+    );
+
+    if (archivedTweets?.length) {
+      await this.app.storage.updateTransaction(tweet.tx, archiveOptions, 'localhost', 1);
+      return;
+    }
+
+    await this.app.storage.saveTransaction(tweet.tx, archiveOptions, 'localhost', blk);
+  }
+
+  async saveLike(tx, blk = null) {
+    const signature = tx?.signature;
+
+    if (!signature) {
+      return false;
+    }
+
+    const previousSave = this.like_archive_saves[signature] || Promise.resolve();
+    const archiveSave = previousSave.catch(() => {}).then(() => this.saveLikeToArchive(tx, blk));
+
+    this.like_archive_saves[signature] = archiveSave;
+
+    try {
+      return await archiveSave;
+    } finally {
+      if (this.like_archive_saves[signature] === archiveSave) {
+        delete this.like_archive_saves[signature];
+      }
+    }
+  }
+
+  async saveLikeToArchive(tx, blk = null) {
+    const txmsg = tx?.returnMessage?.() || tx?.msg || {};
+    const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
+    const archiveOptions = {
+      field1: 'RedSquareLike',
+      preserve: 0,
+      field3: this.returnInteractionTargetPublicKey(tx),
+      field4: targetSignature
+    };
+
+    if (blk) {
+      archiveOptions.block_hash = blk.hash;
+      archiveOptions.block_id = Number(blk.id);
+    }
+
+    const archivedLikes = await this.app.storage.loadTransactions(
+      { field1: 'RedSquareLike', sig: tx.signature },
+      (txs) => txs || [],
+      'localhost'
+    );
+
+    if (archivedLikes?.length) {
+      await this.app.storage.updateTransaction(tx, archiveOptions, 'localhost', 1);
+      return false;
+    }
+
+    await this.app.storage.saveTransaction(tx, archiveOptions, 'localhost', blk);
+    return true;
+  }
+
+  async saveRetweet(tx, blk = null) {
+    const signature = tx?.signature;
+    const txmsg = tx?.returnMessage?.() || tx?.msg || {};
+    const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
+
+    if (!signature || !targetSignature) {
+      return;
+    }
+
+    const previousSave = this.retweet_archive_saves[signature] || Promise.resolve();
+    const archiveSave = previousSave
+      .catch(() => {})
+      .then(async () => {
+        const archiveOptions = {
+          field1: 'RedSquareRetweet',
+          preserve: 0,
+          field3: this.returnInteractionTargetPublicKey(tx),
+          field4: targetSignature
+        };
+
+        if (blk) {
+          archiveOptions.block_hash = blk.hash;
+          archiveOptions.block_id = Number(blk.id);
+        }
+
+        const archivedRetweets = await this.app.storage.loadTransactions(
+          { field1: 'RedSquareRetweet', sig: signature },
+          (txs) => txs || [],
+          'localhost'
+        );
+
+        if (archivedRetweets?.length) {
+          await this.app.storage.updateTransaction(tx, archiveOptions, 'localhost', 1);
+          return;
+        }
+
+        await this.app.storage.saveTransaction(tx, archiveOptions, 'localhost', blk);
+      });
+
+    this.retweet_archive_saves[signature] = archiveSave;
+
+    try {
+      await archiveSave;
+    } finally {
+      if (this.retweet_archive_saves[signature] === archiveSave) {
+        delete this.retweet_archive_saves[signature];
+      }
+    }
+  }
+
+  async receiveTweetTransaction(tx, blk = null) {
     const tweet = this.addTweet(tx);
 
-    if (this.app.BROWSER && Notifications.isAddressedToUser(this, tx)) {
+    await this.saveTweet(tweet, blk);
+
+    if (this.app.BROWSER) {
       this.addNotification(tx);
     }
 
@@ -943,7 +1219,7 @@ class RedSquare extends ModTemplate {
     return tweet;
   }
 
-  async receiveLikeTweetTransaction(tx) {
+  async receiveLikeTweetTransaction(tx, blk = null) {
     const txmsg = tx?.returnMessage?.() || tx?.msg || {};
     const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
 
@@ -951,7 +1227,30 @@ class RedSquare extends ModTemplate {
       return null;
     }
 
+    const previousUpdate = this.like_target_updates[targetSignature] || Promise.resolve();
+    const targetUpdate = previousUpdate
+      .catch(() => {})
+      .then(() => this.applyLikeTweetTransaction(tx, blk, targetSignature));
+
+    this.like_target_updates[targetSignature] = targetUpdate;
+
+    try {
+      return await targetUpdate;
+    } finally {
+      if (this.like_target_updates[targetSignature] === targetUpdate) {
+        delete this.like_target_updates[targetSignature];
+      }
+    }
+  }
+
+  async applyLikeTweetTransaction(tx, blk, targetSignature) {
+    // Archive signatures deduplicate optimistic delivery and confirmation without
+    // preventing the same user from submitting another signed like transaction.
+    const isNewLike = await this.saveLike(tx, blk);
+
     const interactionTs = Number(tx.timestamp) || Date.now();
+    const likerKey =
+      tx.from && tx.from[0] && tx.from[0].publicKey ? String(tx.from[0].publicKey) : '';
     const tweet = this.getTweet(targetSignature);
 
     if (tweet?.tx) {
@@ -966,19 +1265,26 @@ class RedSquare extends ModTemplate {
         Number(targetTx.optional.updated_at) ||
         Number(targetTx.timestamp) ||
         0;
+      const likers = Array.isArray(targetTx.optional.likers) ? targetTx.optional.likers : [];
 
-      if (interactionTs > targetTs) {
+      if (isNewLike) {
         targetTx.optional.num_likes = Number(targetTx.optional.num_likes) || 0;
         targetTx.optional.num_likes += 1;
-        targetTx.optional.updated_at = interactionTs;
-        tweet.likes = targetTx.optional.num_likes;
-        tweet.updated_at = interactionTs;
 
-        await this.app.storage.updateTransaction(
-          targetTx,
-          { updated_at: interactionTs },
-          'localhost'
-        );
+        if (likerKey && !likers.includes(likerKey)) {
+          likers.unshift(likerKey);
+          targetTx.optional.likers = likers;
+        }
+
+        // Archive polling uses a strict updated_later_than cursor.
+        const updatedAt = Math.max(targetTs + 1, interactionTs);
+        targetTx.optional.updated_at = updatedAt;
+        tweet.likes = targetTx.optional.num_likes;
+        tweet.likers = likers.slice();
+        tweet.updated_at = updatedAt;
+
+        // Peer-loaded tweets may not exist in the local archive yet.
+        await this.saveTweet(tweet);
 
         tweet.refreshControls();
       }
@@ -996,14 +1302,24 @@ class RedSquare extends ModTemplate {
 
               const targetTs =
                 Number(targetTx.optional.updated_at) || Number(targetTx.timestamp) || 0;
+              const likers = Array.isArray(targetTx.optional.likers)
+                ? targetTx.optional.likers
+                : [];
 
-              if (interactionTs > targetTs) {
+              if (isNewLike) {
                 targetTx.optional.num_likes = Number(targetTx.optional.num_likes) || 0;
                 targetTx.optional.num_likes += 1;
 
+                if (likerKey && !likers.includes(likerKey)) {
+                  likers.unshift(likerKey);
+                  targetTx.optional.likers = likers;
+                }
+
+                const updatedAt = Math.max(targetTs + 1, interactionTs);
+
                 await this.app.storage.updateTransaction(
                   targetTx,
-                  { updated_at: interactionTs },
+                  { updated_at: updatedAt },
                   'localhost'
                 );
               }
@@ -1023,13 +1339,15 @@ class RedSquare extends ModTemplate {
     return tweet;
   }
 
-  async receiveRetweetTransaction(tx) {
+  async receiveRetweetTransaction(tx, blk = null) {
     const txmsg = tx?.returnMessage?.() || tx?.msg || {};
     const targetSignature = txmsg?.data?.signature != null ? String(txmsg.data.signature) : '';
 
     if (!targetSignature) {
       return null;
     }
+
+    await this.saveRetweet(tx, blk);
 
     const interactionTs = Number(tx.timestamp) || Date.now();
     const retweeterKey =
@@ -1127,7 +1445,7 @@ class RedSquare extends ModTemplate {
   }
 
   async onConfirmation(blk, tx, conf) {
-    if (conf !== 0) {
+    if (Number(conf) !== 0) {
       return;
     }
 
@@ -1138,14 +1456,32 @@ class RedSquare extends ModTemplate {
     }
 
     switch (txmsg.request) {
-      case 'create tweet':
-        await this.receiveTweetTransaction(tx);
+      case 'create tweet': {
+        const signature = tx.signature != null ? String(tx.signature) : '';
+        const hadTweet = this.hasTweet(signature);
+        const tweet = await this.receiveTweetTransaction(tx, blk);
+
+        if (this.app.BROWSER && tweet && !hadTweet) {
+          this.manager?.onNewerContentLoaded?.(
+            {
+              type: 'tweets',
+              direction: 'newer',
+              added: [signature],
+              new_tweets: [signature],
+              updated: [],
+              ignored: [],
+              exhausted: false
+            },
+            { announce: true }
+          );
+        }
         break;
+      }
       case 'like tweet':
-        await this.receiveLikeTweetTransaction(tx);
+        await this.receiveLikeTweetTransaction(tx, blk);
         break;
       case 'retweet':
-        await this.receiveRetweetTransaction(tx);
+        await this.receiveRetweetTransaction(tx, blk);
         break;
       default:
         break;

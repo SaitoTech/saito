@@ -164,8 +164,8 @@
 
 .tweet .body {
   overflow-wrap: anywhere;
-  white-space: pre-wrap;
-  line-height: 1.45;
+  white-space: normal;
+  line-height: 1.5;
 }
 
 .tweet .body + .gallery,
@@ -178,13 +178,28 @@
   margin-top: var(--saito-space-sm);
 }
 
-/* Defensive body typography — Tweet owns rendering context; semantics stay, size abuse does not */
+/* Compact Markdown hierarchy for published tweet content. */
 .tweet .body :is(h1, h2, h3, h4, h5, h6) {
   margin: 0;
-  font-size: inherit;
   font-family: var(--saito-font-medium);
   font-weight: normal;
-  line-height: inherit;
+  line-height: 1.25;
+}
+
+.tweet .body h1 {
+  font-size: 1.5em;
+}
+
+.tweet .body h2 {
+  font-size: 1.35em;
+}
+
+.tweet .body h3 {
+  font-size: 1.2em;
+}
+
+.tweet .body :is(h4, h5, h6) {
+  font-size: 1em;
 }
 
 .tweet .body :is(strong, b) {
@@ -192,8 +207,20 @@
   font-weight: normal;
 }
 
-.tweet .body :is(p, blockquote, pre) {
+.tweet .body :is(p, blockquote, pre, ul, ol, table, hr) {
   margin: 0;
+}
+
+.tweet .body > * + * {
+  margin-top: var(--saito-space-sm);
+}
+
+.tweet .body > * + :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: var(--saito-space-md);
+}
+
+.tweet .body > :is(h1, h2, h3, h4, h5, h6) + * {
+  margin-top: var(--saito-space-xs);
 }
 
 .tweet .body blockquote {
@@ -203,8 +230,12 @@
 }
 
 .tweet .body :is(ul, ol) {
-  margin: 0;
   padding-left: 1.4em;
+}
+
+.tweet .body li + li,
+.tweet .body li > :is(ul, ol) {
+  margin-top: var(--saito-space-xs);
 }
 
 .tweet .body :is(pre, code) {
@@ -216,12 +247,15 @@
 .tweet .body pre {
   max-width: 100%;
   overflow-x: auto;
-  white-space: pre-wrap;
+  overflow-wrap: normal;
+  white-space: pre;
 }
 
 .tweet .body table {
+  display: block;
   width: 100%;
   max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   font-size: inherit;
   line-height: inherit;
@@ -254,17 +288,22 @@
 
 .tweet .controls {
   display: flex;
-  justify-content: space-between;
   user-select: none;
 }
 
 .tweet .controls .tool {
   display: flex;
+  flex: 1 1 0;
   align-items: center;
-  flex: 0 0 auto;
+  justify-content: center;
+  min-width: 0;
   padding: var(--saito-space-xs) 0;
   cursor: pointer;
   color: var(--saito-muted-foreground);
+}
+
+.tweet .controls .tool i {
+  font-size: 1.6rem;
 }
 
 .tweet .controls .count {

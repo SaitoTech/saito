@@ -1036,15 +1036,15 @@
     width: 100vw;
     height: var(--chat-viewport-height, 100dvh);
     transition: none;
-    max-height: -webkit-fill-available;
+    max-height: none;
     max-width: -webkit-fill-available;
     border-radius: 0;
     background: var(--saito-background);
     z-index: 91;
     /* For the keyboard */
     right: 0 !important;
-    bottom: 0 !important;
-    top: 0 !important;
+    bottom: auto !important;
+    top: var(--chat-viewport-top, 0px) !important;
     left: 0 !important;
   }
 

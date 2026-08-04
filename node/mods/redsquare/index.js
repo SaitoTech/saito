@@ -5,7 +5,7 @@ module.exports = (app, mod, build_number, og_card = mod.social) => {
     <html lang="en" data-theme="dark">
       <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
         <meta name="description" content="${app.browser.escapeHTML(og_card.description)}" />

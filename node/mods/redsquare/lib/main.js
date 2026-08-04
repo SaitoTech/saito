@@ -23,6 +23,8 @@ class Main {
     this.post_control_visible = true;
     this.post_visibility_observer = null;
     this.floating_post_resize_handler = null;
+    this.visualViewport = null;
+    this.visualViewportHandler = null;
   }
 
   setChatManager(chatManager = null) {
@@ -118,7 +120,48 @@ class Main {
       this.showMobileView(this.active_mobile_view);
     }
 
+    this.attachVisualViewportHandler();
     this.attachEvents();
+  }
+
+  attachVisualViewportHandler() {
+    const container = document.querySelector(this.container);
+
+    if (!container || !window.visualViewport) {
+      return;
+    }
+
+    this.removeVisualViewportHandler();
+    this.visualViewport = window.visualViewport;
+    this.visualViewportHandler = () => {
+      const headerBottom = Math.max(
+        0,
+        document.querySelector('#saito-header')?.getBoundingClientRect().bottom || 0
+      );
+      const viewportTop = this.visualViewport.offsetTop;
+      const containerTop = Math.max(viewportTop, headerBottom);
+      const visibleHeaderHeight = Math.max(0, headerBottom - viewportTop);
+
+      container.style.setProperty('--redsquare-page-viewport-top', `${containerTop}px`);
+      container.style.setProperty(
+        '--redsquare-page-viewport-height',
+        `${Math.max(0, this.visualViewport.height - visibleHeaderHeight)}px`
+      );
+    };
+
+    this.visualViewportHandler();
+    this.visualViewport.addEventListener('resize', this.visualViewportHandler);
+    this.visualViewport.addEventListener('scroll', this.visualViewportHandler);
+  }
+
+  removeVisualViewportHandler() {
+    if (this.visualViewport && this.visualViewportHandler) {
+      this.visualViewport.removeEventListener('resize', this.visualViewportHandler);
+      this.visualViewport.removeEventListener('scroll', this.visualViewportHandler);
+    }
+
+    this.visualViewport = null;
+    this.visualViewportHandler = null;
   }
 
   attachSidebarScrollSync() {

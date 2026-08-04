@@ -4,6 +4,7 @@ const ComposeTemplate = require('./compose.template');
 const MAX_IMAGES = 4;
 const DEFAULT_CHAR_LIMIT = 500;
 const POSTING_ANIMATION_MS = 500;
+const MOBILE_KEYBOARD_MIN_HEIGHT = 100;
 
 class ComposeOverlay {
   constructor(app, mod, reply_to = null) {
@@ -25,6 +26,8 @@ class ComposeOverlay {
     this.posting = false;
     this.drag_drop_bound = false;
     this.gif_picker_rendered = false;
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
   }
 
   open(options = {}) {
@@ -60,8 +63,11 @@ class ComposeOverlay {
       this.helper_text = 'Create a text post or drag-and-drop images…';
     }
 
-    this.overlay.show(ComposeTemplate(this));
-    this.getRoot()?.closest('.saito-overlay')?.classList.add('redsquare-compose-overlay-host');
+    this.overlay.show(ComposeTemplate(this), () => this.removeVisualViewportResizeHandler());
+
+    const overlayHost = this.getRoot()?.closest('.saito-overlay');
+    overlayHost?.classList.add('redsquare-compose-overlay-host');
+    this.attachVisualViewportResizeHandler(overlayHost);
     this.attachEvents();
 
     setTimeout(() => {
@@ -74,6 +80,7 @@ class ComposeOverlay {
   }
 
   close() {
+    this.removeVisualViewportResizeHandler();
     this.overlay.close();
     this.images = [];
     this.reply_to = this.default_reply_to;
@@ -83,6 +90,46 @@ class ComposeOverlay {
 
   getRoot() {
     return document.querySelector('.saito-overlay .compose');
+  }
+
+  attachVisualViewportResizeHandler(overlayHost) {
+    if (!overlayHost || !window.visualViewport || window.innerWidth > 768) {
+      return;
+    }
+
+    this.removeVisualViewportResizeHandler();
+
+    this.visualViewport = window.visualViewport;
+    this.visualViewportResizeHandler = () => {
+      overlayHost.style.setProperty(
+        '--redsquare-compose-viewport-top',
+        `${this.visualViewport.offsetTop}px`
+      );
+      overlayHost.style.setProperty(
+        '--redsquare-compose-viewport-height',
+        `${this.visualViewport.height}px`
+      );
+      const coveredHeight =
+        window.innerHeight - this.visualViewport.height - this.visualViewport.offsetTop;
+      overlayHost
+        .querySelector('.compose')
+        ?.classList.toggle('keyboard-visible', coveredHeight > MOBILE_KEYBOARD_MIN_HEIGHT);
+      overlayHost.scrollTop = 0;
+    };
+
+    this.visualViewportResizeHandler();
+    this.visualViewport.addEventListener('resize', this.visualViewportResizeHandler);
+    this.visualViewport.addEventListener('scroll', this.visualViewportResizeHandler);
+  }
+
+  removeVisualViewportResizeHandler() {
+    if (this.visualViewport && this.visualViewportResizeHandler) {
+      this.visualViewport.removeEventListener('resize', this.visualViewportResizeHandler);
+      this.visualViewport.removeEventListener('scroll', this.visualViewportResizeHandler);
+    }
+
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
   }
 
   attachEvents() {

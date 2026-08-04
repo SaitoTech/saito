@@ -5,6 +5,8 @@ class ChatMain {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
+    this.visualViewport = null;
+    this.visualViewportHandler = null;
     this.chatManagerMenu = new ChatManagerMenu(
       app,
       mod,
@@ -20,7 +22,47 @@ class ChatMain {
       this.app.browser.addElementToDom(ChatMainTemplate());
     }
 
+    this.attachVisualViewportHandler();
     this.attachEvents();
+  }
+
+  attachVisualViewportHandler() {
+    const container = document.querySelector('.chat-main-container');
+    if (!container || !window.visualViewport) {
+      return;
+    }
+
+    this.removeVisualViewportHandler();
+    this.visualViewport = window.visualViewport;
+    this.visualViewportHandler = () => {
+      const headerBottom = Math.max(
+        0,
+        document.querySelector('#saito-header')?.getBoundingClientRect().bottom || 0
+      );
+      const viewportTop = this.visualViewport.offsetTop;
+      const containerTop = Math.max(viewportTop, headerBottom);
+      const visibleHeaderHeight = Math.max(0, headerBottom - viewportTop);
+
+      container.style.setProperty('--chat-page-viewport-top', `${containerTop}px`);
+      container.style.setProperty(
+        '--chat-page-viewport-height',
+        `${Math.max(0, this.visualViewport.height - visibleHeaderHeight)}px`
+      );
+    };
+
+    this.visualViewportHandler();
+    this.visualViewport.addEventListener('resize', this.visualViewportHandler);
+    this.visualViewport.addEventListener('scroll', this.visualViewportHandler);
+  }
+
+  removeVisualViewportHandler() {
+    if (this.visualViewport && this.visualViewportHandler) {
+      this.visualViewport.removeEventListener('resize', this.visualViewportHandler);
+      this.visualViewport.removeEventListener('scroll', this.visualViewportHandler);
+    }
+
+    this.visualViewport = null;
+    this.visualViewportHandler = null;
   }
 
   attachEvents() {

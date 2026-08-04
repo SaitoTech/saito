@@ -86,6 +86,91 @@ function returnMessage(tx) {
   return tx && tx.msg && typeof tx.msg === 'object' ? tx.msg : {};
 }
 
+function isKeyringContact(mod, publicKey) {
+  if (!publicKey || publicKey === mod.publicKey) {
+    return false;
+  }
+
+  const keys = mod.app?.keychain?.returnKeys?.() || [];
+
+  return keys.some((key) => key?.publicKey === publicKey);
+}
+
+function getInteractionTargetPublicKey(notification) {
+  const tx = notification?.tx;
+  const actorPublicKey = notification?.actor_publicKey || '';
+
+  if (!tx || !Array.isArray(tx.to)) {
+    return '';
+  }
+
+  // Wallet transactions include a sender output, so ownership comes from the
+  // first recipient other than the actor rather than tx.to[0].
+  const target = tx.to.find((slip) => slip?.publicKey && slip.publicKey !== actorPublicKey);
+
+  return target?.publicKey || '';
+}
+
+function isOwnTweetInteraction(mod, notification) {
+  const tweet = Tweets.getTweet(mod, notification?.tweet_signature);
+
+  if (tweet?.publicKey) {
+    return tweet.publicKey === mod.publicKey && notification.actor_publicKey !== mod.publicKey;
+  }
+
+  return (
+    notification.actor_publicKey !== mod.publicKey &&
+    getInteractionTargetPublicKey(notification) === mod.publicKey
+  );
+}
+
+function isReplyToOwnTweet(mod, notification) {
+  const data = returnMessage(notification?.tx).data || {};
+  const parentSignature = data.parent_id != null ? String(data.parent_id) : '';
+  const parent = Tweets.getTweet(mod, parentSignature);
+
+  if (!parentSignature) {
+    return false;
+  }
+
+  if (parent?.publicKey) {
+    return parent.publicKey === mod.publicKey;
+  }
+
+  return getInteractionTargetPublicKey(notification) === mod.publicKey;
+}
+
+function shouldNotify(mod, notification) {
+  if (!notification?.actor_publicKey || notification.actor_publicKey === mod.publicKey) {
+    return false;
+  }
+
+  const request = returnMessage(notification.tx).request;
+
+  if (
+    request === 'create tweet' ||
+    notification.type === 'tweet' ||
+    notification.type === 'reply'
+  ) {
+    return (
+      isKeyringContact(mod, notification.actor_publicKey) ||
+      (notification.type === 'reply' && isReplyToOwnTweet(mod, notification))
+    );
+  }
+
+  if (
+    request === 'like tweet' ||
+    request === 'retweet' ||
+    notification.type === 'like' ||
+    notification.type === 'quote' ||
+    notification.type === 'retweet'
+  ) {
+    return isOwnTweetInteraction(mod, notification);
+  }
+
+  return false;
+}
+
 function aggregateLikeNotification(mod, existing, incoming) {
   existing.count = (existing.count || 1) + 1;
   existing.created_at = Math.max(existing.created_at || 0, incoming.created_at || 0);
@@ -102,10 +187,18 @@ function addNotification(mod, input) {
     return null;
   }
 
+  if (!shouldNotify(mod, notification)) {
+    return null;
+  }
+
   ensureNotificationTweet(mod, notification);
 
   if (!Tweets.hasTweet(mod, notification.tweet_signature)) {
     return null;
+  }
+
+  if (hasNotification(mod, notification.signature)) {
+    return updateNotification(mod, input);
   }
 
   const aggregateKey = getNotificationAggregateKey(mod, notification);
@@ -116,10 +209,6 @@ function addNotification(mod, input) {
     if (existing) {
       return aggregateLikeNotification(mod, existing, notification);
     }
-  }
-
-  if (hasNotification(mod, notification.signature)) {
-    return updateNotification(mod, input);
   }
 
   mod.notifications[notification.signature] = notification;
@@ -234,22 +323,6 @@ function resortNotificationTimeline(mod) {
   });
 }
 
-function isAddressedToUser(mod, tx) {
-  if (!tx || !mod.publicKey) {
-    return false;
-  }
-
-  if (typeof tx.isTo === 'function') {
-    return tx.isTo(mod.publicKey);
-  }
-
-  if (Array.isArray(tx.to)) {
-    return tx.to.some((slip) => slip?.publicKey === mod.publicKey);
-  }
-
-  return false;
-}
-
 module.exports = {
   normalizeNotificationInput,
   getNotificationAggregateKey,
@@ -258,6 +331,11 @@ module.exports = {
   markNotificationsViewed,
   updateNotificationBadge,
   ensureNotificationTweet,
+  isKeyringContact,
+  getInteractionTargetPublicKey,
+  isOwnTweetInteraction,
+  isReplyToOwnTweet,
+  shouldNotify,
   aggregateLikeNotification,
   addNotification,
   removeNotification,
@@ -266,6 +344,5 @@ module.exports = {
   hasNotification,
   insertNotificationTimeline,
   removeFromNotificationTimeline,
-  resortNotificationTimeline,
-  isAddressedToUser
+  resortNotificationTimeline
 };

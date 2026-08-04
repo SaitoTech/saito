@@ -1437,7 +1437,7 @@ class Manager {
     return scroller.scrollTop <= SCROLL_THRESHOLD_PX;
   }
 
-  fetchRemoteTransactions(type, direction) {
+  fetchRemoteTransactions(type, direction, { announce = false } = {}) {
     this.mod.loadTransactions(type, direction, (result) => {
       const payload = result || {
         type,
@@ -1449,7 +1449,7 @@ class Manager {
       };
 
       if (direction === 'newer') {
-        this.onNewerContentLoaded(payload);
+        this.onNewerContentLoaded(payload, { announce });
       }
     });
   }
@@ -1460,13 +1460,13 @@ class Manager {
     }
   }
 
-  onNewerContentLoaded(result) {
+  onNewerContentLoaded(result, { announce = false } = {}) {
     if (!result) {
       return;
     }
 
     if (result.type === 'tweets') {
-      this.handleNewerTweets(result);
+      this.handleNewerTweets(result, { announce });
       return;
     }
 
@@ -1475,51 +1475,69 @@ class Manager {
     }
   }
 
-  canAutoInsertTimeline() {
-    if (this.mode !== 'timeline' || !this.timeline_rendered) {
-      return false;
-    }
+  handleNewerTweets(result, { announce = false } = {}) {
+    // Archive hydration is initial feed state; only post-load event paths may
+    // place genuinely new tweets behind the notification banner.
+    const signatures = Array.from(
+      new Set(
+        announce
+          ? Array.isArray(result?.new_tweets)
+            ? result.new_tweets
+            : []
+          : Array.isArray(result?.added)
+            ? result.added
+            : []
+      )
+    );
 
-    if (!this.isNearTop()) {
-      return false;
-    }
-
-    return !this.isUserInteractionBlocking();
-  }
-
-  isUserInteractionBlocking() {
-    if (this.mod.compose_overlay?.getRoot?.()) {
-      return true;
-    }
-
-    if (this.mod.tweet_menu?.isOpen) {
-      return true;
-    }
-
-    if (this.mod.settings_overlay?.getRoot?.()) {
-      return true;
-    }
-
-    return false;
-  }
-
-  handleNewerTweets(result) {
-    if (!result?.added?.length) {
+    if (!signatures?.length) {
       return;
     }
 
-    for (const signature of result.added) {
-      if (!this.pending_newer_tweets.includes(signature)) {
-        this.pending_newer_tweets.push(signature);
+    const timeline = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+    const rendered = new Set();
+    const immediatelyVisible = [];
+    let newestRenderedAt = 0;
+
+    for (const element of timeline?.querySelectorAll('article.tweet[data-id]') || []) {
+      const signature = element.getAttribute('data-id') || '';
+      const tweet = this.mod.getTweet(signature);
+
+      if (signature) {
+        rendered.add(signature);
+      }
+
+      newestRenderedAt = Math.max(newestRenderedAt, Number(tweet?.created_at) || 0);
+    }
+
+    for (const signature of signatures) {
+      const tweet = this.mod.getTweet(signature);
+
+      if (
+        !tweet ||
+        tweet.parent_id ||
+        rendered.has(signature) ||
+        (newestRenderedAt > 0 && Number(tweet.created_at) < newestRenderedAt)
+      ) {
+        continue;
+      }
+
+      if (announce && this.timeline_rendered) {
+        if (!this.pending_newer_tweets.includes(signature)) {
+          this.pending_newer_tweets.push(signature);
+        }
+      } else {
+        immediatelyVisible.push(signature);
       }
     }
 
-    if (this.canAutoInsertTimeline()) {
-      this.flushPendingNewerTweets({ scrollToTop: false });
-      return;
+    if (immediatelyVisible.length) {
+      this.prependTimelineTweets(immediatelyVisible);
+      this.pagination.timeline.exhausted = false;
+      this.syncFeedStatus();
     }
 
-    if (this.mode === 'timeline') {
+    if (this.pending_newer_tweets.length && this.mode === 'timeline') {
       this.showNewPostsBanner();
     }
   }
@@ -1527,11 +1545,6 @@ class Manager {
   syncPendingNewerTweets() {
     if (!this.pending_newer_tweets.length) {
       this.hideNewPostsBanner();
-      return;
-    }
-
-    if (this.canAutoInsertTimeline()) {
-      this.flushPendingNewerTweets({ scrollToTop: false });
       return;
     }
 

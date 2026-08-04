@@ -54,6 +54,7 @@ class Tweet {
     this.is_reply = false;
     this.critical_child = null;
     this.time = '';
+    this.likers = [];
     this.retweeters = [];
 
     if (this.tx) {
@@ -67,6 +68,11 @@ class Tweet {
     const previousLikes = Number(this.likes) || Number(previousOptional.num_likes) || 0;
     const previousReplies = Number(this.replies) || Number(previousOptional.num_replies) || 0;
     const previousRetweets = Number(this.retweets) || Number(previousOptional.num_retweets) || 0;
+    const previousLikers = Array.isArray(previousOptional.likers)
+      ? previousOptional.likers.slice()
+      : Array.isArray(this.likers)
+        ? this.likers.slice()
+        : [];
     const previousRetweeters = Array.isArray(previousOptional.retweeters)
       ? previousOptional.retweeters.slice()
       : Array.isArray(this.retweeters)
@@ -87,12 +93,18 @@ class Tweet {
     }
 
     const incomingOptional = this.tx.optional;
+    const incomingLikers = Array.isArray(incomingOptional.likers) ? incomingOptional.likers : [];
+    this.tx.optional.likers = Array.from(new Set([...incomingLikers, ...previousLikers]));
 
     this.tx.optional.num_replies = Math.max(
       previousReplies,
       Number(incomingOptional.num_replies) || 0
     );
-    this.tx.optional.num_likes = Math.max(previousLikes, Number(incomingOptional.num_likes) || 0);
+    this.tx.optional.num_likes = Math.max(
+      previousLikes,
+      Number(incomingOptional.num_likes) || 0,
+      this.tx.optional.likers.length
+    );
     this.tx.optional.num_retweets = Math.max(
       previousRetweets,
       Number(incomingOptional.num_retweets) || 0
@@ -101,6 +113,7 @@ class Tweet {
     this.replies = this.tx.optional.num_replies;
     this.likes = this.tx.optional.num_likes;
     this.retweets = this.tx.optional.num_retweets;
+    this.likers = this.tx.optional.likers.slice();
 
     if (Number(incomingOptional.num_retweets) > previousRetweets) {
       if (Array.isArray(incomingOptional.retweeters)) {
@@ -181,6 +194,7 @@ class Tweet {
     this.likes = Number(optional.num_likes) || 0;
     this.replies = Number(optional.num_replies) || 0;
     this.retweets = Number(optional.num_retweets) || 0;
+    this.likers = Array.isArray(optional.likers) ? optional.likers.slice() : [];
     this.retweeters = Array.isArray(optional.retweeters) ? optional.retweeters.slice() : [];
 
     this.curated = optional.curated ? 1 : 0;
