@@ -1,8 +1,4 @@
 const Transaction = require('./../../../lib/saito/transaction').default;
-const {
-  ensureCanonicalOutputLocations,
-  readTransactionLocation
-} = require('../../rustscript/lib/tx_location');
 
 const SLIP_TYPE_P2SH = 10;
 const RUSTSCRIPT_IMPORT_KEY = 'rustscript_explorer_import';
@@ -78,34 +74,31 @@ function rawTxToTransaction(app, rawTx) {
   return new Transaction(undefined, rawTx);
 }
 
-/**
- * Stamp output slips with the confirming block's canonical location before
- * serialization / download / RustScript hand-off.
- */
-function prepareTransactionForExport(app, rawTx, { blk = null, blockId = null, txOrdinal = null } = {}) {
+function exportTransaction(app, rawTx, { blk = null, block_id = null, transaction_id = null } = {}) {
   const tx = rawTxToTransaction(app, rawTx);
   if (!tx || typeof tx.serialize_to_web !== 'function') {
     throw new Error('Transaction could not be serialized.');
   }
 
-  const location = readTransactionLocation(tx, blk);
-  const resolvedBlockId = blockId != null && String(blockId) !== '' ? blockId : location.blockId;
-  const resolvedTxOrdinal =
-    txOrdinal != null && String(txOrdinal) !== '' ? txOrdinal : location.txOrdinal;
+  if (block_id == null || String(block_id) === '') {
+    block_id = blk?.id ?? blk?.block_id ?? null;
+  }
+  if ((transaction_id == null || String(transaction_id) === '') && blk && tx.signature) {
+    const txs = Array.isArray(blk.transactions) ? blk.transactions : [];
+    const idx = txs.findIndex((candidate) => candidate?.signature === tx.signature);
+    if (idx >= 0) {
+      transaction_id = idx;
+    }
+  }
+  if (block_id == null || String(block_id) === '' || transaction_id == null || String(transaction_id) === '') {
+    throw new Error('Confirmed block_id and transaction_id are required to export.');
+  }
 
-  ensureCanonicalOutputLocations(tx, {
-    blockId: resolvedBlockId,
-    txOrdinal: resolvedTxOrdinal,
-    blk
+  const json = tx.serialize_to_web(app, {
+    block_id,
+    transaction_id,
+    update_outputs: true
   });
-
-  return tx;
-}
-
-function exportTransaction(app, rawTx, options = {}) {
-  const tx = prepareTransactionForExport(app, rawTx, options);
-
-  const json = tx.serialize_to_web(app);
   const sig = String(tx.signature || 'unknown').replace(/[^\w.-]+/g, '_');
   const filename = `explorer-tx-${sig}.json`;
   const blob = new Blob([json], { type: 'application/json' });
@@ -120,11 +113,34 @@ function exportTransaction(app, rawTx, options = {}) {
   URL.revokeObjectURL(url);
 }
 
-function queueRustscriptImport(app, rawTx, target, options = {}) {
-  const tx = prepareTransactionForExport(app, rawTx, options);
+function queueRustscriptImport(app, rawTx, target, { blk = null, block_id = null, transaction_id = null } = {}) {
+  const tx = rawTxToTransaction(app, rawTx);
+  if (!tx || typeof tx.serialize_to_web !== 'function') {
+    throw new Error('Transaction could not be serialized.');
+  }
+
+  if (block_id == null || String(block_id) === '') {
+    block_id = blk?.id ?? blk?.block_id ?? null;
+  }
+  if ((transaction_id == null || String(transaction_id) === '') && blk && tx.signature) {
+    const txs = Array.isArray(blk.transactions) ? blk.transactions : [];
+    const idx = txs.findIndex((candidate) => candidate?.signature === tx.signature);
+    if (idx >= 0) {
+      transaction_id = idx;
+    }
+  }
+  if (block_id == null || String(block_id) === '' || transaction_id == null || String(transaction_id) === '') {
+    throw new Error('Confirmed block_id and transaction_id are required to export.');
+  }
 
   const payload = {
-    tx: JSON.parse(tx.serialize_to_web(app)),
+    tx: JSON.parse(
+      tx.serialize_to_web(app, {
+        block_id,
+        transaction_id,
+        update_outputs: true
+      })
+    ),
     target: target || null
   };
 
@@ -149,7 +165,6 @@ module.exports = {
   RUSTSCRIPT_IMPORT_KEY,
   collectP2shUnlockTargets,
   hasP2shUnlockTargets,
-  prepareTransactionForExport,
   exportTransaction,
   unlockTransactionInRustscript,
   queueRustscriptImport,

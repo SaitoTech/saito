@@ -63,6 +63,7 @@ class ScriptImportFlow {
     this.errorMessage = '';
     this.blockedRoot = null;
     this._processing = false;
+    this._completed = false;
 
     this.onEscapeKey = (event) => {
       if (event.key === 'Escape' && this.step && this.step !== 'loading') {
@@ -73,6 +74,7 @@ class ScriptImportFlow {
 
   open() {
     this.errorMessage = '';
+    this._completed = false;
     this.step = 'idle';
     this.show(ImportScriptTemplate.idleOverlay());
     this.bindIdleEvents();
@@ -91,13 +93,17 @@ class ScriptImportFlow {
     this.applyOverlayLayout();
   }
 
-  hide() {
+  hide({ completed = false } = {}) {
+    if (completed) {
+      this._completed = true;
+    }
     if (this.step) {
       this.overlay.close();
     }
   }
 
   onOverlayClosed() {
+    const returnToImportMenu = this.step != null && !this._completed;
     document.body.classList.remove('rs-publish-modal-open');
     document.removeEventListener('keydown', this.onEscapeKey);
     if (this.blockedRoot) {
@@ -106,6 +112,10 @@ class ScriptImportFlow {
     }
     this.step = null;
     this._processing = false;
+    this._completed = false;
+    if (returnToImportMenu) {
+      this.mainUi?.welcomeOverlay?.render('import-choice');
+    }
   }
 
   applyOverlayLayout() {
@@ -176,7 +186,7 @@ class ScriptImportFlow {
         this.mod.unlockContext = null;
       }
       this.mainUi.enterCreateGuided(locking);
-      this.hide();
+      this.hide({ completed: true });
     } catch (err) {
       this._processing = false;
       this.errorMessage = err?.message || 'Could not load saved script.';

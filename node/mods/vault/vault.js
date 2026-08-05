@@ -5,6 +5,7 @@ const ModTemplate = require('./../../lib/templates/modtemplate');
 const VaultMain = require('./lib/ui/main');
 const VaultHome = require('./index');
 const AccessFileOverlay = require('./lib/ui/overlays/load-nfts.js');
+const WitnessOverlay = require('./lib/ui/overlays/witness');
 
 class Vault extends ModTemplate {
   constructor(app) {
@@ -131,6 +132,77 @@ class Vault extends ModTemplate {
         }
       };
     }
+
+    if (type === 'saito-nft-download') {
+      const nft = obj;
+      if (!nft || typeof nft.returnType !== 'function') {
+        return null;
+      }
+      const nft_type = nft.returnType();
+      if (nft_type !== 'vault-nft-key' && nft_type !== 'vault') {
+        return null;
+      }
+
+      return {
+        download: async (app, download_nft) => {
+          const ensureTx = () =>
+            new Promise((resolve) => {
+              if (download_nft.tx) {
+                resolve();
+                return;
+              }
+              if (typeof download_nft.fetchTransaction === 'function') {
+                download_nft.fetchTransaction(() => resolve());
+                return;
+              }
+              resolve();
+            });
+
+          await ensureTx();
+
+          let data = download_nft.tx?.returnMessage?.()?.data;
+          if (!data && download_nft.json) {
+            try {
+              data = JSON.parse(download_nft.json);
+            } catch (err) {
+              data = null;
+            }
+          }
+
+          const vault_data = {
+            nft_id: download_nft.id,
+            file_id: data?.file_id,
+            file_access_script: data?.file_access_script || null,
+            file_name: data?.filename,
+            slip1_utxokey: download_nft.slip1?.utxo_key || '',
+            slip2_utxokey: download_nft.slip2?.utxo_key || '',
+            slip3_utxokey: download_nft.slip3?.utxo_key || ''
+          };
+
+          if (!vault_data.file_id) {
+            siteMessage('Vault file not found for this NFT', 2000);
+            return;
+          }
+
+          if (vault_data.file_access_script) {
+            if (!this_mod.nft_download_witness) {
+              this_mod.nft_download_witness = new WitnessOverlay(this_mod.app, this_mod);
+            }
+            const witness = this_mod.nft_download_witness;
+            witness.access_script = vault_data.file_access_script;
+            witness.vault_entry = vault_data;
+            witness.callback = (result) => {
+              this_mod.sendAccessFileRequest(vault_data, result.access_script);
+            };
+            witness.render();
+            return;
+          }
+
+          await this_mod.sendAccessFileRequest(vault_data);
+        }
+      };
+    }
+
     return null;
   }
 

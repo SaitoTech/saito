@@ -66,19 +66,6 @@ class PostPublishFlow {
           ? location.txOrdinal.toString()
           : null;
 
-    if (this.publishedTx && this.blockId != null && this.txOrdinal != null) {
-      try {
-        const { ensureCanonicalOutputLocations } = require('../../tx_location');
-        ensureCanonicalOutputLocations(this.publishedTx, {
-          blockId: this.blockId,
-          txOrdinal: this.txOrdinal,
-          blk
-        });
-      } catch (_err) {
-        /* keep tx as-is; export will surface the error */
-      }
-    }
-
     this.p2shLink =
       typeof this.mod.buildP2shShareLink === 'function'
         ? this.mod.buildP2shShareLink({
@@ -148,8 +135,8 @@ class PostPublishFlow {
       try {
         this.mod.exportTransaction(tx, {
           prefix: 'rustscript-tx',
-          blockId: this.blockId,
-          txOrdinal: this.txOrdinal
+          block_id: this.blockId,
+          transaction_id: this.txOrdinal
         });
       } catch (err) {
         console.error('RustScript: failed to export confirmed transaction', err);

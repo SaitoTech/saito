@@ -37,6 +37,7 @@ class ContinueUnlockImportFlow {
     this.errorMessage = '';
     this.blockedRoot = null;
     this._processing = false;
+    this._completed = false;
 
     this.onEscapeKey = (event) => {
       if (event.key === 'Escape' && this.step && this.step !== 'loading') {
@@ -47,6 +48,7 @@ class ContinueUnlockImportFlow {
 
   open() {
     this.errorMessage = '';
+    this._completed = false;
     this.step = 'idle';
     this.show(ImportContinueUnlockTemplate.idleOverlay());
     this.bindIdleEvents();
@@ -65,13 +67,17 @@ class ContinueUnlockImportFlow {
     this.applyOverlayLayout();
   }
 
-  hide() {
+  hide({ completed = false } = {}) {
+    if (completed) {
+      this._completed = true;
+    }
     if (this.step) {
       this.overlay.close();
     }
   }
 
   onOverlayClosed() {
+    const returnToImportMenu = this.step != null && !this._completed;
     document.body.classList.remove('rs-publish-modal-open');
     document.removeEventListener('keydown', this.onEscapeKey);
     if (this.blockedRoot) {
@@ -80,6 +86,10 @@ class ContinueUnlockImportFlow {
     }
     this.step = null;
     this._processing = false;
+    this._completed = false;
+    if (returnToImportMenu) {
+      this.mainUi?.welcomeOverlay?.render('import-choice');
+    }
   }
 
   applyOverlayLayout() {
@@ -129,7 +139,7 @@ class ContinueUnlockImportFlow {
       const tx = parseTransactionFile(this.app, text);
       await this.mod.loadUnlockContinuation(tx);
       await delay(MIN_LOAD_MS);
-      this.hide();
+      this.hide({ completed: true });
     } catch (err) {
       error = err?.message || 'Could not load unlock transaction.';
       await delay(MIN_LOAD_MS);

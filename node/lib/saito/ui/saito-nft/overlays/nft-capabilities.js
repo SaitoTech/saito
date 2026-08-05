@@ -1,14 +1,28 @@
 /**
- * NFT capability registry — icons overlaid on artwork.
+ * NFT capability registry — actions in the floating toolbar over artwork.
  *
  * Built-ins live here. Modules may:
  *   - call overlay.capabilities.register({ id, icon, label, description, visible, onActivate })
  *   - or respondTo('saito-nft-capabilities') with one capability object, or
  *     { capabilities: [ ... ] } for several
  *
- * Each capability renders as `.saito-nft-capability[data-capability="<id>"]`.
- * Action hooks keep legacy class names (send-nft, sell-nft, …) for wiring.
+ * Each capability renders as `.saito-nft-capability[data-capability="<id>"]`
+ * inside `.saito-nft-capabilities`. Action hooks keep legacy class names
+ * (send-nft, sell-nft, …) for wiring.
+ *
+ * DOWNLOAD asks respondTo('saito-nft-download') first; otherwise falls back to
+ * nft.image or the serialized NFT transaction.
  */
+
+function triggerBrowserDownload(href, filename) {
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename || 'download';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 const BUILTIN_CAPABILITIES = [
   {
@@ -61,10 +75,43 @@ const BUILTIN_CAPABILITIES = [
     label: 'Download',
     description: 'Download the media associated with this NFT.',
     className: 'download-nft',
-    // Placeholder — real download registration comes later via respondTo / register.
     visible: () => true,
-    onActivate: () => {
-      siteMessage('Download capability coming soon', 2000);
+    onActivate: async (ctx) => {
+      const { app, nft } = ctx;
+      if (!nft) {
+        return;
+      }
+
+      const handler = app.modules.returnFirstRespondTo('saito-nft-download', nft);
+      if (typeof handler?.download === 'function') {
+        await handler.download(app, nft);
+        return;
+      }
+
+      if (nft.image) {
+        let filename = String(nft.title || 'nft-image').replace(/[^\w.-]+/g, '_') || 'nft-image';
+        const mimeMatch = String(nft.image).match(/^data:([^;,]+)/);
+        if (mimeMatch && !filename.includes('.')) {
+          const ext = mimeMatch[1].split('/')[1]?.split('+')[0] || 'bin';
+          filename = `${filename}.${ext}`;
+        }
+        triggerBrowserDownload(nft.image, filename);
+        return;
+      }
+
+      if (nft.tx && typeof nft.tx.serialize_to_web === 'function') {
+        const json = nft.tx.serialize_to_web(app);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const sig = String(nft.tx.signature || nft.tx_sig || 'unknown')
+          .replace(/[^\w.-]+/g, '_')
+          .slice(0, 12);
+        triggerBrowserDownload(url, `nft-${sig}.saito`);
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      siteMessage('Nothing available to download', 2000);
     }
   },
   {

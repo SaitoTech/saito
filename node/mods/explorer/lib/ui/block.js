@@ -354,7 +354,7 @@ class Block {
 
     unlockTransactionInRustscript(this.app, rawTx, target, {
       blk: this.block,
-      blockId: this.block?.id ?? this.block?.block_id
+      block_id: this.block?.id ?? this.block?.block_id
     });
   }
 
@@ -496,7 +496,7 @@ class Block {
         try {
           exportTransaction(this.app, rawTx, {
             blk: this.block,
-            blockId: this.block?.id ?? this.block?.block_id
+            block_id: this.block?.id ?? this.block?.block_id
           });
         } catch (err) {
           console.warn('Explorer: export transaction failed', err);
