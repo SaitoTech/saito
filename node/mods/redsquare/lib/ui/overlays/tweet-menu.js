@@ -137,7 +137,11 @@ class TweetMenu {
       tweet.flagged = 1;
       tweet.refresh();
 
-      await this.mod.receiveFlagTweetTransaction(tx);
+      try {
+        await this.mod.receiveFlagTweetTransaction(tx);
+      } catch (archiveErr) {
+        console.error('RedSquare report archive update failed:', archiveErr);
+      }
     } catch (err) {
       console.error('RedSquare report failed:', err);
       siteMessage('Unable to report tweet', 2500);

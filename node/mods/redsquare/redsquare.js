@@ -940,15 +940,27 @@ class RedSquare extends ModTemplate {
       switch (txmsg.request) {
         case 'like tweet':
           await this.receiveLikeTweetTransaction(tx);
+          if (mycallback) {
+            mycallback({});
+          }
           return 1;
         case 'retweet':
           await this.receiveRetweetTransaction(tx);
+          if (mycallback) {
+            mycallback({});
+          }
           return 1;
         case 'flag tweet':
           await this.receiveFlagTweetTransaction(tx);
+          if (mycallback) {
+            mycallback({});
+          }
           return 1;
         case 'review tweet':
           await this.receiveReviewTweetTransaction(tx);
+          if (mycallback) {
+            mycallback({});
+          }
           return 1;
         default:
           break;
