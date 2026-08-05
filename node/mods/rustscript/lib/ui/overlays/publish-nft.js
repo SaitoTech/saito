@@ -333,9 +333,12 @@ class PublishNFTFlow {
             callback: (result) => {
               if (result?.status === 'confirmed') {
                 this.mainUi?.openPostPublish?.({
-                  tx: this.lastPublishedTx,
+                  tx: result.tx || this.lastPublishedTx,
                   p2shAddress: this.p2shAddress,
-                  p2shHash: this.p2shHash
+                  p2shHash: this.p2shHash,
+                  blockId: result.blockId,
+                  txOrdinal: result.txOrdinal,
+                  blk: result.blk
                 });
               }
             }

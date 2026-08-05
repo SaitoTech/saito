@@ -3,7 +3,7 @@ const UnlockFeeTemplate = require('./unlock-fee.template');
 const { applyPublishOverlayShell } = require('./overlay.shell');
 const {
   lockUnlockFeeAmount,
-  hasUnlockFee,
+  canChangeUnlockFee,
   isUnlockEditable,
   UNLOCK_SIGNED_ERROR,
   UNLOCK_FEE_LOCKED_ERROR
@@ -35,7 +35,7 @@ class UnlockFeeFlow {
       window.alert(UNLOCK_SIGNED_ERROR);
       return;
     }
-    if (hasUnlockFee(this.mod)) {
+    if (!canChangeUnlockFee(this.mod)) {
       window.alert(UNLOCK_FEE_LOCKED_ERROR);
       return;
     }

@@ -12,7 +12,7 @@ const {
   unlockBaseOutputs,
   isNftSlip
 } = require('./unlock_tx_edit');
-const { hasUnlockFee } = require('./unlock_tx_fee');
+const { hasUnlockFee, canChangeUnlockFee, isDefaultZeroUnlockFee } = require('./unlock_tx_fee');
 
 function controllingPublicKey(ctx) {
   if (!ctx) {
@@ -170,9 +170,12 @@ function outputRowMarkup(row) {
 }
 
 function feeActionMarkup(mod) {
-  if (hasUnlockFee(mod)) {
+  if (hasUnlockFee(mod) && !canChangeUnlockFee(mod)) {
     const label = String(mod.unlock_fee.feeSaito || '').trim() || '0';
     return `<span class="rs-tx-fee-status" title="Fee is locked for this unlock">Fee: ${escapeHtml(label)} SAITO <span class="rs-tx-fee-check" aria-hidden="true">✓</span></span>`;
+  }
+  if (isDefaultZeroUnlockFee(mod)) {
+    return `<span class="rs-tx-fee-status">Fee: 0 SAITO</span> <button type="button" class="saito-text-link rs-tx-fee-action" data-action="set-fee">change</button>`;
   }
   return `<button type="button" class="saito-text-link rs-tx-fee-action" data-action="set-fee">+ set transaction fee</button>`;
 }

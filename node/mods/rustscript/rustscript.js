@@ -10,6 +10,12 @@ const {
   serializeTransactionToWeb,
   transactionExportFilename
 } = require('./lib/transaction_io');
+const {
+  ensureCanonicalOutputLocations,
+  fetchTransactionFromP2shLink,
+  parseP2shShareLink,
+  readTransactionLocation
+} = require('./lib/tx_location');
 const Transaction = require('./../../lib/saito/transaction').default;
 const Slip = require('./../../lib/saito/slip').default;
 const { TransactionType } = require('saito-js/lib/transaction');
@@ -625,6 +631,8 @@ class Rustscript extends ModTemplate {
     this.unlock_transaction_final = null;
     this.unlock_fee = null;
     this.unlock_transaction_editable = true;
+    const { ensureDefaultUnlockFee } = require('./lib/ui/unlock_tx_fee');
+    ensureDefaultUnlockFee(this);
     this.cloneUnlockCandidate();
   }
 
@@ -661,6 +669,8 @@ class Rustscript extends ModTemplate {
     this.unlock_transaction_final = null;
     this.unlock_fee = null;
     this.unlock_transaction_editable = true;
+    const { ensureDefaultUnlockFee } = require('./lib/ui/unlock_tx_fee');
+    ensureDefaultUnlockFee(this);
     this.cloneUnlockCandidate();
   }
 
@@ -821,8 +831,16 @@ class Rustscript extends ModTemplate {
     }
   }
 
-  /** Download a transaction as canonical JSON via the browser. */
-  exportTransaction(tx, { prefix } = {}) {
+  /**
+   * Download a transaction as canonical JSON via the browser.
+   * Stamps confirmed output locations (block_id / tx_ordinal / slip_index)
+   * onto the tx before writing so imports can unlock without a chain lookup.
+   */
+  exportTransaction(tx, { prefix, blockId = null, txOrdinal = null, blk = null } = {}) {
+    if (!tx) {
+      throw new Error('Transaction is required');
+    }
+    ensureCanonicalOutputLocations(tx, { blockId, txOrdinal, blk });
     const filename = prefix ? transactionExportFilename(tx, prefix) : undefined;
     return downloadTransactionFile(this.app, tx, { filename });
   }
@@ -874,17 +892,50 @@ class Rustscript extends ModTemplate {
 
   /**
    * Shareable Pay-to-Script-Hash link — same InvitationLink builder used across Saito apps.
+   * Includes confirmed location fields so import can fetch and stamp the spendable UTXO.
    */
-  buildP2shShareLink({ p2shHash = '', p2shAddress = '' } = {}) {
+  buildP2shShareLink({
+    p2shHash = '',
+    p2shAddress = '',
+    blockId = null,
+    transactionId = '',
+    tx = null
+  } = {}) {
     const InvitationLink = require('../../lib/saito/ui/modals/saito-link/saito-link');
-    const linkObj = new InvitationLink(this.app, this, {
+    const location = readTransactionLocation(tx);
+    const resolvedBlockId =
+      blockId != null && String(blockId) !== ''
+        ? String(blockId)
+        : location.blockId != null
+          ? location.blockId.toString()
+          : '';
+    const resolvedTxId = transactionId || location.transactionId || tx?.signature || '';
+
+    const data = {
       path: `/${this.returnSlug()}/`,
       name: this.appname,
       scripthash: p2shHash || '',
       p2sh_address: p2shAddress || ''
-    });
+    };
+    if (resolvedBlockId) {
+      data.block_id = resolvedBlockId;
+    }
+    if (resolvedTxId) {
+      data.transaction_id = String(resolvedTxId);
+    }
+
+    const linkObj = new InvitationLink(this.app, this, data);
     linkObj.buildLink();
     return linkObj.invite_link || '';
+  }
+
+  /**
+   * Import a P2SH share link: fetch the confirmed publish tx and load unlock context.
+   */
+  async importP2shShareLink(rawLink) {
+    const fields = parseP2shShareLink(rawLink);
+    const tx = await fetchTransactionFromP2shLink(this.app, fields);
+    return this.loadTransactionForWitness(tx);
   }
 
   /**
@@ -1204,7 +1255,8 @@ class Rustscript extends ModTemplate {
       throw new Error('Unlock transaction is not ready.');
     }
     if (!this.unlock_fee) {
-      throw new Error('Set a transaction fee before broadcasting.');
+      const { ensureDefaultUnlockFee } = require('./lib/ui/unlock_tx_fee');
+      ensureDefaultUnlockFee(this);
     }
 
     const {

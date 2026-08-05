@@ -131,14 +131,6 @@
   line-height: 1.45;
 }
 
-.rs-onboard-appspace[data-step='import-choice'] .rs-onboard-page-header {
-  align-items: flex-start;
-}
-
-.rs-onboard-appspace[data-step='import-choice'] .rs-onboard-back.saito-button-square {
-  margin-top: 0.2rem;
-}
-
 .rs-onboard-page-header .rs-onboard-back.saito-button-square {
   flex: 0 0 auto;
   opacity: 0.85;

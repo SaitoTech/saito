@@ -324,11 +324,21 @@ class RustscriptMain {
    * After on-chain confirmation: leave the wizard, return to the main page,
    * then show the Post Publish hand-off overlay above it.
    */
-  async openPostPublish({ tx = null, p2shAddress = '', p2shHash = '' } = {}) {
+  async openPostPublish({
+    tx = null,
+    p2shAddress = '',
+    p2shHash = '',
+    blockId = null,
+    txOrdinal = null,
+    blk = null
+  } = {}) {
     const snapshot = {
       tx,
       p2shAddress: p2shAddress || '',
-      p2shHash: p2shHash || ''
+      p2shHash: p2shHash || '',
+      blockId,
+      txOrdinal,
+      blk
     };
 
     await this.resetWorkspaceToFresh({ expertMode: false, workflow: 'create' });

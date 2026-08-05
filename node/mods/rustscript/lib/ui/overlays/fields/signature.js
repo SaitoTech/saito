@@ -4,7 +4,7 @@ const { isPlaceholder } = require('../../script_build');
 const {
   prepareUnlockForSigning,
   markUnlockImmutable,
-  hasUnlockFee
+  ensureDefaultUnlockFee
 } = require('../../unlock_tx_fee');
 
 function pickPublicKey(value) {
@@ -169,9 +169,7 @@ class SignatureFieldOverlay {
     if (this.mod?.workflow !== 'unlock') {
       return msg;
     }
-    if (!hasUnlockFee(this.mod)) {
-      throw new Error('Set a transaction fee before signing.');
-    }
+    ensureDefaultUnlockFee(this.mod);
     const prepared = await prepareUnlockForSigning(this.app, this.mod, msg);
     return prepared.authMessage;
   }

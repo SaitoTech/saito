@@ -19,6 +19,30 @@ function hasUnlockFee(mod) {
   return !!(mod?.unlock_fee && mod.unlock_fee.feeSaito != null && String(mod.unlock_fee.feeSaito) !== '');
 }
 
+/** Default zero fee set at unlock-tx creation — still replaceable until a positive fee is chosen or the tx is signed. */
+function isDefaultZeroUnlockFee(mod) {
+  return hasUnlockFee(mod) && String(mod.unlock_fee.feeSaito).trim() === '0';
+}
+
+function canChangeUnlockFee(mod) {
+  return isUnlockEditable(mod) && (!hasUnlockFee(mod) || isDefaultZeroUnlockFee(mod));
+}
+
+/**
+ * Unlock txs default to a zero fee when created. Broadcast / signing use this
+ * value unless the user sets a positive fee first.
+ */
+function ensureDefaultUnlockFee(mod) {
+  if (hasUnlockFee(mod)) {
+    return mod.unlock_fee;
+  }
+  mod.unlock_fee = {
+    feeSaito: '0',
+    feeNolan: '0'
+  };
+  return mod.unlock_fee;
+}
+
 function isUnlockEditable(mod) {
   return mod?.unlock_transaction_editable !== false;
 }
@@ -303,7 +327,7 @@ function invalidateUnlockSignatures(mod, mainUi) {
 async function lockUnlockFeeAmount(app, mod, feeSaito) {
   assertUnlockEditable(mod);
 
-  if (hasUnlockFee(mod)) {
+  if (!canChangeUnlockFee(mod)) {
     throw new Error(UNLOCK_FEE_LOCKED_ERROR);
   }
 
@@ -330,6 +354,8 @@ async function lockUnlockFeeAmount(app, mod, feeSaito) {
     );
   }
 
+  // Replacing the default zero fee invalidates any prior funded final clone.
+  mod.unlock_transaction_final = null;
   mod.unlock_fee = {
     feeSaito: feeText,
     feeNolan: feeNolan.toString()
@@ -348,9 +374,7 @@ async function applyUnlockFee(app, mod, feeSaito, _mainUi = null) {
  * Called once before the first CHECKSIG/CHECKMULTISIG; reused thereafter.
  */
 async function ensureUnlockFeeFunded(app, mod) {
-  if (!hasUnlockFee(mod)) {
-    throw new Error('Set a transaction fee before signing.');
-  }
+  ensureDefaultUnlockFee(mod);
 
   if (mod.unlock_transaction_final) {
     assignOutputSlipIndices(mod.unlock_transaction_final);
@@ -364,7 +388,16 @@ async function ensureUnlockFeeFunded(app, mod) {
 
   const feeNolan = toNolanBigInt(mod.unlock_fee.feeNolan);
   if (feeNolan <= BigInt(0)) {
-    throw new Error('Transaction fee is invalid.');
+    if (typeof mod.cloneTransactionSkeleton !== 'function') {
+      throw new Error('Unlock transaction clone is unavailable.');
+    }
+    const finalTx = mod.cloneTransactionSkeleton(base);
+    assignOutputSlipIndices(finalTx);
+    mod.unlock_transaction_final = finalTx;
+    if (typeof mod.cloneUnlockCandidate === 'function') {
+      mod.cloneUnlockCandidate();
+    }
+    return finalTx;
   }
 
   const balance = await readSpendableWalletNolan(app);
@@ -545,6 +578,9 @@ module.exports = {
   UNLOCK_SIGNED_ERROR,
   UNLOCK_FEE_LOCKED_ERROR,
   hasUnlockFee,
+  isDefaultZeroUnlockFee,
+  canChangeUnlockFee,
+  ensureDefaultUnlockFee,
   isUnlockEditable,
   assertUnlockEditable,
   assertUnlockMutablePath,

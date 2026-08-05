@@ -109,18 +109,15 @@ const WelcomeImportChoiceTemplate = () => {
           <button type="button" class="saito-button-square rs-onboard-back" data-action="back-splash" aria-label="Back">
             <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
           </button>
-          <div class="rs-onboard-page-heading">
-            <h2 class="rs-onboard-prompt">Import Existing</h2>
-            <p class="rs-onboard-page-intro">Choose what you want to import.</p>
-          </div>
+          <h2 class="rs-onboard-prompt">What would you like to import?</h2>
         </header>
 
         <div class="rs-onboard-options">
           <button type="button" class="rs-onboard-option" data-import="unlock-tx">
             <span class="rs-onboard-option-icon">${optionIcon('unlock')}</span>
             <span class="rs-onboard-option-body">
-              <span class="rs-onboard-option-title">Unlock Transaction</span>
-              <span class="rs-onboard-option-desc">Import a transaction or P2SH link to unlock and spend assets that already exist on the network.</span>
+              <span class="rs-onboard-option-title">Transaction to Spend</span>
+              <span class="rs-onboard-option-desc">Import a transaction or P2SH link with assets you wish to transfer to another address or P2SH contract.</span>
             </span>
             <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
           </button>
@@ -128,8 +125,8 @@ const WelcomeImportChoiceTemplate = () => {
           <button type="button" class="rs-onboard-option" data-import="continue-unlock">
             <span class="rs-onboard-option-icon">${optionIcon('import')}</span>
             <span class="rs-onboard-option-body">
-              <span class="rs-onboard-option-title">Continue Unlock Transaction</span>
-              <span class="rs-onboard-option-desc">Import an unlock transaction that already has outputs assigned so you can review it, add witnesses or signatures, and publish it.</span>
+              <span class="rs-onboard-option-title">Transaction to Sign</span>
+              <span class="rs-onboard-option-desc">Import a transaction that simply requires adding your signature and re-exporting or broadcasting.</span>
             </span>
             <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
           </button>
@@ -137,8 +134,8 @@ const WelcomeImportChoiceTemplate = () => {
           <button type="button" class="rs-onboard-option" data-import="saved-script">
             <span class="rs-onboard-option-icon">${optionIcon('create')}</span>
             <span class="rs-onboard-option-body">
-              <span class="rs-onboard-option-title">Import Saved Script</span>
-              <span class="rs-onboard-option-desc">Import a JSON script you created earlier and use it to protect new SAITO or NFT assets.</span>
+              <span class="rs-onboard-option-title">Script to Use</span>
+              <span class="rs-onboard-option-desc">Import a JSON script you created earlier and use it to protect a new SAITO or NFT deposit.</span>
             </span>
             <span class="rs-onboard-option-chevron" aria-hidden="true">›</span>
           </button>

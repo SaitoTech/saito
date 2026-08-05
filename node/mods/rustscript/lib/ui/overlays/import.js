@@ -93,8 +93,48 @@ class ImportFlow {
     });
 
     root.querySelector('[data-action="import-p2sh-link"]')?.addEventListener('click', () => {
-      alert('P2SH link import is coming soon.');
+      if (this._processing) {
+        return;
+      }
+      const input = root.querySelector('.rs-import-p2sh-input');
+      const raw = String(input?.value || '').trim();
+      if (!raw) {
+        this.errorMessage = 'Paste a P2SH link to import.';
+        this.step = 'idle';
+        this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+        this.bindIdleEvents();
+        return;
+      }
+      this.processP2shLink(raw);
     });
+  }
+
+  async processP2shLink(rawLink) {
+    if (this._processing) {
+      return;
+    }
+    this._processing = true;
+    this.step = 'loading';
+    this.show(ImportTemplate.loadingOverlay());
+
+    let error = null;
+    try {
+      await this.mod.importP2shShareLink(rawLink);
+      await delay(MIN_LOAD_MS);
+      this.hide();
+    } catch (err) {
+      await delay(MIN_LOAD_MS);
+      error = err?.message || 'Could not import P2SH link.';
+      this._processing = false;
+      this.errorMessage = error;
+      this.step = 'idle';
+      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+      this.bindIdleEvents();
+    } finally {
+      if (this.step !== 'idle') {
+        this._processing = false;
+      }
+    }
   }
 
   readAndProcessFile(file) {

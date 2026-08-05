@@ -88,10 +88,23 @@ class SaitoTransactionMonitor {
     }
 
     this.stopCountdown();
+
+    let txOrdinal = null;
+    const blockTxs = Array.isArray(blk?.transactions) ? blk.transactions : [];
+    if (tx?.signature && blockTxs.length) {
+      const idx = blockTxs.findIndex((candidate) => candidate?.signature === tx.signature);
+      if (idx >= 0) {
+        txOrdinal = idx;
+      }
+    }
+
     this._completion_result = {
       status: 'confirmed',
       tx,
-      signature: tx.signature
+      signature: tx.signature,
+      blockId: blk?.id != null ? String(blk.id) : null,
+      txOrdinal: txOrdinal != null ? String(txOrdinal) : null,
+      blk
     };
     this.tx = null;
 
