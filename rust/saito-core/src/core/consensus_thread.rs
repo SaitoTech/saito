@@ -423,10 +423,26 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             }
             ConsensusEvent::NewTransaction { transaction } => {
                 let sig = transaction.signature.to_hex();
-                trace!(
-                    "ConsensusThread::process_event : new transaction : {:?}",
-                    sig
-                );
+                let data_hint = std::str::from_utf8(&transaction.data).unwrap_or("");
+                let p2sh_like = transaction.from.iter().any(|s| s.public_key[0] == 0x00)
+                    || data_hint.contains("access_scripts")
+                    || data_hint.contains("p2sh")
+                    || data_hint.contains("Rustscript");
+                if p2sh_like {
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] consensus.receive NewTransaction signature={} type={:?} from_count={} to_count={} routed_from_peer={}",
+                        sig,
+                        transaction.transaction_type,
+                        transaction.from.len(),
+                        transaction.to.len(),
+                        transaction.routed_from_peer_id
+                    );
+                } else {
+                    trace!(
+                        "ConsensusThread::process_event : new transaction : {:?}",
+                        sig
+                    );
+                }
 
                 if let TransactionType::GoldenTicket = transaction.transaction_type {
                     let mut mempool = self.mempool_lock.write().await;
@@ -434,7 +450,14 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     trace!("adding golden ticket to mempool");
                     mempool.add_golden_ticket(transaction).await;
                 } else {
-                    trace!("adding transaction to mempool");
+                    if p2sh_like {
+                        info!(
+                            "[P2SH_DEBUGGING_TRACE] consensus.queue_for_mempool signature={}",
+                            sig
+                        );
+                    } else {
+                        trace!("adding transaction to mempool");
+                    }
                     self.txs_for_mempool.push(transaction);
                 }
 
@@ -449,6 +472,20 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 self.txs_for_mempool.reserve(transactions.len());
                 let mut mempool = self.mempool_lock.write().await;
                 for transaction in transactions.drain(..) {
+                    let data_hint = std::str::from_utf8(&transaction.data).unwrap_or("");
+                    let p2sh_like = transaction.from.iter().any(|s| s.public_key[0] == 0x00)
+                        || data_hint.contains("access_scripts")
+                        || data_hint.contains("p2sh")
+                        || data_hint.contains("Rustscript");
+                    if p2sh_like {
+                        info!(
+                            "[P2SH_DEBUGGING_TRACE] consensus.receive NewTransactions item signature={} type={:?} from_count={} to_count={}",
+                            transaction.signature.to_hex(),
+                            transaction.transaction_type,
+                            transaction.from.len(),
+                            transaction.to.len()
+                        );
+                    }
                     if let TransactionType::GoldenTicket = transaction.transaction_type {
                         mempool.add_golden_ticket(transaction).await;
                     } else {

@@ -329,20 +329,24 @@ class PublishNFTFlow {
         }
 
         try {
-          const tx = await this.broadcastPublishNft(nft, nftAmount, fee || '0');
-          this.hide();
+          await this.broadcastPublishNft(nft, nftAmount, fee || '0', {
+            callback: (result) => {
+              if (result?.status === 'confirmed') {
+                this.mainUi?.openPostPublish?.({
+                  tx: result.tx || this.lastPublishedTx,
+                  p2shAddress: this.p2shAddress,
+                  p2shHash: this.p2shHash,
+                  blockId: result.blockId,
+                  txOrdinal: result.txOrdinal,
+                  blk: result.blk
+                });
+              }
+            }
+          });
           this.publishFlow.lastPublishedTx = this.lastPublishedTx;
           this.publishFlow.p2shAddress = this.p2shAddress;
           this.publishFlow.p2shHash = this.p2shHash;
-          this.publishFlow.watchTransaction(tx, {
-            onConfirmed: () => {
-              this.mainUi?.openPostPublish?.({
-                tx: this.lastPublishedTx || tx,
-                p2shAddress: this.p2shAddress,
-                p2shHash: this.p2shHash
-              });
-            }
-          });
+          this.hide();
         } catch (err) {
           showError(err?.message || 'Could not publish the transaction.');
           if (btn) {
@@ -354,7 +358,7 @@ class PublishNFTFlow {
       });
   }
 
-  async broadcastPublishNft(nft, nftAmount, feeSaito) {
+  async broadcastPublishNft(nft, nftAmount, feeSaito, { callback = null } = {}) {
     const locking = lockingView(this.mod.getScript());
     const hash = this.app.core.scripting.hash(locking);
     const address = this.app.core.scripting.address(locking);
@@ -365,23 +369,18 @@ class PublishNFTFlow {
     this.p2shAddress = address;
     this.p2shHash = hash;
 
-    const newtx = await this.mod.publishScript({
+    const newtx = await this.mod.broadcastPublish({
       assetType: 'nft',
       locking,
       p2shAddress: address,
       p2shHash: hash,
       feeSaito,
       nft,
-      nftAmount
+      nftAmount,
+      callback
     });
 
-    await this.app.network.propagateTransaction(newtx);
-
     this.lastPublishedTx = newtx;
-
-    if (!newtx.signature) {
-      throw new Error('Transaction was not signed.');
-    }
 
     try {
       await this.app.wallet.updateNFTList();

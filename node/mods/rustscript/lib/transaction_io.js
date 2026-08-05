@@ -56,13 +56,37 @@ function parseTransactionFile(app, text) {
   return tx;
 }
 
-function transactionExportFilename(tx, prefix = 'rustscript') {
-  const sig = String(tx?.signature || 'unknown').replace(/[^\w.-]+/g, '_');
-  return `${prefix}-${sig}.json`;
+function sanitizeFilenamePart(value, maxLen = 12) {
+  const text = String(value || 'unknown').replace(/[^\w.-]+/g, '');
+  if (!text) {
+    return 'unknown';
+  }
+  return text.length > maxLen ? text.slice(0, maxLen) : text;
 }
 
 /**
- * Trigger a browser download of the canonical web-serialized transaction JSON.
+ * Native RustScript artifact filename (.saito).
+ * - Saved scripts / drafts → rustscript-[timestamp].saito
+ * - Published / signed txs → rustscript-tx-[signature].saito
+ */
+function transactionExportFilename(tx, prefix = 'rustscript') {
+  const kind = String(prefix || 'rustscript').toLowerCase();
+  const isScriptDraft =
+    kind === 'rustscript' ||
+    kind.includes('draft') ||
+    kind.includes('script');
+
+  if (isScriptDraft && !kind.includes('published') && !kind.includes('tx')) {
+    return `rustscript-${Date.now()}.saito`;
+  }
+
+  const sig = sanitizeFilenamePart(tx?.signature, 12);
+  return `rustscript-tx-${sig}.saito`;
+}
+
+/**
+ * Trigger a browser download of the canonical web-serialized transaction.
+ * Content remains JSON; the .saito extension marks it as a RustScript artifact.
  */
 function downloadTransactionFile(app, tx, { filename } = {}) {
   const json = serializeTransactionToWeb(app, tx);

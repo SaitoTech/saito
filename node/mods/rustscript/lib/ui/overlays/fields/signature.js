@@ -1,6 +1,11 @@
 const SaitoOverlay = require('./../../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SignatureFieldTemplate = require('./signature.template');
 const { isPlaceholder } = require('../../script_build');
+const {
+  prepareUnlockForSigning,
+  markUnlockImmutable,
+  ensureDefaultUnlockFee
+} = require('../../unlock_tx_fee');
 
 function pickPublicKey(value) {
   if (typeof value !== 'string') {
@@ -62,6 +67,15 @@ function findSignatureContext(script, dotPath) {
       nodePath.pop();
     }
   } else if (last === 'signatures') {
+    nodePath.pop();
+    if (
+      nodePath[nodePath.length - 1] === 'witness' ||
+      nodePath[nodePath.length - 1] === 'required'
+    ) {
+      nodePath.pop();
+    }
+  } else if (/^\d+$/.test(String(last)) && nodePath[nodePath.length - 2] === 'signatures') {
+    nodePath.pop();
     nodePath.pop();
     if (
       nodePath[nodePath.length - 1] === 'witness' ||
@@ -143,6 +157,34 @@ class SignatureFieldOverlay {
     this.attachEvents({ canAutoSign, message: sigCtx.message });
   }
 
+  /**
+   * Unlock CHECKSIG/CHECKMULTISIG: fund fee silently, sign message|p2sh_auth_hash.
+   * Create-workflow signatures still sign the plain message.
+   */
+  async resolveSignableMessage(message) {
+    const msg = String(message ?? '').trim();
+    if (!msg) {
+      throw new Error('No signable message found for this opcode');
+    }
+    if (this.mod?.workflow !== 'unlock') {
+      return msg;
+    }
+    ensureDefaultUnlockFee(this.mod);
+    const prepared = await prepareUnlockForSigning(this.app, this.mod, msg);
+    return prepared.authMessage;
+  }
+
+  async applySignature(sig) {
+    // Lock before apply/refresh so the UI reflects immutability immediately.
+    if (this.mod?.workflow === 'unlock') {
+      markUnlockImmutable(this.mod);
+    }
+    if (typeof this.onApply === 'function') {
+      this.onApply(sig);
+    }
+    this.overlay.hide();
+  }
+
   attachEvents(options = {}) {
     const host = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
     const root = host?.querySelector('.rs-prompt-signature');
@@ -175,22 +217,16 @@ class SignatureFieldOverlay {
 
     const signAndApply = async () => {
       try {
-        if (!message) {
-          showError('No signable message found for this opcode');
-          return;
-        }
+        const signable = await this.resolveSignableMessage(message);
         let sig = '';
         if (typeof this.app.wallet?.signMessage === 'function') {
-          sig = await this.app.wallet.signMessage(message);
+          sig = await this.app.wallet.signMessage(signable);
         } else if (typeof this.app.crypto?.signMessage === 'function') {
           const privateKey = await this.app.wallet.getPrivateKey();
-          sig = await this.app.crypto.signMessage(message, privateKey);
+          sig = await this.app.crypto.signMessage(signable, privateKey);
         }
         clearError();
-        if (typeof this.onApply === 'function') {
-          this.onApply(sig);
-        }
-        this.overlay.hide();
+        await this.applySignature(sig);
       } catch (err) {
         showError(err.message || String(err));
       }
@@ -201,7 +237,7 @@ class SignatureFieldOverlay {
     });
 
     if (!canAutoSign) {
-      root?.querySelector('.rs-prompt-apply')?.addEventListener('click', () => {
+      root?.querySelector('.rs-prompt-apply')?.addEventListener('click', async () => {
         const next = String(valueEl?.value ?? '').trim();
         if (!next || isPlaceholder(next)) {
           showError('A value is required');
@@ -212,11 +248,16 @@ class SignatureFieldOverlay {
           showError('Expected hex signature bytes');
           return;
         }
-        clearError();
-        if (typeof this.onApply === 'function') {
-          this.onApply(next);
+        try {
+          // Pasted signatures still require a funded final tx for later evaluation.
+          if (this.mod?.workflow === 'unlock') {
+            await this.resolveSignableMessage(message);
+          }
+          clearError();
+          await this.applySignature(next);
+        } catch (err) {
+          showError(err.message || String(err));
         }
-        this.overlay.hide();
       });
     }
   }

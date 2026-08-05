@@ -1,6 +1,7 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const PostPublishTemplate = require('./post-publish.template');
 const { applyPublishOverlayShell } = require('./overlay.shell');
+const { readTransactionLocation } = require('../../tx_location');
 
 function escapeHtml(text) {
   return String(text || '')
@@ -25,6 +26,8 @@ class PostPublishFlow {
     this.p2shAddress = '';
     this.p2shHash = '';
     this.p2shLink = '';
+    this.blockId = null;
+    this.txOrdinal = null;
     this.blockedRoot = null;
 
     this.onEscapeKey = (event) => {
@@ -37,15 +40,53 @@ class PostPublishFlow {
   /**
    * Final hand-off after on-chain confirmation — not part of the publish wizard.
    */
-  openOverlay({ tx = null, p2shAddress = '', p2shHash = '' } = {}) {
+  openOverlay({
+    tx = null,
+    p2shAddress = '',
+    p2shHash = '',
+    blockId = null,
+    txOrdinal = null,
+    blk = null
+  } = {}) {
     this.publishedTx = tx;
     this.p2shAddress = p2shAddress || '';
     this.p2shHash = p2shHash || '';
+
+    const location = readTransactionLocation(tx, blk);
+    this.blockId =
+      blockId != null && String(blockId) !== ''
+        ? String(blockId)
+        : location.blockId != null
+          ? location.blockId.toString()
+          : null;
+    this.txOrdinal =
+      txOrdinal != null && String(txOrdinal) !== ''
+        ? String(txOrdinal)
+        : location.txOrdinal != null
+          ? location.txOrdinal.toString()
+          : null;
+
+    if (this.publishedTx && this.blockId != null && this.txOrdinal != null) {
+      try {
+        const { ensureCanonicalOutputLocations } = require('../../tx_location');
+        ensureCanonicalOutputLocations(this.publishedTx, {
+          blockId: this.blockId,
+          txOrdinal: this.txOrdinal,
+          blk
+        });
+      } catch (_err) {
+        /* keep tx as-is; export will surface the error */
+      }
+    }
+
     this.p2shLink =
       typeof this.mod.buildP2shShareLink === 'function'
         ? this.mod.buildP2shShareLink({
             p2shHash: this.p2shHash,
-            p2shAddress: this.p2shAddress
+            p2shAddress: this.p2shAddress,
+            blockId: this.blockId,
+            transactionId: this.publishedTx?.signature || location.transactionId || '',
+            tx: this.publishedTx
           })
         : this.p2shAddress;
 
@@ -89,6 +130,8 @@ class PostPublishFlow {
     this.p2shAddress = '';
     this.p2shHash = '';
     this.p2shLink = '';
+    this.blockId = null;
+    this.txOrdinal = null;
   }
 
   bindEvents() {
@@ -103,9 +146,14 @@ class PostPublishFlow {
         return;
       }
       try {
-        this.mod.exportTransaction(tx, { prefix: 'rustscript-published' });
-      } catch (_err) {
-        /* export failed */
+        this.mod.exportTransaction(tx, {
+          prefix: 'rustscript-tx',
+          blockId: this.blockId,
+          txOrdinal: this.txOrdinal
+        });
+      } catch (err) {
+        console.error('RustScript: failed to export confirmed transaction', err);
+        alert(err?.message || 'Could not export the transaction.');
       }
     });
 
@@ -116,21 +164,32 @@ class PostPublishFlow {
     root
       .querySelector('[data-action="post-publish-copy-link"]')
       ?.addEventListener('click', async () => {
+        const btn = root.querySelector('[data-action="post-publish-copy-link"]');
         const link =
           root.querySelector('.rs-post-publish-link')?.value || this.p2shLink || this.p2shAddress;
-        if (!link) {
+        if (!link || !btn) {
           return;
         }
         try {
           await navigator.clipboard.writeText(link);
+          btn.classList.add('is-copied');
+          const icon = btn.querySelector('.rs-copy-btn-icon');
+          if (icon) {
+            icon.classList.remove('fa-copy');
+            icon.classList.add('fa-check');
+          }
+          window.clearTimeout(this._copyResetTimer);
+          this._copyResetTimer = window.setTimeout(() => {
+            btn.classList.remove('is-copied');
+            if (icon) {
+              icon.classList.remove('fa-check');
+              icon.classList.add('fa-copy');
+            }
+          }, 1400);
         } catch (_err) {
           /* clipboard unavailable */
         }
       });
-
-    root.querySelector('[data-action="post-publish-done"]')?.addEventListener('click', () => {
-      this.hide();
-    });
   }
 }
 

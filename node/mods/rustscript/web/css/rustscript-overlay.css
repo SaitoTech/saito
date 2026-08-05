@@ -57,16 +57,23 @@
 }
 
 .rs-overlay-status .rs-overlay-body {
-  align-items: stretch;
+  align-items: center;
+  text-align: center;
+  width: 100%;
 }
 
 .rs-overlay-status .rs-overlay-title {
-  text-align: left;
+  text-align: center;
+  padding-right: 0;
+  width: 100%;
 }
 
 .rs-overlay-status .rs-overlay-title-loading {
   text-align: center;
   width: 100%;
+  padding-right: 0;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .rs-overlay-title,
@@ -98,6 +105,7 @@
   letter-spacing: normal;
   text-align: center;
   padding-right: 0;
+  width: 100%;
 }
 
 .rs-overlay-head {
@@ -321,3 +329,155 @@ body.rustscript [id^='saito-overlay-backdrop'].rs-onboarding-overlay-backdrop {
 body.rustscript .saito-overlay:has(> .rustscript-overlay):not(.rs-onboarding-overlay) {
   z-index: 100002;
 }
+
+/* Spend / transfer output prompts */
+.rustscript-overlay.rs-spend-output {
+  gap: var(--saito-space-lg);
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-title {
+  font-size: 2rem;
+  letter-spacing: normal;
+  line-height: 1.25;
+  padding-right: 3.6rem;
+}
+
+.rustscript-overlay.rs-spend-output .rs-overlay-body {
+  gap: var(--saito-space-lg);
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-available {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-bottom: var(--saito-space-sm);
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-available-value {
+  color: #d8e0c8;
+  font-size: 1.55em;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--saito-space-md);
+  min-width: 0;
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-field .rs-overlay-label {
+  margin-bottom: 0;
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-use-mine {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-tiny);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  text-transform: none;
+  text-decoration: underline dashed;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-use-mine:hover {
+  color: var(--saito-foreground);
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-amount-row {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-amount-row .rs-spend-amount {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-amount-row .rs-spend-max-btn {
+  flex: 0 0 auto;
+  align-self: stretch;
+  min-width: 6rem;
+  height: auto;
+  min-height: var(--rs-control-height);
+  padding: 0 var(--saito-space-md);
+  border-radius: 0 4px 4px 0;
+  border-left: none;
+  letter-spacing: 0.06em;
+}
+
+.rustscript-overlay.rs-spend-output .rs-spend-error {
+  margin: 0;
+}
+
+.rustscript-overlay.rs-spend-output .rs-overlay-actions {
+  margin-top: var(--saito-space-sm);
+}
+
+/* Unlock fee overlay */
+.rustscript-overlay.rs-unlock-fee-overlay .rs-unlock-fee-lead {
+  margin: 0 0 var(--saito-space-md);
+}
+
+.rustscript-overlay.rs-unlock-fee-overlay .rs-unlock-fee-note {
+  margin: var(--saito-space-sm) 0 0;
+  color: #8a8a8a;
+  font-size: 0.92em;
+  line-height: 1.45;
+}
+
+.rustscript-overlay.rs-unlock-fee-overlay .rs-unlock-fee-error {
+  margin-top: var(--saito-space-sm);
+}
+
+/* Unlock broadcast confirm */
+.rustscript-overlay.rs-unlock-solution .rs-unlock-confirm-meta {
+  margin: var(--saito-space-md) 0 0;
+  padding: 0;
+}
+
+.rustscript-overlay.rs-unlock-solution .rs-unlock-confirm-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--saito-space-md);
+  padding: 0.55rem 0;
+  border-top: 1px solid rgba(80, 80, 80, 0.45);
+}
+
+.rustscript-overlay.rs-unlock-solution .rs-unlock-confirm-row:last-child {
+  border-bottom: 1px solid rgba(80, 80, 80, 0.45);
+}
+
+.rustscript-overlay.rs-unlock-solution .rs-unlock-confirm-row dt {
+  margin: 0;
+  color: #8a8a8a;
+  font-weight: 400;
+}
+
+.rustscript-overlay.rs-unlock-solution .rs-unlock-confirm-row dd {
+  margin: 0;
+  color: #d8d8d8;
+  text-align: right;
+}
+

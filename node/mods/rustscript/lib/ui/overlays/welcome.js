@@ -1,5 +1,9 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const { WelcomeSplashTemplate, WelcomeBuildChoiceTemplate } = require('./welcome.template');
+const {
+  WelcomeSplashTemplate,
+  WelcomeBuildChoiceTemplate,
+  WelcomeImportChoiceTemplate
+} = require('./welcome.template');
 const { getContractTemplates } = require('../script_build');
 
 const BUILD_TEMPLATE_IDS = {
@@ -36,6 +40,9 @@ class WelcomeOverlay {
         break;
       case 'create-build':
         html = WelcomeBuildChoiceTemplate();
+        break;
+      case 'import-choice':
+        html = WelcomeImportChoiceTemplate();
         break;
       default:
         html = WelcomeSplashTemplate();
@@ -77,8 +84,7 @@ class WelcomeOverlay {
         if (path === 'create') {
           this.showStep('create-build');
         } else if (path === 'interact') {
-          this.dismiss('interact');
-          this.mainUi.importFlow.open();
+          this.showStep('import-choice');
         } else if (path === 'expert') {
           this.enterExpert();
         }
@@ -96,6 +102,22 @@ class WelcomeOverlay {
         const tpl = this.templates.find((t) => t.id === templateId);
         if (tpl) {
           this.enterCreateGuided(tpl.locking);
+        }
+      });
+    });
+
+    root.querySelectorAll('[data-import]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const kind = btn.dataset.import;
+        if (kind === 'unlock-tx') {
+          this.dismiss('interact');
+          this.mainUi.importFlow.open();
+        } else if (kind === 'continue-unlock') {
+          this.dismiss('interact');
+          this.mainUi.continueUnlockImportFlow.open();
+        } else if (kind === 'saved-script') {
+          this.dismiss('interact');
+          this.mainUi.scriptImportFlow.open();
         }
       });
     });
