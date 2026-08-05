@@ -254,23 +254,21 @@ input.rs-publish-input[readonly] {
  * Post-publish hand-off — calm completion modal (not a wizard step).
  */
 .rs-post-publish {
-  --rs-post-1: 1.333rem;
-  --rs-post-2: 2rem;
-  --rs-post-3: 2.667rem;
-  gap: var(--rs-post-2);
-  max-height: min(90vh, 64rem);
+  gap: 1.8rem;
+  max-height: min(90vh, 72rem);
 }
 
 .rs-post-publish .rs-overlay-body {
-  gap: var(--rs-post-2);
+  gap: 0;
   overflow: auto;
+  align-items: center;
 }
 
 .rs-post-publish-head {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--rs-post-1);
+  gap: 1.4rem;
   text-align: center;
 }
 
@@ -283,70 +281,102 @@ input.rs-publish-input[readonly] {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 4.8rem;
-  height: 4.8rem;
+  width: 6rem;
+  height: 6rem;
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--saito-status-success) 40%, var(--saito-border));
   background: color-mix(in srgb, var(--saito-status-success) 12%, transparent);
   color: var(--saito-status-success);
-  font-size: 2rem;
+  font-size: 2.5rem;
 }
 
-.rs-post-publish-lead {
+/*
+ * Must beat `.rs-overlay-lead { margin: 0 }` (same element; that reset
+ * loads later in style.css at equal specificity).
+ */
+.rs-post-publish .rs-overlay-lead.rs-post-publish-lead {
+  width: 100%;
+  max-width: 44rem;
+  margin: 0 auto 2rem;
   text-align: center;
-  max-width: 48rem;
-  margin-inline: auto;
-}
-
-.rs-post-publish-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--rs-post-1);
-}
-
-.rs-post-publish-note,
-.rs-post-publish-guide {
-  margin: 0;
-  color: var(--saito-muted-foreground);
-  font-size: 1.15rem;
-  line-height: 1.5;
-}
-
-.rs-post-publish-guide p {
-  margin: 0 0 var(--saito-space-sm);
-}
-
-.rs-post-publish-guide ul {
-  margin: 0;
-  padding-left: 1.4em;
-}
-
-.rs-post-publish-guide li + li {
-  margin-top: var(--saito-space-xs);
-}
-
-.rs-post-publish-guide strong {
-  color: #d0d0d0;
-  font-weight: 500;
-}
-
-.rs-post-publish-download {
-  align-self: flex-start;
-  min-width: 18rem;
-}
-
-.rs-post-publish-actions {
-  margin-top: var(--rs-post-1);
-  justify-content: center;
-}
-
-.rs-post-publish-done {
-  height: 5.2rem;
-  min-width: 22rem;
-  padding: 0 var(--rs-post-3);
+  color: #e0e0e0;
   font-size: 1.45rem;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+.rs-post-publish-primary {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin: 0 0 2rem;
+  padding: 0;
+}
+
+.rs-post-publish .rs-post-publish-download {
+  width: min(100%, 36rem);
+  min-width: 22rem;
+  height: 7.2rem;
+  padding: 0 3rem;
+  font-family: var(--rustscript-font-sans);
+  font-size: 1.7rem;
   font-weight: 500;
   letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.rs-post-publish-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-md);
+  width: 100%;
+  max-width: 36rem;
+  margin: 0 auto 1.2rem;
+  font-size: var(--font-size-tiny);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #777;
+}
+
+.rs-post-publish-divider::before,
+.rs-post-publish-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #333;
+}
+
+.rs-post-publish-secondary {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.rs-post-publish .rs-overlay-lead.rs-post-publish-secondary-lead {
+  margin: 0;
+  text-align: center;
+  color: #b8b8b8;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-transform: none;
+}
+
+.rs-post-publish .rs-publish-copy-btn:active {
+  background: #2a2a2a;
+  color: #fff;
+  border-color: #777;
+  transform: scale(0.96);
+}
+
+.rs-post-publish .rs-publish-copy-btn.is-copied {
+  color: #8fd49a;
+  border-color: #3f8a4c;
+  background: #1e2a20;
 }
 
 @media (max-width: 900px) {
@@ -361,8 +391,7 @@ input.rs-publish-input[readonly] {
     border-bottom: 1px solid #333;
   }
 
-  .rs-post-publish-download,
-  .rs-post-publish-done {
+  .rs-post-publish-download {
     width: 100%;
     min-width: 0;
   }

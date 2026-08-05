@@ -856,6 +856,15 @@ impl Transaction {
         blockchain: &Blockchain,
         validate_against_utxo: bool,
     ) -> bool {
+        info!(
+            "[P2SH_DEBUGGING_TRACE] Transaction::validate ENTER signature={} type={:?} from_count={} to_count={} validate_against_utxo={}",
+            self.signature.to_hex(),
+            self.transaction_type,
+            self.from.len(),
+            self.to.len(),
+            validate_against_utxo
+        );
+
         //
         // limited number of slips
         //
@@ -867,11 +876,29 @@ impl Transaction {
         //
         if self.from.len() > u8::MAX as usize {
             error!("ERROR: transaction has too many inputs");
-            return false;
+            return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
         }
         if self.to.len() > u8::MAX as usize {
             error!("ERROR: transaction has too many outputs");
-            return false;
+            return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
         }
 
         //
@@ -886,7 +913,16 @@ impl Transaction {
             != self.from.len()
         {
             error!("ERROR: transaction : {} has duplicate inputs", self);
-            return false;
+            return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
         }
 
         //
@@ -957,7 +993,16 @@ impl Transaction {
                 if let Some(existing_authorizer) = authorizer {
                     if existing_authorizer != slip.public_key {
                         error!("transaction invalid: attempts to spend fee-bearing slips from multiple users");
-                        return false;
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
                 } else {
                     authorizer = Some(slip.public_key);
@@ -973,7 +1018,16 @@ impl Transaction {
             if slip.slip_type == SlipType::P2SH {
                 if slip.amount != 0 {
                     error!("transaction invalid: P2SH slip found with amount > 0");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
             }
 
@@ -992,6 +1046,26 @@ impl Transaction {
         // the witness data is now provided INSIDE the script, one entry per p2sh input
         // being spent/moved in the slip.
         //
+        {
+            let data_hint = std::str::from_utf8(&self.data).unwrap_or("");
+            let looks_like_p2sh = data_hint.contains("access_scripts")
+                || data_hint.contains("p2sh")
+                || data_hint.contains("Rustscript");
+            if looks_like_p2sh || !p2sh_idxs.is_empty() {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] validate.p2sh_scan signature={} p2sh_input_indexes={:?} from_count={} looks_like_p2sh_msg={}",
+                    self.signature.to_hex(),
+                    p2sh_idxs,
+                    self.from.len(),
+                    looks_like_p2sh
+                );
+            }
+            if looks_like_p2sh && p2sh_idxs.is_empty() {
+                error!(
+                    "[P2SH_DEBUGGING_TRACE] validate.p2sh_scan WARNING: msg looks like P2SH spend but no P2SH inputs detected (public_key[0]==0x00). Script validation will be SKIPPED."
+                );
+            }
+        }
         let mut array_idx = 0;
         let mut txmsg_text = "";
         let mut txmsg = Value::Null;
@@ -1009,34 +1083,70 @@ impl Transaction {
                 txmsg_text = match std::str::from_utf8(&self.data) {
                     Ok(v) => v,
                     Err(_) => {
-                        error!("transaction invalid: P2SH tx.data is not UTF-8");
-                        return false;
+                        error!("[P2SH_DEBUGGING_TRACE] transaction invalid: P2SH tx.data is not UTF-8");
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
                 };
 
                 txmsg = match serde_json::from_str::<Value>(txmsg_text) {
                     Ok(v) => v,
                     Err(_) => {
-                        error!("transaction invalid: P2SH tx.data is not valid JSON");
-                        return false;
+                        error!("[P2SH_DEBUGGING_TRACE] transaction invalid: P2SH tx.data is not valid JSON");
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
                 };
 
                 access_scripts = match txmsg.get("access_scripts").and_then(|v| v.as_array()) {
                     Some(v) => v.clone(),
                     None => {
-                        error!("transaction invalid: P2SH missing txmsg.access_scripts");
-                        return false;
+                        error!("[P2SH_DEBUGGING_TRACE] transaction invalid: P2SH missing txmsg.access_scripts");
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
                 };
 
                 if access_scripts.len() != p2sh_idxs.len() {
                     error!(
-                        "transaction invalid: {} access scripts supplied for {} P2SH inputs",
+                        "[P2SH_DEBUGGING_TRACE] transaction invalid: {} access scripts supplied for {} P2SH inputs",
                         access_scripts.len(),
                         p2sh_idxs.len()
                     );
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
             }
 
@@ -1044,16 +1154,34 @@ impl Transaction {
             // fetch access script
             //
             let Some(access_script) = access_scripts[array_idx].as_str() else {
-                error!("transaction invalid: access_scripts entry is not a string");
-                return false;
+                error!("[P2SH_DEBUGGING_TRACE] transaction invalid: access_scripts entry is not a string");
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             };
 
             //
             // access script must exist as JSON
             //
             if access_script.is_empty() {
-                error!("transaction invalid: P2SH has empty txmsg.access_script");
-                return false;
+                error!("[P2SH_DEBUGGING_TRACE] transaction invalid: P2SH has empty txmsg.access_script");
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             }
 
             //
@@ -1062,8 +1190,17 @@ impl Transaction {
             let script_json: Value = match serde_json::from_str(access_script) {
                 Ok(v) => v,
                 Err(_) => {
-                    error!("P2SH spend: access_script is not valid JSON");
-                    return false;
+                    error!("[P2SH_DEBUGGING_TRACE] P2SH spend: access_script is not valid JSON");
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
             };
 
@@ -1082,24 +1219,64 @@ impl Transaction {
             // we are looking for this (from P2SH slip.publickey)
             //
             if p2sh_public_key[0] != 0x00 {
-                error!("transaction invalid: P2SH publickey is something weird");
-                return false;
+                error!("[P2SH_DEBUGGING_TRACE] transaction invalid: P2SH publickey is something weird");
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             }
 
             //
             // script invalid if reconstructing doesn't give exact match
             //
             let Ok(hash_bytes) = hex::decode(&script_hash_hex) else {
-                error!("transaction invalid: P2SH script hash is not valid hex");
-                return false;
+                error!("[P2SH_DEBUGGING_TRACE] transaction invalid: P2SH script hash is not valid hex");
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             };
             if hash_bytes.len() != 32 {
-                error!("P2SH spend: script hash is not 32 bytes");
-                return false;
+                error!("[P2SH_DEBUGGING_TRACE] P2SH spend: script hash is not 32 bytes");
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             }
             if p2sh_public_key[1..33] != hash_bytes[..] {
-                error!("P2SH spend: script hash does not match commitment");
-                return false;
+                error!(
+                    "[P2SH_DEBUGGING_TRACE] P2SH spend: script hash does not match commitment expected_pk_hash={} script_hash={}",
+                    hex::encode(&p2sh_public_key[1..33]),
+                    script_hash_hex
+                );
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             }
 
             //
@@ -1107,13 +1284,22 @@ impl Transaction {
             //
             if script.validate(Some(self), None, Some(blockchain), Some(array_idx)) != 1 {
                 error!(
-                    "RUSTSCRIPT VALIDATION FAILURE\n\nAccess Script Index:\n    {}\n\nTransaction Input Index:\n    {}\n\nScript Hash:\n    {}",
+                    "[P2SH_DEBUGGING_TRACE] RUSTSCRIPT VALIDATION FAILURE\n\nAccess Script Index:\n    {}\n\nTransaction Input Index:\n    {}\n\nScript Hash:\n    {}",
                     array_idx,
                     p2sh_idx,
                     script_hash_hex
                 );
-                error!("P2SH spend: access_script evaluation failed");
-                return false;
+                error!("[P2SH_DEBUGGING_TRACE] P2SH spend: access_script evaluation failed");
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             }
 
             array_idx += 1;
@@ -1150,13 +1336,40 @@ impl Transaction {
         //
         if self.transaction_type == TransactionType::SPV {
             if !self.from.is_empty() || !self.to.is_empty() {
-                return false; // no spendable slips
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            }; // no spendable slips
             }
             if self.total_fees > 0 || self.total_in > 0 || self.total_out > 0 {
-                return false; // no declared value
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            }; // no declared value
             }
             if !self.path.is_empty() {
-                return false; // no routing work
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            }; // no routing work
             }
             return true;
         }
@@ -1184,7 +1397,16 @@ impl Transaction {
                     && !matches!(slip.slip_type, SlipType::Normal)
                 {
                     error!("staking transaction outputs are not staking");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
                 if matches!(slip.slip_type, SlipType::BlockStake) {
                     total_stakes += slip.amount;
@@ -1196,7 +1418,16 @@ impl Transaction {
             //
             if total_stakes < blockchain.social_stake_requirement {
                 error!("transaction invalid: insufficient block stake...");
-                return false;
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             }
 
             //
@@ -1209,7 +1440,16 @@ impl Transaction {
                     //
                     if !blockchain.is_slip_unlocked(&slip.utxoset_key) {
                         error!("transaction invalid: blockstake slip is not mature enough");
-                        return false;
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
                 }
             }
@@ -1237,7 +1477,16 @@ impl Transaction {
                 } else {
                     error!("ERROR 582039: less than 1 input in transaction");
                     error!("tx : {}", self);
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
             }
 
@@ -1247,7 +1496,16 @@ impl Transaction {
             if let Some(public_key) = authorizer {
                 let Some(hash_for_signature) = &self.hash_for_signature else {
                     error!("ERROR 757293: there is no hash for signature in a transaction");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 };
 
                 if !verify_signature(hash_for_signature, &self.signature, &public_key) {
@@ -1257,7 +1515,16 @@ impl Transaction {
                         self.signature.to_hex(),
                         public_key.to_base58()
                     );
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
             }
 
@@ -1270,7 +1537,16 @@ impl Transaction {
                 {
                 } else {
                     error!("transaction invalid: unable to determine authorizer");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
             }
 
@@ -1279,7 +1555,16 @@ impl Transaction {
             //
             if !self.validate_routing_path() {
                 error!("ERROR 482033: routing paths do not validate, transaction invalid");
-                return false;
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             }
 
             //
@@ -1287,7 +1572,16 @@ impl Transaction {
             //
             if self.total_out > self.total_in && self.transaction_type != TransactionType::Fee {
                 error!("ERROR 802394: transaction spends more than it has available");
-                return false;
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
             }
         }
 
@@ -1351,7 +1645,16 @@ impl Transaction {
                     //
                     if a.amount == 0 {
                         error!("3. bound tx invalid: nft slip1 input with zero-amount");
-                        return false;
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
 
                     //
@@ -1359,7 +1662,16 @@ impl Transaction {
                     //
                     if c.amount != 0 {
                         error!("bound tx invalid: tuple slip3 amount nonzero");
-                        return false;
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
 
                     //
@@ -1374,7 +1686,16 @@ impl Transaction {
                         Some(existing_creator) => {
                             if existing_creator != tuple_creator {
                                 error!("bound tx invalid: multiple nft creators detected");
-                                return false;
+                                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                             }
                         }
                     }
@@ -1391,7 +1712,16 @@ impl Transaction {
                         Some(existing_uuid) => {
                             if existing_uuid != tuple_uuid {
                                 error!("bound tx invalid: multiple nft uuids detected");
-                                return false;
+                                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                             }
                         }
                     }
@@ -1408,7 +1738,16 @@ impl Transaction {
                                 error!(
                                     "bound tx invalid: multiple nft from different owners detected"
                                 );
-                                return false;
+                                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                             }
                         }
                     }
@@ -1429,7 +1768,16 @@ impl Transaction {
                 //
                 if a.slip_type == SlipType::Bound {
                     error!("bound tx invalid: malformed input tuple");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
 
                 idx += 1;
@@ -1456,7 +1804,16 @@ impl Transaction {
                     //
                     if a.amount == 0 {
                         error!("2. bound tx invalid: nft slip1 input with zero-amount");
-                        return false;
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
 
                     //
@@ -1464,7 +1821,16 @@ impl Transaction {
                     //
                     if c.amount != 0 {
                         error!("bound tx invalid: tuple slip3 amount nonzero");
-                        return false;
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
 
                     let tuple_creator = a.public_key;
@@ -1486,7 +1852,16 @@ impl Transaction {
                                 } else {
                                     error!("bound tx invalid: output creator mismatch");
                                     error!("tx : {}", self);
-                                    return false;
+                                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                                 }
                             }
                         }
@@ -1504,7 +1879,16 @@ impl Transaction {
                         Some(existing_uuid) => {
                             if existing_uuid != tuple_uuid {
                                 error!("bound tx invalid: multiple nft uuids detected");
-                                return false;
+                                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                             }
                         }
                     }
@@ -1525,7 +1909,16 @@ impl Transaction {
                 //
                 if a.slip_type == SlipType::Bound {
                     error!("bound tx invalid: malformed output tuple");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
 
                 idx += 1;
@@ -1547,7 +1940,16 @@ impl Transaction {
                 //
                 if self.from.is_empty() {
                     error!("Create-bound transaction: no funding input found");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
 
                 //
@@ -1558,7 +1960,16 @@ impl Transaction {
                         "Create-bound transaction: first input cannot be Bound (found {:?})",
                         self.from[0].slip_type
                     );
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
 
                 //
@@ -1569,7 +1980,16 @@ impl Transaction {
                         "Create-bound transaction: slip1 amount ({}) = 0",
                         self.to[0].amount
                     );
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
 
                 //
@@ -1577,7 +1997,16 @@ impl Transaction {
                 //
                 if nft_amount_out == 0 {
                     error!("Create-bound transaction: nft_amount_out must be > 0");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
 
                 let funding_input = &self.from[0];
@@ -1589,12 +2018,30 @@ impl Transaction {
                     Some(creator) => {
                         if creator != funding_input.public_key {
                             error!("Create-bound TX: creator does not match funding input");
-                            return false;
+                            return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                         }
                     }
                     None => {
                         error!("Create-bound TX: missing creator");
-                        return false;
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
                 }
 
@@ -1605,7 +2052,16 @@ impl Transaction {
                     Some(uuid) => uuid,
                     None => {
                         error!("Create-bound TX: missing NFT UUID in output tuple");
-                        return false;
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
                 };
                 let mut expected_nft_uuid: SaitoPublicKey = parsed_nft_uuid;
@@ -1620,7 +2076,16 @@ impl Transaction {
                     error!(
                         "Create-bound TX: NFT UUID identifiers do not match consumed funding input"
                     );
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
 
             //
@@ -1632,7 +2097,16 @@ impl Transaction {
                 //
                 if nft_tuples_in == 0 {
                     error!("Bound TX invalid: no input NFT tuples");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
 
                 if nft_tuples_out == 0 {
@@ -1642,7 +2116,16 @@ impl Transaction {
                     // transfer: NFT amount must be conserved
                     if nft_amount_in != nft_amount_out {
                         error!("Bound TX invalid: NFT amount mismatch");
-                        return false;
+                        return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                     }
                 }
             }
@@ -1661,7 +2144,16 @@ impl Transaction {
                     || self.to.iter().any(|slip| slip.slip_type == SlipType::Bound)
                 {
                     error!("Non-ATR and Non-Bound Transaction has Bound UTXO");
-                    return false;
+                    return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
                 }
             }
         }
@@ -1671,18 +2163,69 @@ impl Transaction {
         //
         if self.to.is_empty() {
             error!("ERROR 582039: less than 1 output in transaction");
-            return false;
+            return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
         }
 
         //
         // all UTXO spent must be spendable (in hashmap)
         //
-        return if validate_against_utxo {
+        if validate_against_utxo {
             let inputs_validate = self.validate_against_utxoset(utxoset);
-            inputs_validate
-        } else {
-            true
-        };
+            if !inputs_validate {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} reason=utxoset_inputs_invalid loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                for (i, input) in self.from.iter().enumerate() {
+                    let entry = utxoset.get(&input.utxoset_key);
+                    let slip_ok = input.validate(utxoset);
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] Transaction::validate UTXO_INPUT[{}] amount={} type={:?} slip_ok={} utxoset_entry={:?} key={}",
+                        i,
+                        input.amount,
+                        input.slip_type,
+                        slip_ok,
+                        entry,
+                        input.utxoset_key.to_hex()
+                    );
+                }
+                error!("[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL reason=utxoset_inputs_invalid");
+                return {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] Transaction::validate FAIL signature={} type={:?} loc={}:{}",
+                    self.signature.to_hex(),
+                    self.transaction_type,
+                    file!(),
+                    line!()
+                );
+                false
+            };
+            }
+            info!(
+                "[P2SH_DEBUGGING_TRACE] Transaction::validate OK signature={} type={:?} (utxoset checked)",
+                self.signature.to_hex(),
+                self.transaction_type
+            );
+            return true;
+        }
+        info!(
+            "[P2SH_DEBUGGING_TRACE] Transaction::validate OK signature={} type={:?} (utxoset skipped)",
+            self.signature.to_hex(),
+            self.transaction_type
+        );
+        return true;
     }
 
     pub fn validate_against_utxoset(&self, utxoset: &UtxoSet) -> bool {

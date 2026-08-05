@@ -1,4 +1,8 @@
 const Transaction = require('./../../../lib/saito/transaction').default;
+const {
+  ensureCanonicalOutputLocations,
+  readTransactionLocation
+} = require('../../rustscript/lib/tx_location');
 
 const SLIP_TYPE_P2SH = 10;
 const RUSTSCRIPT_IMPORT_KEY = 'rustscript_explorer_import';
@@ -74,11 +78,32 @@ function rawTxToTransaction(app, rawTx) {
   return new Transaction(undefined, rawTx);
 }
 
-function exportTransaction(app, rawTx) {
+/**
+ * Stamp output slips with the confirming block's canonical location before
+ * serialization / download / RustScript hand-off.
+ */
+function prepareTransactionForExport(app, rawTx, { blk = null, blockId = null, txOrdinal = null } = {}) {
   const tx = rawTxToTransaction(app, rawTx);
   if (!tx || typeof tx.serialize_to_web !== 'function') {
     throw new Error('Transaction could not be serialized.');
   }
+
+  const location = readTransactionLocation(tx, blk);
+  const resolvedBlockId = blockId != null && String(blockId) !== '' ? blockId : location.blockId;
+  const resolvedTxOrdinal =
+    txOrdinal != null && String(txOrdinal) !== '' ? txOrdinal : location.txOrdinal;
+
+  ensureCanonicalOutputLocations(tx, {
+    blockId: resolvedBlockId,
+    txOrdinal: resolvedTxOrdinal,
+    blk
+  });
+
+  return tx;
+}
+
+function exportTransaction(app, rawTx, options = {}) {
+  const tx = prepareTransactionForExport(app, rawTx, options);
 
   const json = tx.serialize_to_web(app);
   const sig = String(tx.signature || 'unknown').replace(/[^\w.-]+/g, '_');
@@ -95,11 +120,8 @@ function exportTransaction(app, rawTx) {
   URL.revokeObjectURL(url);
 }
 
-function queueRustscriptImport(app, rawTx, target) {
-  const tx = rawTxToTransaction(app, rawTx);
-  if (!tx || typeof tx.serialize_to_web !== 'function') {
-    throw new Error('Transaction could not be prepared for import.');
-  }
+function queueRustscriptImport(app, rawTx, target, options = {}) {
+  const tx = prepareTransactionForExport(app, rawTx, options);
 
   const payload = {
     tx: JSON.parse(tx.serialize_to_web(app)),
@@ -117,8 +139,8 @@ function navigateToRustscript() {
   window.location.href = RUSTSCRIPT_MODULE_PATH;
 }
 
-function unlockTransactionInRustscript(app, rawTx, target) {
-  queueRustscriptImport(app, rawTx, target);
+function unlockTransactionInRustscript(app, rawTx, target, options = {}) {
+  queueRustscriptImport(app, rawTx, target, options);
   navigateToRustscript();
 }
 
@@ -127,6 +149,7 @@ module.exports = {
   RUSTSCRIPT_IMPORT_KEY,
   collectP2shUnlockTargets,
   hasP2shUnlockTargets,
+  prepareTransactionForExport,
   exportTransaction,
   unlockTransactionInRustscript,
   queueRustscriptImport,

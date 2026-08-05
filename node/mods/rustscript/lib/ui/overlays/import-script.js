@@ -1,7 +1,8 @@
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const ImportTemplate = require('./import.template');
+const ImportScriptTemplate = require('./import-script.template');
 const { applyPublishOverlayShell } = require('./overlay.shell');
 const { parseTransactionFile } = require('../../transaction_io');
+const { lockingView } = require('../script_build');
 const { bindDropzone } = require('./import-dropzone');
 
 function escapeHtml(text) {
@@ -19,7 +20,36 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-class ImportFlow {
+/**
+ * Extract the locking/access script from a Save-for-Later draft transaction export.
+ */
+function extractSavedScript(tx) {
+  const txmsg = typeof tx.returnMessage === 'function' ? tx.returnMessage() : tx.msg || {};
+  const accessScriptRaw =
+    Array.isArray(txmsg.access_scripts) && txmsg.access_scripts.length > 0
+      ? txmsg.access_scripts[0]
+      : txmsg.access_script || txmsg.accessScript || '';
+
+  if (!accessScriptRaw) {
+    throw new Error('This file does not contain a saved script.');
+  }
+
+  let script;
+  try {
+    script =
+      typeof accessScriptRaw === 'string' ? JSON.parse(accessScriptRaw) : accessScriptRaw;
+  } catch (_err) {
+    throw new Error('Saved script is not valid JSON.');
+  }
+
+  if (!script || typeof script !== 'object' || Array.isArray(script)) {
+    throw new Error('Saved script is not a valid script object.');
+  }
+
+  return lockingView(script);
+}
+
+class ScriptImportFlow {
   constructor(app, mod, mainUi) {
     this.app = app;
     this.mod = mod;
@@ -44,7 +74,7 @@ class ImportFlow {
   open() {
     this.errorMessage = '';
     this.step = 'idle';
-    this.show(ImportTemplate.idleOverlay());
+    this.show(ImportScriptTemplate.idleOverlay());
     this.bindIdleEvents();
   }
 
@@ -83,7 +113,7 @@ class ImportFlow {
   }
 
   bindIdleEvents() {
-    const root = document.querySelector('.rs-import-overlay:not(.rs-import-loading):not(.rs-import-script-overlay)');
+    const root = document.querySelector('.rs-import-script-overlay:not(.rs-import-loading)');
     if (!root) {
       return;
     }
@@ -91,50 +121,6 @@ class ImportFlow {
     bindDropzone(root, {
       onFile: (file) => this.readAndProcessFile(file)
     });
-
-    root.querySelector('[data-action="import-p2sh-link"]')?.addEventListener('click', () => {
-      if (this._processing) {
-        return;
-      }
-      const input = root.querySelector('.rs-import-p2sh-input');
-      const raw = String(input?.value || '').trim();
-      if (!raw) {
-        this.errorMessage = 'Paste a P2SH link to import.';
-        this.step = 'idle';
-        this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
-        this.bindIdleEvents();
-        return;
-      }
-      this.processP2shLink(raw);
-    });
-  }
-
-  async processP2shLink(rawLink) {
-    if (this._processing) {
-      return;
-    }
-    this._processing = true;
-    this.step = 'loading';
-    this.show(ImportTemplate.loadingOverlay());
-
-    let error = null;
-    try {
-      await this.mod.importP2shShareLink(rawLink);
-      await delay(MIN_LOAD_MS);
-      this.hide();
-    } catch (err) {
-      await delay(MIN_LOAD_MS);
-      error = err?.message || 'Could not import P2SH link.';
-      this._processing = false;
-      this.errorMessage = error;
-      this.step = 'idle';
-      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
-      this.bindIdleEvents();
-    } finally {
-      if (this.step !== 'idle') {
-        this._processing = false;
-      }
-    }
   }
 
   readAndProcessFile(file) {
@@ -148,7 +134,7 @@ class ImportFlow {
       this._processing = false;
       this.errorMessage = 'Could not read the selected file.';
       this.step = 'idle';
-      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+      this.show(ImportScriptTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
       this.bindIdleEvents();
     });
     reader.addEventListener('load', (event) => {
@@ -160,14 +146,15 @@ class ImportFlow {
 
   async processFileText(text) {
     this.step = 'loading';
-    this.show(ImportTemplate.loadingOverlay());
+    this.show(ImportScriptTemplate.loadingOverlay());
 
-    let tx = null;
+    let locking = null;
     let error = null;
     try {
-      tx = parseTransactionFile(this.app, text);
+      const tx = parseTransactionFile(this.app, text);
+      locking = extractSavedScript(tx);
     } catch (err) {
-      error = err?.message || 'Could not parse transaction file.';
+      error = err?.message || 'Could not parse saved script file.';
     }
 
     await delay(MIN_LOAD_MS);
@@ -176,19 +163,25 @@ class ImportFlow {
       this._processing = false;
       this.errorMessage = error;
       this.step = 'idle';
-      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+      this.show(ImportScriptTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
       this.bindIdleEvents();
       return;
     }
 
     try {
-      await this.mod.loadTransactionForWitness(tx);
+      if (typeof this.mod.resetUnlockWorkflow === 'function') {
+        this.mod.resetUnlockWorkflow();
+      } else {
+        this.mod.workflow = 'create';
+        this.mod.unlockContext = null;
+      }
+      this.mainUi.enterCreateGuided(locking);
       this.hide();
     } catch (err) {
       this._processing = false;
-      this.errorMessage = err?.message || 'Could not load transaction into witness mode.';
+      this.errorMessage = err?.message || 'Could not load saved script.';
       this.step = 'idle';
-      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+      this.show(ImportScriptTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
       this.bindIdleEvents();
     } finally {
       if (this.step !== 'idle') {
@@ -198,4 +191,4 @@ class ImportFlow {
   }
 }
 
-module.exports = ImportFlow;
+module.exports = ScriptImportFlow;

@@ -183,6 +183,15 @@ impl Script {
         blockchain: Option<&Blockchain>,
         current_p2sh_idx: Option<usize>,
     ) -> u8 {
+        info!(
+            "[P2SH_DEBUGGING_TRACE] script.validate ENTER p2sh_idx={:?} has_tx={} has_blk={} has_blockchain={} root={}",
+            current_p2sh_idx,
+            tx.is_some(),
+            blk.is_some(),
+            blockchain.is_some(),
+            self.json
+        );
+
         let mut context = json!({
             "script": {},
             "witness": {},
@@ -221,6 +230,19 @@ impl Script {
             if let Some(slip) = tx.from.first() {
                 context["REQUESTER"] = json!(slip.public_key.to_base58());
             }
+            info!(
+                "[P2SH_DEBUGGING_TRACE] script.validate context tx.signature={} tx.from_count={} tx.to_count={} REQUESTER={:?} NOW={}",
+                tx.signature.to_hex(),
+                tx.from.len(),
+                tx.to.len(),
+                context.get("REQUESTER"),
+                now_ms
+            );
+        } else {
+            info!(
+                "[P2SH_DEBUGGING_TRACE] script.validate context NO_TX NOW={}",
+                now_ms
+            );
         }
 
         fn eval(
@@ -229,8 +251,21 @@ impl Script {
             tx: Option<&Transaction>,
             blk: Option<&Block>,
             blockchain: Option<&Blockchain>,
+            path: &str,
         ) -> u8 {
             let op = node["op"].as_str().unwrap_or("").to_uppercase();
+            info!(
+                "[P2SH_DEBUGGING_TRACE] script.eval ENTER path={} op={} node={}",
+                path, op, node
+            );
+
+            if op.is_empty() {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} reason=missing_or_empty_op node={}",
+                    path, node
+                );
+                return 0;
+            }
 
             //
             // logical operators
@@ -239,26 +274,64 @@ impl Script {
                 "AND" => {
                     let default_args = Vec::new();
                     let args = node["args"].as_array().unwrap_or(&default_args);
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] script.eval AND path={} child_count={}",
+                        path,
+                        args.len()
+                    );
 
-                    for child in args {
-                        if eval(child, context, tx, blk, blockchain) == 0 {
+                    for (i, child) in args.iter().enumerate() {
+                        let child_path = format!("{}.AND[{}]", path, i);
+                        let child_result = eval(child, context, tx, blk, blockchain, &child_path);
+                        info!(
+                            "[P2SH_DEBUGGING_TRACE] script.eval AND path={} child={} result={}",
+                            path, child_path, child_result
+                        );
+                        if child_result == 0 {
+                            info!(
+                                "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} reason=AND_child_failed failed_child={}",
+                                path, child_path
+                            );
                             return 0;
                         }
                     }
 
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] script.eval OK path={} op=AND result=1",
+                        path
+                    );
                     return 1;
                 }
 
                 "OR" => {
                     let default_args = Vec::new();
                     let args = node["args"].as_array().unwrap_or(&default_args);
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] script.eval OR path={} child_count={}",
+                        path,
+                        args.len()
+                    );
 
-                    for child in args {
-                        if eval(child, context, tx, blk, blockchain) == 1 {
+                    for (i, child) in args.iter().enumerate() {
+                        let child_path = format!("{}.OR[{}]", path, i);
+                        let child_result = eval(child, context, tx, blk, blockchain, &child_path);
+                        info!(
+                            "[P2SH_DEBUGGING_TRACE] script.eval OR path={} child={} result={}",
+                            path, child_path, child_result
+                        );
+                        if child_result == 1 {
+                            info!(
+                                "[P2SH_DEBUGGING_TRACE] script.eval OK path={} op=OR result=1 via={}",
+                                path, child_path
+                            );
                             return 1;
                         }
                     }
 
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} reason=OR_all_children_failed",
+                        path
+                    );
                     return 0;
                 }
 
@@ -267,14 +340,21 @@ impl Script {
                     let args = node["args"].as_array().unwrap_or(&default_args);
 
                     if args.is_empty() {
+                        info!(
+                            "[P2SH_DEBUGGING_TRACE] script.eval OK path={} op=NOT empty_args result=1",
+                            path
+                        );
                         return 1;
                     }
 
-                    return if eval(&args[0], context, tx, blk, blockchain) == 1 {
-                        0
-                    } else {
-                        1
-                    };
+                    let child_path = format!("{}.NOT[0]", path);
+                    let inner = eval(&args[0], context, tx, blk, blockchain, &child_path);
+                    let result = if inner == 1 { 0 } else { 1 };
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] script.eval path={} op=NOT inner={} result={}",
+                        path, inner, result
+                    );
+                    return result;
                 }
 
                 _ => {}
@@ -291,6 +371,10 @@ impl Script {
             if let Some(reference) = node.get("reference") {
                 if reference.is_object() {
                     context["witness"] = reference.clone();
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] script.eval path={} loaded object reference into witness",
+                        path
+                    );
                 }
             }
             if let Some(witness) = node.get("witness") {
@@ -322,93 +406,96 @@ impl Script {
                 }
             }
 
+            info!(
+                "[P2SH_DEBUGGING_TRACE] script.eval path={} op={} script_ctx={} witness_ctx={}",
+                path, op, context["script"], context["witness"]
+            );
+
             //
             // opcode dispatch
             //
-            match op.as_str() {
+            let result = match op.as_str() {
                 "CHECKHASH" => {
-                    return CheckHash::execute(context, tx, blk);
+                    let expected = context["script"]["hash"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string();
+                    let input = context["witness"]["input"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string();
+                    let computed = if input.is_empty() {
+                        String::new()
+                    } else {
+                        crypto::hash(input.as_bytes()).to_hex()
+                    };
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] script.eval CHECKHASH path={} expected_hash={} witness_input={:?} computed_hash={} input_empty={} expected_empty={}",
+                        path,
+                        expected,
+                        input,
+                        computed,
+                        input.is_empty(),
+                        expected.is_empty()
+                    );
+                    let r = CheckHash::execute(context, tx, blk);
+                    if r == 0 {
+                        info!(
+                            "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} op=CHECKHASH reason=hash_mismatch_or_empty expected={} computed={} input={:?}",
+                            path, expected, computed, input
+                        );
+                    }
+                    r
                 }
 
-                "CHECKSIG" => {
-                    return CheckSig::validate(context, tx, blk);
-                }
-
-                "CHECKMULTISIG" => {
-                    return CheckMultiSig::validate(context, tx, blk);
-                }
-
-                "IMPORTFIELD" => {
-                    return ImportField::validate(context, tx, blk);
-                }
-
-                "IMPORTARRAY" => {
-                    return ImportArray::validate(context, tx, blk);
-                }
-
-                "SUMFIELDS" => {
-                    return SumFields::validate(context, tx, blk);
-                }
-
-                "SETFIELD" => {
-                    return SetField::validate(context, tx, blk);
-                }
-
-                "SETARRAY" => {
-                    return SetArray::validate(context, tx, blk);
-                }
-
-                "SETARRAYFIELD" => {
-                    return SetArrayField::validate(context, tx, blk);
-                }
-
-                "ARRAYIFY" => {
-                    return Arrayify::validate(context, tx, blk);
-                }
-
-                "CHECKFIELD" => {
-                    return CheckField::validate(context, tx, blk);
-                }
-
-                "CHECKOWN" => {
-                    return CheckOwn::validate(context, tx, blk, blockchain);
-                }
-
-                "CHECKOWNNFT" => {
-                    return CheckOwnNft::validate(context, tx, blk, blockchain);
-                }
-
-                "CHECKOWNNFTWHERE" => {
-                    return CheckOwnNftWhere::validate(context, tx, blk, blockchain);
-                }
-
-                "CHECKSENDER" => {
-                    return CheckSender::validate(context, tx, blk);
-                }
-
-                "CHECKRECIPIENT" => {
-                    return CheckRecipient::validate(context, tx, blk);
-                }
-
-                "CHECKPATH" => {
-                    return CheckPath::validate(context, tx, blk);
-                }
-
-                "CHECKPATHHOP" => {
-                    return CheckPathHop::validate(context, tx, blk);
-                }
-
-                "CHECKTIME" => {
-                    return CheckTime::validate(context, tx, blk);
-                }
+                "CHECKSIG" => CheckSig::validate(context, tx, blk),
+                "CHECKMULTISIG" => CheckMultiSig::validate(context, tx, blk),
+                "IMPORTFIELD" => ImportField::validate(context, tx, blk),
+                "IMPORTARRAY" => ImportArray::validate(context, tx, blk),
+                "SUMFIELDS" => SumFields::validate(context, tx, blk),
+                "SETFIELD" => SetField::validate(context, tx, blk),
+                "SETARRAY" => SetArray::validate(context, tx, blk),
+                "SETARRAYFIELD" => SetArrayField::validate(context, tx, blk),
+                "ARRAYIFY" => Arrayify::validate(context, tx, blk),
+                "CHECKFIELD" => CheckField::validate(context, tx, blk),
+                "CHECKOWN" => CheckOwn::validate(context, tx, blk, blockchain),
+                "CHECKOWNNFT" => CheckOwnNft::validate(context, tx, blk, blockchain),
+                "CHECKOWNNFTWHERE" => CheckOwnNftWhere::validate(context, tx, blk, blockchain),
+                "CHECKSENDER" => CheckSender::validate(context, tx, blk),
+                "CHECKRECIPIENT" => CheckRecipient::validate(context, tx, blk),
+                "CHECKPATH" => CheckPath::validate(context, tx, blk),
+                "CHECKPATHHOP" => CheckPathHop::validate(context, tx, blk),
+                "CHECKTIME" => CheckTime::validate(context, tx, blk),
 
                 _ => {
-                    return 0;
+                    info!(
+                        "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} reason=unknown_opcode op={}",
+                        path, op
+                    );
+                    0
                 }
+            };
+
+            if result == 1 {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] script.eval OK path={} op={} result=1",
+                    path, op
+                );
+            } else {
+                info!(
+                    "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} op={} result=0",
+                    path, op
+                );
             }
+            result
         }
 
-        eval(&self.json, &mut context, tx, blk, blockchain)
+        let final_result = eval(&self.json, &mut context, tx, blk, blockchain, "root");
+        info!(
+            "[P2SH_DEBUGGING_TRACE] script.validate EXIT p2sh_idx={:?} result={} (1=pass 0=fail)",
+            current_p2sh_idx, final_result
+        );
+        final_result
     }
 
     //

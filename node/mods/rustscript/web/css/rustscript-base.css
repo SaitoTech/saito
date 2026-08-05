@@ -87,8 +87,10 @@ body.rustscript.rs-publish-modal-open #saito-header {
 /* Compact RS controls — beat Saito button min-widths */
 body.rustscript .rs-cmd-btn,
 body.rustscript .rs-mode-btn,
-body.rustscript .rs-panel-ref-action {
+body.rustscript .rs-panel-ref-action,
+body.rustscript .rs-panel-menu-trigger {
   min-width: 0;
+  min-height: 0;
 }
 
 /* Shared control weight — importance via color/layout, not bold labels */
