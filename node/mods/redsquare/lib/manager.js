@@ -1006,7 +1006,7 @@ class Manager {
         };
 
         if (mode !== 'likes') {
-          query.flagged = 0;
+          query.flagged_ne = 1;
         }
 
         const txs = await this.mod.loadArchiveTransactions(query, peer);
@@ -1047,7 +1047,7 @@ class Manager {
           Array.from(signatures).flatMap((signature) =>
             peers.map((peer) =>
               this.mod.loadArchiveTransactions(
-                { sig: signature, field1: 'RedSquare', flagged: 0 },
+                { sig: signature, field1: 'RedSquare', flagged_ne: 1 },
                 peer
               )
             )

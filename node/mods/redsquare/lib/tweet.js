@@ -200,7 +200,7 @@ class Tweet {
     this.retweeters = Array.isArray(optional.retweeters) ? optional.retweeters.slice() : [];
 
     this.curated = optional.curated ? 1 : 0;
-    this.flagged = optional.flagged ? 1 : 0;
+    this.flagged = Number(optional.flagged) || 0;
     this.is_reply = this.parent_id !== '';
 
     this.publicKey = this.extractPublicKey();
@@ -299,7 +299,7 @@ class Tweet {
   }
 
   showsModerationMask() {
-    return Boolean(this.flagged) || Boolean(this.moderated && !this.moderated_revealed);
+    return Boolean(this.flagged === 1) || Boolean(this.moderated && !this.moderated_revealed);
   }
 
   /**
@@ -369,7 +369,7 @@ class Tweet {
   }
 
   attachModerationEvents() {
-    if (!this.app.BROWSER || !this.signature || this.flagged || !this.showsModerationMask()) {
+    if (!this.app.BROWSER || !this.signature || this.flagged === 1 || !this.showsModerationMask()) {
       return;
     }
 

@@ -147,8 +147,7 @@ class Moderate {
         signature: tweet.signature,
         decision
       });
-      await tx.sign();
-      await this.app.network.propagateTransaction(tx);
+      await this.app.network.sendRequestAsTransaction('review tweet', tx.msg.data);
       await this.mod.receiveReviewTweetTransaction(tx);
     } catch (err) {
       console.error('RedSquare review failed:', err);

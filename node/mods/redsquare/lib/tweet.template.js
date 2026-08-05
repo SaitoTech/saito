@@ -120,11 +120,11 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
 
   const chain = embedded ? '' : '<div class="chain" aria-hidden="true"></div>';
 
-  const showMask = Boolean(tweet.flagged) || Boolean(tweet.moderated && !tweet.moderated_revealed);
-  const maskText = tweet.flagged
+  const showMask = Boolean(tweet.flagged === 1) || Boolean(tweet.moderated && !tweet.moderated_revealed);
+  const maskText = tweet.flagged === 1
     ? 'This tweet has been reported and is under review'
     : 'This tweet has been moderated';
-  const showReveal = !tweet.flagged && tweet.moderated && !tweet.moderated_revealed;
+  const showReveal = tweet.flagged !== 1 && tweet.moderated && !tweet.moderated_revealed;
 
   const moderationMask = showMask
     ? `

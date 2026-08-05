@@ -578,7 +578,7 @@ class RedSquare extends ModTemplate {
         } else {
           const obj = {
             field1: 'RedSquare',
-            flagged: 0,
+            flagged_ne: 1,
             limit: peer_obj.tweets_limit
           };
 
@@ -926,7 +926,7 @@ class RedSquare extends ModTemplate {
   }
 
   async handlePeerTransaction(app, tx = null, peer, mycallback) {
-    if (tx == null || !mycallback) {
+    if (tx == null) {
       return 0;
     }
 
@@ -936,10 +936,33 @@ class RedSquare extends ModTemplate {
       return 0;
     }
 
+    if (!txmsg.module || txmsg.module === this.name) {
+      switch (txmsg.request) {
+        case 'like tweet':
+          await this.receiveLikeTweetTransaction(tx);
+          return 1;
+        case 'retweet':
+          await this.receiveRetweetTransaction(tx);
+          return 1;
+        case 'flag tweet':
+          await this.receiveFlagTweetTransaction(tx);
+          return 1;
+        case 'review tweet':
+          await this.receiveReviewTweetTransaction(tx);
+          return 1;
+        default:
+          break;
+      }
+    }
+
     if (txmsg.request === 'load tweets' && txmsg.data?.created_earlier_than != undefined) {
+      if (!mycallback) {
+        return 0;
+      }
+
       const obj = {
         field1: 'RedSquare',
-        flagged: 0,
+        flagged_ne: 1,
         limit: 10,
         created_earlier_than: txmsg.data.created_earlier_than
       };
@@ -1678,42 +1701,61 @@ class RedSquare extends ModTemplate {
     }
 
     const interactionTs = Number(tx.timestamp) || Date.now();
-    const flagged = decision === 'approve' ? 0 : 1;
-
-    const applyReview = async (targetTx) => {
-      if (!targetTx.optional || typeof targetTx.optional !== 'object') {
-        targetTx.optional = {};
-      }
-
-      targetTx.optional.curated = 1;
-      targetTx.optional.flagged = flagged;
-
-      await this.app.storage.updateTransaction(
-        targetTx,
-        { updated_at: interactionTs, flagged },
-        'localhost'
-      );
-    };
-
     const tweet = this.getTweet(targetSignature);
 
-    if (tweet?.tx) {
-      await applyReview(tweet.tx);
-      tweet.curated = 1;
-      tweet.flagged = flagged;
-    } else {
-      await new Promise((resolve) => {
+    const resolveTargetTx = async () => {
+      if (tweet?.tx) {
+        return tweet.tx;
+      }
+
+      return await new Promise((resolve) => {
         this.app.storage.loadTransactions(
           { sig: targetSignature, field1: 'RedSquare' },
-          async (txs) => {
-            if (txs?.length > 0) {
-              await applyReview(txs[0]);
-            }
-            resolve();
+          (txs) => {
+            resolve(txs?.length ? txs[0] : null);
           },
           'localhost'
         );
       });
+    };
+
+    const targetTx = await resolveTargetTx();
+
+    if (!targetTx) {
+      if (this.app.BROWSER && this.moderator_mode) {
+        this.moderate?.removeTweet?.(targetSignature);
+      }
+      return null;
+    }
+
+    if (decision === 'delete') {
+      await this.app.storage.deleteTransaction(targetTx, null, 'localhost');
+      this.removeTweet(targetSignature);
+
+      if (this.app.BROWSER && this.moderator_mode) {
+        this.moderate?.removeTweet?.(targetSignature);
+      }
+
+      return null;
+    }
+
+    // approve → flagged = 2 (reviewed), curated = 1
+    if (!targetTx.optional || typeof targetTx.optional !== 'object') {
+      targetTx.optional = {};
+    }
+
+    targetTx.optional.curated = 1;
+    targetTx.optional.flagged = 2;
+
+    await this.app.storage.updateTransaction(
+      targetTx,
+      { updated_at: interactionTs, flagged: 2 },
+      'localhost'
+    );
+
+    if (tweet) {
+      tweet.curated = 1;
+      tweet.flagged = 2;
     }
 
     if (this.app.BROWSER && this.moderator_mode) {
@@ -2245,7 +2287,7 @@ class RedSquare extends ModTemplate {
       const targetResults = await Promise.all(
         archivePeers.map((peer) =>
           this.loadArchiveTransactions(
-            { sig: targetSignature, field1: 'RedSquare', flagged: 0 },
+            { sig: targetSignature, field1: 'RedSquare', flagged_ne: 1 },
             peer
           )
         )
@@ -2266,7 +2308,7 @@ class RedSquare extends ModTemplate {
     const threadResults = await Promise.all(
       archivePeers.map((peer) =>
         this.loadArchiveTransactions(
-          { field1: 'RedSquare', field5: threadId, flagged: 0, limit: 100 },
+          { field1: 'RedSquare', field5: threadId, flagged_ne: 1, limit: 100 },
           peer
         )
       )
@@ -2285,7 +2327,7 @@ class RedSquare extends ModTemplate {
     }
 
     const txs = await this.loadArchiveTransactions(
-      { sig: String(signature || ''), field1: 'RedSquare', flagged: 0 },
+      { sig: String(signature || ''), field1: 'RedSquare', flagged_ne: 1 },
       'localhost'
     );
     const tx = txs[0];
@@ -2367,7 +2409,7 @@ class RedSquare extends ModTemplate {
     }
 
     const txs = await this.loadArchiveTransactions(
-      { sig: String(signature || ''), field1: 'RedSquare', flagged: 0 },
+      { sig: String(signature || ''), field1: 'RedSquare', flagged_ne: 1 },
       'localhost'
     );
     const tx = txs[0];

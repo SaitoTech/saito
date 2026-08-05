@@ -679,7 +679,12 @@ class Archive extends ModTemplate {
     }
     if (obj.flagged) {
       timestamp_limiting_clause += ' AND flagged = ' + parseInt(obj.flagged);
-      where_obj = { flagged: { '=': parseInt(obj.flagged) } };
+      where_obj['flagged'] = { '=': parseInt(obj.flagged) };
+    }
+    if (obj.flagged_ne != null || Object.prototype.hasOwnProperty.call(obj, 'flagged_ne')) {
+      timestamp_limiting_clause += ' AND flagged != ' + parseInt(obj.flagged_ne);
+      where_obj['flagged'] = { '!=': parseInt(obj.flagged_ne) };
+      delete obj.flagged_ne;
     }
 
     if (obj.ascending || obj.hasOwnProperty('ascending')) {

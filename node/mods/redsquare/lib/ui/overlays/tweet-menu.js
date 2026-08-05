@@ -132,11 +132,12 @@ class TweetMenu {
       const tx = await this.mod.createFlagTweetTransaction({
         signature: tweet.signature
       });
-      await tx.sign();
-      await this.app.network.propagateTransaction(tx);
+      await this.app.network.sendRequestAsTransaction('flag tweet', tx.msg.data);
 
       tweet.flagged = 1;
       tweet.refresh();
+
+      await this.mod.receiveFlagTweetTransaction(tx);
     } catch (err) {
       console.error('RedSquare report failed:', err);
       siteMessage('Unable to report tweet', 2500);
