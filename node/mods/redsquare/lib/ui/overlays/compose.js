@@ -28,9 +28,11 @@ class ComposeOverlay {
     this.gif_picker_rendered = false;
     this.visualViewport = null;
     this.visualViewportResizeHandler = null;
+    this.onComplete = null;
   }
 
   open(options = {}) {
+    this.complete(null);
     this.images = [];
     this.posting = false;
     this.drag_drop_bound = false;
@@ -63,12 +65,26 @@ class ComposeOverlay {
       this.helper_text = 'Create a text post or drag-and-drop images…';
     }
 
-    this.overlay.show(ComposeTemplate(this), () => this.removeVisualViewportResizeHandler());
+    if (options.prompt) {
+      this.placeholder = String(options.prompt);
+    }
+
+    this.onComplete = typeof options.onComplete === 'function' ? options.onComplete : null;
+    this.overlay.show(ComposeTemplate(this), () => {
+      this.removeVisualViewportResizeHandler();
+      this.complete(null);
+    });
 
     const overlayHost = this.getRoot()?.closest('.saito-overlay');
     overlayHost?.classList.add('redsquare-compose-overlay-host');
     this.attachVisualViewportResizeHandler(overlayHost);
     this.attachEvents();
+
+    const input = this.getRoot()?.querySelector('.input');
+    if (input && options.text != null) {
+      input.value = String(options.text);
+      this.updateCharacterCount();
+    }
 
     setTimeout(() => {
       const input = this.getRoot()?.querySelector('.input');
@@ -79,13 +95,20 @@ class ComposeOverlay {
     }, 50);
   }
 
-  close() {
+  close(result = null) {
+    this.complete(result);
     this.removeVisualViewportResizeHandler();
     this.overlay.close();
     this.images = [];
     this.reply_to = this.default_reply_to;
     this.mode = 'post';
     this.posting = false;
+  }
+
+  complete(result) {
+    const callback = this.onComplete;
+    this.onComplete = null;
+    callback?.(result);
   }
 
   getRoot() {
@@ -624,8 +647,8 @@ class ComposeOverlay {
           siteMessage('Retweet sent', 1000);
         }
 
-        this.close();
-        return;
+        this.close(tx);
+        return tx;
       }
 
       const data = this.buildPostData();
@@ -650,7 +673,8 @@ class ComposeOverlay {
         siteMessage('Tweet sent', 1000);
       }
 
-      this.close();
+      this.close(tx);
+      return tx;
     } catch (err) {
       console.error('RedSquare compose submit failed:', err);
       siteMessage(isRetweet ? 'Unable to retweet' : 'Unable to post tweet', 2500);

@@ -2030,6 +2030,12 @@ class Manager {
     if (this.pending_newer_tweets.length && this.mode === 'timeline') {
       this.showNewPostsBanner();
     }
+
+    // Initial archive pages can contain mostly replies. Continue filling the
+    // viewport when the newly hydrated roots do not create a scrollbar.
+    if (!announce && this.mode === 'timeline' && this.isNearBottom()) {
+      this.loadMoreIfNeeded();
+    }
   }
 
   syncPendingNewerTweets() {
@@ -2352,10 +2358,12 @@ class Manager {
       return this.isNearBottom();
     }
 
-    // Empty older page — stop. Near-bottom empty feeds would otherwise refetch forever.
-    state.exhausted = true;
+    // A non-empty archive page may contain only transactions already cached
+    // locally. Its cursor still advanced, so keep paging until the archive says
+    // it is actually exhausted or a visible tweet is found.
+    state.exhausted = Boolean(result.exhausted);
     this.syncFeedStatus();
-    return false;
+    return !state.exhausted && this.isNearBottom();
   }
 
   ensureScrollFooter() {

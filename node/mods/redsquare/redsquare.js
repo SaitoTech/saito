@@ -6,6 +6,7 @@ const Manager = require('./lib/manager');
 const Tweet = require('./lib/tweet');
 const Tweets = require('./lib/tweets');
 const Notifications = require('./lib/notifications');
+const RedSquareApi = require('./lib/redsquare-api');
 const ComposeOverlay = require('./lib/ui/overlays/compose');
 const TweetMenu = require('./lib/ui/overlays/tweet-menu');
 const SettingsOverlay = require('./lib/ui/overlays/settings');
@@ -88,6 +89,7 @@ class RedSquare extends ModTemplate {
     this.profile = null;
     this.manager = null;
     this.compose_overlay = new ComposeOverlay(app, this);
+    this.redsquare_api = new RedSquareApi(app, this);
     this.tweet_menu = new TweetMenu(app, this);
     this.settings_overlay = new SettingsOverlay(app, this);
     this.moderate = new Moderate(app, this);
@@ -454,7 +456,7 @@ class RedSquare extends ModTemplate {
         }
       };
 
-      const processTweetTxs = (peer_obj, txs, older) => {
+      const processTweetTxs = (peer_obj, txs, older, updateEarliest) => {
         for (let i = 0; i < txs.length; i++) {
           const tx = txs[i];
 
@@ -507,7 +509,7 @@ class RedSquare extends ModTemplate {
             updated.push(signature);
           }
 
-          if (older && created_at < peer_obj.tweets_earliest_ts) {
+          if (updateEarliest && created_at < peer_obj.tweets_earliest_ts) {
             peer_obj.tweets_earliest_ts = created_at;
             this.tweets_earliest_ts = Math.min(
               this.tweets_earliest_ts,
@@ -522,10 +524,10 @@ class RedSquare extends ModTemplate {
         }
       };
 
-      const onPeerComplete = (peer_obj, txs, older, peerIndex) => {
+      const onPeerComplete = (peer_obj, txs, older, peerIndex, updateEarliest = older) => {
         const empty = !txs || txs.length === 0;
 
-        if (empty && older) {
+        if (empty && updateEarliest) {
           peer_obj.tweets_earliest_ts = 0;
 
           if (peer_obj.publicKey === this.publicKey) {
@@ -534,7 +536,7 @@ class RedSquare extends ModTemplate {
         }
 
         peer_exhausted[peerIndex] = empty;
-        processTweetTxs(peer_obj, txs || [], older);
+        processTweetTxs(peer_obj, txs || [], older, updateEarliest);
         peers_remaining--;
 
         if (peers_remaining <= 0) {
@@ -544,6 +546,7 @@ class RedSquare extends ModTemplate {
 
       for (let i = 0; i < this.peers.length; i++) {
         const peer_obj = this.peers[i];
+        const initialHydration = !isOlder && peer_obj.tweets_latest_ts === 0;
         const eligible =
           (isOlder &&
             peer_obj.tweets_earliest_ts >= this.tweets_earliest_ts &&
@@ -582,7 +585,7 @@ class RedSquare extends ModTemplate {
             limit: peer_obj.tweets_limit
           };
 
-          if (isOlder) {
+          if (isOlder || initialHydration) {
             obj.created_earlier_than = peer_obj.tweets_earliest_ts;
           } else {
             obj.updated_later_than = peer_obj.tweets_latest_ts;
@@ -593,7 +596,13 @@ class RedSquare extends ModTemplate {
           this.app.storage.loadTransactions(
             obj,
             (txs) => {
-              onPeerComplete(peer_obj, txs || [], isOlder, peerIndex);
+              onPeerComplete(
+                peer_obj,
+                txs || [],
+                isOlder,
+                peerIndex,
+                isOlder || initialHydration
+              );
             },
             archivePeer
           );
@@ -1828,6 +1837,10 @@ class RedSquare extends ModTemplate {
   }
 
   respondTo(type = '', obj) {
+    if (type === 'redsquare-api') {
+      return this.redsquare_api;
+    }
+
     if (type === 'user-menu') {
       const publicKey = obj?.publicKey || '';
 

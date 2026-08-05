@@ -75,8 +75,7 @@ class TweetMenu {
 
   buildActions(tweet) {
     const username = tweet.username || tweet.handle || 'user';
-
-    return [
+    const actions = [
       {
         id: 'hide',
         icon: 'fa-eye-slash',
@@ -102,6 +101,42 @@ class TweetMenu {
         handler: () => this.handleShowInfo(tweet)
       }
     ];
+
+    const sourceSignature = tweet.tx?.signature || tweet.signature;
+    const context = {
+      tweet,
+      transaction: tweet.tx,
+      root_tx_sig: tweet.thread_id || sourceSignature,
+      source_tx_sig: sourceSignature,
+      reporter_publickey: tweet.tx?.from?.[0]?.publicKey || tweet.publicKey || ''
+    };
+    const responders = this.app.modules?.getRespondTos?.('redsquare-tweet-menu', context) || [];
+    const seen = new Set(actions.map((action) => action.id));
+
+    for (const responder of responders) {
+      const id = String(responder?.id || '').trim();
+      const label = String(responder?.text || responder?.label || '').trim();
+      if (!id || !label || typeof responder.callback !== 'function' || seen.has(id)) {
+        continue;
+      }
+
+      seen.add(id);
+      actions.push({
+        id,
+        icon: responder.icon || 'fa-puzzle-piece',
+        label,
+        handler: () => {
+          try {
+            const result = responder.callback(context);
+            result?.catch?.((err) => console.error('RedSquare tweet menu action failed:', err));
+          } catch (err) {
+            console.error('RedSquare tweet menu action failed:', err);
+          }
+        }
+      });
+    }
+
+    return actions;
   }
 
   handleHide(tweet) {
