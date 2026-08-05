@@ -39,11 +39,13 @@ class ModTools extends ModTemplate {
     this.prune_after = 200000000; // ~2 day
     //this.prune_after = 120000; // ~2 minute
     this.max_hops = 2; // stop blacklisting after N hops
-    // password = "testing"
-    this.admin_credential_hash = "61cc98e42ded96807806bf1620e13c4e6a1b85068cad93382a2e3107c269aefe";
-
-    // used in production
-    //this.admin_credential_hash = 'cceb1c83976a46634021ca252a218a53ae882788d9507741db89f6582fc17233';
+    // use password 'testing' on local/dev setups and the actual secret password elsewhere.
+    const endpoint = app.options?.server?.endpoint;
+    const endpoint_host = typeof endpoint === 'string' ? endpoint : endpoint?.host || '';
+    const use_testing_password = !endpoint || endpoint_host.toLowerCase().includes('localhost');
+    this.admin_credential_hash = use_testing_password
+      ? '61cc98e42ded96807806bf1620e13c4e6a1b85068cad93382a2e3107c269aefe'
+      : 'cceb1c83976a46634021ca252a218a53ae882788d9507741db89f6582fc17233';
     this.styles = [];
 
     //
