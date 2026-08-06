@@ -21,13 +21,13 @@ class BuySaito extends ModTemplate {
     this.description = 'Buy native SAITO';
     this.categories = 'Utility Ecommerce NFTs';
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: '🟥 Official SAITO Sales Platform',
-      url: 'https://saito.io/buysaito/',
+      url: '/buysaito/',
       description: 'Get SAITO',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png'
-    };
+    });
 
     this.mixin_mod = null;
     this.erc_saito = null;

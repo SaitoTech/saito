@@ -15,13 +15,13 @@ class ReactMod extends ModTemplate {
     this.app = app;
     this.name = 'React';
     this.slug = 'react';
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: `🟥 ${this.returnName()}`,
-      url: `https://saito.io/${this.returnSlug()}/`,
+      url: `/${this.returnSlug()}/`,
       description: '',
       image: 'https://saito.tech/wp-content/uploads/2023/11/videocall-300x300.png'
-    };
+    });
     this.description = 'A placeholder react app';
 
     this.styles = ['/saito/saito.css', '/react/style.css'];

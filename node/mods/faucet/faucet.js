@@ -53,13 +53,13 @@ class Faucet extends ModTemplate {
       });
     }
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: '🟥 Saito Faucet',
-      url: 'https://saito.io/faucet/',
+      url: '/faucet/',
       description: 'Get Testnet Saito',
       image: 'https://saito.tech/wp-content/uploads/2023/11/faucet-300x300.png'
-    };
+    });
   }
 
   async render() {

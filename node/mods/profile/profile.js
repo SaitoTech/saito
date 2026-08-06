@@ -27,13 +27,13 @@ class Profile extends ModTemplate {
     this.profile_loading = {};
     this.enable_profile_edits = true;
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: '🟥 Saito User - Web3 Social Media',
-      url: 'https://saito.io/redsquare#profile',
+      url: '/redsquare#profile',
       description: 'Peer to peer Web3 social media platform',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png' //square image with "Saito" below logo
-    };
+    });
 
     app.connection.on('profile-fetch-content-and-update-dom', async (key) => {
       console.info('profile-fetch-content-and-update-dom --- ' + key);

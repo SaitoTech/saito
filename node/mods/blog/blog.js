@@ -23,13 +23,13 @@ class Blog extends ModTemplate {
     this.icon_fa = 'fa-solid fa-book-open-reader';
     this.blog_rendered = false;
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: '🟥 Saito Blog - Web3 Blogging',
-      url: 'https://saito.io/blog',
+      url: '/blog',
       description: 'Peer to peer Web3 social media platform',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png'
-    };
+    });
 
     this.callbackAfterPost = null;
     this.callBackAfterDelete = null;

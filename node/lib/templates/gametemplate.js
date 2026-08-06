@@ -97,14 +97,14 @@ class GameTemplate extends ModTemplate {
     this.commands = [];
     this.game_state_pre_move = '';
 
-    this.social = {
+    this.social = this.buildSocial({
       creator: 'Saito Team',
       twitter: '@SaitoOfficial',
       title: this.returnName(),
-      url: 'https://saito.io/arcade/',
+      url: '/arcade/',
       description: this.description,
       image: 'https://saito.tech/wp-content/uploads/2023/11/arcade-300x300.png'
-    };
+    });
 
     this.recordOptions = {
       container: 'body',

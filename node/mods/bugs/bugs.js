@@ -48,13 +48,13 @@ class Bugs extends ModTemplate {
     this.serverPeer = '';
     this.restored = false;
     this.restoring = false;
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: 'Saito Bugs',
       url: '/bugs',
       description: this.description,
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png'
-    };
+    });
   }
 
   async initialize(app) {
