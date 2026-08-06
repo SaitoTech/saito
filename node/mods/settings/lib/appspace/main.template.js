@@ -36,6 +36,10 @@ module.exports = (app, mod, main) => {
 
   <div class="settings-appspace saito-overlay-size wide">
 
+    <header class="saito-overlay-form-header">
+      <h2 class="saito-overlay-form-header-title">account</h2>
+    </header>
+
     <div id="settings-appspace-warning-bar" class="settings-appspace-warning-bar" style="display: none;" role="alert" aria-live="polite"></div>
 
     <div class="settings-appspace-header">

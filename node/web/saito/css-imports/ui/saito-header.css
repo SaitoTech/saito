@@ -138,6 +138,11 @@
   right: 0;
 }
 
+/* Keep the open drawer above page controls; Saito overlays start above 100. */
+#saito-header:not(.game):has(.saito-header-hamburger-contents.show-menu) {
+  z-index: 50;
+}
+
 .saito-header-hamburger-contents.show-wallet .wallet-info {
   height: 0;
   margin: 0;

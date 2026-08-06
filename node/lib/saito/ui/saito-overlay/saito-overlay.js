@@ -27,6 +27,9 @@ class SaitoOverlay {
     this.visible = false;
     //flag to not add the backdrop
     this.nonBlocking = false;
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
+    this.visualViewportOverlay = null;
   }
 
   pullOverlayToFront() {
@@ -123,6 +126,43 @@ class SaitoOverlay {
    */
   attachEvents() {}
 
+  attachVisualViewportResizeHandler(overlay_el) {
+    this.removeVisualViewportResizeHandler();
+
+    if (!overlay_el || !window.visualViewport || window.innerWidth > 768) {
+      return;
+    }
+
+    const visualViewport = window.visualViewport;
+    this.visualViewport = visualViewport;
+    this.visualViewportOverlay = overlay_el;
+    this.visualViewportResizeHandler = () => {
+      overlay_el.style.setProperty('--saito-overlay-viewport-top', `${visualViewport.offsetTop}px`);
+      overlay_el.style.setProperty('--saito-overlay-viewport-height', `${visualViewport.height}px`);
+    };
+
+    this.visualViewportResizeHandler();
+    // Focusing an input can pan the visual viewport without resizing it.
+    visualViewport.addEventListener('resize', this.visualViewportResizeHandler);
+    visualViewport.addEventListener('scroll', this.visualViewportResizeHandler);
+  }
+
+  removeVisualViewportResizeHandler() {
+    if (this.visualViewport && this.visualViewportResizeHandler) {
+      this.visualViewport.removeEventListener('resize', this.visualViewportResizeHandler);
+      this.visualViewport.removeEventListener('scroll', this.visualViewportResizeHandler);
+    }
+
+    if (this.visualViewportOverlay) {
+      this.visualViewportOverlay.style.removeProperty('--saito-overlay-viewport-top');
+      this.visualViewportOverlay.style.removeProperty('--saito-overlay-viewport-height');
+    }
+
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
+    this.visualViewportOverlay = null;
+  }
+
   /**
    * Renders the Overlay with the given html and attaches events to close it
    * @param app - the Saito application
@@ -150,6 +190,7 @@ class SaitoOverlay {
 
     try {
       overlay_el.style.display = 'block';
+      this.attachVisualViewportResizeHandler(overlay_el);
       if (overlay_backdrop_el && !this.nonBlocking) {
         overlay_backdrop_el.style.display = 'block';
       }
@@ -234,6 +275,8 @@ class SaitoOverlay {
    * Hide the overlay, but leave it alive in the DOM so listeners/callbacks can still exist
    */
   hide() {
+    this.removeVisualViewportResizeHandler();
+
     if (!document) {
       return;
     }
@@ -261,6 +304,7 @@ class SaitoOverlay {
    */
   remove() {
     this.visible = false;
+    this.removeVisualViewportResizeHandler();
     try {
       let overlay_el = document.querySelector(`#saito-overlay${this.ordinal}`);
       if (overlay_el != null) {
