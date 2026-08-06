@@ -41,13 +41,13 @@ class Videocall extends ModTemplate {
 
     this.have_joined_room = 0;
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: '🟥 Saito Talk',
-      url: 'https://saito.io/videocall/',
+      url: '/videocall/',
       description: 'Peer to peer voice and video calling with no middleman',
       image: '/videocall/img/video-call-og.png'
-    };
+    });
 
     //When CallLauncher is rendered or game-menu triggers it
     app.connection.on('stun-init-call-interface', (settings) => {

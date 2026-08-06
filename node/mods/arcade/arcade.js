@@ -58,13 +58,13 @@ class Arcade extends ModTemplate {
 
     this.possibleHome = 1;
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: '🟥 Saito Arcade',
-      url: 'https://saito.io/arcade/',
+      url: '/arcade/',
       description: 'Peer to peer gaming on the blockchain',
       image: 'https://saito.tech/wp-content/uploads/2023/11/arcade-300x300.png'
-    };
+    });
 
     app.connection.on('arcade-issue-challenge', async ({ game, players, options }) => {
       let tx;

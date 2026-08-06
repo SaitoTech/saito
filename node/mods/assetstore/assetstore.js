@@ -59,13 +59,13 @@ class AssetStore extends ModTemplate {
     // Browser-only
     this.drafts = []; // our listed nft, txs to send the back to us
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: '🟥 Saito AssetStore',
-      url: 'https://saito.io/store/',
+      url: '/store/',
       description: 'Buy or Sell Saito NFTs and other On-Chain Assets',
-      image: 'https://saito.io/store/img/splash.png'
-    };
+      image: '/store/img/splash.png'
+    });
   }
 
   //////////////////////////////

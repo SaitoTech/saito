@@ -122,13 +122,13 @@ class Chat extends ModTemplate {
 
     this.postScripts = ['/saito/lib/emoji-picker/emoji-picker.js'];
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: 'Saito Chat',
-      url: 'https://saito.io/chat/',
+      url: '/chat/',
       description: 'Instant messaging client on Saito Network blockchain',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png'
-    };
+    });
   }
 
   hasSettings() {

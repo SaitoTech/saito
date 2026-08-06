@@ -68,6 +68,55 @@ class ModTemplate {
     // this.darkModeToggler = new Toggler(app);
   }
 
+  returnServerOrigin() {
+    const endpoint = this.app?.options?.server?.endpoint;
+
+    if (!endpoint?.protocol || !endpoint?.host) {
+      return '';
+    }
+
+    const protocol = endpoint.protocol.replace(/:$/, '');
+    const port = endpoint.port ? `:${endpoint.port}` : '';
+
+    return `${protocol}://${endpoint.host}${port}`;
+  }
+
+  resolveSocialUrl(value) {
+    if (typeof value !== 'string' || value === '') {
+      return value;
+    }
+
+    if (/^[a-z][a-z\d+.-]*:/i.test(value) || value.startsWith('//')) {
+      return value;
+    }
+
+    const origin = this.returnServerOrigin();
+
+    if (!origin) {
+      return value;
+    }
+
+    try {
+      return new URL(value, `${origin}/`).href;
+    } catch {
+      return value;
+    }
+  }
+
+  buildSocial(social = {}) {
+    const resolved = { ...social };
+
+    if (Object.prototype.hasOwnProperty.call(resolved, 'url')) {
+      resolved.url = this.resolveSocialUrl(resolved.url);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(resolved, 'image')) {
+      resolved.image = this.resolveSocialUrl(resolved.image);
+    }
+
+    return resolved;
+  }
+
   ////////////////////////////
   // Extend these Functions //
   ////////////////////////////

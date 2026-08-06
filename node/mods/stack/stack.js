@@ -37,13 +37,13 @@ class Stack extends ModTemplate {
     this.pending_post_pk = null;
     this.pending_post_loaded = null;
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: 'Stack - Permissioned Blogging',
-      url: 'https://saito.io/stack',
+      url: '/stack',
       description: 'Open-source subscription-based blogging platform',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png'
-    };
+    });
 
     // Cache for posts and subscriptions
     this.postsCache = {

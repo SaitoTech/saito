@@ -26,7 +26,7 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="msapplication-starturl" content="/index.html" />
 
-  <meta name="twitter:card" content="https://saito.io/stack/img/splash.png" />
+  <meta name="twitter:card" content="summary" />
   <meta name="twitter:site" content="${og_card.twitter}" />
   <meta name="twitter:creator" content="${og_card.twitter}" />
   <meta name="twitter:title" content="${og_card.title}" />
@@ -42,7 +42,6 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
   <meta property="og:image" content="${og_card.image}"/>
   <meta property="og:image:url" content="${og_card.image}"/>
   <meta property="og:image:secure_url" content="${og_card.image}"/>
-  <meta property="og:image:secure_url" content="https://saito.io/stack/img/splash.png"/>
 
   <link rel="icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
