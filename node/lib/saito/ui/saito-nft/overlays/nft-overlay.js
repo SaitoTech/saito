@@ -285,7 +285,7 @@ class NFTOverlay {
     //
     // contextual confirm buttons
     //
-    let cancel_send_btn = document.querySelector('.saito-nft-panel-send .saito-nft-cancel-btn');
+    let cancel_send_btn = document.querySelector('.saito-nft-panel-send .saito-nft-send-back');
     let confirm_send_btn = document.querySelector('.saito-nft-panel-send .saito-nft-confirm-btn');
     let max_amount_btn = document.querySelector('.saito-nft-panel-send .nft-send-max-btn');
     let amount_input = document.querySelector('.saito-nft-panel-send #nft-send-amount');

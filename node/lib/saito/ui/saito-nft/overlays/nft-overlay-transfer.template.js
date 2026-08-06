@@ -65,7 +65,10 @@ module.exports = (app, mod, nft_overlay) => {
       </div>
       
       <footer class="saito-nft-panel-footer">
-        <button class="saito-nft-footer-btn saito-button-secondary saito-nft-cancel-btn">Cancel</button>
+        <button type="button" class="saito-button-square saito-nft-send-back" aria-label="Back">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        </button>
+        <span class="saito-nft-footer-spacer"></span>
         <button class="saito-nft-footer-btn saito-nft-confirm-btn">Send</button>
       </footer>
     </div>

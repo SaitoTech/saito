@@ -11,7 +11,6 @@ const {
   transactionExportFilename
 } = require('./lib/transaction_io');
 const {
-  ensureCanonicalOutputLocations,
   fetchTransactionFromP2shLink,
   parseP2shShareLink,
   readTransactionLocation
@@ -833,15 +832,22 @@ class Rustscript extends ModTemplate {
 
   /**
    * Download a transaction as canonical JSON via the browser.
-   * Stamps confirmed output locations (block_id / tx_ordinal / slip_index)
-   * onto the tx before writing so imports can unlock without a chain lookup.
+   * Pass block_id / transaction_id with update_outputs so outputs carry
+   * confirmed chain location in the serialized file.
    */
-  exportTransaction(tx, { prefix, blockId = null, txOrdinal = null, blk = null } = {}) {
+  exportTransaction(tx, { prefix, block_id = null, transaction_id = null } = {}) {
     if (!tx) {
       throw new Error('Transaction is required');
     }
-    ensureCanonicalOutputLocations(tx, { blockId, txOrdinal, blk });
     const filename = prefix ? transactionExportFilename(tx, prefix) : undefined;
+    if (block_id != null && String(block_id) !== '' && transaction_id != null && String(transaction_id) !== '') {
+      return downloadTransactionFile(this.app, tx, {
+        filename,
+        block_id,
+        transaction_id,
+        update_outputs: true
+      });
+    }
     return downloadTransactionFile(this.app, tx, { filename });
   }
 

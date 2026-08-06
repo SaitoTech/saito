@@ -33,6 +33,7 @@ class ImportFlow {
     this.errorMessage = '';
     this.blockedRoot = null;
     this._processing = false;
+    this._completed = false;
 
     this.onEscapeKey = (event) => {
       if (event.key === 'Escape' && this.step && this.step !== 'loading') {
@@ -43,6 +44,7 @@ class ImportFlow {
 
   open() {
     this.errorMessage = '';
+    this._completed = false;
     this.step = 'idle';
     this.show(ImportTemplate.idleOverlay());
     this.bindIdleEvents();
@@ -61,13 +63,17 @@ class ImportFlow {
     this.applyOverlayLayout();
   }
 
-  hide() {
+  hide({ completed = false } = {}) {
+    if (completed) {
+      this._completed = true;
+    }
     if (this.step) {
       this.overlay.close();
     }
   }
 
   onOverlayClosed() {
+    const returnToImportMenu = this.step != null && !this._completed;
     document.body.classList.remove('rs-publish-modal-open');
     document.removeEventListener('keydown', this.onEscapeKey);
     if (this.blockedRoot) {
@@ -76,6 +82,10 @@ class ImportFlow {
     }
     this.step = null;
     this._processing = false;
+    this._completed = false;
+    if (returnToImportMenu) {
+      this.mainUi?.welcomeOverlay?.render('import-choice');
+    }
   }
 
   applyOverlayLayout() {
@@ -121,7 +131,7 @@ class ImportFlow {
     try {
       await this.mod.importP2shShareLink(rawLink);
       await delay(MIN_LOAD_MS);
-      this.hide();
+      this.hide({ completed: true });
     } catch (err) {
       await delay(MIN_LOAD_MS);
       error = err?.message || 'Could not import P2SH link.';
@@ -183,7 +193,7 @@ class ImportFlow {
 
     try {
       await this.mod.loadTransactionForWitness(tx);
-      this.hide();
+      this.hide({ completed: true });
     } catch (err) {
       this._processing = false;
       this.errorMessage = err?.message || 'Could not load transaction into witness mode.';

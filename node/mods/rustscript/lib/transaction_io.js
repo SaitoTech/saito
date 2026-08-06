@@ -11,14 +11,14 @@ const Transaction = require('./../../../lib/saito/transaction').default;
  */
 const FORMAT_WEB = 'web';
 
-function serializeTransactionToWeb(app, tx) {
+function serializeTransactionToWeb(app, tx, options) {
   if (!tx || typeof tx.serialize_to_web !== 'function') {
     throw new Error('Transaction is required');
   }
   if (!app) {
     throw new Error('Saito app is required');
   }
-  return tx.serialize_to_web(app);
+  return tx.serialize_to_web(app, options);
 }
 
 /**
@@ -88,8 +88,12 @@ function transactionExportFilename(tx, prefix = 'rustscript') {
  * Trigger a browser download of the canonical web-serialized transaction.
  * Content remains JSON; the .saito extension marks it as a RustScript artifact.
  */
-function downloadTransactionFile(app, tx, { filename } = {}) {
-  const json = serializeTransactionToWeb(app, tx);
+function downloadTransactionFile(app, tx, { filename, block_id, transaction_id, update_outputs } = {}) {
+  const json = serializeTransactionToWeb(app, tx, {
+    block_id,
+    transaction_id,
+    update_outputs
+  });
   const name = filename || transactionExportFilename(tx);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
