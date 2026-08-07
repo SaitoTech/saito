@@ -246,9 +246,8 @@
 
 .tweet .body pre {
   max-width: 100%;
-  overflow-x: auto;
-  overflow-wrap: normal;
-  white-space: pre;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .tweet .body table {
@@ -289,6 +288,7 @@
 .tweet .controls {
   display: flex;
   user-select: none;
+  justify-content: space-between;
 }
 
 .tweet .controls .tool {
@@ -297,6 +297,7 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
+  max-width: 3rem;
   padding: var(--saito-space-xs) 0;
   cursor: pointer;
   color: var(--saito-muted-foreground);

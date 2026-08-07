@@ -44,6 +44,10 @@ Update:
 
 Supported actions are `set-title`, `set-status`, `set-severity`, `set-priority`, `set-weight`, `set-assignee`, `untrack`, and `retrack`. Unassigning uses an empty assignee. Reopening uses `set-status: open`. Every mutation is created and signed before optimistic processing.
 
+After a status mutation is delivered, Bugs publishes its display label, such as `status -> In Progress`, as a RedSquare reply in the bug thread.
+
+Supported statuses are `open`, `in_progress`, `needs_information`, `ready_to_deploy`, and `completed`.
+
 ## Delivery and projection
 
 The same signed transaction is processed optimistically, serialized inside a `bugs transaction` peer request for low-latency delivery, and propagated normally on-chain. The peer envelope is transport only. Its inner signature is verified before processing. `bug_events.tx_sig` makes local, peer, chain, and archive delivery idempotent.

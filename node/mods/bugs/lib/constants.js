@@ -1,4 +1,10 @@
-const BUG_STATUSES = Object.freeze(['open', 'in_progress', 'needs_information', 'completed']);
+const BUG_STATUSES = Object.freeze([
+  'open',
+  'in_progress',
+  'needs_information',
+  'ready_to_deploy',
+  'completed'
+]);
 const BUG_SEVERITIES = Object.freeze(['critical', 'high', 'medium', 'low']);
 const BUG_PRIORITIES = Object.freeze(['urgent', 'high', 'normal', 'low']);
 const BUG_ACTIONS = Object.freeze([
@@ -23,6 +29,7 @@ const LABELS = Object.freeze({
     open: 'Open',
     in_progress: 'In Progress',
     needs_information: 'Needs Information',
+    ready_to_deploy: 'Ready to Deploy',
     completed: 'Completed'
   },
   severity: {

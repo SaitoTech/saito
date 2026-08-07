@@ -7,7 +7,7 @@ const BugsDatabase = require('./lib/database');
 const BugsMain = require('./lib/main');
 const BugEditor = require('./lib/overlays/bug-editor');
 const RedSquareBridge = require('./lib/redsquare');
-const { COMPLETED_RETENTION_MS, DEFAULT_WEIGHT } = require('./lib/constants');
+const { COMPLETED_RETENTION_MS, DEFAULT_WEIGHT, STATUS_LABELS } = require('./lib/constants');
 const { midpointWeight, shouldApplyEvent } = require('./lib/ordering');
 const { canCreateBug, canUpdateBug, returnPolicy } = require('./lib/policy');
 const { verifyTransactionSignatureHash } = require('./lib/signature');
@@ -638,7 +638,11 @@ class Bugs extends ModTemplate {
       bug?.reporter_publickey,
       action === 'set-assignee' ? value : bug?.assignee_publickey
     ]);
-    return this.deliverSignedTransaction(tx);
+    const delivered = await this.deliverSignedTransaction(tx);
+    if (action === 'set-status') {
+      await this.replyToBug(bug, `status -> ${STATUS_LABELS[value] || value}`);
+    }
+    return delivered;
   }
 
   async deliverSignedTransaction(tx) {

@@ -78,7 +78,7 @@
 .compose .surface {
   position: relative;
   display: grid;
-  grid-template-rows: minmax(8rem, 1fr) auto;
+  grid-template-rows: 8rem auto;
   row-gap: var(--saito-space-xs);
   min-width: 0;
   min-height: 0;
@@ -86,10 +86,12 @@
 }
 
 .compose .input {
-  width: 100%;
+  width: calc(100% - 8rem);
   height: 100%;
   min-height: 8rem;
   padding: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
   resize: none;
   border: none;
   background: transparent;
