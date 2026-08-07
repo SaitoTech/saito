@@ -57,7 +57,7 @@ class PurchaseOverlay {
 
   /**
    * Payment broadcast confirmation via shared Saito Transaction Monitor.
-   * After Continue, resume Store fulfillment UX (NFT arrival).
+   * On confirm, auto-advances into Store fulfillment UX (NFT arrival).
    * Live UX only — not recreated after reload.
    */
   watchPurchase(tx, listingTitle = '', meta = {}) {
@@ -85,23 +85,16 @@ class PurchaseOverlay {
     const lead = this.listingTitle
       ? `Your purchase of ${this.listingTitle} is being broadcast to the Saito network.`
       : 'Your purchase is being broadcast to the Saito network.';
-    const successLead = this.listingTitle
-      ? `The Store is fulfilling your order for ${this.listingTitle}.`
-      : 'The Store is fulfilling your order.';
 
     this.mod.transaction_monitor.render({
       tx,
       title: 'Purchasing NFT',
       lead,
       subtitle: 'Waiting for confirmation...',
-      successTitle: 'Payment confirmed',
-      successLead,
-      successActionLabel: 'Continue',
+      auto_continue_on_confirm: true,
       callback: (result) => {
         this.watchingWithMonitor = false;
         if (result?.status === 'confirmed') {
-          // Lifecycle already advanced on chain confirm via store-purchase-asset.
-          // Continue only hands UI back to Store fulfillment.
           this.openFulfilling();
           return;
         }
@@ -217,7 +210,7 @@ class PurchaseOverlay {
     }
 
     this.lifecycle()?.markPaymentConfirmed(this.pendingTxSignature);
-    // Monitor owns waiting → Continue → fulfilling; do not open Store UI here.
+    // Monitor auto-continues into openFulfilling via watchPurchase callback.
   }
 
   onStoreOrderRefund() {
@@ -264,8 +257,7 @@ class PurchaseOverlay {
       return;
     }
 
-    // Fulfilling overlay opens only after the user Continues from the Transaction Monitor
-    // (or via reopenPurchaseProgress while already fulfilling). Never recreate confirmation UI.
+    // Fulfilling overlay opens automatically when payment confirms.
   }
 }
 

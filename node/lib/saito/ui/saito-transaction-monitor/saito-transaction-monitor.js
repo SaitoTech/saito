@@ -40,6 +40,8 @@ class SaitoTransactionMonitor {
    *                        if they close while still waiting
    *   title / lead / subtitle
    *   successTitle / successLead / successActionLabel
+   *   auto_continue_on_confirm - if true, skip the completion dialog and fire
+   *                        the confirmed callback as soon as the tx confirms
    */
   render(options = {}) {
     this.stopCountdown();
@@ -107,6 +109,14 @@ class SaitoTransactionMonitor {
       blk
     };
     this.tx = null;
+
+    if (this.options.auto_continue_on_confirm) {
+      const result = this._completion_result;
+      this._completion_result = null;
+      this.fireCallback(result);
+      this.overlay.close();
+      return;
+    }
 
     this.overlay.clickBackdropToClose = true;
     this.overlay.show(

@@ -144,69 +144,7 @@
   display: contents;
 }
 
-/* Lightweight purchase lifecycle strip — owns its own spacing when visible */
-.store .purchase-status-slot:empty,
-.store .purchase-status-slot:has(> [hidden]),
-.store .purchase-status[hidden] {
-  display: none;
-}
-
-.store .purchase-status {
-  margin: 0 0 var(--saito-space-lg);
-  padding: var(--saito-space-md) var(--saito-space-lg);
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background: var(--saito-card, transparent);
-}
-
-.store .purchase-status .body {
-  display: flex;
-  align-items: center;
-  gap: var(--saito-space-md);
-  flex-wrap: wrap;
-}
-
-.store .purchase-status .saito-spinner {
-  width: 2.5rem;
-  min-width: 2.5rem;
-}
-
-.store .purchase-status .success {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: var(--saito-primary);
-  color: var(--saito-white, #fff);
-  flex: 0 0 auto;
-}
-
-.store .purchase-status .copy {
-  flex: 1 1 12rem;
-  min-width: 0;
-}
-
-.store .purchase-status .title {
-  margin: 0;
-  font-size: var(--font-size-medium);
-  font-family: var(--saito-font-medium);
-}
-
-.store .purchase-status .detail {
-  margin: 0.2rem 0 0;
-  font-size: var(--font-size-small);
-  color: var(--saito-muted-foreground);
-}
-
-.store .purchase-status .actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--saito-space-sm);
-  margin-left: auto;
-}
-
+/* Storefront share URL */
 .store .storefront-url {
   margin: 0;
   max-width: 100%;
@@ -236,7 +174,7 @@
 
 .store .storefront-url-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: var(--saito-space-sm);
@@ -248,6 +186,13 @@
 
 .store .storefront-url-row .saito-icon-button {
   flex: 0 0 auto;
+  align-self: stretch;
+  box-sizing: border-box;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1;
 }
 
 .store .storefront-status {
@@ -594,16 +539,6 @@
 
   .store > .main-column > .manager {
     gap: var(--saito-space-md);
-  }
-
-  .store .purchase-status .actions {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .store .purchase-status .actions .saito-button-primary,
-  .store .purchase-status .actions .saito-button-secondary {
-    flex: 1 1 auto;
   }
 
   .store .hero .toolbar-row {

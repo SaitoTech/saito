@@ -42,6 +42,7 @@ class ListingDetailOverlay {
         summaryBucketKey(this.summary.nft_id, this.summary.price) ===
           summaryBucketKey(summary.nft_id, summary.price)
       ) {
+        // Paint only — do not restart archive/media loading.
         this.render(summary);
       }
     });
@@ -265,8 +266,40 @@ class ListingDetailOverlay {
   }
 
   /**
-   * View mode: render(summary)
-   * Edit mode: render({ mode: 'edit', nft, defaults })
+   * Open a listing for viewing: paint immediately, then load anything missing.
+   * Callers that only need a repaint (media updates, etc.) should use render().
+   */
+  open(summary) {
+    this.render(summary);
+    if (!(summary instanceof Summary)) {
+      return;
+    }
+
+    const finish = () => {
+      if (this.mode === 'view' && this.summary === summary) {
+        this.render(summary);
+      }
+    };
+
+    if (!summary.listing_tx && summary.listing_signature) {
+      summary.ensureListingTransaction(() => {
+        if (summary.isImageLoading?.()) {
+          summary.enrichMedia(finish);
+          return;
+        }
+        finish();
+      });
+      return;
+    }
+
+    if (summary.isImageLoading?.()) {
+      summary.enrichMedia(finish);
+    }
+  }
+
+  /**
+   * Paint the overlay from current state. Does not load or enrich data.
+   * View: render(summary) | Edit: render({ mode: 'edit', nft, defaults })
    */
   render(input = null) {
     if (input && !(input instanceof Summary) && input.mode === 'edit') {
@@ -274,29 +307,14 @@ class ListingDetailOverlay {
       return;
     }
 
-    if (input instanceof Summary || input === null || input === undefined) {
-      this.renderView(input);
-      return;
-    }
-
-    if (input?.nft_id || input?.returnTitle) {
-      this.renderView(input);
-      return;
-    }
-
-    this.renderView(input);
-  }
-
-  renderView(summary = null) {
     this.mode = 'view';
-    if (summary) {
-      this.summary = summary;
+    if (input) {
+      this.summary = input;
     }
     const view = this.returnViewModel(this.summary || {});
     this.overlay.show(ListingDetailTemplate.viewTemplate(view));
     this.attachViewEvents();
     this.applyProductMedia();
-    this.beginOverlayEnrichment();
   }
 
   renderEdit(nft, defaults = {}) {
@@ -340,12 +358,20 @@ class ListingDetailOverlay {
 
     if (mainImage) {
       mainImage.onerror = () => {
-        const display = this.summary?.returnMediaDisplay?.() || {};
+        const summary = this.summary;
+        const display = summary?.returnMediaDisplay?.() || {};
         if (display.innerHtml || display.loading) {
           return;
         }
         mainImage.onerror = null;
-        this.beginOverlayEnrichment();
+        if (!(summary instanceof Summary)) {
+          return;
+        }
+        summary.enrichMedia(() => {
+          if (this.mode === 'view' && this.summary === summary) {
+            this.render(summary);
+          }
+        });
       };
     }
 
@@ -630,30 +656,6 @@ class ListingDetailOverlay {
     }
   }
 
-  beginOverlayEnrichment() {
-    const summary = this.summary;
-    if (!(summary instanceof Summary)) {
-      return;
-    }
-
-    const refreshIfNeeded = () => {
-      this.renderView(summary);
-      if (summary.isImageLoading?.()) {
-        summary.enrichMedia(() => this.renderView(summary));
-      }
-    };
-
-    if (summary.listing_tx) {
-      summary.hydrateFromListingTransaction?.();
-      this.renderView(summary);
-      if (summary.isImageLoading?.()) {
-        summary.enrichMedia(() => this.renderView(summary));
-      }
-      return;
-    }
-
-    summary.ensureListingTransaction(refreshIfNeeded);
-  }
 }
 
 module.exports = ListingDetailOverlay;

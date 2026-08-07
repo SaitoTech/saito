@@ -27,18 +27,30 @@ function yieldForPaint() {
 async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
   const monitor = mod.purchase_monitor;
 
+  // Immediate UI transition — before any purchase preparation work.
+  // Cheap title only; returnTitle()/price hydration happens after paint.
+  const listingTitle = String(summary?.title || '').trim() || 'this item';
+  mod.main?.listing_detail?.overlay?.hide?.();
+  mod.main?.product_overlay?.overlay?.hide?.();
+  monitor?.show({ listingTitle });
+  monitor?.setStage('preparing');
+  await yieldForPaint();
+
   if (!summary?.nft_id) {
+    monitor?.hide();
     salert('This item is not available for purchase.');
     return;
   }
 
   if (!mod.store_public_key) {
+    monitor?.hide();
     salert('Store is not connected. Please wait for the Store service to come online.');
     return;
   }
 
   const unit_price = parseListingUnitPrice(summary.returnPrice?.() || summary.price);
   if (!unit_price || Number(unit_price) <= 0) {
+    monitor?.hide();
     salert('This item does not have a valid price.');
     return;
   }
@@ -50,18 +62,12 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
   const total_nolan = unit_nolan * BigInt(quantity) + fee_nolan;
 
   if (total_nolan <= 0n) {
+    monitor?.hide();
     salert('Unable to calculate purchase total.');
     return;
   }
 
-  const listingTitle = summary.returnTitle?.() || summary.title || 'this item';
-
-  // Replace listing-detail Buy UI immediately with preparation feedback.
-  mod.main?.listing_detail?.overlay?.hide?.();
-  mod.main?.product_overlay?.overlay?.hide?.();
-  monitor?.show({ listingTitle });
-  monitor?.setStage('preparing');
-  await yieldForPaint();
+  const resolvedTitle = summary.returnTitle?.() || summary.title || listingTitle;
 
   let newtx = null;
   try {
@@ -96,7 +102,7 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
         app.wallet.convertNolanToSaito(total_nolan),
         mod.store_public_key,
         newtx.serialize_to_web(app),
-        `Purchase ${summary.returnTitle?.() || 'Store item'}`
+        `Purchase ${resolvedTitle || 'Store item'}`
       );
       beginLocalPurchaseLifecycle(
         mod,
@@ -104,7 +110,7 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
         summary,
         pendingTxSignature,
         quantity,
-        listingTitle,
+        resolvedTitle,
         newtx
       );
       return;
@@ -126,7 +132,7 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
       summary,
       pendingTxSignature,
       quantity,
-      listingTitle,
+      resolvedTitle,
       newtx
     );
   } catch (err) {

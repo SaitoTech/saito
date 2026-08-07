@@ -1,4 +1,4 @@
-const { summaryBucketKey, summaryDomId } = require('./summary-cache');
+const { summaryBucketKey, listingTeaserSelector } = require('./summary-cache');
 
 const PHASE = {
   SUBMITTED: 'submitted',
@@ -97,8 +97,10 @@ class PurchaseLifecycle {
       };
     }
 
-    const card = document.getElementById(summaryDomId(summary));
-    card?.remove();
+    const selector = listingTeaserSelector(summary);
+    if (selector) {
+      document.querySelectorAll(selector).forEach((card) => card.remove());
+    }
   }
 
   listingHideKeys(summary) {

@@ -5,7 +5,6 @@ const NftPickerOverlay = require('./overlays/nft-picker');
 const ListingDetailOverlay = require('./overlays/listing-detail');
 const PurchaseOverlay = require('./overlays/purchase');
 const PurchaseLifecycle = require('./purchase-lifecycle');
-const PurchaseStatus = require('./purchase-status');
 const ListingLifecycle = require('./listing-lifecycle');
 
 class Main {
@@ -29,10 +28,6 @@ class Main {
     this.manager = new Manager(app, mod, '', {
       onSell: () => this.openSell(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
-    });
-    this.purchase_status = new PurchaseStatus(app, mod, '', {
-      onShowProgress: () => this.reopenPurchaseProgress(),
-      onViewNfts: () => this.openMyNfts()
     });
     this.nft_picker = null;
     this.listing_detail = null;
@@ -103,7 +98,6 @@ class Main {
 
     this.menu.render(`${this.container} .store > .menu`);
     this.manager.render(`${this.container} .store > .main-column > .manager`);
-    this.purchase_status.render(`${this.container} .store > .main-column > .purchase-status-slot`);
   }
 
   onNavigate(view = '', opts = {}) {
@@ -256,40 +250,6 @@ class Main {
     if (path && window.location.pathname !== path) {
       history.pushState({ store: 'admin', publicKey }, '', path);
     }
-  }
-
-  /**
-   * Reopen Store-owned post-confirm overlays only.
-   * Does not recreate Transaction Monitor / confirmation waiting after dismiss or reload.
-   */
-  reopenPurchaseProgress() {
-    const purchase = this.mod.purchase_lifecycle?.returnActivePurchase?.();
-    const overlay = this.purchase_overlay;
-    if (!purchase || !overlay) {
-      return;
-    }
-
-    overlay.listingTitle = purchase.title || '';
-    overlay.pendingTxSignature = purchase.purchase_tx_signature || '';
-    overlay.nft_id = purchase.nft_id || '';
-    overlay.quantity = purchase.quantity || 1;
-
-    if (purchase.phase === PurchaseLifecycle.PHASE.COMPLETE) {
-      overlay.openComplete();
-      return;
-    }
-    if (purchase.phase === PurchaseLifecycle.PHASE.FULFILLING) {
-      overlay.openFulfilling();
-    }
-  }
-
-  openMyNfts() {
-    const active = this.mod.purchase_lifecycle?.returnActivePurchase?.();
-    if (active?.phase === PurchaseLifecycle.PHASE.COMPLETE) {
-      this.mod.purchase_lifecycle.dismiss(active.id);
-    }
-    this.purchase_overlay?.hide?.();
-    this.app.connection.emit('saito-nft-list-render-request');
   }
 
   openSell(defaults = {}) {

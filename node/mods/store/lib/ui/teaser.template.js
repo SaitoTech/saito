@@ -1,6 +1,6 @@
 module.exports = (
   data = {},
-  cardId = '',
+  listingAttrs = '',
   mediaClass = '',
   mediaBackground = '',
   showLoading = false
@@ -15,9 +15,10 @@ module.exports = (
   const seller = data.seller ? `<p class="seller">${data.seller}</p>` : '';
   const title = data.title || 'Untitled Item';
   const label = `View listing: ${String(title).replace(/"/g, '&quot;')}`;
+  const attrs = listingAttrs ? ` ${listingAttrs}` : '';
 
   return `
-    <article class="teaser" id="${cardId}" role="button" tabindex="0" aria-label="${label}">
+    <article class="teaser"${attrs} role="button" tabindex="0" aria-label="${label}">
       <div class="media ${mediaClass}${loadingClass}" style="background: ${mediaBackground};">
         ${loader}
         ${badge}

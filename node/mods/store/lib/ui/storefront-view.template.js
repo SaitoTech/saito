@@ -37,11 +37,15 @@ function dashboard({ shareUrl = '', showSuccess = false } = {}) {
         </div>`
     : '';
 
+  const visit_link = shareUrl
+    ? ` Or <a href="${url}">click here</a> to visit your Store.`
+    : '';
+
   return `
     ${success}
     <section class="seller-home">
       <h2 class="title">Welcome to your Store</h2>
-      <p class="body">Listings are published onto the Saito Network. Share the following link with your customers to give them access to an easy UI for browsing.</p>
+      <p class="body">Listings are published onto the Saito Network. Share the following link with your customers to give them access to an easy UI for browsing.${visit_link}</p>
       ${urlRow}
       <p class="body">Visit this page anytime to create new listings, manage existing ones, and review your sales history.</p>
       <div class="actions">
