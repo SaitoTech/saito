@@ -187,7 +187,7 @@ class BrowseView {
     }
 
     teasers.hidden = false;
-    this.teasers.render(`${this.container} .teasers`, this.listings);
+    this.teasers.render(`${this.container} .teasers`, this.returnVisibleListings());
 
     if (footer) {
       footer.hidden = false;
@@ -230,6 +230,14 @@ class BrowseView {
         }
       };
     }
+  }
+
+  returnVisibleListings() {
+    const lifecycle = this.mod.purchase_lifecycle;
+    if (!lifecycle?.isListingHidden) {
+      return this.listings;
+    }
+    return this.listings.filter((summary) => !lifecycle.isListingHidden(summary));
   }
 }
 

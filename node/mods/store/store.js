@@ -43,6 +43,12 @@ class Store extends ModTemplate {
       const PurchaseMonitor = require('./lib/ui/overlays/purchase-monitor');
       this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
       this.purchase_monitor = new PurchaseMonitor(this.app, this);
+
+      this.app.connection.on('store-listing-lifecycle', (entry) => {
+        if (entry?.phase === 'complete') {
+          void this.maybePublishStoreProfileLink(entry);
+        }
+      });
     }
 
     if (this.browser_active) {
@@ -53,6 +59,79 @@ class Store extends ModTemplate {
       this.main = new Main(this.app, this);
       await this.main.initialize();
       this.addComponent(this.main);
+    }
+  }
+
+  /**
+   * Ask Profile (if installed) to set or clear the preferred storefront URL.
+   * Blank address removes the Profile `store` field. No-op when Profile is absent.
+   */
+  async updateProfile(address = '') {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    const api = this.app.modules.returnFirstRespondTo('profile-update');
+    if (!api || typeof api.update !== 'function') {
+      return;
+    }
+
+    const store = address == null ? '' : String(address).trim();
+    await api.update({ store });
+  }
+
+  /**
+   * Current Profile `store` field via optional profile-update capability.
+   */
+  returnProfileStoreUrl() {
+    const api = this.app.modules.returnFirstRespondTo?.('profile-update');
+    if (!api || typeof api.get !== 'function') {
+      return '';
+    }
+    try {
+      const profile = api.get() || {};
+      return String(profile.store || '').trim();
+    } catch (err) {
+      return '';
+    }
+  }
+
+  /**
+   * After the seller's first successful listing, publish the storefront URL to Profile.
+   * Later listings no-op (Profile already has the URL, or inventory count > 1 after uncheck).
+   */
+  async maybePublishStoreProfileLink(entry = {}) {
+    if (!this.app.BROWSER || !this.publicKey) {
+      return;
+    }
+    if (entry.seller && entry.seller !== this.publicKey) {
+      return;
+    }
+
+    const url = this.returnStorefrontUrl(this.publicKey);
+    if (!url) {
+      return;
+    }
+    if (this.returnProfileStoreUrl() === url) {
+      return;
+    }
+
+    try {
+      const { loadListingsPage } = require('./lib/ui/browse-listings');
+      const result = await loadListingsPage(this.app, this, {
+        public_key: this.publicKey,
+        category: '',
+        offset: 0,
+        page_size: 1
+      });
+      const total = Number(result?.pagination?.total ?? result?.listings?.length ?? 0);
+      if (total !== 1) {
+        return;
+      }
+      await this.updateProfile(url);
+      this.app.connection.emit('store-profile-link-updated');
+    } catch (err) {
+      console.warn('Store: profile store link publish skipped', err?.message || err);
     }
   }
 
@@ -184,6 +263,34 @@ class Store extends ModTemplate {
   }
 
   respondTo(type = '', obj) {
+    if (type === 'redsquare-profile') {
+      const publicKey = String(obj?.publicKey || '').trim();
+      if (!publicKey) {
+        return null;
+      }
+
+      let link = String(obj?.profile?.store || '').trim();
+      if (!link) {
+        const api = this.app.modules.returnFirstRespondTo?.('profile-update');
+        if (api && typeof api.get === 'function') {
+          try {
+            const profile = api.get(publicKey) || {};
+            link = String(profile.store || '').trim();
+          } catch (err) {
+            link = '';
+          }
+        }
+      }
+      if (!link) {
+        return null;
+      }
+
+      return {
+        text: 'Store',
+        link
+      };
+    }
+
     if (type === 'saito-header') {
       if (this.browser_active) {
         return [];

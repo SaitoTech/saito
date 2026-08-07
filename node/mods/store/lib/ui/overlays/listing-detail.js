@@ -37,6 +37,7 @@ class ListingDetailOverlay {
 
     this.app.connection.on('store-listing-updated', (summary) => {
       if (
+        this.overlay?.visible &&
         this.mode === 'view' &&
         this.summary?.nft_id &&
         summaryBucketKey(this.summary.nft_id, this.summary.price) ===
@@ -276,7 +277,7 @@ class ListingDetailOverlay {
     }
 
     const finish = () => {
-      if (this.mode === 'view' && this.summary === summary) {
+      if (this.overlay?.visible && this.mode === 'view' && this.summary === summary) {
         this.render(summary);
       }
     };
@@ -368,7 +369,7 @@ class ListingDetailOverlay {
           return;
         }
         summary.enrichMedia(() => {
-          if (this.mode === 'view' && this.summary === summary) {
+          if (this.overlay?.visible && this.mode === 'view' && this.summary === summary) {
             this.render(summary);
           }
         });

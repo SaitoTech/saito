@@ -26,7 +26,7 @@ function copyControl() {
     </button>`;
 }
 
-function dashboard({ shareUrl = '', showSuccess = false } = {}) {
+function dashboard({ shareUrl = '', showSuccess = false, profileLinkChecked = false } = {}) {
   const url = escapeHtml(shareUrl);
   const success = showSuccess ? successBanner() : '';
 
@@ -41,6 +41,8 @@ function dashboard({ shareUrl = '', showSuccess = false } = {}) {
     ? ` Or <a href="${url}">click here</a> to visit your Store.`
     : '';
 
+  const profile_checked = profileLinkChecked ? ' checked' : '';
+
   return `
     ${success}
     <section class="seller-home">
@@ -49,6 +51,10 @@ function dashboard({ shareUrl = '', showSuccess = false } = {}) {
       ${urlRow}
       <p class="body">Visit this page anytime to create new listings, manage existing ones, and review your sales history.</p>
       <div class="actions">
+        <label class="profile-link">
+          <input type="checkbox" data-action="toggle-profile-link"${profile_checked} />
+          <span>Add link to store to profile</span>
+        </label>
         <button type="button" class="saito-button-primary" data-action="list-item">+ Add New Listing</button>
       </div>
     </section>
@@ -100,7 +106,8 @@ module.exports = ({
   isDashboard = false,
   adminSection = 'home',
   adminDenied: denied = false,
-  showSuccess = false
+  showSuccess = false,
+  profileLinkChecked = false
 } = {}) => {
   if (denied) {
     return adminDenied();
@@ -117,7 +124,7 @@ module.exports = ({
   if (isDashboard) {
     return `
     <div class="storefront-admin">
-      ${dashboard({ shareUrl, showSuccess })}
+      ${dashboard({ shareUrl, showSuccess, profileLinkChecked })}
     </div>
   `;
   }

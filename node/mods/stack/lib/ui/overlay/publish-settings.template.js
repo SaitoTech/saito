@@ -27,10 +27,15 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
 	const getStepContent = () => {
 		if (step === 1) {
 			if (isPublic) {
+				const profileLinkChecked = wizardState.linkToProfile !== false;
 				return {
 					body: `
             <div class="stack-publish-option-copy">
               <p class="stack-publish-option-heading">Anyone can read.</p>
+              <label class="profile-link">
+                <input type="checkbox" data-action="toggle-profile-link"${profileLinkChecked ? ' checked' : ''} />
+                <span>Add link to Stack to my profile</span>
+              </label>
             </div>
           `
 				};

@@ -51,6 +51,12 @@ class StorefrontView {
         });
       }
     });
+
+    this.app.connection.on('store-profile-link-updated', () => {
+      if (this.isAdminHome()) {
+        this.render();
+      }
+    });
   }
 
   armSuccessBanner() {
@@ -95,7 +101,8 @@ class StorefrontView {
           !!this.publicKey && this.loading && (this.viewMode === 'public' || this.isAdminActive()),
         isDashboard,
         adminSection: this.adminSection,
-        showSuccess: this.isAdminHome() && this.successVisible
+        showSuccess: this.isAdminHome() && this.successVisible,
+        profileLinkChecked: this.returnProfileLinkChecked(shareUrl)
       }),
       this.container
     );
@@ -174,6 +181,25 @@ class StorefrontView {
       this.onSell?.();
     });
 
+    const profileToggle = root.querySelector('[data-action="toggle-profile-link"]');
+    if (profileToggle) {
+      profileToggle.addEventListener('change', async () => {
+        const url = this.mod.returnStorefrontUrl?.(this.mod.publicKey) || shareUrl || '';
+        try {
+          if (profileToggle.checked) {
+            if (url) {
+              await this.mod.updateProfile?.(url);
+            }
+          } else {
+            await this.mod.updateProfile?.('');
+          }
+        } catch (err) {
+          console.warn('Store: profile link toggle failed', err?.message || err);
+          profileToggle.checked = !profileToggle.checked;
+        }
+      });
+    }
+
     root.querySelector('[data-action="dismiss-success"]')?.addEventListener('click', (e) => {
       e.preventDefault();
       this.successVisible = false;
@@ -181,6 +207,24 @@ class StorefrontView {
       this.successArmed = false;
       root.querySelector('[data-listing-success]')?.remove();
     });
+  }
+
+  /**
+   * Welcome (no listings yet): always unchecked.
+   * After the store has listings: checked iff Profile contains this storefront URL.
+   */
+  returnProfileLinkChecked(shareUrl = '') {
+    if (!this.isAdminHome() || !this.isOwnStorefront()) {
+      return false;
+    }
+    if (!this.inventoryLoaded || this.activeSummaries.length === 0) {
+      return false;
+    }
+    const url = String(shareUrl || this.mod.returnStorefrontUrl?.(this.mod.publicKey) || '').trim();
+    if (!url) {
+      return false;
+    }
+    return this.mod.returnProfileStoreUrl?.() === url;
   }
 
   /**

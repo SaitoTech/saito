@@ -107,6 +107,62 @@ class Stack extends ModTemplate {
 		}
 	}
 
+	/**
+	 * Ask Profile (if installed) to set or clear the preferred Stack URL.
+	 * Blank address removes the Profile `stack` field. No-op when Profile is absent.
+	 */
+	async updateProfile(address = '') {
+		if (!this.app.BROWSER) {
+			return;
+		}
+
+		const api = this.app.modules.returnFirstRespondTo('profile-update');
+		if (!api || typeof api.update !== 'function') {
+			return;
+		}
+
+		const stack = address == null ? '' : String(address).trim();
+		await api.update({ stack });
+	}
+
+	/**
+	 * Current Profile `stack` field via optional profile-update capability.
+	 */
+	returnProfileStackUrl() {
+		const api = this.app.modules.returnFirstRespondTo?.('profile-update');
+		if (!api || typeof api.get !== 'function') {
+			return '';
+		}
+		try {
+			const profile = api.get() || {};
+			return String(profile.stack || '').trim();
+		} catch (err) {
+			return '';
+		}
+	}
+
+	/**
+	 * Path for a creator Stack feed: /stack/<publickey>
+	 */
+	returnStackPath(publicKey = '') {
+		const key = String(publicKey || '').trim();
+		if (!key) {
+			return '/' + encodeURI(this.returnSlug());
+		}
+		return `/${encodeURI(this.returnSlug())}/${encodeURIComponent(key)}`;
+	}
+
+	/**
+	 * Absolute shareable URL for a creator Stack feed.
+	 */
+	returnStackUrl(publicKey = '') {
+		const path = this.returnStackPath(publicKey);
+		if (this.app.BROWSER && typeof window !== 'undefined' && window.location?.origin) {
+			return `${window.location.origin}${path}`;
+		}
+		return path;
+	}
+
 	shouldAffixCallbackToModule(modname, tx = null) {
 		if (modname === this.name) {
 			return 1;
@@ -471,6 +527,34 @@ class Stack extends ModTemplate {
   // Inter-module Communication //
   ////////////////////////////
   respondTo(type = '', obj) {
+    if (type === 'redsquare-profile') {
+      const publicKey = String(obj?.publicKey || '').trim();
+      if (!publicKey) {
+        return null;
+      }
+
+      let link = String(obj?.profile?.stack || '').trim();
+      if (!link) {
+        const api = this.app.modules.returnFirstRespondTo?.('profile-update');
+        if (api && typeof api.get === 'function') {
+          try {
+            const profile = api.get(publicKey) || {};
+            link = String(profile.stack || '').trim();
+          } catch (err) {
+            link = '';
+          }
+        }
+      }
+      if (!link) {
+        return null;
+      }
+
+      return {
+        text: 'Stack',
+        link
+      };
+    }
+
     if (type === 'redsquare-create') {
       return {
         id: 'stack-publish',

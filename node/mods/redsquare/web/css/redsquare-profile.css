@@ -193,7 +193,8 @@
 }
 
 .redsquare-profile .nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
   margin: 0;
   padding: 0;
   border-top: 1px solid var(--saito-border);
@@ -201,15 +202,17 @@
 
 .redsquare-profile .nav .item {
   position: relative;
-  flex: 1 1 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
   min-height: 3.8rem;
   padding: 1rem 0.4rem;
   border: none;
   background: transparent;
   cursor: pointer;
+  text-align: center;
+  text-decoration: none;
   text-transform: capitalize;
   font-size: 1.3rem;
   font-weight: 600;

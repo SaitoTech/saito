@@ -6,6 +6,20 @@ module.exports = (profile) => {
   const banner = p.banner || '';
   const bio = p.bio != null ? String(p.bio) : '';
   const canEdit = Boolean(p.can_edit);
+  const extLinks = Array.isArray(profile.ext_links) ? profile.ext_links : [];
+
+  const escapeAttr = (value) =>
+    String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+  const escapeText = (value) =>
+    String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
 
   const keyHtml = publicKey
     ? `
@@ -50,8 +64,20 @@ module.exports = (profile) => {
 
   const bannerStyle = banner ? ` style="background-image: url('${banner}')"` : '';
 
+  const extLinksHtml = extLinks
+    .map((item) => {
+      const text = escapeText(item?.text);
+      const link = escapeAttr(item?.link);
+      if (!text || !link) {
+        return '';
+      }
+      return `<a class="item" href="${link}" data-profile-ext="1">${text}</a>`;
+    })
+    .join('');
+
   // Injected into `.sidebar-right > .redsquare-profile` — no outer wrapper here.
   // Posts / Replies / Likes are navigation destinations, not tabs.
+  // Module links (Store, Stack, …) come from respondTo('redsquare-profile').
   // Compose lives in Create (`.redsquare-create`), not here.
   return `
       <div class="card" data-profile-key="${publicKey}">
@@ -71,6 +97,7 @@ module.exports = (profile) => {
             <div class="item" role="link" tabindex="0" data-profile-nav="posts">Posts</div>
             <div class="item" role="link" tabindex="0" data-profile-nav="replies">Replies</div>
             <div class="item" role="link" tabindex="0" data-profile-nav="likes">Likes</div>
+            ${extLinksHtml}
           </nav>
         </div>
       </div>

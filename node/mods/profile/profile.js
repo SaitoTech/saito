@@ -381,6 +381,59 @@ class Profile extends ModTemplate {
   }
 
   /**
+   * Optional capability for other modules (e.g. Store) to update own Profile
+   * without importing this module. Blank/null field values remove the field.
+   */
+  respondTo(type = '', obj = null) {
+    if (type === 'profile-update') {
+      return {
+        get: (publicKey = '') => this.returnProfile(publicKey || this.publicKey),
+        update: async (data = {}) => this.applyProfileUpdateRequest(data)
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Merge a partial profile update and broadcast only when something changes.
+   * Empty string / null / undefined for a field removes it from the snapshot.
+   */
+  async applyProfileUpdateRequest(data = {}) {
+    if (!data || typeof data !== 'object') {
+      return this.returnProfile(this.publicKey);
+    }
+
+    const patch = {};
+    let has_keys = false;
+    for (const [key, value] of Object.entries(data)) {
+      has_keys = true;
+      const blank = value == null || String(value).trim() === '';
+      patch[key] = blank ? null : String(value).trim();
+    }
+    if (!has_keys) {
+      return this.returnProfile(this.publicKey);
+    }
+
+    const current = this.returnProfile(this.publicKey);
+    let changed = false;
+    for (const [key, next] of Object.entries(patch)) {
+      const cur_raw = current[key];
+      const cur =
+        cur_raw == null || String(cur_raw).trim() === '' ? null : String(cur_raw).trim();
+      if (cur !== next) {
+        changed = true;
+        break;
+      }
+    }
+    if (!changed) {
+      return current;
+    }
+
+    await this.sendProfileTransaction(patch);
+    return this.returnProfile(this.publicKey);
+  }
+
+  /**
    * Processes a received transaction to update a user's profile.
    *
    * Snapshot txs replace the cached profile entirely.

@@ -17,6 +17,7 @@ class Profile {
     this.container = container;
     this.profile = null;
     this.profiles = {};
+    this.ext_links = [];
     this._dom_bound = false;
   }
 
@@ -86,6 +87,65 @@ class Profile {
     return publicKey === this.mod.publicKey;
   }
 
+  /**
+   * Module-supplied profile destinations via respondTo('redsquare-profile').
+   * Each responder may return { text, link } when that user exposes the link.
+   */
+  collectProfileExtLinks(publicKey = '', profileData = null) {
+    const key = String(publicKey || '').trim();
+    if (!key || !this.app.modules?.getRespondTos) {
+      return [];
+    }
+
+    const profile =
+      profileData && typeof profileData === 'object' ? profileData : {};
+
+    const peers = this.app.modules.getRespondTos('redsquare-profile', {
+      publicKey: key,
+      profile
+    });
+
+    const out = [];
+    const seen = new Set();
+    for (const item of peers || []) {
+      const text = String(item?.text || '').trim();
+      const link = String(item?.link || item?.url || '').trim();
+      if (!text || !link) {
+        continue;
+      }
+      const id = text.toLowerCase();
+      if (seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      out.push({ text, link });
+    }
+    return out;
+  }
+
+  /**
+   * Replace module link items in the profile nav (Posts/Replies/Likes stay put).
+   */
+  syncProfileExtLinks(publicKey = '', profileData = null) {
+    const root = document.querySelector(this.container);
+    const nav = root?.querySelector?.('.nav');
+    if (!nav) {
+      return;
+    }
+
+    nav.querySelectorAll('[data-profile-ext]').forEach((el) => el.remove());
+
+    this.ext_links = this.collectProfileExtLinks(publicKey, profileData);
+    for (const item of this.ext_links) {
+      const a = document.createElement('a');
+      a.className = 'item';
+      a.href = item.link;
+      a.setAttribute('data-profile-ext', '1');
+      a.textContent = item.text;
+      nav.appendChild(a);
+    }
+  }
+
   render(container = '', publicKey = '') {
     if (container) {
       this.container = container;
@@ -94,6 +154,7 @@ class Profile {
     const key = publicKey || this.mod.publicKey || '';
     this.profile = this.buildProfileData(key);
     this.profiles[key] = Object.assign({}, this.profiles[key] || {}, this.profile);
+    this.ext_links = this.collectProfileExtLinks(key);
 
     if (key === this.mod.publicKey) {
       this.mod.profile = Object.assign({}, this.mod.profile || {}, this.profile);
@@ -187,9 +248,25 @@ class Profile {
         return;
       }
 
+      const view = item.getAttribute('data-profile-nav') || '';
+      if (!view) {
+        if (item.matches('a[href][data-profile-ext]')) {
+          e.preventDefault();
+          const href = item.getAttribute('href');
+          if (!href) {
+            return;
+          }
+          if (typeof navigateWindow === 'function') {
+            navigateWindow(href);
+          } else {
+            window.location.assign(href);
+          }
+        }
+        return;
+      }
+
       e.preventDefault();
 
-      const view = item.getAttribute('data-profile-nav') || '';
       const publicKey = this.profile?.publicKey || this.mod.publicKey || '';
       const manager = this.mod.manager;
 
@@ -290,6 +367,9 @@ class Profile {
         this.mod.profile.avatar = fallback;
       }
     }
+
+    // Module links (Store/Stack/…) depend on Profile fields that may arrive here.
+    this.syncProfileExtLinks(publicKey, data);
   }
 
   /**

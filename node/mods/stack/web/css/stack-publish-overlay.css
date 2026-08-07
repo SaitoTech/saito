@@ -207,6 +207,25 @@
 	max-width: 40rem;
 }
 
+.stack-publish-overlay .profile-link {
+	display: flex;
+	align-items: center;
+	gap: var(--saito-space-sm);
+	font-size: var(--font-size-medium);
+	line-height: 1.4;
+	color: var(--saito-foreground);
+	cursor: pointer;
+	user-select: none;
+}
+
+.stack-publish-overlay .profile-link input {
+	width: 1.35rem;
+	height: 1.35rem;
+	margin: 0;
+	flex: 0 0 auto;
+	cursor: pointer;
+}
+
 .stack-publish-option-heading {
 	margin: 0;
 	font-family: var(--saito-font-medium);

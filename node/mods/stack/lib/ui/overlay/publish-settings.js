@@ -26,7 +26,9 @@ class PublishSettingsOverlay {
       pendingNftId: null,
       pendingNftSignature: null,
       // Same-session mint tx — wallet NFT records keep slips/tx_sig only.
-      pendingNftTx: null
+      pendingNftTx: null,
+      // Intent to keep Stack linked from Profile (default checked).
+      linkToProfile: true
     };
     this._isSliding = false;
   }
@@ -48,7 +50,9 @@ class PublishSettingsOverlay {
         createNftStatus: null,
         pendingNftId: null,
         pendingNftSignature: null,
-        pendingNftTx: null
+        pendingNftTx: null,
+        // Default checked; Profile may already have stack, but publish still intends to link.
+        linkToProfile: true
       };
     }
 
@@ -188,6 +192,26 @@ class PublishSettingsOverlay {
 				}
 			};
 		});
+
+		const profileToggle = document.querySelector(
+			'.stack-publish-overlay [data-action="toggle-profile-link"]'
+		);
+		if (profileToggle) {
+			profileToggle.onchange = async () => {
+				this.wizardState.linkToProfile = profileToggle.checked;
+				// Uncheck removes the Profile stack link immediately.
+				// Check only records intent — Profile is updated on Publish.
+				if (!profileToggle.checked) {
+					try {
+						await this.mod.updateProfile?.('');
+					} catch (err) {
+						console.warn('Stack: profile link clear failed', err?.message || err);
+						profileToggle.checked = true;
+						this.wizardState.linkToProfile = true;
+					}
+				}
+			};
+		}
 
 		const deleteDraftBtn = document.querySelector('#stack-publish-delete-draft-btn');
 		if (deleteDraftBtn) {
@@ -886,6 +910,21 @@ class PublishSettingsOverlay {
 				this.mod.create_post_ui.draftTransaction = null;
 				this.mod.create_post_ui.sessionIntent = null;
 				this.mod.create_post_ui.isPublished = true;
+			}
+
+			// Public + checked: ensure Profile has the Stack URL (no-op if already set).
+			if (
+				(this.postState.accessLevel || 'public') === 'public' &&
+				this.wizardState.linkToProfile !== false
+			) {
+				try {
+					const url = this.mod.returnStackUrl?.(this.mod.publicKey) || '';
+					if (url && this.mod.returnProfileStackUrl?.() !== url) {
+						await this.mod.updateProfile?.(url);
+					}
+				} catch (err) {
+					console.warn('Stack: profile stack link publish skipped', err?.message || err);
+				}
 			}
 
 			this.overlay.hide();

@@ -30,8 +30,8 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
   // Immediate UI transition — before any purchase preparation work.
   // Cheap title only; returnTitle()/price hydration happens after paint.
   const listingTitle = String(summary?.title || '').trim() || 'this item';
-  mod.main?.listing_detail?.overlay?.hide?.();
-  mod.main?.product_overlay?.overlay?.hide?.();
+  mod.main?.listing_detail?.overlay?.close?.();
+  mod.purchase_lifecycle?.hideListing?.(summary);
   monitor?.show({ listingTitle });
   monitor?.setStage('preparing');
   await yieldForPaint();
