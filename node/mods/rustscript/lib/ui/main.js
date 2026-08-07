@@ -27,7 +27,7 @@ const {
   isWitnessPhaseComplete,
   resolveFieldOverlayKind
 } = require('./script_validate');
-const { build_test_script_from_create, lockingView } = require('./script_build');
+const { build_test_script_from_create, lockingView, expandLockingTree } = require('./script_build');
 const PanelMenu = require('./panel_menu');
 const { hasUnlockFee } = require('./unlock_tx_fee');
 const { remainingSaitoNolan, remainingNftUnits, unlockUserOutputs } = require('./unlock_tx_edit');
@@ -284,7 +284,8 @@ class RustscriptMain {
     this.executionStatus = { attempted: false, success: false };
     this.validationDisplay = null;
     this.workspaceMode = 'locked';
-    this.mod.setScript(lockingView(lockingScript || {}));
+    const expanded = expandLockingTree(lockingView(lockingScript || {}), this.mod.opcodes);
+    this.mod.setScript(expanded);
     this.syncEditorModes();
     this.applyWorkspaceUI();
     this.refresh();
@@ -385,11 +386,9 @@ class RustscriptMain {
     this.executionStatus = { attempted: false, success: false };
     this.validationDisplay = null;
     this.workspaceMode = 'locked';
-    const merged = build_test_script_from_create(
-      lockingView(lockingScript || {}),
-      {},
-      this.mod.opcodes
-    );
+    // Preserve published locking shape exactly — do not expand (scripthash).
+    const locking = lockingView(lockingScript || {});
+    const merged = build_test_script_from_create(locking, {}, this.mod.opcodes);
     this.mod.setScript(merged);
     this.syncEditorModes();
     this.applyWorkspaceUI();
@@ -406,11 +405,9 @@ class RustscriptMain {
     this.executionStatus = { attempted: false, success: false };
     this.validationDisplay = null;
     this.workspaceMode = 'locked';
-    const merged = build_test_script_from_create(
-      lockingView(fullScript || {}),
-      fullScript || {},
-      this.mod.opcodes
-    );
+    // Preserve published locking shape exactly — do not expand (scripthash).
+    const locking = lockingView(fullScript || {});
+    const merged = build_test_script_from_create(locking, fullScript || {}, this.mod.opcodes);
     this.mod.setScript(merged);
     this.syncEditorModes();
     this.applyWorkspaceUI();
@@ -557,6 +554,7 @@ class RustscriptMain {
   }
 
   syncTestScriptFromLocking() {
+    // Witness scaffold only — locking keys stay as stored (hash-stable).
     const merged = build_test_script_from_create(
       lockingView(this.mod.getScript()),
       this.mod.getScript(),
@@ -666,12 +664,9 @@ class RustscriptMain {
         const result = this.mod.parseExpertScript(text);
         this.executionStatus = { attempted: false, success: false };
         this.validationDisplay = null;
-        this.mod.setScript(lockingView(result.lockingScript));
+        // Create path: expanded locking only — do not arm Test / attach witness.
         this.testingUnlocked = false;
-        if (result.unlockingScript && Object.keys(result.unlockingScript).length) {
-          this.testingUnlocked = true;
-          this.mod.setScript(result.unlockingScript);
-        }
+        this.mod.setScript(result.lockingScript);
         this.lastScriptSource = text;
         this.generateExpertOverlay.hide();
         this.refresh();

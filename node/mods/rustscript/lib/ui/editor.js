@@ -3,10 +3,10 @@ const {
   isPlaceholder,
   placeholderMeta,
   isWitnessPath,
-  isWitnessValueSupplied,
-  lockingView
+  lockingView,
+  expandLockingTree
 } = require('./script_build');
-const { inferFieldKindFromPath, validateField, collectPlaceholders } = require('./script_validate');
+const { getFieldDefinition, validateField, collectPlaceholders } = require('./script_validate');
 
 const LOGICAL_OPERATORS = ['AND', 'OR', 'NOT', 'THEN'];
 const LOGICAL_OPS = new Set(['and', 'or', 'then', 'not']);
@@ -41,7 +41,7 @@ function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-/** Opcode definition object (exampleScript, schema). */
+/** Opcode definition object (exampleScript). */
 function resolveOpcode(mod, opName) {
   const key = String(opName || '').toLowerCase();
   const entry = mod?.opcodes?.[key];
@@ -61,184 +61,54 @@ function isLogicalOpName(opName) {
   return LOGICAL_OPS.has(String(opName || '').toLowerCase());
 }
 
-function metaScriptKeys(opDef) {
-  const order = [];
-  const seen = new Set();
-  const example = opDef?.exampleScript;
-  if (example && typeof example === 'object' && !Array.isArray(example)) {
-    for (const key of Object.keys(example)) {
-      if (key === 'witness' || seen.has(key)) {
-        continue;
-      }
-      order.push(key);
-      seen.add(key);
-    }
-  }
-  const witnessKeys = new Set(
-    Object.keys(
-      opDef?.exampleScript?.witness && typeof opDef.exampleScript.witness === 'object'
-        ? opDef.exampleScript.witness
-        : {}
-    )
-  );
-  const schema = opDef?.schema;
-  if (schema && typeof schema === 'object' && !Array.isArray(schema) && !schema.script) {
-    for (const key of Object.keys(schema)) {
-      if (witnessKeys.has(key) || seen.has(key)) {
-        continue;
-      }
-      order.push(key);
-      seen.add(key);
-    }
-  }
-  return order;
-}
-
-function metaRequiredKeys(opDef) {
-  const order = [];
-  const seen = new Set();
-  const witness = opDef?.exampleScript?.witness;
-  if (witness && typeof witness === 'object' && !Array.isArray(witness)) {
-    for (const key of Object.keys(witness)) {
-      if (!seen.has(key)) {
-        order.push(key);
-        seen.add(key);
-      }
-    }
-  }
-  return order;
-}
-
-function unlockWitnessKeys(mod, opName, node) {
-  const opDef = resolveOpcode(mod, opName);
-  if (!opDef) {
+/**
+ * Keys present on the authoritative object only.
+ * Optional template order for sorting — never invents absent keys.
+ */
+function keysForRender(obj, mod, panelRole) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
     return [];
   }
-  const embedded =
-    node?.required && typeof node.required === 'object' && !Array.isArray(node.required)
-      ? node.required
-      : {};
-  return metaRequiredKeys(opDef).filter((key) => !isWitnessValueSupplied(embedded[key]));
-}
 
-function witnessPlaceholderFromMeta(mod, opName, fieldName) {
-  const opDef = resolveOpcode(mod, opName);
-  const template = opDef?.exampleScript?.witness?.[fieldName];
-  if (typeof template === 'string') {
-    return template;
-  }
-  if (template === true) {
-    return `<${fieldName}>`;
-  }
-  return `<${fieldName}>`;
-}
-
-function materializeNode(node, mod, role) {
-  if (!node || typeof node !== 'object' || Array.isArray(node)) {
-    return node;
-  }
-
-  const opKey = String(node.op || '').toLowerCase();
-  if (isLogicalOpName(opKey)) {
-    const args = Array.isArray(node.args) ? node.args : [];
-    return {
-      op: node.op,
-      args: args.map((child) => materializeNode(child, mod, role))
-    };
-  }
-
-  const opDef = resolveOpcode(mod, node.op);
-  const template =
-    opDef?.exampleScript && typeof opDef.exampleScript === 'object' ? opDef.exampleScript : null;
-
-  if (!template) {
-    const passthrough = deepClone(node);
-    if (role === 'locking') {
-      delete passthrough.witness;
-    }
-    return passthrough;
-  }
-
-  const out = {};
-  if (node.op !== undefined || template.op !== undefined) {
-    out.op = node.op !== undefined ? node.op : template.op;
-  }
-
-  for (const key of metaScriptKeys(opDef)) {
-    if (key === 'op') {
-      continue;
-    }
+  const present = Object.keys(obj).filter((key) => {
     if (key === 'witness') {
-      continue;
+      return panelRole !== 'locking';
     }
     if (key === 'required') {
-      const reqTemplate = template.required;
-      const reqNode = node.required;
-      if (reqTemplate && typeof reqTemplate === 'object') {
-        out.required = deepClone(reqNode !== undefined ? reqNode : reqTemplate);
-      } else if (reqNode && typeof reqNode === 'object') {
-        out.required = deepClone(reqNode);
+      const val = obj[key];
+      if (
+        !val ||
+        typeof val !== 'object' ||
+        Array.isArray(val) ||
+        Object.keys(val).length === 0
+      ) {
+        return false;
       }
+    }
+    return Object.prototype.hasOwnProperty.call(obj, key);
+  });
+
+  const opDef = resolveOpcode(mod, obj.op);
+  if (!opDef?.exampleScript || isLogicalOpName(obj.op)) {
+    return present;
+  }
+
+  // Sort present keys by exampleScript order — never invent absent keys.
+  const order = [];
+  const seen = new Set();
+  for (const key of Object.keys(opDef.exampleScript)) {
+    if (key === 'witness' || !present.includes(key) || seen.has(key)) {
       continue;
     }
-    if (Object.prototype.hasOwnProperty.call(node, key)) {
-      out[key] = deepClone(node[key]);
-    } else if (Object.prototype.hasOwnProperty.call(template, key)) {
-      out[key] = deepClone(template[key]);
+    order.push(key);
+    seen.add(key);
+  }
+  for (const key of present) {
+    if (!seen.has(key)) {
+      order.push(key);
     }
   }
-
-  for (const key of Object.keys(node)) {
-    if (key === 'op' || key === 'witness' || key === 'required') {
-      continue;
-    }
-    if (!Object.prototype.hasOwnProperty.call(out, key)) {
-      out[key] = deepClone(node[key]);
-    }
-  }
-
-  if (role === 'unlocking') {
-    const witnessTemplate =
-      opDef?.exampleScript?.witness && typeof opDef.exampleScript.witness === 'object'
-        ? opDef.exampleScript.witness
-        : null;
-    if (witnessTemplate) {
-      const witness =
-        node.witness && typeof node.witness === 'object' && !Array.isArray(node.witness)
-          ? deepClone(node.witness)
-          : {};
-      for (const wKey of metaRequiredKeys(opDef)) {
-        if (
-          witness[wKey] === undefined &&
-          Object.prototype.hasOwnProperty.call(witnessTemplate, wKey)
-        ) {
-          witness[wKey] = deepClone(witnessTemplate[wKey]);
-        }
-      }
-      if (Object.keys(witness).length > 0) {
-        out.witness = witness;
-      }
-    } else if (node.witness && typeof node.witness === 'object' && !Array.isArray(node.witness)) {
-      out.witness = deepClone(node.witness);
-    }
-    if (
-      node.required &&
-      typeof node.required === 'object' &&
-      !Array.isArray(node.required) &&
-      Object.keys(node.required).length > 0
-    ) {
-      out.required = deepClone(node.required);
-    }
-  }
-
-  return out;
-}
-
-function materializeForRole(script, mod, role) {
-  if (!script || typeof script !== 'object' || Array.isArray(script)) {
-    return script;
-  }
-  return materializeNode(script, mod, role === 'create' ? 'locking' : 'unlocking');
+  return order;
 }
 
 class SemanticScriptView {
@@ -271,72 +141,7 @@ class SemanticScriptView {
   }
 
   keysForRender(obj) {
-    const opDef = resolveOpcode(this.mod, obj?.op);
-    let keys;
-
-    if (opDef && obj?.op && !isLogicalOpName(obj.op)) {
-      keys = metaScriptKeys(opDef).filter((key) => {
-        if (key === 'witness') {
-          return false;
-        }
-        if (key === 'required') {
-          const val = obj[key];
-          if (
-            val &&
-            typeof val === 'object' &&
-            !Array.isArray(val) &&
-            Object.keys(val).length === 0
-          ) {
-            return false;
-          }
-        }
-        return (
-          Object.prototype.hasOwnProperty.call(obj, key) || opDef.exampleScript?.[key] !== undefined
-        );
-      });
-      for (const key of Object.keys(obj)) {
-        if (key === 'witness' || keys.includes(key)) {
-          continue;
-        }
-        if (key === 'required') {
-          const val = obj[key];
-          if (
-            !val ||
-            typeof val !== 'object' ||
-            Array.isArray(val) ||
-            Object.keys(val).length === 0
-          ) {
-            continue;
-          }
-        }
-        keys.push(key);
-      }
-    } else {
-      keys = Object.keys(obj);
-    }
-
-    return keys.filter((key) => {
-      if (key === 'witness') {
-        if (this.panelRole === 'locking') {
-          return false;
-        }
-        if (this.panelRole === 'unlocking' && this.requiredOnlyEditable) {
-          return false;
-        }
-      }
-      if (key === 'required') {
-        const val = obj[key];
-        if (
-          val &&
-          typeof val === 'object' &&
-          !Array.isArray(val) &&
-          Object.keys(val).length === 0
-        ) {
-          return false;
-        }
-      }
-      return true;
-    });
+    return keysForRender(obj, this.mod, this.panelRole);
   }
 
   mount(container) {
@@ -388,9 +193,9 @@ class SemanticScriptView {
     return isWitnessPath(path);
   }
 
-  fieldKindFor(path, keyName = '') {
-    const fromKey = keyName || (path.length ? path[path.length - 1] : '');
-    return inferFieldKindFromPath(path.length ? path : [fromKey]);
+  fieldKindFor(path, keyName = '', value) {
+    const pathArr = path.length ? path : keyName ? [keyName] : [];
+    return getFieldDefinition(value, pathArr).kind;
   }
 
   renderAtom(value, path, keyName = '') {
@@ -469,17 +274,12 @@ class SemanticScriptView {
   }
 
   renderEditableValue(value, path, keyName) {
-    const fieldKind = this.fieldKindFor(path, keyName);
-    const placeholderKey =
-      keyName === 'msg'
-        ? 'text'
-        : fieldKind === 'text'
-          ? 'text'
-          : String(keyName || 'input').toLowerCase();
-    const meta = placeholderMeta(`<${placeholderKey}>`) || {
-      label: String(keyName || 'Value'),
-      hint: 'Click to edit',
-      action: fieldKind === 'message' ? 'text' : fieldKind
+    const def = getFieldDefinition(value, path.length ? path : keyName ? [keyName] : []);
+    const fieldKind = def.kind;
+    const meta = {
+      label: def.label,
+      hint: def.hint || 'Click to edit',
+      action: def.action
     };
 
     const validation = validateField(
@@ -598,8 +398,6 @@ class SemanticScriptView {
     const inner = document.createElement('div');
     inner.className = 'rs-semantic-block-inner';
 
-    const appendWitness = this.willAppendWitnessFields(obj);
-
     const keys = this.keysForRender(obj);
 
     keys.forEach((key, index) => {
@@ -607,7 +405,7 @@ class SemanticScriptView {
       const child = obj[key];
       const isNestedObject = child !== null && typeof child === 'object' && !Array.isArray(child);
       const isNestedArray = Array.isArray(child);
-      const needsTrailingComma = index < keys.length - 1 || appendWitness;
+      const needsTrailingComma = index < keys.length - 1;
 
       if (isNestedObject || isNestedArray) {
         inner.appendChild(
@@ -626,7 +424,6 @@ class SemanticScriptView {
     });
 
     block.appendChild(inner);
-    this.appendWitnessFields(block, obj, path, depth);
 
     const close = this.createRow(depth, 'rs-semantic-row-brace rs-semantic-row-close');
     close.appendChild(this.span('}', 'rs-semantic-brace'));
@@ -697,59 +494,6 @@ class SemanticScriptView {
     block.appendChild(close);
 
     return block;
-  }
-
-  willAppendWitnessFields(obj) {
-    if (this.panelRole !== 'unlocking' || !this.requiredOnlyEditable) {
-      return false;
-    }
-
-    const op = String(obj.op || '').toLowerCase();
-    if (isLogicalOpName(op)) {
-      return false;
-    }
-
-    const fields = unlockWitnessKeys(this.mod, obj.op, obj);
-    if (!fields.length) {
-      return false;
-    }
-
-    const witness = obj.witness && typeof obj.witness === 'object' ? obj.witness : {};
-    const missing = fields.filter((key) => !isWitnessValueSupplied(witness[key]));
-    const supplied = fields.filter((key) => isWitnessValueSupplied(witness[key]));
-    return missing.length > 0 || supplied.length > 0;
-  }
-
-  appendWitnessFields(block, obj, path, depth) {
-    if (!this.willAppendWitnessFields(obj)) {
-      return;
-    }
-
-    const inner = block.querySelector('.rs-semantic-block-inner');
-    if (!inner) {
-      return;
-    }
-
-    const opDef = resolveOpcode(this.mod, obj.op);
-    const fields = unlockWitnessKeys(this.mod, obj.op, obj);
-    const witness = obj.witness && typeof obj.witness === 'object' ? obj.witness : {};
-    const fieldSet = new Set(fields);
-    const orderedFields = metaRequiredKeys(opDef).filter((key) => fieldSet.has(key));
-
-    const witnessObj = {};
-    for (const fieldName of orderedFields) {
-      if (isWitnessValueSupplied(witness[fieldName])) {
-        witnessObj[fieldName] = witness[fieldName];
-      } else {
-        const placeholder = witnessPlaceholderFromMeta(this.mod, obj.op, fieldName);
-        witnessObj[fieldName] = typeof placeholder === 'string' ? placeholder : placeholder;
-      }
-    }
-
-    const witnessPath = path.concat('witness');
-    inner.appendChild(
-      this.renderNestedSection('witness', witnessObj, witnessPath, depth, false, false)
-    );
   }
 
   createRow(depth, extraClass = '') {
@@ -823,7 +567,9 @@ class RustscriptEditor {
     guidedEl.hidden = isExpert;
     expertEl.hidden = !isExpert;
 
-    const display = cloneForDisplay(this.mod, this.role);
+    // Authoritative instance only — never invent fields for display.
+    const script = deepClone(this.mod.getScript());
+    const display = this.role === 'create' ? lockingView(script) : script;
 
     if (!isExpert) {
       this.semanticView.setRenderOptions({
@@ -875,7 +621,7 @@ class RustscriptEditor {
   }
 
   getPlaceholderCount() {
-    const script = cloneForDisplay(this.mod, 'create');
+    const script = lockingView(deepClone(this.mod.getScript()));
     return collectPlaceholders(script, [], { skipRequired: true, skipWitness: true }).length;
   }
 }
@@ -884,11 +630,6 @@ function isEmptyScriptRoot(value) {
   return (
     value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0
   );
-}
-
-function cloneForDisplay(mod, role) {
-  const script = deepClone(mod.getScript());
-  return materializeForRole(script, mod, role);
 }
 
 async function commitExpert(editor, expertEl) {
@@ -914,7 +655,8 @@ async function commitExpert(editor, expertEl) {
     return;
   }
   if (editor.role === 'create') {
-    editor.mod.setScript(lockingView(parsed));
+    const expanded = expandLockingTree(lockingView(parsed), editor.mod.opcodes);
+    editor.mod.setScript(expanded);
   } else {
     editor.mod.setScript(parsed);
   }

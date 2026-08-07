@@ -20,11 +20,6 @@ module.exports = {
       ]
     }
   },
-  schema: {
-    publickey: 'publickey',
-    hash: 'hash',
-    hops: 'array:hop'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

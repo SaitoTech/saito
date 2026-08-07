@@ -134,15 +134,15 @@ class Warehouse {
     try {
       await this.db.insertListingRow(listing);
     } catch (err) {
+      delete this.listings[listing.signature];
       if (String(err?.message || err).includes('UNIQUE')) {
         return null;
       }
       throw err;
     }
 
-    const summary = await this.ensureSummaryForListing(listing);
-    await this.syncSummaryForBucket(summary.nft_id, summary.price);
-
+    // Summary/image-cache updates belong to addListingFromTransaction, which already
+    // has txmsg + nft. Do not create placeholder summaries or re-query here.
     return listing;
   }
 
@@ -745,6 +745,7 @@ class Warehouse {
       return null;
     }
 
+    // Archive early so restart recovery can rebuild metadata/image from the listing tx.
     this.app.storage
       .saveTransaction(tx, { field1: 'Store', preserve: 1 }, 'localhost', blk)
       .catch((err) => {
@@ -755,9 +756,8 @@ class Warehouse {
         );
       });
 
-    await this.persistSummaryMetadata(listing.nft_id, listing.price, txmsg);
-    await this.persistSummaryCategory(listing);
-    await this.syncSummaryToCache(listing.nft_id, listing.price);
+    // Persist/update the nft_id+price summary from listing + txmsg (no placeholder row).
+    await this.applyListingToSummary(listing, txmsg);
 
     const image = nft.returnImage?.() || '';
     if (image && listing.nft_id) {
@@ -765,6 +765,66 @@ class Warehouse {
     }
 
     return listing;
+  }
+
+  /**
+   * Write/update the market summary for a newly inserted listing using in-memory
+   * listing + txmsg. Quantity is the aggregate of all active listings in the bucket.
+   */
+  async applyListingToSummary(listing, txmsg = {}) {
+    if (!listing?.nft_id) {
+      throw new Error('Store: applyListingToSummary requires listing.nft_id');
+    }
+
+    const nft_id = listing.nft_id;
+    const price = Number(listing.price ?? 0);
+    const available = await this.db.sumListingQuantityForBucket(nft_id, price);
+    const { title, description } = this.extractListingMetadata(txmsg);
+    const category = listing.category || STORE_CATEGORIES.OTHER;
+    const now = Date.now();
+
+    const existing = await this.db.returnSummaryByBucket(nft_id, price);
+    if (!existing) {
+      await this.db.insertSummary({
+        nft_id,
+        price,
+        category,
+        title,
+        description,
+        image: null,
+        quantity_available: available,
+        updated_at: now
+      });
+    } else {
+      await this.db.updateSummaryAvailableByBucket(nft_id, price, available, now);
+      if (title || description) {
+        await this.db.updateSummaryMetadata(nft_id, price, { title, description });
+      }
+      if (category) {
+        await this.db.updateSummaryCategory(nft_id, price, category);
+      }
+    }
+
+    const summary = new Summary(this.app, this.mod, {
+      nft_id,
+      seller: listing.seller || existing?.seller || '',
+      category,
+      title: title || existing?.title || '',
+      description: description !== '' ? description : existing?.description || '',
+      image: null,
+      price,
+      quantity_available: available,
+      quantity_total: available,
+      listing_signature: listing.signature || '',
+      updated_at: now,
+      status: available > 0 ? 1 : 0
+    });
+
+    const key = summaryBucketKey(nft_id, price);
+    this.summaries[key] = summary;
+    this.mod.summaries = this.summaries;
+    syncSummaryCache(this.mod, summary);
+    return summary;
   }
 
   extractListingMetadata(txmsg = {}) {
@@ -810,30 +870,6 @@ class Warehouse {
     this.mod.summaries = this.summaries;
     syncSummaryCache(this.mod, summary);
     return summary;
-  }
-
-  async ensureSummaryForListing(listing) {
-    const existing = await this.db.returnSummaryByBucket(listing.nft_id, listing.price);
-    if (existing) {
-      if (listing.category) {
-        await this.db.updateSummaryCategory(listing.nft_id, listing.price, listing.category);
-      }
-      return this.db.returnSummaryByBucket(listing.nft_id, listing.price);
-    }
-
-    const now = Date.now();
-    await this.db.insertSummary({
-      nft_id: listing.nft_id,
-      price: listing.price,
-      category: listing.category || STORE_CATEGORIES.OTHER,
-      title: '',
-      description: '',
-      image: null,
-      quantity_available: 0,
-      updated_at: now
-    });
-
-    return this.db.returnSummaryByBucket(listing.nft_id, listing.price);
   }
 
   observeListingFromTransaction(nft, tx, txmsg, blk = null) {

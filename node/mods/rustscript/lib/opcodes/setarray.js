@@ -27,10 +27,6 @@ The source is not modified.
     destination: 'context.successors',
     source: '__opcodes.importarray.successors'
   },
-  schema: {
-    destination: 'string',
-    source: 'reference'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

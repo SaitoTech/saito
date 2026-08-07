@@ -14,11 +14,6 @@ Returns true if the comparison holds.
     operator: '>',
     value: 'NOW'
   },
-  schema: {
-    field: 'reference',
-    operator: 'operator',
-    value: 'reference'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

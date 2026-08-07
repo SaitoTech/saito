@@ -14,11 +14,6 @@ inside context.__opcodes.sumfields under a controlled key.
     b: '__opcodes.importfield.duration',
     into: 'expiry'
   },
-  schema: {
-    a: 'reference',
-    b: 'reference',
-    into: 'string'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

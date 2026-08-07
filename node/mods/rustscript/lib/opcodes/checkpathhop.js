@@ -35,13 +35,6 @@ module.exports = {
       ]
     }
   },
-  schema: {
-    selector: 'string',
-    where: 'array:clause',
-    assert: 'array:clause',
-    publickey: 'publickey',
-    hops: 'array:hop'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

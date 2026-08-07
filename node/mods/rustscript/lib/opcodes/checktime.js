@@ -10,10 +10,6 @@ module.exports = {
     timestamp: '<timestamp>',
     operator: '<='
   },
-  schema: {
-    timestamp: 'timestamp',
-    operator: 'operator'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object') {

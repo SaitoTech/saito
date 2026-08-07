@@ -12,10 +12,6 @@ module.exports = {
       input: '<secret>'
     }
   },
-  schema: {
-    hash: 'hash',
-    input: 'text'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

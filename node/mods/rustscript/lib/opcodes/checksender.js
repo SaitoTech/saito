@@ -9,9 +9,6 @@ module.exports = {
     op: 'CHECKSENDER',
     publickey: '<publickey>'
   },
-  schema: {
-    publickey: 'publickey'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

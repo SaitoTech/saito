@@ -79,12 +79,13 @@ class PanelReferenceView {
         </li>`,
         `<li class="rs-panel-ref-actions rs-panel-ref-actions-stack">
           <button type="button" class="rs-btn rs-btn-primary rs-panel-ref-action rs-panel-ref-action-publish" data-action="publish">Choose Asset to Protect</button>
+          <button type="button" class="saito-text-link rs-panel-ref-action" data-action="move-to-testing">or test this script…</button>
           <button type="button" class="saito-text-link rs-panel-ref-save-later" data-action="save-later">or save for later...</button>
         </li>`
       ];
     }
 
-    return [`<li>${countText}</li>`, '<li>test mode will enable when complete</li>'];
+    return [`<li>${countText}</li>`];
   }
 
   bindEvents() {

@@ -4,7 +4,7 @@ const RustscriptMain = require('./lib/ui/main');
 const ast_execute = require('./lib/rustscript/ast_execute');
 const tokenize = require('./lib/rustscript/semantic_to_tokens');
 const parse = require('./lib/rustscript/tokens_to_ast');
-const { build_test_script_from_create, lockingView } = require('./lib/ui/script_build');
+const { build_test_script_from_create, lockingView, expandLockingTree } = require('./lib/ui/script_build');
 const {
   downloadTransactionFile,
   serializeTransactionToWeb,
@@ -467,14 +467,15 @@ class Rustscript extends ModTemplate {
 
     const tokens = tokenize(text);
     const ast = parse(tokens);
-    const unlockingScript = build_test_script_from_create(ast, {}, this.opcodes);
+    const lockingScript = expandLockingTree(lockingView(ast || {}), this.opcodes);
+    const unlockingScript = build_test_script_from_create(lockingScript, {}, this.opcodes);
 
     return {
       tokens,
       ast,
-      lockingScript: ast,
+      lockingScript,
       unlockingScript,
-      json: JSON.stringify(ast, null, 2)
+      json: JSON.stringify(lockingScript, null, 2)
     };
   }
 
