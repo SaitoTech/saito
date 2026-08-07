@@ -297,7 +297,7 @@ module.exports = {
       throw new Error('P2SH input is missing utxoset key');
     }
 
-    const access_scripts = [];
+    const access_script_jobs = [];
     const fulfillment_tx = new Transaction();
     fulfillment_tx.timestamp = Date.now();
     fulfillment_tx.type = TransactionType.Bound;
@@ -312,14 +312,11 @@ module.exports = {
     });
 
     fulfillment_tx.addFromSlip(payment_input);
-    access_scripts.push(
-      await signAccessScriptWitness(
-        this.app,
-        payment_access_script,
-        payment_utxo_key,
-        witness_log('payment')
-      )
-    );
+    access_script_jobs.push({
+      access_script: payment_access_script,
+      message: payment_utxo_key,
+      role: 'payment'
+    });
 
     const partial_relists = [];
 
@@ -357,16 +354,11 @@ module.exports = {
         fulfillment_tx.addFromSlip(listing_input);
 
         if (is_custody) {
-          access_scripts.push(
-            await signAccessScriptWitness(
-              this.app,
-              listing_access_script,
-              listing_utxo_key,
-              witness_log(
-                `listing-custody-${listing_row.signature || listing_rows.indexOf(listing_row)}`
-              )
-            )
-          );
+          access_script_jobs.push({
+            access_script: listing_access_script,
+            message: listing_utxo_key,
+            role: `listing-custody-${listing_row.signature || listing_rows.indexOf(listing_row)}`
+          });
         }
       }
 
@@ -455,6 +447,46 @@ module.exports = {
       seller_slip.amount = amount;
       seller_slip.type = SlipType.Normal;
       fulfillment_tx.addToSlip(seller_slip);
+    }
+
+    // Finalize output slip indices the same way Transaction::sign does.
+    const outputs = fulfillment_tx.to || [];
+    for (let i = 0; i < outputs.length; i++) {
+      outputs[i].index = i;
+    }
+
+    // Blake3 over concat(serialize_output_for_signature) for every output.
+    // Spec: saito-core get_p2sh_auth_hash / Slip::serialize_output_for_signature —
+    //   public_key || amount_be_u64 || slip_index_u8 || slip_type_u8
+    const auth_parts = [];
+    for (let i = 0; i < outputs.length; i++) {
+      const slip = outputs[i];
+      const pk_b58 = String(slip?.publicKey || '');
+      if (!pk_b58) {
+        throw new Error('fulfillment output is missing a public key');
+      }
+      const pk_bytes = Buffer.from(this.app.crypto.fromBase58(pk_b58), 'hex');
+      const amount_buf = Buffer.alloc(8);
+      amount_buf.writeBigUInt64BE(BigInt(slip?.amount ?? 0));
+      auth_parts.push(pk_bytes);
+      auth_parts.push(amount_buf);
+      auth_parts.push(Buffer.from([Number(slip.index) & 0xff]));
+      auth_parts.push(Buffer.from([Number(slip.type ?? 0) & 0xff]));
+    }
+    const p2sh_auth_hash = String(this.app.crypto.hash(Buffer.concat(auth_parts)));
+
+    // CHECKMULTISIG verifies signatures over: utxoset_key|p2sh_auth_hash
+    const access_scripts = [];
+    for (const job of access_script_jobs) {
+      const auth_message = `${job.message}|${p2sh_auth_hash}`;
+      access_scripts.push(
+        await signAccessScriptWitness(
+          this.app,
+          job.access_script,
+          auth_message,
+          witness_log(job.role)
+        )
+      );
     }
 
     fulfillment_tx.msg.access_scripts = access_scripts;
@@ -605,8 +637,41 @@ module.exports = {
       payment_amount: String(order.payment_amount ?? 0)
     };
 
-    const { attachP2shAccessScripts } = require('./helpers');
-    await attachP2shAccessScripts(this.app, tx, { payment_access_script });
+    // Finalize output slip indices the same way Transaction::sign does.
+    const refund_outputs = tx.to || [];
+    for (let i = 0; i < refund_outputs.length; i++) {
+      refund_outputs[i].index = i;
+    }
+
+    // Blake3 over concat(serialize_output_for_signature) for every output.
+    // Spec: saito-core get_p2sh_auth_hash / Slip::serialize_output_for_signature —
+    //   public_key || amount_be_u64 || slip_index_u8 || slip_type_u8
+    const refund_auth_parts = [];
+    for (let i = 0; i < refund_outputs.length; i++) {
+      const slip = refund_outputs[i];
+      const pk_b58 = String(slip?.publicKey || '');
+      if (!pk_b58) {
+        throw new Error('refund output is missing a public key');
+      }
+      const pk_bytes = Buffer.from(this.app.crypto.fromBase58(pk_b58), 'hex');
+      const amount_buf = Buffer.alloc(8);
+      amount_buf.writeBigUInt64BE(BigInt(slip?.amount ?? 0));
+      refund_auth_parts.push(pk_bytes);
+      refund_auth_parts.push(amount_buf);
+      refund_auth_parts.push(Buffer.from([Number(slip.index) & 0xff]));
+      refund_auth_parts.push(Buffer.from([Number(slip.type ?? 0) & 0xff]));
+    }
+    const refund_p2sh_auth_hash = String(this.app.crypto.hash(Buffer.concat(refund_auth_parts)));
+
+    const payment_utxo_key = String(payment_input.utxoKey || '');
+    if (!payment_utxo_key) {
+      throw new Error('P2SH input is missing utxoset key');
+    }
+    const refund_auth_message = `${payment_utxo_key}|${refund_p2sh_auth_hash}`;
+
+    tx.msg.access_scripts = [
+      await signAccessScriptWitness(this.app, payment_access_script, refund_auth_message)
+    ];
 
     const payment_pubkey = slipPublicKey(this.app, order.p2sh_address) || order.p2sh_address || '';
 

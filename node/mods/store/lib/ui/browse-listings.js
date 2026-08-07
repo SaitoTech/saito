@@ -1,15 +1,15 @@
 const Summary = require('../summary');
-const { syncSummaryCache } = require('./summary-cache');
-const { DEFAULT_PAGE_SIZE, normalizePage, normalizePageSize } = require('../categories');
+const { DEFAULT_PAGE_SIZE, normalizeOffset, normalizePageSize } = require('../categories');
 
 /**
- * Fetch one page of marketplace listings from the Store peer.
- * Replaces client browse state; does not accumulate the full catalog locally.
+ * Fetch one page of active listings from the Store peer.
+ * public_key '' → server applies its ModTools whitelist.
+ * public_key set → that seller's active listings.
  */
 function loadListingsPage(
   app,
   mod,
-  { category = '', page = 1, page_size = DEFAULT_PAGE_SIZE } = {}
+  { public_key = '', category = '', offset = 0, page_size = DEFAULT_PAGE_SIZE } = {}
 ) {
   return new Promise((resolve, reject) => {
     const peerKey = mod.store_public_key;
@@ -20,8 +20,9 @@ function loadListingsPage(
 
     const request = {
       module: 'Store',
+      public_key: String(public_key || ''),
       category: String(category || ''),
-      page: normalizePage(page),
+      offset: normalizeOffset(offset),
       page_size: normalizePageSize(page_size)
     };
 
@@ -34,21 +35,22 @@ function loadListingsPage(
           return;
         }
 
+        // Listing-row browse cards: do not sync into nft_id:price bucket cache
+        // (distinct listings sharing a bucket must not overwrite each other).
         const listings = response.listings
-          .map((data) => {
-            const summary = syncSummaryCache(mod, data);
-            return summary || new Summary(app, mod, data);
-          })
-          .filter(Boolean);
+          .map((data) => new Summary(app, mod, data))
+          .filter((summary) => !!summary.nft_id);
 
         resolve({
           listings,
+          public_key: response.public_key || request.public_key,
           category: response.category || request.category,
           pagination: response.pagination || {
-            page: request.page,
+            offset: request.offset,
             page_size: request.page_size,
             total: listings.length,
             total_pages: listings.length ? 1 : 0,
+            page: 1,
             has_next: false,
             has_previous: false
           }
@@ -60,8 +62,8 @@ function loadListingsPage(
 }
 
 /**
- * Fetch a seller's warehouse inventory (active + sold) from the Store peer.
- * Objects are Summary-compatible for Teaser rendering.
+ * Fetch a seller's sold listings (and active) from the Store peer.
+ * Sold-only use; active browsing goes through loadListingsPage.
  */
 function loadSellerInventory(app, mod, seller = '') {
   return new Promise((resolve, reject) => {

@@ -156,9 +156,13 @@ class PurchaseOverlay {
     const el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
     const backdrop = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
 
+    // Size to the panel (like SaitoTransactionMonitor). Do not force maximized-overlay —
+    // that moves .saito-overlay-closebox to an inset position instead of the standard
+    // top/right: -1rem hang-off used by SaitoOverlay.
     if (el) {
-      el.classList.add('store-purchase-overlay-shell', 'maximized-overlay');
-      el.style.pointerEvents = 'none';
+      el.classList.add('store-purchase-overlay-shell');
+      el.classList.remove('maximized-overlay');
+      el.style.pointerEvents = '';
     }
     if (backdrop) {
       backdrop.classList.add('store-purchase-overlay-backdrop');
@@ -187,14 +191,6 @@ class PurchaseOverlay {
     root.querySelector('[data-action="view-nfts"]')?.addEventListener('click', (e) => {
       e.preventDefault();
       this.openMyNfts();
-    });
-
-    root.querySelector('[data-action="purchase-close"]')?.addEventListener('click', () => {
-      const active = this.lifecycle()?.returnActivePurchase?.();
-      if (active?.phase === PurchaseLifecycle.PHASE.COMPLETE) {
-        this.lifecycle()?.dismiss(active.id);
-      }
-      this.hide();
     });
   }
 

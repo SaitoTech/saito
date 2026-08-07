@@ -52,6 +52,14 @@ function normalizePage(page) {
   return Math.floor(n);
 }
 
+function normalizeOffset(offset) {
+  const n = Number(offset);
+  if (!Number.isFinite(n) || n < 0) {
+    return 0;
+  }
+  return Math.floor(n);
+}
+
 /**
  * Protocol / module NFT type → Store category.
  * Unknown and empty types resolve to Other.
@@ -90,5 +98,6 @@ module.exports = {
   isStoreCategory,
   normalizePageSize,
   normalizePage,
+  normalizeOffset,
   mapNFTTypeToCategory
 };

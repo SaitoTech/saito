@@ -517,6 +517,51 @@ class Database {
     await this.app.storage.runDatabase(`DELETE FROM summary`, {}, this.dbname);
   }
 
+  /**
+   * Atomically replace the entire summary table (DELETE + INSERTs).
+   * Uses the shared SQLite connection's BEGIN/COMMIT so readers on this
+   * connection never observe a half-rebuilt table if the rebuild fails.
+   */
+  async replaceAllSummaries(rows = []) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      throw new Error('Store database unavailable');
+    }
+
+    const insert_sql = `INSERT INTO summary (
+			  nft_id, price, category, title, description, image,
+			  quantity_available, updated_at
+			) VALUES (
+			  $nft_id, $price, $category, $title, $description, $image,
+			  $quantity_available, $updated_at
+			)`;
+
+    await db.exec('BEGIN IMMEDIATE');
+    try {
+      await db.run(`DELETE FROM summary`);
+      for (const summary of rows || []) {
+        await db.run(insert_sql, {
+          $nft_id: summary.nft_id,
+          $price: Number(summary.price ?? 0),
+          $category: summary.category || STORE_CATEGORIES.OTHER,
+          $title: summary.title || '',
+          $description: summary.description || '',
+          $image: summary.image ?? null,
+          $quantity_available: Number(summary.quantity_available ?? 0),
+          $updated_at: summary.updated_at ?? Date.now()
+        });
+      }
+      await db.exec('COMMIT');
+    } catch (err) {
+      try {
+        await db.exec('ROLLBACK');
+      } catch (_) {
+        // ignore rollback failure; original error is what matters
+      }
+      throw err;
+    }
+  }
+
   async deleteSummaryByBucket(nft_id, price) {
     await this.app.storage.runDatabase(
       `DELETE FROM summary WHERE nft_id = $nft_id AND price = $price`,

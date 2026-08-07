@@ -5,8 +5,7 @@ const Main = require('./lib/ui/main');
 const Warehouse = require('./lib/warehouse');
 const transactions = require('./lib/transactions');
 const { serveCachedImageResponse } = require('./lib/images');
-const { syncSummaryCache } = require('./lib/ui/summary-cache');
-const { DEFAULT_PAGE_SIZE, normalizePage, normalizePageSize } = require('./lib/categories');
+const { DEFAULT_PAGE_SIZE, normalizeOffset, normalizePageSize } = require('./lib/categories');
 const index = require('./index');
 
 class Store extends ModTemplate {
@@ -41,7 +40,9 @@ class Store extends ModTemplate {
 
     if (this.app.BROWSER) {
       const SaitoTransactionMonitor = require('../../lib/saito/ui/saito-transaction-monitor/saito-transaction-monitor');
+      const PurchaseMonitor = require('./lib/ui/overlays/purchase-monitor');
       this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
+      this.purchase_monitor = new PurchaseMonitor(this.app, this);
     }
 
     if (this.browser_active) {
@@ -87,13 +88,16 @@ class Store extends ModTemplate {
 
     this.app.network.sendRequestAsTransaction(
       'load-listings',
-      { module: 'Store', category: '', page: 1, page_size: DEFAULT_PAGE_SIZE },
+      {
+        module: 'Store',
+        public_key: '',
+        category: '',
+        offset: 0,
+        page_size: DEFAULT_PAGE_SIZE
+      },
       (response) => {
         console.log('Store: loadListings response', response);
         if (response?.listings) {
-          for (const data of response.listings) {
-            syncSummaryCache(this, data);
-          }
           this.app.connection.emit('store-render-listings');
         }
       },
@@ -111,13 +115,50 @@ class Store extends ModTemplate {
     if (txmsg?.request === 'load-listings') {
       if (!this.app.BROWSER && mycallback != null) {
         const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
-        const result = this.warehouse.returnActiveSummariesPage({
+        const public_key = String(data.public_key || '').trim();
+        let sellers = [];
+        if (public_key) {
+          sellers = [public_key];
+        } else {
+          const modtools = this.app.modules.returnModuleBySlug('modtools');
+          sellers = Array.isArray(modtools?.whitelisted_publickeys)
+            ? modtools.whitelisted_publickeys.slice()
+            : [];
+        }
+
+        const result = await this.warehouse.returnActiveListingsPage({
+          sellers,
           category: data.category || '',
-          page: normalizePage(data.page),
+          offset: normalizeOffset(data.offset),
           page_size: normalizePageSize(data.page_size)
         });
+        const listings = result.listings.map((summary) => summary.serialize());
+        // STORE_IMG_404_DIAG — temporary; remove after 404 root cause identified
+        console.error('STORE_IMG_404_DIAG load-listings response', {
+          store_public_key: this.store_public_key || this.publicKey,
+          peer: peer?.publicKey,
+          public_key,
+          seller_filter_count: sellers.length,
+          count: listings.length,
+          listings: listings.map((row) => ({
+            nft_id: row.nft_id,
+            seller: row.seller,
+            title: row.title,
+            description: row.description,
+            price: row.price,
+            quantity_available: row.quantity_available,
+            listing_signature: row.listing_signature,
+            has_image_field: Object.prototype.hasOwnProperty.call(row, 'image'),
+            image_cache_has_entry: !!(row.nft_id && this.image_cache[row.nft_id]),
+            image_cache_length:
+              row.nft_id && this.image_cache[row.nft_id]
+                ? this.image_cache[row.nft_id].length
+                : 0
+          }))
+        });
         mycallback({
-          listings: result.listings.map((summary) => summary.serialize()),
+          listings,
+          public_key,
           category: result.category,
           pagination: result.pagination
         });

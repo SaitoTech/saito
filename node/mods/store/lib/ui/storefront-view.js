@@ -1,7 +1,8 @@
 const StorefrontViewTemplate = require('./storefront-view.template');
 const Teasers = require('./teasers');
 const EmptyPanel = require('./empty-panel');
-const { loadSellerInventory } = require('./browse-listings');
+const { loadListingsPage } = require('./browse-listings');
+const { MAX_PAGE_SIZE } = require('../categories');
 
 class StorefrontView {
   constructor(app, mod, container = '', callbacks = {}) {
@@ -13,8 +14,6 @@ class StorefrontView {
     this.publicKey = '';
     /** @type {import('../summary')[]} */
     this.activeSummaries = [];
-    /** @type {import('../summary')[]} */
-    this.soldSummaries = [];
     this.inventoryLoaded = false;
     this.loading = false;
     this.loadToken = 0;
@@ -46,8 +45,8 @@ class StorefrontView {
       if (this.isOwnStorefront() || this.viewMode === 'public') {
         this.reloadInventory().then(() => {
           const manager = this.mod.main?.manager;
-          if (manager?.activePanel === 'sales' && this.inventoryLoaded) {
-            manager.sales.show(this.soldSummaries);
+          if (manager?.activePanel === 'sales') {
+            manager.sales.show();
           }
         });
       }
@@ -186,7 +185,7 @@ class StorefrontView {
 
   /**
    * Show a creator storefront or admin view for the given public key.
-   * Loads warehouse inventory via load-seller-inventory (active for display).
+   * Active listings via load-listings (same API as marketplace browse).
    * @param {string} publicKey
    * @param {{ viewMode?: 'public' | 'admin' | 'admin-denied', adminSection?: 'home' | 'active' }} [opts]
    */
@@ -239,20 +238,23 @@ class StorefrontView {
     this.render();
 
     try {
-      const inventory = await loadSellerInventory(this.app, this.mod, this.publicKey);
+      const result = await loadListingsPage(this.app, this.mod, {
+        public_key: this.publicKey,
+        category: '',
+        offset: 0,
+        page_size: MAX_PAGE_SIZE
+      });
       if (token !== this.loadToken) {
         return;
       }
-      this.activeSummaries = inventory.active || [];
-      this.soldSummaries = inventory.sold || [];
+      this.activeSummaries = result.listings || [];
       this.inventoryLoaded = true;
     } catch (err) {
-      console.warn('Store: load-seller-inventory failed', err?.message || err);
+      console.warn('Store: load-listings (storefront) failed', err?.message || err);
       if (token !== this.loadToken) {
         return;
       }
       this.activeSummaries = [];
-      this.soldSummaries = [];
       this.inventoryLoaded = true;
     }
 

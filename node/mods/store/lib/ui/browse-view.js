@@ -55,6 +55,7 @@ class BrowseView {
   async loadPage({ category = this.category, page = this.page, scroll = false } = {}) {
     const next_category = String(category || '');
     const next_page = Math.max(1, Number(page) || 1);
+    const offset = (next_page - 1) * this.page_size;
 
     if (this.loading && this.category === next_category && this.page === next_page) {
       return;
@@ -68,8 +69,9 @@ class BrowseView {
 
     try {
       const result = await loadListingsPage(this.app, this.mod, {
+        public_key: '',
         category: this.category,
-        page: this.page,
+        offset,
         page_size: this.page_size
       });
 
@@ -96,6 +98,7 @@ class BrowseView {
       this.has_loaded = true;
       this.listings = [];
       this.pagination = {
+        offset: 0,
         page: 1,
         page_size: this.page_size,
         total: 0,

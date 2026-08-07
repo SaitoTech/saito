@@ -4,10 +4,29 @@ function parseListingUnitPrice(price = '') {
 }
 
 /**
+ * Yield until after the next paint so preparation UI can render before
+ * wallet/WASM work stalls the main thread. Not an artificial delay.
+ */
+function yieldForPaint() {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== 'function') {
+      setTimeout(resolve, 0);
+      return;
+    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
+/**
  * Purchase transaction orchestration — not a UI component.
- * Starts local lifecycle tracking and opens Transaction Monitor for live confirmation.
+ * Shows Purchase Monitor during create/sign/broadcast, then hands off
+ * to Transaction Monitor once the signed tx exists.
  */
 async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
+  const monitor = mod.purchase_monitor;
+
   if (!summary?.nft_id) {
     salert('This item is not available for purchase.');
     return;
@@ -35,40 +54,72 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
     return;
   }
 
-  const wallet_balance = await app.wallet.getBalance();
   const listingTitle = summary.returnTitle?.() || summary.title || 'this item';
+
+  // Replace listing-detail Buy UI immediately with preparation feedback.
+  mod.main?.listing_detail?.overlay?.hide?.();
+  mod.main?.product_overlay?.overlay?.hide?.();
+  monitor?.show({ listingTitle });
+  monitor?.setStage('preparing');
+  await yieldForPaint();
 
   let newtx = null;
   try {
-    newtx = await mod.createPurchaseAssetTransaction(
-      summary,
-      { price: unit_price, fee, quantity },
-      total_nolan
-    );
-  } catch (err) {
-    console.error('Store: createPurchaseAssetTransaction failed', err);
-    salert(err?.message || 'Could not create purchase transaction.');
-    return;
-  }
+    monitor?.setStage('checking_wallet');
+    const wallet_balance = await app.wallet.getBalance();
 
-  const pendingTxSignature = newtx.signature || '';
-  if (!pendingTxSignature) {
-    salert('Purchase transaction was not signed.');
-    return;
-  }
+    monitor?.setStage('creating');
+    try {
+      newtx = await mod.createPurchaseAssetTransaction(
+        summary,
+        { price: unit_price, fee, quantity },
+        total_nolan
+      );
+    } catch (err) {
+      console.error('Store: createPurchaseAssetTransaction failed', err);
+      monitor?.hide();
+      salert(err?.message || 'Could not create purchase transaction.');
+      return;
+    }
 
-  // Close Buy NFT overlay immediately on successful submit.
-  mod.main?.listing_detail?.overlay?.hide?.();
-  mod.main?.product_overlay?.overlay?.hide?.();
+    const pendingTxSignature = newtx.signature || '';
+    if (!pendingTxSignature) {
+      monitor?.hide();
+      salert('Purchase transaction was not signed.');
+      return;
+    }
 
-  if (wallet_balance < total_nolan) {
-    app.connection.emit(
-      'saito-purchase-launch',
-      app.wallet.convertNolanToSaito(total_nolan),
-      mod.store_public_key,
-      newtx.serialize_to_web(app),
-      `Purchase ${summary.returnTitle?.() || 'Store item'}`
-    );
+    if (wallet_balance < total_nolan) {
+      monitor?.hide();
+      app.connection.emit(
+        'saito-purchase-launch',
+        app.wallet.convertNolanToSaito(total_nolan),
+        mod.store_public_key,
+        newtx.serialize_to_web(app),
+        `Purchase ${summary.returnTitle?.() || 'Store item'}`
+      );
+      beginLocalPurchaseLifecycle(
+        mod,
+        purchaseOverlay,
+        summary,
+        pendingTxSignature,
+        quantity,
+        listingTitle,
+        newtx
+      );
+      return;
+    }
+
+    monitor?.setStage('sending');
+    try {
+      await app.network.propagateTransaction(newtx);
+    } catch (err) {
+      monitor?.hide();
+      salert(err?.message || 'Could not submit purchase transaction.');
+      return;
+    }
+
+    monitor?.hide();
     beginLocalPurchaseLifecycle(
       mod,
       purchaseOverlay,
@@ -78,25 +129,11 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
       listingTitle,
       newtx
     );
-    return;
-  }
-
-  try {
-    await app.network.propagateTransaction(newtx);
   } catch (err) {
-    salert(err?.message || 'Could not submit purchase transaction.');
-    return;
+    monitor?.hide();
+    console.error('Store: startPurchase failed', err);
+    salert(err?.message || 'Could not start purchase.');
   }
-
-  beginLocalPurchaseLifecycle(
-    mod,
-    purchaseOverlay,
-    summary,
-    pendingTxSignature,
-    quantity,
-    listingTitle,
-    newtx
-  );
 }
 
 function beginLocalPurchaseLifecycle(

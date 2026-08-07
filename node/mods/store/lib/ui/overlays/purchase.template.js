@@ -27,7 +27,6 @@ module.exports = {
     <h2 class="title" id="purchase-complete-title">NFT received!</h2>
     <p class="lead">${lead}</p>
     <button type="button" class="saito-button-primary" data-action="view-nfts">View in My NFTs</button>
-    <button type="button" class="saito-button-secondary" data-action="purchase-close">Close</button>
   </div>
 </article>`;
   },
