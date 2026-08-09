@@ -11,7 +11,11 @@ module.exports = (app, mod, isMobile = false) => {
         <div class="saito-anchor" data-action="toggle-mode"><span>create custom key...</span></div>
         <button type="button" class="saito-button-primary" data-action="confirm-key">CREATE KEY</button>
       </div>
-      <div class="spinner-helper">uploading...<p></p><div class="saito-spinner"></div></div>
+      <div class="upload-state" hidden>
+        <div class="saito-spinner" aria-hidden="true"></div>
+        <div class="mark" aria-hidden="true"></div>
+        <div class="status">Working…</div>
+      </div>
     </div>`;
 
   return saitoFileDropOverlay({

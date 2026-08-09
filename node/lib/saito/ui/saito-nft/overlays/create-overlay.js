@@ -79,6 +79,16 @@ class CreateNFT {
       this.addImage(this.defaults.image);
     }
 
+    //
+    // Module-provided file types may receive a pre-selected file from the
+    // calling UI (data URI / payload). Applied after type so upload chrome
+    // matches the selected module capability.
+    //
+    if (this.defaults?.file) {
+      this.file = this.defaults.file;
+      this.show_selected_file(this.defaults.file_name || 'Selected file');
+    }
+
     if (this.defaults?.quantity) {
       let amount = document.querySelector('#create-nft-amount');
       amount.value = String(this.defaults.quantity);
@@ -96,6 +106,64 @@ class CreateNFT {
     }
   }
 
+  return_module_nft() {
+    for (let z = 0; z < this.module_provided_nfts.length; z++) {
+      let modobj = this.module_provided_nfts[z];
+      if (modobj?.class?.includes(this.nft_type)) {
+        return modobj;
+      }
+    }
+    return null;
+  }
+
+  apply_upload_presentation(modobj = null) {
+    const upload_el = document.querySelector('#nft-image-upload');
+    if (!upload_el) {
+      return;
+    }
+
+    const hint = upload_el.querySelector('.upload-hint');
+    const icon = upload_el.querySelector('i');
+
+    if (hint) {
+      hint.textContent = modobj?.upload_text || 'drag-and-drop image to upload';
+    }
+    if (icon) {
+      icon.className = modobj?.upload_icon || 'fa-solid fa-file-image';
+    }
+  }
+
+  escape_html(value = '') {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  //
+  // Non-image acknowledgment for module-provided file types.
+  // Does not treat the payload as an image.
+  //
+  show_selected_file(file_name = 'Selected file') {
+    document.querySelector('.saito-nft-create .upload .file')?.remove();
+    document.querySelector('.saito-nft-create .upload .preview')?.remove();
+
+    let html = `
+      <div class="file selected">
+        <i class="fa-solid fa-check" aria-hidden="true"></i>
+        <div class="file-name">${this.escape_html(file_name)}</div>
+      </div>
+    `;
+
+    this.app.browser.addElementToSelector(html, '.saito-nft-create .upload');
+    let upload_el = document.querySelector('#nft-image-upload');
+    if (upload_el) {
+      upload_el.style.display = 'none';
+    }
+  }
+
   async createObject() {
     let obj = {};
     this.nft_type = document.querySelector('#create-nft-type-dropdown').value;
@@ -106,7 +174,13 @@ class CreateNFT {
         let modobj = this.module_provided_nfts[z];
         if (modobj.class.includes(this.nft_type)) {
           if (modobj.createData) {
-            obj = await modobj.createData(this.file);
+            let title_el = document.querySelector('.saito-nft-create .secondary input.title');
+            let title = (title_el?.value || title_el?.getAttribute('placeholder') || '').trim();
+            let desc_field = document.querySelector(
+              '.saito-nft-create .secondary textarea.description'
+            );
+            let description = (desc_field?.value || '').trim();
+            obj = await modobj.createData(this.file, { title, description });
             processed = true;
           } else {
             obj.text = text;
@@ -315,15 +389,19 @@ class CreateNFT {
     this.app.browser.addDragAndDropFileUploadToElement(
       'nft-image-upload',
 
-      async (file) => {
-        for (let z = 0; z < this.module_provided_nfts.length; z++) {
-          let obj = this.module_provided_nfts[z];
-          if (obj.class) {
-            if (obj.class.includes(this.nft_type)) {
-              this.file = file;
-              return;
-            }
+      async (file, _is_drag, native_file) => {
+        let modobj = this.return_module_nft();
+        if (modobj?.createData) {
+          this.file = file;
+          let file_name = native_file?.name || 'Selected file';
+
+          // Optional module hook — generic UI does not import modules.
+          if (typeof modobj.on_file_selected === 'function') {
+            await modobj.on_file_selected(file, { file_name });
           }
+
+          this.show_selected_file(file_name);
+          return;
         }
 
         if (this.image) {
@@ -352,15 +430,15 @@ class CreateNFT {
       //alert(this.nft_type + ' ... ');
 
       if (this.nft_type === 'text') {
+        this.apply_upload_presentation();
         uploadEl.style.display = 'none';
         textarea.style.display = 'flex';
         textarea.innerHTML = 'provide text or markdown';
       }
       if (this.nft_type === 'token') {
-        const uploadText = uploadEl.querySelector('div');
-        if (uploadText) {
-          uploadText.innerHTML = 'upload token logo/image (optional)';
-        }
+        this.apply_upload_presentation({
+          upload_text: 'upload token logo/image (optional)'
+        });
         document.querySelector('.saito-nft-create .secondary .label.ticker').style.display =
           'block';
         document.querySelector('.saito-nft-create .secondary input.ticker').style.display = 'block';
@@ -368,44 +446,47 @@ class CreateNFT {
         textarea.style.display = 'none';
       }
       if (this.nft_type === 'js') {
+        this.apply_upload_presentation();
         uploadEl.style.display = 'none';
         textarea.style.display = 'flex';
         textarea.innerHTML = 'alert("Hello World!");';
       }
       if (this.nft_type === 'css') {
+        this.apply_upload_presentation();
         uploadEl.style.display = 'none';
         textarea.style.display = 'flex';
         textarea.innerHTML = '--saito-primary: green;';
       }
       if (this.nft_type === 'json') {
+        this.apply_upload_presentation();
         uploadEl.style.display = 'none';
         textarea.style.display = 'flex';
         textarea.innerHTML = JSON.stringify({ key1: 'value1', key2: 'value2' }, null, 2);
       }
       if (this.nft_type === 'image') {
+        this.apply_upload_presentation();
         uploadEl.style.display = 'flex';
         textarea.style.display = 'none';
       }
       if (this.nft_type === 'file') {
+        this.apply_upload_presentation();
         uploadEl.style.display = 'flex';
         textarea.style.display = 'none';
       }
 
-      for (let z = 0; z < this.module_provided_nfts.length; z++) {
-        let obj = this.module_provided_nfts[z];
-        if (obj.class) {
-          if (obj.class.includes(this.nft_type)) {
-            if (obj.json) {
-              uploadEl.style.display = 'none';
-              textarea.style.display = 'block';
-              textarea.innerHTML = JSON.stringify(obj.json, null, 2);
-            }
+      let modobj = this.return_module_nft();
+      if (modobj) {
+        if (modobj.json) {
+          this.apply_upload_presentation(modobj);
+          uploadEl.style.display = 'none';
+          textarea.style.display = 'block';
+          textarea.innerHTML = JSON.stringify(modobj.json, null, 2);
+        }
 
-            if (obj.createData) {
-              uploadEl.style.display = 'flex';
-              textarea.style.display = 'none';
-            }
-          }
+        if (modobj.createData) {
+          this.apply_upload_presentation(modobj);
+          uploadEl.style.display = 'flex';
+          textarea.style.display = 'none';
         }
       }
 

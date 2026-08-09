@@ -106,6 +106,19 @@ class LoadNFTs {
             slip3_utxokey
           });
 
+          // Keep Vault's NFT→file cache warm for other modules (e.g. N-WASM).
+          this.mod.cacheNftFileMetadata({
+            nft_id: nft.id,
+            tx_sig: nft.tx_sig || rec?.tx_sig || '',
+            file_id,
+            filename: file_name,
+            link: data?.link || '',
+            slip1_utxokey,
+            slip2_utxokey,
+            slip3_utxokey,
+            file_access_script: file_access_script || null
+          });
+
           this.count--;
         });
 

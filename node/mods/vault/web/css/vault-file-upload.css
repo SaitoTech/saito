@@ -43,23 +43,82 @@
   margin-top: 0;
 }
 
-.vault-upload-overlay .spinner-helper {
+.vault-upload-overlay .upload-state {
   display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--saito-space-md);
   width: 100%;
   min-width: 0;
-  font-size: 3rem;
-  line-height: 8rem;
+  padding: var(--saito-space-xl) 0;
   text-align: center;
+}
+
+.vault-upload-overlay .upload-state .status {
+  font-size: 1.7rem;
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
+}
+
+.vault-upload-overlay .upload-state .mark {
+  display: none;
+  width: 4.8rem;
+  height: 4.8rem;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  line-height: 1;
 }
 
 .vault-upload-overlay .key-step.is-uploading .saito-overlay-form-text,
 .vault-upload-overlay .key-step.is-uploading .key-artwork,
-.vault-upload-overlay .key-step.is-uploading .saito-button-row {
+.vault-upload-overlay .key-step.is-uploading .saito-button-row,
+.vault-upload-overlay .key-step.is-success .saito-overlay-form-text,
+.vault-upload-overlay .key-step.is-success .key-artwork,
+.vault-upload-overlay .key-step.is-success .saito-button-row,
+.vault-upload-overlay .key-step.is-error .saito-overlay-form-text,
+.vault-upload-overlay .key-step.is-error .key-artwork {
   display: none;
 }
 
-.vault-upload-overlay .key-step.is-uploading .spinner-helper {
+.vault-upload-overlay .key-step.is-uploading .upload-state,
+.vault-upload-overlay .key-step.is-success .upload-state,
+.vault-upload-overlay .key-step.is-error .upload-state {
+  display: flex;
+}
+
+.vault-upload-overlay .key-step.is-uploading .upload-state .saito-spinner {
   display: block;
+}
+
+.vault-upload-overlay .key-step.is-success .upload-state .saito-spinner,
+.vault-upload-overlay .key-step.is-error .upload-state .saito-spinner {
+  display: none;
+}
+
+.vault-upload-overlay .key-step.is-success .upload-state .mark,
+.vault-upload-overlay .key-step.is-error .upload-state .mark {
+  display: flex;
+}
+
+.vault-upload-overlay .key-step.is-success .upload-state .mark::before {
+  content: '✓';
+  color: var(--saito-primary);
+}
+
+.vault-upload-overlay .key-step.is-error .upload-state .mark::before {
+  content: '!';
+  color: var(--saito-white);
+}
+
+.vault-upload-overlay .key-step.is-error .upload-state .mark {
+  background: var(--saito-primary);
+}
+
+.vault-upload-overlay .key-step.is-error .saito-button-row {
+  display: flex;
 }
 
 @media (max-width: 768px) {

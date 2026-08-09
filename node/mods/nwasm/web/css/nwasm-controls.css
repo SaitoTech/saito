@@ -1,0 +1,85 @@
+/* Namespace: .nwasm-controls */
+
+.nwasm-controls {
+  width: min(52rem, 94vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+}
+
+.nwasm-controls .body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+}
+
+.nwasm-controls .wait {
+  padding: var(--saito-space-md);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+  text-align: center;
+}
+
+.nwasm-controls .wait[hidden] {
+  display: none;
+}
+
+.nwasm-controls .list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.nwasm-controls .row {
+  display: grid;
+  grid-template-columns: 8rem 1fr 1fr auto;
+  gap: var(--saito-space-sm);
+  align-items: center;
+  padding: 0.55rem 0.35rem;
+  border-bottom: 1px solid var(--saito-border);
+  color: var(--saito-foreground);
+}
+
+.nwasm-controls .row.head {
+  font-family: var(--saito-font-heavy);
+  color: var(--saito-muted-foreground);
+  border-bottom-color: var(--saito-border);
+}
+
+.nwasm-controls .actions {
+  display: flex;
+  gap: var(--saito-space-xs);
+  justify-content: flex-end;
+}
+
+.nwasm-controls .binding {
+  min-height: 1.6em;
+  color: var(--saito-muted-foreground);
+  font-family: var(--saito-font-mono, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .nwasm-controls .row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      'label label'
+      'key joy'
+      'actions actions';
+  }
+
+  .nwasm-controls .label {
+    grid-area: label;
+  }
+
+  .nwasm-controls .actions {
+    grid-area: actions;
+    justify-content: flex-start;
+  }
+}

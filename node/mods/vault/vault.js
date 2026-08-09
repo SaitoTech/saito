@@ -48,6 +48,14 @@ class Vault extends ModTemplate {
       this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
     }
 
+    // Persistent local cache: Vault NFT identity → file metadata.
+    if (!this.app.options.vault) {
+      this.app.options.vault = {};
+    }
+    if (!this.app.options.vault.files || typeof this.app.options.vault.files !== 'object') {
+      this.app.options.vault.files = {};
+    }
+
     if (this.browser_active) {
       this.main = new VaultMain(app, this, '.saito-container');
       this.addComponent(this.main);
@@ -55,6 +63,170 @@ class Vault extends ModTemplate {
       await this.header.initialize(app);
       this.addComponent(this.header);
     }
+  }
+
+  //
+  // Persist generic Vault file metadata for an NFT key.
+  // Keyed by NFT id (not filename). Used by any module that needs
+  // "what Vault file does this NFT represent?" without reloading the mint tx.
+  //
+  cacheNftFileMetadata(meta = {}, opts = {}) {
+    if (!this.app.options.vault) {
+      this.app.options.vault = {};
+    }
+    if (!this.app.options.vault.files || typeof this.app.options.vault.files !== 'object') {
+      this.app.options.vault.files = {};
+    }
+
+    let nft_id = meta.nft_id || meta.id;
+    if (!nft_id || !meta.file_id) {
+      return null;
+    }
+
+    let entry = {
+      nft_id: nft_id,
+      tx_sig: meta.tx_sig || '',
+      file_id: meta.file_id || '',
+      filename: meta.filename || meta.file_name || '',
+      link: meta.link || '',
+      slip1_utxokey: meta.slip1_utxokey || '',
+      slip2_utxokey: meta.slip2_utxokey || '',
+      slip3_utxokey: meta.slip3_utxokey || '',
+      file_access_script: meta.file_access_script || null
+    };
+
+    let existing = this.app.options.vault.files[nft_id];
+    let unchanged =
+      existing &&
+      existing.file_id === entry.file_id &&
+      existing.filename === entry.filename &&
+      existing.tx_sig === entry.tx_sig &&
+      existing.link === entry.link &&
+      existing.slip1_utxokey === entry.slip1_utxokey &&
+      existing.slip2_utxokey === entry.slip2_utxokey &&
+      existing.slip3_utxokey === entry.slip3_utxokey;
+
+    if (unchanged) {
+      return existing;
+    }
+
+    this.app.options.vault.files[nft_id] = entry;
+    if (opts.save !== false) {
+      this.app.storage.saveOptions();
+    }
+    return entry;
+  }
+
+  getCachedNftFileMetadata(nft_id) {
+    if (!nft_id) {
+      return null;
+    }
+    return this.app.options?.vault?.files?.[nft_id] || null;
+  }
+
+  //
+  // Return Vault file metadata for a wallet NFT entry.
+  // Uses the local cache when present; otherwise loads the mint tx once,
+  // caches the result, and returns it.
+  //
+  async returnNftFileMetadata(nft_entry) {
+    if (!nft_entry) {
+      return null;
+    }
+
+    let nft_id = nft_entry.id || nft_entry.nft_id || '';
+    let tx_sig = nft_entry.tx_sig || '';
+
+    // Prefer live wallet slips over any older cached witness keys.
+    let wallet_entry = nft_entry;
+    if (!wallet_entry?.slip1?.utxo_key && (nft_id || tx_sig)) {
+      const nfts = this.app.options?.wallet?.nfts || [];
+      wallet_entry =
+        nfts.find((n) => (nft_id && n.id === nft_id) || (tx_sig && n.tx_sig === tx_sig)) ||
+        nft_entry;
+    }
+
+    let cached = this.getCachedNftFileMetadata(nft_id);
+    if (!cached?.file_id && tx_sig && this.app.options?.vault?.files) {
+      // Fallback: locate by mint tx signature if the id was remapped.
+      for (let id in this.app.options.vault.files) {
+        let entry = this.app.options.vault.files[id];
+        if (entry?.tx_sig === tx_sig && entry?.file_id) {
+          cached = entry;
+          break;
+        }
+      }
+    }
+
+    if (cached?.file_id) {
+      if (wallet_entry?.slip1?.utxo_key) {
+        return this.cacheNftFileMetadata({
+          nft_id: cached.nft_id || nft_id || wallet_entry.id || '',
+          tx_sig: cached.tx_sig || tx_sig || wallet_entry.tx_sig || '',
+          file_id: cached.file_id,
+          filename: cached.filename || '',
+          link: cached.link || '',
+          slip1_utxokey: wallet_entry.slip1.utxo_key,
+          slip2_utxokey: wallet_entry.slip2?.utxo_key || cached.slip2_utxokey || '',
+          slip3_utxokey: wallet_entry.slip3?.utxo_key || cached.slip3_utxokey || '',
+          file_access_script: cached.file_access_script || null
+        });
+      }
+      return cached;
+    }
+
+    if (!tx_sig) {
+      return null;
+    }
+
+    return await new Promise((resolve) => {
+      this.app.storage.loadTransactions(
+        { sig: tx_sig },
+        (txs) => {
+          try {
+            if (!txs || txs.length < 1) {
+              resolve(null);
+              return;
+            }
+
+            let msg = txs[0].returnMessage() || {};
+            let data = msg.data || {};
+            if (!data.file_id) {
+              resolve(null);
+              return;
+            }
+
+            let resolved_id = nft_id || '';
+            // Prefer the on-chain NFT id from slips when wallet id is absent.
+            if (!resolved_id) {
+              try {
+                const SaitoNFT = require('../../lib/saito/ui/saito-nft/saito-nft');
+                let nft = new SaitoNFT(this.app, this, txs[0], wallet_entry);
+                resolved_id = nft.id || '';
+              } catch (err) {}
+            }
+
+            resolve(
+              this.cacheNftFileMetadata({
+                nft_id: resolved_id || tx_sig,
+                tx_sig: tx_sig,
+                file_id: data.file_id,
+                filename: data.filename || '',
+                link: data.link || '',
+                slip1_utxokey: wallet_entry?.slip1?.utxo_key || '',
+                slip2_utxokey: wallet_entry?.slip2?.utxo_key || '',
+                slip3_utxokey: wallet_entry?.slip3?.utxo_key || '',
+                file_access_script: data.file_access_script || null
+              })
+            );
+          } catch (err) {
+            console.log('VAULT: error loading NFT file metadata: ' + err);
+            resolve(null);
+          }
+        },
+        'localhost'
+      );
+    });
   }
 
   async render() {
@@ -75,6 +247,82 @@ class Vault extends ModTemplate {
         callback: () => {
           this_mod.attachStyleSheets();
           this_mod.access_file_overlay.file_upload_overlay.render();
+        }
+      };
+    }
+
+    //
+    // Optional N-WASM library action: store the canonical N-WASM game
+    // transaction/message (not a raw-ROM-only payload) behind a Vault key.
+    //
+    if (type === 'nwasm-library-actions') {
+      return {
+        id: 'vault-upload',
+        title: 'Upload to Vault',
+        description: 'Save remotely, use NFT for access control.',
+        image: '/nwasm/img/upload_to_vault.png',
+        rank: 20,
+        callback: async (app, mod, ctx = {}) => {
+          let game_data = ctx.game_data;
+          if (!game_data?.module || !game_data?.file) {
+            throw new Error('Vault upload requires N-WASM game data');
+          }
+
+          let wallet_balance = await this_mod.app.wallet.getBalance('SAITO');
+          if (wallet_balance === 0n) {
+            siteMessage('Insufficient SAITO to Create Vault NFTs...', 3000);
+            this_mod.app.connection.emit('saito-purchase-launch');
+            throw new Error('Insufficient SAITO for Vault upload');
+          }
+
+          this_mod.attachStyleSheets();
+
+          let name = (game_data.name || ctx.file_name || 'game').trim() || 'game';
+          //
+          // N-WASM library discovery classifies Vault games by ROM-like filename
+          // (.z64 / .n64 / .v64). Normalize so titles without an extension still
+          // appear after upload.
+          //
+          let filename = (ctx.file_name || `${name}.z64`).trim();
+          if (!/\.(z64|n64|v64)$/i.test(filename)) {
+            filename = `${filename.replace(/\.[^.]+$/, '') || name}.z64`;
+          }
+
+          //
+          // Canonical N-WASM game payload (same structure as NFT / local archive),
+          // wrapped so Vault stores the full txmsg-compatible object — not raw ROM only.
+          //
+          let envelope = {
+            module: 'Nwasm',
+            title: name,
+            name: name,
+            data: game_data
+          };
+          let json = JSON.stringify(envelope);
+          let b64 = Buffer.from(json).toString('base64');
+          let safe = encodeURIComponent(filename);
+          let data_uri = `data:application/json;name=${safe};base64,${b64}`;
+
+          this_mod.file = data_uri;
+          this_mod.filename = filename;
+
+          //
+          // Wait until CREATE KEY → upload → mint confirmation finishes so the
+          // library can refresh with the new Vault game before closing.
+          // Return the confirmed metadata so N-WASM.addGameFromVaultResult()
+          // receives nft_id / file_id / nft_tx (do not discard the Promise value).
+          //
+          return await new Promise((resolve, reject) => {
+            this_mod.access_file_overlay.file_upload_overlay.render({
+              file: data_uri,
+              filename: filename,
+              prefilled: true,
+              library_mode: true,
+              onComplete: (result) => resolve(result),
+              onError: (err) =>
+                reject(err instanceof Error ? err : new Error(String(err || 'Vault upload failed')))
+            });
+          });
         }
       };
     }

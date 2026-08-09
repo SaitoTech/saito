@@ -18,6 +18,8 @@ class MyClass {
     this.sraData = null;
     this.flaData = null;
     this.dblist = [];
+    this.emulatorStarted = false;
+    this.loadedRomFingerprint = '';
     var Module = {};
     Module['canvas'] = document.getElementById('canvas');
     window['Module'] = Module;
@@ -182,22 +184,117 @@ class MyClass {
     if (this.rom_name.toLocaleLowerCase().endsWith('.zip')) {
       this.rivetsData.lblError = 'Zip format not supported. Please uncompress first.';
       this.rivetsData.beforeEmulatorStarted = false;
-    } else {
-      await this.writeAssets();
-      FS.writeFile('custom.v64', byteArray);
-      this.beforeRun();
-      this.retrieveSettings();
-      this.WriteConfigFile();
-      await this.LoadSram();
-      $('#canvasDiv').show();
+      return;
+    }
+
+    //
+    // Emulator lifecycle (n64wasm is not MODULARIZE; second callMain is unsafe):
+    //   cold     → callMain once
+    //   same ROM → _neil_reset + initAudio (soft restart after Exit)
+    //   new ROM  → page reload (same as upstream newRom()); FS write does not
+    //              swap the in-memory cart. Library sig in sessionStorage so
+    //              the selected game auto-relaunches after reload.
+    //
+    let fingerprint = this.romFingerprint(byteArray);
+    if (
+      this.emulatorStarted &&
+      this.loadedRomFingerprint &&
+      this.loadedRomFingerprint !== fingerprint
+    ) {
+      try {
+        let sig = (this.mod && this.mod.launch_sig) || '';
+        if (sig) {
+          sessionStorage.setItem('nwasm-pending-launch', JSON.stringify({ sig }));
+        }
+      } catch (err) {}
+      location.reload();
+      return;
+    }
+
+    // Kill any prior audio-driven loop before (re)starting.
+    this.stopEmulator();
+
+    await this.writeAssets();
+    FS.writeFile('custom.v64', byteArray);
+    this.beforeRun();
+    this.retrieveSettings();
+    this.WriteConfigFile();
+    await this.LoadSram();
+    $('#canvasDiv').show();
+
+    if (!this.emulatorStarted) {
       Module.callMain(['custom.v64']);
+      this.emulatorStarted = true;
+      this.loadedRomFingerprint = fingerprint;
       this.findInDatabase();
       this.configureEmulator();
-      this.initAudio();
-      this.rivetsData.beforeEmulatorStarted = false;
       this.showToast = Module.cwrap('neil_toast_message', null, ['string']);
       this.toggleFPSModule = Module.cwrap('toggleFPS', null, ['number']);
+    } else {
+      // Same ROM after Exit.
+      if (typeof Module._neil_reset === 'function') {
+        Module._neil_reset();
+      }
     }
+
+    await this.initAudio();
+    this.rivetsData.beforeEmulatorStarted = false;
+
+    // Emulator loop is audio-driven; dismiss Saito loading overlay here.
+    if (this.mod?.ui?.hide_loading) {
+      this.mod.ui.hide_loading();
+    }
+  }
+
+  romFingerprint(byteArray) {
+    let n = byteArray.length;
+    let h = n >>> 0;
+    let step = Math.max(1, (n / 64) | 0);
+    for (let i = 0; i < n; i += step) {
+      h = (Math.imul(h, 33) + byteArray[i]) >>> 0;
+    }
+    return n + ':' + h;
+  }
+
+  //
+  // Stop the audio-driven emulator loop. pcmPlayer.onaudioprocess is what
+  // calls Module._runMainLoop(); tearing it down is required for Exit.
+  // Does not reload the page and does not rely on Module.pauseMainLoop().
+  //
+  stopEmulator() {
+    try {
+      if (this.pcmPlayer) {
+        this.pcmPlayer.onaudioprocess = null;
+        try {
+          this.pcmPlayer.disconnect();
+        } catch (err) {}
+        this.pcmPlayer = null;
+      }
+    } catch (err) {}
+
+    try {
+      if (this.gainNode) {
+        try {
+          this.gainNode.disconnect();
+        } catch (err) {}
+        this.gainNode = null;
+      }
+    } catch (err) {}
+
+    try {
+      if (this.audioContext) {
+        let ctx = this.audioContext;
+        this.audioContext = null;
+        if (ctx.state !== 'closed' && typeof ctx.close === 'function') {
+          try {
+            ctx.close();
+          } catch (err) {}
+        }
+      }
+    } catch (err) {}
+
+    this.audioThreadLock = false;
+    this.audioBufferResampled = null;
   }
 
   async writeAssets() {
@@ -282,6 +379,11 @@ class MyClass {
   //this method keeps getting called when it needs more audio
   //data to play so we just keep streaming it from the emulator
   AudioProcessRecurring(audioProcessingEvent) {
+    // Exit / stopEmulator tears these down; ignore late callbacks.
+    if (!this.pcmPlayer || !this.audioContext || !this.audioBufferResampled) {
+      return;
+    }
+
     //I think this method is thread safe but just in case
     if (this.audioThreadLock) {
       // console.log('audio thread dupe');
@@ -855,13 +957,12 @@ class MyClass {
   }
 
   //
-  // HACK
+  // Saito entry: wire app/mod, then run the shared LoadEmulator path.
   //
-  initializeRom(bytearray, app, mod) {
+  async initializeRom(bytearray, app, mod) {
     this.app = app;
     this.mod = mod;
-    var ba = new Uint8Array(bytearray);
-    myClass.LoadEmulator(ba);
+    await this.LoadEmulator(new Uint8Array(bytearray));
   }
 
   //
@@ -1046,6 +1147,7 @@ class MyClass {
     }
   }
 
+  // Upstream "New Rom" control — full reload to get a fresh Module/cart.
   newRom() {
     location.reload();
   }

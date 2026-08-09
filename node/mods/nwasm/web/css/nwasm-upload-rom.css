@@ -1,0 +1,43 @@
+/* Namespace: .nwasm-upload-rom */
+
+.saito-overlay:has(> .nwasm-upload-rom),
+.saito-overlay:has(.nwasm-upload-rom) {
+  box-shadow: none;
+}
+
+.nwasm-upload-rom {
+  min-width: min(36rem, 92vw);
+}
+
+.nwasm-upload-rom .state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-md);
+  margin-bottom: var(--saito-space-lg);
+  color: var(--saito-muted-foreground);
+  text-align: center;
+  height: auto;
+  overflow: visible;
+  background: transparent;
+  font-size: inherit;
+}
+
+.nwasm-upload-rom .state[hidden] {
+  display: none;
+}
+
+.nwasm-upload-rom .status,
+.nwasm-upload-rom .instructions {
+  font-size: var(--font-size-medium);
+  color: var(--saito-foreground);
+}
+
+.nwasm-upload-rom #nwasm-upload-rom.busy {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.nwasm-upload-rom .loader {
+  display: none;
+}

@@ -401,12 +401,31 @@
   background-color: var(--saito-secondary);
 }
 
+/* Same footprint as #nft-image-upload / .preview — selected file ack must not collapse. */
+.saito-nft-create .file.selected {
+  grid-template-rows: auto;
+  justify-items: start;
+  align-content: center;
+  align-items: center;
+  height: min(24rem, 40vh);
+  min-height: min(24rem, 40vh);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--saito-space-xl);
+}
+
 .saito-nft-create .file i {
   font-size: 3.2rem;
   grid-row: 1 / span 2;
   z-index: 1;
   cursor: pointer;
   color: var(--saito-muted-foreground);
+}
+
+.saito-nft-create .file.selected i {
+  grid-row: 1;
+  color: var(--saito-green);
+  cursor: default;
 }
 
 .saito-nft-create .file-name,
