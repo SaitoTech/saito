@@ -698,36 +698,16 @@ function render (container, state, helpers, events, actions, refs, abortSignal, 
     }, emoji => `${prefix}-${emoji.id}`)
   }
 
+  // Saito redesign: search header + continuous emoji grid.
+  // Category nav, indicator, favorites, and skin-tone UI are omitted.
   const section = () => {
-    return html`<section data-ref="rootElement" class="picker" aria-label="${state.i18n.regionLabel}" style="${state.pickerStyle || ''}"><div class="pad-top"></div><div class="search-row"><div class="search-wrapper"><input id="search" class="search" type="search" role="combobox" enterkeyhint="search" placeholder="${state.i18n.searchLabel}" autocapitalize="none" autocomplete="off" spellcheck="true" aria-expanded="${!!(state.searchMode && state.currentEmojis.length)}" aria-controls="search-results" aria-describedby="search-description" aria-autocomplete="list" aria-activedescendant="${state.activeSearchItemId ? `emo-${state.activeSearchItemId}` : null}" data-ref="searchElement" data-on-input="onSearchInput" data-on-keydown="onSearchKeydown"><label class="sr-only" for="search">${state.i18n.searchLabel}</label> <span id="search-description" class="sr-only">${state.i18n.searchDescription}</span></div><div class="skintone-button-wrapper ${state.skinTonePickerExpandedAfterAnimation ? 'expanded' : ''}"><button id="skintone-button" class="emoji ${state.skinTonePickerExpanded ? 'hide-focus' : ''}" aria-label="${state.skinToneButtonLabel}" title="${state.skinToneButtonLabel}" aria-describedby="skintone-description" aria-haspopup="listbox" aria-expanded="${state.skinTonePickerExpanded}" aria-controls="skintone-list" data-on-click="onClickSkinToneButton">${state.skinToneButtonText || ''}</button></div><span id="skintone-description" class="sr-only">${state.i18n.skinToneDescription}</span><div data-ref="skinToneDropdown" id="skintone-list" class="skintone-list hide-focus ${state.skinTonePickerExpanded ? '' : 'hidden no-animate'}" style="transform:translateY(${state.skinTonePickerExpanded ? 0 : 'calc(-1 * var(--num-skintones) * var(--total-emoji-size))'})" role="listbox" aria-label="${state.i18n.skinTonesLabel}" aria-activedescendant="skintone-${state.activeSkinTone}" aria-hidden="${!state.skinTonePickerExpanded}" tabIndex="-1" data-on-focusout="onSkinToneOptionsFocusOut" data-on-click="onSkinToneOptionsClick" data-on-keydown="onSkinToneOptionsKeydown" data-on-keyup="onSkinToneOptionsKeyup">${
-    map(state.skinTones, (skinTone, i) => {
-    return html`<div id="skintone-${i}" class="emoji ${i === state.activeSkinTone ? 'active' : ''}" aria-selected="${i === state.activeSkinTone}" role="option" title="${state.i18n.skinTones[i]}" aria-label="${state.i18n.skinTones[i]}">${skinTone}</div>`
-    }, skinTone => skinTone)
-        }</div></div><div class="nav" role="tablist" style="grid-template-columns:repeat(${state.groups.length},1fr)" aria-label="${state.i18n.categoriesLabel}" data-on-keydown="onNavKeydown" data-on-click="onNavClick">${
-            map(state.groups, (group) => {
-              return html`<button role="tab" class="nav-button" aria-controls="tab-${group.id}" aria-label="${state.i18n.categories[group.name]}" aria-selected="${!state.searchMode && state.currentGroup.id === group.id}" title="${state.i18n.categories[group.name]}" data-group-id="${group.id}"><div class="nav-emoji emoji">${group.emoji}</div></button>`
-            }, group => group.id)
-          }</div><div class="indicator-wrapper"><div class="indicator" style="transform:translateX(${(/* istanbul ignore next */ (state.isRtl ? -1 : 1)) * state.currentGroupIndex * 100}%)"></div></div><div class="message ${state.message ? '' : 'gone'}" role="alert" aria-live="polite">${state.message || ''}</div><div data-ref="tabpanelElement" class="tabpanel ${(!state.databaseLoaded || state.message) ? 'gone' : ''}" role="${state.searchMode ? 'region' : 'tabpanel'}" aria-label="${state.searchMode ? state.i18n.searchResultsLabel : state.i18n.categories[state.currentGroup.name]}" id="${state.searchMode ? null : `tab-${state.currentGroup.id}`}" tabIndex="0" data-on-click="onEmojiClick"><div data-action="calculateEmojiGridStyle">${
+    return html`<section data-ref="rootElement" class="picker" aria-label="${state.i18n.regionLabel}" style="${state.pickerStyle || ''}"><div class="search-row"><div class="search-wrapper"><input id="search" class="search" type="search" role="combobox" enterkeyhint="search" placeholder="${state.i18n.searchLabel}" autocapitalize="none" autocomplete="off" spellcheck="true" aria-expanded="${!!(state.searchMode && state.currentEmojis.length)}" aria-controls="search-results" aria-describedby="search-description" aria-autocomplete="list" aria-activedescendant="${state.activeSearchItemId ? `emo-${state.activeSearchItemId}` : null}" data-ref="searchElement" data-on-input="onSearchInput" data-on-keydown="onSearchKeydown"><label class="sr-only" for="search">${state.i18n.searchLabel}</label> <span id="search-description" class="sr-only">${state.i18n.searchDescription}</span></div></div><div class="message ${state.message ? '' : 'gone'}" role="alert" aria-live="polite">${state.message || ''}</div><div data-ref="tabpanelElement" class="tabpanel ${(!state.databaseLoaded || state.message) ? 'gone' : ''}" role="${state.searchMode ? 'region' : 'tabpanel'}" aria-label="${state.searchMode ? state.i18n.searchResultsLabel : state.i18n.regionLabel}" id="${state.searchMode ? null : 'emoji-browse'}" tabIndex="0" data-on-click="onEmojiClick"><div data-action="calculateEmojiGridStyle">${
               map(state.currentEmojisWithCategories, (emojiWithCategory, i) => {
-                return html`<div><div id="menu-label-${i}" class="category ${state.currentEmojisWithCategories.length === 1 && state.currentEmojisWithCategories[0].category === '' ? 'gone' : ''}" aria-hidden="true">${
-                  state.searchMode
-                    ? state.i18n.searchResultsLabel
-                    : (
-                      emojiWithCategory.category
-                        ? emojiWithCategory.category
-                        : (
-                          state.currentEmojisWithCategories.length > 1
-                            ? state.i18n.categories.custom
-                            : state.i18n.categories[state.currentGroup.name]
-                        )
-                    )
-                }</div><div class="emoji-menu ${i !== 0 && !state.searchMode && state.currentGroup.id === -1 ? 'visibility-auto' : ''}" style="${`--num-rows: ${Math.ceil(emojiWithCategory.emojis.length / state.numColumns)}`}" data-action="updateOnIntersection" role="${state.searchMode ? 'listbox' : 'menu'}" aria-labelledby="menu-label-${i}" id="${state.searchMode ? 'search-results' : null}">${
+                return html`<div><div id="menu-label-${i}" class="category gone" aria-hidden="true"></div><div class="emoji-menu" style="${`--num-rows: ${Math.ceil(emojiWithCategory.emojis.length / state.numColumns)}`}" data-action="updateOnIntersection" role="${state.searchMode ? 'listbox' : 'menu'}" aria-labelledby="menu-label-${i}" id="${state.searchMode ? 'search-results' : null}">${
               emojiList(emojiWithCategory.emojis, state.searchMode, /* prefix */ 'emo')
             }</div></div>`
-              }, emojiWithCategory => emojiWithCategory.category)
-            }</div></div><div class="favorites onscreen emoji-menu ${state.message ? 'gone' : ''}" role="menu" aria-label="${state.i18n.favoritesLabel}" data-on-click="onEmojiClick">${
-            emojiList(state.currentFavorites, /* searchMode */ false, /* prefix */ 'fav')
-          }</div><button data-ref="baselineEmoji" aria-hidden="true" tabindex="-1" class="abs-pos hidden emoji baseline-emoji">😀</button></section>`
+              }, emojiWithCategory => `${emojiWithCategory.category}-${emojiWithCategory.emojis.length}`)
+            }</div></div><button data-ref="baselineEmoji" aria-hidden="true" tabindex="-1" class="abs-pos hidden emoji baseline-emoji">😀</button></section>`
   };
 
   const rootDom = section();
@@ -1131,10 +1111,7 @@ function createRoot (shadowRoot, props) {
   //
 
   createEffect(() => {
-    state.pickerStyle = `
-      --num-groups: ${state.groups.length}; 
-      --indicator-opacity: ${state.searchMode ? 0 : 1}; 
-      --num-skintones: ${NUM_SKIN_TONES};`;
+    state.pickerStyle = '';
   });
 
   //
@@ -1163,29 +1140,18 @@ function createRoot (shadowRoot, props) {
   });
 
   //
-  // Set or update the preferred skin tone
+  // Skin-tone UI removed for Saito. Always use the default yellow presentation
+  // (tone 0). Preferred-tone persistence and the tone picker are not exposed.
   //
 
   createEffect(() => {
-    async function updatePreferredSkinTone () {
-      if (state.databaseLoaded) {
-        state.currentSkinTone = await state.database.getPreferredSkinTone();
-      }
-    }
-
-    /* no await */ updatePreferredSkinTone();
-  });
-
-  createEffect(() => {
-    state.skinTones = Array(NUM_SKIN_TONES).fill().map((_, i) => applySkinTone(state.skinToneEmoji, i));
-  });
-
-  createEffect(() => {
-    state.skinToneButtonText = state.skinTones[state.currentSkinTone];
-  });
-
-  createEffect(() => {
-    state.skinToneButtonLabel = state.i18n.skinToneLabel.replace('{skinTone}', state.i18n.skinTones[state.currentSkinTone]);
+    state.currentSkinTone = 0;
+    state.activeSkinTone = 0;
+    state.skinTonePickerExpanded = false;
+    state.skinTonePickerExpandedAfterAnimation = false;
+    state.skinTones = [];
+    state.skinToneButtonText = '';
+    state.skinToneButtonLabel = '';
   });
 
   //
@@ -1250,13 +1216,42 @@ function createRoot (shadowRoot, props) {
     resizeObserverAction(node, abortSignal, () => {
       /* istanbul ignore next */
       { // jsdom throws errors for this kind of fancy stuff
-        // read all the style/layout calculations we need to make
+        // Fit as many comfortable emoji columns as the tabpanel width allows.
+        // Custom props like --total-emoji-size may still be unresolved calc()
+        // strings from getPropertyValue(), so derive px from rem tokens / probe.
         const style = getComputedStyle(refs.rootElement);
-        const newNumColumns = parseInt(style.getPropertyValue('--num-columns'), 10);
+        // rem tokens resolve against the document root, not inherited element font-size.
+        const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 12;
+        const emojiSizeRem = parseFloat(style.getPropertyValue('--emoji-size')) || 2.2;
+        const emojiPaddingRem = parseFloat(style.getPropertyValue('--emoji-padding')) || 0.28;
+        let totalEmojiSize = (emojiSizeRem + (2 * emojiPaddingRem)) * remPx;
+        const probe = refs.baselineEmoji;
+        if (probe) {
+          const probeSize = probe.getBoundingClientRect().height;
+          if (probeSize > 0) {
+            totalEmojiSize = probeSize;
+          }
+        }
+        const panel = refs.tabpanelElement || node;
+        const panelStyle = getComputedStyle(panel);
+        const padX = (parseFloat(panelStyle.paddingLeft) || 0) + (parseFloat(panelStyle.paddingRight) || 0);
+        const available = Math.max(0, panel.clientWidth - padX);
+        // Match .emoji-menu column-gap so denser padding/gaps still fit cleanly.
+        const menu = panel.querySelector('.emoji-menu');
+        const gapPx = menu
+          ? (parseFloat(getComputedStyle(menu).columnGap) || 0)
+          : 0.12 * remPx;
+        let newNumColumns = parseInt(style.getPropertyValue('--num-columns'), 10) || DEFAULT_NUM_COLUMNS;
+        if (totalEmojiSize > 0 && available > 0) {
+          // Keep a usable minimum; wideners gain columns as width allows.
+          newNumColumns = Math.max(6, Math.floor((available + gapPx) / (totalEmojiSize + gapPx)));
+        }
         const newIsRtl = style.getPropertyValue('direction') === 'rtl';
 
-        // write to state variables
-        state.numColumns = newNumColumns;
+        if (state.numColumns !== newNumColumns) {
+          state.numColumns = newNumColumns;
+          refs.rootElement.style.setProperty('--num-columns', String(newNumColumns));
+        }
         state.isRtl = newIsRtl;
       }
     });
@@ -1276,28 +1271,50 @@ function createRoot (shadowRoot, props) {
   // Set or update the currentEmojis. Check for invalid ZWJ renderings
   // (i.e. double emoji).
   //
+  // Saito redesign: default browse concatenates every emoji group into one
+  // continuous scrollable grid (no category tab chrome). Search still uses
+  // the existing database query path.
+  //
+
+  let browseRequestId = 0;
 
   createEffect(() => {
     async function updateEmojis () {
-      const { searchText, currentGroup, databaseLoaded, customEmoji } = state;
+      const { searchText, databaseLoaded, customEmoji, groups: groupList } = state;
       if (!databaseLoaded) {
         state.currentEmojis = [];
         state.searchMode = false;
       } else if (searchText.length >= MIN_SEARCH_TEXT_LENGTH) {
+        browseRequestId++; // cancel any in-flight flat browse
         const newEmojis = await getEmojisBySearchQuery(searchText);
         if (state.searchText === searchText) { // if the situation changes asynchronously, do not update
           updateCurrentEmojis(newEmojis);
           updateSearchMode(true);
         }
-      } else { // database is loaded and we're not in search mode, so we're in normal category mode
-        const { id: currentGroupId } = currentGroup;
-        // avoid race condition where currentGroupId is -1 and customEmoji is undefined/empty
-        if (currentGroupId !== -1 || (customEmoji && customEmoji.length)) {
-          const newEmojis = await getEmojisByGroup(currentGroupId);
-          if (state.currentGroup.id === currentGroupId) { // if the situation changes asynchronously, do not update
-            updateCurrentEmojis(newEmojis);
-            updateSearchMode(false);
+      } else {
+        const requestId = ++browseRequestId;
+        const collected = [];
+
+        for (const group of groupList) {
+          // Skip empty custom group (-1) when no custom emoji are configured.
+          if (group.id === -1 && !(customEmoji && customEmoji.length)) {
+            continue;
           }
+
+          const chunk = await getEmojisByGroup(group.id);
+
+          if (
+            requestId !== browseRequestId ||
+            state.searchText.length >= MIN_SEARCH_TEXT_LENGTH
+          ) {
+            return;
+          }
+
+          collected.push(...chunk);
+          // Progressive paint: show the first group immediately, then refresh
+          // as subsequent groups append so browse feels like one continuous grid.
+          updateCurrentEmojis(collected.slice());
+          updateSearchMode(false);
         }
       }
     }
@@ -1375,28 +1392,15 @@ function createRoot (shadowRoot, props) {
 
   createEffect(() => {
     function calculateCurrentEmojisWithCategories () {
-      const { searchMode, currentEmojis } = state;
-      if (searchMode) {
-        return [
-          {
-            category: '',
-            emojis: currentEmojis
-          }
-        ]
-      }
-      const categoriesToEmoji = new Map();
-      for (const emoji of currentEmojis) {
-        const category = emoji.category || '';
-        let emojis = categoriesToEmoji.get(category);
-        if (!emojis) {
-          emojis = [];
-          categoriesToEmoji.set(category, emojis);
+      const { currentEmojis } = state;
+      // Saito redesign: always one unlabeled grid (browse or search).
+      // Category / favorites chrome is gone; keep a single emoji-menu.
+      return [
+        {
+          category: '',
+          emojis: currentEmojis
         }
-        emojis.push(emoji);
-      }
-      return [...categoriesToEmoji.entries()]
-        .map(([category, emojis]) => ({ category, emojis }))
-        .sort((a, b) => state.customCategorySorting(a.category, b.category))
+      ]
     }
 
     const newEmojisWithCategories = calculateCurrentEmojisWithCategories();
@@ -1494,13 +1498,14 @@ function createRoot (shadowRoot, props) {
     const emoji = await state.database.getEmojiByUnicodeOrName(unicodeOrName);
     const emojiSummary = [...state.currentEmojis, ...state.currentFavorites]
       .find(_ => (_.id === unicodeOrName));
-    const skinTonedUnicode = emojiSummary.unicode && unicodeWithSkin(emojiSummary, state.currentSkinTone);
+    // Saito: always emit the default (yellow) presentation — no skin-tone variants.
+    const baseUnicode = emojiSummary?.unicode || emoji?.unicode;
     await state.database.incrementFavoriteEmojiCount(unicodeOrName);
     return {
       emoji,
-      skinTone: state.currentSkinTone,
-      ...(skinTonedUnicode && { unicode: skinTonedUnicode }),
-      ...(emojiSummary.name && { name: emojiSummary.name })
+      skinTone: 0,
+      ...(baseUnicode && { unicode: baseUnicode }),
+      ...(emojiSummary?.name && { name: emojiSummary.name })
     }
   }
 
@@ -1684,7 +1689,263 @@ var enI18n = {
   }
 };
 
-var baseStyles = ":host{--emoji-size:1.375rem;--emoji-padding:0.5rem;--category-emoji-size:var(--emoji-size);--category-emoji-padding:var(--emoji-padding);--indicator-height:3px;--input-border-radius:0.5rem;--input-border-size:1px;--input-font-size:1rem;--input-line-height:1.5;--input-padding:0.25rem;--num-columns:8;--outline-size:2px;--border-size:1px;--border-radius:0;--skintone-border-radius:1rem;--category-font-size:1rem;display:flex;width:min-content;height:400px}:host,:host(.light){color-scheme:light;--background:#fff;--border-color:#e0e0e0;--indicator-color:#385ac1;--input-border-color:#999;--input-font-color:#111;--input-placeholder-color:#999;--outline-color:#999;--category-font-color:#111;--button-active-background:#e6e6e6;--button-hover-background:#d9d9d9}:host(.dark){color-scheme:dark;--background:#222;--border-color:#444;--indicator-color:#5373ec;--input-border-color:#ccc;--input-font-color:#efefef;--input-placeholder-color:#ccc;--outline-color:#fff;--category-font-color:#efefef;--button-active-background:#555555;--button-hover-background:#484848}@media (prefers-color-scheme:dark){:host{color-scheme:dark;--background:#222;--border-color:#444;--indicator-color:#5373ec;--input-border-color:#ccc;--input-font-color:#efefef;--input-placeholder-color:#ccc;--outline-color:#fff;--category-font-color:#efefef;--button-active-background:#555555;--button-hover-background:#484848}}:host([hidden]){display:none}button{margin:0;padding:0;border:0;background:0 0;box-shadow:none;-webkit-tap-highlight-color:transparent}button::-moz-focus-inner{border:0}input{padding:0;margin:0;line-height:1.15;font-family:inherit}input[type=search]{-webkit-appearance:none}:focus{outline:var(--outline-color) solid var(--outline-size);outline-offset:calc(-1*var(--outline-size))}:host([data-js-focus-visible]) :focus:not([data-focus-visible-added]){outline:0}:focus:not(:focus-visible){outline:0}.hide-focus{outline:0}*{box-sizing:border-box}.picker{contain:content;display:flex;flex-direction:column;background:var(--background);border:var(--border-size) solid var(--border-color);border-radius:var(--border-radius);width:100%;height:100%;overflow:hidden;--total-emoji-size:calc(var(--emoji-size) + (2 * var(--emoji-padding)));--total-category-emoji-size:calc(var(--category-emoji-size) + (2 * var(--category-emoji-padding)))}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}.hidden{opacity:0;pointer-events:none}.abs-pos{position:absolute;left:0;top:0}.gone{display:none!important}.skintone-button-wrapper,.skintone-list{background:var(--background);z-index:3}.skintone-button-wrapper.expanded{z-index:1}.skintone-list{position:absolute;inset-inline-end:0;top:0;z-index:2;overflow:visible;border-bottom:var(--border-size) solid var(--border-color);border-radius:0 0 var(--skintone-border-radius) var(--skintone-border-radius);will-change:transform;transition:transform .2s ease-in-out;transform-origin:center 0}@media (prefers-reduced-motion:reduce){.skintone-list{transition-duration:.001s}}@supports not (inset-inline-end:0){.skintone-list{right:0}}.skintone-list.no-animate{transition:none}.tabpanel{overflow-y:auto;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch;will-change:transform;min-height:0;flex:1;contain:content}.emoji-menu{display:grid;grid-template-columns:repeat(var(--num-columns),var(--total-emoji-size));justify-content:space-around;align-items:flex-start;width:100%}.emoji-menu.visibility-auto{content-visibility:auto;contain-intrinsic-size:calc(var(--num-columns)*var(--total-emoji-size)) calc(var(--num-rows)*var(--total-emoji-size))}.category{padding:var(--emoji-padding);font-size:var(--category-font-size);color:var(--category-font-color)}.emoji,button.emoji{font-size:var(--emoji-size);display:flex;align-items:center;justify-content:center;border-radius:100%;height:var(--total-emoji-size);width:var(--total-emoji-size);line-height:1;overflow:hidden;font-family:var(--emoji-font-family);cursor:pointer}@media (hover:hover) and (pointer:fine){.emoji:hover,button.emoji:hover{background:var(--button-hover-background)}}.emoji.active,.emoji:active,button.emoji.active,button.emoji:active{background:var(--button-active-background)}.onscreen .custom-emoji::after{content:\"\";width:var(--emoji-size);height:var(--emoji-size);background-repeat:no-repeat;background-position:center center;background-size:contain;background-image:var(--custom-emoji-background)}.nav,.nav-button{align-items:center}.nav{display:grid;justify-content:space-between;contain:content}.nav-button{display:flex;justify-content:center}.nav-emoji{font-size:var(--category-emoji-size);width:var(--total-category-emoji-size);height:var(--total-category-emoji-size)}.indicator-wrapper{display:flex;border-bottom:1px solid var(--border-color)}.indicator{width:calc(100%/var(--num-groups));height:var(--indicator-height);opacity:var(--indicator-opacity);background-color:var(--indicator-color);will-change:transform,opacity;transition:opacity .1s linear,transform .25s ease-in-out}@media (prefers-reduced-motion:reduce){.indicator{will-change:opacity;transition:opacity .1s linear}}.pad-top,input.search{background:var(--background);width:100%}.pad-top{height:var(--emoji-padding);z-index:3}.search-row{display:flex;align-items:center;position:relative;padding-inline-start:var(--emoji-padding);padding-bottom:var(--emoji-padding)}.search-wrapper{flex:1;min-width:0}input.search{padding:var(--input-padding);border-radius:var(--input-border-radius);border:var(--input-border-size) solid var(--input-border-color);color:var(--input-font-color);font-size:var(--input-font-size);line-height:var(--input-line-height)}input.search::placeholder{color:var(--input-placeholder-color)}.favorites{overflow-y:auto;scrollbar-gutter:stable;display:flex;flex-direction:row;border-top:var(--border-size) solid var(--border-color);contain:content}.message{padding:var(--emoji-padding)}";
+var baseStyles = `
+/* Saito-native emoji-picker (fork of emoji-picker-element 1.29.1). */
+:host {
+  --emoji-size: 2.2rem;
+  --emoji-padding: 0.28rem;
+  --input-border-radius: var(--saito-radius, 0.45rem);
+  --input-border-size: 0;
+  --input-font-size: 1.4rem;
+  --input-line-height: 1.35;
+  --input-padding: 0.3rem 0.65rem;
+  --num-columns: 8;
+  --outline-size: 2px;
+  --border-size: 1px;
+  --border-radius: var(--saito-radius, 0.45rem);
+  --category-font-size: 1.3rem;
+
+  --background: var(--saito-popover, #191a19);
+  --border-color: var(--saito-border, #45423e);
+  --input-background: var(--saito-secondary, #202120);
+  --input-border-color: transparent;
+  --input-font-color: var(--saito-foreground, #f3f0ea);
+  --input-placeholder-color: var(--saito-muted-foreground, #9e9990);
+  --outline-color: var(--saito-primary, #f54900);
+  --category-font-color: var(--saito-muted-foreground, #9e9990);
+  --button-active-background: var(--saito-secondary, #202120);
+  --button-hover-background: var(--saito-highlight, var(--saito-accent, #282824));
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  font-family: var(--saito-font, inherit);
+  color: var(--saito-foreground, #f3f0ea);
+  color-scheme: dark;
+}
+
+/* Chat selection-box provides the shared header (search + modes). */
+:host([data-saito-shell-search]) .search-row {
+  display: none;
+}
+
+:host([data-saito-shell-search]) .picker {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+:host([hidden]) {
+  display: none;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button::-moz-focus-inner {
+  border: 0;
+}
+
+input {
+  padding: 0;
+  margin: 0;
+  line-height: 1.15;
+  font-family: inherit;
+}
+
+input[type=search] {
+  -webkit-appearance: none;
+}
+
+:focus {
+  outline: var(--outline-color) solid var(--outline-size);
+  outline-offset: calc(-1 * var(--outline-size));
+}
+
+:host([data-js-focus-visible]) :focus:not([data-focus-visible-added]) {
+  outline: 0;
+}
+
+:focus:not(:focus-visible) {
+  outline: 0;
+}
+
+.hide-focus {
+  outline: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.picker {
+  contain: content;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  border: var(--border-size) solid var(--border-color);
+  border-radius: var(--border-radius);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  --total-emoji-size: calc(var(--emoji-size) + (2 * var(--emoji-padding)));
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.abs-pos {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.gone {
+  display: none !important;
+}
+
+.tabpanel {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  will-change: transform;
+  min-height: 0;
+  flex: 1;
+  contain: content;
+  padding: 0.12rem 0.15rem 0.35rem;
+}
+
+.emoji-menu {
+  display: grid;
+  grid-template-columns: repeat(var(--num-columns), minmax(0, 1fr));
+  justify-items: center;
+  align-items: start;
+  width: 100%;
+  column-gap: 0.12rem;
+  row-gap: 0.12rem;
+}
+
+.emoji-menu.visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: calc(var(--num-columns) * var(--total-emoji-size)) calc(var(--num-rows) * var(--total-emoji-size));
+}
+
+.category {
+  padding: var(--emoji-padding);
+  font-size: var(--category-font-size);
+  color: var(--category-font-color);
+}
+
+.emoji,
+button.emoji {
+  font-size: var(--emoji-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--saito-radius, 0.45rem);
+  height: var(--total-emoji-size);
+  width: 100%;
+  max-width: calc(var(--total-emoji-size) + 0.35rem);
+  line-height: 1;
+  overflow: hidden;
+  font-family: var(--emoji-font-family);
+  cursor: pointer;
+  transform: translateY(var(--emoji-vertical-offset, 0));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .emoji:hover,
+  button.emoji:hover {
+    background: var(--button-hover-background);
+  }
+}
+
+.emoji.active,
+.emoji:active,
+button.emoji.active,
+button.emoji:active {
+  background: var(--button-active-background);
+}
+
+.onscreen .custom-emoji::after {
+  content: "";
+  width: var(--emoji-size);
+  height: var(--emoji-size);
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain;
+  background-image: var(--custom-emoji-background);
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0.25rem 0.35rem;
+  z-index: 4;
+  background: var(--background);
+}
+
+.search-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+input.search {
+  width: 100%;
+  min-height: 2.8rem;
+  background: var(--input-background, var(--background));
+  padding: var(--input-padding);
+  border-radius: var(--input-border-radius);
+  border: var(--input-border-size) solid var(--input-border-color);
+  color: var(--input-font-color);
+  font-size: var(--input-font-size);
+  line-height: var(--input-line-height);
+  font-family: var(--saito-font, inherit);
+}
+
+input.search:focus,
+input.search:focus-visible {
+  outline: none;
+  box-shadow: var(--saito-focus-ring, 0 0 0 2px color-mix(in srgb, var(--saito-ring, #8f8174) 50%, transparent));
+}
+
+input.search::placeholder {
+  color: var(--input-placeholder-color);
+  opacity: 1;
+}
+
+.message {
+  padding: var(--emoji-padding);
+  color: var(--saito-muted-foreground, var(--category-font-color));
+}
+`;
 
 const PROPS = [
   'customEmoji',
@@ -1707,17 +1968,6 @@ class PickerElement extends HTMLElement {
     const style = document.createElement('style');
     style.textContent = baseStyles + EXTRA_STYLES;
     this.shadowRoot.appendChild(style);
-    // Saito modification (preserves pre-upgrade Compose host CSS variables).
-    // Upstream has no --input-background / --emoji-vertical-offset; inject via the
-    // documented shadowRoot styling escape hatch rather than string-replacing baseStyles.
-    const saitoCompatStyle = document.createElement('style');
-    saitoCompatStyle.setAttribute('data-saito', 'emoji-picker-compat');
-    saitoCompatStyle.textContent = [
-      'input.search{background:var(--input-background,var(--background))}',
-      '.emoji,button.emoji{transform:translateY(var(--emoji-vertical-offset,0))}',
-      '.nav-emoji{transform:translateY(var(--emoji-vertical-offset,0))}'
-    ].join('');
-    this.shadowRoot.appendChild(saitoCompatStyle);
     this._ctx = {
       // Set defaults
       locale: DEFAULT_LOCALE,
