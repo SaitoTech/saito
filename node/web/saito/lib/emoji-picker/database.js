@@ -75,7 +75,7 @@ function initialMigration (db) {
   });
 }
 
-const openReqs = {};
+const openIndexedDBRequests = {};
 const databaseCache = {};
 const onCloseListeners = {};
 
@@ -91,7 +91,7 @@ function handleOpenOrDeleteReq (resolve, reject, req) {
 async function createDatabase (dbName) {
   const db = await new Promise((resolve, reject) => {
     const req = indexedDB.open(dbName, DB_VERSION_CURRENT);
-    openReqs[dbName] = req;
+    openIndexedDBRequests[dbName] = req;
     req.onupgradeneeded = e => {
       // Technically there is only one version, so we don't need this `if` check
       // But if an old version of the JS is in another browser tab
@@ -107,8 +107,6 @@ async function createDatabase (dbName) {
   // Handle abnormal closes, e.g. "delete database" in chrome dev tools.
   // No need for removeEventListener, because once the DB can no longer
   // fire "close" events, it will auto-GC.
-  // Unfortunately cannot test in fakeIndexedDB: https://github.com/dumbmatter/fakeIndexedDB/issues/50
-  /* istanbul ignore next */
   db.onclose = () => closeDatabase(dbName);
   return db
 }
@@ -141,7 +139,7 @@ function dbPromise (db, storeName, readOnlyOrReadWrite, cb) {
 
 function closeDatabase (dbName) {
   // close any open requests
-  const req = openReqs[dbName];
+  const req = openIndexedDBRequests[dbName];
   const db = req && req.result;
   if (db) {
     db.close();
@@ -153,7 +151,7 @@ function closeDatabase (dbName) {
       }
     }
   }
-  delete openReqs[dbName];
+  delete openIndexedDBRequests[dbName];
   delete databaseCache[dbName];
   delete onCloseListeners[dbName];
 }
@@ -228,7 +226,7 @@ function transformEmojiData (emojiData) {
     const tokens = [...new Set(
       normalizeTokens([
         ...(shortcodes || []).map(extractTokens).flat(),
-        ...tags.map(extractTokens).flat(),
+        ...(tags || []).map(extractTokens).flat(),
         ...extractTokens(annotation),
         emoticon
       ])
@@ -297,6 +295,7 @@ function minBy (array, func) {
 }
 
 // return an array of results representing all items that are found in each one of the arrays
+//
 
 function findCommonMembers (arrays, uniqByFunc) {
   const shortestArray = minBy(arrays, _ => _.length);
@@ -327,7 +326,7 @@ async function doFullDatabaseScanForSingleResult (db, predicate) {
   //
   // Mini-benchmark for determining the best batch size:
   //
-  // PERF=1 yarn build:rollup && yarn test:adhoc
+  // PERF=1 pnpm build:rollup && pnpm test:adhoc
   //
   // (async () => {
   //   performance.mark('start')
@@ -630,9 +629,17 @@ function customEmojiIndex (customEmojis) {
   //
   // search()
   //
-  const emojiToTokens = emoji => (
-    [...new Set((emoji.shortcodes || []).map(shortcode => extractTokens(shortcode)).flat())]
-  );
+  const emojiToTokens = emoji => {
+    const set = new Set();
+    if (emoji.shortcodes) {
+      for (const shortcode of emoji.shortcodes) {
+        for (const token of extractTokens(shortcode)) {
+          set.add(token);
+        }
+      }
+    }
+    return set
+  };
   const searchTrie = trie(customEmojis, emojiToTokens);
   const searchByExactMatch = _ => searchTrie(_, true);
   const searchByPrefix = _ => searchTrie(_, false);
@@ -671,11 +678,19 @@ function customEmojiIndex (customEmojis) {
   }
 }
 
+const isFirefoxContentScript = typeof wrappedJSObject !== 'undefined';
+
 // remove some internal implementation details, i.e. the "tokens" array on the emoji object
 // essentially, convert the emoji from the version stored in IDB to the version used in-memory
 function cleanEmoji (emoji) {
   if (!emoji) {
     return emoji
+  }
+  // if inside a Firefox content script, need to clone the emoji object to prevent Firefox from complaining about
+  // cross-origin object. See: https://github.com/nolanlawson/emoji-picker-element/issues/356
+  /* istanbul ignore if */
+  if (isFirefoxContentScript) {
+    emoji = structuredClone(emoji);
   }
   delete emoji.tokens;
   if (emoji.skinTones) {
@@ -706,7 +721,6 @@ const requiredKeys = [
   'emoji',
   'group',
   'order',
-  'tags',
   'version'
 ];
 
@@ -745,6 +759,8 @@ async function getETagAndData (dataSource) {
 }
 
 // TODO: including these in blob-util.ts causes typedoc to generate docs for them,
+// even with --excludePrivate ¯\_(ツ)_/¯
+/** @private */
 /**
  * Convert an `ArrayBuffer` to a binary string.
  *
@@ -791,7 +807,8 @@ function binaryStringToArrayBuffer(binary) {
 // generate a checksum based on the stringified JSON
 async function jsonChecksum (object) {
   const inString = JSON.stringify(object);
-  const inBuffer = binaryStringToArrayBuffer(inString);
+  let inBuffer = binaryStringToArrayBuffer(inString);
+
   // this does not need to be cryptographically secure, SHA-1 is fine
   const outBuffer = await crypto.subtle.digest('SHA-1', inBuffer);
   const outBinString = arrayBufferToBinaryString(outBuffer);
@@ -799,7 +816,7 @@ async function jsonChecksum (object) {
   return res
 }
 
-async function checkForUpdates (db, dataSource) {
+async function doCheckForUpdates (db, dataSource) {
   // just do a simple HEAD request first to see if the eTags match
   let emojiData;
   let eTag = await getETag(dataSource);
@@ -829,6 +846,21 @@ async function loadDataForFirstTime (db, dataSource) {
   }
 
   await loadData(db, emojiData, dataSource, eTag);
+}
+
+async function checkForUpdates (db, dataSource) {
+  try {
+    await doCheckForUpdates(db, dataSource);
+  } catch (err) {
+    // Checking for updates is not a critical operation, and it can fail if e.g. the picker is quickly removed and
+    // re-added to the DOM. In those cases, we may get an IndexedDB InvalidStateError because we are attempting to close
+    // the database connection, possibly while another request is inflight. So there's effectively no way to prevent
+    // InvalidStateErrors unless we were to carefully sequence our IndexedDB operations. Much more simply, we can just
+    // ignore IndexedDB InvalidStateErrors here and give users one less useless error message in their console.
+    if (err.name !== 'InvalidStateError') {
+      throw err
+    }
+  }
 }
 
 class Database {
