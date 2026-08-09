@@ -124,28 +124,36 @@ class ViewPost {
 
       if (idx >= 0) {
         if (idx > 0) {
-          const teaser = new PostTeaser(this.app, this.mod, '#next-post', otherPosts[idx - 1]);
+          const teaser = new PostTeaser(this.app, this.mod, '#next-post', otherPosts[idx - 1], {
+            compact: true
+          });
           teaser.render();
         } else {
           this.app.browser.addElementToId(
-            `<div class="stack-view-footer-note">This is the most recent post</div>`,
+            `<div class="footer-note">This is the most recent post</div>`,
             'next-post'
           );
         }
 
         if (idx < otherPosts.length - 1) {
-          const teaser = new PostTeaser(this.app, this.mod, '#previous-post', otherPosts[idx + 1]);
+          const teaser = new PostTeaser(
+            this.app,
+            this.mod,
+            '#previous-post',
+            otherPosts[idx + 1],
+            { compact: true }
+          );
           teaser.render();
         } else {
           this.app.browser.addElementToId(
-            `<div class="stack-view-footer-note">This is the earliest available post</div>`,
+            `<div class="footer-note">This is the earliest available post</div>`,
             'previous-post'
           );
         }
 
         //attach Events
 
-        const teasers = document.querySelectorAll('.stack-post-teaser');
+        const teasers = document.querySelectorAll('.view-post .teaser');
         teasers.forEach((teaser) => {
           // Get transaction signature from DOM (preferred) or fallback to post-id
           const txSignature =
@@ -191,14 +199,14 @@ class ViewPost {
 
         if (this.authorPublicKey === currentUserPublicKey && this.authorPublicKey) {
           // Show icon for author
-          editorIcon.style.display = '';
+          editorIcon.classList.remove('is-hidden');
           editorIcon.addEventListener('click', (e) => {
             e.preventDefault();
             this.handleBuildOn();
           });
         } else {
           // Hide icon for non-authors
-          editorIcon.style.display = 'none';
+          editorIcon.classList.add('is-hidden');
         }
       }
 
@@ -207,12 +215,12 @@ class ViewPost {
       if (followIcon) {
         if (this.authorPublicKey !== this.mod.publicKey) {
           if (!this.mod.isSubscribed(this.authorPublicKey)) {
-            followIcon.style.display = '';
+            followIcon.classList.remove('is-hidden');
             followIcon.onclick = (e) => {
               e.preventDefault();
               const added = this.mod.addSubscription(this.authorPublicKey);
               if (added) {
-                followIcon.style.display = 'none';
+                followIcon.classList.add('is-hidden');
                 siteMessage('Subscribed!', 2000);
               } else {
                 console.info(
@@ -339,7 +347,7 @@ class ViewPost {
 
               figure.setAttribute('data-block-id', blockId);
               figure.setAttribute('data-block-type', 'image');
-              figure.className = 'stack-image-block';
+              figure.className = 'image-block';
               figure.contentEditable = false;
 
               img.replaceWith(figure);
