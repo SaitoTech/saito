@@ -352,6 +352,16 @@
     inset: calc(100% + var(--saito-space-sm)) 0 auto;
     height: min(40dvh, 38rem);
   }
+
+  /* Closed: default .center-overlay (top: 50%). Open: raise host + cap dialog
+     so the absolute picker below the dialog stays in the viewport. */
+  body.redsquare-body .saito-overlay.redsquare-compose-overlay-host.picker-open {
+    top: 30%;
+  }
+
+  .compose.picker-open .dialog {
+    max-height: min(48dvh, 42rem);
+  }
 }
 
 @media (max-width: 768px) {

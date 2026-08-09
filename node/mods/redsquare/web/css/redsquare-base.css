@@ -97,12 +97,6 @@ body.redsquare-body {
   --saito-width: 1200px;
 }
 
-@media (min-width: 769px) {
-  body.redsquare-body .saito-overlay.redsquare-compose-overlay-host {
-    top: 25%;
-  }
-}
-
 body.redsquare-body #saito-container {
   grid-template-columns: 265px 600px 300px;
   padding: 0 max(10px, calc((100vw - var(--saito-width)) / 2));

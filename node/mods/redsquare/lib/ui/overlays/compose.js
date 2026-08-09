@@ -286,6 +286,9 @@ class ComposeOverlay {
       picker.setAttribute('aria-hidden', visible ? 'false' : 'true');
     });
 
+    root.classList.add('picker-open');
+    root.closest('.saito-overlay')?.classList.add('picker-open');
+
     if (type === 'emoji' && typeof customElements !== 'undefined') {
       customElements.whenDefined('emoji-picker').then(() => {
         const search = this.getRoot()
@@ -331,6 +334,9 @@ class ComposeOverlay {
       picker.classList.remove('visible');
       picker.setAttribute('aria-hidden', 'true');
     });
+
+    root.classList.remove('picker-open');
+    root.closest('.saito-overlay')?.classList.remove('picker-open');
 
     root.querySelector('.input')?.focus();
   }

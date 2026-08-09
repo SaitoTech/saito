@@ -113,13 +113,6 @@
   padding: 0 1rem !important;
 }
 
-.chat-main-container .chat-header-info {
-  height: 5rem;
-}
-.chat-main-container .chat-header .chat-header-nav {
-  display: none;
-}
-
 .chat-main-container .saito-sidebar.left {
   min-width: 34rem;
   width: 34rem;
@@ -225,10 +218,10 @@
 }
 
 .chat-footer > i {
-  margin-left: 1rem;
+  margin-left: var(--saito-space-sm);
   border-radius: 50%;
-  height: 4.3rem;
-  width: 4.3rem;
+  height: 3.5rem;
+  width: 3.5rem;
   background-color: transparent;
   box-shadow: none;
 }
@@ -265,8 +258,7 @@
     grid-template-columns: min-content auto min-content;
   }
 
-  .chat-main-container .chat-header,
-  .chat-main-container .chat-header-info {
+  .chat-main-container .chat-header {
     visibility: hidden;
     min-height: unset;
     height: 1rem;

@@ -26,7 +26,6 @@ module.exports = (app, mod, games = []) => {
     <button type="button" class="upload" data-action="upload">
       <div class="art" aria-hidden="true"></div>
       <div class="title">Upload a ROM</div>
-      <div class="hint">Add a game you own</div>
     </button>
   `;
 

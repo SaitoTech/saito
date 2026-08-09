@@ -48,17 +48,17 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                            </div>
                            <span>Send</span>
                        </div>
-                       <div class="wallet-btn" id="wallet-btn-nft">
-                           <div class="saito-icon-button">
-                               <span class="wallet-nft-icon" aria-hidden="true"></span>
-                           </div>
-                           <span>NFTs</span>
-                       </div>
                        <div class="wallet-btn" id="wallet-btn-switch">
                            <div class="saito-icon-button">
                                <i class="fa-solid fa-wallet"></i>
                            </div>
                            <span>Wallet</span>
+                       </div>
+                       <div class="wallet-btn" id="wallet-btn-nft">
+                           <div class="saito-icon-button">
+                               <span class="wallet-nft-icon" aria-hidden="true"></span>
+                           </div>
+                           <span>NFTs</span>
                        </div>
                        <div class="wallet-btn" id="wallet-btn-settings">
                            <div class="saito-icon-button">

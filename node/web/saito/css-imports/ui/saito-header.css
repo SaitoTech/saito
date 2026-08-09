@@ -297,26 +297,34 @@
 
 #saito-header .wallet-btn-container {
   display: flex;
-  margin: 1rem 0 1.5rem;
+  gap: var(--saito-space-xs);
+  margin: 1rem 0;
   padding: 0 1rem;
   width: 100%;
-  justify-content: space-around;
 }
 
 #saito-header .wallet-btn {
   display: flex;
   cursor: pointer;
+  flex: 1 1 0;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--saito-space-xs);
-  width: 7rem;
-  height: 7rem;
-  padding: 0;
+  gap: 0.4rem;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  aspect-ratio: 1;
+  padding: 0.85rem 0.35rem 0.7rem;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
-  background: var(--saito-secondary);
-  color: var(--saito-muted-foreground);
+  background: var(--saito-card-wash);
+  color: var(--saito-secondary-foreground);
+  font-size: 1.25rem;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
 }
 
 #saito-header .wallet-get-saito-row {
@@ -335,31 +343,34 @@
 #saito-header .wallet-btn > .saito-icon-button {
   width: auto;
   height: auto;
-  min-width: 2.4rem;
-  min-height: 2.4rem;
+  min-width: 2.2rem;
+  min-height: 2.2rem;
   border: 0;
   background: transparent;
   color: inherit;
+  pointer-events: none;
+}
+
+#saito-header .wallet-btn > span {
+  pointer-events: none;
 }
 
 #saito-header .wallet-btn > .saito-icon-button i {
-  font-size: 2rem;
+  font-size: 1.85rem;
 }
 
 #saito-header .wallet-nft-icon {
-  width: 2rem;
-  height: 2rem;
+  width: 1.85rem;
+  height: 1.85rem;
   background: currentColor;
   -webkit-mask: url('/saito/icons/buttons/saito-nfts-button-icon.svg') center / contain no-repeat;
   mask: url('/saito/icons/buttons/saito-nfts-button-icon.svg') center / contain no-repeat;
 }
 
 #saito-header .wallet-btn:hover {
-  color: var(--saito-foreground);
-}
-
-#saito-header .wallet-btn:hover > .saito-icon-button {
-  transform: scale(1.1);
+  background: var(--saito-primary);
+  border-color: var(--saito-primary);
+  color: var(--saito-primary-foreground);
 }
 
 #saito-header .wallet-controls-separator {
@@ -745,24 +756,23 @@
   }
 
   html:not(.game) #saito-header .wallet-btn {
-    gap: var(--saito-space-xs);
-    width: 5.85rem;
-    height: 5.85rem;
-    font-size: 1.35rem;
+    gap: 0.35rem;
+    padding: 0.7rem 0.3rem 0.6rem;
+    font-size: 1.1rem;
   }
 
   html:not(.game) #saito-header .wallet-btn > .saito-icon-button {
-    min-width: 2rem;
-    min-height: 2rem;
+    min-width: 1.85rem;
+    min-height: 1.85rem;
   }
 
   html:not(.game) #saito-header .wallet-btn > .saito-icon-button i {
-    font-size: 1.65rem;
+    font-size: 1.55rem;
   }
 
   html:not(.game) #saito-header .wallet-nft-icon {
-    width: 1.65rem;
-    height: 1.65rem;
+    width: 1.55rem;
+    height: 1.55rem;
   }
 
   html:not(.game) #saito-header .wallet-identicon {
