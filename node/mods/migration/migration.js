@@ -23,6 +23,7 @@ class Migration extends ModTemplate {
 
     this.key_cache = {}; // Mapping from Mixin Address --> Saito publicKey
     this.pending_payments = [];
+    this.processing_payments = false;
 
     this.wrapped_saito_ticker = 'ERC-SAITO';
     this.MAX_DEPOSIT = 1000000; // Max of 1 million at a time
@@ -661,48 +662,55 @@ class Migration extends ModTemplate {
    * On new block (assuming we get a slip back), try to clear out the payments queue
    */
   async onNewBlock(blk, lc) {
-    if (this.app.BROWSER) {
+    if (this.app.BROWSER || this.processing_payments || !lc) {
       return;
     }
-    console.log('Migration onNEWBLOCK');
-    if (this.pending_payments?.length) {
-      for (let i = 0; i < this.pending_payments.length; i++) {
-        if (this.pending_payments[i].status == 'pending') {
-          const pp = this.pending_payments[i];
-          const amount = this.app.wallet.convertNolanToSaito(pp.nolan_received);
-          const saitozen_key = pp.public_key;
 
-          const data_for_email = {
-            module: pp.ticker,
-            from: pp.mixin,
-            amount
-          };
+    this.processing_payments = true;
 
-          let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
-          await sm
-            .sendPayment(amount, saitozen_key, pp.hash + 1, 'token migration')
-            .then(() => {
-              this.notifyTeam(data_for_email, saitozen_key, 1, null, pp);
-              pp.status = 'issuing';
-              this.updatePayment(pp);
-            })
-            .catch((err) => {
-              if (sm.pending_balance && sm.pending_balance > amount) {
-                console.info(
-                  '666.777 --- insufficient slips to migrate SAITO keep active in queue'
-                );
-              } else {
-                this.notifyTeam(data_for_email, saitozen_key, 0, err, pp);
-                console.error('666.777 --- ', err);
-                pp.status = 'failed';
-                this.sendFailureNotification(saitozen_key);
+    try {
+      console.log('Migration onNEWBLOCK');
+      if (this.pending_payments?.length) {
+        for (let i = 0; i < this.pending_payments.length; i++) {
+          if (this.pending_payments[i].status == 'pending') {
+            const pp = this.pending_payments[i];
+            const amount = this.app.wallet.convertNolanToSaito(pp.nolan_received);
+            const saitozen_key = pp.public_key;
+
+            const data_for_email = {
+              module: pp.ticker,
+              from: pp.mixin,
+              amount
+            };
+
+            let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
+            await sm
+              .sendPayment(amount, saitozen_key, pp.hash + 1, 'token migration')
+              .then(() => {
+                this.notifyTeam(data_for_email, saitozen_key, 1, null, pp);
+                pp.status = 'issuing';
                 this.updatePayment(pp);
-              }
-            });
+              })
+              .catch((err) => {
+                if (sm.pending_balance && sm.pending_balance > amount) {
+                  console.info(
+                    '666.777 --- insufficient slips to migrate SAITO keep active in queue'
+                  );
+                } else {
+                  this.notifyTeam(data_for_email, saitozen_key, 0, err, pp);
+                  console.error('666.777 --- ', err);
+                  pp.status = 'failed';
+                  this.sendFailureNotification(saitozen_key);
+                  this.updatePayment(pp);
+                }
+              });
 
-          //return;
+            //return;
+          }
         }
       }
+    } finally {
+      this.processing_payments = false;
     }
   }
 
