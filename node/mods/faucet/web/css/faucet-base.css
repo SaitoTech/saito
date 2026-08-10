@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------
-   Standalone /faucet page (migration / buysaito layout)
+   Standalone /faucet page shell
 -----------------------------------------------------------------*/
 
 .faucet-main {
@@ -13,97 +13,12 @@
   justify-content: center;
 }
 
-.faucet-container.withdraw-container {
-  display: flex;
-  flex-direction: column;
-  max-width: 800px;
-  height: min(90vh, 800px);
-  gap: 1rem;
-  margin: 1rem;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 1rem;
-  border: 1px solid var(--saito-border);
-  padding: 5rem;
-  background: linear-gradient(135deg, #0008, #0000);
-  width: min(800px, 95vw);
-}
-
-.faucet-container .saito-overlay-form-header {
-  justify-content: space-between;
-  width: 100%;
-}
-
-.faucet-intro {
-  font-size: 2rem;
-  line-height: 2.5rem;
-  margin-top: 1rem;
-  text-align: center;
-}
-
-.faucet-amount {
-  font-size: 2.4em;
-  font-weight: 600;
-  margin: 1rem 0;
-}
-
-.faucet-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 10rem;
-}
-
-.faucet-status .spinner {
-  max-width: 10rem;
-  width: 10rem;
-  height: 10rem;
-}
-
-.faucet-crypto-logo {
-  width: 10rem;
-  height: 10rem;
-  object-fit: contain;
-}
-
-.faucet-success-icon {
-  font-size: 8rem;
-  display: none;
-  color: var(--saito-primary);
-}
-
-.faucet-page .faucet-actions {
-  flex-direction: column;
-  width: 100%;
-  margin-top: 1rem;
-}
-
-.faucet-page .faucet-actions .saito-button-primary,
-.faucet-page .faucet-actions .saito-button-secondary {
-  width: 100%;
-}
-
-.faucet-page #faucet-close-btn {
-  display: none;
-}
-
 .footer-note {
   text-align: center;
-  margin-top: 1rem;
-  font-size: 1.6rem;
-  line-height: 2.2rem;
-}
-
-@media screen and (max-width: 600px) {
-  .faucet-container.withdraw-container {
-    max-width: 100vw;
-    padding: 1rem;
-    margin: 0;
-    border: none;
-    background: none;
-    border-radius: 0;
-  }
+  margin-top: 2rem;
+  font-size: 1.4rem;
+  line-height: 2rem;
+  opacity: 0.8;
 }
 
 /* ----------------------------------------------------------------
@@ -115,58 +30,159 @@
   min-width: 60px;
 }
 
-/* ----------------------------------------------------------------
-   Arcade overlay (crypto transfer shell)
------------------------------------------------------------------*/
-
-.saito-crypto-transfer.faucet-overlay {
-  min-width: min(55rem, 95vw);
+.get-saito-tokens {
+  display: flex;
 }
 
-.faucet-overlay__actions {
+/* ----------------------------------------------------------------
+   Acquisition overlay — nearly full-page claim experience
+-----------------------------------------------------------------*/
+
+.saito-overlay:has(> .faucet-acquisition) {
+  width: min(96vw, 96rem);
+  max-height: 96vh;
+}
+
+.faucet-acquisition {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  text-align: center;
+  min-height: min(90vh, 80rem);
+  width: 100%;
+  padding: 4rem 3rem;
+  box-sizing: border-box;
+  background: var(--saito-background);
+}
+
+.faucet-acquisition.faucet-page {
+  min-height: min(90vh, 80rem);
+  width: min(96vw, 96rem);
+  max-width: 96rem;
+  border: 1px solid var(--saito-border);
+  border-radius: 1rem;
+  margin: 1rem;
+}
+
+.faucet-acquisition-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+}
+
+.faucet-acquisition-visual .spinner {
+  max-width: 10rem;
+  width: 10rem;
+  height: 10rem;
+}
+
+.faucet-acquisition-icon {
+  font-size: 8rem;
+  line-height: 1;
+}
+
+.faucet-success-icon {
+  color: var(--saito-primary);
+}
+
+.faucet-error-icon {
+  color: var(--saito-red, #c44);
+}
+
+.faucet-acquisition-title {
+  font-size: clamp(2.4rem, 4vw, 4rem);
+  line-height: 1.2;
+  margin: 0;
+  max-width: 40rem;
+}
+
+.faucet-acquisition-message {
+  font-size: clamp(1.6rem, 2.2vw, 2rem);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 48rem;
+  white-space: pre-line;
+}
+
+.faucet-acquisition-amount {
+  font-size: clamp(2.4rem, 3vw, 3.2rem);
+  font-weight: 600;
+  margin: 0.4rem 0 0;
+}
+
+.faucet-acquisition-progress {
+  font-size: 1.5rem;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 48rem;
+  opacity: 0.85;
+}
+
+.faucet-acquisition-actions {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
   width: 100%;
-  max-width: 40rem;
+  max-width: 36rem;
+  margin-top: 1.2rem;
   align-items: stretch;
 }
 
-.faucet-overlay__actions .saito-button-primary,
-.faucet-overlay__actions .saito-button-secondary {
+.faucet-acquisition-actions .saito-button-primary,
+.faucet-acquisition-actions .saito-button-secondary {
   width: 100%;
-  max-width: 40rem;
 }
 
 /* ----------------------------------------------------------------
-   Shared faucet state machine
+   Shared faucet state machine (visibility)
 -----------------------------------------------------------------*/
 
-#faucet-request-container {
-  background: #0008;
-}
-
-#faucet-request-container[data-faucet-state='idle'] .spinner,
-#faucet-request-container[data-faucet-state='idle'] #faucet_success_icon {
+#faucet-request-container[data-faucet-state='eligible'] #faucet_spinner,
+#faucet-request-container[data-faucet-state='eligible'] #faucet_error_icon,
+#faucet-request-container[data-faucet-state='eligible'] #faucet-close-btn,
+#faucet-request-container[data-faucet-state='eligible'] #faucet_progress {
   display: none;
 }
 
-#faucet-request-container[data-faucet-state='pending'] #faucet_saito_logo,
+#faucet-request-container[data-faucet-state='pending'] #faucet_success_icon,
+#faucet-request-container[data-faucet-state='pending'] #faucet_error_icon,
 #faucet-request-container[data-faucet-state='pending'] #faucet-button,
-#faucet-request-container[data-faucet-state='pending'] #faucet_success_icon {
+#faucet-request-container[data-faucet-state='pending'] #faucet-close-btn,
+#faucet-request-container[data-faucet-state='pending'] #faucet_amount {
   display: none;
 }
 
-#faucet-request-container[data-faucet-state='success'] #faucet_saito_logo,
+#faucet-request-container[data-faucet-state='success'] #faucet_spinner,
+#faucet-request-container[data-faucet-state='success'] #faucet_error_icon,
 #faucet-request-container[data-faucet-state='success'] #faucet-button,
-#faucet-request-container[data-faucet-state='success'] .spinner {
+#faucet-request-container[data-faucet-state='success'] #faucet_progress {
   display: none;
 }
 
-#faucet-request-container[data-faucet-state='success'] #faucet_success_icon {
-  display: block;
+#faucet-request-container[data-faucet-state='timeout'] #faucet_spinner,
+#faucet-request-container[data-faucet-state='timeout'] #faucet_success_icon,
+#faucet-request-container[data-faucet-state='timeout'] #faucet-button,
+#faucet-request-container[data-faucet-state='timeout'] #faucet_amount,
+#faucet-request-container[data-faucet-state='timeout'] #faucet_progress {
+  display: none;
 }
-/* Faucet render target — formerly saito-buttons.css */
-.get-saito-tokens {
-  display: flex;
+
+@media screen and (max-width: 600px) {
+  .faucet-acquisition {
+    padding: 2rem 1.2rem;
+    min-height: 85vh;
+  }
+
+  .faucet-acquisition.faucet-page {
+    border: none;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .faucet-acquisition-icon {
+    font-size: 6rem;
+  }
 }

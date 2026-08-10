@@ -4,49 +4,47 @@ module.exports = (app, mod) => {
   return `
   <div class="main faucet-main">
     <div
-      class="saito-overlay-form withdraw-container faucet-container faucet-page"
+      class="faucet-acquisition faucet-page"
       id="faucet-request-container"
-      data-faucet-state="idle"
+      data-faucet-state="eligible"
     >
-      <div class="saito-overlay-form-header">
-        <div class="saito-overlay-form-header-title" id="faucet_title">Testnet Faucet</div>
-      </div>
-
-      <div class="faucet-intro">
-        Request testnet SAITO for development and testing on the network.
-      </div>
-
-      <div class="faucet-amount">${amountLabel}</div>
-
-      <div class="faucet-status">
-        <img
-          class="faucet-crypto-logo"
-          id="faucet_saito_logo"
-          src="/saito/img/saito-icon.png"
-          alt="Saito"
-        />
+      <div class="faucet-acquisition-visual" aria-hidden="true">
+        <i
+          id="faucet_success_icon"
+          class="faucet-acquisition-icon faucet-success-icon fa-solid fa-circle-check"
+          hidden
+        ></i>
         <div
           class="saito-spinner spinner"
           id="faucet_spinner"
           role="status"
-          aria-label="Requesting testnet SAITO"
+          aria-label="Getting your SAITO"
           hidden
-          style="display: none"
         ></div>
         <i
-          id="faucet_success_icon"
-          class="faucet-success-icon fa-solid fa-circle-check"
-          aria-hidden="true"
+          id="faucet_error_icon"
+          class="faucet-acquisition-icon faucet-error-icon fa-solid fa-circle-exclamation"
           hidden
-          style="display: none"
         ></i>
       </div>
 
-      <div class="saito-button-row auto-size faucet-actions">
-        <button type="button" class="saito-button-primary fat" id="faucet-button">
-          Request Testnet SAITO
+      <h1 class="faucet-acquisition-title" id="faucet_title">
+        You're Eligible for Free SAITO
+      </h1>
+
+      <p class="faucet-acquisition-message" id="faucet_message">
+        You can receive enough free SAITO to try the network.
+      </p>
+
+      <p class="faucet-acquisition-amount" id="faucet_amount">${amountLabel}</p>
+
+      <p class="faucet-acquisition-progress" id="faucet_progress" hidden></p>
+
+      <div class="faucet-acquisition-actions">
+        <button type="button" class="saito-button-primary" id="faucet-button">
+          Claim My SAITO
         </button>
-        <button type="button" class="saito-button-secondary fat" id="faucet-close-btn">
+        <button type="button" class="saito-button-secondary" id="faucet-close-btn" hidden>
           Close
         </button>
       </div>

@@ -3,6 +3,8 @@ const SaitoPurchaseLoaderTemplate = require('./saito-purchase-loader.template');
 const SaitoPurchaseErrorTemplate = require('./saito-purchase-error.template');
 const SaitoPurchaseCryptoTemplate = require('./saito-purchase-select-crypto.template');
 const SaitoPurchaseAmountTemplate = require('./saito-purchase-amount.template');
+const SaitoPurchaseFallbackTemplate = require('./saito-purchase-fallback.template');
+const SaitoPurchaseFaucetAuthTemplate = require('./saito-purchase-faucet-auth.template');
 
 const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
 
@@ -30,6 +32,15 @@ class SaitoPurchaseOverlay {
     this.countdown_interval = null;
 
     this.ui_msg = '';
+
+    /**
+     * In-overlay acquisition stages hosted by this single GET SAITO overlay.
+     * 'default' = purchase methods / fallback below the options strip.
+     * Later: 'faucet-auth' → eligible/claim → requesting → success (no new overlays).
+     */
+    this.acquisition_stage = 'default';
+    this.stage1_html = null;
+    this.acquisition_options = [];
 
     /**
      * Events (in reverse order):
@@ -132,14 +143,32 @@ class SaitoPurchaseOverlay {
       this.tx
     );
 
-    if (!this.mod.available_currencies) {
-      this.overlay.remove();
-      salert('Service currently not available');
-      return;
-    }
-
     // Reuse this overlay's layer while advancing the purchase flow. Recreating
     // it would move Get Saito above optional overlays opened in response to it.
+
+    // If the user is already in an in-overlay acquisition stage (e.g. faucet-auth),
+    // preserve it across currency/fallback re-renders so async currency updates
+    // refresh Stage 1 content without kicking them out of Stage 2.
+    const resumeStage =
+      this.acquisition_stage && this.acquisition_stage !== 'default'
+        ? this.acquisition_stage
+        : null;
+    const resumeOpt = resumeStage
+      ? this.acquisition_options?.find((o) => o.inline_stage === resumeStage) || null
+      : null;
+
+    const currencies = this.mod.available_currencies;
+    if (!currencies || currencies.length === 0) {
+      this.overlay.closebox = true;
+      this.overlay.show(SaitoPurchaseFallbackTemplate(this.app, this.mod, this));
+      this.acquisition_stage = 'default';
+      this.stage1_html = null;
+      this.attachEvents();
+      if (resumeStage) {
+        this.enterAcquisitionStage(resumeStage, resumeOpt);
+      }
+      return;
+    }
 
     if (!this.crypto_selected) {
       //
@@ -147,6 +176,8 @@ class SaitoPurchaseOverlay {
       //
       this.overlay.closebox = true;
       this.overlay.show(SaitoPurchaseCryptoTemplate(this.app, this.mod, this));
+      this.acquisition_stage = 'default';
+      this.stage1_html = null;
     } else {
       if (!this.destination) {
         // 1.5 alternate amount selection
@@ -194,9 +225,181 @@ class SaitoPurchaseOverlay {
     }
 
     this.attachEvents();
+
+    // Resume faucet-auth (etc.) after Stage 1 shell was rebuilt.
+    if (resumeStage && document.getElementById('buysaito-stage')) {
+      this.enterAcquisitionStage(resumeStage, resumeOpt);
+    }
+  }
+
+  /**
+   * Collect optional acquisition entries from other modules
+   * (e.g. Faucet via respondTo('buysaito-options')) and render them
+   * into `.buysaito-options` above purchase methods / fallback info.
+   *
+   * Options may declare `inline_stage` to transition this overlay's
+   * lower `#buysaito-stage` in place instead of opening another overlay.
+   */
+  renderAcquisitionOptions() {
+    const container = document.querySelector('#purchase-container .buysaito-options');
+    if (!container) {
+      return;
+    }
+
+    const options = (this.app.modules.getRespondTos('buysaito-options') || [])
+      .filter(
+        (opt) =>
+          opt &&
+          (opt.title || opt.text) &&
+          (typeof opt.callback === 'function' || opt.inline_stage)
+      )
+      .sort((a, b) => (a.rank || 0) - (b.rank || 0));
+
+    this.acquisition_options = options;
+
+    if (!options.length) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML =
+      options
+        .map((opt, index) => {
+          const title = opt.title || opt.text || '';
+          const description = opt.description || '';
+          const icon = opt.icon || '';
+          const iconHtml = icon ? `<i class="${icon}" aria-hidden="true"></i>` : '';
+          const optionClass = [
+            'buysaito-option',
+            opt.option_class || '',
+            opt.id === 'faucet' ? 'buysaito-option-faucet' : ''
+          ]
+            .filter(Boolean)
+            .join(' ');
+          const optionId = opt.id ? ` data-buysaito-option-id="${opt.id}"` : '';
+          return `
+            <button type="button" class="${optionClass}" data-buysaito-option="${index}"${optionId}>
+              <div class="buysaito-option-icon">${iconHtml}</div>
+              <div class="buysaito-option-copy">
+                <div class="buysaito-option-title">${title}</div>
+                ${description ? `<div class="buysaito-option-description">${description}</div>` : ''}
+              </div>
+            </button>
+          `;
+        })
+        .join('') + `<div class="buysaito-options-separator" role="separator"></div>`;
+
+    container.querySelectorAll('[data-buysaito-option]').forEach((el) => {
+      el.onclick = (e) => {
+        e.preventDefault();
+        const index = parseInt(el.getAttribute('data-buysaito-option'), 10);
+        const opt = this.acquisition_options?.[index];
+        if (!opt) {
+          return;
+        }
+
+        // Prefer in-overlay stage transition (Faucet auth, future claim states).
+        if (opt.inline_stage) {
+          this.enterAcquisitionStage(opt.inline_stage, opt);
+          return;
+        }
+
+        if (typeof opt.callback === 'function') {
+          opt.callback(this.app, this.mod, this);
+        }
+      };
+    });
+  }
+
+  /**
+   * Replace only `#buysaito-stage` content. Keeps the GET SAITO shell,
+   * options strip (Faucet card), separator, and overlay geometry intact.
+   */
+  enterAcquisitionStage(stage = '', opt = null) {
+    const stageEl = document.getElementById('buysaito-stage');
+    if (!stageEl || !stage) {
+      return;
+    }
+
+    if (this.acquisition_stage === 'default') {
+      this.stage1_html = stageEl.innerHTML;
+    }
+
+    this.acquisition_stage = stage;
+
+    if (stage === 'faucet-auth') {
+      const providers =
+        Array.isArray(opt?.providers) && opt.providers.length
+          ? opt.providers
+          : this.defaultFaucetAuthProviders();
+      stageEl.innerHTML = SaitoPurchaseFaucetAuthTemplate(providers);
+      this.attachFaucetAuthStageEvents(opt);
+      return;
+    }
+
+    console.warn('BuySaito: unknown acquisition stage', stage);
+  }
+
+  defaultFaucetAuthProviders() {
+    return [
+      { id: 'twitter', name: 'X', icon: 'fa-brands fa-x-twitter' },
+      { id: 'github', name: 'GitHub', icon: 'fa-brands fa-github' }
+    ];
+  }
+
+  attachFaucetAuthStageEvents(opt = null) {
+    const stageEl = document.getElementById('buysaito-stage');
+    if (!stageEl) {
+      return;
+    }
+
+    stageEl.querySelectorAll('[data-buysaito-auth-provider]').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        const providerId = btn.getAttribute('data-buysaito-auth-provider');
+        if (typeof opt?.beginProviderAuth === 'function') {
+          opt.beginProviderAuth(providerId);
+          return;
+        }
+        const faucet = this.app.modules.returnModule('Faucet');
+        if (faucet && typeof faucet.beginProviderAuthentication === 'function') {
+          faucet.beginProviderAuthentication(providerId);
+        }
+      };
+    });
+
+    const back = stageEl.querySelector('[data-buysaito-stage-back]');
+    if (back) {
+      back.onclick = (e) => {
+        e.preventDefault();
+        this.exitAcquisitionStage();
+      };
+    }
+  }
+
+  /**
+   * Restore the Stage 1 lower-section HTML captured before the Faucet
+   * transition. Does not close or rebuild the overlay.
+   */
+  exitAcquisitionStage() {
+    const stageEl = document.getElementById('buysaito-stage');
+    if (!stageEl || this.stage1_html == null) {
+      this.acquisition_stage = 'default';
+      this.stage1_html = null;
+      return;
+    }
+
+    stageEl.innerHTML = this.stage1_html;
+    this.acquisition_stage = 'default';
+    this.stage1_html = null;
+
+    // Rebind Stage 1 interactions (crypto select, etc.) without re-showing overlay.
+    this.attachEvents();
   }
 
   attachEvents() {
+    this.renderAcquisitionOptions();
+
     //////////////////////
     // Select Crypto Form
     /////////////////////
@@ -517,6 +720,9 @@ class SaitoPurchaseOverlay {
     this.destination = '';
     this.description = '';
     this.deposit_confirmed_by_user = false;
+    this.acquisition_stage = 'default';
+    this.stage1_html = null;
+    this.acquisition_options = [];
 
     clearTimeout(this.timer);
     this.timer = null;

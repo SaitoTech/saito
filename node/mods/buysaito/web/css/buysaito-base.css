@@ -98,6 +98,175 @@ body.buysaito-body .buysaito-withdraw-container {
   text-align: left;
 }
 
+.buysaito-options:empty {
+  display: none;
+}
+
+.buysaito-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 0.4rem 0 0;
+  flex: 0 0 auto;
+}
+
+.buysaito-stage {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.buysaito-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.4rem;
+  width: 100%;
+  padding: 1.4rem 1.6rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-lg);
+  background: color-mix(in srgb, var(--saito-popover) 94%, var(--saito-foreground));
+  color: var(--saito-foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.buysaito-option:hover {
+  border-color: color-mix(in srgb, var(--saito-primary) 40%, var(--saito-border));
+  background: color-mix(in srgb, var(--saito-primary) 9%, var(--saito-popover));
+}
+
+/* Free-SAITO faucet option — hacker-green language */
+.buysaito-option-faucet {
+  border-color: var(--saito-green);
+  background: color-mix(in srgb, var(--saito-green) 10%, var(--saito-popover));
+  box-shadow: 0 0 1.2rem color-mix(in srgb, var(--saito-green) 22%, transparent);
+}
+
+.buysaito-option-faucet:hover {
+  border-color: var(--saito-green);
+  background: color-mix(in srgb, var(--saito-green) 16%, var(--saito-popover));
+  box-shadow: 0 0 1.6rem color-mix(in srgb, var(--saito-green) 32%, transparent);
+}
+
+.buysaito-option-faucet .buysaito-option-icon {
+  color: var(--saito-green);
+}
+
+.buysaito-option-faucet .buysaito-option-title {
+  color: var(--saito-green);
+  text-shadow: 0 0 0.8rem color-mix(in srgb, var(--saito-green) 45%, transparent);
+}
+
+.buysaito-option-faucet .buysaito-option-description {
+  color: #fff;
+}
+
+.buysaito-option-icon {
+  flex: 0 0 auto;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--saito-primary);
+  padding-top: 0.2rem;
+}
+
+.buysaito-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.buysaito-option-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.buysaito-option-description {
+  font-size: 1.4rem;
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
+}
+
+.buysaito-options-separator {
+  border-top: 1px solid var(--saito-border);
+  margin: 0.4rem 0 0.8rem;
+}
+
+.buysaito-fallback-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 1.6rem 0.4rem;
+  color: var(--saito-muted-foreground);
+  font-size: 1.5rem;
+  line-height: 1.5;
+}
+
+.buysaito-fallback-info p {
+  margin: 0;
+}
+
+/* In-overlay faucet authentication stage (Stage 2) */
+.buysaito-faucet-auth {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  padding: 0.4rem 0.2rem 0;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.buysaito-faucet-auth-title {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.buysaito-faucet-auth-message {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  color: var(--saito-foreground);
+}
+
+.buysaito-faucet-auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.buysaito-faucet-auth-actions .saito-button-primary {
+  width: 100%;
+}
+
+.buysaito-stage-nav {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: auto;
+  padding-top: 1.2rem;
+}
+
+.buysaito-stage-back {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--saito-foreground);
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1.4;
+  padding: 0.4rem 0;
+  text-align: left;
+}
+
+.buysaito-stage-back:hover {
+  color: var(--saito-primary);
+}
+
+
 .loader-interstitial-overlay {
   display: flex;
   flex-direction: column;
