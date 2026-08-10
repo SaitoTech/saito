@@ -49,5 +49,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS registrations_publickey_uidx
 CREATE INDEX IF NOT EXISTS registrations_issuance_status_idx
   ON registrations (issuance_status);
 
-CREATE INDEX IF NOT EXISTS registrations_provider_uid_idx
+-- One provider account (e.g. one GitHub user) → one registration
+CREATE UNIQUE INDEX IF NOT EXISTS registrations_provider_uid_uidx
   ON registrations (provider, provider_user_id);

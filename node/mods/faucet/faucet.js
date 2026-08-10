@@ -6,9 +6,9 @@ const FaucetHome = require('./index');
 const FaucetMainTemplate = require('./lib/faucet-main.template');
 const FaucetOverlayTemplate = require('./lib/faucet-overlay.template');
 const Auth = require('./lib/ui/auth');
-const OAuthGithubInitiateTemplate = require('./lib/ui/oauth-github-initiate.template');
 const OAuthConfigTemplate = require('./lib/ui/oauth-config.template');
-const crypto = require('crypto');
+const OAuthResultTemplate = require('./lib/ui/oauth-result.template');
+const GithubOAuth = require('./lib/oauth/github');
 
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
@@ -48,22 +48,29 @@ class Faucet extends ModTemplate {
     this.claimCountdownIntervalId = null;
     this.autoClaimPending = false;
 
-    // BEGIN TEMP_OAUTH_CONFIG — runtime OAuth client secrets + config gate.
+    // BEGIN TEMP_OAUTH_CONFIG — runtime OAuth client secrets (in-memory only).
     // Remove with /faucet/oauth/config when production env secrets are available.
     // Secrets are never committed; they are set after deploy via the config endpoint.
     this.oauth_secret_github = null;
     this.oauth_secret_twitter = null;
-    // Shared key required on POST /faucet/oauth/config (NOT an OAuth client secret).
-    // Change before deploying to test.saito.io. Anyone with the repo can see this value —
-    // it is only a temporary gate, not production credential storage.
-    this.oauth_config_key = 'faucet-oauth-config-temp';
     // END TEMP_OAUTH_CONFIG
+
+    // Public (non-secret) OAuth provider configuration — test.saito.io.
+    // Client secrets: this.oauth_secret_github / this.oauth_secret_twitter via /oauth/config.
+    this.oauth = {
+      github: {
+        client_id: 'Ov23liMPm8lCgwlK1eHq',
+        authorize_url: 'https://github.com/login/oauth/authorize',
+        callback_url: 'https://test.saito.io/faucet/oauth',
+        scope: 'read:user'
+      }
+    };
 
     // BEGIN DEV_MODE_UI — temporary faucet UI-flow test (no real issuance).
     // Remove this.dev_mode, startDevUiSuccessTimer(), clearDevUiSuccessTimer(),
     // and the DEV branches in submitFaucetClaim / clearClaimMonitoring
     // when UI work is finished.
-    this.dev_mode = 1;
+    this.dev_mode = 0;
     this.devUiSuccessTimerId = null;
     // END DEV_MODE_UI
 
@@ -846,8 +853,55 @@ We never post on your behalf.`,
          DROP TABLE IF EXISTS issuances;`,
         this.returnSlug()
       );
+
+      // Enforce UNIQUE(provider, provider_user_id) on existing DBs that still have
+      // the old non-unique index. Refuse if duplicate provider identities exist.
+      await this.ensureProviderIdentityUniqueIndex();
     } catch (err) {
       console.error('FAUCET: ensureRegistrationsSchema failed', err);
+    }
+  }
+
+  /**
+   * Replace non-unique (provider, provider_user_id) index with UNIQUE.
+   * STOPS without modifying data if duplicate provider identities already exist.
+   */
+  async ensureProviderIdentityUniqueIndex() {
+    if (this.app.BROWSER) {
+      return;
+    }
+
+    const db = this.faucetDb();
+
+    const duplicates = await this.app.storage.queryDatabase(
+      `SELECT provider, provider_user_id, COUNT(*) AS cnt
+         FROM registrations
+        GROUP BY provider, provider_user_id
+       HAVING COUNT(*) > 1`,
+      {},
+      db
+    );
+
+    if (Array.isArray(duplicates) && duplicates.length > 0) {
+      console.error(
+        'FAUCET: cannot add UNIQUE(provider, provider_user_id) — duplicate provider identities exist:',
+        duplicates
+      );
+      console.error(
+        'FAUCET: resolve duplicate registrations manually before restarting. Unique index NOT created.'
+      );
+      return;
+    }
+
+    try {
+      await this.app.storage.executeDatabase(
+        `DROP INDEX IF EXISTS registrations_provider_uid_idx;
+         CREATE UNIQUE INDEX IF NOT EXISTS registrations_provider_uid_uidx
+           ON registrations (provider, provider_user_id);`,
+        db
+      );
+    } catch (err) {
+      console.error('FAUCET: failed to ensure provider identity unique index', err);
     }
   }
 
@@ -876,9 +930,33 @@ We never post on your behalf.`,
   }
 
   /**
-   * Create a Faucet registration after verified OAuth (future callback path).
-   * UNIQUE(publickey) prevents duplicate registration for the same key.
-   * Does not store OAuth tokens. Returns the row, or existing row if already present.
+   * Look up registration by verified OAuth provider identity.
+   * @returns {object|null}
+   */
+  async getRegistrationByProvider(provider = '', provider_user_id = '') {
+    if (this.app.BROWSER) {
+      return null;
+    }
+    const prov = String(provider || '').trim();
+    const puid = String(provider_user_id || '').trim();
+    if (!prov || !puid) {
+      return null;
+    }
+    const rows = await this.app.storage.queryDatabase(
+      `SELECT * FROM registrations
+        WHERE provider = $provider AND provider_user_id = $provider_user_id
+        LIMIT 1`,
+      { $provider: prov, $provider_user_id: puid },
+      this.faucetDb()
+    );
+    return rows?.[0] || null;
+  }
+
+  /**
+   * Create a Faucet registration after verified OAuth.
+   * UNIQUE(publickey) and UNIQUE(provider, provider_user_id) prevent duplicates.
+   * Does not store OAuth tokens. Returns the existing row if either uniqueness
+   * key already matches (caller must compare publickey for provider conflicts).
    */
   async createRegistration({
     publickey = '',
@@ -901,9 +979,14 @@ We never post on your behalf.`,
       return null;
     }
 
-    const existing = await this.getRegistration(pk);
-    if (existing) {
-      return existing;
+    const existingPk = await this.getRegistration(pk);
+    if (existingPk) {
+      return existingPk;
+    }
+
+    const existingProvider = await this.getRegistrationByProvider(prov, puid);
+    if (existingProvider) {
+      return existingProvider;
     }
 
     const now = Date.now();
@@ -954,11 +1037,43 @@ We never post on your behalf.`,
         this.faucetDb()
       );
     } catch (err) {
-      // Concurrent insert on same publickey — return the winner.
+      // Concurrent insert on publickey or provider identity — return the winner.
       console.log('FAUCET: createRegistration insert raced or failed', err);
     }
 
-    return await this.getRegistration(pk);
+    return (
+      (await this.getRegistration(pk)) ||
+      (await this.getRegistrationByProvider(prov, puid))
+    );
+  }
+
+  /**
+   * Find a connected peer for publickey and send faucet-oauth-result.
+   * @returns {{ ok: boolean, peerFound: boolean, error?: string }}
+   */
+  async notifyPeerFaucetOAuthResult(publickey = '', data = {}) {
+    const pk = String(publickey || '').trim();
+    if (!pk) {
+      return { ok: false, peerFound: false, error: 'missing publickey' };
+    }
+
+    let peer = await this.app.network.getPeer(pk);
+    if (!peer?.publicKey) {
+      const peers = await this.app.network.getPeers();
+      peer = peers.find((p) => p?.publicKey === pk && p?.status !== 'disconnected');
+    }
+
+    if (!peer?.publicKey) {
+      return { ok: false, peerFound: false, error: 'no connected peer' };
+    }
+
+    await this.app.network.sendRequestAsTransaction(
+      'faucet-oauth-result',
+      data,
+      null,
+      peer.publicKey
+    );
+    return { ok: true, peerFound: true };
   }
 
   /**
@@ -1090,12 +1205,29 @@ We never post on your behalf.`,
     if (txmsg?.request === 'faucet-oauth-result') {
       if (this.app.BROWSER) {
         const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+        console.log('[Faucet OAuth] Server result received', {
+          success: data.success,
+          already_issued: data.already_issued,
+          issuance_status: data.issuance_status,
+          message: data.message,
+          publickey: data.publickey
+        });
+
         const alreadyIssued = !!data.already_issued;
 
         if (alreadyIssued) {
+          console.log('[Faucet OAuth] ALREADY ISSUED', data.message || '');
           // Stay on Get SAITO; replace green card with already-issued notice.
           this.showAlreadyIssuedOnGetSaito();
           return 1;
+        }
+
+        if (data.success === false) {
+          console.log('[Faucet OAuth] FAILED', data.message || data.error || '');
+        } else {
+          console.log(
+            '[Faucet OAuth] SUCCESS — eligible user; starting automatic faucet request'
+          );
         }
 
         // Registration succeeded → close Get SAITO registration UI, open claim overlay.
@@ -1123,44 +1255,13 @@ We never post on your behalf.`,
     return null;
   }
 
-  /**
-   * TEMP OAUTH CONFIG — runtime client secret for token exchange.
-   * Prefer these in-memory values; do not log or return them.
-   */
-  getOAuthClientSecret(provider = '') {
-    const id = String(provider || '')
-      .trim()
-      .toLowerCase();
-    if (id === 'github') {
-      return this.oauth_secret_github || null;
-    }
-    if (id === 'twitter' || id === 'x') {
-      return this.oauth_secret_twitter || null;
-    }
-    return null;
-  }
-
-  /** TEMP OAUTH CONFIG — constant-time compare for the config gate key. */
-  oauthConfigKeyMatches(submitted = '') {
-    const expected = String(this.oauth_config_key || '');
-    const got = String(submitted || '');
-    if (!expected || got.length !== expected.length) {
-      return false;
-    }
-    try {
-      return crypto.timingSafeEqual(Buffer.from(got), Buffer.from(expected));
-    } catch (err) {
-      return false;
-    }
-  }
-
   webServer(app, expressapp, express) {
     let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     let faucet_self = this;
     const slug = encodeURI(this.returnSlug());
 
     // BEGIN TEMP_OAUTH_CONFIG — browser form to set in-memory OAuth client secrets.
-    // Protect with oauth_config_key. Never echo secrets. Remove with constructor block.
+    // Never echo secrets. Remove with constructor block.
     const renderOAuthConfigPage = (opts = {}) =>
       OAuthConfigTemplate({
         githubConfigured: !!faucet_self.oauth_secret_github,
@@ -1186,15 +1287,6 @@ We never post on your behalf.`,
       res.setHeader('Cache-Control', 'no-store');
 
       const body = req.body && typeof req.body === 'object' ? req.body : {};
-      const configKey = String(body.config_key || '');
-      if (!faucet_self.oauthConfigKeyMatches(configKey)) {
-        res.status(403);
-        return res.send(
-          renderOAuthConfigPage({
-            error: 'Invalid config key. Secrets were not updated.'
-          })
-        );
-      }
 
       // Only overwrite when a non-empty value is submitted (partial updates).
       const githubSecret = String(body.github_secret || '');
@@ -1217,120 +1309,314 @@ We never post on your behalf.`,
     });
     // END TEMP_OAUTH_CONFIG
 
-    // Plain HTML OAuth initiation page — must NOT load Saito.
-    // Register before the /faucet Saito app route and static assets.
+    // GitHub OAuth initiate — popup opens this route; 302 to GitHub authorize.
+    // Does NOT load Saito. Requires publickey query + configured client_id.
+    // OAuth `state` only carries the initiating Saito public key through GitHub's redirect.
     expressapp.get(`/${slug}/oauth/github`, (req, res) => {
       if (res.finished) {
         return;
       }
 
-      const publickey = String(req.query?.publickey || '').trim();
-      const baseUrl = `${req.protocol}://${req.headers.host}`;
-      const callbackUrl = publickey
-        ? `${baseUrl}/${slug}/oauth?publickey=${encodeURIComponent(publickey)}`
-        : `${baseUrl}/${slug}/oauth`;
+      const sendInitiateError = (title, message) => {
+        res.status(400);
+        res.setHeader('Content-type', 'text/html; charset=UTF-8');
+        res.setHeader('Cache-Control', 'no-store');
+        return res.send(OAuthResultTemplate({ ok: false, title, message }));
+      };
 
-      res.setHeader('Content-type', 'text/html; charset=UTF-8');
-      return res.send(
-        OAuthGithubInitiateTemplate({
-          publickey,
-          callbackUrl
-        })
-      );
+      const publickey = String(req.query?.publickey || '').trim();
+      if (!publickey) {
+        return sendInitiateError(
+          'GitHub sign-in unavailable',
+          'Missing Saito public key. Close this window and try again from Get SAITO.'
+        );
+      }
+
+      const gh = faucet_self.oauth?.github || {};
+      const clientId = String(gh.client_id || '').trim();
+      const authorizeUrl = String(gh.authorize_url || '').trim();
+      const callbackUrl = String(gh.callback_url || '').trim();
+      const scope = String(gh.scope || 'read:user').trim();
+
+      if (!clientId || !authorizeUrl || !callbackUrl) {
+        return sendInitiateError(
+          'GitHub OAuth not configured',
+          'Public GitHub OAuth settings are incomplete on this server (client_id / callback).'
+        );
+      }
+
+      try {
+        const state = Buffer.from(JSON.stringify({ pk: publickey }), 'utf8').toString('base64url');
+
+        const url = new URL(authorizeUrl);
+        url.searchParams.set('client_id', clientId);
+        url.searchParams.set('redirect_uri', callbackUrl);
+        url.searchParams.set('scope', scope);
+        url.searchParams.set('state', state);
+
+        return res.redirect(302, url.toString());
+      } catch (err) {
+        console.error('FAUCET OAUTH: failed to redirect to GitHub', err?.message || err);
+        return sendInitiateError(
+          'GitHub sign-in unavailable',
+          'Could not start GitHub authorization. Close this window and try again from Get SAITO.'
+        );
+      }
     });
 
-    // Temporary local OAuth-callback test route.
-    // Production will use OAuth state instead of a publickey query param.
+    // OAuth callback (GitHub only):
+    // ?code=&state= → recover publickey from state → exchange → profile → age →
+    // registration → faucet-oauth-result (browser autoClaim unchanged)
     expressapp.get(`/${slug}/oauth`, async (req, res) => {
       if (res.finished) {
         return;
       }
 
-      console.log('========================================');
-      console.log('FAUCET OAUTH CALLBACK');
-      console.log('========================================');
+      const code = String(req.query?.code || '').trim();
+      const state = String(req.query?.state || '').trim();
+      const oauthError = String(req.query?.error || '').trim();
 
-      const publickey = String(req.query?.publickey || '').trim();
-      console.log('Public Key: ' + (publickey || '(missing)'));
-      console.log('========================================');
+      const sendPopup = (status, opts) => {
+        res.status(status);
+        res.setHeader('Content-type', 'text/html; charset=UTF-8');
+        res.setHeader('Cache-Control', 'no-store');
+        return res.send(OAuthResultTemplate(opts));
+      };
 
-      if (!publickey) {
-        console.log('FAUCET OAUTH: missing public key');
-        res.status(400);
-        res.setHeader('Content-type', 'text/plain; charset=UTF-8');
-        return res.send('SAITO Faucet OAuth callback error: missing public key.');
+      // Reject hits without a GitHub OAuth response (e.g. bare ?publickey=).
+      if (!code && !state && !oauthError) {
+        return sendPopup(400, {
+          ok: false,
+          title: 'Invalid OAuth callback',
+          message:
+            'This endpoint accepts GitHub OAuth responses only. Start again from Get SAITO.'
+        });
       }
 
-      console.log('FAUCET OAUTH: searching for connected peer ' + publickey);
+      if (oauthError) {
+        const desc = String(req.query?.error_description || oauthError);
+        console.log('FAUCET OAUTH: GitHub returned error', oauthError);
+        return sendPopup(400, {
+          ok: false,
+          title: 'GitHub authorization failed',
+          message: desc
+        });
+      }
+
+      if (!code || !state) {
+        return sendPopup(400, {
+          ok: false,
+          title: 'GitHub authorization incomplete',
+          message: 'Missing authorization code or state.'
+        });
+      }
+
+      let publickey = '';
+      try {
+        const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+        publickey = String(parsed?.pk || '').trim();
+      } catch (err) {
+        publickey = '';
+      }
+      if (!publickey) {
+        return sendPopup(400, {
+          ok: false,
+          title: 'Invalid OAuth state',
+          message: 'Could not recover the Saito public key from the OAuth response.'
+        });
+      }
+
+      const gh = faucet_self.oauth?.github || {};
+      const clientId = String(gh.client_id || '').trim();
+      const callbackUrl = String(gh.callback_url || '').trim();
+      const clientSecret = faucet_self.oauth_secret_github;
+
+      if (!clientId || !callbackUrl || !clientSecret) {
+        return sendPopup(500, {
+          ok: false,
+          title: 'GitHub OAuth not configured',
+          message:
+            'Client ID, callback URL, or client secret is missing. Configure secrets via /faucet/oauth/config.'
+        });
+      }
 
       try {
-        let peer = await faucet_self.app.network.getPeer(publickey);
+        const token = await GithubOAuth.exchangeGithubCode({
+          clientId,
+          clientSecret,
+          code,
+          redirectUri: callbackUrl
+        });
 
-        if (!peer?.publicKey) {
-          const peers = await faucet_self.app.network.getPeers();
-          peer = peers.find(
-            (p) => p?.publicKey === publickey && p?.status !== 'disconnected'
+        const user = await GithubOAuth.fetchGithubUser(token.access_token);
+        // Do not retain or log the access token.
+        token.access_token = '';
+
+        if (!user.created_at || !GithubOAuth.isAccountAtLeastSixMonthsOld(user.created_at)) {
+          console.log(
+            'FAUCET OAUTH: GitHub account too new',
+            user.login || user.id,
+            user.created_at || '(no created_at)'
           );
+          return sendPopup(403, {
+            ok: false,
+            title: 'GitHub account not eligible',
+            message:
+              'Registration requires a GitHub account that is at least six months old.',
+            details: user.login ? `Account: ${user.login}` : ''
+          });
         }
 
-        if (!peer?.publicKey) {
-          console.log('FAUCET OAUTH: NO CONNECTED PEER FOUND ' + publickey);
-          res.status(404);
-          res.setHeader('Content-type', 'text/plain; charset=UTF-8');
-          return res.send(
-            'SAITO Faucet OAuth callback: no connected SAITO client found for that public key.'
-          );
+        const provider = 'github';
+        const provider_user_id = String(user.id || '').trim();
+        if (!provider_user_id) {
+          return sendPopup(502, {
+            ok: false,
+            title: 'GitHub verification failed',
+            message: 'GitHub profile did not include a stable user id.'
+          });
         }
 
-        console.log('FAUCET OAUTH: FOUND PEER ' + peer.publicKey);
+        const provider_username = String(user.login || '');
+        const provider_display_name = String(user.name || user.login || '');
+        const provider_account_created_at = Date.parse(user.created_at) || 0;
 
-        // Look up / create registration so the subsequent claim path can issue.
-        // Real OAuth verification still belongs to the provider integration task;
-        // this test callback only ensures a registration row exists when needed.
-        let registration = await faucet_self.getRegistration(publickey);
+        const byPublickey = await faucet_self.getRegistration(publickey);
+        const byProvider = await faucet_self.getRegistrationByProvider(
+          provider,
+          provider_user_id
+        );
+
+        // GitHub identity already linked to a different Saito key — do not peer-notify
+        // (already_issued:false would wrongly autoClaim this wallet).
+        if (byProvider && byProvider.publickey !== publickey) {
+          console.log(
+            'FAUCET OAUTH: GitHub identity already registered to another publickey',
+            provider_username || provider_user_id
+          );
+          return sendPopup(403, {
+            ok: false,
+            title: 'GitHub account already registered',
+            message:
+              'This GitHub account is already linked to a Faucet registration for a different Saito wallet.',
+            details: provider_username ? `Account: ${provider_username}` : ''
+          });
+        }
+
+        // Saito key already registered under a different provider identity.
+        if (
+          byPublickey &&
+          (byPublickey.provider !== provider ||
+            String(byPublickey.provider_user_id) !== provider_user_id)
+        ) {
+          console.log(
+            'FAUCET OAUTH: publickey already registered with a different identity',
+            publickey.slice(0, 12)
+          );
+          const already_issued = byPublickey.issuance_status === 'issued';
+          const notify = await faucet_self.notifyPeerFaucetOAuthResult(publickey, {
+            success: true,
+            message: already_issued
+              ? 'This Saito public key has already received its Faucet allocation.'
+              : 'This Saito public key is already registered for the Faucet.',
+            publickey,
+            issuance_status: byPublickey.issuance_status || null,
+            already_issued: true
+          });
+          if (!notify.peerFound) {
+            console.log('FAUCET OAUTH: no connected peer for publickey conflict', publickey);
+          }
+          return sendPopup(403, {
+            ok: false,
+            title: 'Wallet already registered',
+            message:
+              'This Saito wallet is already registered for the Faucet with a different account.',
+            details: already_issued
+              ? 'This wallet has already received its Faucet allocation.'
+              : ''
+          });
+        }
+
+        let registration = byPublickey || byProvider;
         if (!registration) {
           registration = await faucet_self.createRegistration({
             publickey,
-            provider: 'github',
-            provider_user_id: `oauth-test:${publickey}`,
-            provider_username: '',
-            provider_display_name: '',
+            provider,
+            provider_user_id,
+            provider_username,
+            provider_display_name,
+            provider_account_created_at,
             authenticated_at: Date.now()
           });
         }
 
-        const issuance_status = registration?.issuance_status || null;
+        // Race: another request may have bound this GitHub id to a different key.
+        if (registration && registration.publickey !== publickey) {
+          console.log(
+            'FAUCET OAUTH: provider identity race — registration owned by another publickey'
+          );
+          return sendPopup(403, {
+            ok: false,
+            title: 'GitHub account already registered',
+            message:
+              'This GitHub account is already linked to a Faucet registration for a different Saito wallet.'
+          });
+        }
+
+        if (!registration) {
+          return sendPopup(500, {
+            ok: false,
+            title: 'Registration failed',
+            message: 'Could not create a Faucet registration. Please try again.'
+          });
+        }
+
+        const issuance_status = registration.issuance_status || null;
         const already_issued = issuance_status === 'issued';
 
-        await faucet_self.app.network.sendRequestAsTransaction(
-          'faucet-oauth-result',
-          {
-            success: true,
+        const notify = await faucet_self.notifyPeerFaucetOAuthResult(publickey, {
+          success: true,
+          message: already_issued
+            ? 'This Saito public key has already received its Faucet allocation.'
+            : 'Faucet OAuth registration succeeded.',
+          publickey,
+          issuance_status,
+          already_issued
+        });
+
+        if (!notify.peerFound) {
+          console.log('FAUCET OAUTH: registration OK but no connected peer', publickey);
+          return sendPopup(200, {
+            ok: true,
+            title: already_issued ? 'Already issued' : 'Registration complete',
             message: already_issued
-              ? 'This Saito public key has already received its Faucet allocation.'
-              : 'Faucet OAuth callback received successfully.',
-            publickey: publickey,
-            issuance_status: issuance_status,
-            already_issued: already_issued
-          },
-          null,
-          peer.publicKey
+              ? 'This wallet has already received its Faucet allocation. Keep your Get SAITO window open and refresh if the notice does not appear.'
+              : 'Registration succeeded, but your Saito browser was not connected. Return to Get SAITO and try again, or keep that window open while signing in.',
+            details: provider_username ? `GitHub: ${provider_username}` : ''
+          });
+        }
+
+        console.log(
+          'FAUCET OAUTH: GitHub registration notified peer',
+          provider_username || provider_user_id,
+          already_issued ? '(already_issued)' : '(eligible → autoClaim)'
         );
 
-        res.status(200);
-        res.setHeader('Content-type', 'text/plain; charset=UTF-8');
-        return res.send(
-          already_issued
-            ? 'SAITO Faucet: public key already issued.'
-            : 'SAITO Faucet OAuth callback received.'
-        );
+        return sendPopup(200, {
+          ok: true,
+          title: already_issued ? 'Already issued' : 'GitHub verified',
+          message: already_issued
+            ? 'This wallet has already received its Faucet allocation. You can close this window.'
+            : 'Your GitHub account was verified. You can close this window — Get SAITO will continue automatically.',
+          details: provider_username ? `GitHub: ${provider_username}` : ''
+        });
       } catch (err) {
-        console.log('FAUCET OAUTH: failed to notify peer', err);
-        res.status(500);
-        res.setHeader('Content-type', 'text/plain; charset=UTF-8');
-        return res.send(
-          'SAITO Faucet OAuth callback error: failed to notify SAITO client.'
-        );
+        console.error('FAUCET OAUTH: GitHub exchange/profile failed', err?.code || err?.message || err);
+        return sendPopup(502, {
+          ok: false,
+          title: 'GitHub verification failed',
+          message: 'Could not complete GitHub token exchange or profile lookup. Try again.'
+        });
       }
     });
 

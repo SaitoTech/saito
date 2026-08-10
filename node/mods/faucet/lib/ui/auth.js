@@ -178,8 +178,7 @@ We never post on your behalf.`
    * Open a separate browser window to the Faucet GitHub OAuth initiation page.
    * Must be called synchronously from the button click handler (popup blockers).
    * Does not close BuySaito or the Auth overlay.
-   * Passes the current wallet public key so the popup can show the development
-   * callback URL for manual peer-message testing.
+   * Passes the current wallet public key so the server can bind it into signed OAuth state.
    */
   openGithubOAuthPopup() {
     if (typeof window === 'undefined' || typeof window.open !== 'function') {

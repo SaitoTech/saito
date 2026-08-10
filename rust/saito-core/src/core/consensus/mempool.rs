@@ -94,10 +94,7 @@ fn p2sh_debugging_trace_dump_tx(label: &str, tx: &Transaction) {
             slip.public_key.to_base58()
         );
     }
-    info!(
-        "[P2SH_DEBUGGING_TRACE] {} msg/data={}",
-        label, msg_preview
-    );
+    info!("[P2SH_DEBUGGING_TRACE] {} msg/data={}", label, msg_preview);
 }
 
 //
@@ -206,7 +203,10 @@ impl Mempool {
             transaction.generate(&public_key, 0, 0);
 
             if interesting {
-                p2sh_debugging_trace_dump_tx("mempool.after_generate_before_validate", &transaction);
+                p2sh_debugging_trace_dump_tx(
+                    "mempool.after_generate_before_validate",
+                    &transaction,
+                );
             }
 
             tx_valid = transaction.validate(&blockchain.utxoset, blockchain, true);

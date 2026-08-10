@@ -853,7 +853,7 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
 }
 
 #[wasm_bindgen]
-pub async fn evaluate_script(json: JsString) -> u8 {
+pub async fn evaluate_script(json: JsString, context_json: Option<JsString>) -> u8 {
     let json_str = match json.as_string() {
         Some(s) => s,
         None => return 0,
@@ -862,6 +862,14 @@ pub async fn evaluate_script(json: JsString) -> u8 {
     if serde_json::from_str::<serde_json::Value>(&json_str).is_err() {
         return 0;
     }
+
+    let supplied_context = match context_json.and_then(|v| v.as_string()) {
+        Some(s) => match serde_json::from_str::<serde_json::Value>(&s) {
+            Ok(v) => Some(v),
+            Err(_) => return 0,
+        },
+        None => None,
+    };
 
     let saito = SAITO.lock().await;
     let blockchain = saito
@@ -874,11 +882,22 @@ pub async fn evaluate_script(json: JsString) -> u8 {
 
     let mut script = Script::new();
     script.parse(&json_str);
-    script.validate(None, None, Some(&blockchain), None)
+
+    script.validate_with_context(
+        None,
+        None,
+        Some(&blockchain),
+        None,
+        supplied_context.as_ref(),
+    )
 }
 
 #[wasm_bindgen]
-pub async fn evaluate_script_with_transaction(json: JsString, tx: &WasmTransaction) -> u8 {
+pub async fn evaluate_script_with_transaction(
+    json: JsString,
+    tx: &WasmTransaction,
+    context_json: Option<JsString>,
+) -> u8 {
     let json_str = match json.as_string() {
         Some(s) => s,
         None => return 0,
@@ -887,6 +906,14 @@ pub async fn evaluate_script_with_transaction(json: JsString, tx: &WasmTransacti
     if serde_json::from_str::<serde_json::Value>(&json_str).is_err() {
         return 0;
     }
+
+    let supplied_context = match context_json.and_then(|v| v.as_string()) {
+        Some(s) => match serde_json::from_str::<serde_json::Value>(&s) {
+            Ok(v) => Some(v),
+            Err(_) => return 0,
+        },
+        None => None,
+    };
 
     let saito = SAITO.lock().await;
     let blockchain = saito
@@ -901,7 +928,14 @@ pub async fn evaluate_script_with_transaction(json: JsString, tx: &WasmTransacti
 
     let mut script = Script::new();
     script.parse(&json_str);
-    script.validate(tx_ref, None, Some(&blockchain), None)
+
+    script.validate_with_context(
+        tx_ref,
+        None,
+        Some(&blockchain),
+        None,
+        supplied_context.as_ref(),
+    )
 }
 
 #[wasm_bindgen]
