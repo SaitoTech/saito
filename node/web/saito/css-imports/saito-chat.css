@@ -252,9 +252,9 @@
 }
 
 .chat-container.minimized {
-  height: 4rem;
+  height: 3.5rem;
   min-height: unset;
-  grid-template-rows: 4rem auto;
+  grid-template-rows: 3.5rem auto;
 }
 
 .chat-container.minimized .chat-body,
@@ -279,8 +279,9 @@
   z-index: inherit;
   display: flex;
   align-items: center;
-  height: 4rem;
-  min-height: 4rem;
+  /* Match footer / text-input scale (3.5rem); do not lock to a taller 4rem chrome bar */
+  height: 3.5rem;
+  min-height: 3.5rem;
   width: 100%;
   cursor: grab;
   border-bottom: 1px solid var(--saito-border);
@@ -372,8 +373,10 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   cursor: default;
+  /* Match Chat bubble message text (.saito-userline uses --font-size-medium) */
   font-size: var(--font-size-medium);
   font-family: var(--saito-font-medium);
+  line-height: 1.35;
 }
 
 .chat-header .chat-group.saito-address {
