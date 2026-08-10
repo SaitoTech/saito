@@ -1,8 +1,18 @@
+/*
+ * =============================================================================
+ * /chat profile / member sidebar — mods/chat/web/css/chat-sidebar.css
+ * Bundled into /chat/style.css after chat-base.css.
+ *
+ * Owns: #chat-sidebar.chat-sidebar (SaitoProfile + member list in the right rail).
+ * Not the conversation list (.chat-manager) and not message bubbles.
+ * =============================================================================
+ */
+
 .chat-sidebar {
   width: 28rem;
   background: var(--saito-background);
   height: calc(100vh - var(--saito-header-height));
-  border-left: 1px solid var(--saito-border); /* testing */
+  border-left: 1px solid var(--saito-border);
   display: grid;
   grid-template-rows: min-content auto;
 }

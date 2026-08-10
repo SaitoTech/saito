@@ -1,3 +1,19 @@
+/*
+ * =============================================================================
+ * /chat application page — mods/chat/web/css/chat-base.css
+ * Bundled into /chat/style.css (loaded only when Chat.render() runs).
+ *
+ * Owns: splash CTA, appspace columns, page-manager, full-page conversation
+ *       geometry, and /chat-only layout overrides scoped under
+ *       .chat-main-container.
+ *
+ * Does NOT own: message/bubble/composer appearance → saito-chat.css
+ *               profile/member rail → chat-sidebar.css
+ * =============================================================================
+ */
+
+/* --- Splash / first-visit CTA (Chat product only) --- */
+
 .chat-splash-overlay {
   position: fixed;
   inset: 0;
@@ -69,14 +85,14 @@
   filter: brightness(0.98);
 }
 
+/* --- Appspace shell: left manager | conversation | optional right rail --- */
+
 .saito-container.chat-main-container {
   padding: 0;
   overflow-y: hidden;
   grid-template-columns: min-content auto;
   column-gap: unset;
   background: transparent;
-  /*margin: 0 max(0rem, calc(50vw - 65rem));
-    max-width: 130rem;*/
 }
 
 #chat-main {
@@ -110,7 +126,7 @@
 
 .chat-main-container .chat-header,
 .chat-main-container .chat-footer {
-  padding: 0 1rem !important;
+  padding: 0 1rem;
 }
 
 .chat-main-container .saito-sidebar.left {
@@ -193,17 +209,18 @@
   left: 50%;
   transform: translateX(-50%);
   margin-bottom: 1.5rem;
-  /*position: absolute;
-	bottom: 0;*/
   background: var(--saito-background);
 }
 
+/* Centered conversation column — drop component wash/tile on the page */
 .chat-main-container .chat-body {
   width: 99%;
   padding: 0 calc(50% - 30rem);
   height: 100%;
   margin: auto;
   margin-left: 1%;
+  background-color: transparent;
+  background-image: none;
 }
 
 .chat-main-container .text-input {
@@ -217,35 +234,34 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--saito-border) 34%, transparent);
 }
 
-.chat-footer > i {
+/* Page composer: spacing/hover polish only — sizes come from saito-chat.css */
+.chat-main-container .chat-footer > i {
   margin-left: var(--saito-space-sm);
   border-radius: 50%;
-  height: 3.5rem;
-  width: 3.5rem;
   background-color: transparent;
   box-shadow: none;
 }
 
-.chat-footer > i:hover {
+.chat-main-container .chat-footer > i:hover {
   background-color: var(--saito-background);
   box-shadow: 0 0 1px var(--saito-primary);
 }
 
-.chat-static.chat-popup .saito-notification-dot {
+.chat-main-container .chat-static.chat-popup .saito-notification-dot {
   bottom: 7rem;
   right: max(calc(50% - 28.5rem), 1rem);
   width: 4rem;
   height: 4rem;
 }
 
-/* left align all chats in wide screen */
+/* Full-page wide Chat: show own avatar/name (floating popup keeps them hidden) */
 @media screen and (min-width: 1200px) {
-  .chat-body .saito-user-self.saito-user {
+  .chat-main-container .chat-body .saito-user-self.saito-user {
     display: grid;
     justify-content: unset;
   }
-  .chat-body .saito-user-self.saito-user > .saito-address,
-  .chat-body .saito-user-self.saito-user > .saito-identicon-box {
+  .chat-main-container .chat-body .saito-user-self.saito-user > .saito-address,
+  .chat-main-container .chat-body .saito-user-self.saito-user > .saito-identicon-box {
     display: block;
   }
 

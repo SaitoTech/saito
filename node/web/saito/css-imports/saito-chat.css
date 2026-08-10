@@ -13,6 +13,22 @@
   --saito-chat-notification-gradient: linear-gradient(90deg, transparent, var(--saito-chart-2), transparent);
 }
 
+/*
+ * =============================================================================
+ * Saito Chat component — canonical reusable defaults
+ * File: web/saito/css-imports/saito-chat.css → bundled into /saito/saito.css
+ *
+ * Owns: manager list, floating/static popup, messages/bubbles, composer,
+ *       overlay chrome, and component-level responsive behavior.
+ *
+ * Does NOT own: /chat page columns or splash → mods/chat/web/css/chat-base.css
+ *               /chat profile rail → mods/chat/web/css/chat-sidebar.css
+ *               RedSquare/Arcade embeds → those modules' CSS only
+ * =============================================================================
+ */
+
+/* --- Chat manager (conversation list) --- */
+
 .chat-manager {
   min-height: 25%;
   /*flex: 1;*/
@@ -193,7 +209,7 @@
   cursor: help;
 }
 
-/* Embedded chat container */
+/* --- Floating / embedded popup shell --- */
 
 .chat-static {
   height: 100%;
@@ -252,9 +268,9 @@
 }
 
 .chat-container.minimized {
-  height: 3.5rem;
+  height: 2.5rem;
   min-height: unset;
-  grid-template-rows: 3.5rem auto;
+  grid-template-rows: 2.5rem auto;
 }
 
 .chat-container.minimized .chat-body,
@@ -274,14 +290,16 @@
   width: 100%;
 }
 
+/* --- Header (single compact title row) --- */
+
 /* Single compact title bar: [title] [menu] [min][max][close] */
 .chat-header {
   z-index: inherit;
   display: flex;
   align-items: center;
-  /* Match footer / text-input scale (3.5rem); do not lock to a taller 4rem chrome bar */
-  height: 3.5rem;
-  min-height: 3.5rem;
+  /* Compact chrome — sized to title/controls, not the taller composer band */
+  height: 2.5rem;
+  min-height: 2.5rem;
   width: 100%;
   cursor: grab;
   border-bottom: 1px solid var(--saito-border);
@@ -315,7 +333,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
+  width: 2.5rem;
   height: 100%;
   margin: 0;
   padding: 0;
@@ -346,7 +364,7 @@
   align-items: center;
   align-self: stretch;
   color: var(--saito-foreground);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
 }
 
 .chat-action-item,
@@ -355,7 +373,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
+  width: 2.5rem;
   height: 100%;
   cursor: pointer;
   transition: all 0.2s;
@@ -373,10 +391,10 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   cursor: default;
-  /* Match Chat bubble message text (.saito-userline uses --font-size-medium) */
-  font-size: var(--font-size-medium);
+  /* Window chrome — slightly above message body, not a page heading */
+  font-size: 1.35rem;
   font-family: var(--saito-font-medium);
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .chat-header .chat-group.saito-address {
@@ -386,11 +404,13 @@
 .chat-mobile-back {
   display: none;
   flex: 0 0 auto;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
 }
 
+/* --- Message body, bubbles, avatars, timestamps --- */
+
 .chat-body {
-  padding: 1rem;
+  padding: 0.75rem;
   display: block;
   height: 100%;
   min-height: 0;
@@ -411,31 +431,37 @@
 }
 
 .chat-body > .saito-user {
-  padding-bottom: 1.5rem;
+  /* Space between message groups (not bubble padding) */
+  padding-bottom: 1.1rem;
   cursor: default;
   grid-template-rows: min-content 1fr;
-  min-height: 5.5rem;
-  gap: 0 2rem;
+  min-height: 0;
+  gap: 0 0.75rem;
+}
+
+.chat-body > .saito-user:last-child {
+  padding-bottom: 0;
 }
 
 .chat-body .saito-user .saito-userline {
-  /* others messages*/
-  font-size: var(--font-size-medium);
-  padding: var(--saito-space-sm);
-  padding-right: 3rem;
+  /* Compact UI body — not Saito prose --font-size-medium */
+  font-size: 1.25rem;
+  line-height: 1.35;
+  padding: 0.4rem 0.7rem;
   border-radius: var(--saito-radius);
   border: 1px solid var(--saito-border);
   background: var(--saito-bubble-background);
   box-shadow: var(--saito-bubble-shadow);
-  margin-right: 1rem;
+  margin-right: 0.75rem;
   height: fit-content;
   overflow: visible;
 }
 
 .chat-body .saito-user > .saito-address {
-  margin-bottom: 0.5rem;
-  font-size: var(--font-size-tiny);
-  font-family: var(--saito-font);
+  margin-bottom: 0.2rem;
+  font-size: 1.083rem;
+  font-family: var(--saito-font-medium);
+  line-height: 1.3;
   color: var(--saito-muted-foreground);
 }
 
@@ -470,14 +496,17 @@
 
 .chat-body .saito-identicon-box {
   align-self: end;
+  width: 3rem;
+  height: 3rem;
 }
 
 .saito-time-stamp {
-  font-size: var(--font-size-tiny);
+  font-size: 1.083rem;
+  line-height: 1.3;
   text-align: center;
   color: var(--saito-muted-foreground);
   font-style: italic;
-  margin: var(--saito-space-xs) 0;
+  margin: 0.35rem 0;
 }
 
 .saito-chat-notice {
@@ -485,17 +514,9 @@
   font-style: italic;
 }
 
-.saito-chat-line-controls {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  grid-row: span 2;
-}
-
 .chat-message-line {
   position: relative;
-  padding: 0.25rem;
+  padding: 0.15rem 0;
   word-wrap: anywhere;
   white-space: normal;
 }
@@ -503,6 +524,9 @@
 .chat-message-line p {
   overflow: hidden;
   height: min-content;
+  /* Defeat saito-base `p { font-size: medium }` inside bubbles */
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .chat-message-line li {
@@ -515,7 +539,7 @@
 
 .chat-body .saito-userline {
   width: unset !important;
-  min-width: 10rem;
+  min-width: 0;
   max-width: 600px;
 }
 
@@ -559,7 +583,7 @@
   bottom: 0;
   display: flex;
   width: 40px;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: bold;
   align-items: center;
   gap: 0.25rem;
@@ -582,10 +606,12 @@
   cursor: pointer;
 }
 
+/* --- Composer / footer --- */
+
 .chat-footer {
-  min-height: 3.5rem;
+  min-height: 3rem;
   height: fit-content;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   width: 100%;
   padding: 0;
   display: flex;
@@ -606,31 +632,31 @@
 
 .chat-container blockquote {
   color: inherit;
-  line-height: 2.5rem;
-  margin: 0.5rem 0;
+  line-height: 1.35;
+  margin: 0.35rem 0;
 }
 
 .chat-footer .saito-emoji {
   top: 50%;
   bottom: auto;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 3rem;
+  height: 3rem;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   transform: translateY(-50%);
 }
 
 /* Footer is the composer surface — no nested bordered card */
 .chat-footer .saito-input .text-input:not(.post-tweet-textarea) {
-  min-height: 3.5rem;
+  min-height: 3rem;
   border-color: transparent;
   box-shadow: none;
-  padding: var(--saito-space-sm) var(--saito-space-md);
-  padding-right: 3.5rem;
-  font-size: var(--font-size-medium);
+  padding: 0.5rem 0.75rem;
+  padding-right: 3rem;
+  font-size: 1.25rem;
   line-height: 1.35;
 }
 
@@ -641,9 +667,11 @@
   cursor: pointer;
   z-index: 2;
   transition: all 0.2s;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   align-content: center;
   text-align: center;
+  width: 3rem;
+  height: 3rem;
 }
 
 .chat-footer > .chat-input-submit.saito-button-mouse-over {
@@ -651,8 +679,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 3rem;
+  height: 3rem;
   padding: 0;
   line-height: 1;
 }
@@ -703,20 +731,6 @@
   color: var(--saito-muted-foreground);
 }
 
-.chat-main-container {
-  background-color: var(--saito-chat-background);
-  background-image: var(--saito-chat-background-image);
-}
-
-.chat-main-container .chat-body {
-  background-color: transparent;
-  background-image: none;
-}
-
-.chat-main-container .saito-sidebar.left {
-  background: var(--saito-chat-shell-background);
-}
-
 .saito-chat-button {
   cursor: pointer;
   width: fit-content;
@@ -729,25 +743,10 @@
 
 .saito-chat-button:hover {
   font-style: normal;
-  color: var(--saito-foreground); /* testing */
-}
-
-/* Chat manager header controls — only rendered when needed by template */
-
-.close-chat-manager {
-  position: relative;
-  height: 100%;
-}
-
-.close-chat-manager i {
-  position: absolute;
-  left: 0;
-  top: 0;
-  padding: 0.6rem 1.1rem;
   color: var(--saito-foreground);
-  background: var(--saito-background);
-  font-size: 24px;
 }
+
+/* --- Manager overlay / mobile menu (reusable outside /chat page) --- */
 
 .chat-manager-options {
   display: flex;
@@ -894,8 +893,8 @@
   }
 
   .chat-header-nav > i.chat-container-close {
-    width: 3.5rem;
-    font-size: 1.5rem;
+    width: 2.5rem;
+    font-size: 1.25rem;
   }
 
   .chat-container,
