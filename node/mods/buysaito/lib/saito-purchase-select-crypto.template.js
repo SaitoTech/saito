@@ -30,7 +30,7 @@ module.exports = (app, mod, self) => {
       </header>
       <div class="buysaito-options"></div>
       <div class="buysaito-stage" id="buysaito-stage">
-        <h3 class="purchase-select-crypto-msg">Choose Payment Method</h3>
+        <h3 class="purchase-select-crypto-msg">CHOOSE PAYMENT METHOD</h3>
         <div class="purchase-crypto-list">
           ${cryptos_list}
         </div>

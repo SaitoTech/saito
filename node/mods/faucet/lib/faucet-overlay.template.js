@@ -32,12 +32,18 @@ module.exports = (app, mod) => {
     </h1>
 
     <p class="faucet-acquisition-message" id="faucet_message">
-      You can receive enough free SAITO to try the network.
+      Registration succeeded. You can receive enough free SAITO to try the network.
     </p>
 
     <p class="faucet-acquisition-amount" id="faucet_amount">${amountLabel}</p>
 
     <p class="faucet-acquisition-progress" id="faucet_progress" hidden></p>
+
+    <div class="faucet-acquisition-timer" id="faucet_countdown" hidden>
+      <span class="timer-label">expected time to next block</span>
+      <span class="countdown" id="faucet_countdown_seconds" aria-live="polite">—</span>
+      <span class="timer-unit">seconds</span>
+    </div>
 
     <div class="faucet-acquisition-actions">
       <button type="button" class="saito-button-primary" id="faucet-button">

@@ -7,6 +7,8 @@ const FaucetMainTemplate = require('./lib/faucet-main.template');
 const FaucetOverlayTemplate = require('./lib/faucet-overlay.template');
 const Auth = require('./lib/ui/auth');
 const OAuthGithubInitiateTemplate = require('./lib/ui/oauth-github-initiate.template');
+const OAuthConfigTemplate = require('./lib/ui/oauth-config.template');
+const crypto = require('crypto');
 
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
@@ -43,6 +45,27 @@ class Faucet extends ModTemplate {
     this.claimMonitorPhase = '';
     this.acquisitionMessageShown = false;
     this.lastIssuanceAmount = null;
+    this.claimCountdownIntervalId = null;
+    this.autoClaimPending = false;
+
+    // BEGIN TEMP_OAUTH_CONFIG — runtime OAuth client secrets + config gate.
+    // Remove with /faucet/oauth/config when production env secrets are available.
+    // Secrets are never committed; they are set after deploy via the config endpoint.
+    this.oauth_secret_github = null;
+    this.oauth_secret_twitter = null;
+    // Shared key required on POST /faucet/oauth/config (NOT an OAuth client secret).
+    // Change before deploying to test.saito.io. Anyone with the repo can see this value —
+    // it is only a temporary gate, not production credential storage.
+    this.oauth_config_key = 'faucet-oauth-config-temp';
+    // END TEMP_OAUTH_CONFIG
+
+    // BEGIN DEV_MODE_UI — temporary faucet UI-flow test (no real issuance).
+    // Remove this.dev_mode, startDevUiSuccessTimer(), clearDevUiSuccessTimer(),
+    // and the DEV branches in submitFaucetClaim / clearClaimMonitoring
+    // when UI work is finished.
+    this.dev_mode = 1;
+    this.devUiSuccessTimerId = null;
+    // END DEV_MODE_UI
 
     this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
@@ -76,9 +99,9 @@ class Faucet extends ModTemplate {
 
       return {
         id: 'faucet',
-        title: 'New user? Why not get SAITO from the SAITO Faucet?',
+        title: 'Request SAITO tokens from the server faucet...',
         description:
-          'Getting testnet tokens requires registering with a Twitter or GitHub account. Registration helps prevent spam attacks on the faucet and ensures that the available supply goes to real users and developers.',
+          'You may request a small amount to try the network. Registration with a Github or Twitter account is needed to ensure our limited supply goes to real users and developers.',
         icon: this.icon_fa,
         rank: 1,
         option_class: 'buysaito-option-faucet',
@@ -203,14 +226,72 @@ We never post on your behalf.`,
     }
   }
 
-  openFaucetOverlay() {
+  openFaucetOverlay(opts = {}) {
+    const autoClaim = !!opts.autoClaim;
+
     this.attachStyleSheets();
     this.clearClaimMonitoring();
     this.acquisitionMessageShown = false;
     this.lastIssuanceAmount = null;
-    this.overlay.show(FaucetOverlayTemplate(this.app, this));
-    this.setFaucetState('eligible');
+    this.autoClaimPending = autoClaim;
+    this.overlay.show(FaucetOverlayTemplate(this.app, this), () => {
+      // DEV UI TEST — remove after faucet UI testing
+      this.clearDevUiSuccessTimer();
+    });
     this.attachEvents();
+
+    if (autoClaim) {
+      // OAuth / faucet callback: skip eligible screen → pending immediately.
+      this.submitFaucetClaim();
+      return;
+    }
+
+    this.setFaucetState('eligible');
+  }
+
+  /**
+   * Close Get SAITO / BuySaito purchase UI so the claim overlay does not stack
+   * on top of the registration screen. Leaves the original application alone.
+   */
+  dismissGetSaitoRegistrationUi() {
+    try {
+      const buysaito = this.app.modules.returnModule('BuySaito');
+      const purchase = buysaito?.purchase_overlay;
+      if (!purchase) {
+        return;
+      }
+      purchase.acquisition_stage = 'default';
+      purchase.stage1_html = null;
+      if (purchase.overlay) {
+        purchase.overlay.close();
+      }
+      purchase.active = false;
+    } catch (err) {
+      console.error('FAUCET: failed to dismiss Get SAITO UI', err);
+    }
+  }
+
+  /**
+   * Keep / restore Get SAITO and show the already-issued notice instead of claim UI.
+   */
+  showAlreadyIssuedOnGetSaito() {
+    try {
+      const buysaito = this.app.modules.returnModule('BuySaito');
+      const purchase = buysaito?.purchase_overlay;
+      if (!purchase) {
+        return;
+      }
+
+      if (typeof purchase.showFaucetAlreadyIssuedNotice === 'function') {
+        // Ensure Get SAITO is visible if OAuth returned while it was still open.
+        if (!document.querySelector('#purchase-container') && purchase.active) {
+          purchase.render();
+        }
+        purchase.showFaucetAlreadyIssuedNotice();
+      }
+    } catch (err) {
+      console.error('FAUCET: failed to show already-issued notice', err);
+    }
   }
 
   /**
@@ -249,35 +330,42 @@ We never post on your behalf.`,
     const copy = {
       eligible: {
         title: "You're Eligible for Free SAITO",
-        message: 'You can receive enough free SAITO to try the network.',
+        message: opts.fromOAuth
+          ? 'Registration succeeded. You are eligible for your one-time faucet allocation. Requesting SAITO from the network…'
+          : 'You can receive enough free SAITO to try the network.',
         progress: '',
         claimLabel: 'Claim My SAITO',
         closeLabel: 'Close',
         showAmount: true,
-        showClaim: true,
-        showClose: false
+        showClaim: !opts.fromOAuth && !this.autoClaimPending,
+        showClose: false,
+        showCountdown: false,
+        showSpinner: false
       },
       pending: {
-        title: 'Getting Your SAITO',
-        message: 'Your faucet transaction is being processed on the Saito network.',
-        progress:
-          this.claimMonitorPhase ||
-          'Waiting for the faucet transaction to be confirmed...',
+        title: 'Please Be Patient',
+        message:
+          'Our server is processing your request for SAITO tokens. It may take a few blocks for the transfer to complete. This screen will update when the tokens arrive.',
+        progress: '',
         claimLabel: 'Claim My SAITO',
         closeLabel: 'Close',
         showAmount: false,
         showClaim: false,
-        showClose: false
+        showClose: false,
+        showCountdown: true,
+        showSpinner: false
       },
       success: {
-        title: 'Congratulations — Your SAITO Has Arrived',
-        message: `You've received ${amountLabel} in your wallet.\n\nYou're ready to continue.`,
+        title: 'Your SAITO Has Arrived',
+        message: `You've received ${amountLabel} in your wallet.\n\nPlease click the button below to return to your previous action.`,
         progress: '',
         claimLabel: 'Claim My SAITO',
         closeLabel: 'Continue',
-        showAmount: true,
+        showAmount: false,
         showClaim: false,
-        showClose: true
+        showClose: true,
+        showCountdown: false,
+        showSpinner: false
       },
       timeout: {
         title: 'SAITO Could Not Be Received',
@@ -288,7 +376,9 @@ We never post on your behalf.`,
         closeLabel: 'Close',
         showAmount: false,
         showClaim: false,
-        showClose: true
+        showClose: true,
+        showCountdown: false,
+        showSpinner: false
       }
     };
 
@@ -305,7 +395,8 @@ We never post on your behalf.`,
       amountEl.hidden = !ui.showAmount;
     }
     if (progress) {
-      if (ui.progress) {
+      // Pending uses only the block countdown — no duplicate status line.
+      if (ui.progress && state !== 'pending') {
         progress.hidden = false;
         progress.textContent = ui.progress;
       } else {
@@ -316,40 +407,45 @@ We never post on your behalf.`,
     if (claimBtn) {
       claimBtn.textContent = ui.claimLabel;
       claimBtn.hidden = !ui.showClaim;
-      claimBtn.disabled = state === 'pending';
+      claimBtn.disabled = state === 'pending' || this.autoClaimPending;
     }
     if (closeBtn) {
       closeBtn.textContent = ui.closeLabel;
       closeBtn.hidden = !ui.showClose;
+      // Success Continue is the primary action; other states keep secondary Close.
+      if (state === 'success') {
+        closeBtn.classList.remove('saito-button-secondary');
+        closeBtn.classList.add('saito-button-primary', 'fat');
+      } else {
+        closeBtn.classList.remove('saito-button-primary', 'fat');
+        closeBtn.classList.add('saito-button-secondary');
+      }
     }
     if (spinner) {
-      spinner.hidden = state !== 'pending';
+      spinner.hidden = !ui.showSpinner;
     }
     if (successIcon) {
-      // Checkmark for eligible (passed eligibility) and success (tokens arrived).
+      // Checkmark for eligible (standalone) and success (tokens arrived).
       successIcon.hidden = state !== 'eligible' && state !== 'success';
     }
     if (errorIcon) {
       errorIcon.hidden = state !== 'timeout';
     }
+
+    const countdown = document.getElementById('faucet_countdown');
+    if (countdown) {
+      countdown.hidden = !ui.showCountdown;
+    }
+    if (ui.showCountdown) {
+      this.startBlockCountdown();
+    } else {
+      this.stopBlockCountdown();
+    }
   }
 
   updateClaimProgress(text = '') {
+    // Keep phase text for internal monitoring; pending UI no longer displays it.
     this.claimMonitorPhase = text;
-    const progress = document.getElementById('faucet_progress');
-    const root = document.getElementById('faucet-request-container');
-    if (!root || root.dataset.faucetState !== 'pending') {
-      return;
-    }
-    if (progress) {
-      progress.hidden = false;
-      const elapsedSec = this.claimStartedAt
-        ? Math.max(0, Math.floor((Date.now() - this.claimStartedAt) / 1000))
-        : 0;
-      progress.textContent = text
-        ? `${text} (${elapsedSec}s)`
-        : `Waiting for the faucet transaction to be confirmed... (${elapsedSec}s)`;
-    }
   }
 
   clearClaimMonitoring() {
@@ -361,8 +457,42 @@ We never post on your behalf.`,
       clearInterval(this.claimProgressIntervalId);
       this.claimProgressIntervalId = null;
     }
+    this.stopBlockCountdown();
     this.claimStartedAt = 0;
     this.claimMonitorPhase = '';
+    // DEV UI TEST — remove after faucet UI testing
+    this.clearDevUiSuccessTimer();
+  }
+
+  // DEV UI TEST — remove after faucet UI testing
+  clearDevUiSuccessTimer() {
+    if (this.devUiSuccessTimerId) {
+      clearTimeout(this.devUiSuccessTimerId);
+      this.devUiSuccessTimerId = null;
+    }
+  }
+
+  // DEV UI TEST — remove after faucet UI testing
+  // After pending, simulate a real issuance confirmation using the existing success path.
+  startDevUiSuccessTimer() {
+    this.clearDevUiSuccessTimer();
+    this.devUiSuccessTimerId = setTimeout(() => {
+      this.devUiSuccessTimerId = null;
+
+      const root = document.getElementById('faucet-request-container');
+      if (!root || root.dataset.faucetState !== 'pending') {
+        return;
+      }
+
+      // Same transition path as onConfirmation() for request === 'faucet issuance'.
+      // Amount fallback: configured faucet amount (no fabricated tx / wallet credit).
+      this.clearClaimMonitoring();
+      this.lastIssuanceAmount = this.amount;
+      this.setFaucetState('success', {
+        amountLabel: `${this.app.wallet.convertNolanToSaito(this.lastIssuanceAmount)} SAITO`
+      });
+      this.showAcquisitionSiteMessageOnce();
+    }, 10000);
   }
 
   startClaimMonitoring() {
@@ -384,9 +514,72 @@ We never post on your behalf.`,
     }, this.claimTimeoutMs);
 
     this.updateClaimProgress(this.claimMonitorPhase);
+    this.startBlockCountdown();
+  }
+
+  /**
+   * Same “expected time to next block” countdown pattern as SaitoTransactionMonitor.
+   */
+  getHeartbeatIntervalMs() {
+    const raw = Number(this.app?.options?.consensus?.heartbeat_interval);
+    if (!Number.isFinite(raw) || raw <= 0) {
+      return 30000;
+    }
+    if (raw < 1000) {
+      return Math.round(raw * 1000);
+    }
+    return Math.round(raw);
+  }
+
+  getSecondsUntilNextBlockWindow(blockWindowSeconds) {
+    const lastTs = Number(this.app?.options?.blockchain?.last_timestamp || 0);
+    if (!Number.isFinite(lastTs) || lastTs <= 0) {
+      return blockWindowSeconds;
+    }
+
+    const elapsedSec = Math.max(0, Math.floor((Date.now() - lastTs) / 1000));
+    const intoWindow = elapsedSec % blockWindowSeconds;
+    if (elapsedSec > 0 && intoWindow === 0) {
+      return blockWindowSeconds;
+    }
+    const remaining = blockWindowSeconds - intoWindow;
+    return remaining > 0 ? remaining : blockWindowSeconds;
+  }
+
+  startBlockCountdown() {
+    this.stopBlockCountdown();
+
+    const heartbeatMs = this.getHeartbeatIntervalMs();
+    const blockWindowSeconds = Math.max(1, Math.round((2 * heartbeatMs) / 1000));
+    let seconds = this.getSecondsUntilNextBlockWindow(blockWindowSeconds);
+
+    const renderSeconds = () => {
+      const el = document.getElementById('faucet_countdown_seconds');
+      if (el) {
+        el.textContent = String(seconds);
+      }
+    };
+
+    renderSeconds();
+
+    this.claimCountdownIntervalId = setInterval(() => {
+      seconds -= 1;
+      if (seconds <= 0) {
+        seconds = blockWindowSeconds;
+      }
+      renderSeconds();
+    }, 1000);
+  }
+
+  stopBlockCountdown() {
+    if (this.claimCountdownIntervalId) {
+      clearInterval(this.claimCountdownIntervalId);
+      this.claimCountdownIntervalId = null;
+    }
   }
 
   closeFaucetOverlay() {
+    this.autoClaimPending = false;
     this.clearClaimMonitoring();
     if (document.querySelector('.saito-overlay #faucet-request-container')) {
       this.overlay.close();
@@ -460,21 +653,7 @@ We never post on your behalf.`,
         if (btn.disabled) {
           return;
         }
-
-        this.setFaucetState('pending');
-        this.startClaimMonitoring();
-
-        try {
-          let tx = await this.createFaucetTransaction();
-          this.app.network.propagateTransaction(tx);
-          this.claimMonitorPhase =
-            'Faucet request sent. Waiting for the transaction to be confirmed...';
-          this.updateClaimProgress(this.claimMonitorPhase);
-        } catch (err) {
-          console.error('FAUCET: failed to create/propagate request', err);
-          this.clearClaimMonitoring();
-          this.setFaucetState('timeout');
-        }
+        await this.submitFaucetClaim();
       };
     }
 
@@ -493,6 +672,35 @@ We never post on your behalf.`,
         // timeout / other — exit claim overlay only
         this.closeFaucetOverlay();
       };
+    }
+  }
+
+  /**
+   * Create and propagate the real faucet request transaction.
+   * Shared by manual Claim click and OAuth auto-submit.
+   */
+  async submitFaucetClaim() {
+    this.autoClaimPending = false;
+    this.setFaucetState('pending');
+    this.startClaimMonitoring();
+
+    // DEV UI TEST — remove after faucet UI testing
+    // Skip real request tx; after 10s invoke the existing success UI path.
+    if (this.dev_mode) {
+      this.startDevUiSuccessTimer();
+      return;
+    }
+
+    try {
+      let tx = await this.createFaucetTransaction();
+      this.app.network.propagateTransaction(tx);
+      this.claimMonitorPhase =
+        'Faucet request sent. Waiting for the transaction to be confirmed...';
+      this.updateClaimProgress(this.claimMonitorPhase);
+    } catch (err) {
+      console.error('FAUCET: failed to create/propagate request', err);
+      this.clearClaimMonitoring();
+      this.setFaucetState('timeout');
     }
   }
 
@@ -865,7 +1073,7 @@ We never post on your behalf.`,
 
   /**
    * Browser receives off-chain peer messages here.
-   * Temporary OAuth callback test: prove HTTP → server → peer → browser.
+   * OAuth success bridges into the existing Faucet claim overlay (no alert).
    */
   async handlePeerTransaction(app, tx = null, peer, mycallback = null) {
     if (tx == null) {
@@ -882,11 +1090,17 @@ We never post on your behalf.`,
     if (txmsg?.request === 'faucet-oauth-result') {
       if (this.app.BROWSER) {
         const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
-        const publickey = String(data.publickey || '').trim();
-        alert(
-          'SAITO Faucet OAuth callback received successfully!' +
-            (publickey ? `\n\nPublic Key: ${publickey}` : '')
-        );
+        const alreadyIssued = !!data.already_issued;
+
+        if (alreadyIssued) {
+          // Stay on Get SAITO; replace green card with already-issued notice.
+          this.showAlreadyIssuedOnGetSaito();
+          return 1;
+        }
+
+        // Registration succeeded → close Get SAITO registration UI, open claim overlay.
+        this.dismissGetSaitoRegistrationUi();
+        this.openFaucetOverlay({ autoClaim: true });
         return 1;
       }
       return 0;
@@ -909,10 +1123,99 @@ We never post on your behalf.`,
     return null;
   }
 
+  /**
+   * TEMP OAUTH CONFIG — runtime client secret for token exchange.
+   * Prefer these in-memory values; do not log or return them.
+   */
+  getOAuthClientSecret(provider = '') {
+    const id = String(provider || '')
+      .trim()
+      .toLowerCase();
+    if (id === 'github') {
+      return this.oauth_secret_github || null;
+    }
+    if (id === 'twitter' || id === 'x') {
+      return this.oauth_secret_twitter || null;
+    }
+    return null;
+  }
+
+  /** TEMP OAUTH CONFIG — constant-time compare for the config gate key. */
+  oauthConfigKeyMatches(submitted = '') {
+    const expected = String(this.oauth_config_key || '');
+    const got = String(submitted || '');
+    if (!expected || got.length !== expected.length) {
+      return false;
+    }
+    try {
+      return crypto.timingSafeEqual(Buffer.from(got), Buffer.from(expected));
+    } catch (err) {
+      return false;
+    }
+  }
+
   webServer(app, expressapp, express) {
     let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     let faucet_self = this;
     const slug = encodeURI(this.returnSlug());
+
+    // BEGIN TEMP_OAUTH_CONFIG — browser form to set in-memory OAuth client secrets.
+    // Protect with oauth_config_key. Never echo secrets. Remove with constructor block.
+    const renderOAuthConfigPage = (opts = {}) =>
+      OAuthConfigTemplate({
+        githubConfigured: !!faucet_self.oauth_secret_github,
+        twitterConfigured: !!faucet_self.oauth_secret_twitter,
+        ...opts
+      });
+
+    expressapp.get(`/${slug}/oauth/config`, (req, res) => {
+      if (res.finished) {
+        return;
+      }
+      res.setHeader('Content-type', 'text/html; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.send(renderOAuthConfigPage());
+    });
+
+    expressapp.post(`/${slug}/oauth/config`, (req, res) => {
+      if (res.finished) {
+        return;
+      }
+
+      res.setHeader('Content-type', 'text/html; charset=UTF-8');
+      res.setHeader('Cache-Control', 'no-store');
+
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const configKey = String(body.config_key || '');
+      if (!faucet_self.oauthConfigKeyMatches(configKey)) {
+        res.status(403);
+        return res.send(
+          renderOAuthConfigPage({
+            error: 'Invalid config key. Secrets were not updated.'
+          })
+        );
+      }
+
+      // Only overwrite when a non-empty value is submitted (partial updates).
+      const githubSecret = String(body.github_secret || '');
+      const twitterSecret = String(body.twitter_secret || '');
+      if (githubSecret) {
+        faucet_self.oauth_secret_github = githubSecret;
+      }
+      if (twitterSecret) {
+        faucet_self.oauth_secret_twitter = twitterSecret;
+      }
+
+      console.log(
+        'FAUCET OAUTH CONFIG: updated — GitHub:',
+        faucet_self.oauth_secret_github ? 'configured' : 'not set',
+        '| X:',
+        faucet_self.oauth_secret_twitter ? 'configured' : 'not set'
+      );
+
+      return res.send(renderOAuthConfigPage({ saved: true }));
+    });
+    // END TEMP_OAUTH_CONFIG
 
     // Plain HTML OAuth initiation page — must NOT load Saito.
     // Register before the /faucet Saito app route and static assets.
@@ -981,9 +1284,21 @@ We never post on your behalf.`,
 
         console.log('FAUCET OAUTH: FOUND PEER ' + peer.publicKey);
 
-        // Registration lookup only — real OAuth verification / createRegistration
-        // will be wired when provider callbacks are implemented.
-        const registration = await faucet_self.getRegistration(publickey);
+        // Look up / create registration so the subsequent claim path can issue.
+        // Real OAuth verification still belongs to the provider integration task;
+        // this test callback only ensures a registration row exists when needed.
+        let registration = await faucet_self.getRegistration(publickey);
+        if (!registration) {
+          registration = await faucet_self.createRegistration({
+            publickey,
+            provider: 'github',
+            provider_user_id: `oauth-test:${publickey}`,
+            provider_username: '',
+            provider_display_name: '',
+            authenticated_at: Date.now()
+          });
+        }
+
         const issuance_status = registration?.issuance_status || null;
         const already_issued = issuance_status === 'issued';
 

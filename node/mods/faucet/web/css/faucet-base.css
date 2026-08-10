@@ -39,7 +39,9 @@
 -----------------------------------------------------------------*/
 
 .saito-overlay:has(> .faucet-acquisition) {
-  width: min(96vw, 96rem);
+  width: 96vw;
+  height: 96vh;
+  max-width: 96vw;
   max-height: 96vh;
 }
 
@@ -50,7 +52,8 @@
   justify-content: center;
   gap: 1.6rem;
   text-align: center;
-  min-height: min(90vh, 80rem);
+  min-height: 96vh;
+  height: 100%;
   width: 100%;
   padding: 4rem 3rem;
   box-sizing: border-box;
@@ -105,6 +108,7 @@
   margin: 0;
   max-width: 48rem;
   white-space: pre-line;
+  color: var(--saito-muted-foreground);
 }
 
 .faucet-acquisition-amount {
@@ -119,6 +123,29 @@
   margin: 0;
   max-width: 48rem;
   opacity: 0.85;
+}
+
+.faucet-acquisition-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.faucet-acquisition-timer .timer-label,
+.faucet-acquisition-timer .timer-unit {
+  font-size: 1.3rem;
+  line-height: 1.3;
+  opacity: 0.75;
+  text-transform: lowercase;
+}
+
+.faucet-acquisition-timer .countdown {
+  font-size: 3.2rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .faucet-acquisition-actions {
@@ -147,19 +174,57 @@
   display: none;
 }
 
+/*
+ * Pending: hide Close via display:none — setting the HTML `hidden` attribute alone
+ * fails because `.saito-button-secondary { display: inline-flex }` overrides `[hidden]`.
+ */
+#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-visual,
 #faucet-request-container[data-faucet-state='pending'] #faucet_success_icon,
 #faucet-request-container[data-faucet-state='pending'] #faucet_error_icon,
+#faucet-request-container[data-faucet-state='pending'] #faucet_spinner,
 #faucet-request-container[data-faucet-state='pending'] #faucet-button,
 #faucet-request-container[data-faucet-state='pending'] #faucet-close-btn,
-#faucet-request-container[data-faucet-state='pending'] #faucet_amount {
+#faucet-request-container[data-faucet-state='pending'] #faucet_amount,
+#faucet-request-container[data-faucet-state='pending'] #faucet_progress,
+#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-actions {
   display: none;
+}
+
+#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-title {
+  color: var(--saito-green);
+}
+
+#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-timer .countdown {
+  color: var(--saito-green);
+}
+
+#faucet-request-container[data-faucet-state='pending'] {
+  background: color-mix(in srgb, var(--saito-green) 5%, var(--saito-background));
+}
+
+#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-timer {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid color-mix(in srgb, var(--saito-green) 28%, var(--saito-border));
+  width: min(100%, 36rem);
 }
 
 #faucet-request-container[data-faucet-state='success'] #faucet_spinner,
 #faucet-request-container[data-faucet-state='success'] #faucet_error_icon,
 #faucet-request-container[data-faucet-state='success'] #faucet-button,
-#faucet-request-container[data-faucet-state='success'] #faucet_progress {
+#faucet-request-container[data-faucet-state='success'] #faucet_amount,
+#faucet-request-container[data-faucet-state='success'] #faucet_progress,
+#faucet-request-container[data-faucet-state='success'] .faucet-acquisition-timer {
   display: none;
+}
+
+#faucet-request-container[data-faucet-state='success'] .faucet-acquisition-title {
+  color: var(--saito-primary);
+}
+
+/* Keep the instruction sentence on one line at normal desktop widths. */
+#faucet-request-container[data-faucet-state='success'] .faucet-acquisition-message {
+  max-width: min(100%, 64rem);
 }
 
 #faucet-request-container[data-faucet-state='timeout'] #faucet_spinner,

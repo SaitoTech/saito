@@ -40,7 +40,10 @@ class SaitoPurchaseOverlay {
      */
     this.acquisition_stage = 'default';
     this.stage1_html = null;
+    this.stage1_footer_html = null;
     this.acquisition_options = [];
+    /** When true, replace green Faucet card with already-issued notice. */
+    this.faucet_already_issued = false;
 
     /**
      * Events (in reverse order):
@@ -259,25 +262,45 @@ class SaitoPurchaseOverlay {
 
     if (!options.length) {
       container.innerHTML = '';
+      this.updatePurchaseMethodHeading(false);
       return;
     }
 
-    container.innerHTML =
-      options
-        .map((opt, index) => {
-          const title = opt.title || opt.text || '';
-          const description = opt.description || '';
-          const icon = opt.icon || '';
-          const iconHtml = icon ? `<i class="${icon}" aria-hidden="true"></i>` : '';
-          const optionClass = [
-            'buysaito-option',
-            opt.option_class || '',
-            opt.id === 'faucet' ? 'buysaito-option-faucet' : ''
-          ]
-            .filter(Boolean)
-            .join(' ');
-          const optionId = opt.id ? ` data-buysaito-option-id="${opt.id}"` : '';
-          return `
+    if (this.faucet_already_issued) {
+      container.innerHTML = `
+      <div class="buysaito-option buysaito-option-faucet-issued" role="status">
+        <div class="buysaito-option-icon">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        </div>
+        <div class="buysaito-option-copy">
+          <div class="buysaito-option-title">Faucet allocation already received</div>
+          <div class="buysaito-option-description">
+            This Saito public key has already received its one-time SAITO allocation from the network faucet.
+            You can continue with purchase options below, or close this window and return to your previous action.
+          </div>
+        </div>
+      </div>
+    `;
+      // Issued notice replaces the green Faucet card — use the default payment heading.
+      this.updatePurchaseMethodHeading(false);
+      return;
+    }
+
+    container.innerHTML = options
+      .map((opt, index) => {
+        const title = opt.title || opt.text || '';
+        const description = opt.description || '';
+        const icon = opt.icon || '';
+        const iconHtml = icon ? `<i class="${icon}" aria-hidden="true"></i>` : '';
+        const optionClass = [
+          'buysaito-option',
+          opt.option_class || '',
+          opt.id === 'faucet' ? 'buysaito-option-faucet' : ''
+        ]
+          .filter(Boolean)
+          .join(' ');
+        const optionId = opt.id ? ` data-buysaito-option-id="${opt.id}"` : '';
+        return `
             <button type="button" class="${optionClass}" data-buysaito-option="${index}"${optionId}>
               <div class="buysaito-option-icon">${iconHtml}</div>
               <div class="buysaito-option-copy">
@@ -286,8 +309,11 @@ class SaitoPurchaseOverlay {
               </div>
             </button>
           `;
-        })
-        .join('') + `<div class="buysaito-options-separator" role="separator"></div>`;
+      })
+      .join('');
+
+    const showFaucetOption = options.some((opt) => opt.id === 'faucet');
+    this.updatePurchaseMethodHeading(showFaucetOption);
 
     container.querySelectorAll('[data-buysaito-option]').forEach((el) => {
       el.onclick = (e) => {
@@ -312,6 +338,59 @@ class SaitoPurchaseOverlay {
   }
 
   /**
+   * Stage 1 crypto-list heading: default "CHOOSE PAYMENT METHOD", or
+   * "OR PURCHASE DIRECTLY" when the green Faucet option card is present.
+   */
+  updatePurchaseMethodHeading(showFaucetOption = false) {
+    const purchaseContainer = document.getElementById('purchase-container');
+    const msg = document.querySelector('#buysaito-stage .purchase-select-crypto-msg');
+
+    purchaseContainer?.classList.toggle('has-faucet-option', !!showFaucetOption);
+
+    if (msg) {
+      msg.textContent = showFaucetOption ? 'OR PURCHASE DIRECTLY' : 'CHOOSE PAYMENT METHOD';
+    }
+  }
+
+  /**
+   * Replace the green Faucet intro card with a neutral/orange notice that this
+   * public key has already received its one-time faucet allocation.
+   * Keeps Get SAITO open; does not open the Faucet claim overlay.
+   */
+  showFaucetAlreadyIssuedNotice() {
+    this.faucet_already_issued = true;
+
+    // Restore Stage 1 purchase/fallback content under the notice.
+    if (this.acquisition_stage !== 'default' && this.stage1_html != null) {
+      const stageEl = document.getElementById('buysaito-stage');
+      if (stageEl) {
+        stageEl.innerHTML = this.stage1_html;
+      }
+      this.acquisition_stage = 'default';
+      this.stage1_html = null;
+    }
+
+    const footer = document.querySelector('#purchase-container .buysaito-footer-note');
+    if (footer && this.stage1_footer_html != null) {
+      footer.classList.remove('buysaito-footer-nav');
+      footer.innerHTML = this.stage1_footer_html;
+      this.stage1_footer_html = null;
+    }
+    document
+      .getElementById('purchase-container')
+      ?.classList.remove('buysaito-stage-faucet-auth');
+
+    this.attachEvents();
+  }
+
+  /**
+   * True when the Get SAITO purchase overlay is currently visible.
+   */
+  isPurchaseOverlayOpen() {
+    return !!(this.active && this.overlay && document.querySelector('#purchase-container'));
+  }
+
+  /**
    * Replace only `#buysaito-stage` content. Keeps the GET SAITO shell,
    * options strip (Faucet card), separator, and overlay geometry intact.
    */
@@ -333,6 +412,25 @@ class SaitoPurchaseOverlay {
           ? opt.providers
           : this.defaultFaucetAuthProviders();
       stageEl.innerHTML = SaitoPurchaseFaucetAuthTemplate(providers);
+      document
+        .getElementById('purchase-container')
+        ?.classList.add('buysaito-stage-faucet-auth');
+
+      // Host back-nav in the same footer slot as the migration note (main-screen height/rhythm).
+      const footer = document.querySelector('#purchase-container .buysaito-footer-note');
+      if (footer) {
+        this.stage1_footer_html = footer.innerHTML;
+        footer.classList.add('buysaito-footer-nav');
+        footer.innerHTML = `
+          <button type="button" class="saito-button-square" data-buysaito-stage-back aria-label="Return to purchase options">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="buysaito-stage-nav-label" data-buysaito-stage-back>
+            Return to purchase options
+          </button>
+        `;
+      }
+
       this.attachFaucetAuthStageEvents(opt);
       return;
     }
@@ -348,12 +446,12 @@ class SaitoPurchaseOverlay {
   }
 
   attachFaucetAuthStageEvents(opt = null) {
-    const stageEl = document.getElementById('buysaito-stage');
-    if (!stageEl) {
+    const root = document.getElementById('purchase-container');
+    if (!root) {
       return;
     }
 
-    stageEl.querySelectorAll('[data-buysaito-auth-provider]').forEach((btn) => {
+    root.querySelectorAll('[data-buysaito-auth-provider]').forEach((btn) => {
       btn.onclick = (e) => {
         e.preventDefault();
         const providerId = btn.getAttribute('data-buysaito-auth-provider');
@@ -368,13 +466,12 @@ class SaitoPurchaseOverlay {
       };
     });
 
-    const back = stageEl.querySelector('[data-buysaito-stage-back]');
-    if (back) {
+    root.querySelectorAll('[data-buysaito-stage-back]').forEach((back) => {
       back.onclick = (e) => {
         e.preventDefault();
         this.exitAcquisitionStage();
       };
-    }
+    });
   }
 
   /**
@@ -383,6 +480,17 @@ class SaitoPurchaseOverlay {
    */
   exitAcquisitionStage() {
     const stageEl = document.getElementById('buysaito-stage');
+    document
+      .getElementById('purchase-container')
+      ?.classList.remove('buysaito-stage-faucet-auth');
+
+    const footer = document.querySelector('#purchase-container .buysaito-footer-note');
+    if (footer && this.stage1_footer_html != null) {
+      footer.classList.remove('buysaito-footer-nav');
+      footer.innerHTML = this.stage1_footer_html;
+      this.stage1_footer_html = null;
+    }
+
     if (!stageEl || this.stage1_html == null) {
       this.acquisition_stage = 'default';
       this.stage1_html = null;
@@ -722,7 +830,12 @@ class SaitoPurchaseOverlay {
     this.deposit_confirmed_by_user = false;
     this.acquisition_stage = 'default';
     this.stage1_html = null;
+    this.stage1_footer_html = null;
     this.acquisition_options = [];
+    this.faucet_already_issued = false;
+    document
+      .getElementById('purchase-container')
+      ?.classList.remove('buysaito-stage-faucet-auth', 'has-faucet-option');
 
     clearTimeout(this.timer);
     this.timer = null;

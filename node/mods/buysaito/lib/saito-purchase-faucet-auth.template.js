@@ -1,6 +1,7 @@
 /**
  * In-overlay Faucet authentication stage for BuySaito.
  * Rendered into #buysaito-stage — does not create a SaitoOverlay.
+ * Back navigation lives in `.buysaito-footer-note` (same footer slot as migration text).
  */
 module.exports = (providers = []) => {
   const actions = providers
@@ -10,27 +11,20 @@ module.exports = (providers = []) => {
       const icon = String(provider.icon || '');
       const iconHtml = icon ? `<i class="${icon}" aria-hidden="true"></i>` : '';
       return `
-        <button type="button" class="saito-button-primary" data-buysaito-auth-provider="${id}">
+        <button type="button" class="saito-button-secondary buysaito-auth-provider" data-buysaito-auth-provider="${id}">
           ${iconHtml}
-          Continue with ${name}
+          <span>Continue with ${name}</span>
         </button>`;
     })
     .join('');
 
   return `
     <div class="buysaito-faucet-auth">
-      <h3 class="buysaito-faucet-auth-title">Verify Your Account</h3>
       <p class="buysaito-faucet-auth-message">
-        To receive free SAITO from the faucet, please verify an existing online account.
-        This helps us prevent automated abuse and reserve faucet tokens for real users and developers.
+        The SAITO Faucet exists to help new users try the advanced features of the network. Registration requires a GitHub or Twitter account that is at least six months old.
       </p>
       <div class="buysaito-faucet-auth-actions">
         ${actions}
-      </div>
-      <div class="buysaito-stage-nav">
-        <button type="button" class="buysaito-stage-back" data-buysaito-stage-back>
-          ← Back
-        </button>
       </div>
     </div>
   `;
