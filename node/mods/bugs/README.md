@@ -61,7 +61,7 @@ No RedSquare text, image, or reply body is stored. Reply count and last activity
 
 ## Authority policy
 
-All checks flow through `lib/policy.js`. A node accepts creation from a configured maintainer, administrator, or allowed adder. Unless `require_maintainer_for_add` is true, open creation is allowed. Updates and re-tracking are accepted from the key that added the bug, a maintainer/administrator, or the verified RedSquare reporter. Reporter authority is granted only when RedSquare's capability resolves the source transaction and confirms its author.
+All checks flow through `lib/policy.js`. A node accepts creation from a configured maintainer, administrator, or allowed adder. Unless `require_maintainer_for_add` is true, open creation is allowed. Any user with a valid signing key can update or re-track an existing bug, regardless of who originally added or reported it.
 
 Node-local options:
 
@@ -77,7 +77,7 @@ Node-local options:
 }
 ```
 
-These are curation policy, not global consensus. The UI hides controls when its current view clearly lacks authority; the handler independently enforces the policy. On a service node, its module public key is the default administrator when no explicit administrator is configured. Browser wallets are never implicitly treated as node administrators.
+The node-local options apply only to creation. The UI exposes mutation controls to any wallet with a signing key, and the handler independently verifies every signed transaction. On a service node, its module public key is the default administrator when no explicit administrator is configured.
 
 ## Conflict policy
 
