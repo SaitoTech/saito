@@ -174,7 +174,20 @@ class Faucet extends ModTemplate {
    * Existing record → already registered. New record → browser auto-claims.
    */
   async acceptAuthenticatedIdentity(identity = {}) {
+    console.log(
+      '[Faucet] acceptAuthenticatedIdentity provider=' +
+        (identity.provider || '') +
+        ' provider_user_id=' +
+        (identity.provider_user_id || '') +
+        ' publickey=' +
+        (identity.publickey || '')
+    );
+
     const record = await this.db.getRecord(identity);
+    console.log(
+      '[Faucet] acceptAuthenticatedIdentity record=' +
+        (record ? 'found status=' + (record.issuance_status || '') : 'none')
+    );
 
     if (record) {
       let peer = await this.app.network.getPeer(identity.publickey);
@@ -184,6 +197,7 @@ class Faucet extends ModTemplate {
           (p) => p?.publicKey === identity.publickey && p?.status !== 'disconnected'
         );
       }
+      console.log('[Faucet] acceptAuthenticatedIdentity already registered — not issuing');
       if (peer?.publicKey) {
         await this.app.network.sendRequestAsTransaction(
           'faucet-oauth-result',
@@ -209,6 +223,7 @@ class Faucet extends ModTemplate {
     }
 
     if (!(await this.db.insertRecord(identity))) {
+      console.log('[Faucet] acceptAuthenticatedIdentity insert failed');
       return {
         status: 500,
         popup: {
@@ -226,7 +241,9 @@ class Faucet extends ModTemplate {
         (p) => p?.publicKey === identity.publickey && p?.status !== 'disconnected'
       );
     }
+    console.log('[Faucet] acceptAuthenticatedIdentity inserted — will issue after faucet request confirms');
     if (!peer?.publicKey) {
+      console.log('[Faucet] acceptAuthenticatedIdentity no connected peer for ' + identity.publickey);
       return {
         status: 200,
         popup: {
@@ -238,6 +255,7 @@ class Faucet extends ModTemplate {
       };
     }
 
+    console.log('[Faucet] acceptAuthenticatedIdentity notifying browser already_issued=false');
     await this.app.network.sendRequestAsTransaction(
       'faucet-oauth-result',
       {
@@ -292,16 +310,18 @@ class Faucet extends ModTemplate {
     }
 
     let receiver = tx.from[0].publicKey;
+    console.log('[Faucet] receiveFaucetClaimTransaction receiver=' + receiver);
 
     const began = await this.db.updateRecord(
       { publickey: receiver, issuance_status: 'eligible' },
       { issuance_status: 'pending' }
     );
     if (!began) {
-      console.log('FAUCET: refusing payout — no eligible registration for ' + receiver);
+      console.log('[Faucet] receiveFaucetClaimTransaction refused — no eligible registration for ' + receiver);
       return;
     }
 
+    console.log('[Faucet] receiveFaucetClaimTransaction queueing payment for ' + receiver);
     try {
       const newtx = await this.wallet.queuePayment({
         publickey: receiver
@@ -317,16 +337,20 @@ class Faucet extends ModTemplate {
         }
       );
 
+      console.log(
+        '[Faucet] receiveFaucetClaimTransaction payout queued/created signature=' +
+          (newtx?.signature || '')
+      );
       if (!completed) {
         console.error(
-          'FAUCET: issuance propagated but failed to mark registration issued for ' +
+          '[Faucet] issuance propagated but failed to mark registration issued for ' +
             receiver +
             ' sig=' +
             newtx.signature
         );
       }
     } catch (err) {
-      console.error('FAUCET: payout failed after pending claim; reverting to eligible', err);
+      console.error('[Faucet] payout failed after pending claim; reverting to eligible', err);
       await this.db.updateRecord(
         { publickey: receiver, issuance_status: 'pending' },
         { issuance_status: 'eligible' }
@@ -338,6 +362,10 @@ class Faucet extends ModTemplate {
     if (!this.app.BROWSER || !tx?.isTo(this.publicKey)) {
       return;
     }
+    console.log(
+      '[Faucet] receiveFaucetIssuanceTransaction telling waiting UI issuance completed signature=' +
+        (tx.signature || '')
+    );
     this.waiting_overlay.close();
     this.success_overlay.render({ tx });
   }
@@ -354,6 +382,9 @@ class Faucet extends ModTemplate {
     let txmsg = tx.returnMessage();
 
     if (txmsg.request === 'faucet request') {
+      console.log(
+        '[Faucet] onConfirmation faucet request from=' + (tx.from?.[0]?.publicKey || '')
+      );
       if (!this.app.BROWSER) {
         await this.receiveFaucetClaimTransaction(tx, blk);
       }
@@ -361,6 +392,12 @@ class Faucet extends ModTemplate {
     }
 
     if (txmsg.request === 'faucet issuance') {
+      console.log(
+        '[Faucet] onConfirmation faucet issuance to=' +
+          (tx.to || [])
+            .map((s) => s.publicKey + ':' + String(s.amount || ''))
+            .join(',')
+      );
       await this.receiveFaucetIssuanceTransaction(tx);
     }
   }
@@ -442,9 +479,14 @@ class Faucet extends ModTemplate {
       }
 
       try {
-        this.app.network.propagateTransaction(await this.createFaucetClaimTransaction());
+        const claim_tx = await this.createFaucetClaimTransaction();
+        console.log(
+          '[Faucet] faucet-oauth-result propagating faucet request signature=' +
+            (claim_tx?.signature || '')
+        );
+        this.app.network.propagateTransaction(claim_tx);
       } catch (err) {
-        console.error('FAUCET: failed to create/propagate request', err);
+        console.error('[Faucet] failed to create/propagate request', err);
         this.waiting_overlay.render({ timeout: true });
       }
       return 1;
