@@ -1048,7 +1048,7 @@ export default class Wallet extends SaitoWallet {
             } catch (err) {
               // it failed, delete the transaction
               this.deletePreferredCryptoTransaction(unique_hash);
-              rtnObj = { err };
+              rtnObj = { err: err instanceof Error ? err.message : String(err) };
             }
           } else {
             console.log(cryptomod.name);
@@ -1057,7 +1057,7 @@ export default class Wallet extends SaitoWallet {
           }
         }
       } catch (err) {
-        rtnObj = { err };
+        rtnObj = { err: err instanceof Error ? err.message : String(err) };
       }
     } else {
       rtnObj = { err: 'already sent' };

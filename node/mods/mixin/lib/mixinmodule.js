@@ -135,7 +135,7 @@ class MixinModule extends CryptoModule {
 	 * @abstract
 	 * @return {Number}
 	 */
-	async sendPayment(amount = '', recipient = '', unique_hash = '') {
+	async sendPayment(amount = '', recipient = '', unique_hash = '', memo = '') {
 		let r = recipient.split('|');
 
 		let internal_transfer = false;
@@ -158,11 +158,12 @@ class MixinModule extends CryptoModule {
 		if (internal_transfer == false) {
 			await this.mixin.sendFetchUserByAddressTransaction(
 				{
-					address: recipient
+					address: recipient,
+					asset_id: this.asset_id
 				},
-				function (res) {
+				(res) => {
 					console.info('Cross network callback complete');
-					if (res?.user_id) {
+					if (res?.user_id && res.asset_id === this.asset_id) {
 						internal_transfer = true;
 						destination = res.user_id;
 					}
@@ -172,17 +173,29 @@ class MixinModule extends CryptoModule {
 
 		// internal mixin transfer
 		if (internal_transfer) {
-			res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, destination, amount);
+			res = await this.mixin.sendInNetworkTransferRequest(
+				this.asset_id,
+				destination,
+				amount,
+				memo
+			);
 		} else {
 			// address is external, send external withdrawl request
-			res = await this.mixin.sendExternalNetworkTransferRequest(this.asset_id, destination, amount);
+			res = await this.mixin.sendExternalNetworkTransferRequest(
+				this.asset_id,
+				destination,
+				amount,
+				memo
+			);
 		}
 
-		if (res.status == 200) {
+		if (res?.status == 200) {
+			if (Number.isFinite(res.pending_balance)) {
+				this.pending_balance = res.pending_balance;
+			}
 			return unique_hash;
 		} else {
-			throw new Error('MixinModule: ' + res.message);
-			return '';
+			throw new Error('MixinModule: ' + (res?.message || 'payment failed'));
 		}
 	}
 
@@ -332,7 +345,8 @@ class MixinModule extends CryptoModule {
 		let user_data = null;
 		await this.mixin.sendFetchUserByAddressTransaction(
 			{
-				address: recipient
+				address: recipient,
+				asset_id: this.asset_id
 			},
 			function (res) {
 				user_data = res;
@@ -342,7 +356,7 @@ class MixinModule extends CryptoModule {
 		//
 		// return 0 fee if in-network address, or estimate if external
 		//
-		if (typeof user_data.user_id != 'undefined') {
+		if (user_data?.user_id && user_data.asset_id === this.asset_id) {
 			return mycallback(0);
 		} else {
 			let fee = await this.mixin.returnWithdrawalFee(this.asset_id, recipient);

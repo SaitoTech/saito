@@ -221,7 +221,7 @@ class Withdraw {
             [amount],
             btoa(sender + address + amount + ts),
             async function (res) {
-              if (res.hash != '') {
+              if (res?.hash && !res?.err) {
                 setTimeout(function () {
                   if (document.querySelector('.confirm-msg')) {
                     document.querySelector('.confirm-msg').innerHTML =

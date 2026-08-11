@@ -1,5 +1,11 @@
 const saito = require('./../../lib/saito/saito');
 const MixinModule = require('./lib/mixinmodule');
+const {
+  calculatePendingBalance,
+  createMixinCredentials,
+  createMixinMemo,
+  formatMixinError
+} = require('./lib/mixin-helpers');
 const ModTemplate = require('../../lib/templates/modtemplate');
 const fetch = require('node-fetch');
 const axios = require('axios');
@@ -166,8 +172,8 @@ class Mixin extends ModTemplate {
     //
     // returnHistory
     //
-    if (message.request === 'mixin fetch address by user id by asset_id') {
-      return await this.receiveFetchAddressByUserIdByAssetIdTransaction(app, tx, peer, mycallback);
+    if (message.request === 'mixin fetch address by user id') {
+      return await this.receiveFetchAddressByUserIdTransaction(app, tx, peer, mycallback);
     }
 
     //
@@ -389,7 +395,7 @@ class Mixin extends ModTemplate {
       'mixin create account',
       data,
       callback,
-      mixin_self.mixin_peer?.peerIndex
+      mixin_self.mixin_peer?.publicKey
     );
   }
 
@@ -549,7 +555,7 @@ class Mixin extends ModTemplate {
               function (res) {
                 console.log('Callback for sendSaveUserTransaction request: ', res);
               },
-              this.mixin_peer?.peerIndex
+              this.mixin_peer?.publicKey
             );
           }
         }
@@ -809,26 +815,18 @@ class Mixin extends ModTemplate {
     }
   }
 
-  async sendInNetworkTransferRequest(asset_id, destination, amount, alt_keys = null) {
+  async sendInNetworkTransferRequest(asset_id, destination, amount, memo = '', alt_keys = null) {
     try {
-      let spend_private_key = this.mixin.spend_private_key;
-      let keystore = {
-        app_id: this.mixin.user_id,
-        session_id: this.mixin.session_id,
-        pin_token_base64: this.mixin.tip_key_base64,
-        session_private_key: this.mixin.session_seed
-      };
-
-      if (alt_keys) {
-        keystore = {
-          app_id: alt_keys.user_id,
-          session_id: alt_keys.session_id,
-          pin_token_base64: alt_keys.pin_token_base64,
-          session_private_key: alt_keys.session_private_key
-        };
+      // Preserve the existing alternate-account call signature used by BuySaito.
+      if (memo && typeof memo === 'object' && !Buffer.isBuffer(memo)) {
+        alt_keys = memo;
+        memo = '';
       }
 
-      let client = MixinApi({ keystore });
+      const { keystore, spend_private_key, user_id } = createMixinCredentials(
+        alt_keys || this.mixin
+      );
+      const client = MixinApi({ keystore });
 
       // destination
       const members = [destination];
@@ -837,14 +835,14 @@ class Mixin extends ModTemplate {
 
       // get unspent utxos
       const outputs = await client.utxo.safeOutputs({
-        members: [this.mixin.user_id],
+        members: [user_id],
         threshold: 1,
         asset: asset_id,
         state: 'unspent'
       });
       console.log('outputs: ', outputs);
       const balance = await client.utxo.safeAssetBalance({
-        members: [this.mixin.user_id],
+        members: [user_id],
         threshold: 1,
         asset: asset_id,
         state: 'unspent'
@@ -871,9 +869,16 @@ class Mixin extends ModTemplate {
       console.log('ghosts: ', ghosts);
 
       // build safe transaction raw
-      const tx = buildSafeTransaction(utxos, recipients, ghosts, 'test-memo');
+      const tx = buildSafeTransaction(utxos, recipients, ghosts, createMixinMemo(memo));
       console.log('tx: ', tx);
-      const raw = encodeSafeTransaction(tx);
+      let raw;
+      try {
+        raw = encodeSafeTransaction(tx);
+      } catch (err) {
+        throw new Error(
+          `Unable to encode Mixin Safe transaction (${tx.inputs.length} input(s), ${tx.outputs.length} output(s), asset ${tx.asset}): ${formatMixinError(err)}`
+        );
+      }
       console.log('raw: ', raw);
 
       // verify safe transaction
@@ -896,22 +901,27 @@ class Mixin extends ModTemplate {
       ]);
 
       console.log('sendedTx: ', sendedTx);
-      return { status: 200, message: sendedTx };
+      return {
+        status: 200,
+        message: sendedTx,
+        pending_balance: calculatePendingBalance(balance, amount)
+      };
     } catch (err) {
-      return { status: 400, message: err };
+      const message = formatMixinError(err);
+      console.error('Mixin internal transfer failed:', message);
+      return { status: 400, message };
     }
   }
 
-  async sendExternalNetworkTransferRequest(asset_id, destination, amount) {
+  async sendExternalNetworkTransferRequest(asset_id, destination, amount, memo = '') {
     try {
-      let spend_private_key = this.mixin.spend_private_key;
-      let user = MixinApi({
-        keystore: {
-          app_id: this.mixin.user_id,
-          session_id: this.mixin.session_id,
-          pin_token_base64: this.mixin.tip_key_base64,
-          session_private_key: this.mixin.session_seed
-        }
+      const { keystore, spend_private_key, user_id } = createMixinCredentials(this.mixin);
+      const user = MixinApi({ keystore });
+      const balance = await user.utxo.safeAssetBalance({
+        members: [user_id],
+        threshold: 1,
+        asset: asset_id,
+        state: 'unspent'
       });
 
       const asset = await user.safe.fetchAsset(asset_id);
@@ -921,6 +931,9 @@ class Mixin extends ModTemplate {
       const assetFee = fees.find((f) => f.asset_id === asset.asset_id);
       const chainFee = fees.find((f) => f.asset_id === chain.asset_id);
       const fee = assetFee ?? chainFee;
+      if (!fee?.asset_id || fee.amount == null) {
+        throw new Error(`No withdrawal fee available for ${asset_id}`);
+      }
       console.log('fee', fee);
 
       // withdrawal with chain asset as fee
@@ -956,15 +969,10 @@ class Mixin extends ModTemplate {
 
         // get ghost key to send tx
         const txId = v4();
-        const ghosts = await client.utxo.ghostKey(recipients, txId, spend_private_key);
+        const ghosts = await user.utxo.ghostKey(recipients, txId, spend_private_key);
 
-        // spare the 0 inedx for withdrawal output, withdrawal output doesnt need ghost key
-        const tx = buildSafeTransaction(
-          utxos,
-          recipients,
-          [undefined, ...ghosts],
-          'withdrawal-memo'
-        );
+        // ghostKey already leaves the withdrawal entry undefined and index-aligned.
+        const tx = buildSafeTransaction(utxos, recipients, ghosts, createMixinMemo(memo));
         console.log('tx: ', tx);
         const raw = encodeSafeTransaction(tx);
         const ref = blake3Hash(Buffer.from(raw, 'hex')).toString('hex');
@@ -988,12 +996,12 @@ class Mixin extends ModTemplate {
           );
         }
         const feeId = v4();
-        const feeGhosts = await client.utxo.ghostKey(feeRecipients, feeId, spendPrivateKey);
+        const feeGhosts = await user.utxo.ghostKey(feeRecipients, feeId, spend_private_key);
         const feeTx = buildSafeTransaction(
           feeUtxos,
           feeRecipients,
           feeGhosts,
-          'withdrawal-fee-memo',
+          createMixinMemo(),
           [ref]
         );
         console.log('feeTx: ', feeTx);
@@ -1026,7 +1034,11 @@ class Mixin extends ModTemplate {
         ]);
 
         console.log('res: ', res);
-        return { status: 200, message: res };
+        return {
+          status: 200,
+          message: res,
+          pending_balance: calculatePendingBalance(balance, amount)
+        };
       } else {
         // withdrawal with asset as fee
         const outputs = await user.utxo.safeOutputs({
@@ -1058,17 +1070,9 @@ class Mixin extends ModTemplate {
 
         console.log('mixin checkpoint');
 
-        // the index of ghost keys must be the same with the index of outputs
-        // but withdrawal output doesnt need ghost key, so index + 1
         const request_id = v4();
-        const ghosts = await client.utxo.ghostKey(recipients, request_id, spendPrivateKey);
-        // spare the 0 inedx for withdrawal output, withdrawal output doesnt need ghost key
-        const tx = buildSafeTransaction(
-          utxos,
-          recipients,
-          [undefined, ...ghosts],
-          'withdrawal-memo'
-        );
+        const ghosts = await user.utxo.ghostKey(recipients, request_id, spend_private_key);
+        const tx = buildSafeTransaction(utxos, recipients, ghosts, createMixinMemo(memo));
         console.log('tx: ', tx);
         const raw = encodeSafeTransaction(tx);
 
@@ -1088,10 +1092,16 @@ class Mixin extends ModTemplate {
           }
         ]);
         console.log('res: ', res);
-        return { status: 200, message: res };
+        return {
+          status: 200,
+          message: res,
+          pending_balance: calculatePendingBalance(balance, amount, fee.amount)
+        };
       }
     } catch (err) {
-      return { status: 400, message: err };
+      const message = formatMixinError(err);
+      console.error('Mixin external transfer failed:', message);
+      return { status: 400, message };
     }
   }
 
@@ -1167,27 +1177,33 @@ class Mixin extends ModTemplate {
       data,
       function (res) {
         console.log('Callback for sendFetchUserByAddressTransaction request: ', res);
-        return callback(res);
+        return callback?.(res);
       },
-      this.mixin_peer?.peerIndex
+      this.mixin_peer?.publicKey
     );
   }
 
   async receiveFetchUserByAddressTransaction(app, tx, peer, callback = null) {
     let message = tx.returnMessage();
     let address = message.data.address;
-    let sql = `SELECT * FROM mixin_users 
-               WHERE address = $address;`;
+    let asset_id = message.data.asset_id;
+    if (!address || !asset_id) {
+      return callback?.(false);
+    }
+    let sql = `SELECT * FROM mixin_users
+               WHERE address = $address AND asset_id = $asset_id
+               ORDER BY created_at DESC;`;
     let params = {
-      $address: address
+      $address: address,
+      $asset_id: asset_id
     };
 
     let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
     if (result.length > 0) {
-      return callback(result[0]);
+      return callback?.(result[0]);
     }
 
-    return callback(false);
+    return callback?.(false);
   }
 
   // Get MixinAddress -> returnAddressFromPublicKey
@@ -1196,7 +1212,7 @@ class Mixin extends ModTemplate {
       'mixin fetch user by publickey by asset_id',
       params,
       callback,
-      this.mixin_peer?.peerIndex
+      this.mixin_peer?.publicKey
     );
   }
 
@@ -1220,7 +1236,7 @@ class Mixin extends ModTemplate {
 
   //Return History
   async sendFetchAddressByUserIdTransaction(asset_id, user_id) {
-    if (this.mixin_peer?.peerIndex) {
+    if (this.mixin_peer?.publicKey) {
       return await this.app.network.sendRequestAsTransaction(
         'mixin fetch address by user id',
         { asset_id, user_id },
@@ -1230,7 +1246,7 @@ class Mixin extends ModTemplate {
           }
           return null;
         },
-        this.mixin_peer.peerIndex
+        this.mixin_peer.publicKey
       );
     } else {
       return null;
