@@ -19,7 +19,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
       list.setAttribute('data-description', 'List this NFT for sale in the Saito Store.');
       const label = list.querySelector('.saito-nft-capability-label');
       if (label) {
-        label.textContent = 'List on Store';
+        label.textContent = 'Sell';
       }
     }
 

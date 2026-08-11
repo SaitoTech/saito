@@ -36,38 +36,10 @@ const BUILTIN_CAPABILITIES = [
   {
     id: 'list',
     icon: 'fa-solid fa-cart-shopping',
-    label: 'List on Store',
+    label: 'Sell',
     description: 'List this NFT for sale in the Saito Store.',
     className: 'sell-nft',
     visible: (ctx) => Boolean(ctx.app.modules?.returnFirstRespondTo?.('saito-sell-nft'))
-  },
-  {
-    id: 'enable',
-    icon: 'fa-solid fa-paintbrush',
-    label: 'Use as Theme',
-    description: 'Enable this NFT as a theme or script on your wallet.',
-    className: 'enable-nft',
-    visible: (ctx) => {
-      if (!(ctx.nft?.css || ctx.nft?.js)) {
-        return false;
-      }
-      const enabled = ctx.app.options?.permissions?.nfts || [];
-      return !enabled.includes(ctx.nft.tx_sig);
-    }
-  },
-  {
-    id: 'disable',
-    icon: 'fa-solid fa-ban',
-    label: 'Disable Theme',
-    description: 'Disable this NFT theme or script on your wallet.',
-    className: 'disable-nft',
-    visible: (ctx) => {
-      if (!(ctx.nft?.css || ctx.nft?.js)) {
-        return false;
-      }
-      const enabled = ctx.app.options?.permissions?.nfts || [];
-      return enabled.includes(ctx.nft.tx_sig);
-    }
   },
   {
     id: 'download',
@@ -133,6 +105,34 @@ const BUILTIN_CAPABILITIES = [
         p.classList.add('saito-nft-mode-info');
         p.classList.remove('saito-nft-mode-send');
       }
+    }
+  },
+  {
+    id: 'enable',
+    icon: 'fa-solid fa-toggle-on',
+    label: 'Enable',
+    description: 'Enable this NFT as a theme or script on your wallet.',
+    className: 'enable-nft',
+    visible: (ctx) => {
+      if (!(ctx.nft?.css || ctx.nft?.js)) {
+        return false;
+      }
+      const enabled = ctx.app.options?.permissions?.nfts || [];
+      return !enabled.includes(ctx.nft.tx_sig);
+    }
+  },
+  {
+    id: 'disable',
+    icon: 'fa-solid fa-toggle-off',
+    label: 'Disable',
+    description: 'Disable this NFT theme or script on your wallet.',
+    className: 'disable-nft',
+    visible: (ctx) => {
+      if (!(ctx.nft?.css || ctx.nft?.js)) {
+        return false;
+      }
+      const enabled = ctx.app.options?.permissions?.nfts || [];
+      return enabled.includes(ctx.nft.tx_sig);
     }
   }
 ];
@@ -209,7 +209,7 @@ class NFTCapabilities {
         return `
         <button
           type="button"
-          class="saito-nft-capability${actionClass}"
+          class="saito-nft-capability saito-large-square-button saito-glass${actionClass}"
           data-capability="${cap.id}"
           data-description="${String(cap.description || cap.label).replace(/"/g, '&quot;')}"
           aria-label="${cap.label}"

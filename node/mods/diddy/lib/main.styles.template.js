@@ -174,7 +174,7 @@ module.exports = () => {
         display: none !important;
     }
 
-    .wallet-btn * {
+    #saito-header .saito-large-square-button * {
       color: black;
     }
 

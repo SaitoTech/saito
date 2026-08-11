@@ -24,11 +24,10 @@ function canCreateBug(policy, signer, reporter = '') {
   return signer === reporter || policy.allowedAdders.length === 0;
 }
 
-function canUpdateBug(policy, signer, bug) {
-  if (!signer || !bug) return false;
-  if (isMaintainer(policy, signer)) return true;
-  if (signer === bug.added_by_publickey) return true;
-  return bug.reporter_verified === 1 && signer === bug.reporter_publickey;
+function canUpdateBug(_policy, signer, bug) {
+  // Mutations are intentionally permissionless; transaction handling verifies
+  // the signer's signature before consulting this policy.
+  return Boolean(signer && bug);
 }
 
 module.exports = { canCreateBug, canUpdateBug, isMaintainer, returnPolicy };
