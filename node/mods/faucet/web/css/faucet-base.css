@@ -1,6 +1,4 @@
-/* ----------------------------------------------------------------
-   Standalone /faucet page shell
------------------------------------------------------------------*/
+/* Standalone /faucet page shell. */
 
 .faucet-main {
   background-image: url(/saito/img/tiled-logo.svg);
@@ -13,241 +11,20 @@
   justify-content: center;
 }
 
-.footer-note {
-  text-align: center;
-  margin-top: 2rem;
-  font-size: 1.4rem;
-  line-height: 2rem;
-  opacity: 0.8;
-}
-
-/* ----------------------------------------------------------------
-   Arcade embed trigger (.get-saito-tokens)
------------------------------------------------------------------*/
-
-.saito-faucet-button {
-  font-size: 2.4rem;
-  min-width: 60px;
-}
-
-.get-saito-tokens {
-  display: flex;
-}
-
-/* ----------------------------------------------------------------
-   Acquisition overlay — nearly full-page claim experience
------------------------------------------------------------------*/
-
-.saito-overlay:has(> .faucet-acquisition) {
-  width: 96vw;
-  height: 96vh;
-  max-width: 96vw;
-  max-height: 96vh;
-}
-
-.faucet-acquisition {
+.faucet-home {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 1.6rem;
   text-align: center;
-  min-height: 96vh;
-  height: 100%;
-  width: 100%;
   padding: 4rem 3rem;
-  box-sizing: border-box;
-  background: var(--saito-background);
 }
 
-.faucet-acquisition.faucet-page {
-  min-height: min(90vh, 80rem);
-  width: min(96vw, 96rem);
-  max-width: 96rem;
-  border: 1px solid var(--saito-border);
-  border-radius: 1rem;
-  margin: 1rem;
-}
-
-.faucet-acquisition-visual {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 12rem;
-}
-
-.faucet-acquisition-visual .spinner {
-  max-width: 10rem;
-  width: 10rem;
-  height: 10rem;
-}
-
-.faucet-acquisition-icon {
-  font-size: 8rem;
-  line-height: 1;
-}
-
-.faucet-success-icon {
-  color: var(--saito-primary);
-}
-
-.faucet-error-icon {
-  color: var(--saito-red, #c44);
-}
-
-.faucet-acquisition-title {
-  font-size: clamp(2.4rem, 4vw, 4rem);
-  line-height: 1.2;
+.faucet-home .inactive-message {
   margin: 0;
   max-width: 40rem;
-}
-
-.faucet-acquisition-message {
-  font-size: clamp(1.6rem, 2.2vw, 2rem);
+  font-size: 1.6rem;
   line-height: 1.5;
-  margin: 0;
-  max-width: 48rem;
-  white-space: pre-line;
   color: var(--saito-muted-foreground);
-}
-
-.faucet-acquisition-amount {
-  font-size: clamp(2.4rem, 3vw, 3.2rem);
-  font-weight: 600;
-  margin: 0.4rem 0 0;
-}
-
-.faucet-acquisition-progress {
-  font-size: 1.5rem;
-  line-height: 1.4;
-  margin: 0;
-  max-width: 48rem;
-  opacity: 0.85;
-}
-
-.faucet-acquisition-timer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
-}
-
-.faucet-acquisition-timer .timer-label,
-.faucet-acquisition-timer .timer-unit {
-  font-size: 1.3rem;
-  line-height: 1.3;
-  opacity: 0.75;
-  text-transform: lowercase;
-}
-
-.faucet-acquisition-timer .countdown {
-  font-size: 3.2rem;
-  font-weight: 600;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-
-.faucet-acquisition-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-  width: 100%;
-  max-width: 36rem;
-  margin-top: 1.2rem;
-  align-items: stretch;
-}
-
-.faucet-acquisition-actions .saito-button-primary,
-.faucet-acquisition-actions .saito-button-secondary {
-  width: 100%;
-}
-
-/* ----------------------------------------------------------------
-   Shared faucet state machine (visibility)
------------------------------------------------------------------*/
-
-#faucet-request-container[data-faucet-state='eligible'] #faucet_spinner,
-#faucet-request-container[data-faucet-state='eligible'] #faucet_error_icon,
-#faucet-request-container[data-faucet-state='eligible'] #faucet-close-btn,
-#faucet-request-container[data-faucet-state='eligible'] #faucet_progress {
-  display: none;
-}
-
-/*
- * Pending: hide Close via display:none — setting the HTML `hidden` attribute alone
- * fails because `.saito-button-secondary { display: inline-flex }` overrides `[hidden]`.
- */
-#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-visual,
-#faucet-request-container[data-faucet-state='pending'] #faucet_success_icon,
-#faucet-request-container[data-faucet-state='pending'] #faucet_error_icon,
-#faucet-request-container[data-faucet-state='pending'] #faucet_spinner,
-#faucet-request-container[data-faucet-state='pending'] #faucet-button,
-#faucet-request-container[data-faucet-state='pending'] #faucet-close-btn,
-#faucet-request-container[data-faucet-state='pending'] #faucet_amount,
-#faucet-request-container[data-faucet-state='pending'] #faucet_progress,
-#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-actions {
-  display: none;
-}
-
-#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-title {
-  color: var(--saito-green);
-}
-
-#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-timer .countdown {
-  color: var(--saito-green);
-}
-
-#faucet-request-container[data-faucet-state='pending'] {
-  background: color-mix(in srgb, var(--saito-green) 5%, var(--saito-background));
-}
-
-#faucet-request-container[data-faucet-state='pending'] .faucet-acquisition-timer {
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid color-mix(in srgb, var(--saito-green) 28%, var(--saito-border));
-  width: min(100%, 36rem);
-}
-
-#faucet-request-container[data-faucet-state='success'] #faucet_spinner,
-#faucet-request-container[data-faucet-state='success'] #faucet_error_icon,
-#faucet-request-container[data-faucet-state='success'] #faucet-button,
-#faucet-request-container[data-faucet-state='success'] #faucet_amount,
-#faucet-request-container[data-faucet-state='success'] #faucet_progress,
-#faucet-request-container[data-faucet-state='success'] .faucet-acquisition-timer {
-  display: none;
-}
-
-#faucet-request-container[data-faucet-state='success'] .faucet-acquisition-title {
-  color: var(--saito-primary);
-}
-
-/* Keep the instruction sentence on one line at normal desktop widths. */
-#faucet-request-container[data-faucet-state='success'] .faucet-acquisition-message {
-  max-width: min(100%, 64rem);
-}
-
-#faucet-request-container[data-faucet-state='timeout'] #faucet_spinner,
-#faucet-request-container[data-faucet-state='timeout'] #faucet_success_icon,
-#faucet-request-container[data-faucet-state='timeout'] #faucet-button,
-#faucet-request-container[data-faucet-state='timeout'] #faucet_amount,
-#faucet-request-container[data-faucet-state='timeout'] #faucet_progress {
-  display: none;
-}
-
-@media screen and (max-width: 600px) {
-  .faucet-acquisition {
-    padding: 2rem 1.2rem;
-    min-height: 85vh;
-  }
-
-  .faucet-acquisition.faucet-page {
-    border: none;
-    margin: 0;
-    border-radius: 0;
-  }
-
-  .faucet-acquisition-icon {
-    font-size: 6rem;
-  }
 }

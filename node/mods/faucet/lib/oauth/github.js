@@ -1,16 +1,23 @@
 /**
- * GitHub OAuth helpers for Faucet (authorization-code exchange + profile).
- * Does not touch registration, peer notify, or issuance.
+ * GitHub OAuth protocol. Authenticates GitHub credentials.
+ * Does not touch Faucet records, payments, or peer notify.
  */
 
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 const GITHUB_USER_URL = 'https://api.github.com/user';
 
-/**
- * @param {Date|string|number} createdAt
- * @param {number} [now]
- */
-function isAccountAtLeastSixMonthsOld(createdAt, now = Date.now()) {
+function authError(code, httpStatus, title, message, extra = {}) {
+  const err = new Error(message);
+  err.code = code;
+  err.httpStatus = httpStatus;
+  err.title = title;
+  err.popupMessage = message;
+  Object.assign(err, extra);
+  return err;
+}
+
+function isAccountValid(createdAt, now = Date.now()) {
+  // Current validity criterion: GitHub account must be at least six months old.
   const created = createdAt instanceof Date ? createdAt : new Date(createdAt);
   if (Number.isNaN(created.getTime())) {
     return false;
@@ -20,10 +27,6 @@ function isAccountAtLeastSixMonthsOld(createdAt, now = Date.now()) {
   return now >= eligibleAt.getTime();
 }
 
-/**
- * Exchange authorization code for access token.
- * Does not log the token.
- */
 async function exchangeGithubCode({ clientId, clientSecret, code, redirectUri }) {
   const body = new URLSearchParams();
   body.set('client_id', clientId);
@@ -55,9 +58,6 @@ async function exchangeGithubCode({ clientId, clientSecret, code, redirectUri })
   };
 }
 
-/**
- * Fetch authenticated GitHub user profile (includes created_at).
- */
 async function fetchGithubUser(accessToken) {
   const res = await fetch(GITHUB_USER_URL, {
     method: 'GET',
@@ -85,10 +85,55 @@ async function fetchGithubUser(accessToken) {
   };
 }
 
+/**
+ * Authenticate GitHub credentials (authorization code).
+ * Performs GitHub token exchange, profile lookup, and GitHub-specific
+ * account checks. Returns a provider identity. Does not touch Faucet state.
+ */
+async function authenticateCredentials({ code, clientId, clientSecret, redirectUri }) {
+  const token = await exchangeGithubCode({
+    clientId,
+    clientSecret,
+    code,
+    redirectUri
+  });
+
+  const user = await fetchGithubUser(token.access_token);
+  token.access_token = '';
+
+  if (!user.created_at || !isAccountValid(user.created_at)) {
+    throw authError(
+      'github_account_too_new',
+      403,
+      'GitHub account not eligible',
+      'Registration requires a GitHub account that is at least six months old.',
+      {
+        details: user.login ? `Account: ${user.login}` : '',
+        login: user.login,
+        created_at: user.created_at
+      }
+    );
+  }
+
+  const provider_user_id = String(user.id || '').trim();
+  if (!provider_user_id) {
+    throw authError(
+      'github_missing_user_id',
+      502,
+      'GitHub verification failed',
+      'GitHub profile did not include a stable user id.'
+    );
+  }
+
+  return {
+    provider: 'github',
+    provider_user_id,
+    provider_username: String(user.login || ''),
+    provider_display_name: String(user.name || user.login || ''),
+    provider_account_created_at: Date.parse(user.created_at) || 0
+  };
+}
+
 module.exports = {
-  GITHUB_TOKEN_URL,
-  GITHUB_USER_URL,
-  isAccountAtLeastSixMonthsOld,
-  exchangeGithubCode,
-  fetchGithubUser
+  authenticateCredentials
 };

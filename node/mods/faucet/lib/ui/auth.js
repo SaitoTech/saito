@@ -160,64 +160,50 @@ We never post on your behalf.`
     }
 
     if (provider.id === 'github') {
-      this.openGithubOAuthPopup();
+      if (typeof window === 'undefined' || typeof window.open !== 'function') {
+        this.finish({
+          status: AUTH_STATUS.ERROR,
+          provider: 'github',
+          identity: null,
+          error: 'Browser cannot open an OAuth window'
+        });
+        return;
+      }
+
+      const slug =
+        typeof this.mod?.returnSlug === 'function' ? this.mod.returnSlug() : 'faucet';
+      const oauthUrl = new URL(`/${encodeURI(slug)}/oauth/github`, window.location.origin);
+      const publickey = String(this.mod?.publicKey || '').trim();
+      if (publickey) {
+        oauthUrl.searchParams.set('publickey', publickey);
+      }
+
+      const popup = window.open(
+        oauthUrl.toString(),
+        'saito_faucet_oauth_github',
+        'popup=yes,width=560,height=720,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes'
+      );
+      if (!popup) {
+        siteMessage('Please allow popups to continue with GitHub authentication.', 4000);
+      }
       return;
     }
 
-    // Stub for providers without an OAuth initiation route yet.
-    this.finish({
-      status: AUTH_STATUS.SUCCESS,
-      provider: provider.id,
-      identity: Auth.emptyIdentity(provider.id),
-      error: null
-    });
-    this.overlay.close();
+    if (provider.id === 'twitter') {
+      siteMessage('X authentication will be available soon.', 3000);
+      return;
+    }
+
+    siteMessage('That authentication provider is not available yet.', 3000);
   }
 
   /**
-   * Open a separate browser window to the Faucet GitHub OAuth initiation page.
-   * Must be called synchronously from the button click handler (popup blockers).
-   * Does not close BuySaito or the Auth overlay.
-   * Passes the current wallet public key so the server can bind it into signed OAuth state.
+   * Close without treating it as user cancel (null callback first).
    */
-  openGithubOAuthPopup() {
-    if (typeof window === 'undefined' || typeof window.open !== 'function') {
-      this.finish({
-        status: AUTH_STATUS.ERROR,
-        provider: 'github',
-        identity: null,
-        error: 'Browser cannot open an OAuth window'
-      });
-      return;
-    }
-
-    const path =
-      typeof this.mod?.returnOAuthInitiatePath === 'function'
-        ? this.mod.returnOAuthInitiatePath('github')
-        : '/faucet/oauth/github';
-
-    if (!path) {
-      this.finish({
-        status: AUTH_STATUS.ERROR,
-        provider: 'github',
-        identity: null,
-        error: 'GitHub OAuth initiation path is not available'
-      });
-      return;
-    }
-
-    const publickey = String(this.mod?.publicKey || '').trim();
-    const oauthUrl = new URL(path, window.location.origin);
-    if (publickey) {
-      oauthUrl.searchParams.set('publickey', publickey);
-    }
-
-    const features =
-      'popup=yes,width=560,height=720,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes';
-
-    const popup = window.open(oauthUrl.toString(), 'saito_faucet_oauth_github', features);
-    if (!popup) {
-      siteMessage('Please allow popups to continue with GitHub authentication.', 4000);
+  close() {
+    this.callback = null;
+    if (this.overlay) {
+      this.overlay.close();
     }
   }
 
@@ -247,18 +233,6 @@ We never post on your behalf.`
       identity: result.identity ?? null,
       error: result.error ?? null
     });
-  }
-
-  static emptyIdentity(providerId = null) {
-    return {
-      provider: providerId,
-      provider_id: null,
-      username: null,
-      display_name: null,
-      email: null,
-      avatar: null,
-      metadata: {}
-    };
   }
 }
 
