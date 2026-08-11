@@ -505,9 +505,12 @@ class MixinModule extends CryptoModule {
    * @abstract
    * @return {Number}
    */
-  async sendPayment(amount = '', recipient = '', unique_hash = '') {
-    let internal_transfer = false;
+  async sendPayment(amount = '', recipient = '', unique_hash = '', memo = '') {
     let destination = await this.processAddress(recipient);
+
+    if (typeof destination !== 'string' || !destination) {
+      throw new Error(`MixinModule: unable to resolve destination for ${this.ticker}`);
+    }
 
     let r = destination.split('|');
 
@@ -520,23 +523,32 @@ class MixinModule extends CryptoModule {
     //
     if (r.length >= 2) {
       if (r[2] === 'mixin') {
-        res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, r[1], amount);
+        res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, r[1], amount, memo);
       }
     } else if (this.validateAddress(destination)) {
       //
       // address is external, send external withdrawl request
       //
-      res = await this.mixin.sendExternalNetworkTransferRequest(this.asset_id, destination, amount);
+      res = await this.mixin.sendExternalNetworkTransferRequest(
+        this.asset_id,
+        destination,
+        amount,
+        memo
+      );
     } else {
-      throw new Error(`MixinModule: invalid address for ${this.ticker} -- `, destination);
+      throw new Error(`MixinModule: invalid address for ${this.ticker} -- ${destination}`);
     }
 
     if (res.status == 200) {
       // Safe UTXO balance lags after send; cache expected post-send balance and
       // pre-send snapshot until fetchBalance / checkForRecentTransactions confirm.
-      this.pending_balance = Number(res.pending.toFixed(8));
-      if (!this.last_balance) {
-        this.last_balance = this.balance;
+      if (Number.isFinite(res.pending)) {
+        this.pending_balance = Number(res.pending.toFixed(8));
+        if (!this.last_balance) {
+          this.last_balance = this.balance;
+        }
+      } else {
+        console.warn('MixinModule: transfer completed without a valid pending balance');
       }
 
       if (res.message?.length) {
@@ -544,8 +556,7 @@ class MixinModule extends CryptoModule {
       }
       return unique_hash;
     } else {
-      throw new Error('MixinModule: ' + res.message);
-      return '';
+      throw new Error(`MixinModule: ${res.message || 'payment failed'}`);
     }
   }
 
@@ -713,7 +724,7 @@ class MixinModule extends CryptoModule {
           },
           (res) => {
             if (res?.length) {
-              let user_data = res[0];
+              const user_data = res.find((entry) => entry.asset_id === this.asset_id);
               if (user_data?.publickey && user_data.user_id) {
                 destination += '|' + user_data.user_id + '|mixin';
                 // Cache return values
