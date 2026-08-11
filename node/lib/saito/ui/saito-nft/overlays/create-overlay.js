@@ -76,7 +76,11 @@ class CreateNFT {
 
     if (this.defaults?.image) {
       this.image = this.defaults.image;
-      this.addImage(this.defaults.image);
+      if (this.supportsThumbnail()) {
+        this.renderThumbnail();
+      } else {
+        this.addImage(this.defaults.image);
+      }
     }
 
     //
@@ -114,6 +118,38 @@ class CreateNFT {
       }
     }
     return null;
+  }
+
+  supportsThumbnail() {
+    return ['text', 'json', 'css', 'js'].includes(this.nft_type);
+  }
+
+  renderThumbnail() {
+    const picker = document.querySelector('.create-nft-thumbnail-picker');
+    if (!picker) {
+      return;
+    }
+
+    picker.style.display = this.supportsThumbnail() ? 'flex' : 'none';
+    picker.replaceChildren();
+
+    if (this.image) {
+      const image = document.createElement('img');
+      image.src = this.image;
+      image.alt = 'NFT thumbnail';
+      picker.appendChild(image);
+      picker.classList.add('has-image');
+      picker.setAttribute('aria-label', 'Replace thumbnail');
+      picker.title = 'Replace thumbnail';
+      return;
+    }
+
+    const label = document.createElement('span');
+    label.textContent = 'add thumbnail';
+    picker.appendChild(label);
+    picker.classList.remove('has-image');
+    picker.setAttribute('aria-label', 'add thumbnail');
+    picker.removeAttribute('title');
   }
 
   apply_upload_presentation(modobj = null) {
@@ -255,6 +291,13 @@ class CreateNFT {
       }
       obj.image = this.image;
       processed = true;
+    }
+
+    if (this.image && this.supportsThumbnail()) {
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+        obj = { value: obj };
+      }
+      obj.image = this.image;
     }
 
     return obj;
@@ -404,6 +447,22 @@ class CreateNFT {
           return;
         }
 
+        if (this.supportsThumbnail()) {
+          if (!file || !this.isImageDataUri(file)) {
+            salert('Select a valid image for the NFT thumbnail');
+            return;
+          }
+
+          try {
+            this.image = await this.app.browser.resizeImg(file, 128, { w: 512, h: 512 });
+            this.renderThumbnail();
+          } catch (err) {
+            console.error('CreateNFT: thumbnail resize failed', err);
+            salert('Unable to process the selected thumbnail');
+          }
+          return;
+        }
+
         if (this.image) {
           salert('NFT Image Editing not allowed, refresh to restart...');
           return;
@@ -415,6 +474,20 @@ class CreateNFT {
       },
       true
     );
+
+    const thumbnailPicker = document.querySelector('.create-nft-thumbnail-picker');
+    if (thumbnailPicker) {
+      thumbnailPicker.onclick = () => {
+        const input = document.querySelector('#hidden_file_element_nft-image-upload');
+        if (!input) {
+          return;
+        }
+        input.accept = 'image/*';
+        input.multiple = false;
+        input.value = '';
+        input.click();
+      };
+    }
 
     // NFT Type
     document.querySelector('#create-nft-type-dropdown').onchange = async (e) => {
@@ -490,7 +563,9 @@ class CreateNFT {
         }
       }
 
-      if (this.image && uploadEl) {
+      this.renderThumbnail();
+
+      if (this.image && uploadEl && !this.supportsThumbnail()) {
         this.addImage(this.image);
       }
     };

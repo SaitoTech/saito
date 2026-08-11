@@ -270,6 +270,72 @@ span.saito-anchor {
   cursor: default;
 }
 
+.saito-large-square-button {
+  display: flex;
+  cursor: pointer;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  aspect-ratio: 1;
+  padding: 0.85rem 0.35rem 0.7rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card-wash);
+  color: var(--saito-secondary-foreground);
+  font-size: 1.25rem;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.saito-large-square-button > .saito-icon-button {
+  width: auto;
+  height: auto;
+  min-width: 2.2rem;
+  min-height: 2.2rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  pointer-events: none;
+}
+
+.saito-large-square-button > span {
+  pointer-events: none;
+}
+
+.saito-large-square-button > .saito-icon-button i {
+  font-size: 1.85rem;
+}
+
+.saito-large-square-button:hover {
+  background: var(--saito-primary);
+  border-color: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+}
+
+@media screen and (min-width: 769px) {
+  html:not(.game) .saito-large-square-button {
+    gap: 0.35rem;
+    padding: 0.7rem 0.3rem 0.6rem;
+    font-size: 1.1rem;
+  }
+
+  html:not(.game) .saito-large-square-button > .saito-icon-button {
+    min-width: 1.85rem;
+    min-height: 1.85rem;
+  }
+
+  html:not(.game) .saito-large-square-button > .saito-icon-button i {
+    font-size: 1.55rem;
+  }
+}
+
 @media (max-width: 600px) {
   .saito-button-secondary {
     min-width: 10rem;

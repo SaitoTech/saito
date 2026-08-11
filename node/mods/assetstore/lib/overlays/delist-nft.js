@@ -35,7 +35,7 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
       const toolbar = document.querySelector('.saito-nft-capabilities');
       toolbar?.insertAdjacentHTML(
         'beforeend',
-        `<button type="button" class="saito-nft-capability enable-nft" data-capability="share" data-description="Share a link to this listing." aria-label="Share" aria-pressed="false"><i class="fa-solid fa-link" aria-hidden="true"></i><span class="saito-nft-capability-label">Share</span></button>`
+        `<button type="button" class="saito-nft-capability saito-large-square-button saito-glass enable-nft" data-capability="share" data-description="Share a link to this listing." aria-label="Share" aria-pressed="false"><i class="fa-solid fa-link" aria-hidden="true"></i><span class="saito-nft-capability-label">Share</span></button>`
       );
     }
   }

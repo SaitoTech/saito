@@ -28,7 +28,7 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
       if (toolbar) {
         toolbar.insertAdjacentHTML(
           'beforeend',
-          `<button type="button" class="saito-nft-capability enable-nft" data-capability="buy" data-description="Purchase this NFT with SAITO." aria-label="Buy" aria-pressed="false"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="saito-nft-capability-label">Buy</span></button>`
+          `<button type="button" class="saito-nft-capability saito-large-square-button saito-glass enable-nft" data-capability="buy" data-description="Purchase this NFT with SAITO." aria-label="Buy" aria-pressed="false"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="saito-nft-capability-label">Buy</span></button>`
         );
         buy_with_saito_btn = document.querySelector('.saito-nft-capability.enable-nft');
       }
