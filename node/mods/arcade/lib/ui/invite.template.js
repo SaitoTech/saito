@@ -3,14 +3,27 @@ module.exports = (app, mod, invite) => {
     invite.target && invite.players[invite.target - 1] == mod.publicKey ? ' my-turn' : '';
   let invite_img = `/${invite.game_slug}/img/arcade/arcade-banner-background.png`;
 
+  let badge = '';
+  if (invite_class) {
+    badge = `<div class="badge">your turn</div>`;
+  }
+  if (invite.winner) {
+    if (invite.winner.includes(mod.publicKey)) {
+      badge = `<div class="badge">you won</div>`;
+    } else {
+      badge = `<div class="badge">you lost</div>`;
+    }
+  }
+
   let html = `
     <div class="invite arcade-invite${invite_class}" id="arcade-invite-${invite.game_id}"
          style="background-image: url('${invite_img}');">
       <div class="header">
         <div class="title">${invite.game_name}</div>
-        <div class="details">${invite.game_type.toUpperCase()}</div>
       </div>
       <div class="actions">
+        <div class="details">${invite.game_type.toUpperCase()}</div>
+        ${badge}
         <div class="players">
   `;
 
@@ -29,7 +42,7 @@ module.exports = (app, mod, invite) => {
       continue;
     }
     html += `
-          <div class="saito-identicon-box pending">
+          <div class="pending">
             <img class="saito-module-identicon saito-identicon" id="${pkey}"
                  src="${app.keychain.returnIdenticon(pkey)}">
           </div>`;
@@ -50,20 +63,8 @@ module.exports = (app, mod, invite) => {
 
   html += `
         </div>
-      </div>`;
-
-  if (invite_class) {
-    html += `<div class="badge">your turn</div>`;
-  }
-  if (invite.winner) {
-    if (invite.winner.includes(mod.publicKey)) {
-      html += `<div class="badge">you won</div>`;
-    } else {
-      html += `<div class="badge">you lost</div>`;
-    }
-  }
-
-  html += `</div>`;
+      </div>
+    </div>`;
 
   return html;
 };

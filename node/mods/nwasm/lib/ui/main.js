@@ -387,6 +387,10 @@ class NwasmMain {
     // Used by LoadEmulator when a different ROM requires a cold Module reload.
     this.mod.launch_sig = sig;
 
+    try {
+      sessionStorage.removeItem('nwasm-launched-from-arcade');
+    } catch (_) {}
+
     if (card) {
       card.classList.add('loading');
       card.setAttribute('aria-busy', 'true');

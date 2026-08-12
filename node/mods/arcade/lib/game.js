@@ -35,12 +35,7 @@ class Game {
     }
 
     if (this.game_mod?.teaser === true || this.game_mod?.is_teaser === true) {
-      let ok = confirm(
-        'Do you want to install this game? This will take you to the app download site:'
-      );
-      if (ok && this.link) {
-        navigateWindow(this.link, 300);
-      }
+      this.app.connection.emit('arcade-teaser-install-render-request', { game: this });
       return;
     }
 

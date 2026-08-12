@@ -7,16 +7,6 @@ function escapeHtml(value = '') {
     .replace(/'/g, '&#39;');
 }
 
-const playPromptTemplate = (title = 'N64 game') => {
-  let safe = escapeHtml(title);
-  return `
-    <div class="nwasm-arcade-play saito-overlay-panel">
-      <div class="title">${safe}</div>
-      <button type="button" class="saito-button-primary fat play-confirmed">Play</button>
-    </div>
-  `;
-};
-
 module.exports = (app, mod, games = []) => {
   let rows = games
     .map((game) => {
@@ -39,20 +29,15 @@ module.exports = (app, mod, games = []) => {
   if (!games.length) {
     installed_body = `
       <div class="empty">
-        <p>You do not currently have any N64 games installed or available.</p>
-        <p>Upload a ROM you have access to.</p>
+        <p>NWASM lets you play legally owned N64 games on Saito, and share and trade saved games and more.</p>
+        <p>Upload a ROM to which you have legal access.</p>
+        <p>Looking for games? <a class="saito-text-link" href="/store">Visit the Saito Store</a>.</p>
       </div>
     `;
   } else {
     installed_body = `
       <div class="table-wrap">
         <table class="table">
-          <thead>
-            <tr>
-              <th scope="col">Game</th>
-              <th scope="col"><span class="visually-hidden">Launch</span></th>
-            </tr>
-          </thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -63,10 +48,7 @@ module.exports = (app, mod, games = []) => {
     <div class="nwasm-arcade-overlay">
       <div class="library">
         <section class="installed">
-          <div class="section-head">
-            <h2 class="section-title">Installed Games</h2>
-            <a class="saito-text-link store-link" href="/store">Saito Store</a>
-          </div>
+          <h2 class="section-title">It's Your Games</h2>
           ${installed_body}
         </section>
 
@@ -78,8 +60,7 @@ module.exports = (app, mod, games = []) => {
             role="button"
             tabindex="0"
             aria-label="Upload ROM file">
-            <div class="prompt">Drag ROM here</div>
-            <div class="hint">or click to browse · .z64 / .n64 / .v64</div>
+            <div class="prompt">Drag and drop a ROM to which you have legal access.</div>
             <div class="state" hidden>
               <div class="saito-spinner" aria-hidden="true"></div>
               <div class="status">Preparing upload…</div>
@@ -90,5 +71,3 @@ module.exports = (app, mod, games = []) => {
     </div>
   `;
 };
-
-module.exports.playPromptTemplate = playPromptTemplate;

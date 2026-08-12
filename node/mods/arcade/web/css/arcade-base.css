@@ -2,6 +2,7 @@
 
 body.arcade-body {
   font-size: 1.25rem;
+  --arcade-sidebar-width: minmax(16rem, 20rem);
 }
 
 body.arcade-body p {
@@ -17,11 +18,11 @@ body.arcade-body #saito-header.arcade {
 }
 
 /*
- * Arcade is immersive / full-viewport — NOT RedSquare's constrained reading width.
- * Gutters only; main column grows with the viewport.
+ * Three-column shell: left nav | game grid | right sidebar (invites + leaderboard).
+ * Side rails share one width token so the center column stays balanced.
  */
 body.arcade-body #saito-container.arcade-container {
-  grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+  grid-template-columns: var(--arcade-sidebar-width) minmax(0, 1fr) var(--arcade-sidebar-width);
   padding: 0 var(--saito-space-lg);
   column-gap: var(--saito-space-md);
   overflow: hidden;
@@ -34,12 +35,15 @@ body.arcade-body #saito-container.arcade-container > * {
 }
 
 @media (max-width: 1100px) {
+  body.arcade-body {
+    --arcade-sidebar-width: minmax(15rem, 18rem);
+  }
+
   body.arcade-body #saito-header.arcade {
     padding-inline: var(--saito-space-md);
   }
 
   body.arcade-body #saito-container.arcade-container {
-    grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
     padding: 0 var(--saito-space-md);
   }
 }
@@ -50,6 +54,7 @@ body.arcade-body #saito-container.arcade-container > * {
     padding: 0 var(--saito-space-md);
   }
 
+  body.arcade-body #saito-container.arcade-container > .arcade-sidebar-left,
   body.arcade-body #saito-container.arcade-container > .arcade-sidebar {
     display: none;
   }

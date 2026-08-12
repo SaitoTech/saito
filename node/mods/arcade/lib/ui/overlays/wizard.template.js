@@ -1,27 +1,31 @@
 module.exports = (game_mod, invite_obj = {}) => {
   let publicKey = invite_obj.publicKey || null;
   let img = game_mod.respondTo('arcade-games')?.image || '';
-  let title = game_mod.returnName();
-  let description = game_mod.description || '';
+  let title = invite_obj.rom_title || game_mod.returnName();
+  let description = invite_obj.rom_title ? game_mod.description || '' : game_mod.description || '';
+  let publisher = game_mod.publisher_message
+    ? `<div class="publisher"><span>NOTE:</span> ${game_mod.publisher_message}</div>`
+    : '';
 
   let html = `
     <form class="arcade-wizard saito-overlay-panel">
-      <div class="identity">
-        <div class="image">
-          <img class="thumbnail" src="${img}" alt="">
+      <div class="body">
+        <div class="art">
+          <img class="hero" src="${img}" alt="">
         </div>
-        <div class="details">
+        <div class="info">
           <div class="title">${title}</div>
           <div class="description">${description}</div>
+          ${publisher}
         </div>
         <input type="hidden" name="game" value="${game_mod.name}" />
-      </div>
-
-      <div class="controls">
         <div class="settings">
           ${game_mod.returnOptions()}
           <div id="arcade-advance-opt">
-            <div class="advanced-text saito-anchor">advanced options...</div>
+            <button type="button" class="advanced-btn" aria-label="Advanced options">
+              <i class="fa-solid fa-gear" aria-hidden="true"></i>
+              <span>Advanced</span>
+            </button>
           </div>
         </div>
         <div class="actions">
@@ -83,12 +87,7 @@ module.exports = (game_mod, invite_obj = {}) => {
   html += `
         </div>
       </div>
+    </form>
   `;
-
-  if (game_mod.publisher_message) {
-    html += `<div class="publisher"><span>NOTE:</span> ${game_mod.publisher_message}</div>`;
-  }
-
-  html += `</form>`;
   return html;
 };

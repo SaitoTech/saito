@@ -1,9 +1,5 @@
 /**
- * Arcade game-info overlay — game identity, description, optional leaderboard,
- * and primary create/play action.
- *
- * Replaces routing game-card clicks into the League overlay (Home/Activity tabs,
- * fixed-height empty panels, oversized typography in saito-league.css).
+ * Arcade game-info overlay — game artwork + leaderboard.
  * Ranking data still comes from League; Arcade owns presentation.
  */
 const ArcadeGameInfoTemplate = require('./game-info.template');
@@ -57,31 +53,19 @@ class ArcadeGameInfo {
   async render() {
     let image = '';
     try {
-      image = this.game_mod.respondTo('arcade-games')?.image || this.game_mod.img || '';
-    } catch (_) {
-      image = this.game_mod.img || '';
+      let pack = this.game_mod.respondTo('arcade-games') || {};
+      image = pack.banner || pack.image || '';
+    } catch (_) {}
+    if (!image) {
+      image = `/${this.game_mod.returnSlug()}/img/arcade/arcade-banner-background.png`;
     }
 
-    let description = this.league?.description || this.game_mod.description || '';
     let title = this.game_mod.returnName ? this.game_mod.returnName() : this.game_mod.name;
-    let subtitle = '';
-    if (this.game_mod.categories) {
-      subtitle = this.game_mod.categories.replace('Games ', '').split(' ').reverse().join(' ');
-    }
-
-    let cta = 'CREATE PUBLIC INVITE';
-    if (parseInt(this.game_mod.maxPlayers) === 1) {
-      cta = 'Play';
-    }
 
     this.overlay.show(
       ArcadeGameInfoTemplate({
         title,
-        subtitle,
-        description,
         image,
-        cta,
-        publisher: this.game_mod.publisher_message || '',
         hasLeaderboard: !!this.league
       })
     );
@@ -109,7 +93,6 @@ class ArcadeGameInfo {
       return;
     }
 
-    // Reuse League's Leaderboard component (data + ranking) — do not reimplement.
     let Leaderboard = require('../../../../league/lib/leaderboard');
     this.leaderboard = new Leaderboard(
       this.app,
@@ -121,27 +104,23 @@ class ArcadeGameInfo {
   }
 
   attachEvents() {
-    let root = document.querySelector('.arcade-game-info');
-    if (!root) {
+    let create_btn = document.querySelector('.arcade-game-info [data-action="create"]');
+    if (!create_btn) {
       return;
     }
 
-    let create_btn = root.querySelector('[data-action="create"]');
-    if (create_btn) {
-      create_btn.onclick = (e) => {
-        e.preventDefault();
-        this.overlay.remove();
+    create_btn.onclick = (e) => {
+      e.preventDefault();
+      this.overlay.remove();
 
-        let payload = { game: this.game_mod.name };
-        if (this.league?.admin) {
-          payload.league = this.league;
-        } else {
-          // Open leagues / default games: skip redundant wizard when possible
-          payload.skip = 1;
-        }
-        this.app.connection.emit('arcade-launch-game-wizard', payload);
-      };
-    }
+      let payload = { game: this.game_mod.name };
+      if (this.league?.admin) {
+        payload.league = this.league;
+      } else {
+        payload.skip = 1;
+      }
+      this.app.connection.emit('arcade-launch-game-wizard', payload);
+    };
   }
 }
 

@@ -48,7 +48,7 @@ class InviteManager {
       if (listGames.length > 0 && !this.game_filter) {
         let label = 'Games';
         if (list === 'mine') label = 'My Games';
-        else if (list === 'open') label = 'Open Invites';
+        else if (list === 'open') label = 'Open Games';
         else if (list === 'active') label = 'Active Matches';
         else if (list === 'over') label = 'Recent Matches';
         else label = `${list.charAt(0).toUpperCase() + list.slice(1)} Games`;
@@ -87,8 +87,46 @@ class InviteManager {
       }
     }
 
+    if (this.mod?.sudo && this.list === 'all') {
+      let offlineGames = this.mod
+        .returnGamesWithFilter({ is_sender_reachable: false })
+        .map((game) => game.tx);
+      if (offlineGames.length > 0 && !this.game_filter) {
+        this.app.browser.addElementToSelector(
+          `<h5 class="saito-sidebar-header">Offline</h5>`,
+          target
+        );
+      }
+      for (let i = 0; i < offlineGames.length && i < 15; i++) {
+        if (!this?.game_filter || this.game_filter == offlineGames[i].msg.game) {
+          let newInvite = new Invite(
+            this.app,
+            this.mod,
+            target,
+            this.type,
+            offlineGames[i],
+            this.mod.publicKey
+          );
+          if (this.app.modules.returnModuleByName(newInvite.invite_data.game_name)) {
+            if (newInvite.invite_data.league) {
+              if (!this.mod.leagueCallback?.testMembership(newInvite.invite_data.league)) {
+                continue;
+              }
+            }
+            newInvite.render();
+          }
+        }
+      }
+    }
+
     if (typeof this.mod.purge === 'function') {
       this.mod.purge();
+    }
+
+    let stack = document.querySelector(`${this.container} .sidebar-stack`);
+    let invites_el = document.querySelector(`${this.container} .arcade-invites`);
+    if (stack) {
+      stack.hidden = !invites_el || invites_el.children.length === 0;
     }
   }
 }

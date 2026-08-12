@@ -1,12 +1,14 @@
 const ArcadeMainTemplate = require('./main.template');
 const ArcadeSidebar = require('./sidebar');
 const ArcadeTeasers = require('./teasers');
+const ArcadeNav = require('./nav');
 
 class ArcadeMain {
   constructor(app, mod, container = 'body') {
     this.app = app;
     this.mod = mod;
     this.container = container;
+    this.nav = new ArcadeNav(app, mod, '.arcade-nav');
     this.sidebar = new ArcadeSidebar(app, mod, '.arcade-sidebar');
     this.teasers = new ArcadeTeasers(app, mod, '.teasers');
 
@@ -54,10 +56,10 @@ class ArcadeMain {
     }
 
     this.teasers.render();
+    this.nav.render();
     await this.sidebar.render();
     await this.app.modules.renderInto('.arcade-sidebar');
 
-    // Ensure Chat Manager paints after sidebar shell is ready.
     this.app.connection.emit('chat-manager-render-request');
 
     this.renderTeaserRanks();

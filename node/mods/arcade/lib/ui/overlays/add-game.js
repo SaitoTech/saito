@@ -194,19 +194,16 @@ class AddGameOverlay {
         btn.onclick = (e) => {
           e.preventDefault();
           let id = btn.getAttribute('data-id');
-          let href = btn.getAttribute('data-href') || '';
+          let game = (this.mod?.games || []).find((g) => g.name === id);
           this.app.connection.emit('arcade-add-game-select', { id: 'free-game', game: id });
-          if (href) {
-            let ok = confirm(
-              'Do you want to install this game? This will take you to the app download site:'
-            );
-            if (ok) {
-              this.close();
-              navigateWindow(href, 300);
-            }
-          } else {
-            siteMessage('No install link is available for this game.', 2500);
-          }
+          this.close();
+          this.app.connection.emit('arcade-teaser-install-render-request', {
+            game: game || null,
+            title: game?.title || id,
+            image: game?.image || '',
+            link: btn.getAttribute('data-href') || game?.link || '',
+            description: game?.game_mod?.description || ''
+          });
         };
       });
       return;

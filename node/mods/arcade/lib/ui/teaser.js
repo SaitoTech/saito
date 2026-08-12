@@ -37,6 +37,9 @@ class Teaser {
     let name = this.game?.name || '';
     let league_id = this.game?.league_id || '';
     let art_style = image ? ` style="background-image: url('${image}')"` : '';
+    let is_install =
+      this.game?.game_mod?.teaser === true || this.game?.game_mod?.is_teaser === true;
+    let install_label = is_install ? `<span class="install-label">INSTALL</span>` : '';
 
     return `
       <div role="button" tabindex="0"
@@ -45,7 +48,7 @@ class Teaser {
         data-league="${league_id}">
         <div class="art"${art_style} aria-hidden="true"></div>
         <div class="title"><span>${title}</span></div>
-        <div class="footer"></div>
+        <div class="footer">${install_label}</div>
       </div>
     `;
   }

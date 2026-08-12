@@ -25,18 +25,14 @@ class GameWizard {
           //
           // teasers
           //
-          if (game_mod.is_teaser) {
-            let c = confirm(
-              'Do you want to install this game? This will take you to the app download site:'
-            );
-            if (c) {
-              let link = game_mod.link;
-              if (link != '') {
-                navigateWindow(link, 300);
-                return;
-              }
-              return;
-            }
+          if (game_mod.is_teaser || game_mod.teaser === true) {
+            this.app.connection.emit('arcade-teaser-install-render-request', {
+              game_mod,
+              title: game_mod.returnName ? game_mod.returnName() : game_mod.name,
+              image: game_mod.img || '',
+              link: game_mod.link || '',
+              description: game_mod.description || ''
+            });
             return;
           }
 
@@ -86,9 +82,9 @@ class GameWizard {
     //Test if we should include Advanced Options
     let advancedOptions = this.game_mod.returnAdvancedOptions();
     if (!advancedOptions) {
-      let advanced_text = document.querySelector('.arcade-wizard .advanced-text');
-      if (advanced_text) {
-        advanced_text.style.visibility = 'hidden';
+      let advanced_btn = document.querySelector('.arcade-wizard .advanced-btn');
+      if (advanced_btn) {
+        advanced_btn.hidden = true;
       }
     } else {
       let accept_button = `<div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn saito-button-primary">Accept</div>`;
@@ -174,14 +170,12 @@ class GameWizard {
         document.addEventListener('click', this._invite_menu_closer, true);
 
         root.querySelectorAll('.invite-option').forEach((opt) => {
-          opt.onclick = (e) => {
+          opt.onclick = async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (primary) {
-              primary.textContent = opt.textContent.trim();
-              primary.setAttribute('data-type', opt.getAttribute('data-type'));
-            }
+            let gameType = opt.getAttribute('data-type');
             this.closeInviteMenu(invite_control);
+            await this.submitInvite(gameType);
           };
         });
       }
@@ -198,7 +192,7 @@ class GameWizard {
     //
     // Display Advanced Options Overlay
     //
-    const advancedOptionsToggle = root.querySelector('.advanced-text');
+    const advancedOptionsToggle = root.querySelector('.advanced-btn');
     if (advancedOptionsToggle) {
       advancedOptionsToggle.onclick = (e) => {
         this.meta_overlay.show();
@@ -244,6 +238,10 @@ class GameWizard {
 
     if (gameType == 'private') {
     } else if (gameType == 'single') {
+      if (typeof this.game_mod.launchFromArcadeWizard === 'function') {
+        this.game_mod.launchFromArcadeWizard(options, this.obj);
+        return;
+      }
       this.mod.makeGameInvite(options, 'private', this.obj);
       return;
     } else if (gameType == 'direct') {

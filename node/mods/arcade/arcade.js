@@ -2,21 +2,22 @@ const ModTemplate = require('../../lib/templates/modtemplate');
 const ArcadeMain = require('./lib/ui/main');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const InviteManager = require('./lib/ui/invites');
+const Invite = require('./lib/ui/invite');
 const GameWizard = require('./lib/ui/overlays/wizard');
 const LoungeOverlay = require('./lib/ui/overlays/lounge');
 const AddGameOverlay = require('./lib/ui/overlays/add-game');
 const ArcadeGameInfo = require('./lib/ui/overlays/game-info');
+const TeaserInstallOverlay = require('./lib/ui/overlays/teaser-install');
+const SettingsOverlay = require('./lib/ui/settings_overlay');
 const Game = require('./lib/game');
+const Transaction = require('../../lib/saito/transaction').default;
 
 const arcadeHome = require('./index');
 
 /**
- * New Arcade UI shell.
- *
- * Behavioral reference: node/mods/arcade2/
- * Library titles are Game objects (lib/game.js) created via addGame().
- * Teasers render those Games. Full invite/session/peer lifecycle remains
- * in arcade2 until a later port.
+ * Arcade UI + invite/session controller.
+ * Library titles are Game objects (lib/game.js) via addGame().
+ * Invite records live in this.invites (see lib/invite-lifecycle.js).
  */
 class Arcade extends ModTemplate {
   constructor(app) {
@@ -31,11 +32,11 @@ class Arcade extends ModTemplate {
     this.icon = 'fas fa-gamepad';
     this.styles = ['/arcade/style.css'];
     this.affix_callbacks_to = [];
+    this.services = [this.app.network.createPeerService(null, 'arcade', '', 'saito')];
 
     // Library Game objects (displayed as Teasers).
     this.games = [];
-    // Active invite / session records (classic Arcade used this.games for these;
-    // renamed so this.games can hold library Game objects).
+    // Active invite / session records.
     this.invites = {};
 
     this.main = null;
@@ -45,6 +46,7 @@ class Arcade extends ModTemplate {
     this.wizard_overlay = null;
     this.add_game_overlay = null;
     this.game_info_overlay = null;
+    this.teaser_install_overlay = null;
 
     this.possibleHome = 1;
 
@@ -60,6 +62,61 @@ class Arcade extends ModTemplate {
       if (this.add_game_overlay) {
         this.add_game_overlay.render();
       }
+    });
+
+    app.connection.on('arcade-notify-player-turn', (game_id, target, status) => {
+      for (let game of app.options.games) {
+        if (game.id == game_id) {
+          game.status = status;
+          game.target = target;
+          app.storage.saveOptions();
+          siteMessage(`It is now your turn in ${game.module}`, 5000);
+          this.renderInvites();
+        }
+      }
+    });
+
+    app.connection.on('arcade-gametable-addplayer', (game_id) => {
+      let game_tx = this.returnGameTransaction(game_id);
+      if (game_tx) {
+        this.sendJoinTransaction({ tx: game_tx, game_name: 'open_table' });
+      }
+    });
+
+    app.connection.on('arcade-gametable-removeplayer', (game_id, player_stats) => {
+      let game_tx = this.returnGameTransaction(game_id);
+      if (game_tx) {
+        this.sendLeaveTransaction(game_tx, player_stats);
+      }
+    });
+
+    app.connection.on('arcade-game-ready-render-request', (game_details) => {
+      this._handleGameReadyNotification(game_details);
+    });
+
+    app.connection.on('arcade-continue-game-from-options', async (game_mod) => {
+      let id = game_mod.game?.id;
+      if (!id) {
+        return;
+      }
+
+      let game = this.returnGame(id);
+
+      if (!game) {
+        let game_tx = await this.createPseudoTransaction(game_mod.game);
+        this.addInviteRecord(game_tx, 'closed');
+        let newInvite = new Invite(app, this, null, 'short', game_tx, this.publicKey);
+        this.render('lounge_overlay', { invite_data: newInvite.invite_data });
+        return;
+      }
+
+      delete game.tx.msg.time_finished;
+      delete game.tx.msg.method;
+      delete game.tx.msg.winner;
+      game.tx.msg.request = 'paused';
+
+      let newInvite = new Invite(app, this, null, 'short', game.tx, this.publicKey);
+      this.render('lounge_overlay', { invite_data: newInvite.invite_data });
     });
   }
 
@@ -143,12 +200,13 @@ class Arcade extends ModTemplate {
         }
       }
 
+      let is_teaser = game_mod.teaser === true || game_mod.is_teaser === true;
       this.addGame({
         game_mod,
         name: game_mod.name,
         slug: game_mod.returnSlug ? game_mod.returnSlug() : game_mod.slug || '',
         title: game_mod.returnName ? game_mod.returnName() : game_mod.name,
-        image: pack.image || game_mod.img || '',
+        image: is_teaser ? game_mod.img || pack.image || '' : pack.image || game_mod.img || '',
         link: game_mod.link || '',
         league_id,
         onClick: typeof pack.onClick === 'function' ? pack.onClick : undefined
@@ -191,9 +249,42 @@ class Arcade extends ModTemplate {
       this.wizard_overlay = new GameWizard(this.app, this, null, {});
       this.add_game_overlay = new AddGameOverlay(this.app, this);
       this.game_info_overlay = new ArcadeGameInfo(this.app, this);
+      this.teaser_install_overlay = new TeaserInstallOverlay(this.app, this);
+      this.settings_overlay = new SettingsOverlay(this.app, this);
       this.renderIntos = this.renderIntos || {};
 
       this.leagueCallback = app.modules.returnFirstRespondTo('league-membership') || null;
+
+      if (this.app.options.games) {
+        this.purge();
+
+        for (let game of this.app.options.games) {
+          if (!(game.players.includes(this.publicKey) || game.accepted.includes(this.publicKey))) {
+            continue;
+          }
+          if (game.over) {
+            continue;
+          }
+          if (!game.players.includes(this.publicKey)) {
+            continue;
+          }
+          let game_tx = await this.createPseudoTransaction(game);
+          this.addInviteRecord(game_tx, game.over ? 'over' : 'active');
+        }
+      }
+
+      if (window?.game) {
+        let game_tx = new Transaction();
+        game_tx.deserialize_from_web(app, window.game);
+        this.addInviteRecord(game_tx);
+      }
+
+      this.renderInvites();
+
+      setInterval(() => {
+        this.purge();
+        this.renderInvites();
+      }, 90000);
     }
   }
 
@@ -238,11 +329,11 @@ class Arcade extends ModTemplate {
       this.chat_components_added = true;
     }
 
-    // Keep Chat Manager pointed at the Arcade right rail on every render.
+    // Chat renders in the left sidebar below Home / Settings (not a nav item).
     for (const mod of this.app.modules.returnModulesRespondingTo('chat-manager')) {
       let cm = mod.respondTo('chat-manager');
       if (cm) {
-        cm.container = '.arcade-sidebar';
+        cm.container = '.arcade-sidebar-left';
         cm.render_manager_to_screen = 1;
       }
     }
@@ -338,98 +429,6 @@ class Arcade extends ModTemplate {
     return super.respondTo(type, obj);
   }
 
-  /**
-   * UI-phase invite creation.
-   * Opens the selected game module when single-player; multiplayer invite TX
-   * lifecycle remains to be ported from arcade2.
-   */
-  async makeGameInvite(options, gameType = 'open', invite_obj = {}) {
-    let game = options.game;
-    let game_mod = this.app.modules.returnModule(game);
-    if (!game_mod) {
-      console.error('Arcade: makeGameInvite — game module not found', game);
-      return;
-    }
-
-    let players_needed = options['game-wizard-players-select'];
-    if (!players_needed) {
-      players_needed = game_mod.minPlayers || 1;
-      options['game-wizard-players-select'] = players_needed;
-    }
-
-    if (invite_obj.league) {
-      options.league_id = invite_obj.league.id;
-      options.league_name = invite_obj.league.name;
-    }
-
-    if (parseInt(players_needed) === 1 || gameType === 'single' || game_mod.maxPlayers === 1) {
-      if (!this.app.options.arcade) {
-        this.app.options.arcade = {};
-      }
-      this.app.options.arcade[game_mod.name] = (this.app.options.arcade[game_mod.name] || 0) + 1;
-      this.app.options.arcade.last_game = game_mod.name;
-      this.app.storage.saveOptions();
-
-      navigateWindow(`/${game_mod.returnSlug()}/`);
-      return;
-    }
-
-    siteMessage(
-      'Multiplayer invites will be available once the Arcade controller is fully ported.',
-      4000
-    );
-  }
-
-  returnGamesWithFilter(filterObject = {}) {
-    let results = [];
-    for (let id in this.invites) {
-      let record = this.invites[id];
-      if (!record) continue;
-      let match = true;
-      for (let key in filterObject) {
-        if (record[key] !== filterObject[key]) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        results.push(record);
-      }
-    }
-    return results;
-  }
-
-  purge() {}
-
-  returnGameTransaction(game_id) {
-    return this.invites[game_id]?.tx || null;
-  }
-
-  returnGame(game_id) {
-    return this.invites[game_id] || null;
-  }
-
-  isAvailableGame() {
-    return false;
-  }
-
-  isMyGame(tx) {
-    try {
-      let msg = tx.returnMessage();
-      return (msg.players || []).includes(this.publicKey);
-    } catch (err) {
-      return false;
-    }
-  }
-
-  saveOptions() {
-    if (!this.app.options.arcade) {
-      this.app.options.arcade = {};
-    }
-    this.app.options.arcade['show-splash'] = this.show_splash;
-    this.app.storage.saveOptions();
-  }
-
   webServer(app, expressapp, express, alternative_slug = null) {
     const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
     const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
@@ -481,5 +480,7 @@ class Arcade extends ModTemplate {
     });
   }
 }
+
+Object.assign(Arcade.prototype, require('./lib/invite-lifecycle'));
 
 module.exports = Arcade;

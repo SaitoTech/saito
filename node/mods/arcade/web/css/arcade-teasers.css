@@ -109,38 +109,37 @@
 }
 
 /*
- * Install triangle — ported from arcade2
- * `.arcade-teaser-install .arcade-teaser-footer::before`
- * Adapted to the new card size; keeps the corner ribbon treatment.
+ * Install corner — small red triangle in the bottom-right of the card.
+ * Artwork remains the dominant visual; INSTALL is a status marker only.
  */
 .teaser.install .footer {
   inset: auto 0 0 auto;
-  width: 9rem;
-  height: 9rem;
+  width: 5.2rem;
+  height: 5.2rem;
   max-width: none;
   max-height: none;
   margin: 0;
   padding: 0;
   overflow: hidden;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--saito-red-dark);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
-.teaser.install .footer::before {
-  content: 'INSTALL';
-  position: absolute;
-  bottom: 1.8rem;
-  right: -2.8rem;
-  transform: rotate(-45deg);
-  padding: 0.35rem 5rem;
+.teaser.install .footer .install-label {
+  display: block;
+  transform: rotate(-45deg) translate(0.15rem, 0.7rem);
   font-family: var(--saito-font-heavy);
-  font-size: 1.083rem;
+  font-size: 1rem;
   font-weight: bold;
-  letter-spacing: 0.14rem;
+  letter-spacing: 0.06rem;
+  line-height: 1;
   white-space: nowrap;
-  color: var(--saito-primary-foreground);
-  background: var(--saito-red-dark);
-  box-shadow: var(--saito-elevation-1);
-  z-index: 1;
+  text-transform: uppercase;
+  color: var(--saito-primary-foreground, #fff);
 }
 
 /* Teasing / install-options state — in-card next actions */

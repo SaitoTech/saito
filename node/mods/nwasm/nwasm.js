@@ -96,32 +96,33 @@ class Nwasm extends OnePlayerGameTemplate {
     this.ensureArcadeStyles();
 
     if (!this.arcade_overlay) {
-      const NwasmArcadeOverlay = require('./lib/ui/arcade_overlay');
+      const NwasmArcadeOverlay = require('./lib/ui/overlays/arcade_overlay');
       this.arcade_overlay = new NwasmArcadeOverlay(this.app, this);
     }
     await this.arcade_overlay.open();
   }
 
   /**
-   * NWASM-owned play prompt for an installed ROM (Arcade grid or library).
+   * Open the Arcade game wizard for an installed ROM (explicit Play launches emulator).
    */
-  async openRomPlayPrompt(sig = '', title = '') {
+  openRomWizard(sig = '', title = '') {
     if (!this.app.BROWSER || !sig) {
       return;
     }
+    this.app.connection.emit('arcade-launch-game-wizard', {
+      game: this.name,
+      rom_sig: sig,
+      rom_title: title || ''
+    });
+  }
 
-    this.ensureArcadeStyles();
-
-    if (!this.arcade_overlay) {
-      const NwasmArcadeOverlay = require('./lib/ui/arcade_overlay');
-      this.arcade_overlay = new NwasmArcadeOverlay(this.app, this);
+  /**
+   * Called from the Arcade game wizard when the user explicitly chooses Play.
+   */
+  launchFromArcadeWizard(_options = {}, obj = {}) {
+    if (obj?.rom_sig) {
+      this.launchRomFromArcade(obj.rom_sig);
     }
-
-    if (!this.arcade_overlay.games?.length && this.ui?.load_games) {
-      this.arcade_overlay.games = await this.ui.load_games();
-    }
-
-    this.arcade_overlay.promptPlay(sig, title);
   }
 
   ensureArcadeStyles() {
@@ -144,6 +145,7 @@ class Nwasm extends OnePlayerGameTemplate {
     }
     try {
       sessionStorage.setItem('nwasm-pending-launch', JSON.stringify({ sig: String(sig) }));
+      sessionStorage.setItem('nwasm-launched-from-arcade', '1');
     } catch (_) {}
     navigateWindow('/nwasm/');
   }
@@ -197,6 +199,7 @@ class Nwasm extends OnePlayerGameTemplate {
           file_name: file_name || 'Selected ROM'
         })
       );
+      sessionStorage.setItem('nwasm-launched-from-arcade', '1');
     } catch (err) {
       alert('Unable to launch this ROM from Arcade. Add it to your library first, then play.');
       return false;
@@ -250,7 +253,7 @@ class Nwasm extends OnePlayerGameTemplate {
         title: g.title || 'N64 ROM',
         image: this.returnImage(),
         onClick: async () => {
-          await this.openRomPlayPrompt(g.sig, g.title);
+          this.openRomWizard(g.sig, g.title);
         }
       });
     }
@@ -425,7 +428,20 @@ class Nwasm extends OnePlayerGameTemplate {
           }
         } catch (err) {}
         game_mod.stopPlaying();
-        game_mod.ui.return_to_launcher();
+
+        let from_arcade = false;
+        try {
+          from_arcade = sessionStorage.getItem('nwasm-launched-from-arcade') === '1';
+          if (from_arcade) {
+            sessionStorage.removeItem('nwasm-launched-from-arcade');
+          }
+        } catch (_) {}
+
+        if (from_arcade) {
+          navigateWindow('/arcade');
+        } else {
+          game_mod.ui.return_to_launcher();
+        }
       }
     });
     this.menu.render();
