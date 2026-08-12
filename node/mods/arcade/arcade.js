@@ -67,14 +67,51 @@ class Arcade extends ModTemplate {
    * Create a Game and store it on this.games.
    * Modules supply data (and optional onClick) via respondTo('arcade-games');
    * Arcade owns the Game object.
+   *
+   * If game_data.name matches an existing Game, that entry is replaced
+   * (supports modules that publish/update library titles after init).
    */
   addGame(game_data = {}) {
     let game = new Game(this.app, this, game_data);
-    this.games.push(game);
     if (game.name) {
+      let idx = this.games.findIndex((g) => g.name === game.name);
+      if (idx >= 0) {
+        this.games[idx] = game;
+        return game;
+      }
       this.affix_callbacks_to.push(game.name);
     }
+    this.games.push(game);
     return game;
+  }
+
+  /**
+   * Remove a library Game by name. Used by modules that maintain dynamic
+   * title lists (e.g. installed ROMs) without Arcade knowing their domain.
+   */
+  removeGame(name = '') {
+    if (!name) {
+      return false;
+    }
+    let idx = this.games.findIndex((g) => g.name === name);
+    if (idx < 0) {
+      return false;
+    }
+    this.games.splice(idx, 1);
+    this.affix_callbacks_to = this.affix_callbacks_to.filter((n) => n !== name);
+    return true;
+  }
+
+  /**
+   * Re-render library teasers if the Arcade UI is mounted.
+   */
+  renderGames() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    if (this.main?.teasers) {
+      this.main.teasers.render();
+    }
   }
 
   async initialize(app) {
@@ -196,11 +233,18 @@ class Arcade extends ModTemplate {
     if (!this.chat_components_added) {
       for (const mod of this.app.modules.returnModulesRespondingTo('chat-manager')) {
         let cm = mod.respondTo('chat-manager');
-        cm.container = '.arcade-sidebar';
-        cm.render_manager_to_screen = 1;
         this.addComponent(cm);
       }
       this.chat_components_added = true;
+    }
+
+    // Keep Chat Manager pointed at the Arcade right rail on every render.
+    for (const mod of this.app.modules.returnModulesRespondingTo('chat-manager')) {
+      let cm = mod.respondTo('chat-manager');
+      if (cm) {
+        cm.container = '.arcade-sidebar';
+        cm.render_manager_to_screen = 1;
+      }
     }
 
     if (this.browser_active) {

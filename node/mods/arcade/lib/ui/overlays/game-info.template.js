@@ -3,7 +3,7 @@ module.exports = (model = {}) => {
   let subtitle = model.subtitle || '';
   let description = model.description || '';
   let image = model.image || '';
-  let cta = model.cta || 'Create Game';
+  let cta = model.cta || 'CREATE PUBLIC INVITE';
   let publisher = model.publisher || '';
   let has_leaderboard = !!model.hasLeaderboard;
 
@@ -32,10 +32,10 @@ module.exports = (model = {}) => {
       <div class="body${has_leaderboard ? ' has-leaderboard' : ''}">
         <section class="content">
           <div class="description">${description}</div>
-          ${publisher_html}
           <div class="actions">
             <button type="button" class="saito-button-primary fat" data-action="create">${cta}</button>
           </div>
+          ${publisher_html}
         </section>
         ${leaderboard}
       </div>

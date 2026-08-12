@@ -9,6 +9,14 @@ body.arcade-body p {
 }
 
 /*
+ * Header: Saito defaults center content inside --saito-width.
+ * Arcade is immersive — share the same full-width gutters as the page.
+ */
+body.arcade-body #saito-header.arcade {
+  padding-inline: var(--saito-space-lg);
+}
+
+/*
  * Arcade is immersive / full-viewport — NOT RedSquare's constrained reading width.
  * Gutters only; main column grows with the viewport.
  */
@@ -26,6 +34,10 @@ body.arcade-body #saito-container.arcade-container > * {
 }
 
 @media (max-width: 1100px) {
+  body.arcade-body #saito-header.arcade {
+    padding-inline: var(--saito-space-md);
+  }
+
   body.arcade-body #saito-container.arcade-container {
     grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
     padding: 0 var(--saito-space-md);
@@ -44,6 +56,10 @@ body.arcade-body #saito-container.arcade-container > * {
 }
 
 @media (max-width: 600px) {
+  body.arcade-body #saito-header.arcade {
+    padding-inline: var(--saito-space-sm);
+  }
+
   body.arcade-body #saito-container.arcade-container {
     padding: 0 var(--saito-space-sm);
   }

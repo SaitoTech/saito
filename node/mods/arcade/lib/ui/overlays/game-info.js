@@ -69,12 +69,8 @@ class ArcadeGameInfo {
       subtitle = this.game_mod.categories.replace('Games ', '').split(' ').reverse().join(' ');
     }
 
-    let cta = 'Create Game';
-    if (
-      this.game_mod.maxPlayers === 1 &&
-      !this.game_mod.returnSingularGameOption?.() &&
-      !this.game_mod.returnAdvancedOptions?.()
-    ) {
+    let cta = 'CREATE PUBLIC INVITE';
+    if (parseInt(this.game_mod.maxPlayers) === 1) {
       cta = 'Play';
     }
 

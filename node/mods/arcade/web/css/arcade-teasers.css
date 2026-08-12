@@ -193,18 +193,9 @@
   border-color: var(--saito-red-dark);
 }
 
-/* + Add Game — same footprint; dashed art placeholder */
+/* + Add Game — same footprint; dedicated tile art */
 .teaser.add .art {
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--saito-muted) 80%, transparent),
-      color-mix(in srgb, var(--saito-card) 90%, var(--saito-primary))
-    );
-}
-
-.teaser.add .title {
-  justify-content: center;
+  background-image: url('/arcade/img/add_game.png');
 }
 
 @media (max-width: 1400px) {

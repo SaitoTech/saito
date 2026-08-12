@@ -103,7 +103,7 @@
 }
 
 .arcade-game-info .publisher {
-  font-size: inherit;
+  font-size: 1.083rem;
   line-height: 1.4;
   color: var(--saito-muted-foreground);
 }
@@ -115,9 +115,14 @@
 .arcade-game-info .actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: stretch;
   gap: var(--saito-space-sm);
   flex: 0 0 auto;
+}
+
+.arcade-game-info .actions .saito-button-primary {
+  flex: 1 1 auto;
+  min-width: min(100%, 28rem);
 }
 
 .arcade-game-info .leaderboard {

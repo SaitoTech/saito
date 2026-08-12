@@ -69,7 +69,206 @@ class Nwasm extends OnePlayerGameTemplate {
       };
     }
 
+    //
+    // Arcade discovers this module via arcade-games. Supply onClick so the
+    // Nintendo 64 card opens NWASM's Arcade overlay (not the Game Wizard).
+    // Arcade only invokes Game.onClick() — it does not know about this overlay.
+    //
+    if (type === 'arcade-games') {
+      let pack = super.respondTo(type, obj) || {};
+      pack.onClick = async () => {
+        await this.openArcadeOverlay();
+      };
+      return pack;
+    }
+
     return super.respondTo(type, obj);
+  }
+
+  /**
+   * Open the NWASM Arcade library overlay without leaving the Arcade page.
+   */
+  async openArcadeOverlay() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    this.ensureArcadeStyles();
+
+    if (!this.arcade_overlay) {
+      const NwasmArcadeOverlay = require('./lib/ui/arcade_overlay');
+      this.arcade_overlay = new NwasmArcadeOverlay(this.app, this);
+    }
+    await this.arcade_overlay.open();
+  }
+
+  /**
+   * NWASM-owned play prompt for an installed ROM (Arcade grid or library).
+   */
+  async openRomPlayPrompt(sig = '', title = '') {
+    if (!this.app.BROWSER || !sig) {
+      return;
+    }
+
+    this.ensureArcadeStyles();
+
+    if (!this.arcade_overlay) {
+      const NwasmArcadeOverlay = require('./lib/ui/arcade_overlay');
+      this.arcade_overlay = new NwasmArcadeOverlay(this.app, this);
+    }
+
+    if (!this.arcade_overlay.games?.length && this.ui?.load_games) {
+      this.arcade_overlay.games = await this.ui.load_games();
+    }
+
+    this.arcade_overlay.promptPlay(sig, title);
+  }
+
+  ensureArcadeStyles() {
+    if (!this.styles.includes('/nwasm/style.css')) {
+      this.styles.push('/nwasm/style.css');
+    }
+    if (!document.querySelector('link[href*="/nwasm/style.css"]')) {
+      this.stylesheetAdded = false;
+      this.attachStyleSheets();
+    }
+  }
+
+  /**
+   * Launch an installed ROM by navigating into the NWASM player page and
+   * resuming via the existing pending-launch path.
+   */
+  launchRomFromArcade(sig = '') {
+    if (!sig) {
+      return;
+    }
+    try {
+      sessionStorage.setItem('nwasm-pending-launch', JSON.stringify({ sig: String(sig) }));
+    } catch (_) {}
+    navigateWindow('/nwasm/');
+  }
+
+  /**
+   * Play an uploaded ROM immediately (standalone /nwasm/ page).
+   */
+  async playEphemeralRom(byteArray, file_name = '', raw_file = null) {
+    if (!byteArray || !this.ui) {
+      return;
+    }
+
+    let title = file_name || 'Loading game…';
+
+    this.ui.hide();
+    this.ui.load_overlay.render({
+      title: title,
+      message:
+        'Initializing emulator — this can take a while for large ROMs. The page may appear frozen; please wait.'
+    });
+
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      });
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    this.active_rom = raw_file || byteArray;
+    this.uploaded_rom = true;
+    this.launch_sig = '';
+    this.startPlaying();
+    myApp.initializeRom(byteArray, this.app, this);
+  }
+
+  /**
+   * When Play Now is chosen from the Arcade overlay, queue ROM bytes and
+   * navigate into the NWASM player page (same host as library launches).
+   */
+  queueEphemeralRomFromArcade(file, file_name = '') {
+    if (!file) {
+      return false;
+    }
+
+    try {
+      let data = Buffer.from(file, 'binary').toString('base64');
+      sessionStorage.setItem(
+        'nwasm-pending-ephemeral',
+        JSON.stringify({
+          data: data,
+          file_name: file_name || 'Selected ROM'
+        })
+      );
+    } catch (err) {
+      alert('Unable to launch this ROM from Arcade. Add it to your library first, then play.');
+      return false;
+    }
+
+    if (this.arcade_overlay?.is_open) {
+      this.arcade_overlay.close();
+    }
+    navigateWindow('/nwasm/');
+    return true;
+  }
+
+  is_nwasm_page() {
+    try {
+      return String(window.location.pathname || '').includes('/nwasm');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /**
+   * Publish installed ROM titles to Arcade as ordinary Game objects with
+   * NWASM-owned onClick handlers. Does not block Arcade initialization.
+   *
+   * When `games` is a full installed list, stale Arcade ROM teasers are pruned.
+   * Pass `{ prune: false }` for partial updates (e.g. after registering one ROM).
+   */
+  syncArcadeGames(games = null, opts = {}) {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    let arcade = this.app.modules.returnModule('Arcade');
+    if (!arcade || typeof arcade.addGame !== 'function') {
+      return;
+    }
+
+    let list = Array.isArray(games) ? games : this.ui?.games || [];
+    let prune = opts.prune !== false && Array.isArray(games);
+    let prefix = 'nwasm-rom-';
+    let keep = {};
+
+    for (let i = 0; i < list.length; i++) {
+      let g = list[i];
+      if (!g?.sig) {
+        continue;
+      }
+      let name = prefix + g.sig;
+      keep[name] = 1;
+      arcade.addGame({
+        name: name,
+        title: g.title || 'N64 ROM',
+        image: this.returnImage(),
+        onClick: async () => {
+          await this.openRomPlayPrompt(g.sig, g.title);
+        }
+      });
+    }
+
+    if (prune && Array.isArray(arcade.games)) {
+      let stale = arcade.games
+        .filter((g) => g?.name?.startsWith(prefix) && !keep[g.name])
+        .map((g) => g.name);
+      for (let i = 0; i < stale.length; i++) {
+        if (typeof arcade.removeGame === 'function') {
+          arcade.removeGame(stale[i]);
+        }
+      }
+    }
+
+    if (typeof arcade.renderGames === 'function') {
+      arcade.renderGames();
+    }
   }
 
   async onPeerServiceUp(app, peer, service = {}) {
@@ -117,6 +316,20 @@ class Nwasm extends OnePlayerGameTemplate {
         };
       }
     }
+
+    //
+    // After all modules finish initialize (setTimeout 0), publish installed
+    // ROMs to Arcade. Discovery is async and must not block Arcade load.
+    //
+    setTimeout(async () => {
+      try {
+        let games = await this.ui.load_games();
+        this.ui.games = games;
+        this.syncArcadeGames(games);
+      } catch (err) {
+        console.warn('Nwasm: deferred Arcade sync failed:', err);
+      }
+    }, 0);
   }
 
   //////////////////////
@@ -266,6 +479,16 @@ class Nwasm extends OnePlayerGameTemplate {
     }
     this.active_game_load_ts = ts;
     this.active_game_save_ts = ts;
+
+    // Record last-played on the library registry entry when we know which ROM.
+    let sig = this.launch_sig || this.active_rom_sig || '';
+    if (sig && this.app.options?.nwasm?.library) {
+      let entry = this.app.options.nwasm.library.find((g) => g?.sig === sig);
+      if (entry) {
+        entry.last_played = ts;
+        this.app.storage.saveOptions();
+      }
+    }
   }
 
   stopPlaying(ts = null) {
@@ -457,6 +680,48 @@ class Nwasm extends OnePlayerGameTemplate {
     }
 
     this.app.storage.saveOptions();
+
+    // Upsert this ROM into Arcade without pruning other titles.
+    if (this.app.BROWSER && typeof this.syncArcadeGames === 'function') {
+      try {
+        if (this.ui?.games && !this.ui.games.some((g) => g.sig === entry.sig)) {
+          this.ui.games.push({
+            sig: entry.sig,
+            title: entry.title,
+            id: entry.id,
+            source: entry.source,
+            vault: entry.vault || null,
+            last_played: entry.last_played || 0
+          });
+          this.ui.games.sort((a, b) => a.title.localeCompare(b.title));
+        }
+        this.syncArcadeGames(
+          [
+            {
+              sig: entry.sig,
+              title: entry.title,
+              id: entry.id,
+              source: entry.source,
+              vault: entry.vault || null,
+              last_played: entry.last_played || 0
+            }
+          ],
+          { prune: false }
+        );
+      } catch (err) {
+        console.warn('Nwasm: syncArcadeGames after addGame failed:', err);
+      }
+    }
+
+    // Refresh Arcade library overlay if it is open.
+    if (this.arcade_overlay?.is_open) {
+      try {
+        await this.arcade_overlay.refresh();
+      } catch (err) {
+        console.warn('Nwasm: arcade overlay refresh failed:', err);
+      }
+    }
+
     return entry;
   }
 

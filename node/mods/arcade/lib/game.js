@@ -44,22 +44,6 @@ class Game {
       return;
     }
 
-    if (this.shouldLaunchDirectly()) {
-      if (this.mod?.makeGameInvite) {
-        await this.mod.makeGameInvite(
-          {
-            game: this.name,
-            'game-wizard-players-select': this.game_mod?.minPlayers || 1
-          },
-          'single',
-          {}
-        );
-      } else if (this.slug) {
-        navigateWindow(`/${this.slug}/`);
-      }
-      return;
-    }
-
     if (this.league_id) {
       this.app.connection.emit('arcade-game-info-render-request', {
         game: this.name,
@@ -69,26 +53,6 @@ class Game {
     }
 
     this.app.connection.emit('arcade-launch-game-wizard', { game: this.name });
-  }
-
-  shouldLaunchDirectly() {
-    if (!this.game_mod) {
-      return false;
-    }
-    if (parseInt(this.game_mod.minPlayers) !== 1 || parseInt(this.game_mod.maxPlayers) !== 1) {
-      return false;
-    }
-    try {
-      let advanced = this.game_mod.returnAdvancedOptions
-        ? this.game_mod.returnAdvancedOptions()
-        : '';
-      let singular = this.game_mod.returnSingularGameOption
-        ? this.game_mod.returnSingularGameOption()
-        : '';
-      return !String(advanced || '').trim() && !String(singular || '').trim();
-    } catch (_) {
-      return false;
-    }
   }
 }
 

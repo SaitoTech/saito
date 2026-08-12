@@ -57,6 +57,9 @@ class ArcadeMain {
     await this.sidebar.render();
     await this.app.modules.renderInto('.arcade-sidebar');
 
+    // Ensure Chat Manager paints after sidebar shell is ready.
+    this.app.connection.emit('chat-manager-render-request');
+
     this.renderTeaserRanks();
     this.app.connection.emit('league-rankings-render-request');
   }

@@ -30,27 +30,54 @@ module.exports = (game_mod, invite_obj = {}) => {
   if (game_mod.maxPlayers == 1) {
     html += `<button type="button" id="game-invite-btn" class="fat saito-button-primary game-invite-btn" data-type="single">Play</button>`;
   } else {
-    html += `
-      <div class="saito-multi-select_btn saito-select">
-        <div class="saito-multi-select_btn_options saito-slct">
-    `;
+    let invite_options = [];
+
     if (publicKey) {
-      html += `<button type="button" class="saito-multi-btn game-invite-btn" data-type="direct">next...</button>`;
+      invite_options.push({ type: 'direct', label: 'Next…' });
     } else if (invite_obj.league) {
-      html += `
-        <button type="button" class="saito-multi-btn game-invite-btn" data-type="open">create public league invite</button>
-        <button type="button" class="saito-multi-btn game-invite-btn" data-type="private">create private league invite</button>
-      `;
+      invite_options.push(
+        { type: 'open', label: 'CREATE PUBLIC INVITE' },
+        { type: 'private', label: 'CREATE PRIVATE INVITE' }
+      );
     } else {
-      html += `
-        <button type="button" class="saito-multi-btn game-invite-btn" data-type="open">create public invite</button>
-        <button type="button" class="saito-multi-btn game-invite-btn" data-type="private">create private invite</button>
-      `;
+      invite_options.push(
+        { type: 'open', label: 'CREATE PUBLIC INVITE' },
+        { type: 'private', label: 'CREATE PRIVATE INVITE' }
+      );
       if (game_mod?.can_play_async) {
-        html += `<button type="button" class="saito-multi-btn game-invite-btn" data-type="async">create async invite</button>`;
+        invite_options.push({ type: 'async', label: 'CREATE ASYNC INVITE' });
       }
     }
-    html += `</div></div>`;
+
+    let primary = invite_options[0];
+
+    html += `
+      <div class="invite-control">
+        <button type="button" class="fat saito-button-primary invite-primary game-invite-btn" data-type="${primary.type}">
+          ${primary.label}
+        </button>
+    `;
+
+    if (invite_options.length > 1) {
+      html += `
+        <button type="button" class="invite-toggle" aria-label="Choose invite type" aria-expanded="false" aria-haspopup="listbox">
+          <span aria-hidden="true">▾</span>
+        </button>
+        <div class="invite-menu" role="listbox" hidden>
+      `;
+
+      for (let opt of invite_options) {
+        html += `
+          <button type="button" class="invite-option" data-type="${opt.type}" role="option">
+            ${opt.label}
+          </button>
+        `;
+      }
+
+      html += `</div>`;
+    }
+
+    html += `</div>`;
   }
 
   html += `

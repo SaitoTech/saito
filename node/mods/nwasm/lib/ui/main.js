@@ -331,7 +331,23 @@ class NwasmMain {
       setTimeout(() => {
         this.launch_game(pending_sig);
       }, 0);
+      return;
     }
+
+    // Play Now from the Arcade overlay: ephemeral ROM queued before navigation.
+    try {
+      let raw = sessionStorage.getItem('nwasm-pending-ephemeral');
+      if (raw) {
+        sessionStorage.removeItem('nwasm-pending-ephemeral');
+        let pending = JSON.parse(raw);
+        if (pending?.data) {
+          setTimeout(async () => {
+            let ab = this.mod.convertBase64ToByteArray(pending.data);
+            await this.mod.playEphemeralRom(ab, pending.file_name || 'Selected ROM');
+          }, 0);
+        }
+      }
+    } catch (err) {}
   }
 
   attachEvents() {

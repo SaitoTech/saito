@@ -15,6 +15,7 @@ class GameWizard {
     this.game_mod = game_mod;
     this.overlay = new SaitoOverlay(app, mod);
     this.obj = obj;
+    this._invite_menu_closer = null;
 
     app.connection.on('arcade-launch-game-wizard', async (obj) => {
       if (obj?.game) {
@@ -72,7 +73,10 @@ class GameWizard {
       console.debug('ARCADE: render game-wizard for: ', JSON.parse(JSON.stringify(this.obj)));
     }
 
+    this.detachInviteMenuCloser();
+
     this.overlay.show(GameWizardTemplate(this.game_mod, this.obj), () => {
+      this.detachInviteMenuCloser();
       if (this.meta_overlay) {
         this.meta_overlay.remove();
       }
@@ -115,6 +119,28 @@ class GameWizard {
     }
   }
 
+  detachInviteMenuCloser() {
+    if (this._invite_menu_closer) {
+      document.removeEventListener('click', this._invite_menu_closer, true);
+      this._invite_menu_closer = null;
+    }
+  }
+
+  closeInviteMenu(control = null) {
+    let root = control || document.querySelector('.arcade-wizard .invite-control');
+    if (!root) {
+      return;
+    }
+    let menu = root.querySelector('.invite-menu');
+    let toggle = root.querySelector('.invite-toggle');
+    if (menu) {
+      menu.hidden = true;
+    }
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  }
+
   //
   // Note: mod = Arcade
   //
@@ -124,10 +150,49 @@ class GameWizard {
       return;
     }
 
-    if (root.querySelector('.saito-multi-select_btn')) {
-      root.querySelector('.saito-multi-select_btn').addEventListener('click', (e) => {
-        e.currentTarget.classList.toggle('showAll');
-      });
+    let invite_control = root.querySelector('.invite-control');
+    if (invite_control) {
+      let toggle = invite_control.querySelector('.invite-toggle');
+      let menu = invite_control.querySelector('.invite-menu');
+      let primary = invite_control.querySelector('.invite-primary');
+
+      if (toggle && menu) {
+        toggle.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          let open = menu.hidden;
+          menu.hidden = !open;
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+
+        this.detachInviteMenuCloser();
+        this._invite_menu_closer = (e) => {
+          if (!invite_control.contains(e.target)) {
+            this.closeInviteMenu(invite_control);
+          }
+        };
+        document.addEventListener('click', this._invite_menu_closer, true);
+
+        root.querySelectorAll('.invite-option').forEach((opt) => {
+          opt.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (primary) {
+              primary.textContent = opt.textContent.trim();
+              primary.setAttribute('data-type', opt.getAttribute('data-type'));
+            }
+            this.closeInviteMenu(invite_control);
+          };
+        });
+      }
+
+      if (primary) {
+        primary.onclick = async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          await this.submitInvite(primary.getAttribute('data-type'));
+        };
+      }
     }
 
     //
@@ -159,37 +224,42 @@ class GameWizard {
     }
 
     //
-    // create game
+    // Single-player Play button
     //
-    Array.from(root.querySelectorAll('.game-invite-btn')).forEach((gameButton) => {
-      gameButton.addEventListener('click', async (e) => {
+    let play_btn = root.querySelector('.game-invite-btn[data-type="single"]');
+    if (play_btn) {
+      play_btn.onclick = async (e) => {
+        e.preventDefault();
         e.stopPropagation();
+        await this.submitInvite('single');
+      };
+    }
+  }
 
-        let options = this.getOptions();
-        let gameType = e.currentTarget.getAttribute('data-type');
+  async submitInvite(gameType = 'open') {
+    let options = this.getOptions();
 
-        this.overlay.remove();
+    this.detachInviteMenuCloser();
+    this.overlay.remove();
 
-        if (gameType == 'private') {
-        } else if (gameType == 'single') {
-          this.mod.makeGameInvite(options, 'private', this.obj);
-          return;
-        } else if (gameType == 'direct') {
-        } else if (gameType == 'async') {
-          if (options['game-wizard-players-select'] > 2) {
-            salert(
-              'Asynchronous game creation is experimental and assumes there are only two players!'
-            );
-            return;
-          }
-          options.async_dealing = 1;
-          gameType = 'private';
-        } else {
-        }
+    if (gameType == 'private') {
+    } else if (gameType == 'single') {
+      this.mod.makeGameInvite(options, 'private', this.obj);
+      return;
+    } else if (gameType == 'direct') {
+    } else if (gameType == 'async') {
+      if (options['game-wizard-players-select'] > 2) {
+        salert(
+          'Asynchronous game creation is experimental and assumes there are only two players!'
+        );
+        return;
+      }
+      options.async_dealing = 1;
+      gameType = 'private';
+    } else {
+    }
 
-        this.mod.makeGameInvite(options, gameType, this.obj);
-      });
-    });
+    this.mod.makeGameInvite(options, gameType, this.obj);
   }
 
   getOptions() {

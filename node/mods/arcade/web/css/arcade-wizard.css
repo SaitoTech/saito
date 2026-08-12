@@ -1,9 +1,12 @@
 /*
  * Namespace: .arcade-wizard
- * Layout/geometry only. Typography, surfaces, buttons from Saito.
  *
- * Intentionally does NOT use .saito-overlay-size (that class sets
- * min-height: 400px which creates large empty panels for short content).
+ * Regions:
+ *   identity (full width)
+ *   controls → settings (narrow) | actions (primary invite)
+ *   publisher (secondary)
+ *
+ * Invite menu is absolutely positioned — opening it does not change overlay size.
  */
 
 .arcade-wizard {
@@ -13,10 +16,11 @@
   width: min(56rem, 94vw);
   max-height: min(90vh, 56rem);
   padding: var(--saito-space-xl);
-  overflow: auto;
+  overflow: visible;
   color: var(--saito-foreground);
 }
 
+/* --- Game identity --- */
 .arcade-wizard .identity {
   display: grid;
   grid-template-columns: 10rem minmax(0, 1fr);
@@ -28,7 +32,6 @@
   width: 10rem;
   aspect-ratio: 1;
   border-radius: var(--saito-radius);
-  border: 1px solid var(--saito-border);
   overflow: hidden;
   background: var(--saito-muted);
 }
@@ -61,12 +64,12 @@
   overflow: auto;
 }
 
+/* --- Configure (left) | Create (right) --- */
 .arcade-wizard .controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--saito-space-md);
+  display: grid;
+  grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
+  gap: var(--saito-space-lg);
+  align-items: stretch;
 }
 
 .arcade-wizard .settings {
@@ -74,24 +77,231 @@
   flex-direction: column;
   gap: var(--saito-space-sm);
   min-width: 0;
-  flex: 1 1 14rem;
+}
+
+/* Compact player-count select */
+.arcade-wizard .settings .overlay-input {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.arcade-wizard .settings .overlay-input select,
+.arcade-wizard .settings .overlay-input .saito-form-select {
+  width: 100%;
+  height: 3.2rem;
+  min-height: 3.2rem;
+  margin: 0;
+  padding: 0 3.2rem 0 0.9rem;
+  font-size: inherit;
+  line-height: 1.2;
+  appearance: none;
+  background-color: var(--saito-secondary);
+  color: var(--saito-foreground);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background-image: none;
+}
+
+.arcade-wizard .settings .overlay-input::after {
+  content: '\25BC';
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  line-height: 1;
+  pointer-events: none;
+  border-left: 1px solid
+    color-mix(in srgb, var(--saito-button-primary-foreground, #fff) 28%, transparent);
+  border-radius: 0 var(--saito-radius) var(--saito-radius) 0;
+  background: var(--saito-button-primary-background, var(--saito-primary));
+  color: var(--saito-button-primary-foreground, var(--saito-primary-foreground));
+}
+
+.arcade-wizard #arcade-advance-opt {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+  min-height: 0;
 }
 
 .arcade-wizard .advanced-text {
-  font-size: inherit;
+  font-size: 1.083rem;
   color: var(--saito-muted-foreground);
+  border-bottom: 1px dashed currentColor;
+  width: fit-content;
+  cursor: pointer;
+  flex: 0 1 auto;
 }
 
+/*
+ * Staking hook — injected by Crypto into #arcade-advance-opt.
+ * Keep coin + "stake" recognizable; active when dataset.amount is set.
+ */
+.arcade-wizard .game-wizard-crypto-hook {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.arcade-wizard .game-wizard-crypto-hook::after {
+  content: 'stake';
+  font-family: var(--saito-font-medium);
+  font-size: 1.083rem;
+  text-transform: lowercase;
+}
+
+.arcade-wizard .game-wizard-crypto-hook:hover,
+.arcade-wizard .game-wizard-crypto-hook:focus-visible {
+  border-color: var(--saito-primary);
+  color: var(--saito-foreground);
+  outline: none;
+}
+
+.arcade-wizard .game-wizard-crypto-hook[data-amount] {
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 14%, transparent);
+  color: var(--saito-foreground);
+}
+
+/* --- Primary invite action --- */
 .arcade-wizard .actions {
   display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.arcade-wizard .actions > .saito-button-primary {
+  width: 100%;
+  min-height: 4.5rem;
+}
+
+.arcade-wizard .invite-control {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 4.5rem;
+  height: 100%;
+  border-radius: var(--saito-radius);
+  overflow: visible;
+  background: var(--saito-button-primary-background, var(--saito-primary));
+  color: var(--saito-button-primary-foreground, var(--saito-primary-foreground));
+}
+
+.arcade-wizard .invite-primary {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  min-height: 4.5rem;
+  margin: 0;
+  padding: 0 var(--saito-space-md);
+  border: none;
+  border-radius: var(--saito-radius) 0 0 var(--saito-radius);
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  font-family: var(--saito-font-medium);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.arcade-wizard .invite-primary:hover,
+.arcade-wizard .invite-control:hover .invite-primary {
+  background: var(--saito-button-primary-background-hover);
+}
+
+.arcade-wizard .invite-control:not(:has(.invite-toggle)) .invite-primary {
+  border-radius: var(--saito-radius);
+}
+
+.arcade-wizard .invite-toggle {
+  flex: 0 0 4.5rem;
+  display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--saito-space-sm);
-  flex: 0 0 auto;
+  justify-content: center;
+  height: 100%;
+  min-height: 4.5rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-left: 1px solid
+    color-mix(in srgb, var(--saito-button-primary-foreground, #fff) 28%, transparent);
+  border-radius: 0 var(--saito-radius) var(--saito-radius) 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.arcade-wizard .invite-toggle:hover,
+.arcade-wizard .invite-toggle[aria-expanded='true'] {
+  background: var(--saito-button-primary-background-hover);
+}
+
+/* Dropdown — out of document flow; does not resize wizard */
+.arcade-wizard .invite-menu {
+  position: absolute;
+  top: calc(100% + var(--saito-space-xs));
+  left: 0;
+  right: 0;
+  z-index: 40;
+  margin: 0;
+  padding: var(--saito-space-xs);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-popover);
+  box-shadow: var(--saito-elevation-3);
+}
+
+.arcade-wizard .invite-menu[hidden] {
+  display: none;
+}
+
+.arcade-wizard .invite-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 3.2rem;
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border: none;
+  border-radius: calc(var(--saito-radius) - 0.1rem);
+  background: transparent;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: inherit;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+
+.arcade-wizard .invite-option:hover,
+.arcade-wizard .invite-option:focus-visible {
+  background: var(--saito-secondary);
+  outline: none;
 }
 
 .arcade-wizard .publisher {
-  font-size: inherit;
+  font-size: 1.083rem;
   line-height: 1.4;
   color: var(--saito-muted-foreground);
 }
@@ -100,11 +310,30 @@
   font-family: var(--saito-font-medium);
 }
 
-/* Player/options select — inherit Saito form controls; only layout width */
-.arcade-wizard .settings select,
-.arcade-wizard .settings .saito-form-select {
+/* Advanced options overlay — separate modal, not inside wizard layout */
+#advanced-options-overlay-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  min-width: min(50rem, 95vw);
+  min-height: min(40rem, 95vh);
+  max-width: 95vw;
+  max-height: 95vh;
+  padding: var(--saito-space-xl);
+  overflow: auto;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+}
+
+#advanced-options-overlay-container > * {
+  max-width: 100%;
+}
+
+#advanced-options-overlay-container .game-wizard-advanced-return-btn {
   width: 100%;
-  max-width: 24rem;
+  margin-top: var(--saito-space-md);
 }
 
 @media (max-width: 600px) {
@@ -122,16 +351,10 @@
   }
 
   .arcade-wizard .controls {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr;
   }
 
   .arcade-wizard .actions {
-    justify-content: stretch;
-  }
-
-  .arcade-wizard .actions .saito-button-primary,
-  .arcade-wizard .actions .saito-multi-select_btn {
-    width: 100%;
+    order: -1;
   }
 }

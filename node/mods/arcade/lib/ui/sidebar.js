@@ -14,11 +14,21 @@ class ArcadeSidebar {
 
   async render() {
     const el = document.querySelector(this.container);
+    // Preserve Chat Manager sibling — Chat is added by Arcade as a component
+    // into .arcade-sidebar; wiping the sidebar must not remove it permanently.
+    let chat_el = el ? el.querySelector(':scope > .chat-manager') : null;
+    if (chat_el) {
+      chat_el.remove();
+    }
     if (el) {
       el.innerHTML = ArcadeSidebarTemplate(this.app, this.mod);
+      if (chat_el) {
+        el.appendChild(chat_el);
+      }
     }
     this.invites.render();
     await this.leaderboard.render();
+    this.app.connection.emit('chat-manager-render-request');
   }
 
   renderInvites() {
