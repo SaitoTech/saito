@@ -24,6 +24,45 @@ Use this file as the combined project and Codex runtime guide. Keep context smal
 - Do not add comments that restate obvious code, narrate simple assignments, or compensate for confusing names or structure that can be clarified directly.
 - When changing behavior, update nearby stale comments in the same scope so comments remain trustworthy.
 
+## Saito Module Component Architecture
+
+These rules apply to Saito application modules (Arcade, RedSquare, etc.). They
+exist to prevent “protocol layers” and middleware variables from growing between
+components that should interact directly.
+
+### Prefer direct relationships
+
+If component A naturally needs behavior from component B, call B. Do not insert
+a resolver, dispatcher, registry, or generic action object unless a concrete
+requirement cannot be expressed otherwise.
+
+### Components own their behavior
+
+Domain objects expose ordinary methods with obvious names. Example (Arcade):
+
+- Library titles are `Game` objects (`onClick` performs selection).
+- Visual tiles are `Teaser` objects; a Teaser holds a `Game` and calls `game.onClick()`.
+- There is no separate `TeaserCard` or `card-interaction` protocol module.
+
+### Naming
+
+- Instance variables use **snake_case**.
+- Method and API names should be concrete domain terms (`addGame`, `render`, `onClick`).
+- Do not invent middleware property names (`module_select`, `arcadeInteraction`,
+  `selection_mode`, `payload`, `handler`) merely to ferry data between callers.
+
+### Extending another module
+
+Prefer existing module interfaces (`respondTo`, direct functions on objects the
+module already owns) over introducing a generic callback/dispatch framework
+inside a consumer module.
+
+### Arcade-specific detail
+
+See `SAITO-MODULE-CODING-PRACTICES.md` (repo root) for module domain-object,
+`addX()`, and direct-relationship rules. Arcade-local notes also live in
+`node/mods/arcade/docs/coding-practices.md`.
+
 ## Saito Module CSS Development Practices
 
 Reusable instructions for writing and simplifying CSS in Saito application modules (e.g. RedSquare). Derived from architectural guidance used during the RedSquare CSS cleanup.

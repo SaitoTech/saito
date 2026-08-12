@@ -82,9 +82,8 @@ class GameWizard {
     //Test if we should include Advanced Options
     let advancedOptions = this.game_mod.returnAdvancedOptions();
     if (!advancedOptions) {
-      let advanced_text = document.querySelector('.arcade-wizard .advanced-text');
-      if (advanced_text) {
-        advanced_text.style.visibility = 'hidden';
+      if (document.querySelector('.arcade-wizard-advanced-text')) {
+        document.querySelector('.arcade-wizard-advanced-text').style.visibility = 'hidden';
       }
     } else {
       let accept_button = `<div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn saito-button-primary">Accept</div>`;
@@ -106,7 +105,7 @@ class GameWizard {
     if (this.obj?.skip) {
       if (this.game_mod.maxPlayers === 1) {
         if (!this.game_mod.returnSingularGameOption() && !advancedOptions) {
-          let btn = document.querySelector('.arcade-wizard .game-invite-btn');
+          let btn = document.querySelector('.game-invite-btn');
           if (btn) {
             btn.click();
           }
@@ -119,13 +118,8 @@ class GameWizard {
   // Note: mod = Arcade
   //
   attachEvents() {
-    let root = document.querySelector('.arcade-wizard');
-    if (!root) {
-      return;
-    }
-
-    if (root.querySelector('.saito-multi-select_btn')) {
-      root.querySelector('.saito-multi-select_btn').addEventListener('click', (e) => {
+    if (document.querySelector('.saito-multi-select_btn')) {
+      document.querySelector('.saito-multi-select_btn').addEventListener('click', (e) => {
         e.currentTarget.classList.toggle('showAll');
       });
     }
@@ -133,7 +127,7 @@ class GameWizard {
     //
     // Display Advanced Options Overlay
     //
-    const advancedOptionsToggle = root.querySelector('.advanced-text');
+    const advancedOptionsToggle = document.querySelector('.arcade-wizard-advanced-text');
     if (advancedOptionsToggle) {
       advancedOptionsToggle.onclick = (e) => {
         this.meta_overlay.show();
@@ -161,7 +155,7 @@ class GameWizard {
     //
     // create game
     //
-    Array.from(root.querySelectorAll('.game-invite-btn')).forEach((gameButton) => {
+    Array.from(document.querySelectorAll('.game-invite-btn')).forEach((gameButton) => {
       gameButton.addEventListener('click', async (e) => {
         e.stopPropagation();
 

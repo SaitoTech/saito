@@ -1,0 +1,112 @@
+/* Namespace: .invite — single invite card */
+
+.invite,
+.arcade-invite {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--saito-space-xs);
+  min-height: 7.5rem;
+  padding: var(--saito-space-sm);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  overflow: hidden;
+  cursor: pointer;
+  background-color: var(--saito-card);
+  background-size: cover;
+  background-position: center;
+  color: var(--saito-foreground);
+}
+
+.invite::before,
+.arcade-invite::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--saito-background) 55%, transparent);
+  pointer-events: none;
+}
+
+.invite > *,
+.arcade-invite > * {
+  position: relative;
+  z-index: 1;
+}
+
+.invite .header,
+.arcade-invite .header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.invite .title,
+.arcade-invite .title {
+  font-family: var(--saito-font-heavy);
+  font-size: 1.25rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.invite .details,
+.arcade-invite .details {
+  font-size: 1.083rem;
+  line-height: 1.2;
+  color: var(--saito-muted-foreground);
+}
+
+.invite .actions,
+.arcade-invite .actions {
+  display: flex;
+  align-items: center;
+}
+
+.invite .players,
+.arcade-invite .players {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.invite .player,
+.invite .requested,
+.invite .slot,
+.invite .pending,
+.arcade-invite .player,
+.arcade-invite .requested,
+.arcade-invite .slot,
+.arcade-invite .pending {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--saito-radius-full);
+  overflow: hidden;
+}
+
+.invite .slot,
+.arcade-invite .slot {
+  border: 1px dashed var(--saito-border);
+  background: color-mix(in srgb, var(--saito-muted) 40%, transparent);
+}
+
+.invite .badge,
+.arcade-invite .badge {
+  position: absolute;
+  top: var(--saito-space-xs);
+  right: var(--saito-space-xs);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--saito-radius-sm);
+  font-size: 1.083rem;
+  line-height: 1.2;
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground, #fff);
+}
+
+.invite.my-turn,
+.arcade-invite.my-turn {
+  border-color: var(--saito-primary);
+}

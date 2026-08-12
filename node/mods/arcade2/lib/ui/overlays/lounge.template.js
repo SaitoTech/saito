@@ -12,16 +12,16 @@ module.exports = (app, mod, invite) => {
   }
 
   let html = `
-  <div class="arcade-lounge arcade-lounge--invite saito-overlay-panel">
-  <div class="arcade-lounge-header header">
-	  <div class="arcade-lounge-header-image image" style="background-image: url('${invite.game_mod.respondTo('arcade-games').image}')">
+  <div class="arcade-lounge arcade-lounge--invite">
+  <div class="arcade-lounge-header">
+	  <div class="arcade-lounge-header-image" style="background-image: url('${invite.game_mod.respondTo('arcade-games').image}')">
 	  </div>
-	  <div class="arcade-lounge-header-title title">${invite.game_name}</div>
-	  <div class="arcade-lounge-header-desc desc">${desc}</div>
+	  <div class="arcade-lounge-header-title">${invite.game_name}</div>
+	  <div class="arcade-lounge-header-desc">${desc}</div>
   </div>
-  <div class="arcade-lounge-body body">
+  <div class="arcade-lounge-body">
 	  <div class="arcade-lounge-section hide-scrollbar">
-	    <div class="arcade-lounge-players players">
+	    <div class="arcade-lounge-players">
 	`;
 
   const tentative = invite.tentative || { join: [], leave: [] };
