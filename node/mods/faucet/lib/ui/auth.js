@@ -142,9 +142,7 @@ We never post on your behalf.`
   }
 
   /**
-   * Begin provider authentication.
-   * GitHub opens a Faucet-owned OAuth initiation popup (does not navigate Saito).
-   * Other providers remain stubs until their routes are added.
+   * Stub — later replaced with Auth.js OAuth for the given provider.
    * @param {{ id: string, name?: string, icon?: string }} provider
    */
   authenticate(provider) {
@@ -159,52 +157,14 @@ We never post on your behalf.`
       return;
     }
 
-    if (provider.id === 'github') {
-      if (typeof window === 'undefined' || typeof window.open !== 'function') {
-        this.finish({
-          status: AUTH_STATUS.ERROR,
-          provider: 'github',
-          identity: null,
-          error: 'Browser cannot open an OAuth window'
-        });
-        return;
-      }
-
-      const slug =
-        typeof this.mod?.returnSlug === 'function' ? this.mod.returnSlug() : 'faucet';
-      const oauthUrl = new URL(`/${encodeURI(slug)}/oauth/github`, window.location.origin);
-      const publickey = String(this.mod?.publicKey || '').trim();
-      if (publickey) {
-        oauthUrl.searchParams.set('publickey', publickey);
-      }
-
-      const popup = window.open(
-        oauthUrl.toString(),
-        'saito_faucet_oauth_github',
-        'popup=yes,width=560,height=720,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes'
-      );
-      if (!popup) {
-        siteMessage('Please allow popups to continue with GitHub authentication.', 4000);
-      }
-      return;
-    }
-
-    if (provider.id === 'twitter') {
-      siteMessage('X authentication will be available soon.', 3000);
-      return;
-    }
-
-    siteMessage('That authentication provider is not available yet.', 3000);
-  }
-
-  /**
-   * Close without treating it as user cancel (null callback first).
-   */
-  close() {
-    this.callback = null;
-    if (this.overlay) {
-      this.overlay.close();
-    }
+    // Stub identity — Auth.js will populate real fields later.
+    this.finish({
+      status: AUTH_STATUS.SUCCESS,
+      provider: provider.id,
+      identity: Auth.emptyIdentity(provider.id),
+      error: null
+    });
+    this.overlay.close();
   }
 
   cancel() {
@@ -233,6 +193,18 @@ We never post on your behalf.`
       identity: result.identity ?? null,
       error: result.error ?? null
     });
+  }
+
+  static emptyIdentity(providerId = null) {
+    return {
+      provider: providerId,
+      provider_id: null,
+      username: null,
+      display_name: null,
+      email: null,
+      avatar: null,
+      metadata: {}
+    };
   }
 }
 

@@ -560,44 +560,6 @@ class Archive extends ModTemplate {
     }
 
     //
-    // AUTHORIZATION: same access-script gate as deleteTransaction()
-    //
-    let select_sql = `SELECT sig, owner FROM archives WHERE archives.sig = $sig`;
-    let select_params = { $sig: tx_to_update };
-    let existing_rows = await this.app.storage.queryDatabase(select_sql, select_params, 'archive');
-
-    if (this.app.BROWSER && (!existing_rows || existing_rows.length === 0)) {
-      existing_rows = await this.localDB.select({
-        from: 'archives',
-        where: { sig: tx_to_update },
-        limit: 1
-      });
-    }
-
-    if (existing_rows && existing_rows.length > 0) {
-      let existing_row = existing_rows[0];
-
-      if (existing_row.owner && existing_row.owner !== '') {
-        if (!obj.access_script) {
-          return 0;
-        }
-
-        let can_update = false;
-        let request_tx = obj.request_tx || tx || null;
-
-        if (this.app.core.scripting.hash(obj.access_script) === existing_row.owner) {
-          if (await this.app.core.scripting.evaluateWithTransaction(obj.access_script, request_tx)) {
-            can_update = true;
-          }
-        }
-
-        if (!can_update) {
-          return 0;
-        }
-      }
-    }
-
-    //
     // update index
     //
     let sql = `UPDATE archives SET tx = $tx, tx_size = $tx_size`;

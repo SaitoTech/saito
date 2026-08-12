@@ -11,9 +11,9 @@ use serde_json::{json, Value};
 use js_sys;
 
 use super::opcodes::{
-    Arrayify, CheckField, CheckHash, CheckKey, CheckMultiSig, CheckOwn, CheckOwnNft,
-    CheckOwnNftWhere, CheckPath, CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime,
-    ImportArray, ImportField, SetArray, SetArrayField, SetField, SumFields,
+    Arrayify, CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere,
+    CheckPath, CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime, ImportArray,
+    ImportField, SetArray, SetArrayField, SetField, SumFields,
 };
 
 /// Canonical JSON serialization used by script hashing and signed imports.
@@ -183,58 +183,26 @@ impl Script {
         blockchain: Option<&Blockchain>,
         current_p2sh_idx: Option<usize>,
     ) -> u8 {
-        self.validate_with_context(tx, blk, blockchain, current_p2sh_idx, None)
-    }
-
-    pub fn validate_with_context(
-        &self,
-        tx: Option<&Transaction>,
-        blk: Option<&Block>,
-        blockchain: Option<&Blockchain>,
-        current_p2sh_idx: Option<usize>,
-        supplied_context: Option<&Value>,
-    ) -> u8 {
         info!(
-        "[P2SH_DEBUGGING_TRACE] script.validate ENTER p2sh_idx={:?} has_tx={} has_blk={} has_blockchain={} has_supplied_context={} root={}",
-        current_p2sh_idx,
-        tx.is_some(),
-        blk.is_some(),
-        blockchain.is_some(),
-        supplied_context.is_some(),
-        self.json
-    );
+            "[P2SH_DEBUGGING_TRACE] script.validate ENTER p2sh_idx={:?} has_tx={} has_blk={} has_blockchain={} root={}",
+            current_p2sh_idx,
+            tx.is_some(),
+            blk.is_some(),
+            blockchain.is_some(),
+            self.json
+        );
 
-        /*
-        // 1) Start from caller-supplied context when it is a JSON object.
-        // 2) Then overwrite Rust-authoritative fields.
-         */
+        let mut context = json!({
+            "script": {},
+            "witness": {},
+            "variables": {}
+        });
 
-        let mut context = match supplied_context {
-            Some(Value::Object(_)) => supplied_context.unwrap().clone(),
-            _ => json!({}),
-        };
-
-        // Engine-managed structural keys: always reset.
-        context["script"] = json!({});
-        context["witness"] = json!({});
-        context["variables"] = json!({});
-
-        // These are not JSON context keys in this engine; they are separate
-        // validate/eval parameters. Strip any caller-supplied collisions.
-        if let Some(obj) = context.as_object_mut() {
-            obj.remove("tx");
-            obj.remove("blk");
-            obj.remove("blockchain");
-        }
-
-        /*
-        // set authoritative context variables
-         */
-
+        //
+        // set context variables
+        //
         if let Some(idx) = current_p2sh_idx {
             context["__current_p2sh_idx"] = json!(idx);
-        } else if let Some(obj) = context.as_object_mut() {
-            obj.remove("__current_p2sh_idx");
         }
 
         let now_ms = if let Some(blk) = blk {
@@ -246,6 +214,7 @@ impl Script {
             {
                 js_sys::Date::now() as u64
             }
+
             #[cfg(not(target_arch = "wasm32"))]
             {
                 std::time::SystemTime::now()
@@ -260,23 +229,16 @@ impl Script {
         if let Some(tx) = tx {
             if let Some(slip) = tx.from.first() {
                 context["REQUESTER"] = json!(slip.public_key.to_base58());
-            } else if let Some(obj) = context.as_object_mut() {
-                obj.remove("REQUESTER");
             }
-
             info!(
-            "[P2SH_DEBUGGING_TRACE] script.validate context tx.signature={} tx.from_count={} tx.to_count={} REQUESTER={:?} NOW={}",
-            tx.signature.to_hex(),
-            tx.from.len(),
-            tx.to.len(),
-            context.get("REQUESTER"),
-            now_ms
-        );
+                "[P2SH_DEBUGGING_TRACE] script.validate context tx.signature={} tx.from_count={} tx.to_count={} REQUESTER={:?} NOW={}",
+                tx.signature.to_hex(),
+                tx.from.len(),
+                tx.to.len(),
+                context.get("REQUESTER"),
+                now_ms
+            );
         } else {
-            if let Some(obj) = context.as_object_mut() {
-                obj.remove("REQUESTER");
-            }
-
             info!(
                 "[P2SH_DEBUGGING_TRACE] script.validate context NO_TX NOW={}",
                 now_ms
@@ -454,7 +416,10 @@ impl Script {
             //
             let result = match op.as_str() {
                 "CHECKHASH" => {
-                    let expected = context["script"]["hash"].as_str().unwrap_or("").to_string();
+                    let expected = context["script"]["hash"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string();
                     let input = context["witness"]["input"]
                         .as_str()
                         .unwrap_or("")
@@ -493,7 +458,6 @@ impl Script {
                 "SETARRAYFIELD" => SetArrayField::validate(context, tx, blk),
                 "ARRAYIFY" => Arrayify::validate(context, tx, blk),
                 "CHECKFIELD" => CheckField::validate(context, tx, blk),
-                "CHECKKEY" => CheckKey::validate(context, tx, blk),
                 "CHECKOWN" => CheckOwn::validate(context, tx, blk, blockchain),
                 "CHECKOWNNFT" => CheckOwnNft::validate(context, tx, blk, blockchain),
                 "CHECKOWNNFTWHERE" => CheckOwnNftWhere::validate(context, tx, blk, blockchain),
@@ -742,405 +706,6 @@ mod tests {
         let mut script = Script::new();
         script.parse(super::TEST_SCRIPT);
         assert_eq!(script.validate(None, None, None, None), 1);
-    }
-
-    #[test]
-    fn validate_with_context_keeps_db_and_overwrites_authoritative_fields() {
-        let mut script = Script::new();
-
-        script.parse(
-            &serde_json::to_string(&json!({
-                "op": "AND",
-                "args": [
-                    {
-                        "op": "CHECKFIELD",
-                        "field": "db.type",
-                        "operator": "==",
-                        "value": "UPDATE"
-                    },
-                    {
-                        "op": "CHECKFIELD",
-                        "field": "db.field5",
-                        "operator": "==",
-                        "value": "entropy"
-                    },
-                    {
-                        "op": "CHECKFIELD",
-                        "field": "NOW",
-                        "operator": "!=",
-                        "value": 123
-                    }
-                ]
-            }))
-            .unwrap(),
-        );
-
-        let supplied = json!({
-            "db": {
-                "type": "UPDATE",
-                "field5": "entropy"
-            },
-            "tx": "ATTACKER-SUPPLIED",
-            "NOW": 123,
-            "REQUESTER": "ATTACKER"
-        });
-
-        assert_eq!(
-            script.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-    }
-
-    #[test]
-    fn validate_checkkey_presence_and_absence() {
-        let supplied = json!({
-            "db": {
-                "field5": "our new entry"
-            }
-        });
-
-        let mut present = Script::new();
-        present.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "==",
-                "key": "field5"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            present.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut present_absent_op = Script::new();
-        present_absent_op.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "!=",
-                "key": "field5"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            present_absent_op.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut missing_key = Script::new();
-        missing_key.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "==",
-                "key": "field7"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            missing_key.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut missing_key_not = Script::new();
-        missing_key_not.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "!=",
-                "key": "field7"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            missing_key_not.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        // Aliases are rejected — only == / != / IN / NOT are canonical.
-        let mut equals_alias = Script::new();
-        equals_alias.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "equals",
-                "key": "field5"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            equals_alias.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut notequals_alias = Script::new();
-        notequals_alias.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "notequals",
-                "key": "field7"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            notequals_alias.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-    }
-
-    #[test]
-    fn validate_checkkey_ignores_stored_value_truthiness() {
-        let supplied = json!({
-            "db": {
-                "null_key": null,
-                "false_key": false,
-                "empty_key": "",
-                "other": 1
-            }
-        });
-
-        for key in ["null_key", "false_key", "empty_key"] {
-            let mut script = Script::new();
-            script.parse(
-                &serde_json::to_string(&json!({
-                    "op": "CHECKKEY",
-                    "field": "db",
-                    "operator": "==",
-                    "key": key
-                }))
-                .unwrap(),
-            );
-            assert_eq!(
-                script.validate_with_context(None, None, None, None, Some(&supplied)),
-                1,
-                "key {key} must count as present regardless of value"
-            );
-        }
-    }
-
-    #[test]
-    fn validate_checkkey_missing_or_non_object_fails_closed() {
-        let mut missing_object = Script::new();
-        missing_object.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "==",
-                "key": "field5"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            missing_object.validate_with_context(
-                None,
-                None,
-                None,
-                None,
-                Some(&json!({ "wiki": { "title": "x" } }))
-            ),
-            0
-        );
-        assert_eq!(
-            missing_object.validate_with_context(
-                None,
-                None,
-                None,
-                None,
-                Some(&json!({ "db": { "field5": "x" } }))
-            ),
-            1
-        );
-
-        // Non-object parent: fail closed for both == and != (like CHECKFIELD on Null).
-        let non_object = json!({ "db": "not-an-object" });
-        let mut eq_script = Script::new();
-        eq_script.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "==",
-                "key": "field5"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            eq_script.validate_with_context(None, None, None, None, Some(&non_object)),
-            0
-        );
-
-        let mut ne_script = Script::new();
-        ne_script.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "!=",
-                "key": "field5"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            ne_script.validate_with_context(None, None, None, None, Some(&non_object)),
-            0
-        );
-    }
-
-    #[test]
-    fn validate_checkkey_in_and_not_operators() {
-        let supplied = json!({
-            "db": {
-                "field1": "a",
-                "field2": "b"
-            }
-        });
-
-        let mut ok_in = Script::new();
-        ok_in.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "IN",
-                "key": ["field1", "field2", "field3"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            ok_in.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut bad_in = Script::new();
-        bad_in.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "IN",
-                "key": ["field1"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            bad_in.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut ok_not = Script::new();
-        ok_not.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "NOT",
-                "key": ["owner", "publickey", "preserve"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            ok_not.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let owned = json!({
-            "db": {
-                "field1": "a",
-                "owner": "x"
-            }
-        });
-        let mut bad_not = Script::new();
-        bad_not.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "NOT",
-                "key": ["owner", "publickey"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            bad_not.validate_with_context(None, None, None, None, Some(&owned)),
-            0
-        );
-
-        let empty = json!({ "db": {} });
-        let mut in_empty_list = Script::new();
-        in_empty_list.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "IN",
-                "key": []
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            in_empty_list.validate_with_context(None, None, None, None, Some(&empty)),
-            1
-        );
-        assert_eq!(
-            in_empty_list.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut not_empty_list = Script::new();
-        not_empty_list.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "NOT",
-                "key": []
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            not_empty_list.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut malformed_in = Script::new();
-        malformed_in.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "IN",
-                "key": "field1"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            malformed_in.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut malformed_not = Script::new();
-        malformed_not.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "NOT",
-                "key": "owner"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            malformed_not.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut non_string_elem = Script::new();
-        non_string_elem.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKKEY",
-                "field": "db",
-                "operator": "IN",
-                "key": ["field1", 2]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            non_string_elem.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
     }
 
     #[test]
@@ -1440,213 +1005,6 @@ mod tests {
         );
 
         assert_eq!(script.validate(None, None, None, None), 1);
-    }
-
-    #[test]
-    fn validate_checkfield_in_and_not_operators() {
-        let supplied = json!({
-            "db": {
-                "type": "UPDATE",
-                "status": "ACTIVE",
-                "tier": 2
-            }
-        });
-
-        let mut in_one = Script::new();
-        in_one.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "IN",
-                "value": ["UPDATE"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            in_one.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut in_many = Script::new();
-        in_many.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "IN",
-                "value": ["CREATE", "UPDATE", "DELETE"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            in_many.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut in_miss = Script::new();
-        in_miss.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "IN",
-                "value": ["CREATE", "DELETE"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            in_miss.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut not_one = Script::new();
-        not_one.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "NOT",
-                "value": ["DELETE"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            not_one.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut not_miss = Script::new();
-        not_miss.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.status",
-                "operator": "NOT",
-                "value": ["REVOKED", "EXPIRED"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            not_miss.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut not_hit = Script::new();
-        not_hit.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "NOT",
-                "value": ["UPDATE", "CREATE"]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            not_hit.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut in_empty = Script::new();
-        in_empty.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "IN",
-                "value": []
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            in_empty.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut not_empty = Script::new();
-        not_empty.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "NOT",
-                "value": []
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            not_empty.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut in_number = Script::new();
-        in_number.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.tier",
-                "operator": "IN",
-                "value": [1, 2, 3]
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            in_number.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut malformed_in = Script::new();
-        malformed_in.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "IN",
-                "value": "UPDATE"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            malformed_in.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        let mut malformed_not = Script::new();
-        malformed_not.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "NOT",
-                "value": "DELETE"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            malformed_not.validate_with_context(None, None, None, None, Some(&supplied)),
-            0
-        );
-
-        // Existing == / != still work with context paths.
-        let mut eq = Script::new();
-        eq.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "==",
-                "value": "UPDATE"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            eq.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
-
-        let mut ne = Script::new();
-        ne.parse(
-            &serde_json::to_string(&json!({
-                "op": "CHECKFIELD",
-                "field": "db.type",
-                "operator": "!=",
-                "value": "DELETE"
-            }))
-            .unwrap(),
-        );
-        assert_eq!(
-            ne.validate_with_context(None, None, None, None, Some(&supplied)),
-            1
-        );
     }
 
     #[test]
@@ -3985,7 +3343,11 @@ fn resolve_p2sh_slip_field(slips: &[Slip], field: &str, p2sh_ordinal: usize) -> 
 ///
 /// The hash is Blake3 over the concatenation of every output slip's
 /// serialize_output_for_signature() bytes.
-pub(crate) fn get_p2sh_auth_hash(context: &mut Value, tx: Option<&Transaction>) -> Option<String> {
+pub(crate) fn get_p2sh_auth_hash(
+    context: &mut Value,
+    tx: Option<&Transaction>,
+) -> Option<String> {
+
     if let Some(existing) = context
         .get("__p2sh_auth_hash")
         .and_then(|v| v.as_str())
@@ -4001,10 +3363,13 @@ pub(crate) fn get_p2sh_auth_hash(context: &mut Value, tx: Option<&Transaction>) 
         buffer.extend(slip.serialize_output_for_signature());
     }
     let p2sh_auth_hash = crypto::hash(&buffer).to_hex();
-    context["__p2sh_auth_hash"] = Value::String(p2sh_auth_hash.clone());
+    context["__p2sh_auth_hash"] =
+        Value::String(p2sh_auth_hash.clone());
 
     Some(p2sh_auth_hash)
 }
+
+
 
 pub(crate) fn resolved_value_to_message_string(value: &Value) -> String {
     match value {
@@ -4128,21 +3493,13 @@ pub(crate) fn resolve_ref(
     //
     // NOW and REQUESTER
     //
-    let path = path.strip_prefix("context.").unwrap_or(path);
-
     if let Some(resolved) = context.get(path) {
         return resolved.clone();
     }
 
-    if path.contains('.') {
-        if let Some(resolved) = lookup(context, path) {
-            return resolved;
-        }
-    }
-
-    /*
-     * not a reference:
-     * treat as literal string
-     */
+    //
+    // not a reference:
+    // treat as literal string
+    //
     value.clone()
 }

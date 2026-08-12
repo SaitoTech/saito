@@ -55,7 +55,6 @@ const OpcodeChecksig = require('./lib/opcodes/checksig');
 const OpcodeCheckmultisig = require('./lib/opcodes/checkmultisig');
 const OpcodeCheckhash = require('./lib/opcodes/checkhash');
 const OpcodeCheckfield = require('./lib/opcodes/checkfield');
-const OpcodeCheckkey = require('./lib/opcodes/checkkey');
 const OpcodeChecksender = require('./lib/opcodes/checksender');
 const OpcodeCheckrecipient = require('./lib/opcodes/checkrecipient');
 const OpcodeCheckpath = require('./lib/opcodes/checkpath');
@@ -132,7 +131,6 @@ class Rustscript extends ModTemplate {
       OpcodeCheckmultisig,
       OpcodeCheckhash,
       OpcodeCheckfield,
-      OpcodeCheckkey,
       OpcodeChecksender,
       OpcodeCheckrecipient,
       OpcodeCheckpath,

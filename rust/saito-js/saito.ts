@@ -546,35 +546,17 @@ export default class Saito {
           return JSON.parse(wasm.merge_witness(script, witness));
         },
 
+        evaluateWithTransaction: async (script: any, tx?: Transaction): Promise<number> => {
+          if (typeof script !== "string") {
+            script = JSON.stringify(script);
+          }
+          if (tx) {
+            tx.packData();
+            return await wasm.evaluate_script_with_transaction(script, tx.wasmTransaction);
+          }
 
-	evaluateWithTransaction: async (
-	    script: any,
-	    tx?: Transaction,
-	    context?: any
-	): Promise<number> => {
-	    if (typeof script !== "string") {
-	        script = JSON.stringify(script);
-	    }
-	
-	    let contextJson: string | undefined = undefined;
-	
-	    if (context !== undefined && context !== null) {
-	        contextJson =
-	            typeof context === "string" ? context : JSON.stringify(context);
-	    }
-	
-	    if (tx) {
-	        tx.packData();
-	
-	        return await wasm.evaluate_script_with_transaction(
-	            script,
-	            tx.wasmTransaction,
-	            contextJson
-	        );
-	    }
-
-	    return await wasm.evaluate_script(script, contextJson);
-	},
+          return await wasm.evaluate_script(script);
+        },
 
         hash: (script: any): string => {
           if (typeof script !== "string") {
