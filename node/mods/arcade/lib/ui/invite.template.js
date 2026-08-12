@@ -20,9 +20,9 @@ module.exports = (app, mod, invite) => {
          style="background-image: url('${invite_img}');">
       <div class="header">
         <div class="title">${invite.game_name}</div>
+        <div class="details">${invite.game_type.toUpperCase()}</div>
       </div>
       <div class="actions">
-        <div class="details">${invite.game_type.toUpperCase()}</div>
         ${badge}
         <div class="players">
   `;

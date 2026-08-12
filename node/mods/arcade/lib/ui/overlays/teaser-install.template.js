@@ -3,14 +3,12 @@ module.exports = (model = {}) => {
   let image = model.image || '';
 
   let hero = image ? `<img class="hero" src="${image}" alt="">` : '';
-  let artwork = image ? `<img class="artwork" src="${image}" alt="">` : '';
 
   return `
     <div class="arcade-teaser-install saito-overlay-panel">
       <div class="art">
         ${hero}
-        <div class="stage">
-          ${artwork}
+        <div class="content">
           <div class="panel">
             <div class="title">Install ${title}</div>
             <div class="message">
@@ -19,7 +17,7 @@ module.exports = (model = {}) => {
               the Wiki.
             </div>
             <button type="button" class="saito-button-primary fat" data-action="install">
-              VISIT SAITO WIKI
+              INSTALL GAME
             </button>
           </div>
         </div>

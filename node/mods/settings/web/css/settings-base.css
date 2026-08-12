@@ -159,6 +159,23 @@
   min-height: 2.4rem;
 }
 
+.settings-seed-phrase[role='button'] {
+  cursor: pointer;
+  font-family: var(--saito-font);
+}
+
+.settings-seed-phrase[role='button']:hover,
+.settings-seed-phrase[role='button']:focus-visible {
+  color: var(--saito-primary);
+}
+
+.settings-seed-phrase:not([role='button']) {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
+}
+
 .settings-field-value,
 .settings-appspace-user-details .username {
   overflow: hidden;
