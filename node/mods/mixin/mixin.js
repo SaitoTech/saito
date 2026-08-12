@@ -215,7 +215,8 @@ class Mixin extends ModTemplate {
     // sendPayment, returnWithdrawalFeeForAddress, getMixinAddress
     //
     if (message.request === 'mixin fetch user') {
-      return await this.receiveFetchUserTransaction(app, tx, peer, mycallback);
+      await this.receiveFetchUserTransaction(app, tx, peer, mycallback);
+      return 1;
     }
 
     //
