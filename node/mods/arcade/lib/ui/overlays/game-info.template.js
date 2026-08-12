@@ -15,7 +15,7 @@ module.exports = (model = {}) => {
         ${hero}
         <div class="banner">
           <div class="title">${title}</div>
-          <button type="button" class="saito-button-primary create" data-action="create">Create New Game</button>
+          <button type="button" class="saito-button-primary create" data-action="create">+ New Game</button>
         </div>
       </div>
       ${leaderboard}

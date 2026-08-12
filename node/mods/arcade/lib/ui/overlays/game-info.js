@@ -51,13 +51,19 @@ class ArcadeGameInfo {
   }
 
   async render() {
+    // Same artwork as the Arcade teaser/card (Game.image), never the banner.
     let image = '';
-    try {
-      let pack = this.game_mod.respondTo('arcade-games') || {};
-      image = pack.banner || pack.image || '';
-    } catch (_) {}
-    if (!image) {
-      image = `/${this.game_mod.returnSlug()}/img/arcade/arcade-banner-background.png`;
+    let arcade_game = this.mod?.games?.find((g) => g.name === this.game_mod.name);
+    if (arcade_game?.image) {
+      image = arcade_game.image;
+    } else {
+      try {
+        let pack = this.game_mod.respondTo('arcade-games') || {};
+        let is_teaser = this.game_mod.teaser === true || this.game_mod.is_teaser === true;
+        image = is_teaser
+          ? this.game_mod.img || pack.image || ''
+          : pack.image || this.game_mod.img || '';
+      } catch (_) {}
     }
 
     let title = this.game_mod.returnName ? this.game_mod.returnName() : this.game_mod.name;
@@ -101,6 +107,16 @@ class ArcadeGameInfo {
       this.league
     );
     await this.leaderboard.render();
+
+    // Arcade overlay presentation only — leave League's own UI unchanged.
+    let score = document.querySelector('.arcade-game-info .league-score-header');
+    if (score) {
+      score.onclick = null;
+    }
+    let headers = document.querySelectorAll('.arcade-game-info .saito-table-header > div');
+    if (headers[3]) {
+      headers[3].textContent = 'Games';
+    }
   }
 
   attachEvents() {

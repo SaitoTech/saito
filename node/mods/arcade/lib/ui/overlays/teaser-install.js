@@ -35,10 +35,9 @@ class TeaserInstallOverlay {
       } catch (_) {}
     }
 
-    let description = obj.description || game_mod?.description || '';
     this.link = obj.link || game?.link || game_mod?.link || '';
 
-    this.overlay.show(TeaserInstallTemplate({ title, image, description }));
+    this.overlay.show(TeaserInstallTemplate({ title, image }));
     if (image) {
       this.overlay.setBackground(image);
     }

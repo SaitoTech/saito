@@ -1,6 +1,6 @@
 /*
  * Namespace: .arcade-teaser-install
- * Full-viewport install prompt over the selected teaser's artwork.
+ * Subdued full-bleed artwork + compact dark install panel.
  */
 
 .arcade-teaser-install {
@@ -13,10 +13,13 @@
 
 .arcade-teaser-install .art {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: min(42rem, 72vh);
   border-radius: var(--saito-radius);
   overflow: hidden;
-  background: var(--saito-muted);
+  background: #000;
 }
 
 .arcade-teaser-install .hero {
@@ -26,54 +29,62 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0.22;
+  filter: brightness(0.55) saturate(0.85);
 }
 
-.arcade-teaser-install .content {
+.arcade-teaser-install .stage {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-lg);
+  width: min(28rem, calc(100% - 2 * var(--saito-space-lg)));
+  padding: var(--saito-space-xl) var(--saito-space-lg);
+}
+
+.arcade-teaser-install .artwork {
+  display: block;
+  width: min(22rem, 100%);
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--saito-radius);
+  border: 1px solid color-mix(in srgb, #fff 18%, transparent);
+  box-shadow: var(--saito-elevation-3);
+}
+
+.arcade-teaser-install .panel {
+  display: flex;
+  flex-direction: column;
   gap: var(--saito-space-md);
-  justify-content: flex-end;
-  min-height: min(42rem, 72vh);
-  padding: var(--saito-space-xl);
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, #000 78%, transparent) 0%,
-    color-mix(in srgb, #000 42%, transparent) 48%,
-    transparent 100%
-  );
+  width: 100%;
+  padding: var(--saito-space-lg);
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, #000 78%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 10%, transparent);
+  box-shadow: var(--saito-elevation-2);
 }
 
 .arcade-teaser-install .title {
   margin: 0;
   font-family: var(--saito-font-heavy);
-  font-size: 2.2rem;
+  font-size: 1.67rem;
   line-height: 1.2;
   text-transform: uppercase;
   color: #fff;
 }
 
-.arcade-teaser-install .description,
 .arcade-teaser-install .message {
   margin: 0;
-  max-width: 42rem;
   font-size: inherit;
   line-height: 1.45;
   color: #fff;
 }
 
-.arcade-teaser-install .description {
-  opacity: 0.92;
-}
-
-.arcade-teaser-install .message {
-  opacity: 0.88;
-}
-
 .arcade-teaser-install [data-action='install'] {
-  align-self: flex-start;
-  margin-top: var(--saito-space-sm);
+  align-self: stretch;
+  margin-top: var(--saito-space-xs);
 }
 
 @media (max-width: 700px) {
@@ -81,20 +92,25 @@
     width: min(96vw, 72rem);
   }
 
-  .arcade-teaser-install .art,
-  .arcade-teaser-install .content {
+  .arcade-teaser-install .art {
     min-height: min(34rem, 70vh);
   }
 
-  .arcade-teaser-install .content {
-    padding: var(--saito-space-lg);
+  .arcade-teaser-install .stage {
+    width: min(100%, calc(100% - 2 * var(--saito-space-md)));
+    padding: var(--saito-space-lg) var(--saito-space-md);
+    gap: var(--saito-space-md);
+  }
+
+  .arcade-teaser-install .artwork {
+    width: min(18rem, 100%);
+  }
+
+  .arcade-teaser-install .panel {
+    padding: var(--saito-space-md);
   }
 
   .arcade-teaser-install .title {
-    font-size: 1.67rem;
-  }
-
-  .arcade-teaser-install [data-action='install'] {
-    width: 100%;
+    font-size: 1.5rem;
   }
 }
