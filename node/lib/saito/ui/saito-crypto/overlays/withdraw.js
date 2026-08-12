@@ -743,7 +743,7 @@ class Withdraw {
         [amount],
         btoa(sender + this.address + amount + ts),
         async (res) => {
-          if (res.hash != '') {
+          if (res?.hash && !res?.err) {
             this.withdrawBroadcastSuccessUi(res.hash);
           } else {
             const errMsg =
