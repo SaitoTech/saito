@@ -742,19 +742,14 @@ class Nwasm extends OnePlayerGameTemplate {
   }
 
   //
-  // After Upload to Vault is confirmed, register the game using Vault's
-  // confirmed NFT→file cache (written after the mint tx confirms).
+  // After Upload to Vault is confirmed, register the game from the mint tx /
+  // upload result — do not ask Vault for metadata.
   //
   async addGameFromVaultResult(ctx = {}, result = {}) {
     let name = (ctx.game_data?.name || ctx.file_name || '').trim() || 'game';
     let filename = (result?.filename || ctx.file_name || `${name}.z64`).trim();
     if (!/\.(z64|n64|v64)$/i.test(filename)) {
       filename = `${filename.replace(/\.[^.]+$/, '') || name}.z64`;
-    }
-
-    let vault_mod = this.app.modules.returnModule('Vault');
-    if (!vault_mod?.returnNftFileMetadata) {
-      throw new Error('Vault module is required to register an uploaded Vault game');
     }
 
     try {
@@ -768,36 +763,69 @@ class Nwasm extends OnePlayerGameTemplate {
     let tx_sig = nft_tx?.signature || '';
     let nfts = this.app.options?.wallet?.nfts || [];
     let nft_entry =
-      nfts.find((n) => (nft_id && n.id === nft_id) || (tx_sig && n.tx_sig === tx_sig)) || {
-        id: nft_id,
-        nft_id: nft_id,
-        tx_sig: tx_sig
-      };
+      nfts.find((n) => (nft_id && n.id === nft_id) || (tx_sig && n.tx_sig === tx_sig)) || null;
 
-    // Authoritative Access Key metadata lives in Vault's confirmed cache.
-    let file = await vault_mod.returnNftFileMetadata(nft_entry);
-    if (!file?.file_id && nft_id && typeof vault_mod.getCachedNftFileMetadata === 'function') {
-      file = vault_mod.getCachedNftFileMetadata(nft_id);
+    let msg = {};
+    try {
+      msg = nft_tx?.returnMessage?.() || nft_tx?.msg || {};
+    } catch (err) {
+      msg = {};
     }
+    let data = msg.data && typeof msg.data === 'object' ? msg.data : {};
 
-    let sig = file?.tx_sig || tx_sig || '';
-    nft_id = file?.nft_id || nft_id || '';
-    filename = file?.filename || filename;
+    let file_id = String(result?.file_id || data.file_id || '');
+    filename = String(data.filename || filename);
+    nft_id = String(nft_id || nft_entry?.id || '');
+    tx_sig = String(tx_sig || nft_entry?.tx_sig || '');
 
-    if (!file?.file_id || (!sig && !nft_tx)) {
+    if (!file_id || (!tx_sig && !nft_tx)) {
       throw new Error(
-        'Vault upload confirmed but Access Key metadata is not available to register'
+        'Vault upload confirmed but Access Key mint transaction data is not available to register'
       );
     }
+
+    let file = {
+      nft_id: nft_id || tx_sig,
+      tx_sig: tx_sig,
+      file_id: file_id,
+      filename: filename,
+      link: data.link != null ? String(data.link) : '',
+      slip1_utxokey: nft_entry?.slip1?.utxo_key || '',
+      slip2_utxokey: nft_entry?.slip2?.utxo_key || '',
+      slip3_utxokey: nft_entry?.slip3?.utxo_key || '',
+      file_access_script: data.file_access_script || null
+    };
+
+    this.rememberVaultNftIndex(tx_sig || file.nft_id, {
+      status: 'rom',
+      ...file
+    });
 
     let title = filename.replace(/\.(z64|n64|v64)$/i, '').trim() || name;
     return await this.addGame(nft_tx, {
       source: 'vault',
       title: title,
-      id: nft_id || sig,
-      sig: sig,
+      id: file.nft_id || tx_sig,
+      sig: tx_sig,
       vault: file
     });
+  }
+
+  //
+  // NWASM-owned classification of Vault NFTs (not Vault's options.vault.files).
+  //
+  rememberVaultNftIndex(key, entry) {
+    if (!key || !entry) {
+      return;
+    }
+    if (!this.app.options.nwasm) {
+      this.app.options.nwasm = {};
+    }
+    if (!this.app.options.nwasm.vault_nft_index || typeof this.app.options.nwasm.vault_nft_index !== 'object') {
+      this.app.options.nwasm.vault_nft_index = {};
+    }
+    this.app.options.nwasm.vault_nft_index[key] = entry;
+    this.app.storage.saveOptions();
   }
 
   async deleteRoms() {

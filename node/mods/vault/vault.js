@@ -10,6 +10,7 @@ const { buildDefaultAccessScript } = require('./lib/contracts');
 const {
   receiveVaultAddFileTransaction
 } = require('./lib/transactions/add-file');
+const rentalCheckout = require('./lib/transactions/rental-checkout');
 
 class Vault extends ModTemplate {
   constructor(app) {
@@ -25,6 +26,8 @@ class Vault extends ModTemplate {
 
     this.peer_connected = false;
     this.peer = null;
+
+    Object.assign(this, rentalCheckout);
 
     //
     // vars for users / uploads
@@ -403,6 +406,15 @@ class Vault extends ModTemplate {
 
     if (txmsg.request === 'vault add file') {
       return await receiveVaultAddFileTransaction(app, this, tx, mycallback);
+    }
+
+    if (txmsg.request === 'vault checkout rental') {
+      console.log('[VAULT CHECKOUT] Server received checkout transaction', {
+        peer_request_sig: tx?.signature || null,
+        request: txmsg.request
+      });
+      console.log('[VAULT CHECKOUT] Dispatching to receiveCheckOutRentalTransaction()');
+      return await this.receiveCheckOutRentalTransaction(tx, mycallback);
     }
   }
 

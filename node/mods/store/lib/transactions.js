@@ -109,7 +109,16 @@ module.exports = {
       BigInt(0),
       txmsg
     );
-    newtx = await nft.modifyBeforeSend(newtx, this.store_public_key);
+    // Listing user → Store for store-nft-rental is the authorized/delegated hop.
+    // Other NFT types leave data default (no delegated flag).
+    const is_store_rental =
+      (typeof nft.returnType === 'function' && nft.returnType() === 'store-nft-rental') ||
+      String(listing?.listing_mode || '').toLowerCase() === 'rent';
+    if (is_store_rental) {
+      nft.nft_type = 'store-nft-rental';
+    }
+    const listing_transfer_data = is_store_rental ? { delegated: true } : {};
+    newtx = await nft.modifyBeforeSend(newtx, this.store_public_key, listing_transfer_data);
     await newtx.sign();
 
     console.log('Store: createListAssetTransaction complete', newtx.signature);
@@ -124,35 +133,126 @@ module.exports = {
 
     if (txmsg.fulfill_sale) {
       await this.receiveFulfillmentTransaction(blk, tx);
-      return;
+    } else {
+      //
+      // determine if existing inventory is being modified
+      //
+      try {
+        const spent_tuples = returnSpentNftTuples(tx);
+        const created_tuples = returnCreatedNftTuples(tx);
+        const slip_key =
+          slipPublicKey(this.app, txmsg.p2sh_address || '') || txmsg.p2sh_address || '';
+
+        //
+        // inventory moved from one listing position to another
+        //
+        if (
+          spent_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
+          created_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
+          (await executeListingScript(this.app, txmsg.access_script || '', this.store_public_key))
+        ) {
+          await this.warehouse.removeListing(nft, tx, txmsg, blk);
+        }
+
+        //
+        // new inventory position observed
+        //
+        await this.warehouse.addListing(nft, tx, txmsg, blk);
+      } catch (err) {
+        console.error('Store: receiveListAssetTransaction failed', err);
+        if (err?.stack) {
+          console.error(err.stack);
+        }
+      }
     }
 
     //
-    // determine if existing inventory is being modified
+    // Stage 1 rental checkout: if this list-asset transfers a store-nft-rental
+    // to the current user, ask Vault to build a checkout tx and submit it.
     //
     try {
-      const spent_tuples = returnSpentNftTuples(tx);
-      const created_tuples = returnCreatedNftTuples(tx);
-      const slip_key =
-        slipPublicKey(this.app, txmsg.p2sh_address || '') || txmsg.p2sh_address || '';
+      const my_key = String(this.publicKey || '').trim();
+      const nft_type =
+        (typeof nft.returnType === 'function' ? nft.returnType() : '') || nft.nft_type || '';
+      const is_store_rental =
+        nft_type === 'store-nft-rental' ||
+        String(txmsg?.listing?.listing_mode || '').toLowerCase() === 'rent';
 
-      //
-      // inventory moved from one listing position to another
-      //
-      if (
-        spent_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
-        created_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
-        (await executeListingScript(this.app, txmsg.access_script || '', this.store_public_key))
-      ) {
-        await this.warehouse.removeListing(nft, tx, txmsg, blk);
+      if (!is_store_rental || !my_key) {
+        return;
       }
 
-      //
-      // new inventory position observed
-      //
-      await this.warehouse.addListing(nft, tx, txmsg, blk);
+      const created_tuples = returnCreatedNftTuples(tx);
+      const to_me =
+        String(txmsg?.fulfill_sale?.buyer || '') === my_key ||
+        created_tuples.some((tuple) => tuple.custody_public_key === my_key);
+
+      if (!to_me) {
+        return;
+      }
+
+      console.log(
+        '[VAULT CHECKOUT] Store detected rental transfer',
+        {
+          list_asset_tx: tx.signature,
+          nft_type,
+          recipient: my_key,
+          fulfill_sale_buyer: txmsg?.fulfill_sale?.buyer || null
+        }
+      );
+
+      const vault_mod = this.app.modules.returnModule('Vault');
+      if (!vault_mod || typeof vault_mod.createCheckOutRentalTransaction !== 'function') {
+        console.log(
+          '[VAULT CHECKOUT] Store skipped — Vault module not installed or missing createCheckOutRentalTransaction'
+        );
+        return;
+      }
+
+      console.log(
+        '[VAULT CHECKOUT] Store invoking vault_mod.createCheckOutRentalTransaction(tx)',
+        tx.signature
+      );
+      const newTx = await vault_mod.createCheckOutRentalTransaction(tx);
+      if (!newTx) {
+        console.log('[VAULT CHECKOUT] Store skipped — Vault returned no checkout transaction');
+        return;
+      }
+
+      console.log('[VAULT CHECKOUT] Store received checkout transaction from Vault', {
+        checkout_tx_sig: newTx.signature,
+        request: newTx.msg?.request || newTx.returnMessage?.()?.request,
+        data: newTx.msg?.data || newTx.returnMessage?.()?.data
+      });
+
+      if (!vault_mod.peer?.publicKey) {
+        console.log(
+          '[VAULT CHECKOUT] Store skipped send — Vault peer not connected; checkout tx',
+          newTx.signature
+        );
+        return;
+      }
+
+      console.log(
+        '[VAULT CHECKOUT] Sending checkout transaction to Vault server',
+        {
+          checkout_tx_sig: newTx.signature,
+          checkout_tx_signed: !!(newTx.signature && String(newTx.signature).length > 0),
+          vault_peer: vault_mod.peer.publicKey,
+          request: 'vault checkout rental',
+          note: 'sendRequestAsTransaction outer peer-request is signed only if signature_required=true (currently omitted)'
+        }
+      );
+      this.app.network.sendRequestAsTransaction(
+        'vault checkout rental',
+        newTx.serialize_to_web(this.app),
+        (res) => {
+          console.log('[VAULT CHECKOUT] Store received Vault server response', res);
+        },
+        vault_mod.peer.publicKey
+      );
     } catch (err) {
-      console.error('Store: receiveListAssetTransaction failed', err);
+      console.error('[VAULT CHECKOUT] Store rental checkout wiring failed', err);
       if (err?.stack) {
         console.error(err.stack);
       }
@@ -500,6 +600,26 @@ module.exports = {
 
     if (listing_tx) {
       this.attachFulfillmentTxmsg(fulfillment_tx, order_row, listing_rows, listing_tx);
+    }
+
+    // Store → renter: append hop with delegated = 0 via the same transfer hook.
+    // Does not create a second transaction; mutates fulfillment_tx before sign.
+    if (listing_tx) {
+      const listing_txmsg = listingTxmsg(listing_tx);
+      const rental_nft = new SaitoNFT(this.app, this, listing_tx, null);
+      const is_store_rental =
+        (typeof rental_nft.returnType === 'function' &&
+          rental_nft.returnType() === 'store-nft-rental') ||
+        String(listing_txmsg?.listing?.listing_mode || '').toLowerCase() === 'rent';
+      if (is_store_rental) {
+        // Ensure hook class match even if slip type parsing fell back to "image".
+        rental_nft.nft_type = 'store-nft-rental';
+        const buyer = String(order_row?.buyer || '').trim();
+        const mutated = await rental_nft.modifyBeforeSend(fulfillment_tx, buyer);
+        if (!mutated) {
+          throw new Error('store-nft-rental fulfillment transfer hop blocked');
+        }
+      }
     }
 
     const { dumpFulfillmentAccessScripts } = require('./fulfillment-trace');

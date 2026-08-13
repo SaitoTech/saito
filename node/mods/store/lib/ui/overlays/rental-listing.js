@@ -55,12 +55,13 @@ class RentalListingOverlay {
   }
 
   /**
-   * Vault file_id lives on the source vault-nft-rental mint tx message data
-   * (same source Vault load-nfts / download use).
+   * Vault protected-file fields from the selected NFT's mint transaction
+   * (tx.msg.data). Fetches the mint tx via SaitoNFT when not already attached.
+   * Returns null if the transaction cannot be loaded — never consults Vault.
    */
-  async resolveFileId(nft) {
+  async resolveSourceVaultData(nft) {
     if (!nft) {
-      return '';
+      return null;
     }
 
     if (!nft.tx && typeof nft.fetchTransaction === 'function') {
@@ -77,34 +78,32 @@ class RentalListingOverlay {
       });
     }
 
-    const data = nft.tx?.returnMessage?.()?.data;
-    if (data?.file_id) {
-      return String(data.file_id);
+    if (!nft.tx) {
+      return null;
     }
 
-    if (nft.json) {
-      try {
-        const parsed = typeof nft.json === 'string' ? JSON.parse(nft.json) : nft.json;
-        const from_json = parsed?.file_id || parsed?.data?.file_id;
-        if (from_json) {
-          return String(from_json);
-        }
-      } catch (_) {
-        /* ignore */
-      }
+    if (typeof nft.buildNFTData === 'function') {
+      nft.buildNFTData(nft.tx);
     }
 
-    const vault = this.app.modules.returnModule('Vault');
-    const nft_id = nft.id || nft.uuid || '';
-    const cached =
-      (typeof vault?.getCachedNftFileMetadata === 'function'
-        ? vault.getCachedNftFileMetadata(nft_id)
-        : null) || this.app.options?.vault?.files?.[nft_id];
-    if (cached?.file_id) {
-      return String(cached.file_id);
-    }
+    const data = nft.tx.returnMessage?.()?.data || {};
+    const nft_type =
+      (typeof nft.returnType === 'function' ? nft.returnType() : '') ||
+      nft.nft_type ||
+      '';
 
-    return '';
+    return {
+      link: data.link != null ? String(data.link) : '',
+      nft_type: String(nft_type || ''),
+      filename: data.filename != null ? String(data.filename) : '',
+      file_id: data.file_id != null ? String(data.file_id) : '',
+      file_access_script:
+        data.file_access_script != null
+          ? typeof data.file_access_script === 'string'
+            ? data.file_access_script
+            : JSON.stringify(data.file_access_script)
+          : ''
+    };
   }
 
   returnSourceName(nft) {
@@ -148,7 +147,15 @@ class RentalListingOverlay {
     }
 
     if (!this.file_id) {
-      this.file_id = await this.resolveFileId(this.source_nft);
+      const vault_data = await this.resolveSourceVaultData(this.source_nft);
+      if (!vault_data) {
+        siteMessage('Unable to load the NFT transaction. This NFT cannot be listed.', 4000);
+        if (typeof this.onBack === 'function') {
+          this.onBack({ ...this.defaults, listing_mode: 'rent' });
+        }
+        return;
+      }
+      this.file_id = vault_data.file_id || '';
     }
     if (!this.file_id) {
       siteMessage('Could not read file_id from this Vault rental NFT.', 4000);
@@ -353,14 +360,30 @@ class RentalListingOverlay {
 
   /**
    * Stack-style: hide parent, open shared Create NFT with type locked and
-   * rental create_data (file_id / duration / rights) attached for createData.
+   * rental create_data (Vault protected-file fields + duration / rights)
+   * attached for createData → tx_msg.data.
    */
   async openCreateNft() {
-    if (!this.file_id) {
-      siteMessage('Missing file_id for this Vault rental NFT.', 3000);
+    const vault_data = await this.resolveSourceVaultData(this.source_nft);
+    if (!vault_data) {
+      siteMessage('Unable to load the NFT transaction. This NFT cannot be listed.', 4000);
+      return;
+    }
+    if (
+      !vault_data.file_id ||
+      !vault_data.link ||
+      !vault_data.filename ||
+      !vault_data.file_access_script ||
+      !vault_data.nft_type
+    ) {
+      siteMessage(
+        'Vault rental NFT is missing protected-file data (link, nft_type, filename, file_id, or file_access_script).',
+        5000
+      );
       return;
     }
 
+    this.file_id = vault_data.file_id;
     this.form.duration_hours = this.normalizeHours(this.form.duration_hours);
     this.form.amount = this.normalizeAmount(this.form.amount);
     this.form.rights = this.form.rights || 'all';
@@ -386,7 +409,11 @@ class RentalListingOverlay {
       deposit: this.form.amount,
       locked: ['type', 'quantity'],
       create_data: {
-        file_id: this.file_id,
+        link: vault_data.link,
+        nft_type: vault_data.nft_type,
+        filename: vault_data.filename,
+        file_id: vault_data.file_id,
+        file_access_script: vault_data.file_access_script,
         duration_hours: hours,
         duration_ms,
         rights: this.form.rights || 'all'

@@ -535,24 +535,36 @@ class Archive extends ModTemplate {
     let newObj = {};
 
     //
-    // signature is the search criteria for the update, but we allow some flexibility
-    // (though maybe we shouldn't)
+    // Row identity (archives.sig) is immutable via this function.
+    // obj.sig / obj.signature are LOOKUP keys only (WHERE sig = ...).
+    // They must never appear in the SET clause, even though `sig` is in this.schema.
     //
-    let tx_to_update = obj?.signature || obj?.sig || tx?.signature || '';
+    // tx == null  → identity must come from obj.sig (or obj.signature)
+    // tx != null  → preserve prior resolution order: obj.signature || obj.sig || tx.signature
+    //
+    let tx_to_update = tx
+      ? obj?.signature || obj?.sig || tx?.signature || ''
+      : obj?.sig || obj?.signature || '';
 
     // fallback in case we didn't provide a timestamp (though should be handled by storage.ts)
     if (!obj.updated_at) {
       obj.updated_at = new Date().getTime();
     }
 
-    // Store the updated_at in the tx.optional
-    if (!tx.optional) {
-      tx.optional = {};
-    }
-    tx.optional.updated_at = obj.updated_at;
+    //
+    // When tx is provided, rewrite archives.tx / tx_size from that transaction.
+    // When tx is null, leave the stored archives.tx blob unchanged and update
+    // metadata only (e.g. owner), using obj.sig as the row lookup key.
+    //
+    if (tx) {
+      if (!tx.optional) {
+        tx.optional = {};
+      }
+      tx.optional.updated_at = obj.updated_at;
 
-    newObj.tx = tx.serialize_to_web(this.app);
-    newObj.tx_size = newObj.tx.length;
+      newObj.tx = tx.serialize_to_web(this.app);
+      newObj.tx_size = newObj.tx.length;
+    }
 
     if (!tx_to_update) {
       // console.error('No tx signature for archive update:', tx);
@@ -598,32 +610,46 @@ class Archive extends ModTemplate {
     }
 
     //
-    // update index
+    // update index — build SET clause without always rewriting tx
     //
-    let sql = `UPDATE archives SET tx = $tx, tx_size = $tx_size`;
-
+    let set_clauses = [];
+    // $sig is bound ONLY for WHERE sig = $sig — never for SET sig = ...
     let params = {
-      $tx: newObj.tx,
-      $tx_size: newObj.tx_size,
       $sig: tx_to_update
     };
 
+    if (tx) {
+      set_clauses.push('tx = $tx');
+      set_clauses.push('tx_size = $tx_size');
+      params.$tx = newObj.tx;
+      params.$tx_size = newObj.tx_size;
+    }
+
     //
-    // Will set updated_at and any other search meta data fields...
+    // Metadata fields from obj.
+    // Explicitly exclude sig/signature even though `sig` is in this.schema —
+    // callers must not be able to relocate an Archive row to a different signature.
     //
     for (let key in obj) {
-      if (key != 'tx') {
-        if (this.schema.includes(key)) {
-          // Server DB -- SQL
-          sql += `, ${key} = $${key}`;
-          params[`$${key}`] = obj[key];
-          // Browser DB -- JsStore
-          newObj[key] = obj[key];
-        }
+      if (key === 'tx' || key === 'sig' || key === 'signature') {
+        continue;
+      }
+      if (this.schema.includes(key)) {
+        set_clauses.push(`${key} = $${key}`);
+        params[`$${key}`] = obj[key];
+        newObj[key] = obj[key];
       }
     }
 
-    sql += ` WHERE sig = $sig`;
+    // Defense: browser JsStore set must never rewrite row identity.
+    delete newObj.sig;
+    delete newObj.signature;
+
+    if (set_clauses.length === 0) {
+      return 0;
+    }
+
+    let sql = `UPDATE archives SET ${set_clauses.join(', ')} WHERE sig = $sig`;
 
     if (this.app.BROWSER) {
       let results = await this.localDB.update({
@@ -634,7 +660,7 @@ class Archive extends ModTemplate {
         }
       });
     } else {
-      if (newObj.tx_size > 50000) {
+      if (tx && newObj.tx_size > 50000) {
         const fs = this.app?.storage?.returnFileSystem();
         if (fs) {
           const filename = `${__dirname}/../../data/archive/${tx_to_update}`;

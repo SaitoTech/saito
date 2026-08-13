@@ -1,13 +1,16 @@
 /**
- * Rental Contract — direct Creator → Renter access constitution.
+ * Rental Contract — Creator always allowed; renter via routing-path hop.
  *
  * IS_CREATOR (CHECKSENDER)
  * OR (
- *   CHECKPATHHOP selector=LAST where from==CREATOR
+ *   CHECKPATHHOP selector=FIRST where value.delegated==0
  *   AND hop.to == REQUESTER
  *   AND hop.value.timestamp > 0
  *   AND NOW < hop.value.expires_at
  * )
+ *
+ * The first hop with delegated == 0 is the intended final recipient
+ * (direct Creator→Renter, or after any number of delegated intermediaries).
  *
  * Binding hash is empty for this iteration. FILE_ID is not embedded in the
  * locking script: it is unknown at script-construction time (it is the
@@ -20,7 +23,7 @@ module.exports = {
   id: 'rental',
   label: 'Rental Contract',
   description:
-    'Direct Creator→Renter rental: Creator always allowed; renter allowed via Creator-signed hop until expires_at.',
+    'Creator always allowed; renter is the to-address of the first non-delegated routing hop until expires_at.',
 
   /**
    * Editor placeholder (not a finished locking script — call build() to bind keys).
@@ -44,12 +47,12 @@ module.exports = {
           args: [
             {
               op: 'CHECKPATHHOP',
-              selector: 'LAST',
+              selector: 'FIRST',
               where: [
                 {
-                  field: 'from',
+                  field: 'value.delegated',
                   operator: '==',
-                  value: creator_publickey
+                  value: 0
                 }
               ],
               publickey: creator_publickey,

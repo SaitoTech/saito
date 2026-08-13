@@ -110,7 +110,15 @@ class NwasmMain {
     let seen = {};
     let mod = this.mod;
     let app = this.app;
-    let vault_mod = app.modules.returnModule('Vault');
+
+    if (!app.options.nwasm) {
+      app.options.nwasm = {};
+    }
+    if (!app.options.nwasm.vault_nft_index || typeof app.options.nwasm.vault_nft_index !== 'object') {
+      app.options.nwasm.vault_nft_index = {};
+    }
+    let vault_nft_index = app.options.nwasm.vault_nft_index;
+    let index_dirty = false;
 
     //
     // Discover by field1 only. Do not use Archive `owner` (access-script hash)
@@ -206,64 +214,92 @@ class NwasmMain {
       }
 
       //
-      // Vault access keys: ask Vault for file metadata (cached), then
-      // classify playable N64 ROMs by filename.
+      // Vault access keys: NWASM classifies from the mint tx (filename / file_id).
+      // Do not ask Vault for metadata or read app.options.vault.files.
       //
-      if (
-        (nft_type === 'vault-nft-key' || nft_type === 'vault') &&
-        vault_mod?.returnNftFileMetadata
-      ) {
-        let file = await vault_mod.returnNftFileMetadata(nft_entry);
-        let filename = file?.filename || '';
-        if (!file?.file_id || !this.is_n64_rom_filename(filename)) {
+      if (nft_type !== 'vault-nft-key' && nft_type !== 'vault' && nft_type !== 'vault-nft-rental') {
+        continue;
+      }
+
+      let indexed = vault_nft_index[nft_sig];
+      if (indexed?.status === 'skip') {
+        continue;
+      }
+
+      let file = null;
+      if (indexed?.status === 'rom' && indexed.file_id) {
+        file = indexed;
+      } else {
+        let mint = await new Promise((resolve) => {
+          app.storage.loadTransactions(
+            { sig: nft_sig },
+            (txs) => {
+              try {
+                if (!txs || txs.length < 1) {
+                  resolve(null);
+                  return;
+                }
+                resolve(txs[0]);
+              } catch (err) {
+                resolve(null);
+              }
+            },
+            'localhost'
+          );
+        });
+
+        if (!mint) {
           continue;
         }
 
-        seen[nft_sig] = 1;
-        if (file.nft_id) {
-          seen[file.nft_id] = 1;
-        }
-        games.push({
-          sig: nft_sig,
-          title: this.vault_game_title(filename),
-          id: file.nft_id || nft_sig,
-          source: 'vault',
-          vault: file
-        });
-      }
-    }
+        let msg = mint.returnMessage() || {};
+        let data = msg.data && typeof msg.data === 'object' ? msg.data : {};
+        let filename = data.filename != null ? String(data.filename) : '';
+        let file_id = data.file_id != null ? String(data.file_id) : '';
 
-    //
-    // Also surface Vault files from the confirmed Vault NFT→file cache when the
-    // mint NFT is not yet visible in wallet.nfts (post-confirmation lag).
-    //
-    let vault_files = app.options?.vault?.files || {};
-    for (let id in vault_files) {
-      let file = vault_files[id];
-      if (!file?.file_id || !this.is_n64_rom_filename(file.filename || '')) {
-        continue;
+        if (!file_id || !this.is_n64_rom_filename(filename)) {
+          vault_nft_index[nft_sig] = { status: 'skip' };
+          index_dirty = true;
+          continue;
+        }
+
+        file = {
+          status: 'rom',
+          nft_id: nft_entry.id || nft_sig,
+          tx_sig: nft_sig,
+          file_id: file_id,
+          filename: filename,
+          link: data.link != null ? String(data.link) : '',
+          slip1_utxokey: nft_entry?.slip1?.utxo_key || '',
+          slip2_utxokey: nft_entry?.slip2?.utxo_key || '',
+          slip3_utxokey: nft_entry?.slip3?.utxo_key || '',
+          file_access_script: data.file_access_script || null
+        };
+        vault_nft_index[nft_sig] = file;
+        index_dirty = true;
       }
-      let key = file.tx_sig || file.nft_id || id;
-      if (!key || seen[key] || (file.nft_id && seen[file.nft_id])) {
-        continue;
-      }
-      seen[key] = 1;
+
+      seen[nft_sig] = 1;
       if (file.nft_id) {
         seen[file.nft_id] = 1;
       }
       games.push({
-        sig: key,
+        sig: nft_sig,
         title: this.vault_game_title(file.filename || ''),
-        id: file.nft_id || key,
+        id: file.nft_id || nft_sig,
         source: 'vault',
         vault: file
       });
     }
 
+    if (index_dirty) {
+      app.storage.saveOptions();
+    }
+
     //
     // Games explicitly registered via Nwasm.addGame() after a successful
     // Library save (Archive / Vault / NFT). Ensures the new entry is present
-    // before the next render even when wallet/Vault discovery still lags.
+    // before the next render even when wallet discovery still lags.
     //
     let registered = app.options?.nwasm?.library || [];
     for (let i = 0; i < registered.length; i++) {
@@ -432,18 +468,50 @@ class NwasmMain {
 
           let vault_mod = this.app.modules.returnModule('Vault');
           let vault_data = game.vault || null;
-          if (vault_mod?.returnNftFileMetadata) {
+
+          // Refresh mint-tx fields for access (slips / file_id); do not ask Vault for metadata.
+          let mint_sig = vault_data?.tx_sig || game.sig || '';
+          if (mint_sig) {
             try {
-              vault_data =
-                (await vault_mod.returnNftFileMetadata({
-                  id: game.vault?.nft_id || game.id,
-                  nft_id: game.vault?.nft_id || game.id,
-                  tx_sig: game.vault?.tx_sig || game.sig
-                })) || vault_data;
+              let mint = await new Promise((resolve) => {
+                this.app.storage.loadTransactions(
+                  { sig: mint_sig },
+                  (txs) => {
+                    resolve(txs && txs.length ? txs[0] : null);
+                  },
+                  'localhost'
+                );
+              });
+              if (mint) {
+                let data = mint.returnMessage()?.data || {};
+                let nfts = this.app.options?.wallet?.nfts || [];
+                let nft_entry =
+                  nfts.find(
+                    (n) =>
+                      (vault_data?.nft_id && n.id === vault_data.nft_id) || n.tx_sig === mint_sig
+                  ) || null;
+                vault_data = {
+                  nft_id: vault_data?.nft_id || nft_entry?.id || game.id || mint_sig,
+                  tx_sig: mint_sig,
+                  file_id: data.file_id != null ? String(data.file_id) : vault_data?.file_id || '',
+                  filename:
+                    data.filename != null ? String(data.filename) : vault_data?.filename || '',
+                  link: data.link != null ? String(data.link) : vault_data?.link || '',
+                  slip1_utxokey:
+                    nft_entry?.slip1?.utxo_key || vault_data?.slip1_utxokey || '',
+                  slip2_utxokey:
+                    nft_entry?.slip2?.utxo_key || vault_data?.slip2_utxokey || '',
+                  slip3_utxokey:
+                    nft_entry?.slip3?.utxo_key || vault_data?.slip3_utxokey || '',
+                  file_access_script:
+                    data.file_access_script || vault_data?.file_access_script || null
+                };
+              }
             } catch (err) {
-              console.warn('Nwasm: unable to refresh Vault Access Key metadata:', err);
+              console.warn('Nwasm: unable to refresh Vault Access Key mint tx:', err);
             }
           }
+
           if (!vault_mod || !vault_mod.peer || !vault_data?.file_id || !vault_data?.nft_id) {
             await fail_launch(
               !vault_mod?.peer ? 'Vault peer not connected' : 'Vault ROM metadata incomplete'

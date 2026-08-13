@@ -44,6 +44,12 @@ class Store extends ModTemplate {
       this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
       this.purchase_monitor = new PurchaseMonitor(this.app, this);
 
+      // TEMP: prove store-nft-rental arrives self-contained with Vault fields.
+      this._store_rental_receipt_alerts = new Set();
+      this.app.connection.on('on-nft-received', (payload) => {
+        void this.alertStoreRentalReceipt(payload);
+      });
+
       this.app.connection.on('store-listing-lifecycle', (entry) => {
         if (entry?.phase === 'complete') {
           void this.maybePublishStoreProfileLink(entry);
@@ -78,6 +84,84 @@ class Store extends ModTemplate {
 
     const store = address == null ? '' : String(address).trim();
     await api.update({ store });
+  }
+
+  /**
+   * TEMP debug: when a store-nft-rental arrives from another party, load the
+   * received NFT txmsg and alert Vault/rental fields. One alert per nft_id.
+   */
+  async alertStoreRentalReceipt(payload = {}) {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    const nft_id = String(payload?.nft_id || payload?.id || '').trim();
+    const slip3 = String(payload?.slip3_utxo || '').trim();
+    if (!nft_id || !slip3) {
+      return;
+    }
+
+    const slip_type = this.app.wallet.extractNFTType(slip3);
+    if (slip_type !== 'store-nft-rental') {
+      return;
+    }
+
+    // Newly received from someone else — not self-mint / local wallet noise.
+    if (payload?.sender && payload.sender === this.publicKey) {
+      return;
+    }
+
+    if (this._store_rental_receipt_alerts.has(nft_id)) {
+      return;
+    }
+    this._store_rental_receipt_alerts.add(nft_id);
+
+    try {
+      await this.app.wallet.updateNFTList();
+      const rec = (this.app.options?.wallet?.nfts || []).find(
+        (row) => String(row?.id || '') === nft_id
+      );
+      if (!rec) {
+        return;
+      }
+
+      const SaitoNFT = require('../../lib/saito/ui/saito-nft/saito-nft');
+      const nft = new SaitoNFT(this.app, this, null, rec);
+      if (typeof nft.fetchTransaction === 'function') {
+        await new Promise((resolve) => {
+          let settled = false;
+          const finish = () => {
+            if (!settled) {
+              settled = true;
+              resolve();
+            }
+          };
+          nft.fetchTransaction(finish);
+          setTimeout(finish, 8000);
+        });
+      }
+      if (typeof nft.buildNFTData === 'function' && nft.tx) {
+        nft.buildNFTData(nft.tx);
+      }
+
+      const data = nft.tx?.returnMessage?.()?.data || nft.data || {};
+      alert(
+        [
+          'TEMP store-nft-rental receipt',
+          `link: ${data.link ?? ''}`,
+          `nft_type: ${data.nft_type ?? ''}`,
+          `filename: ${data.filename ?? ''}`,
+          `file_id: ${data.file_id ?? ''}`,
+          `file_access_script: ${
+            typeof data.file_access_script === 'string'
+              ? data.file_access_script
+              : JSON.stringify(data.file_access_script ?? '')
+          }`
+        ].join('\n')
+      );
+    } catch (err) {
+      console.warn('Store: rental receipt alert failed', err?.message || err);
+    }
   }
 
   /**
@@ -328,6 +412,22 @@ class Store extends ModTemplate {
             salert('Missing Vault file_id for this rental NFT');
             return false;
           }
+          if (!metadata.link) {
+            salert('Missing Vault link for this rental NFT');
+            return false;
+          }
+          if (!metadata.filename) {
+            salert('Missing Vault filename for this rental NFT');
+            return false;
+          }
+          if (!metadata.file_access_script) {
+            salert('Missing Vault file_access_script for this rental NFT');
+            return false;
+          }
+          if (!metadata.nft_type) {
+            salert('Missing source nft_type for this rental NFT');
+            return false;
+          }
 
           let hours = parseInt(metadata.duration_hours, 10);
           if (!Number.isFinite(hours) || hours < 1) {
@@ -340,9 +440,18 @@ class Store extends ModTemplate {
           const duration_ms =
             Number(metadata.duration_ms) > 0 ? Number(metadata.duration_ms) : hours * 60 * 60 * 1000;
 
+          // Vault protected-file fields stay on txmsg.data under established names.
+          // Slip/NFT type remains store-nft-rental; data.nft_type is the source type.
           return {
             module: 'Store',
+            link: String(metadata.link),
+            nft_type: String(metadata.nft_type),
+            filename: String(metadata.filename),
             file_id: String(metadata.file_id),
+            file_access_script:
+              typeof metadata.file_access_script === 'string'
+                ? metadata.file_access_script
+                : JSON.stringify(metadata.file_access_script),
             duration_hours: hours,
             duration_ms,
             rights: metadata.rights || 'all',
@@ -405,6 +514,97 @@ class Store extends ModTemplate {
           }
 
           this.listing_overlay.render(defaults);
+        }
+      };
+    }
+
+    //
+    // store-nft-rental transfers: mutate the EXISTING Bound NFT transfer by
+    // appending a hop on tx.msg.data.path (Stack pattern). Default delegated: 0;
+    // Store listing passes { delegated: true }. Does not create/sign/propagate.
+    //
+    if (type === 'saito-nft-transfer') {
+      let this_mod = this;
+      return {
+        class: ['store-nft-rental'],
+        onTransfer: async (nft = null, tx = null, receiver = '', data = {}) => {
+          if (!tx) {
+            return tx;
+          }
+
+          if (!tx.msg) {
+            tx.msg = {};
+          }
+          if (!tx.msg.data || typeof tx.msg.data !== 'object') {
+            tx.msg.data = {};
+          }
+          if (!Array.isArray(tx.msg.data.path)) {
+            tx.msg.data.path = [];
+          }
+
+          receiver = String(receiver || '').trim();
+          if (!receiver) {
+            return tx;
+          }
+
+          let expires_at = null;
+          if (tx.msg.data.expires_at != null && tx.msg.data.expires_at !== '') {
+            expires_at = Number(tx.msg.data.expires_at);
+          } else {
+            const nft_data = nft?.tx?.returnMessage?.()?.data || nft?.data || {};
+            const duration_ms = Number(nft_data.duration_ms || tx.msg.data.duration_ms);
+            if (Number.isFinite(duration_ms) && duration_ms > 0) {
+              expires_at = Date.now() + duration_ms;
+            }
+          }
+          if (expires_at == null || !Number.isFinite(expires_at)) {
+            throw new Error('store-nft-rental transfer requires expires_at or duration_ms');
+          }
+          tx.msg.data.expires_at = expires_at;
+
+          let file_id = tx.msg.data.file_id || null;
+          if (!file_id) {
+            const nft_data = nft?.tx?.returnMessage?.()?.data || nft?.data || null;
+            if (nft_data?.file_id) {
+              file_id = nft_data.file_id;
+            }
+          }
+          if (!file_id && nft?.json) {
+            try {
+              const parsed = typeof nft.json === 'string' ? JSON.parse(nft.json) : nft.json;
+              file_id = parsed?.file_id || parsed?.data?.file_id || null;
+            } catch (err) {
+              file_id = null;
+            }
+          }
+          if (!file_id) {
+            throw new Error('store-nft-rental transfer requires file_id');
+          }
+          file_id = String(file_id);
+          tx.msg.data.file_id = file_id;
+
+          // Transfer context only — never infer from NFT type.
+          const delegated = data && data.delegated === true ? 1 : 0;
+          const value_obj = {
+            timestamp: Date.now(),
+            file_id: file_id,
+            expires_at: Number(expires_at),
+            delegated: delegated
+          };
+          const value_b64 = Buffer.from(JSON.stringify(value_obj)).toString('base64');
+          const binding_hash = '';
+          const canonical_string = `${receiver}|${value_b64}|${binding_hash}`;
+          const hash_digest = this_mod.app.crypto.hash(canonical_string);
+          const privatekey = await this_mod.app.wallet.getPrivateKey();
+          const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
+
+          tx.msg.data.path.push({
+            to: receiver,
+            value: value_b64,
+            sig: sig
+          });
+
+          return tx;
         }
       };
     }
