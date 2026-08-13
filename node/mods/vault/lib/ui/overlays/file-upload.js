@@ -2,6 +2,9 @@ const ScriptingKeyOverlay = require('./scripting.js');
 const FileUploadTemplate = require('./file-upload.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
+const {
+  createVaultAddFileTransaction
+} = require('../../transactions/add-file');
 
 const DEFAULT_COPY =
   'A standard Access Key provides access to the owner of the NFT. Transfer the NFT and ownership of the file transfers with it.';
@@ -339,7 +342,12 @@ class FileUpload {
     this.setKeyStepState('busy', 'Binding access key to file…');
     await this.wait_for_paint();
 
-    const file_tx = await this.mod.createVaultAddFileTransaction(this.nft_id, access_script);
+    const file_tx = await createVaultAddFileTransaction(
+      this.app,
+      this.mod,
+      this.nft_id,
+      access_script
+    );
     if (!file_tx) {
       throw new Error('Error creating Vault file transaction');
     }
@@ -507,6 +515,10 @@ class FileUpload {
   // After mint confirmation: refresh wallet NFT slips and write/replace the
   // single Vault NFT→file cache entry used by Vault download and N-WASM.
   //
+  /**
+   * After mint confirmation, collect Access Key fields from the mint tx +
+   * wallet slips for onComplete / My NFTs. Does not write a cross-module cache.
+   */
   async cacheConfirmedAccessKey(nft_tx, file_tx, access_script = null, confirmed = null) {
     const tx = confirmed?.tx || nft_tx;
     let msg = {};
@@ -553,7 +565,7 @@ class FileUpload {
       throw new Error('Confirmed Vault Access Key is missing file_id');
     }
 
-    return this.mod.cacheNftFileMetadata({
+    return {
       nft_id: this.nft_id || nft_entry?.id || tx_sig,
       tx_sig,
       file_id,
@@ -563,7 +575,7 @@ class FileUpload {
       slip2_utxokey,
       slip3_utxokey,
       file_access_script: data.file_access_script || access_script || null
-    });
+    };
   }
 }
 

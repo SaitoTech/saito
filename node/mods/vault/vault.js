@@ -7,6 +7,9 @@ const VaultHome = require('./index');
 const AccessFileOverlay = require('./lib/ui/overlays/load-nfts.js');
 const WitnessOverlay = require('./lib/ui/overlays/witness');
 const { buildDefaultAccessScript } = require('./lib/contracts');
+const {
+  receiveVaultAddFileTransaction
+} = require('./lib/transactions/add-file');
 
 class Vault extends ModTemplate {
   constructor(app) {
@@ -49,14 +52,6 @@ class Vault extends ModTemplate {
       this.transaction_monitor = new SaitoTransactionMonitor(this.app, this);
     }
 
-    // Persistent local cache: Vault NFT identity → file metadata.
-    if (!this.app.options.vault) {
-      this.app.options.vault = {};
-    }
-    if (!this.app.options.vault.files || typeof this.app.options.vault.files !== 'object') {
-      this.app.options.vault.files = {};
-    }
-
     if (this.browser_active) {
       this.main = new VaultMain(app, this, '.saito-container');
       this.addComponent(this.main);
@@ -64,170 +59,6 @@ class Vault extends ModTemplate {
       await this.header.initialize(app);
       this.addComponent(this.header);
     }
-  }
-
-  //
-  // Persist generic Vault file metadata for an NFT key.
-  // Keyed by NFT id (not filename). Used by any module that needs
-  // "what Vault file does this NFT represent?" without reloading the mint tx.
-  //
-  cacheNftFileMetadata(meta = {}, opts = {}) {
-    if (!this.app.options.vault) {
-      this.app.options.vault = {};
-    }
-    if (!this.app.options.vault.files || typeof this.app.options.vault.files !== 'object') {
-      this.app.options.vault.files = {};
-    }
-
-    let nft_id = meta.nft_id || meta.id;
-    if (!nft_id || !meta.file_id) {
-      return null;
-    }
-
-    let entry = {
-      nft_id: nft_id,
-      tx_sig: meta.tx_sig || '',
-      file_id: meta.file_id || '',
-      filename: meta.filename || meta.file_name || '',
-      link: meta.link || '',
-      slip1_utxokey: meta.slip1_utxokey || '',
-      slip2_utxokey: meta.slip2_utxokey || '',
-      slip3_utxokey: meta.slip3_utxokey || '',
-      file_access_script: meta.file_access_script || null
-    };
-
-    let existing = this.app.options.vault.files[nft_id];
-    let unchanged =
-      existing &&
-      existing.file_id === entry.file_id &&
-      existing.filename === entry.filename &&
-      existing.tx_sig === entry.tx_sig &&
-      existing.link === entry.link &&
-      existing.slip1_utxokey === entry.slip1_utxokey &&
-      existing.slip2_utxokey === entry.slip2_utxokey &&
-      existing.slip3_utxokey === entry.slip3_utxokey;
-
-    if (unchanged) {
-      return existing;
-    }
-
-    this.app.options.vault.files[nft_id] = entry;
-    if (opts.save !== false) {
-      this.app.storage.saveOptions();
-    }
-    return entry;
-  }
-
-  getCachedNftFileMetadata(nft_id) {
-    if (!nft_id) {
-      return null;
-    }
-    return this.app.options?.vault?.files?.[nft_id] || null;
-  }
-
-  //
-  // Return Vault file metadata for a wallet NFT entry.
-  // Uses the local cache when present; otherwise loads the mint tx once,
-  // caches the result, and returns it.
-  //
-  async returnNftFileMetadata(nft_entry) {
-    if (!nft_entry) {
-      return null;
-    }
-
-    let nft_id = nft_entry.id || nft_entry.nft_id || '';
-    let tx_sig = nft_entry.tx_sig || '';
-
-    // Prefer live wallet slips over any older cached witness keys.
-    let wallet_entry = nft_entry;
-    if (!wallet_entry?.slip1?.utxo_key && (nft_id || tx_sig)) {
-      const nfts = this.app.options?.wallet?.nfts || [];
-      wallet_entry =
-        nfts.find((n) => (nft_id && n.id === nft_id) || (tx_sig && n.tx_sig === tx_sig)) ||
-        nft_entry;
-    }
-
-    let cached = this.getCachedNftFileMetadata(nft_id);
-    if (!cached?.file_id && tx_sig && this.app.options?.vault?.files) {
-      // Fallback: locate by mint tx signature if the id was remapped.
-      for (let id in this.app.options.vault.files) {
-        let entry = this.app.options.vault.files[id];
-        if (entry?.tx_sig === tx_sig && entry?.file_id) {
-          cached = entry;
-          break;
-        }
-      }
-    }
-
-    if (cached?.file_id) {
-      if (wallet_entry?.slip1?.utxo_key) {
-        return this.cacheNftFileMetadata({
-          nft_id: cached.nft_id || nft_id || wallet_entry.id || '',
-          tx_sig: cached.tx_sig || tx_sig || wallet_entry.tx_sig || '',
-          file_id: cached.file_id,
-          filename: cached.filename || '',
-          link: cached.link || '',
-          slip1_utxokey: wallet_entry.slip1.utxo_key,
-          slip2_utxokey: wallet_entry.slip2?.utxo_key || cached.slip2_utxokey || '',
-          slip3_utxokey: wallet_entry.slip3?.utxo_key || cached.slip3_utxokey || '',
-          file_access_script: cached.file_access_script || null
-        });
-      }
-      return cached;
-    }
-
-    if (!tx_sig) {
-      return null;
-    }
-
-    return await new Promise((resolve) => {
-      this.app.storage.loadTransactions(
-        { sig: tx_sig },
-        (txs) => {
-          try {
-            if (!txs || txs.length < 1) {
-              resolve(null);
-              return;
-            }
-
-            let msg = txs[0].returnMessage() || {};
-            let data = msg.data || {};
-            if (!data.file_id) {
-              resolve(null);
-              return;
-            }
-
-            let resolved_id = nft_id || '';
-            // Prefer the on-chain NFT id from slips when wallet id is absent.
-            if (!resolved_id) {
-              try {
-                const SaitoNFT = require('../../lib/saito/ui/saito-nft/saito-nft');
-                let nft = new SaitoNFT(this.app, this, txs[0], wallet_entry);
-                resolved_id = nft.id || '';
-              } catch (err) {}
-            }
-
-            resolve(
-              this.cacheNftFileMetadata({
-                nft_id: resolved_id || tx_sig,
-                tx_sig: tx_sig,
-                file_id: data.file_id,
-                filename: data.filename || '',
-                link: data.link || '',
-                slip1_utxokey: wallet_entry?.slip1?.utxo_key || '',
-                slip2_utxokey: wallet_entry?.slip2?.utxo_key || '',
-                slip3_utxokey: wallet_entry?.slip3?.utxo_key || '',
-                file_access_script: data.file_access_script || null
-              })
-            );
-          } catch (err) {
-            console.log('VAULT: error loading NFT file metadata: ' + err);
-            resolve(null);
-          }
-        },
-        'localhost'
-      );
-    });
   }
 
   async render() {
@@ -456,81 +287,6 @@ class Vault extends ModTemplate {
       };
     }
 
-    //
-    // Direct Creator → Renter rental hop (CHECKPATHHOP). Only the Creator
-    // writes a hop for this iteration; value carries timestamp/file_id/expires_at.
-    // Requires tx.msg.data.expires_at (ms). Binding hash is "" to match rental.js.
-    //
-    if (type === 'saito-nft-transfer') {
-      let this_mod = this;
-      return {
-        class: ['vault-nft-key', 'vault-nft-rental', 'vault'],
-        onTransfer: async (nft = null, tx = null, receiver = '') => {
-          if (!tx) {
-            return tx;
-          }
-          if (!tx.msg) {
-            tx.msg = {};
-          }
-          if (!tx.msg.data) {
-            tx.msg.data = {};
-          }
-
-          const expires_at = tx.msg.data.expires_at;
-          if (expires_at == null || expires_at === '') {
-            // Non-rental vault transfers leave path untouched.
-            return tx;
-          }
-
-          let file_id = tx.msg.data.file_id || null;
-          if (!file_id && nft?.json) {
-            try {
-              const parsed = typeof nft.json === 'string' ? JSON.parse(nft.json) : nft.json;
-              file_id = parsed?.file_id || parsed?.data?.file_id || null;
-            } catch (e) {
-              file_id = null;
-            }
-          }
-          if (!file_id) {
-            throw new Error('Vault rental transfer requires file_id');
-          }
-
-          const my_publickey = await this_mod.app.wallet.getPublicKey();
-          const creator =
-            typeof nft?.returnCreator === 'function' ? nft.returnCreator() : nft?.creator;
-          if (!creator || creator !== my_publickey) {
-            throw new Error('Vault rental hop must be signed by the Creator in this iteration');
-          }
-
-          const value_obj = {
-            timestamp: Date.now(),
-            file_id: file_id,
-            expires_at: Number(expires_at)
-          };
-          const value_json = JSON.stringify(value_obj);
-          const value_b64 = Buffer.from(value_json).toString('base64');
-          // Empty binding matches rental contract hash: ""
-          const binding_hash = '';
-          const canonical_string = `${receiver}|${value_b64}|${binding_hash}`;
-          const hash_digest = this_mod.app.crypto.hash(canonical_string);
-          const privatekey = await this_mod.app.wallet.getPrivateKey();
-          const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
-
-          // Direct Creator → Renter only: replace any prior path with this hop.
-          tx.msg.data.path = [
-            {
-              to: receiver,
-              value: value_b64,
-              sig: sig
-            }
-          ];
-          tx.msg.data.file_id = file_id;
-
-          return tx;
-        }
-      };
-    }
-
     return null;
   }
 
@@ -646,66 +402,8 @@ class Vault extends ModTemplate {
     }
 
     if (txmsg.request === 'vault add file') {
-      try {
-        let archive_mod = app.modules.returnModule('Archive');
-        archive_mod.access_hash = 1; // ownership restricted
-
-        let peer_tx = new Transaction();
-        peer_tx.deserialize_from_web(this.app, txmsg.data);
-        let peer_txmsg = peer_tx.returnMessage();
-
-        let access_hash = peer_txmsg.access_hash || '';
-
-        let data = {};
-        data.owner = access_hash;
-        data.preserve = 1;
-
-        this.app.storage.saveTransaction(peer_tx, data, 'localhost');
-        mycallback({ status: 'success', err: '' });
-      } catch (err) {
-        console.error('Vault add file error:', err);
-        mycallback({ status: 'err', err: JSON.stringify(err) });
-      }
-
-      return 1;
+      return await receiveVaultAddFileTransaction(app, this, tx, mycallback);
     }
-  }
-
-  async createVaultAddFileTransaction(nftid = null, access_script_obj = null) {
-    let newtx = await this.app.wallet.createUnsignedTransaction();
-
-    try {
-      if (!this.app.core?.scripting?.hash) {
-        return null;
-      }
-
-      if (!nftid) {
-        console.warn('Vault: createVaultAddFileTransaction missing nftid');
-        return null;
-      }
-
-      if (access_script_obj == null) {
-        access_script_obj = buildDefaultAccessScript({ nftid });
-      }
-
-      let access_script =
-        typeof access_script_obj === 'string'
-          ? access_script_obj
-          : JSON.stringify(access_script_obj);
-      let access_hash = this.app.core.scripting.hash(access_script);
-
-      let msg = {
-        request: 'vault add file',
-        access_script: access_script,
-        access_hash: access_hash,
-        data: { file: this.file, name: this.filename }
-      };
-
-      newtx.msg = msg;
-      await newtx.sign();
-    } catch (err) {}
-
-    return newtx;
   }
 
   async sendAccessFileRequest(vault_data = null, access_script_override = null, mycallback = null) {
