@@ -310,6 +310,48 @@ class Store extends ModTemplate {
       ];
     }
 
+    if (type === 'saito-create-nft') {
+      return {
+        title: 'Store Rental NFT',
+        class: ['store-nft-rental'],
+        upload_text: 'drag-and-drop image for this rental listing',
+        createData: async (modfile, metadata = {}) => {
+          const image =
+            metadata.image ||
+            (modfile && String(modfile).startsWith('data:image') ? modfile : '') ||
+            '';
+          if (!image) {
+            salert('Attach an image for the Rental NFT');
+            return false;
+          }
+          if (!metadata.file_id) {
+            salert('Missing Vault file_id for this rental NFT');
+            return false;
+          }
+
+          let hours = parseInt(metadata.duration_hours, 10);
+          if (!Number.isFinite(hours) || hours < 1) {
+            hours = 1;
+          }
+          if (hours > 24) {
+            hours = 24;
+          }
+
+          const duration_ms =
+            Number(metadata.duration_ms) > 0 ? Number(metadata.duration_ms) : hours * 60 * 60 * 1000;
+
+          return {
+            module: 'Store',
+            file_id: String(metadata.file_id),
+            duration_hours: hours,
+            duration_ms,
+            rights: metadata.rights || 'all',
+            image
+          };
+        }
+      };
+    }
+
     if (type === 'saito-sell-nft') {
       return {
         render: (defaults = {}) => {
@@ -325,20 +367,38 @@ class Store extends ModTemplate {
           if (!this.listing_overlay) {
             const NftPickerOverlay = require('./lib/ui/overlays/nft-picker');
             const ListingDetailOverlay = require('./lib/ui/overlays/listing-detail');
+            const RentalListingOverlay = require('./lib/ui/overlays/rental-listing');
+            const { normalizeListingMode } = require('./lib/categories');
             const nft_picker = new NftPickerOverlay(this.app, this);
             const listing_detail = new ListingDetailOverlay(this.app, this);
+            const rental_listing = new RentalListingOverlay(this.app, this);
             nft_picker.onSelect = (nft, defs) => {
+              if (normalizeListingMode(defs?.listing_mode) === 'rent') {
+                rental_listing.render({ source_nft: nft, defaults: defs });
+                return;
+              }
               listing_detail.render({ mode: 'edit', nft, defaults: defs });
             };
             listing_detail.onBack = (defs) => {
               nft_picker.render(defs || {});
             };
+            rental_listing.onBack = (defs) => {
+              nft_picker.render({ ...(defs || {}), listing_mode: 'rent' });
+            };
             this.listing_overlay = {
               render: (defs = {}) => {
-                if (defs?.nft) {
-                  listing_detail.render({ mode: 'edit', nft: defs.nft, defaults: defs });
+                const next = {
+                  ...defs,
+                  listing_mode: normalizeListingMode(defs.listing_mode)
+                };
+                if (next?.nft) {
+                  if (next.listing_mode === 'rent') {
+                    rental_listing.render({ source_nft: next.nft, defaults: next });
+                  } else {
+                    listing_detail.render({ mode: 'edit', nft: next.nft, defaults: next });
+                  }
                 } else {
-                  nft_picker.render(defs);
+                  nft_picker.render(next);
                 }
               }
             };

@@ -350,7 +350,7 @@ class Vault extends ModTemplate {
     if (type === 'saito-create-nft') {
       return {
         title: 'NFT Access Key',
-        class: ['vault-nft-key', 'vault-nft-rental-key'],
+        class: ['vault-nft-key', 'vault-nft-rental'],
         json: {
           txsig: 'YYYYY',
           archive: 'ZZZZZ'
@@ -361,7 +361,7 @@ class Vault extends ModTemplate {
     if (type === 'saito-nft-media') {
       return {
         // Canonical access-key type; "vault" kept for legacy keys already on-chain.
-        class: ['vault-nft-key', 'vault-nft-rental-key', 'vault'],
+        class: ['vault-nft-key', 'vault-nft-rental', 'vault'],
         returnMediaDisplay(nft) {
           if (!nft?.json) {
             return null;
@@ -390,7 +390,7 @@ class Vault extends ModTemplate {
       const nft_type = nft.returnType();
       if (
         nft_type !== 'vault-nft-key' &&
-        nft_type !== 'vault-nft-rental-key' &&
+        nft_type !== 'vault-nft-rental' &&
         nft_type !== 'vault'
       ) {
         return null;
@@ -464,7 +464,7 @@ class Vault extends ModTemplate {
     if (type === 'saito-nft-transfer') {
       let this_mod = this;
       return {
-        class: ['vault-nft-key', 'vault-nft-rental-key', 'vault'],
+        class: ['vault-nft-key', 'vault-nft-rental', 'vault'],
         onTransfer: async (nft = null, tx = null, receiver = '') => {
           if (!tx) {
             return tx;

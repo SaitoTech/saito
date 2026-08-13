@@ -81,13 +81,62 @@ function mapNFTTypeToCategory(nft_type = '') {
     case 'nwasm-nft-mod':
       return STORE_CATEGORIES.APPS_AND_GAMES;
     case 'vault-nft-key':
-    case 'vault-nft-rental-key':
+    case 'vault-nft-rental':
+    case 'store-nft-rental':
       return STORE_CATEGORIES.ACCESS_KEYS;
     case 'text':
     case 'json':
     default:
       return STORE_CATEGORIES.OTHER;
   }
+}
+
+/**
+ * Vault rental NFT that the Store RENT picker lists as rental source inventory.
+ * Exact type only — not vault-nft-key / vault masters, not store-nft-rental.
+ */
+function isVaultRentalNftType(nft_type = '') {
+  return (
+    String(nft_type || '')
+      .trim()
+      .toLowerCase() === 'vault-nft-rental'
+  );
+}
+
+/**
+ * NFTs eligible for the Store SELL picker.
+ * Vault rental NFTs are RENT-only; Store disposable rentals are not ordinary sell stock.
+ */
+function isSellableNftType(nft_type = '') {
+  const type = String(nft_type || '')
+    .trim()
+    .toLowerCase();
+  if (type === 'vault-nft-rental') {
+    return false;
+  }
+  if (type === 'store-nft-rental') {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Buyer-facing rental listing detection from summary + listing txmsg.listing.
+ */
+function isStoreRentalListing(summary = {}, listing_meta = {}) {
+  if (String(listing_meta?.listing_mode || '').toLowerCase() === 'rent') {
+    return true;
+  }
+  const nft_type =
+    (typeof summary?.nft?.returnType === 'function' ? summary.nft.returnType() : '') ||
+    summary?.nft?.nft_type ||
+    summary?.productType ||
+    '';
+  return String(nft_type).trim().toLowerCase() === 'store-nft-rental';
+}
+
+function normalizeListingMode(mode = 'sell') {
+  return String(mode || '').toLowerCase() === 'rent' ? 'rent' : 'sell';
 }
 
 module.exports = {
@@ -100,5 +149,9 @@ module.exports = {
   normalizePageSize,
   normalizePage,
   normalizeOffset,
-  mapNFTTypeToCategory
+  mapNFTTypeToCategory,
+  isVaultRentalNftType,
+  isSellableNftType,
+  isStoreRentalListing,
+  normalizeListingMode
 };

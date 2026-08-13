@@ -97,7 +97,7 @@ class ScriptingKey {
 
         let scriptjson = this.readEditor();
         const nft_type =
-          this.selected_contract_id === 'rental' ? 'vault-nft-rental-key' : 'vault-nft-key';
+          this.selected_contract_id === 'rental' ? 'vault-nft-rental' : 'vault-nft-key';
 
         // Rental: re-bind creator pubkey so no CREATOR_PUBLICKEY_PLACEHOLDER remains.
         if (this.selected_contract_id === 'rental') {
