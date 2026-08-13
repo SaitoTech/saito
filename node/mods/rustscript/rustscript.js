@@ -67,6 +67,7 @@ const OpcodeSetarray = require('./lib/opcodes/setarray');
 const OpcodeSetarrayfield = require('./lib/opcodes/setarrayfield');
 const OpcodeArrayify = require('./lib/opcodes/arrayify');
 const OpcodeSumfields = require('./lib/opcodes/sumfields');
+const OpcodeScripthash = require('./lib/opcodes/scripthash');
 const OpcodeCheckown = require('./lib/opcodes/checkown');
 const OpcodeCheckownnft = require('./lib/opcodes/checkownnft');
 const OpcodeCheckownnftwhere = require('./lib/opcodes/checkownnftwhere');
@@ -144,6 +145,7 @@ class Rustscript extends ModTemplate {
       OpcodeSetarrayfield,
       OpcodeArrayify,
       OpcodeSumfields,
+      OpcodeScripthash,
       OpcodeCheckown,
       OpcodeCheckownnft,
       OpcodeCheckownnftwhere,

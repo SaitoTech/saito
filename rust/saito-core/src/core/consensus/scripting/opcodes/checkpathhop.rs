@@ -7,13 +7,16 @@ use super::super::script::resolve_ref;
 use super::checkpath::verify_witness_routing_path;
 
 struct DecodedHop {
+    /// Signer of this hop: start publickey for hop 0, else previous hop's `to`.
+    from: String,
     to: String,
     sig: String,
     value: Value,
 }
 
-fn decode_hops(hops: &[Value]) -> Option<Vec<DecodedHop>> {
+fn decode_hops(hops: &[Value], start_publickey: &str) -> Option<Vec<DecodedHop>> {
     let mut decoded = Vec::with_capacity(hops.len());
+    let mut expected_from = start_publickey.to_string();
 
     for hop in hops {
         let to = hop.get("to").and_then(|v| v.as_str())?.to_string();
@@ -27,10 +30,12 @@ fn decode_hops(hops: &[Value]) -> Option<Vec<DecodedHop>> {
         let parsed: Value = serde_json::from_str(&utf8).ok()?;
 
         decoded.push(DecodedHop {
-            to,
+            from: expected_from.clone(),
+            to: to.clone(),
             sig,
             value: parsed,
         });
+        expected_from = to;
     }
 
     Some(decoded)
@@ -41,6 +46,7 @@ fn lookup_field(hop: &DecodedHop, field: &str) -> Option<Value> {
     let first = parts.next()?;
 
     let mut current = match first {
+        "from" => json!(hop.from),
         "to" => json!(hop.to),
         "sig" => json!(hop.sig),
         "value" => hop.value.clone(),
@@ -201,7 +207,7 @@ impl CheckPathHop {
             return 0;
         }
 
-        let Some(decoded) = decode_hops(hops) else {
+        let Some(decoded) = decode_hops(hops, start_publickey) else {
             return 0;
         };
 
@@ -300,6 +306,7 @@ impl CheckPathHop {
         }
 
         context["__opcodes"]["checkpathhop"]["hop"] = json!({
+            "from": winning_hop.from,
             "to": winning_hop.to,
             "sig": winning_hop.sig,
             "value": winning_hop.value
@@ -585,5 +592,326 @@ mod tests {
         );
 
         assert_eq!(CheckPathHop::validate(&mut context, None, None), 0);
+    }
+
+    #[test]
+    fn where_from_selects_last_creator_signed_hop() {
+        let (pk0, sk0, pk1, sk1, _pk2, _sk2, binding_hash, _) = two_hop_fixture();
+        // Creator → Mid → Creator → Renter  (Creator signs hops 0 and 2)
+        let (pk3, _sk3) = generate_keys();
+        let hop0 = make_signed_hop(
+            &pk1,
+            &json!({ "timestamp": 1, "file_id": "f1", "expires_at": 9_000_000_000_000u64 }),
+            &sk0,
+            &binding_hash,
+        );
+        let hop1 = make_signed_hop(
+            &pk0,
+            &json!({ "timestamp": 2, "file_id": "f1", "expires_at": 9_000_000_000_000u64 }),
+            &sk1,
+            &binding_hash,
+        );
+        let hop2 = make_signed_hop(
+            &pk3,
+            &json!({
+                "timestamp": 3,
+                "file_id": "file-final",
+                "expires_at": 9_000_000_000_000u64
+            }),
+            &sk0,
+            &binding_hash,
+        );
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            vec![hop0, hop1, hop2],
+            "LAST",
+            json!([{
+                "field": "from",
+                "operator": "==",
+                "value": pk0.to_base58()
+            }]),
+            json!([]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 1);
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["to"].as_str(),
+            Some(pk3.to_base58().as_str())
+        );
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["from"].as_str(),
+            Some(pk0.to_base58().as_str())
+        );
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["value"]["file_id"].as_str(),
+            Some("file-final")
+        );
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["value"]["timestamp"].as_u64(),
+            Some(3)
+        );
+        assert_eq!(
+            context["__opcodes"]["checkpathhop"]["hop"]["value"]["expires_at"].as_u64(),
+            Some(9_000_000_000_000)
+        );
+    }
+
+    #[test]
+    fn tampered_value_fails_signature_verification() {
+        let (pk0, sk0, pk1, _sk1, _pk2, _sk2, binding_hash, _) = two_hop_fixture();
+        let mut hop = make_signed_hop(
+            &pk1,
+            &json!({
+                "timestamp": 1,
+                "file_id": "good-file",
+                "expires_at": 9_000_000_000_000u64
+            }),
+            &sk0,
+            &binding_hash,
+        );
+        // Requester mutates the signed base64 payload without resigning.
+        let bad_value = base64::engine::general_purpose::STANDARD.encode(
+            serde_json::to_string(&json!({
+                "timestamp": 1,
+                "file_id": "other-file",
+                "expires_at": 9_000_000_000_000u64
+            }))
+            .unwrap()
+            .as_bytes(),
+        );
+        hop["value"] = json!(bad_value);
+
+        let mut context = checkpathhop_context(
+            &pk0,
+            &binding_hash,
+            vec![hop],
+            "LAST",
+            json!([]),
+            json!([]),
+        );
+
+        assert_eq!(CheckPathHop::validate(&mut context, None, None), 0);
+    }
+
+    /// Full Creator → Renter rental constitution (direct hop only).
+    fn rental_script(creator: &str) -> Value {
+        json!({
+            "op": "OR",
+            "args": [
+                {
+                    "op": "CHECKSENDER",
+                    "publickey": creator
+                },
+                {
+                    "op": "AND",
+                    "args": [
+                        {
+                            "op": "CHECKPATHHOP",
+                            "selector": "LAST",
+                            "where": [{
+                                "field": "from",
+                                "operator": "==",
+                                "value": creator
+                            }],
+                            "publickey": creator,
+                            "hash": "",
+                            "witness": { "hops": [] }
+                        },
+                        {
+                            "op": "CHECKFIELD",
+                            "field": "__opcodes.checkpathhop.hop.to",
+                            "operator": "==",
+                            "value": "REQUESTER"
+                        },
+                        {
+                            "op": "CHECKFIELD",
+                            "field": "__opcodes.checkpathhop.hop.value.timestamp",
+                            "operator": ">",
+                            "value": 0
+                        },
+                        {
+                            "op": "CHECKFIELD",
+                            "field": "NOW",
+                            "operator": "<",
+                            "value": "__opcodes.checkpathhop.hop.value.expires_at"
+                        }
+                    ]
+                }
+            ]
+        })
+    }
+
+    fn requester_tx(pk: &crate::core::defs::SaitoPublicKey) -> crate::core::consensus::transaction::Transaction {
+        use crate::core::consensus::slip::Slip;
+        use crate::core::consensus::transaction::Transaction;
+        let mut tx = Transaction::default();
+        let mut slip = Slip::default();
+        slip.public_key = *pk;
+        tx.from.push(slip);
+        tx
+    }
+
+    #[test]
+    fn rental_creator_passes_first_branch() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, _sk) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let tx = requester_tx(&creator_pk);
+
+        let mut script = Script::new();
+        script.json = rental_script(&creator);
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn rental_valid_creator_to_renter_hop_passes_before_expiry() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, creator_sk) = generate_keys();
+        let (renter_pk, _renter_sk) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
+        let hop = make_signed_hop(
+            &renter_pk,
+            &json!({
+                "timestamp": now,
+                "file_id": "file-abc",
+                "expires_at": now + 60_000
+            }),
+            &creator_sk,
+            "",
+        );
+
+        let mut tree = rental_script(&creator);
+        tree["args"][1]["args"][0]["witness"]["hops"] = json!([hop]);
+
+        let mut script = Script::new();
+        script.json = tree;
+        let tx = requester_tx(&renter_pk);
+
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
+    }
+
+    #[test]
+    fn rental_expired_hop_fails() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, creator_sk) = generate_keys();
+        let (renter_pk, _) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
+        let hop = make_signed_hop(
+            &renter_pk,
+            &json!({
+                "timestamp": 1,
+                "file_id": "file-abc",
+                "expires_at": now.saturating_sub(60_000).max(1)
+            }),
+            &creator_sk,
+            "",
+        );
+
+        let mut tree = rental_script(&creator);
+        tree["args"][1]["args"][0]["witness"]["hops"] = json!([hop]);
+
+        let mut script = Script::new();
+        script.json = tree;
+
+        assert_eq!(
+            script.validate(Some(&requester_tx(&renter_pk)), None, None, None),
+            0
+        );
+    }
+
+    #[test]
+    fn rental_unauthorized_requester_fails() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, creator_sk) = generate_keys();
+        let (renter_pk, _) = generate_keys();
+        let (other_pk, _) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
+        let hop = make_signed_hop(
+            &renter_pk,
+            &json!({
+                "timestamp": now,
+                "file_id": "file-abc",
+                "expires_at": now + 60_000
+            }),
+            &creator_sk,
+            "",
+        );
+
+        let mut tree = rental_script(&creator);
+        tree["args"][1]["args"][0]["witness"]["hops"] = json!([hop]);
+
+        let mut script = Script::new();
+        script.json = tree;
+
+        assert_eq!(
+            script.validate(Some(&requester_tx(&other_pk)), None, None, None),
+            0
+        );
+    }
+
+    #[test]
+    fn rental_tampered_json_value_fails() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, creator_sk) = generate_keys();
+        let (renter_pk, _) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
+        let mut hop = make_signed_hop(
+            &renter_pk,
+            &json!({
+                "timestamp": now,
+                "file_id": "file-abc",
+                "expires_at": now + 60_000
+            }),
+            &creator_sk,
+            "",
+        );
+        hop["value"] = json!(base64::engine::general_purpose::STANDARD.encode(
+            serde_json::to_string(&json!({
+                "timestamp": now,
+                "file_id": "file-abc",
+                "expires_at": now + 3_600_000
+            }))
+            .unwrap()
+            .as_bytes(),
+        ));
+
+        let mut tree = rental_script(&creator);
+        tree["args"][1]["args"][0]["witness"]["hops"] = json!([hop]);
+
+        let mut script = Script::new();
+        script.json = tree;
+
+        assert_eq!(
+            script.validate(Some(&requester_tx(&renter_pk)), None, None, None),
+            0
+        );
     }
 }

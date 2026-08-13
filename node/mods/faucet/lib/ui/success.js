@@ -53,7 +53,7 @@ class Success {
   }
 
   attachEvents() {
-    const btn = document.querySelector('.success .saito-button-primary');
+    const btn = document.querySelector('.faucet-success .saito-button-primary');
     if (btn) {
       btn.onclick = () => {
         this.mod.waiting_overlay.close();

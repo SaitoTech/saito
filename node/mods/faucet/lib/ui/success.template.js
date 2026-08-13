@@ -2,7 +2,7 @@ module.exports = (app, mod, opts = {}) => {
   const amountLabel = opts.amountLabel || `${app.wallet.convertNolanToSaito(mod.amount)} SAITO`;
 
   return `
-  <div class="success">
+  <div class="faucet-success">
     <div class="visual" aria-hidden="true">
       <i class="icon fa-solid fa-circle-check"></i>
     </div>

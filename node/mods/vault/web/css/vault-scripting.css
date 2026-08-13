@@ -1,0 +1,107 @@
+/*
+ * Vault provide-access-script overlay — layout only.
+ * Appearance from Saito (buttons, selects, textareas, overlays).
+ */
+
+.vault-scripting-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md, 1.2rem);
+  width: min(72rem, 95vw);
+  max-width: 95vw;
+  min-width: 0;
+  max-height: min(90vh, 92dvh);
+  padding: var(--saito-space-lg, 2rem);
+  box-sizing: border-box;
+}
+
+.vault-scripting-overlay .vault-scripting-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--saito-space-md, 1.2rem);
+  min-height: 0;
+  min-width: 0;
+}
+
+.vault-scripting-overlay .vault-scripting-intro {
+  display: block;
+  color: var(--saito-muted-foreground);
+  line-height: 1.45;
+}
+
+.vault-scripting-overlay .vault-scripting-type-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--saito-space-sm, 0.8rem);
+}
+
+.vault-scripting-overlay .vault-scripting-type-label {
+  color: var(--saito-muted-foreground);
+  font-size: 1.4rem;
+  white-space: nowrap;
+}
+
+.vault-scripting-overlay .vault-scripting-type-select {
+  width: auto;
+  min-width: 16rem;
+  max-width: 100%;
+  padding: 0.6rem 1rem;
+  font-size: 1.4rem;
+}
+
+.vault-scripting-overlay .vault-scripting-editor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.vault-scripting-overlay .create-nft-script-textarea {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: min(42rem, 55vh);
+  height: min(48rem, 58vh);
+  max-height: none;
+  padding: 1rem;
+  font-family: var(--saito-font-monospace, ui-monospace, monospace);
+  font-size: 1.4rem;
+  line-height: 1.45;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.vault-scripting-overlay .vault-scripting-actions {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 0;
+}
+
+.vault-scripting-overlay .vault-scripting-actions .saito-button-row {
+  margin: 0;
+  width: auto;
+}
+
+@media screen and (max-width: 768px) {
+  .vault-scripting-overlay {
+    width: 95vw;
+    min-width: 0;
+    max-height: min(92vh, 94dvh);
+    padding: var(--saito-space-md, 1.2rem);
+    gap: var(--saito-space-sm, 0.8rem);
+  }
+
+  .vault-scripting-overlay .create-nft-script-textarea {
+    min-height: min(28rem, 42vh);
+    height: min(34rem, 48vh);
+  }
+
+  .vault-scripting-overlay .vault-scripting-type-select {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}

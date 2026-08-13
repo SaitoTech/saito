@@ -72,9 +72,14 @@ class LoadNFTs {
       //
       // determine nft type
       //
-      // Canonical type is vault-nft-key; also accept legacy "vault" mints.
+      // Canonical types: vault-nft-key (jade/crystal) and vault-nft-rental-key.
+      // Also accept legacy "vault" mints.
       const nft_type = nft.returnType();
-      if (nft_type === 'vault-nft-key' || nft_type === 'vault') {
+      if (
+        nft_type === 'vault-nft-key' ||
+        nft_type === 'vault-nft-rental-key' ||
+        nft_type === 'vault'
+      ) {
         // Put everything in the callback to make sure we can fetch the orig transaction if user transfered ownership!
         await nft.fetchTransaction(() => {
           console.log('fetched the nft...');

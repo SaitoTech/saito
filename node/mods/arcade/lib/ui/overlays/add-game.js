@@ -1,23 +1,19 @@
 /**
- * Add Game overlay — stack-based navigation.
+ * Add Game chooser — three destination cards, no nested Arcade overlays.
  *
- * Views:
- *   home  → large visual options (3 today; 4-ready)
- *   free  → deeper browse of installable / free games
- *   sale  → placeholder for future Store purchase flow
- *   rent  → placeholder for future rental flow
- *
- * No NWASM / Upload ROM / purchase / rental implementation here.
+ * Free → Saito Wiki Applications
+ * Sale / Rent → Saito Store
  */
 const AddGameOverlayTemplate = require('./add-game.template');
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
+
+const WIKI_APPLICATIONS_URL = 'https://wiki.saito.io/applications';
 
 class AddGameOverlay {
   constructor(app, mod = null) {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(app, mod, false);
-    this.stack = [];
   }
 
   /**
@@ -30,195 +26,68 @@ class AddGameOverlay {
         id: 'free',
         title: 'Free Games',
         description: 'Browse and install free peer-to-peer games.',
-        image: '/saito/img/dreamscape.png',
+        image: '/saito/img/doom.jpg',
         view: 'free'
       },
       {
         id: 'sale',
         title: 'Games for Sale',
         description: 'Purchase games from creators on Saito.',
-        image: '/saito/img/doom.jpg',
+        image: '/arcade/img/add_game.png',
         view: 'sale'
       },
       {
         id: 'rent',
         title: 'Games for Rent',
         description: 'Play premium titles with flexible access.',
-        image: '/arcade/img/arcade-hero.png',
+        image: '/arcade/img/rent_game.png',
         view: 'rent'
       }
     ];
   }
 
-  returnInstallableGames() {
-    if (!this.mod?.games) {
-      return [];
-    }
-    return this.mod.games.filter(
-      (g) => g.game_mod?.teaser === true || g.game_mod?.is_teaser === true
-    );
-  }
-
   render() {
-    this.stack = [{ view: 'home' }];
-    this.renderStack();
-  }
-
-  push(frame) {
-    this.stack.push(frame);
-    this.renderStack();
-  }
-
-  back() {
-    if (this.stack.length > 1) {
-      this.stack.pop();
-      this.renderStack();
-      return;
-    }
-    this.close();
+    let options = this.returnHomeOptions();
+    this.overlay.show(
+      AddGameOverlayTemplate({
+        view: 'home',
+        options,
+        count: options.length
+      })
+    );
+    this.attachEvents(options);
   }
 
   close() {
-    this.stack = [];
     this.overlay.hide();
   }
 
-  current() {
-    return this.stack[this.stack.length - 1] || { view: 'home' };
+  openStore() {
+    if (this.app.modules.returnModule('Store')) {
+      this.close();
+      navigateWindow('/store', 200);
+      return;
+    }
+    siteMessage('The Saito Store is not available on this node.', 3000);
   }
 
-  renderStack() {
-    let frame = this.current();
-    let model = this.buildViewModel(frame);
-    this.overlay.show(AddGameOverlayTemplate(model));
-    this.attachEvents(model);
+  openWikiApplications() {
+    this.close();
+    window.location.assign(WIKI_APPLICATIONS_URL);
   }
 
-  buildViewModel(frame) {
-    let can_back = this.stack.length > 1;
-
-    if (frame.view === 'home') {
-      let options = this.returnHomeOptions();
-      return {
-        view: 'home',
-        title: 'Add Game',
-        canBack: can_back,
-        options,
-        count: options.length
-      };
-    }
-
-    if (frame.view === 'free') {
-      let games = this.returnInstallableGames().map((g) => ({
-        id: g.name,
-        title: g.title || g.name,
-        image: g.image || '',
-        href: g.link || ''
-      }));
-      return {
-        view: 'free',
-        title: 'Free Games',
-        subtitle: games.length
-          ? 'Choose a game to install.'
-          : 'No installable free games are available on this node right now.',
-        canBack: true,
-        games
-      };
-    }
-
-    if (frame.view === 'sale') {
-      return {
-        view: 'sale',
-        title: 'Games for Sale',
-        subtitle: 'Store purchase flow will connect here. No purchase logic is active yet.',
-        canBack: true,
-        placeholder: true,
-        cta: this.app.modules.returnModule('Store') ? 'Open Store' : null
-      };
-    }
-
-    if (frame.view === 'rent') {
-      return {
-        view: 'rent',
-        title: 'Games for Rent',
-        subtitle: 'Rental flow will connect here. No rental logic is active yet.',
-        canBack: true,
-        placeholder: true,
-        cta: this.app.modules.returnModule('Store') ? 'Open Store' : null
-      };
-    }
-
-    return {
-      view: frame.view,
-      title: 'Add Game',
-      canBack: can_back,
-      placeholder: true,
-      subtitle: 'This view is not implemented yet.'
-    };
-  }
-
-  attachEvents(model) {
+  attachEvents(options = []) {
     let root = document.querySelector('.arcade-add-game');
     if (!root) {
       return;
     }
 
-    root.querySelectorAll('[data-nav="back"]').forEach((btn) => {
+    root.querySelectorAll('.choice').forEach((btn) => {
       btn.onclick = (e) => {
         e.preventDefault();
-        this.back();
-      };
-    });
-
-    root.querySelectorAll('[data-nav="close"]').forEach((btn) => {
-      btn.onclick = (e) => {
-        e.preventDefault();
-        this.close();
-      };
-    });
-
-    if (model.view === 'home') {
-      root.querySelectorAll('.choice').forEach((btn) => {
-        btn.onclick = (e) => {
-          e.preventDefault();
-          let id = btn.getAttribute('data-action');
-          let option = (model.options || []).find((o) => o.id === id);
-          this.selectHomeOption(option || { id });
-        };
-      });
-      return;
-    }
-
-    if (model.view === 'free') {
-      root.querySelectorAll('.game-choice').forEach((btn) => {
-        btn.onclick = (e) => {
-          e.preventDefault();
-          let id = btn.getAttribute('data-id');
-          let game = (this.mod?.games || []).find((g) => g.name === id);
-          this.app.connection.emit('arcade-add-game-select', { id: 'free-game', game: id });
-          this.close();
-          this.app.connection.emit('arcade-teaser-install-render-request', {
-            game: game || null,
-            title: game?.title || id,
-            image: game?.image || '',
-            link: btn.getAttribute('data-href') || game?.link || '',
-            description: game?.game_mod?.description || ''
-          });
-        };
-      });
-      return;
-    }
-
-    root.querySelectorAll('[data-nav="store"]').forEach((btn) => {
-      btn.onclick = (e) => {
-        e.preventDefault();
-        this.app.connection.emit('arcade-add-game-select', { id: model.view });
-        if (this.app.modules.returnModule('Store')) {
-          this.close();
-          navigateWindow('/store', 200);
-        } else {
-          siteMessage('The Saito Store is not available on this node.', 3000);
-        }
+        let id = btn.getAttribute('data-action');
+        let option = options.find((o) => o.id === id) || { id };
+        this.selectHomeOption(option);
       };
     });
   }
@@ -227,20 +96,18 @@ class AddGameOverlay {
     this.app.connection.emit('arcade-add-game-select', option);
 
     if (option.view === 'free' || option.id === 'free') {
-      this.push({ view: 'free' });
-      return;
-    }
-    if (option.view === 'sale' || option.id === 'sale') {
-      this.push({ view: 'sale' });
-      return;
-    }
-    if (option.view === 'rent' || option.id === 'rent') {
-      this.push({ view: 'rent' });
+      this.openWikiApplications();
       return;
     }
 
-    // Unknown option: keep overlay open and show a stub frame.
-    this.push({ view: option.id || 'unknown' });
+    if (
+      option.view === 'sale' ||
+      option.id === 'sale' ||
+      option.view === 'rent' ||
+      option.id === 'rent'
+    ) {
+      this.openStore();
+    }
   }
 }
 

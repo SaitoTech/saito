@@ -6,6 +6,7 @@ const VaultMain = require('./lib/ui/main');
 const VaultHome = require('./index');
 const AccessFileOverlay = require('./lib/ui/overlays/load-nfts.js');
 const WitnessOverlay = require('./lib/ui/overlays/witness');
+const { buildDefaultAccessScript } = require('./lib/contracts');
 
 class Vault extends ModTemplate {
   constructor(app) {
@@ -349,7 +350,7 @@ class Vault extends ModTemplate {
     if (type === 'saito-create-nft') {
       return {
         title: 'NFT Access Key',
-        class: ['vault-nft-key'],
+        class: ['vault-nft-key', 'vault-nft-rental-key'],
         json: {
           txsig: 'YYYYY',
           archive: 'ZZZZZ'
@@ -360,7 +361,7 @@ class Vault extends ModTemplate {
     if (type === 'saito-nft-media') {
       return {
         // Canonical access-key type; "vault" kept for legacy keys already on-chain.
-        class: ['vault-nft-key', 'vault'],
+        class: ['vault-nft-key', 'vault-nft-rental-key', 'vault'],
         returnMediaDisplay(nft) {
           if (!nft?.json) {
             return null;
@@ -387,7 +388,11 @@ class Vault extends ModTemplate {
         return null;
       }
       const nft_type = nft.returnType();
-      if (nft_type !== 'vault-nft-key' && nft_type !== 'vault') {
+      if (
+        nft_type !== 'vault-nft-key' &&
+        nft_type !== 'vault-nft-rental-key' &&
+        nft_type !== 'vault'
+      ) {
         return null;
       }
 
@@ -447,6 +452,81 @@ class Vault extends ModTemplate {
           }
 
           await this_mod.sendAccessFileRequest(vault_data);
+        }
+      };
+    }
+
+    //
+    // Direct Creator → Renter rental hop (CHECKPATHHOP). Only the Creator
+    // writes a hop for this iteration; value carries timestamp/file_id/expires_at.
+    // Requires tx.msg.data.expires_at (ms). Binding hash is "" to match rental.js.
+    //
+    if (type === 'saito-nft-transfer') {
+      let this_mod = this;
+      return {
+        class: ['vault-nft-key', 'vault-nft-rental-key', 'vault'],
+        onTransfer: async (nft = null, tx = null, receiver = '') => {
+          if (!tx) {
+            return tx;
+          }
+          if (!tx.msg) {
+            tx.msg = {};
+          }
+          if (!tx.msg.data) {
+            tx.msg.data = {};
+          }
+
+          const expires_at = tx.msg.data.expires_at;
+          if (expires_at == null || expires_at === '') {
+            // Non-rental vault transfers leave path untouched.
+            return tx;
+          }
+
+          let file_id = tx.msg.data.file_id || null;
+          if (!file_id && nft?.json) {
+            try {
+              const parsed = typeof nft.json === 'string' ? JSON.parse(nft.json) : nft.json;
+              file_id = parsed?.file_id || parsed?.data?.file_id || null;
+            } catch (e) {
+              file_id = null;
+            }
+          }
+          if (!file_id) {
+            throw new Error('Vault rental transfer requires file_id');
+          }
+
+          const my_publickey = await this_mod.app.wallet.getPublicKey();
+          const creator =
+            typeof nft?.returnCreator === 'function' ? nft.returnCreator() : nft?.creator;
+          if (!creator || creator !== my_publickey) {
+            throw new Error('Vault rental hop must be signed by the Creator in this iteration');
+          }
+
+          const value_obj = {
+            timestamp: Date.now(),
+            file_id: file_id,
+            expires_at: Number(expires_at)
+          };
+          const value_json = JSON.stringify(value_obj);
+          const value_b64 = Buffer.from(value_json).toString('base64');
+          // Empty binding matches rental contract hash: ""
+          const binding_hash = '';
+          const canonical_string = `${receiver}|${value_b64}|${binding_hash}`;
+          const hash_digest = this_mod.app.crypto.hash(canonical_string);
+          const privatekey = await this_mod.app.wallet.getPrivateKey();
+          const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
+
+          // Direct Creator → Renter only: replace any prior path with this hop.
+          tx.msg.data.path = [
+            {
+              to: receiver,
+              value: value_b64,
+              sig: sig
+            }
+          ];
+          tx.msg.data.file_id = file_id;
+
+          return tx;
         }
       };
     }
@@ -605,15 +685,7 @@ class Vault extends ModTemplate {
       }
 
       if (access_script_obj == null) {
-        access_script_obj = {
-          op: 'CHECKOWNNFT',
-          nftid,
-          witness: {
-            utxokey1: '',
-            utxokey2: '',
-            utxokey3: ''
-          }
-        };
+        access_script_obj = buildDefaultAccessScript({ nftid });
       }
 
       let access_script =
@@ -692,15 +764,12 @@ class Vault extends ModTemplate {
       //
       // Standard CHECKOWNNFT flow
       //
-      let access_script_obj = {
-        op: 'CHECKOWNNFT',
+      let access_script_obj = buildDefaultAccessScript({
         nftid,
-        witness: {
-          utxokey1: utxokey1,
-          utxokey2: utxokey2,
-          utxokey3: utxokey3
-        }
-      };
+        utxokey1,
+        utxokey2,
+        utxokey3
+      });
 
       access_script = JSON.stringify(access_script_obj);
       access_hash = this.app.core.scripting.hash(access_script);

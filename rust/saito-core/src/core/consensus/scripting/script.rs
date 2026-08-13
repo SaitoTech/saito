@@ -13,7 +13,7 @@ use js_sys;
 use super::opcodes::{
     Arrayify, CheckField, CheckHash, CheckKey, CheckMultiSig, CheckOwn, CheckOwnNft,
     CheckOwnNftWhere, CheckPath, CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime,
-    ImportArray, ImportField, SetArray, SetArrayField, SetField, SumFields,
+    ImportArray, ImportField, ScriptHash, SetArray, SetArrayField, SetField, SumFields,
 };
 
 /// Canonical JSON serialization used by script hashing and signed imports.
@@ -237,10 +237,12 @@ impl Script {
             obj.remove("__current_p2sh_idx");
         }
 
+        // NOW is node/block time for access checks, not the request tx timestamp.
+        // Archive evaluates with a request tx and no block; using tx.timestamp would
+        // let requesters backdate past expires_at. Prefer block time when present,
+        // otherwise the evaluating node's wall clock.
         let now_ms = if let Some(blk) = blk {
             blk.timestamp
-        } else if let Some(tx) = tx {
-            tx.timestamp
         } else {
             #[cfg(target_arch = "wasm32")]
             {
@@ -488,6 +490,7 @@ impl Script {
                 "IMPORTFIELD" => ImportField::validate(context, tx, blk),
                 "IMPORTARRAY" => ImportArray::validate(context, tx, blk),
                 "SUMFIELDS" => SumFields::validate(context, tx, blk),
+                "SCRIPTHASH" => ScriptHash::validate(context, tx, blk),
                 "SETFIELD" => SetField::validate(context, tx, blk),
                 "SETARRAY" => SetArray::validate(context, tx, blk),
                 "SETARRAYFIELD" => SetArrayField::validate(context, tx, blk),
@@ -1390,6 +1393,279 @@ mod tests {
     fn validate_sumfields_missing_operand_fails() {
         let mut script = Script::new();
         script.parse(r#"{"op":"SUMFIELDS","b":2,"into":"expiry"}"#);
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_scripthash_matches_script_hash_for_literal_object() {
+        let tree = json!({
+            "op": "CHECKSENDER",
+            "publickey": "alice"
+        });
+        let expected = Script {
+            json: tree.clone(),
+        }
+        .hash();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": tree,
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.scripthash.hash",
+                        "operator": "==",
+                        "value": expected
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_resolves_context_rental_script() {
+        let tree = json!({
+            "op": "CHECKSENDER",
+            "publickey": "bob"
+        });
+        let expected = Script {
+            json: tree.clone(),
+        }
+        .hash();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script",
+                        "value": tree
+                    },
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": "context.rental_script",
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.scripthash.hash",
+                        "operator": "==",
+                        "value": expected
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_matches_script_hash_with_nested_witness() {
+        let tree = json!({
+            "op": "AND",
+            "args": [
+                {
+                    "op": "CHECKSENDER",
+                    "publickey": "alice",
+                    "witness": { "ignored": true }
+                },
+                {
+                    "op": "CHECKFIELD",
+                    "field": "NOW",
+                    "operator": ">",
+                    "value": 0,
+                    "witness": { "also": "ignored" }
+                }
+            ],
+            "witness": { "outer": 1 }
+        });
+        let expected = Script {
+            json: tree.clone(),
+        }
+        .hash();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script",
+                        "value": tree
+                    },
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": "context.rental_script",
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.scripthash.hash",
+                        "operator": "==",
+                        "value": expected
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_setfield_nested_edit_changes_hash() {
+        let template = json!({
+            "op": "OR",
+            "args": [
+                {
+                    "op": "CHECKSENDER",
+                    "publickey": "PLACEHOLDER"
+                },
+                {
+                    "op": "CHECKSENDER",
+                    "publickey": "alice"
+                }
+            ]
+        });
+
+        let mut expected_tree = template.clone();
+        expected_tree["args"][0]["publickey"] = json!("bob");
+        let expected = Script {
+            json: expected_tree,
+        }
+        .hash();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script",
+                        "value": template
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script.args[0].publickey",
+                        "value": "bob"
+                    },
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": "context.rental_script",
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.scripthash.hash",
+                        "operator": "==",
+                        "value": expected
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_does_not_mutate_source_tree() {
+        let tree = json!({
+            "op": "CHECKSENDER",
+            "publickey": "alice",
+            "witness": { "keep": true }
+        });
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script",
+                        "value": tree.clone()
+                    },
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": "context.rental_script",
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "rental_script.witness.keep",
+                        "operator": "==",
+                        "value": true
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "rental_script.publickey",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_missing_source_fails() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SCRIPTHASH",
+                "into": "hash"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_scripthash_invalid_into_key_fails() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SCRIPTHASH",
+                "source": { "op": "CHECKSENDER", "publickey": "alice" },
+                "into": "bad-key"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_scripthash_unresolved_path_fails() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SCRIPTHASH",
+                "source": "context.rental_script",
+                "into": "hash"
+            }))
+            .unwrap(),
+        );
 
         assert_eq!(script.validate(None, None, None, None), 0);
     }

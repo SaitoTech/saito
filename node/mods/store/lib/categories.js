@@ -81,6 +81,7 @@ function mapNFTTypeToCategory(nft_type = '') {
     case 'nwasm-nft-mod':
       return STORE_CATEGORIES.APPS_AND_GAMES;
     case 'vault-nft-key':
+    case 'vault-nft-rental-key':
       return STORE_CATEGORIES.ACCESS_KEYS;
     case 'text':
     case 'json':

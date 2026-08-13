@@ -1,13 +1,13 @@
-/* Namespace: .success — Faucet issuance-complete overlay. */
+/* Namespace: .faucet-success — Faucet issuance-complete overlay. */
 
-.saito-overlay:has(> .success) {
+.saito-overlay:has(> .faucet-success) {
   width: 96vw;
   height: 96vh;
   max-width: 96vw;
   max-height: 96vh;
 }
 
-.success {
+.faucet-success {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -22,7 +22,7 @@
   background: var(--saito-background);
 }
 
-.success .title {
+.faucet-success .title {
   font-size: clamp(2.4rem, 4vw, 4rem);
   line-height: 1.2;
   margin: 0;
@@ -30,7 +30,7 @@
   color: var(--saito-primary);
 }
 
-.success .message {
+.faucet-success .message {
   font-size: clamp(1.6rem, 2.2vw, 2rem);
   line-height: 1.5;
   margin: 0;
@@ -39,20 +39,20 @@
   color: var(--saito-muted-foreground);
 }
 
-.success .visual {
+.faucet-success .visual {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 12rem;
 }
 
-.success .icon {
+.faucet-success .icon {
   font-size: 8rem;
   line-height: 1;
   color: var(--saito-primary);
 }
 
-.success .actions {
+.faucet-success .actions {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
@@ -62,18 +62,18 @@
   align-items: stretch;
 }
 
-.success .actions .saito-button-primary,
-.success .actions .saito-button-secondary {
+.faucet-success .actions .saito-button-primary,
+.faucet-success .actions .saito-button-secondary {
   width: 100%;
 }
 
 @media screen and (max-width: 600px) {
-  .success {
+  .faucet-success {
     padding: 2rem 1.2rem;
     min-height: 85vh;
   }
 
-  .success .icon {
+  .faucet-success .icon {
     font-size: 6rem;
   }
 }

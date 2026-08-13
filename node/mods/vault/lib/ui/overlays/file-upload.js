@@ -189,7 +189,7 @@ class FileUpload {
       this.setKeyStepState('busy', 'Creating access key…');
       await this.wait_for_paint();
       try {
-        await this.mintNFT(obj.access_script);
+        await this.mintNFT(obj.access_script, obj.nft_type || 'vault-nft-key');
       } catch (err) {
         console.error('Vault advanced CREATE KEY error:', err);
         this.setKeyStepState(
@@ -297,7 +297,7 @@ class FileUpload {
     });
   }
 
-  async mintNFT(access_script = null) {
+  async mintNFT(access_script = null, nft_type = 'vault-nft-key') {
     if (!this.mod.file) {
       throw new Error('Please upload a file before creating an NFT.');
     }
@@ -327,7 +327,7 @@ class FileUpload {
       txmsg,
       BigInt(0n),
       this.app.wallet.publicKey,
-      'vault-nft-key'
+      nft_type
     );
 
     const nft_obj = new SaitoNFT(this.app, this.mod, nft_tx);
