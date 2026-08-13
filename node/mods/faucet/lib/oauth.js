@@ -15,6 +15,7 @@ class FaucetOAuth {
     this.github = {
       client_id: 'Ov23liMPm8lCgwlK1eHq',
       authorize_url: 'https://github.com/login/oauth/authorize',
+      callback_url: 'https://staging.saito.io/faucet/oauth',
       scope: 'read:user'
     };
   }
@@ -57,7 +58,7 @@ class FaucetOAuth {
 
     const gh = this.github || {};
     const clientId = String(gh.client_id || '').trim();
-    const callbackUrl = String(credentials.callback_url || '').trim();
+    const callbackUrl = String(gh.callback_url || '').trim();
     const clientSecret = this.secret_github;
 
     if (!clientId || !callbackUrl || !clientSecret) {
@@ -156,10 +157,10 @@ class FaucetOAuth {
       const gh = oauth_self.github || {};
       const clientId = String(gh.client_id || '').trim();
       const authorizeUrl = String(gh.authorize_url || '').trim();
-      const callbackUrl = `${req.protocol}://${req.headers.host}/${slug}/oauth`;
+      const callbackUrl = String(gh.callback_url || '').trim();
       const scope = String(gh.scope || 'read:user').trim();
 
-      if (!clientId || !authorizeUrl || !req.headers.host) {
+      if (!clientId || !authorizeUrl || !callbackUrl) {
         return sendPopup(res, 400, {
           ok: false,
           title: 'GitHub OAuth not configured',
@@ -231,8 +232,7 @@ class FaucetOAuth {
         const identity = await oauth_self.authenticateCredentials({
           provider: 'github',
           code,
-          state,
-          callback_url: `${req.protocol}://${req.headers.host}/${slug}/oauth`
+          state
         });
         const outcome = await oauth_self.mod.acceptAuthenticatedIdentity(identity);
         return sendPopup(res, outcome.status, outcome.popup);
