@@ -1,0 +1,30 @@
+/* Standalone /faucet page shell. */
+
+.faucet-main {
+  background-image: url(/saito/img/tiled-logo.svg);
+  background-color: var(--saito-background);
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.faucet-home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  text-align: center;
+  padding: 4rem 3rem;
+}
+
+.faucet-home .inactive-message {
+  margin: 0;
+  max-width: 40rem;
+  font-size: 1.6rem;
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
+}
