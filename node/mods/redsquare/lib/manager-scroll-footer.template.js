@@ -5,6 +5,7 @@ module.exports = () => {
         <div class="saito-loader"></div>
       </div>
       <p class="message"></p>
+      <button type="button" class="retry saito-button-primary" hidden>Retry</button>
     </div>
   `;
 };

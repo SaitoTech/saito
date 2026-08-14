@@ -2237,10 +2237,16 @@ class RedSquare extends ModTemplate {
   }
 
   loadArchiveTransactions(query, archivePeer = 'localhost', timeoutMs = 5000) {
+    return this.loadArchiveTransactionsWithStatus(query, archivePeer, timeoutMs).then(
+      ({ transactions }) => transactions
+    );
+  }
+
+  loadArchiveTransactionsWithStatus(query, archivePeer = 'localhost', timeoutMs = 5000) {
     return new Promise((resolve) => {
       let settled = false;
       let timer = null;
-      const finish = (txs = []) => {
+      const finish = (status, txs = [], error = null) => {
         if (settled) {
           return;
         }
@@ -2249,16 +2255,20 @@ class RedSquare extends ModTemplate {
         if (timer) {
           clearTimeout(timer);
         }
-        resolve(Array.isArray(txs) ? txs : []);
+        resolve({
+          status,
+          transactions: Array.isArray(txs) ? txs : [],
+          error
+        });
       };
-      timer = setTimeout(() => finish(), timeoutMs);
+      timer = setTimeout(() => finish('timeout'), timeoutMs);
 
       try {
         Promise.resolve(
-          this.app.storage.loadTransactions(query, (txs) => finish(txs), archivePeer)
-        ).catch(() => finish());
+          this.app.storage.loadTransactions(query, (txs) => finish('loaded', txs), archivePeer)
+        ).catch((err) => finish('error', [], err));
       } catch (err) {
-        finish();
+        finish('error', [], err);
       }
     });
   }
@@ -2299,51 +2309,103 @@ class RedSquare extends ModTemplate {
     return archivePeers;
   }
 
+  returnTweetArchivePeerLabel(peer, index = 0) {
+    if (peer === 'localhost') {
+      return 'localhost';
+    }
+
+    return peer?.publicKey || `peer-${index}`;
+  }
+
+  async loadTweetArchivePhase(signature, query, phase, archivePeers) {
+    return Promise.all(
+      archivePeers.map(async (peer, index) => {
+        const result = await this.loadArchiveTransactionsWithStatus(query, peer);
+
+        console.info('RedSquare tweet archive lookup', {
+          signature,
+          phase,
+          peer: this.returnTweetArchivePeerLabel(peer, index),
+          status: result.status,
+          result_count: result.transactions.length
+        });
+
+        return result;
+      })
+    );
+  }
+
   async loadTweetThread(signature) {
     const targetSignature = String(signature || '');
 
     if (!targetSignature) {
-      return null;
+      return { status: 'unavailable', reason: 'invalid-signature', tweet: null };
     }
 
     const archivePeers = this.returnTweetArchivePeers();
+    let targetResults = [];
 
     if (!this.hasTweet(targetSignature)) {
-      const targetResults = await Promise.all(
-        archivePeers.map((peer) =>
-          this.loadArchiveTransactions(
-            { sig: targetSignature, field1: 'RedSquare', flagged_ne: 1 },
-            peer
-          )
-        )
+      targetResults = await this.loadTweetArchivePhase(
+        targetSignature,
+        { sig: targetSignature, field1: 'RedSquare', flagged_ne: 1 },
+        'target',
+        archivePeers
       );
 
-      for (const txs of targetResults) {
-        await this.addLoadedTweetTransactions(txs);
+      for (const result of targetResults) {
+        await this.addLoadedTweetTransactions(result.transactions);
       }
     }
 
     const target = this.getTweet(targetSignature);
 
+    if (targetResults.length) {
+      console.info('RedSquare tweet archive ingestion', {
+        signature: targetSignature,
+        phase: 'target',
+        accepted: Boolean(target),
+        result_count: targetResults.reduce((count, result) => count + result.transactions.length, 0)
+      });
+    }
+
     if (!target) {
-      return null;
+      const returnedTarget = targetResults.some((result) =>
+        result.transactions.some((tx) => String(tx?.signature || '') === targetSignature)
+      );
+      const lookupFailed = targetResults.some((result) => result.status !== 'loaded');
+
+      return {
+        status: lookupFailed ? 'error' : 'unavailable',
+        reason: returnedTarget ? 'rejected' : lookupFailed ? 'lookup-failed' : 'not-found',
+        tweet: null
+      };
     }
 
     const threadId = target.thread_id || target.signature;
-    const threadResults = await Promise.all(
-      archivePeers.map((peer) =>
-        this.loadArchiveTransactions(
-          { field1: 'RedSquare', field5: threadId, flagged_ne: 1, limit: 100 },
-          peer
-        )
-      )
+    const threadResults = await this.loadTweetArchivePhase(
+      targetSignature,
+      { field1: 'RedSquare', field5: threadId, flagged_ne: 1, limit: 100 },
+      'thread',
+      archivePeers
     );
 
-    for (const txs of threadResults) {
-      await this.addLoadedTweetTransactions(txs);
+    for (const result of threadResults) {
+      await this.addLoadedTweetTransactions(result.transactions);
     }
 
-    return this.getTweet(targetSignature);
+    console.info('RedSquare tweet archive ingestion', {
+      signature: targetSignature,
+      phase: 'thread',
+      accepted: Boolean(this.getTweet(targetSignature)),
+      result_count: threadResults.reduce((count, result) => count + result.transactions.length, 0)
+    });
+
+    return {
+      status: 'loaded',
+      tweet: this.getTweet(targetSignature),
+      partial: [...targetResults, ...threadResults].some((result) => result.status !== 'loaded')
+    };
   }
 
   async returnTweetSocial(signature, req) {
