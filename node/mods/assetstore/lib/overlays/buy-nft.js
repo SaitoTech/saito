@@ -28,7 +28,7 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
       if (toolbar) {
         toolbar.insertAdjacentHTML(
           'beforeend',
-          `<button type="button" class="saito-nft-capability saito-large-square-button saito-glass enable-nft" data-capability="buy" data-description="Purchase this NFT with SAITO." aria-label="Buy" aria-pressed="false"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="saito-nft-capability-label">Buy</span></button>`
+          `<button type="button" class="saito-nft-capability saito-large-square-button saito-glass enable-nft" data-capability="buy" data-description="Purchase this NFT with SAITO." aria-label="Buy" aria-pressed="false"><span class="saito-icon-button"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i></span><span class="saito-nft-capability-label">Buy</span></button>`
         );
         buy_with_saito_btn = document.querySelector('.saito-nft-capability.enable-nft');
       }
@@ -40,7 +40,7 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
     buy_with_saito_btn.style.display = 'inline-flex';
     buy_with_saito_btn.setAttribute('aria-label', 'Buy');
     buy_with_saito_btn.setAttribute('data-description', 'Purchase this NFT with SAITO.');
-    buy_with_saito_btn.innerHTML = `<i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="saito-nft-capability-label">Buy</span>`;
+    buy_with_saito_btn.innerHTML = `<span class="saito-icon-button"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i></span><span class="saito-nft-capability-label">Buy</span>`;
 
     let priceRaw = BigInt(this.nft.getBuyPriceSaito()); // BigInt -- Saito
     let fee = BigInt(this.mod?.fee || 0);

@@ -153,6 +153,33 @@
   width: 100%;
 }
 
+@media (max-width: 768px) {
+  .saito-overlay.rs-onboarding-overlay,
+  .saito-overlay.rs-onboarding-overlay.maximized-overlay,
+  .saito-overlay.rs-onboarding-overlay.center-overlay {
+    top: var(--saito-overlay-viewport-top, 0px);
+    height: var(--saito-overlay-viewport-height, 100dvh);
+  }
+
+  .saito-overlay.rs-onboarding-overlay > .rs-onboard-appspace {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .rs-onboard-panel {
+    max-height: 100%;
+    min-height: 0;
+  }
+
+  .rs-onboard-options {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+  }
+}
+
 .rs-onboard-option {
   display: flex;
   align-items: center;

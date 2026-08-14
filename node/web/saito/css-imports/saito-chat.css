@@ -90,6 +90,7 @@
   transition:
     background-color 0.2s,
     color 0.2s;
+  min-height: 5rem;
 }
 
 .chat-manager .saito-address {

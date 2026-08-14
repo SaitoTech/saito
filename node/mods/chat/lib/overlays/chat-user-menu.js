@@ -212,13 +212,6 @@ class ChatUserMenu {
       };
     }
 
-    if (document.getElementById('debug')) {
-      document.getElementById('debug').onclick = (e) => {
-        console.log(JSON.parse(JSON.stringify(thisobj.chat_group)));
-        let message = thisobj.mod.createMessageBlocks(thisobj.chat_group);
-        console.log(JSON.parse(JSON.stringify(message)));
-      };
-    }
   }
 }
 

@@ -278,7 +278,7 @@ span.saito-anchor {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  min-width: 0;
+  min-width: 6rem;
   width: auto;
   height: auto;
   aspect-ratio: 1;

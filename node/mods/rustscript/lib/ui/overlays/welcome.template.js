@@ -23,7 +23,7 @@ const WelcomeSplashTemplate = () => {
           </p>
         </header>
 
-        <div class="rs-onboard-options">
+        <div class="rs-onboard-options hide-scrollbar">
           <button type="button" class="rs-onboard-option rs-onboard-option-primary" data-path="create">
             <span class="rs-onboard-option-icon">${optionIcon('create')}</span>
             <span class="rs-onboard-option-body">
@@ -68,7 +68,7 @@ const WelcomeBuildChoiceTemplate = () => {
           <h2 class="rs-onboard-prompt">What would you like to build?</h2>
         </header>
 
-        <div class="rs-onboard-options">
+        <div class="rs-onboard-options hide-scrollbar">
           <button type="button" class="rs-onboard-option" data-build="multisig">
             <span class="rs-onboard-option-icon">${optionIcon('multisig')}</span>
             <span class="rs-onboard-option-body">
@@ -112,7 +112,7 @@ const WelcomeImportChoiceTemplate = () => {
           <h2 class="rs-onboard-prompt">What would you like to import?</h2>
         </header>
 
-        <div class="rs-onboard-options">
+        <div class="rs-onboard-options hide-scrollbar">
           <button type="button" class="rs-onboard-option" data-import="unlock-tx">
             <span class="rs-onboard-option-icon">${optionIcon('unlock')}</span>
             <span class="rs-onboard-option-body">

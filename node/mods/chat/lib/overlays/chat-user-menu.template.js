@@ -51,8 +51,6 @@ module.exports = (app, mod, chat_group) => {
     }
   }
 
-  html += `<div id="debug" class="saito-modal-menu-option"><i class="fa-solid fa-question"></i><div>Debug</div></div>`;
-
   html += '</div></div>';
 
   return html;

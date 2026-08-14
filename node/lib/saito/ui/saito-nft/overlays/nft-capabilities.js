@@ -215,7 +215,9 @@ class NFTCapabilities {
           aria-label="${cap.label}"
           aria-pressed="false"
         >
-          <i class="${cap.icon}" aria-hidden="true"></i>
+          <span class="saito-icon-button">
+            <i class="${cap.icon}" aria-hidden="true"></i>
+          </span>
           <span class="saito-nft-capability-label">${cap.label}</span>
         </button>
       `;

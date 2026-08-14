@@ -28,14 +28,14 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
     if (document.querySelector('.saito-nft-capability.enable-nft')) {
       const share = document.querySelector('.saito-nft-capability.enable-nft');
       share.style.display = 'inline-flex';
-      share.innerHTML = `<i class="fa-solid fa-link" aria-hidden="true"></i><span class="saito-nft-capability-label">Share</span>`;
+      share.innerHTML = `<span class="saito-icon-button"><i class="fa-solid fa-link" aria-hidden="true"></i></span><span class="saito-nft-capability-label">Share</span>`;
       share.setAttribute('aria-label', 'Share');
       share.setAttribute('data-description', 'Share a link to this listing.');
     } else {
       const toolbar = document.querySelector('.saito-nft-capabilities');
       toolbar?.insertAdjacentHTML(
         'beforeend',
-        `<button type="button" class="saito-nft-capability saito-large-square-button saito-glass enable-nft" data-capability="share" data-description="Share a link to this listing." aria-label="Share" aria-pressed="false"><i class="fa-solid fa-link" aria-hidden="true"></i><span class="saito-nft-capability-label">Share</span></button>`
+        `<button type="button" class="saito-nft-capability saito-large-square-button saito-glass enable-nft" data-capability="share" data-description="Share a link to this listing." aria-label="Share" aria-pressed="false"><span class="saito-icon-button"><i class="fa-solid fa-link" aria-hidden="true"></i></span><span class="saito-nft-capability-label">Share</span></button>`
       );
     }
   }
