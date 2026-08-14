@@ -150,7 +150,9 @@ class NwasmMain {
                 sig: tx.signature,
                 title: (msg.title || msg.name || msg.data?.name || 'Untitled ROM').trim(),
                 id: msg.id || '',
-                source: 'archive'
+                source: 'archive',
+                rental: false,
+                expires_at: null
               });
             }
           } catch (err) {
@@ -208,7 +210,9 @@ class NwasmMain {
           sig: nft_sig,
           title: (meta?.title || 'N64 ROM').trim(),
           id: meta?.id || nft_sig,
-          source: 'nft'
+          source: 'nft',
+          rental: false,
+          expires_at: null
         });
         continue;
       }
@@ -227,7 +231,11 @@ class NwasmMain {
       }
 
       let file = null;
-      if (indexed?.status === 'rom' && indexed.file_id) {
+      let indexed_ok =
+        indexed?.status === 'rom' &&
+        indexed.file_id &&
+        (nft_type !== 'vault-nft-rental' || indexed.expires_at != null);
+      if (indexed_ok) {
         file = indexed;
       } else {
         let mint = await new Promise((resolve) => {
@@ -263,6 +271,7 @@ class NwasmMain {
           continue;
         }
 
+        let rental_meta = this.vaultRentalMeta(nft_type, data);
         file = {
           status: 'rom',
           nft_id: nft_entry.id || nft_sig,
@@ -273,7 +282,11 @@ class NwasmMain {
           slip1_utxokey: nft_entry?.slip1?.utxo_key || '',
           slip2_utxokey: nft_entry?.slip2?.utxo_key || '',
           slip3_utxokey: nft_entry?.slip3?.utxo_key || '',
-          file_access_script: data.file_access_script || null
+          file_access_script: data.file_access_script || null,
+          path: Array.isArray(data.path) ? data.path : [],
+          nft_type: nft_type,
+          rental: rental_meta.rental,
+          expires_at: rental_meta.expires_at
         };
         vault_nft_index[nft_sig] = file;
         index_dirty = true;
@@ -283,12 +296,25 @@ class NwasmMain {
       if (file.nft_id) {
         seen[file.nft_id] = 1;
       }
+      let rental_meta = this.vaultRentalMeta(nft_type, {
+        expires_at: file.expires_at,
+        file_access_script: file.file_access_script,
+        path: file.path
+      });
+      if (file.rental === true) {
+        rental_meta.rental = true;
+      }
+      if (file.expires_at != null && rental_meta.expires_at == null) {
+        rental_meta.expires_at = file.expires_at;
+      }
       games.push({
         sig: nft_sig,
         title: this.vault_game_title(file.filename || ''),
         id: file.nft_id || nft_sig,
         source: 'vault',
-        vault: file
+        vault: file,
+        rental: rental_meta.rental,
+        expires_at: rental_meta.expires_at
       });
     }
 
@@ -319,12 +345,42 @@ class NwasmMain {
         title: (g.title || 'Untitled ROM').trim(),
         id: g.id || g.sig,
         source: g.source || 'archive',
-        vault: g.vault || null
+        vault: g.vault || null,
+        rental: g.rental === true,
+        expires_at: g.expires_at != null ? g.expires_at : null
       });
     }
 
     games.sort((a, b) => a.title.localeCompare(b.title));
     return games;
+  }
+
+  // vault-nft-rental: hop expires_at (Vault firstUndelegatedHopFromRental), else data.expires_at.
+  vaultRentalMeta(nft_type = '', data = {}) {
+    let rental = nft_type === 'vault-nft-rental';
+    let expires_at = null;
+    if (!rental) {
+      return { rental: false, expires_at: null };
+    }
+    let vault_mod = this.app.modules.returnModule('Vault');
+    if (vault_mod && typeof vault_mod.firstUndelegatedHopFromRental === 'function') {
+      try {
+        let hop = vault_mod.firstUndelegatedHopFromRental(
+          data?.file_access_script,
+          data?.path
+        );
+        if (hop?.expires_at != null && hop.expires_at !== '') {
+          expires_at = Number(hop.expires_at);
+        }
+      } catch (err) {}
+    }
+    if (expires_at == null && data?.expires_at != null && data.expires_at !== '') {
+      expires_at = Number(data.expires_at);
+    }
+    if (expires_at != null && !Number.isFinite(expires_at)) {
+      expires_at = null;
+    }
+    return { rental: true, expires_at };
   }
 
   is_n64_rom_filename(filename = '') {
@@ -422,6 +478,7 @@ class NwasmMain {
     this.launching = true;
     // Used by LoadEmulator when a different ROM requires a cold Module reload.
     this.mod.launch_sig = sig;
+    this.mod.clearRentalTimer();
 
     try {
       sessionStorage.removeItem('nwasm-launched-from-arcade');
@@ -460,6 +517,14 @@ class NwasmMain {
     };
 
     await yield_for_paint();
+
+    if (game?.rental) {
+      let exp = game.expires_at != null ? Number(game.expires_at) : NaN;
+      if (!Number.isFinite(exp) || Date.now() >= exp) {
+        await fail_launch('This rental has expired.');
+        return;
+      }
+    }
 
     try {
       if (game?.source === 'vault') {
@@ -524,6 +589,11 @@ class NwasmMain {
               void fail_launch('Unable to download ROM from Vault');
               return;
             }
+            if (this.mod.isRentalExpired(game)) {
+              this.mod.clearRentalRomFromMemory();
+              void fail_launch('This rental has expired.');
+              return;
+            }
             try {
               let tx = this.mod.unpackVaultFile(base64, {
                 id: game.id || game.sig || '',
@@ -531,6 +601,7 @@ class NwasmMain {
                 filename: vault_data.filename || ''
               });
               this.mod.extractRom(tx);
+              this.mod.armRentalExpiry(game);
             } catch (err) {
               console.log('Error launching Vault ROM: ' + err);
               void fail_launch('Error launching Vault ROM');
@@ -551,7 +622,13 @@ class NwasmMain {
           setTimeout(async () => {
             await yield_for_paint();
             try {
+              if (this.mod.isRentalExpired(game)) {
+                this.mod.clearRentalRomFromMemory();
+                await fail_launch('This rental has expired.');
+                return;
+              }
               this.mod.extractRom(txs[0]);
+              this.mod.armRentalExpiry(game);
             } catch (err) {
               console.log('Error launching ROM: ' + err);
               await fail_launch('Error launching ROM');

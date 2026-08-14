@@ -44,6 +44,8 @@ class Nwasm extends OnePlayerGameTemplate {
     this.active_game_save_ts = 0;
 
     this.uploaded_rom = false;
+    this.rental_timer = null;
+    this.rental_game_sig = null;
 
     // opt out of index.js
     this.default_html = 0;
@@ -177,6 +179,7 @@ class Nwasm extends OnePlayerGameTemplate {
     this.active_rom = raw_file || byteArray;
     this.uploaded_rom = true;
     this.launch_sig = '';
+    this.clearRentalTimer();
     this.startPlaying();
     myApp.initializeRom(byteArray, this.app, this);
   }
@@ -427,6 +430,7 @@ class Nwasm extends OnePlayerGameTemplate {
             myApp.stopEmulator();
           }
         } catch (err) {}
+        game_mod.clearRentalTimer();
         game_mod.stopPlaying();
 
         let from_arcade = false;
@@ -513,6 +517,87 @@ class Nwasm extends OnePlayerGameTemplate {
     }
     this.active_game_time_played += ts - this.active_game_load_ts;
     this.active_game_load_ts = ts;
+  }
+
+  isRentalExpired(game = null) {
+    if (!game?.rental) {
+      return false;
+    }
+    let exp = game.expires_at != null ? Number(game.expires_at) : NaN;
+    return !Number.isFinite(exp) || Date.now() >= exp;
+  }
+
+  clearRentalTimer() {
+    if (this.rental_timer) {
+      clearTimeout(this.rental_timer);
+      this.rental_timer = null;
+    }
+    this.rental_game_sig = null;
+  }
+
+  armRentalExpiry(game = null) {
+    this.clearRentalTimer();
+    if (!game?.rental) {
+      return;
+    }
+    if (this.isRentalExpired(game)) {
+      this.expireRental();
+      return;
+    }
+    let exp = Number(game.expires_at);
+    this.rental_game_sig = game.sig || this.launch_sig || '';
+    this.rental_timer = setTimeout(() => {
+      this.expireRental();
+    }, Math.max(0, exp - Date.now()));
+  }
+
+  clearRentalRomFromMemory() {
+    this.active_rom = null;
+    this.active_game = null;
+    try {
+      if (typeof FS !== 'undefined' && FS.analyzePath) {
+        let info = FS.analyzePath('custom.v64');
+        if (info?.exists) {
+          FS.unlink('custom.v64');
+        }
+      }
+    } catch (err) {}
+  }
+
+  expireRental() {
+    this.clearRentalTimer();
+    try {
+      if (typeof myApp !== 'undefined') {
+        if (typeof myApp.saveStateLocal === 'function') {
+          myApp.saveStateLocal();
+        }
+        if (typeof myApp.exportStateLocal === 'function') {
+          myApp.exportStateLocal();
+        }
+      }
+    } catch (err) {
+      console.log('Nwasm: rental expiry save failed: ' + err);
+    }
+    try {
+      if (typeof myApp !== 'undefined' && myApp.stopEmulator) {
+        myApp.stopEmulator();
+      }
+    } catch (err) {}
+    this.clearRentalRomFromMemory();
+    try {
+      this.stopPlaying();
+    } catch (err) {}
+    try {
+      if (this.ui?.hide_loading) {
+        this.ui.hide_loading();
+      }
+      if (this.ui?.return_to_launcher) {
+        this.ui.return_to_launcher();
+      }
+    } catch (err) {}
+    try {
+      alert('This rental has expired.');
+    } catch (err) {}
   }
 
   ////////////////////
@@ -679,7 +764,9 @@ class Nwasm extends OnePlayerGameTemplate {
       sig: sig,
       title: title,
       id: id || sig,
-      source: source
+      source: source,
+      rental: meta.rental === true,
+      expires_at: meta.expires_at != null ? meta.expires_at : null
     };
     if (meta.vault) {
       entry.vault = meta.vault;
@@ -707,7 +794,9 @@ class Nwasm extends OnePlayerGameTemplate {
             id: entry.id,
             source: entry.source,
             vault: entry.vault || null,
-            last_played: entry.last_played || 0
+            last_played: entry.last_played || 0,
+            rental: entry.rental === true,
+            expires_at: entry.expires_at != null ? entry.expires_at : null
           });
           this.ui.games.sort((a, b) => a.title.localeCompare(b.title));
         }
@@ -719,7 +808,9 @@ class Nwasm extends OnePlayerGameTemplate {
               id: entry.id,
               source: entry.source,
               vault: entry.vault || null,
-              last_played: entry.last_played || 0
+              last_played: entry.last_played || 0,
+              rental: entry.rental === true,
+              expires_at: entry.expires_at != null ? entry.expires_at : null
             }
           ],
           { prune: false }
