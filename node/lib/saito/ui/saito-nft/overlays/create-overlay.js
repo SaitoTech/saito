@@ -44,7 +44,40 @@ class CreateNFT {
     }
 
     this.attachEvents();
+    this.renderFooterActions();
     this.setDefaults();
+  }
+
+  /**
+   * Modules may respondTo('saito-nft-create-footer', { type, overlay }) with
+   * { text, callback } to add an action for the currently selected NFT type.
+   */
+  renderFooterActions() {
+    const container = document.querySelector('.saito-nft-create .primary .footer .actions');
+    if (!container) {
+      return;
+    }
+
+    container.replaceChildren();
+
+    const context = {
+      type: this.nft_type || document.querySelector('#create-nft-type-dropdown')?.value,
+      overlay: this
+    };
+    const actions = this.app.modules?.getRespondTos?.('saito-nft-create-footer', context) || [];
+
+    for (const action of actions) {
+      if (!action?.text || typeof action.callback !== 'function') {
+        continue;
+      }
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'saito-button-secondary';
+      button.textContent = action.text;
+      button.onclick = (event) => action.callback({ ...context, event });
+      container.appendChild(button);
+    }
   }
 
   setDefaults() {
@@ -55,6 +88,14 @@ class CreateNFT {
 
       if (this.defaults.locked?.includes('type')) {
         dropdown.disabled = true;
+      }
+    }
+
+    if (typeof this.defaults?.content === 'string') {
+      let content = document.querySelector('#create-nft-textarea');
+      content.value = this.defaults.content;
+      if (this.defaults.locked?.includes('content')) {
+        content.readOnly = true;
       }
     }
 
@@ -522,7 +563,7 @@ class CreateNFT {
         this.apply_upload_presentation();
         uploadEl.style.display = 'none';
         textarea.style.display = 'flex';
-        textarea.innerHTML = 'alert("Hello World!");';
+        textarea.innerHTML = 'await salert("Hello World!");';
       }
       if (this.nft_type === 'css') {
         this.apply_upload_presentation();
@@ -568,6 +609,8 @@ class CreateNFT {
       if (this.image && uploadEl && !this.supportsThumbnail()) {
         this.addImage(this.image);
       }
+
+      this.renderFooterActions();
     };
 
     // Wizard Navigation

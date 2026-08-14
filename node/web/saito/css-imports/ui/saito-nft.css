@@ -483,6 +483,11 @@
   margin-right: auto;
 }
 
+.saito-nft-create .primary .footer .actions {
+  display: flex;
+  gap: var(--saito-space-md);
+}
+
 .saito-nft-create .secondary .footer {
   justify-content: space-between;
 }

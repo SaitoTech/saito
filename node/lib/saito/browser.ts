@@ -2311,39 +2311,42 @@ class Browser {
 
       window.salert = function (message) {
         if (document.getElementById('saito-alert')) {
-          return;
+          return Promise.resolve(false);
         }
-        let wrapper = document.createElement('div');
-        wrapper.id = 'saito-alert';
-        wrapper.className = 'saito-alert';
-        let html = `<div id="saito-alert-shim">
-                      <div id="saito-alert-box" class="saito-overlay-panel compact">
-                        <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
-                        <div class="saito-button-row">
-                          <button id="alert-ok" class="saito-button-primary">OK</button>
+        return new Promise((resolve) => {
+          let wrapper = document.createElement('div');
+          wrapper.id = 'saito-alert';
+          wrapper.className = 'saito-alert';
+          let html = `<div id="saito-alert-shim">
+                        <div id="saito-alert-box" class="saito-overlay-panel compact">
+                          <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
+                          <div class="saito-button-row">
+                            <button id="alert-ok" class="saito-button-primary">OK</button>
+                          </div>
                         </div>
-                      </div>
-                    </div>`;
-        wrapper.innerHTML = html;
-        document.body.appendChild(wrapper);
-        //        setTimeout(() => {
-        //          document.querySelector("#saito-alert-box").style.top = "0";
-        //        }, 100);
-        document.querySelector('#alert-ok').focus();
-        document.querySelector('#saito-alert-shim').addEventListener('keyup', function (event) {
-          if (event.keyCode === 13) {
-            event.preventDefault();
-            document.querySelector('#alert-ok').click();
-          }
+                      </div>`;
+          wrapper.innerHTML = html;
+          document.body.appendChild(wrapper);
+          //        setTimeout(() => {
+          //          document.querySelector("#saito-alert-box").style.top = "0";
+          //        }, 100);
+          document.querySelector('#alert-ok').focus();
+          document.querySelector('#saito-alert-shim').addEventListener('keyup', function (event) {
+            if (event.keyCode === 13) {
+              event.preventDefault();
+              document.querySelector('#alert-ok').click();
+            }
+          });
+          document.querySelector('#alert-ok').addEventListener(
+            'click',
+            function () {
+              wrapper.remove();
+              resolve(true);
+            },
+            false
+          );
+          document.querySelector('#saito-alert-box').style.top = '1rem';
         });
-        document.querySelector('#alert-ok').addEventListener(
-          'click',
-          function () {
-            wrapper.remove();
-          },
-          false
-        );
-        document.querySelector('#saito-alert-box').style.top = '1rem';
       };
 
       window.sconfirm = function (message) {

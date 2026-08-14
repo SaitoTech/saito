@@ -1,0 +1,18 @@
+body.nftstudio-page {
+  overflow: hidden;
+}
+
+body.nftstudio-page .saito-container {
+  display: block;
+  grid-template-columns: none;
+  max-width: none;
+  height: calc(100dvh - var(--saito-header-height));
+  padding: var(--saito-space-md);
+  overflow: hidden;
+}
+
+@media (max-width: 800px) {
+  body.nftstudio-page .saito-container {
+    padding: var(--saito-space-sm);
+  }
+}

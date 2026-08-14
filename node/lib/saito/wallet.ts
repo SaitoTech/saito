@@ -1855,6 +1855,11 @@ export default class Wallet extends SaitoWallet {
   // with them...
   //
   public async loadNFTs() {
+    if (this.app.BROWSER && this.app.browser.returnURLParameter('nonfts')) {
+      console.warn('NFT loading disabled by nonfts URL parameter');
+      return;
+    }
+
     try {
       await this.updateNFTList();
 

@@ -87,6 +87,7 @@ module.exports = (app, mod) => {
 
       <footer class="footer">
         <div class="get-saito-tokens"></div>
+        <div class="actions"></div>
         <button type="button" id="next-step" class="saito-button-primary">Next Step</button>
       </footer>
     </section>
