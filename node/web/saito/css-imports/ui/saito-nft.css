@@ -1546,6 +1546,22 @@ nft cards
   transform: translate(-50%, -50%);
   font-size: 4rem;
 }
+
+.saito-nft-expires-clock {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  z-index: 3;
+  font-family: monospace;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.4rem;
+  color: var(--saito-foreground);
+  background-color: color-mix(in srgb, var(--saito-black) 55%, transparent);
+  pointer-events: none;
+}
 .saito-nft-card-info-amount,
 .saito-nft-card-info-deposit {
   font-family: monospace;

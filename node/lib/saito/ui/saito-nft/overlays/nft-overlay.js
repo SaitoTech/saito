@@ -14,6 +14,7 @@ class NFTOverlay {
     this.capabilities = new NFTCapabilities(this.app, this.mod, this);
 
     this.overlay.callback_on_close = () => {
+      this.stopExpiresTimer();
       if (this.atomizer) {
         this.atomizer.shutdown();
       }
@@ -23,6 +24,7 @@ class NFTOverlay {
     // ui helpers
     //
     this.nft = null;
+    this.expires_timer = null;
 
     if (attach_events == true) {
       app.connection.on('saito-nft-details-render-request', (nft) => {
@@ -46,6 +48,7 @@ class NFTOverlay {
   }
 
   render(nft = null) {
+    this.stopExpiresTimer();
     if (nft) {
       this.nft = nft;
     }
@@ -59,6 +62,8 @@ class NFTOverlay {
       });
       return;
     }
+
+    this.startExpiresTimer();
 
     // We need to kick this off, so that any child class can finish
     // rendering it's changes to the base class
@@ -829,6 +834,37 @@ class NFTOverlay {
       bar.style.position = 'relative';
       bar.style.zIndex = '11';
     }, 50);
+  }
+
+  stopExpiresTimer() {
+    if (this.expires_timer) {
+      clearInterval(this.expires_timer);
+      this.expires_timer = null;
+    }
+  }
+
+  startExpiresTimer() {
+    this.stopExpiresTimer();
+    if (!this.nft || this.nft.expires_at == null || this.nft.expires_at === '') {
+      return;
+    }
+    this.tickExpiresClock();
+    this.expires_timer = setInterval(() => {
+      if (!document.querySelector('.saito-nft-image .saito-nft-expires-clock')) {
+        this.stopExpiresTimer();
+        return;
+      }
+      this.tickExpiresClock();
+    }, 1000);
+  }
+
+  tickExpiresClock() {
+    const clock = document.querySelector('.saito-nft-image .saito-nft-expires-clock');
+    if (!clock || !this.nft) {
+      this.stopExpiresTimer();
+      return;
+    }
+    clock.textContent = this.nft.remainingExpiresLabel();
   }
 }
 

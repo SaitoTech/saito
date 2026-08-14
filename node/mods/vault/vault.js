@@ -7,10 +7,68 @@ const VaultHome = require('./index');
 const AccessFileOverlay = require('./lib/ui/overlays/load-nfts.js');
 const WitnessOverlay = require('./lib/ui/overlays/witness');
 const { buildDefaultAccessScript } = require('./lib/contracts');
+const loan = require('./lib/contracts/loan');
 const {
   receiveVaultAddFileTransaction
 } = require('./lib/transactions/add-file');
 const rentalCheckout = require('./lib/transactions/rental-checkout');
+
+function findCheckPathHop(node) {
+  if (!node || typeof node !== 'object') {
+    return null;
+  }
+  if (String(node.op || '').toUpperCase() === 'CHECKPATHHOP') {
+    return node;
+  }
+  if (Array.isArray(node.args)) {
+    for (let i = 0; i < node.args.length; i++) {
+      const found = findCheckPathHop(node.args[i]);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Same hop selector as FILE_SCRIPT CHECKPATHHOP / checkout:
+ * FIRST hop where value.delegated == 0.
+ */
+function firstUndelegatedHopFromRental(file_access_script, path) {
+  let script_obj = file_access_script;
+  if (typeof script_obj === 'string') {
+    try {
+      script_obj = JSON.parse(script_obj);
+    } catch (err) {
+      script_obj = null;
+    }
+  }
+  const cph = findCheckPathHop(script_obj);
+  const creator_pk = cph?.publickey || null;
+  const hops = Array.isArray(cph?.witness?.hops)
+    ? cph.witness.hops
+    : Array.isArray(path)
+      ? path
+      : [];
+  for (let i = 0; i < hops.length; i++) {
+    const hop = hops[i] || {};
+    let value_obj = null;
+    try {
+      value_obj = JSON.parse(Buffer.from(String(hop.value || ''), 'base64').toString('utf8'));
+    } catch (err) {
+      value_obj = null;
+    }
+    if (value_obj && value_obj.delegated === 0) {
+      return {
+        creator_pk,
+        renter: hop.to || null,
+        expires_at: value_obj.expires_at
+      };
+    }
+  }
+  return { creator_pk, renter: null, expires_at: null };
+}
 
 class Vault extends ModTemplate {
   constructor(app) {
@@ -47,6 +105,10 @@ class Vault extends ModTemplate {
     });
 
     this.access_file_overlay = new AccessFileOverlay(this.app, this);
+  }
+
+  firstUndelegatedHopFromRental(file_access_script, path) {
+    return firstUndelegatedHopFromRental(file_access_script, path);
   }
 
   async initialize(app) {
@@ -404,6 +466,64 @@ class Vault extends ModTemplate {
       return 1;
     }
 
+    if (txmsg.request === 'vault access rental') {
+      try {
+        if (!app.core?.scripting?.hash || !app.core?.scripting?.evaluateWithTransaction) {
+          mycallback({ status: 'err', err: 'scripting_unavailable' });
+          return 0;
+        }
+
+        const access_script = txmsg.data.access_script || '';
+        const access_hash = txmsg.data.access_hash || '';
+        const computed_hash = app.core.scripting.hash(access_script);
+        console.log(
+          '--------------------------------\nVAULT RENTAL ACCESS REQUEST\n\naccess_hash:\n' +
+            access_hash +
+            '\n\ncomputed_hash:\n' +
+            computed_hash +
+            '\n\nLOAN_SCRIPT:\n' +
+            (typeof access_script === 'string'
+              ? access_script
+              : JSON.stringify(access_script, null, 2)) +
+            '\n\n--------------------------------'
+        );
+
+        let ok = false;
+        if (computed_hash === access_hash) {
+          ok = await app.core.scripting.evaluateWithTransaction(access_script, tx);
+        }
+        console.log('[VAULT RENTAL ACCESS] LOAN_SCRIPT eval:', ok ? 'true' : 'false');
+
+        if (!ok) {
+          mycallback({ status: 'err', err: 'access_denied_script_failed' });
+          return 0;
+        }
+
+        const archive_mod = app.modules.returnModule('Archive');
+        archive_mod.access_hash = 1;
+
+        const data = {};
+        data.owner = access_hash;
+        data.access_hash = access_hash;
+        data.access_script = access_script;
+        data.sig = txmsg.data.data.file_id;
+        data.request_tx = tx;
+
+        this.app.storage.loadTransactions(
+          data,
+          async (txs) => {
+            mycallback({ status: 'success', err: '', txs: txs });
+          },
+          'localhost',
+          0
+        );
+      } catch (err) {
+        console.log('[VAULT RENTAL ACCESS] ERROR', err);
+        mycallback({ status: 'err', err: JSON.stringify(err) });
+      }
+      return 1;
+    }
+
     if (txmsg.request === 'vault add file') {
       return await receiveVaultAddFileTransaction(app, this, tx, mycallback);
     }
@@ -604,6 +724,164 @@ class Vault extends ModTemplate {
     } else {
       console.warn('VAULT: no peer found, cannot send vault access request');
     }
+  }
+
+  /**
+   * Request the Vault file for a Store rental NFT using the instantiated LOAN_SCRIPT.
+   * Does not use FILE_SCRIPT or CHECKOWNNFT. Ordinary keys keep sendAccessFileRequest().
+   *
+   * @param {object} rental_nft SaitoNFT or { tx / data } with file_id, path, file_access_script
+   * @param {function} [mycallback] receives base64 file bytes or null
+   */
+  async sendAccessRentalFileRequest(rental_nft = null, mycallback = null) {
+    if (!this.app.core?.scripting?.hash) {
+      console.warn('VAULT: app.core.scripting not available, aborting rental access');
+      if (mycallback) {
+        mycallback(null);
+      }
+      return null;
+    }
+    if (!rental_nft) {
+      console.warn('VAULT: sendAccessRentalFileRequest missing rental NFT');
+      if (mycallback) {
+        mycallback(null);
+      }
+      return null;
+    }
+
+    const data =
+      (typeof rental_nft.tx?.returnMessage === 'function'
+        ? rental_nft.tx.returnMessage()?.data
+        : null) ||
+      rental_nft.data ||
+      {};
+    const file_id = String(data.file_id || rental_nft.file_id || '').trim();
+    const path = Array.isArray(data.path) ? data.path : [];
+    const file_access_script = data.file_access_script || rental_nft.file_access_script || null;
+    const hop = firstUndelegatedHopFromRental(file_access_script, path);
+    const creator_pk = hop.creator_pk;
+    const renter = hop.renter;
+    const expires_at = hop.expires_at;
+
+    if (!file_id || !creator_pk || !renter || expires_at == null) {
+      console.warn('VAULT: rental access missing file_id / creator / renter / expires_at', {
+        file_id,
+        creator_pk,
+        renter,
+        expires_at
+      });
+      if (mycallback) {
+        mycallback(null);
+      }
+      return null;
+    }
+
+    if (Date.now() >= Number(expires_at)) {
+      console.log('[VAULT RENTAL ACCESS] client expiry check: rental expired, not sending');
+      if (mycallback) {
+        mycallback(null);
+      }
+      return null;
+    }
+
+    const loan_script = loan.instantiate({
+      creator_publickey: creator_pk,
+      renter_publickey: renter,
+      expires_at: expires_at
+    });
+    const access_script = JSON.stringify(loan_script);
+    const access_hash = this.app.core.scripting.hash(access_script);
+
+    console.log('[VAULT LOAN SCRIPT]\n' + JSON.stringify(loan_script, null, 2));
+    console.log('[VAULT LOAN SCRIPT HASH]\n' + access_hash);
+    console.log('[VAULT RENTAL ACCESS] submitting hash(instantiated LOAN_SCRIPT) as access_hash');
+
+    const payload = {
+      request: 'vault access rental',
+      access_script: access_script,
+      access_hash: access_hash,
+      data: { file_id }
+    };
+
+    if (!this.peer) {
+      console.warn('VAULT: no peer found, cannot send vault access rental');
+      if (mycallback) {
+        mycallback(null);
+      }
+      return null;
+    }
+
+    this.app.network.sendRequestAsTransaction(
+      'vault access rental',
+      payload,
+      (res) => {
+        console.log('[VAULT RENTAL ACCESS] response', res);
+        if (!res) {
+          if (mycallback) {
+            mycallback(null);
+          }
+          return;
+        }
+        if (res.status === 'err') {
+          console.error('VAULT: rental access error', res);
+          if (mycallback) {
+            mycallback(null);
+          }
+          return;
+        }
+
+        let txs = [];
+        if (res.txs) {
+          txs = res.txs;
+        } else if (Array.isArray(res)) {
+          txs = res;
+        }
+
+        if (txs.length > 0) {
+          for (let i = 0; i < txs.length; i++) {
+            let tx = new Transaction();
+            tx.deserialize_from_web(this.app, txs[i]);
+            const txmsg = tx.returnMessage();
+            try {
+              let filename = txmsg.data.name;
+              if (!filename) {
+                filename = prompt('Enter filename to save:') || 'vault.bin';
+              }
+              const parts = txmsg.data.file.split(',');
+              const header = parts[0];
+              const base64Data = parts[1];
+              const mime = header.match(/data:(.*);base64/)[1];
+              if (mycallback) {
+                mycallback(base64Data);
+              } else {
+                const binary = atob(base64Data);
+                const len = binary.length;
+                const bytes = new Uint8Array(len);
+                for (let j = 0; j < len; j++) {
+                  bytes[j] = binary.charCodeAt(j);
+                }
+                const blob = new Blob([bytes], { type: mime });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename || 'download';
+                a.click();
+                URL.revokeObjectURL(url);
+              }
+            } catch (err) {
+              console.log('VAULT: ERROR while handling rental downloaded file:', err?.message || err);
+            }
+          }
+        } else if (mycallback) {
+          mycallback(null);
+        }
+      },
+      this.peer.publicKey,
+      true
+    );
+
+    siteMessage('Transferring File...', 3000);
+    return null;
   }
 
   webServer(app, expressapp, express) {

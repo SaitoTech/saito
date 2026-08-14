@@ -248,6 +248,17 @@ module.exports = {
         newTx.serialize_to_web(this.app),
         (res) => {
           console.log('[VAULT CHECKOUT] Store received Vault server response', res);
+          const file_id = res?.file_id || '';
+          if (res && res.status === 'ok') {
+            alert(
+              `Vault checkout: Archive update succeeded${file_id ? ` (${file_id})` : ''}`
+            );
+          } else {
+            const err = res?.err || 'unknown';
+            alert(
+              `Vault checkout: Archive update failed${file_id ? ` (${file_id})` : ''}: ${err}`
+            );
+          }
         },
         vault_mod.peer.publicKey
       );

@@ -2,10 +2,11 @@ const custom = require('./custom');
 const defaultContract = require('./default');
 const rental = require('./rental');
 const dbUpdateSchema = require('./db-update-schema');
+const loan = require('./loan');
 
 // Overlay script-type list (advanced editor). Default is the jade-key path,
 // not an editor starter — keep Custom / Rental in the UI selector only.
-// DB_UPDATE_SCHEMA is Vault-internal — never listed here.
+// LOAN_SCRIPT and DB_UPDATE_LOGIC are Vault-internal — never listed here.
 const CONTRACTS = [custom, rental];
 
 function listContracts() {
@@ -62,6 +63,17 @@ function buildDbUpdateSchema(opts = {}) {
   return dbUpdateSchema.build(opts);
 }
 
+/**
+ * Vault-defined LOAN_SCRIPT template (not an editor contract).
+ */
+function buildLoanScript(opts = {}) {
+  return loan.build(opts);
+}
+
+function instantiateLoanScript(opts = {}) {
+  return loan.instantiate(opts);
+}
+
 module.exports = {
   listContracts,
   getContract,
@@ -69,5 +81,7 @@ module.exports = {
   getDefaultContractId,
   buildDefaultAccessScript,
   buildRentalAccessScript,
-  buildDbUpdateSchema
+  buildDbUpdateSchema,
+  buildLoanScript,
+  instantiateLoanScript
 };

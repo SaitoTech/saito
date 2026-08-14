@@ -4,14 +4,15 @@
  * createCheckOutRentalTransaction — package file_id + reconstructed access script
  * (file_access_script + CHECKPATHHOP hops from tx.msg.data.path) for the Vault server.
  *
- * receiveCheckOutRentalTransaction — authorize via Archive.updateTransaction and set
- * owner to the debug value "hello" without replacing the archived file blob with the
- * checkout transaction (pass the loaded Archive file tx as the first argument).
+ * receiveCheckOutRentalTransaction — instantiate LOAN_SCRIPT from the FIRST
+ * hop with value.delegated == 0, hash it, and submit that hash as Archive
+ * owner. FILE_SCRIPT remains the access_script Archive evaluates.
  *
  * Mixed onto the Vault module instance (same pattern as Store lib/transactions).
  */
 
 const Transaction = require('../../../../lib/saito/transaction').default;
+const loan = require('../contracts/loan');
 
 /**
  * Build and sign a Vault checkout transaction for a received rental NFT transfer.
@@ -157,89 +158,80 @@ async function receiveCheckOutRentalTransaction(tx, mycallback) {
     console.log('[VAULT CHECKOUT] file_id:', file_id || '(missing)');
     console.log('[VAULT CHECKOUT] Authorization script received', access_script || '(missing)');
 
-    //
-    // Investigation-only: CHECKPATHHOP / REQUESTER attribution (no auth).
-    // Archive evaluates with request_tx = outer peer-request `tx`.
-    // REQUESTER = first from-slip public key on that evaluation tx (script.rs).
-    //
-    try {
-      const peer_from0 = tx?.from?.[0]?.publicKey || tx?.from?.[0]?.public_key || null;
-      const checkout_from0 =
-        peer_tx?.from?.[0]?.publicKey || peer_tx?.from?.[0]?.public_key || null;
-      const path = Array.isArray(peer_txmsg?.data?.path) ? peer_txmsg.data.path : [];
+    const peer_from0 = tx?.from?.[0]?.publicKey || tx?.from?.[0]?.public_key || null;
+    const checkout_from0 =
+      peer_tx?.from?.[0]?.publicKey || peer_tx?.from?.[0]?.public_key || null;
+    const path = Array.isArray(peer_txmsg?.data?.path) ? peer_txmsg.data.path : [];
 
-      let selected_hop_to = null;
-      let selected_hop_value = null;
-      let decoded_hops = [];
-      let creator_pk = null;
-      try {
-        const script_obj = JSON.parse(access_script);
-        const find_checkpathhop = (node) => {
-          if (!node || typeof node !== 'object') {
-            return null;
-          }
-          if (String(node.op || '').toUpperCase() === 'CHECKPATHHOP') {
-            return node;
-          }
-          if (Array.isArray(node.args)) {
-            for (let i = 0; i < node.args.length; i++) {
-              const found = find_checkpathhop(node.args[i]);
-              if (found) {
-                return found;
-              }
+    let selected_hop_to = null;
+    let selected_hop_value = null;
+    let decoded_hops = [];
+    let creator_pk = null;
+    try {
+      const script_obj = JSON.parse(access_script);
+      const find_checkpathhop = (node) => {
+        if (!node || typeof node !== 'object') {
+          return null;
+        }
+        if (String(node.op || '').toUpperCase() === 'CHECKPATHHOP') {
+          return node;
+        }
+        if (Array.isArray(node.args)) {
+          for (let i = 0; i < node.args.length; i++) {
+            const found = find_checkpathhop(node.args[i]);
+            if (found) {
+              return found;
             }
           }
-          return null;
-        };
-        const cph = find_checkpathhop(script_obj);
-        creator_pk = cph?.publickey || null;
-        const hops = Array.isArray(cph?.witness?.hops) ? cph.witness.hops : path;
-        let expected_from = creator_pk;
-        for (let i = 0; i < hops.length; i++) {
-          const hop = hops[i] || {};
-          let value_obj = null;
-          try {
-            value_obj = JSON.parse(Buffer.from(String(hop.value || ''), 'base64').toString('utf8'));
-          } catch (err) {
-            value_obj = null;
-          }
-          decoded_hops.push({
-            i,
-            from: expected_from,
-            to: hop.to || null,
-            timestamp: value_obj?.timestamp ?? null,
-            expires_at: value_obj?.expires_at ?? null,
-            delegated: value_obj?.delegated ?? null
-          });
-          expected_from = hop.to || expected_from;
         }
-        // Mirror rental.js: FIRST hop where value.delegated == 0
-        const selected = decoded_hops.find((h) => h.delegated === 0) || null;
-        selected_hop_to = selected?.to || null;
-        selected_hop_value = selected || null;
-      } catch (err) {
-        console.log('[VAULT CHECKOUT] CHECKPATHHOP DEBUG script parse failed', err?.message || err);
+        return null;
+      };
+      const cph = find_checkpathhop(script_obj);
+      creator_pk = cph?.publickey || null;
+      const hops = Array.isArray(cph?.witness?.hops) ? cph.witness.hops : path;
+      let expected_from = creator_pk;
+      for (let i = 0; i < hops.length; i++) {
+        const hop = hops[i] || {};
+        let value_obj = null;
+        try {
+          value_obj = JSON.parse(Buffer.from(String(hop.value || ''), 'base64').toString('utf8'));
+        } catch (err) {
+          value_obj = null;
+        }
+        decoded_hops.push({
+          i,
+          from: expected_from,
+          to: hop.to || null,
+          timestamp: value_obj?.timestamp ?? null,
+          expires_at: value_obj?.expires_at ?? null,
+          delegated: value_obj?.delegated ?? null
+        });
+        expected_from = hop.to || expected_from;
       }
-
-      console.log('[VAULT CHECKOUT] CHECKPATHHOP DEBUG', {
-        peer_request_signature: tx?.signature || null,
-        peer_request_signed: !!(tx?.signature && String(tx.signature).length > 0),
-        peer_request_from0: peer_from0,
-        checkout_tx_signature: peer_tx?.signature || null,
-        checkout_tx_signed: !!(peer_tx?.signature && String(peer_tx.signature).length > 0),
-        checkout_tx_from0: checkout_from0,
-        REQUESTER_as_used_by_evaluateWithTransaction: peer_from0,
-        note: 'script.rs sets REQUESTER from evaluation_tx.from[0]; receive passes outer peer-request tx',
-        creator_publickey_in_script: creator_pk,
-        path_hop_count: decoded_hops.length,
-        decoded_hops,
-        selected_hop_FIRST_where_delegated_eq_0: selected_hop_value,
-        hop_to: selected_hop_to,
-        hop_to_equals_REQUESTER: selected_hop_to != null && peer_from0 != null && selected_hop_to === peer_from0
-      });
+      // Same selector as FILE_SCRIPT CHECKPATHHOP: FIRST where value.delegated == 0
+      const selected = decoded_hops.find((h) => h.delegated === 0) || null;
+      selected_hop_to = selected?.to || null;
+      selected_hop_value = selected || null;
     } catch (err) {
-      console.log('[VAULT CHECKOUT] CHECKPATHHOP DEBUG failed', err?.message || err);
+      console.log('[VAULT CHECKOUT] CHECKPATHHOP hop decode failed', err?.message || err);
     }
+
+    console.log('[VAULT CHECKOUT] CHECKPATHHOP DEBUG', {
+      peer_request_signature: tx?.signature || null,
+      peer_request_signed: !!(tx?.signature && String(tx.signature).length > 0),
+      peer_request_from0: peer_from0,
+      checkout_tx_signature: peer_tx?.signature || null,
+      checkout_tx_signed: !!(peer_tx?.signature && String(peer_tx.signature).length > 0),
+      checkout_tx_from0: checkout_from0,
+      REQUESTER_as_used_by_evaluateWithTransaction: peer_from0,
+      creator_publickey_in_script: creator_pk,
+      path_hop_count: decoded_hops.length,
+      decoded_hops,
+      selected_hop_FIRST_where_delegated_eq_0: selected_hop_value,
+      hop_to: selected_hop_to,
+      hop_to_equals_REQUESTER:
+        selected_hop_to != null && peer_from0 != null && selected_hop_to === peer_from0
+    });
 
     if (!file_id) {
       console.log('[VAULT CHECKOUT] Authorization FAILED — missing file_id');
@@ -258,8 +250,42 @@ async function receiveCheckOutRentalTransaction(tx, mycallback) {
       return 1;
     }
 
+    const expires_at = selected_hop_value?.expires_at;
+    if (!creator_pk || !selected_hop_to || expires_at == null) {
+      console.log('[VAULT CHECKOUT] Authorization FAILED — cannot instantiate LOAN_SCRIPT', {
+        creator_pk,
+        selected_hop_to,
+        expires_at
+      });
+      console.log('[VAULT CHECKOUT] Archive UPDATE NOT PERFORMED');
+      if (mycallback) {
+        mycallback({ status: 'err', err: 'loan_script_instantiation_failed', file_id: file_id });
+      }
+      return 1;
+    }
+    if (!this.app.core?.scripting?.hash) {
+      console.log('[VAULT CHECKOUT] Authorization FAILED — scripting.hash unavailable');
+      console.log('[VAULT CHECKOUT] Archive UPDATE NOT PERFORMED');
+      if (mycallback) {
+        mycallback({ status: 'err', err: 'scripting_unavailable', file_id: file_id });
+      }
+      return 1;
+    }
+
+    const loan_script = loan.instantiate({
+      creator_publickey: creator_pk,
+      renter_publickey: selected_hop_to,
+      expires_at: expires_at
+    });
+    const loan_script_json = JSON.stringify(loan_script);
+    const loan_access_hash = this.app.core.scripting.hash(loan_script_json);
+
+    console.log('[VAULT LOAN SCRIPT]\n' + JSON.stringify(loan_script, null, 2));
+    console.log('[VAULT LOAN SCRIPT HASH]\n' + loan_access_hash);
+    console.log('[VAULT CHECKOUT] Archive owner will be hash of instantiated LOAN_SCRIPT above');
+
     console.log('[VAULT CHECKOUT] Preparing Archive update');
-    console.log('[VAULT CHECKOUT] Requested owner: hello');
+    console.log('[VAULT CHECKOUT] Requested owner:', loan_access_hash);
     console.log('[VAULT CHECKOUT] Identified Archive record (lookup sig/file_id):', file_id);
     console.log(
       '[VAULT CHECKOUT] Skipping Vault-side access-script evaluation; Archive.updateTransaction is the sole authorizer'
@@ -274,7 +300,7 @@ async function receiveCheckOutRentalTransaction(tx, mycallback) {
     //
     console.log('[VAULT CHECKOUT] Archive UPDATE BEGIN');
     console.log('[VAULT CHECKOUT] target transaction/file/access record:', file_id);
-    console.log('[VAULT CHECKOUT] requested owner value: hello');
+    console.log('[VAULT CHECKOUT] requested owner value:', loan_access_hash);
 
     let result;
     try {
@@ -282,7 +308,7 @@ async function receiveCheckOutRentalTransaction(tx, mycallback) {
         null,
         {
           sig: file_id,
-          owner: 'hello',
+          owner: loan_access_hash,
           access_script: access_script,
           request_tx: tx
         },
@@ -292,7 +318,12 @@ async function receiveCheckOutRentalTransaction(tx, mycallback) {
       console.log('[VAULT CHECKOUT] Archive UPDATE FAILED');
       console.log('[VAULT CHECKOUT] error:', err?.message || err);
       if (mycallback) {
-        mycallback({ status: 'err', err: String(err?.message || err) });
+        mycallback({
+          status: 'err',
+          err: String(err?.message || err),
+          file_id: file_id,
+          result: 0
+        });
       }
       return 1;
     }
@@ -301,7 +332,12 @@ async function receiveCheckOutRentalTransaction(tx, mycallback) {
       console.log('[VAULT CHECKOUT] Authorization FAILED (Archive denied)');
       console.log('[VAULT CHECKOUT] Archive UPDATE NOT PERFORMED');
       if (mycallback) {
-        mycallback({ status: 'err', err: 'archive_update_denied' });
+        mycallback({
+          status: 'err',
+          err: 'archive_update_denied',
+          file_id: file_id,
+          result: 0
+        });
       }
       return 1;
     }

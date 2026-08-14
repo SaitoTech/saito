@@ -425,10 +425,9 @@ impl Script {
     }
 
     //
-    // the "script hash" is the hash of the canonical script, which is the JSON
-    // string representation of the script without the user-proviced witness
-    // data. this function takes the script and returns the hash value of the
-    // script.
+    // the "script hash" is HASH(canonical_json(script)) after every "witness"
+    // key has been removed. Nested args and opcode fields are part of identity.
+    // Witness / routing hops are not.
     //
     pub fn hash(&self) -> String {
         let mut data = self.json.clone();
@@ -451,97 +450,7 @@ impl Script {
             }
         }
 
-        //
-        // generate an objective string
-        //
-        let mut canonical = String::new();
-        let mut stack: Vec<(&Value, u8, usize, Option<Vec<String>>, bool)> =
-            vec![(&data, 0, 0, None, false)];
-        while !stack.is_empty() {
-            let top = stack.len() - 1;
-            let state = stack[top].1;
-            if state == 0 {
-                match stack[top].0 {
-                    Value::Null => {
-                        canonical.push_str("null");
-                        stack.pop();
-                    }
-                    Value::Bool(b) => {
-                        canonical.push_str(if *b { "true" } else { "false" });
-                        stack.pop();
-                    }
-                    Value::Number(n) => {
-                        canonical
-                            .push_str(&serde_json::to_string(&Value::Number(n.clone())).unwrap());
-                        stack.pop();
-                    }
-                    Value::String(s) => {
-                        canonical.push_str(&serde_json::to_string(s).unwrap());
-                        stack.pop();
-                    }
-                    Value::Array(_) => {
-                        stack[top].1 = 1;
-                        canonical.push('[');
-                    }
-                    Value::Object(map) => {
-                        let mut sorted_keys: Vec<String> = map.keys().cloned().collect();
-                        sorted_keys.sort();
-                        stack[top].1 = 1;
-                        stack[top].3 = Some(sorted_keys);
-                        canonical.push('{');
-                    }
-                    _ => {
-                        stack.pop();
-                    }
-                }
-            } else if stack[top].4 {
-                let idx = stack[top].2;
-                let arr_len = match stack[top].0 {
-                    Value::Array(a) => a.len(),
-                    _ => 0,
-                };
-                if idx >= arr_len {
-                    canonical.push(']');
-                    stack.pop();
-                } else if let Value::Array(a) = stack[top].0 {
-                    if idx > 0 {
-                        canonical.push(',');
-                    }
-                    let child = &a[idx];
-                    stack[top].2 = idx + 1;
-                    stack.push((child, 0, 0, None, false));
-                } else {
-                    stack.pop();
-                }
-            } else {
-                let idx = stack[top].2;
-                let key_list = stack[top].3.clone();
-                if let (Value::Object(map), Some(keys)) = (stack[top].0, key_list) {
-                    if idx >= keys.len() {
-                        canonical.push('}');
-                        stack.pop();
-                    } else {
-                        if idx > 0 {
-                            canonical.push(',');
-                        }
-                        let key = keys[idx].clone();
-                        canonical.push_str(&serde_json::to_string(&key).unwrap());
-                        canonical.push(':');
-                        stack[top].2 = idx + 1;
-                        if let Some(child) = map.get(&key) {
-                            stack.push((child, 0, 0, None, false));
-                        }
-                    }
-                } else {
-                    stack.pop();
-                }
-            }
-        }
-
-        //
-        // return hash as hex
-        //
-        crypto::hash(canonical.as_bytes()).to_hex()
+        crypto::hash(canonical_json(&data).as_bytes()).to_hex()
     }
 
     pub fn address(&self) -> SaitoPublicKey {
@@ -626,6 +535,237 @@ mod tests {
     use serde_json::{json, Value};
 
     use super::Script;
+
+    fn loan_script(creator: &str, renter: &str, expires_at: u64) -> Value {
+        json!({
+            "op": "OR",
+            "args": [
+                {
+                    "op": "AND",
+                    "args": [
+                        { "op": "CHECKSENDER", "publickey": renter },
+                        { "op": "CHECKFIELD", "field": "NOW", "operator": "<", "value": expires_at }
+                    ]
+                },
+                {
+                    "op": "AND",
+                    "args": [
+                        { "op": "CHECKSENDER", "publickey": creator },
+                        { "op": "CHECKFIELD", "field": "NOW", "operator": ">", "value": expires_at }
+                    ]
+                }
+            ]
+        })
+    }
+
+    fn file_script(checkpathhop: Value) -> Value {
+        json!({
+            "op": "OR",
+            "args": [
+                { "op": "CHECKSENDER", "publickey": "creator-pk" },
+                {
+                    "op": "AND",
+                    "args": [
+                        checkpathhop,
+                        { "op": "CHECKFIELD", "field": "db.type", "operator": "==", "value": "UPDATE" }
+                    ]
+                }
+            ]
+        })
+    }
+
+    fn checkpathhop_config(
+        publickey: &str,
+        selector: &str,
+        binding_hash: &str,
+        delegated: i64,
+        witness: Option<Value>,
+    ) -> Value {
+        let mut node = json!({
+            "op": "CHECKPATHHOP",
+            "selector": selector,
+            "where": [{ "field": "value.delegated", "operator": "==", "value": delegated }],
+            "publickey": publickey,
+            "hash": binding_hash
+        });
+        if let Some(w) = witness {
+            node["witness"] = w;
+        }
+        node
+    }
+
+    #[test]
+    fn hash_nested_checksig_publickey_changes_digest() {
+        let alice = json!({
+            "op": "AND",
+            "args": [{
+                "op": "CHECKSIG",
+                "publickey": "Alice",
+                "msg": "hello"
+            }]
+        });
+        let bob = json!({
+            "op": "AND",
+            "args": [{
+                "op": "CHECKSIG",
+                "publickey": "Bob",
+                "msg": "hello"
+            }]
+        });
+        assert_ne!(
+            Script { json: alice }.hash(),
+            Script { json: bob }.hash()
+        );
+    }
+
+    #[test]
+    fn hash_nested_checkhash_value_changes_digest() {
+        let a = json!({
+            "op": "AND",
+            "args": [
+                {
+                    "op": "AND",
+                    "args": [
+                        { "op": "CHECKSIG", "publickey": "pk", "msg": "text" },
+                        { "op": "CHECKHASH", "hash": "hash-a" }
+                    ]
+                },
+                { "op": "CHECKHASH", "hash": "hash-outer" }
+            ]
+        });
+        let mut b = a.clone();
+        b["args"][0]["args"][1]["hash"] = json!("hash-b");
+        assert_ne!(Script { json: a }.hash(), Script { json: b }.hash());
+    }
+
+    #[test]
+    fn hash_loan_script_renter_changes_digest() {
+        assert_ne!(
+            Script {
+                json: loan_script("creator", "renter-a", 1000)
+            }
+            .hash(),
+            Script {
+                json: loan_script("creator", "renter-b", 1000)
+            }
+            .hash()
+        );
+    }
+
+    #[test]
+    fn hash_loan_script_expires_at_changes_digest() {
+        assert_ne!(
+            Script {
+                json: loan_script("creator", "renter", 1000)
+            }
+            .hash(),
+            Script {
+                json: loan_script("creator", "renter", 2000)
+            }
+            .hash()
+        );
+    }
+
+    #[test]
+    fn hash_file_script_ignores_checkpathhop_witness() {
+        let locking = checkpathhop_config("creator-pk", "FIRST", "", 0, None);
+        let with_witness = checkpathhop_config(
+            "creator-pk",
+            "FIRST",
+            "",
+            0,
+            Some(json!({
+                "hops": [{
+                    "to": "renter-pk",
+                    "sig": "sig-bytes",
+                    "value": "eyJleHBpcmVzX2F0IjoxLCJkZWxlZ2F0ZWQiOjB9"
+                }]
+            })),
+        );
+        let other_witness = checkpathhop_config(
+            "creator-pk",
+            "FIRST",
+            "",
+            0,
+            Some(json!({
+                "hops": [{
+                    "to": "other-renter",
+                    "sig": "different-sig",
+                    "value": "eyJleHBpcmVzX2F0IjoyLCJkZWxlZ2F0ZWQiOjF9"
+                }]
+            })),
+        );
+        let h_none = Script {
+            json: file_script(locking),
+        }
+        .hash();
+        let h_wit = Script {
+            json: file_script(with_witness),
+        }
+        .hash();
+        let h_other = Script {
+            json: file_script(other_witness),
+        }
+        .hash();
+        assert_eq!(h_none, h_wit);
+        assert_eq!(h_wit, h_other);
+    }
+
+    #[test]
+    fn hash_file_script_includes_checkpathhop_configuration() {
+        let base = checkpathhop_config("creator-pk", "FIRST", "", 0, None);
+        let pk = checkpathhop_config("other-creator", "FIRST", "", 0, None);
+        let selector = checkpathhop_config("creator-pk", "LAST", "", 0, None);
+        let binding = checkpathhop_config("creator-pk", "FIRST", "binding", 0, None);
+        let where_v = checkpathhop_config("creator-pk", "FIRST", "", 1, None);
+        let h_base = Script {
+            json: file_script(base),
+        }
+        .hash();
+        assert_ne!(
+            h_base,
+            Script {
+                json: file_script(pk)
+            }
+            .hash()
+        );
+        assert_ne!(
+            h_base,
+            Script {
+                json: file_script(selector)
+            }
+            .hash()
+        );
+        assert_ne!(
+            h_base,
+            Script {
+                json: file_script(binding)
+            }
+            .hash()
+        );
+        assert_ne!(
+            h_base,
+            Script {
+                json: file_script(where_v)
+            }
+            .hash()
+        );
+    }
+
+    #[test]
+    fn hash_does_not_mutate_original_witness() {
+        let json = json!({
+            "op": "CHECKPATHHOP",
+            "publickey": "creator-pk",
+            "selector": "FIRST",
+            "hash": "",
+            "witness": { "hops": [{ "to": "renter" }] }
+        });
+        let script = Script { json: json.clone() };
+        let _ = script.hash();
+        assert_eq!(script.json, json);
+        assert_eq!(script.json["witness"]["hops"][0]["to"], "renter");
+    }
 
     #[test]
     fn validate_checkhash_fixture_returns_success() {

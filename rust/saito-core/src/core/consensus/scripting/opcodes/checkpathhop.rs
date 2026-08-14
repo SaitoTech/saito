@@ -1213,4 +1213,280 @@ mod tests {
             0
         );
     }
+
+    /// Vault-defined LOAN_SCRIPT template (matches node/mods/vault/lib/contracts/loan.js).
+    fn loan_script_template(creator: &str) -> Value {
+        json!({
+            "op": "OR",
+            "args": [
+                {
+                    "op": "AND",
+                    "args": [
+                        { "op": "CHECKSENDER", "publickey": "LOAN_RENTER_PLACEHOLDER" },
+                        { "op": "CHECKFIELD", "field": "NOW", "operator": "<", "value": 0 }
+                    ]
+                },
+                {
+                    "op": "AND",
+                    "args": [
+                        { "op": "CHECKSENDER", "publickey": creator },
+                        { "op": "CHECKFIELD", "field": "NOW", "operator": ">", "value": 0 }
+                    ]
+                }
+            ]
+        })
+    }
+
+    fn instantiate_loan_script(creator: &str, renter: &str, expires_at: u64) -> Value {
+        let mut loan = loan_script_template(creator);
+        *loan
+            .pointer_mut("/args/0/args/0/publickey")
+            .expect("loan renter publickey") = json!(renter);
+        *loan
+            .pointer_mut("/args/0/args/1/value")
+            .expect("loan renter expiry") = json!(expires_at);
+        *loan
+            .pointer_mut("/args/1/args/1/value")
+            .expect("loan creator expiry") = json!(expires_at);
+        loan
+    }
+
+    /// DB_UPDATE_LOGIC matching node/mods/vault/lib/contracts/db-update-schema.js
+    fn db_update_logic(creator: &str) -> Value {
+        json!({
+            "op": "AND",
+            "args": [
+                {
+                    "op": "SETFIELD",
+                    "reference": "context.loan_script",
+                    "value": loan_script_template(creator)
+                },
+                {
+                    "op": "SETFIELD",
+                    "reference": "context.loan_script.args[0].args[0].publickey",
+                    "value": "__opcodes.checkpathhop.hop.to"
+                },
+                {
+                    "op": "SETFIELD",
+                    "reference": "context.loan_script.args[0].args[1].value",
+                    "value": "__opcodes.checkpathhop.hop.value.expires_at"
+                },
+                {
+                    "op": "SETFIELD",
+                    "reference": "context.loan_script.args[1].args[1].value",
+                    "value": "__opcodes.checkpathhop.hop.value.expires_at"
+                },
+                {
+                    "op": "SCRIPTHASH",
+                    "source": "context.loan_script",
+                    "into": "hash"
+                },
+                {
+                    "op": "CHECKFIELD",
+                    "field": "db.type",
+                    "operator": "==",
+                    "value": "UPDATE"
+                },
+                {
+                    "op": "CHECKKEY",
+                    "field": "db",
+                    "operator": "==",
+                    "key": "owner"
+                },
+                {
+                    "op": "CHECKKEY",
+                    "field": "db",
+                    "operator": "IN",
+                    "key": ["type", "owner", "updated_at"]
+                },
+                {
+                    "op": "CHECKFIELD",
+                    "field": "db.owner",
+                    "operator": "==",
+                    "value": "__opcodes.scripthash.hash"
+                }
+            ]
+        })
+    }
+
+    fn vault_file_tx_loan_update(creator: &str) -> Value {
+        json!({
+            "op": "OR",
+            "args": [
+                { "op": "CHECKSENDER", "publickey": creator },
+                {
+                    "op": "AND",
+                    "args": [
+                        {
+                            "op": "CHECKPATHHOP",
+                            "selector": "FIRST",
+                            "where": [{
+                                "field": "value.delegated",
+                                "operator": "==",
+                                "value": 0
+                            }],
+                            "publickey": creator,
+                            "hash": "",
+                            "witness": { "hops": [] }
+                        },
+                        db_update_logic(creator)
+                    ]
+                }
+            ]
+        })
+    }
+
+    fn loan_eval_fixture(expires_offset_ms: i64) -> (
+        crate::core::defs::SaitoPublicKey,
+        crate::core::defs::SaitoPublicKey,
+        String,
+        u64,
+        Value,
+        crate::core::consensus::transaction::Transaction,
+    ) {
+        let (creator_pk, creator_sk) = generate_keys();
+        let (renter_pk, _) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+        let expires_at = if expires_offset_ms >= 0 {
+            now + expires_offset_ms as u64
+        } else {
+            now.saturating_sub((-expires_offset_ms) as u64).max(1)
+        };
+
+        let hop = make_signed_hop(
+            &renter_pk,
+            &json!({
+                "timestamp": now,
+                "file_id": "file-abc",
+                "expires_at": expires_at,
+                "delegated": 0
+            }),
+            &creator_sk,
+            "",
+        );
+        let mut tree = vault_file_tx_loan_update(&creator);
+        attach_path_hop(&mut tree, hop);
+        (
+            creator_pk,
+            renter_pk,
+            creator,
+            expires_at,
+            tree,
+            requester_tx(&renter_pk),
+        )
+    }
+
+    #[test]
+    fn vault_loan_update_db_type_not_update_fails() {
+        use crate::core::consensus::scripting::script::Script;
+        let (_c, renter_pk, creator, expires_at, tree, tx) = loan_eval_fixture(60_000);
+        let expected = Script {
+            json: instantiate_loan_script(&creator, &renter_pk.to_base58(), expires_at),
+        }
+        .hash();
+        let ctx = json!({ "db": { "type": "DELETE", "owner": expected } });
+        let mut script = Script::new();
+        script.json = tree;
+        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 0);
+    }
+
+    #[test]
+    fn vault_loan_update_wrong_owner_hash_fails() {
+        use crate::core::consensus::scripting::script::Script;
+        let (_c, _r, _creator, _exp, tree, tx) = loan_eval_fixture(60_000);
+        let ctx = json!({
+            "db": { "type": "UPDATE", "owner": "hello", "updated_at": 1 }
+        });
+        let mut script = Script::new();
+        script.json = tree;
+        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 0);
+    }
+
+    #[test]
+    fn vault_loan_update_correct_owner_hash_passes() {
+        use crate::core::consensus::scripting::script::Script;
+        let (_c, renter_pk, creator, expires_at, tree, tx) = loan_eval_fixture(60_000);
+        let expected = Script {
+            json: instantiate_loan_script(&creator, &renter_pk.to_base58(), expires_at),
+        }
+        .hash();
+        let ctx = json!({
+            "db": { "type": "UPDATE", "owner": expected, "updated_at": 1 }
+        });
+        let mut script = Script::new();
+        script.json = tree;
+        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 1);
+    }
+
+    #[test]
+    fn vault_loan_update_extra_db_field_fails() {
+        use crate::core::consensus::scripting::script::Script;
+        let (_c, renter_pk, creator, expires_at, tree, tx) = loan_eval_fixture(60_000);
+        let expected = Script {
+            json: instantiate_loan_script(&creator, &renter_pk.to_base58(), expires_at),
+        }
+        .hash();
+        let ctx = json!({
+            "db": { "type": "UPDATE", "owner": expected, "updated_at": 1, "field5": "extra" }
+        });
+        let mut script = Script::new();
+        script.json = tree;
+        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 0);
+    }
+
+    #[test]
+    fn vault_loan_update_hash_follows_hop_to_not_caller_script() {
+        use crate::core::consensus::scripting::script::Script;
+        let (_c, renter_pk, creator, expires_at, tree, tx) = loan_eval_fixture(60_000);
+        let wrong_tree = instantiate_loan_script(&creator, "NOT_THE_RENTER", expires_at);
+        let right_tree = instantiate_loan_script(&creator, &renter_pk.to_base58(), expires_at);
+        assert_ne!(
+            serde_json::to_string(&wrong_tree).unwrap(),
+            serde_json::to_string(&right_tree).unwrap(),
+            "instantiated loan JSON must differ for different renters"
+        );
+        let wrong = Script { json: wrong_tree }.hash();
+        let right = Script { json: right_tree }.hash();
+        assert_ne!(wrong, right);
+        let ctx_wrong = json!({ "db": { "type": "UPDATE", "owner": wrong } });
+        let ctx_injected = json!({
+            "db": { "type": "UPDATE", "owner": right },
+            "loan_script": instantiate_loan_script(&creator, "NOT_THE_RENTER", expires_at)
+        });
+        let mut script = Script::new();
+        script.json = tree.clone();
+        assert_eq!(
+            script.validate_with_context(Some(&tx), None, None, None, Some(&ctx_wrong)),
+            0
+        );
+        // Caller-supplied context.loan_script is overwritten by SETFIELD of the Vault template.
+        let mut script2 = Script::new();
+        script2.json = tree;
+        assert_eq!(
+            script2.validate_with_context(Some(&tx), None, None, None, Some(&ctx_injected)),
+            1
+        );
+    }
+
+    #[test]
+    fn vault_loan_update_changing_expires_at_changes_hash() {
+        use crate::core::consensus::scripting::script::Script;
+        let (_c, renter_pk, creator, expires_at, tree, tx) = loan_eval_fixture(60_000);
+        let other_hash = Script {
+            json: instantiate_loan_script(
+                &creator,
+                &renter_pk.to_base58(),
+                expires_at.saturating_add(1_000_000),
+            ),
+        }
+        .hash();
+        let ctx = json!({ "db": { "type": "UPDATE", "owner": other_hash } });
+        let mut script = Script::new();
+        script.json = tree;
+        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 0);
+    }
 }

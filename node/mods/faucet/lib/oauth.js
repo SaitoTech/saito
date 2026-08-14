@@ -25,6 +25,7 @@ class FaucetOAuth {
     this.twitter = {
       client_id: 'YTNhRklWa1hvbmh6Q2FkX0k0SWo6MTpjaQ',
       authorize_url: 'https://twitter.com/i/oauth2/authorize',
+      callback_url: 'https://staging.saito.io/faucet/oauth/twitter',
       scope: 'users.read tweet.read'
     };
   }
@@ -86,7 +87,7 @@ class FaucetOAuth {
     if (provider === 'twitter') {
       const tw = this.twitter || {};
       const clientId = String(tw.client_id || '').trim();
-      const redirectUri = String(credentials.redirect_uri || '').trim();
+      const redirectUri = String(tw.callback_url || '').trim();
       const code_verifier = String(credentials.code_verifier || '').trim();
       const clientSecret = this.secret_twitter;
 
@@ -258,7 +259,7 @@ class FaucetOAuth {
       const code = String(req.query?.code || '').trim();
       const state = String(req.query?.state || '').trim();
       const oauthError = String(req.query?.error || '').trim();
-      const redirect_uri = `${req.protocol}://${req.headers.host}/${slug}/oauth/twitter`;
+      const redirect_uri = String(oauth_self.twitter?.callback_url || '').trim();
       const cookie_path = `/${slug}/oauth/twitter`;
 
       if (code || oauthError) {
@@ -382,7 +383,7 @@ class FaucetOAuth {
       const authorizeUrl = String(tw.authorize_url || '').trim();
       const scope = String(tw.scope || 'users.read tweet.read').trim();
 
-      if (!clientId || !authorizeUrl) {
+      if (!clientId || !authorizeUrl || !redirect_uri) {
         return sendPopup(res, 400, {
           ok: false,
           title: 'X OAuth not configured',

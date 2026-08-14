@@ -5,11 +5,12 @@
  *   OR (
  *     CHECKPATHHOP
  *     AND
- *     DB_UPDATE_SCHEMA   ← Vault-hardcoded; sibling of CHECKPATHHOP
+ *     DB_UPDATE_LOGIC   ← Vault-hardcoded; sibling of CHECKPATHHOP
  *   )
  *
  * CHECKPATHHOP only validates/selects the critical hop.
- * DB_UPDATE_SCHEMA (lib/contracts/db-update-schema.js) constrains Archive updates.
+ * DB_UPDATE_LOGIC instantiates LOAN_SCRIPT from that hop and requires
+ * context.db.owner == hash(instantiated LOAN_SCRIPT).
  *
  * Binding hash is empty for this iteration. FILE_ID is not embedded in the
  * locking script: it is unknown at script-construction time (it is the

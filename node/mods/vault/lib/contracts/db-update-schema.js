@@ -1,64 +1,86 @@
 /**
- * Vault-controlled DB_UPDATE_SCHEMA — constitutional Archive mutation rules.
+ * DB_UPDATE_LOGIC — Vault-hardcoded sibling of CHECKPATHHOP inside FILE_SCRIPT.
  *
- * NOT a user/renter-editable contract. Embedded into the FILE_TX access script
- * by rental.build() as the sibling of CHECKPATHHOP under AND.
+ * Verifies that a proposed Archive UPDATE is exactly the transition to the
+ * instantiated LOAN_SCRIPT:
  *
- *   OR(
- *     AND( RENTER, NOW < expires_at, CHECKKEY db != owner ),
- *     AND( CREATOR, NOW > expires_at )
- *   )
+ *   SETFIELD loan template (Vault-defined, embedded in FILE_SCRIPT)
+ *   SETFIELD renter  ← hop.to
+ *   SETFIELD expiry  ← hop.value.expires_at  (both NOW comparisons)
+ *   SCRIPTHASH instantiated loan_script
+ *   AND db.type == UPDATE
+ *   AND db contains owner
+ *   AND db keys ⊆ { type, owner, updated_at }
+ *   AND db.owner == that hash
  *
- * RENTER  = hop.to == REQUESTER (from CHECKPATHHOP)
- * CREATOR = CHECKSENDER(creator_publickey)
- * expires_at = __opcodes.checkpathhop.hop.value.expires_at
+ * `updated_at` is allowlisted because Archive.updateTransaction always injects it
+ * into context.db; it is not a renter-chosen extra field.
+ *
+ * The LOAN_SCRIPT template is a JSON literal inside this AST (hence inside the
+ * FILE_TX access_hash). A renter cannot substitute a different template without
+ * breaking hash(FILE_SCRIPT) === archives.owner.
  */
+
+const loan = require('./loan');
 
 /**
  * @param {{ creator_publickey?: string }} opts
- * @returns {object} DB_UPDATE_SCHEMA locking-script subtree
+ * @returns {object} DB_UPDATE_LOGIC locking-script subtree
  */
 function build({ creator_publickey = 'CREATOR_PUBLICKEY_PLACEHOLDER' } = {}) {
+  const loan_template = loan.build({ creator_publickey });
+
   return {
-    op: 'OR',
+    op: 'AND',
     args: [
       {
-        op: 'AND',
-        args: [
-          {
-            op: 'CHECKFIELD',
-            field: '__opcodes.checkpathhop.hop.to',
-            operator: '==',
-            value: 'REQUESTER'
-          },
-          {
-            op: 'CHECKFIELD',
-            field: 'NOW',
-            operator: '<',
-            value: '__opcodes.checkpathhop.hop.value.expires_at'
-          },
-          {
-            op: 'CHECKKEY',
-            field: 'db',
-            operator: '!=',
-            key: 'owner'
-          }
-        ]
+        op: 'SETFIELD',
+        reference: 'context.loan_script',
+        value: loan_template
       },
       {
-        op: 'AND',
-        args: [
-          {
-            op: 'CHECKSENDER',
-            publickey: creator_publickey
-          },
-          {
-            op: 'CHECKFIELD',
-            field: 'NOW',
-            operator: '>',
-            value: '__opcodes.checkpathhop.hop.value.expires_at'
-          }
-        ]
+        op: 'SETFIELD',
+        reference: 'context.loan_script.args[0].args[0].publickey',
+        value: '__opcodes.checkpathhop.hop.to'
+      },
+      {
+        op: 'SETFIELD',
+        reference: 'context.loan_script.args[0].args[1].value',
+        value: '__opcodes.checkpathhop.hop.value.expires_at'
+      },
+      {
+        op: 'SETFIELD',
+        reference: 'context.loan_script.args[1].args[1].value',
+        value: '__opcodes.checkpathhop.hop.value.expires_at'
+      },
+      {
+        op: 'SCRIPTHASH',
+        source: 'context.loan_script',
+        into: 'hash'
+      },
+      {
+        op: 'CHECKFIELD',
+        field: 'db.type',
+        operator: '==',
+        value: 'UPDATE'
+      },
+      {
+        op: 'CHECKKEY',
+        field: 'db',
+        operator: '==',
+        key: 'owner'
+      },
+      {
+        op: 'CHECKKEY',
+        field: 'db',
+        operator: 'IN',
+        key: ['type', 'owner', 'updated_at']
+      },
+      {
+        op: 'CHECKFIELD',
+        field: 'db.owner',
+        operator: '==',
+        value: '__opcodes.scripthash.hash'
       }
     ]
   };
@@ -66,8 +88,8 @@ function build({ creator_publickey = 'CREATOR_PUBLICKEY_PLACEHOLDER' } = {}) {
 
 module.exports = {
   id: 'db-update-schema',
-  label: 'DB Update Schema',
+  label: 'DB Update Logic',
   description:
-    'Vault-hardcoded constitutional rules for Archive updates under a rental path.',
+    'Vault-hardcoded rule: loan UPDATE may set owner only to hash(instantiated LOAN_SCRIPT).',
   build
 };

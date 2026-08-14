@@ -22,6 +22,7 @@ class SaitoNFT {
     this.amount = BigInt(0); // How many nfts of this id of this slip
     this.deposit = BigInt(0); // nolans
     this.nft_type = '';
+    this.expires_at = data?.expires_at != null ? data.expires_at : null;
 
     //
     // and/or general meta data
@@ -251,6 +252,8 @@ class SaitoNFT {
 
     this.data = this.txmsg?.data ?? {};
 
+    this.applyExpiresAtFromData(this.data);
+
     if (typeof this.data.image !== 'undefined') {
       this.image = this.data.image;
       has_image = true;
@@ -298,6 +301,46 @@ class SaitoNFT {
         typeof this.data === 'object' ? JSON.stringify(this.data, null, 2) : String(this.data);
       processed = true;
     }
+  }
+
+  applyExpiresAtFromData(data) {
+    if (!data || typeof data !== 'object') {
+      return;
+    }
+    if (data.expires_at != null && data.expires_at !== '') {
+      this.expires_at = data.expires_at;
+      return;
+    }
+    const path = Array.isArray(data.path) ? data.path : [];
+    for (let i = 0; i < path.length; i++) {
+      const hop = path[i] || {};
+      let value_obj = null;
+      try {
+        value_obj = JSON.parse(Buffer.from(String(hop.value || ''), 'base64').toString('utf8'));
+      } catch (err) {
+        value_obj = null;
+      }
+      if (value_obj && value_obj.delegated === 0 && value_obj.expires_at != null) {
+        this.expires_at = value_obj.expires_at;
+        return;
+      }
+    }
+  }
+
+  remainingExpiresLabel() {
+    if (this.expires_at == null || this.expires_at === '') {
+      return null;
+    }
+    let ms = Number(this.expires_at) - Date.now();
+    if (!Number.isFinite(ms) || ms < 0) {
+      ms = 0;
+    }
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
   extractSlipObject(slip) {
