@@ -38,7 +38,11 @@ class Faucet extends ModTemplate {
     // until a successful `faucet available` reply from a discovered Faucet peer.
     this.server_faucet_available = false;
     this.server_faucet_amount = 0;
+    this.server_faucet_free_use = false;
     this.faucet_peer_public_key = '';
+
+    // Server: administrator toggle from /faucet/config (in-memory, like OAuth secrets).
+    this.free_use = false;
 
     this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
@@ -111,6 +115,7 @@ class Faucet extends ModTemplate {
           this.server_faucet_amount = this.server_faucet_available
             ? Number(res.amount) || 0
             : 0;
+          this.server_faucet_free_use = res.free_use === true;
 
           try {
             const buysaito = this.app.modules.returnModule('BuySaito');
@@ -139,26 +144,38 @@ class Faucet extends ModTemplate {
         return null;
       }
 
+      const free_use = this.server_faucet_free_use === true;
+
       return {
         id: 'faucet',
         title: 'Request SAITO tokens from the server faucet...',
-        description:
-          'You may request a small amount to try the network. Registration with a Github or Twitter account is needed to ensure our limited supply goes to real users and developers.',
+        description: free_use
+          ? 'You may request a small amount to try the network. No registration is required.'
+          : 'You may request a small amount to try the network. Registration with a Github or Twitter account is needed to ensure our limited supply goes to real users and developers.',
         icon: this.icon_fa,
         rank: 1,
         option_class: 'buysaito-option-faucet',
         inline_stage: 'faucet-auth',
         available: true,
         amount: this.server_faucet_amount,
-        providers: [
-          { id: 'twitter', name: 'X', icon: 'fa-brands fa-x-twitter' },
-          { id: 'github', name: 'GitHub', icon: 'fa-brands fa-github' }
-        ],
+        auth_message: free_use
+          ? 'The SAITO Faucet exists to help new users try the advanced features of the network. No registration is required.'
+          : '',
+        providers: free_use
+          ? [{ id: 'free_use', name: 'No Registration Required', label: 'No Registration Required' }]
+          : [
+              { id: 'twitter', name: 'X', icon: 'fa-brands fa-x-twitter' },
+              { id: 'github', name: 'GitHub', icon: 'fa-brands fa-github' }
+            ],
         beginProviderAuth: (providerId) => {
           const id = String(providerId || '')
             .trim()
             .toLowerCase();
           if (!id) {
+            return;
+          }
+          if (id === 'free_use') {
+            this.requestFreeUse();
             return;
           }
           this.auth_overlay.authenticate({ id });
@@ -167,6 +184,26 @@ class Faucet extends ModTemplate {
     }
 
     return super.respondTo(type, obj);
+  }
+
+  /**
+   * Browser: ask the Faucet peer to register this wallet without OAuth.
+   * Server replies on the existing faucet-oauth-result path.
+   */
+  async requestFreeUse() {
+    if (!this.app.BROWSER || this.server_faucet_free_use !== true) {
+      return;
+    }
+    const dest = String(this.faucet_peer_public_key || '').trim();
+    if (!dest) {
+      console.error('[Faucet] requestFreeUse: no faucet peer');
+      return;
+    }
+    try {
+      await this.app.network.sendRequestAsTransaction('faucet free use', {}, null, dest);
+    } catch (err) {
+      console.error('[Faucet] requestFreeUse failed', err);
+    }
   }
 
   /**
@@ -272,9 +309,9 @@ class Faucet extends ModTemplate {
       status: 200,
       popup: {
         ok: true,
-        title: 'GitHub verified',
+        title: 'Account verified',
         message:
-          'Your GitHub account was verified. You can close this window — Get SAITO will continue automatically.'
+          'Your account was verified. You can close this window — Get SAITO will continue automatically.'
       }
     };
   }
@@ -427,13 +464,42 @@ class Faucet extends ModTemplate {
         return 0;
       }
 
-      const available = !!(this.oauth.secret_github || this.oauth.secret_twitter);
+      const available = !!(
+        this.free_use ||
+        this.oauth.secret_github ||
+        this.oauth.secret_twitter
+      );
       const amount = available
         ? Number(this.app.wallet.convertNolanToSaito(this.amount))
         : 0;
       if (typeof mycallback === 'function') {
-        mycallback({ available, amount });
+        mycallback({ available, amount, free_use: this.free_use === true });
       }
+      return 1;
+    }
+
+    if (txmsg?.request === 'faucet free use') {
+      if (this.app.BROWSER) {
+        return 0;
+      }
+      if (this.free_use !== true) {
+        console.log('[Faucet] faucet free use refused — free_use is off');
+        return 1;
+      }
+      const publickey = String(tx.from?.[0]?.publicKey || '').trim();
+      if (!publickey) {
+        console.log('[Faucet] faucet free use refused — no sender publickey');
+        return 1;
+      }
+      console.log('[Faucet] faucet free use publickey=' + publickey);
+      await this.acceptAuthenticatedIdentity({
+        provider: 'free_use',
+        provider_user_id: publickey,
+        provider_username: '',
+        provider_display_name: '',
+        provider_account_created_at: 0,
+        publickey
+      });
       return 1;
     }
 
@@ -509,6 +575,7 @@ class Faucet extends ModTemplate {
         queue: faucet_self.wallet.queue,
         githubConfigured: !!faucet_self.oauth.secret_github,
         twitterConfigured: !!faucet_self.oauth.secret_twitter,
+        free_use: faucet_self.free_use === true,
         ...opts
       });
 
@@ -547,12 +614,15 @@ class Faucet extends ModTemplate {
       if (twitterSecret) {
         faucet_self.oauth.secret_twitter = twitterSecret;
       }
+      faucet_self.free_use = body.free_use === '1' || body.free_use === 'on';
 
       console.log(
         'FAUCET CONFIG: OAuth updated — GitHub:',
         faucet_self.oauth.secret_github ? 'configured' : 'not set',
         '| X:',
-        faucet_self.oauth.secret_twitter ? 'configured' : 'not set'
+        faucet_self.oauth.secret_twitter ? 'configured' : 'not set',
+        '| Free Use:',
+        faucet_self.free_use ? 'on' : 'off'
       );
 
       await faucet_self.wallet.getSnapshotBalance();

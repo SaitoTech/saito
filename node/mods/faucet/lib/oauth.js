@@ -1,5 +1,8 @@
 const OAuthResultTemplate = require('./ui/oauth-result.template');
 const GithubOAuth = require('./oauth/github');
+const TwitterOAuth = require('./oauth/twitter');
+
+const TWITTER_PKCE_COOKIE = 'faucet_oauth_twitter_cv';
 
 class FaucetOAuth {
   constructor(app, mod) {
@@ -18,6 +21,12 @@ class FaucetOAuth {
       callback_url: 'https://staging.saito.io/faucet/oauth',
       scope: 'read:user'
     };
+
+    this.twitter = {
+      client_id: 'YTNhRklWa1hvbmh6Q2FkX0k0SWo6MTpjaQ',
+      authorize_url: 'https://twitter.com/i/oauth2/authorize',
+      scope: 'users.read tweet.read'
+    };
   }
 
   /**
@@ -30,15 +39,6 @@ class FaucetOAuth {
       .toLowerCase();
     const code = String(credentials.code || '').trim();
     const state = String(credentials.state || '').trim();
-
-    if (provider !== 'github') {
-      const err = new Error('That authentication provider is not available yet.');
-      err.code = 'unsupported_provider';
-      err.httpStatus = 400;
-      err.title = 'GitHub authorization incomplete';
-      err.popupMessage = 'That authentication provider is not available yet.';
-      throw err;
-    }
 
     let publickey = '';
     try {
@@ -56,30 +56,88 @@ class FaucetOAuth {
       throw err;
     }
 
-    const gh = this.github || {};
-    const clientId = String(gh.client_id || '').trim();
-    const callbackUrl = String(gh.callback_url || '').trim();
-    const clientSecret = this.secret_github;
+    if (provider === 'github') {
+      const gh = this.github || {};
+      const clientId = String(gh.client_id || '').trim();
+      const callbackUrl = String(gh.callback_url || '').trim();
+      const clientSecret = this.secret_github;
 
-    if (!clientId || !callbackUrl || !clientSecret) {
-      const err = new Error(
-        'Client ID, callback URL, or client secret is missing. Configure secrets via /faucet/config.'
-      );
-      err.code = 'github_oauth_not_configured';
-      err.httpStatus = 500;
-      err.title = 'GitHub OAuth not configured';
-      err.popupMessage = err.message;
-      throw err;
+      if (!clientId || !callbackUrl || !clientSecret) {
+        const err = new Error(
+          'Client ID, callback URL, or client secret is missing. Configure secrets via /faucet/config.'
+        );
+        err.code = 'github_oauth_not_configured';
+        err.httpStatus = 500;
+        err.title = 'GitHub OAuth not configured';
+        err.popupMessage = err.message;
+        throw err;
+      }
+
+      const identity = await GithubOAuth.authenticateCredentials({
+        code,
+        clientId,
+        clientSecret,
+        redirectUri: callbackUrl
+      });
+      identity.publickey = publickey;
+      return identity;
     }
 
-    const identity = await GithubOAuth.authenticateCredentials({
-      code,
-      clientId,
-      clientSecret,
-      redirectUri: callbackUrl
-    });
-    identity.publickey = publickey;
-    return identity;
+    if (provider === 'twitter') {
+      const tw = this.twitter || {};
+      const clientId = String(tw.client_id || '').trim();
+      const redirectUri = String(credentials.redirect_uri || '').trim();
+      const code_verifier = String(credentials.code_verifier || '').trim();
+      const clientSecret = this.secret_twitter;
+
+      if (!clientId || !redirectUri || !clientSecret) {
+        const err = new Error(
+          'X Client ID, callback URL, or client secret is missing. Configure secrets via /faucet/config.'
+        );
+        err.code = 'twitter_oauth_not_configured';
+        err.httpStatus = 500;
+        err.title = 'X OAuth not configured';
+        err.popupMessage = err.message;
+        throw err;
+      }
+
+      if (!code_verifier) {
+        const err = new Error('Missing PKCE verifier for X authorization.');
+        err.code = 'twitter_missing_pkce';
+        err.httpStatus = 400;
+        err.title = 'X authorization incomplete';
+        err.popupMessage = 'Could not recover the X authorization session. Close this window and try again.';
+        throw err;
+      }
+
+      console.log(
+        '[Faucet] OAuth twitter authenticateCredentials redirect_uri=' + redirectUri
+      );
+      const identity = await TwitterOAuth.authenticateCredentials({
+        code,
+        clientId,
+        clientSecret,
+        redirectUri,
+        code_verifier
+      });
+      identity.publickey = publickey;
+      console.log(
+        '[Faucet] OAuth twitter identity provider_user_id=' +
+          identity.provider_user_id +
+          ' username=' +
+          identity.provider_username +
+          ' publickey=' +
+          identity.publickey
+      );
+      return identity;
+    }
+
+    const err = new Error('That authentication provider is not available yet.');
+    err.code = 'unsupported_provider';
+    err.httpStatus = 400;
+    err.title = 'Authorization incomplete';
+    err.popupMessage = 'That authentication provider is not available yet.';
+    throw err;
   }
 
   attachRoutes(expressapp) {
@@ -188,6 +246,196 @@ class FaucetOAuth {
           title: 'GitHub sign-in unavailable',
           message:
             'Could not start GitHub authorization. Close this window and try again from Get SAITO.'
+        });
+      }
+    });
+
+    expressapp.get(`/${slug}/oauth/twitter`, async (req, res) => {
+      if (res.finished) {
+        return;
+      }
+
+      const code = String(req.query?.code || '').trim();
+      const state = String(req.query?.state || '').trim();
+      const oauthError = String(req.query?.error || '').trim();
+      const redirect_uri = `${req.protocol}://${req.headers.host}/${slug}/oauth/twitter`;
+      const cookie_path = `/${slug}/oauth/twitter`;
+
+      if (code || oauthError) {
+        console.log(
+          '[Faucet] OAuth twitter callback host=' +
+            String(req.headers.host || '') +
+            ' has_code=' +
+            !!code +
+            ' has_state=' +
+            !!state +
+            ' error=' +
+            (oauthError || '(none)') +
+            ' redirect_uri=' +
+            redirect_uri
+        );
+
+        let code_verifier = '';
+        const cookie_header = String(req.headers.cookie || '');
+        for (const part of cookie_header.split(';')) {
+          const idx = part.indexOf('=');
+          if (idx === -1) {
+            continue;
+          }
+          const name = part.slice(0, idx).trim();
+          if (name === TWITTER_PKCE_COOKIE) {
+            try {
+              code_verifier = decodeURIComponent(part.slice(idx + 1).trim());
+            } catch (err) {
+              code_verifier = '';
+            }
+            break;
+          }
+        }
+
+        res.setHeader(
+          'Set-Cookie',
+          TWITTER_PKCE_COOKIE +
+            '=; Path=' +
+            cookie_path +
+            '; HttpOnly; SameSite=Lax; Max-Age=0'
+        );
+
+        if (oauthError) {
+          const desc = String(req.query?.error_description || oauthError);
+          console.log('[Faucet] OAuth twitter returned error', oauthError);
+          return sendPopup(res, 400, {
+            ok: false,
+            title: 'X authorization failed',
+            message: desc
+          });
+        }
+
+        if (!code || !state) {
+          return sendPopup(res, 400, {
+            ok: false,
+            title: 'X authorization incomplete',
+            message: 'Missing authorization code or state.'
+          });
+        }
+
+        console.log(
+          '[Faucet] OAuth twitter PKCE verifier recovered=' + !!code_verifier
+        );
+
+        try {
+          const identity = await oauth_self.authenticateCredentials({
+            provider: 'twitter',
+            code,
+            state,
+            code_verifier,
+            redirect_uri
+          });
+          console.log('[Faucet] OAuth twitter handoff acceptAuthenticatedIdentity');
+          const outcome = await oauth_self.mod.acceptAuthenticatedIdentity(identity);
+          return sendPopup(res, outcome.status, outcome.popup);
+        } catch (err) {
+          if (err?.code === 'twitter_account_too_new') {
+            console.log(
+              '[Faucet] OAuth twitter account too new',
+              err.username || '',
+              err.created_at || '(no created_at)'
+            );
+          } else if (err?.code === 'twitter_token_exchange_failed') {
+            console.error('[Faucet] OAuth twitter token exchange failed', err.message);
+          } else if (err?.code === 'twitter_user_fetch_failed') {
+            console.error('[Faucet] OAuth twitter profile failed', err.message);
+          } else if (err?.httpStatus && err?.title) {
+            // structured auth failure (state, config, missing pkce)
+          } else {
+            console.error(
+              '[Faucet] OAuth twitter exchange/profile failed',
+              err?.code || err?.message || err
+            );
+            return sendPopup(res, 502, {
+              ok: false,
+              title: 'X verification failed',
+              message: 'Could not complete X token exchange or profile lookup. Try again.'
+            });
+          }
+
+          return sendPopup(res, err.httpStatus, {
+            ok: false,
+            title: err.title,
+            message: err.popupMessage || err.message,
+            details: err.details || ''
+          });
+        }
+      }
+
+      const publickey = String(req.query?.publickey || '').trim();
+      if (!publickey) {
+        return sendPopup(res, 400, {
+          ok: false,
+          title: 'X sign-in unavailable',
+          message: 'Missing Saito public key. Close this window and try again from Get SAITO.'
+        });
+      }
+
+      const tw = oauth_self.twitter || {};
+      const clientId = String(tw.client_id || '').trim();
+      const authorizeUrl = String(tw.authorize_url || '').trim();
+      const scope = String(tw.scope || 'users.read tweet.read').trim();
+
+      if (!clientId || !authorizeUrl) {
+        return sendPopup(res, 400, {
+          ok: false,
+          title: 'X OAuth not configured',
+          message:
+            'Public X OAuth settings are incomplete on this server (client_id).'
+        });
+      }
+
+      try {
+        const pkce = TwitterOAuth.createPkce();
+        const state = Buffer.from(JSON.stringify({ pk: publickey }), 'utf8').toString(
+          'base64url'
+        );
+
+        const secure =
+          req.protocol === 'https' ||
+          String(req.headers['x-forwarded-proto'] || '')
+            .split(',')[0]
+            .trim() === 'https'
+            ? '; Secure'
+            : '';
+
+        res.setHeader(
+          'Set-Cookie',
+          TWITTER_PKCE_COOKIE +
+            '=' +
+            encodeURIComponent(pkce.code_verifier) +
+            '; Path=' +
+            cookie_path +
+            '; HttpOnly; SameSite=Lax; Max-Age=600' +
+            secure
+        );
+
+        const url = new URL(authorizeUrl);
+        url.searchParams.set('response_type', 'code');
+        url.searchParams.set('client_id', clientId);
+        url.searchParams.set('redirect_uri', redirect_uri);
+        url.searchParams.set('scope', scope);
+        url.searchParams.set('state', state);
+        url.searchParams.set('code_challenge', pkce.code_challenge);
+        url.searchParams.set('code_challenge_method', 'S256');
+
+        console.log(
+          '[Faucet] OAuth twitter authorize started redirect_uri=' + redirect_uri
+        );
+        return res.redirect(302, url.toString());
+      } catch (err) {
+        console.error('FAUCET OAUTH: failed to redirect to X', err?.message || err);
+        return sendPopup(res, 400, {
+          ok: false,
+          title: 'X sign-in unavailable',
+          message:
+            'Could not start X authorization. Close this window and try again from Get SAITO.'
         });
       }
     });

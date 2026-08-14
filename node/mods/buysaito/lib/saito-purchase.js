@@ -411,7 +411,10 @@ class SaitoPurchaseOverlay {
         Array.isArray(opt?.providers) && opt.providers.length
           ? opt.providers
           : this.defaultFaucetAuthProviders();
-      stageEl.innerHTML = SaitoPurchaseFaucetAuthTemplate(providers);
+      stageEl.innerHTML = SaitoPurchaseFaucetAuthTemplate(
+        providers,
+        opt?.auth_message
+      );
       document
         .getElementById('purchase-container')
         ?.classList.add('buysaito-stage-faucet-auth');

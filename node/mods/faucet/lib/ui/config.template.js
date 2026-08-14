@@ -27,6 +27,7 @@ module.exports = ({
   queue = [],
   githubConfigured = false,
   twitterConfigured = false,
+  free_use = false,
   saved = false
 } = {}) => {
   let balance_nolan = 0n;
@@ -44,8 +45,8 @@ module.exports = ({
   }));
 
   const statusBlock = saved
-    ? `<pre class="ok">GitHub: ${githubConfigured ? 'configured' : 'not set'}\nX: ${twitterConfigured ? 'configured' : 'not set'}</pre>`
-    : `<pre>GitHub: ${githubConfigured ? 'configured' : 'not set'}\nX: ${twitterConfigured ? 'configured' : 'not set'}</pre>`;
+    ? `<pre class="ok">GitHub: ${githubConfigured ? 'configured' : 'not set'}\nX: ${twitterConfigured ? 'configured' : 'not set'}\nFree Use Mode: ${free_use ? 'on' : 'off'}</pre>`
+    : `<pre>GitHub: ${githubConfigured ? 'configured' : 'not set'}\nX: ${twitterConfigured ? 'configured' : 'not set'}\nFree Use Mode: ${free_use ? 'on' : 'off'}</pre>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -56,6 +57,8 @@ module.exports = ({
   <style>
     body { font-family: system-ui, sans-serif; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; background: #111; color: #eee; }
     label { display: block; margin-top: 1.2rem; font-size: 0.95rem; }
+    label.toggle { display: flex; align-items: center; gap: 0.6rem; }
+    label.toggle input { width: auto; margin: 0; }
     input[type="password"], input[type="text"] { width: 100%; box-sizing: border-box; margin-top: 0.4rem; padding: 0.6rem; }
     button { margin-top: 1.6rem; padding: 0.7rem 1.2rem; cursor: pointer; }
     .ok { color: #3df71f; }
@@ -90,6 +93,11 @@ module.exports = ({
     <label>X Client Secret
       <input type="password" name="twitter_secret" autocomplete="off" />
     </label>
+    <label class="toggle">
+      <input type="checkbox" name="free_use" value="1"${free_use ? ' checked' : ''} />
+      Free Use Mode
+    </label>
+    <p class="note">When Free Use Mode is on, Get SAITO issues tokens without Twitter or GitHub registration.</p>
     <button type="submit">Save</button>
   </form>
 </body>

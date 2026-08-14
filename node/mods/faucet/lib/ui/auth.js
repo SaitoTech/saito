@@ -143,8 +143,7 @@ We never post on your behalf.`
 
   /**
    * Begin provider authentication.
-   * GitHub opens a Faucet-owned OAuth initiation popup (does not navigate Saito).
-   * Other providers remain stubs until their routes are added.
+   * GitHub and X open a Faucet-owned OAuth initiation popup (does not navigate Saito).
    * @param {{ id: string, name?: string, icon?: string }} provider
    */
   authenticate(provider) {
@@ -159,11 +158,11 @@ We never post on your behalf.`
       return;
     }
 
-    if (provider.id === 'github') {
+    if (provider.id === 'github' || provider.id === 'twitter') {
       if (typeof window === 'undefined' || typeof window.open !== 'function') {
         this.finish({
           status: AUTH_STATUS.ERROR,
-          provider: 'github',
+          provider: provider.id,
           identity: null,
           error: 'Browser cannot open an OAuth window'
         });
@@ -172,7 +171,10 @@ We never post on your behalf.`
 
       const slug =
         typeof this.mod?.returnSlug === 'function' ? this.mod.returnSlug() : 'faucet';
-      const oauthUrl = new URL(`/${encodeURI(slug)}/oauth/github`, window.location.origin);
+      const oauthUrl = new URL(
+        `/${encodeURI(slug)}/oauth/${encodeURI(provider.id)}`,
+        window.location.origin
+      );
       const publickey = String(this.mod?.publicKey || '').trim();
       if (publickey) {
         oauthUrl.searchParams.set('publickey', publickey);
@@ -180,17 +182,17 @@ We never post on your behalf.`
 
       const popup = window.open(
         oauthUrl.toString(),
-        'saito_faucet_oauth_github',
+        'saito_faucet_oauth_' + provider.id,
         'popup=yes,width=560,height=720,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes'
       );
       if (!popup) {
-        siteMessage('Please allow popups to continue with GitHub authentication.', 4000);
+        siteMessage(
+          'Please allow popups to continue with ' +
+            (provider.name || provider.id) +
+            ' authentication.',
+          4000
+        );
       }
-      return;
-    }
-
-    if (provider.id === 'twitter') {
-      siteMessage('X authentication will be available soon.', 3000);
       return;
     }
 

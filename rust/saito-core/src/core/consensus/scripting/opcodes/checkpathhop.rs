@@ -914,4 +914,303 @@ mod tests {
             0
         );
     }
+
+    /// Matches Vault FILE_TX access script:
+    ///   OR( CHECKSENDER(creator),
+    ///       AND( CHECKPATHHOP FIRST delegated==0, DB_UPDATE_SCHEMA ) )
+    /// DB_UPDATE_SCHEMA =
+    ///   OR( AND(hop.to==REQUESTER, NOW<expires_at, CHECKKEY db!=owner),
+    ///       AND(CHECKSENDER(creator), NOW>expires_at) )
+    fn vault_file_tx_constitution(creator: &str) -> Value {
+        json!({
+            "op": "OR",
+            "args": [
+                {
+                    "op": "CHECKSENDER",
+                    "publickey": creator
+                },
+                {
+                    "op": "AND",
+                    "args": [
+                        {
+                            "op": "CHECKPATHHOP",
+                            "selector": "FIRST",
+                            "where": [{
+                                "field": "value.delegated",
+                                "operator": "==",
+                                "value": 0
+                            }],
+                            "publickey": creator,
+                            "hash": "",
+                            "witness": { "hops": [] }
+                        },
+                        {
+                            "op": "OR",
+                            "args": [
+                                {
+                                    "op": "AND",
+                                    "args": [
+                                        {
+                                            "op": "CHECKFIELD",
+                                            "field": "__opcodes.checkpathhop.hop.to",
+                                            "operator": "==",
+                                            "value": "REQUESTER"
+                                        },
+                                        {
+                                            "op": "CHECKFIELD",
+                                            "field": "NOW",
+                                            "operator": "<",
+                                            "value": "__opcodes.checkpathhop.hop.value.expires_at"
+                                        },
+                                        {
+                                            "op": "CHECKKEY",
+                                            "field": "db",
+                                            "operator": "!=",
+                                            "key": "owner"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "op": "AND",
+                                    "args": [
+                                        {
+                                            "op": "CHECKSENDER",
+                                            "publickey": creator
+                                        },
+                                        {
+                                            "op": "CHECKFIELD",
+                                            "field": "NOW",
+                                            "operator": ">",
+                                            "value": "__opcodes.checkpathhop.hop.value.expires_at"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        })
+    }
+
+    fn attach_path_hop(tree: &mut Value, hop: Value) {
+        tree["args"][1]["args"][0]["witness"]["hops"] = json!([hop]);
+    }
+
+    /// Case 5: CREATOR — top-level CHECKSENDER; no path required.
+    #[test]
+    fn vault_constitution_creator_passes_without_path() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, _) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let mut script = Script::new();
+        script.json = vault_file_tx_constitution(&creator);
+
+        // Even with empty db / no hops, creator outer branch succeeds.
+        let ctx = json!({ "db": { "type": "UPDATE", "owner": "hello" } });
+        assert_eq!(
+            script.validate_with_context(
+                Some(&requester_tx(&creator_pk)),
+                None,
+                None,
+                None,
+                Some(&ctx)
+            ),
+            1
+        );
+    }
+
+    /// Case 1: RENTER + valid path + before expiry + db WITHOUT owner → PASS
+    #[test]
+    fn vault_constitution_renter_non_owner_update_passes() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, creator_sk) = generate_keys();
+        let (renter_pk, _) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
+        let hop = make_signed_hop(
+            &renter_pk,
+            &json!({
+                "timestamp": now,
+                "file_id": "file-abc",
+                "expires_at": now + 60_000,
+                "delegated": 0
+            }),
+            &creator_sk,
+            "",
+        );
+
+        let mut tree = vault_file_tx_constitution(&creator);
+        attach_path_hop(&mut tree, hop);
+
+        let mut script = Script::new();
+        script.json = tree;
+
+        // Archive-shaped context for a non-owner metadata update
+        let ctx = json!({
+            "db": {
+                "type": "UPDATE",
+                "updated_at": now,
+                "field5": "allowed"
+            }
+        });
+
+        assert_eq!(
+            script.validate_with_context(
+                Some(&requester_tx(&renter_pk)),
+                None,
+                None,
+                None,
+                Some(&ctx)
+            ),
+            1
+        );
+    }
+
+    /// Case 2: RENTER + valid path + before expiry + db.owner = "hello" → FAIL
+    #[test]
+    fn vault_constitution_renter_owner_hello_update_fails() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, creator_sk) = generate_keys();
+        let (renter_pk, _) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
+        let hop = make_signed_hop(
+            &renter_pk,
+            &json!({
+                "timestamp": now,
+                "file_id": "file-abc",
+                "expires_at": now + 60_000,
+                "delegated": 0
+            }),
+            &creator_sk,
+            "",
+        );
+
+        let mut tree = vault_file_tx_constitution(&creator);
+        attach_path_hop(&mut tree, hop);
+
+        let mut script = Script::new();
+        script.json = tree;
+
+        // Exact Archive checkout shape for owner: "hello"
+        let ctx = json!({
+            "db": {
+                "type": "UPDATE",
+                "owner": "hello",
+                "updated_at": now
+            }
+        });
+
+        assert_eq!(
+            script.validate_with_context(
+                Some(&requester_tx(&renter_pk)),
+                None,
+                None,
+                None,
+                Some(&ctx)
+            ),
+            0,
+            "CHECKKEY(db != owner) must fail when context.db contains owner"
+        );
+    }
+
+    /// Case 3: RENTER + expired path → FAIL
+    #[test]
+    fn vault_constitution_renter_expired_fails() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, creator_sk) = generate_keys();
+        let (renter_pk, _) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
+        let hop = make_signed_hop(
+            &renter_pk,
+            &json!({
+                "timestamp": 1,
+                "file_id": "file-abc",
+                "expires_at": now.saturating_sub(60_000).max(1),
+                "delegated": 0
+            }),
+            &creator_sk,
+            "",
+        );
+
+        let mut tree = vault_file_tx_constitution(&creator);
+        attach_path_hop(&mut tree, hop);
+
+        let mut script = Script::new();
+        script.json = tree;
+
+        let ctx = json!({
+            "db": {
+                "type": "UPDATE",
+                "updated_at": now,
+                "field5": "allowed"
+            }
+        });
+
+        assert_eq!(
+            script.validate_with_context(
+                Some(&requester_tx(&renter_pk)),
+                None,
+                None,
+                None,
+                Some(&ctx)
+            ),
+            0
+        );
+    }
+
+    /// Case 4: Invalid CHECKPATHHOP (empty hops) → FAIL for renter
+    #[test]
+    fn vault_constitution_invalid_path_fails_for_renter() {
+        use crate::core::consensus::scripting::script::Script;
+
+        let (creator_pk, _) = generate_keys();
+        let (renter_pk, _) = generate_keys();
+        let creator = creator_pk.to_base58();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
+        // No hops attached — CHECKPATHHOP fails
+        let mut script = Script::new();
+        script.json = vault_file_tx_constitution(&creator);
+
+        let ctx = json!({
+            "db": {
+                "type": "UPDATE",
+                "updated_at": now,
+                "field5": "allowed"
+            }
+        });
+
+        assert_eq!(
+            script.validate_with_context(
+                Some(&requester_tx(&renter_pk)),
+                None,
+                None,
+                None,
+                Some(&ctx)
+            ),
+            0
+        );
+    }
 }

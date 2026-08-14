@@ -125,10 +125,9 @@ async function createCheckOutRentalTransaction(tx) {
 /**
  * Server-side receive path for peer request "vault checkout rental".
  *
- * Loads the archived Vault file by file_id (Archive sig), then calls the existing
- * Archive.updateTransaction with that archived file tx so the file blob is not
- * replaced by the checkout transaction. Authorization uses obj.access_script +
- * obj.request_tx (peer request).
+ * Structural checks only (file_id / access_script). Authorization is performed
+ * solely inside Archive.updateTransaction, which builds context.db from the
+ * actual SET fields and evaluates access_script once with request_tx.
  *
  * @param {object} tx peer-request transaction (data = serialized checkout tx)
  * @param {function} mycallback
@@ -159,8 +158,8 @@ async function receiveCheckOutRentalTransaction(tx, mycallback) {
     console.log('[VAULT CHECKOUT] Authorization script received', access_script || '(missing)');
 
     //
-    // Investigation-only: CHECKPATHHOP / REQUESTER attribution (no auth changes).
-    // evaluateWithTransaction uses the peer-request `tx` (outer), not peer_tx.
+    // Investigation-only: CHECKPATHHOP / REQUESTER attribution (no auth).
+    // Archive evaluates with request_tx = outer peer-request `tx`.
     // REQUESTER = first from-slip public key on that evaluation tx (script.rs).
     //
     try {
@@ -262,48 +261,17 @@ async function receiveCheckOutRentalTransaction(tx, mycallback) {
     console.log('[VAULT CHECKOUT] Preparing Archive update');
     console.log('[VAULT CHECKOUT] Requested owner: hello');
     console.log('[VAULT CHECKOUT] Identified Archive record (lookup sig/file_id):', file_id);
+    console.log(
+      '[VAULT CHECKOUT] Skipping Vault-side access-script evaluation; Archive.updateTransaction is the sole authorizer'
+    );
 
     //
     // Metadata-only update: tx === null so archives.tx is not rewritten.
     // obj.sig is the WHERE lookup key only (Archive excludes it from SET).
-    // request_tx = peer request (user-signed) for access-script evaluation.
+    // request_tx = peer request for Archive script evaluation (REQUESTER).
+    // Do NOT evaluate access_script here — Archive builds context.db from the
+    // actual SET fields and evaluates once inside updateTransaction().
     //
-    console.log('[VAULT CHECKOUT] Evaluating authorization script');
-    let auth_ok = false;
-    try {
-      if (
-        !this.app.core?.scripting?.hash ||
-        typeof this.app.core.scripting.evaluateWithTransaction !== 'function'
-      ) {
-        console.log('[VAULT CHECKOUT] Authorization FAILED — scripting unavailable');
-        console.log('[VAULT CHECKOUT] Archive UPDATE NOT PERFORMED');
-        if (mycallback) {
-          mycallback({ status: 'err', err: 'scripting_unavailable' });
-        }
-        return 1;
-      }
-
-      const evaluated = await this.app.core.scripting.evaluateWithTransaction(access_script, tx);
-      console.log('[VAULT CHECKOUT] Authorization result:', evaluated ? 1 : 0);
-      auth_ok = !!evaluated;
-    } catch (err) {
-      console.log('[VAULT CHECKOUT] Authorization FAILED', err?.message || err);
-      console.log('[VAULT CHECKOUT] Archive UPDATE NOT PERFORMED');
-      if (mycallback) {
-        mycallback({ status: 'err', err: String(err?.message || err) });
-      }
-      return 1;
-    }
-
-    if (!auth_ok) {
-      console.log('[VAULT CHECKOUT] Authorization FAILED');
-      console.log('[VAULT CHECKOUT] Archive UPDATE NOT PERFORMED');
-      if (mycallback) {
-        mycallback({ status: 'err', err: 'access_denied_script_failed' });
-      }
-      return 1;
-    }
-
     console.log('[VAULT CHECKOUT] Archive UPDATE BEGIN');
     console.log('[VAULT CHECKOUT] target transaction/file/access record:', file_id);
     console.log('[VAULT CHECKOUT] requested owner value: hello');
@@ -330,11 +298,8 @@ async function receiveCheckOutRentalTransaction(tx, mycallback) {
     }
 
     if (!result) {
-      console.log('[VAULT CHECKOUT] Authorization FAILED');
+      console.log('[VAULT CHECKOUT] Authorization FAILED (Archive denied)');
       console.log('[VAULT CHECKOUT] Archive UPDATE NOT PERFORMED');
-      console.log(
-        '[VAULT CHECKOUT] Archive.updateTransaction returned falsy (auth hash mismatch or evaluate failed inside Archive)'
-      );
       if (mycallback) {
         mycallback({ status: 'err', err: 'archive_update_denied' });
       }

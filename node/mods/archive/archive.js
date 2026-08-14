@@ -533,6 +533,9 @@ class Archive extends ModTemplate {
     // update records
     //
     let newObj = {};
+    let context = {};
+    context.db = {};
+    context.db.type = "UPDATE";
 
     //
     // Row identity (archives.sig) is immutable via this function.
@@ -586,29 +589,6 @@ class Archive extends ModTemplate {
       });
     }
 
-    if (existing_rows && existing_rows.length > 0) {
-      let existing_row = existing_rows[0];
-
-      if (existing_row.owner && existing_row.owner !== '') {
-        if (!obj.access_script) {
-          return 0;
-        }
-
-        let can_update = false;
-        let request_tx = obj.request_tx || tx || null;
-
-        if (this.app.core.scripting.hash(obj.access_script) === existing_row.owner) {
-          if (await this.app.core.scripting.evaluateWithTransaction(obj.access_script, request_tx)) {
-            can_update = true;
-          }
-        }
-
-        if (!can_update) {
-          return 0;
-        }
-      }
-    }
-
     //
     // update index — build SET clause without always rewriting tx
     //
@@ -638,6 +618,7 @@ class Archive extends ModTemplate {
         set_clauses.push(`${key} = $${key}`);
         params[`$${key}`] = obj[key];
         newObj[key] = obj[key];
+	context.db[key] = obj[key];
       }
     }
 
@@ -648,6 +629,33 @@ class Archive extends ModTemplate {
     if (set_clauses.length === 0) {
       return 0;
     }
+
+    //
+    // now figure out if we can update
+    //
+    if (existing_rows && existing_rows.length > 0) {
+      let existing_row = existing_rows[0];
+
+      if (existing_row.owner && existing_row.owner !== '') {
+        if (!obj.access_script) {
+          return 0;
+        }
+
+        let can_update = false;
+        let request_tx = obj.request_tx || tx || null;
+
+        if (this.app.core.scripting.hash(obj.access_script) === existing_row.owner) {
+          if (await this.app.core.scripting.evaluateWithTransaction(obj.access_script, request_tx, context)) {
+            can_update = true;
+          }
+        }
+
+        if (!can_update) {
+          return 0;
+        }
+      }
+    }
+
 
     let sql = `UPDATE archives SET ${set_clauses.join(', ')} WHERE sig = $sig`;
 

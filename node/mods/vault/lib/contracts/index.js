@@ -1,9 +1,11 @@
 const custom = require('./custom');
 const defaultContract = require('./default');
 const rental = require('./rental');
+const dbUpdateSchema = require('./db-update-schema');
 
 // Overlay script-type list (advanced editor). Default is the jade-key path,
 // not an editor starter — keep Custom / Rental in the UI selector only.
+// DB_UPDATE_SCHEMA is Vault-internal — never listed here.
 const CONTRACTS = [custom, rental];
 
 function listContracts() {
@@ -47,10 +49,17 @@ function buildDefaultAccessScript(opts = {}) {
 }
 
 /**
- * Direct Creator→Renter rental locking script.
+ * FILE_TX rental access script: IS_CREATOR OR (CHECKPATHHOP AND DB_UPDATE_SCHEMA).
  */
 function buildRentalAccessScript(opts = {}) {
   return rental.build(opts);
+}
+
+/**
+ * Vault-hardcoded Archive mutation constitution (not an editor contract).
+ */
+function buildDbUpdateSchema(opts = {}) {
+  return dbUpdateSchema.build(opts);
 }
 
 module.exports = {
@@ -59,5 +68,6 @@ module.exports = {
   getContractScriptJson,
   getDefaultContractId,
   buildDefaultAccessScript,
-  buildRentalAccessScript
+  buildRentalAccessScript,
+  buildDbUpdateSchema
 };

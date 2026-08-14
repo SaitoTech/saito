@@ -1,16 +1,15 @@
 /**
- * Rental Contract — Creator always allowed; renter via routing-path hop.
+ * Rental Contract — FILE_TX access script.
  *
- * IS_CREATOR (CHECKSENDER)
- * OR (
- *   CHECKPATHHOP selector=FIRST where value.delegated==0
- *   AND hop.to == REQUESTER
- *   AND hop.value.timestamp > 0
- *   AND NOW < hop.value.expires_at
- * )
+ *   IS_CREATOR
+ *   OR (
+ *     CHECKPATHHOP
+ *     AND
+ *     DB_UPDATE_SCHEMA   ← Vault-hardcoded; sibling of CHECKPATHHOP
+ *   )
  *
- * The first hop with delegated == 0 is the intended final recipient
- * (direct Creator→Renter, or after any number of delegated intermediaries).
+ * CHECKPATHHOP only validates/selects the critical hop.
+ * DB_UPDATE_SCHEMA (lib/contracts/db-update-schema.js) constrains Archive updates.
  *
  * Binding hash is empty for this iteration. FILE_ID is not embedded in the
  * locking script: it is unknown at script-construction time (it is the
@@ -19,11 +18,14 @@
  * Pass creator_publickey via build() when Vault creates/displays the contract.
  * Do not leave CREATOR_PUBLICKEY_PLACEHOLDER in scripts shown to the user.
  */
+
+const dbUpdateSchema = require('./db-update-schema');
+
 module.exports = {
   id: 'rental',
   label: 'Rental Contract',
   description:
-    'Creator always allowed; renter is the to-address of the first non-delegated routing hop until expires_at.',
+    'Creator always allowed; otherwise valid rental path AND Vault DB-update constitution.',
 
   /**
    * Editor placeholder (not a finished locking script — call build() to bind keys).
@@ -32,7 +34,7 @@ module.exports = {
 
   /**
    * @param {{ creator_publickey?: string }} opts
-   * @returns {object} locking script (witness-free; hops merged at unlock)
+   * @returns {object} FILE_TX access script (witness-free; hops merged at unlock)
    */
   build({ creator_publickey = 'CREATOR_PUBLICKEY_PLACEHOLDER' } = {}) {
     return {
@@ -58,24 +60,7 @@ module.exports = {
               publickey: creator_publickey,
               hash: ''
             },
-            {
-              op: 'CHECKFIELD',
-              field: '__opcodes.checkpathhop.hop.to',
-              operator: '==',
-              value: 'REQUESTER'
-            },
-            {
-              op: 'CHECKFIELD',
-              field: '__opcodes.checkpathhop.hop.value.timestamp',
-              operator: '>',
-              value: 0
-            },
-            {
-              op: 'CHECKFIELD',
-              field: 'NOW',
-              operator: '<',
-              value: '__opcodes.checkpathhop.hop.value.expires_at'
-            }
+            dbUpdateSchema.build({ creator_publickey })
           ]
         }
       ]
