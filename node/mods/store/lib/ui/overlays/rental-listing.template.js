@@ -24,7 +24,7 @@ module.exports = {
     <article class="rental-listing info">
       <header>
         <div class="meta">
-          <h2 class="title">Rent this Item:</h2>
+          <h2 class="title">Prepare Rental Keys</h2>
         </div>
       </header>
 
@@ -36,7 +36,7 @@ module.exports = {
           </section>
 
           <p class="lede">
-            Renting this item on the Store requires using your Vault Access Key to create Rental Passes you can safely list. When users purchase these they will gain control of the underlying item and you will lose it for the period specified below. You may create as many NFTs as you wish, but items can only be rented out one-at-a-time.
+            To rent this item use your Master Rental Key to mint borrower Rental Keys. When users purchase these they will gain and you will lose control of this item for the period specified. You may create as many rental keys as you wish, but they can only be used one-at-a-time.
           </p>
 
           <section class="section rental-fields">
