@@ -1,7 +1,7 @@
 .vault-nfts .send-nft-list {
   align-content: flex-start;
   align-items: stretch;
-  justify-content: space-around;
+  justify-content: flex-start;
   width: 100%;
   max-width: 100%;
   padding: 0.5rem;
@@ -62,9 +62,11 @@
 }
 
 .vault-nfts .vault-nft-download-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.4rem 0.75rem;
   color: var(--saito-button-primary-foreground);
   background: var(--saito-button-primary-background);

@@ -407,6 +407,34 @@ class FileUpload {
       throw new Error('Vault: transaction_monitor is not initialized');
     }
 
+    const monitorCopy =
+      nft_type === 'vault-nft-rental'
+        ? {
+            title: 'Creating Rental Master Key',
+            lead: 'Your Rental Master Key is being created on the Saito network.',
+            subtitle: 'This page will update automatically when it is confirmed.',
+            successTitle: 'Rental Master Key Created',
+            successLead: 'Your Rental Master Key is now in your wallet.',
+            successActionLabel: 'Continue'
+          }
+        : nft_type === 'vault-nft-key' && access_script
+          ? {
+              title: 'Creating Custom Access Key',
+              lead: 'Your Custom Access Key is being created on the Saito network.',
+              subtitle: 'This page will update automatically when your Vault Key is confirmed.',
+              successTitle: 'Custom Access Key Received',
+              successLead: 'Your Custom Access Key is now in your wallet.',
+              successActionLabel: 'Continue'
+            }
+          : {
+              title: 'Creating Vault Access Key',
+              lead: 'Your Vault Access Key NFT has been broadcast to the Saito network.',
+              subtitle: 'This page will update automatically when your Vault Key is confirmed.',
+              successTitle: 'Vault Access Key Received',
+              successLead: 'Your Vault Access Key has arrived.',
+              successActionLabel: 'Continue'
+            };
+
     //
     // Library mode: wait for mint confirmation, cache confirmed metadata, then
     // hand control back so N-WASM can refresh its library. Standalone Vault
@@ -416,12 +444,7 @@ class FileUpload {
       await new Promise((resolve) => {
         this.mod.transaction_monitor.render({
           tx: nft_tx,
-          title: 'Upload complete',
-          lead: 'Your Vault Key has been broadcast to the Saito network.',
-          subtitle: 'This page will update automatically when your Vault Key is confirmed.',
-          successTitle: 'Vault Key Received',
-          successLead: 'Your Vault Key has arrived. Returning to your library…',
-          successActionLabel: 'Continue',
+          ...monitorCopy,
           auto_continue_on_confirm: true,
           callback: (result) => {
             this.busy = false;
@@ -479,13 +502,7 @@ class FileUpload {
 
     this.mod.transaction_monitor.render({
       tx: nft_tx,
-      title: 'Upload complete',
-      lead: 'Your Vault Key has been broadcast to the Saito network.',
-      subtitle: 'This page will update automatically when your Vault Key is confirmed.',
-      successTitle: 'Vault Key Received',
-      successLead:
-        'Your Vault Key has arrived. Press Continue to open My NFTs and retrieve your new Access Key.',
-      successActionLabel: 'Continue',
+      ...monitorCopy,
       callback: (result) => {
         if (result?.status === 'confirmed') {
           this.cacheConfirmedAccessKey(nft_tx, file_tx, access_script, result)
