@@ -7,14 +7,36 @@ function escapeHtml(value = '') {
     .replace(/'/g, '&#39;');
 }
 
+function formatRentalExpiry(ts) {
+  let d = new Date(Number(ts));
+  if (!Number.isFinite(d.getTime())) {
+    return '';
+  }
+  return d.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 module.exports = (app, mod, games = []) => {
   let rows = games
     .map((game) => {
       let title = escapeHtml(game.title || 'Untitled ROM');
       let sig = escapeHtml(game.sig || '');
+      let expiry = '';
+      if (game.rental && game.expires_at != null) {
+        let label = formatRentalExpiry(game.expires_at);
+        if (label) {
+          expiry = `Expires: ${escapeHtml(label)}`;
+        }
+      }
       return `
         <tr class="row" data-sig="${sig}" tabindex="0" role="button">
           <td class="name">${title}</td>
+          <td class="expires">${expiry}</td>
           <td class="action">
             <button type="button" class="saito-button-primary compact launch" data-sig="${sig}">
               Play
@@ -29,8 +51,7 @@ module.exports = (app, mod, games = []) => {
   if (!games.length) {
     installed_body = `
       <div class="empty">
-        <p>NWASM lets you play legally owned N64 games on Saito, and share and trade saved games and more.</p>
-        <p>Upload a ROM to which you have legal access.</p>
+        <p>Upload and play your legal N64 ROMs.</p>
         <p>Looking for games? <a class="saito-text-link" href="/store">Visit the Saito Store</a>.</p>
       </div>
     `;
@@ -48,18 +69,18 @@ module.exports = (app, mod, games = []) => {
     <div class="nwasm-arcade-overlay">
       <div class="library">
         <section class="installed">
-          <h2 class="section-title">It's Your Games</h2>
+          <h2 class="section-title">Your Games</h2>
           ${installed_body}
         </section>
 
         <section class="upload-panel">
-          <h2 class="section-title">Upload ROM</h2>
+          <h2 class="section-title">Upload Legal N64 ROM</h2>
           <div
             id="nwasm-arcade-upload"
             class="dropzone"
             role="button"
             tabindex="0"
-            aria-label="Upload ROM file">
+            aria-label="Upload Legal N64 ROM">
             <div class="prompt">Drag and drop a ROM to which you have legal access.</div>
             <div class="state" hidden>
               <div class="saito-spinner" aria-hidden="true"></div>

@@ -834,26 +834,6 @@ class Warehouse {
       this.mod.image_cache[listing.nft_id] = image;
     }
 
-    // STORE_IMG_404_DIAG — temporary; remove after 404 root cause identified
-    {
-      const _id = String(listing?.nft_id || '');
-      const _cached = this.mod.image_cache[_id];
-      console.error('STORE_IMG_404_DIAG after list-asset receive', {
-        nft_id: _id,
-        listing_signature: listing?.signature,
-        image_cache_has_entry: !!_cached,
-        image_length: typeof _cached === 'string' ? _cached.length : 0,
-        nft_returnImage_length: typeof image === 'string' ? image.length : 0,
-        txmsg_title: txmsg?.title,
-        txmsg_listing_title: txmsg?.listing?.title,
-        txmsg_has_data_image:
-          typeof txmsg?.data?.image === 'string' && txmsg.data.image.length > 0,
-        summary_title_after: this.summaries[
-          require('./ui/summary-cache').summaryBucketKey(_id, listing?.price)
-        ]?.title
-      });
-    }
-
     return listing;
   }
 

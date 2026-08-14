@@ -165,6 +165,7 @@ class NwasmMain {
     });
 
     let nfts = app.options?.wallet?.nfts || [];
+    let vault_games_by_file = {};
     for (let z = 0; z < nfts.length; z++) {
       let nft_entry = nfts[z];
       let nft_sig = nft_entry?.tx_sig;
@@ -218,10 +219,11 @@ class NwasmMain {
       }
 
       //
-      // Vault access keys: NWASM classifies from the mint tx (filename / file_id).
-      // Do not ask Vault for metadata or read app.options.vault.files.
+      // Vault-backed ROMs: owned keys (vault-nft-key / vault / vault-nft-rental)
+      // and Store rental passes (store-nft-rental). Classify from the mint tx
+      // (filename / file_id / expires_at). Do not ask Vault for metadata.
       //
-      if (nft_type !== 'vault-nft-key' && nft_type !== 'vault' && nft_type !== 'vault-nft-rental') {
+      if (!this.isVaultBackedRomNftType(nft_type)) {
         continue;
       }
 
@@ -234,7 +236,7 @@ class NwasmMain {
       let indexed_ok =
         indexed?.status === 'rom' &&
         indexed.file_id &&
-        (nft_type !== 'vault-nft-rental' || indexed.expires_at != null);
+        (!this.isRentalNftType(nft_type) || indexed.expires_at != null);
       if (indexed_ok) {
         file = indexed;
       } else {
@@ -307,16 +309,31 @@ class NwasmMain {
       if (file.expires_at != null && rental_meta.expires_at == null) {
         rental_meta.expires_at = file.expires_at;
       }
-      games.push({
+      let game_entry = {
         sig: nft_sig,
         title: this.vault_game_title(file.filename || ''),
         id: file.nft_id || nft_sig,
         source: 'vault',
         vault: file,
+        nft_type: nft_type,
         rental: rental_meta.rental,
         expires_at: rental_meta.expires_at
-      });
+      };
+      let file_key = String(file.file_id || '');
+      let existing = file_key ? vault_games_by_file[file_key] : null;
+      if (!existing || this.vaultEntitlementRank(nft_type) > this.vaultEntitlementRank(existing.nft_type)) {
+        vault_games_by_file[file_key || nft_sig] = game_entry;
+      } else if (
+        this.vaultEntitlementRank(nft_type) === this.vaultEntitlementRank(existing.nft_type) &&
+        Number(game_entry.expires_at) > Number(existing.expires_at || 0)
+      ) {
+        vault_games_by_file[file_key] = game_entry;
+      }
     }
+
+    Object.keys(vault_games_by_file).forEach((key) => {
+      games.push(vault_games_by_file[key]);
+    });
 
     if (index_dirty) {
       app.storage.saveOptions();
@@ -336,6 +353,9 @@ class NwasmMain {
       if (g.id && seen[g.id]) {
         continue;
       }
+      if (g.vault?.file_id && vault_games_by_file[String(g.vault.file_id)]) {
+        continue;
+      }
       seen[g.sig] = 1;
       if (g.id) {
         seen[g.id] = 1;
@@ -346,6 +366,7 @@ class NwasmMain {
         id: g.id || g.sig,
         source: g.source || 'archive',
         vault: g.vault || null,
+        nft_type: g.nft_type || g.vault?.nft_type || '',
         rental: g.rental === true,
         expires_at: g.expires_at != null ? g.expires_at : null
       });
@@ -355,13 +376,42 @@ class NwasmMain {
     return games;
   }
 
+  isVaultBackedRomNftType(nft_type = '') {
+    return (
+      nft_type === 'vault-nft-key' ||
+      nft_type === 'vault' ||
+      nft_type === 'vault-nft-rental' ||
+      nft_type === 'store-nft-rental'
+    );
+  }
+
+  isRentalNftType(nft_type = '') {
+    return nft_type === 'vault-nft-rental' || nft_type === 'store-nft-rental';
+  }
+
+  vaultEntitlementRank(nft_type = '') {
+    if (nft_type === 'vault-nft-key' || nft_type === 'vault') {
+      return 3;
+    }
+    if (nft_type === 'vault-nft-rental') {
+      return 2;
+    }
+    if (nft_type === 'store-nft-rental') {
+      return 1;
+    }
+    return 0;
+  }
+
+  // store-nft-rental: mint/transfer data.expires_at is authoritative, then hop.
   // vault-nft-rental: hop expires_at (Vault firstUndelegatedHopFromRental), else data.expires_at.
   vaultRentalMeta(nft_type = '', data = {}) {
-    let rental = nft_type === 'vault-nft-rental';
+    let rental = this.isRentalNftType(nft_type);
     let expires_at = null;
     if (!rental) {
       return { rental: false, expires_at: null };
     }
+
+    let hop_expires = null;
     let vault_mod = this.app.modules.returnModule('Vault');
     if (vault_mod && typeof vault_mod.firstUndelegatedHopFromRental === 'function') {
       try {
@@ -370,13 +420,22 @@ class NwasmMain {
           data?.path
         );
         if (hop?.expires_at != null && hop.expires_at !== '') {
-          expires_at = Number(hop.expires_at);
+          hop_expires = Number(hop.expires_at);
         }
       } catch (err) {}
     }
-    if (expires_at == null && data?.expires_at != null && data.expires_at !== '') {
-      expires_at = Number(data.expires_at);
+
+    let data_expires = null;
+    if (data?.expires_at != null && data.expires_at !== '') {
+      data_expires = Number(data.expires_at);
     }
+
+    if (nft_type === 'store-nft-rental') {
+      expires_at = data_expires != null ? data_expires : hop_expires;
+    } else {
+      expires_at = hop_expires != null ? hop_expires : data_expires;
+    }
+
     if (expires_at != null && !Number.isFinite(expires_at)) {
       expires_at = null;
     }
@@ -533,12 +592,13 @@ class NwasmMain {
 
           let vault_mod = this.app.modules.returnModule('Vault');
           let vault_data = game.vault || null;
+          let mint = null;
 
           // Refresh mint-tx fields for access (slips / file_id); do not ask Vault for metadata.
           let mint_sig = vault_data?.tx_sig || game.sig || '';
           if (mint_sig) {
             try {
-              let mint = await new Promise((resolve) => {
+              mint = await new Promise((resolve) => {
                 this.app.storage.loadTransactions(
                   { sig: mint_sig },
                   (txs) => {
@@ -569,7 +629,15 @@ class NwasmMain {
                   slip3_utxokey:
                     nft_entry?.slip3?.utxo_key || vault_data?.slip3_utxokey || '',
                   file_access_script:
-                    data.file_access_script || vault_data?.file_access_script || null
+                    data.file_access_script || vault_data?.file_access_script || null,
+                  path: Array.isArray(data.path) ? data.path : vault_data?.path || [],
+                  nft_type: game.nft_type || vault_data?.nft_type || '',
+                  expires_at:
+                    data.expires_at != null
+                      ? Number(data.expires_at)
+                      : game.expires_at != null
+                        ? Number(game.expires_at)
+                        : vault_data?.expires_at
                 };
               }
             } catch (err) {
@@ -577,14 +645,14 @@ class NwasmMain {
             }
           }
 
-          if (!vault_mod || !vault_mod.peer || !vault_data?.file_id || !vault_data?.nft_id) {
+          if (!vault_mod || !vault_mod.peer || !vault_data?.file_id) {
             await fail_launch(
               !vault_mod?.peer ? 'Vault peer not connected' : 'Vault ROM metadata incomplete'
             );
             return;
           }
 
-          vault_mod.sendAccessFileRequest(vault_data, null, (base64) => {
+          let on_file = (base64) => {
             if (!base64) {
               void fail_launch('Unable to download ROM from Vault');
               return;
@@ -606,7 +674,37 @@ class NwasmMain {
               console.log('Error launching Vault ROM: ' + err);
               void fail_launch('Error launching Vault ROM');
             }
-          });
+          };
+
+          let nft_type = game.nft_type || vault_data.nft_type || '';
+          if (nft_type === 'store-nft-rental') {
+            if (typeof vault_mod.sendAccessRentalFileRequest !== 'function') {
+              await fail_launch('Vault rental access is unavailable');
+              return;
+            }
+            vault_mod.sendAccessRentalFileRequest(
+              {
+                tx: mint,
+                data: {
+                  file_id: vault_data.file_id,
+                  file_access_script: vault_data.file_access_script,
+                  path: vault_data.path || [],
+                  expires_at: game.expires_at != null ? game.expires_at : vault_data.expires_at
+                },
+                file_id: vault_data.file_id,
+                file_access_script: vault_data.file_access_script
+              },
+              on_file
+            );
+            return;
+          }
+
+          if (!vault_data?.nft_id) {
+            await fail_launch('Vault ROM metadata incomplete');
+            return;
+          }
+
+          vault_mod.sendAccessFileRequest(vault_data, null, on_file);
         }, 0);
         return;
       }

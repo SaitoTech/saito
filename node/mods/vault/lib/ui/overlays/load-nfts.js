@@ -156,24 +156,27 @@ class LoadNFTs {
       return;
     }
 
+    const instructionsEl = document.querySelector('.vault-nfts #nft-list-instructions');
+
     if (this.count > 0) {
+      if (instructionsEl) {
+        instructionsEl.innerHTML = '';
+      }
       let html = `<div class="loader"></div>`;
       container.innerHTML = html;
     } else if (!this.vault_nfts || this.vault_nfts.length === 0) {
-      let html = `
-        <div class="vault-empty-state">
+      container.innerHTML = '<div class="send-nft-list"></div>';
+      if (instructionsEl) {
+        instructionsEl.innerHTML = `
           <div class="instructions">
-            You do not have any NFT keys in your wallet.
-            If you have just created or been sent one, please wait a few minutes
-            for the network to confirm for your wallet.
+            You do not yet have any Vault Access Keys in your wallet.
           </div>
-          <button type="button" class="saito-button-primary" data-vault-upload>
-            add item to vault
-          </button>
-        </div>
-      `;
-      container.innerHTML = html;
+        `;
+      }
     } else {
+      if (instructionsEl) {
+        instructionsEl.innerHTML = '';
+      }
       //
       // wrapper for cards
       //

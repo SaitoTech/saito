@@ -1251,7 +1251,7 @@ mod tests {
         loan
     }
 
-    /// DB_UPDATE_LOGIC matching node/mods/vault/lib/contracts/db-update-schema.js
+    /// DB_UPDATE_LOGIC matching node/mods/vault/lib/contracts/rental.js
     fn db_update_logic(creator: &str) -> Value {
         json!({
             "op": "AND",

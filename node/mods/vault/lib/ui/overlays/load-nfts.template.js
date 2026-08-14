@@ -10,6 +10,8 @@ module.exports = (app, mod) => {
       <div class="nft-list" id="nft-list">
       </div>
 
+      <div id="nft-list-instructions" class="nft-list-instructions"></div>
+
     </div>
   `;
   return html;

@@ -133,6 +133,25 @@ class RentalListingOverlay {
     return amount;
   }
 
+  parsePriceInput(raw) {
+    let cleaned = String(raw || '')
+      .replace(/SAITO/gi, '')
+      .trim()
+      .replace(/[^\d.]/g, '');
+    const firstDot = cleaned.indexOf('.');
+    if (firstDot !== -1) {
+      cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+    }
+    if (!cleaned || cleaned === '.' || !Number.isFinite(Number(cleaned))) {
+      return null;
+    }
+    return cleaned;
+  }
+
+  formatPriceDisplay(price) {
+    return `${price} SAITO`;
+  }
+
   async render({ source_nft = null, master_nft = null, defaults = {}, phase = null } = {}) {
     this.defaults = defaults || {};
     // master_nft kept as alias for older callers.
@@ -180,7 +199,7 @@ class RentalListingOverlay {
 
     const view = {
       sourceName: this.escapeHtml(this.source_name),
-      priceDisplay: `${this.form.price} SAITO`,
+      priceDisplay: this.formatPriceDisplay(this.form.price),
       durationHours: this.form.duration_hours,
       amount: this.form.amount
     };
@@ -214,7 +233,7 @@ class RentalListingOverlay {
       nftIdenticon: this.app?.keychain?.returnIdenticon?.(nftId || seller) || '',
       listingTitle: this.escapeHtml(this.form.title),
       description: this.escapeHtml(this.form.description),
-      priceDisplay: `${this.form.price} SAITO`,
+      priceDisplay: this.formatPriceDisplay(this.form.price),
       durationHours: this.form.duration_hours,
       rights: this.form.rights || 'all',
       amount: this.form.amount,
@@ -252,31 +271,30 @@ class RentalListingOverlay {
       });
     }
 
-    root.querySelector('[data-edit="price"]')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.field_edit.render({
-        title: 'Edit Rental Price',
-        value: String(this.form.price),
-        placeholder: 'Price in SAITO',
-        onSave: (raw) => {
-          const cleaned = String(raw || '')
-            .trim()
-            .replace(/[^\d.]/g, '');
-          if (!cleaned) {
-            return false;
-          }
-          this.form.price = cleaned;
-          const el = root.querySelector('[data-field="price"]');
-          if (el) {
-            el.textContent = `${cleaned} SAITO`;
-          }
-          return true;
-        }
+    const priceInput = root.querySelector('input[data-field="price"]');
+    if (priceInput) {
+      priceInput.addEventListener('focus', () => {
+        priceInput.value = this.parsePriceInput(priceInput.value) || String(this.form.price);
       });
-    });
+      priceInput.addEventListener('blur', () => {
+        const cleaned = this.parsePriceInput(priceInput.value);
+        if (!cleaned) {
+          priceInput.value = this.formatPriceDisplay(this.form.price);
+          return;
+        }
+        this.form.price = cleaned;
+        priceInput.value = this.formatPriceDisplay(cleaned);
+      });
+    }
 
     root.querySelector('[data-action="create"]')?.addEventListener('click', async (e) => {
       e.preventDefault();
+      if (priceInput) {
+        const cleaned = this.parsePriceInput(priceInput.value);
+        if (cleaned) {
+          this.form.price = cleaned;
+        }
+      }
       await this.openCreateNft();
     });
   }

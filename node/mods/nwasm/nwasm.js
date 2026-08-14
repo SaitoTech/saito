@@ -765,6 +765,7 @@ class Nwasm extends OnePlayerGameTemplate {
       title: title,
       id: id || sig,
       source: source,
+      nft_type: meta.nft_type || meta.vault?.nft_type || '',
       rental: meta.rental === true,
       expires_at: meta.expires_at != null ? meta.expires_at : null
     };
@@ -794,6 +795,7 @@ class Nwasm extends OnePlayerGameTemplate {
             id: entry.id,
             source: entry.source,
             vault: entry.vault || null,
+            nft_type: entry.nft_type || '',
             last_played: entry.last_played || 0,
             rental: entry.rental === true,
             expires_at: entry.expires_at != null ? entry.expires_at : null
@@ -808,6 +810,7 @@ class Nwasm extends OnePlayerGameTemplate {
               id: entry.id,
               source: entry.source,
               vault: entry.vault || null,
+              nft_type: entry.nft_type || '',
               last_played: entry.last_played || 0,
               rental: entry.rental === true,
               expires_at: entry.expires_at != null ? entry.expires_at : null

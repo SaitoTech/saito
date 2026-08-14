@@ -1,8 +1,6 @@
 module.exports = (app, mod, witness_overlay = {}) => {
-  let msg = `
-
-    <div class="create-nft-container">
-   
+  return `
+    <div class="create-nft-container vault-scripting-overlay">
       <div class="saito-overlay-form-header">
          <div class="saito-overlay-form-header-title">
             <div>
@@ -11,29 +9,22 @@ module.exports = (app, mod, witness_overlay = {}) => {
          </div>
       </div>
 
-      <div class="nft-creator">
-        <div class="dropdown-cont vault-scripting-intro">
-	  This file is protected by a custom access script. Edit the JSON below to
-	  include any witness fields required to unlock the file, then submit.
-        </div>
-
-        <div class="witness-textarea-container">
-          <label class="witness-textarea-label" for="witness-access-script-textarea">Access Script:</label>
+      <div class="nft-creator vault-scripting-body">
+        <div class="textarea-container vault-scripting-editor">
           <textarea
-            class="saito-textarea witness-access-script-textarea"
+            class="saito-textarea create-nft-script-textarea witness-access-script-textarea"
             id="witness-access-script-textarea"
             spellcheck="false"
           ></textarea>
         </div>
       </div>
 
-        <div class="create-nft-btn-row">
-            <div class="create-nft-help-link" id="witness-help-link">need help?</div>    
-            <div class="saito-button-row">
-                 <button id="download_with_witness_btn" class="saito-button-primary">Download File</button>
-            </div>
+      <div class="vault-scripting-actions">
+        <div class="saito-button-row">
+          <div class="create-nft-help-link" id="witness-help-link">need help?</div>
+          <button id="download_with_witness_btn" class="saito-button-primary">Download File</button>
         </div>
+      </div>
+    </div>
 `;
-
-  return msg;
 };

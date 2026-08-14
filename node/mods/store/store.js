@@ -296,29 +296,6 @@ class Store extends ModTemplate {
           page_size: normalizePageSize(data.page_size)
         });
         const listings = result.listings.map((summary) => summary.serialize());
-        // STORE_IMG_404_DIAG — temporary; remove after 404 root cause identified
-        console.error('STORE_IMG_404_DIAG load-listings response', {
-          store_public_key: this.store_public_key || this.publicKey,
-          peer: peer?.publicKey,
-          public_key,
-          seller_filter_count: sellers.length,
-          count: listings.length,
-          listings: listings.map((row) => ({
-            nft_id: row.nft_id,
-            seller: row.seller,
-            title: row.title,
-            description: row.description,
-            price: row.price,
-            quantity_available: row.quantity_available,
-            listing_signature: row.listing_signature,
-            has_image_field: Object.prototype.hasOwnProperty.call(row, 'image'),
-            image_cache_has_entry: !!(row.nft_id && this.image_cache[row.nft_id]),
-            image_cache_length:
-              row.nft_id && this.image_cache[row.nft_id]
-                ? this.image_cache[row.nft_id].length
-                : 0
-          }))
-        });
         mycallback({
           listings,
           public_key,

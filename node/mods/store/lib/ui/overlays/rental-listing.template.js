@@ -24,21 +24,20 @@ module.exports = {
     <article class="rental-listing info">
       <header>
         <div class="meta">
-          <h2 class="title">List this item to rent</h2>
+          <h2 class="title">Rent this Item:</h2>
         </div>
       </header>
 
       <div class="body">
         <div class="details">
-          <p class="lede">
-            To rent assets using the Saito Store, you must create an NFT that provides buyers with temporary access. Provide the details below and click “Continue” to start the standard NFT creation process and provide the title and description for your item. You will be brought back here once your rental NFTs have been created and are ready for listing on the Store.
-          </p>
-
           <section class="section file">
-            <p class="label">File to rent</p>
             <p class="file-name">${sourceName}</p>
             <p class="file-kind">Vault Rental NFT</p>
           </section>
+
+          <p class="lede">
+            Renting this item on the Store requires using your Vault Access Key to create Rental Passes you can safely list. When users purchase these they will gain control of the underlying item and you will lose it for the period specified below. You may create as many NFTs as you wish, but items can only be rented out one-at-a-time.
+          </p>
 
           <section class="section rental-fields">
             <div class="rental-field">
@@ -54,22 +53,22 @@ module.exports = {
               </select>
             </div>
             <div class="rental-field">
-              <label class="label" for="rental-amount">Amount</label>
-              <input id="rental-amount" class="saito-input" type="number" min="1" max="100000000" value="${view.amount}" data-field="amount" aria-label="Number of rental NFTs" />
+              <label class="label" for="rental-amount">Passes to Mint</label>
+              <input id="rental-amount" class="saito-input" type="number" min="1" max="100000000" value="${view.amount}" data-field="amount" aria-label="Number of rental-pass NFTs" />
             </div>
             <div class="rental-field">
-              <label class="label" for="rental-price-display">Rental Price</label>
-              <div class="price-inline" id="rental-price-display">
-                <span data-field="price">${view.priceDisplay}</span><button type="button" class="saito-icon-button" data-edit="price" aria-label="Edit rental price"><i class="fas fa-pen" aria-hidden="true"></i></button>
-              </div>
+              <label class="label" for="rental-price">Rental Price</label>
+              <input id="rental-price" class="saito-input" type="text" inputmode="decimal" value="${view.priceDisplay}" data-field="price" aria-label="Rental price" />
             </div>
-          </section>
-
-          <section class="section checkout">
-            <button type="button" class="saito-button-primary" data-action="create">Continue</button>
           </section>
         </div>
       </div>
+
+      <footer class="checkout">
+        <div class="saito-button-row">
+          <button type="button" class="saito-button-primary" data-action="create">Continue</button>
+        </div>
+      </footer>
     </article>
   `;
   },
@@ -124,7 +123,7 @@ module.exports = {
           </section>
 
           <section class="section checkout">
-            <button type="button" class="saito-button-primary action" data-action="submit">Submit Rental Listing</button>
+            <button type="button" class="saito-button-primary action" data-action="submit">List on Store</button>
           </section>
         </div>
       </div>

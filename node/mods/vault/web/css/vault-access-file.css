@@ -7,19 +7,6 @@
   padding: 0.5rem;
 }
 
-.vault-nfts .vault-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-  width: 50rem;
-  max-width: 100%;
-  min-height: 24rem;
-  margin: auto;
-  text-align: center;
-}
-
 .vault-nfts .vault-nft-item {
   display: flex;
   flex: 0 0 22rem;
@@ -98,10 +85,6 @@
 }
 
 @media (max-width: 768px) {
-  .vault-nfts .vault-empty-state {
-    width: 100%;
-  }
-
   .vault-nfts .send-nft-list {
     width: 100%;
   }

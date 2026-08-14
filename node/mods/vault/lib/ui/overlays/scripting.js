@@ -12,6 +12,7 @@ class ScriptingKey {
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.callback = null;
+    this.onReturnToDefault = null;
     this.contracts = listContracts();
     this.selected_contract_id = getDefaultContractId();
     this.custom_draft = getContractScriptJson(getDefaultContractId());
@@ -86,6 +87,17 @@ class ScriptingKey {
       if (type_select) {
         type_select.onchange = (e) => {
           this.applyContractSelection(e.target.value);
+        };
+      }
+
+      const returnLink = document.querySelector('.vault-scripting-overlay [data-action="use-default-key"]');
+      if (returnLink) {
+        returnLink.onclick = (e) => {
+          e.preventDefault();
+          this.overlay.hide();
+          if (typeof this.onReturnToDefault === 'function') {
+            this.onReturnToDefault();
+          }
         };
       }
 

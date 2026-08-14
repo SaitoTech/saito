@@ -25,18 +25,12 @@ module.exports = (app, mod, scripting_overlay = {}) => {
       <div class="saito-overlay-form-header">
          <div class="saito-overlay-form-header-title">
             <div>
-               PROVIDE ACCESS SCRIPT
+               CUSTOM ACCESS KEY
             </div>
          </div>
       </div>
 
       <div class="nft-creator vault-scripting-body">
-        <div class="dropdown-cont vault-scripting-intro">
-    Advanced users may compose custom access-scripts to regulate vault
-    access. If you are not sure how to use this functionality, you
-    almost certainly want to create a public key.
-        </div>
-
         <div class="vault-scripting-type-row">
           <label class="vault-scripting-type-label" for="vault-script-type">Script type</label>
           <select class="saito-form-select vault-scripting-type-select" id="vault-script-type" aria-label="Access script type">
@@ -49,9 +43,10 @@ module.exports = (app, mod, scripting_overlay = {}) => {
         </div>
       </div>
 
-      <div class="create-nft-btn-row vault-scripting-actions">
+      <div class="vault-scripting-actions">
         <div class="saito-button-row">
-          <button id="mint_scripting_key_btn" class="saito-button-primary">Create NFT Key!</button>
+          <div class="saito-anchor" data-action="use-default-key"><span>use default key...</span></div>
+          <button id="mint_scripting_key_btn" class="saito-button-primary">Create Key</button>
         </div>
       </div>
     </div>

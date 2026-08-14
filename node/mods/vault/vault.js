@@ -70,6 +70,24 @@ function firstUndelegatedHopFromRental(file_access_script, path) {
   return { creator_pk, renter: null, expires_at: null };
 }
 
+function formatVaultScriptForLog(script) {
+  if (script == null || script === '') {
+    return '(empty)';
+  }
+  if (typeof script !== 'string') {
+    try {
+      return JSON.stringify(script, null, 2);
+    } catch (err) {
+      return String(script);
+    }
+  }
+  try {
+    return JSON.stringify(JSON.parse(script), null, 2);
+  } catch (err) {
+    return script;
+  }
+}
+
 class Vault extends ModTemplate {
   constructor(app) {
     super(app);
@@ -428,6 +446,23 @@ class Vault extends ModTemplate {
 
         if (!ok) {
           console.log('SCRIPT VALIDATION FAILED');
+          console.log(
+            '--------------------------------\nVAULT ACCESS REQUEST\n--------------------------------\nrequest:\nvault access file\npeer:\n' +
+              (tx.from?.[0]?.publicKey || tx.from?.[0]?.public_key || '(none)') +
+              '\nfile_id:\n' +
+              (txmsg.data.data?.file_id || '(none)') +
+              '\naccess_hash submitted:\n' +
+              access_hash +
+              '\nFILE access_script:\n' +
+              formatVaultScriptForLog(access_script) +
+              '\ncomputed FILE access_hash:\n' +
+              computed_hash +
+              '\nhash match:\n' +
+              hash_match +
+              '\nscript validation:\n' +
+              ok +
+              '\nquery owner:\n(not queried — script validation failed)\nquery sig:\n(not queried — script validation failed)\n--------------------------------'
+          );
           siteMessage('Supplied Witness Data Incorrect: Access Denied', 2000);
           mycallback({ status: 'err', err: 'access_denied_script_failed' });
           return 0;
@@ -448,6 +483,27 @@ class Vault extends ModTemplate {
         data.sig = txmsg.data.data.file_id;
         data.request_tx = tx;
         console.log('NORMAL vault access file 4');
+        console.log(
+          '--------------------------------\nVAULT ACCESS REQUEST\n--------------------------------\nrequest:\nvault access file\npeer:\n' +
+            (tx.from?.[0]?.publicKey || tx.from?.[0]?.public_key || '(none)') +
+            '\nfile_id:\n' +
+            (data.sig || '(none)') +
+            '\nUSER SUBMITTED access_hash:\n' +
+            access_hash +
+            '\nUSER SUBMITTED FILE access_script:\n' +
+            formatVaultScriptForLog(access_script) +
+            '\ncomputed FILE access_hash:\n' +
+            computed_hash +
+            '\nhash match:\n' +
+            hash_match +
+            '\nscript validation:\n' +
+            ok +
+            '\nVAULT QUERIES owner:\n' +
+            data.owner +
+            '\nVAULT QUERIES sig:\n' +
+            data.sig +
+            '\n--------------------------------'
+        );
 
         this.app.storage.loadTransactions(
           data,
@@ -495,6 +551,23 @@ class Vault extends ModTemplate {
         console.log('[VAULT RENTAL ACCESS] LOAN_SCRIPT eval:', ok ? 'true' : 'false');
 
         if (!ok) {
+          console.log(
+            '--------------------------------\nVAULT ACCESS REQUEST\n--------------------------------\nrequest:\nvault access rental\npeer:\n' +
+              (tx.from?.[0]?.publicKey || tx.from?.[0]?.public_key || '(none)') +
+              '\nfile_id:\n' +
+              (txmsg.data.data?.file_id || '(none)') +
+              '\nUSER SUBMITTED access_hash:\n' +
+              access_hash +
+              '\nUSER SUBMITTED RENTAL/LOAN access_script:\n' +
+              formatVaultScriptForLog(access_script) +
+              '\ncomputed RENTAL/LOAN access_hash:\n' +
+              computed_hash +
+              '\nhash match:\n' +
+              (computed_hash === access_hash) +
+              '\nscript validation:\n' +
+              ok +
+              '\nquery owner:\n(not queried — script validation failed)\nquery sig:\n(not queried — script validation failed)\n--------------------------------'
+          );
           mycallback({ status: 'err', err: 'access_denied_script_failed' });
           return 0;
         }
@@ -508,6 +581,27 @@ class Vault extends ModTemplate {
         data.access_script = access_script;
         data.sig = txmsg.data.data.file_id;
         data.request_tx = tx;
+        console.log(
+          '--------------------------------\nVAULT ACCESS REQUEST\n--------------------------------\nrequest:\nvault access rental\npeer:\n' +
+            (tx.from?.[0]?.publicKey || tx.from?.[0]?.public_key || '(none)') +
+            '\nfile_id:\n' +
+            (data.sig || '(none)') +
+            '\nUSER SUBMITTED access_hash:\n' +
+            access_hash +
+            '\nUSER SUBMITTED RENTAL/LOAN access_script:\n' +
+            formatVaultScriptForLog(access_script) +
+            '\ncomputed RENTAL/LOAN access_hash:\n' +
+            computed_hash +
+            '\nhash match:\n' +
+            (computed_hash === access_hash) +
+            '\nscript validation:\n' +
+            ok +
+            '\nVAULT QUERIES owner:\n' +
+            data.owner +
+            '\nVAULT QUERIES sig:\n' +
+            data.sig +
+            '\n--------------------------------'
+        );
 
         this.app.storage.loadTransactions(
           data,
@@ -624,15 +718,23 @@ class Vault extends ModTemplate {
       let computed_hash = this.app.core.scripting.hash(access_script);
       let script_pretty = JSON.stringify(JSON.parse(access_script), null, 2);
       console.log(
-        '--------------------------------\nVAULT DOWNLOAD REQUEST\n\naccess_hash:\n' +
+        '--------------------------------\nVAULT ACCESS REQUEST (CLIENT SEND)\n--------------------------------\nrequest:\nvault access file\naccess_script_override supplied:\n' +
+          !!access_script_override +
+          '\nfile_id:\n' +
+          (file_id || '(none)') +
+          '\nUSER SUBMITTED access_hash:\n' +
           access_hash +
-          '\n\nhash(access_script):\n' +
-          computed_hash +
-          '\n\nscript:\n' +
+          '\nUSER SUBMITTED FILE access_script:\n' +
           script_pretty +
-          '\n\nfile_id:\n' +
+          '\ncomputed FILE access_hash:\n' +
+          computed_hash +
+          '\nhash match:\n' +
+          (computed_hash === access_hash) +
+          '\nVAULT WILL QUERY owner:\n' +
+          access_hash +
+          '\nVAULT WILL QUERY sig:\n' +
           file_id +
-          '\n\n--------------------------------'
+          '\n--------------------------------'
       );
 
       this.app.network.sendRequestAsTransaction(
@@ -795,6 +897,21 @@ class Vault extends ModTemplate {
     console.log('[VAULT LOAN SCRIPT]\n' + JSON.stringify(loan_script, null, 2));
     console.log('[VAULT LOAN SCRIPT HASH]\n' + access_hash);
     console.log('[VAULT RENTAL ACCESS] submitting hash(instantiated LOAN_SCRIPT) as access_hash');
+    console.log(
+      '--------------------------------\nVAULT ACCESS REQUEST (CLIENT SEND)\n--------------------------------\nrequest:\nvault access rental\nfile_id:\n' +
+        file_id +
+        '\nUSER SUBMITTED access_hash:\n' +
+        access_hash +
+        '\nUSER SUBMITTED RENTAL/LOAN access_script:\n' +
+        JSON.stringify(loan_script, null, 2) +
+        '\ncomputed RENTAL/LOAN access_hash:\n' +
+        access_hash +
+        '\nVAULT WILL QUERY owner:\n' +
+        access_hash +
+        '\nVAULT WILL QUERY sig:\n' +
+        file_id +
+        '\n--------------------------------'
+    );
 
     const payload = {
       request: 'vault access rental',

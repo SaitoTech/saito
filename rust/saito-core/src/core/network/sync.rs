@@ -772,7 +772,6 @@ impl SyncManager {
         };
 
         let Some(peer_id) = peer_id else {
-            info!(" -- no -- cannot find peer from peer_id");
             return;
         };
 

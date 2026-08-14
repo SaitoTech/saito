@@ -9,9 +9,6 @@ const {
 const DEFAULT_COPY =
   'A standard Access Key provides access to the owner of the NFT. Transfer the NFT and ownership of the file transfers with it.';
 
-const ADVANCED_COPY =
-  'Advanced access keys give creators complete control over the scripts used to provide file access. Selecting this option requires familiarity with Saito Scripting. You will be prompted to provide the script that protects access to your file.';
-
 class FileUpload {
   constructor(app, mod) {
     this.app = app;
@@ -19,7 +16,6 @@ class FileUpload {
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.scripting_overlay = new ScriptingKeyOverlay(this.app, this.mod);
     this.nft_id = '';
-    this.advanced = false;
     this.busy = false;
     this.onComplete = null;
     this.onError = null;
@@ -35,7 +31,6 @@ class FileUpload {
       this.app.browser.isMobileBrowser() ||
       (typeof window !== 'undefined' && window.innerWidth <= 768);
 
-    this.advanced = false;
     this.busy = false;
     this.onComplete = typeof opts.onComplete === 'function' ? opts.onComplete : null;
     this.onError = typeof opts.onError === 'function' ? opts.onError : null;
@@ -146,25 +141,18 @@ class FileUpload {
 
     const title = root.querySelector('.saito-overlay-form-header .saito-overlay-form-header-title');
     if (title) {
-      title.textContent = this.advanced ? 'ADVANCED ACCESS KEY' : 'STANDARD KEY';
+      title.textContent = 'STANDARD KEY';
     }
 
     const copy = root.querySelector('[data-key-copy]');
     if (copy) {
-      copy.textContent = this.advanced ? ADVANCED_COPY : DEFAULT_COPY;
+      copy.textContent = DEFAULT_COPY;
     }
 
     const artwork = root.querySelector('.key-artwork');
     if (artwork) {
-      artwork.classList.toggle('jade', !this.advanced);
-      artwork.classList.toggle('crystal', this.advanced);
-    }
-
-    const toggle = root.querySelector('[data-action="toggle-mode"]');
-    if (toggle) {
-      toggle.innerHTML = this.advanced
-        ? '<span>use default key...</span>'
-        : '<span>create custom key...</span>';
+      artwork.classList.add('jade');
+      artwork.classList.remove('crystal');
     }
   }
 
@@ -178,17 +166,24 @@ class FileUpload {
     return true;
   }
 
+  showStandardKeyStep() {
+    this.overlay.show(FileUploadTemplate(this.app, this.mod, false));
+    this.attachEvents(false);
+    this.showKeyStep();
+  }
+
   openScriptingFlow() {
     this.overlay.hide();
     this.scripting_overlay.render();
+    this.scripting_overlay.onReturnToDefault = () => {
+      this.showStandardKeyStep();
+    };
     this.scripting_overlay.callback = async (obj) => {
       if (!obj?.access_script) {
         return;
       }
-      // Re-show key step busy state for the advanced-key mint path.
-      this.overlay.show(FileUploadTemplate(this.app, this.mod, false));
-      this.attachEvents(false);
-      this.showKeyStep();
+      // Re-show key step busy state for the custom-key mint path.
+      this.showStandardKeyStep();
       this.setKeyStepState('busy', 'Creating access key…');
       await this.wait_for_paint();
       try {
@@ -245,7 +240,6 @@ class FileUpload {
 
           this.mod.file = file;
           this.mod.filename = fileobj.name;
-          this.advanced = false;
           this.showKeyStep();
         } catch (err) {
           console.error('Vault file upload error:', err);
@@ -264,8 +258,7 @@ class FileUpload {
       if (this.busy) {
         return;
       }
-      this.advanced = !this.advanced;
-      this.applyMode();
+      this.openScriptingFlow();
     });
 
     root.querySelector('[data-action="confirm-key"]')?.addEventListener('click', async (e) => {
@@ -275,10 +268,6 @@ class FileUpload {
       }
 
       if (!(await this.ensureBalance())) {
-        return;
-      }
-      if (this.advanced) {
-        this.openScriptingFlow();
         return;
       }
 

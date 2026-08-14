@@ -24,12 +24,6 @@
   min-width: 0;
 }
 
-.vault-scripting-overlay .vault-scripting-intro {
-  display: block;
-  color: var(--saito-muted-foreground);
-  line-height: 1.45;
-}
-
 .vault-scripting-overlay .vault-scripting-type-row {
   display: flex;
   flex-wrap: wrap;
@@ -76,14 +70,18 @@
 .vault-scripting-overlay .vault-scripting-actions {
   display: flex;
   flex-shrink: 0;
-  justify-content: flex-end;
   align-items: center;
+  width: 100%;
   margin-top: 0;
 }
 
 .vault-scripting-overlay .vault-scripting-actions .saito-button-row {
   margin: 0;
-  width: auto;
+  width: 100%;
+}
+
+.vault-scripting-overlay .vault-scripting-actions .create-nft-help-link {
+  margin-right: auto;
 }
 
 @media screen and (max-width: 768px) {
