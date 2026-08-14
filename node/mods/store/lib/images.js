@@ -90,16 +90,6 @@ async function initializeImageCache(mod) {
 
 function serveCachedImageResponse(mod, res, nft_id) {
   const image_data = mod.image_cache[nft_id];
-  // STORE_IMG_404_DIAG — temporary; remove after 404 root cause identified
-  console.error('STORE_IMG_404_DIAG cache HTTP lookup', {
-    nft_id,
-    image_cache_has_entry: !!image_data,
-    image_length: typeof image_data === 'string' ? image_data.length : 0,
-    cache_keys_matching_prefix: Object.keys(mod.image_cache || {})
-      .filter((k) => String(k).includes('696d616765'))
-      .map((k) => ({ nft_id: k, length: String(mod.image_cache[k] || '').length })),
-    store_public_key: mod.store_public_key || mod.publicKey
-  });
   if (!image_data) {
     res.status(404).end();
     return;

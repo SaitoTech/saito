@@ -73,9 +73,17 @@
 }
 
 .saito-transaction-monitor .success {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 3.5rem;
+	height: 3.5rem;
+	min-height: 0;
 	margin-bottom: var(--saito-space-xs);
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--saito-status-success) 18%, transparent);
 	color: var(--saito-status-success);
-	font-size: 5rem;
+	font-size: var(--font-size-large);
 	line-height: 1;
 }
 

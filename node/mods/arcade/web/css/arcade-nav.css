@@ -1,0 +1,75 @@
+/* Namespace: .arcade-nav — quiet left rail (RedSquare menu language) */
+
+.arcade-nav .menu .list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-nav .menu .item {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--saito-space-md);
+  min-height: 4.2rem;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border-radius: var(--saito-radius);
+  cursor: pointer;
+}
+
+.arcade-nav .menu .item.active {
+  background-color: var(--saito-accent);
+  color: var(--saito-accent-foreground);
+}
+
+.arcade-nav .menu .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.arcade-nav .menu .icon i {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.arcade-nav .menu .icon i::before {
+  -webkit-text-stroke: 1px var(--saito-muted-foreground);
+  color: transparent;
+}
+
+.arcade-nav .menu .item:hover .icon i::before,
+.arcade-nav .menu .item.active .icon i::before {
+  -webkit-text-stroke-color: var(--saito-foreground);
+}
+
+.arcade-nav .menu .label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 601px) {
+  body.arcade-body .arcade-nav .menu .label {
+    font-size: 1.67rem;
+  }
+}
+
+@media (max-width: 1100px) {
+  .arcade-nav .menu .item {
+    grid-template-columns: 2.75rem;
+    justify-content: center;
+    justify-items: center;
+    padding-inline: var(--saito-space-xs);
+  }
+
+  .arcade-nav .menu .label {
+    display: none;
+  }
+}

@@ -3,9 +3,11 @@ const Menu = require('./menu');
 const Manager = require('./manager');
 const NftPickerOverlay = require('./overlays/nft-picker');
 const ListingDetailOverlay = require('./overlays/listing-detail');
+const RentalListingOverlay = require('./overlays/rental-listing');
 const PurchaseOverlay = require('./overlays/purchase');
 const PurchaseLifecycle = require('./purchase-lifecycle');
 const ListingLifecycle = require('./listing-lifecycle');
+const { normalizeListingMode } = require('../categories');
 
 class Main {
   constructor(app, mod, container = '.saito-container') {
@@ -68,13 +70,21 @@ class Main {
   async initialize() {
     this.nft_picker = new NftPickerOverlay(this.app, this.mod);
     this.listing_detail = new ListingDetailOverlay(this.app, this.mod);
+    this.rental_listing = new RentalListingOverlay(this.app, this.mod);
     this.purchase_overlay = new PurchaseOverlay(this.app, this.mod);
 
     this.nft_picker.onSelect = (nft, defaults) => {
+      if (normalizeListingMode(defaults?.listing_mode) === 'rent') {
+        this.rental_listing.render({ source_nft: nft, defaults });
+        return;
+      }
       this.listing_detail.render({ mode: 'edit', nft, defaults });
     };
     this.listing_detail.onBack = (defaults) => {
       this.nft_picker.render(defaults || {});
+    };
+    this.rental_listing.onBack = (defaults) => {
+      this.nft_picker.render({ ...(defaults || {}), listing_mode: 'rent' });
     };
 
     this.product_overlay = this.listing_detail;
@@ -253,12 +263,20 @@ class Main {
   }
 
   openSell(defaults = {}) {
-    if (defaults?.nft) {
-      this.listing_detail.render({ mode: 'edit', nft: defaults.nft, defaults });
+    const next = {
+      ...defaults,
+      listing_mode: normalizeListingMode(defaults.listing_mode)
+    };
+    if (next?.nft) {
+      if (next.listing_mode === 'rent') {
+        this.rental_listing.render({ source_nft: next.nft, defaults: next });
+        return;
+      }
+      this.listing_detail.render({ mode: 'edit', nft: next.nft, defaults: next });
       return;
     }
 
-    this.nft_picker.render(defaults);
+    this.nft_picker.render(next);
   }
 }
 

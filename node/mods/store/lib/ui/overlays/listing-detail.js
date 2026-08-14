@@ -4,6 +4,11 @@ const ListingFieldEdit = require('./listing-field-edit');
 const Summary = require('../../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
 const { summaryBucketKey } = require('../summary-cache');
+const { isStoreRentalListing } = require('../../categories');
+const {
+  durationLabel,
+  rightsLabel
+} = require('./rental-listing.template');
 
 function returnShortKey(key = '') {
   if (!key) {
@@ -127,6 +132,12 @@ class ListingDetailOverlay {
     return 'Digital';
   }
 
+  returnListingMeta(summary = {}) {
+    const tx = summary.listing_tx;
+    const txmsg = tx?.returnMessage?.() || tx?.msg || {};
+    return txmsg.listing || {};
+  }
+
   returnViewModel(summary = {}) {
     const listingTitle = summary.returnTitle?.() || 'Untitled Item';
     const seller = summary.seller || 'anon-store';
@@ -143,15 +154,18 @@ class ListingDetailOverlay {
       ? summary.images.filter(Boolean)
       : [listingImage || placeholder];
 
+    const listingMeta = this.returnListingMeta(summary);
+    const isRental = isStoreRentalListing(summary, listingMeta);
+
     const priceValue = summary.returnPrice?.() || summary.price || summary.reserve_price || '';
     const bidValue = summary.current_bid || summary.currentBid || '';
-    const isBid = !!bidValue && !priceValue;
+    const isBid = !!bidValue && !priceValue && !isRental;
     const primaryValue = isBid ? bidValue : priceValue || 'N/A';
-    const primaryLabel = isBid ? 'Current Bid' : 'Price';
+    const primaryLabel = isRental ? 'Rental Price' : isBid ? 'Current Bid' : 'Price';
     const currency = summary.currency || summary.denomination || 'SAITO';
     const nextBid = summary.next_bid || summary.nextMinBid || '';
     const supply = summary.returnQuantity?.() || 1;
-    const actionText = isBid ? 'Bid' : 'Buy';
+    const actionText = isRental ? 'Rent' : isBid ? 'Bid' : 'Buy';
     const description = summary.returnDescription?.() || '';
     const txid = String(summary.listing_signature || summary.nft_id || 'N/A');
     const primaryDisplay = this.hasCurrencyLabel(primaryValue)
@@ -160,6 +174,9 @@ class ListingDetailOverlay {
     const nextBidDisplay = this.hasCurrencyLabel(nextBid)
       ? String(nextBid)
       : `${nextBid} ${currency}`;
+
+    const durationHours = listingMeta.rental_duration_hours || summary.nft?.data?.duration_hours;
+    const rights = listingMeta.rental_rights || summary.nft?.data?.rights || 'all';
 
     return {
       identicon: this.app?.keychain?.returnIdenticon?.(seller) || '',
@@ -171,18 +188,21 @@ class ListingDetailOverlay {
       primaryLabel,
       primaryDisplay,
       nextBid,
-      showNextBid: !!nextBid,
+      showNextBid: !!nextBid && !isRental,
       nextBidDisplay,
       supply,
-      showQuantity: supply > 1,
+      showQuantity: !isRental && supply > 1,
       actionText,
       description,
       hasDescription: !!description,
-      productType: this.returnProductType(summary),
+      productType: isRental ? 'store-nft-rental' : this.returnProductType(summary),
       fileType: this.returnFileTypeFromImages(normalizedImages),
       createdDate: this.returnCreatedDate(summary),
       txidShort: returnShortKey(txid),
-      imageLoading: summary.isImageLoading?.() ?? false
+      imageLoading: summary.isImageLoading?.() ?? false,
+      isRental,
+      rentalDuration: durationHours ? durationLabel(durationHours) : '',
+      rentalRights: rightsLabel(rights)
     };
   }
 
@@ -385,8 +405,10 @@ class ListingDetailOverlay {
           return;
         }
 
+        const listingMeta = this.returnListingMeta(summary);
+        const isRental = isStoreRentalListing(summary, listingMeta);
         const qtyInput = root.querySelector('#listing-qty');
-        const quantity = qtyInput ? Number(qtyInput.value) || 1 : 1;
+        const quantity = isRental ? 1 : qtyInput ? Number(qtyInput.value) || 1 : 1;
 
         if (buyBtn.disabled) {
           return;

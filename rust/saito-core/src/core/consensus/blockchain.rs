@@ -233,12 +233,6 @@ impl Blockchain {
             return AddBlockResult::FailedNotValid;
         }
 
-        info!(
-            "blockchain.add_block {:?} with id {:?}",
-            block.hash.to_hex(),
-            block.id,
-        );
-
         block.confirmations = 0;
 
         // start by extracting some variables that we will use
@@ -665,11 +659,6 @@ impl Blockchain {
 
         // ensure pruning of next block OK will have the right CVs
         self.prune_blocks_after_add_block(storage, configs).await;
-        info!(
-            "blockchain.add_block_success -- {}-{} -- added successfully!",
-            block_id,
-            block_hash.to_hex(),
-        );
     }
 
     async fn on_confirmation(

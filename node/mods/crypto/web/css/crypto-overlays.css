@@ -1103,9 +1103,34 @@
 .saito-crypto-withdraw .confirm-tx {
   flex: 0 0 auto;
   align-items: center;
+  width: 100%;
   max-width: 54rem;
   margin: var(--saito-space-md) auto 0;
+  padding-bottom: var(--saito-space-xl);
   text-align: center;
+}
+
+.saito-crypto-withdraw[data-withdraw-state='success'] .review {
+  padding-bottom: var(--saito-space-xl);
+}
+
+.saito-crypto-withdraw .confirm-tx-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.4rem var(--saito-space-sm);
+  width: 100%;
+  margin-bottom: var(--saito-space-xs);
+}
+
+.saito-crypto-withdraw .confirm-tx-details {
+  font-size: 1.2rem;
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  white-space: nowrap;
 }
 
 .saito-crypto-withdraw .confirm-spinner {
@@ -1163,20 +1188,26 @@
 .saito-crypto-withdraw .confirm-tx-inline {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   gap: var(--saito-space-xs);
   width: 100%;
   max-width: 100%;
 }
 
+.saito-crypto-withdraw .confirm-tx-inline .saito-icon-button {
+  flex: 0 0 auto;
+  margin-top: 0.1em;
+}
+
 .saito-crypto-withdraw .confirm-tx-hash {
   font-family: monospace;
   min-width: 0;
-  overflow: hidden;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  white-space: normal;
+  text-align: left;
 }
 
 .saito-crypto-withdraw .confirm-tx-inline .visually-hidden {

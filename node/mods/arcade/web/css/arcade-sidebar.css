@@ -1,0 +1,101 @@
+/*
+ * Namespace: .arcade-sidebar
+ * Layout + RedSquare-parity typography for embedded League/Chat.
+ *
+ * Typography root cause (leaderboard too large):
+ *   Saito `.saito-table-body` / `.saito-table-rank` default to font-size: 1.5rem.
+ *   RedSquare resets those to `inherit` in redsquare-leaderboard.css.
+ *   Arcade mounts League into `.redsquare-leaderboard` but does not load RS CSS,
+ *   so table rows stayed at 1.5rem while RS inherited body 1.25rem.
+ */
+
+.arcade-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: var(--saito-space-md);
+  padding-bottom: var(--saito-space-sm);
+  padding-inline: var(--saito-space-sm) var(--saito-space-md);
+}
+
+.arcade-sidebar .sidebar-stack,
+.arcade-sidebar .arcade-leaderboard,
+.arcade-sidebar .league-rankings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  min-width: 0;
+}
+
+/* Beat `.sidebar-stack { display: flex }` so empty invites do not reserve gap. */
+.arcade-sidebar .sidebar-stack[hidden] {
+  display: none;
+}
+
+.arcade-sidebar .arcade-leaderboard {
+  flex-shrink: 0;
+}
+
+.arcade-sidebar .arcade-leaderboard:empty {
+  display: none;
+}
+
+/* Section titles — match RedSquare (reset Saito uppercase 2rem defaults) */
+body.arcade-body .arcade-sidebar .saito-sidebar-header,
+body.arcade-body .arcade-sidebar .sidebar-header {
+  margin: 0;
+  min-height: 0;
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: normal;
+  line-height: 1.3;
+  text-transform: none;
+  color: inherit;
+  background: transparent;
+}
+
+@media (min-width: 601px) {
+  body.arcade-body .arcade-sidebar .saito-sidebar-header,
+  body.arcade-body .arcade-sidebar .sidebar-header {
+    font-size: 1.67rem;
+    font-family: var(--saito-font-medium);
+  }
+}
+
+/* Leaderboard rows — same density rules as redsquare-leaderboard.css */
+.arcade-sidebar .redsquare-leaderboard .league-rankings {
+  gap: var(--saito-space-sm);
+}
+
+.arcade-sidebar .redsquare-leaderboard .saito-table-body {
+  max-height: none;
+  overflow: visible;
+}
+
+.arcade-sidebar .redsquare-leaderboard .league-leaderboard-ranking {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--saito-space-sm);
+  align-items: center;
+  padding-block: var(--saito-space-xs);
+}
+
+.arcade-sidebar .redsquare-leaderboard .saito-table-gamename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arcade-sidebar .redsquare-leaderboard .saito-table-rank {
+  text-align: right;
+}
+
+.arcade-sidebar .redsquare-leaderboard .saito-table-body,
+.arcade-sidebar .redsquare-leaderboard .saito-table-rank {
+  font-size: inherit;
+}
+

@@ -234,7 +234,10 @@ class Invite {
   }
 
   attachEvents() {
-    let qs = this.container + ` #arcade-invite-${this.invite_data.game_id}`;
+    let qs = `${this.container} #arcade-invite-${this.invite_data.game_id}`.trim();
+    if (!this.container) {
+      qs = `#arcade-invite-${this.invite_data.game_id}`;
+    }
 
     try {
       if (document.querySelector(qs)) {

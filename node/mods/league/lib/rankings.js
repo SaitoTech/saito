@@ -68,8 +68,11 @@ class LeagueRankings {
   attachEvents() {
     document.querySelectorAll('.league-leaderboard-ranking').forEach((el) => {
       el.onclick = (e) => {
-        let lid = e.currentTarget.getAttribute('data-id');
-        this.app.connection.emit('league-overlay-render-request', lid);
+        e.preventDefault();
+        this.app.connection.emit('arcade-game-info-render-request', {
+          leagueId: e.currentTarget.getAttribute('data-id'),
+          game: e.currentTarget.getAttribute('data-game')
+        });
       };
     });
   }

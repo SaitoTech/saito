@@ -342,6 +342,14 @@
   white-space: normal;
 }
 
+/* Rental purchase checkout — same shell as sale; no quantity control */
+.listing-detail.view.rental .rental-note {
+  margin: 0;
+  font-size: var(--font-size-medium);
+  line-height: 1.45;
+  color: var(--saito-muted-foreground);
+}
+
 /* Buy overlay — checkout is the primary action cluster */
 .listing-detail.view .checkout {
   gap: var(--saito-space-lg);

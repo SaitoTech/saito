@@ -66,6 +66,7 @@ const OpcodeSetarray = require('./lib/opcodes/setarray');
 const OpcodeSetarrayfield = require('./lib/opcodes/setarrayfield');
 const OpcodeArrayify = require('./lib/opcodes/arrayify');
 const OpcodeSumfields = require('./lib/opcodes/sumfields');
+const OpcodeScripthash = require('./lib/opcodes/scripthash');
 const OpcodeCheckown = require('./lib/opcodes/checkown');
 const OpcodeCheckownnft = require('./lib/opcodes/checkownnft');
 const OpcodeCheckownnftwhere = require('./lib/opcodes/checkownnftwhere');
@@ -142,6 +143,7 @@ class Rustscript extends ModTemplate {
       OpcodeSetarrayfield,
       OpcodeArrayify,
       OpcodeSumfields,
+      OpcodeScripthash,
       OpcodeCheckown,
       OpcodeCheckownnft,
       OpcodeCheckownnftwhere,
@@ -777,61 +779,6 @@ class Rustscript extends ModTemplate {
   }
 
   /**
-   * Temporary debug dump immediately before network propagate.
-   * Search console / server logs for: [P2SH_DEBUGGING_TRACE]
-   */
-  logP2shDebuggingTraceBeforePropagate(context, tx) {
-    const tag = '[P2SH_DEBUGGING_TRACE]';
-    try {
-      const msg =
-        tx?.msg && typeof tx.msg === 'object' && Object.keys(tx.msg).length
-          ? tx.msg
-          : typeof tx?.returnMessage === 'function'
-            ? tx.returnMessage()
-            : null;
-      const from = Array.isArray(tx?.from) ? tx.from : [];
-      const to = Array.isArray(tx?.to) ? tx.to : [];
-      const slipDump = (slip, i) => {
-        const j = slipToStoredJson(slip) || {};
-        return {
-          i,
-          publicKey: j.publicKey || j.public_key || null,
-          amount: j.amount != null ? String(j.amount) : null,
-          type: j.type ?? j.slip_type ?? null,
-          blockId: j.blockId != null ? String(j.blockId) : j.block_id != null ? String(j.block_id) : null,
-          txOrdinal:
-            j.txOrdinal != null
-              ? String(j.txOrdinal)
-              : j.tx_ordinal != null
-                ? String(j.tx_ordinal)
-                : null,
-          index: j.index ?? j.slip_index ?? null
-        };
-      };
-      const dump = {
-        context,
-        signature: tx?.signature || null,
-        type: tx?.type,
-        timestamp: tx?.timestamp,
-        fromCount: from.length,
-        toCount: to.length,
-        from: from.map(slipDump),
-        to: to.map(slipDump),
-        msg
-      };
-      console.warn(`${tag} client pre-propagate JSON dump`, dump);
-      try {
-        const serialized = this.serializeTransaction(tx);
-        console.warn(`${tag} client pre-propagate serialized tx JSON`, serialized);
-      } catch (serErr) {
-        console.warn(`${tag} client pre-propagate serialize failed`, serErr?.message || serErr);
-      }
-    } catch (err) {
-      console.error(`${tag} client pre-propagate dump failed`, err);
-    }
-  }
-
-  /**
    * Download a transaction as canonical JSON via the browser.
    * Pass block_id / transaction_id with update_outputs so outputs carry
    * confirmed chain location in the serialized file.
@@ -1057,7 +1004,6 @@ class Rustscript extends ModTemplate {
         callback: typeof options.callback === 'function' ? options.callback : null
       });
     }
-    this.logP2shDebuggingTraceBeforePropagate('broadcastPublish', tx);
     await this.app.network.propagateTransaction(tx);
     return tx;
   }
@@ -1328,7 +1274,6 @@ class Rustscript extends ModTemplate {
       });
     }
 
-    this.logP2shDebuggingTraceBeforePropagate('broadcastUnlockBaseTransaction', tx);
     await this.app.network.propagateTransaction(tx);
     return tx;
   }
@@ -1404,7 +1349,6 @@ class Rustscript extends ModTemplate {
       });
     }
 
-    this.logP2shDebuggingTraceBeforePropagate('broadcastSaitoSolution', tx);
     await this.app.network.propagateTransaction(tx);
     return tx;
   }
@@ -1497,7 +1441,6 @@ class Rustscript extends ModTemplate {
       });
     }
 
-    this.logP2shDebuggingTraceBeforePropagate('broadcastNftSolution', tx);
     await this.app.network.propagateTransaction(tx);
     return tx;
   }

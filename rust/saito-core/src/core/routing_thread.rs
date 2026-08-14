@@ -843,7 +843,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     if !is_latest_block {
                         return None;
                     }
-                    info!("RoutingEvent::OnAddBlockSuccess: empty queue, triggering advance chain symc...");
                     sync.advance_chain_sync_if_ready(&self.network, self.config_lock.clone())
                         .await;
                 }

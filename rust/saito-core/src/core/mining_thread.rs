@@ -95,11 +95,6 @@ impl ProcessEvent<MiningEvent> for MiningThread {
                 if let Some(gt) = self.mine().await {
                     self.miner_active = false;
                     self.mined_golden_tickets += 1;
-                    info!(
-                        "sending mined gt target: {:?} to consensus thread. channel_capacity : {:?}",
-                        gt.target.to_hex(),
-                        self.sender_to_mempool.capacity()
-                    );
                     self.sender_to_mempool
                         .send(ConsensusEvent::NewGoldenTicket { golden_ticket: gt })
                         .await

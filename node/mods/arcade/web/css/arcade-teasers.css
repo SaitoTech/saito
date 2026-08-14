@@ -1,0 +1,239 @@
+/*
+ * Namespace: .teasers / .teaser
+ *
+ * Card geometry from NWASM `.nwasm-main .game` (nwasm-main.css):
+ *   height/min-height: 18rem (16.5 / 15.5 / 14.5 / 15 at breakpoints)
+ *   gap: var(--saito-space-lg)
+ *   border: 2px solid var(--saito-border)
+ *   border-radius: calc(var(--saito-radius) + 0.15rem)
+ */
+
+.teasers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--saito-space-lg);
+  width: 100%;
+  padding: var(--saito-space-md) 0 var(--saito-space-lg);
+}
+
+.teaser {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 18rem;
+  min-height: 18rem;
+  padding: 0;
+  border: 2px solid var(--saito-border);
+  border-radius: calc(var(--saito-radius) + 0.15rem);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+  box-shadow: var(--saito-elevation-0);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.teaser:hover,
+.teaser:focus-visible {
+  border-color: var(--saito-primary);
+  box-shadow: var(--saito-elevation-3);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.teaser .art {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--saito-muted);
+}
+
+.teaser .title {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  min-height: 3.2rem;
+  padding: 0 var(--saito-space-sm);
+  font-family: var(--saito-font-heavy);
+  font-size: inherit;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  color: inherit;
+  background-color: color-mix(in srgb, var(--saito-background) 55%, transparent);
+}
+
+.teaser .footer {
+  position: absolute;
+  z-index: 2;
+  right: var(--saito-space-xs);
+  bottom: var(--saito-space-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-xs);
+}
+
+/*
+ * Rank chip — same semantic class as arcade2 (arcade-invite-badge),
+ * scaled to the compact NWASM-sized card.
+ */
+.teaser .footer .leaderboard-rank,
+.teaser .footer .arcade-invite-badge {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  padding: 0 0.55rem;
+  border-radius: var(--saito-radius-sm);
+  font-size: 1.083rem;
+  font-family: var(--saito-font-heavy);
+  font-weight: bold;
+  line-height: 1;
+  text-transform: uppercase;
+  background: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+  box-shadow: var(--saito-elevation-1);
+}
+
+/*
+ * Install corner — small red triangle in the bottom-right of the card.
+ * Artwork remains the dominant visual; INSTALL is a status marker only.
+ */
+.teaser.install .footer {
+  inset: auto 0 0 auto;
+  width: 5.2rem;
+  height: 5.2rem;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--saito-red-dark);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.teaser.install .footer .install-label {
+  display: block;
+  transform: rotate(-45deg) translate(0.15rem, 0.7rem);
+  font-family: var(--saito-font-heavy);
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 0.06rem;
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: uppercase;
+  color: var(--saito-primary-foreground, #fff);
+}
+
+/* Teasing / install-options state — in-card next actions */
+.teaser.teasing .actions {
+  position: absolute;
+  z-index: 3;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  padding: var(--saito-space-sm);
+  background: color-mix(in srgb, var(--saito-background) 78%, transparent);
+}
+
+.teaser.teasing .actions .action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0 var(--saito-space-sm);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-sm);
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
+  font-size: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.teaser.teasing .actions .action:hover,
+.teaser.teasing .actions .action:focus-visible {
+  border-color: var(--saito-primary);
+  outline: none;
+}
+
+.teaser.teasing .actions .action[data-action-id='install'] {
+  background: var(--saito-primary);
+  border-color: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+}
+
+.teaser.installing {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.teaser.error {
+  border-color: var(--saito-red-dark);
+}
+
+/* + Add Game — same footprint; dedicated tile art */
+.teaser.add .art {
+  background-image: url('/arcade/img/add_game.png');
+}
+
+@media (max-width: 1400px) {
+  .teaser {
+    height: 16.5rem;
+    min-height: 16.5rem;
+  }
+}
+
+@media (max-width: 1100px) {
+  .teasers {
+    grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+  }
+
+  .teaser {
+    height: 15.5rem;
+    min-height: 15.5rem;
+  }
+}
+
+@media (max-width: 800px) {
+  .teasers {
+    grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
+    gap: var(--saito-space-md);
+  }
+
+  .teaser {
+    height: 14.5rem;
+    min-height: 14.5rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .teasers {
+    grid-template-columns: 1fr;
+  }
+
+  .teaser {
+    height: 15rem;
+    min-height: 15rem;
+  }
+}

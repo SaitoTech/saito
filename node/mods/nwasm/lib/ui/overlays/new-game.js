@@ -79,44 +79,23 @@ class NewGameOverlay {
     }
 
     let mod = this.mod;
-    let app = this.app;
-    let title = this.file_name || 'Loading game…';
+
+    if (!mod.is_nwasm_page()) {
+      this.set_busy('Preparing emulator…');
+      await this.wait_for_paint();
+      this.overlay.hide();
+      mod.queueEphemeralRomFromArcade(this.file, this.file_name);
+      return;
+    }
 
     this.set_busy('Preparing emulator…');
     await this.wait_for_paint();
-
-    //
-    // Keep a dedicated loading overlay visible during the blocking init.
-    // (Hiding the choice overlay before init was leaving a blank/frozen screen.)
-    //
     this.overlay.hide();
-    mod.ui.hide();
-    mod.ui.load_overlay.render({
-      title: title,
-      message:
-        'Initializing emulator — this can take a while for large ROMs. The page may appear frozen; please wait.'
-    });
-    await this.wait_for_paint();
-
-    mod.active_rom = this.file;
-    //
-    // Ephemeral play: do not treat this as an archive candidate.
-    //
-    mod.uploaded_rom = true;
 
     let a = Buffer.from(this.file, 'binary').toString('base64');
     let ab = mod.convertBase64ToByteArray(a);
-
     await this.wait_for_paint();
-
-    //
-    // initializeRom → LoadEmulator (callMain / same-ROM soft-reset / reload).
-    // Not a library launch — clear launch_sig so a Module reload does not
-    // auto-reopen a previously selected library game.
-    //
-    mod.launch_sig = '';
-    mod.startPlaying();
-    myApp.initializeRom(ab, app, mod);
+    await mod.playEphemeralRom(ab, this.file_name, this.file);
   }
 
   open_library() {

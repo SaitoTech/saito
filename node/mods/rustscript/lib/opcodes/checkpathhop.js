@@ -73,6 +73,7 @@ module.exports = {
     }
 
     const decoded = [];
+    let expectedFrom = start_publickey;
     for (let h = 0; h < path.length; h += 1) {
       const hop = path[h];
       if (!hop || typeof hop !== 'object' || typeof hop.value !== 'string') {
@@ -80,10 +81,12 @@ module.exports = {
       }
       const parsed = JSON.parse(Buffer.from(hop.value, 'base64').toString('utf8'));
       decoded.push({
+        from: expectedFrom,
         to: hop.to,
         sig: hop.sig,
         value: parsed
       });
+      expectedFrom = hop.to;
     }
 
     let filtered = decoded;
@@ -155,6 +158,7 @@ module.exports = {
       context.__opcodes.checkpathhop = {};
     }
     context.__opcodes.checkpathhop.hop = {
+      from: winning_hop.from,
       to: winning_hop.to,
       sig: winning_hop.sig,
       value: winning_hop.value

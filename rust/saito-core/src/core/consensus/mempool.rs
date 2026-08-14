@@ -13,7 +13,6 @@ use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::burnfee::BurnFee;
 use crate::core::consensus::golden_ticket::GoldenTicket;
-use crate::core::consensus::slip::SlipType;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::SaitoUTXOSetKey;
@@ -24,81 +23,6 @@ use crate::core::storage::storage::Storage;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 use crate::iterate;
-
-fn p2sh_debugging_trace_interesting(tx: &Transaction) -> bool {
-    if tx
-        .from
-        .iter()
-        .any(|s| s.slip_type == SlipType::P2SH || s.public_key[0] == 0x00)
-    {
-        return true;
-    }
-    if let Ok(text) = std::str::from_utf8(&tx.data) {
-        return text.contains("access_scripts")
-            || text.contains("access_script")
-            || text.contains("p2sh")
-            || text.contains("Rustscript")
-            || text.contains("spend p2sh")
-            || text.contains("publish p2sh");
-    }
-    false
-}
-
-fn p2sh_debugging_trace_dump_tx(label: &str, tx: &Transaction) {
-    let msg_preview = std::str::from_utf8(&tx.data)
-        .map(|s| {
-            if s.len() > 2000 {
-                format!("{}…(truncated {} bytes)", &s[..2000], s.len())
-            } else {
-                s.to_string()
-            }
-        })
-        .unwrap_or_else(|_| format!("<non-utf8 data len={}>", tx.data.len()));
-
-    info!(
-        "[P2SH_DEBUGGING_TRACE] {} signature={} type={:?} timestamp={} from_count={} to_count={} total_in={} total_out={} total_fees={}",
-        label,
-        tx.signature.to_hex(),
-        tx.transaction_type,
-        tx.timestamp,
-        tx.from.len(),
-        tx.to.len(),
-        tx.total_in,
-        tx.total_out,
-        tx.total_fees
-    );
-    for (i, slip) in tx.from.iter().enumerate() {
-        info!(
-            "[P2SH_DEBUGGING_TRACE] {} FROM[{}] amount={} type={:?} block_id={} tx_ordinal={} slip_index={} pk={} utxokey={}",
-            label,
-            i,
-            slip.amount,
-            slip.slip_type,
-            slip.block_id,
-            slip.tx_ordinal,
-            slip.slip_index,
-            slip.public_key.to_base58(),
-            slip.utxoset_key.to_hex()
-        );
-    }
-    for (i, slip) in tx.to.iter().enumerate() {
-        info!(
-            "[P2SH_DEBUGGING_TRACE] {} TO[{}] amount={} type={:?} block_id={} tx_ordinal={} slip_index={} pk={}",
-            label,
-            i,
-            slip.amount,
-            slip.slip_type,
-            slip.block_id,
-            slip.tx_ordinal,
-            slip.slip_index,
-            slip.public_key.to_base58()
-        );
-    }
-    info!(
-        "[P2SH_DEBUGGING_TRACE] {} msg/data={}",
-        label, msg_preview
-    );
-}
 
 //
 // In addition to responding to global broadcast messages, the
@@ -188,15 +112,10 @@ impl Mempool {
         mut transaction: Transaction,
         blockchain: &Blockchain,
     ) {
-        let interesting = p2sh_debugging_trace_interesting(&transaction);
-        if interesting {
-            p2sh_debugging_trace_dump_tx("mempool.receive_before_validate", &transaction);
-        } else {
-            trace!(
-                "add transaction if validates : {:?}",
-                transaction.signature.to_hex()
-            );
-        }
+        trace!(
+            "add transaction if validates : {:?}",
+            transaction.signature.to_hex()
+        );
 
         let public_key;
         let tx_valid;
@@ -204,51 +123,17 @@ impl Mempool {
             let wallet = self.wallet_lock.read().await;
             public_key = wallet.public_key;
             transaction.generate(&public_key, 0, 0);
-
-            if interesting {
-                p2sh_debugging_trace_dump_tx("mempool.after_generate_before_validate", &transaction);
-            }
-
             tx_valid = transaction.validate(&blockchain.utxoset, blockchain, true);
-
-            if interesting && !tx_valid {
-                for (i, input) in transaction.from.iter().enumerate() {
-                    let in_set = blockchain.utxoset.get(&input.utxoset_key);
-                    let slip_ok = input.validate(&blockchain.utxoset);
-                    info!(
-                        "[P2SH_DEBUGGING_TRACE] mempool.validate_failed INPUT[{}] amount={} type={:?} slip_validate={} utxoset_entry={:?} utxokey={}",
-                        i,
-                        input.amount,
-                        input.slip_type,
-                        slip_ok,
-                        in_set,
-                        input.utxoset_key.to_hex()
-                    );
-                }
-            }
         }
 
         // validate
         if tx_valid {
-            if interesting {
-                info!(
-                    "[P2SH_DEBUGGING_TRACE] mempool.validate_result VALID=true signature={} — adding to mempool",
-                    transaction.signature.to_hex()
-                );
-            }
             self.add_transaction(transaction).await;
         } else {
-            if interesting {
-                info!(
-                    "[P2SH_DEBUGGING_TRACE] mempool.validate_result VALID=false signature={} — NOT added to mempool",
-                    transaction.signature.to_hex()
-                );
-            } else {
-                debug!(
-                    "transaction not valid : {:?}. cannot add to mempool",
-                    transaction.signature.to_hex()
-                );
-            }
+            debug!(
+                "transaction not valid : {:?}. cannot add to mempool",
+                transaction.signature.to_hex()
+            );
         }
     }
     pub async fn add_transaction(&mut self, transaction: Transaction) {
@@ -308,7 +193,6 @@ impl Mempool {
         let previous_block_hash: SaitoHash;
         let public_key;
         let private_key;
-        let block_timestamp_gap;
         {
             let wallet = self.wallet_lock.read().await;
             previous_block_hash = blockchain.get_latest_block_hash();
@@ -326,21 +210,12 @@ impl Mempool {
                 return None;
             }
 
-            block_timestamp_gap =
-                Duration::from_millis(current_timestamp - previous_block_timestamp).as_secs();
             public_key = wallet.public_key;
             private_key = wallet.private_key;
         }
         let mempool_work = self
             .can_bundle_block(blockchain, current_timestamp, &gt_tx, configs, &public_key)
             .await?;
-        info!(
-            "bundling block with {:?} txs with work : {:?} with a gap of {:?} seconds. timestamp : {:?}",
-            self.transactions.len(),
-            mempool_work,
-            block_timestamp_gap,
-            current_timestamp
-        );
 
         if blockchain.social_stake_requirement > 0 {
             let staking_tx;
@@ -471,7 +346,6 @@ impl Mempool {
                 previous_block.timestamp,
                 configs.get_consensus_config().unwrap().heartbeat_interval,
             );
-            let time_elapsed = current_timestamp - previous_block.timestamp;
 
             let mut h: Vec<u8> = vec![];
             h.append(&mut public_key.to_vec());
@@ -486,17 +360,6 @@ impl Mempool {
             }
 
             let result = work_available >= work_needed;
-            if result {
-                info!(
-                "last ts: {:?}, this ts: {:?}, work available: {:?}, work needed: {:?}, time_elapsed : {:?} can_bundle : {:?}",
-                previous_block.timestamp, current_timestamp, work_available, work_needed, time_elapsed, true
-                );
-            } else {
-                info!(
-                "last ts: {:?}, this ts: {:?}, work available: {:?}, work needed: {:?}, time_elapsed : {:?} can_bundle : {:?}",
-                previous_block.timestamp, current_timestamp, work_available, work_needed, time_elapsed, false
-                );
-            }
             if result {
                 return Some(work_available);
             }
