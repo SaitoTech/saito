@@ -562,7 +562,6 @@ class Withdraw {
     const onReview = form?.dataset.withdrawStep === 'review';
     const footers = {
       review: document.getElementById('withdraw-footer-review'),
-      success: document.getElementById('withdraw-footer-success'),
       failed: document.getElementById('withdraw-footer-failed')
     };
 
@@ -710,17 +709,15 @@ class Withdraw {
   }
 
   updateSuccessAction() {
-    const action = document.getElementById('withdraw-view-history');
+    const action = document.getElementById('withdraw-confirm-tx-explorer');
     if (!action) {
       return;
     }
 
     if (this.isNativeSaitoSelection()) {
       const key = this.getSenderExplorerKey();
-      action.textContent = 'View on Explorer';
       action.href = key ? `/explorer/address/${encodeURIComponent(key)}` : '/explorer';
     } else {
-      action.textContent = 'View history';
       action.href = '#';
     }
   }
@@ -804,8 +801,7 @@ class Withdraw {
     const row = document.getElementById('withdraw-confirm-tx-row');
     const hashEl = document.getElementById('withdraw-confirm-tx-hash');
     if (row && hashEl) {
-      const short = hash.length > 16 ? `${hash.slice(0, 8)}…${hash.slice(-8)}` : hash;
-      hashEl.textContent = short;
+      hashEl.textContent = hash;
       hashEl.setAttribute('title', hash);
       row.classList.remove('hide-element');
     }
@@ -1284,17 +1280,9 @@ class Withdraw {
       };
     }
 
-    const doneBtn = document.getElementById('withdraw-done');
-    if (doneBtn) {
-      doneBtn.onclick = (e) => {
-        e.preventDefault();
-        this.overlay.close();
-      };
-    }
-
-    const historyBtn = document.getElementById('withdraw-view-history');
-    if (historyBtn) {
-      historyBtn.onclick = (e) => {
+    const explorerLink = document.getElementById('withdraw-confirm-tx-explorer');
+    if (explorerLink) {
+      explorerLink.onclick = (e) => {
         if (!this.isNativeSaitoSelection()) {
           e.preventDefault();
           this.overlay.close();

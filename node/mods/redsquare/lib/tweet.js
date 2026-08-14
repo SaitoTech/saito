@@ -1,4 +1,6 @@
 const TweetTemplate = require('./tweet.template');
+const SaitoLinkPreview = require('../../../lib/saito/ui/saito-link-preview/saito-link-preview');
+const SaitoLinkPreviewTemplate = require('../../../lib/saito/ui/saito-link-preview/saito-link-preview.template');
 
 function returnMessage(tx) {
   if (tx && typeof tx.returnMessage === 'function') {
@@ -46,6 +48,8 @@ class Tweet {
     this.images = [];
     this.embedded = null;
     this.link = '';
+    this.link_properties = null;
+    this.youtube_id = null;
     this.likes = 0;
     this.replies = 0;
     this.retweets = 0;
@@ -183,7 +187,13 @@ class Tweet {
       data.thread_id != null && String(data.thread_id) !== ''
         ? String(data.thread_id)
         : this.signature;
-    this.link = data.link != null ? String(data.link) : '';
+    this.link = data.link != null && String(data.link).trim() !== '' ? String(data.link).trim() : '';
+    this.link_properties =
+      optional.link_properties && typeof optional.link_properties === 'object'
+        ? optional.link_properties
+        : null;
+    this.youtube_id = null;
+    this.analyseTweetLinks(false);
 
     const images = data.images;
     this.images = Array.isArray(images) ? images.slice() : images ? [images] : [];
@@ -249,6 +259,120 @@ class Tweet {
     };
 
     return embedded;
+  }
+
+  hasLinkPreview() {
+    const props = this.link_properties;
+    if (!props || typeof props !== 'object' || this.youtube_id) {
+      return false;
+    }
+
+    return Boolean(
+      props['og:title'] ||
+        props['og:description'] ||
+        props['og:image'] ||
+        props['saito:title'] ||
+        props['saito:description']
+    );
+  }
+
+  renderLinkPreviewHTML() {
+    if (!this.app.BROWSER || !this.link || !this.hasLinkPreview()) {
+      return '';
+    }
+
+    try {
+      const preview = new SaitoLinkPreview(
+        this.app,
+        this.mod,
+        '',
+        this.link,
+        this.link_properties
+      );
+      return `<div class="link-preview">${SaitoLinkPreviewTemplate(preview)}</div>`;
+    } catch (err) {
+      console.warn('RedSquare link preview render skipped', err?.message || err);
+      return '';
+    }
+  }
+
+  extractYoutubeId(link) {
+    if (!link || (link.indexOf('youtube.com') === -1 && link.indexOf('youtu.be') === -1)) {
+      return null;
+    }
+
+    let videoId = '';
+
+    if (link.indexOf('youtu.be') !== -1) {
+      const parts = link.split('/');
+      videoId = parts[parts.length - 1] || '';
+    } else {
+      try {
+        const url = new URL(link);
+        videoId = url.searchParams.get('v') || '';
+      } catch (err) {
+        videoId = '';
+      }
+    }
+
+    const shorts = link.split('/shorts/');
+    if (typeof shorts[1] !== 'undefined') {
+      videoId = shorts[1];
+    }
+
+    const live = link.split('/live/');
+    if (typeof live[1] !== 'undefined') {
+      videoId = live[1];
+    }
+
+    videoId = String(videoId || '')
+      .split(/[?&#]/)[0]
+      .replace(/[^a-zA-Z0-9_-]/g, '');
+
+    if (!videoId || videoId === 'null') {
+      return null;
+    }
+
+    return videoId;
+  }
+
+  async analyseTweetLinks(fetch_open_graph = false) {
+    if (!this.link && this.text) {
+      this.link = this.app.browser.extractFirstValidURL(this.text) || '';
+    }
+
+    if (!this.link) {
+      return this;
+    }
+
+    this.youtube_id = this.extractYoutubeId(this.link);
+
+    if (this.youtube_id) {
+      return this;
+    }
+
+    if (this.app.BROWSER || !fetch_open_graph) {
+      return this;
+    }
+
+    if (this.hasLinkPreview()) {
+      return this;
+    }
+
+    try {
+      const res = await this.app.server.fetchOpenGraphProperties(this.link);
+      if (res && typeof res === 'object') {
+        if (!this.tx.optional || typeof this.tx.optional !== 'object') {
+          this.tx.optional = {};
+        }
+        this.tx.optional.link_properties = res;
+        this.link_properties = res;
+      }
+    } catch (err) {
+      console.warn('RedSquare Open Graph fetch failed', err?.message || err);
+    }
+
+    return this;
   }
 
   renderHTML(className = 'tweet') {
