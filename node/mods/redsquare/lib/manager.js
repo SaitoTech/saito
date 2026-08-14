@@ -34,8 +34,10 @@ class Manager {
     this._timeline_bootstrapping = false;
     this._notifications_bootstrapping = false;
     this.pending_route_signature = '';
+    this.permalink_state = null;
     this._route_load_signature = '';
     this._route_load = null;
+    this._route_refresh_pending = false;
     this._browser_history_bound = false;
     this.image_overlay = null;
     this.profile_cache = {};
@@ -98,10 +100,14 @@ class Manager {
     };
   }
 
-  renderTimeline({ updateHistory = true } = {}) {
+  renderTimeline({ updateHistory = true, scrollToTop = false } = {}) {
     const previousMode = this.mode;
 
+    this.clearPermalinkState();
     this.saveScrollPosition(previousMode);
+    if (scrollToTop) {
+      this.scroll_positions.timeline = 0;
+    }
     this.mode = 'timeline';
     this.active_signature = '';
     this.active_thread_id = '';
@@ -125,12 +131,15 @@ class Manager {
   }
 
   renderHome() {
+    const scrollToTop = this.mode === 'timeline';
+
     this.pending_route_signature = '';
     this.replaceTweetLocation({ force: true });
-    this.renderTimeline({ updateHistory: false });
+    this.renderTimeline({ updateHistory: false, scrollToTop });
   }
 
   renderNotifications() {
+    this.clearPermalinkState();
     this.saveScrollPosition();
     this.mod.markNotificationsViewed?.();
     this.mode = 'notifications';
@@ -147,6 +156,7 @@ class Manager {
   renderThread(signature, { updateHistory = true } = {}) {
     const previousMode = this.mode;
 
+    this.clearPermalinkState();
     this.saveScrollPosition();
 
     const tweet = this.mod.getTweet(signature);
@@ -191,6 +201,7 @@ class Manager {
     const previousMode = this.mode;
     const previousProfileKey = this.active_profile_key;
 
+    this.clearPermalinkState();
     this.saveScrollPosition();
     this.mode = mode;
     this.active_signature = '';
@@ -472,6 +483,8 @@ class Manager {
     const publicKey = this.mod.returnUserPublicKeyFromLocation();
 
     if (publicKey && !signature) {
+      this.clearPermalinkState();
+
       if (this.app.crypto?.isPublicKey && !this.app.crypto.isPublicKey(publicKey)) {
         this.renderTimeline({ updateHistory: false });
         return null;
@@ -504,7 +517,7 @@ class Manager {
     }
 
     if (!signature) {
-      this.pending_route_signature = '';
+      this.clearPermalinkState();
 
       if (this.mode === 'thread' || this.isProfileMode()) {
         this.renderTimeline({ updateHistory: false });
@@ -519,7 +532,7 @@ class Manager {
 
     if (this._route_load && this._route_load_signature === signature) {
       if (refresh) {
-        return this._route_load.then(() => this.applyLocationRoute({ refresh: true }));
+        this._route_refresh_pending = true;
       }
 
       return this._route_load;
@@ -527,28 +540,78 @@ class Manager {
 
     this.pending_route_signature = signature;
     this._route_load_signature = signature;
+
+    if (!this.mod.getTweet(signature)) {
+      this.renderPermalinkState(signature, 'loading');
+    }
+
     this._route_load = this.mod
       .loadTweetThread(signature)
-      .then((tweet) => {
-        if (tweet && this.mod.returnTweetSignatureFromLocation() === signature) {
-          this.pending_route_signature = '';
-          this.renderThread(signature, { updateHistory: false });
+      .then((result) => {
+        if (this.mod.returnTweetSignatureFromLocation() !== signature) {
+          return result;
         }
 
-        return tweet;
+        if (result?.status === 'loaded' && result.tweet) {
+          this.pending_route_signature = '';
+          this.renderThread(signature, { updateHistory: false });
+        } else {
+          const status = result?.status === 'unavailable' ? 'unavailable' : 'error';
+          this.renderPermalinkState(signature, status, result?.reason);
+        }
+
+        return result;
       })
       .catch((err) => {
         console.error('RedSquare shared tweet lookup failed:', err);
-        return null;
+
+        if (this.mod.returnTweetSignatureFromLocation() === signature) {
+          this.renderPermalinkState(signature, 'error', 'lookup-failed');
+        }
+
+        return { status: 'error', reason: 'lookup-failed', tweet: null };
       })
       .finally(() => {
         if (this._route_load_signature === signature) {
+          const refreshPending = this._route_refresh_pending;
+
           this._route_load_signature = '';
           this._route_load = null;
+          this._route_refresh_pending = false;
+
+          if (refreshPending && this.mod.returnTweetSignatureFromLocation() === signature) {
+            setTimeout(() => {
+              if (!this._route_load && this.mod.returnTweetSignatureFromLocation() === signature) {
+                this.applyLocationRoute({ refresh: true });
+              }
+            }, 0);
+          }
         }
       });
 
     return this._route_load;
+  }
+
+  clearPermalinkState() {
+    this.pending_route_signature = '';
+    this.permalink_state = null;
+    this._route_refresh_pending = false;
+  }
+
+  renderPermalinkState(signature, status, reason = '') {
+    this.mode = 'thread';
+    this.active_signature = signature || '';
+    this.active_thread_id = '';
+    this.active_profile_key = '';
+    this.pending_route_signature = signature || '';
+    this.permalink_state = { signature, status, reason };
+    this.pagination.thread = {
+      ...this.createPaginationState().thread,
+      loading: status === 'loading',
+      exhausted: status !== 'loading',
+      chain: []
+    };
+    this.render();
   }
 
   getScrollContainer() {
@@ -602,6 +665,20 @@ class Manager {
   }
 
   getFeedStatusMessage(status) {
+    if (this.mode === 'thread' && this.permalink_state?.status === status) {
+      if (status === 'unavailable' && this.permalink_state.reason === 'rejected') {
+        return 'This tweet was found but could not be displayed.';
+      }
+
+      if (status === 'unavailable') {
+        return 'This tweet is not available from your local archive or connected RedSquare peers.';
+      }
+
+      if (status === 'error') {
+        return 'RedSquare could not check every available archive for this tweet.';
+      }
+    }
+
     const messages = {
       timeline: {
         loading: 'Loading tweets...',
@@ -1268,9 +1345,12 @@ class Manager {
   }
 
   resetThreadPagination(signature) {
+    const chain = this.buildThreadView(signature);
+
     this.pagination.thread = {
       ...this.createPaginationState().thread,
-      chain: this.buildThreadView(signature)
+      batchSize: Math.max(this.createPaginationState().thread.batchSize, chain.length),
+      chain
     };
   }
 
@@ -1279,24 +1359,67 @@ class Manager {
       return [];
     }
 
-    return [signature, ...this.getDirectReplies(signature)];
+    const chain = [];
+    const visited = new Set();
+
+    const visit = (currentSignature) => {
+      if (visited.has(currentSignature)) {
+        return;
+      }
+
+      visited.add(currentSignature);
+
+      if (!this.mod.getTweet(currentSignature)) {
+        return;
+      }
+
+      chain.push(currentSignature);
+
+      for (const childSignature of this.getDirectReplies(currentSignature)) {
+        visit(childSignature);
+      }
+    };
+
+    visit(signature);
+    return chain;
   }
 
   getDirectReplies(parentSignature) {
-    const children = this.mod.tweets_children[parentSignature] || [];
+    const children = new Set(this.mod.tweets_children?.[parentSignature] || []);
 
-    return children
+    // Reconstruct missing index entries from the tweets themselves. Archive
+    // batches can arrive in any order, but a loaded reply must never disappear
+    // when switching from a focused reply to the complete thread.
+    for (const tweet of Object.values(this.mod.tweets || {})) {
+      if (tweet?.parent_id === parentSignature && tweet.signature) {
+        children.add(tweet.signature);
+      }
+    }
+
+    return [...children]
       .map((sig) => this.mod.getTweet(sig))
       .filter(Boolean)
-      .sort((a, b) => (a.created_at || 0) - (b.created_at || 0))
+      .sort((a, b) => {
+        const timestampDifference = (a.created_at || 0) - (b.created_at || 0);
+
+        return timestampDifference || a.signature.localeCompare(b.signature);
+      })
       .map((tweet) => tweet.signature);
   }
 
   getThreadRoot(signature) {
     let root = signature;
+    const visited = new Set([root]);
 
-    while (this.mod.tweets_parents[root]) {
-      root = this.mod.tweets_parents[root];
+    while (this.mod.tweets_parents?.[root]) {
+      const parent = this.mod.tweets_parents[root];
+
+      if (visited.has(parent) || !this.mod.getTweet(parent)) {
+        break;
+      }
+
+      visited.add(parent);
+      root = parent;
     }
 
     return root;
@@ -1530,6 +1653,7 @@ class Manager {
     this.attachTweetRetweet(root);
     this.attachTweetShare(root);
     this.attachFeedHeaderBack(root);
+    this.attachPermalinkRetry(root);
     this.attachScrollEvents();
     this.attachViewportChrome();
     this.attachBrowserHistory();
@@ -1577,6 +1701,25 @@ class Manager {
     });
   }
 
+  attachPermalinkRetry(root) {
+    if (!root || root.dataset.permalinkRetryBound === '1') {
+      return;
+    }
+
+    root.dataset.permalinkRetryBound = '1';
+
+    root.addEventListener('click', (e) => {
+      const retry = e.target.closest('.feed-status .retry');
+
+      if (!retry || !this.pending_route_signature) {
+        return;
+      }
+
+      e.preventDefault();
+      this.applyLocationRoute({ refresh: true });
+    });
+  }
+
   attachThreadContext(root) {
     if (!root || root.dataset.threadContextBound === '1') {
       return;
@@ -1597,9 +1740,36 @@ class Manager {
       const rootSignature = link.getAttribute('data-root') || '';
 
       if (rootSignature) {
-        this.renderThread(rootSignature);
+        this.openEntireThread(rootSignature);
       }
     });
+  }
+
+  async openEntireThread(rootSignature) {
+    if (!rootSignature || !this.mod.getTweet(rootSignature)) {
+      return null;
+    }
+
+    // Show every relationship already in memory immediately, then refresh the
+    // root thread so replies known only to an archive peer are included too.
+    this.renderThread(rootSignature);
+
+    try {
+      const result = await this.mod.loadTweetThread(rootSignature);
+
+      if (
+        result?.status === 'loaded' &&
+        this.mode === 'thread' &&
+        this.active_signature === rootSignature
+      ) {
+        this.renderThread(rootSignature, { updateHistory: false });
+      }
+
+      return result;
+    } catch (err) {
+      console.error('RedSquare complete thread lookup failed:', err);
+      return { status: 'error', reason: 'lookup-failed', tweet: null };
+    }
   }
 
   attachTweetReply(root) {
@@ -2433,6 +2603,10 @@ class Manager {
   resolveFeedStatus() {
     const state = this.getPaginationState();
 
+    if (this.mode === 'thread' && this.permalink_state) {
+      return this.permalink_state.status;
+    }
+
     if (state.loading || this._timeline_bootstrapping || this._notifications_bootstrapping) {
       return 'loading';
     }
@@ -2465,11 +2639,16 @@ class Manager {
     footer.dataset.status = status;
 
     const message = footer.querySelector('.message');
+    const retry = footer.querySelector('.retry');
 
     if (message) {
       // Loading is spinner-only — never keep empty/end copy under the loader.
       message.textContent =
         status === 'loading' || status === 'content' ? '' : this.getFeedStatusMessage(status);
+    }
+
+    if (retry) {
+      retry.hidden = status !== 'unavailable' && status !== 'error';
     }
   }
 
