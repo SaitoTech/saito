@@ -1,6 +1,7 @@
 mod arrayify;
 mod checkfield;
 mod checkhash;
+mod checkkey;
 mod checkmultisig;
 mod checkown;
 mod checkownnft;
@@ -22,6 +23,7 @@ mod sumfields;
 pub use arrayify::Arrayify;
 pub use checkfield::CheckField;
 pub use checkhash::CheckHash;
+pub use checkkey::CheckKey;
 pub use checkmultisig::CheckMultiSig;
 pub use checkown::CheckOwn;
 pub use checkownnft::CheckOwnNft;
