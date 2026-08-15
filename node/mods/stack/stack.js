@@ -2522,20 +2522,14 @@ class Stack extends ModTemplate {
     //
     // 2. STACK APP BOOTSTRAP
     //
-    // Explicitly handle:
     //   /stack
     //   /stack/<publickey>
     //   /stack/<publickey>/<txsig>
     //
-    // In ALL cases, we just return the Stack home HTML.
-    // Stack (browser-side) will inspect window.location.pathname
-    // and decide whether to call:
-    //   - loadPostsForAuthor()
-    //   - loadPost()
-    //   - explore logic
+    // Article GET loads the transaction via loadPost() so OG tags in the
+    // initial HTML do not depend on JavaScript or transactionCache.
+    // The browser still hydrates the page from saito.js / __STACK_INITIAL_POST.
     //
-    let updateSocial = Object.assign({}, stack_self.social);
-
     expressapp.get(`${uri}`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
@@ -2564,6 +2558,11 @@ class Stack extends ModTemplate {
                 });
                 return res.end(img);
               }
+              return;
+            }
+
+            if (!res.finished) {
+              res.status(404).end();
             }
           },
           'localhost'
@@ -2572,35 +2571,39 @@ class Stack extends ModTemplate {
         return;
       }
 
-      return res.send(HomePage(app, stack_self, app.build_number, updateSocial));
+      return res.send(
+        HomePage(app, stack_self, app.build_number, Object.assign({}, stack_self.social))
+      );
     });
 
     expressapp.get(`${uri}/:publickey`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
-      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publicKey)}`;
+      const updateSocial = Object.assign({}, stack_self.social);
+      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publickey)}`;
       return res.send(HomePage(app, stack_self, app.build_number, updateSocial));
     });
 
-    expressapp.get(`${uri}/:publickey/:txsig`, (req, res) => {
+    expressapp.get(`${uri}/:publickey/:txsig`, async (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
+      const publickey = req.params.publickey;
       const txsig = req.params.txsig;
-      const cachedTx = txsig ? stack_self.transactionCache[txsig] : null;
+      const updateSocial = Object.assign({}, stack_self.social);
+      updateSocial.url = stack_self.resolveSocialUrl(`${uri}/${publickey}/${txsig}`);
 
-      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publicKey)}`;
+      const articleTx = txsig ? await stack_self.loadPost(txsig, { peer: 'localhost' }) : null;
 
-      if (cachedTx) {
+      if (articleTx) {
         try {
-          let txmsg = cachedTx.returnMessage();
+          let txmsg = articleTx.returnMessage();
           if (txmsg?.data?.title) {
             updateSocial.title = txmsg.data.title;
           }
           if (txmsg?.data?.image) {
-            console.log(txmsg?.data?.image);
-            updateSocial.image = uri + '?og_img_sig=' + txsig;
+            updateSocial.image = stack_self.resolveSocialUrl(`${uri}?og_img_sig=${txsig}`);
           } else if (txmsg?.data?.imageUrl) {
-            updateSocial.image = txmsg.data.imageUrl;
+            updateSocial.image = stack_self.resolveSocialUrl(txmsg.data.imageUrl);
           }
 
           let summary = txmsg?.data?.summary || txmsg?.data?.excerpt || '';
@@ -2608,19 +2611,20 @@ class Stack extends ModTemplate {
             updateSocial.description = summary;
           } else {
             updateSocial.description =
-              app.keychain.returnUsername(req.params.publicKey) + ' writes on Saito Stack...';
+              app.keychain.returnUsername(publickey) + ' writes on Saito Stack...';
           }
         } catch (err) {
           console.debug('Stack: Failed to serialize cached post for initial HTML', err);
         }
       }
+
       return res.send(
         HomePage(
           app,
           stack_self,
           app.build_number,
           updateSocial,
-          cachedTx ? cachedTx.serialize_to_web(app) : null
+          articleTx ? articleTx.serialize_to_web(app) : null
         )
       );
     });

@@ -974,7 +974,7 @@ class PublishSettingsOverlay {
 
 			// Optional RedSquare cross-post after the Stack article has a signature.
 			if (this.wizardState.tweetOnPublish !== false) {
-				await this.crossPostToRedSquare(publishedTx, title, featuredImage);
+				await this.crossPostToRedSquare(publishedTx, title);
 			}
 
 			this.overlay.hide();
@@ -1025,7 +1025,7 @@ class PublishSettingsOverlay {
 	 * Idempotent per Stack post signature for this overlay session.
 	 * Only runs after Stack publish returned a signed transaction.
 	 */
-	async crossPostToRedSquare(publishedTx, title = '', featuredImage = '') {
+	async crossPostToRedSquare(publishedTx, title = '') {
 		if (!publishedTx || !publishedTx.signature) {
 			return;
 		}
@@ -1063,14 +1063,6 @@ class PublishSettingsOverlay {
 		const data = {
 			text: `${articleTitle}\n${absoluteUrl}`
 		};
-
-		// Reuse Stack cover as a RedSquare image when it is already a data URL payload.
-		if (featuredImage && typeof featuredImage === 'string') {
-			const imageDataUrl = featuredImage.startsWith('data:')
-				? featuredImage
-				: `data:image/png;base64,${featuredImage}`;
-			data.images = [imageDataUrl];
-		}
 
 		// Mark before await so retries / double-confirm cannot duplicate.
 		this._redSquareCrossPostedSigs.add(stackSig);

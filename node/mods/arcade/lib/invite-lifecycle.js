@@ -1458,7 +1458,6 @@ module.exports = {
     if (!this.app.BROWSER) return;
     if (!this.ready_popup_overlay) {
       this.ready_popup_overlay = new SaitoOverlay(this.app, this, true, true, false);
-      this.ready_popup_overlay.nonBlocking = true;
       this.ready_popup_overlay.class = 'saito-overlay arcade-ready-overlay';
       this.ready_popup_overlay.clickBackdropToClose = false;
     }
@@ -1477,26 +1476,17 @@ module.exports = {
               <div class="arcade-lounge-body">
                 <p class="arcade-lounge-message">Your table is set. Start when you are ready.</p>
               </div>
-              <div class="saito-button-row auto-size">
-                <button type="button" class="fat saito-button-secondary arcade-ready-popup-dismiss">Later</button>
-                <button type="button" class="fat saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
-              </div>
+              <button type="button" class="fat saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
             </div>`;
     this.ready_popup_overlay.show(html);
 
-    setTimeout(() => {
-      const startBtn = document.querySelector('.arcade-ready-popup-start');
-      const dismissBtn = document.querySelector('.arcade-ready-popup-dismiss');
-      if (startBtn) {
-        startBtn.onclick = () => {
-          this.ready_popup_overlay.close();
-          navigateWindow(`/${slug}`, 200);
-        };
-      }
-      if (dismissBtn) {
-        dismissBtn.onclick = () => this.ready_popup_overlay.close();
-      }
-    }, 50);
+    const startBtn = document.querySelector('.arcade-ready-popup-start');
+    if (startBtn) {
+      startBtn.onclick = () => {
+        this.ready_popup_overlay.close();
+        navigateWindow(`/${slug}`, 200);
+      };
+    }
   },
 
   showShareLink(game_sig, show = true) {

@@ -5,30 +5,30 @@ module.exports = (app, mod, sobj) => {
     warning_msg = `(${fee} ${sobj.ticker})`;
   }
 
-  return `  
-  <div class="saito-crypto-transfer" id="approve-crypto-request-container">
-    
-    <h2 class="auth-title">Enable In-Game Crypto</h2>
-    <div class="wallet-balance">
-         <div class="balance-amount">${app.browser.returnBalanceHTML(sobj.stake, true)}</div>
-         <div class="deposit-ticker">${sobj.ticker}</div>
-    </div>
-    <div class="crypto-stake-confirm-container">
-      <input class="saito-checkbox" type="checkbox" checked name="crypto-stake-confirm-input" id="approve-crypto-stake-confirm-input">
-      <label for="approve-crypto-stake-confirm-input" class="commentary">authorize in-game transfer ${warning_msg}</label>
+  let icons = app.wallet.returnCryptoModuleByTicker(sobj.ticker)?.returnLogos();
+  let logo = icons?.img ? `<img src="${icons.img}" alt="">` : '';
+
+  return `
+  <form class="saito-overlay-form" id="approve-crypto-request-container">
+    <header class="saito-overlay-form-header">
+      <h2 class="saito-overlay-form-header-title">Play for Crypto</h2>
+    </header>
+
+    <div class="stake">
+      <h1>${sobj.stake}</h1>
+      <div class="currency">${logo}<span>${sobj.ticker}</span></div>
     </div>
 
-    <div class="crypto-stake-offer-btn-container">
-      <div class="saito-button-primary crypto-transfer-btn secondary" id="enable_staking_no">no, thanks</div>
-      <div class="saito-button-primary crypto-transfer-btn" id="enable_staking_yes">yes, i'm in</div>
+    <div class="auth">
+      <input class="saito-checkbox" type="checkbox" checked name="crypto-stake-confirm-input" id="approve-crypto-stake-confirm-input">
+      <label for="approve-crypto-stake-confirm-input">Yes, I prefer fast in-game settlement ${warning_msg}</label>
     </div>
-  </div>
+    <p class="saito-overlay-form-text">Selecting this option allows the game to automatically handle payments and receipts using fast, internal transfers. You can change this in Settings at any time.</p>
+
+    <div class="saito-button-row">
+      <button type="button" class="saito-button-secondary" id="enable_staking_no">No, thanks</button>
+      <button type="button" class="saito-button-primary" id="enable_staking_yes">Yes, I'm in</button>
+    </div>
+  </form>
   `;
 };
-
-/*
-    <div class="stake-input-container">
-      <div class="stake">${sobj.stake}</div><div class="crypto-ticker">${sobj.ticker}</div>
-      <!--div class="crypto_msg">${sobj.game_mod.crypto_msg}</div!-->
-    </div>
-*/
