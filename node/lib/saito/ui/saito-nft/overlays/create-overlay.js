@@ -694,7 +694,7 @@ class CreateNFT {
 
       let balance = await this.app.wallet.getBalance();
       if (balance === 0n) {
-        siteMessage('A SAITO balance is needed to create an NFT...', 3000);
+        siteMessage('SAITO tokens are required to create NFTs...', 3000);
         this.app.connection.emit('saito-purchase-launch');
         return;
       }
