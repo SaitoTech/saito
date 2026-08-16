@@ -1,0 +1,24 @@
+.game.texas .texas-log {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 90;
+}
+
+.game.texas .texas-log #log-wrapper {
+  pointer-events: auto;
+  top: 0;
+  bottom: 0;
+  height: auto;
+  width: var(--ideal-game-log);
+  right: calc(0px - var(--ideal-game-log));
+}
+
+.game.texas .texas-log #log-wrapper.log-lock {
+  right: 0;
+}
+
+.game.texas .texas-log .mobile-log-tab {
+  display: block;
+}
