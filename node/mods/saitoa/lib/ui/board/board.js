@@ -1,3 +1,15 @@
+const { createTree } = require('../models/Tree');
+const { createSheep } = require('../models/Sheep');
+const { createWheat } = require('../models/Wheat');
+const { createHillock } = require('../models/Hillock');
+const { createMountain } = require('../models/Mountain');
+const { createDesertRock } = require('../models/DesertRock');
+const { createRoad } = require('../models/Road');
+const { createSettlement } = require('../models/Settlement');
+const { createCity } = require('../models/City');
+const { createPort, PORT_DOCK_LENGTH } = require('../models/Port');
+const { getPieceMaterials } = require('../models/piece-materials');
+
 class Board {
   constructor(app, mod) {
     this.app = app;
@@ -80,7 +92,6 @@ class Board {
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1
     });
-    this.preparePropAssets();
 
     this.addLights();
     this.addOcean();
@@ -605,112 +616,27 @@ class Board {
     return { mx, mz, nx, nz, dx, dz };
   }
 
-  createPortSign(ratio) {
-    const THREE = this.THREE;
-    const size = 128;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#efe4cc';
-    ctx.fillRect(8, 18, 112, 92);
-    ctx.strokeStyle = '#3a342c';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(8, 18, 112, 92);
-    ctx.fillStyle = '#2a2622';
-    ctx.font = 'bold 48px Georgia, Times New Roman, serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(ratio, 64, 64);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.encoding = THREE.sRGBEncoding;
-    texture.needsUpdate = true;
-    return texture;
-  }
-
   addPorts() {
     this.returnPorts().forEach((port) => this.addPort(port));
   }
 
   addPort(port) {
-    const THREE = this.THREE;
     const out = this.edgeOutward(port.q, port.r, port.e);
-    const group = new THREE.Group();
-    const dock_len = 0.72;
+    const dock_len = PORT_DOCK_LENGTH;
     const origin_x = out.mx + out.nx * 0.18;
     const origin_z = out.mz + out.nz * 0.18;
-    group.position.set(origin_x, 0.1, origin_z);
-    group.rotation.y = Math.atan2(out.nx, out.nz);
-
     const mats = this.pieceMaterials(0xb08958);
-    const dock_geo = new THREE.BoxGeometry(0.18, 0.04, dock_len);
-    const dock = new THREE.Mesh(dock_geo, mats.road);
-    dock.position.set(0, 0, dock_len / 2);
-    dock.castShadow = true;
-    dock.receiveShadow = true;
-    group.add(dock);
-
-    for (const z of [0.12, dock_len - 0.08]) {
-      const post = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.022, 0.026, 0.18, 6),
-        mats.trim
-      );
-      post.position.set(0.06, -0.06, z);
-      group.add(post);
-    }
-
-    const hut_geo = new THREE.BoxGeometry(0.13, 0.09, 0.11);
-    const hut = new THREE.Mesh(hut_geo, mats.wall);
-    hut.position.set(0, 0.065, dock_len - 0.18);
-    hut.castShadow = true;
-    group.add(hut);
-    group.add(this.addInkShell(hut, hut_geo, 1.06));
-
-    const hut_roof = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.07, 4), mats.roof);
-    hut_roof.position.set(0, 0.135, dock_len - 0.18);
-    hut_roof.rotation.y = Math.PI / 4;
-    group.add(hut_roof);
-
-    const boat = new THREE.Mesh(
-      new THREE.SphereGeometry(0.065, 8, 6),
-      new THREE.MeshLambertMaterial({ color: 0x6a4330 })
-    );
-    boat.scale.set(1.5, 0.42, 0.75);
-    boat.position.set(-0.15, -0.06, dock_len * 0.55);
-    group.add(boat);
-
-    const sign_group = new THREE.Group();
-    const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.014, 0.016, 0.22, 6),
-      mats.trim
-    );
-    pole.position.y = 0.11;
-    sign_group.add(pole);
-
-    const board_geo = new THREE.PlaneGeometry(0.22, 0.16);
-    const board = new THREE.Mesh(
-      board_geo,
-      new THREE.MeshLambertMaterial({ map: this.createPortSign(port.ratio) })
-    );
-    board.position.y = 0.24;
-    sign_group.add(board);
-    const back = new THREE.Mesh(
-      board_geo,
-      new THREE.MeshLambertMaterial({ color: 0x5a4434 })
-    );
-    back.position.y = 0.24;
-    back.rotation.y = Math.PI;
-    sign_group.add(back);
-
-    sign_group.position.set(
+    const { dock, sign } = createPort(this.THREE, port.ratio, mats);
+    dock.position.set(origin_x, 0.1, origin_z);
+    dock.rotation.y = Math.atan2(out.nx, out.nz);
+    sign.position.set(
       origin_x + out.nx * dock_len * 0.38,
       0.12,
       origin_z + out.nz * dock_len * 0.38
     );
-    this.scene.add(sign_group);
-    this.face_tokens.push(sign_group);
-
-    this.scene.add(group);
+    this.scene.add(sign);
+    this.face_tokens.push(sign);
+    this.scene.add(dock);
   }
 
   returnIslandTiles() {
@@ -1095,127 +1021,119 @@ class Board {
     hex.castShadow = true;
     hex.receiveShadow = true;
     this.scene.add(hex);
-    this.addTerrainProps(tile, pos);
-  }
-
-  preparePropAssets() {
-    const THREE = this.THREE;
-    const lathe = (pts, segs) =>
-      new THREE.LatheGeometry(
-        pts.map((p) => new THREE.Vector2(p[0], p[1])),
-        segs
-      );
-
-    this.tree_geos = [
-      lathe(
-        [
-          [0.01, 0],
-          [0.2, 0.04],
-          [0.26, 0.14],
-          [0.22, 0.26],
-          [0.12, 0.34],
-          [0, 0.38]
-        ],
-        12
-      ),
-      lathe(
-        [
-          [0.01, 0],
-          [0.14, 0.03],
-          [0.18, 0.12],
-          [0.13, 0.26],
-          [0.07, 0.4],
-          [0, 0.48]
-        ],
-        12
-      ),
-      lathe(
-        [
-          [0.01, 0],
-          [0.28, 0.03],
-          [0.3, 0.12],
-          [0.16, 0.2],
-          [0, 0.24]
-        ],
-        12
-      )
-    ];
-
-    this.tree_mats = [
-      new THREE.MeshLambertMaterial({ color: 0x355e3c }),
-      new THREE.MeshLambertMaterial({ color: 0x3d7044 }),
-      new THREE.MeshLambertMaterial({ color: 0x2a4e32 })
-    ];
-    this.trunk_geo = new THREE.CylinderGeometry(0.025, 0.032, 0.11, 6);
-    this.trunk_mat = new THREE.MeshLambertMaterial({ color: 0x5a4330 });
-    this.ink_mat = new THREE.MeshBasicMaterial({
-      color: 0x3d3830,
-      side: THREE.BackSide
-    });
-    this.sheep_body_mat = new THREE.MeshLambertMaterial({ color: 0xf3efe4 });
-    this.sheep_head_mat = new THREE.MeshLambertMaterial({ color: 0x3d342c });
-    this.wheat_mats = [
-      new THREE.MeshLambertMaterial({ color: 0xd4b44a }),
-      new THREE.MeshLambertMaterial({ color: 0xc49a38 }),
-      new THREE.MeshLambertMaterial({ color: 0xe0c56a })
-    ];
-    this.wheat_geo = new THREE.BoxGeometry(0.018, 0.16, 0.012);
-    this.hill_mats = [
-      new THREE.MeshLambertMaterial({ color: 0xc46a45 }),
-      new THREE.MeshLambertMaterial({ color: 0xa85838 })
-    ];
-    this.rock_mat = new THREE.MeshLambertMaterial({ color: 0x8b9098 });
-    this.rock_dark_mat = new THREE.MeshLambertMaterial({ color: 0x6f747c });
-    this.snow_mat = new THREE.MeshLambertMaterial({ color: 0xf2f0ea });
-    this.desert_rock_mat = new THREE.MeshLambertMaterial({ color: 0xb89a72 });
-    this.wood_map = this.createWoodTexture();
-    this.piece_mat_cache = {};
-  }
-
-  createWoodTexture() {
-    const THREE = this.THREE;
-    const size = 128;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    const rand = this.seeded(771);
-    ctx.fillStyle = '#e8d5b8';
-    ctx.fillRect(0, 0, size, size);
-    for (let i = 0; i < 18; i++) {
-      ctx.strokeStyle = rand() > 0.5 ? '#c4a882' : '#d8c4a0';
-      ctx.globalAlpha = 0.35 + rand() * 0.3;
-      ctx.lineWidth = 1 + rand() * 2;
-      const y = i * 7 + rand() * 3;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.bezierCurveTo(40, y + 2, 80, y - 2, size, y + (rand() - 0.5) * 3);
-      ctx.stroke();
+    if (tile.q === 1 && tile.r === 0 && tile.terrain === 'forest') {
+      this.addArtworkOverlay(hex, '/saitoa/img/board/forest.png', 'interior');
     }
-    ctx.globalAlpha = 1;
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.encoding = THREE.sRGBEncoding;
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.needsUpdate = true;
-    return texture;
+    if (tile.terrain === 'fields') {
+      this.addArtworkOverlay(hex, '/saitoa/img/board/fields.png', 'hex');
+    }
+    if (tile.terrain === 'mountains') {
+      this.addArtworkOverlay(hex, '/saitoa/img/board/ore.png', 'hex');
+    }
+    if (tile.terrain === 'hills') {
+      this.addArtworkOverlay(hex, '/saitoa/img/board/brick.png', 'hex');
+    }
+  }
+
+  addArtworkOverlay(hex, src, fit) {
+    if (!this.artwork_cache) {
+      this.artwork_cache = {};
+    }
+    const entry = this.artwork_cache[src];
+    if (entry && entry.texture) {
+      this.attachArtworkMesh(hex, entry);
+      return;
+    }
+    if (entry && entry.queue) {
+      entry.queue.push(hex);
+      return;
+    }
+
+    const board = this;
+    const THREE = this.THREE;
+    this.artwork_cache[src] = { queue: [hex], fit: fit };
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const px = data.data;
+      let min_x = canvas.width;
+      let min_y = canvas.height;
+      let max_x = 0;
+      let max_y = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i] < 18 && px[i + 1] < 18 && px[i + 2] < 18) {
+          px[i + 3] = 0;
+        } else {
+          const p = i / 4;
+          const x = p % canvas.width;
+          const y = (p - x) / canvas.width;
+          if (x < min_x) {
+            min_x = x;
+          }
+          if (y < min_y) {
+            min_y = y;
+          }
+          if (x > max_x) {
+            max_x = x;
+          }
+          if (y > max_y) {
+            max_y = y;
+          }
+        }
+      }
+      ctx.putImageData(data, 0, 0);
+
+      const map = new THREE.CanvasTexture(canvas);
+      map.encoding = THREE.sRGBEncoding;
+      map.anisotropy = 4;
+      map.needsUpdate = true;
+
+      const cached = board.artwork_cache[src];
+      cached.texture = map;
+      cached.canvas_w = canvas.width;
+      cached.canvas_h = canvas.height;
+      cached.bbox_h = Math.max(1, max_y - min_y + 1);
+      cached.material = new THREE.MeshLambertMaterial({
+        map: map,
+        transparent: true,
+        alphaTest: 0.08,
+        depthWrite: true
+      });
+      const waiting = cached.queue;
+      cached.queue = null;
+      for (let i = 0; i < waiting.length; i++) {
+        board.attachArtworkMesh(waiting[i], cached);
+      }
+    };
+    img.src = src;
+  }
+
+  attachArtworkMesh(hex, entry) {
+    const THREE = this.THREE;
+    const aspect = entry.canvas_w / entry.canvas_h;
+    let art_z;
+    if (entry.fit === 'hex') {
+      art_z = this.hex_size * 2 * (entry.canvas_h / entry.bbox_h);
+    } else {
+      art_z = this.hex_size * Math.sqrt(3) * 0.83;
+    }
+    const art_x = art_z * aspect;
+    const art = new THREE.Mesh(new THREE.PlaneGeometry(art_x, art_z), entry.material);
+    art.rotation.x = -Math.PI / 2;
+    art.position.set(0, this.tile_thickness + 0.005, 0);
+    hex.add(art);
   }
 
   pieceMaterials(color) {
-    const THREE = this.THREE;
-    const key = color;
-    if (this.piece_mat_cache[key]) {
-      return this.piece_mat_cache[key];
-    }
-    const mats = {
-      road: new THREE.MeshLambertMaterial({ color, map: this.wood_map }),
-      wall: new THREE.MeshLambertMaterial({ color }),
-      roof: new THREE.MeshLambertMaterial({ color: 0x8f4a3c }),
-      trim: new THREE.MeshLambertMaterial({ color: 0x4a3830 }),
-      light: new THREE.MeshLambertMaterial({ color: 0xf0e6d0 })
-    };
-    this.piece_mat_cache[key] = mats;
-    return mats;
+    const board = this;
+    return getPieceMaterials(this.THREE, color, function (seed) {
+      return board.seeded(seed);
+    });
   }
 
   hexPropSpot(rand, occupied, min_dist) {
@@ -1234,15 +1152,6 @@ class Board {
     };
     occupied.push(fallback);
     return fallback;
-  }
-
-  addInkShell(mesh, geo, factor) {
-    const shell = new this.THREE.Mesh(geo, this.ink_mat);
-    shell.position.copy(mesh.position);
-    shell.rotation.copy(mesh.rotation);
-    shell.scale.copy(mesh.scale);
-    shell.scale.multiplyScalar(factor || 1.07);
-    return shell;
   }
 
   addTerrainProps(tile, pos) {
@@ -1269,137 +1178,40 @@ class Board {
       const spot = this.hexPropSpot(rand, occupied, 0.34);
       const kind = i % 3;
       const scale = 0.72 + rand() * 0.22;
-      this.addTree(pos.x + spot.x, pos.z + spot.z, kind, scale, rand);
+      const tree = createTree(this.THREE, kind, scale, rand);
+      tree.position.set(pos.x + spot.x, this.tile_thickness, pos.z + spot.z);
+      this.scene.add(tree);
     }
-  }
-
-  addTree(x, z, kind, scale, rand) {
-    const THREE = this.THREE;
-    const y0 = this.tile_thickness;
-    const group = new THREE.Group();
-    group.position.set(x, y0, z);
-    group.rotation.y = rand() * Math.PI * 2;
-
-    const trunk = new THREE.Mesh(this.trunk_geo, this.trunk_mat);
-    trunk.scale.setScalar(scale);
-    trunk.position.y = 0.055 * scale;
-    trunk.castShadow = true;
-    group.add(trunk);
-
-    const geo = this.tree_geos[kind];
-    const canopy = new THREE.Mesh(geo, this.tree_mats[kind]);
-    canopy.scale.setScalar(scale);
-    canopy.position.y = 0.1 * scale;
-    canopy.castShadow = true;
-    canopy.receiveShadow = true;
-    group.add(canopy);
-    const ink = this.addInkShell(canopy, geo, 1.05);
-    group.add(ink);
-    this.scene.add(group);
   }
 
   addPastureFlock(pos, rand, occupied) {
     const count = 2 + Math.floor(rand() * 2);
     for (let i = 0; i < count; i++) {
       const spot = this.hexPropSpot(rand, occupied, 0.38);
-      this.addSheep(pos.x + spot.x, pos.z + spot.z, rand);
+      const sheep = createSheep(this.THREE, rand);
+      sheep.position.set(pos.x + spot.x, this.tile_thickness, pos.z + spot.z);
+      this.scene.add(sheep);
     }
-  }
-
-  addSheep(x, z, rand) {
-    const THREE = this.THREE;
-    const y0 = this.tile_thickness;
-    const group = new THREE.Group();
-    group.position.set(x, y0, z);
-    group.rotation.y = rand() * Math.PI * 2;
-    const s = 0.85 + rand() * 0.25;
-    group.scale.setScalar(s);
-
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), this.sheep_body_mat);
-    body.scale.set(1.35, 0.9, 1.05);
-    body.position.y = 0.08;
-    body.castShadow = true;
-    group.add(body);
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 6), this.sheep_head_mat);
-    head.position.set(0, 0.09, 0.1);
-    head.scale.set(0.9, 0.85, 1.15);
-    group.add(head);
-
-    for (let i = 0; i < 2; i++) {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 5), this.sheep_head_mat);
-      ear.position.set(i === 0 ? -0.028 : 0.028, 0.118, 0.088);
-      ear.scale.set(1.4, 0.7, 0.6);
-      group.add(ear);
-    }
-
-    const leg_geo = new THREE.CylinderGeometry(0.01, 0.012, 0.055, 5);
-    const legs = [
-      [-0.04, 0.028, 0.035],
-      [0.04, 0.028, 0.035],
-      [-0.04, 0.028, -0.04],
-      [0.04, 0.028, -0.04]
-    ];
-    legs.forEach((p) => {
-      const leg = new THREE.Mesh(leg_geo, this.sheep_head_mat);
-      leg.position.set(p[0], p[1], p[2]);
-      group.add(leg);
-    });
-
-    this.scene.add(group);
   }
 
   addWheatPatches(pos, rand, occupied) {
     const patches = 3;
     for (let p = 0; p < patches; p++) {
       const spot = this.hexPropSpot(rand, occupied, 0.42);
-      this.addWheatCluster(pos.x + spot.x, pos.z + spot.z, rand);
+      const wheat = createWheat(this.THREE, rand);
+      wheat.position.set(pos.x + spot.x, this.tile_thickness, pos.z + spot.z);
+      this.scene.add(wheat);
     }
-  }
-
-  addWheatCluster(x, z, rand) {
-    const THREE = this.THREE;
-    const y0 = this.tile_thickness;
-    const group = new THREE.Group();
-    group.position.set(x, y0, z);
-    group.rotation.y = rand() * Math.PI * 2;
-    const stalks = 5 + Math.floor(rand() * 3);
-    for (let i = 0; i < stalks; i++) {
-      const stalk = new THREE.Mesh(this.wheat_geo, this.wheat_mats[i % 3]);
-      const ox = (rand() - 0.5) * 0.15;
-      const oz = (rand() - 0.5) * 0.11;
-      const h = 0.65 + rand() * 0.3;
-      stalk.position.set(ox, 0.08 * h, oz);
-      stalk.scale.set(1, h, 1);
-      stalk.rotation.z = (rand() - 0.5) * 0.22;
-      stalk.rotation.x = (rand() - 0.5) * 0.12;
-      group.add(stalk);
-    }
-    this.scene.add(group);
   }
 
   addHillocks(pos, rand, occupied) {
     const count = 2;
     for (let i = 0; i < count; i++) {
       const spot = this.hexPropSpot(rand, occupied, 0.42);
-      this.addHillock(pos.x + spot.x, pos.z + spot.z, i, rand);
+      const hillock = createHillock(this.THREE, i, rand);
+      hillock.position.set(pos.x + spot.x, this.tile_thickness, pos.z + spot.z);
+      this.scene.add(hillock);
     }
-  }
-
-  addHillock(x, z, index, rand) {
-    const THREE = this.THREE;
-    const y0 = this.tile_thickness;
-    const geo = new THREE.SphereGeometry(0.22, 10, 8);
-    const mesh = new THREE.Mesh(geo, this.hill_mats[index % 2]);
-    const sx = 0.85 + rand() * 0.45;
-    const sy = 0.28 + rand() * 0.12;
-    const sz = 0.7 + rand() * 0.35;
-    mesh.scale.set(sx, sy, sz);
-    mesh.position.set(x, y0 + 0.22 * sy * 0.55, z);
-    mesh.rotation.y = rand() * Math.PI;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    this.scene.add(mesh);
   }
 
   addMountainGroup(pos, rand, occupied) {
@@ -1408,79 +1220,18 @@ class Board {
       const spot = this.hexPropSpot(rand, occupied, 0.42);
       const h = 0.38 + rand() * 0.16 + (i === 0 ? 0.06 : 0);
       const w = 0.26 + rand() * 0.1;
-      this.addMountain(pos.x + spot.x, pos.z + spot.z, w, h, rand);
+      const mountain = createMountain(this.THREE, w, h, rand);
+      mountain.position.set(pos.x + spot.x, this.tile_thickness, pos.z + spot.z);
+      this.scene.add(mountain);
     }
-  }
-
-  mountainGeometry(width, height, rand) {
-    const THREE = this.THREE;
-    const positions = [];
-    const normals = [];
-    const peak = [(rand() - 0.5) * width * 0.18, height, (rand() - 0.5) * width * 0.14];
-    const n = 5;
-    const base = [];
-    for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2 + (rand() - 0.5) * 0.25;
-      const rx = width * (0.72 + rand() * 0.28);
-      const rz = width * (0.62 + rand() * 0.28);
-      base.push([Math.cos(ang) * rx, 0, Math.sin(ang) * rz]);
-    }
-    const addTriangle = (a, b, c) => {
-      const abx = b[0] - a[0];
-      const aby = b[1] - a[1];
-      const abz = b[2] - a[2];
-      const acx = c[0] - a[0];
-      const acy = c[1] - a[1];
-      const acz = c[2] - a[2];
-      let nx = aby * acz - abz * acy;
-      let ny = abz * acx - abx * acz;
-      let nz = abx * acy - aby * acx;
-      const len = Math.hypot(nx, ny, nz) || 1;
-      nx /= len;
-      ny /= len;
-      nz /= len;
-      positions.push(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]);
-      normals.push(nx, ny, nz, nx, ny, nz, nx, ny, nz);
-    };
-    for (let i = 0; i < n; i++) {
-      addTriangle(peak, base[i], base[(i + 1) % n]);
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-    return { geo, peak };
-  }
-
-  addMountain(x, z, width, height, rand) {
-    const THREE = this.THREE;
-    const y0 = this.tile_thickness;
-    const { geo, peak } = this.mountainGeometry(width, height, rand);
-    const mesh = new THREE.Mesh(geo, rand() > 0.5 ? this.rock_mat : this.rock_dark_mat);
-    mesh.position.set(x, y0, z);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    this.scene.add(mesh);
-    this.scene.add(this.addInkShell(mesh, geo, 1.04));
-
-    const snow = new THREE.Mesh(
-      new THREE.ConeGeometry(width * 0.22, height * 0.22, 5),
-      this.snow_mat
-    );
-    snow.position.set(x + peak[0] * 0.15, y0 + height * 0.86, z + peak[2] * 0.15);
-    this.scene.add(snow);
   }
 
   addDesertRocks(pos, rand, occupied) {
-    const THREE = this.THREE;
     const count = 2;
     for (let i = 0; i < count; i++) {
       const spot = this.hexPropSpot(rand, occupied, 0.45);
-      const geo = new THREE.SphereGeometry(0.08 + rand() * 0.04, 7, 6);
-      const rock = new THREE.Mesh(geo, this.desert_rock_mat);
-      rock.scale.set(1 + rand() * 0.5, 0.35 + rand() * 0.2, 0.8 + rand() * 0.4);
-      rock.position.set(pos.x + spot.x, this.tile_thickness + 0.01, pos.z + spot.z);
-      rock.rotation.y = rand() * Math.PI;
-      rock.castShadow = true;
+      const rock = createDesertRock(this.THREE, rand);
+      rock.position.set(pos.x + spot.x, this.tile_thickness, pos.z + spot.z);
       this.scene.add(rock);
     }
   }
@@ -1519,134 +1270,30 @@ class Board {
   }
 
   addRoad(q, r, edge, color) {
-    const THREE = this.THREE;
     const seg = this.hexEdge(q, r, edge);
     const dx = seg.b.x - seg.a.x;
     const dz = seg.b.z - seg.a.z;
     const length = Math.hypot(dx, dz) * 0.64;
-    const mats = this.pieceMaterials(color);
-    const group = new THREE.Group();
-    group.position.set((seg.a.x + seg.b.x) / 2, this.tile_thickness, (seg.a.z + seg.b.z) / 2);
-    group.rotation.y = Math.atan2(dx, dz);
-
-    const plank_geo = new THREE.BoxGeometry(0.1, 0.036, length);
-    const plank = new THREE.Mesh(plank_geo, mats.road);
-    plank.position.y = 0.018;
-    plank.castShadow = true;
-    plank.receiveShadow = true;
-    group.add(plank);
-    group.add(this.addInkShell(plank, plank_geo, 1.05));
-
-    const groove = new THREE.BoxGeometry(0.007, 0.005, length * 0.9);
-    for (const x of [-0.024, 0.024]) {
-      const line = new THREE.Mesh(groove, mats.trim);
-      line.position.set(x, 0.038, 0);
-      group.add(line);
-    }
-
-    const cap_geo = new THREE.CylinderGeometry(0.05, 0.05, 0.036, 8);
-    [-length / 2, length / 2].forEach((z) => {
-      const cap = new THREE.Mesh(cap_geo, mats.road);
-      cap.position.set(0, 0.018, z);
-      group.add(cap);
-    });
-
-    this.scene.add(group);
+    const road = createRoad(this.THREE, length, this.pieceMaterials(color));
+    road.position.set((seg.a.x + seg.b.x) / 2, this.tile_thickness, (seg.a.z + seg.b.z) / 2);
+    road.rotation.y = Math.atan2(dx, dz);
+    this.scene.add(road);
   }
 
   addSettlement(q, r, vertex, color) {
-    const THREE = this.THREE;
     const v = this.hexVertex(q, r, vertex);
-    const mats = this.pieceMaterials(color);
-    const group = new THREE.Group();
-    group.position.set(v.x, this.tile_thickness, v.z);
-    group.rotation.y = vertex * (Math.PI / 3);
-    group.scale.setScalar(0.82);
-    const wall_geo = new THREE.BoxGeometry(0.18, 0.12, 0.15);
-    const walls = new THREE.Mesh(wall_geo, mats.wall);
-    walls.position.y = 0.06;
-    walls.castShadow = true;
-    group.add(walls);
-    group.add(this.addInkShell(walls, wall_geo, 1.05));
-
-    const roof_geo = new THREE.ConeGeometry(0.145, 0.1, 4);
-    const roof = new THREE.Mesh(roof_geo, mats.roof);
-    roof.position.y = 0.16;
-    roof.rotation.y = Math.PI / 4;
-    roof.castShadow = true;
-    group.add(roof);
-    group.add(this.addInkShell(roof, roof_geo, 1.05));
-
-    const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.07, 0.03), mats.trim);
-    chimney.position.set(0.045, 0.175, -0.02);
-    group.add(chimney);
-
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.055, 0.012), mats.trim);
-    door.position.set(0, 0.038, 0.078);
-    group.add(door);
-
-    const window = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.03, 0.01), mats.light);
-    window.position.set(-0.05, 0.075, 0.076);
-    group.add(window);
-
-    this.scene.add(group);
+    const settlement = createSettlement(this.THREE, this.pieceMaterials(color));
+    settlement.position.set(v.x, this.tile_thickness, v.z);
+    settlement.rotation.y = vertex * (Math.PI / 3);
+    this.scene.add(settlement);
   }
 
   addCity(q, r, vertex, color) {
-    const THREE = this.THREE;
     const v = this.hexVertex(q, r, vertex);
-    const mats = this.pieceMaterials(color);
-    const group = new THREE.Group();
-    group.position.set(v.x, this.tile_thickness, v.z);
-    group.rotation.y = vertex * (Math.PI / 3);
-    group.scale.setScalar(0.86);
-
-    const hall_geo = new THREE.BoxGeometry(0.24, 0.15, 0.2);
-    const hall = new THREE.Mesh(hall_geo, mats.wall);
-    hall.position.y = 0.075;
-    hall.castShadow = true;
-    group.add(hall);
-    group.add(this.addInkShell(hall, hall_geo, 1.05));
-
-    const wing_geo = new THREE.BoxGeometry(0.12, 0.12, 0.14);
-    const wing = new THREE.Mesh(wing_geo, mats.wall);
-    wing.position.set(0.14, 0.06, 0.02);
-    wing.castShadow = true;
-    group.add(wing);
-
-    const roof_geo = new THREE.ConeGeometry(0.185, 0.12, 4);
-    const roof = new THREE.Mesh(roof_geo, mats.roof);
-    roof.position.y = 0.2;
-    roof.rotation.y = Math.PI / 4;
-    roof.castShadow = true;
-    group.add(roof);
-    group.add(this.addInkShell(roof, roof_geo, 1.05));
-
-    const wing_roof = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.08, 4), mats.roof);
-    wing_roof.position.set(0.14, 0.16, 0.02);
-    wing_roof.rotation.y = Math.PI / 4;
-    group.add(wing_roof);
-
-    const tower_geo = new THREE.CylinderGeometry(0.045, 0.05, 0.28, 8);
-    const tower = new THREE.Mesh(tower_geo, mats.wall);
-    tower.position.set(-0.08, 0.14, -0.04);
-    tower.castShadow = true;
-    group.add(tower);
-    group.add(this.addInkShell(tower, tower_geo, 1.05));
-
-    const spire = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.1, 8), mats.roof);
-    spire.position.set(-0.08, 0.32, -0.04);
-    group.add(spire);
-
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 0.012), mats.trim);
-    door.position.set(0.02, 0.045, 0.104);
-    group.add(door);
-
-    const window = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.035, 0.01), mats.light);
-    window.position.set(-0.07, 0.1, 0.102);
-    group.add(window);
-
-    this.scene.add(group);
+    const city = createCity(this.THREE, this.pieceMaterials(color));
+    city.position.set(v.x, this.tile_thickness, v.z);
+    city.rotation.y = vertex * (Math.PI / 3);
+    this.scene.add(city);
   }
 
   attachEvents() {
@@ -1706,7 +1353,12 @@ class Board {
     const y = this.orbit_radius * Math.cos(this.orbit_phi);
     const z = this.orbit_radius * Math.sin(this.orbit_phi) * Math.cos(this.orbit_theta);
     this.camera.position.set(x, y, z);
-    this.camera.lookAt(0, this.tile_thickness, 0);
+    const frame = 2.4;
+    this.camera.lookAt(
+      Math.sin(this.orbit_theta) * frame,
+      this.tile_thickness,
+      Math.cos(this.orbit_theta) * frame
+    );
     this.orientFaceTokens();
   }
 
