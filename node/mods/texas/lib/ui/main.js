@@ -1,7 +1,6 @@
 const MainTemplate = require('./main.template');
 const Table = require('./table');
 const Sidebar = require('./sidebar');
-const Log = require('./log');
 
 class Main {
   constructor(app, mod) {
@@ -9,7 +8,6 @@ class Main {
     this.mod = mod;
     this.table = new Table(app, mod);
     this.sidebar = new Sidebar(app, mod);
-    this.log = new Log(app, mod);
   }
 
   html() {
@@ -27,7 +25,6 @@ class Main {
 
     this.table.render();
     this.sidebar.render();
-    this.log.render();
   }
 }
 

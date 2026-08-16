@@ -5,16 +5,19 @@
   justify-content: center;
   align-items: center;
   min-width: 0;
-  min-height: calc(1.53 * min(16vh, 10vw));
-  overflow: hidden;
+  min-height: var(--texas-card-height);
+  overflow: visible;
   gap: 1rem;
+  padding: 0 1.6rem;
 }
 
 .game.texas .texas-board .card {
   position: relative;
   flex: 0 0 auto;
-  width: min(16vh, 10vw);
-  height: calc(1.53 * min(16vh, 10vw));
+  width: var(--texas-card-width);
+  height: var(--texas-card-height);
+  max-width: 15rem;
+  max-height: 23rem;
   transform-style: preserve-3d;
 }
 
@@ -46,12 +49,7 @@
 
 @media (max-width: 900px), (max-height: 500px) {
   .game.texas .texas-board {
-    min-height: calc(1.53 * 15vw);
     gap: 0.6rem;
-  }
-
-  .game.texas .texas-board .card {
-    width: 15vw;
-    height: calc(1.53 * 15vw);
+    padding: 0 0.8rem;
   }
 }

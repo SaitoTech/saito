@@ -1,44 +1,57 @@
 .game.texas .texas-pot {
-  display: grid;
-  grid-template-columns: 5.2rem auto auto 1fr;
+  display: flex;
+  flex-direction: row;
   align-items: center;
-  column-gap: 0.8rem;
   flex: 0 0 auto;
   order: 0;
   width: 100%;
   box-sizing: border-box;
   position: relative;
   min-height: 4.4rem;
-  padding: 0.5rem 1.2rem 0.5rem 1.2rem;
+  padding: 0.5rem 1.4rem 0.5rem 8rem;
   overflow: visible;
   border-radius: 1.4rem;
   background: color-mix(in srgb, var(--saito-white) 88%, transparent);
   color: var(--saito-background);
 }
 
-.game.texas .texas-pot::before {
-  content: '';
-  grid-column: 1;
-  grid-row: 1;
-  width: 5.6rem;
-  height: 5.6rem;
-  margin-top: -1.8rem;
+.game.texas .pot-chip {
+  position: absolute;
+  left: 0.4rem;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6.4rem;
+  height: 6.4rem;
+  transform: translateY(-50%);
   background: url(/texas/img/simple-chip.svg) center / contain no-repeat;
+  font-family: var(--saito-font-medium);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: var(--saito-white);
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
 .game.texas .pot-label {
   display: none;
 }
 
-.game.texas .pot-value {
+.game.texas .pot-value,
+.game.texas .pot-units,
+.game.texas .texas-pot .smaller-font {
   font-family: var(--saito-font-medium);
-  font-size: 2.8rem;
-  line-height: 1;
+  font-size: 2.4rem;
+  font-weight: inherit;
+  line-height: 1.15;
 }
 
 .game.texas .pot-units {
-  font-family: var(--saito-font-medium);
-  font-size: 2rem;
+  margin-left: 0.6rem;
 }
 
 .game.texas .texas-pot.invisible {
@@ -49,17 +62,13 @@
   .game.texas .texas-pot {
     flex: 1 1 100%;
     min-height: 3.6rem;
-    padding: 0.4rem 1rem;
+    padding: 0.4rem 1rem 0.4rem 6.6rem;
   }
 
-  .game.texas .texas-pot::before {
-    width: 4.4rem;
-    height: 4.4rem;
-    margin-top: -1.2rem;
-  }
-
-  .game.texas .pot-value {
-    font-size: 2.2rem;
+  .game.texas .pot-chip {
+    width: 5.2rem;
+    height: 5.2rem;
+    font-size: 1.2rem;
   }
 }
 

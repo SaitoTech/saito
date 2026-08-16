@@ -51,9 +51,9 @@ class Board {
           newHTML += `<div class="card slot${i + 1}"><img class="cardFront" src="${poker_self.card_img_dir}/${card.name}"></div>`;
         } else if (i < pool_hand.length) {
           let card = pool_cards[pool_hand[i]];
-          newHTML += `<div class="flipped slot${i + 1} card"><img class="cardFront" src="${poker_self.card_img_dir}/${card.name}"><img class="cardBack" src="${poker_self.card_img_dir}/${poker_self.card_img}.png"></div>`;
+          newHTML += `<div class="flipped slot${i + 1} card"><img class="cardFront" src="${poker_self.card_img_dir}/${card.name}"><img class="cardBack" src="/texas/img/cards/red.png"></div>`;
         } else {
-          newHTML += `<div class="flipped slot${i + 1} card"><img class="cardBack" src="${poker_self.card_img_dir}/${poker_self.card_img}.png"></div>`;
+          newHTML += `<div class="flipped slot${i + 1} card"><img class="cardBack" src="/texas/img/cards/red.png"></div>`;
         }
       }
       document.getElementById('deal').innerHTML = newHTML;

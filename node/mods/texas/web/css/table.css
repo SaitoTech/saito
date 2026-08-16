@@ -1,9 +1,15 @@
 .game.texas .texas-table {
+  --texas-card-width: min(15vh, 17vw, 15rem);
+  --texas-card-height: calc(1.53 * var(--texas-card-width));
+  --texas-hand-width: min(26vh, 22vw, 22rem);
+  --texas-hand-height: calc(1.53 * var(--texas-hand-width));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto 12rem;
+  grid-template-rows: minmax(0, 0.7fr) auto minmax(0, 1fr) auto 12rem;
   grid-template-areas:
+    '.'
     'board'
+    '.'
     'hand'
     'controls';
   min-width: 0;
@@ -19,6 +25,8 @@
 
 @media (max-width: 900px), (max-height: 500px) {
   .game.texas .texas-table {
-    grid-template-rows: minmax(0, 1fr) auto 10rem;
+    --texas-card-width: min(18vw, 12rem);
+    --texas-hand-width: min(28vw, 16rem);
+    grid-template-rows: minmax(0, 0.4fr) auto minmax(0, 1fr) auto 10rem;
   }
 }
