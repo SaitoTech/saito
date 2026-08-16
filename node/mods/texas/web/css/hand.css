@@ -6,15 +6,15 @@
   align-items: flex-end;
   position: relative;
   min-width: 0;
-  min-height: calc(1.53 * min(22vh, 14vw) + 1rem);
+  min-height: calc(var(--texas-hand-height) + 1rem);
   overflow: visible;
 }
 
 .game.texas .texas-hand .card {
   position: relative;
   flex: 0 0 auto;
-  width: min(22vh, 14vw);
-  height: calc(1.53 * min(22vh, 14vw));
+  width: var(--texas-hand-width);
+  height: var(--texas-hand-height);
   filter: drop-shadow(5px 5px 3px black);
 }
 
@@ -24,18 +24,13 @@
 
 .game.texas .texas-hand .card:nth-child(2) {
   transform: rotate(10deg);
-  left: -1.2rem;
+  left: 2.5rem;
   top: 0.5rem;
-  margin-left: -3.2rem;
 }
 
 @media (max-width: 900px), (max-height: 500px) {
-  .game.texas .texas-hand {
-    min-height: calc(1.53 * 22vw + 1rem);
-  }
-
-  .game.texas .texas-hand .card {
-    width: 22vw;
-    height: calc(1.53 * 22vw);
+  .game.texas .texas-hand .card:nth-child(2) {
+    left: 1.2rem;
+    margin-left: -2.4rem;
   }
 }

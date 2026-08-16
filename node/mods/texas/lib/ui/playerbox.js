@@ -7,7 +7,7 @@ class Playerbox {
     this.publicKey = publicKey;
     this.player_number = player_number;
     this.character_id = 'player1';
-    this.character_src = '/texas/img/characters/players/player1.png';
+    this.character_src = '/texas/img/players/player1.png';
     this.name =
       player_number > 0 && mod.game?.state?.player_names
         ? mod.game.state.player_names[player_number - 1]

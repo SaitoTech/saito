@@ -26,7 +26,7 @@ class Texas extends GameTableTemplate {
 				<br> Play with up to five other players for fun or wager integrated web3 cryptocurrencies through your handy Saito Wallets`;
     this.categories = 'Games Cardgame Casino';
     this.card_img_dir = '/saito/img/arcade/cards';
-    this.card_img = 'new_red';
+    this.card_back = '/texas/img/cards/red.png';
     this.felt = 'green';
     this.theme = 'threed';
     this.icon = 'fa-solid fa-diamond';
@@ -190,6 +190,15 @@ class Texas extends GameTableTemplate {
         game_mod.stats.toggle();
       }
     });
+    this.menu.addSubMenuOption('game-game', {
+      text: 'Log',
+      id: 'game-log',
+      class: 'game-log',
+      callback: function (app, game_mod) {
+        game_mod.menu.hideSubMenus();
+        game_mod.log.toggleLog();
+      }
+    });
 
     this.theme = this.app.browser.isMobileBrowser() ? 'flat' : 'threed';
 
@@ -199,6 +208,8 @@ class Texas extends GameTableTemplate {
     this.refreshPlayerboxes();
     this.menu.addChatMenu();
     this.menu.render();
+    this.log.render();
+    this.introduceLog();
     this.displayButton();
     this.insertCryptoLogo(this.game?.options?.crypto);
 
@@ -270,6 +281,22 @@ class Texas extends GameTableTemplate {
     this.game_help.hide();
 
     super.endTurn(nextTarget);
+  }
+
+  introduceLog() {
+    if (this.log_intro_shown || !this.log) {
+      return;
+    }
+    this.log_intro_shown = true;
+    try {
+      this.log.toggleLog();
+      setTimeout(() => {
+        let obj = document.querySelector('#log-wrapper');
+        if (obj && obj.classList.contains('log-lock')) {
+          this.log.toggleLog();
+        }
+      }, 2000);
+    } catch (err) {}
   }
 
   updateStatus(str, force = 0) {

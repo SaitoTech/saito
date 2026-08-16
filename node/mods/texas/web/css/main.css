@@ -29,10 +29,6 @@ body.game.texas {
   grid-area: table;
 }
 
-.game.texas .texas-log {
-  grid-area: 1 / 1 / -1 / -1;
-}
-
 .game.texas #game-share {
   display: none;
 }
