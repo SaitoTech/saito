@@ -1,0 +1,48 @@
+body.game.texas {
+  background-color: #1a5a32;
+  background-image: url(/saito/img/arcade/greenfelt.jpg);
+  background-size: 180%;
+  background-position: center;
+}
+
+.game.texas .texas-main {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(28rem, 26vw) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'rail table';
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #1a5a32;
+  background-image: url(/saito/img/arcade/greenfelt.jpg);
+  background-size: 180%;
+  background-position: center;
+}
+
+.game.texas .texas-sidebar {
+  grid-area: rail;
+}
+
+.game.texas .texas-table {
+  grid-area: table;
+}
+
+.game.texas .texas-log {
+  grid-area: 1 / 1 / -1 / -1;
+}
+
+.game.texas #game-share {
+  display: none;
+}
+
+@media (max-width: 900px), (max-height: 500px) {
+  .game.texas .texas-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'table'
+      'rail';
+  }
+}

@@ -1,0 +1,4 @@
+.game.texas .poker-stats-overlay {
+  min-width: min(50rem, 95vw);
+  max-width: 100vw;
+}

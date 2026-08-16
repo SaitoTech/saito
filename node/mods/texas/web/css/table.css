@@ -1,0 +1,24 @@
+.game.texas .texas-table {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto 12rem;
+  grid-template-areas:
+    'board'
+    'hand'
+    'controls';
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  padding-top: var(--saito-header-height, 4rem);
+}
+
+.game.texas .poker-chip {
+  width: 2.8rem;
+  height: 2.8rem;
+}
+
+@media (max-width: 900px), (max-height: 500px) {
+  .game.texas .texas-table {
+    grid-template-rows: minmax(0, 1fr) auto 10rem;
+  }
+}

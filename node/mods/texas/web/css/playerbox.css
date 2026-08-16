@@ -1,0 +1,120 @@
+.game.texas .texas-playerbox {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr);
+  gap: 1rem;
+  flex: 0 0 auto;
+  order: 1;
+  position: relative;
+  min-height: 12rem;
+  padding: 1rem;
+  border-radius: 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--saito-foreground) 32%, transparent);
+  background: color-mix(in srgb, #0d2818 78%, transparent);
+  color: var(--saito-foreground);
+  box-sizing: border-box;
+}
+
+.game.texas .texas-playerbox.folded {
+  opacity: 0.55;
+}
+
+.game.texas .playerbox-character {
+  width: 12rem;
+  height: 12rem;
+  overflow: hidden;
+  border-radius: var(--saito-radius-full);
+  border: 2px solid color-mix(in srgb, var(--saito-foreground) 50%, transparent);
+}
+
+.game.texas .playerbox-character-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game.texas .playerbox-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.game.texas .playerbox-name {
+  font-family: var(--saito-font-medium);
+  font-size: 2.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game.texas .playerbox-chips {
+  font-family: var(--saito-font-medium);
+  font-size: 2.2rem;
+}
+
+.game.texas .playerbox-action {
+  font-size: 1.6rem;
+  color: var(--saito-muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game.texas .playerbox-action:empty,
+.game.texas .playerbox-mark {
+  display: none;
+}
+
+.game.texas .game-playerbox-graphics {
+  grid-column: 1 / -1;
+}
+
+.game.texas .other-player-hand {
+  display: flex;
+  flex-direction: row;
+}
+
+.game.texas .other-player-hand .card {
+  width: 3.2rem;
+  height: calc(1.53 * 3.2rem);
+}
+
+@media (max-width: 900px), (max-height: 500px) {
+  .game.texas .texas-playerbox {
+    flex: 1 1 calc(50% - 0.8rem);
+    min-width: 0;
+    min-height: 8rem;
+    grid-template-columns: 7.2rem minmax(0, 1fr);
+    padding: 0.8rem;
+    gap: 0.8rem;
+  }
+
+  .game.texas .playerbox-character {
+    width: 7.2rem;
+    height: 7.2rem;
+  }
+
+  .game.texas .playerbox-name {
+    font-size: 1.8rem;
+  }
+
+  .game.texas .playerbox-chips {
+    font-size: 1.7rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .game.texas .texas-playerbox {
+    flex: 1 1 16rem;
+    min-width: 16rem;
+    min-height: 6.4rem;
+    grid-template-columns: 6rem minmax(0, 1fr);
+  }
+
+  .game.texas .playerbox-character {
+    width: 6rem;
+    height: 6rem;
+  }
+}
