@@ -38,8 +38,8 @@ body {
 }
 
 /*
- * Approximate N64 4:3 letterbox gutters for peripheral chrome placement.
- * Used while a ROM is running (body.nwasm-playing).
+ * Approximate N64 4:3 letterbox gutters (kept for drawer width hints only).
+ * Header chrome is fixed to the application/viewport edges — not the canvas.
  */
 body.nwasm-playing {
   --nwasm-canvas-w: min(100vw, calc(100vh * 4 / 3));
@@ -101,16 +101,42 @@ body:not(.nwasm-playing) #saito-header.game .saito-header-backdrop.menu-visible 
 }
 
 /*
- * In-game: keep the existing horizontal Game / Chat / Share menu.
- * Top-left placement already sits in the left letterbox when one exists,
- * so the menu is beside the centered canvas instead of over it.
- * Do not compress the menu into a vertical stack.
+ * In-game: collapse the header band and pin Game menu + hamburger to the
+ * application (viewport) edges. Must override `#saito-header .game-menu
+ * { position: relative }` so controls are not laid out against the canvas.
  */
-body.nwasm-playing .game-menu {
+body.nwasm-playing #saito-header.game {
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  overflow: visible;
+  pointer-events: none;
+  background: transparent;
+}
+
+body.nwasm-playing #saito-header .game-menu {
+  position: fixed;
   top: max(1rem, env(safe-area-inset-top));
   left: max(0.6rem, env(safe-area-inset-left));
   margin: 0;
   z-index: 500;
+  pointer-events: auto;
+}
+
+body.nwasm-playing #saito-header.game .hamburger-container {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body.nwasm-playing #saito-header.game #saito-header-menu-toggle {
+  pointer-events: auto;
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1.2rem, env(safe-area-inset-right));
+  margin: 0;
+  z-index: 100;
 }
 
 /*
@@ -122,6 +148,11 @@ body.nwasm-playing #saito-header.game .saito-header-hamburger-contents {
   max-width: min(40rem, 100vw);
   top: 0;
   height: 100svh;
+  pointer-events: none;
+}
+
+body.nwasm-playing #saito-header.game .saito-header-hamburger-contents.show-menu {
+  pointer-events: auto;
 }
 
 body.nwasm-playing #saito-header.game .saito-header-backdrop {

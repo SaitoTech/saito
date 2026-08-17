@@ -24,38 +24,26 @@ class AcceptStake {
   }
 
   attachEvents(obj) {
-    let this_self = this;
-    if (document.querySelector('#approve-crypto-request-container #enable_staking_yes')) {
-      document.querySelector('#approve-crypto-request-container #enable_staking_yes').onclick =
-        async (e) => {
-          let confirm = document.querySelector(
-            '#approve-crypto-request-container #approve-crypto-stake-confirm-input'
-          ).checked;
+    document.querySelector('#enable_staking_yes').onclick = async (e) => {
+      if (!document.querySelector('#approve-crypto-stake-confirm-input').checked) {
+        salert('You need to confirm');
+        return;
+      }
 
-          if (!confirm) {
-            salert('You need to confirm');
-            return;
-          }
-
-          if (await this.mod.validateBalance(obj.stake, obj.ticker)) {
-            if (this_self.accept_callback) {
-              this_self.accept_callback();
-            }
-            this_self.overlay.close();
-          }
-        };
-    }
-
-    if (document.querySelector('#approve-crypto-request-container #enable_staking_no')) {
-      document.querySelector('#approve-crypto-request-container #enable_staking_no').onclick = (
-        e
-      ) => {
-        if (this_self.reject_callback) {
-          this_self.reject_callback();
+      if (await this.mod.validateBalance(obj.stake, obj.ticker)) {
+        if (this.accept_callback) {
+          this.accept_callback();
         }
-        this_self.overlay.close();
-      };
-    }
+        this.overlay.close();
+      }
+    };
+
+    document.querySelector('#enable_staking_no').onclick = (e) => {
+      if (this.reject_callback) {
+        this.reject_callback();
+      }
+      this.overlay.close();
+    };
   }
 }
 

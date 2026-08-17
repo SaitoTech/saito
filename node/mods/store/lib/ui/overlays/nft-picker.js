@@ -1,6 +1,11 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoNFTCard = require('../../../../../lib/saito/ui/saito-nft/saito-nft-card');
 const NftPickerTemplate = require('./nft-picker.template');
+const {
+  isVaultRentalNftType,
+  isSellableNftType,
+  normalizeListingMode
+} = require('../../categories');
 
 class NftPickerOverlay {
   constructor(app, mod) {
@@ -9,20 +14,54 @@ class NftPickerOverlay {
     this.overlay = new SaitoOverlay(app, mod);
     this.card_list = [];
     this.defaults = {};
+    this.listing_mode = 'sell';
     this.onSelect = null;
     this.create_nft_overlay = null;
   }
 
   render(defaults = {}) {
     this.defaults = defaults || {};
+    this.listing_mode = normalizeListingMode(this.defaults.listing_mode);
 
-    this.overlay.show(NftPickerTemplate(), () => {
+    this.overlay.show(NftPickerTemplate({ listing_mode: this.listing_mode }), () => {
       if (typeof this.defaults?.callback === 'function') {
         this.defaults.callback({ status: 'cancelled' });
       }
     });
 
+    this.attachModeEvents();
     this.renderNftGrid();
+  }
+
+  returnRecordType(rec = {}) {
+    try {
+      return this.app.wallet.extractNFTType(rec?.slip3?.utxo_key || '') || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  matchesListingMode(nft_type = '') {
+    if (this.listing_mode === 'rent') {
+      return isVaultRentalNftType(nft_type);
+    }
+    return isSellableNftType(nft_type);
+  }
+
+  attachModeEvents() {
+    const select = document.querySelector('.nft-picker [data-listing-mode-select]');
+    if (!select) {
+      return;
+    }
+    select.onchange = (e) => {
+      const next = normalizeListingMode(e.target.value);
+      if (next === this.listing_mode) {
+        return;
+      }
+      this.listing_mode = next;
+      this.defaults.listing_mode = next;
+      this.render({ ...this.defaults, listing_mode: next, callback: this.defaults.callback });
+    };
   }
 
   async renderNftGrid() {
@@ -34,19 +73,26 @@ class NftPickerOverlay {
     }
 
     await this.app.wallet.updateNFTList();
-    const nft_list = this.app.options.wallet.nfts || [];
+    const nft_list = (this.app.options.wallet.nfts || []).filter((rec) =>
+      this.matchesListingMode(this.returnRecordType(rec))
+    );
 
     this.card_list = [];
     container.innerHTML = '';
 
     if (!nft_list.length) {
       if (statusEl) {
-        statusEl.innerHTML = NftPickerTemplate.emptyInstructions();
+        statusEl.innerHTML = NftPickerTemplate.emptyInstructions(this.listing_mode);
       }
       if (instructionsEl) {
-        instructionsEl.hidden = false;
-        instructionsEl.innerHTML = NftPickerTemplate.createPrompt();
-        this.attachEmptyEvents();
+        if (this.listing_mode === 'sell') {
+          instructionsEl.hidden = false;
+          instructionsEl.innerHTML = NftPickerTemplate.createPrompt();
+          this.attachEmptyEvents();
+        } else {
+          instructionsEl.hidden = true;
+          instructionsEl.innerHTML = '';
+        }
       }
       return;
     }
@@ -138,14 +184,29 @@ class NftPickerOverlay {
       });
     }
 
+    const nft_type =
+      (typeof selected?.returnType === 'function' ? selected.returnType() : '') ||
+      selected?.nft_type ||
+      '';
+    if (!this.matchesListingMode(nft_type)) {
+      siteMessage(
+        this.listing_mode === 'rent'
+          ? 'Choose a Vault rental NFT (vault-nft-rental) to list for rent.'
+          : 'That NFT is not available for sale listings. Switch to RENT or pick another NFT.',
+        3500
+      );
+      return;
+    }
+
     // Avoid treating a successful pick as a cancel when the picker closes.
     if (this.defaults) {
       this.defaults.callback = null;
+      this.defaults.listing_mode = this.listing_mode;
     }
     this.overlay.close();
 
     if (typeof this.onSelect === 'function') {
-      this.onSelect(selected, this.defaults);
+      this.onSelect(selected, { ...this.defaults, listing_mode: this.listing_mode });
     }
   }
 }

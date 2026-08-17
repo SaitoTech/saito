@@ -44,6 +44,8 @@ class Nwasm extends OnePlayerGameTemplate {
     this.active_game_save_ts = 0;
 
     this.uploaded_rom = false;
+    this.rental_timer = null;
+    this.rental_game_sig = null;
 
     // opt out of index.js
     this.default_html = 0;
@@ -69,7 +71,210 @@ class Nwasm extends OnePlayerGameTemplate {
       };
     }
 
+    //
+    // Arcade discovers this module via arcade-games. Supply onClick so the
+    // Nintendo 64 card opens NWASM's Arcade overlay (not the Game Wizard).
+    // Arcade only invokes Game.onClick() — it does not know about this overlay.
+    //
+    if (type === 'arcade-games') {
+      let pack = super.respondTo(type, obj) || {};
+      pack.onClick = async () => {
+        await this.openArcadeOverlay();
+      };
+      return pack;
+    }
+
     return super.respondTo(type, obj);
+  }
+
+  /**
+   * Open the NWASM Arcade library overlay without leaving the Arcade page.
+   */
+  async openArcadeOverlay() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    this.ensureArcadeStyles();
+
+    if (!this.arcade_overlay) {
+      const NwasmArcadeOverlay = require('./lib/ui/overlays/arcade_overlay');
+      this.arcade_overlay = new NwasmArcadeOverlay(this.app, this);
+    }
+    await this.arcade_overlay.open();
+  }
+
+  /**
+   * Open the Arcade game wizard for an installed ROM (explicit Play launches emulator).
+   */
+  openRomWizard(sig = '', title = '') {
+    if (!this.app.BROWSER || !sig) {
+      return;
+    }
+    this.app.connection.emit('arcade-launch-game-wizard', {
+      game: this.name,
+      rom_sig: sig,
+      rom_title: title || ''
+    });
+  }
+
+  /**
+   * Called from the Arcade game wizard when the user explicitly chooses Play.
+   */
+  launchFromArcadeWizard(_options = {}, obj = {}) {
+    if (obj?.rom_sig) {
+      this.launchRomFromArcade(obj.rom_sig);
+    }
+  }
+
+  ensureArcadeStyles() {
+    if (!this.styles.includes('/nwasm/style.css')) {
+      this.styles.push('/nwasm/style.css');
+    }
+    if (!document.querySelector('link[href*="/nwasm/style.css"]')) {
+      this.stylesheetAdded = false;
+      this.attachStyleSheets();
+    }
+  }
+
+  /**
+   * Launch an installed ROM by navigating into the NWASM player page and
+   * resuming via the existing pending-launch path.
+   */
+  launchRomFromArcade(sig = '') {
+    if (!sig) {
+      return;
+    }
+    try {
+      sessionStorage.setItem('nwasm-pending-launch', JSON.stringify({ sig: String(sig) }));
+      sessionStorage.setItem('nwasm-launched-from-arcade', '1');
+    } catch (_) {}
+    navigateWindow('/nwasm/');
+  }
+
+  /**
+   * Play an uploaded ROM immediately (standalone /nwasm/ page).
+   */
+  async playEphemeralRom(byteArray, file_name = '', raw_file = null) {
+    if (!byteArray || !this.ui) {
+      return;
+    }
+
+    let title = file_name || 'Loading game…';
+
+    this.ui.hide();
+    this.ui.load_overlay.render({
+      title: title,
+      message:
+        'Initializing emulator — this can take a while for large ROMs. The page may appear frozen; please wait.'
+    });
+
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      });
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    this.active_rom = raw_file || byteArray;
+    this.uploaded_rom = true;
+    this.launch_sig = '';
+    this.clearRentalTimer();
+    this.startPlaying();
+    myApp.initializeRom(byteArray, this.app, this);
+  }
+
+  /**
+   * When Play Now is chosen from the Arcade overlay, queue ROM bytes and
+   * navigate into the NWASM player page (same host as library launches).
+   */
+  queueEphemeralRomFromArcade(file, file_name = '') {
+    if (!file) {
+      return false;
+    }
+
+    try {
+      let data = Buffer.from(file, 'binary').toString('base64');
+      sessionStorage.setItem(
+        'nwasm-pending-ephemeral',
+        JSON.stringify({
+          data: data,
+          file_name: file_name || 'Selected ROM'
+        })
+      );
+      sessionStorage.setItem('nwasm-launched-from-arcade', '1');
+    } catch (err) {
+      alert('Unable to launch this ROM from Arcade. Add it to your library first, then play.');
+      return false;
+    }
+
+    if (this.arcade_overlay?.is_open) {
+      this.arcade_overlay.close();
+    }
+    navigateWindow('/nwasm/');
+    return true;
+  }
+
+  is_nwasm_page() {
+    try {
+      return String(window.location.pathname || '').includes('/nwasm');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /**
+   * Publish installed ROM titles to Arcade as ordinary Game objects with
+   * NWASM-owned onClick handlers. Does not block Arcade initialization.
+   *
+   * When `games` is a full installed list, stale Arcade ROM teasers are pruned.
+   * Pass `{ prune: false }` for partial updates (e.g. after registering one ROM).
+   */
+  syncArcadeGames(games = null, opts = {}) {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    let arcade = this.app.modules.returnModule('Arcade');
+    if (!arcade || typeof arcade.addGame !== 'function') {
+      return;
+    }
+
+    let list = Array.isArray(games) ? games : this.ui?.games || [];
+    let prune = opts.prune !== false && Array.isArray(games);
+    let prefix = 'nwasm-rom-';
+    let keep = {};
+
+    for (let i = 0; i < list.length; i++) {
+      let g = list[i];
+      if (!g?.sig) {
+        continue;
+      }
+      let name = prefix + g.sig;
+      keep[name] = 1;
+      arcade.addGame({
+        name: name,
+        title: g.title || 'N64 ROM',
+        image: this.returnImage(),
+        onClick: async () => {
+          this.openRomWizard(g.sig, g.title);
+        }
+      });
+    }
+
+    if (prune && Array.isArray(arcade.games)) {
+      let stale = arcade.games
+        .filter((g) => g?.name?.startsWith(prefix) && !keep[g.name])
+        .map((g) => g.name);
+      for (let i = 0; i < stale.length; i++) {
+        if (typeof arcade.removeGame === 'function') {
+          arcade.removeGame(stale[i]);
+        }
+      }
+    }
+
+    if (typeof arcade.renderGames === 'function') {
+      arcade.renderGames();
+    }
   }
 
   async onPeerServiceUp(app, peer, service = {}) {
@@ -117,6 +322,20 @@ class Nwasm extends OnePlayerGameTemplate {
         };
       }
     }
+
+    //
+    // After all modules finish initialize (setTimeout 0), publish installed
+    // ROMs to Arcade. Discovery is async and must not block Arcade load.
+    //
+    setTimeout(async () => {
+      try {
+        let games = await this.ui.load_games();
+        this.ui.games = games;
+        this.syncArcadeGames(games);
+      } catch (err) {
+        console.warn('Nwasm: deferred Arcade sync failed:', err);
+      }
+    }, 0);
   }
 
   //////////////////////
@@ -211,8 +430,22 @@ class Nwasm extends OnePlayerGameTemplate {
             myApp.stopEmulator();
           }
         } catch (err) {}
+        game_mod.clearRentalTimer();
         game_mod.stopPlaying();
-        game_mod.ui.return_to_launcher();
+
+        let from_arcade = false;
+        try {
+          from_arcade = sessionStorage.getItem('nwasm-launched-from-arcade') === '1';
+          if (from_arcade) {
+            sessionStorage.removeItem('nwasm-launched-from-arcade');
+          }
+        } catch (_) {}
+
+        if (from_arcade) {
+          navigateWindow('/arcade');
+        } else {
+          game_mod.ui.return_to_launcher();
+        }
       }
     });
     this.menu.render();
@@ -266,6 +499,16 @@ class Nwasm extends OnePlayerGameTemplate {
     }
     this.active_game_load_ts = ts;
     this.active_game_save_ts = ts;
+
+    // Record last-played on the library registry entry when we know which ROM.
+    let sig = this.launch_sig || this.active_rom_sig || '';
+    if (sig && this.app.options?.nwasm?.library) {
+      let entry = this.app.options.nwasm.library.find((g) => g?.sig === sig);
+      if (entry) {
+        entry.last_played = ts;
+        this.app.storage.saveOptions();
+      }
+    }
   }
 
   stopPlaying(ts = null) {
@@ -274,6 +517,87 @@ class Nwasm extends OnePlayerGameTemplate {
     }
     this.active_game_time_played += ts - this.active_game_load_ts;
     this.active_game_load_ts = ts;
+  }
+
+  isRentalExpired(game = null) {
+    if (!game?.rental) {
+      return false;
+    }
+    let exp = game.expires_at != null ? Number(game.expires_at) : NaN;
+    return !Number.isFinite(exp) || Date.now() >= exp;
+  }
+
+  clearRentalTimer() {
+    if (this.rental_timer) {
+      clearTimeout(this.rental_timer);
+      this.rental_timer = null;
+    }
+    this.rental_game_sig = null;
+  }
+
+  armRentalExpiry(game = null) {
+    this.clearRentalTimer();
+    if (!game?.rental) {
+      return;
+    }
+    if (this.isRentalExpired(game)) {
+      this.expireRental();
+      return;
+    }
+    let exp = Number(game.expires_at);
+    this.rental_game_sig = game.sig || this.launch_sig || '';
+    this.rental_timer = setTimeout(() => {
+      this.expireRental();
+    }, Math.max(0, exp - Date.now()));
+  }
+
+  clearRentalRomFromMemory() {
+    this.active_rom = null;
+    this.active_game = null;
+    try {
+      if (typeof FS !== 'undefined' && FS.analyzePath) {
+        let info = FS.analyzePath('custom.v64');
+        if (info?.exists) {
+          FS.unlink('custom.v64');
+        }
+      }
+    } catch (err) {}
+  }
+
+  expireRental() {
+    this.clearRentalTimer();
+    try {
+      if (typeof myApp !== 'undefined') {
+        if (typeof myApp.saveStateLocal === 'function') {
+          myApp.saveStateLocal();
+        }
+        if (typeof myApp.exportStateLocal === 'function') {
+          myApp.exportStateLocal();
+        }
+      }
+    } catch (err) {
+      console.log('Nwasm: rental expiry save failed: ' + err);
+    }
+    try {
+      if (typeof myApp !== 'undefined' && myApp.stopEmulator) {
+        myApp.stopEmulator();
+      }
+    } catch (err) {}
+    this.clearRentalRomFromMemory();
+    try {
+      this.stopPlaying();
+    } catch (err) {}
+    try {
+      if (this.ui?.hide_loading) {
+        this.ui.hide_loading();
+      }
+      if (this.ui?.return_to_launcher) {
+        this.ui.return_to_launcher();
+      }
+    } catch (err) {}
+    try {
+      alert('This rental has expired.');
+    } catch (err) {}
   }
 
   ////////////////////
@@ -440,7 +764,10 @@ class Nwasm extends OnePlayerGameTemplate {
       sig: sig,
       title: title,
       id: id || sig,
-      source: source
+      source: source,
+      nft_type: meta.nft_type || meta.vault?.nft_type || '',
+      rental: meta.rental === true,
+      expires_at: meta.expires_at != null ? meta.expires_at : null
     };
     if (meta.vault) {
       entry.vault = meta.vault;
@@ -457,23 +784,66 @@ class Nwasm extends OnePlayerGameTemplate {
     }
 
     this.app.storage.saveOptions();
+
+    // Upsert this ROM into Arcade without pruning other titles.
+    if (this.app.BROWSER && typeof this.syncArcadeGames === 'function') {
+      try {
+        if (this.ui?.games && !this.ui.games.some((g) => g.sig === entry.sig)) {
+          this.ui.games.push({
+            sig: entry.sig,
+            title: entry.title,
+            id: entry.id,
+            source: entry.source,
+            vault: entry.vault || null,
+            nft_type: entry.nft_type || '',
+            last_played: entry.last_played || 0,
+            rental: entry.rental === true,
+            expires_at: entry.expires_at != null ? entry.expires_at : null
+          });
+          this.ui.games.sort((a, b) => a.title.localeCompare(b.title));
+        }
+        this.syncArcadeGames(
+          [
+            {
+              sig: entry.sig,
+              title: entry.title,
+              id: entry.id,
+              source: entry.source,
+              vault: entry.vault || null,
+              nft_type: entry.nft_type || '',
+              last_played: entry.last_played || 0,
+              rental: entry.rental === true,
+              expires_at: entry.expires_at != null ? entry.expires_at : null
+            }
+          ],
+          { prune: false }
+        );
+      } catch (err) {
+        console.warn('Nwasm: syncArcadeGames after addGame failed:', err);
+      }
+    }
+
+    // Refresh Arcade library overlay if it is open.
+    if (this.arcade_overlay?.is_open) {
+      try {
+        await this.arcade_overlay.refresh();
+      } catch (err) {
+        console.warn('Nwasm: arcade overlay refresh failed:', err);
+      }
+    }
+
     return entry;
   }
 
   //
-  // After Upload to Vault is confirmed, register the game using Vault's
-  // confirmed NFT→file cache (written after the mint tx confirms).
+  // After Upload to Vault is confirmed, register the game from the mint tx /
+  // upload result — do not ask Vault for metadata.
   //
   async addGameFromVaultResult(ctx = {}, result = {}) {
     let name = (ctx.game_data?.name || ctx.file_name || '').trim() || 'game';
     let filename = (result?.filename || ctx.file_name || `${name}.z64`).trim();
     if (!/\.(z64|n64|v64)$/i.test(filename)) {
       filename = `${filename.replace(/\.[^.]+$/, '') || name}.z64`;
-    }
-
-    let vault_mod = this.app.modules.returnModule('Vault');
-    if (!vault_mod?.returnNftFileMetadata) {
-      throw new Error('Vault module is required to register an uploaded Vault game');
     }
 
     try {
@@ -487,36 +857,69 @@ class Nwasm extends OnePlayerGameTemplate {
     let tx_sig = nft_tx?.signature || '';
     let nfts = this.app.options?.wallet?.nfts || [];
     let nft_entry =
-      nfts.find((n) => (nft_id && n.id === nft_id) || (tx_sig && n.tx_sig === tx_sig)) || {
-        id: nft_id,
-        nft_id: nft_id,
-        tx_sig: tx_sig
-      };
+      nfts.find((n) => (nft_id && n.id === nft_id) || (tx_sig && n.tx_sig === tx_sig)) || null;
 
-    // Authoritative Access Key metadata lives in Vault's confirmed cache.
-    let file = await vault_mod.returnNftFileMetadata(nft_entry);
-    if (!file?.file_id && nft_id && typeof vault_mod.getCachedNftFileMetadata === 'function') {
-      file = vault_mod.getCachedNftFileMetadata(nft_id);
+    let msg = {};
+    try {
+      msg = nft_tx?.returnMessage?.() || nft_tx?.msg || {};
+    } catch (err) {
+      msg = {};
     }
+    let data = msg.data && typeof msg.data === 'object' ? msg.data : {};
 
-    let sig = file?.tx_sig || tx_sig || '';
-    nft_id = file?.nft_id || nft_id || '';
-    filename = file?.filename || filename;
+    let file_id = String(result?.file_id || data.file_id || '');
+    filename = String(data.filename || filename);
+    nft_id = String(nft_id || nft_entry?.id || '');
+    tx_sig = String(tx_sig || nft_entry?.tx_sig || '');
 
-    if (!file?.file_id || (!sig && !nft_tx)) {
+    if (!file_id || (!tx_sig && !nft_tx)) {
       throw new Error(
-        'Vault upload confirmed but Access Key metadata is not available to register'
+        'Vault upload confirmed but Access Key mint transaction data is not available to register'
       );
     }
+
+    let file = {
+      nft_id: nft_id || tx_sig,
+      tx_sig: tx_sig,
+      file_id: file_id,
+      filename: filename,
+      link: data.link != null ? String(data.link) : '',
+      slip1_utxokey: nft_entry?.slip1?.utxo_key || '',
+      slip2_utxokey: nft_entry?.slip2?.utxo_key || '',
+      slip3_utxokey: nft_entry?.slip3?.utxo_key || '',
+      file_access_script: data.file_access_script || null
+    };
+
+    this.rememberVaultNftIndex(tx_sig || file.nft_id, {
+      status: 'rom',
+      ...file
+    });
 
     let title = filename.replace(/\.(z64|n64|v64)$/i, '').trim() || name;
     return await this.addGame(nft_tx, {
       source: 'vault',
       title: title,
-      id: nft_id || sig,
-      sig: sig,
+      id: file.nft_id || tx_sig,
+      sig: tx_sig,
       vault: file
     });
+  }
+
+  //
+  // NWASM-owned classification of Vault NFTs (not Vault's options.vault.files).
+  //
+  rememberVaultNftIndex(key, entry) {
+    if (!key || !entry) {
+      return;
+    }
+    if (!this.app.options.nwasm) {
+      this.app.options.nwasm = {};
+    }
+    if (!this.app.options.nwasm.vault_nft_index || typeof this.app.options.nwasm.vault_nft_index !== 'object') {
+      this.app.options.nwasm.vault_nft_index = {};
+    }
+    this.app.options.nwasm.vault_nft_index[key] = entry;
+    this.app.storage.saveOptions();
   }
 
   async deleteRoms() {

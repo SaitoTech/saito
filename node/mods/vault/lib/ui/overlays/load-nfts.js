@@ -72,9 +72,40 @@ class LoadNFTs {
       //
       // determine nft type
       //
-      // Canonical type is vault-nft-key; also accept legacy "vault" mints.
+      // Canonical types: vault-nft-key (jade/crystal) and vault-nft-rental.
+      // Also accept legacy "vault" mints.
       const nft_type = nft.returnType();
-      if (nft_type === 'vault-nft-key' || nft_type === 'vault') {
+      if (nft_type === 'store-nft-rental') {
+        await nft.fetchTransaction(() => {
+          const data = nft.tx?.returnMessage?.()?.data || {};
+          const file_id = data.file_id;
+          const file_name = data.filename;
+          const file_access_script = data.file_access_script || null;
+          const path = Array.isArray(data.path) ? data.path : [];
+          const hop = this.mod.firstUndelegatedHopFromRental(file_access_script, path);
+          const expires_at = hop?.expires_at;
+          if (expires_at == null || Date.now() >= Number(expires_at)) {
+            this.count--;
+            return;
+          }
+          nft.expires_at = expires_at;
+          this.vault_nfts.push({
+            access_kind: 'rental',
+            nft,
+            nft_id: nft.id,
+            file_id,
+            file_access_script: file_access_script,
+            file_name,
+            expires_at
+          });
+          this.count--;
+        });
+        this.renderNFTList();
+      } else if (
+        nft_type === 'vault-nft-key' ||
+        nft_type === 'vault-nft-rental' ||
+        nft_type === 'vault'
+      ) {
         // Put everything in the callback to make sure we can fetch the orig transaction if user transfered ownership!
         await nft.fetchTransaction(() => {
           console.log('fetched the nft...');
@@ -97,6 +128,7 @@ class LoadNFTs {
           // push into vault_nfts array
           //
           this.vault_nfts.push({
+            access_kind: 'owned',
             nft_id: nft.id,
             file_id,
             file_access_script: file_access_script || null,
@@ -104,19 +136,6 @@ class LoadNFTs {
             slip1_utxokey,
             slip2_utxokey,
             slip3_utxokey
-          });
-
-          // Keep Vault's NFT→file cache warm for other modules (e.g. N-WASM).
-          this.mod.cacheNftFileMetadata({
-            nft_id: nft.id,
-            tx_sig: nft.tx_sig || rec?.tx_sig || '',
-            file_id,
-            filename: file_name,
-            link: data?.link || '',
-            slip1_utxokey,
-            slip2_utxokey,
-            slip3_utxokey,
-            file_access_script: file_access_script || null
           });
 
           this.count--;
@@ -137,24 +156,27 @@ class LoadNFTs {
       return;
     }
 
+    const instructionsEl = document.querySelector('.vault-nfts #nft-list-instructions');
+
     if (this.count > 0) {
+      if (instructionsEl) {
+        instructionsEl.innerHTML = '';
+      }
       let html = `<div class="loader"></div>`;
       container.innerHTML = html;
     } else if (!this.vault_nfts || this.vault_nfts.length === 0) {
-      let html = `
-        <div class="vault-empty-state">
+      container.innerHTML = '<div class="send-nft-list"></div>';
+      if (instructionsEl) {
+        instructionsEl.innerHTML = `
           <div class="instructions">
-            You do not have any NFT keys in your wallet.
-            If you have just created or been sent one, please wait a few minutes
-            for the network to confirm for your wallet.
+            You do not yet have any Vault Access Keys in your wallet.
           </div>
-          <button type="button" class="saito-button-primary" data-vault-upload>
-            add item to vault
-          </button>
-        </div>
-      `;
-      container.innerHTML = html;
+        `;
+      }
     } else {
+      if (instructionsEl) {
+        instructionsEl.innerHTML = '';
+      }
       //
       // wrapper for cards
       //
@@ -168,6 +190,9 @@ class LoadNFTs {
         // jade key = public/standard (no file_access_script)
         //
         let keyImage = this.vault_nfts[i].file_access_script ? 'crystal_key.png' : 'jade_key.png';
+        const is_rental = this.vault_nfts[i].access_kind === 'rental';
+        const label = this.vault_nfts[i].file_name || this.vault_nfts[i].file_id || '';
+        const rental_mark = is_rental ? ' <span class="vault-nft-rental-tag">rental</span>' : '';
 
         let html = `
           <div class="vault-nft-item" data-vault-index="${i}">
@@ -178,7 +203,7 @@ class LoadNFTs {
 
             <div class="vault-nft-footer">
               <div class="vault-nft-hash">
-                ${this.vault_nfts[i].file_name}
+                ${label}${rental_mark}
               </div>
               <button class="vault-nft-download-btn">Download</button>
             </div>
@@ -228,7 +253,18 @@ class LoadNFTs {
 
         let vault_entry = this.vault_nfts[idx];
 
-        console.log('CLICKED: ' + JSON.stringify(vault_entry));
+        console.log('CLICKED: ' + JSON.stringify({
+          access_kind: vault_entry.access_kind,
+          nft_id: vault_entry.nft_id,
+          file_id: vault_entry.file_id,
+          file_name: vault_entry.file_name
+        }));
+
+        if (vault_entry.access_kind === 'rental') {
+          this.overlay.hide();
+          this.mod.sendAccessRentalFileRequest(vault_entry.nft);
+          return;
+        }
 
         //
         // Check if this is a custom/advanced key (has file_access_script)

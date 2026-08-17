@@ -105,9 +105,7 @@ class SelectNFT {
       if (instructionsEl) {
         instructionsEl.innerHTML = `
           <div class="instructions">
-            You do not have any NFTs in your wallet.
-            If you have just created or been sent one, please wait a few minutes
-            for the network to confirm it.
+            You do not yet have any NFTs in your wallet.
           </div>
         `;
       }

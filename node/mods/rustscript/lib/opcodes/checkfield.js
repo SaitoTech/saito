@@ -1,18 +1,31 @@
 /**
- * Purpose: CHECKFIELD opcode — compare resolved field values.
+ * Purpose: CHECKFIELD opcode — compare a resolved field value to a scalar or value list.
+ *
+ * Language shape:
+ *   script.field     — value path / literal
+ *   script.operator  — "==" | "!=" | "<" | ... | "IN" | "NOT"
+ *   script.value     — scalar (== / != / ordering) OR array of candidates (IN / NOT)
+ *
+ * IN  → field value equals at least one list element
+ * NOT → field value equals none of the list elements
  */
 
 module.exports = {
   name: 'CHECKFIELD',
   description: `
-Compares two values (resolved via VARS or literals) using a comparison operator.
-Returns true if the comparison holds.
+Compares a resolved field value using a comparison operator.
+
+== / equals     → equals scalar
+!= / notequals  → not equal scalar
+< <= > >=       → ordering (when both sides are comparable)
+IN              → value equals at least one list element
+NOT             → value equals none of the list elements
 `,
   exampleScript: {
     op: 'CHECKFIELD',
-    field: '__opcodes.sumfields.expiry',
-    operator: '>',
-    value: 'NOW'
+    field: 'db.type',
+    operator: 'IN',
+    value: ['UPDATE', 'CREATE']
   },
 
   execute(node, context) {
@@ -26,12 +39,43 @@ Returns true if the comparison holds.
     }
 
     const left = resolveRef(context, node.field);
+    if (left === undefined || left === null) {
+      return false;
+    }
+
+    if (operator === 'IN' || operator === 'NOT') {
+      let list = node.value;
+      if (typeof list === 'string') {
+        list = resolveRef(context, list);
+      }
+      if (!Array.isArray(list)) {
+        return false;
+      }
+
+      let matched = false;
+      for (let i = 0; i < list.length; i += 1) {
+        let candidate = resolveRef(context, list[i]);
+        if (typeof candidate === 'string' && Object.prototype.hasOwnProperty.call(context, candidate)) {
+          candidate = context[candidate];
+        }
+        if (valuesEqual(left, candidate)) {
+          matched = true;
+          break;
+        }
+      }
+
+      if (operator === 'IN') {
+        return matched === true;
+      }
+      return matched === false;
+    }
+
     let right = resolveRef(context, node.value);
     if (typeof right === 'string' && Object.prototype.hasOwnProperty.call(context, right)) {
       right = context[right];
     }
 
-    if (left === undefined || right === undefined) {
+    if (right === undefined) {
       return false;
     }
 
@@ -62,6 +106,23 @@ Returns true if the comparison holds.
     return false;
   }
 };
+
+function valuesEqual(left, right) {
+  if (left === undefined || left === null || right === undefined || right === null) {
+    return false;
+  }
+
+  if (typeof left === 'number' && Number.isFinite(left)) {
+    return typeof right === 'number' && Number.isFinite(right) && left === right;
+  }
+  if (typeof left === 'string') {
+    return typeof right === 'string' && left === right;
+  }
+  if (typeof left === 'boolean') {
+    return typeof right === 'boolean' && left === right;
+  }
+  return false;
+}
 
 function resolveRef(root, ref) {
   if (typeof ref !== 'string') {

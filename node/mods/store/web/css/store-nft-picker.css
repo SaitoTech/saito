@@ -25,19 +25,46 @@
   border-bottom: 1px solid var(--saito-border);
 }
 
+.nft-picker > header .heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  min-width: 0;
+}
+
 .nft-picker > header h2 {
-  margin: 0 0 var(--saito-space-xs);
+  margin: 0;
   font-size: 2rem;
   font-family: var(--saito-font-medium);
   letter-spacing: -0.01em;
 }
 
-.nft-picker > header p {
+.nft-picker > header .lede {
   margin: 0;
-  max-width: 40rem;
+  max-width: 44rem;
   font-size: var(--font-size-medium);
   line-height: 1.45;
   color: var(--saito-muted-foreground);
+}
+
+.nft-picker .mode-inline {
+  display: inline-flex;
+  align-items: baseline;
+  margin: 0 0.15em;
+  vertical-align: baseline;
+}
+
+.nft-picker .mode-inline .saito-form-select {
+  display: inline-block;
+  width: auto;
+  min-width: 0;
+  padding: 0.15em 1.8em 0.15em 0.45em;
+  font: inherit;
+  font-family: var(--saito-font-medium);
+  line-height: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  vertical-align: baseline;
 }
 
 /* Content receives remaining viewport — not the header */

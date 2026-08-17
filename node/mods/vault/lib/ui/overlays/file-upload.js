@@ -2,12 +2,12 @@ const ScriptingKeyOverlay = require('./scripting.js');
 const FileUploadTemplate = require('./file-upload.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
+const {
+  createVaultAddFileTransaction
+} = require('../../transactions/add-file');
 
 const DEFAULT_COPY =
   'A standard Access Key provides access to the owner of the NFT. Transfer the NFT and ownership of the file transfers with it.';
-
-const ADVANCED_COPY =
-  'Advanced access keys give creators complete control over the scripts used to provide file access. Selecting this option requires familiarity with Saito Scripting. You will be prompted to provide the script that protects access to your file.';
 
 class FileUpload {
   constructor(app, mod) {
@@ -16,7 +16,6 @@ class FileUpload {
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.scripting_overlay = new ScriptingKeyOverlay(this.app, this.mod);
     this.nft_id = '';
-    this.advanced = false;
     this.busy = false;
     this.onComplete = null;
     this.onError = null;
@@ -32,7 +31,6 @@ class FileUpload {
       this.app.browser.isMobileBrowser() ||
       (typeof window !== 'undefined' && window.innerWidth <= 768);
 
-    this.advanced = false;
     this.busy = false;
     this.onComplete = typeof opts.onComplete === 'function' ? opts.onComplete : null;
     this.onError = typeof opts.onError === 'function' ? opts.onError : null;
@@ -143,25 +141,18 @@ class FileUpload {
 
     const title = root.querySelector('.saito-overlay-form-header .saito-overlay-form-header-title');
     if (title) {
-      title.textContent = this.advanced ? 'ADVANCED ACCESS KEY' : 'STANDARD KEY';
+      title.textContent = 'STANDARD KEY';
     }
 
     const copy = root.querySelector('[data-key-copy]');
     if (copy) {
-      copy.textContent = this.advanced ? ADVANCED_COPY : DEFAULT_COPY;
+      copy.textContent = DEFAULT_COPY;
     }
 
     const artwork = root.querySelector('.key-artwork');
     if (artwork) {
-      artwork.classList.toggle('jade', !this.advanced);
-      artwork.classList.toggle('crystal', this.advanced);
-    }
-
-    const toggle = root.querySelector('[data-action="toggle-mode"]');
-    if (toggle) {
-      toggle.innerHTML = this.advanced
-        ? '<span>use default key...</span>'
-        : '<span>create custom key...</span>';
+      artwork.classList.add('jade');
+      artwork.classList.remove('crystal');
     }
   }
 
@@ -175,21 +166,28 @@ class FileUpload {
     return true;
   }
 
+  showStandardKeyStep() {
+    this.overlay.show(FileUploadTemplate(this.app, this.mod, false));
+    this.attachEvents(false);
+    this.showKeyStep();
+  }
+
   openScriptingFlow() {
     this.overlay.hide();
     this.scripting_overlay.render();
+    this.scripting_overlay.onReturnToDefault = () => {
+      this.showStandardKeyStep();
+    };
     this.scripting_overlay.callback = async (obj) => {
       if (!obj?.access_script) {
         return;
       }
-      // Re-show key step busy state for the advanced-key mint path.
-      this.overlay.show(FileUploadTemplate(this.app, this.mod, false));
-      this.attachEvents(false);
-      this.showKeyStep();
+      // Re-show key step busy state for the custom-key mint path.
+      this.showStandardKeyStep();
       this.setKeyStepState('busy', 'Creating access key…');
       await this.wait_for_paint();
       try {
-        await this.mintNFT(obj.access_script);
+        await this.mintNFT(obj.access_script, obj.nft_type || 'vault-nft-key');
       } catch (err) {
         console.error('Vault advanced CREATE KEY error:', err);
         this.setKeyStepState(
@@ -242,7 +240,6 @@ class FileUpload {
 
           this.mod.file = file;
           this.mod.filename = fileobj.name;
-          this.advanced = false;
           this.showKeyStep();
         } catch (err) {
           console.error('Vault file upload error:', err);
@@ -261,8 +258,7 @@ class FileUpload {
       if (this.busy) {
         return;
       }
-      this.advanced = !this.advanced;
-      this.applyMode();
+      this.openScriptingFlow();
     });
 
     root.querySelector('[data-action="confirm-key"]')?.addEventListener('click', async (e) => {
@@ -272,10 +268,6 @@ class FileUpload {
       }
 
       if (!(await this.ensureBalance())) {
-        return;
-      }
-      if (this.advanced) {
-        this.openScriptingFlow();
         return;
       }
 
@@ -297,7 +289,7 @@ class FileUpload {
     });
   }
 
-  async mintNFT(access_script = null) {
+  async mintNFT(access_script = null, nft_type = 'vault-nft-key') {
     if (!this.mod.file) {
       throw new Error('Please upload a file before creating an NFT.');
     }
@@ -327,7 +319,7 @@ class FileUpload {
       txmsg,
       BigInt(0n),
       this.app.wallet.publicKey,
-      'vault-nft-key'
+      nft_type
     );
 
     const nft_obj = new SaitoNFT(this.app, this.mod, nft_tx);
@@ -339,7 +331,12 @@ class FileUpload {
     this.setKeyStepState('busy', 'Binding access key to file…');
     await this.wait_for_paint();
 
-    const file_tx = await this.mod.createVaultAddFileTransaction(this.nft_id, access_script);
+    const file_tx = await createVaultAddFileTransaction(
+      this.app,
+      this.mod,
+      this.nft_id,
+      access_script
+    );
     if (!file_tx) {
       throw new Error('Error creating Vault file transaction');
     }
@@ -410,6 +407,34 @@ class FileUpload {
       throw new Error('Vault: transaction_monitor is not initialized');
     }
 
+    const monitorCopy =
+      nft_type === 'vault-nft-rental'
+        ? {
+            title: 'Creating Rental Master Key',
+            lead: 'Your Rental Master Key is being created on the Saito network.',
+            subtitle: 'This page will update automatically when it is confirmed.',
+            successTitle: 'Rental Master Key Created',
+            successLead: 'Your Rental Master Key is now in your wallet.',
+            successActionLabel: 'Continue'
+          }
+        : nft_type === 'vault-nft-key' && access_script
+          ? {
+              title: 'Creating Custom Access Key',
+              lead: 'Your Custom Access Key is being created on the Saito network.',
+              subtitle: 'This page will update automatically when your Vault Key is confirmed.',
+              successTitle: 'Custom Access Key Received',
+              successLead: 'Your Custom Access Key is now in your wallet.',
+              successActionLabel: 'Continue'
+            }
+          : {
+              title: 'Creating Vault Access Key',
+              lead: 'Your Vault Access Key NFT has been broadcast to the Saito network.',
+              subtitle: 'This page will update automatically when your Vault Key is confirmed.',
+              successTitle: 'Vault Access Key Received',
+              successLead: 'Your Vault Access Key has arrived.',
+              successActionLabel: 'Continue'
+            };
+
     //
     // Library mode: wait for mint confirmation, cache confirmed metadata, then
     // hand control back so N-WASM can refresh its library. Standalone Vault
@@ -419,12 +444,7 @@ class FileUpload {
       await new Promise((resolve) => {
         this.mod.transaction_monitor.render({
           tx: nft_tx,
-          title: 'Upload complete',
-          lead: 'Your Vault Key has been broadcast to the Saito network.',
-          subtitle: 'This page will update automatically when your Vault Key is confirmed.',
-          successTitle: 'Vault Key Received',
-          successLead: 'Your Vault Key has arrived. Returning to your library…',
-          successActionLabel: 'Continue',
+          ...monitorCopy,
           auto_continue_on_confirm: true,
           callback: (result) => {
             this.busy = false;
@@ -482,13 +502,7 @@ class FileUpload {
 
     this.mod.transaction_monitor.render({
       tx: nft_tx,
-      title: 'Upload complete',
-      lead: 'Your Vault Key has been broadcast to the Saito network.',
-      subtitle: 'This page will update automatically when your Vault Key is confirmed.',
-      successTitle: 'Vault Key Received',
-      successLead:
-        'Your Vault Key has arrived. Press Continue to open My NFTs and retrieve your new Access Key.',
-      successActionLabel: 'Continue',
+      ...monitorCopy,
       callback: (result) => {
         if (result?.status === 'confirmed') {
           this.cacheConfirmedAccessKey(nft_tx, file_tx, access_script, result)
@@ -507,6 +521,10 @@ class FileUpload {
   // After mint confirmation: refresh wallet NFT slips and write/replace the
   // single Vault NFT→file cache entry used by Vault download and N-WASM.
   //
+  /**
+   * After mint confirmation, collect Access Key fields from the mint tx +
+   * wallet slips for onComplete / My NFTs. Does not write a cross-module cache.
+   */
   async cacheConfirmedAccessKey(nft_tx, file_tx, access_script = null, confirmed = null) {
     const tx = confirmed?.tx || nft_tx;
     let msg = {};
@@ -553,7 +571,7 @@ class FileUpload {
       throw new Error('Confirmed Vault Access Key is missing file_id');
     }
 
-    return this.mod.cacheNftFileMetadata({
+    return {
       nft_id: this.nft_id || nft_entry?.id || tx_sig,
       tx_sig,
       file_id,
@@ -563,7 +581,7 @@ class FileUpload {
       slip2_utxokey,
       slip3_utxokey,
       file_access_script: data.file_access_script || access_script || null
-    });
+    };
   }
 }
 

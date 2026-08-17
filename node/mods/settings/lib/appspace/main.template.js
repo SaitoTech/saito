@@ -45,7 +45,7 @@ module.exports = (app, mod, main) => {
     <div class="settings-appspace-header">
       <div class="settings-actions-container">
         <div class="saito-button-secondary" id="restore-privatekey-btn" title="Wipe local data and restore account from private key or seed phrase">Import Key</div>
-        <div class="saito-button-secondary" id="show-phrase" title="View wallet seed phrase">Seed Phrase</div>
+        <div class="saito-button-secondary" id="settings-add-module" title="Install a module from the App Store">Add Module</div>
         <div class="saito-button-secondary" id="restore-account-btn" title="Restore account by uploading json-file of wallet">Restore Wallet</div>
         <div class="saito-button-secondary" id="backup-account-btn" title="Download json-file copy of wallet">Backup Wallet</div>
         <div class="saito-button-secondary" id="nuke-account-btn" title="Erase all local Saito data and reset this browser to a fresh installation">Nuke</div>
@@ -81,6 +81,17 @@ module.exports = (app, mod, main) => {
             <button type="button" class="saito-icon-button" aria-label="Copy private key">
               <i class="fas fa-copy" aria-hidden="true"></i>
             </button>
+          </div>
+
+          <div class="settings-field-label">seed phrase</div>
+          <div class="settings-field-control">
+            <div
+              class="settings-field-value settings-seed-phrase"
+              id="settings-seed-phrase"
+              role="button"
+              tabindex="0"
+              title="Reveal wallet seed phrase"
+            >click here to view seed phrase</div>
           </div>
 
           <div class="settings-field-label">default fee</div>

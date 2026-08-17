@@ -1,0 +1,167 @@
+/* Namespace: .invite / .arcade-invite — compact invite over bright game artwork */
+
+.invite,
+.arcade-invite {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 9rem;
+  margin: 0;
+  padding: 0.75rem;
+  overflow: hidden;
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
+  background-color: transparent;
+  background-blend-mode: normal;
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
+  color: #fff;
+}
+
+.invite .header,
+.arcade-invite .header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-self: flex-start;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.3rem 0.5rem;
+  pointer-events: none;
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, #000 42%, transparent);
+}
+
+.invite .title,
+.arcade-invite .title {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--saito-font-heavy);
+  font-size: 1.35rem;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.invite .actions,
+.arcade-invite .actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--saito-space-sm);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+
+.invite .details,
+.arcade-invite .details {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.083rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.invite .players,
+.arcade-invite .players {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  column-gap: 0.3rem;
+}
+
+.invite .player,
+.invite .requested,
+.invite .slot,
+.invite .pending,
+.arcade-invite .player,
+.arcade-invite .requested,
+.arcade-invite .slot,
+.arcade-invite .pending,
+.arcade-invite .arcade-invite-pending {
+  width: 2.4rem;
+  height: 2.4rem;
+  overflow: hidden;
+  flex: 0 0 2.4rem;
+  border-radius: var(--saito-radius);
+}
+
+.invite .player .saito-identicon,
+.invite .requested .saito-identicon,
+.invite .pending .saito-identicon,
+.arcade-invite .player .saito-identicon,
+.arcade-invite .requested .saito-identicon,
+.arcade-invite .pending .saito-identicon,
+.arcade-invite .arcade-invite-pending .saito-identicon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--saito-radius);
+}
+
+.invite .requested,
+.invite .pending,
+.arcade-invite .requested,
+.arcade-invite .pending,
+.arcade-invite .arcade-invite-pending {
+  opacity: 0.6;
+  filter: grayscale(0.7);
+}
+
+.invite .slot,
+.arcade-invite .slot {
+  border: 1px dashed color-mix(in srgb, #fff 55%, transparent);
+  background-color: color-mix(in srgb, #000 35%, transparent);
+  border-radius: var(--saito-radius);
+}
+
+.invite .badge,
+.arcade-invite .badge {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: auto;
+  width: auto;
+  max-width: 100%;
+  padding: 0.2rem 0.45rem;
+  font-size: 1.083rem;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--saito-primary-foreground);
+  background-color: var(--saito-primary);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-sm);
+}
+
+.invite.my-turn,
+.arcade-invite.my-turn {
+  border-color: var(--saito-primary);
+}

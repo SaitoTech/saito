@@ -10,10 +10,6 @@ class CryptoSelectAmount {
     this.fixed = true;
     this.ticker = '';
     this.stake = 0;
-    this.errors = {
-      amount: false,
-      checkbox: false
-    };
   }
 
   render(mycallback = null) {
@@ -21,97 +17,59 @@ class CryptoSelectAmount {
       this.callback = mycallback;
     }
 
-    if (!this?.ticker) {
+    this.authorize = true;
+
+    if (!this.ticker) {
       this.ticker = this.app.wallet.returnPreferredCryptoTicker();
     }
 
     this.overlay.show(CryptoSelectAmountTemplate(this.app, this.mod, this));
     this.overlay.blockClose('#enable_staking_yes');
-    document
-      .querySelectorAll(`#withdraw-logo-cont img[data-ticker="${this.ticker}"]`)
-      .forEach((el) => {
-        el.classList.remove('hide-element');
-      });
     this.attachEvents();
-
-    console.log('*******', this.mod.balances);
   }
 
   attachEvents() {
-    let this_self = this;
     let stake_input = document.getElementById('amount_to_stake_input');
     if (!stake_input) {
       return;
     }
 
     stake_input.onclick = (e) => {
-      let amt = stake_input.value;
-      if (parseFloat(amt) == 0) {
+      if (parseFloat(stake_input.value) == 0) {
         stake_input.select();
       }
     };
 
-    let max_button = document.querySelector('.select_max');
-    if (max_button) {
-      max_button.onclick = (e) => {
-        stake_input.value = Number(this.mod.max_balance);
-        this_self.validateAmount();
-      };
-    }
-
-    // Don't allow users to enter keys other than numbers
-    stake_input.onkeydown = async (e) => {
-      let amount = stake_input.value;
-      this_self.app.browser.validateAmountLimit(amount, e);
+    stake_input.onkeydown = (e) => {
+      this.app.browser.validateAmountLimit(stake_input.value, e);
     };
 
-    // Only validate amount after user finishes setting it
-    stake_input.onblur = async (e) => {
-      this_self.validateAmount();
+    stake_input.onblur = (e) => {
+      this.validateAmount();
     };
 
-    // Auto-clear error mid-correction process
-    stake_input.oninput = async (e) => {
-      if (this_self.errors.amount) {
-        this_self.validateAmount();
+    stake_input.oninput = (e) => {
+      if (document.querySelector('#stake-amount-error').style.display === 'block') {
+        this.validateAmount();
       }
     };
 
-    document.querySelector('#enable_staking_yes').onclick = async (e) => {
-      this_self.validateAmount();
-      this_self.validateCheckbox();
-
-      if (this_self.errors.amount || this_self.errors.checkbox) {
-        console.warn(this_self.errors);
+    document.querySelector('#enable_staking_yes').onclick = (e) => {
+      if (!this.validateAmount() || !this.validateCheckbox()) {
         return;
       }
 
       if (this.callback != null) {
-        let amount = stake_input.value;
-        let alt_amount = document.getElementById('minimum_accepted_stake')?.value || null;
-        if (document.getElementById('crypto-stake-odds')?.checked == false) {
-          console.log('Not checked!!!');
-          alt_amount = null;
-        }
-        if (alt_amount == amount) {
-          alt_amount = null;
-        }
-
-        this.callback(this.ticker, amount, alt_amount);
-      } else {
-        console.warn('No callback');
+        this.callback(this.ticker, stake_input.value, null);
       }
       this.overlay.close();
     };
 
     if (document.querySelector('#stake-select-crypto')) {
       document.querySelector('#stake-select-crypto').onchange = async (e) => {
-        document.querySelectorAll(`#withdraw-logo-cont img`).forEach((el) => {
-          el.classList.add('hide-element');
-        });
-
+        this.stake = stake_input.value;
+        this.authorize = document.getElementById('crypto-stake-confirm-input')?.checked;
         this.ticker = e.target.value;
-        this.stake = 0;
 
         if (!this.mod.balances[this.ticker]) {
           const cm = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
@@ -127,57 +85,11 @@ class CryptoSelectAmount {
         }
 
         this.mod.max_balance = parseFloat(this.mod.balances[this.ticker]?.balance) || 0;
-
         this.app.browser.replaceElementById(
           CryptoSelectAmountTemplate(this.app, this.mod, this),
           'stake-crypto-request-container'
         );
-
-        document
-          .querySelectorAll(`#withdraw-logo-cont img[data-ticker="${this.ticker}"]`)
-          .forEach((el) => {
-            el.classList.remove('hide-element');
-          });
-
         this.attachEvents();
-
-        //stake_input.value = "";
-        //max_button.innerText = `Max: ${this.mod.max_balance}`;
-      };
-    }
-
-    if (document.getElementById('crypto-stake-odds')) {
-      document.getElementById('crypto-stake-odds').onchange = (e) => {
-        if (document.getElementById('crypto-stake-odds').checked) {
-          document.getElementById('opponent-minimum-stake').classList.remove('hidden');
-        } else {
-          document.getElementById('opponent-minimum-stake').classList.add('hidden');
-        }
-      };
-
-      let opponent_stake = document.getElementById('minimum_accepted_stake');
-      opponent_stake.onkeydown = async (e) => {
-        this_self.app.browser.validateAmountLimit(opponent_stake.value, e);
-      };
-
-      opponent_stake.oninput = async (e) => {
-        if (this_self.errors.amount) {
-          this_self.validateAmount();
-        }
-      };
-
-      opponent_stake.onblur = async (e) => {
-        this_self.validateAmount();
-      };
-
-      opponent_stake.onclick = (e) => {
-        opponent_stake.select();
-      };
-    }
-
-    if (document.getElementById('crypto-stake-confirm-input')) {
-      document.getElementById('crypto-stake-confirm-input').onchange = (e) => {
-        this.validateCheckbox();
       };
     }
   }
@@ -185,35 +97,13 @@ class CryptoSelectAmount {
   validateAmount() {
     let amount = document.getElementById('amount_to_stake_input').value || '0';
     let input_err = document.querySelector('#stake-amount-error');
-    let input_err_opp = document.querySelector('#stake-opponent-error');
-
     let errorMsg = '';
-    let errorMsg2 = '';
-
-    let opponent_amount = document.getElementById('minimum_accepted_stake')?.value || amount;
 
     amount = parseFloat(amount);
-    opponent_amount = parseFloat(opponent_amount);
-
-    this.errors.amount = false;
 
     input_err.innerText = '';
     input_err.style.display = 'none';
 
-    console.log('validateAmount: ', amount, opponent_amount, this.mod.max_balance);
-
-    //advanced input
-    if (opponent_amount < 0) {
-      errorMsg2 = 'must be non-negative';
-    }
-    if (opponent_amount > amount) {
-      errorMsg2 = `opponent's minimum stake cannot be greater than yours`;
-    }
-    if (opponent_amount > this.mod.match_max) {
-      errorMsg2 = 'not all the players have that much to stake';
-    }
-
-    // Basic input
     if (amount <= 0) {
       errorMsg = 'you need to select a positive value';
     } else if (amount > this.mod.max_balance) {
@@ -227,36 +117,26 @@ class CryptoSelectAmount {
     if (errorMsg) {
       input_err.innerText = errorMsg;
       input_err.style.display = 'block';
-      this.errors.amount = true;
+      return false;
     }
 
-    if (errorMsg2) {
-      input_err_opp.innerText = errorMsg2;
-      input_err_opp.style.display = 'block';
-      this.errors.amount = true;
-    }
-
-    document.querySelector('.select_max')?.classList.toggle('hidden', errorMsg || errorMsg2);
+    return true;
   }
 
   validateCheckbox() {
     let confirm = document.getElementById('crypto-stake-confirm-input').checked;
     let checkbox_err = document.querySelector('#stake-checkbox-error');
-    let errorMsg = '';
-    this.errors.checkbox = false;
 
     checkbox_err.innerText = '';
     checkbox_err.style.display = 'none';
 
     if (!confirm) {
-      errorMsg = 'you need to confirm';
-      this.errors.checkbox = true;
+      checkbox_err.innerText = 'you need to confirm';
+      checkbox_err.style.display = 'block';
+      return false;
     }
 
-    if (this.errors.checkbox) {
-      checkbox_err.innerText = errorMsg;
-      checkbox_err.style.display = 'block';
-    }
+    return true;
   }
 }
 

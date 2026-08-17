@@ -26,6 +26,7 @@ module.exports = (app, mod, nft_overlay) => {
       <div class="saito-nft-panel-body saito-nft-panel-body-view">
         <div class="saito-nft-image" style="background-image:url('${imageUrl}')">
           ${textHtml}
+          ${nft.expires_at != null && nft.expires_at !== '' ? `<div class="saito-nft-expires-clock">${nft.remainingExpiresLabel()}</div>` : ''}
           <div class="saito-nft-capability-chrome">
             <div class="saito-nft-capabilities" role="toolbar" aria-label="NFT capabilities">
               ${capsHtml}

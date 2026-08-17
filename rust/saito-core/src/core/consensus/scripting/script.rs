@@ -11,9 +11,9 @@ use serde_json::{json, Value};
 use js_sys;
 
 use super::opcodes::{
-    Arrayify, CheckField, CheckHash, CheckMultiSig, CheckOwn, CheckOwnNft, CheckOwnNftWhere,
-    CheckPath, CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime, ImportArray,
-    ImportField, SetArray, SetArrayField, SetField, SumFields,
+    Arrayify, CheckField, CheckHash, CheckKey, CheckMultiSig, CheckOwn, CheckOwnNft,
+    CheckOwnNftWhere, CheckPath, CheckPathHop, CheckRecipient, CheckSender, CheckSig, CheckTime,
+    ImportArray, ImportField, ScriptHash, SetArray, SetArrayField, SetField, SumFields,
 };
 
 /// Canonical JSON serialization used by script hashing and signed imports.
@@ -183,38 +183,61 @@ impl Script {
         blockchain: Option<&Blockchain>,
         current_p2sh_idx: Option<usize>,
     ) -> u8 {
-        info!(
-            "[P2SH_DEBUGGING_TRACE] script.validate ENTER p2sh_idx={:?} has_tx={} has_blk={} has_blockchain={} root={}",
-            current_p2sh_idx,
-            tx.is_some(),
-            blk.is_some(),
-            blockchain.is_some(),
-            self.json
-        );
+        self.validate_with_context(tx, blk, blockchain, current_p2sh_idx, None)
+    }
 
-        let mut context = json!({
-            "script": {},
-            "witness": {},
-            "variables": {}
-        });
+    pub fn validate_with_context(
+        &self,
+        tx: Option<&Transaction>,
+        blk: Option<&Block>,
+        blockchain: Option<&Blockchain>,
+        current_p2sh_idx: Option<usize>,
+        supplied_context: Option<&Value>,
+    ) -> u8 {
+        /*
+        // 1) Start from caller-supplied context when it is a JSON object.
+        // 2) Then overwrite Rust-authoritative fields.
+         */
 
-        //
-        // set context variables
-        //
-        if let Some(idx) = current_p2sh_idx {
-            context["__current_p2sh_idx"] = json!(idx);
+        let mut context = match supplied_context {
+            Some(Value::Object(_)) => supplied_context.unwrap().clone(),
+            _ => json!({}),
+        };
+
+        // Engine-managed structural keys: always reset.
+        context["script"] = json!({});
+        context["witness"] = json!({});
+        context["variables"] = json!({});
+
+        // These are not JSON context keys in this engine; they are separate
+        // validate/eval parameters. Strip any caller-supplied collisions.
+        if let Some(obj) = context.as_object_mut() {
+            obj.remove("tx");
+            obj.remove("blk");
+            obj.remove("blockchain");
         }
 
+        /*
+        // set authoritative context variables
+         */
+
+        if let Some(idx) = current_p2sh_idx {
+            context["__current_p2sh_idx"] = json!(idx);
+        } else if let Some(obj) = context.as_object_mut() {
+            obj.remove("__current_p2sh_idx");
+        }
+
+        // NOW is node/block time for access checks, not the request tx timestamp.
+        // Archive evaluates with a request tx and no block; using tx.timestamp would
+        // let requesters backdate past expires_at. Prefer block time when present,
+        // otherwise the evaluating node's wall clock.
         let now_ms = if let Some(blk) = blk {
             blk.timestamp
-        } else if let Some(tx) = tx {
-            tx.timestamp
         } else {
             #[cfg(target_arch = "wasm32")]
             {
                 js_sys::Date::now() as u64
             }
-
             #[cfg(not(target_arch = "wasm32"))]
             {
                 std::time::SystemTime::now()
@@ -229,20 +252,15 @@ impl Script {
         if let Some(tx) = tx {
             if let Some(slip) = tx.from.first() {
                 context["REQUESTER"] = json!(slip.public_key.to_base58());
+            } else if let Some(obj) = context.as_object_mut() {
+                obj.remove("REQUESTER");
             }
-            info!(
-                "[P2SH_DEBUGGING_TRACE] script.validate context tx.signature={} tx.from_count={} tx.to_count={} REQUESTER={:?} NOW={}",
-                tx.signature.to_hex(),
-                tx.from.len(),
-                tx.to.len(),
-                context.get("REQUESTER"),
-                now_ms
-            );
+
         } else {
-            info!(
-                "[P2SH_DEBUGGING_TRACE] script.validate context NO_TX NOW={}",
-                now_ms
-            );
+            if let Some(obj) = context.as_object_mut() {
+                obj.remove("REQUESTER");
+            }
+
         }
 
         fn eval(
@@ -254,16 +272,7 @@ impl Script {
             path: &str,
         ) -> u8 {
             let op = node["op"].as_str().unwrap_or("").to_uppercase();
-            info!(
-                "[P2SH_DEBUGGING_TRACE] script.eval ENTER path={} op={} node={}",
-                path, op, node
-            );
-
             if op.is_empty() {
-                info!(
-                    "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} reason=missing_or_empty_op node={}",
-                    path, node
-                );
                 return 0;
             }
 
@@ -274,64 +283,28 @@ impl Script {
                 "AND" => {
                     let default_args = Vec::new();
                     let args = node["args"].as_array().unwrap_or(&default_args);
-                    info!(
-                        "[P2SH_DEBUGGING_TRACE] script.eval AND path={} child_count={}",
-                        path,
-                        args.len()
-                    );
-
                     for (i, child) in args.iter().enumerate() {
                         let child_path = format!("{}.AND[{}]", path, i);
                         let child_result = eval(child, context, tx, blk, blockchain, &child_path);
-                        info!(
-                            "[P2SH_DEBUGGING_TRACE] script.eval AND path={} child={} result={}",
-                            path, child_path, child_result
-                        );
                         if child_result == 0 {
-                            info!(
-                                "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} reason=AND_child_failed failed_child={}",
-                                path, child_path
-                            );
                             return 0;
                         }
                     }
 
-                    info!(
-                        "[P2SH_DEBUGGING_TRACE] script.eval OK path={} op=AND result=1",
-                        path
-                    );
                     return 1;
                 }
 
                 "OR" => {
                     let default_args = Vec::new();
                     let args = node["args"].as_array().unwrap_or(&default_args);
-                    info!(
-                        "[P2SH_DEBUGGING_TRACE] script.eval OR path={} child_count={}",
-                        path,
-                        args.len()
-                    );
-
                     for (i, child) in args.iter().enumerate() {
                         let child_path = format!("{}.OR[{}]", path, i);
                         let child_result = eval(child, context, tx, blk, blockchain, &child_path);
-                        info!(
-                            "[P2SH_DEBUGGING_TRACE] script.eval OR path={} child={} result={}",
-                            path, child_path, child_result
-                        );
                         if child_result == 1 {
-                            info!(
-                                "[P2SH_DEBUGGING_TRACE] script.eval OK path={} op=OR result=1 via={}",
-                                path, child_path
-                            );
                             return 1;
                         }
                     }
 
-                    info!(
-                        "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} reason=OR_all_children_failed",
-                        path
-                    );
                     return 0;
                 }
 
@@ -340,20 +313,12 @@ impl Script {
                     let args = node["args"].as_array().unwrap_or(&default_args);
 
                     if args.is_empty() {
-                        info!(
-                            "[P2SH_DEBUGGING_TRACE] script.eval OK path={} op=NOT empty_args result=1",
-                            path
-                        );
                         return 1;
                     }
 
                     let child_path = format!("{}.NOT[0]", path);
                     let inner = eval(&args[0], context, tx, blk, blockchain, &child_path);
                     let result = if inner == 1 { 0 } else { 1 };
-                    info!(
-                        "[P2SH_DEBUGGING_TRACE] script.eval path={} op=NOT inner={} result={}",
-                        path, inner, result
-                    );
                     return result;
                 }
 
@@ -371,10 +336,6 @@ impl Script {
             if let Some(reference) = node.get("reference") {
                 if reference.is_object() {
                     context["witness"] = reference.clone();
-                    info!(
-                        "[P2SH_DEBUGGING_TRACE] script.eval path={} loaded object reference into witness",
-                        path
-                    );
                 }
             }
             if let Some(witness) = node.get("witness") {
@@ -406,20 +367,12 @@ impl Script {
                 }
             }
 
-            info!(
-                "[P2SH_DEBUGGING_TRACE] script.eval path={} op={} script_ctx={} witness_ctx={}",
-                path, op, context["script"], context["witness"]
-            );
-
             //
             // opcode dispatch
             //
             let result = match op.as_str() {
                 "CHECKHASH" => {
-                    let expected = context["script"]["hash"]
-                        .as_str()
-                        .unwrap_or("")
-                        .to_string();
+                    let expected = context["script"]["hash"].as_str().unwrap_or("").to_string();
                     let input = context["witness"]["input"]
                         .as_str()
                         .unwrap_or("")
@@ -429,21 +382,8 @@ impl Script {
                     } else {
                         crypto::hash(input.as_bytes()).to_hex()
                     };
-                    info!(
-                        "[P2SH_DEBUGGING_TRACE] script.eval CHECKHASH path={} expected_hash={} witness_input={:?} computed_hash={} input_empty={} expected_empty={}",
-                        path,
-                        expected,
-                        input,
-                        computed,
-                        input.is_empty(),
-                        expected.is_empty()
-                    );
                     let r = CheckHash::execute(context, tx, blk);
                     if r == 0 {
-                        info!(
-                            "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} op=CHECKHASH reason=hash_mismatch_or_empty expected={} computed={} input={:?}",
-                            path, expected, computed, input
-                        );
                     }
                     r
                 }
@@ -453,11 +393,13 @@ impl Script {
                 "IMPORTFIELD" => ImportField::validate(context, tx, blk),
                 "IMPORTARRAY" => ImportArray::validate(context, tx, blk),
                 "SUMFIELDS" => SumFields::validate(context, tx, blk),
+                "SCRIPTHASH" => ScriptHash::validate(context, tx, blk),
                 "SETFIELD" => SetField::validate(context, tx, blk),
                 "SETARRAY" => SetArray::validate(context, tx, blk),
                 "SETARRAYFIELD" => SetArrayField::validate(context, tx, blk),
                 "ARRAYIFY" => Arrayify::validate(context, tx, blk),
                 "CHECKFIELD" => CheckField::validate(context, tx, blk),
+                "CHECKKEY" => CheckKey::validate(context, tx, blk),
                 "CHECKOWN" => CheckOwn::validate(context, tx, blk, blockchain),
                 "CHECKOWNNFT" => CheckOwnNft::validate(context, tx, blk, blockchain),
                 "CHECKOWNNFTWHERE" => CheckOwnNftWhere::validate(context, tx, blk, blockchain),
@@ -468,41 +410,24 @@ impl Script {
                 "CHECKTIME" => CheckTime::validate(context, tx, blk),
 
                 _ => {
-                    info!(
-                        "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} reason=unknown_opcode op={}",
-                        path, op
-                    );
                     0
                 }
             };
 
             if result == 1 {
-                info!(
-                    "[P2SH_DEBUGGING_TRACE] script.eval OK path={} op={} result=1",
-                    path, op
-                );
             } else {
-                info!(
-                    "[P2SH_DEBUGGING_TRACE] script.eval FAIL path={} op={} result=0",
-                    path, op
-                );
             }
             result
         }
 
         let final_result = eval(&self.json, &mut context, tx, blk, blockchain, "root");
-        info!(
-            "[P2SH_DEBUGGING_TRACE] script.validate EXIT p2sh_idx={:?} result={} (1=pass 0=fail)",
-            current_p2sh_idx, final_result
-        );
         final_result
     }
 
     //
-    // the "script hash" is the hash of the canonical script, which is the JSON
-    // string representation of the script without the user-proviced witness
-    // data. this function takes the script and returns the hash value of the
-    // script.
+    // the "script hash" is HASH(canonical_json(script)) after every "witness"
+    // key has been removed. Nested args and opcode fields are part of identity.
+    // Witness / routing hops are not.
     //
     pub fn hash(&self) -> String {
         let mut data = self.json.clone();
@@ -525,97 +450,7 @@ impl Script {
             }
         }
 
-        //
-        // generate an objective string
-        //
-        let mut canonical = String::new();
-        let mut stack: Vec<(&Value, u8, usize, Option<Vec<String>>, bool)> =
-            vec![(&data, 0, 0, None, false)];
-        while !stack.is_empty() {
-            let top = stack.len() - 1;
-            let state = stack[top].1;
-            if state == 0 {
-                match stack[top].0 {
-                    Value::Null => {
-                        canonical.push_str("null");
-                        stack.pop();
-                    }
-                    Value::Bool(b) => {
-                        canonical.push_str(if *b { "true" } else { "false" });
-                        stack.pop();
-                    }
-                    Value::Number(n) => {
-                        canonical
-                            .push_str(&serde_json::to_string(&Value::Number(n.clone())).unwrap());
-                        stack.pop();
-                    }
-                    Value::String(s) => {
-                        canonical.push_str(&serde_json::to_string(s).unwrap());
-                        stack.pop();
-                    }
-                    Value::Array(_) => {
-                        stack[top].1 = 1;
-                        canonical.push('[');
-                    }
-                    Value::Object(map) => {
-                        let mut sorted_keys: Vec<String> = map.keys().cloned().collect();
-                        sorted_keys.sort();
-                        stack[top].1 = 1;
-                        stack[top].3 = Some(sorted_keys);
-                        canonical.push('{');
-                    }
-                    _ => {
-                        stack.pop();
-                    }
-                }
-            } else if stack[top].4 {
-                let idx = stack[top].2;
-                let arr_len = match stack[top].0 {
-                    Value::Array(a) => a.len(),
-                    _ => 0,
-                };
-                if idx >= arr_len {
-                    canonical.push(']');
-                    stack.pop();
-                } else if let Value::Array(a) = stack[top].0 {
-                    if idx > 0 {
-                        canonical.push(',');
-                    }
-                    let child = &a[idx];
-                    stack[top].2 = idx + 1;
-                    stack.push((child, 0, 0, None, false));
-                } else {
-                    stack.pop();
-                }
-            } else {
-                let idx = stack[top].2;
-                let key_list = stack[top].3.clone();
-                if let (Value::Object(map), Some(keys)) = (stack[top].0, key_list) {
-                    if idx >= keys.len() {
-                        canonical.push('}');
-                        stack.pop();
-                    } else {
-                        if idx > 0 {
-                            canonical.push(',');
-                        }
-                        let key = keys[idx].clone();
-                        canonical.push_str(&serde_json::to_string(&key).unwrap());
-                        canonical.push(':');
-                        stack[top].2 = idx + 1;
-                        if let Some(child) = map.get(&key) {
-                            stack.push((child, 0, 0, None, false));
-                        }
-                    }
-                } else {
-                    stack.pop();
-                }
-            }
-        }
-
-        //
-        // return hash as hex
-        //
-        crypto::hash(canonical.as_bytes()).to_hex()
+        crypto::hash(canonical_json(&data).as_bytes()).to_hex()
     }
 
     pub fn address(&self) -> SaitoPublicKey {
@@ -701,11 +536,641 @@ mod tests {
 
     use super::Script;
 
+    fn loan_script(creator: &str, renter: &str, expires_at: u64) -> Value {
+        json!({
+            "op": "OR",
+            "args": [
+                {
+                    "op": "AND",
+                    "args": [
+                        { "op": "CHECKSENDER", "publickey": renter },
+                        { "op": "CHECKFIELD", "field": "NOW", "operator": "<", "value": expires_at }
+                    ]
+                },
+                {
+                    "op": "AND",
+                    "args": [
+                        { "op": "CHECKSENDER", "publickey": creator },
+                        { "op": "CHECKFIELD", "field": "NOW", "operator": ">", "value": expires_at }
+                    ]
+                }
+            ]
+        })
+    }
+
+    fn file_script(checkpathhop: Value) -> Value {
+        json!({
+            "op": "OR",
+            "args": [
+                { "op": "CHECKSENDER", "publickey": "creator-pk" },
+                {
+                    "op": "AND",
+                    "args": [
+                        checkpathhop,
+                        { "op": "CHECKFIELD", "field": "db.type", "operator": "==", "value": "UPDATE" }
+                    ]
+                }
+            ]
+        })
+    }
+
+    fn checkpathhop_config(
+        publickey: &str,
+        selector: &str,
+        binding_hash: &str,
+        delegated: i64,
+        witness: Option<Value>,
+    ) -> Value {
+        let mut node = json!({
+            "op": "CHECKPATHHOP",
+            "selector": selector,
+            "where": [{ "field": "value.delegated", "operator": "==", "value": delegated }],
+            "publickey": publickey,
+            "hash": binding_hash
+        });
+        if let Some(w) = witness {
+            node["witness"] = w;
+        }
+        node
+    }
+
+    #[test]
+    fn hash_nested_checksig_publickey_changes_digest() {
+        let alice = json!({
+            "op": "AND",
+            "args": [{
+                "op": "CHECKSIG",
+                "publickey": "Alice",
+                "msg": "hello"
+            }]
+        });
+        let bob = json!({
+            "op": "AND",
+            "args": [{
+                "op": "CHECKSIG",
+                "publickey": "Bob",
+                "msg": "hello"
+            }]
+        });
+        assert_ne!(
+            Script { json: alice }.hash(),
+            Script { json: bob }.hash()
+        );
+    }
+
+    #[test]
+    fn hash_nested_checkhash_value_changes_digest() {
+        let a = json!({
+            "op": "AND",
+            "args": [
+                {
+                    "op": "AND",
+                    "args": [
+                        { "op": "CHECKSIG", "publickey": "pk", "msg": "text" },
+                        { "op": "CHECKHASH", "hash": "hash-a" }
+                    ]
+                },
+                { "op": "CHECKHASH", "hash": "hash-outer" }
+            ]
+        });
+        let mut b = a.clone();
+        b["args"][0]["args"][1]["hash"] = json!("hash-b");
+        assert_ne!(Script { json: a }.hash(), Script { json: b }.hash());
+    }
+
+    #[test]
+    fn hash_loan_script_renter_changes_digest() {
+        assert_ne!(
+            Script {
+                json: loan_script("creator", "renter-a", 1000)
+            }
+            .hash(),
+            Script {
+                json: loan_script("creator", "renter-b", 1000)
+            }
+            .hash()
+        );
+    }
+
+    #[test]
+    fn hash_loan_script_expires_at_changes_digest() {
+        assert_ne!(
+            Script {
+                json: loan_script("creator", "renter", 1000)
+            }
+            .hash(),
+            Script {
+                json: loan_script("creator", "renter", 2000)
+            }
+            .hash()
+        );
+    }
+
+    #[test]
+    fn hash_file_script_ignores_checkpathhop_witness() {
+        let locking = checkpathhop_config("creator-pk", "FIRST", "", 0, None);
+        let with_witness = checkpathhop_config(
+            "creator-pk",
+            "FIRST",
+            "",
+            0,
+            Some(json!({
+                "hops": [{
+                    "to": "renter-pk",
+                    "sig": "sig-bytes",
+                    "value": "eyJleHBpcmVzX2F0IjoxLCJkZWxlZ2F0ZWQiOjB9"
+                }]
+            })),
+        );
+        let other_witness = checkpathhop_config(
+            "creator-pk",
+            "FIRST",
+            "",
+            0,
+            Some(json!({
+                "hops": [{
+                    "to": "other-renter",
+                    "sig": "different-sig",
+                    "value": "eyJleHBpcmVzX2F0IjoyLCJkZWxlZ2F0ZWQiOjF9"
+                }]
+            })),
+        );
+        let h_none = Script {
+            json: file_script(locking),
+        }
+        .hash();
+        let h_wit = Script {
+            json: file_script(with_witness),
+        }
+        .hash();
+        let h_other = Script {
+            json: file_script(other_witness),
+        }
+        .hash();
+        assert_eq!(h_none, h_wit);
+        assert_eq!(h_wit, h_other);
+    }
+
+    #[test]
+    fn hash_file_script_includes_checkpathhop_configuration() {
+        let base = checkpathhop_config("creator-pk", "FIRST", "", 0, None);
+        let pk = checkpathhop_config("other-creator", "FIRST", "", 0, None);
+        let selector = checkpathhop_config("creator-pk", "LAST", "", 0, None);
+        let binding = checkpathhop_config("creator-pk", "FIRST", "binding", 0, None);
+        let where_v = checkpathhop_config("creator-pk", "FIRST", "", 1, None);
+        let h_base = Script {
+            json: file_script(base),
+        }
+        .hash();
+        assert_ne!(
+            h_base,
+            Script {
+                json: file_script(pk)
+            }
+            .hash()
+        );
+        assert_ne!(
+            h_base,
+            Script {
+                json: file_script(selector)
+            }
+            .hash()
+        );
+        assert_ne!(
+            h_base,
+            Script {
+                json: file_script(binding)
+            }
+            .hash()
+        );
+        assert_ne!(
+            h_base,
+            Script {
+                json: file_script(where_v)
+            }
+            .hash()
+        );
+    }
+
+    #[test]
+    fn hash_does_not_mutate_original_witness() {
+        let json = json!({
+            "op": "CHECKPATHHOP",
+            "publickey": "creator-pk",
+            "selector": "FIRST",
+            "hash": "",
+            "witness": { "hops": [{ "to": "renter" }] }
+        });
+        let script = Script { json: json.clone() };
+        let _ = script.hash();
+        assert_eq!(script.json, json);
+        assert_eq!(script.json["witness"]["hops"][0]["to"], "renter");
+    }
+
     #[test]
     fn validate_checkhash_fixture_returns_success() {
         let mut script = Script::new();
         script.parse(super::TEST_SCRIPT);
         assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_with_context_keeps_db_and_overwrites_authoritative_fields() {
+        let mut script = Script::new();
+
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "db.type",
+                        "operator": "==",
+                        "value": "UPDATE"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "db.field5",
+                        "operator": "==",
+                        "value": "entropy"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "NOW",
+                        "operator": "!=",
+                        "value": 123
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        let supplied = json!({
+            "db": {
+                "type": "UPDATE",
+                "field5": "entropy"
+            },
+            "tx": "ATTACKER-SUPPLIED",
+            "NOW": 123,
+            "REQUESTER": "ATTACKER"
+        });
+
+        assert_eq!(
+            script.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+    }
+
+    #[test]
+    fn validate_checkkey_presence_and_absence() {
+        let supplied = json!({
+            "db": {
+                "field5": "our new entry"
+            }
+        });
+
+        let mut present = Script::new();
+        present.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "==",
+                "key": "field5"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            present.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut present_absent_op = Script::new();
+        present_absent_op.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "!=",
+                "key": "field5"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            present_absent_op.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut missing_key = Script::new();
+        missing_key.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "==",
+                "key": "field7"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            missing_key.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut missing_key_not = Script::new();
+        missing_key_not.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "!=",
+                "key": "field7"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            missing_key_not.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        // Aliases are rejected — only == / != / IN / NOT are canonical.
+        let mut equals_alias = Script::new();
+        equals_alias.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "equals",
+                "key": "field5"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            equals_alias.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut notequals_alias = Script::new();
+        notequals_alias.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "notequals",
+                "key": "field7"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            notequals_alias.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+    }
+
+    #[test]
+    fn validate_checkkey_ignores_stored_value_truthiness() {
+        let supplied = json!({
+            "db": {
+                "null_key": null,
+                "false_key": false,
+                "empty_key": "",
+                "other": 1
+            }
+        });
+
+        for key in ["null_key", "false_key", "empty_key"] {
+            let mut script = Script::new();
+            script.parse(
+                &serde_json::to_string(&json!({
+                    "op": "CHECKKEY",
+                    "field": "db",
+                    "operator": "==",
+                    "key": key
+                }))
+                .unwrap(),
+            );
+            assert_eq!(
+                script.validate_with_context(None, None, None, None, Some(&supplied)),
+                1,
+                "key {key} must count as present regardless of value"
+            );
+        }
+    }
+
+    #[test]
+    fn validate_checkkey_missing_or_non_object_fails_closed() {
+        let mut missing_object = Script::new();
+        missing_object.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "==",
+                "key": "field5"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            missing_object.validate_with_context(
+                None,
+                None,
+                None,
+                None,
+                Some(&json!({ "wiki": { "title": "x" } }))
+            ),
+            0
+        );
+        assert_eq!(
+            missing_object.validate_with_context(
+                None,
+                None,
+                None,
+                None,
+                Some(&json!({ "db": { "field5": "x" } }))
+            ),
+            1
+        );
+
+        // Non-object parent: fail closed for both == and != (like CHECKFIELD on Null).
+        let non_object = json!({ "db": "not-an-object" });
+        let mut eq_script = Script::new();
+        eq_script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "==",
+                "key": "field5"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            eq_script.validate_with_context(None, None, None, None, Some(&non_object)),
+            0
+        );
+
+        let mut ne_script = Script::new();
+        ne_script.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "!=",
+                "key": "field5"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            ne_script.validate_with_context(None, None, None, None, Some(&non_object)),
+            0
+        );
+    }
+
+    #[test]
+    fn validate_checkkey_in_and_not_operators() {
+        let supplied = json!({
+            "db": {
+                "field1": "a",
+                "field2": "b"
+            }
+        });
+
+        let mut ok_in = Script::new();
+        ok_in.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "IN",
+                "key": ["field1", "field2", "field3"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            ok_in.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut bad_in = Script::new();
+        bad_in.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "IN",
+                "key": ["field1"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            bad_in.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut ok_not = Script::new();
+        ok_not.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "NOT",
+                "key": ["owner", "publickey", "preserve"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            ok_not.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let owned = json!({
+            "db": {
+                "field1": "a",
+                "owner": "x"
+            }
+        });
+        let mut bad_not = Script::new();
+        bad_not.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "NOT",
+                "key": ["owner", "publickey"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            bad_not.validate_with_context(None, None, None, None, Some(&owned)),
+            0
+        );
+
+        let empty = json!({ "db": {} });
+        let mut in_empty_list = Script::new();
+        in_empty_list.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "IN",
+                "key": []
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            in_empty_list.validate_with_context(None, None, None, None, Some(&empty)),
+            1
+        );
+        assert_eq!(
+            in_empty_list.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut not_empty_list = Script::new();
+        not_empty_list.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "NOT",
+                "key": []
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            not_empty_list.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut malformed_in = Script::new();
+        malformed_in.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "IN",
+                "key": "field1"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            malformed_in.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut malformed_not = Script::new();
+        malformed_not.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "NOT",
+                "key": "owner"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            malformed_not.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut non_string_elem = Script::new();
+        non_string_elem.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKKEY",
+                "field": "db",
+                "operator": "IN",
+                "key": ["field1", 2]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            non_string_elem.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
     }
 
     #[test]
@@ -960,6 +1425,279 @@ mod tests {
     }
 
     #[test]
+    fn validate_scripthash_matches_script_hash_for_literal_object() {
+        let tree = json!({
+            "op": "CHECKSENDER",
+            "publickey": "alice"
+        });
+        let expected = Script {
+            json: tree.clone(),
+        }
+        .hash();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": tree,
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.scripthash.hash",
+                        "operator": "==",
+                        "value": expected
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_resolves_context_rental_script() {
+        let tree = json!({
+            "op": "CHECKSENDER",
+            "publickey": "bob"
+        });
+        let expected = Script {
+            json: tree.clone(),
+        }
+        .hash();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script",
+                        "value": tree
+                    },
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": "context.rental_script",
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.scripthash.hash",
+                        "operator": "==",
+                        "value": expected
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_matches_script_hash_with_nested_witness() {
+        let tree = json!({
+            "op": "AND",
+            "args": [
+                {
+                    "op": "CHECKSENDER",
+                    "publickey": "alice",
+                    "witness": { "ignored": true }
+                },
+                {
+                    "op": "CHECKFIELD",
+                    "field": "NOW",
+                    "operator": ">",
+                    "value": 0,
+                    "witness": { "also": "ignored" }
+                }
+            ],
+            "witness": { "outer": 1 }
+        });
+        let expected = Script {
+            json: tree.clone(),
+        }
+        .hash();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script",
+                        "value": tree
+                    },
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": "context.rental_script",
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.scripthash.hash",
+                        "operator": "==",
+                        "value": expected
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_setfield_nested_edit_changes_hash() {
+        let template = json!({
+            "op": "OR",
+            "args": [
+                {
+                    "op": "CHECKSENDER",
+                    "publickey": "PLACEHOLDER"
+                },
+                {
+                    "op": "CHECKSENDER",
+                    "publickey": "alice"
+                }
+            ]
+        });
+
+        let mut expected_tree = template.clone();
+        expected_tree["args"][0]["publickey"] = json!("bob");
+        let expected = Script {
+            json: expected_tree,
+        }
+        .hash();
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script",
+                        "value": template
+                    },
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script.args[0].publickey",
+                        "value": "bob"
+                    },
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": "context.rental_script",
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "__opcodes.scripthash.hash",
+                        "operator": "==",
+                        "value": expected
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_does_not_mutate_source_tree() {
+        let tree = json!({
+            "op": "CHECKSENDER",
+            "publickey": "alice",
+            "witness": { "keep": true }
+        });
+
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "AND",
+                "args": [
+                    {
+                        "op": "SETFIELD",
+                        "reference": "context.rental_script",
+                        "value": tree.clone()
+                    },
+                    {
+                        "op": "SCRIPTHASH",
+                        "source": "context.rental_script",
+                        "into": "hash"
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "rental_script.witness.keep",
+                        "operator": "==",
+                        "value": true
+                    },
+                    {
+                        "op": "CHECKFIELD",
+                        "field": "rental_script.publickey",
+                        "operator": "==",
+                        "value": "alice"
+                    }
+                ]
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_scripthash_missing_source_fails() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SCRIPTHASH",
+                "into": "hash"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_scripthash_invalid_into_key_fails() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SCRIPTHASH",
+                "source": { "op": "CHECKSENDER", "publickey": "alice" },
+                "into": "bad-key"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
+    fn validate_scripthash_unresolved_path_fails() {
+        let mut script = Script::new();
+        script.parse(
+            &serde_json::to_string(&json!({
+                "op": "SCRIPTHASH",
+                "source": "context.rental_script",
+                "into": "hash"
+            }))
+            .unwrap(),
+        );
+
+        assert_eq!(script.validate(None, None, None, None), 0);
+    }
+
+    #[test]
     fn validate_checkfield_greater_than_succeeds() {
         let mut script = Script::new();
         script.parse(
@@ -1005,6 +1743,213 @@ mod tests {
         );
 
         assert_eq!(script.validate(None, None, None, None), 1);
+    }
+
+    #[test]
+    fn validate_checkfield_in_and_not_operators() {
+        let supplied = json!({
+            "db": {
+                "type": "UPDATE",
+                "status": "ACTIVE",
+                "tier": 2
+            }
+        });
+
+        let mut in_one = Script::new();
+        in_one.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "IN",
+                "value": ["UPDATE"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            in_one.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut in_many = Script::new();
+        in_many.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "IN",
+                "value": ["CREATE", "UPDATE", "DELETE"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            in_many.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut in_miss = Script::new();
+        in_miss.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "IN",
+                "value": ["CREATE", "DELETE"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            in_miss.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut not_one = Script::new();
+        not_one.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "NOT",
+                "value": ["DELETE"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            not_one.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut not_miss = Script::new();
+        not_miss.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.status",
+                "operator": "NOT",
+                "value": ["REVOKED", "EXPIRED"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            not_miss.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut not_hit = Script::new();
+        not_hit.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "NOT",
+                "value": ["UPDATE", "CREATE"]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            not_hit.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut in_empty = Script::new();
+        in_empty.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "IN",
+                "value": []
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            in_empty.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut not_empty = Script::new();
+        not_empty.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "NOT",
+                "value": []
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            not_empty.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut in_number = Script::new();
+        in_number.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.tier",
+                "operator": "IN",
+                "value": [1, 2, 3]
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            in_number.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut malformed_in = Script::new();
+        malformed_in.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "IN",
+                "value": "UPDATE"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            malformed_in.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        let mut malformed_not = Script::new();
+        malformed_not.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "NOT",
+                "value": "DELETE"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            malformed_not.validate_with_context(None, None, None, None, Some(&supplied)),
+            0
+        );
+
+        // Existing == / != still work with context paths.
+        let mut eq = Script::new();
+        eq.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "==",
+                "value": "UPDATE"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            eq.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
+
+        let mut ne = Script::new();
+        ne.parse(
+            &serde_json::to_string(&json!({
+                "op": "CHECKFIELD",
+                "field": "db.type",
+                "operator": "!=",
+                "value": "DELETE"
+            }))
+            .unwrap(),
+        );
+        assert_eq!(
+            ne.validate_with_context(None, None, None, None, Some(&supplied)),
+            1
+        );
     }
 
     #[test]
@@ -3343,11 +4288,7 @@ fn resolve_p2sh_slip_field(slips: &[Slip], field: &str, p2sh_ordinal: usize) -> 
 ///
 /// The hash is Blake3 over the concatenation of every output slip's
 /// serialize_output_for_signature() bytes.
-pub(crate) fn get_p2sh_auth_hash(
-    context: &mut Value,
-    tx: Option<&Transaction>,
-) -> Option<String> {
-
+pub(crate) fn get_p2sh_auth_hash(context: &mut Value, tx: Option<&Transaction>) -> Option<String> {
     if let Some(existing) = context
         .get("__p2sh_auth_hash")
         .and_then(|v| v.as_str())
@@ -3363,13 +4304,10 @@ pub(crate) fn get_p2sh_auth_hash(
         buffer.extend(slip.serialize_output_for_signature());
     }
     let p2sh_auth_hash = crypto::hash(&buffer).to_hex();
-    context["__p2sh_auth_hash"] =
-        Value::String(p2sh_auth_hash.clone());
+    context["__p2sh_auth_hash"] = Value::String(p2sh_auth_hash.clone());
 
     Some(p2sh_auth_hash)
 }
-
-
 
 pub(crate) fn resolved_value_to_message_string(value: &Value) -> String {
     match value {
@@ -3493,13 +4431,21 @@ pub(crate) fn resolve_ref(
     //
     // NOW and REQUESTER
     //
+    let path = path.strip_prefix("context.").unwrap_or(path);
+
     if let Some(resolved) = context.get(path) {
         return resolved.clone();
     }
 
-    //
-    // not a reference:
-    // treat as literal string
-    //
+    if path.contains('.') {
+        if let Some(resolved) = lookup(context, path) {
+            return resolved;
+        }
+    }
+
+    /*
+     * not a reference:
+     * treat as literal string
+     */
     value.clone()
 }

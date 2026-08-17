@@ -1,6 +1,4 @@
-/* ----------------------------------------------------------------
-   Standalone /faucet page (migration / buysaito layout)
------------------------------------------------------------------*/
+/* Standalone /faucet page shell. */
 
 .faucet-main {
   background-image: url(/saito/img/tiled-logo.svg);
@@ -13,160 +11,20 @@
   justify-content: center;
 }
 
-.faucet-container.withdraw-container {
-  display: flex;
-  flex-direction: column;
-  max-width: 800px;
-  height: min(90vh, 800px);
-  gap: 1rem;
-  margin: 1rem;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 1rem;
-  border: 1px solid var(--saito-border);
-  padding: 5rem;
-  background: linear-gradient(135deg, #0008, #0000);
-  width: min(800px, 95vw);
-}
-
-.faucet-container .saito-overlay-form-header {
-  justify-content: space-between;
-  width: 100%;
-}
-
-.faucet-intro {
-  font-size: 2rem;
-  line-height: 2.5rem;
-  margin-top: 1rem;
-  text-align: center;
-}
-
-.faucet-amount {
-  font-size: 2.4em;
-  font-weight: 600;
-  margin: 1rem 0;
-}
-
-.faucet-status {
+.faucet-home {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 10rem;
-}
-
-.faucet-status .spinner {
-  max-width: 10rem;
-  width: 10rem;
-  height: 10rem;
-}
-
-.faucet-crypto-logo {
-  width: 10rem;
-  height: 10rem;
-  object-fit: contain;
-}
-
-.faucet-success-icon {
-  font-size: 8rem;
-  display: none;
-  color: var(--saito-primary);
-}
-
-.faucet-page .faucet-actions {
-  flex-direction: column;
-  width: 100%;
-  margin-top: 1rem;
-}
-
-.faucet-page .faucet-actions .saito-button-primary,
-.faucet-page .faucet-actions .saito-button-secondary {
-  width: 100%;
-}
-
-.faucet-page #faucet-close-btn {
-  display: none;
-}
-
-.footer-note {
+  gap: 1.6rem;
   text-align: center;
-  margin-top: 1rem;
+  padding: 4rem 3rem;
+}
+
+.faucet-home .inactive-message {
+  margin: 0;
+  max-width: 40rem;
   font-size: 1.6rem;
-  line-height: 2.2rem;
-}
-
-@media screen and (max-width: 600px) {
-  .faucet-container.withdraw-container {
-    max-width: 100vw;
-    padding: 1rem;
-    margin: 0;
-    border: none;
-    background: none;
-    border-radius: 0;
-  }
-}
-
-/* ----------------------------------------------------------------
-   Arcade embed trigger (.get-saito-tokens)
------------------------------------------------------------------*/
-
-.saito-faucet-button {
-  font-size: 2.4rem;
-  min-width: 60px;
-}
-
-/* ----------------------------------------------------------------
-   Arcade overlay (crypto transfer shell)
------------------------------------------------------------------*/
-
-.saito-crypto-transfer.faucet-overlay {
-  min-width: min(55rem, 95vw);
-}
-
-.faucet-overlay__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-  width: 100%;
-  max-width: 40rem;
-  align-items: stretch;
-}
-
-.faucet-overlay__actions .saito-button-primary,
-.faucet-overlay__actions .saito-button-secondary {
-  width: 100%;
-  max-width: 40rem;
-}
-
-/* ----------------------------------------------------------------
-   Shared faucet state machine
------------------------------------------------------------------*/
-
-#faucet-request-container {
-  background: #0008;
-}
-
-#faucet-request-container[data-faucet-state='idle'] .spinner,
-#faucet-request-container[data-faucet-state='idle'] #faucet_success_icon {
-  display: none;
-}
-
-#faucet-request-container[data-faucet-state='pending'] #faucet_saito_logo,
-#faucet-request-container[data-faucet-state='pending'] #faucet-button,
-#faucet-request-container[data-faucet-state='pending'] #faucet_success_icon {
-  display: none;
-}
-
-#faucet-request-container[data-faucet-state='success'] #faucet_saito_logo,
-#faucet-request-container[data-faucet-state='success'] #faucet-button,
-#faucet-request-container[data-faucet-state='success'] .spinner {
-  display: none;
-}
-
-#faucet-request-container[data-faucet-state='success'] #faucet_success_icon {
-  display: block;
-}
-/* Faucet render target — formerly saito-buttons.css */
-.get-saito-tokens {
-  display: flex;
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
 }

@@ -142,7 +142,8 @@ We never post on your behalf.`
   }
 
   /**
-   * Stub — later replaced with Auth.js OAuth for the given provider.
+   * Begin provider authentication.
+   * GitHub and X open a Faucet-owned OAuth initiation popup (does not navigate Saito).
    * @param {{ id: string, name?: string, icon?: string }} provider
    */
   authenticate(provider) {
@@ -157,14 +158,55 @@ We never post on your behalf.`
       return;
     }
 
-    // Stub identity — Auth.js will populate real fields later.
-    this.finish({
-      status: AUTH_STATUS.SUCCESS,
-      provider: provider.id,
-      identity: Auth.emptyIdentity(provider.id),
-      error: null
-    });
-    this.overlay.close();
+    if (provider.id === 'github' || provider.id === 'twitter') {
+      if (typeof window === 'undefined' || typeof window.open !== 'function') {
+        this.finish({
+          status: AUTH_STATUS.ERROR,
+          provider: provider.id,
+          identity: null,
+          error: 'Browser cannot open an OAuth window'
+        });
+        return;
+      }
+
+      const slug =
+        typeof this.mod?.returnSlug === 'function' ? this.mod.returnSlug() : 'faucet';
+      const oauthUrl = new URL(
+        `/${encodeURI(slug)}/oauth/${encodeURI(provider.id)}`,
+        window.location.origin
+      );
+      const publickey = String(this.mod?.publicKey || '').trim();
+      if (publickey) {
+        oauthUrl.searchParams.set('publickey', publickey);
+      }
+
+      const popup = window.open(
+        oauthUrl.toString(),
+        'saito_faucet_oauth_' + provider.id,
+        'popup=yes,width=560,height=720,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes'
+      );
+      if (!popup) {
+        siteMessage(
+          'Please allow popups to continue with ' +
+            (provider.name || provider.id) +
+            ' authentication.',
+          4000
+        );
+      }
+      return;
+    }
+
+    siteMessage('That authentication provider is not available yet.', 3000);
+  }
+
+  /**
+   * Close without treating it as user cancel (null callback first).
+   */
+  close() {
+    this.callback = null;
+    if (this.overlay) {
+      this.overlay.close();
+    }
   }
 
   cancel() {
@@ -193,18 +235,6 @@ We never post on your behalf.`
       identity: result.identity ?? null,
       error: result.error ?? null
     });
-  }
-
-  static emptyIdentity(providerId = null) {
-    return {
-      provider: providerId,
-      provider_id: null,
-      username: null,
-      display_name: null,
-      email: null,
-      avatar: null,
-      metadata: {}
-    };
   }
 }
 

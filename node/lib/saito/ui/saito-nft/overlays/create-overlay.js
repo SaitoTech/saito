@@ -257,7 +257,26 @@ class CreateNFT {
               '.saito-nft-create .secondary textarea.description'
             );
             let description = (desc_field?.value || '').trim();
-            obj = await modobj.createData(this.file, { title, description });
+            // Caller context (e.g. Store rental file_id/duration) via defaults.create_data.
+            obj = await modobj.createData(this.file, {
+              title,
+              description,
+              image: this.image,
+              ...(this.defaults?.create_data || {})
+            });
+            if (obj === false) {
+              return false;
+            }
+            // Module types often need a presentation image alongside createData fields.
+            if (
+              this.image &&
+              obj &&
+              typeof obj === 'object' &&
+              !Array.isArray(obj) &&
+              obj.image == null
+            ) {
+              obj.image = this.image;
+            }
             processed = true;
           } else {
             obj.text = text;
@@ -265,7 +284,8 @@ class CreateNFT {
           }
         }
       } catch (err) {
-        console.log('Error with Custom NFT Type: ' + JSON.stringify(err));
+        console.error('CreateNFT: custom NFT type failed', err);
+        return false;
       }
     }
 
@@ -484,6 +504,15 @@ class CreateNFT {
             await modobj.on_file_selected(file, { file_name });
           }
 
+          // Image-bearing module NFTs (e.g. store-nft-rental) get a normal preview.
+          if (file && this.isImageDataUri(file)) {
+            this.image = file;
+            document.querySelector('.saito-nft-create .upload .file')?.remove();
+            document.querySelector('.saito-nft-create .upload .preview')?.remove();
+            this.addImage(file);
+            return;
+          }
+
           this.show_selected_file(file_name);
           return;
         }
@@ -665,7 +694,7 @@ class CreateNFT {
 
       let balance = await this.app.wallet.getBalance();
       if (balance === 0n) {
-        siteMessage('A SAITO balance is needed to create an NFT...', 3000);
+        siteMessage('SAITO tokens are required to create NFTs...', 3000);
         this.app.connection.emit('saito-purchase-launch');
         return;
       }

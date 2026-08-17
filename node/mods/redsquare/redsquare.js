@@ -1353,6 +1353,10 @@ class RedSquare extends ModTemplate {
   async receiveTweetTransaction(tx, blk = null) {
     const tweet = this.addTweet(tx);
 
+    if (tweet && !this.app.BROWSER) {
+      await tweet.analyseTweetLinks(true);
+    }
+
     await this.saveTweet(tweet, blk);
 
     if (this.app.BROWSER) {

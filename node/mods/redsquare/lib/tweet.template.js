@@ -96,6 +96,14 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
     images: tweet.images
   });
 
+  const youtube =
+    tweet.youtube_id && String(tweet.youtube_id) !== 'null'
+      ? `<iframe class="youtube-embed" src="https://www.youtube.com/embed/${tweet.youtube_id}" allowfullscreen></iframe>`
+      : '';
+
+  const linkPreview =
+    typeof tweet.renderLinkPreviewHTML === 'function' ? tweet.renderLinkPreviewHTML() : '';
+
   let embed = '';
 
   if (allowEmbed && tweet.embedded) {
@@ -149,6 +157,8 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
         ${header}
         ${body}
         ${gallery}
+        ${youtube}
+        ${linkPreview}
         ${embed}
         ${footer}
       </div>

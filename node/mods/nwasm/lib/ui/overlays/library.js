@@ -245,6 +245,9 @@ class LibraryOverlay {
       await this.mod.ui.render();
       this.mod.ui.show?.();
     }
+    if (this.mod.arcade_overlay?.is_open) {
+      await this.mod.arcade_overlay.refresh();
+    }
   }
 
   attach_events(actions = []) {

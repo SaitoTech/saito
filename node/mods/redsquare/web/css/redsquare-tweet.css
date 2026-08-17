@@ -170,8 +170,25 @@
 
 .tweet .body + .gallery,
 .tweet .body + .embed,
-.tweet .gallery + .embed {
+.tweet .body + .link-preview,
+.tweet .body + .youtube-embed,
+.tweet .gallery + .embed,
+.tweet .gallery + .link-preview,
+.tweet .gallery + .youtube-embed,
+.tweet .youtube-embed + .embed,
+.tweet .link-preview + .embed {
   margin-top: var(--saito-space-sm);
+}
+
+.tweet .youtube-embed {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: var(--saito-radius);
+}
+
+.tweet .link-preview {
+  min-width: 0;
 }
 
 .tweet .footer {
@@ -443,7 +460,11 @@
 
   .tweet .body + .gallery,
   .tweet .body + .embed,
-  .tweet .gallery + .embed {
+  .tweet .body + .link-preview,
+  .tweet .body + .youtube-embed,
+  .tweet .gallery + .embed,
+  .tweet .gallery + .link-preview,
+  .tweet .gallery + .youtube-embed {
     margin-top: var(--saito-space-sm);
   }
 
