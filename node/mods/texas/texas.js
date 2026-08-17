@@ -44,6 +44,7 @@ class Texas extends GameTableTemplate {
     this.playerbox = this.sidebar;
     this.pot = this.sidebar.pot;
     this.cardfan = this.hand;
+    this.result = this.main.table.result;
 
     /********************
 		*********************

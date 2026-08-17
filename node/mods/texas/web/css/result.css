@@ -1,0 +1,212 @@
+/*
+  Showdown / winner parchment — overlay of .texas-table only (not the sidebar).
+*/
+.game.texas .texas-result {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.2rem, 4%, 2.4rem);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.game.texas .texas-result.is-visible {
+  display: flex;
+}
+
+.game.texas .texas-result-panel {
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: min(46rem, 88%);
+  max-height: 92%;
+  overflow: auto;
+  padding: 1.8rem 1.8rem 1.2rem;
+  color: #2a1c12;
+  text-align: center;
+  background:
+    radial-gradient(120% 80% at 12% 8%, #efe0bc 0%, transparent 52%),
+    radial-gradient(90% 70% at 92% 96%, #c4ab78 0%, transparent 48%),
+    linear-gradient(180deg, #e6d4a8 0%, #c9b17d 100%);
+  border: 1px solid #8a6a3c;
+  border-radius: 0.35rem 0.7rem 0.4rem 0.55rem;
+  box-shadow:
+    0 1.6rem 3rem color-mix(in srgb, #041008 48%, transparent),
+    0 0 0 1px color-mix(in srgb, #3d2a18 35%, transparent);
+}
+
+.game.texas .texas-result-cards {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 0.55rem;
+  width: 100%;
+  margin-bottom: 0.7rem;
+}
+
+.game.texas .texas-result-cards[hidden] {
+  display: none;
+}
+
+.game.texas .texas-result-cards > .card,
+.game.texas .texas-result-cards > img.card {
+  position: relative !important;
+  display: block;
+  flex: 0 0 auto;
+  width: clamp(4.6rem, 6.5vw, 7.4rem) !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #3d2a18 !important;
+  border-radius: 0.2rem;
+  box-shadow: 0 0.15rem 0.35rem color-mix(in srgb, #041008 28%, transparent);
+  object-fit: contain;
+  top: auto !important;
+  left: auto !important;
+  background: #f7f1e4;
+}
+
+.game.texas .texas-result-headline {
+  font-family: Palatino, 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  font-size: clamp(2.4rem, 3.2vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: #2a1c12;
+}
+
+.game.texas .texas-result-hand {
+  margin-top: 0.35rem;
+  font-family: Palatino, 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  font-size: clamp(1.5rem, 1.8vw, 2rem);
+  font-style: italic;
+  color: #5a3d22;
+}
+
+.game.texas .texas-result-hand[hidden] {
+  display: none;
+}
+
+.game.texas .texas-result .controls {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 1.2rem;
+}
+
+.game.texas .texas-result .controls ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+  HUD `.controls ul li { height: 8rem; display: flex }` otherwise leaves a
+  tall empty button. Reset height and keep flex centering for the label.
+*/
+.game.texas .texas-result .controls ul li.acknowledge,
+.game.texas .texas-result .controls ul li.option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 22rem;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0.85rem 2.2rem;
+  overflow: hidden;
+  border: 1px solid #6a4a28;
+  border-radius: 0.25rem;
+  background: #efe2c0;
+  color: #2a1c12;
+  font-family: var(--saito-font-heavy);
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+}
+
+.game.texas .texas-result .controls .acknowledge .animated-mask,
+.game.texas .texas-result .controls .option .animated-mask {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: color-mix(in srgb, #6a4a28 18%, transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.game.texas .texas-result-countdown {
+  margin-top: 0.55rem;
+  min-height: 1.4rem;
+  font-family: var(--saito-font-medium);
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  color: #5a3d22;
+}
+
+/*
+  Clock-is-ticking overlay checkbox: shared `.saito-checkbox` uses
+  `--saito-border: #45423e`, which disappears on the dark #0009 opt-out chip.
+*/
+.game.texas .game-help-overlay-optout .saito-checkbox {
+  border-color: #f4ead0;
+  background-color: transparent;
+}
+
+.game.texas .game-help-overlay-optout .saito-checkbox:checked {
+  background-color: color-mix(in srgb, #f4ead0 22%, transparent);
+  border-color: #f4ead0;
+}
+
+.game.texas .game-help-overlay-optout .saito-checkbox:checked::after {
+  color: #f4ead0;
+}
+
+@media (max-width: 900px), (max-height: 500px) {
+  .game.texas .texas-result {
+    padding: 0.6rem;
+  }
+
+  .game.texas .texas-result-panel {
+    width: min(40rem, 94%);
+    padding: 1.2rem 1.1rem 0.9rem;
+  }
+
+  .game.texas .texas-result-cards {
+    margin-bottom: 0.55rem;
+  }
+
+  .game.texas .texas-result-cards > .card,
+  .game.texas .texas-result-cards > img.card {
+    width: clamp(3.4rem, 14vw, 5.4rem) !important;
+  }
+
+  .game.texas .texas-result .controls {
+    margin-top: 0.9rem;
+  }
+
+  .game.texas .texas-result .controls ul li.acknowledge,
+  .game.texas .texas-result .controls ul li.option {
+    min-width: 16rem;
+    padding: 0.75rem 1.4rem;
+    font-size: 1.4rem;
+  }
+}

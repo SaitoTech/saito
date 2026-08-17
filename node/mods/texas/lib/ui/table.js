@@ -2,6 +2,7 @@ const TableTemplate = require('./table.template');
 const Board = require('./board');
 const Hand = require('./hand');
 const Controls = require('./controls');
+const Result = require('./result');
 
 class Table {
   constructor(app, mod) {
@@ -10,6 +11,7 @@ class Table {
     this.board = new Board(app, mod);
     this.hand = new Hand(app, mod);
     this.controls = new Controls(app, mod);
+    this.result = new Result(app, mod);
   }
 
   render() {
@@ -24,6 +26,7 @@ class Table {
     this.board.render();
     this.hand.render();
     this.controls.render();
+    this.result.render();
   }
 }
 
