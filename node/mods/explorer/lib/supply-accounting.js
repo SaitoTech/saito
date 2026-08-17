@@ -2,6 +2,10 @@ const ISSUANCE_TRANSACTION_TYPE = 6;
 const NOLAN_PER_SAITO = 100_000_000n;
 const DEFAULT_SUPPLY_NOLAN = 7_000_000_000n * NOLAN_PER_SAITO;
 const EMPTY_BLOCK_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
+const MAX_CONSECUTIVE_BACKFILL_FAILURES = 5;
+const activeSupplyBackfills = new WeakMap();
+
+const { returnGenesisPeriod } = require('./address-index');
 
 function toBigInt(value) {
   if (value === undefined || value === null || value === '') {
@@ -157,22 +161,9 @@ async function resolveTotalSupply(app, mod, block, buckets) {
     return resolveGenesisTotalSupply(block);
   }
 
-  let parentRow = null;
-  if (mod?.database?.getStatisticsByBlockHash) {
-    parentRow = await mod.database.getStatisticsByBlockHash(parentHash);
-  }
-
-  if (!parentRow?.total_supply && mod?.database) {
-    try {
-      const parentBlock = await app.core.blockchain.getBlock(parentHash, true);
-      if (parentBlock) {
-        await ensureBlockSupplyIndexed(app, mod, parentBlock);
-        parentRow = await mod.database.getStatisticsByBlockHash(parentHash);
-      }
-    } catch (err) {
-      console.error('Explorer: failed to index parent block for supply accounting', err);
-    }
-  }
+  const parentRow = mod?.database?.getStatisticsByBlockHash
+    ? await mod.database.getStatisticsByBlockHash(parentHash)
+    : null;
 
   if (parentRow?.total_supply != null && parentRow.total_supply !== '') {
     return toBigInt(parentRow.total_supply);
@@ -270,13 +261,46 @@ async function ensureBlockSupplyIndexed(app, mod, block) {
   }
 
   const stats = await buildBlockSupplyStats(app, mod, block);
-  await mod.database.upsertBlockStatistics(stats);
+  const result = await mod.database.upsertBlockStatistics(stats);
+  if (!result?.success) {
+    const reason = result?.reason || 'unknown database error';
+    const err = new Error(
+      `Explorer: failed to store supply statistics for block ${stats.block_id}: ${reason}`
+    );
+    err.code = 'EXPLORER_SUPPLY_WRITE_FAILED';
+    throw err;
+  }
   return stats;
 }
 
-async function backfillSupplyStatistics(app, mod) {
+function isBlockHash(hash) {
+  return typeof hash === 'string' && hash !== EMPTY_BLOCK_HASH && /^[0-9a-f]{64}$/i.test(hash);
+}
+
+function hasSupplyStatistics(row) {
+  return row?.total_supply != null && row.total_supply !== '';
+}
+
+function backfillStartId(app, latestId) {
+  const genesisPeriod = Math.max(1, returnGenesisPeriod(app));
+  const genesisFloor = Math.max(1, latestId - genesisPeriod + 1);
+  const savedLowest = Number(app?.options?.blockchain?.lowest_acceptable_block_id);
+  const savedFloor = Number.isFinite(savedLowest) && savedLowest > 0 ? Math.floor(savedLowest) : 1;
+
+  return Math.max(1, genesisFloor, savedFloor);
+}
+
+async function runSupplyStatisticsBackfill(app, mod) {
+  const summary = {
+    scanned: 0,
+    indexed: 0,
+    already_indexed: 0,
+    unavailable: 0,
+    failed: 0
+  };
+
   if (!mod?.database || app.BROWSER !== 0) {
-    return;
+    return summary;
   }
 
   let latestId = 0;
@@ -284,24 +308,90 @@ async function backfillSupplyStatistics(app, mod) {
     latestId = Number(await app.blockchain.getLatestBlockId());
   } catch (err) {
     console.error('Explorer: supply backfill could not read latest block id', err);
-    return;
+    return summary;
   }
 
   if (!Number.isFinite(latestId) || latestId <= 0) {
-    return;
+    return summary;
   }
 
-  for (let blockId = 1; blockId <= latestId; blockId++) {
+  const firstBlockId = backfillStartId(app, latestId);
+  let consecutiveFailures = 0;
+
+  for (let blockId = firstBlockId; blockId <= latestId; blockId++) {
+    summary.scanned++;
+
     try {
-      const block = await app.core.blockchain.getBlock(blockId, true);
-      if (!block?.hash) {
+      const blockHash = await app.blockchain.getLongestChainHashAtId(BigInt(blockId));
+      if (!isBlockHash(blockHash)) {
+        summary.unavailable++;
+        consecutiveFailures = 0;
         continue;
       }
+
+      const existing = await mod.database.getStatisticsByBlockHash(blockHash);
+      if (hasSupplyStatistics(existing)) {
+        summary.already_indexed++;
+        consecutiveFailures = 0;
+        continue;
+      }
+
+      // Resolve the canonical hash first so older hash-only wrappers also remain safe.
+      const block = await app.core.blockchain.getBlock(blockHash, true);
+      if (!block?.hash) {
+        summary.unavailable++;
+        consecutiveFailures = 0;
+        continue;
+      }
+
       await ensureBlockSupplyIndexed(app, mod, block);
+      summary.indexed++;
+      consecutiveFailures = 0;
     } catch (err) {
-      console.error(`Explorer: supply backfill failed for block ${blockId}`, err);
+      if (err?.code === 'EXPLORER_SUPPLY_WRITE_FAILED') {
+        throw err;
+      }
+
+      summary.failed++;
+      consecutiveFailures++;
+      if (consecutiveFailures === 1) {
+        console.error(`Explorer: supply backfill failed for block ${blockId}`, err);
+      }
+
+      if (consecutiveFailures >= MAX_CONSECUTIVE_BACKFILL_FAILURES) {
+        throw new Error(
+          `Explorer: aborting supply backfill after ${consecutiveFailures} consecutive failures ` +
+            `(last block ${blockId})`
+        );
+      }
     }
   }
+
+  if (summary.failed > 0) {
+    console.warn('Explorer: supply backfill completed with recoverable failures', summary);
+  }
+
+  return summary;
+}
+
+function backfillSupplyStatistics(app, mod) {
+  if (!mod || (typeof mod !== 'object' && typeof mod !== 'function')) {
+    return Promise.resolve();
+  }
+
+  const activeBackfill = activeSupplyBackfills.get(mod);
+  if (activeBackfill) {
+    return activeBackfill;
+  }
+
+  const backfill = runSupplyStatisticsBackfill(app, mod).finally(() => {
+    if (activeSupplyBackfills.get(mod) === backfill) {
+      activeSupplyBackfills.delete(mod);
+    }
+  });
+
+  activeSupplyBackfills.set(mod, backfill);
+  return backfill;
 }
 
 module.exports = {
