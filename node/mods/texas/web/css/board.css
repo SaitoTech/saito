@@ -11,6 +11,7 @@
 
 .game.texas .texas-board .card {
   position: relative;
+  left: 0;
   flex: 0 0 auto;
   width: var(--texas-card-width) !important;
   height: var(--texas-card-height) !important;

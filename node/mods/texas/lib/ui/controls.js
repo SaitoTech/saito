@@ -49,9 +49,12 @@ class Controls {
     if (host) {
       host.classList.remove('is-active');
     }
-    let table = document.getElementById('texas-table');
-    if (table) {
-      table.classList.remove('is-acting');
+    let main = document.getElementById('texas-main');
+    if (main) {
+      main.classList.remove('is-your-move');
+    }
+    if (this.mod && typeof this.mod.updateControls === 'function') {
+      this.mod.updateControls('', 1);
     }
     this.closeRaiseSheet();
   }
@@ -67,6 +70,9 @@ class Controls {
 
     this.closeRaiseSheet();
     row.innerHTML = '';
+    if (this.mod && typeof this.mod.updateControls === 'function') {
+      this.mod.updateControls('', 1);
+    }
 
     this.addArtifact(row, {
       action: 'fold',
@@ -102,9 +108,9 @@ class Controls {
     }
 
     host.classList.remove('is-active');
-    let table = document.getElementById('texas-table');
-    if (table) {
-      table.classList.add('is-acting');
+    let main = document.getElementById('texas-main');
+    if (main) {
+      main.classList.add('is-your-move');
     }
     requestAnimationFrame(() => {
       host.classList.add('is-active');

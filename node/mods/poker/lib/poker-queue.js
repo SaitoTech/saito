@@ -754,6 +754,9 @@ class PokerQueue {
         };
 
         if (this.game.player) {
+          // Screenshot is optional (game-help tip only). html2canvas cannot parse
+          // modern CSS Color 5 values such as computed `color(srgb …)` from
+          // `color-mix(...)`. A rejection must not abort settle → acknowledge → newround.
           html2canvas(document.body, {
             /*scale: 0.8,
 	                	width: 0.8*window.innerWidth,
@@ -775,7 +778,12 @@ class PokerQueue {
                 return true;
               }
             }
-          }).then(clearBoardAndContinue);
+          })
+            .then(clearBoardAndContinue)
+            .catch((err) => {
+              console.warn('Poker: showdown screenshot failed; continuing hand lifecycle', err);
+              clearBoardAndContinue();
+            });
         } else {
           clearBoardAndContinue();
         }

@@ -14,6 +14,7 @@
   border-radius: 1.4rem;
   background: color-mix(in srgb, var(--saito-white) 88%, transparent);
   color: var(--saito-background);
+  transition: background var(--texas-your-move-duration, 0.35s) ease;
 }
 
 .game.texas .pot-chip {

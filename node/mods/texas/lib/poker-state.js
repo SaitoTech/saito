@@ -1,4 +1,50 @@
 class PokerState {
+  returnPlayerCharacterPool() {
+    return ['player1', 'player2', 'player3', 'player4', 'player5', 'player6'];
+  }
+
+  // Deterministic shuffle so every peer assigns the same portraits for a game.
+  shufflePlayerCharacters(seed = '') {
+    let pool = this.returnPlayerCharacterPool().slice();
+    let h = 2166136261;
+    let s = String(seed || this.game?.id || 'texas');
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    for (let i = pool.length - 1; i > 0; i--) {
+      h ^= h << 13;
+      h ^= h >>> 17;
+      h ^= h << 5;
+      h >>>= 0;
+      let j = h % (i + 1);
+      let tmp = pool[i];
+      pool[i] = pool[j];
+      pool[j] = tmp;
+    }
+    return pool;
+  }
+
+  ensurePlayerCharacters() {
+    if (!this.game?.state) {
+      return;
+    }
+    let n = this.game.players?.length || 0;
+    if (!Array.isArray(this.game.state.player_characters)) {
+      this.game.state.player_characters = [];
+    }
+    if (this.game.state.player_characters.length >= n && n > 0) {
+      return;
+    }
+    let pool = this.shufflePlayerCharacters(this.game.id);
+    let used = new Set(this.game.state.player_characters);
+    while (this.game.state.player_characters.length < n) {
+      let next = pool.find((id) => !used.has(id)) || pool[this.game.state.player_characters.length % pool.length];
+      this.game.state.player_characters.push(next);
+      used.add(next);
+    }
+  }
+
   returnState(num_of_players) {
     let state = {};
 
@@ -22,6 +68,7 @@ class PokerState {
     }
 
     state.player_names = [];
+    state.player_characters = [];
     state.player_pot = [];
     state.player_credit = [];
     state.passed = [];
@@ -30,6 +77,8 @@ class PokerState {
 
     state.winners = [];
     state.last_fold = null;
+
+    let characters = this.shufflePlayerCharacters(this.game?.id);
 
     //
     // initializeGameStake should flesh this out
@@ -40,6 +89,7 @@ class PokerState {
       state.player_credit[i] = 0;
       state.debt[i] = 0;
       state.player_names[i] = this.app.keychain.returnUsername(this.game.players[i]);
+      state.player_characters[i] = characters[i % characters.length];
       state.chip_exchange[i] = new Array(num_of_players).fill(0);
     }
 
@@ -72,6 +122,9 @@ class PokerState {
     if (index >= 0 && index < this.game.state.player_names.length) {
       this.game.stats[pkey].final_chips = this.game.state.player_credit[index];
       this.game.state.player_names.splice(index, 1);
+      if (Array.isArray(this.game.state.player_characters)) {
+        this.game.state.player_characters.splice(index, 1);
+      }
       this.game.state.player_pot.splice(index, 1);
       this.game.state.player_credit.splice(index, 1);
       this.game.state.passed.splice(index, 1);
@@ -96,6 +149,13 @@ class PokerState {
     console.log(pkey, index, this.game.players);
 
     this.game.state.player_names.push(this.app.keychain.returnUsername(this.game.players[index]));
+    if (!Array.isArray(this.game.state.player_characters)) {
+      this.game.state.player_characters = [];
+    }
+    let pool = this.returnPlayerCharacterPool();
+    let used = new Set(this.game.state.player_characters);
+    let next = pool.find((id) => !used.has(id)) || pool[index % pool.length];
+    this.game.state.player_characters.push(next);
     this.game.state.player_pot.push(0);
     this.game.state.player_credit.push(this.game.chips);
     this.game.state.passed.push(0);

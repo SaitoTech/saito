@@ -325,7 +325,27 @@ class Texas extends GameTableTemplate {
     }
   }
 
-  updateControls() {}
+  updateControls(str = '', force = 0) {
+    // Required by GameAcknowledge / end-of-hand: without this the queue stays halted.
+    if (!force && this.lock_interface) {
+      return;
+    }
+
+    this.game.controls = str;
+    if (!this.gameBrowserActive()) {
+      return;
+    }
+
+    let el = document.getElementById('controls');
+    if (el) {
+      el.innerHTML = str || '';
+    }
+    document.querySelectorAll('.texas-controls .controls').forEach((node) => {
+      if (node !== el) {
+        node.innerHTML = str || '';
+      }
+    });
+  }
 
   actionFromStatus(str) {
     let text = String(str || '')
