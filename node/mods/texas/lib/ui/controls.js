@@ -56,6 +56,9 @@ class Controls {
     if (this.mod && typeof this.mod.updateControls === 'function') {
       this.mod.updateControls('', 1);
     }
+    if (this.mod?.result) {
+      this.mod.result.hide();
+    }
     this.closeRaiseSheet();
   }
 

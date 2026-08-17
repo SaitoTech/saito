@@ -1,7 +1,10 @@
 .game.texas {
   --texas-chrome-inset: 0.8rem;
-  /* Ambient “YOUR MOVE” veil — darkens felt only (via ::before under content). */
-  --texas-your-move-veil: color-mix(in srgb, #06140c 20%, transparent);
+  /*
+    YOUR MOVE backdrop — independent overlay, NOT parent opacity.
+    Strength restored toward the former table.is-acting veil (~52%).
+  */
+  --texas-your-move-veil: color-mix(in srgb, #041008 56%, transparent);
   --texas-your-move-duration: 0.35s;
 }
 
@@ -30,9 +33,8 @@ body.game.texas {
 }
 
 /*
-  YOUR MOVE ambient layer.
-  Lives behind sidebar/table (z-index 0). Does not filter cards/controls.
-  Opacity-only transition → no layout/geometry change.
+  Backdrop layer only. Sits under sidebar/table so cards & controls stay crisp.
+  Opacity transition preserves the existing fade in/out.
 */
 .game.texas .texas-main::before {
   content: '';
@@ -55,14 +57,23 @@ body.game.texas {
   z-index: 1;
 }
 
-/* Information surfaces: keep readable against the quieter felt. */
+/*
+  Playerboxes are normally translucent. With a strong veil under the rail,
+  that transparency shows darkened felt through them → washed-out haze.
+  In YOUR MOVE only: solid opaque surfaces (same green family, not brighter).
+*/
 .game.texas .texas-main.is-your-move .texas-playerbox {
-  background: color-mix(in srgb, #1a4030 86%, #e8dcc0 8%);
-  border-color: color-mix(in srgb, var(--saito-foreground) 44%, transparent);
+  background: #0d2818;
+  border-color: color-mix(in srgb, var(--saito-foreground) 40%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, #000 28%, transparent);
+}
+
+.game.texas .texas-main.is-your-move .playerbox-character {
+  border-color: color-mix(in srgb, var(--saito-foreground) 58%, transparent);
 }
 
 .game.texas .texas-main.is-your-move .texas-pot {
-  background: color-mix(in srgb, var(--saito-white) 94%, transparent);
+  background: #f3ead2;
 }
 
 .game.texas .game-menu {
