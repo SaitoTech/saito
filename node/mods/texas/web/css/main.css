@@ -1,5 +1,8 @@
 .game.texas {
   --texas-chrome-inset: 0.8rem;
+  /* Ambient “YOUR MOVE” veil — darkens felt only (via ::before under content). */
+  --texas-your-move-veil: color-mix(in srgb, #06140c 20%, transparent);
+  --texas-your-move-duration: 0.35s;
 }
 
 body.game.texas {
@@ -19,10 +22,47 @@ body.game.texas {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  isolation: isolate;
   background-color: #1a5a32;
   background-image: url(/texas/img/greenfelt.jpg);
   background-size: cover;
   background-position: center;
+}
+
+/*
+  YOUR MOVE ambient layer.
+  Lives behind sidebar/table (z-index 0). Does not filter cards/controls.
+  Opacity-only transition → no layout/geometry change.
+*/
+.game.texas .texas-main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--texas-your-move-veil);
+  opacity: 0;
+  transition: opacity var(--texas-your-move-duration) ease;
+}
+
+.game.texas .texas-main.is-your-move::before {
+  opacity: 1;
+}
+
+.game.texas .texas-sidebar,
+.game.texas .texas-table {
+  position: relative;
+  z-index: 1;
+}
+
+/* Information surfaces: keep readable against the quieter felt. */
+.game.texas .texas-main.is-your-move .texas-playerbox {
+  background: color-mix(in srgb, #1a4030 86%, #e8dcc0 8%);
+  border-color: color-mix(in srgb, var(--saito-foreground) 44%, transparent);
+}
+
+.game.texas .texas-main.is-your-move .texas-pot {
+  background: color-mix(in srgb, var(--saito-white) 94%, transparent);
 }
 
 .game.texas .game-menu {

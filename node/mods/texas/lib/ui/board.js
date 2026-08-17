@@ -79,6 +79,9 @@ class Board {
     this.cards_visible = 0;
     this.disable = true;
 
+    //
+    // this animation sweeps the cards off the table
+    //
     $($('#deal').children().get().reverse()).each(function (index) {
       $(this)
         .delay(50 * index)
@@ -95,6 +98,13 @@ class Board {
             })
             .dequeue();
         });
+    });
+
+    //
+    // this animation sweeps revealed hands off the table
+    //
+    $('.game-playerbox-graphics .hand').animate({ left: '1000px' }, 1200, 'swing', function () {
+      $(this).remove();
     });
   }
 }

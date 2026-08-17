@@ -12,6 +12,9 @@
   background: color-mix(in srgb, #0d2818 78%, transparent);
   color: var(--saito-foreground);
   box-sizing: border-box;
+  transition:
+    background var(--texas-your-move-duration, 0.35s) ease,
+    border-color var(--texas-your-move-duration, 0.35s) ease;
 }
 
 .game.texas .texas-playerbox.folded {

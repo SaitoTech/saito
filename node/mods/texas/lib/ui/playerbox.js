@@ -6,8 +6,9 @@ class Playerbox {
     this.mod = mod;
     this.publicKey = publicKey;
     this.player_number = player_number;
-    this.character_id = 'player1';
-    this.character_src = '/texas/img/players/player1.png';
+    let character = this.resolveCharacter();
+    this.character_id = character;
+    this.character_src = `/texas/img/players/${character}.png`;
     this.name =
       player_number > 0 && mod.game?.state?.player_names
         ? mod.game.state.player_names[player_number - 1]
@@ -15,6 +16,23 @@ class Playerbox {
     this.role = '';
     this.action = '';
     this.chips_html = '';
+  }
+
+  resolveCharacter() {
+    if (this.player_number > 0 && typeof this.mod.ensurePlayerCharacters === 'function') {
+      this.mod.ensurePlayerCharacters();
+    }
+    let chars = this.mod.game?.state?.player_characters;
+    if (this.player_number > 0 && Array.isArray(chars) && chars[this.player_number - 1]) {
+      return chars[this.player_number - 1];
+    }
+    // Observer / fallback seat: pick an unused portrait when possible.
+    let pool =
+      typeof this.mod.returnPlayerCharacterPool === 'function'
+        ? this.mod.returnPlayerCharacterPool()
+        : ['player1', 'player2', 'player3', 'player4', 'player5', 'player6'];
+    let used = new Set(Array.isArray(chars) ? chars : []);
+    return pool.find((id) => !used.has(id)) || pool[0];
   }
 
   render(container) {
