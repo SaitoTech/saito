@@ -1,21 +1,83 @@
 .game.texas .texas-table {
-  --texas-card-width: min(15vh, 17vw, 15rem);
-  --texas-card-height: calc(1.53 * var(--texas-card-width));
-  --texas-hand-width: min(26vh, 22vw, 22rem);
-  --texas-hand-height: calc(1.53 * var(--texas-hand-width));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 0.7fr) auto minmax(0, 1fr) auto 12rem;
-  grid-template-areas:
-    '.'
-    'board'
-    '.'
-    'hand'
-    'controls';
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'cards';
+  position: relative;
   min-width: 0;
   min-height: 0;
   overflow: visible;
   padding-top: var(--saito-header-height, 4rem);
+}
+
+/*
+  Stable table canvas:
+  - board row is auto-sized and pinned to the top (pot landmark)
+  - play row takes the remaining space; hand is centered inside it
+  - controls are absolute overlay and never affect these rows
+*/
+.game.texas .texas-card-zone {
+  --texas-card-gap: clamp(0.7rem, 1.5cqi, 1.5rem);
+  --texas-stack-gap: clamp(1rem, 2.6cqh, 2rem);
+  --texas-card-width: round(
+    nearest,
+    min(
+      calc((100cqi - 4rem - 4 * var(--texas-card-gap)) / 5),
+      calc((100cqh - 2.2rem - var(--texas-stack-gap)) * 0.36 / 1.53),
+      20rem
+    ),
+    1px
+  );
+  --texas-card-height: round(nearest, calc(1.53 * var(--texas-card-width)), 1px);
+  /* Hole-card scale only — board uses --texas-card-*; desktop needs more presence. */
+  --texas-hand-scale: 1.18;
+  --texas-hand-width: round(
+    nearest,
+    calc(
+      min(
+        calc((100cqi - 5rem) / 1.75),
+        calc((100cqh - 2.2rem - var(--texas-stack-gap) - var(--texas-card-height)) * 0.62 / 1.53),
+        28rem
+      ) * var(--texas-hand-scale)
+    ),
+    1px
+  );
+  --texas-hand-height: round(nearest, calc(1.53 * var(--texas-hand-width)), 1px);
+  grid-area: cards;
+  position: relative;
+  z-index: 2;
+  container-type: size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'board'
+    'play';
+  justify-items: center;
+  align-content: stretch;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  padding: 2.2rem clamp(1.2rem, 4%, 2.8rem) clamp(1.2rem, 4%, 2.8rem);
+  box-sizing: border-box;
+}
+
+.game.texas .texas-board {
+  grid-area: board;
+}
+
+.game.texas .texas-play {
+  grid-area: play;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding-top: var(--texas-stack-gap);
+  box-sizing: border-box;
 }
 
 .game.texas .poker-chip {
@@ -23,10 +85,43 @@
   height: 2.8rem;
 }
 
+.game.texas .texas-table.is-acting::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: color-mix(in srgb, #06140c 52%, transparent);
+}
+
 @media (max-width: 900px), (max-height: 500px) {
-  .game.texas .texas-table {
-    --texas-card-width: min(18vw, 12rem);
-    --texas-hand-width: min(28vw, 16rem);
-    grid-template-rows: minmax(0, 0.4fr) auto minmax(0, 1fr) auto 10rem;
+  .game.texas .texas-card-zone {
+    --texas-card-gap: clamp(0.4rem, 1.2cqi, 0.9rem);
+    --texas-stack-gap: clamp(0.7rem, 2cqh, 1.2rem);
+    --texas-card-width: round(
+      nearest,
+      min(
+        calc((100cqi - 2rem - 4 * var(--texas-card-gap)) / 5),
+        calc((100cqh - 1rem - var(--texas-stack-gap)) * 0.3 / 1.53),
+        14rem
+      ),
+      1px
+    );
+    --texas-card-height: round(nearest, calc(1.53 * var(--texas-card-width)), 1px);
+    /* Mobile: slightly less dominant than the previous hole-card size. */
+    --texas-hand-scale: 0.9;
+    --texas-hand-width: round(
+      nearest,
+      calc(
+        min(
+          calc((100cqi - 2rem) / 1.8),
+          calc((100cqh - 1rem - var(--texas-stack-gap) - var(--texas-card-height)) * 0.58 / 1.53),
+          18rem
+        ) * var(--texas-hand-scale)
+      ),
+      1px
+    );
+    --texas-hand-height: round(nearest, calc(1.53 * var(--texas-hand-width)), 1px);
+    padding: 0.8rem clamp(0.6rem, 3%, 1.4rem) clamp(0.6rem, 3%, 1.4rem);
   }
 }

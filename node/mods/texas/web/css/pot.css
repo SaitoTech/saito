@@ -8,6 +8,7 @@
   box-sizing: border-box;
   position: relative;
   min-height: 4.4rem;
+  margin-bottom: 2px;
   padding: 0.5rem 1.4rem 0.5rem 8rem;
   overflow: visible;
   border-radius: 1.4rem;

@@ -1,7 +1,11 @@
+.game.texas {
+  --texas-chrome-inset: 0.8rem;
+}
+
 body.game.texas {
   background-color: #1a5a32;
-  background-image: url(/saito/img/arcade/greenfelt.jpg);
-  background-size: 180%;
+  background-image: url(/texas/img/greenfelt.jpg);
+  background-size: cover;
   background-position: center;
 }
 
@@ -16,9 +20,20 @@ body.game.texas {
   min-height: 0;
   overflow: hidden;
   background-color: #1a5a32;
-  background-image: url(/saito/img/arcade/greenfelt.jpg);
-  background-size: 180%;
+  background-image: url(/texas/img/greenfelt.jpg);
+  background-size: cover;
   background-position: center;
+}
+
+.game.texas .game-menu {
+  top: var(--texas-chrome-inset);
+  left: var(--texas-chrome-inset);
+  margin: 0;
+}
+
+.game.texas #saito-header.game .hamburger-container {
+  margin-top: var(--texas-chrome-inset);
+  margin-right: var(--texas-chrome-inset);
 }
 
 .game.texas .texas-sidebar {

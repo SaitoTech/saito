@@ -1,2 +1,100 @@
-/* GameLog lives on document.body via the shared Saito GameLog.
-   Texas does not restyle the wrapper, so the default 16px edge sliver applies. */
+/*
+  Texas GameLog positioning
+  -------------------------
+  Visible "caret" on the right edge is NOT `.mobile-log-tab`.
+
+  It is the closed #log-wrapper peek:
+    right: calc(16px - var(--ideal-game-log))
+  which leaves a 16px strip of #log, whose lines are rendered as
+    <div>> message</div>
+  so the peek looks like a column of `>` chevrons.
+
+  Previous mobile fixes hid `.mobile-log-tab` (correct but irrelevant to
+  the visible caret) and tried to shorten #log-wrapper. Desktop must keep
+  the 16px edge-sliver. Mobile must not show that full-height `>` strip
+  next to the hamburger.
+*/
+
+/* ===== DESKTOP (default): unchanged Saito edge-sliver log ===== */
+body.game.texas #log-wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  height: 100%;
+  width: var(--ideal-game-log);
+  right: calc(16px - var(--ideal-game-log));
+}
+
+body.game.texas #log-wrapper.log-lock {
+  right: 0;
+}
+
+/* Desktop never uses the chevron tab. */
+body.game.texas .mobile-log-tab {
+  display: none !important;
+}
+
+/*
+  ===== MOBILE ONLY =====
+  Texas mobile layout breakpoint matches main.css (900px / 500px).
+
+  1. Park the closed panel fully off-screen so the `>` peek disappears
+     from beside the hamburger.
+  2. Re-enable `.mobile-log-tab` as a deliberate fixed handle anchored
+     to the lower pot/player-information rail (not top:0 on the panel).
+*/
+@media (max-width: 900px), (max-height: 500px) {
+  body.game.texas #log-wrapper {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    /* Match the mobile sidebar/rail height band. */
+    height: 28vh !important;
+    width: min(92vw, 28rem) !important;
+    /* Fully hidden when closed — no 16px `>` strip. */
+    right: calc(-1 * min(92vw, 28rem)) !important;
+    z-index: 120;
+  }
+
+  body.game.texas #log-wrapper.log-lock {
+    right: 0 !important;
+    height: min(72vh, calc(100% - var(--saito-header-height, 4rem))) !important;
+  }
+
+  /*
+    Winning mobile affordance: the shared .mobile-log-tab element.
+    Base game.css only shows it under max-width:525px at top:0 (beside
+    the hamburger). We override that completely for all Texas mobile.
+  */
+  body.game.texas .mobile-log-tab {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    position: fixed !important;
+    /* Sit on the pot/rail band (sidebar max-height: 28vh), not at top:0. */
+    top: auto !important;
+    bottom: max(1.2rem, calc(28vh - 4rem)) !important;
+    right: 0 !important;
+    left: auto !important;
+    width: 2.8rem !important;
+    height: 3.6rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0.6rem 0 0 0.6rem !important;
+    background: color-mix(in srgb, #f3ead2 92%, #2a1c12) !important;
+    color: #2a1c12 !important;
+    font-size: 1.8rem !important;
+    box-shadow: -1px 1px 4px rgba(0, 0, 0, 0.25);
+    transform: none !important;
+    z-index: 130;
+  }
+
+  body.game.texas #log-wrapper.log-lock .mobile-log-tab {
+    /* Keep the handle attached to the open panel's left edge. */
+    position: absolute !important;
+    top: 50% !important;
+    bottom: auto !important;
+    right: 100% !important;
+    transform: translateY(-50%) !important;
+  }
+}

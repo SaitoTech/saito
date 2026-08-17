@@ -1,3 +1,4 @@
 module.exports = () => {
-  return `<div class="texas-hand" id="texas-hand"></div>`;
+  // GameCardfan owns the #cardfan node; Texas only provides the stable mount.
+  return ``;
 };
