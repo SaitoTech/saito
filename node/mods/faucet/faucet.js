@@ -41,7 +41,19 @@ class Faucet extends ModTemplate {
     this.server_faucet_free_use = false;
     this.faucet_peer_public_key = '';
 
-    // Server: administrator toggle from /faucet/config (in-memory, like OAuth secrets).
+    // Re-check when the user asks to see acquisition options. This is
+    // event-driven: no polling or timer-based retries.
+    app.connection.on('saito-purchase-overlay-open', () => {
+      this.checkFaucetAvailability();
+    });
+
+    // Server Faucet modes. OAuth secrets remain in memory, but the enabled
+    // mode flags are persisted in app.options.faucet.mode.
+    this.mode = {
+      free: false,
+      github: false,
+      twitter: false
+    };
     this.free_use = false;
 
     this.social = this.buildSocial({
@@ -57,6 +69,16 @@ class Faucet extends ModTemplate {
     await super.initialize(app);
 
     if (!this.app.BROWSER) {
+      const savedMode = this.app.options?.faucet?.mode;
+      if (savedMode && typeof savedMode === 'object') {
+        this.mode = {
+          free: savedMode.free === true || savedMode.free_use === true,
+          github: savedMode.github === true,
+          twitter: savedMode.twitter === true
+        };
+      }
+      this.free_use = this.mode.free;
+
       await this.db.initialize();
       await this.wallet.initialize();
     }
@@ -77,16 +99,38 @@ class Faucet extends ModTemplate {
     if (service.service !== 'faucet') {
       return;
     }
-    if (this.faucet_peer_public_key) {
-      return;
-    }
-
     const dest = String(peer?.publicKey || '').trim();
     if (!dest) {
       return;
     }
 
     this.faucet_peer_public_key = dest;
+
+    await this.checkFaucetAvailability(dest);
+  }
+
+  async onConnectionStable(app, peer) {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    const dest = String(peer?.publicKey || '').trim();
+    if (!dest || dest !== this.faucet_peer_public_key) {
+      return;
+    }
+
+    await this.checkFaucetAvailability(dest);
+  }
+
+  async checkFaucetAvailability(publicKey = '') {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    const dest = String(publicKey || this.faucet_peer_public_key || '').trim();
+    if (!dest) {
+      return;
+    }
 
     // Unsigned peer request (not an on-chain fee transaction). Asks whether
     // this Faucet peer has OAuth configured — that is what BuySaito uses to
@@ -162,7 +206,7 @@ class Faucet extends ModTemplate {
           ? 'The SAITO Faucet exists to help new users try the advanced features of the network. No registration is required.'
           : '',
         providers: free_use
-          ? [{ id: 'free_use', name: 'No Registration Required', label: 'No Registration Required' }]
+          ? [{ id: 'free_use', name: 'No Registration Required', label: 'Get Testnet Tokens' }]
           : [
               { id: 'twitter', name: 'X', icon: 'fa-brands fa-x-twitter' },
               { id: 'github', name: 'GitHub', icon: 'fa-brands fa-github' }
@@ -615,6 +659,20 @@ class Faucet extends ModTemplate {
         faucet_self.oauth.secret_twitter = twitterSecret;
       }
       faucet_self.free_use = body.free_use === '1' || body.free_use === 'on';
+      faucet_self.mode = {
+        free: faucet_self.free_use,
+        github: !!faucet_self.oauth.secret_github,
+        twitter: !!faucet_self.oauth.secret_twitter
+      };
+
+      if (
+        !faucet_self.app.options.faucet ||
+        typeof faucet_self.app.options.faucet !== 'object'
+      ) {
+        faucet_self.app.options.faucet = {};
+      }
+      faucet_self.app.options.faucet.mode = { ...faucet_self.mode };
+      faucet_self.app.storage.saveOptions();
 
       console.log(
         'FAUCET CONFIG: OAuth updated — GitHub:',

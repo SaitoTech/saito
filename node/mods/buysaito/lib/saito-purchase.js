@@ -3,6 +3,7 @@ const SaitoPurchaseLoaderTemplate = require('./saito-purchase-loader.template');
 const SaitoPurchaseErrorTemplate = require('./saito-purchase-error.template');
 const SaitoPurchaseCryptoTemplate = require('./saito-purchase-select-crypto.template');
 const SaitoPurchaseAmountTemplate = require('./saito-purchase-amount.template');
+const SaitoPurchaseFaucetAuthTemplate = require('./saito-purchase-faucet-auth.template');
 
 const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
 
@@ -26,6 +27,11 @@ class SaitoPurchaseOverlay {
     this.reserved_until = 0;
     this.fancy_ui = true;
     this.active = false;
+
+    this.acquisition_stage = 'default';
+    this.acquisition_options = [];
+    this.stage1_html = null;
+    this.stage1_footer_html = null;
 
     this.countdown_interval = null;
 
@@ -123,6 +129,10 @@ class SaitoPurchaseOverlay {
 
   async render() {
     let self = this;
+    const resumeStage =
+      this.acquisition_stage && this.acquisition_stage !== 'default'
+        ? this.acquisition_stage
+        : '';
 
     console.debug(
       'SaitoPurchaseOverlay Rendering...',
@@ -193,10 +203,19 @@ class SaitoPurchaseOverlay {
       }
     }
 
+    // Populate optional acquisition entries from current module state whenever
+    // the Stage 1 shell is built. Availability may have arrived before the
+    // overlay existed.
+    if (!this.crypto_selected) {
+      this.renderAcquisitionOptions();
+    }
+
     this.attachEvents();
 
     // Resume faucet-auth (etc.) after Stage 1 shell was rebuilt.
     if (resumeStage && document.getElementById('buysaito-stage')) {
+      const resumeOpt =
+        this.acquisition_options.find((opt) => opt.inline_stage === resumeStage) || null;
       this.enterAcquisitionStage(resumeStage, resumeOpt);
     }
   }
@@ -796,6 +815,11 @@ class SaitoPurchaseOverlay {
     this.destination = '';
     this.description = '';
     this.deposit_confirmed_by_user = false;
+
+    this.acquisition_stage = 'default';
+    this.acquisition_options = [];
+    this.stage1_html = null;
+    this.stage1_footer_html = null;
 
     clearTimeout(this.timer);
     this.timer = null;
