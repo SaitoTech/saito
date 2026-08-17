@@ -5,6 +5,7 @@ class Controls {
     this.app = app;
     this.mod = mod;
     this.opts = null;
+    this.raise_increment = 0;
   }
 
   render() {
@@ -13,87 +14,188 @@ class Controls {
     }
 
     if (!document.querySelector('.texas-controls')) {
-      this.app.browser.addElementToSelector(ControlsTemplate(), '.texas-table');
+      this.app.browser.addElementToSelector(ControlsTemplate(), '.texas-play');
+    }
+    if (!this.bound) {
+      this.bindRaiseSheet();
+      this.bound = true;
+    }
+  }
+
+  bindRaiseSheet() {
+    let range = document.getElementById('texas-raise-range');
+    let cancel = document.getElementById('texas-raise-cancel');
+    let confirm = document.getElementById('texas-raise-confirm');
+    if (range) {
+      range.oninput = () => {
+        this.raise_increment = parseInt(range.value, 10);
+        this.updateRaiseAmount();
+      };
+    }
+    if (cancel) {
+      cancel.onclick = () => this.closeRaiseSheet();
+    }
+    if (confirm) {
+      confirm.onclick = () => this.confirmRaise();
     }
   }
 
   clear() {
+    let host = document.getElementById('texas-controls');
     let row = document.getElementById('texas-control-row');
     if (row) {
       row.innerHTML = '';
     }
+    if (host) {
+      host.classList.remove('is-active');
+    }
+    let table = document.getElementById('texas-table');
+    if (table) {
+      table.classList.remove('is-acting');
+    }
+    this.closeRaiseSheet();
   }
 
   showPrimary(opts) {
     this.render();
     this.opts = opts;
+    let host = document.getElementById('texas-controls');
     let row = document.getElementById('texas-control-row');
-    if (!row) {
+    if (!row || !host) {
       return;
     }
+
+    this.closeRaiseSheet();
     row.innerHTML = '';
 
-    this.addControl(row, 'Fold', () => this.fold(), 'fold');
+    this.addArtifact(row, {
+      action: 'fold',
+      title: 'Fold',
+      icon: '/texas/img/actions/fold.svg',
+      onClick: () => this.fold()
+    });
 
     if (opts.match_required > 0) {
-      this.addControl(
-        row,
-        `Call ${this.mod.formatWager(opts.match_required, false)}`,
-        () => this.call(),
-        'call'
-      );
+      this.addArtifact(row, {
+        action: 'call',
+        title: 'Call',
+        detail: this.mod.formatWager(opts.match_required, true),
+        icon: '/texas/img/actions/call.svg',
+        onClick: () => this.call()
+      });
     } else {
-      this.addControl(row, 'Check', () => this.check(), 'check');
+      this.addArtifact(row, {
+        action: 'check',
+        title: 'Check',
+        icon: '/texas/img/actions/call.svg',
+        onClick: () => this.check()
+      });
     }
 
     if (opts.can_raise) {
-      this.addControl(row, 'Raise', () => this.showRaise(), 'raise');
+      this.addArtifact(row, {
+        action: 'raise',
+        title: 'Raise',
+        icon: '/texas/img/actions/raise.svg',
+        onClick: () => this.showRaise()
+      });
     }
+
+    host.classList.remove('is-active');
+    let table = document.getElementById('texas-table');
+    if (table) {
+      table.classList.add('is-acting');
+    }
+    requestAnimationFrame(() => {
+      host.classList.add('is-active');
+    });
+  }
+
+  addArtifact(row, spec) {
+    let btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'texas-artifact';
+    btn.dataset.action = spec.action;
+    btn.innerHTML = `<img class="texas-artifact-icon" src="${spec.icon}" alt="">
+      <span class="texas-artifact-copy">
+        <span class="texas-artifact-title">${spec.title}</span>
+        ${spec.detail ? `<span class="texas-artifact-detail">${spec.detail}</span>` : ''}
+      </span>`;
+    btn.onclick = spec.onClick;
+    row.appendChild(btn);
   }
 
   showRaise() {
     let opts = this.opts;
-    let row = document.getElementById('texas-control-row');
-    if (!row || !opts) {
+    let sheet = document.getElementById('texas-raise-sheet');
+    let range = document.getElementById('texas-raise-range');
+    let presets = document.getElementById('texas-raise-presets');
+    if (!opts || !sheet || !range || !presets) {
       return;
     }
-    row.innerHTML = '';
 
-    this.addControl(row, 'Back', () => this.showPrimary(opts), 'back');
+    this.raise_increment = opts.last_raise;
+    range.min = String(opts.last_raise);
+    range.max = String(opts.max_raise);
+    range.step = '1';
+    range.value = String(opts.last_raise);
+    this.updateRaiseAmount();
 
+    presets.innerHTML = '';
     for (let i = 0; i < 3; i++) {
       let this_raise = opts.last_raise * 2 ** i;
       if (opts.max_raise > this_raise) {
-        this.addControl(
-          row,
-          this.mod.formatWager(this_raise, false),
-          () => this.raise(this_raise + opts.match_required),
-          'raise-amount'
-        );
+        this.addPreset(presets, this_raise, this.mod.formatWager(this_raise, true));
       } else {
         break;
       }
     }
+    this.addPreset(presets, opts.max_raise, 'All-in');
 
-    this.addControl(row, 'Custom', () => this.enterRaise(), 'raise-manual');
-    this.addControl(
-      row,
-      'All-in',
-      () => this.raise(opts.max_raise + opts.match_required),
-      'all-in'
-    );
+    sheet.hidden = false;
   }
 
-  addControl(row, html, fn, action = '') {
+  addPreset(host, increment, label) {
     let btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'texas-control';
-    if (action) {
-      btn.dataset.action = action;
+    btn.className = 'texas-raise-preset';
+    btn.innerHTML = label;
+    btn.onclick = () => {
+      this.raise_increment = increment;
+      let range = document.getElementById('texas-raise-range');
+      if (range) {
+        range.value = String(increment);
+      }
+      this.updateRaiseAmount();
+    };
+    host.appendChild(btn);
+  }
+
+  updateRaiseAmount() {
+    let el = document.getElementById('texas-raise-amount');
+    if (!el || !this.opts) {
+      return;
     }
-    btn.innerHTML = html;
-    btn.onclick = fn;
-    row.appendChild(btn);
+    el.innerHTML = this.mod.formatWager(this.raise_increment, true);
+  }
+
+  closeRaiseSheet() {
+    let sheet = document.getElementById('texas-raise-sheet');
+    if (sheet) {
+      sheet.hidden = true;
+    }
+  }
+
+  confirmRaise() {
+    let opts = this.opts;
+    if (!opts) {
+      return;
+    }
+    let amt = parseInt(this.raise_increment, 10);
+    if (amt >= opts.last_raise && amt <= opts.max_raise) {
+      this.closeRaiseSheet();
+      this.raise(amt + opts.match_required);
+    }
   }
 
   async fold() {
@@ -121,21 +223,6 @@ class Controls {
   raise(total) {
     this.mod.addMove(`raise\t${this.mod.game.player}\t${total}`);
     this.mod.endTurn();
-  }
-
-  async enterRaise() {
-    let opts = this.opts;
-    let c = await sprompt('How many chips would you like to raise?');
-    if (!c) {
-      return;
-    }
-    let amt = parseInt(c);
-    if (amt >= opts.last_raise && amt <= opts.max_raise) {
-      this.raise(amt + opts.match_required);
-    } else {
-      await sconfirm('Invalid input');
-      this.enterRaise();
-    }
   }
 }
 

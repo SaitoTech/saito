@@ -22,7 +22,7 @@ class Board {
     }
 
     if (!document.querySelector('.texas-board')) {
-      this.app.browser.addElementToSelector(BoardTemplate(), '.texas-table');
+      this.app.browser.addElementToSelector(BoardTemplate(), '.texas-card-zone');
     }
 
     this.displayTable();

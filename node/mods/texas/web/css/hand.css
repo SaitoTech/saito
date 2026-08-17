@@ -1,36 +1,65 @@
-.game.texas .texas-hand {
-  grid-area: hand;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-end;
-  position: relative;
-  min-width: 0;
-  min-height: calc(var(--texas-hand-height) + 1rem);
-  overflow: visible;
-}
-
-.game.texas .texas-hand .card {
-  position: relative;
+/*
+  Original GameCardfan rendering path:
+  - #cardfan container
+  - direct <img class="card"> children
+  - absolute positioning + left offsets + slight rotation
+  - width set, height:auto (native aspect, no stretch blur)
+*/
+.game.texas .texas-play > #cardfan.cardfan,
+.game.texas .texas-play > .cardfan.texas-hand {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
   flex: 0 0 auto;
-  width: var(--texas-hand-width);
-  height: var(--texas-hand-height);
-  filter: drop-shadow(5px 5px 3px black);
+  width: calc(var(--texas-hand-width) + 2.5rem) !important;
+  height: calc(var(--texas-hand-height) + 0.5rem) !important;
+  min-width: calc(var(--texas-hand-width) + 2.5rem);
+  min-height: calc(var(--texas-hand-height) + 0.5rem);
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible;
+  cursor: default;
+  z-index: 3;
 }
 
-.game.texas .texas-hand .card:nth-child(1) {
-  transform: rotate(-4deg);
+.game.texas .texas-play > #cardfan.cardfan > .card,
+.game.texas .texas-play > .cardfan.texas-hand > .card {
+  position: absolute !important;
+  display: block !important;
+  top: 0;
+  left: 0;
+  width: var(--texas-hand-width) !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  object-fit: contain;
 }
 
-.game.texas .texas-hand .card:nth-child(2) {
+.game.texas .texas-play > #cardfan.cardfan > .card:nth-child(1),
+.game.texas .texas-play > .cardfan.texas-hand > .card:nth-child(1) {
+  transform: rotate(0deg);
+  left: 0;
+  top: 0;
+  z-index: 1;
+}
+
+.game.texas .texas-play > #cardfan.cardfan > .card:nth-child(2),
+.game.texas .texas-play > .cardfan.texas-hand > .card:nth-child(2) {
   transform: rotate(10deg);
   left: 2.5rem;
   top: 0.5rem;
+  z-index: 2;
 }
 
-@media (max-width: 900px), (max-height: 500px) {
-  .game.texas .texas-hand .card:nth-child(2) {
-    left: 1.2rem;
-    margin-left: -2.4rem;
-  }
+/* Neutralize global `.card img { position:absolute; height:100% }` for fan imgs. */
+.game.texas .texas-play > #cardfan.cardfan > img.card,
+.game.texas .texas-play > .cardfan.texas-hand > img.card {
+  position: absolute !important;
+  height: auto !important;
+  width: var(--texas-hand-width) !important;
 }
