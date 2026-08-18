@@ -7,10 +7,8 @@ module.exports = (tweet) => {
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;');
-  const safeMedia = (src) =>
-    tweet.app?.browser?.isSafeMediaUrl?.(src) ? esc(src) : '';
-  const safeHref = (url) =>
-    tweet.app?.browser?.isSafeHref?.(url) ? esc(url) : '#';
+  const safeMedia = (src) => (tweet.app?.browser?.isSafeMediaUrl?.(src) ? esc(src) : '');
+  const safeHref = (url) => (tweet.app?.browser?.isSafeHref?.(url) ? esc(url) : '#');
 
   const bridge_down = tweet.tx && tweet.tx.msg && tweet.tx.msg.bridge_down;
   const threadClasses = `${tweet.parent_id ? ' has_parent' : ''}${bridge_down ? ' has_child' : ''}`;
