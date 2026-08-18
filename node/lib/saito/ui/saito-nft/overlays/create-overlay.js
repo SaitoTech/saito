@@ -1,6 +1,23 @@
 const CreateNFTTemplate = require('./create-overlay.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 
+/**
+ * Yield until after the next paint so busy UI can render before
+ * wallet/WASM work stalls the main thread. Same mechanism as Store
+ * purchase-service (this overlay cannot import the Store module).
+ */
+function yieldForPaint() {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== 'function') {
+      setTimeout(resolve, 0);
+      return;
+    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
 class CreateNFT {
   constructor(app, mod) {
     this.app = app;
@@ -673,8 +690,26 @@ class CreateNFT {
 
     // Create NFT
     document.querySelector('#create_nft').onclick = async (e) => {
+      const btn = e.currentTarget;
+      if (!btn || btn.disabled) {
+        return;
+      }
+
+      const restore = () => {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+        btn.textContent = 'Confirm';
+      };
+
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.innerHTML =
+        '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Minting…';
+      await yieldForPaint();
+
       let obj = await this.createObject();
       if (obj == false) {
+        restore();
         return;
       }
 
@@ -685,15 +720,18 @@ class CreateNFT {
       let numNFT = parseInt(document.querySelector('#create-nft-amount').value);
 
       if (numNFT < 1) {
+        restore();
         salert('Need to create at least one NFT');
         return;
       } else if (numNFT > 100000000) {
+        restore();
         salert('Cannot mint more than 100,000,000 NFTs');
         return;
       }
 
       let balance = await this.app.wallet.getBalance();
       if (balance === 0n) {
+        restore();
         siteMessage('SAITO tokens are required to create NFTs...', 3000);
         this.app.connection.emit('saito-purchase-launch');
         return;
@@ -704,11 +742,13 @@ class CreateNFT {
       depositAmt = BigInt(this.app.wallet.convertSaitoToNolan(depositAmt));
 
       if (balance < depositAmt) {
+        restore();
         salert('Insufficient funds!');
         return;
       }
 
       if (depositAmt < BigInt(1)) {
+        restore();
         salert(`Need at least 1 SAITO to create NFT`);
         return;
       }
@@ -742,8 +782,6 @@ class CreateNFT {
         tx_msg.description = description;
       }
 
-      siteMessage('Minting NFT...', 3000);
-
       try {
         let publickey = await this.app.wallet.getPublicKey();
         let newtx = await this.app.wallet.createMintNFTTransaction(
@@ -768,6 +806,7 @@ class CreateNFT {
         }
       } catch (err) {
         console.error('CreateNFT: mint failed', err);
+        restore();
         siteMessage('Failed to mint NFT. Please try again.', 3000);
         return;
       }

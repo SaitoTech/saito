@@ -293,7 +293,8 @@ class Store extends ModTemplate {
           sellers,
           category: data.category || '',
           offset: normalizeOffset(data.offset),
-          page_size: normalizePageSize(data.page_size)
+          page_size: normalizePageSize(data.page_size),
+          status: data.status
         });
         const listings = result.listings.map((summary) => summary.serialize());
         mycallback({

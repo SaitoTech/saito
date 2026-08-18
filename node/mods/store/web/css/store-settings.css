@@ -1,0 +1,73 @@
+/* Namespace: .store-settings — Store Admin settings overlay.
+   Compact dialog; size the panel (not the overlay host) so closebox stays anchored. */
+
+.saito-overlay > .store-settings {
+  width: min(92vw, 36rem);
+  max-width: 100%;
+  max-height: min(90dvh, 40rem);
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.store-settings {
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 36rem);
+  max-width: 100%;
+}
+
+.store-settings > header {
+  flex: 0 0 auto;
+  padding: var(--saito-space-lg) 5.25rem var(--saito-space-lg) var(--saito-space-xl);
+  border-bottom: 1px solid var(--saito-border);
+}
+
+.store-settings > header h2 {
+  margin: 0;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
+  line-height: 1.25;
+}
+
+.store-settings > .body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  padding: var(--saito-space-xl);
+}
+
+.store-settings .setting {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  font-size: var(--font-size-medium);
+  line-height: 1.4;
+  color: var(--saito-foreground);
+  cursor: pointer;
+  user-select: none;
+}
+
+.store-settings .setting input {
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .saito-overlay > .store-settings,
+  .store-settings {
+    width: min(100vw, 36rem);
+    max-width: 100vw;
+  }
+
+  .store-settings > header,
+  .store-settings > .body {
+    padding: var(--saito-space-lg);
+  }
+
+  .store-settings > header {
+    padding-right: 4.5rem;
+  }
+}

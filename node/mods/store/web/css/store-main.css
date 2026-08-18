@@ -63,56 +63,6 @@
   background: var(--saito-border);
 }
 
-/* Sidebar owns CTA width — stretch to the navigation column / list edges */
-.store > .menu.marketplace > .store-list-for-sale {
-  width: 100%;
-}
-
-/*
- * .store-list-for-sale — OWNED ONLY by the marketplace "List Item for Sale" control.
- * Appearance only. Width comes from .store > .menu (sidebar).
- * Do not reuse. Do not attach saito-button-* or other button utilities.
- */
-.store-list-for-sale {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  height: 92px;
-  padding: 1.2rem 1.4rem;
-  appearance: none;
-  -webkit-appearance: none;
-  border: none;
-  outline: none;
-  border-radius: 11px;
-  box-shadow: none;
-  filter: none;
-  background: var(--saito-primary);
-  color: #ffffff;
-  font-family: var(--saito-font);
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: 0;
-  line-height: 1.25;
-  text-align: center;
-  text-transform: none;
-  white-space: normal;
-  cursor: pointer;
-  transition: none;
-}
-
-.store-list-for-sale:hover,
-.store-list-for-sale:focus,
-.store-list-for-sale:focus-visible,
-.store-list-for-sale:active {
-  outline: none;
-  box-shadow: none;
-  filter: none;
-  border: none;
-  background: var(--saito-primary);
-  color: #ffffff;
-}
-
 /* —— Main column —— */
 
 .store > .main-column {
@@ -148,7 +98,7 @@
 .store .storefront-url {
   margin: 0;
   max-width: 100%;
-  padding: 0.55rem 0.85rem;
+  padding: 0.7rem 1rem;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
   background: color-mix(in srgb, #ffffff 8%, transparent);
@@ -174,13 +124,13 @@
 
 .store .storefront-url-row {
   display: grid;
-  grid-template-columns: minmax(0, max-content) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
   gap: var(--saito-space-sm);
-  width: fit-content;
+  width: min(100%, 48rem);
   max-width: 100%;
   min-width: 0;
-  margin: var(--saito-space-xs) 0;
+  margin: var(--saito-space-sm) 0;
 }
 
 .store .storefront-url-row .saito-icon-button {
@@ -278,9 +228,9 @@
 .store .seller-home {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-md);
-  padding: 0 0 var(--saito-space-xl);
-  margin: 0 0 var(--saito-space-lg);
+  gap: var(--saito-space-lg);
+  padding: 0 0 var(--saito-space-xxl);
+  margin: 0;
   border-bottom: 1px solid var(--saito-border);
 }
 
@@ -306,25 +256,6 @@
   align-items: flex-start;
   flex-wrap: wrap;
   gap: var(--saito-space-md);
-}
-
-.store .seller-home .profile-link {
-  display: flex;
-  align-items: center;
-  gap: var(--saito-space-sm);
-  font-size: var(--font-size-medium);
-  line-height: 1.4;
-  color: var(--saito-foreground);
-  cursor: pointer;
-  user-select: none;
-}
-
-.store .seller-home .profile-link input {
-  width: 1.35rem;
-  height: 1.35rem;
-  margin: 0;
-  flex: 0 0 auto;
-  cursor: pointer;
 }
 
 .store .seller-home .actions .saito-button-primary {
@@ -494,6 +425,58 @@
 .store .catalog-pagination .page-btn:focus-visible {
   outline: none;
   box-shadow: var(--saito-focus-ring);
+}
+
+.store .listings-table-wrap {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.store .listings-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.store .listings-table caption {
+  caption-side: top;
+  text-align: left;
+  margin: 0 0 var(--saito-space-md);
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-heavy);
+  line-height: 1.25;
+  color: var(--saito-foreground);
+}
+
+.store .listings-table th,
+.store .listings-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.85rem 0.75rem 0.85rem 0;
+  border-bottom: 1px solid var(--saito-border);
+  font-size: var(--font-size-medium);
+  line-height: 1.4;
+  color: var(--saito-foreground);
+}
+
+.store .listings-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--font-size-small);
+  font-family: var(--saito-font-medium);
+  color: var(--saito-muted-foreground);
+  white-space: nowrap;
+}
+
+.store .listings-table td:nth-child(3),
+.store .listings-table td:nth-child(4),
+.store .listings-table td:nth-child(5) {
+  white-space: nowrap;
+}
+
+.store .listings-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .store .catalog-empty {

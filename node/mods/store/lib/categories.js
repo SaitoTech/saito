@@ -4,8 +4,10 @@
  */
 const STORE_CATEGORIES = Object.freeze({
   APPS_AND_GAMES: 'Apps & Games',
+  EXTENSIONS: 'Extensions',
   THEMES: 'Themes',
-  TOKENS_AND_NFTS: 'Tokens & NFTs',
+  IMAGE_NFTS: 'Image NFTs',
+  TOKENS: 'Tokens',
   ACCESS_KEYS: 'Access Keys',
   MERCHANDISE: 'Merchandise',
   OTHER: 'Other'
@@ -14,8 +16,10 @@ const STORE_CATEGORIES = Object.freeze({
 /** Ordered list for Store navigation / browsing UI. */
 const STORE_CATEGORY_LIST = Object.freeze([
   STORE_CATEGORIES.APPS_AND_GAMES,
+  STORE_CATEGORIES.EXTENSIONS,
   STORE_CATEGORIES.THEMES,
-  STORE_CATEGORIES.TOKENS_AND_NFTS,
+  STORE_CATEGORIES.IMAGE_NFTS,
+  STORE_CATEGORIES.TOKENS,
   STORE_CATEGORIES.ACCESS_KEYS,
   STORE_CATEGORIES.MERCHANDISE,
   STORE_CATEGORIES.OTHER
@@ -72,11 +76,13 @@ function mapNFTTypeToCategory(nft_type = '') {
 
   switch (type) {
     case 'image':
+      return STORE_CATEGORIES.IMAGE_NFTS;
     case 'token':
-      return STORE_CATEGORIES.TOKENS_AND_NFTS;
+      return STORE_CATEGORIES.TOKENS;
     case 'css':
       return STORE_CATEGORIES.THEMES;
     case 'js':
+      return STORE_CATEGORIES.EXTENSIONS;
     case 'stack':
     case 'nwasm-nft-mod':
       return STORE_CATEGORIES.APPS_AND_GAMES;

@@ -417,6 +417,82 @@ class Database {
     }
   }
 
+  sellerListingWhere(status = 'active') {
+    if (status === 'sold') {
+      return `on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND block_id_sold > 0
+				   AND longest_chain_sold = 1`;
+    }
+    return `on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND block_id_sold = 0
+				   AND longest_chain_sold = 0`;
+  }
+
+  async countListingsForSeller({ seller = '', status = 'active', category = '' } = {}) {
+    const key = String(seller || '').trim();
+    if (!key) {
+      return 0;
+    }
+    const filter = String(category || '').trim();
+    const params = { $seller: key };
+    let category_sql = '';
+    if (filter) {
+      category_sql = ' AND category = $category';
+      params.$category = filter;
+    }
+    try {
+      const res = await this.app.storage.queryDatabase(
+        `SELECT COUNT(*) AS total FROM listings
+				 WHERE seller = $seller
+				   AND ${this.sellerListingWhere(status)}${category_sql}`,
+        params,
+        this.dbname
+      );
+      return Number(res?.[0]?.total ?? 0) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  async returnListingsPageForSeller({
+    seller = '',
+    status = 'active',
+    category = '',
+    offset = 0,
+    page_size = 24
+  } = {}) {
+    const key = String(seller || '').trim();
+    if (!key) {
+      return [];
+    }
+    const filter = String(category || '').trim();
+    const params = {
+      $seller: key,
+      $limit: Math.max(1, Number(page_size) || 24),
+      $offset: Math.max(0, Number(offset) || 0)
+    };
+    let category_sql = '';
+    if (filter) {
+      category_sql = ' AND category = $category';
+      params.$category = filter;
+    }
+    try {
+      return await this.app.storage.queryDatabase(
+        `SELECT * FROM listings
+				 WHERE seller = $seller
+				   AND ${this.sellerListingWhere(status)}${category_sql}
+				 ORDER BY created_at DESC, signature ASC
+				 LIMIT $limit OFFSET $offset`,
+        params,
+        this.dbname
+      );
+    } catch (err) {
+      return [];
+    }
+  }
+
   async returnSoldListingsForSeller(seller = '') {
     const key = String(seller || '').trim();
     if (!key) {

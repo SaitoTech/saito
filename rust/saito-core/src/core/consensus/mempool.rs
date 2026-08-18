@@ -517,6 +517,44 @@ mod tests {
             .is_some());
     }
 
+    // Issuance transactions must not enter the mempool once block 1 exists.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn issuance_transaction_rejected_after_block_one() {
+        let mut t = TestManager::default();
+        t.initialize(1, 100_000).await;
+
+        let wallet_lock = t.get_wallet_lock();
+        let mempool_lock = t.get_mempool_lock();
+        let blockchain_lock = t.get_blockchain_lock();
+
+        let public_key;
+        let private_key;
+        {
+            let wallet = wallet_lock.read().await;
+            public_key = wallet.public_key;
+            private_key = wallet.private_key;
+        }
+
+        let mut tx = Transaction::create_issuance_transaction(public_key, 1);
+        tx.generate(&public_key, 0, 0);
+        tx.sign(&private_key);
+
+        let blockchain = blockchain_lock.read().await;
+        let mut mempool = mempool_lock.write().await;
+        let before = mempool.transactions.len();
+
+        mempool
+            .add_transaction_if_validates(tx, &blockchain)
+            .await;
+
+        assert_eq!(
+            mempool.transactions.len(),
+            before,
+            "issuance txs must not enter the mempool after block 1"
+        );
+    }
+
     // Item 23: a GoldenTicket transaction sent to add_transaction is silently rejected
     // (warn log only) and does not enter the transactions map.
     #[tokio::test]

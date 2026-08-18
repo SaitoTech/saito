@@ -26,7 +26,7 @@ function copyControl() {
     </button>`;
 }
 
-function dashboard({ shareUrl = '', showSuccess = false, profileLinkChecked = false } = {}) {
+function dashboard({ shareUrl = '', showSuccess = false } = {}) {
   const url = escapeHtml(shareUrl);
   const success = showSuccess ? successBanner() : '';
 
@@ -37,24 +37,13 @@ function dashboard({ shareUrl = '', showSuccess = false, profileLinkChecked = fa
         </div>`
     : '';
 
-  const visit_link = shareUrl
-    ? ` Or <a href="${url}">click here</a> to visit your Store.`
-    : '';
-
-  const profile_checked = profileLinkChecked ? ' checked' : '';
-
   return `
     ${success}
     <section class="seller-home">
       <h2 class="title">Welcome to your Store</h2>
-      <p class="body">Listings are published onto the Saito Network. Share the following link with your customers to give them access to an easy UI for browsing.${visit_link}</p>
+      <p class="body">This is the address of your Store on the Saito Network. Select an option below or use the menu to the left to manage listings and sales.</p>
       ${urlRow}
-      <p class="body">Visit this page anytime to create new listings, manage existing ones, and review your sales history.</p>
       <div class="actions">
-        <label class="profile-link">
-          <input type="checkbox" data-action="toggle-profile-link"${profile_checked} />
-          <span>Add link to store to profile</span>
-        </label>
         <button type="button" class="saito-button-primary" data-action="list-item">+ Add New Listing</button>
       </div>
     </section>
@@ -82,18 +71,30 @@ function adminDenied() {
   `;
 }
 
-function catalog({ loading = true } = {}) {
-  const status = loading
+function catalogStatus({ loading = true } = {}) {
+  return loading
     ? `<div class="storefront-status" data-storefront-status role="status" aria-live="polite">
         <div class="saito-spinner" aria-hidden="true"></div>
         <p>Loading listings…</p>
       </div>`
     : `<div class="storefront-status" data-storefront-status hidden></div>`;
+}
 
+function catalog({ loading = true } = {}) {
   return `
     <section class="catalog storefront-catalog">
-      ${status}
+      ${catalogStatus({ loading })}
       <div class="teasers" aria-label="Creator listings"></div>
+    </section>
+  `;
+}
+
+function adminListingsCatalog({ loading = true } = {}) {
+  return `
+    <section class="catalog storefront-catalog">
+      ${catalogStatus({ loading })}
+      <div data-listings-table></div>
+      <div class="catalog-footer" data-catalog-footer hidden></div>
     </section>
   `;
 }
@@ -106,8 +107,7 @@ module.exports = ({
   isDashboard = false,
   adminSection = 'home',
   adminDenied: denied = false,
-  showSuccess = false,
-  profileLinkChecked = false
+  showSuccess = false
 } = {}) => {
   if (denied) {
     return adminDenied();
@@ -116,7 +116,7 @@ module.exports = ({
   if (isDashboard && adminSection === 'active') {
     return `
     <div class="storefront-admin">
-      ${catalog({ loading })}
+      ${adminListingsCatalog({ loading })}
     </div>
   `;
   }
@@ -124,7 +124,7 @@ module.exports = ({
   if (isDashboard) {
     return `
     <div class="storefront-admin">
-      ${dashboard({ shareUrl, showSuccess, profileLinkChecked })}
+      ${dashboard({ shareUrl, showSuccess })}
     </div>
   `;
   }

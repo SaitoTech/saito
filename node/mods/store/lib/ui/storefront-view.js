@@ -1,8 +1,10 @@
 const StorefrontViewTemplate = require('./storefront-view.template');
 const Teasers = require('./teasers');
 const EmptyPanel = require('./empty-panel');
+const ListingsTableTemplate = require('./listings-table.template');
+const CatalogFooterTemplate = require('./catalog-footer.template');
 const { loadListingsPage } = require('./browse-listings');
-const { MAX_PAGE_SIZE } = require('../categories');
+const { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } = require('../categories');
 
 class StorefrontView {
   constructor(app, mod, container = '', callbacks = {}) {
@@ -17,6 +19,9 @@ class StorefrontView {
     this.inventoryLoaded = false;
     this.loading = false;
     this.loadToken = 0;
+    this.page = 1;
+    this.page_size = DEFAULT_PAGE_SIZE;
+    this.pagination = null;
     this.successArmed = false;
     this.successVisible = false;
     this.successDismissed = false;
@@ -52,11 +57,6 @@ class StorefrontView {
       }
     });
 
-    this.app.connection.on('store-profile-link-updated', () => {
-      if (this.isAdminHome()) {
-        this.render();
-      }
-    });
   }
 
   armSuccessBanner() {
@@ -101,8 +101,7 @@ class StorefrontView {
           !!this.publicKey && this.loading && (this.viewMode === 'public' || this.isAdminActive()),
         isDashboard,
         adminSection: this.adminSection,
-        showSuccess: this.isAdminHome() && this.successVisible,
-        profileLinkChecked: this.returnProfileLinkChecked(shareUrl)
+        showSuccess: this.isAdminHome() && this.successVisible
       }),
       this.container
     );
@@ -181,25 +180,6 @@ class StorefrontView {
       this.onSell?.();
     });
 
-    const profileToggle = root.querySelector('[data-action="toggle-profile-link"]');
-    if (profileToggle) {
-      profileToggle.addEventListener('change', async () => {
-        const url = this.mod.returnStorefrontUrl?.(this.mod.publicKey) || shareUrl || '';
-        try {
-          if (profileToggle.checked) {
-            if (url) {
-              await this.mod.updateProfile?.(url);
-            }
-          } else {
-            await this.mod.updateProfile?.('');
-          }
-        } catch (err) {
-          console.warn('Store: profile link toggle failed', err?.message || err);
-          profileToggle.checked = !profileToggle.checked;
-        }
-      });
-    }
-
     root.querySelector('[data-action="dismiss-success"]')?.addEventListener('click', (e) => {
       e.preventDefault();
       this.successVisible = false;
@@ -207,24 +187,6 @@ class StorefrontView {
       this.successArmed = false;
       root.querySelector('[data-listing-success]')?.remove();
     });
-  }
-
-  /**
-   * Welcome (no listings yet): always unchecked.
-   * After the store has listings: checked iff Profile contains this storefront URL.
-   */
-  returnProfileLinkChecked(shareUrl = '') {
-    if (!this.isAdminHome() || !this.isOwnStorefront()) {
-      return false;
-    }
-    if (!this.inventoryLoaded || this.activeSummaries.length === 0) {
-      return false;
-    }
-    const url = String(shareUrl || this.mod.returnStorefrontUrl?.(this.mod.publicKey) || '').trim();
-    if (!url) {
-      return false;
-    }
-    return this.mod.returnProfileStoreUrl?.() === url;
   }
 
   /**
@@ -263,8 +225,12 @@ class StorefrontView {
       this.render();
       return;
     }
-    if (reuseAdminData && nextSection === 'active' && !this.loading) {
-      this.render();
+
+    if (nextSection === 'active') {
+      this.page = 1;
+      this.pagination = null;
+      this.inventoryLoaded = false;
+      await this.reloadInventory();
       return;
     }
 
@@ -274,6 +240,11 @@ class StorefrontView {
 
   async reloadInventory() {
     if (!this.publicKey) {
+      return;
+    }
+
+    if (this.isAdminActive()) {
+      await this.loadAdminPage({ page: this.page || 1 });
       return;
     }
 
@@ -310,6 +281,60 @@ class StorefrontView {
     this.render();
   }
 
+  async loadAdminPage({ page = this.page } = {}) {
+    if (!this.publicKey) {
+      return;
+    }
+
+    const next_page = Math.max(1, Number(page) || 1);
+    const offset = (next_page - 1) * this.page_size;
+
+    this.page = next_page;
+    this.loading = true;
+    const token = ++this.loadToken;
+    this.render();
+
+    try {
+      const result = await loadListingsPage(this.app, this.mod, {
+        public_key: this.publicKey,
+        category: '',
+        offset,
+        page_size: this.page_size,
+        status: 'active'
+      });
+      if (token !== this.loadToken) {
+        return;
+      }
+      this.activeSummaries = result.listings || [];
+      this.pagination = result.pagination || null;
+      this.page = this.pagination?.page || this.page;
+      this.inventoryLoaded = true;
+    } catch (err) {
+      console.warn('Store: load-listings (admin active) failed', err?.message || err);
+      if (token !== this.loadToken) {
+        return;
+      }
+      this.activeSummaries = [];
+      this.pagination = {
+        offset: 0,
+        page: 1,
+        page_size: this.page_size,
+        total: 0,
+        total_pages: 0,
+        has_next: false,
+        has_previous: false
+      };
+      this.inventoryLoaded = true;
+    }
+
+    if (token !== this.loadToken) {
+      return;
+    }
+
+    this.loading = false;
+    this.render();
+  }
+
   isOwnStorefront() {
     const walletKey = this.mod.publicKey || '';
     return !!this.publicKey && !!walletKey && this.publicKey === walletKey;
@@ -334,6 +359,11 @@ class StorefrontView {
       status.innerHTML = '';
     }
 
+    if (this.isAdminActive()) {
+      this.renderAdminTable();
+      return;
+    }
+
     const teasersEl = document.querySelector(`${this.container} .teasers`);
     if (!teasersEl) {
       return;
@@ -345,23 +375,58 @@ class StorefrontView {
       const emptyHost = document.createElement('div');
       emptyHost.className = 'storefront-empty';
       teasersEl.appendChild(emptyHost);
-
-      if (this.isAdminActive()) {
-        this.empty.title = 'No active listings.';
-        this.empty.body = '';
-        this.empty.actionLabel = '+ Add New Listing';
-        this.empty.onAction = () => this.onSell?.();
-      } else {
-        this.empty.title = 'No listings yet';
-        this.empty.body = 'This creator has not published any listings yet.';
-        this.empty.actionLabel = '';
-        this.empty.onAction = null;
-      }
+      this.empty.title = 'No listings yet';
+      this.empty.body = 'This creator has not published any listings yet.';
+      this.empty.actionLabel = '';
+      this.empty.onAction = null;
       this.empty.render(`${this.container} .storefront-empty`);
       return;
     }
 
     this.teasers.render(`${this.container} .teasers`, visible);
+  }
+
+  renderAdminTable() {
+    const host = document.querySelector(`${this.container} [data-listings-table]`);
+    const footer = document.querySelector(`${this.container} [data-catalog-footer]`);
+    if (!host) {
+      return;
+    }
+
+    const listings = this.activeSummaries || [];
+    const total = Number(this.pagination?.total ?? listings.length);
+
+    if (!total) {
+      host.innerHTML = '<div class="storefront-empty"></div>';
+      if (footer) {
+        footer.hidden = true;
+        footer.innerHTML = '';
+      }
+      this.empty.title = 'No active listings.';
+      this.empty.body = '';
+      this.empty.actionLabel = '+ Add New Listing';
+      this.empty.onAction = () => this.onSell?.();
+      this.empty.render(`${this.container} .storefront-empty`);
+      return;
+    }
+
+    host.innerHTML = ListingsTableTemplate({
+      listings,
+      caption: 'Listings'
+    });
+
+    if (footer) {
+      footer.hidden = false;
+      footer.innerHTML = CatalogFooterTemplate({
+        pagination: this.pagination,
+        empty: false
+      });
+      CatalogFooterTemplate.attachCatalogFooterEvents(footer, {
+        page: this.page,
+        pagination: this.pagination,
+        onPage: (page) => this.loadAdminPage({ page })
+      });
+    }
   }
 
   returnVisibleSummaries() {

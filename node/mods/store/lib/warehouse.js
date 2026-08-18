@@ -680,67 +680,102 @@ class Warehouse {
       quantity_available: sold ? 0 : qty,
       quantity_total: qty,
       listing_signature: row.signature || '',
+      created_at: Number(row.created_at || 0),
       updated_at: Number(row.updated_at || row.created_at || meta.updated_at || 0),
       status: sold ? 0 : 1
     });
   }
 
   /**
-   * Active listings from listing rows, filtered by seller set and category, then paged.
+   * Listing rows filtered by seller set, category, and active/sold status, then paged.
    * sellers: public keys to include (single seller or ModTools whitelist). Empty → no results.
    * category '' / omitted = all categories.
+   * status 'sold' → completed sales; anything else → active (marketplace default).
+   * Single-seller queries use SQL COUNT/LIMIT/OFFSET. Whitelist (multi-seller) stays in-memory.
    */
   async returnActiveListingsPage({
     sellers = [],
     category = '',
     offset = 0,
-    page_size = 24
+    page_size = 24,
+    status = 'active'
   } = {}) {
     const size = normalizePageSize(page_size);
     let start = normalizeOffset(offset);
     const filter = String(category || '').trim();
+    const listing_status = String(status || '').toLowerCase() === 'sold' ? 'sold' : 'active';
     const seller_keys = (Array.isArray(sellers) ? sellers : [])
       .map((key) => String(key || '').trim())
       .filter(Boolean);
+    const sold = listing_status === 'sold';
+
+    const empty = {
+      listings: [],
+      category: filter,
+      pagination: {
+        offset: 0,
+        page: 1,
+        page_size: size,
+        total: 0,
+        total_pages: 0,
+        has_next: false,
+        has_previous: false
+      }
+    };
+
+    if (filter && !isStoreCategory(filter)) {
+      return empty;
+    }
 
     let rows = [];
+    let total = 0;
+
     if (seller_keys.length === 1) {
-      rows = (await this.db.returnActiveListingsForSeller(seller_keys[0])) || [];
-    } else if (seller_keys.length > 1) {
+      total = await this.db.countListingsForSeller({
+        seller: seller_keys[0],
+        status: listing_status,
+        category: filter
+      });
+      if (total > 0 && start >= total) {
+        start = Math.floor((total - 1) / size) * size;
+      }
+      rows =
+        total > 0
+          ? (await this.db.returnListingsPageForSeller({
+              seller: seller_keys[0],
+              status: listing_status,
+              category: filter,
+              offset: start,
+              page_size: size
+            })) || []
+          : [];
+    } else if (listing_status === 'active' && seller_keys.length > 1) {
       const allowed = new Set(seller_keys);
       rows = ((await this.db.returnAllActiveListingRows()) || []).filter((row) =>
         allowed.has(String(row.seller || '').trim())
       );
-    }
-
-    if (filter) {
-      if (!isStoreCategory(filter)) {
-        rows = [];
-      } else {
+      if (filter) {
         rows = rows.filter((row) => String(row.category || '') === filter);
       }
-    }
-
-    // Newest first; signature tie-break for stable pages.
-    rows.sort((a, b) => {
-      const td =
-        Number(b.updated_at || b.created_at || 0) - Number(a.updated_at || a.created_at || 0);
-      if (td !== 0) {
-        return td;
+      // Marketplace whitelist path: keep existing newest-first sort.
+      rows.sort((a, b) => {
+        const td =
+          Number(b.updated_at || b.created_at || 0) - Number(a.updated_at || a.created_at || 0);
+        if (td !== 0) {
+          return td;
+        }
+        return String(a.signature || '').localeCompare(String(b.signature || ''));
+      });
+      total = rows.length;
+      if (total > 0 && start >= total) {
+        start = Math.floor((total - 1) / size) * size;
       }
-      return String(a.signature || '').localeCompare(String(b.signature || ''));
-    });
-
-    const total = rows.length;
-    const total_pages = total === 0 ? 0 : Math.ceil(total / size);
-    if (total > 0 && start >= total) {
-      start = Math.floor((total - 1) / size) * size;
+      rows = rows.slice(start, start + size);
     }
-    const page_rows = rows.slice(start, start + size);
 
     const listings = [];
-    for (const row of page_rows) {
-      const summary = await this.summaryFromListingRow(row, { sold: false });
+    for (const row of rows) {
+      const summary = await this.summaryFromListingRow(row, { sold });
       if (summary) {
         listings.push(summary);
       }
@@ -756,7 +791,7 @@ class Warehouse {
         page,
         page_size: size,
         total,
-        total_pages,
+        total_pages: total === 0 ? 0 : Math.ceil(total / size),
         has_next: start + size < total,
         has_previous: start > 0 && total > 0
       }
