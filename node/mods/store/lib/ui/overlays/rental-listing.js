@@ -2,6 +2,7 @@ const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-ov
 const SaitoNFT = require('../../../../../lib/saito/ui/saito-nft/saito-nft');
 const ListingFieldEdit = require('./listing-field-edit');
 const RentalListingTemplate = require('./rental-listing.template');
+const { yieldForPaint } = require('../purchase-service');
 
 class RentalListingOverlay {
   constructor(app, mod) {
@@ -543,6 +544,30 @@ class RentalListingOverlay {
       return;
     }
 
+    const submitBtn = document.querySelector(
+      '.listing-detail.edit.rental-ready [data-action="submit"]'
+    );
+    if (submitBtn?.disabled) {
+      return;
+    }
+
+    const restore = () => {
+      if (!submitBtn) {
+        return;
+      }
+      submitBtn.disabled = false;
+      submitBtn.removeAttribute('aria-busy');
+      submitBtn.textContent = 'List on Store';
+    };
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.setAttribute('aria-busy', 'true');
+      submitBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Preparing listing…';
+    }
+    await yieldForPaint();
+
     try {
       this.form.duration_hours = this.normalizeHours(this.form.duration_hours);
       const max = Number(
@@ -578,6 +603,7 @@ class RentalListingOverlay {
       this.beginListingProgress(tx, listing);
     } catch (err) {
       console.error('Store: rental listing failed', err);
+      restore();
       alert(err?.message || 'Rental listing failed');
     }
   }

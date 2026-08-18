@@ -173,5 +173,6 @@ function beginLocalPurchaseLifecycle(
 
 module.exports = {
   startPurchase,
-  parseListingUnitPrice
+  parseListingUnitPrice,
+  yieldForPaint
 };

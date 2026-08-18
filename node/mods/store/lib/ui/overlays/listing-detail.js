@@ -9,6 +9,7 @@ const {
   durationLabel,
   rightsLabel
 } = require('./rental-listing.template');
+const { yieldForPaint } = require('../purchase-service');
 
 function returnShortKey(key = '') {
   if (!key) {
@@ -604,6 +605,30 @@ class ListingDetailOverlay {
   }
 
   async submitListing() {
+    const submitBtn = document.querySelector(
+      '.listing-detail.edit:not(.rental-ready) [data-action="submit"]'
+    );
+    if (submitBtn?.disabled) {
+      return;
+    }
+
+    const restore = () => {
+      if (!submitBtn) {
+        return;
+      }
+      submitBtn.disabled = false;
+      submitBtn.removeAttribute('aria-busy');
+      submitBtn.textContent = 'Submit Listing';
+    };
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.setAttribute('aria-busy', 'true');
+      submitBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Preparing listing…';
+    }
+    await yieldForPaint();
+
     try {
       const tx = await this.mod.createListAssetTransaction(this.selectedNft, this.listing);
       await this.app.network.propagateTransaction(tx);
@@ -619,6 +644,7 @@ class ListingDetailOverlay {
       this.beginListingProgress(tx);
     } catch (err) {
       console.error('Store: listing failed', err);
+      restore();
       alert(err?.message || 'Listing failed');
     }
   }

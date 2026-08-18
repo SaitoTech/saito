@@ -2,14 +2,14 @@ const Summary = require('../summary');
 const { DEFAULT_PAGE_SIZE, normalizeOffset, normalizePageSize } = require('../categories');
 
 /**
- * Fetch one page of active listings from the Store peer.
- * public_key '' → server applies its ModTools whitelist.
- * public_key set → that seller's active listings.
+ * Fetch one page of listings from the Store peer.
+ * public_key '' → server applies its ModTools whitelist (active listings).
+ * public_key set → that seller's listings for status 'active' (default) or 'sold'.
  */
 function loadListingsPage(
   app,
   mod,
-  { public_key = '', category = '', offset = 0, page_size = DEFAULT_PAGE_SIZE } = {}
+  { public_key = '', category = '', offset = 0, page_size = DEFAULT_PAGE_SIZE, status = 'active' } = {}
 ) {
   return new Promise((resolve, reject) => {
     const peerKey = mod.store_public_key;
@@ -23,7 +23,8 @@ function loadListingsPage(
       public_key: String(public_key || ''),
       category: String(category || ''),
       offset: normalizeOffset(offset),
-      page_size: normalizePageSize(page_size)
+      page_size: normalizePageSize(page_size),
+      status: String(status || '').toLowerCase() === 'sold' ? 'sold' : 'active'
     };
 
     app.network.sendRequestAsTransaction(

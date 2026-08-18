@@ -2,9 +2,11 @@ const MainTemplate = require('./main.template');
 const Menu = require('./menu');
 const Manager = require('./manager');
 const NftPickerOverlay = require('./overlays/nft-picker');
+const PrepareStoreOverlay = require('./overlays/prepare-store');
 const ListingDetailOverlay = require('./overlays/listing-detail');
 const RentalListingOverlay = require('./overlays/rental-listing');
 const PurchaseOverlay = require('./overlays/purchase');
+const SettingsOverlay = require('./overlays/settings');
 const PurchaseLifecycle = require('./purchase-lifecycle');
 const ListingLifecycle = require('./listing-lifecycle');
 const { normalizeListingMode } = require('../categories');
@@ -25,6 +27,7 @@ class Main {
     this.menu = new Menu(app, mod, '', {
       onNavigate: (view, opts) => this.onNavigate(view, opts),
       onSell: () => this.openSell(),
+      onSettings: () => this.openSettings(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
     });
     this.manager = new Manager(app, mod, '', {
@@ -32,8 +35,10 @@ class Main {
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
     });
     this.nft_picker = null;
+    this.prepare_store = null;
     this.listing_detail = null;
     this.purchase_overlay = null;
+    this.settings_overlay = null;
 
     // Compatibility aliases for existing callers (store.respondTo, teaser, detail buy).
     this.product_overlay = null;
@@ -69,10 +74,19 @@ class Main {
 
   async initialize() {
     this.nft_picker = new NftPickerOverlay(this.app, this.mod);
+    this.prepare_store = new PrepareStoreOverlay(this.app, this.mod);
     this.listing_detail = new ListingDetailOverlay(this.app, this.mod);
     this.rental_listing = new RentalListingOverlay(this.app, this.mod);
     this.purchase_overlay = new PurchaseOverlay(this.app, this.mod);
+    this.settings_overlay = new SettingsOverlay(this.app, this.mod);
 
+    this.prepare_store.onContinue = (defaults) => {
+      this.nft_picker.render(defaults || {});
+    };
+    this.prepare_store.onCreateNft = (defaults) => {
+      this.nft_picker.defaults = defaults || {};
+      this.nft_picker.openCreateNft();
+    };
     this.nft_picker.onSelect = (nft, defaults) => {
       if (normalizeListingMode(defaults?.listing_mode) === 'rent') {
         this.rental_listing.render({ source_nft: nft, defaults });
@@ -262,6 +276,24 @@ class Main {
     }
   }
 
+  /**
+   * True when this wallet already has a storefront (menu cache, Profile URL, or listings).
+   */
+  hasOwnStore() {
+    if (this.menu?.has_store) {
+      return true;
+    }
+    if (this.mod.returnProfileStoreUrl?.()) {
+      return true;
+    }
+    const storefront = this.manager?.storefront;
+    return !!(
+      storefront?.inventoryLoaded &&
+      storefront.publicKey === this.mod.publicKey &&
+      storefront.activeSummaries?.length > 0
+    );
+  }
+
   openSell(defaults = {}) {
     const next = {
       ...defaults,
@@ -276,7 +308,16 @@ class Main {
       return;
     }
 
+    if (this.prepare_store && !this.hasOwnStore()) {
+      this.prepare_store.render(next);
+      return;
+    }
+
     this.nft_picker.render(next);
+  }
+
+  openSettings() {
+    this.settings_overlay?.render();
   }
 }
 

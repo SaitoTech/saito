@@ -1153,6 +1153,20 @@ impl Transaction {
         }
 
         //
+        // ISSUANCE TRANSACTIONS
+        //
+        // Issuance is only valid in block 1. After genesis, reject here so these
+        // transactions cannot pass the verification thread or enter the mempool.
+        // During genesis production and genesis validation, latest_block_id is 0.
+        //
+        if self.transaction_type == TransactionType::Issuance
+            && blockchain.get_latest_block_id() >= 1
+        {
+            error!("ERROR: issuance transaction rejected after block 1");
+            return false;
+        }
+
+        //
         // SPV TRANSACTIONS
         //
         // SPV transactions are "ghost" transactions which are included in SPV/lite-
