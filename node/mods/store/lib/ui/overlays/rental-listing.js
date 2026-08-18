@@ -53,8 +53,7 @@ class RentalListingOverlay {
       }
       return '';
     }
-    const text =
-      nft?.text || nft?.json || nft?.description || nft?.title || 'Store Rental NFT';
+    const text = nft?.text || nft?.json || nft?.description || nft?.title || 'Store Rental NFT';
     return RentalListingTemplate.mediaText(this.escapeHtml(text));
   }
 
@@ -92,9 +91,7 @@ class RentalListingOverlay {
 
     const data = nft.tx.returnMessage?.()?.data || {};
     const nft_type =
-      (typeof nft.returnType === 'function' ? nft.returnType() : '') ||
-      nft.nft_type ||
-      '';
+      (typeof nft.returnType === 'function' ? nft.returnType() : '') || nft.nft_type || '';
 
     return {
       link: data.link != null ? String(data.link) : '',
@@ -159,7 +156,8 @@ class RentalListingOverlay {
   async render({ source_nft = null, master_nft = null, defaults = {}, phase = null } = {}) {
     this.defaults = defaults || {};
     // master_nft kept as alias for older callers.
-    this.source_nft = source_nft?.nft || source_nft || master_nft?.nft || master_nft || this.source_nft;
+    this.source_nft =
+      source_nft?.nft || source_nft || master_nft?.nft || master_nft || this.source_nft;
 
     if (!this.source_nft) {
       siteMessage('Select a Vault rental NFT first.', 3000);

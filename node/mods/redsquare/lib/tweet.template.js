@@ -138,10 +138,12 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
 
   const chain = embedded ? '' : '<div class="chain" aria-hidden="true"></div>';
 
-  const showMask = Boolean(tweet.flagged === 1) || Boolean(tweet.moderated && !tweet.moderated_revealed);
-  const maskText = tweet.flagged === 1
-    ? 'This tweet has been reported and is under review'
-    : 'This tweet has been moderated';
+  const showMask =
+    Boolean(tweet.flagged === 1) || Boolean(tweet.moderated && !tweet.moderated_revealed);
+  const maskText =
+    tweet.flagged === 1
+      ? 'This tweet has been reported and is under review'
+      : 'This tweet has been moderated';
   const showReveal = tweet.flagged !== 1 && tweet.moderated && !tweet.moderated_revealed;
 
   const moderationMask = showMask
@@ -157,7 +159,7 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
         </div>
       </div>
     `
-      : '';
+    : '';
 
   return `
     <article class="${className}" data-id="${escapeAttribute(tweet.signature)}">

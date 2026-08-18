@@ -5,10 +5,7 @@ const Summary = require('../../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
 const { summaryBucketKey } = require('../summary-cache');
 const { isStoreRentalListing } = require('../../categories');
-const {
-  durationLabel,
-  rightsLabel
-} = require('./rental-listing.template');
+const { durationLabel, rightsLabel } = require('./rental-listing.template');
 const { yieldForPaint } = require('../purchase-service');
 
 function returnShortKey(key = '') {
@@ -713,7 +710,6 @@ class ListingDetailOverlay {
       });
     }
   }
-
 }
 
 module.exports = ListingDetailOverlay;

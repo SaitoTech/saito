@@ -211,7 +211,6 @@ class ChatUserMenu {
         });
       };
     }
-
   }
 }
 

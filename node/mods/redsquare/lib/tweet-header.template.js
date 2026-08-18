@@ -77,7 +77,9 @@ module.exports = ({
   // compact — Username · time (no public key on the timeline)
   const parts = [];
 
-  parts.push(`<span class="primary saito-address" data-id="${escapeHtml(publicKey)}">${escapeHtml(name)}</span>`);
+  parts.push(
+    `<span class="primary saito-address" data-id="${escapeHtml(publicKey)}">${escapeHtml(name)}</span>`
+  );
 
   if (time) {
     parts.push(`<span class="sep" aria-hidden="true">·</span>`);

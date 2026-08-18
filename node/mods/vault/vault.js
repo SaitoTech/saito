@@ -8,9 +8,7 @@ const AccessFileOverlay = require('./lib/ui/overlays/load-nfts.js');
 const WitnessOverlay = require('./lib/ui/overlays/witness');
 const { buildDefaultAccessScript } = require('./lib/contracts');
 const loan = require('./lib/contracts/loan');
-const {
-  receiveVaultAddFileTransaction
-} = require('./lib/transactions/add-file');
+const { receiveVaultAddFileTransaction } = require('./lib/transactions/add-file');
 const rentalCheckout = require('./lib/transactions/rental-checkout');
 
 function findCheckPathHop(node) {
@@ -304,11 +302,7 @@ class Vault extends ModTemplate {
         return null;
       }
       const nft_type = nft.returnType();
-      if (
-        nft_type !== 'vault-nft-key' &&
-        nft_type !== 'vault-nft-rental' &&
-        nft_type !== 'vault'
-      ) {
+      if (nft_type !== 'vault-nft-key' && nft_type !== 'vault-nft-rental' && nft_type !== 'vault') {
         return null;
       }
 
@@ -988,7 +982,10 @@ class Vault extends ModTemplate {
                 URL.revokeObjectURL(url);
               }
             } catch (err) {
-              console.log('VAULT: ERROR while handling rental downloaded file:', err?.message || err);
+              console.log(
+                'VAULT: ERROR while handling rental downloaded file:',
+                err?.message || err
+              );
             }
           }
         } else if (mycallback) {
