@@ -1,7 +1,7 @@
 module.exports = (app, mod, invite) => {
   let invite_class =
     invite.target && invite.players[invite.target - 1] == mod.publicKey ? ' my-turn' : '';
-  let invite_img = `/${invite.game_slug}/img/arcade/arcade-banner-background.png`;
+  let invite_img = `/${String(invite.game_slug || '').replace(/[^a-zA-Z0-9_-]/g, '')}/img/arcade/arcade-banner-background.png`;
 
   let badge = '';
   if (invite_class) {
@@ -19,8 +19,8 @@ module.exports = (app, mod, invite) => {
     <div class="invite arcade-invite${invite_class}" id="arcade-invite-${invite.game_id}"
          style="background-image: url('${invite_img}');">
       <div class="header">
-        <div class="title">${invite.game_name}</div>
-        <div class="details">${invite.game_type.toUpperCase()}</div>
+        <div class="title">${app.browser.escapeHTML(invite.game_name)}</div>
+        <div class="details">${app.browser.escapeHTML(String(invite.game_type || '').toUpperCase())}</div>
       </div>
       <div class="actions">
         ${badge}

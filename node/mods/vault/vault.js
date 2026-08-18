@@ -273,6 +273,7 @@ class Vault extends ModTemplate {
     }
 
     if (type === 'saito-nft-media') {
+      const vault_app = this.app;
       return {
         // Canonical access-key type; "vault" kept for legacy keys already on-chain.
         class: ['vault-nft-key', 'vault-nft-rental', 'vault'],
@@ -285,9 +286,10 @@ class Vault extends ModTemplate {
             const backgroundImage = obj.file_access_script
               ? '/vault/img/crystal_key_min.png'
               : '/vault/img/jade_key_min.png';
+            const jsonText = vault_app.browser.escapeHTML(String(nft.json));
             return {
               backgroundImage,
-              innerHtml: `<div class="saito-nft-card-text">${nft.json}</div>`
+              innerHtml: `<div class="saito-nft-card-text">${jsonText}</div>`
             };
           } catch (err) {
             return null;

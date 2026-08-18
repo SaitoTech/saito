@@ -96,13 +96,13 @@ class SaitoNFTCard {
 
     let type = document.querySelector(this.my_qs + ' .saito-nft-card-type');
     if (type) {
-      type.innerHTML = this.nft.returnType();
+      type.textContent = this.nft.returnType() || '';
     }
 
     if (this.nft.title) {
       try {
         let telm = document.querySelector(this.my_qs + ' .saito-nft-card-title');
-        telm.innerHTML = this.nft.title;
+        telm.textContent = this.nft.title;
       } catch (err) {}
     }
 
@@ -117,9 +117,11 @@ class SaitoNFTCard {
       }
 
       elm.innerHTML = display.innerHtml || '';
-      elm.style.backgroundImage = display.backgroundImage
-        ? `url("${display.backgroundImage}")`
-        : '';
+      if (this.app.browser.isSafeMediaUrl(display.backgroundImage)) {
+        elm.style.backgroundImage = `url("${String(display.backgroundImage).replace(/"/g, '%22')}")`;
+      } else {
+        elm.style.backgroundImage = '';
+      }
       this.startExpiresTimer();
     } else {
       console.warn('NFT Element not rendered --', this.my_qs);

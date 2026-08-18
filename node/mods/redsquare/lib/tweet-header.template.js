@@ -26,6 +26,14 @@ function resolveMode({ mode, presentation } = {}) {
   return 'compact';
 }
 
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 module.exports = ({
   mode,
   presentation,
@@ -39,27 +47,27 @@ module.exports = ({
 
   if (resolvedMode === 'compose') {
     const secondaryHtml = secondary
-      ? `<span class="secondary saito-userline">${secondary}</span>`
+      ? `<span class="secondary saito-userline">${escapeHtml(secondary)}</span>`
       : '';
 
     return `
     <header class="header compose">
-      <span class="primary saito-address" data-id="${publicKey}">${name}</span>
+      <span class="primary saito-address" data-id="${escapeHtml(publicKey)}">${escapeHtml(name)}</span>
       ${secondaryHtml}
     </header>
   `;
   }
 
   if (resolvedMode === 'expanded') {
-    const timeHtml = time ? `<time class="time saito-userline">${time}</time>` : '';
+    const timeHtml = time ? `<time class="time saito-userline">${escapeHtml(time)}</time>` : '';
     const handleHtml = handle
-      ? `<span class="handle saito-userline saito-add-user-menu" data-id="${publicKey}">${handle}</span>`
+      ? `<span class="handle saito-userline saito-add-user-menu" data-id="${escapeHtml(publicKey)}">${escapeHtml(handle)}</span>`
       : '';
 
     // Identity owns name, time, and key. Body is a sibling — never a time host.
     return `
     <header class="header expanded">
-      <span class="primary saito-address" data-id="${publicKey}">${name}</span>
+      <span class="primary saito-address" data-id="${escapeHtml(publicKey)}">${escapeHtml(name)}</span>
       ${timeHtml}
       ${handleHtml}
     </header>
@@ -69,11 +77,11 @@ module.exports = ({
   // compact — Username · time (no public key on the timeline)
   const parts = [];
 
-  parts.push(`<span class="primary saito-address" data-id="${publicKey}">${name}</span>`);
+  parts.push(`<span class="primary saito-address" data-id="${escapeHtml(publicKey)}">${escapeHtml(name)}</span>`);
 
   if (time) {
     parts.push(`<span class="sep" aria-hidden="true">·</span>`);
-    parts.push(`<time class="time saito-userline">${time}</time>`);
+    parts.push(`<time class="time saito-userline">${escapeHtml(time)}</time>`);
   }
 
   return `

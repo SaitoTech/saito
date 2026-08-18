@@ -3,6 +3,15 @@ const TweetBodyTemplate = require('./tweet-body.template');
 const TweetGalleryTemplate = require('./tweet-gallery.template');
 const TweetFooterTemplate = require('./tweet-footer.template');
 
+function escapeAttribute(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function resolvePresentation(className = '', options = {}) {
   if (options.presentation) {
     return options.presentation;
@@ -89,16 +98,17 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
     text:
       tweet.app && tweet.app.browser
         ? tweet.app.browser.sanitize(tweet.app.browser.markupMentions(tweet?.text || ''), true)
-        : tweet.text
+        : ''
   });
 
   const gallery = TweetGalleryTemplate({
     images: tweet.images
   });
 
+  const youtubeId = String(tweet.youtube_id || '').replace(/[^A-Za-z0-9_-]/g, '');
   const youtube =
-    tweet.youtube_id && String(tweet.youtube_id) !== 'null'
-      ? `<iframe class="youtube-embed" src="https://www.youtube.com/embed/${tweet.youtube_id}" allowfullscreen></iframe>`
+    youtubeId && youtubeId !== 'null'
+      ? `<iframe class="youtube-embed" src="https://www.youtube.com/embed/${youtubeId}" allowfullscreen></iframe>`
       : '';
 
   const linkPreview =
@@ -150,9 +160,9 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
       : '';
 
   return `
-    <article class="${className}" data-id="${tweet.signature}">
+    <article class="${className}" data-id="${escapeAttribute(tweet.signature)}">
       ${chain}
-      <img class="avatar saito-identicon" src="${tweet.avatar}" alt="${tweet.username}" data-id="${tweet.publicKey || ''}" />
+      <img class="avatar saito-identicon" src="${escapeAttribute(tweet.avatar)}" alt="${escapeAttribute(tweet.username)}" data-id="${escapeAttribute(tweet.publicKey || '')}" />
       <div class="content">
         ${header}
         ${body}

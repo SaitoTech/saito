@@ -48,7 +48,10 @@ class RentalListingOverlay {
 
   returnMediaHtml(nft) {
     if (nft?.image) {
-      return RentalListingTemplate.mediaImage(this.escapeHtml(nft.image));
+      if (this.app?.browser?.isSafeMediaUrl?.(nft.image)) {
+        return RentalListingTemplate.mediaImage(this.escapeHtml(nft.image));
+      }
+      return '';
     }
     const text =
       nft?.text || nft?.json || nft?.description || nft?.title || 'Store Rental NFT';

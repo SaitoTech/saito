@@ -87,7 +87,7 @@ class Teaser {
     }
   }
 
-  static applyMediaToElement(media, display = {}) {
+  static applyMediaToElement(app, media, display = {}) {
     if (!media) {
       return;
     }
@@ -111,9 +111,10 @@ class Teaser {
       content.remove();
     }
 
-    if (display.backgroundImage) {
+    const bg = display.backgroundImage;
+    if (bg && app?.browser?.isSafeMediaUrl?.(bg)) {
       media.classList.add('has-image');
-      media.style.background = `url(${display.backgroundImage}) center / cover no-repeat`;
+      media.style.background = `url("${String(bg).replace(/"/g, '%22')}") center / cover no-repeat`;
       return;
     }
 
@@ -127,7 +128,7 @@ class Teaser {
 
   static applyMediaDisplay(app, summary, display = {}) {
     for (const card of Teaser.returnTeaserCards(summary)) {
-      Teaser.applyMediaToElement(card.querySelector('.media'), display);
+      Teaser.applyMediaToElement(app, card.querySelector('.media'), display);
     }
   }
 
@@ -203,13 +204,11 @@ class Teaser {
   }
 
   returnMediaBackground(image = '', display = {}) {
-    if (display.backgroundImage) {
-      return `url(${display.backgroundImage}) center / cover no-repeat`;
+    const raw = display.backgroundImage || image || DREAMSCAPE_PLACEHOLDER;
+    if (!this.app.browser.isSafeMediaUrl(raw)) {
+      return `url("${DREAMSCAPE_PLACEHOLDER}") center / cover no-repeat`;
     }
-    if (!image) {
-      return `url(${DREAMSCAPE_PLACEHOLDER}) center / cover no-repeat`;
-    }
-    return `url(${image}) center / cover no-repeat`;
+    return `url("${String(raw).replace(/"/g, '%22')}") center / cover no-repeat`;
   }
 
   attachEvents() {

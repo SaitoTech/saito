@@ -1892,7 +1892,7 @@ class Browser {
   }
 
   returnAddressHTML(key, disable = false) {
-    return `<div class="saito-address" data-id="${key}" ${disable ? `data-disable="true"` : ''}>${this.app.keychain.returnUsername(key)}</div>`;
+    return `<div class="saito-address" data-id="${this.escapeHTML(key)}" ${disable ? `data-disable="true"` : ''}>${this.escapeHTML(this.app.keychain.returnUsername(key))}</div>`;
   }
 
   updateAddressHTML(key, id) {
@@ -2055,6 +2055,59 @@ class Browser {
       return '';
     }
     try {
+      if (createLinks) {
+        const host =
+          typeof window !== 'undefined' && window.location && window.location.host
+            ? window.location.host
+            : '';
+
+        text = marked.parse(text);
+
+        text = text.replace(this.urlRegexp(), (...args) => {
+          const url = args[0];
+          const offset = args[args.length - 2];
+          const full = args[args.length - 1];
+          const before = full.slice(0, offset);
+          const openAnchors = (before.match(/<a\b/gi) || []).length;
+          const closeAnchors = (before.match(/<\/a>/gi) || []).length;
+          if (openAnchors > closeAnchors) {
+            return url;
+          }
+
+          if (this.numberFilter(url)) {
+            return url;
+          }
+
+          const hrefRaw = this.hrefFromAutolink(url);
+          if (!hrefRaw || !this.isSafeHref(hrefRaw)) {
+            return url;
+          }
+
+          let url2 = url.trim();
+          if (url2.length > 42) {
+            if (url2.indexOf('http') == 0 && url2.includes('://')) {
+              let temp = url2.split('://');
+              url2 = temp[1];
+            }
+            if (url2.indexOf('www.') == 0) {
+              url2 = url2.substr(4);
+            }
+            if (url2.length > 40) {
+              url2 = url2.substr(0, 37) + '...';
+            }
+          }
+
+          const extra =
+            host && hrefRaw.includes(host)
+              ? "data-link='local_link' "
+              : "target='_blank' rel='noopener noreferrer' ";
+
+          return `<a ${extra} class="saito-link" href="${this.escapeHTML(hrefRaw)}">${this.escapeHTML(url2)}</a>`;
+        });
+      }
+
+      text = emoji.emojify(text);
+
       text = sanitizeHtml(text, {
         allowedTags: [
           'a',
@@ -2099,76 +2152,45 @@ class Browser {
           img: ['src', 'class'],
           blockquote: ['href'],
           i: ['class'],
-          a: ['href', 'data-*']
+          a: ['href', 'data-*', 'class', 'target', 'rel']
         },
         selfClosing: ['img', 'br', 'hr', 'area', 'base', 'basefont', 'input', 'link', 'meta'],
         allowedSchemes: ['http', 'https', 'ftp', 'mailto'],
         allowedSchemesByTag: {},
         allowedSchemesAppliedToAttributes: ['href', 'cite'],
-        allowProtocolRelative: true
+        allowProtocolRelative: true,
+        transformTags: {
+          a: (tagName, attribs) => {
+            const href = attribs.href || '';
+            if (href && !this.isSafeHref(href)) {
+              delete attribs.href;
+            }
+            attribs.class = 'saito-link';
+            let isLocal = false;
+            try {
+              if (typeof window !== 'undefined' && window.location?.host) {
+                isLocal = href.includes(window.location.host);
+              }
+            } catch (err) {}
+            if (isLocal) {
+              attribs['data-link'] = 'local_link';
+              delete attribs.target;
+              delete attribs.rel;
+            } else {
+              attribs.target = '_blank';
+              attribs.rel = 'noopener noreferrer';
+            }
+            return { tagName, attribs };
+          }
+        }
       });
 
-      /* wrap link in <a> tag */
-
-      if (createLinks) {
-        text = text.replace(this.urlRegexp(), (url) => {
-          // This is a number like 1.50 that accidentally got marked as a URL
-          if (this.numberFilter(url)) {
-            //console.warn(`BROWSER [sanitize]: ${url} is a number, not a link`);
-            return url;
-          }
-
-          let url1 = url.trim();
-          let url2 = url1;
-          if (url2.length > 42) {
-            if (url2.indexOf('http') == 0 && url2.includes('://')) {
-              let temp = url2.split('://');
-              url2 = temp[1];
-            }
-            if (url2.indexOf('www.') == 0) {
-              url2 = url2.substr(4);
-            }
-            if (url2.length > 40) {
-              url2 = url2.substr(0, 37) + '...';
-            }
-          }
-
-          return `<a ${
-            url.includes(window.location.host)
-              ? "data-link='local_link' "
-              : "target='_blank' rel='noopener noreferrer' "
-          } class="saito-link" href="${
-            !url.includes('http') ? `http://${url1}` : url1
-          }">${url2}</a>`;
-        });
-
-        //
-        // HTML markup for some basic formatting in chat/tweets -- also functions as a link detector
-        //
-        text = marked.parse(text);
-
-        if (text.includes('<a ') && text.includes('href') && !text.includes('saito-link')) {
-          // These are links created by MarkDown which has a more expansive url regexp
-          let io = text.indexOf('<a ');
-          let href = text.match(/href=".*"/)[0];
-
-          let extra_stuff = href.includes(window.location.host)
-            ? "data-link='local_link'"
-            : "target='_blank' rel='noopener noreferrer'";
-
-          text = text.slice(0, io + 3) + extra_stuff + ` class="saito-link" ` + text.slice(io + 3);
-        }
-      }
-
-      //trim lines at start and end
       text = text.replace(/^\s+|\s+$/g, '');
-
-      text = emoji.emojify(text);
 
       return text;
     } catch (err) {
       console.error('Browser [sanitize] error: ', err);
-      return text;
+      return '';
     }
   }
 
@@ -2248,7 +2270,81 @@ class Browser {
   // escaping special characters like & < > "
   //
   escapeHTML(text) {
-    return sanitizer.escapeAttrib(text);
+    return sanitizer.escapeAttrib(text == null ? '' : String(text));
+  }
+
+  /**
+   * Turn a bare autolink match into an absolute href, or null if the match
+   * already has a non-allowed scheme (javascript:, data:, etc.).
+   */
+  hrefFromAutolink(url) {
+    if (!url || typeof url !== 'string') {
+      return null;
+    }
+    const trimmed = url.trim();
+    if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
+      return null;
+    }
+    if (/^(https?|ftp|mailto):/i.test(trimmed) || trimmed.startsWith('//')) {
+      return trimmed;
+    }
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) {
+      return null;
+    }
+    return `http://${trimmed}`;
+  }
+
+  /**
+   * True if url is safe to use as an href (http/https/ftp/mailto, or protocol-relative).
+   * Rejects javascript:, data:, vbscript:, and other non-allowed schemes.
+   */
+  isSafeHref(url) {
+    if (!url || typeof url !== 'string') {
+      return false;
+    }
+    const trimmed = url.trim();
+    if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
+      return false;
+    }
+    if (trimmed.startsWith('//')) {
+      return /^\/\/[\w.-]+/.test(trimmed);
+    }
+    const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+    if (!schemeMatch) {
+      return false;
+    }
+    const scheme = schemeMatch[1].toLowerCase();
+    return scheme === 'http' || scheme === 'https' || scheme === 'ftp' || scheme === 'mailto';
+  }
+
+  /**
+   * True if url is safe as an image/media src or CSS url().
+   * Allows http(s), relative paths, and raster data:image base64 URLs. Rejects svg data URLs.
+   */
+  isSafeMediaUrl(url) {
+    if (!url || typeof url !== 'string') {
+      return false;
+    }
+    const trimmed = url.trim();
+    if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
+      return false;
+    }
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+      return !trimmed.includes('\\');
+    }
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('data:image/svg')) {
+      return false;
+    }
+    if (/^data:image\/[a-z0-9.+-]+[;,]/i.test(trimmed)) {
+      return true;
+    }
+    const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+    if (!schemeMatch) {
+      return false;
+    }
+    const scheme = schemeMatch[1].toLowerCase();
+    return scheme === 'http' || scheme === 'https';
   }
 
   //////////////////////
@@ -2940,7 +3036,7 @@ class Browser {
       }
 
       if (this.app.crypto.isPublicKey(key)) {
-        return `<span class="saito-mention saito-address" data-id="${key}">${username}</span>`;
+        return `<span class="saito-mention saito-address" data-id="${this.escapeHTML(key)}">${this.escapeHTML(username)}</span>`;
       } else {
         return k;
       }

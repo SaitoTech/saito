@@ -31,19 +31,19 @@ const BlogTemplate = (app, mod, post) => {
           <div class="post-actions"></div>
 
           <header class="post-header">
-            <h4 class="post-title">${post.title}</h4>
+            <h4 class="post-title">${app.browser.escapeHTML(post.title)}</h4>
             <p class="byline">
               <span>Published by </span> 
               <span style="color: 'var(--saito-primary)'">
-                ${app.keychain.returnUsername(post.publicKey)}
+                ${app.browser.escapeHTML(app.keychain.returnUsername(post.publicKey))}
               </span>
               <span> on ${date.month} ${date.day}, ${date.year}</span>
             </p>
           </header>`;
 
-  if (source) {
+  if (source && app.browser.isSafeMediaUrl(source)) {
     html += `<div class="post-image-container">
-              <img src=${source} alt=${post.title} class="post-header-image" />
+              <img src="${app.browser.escapeHTML(source)}" alt="${app.browser.escapeHTML(post.title)}" class="post-header-image" />
             </div>`;
   }
   //${parseMarkdown(post.content)}

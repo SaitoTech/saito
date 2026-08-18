@@ -184,7 +184,7 @@ class ChatUserMenu {
         // >>>>>>> Use a component here!
 
         overlay.show(
-          `<div class="chat-member-list-overlay saito-modal"><div class="saito-modal-title">${thisobj.chat_group.name}</div>${MemberList(this.app, this.mod, thisobj.chat_group)}</div>`
+          `<div class="chat-member-list-overlay saito-modal"><div class="saito-modal-title">${this.app.browser.escapeHTML(thisobj.chat_group.name)}</div>${MemberList(this.app, this.mod, thisobj.chat_group)}</div>`
         );
         console.log(
           JSON.parse(JSON.stringify(thisobj.chat_group.members)),
