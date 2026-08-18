@@ -97,7 +97,7 @@ module.exports = ({
       <input type="checkbox" name="free_use" value="1"${free_use ? ' checked' : ''} />
       Free Use Mode
     </label>
-    <p class="note">When Free Use Mode is on, Get SAITO issues tokens without Twitter or GitHub registration.</p>
+    <p class="note">When Free Use Mode is on, Get SAITO issues tokens without Twitter or GitHub registration, limited to once per public key every 24 hours.</p>
     <button type="submit">Save</button>
   </form>
 </body>

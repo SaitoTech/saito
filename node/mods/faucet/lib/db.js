@@ -1,6 +1,7 @@
 /**
  * Faucet registrations. Schema: sql/01_registrations.sql
- * issuance_status: eligible → pending → issued
+ * issuance_status: eligible → pending → issued; free mode can re-arm an
+ * issued registration after its daily cooldown.
  */
 
 class FaucetDB {
@@ -136,6 +137,58 @@ class FaucetDB {
     }
 
     return true;
+  }
+
+  /**
+   * Free mode permits one successful allocation per rolling cooldown period.
+   * Re-arming is conditional; the later eligible-to-pending transition is the
+   * final guard against concurrent payouts.
+   */
+  async prepareFreeUseClaim(identity = {}, now = Date.now(), cooldown_ms = 86400000) {
+    let record = await this.getRecord(identity);
+    if (!record) {
+      const inserted = await this.insertRecord(identity);
+      return inserted
+        ? { eligible: true, retry_at: 0, reason: 'new' }
+        : { eligible: false, retry_at: 0, reason: 'insert_failed' };
+    }
+
+    if (record.issuance_status === 'eligible') {
+      return { eligible: true, retry_at: 0, reason: 'eligible' };
+    }
+
+    let status_time =
+      record.issuance_status === 'issued'
+        ? Number(record.issued_at) || 0
+        : Number(record.updated_at) || 0;
+    let retry_at = status_time + cooldown_ms;
+
+    if (status_time === 0 || now >= retry_at) {
+      const reset = await this.updateRecord(
+        { publickey: record.publickey, issuance_status: record.issuance_status },
+        { issuance_status: 'eligible' }
+      );
+      if (reset) {
+        return { eligible: true, retry_at: 0, reason: 'cooldown_elapsed' };
+      }
+
+      // Another request may have completed the same conditional transition.
+      record = await this.getRecord(identity);
+      if (record?.issuance_status === 'eligible') {
+        return { eligible: true, retry_at: 0, reason: 'eligible' };
+      }
+      status_time =
+        record?.issuance_status === 'issued'
+          ? Number(record.issued_at) || 0
+          : Number(record?.updated_at) || 0;
+      retry_at = status_time + cooldown_ms;
+    }
+
+    return {
+      eligible: false,
+      retry_at,
+      reason: record?.issuance_status === 'pending' ? 'pending' : 'cooldown'
+    };
   }
 
   async updateRecord(where = {}, changes = {}) {
