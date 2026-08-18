@@ -32,6 +32,7 @@ class SaitoPurchaseOverlay {
     this.acquisition_options = [];
     this.stage1_html = null;
     this.stage1_footer_html = null;
+    this.faucet_already_issued = null;
 
     this.countdown_interval = null;
 
@@ -252,16 +253,22 @@ class SaitoPurchaseOverlay {
     }
 
     if (this.faucet_already_issued) {
+      const dailyLimit = this.faucet_already_issued.daily_limit === true;
+      const noticeTitle = dailyLimit
+        ? 'Daily faucet allocation already received'
+        : 'Faucet allocation already received';
+      const noticeDescription = dailyLimit
+        ? 'This Saito public key has used the network faucet in the last 24 hours. You can request another allocation after the cooldown, continue with the purchase options below, or return to your previous action.'
+        : 'This Saito public key has already received its one-time SAITO allocation from the network faucet. You can continue with purchase options below, or close this window and return to your previous action.';
       container.innerHTML = `
       <div class="buysaito-option buysaito-option-faucet-issued" role="status">
         <div class="buysaito-option-icon">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
         </div>
         <div class="buysaito-option-copy">
-          <div class="buysaito-option-title">Faucet allocation already received</div>
+          <div class="buysaito-option-title">${noticeTitle}</div>
           <div class="buysaito-option-description">
-            This Saito public key has already received its one-time SAITO allocation from the network faucet.
-            You can continue with purchase options below, or close this window and return to your previous action.
+            ${noticeDescription}
           </div>
         </div>
       </div>
@@ -338,12 +345,12 @@ class SaitoPurchaseOverlay {
   }
 
   /**
-   * Replace the green Faucet intro card with a neutral/orange notice that this
-   * public key has already received its one-time faucet allocation.
+   * Replace the green Faucet intro card with a neutral/orange notice that the
+   * public key is not currently eligible for another faucet allocation.
    * Keeps Get SAITO open; does not open the Faucet claim overlay.
    */
-  showFaucetAlreadyIssuedNotice() {
-    this.faucet_already_issued = true;
+  showFaucetAlreadyIssuedNotice(details = {}) {
+    this.faucet_already_issued = details && typeof details === 'object' ? details : {};
 
     // Restore Stage 1 purchase/fallback content under the notice.
     if (this.acquisition_stage !== 'default' && this.stage1_html != null) {
@@ -820,6 +827,7 @@ class SaitoPurchaseOverlay {
     this.acquisition_options = [];
     this.stage1_html = null;
     this.stage1_footer_html = null;
+    this.faucet_already_issued = null;
 
     clearTimeout(this.timer);
     this.timer = null;

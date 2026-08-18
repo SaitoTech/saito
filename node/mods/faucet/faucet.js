@@ -10,6 +10,9 @@ const Waiting = require('./lib/ui/waiting');
 const Success = require('./lib/ui/success');
 const Main = require('./lib/ui/main');
 const ConfigTemplate = require('./lib/ui/config.template');
+const { readFaucetMode, saveFaucetMode } = require('./lib/mode');
+
+const FREE_USE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 class Faucet extends ModTemplate {
   constructor(app) {
@@ -69,14 +72,7 @@ class Faucet extends ModTemplate {
     await super.initialize(app);
 
     if (!this.app.BROWSER) {
-      const savedMode = this.app.options?.faucet?.mode;
-      if (savedMode && typeof savedMode === 'object') {
-        this.mode = {
-          free: savedMode.free === true || savedMode.free_use === true,
-          github: savedMode.github === true,
-          twitter: savedMode.twitter === true
-        };
-      }
+      this.mode = readFaucetMode(this.app.options);
       this.free_use = this.mode.free;
 
       await this.db.initialize();
@@ -194,7 +190,7 @@ class Faucet extends ModTemplate {
         id: 'faucet',
         title: 'Request SAITO tokens from the server faucet...',
         description: free_use
-          ? 'You may request a small amount to try the network. No registration is required.'
+          ? 'You may request a small amount once every 24 hours to try the network. No registration is required.'
           : 'You may request a small amount to try the network. Registration with a Github or Twitter account is needed to ensure our limited supply goes to real users and developers.',
         icon: this.icon_fa,
         rank: 1,
@@ -203,7 +199,7 @@ class Faucet extends ModTemplate {
         available: true,
         amount: this.server_faucet_amount,
         auth_message: free_use
-          ? 'The SAITO Faucet exists to help new users try the advanced features of the network. No registration is required.'
+          ? 'The SAITO Faucet exists to help users try the advanced features of the network. No registration is required, and each public key may claim once every 24 hours.'
           : '',
         providers: free_use
           ? [{ id: 'free_use', name: 'No Registration Required', label: 'Get Testnet Tokens' }]
@@ -263,6 +259,10 @@ class Faucet extends ModTemplate {
         ' publickey=' +
         (identity.publickey || '')
     );
+
+    if (identity.provider === 'free_use' && this.free_use === true) {
+      return this.acceptFreeUseIdentity(identity);
+    }
 
     const record = await this.db.getRecord(identity);
     console.log(
@@ -356,6 +356,83 @@ class Faucet extends ModTemplate {
         title: 'Account verified',
         message:
           'Your account was verified. You can close this window — Get SAITO will continue automatically.'
+      }
+    };
+  }
+
+  /**
+   * Free mode skips OAuth and allows the same public key to claim again after
+   * a rolling 24-hour cooldown.
+   */
+  async acceptFreeUseIdentity(identity = {}) {
+    const eligibility = await this.db.prepareFreeUseClaim(
+      identity,
+      Date.now(),
+      FREE_USE_COOLDOWN_MS
+    );
+
+    let peer = await this.app.network.getPeer(identity.publickey);
+    if (!peer?.publicKey) {
+      const peers = await this.app.network.getPeers();
+      peer = peers.find((p) => p?.publicKey === identity.publickey && p?.status !== 'disconnected');
+    }
+
+    if (!eligibility.eligible) {
+      if (peer?.publicKey) {
+        await this.app.network.sendRequestAsTransaction(
+          'faucet-oauth-result',
+          {
+            success: true,
+            already_issued: true,
+            daily_limit: true,
+            retry_at: eligibility.retry_at,
+            publickey: identity.publickey,
+            message: 'This Saito public key has already used the faucet in the last 24 hours.'
+          },
+          null,
+          peer.publicKey
+        );
+      }
+      return {
+        status: 200,
+        popup: {
+          ok: true,
+          title: 'Daily faucet limit reached',
+          message: 'This Saito public key can use the faucet again after the 24-hour cooldown.'
+        }
+      };
+    }
+
+    if (!peer?.publicKey) {
+      return {
+        status: 200,
+        popup: {
+          ok: true,
+          title: 'Faucet request ready',
+          message: 'Return to Get SAITO while this browser is connected and try again.'
+        }
+      };
+    }
+
+    await this.app.network.sendRequestAsTransaction(
+      'faucet-oauth-result',
+      {
+        success: true,
+        already_issued: false,
+        daily_limit: true,
+        publickey: identity.publickey,
+        message: 'Daily faucet request accepted.'
+      },
+      null,
+      peer.publicKey
+    );
+
+    return {
+      status: 200,
+      popup: {
+        ok: true,
+        title: 'Faucet request accepted',
+        message: 'Your daily faucet request will continue automatically.'
       }
     };
   }
@@ -561,7 +638,7 @@ class Faucet extends ModTemplate {
             if (!document.querySelector('#purchase-container') && purchase.active) {
               purchase.render();
             }
-            purchase.showFaucetAlreadyIssuedNotice();
+            purchase.showFaucetAlreadyIssuedNotice(data);
           }
         } catch (err) {
           console.error('FAUCET: failed to show already-issued notice', err);
@@ -665,14 +742,7 @@ class Faucet extends ModTemplate {
         twitter: !!faucet_self.oauth.secret_twitter
       };
 
-      if (
-        !faucet_self.app.options.faucet ||
-        typeof faucet_self.app.options.faucet !== 'object'
-      ) {
-        faucet_self.app.options.faucet = {};
-      }
-      faucet_self.app.options.faucet.mode = { ...faucet_self.mode };
-      faucet_self.app.storage.saveOptions();
+      faucet_self.mode = saveFaucetMode(faucet_self.app, faucet_self.mode);
 
       console.log(
         'FAUCET CONFIG: OAuth updated — GitHub:',

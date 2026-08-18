@@ -1,10 +1,13 @@
--- Faucet registrations: one Saito public key → one registration → at most one issuance.
+-- Faucet registrations: one Saito public key → one registration.
+-- OAuth registrations receive at most one issuance. Free-mode registrations
+-- can return to eligible after the daily cooldown; issuance fields then track
+-- the most recent allocation.
 --
 -- Created after a verified OAuth identity is linked to a Saito public key.
 -- Does not store OAuth tokens/secrets. Does not model multi-identity linking.
 --
 -- issuance_status lifecycle: eligible → pending → issued
--- (pending may return to eligible only if payout was never propagated)
+-- (free mode can return stale pending/issued records to eligible after a day)
 
 CREATE TABLE IF NOT EXISTS registrations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -13,7 +16,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   publickey TEXT NOT NULL,
 
   -- Verified external identity (provider account used to register)
-  -- provider: github | twitter | google | apple
+  -- provider: free_use | github | twitter | google | apple
   provider TEXT NOT NULL,
   provider_user_id TEXT NOT NULL,
   provider_username TEXT NOT NULL DEFAULT '',
@@ -25,7 +28,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   -- When this registration was authenticated / created
   authenticated_at INTEGER NOT NULL DEFAULT 0,
 
-  -- One-time issuance lifecycle
+  -- Current/latest issuance lifecycle
   issuance_status TEXT NOT NULL DEFAULT 'eligible'
     CHECK (issuance_status IN ('eligible', 'pending', 'issued')),
 
