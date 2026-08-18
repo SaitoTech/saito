@@ -17,6 +17,12 @@ class SaitoTransactionMonitor {
     // Set when confirmation is detected; delivered when the completion UI is dismissed.
     this._completion_result = null;
 
+    // Invalidates in-flight recent-block lookups after cancel / re-render / complete.
+    this._watch_generation = 0;
+    this._reconcile_in_flight = 0;
+    this._recent_block_lookback = 6;
+    this._reconcile_every_ticks = 3;
+
     //
     // wrap onConfirmation
     //
@@ -44,6 +50,7 @@ class SaitoTransactionMonitor {
    *                        the confirmed callback as soon as the tx confirms
    */
   render(options = {}) {
+    this._watch_generation += 1;
     this.stopCountdown();
 
     this.options = options;
@@ -64,6 +71,10 @@ class SaitoTransactionMonitor {
     );
 
     this.startCountdown();
+
+    // Safety net: the conf=0 callback is one-shot and may already have fired.
+    const generation = this._watch_generation;
+    void this.reconcileIfAlreadyConfirmed(generation);
   }
 
   attachEvents() {
@@ -79,16 +90,28 @@ class SaitoTransactionMonitor {
   }
 
   onConfirmation(blk, tx, conf) {
-    if (!this.tx) {
+    if (Number(conf) !== 0) {
       return;
     }
-    if (Number(conf) !== 0) {
+    this.completeWith(blk, tx);
+  }
+
+  /**
+   * Shared completion for the live confirmation callback and the recent-block
+   * reconciliation check. No-ops if this watch is no longer pending.
+   */
+  completeWith(blk, tx) {
+    if (!this.tx) {
       return;
     }
     if (!tx || tx.signature !== this.tx.signature) {
       return;
     }
+    if (this._completion_result) {
+      return;
+    }
 
+    this._watch_generation += 1;
     this.stopCountdown();
 
     let txOrdinal = null;
@@ -138,6 +161,7 @@ class SaitoTransactionMonitor {
   }
 
   onOverlayClosed() {
+    this._watch_generation += 1;
     this.stopCountdown();
 
     if (this._completion_result) {
@@ -166,6 +190,126 @@ class SaitoTransactionMonitor {
     cb(result);
   }
 
+  /**
+   * If the watched transaction is already in a recent longest-chain block,
+   * complete through the same path as onConfirmation. Ignores results after
+   * cancel, re-render, or a competing completion.
+   */
+  async reconcileIfAlreadyConfirmed(generation) {
+    if (generation !== this._watch_generation) {
+      return;
+    }
+    if (!this.tx) {
+      return;
+    }
+    if (this._reconcile_in_flight === generation) {
+      return;
+    }
+
+    this._reconcile_in_flight = generation;
+    try {
+      const found = await this.findWatchedTransactionInRecentBlocks();
+      if (generation !== this._watch_generation) {
+        return;
+      }
+      if (!found || !this.tx) {
+        return;
+      }
+      if (found.tx.signature !== this.tx.signature) {
+        return;
+      }
+      this.completeWith(found.blk, found.tx);
+    } catch (_err) {
+      // Keep waiting — live onConfirmation remains the primary path.
+    } finally {
+      if (this._reconcile_in_flight === generation) {
+        this._reconcile_in_flight = 0;
+      }
+    }
+  }
+
+  /**
+   * Look for the watched signature in the most recent longest-chain blocks.
+   * Presence there is the same fact conf=0 reports. SPV / empty-signature
+   * bodies are skipped so they cannot false-complete the monitor.
+   */
+  async findWatchedTransactionInRecentBlocks() {
+    const signature = this.tx?.signature;
+    if (!signature) {
+      return null;
+    }
+
+    const blockchain = this.app?.blockchain;
+    if (!blockchain || typeof blockchain.getLatestBlockId !== 'function') {
+      return null;
+    }
+
+    let latestId = 0;
+    try {
+      latestId = Number(await blockchain.getLatestBlockId());
+    } catch (_err) {
+      return null;
+    }
+    if (!Number.isFinite(latestId) || latestId <= 0) {
+      return null;
+    }
+
+    const startId = Math.max(1, latestId - this._recent_block_lookback + 1);
+
+    for (let id = latestId; id >= startId; id--) {
+      if (!this.tx || this.tx.signature !== signature) {
+        return null;
+      }
+
+      let hash = '';
+      try {
+        if (typeof blockchain.getLongestChainHashAtId === 'function') {
+          hash = await blockchain.getLongestChainHashAtId(id);
+        }
+      } catch (_err) {
+        continue;
+      }
+      if (!hash) {
+        continue;
+      }
+
+      let block = null;
+      if (typeof blockchain.loadBlockAsync === 'function') {
+        try {
+          block = await blockchain.loadBlockAsync(String(hash));
+        } catch (_err) {
+          block = null;
+        }
+      }
+      if (!block && typeof blockchain.getBlock === 'function') {
+        try {
+          block = await blockchain.getBlock(String(hash));
+        } catch (_err) {
+          block = null;
+        }
+      }
+      if (!block) {
+        continue;
+      }
+
+      const txs = Array.isArray(block.transactions) ? block.transactions : [];
+      if (!txs.length) {
+        continue;
+      }
+      const looksSpv = txs.every((candidate) => !candidate?.signature);
+      if (looksSpv) {
+        continue;
+      }
+
+      const found = txs.find((candidate) => candidate?.signature === signature);
+      if (found) {
+        return { blk: block, tx: found };
+      }
+    }
+
+    return null;
+  }
+
   startCountdown() {
     this.stopCountdown();
 
@@ -173,12 +317,17 @@ class SaitoTransactionMonitor {
     // Block production window is 2 × heartbeat (same rule as burn-fee readiness).
     const heartbeatMs = this.getHeartbeatIntervalMs();
     const blockWindowSeconds = Math.max(1, Math.round((2 * heartbeatMs) / 1000));
+    const generation = this._watch_generation;
 
     // First paint: remaining time in the current production window.
     let seconds = this.getSecondsUntilNextBlockWindow(blockWindowSeconds);
+    let ticks = 0;
 
     const renderSeconds = () => {
-      const el = document.querySelector('.saito-transaction-monitor .countdown');
+      const el =
+        typeof document !== 'undefined'
+          ? document.querySelector('.saito-transaction-monitor .countdown')
+          : null;
       if (el) {
         el.textContent = String(seconds);
       }
@@ -194,6 +343,11 @@ class SaitoTransactionMonitor {
         seconds = blockWindowSeconds;
       }
       renderSeconds();
+
+      ticks += 1;
+      if (this.tx && ticks % this._reconcile_every_ticks === 0) {
+        void this.reconcileIfAlreadyConfirmed(generation);
+      }
     }, 1000);
   }
 
