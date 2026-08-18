@@ -7,12 +7,8 @@ module.exports = (app, mod, group, chat_open) => {
   if (group.txs.length > 0) {
     let tx = group.txs[group.txs.length - 1];
 
-    const regex3 = /<div class="file-name">[^>]*>/i;
-
-    if (tx.msg.indexOf('<img') == 0) {
+    if (typeof tx.msg === 'string' && tx.msg.indexOf('<img') == 0) {
       last_msg = '<em>[image]</em>';
-    } else if (regex3.test(tx.msg)) {
-      last_msg = tx.msg.match(regex3)[0];
     } else {
       last_msg = app.browser.sanitize(tx.msg);
     }
@@ -64,7 +60,7 @@ module.exports = (app, mod, group, chat_open) => {
       <img class="saito-identicon" src="${imgsrc}" data-disable="true"/>
     </div>
     <div class="saito-address saito-address-long">
-    	<div class="chat-group-name">${display_name}</div>
+    	<div class="chat-group-name">${app.browser.escapeHTML(display_name)}</div>
     	${group?.muted ? `<i class="fa-solid fa-volume-xmark"></i>` : ''}
     </div>
     <div class="saito-userline">${last_msg}</div>

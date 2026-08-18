@@ -1,7 +1,7 @@
 module.exports = (app, mod, chat_group) => {
   let html = `
    <div class="saito-modal saito-modal-menu" id="saito-chat-menu">
-    <div class="saito-modal-title">${chat_group.name}</div>
+    <div class="saito-modal-title">${app.browser.escapeHTML(chat_group.name)}</div>
      <div class="saito-modal-content saito-menu-select-heavy">`;
 
   if (chat_group.id !== mod.communityGroup.id) {

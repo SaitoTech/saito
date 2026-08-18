@@ -17,11 +17,13 @@ module.exports = (app, mod, tx) => {
   const timestamp = tx.timestamp || data.timestamp || Date.now();
 
   let featureImageUrl = null;
-  if (imageUrl) {
+  if (imageUrl && app.browser.isSafeMediaUrl(imageUrl)) {
     featureImageUrl = imageUrl;
   } else if (image) {
-    const mimeType = 'image/png';
-    featureImageUrl = `data:image/${mimeType};base64,${image}`;
+    const dataUrl = `data:image/png;base64,${image}`;
+    if (app.browser.isSafeMediaUrl(dataUrl)) {
+      featureImageUrl = dataUrl;
+    }
   }
 
   const imageMap = new Map();
@@ -56,28 +58,21 @@ module.exports = (app, mod, tx) => {
 
     processedMarkdown = processedMarkdown.replace(
       /!\[([^\]]*)\]\((data:image\/[^)]+)\)/g,
-      (_, alt, dataUrl) => `<img src="${dataUrl}" alt="${alt || ''}" />`
+      (_, alt, dataUrl) => {
+        if (!app.browser.isSafeMediaUrl(dataUrl)) {
+          return '';
+        }
+        return `<img src="${app.browser.escapeHTML(dataUrl)}" alt="${app.browser.escapeHTML(alt || '')}" />`;
+      }
     );
 
     let markdownHtml = marked.parse(processedMarkdown);
 
     if (app.browser.sanitize) {
-      html = app.browser.sanitize(markdownHtml, true);
+      html = app.browser.sanitize(markdownHtml, false);
     } else {
       html = app.browser.escapeHTML ? app.browser.escapeHTML(markdownHtml) : markdownHtml;
     }
-
-    const host = (typeof window !== 'undefined' && window.location && window.location.host) || '';
-    html = html.replace(/<a\s+([^>]*)>/gi, (match, attrs) => {
-      if (attrs.includes('saito-link')) return match;
-      const hrefMatch = attrs.match(/href=["']([^"']*)["']/i);
-      const href = hrefMatch ? hrefMatch[1] : '';
-      const isLocal = href && host && href.indexOf(host) !== -1;
-      const extra = isLocal
-        ? " data-link='local_link'"
-        : ' target="_blank" rel="noopener noreferrer"';
-      return `<a ${extra} class="saito-link" ${attrs}>`;
-    });
 
     html = html.replace(/<h1[^>]*>/gi, '<h2>');
     html = html.replace(/<\/h1>/gi, '</h2>');

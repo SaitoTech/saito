@@ -15,9 +15,7 @@ module.exports = {
     const loader = view.imageLoading
       ? `<i class="fas fa-spinner fa-spin loader" aria-hidden="true"></i>`
       : '';
-    const imageAlt = view.listingTitle
-      ? String(view.listingTitle).replace(/"/g, '&quot;')
-      : 'Listing image';
+    const imageAlt = view.listingTitle || 'Listing image';
 
     const quantity =
       !view.isRental && view.showQuantity

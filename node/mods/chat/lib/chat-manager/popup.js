@@ -86,7 +86,7 @@ class ChatPopup {
         this.app.browser.replaceElementById(
           `<div id="chat-group-${group.id}" class="chat-group${
             dm ? ' saito-address' : ''
-          }" data-id="${dm ? dm_counterparty : group.name}">${group.name}</div>`,
+          }" data-id="${this.app.browser.escapeHTML(dm ? dm_counterparty : group.name)}">${this.app.browser.escapeHTML(group.name)}</div>`,
           title
         );
 
@@ -677,8 +677,13 @@ class ChatPopup {
 
         let img = e.currentTarget;
         let src = img.getAttribute('src');
+        if (!this_self.app.browser.isSafeMediaUrl(src)) {
+          return;
+        }
 
-        this_self.overlay.show(`<img class="chat-popup-img-enhanced" src="${src}" >`);
+        this_self.overlay.show(
+          `<img class="chat-popup-img-enhanced" src="${this_self.app.browser.escapeHTML(src)}" >`
+        );
       };
     });
 

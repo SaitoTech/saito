@@ -16,15 +16,19 @@ module.exports = (app, mod, nft_overlay) => {
     text = nft.json;
   }
 
-  const imageUrl = nft?.image || '/saito/img/dreamscape.png';
-  const textHtml = text ? `<div class="saito-nft-text">${text}</div>` : '';
+  const esc = (value) => app.browser.escapeHTML(String(value ?? ''));
+  const rawImageUrl = nft?.image || '/saito/img/dreamscape.png';
+  const imageUrl = app.browser.isSafeMediaUrl(rawImageUrl)
+    ? rawImageUrl
+    : '/saito/img/dreamscape.png';
+  const textHtml = text ? `<div class="saito-nft-text">${esc(text)}</div>` : '';
   const capsHtml = capabilities ? capabilities.renderHtml() : '';
   const metaHtml = capabilities ? capabilities.footerMetaHtml(nft) : '';
 
   return `
     <div class="saito-nft-panel saito-nft-panel-view active">
       <div class="saito-nft-panel-body saito-nft-panel-body-view">
-        <div class="saito-nft-image" style="background-image:url('${imageUrl}')">
+        <div class="saito-nft-image" style="background-image:url('${esc(imageUrl)}')">
           ${textHtml}
           ${nft.expires_at != null && nft.expires_at !== '' ? `<div class="saito-nft-expires-clock">${nft.remainingExpiresLabel()}</div>` : ''}
           <div class="saito-nft-capability-chrome">

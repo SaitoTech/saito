@@ -76,7 +76,10 @@ class ListingDetailOverlay {
     }
 
     if (nft.image) {
-      return ListingDetailTemplate.mediaImage(this.escapeHtml(nft.image));
+      if (this.app?.browser?.isSafeMediaUrl?.(nft.image)) {
+        return ListingDetailTemplate.mediaImage(this.escapeHtml(nft.image));
+      }
+      return ListingDetailTemplate.mediaImage(this.returnFallbackImage());
     }
 
     const textContent =
@@ -140,7 +143,7 @@ class ListingDetailOverlay {
   }
 
   returnViewModel(summary = {}) {
-    const listingTitle = summary.returnTitle?.() || 'Untitled Item';
+    const listingTitle = this.escapeHtml(summary.returnTitle?.() || 'Untitled Item');
     const seller = summary.seller || 'anon-store';
     const shortSeller = returnShortKey(seller);
 
@@ -151,9 +154,15 @@ class ListingDetailOverlay {
       display.loading || display.innerHtml
         ? ''
         : summary.returnPlaceholderImage?.() || DREAMSCAPE_PLACEHOLDER;
-    const normalizedImages = Array.isArray(summary.images)
+    const rawImages = Array.isArray(summary.images)
       ? summary.images.filter(Boolean)
       : [listingImage || placeholder];
+    const normalizedImages = rawImages
+      .filter((src) => this.app?.browser?.isSafeMediaUrl?.(src))
+      .map((src) => this.escapeHtml(src));
+    if (!normalizedImages.length) {
+      normalizedImages.push(this.escapeHtml(DREAMSCAPE_PLACEHOLDER));
+    }
 
     const listingMeta = this.returnListingMeta(summary);
     const isRental = isStoreRentalListing(summary, listingMeta);
@@ -167,43 +176,43 @@ class ListingDetailOverlay {
     const nextBid = summary.next_bid || summary.nextMinBid || '';
     const supply = summary.returnQuantity?.() || 1;
     const actionText = isRental ? 'Rent' : isBid ? 'Bid' : 'Buy';
-    const description = summary.returnDescription?.() || '';
+    const description = this.escapeHtml(summary.returnDescription?.() || '');
     const txid = String(summary.listing_signature || summary.nft_id || 'N/A');
-    const primaryDisplay = this.hasCurrencyLabel(primaryValue)
-      ? String(primaryValue)
-      : `${primaryValue} ${currency}`;
-    const nextBidDisplay = this.hasCurrencyLabel(nextBid)
-      ? String(nextBid)
-      : `${nextBid} ${currency}`;
+    const primaryDisplay = this.escapeHtml(
+      this.hasCurrencyLabel(primaryValue) ? String(primaryValue) : `${primaryValue} ${currency}`
+    );
+    const nextBidDisplay = this.escapeHtml(
+      this.hasCurrencyLabel(nextBid) ? String(nextBid) : `${nextBid} ${currency}`
+    );
 
     const durationHours = listingMeta.rental_duration_hours || summary.nft?.data?.duration_hours;
     const rights = listingMeta.rental_rights || summary.nft?.data?.rights || 'all';
 
     return {
-      identicon: this.app?.keychain?.returnIdenticon?.(seller) || '',
+      identicon: this.escapeHtml(this.app?.keychain?.returnIdenticon?.(seller) || ''),
       listingTitle,
       seller: this.escapeHtml(seller),
       shortSeller: this.escapeHtml(shortSeller),
       images: normalizedImages,
       hasGallery: normalizedImages.length > 1,
-      primaryLabel,
+      primaryLabel: this.escapeHtml(primaryLabel),
       primaryDisplay,
       nextBid,
       showNextBid: !!nextBid && !isRental,
       nextBidDisplay,
       supply,
       showQuantity: !isRental && supply > 1,
-      actionText,
+      actionText: this.escapeHtml(actionText),
       description,
       hasDescription: !!description,
-      productType: isRental ? 'store-nft-rental' : this.returnProductType(summary),
-      fileType: this.returnFileTypeFromImages(normalizedImages),
-      createdDate: this.returnCreatedDate(summary),
-      txidShort: returnShortKey(txid),
+      productType: this.escapeHtml(isRental ? 'store-nft-rental' : this.returnProductType(summary)),
+      fileType: this.escapeHtml(this.returnFileTypeFromImages(rawImages)),
+      createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
+      txidShort: this.escapeHtml(returnShortKey(txid)),
       imageLoading: summary.isImageLoading?.() ?? false,
       isRental,
-      rentalDuration: durationHours ? durationLabel(durationHours) : '',
-      rentalRights: rightsLabel(rights)
+      rentalDuration: this.escapeHtml(durationHours ? durationLabel(durationHours) : ''),
+      rentalRights: this.escapeHtml(rightsLabel(rights))
     };
   }
 
@@ -281,7 +290,7 @@ class ListingDetailOverlay {
     }
     if (mainImage) {
       mainImage.style.display = '';
-      if (display.backgroundImage) {
+      if (display.backgroundImage && this.app?.browser?.isSafeMediaUrl?.(display.backgroundImage)) {
         mainImage.setAttribute('src', display.backgroundImage);
       }
     }
