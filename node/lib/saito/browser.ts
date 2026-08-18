@@ -2106,59 +2106,55 @@ class Browser {
         });
       }
 
-      text = emoji.emojify(text);
-
       text = sanitizeHtml(text, {
         allowedTags: [
           'a',
+          'p',
+          'br',
+          'div',
+          'span',
+          'ul',
+          'ol',
+          'li',
+          'blockquote',
+          'strong',
+          'b',
+          'em',
+          'i',
+          'strike',
+          'del',
+          'code',
+          'pre',
+          'hr',
           'h1',
           'h2',
           'h3',
           'h4',
           'h5',
           'h6',
-          'blockquote',
-          'p',
-          'ul',
-          'ol',
-          'nl',
-          'li',
-          'b',
-          'i',
-          'strong',
-          'em',
-          'strike',
-          'code',
-          'hr',
-          'br',
-          'div',
           'table',
           'thead',
-          'caption',
           'tbody',
           'tr',
           'th',
           'td',
-          'marquee',
-          /*'pre',*/
-          'span',
-          'img',
-          'video',
-          'audio'
+          'img'
         ],
         allowedAttributes: {
+          a: ['href', 'class', 'target', 'rel', 'data-link'],
+          span: ['class', 'data-id'],
           div: ['class', 'id'],
-          span: ['class', 'id', 'data-id'],
-          img: ['src', 'class'],
+          img: ['src', 'class', 'alt'],
           blockquote: ['href'],
-          i: ['class'],
-          a: ['href', 'data-*', 'class', 'target', 'rel']
+          code: ['class']
         },
-        selfClosing: ['img', 'br', 'hr', 'area', 'base', 'basefont', 'input', 'link', 'meta'],
-        allowedSchemes: ['http', 'https', 'ftp', 'mailto'],
-        allowedSchemesByTag: {},
-        allowedSchemesAppliedToAttributes: ['href', 'cite'],
-        allowProtocolRelative: true,
+        selfClosing: ['img', 'br', 'hr'],
+        allowedSchemes: ['http', 'https', 'mailto'],
+        allowedSchemesByTag: {
+          img: ['http', 'https', 'data']
+        },
+        allowedSchemesAppliedToAttributes: ['href', 'src'],
+        allowProtocolRelative: false,
         transformTags: {
           a: (tagName, attribs) => {
             const href = attribs.href || '';
@@ -2169,7 +2165,7 @@ class Browser {
             let isLocal = false;
             try {
               if (typeof window !== 'undefined' && window.location?.host) {
-                isLocal = href.includes(window.location.host);
+                isLocal = (attribs.href || href).includes(window.location.host);
               }
             } catch (err) {}
             if (isLocal) {
@@ -2182,8 +2178,30 @@ class Browser {
             }
             return { tagName, attribs };
           }
+        },
+        exclusiveFilter: (frame) => {
+          if (frame.tag !== 'img') {
+            return false;
+          }
+          const src = frame.attribs?.src;
+          if (!src || typeof src !== 'string') {
+            return true;
+          }
+          const trimmed = src.trim();
+          if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
+            return true;
+          }
+          if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+            return trimmed.includes('\\');
+          }
+          if (/^data:image\/(jpeg|jpg|png|gif|webp);base64,/i.test(trimmed)) {
+            return false;
+          }
+          return !(this.isSafeHref(trimmed) && /^https?:/i.test(trimmed));
         }
       });
+
+      text = emoji.emojify(text);
 
       text = text.replace(/^\s+|\s+$/g, '');
 
@@ -2285,7 +2303,10 @@ class Browser {
     if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
       return null;
     }
-    if (/^(https?|ftp|mailto):/i.test(trimmed) || trimmed.startsWith('//')) {
+    if (trimmed.startsWith('//')) {
+      return null;
+    }
+    if (/^(https?|mailto):/i.test(trimmed)) {
       return trimmed;
     }
     if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) {
@@ -2295,8 +2316,8 @@ class Browser {
   }
 
   /**
-   * True if url is safe to use as an href (http/https/ftp/mailto, or protocol-relative).
-   * Rejects javascript:, data:, vbscript:, and other non-allowed schemes.
+   * True if url is safe to use as an href (http/https/mailto).
+   * Rejects javascript:, data:, vbscript:, ftp, protocol-relative, and other non-allowed schemes.
    */
   isSafeHref(url) {
     if (!url || typeof url !== 'string') {
@@ -2307,14 +2328,14 @@ class Browser {
       return false;
     }
     if (trimmed.startsWith('//')) {
-      return /^\/\/[\w.-]+/.test(trimmed);
+      return false;
     }
     const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
     if (!schemeMatch) {
       return false;
     }
     const scheme = schemeMatch[1].toLowerCase();
-    return scheme === 'http' || scheme === 'https' || scheme === 'ftp' || scheme === 'mailto';
+    return scheme === 'http' || scheme === 'https' || scheme === 'mailto';
   }
 
   /**
