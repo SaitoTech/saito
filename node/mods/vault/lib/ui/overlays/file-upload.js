@@ -412,7 +412,7 @@ class FileUpload {
         ? {
             title: 'Creating Rental Master Key',
             lead: 'Your Rental Master Key is being created on the Saito network.',
-            subtitle: 'This page will update automatically when it is confirmed.',
+            subtitle: '',
             successTitle: 'Rental Master Key Created',
             successLead: 'Your Rental Master Key is now in your wallet.',
             successActionLabel: 'Continue'
@@ -421,7 +421,7 @@ class FileUpload {
           ? {
               title: 'Creating Custom Access Key',
               lead: 'Your Custom Access Key is being created on the Saito network.',
-              subtitle: 'This page will update automatically when your Vault Key is confirmed.',
+              subtitle: '',
               successTitle: 'Custom Access Key Received',
               successLead: 'Your Custom Access Key is now in your wallet.',
               successActionLabel: 'Continue'
@@ -429,7 +429,7 @@ class FileUpload {
           : {
               title: 'Creating Vault Access Key',
               lead: 'Your Vault Access Key NFT has been broadcast to the Saito network.',
-              subtitle: 'This page will update automatically when your Vault Key is confirmed.',
+              subtitle: '',
               successTitle: 'Vault Access Key Received',
               successLead: 'Your Vault Access Key has arrived.',
               successActionLabel: 'Continue'

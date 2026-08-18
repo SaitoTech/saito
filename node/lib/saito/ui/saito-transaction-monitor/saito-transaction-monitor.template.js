@@ -6,7 +6,7 @@ module.exports = {
     <div class="saito-spinner" aria-hidden="true"></div>
     <h2 class="title">${title}</h2>
     <p class="lead">${lead}</p>
-    <p class="subtitle">${subtitle}</p>
+    ${subtitle ? `<p class="subtitle">${subtitle}</p>` : ''}
     <div class="timer">
       <span class="timer-label">expected time to next block</span>
       <span class="countdown" aria-live="polite">—</span>

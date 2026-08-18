@@ -63,7 +63,10 @@ class SaitoTransactionMonitor {
       Template.pending({
         title: options.title || 'Waiting for Confirmation',
         lead: options.lead || 'Your transaction has been broadcast to the Saito network.',
-        subtitle: options.subtitle || 'It will become visible once included in a block.'
+        subtitle:
+          options.subtitle !== undefined
+            ? options.subtitle
+            : 'It will become visible once included in a block.'
       }),
       () => {
         this.onOverlayClosed();
