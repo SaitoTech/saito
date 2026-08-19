@@ -43,8 +43,6 @@ module.exports = (app, mod, form) => {
         <h2 class="saito-overlay-form-header-title">Play for Crypto</h2>
       </header>
 
-      <p class="saito-overlay-form-text">Choose the amount each player should stake on the game.</p>
-
       <div class="game-stake">
         <label for="amount_to_stake_input">Game Stake</label>
         <div class="amount-row">
@@ -54,17 +52,14 @@ module.exports = (app, mod, form) => {
         <div class="stake-input-error" id="stake-amount-error"></div>
       </div>
 
-      <hr>
-
       <div class="auth">
         <input class="saito-checkbox" type="checkbox" name="crypto-stake-confirm-input" id="crypto-stake-confirm-input"${form.authorize === false ? '' : ' checked'}>
         <label for="crypto-stake-confirm-input">Yes, I prefer fast in-game settlement ${warning_msg}</label>
       </div>
-      <p class="saito-overlay-form-text">Selecting this option allows the game to automatically handle payments and receipts using fast, internal transfers. You can change this in Settings at any time.</p>
       <div class="stake-input-error" id="stake-checkbox-error"></div>
 
       <div class="saito-button-row">
-        <button type="button" class="saito-button-primary" id="enable_staking_yes">Confirm Stake</button>
+        <button type="button" class="saito-button-primary" id="enable_staking_yes">Confirm</button>
       </div>
     </form>
   `;

@@ -1,0 +1,138 @@
+.admin-blocks {
+  max-width: 1100px;
+}
+
+.admin-blocks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.admin-blocks-header h1 {
+  margin: 0;
+}
+
+.admin-blocks-header .admin-button {
+  margin-top: 0;
+}
+
+.admin-blocks-intro {
+  max-width: 760px;
+  color: #555;
+}
+
+.admin-blocks-error {
+  margin: 0 0 16px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #f2c7c7;
+  background: #fff5f5;
+  color: #a52828;
+}
+
+.admin-blocks-current {
+  margin: 0 0 24px 0;
+  padding: 20px 22px;
+  border: 1px solid #e1e4e8;
+  border-radius: 14px;
+  background: #f5fbf7;
+}
+
+.admin-blocks-current-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.admin-blocks-current-id {
+  font-size: 36px;
+  font-weight: 600;
+  color: #2c3e50;
+  line-height: 1.2;
+  margin: 4px 0;
+}
+
+.admin-blocks-hash-full {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  word-break: break-all;
+  color: #374151;
+}
+
+.admin-blocks-current-meta {
+  margin-top: 10px;
+  color: #555;
+  font-size: 14px;
+}
+
+.admin-blocks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px 24px;
+  margin-bottom: 28px;
+}
+
+.admin-blocks-stat label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.admin-blocks-stat div {
+  font-size: 15px;
+  color: #111827;
+}
+
+.admin-blocks-recent h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.admin-blocks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-blocks-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-blocks-table td {
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+}
+
+.admin-blocks-hash {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.admin-blocks-empty {
+  color: #666;
+}
+
+@media (max-width: 720px) {
+  .admin-blocks-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-blocks-table th:nth-child(4),
+  .admin-blocks-table td:nth-child(4),
+  .admin-blocks-table th:nth-child(6),
+  .admin-blocks-table td:nth-child(6) {
+    display: none;
+  }
+}

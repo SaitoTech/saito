@@ -1,10 +1,13 @@
 module.exports = (app, mod) => {
-  let html = `
-    <h1 class="admin-header" id ="admin-header">${app.options?.admin?.length ? 'Logging in to Admin Dashboard' : 'Congratulations'}!</h1>
-  `;
+  const options = mod?.server_info?.options || {};
+  const server = options.server || {};
+  const endpoint = server.endpoint || server;
+  const host = endpoint.host || server.host || '—';
+  const port = endpoint.port || server.port || '—';
+  const is_dev = options.consensus?.disable_block_production === false;
 
-  if (!need_to_set_key) {
-    html += `
+  let html = `
+    <h1 class="admin-header">Welcome back, Saito Admin</h1>
 
     <div class="admin-server">
       <div class="admin-server-header">
@@ -14,39 +17,86 @@ module.exports = (app, mod) => {
       <div class="admin-server-grid">
         <div class="server-stat">
           <label>Public Key</label>
-          <div
-            id="node-publickey"
-            class="mono"
-            data-publickey="${mod.server_publickey}"
-          >${mod.server_publickey}</div>
+          <div class="mono">${mod.server_publickey || '—'}</div>
         </div>
 
         <div class="server-stat">
-          <label>Balance</label>
-          <div id="node-balance"> -- </div>
+          <label>Root Module</label>
+          <div>${options.defaultModule || '—'}</div>
         </div>
 
         <div class="server-stat">
           <label>Host</label>
-          <div id="node-host">localhost</div>
+          <div>${host}</div>
         </div>
 
         <div class="server-stat">
           <label>Port</label>
-          <div id="node-port">12101</div>
+          <div>${port}</div>
         </div>
       </div>
     </div>
+  `;
+
+  if (is_dev) {
+    html += `
+      <div class="admin-keys-panel">
+        <h2>Local Development Keys</h2>
+        <p class="keys-warning">
+          These private keys have tokens available. You can import them into browser wallets
+          using the import key function. They should be used for <strong>local development only</strong>
+          as they are publicly shared. Do not use them on public networks.
+        </p>
+
+        <div class="keys-table">
+          <div class="keys-row header">
+            <div>Private Key</div>
+            <div>Public Key</div>
+          </div>
+          <div class="keys-row">
+            <code class="private">d62cd978a0bac0bcf97eff82f7388c6210f649e2126c332dcee3894cfd77a103</code>
+            <code class="public">wDwNGzgx1yn2N21gHiHs43USRiXPx9H9NAcef1UZjLRX</code>
+          </div>
+          <div class="keys-row">
+            <code class="private">0435658a9dd54ce741b4ce4789711707e8cf4aa7e841a76ff5df0313caf941d1</code>
+            <code class="public">sHs6UQb5TDN5WTJ4nnehSUo79uCMxZaCENrzPzGiV6pJ</code>
+          </div>
+          <div class="keys-row">
+            <code class="private">c8beb43281c53efea632d3a6185577b446ab1403b4b67525f8e8aef4f7513ba6</code>
+            <code class="public">h17F8nAJ6BEsFuUbD4EbQKwHHYQBZxzwQpAsL58akY7m</code>
+          </div>
+          <div class="keys-row">
+            <code class="private">7614198ed41f4214729a7d5957c2e79d969792d3046bfd43348b8bed5567f582</code>
+            <code class="public">xM2vUs5XCpNjYjcgxk4yVhybDcayk3tnwZNWrFg7jRGs</code>
+          </div>
+          <div class="keys-row">
+            <code class="private">45dd08cfa770778c5dcaa9d6c0e63815f16dda79c43cf6aaadbbcae017a8bd5d</code>
+            <code class="public">tFCXYDgmKxTZTKG1wDuLLkLW1T1tZ5uiz4fZDPeYGWfC</code>
+          </div>
+          <div class="keys-row">
+            <code class="private">ce17f5286520182283876638ffc36bc8a0db3e2498dddcc30587cfa94eb4b50d</code>
+            <code class="public">zavTygq2xGHETckJvnMNfgY5UpqWEU46vBXyVz2wUZgz</code>
+          </div>
+          <div class="keys-row">
+            <code class="private">7462b66d116779aafd485d86fce0e7c86e7396e0fb8b6b995bba0a9578ba9466</code>
+            <code class="public">dd4s6mdnYdq4bb7QtcwTRWoq7hApUiQrDGi9CE8hvfdc</code>
+          </div>
+          <div class="keys-row">
+            <code class="private">f2a7da8b170894bac3152957c6b45a0b5af823cef9224df5cb66807042ec8917</code>
+            <code class="public">bujP18K4fkzHvtuRriXqgN6ay8AmUjhoRSj9jjBXohkj</code>
+          </div>
+          <div class="keys-row">
+            <code class="private">503ed5ff51f2a17866ce8ca34013e58bb697a4aae740c40e6d1c1d3cf0d528a0</code>
+            <code class="public">muJ8J1paK3nvHdFtdpakTejgCsAVkFmG7rGkc2dvCNpm</code>
+          </div>
+          <div class="keys-row">
+            <code class="private">5e8baa6faf568242ab7bce2cbdaa7684d50de778f2e873f2423cd0d3c955fbed</code>
+            <code class="public">urxxJT3p3wBNM1FSpF8nCUd8mKbyqGARbgDybr43Umna</code>
+          </div>
+        </div>
+      </div>
     `;
   }
-
-  html += `
-
-    <div class="admin-adminkey"></div>
-    <div class="admin-setup"></div>
-    <div class="admin-dashbox"></div>
-
-  `;
 
   return html;
 };

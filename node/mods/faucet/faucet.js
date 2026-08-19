@@ -271,6 +271,16 @@ class Faucet extends ModTemplate {
     );
 
     if (record) {
+      await this.db.insertActivity({
+        requester_publickey: identity.publickey,
+        provider: identity.provider,
+        provider_user_id: identity.provider_user_id,
+        provider_username: identity.provider_username,
+        requested_amount: this.amount.toString(),
+        request_status: 'rejected',
+        request_reason: 'already_issued',
+        payment_status: 'none'
+      });
       let peer = await this.app.network.getPeer(identity.publickey);
       if (!peer?.publicKey) {
         const peers = await this.app.network.getPeers();
@@ -305,6 +315,16 @@ class Faucet extends ModTemplate {
 
     if (!(await this.db.insertRecord(identity))) {
       console.log('[Faucet] acceptAuthenticatedIdentity insert failed');
+      await this.db.insertActivity({
+        requester_publickey: identity.publickey,
+        provider: identity.provider,
+        provider_user_id: identity.provider_user_id,
+        provider_username: identity.provider_username,
+        requested_amount: this.amount.toString(),
+        request_status: 'rejected',
+        request_reason: 'registration_failed',
+        payment_status: 'none'
+      });
       return {
         status: 500,
         popup: {
@@ -323,6 +343,15 @@ class Faucet extends ModTemplate {
       );
     }
     console.log('[Faucet] acceptAuthenticatedIdentity inserted — will issue after faucet request confirms');
+    await this.db.insertActivity({
+      requester_publickey: identity.publickey,
+      provider: identity.provider,
+      provider_user_id: identity.provider_user_id,
+      provider_username: identity.provider_username,
+      requested_amount: this.amount.toString(),
+      request_status: 'accepted',
+      payment_status: 'none'
+    });
     if (!peer?.publicKey) {
       console.log('[Faucet] acceptAuthenticatedIdentity no connected peer for ' + identity.publickey);
       return {
@@ -470,20 +499,73 @@ class Faucet extends ModTemplate {
     let receiver = tx.from[0].publicKey;
     console.log('[Faucet] receiveFaucetClaimTransaction receiver=' + receiver);
 
+    const request_block_id = blk.id != null ? String(blk.id) : '';
+    const request_block_hash = blk.hash || '';
+    const request_tx_signature = tx.signature || '';
+    const registration = await this.db.getRecord({ publickey: receiver });
+
     const began = await this.db.updateRecord(
       { publickey: receiver, issuance_status: 'eligible' },
       { issuance_status: 'pending' }
     );
     if (!began) {
       console.log('[Faucet] receiveFaucetClaimTransaction refused — no eligible registration for ' + receiver);
+      await this.db.insertActivity({
+        requester_publickey: receiver,
+        provider: registration?.provider || '',
+        provider_user_id: registration?.provider_user_id || '',
+        provider_username: registration?.provider_username || '',
+        requested_amount: this.amount.toString(),
+        request_status: 'rejected',
+        request_reason: 'no_eligible_registration',
+        request_tx_signature,
+        request_block_id,
+        request_block_hash,
+        request_longest_chain: 1,
+        payment_status: 'none'
+      });
       return;
     }
 
     console.log('[Faucet] receiveFaucetClaimTransaction queueing payment for ' + receiver);
+    const open = await this.db.findOpenActivity(receiver);
+    const activity_id =
+      open?.id ||
+      (await this.db.insertActivity({
+        requester_publickey: receiver,
+        provider: registration?.provider || '',
+        provider_user_id: registration?.provider_user_id || '',
+        provider_username: registration?.provider_username || '',
+        requested_amount: this.amount.toString(),
+        request_status: 'accepted',
+        request_tx_signature,
+        request_block_id,
+        request_block_hash,
+        request_longest_chain: 1,
+        payment_status: 'queued'
+      }));
+    if (open?.id) {
+      await this.db.updateActivity(activity_id, {
+        request_tx_signature,
+        request_block_id,
+        request_block_hash,
+        request_longest_chain: 1,
+        payment_status: 'queued'
+      });
+    }
+
     try {
       const newtx = await this.wallet.queuePayment({
         publickey: receiver
       });
+
+      if (activity_id) {
+        await this.db.updateActivity(activity_id, {
+          payment_status: 'broadcast',
+          payment_tx_signature: newtx.signature || '',
+          paid_at: Date.now()
+        });
+      }
 
       const completed = await this.db.updateRecord(
         { publickey: receiver, issuance_status: 'pending' },
@@ -509,6 +591,9 @@ class Faucet extends ModTemplate {
       }
     } catch (err) {
       console.error('[Faucet] payout failed after pending claim; reverting to eligible', err);
+      if (activity_id) {
+        await this.db.updateActivity(activity_id, { payment_status: 'failed' });
+      }
       await this.db.updateRecord(
         { publickey: receiver, issuance_status: 'pending' },
         { issuance_status: 'eligible' }
@@ -533,13 +618,17 @@ class Faucet extends ModTemplate {
       return;
     }
 
+    let txmsg = tx.returnMessage();
+
+    if (!this.app.BROWSER && txmsg?.request === 'faucet issuance') {
+      await this.db.markPaymentIncluded(tx.signature, blk?.id, blk?.hash);
+    }
+
     if (this.hasSeenTransaction(tx, blk)) {
       return;
     }
 
-    let txmsg = tx.returnMessage();
-
-    if (txmsg.request === 'faucet request') {
+    if (txmsg?.request === 'faucet request') {
       console.log(
         '[Faucet] onConfirmation faucet request from=' + (tx.from?.[0]?.publicKey || '')
       );
@@ -549,7 +638,7 @@ class Faucet extends ModTemplate {
       return;
     }
 
-    if (txmsg.request === 'faucet issuance') {
+    if (txmsg?.request === 'faucet issuance') {
       console.log(
         '[Faucet] onConfirmation faucet issuance to=' +
           (tx.to || [])
@@ -564,8 +653,69 @@ class Faucet extends ModTemplate {
     await this.wallet.onNewBlock(blk, lc);
   }
 
-  onChainReorganization(block_id, block_hash, lc) {
+  async onChainReorganization(block_id, block_hash, lc) {
     this.wallet.onChainReorganization(block_id, block_hash, lc);
+    if (!this.app.BROWSER) {
+      await this.db.markChainState(block_id, block_hash, lc);
+    }
+  }
+
+  async adminSnapshot(filter = 'recent') {
+    if (filter !== 'pending' && filter !== 'completed' && filter !== 'failed') {
+      filter = 'recent';
+    }
+    await this.wallet.getSnapshotBalance();
+
+    let balance_nolan = 0n;
+    for (const slip of this.wallet.slips || []) {
+      try {
+        balance_nolan += BigInt(slip.amount || 0);
+      } catch (err) {
+        // ignore malformed slip amounts
+      }
+    }
+
+    const toSaito = (nolan) => {
+      try {
+        return String(this.app.wallet.convertNolanToSaito(BigInt(nolan || 0)));
+      } catch (err) {
+        return '0';
+      }
+    };
+
+    const activity = await this.db.listActivity(filter, 50);
+    return {
+      publickey: this.wallet.publickey || this.app.options.faucet?.publickey || '',
+      balance_nolan: balance_nolan.toString(),
+      balance_saito: toSaito(balance_nolan),
+      payout_nolan: this.amount.toString(),
+      payout_saito: toSaito(this.amount),
+      queue_length: (this.wallet.queue || []).length,
+      counts: await this.db.activityCounts(),
+      filter,
+      activity: activity.map((row) => ({
+        id: row.id,
+        created_at: row.created_at,
+        requester_publickey: row.requester_publickey,
+        provider: row.provider,
+        provider_user_id: row.provider_user_id,
+        provider_username: row.provider_username,
+        requested_amount: row.requested_amount,
+        requested_saito: toSaito(row.requested_amount),
+        request_status: row.request_status,
+        request_reason: row.request_reason,
+        request_tx_signature: row.request_tx_signature,
+        request_block_id: row.request_block_id,
+        request_block_hash: row.request_block_hash,
+        request_longest_chain: Number(row.request_longest_chain) === 1,
+        payment_status: row.payment_status,
+        payment_tx_signature: row.payment_tx_signature,
+        paid_at: row.paid_at,
+        payment_block_id: row.payment_block_id,
+        payment_block_hash: row.payment_block_hash,
+        payment_longest_chain: Number(row.payment_longest_chain) === 1
+      }))
+    };
   }
 
   async handlePeerTransaction(app, tx = null, peer, mycallback = null) {
@@ -605,6 +755,17 @@ class Faucet extends ModTemplate {
       }
       if (this.free_use !== true) {
         console.log('[Faucet] faucet free use refused — free_use is off');
+        const publickey = String(tx.from?.[0]?.publicKey || '').trim();
+        if (publickey) {
+          await this.db.insertActivity({
+            requester_publickey: publickey,
+            provider: 'free_use',
+            requested_amount: this.amount.toString(),
+            request_status: 'rejected',
+            request_reason: 'free_use_disabled',
+            payment_status: 'none'
+          });
+        }
         return 1;
       }
       const publickey = String(tx.from?.[0]?.publicKey || '').trim();

@@ -1,78 +1,121 @@
 .admin-database {
-  margin-top: 40px;
-  padding: 28px;
-  background: #ffffff;
-  border-radius: 10px;
-  max-width: 900px;
+  max-width: 1100px;
 }
 
-.admin-database-query {
+.admin-db-intro {
+  max-width: 760px;
+  color: #555;
+}
+
+.admin-db-error {
+  margin: 0 0 16px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #f2c7c7;
+  background: #fff5f5;
+  color: #a52828;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-db-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 0 0 12px 0;
+}
+
+.admin-db-bar label {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 24px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.admin-db-current {
+  color: #444;
+}
+
+.admin-db-empty {
+  color: #666;
+}
+
+.admin-db-schema-wrap,
+.admin-db-sql,
+.admin-db-results {
+  margin-top: 24px;
+}
+
+.admin-db-schema-wrap h2,
+.admin-db-sql h2,
+.admin-db-results h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
 }
 
 #admin-sql-input {
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
   min-height: 140px;
   resize: vertical;
 }
 
-.admin-database-results {
-  border-top: 1px solid #ddd;
-  padding-top: 20px;
+.admin-db-sql .admin-button {
+  margin-top: 12px;
 }
 
-#admin-database-output {
-  background: #111;
-  color: #00ff88;
-  padding: 16px;
-  border-radius: 6px;
-  max-height: 400px;
-  overflow: auto;
+.admin-db-status {
+  color: #1b5e20;
+  background: #f1f8f4;
+  border: 1px solid #cfe6da;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.admin-db-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
   font-size: 13px;
 }
 
-.admin-database-tables {
-  margin: 15px 0;
+.admin-db-schema-wrap,
+#admin-db-output {
+  overflow-x: auto;
 }
 
-#admin-database-tables-list {
-  list-style: none;
-  padding-left: 0;
-  margin: 0 0 15px 0;
-}
-
-#admin-database-tables-list li {
-  padding: 6px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-#admin-database-tables-list li:hover {
-  background: #f0f0f0;
-}
-
-.admin-database-results table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.admin-database-results th,
-.admin-database-results td {
-  border: 1px solid #ddd;
-  padding: 8px;
+.admin-db-table th {
   text-align: left;
-}
-
-.admin-database-results th {
-  background: #f7f7f7;
+  font-size: 12px;
   font-weight: 600;
+  color: #6b7280;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
 }
 
-#query-database-button.loading {
-  opacity: 0.7;
-  cursor: default;
+.admin-db-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+  max-width: 420px;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.admin-db-table tr:hover td {
+  background: #f9fafb;
+}
+
+.admin-db-null {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .admin-db-bar {
+    grid-template-columns: 1fr;
+  }
 }

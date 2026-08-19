@@ -1,0 +1,138 @@
+.admin-modules-hint {
+  padding: 20px 0;
+  color: #555;
+  max-width: 640px;
+}
+
+.admin-modules-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95em;
+}
+
+.module-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.module-config-header h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+#modconfig-button {
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.mod-config-table {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  gap: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.mod-config-table input[type='checkbox'] {
+  display: none;
+}
+
+.mod-config-table label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  color: #2c3e50;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.mod-config-table label::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid #cfd4d9;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.mod-config-table label:hover {
+  transform: translateY(-2px);
+  border-color: #c8d6cc;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.mod-config-table input[type='checkbox']:checked + label {
+  background: #f5fbf7;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.25);
+}
+
+.mod-config-table input[type='checkbox']:checked + label::before {
+  background: #4caf50;
+  border-color: #4caf50;
+}
+
+.mod-config-table label svg,
+.mod-config-table label .icon {
+  margin-left: auto;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+.mod-config-table label:hover svg,
+.mod-config-table label:hover .icon {
+  opacity: 1;
+}
+
+@media screen and (max-width: 900px) {
+  .mod-config-table {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .module-config-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  #modconfig-button {
+    align-self: stretch;
+  }
+
+  .mod-config-table {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mod-config-table label {
+    padding: 18px 16px;
+    font-size: 16px;
+  }
+
+  .mod-config-table label:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
