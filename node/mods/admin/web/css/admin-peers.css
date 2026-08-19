@@ -1,267 +1,222 @@
-/* ================================
-   Admin Peers – Layout + Defaults
-   ================================ */
-
 .admin-peers {
-  max-width: 960px;
-  display: flex;
-  flex-direction: column;
-  gap: 36px;
+  max-width: 1100px;
 }
 
-.admin-peers h1 {
-  margin-bottom: 12px;
+.admin-peers-header h1 {
+  margin-bottom: 8px;
 }
 
-.admin-peers h2 {
-  margin-bottom: 10px;
-}
-
-/* ================================
-   Server Info
-   ================================ */
-
-.server-info {
+.admin-peers-endpoint {
+  margin: 0 0 28px 0;
   padding: 18px 20px;
   border: 1px solid #e1e4e8;
-  border-radius: 10px;
-  background: #fafafa;
-}
-
-.server-endpoint {
-  margin: 10px 0;
-}
-
-.server-endpoint code {
-  font-size: 15px;
-  padding: 6px 10px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  display: inline-block;
-}
-
-.admin-peers .hint {
-  font-size: 14px;
-  color: #666;
-  margin-top: 6px;
-}
-
-/* ================================
-   Configured Peers List
-   ================================ */
-
-.peers-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.peer-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 16px;
-  align-items: center;
-  padding: 14px 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 14px;
   background: #ffffff;
 }
 
-.peer-main strong {
-  font-size: 14px;
+.admin-peers-endpoint-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 8px;
 }
 
-.peer-key {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #777;
+.admin-peers-endpoint-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-peers-endpoint code,
+.admin-peers-key code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  background: #f9fafb;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
   word-break: break-all;
 }
 
-.peer-remove {
-  background: #e57373;
-  color: white;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.peer-remove:hover {
-  background: #d85c5c;
-}
-
-/* ================================
-   Add Peer – Table-like Form
-   ================================ */
-
-.add-peer {
-  padding-top: 8px;
-}
-
-.peer-form-header {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 2fr auto;
-  gap: 12px;
-  font-size: 12px;
-  color: #777;
-  margin-bottom: 6px;
-}
-
-.peer-form-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 2fr auto;
-  gap: 12px;
-  align-items: stretch;
-}
-.peer-form-row input,
-.peer-form-row select,
-.peer-form-row button {
-  height: 44px;
-}
-/* ================================
-   Save Actions
-   ================================ */
-
-.peer-actions {
-  padding-top: 6px;
-}
-
-.peer-actions button {
-  max-width: 220px;
-}
-
-.peer-actions button[disabled] {
-  opacity: 0.5;
-}
-
-/* ================================
-   Mobile Responsiveness
-   ================================ */
-
-@media (max-width: 768px) {
-  .peer-form-header {
-    display: none;
-  }
-
-  .peer-form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .peer-form-row button {
-    width: 100%;
-  }
-
-  .peer-row {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .peer-remove {
-    justify-self: flex-start;
-  }
-}
-
-.admin-peers-divider {
-  margin: 40px 0;
-  border: none;
-  border-top: 1px solid #e5e5e5;
-}
-
-.admin-live-peers h2 {
-  margin-bottom: 10px;
-}
-
-.admin-live-peers-description {
-  margin-bottom: 15px;
+.admin-peers-endpoint p {
+  margin: 10px 0 0 0;
   color: #666;
-  font-size: 14px;
 }
 
-#refresh-live-peers-button {
-  margin-bottom: 20px;
-}
-
-.admin-live-peers-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.admin-live-peers-table th,
-.admin-live-peers-table td {
-  border: 1px solid #e0e0e0;
-  padding: 8px 10px;
-  text-align: left;
-}
-
-.admin-live-peers-table th {
-  background: #f7f7f7;
-  font-weight: 600;
-}
-
-.admin-live-peer-json-button {
-  padding: 6px 12px;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.admin-live-peer-json-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
+.admin-peers-key {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.5);
+  gap: 10px;
+  margin-top: 12px;
+  color: #666;
+  font-size: 14px;
+  flex-wrap: wrap;
 }
 
-.admin-live-peer-json-popup {
-  width: min(900px, 100%);
-  max-height: min(760px, 90vh);
-  display: flex;
-  flex-direction: column;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
+.admin-peers-error {
+  margin: 0 0 16px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #f2c7c7;
+  background: #fff5f5;
+  color: #a52828;
 }
 
-.admin-live-peer-json-header {
+.admin-peers-notice {
+  margin: 0 0 16px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #cfe6da;
+  background: #f1f8f4;
+  color: #1b5e20;
+}
+
+.admin-peers-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 8px;
 }
 
-.admin-live-peer-json-header h3 {
-  margin: 0;
+.admin-peers-section-header h2,
+.admin-peers-offline h2,
+.admin-peers-add h2 {
+  margin: 0 0 8px 0;
   font-size: 18px;
+}
+
+.admin-peers-intro {
+  color: #555;
+  max-width: 760px;
+}
+
+.admin-peers-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 28px 0;
+}
+
+.admin-peers-table th {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-peers-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+  font-size: 14px;
+}
+
+.admin-peer-row.permanent {
+  background: #f5fbf7;
+}
+
+.admin-peer-endpoint {
+  font-weight: 600;
   color: #2c3e50;
+  word-break: break-all;
 }
 
-.admin-live-peer-json-close {
-  padding: 8px 14px;
+.admin-peer-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  color: #4b5563;
+}
+
+.admin-peer-badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.admin-peers-empty {
+  color: #666;
+  margin: 8px 0 28px 0;
+}
+
+.admin-peers-offline {
+  margin-bottom: 28px;
+}
+
+.admin-peer-offline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.admin-peer-offline-note {
   font-size: 13px;
+  color: #6b7280;
 }
 
-.admin-live-peer-json-body {
+.admin-peers-form {
+  display: grid;
+  grid-template-columns: 1fr 120px 120px auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-peers-form .admin-input {
   margin: 0;
-  padding: 18px 20px;
-  overflow: auto;
-  font-size: 13px;
-  line-height: 1.45;
-  color: #1f2933;
-  background: #f8fafc;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
-.admin-live-peer-error {
-  color: #c62828;
-  font-weight: 500;
+.admin-peers-form .admin-button {
+  margin-top: 0;
+}
+
+.admin-button-quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #444;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.admin-button-quiet:hover {
+  background: #f5f5f5;
+}
+
+.admin-button-quiet:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 800px) {
+  .admin-peers-form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-peer-offline-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-peers-table th:nth-child(3),
+  .admin-peers-table td:nth-child(3) {
+    display: none;
+  }
 }

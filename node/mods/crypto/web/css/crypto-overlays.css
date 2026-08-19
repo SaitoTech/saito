@@ -1303,16 +1303,18 @@ input[type='checkbox'].ignore-checkbox {
 #stake-crypto-request-container {
   width: min(50rem, 95vw);
   padding: var(--saito-space-lg);
-  gap: var(--saito-space-md);
-}
-
-#stake-crypto-request-container > p {
-  margin: 0;
+  gap: var(--saito-space-xl);
 }
 
 #approve-crypto-request-container {
   width: min(72rem, 95vw);
   gap: var(--saito-space-md);
+}
+
+#approve-crypto-request-container:has(.stake) {
+  width: min(50rem, 95vw);
+  padding: var(--saito-space-lg);
+  gap: var(--saito-space-xl);
 }
 
 #stake-crypto-request-container .game-stake {
@@ -1340,12 +1342,17 @@ input[type='checkbox'].ignore-checkbox {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+  gap: var(--saito-space-xs);
 }
 
 #stake-crypto-request-container .currency select {
   width: auto;
   min-width: 11rem;
   padding-left: 3.6rem;
+}
+
+#stake-crypto-request-container .currency:has(select) {
+  gap: 0;
 }
 
 #stake-crypto-request-container .currency:has(select) img {
@@ -1356,10 +1363,6 @@ input[type='checkbox'].ignore-checkbox {
   pointer-events: none;
 }
 
-#stake-crypto-request-container .currency:not(:has(select)) {
-  gap: var(--saito-space-xs);
-}
-
 #stake-crypto-request-container .currency img,
 #approve-crypto-request-container .currency img {
   width: 1.8rem;
@@ -1368,27 +1371,47 @@ input[type='checkbox'].ignore-checkbox {
 
 #approve-crypto-request-container .stake {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
-  text-align: center;
+  justify-content: center;
+  gap: var(--saito-space-sm);
+  white-space: nowrap;
+  font-size: 2.4rem;
+  line-height: 1.2;
+}
+
+#approve-crypto-request-container .stake h1 {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-family: inherit;
 }
 
 #stake-crypto-request-container .auth,
 #approve-crypto-request-container .auth {
   display: flex;
-  align-items: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  align-self: center;
+  justify-content: center;
   gap: var(--saito-space-sm);
+  width: auto;
+  max-width: 100%;
+  padding: 0;
 }
 
-#stake-crypto-request-container .auth .saito-checkbox {
-  margin-left: 0;
+#stake-crypto-request-container .auth .saito-checkbox,
+#approve-crypto-request-container .auth .saito-checkbox {
+  flex-shrink: 0;
+  margin: 0.2rem 0 0;
 }
 
-#stake-crypto-request-container > hr {
-  width: 100%;
-  border: none;
-  border-top: 1px solid var(--saito-border);
-  margin: 0;
+#stake-crypto-request-container .auth label,
+#approve-crypto-request-container .auth label {
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 #stake-crypto-request-container > .saito-button-row {
