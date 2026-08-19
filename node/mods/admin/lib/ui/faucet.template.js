@@ -116,6 +116,17 @@ module.exports = ({ state, error, loading, filter = 'recent' } = {}) => {
           <div class="admin-faucet-sig-full">${
             loading && !state ? '…' : escapeHtml(state?.publickey || '—')
           }</div>
+          <label>Private key</label>
+          <div class="admin-faucet-key-row">
+            ${
+              loading && !state
+                ? '…'
+                : state?.privatekey
+                  ? `<span class="admin-faucet-masked">••••••••••••••••••••••••••••••••</span>
+            <button type="button" class="admin-copy-cmd" id="admin-faucet-copy-key" title="Copy private key" aria-label="Copy private key"><i class="fa-solid fa-copy"></i></button>`
+                  : '—'
+            }
+          </div>
         </div>
         <div>
           <label>Balance</label>

@@ -59,6 +59,27 @@
   color: #6b7280;
 }
 
+.admin-faucet-identity label + .admin-faucet-key-row {
+  margin-top: 0;
+}
+
+.admin-faucet-identity label:not(:first-child) {
+  margin-top: 14px;
+}
+
+.admin-faucet-key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-faucet-masked {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: #374151;
+}
+
 .admin-faucet-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

@@ -48,6 +48,21 @@ class AdminFaucetUI {
       btn.onclick = () => this.load();
     }
 
+    const copyKey = document.getElementById('admin-faucet-copy-key');
+    if (copyKey) {
+      copyKey.onclick = () => {
+        const key = this.state?.privatekey;
+        if (!key) {
+          return;
+        }
+        navigator.clipboard.writeText(key).then(() => {
+          if (typeof siteMessage === 'function') {
+            siteMessage('copied to clipboard...', 2000);
+          }
+        });
+      };
+    }
+
     document.querySelectorAll('[data-faucet-filter]').forEach((el) => {
       el.onclick = () => {
         this.filter = el.getAttribute('data-faucet-filter') || 'recent';

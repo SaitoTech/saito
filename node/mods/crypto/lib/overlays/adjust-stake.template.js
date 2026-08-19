@@ -18,11 +18,7 @@ module.exports = (app, self) => {
     </div>
     <div class="stake-input-error" id="stake-amount-error"></div>
 
-    <input class="saito-checkbox" type="checkbox" checked name="crypto-stake-confirm-input" id="approve-crypto-stake-confirm-input">
-    <label for="approve-crypto-stake-confirm-input">Yes, I prefer fast in-game settlement (0 network fees)</label>
-    <p class="saito-overlay-form-text">Selecting this option allows the game to automatically handle payments and receipts using fast, internal transfers. You can change this in Settings at any time.</p>
-
-    <div class="saito-button-row">
+    <div class="saito-button-row stake-confirm-row">
       <button type="button" class="saito-button-secondary" id="enable_staking_no">no, thanks</button>
       <button type="button" class="saito-button-primary" id="enable_staking_yes">yes, i'm in</button>
     </div>

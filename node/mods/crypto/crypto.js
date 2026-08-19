@@ -221,13 +221,20 @@ try {
           if (hook.dataset?.amount) {
             this.overlay.stake = hook.dataset.amount;
           }
+          if (hook.dataset?.match != undefined) {
+            this.overlay.one_sided = true;
+            this.overlay.player1_stake = hook.dataset.amount;
+            this.overlay.player2_stake = hook.dataset.match;
+          }
 
           this.overlay.render((ticker, amount, match_amount = null) => {
             console.log('SELECTED CRYPTO: ', ticker, amount, match_amount);
             hook.dataset['ticker'] = ticker;
             hook.dataset['amount'] = amount;
-            if (match_amount !== null) {
+            if (match_amount !== null && match_amount !== undefined) {
               hook.dataset['match'] = match_amount;
+            } else {
+              delete hook.dataset.match;
             }
           });
         };

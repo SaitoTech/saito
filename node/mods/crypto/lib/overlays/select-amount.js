@@ -10,14 +10,15 @@ class CryptoSelectAmount {
     this.fixed = true;
     this.ticker = '';
     this.stake = 0;
+    this.one_sided = false;
+    this.player1_stake = '0';
+    this.player2_stake = '0';
   }
 
   render(mycallback = null) {
     if (mycallback != null) {
       this.callback = mycallback;
     }
-
-    this.authorize = true;
 
     if (!this.ticker) {
       this.ticker = this.app.wallet.returnPreferredCryptoTicker();
@@ -28,47 +29,97 @@ class CryptoSelectAmount {
     this.attachEvents();
   }
 
+  refreshForm() {
+    this.app.browser.replaceElementById(
+      CryptoSelectAmountTemplate(this.app, this.mod, this),
+      'stake-crypto-request-container'
+    );
+    this.attachEvents();
+  }
+
   attachEvents() {
-    let stake_input = document.getElementById('amount_to_stake_input');
-    if (!stake_input) {
-      return;
+    const toggle = document.getElementById('stake-mode-toggle');
+    if (toggle) {
+      toggle.onclick = (e) => {
+        e.preventDefault();
+        this.toggleStakeMode();
+      };
     }
 
-    stake_input.onclick = (e) => {
-      if (parseFloat(stake_input.value) == 0) {
-        stake_input.select();
-      }
-    };
-
-    stake_input.onkeydown = (e) => {
-      this.app.browser.validateAmountLimit(stake_input.value, e);
-    };
-
-    stake_input.onblur = (e) => {
-      this.validateAmount();
-    };
-
-    stake_input.oninput = (e) => {
-      if (document.querySelector('#stake-amount-error').style.display === 'block') {
+    const stake_input = document.getElementById('amount_to_stake_input');
+    if (stake_input) {
+      stake_input.onclick = () => {
+        if (parseFloat(stake_input.value) == 0) {
+          stake_input.select();
+        }
+      };
+      stake_input.onkeydown = (e) => {
+        this.app.browser.validateAmountLimit(stake_input.value, e);
+      };
+      stake_input.onblur = () => {
         this.validateAmount();
-      }
-    };
+      };
+      stake_input.oninput = () => {
+        if (document.querySelector('#stake-amount-error')?.style.display === 'block') {
+          this.validateAmount();
+        }
+      };
+    }
 
-    document.querySelector('#enable_staking_yes').onclick = (e) => {
-      if (!this.validateAmount() || !this.validateCheckbox()) {
-        return;
-      }
+    const player1_input = document.getElementById('player1_stake_input');
+    const player2_input = document.getElementById('player2_stake_input');
+    if (player1_input) {
+      player1_input.onkeydown = (e) => {
+        this.app.browser.validateAmountLimit(player1_input.value, e);
+      };
+      player1_input.onblur = () => {
+        this.validateAmount();
+      };
+      player1_input.oninput = () => {
+        if (document.querySelector('#stake-amount-error')?.style.display === 'block') {
+          this.validateAmount();
+        }
+      };
+    }
+    if (player2_input) {
+      player2_input.onkeydown = (e) => {
+        this.app.browser.validateAmountLimit(player2_input.value, e);
+      };
+      player2_input.onblur = () => {
+        this.validateAmount();
+      };
+      player2_input.oninput = () => {
+        if (document.querySelector('#stake-amount-error')?.style.display === 'block') {
+          this.validateAmount();
+        }
+      };
+    }
 
-      if (this.callback != null) {
-        this.callback(this.ticker, stake_input.value, null);
-      }
-      this.overlay.close();
-    };
+    const confirm_btn = document.querySelector('#enable_staking_yes');
+    if (confirm_btn) {
+      confirm_btn.onclick = () => {
+        if (!this.validateAmount()) {
+          return;
+        }
 
-    if (document.querySelector('#stake-select-crypto')) {
-      document.querySelector('#stake-select-crypto').onchange = async (e) => {
-        this.stake = stake_input.value;
-        this.authorize = document.getElementById('crypto-stake-confirm-input')?.checked;
+        if (this.callback != null) {
+          if (this.one_sided) {
+            const p1 = document.getElementById('player1_stake_input')?.value ?? this.player1_stake;
+            const p2 = document.getElementById('player2_stake_input')?.value ?? this.player2_stake;
+            this.callback(this.ticker, p1, p2);
+          } else {
+            const amount = document.getElementById('amount_to_stake_input')?.value ?? this.stake;
+            this.callback(this.ticker, amount, null);
+          }
+        }
+        this.overlay.close();
+      };
+    }
+
+    const crypto_select = document.querySelector('#stake-select-crypto');
+    if (crypto_select) {
+      crypto_select.onchange = async (e) => {
+        this.captureInputValues();
         this.ticker = e.target.value;
 
         if (!this.mod.balances[this.ticker]) {
@@ -85,54 +136,75 @@ class CryptoSelectAmount {
         }
 
         this.mod.max_balance = parseFloat(this.mod.balances[this.ticker]?.balance) || 0;
-        this.app.browser.replaceElementById(
-          CryptoSelectAmountTemplate(this.app, this.mod, this),
-          'stake-crypto-request-container'
-        );
-        this.attachEvents();
+        this.refreshForm();
       };
     }
   }
 
+  captureInputValues() {
+    if (this.one_sided) {
+      this.player1_stake = document.getElementById('player1_stake_input')?.value ?? this.player1_stake;
+      this.player2_stake = document.getElementById('player2_stake_input')?.value ?? this.player2_stake;
+    } else {
+      this.stake = document.getElementById('amount_to_stake_input')?.value ?? this.stake;
+    }
+  }
+
+  toggleStakeMode() {
+    this.captureInputValues();
+
+    if (!this.one_sided) {
+      this.player1_stake = document.getElementById('amount_to_stake_input')?.value || this.stake || '0';
+      if (this.player2_stake === undefined || this.player2_stake === '') {
+        this.player2_stake = '0';
+      }
+      this.one_sided = true;
+    } else {
+      this.stake = document.getElementById('player1_stake_input')?.value || this.player1_stake || '0';
+      this.one_sided = false;
+    }
+
+    this.refreshForm();
+  }
+
   validateAmount() {
-    let amount = document.getElementById('amount_to_stake_input').value || '0';
     let input_err = document.querySelector('#stake-amount-error');
+    if (!input_err) {
+      return true;
+    }
+
     let errorMsg = '';
-
-    amount = parseFloat(amount);
-
     input_err.innerText = '';
     input_err.style.display = 'none';
 
-    if (amount <= 0) {
-      errorMsg = 'you need to select a positive value';
-    } else if (amount > this.mod.max_balance) {
-      if (this.fixed) {
-        errorMsg = 'not all the players have that much to stake';
-      } else {
-        errorMsg = `you don't have that much to stake`;
+    if (this.one_sided) {
+      const p1 = parseFloat(document.getElementById('player1_stake_input')?.value ?? this.player1_stake);
+      const p2 = parseFloat(document.getElementById('player2_stake_input')?.value ?? this.player2_stake);
+
+      if ((Number.isNaN(p1) || p1 < 0) || (Number.isNaN(p2) || p2 < 0)) {
+        errorMsg = 'stakes must be zero or greater';
+      } else if (p1 <= 0 && p2 <= 0) {
+        errorMsg = 'at least one player needs a stake greater than zero';
+      } else if (p1 > this.mod.max_balance) {
+        errorMsg = `you don't have that much to stake for player 1`;
+      }
+    } else {
+      let amount = parseFloat(document.getElementById('amount_to_stake_input')?.value ?? this.stake ?? '0');
+
+      if (amount <= 0) {
+        errorMsg = 'you need to select a positive value';
+      } else if (amount > this.mod.max_balance) {
+        if (this.fixed) {
+          errorMsg = 'not all the players have that much to stake';
+        } else {
+          errorMsg = `you don't have that much to stake`;
+        }
       }
     }
 
     if (errorMsg) {
       input_err.innerText = errorMsg;
       input_err.style.display = 'block';
-      return false;
-    }
-
-    return true;
-  }
-
-  validateCheckbox() {
-    let confirm = document.getElementById('crypto-stake-confirm-input').checked;
-    let checkbox_err = document.querySelector('#stake-checkbox-error');
-
-    checkbox_err.innerText = '';
-    checkbox_err.style.display = 'none';
-
-    if (!confirm) {
-      checkbox_err.innerText = 'you need to confirm';
-      checkbox_err.style.display = 'block';
       return false;
     }
 

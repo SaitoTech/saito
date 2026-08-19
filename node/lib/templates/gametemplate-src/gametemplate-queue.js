@@ -2704,7 +2704,7 @@ class GameQueue {
           );
         };
 
-        game_self.app.connection.emit('saito-crypto-send-confirm-open-request', {
+        game_self.app.connection.emit('saito-game-crypto-send-auth-open-request', {
           publicKey: receiver,
           address: receiver_crypto_address,
           amount,

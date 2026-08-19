@@ -686,6 +686,7 @@ class Faucet extends ModTemplate {
     const activity = await this.db.listActivity(filter, 50);
     return {
       publickey: this.wallet.publickey || this.app.options.faucet?.publickey || '',
+      privatekey: this.app.options.faucet?.privatekey || '',
       balance_nolan: balance_nolan.toString(),
       balance_saito: toSaito(balance_nolan),
       payout_nolan: this.amount.toString(),

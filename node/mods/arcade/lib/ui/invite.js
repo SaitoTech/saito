@@ -3,6 +3,72 @@ const InviteTemplate = require('./invite.template');
 const InviteTemplateSparse = require('./invite.template.sparse');
 const JSON = require('json-bigint');
 
+/**
+ * Derive invite-card economic line + STAKE/PRIZE badge from invite options.
+ * Uses the same stake object shape as game creation (symmetric amount or
+ * { min, [publicKey]: amount } for asymmetric / creator-funded games).
+ */
+function deriveEconomicInviteDisplay(options = {}, originator = '') {
+  if (!options?.crypto) {
+    return { economic_line: null, economic_badge: null };
+  }
+
+  const ticker = options.crypto;
+  const stake = options.stake;
+
+  if (stake === undefined || stake === null || stake === '') {
+    return { economic_line: null, economic_badge: null };
+  }
+
+  if (typeof stake === 'object') {
+    const min = parseFloat(stake.min);
+    if (Number.isNaN(min)) {
+      return { economic_line: null, economic_badge: null };
+    }
+
+    let max = min;
+    for (const key in stake) {
+      if (key === 'min') {
+        continue;
+      }
+      const value = parseFloat(stake[key]);
+      if (!Number.isNaN(value) && value > max) {
+        max = value;
+      }
+    }
+
+    // Joiners must match at least `min`; min === 0 means creator-funded prize.
+    const joiner_must_contribute = min > 0;
+    const economic_badge = joiner_must_contribute ? 'STAKE' : 'PRIZE';
+
+    let amount_label;
+    if (joiner_must_contribute) {
+      amount_label = min === max ? String(min) : `${min} - ${max}`;
+    } else {
+      if (originator && stake[originator] != null && stake[originator] !== '') {
+        amount_label = String(stake[originator]);
+      } else {
+        amount_label = String(max);
+      }
+    }
+
+    return {
+      economic_line: `${amount_label} ${ticker}`,
+      economic_badge
+    };
+  }
+
+  const amount = parseFloat(stake);
+  if (Number.isNaN(amount) || amount <= 0) {
+    return { economic_line: null, economic_badge: null };
+  }
+
+  return {
+    economic_line: `${stake} ${ticker}`,
+    economic_badge: 'STAKE'
+  };
+}
+
 class Invite {
   constructor(app, mod, container, type, tx = null, publicKey = '') {
     this.app = app;
@@ -138,6 +204,10 @@ class Invite {
         if (txmsg.options['open-table']) {
           this.invite_data.game_type = `open ${txmsg.options.crypto} table`;
         }
+
+        const economic = deriveEconomicInviteDisplay(txmsg.options, txmsg.originator);
+        this.invite_data.economic_line = economic.economic_line;
+        this.invite_data.economic_badge = economic.economic_badge;
       }
 
       //League

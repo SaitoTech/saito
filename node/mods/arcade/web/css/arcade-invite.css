@@ -165,3 +165,47 @@
 .arcade-invite.my-turn {
   border-color: var(--saito-primary);
 }
+
+/* Crypto economic badge — top-right, distinct from turn/win badges in .actions */
+.invite .economic-badge,
+.arcade-invite .economic-badge {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.5rem;
+  font-family: var(--saito-font-heavy);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #1a1208;
+  border-radius: var(--saito-radius-sm);
+  border: 1px solid color-mix(in srgb, #fff 35%, transparent);
+  box-shadow: 0 1px 6px color-mix(in srgb, #000 45%, transparent);
+  pointer-events: none;
+}
+
+.invite .economic-badge--stake,
+.arcade-invite .economic-badge--stake {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--saito-primary) 92%, #fff) 0%,
+    color-mix(in srgb, var(--saito-primary) 70%, #000) 100%
+  );
+  color: var(--saito-primary-foreground);
+}
+
+.invite .economic-badge--prize,
+.arcade-invite .economic-badge--prize {
+  background: linear-gradient(
+    135deg,
+    #f5d76e 0%,
+    color-mix(in srgb, #d4a017 85%, #000) 100%
+  );
+  color: #1a1208;
+}

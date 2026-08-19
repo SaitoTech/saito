@@ -1,6 +1,7 @@
 const Deposit = require('./overlays/deposit');
 const Withdraw = require('./overlays/withdraw');
 const Confirm = require('./overlays/confirm');
+const GameSendAuth = require('./overlays/game-send-auth');
 const Receive = require('./overlays/receive');
 const WalletHistory = require('./overlays/wallet-history');
 
@@ -23,6 +24,9 @@ class SaitoCrypto {
     // Games: `saito-crypto-send-render-request` → Send (validate) → `saito-crypto-send-confirm-open-request` → Confirm + mycallback
     //        `saito-crypto-send-confirm` → result UI
     this.send_confirm_overlay = new Confirm(app, mod);
+
+    // Game-specific outbound payment authorization (saito-game-crypto-send-auth-open-request)
+    this.game_send_auth_overlay = new GameSendAuth(app, mod);
 
     //'saito-crypto-receive-render-request'
     this.receive_overlay = new Receive(app, mod);

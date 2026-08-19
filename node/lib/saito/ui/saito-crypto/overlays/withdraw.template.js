@@ -21,7 +21,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
   >
     <header class="saito-overlay-form-header">
       <div class="crypto-logo-container header-logo" id="withdraw-header-logo-cont"></div>
-      <h2 class="saito-overlay-form-header-title" id="withdraw-overlay-title">Send</h2>
+      <h2 class="saito-overlay-form-header-title" id="withdraw-overlay-title">SEND CRYPTO</h2>
     </header>
 
     <div id="withdraw-step-one" class="compose">

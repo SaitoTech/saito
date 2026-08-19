@@ -95,7 +95,7 @@ class Withdraw {
   updateHeaderTitle() {
     const title = document.getElementById('withdraw-overlay-title');
     if (title) {
-      title.textContent = 'Send';
+      title.textContent = 'SEND CRYPTO';
     }
   }
 
@@ -104,6 +104,18 @@ class Withdraw {
     if (!cont || !this.pc) {
       return;
     }
+
+    // This overlay is used for multiple assets, but the Admin request is
+    // specific: remove the SAITO logo from the titlebar.
+    const isSaito = this.pc?.ticker === 'SAITO' || this.pc?.chain_id === 'NATIVE';
+    if (isSaito) {
+      cont.classList.add('hide-element');
+      cont.innerHTML = '';
+      return;
+    }
+
+    cont.classList.remove('hide-element');
+
     const icons = this.pc.returnLogos();
     let html = `<img class="crypto-logo" src="${icons.img}" alt="" />`;
     if (icons.sub_logo) {
@@ -261,7 +273,7 @@ class Withdraw {
 
     const identifier = this.returnRegisteredIdentifier(publicKey);
     const primary = identifier || publicKey;
-    const secondary = identifier ? publicKey : 'No registered name';
+    const secondary = identifier ? publicKey : 'anonymous user';
     const identicon = this.app.keychain.returnIdenticon(publicKey);
     const fixedRecipient = this.isFixedRecipientForm();
 

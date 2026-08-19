@@ -87,7 +87,10 @@ class Texas extends GameTableTemplate {
     super.initializeGame();
 
     this.settleNow = false;
-    this.settle_every_hand = false;
+    // Crypto poker should settle after every completed hand by default.
+    // This is Texas-specific (not generic) and relies on existing poker debt/settlement
+    // logic in `lib/poker-stake.js` + existing queue `settle` handling in `lib/poker-queue.js`.
+    this.settle_every_hand = true;
 
     if (this.game.player == 0) {
       if (!this.game.pool[0]) {

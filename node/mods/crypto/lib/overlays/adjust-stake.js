@@ -84,11 +84,6 @@ class AdjustStake {
         return;
       }
 
-      if (!document.querySelector('#approve-crypto-stake-confirm-input').checked) {
-        salert('You need to confirm');
-        return;
-      }
-
       if (this.accept_callback) {
         this.accept_callback(parseFloat(stake_input.value));
       }

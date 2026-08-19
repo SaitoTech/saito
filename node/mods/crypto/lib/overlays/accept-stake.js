@@ -25,11 +25,6 @@ class AcceptStake {
 
   attachEvents(obj) {
     document.querySelector('#enable_staking_yes').onclick = async (e) => {
-      if (!document.querySelector('#approve-crypto-stake-confirm-input').checked) {
-        salert('You need to confirm');
-        return;
-      }
-
       if (await this.mod.validateBalance(obj.stake, obj.ticker)) {
         if (this.accept_callback) {
           this.accept_callback();

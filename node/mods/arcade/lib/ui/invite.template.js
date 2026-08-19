@@ -15,12 +15,23 @@ module.exports = (app, mod, invite) => {
     }
   }
 
+  let economic_badge_html = '';
+  if (invite.economic_badge) {
+    const badge_kind = invite.economic_badge === 'PRIZE' ? 'prize' : 'stake';
+    economic_badge_html = `<div class="economic-badge economic-badge--${badge_kind}" aria-label="${app.browser.escapeHTML(invite.economic_badge)}">${app.browser.escapeHTML(invite.economic_badge)}</div>`;
+  }
+
+  const details_line = invite.economic_line
+    ? invite.economic_line
+    : String(invite.game_type || '').toUpperCase();
+
   let html = `
     <div class="invite arcade-invite${invite_class}" id="arcade-invite-${invite.game_id}"
          style="background-image: url('${invite_img}');">
+      ${economic_badge_html}
       <div class="header">
         <div class="title">${app.browser.escapeHTML(invite.game_name)}</div>
-        <div class="details">${app.browser.escapeHTML(String(invite.game_type || '').toUpperCase())}</div>
+        <div class="details">${app.browser.escapeHTML(details_line)}</div>
       </div>
       <div class="actions">
         ${badge}

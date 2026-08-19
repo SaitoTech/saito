@@ -121,7 +121,7 @@ class Receive {
 
     this.counter_party.publicKey = details.publicKey;
     this.counter_party.render();
-    this.counter_party.updateUserline(details.publicKey, details.publicKey);
+    this.counter_party.updateUserlineAddress(details.publicKey);
 
     this.attachEvents();
   }
