@@ -1749,38 +1749,34 @@ class Chat extends ModTemplate {
               msg += ' new-message';
             }
             msg += `">`;
-            if (block[z].msg.indexOf('<img') != 0) {
-              let saniText = this.app.browser.sanitize(block[z].msg, true);
-              if (saniText.includes('\n')) {
-                msg += saniText.split('\n').join('<br>');
-              } else {
-                if (block[z].link_properties) {
-                  if (solo_link_regex.test(saniText)) {
-                    //console.log('Chat block is just a link: ', saniText);
-                  } else {
-                    msg += saniText;
-                  }
-
-                  msg += `<div class='link-preview link-${block[z].signature}'></div>`;
-                  if (!group?.links) {
-                    group.links = {};
-                  }
-
-                  if (!group.links[block[z].signature]) {
-                    group.links[block[z].signature] = new Link(
-                      this.app,
-                      this,
-                      `.link-${block[z].signature}`,
-                      block[z].link,
-                      block[z].link_properties
-                    );
-                  }
+            let saniText = this.app.browser.sanitize(block[z].msg, true);
+            if (saniText.includes('\n')) {
+              msg += saniText.split('\n').join('<br>');
+            } else {
+              if (block[z].link_properties) {
+                if (solo_link_regex.test(saniText)) {
+                  //console.log('Chat block is just a link: ', saniText);
                 } else {
                   msg += saniText;
                 }
+
+                msg += `<div class='link-preview link-${block[z].signature}'></div>`;
+                if (!group?.links) {
+                  group.links = {};
+                }
+
+                if (!group.links[block[z].signature]) {
+                  group.links[block[z].signature] = new Link(
+                    this.app,
+                    this,
+                    `.link-${block[z].signature}`,
+                    block[z].link,
+                    block[z].link_properties
+                  );
+                }
+              } else {
+                msg += saniText;
               }
-            } else {
-              msg += block[z].msg.substring(0, block[z].msg.indexOf('>') + 1);
             }
             msg +=
               like_number > 0

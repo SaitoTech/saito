@@ -2062,9 +2062,31 @@ class Browser {
         },
         selfClosing: ['img', 'br', 'hr', 'area', 'base', 'basefont', 'input', 'link', 'meta'],
         allowedSchemes: ['http', 'https', 'ftp', 'mailto'],
-        allowedSchemesByTag: {},
-        allowedSchemesAppliedToAttributes: ['href', 'cite'],
-        allowProtocolRelative: true
+        allowedSchemesByTag: {
+          img: ['http', 'https', 'data']
+        },
+        allowedSchemesAppliedToAttributes: ['href', 'cite', 'src'],
+        allowProtocolRelative: true,
+        exclusiveFilter: (frame) => {
+          if (frame.tag !== 'img') {
+            return false;
+          }
+          const src = frame.attribs?.src;
+          if (!src || typeof src !== 'string') {
+            return true;
+          }
+          const trimmed = src.trim();
+          if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
+            return true;
+          }
+          if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+            return trimmed.includes('\\');
+          }
+          if (/^data:image\/(jpeg|jpg|png|gif|webp);base64,/i.test(trimmed)) {
+            return false;
+          }
+          return !/^https?:\/\//i.test(trimmed);
+        }
       });
 
       /* wrap link in <a> tag */
@@ -2127,7 +2149,7 @@ class Browser {
       return text;
     } catch (err) {
       console.error('Browser [sanitize] error: ', err);
-      return text;
+      return '';
     }
   }
 
