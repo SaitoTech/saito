@@ -178,12 +178,12 @@
 
 .explorer-block-meta-label {
   font-weight: var(--explorer-font-medium);
-  color: var(--explorer-tx-label, oklch(0.38 0 0));
+  color: var(--explorer-tx-label, var(--explorer-muted-foreground));
 }
 
 .explorer-block-meta-value {
   font-weight: var(--explorer-font-normal);
-  color: var(--explorer-tx-value, oklch(0.2 0 0));
+  color: var(--explorer-tx-value, var(--explorer-foreground));
   min-width: 0;
   overflow-x: auto;
   white-space: nowrap;
@@ -550,10 +550,6 @@
   padding-left: calc(var(--explorer-space-4) + 3.5rem + var(--explorer-space-3));
   background-color: var(--explorer-card);
   border-top: 1px solid var(--explorer-border);
-  --explorer-tx-label: oklch(0.38 0 0);
-  --explorer-tx-value: oklch(0.2 0 0);
-  --explorer-tx-header: oklch(0.32 0 0);
-  --explorer-tx-empty: oklch(0.42 0 0);
 }
 
 .explorer-tx-section {
@@ -604,12 +600,12 @@
 
 .explorer-tx-meta-label {
   font-weight: var(--explorer-font-medium);
-  color: var(--explorer-tx-label, oklch(0.38 0 0));
+  color: var(--explorer-tx-label, var(--explorer-muted-foreground));
 }
 
 .explorer-tx-meta-value {
   font-weight: var(--explorer-font-normal);
-  color: var(--explorer-tx-value, oklch(0.2 0 0));
+  color: var(--explorer-tx-value, var(--explorer-foreground));
   min-width: 0;
   overflow-x: auto;
   white-space: nowrap;
@@ -625,7 +621,7 @@
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-normal);
   line-height: 1.35;
-  color: var(--explorer-tx-empty, oklch(0.42 0 0));
+  color: var(--explorer-tx-empty, var(--explorer-muted-foreground));
 }
 
 .explorer-txmsg-empty {
@@ -815,7 +811,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--explorer-tx-label);
+  color: var(--explorer-tx-label, var(--explorer-muted-foreground));
   font-size: var(--explorer-text-sm);
   cursor: pointer;
 }
@@ -883,19 +879,19 @@
 }
 
 .explorer-json-key {
-  color: oklch(0.45 0.12 245);
+  color: var(--explorer-json-key, var(--explorer-link));
 }
 
 .explorer-json-string {
-  color: oklch(0.42 0.14 145);
+  color: var(--explorer-json-string, var(--explorer-foreground));
 }
 
 .explorer-json-number {
-  color: oklch(0.48 0.14 35);
+  color: var(--explorer-json-number, var(--explorer-foreground));
 }
 
 .explorer-json-bool {
-  color: oklch(0.45 0.16 290);
+  color: var(--explorer-json-boolean, var(--explorer-foreground));
 }
 
 .explorer-json-null {

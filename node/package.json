@@ -7,7 +7,7 @@
     "dev-server": "./scripts/compile nuke ts-node-dev && npm run dev ",
     "nukelocal": "node ./scripts/nukelocal.js",
     "setuplocal": "./scripts/compile setuplocal && npm run dev",
-    "setupprod": "./scripts/compile setupprod && npm run dev",
+    "setupprod": "./scripts/compile setupprod && ./scripts/prompt-start",
     "cli": "ts-node --project config/build/tsconfig.json  ./scripts/cli.ts",
     "deserialize_block": "node ./scripts/deserialize_block.js",
     "generate-issuance": "NODE_OPTIONS='--max-old-space-size=12288' ts-node --project config/build/tsconfig.json ./scripts/gen-issuance",

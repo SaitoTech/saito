@@ -9,6 +9,11 @@ class AdminFaucetUI {
     this.error = '';
     this.loading = false;
     this.filter = 'recent';
+    this.config = null;
+    this.config_error = '';
+    this.config_loading = false;
+    this.config_saving = false;
+    this.config_saved = false;
   }
 
   render() {
@@ -16,6 +21,11 @@ class AdminFaucetUI {
     this.error = '';
     this.loading = false;
     this.filter = 'recent';
+    this.config = null;
+    this.config_error = '';
+    this.config_loading = false;
+    this.config_saving = false;
+    this.config_saved = false;
 
     if (!this.mod.server_info) {
       this.app.browser.replaceElementContentBySelector(
@@ -27,6 +37,7 @@ class AdminFaucetUI {
 
     this.refresh();
     this.load();
+    this.loadConfig();
   }
 
   refresh() {
@@ -35,7 +46,12 @@ class AdminFaucetUI {
         state: this.state,
         error: this.error,
         loading: this.loading,
-        filter: this.filter
+        filter: this.filter,
+        config: this.config,
+        config_error: this.config_error,
+        config_loading: this.config_loading,
+        config_saving: this.config_saving,
+        config_saved: this.config_saved
       }),
       this.container
     );
@@ -45,7 +61,10 @@ class AdminFaucetUI {
   attachEvents() {
     const btn = document.getElementById('admin-faucet-refresh');
     if (btn) {
-      btn.onclick = () => this.load();
+      btn.onclick = () => {
+        this.load();
+        this.loadConfig();
+      };
     }
 
     document.querySelectorAll('[data-faucet-filter]').forEach((el) => {
@@ -64,6 +83,36 @@ class AdminFaucetUI {
         }
       };
     });
+
+    const form = document.getElementById('admin-faucet-config-form');
+    if (form) {
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        this.saveConfig({
+          github_secret: document.getElementById('admin-faucet-github-secret')?.value || '',
+          twitter_secret: document.getElementById('admin-faucet-twitter-secret')?.value || '',
+          free_use: document.getElementById('admin-faucet-free-use')?.checked === true
+        });
+      };
+    }
+  }
+
+  async sendAdminRequest(request, data, callback) {
+    let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+      this.mod.server_publickey
+    );
+    tx.msg = {
+      module: 'Admin',
+      request,
+      ...data
+    };
+    await tx.sign();
+
+    this.app.network.sendTransactionWithCallback(
+      tx,
+      (res_tx) => callback(res_tx.returnMessage()),
+      this.mod.server_publickey
+    );
   }
 
   async load() {
@@ -71,31 +120,55 @@ class AdminFaucetUI {
     this.error = '';
     this.refresh();
 
-    let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-      this.mod.server_publickey
-    );
-    tx.msg = {
-      module: 'Admin',
-      request: 'list-faucet',
-      filter: this.filter
-    };
-    await tx.sign();
+    await this.sendAdminRequest('list-faucet', { filter: this.filter }, (res) => {
+      this.loading = false;
+      if (res?.err) {
+        this.error = res.err;
+        this.state = null;
+      } else {
+        this.state = res.result || null;
+      }
+      this.refresh();
+    });
+  }
 
-    this.app.network.sendTransactionWithCallback(
-      tx,
-      (res_tx) => {
-        this.loading = false;
-        const res = res_tx.returnMessage();
-        if (res?.err) {
-          this.error = res.err;
-          this.state = null;
-        } else {
-          this.state = res.result || null;
+  async loadConfig() {
+    this.config_loading = true;
+    this.config_error = '';
+    this.config_saved = false;
+    this.refresh();
+
+    await this.sendAdminRequest('get-admin-config', { module_id: 'faucet' }, (res) => {
+      this.config_loading = false;
+      if (res?.err) {
+        this.config_error = res.err;
+        this.config = null;
+      } else {
+        this.config = res.result || null;
+      }
+      this.refresh();
+    });
+  }
+
+  async saveConfig(data) {
+    this.config_saving = true;
+    this.config_error = '';
+    this.config_saved = false;
+    this.refresh();
+
+    await this.sendAdminRequest('update-admin-config', { module_id: 'faucet', data }, (res) => {
+      this.config_saving = false;
+      if (res?.err) {
+        this.config_error = res.err;
+      } else {
+        this.config = res.result || this.config;
+        this.config_saved = true;
+        if (typeof siteMessage === 'function') {
+          siteMessage('Faucet configuration saved');
         }
-        this.refresh();
-      },
-      this.mod.server_publickey
-    );
+      }
+      this.refresh();
+    });
   }
 }
 

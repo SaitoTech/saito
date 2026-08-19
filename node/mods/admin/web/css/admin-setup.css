@@ -71,6 +71,10 @@
   gap: 24px;
 }
 
+.node-setup-options.node-setup-existing-option {
+  grid-template-columns: 1fr;
+}
+
 .node-setup-card {
   padding: 40px 28px;
   border-radius: 14px;
@@ -83,6 +87,11 @@
 .node-setup-card h2 {
   font-size: 22px;
   margin: 0;
+}
+
+.node-setup-card p {
+  margin: 10px 0 0;
+  color: #555;
 }
 
 .node-setup-card:hover {

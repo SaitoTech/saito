@@ -83,7 +83,9 @@ class Admin extends ModTemplate {
       'update-peers',
       'list-blockchain-state',
       'list-mempool',
-      'list-faucet'
+      'list-faucet',
+      'get-admin-config',
+      'update-admin-config'
     ];
 
     if (!accepted_requests.includes(txmsg.request)) {
@@ -207,6 +209,38 @@ class Admin extends ModTemplate {
       return 1;
     }
 
+    if (txmsg.request === 'get-admin-config') {
+      try {
+        const config = this.returnAdminConfig(txmsg.module_id);
+        if (!config || typeof config.getConfig !== 'function') {
+          throw new Error(`No admin configuration is available for "${txmsg.module_id || ''}".`);
+        }
+        if (mycallback) {
+          mycallback({ result: await config.getConfig() });
+        }
+      } catch (err) {
+        if (mycallback) mycallback({ err: err.message || String(err) });
+      }
+      return 1;
+    }
+
+    if (txmsg.request === 'update-admin-config') {
+      try {
+        const config = this.returnAdminConfig(txmsg.module_id);
+        if (!config || typeof config.updateConfig !== 'function') {
+          throw new Error(
+            `No editable admin configuration is available for "${txmsg.module_id || ''}".`
+          );
+        }
+        if (mycallback) {
+          mycallback({ result: await config.updateConfig(txmsg.data || {}) });
+        }
+      } catch (err) {
+        if (mycallback) mycallback({ err: err.message || String(err) });
+      }
+      return 1;
+    }
+
     if (txmsg.request == 'set-admin-key') {
       if (!this.app.options.admin) {
         this.app.options.admin = [];
@@ -258,6 +292,29 @@ class Admin extends ModTemplate {
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
+  }
+
+  /**
+   * Modules expose server-owned settings through respondTo('admin-config').
+   * The returned functions stay in-process; only their sanitized results are
+   * sent over Admin's authenticated request channel.
+   */
+  returnAdminConfig(module_id = '') {
+    const id = String(module_id || '')
+      .trim()
+      .toLowerCase();
+    if (!id) {
+      return null;
+    }
+
+    const modules = this.app.modules.returnModulesRespondingTo('admin-config') || [];
+    for (const mod of modules) {
+      const config = mod.respondTo('admin-config');
+      if (String(config?.id || '').toLowerCase() === id) {
+        return config;
+      }
+    }
+    return null;
   }
 
   getOptions() {
@@ -622,7 +679,12 @@ ${formatList(lite)}
     };
 
     const zero_hash = '0000000000000000000000000000000000000000000000000000000000000000';
-    const live = (await bc.get()) || {};
+    // saito-js decorates this instance with a get() wrapper that calls the
+    // same instance method again. Use the WASM prototype implementation to
+    // avoid that recursive wrapper while retaining the live chain state.
+    const get_blockchain_state = Object.getPrototypeOf(bc)?.get;
+    const live =
+      (typeof get_blockchain_state === 'function' && (await get_blockchain_state.call(bc))) || {};
     const consensus = this.app.options?.consensus || {};
     const wasm_blocks = (await bc.getBlocks(10, false)) || [];
 
