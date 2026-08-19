@@ -1,0 +1,24 @@
+{
+  "id": "/chat",
+  "name": "Saito Chat",
+  "short_name": "Saito Chat",
+  "description": "Peer-to-peer secure messaging on the Saito Network.",
+  "start_url": "/chat",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1c1c23",
+  "theme_color": "#1c1c23",
+  "categories": ["social", "communication"],
+  "icons": [
+    {
+      "src": "/saito/img/touch/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/saito/img/touch/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
