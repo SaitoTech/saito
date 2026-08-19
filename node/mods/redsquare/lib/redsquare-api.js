@@ -217,7 +217,14 @@ class RedSquareApi {
   }
 
   async loadTweet(signature) {
-    return this.mod.getTweet(signature) || (await this.mod.loadTweetThread(signature));
+    const cached = this.mod.getTweet(signature);
+
+    if (cached) {
+      return cached;
+    }
+
+    const result = await this.mod.loadTweetThread(signature);
+    return result?.status === 'loaded' ? result.tweet : null;
   }
 
   async resolveTweetRoot(tweet) {

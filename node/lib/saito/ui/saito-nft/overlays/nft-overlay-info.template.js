@@ -164,13 +164,10 @@ module.exports = (app, mod, nft_overlay) => {
         </div>
       `;
 
-      let canAtomize = all_slips[z].slip1.amount <= 100;
-      let atomizeButtonHtml = `<button class="split-button atomize-button atomize-button-utxo-${utxoIdx}" ${canAtomize ? '' : "disabled title='atomize only supported for quantities of 100 or less' "}>atomize</button>`;
-
       splitSlidersHtml += `
         <div class="saito-nft-split-overlay split-container-utxo-${utxoIdx}" data-utxo-idx="${utxoIdx}">
           <div class="split-instructions">
-            Adjust this slider to manually split your NFT into two parts. When you are happy with the new allocation, click the "split" button to make the transaction that divides it.${canAtomize ? ' If your unit has 100 items or less, you can also "atomize" it -- dividing it up into single units that cannot be further divided.' : ''}
+            Adjust this slider to manually split your NFT into two parts. When you are happy with the new allocation, click the "split" button to make the transaction that divides it.
           </div>
           <div class="split-slider-wrapper">
             <div class="split-number-box split-number-left-utxo-${utxoIdx}" id="split-number-left-utxo-${utxoIdx}">0</div>
@@ -184,7 +181,6 @@ module.exports = (app, mod, nft_overlay) => {
           <div class="split-buttons-container">
             <button class="split-button split-return-button split-return-button-utxo-${utxoIdx}">Cancel</button>
             <div class="split-buttons-right">
-              ${atomizeButtonHtml}
               <button class="split-button split-button-utxo-${utxoIdx}">split</button>
             </div>
           </div>

@@ -15,8 +15,7 @@ const { handleExplorerRequest } = require('./lib/peer/requests');
 const { sendExplorerPeerRequest } = require('./lib/peer/client');
 const { success, failure } = require('./lib/peer/response');
 const ExplorerDatabase = require('./lib/database');
-const { buildBlockStatistics } = require('./lib/block-statistics');
-const { backfillSupplyStatistics } = require('./lib/supply-accounting');
+const { backfillSupplyStatistics, ensureBlockSupplyIndexed } = require('./lib/supply-accounting');
 const { buildAddressRowsFromBlock, blockContainsAtrTransaction } = require('./lib/address-index');
 const { SUPPLY_BLOCK_COUNT } = require('./lib/supply-rows');
 const { extractTransactionsFromBlocks, mergeBlockByHash } = require('./lib/explorer-format');
@@ -1019,8 +1018,7 @@ class Explorer extends ModTemplate {
 
     if (this.INDEX_BLOCKS) {
       try {
-        const stats = await buildBlockStatistics(this.app, this, block);
-        await this.database.upsertBlockStatistics(stats);
+        await ensureBlockSupplyIndexed(this.app, this, block);
       } catch (err) {
         console.error('Explorer: failed to record block statistics', err);
       }
