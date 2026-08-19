@@ -50,6 +50,7 @@ module.exports = (app, mod, build_number, og_card) => {
     <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
     <link rel="icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
+    <link rel="manifest" href="/chat/manifest.webmanifest" />
   
     <script type="text/javascript" src="/saito/lib/jquery/jquery-3.2.1.min.js"></script>
   
@@ -132,6 +133,15 @@ module.exports = (app, mod, build_number, og_card) => {
   </body>
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
 </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/chat/service-worker.js').catch((error) => {
+          console.warn('Unable to register the Chat service worker:', error);
+        });
+      });
+    }
+  </script>
   </html>
   
   `;
