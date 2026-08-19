@@ -1,4 +1,14 @@
-module.exports = ({ state, error, loading, filter = 'recent' } = {}) => {
+module.exports = ({
+  state,
+  error,
+  loading,
+  filter = 'recent',
+  config,
+  config_error,
+  config_loading,
+  config_saving,
+  config_saved
+} = {}) => {
   const escapeHtml = (value = '') =>
     String(value)
       .replace(/&/g, '&amp;')
@@ -99,6 +109,14 @@ module.exports = ({ state, error, loading, filter = 'recent' } = {}) => {
       filter === id ? ' active' : ''
     }" data-faucet-filter="${id}" ${loading ? 'disabled' : ''}>${label}</button>`;
 
+  const providerStatus = (configured) =>
+    `<span class="admin-faucet-config-status ${configured ? 'configured' : 'missing'}">${
+      configured ? 'Configured' : 'Not configured'
+    }</span>`;
+
+  const secretPlaceholder = (configured) =>
+    configured ? 'Configured — leave blank to keep current secret' : 'Enter client secret';
+
   return `
     <div class="admin-faucet-page">
       <div class="admin-faucet-header">
@@ -173,6 +191,71 @@ module.exports = ({ state, error, loading, filter = 'recent' } = {}) => {
           <label>Orphaned</label>
           <div>${loading && !state ? '…' : counts.orphaned || 0}</div>
         </div>
+      </div>
+
+      <div class="admin-faucet-settings">
+        <div class="admin-faucet-settings-header">
+          <div>
+            <h2>Settings</h2>
+            <p>OAuth secrets stay in server memory and are never returned to this browser.</p>
+          </div>
+          ${config_saved ? '<div class="admin-faucet-config-saved">Saved</div>' : ''}
+        </div>
+
+        ${config_error ? `<div class="admin-faucet-error">${escapeHtml(config_error)}</div>` : ''}
+
+        ${
+          config_loading && !config
+            ? '<p class="admin-faucet-empty">Loading Faucet settings…</p>'
+            : `<form id="admin-faucet-config-form" autocomplete="off">
+                <div class="admin-faucet-config-field">
+                  <div class="admin-faucet-config-label">
+                    <label for="admin-faucet-github-secret">GitHub client secret</label>
+                    ${providerStatus(config?.github_configured === true)}
+                  </div>
+                  <input
+                    class="admin-input"
+                    id="admin-faucet-github-secret"
+                    type="password"
+                    autocomplete="new-password"
+                    placeholder="${secretPlaceholder(config?.github_configured === true)}"
+                    ${config_saving ? 'disabled' : ''}
+                  />
+                </div>
+
+                <div class="admin-faucet-config-field">
+                  <div class="admin-faucet-config-label">
+                    <label for="admin-faucet-twitter-secret">X client secret</label>
+                    ${providerStatus(config?.twitter_configured === true)}
+                  </div>
+                  <input
+                    class="admin-input"
+                    id="admin-faucet-twitter-secret"
+                    type="password"
+                    autocomplete="new-password"
+                    placeholder="${secretPlaceholder(config?.twitter_configured === true)}"
+                    ${config_saving ? 'disabled' : ''}
+                  />
+                </div>
+
+                <label class="admin-faucet-toggle" for="admin-faucet-free-use">
+                  <input
+                    id="admin-faucet-free-use"
+                    type="checkbox"
+                    ${config?.free_use === true ? 'checked' : ''}
+                    ${config_saving ? 'disabled' : ''}
+                  />
+                  <span>
+                    <strong>Free Use Mode</strong>
+                    <small>Issue tokens without OAuth registration, limited to once per public key every 24 hours.</small>
+                  </span>
+                </label>
+
+                <button type="submit" class="admin-button" ${
+                  config_saving || config_loading ? 'disabled' : ''
+                }>${config_saving ? 'Saving…' : 'Save settings'}</button>
+              </form>`
+        }
       </div>
 
       <div class="admin-faucet-history">

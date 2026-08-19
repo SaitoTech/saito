@@ -5,6 +5,15 @@ module.exports = (mod) => {
 
         <h1>Configure Your Saito Server</h1>
 
+        <div class="node-setup-options node-setup-existing-option">
+          <div class="node-setup-card" data-choice="existing">
+            <h2>Existing Node</h2>
+            <p>Use this node's existing configuration without making any changes.</p>
+          </div>
+        </div>
+
+        <div class="node-setup-info">Or configure a new node:</div>
+
         <div class="node-setup-info">1. Pick the module for your server root:</div>
 
         <div class="splash-section">
@@ -17,6 +26,9 @@ module.exports = (mod) => {
             </div>
             <div class="splash-card" data-app="store">
               <div class="splash-title">Store</div>
+            </div>
+            <div class="splash-card" data-app="explorer">
+              <div class="splash-title">Explorer</div>
             </div>
             <div class="splash-card" data-app="other">
               <div class="splash-title">Other</div>

@@ -9,7 +9,6 @@ const Auth = require('./lib/ui/auth');
 const Waiting = require('./lib/ui/waiting');
 const Success = require('./lib/ui/success');
 const Main = require('./lib/ui/main');
-const ConfigTemplate = require('./lib/ui/config.template');
 const { readFaucetMode, saveFaucetMode } = require('./lib/mode');
 
 const FREE_USE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -179,6 +178,15 @@ class Faucet extends ModTemplate {
   }
 
   respondTo(type = '', obj) {
+    if (type === 'admin-config') {
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        getConfig: async () => this.adminConfigSnapshot(),
+        updateConfig: async (config = {}) => this.updateAdminConfig(config)
+      };
+    }
+
     if (type === 'buysaito-options') {
       if (!this.app.BROWSER || this.server_faucet_available !== true) {
         return null;
@@ -719,6 +727,47 @@ class Faucet extends ModTemplate {
     };
   }
 
+  adminConfigSnapshot() {
+    return {
+      github_configured: !!this.oauth.secret_github,
+      twitter_configured: !!this.oauth.secret_twitter,
+      free_use: this.free_use === true
+    };
+  }
+
+  updateAdminConfig(config = {}) {
+    const githubSecret = String(config.github_secret || '');
+    const twitterSecret = String(config.twitter_secret || '');
+
+    // Empty secret fields preserve the current in-memory value. Secrets are
+    // intentionally never persisted or included in the returned snapshot.
+    if (githubSecret) {
+      this.oauth.secret_github = githubSecret;
+    }
+    if (twitterSecret) {
+      this.oauth.secret_twitter = twitterSecret;
+    }
+
+    this.free_use =
+      config.free_use === true || config.free_use === '1' || config.free_use === 'on';
+    this.mode = saveFaucetMode(this.app, {
+      free: this.free_use,
+      github: !!this.oauth.secret_github,
+      twitter: !!this.oauth.secret_twitter
+    });
+
+    console.log(
+      'FAUCET CONFIG: OAuth updated — GitHub:',
+      this.oauth.secret_github ? 'configured' : 'not set',
+      '| X:',
+      this.oauth.secret_twitter ? 'configured' : 'not set',
+      '| Free Use:',
+      this.free_use ? 'on' : 'off'
+    );
+
+    return this.adminConfigSnapshot();
+  }
+
   async handlePeerTransaction(app, tx = null, peer, mycallback = null) {
     if (tx == null) {
       return 0;
@@ -850,74 +899,6 @@ class Faucet extends ModTemplate {
     const slug = encodeURI(this.returnSlug());
 
     this.oauth.attachRoutes(expressapp);
-
-    const renderConfig = (opts = {}) =>
-      ConfigTemplate({
-        publickey: faucet_self.wallet.publickey || faucet_self.app.options.faucet?.publickey || '',
-        slips: faucet_self.wallet.slips,
-        queue: faucet_self.wallet.queue,
-        githubConfigured: !!faucet_self.oauth.secret_github,
-        twitterConfigured: !!faucet_self.oauth.secret_twitter,
-        free_use: faucet_self.free_use === true,
-        ...opts
-      });
-
-    const sendConfig = (res, opts = {}) => {
-      res.setHeader('Content-type', 'text/html; charset=UTF-8');
-      res.setHeader('Cache-Control', 'no-store');
-      return res.send(renderConfig(opts));
-    };
-
-    expressapp.get('/' + slug + '/oauth/config', (req, res) => {
-      if (res.finished) {
-        return;
-      }
-      return res.redirect(302, '/' + slug + '/config');
-    });
-
-    expressapp.get('/' + slug + '/config', async (req, res) => {
-      if (res.finished) {
-        return;
-      }
-      await faucet_self.wallet.getSnapshotBalance();
-      return sendConfig(res);
-    });
-
-    expressapp.post('/' + slug + '/config', async (req, res) => {
-      if (res.finished) {
-        return;
-      }
-
-      const body = req.body && typeof req.body === 'object' ? req.body : {};
-      const githubSecret = String(body.github_secret || '');
-      const twitterSecret = String(body.twitter_secret || '');
-      if (githubSecret) {
-        faucet_self.oauth.secret_github = githubSecret;
-      }
-      if (twitterSecret) {
-        faucet_self.oauth.secret_twitter = twitterSecret;
-      }
-      faucet_self.free_use = body.free_use === '1' || body.free_use === 'on';
-      faucet_self.mode = {
-        free: faucet_self.free_use,
-        github: !!faucet_self.oauth.secret_github,
-        twitter: !!faucet_self.oauth.secret_twitter
-      };
-
-      faucet_self.mode = saveFaucetMode(faucet_self.app, faucet_self.mode);
-
-      console.log(
-        'FAUCET CONFIG: OAuth updated — GitHub:',
-        faucet_self.oauth.secret_github ? 'configured' : 'not set',
-        '| X:',
-        faucet_self.oauth.secret_twitter ? 'configured' : 'not set',
-        '| Free Use:',
-        faucet_self.free_use ? 'on' : 'off'
-      );
-
-      await faucet_self.wallet.getSnapshotBalance();
-      return sendConfig(res, { saved: true });
-    });
 
     expressapp.get('/' + slug, async function (req, res) {
       let updatedSocial = Object.assign({}, faucet_self.social);

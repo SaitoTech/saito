@@ -7,6 +7,7 @@ class AdminSetup {
     this.container = container;
     this.selected_app = '';
     this.showing_recompile = false;
+    this.use_existing_config = false;
   }
 
   render() {
@@ -45,14 +46,22 @@ class AdminSetup {
 
     document.querySelectorAll('.node-setup-card').forEach((card) => {
       card.onclick = async () => {
+        const choice = card.dataset.choice;
+
+        if (choice === 'existing') {
+          this.use_existing_config = true;
+          this.mod.main.render('overview');
+          return;
+        }
+
         if (!this.selected_app) {
           salert('Please pick the module for your server root first.');
           return;
         }
 
-        const choice = card.dataset.choice;
-
-        document.querySelector('.node-setup-options').style.display = 'none';
+        document.querySelectorAll('.node-setup-options').forEach((el) => {
+          el.style.display = 'none';
+        });
         document.querySelector('.splash-section').style.display = 'none';
         document.querySelector('.node-setup-explainer').style.display = 'none';
         document.querySelectorAll('.node-setup-info').forEach((el) => {
@@ -116,7 +125,9 @@ class AdminSetup {
 
         if (res?.err) {
           salert(res.err);
-          document.querySelector('.node-setup-options').style.display = '';
+          document.querySelectorAll('.node-setup-options').forEach((el) => {
+            el.style.display = '';
+          });
           document.querySelector('.splash-section').style.display = '';
           document.querySelector('.node-setup-explainer').style.display = '';
           document.querySelectorAll('.node-setup-info').forEach((el) => {

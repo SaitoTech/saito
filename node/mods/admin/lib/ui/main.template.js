@@ -1,5 +1,6 @@
 module.exports = (app, mod) => {
-  const faucet = app.modules.returnModule('Faucet');
+  const admin_configs = app.modules.getRespondTos?.('admin-config') || [];
+  const faucet = admin_configs.find((config) => config.id === 'faucet');
 
   return `
     <div class="saito-admin-main">

@@ -78,11 +78,11 @@
 }
 
 .explorer-address-delta-positive {
-  color: oklch(0.45 0.14 145);
+  color: var(--explorer-positive, var(--explorer-foreground));
 }
 
 .explorer-address-delta-negative {
-  color: oklch(0.52 0.19 27);
+  color: var(--explorer-negative, var(--explorer-destructive));
 }
 
 .explorer-address-balance {

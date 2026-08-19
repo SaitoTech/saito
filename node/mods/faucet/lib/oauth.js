@@ -10,7 +10,7 @@ class FaucetOAuth {
     this.mod = mod;
 
     // BEGIN TEMP_OAUTH_CONFIG — runtime OAuth client secrets (in-memory only).
-    // Remove with /faucet/config when production env secrets are available.
+    // Remove when production environment secrets are available.
     this.secret_github = null;
     this.secret_twitter = null;
     // END TEMP_OAUTH_CONFIG
@@ -65,7 +65,7 @@ class FaucetOAuth {
 
       if (!clientId || !callbackUrl || !clientSecret) {
         const err = new Error(
-          'Client ID, callback URL, or client secret is missing. Configure secrets via /faucet/config.'
+          'Client ID, callback URL, or client secret is missing. Configure secrets in Admin > Faucet.'
         );
         err.code = 'github_oauth_not_configured';
         err.httpStatus = 500;
@@ -93,7 +93,7 @@ class FaucetOAuth {
 
       if (!clientId || !redirectUri || !clientSecret) {
         const err = new Error(
-          'X Client ID, callback URL, or client secret is missing. Configure secrets via /faucet/config.'
+          'X Client ID, callback URL, or client secret is missing. Configure secrets in Admin > Faucet.'
         );
         err.code = 'twitter_oauth_not_configured';
         err.httpStatus = 500;

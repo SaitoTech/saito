@@ -33,6 +33,12 @@ class AdminMain {
   }
 
   isSetupComplete() {
+    if (this.hasAdminKey()) {
+      return true;
+    }
+    if (this.setup_ui.use_existing_config) {
+      return true;
+    }
     if (this.mod.server_info?.options?.defaultModule) {
       return true;
     }
