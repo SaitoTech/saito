@@ -1,138 +1,165 @@
-.admin-modules-hint {
-  padding: 20px 0;
-  color: #555;
-  max-width: 640px;
+.admin-modules {
+  max-width: 1100px;
 }
 
-.admin-modules-hint code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.95em;
-}
-
-.module-config-header {
+.admin-modules-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.admin-modules-header h1 {
+  margin: 0;
+}
+
+.admin-modules-header .admin-button {
+  margin-top: 0;
+}
+
+.admin-modules-intro {
+  max-width: 760px;
+  color: #555;
+}
+
+.admin-modules-error {
+  margin: 0 0 16px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #f2c7c7;
+  background: #fff5f5;
+  color: #a52828;
+}
+
+.admin-modules-saved {
+  margin: 0 0 16px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #cfe6da;
+  background: #f1f8f4;
+  color: #1b5e20;
+}
+
+#admin-modules-filter {
+  max-width: 360px;
   margin-bottom: 20px;
 }
 
-.module-config-header h3 {
-  font-size: 20px;
+.admin-modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.admin-module-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  appearance: none;
+}
+
+.admin-module-card:hover {
+  border-color: #c8d6cc;
+}
+
+.admin-module-name {
+  font-size: 15px;
   font-weight: 600;
   color: #2c3e50;
+  word-break: break-all;
 }
 
-#modconfig-button {
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-size: 14px;
+.admin-module-mode {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef1f4;
+  color: #4b5563;
 }
 
-.mod-config-table {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
-  gap: 18px;
-  padding: 0;
-  border: none;
-  background: transparent;
+.admin-module-card.mode-off {
+  background: #f7f7f7;
+  border-color: #e5e7eb;
 }
 
-.mod-config-table input[type='checkbox'] {
-  display: none;
+.admin-module-card.mode-off .admin-module-name {
+  color: #6b7280;
 }
 
-.mod-config-table label {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
-  color: #2c3e50;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s,
-    border-color 0.15s,
-    background 0.15s;
-  padding: 10px 12px;
-  border-radius: 8px;
-}
-
-.mod-config-table label::before {
-  content: '';
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  background: #ffffff;
-  border: 1px solid #cfd4d9;
-  flex-shrink: 0;
-  transition:
-    background 0.15s,
-    border-color 0.15s;
-}
-
-.mod-config-table label:hover {
-  transform: translateY(-2px);
-  border-color: #c8d6cc;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-}
-
-.mod-config-table input[type='checkbox']:checked + label {
+.admin-module-card.mode-both {
   background: #f5fbf7;
   border-color: #4caf50;
-  box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.25);
 }
 
-.mod-config-table input[type='checkbox']:checked + label::before {
-  background: #4caf50;
-  border-color: #4caf50;
+.admin-module-card.mode-both .admin-module-mode {
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
-.mod-config-table label svg,
-.mod-config-table label .icon {
-  margin-left: auto;
-  opacity: 0.55;
-  transition: opacity 0.15s;
+.admin-module-card.mode-server {
+  background: #f5f8fc;
+  border-color: #90caf9;
 }
 
-.mod-config-table label:hover svg,
-.mod-config-table label:hover .icon {
-  opacity: 1;
+.admin-module-card.mode-server .admin-module-mode {
+  background: #e3f2fd;
+  color: #1565c0;
 }
 
-@media screen and (max-width: 900px) {
-  .mod-config-table {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 14px;
-  }
+.admin-module-card.mode-client {
+  background: #f7fbfb;
+  border-color: #80cbc4;
 }
 
-@media screen and (max-width: 640px) {
-  .module-config-header {
+.admin-module-card.mode-client .admin-module-mode {
+  background: #e0f2f1;
+  color: #00695c;
+}
+
+.admin-module-card.missing {
+  opacity: 0.85;
+}
+
+.admin-modules-missing {
+  margin-top: 32px;
+}
+
+.admin-modules-missing h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.admin-modules-missing p {
+  color: #666;
+}
+
+.admin-modules-empty {
+  color: #666;
+}
+
+@media (max-width: 640px) {
+  .admin-modules-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
   }
 
-  #modconfig-button {
-    align-self: stretch;
+  .admin-modules-header .admin-button {
+    width: 100%;
   }
 
-  .mod-config-table {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .mod-config-table label {
-    padding: 18px 16px;
-    font-size: 16px;
-  }
-
-  .mod-config-table label:hover {
-    transform: none;
-    box-shadow: none;
+  #admin-modules-filter {
+    max-width: none;
   }
 }

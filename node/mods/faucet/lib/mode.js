@@ -1,32 +1,34 @@
-function readFaucetMode(options = {}) {
-  const faucet = options?.faucet && typeof options.faucet === 'object' ? options.faucet : {};
-  const saved = faucet.mode && typeof faucet.mode === 'object' ? faucet.mode : {};
+/**
+ * Persist Faucet mode flags in app.options.faucet.mode.
+ * OAuth secrets stay in memory; only enabled-mode flags are saved.
+ */
 
+function normalizeMode(mode = {}) {
+  const src = mode && typeof mode === 'object' ? mode : {};
   return {
-    free: saved.free === true || saved.free_use === true || faucet.free_use === true,
-    github: saved.github === true,
-    twitter: saved.twitter === true
+    free: src.free === true || src.free_use === true,
+    github: src.github === true,
+    twitter: src.twitter === true
   };
 }
 
+function readFaucetMode(options = {}) {
+  return normalizeMode(options?.faucet?.mode);
+}
+
 function saveFaucetMode(app, mode = {}) {
+  const next = normalizeMode(mode);
+  if (!app.options) {
+    app.options = {};
+  }
   if (!app.options.faucet || typeof app.options.faucet !== 'object') {
     app.options.faucet = {};
   }
-
-  const normalized = {
-    free: mode.free === true || mode.free_use === true,
-    github: mode.github === true,
-    twitter: mode.twitter === true
-  };
-
-  app.options.faucet.mode = { ...normalized };
-  // Keep the legacy scalar in sync so older options and node builds retain
-  // the administrator's choice across a restart too.
-  app.options.faucet.free_use = normalized.free;
-  app.storage.saveOptions();
-
-  return normalized;
+  app.options.faucet.mode = { ...next };
+  if (app.storage?.saveOptions) {
+    app.storage.saveOptions();
+  }
+  return next;
 }
 
 module.exports = { readFaucetMode, saveFaucetMode };

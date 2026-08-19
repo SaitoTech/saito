@@ -23,7 +23,6 @@ module.exports = (app, mod, sobj) => {
       <input class="saito-checkbox" type="checkbox" checked name="crypto-stake-confirm-input" id="approve-crypto-stake-confirm-input">
       <label for="approve-crypto-stake-confirm-input">Yes, I prefer fast in-game settlement ${warning_msg}</label>
     </div>
-    <p class="saito-overlay-form-text">Selecting this option allows the game to automatically handle payments and receipts using fast, internal transfers. You can change this in Settings at any time.</p>
 
     <div class="saito-button-row">
       <button type="button" class="saito-button-secondary" id="enable_staking_no">No, thanks</button>

@@ -1,44 +1,5 @@
-.admin-key-setup {
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  padding: 28px;
-  margin-top: 28px;
-  max-width: 700px;
-}
-
-.admin-header + .admin-adminkey {
-  margin-top: 0;
-  padding-top: 0;
-}
-
-.admin-key-setup h2 {
-  margin-bottom: 12px;
-}
-
-.admin-key-setup p {
-  margin-bottom: 18px;
-}
-
-.node-info {
-  border-top: 2px solid black;
-  border-bottom: 2px solid black;
-  padding: 20px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.node-info h3 {
-  margin: 0;
-}
-
-.admin-info {
-  margin-bottom: 20px;
-}
-
-.admin-welcome {
-  margin-bottom: 20px;
+.admin-overview {
+  max-width: 960px;
 }
 
 .admin-server {
@@ -56,8 +17,6 @@
 .admin-server-header h3 {
   margin: 0;
   font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
 }
 
 .admin-server-grid {
@@ -91,4 +50,84 @@
   padding: 8px 10px;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
+}
+
+.admin-keys-panel {
+  padding: 28px 32px;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 14px;
+}
+
+.admin-keys-panel h2 {
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+.keys-warning {
+  margin-bottom: 22px;
+  padding: 12px 16px;
+  background: #fff5f5;
+  border: 1px solid #f2c7c7;
+  border-radius: 10px;
+  color: #a52828;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.keys-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.keys-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e6e8eb;
+}
+
+.keys-row.header {
+  background: transparent;
+  border: none;
+  padding: 0 4px 8px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.keys-row code {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.keys-row code.private {
+  background: #fff1f1;
+  border: 1px solid #f0caca;
+  color: #b91c1c;
+}
+
+.keys-row code.public {
+  background: #f1f8f4;
+  border: 1px solid #cfe6da;
+  color: #1b5e20;
+}
+
+@media screen and (max-width: 900px) {
+  .keys-row {
+    grid-template-columns: 1fr;
+  }
+
+  .keys-row.header {
+    display: none;
+  }
 }

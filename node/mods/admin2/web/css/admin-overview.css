@@ -1,0 +1,94 @@
+.admin-key-setup {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 28px;
+  margin-top: 28px;
+  max-width: 700px;
+}
+
+.admin-header + .admin-adminkey {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.admin-key-setup h2 {
+  margin-bottom: 12px;
+}
+
+.admin-key-setup p {
+  margin-bottom: 18px;
+}
+
+.node-info {
+  border-top: 2px solid black;
+  border-bottom: 2px solid black;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.node-info h3 {
+  margin: 0;
+}
+
+.admin-info {
+  margin-bottom: 20px;
+}
+
+.admin-welcome {
+  margin-bottom: 20px;
+}
+
+.admin-server {
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 32px;
+}
+
+.admin-server-header {
+  margin-bottom: 18px;
+}
+
+.admin-server-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.admin-server-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 24px;
+}
+
+.server-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.server-stat label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.server-stat div {
+  font-size: 15px;
+  color: #111827;
+  word-break: break-all;
+}
+
+.server-stat .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  background: #f9fafb;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
