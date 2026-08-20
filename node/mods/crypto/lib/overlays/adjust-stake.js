@@ -8,6 +8,21 @@ class AdjustStake {
     this.overlay = new SaitoOverlay(app, mod, false);
   }
 
+  bindSelectOnZeroFocus(input) {
+    if (!input) {
+      return;
+    }
+
+    const selectIfZero = () => {
+      if (parseFloat(input.value) === 0) {
+        input.select();
+      }
+    };
+
+    input.addEventListener('focus', selectIfZero);
+    input.addEventListener('click', selectIfZero);
+  }
+
   async render(obj) {
     if (obj?.accept_callback) {
       this.accept_callback = obj.accept_callback;
@@ -46,9 +61,7 @@ class AdjustStake {
       return;
     }
 
-    stake_input.onclick = (e) => {
-      stake_input.select();
-    };
+    this.bindSelectOnZeroFocus(stake_input);
 
     let match_button = document.querySelector('.select_match');
     if (match_button && !match_button.classList.contains('nomatch')) {

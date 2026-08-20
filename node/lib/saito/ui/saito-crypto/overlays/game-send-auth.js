@@ -6,13 +6,24 @@
  * If `details.trusted` is true, mycallback is invoked immediately (no UI).
  * Otherwise the overlay appears and waits for explicit user authorization.
  *
+ * After a successful payment (`saito-crypto-send-confirm` with hash), opens a
+ * UI-only SaitoTransactionMonitor hosted on wallet.saitoCrypto. Does not touch
+ * the game queue, halted, or restartQueue.
+ *
  * This component deliberately has NO close/dismiss/cancel controls.
  * The game remains halted until the player authorizes the payment.
  */
 
 const GameSendAuthTemplate = require('./game-send-auth.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
-const SaitoUser = require('./../../saito-user/saito-user');
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 class GameSendAuth {
   constructor(app, mod) {
@@ -25,6 +36,65 @@ class GameSendAuth {
     });
   }
 
+  /**
+   * First-time / absent preference → checked (opt-in invitation).
+   * After the user has saved a value → reflect that stored preference.
+   */
+  readOutboundCheckboxDefault() {
+    const pref = this.app.options?.gameprefs?.crypto_transfers_outbound_trusted;
+    if (pref === undefined || pref === null) {
+      return true;
+    }
+    return !!pref;
+  }
+
+  /**
+   * Lazy-create a single monitor hosted on the SAITO crypto module (not the game).
+   */
+  ensureTransactionMonitor() {
+    const host = this.app.wallet?.saitoCrypto;
+    if (!host) {
+      console.error('GameSendAuth: wallet.saitoCrypto is not available');
+      return null;
+    }
+    if (!host.transaction_monitor) {
+      const SaitoTransactionMonitor = require('../../saito-transaction-monitor/saito-transaction-monitor');
+      host.transaction_monitor = new SaitoTransactionMonitor(this.app, host);
+    }
+    return host.transaction_monitor;
+  }
+
+  /**
+   * Register one-shot success listener, then invoke the existing payment callback.
+   * Payment hash comes from saito-crypto-send-confirm (emitted by the SEND path).
+   */
+  invokePaymentCallback(mycallback) {
+    const onConfirm = (robj) => {
+      if (robj?.err || !robj?.hash) {
+        return;
+      }
+      try {
+        const monitor = this.ensureTransactionMonitor();
+        if (!monitor) {
+          return;
+        }
+        monitor.render({
+          tx: { signature: robj.hash },
+          title: 'Payment Sent',
+          lead: 'Waiting for opponent to acknowledge receipt...',
+          subtitle: '',
+          auto_continue_on_confirm: true,
+          callback: () => {}
+        });
+      } catch (err) {
+        console.error('GameSendAuth: failed to open transaction monitor', err);
+      }
+    };
+
+    this.app.connection.once('saito-crypto-send-confirm', onConfirm);
+    mycallback();
+  }
+
   handleRequest(details) {
     if (!details?.ticker || !details?.amount || !details?.mycallback) {
       console.error('GameSendAuth: missing required fields', details);
@@ -32,7 +102,7 @@ class GameSendAuth {
     }
 
     if (details.trusted) {
-      details.mycallback();
+      this.invokePaymentCallback(details.mycallback);
       return;
     }
 
@@ -40,58 +110,25 @@ class GameSendAuth {
   }
 
   render(details) {
-    // Determine checkbox default: checked for first encounter (absent preference),
-    // reflects stored preference thereafter
-    let pref = this.app.options?.gameprefs?.crypto_transfers_outbound_trusted;
-    // absent/undefined → first encounter → checked by default
-    // explicitly 0/false → user previously unchecked → unchecked
-    let checkboxDefault = (pref === undefined || pref === null) ? true : !!pref;
-    details.trusted = checkboxDefault;
+    const publicKey = details.publicKey || details.address || '';
+    details.trusted = this.readOutboundCheckboxDefault();
+    details.partyName = escapeHtml(this.app.keychain.returnUsername(publicKey));
+    details.partyKey = escapeHtml(publicKey);
 
     this.overlay.show(GameSendAuthTemplate(details));
     this.overlay.blockClose();
-
-    const counterParty = new SaitoUser(
-      this.app,
-      this.mod,
-      '#game-send-auth-root .counterparty-details'
-    );
-    if (details.publicKey) {
-      counterParty.publicKey = details.publicKey;
-      counterParty.render();
-      counterParty.updateUserlineAddress(details.publicKey);
-    }
 
     const btn = document.getElementById('game_send_auth_authorize');
     if (btn) {
       btn.onclick = () => {
         const checkbox = document.getElementById('game_send_auth_auto_issue');
-        // TEMP_DIAG_POKER_AUTH: outbound AUTHORIZE PAYMENT click trace
-        const recipient = details?.publicKey || details?.address || '';
-        const recipient_trunc =
-          typeof recipient === 'string' && recipient.length > 12
-            ? `${recipient.slice(0, 8)}...${recipient.slice(-6)}`
-            : recipient;
-        console.info('[TEMP_DIAG_POKER_AUTH] AUTHORIZE PAYMENT clicked', {
-          ticker: details?.ticker,
-          amount: details?.amount,
-          recipient: recipient_trunc,
-          checkbox_checked: checkbox?.checked,
-          details_trusted_before_click: details?.trusted
-        });
 
         this.app.options.gameprefs = this.app.options.gameprefs || {};
-        if (checkbox && checkbox.checked) {
-          this.app.options.gameprefs['crypto_transfers_outbound_trusted'] = 1;
-        } else {
-          this.app.options.gameprefs['crypto_transfers_outbound_trusted'] = 0;
-        }
+        this.app.options.gameprefs.crypto_transfers_outbound_trusted = checkbox?.checked ? 1 : 0;
         this.app.storage.saveOptions();
 
         this.overlay.remove();
-        // TEMP_DIAG_POKER_AUTH: about to invoke sendPayment callback (queue resumption)
-        console.info('[TEMP_DIAG_POKER_AUTH] invoking details.mycallback()');
-        details.mycallback();
+        this.invokePaymentCallback(details.mycallback);
       };
     }
   }

@@ -33,6 +33,16 @@ class SaitoTransactionMonitor {
         return await existing(...args);
       };
     }
+
+    //
+    // Native SAITO payments are confirmed via WASM slip events, not only
+    // module onConfirmation. Match the watched signature when present.
+    //
+    if (app?.connection?.on) {
+      app.connection.on('on-payment-sent', (payload) => {
+        this.onPaymentSent(payload);
+      });
+    }
   }
 
   /**
@@ -97,6 +107,27 @@ class SaitoTransactionMonitor {
       return;
     }
     this.completeWith(blk, tx);
+  }
+
+  /**
+   * Native SAITO: wallet maps WASM on-transaction-sent → on-payment-sent
+   * with a `signature` field. Complete when it matches the watched tx.
+   */
+  onPaymentSent(payload = {}) {
+    if (!this.tx?.signature) {
+      return;
+    }
+    const signature = payload?.signature;
+    if (!signature || signature !== this.tx.signature) {
+      return;
+    }
+    this.completeWith(
+      {
+        id: payload.block_id != null ? payload.block_id : null,
+        hash: payload.block_hash || null
+      },
+      { signature }
+    );
   }
 
   /**

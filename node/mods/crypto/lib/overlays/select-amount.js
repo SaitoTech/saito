@@ -15,6 +15,21 @@ class CryptoSelectAmount {
     this.player2_stake = '0';
   }
 
+  bindSelectOnZeroFocus(input) {
+    if (!input) {
+      return;
+    }
+
+    const selectIfZero = () => {
+      if (parseFloat(input.value) === 0) {
+        input.select();
+      }
+    };
+
+    input.addEventListener('focus', selectIfZero);
+    input.addEventListener('click', selectIfZero);
+  }
+
   render(mycallback = null) {
     if (mycallback != null) {
       this.callback = mycallback;
@@ -48,11 +63,7 @@ class CryptoSelectAmount {
 
     const stake_input = document.getElementById('amount_to_stake_input');
     if (stake_input) {
-      stake_input.onclick = () => {
-        if (parseFloat(stake_input.value) == 0) {
-          stake_input.select();
-        }
-      };
+      this.bindSelectOnZeroFocus(stake_input);
       stake_input.onkeydown = (e) => {
         this.app.browser.validateAmountLimit(stake_input.value, e);
       };
@@ -69,6 +80,7 @@ class CryptoSelectAmount {
     const player1_input = document.getElementById('player1_stake_input');
     const player2_input = document.getElementById('player2_stake_input');
     if (player1_input) {
+      this.bindSelectOnZeroFocus(player1_input);
       player1_input.onkeydown = (e) => {
         this.app.browser.validateAmountLimit(player1_input.value, e);
       };
@@ -82,6 +94,7 @@ class CryptoSelectAmount {
       };
     }
     if (player2_input) {
+      this.bindSelectOnZeroFocus(player2_input);
       player2_input.onkeydown = (e) => {
         this.app.browser.validateAmountLimit(player2_input.value, e);
       };

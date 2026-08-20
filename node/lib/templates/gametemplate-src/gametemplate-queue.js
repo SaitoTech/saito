@@ -2747,6 +2747,7 @@ class GameQueue {
               game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
               game_self.restartQueue();
+
               return 0;
             },
             receiver,

@@ -18,7 +18,7 @@ module.exports = function cryptoSendConfirmOverlayTemplate(details) {
     data-confirm-mode="${details?.trusted ? 'trusted' : 'interactive'}"
   >
     <header class="crypto-send-confirm-overlay__header">
-      <h2 class="auth-title crypto-send-confirm-overlay__title" id="crypto_send_confirm_title">Sending Payment</h2>
+      <h2 class="crypto-send-confirm-overlay__title" id="crypto_send_confirm_title">Sending Payment</h2>
     </header>
 
     <div class="crypto-send-confirm-overlay__body">
@@ -40,16 +40,15 @@ module.exports = function cryptoSendConfirmOverlayTemplate(details) {
         <div class="amount crypto-send-confirm-overlay__amount" id="crypto_send_confirm_amount">${details.amount} ${details.ticker}</div>
       </section>
 
-      <section class="crypto-send-confirm-overlay__recipient" aria-labelledby="crypto_send_confirm_recipient_label">
-        <div class="crypto-send-confirm-overlay__summary-label" id="crypto_send_confirm_recipient_label">To</div>
-        <div class="counterparty-details"></div>
+      <section class="crypto-send-confirm-overlay__party" aria-labelledby="crypto_send_confirm_recipient_label">
+        <div class="crypto-send-confirm-overlay__party-label" id="crypto_send_confirm_recipient_label">To</div>
+        <div class="counterparty-details game-crypto-party"></div>
         ${
           ca
             ? `<div class="crypto-send-confirm-overlay__chain-address" id="crypto_send_confirm_address">${ca.length > 16 ? `${ca.slice(0, 8)}…${ca.slice(-8)}` : ca}</div>
         `
             : ''
         }
-        
       </section>
 
       <div
