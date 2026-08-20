@@ -1,9 +1,17 @@
 /**
  * In-game crypto receive overlay — structural markup only.
  *
+ * Shared overlay for:
+ *   pending  → "Awaiting Transfer"
+ *   success  → "Payment Received"  (title + state set from receive.js)
+ *
  * `data-receive-state` and `data-receive-mode` are set from receive.js after mount.
  */
 module.exports = function cryptoReceiveOverlayTemplate(details) {
+  const partyKey = details.partyKey
+    ? `<div class="game-crypto-party-key">${details.partyKey}</div>`
+    : '';
+
   return `
   <div
     class="saito-crypto-transfer crypto-receive-overlay"
@@ -11,10 +19,6 @@ module.exports = function cryptoReceiveOverlayTemplate(details) {
     data-receive-state="pending"
     data-receive-mode="interactive"
   >
-    <header class="crypto-receive-overlay__header">
-      <h2 class="saito-overlay-form-header-title" id="crypto_receive_title">Receiving Payment</h2>
-    </header>
-
     <div class="crypto-receive-overlay__body">
       <div class="crypto-receive-overlay__status" aria-live="polite">
         <div class="saito-spinner spinner crypto-receive-overlay__spinner" id="crypto_receive_spinner"></div>
@@ -25,12 +29,33 @@ module.exports = function cryptoReceiveOverlayTemplate(details) {
         ></i>
       </div>
 
+      <header class="crypto-receive-overlay__header">
+        <h2 class="crypto-receive-overlay__title" id="crypto_receive_title">Awaiting Transfer</h2>
+      </header>
+
       <div class="crypto-receive-overlay__amount" id="crypto_receive_amount">${details.amount} ${details.ticker}</div>
 
-      <section class="crypto-receive-overlay__sender" aria-labelledby="crypto_receive_sender_label">
-        <div class="crypto-receive-overlay__summary-label" id="crypto_receive_sender_label">From</div>
-        <div class="counterparty-details"></div>
+      <section class="crypto-receive-overlay__party" aria-labelledby="crypto_receive_sender_label">
+        <div class="crypto-receive-overlay__party-label" id="crypto_receive_sender_label">
+          <span>From</span>
+        </div>
+        <div class="game-crypto-party">
+          <div class="game-crypto-party-name">${details.partyName || ''}</div>
+          ${partyKey}
+        </div>
       </section>
+
+      <div class="crypto-receive-overlay__prefs">
+        <label class="crypto-receive-overlay__checkbox-label">
+          <input
+            type="checkbox"
+            id="crypto_receive_auto_accept"
+            class="saito-checkbox"
+            ${details.trustedInbound ? 'checked' : ''}
+          />
+          <span>auto-accept in-game transfers</span>
+        </label>
+      </div>
     </div>
 
     <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--trusted">
@@ -43,9 +68,9 @@ module.exports = function cryptoReceiveOverlayTemplate(details) {
       <button
         type="button"
         class="saito-button-primary crypto-receive-overlay__close-btn"
-        id="crypto_receive_close"
+        id="crypto_receive_continue"
       >
-        Close
+        Continue
       </button>
     </footer>
   </div>`;

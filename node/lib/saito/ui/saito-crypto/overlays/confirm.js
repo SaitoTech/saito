@@ -119,7 +119,7 @@ class Confirm {
 
     this.counter_party.publicKey = details.publicKey;
     this.counter_party.render();
-    this.counter_party.updateUserline(details.publicKey, details.publicKey);
+    // Compact identity only — omit full address from this overlay.
 
     if (details?.mycallback) {
       details.mycallback();
@@ -179,7 +179,7 @@ class Confirm {
     const success = Boolean(results?.hash && !results?.err);
 
     if (el.title) {
-      el.title.textContent = success ? 'Payment sent' : 'Payment failed';
+      el.title.textContent = success ? 'Payment Sent' : 'Payment Failed';
     }
 
     el.root.dataset.confirmState = success ? 'success' : 'failed';

@@ -4,6 +4,7 @@ const GameMenuOptionTemplate = require('./game-menu-option.template');
 const InviteLink = require('./../modals/saito-link/saito-link');
 const jsonTree = require('json-tree-viewer');
 const SaitoOverlay = require('./../saito-overlay/saito-overlay');
+const GameCryptoSettings = require('./../saito-crypto/overlays/game-crypto-settings');
 
 /**
  * A customizable menu system that sits along top of screen with click to open drop down lists of submenus
@@ -32,8 +33,24 @@ class GameMenu {
     this.initialized = 0;
     this.debug = true;
     this.overlay = new SaitoOverlay(app, mod);
+    this.crypto_settings_overlay = null;
     this.lock = null;
     this.container = '#saito-header';
+  }
+
+  /**
+   * True when the active game was created with a real cryptocurrency stake.
+   */
+  gameInvolvesRealCrypto() {
+    const ticker = this.game_mod?.game?.options?.crypto;
+    return Boolean(ticker && ticker !== 'CHIPS');
+  }
+
+  openCryptoSettingsOverlay() {
+    if (!this.crypto_settings_overlay) {
+      this.crypto_settings_overlay = new GameCryptoSettings(this.app, this.game_mod);
+    }
+    this.crypto_settings_overlay.render();
   }
 
   /**
@@ -61,6 +78,17 @@ class GameMenu {
 
         for (let sub_menu of menu.submenus) {
           this.addSubMenuOption(sub_menu.parent, sub_menu);
+        }
+      }
+
+      if (this.gameInvolvesRealCrypto()) {
+        this.addMenuOption('game-crypto', 'Crypto');
+        const cryptoMenu = this.returnMenuFromID('game-crypto');
+        if (cryptoMenu) {
+          cryptoMenu.callback = (app, game_mod) => {
+            game_mod.menu.hideSubMenus();
+            menu_self.openCryptoSettingsOverlay();
+          };
         }
       }
 
