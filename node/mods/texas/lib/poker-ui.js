@@ -175,10 +175,30 @@ class PokerUI {
     }
 
     let chips = amount === 1 ? 'CHIP' : 'CHIPS';
-    let stack_html = `${amount} ${chips}`;
+    // Crypto-staked games only: string stake + non-CHIPS ticker (existing game-state check).
+    const isCryptoStaked =
+      typeof this.game.stake === 'string' &&
+      !!this.game.crypto &&
+      this.game.crypto !== 'CHIPS';
 
-    if (typeof this.game.stake === 'string' && this.game.crypto !== 'CHIPS') {
-      stack_html += ` (${this.convertChipsToCrypto(amount)} ${this.game.crypto})`;
+    let stack_html;
+    if (isCryptoStaked) {
+      const credit = this.convertChipsToCrypto(amount);
+      stack_html = `<span class="playerbox-balance playerbox-balance--toggle" tabindex="0" role="button" aria-label="Show crypto balance">
+        <span class="playerbox-balance-face playerbox-balance-face--chips">
+          <span class="playerbox-balance-num">${amount}</span>
+          <span class="playerbox-balance-unit">${chips}</span>
+        </span>
+        <span class="playerbox-balance-face playerbox-balance-face--crypto" aria-hidden="true">
+          <span class="playerbox-balance-num">${credit}</span>
+          <span class="playerbox-balance-unit">${this.game.crypto}</span>
+        </span>
+      </span>`;
+    } else {
+      stack_html = `<span class="playerbox-balance">
+        <span class="playerbox-balance-num">${amount}</span>
+        <span class="playerbox-balance-unit">${chips}</span>
+      </span>`;
     }
 
     this.playerbox.setChips(stack_html, player);

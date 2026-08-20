@@ -21,6 +21,63 @@ class Sidebar {
 
     this.pot.render();
     this.renderPlayerboxes();
+    this.bindBalanceToggle();
+  }
+
+  /**
+   * Touch / keyboard: toggle chip ↔ crypto on the balance line only.
+   * Mouse uses CSS :hover. Does not change game logic.
+   */
+  bindBalanceToggle() {
+    if (this._balanceToggleBound) {
+      return;
+    }
+    const sidebar = document.querySelector('.texas-sidebar');
+    if (!sidebar) {
+      return;
+    }
+
+    const activate = (el) => {
+      if (!el?.classList.contains('playerbox-balance--toggle')) {
+        return;
+      }
+      el.classList.toggle('is-showing-crypto');
+      const showing = el.classList.contains('is-showing-crypto');
+      el.setAttribute('aria-pressed', showing ? 'true' : 'false');
+      const cryptoFace = el.querySelector('.playerbox-balance-face--crypto');
+      if (cryptoFace) {
+        cryptoFace.setAttribute('aria-hidden', showing ? 'false' : 'true');
+      }
+    };
+
+    sidebar.addEventListener(
+      'click',
+      (e) => {
+        const bal = e.target.closest('.playerbox-balance--toggle');
+        if (!bal || !sidebar.contains(bal)) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        activate(bal);
+      },
+      true
+    );
+
+    sidebar.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') {
+        return;
+      }
+      const bal = e.target.closest?.('.playerbox-balance--toggle');
+      if (!bal || !sidebar.contains(bal)) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      activate(bal);
+    });
+
+    this._balanceToggleBound = true;
   }
 
   renderPlayerboxes() {
