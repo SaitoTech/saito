@@ -175,6 +175,7 @@ class PokerUI {
     }
 
     this.playerbox.setChips(this.returnChipCryptoBalanceHtml(amount), player);
+
   }
 
   //

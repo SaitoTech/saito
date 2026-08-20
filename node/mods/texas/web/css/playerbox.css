@@ -63,6 +63,79 @@
   margin: 0 0 0.65rem;
 }
 
+.game.texas .playerbox-balance {
+  display: inline-grid;
+  align-items: baseline;
+  justify-items: start;
+  max-width: 100%;
+}
+
+.game.texas .playerbox-balance-face {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  max-width: 100%;
+  white-space: nowrap;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+.game.texas .playerbox-balance-num {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.game.texas .playerbox-balance-unit {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.game.texas .playerbox-balance--toggle {
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game.texas .playerbox-balance--toggle .playerbox-balance-face--crypto {
+  opacity: 0;
+  transform: translateY(0.35rem);
+  pointer-events: none;
+}
+
+.game.texas .playerbox-balance--toggle .playerbox-balance-face--chips {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .game.texas .playerbox-balance--toggle:hover .playerbox-balance-face--chips {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+
+  .game.texas .playerbox-balance--toggle:hover .playerbox-balance-face--crypto {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.game.texas .playerbox-balance--toggle.is-showing-crypto .playerbox-balance-face--chips {
+  opacity: 0;
+  transform: translateY(-0.35rem);
+}
+
+.game.texas .playerbox-balance--toggle.is-showing-crypto .playerbox-balance-face--crypto {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.game.texas .playerbox-balance--toggle:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, #efe2c0 55%, transparent);
+  border-radius: 0.3rem;
+}
+
 .game.texas .playerbox-action {
   font-size: 1.55rem;
   line-height: 1.25;
