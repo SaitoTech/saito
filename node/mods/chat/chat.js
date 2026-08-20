@@ -598,6 +598,7 @@ class Chat extends ModTemplate {
           return {
             text: dynamic_text,
             icon: 'far fa-comment-dots',
+            image: '/saito/icons/saito-chat-icon-solid.svg',
             callback: function (app, publicKey) {
               if (chat_self.chat_manager == null) {
                 chat_self.chat_manager = new ChatManager(chat_self.app, chat_self);

@@ -94,8 +94,12 @@ class UserMenu {
   }
 
   addMenuItem(item, id) {
+    const icon = item.image
+      ? `<span class="saito-modal-menu-option-icon" style="--saito-menu-icon: url('${item.image}')" aria-hidden="true"></span>`
+      : `<i class="${item.icon}" aria-hidden="true"></i>`;
+
     document.querySelector('#saito-user-menu .saito-modal-content').innerHTML += `
-          <div id="${id}" class="saito-modal-menu-option"><i class="${item.icon}"></i><div class="saito-modal-menu-option-label">${item.text}</div></div>
+          <div id="${id}" class="saito-modal-menu-option">${icon}<div class="saito-modal-menu-option-label">${item.text}</div></div>
         `;
   }
 }

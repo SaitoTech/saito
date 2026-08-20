@@ -39,24 +39,24 @@
 }
 
 .qrscanner-container .scanline {
-  border: 1px solid transparent;
+  height: 2px;
   border-radius: 50%;
-  width: 78vw;
+  width: 100%;
   position: absolute;
-  left: 11vw;
-  top: 3vh;
+  left: 0;
+  top: 0;
   z-index: 9999999;
-  animation: qrscanner-scanning 2s infinite;
-  animation-timing-function: cubic-bezier();
+  animation: qrscanner-scanning 2s ease-in-out infinite;
   box-shadow: 0 0 15px 10px var(--saito-primary);
 }
 
 .qrscanner-container .qr-target {
+  --qr-target-size: min(80vw, 80vh, 500px);
+
   position: relative;
-  width: min(80vw, 80vh);
-  height: min(80vw, 80vh);
-  max-width: 500px;
-  max-height: 500px;
+  width: var(--qr-target-size);
+  height: var(--qr-target-size);
+  overflow: hidden;
   z-index: 999999;
 }
 
@@ -126,7 +126,7 @@
 
 @keyframes qrscanner-scanning {
   0% {
-    transform: translateY(5vw);
+    transform: translateY(0);
     opacity: 0;
   }
   15% {
@@ -136,7 +136,7 @@
     opacity: 1;
   }
   100% {
-    transform: translateY(80vw);
+    transform: translateY(calc(var(--qr-target-size) - 2px));
     opacity: 0;
   }
 }

@@ -560,6 +560,7 @@ class Stack extends ModTemplate {
       return {
         text: `View Stack`,
         icon: this.icon_fa,
+        image: '/saito/icons/saito-stack-icon-solid.svg',
         callback: function (app, publicKey) {
           navigateWindow(`/stack/${publicKey}`);
         }
