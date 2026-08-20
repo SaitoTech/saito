@@ -128,16 +128,8 @@ impl Mempool {
 
         // validate
         if tx_valid {
-            info!(
-                "[TEMP_TX_TRACE] MEMPOOL VALIDATION PASSED sig={}",
-                transaction.signature.to_hex()
-            );
             self.add_transaction(transaction).await;
         } else {
-            info!(
-                "[TEMP_TX_TRACE] MEMPOOL REJECTED sig={} reason=transaction_validate_failed",
-                transaction.signature.to_hex()
-            );
             debug!(
                 "transaction not valid : {:?}. cannot add to mempool",
                 transaction.signature.to_hex()
@@ -157,10 +149,6 @@ impl Mempool {
             let utxo_key = input.utxoset_key;
             if self.utxo_map.contains_key(&utxo_key) && input.amount > 0 {
                 // Duplicate input found, reject transaction
-                info!(
-                    "[TEMP_TX_TRACE] MEMPOOL REJECTED sig={} reason=duplicate_input_in_mempool",
-                    transaction.signature.to_hex()
-                );
                 warn!(
                     "duplicate input : \n{} found in transaction : \n{}",
                     input, transaction
@@ -179,10 +167,6 @@ impl Mempool {
 
         if !self.transactions.contains_key(&transaction.signature) {
             if let TransactionType::GoldenTicket = transaction.transaction_type {
-                info!(
-                    "[TEMP_TX_TRACE] MEMPOOL REJECTED sig={} reason=golden_ticket_wrong_ingest_path",
-                    transaction.signature.to_hex()
-                );
                 warn!("golden ticket routed to add_transaction; use add_golden_ticket instead");
                 return;
             }
@@ -190,21 +174,11 @@ impl Mempool {
             self.transactions
                 .insert(transaction.signature, transaction.clone());
             self.new_tx_added = true;
-            info!(
-                "[TEMP_TX_TRACE] MEMPOOL ACCEPTED sig={} mempool_count={}",
-                transaction.signature.to_hex(),
-                self.transactions.len()
-            );
 
             for input in transaction.from.iter() {
                 let utxo_key = input.utxoset_key;
                 self.utxo_map.insert(utxo_key, 1);
             }
-        } else {
-            info!(
-                "[TEMP_TX_TRACE] DUPLICATE TRANSACTION sig={} reason=already_pending_in_mempool",
-                transaction.signature.to_hex()
-            );
         }
     }
 

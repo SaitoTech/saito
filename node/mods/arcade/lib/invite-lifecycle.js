@@ -305,7 +305,6 @@ module.exports = {
             if (step) {
               step = String(step).padStart(5, '0');
             }
-            console.log('SAVING GAME MOVE: ');
             await this.app.storage.saveTransaction(
               tx,
               { field4: txmsg.game_id, field5: step, field5_sort: 1 },

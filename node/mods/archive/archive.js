@@ -25,19 +25,6 @@ function archiveLogBindParams(params) {
   return out;
 }
 
-function archiveSqliteChanges(result) {
-  if (result == null) {
-    return null;
-  }
-  if (typeof result.changes === 'number') {
-    return result.changes;
-  }
-  if (typeof result.rowsAffected === 'number') {
-    return result.rowsAffected;
-  }
-  return result;
-}
-
 //
 // HOW THE ARCHIVE SAVES TXS
 //
@@ -598,16 +585,7 @@ class Archive extends ModTemplate {
       newObj.tx_size = newObj.tx.length;
     }
 
-    console.log(
-      '--------------------------------\nARCHIVE UPDATE TRANSACTION\n--------------------------------\nentered: Archive.updateTransaction\nlookup sig (obj.sig / tx_to_update):\n' +
-        (tx_to_update || '(empty)')
-    );
-
     if (!tx_to_update) {
-      // console.error('No tx signature for archive update:', tx);
-      console.log(
-        'SQL:\n(not executed — missing lookup sig)\nparameters:\n(none)\nresult / changes:\n(none)\nmodified a row:\nfalse\n--------------------------------'
-      );
       return 0;
     }
 
@@ -664,16 +642,6 @@ class Archive extends ModTemplate {
     delete newObj.signature;
 
     if (set_clauses.length === 0) {
-      const existing_row = existing_rows && existing_rows.length > 0 ? existing_rows[0] : null;
-      console.log(
-        'existing row:\n' +
-          (existing_row ? existing_row.sig : '(none)') +
-          '\nexisting owner:\n' +
-          (existing_row ? existing_row.owner : '(none)') +
-          '\nSQL:\n(not executed — empty SET clause)\nparameters:\n' +
-          JSON.stringify(archiveLogBindParams(params), null, 2) +
-          '\nresult / changes:\n(none)\nmodified a row:\nfalse\n--------------------------------'
-      );
       return 0;
     }
 
@@ -685,15 +653,6 @@ class Archive extends ModTemplate {
 
       if (existing_row.owner && existing_row.owner !== '') {
         if (!obj.access_script) {
-          console.log(
-            'existing row:\n' +
-              existing_row.sig +
-              '\nexisting owner:\n' +
-              existing_row.owner +
-              '\nSQL:\n(not executed — access_script missing)\nparameters:\n' +
-              JSON.stringify(archiveLogBindParams(params), null, 2) +
-              '\nresult / changes:\n(none)\nmodified a row:\nfalse\n--------------------------------'
-          );
           return 0;
         }
 
@@ -707,48 +666,21 @@ class Archive extends ModTemplate {
         }
 
         if (!can_update) {
-          console.log(
-            'existing row:\n' +
-              existing_row.sig +
-              '\nexisting owner:\n' +
-              existing_row.owner +
-              '\nSQL:\n(not executed — authorization denied)\nparameters:\n' +
-              JSON.stringify(archiveLogBindParams(params), null, 2) +
-              '\nresult / changes:\n(none)\nmodified a row:\nfalse\n--------------------------------'
-          );
           return 0;
         }
       }
     }
 
     let sql = `UPDATE archives SET ${set_clauses.join(', ')} WHERE sig = $sig`;
-    const existing_row_for_log =
-      existing_rows && existing_rows.length > 0 ? existing_rows[0] : null;
 
     if (this.app.BROWSER) {
-      let results = await this.localDB.update({
+      await this.localDB.update({
         in: 'archives',
         set: newObj,
         where: {
           sig: tx_to_update
         }
       });
-      const changes = archiveSqliteChanges(results);
-      console.log(
-        'existing row:\n' +
-          (existing_row_for_log ? existing_row_for_log.sig : '(none)') +
-          '\nexisting owner:\n' +
-          (existing_row_for_log ? existing_row_for_log.owner : '(none)') +
-          '\nSQL:\n(JsStore update; equivalent WHERE sig = $sig)\nparameters:\n' +
-          JSON.stringify(archiveLogBindParams(params), null, 2) +
-          '\nresult / sqlite run:\n' +
-          JSON.stringify(results) +
-          '\nchanges / rowsAffected:\n' +
-          JSON.stringify(changes) +
-          '\nmodified a row:\n' +
-          (changes > 0 ? 'true' : 'false') +
-          '\n--------------------------------'
-      );
     } else {
       if (tx && newObj.tx_size > 50000) {
         const fs = this.app?.storage?.returnFileSystem();
@@ -759,31 +691,7 @@ class Archive extends ModTemplate {
         }
       }
 
-      const sqlite_result = await this.app.storage.runDatabase(sql, params, 'archive');
-      const changes = archiveSqliteChanges(sqlite_result);
-      console.log(
-        'existing row:\n' +
-          (existing_row_for_log ? existing_row_for_log.sig : '(none)') +
-          '\nexisting owner:\n' +
-          (existing_row_for_log ? existing_row_for_log.owner : '(none)') +
-          '\nSQL:\n' +
-          sql +
-          '\nparameters:\n' +
-          JSON.stringify(archiveLogBindParams(params), null, 2) +
-          '\n$sig:\n' +
-          (params.$sig || '') +
-          '\n$owner:\n' +
-          (params.$owner == null ? '(not bound)' : params.$owner) +
-          '\n$updated_at:\n' +
-          (params.$updated_at == null ? '(not bound)' : params.$updated_at) +
-          '\nresult / sqlite run:\n' +
-          JSON.stringify(sqlite_result) +
-          '\nchanges / rowsAffected:\n' +
-          JSON.stringify(changes) +
-          '\nmodified a row:\n' +
-          (changes > 0 ? 'true' : 'false') +
-          '\n--------------------------------'
-      );
+      await this.app.storage.runDatabase(sql, params, 'archive');
     }
 
     return 1;

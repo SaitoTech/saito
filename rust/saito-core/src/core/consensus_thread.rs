@@ -427,10 +427,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     "ConsensusThread::process_event : new transaction : {:?}",
                     sig
                 );
-                info!(
-                    "[TEMP_TX_TRACE] CONSENSUS NEW_TX sig={} type={:?}",
-                    sig, transaction.transaction_type
-                );
 
                 if let TransactionType::GoldenTicket = transaction.transaction_type {
                     let mut mempool = self.mempool_lock.write().await;
