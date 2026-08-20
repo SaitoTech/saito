@@ -42,6 +42,8 @@ class QRScanner extends ModTemplate {
 
     // quirc wasm version
     this.decoder = null;
+    this.decoder_timeout = null;
+    this.scan_session = 0;
     this.last_scanned_raw = null;
     this.last_scanned_at = null;
 
@@ -66,16 +68,16 @@ class QRScanner extends ModTemplate {
   }
 
   respondTo(type = '') {
-    let qr_self = this;
     if (type === 'saito-header') {
-      if (this.app.browser.isMobileBrowser() || window.innerWidth < 600) {
+      const mobileViewport = typeof window !== 'undefined' && window.innerWidth <= 620;
+      if (this.app.browser.isMobileBrowser() || mobileViewport) {
         return [
           {
             text: 'Scan',
-            icon: 'fas fa-expand',
+            icon: 'fa-solid fa-qrcode',
             rank: 110,
             type: 'utilities',
-            callback: function (app, id) {
+            callback: function (app) {
               app.connection.emit('scanner-start-scanner');
             }
           }
@@ -93,13 +95,17 @@ class QRScanner extends ModTemplate {
     });
   }
 
-  startQRDecoderInitializationLoop() {
-    x = this.attemptQRDecode();
+  startQRDecoderInitializationLoop(scanSession) {
+    if (scanSession !== this.scan_session || !this.decoder) {
+      return;
+    }
 
-    if (x == 1) {
-    } else {
-      setTimeout(() => {
-        this.startQRDecoderInitializationLoop();
+    const decoderStarted = this.attemptQRDecode();
+
+    if (decoderStarted !== 1) {
+      this.decoder_timeout = setTimeout(() => {
+        this.decoder_timeout = null;
+        this.startQRDecoderInitializationLoop(scanSession);
       }, 100);
     }
   }
@@ -111,7 +117,7 @@ class QRScanner extends ModTemplate {
     if (this.app.BROWSER == 0) {
       return;
     }
-    if (!document) {
+    if (typeof document === 'undefined') {
       return;
     }
     if (document.querySelector('.qrscanner-container')) {
@@ -140,7 +146,7 @@ class QRScanner extends ModTemplate {
     if (this.app.BROWSER == 0) {
       return;
     }
-    if (!document) {
+    if (typeof document === 'undefined') {
       return;
     }
     if (document.querySelector('.qrscanner-container')) {
@@ -164,8 +170,10 @@ class QRScanner extends ModTemplate {
   returnScannerHTML() {
     return `
       <div class="qrscanner-container">
-        <div id="qr-target" class="qr-target"><div class="corners"></div></div>
-        <div id="scanline" class="scanline"></div>
+        <div id="qr-target" class="qr-target">
+          <div class="corners"></div>
+          <div id="scanline" class="scanline"></div>
+        </div>
         <div id="close-scanner" class="close-scanner"><i class="fa-solid fa-xmark"></i></div>
         <div class="qr-video-container">
           <video playsinline autoplay id="qr-video" class="qr-video"></video>
@@ -177,6 +185,7 @@ class QRScanner extends ModTemplate {
   }
 
   async start(video, canvas) {
+    const scanSession = ++this.scan_session;
     this.video = video;
     this.canvas = canvas;
 
@@ -184,20 +193,33 @@ class QRScanner extends ModTemplate {
       this.canvas_context = this.canvas.getContext('2d');
       this.decoder = new Worker('/qrscanner/quirc_worker.js');
       this.decoder.onmessage = (msg) => {
-        this.onDecoderMessage(msg);
+        if (scanSession === this.scan_session) {
+          this.onDecoderMessage(msg, scanSession);
+        }
       };
 
-      let stream = await navigator.mediaDevices.getUserMedia(this.constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(this.constraints);
+      if (scanSession !== this.scan_session) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       this.handleSuccess(stream);
     } catch (err) {
-      this.handleError(err);
+      if (scanSession === this.scan_session) {
+        this.handleError(err);
+      }
       return;
     }
 
-    this.startQRDecoderInitializationLoop();
+    this.startQRDecoderInitializationLoop(scanSession);
   }
 
   stop() {
+    this.scan_session++;
+    if (this.decoder_timeout) {
+      clearTimeout(this.decoder_timeout);
+      this.decoder_timeout = null;
+    }
     this.decoder?.terminate();
     this.decoder = null;
     if (this.video?.srcObject) {
@@ -205,7 +227,7 @@ class QRScanner extends ModTemplate {
     }
     this.isStreamInit = false;
     this.scanner_callback = null;
-    if (document.querySelector('.qrscanner-container')) {
+    if (typeof document !== 'undefined' && document.querySelector('.qrscanner-container')) {
       document.querySelector('.qrscanner-container').remove();
     }
   }
@@ -242,7 +264,11 @@ class QRScanner extends ModTemplate {
   // worker passes back a message either containing decoded data,
   // or it attempts t
   //
-  onDecoderMessage(msg) {
+  onDecoderMessage(msg, scanSession = this.scan_session) {
+    if (scanSession !== this.scan_session) {
+      return;
+    }
+
     if (msg.data != 'done') {
       var qrid = msg.data['payload_string'];
       let right_now = Date.now();
@@ -258,8 +284,11 @@ class QRScanner extends ModTemplate {
         this.last_scanned_at = right_now;
       }
     }
-    setTimeout(() => {
-      this.attemptQRDecode();
+    this.decoder_timeout = setTimeout(() => {
+      this.decoder_timeout = null;
+      if (scanSession === this.scan_session) {
+        this.attemptQRDecode();
+      }
     }, 0);
   }
 
@@ -285,14 +314,16 @@ class QRScanner extends ModTemplate {
       return;
     }
 
+    const decodedValue = typeof msg === 'string' ? msg.trim() : msg;
+
     //
     // or this is a URL
     //
-    if (this.app.browser.isValidUrl(msg)) {
+    if (this.app.browser.isValidUrl(decodedValue)) {
       this.stop();
-      let c = confirm('Visit: ' + msg + '?');
+      let c = confirm('Visit: ' + decodedValue + '?');
       if (c) {
-        navigateWindow(msg);
+        navigateWindow(decodedValue);
         return;
       }
     }
@@ -300,22 +331,21 @@ class QRScanner extends ModTemplate {
     //
     // or this is a publickey
     //
-    if (this.app.crypto.isPublicKey(msg)) {
+    if (this.app.crypto.isPublicKey(decodedValue)) {
       this.stop();
-      let userMenu = new UserMenu(this.app, msg);
-      userMenu.render(this.app);
+      this.openUserMenu(decodedValue);
       return;
     }
 
     //
     // non-SAITO publickey?
     //
-    if (!msg.match(/\s/gi)) {
-      if (msg.match(/[0-9a-zA-Z]+/i)) {
+    if (typeof decodedValue === 'string' && !decodedValue.match(/\s/gi)) {
+      if (decodedValue.match(/[0-9a-zA-Z]+/i)) {
         this.stop();
 
         let obj = {};
-        obj.address = msg;
+        obj.address = decodedValue;
         this.app.connection.emit('saito-crypto-withdraw-render-request', obj);
 
         return;
@@ -323,6 +353,11 @@ class QRScanner extends ModTemplate {
     }
 
     this.sendEvent('qrcode', msg);
+  }
+
+  openUserMenu(publicKey) {
+    const userMenu = new UserMenu(this.app, publicKey);
+    void userMenu.render();
   }
 
   decodeFromFile(f) {
