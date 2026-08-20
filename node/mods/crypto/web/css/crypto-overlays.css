@@ -2078,79 +2078,104 @@ input[type='checkbox'].ignore-checkbox {
 
 /* -------------------------------------------------------------------------- */
 /* Game crypto settings overlay (GameMenu)                                    */
+/* Classic Saito overlay-form: orange header, left-aligned settings,          */
+/* bottom-right Save via .saito-button-row                                    */
 /* -------------------------------------------------------------------------- */
 
-.game-crypto-settings-overlay {
-  min-width: min(36rem, 95vw);
-  max-width: min(44rem, 96vw);
-  padding: 2.6rem 3rem 3rem;
-  gap: 2rem;
-  align-items: center;
-  border: 1px solid color-mix(in srgb, var(--saito-white) 12%, transparent);
-  box-shadow: 0 1.2rem 3.6rem color-mix(in srgb, var(--saito-black) 45%, transparent);
+.saito-overlay-form.game-crypto-settings-overlay {
+  width: min(56rem, 94vw);
+  max-width: min(56rem, 94vw);
+  min-width: min(36rem, 94vw);
+  padding: var(--saito-space-xl);
+  gap: 2.4rem;
+  align-items: stretch;
+  border: 1px solid color-mix(in srgb, var(--saito-white) 28%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--saito-black) 45%, transparent),
+    0 1.4rem 3.2rem color-mix(in srgb, var(--saito-black) 50%, transparent);
 }
 
-.game-crypto-settings-overlay__header {
-  width: 100%;
-  text-align: center;
-}
-
-.game-crypto-settings-overlay__title {
+.game-crypto-settings-overlay .saito-overlay-form-header {
   margin: 0;
-  font-size: 2.04rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+}
+
+.game-crypto-settings-overlay .saito-overlay-form-header-title {
+  font-size: 2.2rem;
 }
 
 .game-crypto-settings-overlay__body {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2rem;
+  align-items: stretch;
+  gap: 2.4rem;
   width: 100%;
-  max-width: 32rem;
 }
 
 .game-crypto-settings-overlay__setting-block {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
+  align-items: stretch;
+  gap: 0.85rem;
   width: 100%;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--saito-white) 16%, transparent);
+}
+
+.game-crypto-settings-overlay__setting-block:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .game-crypto-settings-overlay__setting {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.9rem;
+  justify-content: flex-start;
+  gap: 1.2rem;
   width: 100%;
-  font-size: 1.5rem;
   cursor: pointer;
   user-select: none;
 }
 
+.game-crypto-settings-overlay__setting .saito-checkbox {
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin: 0;
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--saito-white) 55%, transparent);
+}
+
+.game-crypto-settings-overlay__setting .saito-checkbox::after {
+  font-size: 1.8rem;
+}
+
 .game-crypto-settings-overlay__setting-label {
+  font-size: 2rem;
   font-family: var(--saito-font-medium);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--saito-white);
 }
 
 .game-crypto-settings-overlay__hint {
   margin: 0;
-  font-size: 1.35rem;
-  line-height: 1.5;
-  text-align: center;
-  color: color-mix(in srgb, var(--saito-white) 72%, transparent);
+  padding-left: 3.8rem;
+  font-size: 1.65rem;
+  line-height: 1.45;
+  text-align: left;
+  color: color-mix(in srgb, var(--saito-white) 68%, transparent);
 }
 
-.game-crypto-settings-overlay__footer {
-  display: flex;
-  justify-content: center;
-  width: 100%;
+.game-crypto-settings-overlay__actions.saito-button-row {
   margin-top: 0.4rem;
 }
 
-.game-crypto-settings-overlay__footer .saito-button-primary {
+.game-crypto-settings-overlay__actions .saito-button-primary {
   min-width: 14rem;
+  min-height: 4.6rem;
+  padding: 1.2rem 2.2rem;
+  font-size: 1.75rem;
+  font-weight: 600;
 }
 
 @media screen and (max-width: 768px) {
