@@ -584,7 +584,7 @@ class League extends ModTemplate {
       } else if (txmsg.request === 'league update player') {
         await this.receiveUpdatePlayerTransaction(blk, tx, conf);
       } else if (txmsg.request === 'gameover' || txmsg.request === 'roundover') {
-        await this.receiveGameoverTransaction(blk, tx, conf);
+        await this.receiveGameOverTransaction(blk, tx, conf);
       } else if (txmsg.request === 'accept') {
         console.log('League processing game accept');
         await this.receiveAcceptTransaction(blk, tx, conf);
@@ -1034,7 +1034,7 @@ class League extends ModTemplate {
   //////////////////////////
   // gameover transaction //
   //////////////////////////
-  async receiveGameoverTransaction(blk, tx, conf) {
+  async receiveGameOverTransaction(blk, tx, conf) {
     //if (app.BROWSER == 1) { return; }
 
     const txmsg = tx.returnMessage();

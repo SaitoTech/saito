@@ -378,7 +378,30 @@ class Server {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       //
-      const block = await this.app.blockchain.getBlock(bsh);
+      let block;
+      try {
+        block = await this.app.blockchain.getBlock(bsh, true);
+      } catch (err: any) {
+        const msg =
+          typeof err === 'string'
+            ? err
+            : err?.message != null
+              ? String(err.message)
+              : err?.toString != null
+                ? String(err.toString())
+                : '';
+
+        // wasm layer rejects/throws when the requested block does not exist.
+        if (msg.toLowerCase().includes('block not found')) {
+          if (!res.finished) {
+            return res.sendStatus(404);
+          }
+          return;
+        }
+
+        // Preserve existing behavior for non-"block not found" errors.
+        throw err;
+      }
 
       if (!block) {
         console.log(`block : ${bsh} doesn't exist...`);

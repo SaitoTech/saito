@@ -352,6 +352,29 @@ impl RoutingThread {
     // logic or execution across multiple threads or system components.
     //
     async fn process_transaction_message(&mut self, peer_id: u64, mut transaction: Transaction) {
+        let sender = transaction
+            .from
+            .first()
+            .map(|s| s.public_key.to_base58())
+            .unwrap_or_default();
+        let sender_trunc = if sender.len() > 14 {
+            format!("{}...{}", &sender[..8], &sender[sender.len() - 6..])
+        } else {
+            sender
+        };
+        let total_input: u128 = transaction.from.iter().map(|s| s.amount as u128).sum();
+        let total_output: u128 = transaction.to.iter().map(|s| s.amount as u128).sum();
+        info!(
+            "[TEMP_TX_TRACE] TRANSACTION RECEIVED sig={} type={:?} sender={} inputs={} outputs={} total_input={} total_output={} peer_id={}",
+            transaction.signature.to_hex(),
+            transaction.transaction_type,
+            sender_trunc,
+            transaction.from.len(),
+            transaction.to.len(),
+            total_input,
+            total_output,
+            peer_id
+        );
         transaction.routed_from_peer_id = peer_id;
         self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
             .await;
@@ -362,11 +385,6 @@ impl RoutingThread {
         peer_id: u64,
         block_reference: BlockReference,
     ) {
-        info!(
-            "[BLOCK_PROCESS_TRACE][VERIFY] received block reference for block_id={}",
-            block_reference.block_id,
-        );
-
         //
         // sync from peer if needed
         //
@@ -401,7 +419,6 @@ impl RoutingThread {
             .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, &block_reference)
             .await
         {
-            info!("[BLOCK_PROCESS_TRACE][VERIFY] adding to sync manager...");
             let mut sync = self.sync.write().await;
             if sync.add(&self.network, block_reference, peer_id).await {
                 sync.fetch(&self.network, &self.fetch_dispatcher).await;
@@ -440,11 +457,6 @@ impl RoutingThread {
                     .get_latest_block_id()
                     .saturating_add(MAX_BLOCKCHAIN_CHUNK as BlockId)
         {
-            info!(
-                "[BLOCK_PROCESS_TRACE][VERIFY] deferring block reference {} while chain sync catches up from {}",
-                block_id,
-                blockchain.get_latest_block_id()
-            );
             return false;
         }
         if !blockchain.blocks.is_empty() && blockchain.lowest_acceptable_block_id >= block_id {

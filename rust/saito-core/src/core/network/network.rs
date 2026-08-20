@@ -144,6 +144,11 @@ impl Network {
         }; // LOCK DROPPED HERE
 
         let peer_send_count = targets.len();
+        info!(
+            "[TEMP_TX_TRACE] PROPAGATING TRANSACTION sig={} peer_send_count={}",
+            transaction.signature.to_hex(),
+            peer_send_count
+        );
 
         // --- STEP 4: send outside lock ---
         for (peer_public_key, buffer) in targets {

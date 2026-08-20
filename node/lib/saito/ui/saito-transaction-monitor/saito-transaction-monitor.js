@@ -286,7 +286,7 @@ class SaitoTransactionMonitor {
       }
       if (!block && typeof blockchain.getBlock === 'function') {
         try {
-          block = await blockchain.getBlock(String(hash));
+          block = await blockchain.getBlock(String(hash), true);
         } catch (_err) {
           block = null;
         }

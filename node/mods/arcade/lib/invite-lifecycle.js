@@ -286,7 +286,7 @@ module.exports = {
           }
 
           if (txmsg.request === 'gameover') {
-            await arcade_self.receiveGameoverTransaction(tx);
+            await arcade_self.receiveGameOverTransaction(tx);
           }
 
           if (txmsg.request === 'game') {
@@ -424,7 +424,7 @@ module.exports = {
           await this.receiveCloseTransaction(tx);
         }
         if (txmsg.request === 'gameover') {
-          await this.receiveGameoverTransaction(tx);
+          await this.receiveGameOverTransaction(tx);
         }
         if (this.app.BROWSER) {
           if (txmsg.request === 'game') {
@@ -661,7 +661,7 @@ module.exports = {
     this.renderInvites();
   },
 
-  async receiveGameoverTransaction(tx) {
+  async receiveGameOverTransaction(tx) {
     let txmsg = tx.returnMessage();
 
     let game = this.returnGame(txmsg.game_id);

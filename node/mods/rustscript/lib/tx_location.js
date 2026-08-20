@@ -214,7 +214,7 @@ async function loadBlockById(app, blockId) {
     block = await blockchain.loadBlockAsync(String(hash));
   }
   if (!block && hash && typeof blockchain.getBlock === 'function') {
-    block = await blockchain.getBlock(String(hash));
+    block = await blockchain.getBlock(String(hash), true);
   }
 
   // Parent saito-js API accepts numeric ids when not shadowed awkwardly.

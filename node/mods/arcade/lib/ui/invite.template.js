@@ -28,10 +28,12 @@ module.exports = (app, mod, invite) => {
   let html = `
     <div class="invite arcade-invite${invite_class}" id="arcade-invite-${invite.game_id}"
          style="background-image: url('${invite_img}');">
-      ${economic_badge_html}
-      <div class="header">
-        <div class="title">${app.browser.escapeHTML(invite.game_name)}</div>
-        <div class="details">${app.browser.escapeHTML(details_line)}</div>
+      <div class="invite-title">
+        <div class="header">
+          <div class="title">${app.browser.escapeHTML(invite.game_name)}</div>
+          <div class="details">${app.browser.escapeHTML(details_line)}</div>
+        </div>
+        ${economic_badge_html}
       </div>
       <div class="actions">
         ${badge}

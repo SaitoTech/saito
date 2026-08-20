@@ -1555,21 +1555,21 @@ console.log("LATEST MOVE: " + mv);
 	//
         if (this.game.options.deck === "late-war") {
           if (this.game.state.vp < 20) {
-            this.sendGameOverTransaction(this.game.players[0], "Wargames");
+            this.triggerGameOver(this.game.players[0], "Wargames");
           } else {
-            this.sendGameOverTransaction(this.game.players[1], "Wargames");
+            this.triggerGameOver(this.game.players[1], "Wargames");
           }
 	  return 0;
         }
 
         if (this.game.state.vp > 0) {
-          this.sendGameOverTransaction(this.game.players[1],"Wargames");
+          this.triggerGameOver(this.game.players[1],"Wargames");
         }
         if (this.game.state.vp < 0) {
-          this.sendGameOverTransaction(this.game.players[0],"Wargames");
+          this.triggerGameOver(this.game.players[0],"Wargames");
         }
         if (this.game.state.vp == 0) {
-          this.sendGameOverTransaction(this.game.players, "tie");
+          this.triggerGameOver(this.game.players, "tie");
         }
 
       }
@@ -6326,11 +6326,11 @@ async playerTurnHeadlineSelected(card, player) {
     // Cuban Missile Crisis
     //
     if (player == "ussr" && this.game.state.events.cubanmissilecrisis == 1) {
-      this.sendGameOverTransaction(this.game.players[1], "Cuban Missile Crisis");
+      this.triggerGameOver(this.game.players[1], "Cuban Missile Crisis");
       return;
     }
     if (player == "us" && this.game.state.events.cubanmissilecrisis == 2) {
-      this.sendGameOverTransaction(this.game.players[0], "Cuban Missile Crisis");
+      this.triggerGameOver(this.game.players[0], "Cuban Missile Crisis");
       return;
     }
 
@@ -7989,14 +7989,14 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
       this.game.state.vp--;
       this.updateLog("USSR receives 1 VP for the China Card");
       if (this.game.state.vp <= -20) {
-        this.sendGameOverTransaction(this.game.players[0], "victory points");
+        this.triggerGameOver(this.game.players[0], "victory points");
         return;
       }
     } else {
       this.game.state.vp++;
       this.updateLog("US receives 1 VP for the China Card");
       if (this.game.state.vp >= 20) {
-        this.sendGameOverTransaction(this.game.players[1], "victory points");
+        this.triggerGameOver(this.game.players[1], "victory points");
         return;
       }
     }
@@ -8041,9 +8041,9 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     //
     if (this.game.options.deck === "late-war") {
       if (this.game.state.vp < 20) {
-        this.sendGameOverTransaction(this.game.players[0], "final scoring");
+        this.triggerGameOver(this.game.players[0], "final scoring");
       } else {
-        this.sendGameOverTransaction(this.game.players[1], "final scoring");
+        this.triggerGameOver(this.game.players[1], "final scoring");
       }
     }
 
@@ -8051,13 +8051,13 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     // normal game
     //
     if (this.game.state.vp == 0) {
-      this.sendGameOverTransaction(this.game.players, "tie");
+      this.triggerGameOver(this.game.players, "tie");
       return 1;
     }
     if (this.game.state.vp < 0) {
-      this.sendGameOverTransaction(this.game.players[0], "final scoring");
+      this.triggerGameOver(this.game.players[0], "final scoring");
     } else {
-      this.sendGameOverTransaction(this.game.players[1], "final scoring");
+      this.triggerGameOver(this.game.players[1], "final scoring");
     }
 
     return 1;
@@ -8839,9 +8839,9 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     if (this.game.state.defcon <= 1) {
       if (this.game.state.headline == 1) {
         // phasing player in headline loses
-        this.sendGameOverTransaction(this.game.players[2 - this.game.state.player_to_go], "thermonuclear war");
+        this.triggerGameOver(this.game.players[2 - this.game.state.player_to_go], "thermonuclear war");
       }else{
-        this.sendGameOverTransaction(this.game.players[2 - this.game.state.turn], "thermonuclear war");
+        this.triggerGameOver(this.game.players[2 - this.game.state.turn], "thermonuclear war");
       }
       return;
     }
@@ -9441,10 +9441,10 @@ console.log("DISPLAY ERROR: " + JSON.stringify(err));
     }
 
     if (this.game.state.vp > 19) {
-        this.sendGameOverTransaction(this.game.players[1], "victory point track");
+        this.triggerGameOver(this.game.players[1], "victory point track");
     }
     if (this.game.state.vp < -19) {
-      this.sendGameOverTransaction(this.game.players[0], "victory point track");
+      this.triggerGameOver(this.game.players[0], "victory point track");
     }
 
   }
