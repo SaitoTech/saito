@@ -55,7 +55,7 @@ class PokerQueue {
         this.game.queue = [];
         //this.game.crypto = null;
         this.settleDebt();
-        this.sendGameOverTransaction(this.game.players[parseInt(mv[1])], 'elimination');
+        this.triggerGameOver(this.game.players[parseInt(mv[1])], 'elimination');
         return 0;
       }
 

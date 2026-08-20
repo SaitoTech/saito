@@ -66,6 +66,20 @@ class GameSendAuth {
     if (btn) {
       btn.onclick = () => {
         const checkbox = document.getElementById('game_send_auth_auto_issue');
+        // TEMP_DIAG_POKER_AUTH: outbound AUTHORIZE PAYMENT click trace
+        const recipient = details?.publicKey || details?.address || '';
+        const recipient_trunc =
+          typeof recipient === 'string' && recipient.length > 12
+            ? `${recipient.slice(0, 8)}...${recipient.slice(-6)}`
+            : recipient;
+        console.info('[TEMP_DIAG_POKER_AUTH] AUTHORIZE PAYMENT clicked', {
+          ticker: details?.ticker,
+          amount: details?.amount,
+          recipient: recipient_trunc,
+          checkbox_checked: checkbox?.checked,
+          details_trusted_before_click: details?.trusted
+        });
+
         this.app.options.gameprefs = this.app.options.gameprefs || {};
         if (checkbox && checkbox.checked) {
           this.app.options.gameprefs['crypto_transfers_outbound_trusted'] = 1;
@@ -75,6 +89,8 @@ class GameSendAuth {
         this.app.storage.saveOptions();
 
         this.overlay.remove();
+        // TEMP_DIAG_POKER_AUTH: about to invoke sendPayment callback (queue resumption)
+        console.info('[TEMP_DIAG_POKER_AUTH] invoking details.mycallback()');
         details.mycallback();
       };
     }

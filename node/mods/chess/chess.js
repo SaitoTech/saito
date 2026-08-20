@@ -257,7 +257,7 @@ class Chessgame extends GameTemplate {
       if (mv == 'checkmate') {
         var winnerColor = this.engine.turn() === 'b' ? 'white' : 'black';
         let winner = this.roles.indexOf(winnerColor);
-        this.sendGameOverTransaction(this.game.players[winner - 1], 'checkmate');
+        this.triggerGameOver(this.game.players[winner - 1], 'checkmate');
         return 0;
       }
 
@@ -265,7 +265,7 @@ class Chessgame extends GameTemplate {
         let cmd = mv.split('\t');
         let loser = cmd.pop();
         let winner = 2 - loser;
-        this.sendGameOverTransaction(this.game.players[winner], 'resignation');
+        this.triggerGameOver(this.game.players[winner], 'resignation');
         return 0;
       }
 
@@ -306,7 +306,7 @@ class Chessgame extends GameTemplate {
     if (data.draw) {
       if (data.draw === 'accept') {
         console.log('Ending game');
-        this.sendGameOverTransaction(this.game.players, 'draw');
+          this.triggerGameOver(this.game.players, 'draw');
         return;
       } else {
         //(data.draw == "offer")
@@ -343,7 +343,7 @@ class Chessgame extends GameTemplate {
 
     //Check for draw according to game engine
     if (this.engine.in_draw() === true) {
-      this.sendGameOverTransaction(this.game.players, 'draw');
+      this.triggerGameOver(this.game.players, 'draw');
       return 0;
     }
 

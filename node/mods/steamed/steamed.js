@@ -221,13 +221,13 @@ class Steamed extends GameTemplate {
           if (this.game.player == 2) {
             i_won = true;
           }
-          this.sendGameOverTransaction(this.game.players[1], 'Second Player wins tie');
+          this.triggerGameOver(this.game.players[1], 'Second Player wins tie');
         }
         if (this.game.state.gold[0] > this.game.state.gold[1]) {
           i_won = true;
-          this.sendGameOverTransaction(this.game.players[this.game.player - 1], 'High Score');
+          this.triggerGameOver(this.game.players[this.game.player - 1], 'High Score');
         } else {
-          this.sendGameOverTransaction(this.game.players[2 - this.game.player], 'High Score');
+          this.triggerGameOver(this.game.players[2 - this.game.player], 'High Score');
         }
         this.updateLog(`The Game is over and I ${i_won ? 'won' : 'lost'}!`);
         return 0;

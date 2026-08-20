@@ -865,7 +865,7 @@ class Blackjack extends GameTableTemplate {
         this.game.crypto = null; //Clear crypto to prevent double dipping
         //Notably not keyed to game.player, but by the index
         if (this.game.player == parseInt(mv[1]) + 1) {
-          this.sendGameOverTransaction(this.publicKey, 'elimination');
+          this.triggerGameOver(this.publicKey, 'elimination');
         }
         return 0;
       }

@@ -1008,7 +1008,7 @@ class GameTemplate extends ModTemplate {
       //
       if (txmsg.request === 'gameover') {
         if (!this.deferGameEndTransactionIfBusy('gameover', tx)) {
-          await this.receiveGameoverTransaction(blk, tx, conf, this.app);
+          await this.receiveGameOverTransaction(blk, tx, conf, this.app);
         }
       } else if (txmsg.request === 'stopgame') {
         // stopgame requests
@@ -1215,7 +1215,7 @@ class GameTemplate extends ModTemplate {
           } else if (message.request == 'game relay update') {
             if (gametxmsg.request == 'gameover') {
               if (!this.deferGameEndTransactionIfBusy('gameover', gametx)) {
-                await this.receiveGameoverTransaction(null, gametx, 0, app);
+                await this.receiveGameOverTransaction(null, gametx, 0, app);
               }
             } else if (gametxmsg.request == 'stopgame') {
               if (!this.deferGameEndTransactionIfBusy('stopgame', gametx)) {

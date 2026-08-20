@@ -87,30 +87,9 @@ export default class Saito {
         return sharedMethods.disconnectFromPeer(peer_id);
       },
       fetch_block_from_peer: (hash: Uint8Array, peer_id: bigint, url: string, block_id: bigint) => {
-        const expectedHash = Array.from(hash)
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("");
-        console.info(
-          "[TRACE_SYNC] js_fetch_dispatch peer_id=%s block_id=%s expected_hash=%s url=%s",
-          peer_id.toString(),
-          block_id.toString(),
-          expectedHash,
-          url
-        );
         sharedMethods
           .fetchBlockFromPeer(url)
           .then((buffer: Uint8Array) => {
-            const prefix = Array.from(buffer.slice(0, 32))
-              .map((b) => b.toString(16).padStart(2, "0"))
-              .join("");
-            console.info(
-              "[TRACE_SYNC] js_fetch_completed peer_id=%s block_id=%s expected_hash=%s bytes=%s prefix32=%s",
-              peer_id.toString(),
-              block_id.toString(),
-              expectedHash,
-              buffer.byteLength,
-              prefix
-            );
             return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, peer_id);
           })
           .catch((error: any) => {

@@ -292,7 +292,7 @@ class Jaipur extends GameTemplate {
         this.updateLog(`${my_name} the round by ${method}`);
 
         if (this.game.state[`winner${winner}`]) {
-          await this.sendGameOverTransaction(this.game.players[winner - 1], 'excellence');
+          await this.triggerGameOver(this.game.players[winner - 1], 'excellence');
           return 0;
         } else {
           this.game.state[`winner${winner}`] = 1;

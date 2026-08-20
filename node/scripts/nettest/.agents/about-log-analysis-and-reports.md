@@ -59,8 +59,6 @@ sync negotiation:
   SEND BLOCKCHAIN REQUEST
   BLOCKCHAIN REQUEST
   BLOCKCHAIN RESPONSE
-  TRACE_SYNC
-  BLOCK_FETCH_TRACE
   fetching block from peer
   block data fetched
   serving block : <height>-<hash>

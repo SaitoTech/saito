@@ -35,6 +35,11 @@ pub struct VerificationThread {
 impl VerificationThread {
     pub async fn verify_transaction(&mut self, mut transaction: Transaction) {
         trace!("verifying tx : {:?}", transaction.signature.to_hex());
+        info!(
+            "[TEMP_TX_TRACE] VALIDATION START sig={} peer_id={}",
+            transaction.signature.to_hex(),
+            transaction.routed_from_peer_id
+        );
 
         let is_valid = {
             let blockchain = self.blockchain_lock.read().await;
@@ -44,6 +49,12 @@ impl VerificationThread {
             let is_valid = transaction.validate(&blockchain.utxoset, &blockchain, true);
             is_valid
         };
+
+        info!(
+            "[TEMP_TX_TRACE] VALIDATION RESULT sig={} status={} validator=transaction.validate",
+            transaction.signature.to_hex(),
+            if is_valid { "VALID" } else { "INVALID" }
+        );
 
         if !is_valid {
             debug!(
