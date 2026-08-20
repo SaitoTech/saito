@@ -43,7 +43,7 @@
 .arcade-add-game .empty {
   font-size: inherit;
   line-height: 1.4;
-  color: var(--saito-muted-foreground);
+  color: var(--saito-foreground);
 }
 
 .arcade-add-game .nav-btn {
@@ -157,7 +157,7 @@
 .arcade-add-game .choice .text {
   font-size: var(--font-size-medium, 1.083rem);
   line-height: 1.45;
-  color: var(--saito-muted-foreground);
+  color: var(--saito-foreground);
   max-width: 36ch;
 }
 

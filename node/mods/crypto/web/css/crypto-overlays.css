@@ -1328,6 +1328,10 @@ input[type='checkbox'].ignore-checkbox {
   font-weight: inherit;
 }
 
+#stake-crypto-request-container .game-stake-heading .stake-mode-toggle {
+  margin-left: auto;
+}
+
 #stake-crypto-request-container .stake-mode-toggle {
   margin: 0;
   padding: 0;
@@ -1351,6 +1355,16 @@ input[type='checkbox'].ignore-checkbox {
   display: flex;
   align-items: center;
   gap: var(--saito-space-sm);
+}
+
+#stake-crypto-request-container .one-sided-stake-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: center;
+}
+
+#stake-crypto-request-container .one-sided-stake-row .stake-mode-toggle {
+  justify-self: end;
 }
 
 #stake-crypto-request-container .amount-row .saito-input,

@@ -222,9 +222,31 @@ function styles() {
       align-items: center;
       justify-content: center;
       color: #fff7ed;
-      font: 700 15.5px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font: 400 15.5px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.34);
       pointer-events: none;
+    }
+
+    .saito-cta-loader-progress.is-application-loading .saito-cta-loader-progress-fill {
+      width: 100%;
+      overflow: hidden;
+      background: var(--saito-cta-loader-primary);
+    }
+
+    .saito-cta-loader-progress.is-application-loading .saito-cta-loader-progress-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0 100% 0 auto;
+      width: 195%;
+      background: linear-gradient(
+        90deg,
+        var(--saito-cta-loader-primary) 0%,
+        var(--saito-cta-loader-primary) 30%,
+        var(--saito-cta-loader-primary-strong) 50%,
+        var(--saito-cta-loader-primary) 70%,
+        var(--saito-cta-loader-primary) 100%
+      );
+      animation: saito-cta-loader-application-pulse 5s linear infinite;
     }
 
     .saito-cta-loader-progress-text.is-application-loading::after {
@@ -243,6 +265,15 @@ function styles() {
       }
       to {
         clip-path: inset(0 0 0 0);
+      }
+    }
+
+    @keyframes saito-cta-loader-application-pulse {
+      from {
+        transform: translateX(0);
+      }
+      to {
+        transform: translateX(151.3%);
       }
     }
 
@@ -342,6 +373,7 @@ function script() {
         var progressBar = loader.querySelector('.saito-cta-loader-progress');
         if (progressBar) {
           progressBar.setAttribute('aria-valuetext', message);
+          progressBar.classList.add('is-application-loading');
         }
         var text = loader.querySelector('.saito-cta-loader-progress-text');
         if (text) {

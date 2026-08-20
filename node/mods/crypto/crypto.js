@@ -200,7 +200,7 @@ try {
       }
 
       this.app.browser.addElementToSelector(
-        `<div class="game-wizard-crypto-hook saito-anchor"><i class="fa-solid fa-coins"></i></div>`,
+        `<div class="game-wizard-crypto-hook saito-button-secondary saito-anchor"><i class="fa-solid fa-coins"></i></div>`,
         qs
       );
 

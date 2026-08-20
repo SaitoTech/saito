@@ -44,11 +44,26 @@ module.exports = (app, mod, main) => {
 
     <div class="settings-appspace-header">
       <div class="settings-actions-container">
-        <div class="saito-button-secondary" id="restore-privatekey-btn" title="Wipe local data and restore account from private key or seed phrase">Import Key</div>
-        <div class="saito-button-secondary" id="settings-add-module" title="Install a module from the App Store">Add Module</div>
-        <div class="saito-button-secondary" id="restore-account-btn" title="Restore account by uploading json-file of wallet">Restore Wallet</div>
-        <div class="saito-button-secondary" id="backup-account-btn" title="Download json-file copy of wallet">Backup Wallet</div>
-        <div class="saito-button-secondary" id="nuke-account-btn" title="Erase all local Saito data and reset this browser to a fresh installation">Nuke</div>
+        <button type="button" class="saito-large-square-button" id="restore-privatekey-btn" title="Wipe local data and restore account from private key or seed phrase">
+          <span class="saito-icon-button"><i class="fa-solid fa-key" aria-hidden="true"></i></span>
+          <span>Import Key</span>
+        </button>
+        <button type="button" class="saito-large-square-button" id="settings-add-module" title="Install a module from the App Store">
+          <span class="saito-icon-button"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+          <span>Add Module</span>
+        </button>
+        <button type="button" class="saito-large-square-button" id="restore-account-btn" title="Restore account by uploading json-file of wallet">
+          <span class="saito-icon-button"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i></span>
+          <span>Restore Wallet</span>
+        </button>
+        <button type="button" class="saito-large-square-button" id="backup-account-btn" title="Download json-file copy of wallet">
+          <span class="saito-icon-button"><i class="fa-solid fa-download" aria-hidden="true"></i></span>
+          <span>Backup Wallet</span>
+        </button>
+        <button type="button" class="saito-large-square-button" id="nuke-account-btn" title="Erase all local Saito data and reset this browser to a fresh installation">
+          <span class="saito-icon-button"><i class="fa-solid fa-trash" aria-hidden="true"></i></span>
+          <span>Nuke</span>
+        </button>
       </div>
     </div>
 
@@ -92,6 +107,14 @@ module.exports = (app, mod, main) => {
               tabindex="0"
               title="Reveal wallet seed phrase"
             >click here to view seed phrase</div>
+            <div class="settings-seed-phrase-actions" id="settings-seed-phrase-actions" hidden>
+              <button type="button" class="saito-icon-button" id="settings-copy-seed-phrase" title="Copy seed phrase" aria-label="Copy seed phrase">
+                <i class="fas fa-copy" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="saito-icon-button" id="settings-close-seed-phrase" title="Hide seed phrase" aria-label="Hide seed phrase">
+                <i class="fas fa-xmark" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
 
           <div class="settings-field-label">default fee</div>

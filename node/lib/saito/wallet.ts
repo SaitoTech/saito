@@ -1395,6 +1395,18 @@ export default class Wallet extends SaitoWallet {
         if (!ok) {
           return false;
         }
+
+        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const hasSaito = (await this.getBalance('SAITO')) > BigInt(0);
+
+        if (!isLocalhost && hasSaito) {
+          ok = await sconfirm(
+            'Warning: this wallet contains SAITO. If you have not backed up your wallet, deleting its data may cause you to lose these funds. Continue?'
+          );
+          if (!ok) {
+            return false;
+          }
+        }
       }
 
       await this.resetWallet();

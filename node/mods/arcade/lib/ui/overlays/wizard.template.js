@@ -22,7 +22,7 @@ module.exports = (game_mod, invite_obj = {}) => {
         <div class="settings">
           ${game_mod.returnOptions()}
           <div id="arcade-advance-opt">
-            <button type="button" class="advanced-btn" aria-label="Advanced options">
+            <button type="button" class="advanced-btn saito-button-secondary" aria-label="Advanced options">
               <i class="fa-solid fa-gear" aria-hidden="true"></i>
               <span>Advanced</span>
             </button>
@@ -32,7 +32,13 @@ module.exports = (game_mod, invite_obj = {}) => {
   `;
 
   if (game_mod.maxPlayers == 1) {
-    html += `<button type="button" id="game-invite-btn" class="fat saito-button-primary game-invite-btn" data-type="single">Play</button>`;
+    html += `
+      <div class="invite-control">
+        <button type="button" id="game-invite-btn" class="fat saito-button-primary invite-primary game-invite-btn" data-type="single">
+          Play
+        </button>
+      </div>
+    `;
   } else {
     let invite_options = [];
 

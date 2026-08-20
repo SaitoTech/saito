@@ -442,6 +442,11 @@ class SettingsAppspace {
 
       if (document.getElementById('settings-seed-phrase')) {
         let seedEl = document.getElementById('settings-seed-phrase');
+        let seedActionsEl = document.getElementById('settings-seed-phrase-actions');
+        let copySeedEl = document.getElementById('settings-copy-seed-phrase');
+        let closeSeedEl = document.getElementById('settings-close-seed-phrase');
+        const hiddenSeedText = 'click here to view seed phrase';
+
         let revealSeed = (e) => {
           e.preventDefault();
           if (seedEl.dataset.revealed === '1') {
@@ -454,12 +459,37 @@ class SettingsAppspace {
           seedEl.removeAttribute('role');
           seedEl.removeAttribute('tabindex');
           seedEl.title = 'Wallet seed phrase';
+          seedActionsEl.hidden = false;
         };
+
         seedEl.onclick = revealSeed;
         seedEl.onkeydown = (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             revealSeed(e);
           }
+        };
+
+        copySeedEl.onclick = async () => {
+          await navigator.clipboard.writeText(this.seed_phrase);
+          let iconEl = copySeedEl.querySelector('i');
+          iconEl.classList.remove('fa-copy');
+          iconEl.classList.add('fa-check');
+
+          setTimeout(() => {
+            iconEl.classList.remove('fa-check');
+            iconEl.classList.add('fa-copy');
+          }, 1500);
+        };
+
+        closeSeedEl.onclick = () => {
+          seedEl.textContent = hiddenSeedText;
+          seedEl.classList.remove('monospace');
+          delete seedEl.dataset.revealed;
+          seedEl.setAttribute('role', 'button');
+          seedEl.setAttribute('tabindex', '0');
+          seedEl.title = 'Reveal wallet seed phrase';
+          seedActionsEl.hidden = true;
+          seedEl.focus();
         };
       }
 
