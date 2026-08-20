@@ -195,10 +195,14 @@ impl WasmBlockchain {
         let saito = SAITO.lock().await;
         let storage = &saito.as_ref().unwrap().routing_thread.storage;
 
-        let block = storage
+        let mut block = storage
             .load_block_from_disk(filepath.as_str())
             .await
             .map_err(|_| JsValue::from("transactions unavailable"))?;
+
+        block
+            .generate()
+            .map_err(|_| JsValue::from("failed to generate block"))?;
 
         Ok(WasmBlock::from_block(block))
     }
