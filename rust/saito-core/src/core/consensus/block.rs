@@ -2811,7 +2811,15 @@ impl Block {
         block.hash = self.hash;
         block.total_fees_cumulative = self.total_fees_cumulative;
 
-        block.merkle_root = self.generate_merkle_root(true, true);
+        // Prefer the source block's merkle root when already set. Recomputing via
+        // generate_merkle_root requires hash_for_signature on every tx; disk-loaded
+        // / ungenerated txs can leave those as None and panic in MerkleTree.
+        // Lite blocks must advertise the same root as the full block header.
+        block.merkle_root = if self.merkle_root != [0; 32] {
+            self.merkle_root
+        } else {
+            self.generate_merkle_root(true, true)
+        };
 
         block
     }
