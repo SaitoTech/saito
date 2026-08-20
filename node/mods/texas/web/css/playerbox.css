@@ -72,9 +72,69 @@
   white-space: nowrap;
 }
 
-.game.texas .playerbox-action:empty,
+.game.texas .playerbox-action:empty {
+  display: none;
+}
+
 .game.texas .playerbox-mark {
   display: none;
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.55rem;
+  z-index: 2;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  height: 1.7rem;
+  padding: 0 0.45rem;
+  border-radius: var(--saito-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--saito-foreground) 55%, transparent);
+  background: color-mix(in srgb, #0a1f12 82%, var(--saito-primary) 18%);
+  color: var(--saito-white);
+  font-family: var(--saito-font-heavy);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.game.texas .texas-playerbox[data-blind='small'] .playerbox-mark,
+.game.texas .texas-playerbox[data-blind='big'] .playerbox-mark {
+  display: inline-flex;
+}
+
+.game.texas .texas-playerbox[data-blind='small'] .playerbox-mark::before {
+  content: 'SB';
+}
+
+.game.texas .texas-playerbox[data-blind='big'] .playerbox-mark::before {
+  content: 'BB';
+}
+
+.game.texas .texas-playerbox.dealer::after {
+  content: 'D';
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--saito-foreground) 65%, transparent);
+  background: color-mix(in srgb, var(--saito-primary) 88%, #000);
+  color: var(--saito-primary-foreground);
+  font-family: var(--saito-font-heavy);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 1px 4px color-mix(in srgb, #000 35%, transparent);
 }
 
 .game.texas .game-playerbox-graphics {
@@ -117,6 +177,23 @@
 
   .game.texas .playerbox-action {
     font-size: 1.35rem;
+  }
+
+  .game.texas .playerbox-mark {
+    right: 0.4rem;
+    bottom: 0.4rem;
+    min-width: 2.1rem;
+    height: 1.5rem;
+    padding: 0 0.35rem;
+    font-size: 0.82rem;
+  }
+
+  .game.texas .texas-playerbox.dealer::after {
+    top: 0.35rem;
+    right: 0.35rem;
+    width: 1.9rem;
+    height: 1.9rem;
+    font-size: 0.95rem;
   }
 }
 

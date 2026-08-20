@@ -4,26 +4,28 @@ const InviteTemplateSparse = require('./invite.template.sparse');
 const JSON = require('json-bigint');
 
 /**
- * Derive invite-card economic line + STAKE/PRIZE badge from invite options.
+ * Derive invite-card economic line and risk-mode ribbon from invite options.
  * Uses the same stake object shape as game creation (symmetric amount or
  * { min, [publicKey]: amount } for asymmetric / creator-funded games).
  */
 function deriveEconomicInviteDisplay(options = {}, originator = '') {
+  const empty = { economic_line: null, risk_mode: null };
+
   if (!options?.crypto) {
-    return { economic_line: null, economic_badge: null };
+    return empty;
   }
 
   const ticker = options.crypto;
   const stake = options.stake;
 
   if (stake === undefined || stake === null || stake === '') {
-    return { economic_line: null, economic_badge: null };
+    return empty;
   }
 
   if (typeof stake === 'object') {
     const min = parseFloat(stake.min);
     if (Number.isNaN(min)) {
-      return { economic_line: null, economic_badge: null };
+      return empty;
     }
 
     let max = min;
@@ -39,7 +41,10 @@ function deriveEconomicInviteDisplay(options = {}, originator = '') {
 
     // Joiners must match at least `min`; min === 0 means creator-funded prize.
     const joiner_must_contribute = min > 0;
-    const economic_badge = joiner_must_contribute ? 'STAKE' : 'PRIZE';
+    let risk_mode = 'RISK FREE';
+    if (joiner_must_contribute) {
+      risk_mode = min === max ? 'EVEN BETS' : 'CUSTOM BETS';
+    }
 
     let amount_label;
     if (joiner_must_contribute) {
@@ -54,18 +59,18 @@ function deriveEconomicInviteDisplay(options = {}, originator = '') {
 
     return {
       economic_line: `${amount_label} ${ticker}`,
-      economic_badge
+      risk_mode
     };
   }
 
   const amount = parseFloat(stake);
   if (Number.isNaN(amount) || amount <= 0) {
-    return { economic_line: null, economic_badge: null };
+    return empty;
   }
 
   return {
     economic_line: `${stake} ${ticker}`,
-    economic_badge: 'STAKE'
+    risk_mode: 'EVEN BETS'
   };
 }
 
@@ -207,7 +212,7 @@ class Invite {
 
         const economic = deriveEconomicInviteDisplay(txmsg.options, txmsg.originator);
         this.invite_data.economic_line = economic.economic_line;
-        this.invite_data.economic_badge = economic.economic_badge;
+        this.invite_data.risk_mode = economic.risk_mode;
       }
 
       //League

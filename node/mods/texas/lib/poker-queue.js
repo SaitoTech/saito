@@ -768,7 +768,7 @@ class PokerQueue {
           this.setShotClock('.acknowledge', Result.ACKNOWLEDGE_MS, false, () => {
             this.game_help.render({
               title: 'The Clock is Ticking',
-              text: `Click anywhere on the screen to interrupt the 3 second countdown between turns....`,
+              text: `Cards auto-clear after several seconds. Check the game log for more information...`,
               img: '/texas/img/showdown-clock.png',
               line1: 'what',
               line2: 'happened?',
