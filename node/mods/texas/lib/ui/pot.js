@@ -40,14 +40,14 @@ class Pot {
 
       const l2 = document.querySelector('.texas-pot .line2');
       const l3 = document.querySelector('.texas-pot .line3');
-      let chip = pot === 1 ? 'CHIP' : 'CHIPS';
 
-      if (this.ticker === 'CHIPS' || typeof this.game_mod.game.stake === 'object') {
-        l2.innerHTML = this.game_mod.convertChipsToCrypto(pot, true);
-        l3.innerHTML = chip;
-      } else {
-        l2.innerHTML = `${pot} <span class="smaller-font">${chip}</span>`;
-        l3.innerHTML = `${this.game_mod.convertChipsToCrypto(pot, true)} <span class="smaller-font">${this.ticker}</span>`;
+      // Same CHIP ↔ crypto presentation helper as player boxes.
+      if (l2) {
+        l2.innerHTML = this.game_mod.returnChipCryptoBalanceHtml(pot);
+      }
+      if (l3) {
+        l3.innerHTML = '';
+        l3.hidden = true;
       }
     } catch (err) {
       console.error(err);
@@ -76,11 +76,18 @@ class Pot {
   }
 
   attachEvents() {
-    if (document.querySelector('.texas-pot')) {
-      document.querySelector('.texas-pot').onclick = () => {
-        this.overlay.show(PotDetailsTemplate(this.game_mod));
-      };
+    const potEl = document.querySelector('.texas-pot');
+    if (!potEl) {
+      return;
     }
+
+    potEl.onclick = (e) => {
+      // Balance flip handles its own click; still allow opening pot details otherwise.
+      if (e.target.closest('.chip-crypto-balance--toggle')) {
+        return;
+      }
+      this.overlay.show(PotDetailsTemplate(this.game_mod));
+    };
   }
 }
 

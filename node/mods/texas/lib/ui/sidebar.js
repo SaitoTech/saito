@@ -21,6 +21,60 @@ class Sidebar {
 
     this.pot.render();
     this.renderPlayerboxes();
+    this.bindChipCryptoBalanceToggle();
+  }
+
+  /**
+   * Shared touch/keyboard toggle for CHIP ↔ crypto balance faces
+   * (player boxes, pot, and pot-details overlay when hosted in-page briefly).
+   */
+  bindChipCryptoBalanceToggle() {
+    if (this._chipCryptoToggleBound) {
+      return;
+    }
+
+    const activate = (el) => {
+      if (!el?.classList.contains('chip-crypto-balance--toggle')) {
+        return;
+      }
+      el.classList.toggle('is-showing-crypto');
+      const showing = el.classList.contains('is-showing-crypto');
+      el.setAttribute('aria-pressed', showing ? 'true' : 'false');
+      const cryptoFace = el.querySelector('.chip-crypto-balance-face--crypto');
+      if (cryptoFace) {
+        cryptoFace.setAttribute('aria-hidden', showing ? 'false' : 'true');
+      }
+    };
+
+    // Capture on document so pot-details overlay (outside sidebar) also works.
+    document.addEventListener(
+      'click',
+      (e) => {
+        const bal = e.target.closest('.chip-crypto-balance--toggle');
+        if (!bal) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        activate(bal);
+      },
+      true
+    );
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') {
+        return;
+      }
+      const bal = e.target.closest?.('.chip-crypto-balance--toggle');
+      if (!bal) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      activate(bal);
+    });
+
+    this._chipCryptoToggleBound = true;
   }
 
   renderPlayerboxes() {

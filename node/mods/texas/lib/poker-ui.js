@@ -174,14 +174,7 @@ class PokerUI {
       amount = this.game.state.player_credit[player - 1];
     }
 
-    let chips = amount === 1 ? 'CHIP' : 'CHIPS';
-    let stack_html = `${amount} ${chips}`;
-
-    if (typeof this.game.stake === 'string' && this.game.crypto !== 'CHIPS') {
-      stack_html += ` (${this.convertChipsToCrypto(amount)} ${this.game.crypto})`;
-    }
-
-    this.playerbox.setChips(stack_html, player);
+    this.playerbox.setChips(this.returnChipCryptoBalanceHtml(amount), player);
   }
 
   //

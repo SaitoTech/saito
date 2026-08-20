@@ -80,6 +80,47 @@ class PokerStake {
     }
   }
 
+  /**
+   * True when this table is a crypto-staked game (not chips-only / uneven stake object).
+   */
+  isCryptoStakedGame() {
+    return (
+      typeof this.game.stake === 'string' &&
+      !!this.game.crypto &&
+      this.game.crypto !== 'CHIPS'
+    );
+  }
+
+  /**
+   * Presentation-only CHIP ↔ crypto balance markup.
+   * Uses existing convertChipsToCrypto(); does not change stake math.
+   */
+  returnChipCryptoBalanceHtml(numChips) {
+    const amount = Number(numChips) || 0;
+    const chips = amount === 1 ? 'CHIP' : 'CHIPS';
+
+    if (!this.isCryptoStakedGame()) {
+      return `<span class="chip-crypto-balance">
+        <span class="chip-crypto-balance-face">
+          <span class="chip-crypto-balance-num">${amount}</span>
+          <span class="chip-crypto-balance-unit">${chips}</span>
+        </span>
+      </span>`;
+    }
+
+    const credit = this.convertChipsToCrypto(amount);
+    return `<span class="chip-crypto-balance chip-crypto-balance--toggle" tabindex="0" role="button" aria-label="Show crypto balance">
+      <span class="chip-crypto-balance-face chip-crypto-balance-face--chips">
+        <span class="chip-crypto-balance-num">${amount}</span>
+        <span class="chip-crypto-balance-unit">${chips}</span>
+      </span>
+      <span class="chip-crypto-balance-face chip-crypto-balance-face--crypto" aria-hidden="true">
+        <span class="chip-crypto-balance-num">${credit}</span>
+        <span class="chip-crypto-balance-unit">${this.game.crypto}</span>
+      </span>
+    </span>`;
+  }
+
   //
   // returns "1 CHIP" or "2.412 SAITO" or "1.423 CHIPS" etc.
   //
