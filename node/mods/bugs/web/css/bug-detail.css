@@ -1,0 +1,71 @@
+.bug-detail {
+  max-width: var(--saito-width);
+  margin-inline: auto;
+}
+
+.bug-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: nowrap;
+}
+
+.bug-detail-header h1 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 3rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.bug-detail-header > button {
+  flex: 0 0 3.6rem;
+  align-self: center;
+  margin: 0;
+}
+
+.bug-detail-metadata {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(8rem, 0.8fr)) repeat(2, minmax(12rem, 1fr))
+    repeat(2, minmax(16rem, 1.25fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.bug-detail-metadata div {
+  min-width: 0;
+}
+
+.bug-detail-metadata dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    display: flex;
+    height: 6rem;
+    align-items: center;
+}
+
+.bug-thread {
+  width: 100%;
+  max-width: var(--saito-width);
+  min-width: 0;
+  min-height: 24rem;
+  overflow: visible;
+}
+
+@media (max-width: 1100px) {
+  .bug-detail-metadata {
+    grid-template-columns: repeat(4, minmax(12rem, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .bug-detail-header h1 {
+    font-size: 2.4rem;
+  }
+
+  .bug-detail-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
