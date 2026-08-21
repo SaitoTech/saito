@@ -41,7 +41,7 @@ module.exports = (app, mod, showCreationActions = false) => {
 
   if (showCreationActions) {
     html += `<fieldset id="add-publickey" class="saito-grid settings-link">
-			<i class="fa-solid fa-user-group"></i>
+			<i class="fa-solid fa-user-plus"></i>
 			<label>add contact</label>
 		</fieldset>`;
   }
@@ -56,6 +56,11 @@ module.exports = (app, mod, showCreationActions = false) => {
     html += `<fieldset id="create-group" class="saito-grid settings-link">
 			<i class="fa-solid fa-users"></i>
 			<label>new group</label>
+		</fieldset>`;
+
+    html += `<fieldset id="mark-all-read" class="saito-grid settings-link">
+			<i class="fa-solid fa-check-double"></i>
+			<label>mark read</label>
 		</fieldset>`;
   }
 
@@ -76,7 +81,7 @@ module.exports = (app, mod, showCreationActions = false) => {
 		</fieldset>`;
   }
 
-  return html;
+  return `${html}</div>`;
 };
 
 /*

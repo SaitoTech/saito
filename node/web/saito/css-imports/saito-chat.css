@@ -795,9 +795,9 @@
 
 .chat-manager-mobile-menu {
   align-items: stretch;
-  justify-content: space-around;
-  min-height: 6rem;
-  padding: 0.4rem var(--saito-space-xs) calc(0.55rem + env(safe-area-inset-bottom, 0px));
+  gap: var(--saito-space-xs);
+  padding: var(--saito-space-xs) var(--saito-space-xs)
+    calc(var(--saito-space-xs) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--saito-border);
   background-color: var(--saito-popover);
   background-image: var(--saito-popover-wash);
@@ -805,50 +805,18 @@
 
 .chat-manager-mobile-menu .item {
   position: relative;
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
   min-width: 0;
-  min-height: 5rem;
-  padding: 0.35rem 0.2rem;
-  border: 0;
-  border-radius: var(--saito-radius-lg);
-  color: var(--saito-muted-foreground);
-  background: transparent;
-  font: inherit;
-  cursor: pointer;
+  width: 100%;
+  margin: 0;
 }
 
-.chat-manager-mobile-menu .item.active::before {
-  content: '';
-  position: absolute;
-  bottom: -0.3rem;
-  width: 2.6rem;
-  height: 0.2rem;
-  border-radius: var(--saito-radius);
-  background-color: var(--saito-primary);
-}
-
-.chat-manager-mobile-menu .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  font-size: 2.2rem;
+.chat-manager-mobile-menu .item.active {
+  border-color: var(--saito-primary);
 }
 
 .chat-manager-mobile-menu .label {
-  max-width: 100%;
-  overflow: hidden;
-  font-size: 1.083rem;
   line-height: 1.15;
   text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .chat-manager-mobile-menu .item.active .label {

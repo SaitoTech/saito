@@ -27,9 +27,7 @@ class Bugs extends ModTemplate {
     this.styles = [
       '/saito/saito.css',
       '/redsquare/style.css',
-      '/bugs/base-candidates.css',
-      '/bugs/bugs.css',
-      '/bugs/bug-detail.css'
+      '/bugs/style.css'
     ];
     this.completedRetentionMs = COMPLETED_RETENTION_MS;
     this.clientBugs = new Map();

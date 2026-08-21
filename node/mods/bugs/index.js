@@ -30,9 +30,7 @@ module.exports = (app, mod, buildNumber, ogCard = mod.social) => {
         ${CtaLoader.head()}
         <link rel="stylesheet" href="/saito/saito.css?v=${buildNumber}" />
         <link rel="stylesheet" href="/redsquare/style.css?v=${buildNumber}" />
-        <link rel="stylesheet" href="/bugs/base-candidates.css?v=${buildNumber}" />
-        <link rel="stylesheet" href="/bugs/bugs.css?v=${buildNumber}" />
-        <link rel="stylesheet" href="/bugs/bug-detail.css?v=${buildNumber}" />
+        <link rel="stylesheet" href="/bugs/style.css?v=${buildNumber}" />
         <title>${escape(mod.returnName())}</title>
       </head>
       <body class="bugs-body saito-cta-loader-active">

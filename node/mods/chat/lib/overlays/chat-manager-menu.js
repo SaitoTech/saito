@@ -5,7 +5,7 @@ const ChatList = require('./chat-list');
 const ChatUserMenu = require('./chat-user-menu');
 
 class ChatManagerMenu {
-  constructor(app, mod, container = null, showCreationActions = false) {
+  constructor(app, mod, container = null, showCreationActions = !container) {
     this.app = app;
     this.mod = mod;
 
@@ -66,6 +66,10 @@ class ChatManagerMenu {
 
     if (document.getElementById('create-group')) {
       document.getElementById('create-group').onclick = () => this.createGroup();
+    }
+
+    if (document.getElementById('mark-all-read')) {
+      document.getElementById('mark-all-read').onclick = () => this.markAllRead();
     }
 
     if (document.getElementById('edit-contacts')) {
