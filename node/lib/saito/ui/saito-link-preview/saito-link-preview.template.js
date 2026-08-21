@@ -63,7 +63,15 @@ module.exports = (preview) => {
       if (!className) {
         continue;
       }
-      html += `<div class="saito-link-preview-${className}">${esc(preview[key])}</div>`;
+
+      let content = esc(preview[key]);
+      if (key === 'title' || key === 'description') {
+        content = preview.app.browser.sanitizeInlineHtml(preview[key]);
+      } else if (key === 'display_url') {
+        content = esc(preview.app.browser.formatUrlForDisplay(preview[key]));
+      }
+
+      html += `<div class="saito-link-preview-${className}">${content}</div>`;
     }
     html += '</div>';
   }

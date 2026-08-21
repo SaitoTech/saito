@@ -130,8 +130,8 @@
 }
 
 .chat-main-container .saito-sidebar.left {
-  min-width: 34rem;
-  width: 34rem;
+  min-width: 41.35rem;
+  width: 41.35rem;
   max-width: 50vw;
   overflow: visible;
   border-right: 1px solid var(--saito-border);

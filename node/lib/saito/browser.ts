@@ -2050,18 +2050,92 @@ class Browser {
     return regex.test(potential_link);
   }
 
+  /**
+   * Return a compact label for a URL without changing the URL used by the link.
+   */
+  formatUrlForDisplay(url, maxLength = 42) {
+    let displayUrl = String(url ?? '').trim();
+    if (!displayUrl) {
+      return '';
+    }
+
+    displayUrl = displayUrl.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+
+    const limit = Math.max(4, Number(maxLength) || 42);
+    if (displayUrl.length > limit) {
+      displayUrl = displayUrl.slice(0, limit - 3) + '...';
+    }
+
+    return displayUrl;
+  }
+
+  /**
+   * Sanitize untrusted metadata that may contain basic inline emphasis.
+   * This deliberately excludes links, images, block elements and all attributes.
+   */
+  sanitizeInlineHtml(text) {
+    if (!text) {
+      return '';
+    }
+
+    return sanitizeHtml(String(text), {
+      allowedTags: ['em', 'i', 'strong', 'b'],
+      allowedAttributes: {}
+    });
+  }
+
+  /**
+   * Repair anchors produced by an older publisher that used a smart quote to
+   * close href attributes. Keep this deliberately narrow: only a lone href is
+   * accepted, and its value must pass the same URL policy as normal links.
+   */
+  normalizeLegacySmartQuotedAnchors(text) {
+    return String(text ?? '').replace(
+      /<a\s+href=(["'])([^<>"']+)[‘’“”]\s*>/gi,
+      (match, _openingQuote, href) => {
+        const decodedHref = sanitizer.unescapeEntities(String(href).trim());
+        if (!this.isSafeHref(decodedHref)) {
+          return match;
+        }
+        return `<a href="${this.escapeHTML(decodedHref)}">`;
+      }
+    );
+  }
+
   sanitize(text, createLinks = false) {
     if (!text) {
       return '';
     }
     try {
+      text = this.normalizeLegacySmartQuotedAnchors(text);
+
       if (createLinks) {
         const host =
           typeof window !== 'undefined' && window.location && window.location.host
             ? window.location.host
             : '';
 
-        text = marked.parse(text);
+        const renderer = new marked.Renderer();
+        const defaultLinkRenderer = renderer.link.bind(renderer);
+        renderer.link = (href, title, linkText) => {
+          const decodedHref = sanitizer.unescapeEntities(String(href ?? ''));
+          const decodedText = sanitizer.unescapeEntities(String(linkText ?? ''));
+          const hrefFromLabel = this.hrefFromAutolink(decodedText);
+
+          // Marked has already converted bare URLs into anchors. Shorten only
+          // their generated labels, preserving authored Markdown link text.
+          if (
+            (decodedText === decodedHref || hrefFromLabel === decodedHref) &&
+            this.isSafeHref(decodedHref) &&
+            decodedText.length > 42
+          ) {
+            linkText = this.escapeHTML(this.formatUrlForDisplay(decodedText));
+          }
+
+          return defaultLinkRenderer(href, title, linkText);
+        };
+
+        text = marked.parse(text, { renderer });
 
         text = text.replace(this.urlRegexp(), (...args) => {
           const url = args[0];
@@ -2083,19 +2157,7 @@ class Browser {
             return url;
           }
 
-          let url2 = url.trim();
-          if (url2.length > 42) {
-            if (url2.indexOf('http') == 0 && url2.includes('://')) {
-              let temp = url2.split('://');
-              url2 = temp[1];
-            }
-            if (url2.indexOf('www.') == 0) {
-              url2 = url2.substr(4);
-            }
-            if (url2.length > 40) {
-              url2 = url2.substr(0, 37) + '...';
-            }
-          }
+          const url2 = this.formatUrlForDisplay(url);
 
           const extra =
             host && hrefRaw.includes(host)
