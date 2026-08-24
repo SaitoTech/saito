@@ -320,6 +320,19 @@ impl InterfaceIO for WasmIoHandler {
             InterfaceEvent::NewChainDetected() => {
                 MsgHandler::emit_interface_event("new-chain-detected", "null");
             }
+            InterfaceEvent::OnBlockchainReceived {
+                current_block_id,
+                target_block_id,
+                is_sync_possible,
+            } => {
+                let payload = format!(
+                    "{{\"current_block_id\":{},\"target_block_id\":{},\"is_sync_possible\":{}}}",
+                    encode_bigint_leaf(current_block_id),
+                    encode_bigint_leaf(target_block_id),
+                    is_sync_possible
+                );
+                MsgHandler::emit_interface_event("on-blockchain-received", &payload);
+            }
         }
     }
 
