@@ -1,94 +1,77 @@
 module.exports = (app, mod, form) => {
-  let html = `
-
-    <div class="saito-crypto-transfer saito-overlay-size narrow" id="stake-crypto-request-container">
-
-      <h2 class="auth-title">Amount to Stake?</h2>
-      
-      <div class="stake-input-container">
-        <input autocomplete="off" id="amount_to_stake_input" class="saito-input stake" 
-        type="number" min="0" max="9999999999.99999999" step="0.00000001" value="${form?.stake || '0'}" >`;
-
-  let fee = 0;
-
-  if (form.fixed) {
-    html += `<div class="crypto-ticker">${form.ticker}</div>`;
-
-    fee = mod.includeFeeInMax(form.ticker);
-  } else {
-    let img_html = `<div id="withdraw-logo-cont" class="withdraw-logo-cont">`;
-    let opt_html = '';
-
-    for (let ticker in mod.balances) {
-      // Legacy fallback
-      if (!form?.ticker) {
-        form.ticker = ticker;
-      }
-
-      if (form.ticker == ticker) {
-        mod.max_balance = parseFloat(mod.balances[ticker].balance);
-        fee = mod.includeFeeInMax(ticker);
-      }
-
-      opt_html += `<option value="${ticker}" ${form.ticker == ticker ? 'selected' : ''}>${ticker}</option>`;
-
-      let icons = app.wallet.returnCryptoModuleByTicker(ticker)?.returnLogos() || {
+  let ticker = form.ticker;
+  let icons = ticker
+    ? app.wallet.returnCryptoModuleByTicker(ticker)?.returnLogos() || {
         img: `/${ticker.toLowerCase()}/img/logo.png`
-      };
-
-      img_html += `<img class="crypto-logo hide-element" data-ticker="${ticker}" src="${icons.img}">`;
-      if (icons.sub_logo) {
-        img_html += `<img class="chain-logo hide-element" data-ticker="${ticker}" src="${icons.sub_logo}">`;
       }
+    : null;
+
+  let opt_html = '';
+  if (form.fixed) {
+    // fixed ticker — no balance list needed for template
+  } else {
+    for (let t in mod.balances) {
+      if (!ticker) {
+        ticker = t;
+        form.ticker = t;
+      }
+      if (form.ticker == t) {
+        mod.max_balance = parseFloat(mod.balances[t].balance);
+        icons = app.wallet.returnCryptoModuleByTicker(t)?.returnLogos() || {
+          img: `/${t.toLowerCase()}/img/logo.png`
+        };
+      }
+      opt_html += `<option value="${t}" ${form.ticker == t ? 'selected' : ''}>${t}</option>`;
     }
-
-    html += `<div class="token-dropdown">
-                ${img_html}</div>
-                <select class="saito-form-select withdraw-select-crypto" id="stake-select-crypto">${opt_html}</select>
-             </div>`;
   }
 
-  let warning_msg = '(0 network fees)';
-  if (fee) {
-    warning_msg = `(fee: ${fee} ${form?.ticker})`;
-  }
+  let logo = icons ? `<img src="${icons.img}" alt="">` : '';
+  let currency_html = form.fixed
+    ? `<div class="currency">${logo}<span>${ticker}</span></div>`
+    : `<div class="currency">${logo}<select class="saito-form-select" id="stake-select-crypto">${opt_html}</select></div>`;
 
-  html += `<div class="crypto_msg">
-              <div></div>
-              <div class="saito-button-secondary small select_max">Max: ${mod.max_balance}</div>
-            </div>
-            <div class="stake-input-error" id="stake-amount-error"></div>
-          </div>`;
+  const toggle_label = form.one_sided ? 'Use equal stakes' : 'Give Odds or Set a Prize';
 
-  /* Poorly named variable, but just tells us if is an opengame or not*/
-  if (mod.max_match >= 0) {
-    html += `
-        <div class="crypto-stake-confirm-container">
-          <input class="saito-checkbox" type="checkbox" name="crypto-stake-odds" id="crypto-stake-odds">
-          <label for="crypto-stake-odds" class="commentary">set lower stake for opponent</label>
-        </div>
-
-        <div id="opponent-minimum-stake" class="stake-input-container hidden">
-          <input autocomplete="off" id="minimum_accepted_stake" class="saito-input stake" 
-          type="number" min="0" max="${mod.max_balance}" step="0.00000001" value="0" >
-          <div class="crypto-ticker">${form.ticker}</div>
-          <div class="stake-input-error" id="stake-opponent-error"></div>
+  let stake_inputs_html = '';
+  let stake_heading_html = '';
+  if (form.one_sided) {
+    stake_inputs_html = `
+        <div class="amount-row one-sided-stake-row">
+          <label class="game-stake-label" for="player1_stake_input">I Stake:</label>
+          <label class="game-stake-label" for="player2_stake_input">They Stake:</label>
+          <button type="button" class="stake-mode-toggle" id="stake-mode-toggle">${toggle_label}</button>
+          <input autocomplete="off" id="player1_stake_input" class="saito-input player-stake-input" type="number" min="0" max="9999999999.99999999" step="0.00000001" value="${form.player1_stake ?? form.stake ?? '0'}" aria-label="My stake" placeholder="Player 1">
+          <input autocomplete="off" id="player2_stake_input" class="saito-input player-stake-input" type="number" min="0" max="9999999999.99999999" step="0.00000001" value="${form.player2_stake ?? '0'}" aria-label="Their stake" placeholder="Player 2">
+          ${currency_html}
+        </div>`;
+  } else {
+    stake_heading_html = `
+        <div class="game-stake-heading">
+          <label class="game-stake-label" for="amount_to_stake_input">Everyone Stakes:</label>
+          <button type="button" class="stake-mode-toggle" id="stake-mode-toggle">${toggle_label}</button>
+        </div>`;
+    stake_inputs_html = `
+        <div class="amount-row equal-stake-row">
+          <input autocomplete="off" id="amount_to_stake_input" class="saito-input" type="number" min="0" max="9999999999.99999999" step="0.00000001" value="${form.stake || '0'}">
+          ${currency_html}
         </div>`;
   }
 
-  html += `
+  return `
+    <form class="saito-overlay-form" id="stake-crypto-request-container">
+      <header class="saito-overlay-form-header">
+        <h2 class="saito-overlay-form-header-title">Play for Crypto</h2>
+      </header>
 
-      <div class="crypto-stake-confirm-container">
-        <input class="saito-checkbox" type="checkbox" checked name="crypto-stake-confirm-input" id="crypto-stake-confirm-input">
-        <label for="crypto-stake-confirm-input" class="commentary">authorize in-game transfer ${warning_msg}</label>
-        <div class="stake-input-error" id="stake-checkbox-error"></div>
+      <div class="game-stake">
+        ${stake_heading_html}
+        ${stake_inputs_html}
+        <div class="stake-input-error" id="stake-amount-error"></div>
       </div>
 
-      <div class="saito-button-primary crypto_amount_btn" id="enable_staking_yes">confirm</div>
-
-    </div>
- 
+      <div class="saito-button-row stake-confirm-row">
+        <button type="button" class="saito-button-primary" id="enable_staking_yes">Confirm</button>
+      </div>
+    </form>
   `;
-
-  return html;
 };

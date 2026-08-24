@@ -122,13 +122,13 @@ class Chat extends ModTemplate {
 
     this.postScripts = ['/saito/lib/emoji-picker/emoji-picker.js'];
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: 'Saito Chat',
-      url: 'https://saito.io/chat/',
+      url: '/chat/',
       description: 'Instant messaging client on Saito Network blockchain',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png'
-    };
+    });
   }
 
   hasSettings() {
@@ -195,13 +195,14 @@ class Chat extends ModTemplate {
       this.chat_manager = new ChatManager(this.app, this);
       this.addComponent(this.chat_manager);
     }
-    this.chat_manager.container = '.saito-sidebar.left';
+    const mobile = window.innerWidth < 600;
 
-    if (
-      !(this.app.browser.isMobileBrowser(navigator.userAgent) && window.innerWidth < 750) &&
-      window.innerWidth > 599
-    ) {
+    this.chat_manager.container = '.chat-page-manager-content';
+
+    if (!mobile) {
       this.chat_manager.chat_popup_container = '.saito-main';
+    } else {
+      this.chat_manager.chat_popup_container = '';
     }
 
     this.chat_manager.render_popups_to_screen = 0;
@@ -241,6 +242,12 @@ class Chat extends ModTemplate {
       }
 
       window.history.replaceState({}, document.title, '/' + this.slug);
+    } else if (
+      !mobile &&
+      this.groups.length &&
+      !Object.values(this.chat_manager.popups).some((popup) => popup.is_rendered)
+    ) {
+      this.app.connection.emit('open-chat-with', { id: this.groups[0].id });
     }
   }
 
@@ -591,6 +598,7 @@ class Chat extends ModTemplate {
           return {
             text: dynamic_text,
             icon: 'far fa-comment-dots',
+            image: '/saito/icons/saito-chat-icon-solid.svg',
             callback: function (app, publicKey) {
               if (chat_self.chat_manager == null) {
                 chat_self.chat_manager = new ChatManager(chat_self.app, chat_self);
@@ -1278,12 +1286,13 @@ class Chat extends ModTemplate {
       let notice = '';
 
       if (txmsg.group_name !== group.name) {
+        const safeName = this.app.browser.escapeHTML(String(txmsg.group_name || ''));
         notice += `<div class="saito-chat-notice">
         <span class="saito-mention saito-address" data-id="${sender}">${this.app.keychain.returnUsername(
           sender
         )}</span>
-        <span> changed the name of the group to ${txmsg.group_name}</span></div>`;
-        group.name = txmsg.group_name;
+        <span> changed the name of the group to ${safeName}</span></div>`;
+        group.name = String(txmsg.group_name || '');
       }
 
       for (let i in txmsg.member_ids) {
@@ -1748,39 +1757,37 @@ class Chat extends ModTemplate {
               msg += ' new-message';
             }
             msg += `">`;
-            if (block[z].msg.indexOf('<img') != 0) {
-              let saniText = this.app.browser.sanitize(block[z].msg, true);
-              if (saniText.includes('\n')) {
-                msg += saniText.split('\n').join('<br>');
-              } else {
-                if (block[z].link_properties) {
-                  if (solo_link_regex.test(saniText)) {
-                    //console.log('Chat block is just a link: ', saniText);
-                  } else {
-                    msg += saniText;
-                  }
 
-                  msg += `<div class='saito-link-preview link-${block[z].signature}'></div>`;
-                  if (!group?.links) {
-                    group.links = {};
-                  }
-
-                  if (!group.links[block[z].signature]) {
-                    group.links[block[z].signature] = new SaitoLinkPreview(
-                      this.app,
-                      this,
-                      `.link-${block[z].signature}`,
-                      block[z].link,
-                      block[z].link_properties
-                    );
-                  }
+            let saniText = this.app.browser.sanitize(block[z].msg, true);
+            if (saniText.includes('\n')) {
+              msg += saniText.split('\n').join('<br>');
+            } else {
+              if (block[z].link_properties) {
+                if (solo_link_regex.test(saniText)) {
+                  //console.log('Chat block is just a link: ', saniText);
                 } else {
                   msg += saniText;
                 }
+
+                msg += `<div class='saito-link-preview link-${block[z].signature}'></div>`;
+                if (!group?.links) {
+                  group.links = {};
+                }
+
+                if (!group.links[block[z].signature]) {
+                  group.links[block[z].signature] = new SaitoLinkPreview(
+                    this.app,
+                    this,
+                    `.link-${block[z].signature}`,
+                    block[z].link,
+                    block[z].link_properties
+                  );
+                }
+              } else {
+                msg += saniText;
               }
-            } else {
-              msg += block[z].msg.substring(0, block[z].msg.indexOf('>') + 1);
             }
+
             msg +=
               like_number > 0
                 ? `<div class="chat-likes"> <i class="fas fa-thumbs-up"></i><div class="chat-like-number">${like_number}</div> </div>`

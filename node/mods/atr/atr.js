@@ -22,13 +22,13 @@ class ATR extends ModTemplate {
     this.last_block_id = 0;
     this.serverCache = new Map();
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: 'Saito ATR Explorer',
-      url: 'https://saito.io/atr/',
+      url: '/atr/',
       description: 'ATR explorer for Saito Network blockchain',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png'
-    };
+    });
   }
 
   async initialize(app) {

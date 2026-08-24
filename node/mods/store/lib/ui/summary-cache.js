@@ -4,13 +4,51 @@ function summaryBucketKey(nft_id = '', price = 0) {
   return `${nft_id}:${Number(price)}`;
 }
 
-function summaryDomId(summary) {
-  // Prefer listing signature so multiple listings for the same nft:price stay distinct.
-  if (summary?.listing_signature) {
-    return `store-teaser-${encodeURIComponent(summary.listing_signature)}`;
+function escapeAttr(value = '') {
+  return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
+function cssEscape(value = '') {
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+    return CSS.escape(String(value));
   }
-  const key = summaryBucketKey(summary?.nft_id, summary?.price);
-  return `store-teaser-${encodeURIComponent(key)}`;
+  return String(value).replace(/[^a-zA-Z0-9_-]/g, (ch) => `\\${ch}`);
+}
+
+/**
+ * Listing identity for teaser DOM targeting.
+ * Prefer listing_signature; fall back to nft_id:price bucket.
+ * Returns the data-attribute name/value used on each `.teaser` instance.
+ */
+function listingTeaserIdentity(summary) {
+  if (summary?.listing_signature) {
+    return {
+      attr: 'data-listing-signature',
+      value: String(summary.listing_signature)
+    };
+  }
+  return {
+    attr: 'data-listing-bucket',
+    value: summaryBucketKey(summary?.nft_id, summary?.price)
+  };
+}
+
+/** HTML attribute fragment for a teaser root element (no id). */
+function listingTeaserDataAttrs(summary) {
+  const { attr, value } = listingTeaserIdentity(summary);
+  if (!value) {
+    return '';
+  }
+  return `${attr}="${escapeAttr(value)}"`;
+}
+
+/** CSS selector matching all teaser instances for this listing. */
+function listingTeaserSelector(summary) {
+  const { attr, value } = listingTeaserIdentity(summary);
+  if (!value) {
+    return '';
+  }
+  return `.teaser[${attr}="${cssEscape(value)}"]`;
 }
 
 function syncSummaryCache(mod, data) {
@@ -26,6 +64,8 @@ function syncSummaryCache(mod, data) {
 
 module.exports = {
   summaryBucketKey,
-  summaryDomId,
+  listingTeaserIdentity,
+  listingTeaserDataAttrs,
+  listingTeaserSelector,
   syncSummaryCache
 };

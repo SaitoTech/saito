@@ -4,6 +4,7 @@ const ComposeTemplate = require('./compose.template');
 const MAX_IMAGES = 4;
 const DEFAULT_CHAR_LIMIT = 500;
 const POSTING_ANIMATION_MS = 500;
+const MOBILE_KEYBOARD_MIN_HEIGHT = 100;
 
 class ComposeOverlay {
   constructor(app, mod, reply_to = null) {
@@ -25,9 +26,13 @@ class ComposeOverlay {
     this.posting = false;
     this.drag_drop_bound = false;
     this.gif_picker_rendered = false;
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
+    this.onComplete = null;
   }
 
   open(options = {}) {
+    this.complete(null);
     this.images = [];
     this.posting = false;
     this.drag_drop_bound = false;
@@ -60,8 +65,26 @@ class ComposeOverlay {
       this.helper_text = 'Create a text post or drag-and-drop images…';
     }
 
-    this.overlay.show(ComposeTemplate(this));
+    if (options.prompt) {
+      this.placeholder = String(options.prompt);
+    }
+
+    this.onComplete = typeof options.onComplete === 'function' ? options.onComplete : null;
+    this.overlay.show(ComposeTemplate(this), () => {
+      this.removeVisualViewportResizeHandler();
+      this.complete(null);
+    });
+
+    const overlayHost = this.getRoot()?.closest('.saito-overlay');
+    overlayHost?.classList.add('redsquare-compose-overlay-host');
+    this.attachVisualViewportResizeHandler(overlayHost);
     this.attachEvents();
+
+    const input = this.getRoot()?.querySelector('.input');
+    if (input && options.text != null) {
+      input.value = String(options.text);
+      this.updateCharacterCount();
+    }
 
     setTimeout(() => {
       const input = this.getRoot()?.querySelector('.input');
@@ -72,7 +95,9 @@ class ComposeOverlay {
     }, 50);
   }
 
-  close() {
+  close(result = null) {
+    this.complete(result);
+    this.removeVisualViewportResizeHandler();
     this.overlay.close();
     this.images = [];
     this.reply_to = this.default_reply_to;
@@ -80,8 +105,54 @@ class ComposeOverlay {
     this.posting = false;
   }
 
+  complete(result) {
+    const callback = this.onComplete;
+    this.onComplete = null;
+    callback?.(result);
+  }
+
   getRoot() {
     return document.querySelector('.saito-overlay .compose');
+  }
+
+  attachVisualViewportResizeHandler(overlayHost) {
+    if (!overlayHost || !window.visualViewport || window.innerWidth > 768) {
+      return;
+    }
+
+    this.removeVisualViewportResizeHandler();
+
+    this.visualViewport = window.visualViewport;
+    this.visualViewportResizeHandler = () => {
+      overlayHost.style.setProperty(
+        '--redsquare-compose-viewport-top',
+        `${this.visualViewport.offsetTop}px`
+      );
+      overlayHost.style.setProperty(
+        '--redsquare-compose-viewport-height',
+        `${this.visualViewport.height}px`
+      );
+      const coveredHeight =
+        window.innerHeight - this.visualViewport.height - this.visualViewport.offsetTop;
+      overlayHost
+        .querySelector('.compose')
+        ?.classList.toggle('keyboard-visible', coveredHeight > MOBILE_KEYBOARD_MIN_HEIGHT);
+      overlayHost.scrollTop = 0;
+    };
+
+    this.visualViewportResizeHandler();
+    this.visualViewport.addEventListener('resize', this.visualViewportResizeHandler);
+    this.visualViewport.addEventListener('scroll', this.visualViewportResizeHandler);
+  }
+
+  removeVisualViewportResizeHandler() {
+    if (this.visualViewport && this.visualViewportResizeHandler) {
+      this.visualViewport.removeEventListener('resize', this.visualViewportResizeHandler);
+      this.visualViewport.removeEventListener('scroll', this.visualViewportResizeHandler);
+    }
+
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
   }
 
   attachEvents() {
@@ -90,6 +161,8 @@ class ComposeOverlay {
     if (!root) {
       return;
     }
+
+    this.mountPickersForViewport();
 
     const input = root.querySelector('.input');
     const submitBtn = root.querySelector('.submit');
@@ -205,11 +278,16 @@ class ComposeOverlay {
       return;
     }
 
+    this.mountPickersForViewport();
+
     root.querySelectorAll('.compose-picker').forEach((picker) => {
       const visible = picker.classList.contains(`${type}-picker-panel`);
       picker.classList.toggle('visible', visible);
       picker.setAttribute('aria-hidden', visible ? 'false' : 'true');
     });
+
+    root.classList.add('picker-open');
+    root.closest('.saito-overlay')?.classList.add('picker-open');
 
     if (type === 'emoji' && typeof customElements !== 'undefined') {
       customElements.whenDefined('emoji-picker').then(() => {
@@ -224,6 +302,27 @@ class ComposeOverlay {
     }
   }
 
+  mountPickersForViewport() {
+    const root = this.getRoot();
+    const surface = root?.querySelector('.surface');
+
+    if (!root || !surface || typeof window === 'undefined') {
+      return;
+    }
+
+    // Desktop pickers anchor below the dialog; mobile pickers stay over the input surface.
+    const isDesktop = window.matchMedia
+      ? window.matchMedia('(min-width: 769px)').matches
+      : window.innerWidth > 768;
+    const target = isDesktop ? root : surface;
+
+    root.querySelectorAll('.compose-picker').forEach((picker) => {
+      if (picker.parentElement !== target) {
+        target.appendChild(picker);
+      }
+    });
+  }
+
   hidePickers() {
     const root = this.getRoot();
 
@@ -235,6 +334,9 @@ class ComposeOverlay {
       picker.classList.remove('visible');
       picker.setAttribute('aria-hidden', 'true');
     });
+
+    root.classList.remove('picker-open');
+    root.closest('.saito-overlay')?.classList.remove('picker-open');
 
     root.querySelector('.input')?.focus();
   }
@@ -551,8 +653,8 @@ class ComposeOverlay {
           siteMessage('Retweet sent', 1000);
         }
 
-        this.close();
-        return;
+        this.close(tx);
+        return tx;
       }
 
       const data = this.buildPostData();
@@ -577,7 +679,8 @@ class ComposeOverlay {
         siteMessage('Tweet sent', 1000);
       }
 
-      this.close();
+      this.close(tx);
+      return tx;
     } catch (err) {
       console.error('RedSquare compose submit failed:', err);
       siteMessage(isRetweet ? 'Unable to retweet' : 'Unable to post tweet', 2500);

@@ -1,0 +1,248 @@
+/* Namespace: .nwasm-library */
+
+.nwasm-library {
+  width: min(110rem, 96vw);
+  max-height: min(92vh, 70rem);
+  background: transparent;
+}
+
+.nwasm-library .body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+}
+
+.nwasm-library .choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(var(--saito-space-lg), 2.5vw, var(--saito-space-xxl));
+}
+
+.nwasm-library .choices[data-count='3'] {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.nwasm-library .choice {
+  display: flex;
+  flex-direction: column;
+  min-height: min(62vh, 42rem);
+  padding: 0;
+  border: 1px solid var(--saito-border);
+  border-radius: calc(var(--saito-radius) + 0.2rem);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+  box-shadow: var(--saito-elevation-1);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.nwasm-library .choice:hover,
+.nwasm-library .choice:focus-visible {
+  border-color: var(--saito-primary);
+  box-shadow: var(--saito-elevation-3);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.nwasm-library .choice .art {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: 1672 / 941;
+  background: var(--saito-background);
+  overflow: hidden;
+}
+
+.nwasm-library .choice .art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.nwasm-library .choice .meta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  flex: 0 0 auto;
+  padding: var(--saito-space-xl) var(--saito-space-lg) var(--saito-space-xxl);
+  background-color: var(--saito-card);
+  box-shadow: 0 -1.2rem 2.4rem color-mix(in srgb, var(--saito-background) 55%, transparent);
+}
+
+.nwasm-library .choice .lede {
+  font-family: var(--saito-font-heavy);
+  font-size: clamp(1.8rem, 2.2vw, 2.4rem);
+  line-height: 1.2;
+}
+
+.nwasm-library .choice .text {
+  font-size: var(--font-size-medium);
+  color: var(--saito-muted-foreground);
+  line-height: 1.45;
+  max-width: 36ch;
+}
+
+.nwasm-library .choice:disabled,
+.nwasm-library.is-busy .choice {
+  cursor: wait;
+  opacity: 0.55;
+  pointer-events: none;
+  transform: none;
+}
+
+/*
+ * Operation status (busy / success / error).
+ * Class must NOT be Bootstrap's .progress — that forces a 1rem track.
+ */
+.nwasm-library .state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: min(40vh, 28rem);
+  padding: var(--saito-space-lg) 0;
+  overflow: visible;
+  background: transparent;
+  height: auto;
+  font-size: inherit;
+}
+
+.nwasm-library .state[hidden],
+.nwasm-library .choices[hidden] {
+  display: none;
+}
+
+.nwasm-library .state .result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-md);
+  width: min(42rem, 100%);
+  padding: var(--saito-space-xxl) var(--saito-space-xl);
+  border: 1px solid var(--saito-border);
+  border-radius: calc(var(--saito-radius) + 0.2rem);
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+  box-shadow: var(--saito-elevation-2);
+  text-align: center;
+}
+
+.nwasm-library .state .lede {
+  font-family: var(--saito-font-heavy);
+  font-size: clamp(1.8rem, 2.2vw, 2.4rem);
+  line-height: 1.2;
+  color: var(--saito-foreground);
+}
+
+.nwasm-library .state .status {
+  font-size: var(--font-size-medium);
+  color: var(--saito-muted-foreground);
+  line-height: 1.45;
+  max-width: 36ch;
+}
+
+.nwasm-library .state .mark {
+  display: none;
+  width: 4.8rem;
+  height: 4.8rem;
+  border-radius: 50%;
+  border: 2px solid var(--saito-border);
+  background: var(--saito-background);
+  position: relative;
+}
+
+.nwasm-library .state .mark::after {
+  content: '';
+  position: absolute;
+  left: 1.45rem;
+  top: 1.05rem;
+  width: 1.4rem;
+  height: 2.4rem;
+  border: solid var(--saito-foreground);
+  border-width: 0 0.35rem 0.35rem 0;
+  transform: rotate(40deg);
+}
+
+.nwasm-library.is-busy .state .mark,
+.nwasm-library.is-error .state .saito-spinner {
+  display: none;
+}
+
+.nwasm-library.is-success .state .saito-spinner {
+  display: none;
+}
+
+.nwasm-library.is-success .state .mark {
+  display: block;
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 16%, var(--saito-card));
+}
+
+.nwasm-library.is-success .state .mark::after {
+  border-color: var(--saito-primary);
+}
+
+.nwasm-library.is-success .state .result {
+  border-color: color-mix(in srgb, var(--saito-primary) 45%, var(--saito-border));
+}
+
+.nwasm-library.is-error .state .mark {
+  display: block;
+  border-color: var(--saito-red);
+}
+
+.nwasm-library.is-error .state .mark::after {
+  left: 50%;
+  top: 50%;
+  width: 2rem;
+  height: 0.35rem;
+  border: none;
+  background: var(--saito-red);
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 0 0;
+}
+
+.nwasm-library.is-error .state .mark::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2rem;
+  height: 0.35rem;
+  background: var(--saito-red);
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@media (max-width: 900px) {
+  .nwasm-library {
+    width: min(48rem, 96vw);
+    max-height: 92vh;
+  }
+
+  .nwasm-library .choices,
+  .nwasm-library .choices[data-count='3'] {
+    grid-template-columns: 1fr;
+    gap: var(--saito-space-lg);
+  }
+
+  .nwasm-library .choice {
+    min-height: 0;
+  }
+
+  .nwasm-library .choice .meta {
+    padding: var(--saito-space-lg);
+  }
+
+  .nwasm-library .state {
+    min-height: 0;
+  }
+}

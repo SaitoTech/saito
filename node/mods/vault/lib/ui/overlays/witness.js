@@ -11,7 +11,7 @@ const WITNESS_FIELDS_BY_OP = {
   CHECKSIG: ['signature'],
   CHECKMULTISIG: ['signatures'],
   CHECKPATH: ['path'],
-  CHECKPATHHOP: ['hop'],
+  CHECKPATHHOP: ['hops'],
   IMPORTFIELD: ['value']
 };
 

@@ -2,6 +2,7 @@ const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-
 const ImportTemplate = require('./import.template');
 const { applyPublishOverlayShell } = require('./overlay.shell');
 const { parseTransactionFile } = require('../../transaction_io');
+const { bindDropzone } = require('./import-dropzone');
 
 function escapeHtml(text) {
   return String(text || '')
@@ -32,6 +33,7 @@ class ImportFlow {
     this.errorMessage = '';
     this.blockedRoot = null;
     this._processing = false;
+    this._completed = false;
 
     this.onEscapeKey = (event) => {
       if (event.key === 'Escape' && this.step && this.step !== 'loading') {
@@ -42,6 +44,7 @@ class ImportFlow {
 
   open() {
     this.errorMessage = '';
+    this._completed = false;
     this.step = 'idle';
     this.show(ImportTemplate.idleOverlay());
     this.bindIdleEvents();
@@ -60,13 +63,17 @@ class ImportFlow {
     this.applyOverlayLayout();
   }
 
-  hide() {
+  hide({ completed = false } = {}) {
+    if (completed) {
+      this._completed = true;
+    }
     if (this.step) {
       this.overlay.close();
     }
   }
 
   onOverlayClosed() {
+    const returnToImportMenu = this.step != null && !this._completed;
     document.body.classList.remove('rs-publish-modal-open');
     document.removeEventListener('keydown', this.onEscapeKey);
     if (this.blockedRoot) {
@@ -75,6 +82,10 @@ class ImportFlow {
     }
     this.step = null;
     this._processing = false;
+    this._completed = false;
+    if (returnToImportMenu) {
+      this.mainUi?.welcomeOverlay?.render('import-choice');
+    }
   }
 
   applyOverlayLayout() {
@@ -82,65 +93,58 @@ class ImportFlow {
   }
 
   bindIdleEvents() {
-    const root = document.querySelector('.rs-import-overlay:not(.rs-import-loading)');
+    const root = document.querySelector('.rs-import-overlay:not(.rs-import-loading):not(.rs-import-script-overlay)');
     if (!root) {
       return;
     }
 
-    const dropZone = root.querySelector('#rs-import-drop-zone');
-    const fileInput = root.querySelector('.rs-import-file-input');
-
-    const setDragActive = (active) => {
-      dropZone?.classList.toggle('is-dragover', active);
-    };
-
-    const prevent = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    dropZone?.addEventListener('dragenter', (e) => {
-      prevent(e);
-      setDragActive(true);
-    });
-    dropZone?.addEventListener('dragover', (e) => {
-      prevent(e);
-      setDragActive(true);
-    });
-    dropZone?.addEventListener('dragleave', (e) => {
-      prevent(e);
-      setDragActive(false);
-    });
-    dropZone?.addEventListener('drop', (e) => {
-      prevent(e);
-      setDragActive(false);
-      const file = e.dataTransfer?.files?.[0];
-      if (file) {
-        this.readAndProcessFile(file);
-      }
-    });
-
-    dropZone?.addEventListener('click', () => {
-      fileInput?.click();
-    });
-    dropZone?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        fileInput?.click();
-      }
-    });
-
-    fileInput?.addEventListener('change', () => {
-      const file = fileInput.files?.[0];
-      if (file) {
-        this.readAndProcessFile(file);
-      }
-      fileInput.value = '';
+    bindDropzone(root, {
+      onFile: (file) => this.readAndProcessFile(file)
     });
 
     root.querySelector('[data-action="import-p2sh-link"]')?.addEventListener('click', () => {
-      alert('P2SH link import is coming soon.');
+      if (this._processing) {
+        return;
+      }
+      const input = root.querySelector('.rs-import-p2sh-input');
+      const raw = String(input?.value || '').trim();
+      if (!raw) {
+        this.errorMessage = 'Paste a P2SH link to import.';
+        this.step = 'idle';
+        this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+        this.bindIdleEvents();
+        return;
+      }
+      this.processP2shLink(raw);
     });
+  }
+
+  async processP2shLink(rawLink) {
+    if (this._processing) {
+      return;
+    }
+    this._processing = true;
+    this.step = 'loading';
+    this.show(ImportTemplate.loadingOverlay());
+
+    let error = null;
+    try {
+      await this.mod.importP2shShareLink(rawLink);
+      await delay(MIN_LOAD_MS);
+      this.hide({ completed: true });
+    } catch (err) {
+      await delay(MIN_LOAD_MS);
+      error = err?.message || 'Could not import P2SH link.';
+      this._processing = false;
+      this.errorMessage = error;
+      this.step = 'idle';
+      this.show(ImportTemplate.idleOverlay({ error: escapeHtml(this.errorMessage) }));
+      this.bindIdleEvents();
+    } finally {
+      if (this.step !== 'idle') {
+        this._processing = false;
+      }
+    }
   }
 
   readAndProcessFile(file) {
@@ -189,7 +193,7 @@ class ImportFlow {
 
     try {
       await this.mod.loadTransactionForWitness(tx);
-      this.hide();
+      this.hide({ completed: true });
     } catch (err) {
       this._processing = false;
       this.errorMessage = err?.message || 'Could not load transaction into witness mode.';

@@ -13,3 +13,10 @@ body.saito-cta-loader-complete::before {
     display: none;
   }
 }
+
+@media (max-width: 720px) {
+  .saito-cta-loader-card {
+    padding: 20dvh 24px 24px;
+    justify-content: flex-start;
+  }
+}

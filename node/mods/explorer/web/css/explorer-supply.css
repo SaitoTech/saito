@@ -160,7 +160,7 @@
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='pass'] .explorer-supply-fee-step-icon {
-  color: var(--explorer-primary);
+  color: var(--explorer-primary-text);
 }
 
 .explorer-supply-fee-diagnostics-list li[data-state='fail'] {
@@ -298,7 +298,7 @@
 .explorer-golden-ticket-icon {
   font-size: 0.65rem;
   line-height: 1;
-  color: color-mix(in oklch, var(--explorer-primary) 72%, var(--explorer-muted-foreground));
+  color: var(--explorer-primary-text);
 }
 
 .explorer-supply-table th.explorer-column-golden-ticket,

@@ -56,3 +56,41 @@ module.exports = ({ pagination = null, empty = false, categoryLabel = '' } = {})
     <p class="catalog-info" role="status">Page ${page} of ${total_pages} · ${total} listings</p>
   `;
 };
+
+function attachCatalogFooterEvents(footer, { page, pagination, onPage } = {}) {
+  if (!footer || typeof onPage !== 'function') {
+    return;
+  }
+
+  footer.querySelectorAll('[data-page]').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const next = Number(btn.getAttribute('data-page'));
+      if (next && next !== page) {
+        onPage(next);
+      }
+    };
+  });
+
+  const prev = footer.querySelector('[data-page-action="prev"]');
+  if (prev) {
+    prev.onclick = (e) => {
+      e.preventDefault();
+      if (pagination?.has_previous) {
+        onPage(page - 1);
+      }
+    };
+  }
+
+  const next = footer.querySelector('[data-page-action="next"]');
+  if (next) {
+    next.onclick = (e) => {
+      e.preventDefault();
+      if (pagination?.has_next) {
+        onPage(page + 1);
+      }
+    };
+  }
+}
+
+module.exports.attachCatalogFooterEvents = attachCatalogFooterEvents;

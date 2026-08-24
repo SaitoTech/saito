@@ -8,6 +8,21 @@ class AdjustStake {
     this.overlay = new SaitoOverlay(app, mod, false);
   }
 
+  bindSelectOnZeroFocus(input) {
+    if (!input) {
+      return;
+    }
+
+    const selectIfZero = () => {
+      if (parseFloat(input.value) === 0) {
+        input.select();
+      }
+    };
+
+    input.addEventListener('focus', selectIfZero);
+    input.addEventListener('click', selectIfZero);
+  }
+
   async render(obj) {
     if (obj?.accept_callback) {
       this.accept_callback = obj.accept_callback;
@@ -29,7 +44,6 @@ class AdjustStake {
       }
     }
 
-    // Don't allow upping the ante
     if (obj.game_mod?.opengame) {
       this.max_stake = Math.min(current_balance, this.match_stake);
     }
@@ -47,17 +61,13 @@ class AdjustStake {
       return;
     }
 
-    stake_input.onclick = (e) => {
-      stake_input.select();
-    };
+    this.bindSelectOnZeroFocus(stake_input);
 
     let match_button = document.querySelector('.select_match');
-    if (match_button) {
-      if (!match_button.classList.contains('nomatch')) {
-        match_button.onclick = (e) => {
-          stake_input.value = this.match_stake;
-        };
-      }
+    if (match_button && !match_button.classList.contains('nomatch')) {
+      match_button.onclick = (e) => {
+        stake_input.value = this.match_stake;
+      };
     }
 
     let min_button = document.querySelector('.select_min');
@@ -74,50 +84,31 @@ class AdjustStake {
       };
     }
 
-    stake_input.onkeydown = async (e) => {
-      let amount = stake_input.value;
-      this.app.browser.validateAmountLimit(amount, e);
+    stake_input.onkeydown = (e) => {
+      this.app.browser.validateAmountLimit(stake_input.value, e);
     };
 
-    stake_input.oninput = async (e) => {
+    stake_input.oninput = (e) => {
       this.validateAmount();
     };
 
-    if (document.querySelector('#approve-crypto-request-container #enable_staking_yes')) {
-      document.querySelector('#approve-crypto-request-container #enable_staking_yes').onclick =
-        async (e) => {
-          if (!this.validateAmount()) {
-            return;
-          }
+    document.querySelector('#enable_staking_yes').onclick = (e) => {
+      if (!this.validateAmount()) {
+        return;
+      }
 
-          let confirm = document.querySelector(
-            '#approve-crypto-request-container #approve-crypto-stake-confirm-input'
-          ).checked;
+      if (this.accept_callback) {
+        this.accept_callback(parseFloat(stake_input.value));
+      }
+      this.overlay.close();
+    };
 
-          if (!confirm) {
-            salert('You need to confirm');
-            return;
-          }
-
-          let amount = parseFloat(stake_input.value);
-
-          if (this.accept_callback) {
-            this.accept_callback(amount);
-          }
-          this.overlay.close();
-        };
-    }
-
-    if (document.querySelector('#approve-crypto-request-container #enable_staking_no')) {
-      document.querySelector('#approve-crypto-request-container #enable_staking_no').onclick = (
-        e
-      ) => {
-        if (this.reject_callback) {
-          this.reject_callback();
-        }
-        this.overlay.close();
-      };
-    }
+    document.querySelector('#enable_staking_no').onclick = (e) => {
+      if (this.reject_callback) {
+        this.reject_callback();
+      }
+      this.overlay.close();
+    };
   }
 
   validateAmount() {
@@ -130,7 +121,6 @@ class AdjustStake {
     input_err.innerText = '';
     input_err.style.display = 'none';
 
-    // Basic input
     if (amount < 0) {
       errorMsg = 'You need to select a non-negative value';
     } else if (amount > this.max_stake) {
@@ -142,9 +132,7 @@ class AdjustStake {
     if (errorMsg) {
       input_err.innerText = errorMsg;
       input_err.style.display = 'block';
-
       this.mod.validateBalance(amount, this.ticker);
-
       return false;
     }
 

@@ -249,10 +249,10 @@ class OnePlayerGameTemplate extends GameTemplate {
     }
     this.game.over = 2;
 
-    this.sendGameOverTransaction([], msg);
+    this.triggerGameOver([], msg);
   }
 
-  receiveGameoverTransaction(blk, tx, conf, app) {
+  receiveGameOverTransaction(blk, tx, conf, app) {
     console.log('The game never ends when you play by yourself!');
 
     try {

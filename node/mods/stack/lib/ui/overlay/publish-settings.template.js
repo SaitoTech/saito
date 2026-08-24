@@ -3,6 +3,7 @@
  *
  * Guided publishing flow: access selector (left) + step content (right).
  * Private / Subscription open a lightweight wizard; Public publishes in one click.
+ * Distribution options (profile link, RedSquare tweet) are identical for all access levels.
  */
 module.exports = (app, mod, postState = {}, wizardState = {}) => {
 	const parent_id =
@@ -22,63 +23,68 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
 		wizardState.hasAccessKey === true || wizardState.createNftStatus === 'confirmed';
 	const isConfirmed = wizardState.createNftStatus === 'confirmed';
 	const isListedInStore = wizardState.isListedInStore === true;
-	const createQuantity = wizardState.createQuantity || 1;
+
+	const profileLinkChecked = wizardState.linkToProfile !== false;
+	const tweetOnPublishChecked = wizardState.tweetOnPublish !== false;
+
+	const distributionHtml = `
+    <div class="distribution">
+      <label class="option">
+        <input
+          type="checkbox"
+          class="saito-checkbox"
+          data-action="toggle-profile-link"
+          ${profileLinkChecked ? 'checked' : ''}
+        />
+        <span>Add my Stack to my profile</span>
+      </label>
+      <label class="option">
+        <input
+          type="checkbox"
+          class="saito-checkbox"
+          data-action="toggle-tweet-on-publish"
+          ${tweetOnPublishChecked ? 'checked' : ''}
+        />
+        <span>Tweet this article on publish</span>
+      </label>
+    </div>
+  `;
 
 	const getStepContent = () => {
 		if (step === 1) {
-			if (isPublic) {
-				return {
-					body: `
-            <div class="stack-publish-option-copy">
-              <p class="stack-publish-option-heading">Anyone can read.</p>
-            </div>
-          `
-				};
-			}
+			let accessSummary = 'Anyone can read.';
 			if (isPrivate) {
-				return {
-					body: `
-            <div class="stack-publish-option-copy">
-              <p class="stack-publish-option-heading">Restricted Post</p>
-              <ul class="stack-publish-option-points">
-                <li>Readers must have an Access Key.</li>
-                <li>Click NEXT to manage access controls.</li>
-              </ul>
-            </div>
-          `
-				};
+				accessSummary = 'Readers must have an Access Key.';
+			} else if (isSubscription) {
+				accessSummary = 'Readers must have an Active Subscription.';
 			}
-			if (isSubscription) {
-				return {
-					body: `
-            <div class="stack-publish-option-copy">
-              <p class="stack-publish-option-heading">Restricted Post</p>
-              <ul class="stack-publish-option-points">
-                <li>Readers must have an Active Subscription.</li>
-                <li>Click NEXT to manage access controls.</li>
-              </ul>
-            </div>
-          `
-				};
-			}
+
+			return {
+				body: `
+          <div class="option-copy">
+            <p class="heading">${accessSummary}</p>
+            ${distributionHtml}
+          </div>
+        `
+			};
 		}
 
 		if (step === 2 && (isPrivate || isSubscription)) {
 			const checklistHtml = `
-          <div class="stack-publish-checklist stack-publish-checklist-matrix">
-            <div class="stack-publish-check-row stack-publish-check-row-complete">
-              <span class="stack-publish-check-mark">✓</span>
+          <div class="checklist matrix">
+            <div class="check-row complete">
+              <span class="mark">✓</span>
               <span>Blog Post Created</span>
             </div>
-            <div class="stack-publish-check-row${hasAccessKey ? ' stack-publish-check-row-complete' : ''}">
-              <span class="stack-publish-check-mark">${hasAccessKey ? '✓' : '○'}</span>
+            <div class="check-row${hasAccessKey ? ' complete' : ''}">
+              <span class="mark">${hasAccessKey ? '✓' : '○'}</span>
               <span>${keysLabel} Created</span>
             </div>
             ${
 							isListedInStore
 								? `
-            <div class="stack-publish-check-row stack-publish-check-row-complete">
-              <span class="stack-publish-check-mark">✓</span>
+            <div class="check-row complete">
+              <span class="mark">✓</span>
               <span>${keysLabel} Listed</span>
             </div>
                 `
@@ -91,8 +97,8 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
 				return {
 					body: `
               ${checklistHtml}
-              <div class="stack-publish-followup-state">
-                <p class="stack-publish-guidance">Everything is Ready. Go ahead and publish your post.</p>
+              <div class="followup">
+                <p class="guidance">Everything is Ready. Go ahead and publish your post.</p>
               </div>
             `
 				};
@@ -102,9 +108,9 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
 				return {
 					body: `
               ${checklistHtml}
-              <div class="stack-publish-followup-state">
-                <p class="stack-publish-guidance">Would you like to list some ${keysLabel} for sale?</p>
-                <p class="stack-publish-guidance">
+              <div class="followup">
+                <p class="guidance">Would you like to list some ${keysLabel} for sale?</p>
+                <p class="guidance">
                   <span id="stack-list-access-key-link" class="saito-text-link">▸ click here to upload to the Saito Store</span>
                 </p>
               </div>
@@ -116,8 +122,8 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
 				return {
 					body: `
             ${checklistHtml}
-            <div class="stack-publish-followup-state">
-              <p class="stack-publish-guidance">You can publish now without creating ${keysLabel}, or create Stack ${keyLabel} NFTs later from your wallet.</p>
+            <div class="followup">
+              <p class="guidance">You can publish now without creating ${keysLabel}, or create Stack ${keyLabel} NFTs later from your wallet.</p>
             </div>
           `
 				};
@@ -126,9 +132,9 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
 			return {
 				body: `
             ${checklistHtml}
-            <div class="stack-publish-followup-state">
-              <p class="stack-publish-guidance">Your wallet does not have any ${keysLabel}.</p>
-              <p class="stack-publish-guidance">
+            <div class="followup">
+              <p class="guidance">Your wallet does not have any ${keysLabel}.</p>
+              <p class="guidance">
                 <span id="stack-create-access-key-link" class="saito-text-link">▸ click here to mint some now</span>
               </p>
             </div>
@@ -138,7 +144,7 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
 
 		return {
 			body: `
-          <p class="stack-publish-guidance">You'll need a ${keyLabel} for this post. We'll help you create one.</p>
+          <p class="guidance">You'll need a ${keyLabel} for this post. We'll help you create one.</p>
         `
 		};
 	};
@@ -170,17 +176,17 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
 		}
 		if (showPublishImmediately) {
 			return `
-        <span id="stack-publish-immediately" class="saito-text-link stack-publish-immediately" role="button" tabindex="0">or skip access controls and publish immediately...</span>
+        <span id="stack-publish-immediately" class="saito-text-link immediately" role="button" tabindex="0">or skip access controls and publish immediately...</span>
       `;
 		}
-		return `<div class="stack-publish-action-spacer"></div>`;
+		return `<div class="spacer"></div>`;
 	})();
 
 	return `
-    <div class="stack-publish-overlay">
-      <div class="stack-publish-content">
-        <div class="stack-publish-header">
-          <h3 class="stack-publish-overlay-title">who can read this post?</h3>
+    <div class="publish">
+      <div class="content">
+        <div class="header">
+          <h3 class="title">who can read this post?</h3>
           <button
             type="button"
             id="stack-publish-delete-draft-btn"
@@ -192,54 +198,54 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
           </button>
         </div>
 
-        <div class="stack-publish-cards">
+        <div class="cards">
 
-          <div class="stack-publish-card stack-publish-card-access">
-            <div class="stack-publish-access-cards">
-              <label class="stack-publish-access-card ${isPublic ? 'stack-publish-access-card-active' : ''}" data-access="public">
+          <div class="card card access">
+            <div class="access-list">
+              <label class="access-card ${isPublic ? 'active' : ''}" data-access="public">
                 <input
                   type="checkbox"
                   name="stack-publish-access"
                   value="public"
                   ${isPublic ? 'checked' : ''}
-                  class="saito-checkbox stack-publish-access-checkbox"
+                  class="saito-checkbox access-checkbox"
                 />
-                <div class="stack-publish-access-card-content">
-                  <div class="stack-publish-access-card-label">Public</div>
+                <div class="card-body">
+                  <div class="label">Public</div>
                 </div>
               </label>
 
-              <label class="stack-publish-access-card ${isPrivate ? 'stack-publish-access-card-active' : ''}" data-access="private">
+              <label class="access-card ${isPrivate ? 'active' : ''}" data-access="private">
                 <input
                   type="checkbox"
                   name="stack-publish-access"
                   value="private"
                   ${isPrivate ? 'checked' : ''}
-                  class="saito-checkbox stack-publish-access-checkbox"
+                  class="saito-checkbox access-checkbox"
                 />
-                <div class="stack-publish-access-card-content">
-                  <div class="stack-publish-access-card-label">Private</div>
+                <div class="card-body">
+                  <div class="label">Private</div>
                 </div>
               </label>
 
-              <label class="stack-publish-access-card ${isSubscription ? 'stack-publish-access-card-active' : ''}" data-access="subscription">
+              <label class="access-card ${isSubscription ? 'active' : ''}" data-access="subscription">
                 <input
                   type="checkbox"
                   name="stack-publish-access"
                   value="subscription"
                   ${isSubscription ? 'checked' : ''}
-                  class="saito-checkbox stack-publish-access-checkbox"
+                  class="saito-checkbox access-checkbox"
                 />
-                <div class="stack-publish-access-card-content">
-                  <div class="stack-publish-access-card-label">Subscription</div>
+                <div class="card-body">
+                  <div class="label">Subscription</div>
                 </div>
               </label>
             </div>
           </div>
 
-          <div class="stack-publish-card stack-publish-card-main">
-            <div id="stack-publish-step-panel" class="stack-publish-step-panel" data-step="${step}">
-              <div class="stack-publish-educational-content">
+          <div class="card card main">
+            <div id="stack-publish-step-panel" class="step" data-step="${step}">
+              <div class="edu">
                 ${stepContent.body}
               </div>
             </div>
@@ -247,8 +253,8 @@ module.exports = (app, mod, postState = {}, wizardState = {}) => {
 
         </div>
 
-        <div class="stack-publish-global-action">
-          <div class="stack-publish-global-action-left">
+        <div class="actions">
+          <div class="actions-left">
             ${leftActionHtml}
           </div>
           <button

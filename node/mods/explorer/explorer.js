@@ -15,8 +15,7 @@ const { handleExplorerRequest } = require('./lib/peer/requests');
 const { sendExplorerPeerRequest } = require('./lib/peer/client');
 const { success, failure } = require('./lib/peer/response');
 const ExplorerDatabase = require('./lib/database');
-const { buildBlockStatistics } = require('./lib/block-statistics');
-const { backfillSupplyStatistics } = require('./lib/supply-accounting');
+const { backfillSupplyStatistics, ensureBlockSupplyIndexed } = require('./lib/supply-accounting');
 const { buildAddressRowsFromBlock, blockContainsAtrTransaction } = require('./lib/address-index');
 const { SUPPLY_BLOCK_COUNT } = require('./lib/supply-rows');
 const { extractTransactionsFromBlocks, mergeBlockByHash } = require('./lib/explorer-format');
@@ -483,16 +482,7 @@ class Explorer extends ModTemplate {
     }
   }
 
-  async onPeerServiceUp(app, peer, service = {}) {
-    if (!app.BROWSER || !this.browser_active) {
-      return;
-    }
-
-    if (service.service !== 'Explorer') {
-      return;
-    }
-
-    this.explorerPeer = peer;
+  resetExplorerData() {
     this.blocksReady = false;
     this.transactionsReady = false;
     this.blocksError = null;
@@ -508,6 +498,19 @@ class Explorer extends ModTemplate {
     this.addressRows = [];
     this.addressReady = false;
     this.addressError = null;
+  }
+
+  async onPeerServiceUp(app, peer, service = {}) {
+    if (!app.BROWSER || !this.browser_active) {
+      return;
+    }
+
+    if (service.service !== 'Explorer') {
+      return;
+    }
+
+    this.explorerPeer = peer;
+    this.resetExplorerData();
 
     if (this.activeView === 'allBlocks') {
       this.cleanupListViews();
@@ -523,6 +526,19 @@ class Explorer extends ModTemplate {
       return;
     }
 
+    await this.requestExplorerOverview(app, peer);
+  }
+
+  async refreshHomeData() {
+    if (this.activeView !== 'home' || !this.explorerPeer) {
+      return;
+    }
+
+    this.resetExplorerData();
+    await this.requestExplorerOverview(this.app, this.explorerPeer);
+  }
+
+  async requestExplorerOverview(app, peer) {
     await this.refreshActiveView();
 
     this.fetchChainInfo(app, peer);
@@ -992,6 +1008,7 @@ class Explorer extends ModTemplate {
 
   async onNewBlock(block, lc) {
     if (this.app.BROWSER == 1) {
+      this.allBlocksComponent?.onNewBlock(block, Boolean(lc));
       return;
     }
 
@@ -1001,8 +1018,7 @@ class Explorer extends ModTemplate {
 
     if (this.INDEX_BLOCKS) {
       try {
-        const stats = await buildBlockStatistics(this.app, this, block);
-        await this.database.upsertBlockStatistics(stats);
+        await ensureBlockSupplyIndexed(this.app, this, block);
       } catch (err) {
         console.error('Explorer: failed to record block statistics', err);
       }

@@ -17,6 +17,11 @@ body.explorer-body-root,
   --explorer-popover-foreground: oklch(0.145 0 0);
   --explorer-primary: oklch(0.553 0.195 38.402);
   --explorer-primary-foreground: oklch(0.98 0.016 73.684);
+  --explorer-primary-text: color-mix(
+    in oklch,
+    var(--explorer-primary) 55%,
+    var(--explorer-foreground)
+  );
   --explorer-link: oklch(0.52 0.14 245);
   --explorer-link-hover: oklch(0.45 0.16 245);
   --explorer-secondary: oklch(0.967 0.001 286.375);
@@ -30,6 +35,18 @@ body.explorer-body-root,
   --explorer-border: oklch(0.922 0 0);
   --explorer-input: oklch(0.922 0 0);
   --explorer-ring: oklch(0.708 0 0);
+
+  /* semantic data text */
+  --explorer-positive: oklch(0.45 0.14 145);
+  --explorer-negative: oklch(0.52 0.19 27);
+  --explorer-tx-label: oklch(0.38 0 0);
+  --explorer-tx-value: oklch(0.2 0 0);
+  --explorer-tx-header: oklch(0.32 0 0);
+  --explorer-tx-empty: oklch(0.42 0 0);
+  --explorer-json-key: oklch(0.45 0.12 245);
+  --explorer-json-string: oklch(0.42 0.14 145);
+  --explorer-json-number: oklch(0.48 0.14 35);
+  --explorer-json-boolean: oklch(0.45 0.16 290);
 
   /* chart / data accent scale */
   --explorer-chart-1: oklch(0.837 0.128 66.29);
@@ -146,6 +163,16 @@ html[data-theme='dark'] .explorer-page {
   --explorer-border: oklch(1 0 0 / 10%);
   --explorer-input: oklch(1 0 0 / 15%);
   --explorer-ring: oklch(0.556 0 0);
+  --explorer-positive: oklch(0.72 0.14 145);
+  --explorer-negative: oklch(0.72 0.18 27);
+  --explorer-tx-label: var(--explorer-muted-foreground);
+  --explorer-tx-value: var(--explorer-foreground);
+  --explorer-tx-header: var(--explorer-foreground);
+  --explorer-tx-empty: var(--explorer-muted-foreground);
+  --explorer-json-key: var(--explorer-link);
+  --explorer-json-string: var(--explorer-positive);
+  --explorer-json-number: oklch(0.78 0.13 70);
+  --explorer-json-boolean: oklch(0.74 0.14 300);
   --explorer-sidebar: oklch(0.205 0 0);
   --explorer-sidebar-foreground: oklch(0.985 0 0);
   --explorer-sidebar-border: oklch(1 0 0 / 10%);

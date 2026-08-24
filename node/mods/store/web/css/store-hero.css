@@ -1,0 +1,202 @@
+.store-cta {
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--saito-space-xxl);
+	background: var(--saito-canvas-background);
+	transition:
+		opacity 0.2s ease,
+		transform 0.2s ease;
+}
+
+.store-cta.dissolve {
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-0.8rem);
+}
+
+.store-cta .card {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--saito-space-xxl);
+	width: min(95vw, 86rem);
+	padding: var(--saito-space-xxl);
+}
+
+.store-cta .flip {
+	position: relative;
+	flex: 0 0 min(36vw, 31rem);
+	width: min(36vw, 31rem);
+	aspect-ratio: 1;
+	perspective: 1000px;
+}
+
+.store-cta .front,
+.store-cta .back {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	backface-visibility: hidden;
+	border: 1px solid var(--saito-overlay-panel-border);
+	border-radius: var(--saito-border-radius);
+	box-shadow: var(--saito-overlay-panel-shadow);
+	transition: transform 0.6s ease;
+}
+
+.store-cta .front {
+	background: var(--dreamscape);
+	transform: rotateY(0deg);
+}
+
+.store-cta .back {
+	background: var(--saito-overlay-panel-background);
+	transform: rotateY(180deg);
+}
+
+.store-cta .flip:hover .front,
+.store-cta .flip:focus-within .front {
+	transform: rotateY(-180deg);
+}
+
+.store-cta .flip:hover .back,
+.store-cta .flip:focus-within .back {
+	transform: rotateY(0deg);
+}
+
+.store-cta .mark {
+	width: 58%;
+	height: 58%;
+	object-fit: contain;
+	filter: drop-shadow(0 0 1.8rem rgb(0 0 0 / 22%));
+}
+
+.store-cta .copy {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--saito-space-md);
+	max-height: 100%;
+	padding: clamp(var(--saito-space-lg), 3vw, var(--saito-space-xxl));
+	overflow-y: auto;
+	text-align: left;
+}
+
+.store-cta .copy h2 {
+	margin: 0;
+	font-size: clamp(2.2rem, 2.4vw, 3rem);
+	line-height: 1.05;
+}
+
+.store-cta .copy p {
+	margin: 0;
+}
+
+.store-cta .copy .subhead {
+	width: 100%;
+	padding-bottom: var(--saito-space-lg);
+	border-bottom: 1px solid var(--saito-border-color);
+	color: var(--saito-font-color-secondary);
+	font-size: 1.3rem;
+	letter-spacing: 0.16em;
+	line-height: 1.4;
+	text-transform: uppercase;
+}
+
+.store-cta .copy .lede {
+	font-family: var(--saito-font-medium);
+	font-size: 1.8rem;
+	line-height: 1.35;
+}
+
+.store-cta .copy .description {
+	color: var(--saito-font-color-secondary);
+	font-size: 1.5rem;
+	line-height: 1.55;
+}
+
+.store-cta .copy .wiki-link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--saito-space-sm);
+	margin-top: auto;
+	font-family: var(--saito-font-medium);
+}
+
+.store-cta .content {
+	display: flex;
+	flex: 1 1 0;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2.4rem;
+	align-self: stretch;
+	min-width: 0;
+	text-align: center;
+}
+
+.store-cta .logo {
+	--saito-cta-logo-mask: url('/saito/icons/saito-store-icon-outline-label-horizontal.svg');
+	position: relative;
+	display: block;
+	width: min(56rem, 84vw);
+	max-width: 100%;
+	aspect-ratio: 381 / 134;
+	filter: drop-shadow(0 0 18px rgb(255 255 255 / 8%));
+}
+
+.store-cta:hover .logo {
+	--saito-cta-logo-mask: url('/saito/icons/saito-store-icon-solid-label-horizontal.svg');
+}
+
+.store-cta .logo::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	-webkit-mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+	mask: var(--saito-cta-logo-mask) center / contain no-repeat;
+}
+
+.store-cta .subtitle {
+	margin: 0;
+	color: var(--saito-font-color-secondary);
+	font-size: 1.5rem;
+	letter-spacing: 0.22em;
+	line-height: 1.5;
+	text-align: center;
+	text-transform: uppercase;
+}
+
+.store-cta .actions {
+	width: 100%;
+}
+
+@media (max-width: 720px) {
+	.store-cta {
+		padding: 0;
+	}
+
+	.store-cta .card {
+		flex-direction: column;
+		gap: var(--saito-space-lg);
+		padding: var(--saito-space-lg);
+	}
+
+	.store-cta .flip {
+		flex-basis: auto;
+		width: min(60vw, 24rem);
+	}
+
+	.store-cta .content {
+		flex: 0 0 auto;
+		align-self: center;
+		width: 100%;
+	}
+
+}

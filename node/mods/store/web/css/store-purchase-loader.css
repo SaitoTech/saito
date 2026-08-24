@@ -1,0 +1,8 @@
+/* Pre-broadcast purchase monitor (before Transaction Monitor) */
+.purchase.monitor .subtitle {
+  min-height: 1.5em;
+}
+
+.purchase.monitor .title {
+  transition: opacity 0.15s ease;
+}

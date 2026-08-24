@@ -6,14 +6,32 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  gap: var(--saito-space-sm);
   width: min(54rem, 92vw);
   height: 100%;
   max-height: min(88dvh, 72rem);
   overflow: hidden;
 }
 
+.compose.saito-overlay-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.compose .dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* Flow only — Tweet owns its own inset; composer owns compose-area inset. */
-.compose .body {
+.compose .dialog > .body {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -39,7 +57,7 @@
   padding: var(--saito-space-lg);
 }
 
-.compose .avatar {
+.compose .composer > .avatar {
   width: 3.5rem;
   height: 3.5rem;
 }
@@ -55,13 +73,12 @@
 
 .compose .header.compose .secondary {
   color: var(--saito-muted-foreground);
-  font-size: var(--font-size-tiny);
 }
 
 .compose .surface {
   position: relative;
   display: grid;
-  grid-template-rows: minmax(8rem, 1fr) auto;
+  grid-template-rows: 8rem auto;
   row-gap: var(--saito-space-xs);
   min-width: 0;
   min-height: 0;
@@ -69,10 +86,12 @@
 }
 
 .compose .input {
-  width: 100%;
+  width: calc(100% - 8rem);
   height: 100%;
   min-height: 8rem;
   padding: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
   resize: none;
   border: none;
   background: transparent;
@@ -132,13 +151,11 @@
   inset: 0;
   display: none;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background-color: var(--saito-popover);
-  background-image: var(--saito-popover-wash);
   z-index: 1;
 }
 
@@ -181,11 +198,18 @@
   display: flex;
   width: 100%;
   height: 100%;
+  --emoji-size: 1.67rem;
+  --emoji-vertical-offset: 0.08em;
   --background: var(--saito-popover);
   --border-color: var(--saito-border);
   --indicator-color: var(--saito-primary);
+  --input-background: var(--saito-secondary);
   --input-border-color: var(--saito-border);
+  --input-border-radius: var(--saito-radius);
   --input-font-color: var(--saito-foreground);
+  --input-font-size: 1.6rem;
+  --input-line-height: 1.5;
+  --input-padding: 1rem;
   --input-placeholder-color: var(--saito-muted-foreground);
   --outline-color: var(--saito-primary);
   --category-font-color: var(--saito-foreground);
@@ -193,17 +217,7 @@
   --button-hover-background: var(--saito-accent);
 }
 
-.saito-overlay .compose .gif-picker-content .saito-gif-container {
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
-  padding: var(--saito-space-sm);
-  border-radius: 0;
-  background: transparent;
-}
-
-.compose .footer {
+.compose .dialog > .footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -213,12 +227,12 @@
   border-top: 1px solid var(--saito-border);
 }
 
-.compose .tools {
+.compose .dialog > .footer .tools {
   display: flex;
   gap: var(--saito-space-xs);
 }
 
-.compose .tool {
+.compose .dialog > .footer .tool {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -229,28 +243,27 @@
   cursor: pointer;
 }
 
-.compose .tool i {
+.compose .dialog > .footer .tool i {
   font-size: 2.4rem;
 }
 
-.compose .actions {
+.compose .dialog > .footer .actions {
   display: flex;
   align-items: center;
   gap: var(--saito-space-md);
 }
 
-.compose .char-count {
+.compose .dialog > .footer .char-count {
   display: flex;
   gap: 0.1rem;
   color: var(--saito-muted-foreground);
-  font-size: var(--font-size-tiny);
 }
 
-.compose .char-count.warning {
+.compose .dialog > .footer .char-count.warning {
   color: var(--saito-primary);
 }
 
-.compose .submit {
+.compose .dialog > .footer .submit {
   position: relative;
   margin: 0;
   min-width: 11rem;
@@ -261,7 +274,7 @@
   display: none;
 }
 
-.compose .submit .spinner {
+.compose .dialog > .footer .submit .spinner {
   display: none;
   width: 1.6rem;
   height: 1.6rem;
@@ -271,11 +284,11 @@
   animation: compose-submit-spin 0.8s linear infinite;
 }
 
-.compose.posting .submit .label {
+.compose.posting .dialog > .footer .submit .label {
   opacity: 0;
 }
 
-.compose.posting .submit .spinner {
+.compose.posting .dialog > .footer .submit .spinner {
   display: inline-block;
   position: absolute;
   left: 50%;
@@ -318,15 +331,71 @@
   }
 }
 
+@media (min-width: 769px) {
+  .compose .emoji-picker-host .compose-emoji-picker {
+    --num-columns: 10;
+  }
+
+  .compose {
+    height: auto;
+    max-height: min(94dvh, 110rem);
+    overflow: visible;
+  }
+
+  .compose .dialog {
+    height: auto;
+    max-height: min(88dvh, 72rem);
+  }
+
+  .compose .compose-picker {
+    position: absolute;
+    inset: calc(100% + var(--saito-space-sm)) 0 auto;
+    height: min(40dvh, 38rem);
+  }
+
+  /* Closed: default .center-overlay (top: 50%). Open: raise host + cap dialog
+     so the absolute picker below the dialog stays in the viewport. */
+  body.redsquare-body .saito-overlay.redsquare-compose-overlay-host.picker-open {
+    top: 30%;
+  }
+
+  .compose.picker-open .dialog {
+    max-height: min(48dvh, 42rem);
+  }
+}
+
 @media (max-width: 768px) {
+  body.redsquare-body .saito-overlay.redsquare-compose-overlay-host {
+    top: var(--redsquare-compose-viewport-top, 0px);
+    bottom: auto;
+    height: var(--redsquare-compose-viewport-height, 100dvh);
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   body.redsquare-body .saito-overlay > .compose {
     height: 100%;
     min-height: 0;
     max-height: none;
   }
 
-  .compose .footer {
+  .compose .dialog {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .compose .compose-picker {
+    box-shadow: none;
+  }
+
+  .compose .dialog > .footer {
     padding-bottom: max(var(--saito-space-md), env(safe-area-inset-bottom, 0px));
+  }
+
+  .compose.keyboard-visible .dialog > .footer {
+    padding-bottom: 0;
   }
 }
 
@@ -349,11 +418,11 @@
 
   .compose {
     width: 100%;
-    max-height: 100vdh;
+    max-height: 100dvh;
   }
 
   .compose .composer,
-  .compose .footer {
+  .compose .dialog > .footer {
     padding-left: var(--saito-space-md);
     padding-right: var(--saito-space-md);
   }

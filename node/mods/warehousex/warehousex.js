@@ -20,7 +20,7 @@ class Warehousex extends ModTemplate {
 
     // When we spin up, query stats for yesterday and save them (for comparing later)
     //
-
+    /*
     let today = new Date(Date.now());
     let now, tomorrow;
 
@@ -54,7 +54,7 @@ class Warehousex extends ModTemplate {
     };
 
     checkTime();
-
+    */
     //For local testing of tweet format
     //this.generateReport(Math.round(5000*Math.random()), Math.round(100*Math.random()), Math.round(9000*Math.random()), Math.round(100*Math.random()), "TEST");
   }

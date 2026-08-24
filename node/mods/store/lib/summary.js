@@ -25,6 +25,7 @@ class Summary {
     this.quantity_available = data.quantity_available ?? data.quantity ?? 0;
     this.quantity_total = data.quantity_total ?? Number(this.quantity_available);
     this.status = data.status ?? SUMMARY_STATUS_ACTIVE;
+    this.created_at = Number(data.created_at || 0);
     this.updated_at = data.updated_at || 0;
     this.subtitle = data.subtitle || '';
     this.badge = data.badge;
@@ -212,6 +213,7 @@ class Summary {
       quantity_total: this.quantity_total,
       quantity_available: this.quantity_available,
       status: this.status,
+      created_at: this.created_at,
       updated_at: this.updated_at,
       subtitle: this.subtitle,
       badge: this.badge

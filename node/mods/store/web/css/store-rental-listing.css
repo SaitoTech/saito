@@ -1,0 +1,114 @@
+/* Namespace: .rental-listing — informational rental setup (pre-Create NFT).
+   Ready/listing state reuses .listing-detail from store-listing-detail.css. */
+
+.rental-listing.info {
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 42rem);
+  max-width: 100%;
+  max-height: min(90vh, 64rem);
+  max-height: min(90dvh, 64rem);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.rental-listing.info > header {
+  flex: 0 0 auto;
+  padding: var(--saito-space-lg) 5.25rem var(--saito-space-lg) var(--saito-space-xl);
+  border-bottom: 1px solid var(--saito-border);
+}
+
+.rental-listing.info > header .title {
+  margin: 0;
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-medium);
+  line-height: 1.25;
+}
+
+.rental-listing.info > .body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--saito-space-xl);
+  overflow: auto;
+}
+
+.rental-listing.info .details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+}
+
+.rental-listing.info .lede {
+  margin: 0;
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
+}
+
+.rental-listing.info .label {
+  margin: 0 0 var(--saito-space-xs);
+  font-size: var(--font-size-tiny);
+  font-family: var(--saito-font-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--saito-muted-foreground);
+}
+
+.rental-listing.info .file-name {
+  margin: 0;
+  font-family: var(--saito-font-medium);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.rental-listing.info .file-kind {
+  margin: var(--saito-space-xs) 0 0;
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-small, var(--font-size-medium));
+}
+
+.rental-listing.info .rental-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--saito-space-md);
+}
+
+.rental-listing.info .rental-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  min-width: 0;
+}
+
+.rental-listing.info > .checkout {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--saito-space-lg) var(--saito-space-xl) var(--saito-space-xl);
+}
+
+.rental-listing.info > .checkout .saito-button-row {
+  margin: 0;
+  width: 100%;
+}
+
+.rental-listing.info > .checkout .saito-button-primary {
+  width: auto;
+  min-width: 12rem;
+}
+
+@media (max-width: 600px) {
+  .rental-listing.info .rental-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .rental-listing.info > header,
+  .rental-listing.info > .body,
+  .rental-listing.info > .checkout {
+    padding: var(--saito-space-lg);
+  }
+
+  .rental-listing.info > header {
+    padding-right: 4.5rem;
+  }
+}

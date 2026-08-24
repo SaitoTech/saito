@@ -34,21 +34,19 @@ module.exports = (app, mod, group, isStatic = false) => {
 
   let html = `<div class="${class_name} chat-popup ${dm ? 'saito-dm-chat' : ''}" id="chat-popup-${group.id}">
           			<div class="chat-header" id="chat-header-${group.id}">
-            			<div class="chat-header-nav">
-				            <i class="fa-solid fa-window-minimize chat-sizing-icon chat-minimizer-icon"></i>
-				            <i class="fa-regular fa-square chat-sizing-icon chat-maximizer-icon"></i>
-				            <i id="chat-container-close" class="chat-container-close fas fa-times"></i>
-			            </div>
-			            <div class="chat-header-info">
 			            	<div class="chat-mobile-back"><i class="fa-solid fa-arrow-left"></i></div>
               			<div class="chat-details">
               				${is_encrypted}
-              				<div id="chat-group-${group.id}" class="chat-group${dm ? ' saito-address' : ''}" data-id="${dm ? dm_counterparty : group.name}">${group.name}</div>
+              				<div id="chat-group-${group.id}" class="chat-group${dm ? ' saito-address' : ''}" data-id="${app.browser.escapeHTML(dm ? dm_counterparty : group.name)}">${app.browser.escapeHTML(group.name)}</div>
               			</div>
 			              <div class="chat-action-icons">
 			                <div class="chat-actions"></div>
 			                <div class="chat-action-menu" data-id="${group.id}"><i class="fa-solid fa-ellipsis-vertical"></i></div>
 				             </div>
+            			<div class="chat-header-nav">
+				            <i class="fa-solid fa-window-minimize chat-sizing-icon chat-minimizer-icon"></i>
+				            <i class="fa-regular fa-square chat-sizing-icon chat-maximizer-icon"></i>
+				            <i id="chat-container-close" class="chat-container-close fas fa-times"></i>
 			            </div>
 			          </div>
 

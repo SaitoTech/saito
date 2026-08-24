@@ -55,13 +55,13 @@ class Fileshare extends ModTemplate {
 		}		
 		************/
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: 'Saito Fileshare',
-      url: 'https://saito.io/fileshare/',
+      url: '/fileshare/',
       description: 'P2P live file transfering on Saito Network blockchain',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png'
-    };
+    });
 
     app.connection.on('stun-connection-connected', async (peerId) => {
       for (let fileId in this.outgoing_files) {

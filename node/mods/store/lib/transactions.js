@@ -109,7 +109,16 @@ module.exports = {
       BigInt(0),
       txmsg
     );
-    newtx = await nft.modifyBeforeSend(newtx, this.store_public_key);
+    // Listing user → Store for store-nft-rental is the authorized/delegated hop.
+    // Other NFT types leave data default (no delegated flag).
+    const is_store_rental =
+      (typeof nft.returnType === 'function' && nft.returnType() === 'store-nft-rental') ||
+      String(listing?.listing_mode || '').toLowerCase() === 'rent';
+    if (is_store_rental) {
+      nft.nft_type = 'store-nft-rental';
+    }
+    const listing_transfer_data = is_store_rental ? { delegated: true } : {};
+    newtx = await nft.modifyBeforeSend(newtx, this.store_public_key, listing_transfer_data);
     await newtx.sign();
 
     console.log('Store: createListAssetTransaction complete', newtx.signature);
@@ -124,35 +133,137 @@ module.exports = {
 
     if (txmsg.fulfill_sale) {
       await this.receiveFulfillmentTransaction(blk, tx);
-      return;
+    } else {
+      //
+      // determine if existing inventory is being modified
+      //
+      try {
+        const spent_tuples = returnSpentNftTuples(tx);
+        const created_tuples = returnCreatedNftTuples(tx);
+        const slip_key =
+          slipPublicKey(this.app, txmsg.p2sh_address || '') || txmsg.p2sh_address || '';
+
+        //
+        // inventory moved from one listing position to another
+        //
+        if (
+          spent_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
+          created_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
+          (await executeListingScript(this.app, txmsg.access_script || '', this.store_public_key))
+        ) {
+          await this.warehouse.removeListing(nft, tx, txmsg, blk);
+        }
+
+        //
+        // new inventory position observed
+        //
+        await this.warehouse.addListing(nft, tx, txmsg, blk);
+      } catch (err) {
+        console.error('Store: receiveListAssetTransaction failed', err);
+        if (err?.stack) {
+          console.error(err.stack);
+        }
+      }
     }
 
     //
-    // determine if existing inventory is being modified
+    // Stage 1 rental checkout: if this list-asset transfers a store-nft-rental
+    // to the current user, ask Vault to build a checkout tx and submit it.
     //
     try {
-      const spent_tuples = returnSpentNftTuples(tx);
-      const created_tuples = returnCreatedNftTuples(tx);
-      const slip_key =
-        slipPublicKey(this.app, txmsg.p2sh_address || '') || txmsg.p2sh_address || '';
+      const my_key = String(this.publicKey || '').trim();
+      const nft_type =
+        (typeof nft.returnType === 'function' ? nft.returnType() : '') || nft.nft_type || '';
+      const is_store_rental =
+        nft_type === 'store-nft-rental' ||
+        String(txmsg?.listing?.listing_mode || '').toLowerCase() === 'rent';
 
-      //
-      // inventory moved from one listing position to another
-      //
-      if (
-        spent_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
-        created_tuples.some((tuple) => tuple.custody_public_key === slip_key) &&
-        (await executeListingScript(this.app, txmsg.access_script || '', this.store_public_key))
-      ) {
-        await this.warehouse.removeListing(nft, tx, txmsg, blk);
+      if (!is_store_rental || !my_key) {
+        return;
       }
 
-      //
-      // new inventory position observed
-      //
-      await this.warehouse.addListing(nft, tx, txmsg, blk);
+      const created_tuples = returnCreatedNftTuples(tx);
+      const to_me =
+        String(txmsg?.fulfill_sale?.buyer || '') === my_key ||
+        created_tuples.some((tuple) => tuple.custody_public_key === my_key);
+
+      if (!to_me) {
+        return;
+      }
+
+      console.log(
+        '[VAULT CHECKOUT] Store detected rental transfer',
+        {
+          list_asset_tx: tx.signature,
+          nft_type,
+          recipient: my_key,
+          fulfill_sale_buyer: txmsg?.fulfill_sale?.buyer || null
+        }
+      );
+
+      const vault_mod = this.app.modules.returnModule('Vault');
+      if (!vault_mod || typeof vault_mod.createCheckOutRentalTransaction !== 'function') {
+        console.log(
+          '[VAULT CHECKOUT] Store skipped — Vault module not installed or missing createCheckOutRentalTransaction'
+        );
+        return;
+      }
+
+      console.log(
+        '[VAULT CHECKOUT] Store invoking vault_mod.createCheckOutRentalTransaction(tx)',
+        tx.signature
+      );
+      const newTx = await vault_mod.createCheckOutRentalTransaction(tx);
+      if (!newTx) {
+        console.log('[VAULT CHECKOUT] Store skipped — Vault returned no checkout transaction');
+        return;
+      }
+
+      console.log('[VAULT CHECKOUT] Store received checkout transaction from Vault', {
+        checkout_tx_sig: newTx.signature,
+        request: newTx.msg?.request || newTx.returnMessage?.()?.request,
+        data: newTx.msg?.data || newTx.returnMessage?.()?.data
+      });
+
+      if (!vault_mod.peer?.publicKey) {
+        console.log(
+          '[VAULT CHECKOUT] Store skipped send — Vault peer not connected; checkout tx',
+          newTx.signature
+        );
+        return;
+      }
+
+      console.log(
+        '[VAULT CHECKOUT] Sending checkout transaction to Vault server',
+        {
+          checkout_tx_sig: newTx.signature,
+          checkout_tx_signed: !!(newTx.signature && String(newTx.signature).length > 0),
+          vault_peer: vault_mod.peer.publicKey,
+          request: 'vault checkout rental',
+          note: 'sendRequestAsTransaction outer peer-request is signed only if signature_required=true (currently omitted)'
+        }
+      );
+      this.app.network.sendRequestAsTransaction(
+        'vault checkout rental',
+        newTx.serialize_to_web(this.app),
+        (res) => {
+          console.log('[VAULT CHECKOUT] Store received Vault server response', res);
+          const file_id = res?.file_id || '';
+          if (res && res.status === 'ok') {
+            alert(
+              `Vault checkout: Archive update succeeded${file_id ? ` (${file_id})` : ''}`
+            );
+          } else {
+            const err = res?.err || 'unknown';
+            alert(
+              `Vault checkout: Archive update failed${file_id ? ` (${file_id})` : ''}: ${err}`
+            );
+          }
+        },
+        vault_mod.peer.publicKey
+      );
     } catch (err) {
-      console.error('Store: receiveListAssetTransaction failed', err);
+      console.error('[VAULT CHECKOUT] Store rental checkout wiring failed', err);
       if (err?.stack) {
         console.error(err.stack);
       }
@@ -297,7 +408,7 @@ module.exports = {
       throw new Error('P2SH input is missing utxoset key');
     }
 
-    const access_scripts = [];
+    const access_script_jobs = [];
     const fulfillment_tx = new Transaction();
     fulfillment_tx.timestamp = Date.now();
     fulfillment_tx.type = TransactionType.Bound;
@@ -312,14 +423,11 @@ module.exports = {
     });
 
     fulfillment_tx.addFromSlip(payment_input);
-    access_scripts.push(
-      await signAccessScriptWitness(
-        this.app,
-        payment_access_script,
-        payment_utxo_key,
-        witness_log('payment')
-      )
-    );
+    access_script_jobs.push({
+      access_script: payment_access_script,
+      message: payment_utxo_key,
+      role: 'payment'
+    });
 
     const partial_relists = [];
 
@@ -357,16 +465,11 @@ module.exports = {
         fulfillment_tx.addFromSlip(listing_input);
 
         if (is_custody) {
-          access_scripts.push(
-            await signAccessScriptWitness(
-              this.app,
-              listing_access_script,
-              listing_utxo_key,
-              witness_log(
-                `listing-custody-${listing_row.signature || listing_rows.indexOf(listing_row)}`
-              )
-            )
-          );
+          access_script_jobs.push({
+            access_script: listing_access_script,
+            message: listing_utxo_key,
+            role: `listing-custody-${listing_row.signature || listing_rows.indexOf(listing_row)}`
+          });
         }
       }
 
@@ -457,6 +560,46 @@ module.exports = {
       fulfillment_tx.addToSlip(seller_slip);
     }
 
+    // Finalize output slip indices the same way Transaction::sign does.
+    const outputs = fulfillment_tx.to || [];
+    for (let i = 0; i < outputs.length; i++) {
+      outputs[i].index = i;
+    }
+
+    // Blake3 over concat(serialize_output_for_signature) for every output.
+    // Spec: saito-core get_p2sh_auth_hash / Slip::serialize_output_for_signature —
+    //   public_key || amount_be_u64 || slip_index_u8 || slip_type_u8
+    const auth_parts = [];
+    for (let i = 0; i < outputs.length; i++) {
+      const slip = outputs[i];
+      const pk_b58 = String(slip?.publicKey || '');
+      if (!pk_b58) {
+        throw new Error('fulfillment output is missing a public key');
+      }
+      const pk_bytes = Buffer.from(this.app.crypto.fromBase58(pk_b58), 'hex');
+      const amount_buf = Buffer.alloc(8);
+      amount_buf.writeBigUInt64BE(BigInt(slip?.amount ?? 0));
+      auth_parts.push(pk_bytes);
+      auth_parts.push(amount_buf);
+      auth_parts.push(Buffer.from([Number(slip.index) & 0xff]));
+      auth_parts.push(Buffer.from([Number(slip.type ?? 0) & 0xff]));
+    }
+    const p2sh_auth_hash = String(this.app.crypto.hash(Buffer.concat(auth_parts)));
+
+    // CHECKMULTISIG verifies signatures over: utxoset_key|p2sh_auth_hash
+    const access_scripts = [];
+    for (const job of access_script_jobs) {
+      const auth_message = `${job.message}|${p2sh_auth_hash}`;
+      access_scripts.push(
+        await signAccessScriptWitness(
+          this.app,
+          job.access_script,
+          auth_message,
+          witness_log(job.role)
+        )
+      );
+    }
+
     fulfillment_tx.msg.access_scripts = access_scripts;
 
     const p2sh_indexes = listRustP2shInputIndexes(this.app, fulfillment_tx);
@@ -468,6 +611,26 @@ module.exports = {
 
     if (listing_tx) {
       this.attachFulfillmentTxmsg(fulfillment_tx, order_row, listing_rows, listing_tx);
+    }
+
+    // Store → renter: append hop with delegated = 0 via the same transfer hook.
+    // Does not create a second transaction; mutates fulfillment_tx before sign.
+    if (listing_tx) {
+      const listing_txmsg = listingTxmsg(listing_tx);
+      const rental_nft = new SaitoNFT(this.app, this, listing_tx, null);
+      const is_store_rental =
+        (typeof rental_nft.returnType === 'function' &&
+          rental_nft.returnType() === 'store-nft-rental') ||
+        String(listing_txmsg?.listing?.listing_mode || '').toLowerCase() === 'rent';
+      if (is_store_rental) {
+        // Ensure hook class match even if slip type parsing fell back to "image".
+        rental_nft.nft_type = 'store-nft-rental';
+        const buyer = String(order_row?.buyer || '').trim();
+        const mutated = await rental_nft.modifyBeforeSend(fulfillment_tx, buyer);
+        if (!mutated) {
+          throw new Error('store-nft-rental fulfillment transfer hop blocked');
+        }
+      }
     }
 
     const { dumpFulfillmentAccessScripts } = require('./fulfillment-trace');
@@ -605,8 +768,41 @@ module.exports = {
       payment_amount: String(order.payment_amount ?? 0)
     };
 
-    const { attachP2shAccessScripts } = require('./helpers');
-    await attachP2shAccessScripts(this.app, tx, { payment_access_script });
+    // Finalize output slip indices the same way Transaction::sign does.
+    const refund_outputs = tx.to || [];
+    for (let i = 0; i < refund_outputs.length; i++) {
+      refund_outputs[i].index = i;
+    }
+
+    // Blake3 over concat(serialize_output_for_signature) for every output.
+    // Spec: saito-core get_p2sh_auth_hash / Slip::serialize_output_for_signature —
+    //   public_key || amount_be_u64 || slip_index_u8 || slip_type_u8
+    const refund_auth_parts = [];
+    for (let i = 0; i < refund_outputs.length; i++) {
+      const slip = refund_outputs[i];
+      const pk_b58 = String(slip?.publicKey || '');
+      if (!pk_b58) {
+        throw new Error('refund output is missing a public key');
+      }
+      const pk_bytes = Buffer.from(this.app.crypto.fromBase58(pk_b58), 'hex');
+      const amount_buf = Buffer.alloc(8);
+      amount_buf.writeBigUInt64BE(BigInt(slip?.amount ?? 0));
+      refund_auth_parts.push(pk_bytes);
+      refund_auth_parts.push(amount_buf);
+      refund_auth_parts.push(Buffer.from([Number(slip.index) & 0xff]));
+      refund_auth_parts.push(Buffer.from([Number(slip.type ?? 0) & 0xff]));
+    }
+    const refund_p2sh_auth_hash = String(this.app.crypto.hash(Buffer.concat(refund_auth_parts)));
+
+    const payment_utxo_key = String(payment_input.utxoKey || '');
+    if (!payment_utxo_key) {
+      throw new Error('P2SH input is missing utxoset key');
+    }
+    const refund_auth_message = `${payment_utxo_key}|${refund_p2sh_auth_hash}`;
+
+    tx.msg.access_scripts = [
+      await signAccessScriptWitness(this.app, payment_access_script, refund_auth_message)
+    ];
 
     const payment_pubkey = slipPublicKey(this.app, order.p2sh_address) || order.p2sh_address || '';
 

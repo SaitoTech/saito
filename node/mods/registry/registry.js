@@ -172,12 +172,16 @@ class Registry extends ModTemplate {
     await super.initialize(app);
 
     if (this.app.BROWSER == 0) {
-      if (app.options?.server?.endpoint?.host == 'localhost') {
+      const endpointHost = app.options?.server?.endpoint?.host || '';
+      if (endpointHost.includes('localhost') || endpointHost.includes('testnet')) {
         this.registry_publickey = this.publicKey;
         console.log('Registry public key: ' + this.registry_publickey);
       }
     } else {
-      if (window.location.host.includes('localhost')) {
+      if (
+        window.location.host.includes('localhost') ||
+        window.location.host.includes('testnet')
+      ) {
         this.local_dev = true;
       } else {
         this.local_dev = false;

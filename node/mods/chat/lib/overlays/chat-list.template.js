@@ -30,7 +30,7 @@ module.exports = (app, chat_mod) => {
 			    <div class="saito-identicon-box">
 			      <img class="saito-identicon" src="${imgsrc}" data-disable="true"/>
 			    </div>
-			    <div class="saito-address saito-address-long" data-id="${group.name}" data-disable="true">${group.name}</div>
+			    <div class="saito-address saito-address-long" data-id="${app.browser.escapeHTML(group.name)}" data-disable="true">${app.browser.escapeHTML(group.name)}</div>
 			    <div class="saito-userline">${group.txs.length} messages</div>    
 			  </div>
 			 </div>`;

@@ -1,7 +1,7 @@
-/* Stack publish overlay — layout / composition only.
+/* Publish overlay — layout / composition only.
    Appearance from Saito tokens + shared button/link/checkbox components. */
 
-.stack-publish-overlay {
+.publish {
   position: relative;
   box-sizing: border-box;
   width: min(1100px, 90vw);
@@ -13,13 +13,13 @@
 }
 
 @media (min-width: 769px) {
-  .stack-publish-overlay {
+  .publish {
     width: min(1100px, 85vw);
   }
 }
 
 @media (max-width: 768px) {
-  .stack-publish-overlay {
+  .publish {
     width: 100vw;
     max-width: none;
     max-height: none;
@@ -27,7 +27,7 @@
   }
 }
 
-.stack-publish-content {
+.publish > .content {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-xl);
@@ -36,13 +36,12 @@
 }
 
 @media (max-width: 768px) {
-  .stack-publish-content {
+  .publish > .content {
     padding: var(--saito-space-xl) var(--saito-space-lg) var(--saito-space-lg);
   }
 }
 
-/* Header — title + trash */
-.stack-publish-header {
+.publish .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -51,11 +50,11 @@
   margin: 0;
 }
 
-.maximized-overlay .stack-publish-header {
+.maximized-overlay .publish .header {
   padding-right: 5rem;
 }
 
-.stack-publish-overlay-title {
+.publish .header .title {
   flex: 1;
   min-width: 0;
   margin: 0;
@@ -68,8 +67,7 @@
   color: var(--saito-foreground);
 }
 
-/* Two-column workflow */
-.stack-publish-cards {
+.publish .cards {
   display: grid;
   grid-template-columns: minmax(16rem, 1fr) minmax(0, 2fr);
   gap: var(--saito-space-lg);
@@ -79,13 +77,13 @@
 }
 
 @media (max-width: 768px) {
-  .stack-publish-cards {
+  .publish .cards {
     grid-template-columns: 1fr;
     gap: var(--saito-space-md);
   }
 }
 
-.stack-publish-card {
+.publish .card {
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-md);
@@ -96,66 +94,56 @@
   background: var(--saito-card);
 }
 
-.stack-publish-card-title {
-  margin: 0;
-  font-family: var(--saito-font-medium);
-  font-size: var(--font-size-large);
-  font-weight: 500;
-  line-height: 1.3;
-  color: var(--saito-foreground);
+.publish .card.access {
+  gap: var(--saito-space-md);
+  min-height: 0;
 }
 
-/* Left: access options */
-.stack-publish-card-access {
-	gap: var(--saito-space-md);
-	min-height: 0;
+.publish .access-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  flex: 1;
+  min-height: 0;
 }
 
-.stack-publish-access-cards {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-sm);
-	flex: 1;
-	min-height: 0;
+.publish .access-card {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-md);
+  flex: 1 1 0;
+  min-height: 4.8rem;
+  padding: var(--saito-space-md) var(--saito-space-lg);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease;
 }
 
-.stack-publish-access-card {
-	display: flex;
-	align-items: center;
-	gap: var(--saito-space-md);
-	flex: 1 1 0;
-	min-height: 4.8rem;
-	padding: var(--saito-space-md) var(--saito-space-lg);
-	border: 1px solid var(--saito-border);
-	border-radius: var(--saito-radius);
-	background: var(--saito-secondary);
-	cursor: pointer;
-	transition:
-		border-color 0.16s ease,
-		background-color 0.16s ease;
-}
-
-.stack-publish-access-card:hover {
+.publish .access-card:hover {
   border-color: color-mix(in srgb, var(--saito-primary) 55%, var(--saito-border));
   background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-secondary));
 }
 
-.stack-publish-access-card-active {
+.publish .access-card.active {
   border-color: var(--saito-primary);
   background: color-mix(in srgb, var(--saito-primary) 14%, var(--saito-secondary));
 }
 
-.stack-publish-access-checkbox {
+.publish .access-checkbox {
   margin: 0;
   flex-shrink: 0;
 }
 
-.stack-publish-access-card-content {
+.publish .card-body {
   flex: 1;
   min-width: 0;
 }
 
-.stack-publish-access-card-label {
+.publish .access-card .label {
   margin: 0;
   font-family: var(--saito-font-medium);
   font-size: var(--font-size-medium);
@@ -164,12 +152,11 @@
   color: var(--saito-foreground);
 }
 
-/* Right: explanation / wizard step */
-.stack-publish-card-main {
+.publish .card.main {
   overflow: hidden;
 }
 
-.stack-publish-step-panel {
+.publish .step {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -181,162 +168,188 @@
   will-change: transform, opacity;
 }
 
-.stack-publish-educational-content {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-	gap: var(--saito-space-lg);
-	justify-content: flex-start;
-	min-height: 18rem;
-	color: var(--saito-muted-foreground);
-	font-size: var(--font-size-medium);
-	line-height: 1.5;
+.publish .edu {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: var(--saito-space-lg);
+  justify-content: flex-start;
+  min-height: 12rem;
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
 }
 
-.stack-publish-educational-content > p {
-	margin: 0;
-	font-size: inherit;
-	line-height: inherit;
+.publish .edu > p {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
 }
 
-.stack-publish-option-copy,
-.stack-publish-followup-state {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-md);
-	max-width: 40rem;
+.publish .option-copy,
+.publish .followup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  max-width: 40rem;
 }
 
-.stack-publish-option-heading {
-	margin: 0;
-	font-family: var(--saito-font-medium);
-	font-size: var(--font-size-large);
-	font-weight: 500;
-	line-height: 1.3;
-	color: var(--saito-foreground);
+.publish .heading {
+  margin: 0;
+  font-family: var(--saito-font-medium);
+  font-size: var(--font-size-medium);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--saito-foreground);
 }
 
-.stack-publish-guidance {
-	margin: 0;
-	font-size: var(--font-size-medium);
-	font-weight: 400;
-	line-height: 1.5;
-	color: var(--saito-muted-foreground);
+.publish .distribution {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
 }
 
-.stack-publish-option-points,
-.stack-publish-followup-points {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-sm);
-	margin: 0;
-	padding: 0;
-	list-style: none;
+.publish .distribution .option {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--saito-foreground);
+  cursor: pointer;
+  user-select: none;
 }
 
-.stack-publish-option-points li,
-.stack-publish-followup-points li {
-	position: relative;
-	margin: 0;
-	padding-left: 1.4rem;
-	font-size: var(--font-size-medium);
-	font-weight: 400;
-	line-height: 1.5;
-	color: var(--saito-muted-foreground);
+.publish .distribution .option .saito-checkbox {
+  margin: 0;
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
 }
 
-.stack-publish-option-points li::before,
-.stack-publish-followup-points li::before {
-	content: '▸';
-	position: absolute;
-	left: 0;
-	top: 0;
-	color: var(--saito-muted-foreground);
+.publish .distribution .option .saito-checkbox::after {
+  font-size: 1.2rem;
 }
 
-/* Success / checklist panel — Saito status success, not custom neon */
-.stack-publish-checklist {
-	display: flex;
-	flex-direction: column;
-	gap: var(--saito-space-sm);
-	margin: 0;
+.publish .guidance {
+  margin: 0;
+  font-size: var(--font-size-medium);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
 }
 
-.stack-publish-checklist-matrix {
-	gap: var(--saito-space-md);
-	margin: 0;
-	padding: var(--saito-space-lg);
-	border: 1px solid color-mix(in srgb, var(--saito-status-success) 48%, var(--saito-border));
-	border-radius: var(--saito-radius);
-	background: color-mix(in srgb, var(--saito-status-success) 12%, var(--saito-card));
+.publish .points {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.stack-publish-check-row {
-	display: flex;
-	align-items: center;
-	gap: var(--saito-space-md);
-	font-size: var(--font-size-medium);
-	font-weight: 500;
-	line-height: 1.35;
-	color: color-mix(in srgb, var(--saito-status-success) 55%, var(--saito-muted-foreground));
-	cursor: default;
+.publish .points li {
+  position: relative;
+  margin: 0;
+  padding-left: 1.4rem;
+  font-size: var(--font-size-medium);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--saito-muted-foreground);
 }
 
-.stack-publish-check-row-complete {
-	color: var(--saito-status-success);
+.publish .points li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--saito-muted-foreground);
 }
 
-.stack-publish-check-mark {
-	flex-shrink: 0;
-	width: 1.6rem;
-	text-align: center;
-	font-weight: 700;
+.publish .checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  margin: 0;
 }
 
-/* Links — shared Saito text-link language */
-.stack-publish-educational-content .saito-text-link,
-.stack-publish-immediately.saito-text-link {
-	font-size: inherit;
-	line-height: inherit;
+.publish .checklist.matrix {
+  gap: var(--saito-space-md);
+  margin: 0;
+  padding: var(--saito-space-lg);
+  border: 1px solid color-mix(in srgb, var(--saito-status-success) 48%, var(--saito-border));
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, var(--saito-status-success) 12%, var(--saito-card));
 }
 
-.stack-publish-immediately.saito-text-link {
-	font-size: var(--font-size-medium);
+.publish .check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-md);
+  font-size: var(--font-size-medium);
+  font-weight: 500;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--saito-status-success) 55%, var(--saito-muted-foreground));
+  cursor: default;
 }
 
-/* Slide transitions */
-.stack-publish-slide-exit-left {
+.publish .check-row.complete {
+  color: var(--saito-status-success);
+}
+
+.publish .mark {
+  flex-shrink: 0;
+  width: 1.6rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.publish .edu .saito-text-link,
+.publish .immediately.saito-text-link {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.publish .immediately.saito-text-link {
+  font-size: var(--font-size-medium);
+}
+
+.publish .slide-exit-left {
   transform: translateX(-28px);
   opacity: 0;
 }
 
-.stack-publish-slide-exit-right {
+.publish .slide-exit-right {
   transform: translateX(28px);
   opacity: 0;
 }
 
-.stack-publish-slide-enter-right {
+.publish .slide-enter-right {
   transform: translateX(28px);
   opacity: 0;
 }
 
-.stack-publish-slide-enter-left {
+.publish .slide-enter-left {
   transform: translateX(-28px);
   opacity: 0;
 }
 
-/* Delete draft — shared icon button */
-.stack-publish-header .saito-icon-button {
+.publish .header .saito-icon-button {
   flex-shrink: 0;
 }
 
-.stack-publish-header .saito-icon-button:hover {
+.publish .header .saito-icon-button:hover {
   color: var(--saito-destructive, var(--saito-red));
-  border-color: color-mix(in srgb, var(--saito-destructive, var(--saito-red)) 45%, var(--saito-border));
+  border-color: color-mix(
+    in srgb,
+    var(--saito-destructive, var(--saito-red)) 45%,
+    var(--saito-border)
+  );
 }
 
-/* Global actions */
-.stack-publish-global-action {
+.publish .actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -347,13 +360,13 @@
 }
 
 @media (max-width: 768px) {
-  .stack-publish-global-action {
+  .publish .actions {
     flex-direction: column-reverse;
     align-items: stretch;
   }
 }
 
-.stack-publish-global-action-left {
+.publish .actions-left {
   display: flex;
   align-items: center;
   gap: var(--saito-space-md);
@@ -362,33 +375,32 @@
   min-height: 3.6rem;
 }
 
-.stack-publish-action-spacer {
+.publish .spacer {
   min-width: 1px;
   min-height: 1px;
 }
 
-.stack-publish-global-action .saito-button-primary {
+.publish .actions .saito-button-primary {
   flex-shrink: 0;
   margin: 0;
   min-width: 14rem;
 }
 
-.stack-publish-global-action .saito-button-square {
+.publish .actions .saito-button-square {
   flex-shrink: 0;
 }
 
-.stack-publish-global-action .saito-button-primary:disabled,
-.stack-publish-primary-action-btn-disabled {
+.publish .actions .saito-button-primary:disabled {
   cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
-  .stack-publish-global-action .saito-button-primary {
+  .publish .actions .saito-button-primary {
     width: 100%;
     min-width: 0;
   }
 
-  .stack-publish-global-action-left {
+  .publish .actions-left {
     justify-content: flex-start;
   }
 }

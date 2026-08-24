@@ -24,6 +24,11 @@ class Main {
     this.dashboard.render(`${this.container} .explorer-dashboard`);
     this.blockTeaser.render(`${this.container} .block-teaser`);
     this.transactionTeaser.render(`${this.container} .transaction-teaser`);
+
+    const refreshButton = document.querySelector(`${this.container} [data-explorer-refresh]`);
+    if (refreshButton) {
+      refreshButton.onclick = () => this.mod.refreshHomeData();
+    }
   }
 }
 

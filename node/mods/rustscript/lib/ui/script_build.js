@@ -299,10 +299,14 @@ function cloneScript(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
-function lockingFromOpcode(opcodes, key) {
-  const opDef = resolveOpcodeDefinition(opcodes, key);
-  if (!opDef?.exampleScript) {
-    return { op: String(key || '').toUpperCase() };
+/**
+ * Locking-half template from an opcode definition (no witness / required).
+ * Used only to fill keys that are absent on an instance — never for display clones.
+ */
+function lockingTemplateFromOpcode(opcodes, opName) {
+  const opDef = resolveOpcodeDefinition(opcodes, opName);
+  if (!opDef?.exampleScript || typeof opDef.exampleScript !== 'object') {
+    return null;
   }
   const script = cloneScript(opDef.exampleScript);
   delete script.witness;
@@ -310,8 +314,85 @@ function lockingFromOpcode(opcodes, key) {
   return script;
 }
 
-function defaultStarterScript(opcodes) {
-  return lockingFromOpcode(opcodes, 'checksig');
+/**
+ * Expand a parsed/partial AST into the canonical locking instance:
+ * absent locking keys are filled from the opcode locking template.
+ * Never adds witness. Never overwrites keys already present on the node.
+ */
+function expandLockingTree(node, opcodes) {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) {
+    return node;
+  }
+
+  const op = String(node.op || '').toLowerCase();
+
+  if (op === 'and' || op === 'or' || op === 'then' || op === 'not') {
+    const children = Array.isArray(node.args) ? node.args : [];
+    return {
+      op: node.op,
+      args: children.map((child) => expandLockingTree(child, opcodes))
+    };
+  }
+
+  const template = lockingTemplateFromOpcode(opcodes, node.op);
+  if (!template) {
+    const passthrough = cloneScript(node);
+    delete passthrough.witness;
+    return passthrough;
+  }
+
+  const out = {};
+  out.op = node.op !== undefined ? node.op : template.op;
+
+  for (const key of Object.keys(template)) {
+    if (key === 'op') {
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(node, key)) {
+      const val = node[key];
+      out[key] =
+        val !== null && typeof val === 'object' ? expandLockingTreeDeepValue(val, opcodes) : val;
+    } else {
+      out[key] = cloneScript(template[key]);
+    }
+  }
+
+  for (const key of Object.keys(node)) {
+    if (key === 'op' || key === 'witness' || key === 'required') {
+      continue;
+    }
+    if (!Object.prototype.hasOwnProperty.call(out, key)) {
+      const val = node[key];
+      out[key] =
+        val !== null && typeof val === 'object' ? expandLockingTreeDeepValue(val, opcodes) : val;
+    }
+  }
+
+  return out;
+}
+
+function expandLockingTreeDeepValue(value, opcodes) {
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      item !== null && typeof item === 'object' && !Array.isArray(item) && item.op
+        ? expandLockingTree(item, opcodes)
+        : item !== null && typeof item === 'object'
+          ? cloneScript(item)
+          : item
+    );
+  }
+  if (value && typeof value === 'object' && value.op) {
+    return expandLockingTree(value, opcodes);
+  }
+  return cloneScript(value);
+}
+
+function lockingFromOpcode(opcodes, key) {
+  const opDef = resolveOpcodeDefinition(opcodes, key);
+  if (!opDef?.exampleScript) {
+    return { op: String(key || '').toUpperCase() };
+  }
+  return expandLockingTree({ op: opDef.name || String(key || '').toUpperCase() }, opcodes);
 }
 
 function getContractTemplates(opcodes) {
@@ -380,7 +461,8 @@ module.exports = {
   build_test_script_from_create,
   collectWitnessMissing,
   opcodeTreeNeedsWitness,
+  lockingTemplateFromOpcode,
+  expandLockingTree,
   lockingFromOpcode,
-  defaultStarterScript,
   getContractTemplates
 };

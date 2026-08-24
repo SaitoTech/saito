@@ -4,12 +4,17 @@ const RustscriptMain = require('./lib/ui/main');
 const ast_execute = require('./lib/rustscript/ast_execute');
 const tokenize = require('./lib/rustscript/semantic_to_tokens');
 const parse = require('./lib/rustscript/tokens_to_ast');
-const { build_test_script_from_create, lockingView } = require('./lib/ui/script_build');
+const { build_test_script_from_create, lockingView, expandLockingTree } = require('./lib/ui/script_build');
 const {
   downloadTransactionFile,
   serializeTransactionToWeb,
   transactionExportFilename
 } = require('./lib/transaction_io');
+const {
+  fetchTransactionFromP2shLink,
+  parseP2shShareLink,
+  readTransactionLocation
+} = require('./lib/tx_location');
 const Transaction = require('./../../lib/saito/transaction').default;
 const Slip = require('./../../lib/saito/slip').default;
 const { TransactionType } = require('saito-js/lib/transaction');
@@ -22,17 +27,20 @@ function slipToStoredJson(slip) {
   if (!slip) {
     return null;
   }
+  let json;
   if (typeof slip.toJson === 'function') {
-    return slip.toJson();
+    json = slip.toJson();
+  } else {
+    json = {
+      publicKey: slip.publicKey,
+      amount: slip.amount,
+      type: slip.type,
+      blockId: slip.blockId,
+      txOrdinal: slip.txOrdinal,
+      index: slip.index
+    };
   }
-  return {
-    publicKey: slip.publicKey,
-    amount: slip.amount,
-    type: slip.type,
-    blockId: slip.blockId,
-    txOrdinal: slip.txOrdinal,
-    index: slip.index
-  };
+  return json;
 }
 
 function isBoundSlipType(type) {
@@ -47,6 +55,7 @@ const OpcodeChecksig = require('./lib/opcodes/checksig');
 const OpcodeCheckmultisig = require('./lib/opcodes/checkmultisig');
 const OpcodeCheckhash = require('./lib/opcodes/checkhash');
 const OpcodeCheckfield = require('./lib/opcodes/checkfield');
+const OpcodeCheckkey = require('./lib/opcodes/checkkey');
 const OpcodeChecksender = require('./lib/opcodes/checksender');
 const OpcodeCheckrecipient = require('./lib/opcodes/checkrecipient');
 const OpcodeCheckpath = require('./lib/opcodes/checkpath');
@@ -58,6 +67,7 @@ const OpcodeSetarray = require('./lib/opcodes/setarray');
 const OpcodeSetarrayfield = require('./lib/opcodes/setarrayfield');
 const OpcodeArrayify = require('./lib/opcodes/arrayify');
 const OpcodeSumfields = require('./lib/opcodes/sumfields');
+const OpcodeScripthash = require('./lib/opcodes/scripthash');
 const OpcodeCheckown = require('./lib/opcodes/checkown');
 const OpcodeCheckownnft = require('./lib/opcodes/checkownnft');
 const OpcodeCheckownnftwhere = require('./lib/opcodes/checkownnftwhere');
@@ -85,6 +95,29 @@ class Rustscript extends ModTemplate {
     /** @type {'create'|'unlock'} */
     this.workflow = 'create';
     this.unlockContext = null;
+
+    /**
+     * Unlock transaction ownership model.
+     * - spend: immutable locked-funds snapshot (locking tx, or continuation UTXO view)
+     * - base: UI-owned editable unlock tx (imported inputs + user outputs only)
+     * - candidate: disposable evaluation clone (tracks base, then funded final after signing prep)
+     * - final: silently funded clone (fee inputs + change); created before first CHECKSIG
+     */
+    this.unlock_transaction_spend = null;
+    this.unlock_transaction_base = null;
+    this.unlock_transaction_candidate = null;
+    /**
+     * Funded unlock tx (base + wallet fee inputs/change). Built silently before
+     * the first CHECKSIG/CHECKMULTISIG; used for signing and broadcast.
+     */
+    this.unlock_transaction_final = null;
+    /** @type {{ feeSaito: string, feeNolan: string } | null} */
+    this.unlock_fee = null;
+    /**
+     * Explicit RustScript unlock editability. Becomes false after the first
+     * successful CHECKSIG / CHECKMULTISIG witness is applied.
+     */
+    this.unlock_transaction_editable = true;
   }
 
   async initialize(app) {
@@ -100,6 +133,7 @@ class Rustscript extends ModTemplate {
       OpcodeCheckmultisig,
       OpcodeCheckhash,
       OpcodeCheckfield,
+      OpcodeCheckkey,
       OpcodeChecksender,
       OpcodeCheckrecipient,
       OpcodeCheckpath,
@@ -111,6 +145,7 @@ class Rustscript extends ModTemplate {
       OpcodeSetarrayfield,
       OpcodeArrayify,
       OpcodeSumfields,
+      OpcodeScripthash,
       OpcodeCheckown,
       OpcodeCheckownnft,
       OpcodeCheckownnftwhere,
@@ -264,6 +299,7 @@ class Rustscript extends ModTemplate {
     };
 
     this.workflow = 'unlock';
+    this.initializeUnlockTransactions(tx);
 
     if (this.main) {
       this.main.testingUnlocked = true;
@@ -312,6 +348,10 @@ class Rustscript extends ModTemplate {
   setField(path, value) {
     if (typeof path !== 'string' || path.length === 0) {
       return;
+    }
+    if (this.workflow === 'unlock') {
+      const { assertUnlockMutablePath } = require('./lib/ui/unlock_tx_fee');
+      assertUnlockMutablePath(this, path);
     }
     const parts = path.split('.');
     let cursor = this.script;
@@ -431,14 +471,15 @@ class Rustscript extends ModTemplate {
 
     const tokens = tokenize(text);
     const ast = parse(tokens);
-    const unlockingScript = build_test_script_from_create(ast, {}, this.opcodes);
+    const lockingScript = expandLockingTree(lockingView(ast || {}), this.opcodes);
+    const unlockingScript = build_test_script_from_create(lockingScript, {}, this.opcodes);
 
     return {
       tokens,
       ast,
-      lockingScript: ast,
+      lockingScript,
       unlockingScript,
-      json: JSON.stringify(ast, null, 2)
+      json: JSON.stringify(lockingScript, null, 2)
     };
   }
 
@@ -460,6 +501,278 @@ class Rustscript extends ModTemplate {
   resetUnlockWorkflow() {
     this.workflow = 'create';
     this.unlockContext = null;
+    this.clearUnlockTransactions();
+  }
+
+  /**
+   * Deep-clone a Transaction via canonical web serialization.
+   * Used for the immutable spend snapshot (complete imported tx).
+   */
+  cloneTransaction(tx) {
+    if (!tx) {
+      throw new Error('Transaction is required');
+    }
+    const json = this.serializeTransaction(tx);
+    const clone = new Transaction();
+    clone.deserialize_from_web(this.app, json);
+    return clone;
+  }
+
+  /**
+   * Clone from/to slips + msg without requiring a fully signed / complete tx.
+   * Used for base ↔ candidate where outputs may be absent.
+   */
+  cloneTransactionSkeleton(tx) {
+    if (!tx) {
+      throw new Error('Transaction is required');
+    }
+
+    const clone = new Transaction();
+    clone.timestamp = tx.timestamp || Date.now();
+    if (tx.type != null) {
+      clone.type = tx.type;
+    }
+
+    const from = tx.from || [];
+    for (let i = 0; i < from.length; i++) {
+      const stored = slipToStoredJson(from[i]);
+      clone.addFromSlip(new Slip(undefined, stored));
+    }
+
+    const to = tx.to || [];
+    for (let i = 0; i < to.length; i++) {
+      const stored = slipToStoredJson(to[i]);
+      clone.addToSlip(new Slip(undefined, stored));
+    }
+
+    const msg =
+      tx.msg && typeof tx.msg === 'object' && Object.keys(tx.msg).length
+        ? tx.msg
+        : typeof tx.returnMessage === 'function'
+          ? tx.returnMessage()
+          : null;
+    if (msg && typeof msg === 'object') {
+      clone.msg = JSON.parse(JSON.stringify(msg));
+    }
+
+    return clone;
+  }
+
+  clearUnlockTransactions() {
+    this.unlock_transaction_spend = null;
+    this.unlock_transaction_base = null;
+    this.unlock_transaction_candidate = null;
+    this.unlock_transaction_final = null;
+    this.unlock_fee = null;
+    this.unlock_transaction_editable = true;
+  }
+
+  /**
+   * Build the UI-owned unlock base transaction: spendable inputs only.
+   * No outputs, fee inputs, or signatures.
+   */
+  createUnlockBaseTransaction() {
+    const ctx = this.unlockContext;
+    if (!ctx?.lockedSlip && !(Array.isArray(ctx?.lockedNftSlips) && ctx.lockedNftSlips.length)) {
+      throw new Error('Unlock context is required to create the base transaction');
+    }
+
+    const base = new Transaction();
+    base.timestamp = Date.now();
+
+    if (
+      ctx.assetType === 'nft' &&
+      Array.isArray(ctx.lockedNftSlips) &&
+      ctx.lockedNftSlips.length === 3
+    ) {
+      for (let i = 0; i < ctx.lockedNftSlips.length; i++) {
+        base.addFromSlip(new Slip(undefined, ctx.lockedNftSlips[i]));
+      }
+    } else {
+      base.addFromSlip(new Slip(undefined, ctx.lockedSlip));
+    }
+
+    return base;
+  }
+
+  /**
+   * Disposable evaluation clone.
+   * Prefer unlock_transaction_final once fee funding has been composed;
+   * otherwise clone unlock_transaction_base.
+   * Never edit this object; always regenerate via this helper.
+   */
+  cloneUnlockCandidate() {
+    if (this.unlock_transaction_final) {
+      this.unlock_transaction_candidate = this.cloneTransactionSkeleton(
+        this.unlock_transaction_final
+      );
+      return this.unlock_transaction_candidate;
+    }
+    if (!this.unlock_transaction_base) {
+      this.unlock_transaction_candidate = null;
+      return null;
+    }
+    this.unlock_transaction_candidate = this.cloneTransactionSkeleton(
+      this.unlock_transaction_base
+    );
+    return this.unlock_transaction_candidate;
+  }
+
+  /**
+   * Establish unlock transaction ownership after unlockContext is populated.
+   * @param {object} spendTx - imported transaction (cloned into unlock_transaction_spend)
+   */
+  initializeUnlockTransactions(spendTx) {
+    if (!spendTx) {
+      throw new Error('Imported transaction is required');
+    }
+    if (!this.unlockContext) {
+      throw new Error('unlockContext must be set before initializeUnlockTransactions');
+    }
+
+    this.unlock_transaction_spend = this.cloneTransaction(spendTx);
+    this.unlock_transaction_base = this.createUnlockBaseTransaction();
+    this.unlock_transaction_final = null;
+    this.unlock_fee = null;
+    this.unlock_transaction_editable = true;
+    const { ensureDefaultUnlockFee } = require('./lib/ui/unlock_tx_fee');
+    ensureDefaultUnlockFee(this);
+    this.cloneUnlockCandidate();
+  }
+
+  /**
+   * Immutable spend snapshot for Continue Unlock: funds being spent recorded as outputs.
+   * The original locking/publish file is not required when continuing from an unlock draft.
+   */
+  createUnlockSpendSnapshotFromContinuation(unlockTx) {
+    const spend = new Transaction();
+    spend.timestamp = unlockTx?.timestamp || Date.now();
+    const from = unlockTx?.from || [];
+    if (!from.length) {
+      throw new Error('Unlock transaction has no inputs to spend.');
+    }
+    for (let i = 0; i < from.length; i++) {
+      spend.addToSlip(new Slip(undefined, slipToStoredJson(from[i])));
+    }
+    return spend;
+  }
+
+  /**
+   * Continue Unlock init — base is the imported unlock tx (outputs + witnesses preserved).
+   */
+  initializeUnlockTransactionsFromContinuation(unlockTx) {
+    if (!unlockTx) {
+      throw new Error('Unlock transaction is required');
+    }
+    if (!this.unlockContext) {
+      throw new Error('unlockContext must be set before initializeUnlockTransactionsFromContinuation');
+    }
+
+    this.unlock_transaction_spend = this.createUnlockSpendSnapshotFromContinuation(unlockTx);
+    this.unlock_transaction_base = this.cloneTransactionSkeleton(unlockTx);
+    this.unlock_transaction_final = null;
+    this.unlock_fee = null;
+    this.unlock_transaction_editable = true;
+    const { ensureDefaultUnlockFee } = require('./lib/ui/unlock_tx_fee');
+    ensureDefaultUnlockFee(this);
+    this.cloneUnlockCandidate();
+  }
+
+  /**
+   * Load an in-progress unlock/spend transaction and open the Unlock workspace.
+   * Preserves outputs and witnesses — does not scaffold an empty base tx.
+   */
+  async loadUnlockContinuation(tx) {
+    if (!tx) {
+      throw new Error('Transaction is required');
+    }
+
+    const from = tx.from || [];
+    const to = tx.to || [];
+    if (!from.length) {
+      throw new Error('This file has no inputs. Import a locking transaction via Unlock Transaction instead.');
+    }
+    if (!to.length) {
+      throw new Error(
+        'This unlock transaction has no outputs yet. Use Unlock Transaction to start a new unlock.'
+      );
+    }
+
+    const txmsg = typeof tx.returnMessage === 'function' ? tx.returnMessage() : tx.msg || {};
+    const request = String(txmsg.request || '').toLowerCase();
+    if (request === 'publish p2sh') {
+      throw new Error(
+        'This looks like a locking/publish transaction. Use Unlock Transaction to start unlocking it.'
+      );
+    }
+
+    const hasAccessScripts =
+      Array.isArray(txmsg.access_scripts) && txmsg.access_scripts.length > 0;
+    const accessScriptRaw = hasAccessScripts
+      ? txmsg.access_scripts[0]
+      : request === 'spend p2sh'
+        ? txmsg.access_script || txmsg.accessScript || ''
+        : '';
+
+    if (!accessScriptRaw) {
+      throw new Error(
+        'This file is not an unlock transaction with an access script. Use Unlock Transaction for locking publishes, or Import Saved Script for script drafts.'
+      );
+    }
+
+    let fullScript;
+    try {
+      fullScript =
+        typeof accessScriptRaw === 'string' ? JSON.parse(accessScriptRaw) : accessScriptRaw;
+    } catch (_err) {
+      throw new Error('access_script is not valid JSON');
+    }
+    if (!fullScript || typeof fullScript !== 'object' || Array.isArray(fullScript)) {
+      throw new Error('access_script is not a valid script object.');
+    }
+
+    const locking = lockingView(fullScript);
+    const hash = this.app.core.scripting.hash(locking);
+    const p2shHash = txmsg.scripthash || hash || '';
+    const p2shAddress = txmsg.p2sh_address || txmsg.p2shAddress || '';
+
+    const assetType =
+      txmsg.asset_type === 'nft' || txmsg.nft_id || isBoundSlipType(from[0]?.type)
+        ? 'nft'
+        : txmsg.asset_type || 'saito';
+
+    let lockedNftSlips = null;
+    let lockedSlip = null;
+    if (assetType === 'nft' && from.length >= 3) {
+      lockedNftSlips = [from[0], from[1], from[2]].map(slipToStoredJson);
+      lockedSlip = lockedNftSlips[1];
+    } else {
+      lockedSlip = slipToStoredJson(from[0]);
+    }
+
+    this.unlockContext = {
+      sourceTxSignature: txmsg.source_tx || tx.signature || '',
+      p2shAddress,
+      p2shHash,
+      lockedSlip,
+      assetType,
+      lockedNftSlips,
+      nftId: txmsg.nft_id || '',
+      nftAmount: txmsg.nft_amount || '',
+      nftTxmsg: txmsg.nft_txmsg && typeof txmsg.nft_txmsg === 'object' ? txmsg.nft_txmsg : null,
+      importCategory: 'guided',
+      sourceTxmsg: txmsg,
+      continuation: true
+    };
+
+    this.workflow = 'unlock';
+    this.initializeUnlockTransactionsFromContinuation(tx);
+
+    if (this.main) {
+      await this.main.enterUnlockContinuation(fullScript);
+    }
+
+    return this.unlockContext;
   }
 
   /** Canonical web-serialized transaction JSON (shared with import / future explorer export). */
@@ -467,9 +780,24 @@ class Rustscript extends ModTemplate {
     return serializeTransactionToWeb(this.app, tx);
   }
 
-  /** Download a transaction as canonical JSON via the browser. */
-  exportTransaction(tx, { prefix } = {}) {
+  /**
+   * Download a transaction as canonical JSON via the browser.
+   * Pass block_id / transaction_id with update_outputs so outputs carry
+   * confirmed chain location in the serialized file.
+   */
+  exportTransaction(tx, { prefix, block_id = null, transaction_id = null } = {}) {
+    if (!tx) {
+      throw new Error('Transaction is required');
+    }
     const filename = prefix ? transactionExportFilename(tx, prefix) : undefined;
+    if (block_id != null && String(block_id) !== '' && transaction_id != null && String(transaction_id) !== '') {
+      return downloadTransactionFile(this.app, tx, {
+        filename,
+        block_id,
+        transaction_id,
+        update_outputs: true
+      });
+    }
     return downloadTransactionFile(this.app, tx, { filename });
   }
 
@@ -516,6 +844,54 @@ class Rustscript extends ModTemplate {
   exportScriptDraft(scriptPayload) {
     const tx = this.buildScriptShareTransaction(scriptPayload);
     return this.exportTransaction(tx, { prefix: 'rustscript-draft' });
+  }
+
+  /**
+   * Shareable Pay-to-Script-Hash link — same InvitationLink builder used across Saito apps.
+   * Includes confirmed location fields so import can fetch and stamp the spendable UTXO.
+   */
+  buildP2shShareLink({
+    p2shHash = '',
+    p2shAddress = '',
+    blockId = null,
+    transactionId = '',
+    tx = null
+  } = {}) {
+    const InvitationLink = require('../../lib/saito/ui/modals/saito-link/saito-link');
+    const location = readTransactionLocation(tx);
+    const resolvedBlockId =
+      blockId != null && String(blockId) !== ''
+        ? String(blockId)
+        : location.blockId != null
+          ? location.blockId.toString()
+          : '';
+    const resolvedTxId = transactionId || location.transactionId || tx?.signature || '';
+
+    const data = {
+      path: `/${this.returnSlug()}/`,
+      name: this.appname,
+      scripthash: p2shHash || '',
+      p2sh_address: p2shAddress || ''
+    };
+    if (resolvedBlockId) {
+      data.block_id = resolvedBlockId;
+    }
+    if (resolvedTxId) {
+      data.transaction_id = String(resolvedTxId);
+    }
+
+    const linkObj = new InvitationLink(this.app, this, data);
+    linkObj.buildLink();
+    return linkObj.invite_link || '';
+  }
+
+  /**
+   * Import a P2SH share link: fetch the confirmed publish tx and load unlock context.
+   */
+  async importP2shShareLink(rawLink) {
+    const fields = parseP2shShareLink(rawLink);
+    const tx = await fetchTransactionFromP2shLink(this.app, fields);
+    return this.loadTransactionForWitness(tx);
   }
 
   /**
@@ -609,6 +985,32 @@ class Rustscript extends ModTemplate {
   }
 
   /**
+   * CREATE broadcast — construct, sign, start the Transaction Monitor, then propagate.
+   */
+  async broadcastPublish(options = {}) {
+    const tx = await this.publishScript(options);
+    if (!tx?.signature) {
+      throw new Error('Transaction was not signed.');
+    }
+    if (!this.transaction_monitor) {
+      console.error('RustScript: transaction_monitor is not initialized');
+    } else {
+      this.transaction_monitor.render({
+        tx,
+        title: 'Broadcasting...',
+        lead: 'Your script is being broadcast to the Saito network.',
+        subtitle: 'Waiting for confirmation...',
+        successTitle: 'Transaction Confirmed',
+        successLead: 'Your transaction has been confirmed on the Saito network.',
+        successActionLabel: 'Continue',
+        callback: typeof options.callback === 'function' ? options.callback : null
+      });
+    }
+    await this.app.network.propagateTransaction(tx);
+    return tx;
+  }
+
+  /**
    * Load a P2SH publish (or compatible) transaction into the unlock / witness workflow.
    *
    * Category A — txmsg.access_scripts[] present:
@@ -668,6 +1070,7 @@ class Rustscript extends ModTemplate {
     };
 
     this.workflow = 'unlock';
+    this.initializeUnlockTransactions(tx);
 
     if (hasAccessScript) {
       let locking;
@@ -764,13 +1167,24 @@ class Rustscript extends ModTemplate {
   }
 
   /**
-   * Construct and broadcast a P2SH unlock transaction spending all locked funds.
+   * Construct and broadcast a P2SH unlock transaction.
+   * Prefers the silently funded unlock_transaction_final once the fee is set.
+   * Starts the Transaction Monitor immediately before network propagation.
    */
-  async broadcastSolution({ destinationPublicKey = '', feeSaito = '0' } = {}) {
+  async broadcastSolution({
+    destinationPublicKey = '',
+    feeSaito = '0',
+    callback = null
+  } = {}) {
     const ctx = this.unlockContext;
-    if (!ctx?.lockedSlip) {
+    if (!ctx?.lockedSlip && !(Array.isArray(ctx?.lockedNftSlips) && ctx.lockedNftSlips.length)) {
       throw new Error('No unlock context — load a script-locked transaction first');
     }
+
+    if (this.unlock_transaction_base && this.unlock_fee) {
+      return this.broadcastUnlockBaseTransaction({ destinationPublicKey, callback });
+    }
+
     if (!destinationPublicKey) {
       throw new Error('Destination public key is required');
     }
@@ -780,16 +1194,101 @@ class Rustscript extends ModTemplate {
       Array.isArray(ctx.lockedNftSlips) &&
       ctx.lockedNftSlips.length === 3
     ) {
-      return this.broadcastNftSolution({ destinationPublicKey, feeSaito });
+      return this.broadcastNftSolution({ destinationPublicKey, feeSaito, callback });
     }
 
-    return this.broadcastSaitoSolution({ destinationPublicKey, feeSaito });
+    return this.broadcastSaitoSolution({ destinationPublicKey, feeSaito, callback });
   }
 
   /**
-   * SAITO unlock — single locked output to destination (existing behavior).
+   * Sign and propagate the funded unlock transaction (fee inputs + change included).
    */
-  async broadcastSaitoSolution({ destinationPublicKey = '', feeSaito = '0' } = {}) {
+  async broadcastUnlockBaseTransaction({ destinationPublicKey = '', callback = null } = {}) {
+    const ctx = this.unlockContext;
+    const base = this.unlock_transaction_base;
+    if (!base) {
+      throw new Error('Unlock transaction is not ready.');
+    }
+    if (!this.unlock_fee) {
+      const { ensureDefaultUnlockFee } = require('./lib/ui/unlock_tx_fee');
+      ensureDefaultUnlockFee(this);
+    }
+
+    const {
+      ensureUnlockFeeFunded,
+      assignOutputSlipIndices
+    } = require('./lib/ui/unlock_tx_fee');
+    const funded = await ensureUnlockFeeFunded(this.app, this);
+    assignOutputSlipIndices(funded);
+
+    const fullScript = this.getScript();
+    const accessScript = JSON.stringify(fullScript);
+    const tx = this.cloneTransactionSkeleton(funded);
+
+    if (ctx?.assetType === 'nft') {
+      tx.type = TransactionType.Bound;
+    }
+
+    const userOutputs = Array.isArray(base.to) ? base.to : [];
+    const destination =
+      destinationPublicKey ||
+      String(userOutputs[0]?.publicKey || userOutputs[0]?.public_key || '') ||
+      '';
+
+    tx.msg = {
+      module: this.name,
+      request: 'spend p2sh',
+      access_scripts: [accessScript],
+      scripthash: ctx.p2shHash,
+      p2sh_address: ctx.p2shAddress,
+      destination,
+      fee: String(this.unlock_fee.feeSaito || ''),
+      source_tx: ctx.sourceTxSignature || ''
+    };
+
+    if (ctx?.assetType === 'nft') {
+      tx.msg.asset_type = 'nft';
+      tx.msg.nft_id = ctx.nftId || ctx.lockedNftSlips?.[2]?.publicKey || '';
+      tx.msg.nft_amount = ctx.nftAmount || String(ctx.lockedNftSlips?.[0]?.amount || '0');
+      if (ctx.nftTxmsg && typeof ctx.nftTxmsg === 'object') {
+        Object.assign(tx.msg, ctx.nftTxmsg);
+      }
+    }
+
+    await tx.sign();
+    if (!tx.signature) {
+      throw new Error('Unlock transaction was not signed');
+    }
+
+    if (!this.transaction_monitor) {
+      console.error('RustScript: transaction_monitor is not initialized');
+    } else {
+      this.transaction_monitor.render({
+        tx,
+        title: 'Broadcasting...',
+        lead: 'Your unlock transaction is being broadcast to the Saito network.',
+        subtitle: 'Waiting for confirmation...',
+        successTitle: 'Script Unlocked',
+        successLead:
+          'Your unlock transaction has been confirmed and the locked funds have been released.',
+        successActionLabel: 'Continue',
+        callback: typeof callback === 'function' ? callback : null
+      });
+    }
+
+    await this.app.network.propagateTransaction(tx);
+    return tx;
+  }
+
+  /**
+   * SAITO unlock — legacy rebuild path (fee deducted from locked UTXO).
+   * Kept for callers that have not configured unlock_fee on unlock_transaction_base.
+   */
+  async broadcastSaitoSolution({
+    destinationPublicKey = '',
+    feeSaito = '0',
+    callback = null
+  } = {}) {
     const ctx = this.unlockContext;
     if (!ctx?.lockedSlip) {
       throw new Error('No unlock context — load a script-locked transaction first');
@@ -804,7 +1303,8 @@ class Rustscript extends ModTemplate {
     const feeNolan = this.app.wallet.convertSaitoToNolan(feeSaito || '0');
     const lockedAmount = BigInt(ctx.lockedSlip.amount || 0);
     const outputAmount = lockedAmount - feeNolan;
-    if (outputAmount <= BigInt(0)) {
+    // Fee larger than the locked UTXO cannot be funded from this input alone.
+    if (outputAmount < BigInt(0)) {
       throw new Error('Fee exceeds locked amount');
     }
 
@@ -831,12 +1331,27 @@ class Rustscript extends ModTemplate {
     };
 
     await tx.sign();
-    await this.app.network.propagateTransaction(tx);
-
     if (!tx.signature) {
       throw new Error('Unlock transaction was not signed');
     }
 
+    if (!this.transaction_monitor) {
+      console.error('RustScript: transaction_monitor is not initialized');
+    } else {
+      this.transaction_monitor.render({
+        tx,
+        title: 'Broadcasting...',
+        lead: 'Your unlock transaction is being broadcast to the Saito network.',
+        subtitle: 'Waiting for confirmation...',
+        successTitle: 'Script Unlocked',
+        successLead:
+          'Your unlock transaction has been confirmed and the locked funds have been released.',
+        successActionLabel: 'Continue',
+        callback: typeof callback === 'function' ? callback : null
+      });
+    }
+
+    await this.app.network.propagateTransaction(tx);
     return tx;
   }
 
@@ -850,7 +1365,11 @@ class Rustscript extends ModTemplate {
    *
    * Transaction type: Bound (required for wallet NFT recognition).
    */
-  async broadcastNftSolution({ destinationPublicKey = '', feeSaito = '0' } = {}) {
+  async broadcastNftSolution({
+    destinationPublicKey = '',
+    feeSaito = '0',
+    callback = null
+  } = {}) {
     const ctx = this.unlockContext;
     const slips = ctx.lockedNftSlips;
     const fullScript = this.getScript();
@@ -858,9 +1377,11 @@ class Rustscript extends ModTemplate {
 
     const feeNolan = this.app.wallet.convertSaitoToNolan(feeSaito || '0');
     const depositAmount = BigInt(slips[1].amount || 0);
-    const outputDeposit = depositAmount - feeNolan;
+    // NFT unlocks may be fee-costly relative to the deposit — never refuse on that basis.
+    // If the fee would consume the deposit, keep the deposit intact on the output.
+    let outputDeposit = depositAmount - feeNolan;
     if (outputDeposit <= BigInt(0)) {
-      throw new Error('Fee exceeds locked deposit');
+      outputDeposit = depositAmount;
     }
 
     const tx = new Transaction();
@@ -902,12 +1423,27 @@ class Rustscript extends ModTemplate {
     }
 
     await tx.sign();
-    await this.app.network.propagateTransaction(tx);
-
     if (!tx.signature) {
       throw new Error('Unlock transaction was not signed');
     }
 
+    if (!this.transaction_monitor) {
+      console.error('RustScript: transaction_monitor is not initialized');
+    } else {
+      this.transaction_monitor.render({
+        tx,
+        title: 'Broadcasting...',
+        lead: 'Your unlock transaction is being broadcast to the Saito network.',
+        subtitle: 'Waiting for confirmation...',
+        successTitle: 'Script Unlocked',
+        successLead:
+          'Your unlock transaction has been confirmed and the locked funds have been released.',
+        successActionLabel: 'Continue',
+        callback: typeof callback === 'function' ? callback : null
+      });
+    }
+
+    await this.app.network.propagateTransaction(tx);
     return tx;
   }
 }

@@ -3,6 +3,7 @@ const ManagerHeaderTemplate = require('./manager-header.template');
 const ManagerScrollFooterTemplate = require('./manager-scroll-footer.template');
 const ManagerLoadMore = require('./manager-load-more');
 const TweetTemplate = require('./tweet.template');
+const SaitoImageOverlay = require('../../../lib/saito/ui/saito-image-overlay/saito-image-overlay');
 
 const SCROLL_THRESHOLD_PX = 240;
 
@@ -32,10 +33,18 @@ class Manager {
     this.pending_newer_tweets = [];
     this._timeline_bootstrapping = false;
     this._notifications_bootstrapping = false;
+    this.pending_route_signature = '';
+    this.permalink_state = null;
+    this._route_load_signature = '';
+    this._route_load = null;
+    this._route_refresh_pending = false;
+    this._browser_history_bound = false;
+    this.image_overlay = null;
+    this.profile_cache = {};
 
-    // Per-view Manager chrome. Desktop always shows the header.
-    // On compact viewports, header renders only when `header: true`
-    // (navigation and/or context the bottom nav does not already provide).
+    // Per-view Manager chrome. Header is navigation only (back + title).
+    // Home / notifications omit sticky chrome.
+    // Thread and profile detail views keep the pinned header for back navigation.
     this.viewChrome = {
       timeline: { header: false },
       notifications: { header: false },
@@ -91,13 +100,25 @@ class Manager {
     };
   }
 
-  renderTimeline() {
+  renderTimeline({ updateHistory = true, scrollToTop = false } = {}) {
     const previousMode = this.mode;
 
+    this.clearPermalinkState();
     this.saveScrollPosition(previousMode);
+    if (scrollToTop) {
+      this.scroll_positions.timeline = 0;
+    }
     this.mode = 'timeline';
     this.active_signature = '';
+    this.active_thread_id = '';
     this.active_profile_key = '';
+
+    if (updateHistory) {
+      this.replaceTweetLocation();
+    }
+
+    this.mod.main?.showProfile?.(this.mod.publicKey);
+
     this.render();
 
     if (previousMode !== 'timeline') {
@@ -109,17 +130,33 @@ class Manager {
     this.syncPendingNewerTweets();
   }
 
+  renderHome() {
+    const scrollToTop = this.mode === 'timeline';
+
+    this.pending_route_signature = '';
+    this.replaceTweetLocation({ force: true });
+    this.renderTimeline({ updateHistory: false, scrollToTop });
+  }
+
   renderNotifications() {
+    this.clearPermalinkState();
     this.saveScrollPosition();
     this.mod.markNotificationsViewed?.();
     this.mode = 'notifications';
+    this.active_signature = '';
+    this.active_thread_id = '';
     this.active_profile_key = '';
+    this.mod.main?.showProfile?.(this.mod.publicKey);
+    this.replaceTweetLocation();
     this.render();
     this.restoreScrollPosition('notifications');
     this.syncScrollFooter();
   }
 
-  renderThread(signature) {
+  renderThread(signature, { updateHistory = true } = {}) {
+    const previousMode = this.mode;
+
+    this.clearPermalinkState();
     this.saveScrollPosition();
 
     const tweet = this.mod.getTweet(signature);
@@ -128,32 +165,64 @@ class Manager {
     this.active_signature = signature || '';
     this.active_thread_id = tweet ? tweet.thread_id || tweet.signature : '';
     this.active_profile_key = '';
+    this.mod.main?.showProfile?.(this.mod.publicKey);
     this.scroll_positions.thread = 0;
+
+    if (updateHistory && signature && typeof window !== 'undefined') {
+      const url = this.mod.returnTweetUrl(signature);
+      const state = { redsquareView: 'thread', signature };
+
+      if (previousMode === 'thread') {
+        window.history.replaceState(state, '', url);
+      } else {
+        window.history.pushState(state, '', url);
+      }
+    }
+
     this.resetThreadPagination(signature);
     this.render();
     this.restoreScrollPosition('thread');
     this.syncScrollFooter();
   }
 
-  renderPosts(publicKey = '') {
-    this.renderProfileView('posts', publicKey);
+  renderPosts(publicKey = '', options = {}) {
+    this.renderProfileView('posts', publicKey, options);
   }
 
-  renderReplies(publicKey = '') {
-    this.renderProfileView('replies', publicKey);
+  renderReplies(publicKey = '', options = {}) {
+    this.renderProfileView('replies', publicKey, options);
   }
 
-  renderLikes(publicKey = '') {
-    this.renderProfileView('likes', publicKey);
+  renderLikes(publicKey = '', options = {}) {
+    this.renderProfileView('likes', publicKey, options);
   }
 
-  renderProfileView(mode, publicKey = '') {
+  renderProfileView(mode, publicKey = '', { updateHistory = true } = {}) {
+    const previousMode = this.mode;
+    const previousProfileKey = this.active_profile_key;
+
+    this.clearPermalinkState();
     this.saveScrollPosition();
     this.mode = mode;
     this.active_signature = '';
     this.active_thread_id = '';
     this.active_profile_key = publicKey || this.mod.publicKey || '';
     this.scroll_positions[mode] = 0;
+
+    if (updateHistory && typeof window !== 'undefined') {
+      const state = {
+        redsquareView: 'profile',
+        publicKey: this.active_profile_key,
+        tab: mode
+      };
+      const url = this.mod.returnUserUrl(this.active_profile_key);
+
+      if (this.isProfileViewMode(previousMode) && previousProfileKey === this.active_profile_key) {
+        window.history.replaceState(state, '', url);
+      } else {
+        window.history.pushState(state, '', url);
+      }
+    }
 
     if (!this.pagination[mode]) {
       this.pagination[mode] = {
@@ -168,9 +237,14 @@ class Manager {
       this.pagination[mode].exhausted = false;
     }
 
+    this.mod.main?.showProfile?.(this.active_profile_key);
     this.render();
     this.restoreScrollPosition(mode);
     this.syncFeedStatus();
+  }
+
+  isProfileViewMode(mode = this.mode) {
+    return mode === 'posts' || mode === 'replies' || mode === 'likes';
   }
 
   render(container = '') {
@@ -203,7 +277,6 @@ class Manager {
     this.attachEvents();
     this.syncScrollFooter();
     this.syncProfileNav();
-    this.mod.main?.new_post?.render();
   }
 
   ensureShell() {
@@ -266,9 +339,8 @@ class Manager {
   }
 
   /**
-   * Feed-header chrome — mounted only when the active view requires it.
-   * Decision point: after mode is set, before/with paint. Desktop always mounts;
-   * compact viewports respect each view's `viewChrome.header` declaration.
+   * Feed-header chrome — mounted only when the active view needs navigation.
+   * Creation lives in the sidebar Create component, not here.
    */
   syncFeedHeader() {
     const root = document.querySelector(this.container);
@@ -291,13 +363,6 @@ class Manager {
         }
 
         header = root.querySelector(':scope > .header');
-
-        // Fresh actions slot — allow New Post to bind again.
-        const actions = header?.querySelector('.actions');
-
-        if (actions) {
-          delete actions.dataset.newPostBound;
-        }
       }
 
       const title = header?.querySelector('.title');
@@ -337,14 +402,10 @@ class Manager {
   }
 
   /**
-   * Whether the active view requires Manager header chrome.
-   * Desktop: always. Compact: only when the view declares `header: true`.
+   * Whether the active view requires Manager header chrome (back + title).
+   * Driven by `viewChrome.header` on all viewports.
    */
   requiresHeader(mode = this.mode) {
-    if (!this.isCompactViewport()) {
-      return true;
-    }
-
     const chrome = this.viewChrome[mode];
 
     if (chrome && typeof chrome.header === 'boolean') {
@@ -372,10 +433,185 @@ class Manager {
 
   syncProfileNav() {
     this.mod.main?.profile?.syncActiveNav(this.mode);
+    this.mod.main?.mobile_profile?.syncActiveNav(this.mode);
   }
 
   navigateBackToTimeline() {
-    this.renderTimeline();
+    if (
+      typeof window !== 'undefined' &&
+      (window.history.state?.redsquareView === 'thread' ||
+        window.history.state?.redsquareView === 'profile')
+    ) {
+      window.history.back();
+      return;
+    }
+
+    this.replaceTweetLocation();
+    this.renderTimeline({ updateHistory: false });
+  }
+
+  replaceTweetLocation({ force = false } = {}) {
+    if (
+      typeof window === 'undefined' ||
+      (!force &&
+        !this.mod.returnTweetSignatureFromLocation() &&
+        !this.mod.returnUserPublicKeyFromLocation())
+    ) {
+      return;
+    }
+
+    window.history.replaceState(
+      { redsquareView: 'timeline' },
+      '',
+      `/${encodeURI(this.mod.returnSlug())}/`
+    );
+  }
+
+  attachBrowserHistory() {
+    if (typeof window === 'undefined' || this._browser_history_bound) {
+      return;
+    }
+
+    this._browser_history_bound = true;
+    window.addEventListener('popstate', () => {
+      this.applyLocationRoute();
+    });
+  }
+
+  async applyLocationRoute({ refresh = false } = {}) {
+    const signature = this.mod.returnTweetSignatureFromLocation();
+    const publicKey = this.mod.returnUserPublicKeyFromLocation();
+
+    if (publicKey && !signature) {
+      this.clearPermalinkState();
+
+      if (this.app.crypto?.isPublicKey && !this.app.crypto.isPublicKey(publicKey)) {
+        this.renderTimeline({ updateHistory: false });
+        return null;
+      }
+
+      const canonicalPath = `/${encodeURI(this.mod.returnSlug())}/user/${encodeURIComponent(
+        publicKey
+      )}`;
+      const historyTab = typeof window !== 'undefined' ? window.history?.state?.tab : '';
+      const requestedTab = ['posts', 'replies', 'likes'].includes(historyTab)
+        ? historyTab
+        : this.isProfileMode() && this.active_profile_key === publicKey
+          ? this.mode
+          : 'posts';
+
+      if (typeof window !== 'undefined' && window.location.pathname !== canonicalPath) {
+        window.history.replaceState(
+          { redsquareView: 'profile', publicKey, tab: requestedTab },
+          '',
+          this.mod.returnUserUrl(publicKey)
+        );
+      }
+
+      if (!refresh && this.isProfileMode() && this.active_profile_key === publicKey) {
+        return publicKey;
+      }
+
+      this.renderProfileView(requestedTab, publicKey, { updateHistory: false });
+      return publicKey;
+    }
+
+    if (!signature) {
+      this.clearPermalinkState();
+
+      if (this.mode === 'thread' || this.isProfileMode()) {
+        this.renderTimeline({ updateHistory: false });
+      }
+
+      return null;
+    }
+
+    if (!refresh && this.mode === 'thread' && this.active_signature === signature) {
+      return this.mod.getTweet(signature);
+    }
+
+    if (this._route_load && this._route_load_signature === signature) {
+      if (refresh) {
+        this._route_refresh_pending = true;
+      }
+
+      return this._route_load;
+    }
+
+    this.pending_route_signature = signature;
+    this._route_load_signature = signature;
+
+    if (!this.mod.getTweet(signature)) {
+      this.renderPermalinkState(signature, 'loading');
+    }
+
+    this._route_load = this.mod
+      .loadTweetThread(signature)
+      .then((result) => {
+        if (this.mod.returnTweetSignatureFromLocation() !== signature) {
+          return result;
+        }
+
+        if (result?.status === 'loaded' && result.tweet) {
+          this.pending_route_signature = '';
+          this.renderThread(signature, { updateHistory: false });
+        } else {
+          const status = result?.status === 'unavailable' ? 'unavailable' : 'error';
+          this.renderPermalinkState(signature, status, result?.reason);
+        }
+
+        return result;
+      })
+      .catch((err) => {
+        console.error('RedSquare shared tweet lookup failed:', err);
+
+        if (this.mod.returnTweetSignatureFromLocation() === signature) {
+          this.renderPermalinkState(signature, 'error', 'lookup-failed');
+        }
+
+        return { status: 'error', reason: 'lookup-failed', tweet: null };
+      })
+      .finally(() => {
+        if (this._route_load_signature === signature) {
+          const refreshPending = this._route_refresh_pending;
+
+          this._route_load_signature = '';
+          this._route_load = null;
+          this._route_refresh_pending = false;
+
+          if (refreshPending && this.mod.returnTweetSignatureFromLocation() === signature) {
+            setTimeout(() => {
+              if (!this._route_load && this.mod.returnTweetSignatureFromLocation() === signature) {
+                this.applyLocationRoute({ refresh: true });
+              }
+            }, 0);
+          }
+        }
+      });
+
+    return this._route_load;
+  }
+
+  clearPermalinkState() {
+    this.pending_route_signature = '';
+    this.permalink_state = null;
+    this._route_refresh_pending = false;
+  }
+
+  renderPermalinkState(signature, status, reason = '') {
+    this.mode = 'thread';
+    this.active_signature = signature || '';
+    this.active_thread_id = '';
+    this.active_profile_key = '';
+    this.pending_route_signature = signature || '';
+    this.permalink_state = { signature, status, reason };
+    this.pagination.thread = {
+      ...this.createPaginationState().thread,
+      loading: status === 'loading',
+      exhausted: status !== 'loading',
+      chain: []
+    };
+    this.render();
   }
 
   getScrollContainer() {
@@ -429,6 +665,20 @@ class Manager {
   }
 
   getFeedStatusMessage(status) {
+    if (this.mode === 'thread' && this.permalink_state?.status === status) {
+      if (status === 'unavailable' && this.permalink_state.reason === 'rejected') {
+        return 'This tweet was found but could not be displayed.';
+      }
+
+      if (status === 'unavailable') {
+        return 'This tweet is not available from your local archive or connected RedSquare peers.';
+      }
+
+      if (status === 'error') {
+        return 'RedSquare could not check every available archive for this tweet.';
+      }
+    }
+
     const messages = {
       timeline: {
         loading: 'Loading tweets...',
@@ -580,11 +830,20 @@ class Manager {
 
   paintNotifications() {
     if (this.notifications_rendered || this._notifications_bootstrapping) {
+      this.renderModerateQueue();
       this.syncFeedStatus();
       return;
     }
 
     this.bootstrapNotifications();
+  }
+
+  renderModerateQueue() {
+    if (!this.mod.moderator_mode || !this.mod.moderate) {
+      return;
+    }
+
+    this.mod.moderate.render(this.getActivePanelSelector());
   }
 
   async bootstrapNotifications() {
@@ -595,6 +854,7 @@ class Manager {
     this._notifications_bootstrapping = true;
     this.syncFeedStatus();
 
+    this.renderModerateQueue();
     this.appendNotificationsBatch();
 
     await this.loadNotificationDirection('newer');
@@ -689,48 +949,238 @@ class Manager {
 
     this.clearPanel(container);
 
-    const tweets = this.collectProfileTweets();
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(max-width: 820px)').matches
+    ) {
+      this.app.browser.addElementToSelector(
+        '<section class="redsquare-profile mobile"></section>',
+        container
+      );
+      this.mod.main?.showMobileProfile?.(this.active_profile_key);
+    }
 
-    for (const tweet of tweets) {
+    this.appendProfileBatch();
+
+    const state = this.getPaginationState();
+    const source = this.getActiveProfileSource();
+    state.exhausted = Boolean(source?.exhausted && state.cursor >= this.collectProfileTweets().length);
+    this.syncFeedStatus();
+
+    if (!state.exhausted && this.isNearBottom()) {
+      this.loadMore();
+    }
+  }
+
+  createProfileSourceState() {
+    return {
+      loading: false,
+      exhausted: false,
+      peers: {}
+    };
+  }
+
+  getProfileCache(publicKey = this.active_profile_key) {
+    const key = publicKey || '';
+
+    if (!this.profile_cache[key]) {
+      const cache = {
+        posts: [],
+        replies: [],
+        likes: [],
+        postSet: new Set(),
+        replySet: new Set(),
+        likeSet: new Set(),
+        author: this.createProfileSourceState(),
+        likesSource: this.createProfileSourceState()
+      };
+
+      for (const tweet of Object.values(this.mod.tweets || {})) {
+        if (tweet?.publicKey === key) {
+          this.addTweetToProfileCache(cache, tweet, tweet.parent_id ? 'replies' : 'posts');
+        }
+
+        if (Array.isArray(tweet?.likers) && tweet.likers.includes(key)) {
+          this.addTweetToProfileCache(cache, tweet, 'likes');
+        }
+      }
+
+      this.profile_cache[key] = cache;
+    }
+
+    return this.profile_cache[key];
+  }
+
+  addTweetToProfileCache(cache, tweet, mode) {
+    const signature = tweet?.signature || '';
+    const setName = mode === 'posts' ? 'postSet' : mode === 'replies' ? 'replySet' : 'likeSet';
+
+    if (!signature || cache[setName].has(signature)) {
+      return false;
+    }
+
+    cache[setName].add(signature);
+    cache[mode].push(signature);
+    cache[mode].sort((a, b) => {
+      const first = this.mod.getTweet(a);
+      const second = this.mod.getTweet(b);
+      return (Number(second?.created_at) || 0) - (Number(first?.created_at) || 0);
+    });
+    return true;
+  }
+
+  getActiveProfileSource() {
+    const cache = this.getProfileCache();
+    return this.mode === 'likes' ? cache.likesSource : cache.author;
+  }
+
+  returnProfilePeerKey(peer, index) {
+    if (peer === 'localhost') {
+      return 'localhost';
+    }
+
+    return peer?.publicKey || `peer-${index}`;
+  }
+
+  async loadProfileArchivePage() {
+    const publicKey = this.active_profile_key || '';
+    const mode = this.mode;
+    const cache = this.getProfileCache(publicKey);
+    const source = mode === 'likes' ? cache.likesSource : cache.author;
+
+    if (!publicKey || source.loading || source.exhausted) {
+      return 0;
+    }
+
+    if (this.app.modules?.moderateAddress?.(publicKey) === -1) {
+      source.exhausted = true;
+      return 0;
+    }
+
+    source.loading = true;
+    const limit = 20;
+    const peers = this.mod.returnTweetArchivePeers();
+
+    try {
+      const requests = peers.map(async (peer, index) => {
+        const peerKey = this.returnProfilePeerKey(peer, index);
+        const peerState = source.peers[peerKey] || {
+          cursor: Date.now() + 1,
+          exhausted: false
+        };
+        source.peers[peerKey] = peerState;
+
+        if (peerState.exhausted) {
+          return { peer, txs: [] };
+        }
+
+        const query = {
+          field1: mode === 'likes' ? 'RedSquareLike' : 'RedSquare',
+          field2: publicKey,
+          created_earlier_than: peerState.cursor,
+          limit
+        };
+
+        if (mode !== 'likes') {
+          query.flagged_ne = 1;
+        }
+
+        const txs = await this.mod.loadArchiveTransactions(query, peer);
+        const timestamps = txs.map((tx) => Number(tx?.timestamp) || 0).filter(Boolean);
+
+        if (timestamps.length) {
+          peerState.cursor = Math.min(...timestamps);
+        }
+        if (txs.length < limit) {
+          peerState.exhausted = true;
+        }
+
+        return { peer, txs };
+      });
+      const pages = await Promise.all(requests);
+      let added = 0;
+
+      if (mode === 'likes') {
+        const signatures = new Set();
+
+        for (const { txs } of pages) {
+          for (const tx of txs) {
+            if (typeof tx?.decryptMessage === 'function') {
+              await tx.decryptMessage(this.app);
+            }
+            if (this.app.modules?.moderate?.(tx, this.mod.name) === -1) {
+              continue;
+            }
+            const message = tx?.returnMessage?.() || tx?.msg || {};
+            const signature = message.data?.signature;
+            if (signature != null && String(signature)) {
+              signatures.add(String(signature));
+            }
+          }
+        }
+
+        const targetPages = await Promise.all(
+          Array.from(signatures).flatMap((signature) =>
+            peers.map((peer) =>
+              this.mod.loadArchiveTransactions(
+                { sig: signature, field1: 'RedSquare', flagged_ne: 1 },
+                peer
+              )
+            )
+          )
+        );
+        const tweets = await this.mod.cacheProfileTweetTransactions(targetPages.flat());
+
+        for (const tweet of tweets) {
+          if (this.addTweetToProfileCache(cache, tweet, 'likes')) {
+            added++;
+          }
+        }
+      } else {
+        const tweets = await this.mod.cacheProfileTweetTransactions(
+          pages.flatMap(({ txs }) => txs)
+        );
+
+        for (const tweet of tweets) {
+          if (tweet.publicKey !== publicKey) {
+            continue;
+          }
+          if (this.addTweetToProfileCache(cache, tweet, tweet.parent_id ? 'replies' : 'posts')) {
+            added++;
+          }
+        }
+      }
+
+      source.exhausted = Object.values(source.peers).every((peerState) => peerState.exhausted);
+      return added;
+    } finally {
+      source.loading = false;
+    }
+  }
+
+  appendProfileBatch() {
+    const state = this.getPaginationState();
+    const tweets = this.collectProfileTweets();
+    const batch = tweets.slice(state.cursor, state.cursor + state.batchSize);
+    const container = this.getActivePanelSelector();
+
+    for (const tweet of batch) {
       tweet.render(container);
     }
 
-    // Local profile views are a completed load — no contradictory empty+end.
-    const state = this.getPaginationState();
-    state.loading = false;
-    state.exhausted = true;
+    state.cursor += batch.length;
     this.syncFeedStatus();
+    return batch.length;
   }
 
   collectProfileTweets() {
-    const key = this.active_profile_key || '';
-    const tweets = Object.values(this.mod.tweets || {});
-
-    let filtered = tweets;
-
-    if (this.mode === 'posts') {
-      filtered = tweets.filter((tweet) => (!key || tweet.publicKey === key) && !tweet.parent_id);
-    } else if (this.mode === 'replies') {
-      filtered = tweets.filter(
-        (tweet) => (!key || tweet.publicKey === key) && Boolean(tweet.parent_id)
-      );
-    } else if (this.mode === 'likes') {
-      filtered = tweets.filter((tweet) => {
-        const likers = tweet.tx?.optional?.likers;
-
-        if (Array.isArray(likers) && key) {
-          return likers.includes(key);
-        }
-
-        return false;
-      });
+    if (this.app.modules?.moderateAddress?.(this.active_profile_key) === -1) {
+      return [];
     }
 
-    return filtered.sort((a, b) => {
-      const tsA = Number(a.updated_at) || Number(a.created_at) || Number(a.tx?.timestamp) || 0;
-      const tsB = Number(b.updated_at) || Number(b.created_at) || Number(b.tx?.timestamp) || 0;
-      return tsB - tsA;
-    });
+    const cache = this.getProfileCache();
+    return (cache[this.mode] || []).map((signature) => this.mod.getTweet(signature)).filter(Boolean);
   }
 
   appendTimelineBatch() {
@@ -895,9 +1345,12 @@ class Manager {
   }
 
   resetThreadPagination(signature) {
+    const chain = this.buildThreadView(signature);
+
     this.pagination.thread = {
       ...this.createPaginationState().thread,
-      chain: this.buildThreadView(signature)
+      batchSize: Math.max(this.createPaginationState().thread.batchSize, chain.length),
+      chain
     };
   }
 
@@ -906,24 +1359,67 @@ class Manager {
       return [];
     }
 
-    return [signature, ...this.getDirectReplies(signature)];
+    const chain = [];
+    const visited = new Set();
+
+    const visit = (currentSignature) => {
+      if (visited.has(currentSignature)) {
+        return;
+      }
+
+      visited.add(currentSignature);
+
+      if (!this.mod.getTweet(currentSignature)) {
+        return;
+      }
+
+      chain.push(currentSignature);
+
+      for (const childSignature of this.getDirectReplies(currentSignature)) {
+        visit(childSignature);
+      }
+    };
+
+    visit(signature);
+    return chain;
   }
 
   getDirectReplies(parentSignature) {
-    const children = this.mod.tweets_children[parentSignature] || [];
+    const children = new Set(this.mod.tweets_children?.[parentSignature] || []);
 
-    return children
+    // Reconstruct missing index entries from the tweets themselves. Archive
+    // batches can arrive in any order, but a loaded reply must never disappear
+    // when switching from a focused reply to the complete thread.
+    for (const tweet of Object.values(this.mod.tweets || {})) {
+      if (tweet?.parent_id === parentSignature && tweet.signature) {
+        children.add(tweet.signature);
+      }
+    }
+
+    return [...children]
       .map((sig) => this.mod.getTweet(sig))
       .filter(Boolean)
-      .sort((a, b) => (a.created_at || 0) - (b.created_at || 0))
+      .sort((a, b) => {
+        const timestampDifference = (a.created_at || 0) - (b.created_at || 0);
+
+        return timestampDifference || a.signature.localeCompare(b.signature);
+      })
       .map((tweet) => tweet.signature);
   }
 
   getThreadRoot(signature) {
     let root = signature;
+    const visited = new Set([root]);
 
-    while (this.mod.tweets_parents[root]) {
-      root = this.mod.tweets_parents[root];
+    while (this.mod.tweets_parents?.[root]) {
+      const parent = this.mod.tweets_parents[root];
+
+      if (visited.has(parent) || !this.mod.getTweet(parent)) {
+        break;
+      }
+
+      visited.add(parent);
+      root = parent;
     }
 
     return root;
@@ -963,7 +1459,9 @@ class Manager {
     this.saveScrollPosition();
     this.mode = 'timeline';
     this.active_signature = '';
+    this.active_thread_id = '';
     this.active_profile_key = '';
+    this.replaceTweetLocation();
     this.scroll_positions.timeline = 0;
     this.updateModeVisibility();
     this.syncFeedHeader();
@@ -1147,14 +1645,18 @@ class Manager {
     }
 
     this.attachTweetNavigation(root);
+    this.attachTweetImageViewer(root);
     this.attachThreadContext(root);
     this.attachTweetMenu(root);
     this.attachTweetReply(root);
     this.attachTweetLike(root);
     this.attachTweetRetweet(root);
+    this.attachTweetShare(root);
     this.attachFeedHeaderBack(root);
+    this.attachPermalinkRetry(root);
     this.attachScrollEvents();
     this.attachViewportChrome();
+    this.attachBrowserHistory();
   }
 
   attachViewportChrome() {
@@ -1199,6 +1701,25 @@ class Manager {
     });
   }
 
+  attachPermalinkRetry(root) {
+    if (!root || root.dataset.permalinkRetryBound === '1') {
+      return;
+    }
+
+    root.dataset.permalinkRetryBound = '1';
+
+    root.addEventListener('click', (e) => {
+      const retry = e.target.closest('.feed-status .retry');
+
+      if (!retry || !this.pending_route_signature) {
+        return;
+      }
+
+      e.preventDefault();
+      this.applyLocationRoute({ refresh: true });
+    });
+  }
+
   attachThreadContext(root) {
     if (!root || root.dataset.threadContextBound === '1') {
       return;
@@ -1219,9 +1740,36 @@ class Manager {
       const rootSignature = link.getAttribute('data-root') || '';
 
       if (rootSignature) {
-        this.renderThread(rootSignature);
+        this.openEntireThread(rootSignature);
       }
     });
+  }
+
+  async openEntireThread(rootSignature) {
+    if (!rootSignature || !this.mod.getTweet(rootSignature)) {
+      return null;
+    }
+
+    // Show every relationship already in memory immediately, then refresh the
+    // root thread so replies known only to an archive peer are included too.
+    this.renderThread(rootSignature);
+
+    try {
+      const result = await this.mod.loadTweetThread(rootSignature);
+
+      if (
+        result?.status === 'loaded' &&
+        this.mode === 'thread' &&
+        this.active_signature === rootSignature
+      ) {
+        this.renderThread(rootSignature, { updateHistory: false });
+      }
+
+      return result;
+    } catch (err) {
+      console.error('RedSquare complete thread lookup failed:', err);
+      return { status: 'error', reason: 'lookup-failed', tweet: null };
+    }
   }
 
   attachTweetReply(root) {
@@ -1334,6 +1882,42 @@ class Manager {
     });
   }
 
+  attachTweetShare(root) {
+    if (!root || root.dataset.tweetShareBound === '1') {
+      return;
+    }
+
+    root.dataset.tweetShareBound = '1';
+
+    root.addEventListener('click', async (e) => {
+      const shareButton = e.target.closest('.tool.share');
+
+      if (!shareButton) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const tweetArticle = shareButton.closest('article.tweet');
+      const signature = tweetArticle?.getAttribute('data-id') || '';
+
+      if (!signature) {
+        return;
+      }
+
+      const longUrl = this.mod.returnTweetUrl(signature);
+
+      try {
+        const url = await this.mod.createShortLink(longUrl);
+        this.app.browser.handleShare({ title: 'Saito RedSquare Post', url });
+      } catch (err) {
+        console.error('RedSquare share failed:', err);
+        this.app.browser.handleShare({ title: 'Saito RedSquare Post', url: longUrl });
+      }
+    });
+  }
+
   attachTweetMenu(root) {
     if (!root || root.dataset.tweetMenuBound === '1') {
       return;
@@ -1388,6 +1972,58 @@ class Manager {
       }
 
       this.renderThread(signature);
+    });
+  }
+
+  attachTweetImageViewer(root) {
+    if (!root || root.dataset.tweetImageViewerBound === '1') {
+      return;
+    }
+
+    root.dataset.tweetImageViewerBound = '1';
+
+    const openImage = (image) => {
+      const gallery = image.closest('.gallery');
+      const galleryImages = gallery ? Array.from(gallery.querySelectorAll('.grid img')) : [];
+      const imageIndex = galleryImages.indexOf(image);
+      const images = galleryImages
+        .map((galleryImage) => galleryImage.getAttribute('src') || '')
+        .filter(Boolean);
+
+      if (imageIndex < 0 || images.length === 0) {
+        return;
+      }
+
+      this.image_overlay = new SaitoImageOverlay(this.app, this.mod, images);
+      this.image_overlay.render(imageIndex);
+    };
+
+    root.addEventListener('click', (e) => {
+      const image = e.target.closest('.gallery img');
+
+      if (!image || !root.contains(image)) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      openImage(image);
+    });
+
+    root.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') {
+        return;
+      }
+
+      const image = e.target.closest('.gallery img');
+
+      if (!image || !root.contains(image)) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      openImage(image);
     });
   }
 
@@ -1450,7 +2086,7 @@ class Manager {
     return scroller.scrollTop <= SCROLL_THRESHOLD_PX;
   }
 
-  fetchRemoteTransactions(type, direction) {
+  fetchRemoteTransactions(type, direction, { announce = false } = {}) {
     this.mod.loadTransactions(type, direction, (result) => {
       const payload = result || {
         type,
@@ -1462,24 +2098,35 @@ class Manager {
       };
 
       if (direction === 'newer') {
-        this.onNewerContentLoaded(payload);
+        this.onNewerContentLoaded(payload, { announce });
       }
     });
   }
 
   onPeersUpdated() {
+    if (this.pending_route_signature || this.mod.returnTweetSignatureFromLocation()) {
+      this.applyLocationRoute({ refresh: true });
+    }
+
+    if (this.isProfileMode()) {
+      const source = this.getActiveProfileSource();
+      source.exhausted = false;
+      this.getPaginationState().exhausted = false;
+      this.loadMoreIfNeeded();
+    }
+
     if (this.mode === 'timeline' && this.timeline_rendered) {
       this.fetchRemoteTransactions('tweets', 'newer');
     }
   }
 
-  onNewerContentLoaded(result) {
+  onNewerContentLoaded(result, { announce = false } = {}) {
     if (!result) {
       return;
     }
 
     if (result.type === 'tweets') {
-      this.handleNewerTweets(result);
+      this.handleNewerTweets(result, { announce });
       return;
     }
 
@@ -1488,63 +2135,82 @@ class Manager {
     }
   }
 
-  canAutoInsertTimeline() {
-    if (this.mode !== 'timeline' || !this.timeline_rendered) {
-      return false;
-    }
+  handleNewerTweets(result, { announce = false } = {}) {
+    // Archive hydration is initial feed state; only post-load event paths may
+    // place genuinely new tweets behind the notification banner.
+    const signatures = Array.from(
+      new Set(
+        announce
+          ? Array.isArray(result?.new_tweets)
+            ? result.new_tweets
+            : []
+          : Array.isArray(result?.added)
+            ? result.added
+            : []
+      )
+    );
 
-    if (!this.isNearTop()) {
-      return false;
-    }
-
-    return !this.isUserInteractionBlocking();
-  }
-
-  isUserInteractionBlocking() {
-    if (this.mod.compose_overlay?.getRoot?.()) {
-      return true;
-    }
-
-    if (this.mod.tweet_menu?.isOpen) {
-      return true;
-    }
-
-    if (this.mod.settings_overlay?.getRoot?.()) {
-      return true;
-    }
-
-    return false;
-  }
-
-  handleNewerTweets(result) {
-    if (!result?.added?.length) {
+    if (!signatures?.length) {
       return;
     }
 
-    for (const signature of result.added) {
-      if (!this.pending_newer_tweets.includes(signature)) {
-        this.pending_newer_tweets.push(signature);
+    const timeline = document.querySelector(`${this.container} .list[data-panel="timeline"]`);
+    const rendered = new Set();
+    const immediatelyVisible = [];
+    let newestRenderedAt = 0;
+
+    for (const element of timeline?.querySelectorAll('article.tweet[data-id]') || []) {
+      const signature = element.getAttribute('data-id') || '';
+      const tweet = this.mod.getTweet(signature);
+
+      if (signature) {
+        rendered.add(signature);
+      }
+
+      newestRenderedAt = Math.max(newestRenderedAt, Number(tweet?.created_at) || 0);
+    }
+
+    for (const signature of signatures) {
+      const tweet = this.mod.getTweet(signature);
+
+      if (
+        !tweet ||
+        tweet.parent_id ||
+        rendered.has(signature) ||
+        (newestRenderedAt > 0 && Number(tweet.created_at) < newestRenderedAt)
+      ) {
+        continue;
+      }
+
+      if (announce && this.timeline_rendered) {
+        if (!this.pending_newer_tweets.includes(signature)) {
+          this.pending_newer_tweets.push(signature);
+        }
+      } else {
+        immediatelyVisible.push(signature);
       }
     }
 
-    if (this.canAutoInsertTimeline()) {
-      this.flushPendingNewerTweets({ scrollToTop: false });
-      return;
+    if (immediatelyVisible.length) {
+      this.prependTimelineTweets(immediatelyVisible);
+      this.pagination.timeline.exhausted = false;
+      this.syncFeedStatus();
     }
 
-    if (this.mode === 'timeline') {
+    if (this.pending_newer_tweets.length && this.mode === 'timeline') {
       this.showNewPostsBanner();
+    }
+
+    // Initial archive pages can contain mostly replies. Continue filling the
+    // viewport when the newly hydrated roots do not create a scrollbar.
+    if (!announce && this.mode === 'timeline' && this.isNearBottom()) {
+      this.loadMoreIfNeeded();
     }
   }
 
   syncPendingNewerTweets() {
     if (!this.pending_newer_tweets.length) {
       this.hideNewPostsBanner();
-      return;
-    }
-
-    if (this.canAutoInsertTimeline()) {
-      this.flushPendingNewerTweets({ scrollToTop: false });
       return;
     }
 
@@ -1628,6 +2294,7 @@ class Manager {
 
     this.pagination.notifications.cursor += signatures.length;
     this.notifications_rendered = true;
+    this.mod.moderate?.ensureTop?.();
   }
 
   showNewPostsBanner() {
@@ -1717,7 +2384,6 @@ class Manager {
     if (
       state.loading ||
       state.exhausted ||
-      this.isProfileMode() ||
       this._notifications_bootstrapping ||
       this._timeline_bootstrapping
     ) {
@@ -1733,7 +2399,6 @@ class Manager {
     if (
       state.loading ||
       state.exhausted ||
-      this.isProfileMode() ||
       this._notifications_bootstrapping ||
       this._timeline_bootstrapping
     ) {
@@ -1746,6 +2411,24 @@ class Manager {
     let continueLoading = false;
 
     try {
+      if (this.isProfileMode()) {
+        const rendered = this.appendProfileBatch();
+
+        if (!rendered) {
+          await this.loadProfileArchivePage();
+          this.appendProfileBatch();
+        }
+
+        const source = this.getActiveProfileSource();
+        const available = this.collectProfileTweets().length;
+        state.exhausted = Boolean(source.exhausted && state.cursor >= available);
+        continueLoading = !state.exhausted && this.isNearBottom();
+        if (continueLoading) {
+          setTimeout(() => this.loadMoreIfNeeded(), 0);
+        }
+        return;
+      }
+
       if (this.mode === 'thread') {
         const result = await ManagerLoadMore.loadMore({
           mode: this.mode,
@@ -1845,10 +2528,12 @@ class Manager {
       return this.isNearBottom();
     }
 
-    // Empty older page — stop. Near-bottom empty feeds would otherwise refetch forever.
-    state.exhausted = true;
+    // A non-empty archive page may contain only transactions already cached
+    // locally. Its cursor still advanced, so keep paging until the archive says
+    // it is actually exhausted or a visible tweet is found.
+    state.exhausted = Boolean(result.exhausted);
     this.syncFeedStatus();
-    return false;
+    return !state.exhausted && this.isNearBottom();
   }
 
   ensureScrollFooter() {
@@ -1886,7 +2571,9 @@ class Manager {
       return 0;
     }
 
-    return panel.querySelectorAll('article.tweet, article.notification').length;
+    return [...panel.querySelectorAll('article.tweet, article.notification')].filter(
+      (el) => !el.closest('.moderate')
+    ).length;
   }
 
   hasCompletedInitialLoad() {
@@ -1915,6 +2602,10 @@ class Manager {
    */
   resolveFeedStatus() {
     const state = this.getPaginationState();
+
+    if (this.mode === 'thread' && this.permalink_state) {
+      return this.permalink_state.status;
+    }
 
     if (state.loading || this._timeline_bootstrapping || this._notifications_bootstrapping) {
       return 'loading';
@@ -1948,11 +2639,16 @@ class Manager {
     footer.dataset.status = status;
 
     const message = footer.querySelector('.message');
+    const retry = footer.querySelector('.retry');
 
     if (message) {
       // Loading is spinner-only — never keep empty/end copy under the loader.
       message.textContent =
         status === 'loading' || status === 'content' ? '' : this.getFeedStatusMessage(status);
+    }
+
+    if (retry) {
+      retry.hidden = status !== 'unavailable' && status !== 'error';
     }
   }
 
@@ -1973,7 +2669,7 @@ class Manager {
       return false;
     }
 
-    return Boolean(element.closest('.controls, .show-more, .tool'));
+    return Boolean(element.closest('.controls, .show-more, .tool, .gallery'));
   }
 
   static resolveClickedSignature(element) {

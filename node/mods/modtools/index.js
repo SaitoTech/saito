@@ -97,7 +97,7 @@ module.exports = (app, mod) => {
     `;
 
   html += `
-        <div class="modtools-container">
+        <div class="modtools-container" id="modtools-whitelist">
           <div class="modtools-container-header">
             <div class="modtools-container-title">Whitelisted</div>
       `;
@@ -147,6 +147,7 @@ module.exports = (app, mod) => {
   }
 
   html += `
+    </div>
 </body>
 
   <script type="text/javascript">

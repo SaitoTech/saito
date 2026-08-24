@@ -13,11 +13,6 @@ module.exports = {
       signature: '<signature>'
     }
   },
-  schema: {
-    publickey: 'publickey',
-    msg: 'text',
-    signature: 'signature'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

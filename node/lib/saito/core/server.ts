@@ -378,7 +378,30 @@ class Server {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       //
-      const block = await this.app.blockchain.getBlock(bsh);
+      let block;
+      try {
+        block = await this.app.blockchain.getBlock(bsh, true);
+      } catch (err: any) {
+        const msg =
+          typeof err === 'string'
+            ? err
+            : err?.message != null
+              ? String(err.message)
+              : err?.toString != null
+                ? String(err.toString())
+                : '';
+
+        // wasm layer rejects/throws when the requested block does not exist.
+        if (msg.toLowerCase().includes('block not found')) {
+          if (!res.finished) {
+            return res.sendStatus(404);
+          }
+          return;
+        }
+
+        // Preserve existing behavior for non-"block not found" errors.
+        throw err;
+      }
 
       if (!block) {
         console.log(`block : ${bsh} doesn't exist...`);
@@ -869,12 +892,14 @@ class Server {
       follow: 50
     };
     return fetch(link, opts)
-      .then((res) => {
+      .then(async (res) => {
         if (res.ok) {
-          return res.text();
+          const pageUrl = res.url || link;
+          const data = await res.text();
+          return { data, pageUrl };
         } else throw new Error(`Response status: ${res.status}`);
       })
-      .then((data) => {
+      .then(({ data, pageUrl }) => {
         let no_tags = {
           title: '',
           description: ''
@@ -940,6 +965,15 @@ class Server {
         //
         // Map twitter tags to open graph if only have twitter
         //
+        for (const key of ['twitter:url', 'twitter:image']) {
+          const value = tw_tags[key];
+          if (value) {
+            try {
+              tw_tags[key] = new URL(value, pageUrl).href;
+            } catch (err) {}
+          }
+        }
+
         if (has_twitter && !has_og) {
           og_tags['og:title'] = tw_tags['twitter:title'];
           og_tags['og:description'] = tw_tags['twitter:description'];
@@ -951,6 +985,15 @@ class Server {
         // fallback to no tags if still blank...
         og_tags['og:title'] = og_tags['og:title'] || no_tags['title'];
         og_tags['og:description'] = og_tags['og:description'] || no_tags['description'];
+
+        for (const key of ['og:url', 'og:image']) {
+          const value = og_tags[key];
+          if (value) {
+            try {
+              og_tags[key] = new URL(value, pageUrl).href;
+            } catch (err) {}
+          }
+        }
 
         if (callback) {
           callback(og_tags);

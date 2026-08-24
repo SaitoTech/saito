@@ -1,0 +1,21 @@
+/* Namespace: .nwasm-load-rom */
+
+.nwasm-load-rom {
+  min-width: min(28rem, 90vw);
+}
+
+.nwasm-load-rom .body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--saito-space-lg);
+  padding: var(--saito-space-xl) 0 var(--saito-space-md);
+  text-align: center;
+}
+
+.nwasm-load-rom .status {
+  color: var(--saito-muted-foreground);
+  font-size: var(--font-size-medium);
+  max-width: 36ch;
+  line-height: 1.4;
+}

@@ -9,6 +9,22 @@ const ArchiveSummary = require('./lib/archive-summary.template');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
 const jsonTree = require('json-tree-viewer');
 
+function archiveLogBindParams(params) {
+  const out = {};
+  if (!params || typeof params !== 'object') {
+    return params;
+  }
+  for (const k of Object.keys(params)) {
+    if (k === '$tx' || k === 'tx') {
+      const v = params[k];
+      out[k] = '<omitted tx blob, length ' + (v == null ? 0 : String(v).length) + '>';
+    } else {
+      out[k] = params[k];
+    }
+  }
+  return out;
+}
+
 //
 // HOW THE ARCHIVE SAVES TXS
 //
@@ -533,62 +549,132 @@ class Archive extends ModTemplate {
     // update records
     //
     let newObj = {};
+    let context = {};
+    context.db = {};
+    context.db.type = "UPDATE";
 
     //
-    // signature is the search criteria for the update, but we allow some flexibility
-    // (though maybe we shouldn't)
+    // Row identity (archives.sig) is immutable via this function.
+    // obj.sig / obj.signature are LOOKUP keys only (WHERE sig = ...).
+    // They must never appear in the SET clause, even though `sig` is in this.schema.
     //
-    let tx_to_update = obj?.signature || obj?.sig || tx?.signature || '';
+    // tx == null  → identity must come from obj.sig (or obj.signature)
+    // tx != null  → preserve prior resolution order: obj.signature || obj.sig || tx.signature
+    //
+    let tx_to_update = tx
+      ? obj?.signature || obj?.sig || tx?.signature || ''
+      : obj?.sig || obj?.signature || '';
 
     // fallback in case we didn't provide a timestamp (though should be handled by storage.ts)
     if (!obj.updated_at) {
       obj.updated_at = new Date().getTime();
     }
 
-    // Store the updated_at in the tx.optional
-    if (!tx.optional) {
-      tx.optional = {};
-    }
-    tx.optional.updated_at = obj.updated_at;
+    //
+    // When tx is provided, rewrite archives.tx / tx_size from that transaction.
+    // When tx is null, leave the stored archives.tx blob unchanged and update
+    // metadata only (e.g. owner), using obj.sig as the row lookup key.
+    //
+    if (tx) {
+      if (!tx.optional) {
+        tx.optional = {};
+      }
+      tx.optional.updated_at = obj.updated_at;
 
-    newObj.tx = tx.serialize_to_web(this.app);
-    newObj.tx_size = newObj.tx.length;
+      newObj.tx = tx.serialize_to_web(this.app);
+      newObj.tx_size = newObj.tx.length;
+    }
 
     if (!tx_to_update) {
-      // console.error('No tx signature for archive update:', tx);
       return 0;
     }
 
     //
-    // update index
+    // AUTHORIZATION: same access-script gate as deleteTransaction()
     //
-    let sql = `UPDATE archives SET tx = $tx, tx_size = $tx_size`;
+    let select_sql = `SELECT sig, owner FROM archives WHERE archives.sig = $sig`;
+    let select_params = { $sig: tx_to_update };
+    let existing_rows = await this.app.storage.queryDatabase(select_sql, select_params, 'archive');
 
+    if (this.app.BROWSER && (!existing_rows || existing_rows.length === 0)) {
+      existing_rows = await this.localDB.select({
+        from: 'archives',
+        where: { sig: tx_to_update },
+        limit: 1
+      });
+    }
+
+    //
+    // update index — build SET clause without always rewriting tx
+    //
+    let set_clauses = [];
+    // $sig is bound ONLY for WHERE sig = $sig — never for SET sig = ...
     let params = {
-      $tx: newObj.tx,
-      $tx_size: newObj.tx_size,
       $sig: tx_to_update
     };
 
+    if (tx) {
+      set_clauses.push('tx = $tx');
+      set_clauses.push('tx_size = $tx_size');
+      params.$tx = newObj.tx;
+      params.$tx_size = newObj.tx_size;
+    }
+
     //
-    // Will set updated_at and any other search meta data fields...
+    // Metadata fields from obj.
+    // Explicitly exclude sig/signature even though `sig` is in this.schema —
+    // callers must not be able to relocate an Archive row to a different signature.
     //
     for (let key in obj) {
-      if (key != 'tx') {
-        if (this.schema.includes(key)) {
-          // Server DB -- SQL
-          sql += `, ${key} = $${key}`;
-          params[`$${key}`] = obj[key];
-          // Browser DB -- JsStore
-          newObj[key] = obj[key];
+      if (key === 'tx' || key === 'sig' || key === 'signature') {
+        continue;
+      }
+      if (this.schema.includes(key)) {
+        set_clauses.push(`${key} = $${key}`);
+        params[`$${key}`] = obj[key];
+        newObj[key] = obj[key];
+	context.db[key] = obj[key];
+      }
+    }
+
+    // Defense: browser JsStore set must never rewrite row identity.
+    delete newObj.sig;
+    delete newObj.signature;
+
+    if (set_clauses.length === 0) {
+      return 0;
+    }
+
+    //
+    // now figure out if we can update
+    //
+    if (existing_rows && existing_rows.length > 0) {
+      let existing_row = existing_rows[0];
+
+      if (existing_row.owner && existing_row.owner !== '') {
+        if (!obj.access_script) {
+          return 0;
+        }
+
+        let can_update = false;
+        let request_tx = obj.request_tx || tx || null;
+
+        if (this.app.core.scripting.hash(obj.access_script) === existing_row.owner) {
+          if (await this.app.core.scripting.evaluateWithTransaction(obj.access_script, request_tx, context)) {
+            can_update = true;
+          }
+        }
+
+        if (!can_update) {
+          return 0;
         }
       }
     }
 
-    sql += ` WHERE sig = $sig`;
+    let sql = `UPDATE archives SET ${set_clauses.join(', ')} WHERE sig = $sig`;
 
     if (this.app.BROWSER) {
-      let results = await this.localDB.update({
+      await this.localDB.update({
         in: 'archives',
         set: newObj,
         where: {
@@ -596,7 +682,7 @@ class Archive extends ModTemplate {
         }
       });
     } else {
-      if (newObj.tx_size > 50000) {
+      if (tx && newObj.tx_size > 50000) {
         const fs = this.app?.storage?.returnFileSystem();
         if (fs) {
           const filename = `${__dirname}/../../data/archive/${tx_to_update}`;
@@ -679,7 +765,12 @@ class Archive extends ModTemplate {
     }
     if (obj.flagged) {
       timestamp_limiting_clause += ' AND flagged = ' + parseInt(obj.flagged);
-      where_obj = { flagged: { '=': parseInt(obj.flagged) } };
+      where_obj['flagged'] = { '=': parseInt(obj.flagged) };
+    }
+    if (obj.flagged_ne != null || Object.prototype.hasOwnProperty.call(obj, 'flagged_ne')) {
+      timestamp_limiting_clause += ' AND flagged != ' + parseInt(obj.flagged_ne);
+      where_obj['flagged'] = { '!=': parseInt(obj.flagged_ne) };
+      delete obj.flagged_ne;
     }
 
     if (obj.ascending || obj.hasOwnProperty('ascending')) {
@@ -743,6 +834,21 @@ class Archive extends ModTemplate {
     //
     sql += timestamp_limiting_clause + order_clause + ` ${sort} LIMIT $limit`;
 
+    const vault_access_read = !!(obj.access_script || obj.request_tx);
+    if (vault_access_read) {
+      console.log(
+        '--------------------------------\nARCHIVE LOAD TRANSACTIONS (VAULT ACCESS SELECT)\n--------------------------------\nSQL:\n' +
+          sql +
+          '\nparameters:\n' +
+          JSON.stringify(archiveLogBindParams(params), null, 2) +
+          '\n$owner:\n' +
+          (params.$owner == null ? '(not bound)' : params.$owner) +
+          '\n$sig:\n' +
+          (params.$sig == null ? '(not bound)' : params.$sig) +
+          '\n--------------------------------'
+      );
+    }
+
     //
     // SEARCH BASED ON CRITERIA PROVIDED
     // Run SQL queries for full nodes, with JS-Store fallback for browsers
@@ -783,6 +889,20 @@ class Archive extends ModTemplate {
           );
         }
       }
+    }
+
+    if (vault_access_read) {
+      const row_summaries = (rows || []).map((r) => ({
+        sig: r.sig,
+        owner: r.owner
+      }));
+      console.log(
+        '--------------------------------\nARCHIVE LOAD TRANSACTIONS RESULT\n--------------------------------\nrows returned:\n' +
+          (rows ? rows.length : 0) +
+          '\nreturned row sig/owner:\n' +
+          JSON.stringify(row_summaries, null, 2) +
+          '\n--------------------------------'
+      );
     }
 
     //

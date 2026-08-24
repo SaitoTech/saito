@@ -1,6 +1,14 @@
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 module.exports = (
   data = {},
-  cardId = '',
+  listingAttrs = '',
   mediaClass = '',
   mediaBackground = '',
   showLoading = false
@@ -11,17 +19,20 @@ module.exports = (
     ? `<i class="fas fa-spinner fa-spin loader" aria-hidden="true"></i>`
     : '';
   const loadingClass = showLoading ? ' loading' : '';
-  const price = data.price ? `<p class="price">${data.price}</p>` : '';
-  const seller = data.seller ? `<p class="seller">${data.seller}</p>` : '';
-  const title = data.title || 'Untitled Item';
-  const label = `View listing: ${String(title).replace(/"/g, '&quot;')}`;
+  const title = escapeHtml(data.title || 'Untitled Item');
+  const price = data.price ? `<p class="price">${escapeHtml(data.price)}</p>` : '';
+  const seller = data.seller ? `<p class="seller">${escapeHtml(data.seller)}</p>` : '';
+  const label = `View listing: ${title}`;
+  const attrs = listingAttrs ? ` ${listingAttrs}` : '';
+  const identicon = escapeHtml(data.identicon || '');
+  const safeBackground = escapeHtml(mediaBackground || '');
 
   return `
-    <article class="teaser" id="${cardId}" role="button" tabindex="0" aria-label="${label}">
-      <div class="media ${mediaClass}${loadingClass}" style="background: ${mediaBackground};">
+    <article class="teaser"${attrs} role="button" tabindex="0" aria-label="${label}">
+      <div class="media ${escapeHtml(mediaClass)}${loadingClass}" style="background: ${safeBackground};">
         ${loader}
         ${badge}
-        <img class="saito-identicon" src="${data.identicon}" alt="" />
+        <img class="saito-identicon" src="${identicon}" alt="" />
       </div>
       <div class="info">
         <h3 class="title">${title}</h3>

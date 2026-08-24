@@ -29,11 +29,6 @@ field is a literal property name — it is not resolved as a reference.
     source: '__opcodes.importarray.successors',
     field: 'owner'
   },
-  schema: {
-    destination: 'string',
-    source: 'reference',
-    field: 'string'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

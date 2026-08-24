@@ -14,10 +14,11 @@ export default class Blockchain extends SaitoBlockchain {
     super(data);
   }
 
-  public async getBlock(blockHash: string): Promise<Block> {
-    let block = await Saito.getInstance().getBlock(blockHash);
-
-    return block as unknown as Block;
+  public async getBlock(
+    idOrHash: string | number | bigint,
+    includeTransactions: boolean = false
+  ): Promise<Block> {
+    return (await super.getBlock(idOrHash, includeTransactions)) as unknown as Block;
   }
 
   async resetBlockchain() {

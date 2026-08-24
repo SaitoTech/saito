@@ -3,7 +3,7 @@ module.exports = (app, mod) => {
 			<div id="modtools-settings" class="saito-module-settings">
 	`;
 
-  let public_c = '';
+  let server_c = '';
   let friends_c = '';
   let custom_c = '';
   let none_c = '';
@@ -11,8 +11,8 @@ module.exports = (app, mod) => {
   if (mod.permissions.mode == 'none') {
     none_c = 'checked';
   }
-  if (mod.permissions.mode == 'public') {
-    public_c = 'checked';
+  if (mod.permissions.mode == 'server' || mod.permissions.mode == 'public') {
+    server_c = 'checked';
   }
   if (mod.permissions.mode == 'friends') {
     friends_c = 'checked';
@@ -35,8 +35,8 @@ module.exports = (app, mod) => {
             	<input class="saito-radio" type="radio" id="friends_mod" name="who_moderates" value="friends_mod" ${friends_c}>
             	<label for="friends_mod">Friends <span class="note">- my friends and contacts</span></label>
 
-            	<input class="saito-radio" type="radio" id="public_mod" name="who_moderates" value="public_mod" ${public_c}>
-            	<label for="public_mod">Saito <span class="note">- get blacklists from a Saito run node</span></label>
+            	<input class="saito-radio" type="radio" id="server_mod" name="who_moderates" value="server_mod" ${server_c}>
+            	<label for="server_mod">Server <span class="note">- accept moderation lists from the server I am connected to</span></label>
 
             </fieldset>
 

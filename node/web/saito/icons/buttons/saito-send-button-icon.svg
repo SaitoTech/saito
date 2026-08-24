@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter">
+  <title>Send</title>
+  <path d="M32 3 59 18v28L32 61 5 46V18L32 3Z"/>
+  <path d="M32 48V17"/>
+  <path d="m20 29 12-12 12 12"/>
+</svg>

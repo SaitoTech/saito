@@ -1,5 +1,6 @@
 /* Namespace: .redsquare-profile
  * Layout mirrors Saito profile hierarchy; HTML still uses RS-prefixed hooks.
+ * Spacing tuned to match the profile card reference composition.
  */
 
 .redsquare-profile .card {
@@ -14,7 +15,7 @@
 .redsquare-profile-banner {
   position: relative;
   width: 100%;
-  height: 6.5rem;
+  height: 7.2rem;
   overflow: hidden;
   background-color: var(--saito-card);
   background-image: url(/saito/img/dreamscape.png);
@@ -23,39 +24,66 @@
 }
 
 .redsquare-profile-banner-edit {
+  box-sizing: border-box;
   position: absolute;
-  right: var(--saito-space-xs);
-  bottom: var(--saito-space-xs);
+  right: var(--saito-space-sm);
+  bottom: var(--saito-space-sm);
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  margin: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--saito-black) 52%, transparent);
+  color: var(--saito-foreground);
+  font-size: 1.15rem;
+  line-height: 1;
+  text-shadow: none;
   cursor: pointer;
-  color: var(--saito-gray-850);
-  text-shadow: 1px 1px 4px var(--saito-black);
+}
+
+.redsquare-profile-banner-edit:hover,
+.redsquare-profile-banner-edit:focus-visible {
+  background: color-mix(in srgb, var(--saito-black) 68%, transparent);
+  outline: none;
+}
+
+.redsquare-profile .body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .redsquare-profile .identity {
   display: grid;
-  grid-template-columns: 6.8rem minmax(0, 1fr);
-  column-gap: var(--saito-space-sm);
+  grid-template-columns: 6.4rem minmax(0, 1fr);
+  column-gap: 1.4rem;
   align-items: start;
   min-width: 0;
-  margin: -2.2rem 0 var(--saito-space-sm);
-  padding-inline: var(--saito-space-md);
+  /* ~34% overlaps banner — avatar sits lower, more of it in the body */
+  margin: -2.2rem 0 0.85rem;
+  padding: 0 1rem;
 }
 
 .redsquare-profile .avatar {
-  width: 6.8rem;
-  height: 6.8rem;
+  width: 6.4rem;
+  height: 6.4rem;
   z-index: 1;
   object-fit: cover;
-  border: 2px solid var(--saito-background);
+  border: 3px solid var(--saito-card-wash);
   border-radius: var(--saito-radius);
+  background: var(--saito-card-wash);
 }
 
 .redsquare-profile .text {
   display: flex;
   flex-direction: column;
+  gap: 0.2rem;
   min-width: 0;
-  padding-top: 2.4rem;
+  /* Clear banner overlap, then modest air so the name sits in the body */
+  padding-top: calc(2.2rem + 0.55rem);
 }
 
 .redsquare-profile .name {
@@ -63,42 +91,78 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--saito-font-medium);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--saito-foreground);
+}
+
+@media (min-width: 601px) {
+  body.redsquare-body .redsquare-profile .name {
+    font-size: 1.45rem;
+    line-height: 1.25;
+  }
 }
 
 .redsquare-profile .key-row {
   display: flex;
   align-items: center;
-  gap: var(--saito-space-xs);
+  gap: 0.45rem;
+  width: 100%;
   min-width: 0;
-  min-height: 2.2rem;
+  margin: 0;
 }
 
 .redsquare-profile .public-key {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-tiny);
+  font-size: 1.2rem;
+  line-height: 1.35;
   color: var(--saito-muted-foreground);
 }
 
 .redsquare-profile .copy-key {
+  box-sizing: border-box;
   flex: 0 0 auto;
-  width: 2.2rem;
-  height: 2.2rem;
+  align-self: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  margin: 0;
   padding: 0;
-  border: none;
   background: transparent;
-  color: inherit;
-  cursor: pointer;
+  border: none;
+  border-radius: var(--saito-radius-sm, 0.4rem);
+  color: var(--saito-muted-foreground);
+  opacity: 0.5;
+}
+
+.redsquare-profile .copy-key:hover,
+.redsquare-profile .copy-key:focus-visible {
+  background: transparent;
+  border: none;
+  color: var(--saito-foreground);
+  opacity: 1;
+}
+
+.redsquare-profile .copy-key:active {
+  transform: scale(0.94);
+}
+
+.redsquare-profile .copy-key i {
+  font-size: 0.95rem;
 }
 
 .redsquare-profile-description {
   margin: 0;
-  padding: 0 var(--saito-space-md) var(--saito-space-sm);
+  padding: 0 1rem 1rem;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.5;
+  color: var(--saito-foreground);
 }
 
 .redsquare-profile-description.empty:not(.can-edit) {
@@ -117,6 +181,7 @@
   cursor: pointer;
   align-items: flex-end;
   justify-content: center;
+  opacity: 0.45;
 }
 
 .redsquare-profile-description.can-edit .redsquare-profile-description-edit {
@@ -128,22 +193,51 @@
 }
 
 .redsquare-profile .nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--saito-border);
 }
 
 .redsquare-profile .nav .item {
-  flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--saito-space-sm) var(--saito-space-xs);
+  min-width: 0;
+  min-height: 3.8rem;
+  padding: 1rem 0.4rem;
+  border: none;
+  background: transparent;
   cursor: pointer;
+  text-align: center;
+  text-decoration: none;
   text-transform: capitalize;
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.2;
   color: var(--saito-muted-foreground);
+}
+
+.redsquare-profile .nav .item:hover,
+.redsquare-profile .nav .item:focus-visible {
+  color: var(--saito-foreground);
+  outline: none;
 }
 
 .redsquare-profile .nav .item.active {
   color: var(--saito-foreground);
-  text-decoration: underline dashed;
-  text-underline-offset: 0.5rem;
+  text-decoration: none;
+}
+
+.redsquare-profile .nav .item.active::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 0;
+  height: 0.25rem;
+  border-radius: 0.25rem 0.25rem 0 0;
+  background: var(--saito-primary);
 }

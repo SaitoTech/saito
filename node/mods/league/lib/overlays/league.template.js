@@ -1,4 +1,5 @@
 module.exports = (app, mod, league) => {
+  const esc = (value) => app.browser.escapeHTML(String(value ?? ''));
   let game_mod = app.modules.returnModuleByName(league.game);
   let img = '',
     key_words = '',
@@ -20,9 +21,9 @@ module.exports = (app, mod, league) => {
                 <div class="league-overlay-header-title-box">
                     <div class="league-overlay-header-title-box-title ${
                       league.name.length > 15 ? 'oversize-load' : ''
-                    }">${league.name}</div>
+                    }">${esc(league.name)}</div>
                     <div class="league-overlay-header-title-box-desc">${
-                      league.admin ? `${game_name} league` : key_words
+                      league.admin ? `${esc(game_name)} league` : esc(key_words)
                     }</div>
                 </div>
                 <div class="league-overlay-controls">
@@ -42,7 +43,7 @@ module.exports = (app, mod, league) => {
             <div class="league-overlay-body">
                 <div class="league-overlay-body-content">
                     <div class="league-overlay-description league-overlay-content-box ${(newPlayer || league.unverified) && isMember ? 'hidden' : ''}">`;
-  html += league.description;
+  html += esc(league.description);
   if (!league?.admin && game_mod.publisher_message) {
     html += `<div id="arcade-game-publisher-message" class="arcade-game-publisher-message">
       				<span>NOTE: </span>
@@ -68,7 +69,7 @@ module.exports = (app, mod, league) => {
                         ${app.browser.returnAddressHTML(league.admin)}
                         <div id="admin_contact" class="saito-userline" data-id="${
                           league.admin
-                        }">${league.contact}</div>
+                        }">${esc(league.contact)}</div>
                         ${
                           newPlayer || league.unverified || (league.admin && !isMember)
                             ? `<button id="league-chat-button" class="saito-user-fourth-elem-large saito-button-primary">League Chat</button>`
@@ -79,7 +80,7 @@ module.exports = (app, mod, league) => {
       if (newPlayer || league.unverified || !isMember) {
         html += `<div id="admin_welcome" class="league-overlay-content-box ${
           !isMember ? 'hidden' : ''
-        }">${league.welcome}</div>`;
+        }">${esc(league.welcome)}</div>`;
 
         html += `<div id="admin_note" class="contactAdminWarning league-overlay-content-box">
                             <div><i class="fas fa-exclamation-triangle"></i>Warning</div>`;

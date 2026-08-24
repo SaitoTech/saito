@@ -2,11 +2,14 @@ const MainTemplate = require('./main.template');
 const Menu = require('./menu');
 const Manager = require('./manager');
 const NftPickerOverlay = require('./overlays/nft-picker');
+const PrepareStoreOverlay = require('./overlays/prepare-store');
 const ListingDetailOverlay = require('./overlays/listing-detail');
+const RentalListingOverlay = require('./overlays/rental-listing');
 const PurchaseOverlay = require('./overlays/purchase');
+const SettingsOverlay = require('./overlays/settings');
 const PurchaseLifecycle = require('./purchase-lifecycle');
-const PurchaseStatus = require('./purchase-status');
 const ListingLifecycle = require('./listing-lifecycle');
+const { normalizeListingMode } = require('../categories');
 
 class Main {
   constructor(app, mod, container = '.saito-container') {
@@ -24,19 +27,18 @@ class Main {
     this.menu = new Menu(app, mod, '', {
       onNavigate: (view, opts) => this.onNavigate(view, opts),
       onSell: () => this.openSell(),
+      onSettings: () => this.openSettings(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
     });
     this.manager = new Manager(app, mod, '', {
       onSell: () => this.openSell(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
     });
-    this.purchase_status = new PurchaseStatus(app, mod, '', {
-      onShowProgress: () => this.reopenPurchaseProgress(),
-      onViewNfts: () => this.openMyNfts()
-    });
     this.nft_picker = null;
+    this.prepare_store = null;
     this.listing_detail = null;
     this.purchase_overlay = null;
+    this.settings_overlay = null;
 
     // Compatibility aliases for existing callers (store.respondTo, teaser, detail buy).
     this.product_overlay = null;
@@ -72,14 +74,31 @@ class Main {
 
   async initialize() {
     this.nft_picker = new NftPickerOverlay(this.app, this.mod);
+    this.prepare_store = new PrepareStoreOverlay(this.app, this.mod);
     this.listing_detail = new ListingDetailOverlay(this.app, this.mod);
+    this.rental_listing = new RentalListingOverlay(this.app, this.mod);
     this.purchase_overlay = new PurchaseOverlay(this.app, this.mod);
+    this.settings_overlay = new SettingsOverlay(this.app, this.mod);
 
+    this.prepare_store.onContinue = (defaults) => {
+      this.nft_picker.render(defaults || {});
+    };
+    this.prepare_store.onCreateNft = (defaults) => {
+      this.nft_picker.defaults = defaults || {};
+      this.nft_picker.openCreateNft();
+    };
     this.nft_picker.onSelect = (nft, defaults) => {
+      if (normalizeListingMode(defaults?.listing_mode) === 'rent') {
+        this.rental_listing.render({ source_nft: nft, defaults });
+        return;
+      }
       this.listing_detail.render({ mode: 'edit', nft, defaults });
     };
     this.listing_detail.onBack = (defaults) => {
       this.nft_picker.render(defaults || {});
+    };
+    this.rental_listing.onBack = (defaults) => {
+      this.nft_picker.render({ ...(defaults || {}), listing_mode: 'rent' });
     };
 
     this.product_overlay = this.listing_detail;
@@ -103,7 +122,6 @@ class Main {
 
     this.menu.render(`${this.container} .store > .menu`);
     this.manager.render(`${this.container} .store > .main-column > .manager`);
-    this.purchase_status.render(`${this.container} .store > .main-column > .purchase-status-slot`);
   }
 
   onNavigate(view = '', opts = {}) {
@@ -259,46 +277,47 @@ class Main {
   }
 
   /**
-   * Reopen Store-owned post-confirm overlays only.
-   * Does not recreate Transaction Monitor / confirmation waiting after dismiss or reload.
+   * True when this wallet already has a storefront (menu cache, Profile URL, or listings).
    */
-  reopenPurchaseProgress() {
-    const purchase = this.mod.purchase_lifecycle?.returnActivePurchase?.();
-    const overlay = this.purchase_overlay;
-    if (!purchase || !overlay) {
-      return;
+  hasOwnStore() {
+    if (this.menu?.has_store) {
+      return true;
     }
-
-    overlay.listingTitle = purchase.title || '';
-    overlay.pendingTxSignature = purchase.purchase_tx_signature || '';
-    overlay.nft_id = purchase.nft_id || '';
-    overlay.quantity = purchase.quantity || 1;
-
-    if (purchase.phase === PurchaseLifecycle.PHASE.COMPLETE) {
-      overlay.openComplete();
-      return;
+    if (this.mod.returnProfileStoreUrl?.()) {
+      return true;
     }
-    if (purchase.phase === PurchaseLifecycle.PHASE.FULFILLING) {
-      overlay.openFulfilling();
-    }
-  }
-
-  openMyNfts() {
-    const active = this.mod.purchase_lifecycle?.returnActivePurchase?.();
-    if (active?.phase === PurchaseLifecycle.PHASE.COMPLETE) {
-      this.mod.purchase_lifecycle.dismiss(active.id);
-    }
-    this.purchase_overlay?.hide?.();
-    this.app.connection.emit('saito-nft-list-render-request');
+    const storefront = this.manager?.storefront;
+    return !!(
+      storefront?.inventoryLoaded &&
+      storefront.publicKey === this.mod.publicKey &&
+      storefront.activeSummaries?.length > 0
+    );
   }
 
   openSell(defaults = {}) {
-    if (defaults?.nft) {
-      this.listing_detail.render({ mode: 'edit', nft: defaults.nft, defaults });
+    const next = {
+      ...defaults,
+      listing_mode: normalizeListingMode(defaults.listing_mode)
+    };
+    if (next?.nft) {
+      if (next.listing_mode === 'rent') {
+        this.rental_listing.render({ source_nft: next.nft, defaults: next });
+        return;
+      }
+      this.listing_detail.render({ mode: 'edit', nft: next.nft, defaults: next });
       return;
     }
 
-    this.nft_picker.render(defaults);
+    if (this.prepare_store && !this.hasOwnStore()) {
+      this.prepare_store.render(next);
+      return;
+    }
+
+    this.nft_picker.render(next);
+  }
+
+  openSettings() {
+    this.settings_overlay?.render();
   }
 }
 

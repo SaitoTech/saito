@@ -100,30 +100,27 @@ class GameWeb3 {
   async refuseGameStake(ticker = '', stake = '') {}
 
   /**
+   * Called by the SETTLE queue command when the game has ended.
+   * Adds standard SEND/RECEIVE payment commands to the queue for each
+   * loser's obligation to the winner(s).
    *
-   * If we have established a game stake, this function will get called at the end of the game
-   * Games like poker/blackjack that settle every round or have players join/leave at will, are
-   * processed in table-gametemplate in an overrode function
-   *
-   * So given one or more winners, the remaining players send the bet amount to the winners
-   *
-   * In a 2 player game, the 1 loser pays the 1 winner.
-   * If there is a tie, no money is sent
-   * In a 3 player game, 1 winner collect 1 stake from each of the losers
-   * In a 3 player game, if there is a 2 way tie, the 1 loser pays half the stake to each winner
-   * etc.
-   *
+   * Table games override this to settle accumulated per-hand debt instead.
    */
-  async settleGameStake(winners) {
-    console.info('GT [settleGameStake] winners: ', winners);
+  queueGameStakeSettlement() {
+    let winners = this.game.winner;
+    console.info('GT [queueGameStakeSettlement] winners: ', winners);
 
     if (!this.game?.stake || !this.game?.crypto) {
-      console.debug('GT [settleGameStake] No stake: ', this.game.stake, this.game.crypto);
+      console.debug('GT [queueGameStakeSettlement] No stake: ', this.game.stake, this.game.crypto);
       return;
     }
 
     if (this.game.crypto == 'CHIPS') {
-      console.debug('GT [settleGameStake] Playing with chips: ', this.game.stake, this.game.crypto);
+      console.debug(
+        'GT [queueGameStakeSettlement] Playing with chips: ',
+        this.game.stake,
+        this.game.crypto
+      );
       return;
     }
 
@@ -139,113 +136,20 @@ class GameWeb3 {
       let loser = this.game.players[i];
 
       if (Array.isArray(winners)) {
+        if (winners.length === 0) {
+          continue;
+        }
         amount_to_send = amount_to_send / winners.length;
         if (!winners.includes(loser)) {
           for (let winner of winners) {
-            await this.payWinner(loser, winner, amount_to_send);
+            this.addPaymentToQueue(loser, winner, amount_to_send);
           }
         }
       } else {
-        if (loser !== winners) {
-          await this.payWinner(loser, winners, amount_to_send);
+        if (winners && loser !== winners) {
+          this.addPaymentToQueue(loser, winners, amount_to_send);
         }
       }
-    }
-  }
-
-  /**
-   * This function is very similar to the QUEUE Commands
-   * SEND & RECEIVE except without the game loop logic.
-   *
-   * If the player is the sender or receiver, they will launch the appropriate
-   * UI to trigger a crypto transfer
-   *
-   */
-  async payWinner(sender, receiver, amount) {
-    let ts = new Date().getTime();
-
-    // 0 stake condition
-    if (!amount) {
-      if (this.publicKey === sender) {
-        siteMessage("You lost, but don't owe anything");
-      } else if (this.publicKey === receiver) {
-        siteMessage('You won, and get to keep your stake');
-      }
-      return;
-    }
-
-    amount = this.app.crypto.convertFloatToSmartPrecision(parseFloat(amount));
-    let ticker = this.game.crypto;
-    let amount_for_unique_hash = amount;
-    if (ticker == 'SAITO') {
-      amount_for_unique_hash = this.app.wallet
-        .convertSaitoToNolan(amount_for_unique_hash)
-        .toString();
-    }
-
-    this.rollDice();
-    this.saveGame(this.game.id);
-    let unique_hash = this.app.crypto.hash(
-      Buffer.from(
-        sender + receiver + amount_for_unique_hash + this.game.dice + this.game.crypto,
-        'utf-8'
-      )
-    );
-
-    //
-    // if we are the sender, lets get sending and receiving addresses
-    //
-
-    let game_self = this;
-    let sender_crypto_address = '';
-    let receiver_crypto_address = '';
-    for (let i = 0; i < this.game.players.length; i++) {
-      let player = i + 1;
-      let crypto = this.game.crypto;
-      if (this.game.players[i] === sender) {
-        sender_crypto_address = this.game.cryptos[player][crypto]['address'];
-      }
-      if (this.game.players[i] === receiver) {
-        receiver_crypto_address = this.game.cryptos[player][crypto]['address'];
-      }
-    }
-
-    if (this.publicKey === sender) {
-      this.app.connection.emit('saito-crypto-send-confirm-open-request', {
-        publicKey: receiver,
-        address: receiver_crypto_address,
-        amount,
-        ticker,
-        hash: unique_hash,
-        game_id: this.game.id,
-        trusted: this.loadGamePreference('crypto_transfers_outbound_trusted'),
-        mycallback: async function () {
-          await game_self.app.wallet.sendPayment(
-            ticker,
-            [sender_crypto_address],
-            [receiver_crypto_address],
-            [amount],
-            unique_hash,
-            function (robj) {
-              console.debug('GT [payWinner] End game crypto transfer callback', robj);
-              game_self.app.connection.emit('saito-crypto-send-confirm', robj);
-            },
-            receiver,
-            `${game_self.name} stake`
-          );
-          return 0;
-        }
-      });
-    } else if (this.publicKey === receiver) {
-      game_self.app.connection.emit('saito-crypto-receive-render-request', {
-        publicKey: sender,
-        address: sender_crypto_address,
-        amount: amount,
-        hash: unique_hash,
-        ticker,
-        game_id: game_self.game.id
-      });
-      await game_self.app.wallet.receivePayment(ticker, sender_crypto_address, amount, unique_hash);
     }
   }
 
@@ -265,14 +169,6 @@ class GameWeb3 {
         'utf-8'
       )
     );
-
-    if (this.game.over) {
-      console.info(
-        `GT [addPaymentToQueue] --> redirect to payWinner because game is over and queue not processing!`
-      );
-      this.payWinner(sender, receiver, amount_to_send);
-      return;
-    }
 
     console.debug(
       `GT [addPaymentToQueue]: ${sender}\t${receiver}\t${amount_to_send}\t${this.game.crypto}`

@@ -21,13 +21,13 @@ class BuySaito extends ModTemplate {
     this.description = 'Buy native SAITO';
     this.categories = 'Utility Ecommerce NFTs';
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: '🟥 Official SAITO Sales Platform',
-      url: 'https://saito.io/buysaito/',
+      url: '/buysaito/',
       description: 'Get SAITO',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png'
-    };
+    });
 
     this.mixin_mod = null;
     this.erc_saito = null;
@@ -49,6 +49,12 @@ class BuySaito extends ModTemplate {
     // turn this on to fake receiving a mixin payment and test out the UX flow
     this.local_dev = false;
 
+    // BEGIN DEV_MODE_UI — temporary currency-selection UI preview (no Mixin API).
+    // Remove this.dev_mode, seedDevAvailableCurrencies(), and its initialize() call
+    // when UI work is finished. Production must leave currencies empty without Mixin bot.
+    this.dev_mode = 1;
+    // END DEV_MODE_UI
+
     this.purchase_overlay = new SaitoPurchaseOverlay(app, this);
 
     this.styles = ['/buy/style.css'];
@@ -59,6 +65,9 @@ class BuySaito extends ModTemplate {
 
     if (app.BROWSER) {
       this.attachStyleSheets();
+      // BEGIN DEV_MODE_UI
+      this.seedDevAvailableCurrencies();
+      // END DEV_MODE_UI
     }
 
     if (!this.app.BROWSER) {
@@ -66,6 +75,8 @@ class BuySaito extends ModTemplate {
       if (
         app.options?.server?.endpoint?.host == 'localhost' ||
         app.options?.server?.endpoint?.host.includes('staging') ||
+        app.options?.server?.endpoint?.host.includes('testnet') ||
+        app.options?.server?.endpoint?.host.includes('test') ||
         app.options?.server?.host.includes('staging')
       ) {
         this.authorized_public_key = this.publicKey;
@@ -74,11 +85,13 @@ class BuySaito extends ModTemplate {
       }
 
       setTimeout(() => {
-        if (this.mixin_mod && this.authorized_public_key === this.publicKey) {
+        if (this.mixin_mod?.bot && this.authorized_public_key === this.publicKey) {
           this.mixin_mod.createAccount();
           this.loadAltAccounts();
           this.loadPendingPayments();
           this.checkPrices();
+        } else if (this.authorized_public_key === this.publicKey) {
+          console.warn('BUYSAITO disabled: Mixin API credentials are not configured');
         }
       }, 2000);
     }
@@ -87,7 +100,7 @@ class BuySaito extends ModTemplate {
   returnServices() {
     let services = [];
     if (!this.app.BROWSER) {
-      if (this.publicKey == this.authorized_public_key) {
+      if (this.mixin_mod?.bot && this.publicKey == this.authorized_public_key) {
         services.push(new PeerService(null, 'buysaito'));
       }
     }
@@ -408,6 +421,39 @@ class BuySaito extends ModTemplate {
       }
     }
   }
+
+  // BEGIN DEV_MODE_UI
+  // Temporary: populate available_currencies from installed mixin-crypto modules so the
+  // existing Get SAITO crypto-selection UI can be inspected without Mixin API credentials.
+  // Does not fake payments, addresses, balances, or transactions. Delete this method and
+  // all DEV_MODE_UI markers when finished with UI work.
+  seedDevAvailableCurrencies() {
+    if (!this.dev_mode || !this.app.BROWSER) {
+      return;
+    }
+    if (this.available_currencies?.length) {
+      return;
+    }
+
+    const installed = this.app.modules.getRespondTos('mixin-crypto') || [];
+    this.available_currencies = installed
+      .filter((m) => m?.ticker && m.ticker !== 'ERC-SAITO')
+      .map((m) => {
+        const ticker = String(m.ticker);
+        return {
+          ticker,
+          price_usd: '1',
+          last_update: 0,
+          icon_url: `/${ticker.toLowerCase()}/img/logo.png`
+        };
+      });
+
+    console.debug(
+      'BUYSAITO DEV_MODE_UI: seeded available_currencies from installed modules',
+      this.available_currencies.map((c) => c.ticker)
+    );
+  }
+  // END DEV_MODE_UI
 
   //
   // Refresh USD-pair price info of Web3Cryptos

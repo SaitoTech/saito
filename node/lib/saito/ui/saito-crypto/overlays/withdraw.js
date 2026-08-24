@@ -18,8 +18,11 @@ class Withdraw {
     this.publicKey = '';
     this.fixedRecipient = false;
     this.address = '';
+    this.recipientAddressValid = false;
     this.fee = null;
     this.feePending = false;
+    this.feeRequestKey = '';
+    this.feeRequestPromise = null;
     this.lastTxHash = '';
     this.amountErrorMessage = '';
 
@@ -49,6 +52,7 @@ class Withdraw {
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
     this.amountErrorMessage = '';
+    this.recipientAddressValid = false;
 
     if (this.publicKey) {
       this.address = await this.pc.returnAddressFromPublicKey(this.publicKey);
@@ -91,7 +95,7 @@ class Withdraw {
   updateHeaderTitle() {
     const title = document.getElementById('withdraw-overlay-title');
     if (title) {
-      title.textContent = 'Send';
+      title.textContent = 'SEND CRYPTO';
     }
   }
 
@@ -100,6 +104,18 @@ class Withdraw {
     if (!cont || !this.pc) {
       return;
     }
+
+    // This overlay is used for multiple assets, but the Admin request is
+    // specific: remove the SAITO logo from the titlebar.
+    const isSaito = this.pc?.ticker === 'SAITO' || this.pc?.chain_id === 'NATIVE';
+    if (isSaito) {
+      cont.classList.add('hide-element');
+      cont.innerHTML = '';
+      return;
+    }
+
+    cont.classList.remove('hide-element');
+
     const icons = this.pc.returnLogos();
     let html = `<img class="crypto-logo" src="${icons.img}" alt="" />`;
     if (icons.sub_logo) {
@@ -257,7 +273,7 @@ class Withdraw {
 
     const identifier = this.returnRegisteredIdentifier(publicKey);
     const primary = identifier || publicKey;
-    const secondary = identifier ? publicKey : 'No registered name';
+    const secondary = identifier ? publicKey : 'anonymous user';
     const identicon = this.app.keychain.returnIdenticon(publicKey);
     const fixedRecipient = this.isFixedRecipientForm();
 
@@ -291,7 +307,7 @@ class Withdraw {
     const displayAddress = this.formatChainAddressForDisplay(address);
     const hasPublicKey = publicKey && this.app.crypto.isPublicKey(publicKey);
     const identifier = hasPublicKey ? this.returnRegisteredIdentifier(publicKey) : '';
-    const primary = hasPublicKey ? identifier || publicKey : 'New/External Address';
+    const primary = hasPublicKey ? identifier || publicKey : 'External Address';
     const secondary = hasPublicKey ? publicKey : 'No matching Saito user';
     const identicon = hasPublicKey ? this.app.keychain.returnIdenticon(publicKey) : '';
 
@@ -406,6 +422,7 @@ class Withdraw {
     const input = document.getElementById('withdraw-input-address');
     if (input && !input.disabled) {
       this.address = '';
+      this.recipientAddressValid = false;
       if (!this.isFixedRecipientForm()) {
         this.publicKey = '';
       }
@@ -428,16 +445,19 @@ class Withdraw {
     const address = input.value.trim();
     if (!address) {
       this.address = '';
+      this.recipientAddressValid = false;
       if (!this.isFixedRecipientForm()) {
         this.publicKey = '';
       }
       this.hideAddressPreview();
+      this.handleErrors();
       return false;
     }
 
     const valid = this.pc.validateAddress(address);
     if (!valid) {
       this.address = '';
+      this.recipientAddressValid = false;
       if (!this.isFixedRecipientForm()) {
         this.publicKey = '';
       }
@@ -453,6 +473,7 @@ class Withdraw {
     }
 
     this.address = address;
+    this.recipientAddressValid = true;
     this.clearAddressError();
 
     if (this.isNativeSaitoSelection()) {
@@ -460,17 +481,27 @@ class Withdraw {
       this.renderSaitoRecipientPreview(address);
       this.showAddressPreview();
     } else {
-      let publicKey = this.publicKey;
+      let publicKey = this.app.crypto.isPublicKey(this.publicKey) ? this.publicKey : '';
       if (typeof this.pc.getSaitoPublicKey === 'function') {
         try {
           const resolvedPublicKey = await this.pc.getSaitoPublicKey(address);
-          if (resolvedPublicKey) {
+          if (resolvedPublicKey && this.app.crypto.isPublicKey(resolvedPublicKey)) {
             this.publicKey = resolvedPublicKey;
             publicKey = resolvedPublicKey;
+          } else if (!this.isFixedRecipientForm()) {
+            this.publicKey = '';
+            publicKey = '';
           }
         } catch (err) {
           console.warn('Withdraw: unable to resolve Saito public key for address', err);
+          if (!this.isFixedRecipientForm()) {
+            this.publicKey = '';
+            publicKey = '';
+          }
         }
+      }
+      if (!this.isFixedRecipientForm()) {
+        this.publicKey = publicKey;
       }
       this.renderExternalRecipientPreview(address, publicKey);
       this.showAddressPreview();
@@ -562,7 +593,6 @@ class Withdraw {
     const onReview = form?.dataset.withdrawStep === 'review';
     const footers = {
       review: document.getElementById('withdraw-footer-review'),
-      success: document.getElementById('withdraw-footer-success'),
       failed: document.getElementById('withdraw-footer-failed')
     };
 
@@ -710,17 +740,15 @@ class Withdraw {
   }
 
   updateSuccessAction() {
-    const action = document.getElementById('withdraw-view-history');
+    const action = document.getElementById('withdraw-confirm-tx-explorer');
     if (!action) {
       return;
     }
 
     if (this.isNativeSaitoSelection()) {
       const key = this.getSenderExplorerKey();
-      action.textContent = 'View on Explorer';
       action.href = key ? `/explorer/address/${encodeURIComponent(key)}` : '/explorer';
     } else {
-      action.textContent = 'View history';
       action.href = '#';
     }
   }
@@ -743,7 +771,7 @@ class Withdraw {
         [amount],
         btoa(sender + this.address + amount + ts),
         async (res) => {
-          if (res.hash != '') {
+          if (res?.hash && !res?.err) {
             this.withdrawBroadcastSuccessUi(res.hash);
           } else {
             const errMsg =
@@ -804,8 +832,7 @@ class Withdraw {
     const row = document.getElementById('withdraw-confirm-tx-row');
     const hashEl = document.getElementById('withdraw-confirm-tx-hash');
     if (row && hashEl) {
-      const short = hash.length > 16 ? `${hash.slice(0, 8)}…${hash.slice(-8)}` : hash;
-      hashEl.textContent = short;
+      hashEl.textContent = hash;
       hashEl.setAttribute('title', hash);
       row.classList.remove('hide-element');
     }
@@ -1023,6 +1050,7 @@ class Withdraw {
     this.pc = this.app.wallet.returnPreferredCrypto();
     this.ticker = this.pc.ticker;
     this.address = '';
+    this.recipientAddressValid = false;
     this.publicKey = '';
     this.amountErrorMessage = '';
 
@@ -1284,21 +1312,15 @@ class Withdraw {
       };
     }
 
-    const doneBtn = document.getElementById('withdraw-done');
-    if (doneBtn) {
-      doneBtn.onclick = (e) => {
-        e.preventDefault();
-        this.overlay.close();
-      };
-    }
-
-    const historyBtn = document.getElementById('withdraw-view-history');
-    if (historyBtn) {
-      historyBtn.onclick = (e) => {
+    const explorerLink = document.getElementById('withdraw-confirm-tx-explorer');
+    if (explorerLink) {
+      explorerLink.onclick = (e) => {
         if (!this.isNativeSaitoSelection()) {
           e.preventDefault();
           this.overlay.close();
-          this.app.connection.emit('saito-crypto-details-render-request', this.ticker);
+          this.app.connection.emit('saito-crypto-wallet-history-render-request', {
+            ticker: this.ticker
+          });
           return;
         }
         this.overlay.close();
@@ -1310,11 +1332,16 @@ class Withdraw {
       form.onsubmit = async (e) => {
         e.preventDefault();
 
-        await this.updateAddressUiFromInput({ showError: true });
+        const hasValidRecipient = await this.updateAddressUiFromInput({ showError: true });
         this.validateAmountInput();
         await this.resolveRecipientPublicKey();
 
-        if (this.errors['amount'] != false || this.errors['address'] != false) {
+        if (
+          !hasValidRecipient ||
+          !this.recipientAddressValid ||
+          this.errors['amount'] != false ||
+          this.errors['address'] != false
+        ) {
           return false;
         }
 
@@ -1490,6 +1517,8 @@ class Withdraw {
     }
 
     if (this.pc?.chain_id === 'NATIVE') {
+      this.feeRequestKey = '';
+      this.feeRequestPromise = null;
       this.fee = this.getNativeDefaultFee();
       this.feePending = false;
       this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(this.fee));
@@ -1500,6 +1529,8 @@ class Withdraw {
     const address = document.getElementById('withdraw-input-address')?.value?.trim() || '';
 
     if (!address) {
+      this.feeRequestKey = '';
+      this.feeRequestPromise = null;
       this.fee = null;
       this.feePending = false;
       this.setFeeDisplayElement(feeEl, '—', 'Add a recipient address to estimate the network fee');
@@ -1508,6 +1539,8 @@ class Withdraw {
     }
 
     if (!this.pc?.validateAddress(address)) {
+      this.feeRequestKey = '';
+      this.feeRequestPromise = null;
       this.fee = null;
       this.feePending = false;
       this.setFeeDisplayElement(feeEl, '—');
@@ -1515,17 +1548,60 @@ class Withdraw {
       return;
     }
 
+    const cryptoModule = this.pc;
+    const requestKey = `${cryptoModule.ticker}:${address}`;
+
+    if (this.feeRequestKey === requestKey && this.feeRequestPromise) {
+      await this.feeRequestPromise;
+      return;
+    }
+
     this.address = address;
     this.feePending = true;
+    this.feeRequestKey = requestKey;
     this.setFeeDisplayElement(feeEl, '…');
     this.handleErrors();
 
-    this.pc.checkWithdrawalFeeForAddress(this.address, (amt) => {
-      this.fee = Number(amt);
-      this.feePending = false;
-      this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(amt));
-      this.validateAmountInput();
-    });
+    let feeReceived = false;
+    const feeRequestPromise = (async () => {
+      try {
+        await cryptoModule.checkWithdrawalFeeForAddress(address, (amt) => {
+          feeReceived = true;
+
+          if (this.feeRequestKey !== requestKey || this.pc !== cryptoModule) {
+            return;
+          }
+
+          this.fee = Number(amt);
+          this.feePending = false;
+          this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(amt));
+          this.validateAmountInput();
+        });
+
+        if (!feeReceived && this.feeRequestKey === requestKey && this.pc === cryptoModule) {
+          this.fee = null;
+          this.feePending = false;
+          this.setFeeDisplayElement(feeEl, '—', 'Unable to estimate the network fee');
+          this.handleErrors();
+        }
+      } catch (err) {
+        if (this.feeRequestKey === requestKey && this.pc === cryptoModule) {
+          this.fee = null;
+          this.feePending = false;
+          this.setFeeDisplayElement(feeEl, '—', 'Unable to estimate the network fee');
+          this.handleErrors();
+        }
+        console.error('Withdraw: unable to estimate network fee', err);
+      }
+    })();
+
+    this.feeRequestPromise = feeRequestPromise;
+    await feeRequestPromise;
+
+    if (this.feeRequestPromise === feeRequestPromise) {
+      this.feeRequestKey = '';
+      this.feeRequestPromise = null;
+    }
   }
 
   validateAmountInput() {
@@ -1592,6 +1668,7 @@ class Withdraw {
     this.address = document.querySelector('#withdraw-input-address')?.value?.trim() || '';
 
     let valid = this.pc.validateAddress(this.address);
+    this.recipientAddressValid = valid;
 
     if (!valid) {
       this.errors['address'] = true;
@@ -1612,6 +1689,7 @@ class Withdraw {
       this.errors['amount'] != false ||
       this.errors['address'] != false ||
       this.feePending ||
+      !this.recipientAddressValid ||
       !this.hasAmountInputValue();
     if (blocked) {
       if (!submit.getAttribute('disabled')) {
@@ -1638,6 +1716,7 @@ class Withdraw {
     };
     this.clearAddressError();
     this.clearAmountError();
+    this.recipientAddressValid = false;
 
     this.handleErrors();
   }
@@ -1654,8 +1733,11 @@ class Withdraw {
     this.publicKey = '';
     this.fixedRecipient = false;
     this.address = '';
+    this.recipientAddressValid = false;
     this.fee = null;
     this.feePending = false;
+    this.feeRequestKey = '';
+    this.feeRequestPromise = null;
     this.lastTxHash = '';
     this.available_balance = 0;
     this._nft_balance_raw = null;

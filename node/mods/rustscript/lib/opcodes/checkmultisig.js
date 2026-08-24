@@ -9,16 +9,10 @@ module.exports = {
     op: 'CHECKMULTISIG',
     m: 2,
     publickeys: ['<publickey>', '<publickey>', '<publickey>'],
-    msg: 'hello',
+    msg: '<text>',
     witness: {
       signatures: ['<signature>', '<signature>']
     }
-  },
-  schema: {
-    m: 'number',
-    publickeys: 'array:publickey',
-    msg: 'text',
-    signatures: 'array:signature'
   },
 
   execute(node, context) {

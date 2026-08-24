@@ -1,20 +1,18 @@
-const saito = require('./../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
-const SaitoOverlay = require('./../../lib/saito/ui/saito-overlay/saito-overlay');
-const FaucetHome = require('./index');
-const FaucetMainTemplate = require('./lib/faucet-main.template');
-const FaucetOverlayTemplate = require('./lib/faucet-overlay.template');
+const PeerService = require('saito-js/lib/peer_service').default;
+const FaucetHome = require('./faucet.template');
+const FaucetDB = require('./lib/db');
+const FaucetWallet = require('./lib/wallet');
+const FaucetOAuth = require('./lib/oauth');
+const Auth = require('./lib/ui/auth');
+const Waiting = require('./lib/ui/waiting');
+const Success = require('./lib/ui/success');
+const Main = require('./lib/ui/main');
+const { readFaucetMode, saveFaucetMode } = require('./lib/mode');
 
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-// PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
-//
+const FREE_USE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
 class Faucet extends ModTemplate {
   constructor(app) {
     super(app);
@@ -28,24 +26,455 @@ class Faucet extends ModTemplate {
     this.icon_fa = 'fa-solid fa-faucet';
     this.styles = ['/faucet/style.css'];
 
-    this.amount = BigInt(10000000000);
-    this.overlay = new SaitoOverlay(app, this, false);
+    this.amount = BigInt(100) * BigInt(100000000);
 
-    this.payouts = {};
+    this.db = new FaucetDB(app, this);
+    this.wallet = new FaucetWallet(app, this);
+    this.oauth = new FaucetOAuth(app, this);
+    this.main = new Main(app, this);
+    this.auth_overlay = new Auth(app, this);
+    this.waiting_overlay = new Waiting(app, this);
+    this.success_overlay = new Success(app, this);
 
-    this.social = {
+    // Server Faucet capability as last reported to this browser. Unavailable
+    // until a successful `faucet available` reply from a discovered Faucet peer.
+    this.server_faucet_available = false;
+    this.server_faucet_amount = 0;
+    this.server_faucet_free_use = false;
+    this.faucet_peer_public_key = '';
+
+    // Re-check when the user asks to see acquisition options. This is
+    // event-driven: no polling or timer-based retries.
+    app.connection.on('saito-purchase-overlay-open', () => {
+      this.checkFaucetAvailability();
+    });
+
+    // Server Faucet modes. OAuth secrets remain in memory, but the enabled
+    // mode flags are persisted in app.options.faucet.mode.
+    this.mode = {
+      free: false,
+      github: false,
+      twitter: false
+    };
+    this.free_use = false;
+
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: '🟥 Saito Faucet',
-      url: 'https://saito.io/faucet/',
+      url: '/faucet/',
       description: 'Get Testnet Saito',
       image: 'https://saito.tech/wp-content/uploads/2023/11/faucet-300x300.png'
+    });
+  }
+
+  async initialize(app) {
+    await super.initialize(app);
+
+    if (!this.app.BROWSER) {
+      this.mode = readFaucetMode(this.app.options);
+      this.free_use = this.mode.free;
+
+      await this.db.initialize();
+      await this.wallet.initialize();
+    }
+  }
+
+  returnServices() {
+    const services = [];
+    if (!this.app.BROWSER) {
+      services.push(new PeerService(null, 'faucet'));
+    }
+    return services;
+  }
+
+  async onPeerServiceUp(app, peer, service = {}) {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    if (service.service !== 'faucet') {
+      return;
+    }
+    const dest = String(peer?.publicKey || '').trim();
+    if (!dest) {
+      return;
+    }
+
+    this.faucet_peer_public_key = dest;
+
+    await this.checkFaucetAvailability(dest);
+  }
+
+  async onConnectionStable(app, peer) {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    const dest = String(peer?.publicKey || '').trim();
+    if (!dest || dest !== this.faucet_peer_public_key) {
+      return;
+    }
+
+    await this.checkFaucetAvailability(dest);
+  }
+
+  async checkFaucetAvailability(publicKey = '') {
+    if (!this.app.BROWSER) {
+      return;
+    }
+
+    const dest = String(publicKey || this.faucet_peer_public_key || '').trim();
+    if (!dest) {
+      return;
+    }
+
+    // Unsigned peer request (not an on-chain fee transaction). Asks whether
+    // this Faucet peer has OAuth configured — that is what BuySaito uses to
+    // show the faucet option. Same pattern as Giphy `get giphy auth`.
+    try {
+      await this.app.network.sendRequestAsTransaction(
+        'faucet available',
+        {},
+        (res_tx) => {
+          let res = {};
+          try {
+            if (res_tx && typeof res_tx.returnMessage === 'function') {
+              res = res_tx.returnMessage() || {};
+            } else if (res_tx && typeof res_tx === 'object') {
+              res = res_tx;
+            }
+          } catch (err) {
+            return;
+          }
+
+          if (res.err || typeof res.available !== 'boolean') {
+            return;
+          }
+
+          this.server_faucet_available = res.available === true;
+          this.server_faucet_amount = this.server_faucet_available
+            ? Number(res.amount) || 0
+            : 0;
+          this.server_faucet_free_use = res.free_use === true;
+
+          try {
+            const buysaito = this.app.modules.returnModule('BuySaito');
+            const purchase = buysaito?.purchase_overlay;
+            if (
+              purchase?.active &&
+              typeof purchase.renderAcquisitionOptions === 'function' &&
+              document.querySelector('#purchase-container')
+            ) {
+              purchase.renderAcquisitionOptions();
+            }
+          } catch (err) {
+            // BuySaito may be absent; availability still lives on this module.
+          }
+        },
+        dest
+      );
+    } catch (err) {
+      // Leave unavailable: install in the browser is not proof the server Faucet is up.
+    }
+  }
+
+  respondTo(type = '', obj) {
+    if (type === 'admin-config') {
+      return {
+        id: this.returnSlug(),
+        name: this.name,
+        getConfig: async () => this.adminConfigSnapshot(),
+        updateConfig: async (config = {}) => this.updateAdminConfig(config)
+      };
+    }
+
+    if (type === 'buysaito-options') {
+      if (!this.app.BROWSER || this.server_faucet_available !== true) {
+        return null;
+      }
+
+      const free_use = this.server_faucet_free_use === true;
+
+      return {
+        id: 'faucet',
+        title: 'Request SAITO tokens from the server faucet...',
+        description: free_use
+          ? 'You may request a small amount once every 24 hours to try the network. No registration is required.'
+          : 'You may request a small amount to try the network. Registration with a Github or Twitter account is needed to ensure our limited supply goes to real users and developers.',
+        icon: this.icon_fa,
+        rank: 1,
+        option_class: 'buysaito-option-faucet',
+        inline_stage: 'faucet-auth',
+        available: true,
+        amount: this.server_faucet_amount,
+        auth_message: free_use
+          ? 'The SAITO Faucet exists to help users try the advanced features of the network. No registration is required, and each public key may claim once every 24 hours.'
+          : '',
+        providers: free_use
+          ? [{ id: 'free_use', name: 'No Registration Required', label: 'Get Testnet Tokens' }]
+          : [
+              { id: 'twitter', name: 'X', icon: 'fa-brands fa-x-twitter' },
+              { id: 'github', name: 'GitHub', icon: 'fa-brands fa-github' }
+            ],
+        beginProviderAuth: (providerId) => {
+          const id = String(providerId || '')
+            .trim()
+            .toLowerCase();
+          if (!id) {
+            return;
+          }
+          if (id === 'free_use') {
+            this.requestFreeUse();
+            return;
+          }
+          this.auth_overlay.authenticate({ id });
+        }
+      };
+    }
+
+    return super.respondTo(type, obj);
+  }
+
+  /**
+   * Browser: ask the Faucet peer to register this wallet without OAuth.
+   * Server replies on the existing faucet-oauth-result path.
+   */
+  async requestFreeUse() {
+    if (!this.app.BROWSER || this.server_faucet_free_use !== true) {
+      return;
+    }
+    const dest = String(this.faucet_peer_public_key || '').trim();
+    if (!dest) {
+      console.error('[Faucet] requestFreeUse: no faucet peer');
+      return;
+    }
+    try {
+      await this.app.network.sendRequestAsTransaction('faucet free use', {}, null, dest);
+    } catch (err) {
+      console.error('[Faucet] requestFreeUse failed', err);
+    }
+  }
+
+  /**
+   * Bind an authenticated identity to a Faucet record.
+   * Existing record → already registered. New record → browser auto-claims.
+   */
+  async acceptAuthenticatedIdentity(identity = {}) {
+    console.log(
+      '[Faucet] acceptAuthenticatedIdentity provider=' +
+        (identity.provider || '') +
+        ' provider_user_id=' +
+        (identity.provider_user_id || '') +
+        ' publickey=' +
+        (identity.publickey || '')
+    );
+
+    if (identity.provider === 'free_use' && this.free_use === true) {
+      return this.acceptFreeUseIdentity(identity);
+    }
+
+    const record = await this.db.getRecord(identity);
+    console.log(
+      '[Faucet] acceptAuthenticatedIdentity record=' +
+        (record ? 'found status=' + (record.issuance_status || '') : 'none')
+    );
+
+    if (record) {
+      await this.db.insertActivity({
+        requester_publickey: identity.publickey,
+        provider: identity.provider,
+        provider_user_id: identity.provider_user_id,
+        provider_username: identity.provider_username,
+        requested_amount: this.amount.toString(),
+        request_status: 'rejected',
+        request_reason: 'already_issued',
+        payment_status: 'none'
+      });
+      let peer = await this.app.network.getPeer(identity.publickey);
+      if (!peer?.publicKey) {
+        const peers = await this.app.network.getPeers();
+        peer = peers.find(
+          (p) => p?.publicKey === identity.publickey && p?.status !== 'disconnected'
+        );
+      }
+      console.log('[Faucet] acceptAuthenticatedIdentity already registered — not issuing');
+      if (peer?.publicKey) {
+        await this.app.network.sendRequestAsTransaction(
+          'faucet-oauth-result',
+          {
+            success: true,
+            already_issued: true,
+            publickey: identity.publickey,
+            message: 'This Saito public key is already registered for the Faucet.'
+          },
+          null,
+          peer.publicKey
+        );
+      }
+      return {
+        status: 200,
+        popup: {
+          ok: true,
+          title: 'Already registered',
+          message:
+            'This Saito public key is already registered for the Faucet. You can close this window.'
+        }
+      };
+    }
+
+    if (!(await this.db.insertRecord(identity))) {
+      console.log('[Faucet] acceptAuthenticatedIdentity insert failed');
+      await this.db.insertActivity({
+        requester_publickey: identity.publickey,
+        provider: identity.provider,
+        provider_user_id: identity.provider_user_id,
+        provider_username: identity.provider_username,
+        requested_amount: this.amount.toString(),
+        request_status: 'rejected',
+        request_reason: 'registration_failed',
+        payment_status: 'none'
+      });
+      return {
+        status: 500,
+        popup: {
+          ok: false,
+          title: 'Registration failed',
+          message: 'Could not create a Faucet registration. Please try again.'
+        }
+      };
+    }
+
+    let peer = await this.app.network.getPeer(identity.publickey);
+    if (!peer?.publicKey) {
+      const peers = await this.app.network.getPeers();
+      peer = peers.find(
+        (p) => p?.publicKey === identity.publickey && p?.status !== 'disconnected'
+      );
+    }
+    console.log('[Faucet] acceptAuthenticatedIdentity inserted — will issue after faucet request confirms');
+    await this.db.insertActivity({
+      requester_publickey: identity.publickey,
+      provider: identity.provider,
+      provider_user_id: identity.provider_user_id,
+      provider_username: identity.provider_username,
+      requested_amount: this.amount.toString(),
+      request_status: 'accepted',
+      payment_status: 'none'
+    });
+    if (!peer?.publicKey) {
+      console.log('[Faucet] acceptAuthenticatedIdentity no connected peer for ' + identity.publickey);
+      return {
+        status: 200,
+        popup: {
+          ok: true,
+          title: 'Registration complete',
+          message:
+            'Registration succeeded, but your Saito browser was not connected. Return to Get SAITO and try again, or keep that window open while signing in.'
+        }
+      };
+    }
+
+    console.log('[Faucet] acceptAuthenticatedIdentity notifying browser already_issued=false');
+    await this.app.network.sendRequestAsTransaction(
+      'faucet-oauth-result',
+      {
+        success: true,
+        already_issued: false,
+        publickey: identity.publickey,
+        message: 'Faucet OAuth registration succeeded.'
+      },
+      null,
+      peer.publicKey
+    );
+
+    return {
+      status: 200,
+      popup: {
+        ok: true,
+        title: 'Account verified',
+        message:
+          'Your account was verified. You can close this window — Get SAITO will continue automatically.'
+      }
+    };
+  }
+
+  /**
+   * Free mode skips OAuth and allows the same public key to claim again after
+   * a rolling 24-hour cooldown.
+   */
+  async acceptFreeUseIdentity(identity = {}) {
+    const eligibility = await this.db.prepareFreeUseClaim(
+      identity,
+      Date.now(),
+      FREE_USE_COOLDOWN_MS
+    );
+
+    let peer = await this.app.network.getPeer(identity.publickey);
+    if (!peer?.publicKey) {
+      const peers = await this.app.network.getPeers();
+      peer = peers.find((p) => p?.publicKey === identity.publickey && p?.status !== 'disconnected');
+    }
+
+    if (!eligibility.eligible) {
+      if (peer?.publicKey) {
+        await this.app.network.sendRequestAsTransaction(
+          'faucet-oauth-result',
+          {
+            success: true,
+            already_issued: true,
+            daily_limit: true,
+            retry_at: eligibility.retry_at,
+            publickey: identity.publickey,
+            message: 'This Saito public key has already used the faucet in the last 24 hours.'
+          },
+          null,
+          peer.publicKey
+        );
+      }
+      return {
+        status: 200,
+        popup: {
+          ok: true,
+          title: 'Daily faucet limit reached',
+          message: 'This Saito public key can use the faucet again after the 24-hour cooldown.'
+        }
+      };
+    }
+
+    if (!peer?.publicKey) {
+      return {
+        status: 200,
+        popup: {
+          ok: true,
+          title: 'Faucet request ready',
+          message: 'Return to Get SAITO while this browser is connected and try again.'
+        }
+      };
+    }
+
+    await this.app.network.sendRequestAsTransaction(
+      'faucet-oauth-result',
+      {
+        success: true,
+        already_issued: false,
+        daily_limit: true,
+        publickey: identity.publickey,
+        message: 'Daily faucet request accepted.'
+      },
+      null,
+      peer.publicKey
+    );
+
+    return {
+      status: 200,
+      popup: {
+        ok: true,
+        title: 'Faucet request accepted',
+        message: 'Your daily faucet request will continue automatically.'
+      }
     };
   }
 
   async render() {
-    //
-    // browsers only!
-    //
     if (!this.app.BROWSER || !this.browser_active) {
       return;
     }
@@ -57,142 +486,10 @@ class Faucet extends ModTemplate {
 
     await super.render();
 
-    this.app.browser.addElementToDom(FaucetMainTemplate(this.app, this));
-
-    this.setFaucetState('idle');
-    this.attachEvents();
+    this.main.render();
   }
 
-  canRenderInto(querySelector = '') {
-    console.log('Faucet: canRenderInto -- ', querySelector);
-    if (!this.browser_active) {
-      if (querySelector == '.get-saito-tokens') {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  async renderInto(querySelector = '') {
-    if (querySelector == '.get-saito-tokens') {
-      this.styles = ['/faucet/style.css'];
-      this.attachStyleSheets();
-      this.app.browser.addElementToSelector(
-        `<div class='saito-faucet-button saito-button-secondary'><i class='${this.icon_fa}'></i></div>`,
-        querySelector
-      );
-
-      setTimeout(() => {
-        document.querySelector('.saito-faucet-button').onclick = (e) => {
-          this.overlay.show(FaucetOverlayTemplate(this.app, this));
-          this.setFaucetState('idle');
-          this.attachEvents();
-        };
-      }, 50);
-    }
-  }
-
-  setFaucetState(state = 'idle') {
-    const root = document.getElementById('faucet-request-container');
-    if (!root) {
-      return;
-    }
-
-    root.dataset.faucetState = state;
-
-    const title = document.getElementById('faucet_title');
-    const closeBtn = document.getElementById('faucet-close-btn');
-
-    const titles = {
-      idle: 'Testnet Faucet',
-      pending: 'Requesting Tokens',
-      success: 'Tokens Received'
-    };
-
-    const closeLabels = {
-      idle: 'Close',
-      pending: 'Close',
-      success: 'Continue'
-    };
-
-    if (title) {
-      title.textContent = titles[state] || titles.idle;
-    }
-    if (closeBtn) {
-      closeBtn.textContent = closeLabels[state] || closeLabels.idle;
-    }
-  }
-
-  closeFaucetOverlay() {
-    if (document.querySelector('.saito-overlay #faucet-request-container')) {
-      this.overlay.close();
-    }
-  }
-
-  attachEvents() {
-    let btn = document.getElementById('faucet-button');
-    if (btn) {
-      btn.onclick = async (e) => {
-        siteMessage('Creating Faucet Request...', 3000);
-        this.setFaucetState('pending');
-
-        let tx = await this.createFaucetTransaction();
-        this.app.network.propagateTransaction(tx);
-
-        siteMessage('Broadcasting Faucet Request to Server...', 5000);
-      };
-    }
-
-    let closeBtn = document.getElementById('faucet-close-btn');
-    if (closeBtn) {
-      closeBtn.onclick = () => {
-        this.closeFaucetOverlay();
-      };
-    }
-  }
-
-  async onConfirmation(blk, tx, conf = 0) {
-    //
-    // only process the first conf
-    //
-    if (conf != 0) {
-      return;
-    }
-
-    //
-    // sanity check
-    //
-    if (this.hasSeenTransaction(tx, blk)) {
-      return;
-    }
-
-    let txmsg = tx.returnMessage();
-
-    if (txmsg.request === 'faucet request') {
-      if (!this.app.BROWSER) {
-        await this.receiveFaucetRequestTransaction(tx, blk);
-      } else {
-        if (tx.isFrom(this.publicKey)) {
-          siteMessage('Faucet Token Request on chain...', 5000);
-        }
-      }
-      return;
-    }
-
-    if (txmsg.request === 'faucet issuance') {
-      if (tx.isTo(this.publicKey) && this.app.BROWSER) {
-        siteMessage('Faucet Payment Received...', 3000);
-        this.setFaucetState('success');
-      }
-      return;
-    }
-  }
-
-  async createFaucetTransaction() {
-    //
-    // create the wrapper transaction
-    //
+  async createFaucetClaimTransaction() {
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
     newtx.msg = {
       module: 'Faucet',
@@ -202,44 +499,408 @@ class Faucet extends ModTemplate {
     return newtx;
   }
 
-  async receiveFaucetRequestTransaction(tx = null, blk = null) {
-    //
-    // sanity check transaction is valid
-    //
+  async receiveFaucetClaimTransaction(tx = null, blk = null) {
     if (tx == null || blk == null) {
       return;
     }
 
     let receiver = tx.from[0].publicKey;
+    console.log('[Faucet] receiveFaucetClaimTransaction receiver=' + receiver);
 
-    let ts = Date.now();
-    if (this.payouts[receiver]) {
-      if (ts - this.payouts[receiver] < 3600000) {
-        return;
+    const request_block_id = blk.id != null ? String(blk.id) : '';
+    const request_block_hash = blk.hash || '';
+    const request_tx_signature = tx.signature || '';
+    const registration = await this.db.getRecord({ publickey: receiver });
+
+    const began = await this.db.updateRecord(
+      { publickey: receiver, issuance_status: 'eligible' },
+      { issuance_status: 'pending' }
+    );
+    if (!began) {
+      console.log('[Faucet] receiveFaucetClaimTransaction refused — no eligible registration for ' + receiver);
+      await this.db.insertActivity({
+        requester_publickey: receiver,
+        provider: registration?.provider || '',
+        provider_user_id: registration?.provider_user_id || '',
+        provider_username: registration?.provider_username || '',
+        requested_amount: this.amount.toString(),
+        request_status: 'rejected',
+        request_reason: 'no_eligible_registration',
+        request_tx_signature,
+        request_block_id,
+        request_block_hash,
+        request_longest_chain: 1,
+        payment_status: 'none'
+      });
+      return;
+    }
+
+    console.log('[Faucet] receiveFaucetClaimTransaction queueing payment for ' + receiver);
+    const open = await this.db.findOpenActivity(receiver);
+    const activity_id =
+      open?.id ||
+      (await this.db.insertActivity({
+        requester_publickey: receiver,
+        provider: registration?.provider || '',
+        provider_user_id: registration?.provider_user_id || '',
+        provider_username: registration?.provider_username || '',
+        requested_amount: this.amount.toString(),
+        request_status: 'accepted',
+        request_tx_signature,
+        request_block_id,
+        request_block_hash,
+        request_longest_chain: 1,
+        payment_status: 'queued'
+      }));
+    if (open?.id) {
+      await this.db.updateActivity(activity_id, {
+        request_tx_signature,
+        request_block_id,
+        request_block_hash,
+        request_longest_chain: 1,
+        payment_status: 'queued'
+      });
+    }
+
+    try {
+      const newtx = await this.wallet.queuePayment({
+        publickey: receiver
+      });
+
+      if (activity_id) {
+        await this.db.updateActivity(activity_id, {
+          payment_status: 'broadcast',
+          payment_tx_signature: newtx.signature || '',
+          paid_at: Date.now()
+        });
+      }
+
+      const completed = await this.db.updateRecord(
+        { publickey: receiver, issuance_status: 'pending' },
+        {
+          issuance_status: 'issued',
+          issuance_amount: this.amount.toString(),
+          issuance_tx_signature: newtx.signature,
+          issued_at: Date.now()
+        }
+      );
+
+      console.log(
+        '[Faucet] receiveFaucetClaimTransaction payout queued/created signature=' +
+          (newtx?.signature || '')
+      );
+      if (!completed) {
+        console.error(
+          '[Faucet] issuance propagated but failed to mark registration issued for ' +
+            receiver +
+            ' sig=' +
+            newtx.signature
+        );
+      }
+    } catch (err) {
+      console.error('[Faucet] payout failed after pending claim; reverting to eligible', err);
+      if (activity_id) {
+        await this.db.updateActivity(activity_id, { payment_status: 'failed' });
+      }
+      await this.db.updateRecord(
+        { publickey: receiver, issuance_status: 'pending' },
+        { issuance_status: 'eligible' }
+      );
+    }
+  }
+
+  async receiveFaucetIssuanceTransaction(tx) {
+    if (!this.app.BROWSER || !tx?.isTo(this.publicKey)) {
+      return;
+    }
+    console.log(
+      '[Faucet] receiveFaucetIssuanceTransaction telling waiting UI issuance completed signature=' +
+        (tx.signature || '')
+    );
+    this.waiting_overlay.close();
+    this.success_overlay.render({ tx });
+  }
+
+  async onConfirmation(blk, tx, conf = 0) {
+    if (conf != 0) {
+      return;
+    }
+
+    let txmsg = tx.returnMessage();
+
+    if (!this.app.BROWSER && txmsg?.request === 'faucet issuance') {
+      await this.db.markPaymentIncluded(tx.signature, blk?.id, blk?.hash);
+    }
+
+    if (this.hasSeenTransaction(tx, blk)) {
+      return;
+    }
+
+    if (txmsg?.request === 'faucet request') {
+      console.log(
+        '[Faucet] onConfirmation faucet request from=' + (tx.from?.[0]?.publicKey || '')
+      );
+      if (!this.app.BROWSER) {
+        await this.receiveFaucetClaimTransaction(tx, blk);
+      }
+      return;
+    }
+
+    if (txmsg?.request === 'faucet issuance') {
+      console.log(
+        '[Faucet] onConfirmation faucet issuance to=' +
+          (tx.to || [])
+            .map((s) => s.publicKey + ':' + String(s.amount || ''))
+            .join(',')
+      );
+      await this.receiveFaucetIssuanceTransaction(tx);
+    }
+  }
+
+  async onNewBlock(blk, lc) {
+    await this.wallet.onNewBlock(blk, lc);
+  }
+
+  async onChainReorganization(block_id, block_hash, lc) {
+    this.wallet.onChainReorganization(block_id, block_hash, lc);
+    if (!this.app.BROWSER) {
+      await this.db.markChainState(block_id, block_hash, lc);
+    }
+  }
+
+  async adminSnapshot(filter = 'recent') {
+    if (filter !== 'pending' && filter !== 'completed' && filter !== 'failed') {
+      filter = 'recent';
+    }
+    await this.wallet.getSnapshotBalance();
+
+    let balance_nolan = 0n;
+    for (const slip of this.wallet.slips || []) {
+      try {
+        balance_nolan += BigInt(slip.amount || 0);
+      } catch (err) {
+        // ignore malformed slip amounts
       }
     }
 
-    this.payouts[receiver] = ts;
-
-    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-      receiver,
-      this.amount
-    );
-    newtx.msg = {
-      module: 'Faucet',
-      request: 'faucet issuance'
+    const toSaito = (nolan) => {
+      try {
+        return String(this.app.wallet.convertNolanToSaito(BigInt(nolan || 0)));
+      } catch (err) {
+        return '0';
+      }
     };
-    await newtx.sign();
-    this.app.network.propagateTransaction(newtx);
+
+    const activity = await this.db.listActivity(filter, 50);
+    return {
+      publickey: this.wallet.publickey || this.app.options.faucet?.publickey || '',
+      privatekey: this.app.options.faucet?.privatekey || '',
+      balance_nolan: balance_nolan.toString(),
+      balance_saito: toSaito(balance_nolan),
+      payout_nolan: this.amount.toString(),
+      payout_saito: toSaito(this.amount),
+      queue_length: (this.wallet.queue || []).length,
+      counts: await this.db.activityCounts(),
+      filter,
+      activity: activity.map((row) => ({
+        id: row.id,
+        created_at: row.created_at,
+        requester_publickey: row.requester_publickey,
+        provider: row.provider,
+        provider_user_id: row.provider_user_id,
+        provider_username: row.provider_username,
+        requested_amount: row.requested_amount,
+        requested_saito: toSaito(row.requested_amount),
+        request_status: row.request_status,
+        request_reason: row.request_reason,
+        request_tx_signature: row.request_tx_signature,
+        request_block_id: row.request_block_id,
+        request_block_hash: row.request_block_hash,
+        request_longest_chain: Number(row.request_longest_chain) === 1,
+        payment_status: row.payment_status,
+        payment_tx_signature: row.payment_tx_signature,
+        paid_at: row.paid_at,
+        payment_block_id: row.payment_block_id,
+        payment_block_hash: row.payment_block_hash,
+        payment_longest_chain: Number(row.payment_longest_chain) === 1
+      }))
+    };
+  }
+
+  adminConfigSnapshot() {
+    return {
+      github_configured: !!this.oauth.secret_github,
+      twitter_configured: !!this.oauth.secret_twitter,
+      free_use: this.free_use === true
+    };
+  }
+
+  updateAdminConfig(config = {}) {
+    const githubSecret = String(config.github_secret || '');
+    const twitterSecret = String(config.twitter_secret || '');
+
+    // Empty secret fields preserve the current in-memory value. Secrets are
+    // intentionally never persisted or included in the returned snapshot.
+    if (githubSecret) {
+      this.oauth.secret_github = githubSecret;
+    }
+    if (twitterSecret) {
+      this.oauth.secret_twitter = twitterSecret;
+    }
+
+    this.free_use =
+      config.free_use === true || config.free_use === '1' || config.free_use === 'on';
+    this.mode = saveFaucetMode(this.app, {
+      free: this.free_use,
+      github: !!this.oauth.secret_github,
+      twitter: !!this.oauth.secret_twitter
+    });
+
+    console.log(
+      'FAUCET CONFIG: OAuth updated — GitHub:',
+      this.oauth.secret_github ? 'configured' : 'not set',
+      '| X:',
+      this.oauth.secret_twitter ? 'configured' : 'not set',
+      '| Free Use:',
+      this.free_use ? 'on' : 'off'
+    );
+
+    return this.adminConfigSnapshot();
+  }
+
+  async handlePeerTransaction(app, tx = null, peer, mycallback = null) {
+    if (tx == null) {
+      return 0;
+    }
+
+    let txmsg;
+    try {
+      txmsg = tx.returnMessage();
+    } catch (err) {
+      return 0;
+    }
+
+    if (txmsg?.request === 'faucet available') {
+      if (this.app.BROWSER) {
+        return 0;
+      }
+
+      const available = !!(
+        this.free_use ||
+        this.oauth.secret_github ||
+        this.oauth.secret_twitter
+      );
+      const amount = available
+        ? Number(this.app.wallet.convertNolanToSaito(this.amount))
+        : 0;
+      if (typeof mycallback === 'function') {
+        mycallback({ available, amount, free_use: this.free_use === true });
+      }
+      return 1;
+    }
+
+    if (txmsg?.request === 'faucet free use') {
+      if (this.app.BROWSER) {
+        return 0;
+      }
+      if (this.free_use !== true) {
+        console.log('[Faucet] faucet free use refused — free_use is off');
+        const publickey = String(tx.from?.[0]?.publicKey || '').trim();
+        if (publickey) {
+          await this.db.insertActivity({
+            requester_publickey: publickey,
+            provider: 'free_use',
+            requested_amount: this.amount.toString(),
+            request_status: 'rejected',
+            request_reason: 'free_use_disabled',
+            payment_status: 'none'
+          });
+        }
+        return 1;
+      }
+      const publickey = String(tx.from?.[0]?.publicKey || '').trim();
+      if (!publickey) {
+        console.log('[Faucet] faucet free use refused — no sender publickey');
+        return 1;
+      }
+      console.log('[Faucet] faucet free use publickey=' + publickey);
+      await this.acceptAuthenticatedIdentity({
+        provider: 'free_use',
+        provider_user_id: publickey,
+        provider_username: '',
+        provider_display_name: '',
+        provider_account_created_at: 0,
+        publickey
+      });
+      return 1;
+    }
+
+    if (txmsg?.request === 'faucet-oauth-result') {
+      if (!this.app.BROWSER) {
+        return 0;
+      }
+
+      const data = txmsg.data && typeof txmsg.data === 'object' ? txmsg.data : {};
+
+      if (data.already_issued) {
+        try {
+          const purchase = this.app.modules.returnModule('BuySaito')?.purchase_overlay;
+          if (purchase && typeof purchase.showFaucetAlreadyIssuedNotice === 'function') {
+            if (!document.querySelector('#purchase-container') && purchase.active) {
+              purchase.render();
+            }
+            purchase.showFaucetAlreadyIssuedNotice(data);
+          }
+        } catch (err) {
+          console.error('FAUCET: failed to show already-issued notice', err);
+        }
+        return 1;
+      }
+
+      try {
+        const purchase = this.app.modules.returnModule('BuySaito')?.purchase_overlay;
+        if (purchase) {
+          purchase.acquisition_stage = 'default';
+          purchase.stage1_html = null;
+          if (purchase.overlay) {
+            purchase.overlay.close();
+          }
+          purchase.active = false;
+        }
+      } catch (err) {
+        console.error('FAUCET: failed to dismiss Get SAITO UI', err);
+      }
+
+      this.waiting_overlay.render();
+      if (this.waiting_overlay.dev_mode) {
+        return 1;
+      }
+
+      try {
+        const claim_tx = await this.createFaucetClaimTransaction();
+        console.log(
+          '[Faucet] faucet-oauth-result propagating faucet request signature=' +
+            (claim_tx?.signature || '')
+        );
+        this.app.network.propagateTransaction(claim_tx);
+      } catch (err) {
+        console.error('[Faucet] failed to create/propagate request', err);
+        this.waiting_overlay.render({ timeout: true });
+      }
+      return 1;
+    }
+
+    return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
   webServer(app, expressapp, express) {
     let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     let faucet_self = this;
+    const slug = encodeURI(this.returnSlug());
 
-    expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
-      let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+    this.oauth.attachRoutes(expressapp);
 
+    expressapp.get('/' + slug, async function (req, res) {
       let updatedSocial = Object.assign({}, faucet_self.social);
 
       let html = FaucetHome(app, faucet_self, app.build_number, updatedSocial);
@@ -251,7 +912,7 @@ class Faucet extends ModTemplate {
       return;
     });
 
-    expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
+    expressapp.use('/' + slug, express.static(webdir));
   }
 }
 

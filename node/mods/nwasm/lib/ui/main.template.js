@@ -1,28 +1,51 @@
-module.exports = (app, mod, do_we_have_games_to_show) => {
-  let html = `
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-		<div class="nwasm-libraries" id="nwasm-libraries">
-			The Saito Nintendo 64 emulator provides a user-friendly in-browser way to archive 
-			and play the N64 games you own. Game files can be encrypted so only you can decrypt 
-			them and archived in your private transaction store.
+module.exports = (app, mod, games = []) => {
+  let cards = games
+    .map((game) => {
+      let title = escapeHtml(game.title || 'Untitled ROM');
+      let source = escapeHtml(game.source || 'archive');
+      let sig = escapeHtml(game.sig || '');
+      return `
+        <button type="button" class="game" data-sig="${sig}" data-source="${source}">
+          <div class="art" aria-hidden="true"></div>
+          <div class="title">${title}</div>
+        </button>
+      `;
+    })
+    .join('');
 
-          		<p></p>
+  let upload_card = `
+    <button type="button" class="upload" data-action="upload">
+      <div class="art" aria-hidden="true"></div>
+      <div class="title">Upload a ROM</div>
+    </button>
+  `;
 
-			We welcome use of this module from those with legal access to game ROMS. 
-			If you have legal ROMs available for sale, consider listing them on the 
-			<a href="/store">Saito Store</a> so others can play.
+  return `
+    <div class="nwasm-main" id="nwasm-main">
+      <header class="hero">
+        <div class="brand">N-WASM</div>
+        <div class="tagline">Nintendo 64 emulator for games you own</div>
+      </header>
 
-		</div>
+      <div class="games">
+        ${cards}
+        ${upload_card}
+      </div>
 
-	`;
-
-  if (do_we_have_games_to_show > 0) {
-    html = `
-		<div class="nwasm-libraries saito-table" id="nwasm-libraries">
-	      		<div class="nwasm-library-introduction">Your library contains the following titles:</div>
-	    	</div>
-	    `;
-  }
-
-  return html;
+      <footer class="footer">
+        <a href="https://wiki.saito.io" target="_blank" rel="noopener noreferrer">Learn more about N-WASM</a>
+        <span class="sep" aria-hidden="true">·</span>
+        <a href="/store">Visit the Saito Store</a>
+      </footer>
+    </div>
+  `;
 };

@@ -574,7 +574,7 @@ class GameGame {
         console.info(`GT: processing deferred ${request} tx now that engine has resumed`);
 
         if (request === 'gameover') {
-          await this.receiveGameoverTransaction(null, tx, 0, this.app);
+          await this.receiveGameOverTransaction(null, tx, 0, this.app);
         } else {
           await this.receiveStopGameTransaction(tx.from[0].publicKey, tx.returnMessage());
         }
@@ -627,7 +627,7 @@ class GameGame {
     this.moves = [];
 
     //Prevents double processing (from on/off chain)
-    if (this.game.over > 0) {
+    if (this.game.over == 1 || this.game.terminating) {
       return;
     }
 
@@ -644,8 +644,6 @@ class GameGame {
         return 0;
       }
     }
-
-    this.game.over = 2;
 
     this.saveGame(this.game.id);
 
@@ -675,14 +673,54 @@ class GameGame {
       }
     }
 
-    await this.sendGameOverTransaction(winners, txmsg.reason);
+    await this.triggerGameOver(winners, txmsg.reason);
+  }
+
+  //
+  // Discard pending gameplay queue commands and append the terminal protocol.
+  // Preserves any SEND/RECEIVE instructions already queued (e.g. table debt).
+  // Because the queue is LIFO, unshift GAMEOVER (runs last) and push SETTLE
+  // (runs first) so execution order is SETTLE -> settlement payments -> GAMEOVER.
+  //
+  enqueueTerminalQueueProtocol() {
+    if (this.game.terminating) {
+      return;
+    }
+
+    this.game.terminating = 1;
+
+    let payments = this.game.queue.filter(
+      (q) => typeof q === 'string' && (q.startsWith('SEND\t') || q.startsWith('RECEIVE\t'))
+    );
+
+    this.game.queue = payments;
+    this.game.queue.unshift('GAMEOVER');
+    this.game.queue.push('SETTLE');
+  }
+
+  async triggerGameOver(winner = [], reason = '') {
+    if (this.game.over == 1 || this.game.terminating) {
+      return;
+    }
+
+    this.game.winner = winner;
+    this.game.reason = reason;
+    this.game.canProcess = true;
+
+    this.enqueueTerminalQueueProtocol();
+
+    await this.sendGameOverTransaction(winner, reason);
+
+    if (!this.gaming_active) {
+      await this.restartQueue();
+    }
   }
 
   /*
     Typically run by all the players, so we filter to make sure just one player sends to transaction
     Can also be used by a player (A) to announce to opponents that A is the winner.
     Function selects a winner to generate the game ending transaction, which is processed above
-    in receiveGameoverTransaction
+    in receiveGameOverTransaction
     */
   async sendGameOverTransaction(winner = [], reason = '') {
     console.info('GT: End Game! Winner:', winner);
@@ -698,7 +736,7 @@ class GameGame {
       return null;
     }
 
-    if (this.game.over == 1) {
+    if (this.game.over == 1 || this.game.gameover_sent) {
       // already processed a game over transaction don't resend!
       return null;
     }
@@ -754,6 +792,9 @@ class GameGame {
         data: newtx.toJson()
       });
 
+      this.game.gameover_sent = 1;
+      this.saveGame(this.game.id);
+
       return 0;
     }
 
@@ -771,7 +812,7 @@ class GameGame {
   If elsewhere on the site, uses sitemessage to announce end of game
   If crypto is staked on the game, launches a settlement interface
   */
-  async receiveGameoverTransaction(blk, tx, conf, app) {
+  async receiveGameOverTransaction(blk, tx, conf, app) {
     let txmsg = tx.returnMessage();
     let { game_id, winner, reason } = txmsg;
 
@@ -790,35 +831,32 @@ class GameGame {
 
     if (this.game.over == 0 && this.game?.canProcess == false) {
       this.gameOverCallback = () => {
-        this.receiveGameoverTransaction(blk, tx, conf, app);
+        this.receiveGameOverTransaction(blk, tx, conf, app);
       };
       console.warn('GT: Received Gameover Transaction before we were ready... move into callback');
       console.debug(this.game.over, this.game.canProcess, this.game.queue);
       return;
     }
 
-    this.game.winner = winner;
-    this.game.over = 1;
-    this.game.reason = reason;
-    this.game.last_block = this.app.blockchain.last_bid;
+    this.gameOverCallback = null;
 
-    if (this.gameBrowserActive()) {
-      this.gameOverUserInterface();
+    if (!this.game.terminating) {
+      this.game.winner = winner;
+      this.game.reason = reason;
+      this.game.canProcess = true;
+      this.enqueueTerminalQueueProtocol();
+      this.saveGame(this.game.id);
+      await this.restartQueue();
     } else {
-      if (reason !== 'cancellation') {
-        siteMessage(txmsg.module + ': Game Over', 5000);
-        this.app.connection.emit('arcade-invite-manager-render-request');
+      if (
+        winner &&
+        (!this.game.winner || (Array.isArray(this.game.winner) && this.game.winner.length === 0))
+      ) {
+        this.game.winner = winner;
+        this.game.reason = reason;
+        this.saveGame(this.game.id);
       }
     }
-
-    this.saveGame(this.game.id);
-
-    //////////////////////////////////////////////
-    // Here is a good place to add any functions
-    // you want to be ran one time on the end of
-    // the game.
-    //////////////////////////////////////////////
-    this.settleGameStake(winner);
   }
 }
 

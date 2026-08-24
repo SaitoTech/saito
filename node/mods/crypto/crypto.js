@@ -200,27 +200,41 @@ try {
       }
 
       this.app.browser.addElementToSelector(
-        `<div class="game-wizard-crypto-hook saito-anchor"><i class="fa-solid fa-coins"></i></div>`,
+        `<div class="game-wizard-crypto-hook saito-button-secondary saito-anchor"><i class="fa-solid fa-coins"></i></div>`,
         qs
       );
 
       let hook = document.querySelector('.game-wizard-crypto-hook');
 
       if (hook) {
-        hook.onclick = (e) => {
+        hook.onclick = async (e) => {
+          const balance = await this.app.wallet.getBalance('SAITO');
+          if (balance === 0n) {
+            siteMessage('A SAITO balance is needed to add a stake...', 3000);
+            this.app.connection.emit('saito-purchase-launch');
+            return;
+          }
+
           this.overlay = new CryptoSelectAmount(this.app, this);
           this.overlay.fixed = false;
 
           if (hook.dataset?.amount) {
             this.overlay.stake = hook.dataset.amount;
           }
+          if (hook.dataset?.match != undefined) {
+            this.overlay.one_sided = true;
+            this.overlay.player1_stake = hook.dataset.amount;
+            this.overlay.player2_stake = hook.dataset.match;
+          }
 
           this.overlay.render((ticker, amount, match_amount = null) => {
             console.log('SELECTED CRYPTO: ', ticker, amount, match_amount);
             hook.dataset['ticker'] = ticker;
             hook.dataset['amount'] = amount;
-            if (match_amount !== null) {
+            if (match_amount !== null && match_amount !== undefined) {
               hook.dataset['match'] = match_amount;
+            } else {
+              delete hook.dataset.match;
             }
           });
         };

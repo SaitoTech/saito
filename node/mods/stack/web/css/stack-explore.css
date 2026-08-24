@@ -1,45 +1,35 @@
-/* ============================================
-   EXPLORE OVERLAY - Desktop-first, library-like
-   ============================================ */
+/* Explore overlay — layout + Stack-specific navigation chrome */
 
-/* Explore Overlay Container */
-.stack-explore-overlay {
-  max-width: 1600px; /* Wider for comfortable scanning */
+.explore {
+  max-width: 1600px;
   width: 90vw;
   height: 85vh;
   max-height: 85vh;
   background: var(--saito-background);
-  border-radius: 12px;
+  border-radius: var(--saito-radius-lg);
   padding: 0;
   display: flex;
   flex-direction: row;
   overflow: hidden;
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(0, 0, 0, 0.1),
-    0 8px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--saito-elevation-3);
+  border: 1px solid var(--saito-border);
 }
 
-/* Sidebar */
-.stack-explore-sidebar {
-  width: 320px; /* Wider for comfortable identity display */
+.explore .sidebar {
+  width: 320px;
   min-width: 320px;
   border-right: 1px solid var(--saito-border);
-  background: var(--saito-background-secondary, var(--saito-background));
+  background: var(--saito-background);
   display: flex;
   flex-direction: column;
-  /* No overflow - overlay handles scroll */
 }
 
-.stack-explorer-mobile-header {
+.explore .mobile-header {
   display: none;
 }
 
-.stack-explore-sidebar-header {
+.explore .sidebar > .header {
   padding: 2.5rem 2rem;
-  /* ISSUE 3 — CSS FIX: Sidebar header spacing */
-  margin-bottom: 0px;
-  border-bottom: none;
   background: var(--saito-primary);
   color: var(--saito-background);
   display: flex;
@@ -47,7 +37,7 @@
   align-items: center;
 }
 
-.stack-explore-sidebar-header h2 {
+.explore .sidebar > .header h2 {
   font-size: 2rem;
   font-weight: 800;
   margin: 0;
@@ -57,47 +47,27 @@
   flex: 1;
 }
 
-/* Old "+" button removed - replaced with text link in main panel header */
-
-.stack-explore-sidebar-content {
+.explore .sidebar > .body {
   flex: 1;
-  /* No overflow-y - overlay handles scroll */
-  padding: 0;
-  padding-top: 0; /* INVARIANT 4: No top padding - flush with header */
-  padding-bottom: 0; /* Explicitly remove bottom padding */
-  margin: 0; /* INVARIANT 4: No margin - flush with header */
-  margin-top: 0; /* INVARIANT 4: Explicitly no top margin */
   display: flex;
   flex-direction: column;
-  gap: 0;
-  position: relative;
-  min-height: 0; /* Allow flex shrinking */
+  min-height: 0;
 }
 
-/* Filter section removed - subscriptions list flows directly */
-
-/* Subscriptions List - Flat navigation rows, not buttons */
-/* INVARIANT 4: Must be flush with Explore header box - no gap */
-.stack-explore-subscriptions-list {
+.explore .filters {
   display: flex;
   flex-direction: column;
-  gap: 0;
   width: 100%;
-  margin: 0;
-  margin-top: 0; /* INVARIANT 4: Explicitly no top margin */
-  padding: 0; /* INVARIANT 4: No padding - items begin immediately below header */
-  padding-top: 0; /* INVARIANT 4: Explicitly no top padding */
-  border-left: 2px solid var(--saito-primary); /* Left border aligned with header */
+  border-left: 2px solid var(--saito-primary);
 }
 
-.stack-explore-subscription-item {
+.explore .item {
   width: 100%;
-  min-height: 4.4rem; /* Consistent row height */
+  min-height: 4.4rem;
   padding: 1.2rem 2rem;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--saito-border);
-  border-top: none; /* No top border */
   color: var(--saito-foreground);
   text-align: left;
   cursor: pointer;
@@ -105,506 +75,333 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  font-size: inherit; /* Use inherited font-size from body */
+  font-size: inherit;
   line-height: 1.5;
   font-weight: 400;
   user-select: none;
 }
 
-.stack-explore-subscription-item:first-child {
-  /* INVARIANT 4: First item aligns with header - no top gap */
-  border-top: none;
-  margin-top: 0; /* Explicitly no top margin */
-  padding-top: 1.2rem; /* Normal padding */
-}
-
-.stack-explore-subscription-item:last-child {
+.explore .item:last-child {
   border-bottom: none;
 }
 
-/* Inactive state - muted icon */
-.stack-explore-subscription-item i {
+.explore .item i {
   color: var(--saito-foreground);
   opacity: 0.6;
-  font-size: 1.4rem; /* 14px minimum */
-  width: 1.6rem; /* Fixed width for alignment */
+  font-size: 1.4rem;
+  width: 1.6rem;
   text-align: center;
   flex-shrink: 0;
 }
 
-.stack-explore-subscription-item span {
+.explore .item span {
   flex: 1;
   font-size: inherit;
 }
 
-/* Hover state - desktop only, uses primary color */
 @media (hover: hover) {
-  .stack-explore-subscription-item:hover {
+  .explore .item:hover {
     background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background) 88%);
     border-left: 3px solid var(--saito-primary);
-    padding-left: calc(2rem - 3px); /* Adjust padding to account for border */
+    padding-left: calc(2rem - 3px);
   }
 
-  .stack-explore-subscription-item:not(.active):hover i {
+  .explore .item:not(.active):hover i {
     color: var(--saito-primary);
     opacity: 1;
   }
 
-  .stack-explore-subscription-item.active:hover {
+  .explore .item.active:hover {
     background: color-mix(in srgb, var(--saito-primary) 15%, var(--saito-background) 85%);
   }
 }
 
-/* Active state - subtle indication, NO left border by default */
-.stack-explore-subscription-item.active {
+.explore .item.active {
   background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-background) 92%);
   color: var(--saito-foreground);
   font-weight: 500;
-  /* No left border by default - only on hover */
 }
 
-.stack-explore-subscription-item.active i {
+.explore .item.active i {
   color: var(--saito-foreground);
   opacity: 0.9;
 }
 
-.stack-explore-subscription-item.active span {
-  color: var(--saito-foreground);
-}
-
-/* Contextual Help Note - Bottom of left panel */
-.stack-explore-help-note {
+.explore .help {
   margin-top: auto;
-  /*padding: 1.5rem 2rem 1.5rem 2rem;  Top and bottom padding, horizontal padding */
   border-top: 1px solid var(--saito-border);
   background: color-mix(in srgb, var(--saito-background) 98%, var(--saito-foreground) 2%);
   opacity: 0.7;
   cursor: pointer;
 }
 
-.stack-explore-help-note p {
+.explore .help p {
   margin: 0;
-  padding: 1.5rem 2rem 1.5rem 2rem;
-  font-size: 1.4rem; /* 14px minimum - readable but subtle */
+  padding: 1.5rem 2rem;
+  font-size: 1.4rem;
   line-height: 1.5;
   color: var(--saito-foreground);
   font-weight: 400;
 }
 
-/* Fallback: hide if more than 2 items (for browsers without :has support) */
-.stack-explore-help-note.hide-help > p,
-.stack-explore-help-note div {
+.explore .help.hide-help > p,
+.explore .help > .item {
   display: none;
 }
 
-.stack-explore-help-note.hide-help div {
+.explore .help.hide-help > .item {
   display: flex;
 }
 
-/* Legacy button styles - kept for compatibility but not used */
-.stack-explore-filter-btn {
-  width: 100%;
-  padding: 1rem 1.25rem; /* More generous padding */
-  margin-bottom: 0.75rem;
-  background: transparent;
-  border: 1px solid var(--saito-border);
-  border-radius: 8px;
-  color: var(--saito-foreground);
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  font-size: 1.8rem; /* 18px - readable body text */
-  line-height: 1.5;
-  font-weight: 400;
-}
-
-.stack-explore-filter-btn:hover {
-  background: var(--saito-background-secondary, var(--saito-background));
-  border-color: var(--saito-primary);
-}
-
-.stack-explore-filter-btn.active {
-  background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background) 88%);
-  color: var(--saito-foreground);
-  border-color: var(--saito-primary);
-  font-weight: 500;
-}
-
-.stack-explore-search-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--saito-border);
-  border-radius: 8px;
-  background: var(--saito-background);
-  color: var(--saito-foreground);
-  font-size: 1.6rem; /* 16px minimum - input text */
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.stack-explore-search-input:focus {
-  border-color: var(--saito-primary);
-}
-
-/* Main Content Area */
-.stack-explore-main {
+.explore .main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 2.5rem 3rem; /* More generous padding */
+  padding: 2.5rem 3rem;
 }
 
-/* Sidebar Header is defined above (line 34) - do not duplicate */
-/* Old "+" button styles removed - replaced with text link in main panel header */
-
-/* Main Panel Header - Contains author identity and action links */
-/* INVARIANT 2: Header row alignment must not shift - use space-between */
-.stack-explore-main-header {
+.explore .main > .header {
   margin-bottom: 2.5rem;
   padding-bottom: 2rem;
   border-bottom: 1px solid var(--saito-border);
   flex-shrink: 0;
   display: flex;
-  justify-content: space-between; /* Left: SaitoUser, Right: action button - never shifts */
-  align-items: center; /* Vertically center items */
+  justify-content: space-between;
+  align-items: center;
   gap: 2rem;
 }
 
-/* Author Identity Header - Context-aware publisher display using SaitoUser */
-.stack-explore-author-header {
+.explore .author {
   flex: 1;
   display: flex;
-  justify-content: flex-start; /* Left-align author identity */
-  align-items: center; /* Vertically center with action button */
+  justify-content: flex-start;
+  align-items: center;
   gap: 2rem;
-  min-width: 0; /* Allow shrinking */
+  min-width: 0;
+}
+
+.explore .author-stub {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.explore .author-stub .avatar {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  background: var(--saito-primary);
+  opacity: 0.3;
+  flex-shrink: 0;
+}
+
+.explore .author-stub .name {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
 }
 
 #stack-explore-author-identity {
   flex: 1;
 }
 
-/* Subscribe button container (shown when viewing creator via URL and not subscribed) */
-/* Positioned identically to Add user button for layout consistency */
-#stack-explore-subscribe-button-container {
+.explore .subscribe {
+  display: none;
   flex-shrink: 0;
-  display: flex;
-  justify-content: flex-end; /* Right-align button */
+  justify-content: flex-end;
   align-items: flex-start;
 }
 
-.stack-explore-subscribe-btn {
-  background: var(--saito-primary);
-  color: var(--saito-primary-foreground);
-  border: none;
-  border-radius: 8px;
-  padding: 0.8rem 1.6rem;
-  font-size: 1.6rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background-color 150ms ease,
-    transform 150ms ease;
-  white-space: nowrap;
+.explore .subscribe.is-visible {
+  display: flex;
 }
 
-.stack-explore-subscribe-btn:hover {
-  background: var(--saito-chart-4);
-  transform: translateY(-1px);
-}
-
-.stack-explore-subscribe-btn:active {
-  transform: translateY(0);
-}
-
-/* Do NOT override SaitoUser CSS - use default Saito.css styling */
-/* Only container-level styling is allowed */
-
-/* Action Button Container (in main panel header, right-aligned) */
-.stack-explore-action-button-container {
+.explore .actions {
   flex-shrink: 0;
   display: flex;
-  justify-content: flex-end; /* Right-align button */
-  align-items: center; /* Vertically center with SaitoUser */
+  justify-content: flex-end;
+  align-items: center;
   gap: 1rem;
 }
 
-/* Add Subscription Button - Secondary styling (no orange fill) */
-.stack-explore-add-subscription-btn {
-  padding: 0.8rem 1.6rem;
+.explore .actions.is-hidden {
+  display: none;
+}
+
+/*
+ * Circular action affordances (same look as view-post .badge).
+ * Saito .saito-icon-button is square — keep circular chrome here for parity.
+ */
+.explore .badge {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
-  color: var(--saito-primary);
-  border: 1px solid var(--saito-primary);
-  border-radius: 8px;
-  font-size: 1.6rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 150ms ease;
-  white-space: nowrap;
-  font-family: inherit;
-}
-
-.stack-explore-add-subscription-btn:hover {
-  background: color-mix(in srgb, var(--saito-primary) 10%, transparent 90%);
-  border-color: var(--saito-primary);
-  transform: translateY(-1px);
-}
-
-.stack-explore-add-subscription-btn:active {
-  transform: translateY(0);
-}
-
-/* INVARIANT 1: Never hide author header - user identity must always be visible */
-/* Removed :empty hiding rule - header should never be empty */
-
-.stack-explore-header {
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-.stack-explore-header h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem 0;
+  border: 1px solid var(--saito-border);
   color: var(--saito-foreground);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
 }
 
-.stack-explore-subtitle {
-  font-size: 1.8rem;
-  color: var(--saito-muted-foreground);
-  margin: 0;
+.explore .badge.is-hidden {
+  display: none;
 }
 
-.stack-explore-content {
+.explore .badge:hover {
+  opacity: 1;
+  background: var(--saito-primary);
+  border-color: var(--saito-primary);
+  color: var(--saito-primary-foreground);
+  transform: scale(1.05);
+}
+
+.explore .badge i {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.explore .content {
   flex: 1;
-  /* No overflow-y - parent handles scroll */
   min-height: 0;
   display: flex;
   flex-direction: column;
-  /* No overflow - overlay handles scroll */
-  overflow-y: auto; /* Main content scrolls, not nested */
+  overflow-y: auto;
 }
 
-/* Posts Grid - Vertical stacking for library-like feel */
-.stack-explore-posts-grid {
+.explore .grid {
   display: flex;
   flex-direction: column;
   gap: 2rem;
   padding: 0;
-  max-width: 900px; /* Constrain width for comfortable reading */
+  max-width: 900px;
 }
 
-/* ============================================
-   LEGACY EXPLORE CLASSES (Compatibility)
-   ============================================ */
-
-.stack-explore-post-card {
-  background: var(--saito-background);
-  border: 1px solid var(--saito-border);
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.explore .loading {
   display: flex;
-  flex-direction: column;
-}
-
-.stack-explore-post-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border-color: var(--saito-primary);
-}
-
-.stack-explore-post-image {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--saito-background);
-}
-
-.stack-explore-post-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.stack-explore-post-image-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-chart-4, #4a90e2) 100%);
-  color: white;
-  font-size: 3rem;
-  opacity: 0.3;
-}
-
-.stack-explore-post-content {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.stack-explore-post-meta {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
-  font-size: 1.4rem; /* 14px minimum - metadata text */
-  color: var(--saito-muted-foreground);
-}
-
-.stack-explore-post-author {
-  font-weight: 600;
-  color: var(--saito-primary);
-}
-
-.stack-explore-post-date {
-  color: var(--saito-muted-foreground);
-}
-
-.stack-explore-post-title {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin: 0 0 0.75rem 0;
-  color: var(--saito-foreground);
-  line-height: 1.3;
-}
-
-.stack-explore-post-excerpt {
-  font-size: 1.6rem; /* 16px minimum - excerpt text */
-  line-height: 1.6;
-  color: var(--saito-muted-foreground);
-  margin: 0 0 1rem 0;
-  flex: 1;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.stack-explore-read-more-btn {
-  background: transparent;
-  border: 1px solid var(--saito-border);
-  color: var(--saito-primary);
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  font-size: 1.6rem; /* 16px minimum - button text */
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  align-self: flex-start;
-  margin-top: auto;
-}
-
-.stack-explore-read-more-btn:hover {
-  background: var(--saito-primary);
-  color: white;
-  border-color: var(--saito-primary);
-  transform: translateX(4px);
-}
-
-/* Empty State - Centered, informative */
-.stack-explore-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  text-align: center;
+  min-height: 200px;
   padding: 4rem 2rem;
 }
 
-.stack-explore-empty-message {
-  font-size: 1.8rem; /* 18px - readable body text */
-  line-height: 1.6;
-  color: var(--saito-foreground);
-  margin: 0 0 1.5rem 0;
-  max-width: 500px;
+.explore .loading-inner {
+  text-align: center;
 }
 
-.stack-explore-empty-link {
+.explore .loading i {
+  font-size: 3rem;
+  color: var(--saito-muted-foreground);
+  margin-bottom: 1rem;
+}
+
+.explore .loading p {
+  color: var(--saito-muted-foreground);
+  font-size: 1.6rem;
   margin: 0;
 }
 
-.stack-explore-empty-link a {
-  font-size: 1.6rem; /* 16px minimum - link text */
-  color: var(--saito-primary);
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.stack-explore-empty-link a:hover {
-  text-decoration: underline;
-  opacity: 0.8;
-}
-
-/* Legacy empty state - kept for compatibility */
-.stack-explore-empty {
+.explore .empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
   text-align: center;
   padding: 4rem 2rem;
-  color: var(--saito-foreground);
 }
 
-.stack-explore-empty-icon {
+.explore .empty > i {
   font-size: 4rem;
   color: var(--saito-muted-foreground);
-  margin-bottom: 1.5rem;
   opacity: 0.5;
+  margin-bottom: 2rem;
 }
 
-.stack-explore-empty h3 {
-  font-size: 1.8rem;
-  margin: 0 0 1rem 0;
+.explore .empty h3 {
+  font-size: 2rem;
+  font-weight: 600;
   color: var(--saito-foreground);
+  margin: 0 0 1rem 0;
 }
 
-.stack-explore-empty p {
+.explore .empty p {
+  font-size: 1.6rem;
+  color: var(--saito-muted-foreground);
+  margin: 0;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+/* Post-not-found state is injected into .saito-container (outside .explore) */
+.explore-error {
+  padding: 4rem 2rem;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.explore-error > i {
+  font-size: 4rem;
+  color: var(--saito-muted-foreground);
+  opacity: 0.5;
+  margin-bottom: 2rem;
+}
+
+.explore-error h2 {
+  font-size: 2.4rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
+  margin: 0 0 1.5rem 0;
+}
+
+.explore-error p {
   font-size: 1.8rem;
   color: var(--saito-muted-foreground);
-  margin: 0 0 2rem 0;
+  margin: 0;
+  line-height: 1.6;
 }
 
-/* ============================================
-   RESPONSIVE - MOBILE
-   ============================================ */
+.explore-error .sig {
+  font-size: 1.4rem;
+  color: var(--saito-muted-foreground);
+  margin: 1.5rem 0 0 0;
+  opacity: 0.7;
+  font-family: monospace;
+  word-break: break-all;
+}
 
 @media (max-width: 768px) {
-  .stack-explore-overlay {
+  .explore {
     width: 100vw;
     height: 100vh;
     max-width: 100vw;
     max-height: 100vh;
-    border-radius: 0; /* Full screen, no rounded corners */
+    border-radius: 0;
     flex-direction: column;
     padding: 0;
   }
 
-  .saito-overlay-closebox:has(+ .stack-explore-overlay) {
+  .saito-overlay-closebox:has(+ .explore) {
     background:
       linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 18%, transparent), transparent),
       color-mix(in srgb, var(--saito-card) 84%, var(--saito-primary));
     border-color: color-mix(in srgb, var(--saito-primary) 42%, var(--saito-border));
   }
 
-  .stack-explore-sidebar {
+  .explore .sidebar {
     width: 100%;
   }
 
-  .stack-explore-sidebar-content {
+  .explore .sidebar > .body {
     display: none;
   }
 
-  .stack-explorer-mobile-header {
+  .explore .mobile-header {
     display: flex;
     padding: 1rem 1.5rem;
     align-items: center;
@@ -613,14 +410,14 @@
     background: var(--saito-background);
   }
 
-  .stack-explorer-mobile-selector {
+  .explore .mobile-selector {
     background: inherit;
     color: inherit;
     padding: 1rem;
-    border-radius: 0.5rem;
+    border-radius: var(--saito-radius);
   }
 
-  .stack-explorer-mobile-icon {
+  .explore .mobile-add {
     width: 4rem;
     height: 4rem;
     display: flex;
@@ -629,61 +426,38 @@
     font-size: 2rem;
   }
 
-  .stack-explore-sidebar-header {
+  .explore .sidebar > .header {
     padding: 0.9rem;
   }
 
-  .stack-explore-sidebar-header h2 {
+  .explore .sidebar > .header h2 {
     font-size: 1.5rem;
   }
 
-  /* Old "+" button responsive styles removed - replaced with text link */
-
-  .stack-explore-sidebar-content {
-    padding: 0;
-    gap: 0;
-  }
-
-  .stack-explore-subscription-item {
-    min-height: 4.8rem; /* Larger touch targets on mobile */
+  .explore .item {
+    min-height: 4.8rem;
     padding: 1.4rem 1.5rem;
-    font-size: inherit;
   }
 
-  .stack-explore-subscription-item.active {
-    /* No left border by default on mobile either */
-  }
-
-  /* Mobile hover - add left border on hover for both active and inactive */
   @media (hover: hover) {
-    .stack-explore-subscription-item:hover {
+    .explore .item:hover {
       border-left: 3px solid var(--saito-primary);
-      padding-left: calc(1.5rem - 3px); /* Adjust for border on mobile */
+      padding-left: calc(1.5rem - 3px);
     }
   }
 
-  .stack-explore-help-note {
-    padding: 1.5rem; /* Consistent padding on all sides for mobile */
+  .explore .help {
+    padding: 1.5rem;
   }
 
-  .stack-explore-help-note p {
-    font-size: 1.4rem; /* 14px minimum - readable on mobile */
-  }
-
-  .stack-explore-filter-btn {
-    padding: 1.125rem 1.25rem; /* Generous touch targets */
-    font-size: 1.8rem; /* 18px - readable */
-    margin-bottom: 0.625rem;
-  }
-
-  .stack-explore-main {
+  .explore .main {
     padding: 1rem 1.5rem;
     flex: 1;
     min-height: 0;
-    overflow-y: auto; /* Main content scrolls */
+    overflow-y: auto;
   }
 
-  .stack-explore-main-header {
+  .explore .main > .header {
     margin-bottom: 0.5rem;
     padding-bottom: 1rem;
     gap: 1.5rem;
@@ -691,31 +465,34 @@
     grid-template-columns: minmax(0, 1fr) min-content;
   }
 
-  .stack-explore-author-header {
+  .explore .author {
     width: 100%;
   }
 
-  .stack-explore-action-button-container {
+  .explore .actions {
     width: 100%;
-    justify-content: center; /* Center on mobile */
+    justify-content: center;
   }
 
-  .stack-explore-add-subscription-btn {
-    width: 100%; /* Full width on mobile */
-  }
-
-  #stack-explore-subscribe-button-container {
+  .explore .subscribe {
     width: 100%;
-    justify-content: center; /* Center on mobile */
+    justify-content: center;
   }
 
-  .stack-explore-subscribe-btn {
-    width: 100%; /* Full width on mobile */
+  .explore .subscribe .saito-button-primary {
+    width: 100%;
   }
 
-  /* Removed SaitoUser CSS override - use default Saito.css styling */
+  .explore .badge {
+    width: 3.2rem;
+    height: 3.2rem;
+  }
 
-  .stack-explore-posts-grid {
+  .explore .badge i {
+    font-size: 1.4rem;
+  }
+
+  .explore .grid {
     max-width: 100%;
   }
 }

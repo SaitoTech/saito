@@ -505,7 +505,7 @@ class MixinModule extends CryptoModule {
    * @abstract
    * @return {Number}
    */
-  async sendPayment(amount = '', recipient = '', unique_hash = '') {
+  async sendPayment(amount = '', recipient = '', unique_hash = '', memo = '') {
     let internal_transfer = false;
     let destination = await this.processAddress(recipient);
 
@@ -520,21 +520,28 @@ class MixinModule extends CryptoModule {
     //
     if (r.length >= 2) {
       if (r[2] === 'mixin') {
-        res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, r[1], amount);
+        res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, r[1], amount, memo);
       }
     } else if (this.validateAddress(destination)) {
       //
       // address is external, send external withdrawl request
       //
-      res = await this.mixin.sendExternalNetworkTransferRequest(this.asset_id, destination, amount);
+      res = await this.mixin.sendExternalNetworkTransferRequest(
+        this.asset_id,
+        destination,
+        amount,
+        memo
+      );
     } else {
       throw new Error(`MixinModule: invalid address for ${this.ticker} -- `, destination);
     }
 
-    if (res.status == 200) {
+    if (res?.status == 200) {
       // Safe UTXO balance lags after send; cache expected post-send balance and
       // pre-send snapshot until fetchBalance / checkForRecentTransactions confirm.
-      this.pending_balance = Number(res.pending.toFixed(8));
+      if (Number.isFinite(res.pending_balance)) {
+        this.pending_balance = res.pending_balance;
+      }
       if (!this.last_balance) {
         this.last_balance = this.balance;
       }
@@ -544,8 +551,7 @@ class MixinModule extends CryptoModule {
       }
       return unique_hash;
     } else {
-      throw new Error('MixinModule: ' + res.message);
-      return '';
+      throw new Error('MixinModule: ' + (res?.message || 'payment failed'));
     }
   }
 

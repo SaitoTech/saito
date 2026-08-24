@@ -1,3 +1,5 @@
+const TransactionCardTemplate = require('./transaction-card.template');
+
 module.exports = ({
   transactions = [],
   loading = false,
@@ -27,34 +29,15 @@ module.exports = ({
       </div>
     `;
   } else {
-    body = transactions
-      .map(
-        (tx) => `
-      <div class="explorer-feed-item" role="button" tabindex="0" data-tx-signature="${tx.signature}" data-block-hash="${tx.blockHash}" data-block-id="${tx.blockId}">
-        <span class="explorer-feed-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
-        <div class="explorer-feed-main">
-          <div class="explorer-feed-line">
-            <span class="explorer-link explorer-mono explorer-truncate">${tx.hash}</span>
-          </div>
-          <div class="explorer-feed-meta">
-            From ${tx.from}
-          </div>
-        </div>
-        <div class="explorer-feed-aside">
-          <span class="explorer-feed-time">${tx.time}</span>
-          <span class="explorer-feed-detail">To ${tx.to}</span>
-        </div>
-        <span class="explorer-feed-badge">${tx.amount}</span>
-      </div>
-    `
-      )
-      .join('');
+    body = transactions.map((tx) => TransactionCardTemplate(tx)).join('');
   }
 
   return `
     <section class="transaction-teaser explorer-panel" aria-label="Latest transactions">
       <div class="explorer-panel-header">
-        <h2 class="explorer-heading explorer-m-0">Latest Transactions</h2>
+        <h2 class="explorer-heading explorer-m-0">
+          <a class="explorer-link" href="/explorer/transactions" data-explorer-nav="all-transactions">Latest Transactions</a>
+        </h2>
       </div>
       <div class="explorer-feed transaction-teaser-feed">
         ${body}

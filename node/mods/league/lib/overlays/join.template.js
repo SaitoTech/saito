@@ -1,5 +1,7 @@
 module.exports = (app, mod, league) => {
-  let game = league.game.toLowerCase();
+  let game = String(league.game || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '');
 
   let name = app.keychain.returnIdentifierByPublicKey(mod.publicKey, true);
   if (name == mod.publicKey) {
@@ -46,14 +48,14 @@ module.exports = (app, mod, league) => {
   } else {
     html += `
 		    <div class="title-box">
-		    	<div class="title">${league.name}</div>
+		    	<div class="title">${app.browser.escapeHTML(String(league.name ?? ''))}</div>
 			</div>
 			<div class="league-join-info">
-				<p>Click below to join this ${league.game} league as <span class="address">"${name}"</span>. If you already have an account, please login before joining.</p>
+				<p>Click below to join this ${app.browser.escapeHTML(String(league.game ?? ''))} league as <span class="address">"${app.browser.escapeHTML(String(name ?? ''))}"</span>. If you already have an account, please login before joining.</p>
 			</div>
 	  	  	<div class="league-join-controls">
 				<div id="login" class="saito-anchor">or login to account</div>
-	        	<button type="button" class="saito-button-primary fat" id="league-join-btn" data-id="${league.id}">JOIN LEAGUE</button>    
+	        	<button type="button" class="saito-button-primary fat" id="league-join-btn" data-id="${app.browser.escapeHTML(String(league.id ?? ''))}">JOIN LEAGUE</button>    
 	      	</div>
 	    </div>
 

@@ -1,0 +1,174 @@
+/*
+ * Stack base / integration
+ *
+ * Application-shell integration only:
+ * - .saito-container geometry vs Saito's default 3-column page layout
+ * - document scroll ownership for the create-post flow (.create-post)
+ * - sidebar visibility when Stack occupies the full main area
+ *
+ * Component appearance, typography, and decoration live in component sheets.
+ * Compile concatenates *-base.css before other module CSS.
+ *
+ * Why !important is absent: Stack selectors (.saito-container:has(...) /
+ * .saito-container.stack-*-container / body:has(...)) already beat Saito's
+ * single-class .saito-container and bare body/html rules when stack styles
+ * load after saito.css.
+ */
+
+/* Shared shell: ViewPost / Explore fade the container during navigation */
+.saito-container {
+  transition: opacity 200ms ease;
+}
+
+/* --------------------------------------------------------------------------
+   Splash — full-bleed single column; body stays Saito-fixed, splash fills area
+   -------------------------------------------------------------------------- */
+
+.saito-container:has(.splash),
+.saito-container.stack-splash-container {
+  grid-template-columns: 1fr;
+  padding: 0;
+  position: relative;
+  top: var(--saito-header-height, 60px);
+  height: auto;
+  overflow: visible;
+  width: 100%;
+  max-width: 100%;
+  column-gap: 0;
+}
+
+.saito-container:has(.splash) .saito-sidebar,
+.saito-container.stack-splash-container .saito-sidebar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .saito-container:has(.splash),
+  .saito-container.stack-splash-container {
+    max-height: calc(100svh - var(--saito-header-height));
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Create post — document scroll (undo Saito body { position: fixed; overflow: hidden })
+   Container leaves the absolute viewport shell so content can grow with the page.
+   -------------------------------------------------------------------------- */
+
+body:has(.create-post) {
+  position: static;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: auto;
+  min-height: 100vh;
+}
+
+html:has(.create-post) {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: auto;
+  min-height: 100vh;
+}
+
+.saito-container:has(.create-post),
+.saito-container.stack-create-post-container {
+  grid-template-columns: 1fr;
+  padding: 0;
+  max-width: 100%;
+  width: 100vw;
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.saito-container:has(.create-post) .saito-sidebar,
+.saito-container.stack-create-post-container .saito-sidebar {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   View post — keep absolute shell; container owns vertical scroll (full bleed)
+   Declared last so it wins if a prior mode class is still on the container.
+   -------------------------------------------------------------------------- */
+
+.saito-container:has(.view-post) {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0;
+  max-width: 100%;
+  width: 100vw;
+  position: absolute;
+  top: var(--saito-header-height, 6rem);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(100vh - var(--saito-header-height, 6rem));
+  max-height: calc(100vh - var(--saito-header-height, 6rem));
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.saito-container:has(.view-post) .saito-sidebar {
+  display: none;
+}
+
+/* Route-level status (injected by stack.js into .saito-container) */
+.stack-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.stack-status > i {
+  font-size: 3rem;
+  color: var(--saito-muted-foreground);
+  margin-bottom: 1rem;
+}
+
+.stack-status h3 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--saito-foreground);
+  margin: 0 0 1rem 0;
+}
+
+.stack-status p {
+  font-size: 1.6rem;
+  color: var(--saito-muted-foreground);
+  margin: 0;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+.stack-status.network {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  gap: 1.2rem;
+  pointer-events: none;
+  z-index: 10;
+  min-height: 0;
+  padding: 0;
+}
+
+.stack-status.network .saito-spinner {
+  width: 8rem;
+  height: 8rem;
+}
+
+.stack-status.network .message {
+  font-size: 2.5rem;
+  color: var(--saito-muted-foreground);
+  text-align: center;
+}
+

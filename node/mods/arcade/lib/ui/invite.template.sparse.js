@@ -23,7 +23,7 @@ module.exports = (app, mod, invite) => {
   return `
         <div class="saito-table-row league_recent_game" id="saito-game-${invite.game_id}">
           <div class="league_recent_date">${date}</div>${players_html}<div class="league_recent_cause">${
-            invite.method ? invite.method : invite?.step || 0
+            invite.method ? app.browser.escapeHTML(invite.method) : invite?.step || 0
           }</div>
         </div>
     `;

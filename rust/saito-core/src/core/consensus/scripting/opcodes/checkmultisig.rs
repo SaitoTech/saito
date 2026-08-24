@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use super::super::script::{resolve_ref, resolved_value_to_message_string};
+use super::super::script::{get_p2sh_auth_hash, resolve_ref, resolved_value_to_message_string};
 use crate::core::consensus::block::Block;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::defs::{PrintForLog, SaitoPublicKey, SaitoSignature};
@@ -39,12 +39,12 @@ impl CheckMultiSig {
 
     pub fn validate(context: &mut Value, tx: Option<&Transaction>, blk: Option<&Block>) -> u8 {
         let publickeys = match context["script"]["publickeys"].as_array() {
-            Some(keys) if !keys.is_empty() => keys,
+            Some(keys) if !keys.is_empty() => keys.clone(),
             _ => return 0,
         };
 
         let signatures = match context["witness"]["signatures"].as_array() {
-            Some(sigs) if !sigs.is_empty() => sigs,
+            Some(sigs) if !sigs.is_empty() => sigs.clone(),
             _ => return 0,
         };
 
@@ -72,15 +72,21 @@ impl CheckMultiSig {
                 .to_string()
         };
 
+        let Some(p2sh_auth_hash) = get_p2sh_auth_hash(context, tx) else {
+            return 0;
+        };
+
+        let p2sh_auth_message = format!("{msg}|{p2sh_auth_hash}");
+
         let mut valid = 0usize;
         let mut used = HashSet::new();
 
-        for signature in signatures {
+        for signature in &signatures {
             let Some(signature) = signature.as_str() else {
                 continue;
             };
 
-            for publickey in publickeys {
+            for publickey in &publickeys {
                 let Some(publickey) = publickey.as_str() else {
                     continue;
                 };
@@ -96,7 +102,7 @@ impl CheckMultiSig {
                     continue;
                 };
 
-                if verify(msg.as_ref(), &sig, &pk) {
+                if verify(p2sh_auth_message.as_bytes(), &sig, &pk) {
                     used.insert(publickey.to_string());
                     valid += 1;
                     break;

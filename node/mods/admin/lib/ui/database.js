@@ -1,149 +1,300 @@
 const DatabaseTemplate = require('./database.template');
 
-class AdminDatabase {
+class AdminDatabaseUI {
   constructor(app, mod, container = '.admin-database') {
     this.app = app;
     this.mod = mod;
     this.container = container;
+    this.databases = [];
+    this.db = '';
+    this.tables = [];
+    this.table = '';
+    this.schema = [];
+    this.sql = '';
+    this.rows = null;
+    this.status = '';
+    this.error = '';
+    this.busy = '';
   }
 
   render() {
-    this.app.browser.replaceElementBySelector(DatabaseTemplate(this.mod), this.container);
+    this.databases = [];
+    this.db = '';
+    this.tables = [];
+    this.table = '';
+    this.schema = [];
+    this.sql = '';
+    this.rows = null;
+    this.status = '';
+    this.error = '';
+    this.busy = '';
+
+    if (!this.mod.server_info) {
+      this.app.browser.replaceElementContentBySelector(
+        `<p class="admin-db-empty">Waiting for the server to finish authenticating this administrator.</p>`,
+        this.container
+      );
+      return;
+    }
+
+    this.refresh();
     this.loadDatabases();
+  }
+
+  refresh() {
+    this.app.browser.replaceElementContentBySelector(
+      DatabaseTemplate({
+        databases: this.databases,
+        db: this.db,
+        tables: this.tables,
+        table: this.table,
+        schema: this.schema,
+        sql: this.sql,
+        status: this.status,
+        error: this.error,
+        busy: this.busy
+      }),
+      this.container
+    );
     this.attachEvents();
+    this.paintSchema();
+    this.paintResults();
   }
 
   attachEvents() {
-    const selectEl = document.getElementById('admin-database-select');
-    if (selectEl) {
-      selectEl.onchange = () => this.loadTables(selectEl.value);
+    const dbSelect = document.getElementById('admin-db-select');
+    if (dbSelect) {
+      dbSelect.onchange = () => {
+        this.db = dbSelect.value;
+        this.tables = [];
+        this.table = '';
+        this.schema = [];
+        this.rows = null;
+        this.status = '';
+        this.error = '';
+        this.refresh();
+        if (this.db) {
+          this.loadTables();
+        }
+      };
     }
-    const queryBtn = document.getElementById('query-database-button');
-    if (queryBtn) {
-      queryBtn.onclick = () => this.runQuery();
+
+    const tableSelect = document.getElementById('admin-db-table');
+    if (tableSelect) {
+      tableSelect.onchange = () => {
+        this.table = tableSelect.value;
+        this.schema = [];
+        this.rows = null;
+        this.status = '';
+        this.error = '';
+        if (!this.table) {
+          this.refresh();
+          return;
+        }
+        this.sql = `SELECT * FROM ${this.quoteIdent(this.table)} LIMIT 20;`;
+        this.refresh();
+        this.loadSchema();
+        this.runQuery();
+      };
+    }
+
+    const sqlInput = document.getElementById('admin-sql-input');
+    if (sqlInput) {
+      sqlInput.oninput = (e) => {
+        this.sql = e.currentTarget.value;
+      };
+    }
+
+    const runBtn = document.getElementById('admin-sql-run');
+    if (runBtn) {
+      runBtn.onclick = () => this.runQuery();
     }
   }
 
-  async sendRequest(request, data = {}, callback) {
-    try {
-      const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-        this.mod.server_publickey
-      );
-      tx.msg = { module: 'Admin', request, data };
-      await tx.sign();
-      this.app.network.sendTransactionWithCallback(
-        tx,
-        (res_tx) => {
-          const res = res_tx.returnMessage();
-          if (res?.err) callback(null, res.err);
-          else callback(res?.result, null);
-        },
-        this.mod.server_publickey
-      );
-    } catch (e) {
-      callback(null, e.message || String(e));
-    }
+  quoteIdent(name) {
+    return `"${String(name).replace(/"/g, '""')}"`;
   }
 
   loadDatabases() {
-    this.sendRequest('list-databases', {}, (result, err) => {
-      if (err) return this.renderError(err);
-      const sel = document.getElementById('admin-database-select');
-      if (!sel) return;
-      sel.innerHTML = '<option value="">-- Select Database --</option>';
-      (result || []).forEach((name) => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        sel.appendChild(opt);
-      });
+    this.busy = 'databases';
+    this.request('list-databases', {}, (result, err) => {
+      this.busy = '';
+      if (err) {
+        this.error = err;
+        this.refresh();
+        return;
+      }
+      this.databases = result || [];
+      this.refresh();
     });
   }
 
-  loadTables(db) {
-    if (!db) {
-      document.getElementById('admin-database-tables-list').innerHTML = '';
-      return;
-    }
-    this.sendRequest('list-database-tables', { db }, (result, err) => {
-      const ul = document.getElementById('admin-database-tables-list');
-      if (!ul) return;
-      ul.innerHTML = '';
-      if (err) return this.renderError(err);
-      (result || []).forEach((row) => {
-        const name = row.name;
-        const li = document.createElement('li');
-        li.textContent = name;
-        li.style.cursor = 'pointer';
-        li.onclick = () => {
-          const ta = document.getElementById('admin-sql-input');
-          if (ta) ta.value = `SELECT * FROM ${name} LIMIT 20;`;
-        };
-        ul.appendChild(li);
-      });
+  loadTables() {
+    this.busy = 'tables';
+    this.request('list-database-tables', { db: this.db }, (result, err) => {
+      this.busy = '';
+      if (err) {
+        this.error = err;
+        this.tables = [];
+        this.refresh();
+        return;
+      }
+      this.tables = (result || []).map((row) => row.name || row).filter(Boolean);
+      this.refresh();
+    });
+  }
+
+  loadSchema() {
+    const sql = `PRAGMA table_info(${this.quoteIdent(this.table)})`;
+    this.request('run-sql-query', { db: this.db, query: sql }, (result, err) => {
+      if (err) {
+        this.error = err;
+        this.schema = [];
+        this.refresh();
+        return;
+      }
+      this.schema = result?.rows || [];
+      this.refresh();
     });
   }
 
   runQuery() {
-    const btn = document.getElementById('query-database-button');
-    const db = document.getElementById('admin-database-select')?.value;
-    const query = document.getElementById('admin-sql-input')?.value?.trim();
-    if (!btn) return;
-    if (!db || !query) {
-      this.renderError('Select a database and enter a query.');
+    const sql = (this.sql || document.getElementById('admin-sql-input')?.value || '').trim();
+    this.sql = sql;
+    if (!this.db) {
+      this.error = 'Select a database first. Queries always run against the selected database.';
+      this.rows = null;
+      this.status = '';
+      this.refresh();
       return;
     }
-    const origLabel = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Running...';
-    this.sendRequest('run-sql-query', { db, query, params: [] }, (result, err) => {
-      if (err) this.renderError(err);
-      else this.renderTable(result);
-      btn.disabled = false;
-      btn.textContent = origLabel;
+    if (!sql) {
+      this.error = 'Enter SQL to run against "' + this.db + '".';
+      this.refresh();
+      return;
+    }
+
+    this.busy = 'sql';
+    this.error = '';
+    this.status = '';
+    this.refresh();
+
+    this.request('run-sql-query', { db: this.db, query: sql }, (result, err) => {
+      this.busy = '';
+      if (err) {
+        this.error = err;
+        this.rows = null;
+        this.status = '';
+        this.refresh();
+        return;
+      }
+      if (result?.rows) {
+        this.rows = result.rows;
+        this.status =
+          result.rows.length === 0
+            ? `Query on "${this.db}" returned no rows.`
+            : `Query on "${this.db}" returned ${result.rows.length} row${
+                result.rows.length === 1 ? '' : 's'
+              }.`;
+      } else {
+        this.rows = null;
+        const changes = result?.changes;
+        this.status = `Statement on "${this.db}" completed.${
+          typeof changes === 'number' ? ` ${changes} row${changes === 1 ? '' : 's'} changed.` : ''
+        }${
+          result?.lastID != null && result.lastID !== 0 ? ` lastID ${result.lastID}.` : ''
+        }`;
+      }
+      this.refresh();
     });
   }
 
-  renderTable(rows) {
-    const out = document.getElementById('admin-database-output');
-    if (!out) return;
-    out.innerHTML = '';
-    if (!Array.isArray(rows) || rows.length === 0) {
-      out.textContent = 'No results';
+  paintSchema() {
+    const el = document.getElementById('admin-db-schema');
+    if (!el) {
       return;
     }
+    el.innerHTML = '';
+    if (!this.schema.length) {
+      return;
+    }
+    el.appendChild(this.buildTable(this.schema, ['name', 'type', 'notnull', 'dflt_value', 'pk']));
+  }
+
+  paintResults() {
+    const el = document.getElementById('admin-db-output');
+    if (!el) {
+      return;
+    }
+    el.innerHTML = '';
+    if (!this.rows || !this.rows.length) {
+      return;
+    }
+    el.appendChild(this.buildTable(this.rows));
+  }
+
+  buildTable(rows, columns) {
+    const keys = columns || Object.keys(rows[0] || {});
     const table = document.createElement('table');
+    table.className = 'admin-db-table';
+
     const thead = document.createElement('thead');
-    const headerRow = document.createElement('tr');
-    Object.keys(rows[0]).forEach((k) => {
+    const hr = document.createElement('tr');
+    keys.forEach((key) => {
       const th = document.createElement('th');
-      th.textContent = k;
-      headerRow.appendChild(th);
+      th.textContent = key;
+      hr.appendChild(th);
     });
-    thead.appendChild(headerRow);
+    thead.appendChild(hr);
     table.appendChild(thead);
+
     const tbody = document.createElement('tbody');
     rows.forEach((row) => {
       const tr = document.createElement('tr');
-      Object.values(row).forEach((v) => {
+      keys.forEach((key) => {
         const td = document.createElement('td');
-        td.textContent = v == null ? '' : String(v);
+        const value = row[key];
+        if (value === null || value === undefined) {
+          td.textContent = 'NULL';
+          td.className = 'admin-db-null';
+        } else {
+          td.textContent = String(value);
+        }
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
-    out.appendChild(table);
+    return table;
   }
 
-  renderError(msg) {
-    const out = document.getElementById('admin-database-output');
-    if (!out) return;
-    out.innerHTML = '';
-    const div = document.createElement('div');
-    div.textContent = msg || 'Error';
-    out.appendChild(div);
+  async request(name, data, done) {
+    try {
+      let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+        this.mod.server_publickey
+      );
+      tx.msg = {
+        module: 'Admin',
+        request: name,
+        data
+      };
+      await tx.sign();
+      this.app.network.sendTransactionWithCallback(
+        tx,
+        (res_tx) => {
+          const res = res_tx.returnMessage();
+          if (res?.err) {
+            done(null, res.err);
+          } else {
+            done(res?.result, null);
+          }
+        },
+        this.mod.server_publickey
+      );
+    } catch (err) {
+      done(null, err.message || String(err));
+    }
   }
 }
 
-module.exports = AdminDatabase;
+module.exports = AdminDatabaseUI;

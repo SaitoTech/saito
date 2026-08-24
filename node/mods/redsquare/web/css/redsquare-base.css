@@ -12,6 +12,77 @@ body.redsquare-body {
       transparent 68%
     ),
     var(--saito-background);
+
+  /*
+   * Typography — Twitter/X hierarchy on the shared Saito root (12px).
+   * Body/author inherit 1.25rem (15px). Meta / titles are the only scale steps.
+   * Colors stay on Saito theme tokens.
+   */
+  font-size: 1.25rem;
+}
+
+/* Undo Saito `p { font-size: medium }` so prose inherits the RS body step. */
+body.redsquare-body p {
+  font-size: inherit;
+}
+
+/* Page / modal titles — ~20px */
+body.redsquare-body .manager > .header .title,
+body.redsquare-body .settings > .header .title {
+  font-size: 1.67rem;
+}
+
+/*
+ * Desktop hierarchy (first pass) — sizes only; cuts stay on components.
+ * Steps: page/nav/section 1.67rem (~20px) → profile name 1.4rem → body 1.25rem → meta 1.083rem.
+ * Tweet author/body/meta unchanged. Mobile keeps the inherited body band.
+ */
+@media (min-width: 601px) {
+  body.redsquare-body .menu .label {
+    font-size: 1.67rem;
+  }
+
+  body.redsquare-body .redsquare-profile .name {
+    font-size: 1.45rem;
+  }
+}
+
+/* Settings section labels — body size, medium weight (weight from component). */
+body.redsquare-body .settings .section > .title {
+  font-size: inherit;
+}
+
+/* Metadata — ~13px (timestamps, handles, counts, keys, legal, counters) */
+body.redsquare-body .tweet .time,
+body.redsquare-body .tweet .sep,
+body.redsquare-body .tweet .handle,
+body.redsquare-body .tweet .controls .count,
+body.redsquare-body .notification .time,
+body.redsquare-body .sidebar .footer,
+body.redsquare-body .sidebar .suggestion .handle,
+body.redsquare-body .compose .char-count,
+body.redsquare-body .compose .header.compose .secondary {
+  font-size: 1.083rem;
+}
+
+/* Quoted / embedded tweet body — one step below feed body (~14px) */
+body.redsquare-body .tweet.embedded .body {
+  font-size: 1.167rem;
+}
+
+/* Link previews — must not dominate the tweet (Saito defaults are larger) */
+body.redsquare-body .saito-link-preview-title {
+  font-size: 1.25rem;
+}
+
+body.redsquare-body .saito-link-preview-info,
+body.redsquare-body .saito-link-preview-display-url {
+  font-size: 1.083rem;
+}
+
+/* Compose field — X uses a larger writing surface than feed body (~20px) */
+body.redsquare-body .compose .input {
+  font-size: 1.5rem;
 }
 
 /*
@@ -27,8 +98,7 @@ body.redsquare-body {
 }
 
 body.redsquare-body #saito-container {
-  grid-template-columns: 270px 620px 310px;
-  column-gap: 0;
+  grid-template-columns: 265px 600px 300px;
   padding: 0 max(10px, calc((100vw - var(--saito-width)) / 2));
   overflow: hidden;
 }
@@ -49,6 +119,21 @@ body.redsquare-body #saito-container > .main {
   overflow: hidden;
 }
 
+/* Keep the shared publish control pinned to the feed when its rail action is unavailable. */
+body.redsquare-body .saito-floating-menu .saito-floating-plus-btn {
+  display: none;
+}
+
+body.redsquare-body .saito-floating-menu.redsquare-post-offscreen {
+  right: calc(var(--redsquare-feed-right-inset, 0px) + 1rem);
+  bottom: calc(var(--redsquare-feed-bottom-inset, 0px) + 1rem);
+  z-index: 45;
+}
+
+body.redsquare-body .saito-floating-menu.redsquare-post-offscreen .saito-floating-plus-btn {
+  display: flex;
+}
+
 @media (max-width: 1200px) {
   body.redsquare-body {
     --saito-width: 1000px;
@@ -65,13 +150,15 @@ body.redsquare-body #saito-container > .main {
   }
 
   body.redsquare-body #saito-container {
+    top: var(--redsquare-page-viewport-top, var(--saito-header-height));
+    height: var(--redsquare-page-viewport-height, calc(100dvh - var(--saito-header-height)));
     grid-template-columns: 80px minmax(0, 1fr);
   }
 }
 
 @media (max-width: 600px) {
   body.redsquare-body {
-    --redsquare-mobile-nav-height: 5.2rem;
+    --redsquare-mobile-nav-height: 6rem;
   }
 
   body.redsquare-body #saito-container {
@@ -94,9 +181,13 @@ body.redsquare-body #saito-container > .main {
     display: none !important;
   }
 
+  body.redsquare-body[data-redsquare-mobile-view='settings'] .saito-floating-menu {
+    display: none;
+  }
+
   /* Float above the mobile nav with the same inset used at the right edge. */
   body.redsquare-body .saito-floating-menu {
-    bottom: calc(var(--redsquare-mobile-nav-height) + 1.5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
     right: max(1.5rem, env(safe-area-inset-right, 0px));
     z-index: 45;
   }

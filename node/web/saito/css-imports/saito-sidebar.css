@@ -1,0 +1,86 @@
+/*
+ * Shared sidebar presentation components.
+ *
+ * Official roots:
+ *   .saito-sidebar-header  — section title row for embedded panels
+ *   .saito-sidebar-element — bordered body surface
+ *
+ * Header contract:
+ *   .title            — always present (text)
+ *   .actions          — optional; zero or more controls / decorative icons
+ *
+ * Legacy class names remain as aliases so unmigrated markup keeps working.
+ */
+
+/* ----------------------------------------------------------------
+   Header
+----------------------------------------------------------------- */
+
+.saito-sidebar-header,
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--saito-space-sm);
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  margin: 0;
+  font-size: 2rem;
+  font-family: var(--saito-font);
+  color: var(--saito-foreground);
+  text-transform: uppercase;
+}
+
+.saito-sidebar-header > *,
+.sidebar-header > * {
+  width: fit-content;
+  cursor: pointer;
+}
+
+/* Title — left-aligned text */
+.saito-sidebar-header .title,
+.saito-sidebar-header .sidebar-title,
+.sidebar-header .title,
+.sidebar-header .sidebar-title {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* Actions — right-aligned controls (Chat ellipsis, Leaderboard icon, …) */
+.saito-sidebar-header .actions,
+.sidebar-header .actions {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-xs);
+  flex-shrink: 0;
+  cursor: default;
+}
+
+/*
+ * Full-bleed mobile hosts (e.g. RedSquare Chat) have no rail padding.
+ * Match #saito-header mobile inset (1rem @ ≤620px) so title ↔ logo,
+ * actions ↔ hamburger share one horizontal grid.
+ */
+@media (max-width: 600px) {
+  .saito-sidebar-header,
+  .sidebar-header {
+    padding-inline: 1rem;
+  }
+}
+
+/* ----------------------------------------------------------------
+   Body surface
+----------------------------------------------------------------- */
+
+.saito-sidebar-element {
+  padding: var(--border-padding-normal);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card-wash);
+}

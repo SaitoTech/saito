@@ -3,6 +3,15 @@ const TweetBodyTemplate = require('./tweet-body.template');
 const TweetGalleryTemplate = require('./tweet-gallery.template');
 const TweetFooterTemplate = require('./tweet-footer.template');
 
+function escapeAttribute(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function resolvePresentation(className = '', options = {}) {
   if (options.presentation) {
     return options.presentation;
@@ -78,6 +87,7 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
   const header = TweetHeaderTemplate({
     mode,
     presentation,
+    publicKey: tweet.publicKey || '',
     name: tweet.username || '',
     handle,
     time: mode === 'compose' ? '' : time,
@@ -88,12 +98,21 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
     text:
       tweet.app && tweet.app.browser
         ? tweet.app.browser.sanitize(tweet.app.browser.markupMentions(tweet?.text || ''), true)
-        : tweet.text
+        : ''
   });
 
   const gallery = TweetGalleryTemplate({
     images: tweet.images
   });
+
+  const youtubeId = String(tweet.youtube_id || '').replace(/[^A-Za-z0-9_-]/g, '');
+  const youtube =
+    youtubeId && youtubeId !== 'null'
+      ? `<iframe class="youtube-embed" src="https://www.youtube.com/embed/${youtubeId}" allowfullscreen></iframe>`
+      : '';
+
+  const linkPreview =
+    typeof tweet.renderLinkPreviewHTML === 'function' ? tweet.renderLinkPreviewHTML() : '';
 
   let embed = '';
 
@@ -119,17 +138,43 @@ const TweetTemplate = (tweet, className = 'tweet', options = {}) => {
 
   const chain = embedded ? '' : '<div class="chain" aria-hidden="true"></div>';
 
+  const showMask =
+    Boolean(tweet.flagged === 1) || Boolean(tweet.moderated && !tweet.moderated_revealed);
+  const maskText =
+    tweet.flagged === 1
+      ? 'This tweet has been reported and is under review'
+      : 'This tweet has been moderated';
+  const showReveal = tweet.flagged !== 1 && tweet.moderated && !tweet.moderated_revealed;
+
+  const moderationMask = showMask
+    ? `
+      <div class="moderation-mask">
+        <div class="moderation-message">
+          <span class="text">${maskText}</span>
+          ${
+            showReveal
+              ? '<button type="button" class="saito-button-secondary small show-tweet">Show Tweet</button>'
+              : ''
+          }
+        </div>
+      </div>
+    `
+    : '';
+
   return `
-    <article class="${className}" data-id="${tweet.signature}">
+    <article class="${className}" data-id="${escapeAttribute(tweet.signature)}">
       ${chain}
-      <img class="avatar saito-identicon" src="${tweet.avatar}" alt="${tweet.username}" />
+      <img class="avatar saito-identicon" src="${escapeAttribute(tweet.avatar)}" alt="${escapeAttribute(tweet.username)}" data-id="${escapeAttribute(tweet.publicKey || '')}" />
       <div class="content">
         ${header}
         ${body}
         ${gallery}
+        ${youtube}
+        ${linkPreview}
         ${embed}
         ${footer}
       </div>
+      ${moderationMask}
     </article>
   `;
 };

@@ -1,0 +1,306 @@
+/* Overlay only — never participates in card-zone geometry. */
+.game.texas .texas-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: clamp(0.8rem, 6%, 2.4rem);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.game.texas .texas-controls .status {
+  display: none;
+  max-width: min(42rem, 92%);
+  margin: 0 auto 1rem;
+  padding: 0.8rem 1.2rem;
+  border: 1px solid #6a4a28;
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, #f3ead2 92%, transparent);
+  color: #2a1c12;
+  font-family: var(--saito-font-medium);
+  font-size: 1.6rem;
+  text-align: center;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+/* End-of-hand acknowledge surface (GameAcknowledge → #controls .acknowledge) */
+.game.texas .texas-controls .controls {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  pointer-events: auto;
+  z-index: 6;
+}
+
+.game.texas .texas-controls .controls:not(:empty) {
+  display: flex;
+}
+
+.game.texas .texas-controls:has(.controls:not(:empty)) {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8rem;
+}
+
+.game.texas .texas-controls:has(.controls:not(:empty)) .status:not(:empty) {
+  display: block;
+}
+
+.game.texas .texas-controls:has(.controls:not(:empty)) .texas-tray {
+  display: none !important;
+}
+
+.game.texas .texas-controls .controls ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.game.texas .texas-controls .controls .acknowledge,
+.game.texas .texas-controls .controls .option {
+  position: relative;
+  min-width: 16rem;
+  padding: 1rem 1.6rem;
+  border: 1px solid #6a4a28;
+  border-radius: 0.3rem;
+  background: #f3ead2;
+  color: #2a1c12;
+  font-family: var(--saito-font-heavy);
+  font-size: 1.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.game.texas .texas-controls .controls .acknowledge .animated-mask,
+.game.texas .texas-controls .controls .option .animated-mask {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, #6a4a28 22%, transparent);
+  pointer-events: none;
+}
+
+.game.texas .texas-tray {
+  display: none;
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 1.6rem;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(0.6rem);
+}
+
+.game.texas .texas-controls.is-active .texas-tray {
+  display: flex;
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.28s ease,
+    transform 0.32s ease;
+}
+
+.game.texas .texas-artifact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 14rem;
+  min-height: 15.5rem;
+  padding: 1.6rem 1rem 1.2rem;
+  border: 1px solid #6a4a28;
+  border-radius: 0.3rem;
+  background: #f3ead2;
+  color: #1f3d38;
+  text-align: center;
+  cursor: pointer;
+  transform: translateY(0);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+@media (hover: hover) {
+  .game.texas .texas-artifact:hover {
+    transform: translateY(-0.35rem);
+    border-color: #9a6f38;
+    background: #f7f0dc;
+    box-shadow: 0 0.35rem 0.7rem color-mix(in srgb, #2a1c12 18%, transparent);
+  }
+
+  .game.texas .texas-artifact[data-action='fold']:hover {
+    border-color: #a83338;
+  }
+
+  .game.texas .texas-artifact[data-action='raise']:hover {
+    border-color: #7a5a28;
+    background: #f8f1d8;
+  }
+}
+
+.game.texas .texas-artifact:active {
+  transform: translateY(-0.1rem);
+  border-color: #8a5e2c;
+  background: #efe4c8;
+  box-shadow: 0 0.15rem 0.35rem color-mix(in srgb, #2a1c12 14%, transparent);
+}
+
+.game.texas .texas-artifact-icon {
+  display: block;
+  width: 8rem;
+  height: 8rem;
+  margin: 0.4rem 0 1rem;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.game.texas .texas-artifact-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.game.texas .texas-artifact-title {
+  font-family: var(--saito-font-heavy);
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.game.texas .texas-artifact[data-action='fold'] .texas-artifact-title {
+  color: #8a1f24;
+}
+
+.game.texas .texas-artifact-detail {
+  font-family: var(--saito-font-medium);
+  font-size: 1.3rem;
+  color: #3d2a18;
+}
+
+.game.texas .texas-artifact-detail .wager-num,
+.game.texas .texas-artifact-detail .wager-ticker,
+.game.texas .texas-raise-amount .wager-num,
+.game.texas .texas-raise-amount .wager-ticker {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.game.texas .texas-raise-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: color-mix(in srgb, #06140c 55%, transparent);
+}
+
+.game.texas .texas-raise-sheet[hidden] {
+  display: none;
+}
+
+.game.texas .texas-raise-panel {
+  width: min(42rem, 94%);
+  padding: 2rem 1.8rem 1.6rem;
+  border: 0.4rem solid #3d2a18;
+  border-radius: 0.6rem;
+  background: #f3ead2;
+  color: #2a1c12;
+  text-align: center;
+}
+
+.game.texas .texas-raise-kicker {
+  font-size: 1.2rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6a4a28;
+}
+
+.game.texas .texas-raise-amount {
+  margin: 0.8rem 0 1.4rem;
+  font-family: var(--saito-font-heavy);
+  font-size: 2.6rem;
+}
+
+.game.texas .texas-raise-range {
+  width: 100%;
+  accent-color: #6a4a28;
+}
+
+.game.texas .texas-raise-presets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 1.2rem 0;
+}
+
+.game.texas .texas-raise-preset,
+.game.texas .texas-raise-cancel,
+.game.texas .texas-raise-confirm {
+  min-height: 3.6rem;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid #8a6a3c;
+  border-radius: 0.3rem;
+  background: #e8d7b0;
+  color: #2a1c12;
+  font-family: var(--saito-font-medium);
+  font-size: 1.4rem;
+}
+
+.game.texas .texas-raise-confirm {
+  background: #3d2a18;
+  color: #f3ead2;
+}
+
+.game.texas .texas-raise-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+@media (max-width: 900px), (max-height: 500px) {
+  .game.texas .texas-controls {
+    padding-bottom: clamp(0.4rem, 4%, 1.2rem);
+  }
+
+  .game.texas .texas-tray {
+    gap: 0.9rem;
+  }
+
+  .game.texas .texas-artifact {
+    width: 10.5rem;
+    min-height: 12rem;
+    padding: 1rem 0.7rem 0.9rem;
+  }
+
+  .game.texas .texas-artifact-icon {
+    width: 5.6rem;
+    height: 5.6rem;
+    margin: 0.2rem 0 0.7rem;
+  }
+
+  .game.texas .texas-artifact-title {
+    font-size: 1.5rem;
+  }
+
+  .game.texas .texas-artifact-detail {
+    font-size: 1.15rem;
+  }
+}

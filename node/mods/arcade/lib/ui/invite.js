@@ -3,6 +3,77 @@ const InviteTemplate = require('./invite.template');
 const InviteTemplateSparse = require('./invite.template.sparse');
 const JSON = require('json-bigint');
 
+/**
+ * Derive invite-card economic line and risk-mode ribbon from invite options.
+ * Uses the same stake object shape as game creation (symmetric amount or
+ * { min, [publicKey]: amount } for asymmetric / creator-funded games).
+ */
+function deriveEconomicInviteDisplay(options = {}, originator = '') {
+  const empty = { economic_line: null, risk_mode: null };
+
+  if (!options?.crypto) {
+    return empty;
+  }
+
+  const ticker = options.crypto;
+  const stake = options.stake;
+
+  if (stake === undefined || stake === null || stake === '') {
+    return empty;
+  }
+
+  if (typeof stake === 'object') {
+    const min = parseFloat(stake.min);
+    if (Number.isNaN(min)) {
+      return empty;
+    }
+
+    let max = min;
+    for (const key in stake) {
+      if (key === 'min') {
+        continue;
+      }
+      const value = parseFloat(stake[key]);
+      if (!Number.isNaN(value) && value > max) {
+        max = value;
+      }
+    }
+
+    // Joiners must match at least `min`; min === 0 means creator-funded prize.
+    const joiner_must_contribute = min > 0;
+    let risk_mode = 'RISK FREE';
+    if (joiner_must_contribute) {
+      risk_mode = min === max ? 'EVEN BETS' : 'CUSTOM BETS';
+    }
+
+    let amount_label;
+    if (joiner_must_contribute) {
+      amount_label = min === max ? String(min) : `${min} - ${max}`;
+    } else {
+      if (originator && stake[originator] != null && stake[originator] !== '') {
+        amount_label = String(stake[originator]);
+      } else {
+        amount_label = String(max);
+      }
+    }
+
+    return {
+      economic_line: `${amount_label} ${ticker}`,
+      risk_mode
+    };
+  }
+
+  const amount = parseFloat(stake);
+  if (Number.isNaN(amount) || amount <= 0) {
+    return empty;
+  }
+
+  return {
+    economic_line: `${stake} ${ticker}`,
+    risk_mode: 'EVEN BETS'
+  };
+}
+
 class Invite {
   constructor(app, mod, container, type, tx = null, publicKey = '') {
     this.app = app;
@@ -138,6 +209,10 @@ class Invite {
         if (txmsg.options['open-table']) {
           this.invite_data.game_type = `open ${txmsg.options.crypto} table`;
         }
+
+        const economic = deriveEconomicInviteDisplay(txmsg.options, txmsg.originator);
+        this.invite_data.economic_line = economic.economic_line;
+        this.invite_data.risk_mode = economic.risk_mode;
       }
 
       //League
@@ -234,7 +309,10 @@ class Invite {
   }
 
   attachEvents() {
-    let qs = this.container + ` #arcade-invite-${this.invite_data.game_id}`;
+    let qs = `${this.container} #arcade-invite-${this.invite_data.game_id}`.trim();
+    if (!this.container) {
+      qs = `#arcade-invite-${this.invite_data.game_id}`;
+    }
 
     try {
       if (document.querySelector(qs)) {

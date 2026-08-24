@@ -78,6 +78,12 @@ class OpcodeReference {
     if (name === 'SETARRAYFIELD') {
       return 'Returns true after writing a field on each destination object from a parallel source.';
     }
+    if (name === 'SUMFIELDS') {
+      return 'Returns true after summing two values into __opcodes.sumfields.<into>.';
+    }
+    if (name === 'SCRIPTHASH') {
+      return 'Returns true after hashing a JSON script tree into __opcodes.scripthash.<into>.';
+    }
     if (name === 'ARRAYIFY') {
       return 'Returns true after replacing a context value with deep clones of itself.';
     }

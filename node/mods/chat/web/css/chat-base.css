@@ -1,3 +1,19 @@
+/*
+ * =============================================================================
+ * /chat application page — mods/chat/web/css/chat-base.css
+ * Bundled into /chat/style.css (loaded only when Chat.render() runs).
+ *
+ * Owns: splash CTA, appspace columns, page-manager, full-page conversation
+ *       geometry, and /chat-only layout overrides scoped under
+ *       .chat-main-container.
+ *
+ * Does NOT own: message/bubble/composer appearance → saito-chat.css
+ *               profile/member rail → chat-sidebar.css
+ * =============================================================================
+ */
+
+/* --- Splash / first-visit CTA (Chat product only) --- */
+
 .chat-splash-overlay {
   position: fixed;
   inset: 0;
@@ -69,13 +85,14 @@
   filter: brightness(0.98);
 }
 
+/* --- Appspace shell: left manager | conversation | optional right rail --- */
+
 .saito-container.chat-main-container {
   padding: 0;
   overflow-y: hidden;
   grid-template-columns: min-content auto;
   column-gap: unset;
-  /*margin: 0 max(0rem, calc(50vw - 65rem));
-    max-width: 130rem;*/
+  background: transparent;
 }
 
 #chat-main {
@@ -91,12 +108,11 @@
   flex-direction: column;
   gap: var(--saito-space-xs);
   grid-template-rows: none;
+  background: transparent;
 }
 
-.chat-main-container .chat-manager-header.sidebar-header {
+.chat-main-container .chat-manager .saito-sidebar-header {
   flex: 0 0 auto;
-  min-height: 0;
-  margin: 0;
 }
 
 .chat-main-container .chat-manager-list {
@@ -105,28 +121,73 @@
   max-height: none;
   margin-top: 0;
   padding-top: 0;
+  background: transparent;
 }
 
 .chat-main-container .chat-header,
 .chat-main-container .chat-footer {
-  padding: 0 1rem !important;
-}
-
-.chat-main-container .chat-header-info {
-  height: 5rem;
-}
-.chat-main-container .chat-header .chat-header-nav {
-  display: none;
+  padding: 0 1rem;
 }
 
 .chat-main-container .saito-sidebar.left {
-  min-width: 20rem;
-  width: 30rem;
+  min-width: 41.35rem;
+  width: 41.35rem;
   max-width: 50vw;
   overflow: visible;
   border-right: 1px solid var(--saito-border);
   padding: var(--saito-space-sm) var(--saito-space-md);
-  background: var(--saito-background);
+  background: transparent;
+}
+
+.chat-page-manager {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.chat-page-manager-content {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-page-manager .chat-manager {
+  height: 100%;
+  min-height: 0;
+}
+
+.chat-page-manager .chat-manager-list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.chat-page-manager-settings {
+  display: none;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.chat-page-manager[data-chat-view='settings'] .chat-page-manager-content {
+  display: none;
+}
+
+.chat-page-manager[data-chat-view='settings'] .chat-page-manager-settings {
+  display: block;
+}
+
+.chat-page-manager-view-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.chat-page-manager-settings-content {
+  padding: var(--saito-space-md);
+}
+
+.chat-page-manager .chat-manager-mobile-menu {
+  display: flex;
 }
 
 .chat-main-container .saito-sidebar.right {
@@ -148,17 +209,18 @@
   left: 50%;
   transform: translateX(-50%);
   margin-bottom: 1.5rem;
-  /*position: absolute;
-	bottom: 0;*/
   background: var(--saito-background);
 }
 
+/* Centered conversation column — drop component wash/tile on the page */
 .chat-main-container .chat-body {
   width: 99%;
   padding: 0 calc(50% - 30rem);
   height: 100%;
   margin: auto;
   margin-left: 1%;
+  background-color: transparent;
+  background-image: none;
 }
 
 .chat-main-container .text-input {
@@ -172,35 +234,34 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--saito-border) 34%, transparent);
 }
 
-.chat-footer > i {
-  margin-left: 1rem;
+/* Page composer: spacing/hover polish only — sizes come from saito-chat.css */
+.chat-main-container .chat-footer > i {
+  margin-left: var(--saito-space-sm);
   border-radius: 50%;
-  height: 4.3rem;
-  width: 4.3rem;
   background-color: transparent;
   box-shadow: none;
 }
 
-.chat-footer > i:hover {
+.chat-main-container .chat-footer > i:hover {
   background-color: var(--saito-background);
   box-shadow: 0 0 1px var(--saito-primary);
 }
 
-.chat-static.chat-popup .saito-notification-dot {
+.chat-main-container .chat-static.chat-popup .saito-notification-dot {
   bottom: 7rem;
   right: max(calc(50% - 28.5rem), 1rem);
   width: 4rem;
   height: 4rem;
 }
 
-/* left align all chats in wide screen */
+/* Full-page wide Chat: show own avatar/name (floating popup keeps them hidden) */
 @media screen and (min-width: 1200px) {
-  .chat-body .saito-user-self.saito-user {
+  .chat-main-container .chat-body .saito-user-self.saito-user {
     display: grid;
     justify-content: unset;
   }
-  .chat-body .saito-user-self.saito-user > .saito-address,
-  .chat-body .saito-user-self.saito-user > .saito-identicon-box {
+  .chat-main-container .chat-body .saito-user-self.saito-user > .saito-address,
+  .chat-main-container .chat-body .saito-user-self.saito-user > .saito-identicon-box {
     display: block;
   }
 
@@ -213,8 +274,7 @@
     grid-template-columns: min-content auto min-content;
   }
 
-  .chat-main-container .chat-header,
-  .chat-main-container .chat-header-info {
+  .chat-main-container .chat-header {
     visibility: hidden;
     min-height: unset;
     height: 1rem;
@@ -236,15 +296,23 @@
 
 @media screen and (max-width: 600px) {
   .chat-main-container.saito-container {
+    height: var(--chat-page-viewport-height, calc(100dvh - var(--saito-header-height)));
+    min-height: 0;
+    top: var(--chat-page-viewport-top, var(--saito-header-height));
     grid-template-columns: 1fr;
   }
 
   .chat-main-container .saito-sidebar.left {
+    height: 100%;
+    min-height: 0;
     max-width: unset;
     width: 100vw;
+    overflow: hidden;
+    padding: 0;
     resize: none;
   }
-  .saito-main {
+
+  .chat-main-container .saito-main {
     display: none;
   }
 }

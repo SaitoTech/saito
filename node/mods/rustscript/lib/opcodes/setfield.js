@@ -23,10 +23,6 @@ Only context.* destinations are writable.
     reference: 'context.constitution.owner',
     value: '__opcodes.importfield.owner'
   },
-  schema: {
-    reference: 'string',
-    value: 'reference'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

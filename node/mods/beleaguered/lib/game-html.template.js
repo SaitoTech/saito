@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-  return `
+	return `
 		<div class="gameboard">
 			<div class="logobox">
 				<img
@@ -10,4 +10,4 @@ module.exports = (app, mod) => {
 			</div>
 			<div class="rowbox cardstack-container" id="rowbox"></div>
 		</div>`;
-};
+}

@@ -1,32 +1,12 @@
-/* Stack Styles */
+/*
+ * Splash / main screen
+ *
+ * Shell geometry: stack-base.css
+ * Card chrome + button sizing: .saito-cta / .saito-button-* / .saito-button-row
+ * This sheet: Stack-only composition (flip art, copy column, logo mask).
+ */
 
-/* Smooth container transitions for ViewPost */
-.saito-container {
-  transition: opacity 200ms ease;
-}
-
-/* Override Saito default 3-column layout for splash page - only when stack-splash class exists */
-.saito-container:has(.stack-splash),
-.saito-container.stack-splash-container {
-  grid-template-columns: 1fr !important;
-  padding: 0 !important;
-  position: relative !important;
-  top: var(--saito-header-height, 60px);
-  height: auto;
-  overflow: visible !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  column-gap: 0 !important;
-}
-
-/* Hide sidebars when splash page is present */
-.saito-container:has(.stack-splash) .saito-sidebar,
-.saito-container.stack-splash-container .saito-sidebar {
-  display: none !important;
-}
-
-/* Splash page layout */
-.stack-splash {
+.splash {
   height: calc(100svh - var(--saito-header-height, 60px));
   display: flex;
   flex-direction: column;
@@ -37,33 +17,8 @@
   padding: 3rem;
 }
 
-/* Subscriptions toggle button */
-.stack-subscriptions-toggle {
-  position: fixed;
-  top: calc(var(--saito-header-height, 60px) + 1rem);
-  left: 1rem;
-  z-index: 100;
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
-  background: var(--saito-background);
-  border: 1px solid var(--saito-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: var(--saito-foreground);
-}
-
-.stack-subscriptions-toggle:hover {
-  background: var(--saito-primary);
-  color: white;
-  transform: scale(1.05);
-}
-
-/* CTA Section - centered vertically on desktop; chrome from .saito-cta */
-.stack-cta-section {
+/* Wider two-column CTA than default .saito-cta (860px column) */
+.splash > .saito-cta {
   flex: 0 1 auto;
   flex-direction: row;
   gap: 4rem;
@@ -72,49 +27,33 @@
   width: min(95vw, 1180px);
 }
 
-@media (max-width: 768px) {
-  .stack-splash {
-    padding: 0;
-  }
-
-  .stack-cta-section {
-    gap: 2rem;
-    padding: 0;
-    min-height: auto;
-    height: auto;
-    flex-direction: column;
-    align-self: center;
-  }
-}
-
-/* CTA Image - Flip Card Effect */
-.stack-cta-image-flip {
+.splash .flip {
   flex: 0 0 auto;
   width: 100%;
   max-width: 500px;
   aspect-ratio: 1;
   perspective: 1000px;
-  border-radius: 16px;
+  border-radius: var(--saito-radius-lg);
   position: relative;
 }
 
-.stack-cta-image-front,
-.stack-cta-image-back {
+.splash .front,
+.splash .back {
   position: absolute;
   width: 100%;
   height: 100%;
   backface-visibility: hidden;
-  border-radius: 16px;
+  border-radius: var(--saito-radius-lg);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--saito-elevation-2);
   transition: transform 0.6s;
 }
 
-.stack-cta-image-front {
+.splash .front {
   transform: rotateY(0deg);
 }
 
-.stack-cta-image-back {
+.splash .back {
   transform: rotateY(180deg);
   background: var(--saito-background);
   border: 1px solid var(--saito-border);
@@ -122,67 +61,58 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  /* Remove heavy shadow - cleaner explanation panel */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--saito-elevation-1);
 }
 
-.stack-cta-image-flip:hover .stack-cta-image-front {
+.splash .flip:hover .front {
   transform: rotateY(-180deg);
 }
 
-.stack-cta-image-flip:hover .stack-cta-image-back {
+.splash .flip:hover .back {
   transform: rotateY(0deg);
 }
 
-.stack-cta-image-front img {
+.splash .front img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.stack-cta-image-placeholder {
-  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-chart-4, #4a90e2) 100%);
+.splash .front.placeholder img {
+  display: none;
+}
+
+.splash .front.placeholder {
+  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-chart-4) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--saito-primary-foreground);
   font-size: 3rem;
   width: 100%;
   height: 100%;
 }
 
-.stack-cta-image-placeholder::before {
+.splash .front.placeholder::before {
   content: '📝';
   font-size: 8rem;
   opacity: 0.3;
 }
 
-.stack-cta-image-back-content {
-  text-align: left; /* Left-align for explanation panel feel */
+.splash .panel {
+  text-align: left;
   color: var(--saito-foreground);
-  transform: rotateY(0deg);
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Start from top, not centered */
+  justify-content: flex-start;
   padding: 2.5rem;
-  /* Do NOT set base font-size - each role has explicit rem size */
-  font-family: var(
-    --saito-font-family,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif
-  );
 }
 
-.stack-cta-image-back-content h3 {
-  font-size: 2.4rem; /* 24px - clear section title */
+.splash .panel h3 {
+  font-size: 2.4rem;
   margin: 0 0 1.5rem 0;
   color: var(--saito-foreground);
   font-weight: 600;
@@ -190,134 +120,41 @@
   letter-spacing: -0.01em;
 }
 
-.stack-cta-image-back-content p {
-  font-size: 1.6rem; /* 16px minimum - readable body text */
+.splash .panel p {
+  font-size: 1.6rem;
   line-height: 1.6;
   margin: 0 0 2rem 0;
   color: var(--saito-foreground);
-  opacity: 1;
   font-weight: 400;
 }
 
-.stack-features-list {
+.splash .features {
   list-style: none;
   padding: 0;
   margin: 0 0 2rem 0;
   text-align: left;
 }
 
-.stack-features-list li {
+.splash .features li {
   padding: 0.75rem 0;
-  font-size: 1.6rem; /* 16px minimum - readable list items */
+  font-size: 1.6rem;
   color: var(--saito-foreground);
-  opacity: 1;
   font-weight: 400;
   line-height: 1.6;
   border-bottom: 1px solid var(--saito-border);
 }
 
-.stack-features-list li:last-child {
+.splash .features li:last-child {
   border-bottom: none;
 }
 
-.stack-learn-more-link {
+.splash .more {
   margin-top: auto;
-  text-align: left; /* Left-align for explanation panel */
+  text-align: left;
   padding-top: 1rem;
 }
 
-.stack-learn-more-btn {
-  color: var(--saito-primary);
-  text-decoration: underline;
-  text-underline-offset: 0.25em;
-  font-size: 1.6rem; /* 16px minimum - readable link */
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  transition: all 0.2s ease;
-}
-
-.stack-learn-more-btn:hover {
-  color: var(--saito-chart-4, var(--saito-primary));
-  text-decoration-thickness: 2px;
-}
-
-.stack-learn-more-btn i {
-  font-size: 1.4rem; /* 14px minimum - icon size */
-}
-
-/* Large screens - maintain readability */
-@media (min-width: 1400px) {
-  .stack-cta-image-back-content {
-    padding: 3rem;
-  }
-
-  .stack-cta-image-back-content h3 {
-    font-size: 2.6rem; /* 26px - clear hierarchy */
-  }
-
-  .stack-cta-image-back-content p {
-    font-size: 1.7rem; /* 17px - comfortable reading */
-  }
-
-  .stack-features-list li {
-    font-size: 1.7rem; /* 17px - comfortable reading */
-  }
-
-  .stack-learn-more-btn {
-    font-size: 1.7rem; /* 17px - comfortable reading */
-  }
-}
-
-@media (max-width: 768px) {
-  .saito-container:has(.stack-splash),
-  .saito-container.stack-splash-container {
-    max-height: calc(100svh - var(--saito-header-height));
-    grid-template-rows: minmax(0, 1fr);
-  }
-
-  .stack-splash {
-    height: 100%;
-  }
-
-  .stack-cta-image-flip {
-    max-width: 100%;
-    max-height: 300px;
-    height: 100%;
-  }
-
-  .stack-cta-image-back-content {
-    padding: 1.5rem;
-  }
-
-  .stack-cta-image-back-content h3 {
-    font-size: 2.2rem; /* 22px - clear hierarchy on mobile */
-    margin: 0 0 1.25rem 0;
-  }
-
-  .stack-cta-image-back-content p {
-    font-size: 1.6rem; /* 16px minimum - readable on mobile */
-    line-height: 1.6;
-    margin: 0 0 1.75rem 0;
-  }
-
-  .stack-features-list {
-    margin: 0 0 1.75rem 0;
-  }
-
-  .stack-features-list li {
-    padding: 0.625rem 0;
-    font-size: 1.6rem; /* 16px minimum - readable on mobile */
-  }
-
-  .stack-learn-more-btn {
-    font-size: 1.6rem; /* 16px minimum - readable on mobile */
-  }
-}
-
-/* CTA Content */
-.stack-cta-content {
+.splash .copy {
   flex: 1;
   max-width: 600px;
   display: flex;
@@ -325,20 +162,19 @@
   align-items: center;
 }
 
-.stack-cta-logo {
+.splash .logo {
   --saito-cta-logo-mask: url('/saito/icons/saito-stack-icon-outline-label-horizontal.svg');
   width: min(42rem, 100%);
   aspect-ratio: 381 / 134;
   margin-bottom: 1.6rem;
   position: relative;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
 }
 
-.saito-cta:hover .stack-cta-logo {
+.splash > .saito-cta:hover .logo {
   --saito-cta-logo-mask: url('/saito/icons/saito-stack-icon-solid-label-horizontal.svg');
 }
 
-.stack-cta-logo::after {
+.splash .logo::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -346,7 +182,7 @@
   mask: var(--saito-cta-logo-mask) center / contain no-repeat;
 }
 
-.stack-cta-subtitle {
+.splash .subtitle {
   margin: 0 0 4rem;
   color: var(--saito-muted-foreground);
   font-size: 1.5rem;
@@ -355,15 +191,7 @@
   text-transform: uppercase;
 }
 
-.stack-cta-title {
-  font-size: 5rem;
-  font-weight: 700;
-  margin: 0 0 1.5rem 0;
-  color: var(--saito-foreground);
-  line-height: 1.2;
-}
-
-.stack-cta-description {
+.splash .description {
   font-size: 1.8rem;
   line-height: 1.7;
   color: var(--saito-foreground);
@@ -372,368 +200,69 @@
   padding: 0 1rem;
 }
 
-.stack-cta-buttons {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  align-self: start;
+.splash .saito-button-row {
+  align-self: stretch;
 }
 
-.stack-cta-buttons .saito-button-primary,
-.stack-cta-buttons .saito-button-secondary {
-  min-width: 17rem;
-  min-height: 6.4rem;
-  padding: 1.6rem 3.6rem;
-  border-radius: var(--saito-radius, var(--saito-radius));
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.9rem;
-  font-size: 1.7rem;
-  font-weight: 700;
-  line-height: 1;
+@media (min-width: 1400px) {
+  .splash .panel {
+    padding: 3rem;
+  }
+
+  .splash .panel h3 {
+    font-size: 2.6rem;
+  }
+
+  .splash .panel p,
+  .splash .features li {
+    font-size: 1.7rem;
+  }
 }
 
 @media (max-width: 768px) {
-  .stack-cta-title {
-    font-size: 3rem;
+  .splash {
+    height: 100%;
+    padding: 0;
   }
 
-  .stack-cta-description {
-    font-size: 1.8rem;
-  }
-
-  .stack-cta-buttons {
+  .splash > .saito-cta {
+    gap: 2rem;
+    padding: 0;
+    min-height: auto;
+    height: auto;
     flex-direction: column;
+    align-self: center;
   }
 
-  .stack-cta-buttons button {
-    width: 100%;
-    font-size: 1.6rem;
-  }
-}
-
-.stack-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.stack-header {
-  text-align: center;
-  margin-bottom: 40px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid var(--saito-border);
-}
-
-.stack-header h1 {
-  font-size: 2.5em;
-  margin: 0;
-  color: var(--saito-primary);
-}
-
-.stack-subtitle {
-  font-size: 1.9rem; /* 19px - explicit rem for consistency */
-  color: var(--saito-foreground);
-  margin-top: 10px;
-}
-
-.stack-content {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 30px;
-}
-
-.stack-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-}
-
-.stack-sidebar-section {
-  background: var(--saito-background);
-  border: 1px solid var(--saito-border);
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.stack-sidebar-section h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--saito-foreground);
-}
-
-.stack-publications-list,
-.stack-subscriptions-list {
-  margin-bottom: 15px;
-}
-
-.stack-main {
-  min-height: 500px;
-}
-
-.stack-feed {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.stack-post {
-  background: var(--saito-background);
-  border: 1px solid var(--saito-border);
-  border-radius: 8px;
-  padding: 25px;
-  transition: box-shadow 0.3s ease;
-}
-
-.stack-post:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.stack-post-header {
-  margin-bottom: 15px;
-}
-
-.stack-post-meta {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  font-size: 1.4rem; /* 14px minimum - metadata text */
-  color: var(--saito-muted-foreground);
-}
-
-.stack-post-author {
-  font-weight: bold;
-  color: var(--saito-primary);
-}
-
-.stack-post-date {
-  color: var(--saito-muted-foreground);
-}
-
-.stack-tier-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 1.4rem; /* 14px minimum - badge text */
-  font-weight: bold;
-}
-
-.stack-tier-free {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.stack-tier-paid {
-  background: #fff3e0;
-  color: #e65100;
-}
-
-.stack-post-title {
-  font-size: 2.9rem; /* 29px - explicit rem for consistency */
-  margin: 0 0 10px 0;
-  color: var(--saito-foreground);
-}
-
-.stack-post-excerpt {
-  font-size: 1.8rem; /* 18px - explicit rem for consistency */
-  color: var(--saito-muted-foreground);
-  margin-bottom: 15px;
-  font-style: italic;
-}
-
-.stack-post-body {
-  color: var(--saito-foreground);
-  line-height: 1.6;
-  margin-bottom: 15px;
-}
-
-.stack-post-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 15px;
-}
-
-.stack-tag {
-  background: var(--saito-primary);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 1.4rem; /* 14px minimum - tag text */
-}
-
-.stack-post-actions {
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid var(--saito-border);
-}
-
-/* Link-style control (not a DS button) */
-.stack-btn-link {
-  background: none;
-  color: var(--saito-primary);
-  text-decoration: underline;
-  padding: 5px 10px;
-}
-
-.stack-btn-link:hover {
-  color: var(--saito-chart-4);
-}
-
-/* Create Post Form */
-.stack-create-post {
-  background: var(--saito-background);
-  border: 1px solid var(--saito-border);
-  border-radius: 8px;
-  padding: 30px;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.stack-create-post h2 {
-  margin-top: 0;
-  color: var(--saito-primary);
-}
-
-.stack-form-group {
-  margin-bottom: 20px;
-}
-
-.stack-form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: bold;
-  color: var(--saito-foreground);
-}
-
-.stack-form-actions {
-  display: flex;
-  gap: 15px;
-  margin-top: 25px;
-}
-
-/* Subscription Items */
-.stack-subscription-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid var(--saito-border);
-  border-radius: 6px;
-  margin-bottom: 10px;
-  background: var(--saito-background);
-}
-
-.stack-subscription-info {
-  flex: 1;
-}
-
-.stack-subscription-author {
-  font-weight: bold;
-  color: var(--saito-foreground);
-  margin-bottom: 4px;
-}
-
-.stack-subscription-tier {
-  font-size: 1.4rem; /* 14px minimum - tier text */
-  color: var(--saito-muted-foreground);
-}
-
-.stack-subscribe-btn,
-.stack-unsubscribe-btn {
-  padding: 6px 12px;
-  font-size: 1.6rem; /* 16px minimum - button text */
-}
-
-/* Loading State */
-.stack-loading {
-  text-align: center;
-  padding: 40px;
-  color: var(--saito-muted-foreground);
-  font-size: 1.8rem; /* 18px - explicit rem for consistency */
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .stack-content {
-    grid-template-columns: 1fr;
+  .splash .flip {
+    max-width: 100%;
+    max-height: 300px;
+    height: 100%;
   }
 
-  .stack-sidebar {
-    order: 2;
+  .splash .panel {
+    padding: 1.5rem;
   }
 
-  .stack-main {
-    order: 1;
+  .splash .panel h3 {
+    font-size: 2.2rem;
+    margin: 0 0 1.25rem 0;
   }
 
-  .stack-features-list {
+  .splash .panel p {
+    margin: 0 0 1.75rem 0;
+  }
+
+  .splash .features {
     display: none;
   }
 
-  .stack-cta-description {
+  .splash .description {
     margin-bottom: 1.5rem;
   }
 
-  .stack-cta-buttons {
+  .splash .saito-button-row {
     margin-bottom: 2rem;
-    width: 100%;
-  }
-
-  .stack-cta-buttons button {
-    margin: 0;
-  }
-}
-
-/* ============================================
-   PUBLISH SETTINGS OVERLAY
-   ============================================ */
-
-/* ============================================
-   EXPLORE OVERLAY
-   ============================================ */
-
-/* CTA loader hooks — moved from saito-cta-loader.css */
-.stack-splash .saito-cta-progress {
-  --saito-cta-progress-width: 118rem;
-}
-body .saito-cta :is(.saito-button-primary, .saito-button-secondary) {
-  width: 100%;
-  height: 4.5rem;
-  min-height: 4.5rem;
-  margin: 0;
-}
-body .saito-cta .stack-cta-buttons {
-  display: flex;
-  flex-flow: row nowrap;
-  width: 100%;
-  gap: 2rem;
-}
-body .saito-cta .stack-cta-buttons > :is(.saito-button-primary, .saito-button-secondary) {
-  flex: 1 1 0;
-  min-width: 0;
-}
-.saito-cta.saito-cta-loading .saito-button-primary,
-.saito-cta.saito-cta-loading .saito-button-secondary {
-  cursor: wait;
-  filter: grayscale(0.18) brightness(0.82);
-  opacity: 0.62;
-  pointer-events: none;
-}
-@media (max-width: 720px) {
-  body .saito-cta.saito-cta .stack-cta-buttons {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    width: 100%;
-    gap: 2rem;
-  }
-  body
-    .saito-cta.saito-cta
-    .stack-cta-buttons
-    > :is(.saito-button-primary, .saito-button-secondary) {
-    flex: 0 0 4.5rem;
     width: 100%;
   }
 }

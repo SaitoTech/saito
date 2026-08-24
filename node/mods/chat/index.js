@@ -15,7 +15,7 @@ module.exports = (app, mod, build_number, og_card) => {
     <meta name="description" content="${app.browser.escapeHTML(mod.description)}" />
     <meta name="keywords" content="${mod.categories}"/>
     <meta name="author" content="Saito"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes, interactive-widget=resizes-content" />
   
     <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/fontawesome.min.css" type="text/css" media="screen" />
     <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/all.css" type="text/css" media="screen" />
@@ -50,6 +50,7 @@ module.exports = (app, mod, build_number, og_card) => {
     <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
     <link rel="icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/saito/img/touch/pwa-512x512.png" />
+    <link rel="manifest" href="/chat/manifest.webmanifest" />
   
     <script type="text/javascript" src="/saito/lib/jquery/jquery-3.2.1.min.js"></script>
   
@@ -132,6 +133,15 @@ module.exports = (app, mod, build_number, og_card) => {
   </body>
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
 </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/chat/service-worker.js').catch((error) => {
+          console.warn('Unable to register the Chat service worker:', error);
+        });
+      });
+    }
+  </script>
   </html>
   
   `;

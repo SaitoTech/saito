@@ -21,7 +21,7 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
   >
     <header class="saito-overlay-form-header">
       <div class="crypto-logo-container header-logo" id="withdraw-header-logo-cont"></div>
-      <h2 class="saito-overlay-form-header-title" id="withdraw-overlay-title">Send</h2>
+      <h2 class="saito-overlay-form-header-title" id="withdraw-overlay-title">SEND CRYPTO</h2>
     </header>
 
     <div id="withdraw-step-one" class="compose">
@@ -183,7 +183,10 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
         </div>
 
         <div class="confirm-tx hide-element" id="withdraw-confirm-tx-row">
-          <div class="confirm-label">transaction</div>
+          <div class="confirm-tx-heading">
+            <div class="confirm-label">transaction id</div>
+            <a class="confirm-tx-details" id="withdraw-confirm-tx-explorer" href="#">view details</a>
+          </div>
           <div class="confirm-tx-inline">
             <div class="confirm-tx-hash" id="withdraw-confirm-tx-hash"></div>
             <button
@@ -215,11 +218,6 @@ module.exports = (app, mod, publickey = '', address = '', recipientIsFixed = nul
     <div class="saito-button-row actions hide-element" id="withdraw-footer-review">
       <button type="button" class="saito-button-secondary fat" id="withdraw-edit">Edit</button>
       <button type="button" class="saito-button-primary fat" id="withdraw-confirm">Confirm send</button>
-    </div>
-
-    <div class="saito-button-row actions hide-element" id="withdraw-footer-success">
-      <a class="saito-button-secondary fat" id="withdraw-view-history" href="#">View history</a>
-      <button type="button" class="saito-button-primary fat" id="withdraw-done">Done</button>
     </div>
 
     <div class="saito-button-row actions hide-element" id="withdraw-footer-failed">

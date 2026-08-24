@@ -73,12 +73,6 @@ class Manager {
 
   showSales() {
     this.show('sales');
-    const seller = String(this.mod.publicKey || '').trim();
-    const sf = this.storefront;
-    // Reuse the same warehouse payload Active Listings already loaded.
-    if (seller && sf.publicKey === seller && sf.inventoryLoaded && !sf.loading) {
-      return this.sales.show(sf.soldSummaries);
-    }
     return this.sales.show();
   }
 

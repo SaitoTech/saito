@@ -63,56 +63,6 @@
   background: var(--saito-border);
 }
 
-/* Sidebar owns CTA width — stretch to the navigation column / list edges */
-.store > .menu.marketplace > .store-list-for-sale {
-  width: 100%;
-}
-
-/*
- * .store-list-for-sale — OWNED ONLY by the marketplace "List Item for Sale" control.
- * Appearance only. Width comes from .store > .menu (sidebar).
- * Do not reuse. Do not attach saito-button-* or other button utilities.
- */
-.store-list-for-sale {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  height: 92px;
-  padding: 1.2rem 1.4rem;
-  appearance: none;
-  -webkit-appearance: none;
-  border: none;
-  outline: none;
-  border-radius: 11px;
-  box-shadow: none;
-  filter: none;
-  background: var(--saito-primary);
-  color: #ffffff;
-  font-family: var(--saito-font);
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: 0;
-  line-height: 1.25;
-  text-align: center;
-  text-transform: none;
-  white-space: normal;
-  cursor: pointer;
-  transition: none;
-}
-
-.store-list-for-sale:hover,
-.store-list-for-sale:focus,
-.store-list-for-sale:focus-visible,
-.store-list-for-sale:active {
-  outline: none;
-  box-shadow: none;
-  filter: none;
-  border: none;
-  background: var(--saito-primary);
-  color: #ffffff;
-}
-
 /* —— Main column —— */
 
 .store > .main-column {
@@ -144,73 +94,11 @@
   display: contents;
 }
 
-/* Lightweight purchase lifecycle strip — owns its own spacing when visible */
-.store .purchase-status-slot:empty,
-.store .purchase-status-slot:has(> [hidden]),
-.store .purchase-status[hidden] {
-  display: none;
-}
-
-.store .purchase-status {
-  margin: 0 0 var(--saito-space-lg);
-  padding: var(--saito-space-md) var(--saito-space-lg);
-  border: 1px solid var(--saito-border);
-  border-radius: var(--saito-radius);
-  background: var(--saito-card, transparent);
-}
-
-.store .purchase-status .body {
-  display: flex;
-  align-items: center;
-  gap: var(--saito-space-md);
-  flex-wrap: wrap;
-}
-
-.store .purchase-status .saito-spinner {
-  width: 2.5rem;
-  min-width: 2.5rem;
-}
-
-.store .purchase-status .success {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: var(--saito-primary);
-  color: var(--saito-white, #fff);
-  flex: 0 0 auto;
-}
-
-.store .purchase-status .copy {
-  flex: 1 1 12rem;
-  min-width: 0;
-}
-
-.store .purchase-status .title {
-  margin: 0;
-  font-size: var(--font-size-medium);
-  font-family: var(--saito-font-medium);
-}
-
-.store .purchase-status .detail {
-  margin: 0.2rem 0 0;
-  font-size: var(--font-size-small);
-  color: var(--saito-muted-foreground);
-}
-
-.store .purchase-status .actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--saito-space-sm);
-  margin-left: auto;
-}
-
+/* Storefront share URL */
 .store .storefront-url {
   margin: 0;
   max-width: 100%;
-  padding: 0.55rem 0.85rem;
+  padding: 0.7rem 1rem;
   border: 1px solid var(--saito-border);
   border-radius: var(--saito-radius);
   background: color-mix(in srgb, #ffffff 8%, transparent);
@@ -235,19 +123,24 @@
 }
 
 .store .storefront-url-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
   gap: var(--saito-space-sm);
-  width: fit-content;
+  width: min(100%, 48rem);
   max-width: 100%;
   min-width: 0;
-  margin: var(--saito-space-xs) 0;
+  margin: var(--saito-space-sm) 0;
 }
 
 .store .storefront-url-row .saito-icon-button {
-  flex: 0 0 auto;
+  box-sizing: border-box;
+  align-self: stretch;
+  height: auto;
+  width: auto;
+  min-width: unset;
+  min-height: unset;
+  aspect-ratio: 1;
 }
 
 .store .storefront-status {
@@ -335,9 +228,9 @@
 .store .seller-home {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-md);
-  padding: 0 0 var(--saito-space-xl);
-  margin: 0 0 var(--saito-space-lg);
+  gap: var(--saito-space-lg);
+  padding: 0 0 var(--saito-space-xxl);
+  margin: 0;
   border-bottom: 1px solid var(--saito-border);
 }
 
@@ -359,8 +252,10 @@
 
 .store .seller-home .actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   flex-wrap: wrap;
-  gap: var(--saito-space-sm);
+  gap: var(--saito-space-md);
 }
 
 .store .seller-home .actions .saito-button-primary {
@@ -532,6 +427,58 @@
   box-shadow: var(--saito-focus-ring);
 }
 
+.store .listings-table-wrap {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.store .listings-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.store .listings-table caption {
+  caption-side: top;
+  text-align: left;
+  margin: 0 0 var(--saito-space-md);
+  font-size: var(--font-size-large);
+  font-family: var(--saito-font-heavy);
+  line-height: 1.25;
+  color: var(--saito-foreground);
+}
+
+.store .listings-table th,
+.store .listings-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.85rem 0.75rem 0.85rem 0;
+  border-bottom: 1px solid var(--saito-border);
+  font-size: var(--font-size-medium);
+  line-height: 1.4;
+  color: var(--saito-foreground);
+}
+
+.store .listings-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--font-size-small);
+  font-family: var(--saito-font-medium);
+  color: var(--saito-muted-foreground);
+  white-space: nowrap;
+}
+
+.store .listings-table td:nth-child(3),
+.store .listings-table td:nth-child(4),
+.store .listings-table td:nth-child(5) {
+  white-space: nowrap;
+}
+
+.store .listings-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .store .catalog-empty {
   min-height: 14rem;
 }
@@ -594,16 +541,6 @@
 
   .store > .main-column > .manager {
     gap: var(--saito-space-md);
-  }
-
-  .store .purchase-status .actions {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .store .purchase-status .actions .saito-button-primary,
-  .store .purchase-status .actions .saito-button-secondary {
-    flex: 1 1 auto;
   }
 
   .store .hero .toolbar-row {

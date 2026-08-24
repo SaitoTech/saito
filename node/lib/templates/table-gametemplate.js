@@ -675,16 +675,15 @@ class GameTableTemplate extends GameTemplate {
   // Overwrite gametemplate-web3 function because these games are more complicated
   // Todo: check that there is no remaining debt
   //
-  settleGameStake(winners) {
+  queueGameStakeSettlement() {
     if (typeof this.game.stake == 'object') {
       console.debug(
-        'GTT [settleGameStake]: use standard end game log for asymmetrical winner-take-all'
+        'GTT [queueGameStakeSettlement]: use standard end game log for asymmetrical winner-take-all'
       );
-      super.settleGameStake(winners);
+      super.queueGameStakeSettlement();
     } else {
       this.settleDebt();
     }
-    return;
   }
 
   //

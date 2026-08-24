@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter">
+  <title>NFTs</title>
+  <path d="M32 3 59 18v28L32 61 5 46V18L32 3Z"/>
+  <path fill="currentColor" stroke="none" d="M11 42V22h4l7 12V22h4v20h-4l-7-12v12h-4Zm18 0V22h12v4h-7v4h6v4h-6v8h-5Zm14-20h12v4h-4v16h-4V26h-4v-4Z"/>
+</svg>

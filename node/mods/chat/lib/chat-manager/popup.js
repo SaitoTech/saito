@@ -27,6 +27,12 @@ class ChatPopup {
     this.callbacks = {};
 
     this.closeFn = null;
+    this.hasCloseFn = false;
+    this.historyEntryActive = false;
+
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
+    this.visualViewportResizeFrame = null;
 
     app.connection.on('chat-remove-fetch-button-request', (group_id) => {
       if (this.group?.id === group_id) {
@@ -80,7 +86,7 @@ class ChatPopup {
         this.app.browser.replaceElementById(
           `<div id="chat-group-${group.id}" class="chat-group${
             dm ? ' saito-address' : ''
-          }" data-id="${dm ? dm_counterparty : group.name}">${group.name}</div>`,
+          }" data-id="${this.app.browser.escapeHTML(dm ? dm_counterparty : group.name)}">${this.app.browser.escapeHTML(group.name)}</div>`,
           title
         );
 
@@ -92,6 +98,8 @@ class ChatPopup {
   }
 
   remove() {
+    this.removeVisualViewportResizeHandler();
+
     let popup_qs = '#chat-popup-' + this.group.id;
     if (document.querySelector(popup_qs)) {
       document.querySelector(popup_qs).remove();
@@ -101,6 +109,24 @@ class ChatPopup {
     this.is_scrolling = null;
     this.events_attached = false;
     this.app.connection.emit('chat-manager-render-request');
+  }
+
+  setContainer(container = '') {
+    const nextContainer = container || '';
+    if (this.container === nextContainer) {
+      return;
+    }
+
+    this.removeVisualViewportResizeHandler();
+    document.querySelector(`#chat-popup-${this.group?.id}`)?.remove();
+    this.container = nextContainer;
+    this.is_rendered = false;
+    this.is_scrolling = null;
+    this.events_attached = false;
+
+    if (this.input) {
+      this.input.display = this.container ? 'medium' : 'small';
+    }
   }
 
   activate() {
@@ -115,6 +141,51 @@ class ChatPopup {
     });
 
     document.querySelector(popup_qs).classList.add('active');
+  }
+
+  attachVisualViewportResizeHandler(chatPopup) {
+    if (this.container || !window.visualViewport) {
+      return;
+    }
+
+    this.removeVisualViewportResizeHandler();
+
+    this.visualViewport = window.visualViewport;
+    this.visualViewportResizeHandler = () => {
+      const keepAtBottom = this.is_scrolling === null;
+      chatPopup.style.setProperty('--chat-viewport-height', `${this.visualViewport.height}px`);
+      chatPopup.style.setProperty('--chat-viewport-top', `${this.visualViewport.offsetTop}px`);
+
+      if (keepAtBottom) {
+        window.cancelAnimationFrame(this.visualViewportResizeFrame);
+        this.visualViewportResizeFrame = window.requestAnimationFrame(() => {
+          const chatBody = chatPopup.querySelector('.chat-body');
+          if (chatBody) {
+            chatBody.scrollTop = chatBody.scrollHeight;
+          }
+          this.visualViewportResizeFrame = null;
+        });
+      }
+    };
+
+    this.visualViewportResizeHandler();
+    this.visualViewport.addEventListener('resize', this.visualViewportResizeHandler);
+    this.visualViewport.addEventListener('scroll', this.visualViewportResizeHandler);
+  }
+
+  removeVisualViewportResizeHandler() {
+    if (this.visualViewportResizeFrame) {
+      window.cancelAnimationFrame(this.visualViewportResizeFrame);
+    }
+
+    if (this.visualViewport && this.visualViewportResizeHandler) {
+      this.visualViewport.removeEventListener('resize', this.visualViewportResizeHandler);
+      this.visualViewport.removeEventListener('scroll', this.visualViewportResizeHandler);
+    }
+
+    this.visualViewport = null;
+    this.visualViewportResizeHandler = null;
+    this.visualViewportResizeFrame = null;
   }
 
   forceRender() {
@@ -606,8 +677,13 @@ class ChatPopup {
 
         let img = e.currentTarget;
         let src = img.getAttribute('src');
+        if (!this_self.app.browser.isSafeMediaUrl(src)) {
+          return;
+        }
 
-        this_self.overlay.show(`<img class="chat-popup-img-enhanced" src="${src}" >`);
+        this_self.overlay.show(
+          `<img class="chat-popup-img-enhanced" src="${this_self.app.browser.escapeHTML(src)}" >`
+        );
       };
     });
 
@@ -622,10 +698,14 @@ class ChatPopup {
       return;
     }
 
-    if (this.app.browser.isMobileBrowser()) {
+    if (this.app.browser.isMobileBrowser() || window.innerWidth < 600) {
+      this.attachVisualViewportResizeHandler(chatPopup);
       window.history.pushState('chat', '');
+      this.historyEntryActive = true;
       this.closeFn = window.onpopstate;
+      this.hasCloseFn = true;
       window.onpopstate = (e) => {
+        this.historyEntryActive = false;
         this.close();
       };
     }
@@ -733,7 +813,11 @@ class ChatPopup {
     };
 
     document.querySelector(`${popup_qs} .chat-header .chat-mobile-back`).onclick = (e) => {
-      this.close();
+      if (this.historyEntryActive) {
+        window.history.back();
+      } else {
+        this.close();
+      }
     };
 
     //
@@ -882,11 +966,13 @@ class ChatPopup {
 
   close() {
     this.manually_closed = true;
+    this.historyEntryActive = false;
     this.remove();
     this.app.storage.saveOptions();
-    if (this.closeFn) {
+    if (this.hasCloseFn) {
       window.onpopstate = this.closeFn;
       this.closeFn = null;
+      this.hasCloseFn = false;
     }
   }
 }

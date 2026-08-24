@@ -55,28 +55,24 @@ class SaitoInput {
           this.removeSelectionBox();
         } else {
           if (!document.querySelector('.saito-input-selection-box')) {
-            this.app.browser.addElementToDom(SaitoInputSelectionBox(this));
+            // Prefer inserting as a `.chat-popup` grid row above the footer so the
+            // text input stays visible and the picker fills leftover height.
+            const footer = document.querySelector(this.container);
+            const popup = footer?.closest?.('.chat-popup');
+            const html = SaitoInputSelectionBox(this);
 
-            //Switch between tabs
-            Array.from(document.querySelectorAll('.saito-box-tab')).forEach((tab) => {
-              tab.onclick = (e) => {
-                Array.from(document.querySelectorAll('.active-tab')).forEach((tab2) => {
-                  tab2.classList.remove('active-tab');
-                });
+            if (popup && footer && footer.parentNode === popup) {
+              const el = document.createElement('div');
+              popup.insertBefore(el, footer);
+              el.outerHTML = html;
+            } else {
+              const chatHost = document.querySelector(`${this.container} .saito-input`);
+              this.app.browser.addElementToDom(html, chatHost || null);
+            }
 
-                let selected_tab = e.currentTarget.getAttribute('id').replace('tab', 'window');
-
-                if (document.getElementById(selected_tab)) {
-                  document.getElementById(selected_tab).classList.add('active-tab');
-                }
-
-                if (selected_tab === 'gif-window') {
-                  this.addGiphyEvent();
-                } else if (selected_tab === 'photo-window') {
-                  this.addPhotoEvent();
-                }
-              };
-            });
+            this.attachSelectionBoxTabEvents();
+            this.attachSelectionBoxSearchBridge();
+            this.attachSelectionBoxCloseEvent();
 
             // close selection box by clicking outside
             document.onclick = (e) => {
@@ -123,6 +119,123 @@ class SaitoInput {
         'div'
       );
     }
+  }
+
+  attachSelectionBoxTabEvents() {
+    Array.from(document.querySelectorAll('.saito-input-selection-box .saito-box-tab')).forEach(
+      (tab) => {
+        tab.onclick = (e) => {
+          e.stopPropagation();
+
+          if (e.currentTarget.id === 'selection-box-close') {
+            this.removeSelectionBox();
+            return;
+          }
+
+          Array.from(
+            document.querySelectorAll('.saito-input-selection-box .selection-box-pane.active-tab')
+          ).forEach((pane) => {
+            pane.classList.remove('active-tab');
+          });
+          Array.from(
+            document.querySelectorAll('.saito-input-selection-box .saito-box-tab')
+          ).forEach((tab2) => {
+            tab2.classList.remove('active');
+          });
+
+          let selected_tab = e.currentTarget.getAttribute('id').replace('tab', 'window');
+          e.currentTarget.classList.add('active');
+
+          if (document.getElementById(selected_tab)) {
+            document.getElementById(selected_tab).classList.add('active-tab');
+          }
+
+          this.syncSelectionBoxHeaderMode(selected_tab);
+
+          if (selected_tab === 'emoji-window') {
+            this.addEmojiEvent();
+          } else if (selected_tab === 'gif-window') {
+            this.addGiphyEvent();
+          } else if (selected_tab === 'photo-window') {
+            this.addPhotoEvent();
+          }
+        };
+      }
+    );
+  }
+
+  attachSelectionBoxCloseEvent() {
+    const closeBtn = document.querySelector('.saito-input-selection-box #selection-box-close');
+    if (!closeBtn) {
+      return;
+    }
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      this.removeSelectionBox();
+    };
+  }
+
+  syncSelectionBoxHeaderMode(selected_tab = 'emoji-window') {
+    const searchWrap = document.querySelector(
+      '.saito-input-selection-box .selection-box-search-wrap'
+    );
+    if (searchWrap) {
+      searchWrap.classList.toggle('hidden', selected_tab !== 'emoji-window');
+    }
+
+    if (selected_tab === 'emoji-window') {
+      const shellSearch = document.querySelector(
+        '.saito-input-selection-box .selection-box-emoji-search'
+      );
+      if (shellSearch && !this.app.browser.isMobileBrowser()) {
+        setTimeout(() => shellSearch.focus({ focusVisible: true }), 0);
+      }
+    }
+  }
+
+  attachSelectionBoxSearchBridge() {
+    const shellSearch = document.querySelector(
+      '.saito-input-selection-box .selection-box-emoji-search'
+    );
+    if (!shellSearch || shellSearch.dataset.bridgeAttached) {
+      return;
+    }
+
+    shellSearch.dataset.bridgeAttached = '1';
+    shellSearch.addEventListener('input', () => {
+      this.forwardShellSearchToPicker(shellSearch.value);
+    });
+    shellSearch.addEventListener('keydown', (e) => {
+      const pickerSearch = document
+        .querySelector('emoji-picker')
+        ?.shadowRoot?.querySelector('input.search');
+      if (!pickerSearch) {
+        return;
+      }
+      // Keep picker keyboard navigation working while focus is on the shell field.
+      if (['ArrowDown', 'ArrowUp', 'Enter', 'Home', 'End'].includes(e.key)) {
+        pickerSearch.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: e.key,
+            code: e.code,
+            bubbles: true,
+            cancelable: true
+          })
+        );
+      }
+    });
+  }
+
+  forwardShellSearchToPicker(value = '') {
+    const picker = document.querySelector('emoji-picker');
+    const pickerSearch = picker?.shadowRoot?.querySelector('input.search');
+    if (!pickerSearch) {
+      return;
+    }
+    if (pickerSearch.value !== value) {
+      pickerSearch.value = value;
+    }
+    pickerSearch.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
   attachLargeEvents() {
@@ -373,20 +486,17 @@ class SaitoInput {
       document.querySelector('emoji-picker').addEventListener('emoji-click', (event) => {
         let emoji = event.detail;
         var input = document.querySelector(window['emoji-output']);
-        if (!input) {
+        if (!input || !emoji?.unicode) {
           // we have one picker for multiple possible input windows
           return;
         }
-        if (input.value) {
-          input.value += emoji.unicode;
-        } else {
-          input.innerHTML += emoji.unicode;
-        }
+
+        this.insertEmojiUnicode(input, emoji.unicode);
 
         if (this.display == 'large') {
           //this.removeSelectionBox();
         } else {
-          this.focus(true);
+          this.removeSelectionBox();
         }
       });
     }
@@ -400,14 +510,89 @@ class SaitoInput {
         container.append(picker);
       }
 
-      //Add focus to search bar
-      let search_bar = picker.shadowRoot.querySelector('input.search');
-      if (search_bar) {
+      const shellSearch = document.querySelector(
+        '.saito-input-selection-box .selection-box-emoji-search'
+      );
+
+      if (shellSearch) {
+        // Chat selection box owns the visible search field; hide the picker's.
+        picker.setAttribute('data-saito-shell-search', '');
+        this.attachSelectionBoxSearchBridge();
+        this.forwardShellSearchToPicker(shellSearch.value || '');
         if (!this.app.browser.isMobileBrowser()) {
+          shellSearch.focus({ focusVisible: true });
+        }
+      } else {
+        picker.removeAttribute('data-saito-shell-search');
+        let search_bar = picker.shadowRoot?.querySelector('input.search');
+        if (search_bar && !this.app.browser.isMobileBrowser()) {
           search_bar.focus({ focusVisible: true });
         }
       }
     }
+  }
+
+  /*
+   * Insert emoji as inline text. Contenteditable must not use innerHTML +=,
+   * which lets the browser keep/create <br>/block structure (visible newlines).
+   */
+  insertEmojiUnicode(input, unicode) {
+    const tag = input.tagName?.toLowerCase();
+
+    if (tag === 'textarea' || tag === 'input') {
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? start;
+      if (typeof input.setRangeText === 'function') {
+        input.setRangeText(unicode, start, end, 'end');
+      } else {
+        input.value = input.value.slice(0, start) + unicode + input.value.slice(end);
+        const caret = start + unicode.length;
+        input.selectionStart = input.selectionEnd = caret;
+      }
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+
+    // Chat uses contenteditable .text-input
+    if (input.isContentEditable || input.getAttribute?.('contenteditable') === 'true') {
+      // Empty editors often contain a caret placeholder <br>; keep it and we get a newline.
+      if (!(input.textContent || '').length) {
+        input.replaceChildren();
+      }
+
+      const sel = window.getSelection();
+      let range = null;
+      if (sel && sel.rangeCount > 0) {
+        const candidate = sel.getRangeAt(0);
+        if (
+          input === candidate.commonAncestorContainer ||
+          input.contains(candidate.commonAncestorContainer)
+        ) {
+          range = candidate;
+        }
+      }
+
+      const textNode = document.createTextNode(unicode);
+      if (range) {
+        range.deleteContents();
+        range.insertNode(textNode);
+      } else {
+        input.appendChild(textNode);
+      }
+
+      const after = document.createRange();
+      after.setStartAfter(textNode);
+      after.collapse(true);
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(after);
+      }
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+
+    // Last resort: textContent append (still no HTML / <br>)
+    input.textContent = `${input.textContent || ''}${unicode}`;
   }
 
   async addGiphyEvent() {
