@@ -11,14 +11,14 @@ const Transaction = require('./../../../lib/saito/transaction').default;
  */
 const FORMAT_WEB = 'web';
 
-function serializeTransactionToWeb(app, tx) {
+function serializeTransactionToWeb(app, tx, options) {
   if (!tx || typeof tx.serialize_to_web !== 'function') {
     throw new Error('Transaction is required');
   }
   if (!app) {
     throw new Error('Saito app is required');
   }
-  return tx.serialize_to_web(app);
+  return tx.serialize_to_web(app, options);
 }
 
 /**
@@ -56,16 +56,44 @@ function parseTransactionFile(app, text) {
   return tx;
 }
 
-function transactionExportFilename(tx, prefix = 'rustscript') {
-  const sig = String(tx?.signature || 'unknown').replace(/[^\w.-]+/g, '_');
-  return `${prefix}-${sig}.json`;
+function sanitizeFilenamePart(value, maxLen = 12) {
+  const text = String(value || 'unknown').replace(/[^\w.-]+/g, '');
+  if (!text) {
+    return 'unknown';
+  }
+  return text.length > maxLen ? text.slice(0, maxLen) : text;
 }
 
 /**
- * Trigger a browser download of the canonical web-serialized transaction JSON.
+ * Native RustScript artifact filename (.saito).
+ * - Saved scripts / drafts → rustscript-[timestamp].saito
+ * - Published / signed txs → rustscript-tx-[signature].saito
  */
-function downloadTransactionFile(app, tx, { filename } = {}) {
-  const json = serializeTransactionToWeb(app, tx);
+function transactionExportFilename(tx, prefix = 'rustscript') {
+  const kind = String(prefix || 'rustscript').toLowerCase();
+  const isScriptDraft =
+    kind === 'rustscript' ||
+    kind.includes('draft') ||
+    kind.includes('script');
+
+  if (isScriptDraft && !kind.includes('published') && !kind.includes('tx')) {
+    return `rustscript-${Date.now()}.saito`;
+  }
+
+  const sig = sanitizeFilenamePart(tx?.signature, 12);
+  return `rustscript-tx-${sig}.saito`;
+}
+
+/**
+ * Trigger a browser download of the canonical web-serialized transaction.
+ * Content remains JSON; the .saito extension marks it as a RustScript artifact.
+ */
+function downloadTransactionFile(app, tx, { filename, block_id, transaction_id, update_outputs } = {}) {
+  const json = serializeTransactionToWeb(app, tx, {
+    block_id,
+    transaction_id,
+    update_outputs
+  });
   const name = filename || transactionExportFilename(tx);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

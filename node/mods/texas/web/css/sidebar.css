@@ -1,0 +1,31 @@
+.game.texas .texas-sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: visible;
+  overflow-y: auto;
+  gap: 1rem;
+  padding: calc(var(--saito-header-height, 4rem) + 2.2rem) 1.6rem 1.6rem;
+}
+
+@media (max-width: 900px), (max-height: 500px) {
+  .game.texas .texas-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    max-height: 28vh;
+    padding: 0.8rem;
+    gap: 0.8rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .game.texas .texas-sidebar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-height: 10rem;
+  }
+}

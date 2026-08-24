@@ -25,10 +25,6 @@ Only context.* destinations are writable.
     reference: 'context.constitution',
     dimension: 'tx.to.p2sh'
   },
-  schema: {
-    reference: 'string',
-    dimension: 'reference'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

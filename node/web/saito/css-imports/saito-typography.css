@@ -2,62 +2,6 @@
 font imports
 -----------------------------------------------------------------*/
 @font-face {
-  font-family: 'visuelt-black';
-  src: url('/saito/fonts/visuelt-black.eot');
-  src:
-    url('/saito/fonts/visuelt-black.eot?#iefix') format('embedded-opentype'),
-    url('/saito/fonts/visuelt-black.woff2') format('woff2'),
-    url('/saito/fonts/visuelt-black.woff') format('woff'),
-    url('/saito/fonts/visuelt-black.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  ascent-override: 102%;
-  descent-override: 30%;
-  line-gap-override: 0%;
-}
-@font-face {
-  font-family: 'visuelt-light';
-  src: url('/saito/fonts/visuelt-light.eot');
-  src:
-    url('/saito/fonts/visuelt-light.eot?#iefix') format('embedded-opentype'),
-    url('/saito/fonts/visuelt-light.woff2') format('woff2'),
-    url('/saito/fonts/visuelt-light.woff') format('woff'),
-    url('/saito/fonts/visuelt-light.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  ascent-override: 102%;
-  descent-override: 30%;
-  line-gap-override: 0%;
-}
-@font-face {
-  font-family: 'visuelt-medium';
-  src: url('/saito/fonts/visuelt-medium.eot');
-  src:
-    url('/saito/fonts/visuelt-medium.eot?#iefix') format('embedded-opentype'),
-    url('/saito/fonts/visuelt-medium.woff2') format('woff2'),
-    url('/saito/fonts/visuelt-medium.woff') format('woff'),
-    url('/saito/fonts/visuelt-medium.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  ascent-override: 102%;
-  descent-override: 30%;
-  line-gap-override: 0%;
-}
-@font-face {
-  font-family: 'visuelt-regular';
-  src: url('/saito/fonts/visuelt-regular.eot');
-  src:
-    url('/saito/fonts/visuelt-regular.eot?#iefix') format('embedded-opentype'),
-    url('/saito/fonts/visuelt-regular.woff2') format('woff2'),
-    url('/saito/fonts/visuelt-regular.woff') format('woff'),
-    url('/saito/fonts/visuelt-regular.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  ascent-override: 102%;
-  descent-override: 30%;
-  line-gap-override: 0%;
-}
-@font-face {
   font-family: 'p-word';
   src: url('/saito/fonts/password.ttf') format('truetype');
 }
@@ -74,3 +18,62 @@ font imports
   font-style: italic;
 }
 
+@font-face {
+  font-family: 'visuelt-black';
+  src: url('/saito/fonts/visuelt-black.eot');
+  src:
+    url('/saito/fonts/visuelt-black.eot?#iefix') format('embedded-opentype'),
+    url('/saito/fonts/visuelt-black.woff2') format('woff2'),
+    url('/saito/fonts/visuelt-black.woff') format('woff'),
+    url('/saito/fonts/visuelt-black.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'visuelt-light';
+  src: url('/saito/fonts/visuelt-light.eot');
+  src:
+    url('/saito/fonts/visuelt-light.eot?#iefix') format('embedded-opentype'),
+    url('/saito/fonts/visuelt-light.woff2') format('woff2'),
+    url('/saito/fonts/visuelt-light.woff') format('woff'),
+    url('/saito/fonts/visuelt-light.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'visuelt-medium';
+  src: url('/saito/fonts/visuelt-medium.eot');
+  src:
+    url('/saito/fonts/visuelt-medium.eot?#iefix') format('embedded-opentype'),
+    url('/saito/fonts/visuelt-medium.woff2') format('woff2'),
+    url('/saito/fonts/visuelt-medium.woff') format('woff'),
+    url('/saito/fonts/visuelt-medium.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'visuelt-regular';
+  src: url('/saito/fonts/visuelt-regular.eot');
+  src:
+    url('/saito/fonts/visuelt-regular.eot?#iefix') format('embedded-opentype'),
+    url('/saito/fonts/visuelt-regular.woff2') format('woff2'),
+    url('/saito/fonts/visuelt-regular.woff') format('woff'),
+    url('/saito/fonts/visuelt-regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}

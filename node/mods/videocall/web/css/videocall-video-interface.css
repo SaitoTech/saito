@@ -1340,7 +1340,11 @@ video#presentation {
   }
 }
 
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 900px) {
+  .stun-chatbox .minimizer {
+    display: none;
+  }
+
   .stun-toolbar-shell {
     padding: 7.5px 20px;
   }

@@ -97,14 +97,14 @@ class GameTemplate extends ModTemplate {
     this.commands = [];
     this.game_state_pre_move = '';
 
-    this.social = {
+    this.social = this.buildSocial({
       creator: 'Saito Team',
       twitter: '@SaitoOfficial',
       title: this.returnName(),
-      url: 'https://saito.io/arcade/',
+      url: '/arcade/',
       description: this.description,
       image: 'https://saito.tech/wp-content/uploads/2023/11/arcade-300x300.png'
-    };
+    });
 
     this.recordOptions = {
       container: 'body',
@@ -421,7 +421,7 @@ class GameTemplate extends ModTemplate {
       //
       // try to fetch games moves if we have finished init
       //
-      if (this.game.step.game > 2) {
+      if (this.game?.step?.game > 2) {
         this.fetchRecentMoves();
       }
     } catch (err) {
@@ -574,16 +574,22 @@ class GameTemplate extends ModTemplate {
     } else {
       document.documentElement.setAttribute('data-theme', 'lite');
 
-      let header = new SaitoHeader(this.app, this);
-      await header.initialize(this.app);
-      header.header_location = '/';
-
-      //document.querySelector("body").classList.add("scrollable-page");
-
-      if (document.getElementById('game-loader-screen')) {
+      //
+      // Splash/loader header only when the module has not already mounted one
+      // (e.g. N-WASM custom shell creates this.header in render) and the splash
+      // loader UI is actually present. Avoids a second SaitoHeader/SelectNFT
+      // and a duplicate saito-nft-list-render-request listener.
+      //
+      if (!this.header && document.getElementById('game-loader-screen')) {
+        let header = new SaitoHeader(this.app, this);
+        await header.initialize(this.app);
+        header.header_location = '/';
         await header.render();
         setTimeout(() => {
-          document.getElementById('game-loader-screen').remove();
+          let loader = document.getElementById('game-loader-screen');
+          if (loader) {
+            loader.remove();
+          }
         }, 1500);
         this.browser_active = false;
       }
@@ -1002,7 +1008,7 @@ class GameTemplate extends ModTemplate {
       //
       if (txmsg.request === 'gameover') {
         if (!this.deferGameEndTransactionIfBusy('gameover', tx)) {
-          await this.receiveGameoverTransaction(blk, tx, conf, this.app);
+          await this.receiveGameOverTransaction(blk, tx, conf, this.app);
         }
       } else if (txmsg.request === 'stopgame') {
         // stopgame requests
@@ -1209,7 +1215,7 @@ class GameTemplate extends ModTemplate {
           } else if (message.request == 'game relay update') {
             if (gametxmsg.request == 'gameover') {
               if (!this.deferGameEndTransactionIfBusy('gameover', gametx)) {
-                await this.receiveGameoverTransaction(null, gametx, 0, app);
+                await this.receiveGameOverTransaction(null, gametx, 0, app);
               }
             } else if (gametxmsg.request == 'stopgame') {
               if (!this.deferGameEndTransactionIfBusy('stopgame', gametx)) {

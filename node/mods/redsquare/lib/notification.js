@@ -59,22 +59,15 @@ class Notification {
       this.type = 'like';
       this.tweet_signature = data.signature != null ? String(data.signature) : '';
     } else if (txmsg.request === 'retweet') {
-      this.type = 'retweet';
+      const hasCommentary =
+        Boolean(String(data.text || '').trim()) ||
+        (Array.isArray(data.images) && data.images.length > 0);
+
+      this.type = hasCommentary ? 'quote' : 'retweet';
       this.tweet_signature = data.signature != null ? String(data.signature) : '';
     } else if (txmsg.request === 'create tweet') {
-      const mentions = data.mentions;
-      const hasMention = Array.isArray(mentions) ? mentions.length > 0 : Boolean(mentions);
-
-      if (hasMention) {
-        this.type = 'mention';
-        this.tweet_signature = this.signature;
-      } else if (data.parent_id) {
-        this.type = 'reply';
-        this.tweet_signature = this.signature;
-      } else {
-        this.type = 'tweet';
-        this.tweet_signature = this.signature;
-      }
+      this.type = data.parent_id ? 'reply' : 'tweet';
+      this.tweet_signature = this.signature;
     } else {
       this.type = data.type != null ? String(data.type) : '';
       this.tweet_signature =
@@ -143,11 +136,13 @@ class Notification {
         }
         return 'liked your post';
       case 'reply':
-        return 'replied to your post';
+        return 'posted a new reply';
+      case 'quote':
+        return 'quoted your post';
       case 'retweet':
         return 'reposted your post';
-      case 'mention':
-        return 'mentioned you';
+      case 'tweet':
+        return 'posted a new tweet';
       default:
         return 'sent you a notification';
     }

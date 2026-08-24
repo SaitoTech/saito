@@ -12,7 +12,13 @@ const OpcodesOverlay = require('./overlays/opcodes');
 const PublishFlow = require('./overlays/publish');
 const PublishNFTFlow = require('./overlays/publish-nft');
 const UnlockFlow = require('./overlays/unlock');
+const UnlockFeeFlow = require('./overlays/unlock-fee');
+const SpendOutputFlow = require('./overlays/spend-output');
 const ImportFlow = require('./overlays/import');
+const ScriptImportFlow = require('./overlays/import-script');
+const ContinueUnlockImportFlow = require('./overlays/import-continue-unlock');
+const SaveLaterFlow = require('./overlays/save-later');
+const PostPublishFlow = require('./overlays/post-publish');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const { buildRustscriptOverlay } = require('./overlays/overlay.shell');
 const {
@@ -21,8 +27,10 @@ const {
   isWitnessPhaseComplete,
   resolveFieldOverlayKind
 } = require('./script_validate');
-const { build_test_script_from_create, lockingView } = require('./script_build');
+const { build_test_script_from_create, lockingView, expandLockingTree } = require('./script_build');
 const PanelMenu = require('./panel_menu');
+const { hasUnlockFee } = require('./unlock_tx_fee');
+const { remainingSaitoNolan, remainingNftUnits, unlockUserOutputs } = require('./unlock_tx_edit');
 
 const MOUNT_SELECTOR = '.saito-container';
 const WORKSPACE_SELECTOR = 'main.rustscript';
@@ -34,6 +42,7 @@ class RustscriptMain {
     this.container = MOUNT_SELECTOR;
     this.workspaceMode = 'locked';
     this.testingUnlocked = false;
+    this.selectedUnlockInputIndex = null;
     this.executionStatus = { attempted: false, success: false };
     this.validationDisplay = null;
     this.lastScriptSource = '';
@@ -46,7 +55,13 @@ class RustscriptMain {
     this.publishFlow = new PublishFlow(app, mod, this);
     this.publishNftFlow = new PublishNFTFlow(app, mod, this, this.publishFlow);
     this.unlockFlow = new UnlockFlow(app, mod, this);
+    this.unlockFeeFlow = new UnlockFeeFlow(app, mod, this);
+    this.spendOutputFlow = new SpendOutputFlow(app, mod, this);
     this.importFlow = new ImportFlow(app, mod, this);
+    this.scriptImportFlow = new ScriptImportFlow(app, mod, this);
+    this.continueUnlockImportFlow = new ContinueUnlockImportFlow(app, mod, this);
+    this.saveLaterFlow = new SaveLaterFlow(app, mod, this);
+    this.postPublishFlow = new PostPublishFlow(app, mod, this);
     this.generateExpertOverlay = new SaitoOverlay(app, mod, false);
 
     this.fieldOverlays = {
@@ -124,6 +139,11 @@ class RustscriptMain {
     return this.mod.workflow === 'unlock';
   }
 
+  clearUnlockInputSelection() {
+    this.selectedUnlockInputIndex = null;
+    this.panel?.render?.();
+  }
+
   isScriptPublishable() {
     const status = evaluateWorkspaceStatus(
       lockingView(this.mod.getScript()),
@@ -169,6 +189,12 @@ class RustscriptMain {
     }
 
     if (this.isUnlockCommandBarAction()) {
+      if (!this.areUnlockOutputsComplete()) {
+        return false;
+      }
+      if (!hasUnlockFee(this.mod)) {
+        return false;
+      }
       if (!isWitnessPhaseComplete(unlocking, this.mod.opcodes)) {
         return false;
       }
@@ -178,6 +204,25 @@ class RustscriptMain {
     }
 
     return true;
+  }
+
+  /**
+   * Unlock broadcast requires user outputs that fully allocate locked assets.
+   * Wallet change outputs do not count toward this check.
+   */
+  areUnlockOutputsComplete() {
+    if (!this.mod?.unlock_transaction_base) {
+      return false;
+    }
+    if (unlockUserOutputs(this.mod).length === 0) {
+      return false;
+    }
+    const ctx = this.mod.unlockContext;
+    if (ctx?.assetType === 'nft') {
+      return remainingNftUnits(this.mod) === BigInt(0);
+    }
+    // Treat sub-display dust as complete — SAITO↔nolan round-trips can leave 1 nolan.
+    return remainingSaitoNolan(this.mod) <= BigInt(1);
   }
 
   updatePublishButton() {
@@ -190,7 +235,8 @@ class RustscriptMain {
     const isUnlock = this.isUnlockCommandBarAction();
     slot.classList.toggle('is-visible', visible);
     slot.setAttribute('aria-hidden', visible ? 'false' : 'true');
-    btn.textContent = isUnlock ? 'Unlock' : 'Publish';
+    btn.hidden = !visible;
+    btn.textContent = isUnlock ? 'Broadcast Unlock Transaction' : 'Publish';
     btn.tabIndex = visible ? 0 : -1;
   }
 
@@ -238,7 +284,8 @@ class RustscriptMain {
     this.executionStatus = { attempted: false, success: false };
     this.validationDisplay = null;
     this.workspaceMode = 'locked';
-    this.mod.setScript(lockingView(lockingScript || {}));
+    const expanded = expandLockingTree(lockingView(lockingScript || {}), this.mod.opcodes);
+    this.mod.setScript(expanded);
     this.syncEditorModes();
     this.applyWorkspaceUI();
     this.refresh();
@@ -259,13 +306,45 @@ class RustscriptMain {
     this.publishFlow?.hide?.();
     this.publishNftFlow?.hide?.();
     this.unlockFlow?.hide?.();
+    this.unlockFeeFlow?.hide?.();
+    this.spendOutputFlow?.hide?.();
     this.importFlow?.hide?.();
+    this.scriptImportFlow?.hide?.();
+    this.continueUnlockImportFlow?.hide?.();
+    this.saveLaterFlow?.hide?.();
+    this.postPublishFlow?.hide?.();
 
     if (this.publishFlow) {
       this.publishFlow.p2shAddress = '';
       this.publishFlow.p2shHash = '';
       this.publishFlow.lastPublishedTx = null;
     }
+  }
+
+  /**
+   * After on-chain confirmation: leave the wizard, return to the main page,
+   * then show the Post Publish hand-off overlay above it.
+   */
+  async openPostPublish({
+    tx = null,
+    p2shAddress = '',
+    p2shHash = '',
+    blockId = null,
+    txOrdinal = null,
+    blk = null
+  } = {}) {
+    const snapshot = {
+      tx,
+      p2shAddress: p2shAddress || '',
+      p2shHash: p2shHash || '',
+      blockId,
+      txOrdinal,
+      blk
+    };
+
+    await this.resetWorkspaceToFresh({ expertMode: false, workflow: 'create' });
+    this.welcomeOverlay?.render('splash');
+    this.postPublishFlow?.openOverlay(snapshot);
   }
 
   resetEditorShells() {
@@ -293,6 +372,7 @@ class RustscriptMain {
     this.executionStatus = { attempted: false, success: false };
     this.validationDisplay = null;
     this.lastScriptSource = '';
+    this.selectedUnlockInputIndex = null;
     this.workspaceMode = expertMode ? 'unlocked' : 'locked';
     this.resetEditorShells();
     this.syncEditorModes();
@@ -306,11 +386,28 @@ class RustscriptMain {
     this.executionStatus = { attempted: false, success: false };
     this.validationDisplay = null;
     this.workspaceMode = 'locked';
-    const merged = build_test_script_from_create(
-      lockingView(lockingScript || {}),
-      {},
-      this.mod.opcodes
-    );
+    // Preserve published locking shape exactly — do not expand (scripthash).
+    const locking = lockingView(lockingScript || {});
+    const merged = build_test_script_from_create(locking, {}, this.mod.opcodes);
+    this.mod.setScript(merged);
+    this.syncEditorModes();
+    this.applyWorkspaceUI();
+    await this.refresh();
+  }
+
+  /**
+   * Continue Unlock — same Unlock workspace, script/witnesses already present.
+   * Does not strip witnesses or rebuild an empty test scaffold.
+   */
+  async enterUnlockContinuation(fullScript) {
+    this.mod.workflow = 'unlock';
+    this.testingUnlocked = true;
+    this.executionStatus = { attempted: false, success: false };
+    this.validationDisplay = null;
+    this.workspaceMode = 'locked';
+    // Preserve published locking shape exactly — do not expand (scripthash).
+    const locking = lockingView(fullScript || {});
+    const merged = build_test_script_from_create(locking, fullScript || {}, this.mod.opcodes);
     this.mod.setScript(merged);
     this.syncEditorModes();
     this.applyWorkspaceUI();
@@ -335,9 +432,12 @@ class RustscriptMain {
     }
 
     const guided = this.workspaceMode === 'locked';
+    const isUnlockWorkflow = this.mod.workflow === 'unlock';
     root.classList.toggle('rs-workspace-guided', guided);
     root.classList.toggle('rs-workspace-locked', guided);
     root.classList.toggle('rs-workspace-unlocked', !guided);
+    root.classList.toggle('rs-workflow-unlock', isUnlockWorkflow);
+    root.classList.toggle('rs-workflow-create', !isUnlockWorkflow);
     document.body.classList.toggle('rs-workspace-guided', guided);
     document.body.classList.toggle('rs-workspace-unlocked', !guided);
 
@@ -352,15 +452,29 @@ class RustscriptMain {
 
     const scriptReady = status.script.state === 'ready';
     const isExpert = !guided;
+    // Guided create → create + info. Guided test → test + info. Expert → create + test.
     const testLive = isExpert ? true : this.testingUnlocked && scriptReady;
-    const showMoveToTesting = guided && scriptReady && !this.testingUnlocked;
+    const createLive = isExpert ? true : !testLive;
+    const infoLive = guided;
+
+    root.classList.toggle('rs-workspace-testing', guided && testLive);
+    document.body.classList.toggle('rs-workspace-testing', guided && testLive);
 
     this.updateWorkspaceToggle();
     this.refreshStatusIndicators();
 
+    const createEditor = root.querySelector('#rustscript-editor-create');
     const testEditor = root.querySelector('#rustscript-editor-test');
+    const infoPanel = root.querySelector('#rustscript-panel');
+
+    if (createEditor) {
+      createEditor.hidden = !createLive;
+    }
     if (testEditor) {
       testEditor.hidden = !testLive;
+    }
+    if (infoPanel) {
+      infoPanel.hidden = !infoLive;
     }
   }
 
@@ -440,6 +554,7 @@ class RustscriptMain {
   }
 
   syncTestScriptFromLocking() {
+    // Witness scaffold only — locking keys stay as stored (hash-stable).
     const merged = build_test_script_from_create(
       lockingView(this.mod.getScript()),
       this.mod.getScript(),
@@ -469,14 +584,29 @@ class RustscriptMain {
     if (!path) {
       return;
     }
+
+    if (this.mod?.workflow === 'unlock') {
+      const { assertUnlockMutablePath } = require('./unlock_tx_fee');
+      try {
+        assertUnlockMutablePath(this.mod, path);
+      } catch (err) {
+        window.alert(err?.message || String(err));
+        return;
+      }
+    }
+
     const current = this.mod.getField(path);
     const kind = resolveFieldOverlayKind(current, path);
     const overlay = this.fieldOverlays[kind] || this.fieldOverlays.text;
     overlay.path = path;
     overlay.currentValue = current;
     overlay.onApply = (next) => {
-      this.mod.setField(path, next);
-      this.refresh();
+      try {
+        this.mod.setField(path, next);
+        this.refresh();
+      } catch (err) {
+        window.alert(err?.message || String(err));
+      }
     };
 
     if (kind === 'text' || kind === 'message') {
@@ -534,12 +664,9 @@ class RustscriptMain {
         const result = this.mod.parseExpertScript(text);
         this.executionStatus = { attempted: false, success: false };
         this.validationDisplay = null;
-        this.mod.setScript(lockingView(result.lockingScript));
+        // Create path: expanded locking only — do not arm Test / attach witness.
         this.testingUnlocked = false;
-        if (result.unlockingScript && Object.keys(result.unlockingScript).length) {
-          this.testingUnlocked = true;
-          this.mod.setScript(result.unlockingScript);
-        }
+        this.mod.setScript(result.lockingScript);
         this.lastScriptSource = text;
         this.generateExpertOverlay.hide();
         this.refresh();
@@ -599,15 +726,41 @@ class RustscriptMain {
     }
 
     const evaluate = this.app?.core?.scripting?.evaluate;
-    if (typeof evaluate !== 'function') {
+    const evaluateWithTransaction = this.app?.core?.scripting?.evaluateWithTransaction;
+    if (typeof evaluate !== 'function' && typeof evaluateWithTransaction !== 'function') {
       return;
     }
 
-    const result = await evaluate(scriptJson);
+    let result;
+    if (
+      this.mod?.workflow === 'unlock' &&
+      typeof evaluateWithTransaction === 'function' &&
+      this.mod.unlock_transaction_final
+    ) {
+      const { assignOutputSlipIndices } = require('./unlock_tx_fee');
+      try {
+        assignOutputSlipIndices(this.mod.unlock_transaction_final);
+        result = await evaluateWithTransaction(
+          scriptJson,
+          this.mod.unlock_transaction_final
+        );
+      } catch (_err) {
+        this.validationDisplay = 'invalid';
+        this.executionStatus = { attempted: true, success: false };
+        this.updatePublishButton();
+        return;
+      }
+    } else if (typeof evaluate === 'function') {
+      result = await evaluate(scriptJson);
+    } else {
+      return;
+    }
 
     const success = result === 1;
     this.validationDisplay = success ? 'valid' : 'invalid';
     this.executionStatus = { attempted: true, success };
+    // Keep command-bar CTA in sync with validation (outputs/fee gates still apply).
+    this.updatePublishButton();
   }
 }
 

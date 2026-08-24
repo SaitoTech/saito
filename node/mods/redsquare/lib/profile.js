@@ -16,6 +16,8 @@ class Profile {
     this.mod = mod;
     this.container = container;
     this.profile = null;
+    this.profiles = {};
+    this.ext_links = [];
     this._dom_bound = false;
   }
 
@@ -56,7 +58,8 @@ class Profile {
       name = this.app.keychain.returnUsername(key) || `Anon-${key.slice(0, 6)}`;
     }
 
-    const existing = this.mod.profile || {};
+    const existing =
+      key === this.mod.publicKey ? this.mod.profile || {} : this.profiles[key] || {};
     const can_edit = this.canEditProfile(key);
     let bio = existing.bio || existing.description || '';
     if (bio && this.app.browser?.sanitize) {
@@ -84,13 +87,78 @@ class Profile {
     return publicKey === this.mod.publicKey;
   }
 
-  render(container = '') {
+  /**
+   * Module-supplied profile destinations via respondTo('redsquare-profile').
+   * Each responder may return { text, link } when that user exposes the link.
+   */
+  collectProfileExtLinks(publicKey = '', profileData = null) {
+    const key = String(publicKey || '').trim();
+    if (!key || !this.app.modules?.getRespondTos) {
+      return [];
+    }
+
+    const profile =
+      profileData && typeof profileData === 'object' ? profileData : {};
+
+    const peers = this.app.modules.getRespondTos('redsquare-profile', {
+      publicKey: key,
+      profile
+    });
+
+    const out = [];
+    const seen = new Set();
+    for (const item of peers || []) {
+      const text = String(item?.text || '').trim();
+      const link = String(item?.link || item?.url || '').trim();
+      if (!text || !link) {
+        continue;
+      }
+      const id = text.toLowerCase();
+      if (seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      out.push({ text, link });
+    }
+    return out;
+  }
+
+  /**
+   * Replace module link items in the profile nav (Posts/Replies/Likes stay put).
+   */
+  syncProfileExtLinks(publicKey = '', profileData = null) {
+    const root = document.querySelector(this.container);
+    const nav = root?.querySelector?.('.nav');
+    if (!nav) {
+      return;
+    }
+
+    nav.querySelectorAll('[data-profile-ext]').forEach((el) => el.remove());
+
+    this.ext_links = this.collectProfileExtLinks(publicKey, profileData);
+    for (const item of this.ext_links) {
+      const a = document.createElement('a');
+      a.className = 'item';
+      a.href = item.link;
+      a.setAttribute('data-profile-ext', '1');
+      a.textContent = item.text;
+      nav.appendChild(a);
+    }
+  }
+
+  render(container = '', publicKey = '') {
     if (container) {
       this.container = container;
     }
 
-    this.profile = this.buildProfileData(this.mod.publicKey);
-    this.mod.profile = Object.assign({}, this.mod.profile || {}, this.profile);
+    const key = publicKey || this.mod.publicKey || '';
+    this.profile = this.buildProfileData(key);
+    this.profiles[key] = Object.assign({}, this.profiles[key] || {}, this.profile);
+    this.ext_links = this.collectProfileExtLinks(key);
+
+    if (key === this.mod.publicKey) {
+      this.mod.profile = Object.assign({}, this.mod.profile || {}, this.profile);
+    }
 
     this.app.browser.replaceElementContentBySelector(ProfileTemplate(this), this.container);
     this.attachEvents();
@@ -152,9 +220,7 @@ class Profile {
         return;
       }
 
-      const bannerEdit = e.target.closest(
-        '#redsquare-profile-banner-edit, .redsquare-profile-banner-edit'
-      );
+      const bannerEdit = e.target.closest('.redsquare-profile-banner-edit');
       if (bannerEdit && root.contains(bannerEdit)) {
         e.preventDefault();
         e.stopPropagation();
@@ -182,9 +248,25 @@ class Profile {
         return;
       }
 
+      const view = item.getAttribute('data-profile-nav') || '';
+      if (!view) {
+        if (item.matches('a[href][data-profile-ext]')) {
+          e.preventDefault();
+          const href = item.getAttribute('href');
+          if (!href) {
+            return;
+          }
+          if (typeof navigateWindow === 'function') {
+            navigateWindow(href);
+          } else {
+            window.location.assign(href);
+          }
+        }
+        return;
+      }
+
       e.preventDefault();
 
-      const view = item.getAttribute('data-profile-nav') || '';
       const publicKey = this.profile?.publicKey || this.mod.publicKey || '';
       const manager = this.mod.manager;
 
@@ -233,7 +315,12 @@ class Profile {
 
     const { banner, description, image } = data;
 
-    if (this.mod.profile) {
+    this.profiles[publicKey] = Object.assign({}, this.profiles[publicKey] || {}, {
+      banner: banner || '',
+      bio: description || ''
+    });
+
+    if (publicKey === this.mod.publicKey && this.mod.profile) {
       this.mod.profile.banner = banner || '';
       this.mod.profile.bio = description || '';
     }
@@ -253,7 +340,7 @@ class Profile {
       } else {
         const sanitized = this.app.browser.sanitize(description, true).replaceAll('\n', '<br>');
         container.innerHTML = `
-            <div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">
+            <div class="profile-description-${publicKey}" data-id="${publicKey}">
               ${sanitized}
             </div>
             ${canEdit ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>` : ''}
@@ -266,7 +353,8 @@ class Profile {
       avatarNodes.forEach((el) => {
         el.src = image;
       });
-      if (this.mod.profile) {
+      this.profiles[publicKey].avatar = image;
+      if (publicKey === this.mod.publicKey && this.mod.profile) {
         this.mod.profile.avatar = image;
       }
     } else {
@@ -274,10 +362,14 @@ class Profile {
       avatarNodes.forEach((el) => {
         el.src = fallback;
       });
-      if (this.mod.profile) {
+      this.profiles[publicKey].avatar = fallback;
+      if (publicKey === this.mod.publicKey && this.mod.profile) {
         this.mod.profile.avatar = fallback;
       }
     }
+
+    // Module links (Store/Stack/…) depend on Profile fields that may arrive here.
+    this.syncProfileExtLinks(publicKey, data);
   }
 
   /**

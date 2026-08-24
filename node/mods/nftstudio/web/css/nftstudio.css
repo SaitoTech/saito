@@ -1,0 +1,257 @@
+.nftstudio {
+  display: grid;
+  grid-template-columns: 28rem minmax(0, 1fr);
+  gap: var(--saito-space-md);
+  height: 100%;
+  min-height: 0;
+}
+
+.nftstudio.tools-collapsed {
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+}
+
+.nftstudio .tools,
+.nftstudio .panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-card);
+}
+
+.nftstudio .tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  padding: var(--saito-space-md);
+}
+
+.nftstudio .tools-header,
+.nftstudio .panel-header,
+.nftstudio .panel-actions,
+.nftstudio .validation {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+}
+
+.nftstudio .tools-header,
+.nftstudio .panel-header {
+  justify-content: space-between;
+}
+
+.nftstudio .tool-fields,
+.nftstudio .tool-actions {
+  display: flex;
+  flex-direction: column;
+}
+
+.nftstudio .tool-fields {
+  gap: var(--saito-space-sm);
+}
+
+.nftstudio .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+}
+
+.nftstudio .field input,
+.nftstudio .field select {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.nftstudio .tool-option {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-md);
+  min-height: 4.4rem;
+  padding: 0 var(--saito-space-sm);
+  border-bottom: 1px solid var(--saito-border);
+  text-align: left;
+}
+
+.nftstudio .tool-option:first-child {
+  border-top: 1px solid var(--saito-border);
+}
+
+.nftstudio .tool-option:hover {
+  background: var(--saito-highlight);
+}
+
+.nftstudio input.file-input {
+  display: none;
+}
+
+.nftstudio .draft-status {
+  margin-top: auto;
+  color: var(--saito-muted-foreground);
+}
+
+.nftstudio .draft-status.is-error,
+.nftstudio .error.is-error {
+  color: var(--saito-destructive);
+}
+
+.nftstudio.tools-collapsed .tools {
+  align-items: center;
+  padding: var(--saito-space-sm);
+}
+
+.nftstudio.tools-collapsed .tools-header {
+  justify-content: center;
+}
+
+.nftstudio.tools-collapsed .tools-title,
+.nftstudio.tools-collapsed .tool-fields,
+.nftstudio.tools-collapsed .tool-label,
+.nftstudio.tools-collapsed .draft-status {
+  display: none;
+}
+
+.nftstudio.tools-collapsed .tool-actions {
+  align-items: center;
+}
+
+.nftstudio.tools-collapsed .tool-option {
+  justify-content: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  padding: 0;
+  border: 0;
+}
+
+.nftstudio .workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--saito-space-md);
+  min-width: 0;
+  min-height: 0;
+}
+
+.nftstudio .workspace.preview-visible {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.nftstudio .panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.nftstudio .preview-panel[hidden] {
+  display: none;
+}
+
+.nftstudio .panel-header {
+  min-height: 5.2rem;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  border-bottom: 1px solid var(--saito-border);
+}
+
+.nftstudio .light {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--saito-muted-foreground);
+}
+
+.nftstudio .validation[data-state='valid'] .light {
+  background: var(--saito-status-success);
+}
+
+.nftstudio .validation[data-state='invalid'] .light {
+  background: var(--saito-destructive);
+}
+
+.nftstudio .editor-stage {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.nftstudio .editor,
+.nftstudio .preview {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.nftstudio .editor .CodeMirror {
+  height: 100%;
+  background: var(--saito-background);
+  color: var(--saito-foreground);
+}
+
+.nftstudio .editor .CodeMirror-gutters,
+.nftstudio .editor .CodeMirror-scrollbar-filler,
+.nftstudio .editor .CodeMirror-gutter-filler {
+  background: var(--saito-background);
+}
+
+.nftstudio .editor .CodeMirror-gutters {
+  border-color: var(--saito-border);
+}
+
+.nftstudio .editor .CodeMirror-cursor {
+  border-left: 2px solid var(--saito-foreground);
+}
+
+.nftstudio .primary-actions {
+  position: absolute;
+  bottom: var(--saito-space-md);
+  left: calc(3rem + var(--saito-space-md));
+  z-index: 2;
+  display: flex;
+  gap: var(--saito-space-sm);
+}
+
+.nftstudio .primary-actions .saito-button-square {
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  width: 7.2rem;
+  height: 7.2rem;
+}
+
+.nftstudio .error {
+  flex: 0 0 5.2rem;
+  height: 5.2rem;
+  margin: 0;
+  padding: var(--saito-space-sm) var(--saito-space-md);
+  overflow: auto;
+  white-space: pre-wrap;
+  border-top: 1px solid var(--saito-border);
+}
+
+.nftstudio .error.is-valid {
+  color: var(--saito-status-success);
+}
+
+.nftstudio .preview {
+  width: 100%;
+  border: 0;
+  background: var(--saito-background);
+}
+
+@media (max-width: 800px) {
+  .nftstudio {
+    grid-template-columns: min(24rem, 42vw) minmax(0, 1fr);
+  }
+
+  .nftstudio.tools-collapsed {
+    grid-template-columns: 5.2rem minmax(0, 1fr);
+  }
+
+  .nftstudio .workspace.preview-visible {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .nftstudio .validation .message {
+    display: none;
+  }
+}

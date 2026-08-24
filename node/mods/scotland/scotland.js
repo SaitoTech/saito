@@ -409,7 +409,7 @@ class Scotland extends GameTemplate {
         this.game.queue = [];
         if (method == 'escape') {
           this.updateLog('Detectives are out of moves! Mister X escapes');
-          this.sendGameOverTransaction(this.game.players[this.game.state.x], 'escape');
+          this.triggerGameOver(this.game.players[this.game.state.x], 'escape');
           return 0;
         }
         if (method == 'caught') {

@@ -130,27 +130,50 @@
   width: 100%;
 }
 
-.settings-appspace-header .settings-actions-container .saito-button-secondary {
+.settings-appspace-header .settings-actions-container .saito-large-square-button {
   justify-content: center;
   width: 100%;
   min-width: 0;
   margin: 0;
-  color: var(--saito-foreground);
-  background: color-mix(in srgb, var(--saito-status-success) 12%, var(--saito-secondary));
-  border-color: color-mix(in srgb, var(--saito-status-success) 32%, var(--saito-border));
-  filter: none;
 }
 
-.settings-appspace-header .settings-actions-container .saito-button-secondary:hover {
-  color: var(--saito-foreground);
-  background: color-mix(in srgb, var(--saito-status-success) 20%, var(--saito-secondary));
-  border-color: color-mix(in srgb, var(--saito-status-success) 48%, var(--saito-border));
-  filter: none;
-}
+/* Keep the action bar compact on desktop; mobile uses the shared square treatment. */
+@media only screen and (min-width: 769px) {
+  .settings-appspace-header .settings-actions-container .saito-large-square-button {
+    flex-direction: row;
+    gap: var(--saito-space-xs);
+    min-height: 3.6rem;
+    aspect-ratio: auto;
+    padding: 0.75rem 1.2rem;
+    background: var(--saito-button-secondary-background);
+    color: var(--saito-button-secondary-foreground);
+    font-family: var(--saito-font);
+    font-size: 1.6rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
 
-.settings-appspace-header .settings-actions-container .saito-button-secondary:active {
-  background: color-mix(in srgb, var(--saito-status-success) 26%, var(--saito-secondary));
-  border-color: color-mix(in srgb, var(--saito-status-success) 55%, var(--saito-border));
+  .settings-appspace-header
+    .settings-actions-container
+    .saito-large-square-button
+    > .saito-icon-button {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .settings-appspace-header
+    .settings-actions-container
+    .saito-large-square-button
+    > .saito-icon-button
+    i {
+    font-size: 1.35rem;
+  }
+
+  .settings-appspace-header .settings-actions-container .saito-large-square-button:hover {
+    background: var(--saito-button-secondary-background-hover);
+    border-color: var(--saito-border);
+    color: var(--saito-foreground);
+  }
 }
 
 /* Wallet fields — consistent form/table rhythm */
@@ -173,6 +196,34 @@
   align-items: center;
   gap: var(--saito-space-sm);
   min-height: 2.4rem;
+}
+
+.settings-seed-phrase[role='button'] {
+  cursor: pointer;
+  font-family: var(--saito-font);
+}
+
+.settings-seed-phrase[role='button']:hover,
+.settings-seed-phrase[role='button']:focus-visible {
+  color: var(--saito-primary);
+}
+
+.settings-seed-phrase:not([role='button']) {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
+}
+
+.settings-seed-phrase-actions {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: var(--saito-space-xs);
+}
+
+.settings-seed-phrase-actions[hidden] {
+  display: none;
 }
 
 .settings-field-value,

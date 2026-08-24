@@ -1,12 +1,13 @@
-/* ============================================
-   POST TEASER COMPONENT - Editorial Style
-   Content-first, calm, publication-like
-   ============================================ */
+/*
+ * Namespace: .teaser
+ * Editorial post preview — layout + preserved surface chrome.
+ * Parent components arrange placement; use .teaser.compact for dense slots.
+ */
 
-.stack-post-teaser {
+.teaser {
   background: var(--saito-background);
   border: 1px solid var(--saito-border);
-  border-left: 3px solid transparent; /* Space for hover accent */
+  border-left: 3px solid transparent;
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -18,25 +19,24 @@
   position: relative;
 }
 
-.stack-post-teaser:hover {
+.teaser:hover {
   background: var(--saito-background-secondary, var(--saito-background));
   border-color: var(--saito-primary);
-  border-left-color: var(--saito-primary); /* Primary color accent on hover */
+  border-left-color: var(--saito-primary);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-/* Feature Image - Left-aligned on desktop */
-.stack-post-teaser-image {
+.teaser .image {
   position: relative;
   width: 280px;
   min-width: 280px;
   flex-shrink: 0;
-  aspect-ratio: 16 / 10; /* Editorial aspect ratio */
+  aspect-ratio: 16 / 10;
   overflow: hidden;
   background: var(--saito-background-secondary, var(--saito-background));
 }
 
-.stack-post-teaser-image img {
+.teaser .image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -44,12 +44,11 @@
   transition: transform 0.3s ease;
 }
 
-.stack-post-teaser:hover .stack-post-teaser-image img {
+.teaser:hover .image img {
   transform: scale(1.02);
 }
 
-/* Content Area */
-.stack-post-teaser-content {
+.teaser .content {
   padding: 2.5rem 3rem;
   display: flex;
   flex-direction: column;
@@ -58,111 +57,105 @@
   justify-content: center;
 }
 
-/* Title - Visually dominant */
-.stack-post-teaser-title {
-  font-size: 2.2rem; /* 22px - larger, more scannable */
+.teaser .title {
+  font-size: 2.2rem;
   font-weight: 600;
   margin: 0 0 1rem 0;
   color: var(--saito-foreground);
   line-height: 1.3;
   display: -webkit-box;
-  -webkit-line-clamp: 3; /* Clamp to 3 lines max */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   transition: color 0.2s ease;
 }
 
-.stack-post-teaser:hover .stack-post-teaser-title {
+.teaser:hover .title {
   color: var(--saito-primary);
 }
 
-/* Description - Subtitle or summary (optional) */
-.stack-post-teaser-description {
-  font-size: 1.7rem; /* 17px - readable body text */
+.teaser .excerpt {
+  font-size: 1.7rem;
   line-height: 1.6;
   color: var(--saito-foreground);
   opacity: 0.85;
   margin: 0 0 1.25rem 0;
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* Clamp to 1-2 lines */
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* Metadata - Published date (subtle) */
-.stack-post-teaser-meta {
+.teaser .meta {
   margin-top: auto;
   padding-top: 1rem;
 }
 
-.stack-post-teaser-date {
-  font-size: 1.4rem; /* 14px minimum - subtle but readable */
+.teaser .date {
+  font-size: 1.4rem;
   color: var(--saito-foreground);
   opacity: 0.6;
   font-weight: 400;
   line-height: 1.4;
 }
 
-/* ============================================
-   View Post Footer
-   ============================================ */
-.stack-view-post-footer {
-  & .stack-post-teaser {
-    gap: 0.5rem;
-    height: 100%;
-    border-left-width: 1px;
-    max-width: 100%;
-  }
-
-  & .stack-post-teaser-image {
-    min-width: unset;
-    width: 50%;
-  }
-
-  .stack-post-teaser-content {
-    padding: 1rem;
-  }
+/* Dense slot (parent places teaser in a tight grid/footer cell) */
+.teaser.compact {
+  gap: 0.5rem;
+  height: 100%;
+  border-left-width: 1px;
+  max-width: 100%;
+  min-height: 0;
 }
 
-/* ============================================
-   RESPONSIVE - MOBILE
-   ============================================ */
+.teaser.compact .image {
+  min-width: unset;
+  width: 50%;
+}
+
+.teaser.compact .content {
+  padding: 1rem;
+}
 
 @media (max-width: 768px) {
-  /* Stack image above text on mobile */
-  .stack-post-teaser {
+  .teaser {
     flex-direction: column;
     min-height: auto;
     border-left: 1px solid var(--saito-border);
-    border-top: 3px solid transparent; /* Space for hover accent on mobile */
+    border-top: 3px solid transparent;
   }
 
-  .stack-post-teaser:hover {
-    border-top-color: var(--saito-primary); /* Top accent on mobile */
+  .teaser:hover {
+    border-top-color: var(--saito-primary);
     border-left-color: var(--saito-primary);
   }
 
-  .stack-post-teaser-image {
-    width: 100% !important;
+  .teaser .image,
+  .teaser.compact .image {
+    width: 100%;
     min-width: 100%;
-    aspect-ratio: 16 / 9; /* Wider on mobile */
+    aspect-ratio: 16 / 9;
   }
 
-  .stack-post-teaser-content {
+  .teaser .content {
     padding: 2rem 1.5rem;
   }
 
-  .stack-post-teaser-title {
-    font-size: 1.9rem; /* 19px on mobile */
-    -webkit-line-clamp: 2; /* 2 lines on mobile */
+  .teaser.compact .content {
+    padding: 2rem 1.5rem;
   }
 
-  .stack-post-teaser-description {
-    font-size: 1.6rem; /* 16px minimum on mobile */
+  .teaser .title {
+    font-size: 1.9rem;
     -webkit-line-clamp: 2;
   }
 
-  .stack-post-teaser-date {
-    font-size: 1.4rem; /* 14px minimum */
+  .teaser .excerpt {
+    font-size: 1.6rem;
+    -webkit-line-clamp: 2;
+  }
+
+  .teaser .date {
+    font-size: 1.4rem;
   }
 }

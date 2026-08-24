@@ -104,6 +104,11 @@ class CreatePost {
     this.activeDraftId = null; // Active draft ID for this session (bound to autosave)
     this.featuredImage = null; // Featured/teaser image (base64 data, stored in tx.msg.image)
     this.pendingIntent = null; // Intent to use on next render() call (set by handleStartWriting for draft detection)
+    // Distribution options for the publish overlay (survive overlay open/close).
+    this.publishDistribution = {
+      linkToProfile: true,
+      tweetOnPublish: true
+    };
   }
 
   render(container = '') {
@@ -151,9 +156,9 @@ class CreatePost {
     // Trigger mount transition on next animation frame
     // This allows the initial state (opacity: 0) to render first
     requestAnimationFrame(() => {
-      const pageEl = document.querySelector('.stack-create-post-page');
+      const pageEl = document.querySelector('.create-post');
       if (pageEl) {
-        pageEl.classList.add('stack-create-post-page-mounted');
+        pageEl.classList.add('mounted');
       }
     });
 
@@ -309,7 +314,7 @@ class CreatePost {
       const editor = document.querySelector('#stack-post-body-editor');
 
       // Check if there's any existing content (read from DOM)
-      const hasTitle = titleInput && titleInput.value.trim().length > 0;
+      const hasTitle = this.getDocumentTitle().length > 0;
       const hasBodyContent =
         editor &&
         Array.from(editor.querySelectorAll('[data-block-id]')).some((blockEl) => {
@@ -813,7 +818,7 @@ class CreatePost {
           const figure = document.createElement('figure');
           figure.setAttribute('data-block-id', nextId());
           figure.setAttribute('data-block-type', 'image');
-          figure.className = 'stack-image-block';
+          figure.className = 'image-block';
           const img = document.createElement('img');
           img.src = `data:${imgData.mime};base64,${imgData.data}`;
           img.dataset.stackImageId = imgData.id;
@@ -921,7 +926,7 @@ class CreatePost {
 
         case 'image': {
           const img = blockEl.querySelector('img');
-          const captionEl = blockEl.querySelector('.stack-image-caption');
+          const captionEl = blockEl.querySelector('.image-caption');
           const alt = captionEl ? captionEl.textContent : '';
 
           if (!img) break;
@@ -1025,9 +1030,9 @@ class CreatePost {
 
     // Toggle placeholder class
     if (hasContent) {
-      editor.classList.remove('stack-editor-empty');
+      editor.classList.remove('empty');
     } else {
-      editor.classList.add('stack-editor-empty');
+      editor.classList.add('empty');
     }
   }
 
@@ -1054,7 +1059,7 @@ class CreatePost {
 
     // Get current content to track changes
     const currentContent = this.serializeDOMToMarkdown();
-    const title = document.querySelector('#stack-post-title-input')?.value || '';
+    const title = this.getDocumentTitle();
     const fullContent = title + currentContent;
 
     // Calculate bytes changed since last save (incremental tracking)
@@ -1195,7 +1200,7 @@ class CreatePost {
 
       // Update last saved content
       const currentContent = this.serializeDOMToMarkdown();
-      const title = document.querySelector('#stack-post-title-input')?.value || '';
+      const title = this.getDocumentTitle();
       this.lastSaveContent = title + currentContent;
       this.lastTrackedContent = this.lastSaveContent; // Reset tracked content to saved content
 
@@ -1211,12 +1216,12 @@ class CreatePost {
       const minVisibilityMs = 500;
       const remainingTime = Math.max(0, minVisibilityMs - elapsed);
 
-      // Update state back to "draft" after minimum visibility period
+      // Update state to "Saved" after minimum "Saving…" visibility
       if (this.saveStateTimeout) {
         clearTimeout(this.saveStateTimeout);
       }
       this.saveStateTimeout = setTimeout(() => {
-        this.updateSaveState('draft');
+        this.updateSaveState('saved');
         this.savingStartTime = null;
       }, remainingTime);
 
@@ -1256,8 +1261,7 @@ class CreatePost {
 
     if (!editor || !titleInput) return;
 
-    // Clear title
-    titleInput.value = '';
+    this.setDocumentTitle('');
 
     // Create empty document
     const tempDocument = { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
@@ -1273,6 +1277,47 @@ class CreatePost {
     this.updatePublishTriggerVisibility();
     this.updatePublishTriggerState();
     this.updateSaveState('draft');
+  }
+
+  /**
+   * Title field helpers — empty documents show muted "Untitled" as a document
+   * value (not instructional form copy). Persistence treats it as empty.
+   */
+  getTitleField() {
+    return document.querySelector('#stack-post-title-input');
+  }
+
+  isUntitledPlaceholder(titleInput = this.getTitleField()) {
+    return !!(titleInput && titleInput.classList.contains('is-empty'));
+  }
+
+  getDocumentTitle() {
+    const titleInput = this.getTitleField();
+    if (!titleInput || this.isUntitledPlaceholder(titleInput)) {
+      return '';
+    }
+    return (titleInput.value || '').trim();
+  }
+
+  syncTitleFieldHeight(titleInput = this.getTitleField()) {
+    if (!titleInput) return;
+    titleInput.style.height = 'auto';
+    titleInput.style.height = `${titleInput.scrollHeight}px`;
+  }
+
+  setDocumentTitle(title) {
+    const titleInput = this.getTitleField();
+    if (!titleInput) return;
+
+    const trimmed = (title || '').trim();
+    if (!trimmed) {
+      titleInput.value = 'Untitled';
+      titleInput.classList.add('is-empty');
+    } else {
+      titleInput.value = trimmed;
+      titleInput.classList.remove('is-empty');
+    }
+    this.syncTitleFieldHeight(titleInput);
   }
 
   /**
@@ -1394,11 +1439,8 @@ class CreatePost {
     const title = clonedData.title || '';
     const content = clonedData.content || '';
 
-    // Populate title input
-    const titleInput = document.querySelector('#stack-post-title-input');
-    if (titleInput) {
-      titleInput.value = title;
-    }
+    // Populate title field
+    this.setDocumentTitle(title);
 
     // Populate body editor
     const editor = document.querySelector('#stack-post-body-editor');
@@ -1428,7 +1470,7 @@ class CreatePost {
             const figure = document.createElement('figure');
             figure.setAttribute('data-block-id', nextBlockId());
             figure.setAttribute('data-block-type', 'image');
-            figure.className = 'stack-image-block';
+            figure.className = 'image-block';
             const img = document.createElement('img');
             img.src = `data:${image.mime};base64,${image.data}`;
             img.dataset.stackImageId = image.id;
@@ -1539,7 +1581,7 @@ class CreatePost {
     }
 
     try {
-      const title = document.querySelector('#stack-post-title-input')?.value || '';
+      const title = this.getDocumentTitle();
       const content = this.serializeDOMToMarkdown();
 
       // Skip if both title and content are empty
@@ -1835,24 +1877,23 @@ class CreatePost {
 
   /**
    * Update status display in sidebar
-   * Shows "Saving…" (italic) when saving, otherwise shows "Draft" or "Published" based on isPublished
-   *
-   * Status UI rules:
-   * - "Status:" label is always visible
-   * - When saving: "Saving…" in italic, visible for minimum 500ms (enforced in triggerSave)
-   * - After save: "Draft" again
+   * Quiet document state: Saving… → Saved → Draft / Published
    */
   updateStatusDisplay() {
     const statusValueElement = document.querySelector('#stack-editor-status-value');
     if (!statusValueElement) return;
 
     let statusText;
+    statusValueElement.classList.remove('saving', 'saved');
+
     if (this.saveState === 'saving') {
       statusText = 'Saving…';
-      statusValueElement.classList.add('saving'); // CSS should style this as italic
+      statusValueElement.classList.add('saving');
+    } else if (this.saveState === 'saved') {
+      statusText = 'Saved';
+      statusValueElement.classList.add('saved');
     } else {
       statusText = this.isPublished ? 'Published' : 'Draft';
-      statusValueElement.classList.remove('saving');
     }
 
     statusValueElement.textContent = statusText;
@@ -1865,7 +1906,7 @@ class CreatePost {
     const nextStepBtn = document.querySelector('#stack-next-step-btn');
     if (!nextStepBtn) return;
 
-    const title = document.querySelector('#stack-post-title-input')?.value || '';
+    const title = this.getDocumentTitle();
     const editor = document.querySelector('#stack-post-body-editor');
     let hasContent = false;
     if (editor) {
@@ -2772,7 +2813,6 @@ class CreatePost {
 
       // Convert current block to paragraph IN PLACE
       focusedBlock.setAttribute('data-block-type', 'paragraph');
-      focusedBlock.classList.remove('stack-list-item', 'stack-blockquote');
       focusedBlock.textContent = '';
       const emptyTextNode = document.createTextNode('\u200B');
       focusedBlock.appendChild(emptyTextNode);
@@ -3261,7 +3301,7 @@ class CreatePost {
     this._ensureBlockquoteNotInList();
 
     // Check if an image is selected first
-    const selectedImage = document.querySelector('.stack-image-selected');
+    const selectedImage = document.querySelector('.create-post .body figure.selected');
     if (selectedImage) {
       e.preventDefault();
       this.deleteSelectedImage(selectedImage);
@@ -3353,7 +3393,6 @@ class CreatePost {
       } else {
         // Convert list-item/blockquote in place
         focusedBlock.setAttribute('data-block-type', 'paragraph');
-        focusedBlock.classList.remove('stack-list-item', 'stack-blockquote');
         if (blockText.length === 0) {
           focusedBlock.textContent = '';
           focusedBlock.appendChild(document.createTextNode('\u200B'));
@@ -3454,7 +3493,7 @@ class CreatePost {
    */
   handleDeleteKey(e) {
     // Check if an image is selected first
-    const selectedImage = document.querySelector('.stack-image-selected');
+    const selectedImage = document.querySelector('.create-post .body figure.selected');
     if (selectedImage) {
       e.preventDefault();
       this.deleteSelectedImage(selectedImage);
@@ -3620,7 +3659,7 @@ class CreatePost {
     const editor = document.querySelector('#stack-post-body-editor');
     if (!editor) return;
 
-    const container = editor.closest('.stack-post-body-field');
+    const container = editor.closest('.body-field');
     if (!container) return;
 
     const containerRect = container.getBoundingClientRect();
@@ -4143,10 +4182,10 @@ class CreatePost {
     const editor = document.querySelector('#stack-post-body-editor');
     if (!editor || !insertionPoint) return;
 
-    let indicator = document.querySelector('.stack-insertion-indicator');
+    let indicator = document.querySelector('.insertion-indicator');
     if (!indicator) {
       indicator = document.createElement('div');
-      indicator.className = 'stack-insertion-indicator';
+      indicator.className = 'insertion-indicator';
       editor.appendChild(indicator);
     }
 
@@ -4193,7 +4232,7 @@ class CreatePost {
    * Remove insertion indicators
    */
   removeInsertionIndicators() {
-    const indicators = document.querySelectorAll('.stack-insertion-indicator');
+    const indicators = document.querySelectorAll('.insertion-indicator');
     indicators.forEach((indicator) => indicator.remove());
   }
 
@@ -4345,16 +4384,12 @@ class CreatePost {
     const imageBlockId = generateBlockId(this.getBlockCount());
     imageElement.setAttribute('data-block-id', imageBlockId);
     imageElement.setAttribute('data-block-type', 'image');
-    imageElement.className = 'stack-image-block';
+    imageElement.className = 'image-block';
     imageElement.contentEditable = false;
 
     const img = document.createElement('img');
     img.src = imageDataUrl;
     img.alt = file.name || '';
-    img.style.maxWidth = '100%';
-    img.style.height = 'auto';
-    img.style.display = 'block';
-    img.style.margin = '0 auto';
     imageElement.appendChild(img);
 
     // ----------------------------------------------------
@@ -4502,10 +4537,10 @@ class CreatePost {
     this.deselectAllImages();
 
     // Toggle selection on clicked image
-    if (imageBlock.classList.contains('stack-image-selected')) {
-      imageBlock.classList.remove('stack-image-selected');
+    if (imageBlock.classList.contains('selected')) {
+      imageBlock.classList.remove('selected');
     } else {
-      imageBlock.classList.add('stack-image-selected');
+      imageBlock.classList.add('selected');
     }
   }
 
@@ -4513,8 +4548,8 @@ class CreatePost {
    * Deselect all image blocks
    */
   deselectAllImages() {
-    const selectedImages = document.querySelectorAll('.stack-image-selected');
-    selectedImages.forEach((img) => img.classList.remove('stack-image-selected'));
+    const selectedImages = document.querySelectorAll('.create-post .body figure.selected');
+    selectedImages.forEach((img) => img.classList.remove('selected'));
   }
 
   /**
@@ -4686,7 +4721,7 @@ class CreatePost {
       setTimeout(() => {
         const rect = range.getBoundingClientRect();
         const editorRect = editor.getBoundingClientRect();
-        const scrollContainer = editor.closest('.stack-post-body-field');
+        const scrollContainer = editor.closest('.body-field');
 
         if (scrollContainer && rect) {
           // Check if caret is outside viewport
@@ -4726,7 +4761,7 @@ class CreatePost {
     }
 
     // Get current post data
-    const title = document.querySelector('#stack-post-title-input')?.value || '';
+    const title = this.getDocumentTitle();
     const editor = document.querySelector('#stack-post-body-editor');
     const content = editor ? this.serializeDOMToMarkdown() : '';
 
@@ -4848,6 +4883,15 @@ class CreatePost {
         );
       }
 
+      // Thumbnail click uses the same replace/upload path as the dropzone
+      const featuredImagePreview = document.querySelector('#stack-featured-image-preview');
+      if (featuredImagePreview && featuredImageDropzone) {
+        featuredImagePreview.addEventListener('click', (e) => {
+          e.preventDefault();
+          featuredImageDropzone.click();
+        });
+      }
+
       // Admin element (draft-state) - always clickable
       const adminElement = document.querySelector('#stack-draft-state');
       if (adminElement) {
@@ -4871,164 +4915,41 @@ class CreatePost {
         });
       }
 
-      // Help section - toggle cheat sheet visibility
-      const helpQuestionIcon = document.querySelector(
-        '.stack-editor-help-icon-container .fa-question'
+      // Cover image remove (sidebar thumbnail)
+      const featuredImageDisplayRemove = document.querySelector(
+        '#stack-featured-image-display-remove'
       );
-      if (helpQuestionIcon) {
-        helpQuestionIcon.addEventListener('click', (e) => {
+      if (featuredImageDisplayRemove) {
+        featuredImageDisplayRemove.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const helpTextContainer = document.querySelector('.stack-editor-help-text-container');
-          if (helpTextContainer) {
-            const currentMaxHeight = helpTextContainer.style.maxHeight;
-            // Toggle between '0' (collapsed) and '1000px' (expanded)
-            // Using max-height instead of height for smooth CSS transitions
-            if (currentMaxHeight === '1000px') {
-              // If expanded, collapse it
-              helpTextContainer.style.maxHeight = '0';
-            } else {
-              // If collapsed (0 or empty), expand it
-              helpTextContainer.style.maxHeight = '1000px';
-            }
-          }
+          this.handleFeaturedImageRemove();
+          this.scheduleSerialization();
         });
       }
 
-      // Markdown cheat sheet - make items clickable to insert markdown
-      const cheatSheetItems = document.querySelectorAll('.stack-cheatsheet-item');
-      cheatSheetItems.forEach((item) => {
-        item.style.cursor = 'pointer';
-        item.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          // Get the markdown text from the <code> element
-          const codeElement = item.querySelector('code');
-          if (!codeElement) return;
-
-          let markdownText = codeElement.textContent.trim();
-
-          // Check if cursor is in the editor or its children
-          const editor = document.querySelector('#stack-post-body-editor');
-          if (!editor) return;
-
-          const selection = window.getSelection();
-          if (!selection.rangeCount) return;
-
-          // Check if the selection is within the editor
-          const range = selection.getRangeAt(0);
-          const isInEditor = editor.contains(range.commonAncestorContainer);
-          if (!isInEditor) return;
-
-          // Determine if this is a start-of-line element
-          const headerElements = ['# Title', '## Subtitle', '### Heading', '#### Subheading'];
-          const isHeader = headerElements.includes(markdownText);
-          // Check for start-of-line elements: horizontal rule, bullet, code block
-          const isStartOfLine =
-            markdownText.startsWith('––-') ||
-            markdownText.startsWith('* bullet') ||
-            markdownText.startsWith('```');
-
-          // Get the focused block
-          const focusedBlock = this.getFocusedBlock();
-          if (!focusedBlock) return;
-
-          const blockType = focusedBlock.getAttribute('data-block-type');
-          const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-          const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
-
-          // For headers and start-of-line elements, place at start of line
-          if (isHeader || isStartOfLine) {
-            // If cursor is not at the start of the block, create a new block
-            if (cursorOffset > 0) {
-              // Split the block at cursor position
-              const beforeText = blockText.substring(0, cursorOffset);
-              const afterText = blockText.substring(cursorOffset);
-
-              // Update current block with text before cursor
-              focusedBlock.textContent = beforeText;
-
-              // Create new block with the markdown text at the start
-              const editor = focusedBlock.parentNode;
-              const newBlockElement = document.createElement('p');
-              const newBlockId = generateBlockId(this.getBlockCount());
-              newBlockElement.setAttribute('data-block-id', newBlockId);
-              newBlockElement.setAttribute('data-block-type', 'paragraph');
-              newBlockElement.contentEditable = 'true';
-
-              // For headers, place hashes at start; for others, add markdown then any remaining text
-              if (afterText.trim().length > 0) {
-                newBlockElement.textContent = markdownText + ' ' + afterText;
-              } else {
-                newBlockElement.textContent = markdownText;
-              }
-
-              // Insert after current block
-              focusedBlock.parentNode.insertBefore(newBlockElement, focusedBlock.nextSibling);
-
-              // Place cursor after the inserted markdown text
-              const textNode = newBlockElement.firstChild;
-              if (textNode) {
-                const newRange = document.createRange();
-                const cursorPos = markdownText.length + (afterText.trim().length > 0 ? 1 : 0);
-                newRange.setStart(textNode, cursorPos);
-                newRange.collapse(true);
-                selection.removeAllRanges();
-                selection.addRange(newRange);
-              }
-
-              // Focus the new block
-              newBlockElement.focus();
-            } else {
-              // Cursor is at start, replace or prepend the markdown text
-              if (blockText.trim().length > 0) {
-                focusedBlock.textContent = markdownText + ' ' + blockText;
-              } else {
-                focusedBlock.textContent = markdownText;
-              }
-
-              // Place cursor after the inserted markdown text
-              const textNode = focusedBlock.firstChild;
-              if (textNode) {
-                const newRange = document.createRange();
-                const cursorPos = markdownText.length + (blockText.trim().length > 0 ? 1 : 0);
-                newRange.setStart(textNode, cursorPos);
-                newRange.collapse(true);
-                selection.removeAllRanges();
-                selection.addRange(newRange);
-              }
-            }
-          } else {
-            // For inline elements (_italic_, **bold**), insert at cursor position
-            const beforeText = blockText.substring(0, cursorOffset);
-            const afterText = blockText.substring(cursorOffset);
-            focusedBlock.textContent = beforeText + markdownText + afterText;
-
-            // Place cursor after the inserted markdown text
-            const textNode = focusedBlock.firstChild;
-            if (textNode) {
-              const newRange = document.createRange();
-              newRange.setStart(textNode, beforeText.length + markdownText.length);
-              newRange.collapse(true);
-              selection.removeAllRanges();
-              selection.addRange(newRange);
-            }
-          }
-
-          // Schedule serialization and update placeholder
-          this.scheduleSerialization();
-          this.updatePlaceholderVisibility();
-        });
-      });
-
-      // Title input - update next step button on change
+      // Title field — wrapping textarea; muted "Untitled" empty state
       const titleInput = document.querySelector('#stack-post-title-input');
       if (titleInput) {
+        this.syncTitleFieldHeight(titleInput);
+
+        titleInput.addEventListener('focus', () => {
+          if (this.isUntitledPlaceholder(titleInput)) {
+            titleInput.select();
+          }
+        });
+
         titleInput.addEventListener('input', () => {
+          if (titleInput.classList.contains('is-empty')) {
+            titleInput.classList.remove('is-empty');
+          }
+          if (!(titleInput.value || '').trim()) {
+            // Keep field empty while typing/deleting; restore Untitled on blur
+            titleInput.classList.remove('is-empty');
+          }
+          this.syncTitleFieldHeight(titleInput);
           this.updateNextStepButton();
           this.updatePublishTriggerVisibility();
-          // Schedule save when title changes
           this.scheduleSerialization();
         });
 
@@ -5037,22 +4958,18 @@ class CreatePost {
           if (e.key === 'Enter' || e.key === 'Tab') {
             e.preventDefault();
             e.stopPropagation();
+            if (!(titleInput.value || '').trim()) {
+              this.setDocumentTitle('');
+            } else {
+              titleInput.classList.remove('is-empty');
+            }
             this.focusBodyEditorAtEnd();
           }
         });
 
         titleInput.addEventListener('blur', () => {
-          // Auto-focus body editor when title loses focus (if empty)
-          if (!titleInput.value.trim()) {
-            setTimeout(() => {
-              const editor = document.querySelector('#stack-post-body-editor');
-              if (editor) {
-                const firstBlock = editor.querySelector('[contenteditable="true"]');
-                if (firstBlock) {
-                  firstBlock.focus();
-                }
-              }
-            }, 0);
+          if (!(titleInput.value || '').trim() || this.isUntitledPlaceholder(titleInput)) {
+            this.setDocumentTitle('');
           }
         });
       }
@@ -5137,37 +5054,39 @@ class CreatePost {
   }
 
   /**
-   * Update featured image display in main column (read-only preview)
-   * Dropzone in sidebar always remains visible for upload/replace
+   * Update sidebar cover preview. Cover never enters the writing canvas.
    */
   updateFeaturedImageDisplay() {
     const featuredImageDisplay = document.querySelector('#stack-featured-image-display');
     const featuredImageDisplayImg = document.querySelector('#stack-featured-image-display-img');
-    const featuredImageDisplayRemove = document.querySelector(
-      '#stack-featured-image-display-remove'
-    );
+    const coverLabel = document.querySelector('#stack-featured-image-dropzone .text');
+    const coverDropzone = document.querySelector('#stack-featured-image-dropzone');
 
     if (this.featuredImage && featuredImageDisplay && featuredImageDisplayImg) {
-      // Show the display and set image source
-      featuredImageDisplay.style.display = 'block';
-      const dataUrl = `data:image/png;base64,${this.featuredImage}`;
-      featuredImageDisplayImg.src = dataUrl;
-
-      // Hide remove button (display is read-only, removal via sidebar only)
-      if (featuredImageDisplayRemove) {
-        featuredImageDisplayRemove.style.display = 'none';
+      featuredImageDisplay.classList.add('is-visible');
+      featuredImageDisplayImg.src = `data:image/png;base64,${this.featuredImage}`;
+      featuredImageDisplayImg.alt = 'Cover image';
+      if (coverLabel) {
+        coverLabel.textContent = 'Replace cover';
+      }
+      if (coverDropzone) {
+        coverDropzone.setAttribute('aria-label', 'Replace cover image');
       }
     } else {
-      // Hide the display if no image
       if (featuredImageDisplay) {
-        featuredImageDisplay.style.display = 'none';
+        featuredImageDisplay.classList.remove('is-visible');
       }
       if (featuredImageDisplayImg) {
         featuredImageDisplayImg.src = '';
+        featuredImageDisplayImg.alt = '';
+      }
+      if (coverLabel) {
+        coverLabel.textContent = 'Add cover image';
+      }
+      if (coverDropzone) {
+        coverDropzone.setAttribute('aria-label', 'Add cover image');
       }
     }
-
-    // Dropzone in sidebar always remains visible (never hide it)
   }
 
   /**

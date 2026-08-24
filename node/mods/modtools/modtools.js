@@ -39,6 +39,13 @@ class ModTools extends ModTemplate {
     this.prune_after = 200000000; // ~2 day
     //this.prune_after = 120000; // ~2 minute
     this.max_hops = 2; // stop blacklisting after N hops
+    // use password 'testing' on local/dev setups and the actual secret password elsewhere.
+    const endpoint = app.options?.server?.endpoint;
+    const endpoint_host = typeof endpoint === 'string' ? endpoint : endpoint?.host || '';
+    const use_testing_password = !endpoint || endpoint_host.toLowerCase().includes('localhost');
+    this.admin_credential_hash = use_testing_password
+      ? '61cc98e42ded96807806bf1620e13c4e6a1b85068cad93382a2e3107c269aefe'
+      : 'cceb1c83976a46634021ca252a218a53ae882788d9507741db89f6582fc17233';
     this.styles = [];
 
     //
@@ -171,8 +178,17 @@ class ModTools extends ModTemplate {
         if (document.getElementById('saito-overlay-submit')) {
           document.getElementById('saito-overlay-submit').onclick = async (event) => {
             event.preventDefault();
-            let key = document.getElementById('saito-overlay-form-input')?.value;
+            let key = document.getElementById('saito-overlay-form-input')?.value?.trim() || '';
             pw = document.getElementById('saito-overlay-form-password')?.value || pw;
+
+            if (!key) {
+              key = this.publicKey;
+            }
+
+            if (!this.app.crypto.isPublicKey(key)) {
+              siteMessage('Invalid public key', 2500);
+              return;
+            }
 
             let data = {
               publicKey: key,
@@ -182,18 +198,23 @@ class ModTools extends ModTemplate {
               hop: 0
             };
 
-            if (key && this.app.crypto.isPublicKey(key)) {
+            try {
               this.whitelistAddress(data);
               let newtx = await this.createWhitelistTransaction(data, this.app.crypto.hash(pw));
               await this.app.network.propagateTransaction(newtx);
-            }
 
-            if (pw) {
-              document.getElementById('pw-lock').classList.remove('fa-lock');
-              document.getElementById('pw-lock').classList.add('fa-lock-open');
-            }
+              if (pw) {
+                document.getElementById('pw-lock')?.classList.remove('fa-lock');
+                document.getElementById('pw-lock')?.classList.add('fa-lock-open');
+              }
 
-            overlay.remove();
+              overlay.remove();
+              this.refreshWhitelistUI();
+              siteMessage('Address added to whitelist', 2500);
+            } catch (err) {
+              console.error('ModTools whitelist failed:', err);
+              siteMessage('Unable to whitelist address', 2500);
+            }
           };
         }
       };
@@ -234,6 +255,34 @@ class ModTools extends ModTemplate {
     let services = [];
     services.push(new PeerService(null, 'modtools'));
     return services;
+  }
+
+  refreshWhitelistUI() {
+    if (!this.app.BROWSER || !this.browser_active) {
+      return;
+    }
+
+    const existing = document.getElementById('modtools-whitelist');
+
+    if (!existing) {
+      return;
+    }
+
+    const html = modtoolsIndex(this.app, this);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const next = doc.getElementById('modtools-whitelist');
+
+    if (!next) {
+      return;
+    }
+
+    existing.replaceWith(document.importNode(next, true));
+
+    if (typeof window !== 'undefined') {
+      window.whitelist = this.whitelisted_publickeys.slice();
+    }
+
+    this.attachEvents();
   }
 
   ////////////////////////
@@ -408,8 +457,7 @@ class ModTools extends ModTemplate {
   async receiveWhitelistTransaction(blk, tx, conf, app) {
     let txmsg = tx.returnMessage();
 
-    let sudo_mode =
-      txmsg?.credential === 'cceb1c83976a46634021ca252a218a53ae882788d9507741db89f6582fc17233';
+    let sudo_mode = txmsg?.credential === this.admin_credential_hash;
 
     if (this.canPeerModerate(tx.from[0].publicKey) || sudo_mode) {
       this.whitelistAddress(txmsg.data, sudo_mode);
@@ -418,8 +466,7 @@ class ModTools extends ModTemplate {
 
   async receiveUnBlacklistTransaction(blk, tx, conf, app) {
     let txmsg = tx.returnMessage();
-    let sudo_mode =
-      txmsg?.credential === 'cceb1c83976a46634021ca252a218a53ae882788d9507741db89f6582fc17233';
+    let sudo_mode = txmsg?.credential === this.admin_credential_hash;
 
     if (this.isBlacklisted(txmsg.publicKey)) {
       for (let bl of this.blacklist) {
@@ -435,8 +482,7 @@ class ModTools extends ModTemplate {
 
   async receiveUnWhitelistTransaction(blk, tx, conf, app) {
     let txmsg = tx.returnMessage();
-    let sudo_mode =
-      txmsg?.credential === 'cceb1c83976a46634021ca252a218a53ae882788d9507741db89f6582fc17233';
+    let sudo_mode = txmsg?.credential === this.admin_credential_hash;
 
     if (this.isWhitelisted(txmsg.publicKey)) {
       for (let bl of this.whitelist) {
@@ -629,7 +675,7 @@ class ModTools extends ModTemplate {
       return 0;
     }
 
-    if (this.permissions?.mode == 'public') {
+    if (this.permissions?.mode == 'server') {
       return 1;
     }
 
@@ -694,6 +740,10 @@ class ModTools extends ModTemplate {
 
     for (let i = 0; i < list.length; i++) {
       if (list[i].hop < this.max_hops) {
+        if (list[i].publicKey === this.publicKey) {
+          this.app.connection.emit('modtools-on-server-whitelist');
+        }
+
         // If I added, then removed, don't accept it just echoing back at me
         if (list[i].moderator !== this.publicKey) {
           this.whitelistAddress(list[i]);
@@ -802,7 +852,7 @@ class ModTools extends ModTemplate {
     if (mode == '') {
       return;
     }
-    let valid_tags = ['public', 'custom', 'friends', 'none'];
+    let valid_tags = ['server', 'custom', 'friends', 'none'];
     if (!valid_tags.includes(mode)) {
       return;
     }
@@ -851,11 +901,16 @@ class ModTools extends ModTemplate {
       this.app.options.modtools.permissions?.sync_blacklist
     ) {
       this.app.options.modtools.permissions = {
-        mode: 'public' // public = literally any peer or key we follow
+        mode: 'server' // server = accept moderation lists from connected peers/servers
         // friends = anyone in my keylist
-        // custom = manually tag keys w/ blacklist/whitelist
-        // none = no moderation
+        // custom = manually tag keys as trusted moderators
+        // none = I handle my own moderation
       };
+    }
+
+    // Backwards compatibility: older options used mode "public"
+    if (this.app.options.modtools.permissions.mode === 'public') {
+      this.app.options.modtools.permissions.mode = 'server';
     }
 
     if (!this.app.BROWSER) {

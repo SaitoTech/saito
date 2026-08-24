@@ -20,6 +20,22 @@
   flex: 1;
 }
 
+.explorer-block-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--explorer-space-3);
+  margin-left: auto;
+}
+
+.explorer-block-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--explorer-space-1);
+  white-space: nowrap;
+}
+
 .explorer-block-page-title {
   font-weight: var(--explorer-font-medium);
   margin: 0;
@@ -141,7 +157,7 @@
 
 .explorer-block-meta {
   display: grid;
-  grid-template-columns: 16rem minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   column-gap: 1rem;
   row-gap: 0;
   align-items: baseline;
@@ -162,14 +178,15 @@
 
 .explorer-block-meta-label {
   font-weight: var(--explorer-font-medium);
-  color: var(--explorer-tx-label, oklch(0.38 0 0));
+  color: var(--explorer-tx-label, var(--explorer-muted-foreground));
 }
 
 .explorer-block-meta-value {
   font-weight: var(--explorer-font-normal);
-  color: var(--explorer-tx-value, oklch(0.2 0 0));
-  word-break: break-all;
+  color: var(--explorer-tx-value, var(--explorer-foreground));
   min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .explorer-block-meta-value-mono {
@@ -533,10 +550,6 @@
   padding-left: calc(var(--explorer-space-4) + 3.5rem + var(--explorer-space-3));
   background-color: var(--explorer-card);
   border-top: 1px solid var(--explorer-border);
-  --explorer-tx-label: oklch(0.38 0 0);
-  --explorer-tx-value: oklch(0.2 0 0);
-  --explorer-tx-header: oklch(0.32 0 0);
-  --explorer-tx-empty: oklch(0.42 0 0);
 }
 
 .explorer-tx-section {
@@ -565,7 +578,7 @@
 /* Transaction metadata — two-column definition grid */
 .explorer-tx-meta {
   display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   column-gap: 0.75rem;
   row-gap: 0;
   align-items: baseline;
@@ -587,14 +600,15 @@
 
 .explorer-tx-meta-label {
   font-weight: var(--explorer-font-medium);
-  color: var(--explorer-tx-label, oklch(0.38 0 0));
+  color: var(--explorer-tx-label, var(--explorer-muted-foreground));
 }
 
 .explorer-tx-meta-value {
   font-weight: var(--explorer-font-normal);
-  color: var(--explorer-tx-value, oklch(0.2 0 0));
-  word-break: break-all;
+  color: var(--explorer-tx-value, var(--explorer-foreground));
   min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .explorer-tx-meta-value-mono {
@@ -607,7 +621,7 @@
   font-size: var(--explorer-text-sm);
   font-weight: var(--explorer-font-normal);
   line-height: 1.35;
-  color: var(--explorer-tx-empty, oklch(0.42 0 0));
+  color: var(--explorer-tx-empty, var(--explorer-muted-foreground));
 }
 
 .explorer-txmsg-empty {
@@ -656,13 +670,14 @@
 
 .explorer-slip-table {
   width: 100%;
+  min-width: max-content;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
   font-size: var(--explorer-text-sm);
 }
 
 .explorer-slip-col-pk {
-  width: 38%;
+  width: 100%;
 }
 
 .explorer-slip-col-amount {
@@ -713,18 +728,17 @@
 
 .explorer-slip-pk {
   min-width: 0;
-  word-break: break-all;
   font-family: var(--explorer-font-mono);
   font-size: var(--explorer-text-xs);
   line-height: 1.45;
+  white-space: nowrap;
 }
 
 .explorer-slip-pk .explorer-link {
   font-family: inherit;
   font-size: inherit;
   font-weight: var(--explorer-font-normal);
-  word-break: break-all;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .explorer-slip-numeric {
@@ -797,7 +811,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--explorer-tx-label);
+  color: var(--explorer-tx-label, var(--explorer-muted-foreground));
   font-size: var(--explorer-text-sm);
   cursor: pointer;
 }
@@ -865,19 +879,19 @@
 }
 
 .explorer-json-key {
-  color: oklch(0.45 0.12 245);
+  color: var(--explorer-json-key, var(--explorer-link));
 }
 
 .explorer-json-string {
-  color: oklch(0.42 0.14 145);
+  color: var(--explorer-json-string, var(--explorer-foreground));
 }
 
 .explorer-json-number {
-  color: oklch(0.48 0.14 35);
+  color: var(--explorer-json-number, var(--explorer-foreground));
 }
 
 .explorer-json-bool {
-  color: oklch(0.45 0.16 290);
+  color: var(--explorer-json-boolean, var(--explorer-foreground));
 }
 
 .explorer-json-null {
@@ -896,6 +910,17 @@
 }
 
 @media (max-width: 48rem) {
+  .explorer-block-list-header {
+    flex-wrap: wrap;
+  }
+
+  .explorer-block-list-header .explorer-block-controls {
+    flex: 1 0 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+    padding-left: calc(3.5rem + var(--explorer-space-3));
+  }
+
   .explorer-info-label {
     width: 8rem;
     white-space: normal;

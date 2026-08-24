@@ -1,0 +1,104 @@
+/*
+ * Namespace: .arcade-teaser-install
+ * Bright full-bleed game art in the overlay; darkened copy of the same
+ * art on the page backdrop. Text lives in a compact panel over the image.
+ */
+
+.arcade-teaser-install {
+  width: min(72rem, 94vw);
+  max-height: min(90vh, 56rem);
+  padding: 0;
+  overflow: hidden;
+  color: #fff;
+  background: transparent;
+  background-image: none;
+}
+
+.arcade-teaser-install .art {
+  position: relative;
+  min-height: min(42rem, 72vh);
+  border-radius: var(--saito-radius);
+  overflow: hidden;
+  background: var(--saito-muted);
+}
+
+.arcade-teaser-install .hero {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.arcade-teaser-install .content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  min-height: min(42rem, 72vh);
+  padding: var(--saito-space-xl);
+}
+
+.arcade-teaser-install .panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  width: min(32rem, 100%);
+  padding: var(--saito-space-lg);
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, #000 78%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 10%, transparent);
+}
+
+.arcade-teaser-install .title {
+  margin: 0;
+  font-family: var(--saito-font-heavy);
+  font-size: 2.2rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.arcade-teaser-install .message {
+  margin: 0;
+  font-size: inherit;
+  line-height: 1.45;
+  color: #fff;
+}
+
+.arcade-teaser-install [data-action='install'] {
+  align-self: stretch;
+  margin-top: var(--saito-space-xs);
+}
+
+/* Page backdrop: same artwork, much darker than the overlay image. */
+.saito-overlay:has(> .arcade-teaser-install) + .saito-overlay-backdrop {
+  filter: brightness(0.28) saturate(0.75);
+}
+
+@media (max-width: 700px) {
+  .arcade-teaser-install {
+    width: min(96vw, 72rem);
+  }
+
+  .arcade-teaser-install .art,
+  .arcade-teaser-install .content {
+    min-height: min(34rem, 70vh);
+  }
+
+  .arcade-teaser-install .content {
+    padding: var(--saito-space-lg);
+  }
+
+  .arcade-teaser-install .panel {
+    width: 100%;
+    padding: var(--saito-space-md);
+  }
+
+  .arcade-teaser-install .title {
+    font-size: 1.67rem;
+  }
+}

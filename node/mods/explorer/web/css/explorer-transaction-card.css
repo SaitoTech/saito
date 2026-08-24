@@ -1,0 +1,140 @@
+/*
+ * explorer-transaction-card.css
+ *
+ * Responsive transaction list card.
+ */
+
+.explorer-transaction-card {
+  container-type: inline-size;
+  display: flex;
+  min-width: 0;
+  border-bottom: 1px solid var(--explorer-border);
+  color: inherit;
+  background-color: var(--explorer-card);
+  transition: background-color var(--explorer-transition-fast);
+}
+
+.explorer-transaction-card:last-child {
+  border-bottom: none;
+}
+
+.explorer-transaction-card[role='button'] {
+  cursor: pointer;
+  user-select: none;
+}
+
+.explorer-transaction-card:hover {
+  background-color: color-mix(in oklch, var(--explorer-muted) 65%, var(--explorer-card));
+}
+
+.explorer-transaction-card-icon-section {
+  flex: 0 0 5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--explorer-space-2);
+}
+
+.explorer-transaction-card-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
+.explorer-transaction-card-main-data {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.explorer-transaction-card-addresses {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+}
+
+.explorer-transaction-card-data-field {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+  gap: var(--explorer-space-1);
+  padding: var(--explorer-space-1) var(--explorer-space-3);
+}
+
+.explorer-transaction-card-label {
+  flex: 0 0 4rem;
+  font-size: var(--explorer-text-xs);
+  color: var(--explorer-muted-foreground);
+}
+
+.explorer-transaction-card-value {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--explorer-text-xs);
+}
+
+.explorer-transaction-card-value > .explorer-link {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: inherit;
+  font-weight: var(--explorer-font-normal);
+}
+
+.explorer-transaction-card-sub-data {
+  flex: 0 0 24rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.explorer-transaction-card-sub-badges {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+}
+
+.explorer-transaction-card-sub-field {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 2.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: var(--explorer-space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--explorer-text-xs);
+  color: var(--explorer-muted-foreground);
+  text-align: right;
+}
+
+@container (max-width: 48rem) {
+  .explorer-transaction-card-addresses {
+    flex-direction: column;
+  }
+}
+
+@container (max-width: 42rem) {
+  .explorer-transaction-card-content {
+    flex-direction: column;
+  }
+
+  .explorer-transaction-card-sub-data {
+    flex: none;
+  }
+
+  .explorer-transaction-card-sub-field {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}

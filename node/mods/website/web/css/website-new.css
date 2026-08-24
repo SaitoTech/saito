@@ -1,3 +1,5 @@
+@import url('./website-defi.css');
+
 /* ----------------------------------------------------------------
 font imports
 -----------------------------------------------------------------*/
@@ -244,42 +246,102 @@ h2 + p {
   position: absolute;
   top: 50%;
   left: 50%;
+  width: 100%;
+  max-width: 72rem;
   transform: translate(-50%, -50%);
   opacity: 0;
   animation: fadeInCards 1s ease-out 1.75s forwards;
+  perspective: 1000px;
+}
+
+.carousel-title {
+  position: relative;
+  top: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: #fff;
+  text-align: center;
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  text-shadow: 0 0 10px #0006;
 }
 
 @keyframes fadeInCards {
   0% {
     opacity: 0;
-    transform: translate(-50%, -60%) scale(1.25);
+    transform: translate(-50%, -60%);
   }
 
   100% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.25);
+    transform: translate(-50%, -50%);
   }
 }
 
 .card-container {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  position: relative;
   width: 100%;
+  height: 22rem;
+  transform-style: preserve-3d;
 }
 
 .card-link {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
   text-decoration: none;
   color: inherit;
-  flex: 1;
-  min-width: 250px;
-  max-width: 250px;
-  margin: 0 0.5rem;
+  width: 14.4rem;
+  height: 16.875rem;
+  margin: 0;
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+  transform: translate3d(-50%, -50%, -260px) scale(0.5);
+  transition:
+    transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.5s ease;
+  will-change: transform, opacity;
+}
+
+.card-link.active {
+  opacity: 1;
+  z-index: 10;
+  pointer-events: auto;
+  transform: translate3d(-50%, -50%, 40px) scale(1.08);
+}
+
+.card-link.prev-1 {
+  opacity: 0.8;
+  z-index: 9;
+  pointer-events: auto;
+  transform: translate3d(calc(-50% - 12rem), -50%, -70px) scale(0.9) rotateY(42deg);
+}
+
+.card-link.prev-2 {
+  opacity: 0.5;
+  z-index: 8;
+  pointer-events: auto;
+  transform: translate3d(calc(-50% - 21rem), -50%, -140px) scale(0.7) rotateY(55deg);
+}
+
+.card-link.next-1 {
+  opacity: 0.8;
+  z-index: 9;
+  pointer-events: auto;
+  transform: translate3d(calc(-50% + 12rem), -50%, -70px) scale(0.9) rotateY(-42deg);
+}
+
+.card-link.next-2 {
+  opacity: 0.5;
+  z-index: 8;
+  pointer-events: auto;
+  transform: translate3d(calc(-50% + 21rem), -50%, -140px) scale(0.7) rotateY(-55deg);
 }
 
 .feature-card {
   position: relative;
-  height: 300px;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -290,14 +352,42 @@ h2 + p {
 }
 
 .feature-card {
-  background: #ffffff4d; /* Fallback */
+  background: #f71f3de6;
 }
 
 @supports (backdrop-filter: blur(1px)) {
   .feature-card {
-    backdrop-filter: blur(30px) contrast(110%) brightness(110%);
-    background: #ffffff00; /* Less opacity when blur works */
+    -webkit-backdrop-filter: blur(60px) contrast(110%) brightness(110%);
+    backdrop-filter: blur(60px) contrast(110%) brightness(110%);
   }
+}
+
+.card-link[data-app='chat'] .feature-card {
+  background: linear-gradient(145deg, #ce4987eb, #9e2f8af2);
+}
+
+.card-link[data-app='redsquare'] .feature-card {
+  background: linear-gradient(145deg, #cb4787f2, #b35486eb);
+}
+
+.card-link[data-app='arcade'] .feature-card {
+  background: linear-gradient(145deg, #d85d84f2, #a34b88eb);
+}
+
+.card-link[data-app='talk'] .feature-card {
+  background: linear-gradient(145deg, #29887ff2, #145971eb);
+}
+
+.card-link[data-app='stack'] .feature-card {
+  background: linear-gradient(145deg, #122f8cf2, #1f4c7aeb);
+}
+
+.card-link[data-app='vault'] .feature-card {
+  background: linear-gradient(145deg, #53398af2, #72318beb);
+}
+
+.card-link[data-app='store'] .feature-card {
+  background: linear-gradient(145deg, #518979f2, #29887feb);
 }
 
 .feature-card::before {
@@ -366,6 +456,62 @@ h2 + p {
 
 .card-link:hover .feature-card {
   transform: translateY(-5px);
+}
+
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 20;
+}
+
+.carousel-button {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: inherit;
+  background: #ffffff1a;
+  font: inherit;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  transition:
+    background 0.3s ease,
+    transform 0.3s ease;
+}
+
+.carousel-button:hover,
+.carousel-button:focus-visible {
+  background: #ffffff4d;
+  transform: scale(1.1);
+}
+
+.carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.carousel-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  background: currentColor;
+  opacity: 0.4;
+  cursor: pointer;
+}
+
+.carousel-dot[aria-current='true'] {
+  opacity: 1;
+  transform: scale(1.4);
 }
 
 /* Mobile styles */
@@ -445,23 +591,67 @@ h2 + p {
     opacity: 0;
     animation: fadeInCards 1s ease-out 1.25s forwards;
   }
+}
 
+@media (max-width: 767px) {
   .card-container {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding: 1rem;
-    scrollbar-width: none;
-    gap: 1rem;
+    height: 20rem;
+    touch-action: pan-y;
+  }
+
+  .card-link {
+    width: calc(90% - 5.4rem);
+    max-width: 15.3rem;
+    height: 15.75rem;
+  }
+
+  .card-link.active {
+    transform: translate3d(-50%, -50%, 30px) scale(1.03);
+  }
+
+  .card-link.prev-1 {
+    transform: translate3d(calc(-50% - 5rem), -50%, -65px) scale(0.86) rotateY(42deg);
+  }
+
+  .card-link.prev-2 {
+    opacity: 0.35;
+    transform: translate3d(calc(-50% - 8.25rem), -50%, -130px) scale(0.66) rotateY(55deg);
+  }
+
+  .card-link.next-1 {
+    transform: translate3d(calc(-50% + 5rem), -50%, -65px) scale(0.86) rotateY(-42deg);
+  }
+
+  .card-link.next-2 {
+    opacity: 0.35;
+    transform: translate3d(calc(-50% + 8.25rem), -50%, -130px) scale(0.66) rotateY(-55deg);
+  }
+
+  .carousel-controls {
+    gap: 0.6rem;
+    padding: 0 0.75rem;
+  }
+
+  .carousel-button {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .carousel-dots {
+    gap: 0.35rem;
   }
 
   .feature-card {
-    scroll-snap-align: center;
-    margin: 0;
+    padding: 1.25rem;
   }
 
-  /* Add JavaScript to scroll to second card on load */
+  .feature-card h1 {
+    font-size: 1.75rem;
+  }
+
+  .feature-card p {
+    font-size: 1.05rem;
+  }
 }
 
 .saito-text {
@@ -794,6 +984,11 @@ object.saito-text {
 
 .mobile-menu-content.active {
   display: block;
+  background: linear-gradient(145deg, #ffffffe6, #e98eafc7);
+  -webkit-backdrop-filter: blur(36px) saturate(140%);
+  backdrop-filter: blur(36px) saturate(140%);
+  border-left: 1px solid #ffffffb3;
+  box-shadow: -10px 0 30px #1c1c2340;
 }
 
 .mobile-menu-content .menu-section {
@@ -807,9 +1002,10 @@ object.saito-text {
 
 .mobile-menu-content a {
   display: block;
-  color: #333;
+  color: #1c1c23;
   padding: 0.5rem 0;
   text-decoration: none;
+  text-shadow: 0 1px 1px #fff;
 }
 
 @media (min-width: 768px) {
@@ -870,6 +1066,127 @@ object.saito-text {
 
   .main-header:not(.scrolled) .desktop-menu {
     position: fixed;
+  }
+}
+
+#multiwallet {
+  background: var(--dreamscape);
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.multiwallet-content {
+  display: flex;
+  max-width: 1200px;
+  width: 100%;
+  gap: 2rem;
+}
+
+.multiwallet-text {
+  flex: 1;
+  color: white;
+  padding: 1rem;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.multiwallet-text h1 {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+.multiwallet-text p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+.multiwallet-logos {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.multiwallet-logos .logo-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.multiwallet-logos .logo-circle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  transition: transform 0.3s ease;
+}
+
+.multiwallet-logos .logo-disk object {
+  width: 60px;
+  height: 60px;
+  margin: auto;
+}
+
+.multiwallet-logos .logo-circle span {
+  color: white;
+  font-weight: 500;
+  white-space: nowrap;
+  font-size: 2rem;
+}
+
+.multiwallet-logos .logo-circle:nth-child(1) {
+  left: 10%;
+}
+
+.multiwallet-logos .logo-circle:nth-child(3) {
+  left: 6%;
+}
+
+.multiwallet-logos .logo-circle:nth-child(4) {
+  left: 25%;
+}
+
+@media (max-width: 768px) {
+  .multiwallet-content {
+    flex-direction: column;
+  }
+
+  .multiwallet-logos .logo-container {
+    padding: 0 1rem;
+    gap: 1rem;
+  }
+
+  .multiwallet-logos .logo-circle:nth-child(1) {
+    left: 50%;
+    top: 10%;
+    transform: translateX(-50%);
+  }
+
+  .multiwallet-logos .logo-circle:nth-child(2) {
+    left: 50%;
+    top: 30%;
+    transform: translateX(-50%);
+  }
+
+  .multiwallet-logos .logo-circle:nth-child(3) {
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%);
+  }
+
+  .multiwallet-logos .logo-circle:nth-child(4) {
+    left: 50%;
+    top: 70%;
+    transform: translateX(-50%);
+  }
+
+  .multiwallet-logos .logo-circle:hover {
+    transform: translateX(-50%) scale(1.1);
   }
 }
 
@@ -1224,57 +1541,71 @@ object.saito-text {
   }
 }
 
-/* Hide on mobile */
-@media (max-width: 767px) {
-  .scroll-caret {
-    display: none;
+.scroll-caret {
+  color: #fff;
+  animation: bounce 2s infinite;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: auto;
+  height: auto;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 3px;
+  background: #ffffff1a;
+  font: inherit;
+  box-shadow: 0 0 10px #0003;
+}
+
+.scroll-caret span {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.scroll-caret svg {
+  width: 2rem;
+  height: 1rem;
+  filter: drop-shadow(0 0 5px #0005);
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+
+  40% {
+    transform: translateY(-10px);
+  }
+
+  60% {
+    transform: translateY(-5px);
   }
 }
 
-/* Scroll Caret - Desktop Only */
+@media (max-width: 767px) {
+  .scroll-caret {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    translate: -50% 0;
+    z-index: 100;
+  }
+}
+
 @media (min-width: 768px) {
   .scroll-caret {
     position: fixed;
     bottom: 3rem;
     right: 3rem;
     left: auto;
-    transform: none;
-    color: #fff;
-    animation: bounce 2s infinite;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 1000;
-    width: 40px;
-    height: 40px;
-    padding: 10px;
-    border-radius: 3px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  }
-
-  .scroll-caret svg {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.3));
-  }
-
-  @keyframes bounce {
-    0%,
-    20%,
-    50%,
-    80%,
-    100% {
-      transform: translateY(0);
-    }
-
-    40% {
-      transform: translateY(-10px);
-    }
-
-    60% {
-      transform: translateY(-5px);
-    }
   }
 }
 
@@ -1329,147 +1660,6 @@ object.saito-text {
 /* For SVG logo */
 .header-logo svg style {
   content: '.cls-1{fill:var(--menu-color, #fff)}';
-}
-
-#multiwallet {
-  background: var(--dreamscape);
-  min-height: calc(var(--vh) * 100);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  position: relative;
-  /* For nav pip tracking */
-}
-
-.multiwallet-content {
-  display: flex;
-  max-width: 1200px;
-  width: 100%;
-  gap: 2rem;
-}
-
-.multiwallet-text {
-  flex: 1;
-  color: white;
-  padding: 1rem;
-  justify-content: center;
-  display: flex;
-  flex-direction: column;
-}
-
-.multiwallet-text h1 {
-  font-size: 3rem;
-  margin-bottom: 1.5rem;
-  color: white;
-}
-
-.multiwallet-text p {
-  font-size: 1.2rem;
-  line-height: 1.6;
-}
-
-.multiwallet-logos {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo-container {
-  position: relative;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.logo-circle {
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 2rem;
-  transition: transform 0.3s ease;
-}
-
-.logo-disk object {
-  width: 60px;
-  height: 60px;
-  margin: auto;
-}
-
-.logo-circle span {
-  color: white;
-  font-weight: 500;
-  white-space: nowrap;
-  font-size: 2rem;
-}
-
-/* Position the logos in an arc */
-.logo-circle:nth-child(1) {
-  /* Bitcoin */
-  left: 10%;
-}
-
-.logo-circle:nth-child(2) {
-  /* Ethereum */
-  left: 0%;
-}
-
-.logo-circle:nth-child(3) {
-  /* Saito */
-  left: 6%;
-}
-
-.logo-circle:nth-child(4) {
-  /* MultiverseX */
-  left: 25%;
-}
-
-.nav a:nth-child(4).active {
-  background-color: white;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .multiwallet-content {
-    flex-direction: column;
-  }
-
-  .logo-container {
-    padding: 0 1rem;
-    gap: 1rem;
-  }
-
-  /* Adjust logo positions for mobile */
-  .logo-circle:nth-child(1) {
-    left: 50%;
-    top: 10%;
-    transform: translateX(-50%);
-  }
-
-  .logo-circle:nth-child(2) {
-    left: 50%;
-    top: 30%;
-    transform: translateX(-50%);
-  }
-
-  .logo-circle:nth-child(3) {
-    left: 50%;
-    top: 50%;
-    transform: translateX(-50%);
-  }
-
-  .logo-circle:nth-child(4) {
-    left: 50%;
-    top: 70%;
-    transform: translateX(-50%);
-  }
-
-  .logo-circle:hover {
-    transform: translateX(-50%) scale(1.1);
-  }
 }
 
 /* Hide menu in landing section */

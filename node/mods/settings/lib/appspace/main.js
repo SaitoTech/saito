@@ -440,23 +440,56 @@ class SettingsAppspace {
         };
       }
 
-      if (document.getElementById('show-phrase')) {
-        document.getElementById('show-phrase').onclick = async (e) => {
-          const egldMnemonic = app?.options?.crypto?.EGLD?.mnemonic_text || '';
+      if (document.getElementById('settings-seed-phrase')) {
+        let seedEl = document.getElementById('settings-seed-phrase');
+        let seedActionsEl = document.getElementById('settings-seed-phrase-actions');
+        let copySeedEl = document.getElementById('settings-copy-seed-phrase');
+        let closeSeedEl = document.getElementById('settings-close-seed-phrase');
+        const hiddenSeedText = 'click here to view seed phrase';
 
-          if (egldMnemonic && egldMnemonic !== this.seed_phrase) {
-            await sconfirm(
-              'Warning: Your EGLD wallet is using a different seed phrase. ' +
-                'Backing up only the Saito seed does NOT back up your EGLD keys. '
-            );
+        let revealSeed = (e) => {
+          e.preventDefault();
+          if (seedEl.dataset.revealed === '1') {
+            return;
           }
 
-          let confirmBackup = await sconfirm(
-            `<h4>Copy to clip board?</h4> <br> <span class="monospace">${this.seed_phrase}</div>`
-          );
-          if (confirmBackup) {
-            navigator.clipboard.writeText(this.seed_phrase);
+          seedEl.textContent = this.seed_phrase;
+          seedEl.classList.add('monospace');
+          seedEl.dataset.revealed = '1';
+          seedEl.removeAttribute('role');
+          seedEl.removeAttribute('tabindex');
+          seedEl.title = 'Wallet seed phrase';
+          seedActionsEl.hidden = false;
+        };
+
+        seedEl.onclick = revealSeed;
+        seedEl.onkeydown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            revealSeed(e);
           }
+        };
+
+        copySeedEl.onclick = async () => {
+          await navigator.clipboard.writeText(this.seed_phrase);
+          let iconEl = copySeedEl.querySelector('i');
+          iconEl.classList.remove('fa-copy');
+          iconEl.classList.add('fa-check');
+
+          setTimeout(() => {
+            iconEl.classList.remove('fa-check');
+            iconEl.classList.add('fa-copy');
+          }, 1500);
+        };
+
+        closeSeedEl.onclick = () => {
+          seedEl.textContent = hiddenSeedText;
+          seedEl.classList.remove('monospace');
+          delete seedEl.dataset.revealed;
+          seedEl.setAttribute('role', 'button');
+          seedEl.setAttribute('tabindex', '0');
+          seedEl.title = 'Reveal wallet seed phrase';
+          seedActionsEl.hidden = true;
+          seedEl.focus();
         };
       }
 
@@ -491,17 +524,28 @@ class SettingsAppspace {
       console.log('Error in Settings Appspace: ', err);
     }
 
+    let openModuleInstall = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      app.connection.emit('saito-app-app-render-request');
+    };
+
     if (document.querySelector('#settings-add-app')) {
       let addAppBtn = document.querySelector('#settings-add-app');
-      let addAppActivate = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        app.connection.emit('saito-app-app-render-request');
-      };
-      addAppBtn.onclick = addAppActivate;
+      addAppBtn.onclick = openModuleInstall;
       addAppBtn.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
-          addAppActivate(e);
+          openModuleInstall(e);
+        }
+      };
+    }
+
+    if (document.getElementById('settings-add-module')) {
+      let addModuleBtn = document.getElementById('settings-add-module');
+      addModuleBtn.onclick = openModuleInstall;
+      addModuleBtn.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          openModuleInstall(e);
         }
       };
     }

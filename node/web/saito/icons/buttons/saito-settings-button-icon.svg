@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter">
+  <title>Settings</title>
+  <path d="M32 3 59 18v28L32 61 5 46V18L32 3Z"/>
+  <path d="M29 10h6l1 6 4 2 5-3 4 4-3 5 2 4 6 1v6l-6 1-2 4 3 5-4 4-5-3-4 2-1 6h-6l-1-6-4-2-5 3-4-4 3-5-2-4-6-1v-6l6-1 2-4-3-5 4-4 5 3 4-2 1-6Z"/>
+  <path d="m32 25 6 3.5v7L32 39l-6-3.5v-7l6-3.5Z"/>
+</svg>

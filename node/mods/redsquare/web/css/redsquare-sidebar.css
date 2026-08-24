@@ -1,11 +1,11 @@
 /* Namespace: .sidebar — stack + Who to Follow / legal footer.
- * One section rhythm: title → gap → panel → gap → next title (same --saito-space-sm).
+ * Right-rail section rhythm: title → panel → next section (gap --saito-space-lg).
  */
 
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-sm);
+  gap: var(--saito-space-lg);
   min-width: 0;
 }
 
@@ -23,7 +23,7 @@
 }
 
 .sidebar .suggestions {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: var(--saito-space-sm);
   min-width: 0;
@@ -55,6 +55,7 @@
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
+  font-family: var(--saito-font-medium);
 }
 
 .sidebar .suggestion .handle {
@@ -83,7 +84,6 @@
   flex-wrap: wrap;
   gap: var(--saito-space-xs) var(--saito-space-sm);
   color: var(--saito-muted-foreground);
-  font-size: var(--font-size-tiny);
 }
 
 .sidebar .footer a {

@@ -14,12 +14,6 @@ module.exports = {
       utxokey3: '<utxokey3>'
     }
   },
-  schema: {
-    nftid: 'string',
-    utxokey1: 'utxokey',
-    utxokey2: 'utxokey',
-    utxokey3: 'utxokey'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

@@ -30,11 +30,11 @@ class StackMain {
     // ========================================================================
     // Ensure container is preserved when rendering splash to avoid conflicts
     // with editor ownership of .saito-container
-    if (!document.querySelector('.stack-splash')) {
+    if (!document.querySelector('.splash')) {
       this.app.browser.addElementToSelector(html, this.container);
     } else {
       // Replace only the splash content, not the entire container
-      this.app.browser.replaceElementContentBySelector(html, '.stack-splash');
+      this.app.browser.replaceElementContentBySelector(html, '.splash');
     }
 
     // Update container class

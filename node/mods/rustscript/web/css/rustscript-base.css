@@ -60,7 +60,9 @@ body.rustscript .rustscript-body > .rustscript-editor {
   min-height: 0;
 }
 
-body.rustscript .rustscript-body > #rustscript-editor-test[hidden] {
+body.rustscript .rustscript-body > #rustscript-editor-create[hidden],
+body.rustscript .rustscript-body > #rustscript-editor-test[hidden],
+body.rustscript .rustscript-body > #rustscript-panel[hidden] {
   display: none !important;
   flex: 0 0 0 !important;
   width: 0 !important;
@@ -68,17 +70,14 @@ body.rustscript .rustscript-body > #rustscript-editor-test[hidden] {
   overflow: hidden !important;
 }
 
+/* Guided: interactive editor + info share the row equally */
 body.rustscript .rustscript-body > #rustscript-panel {
   flex: 1 1 0;
-  min-width: 28rem;
+  min-width: 0;
   min-height: 0;
 }
 
-body.rustscript .rustscript-body > #rustscript-editor-test:not([hidden]) ~ #rustscript-panel {
-  flex: 0 1 min(30rem, 28%);
-  min-width: 22rem;
-  max-width: 36rem;
-}
+/* Expert: create + test only (info hidden via [hidden]) */
 
 body.rustscript.rs-publish-modal-open .saito-container,
 body.rustscript.rs-publish-modal-open #saito-header {
@@ -88,8 +87,10 @@ body.rustscript.rs-publish-modal-open #saito-header {
 /* Compact RS controls — beat Saito button min-widths */
 body.rustscript .rs-cmd-btn,
 body.rustscript .rs-mode-btn,
-body.rustscript .rs-panel-ref-action {
+body.rustscript .rs-panel-ref-action,
+body.rustscript .rs-panel-menu-trigger {
   min-width: 0;
+  min-height: 0;
 }
 
 /* Shared control weight — importance via color/layout, not bold labels */
@@ -113,8 +114,7 @@ body.rustscript .rs-publish-nft-max-btn {
     overflow-y: auto;
   }
 
-  body.rustscript .rustscript-body > #rustscript-panel,
-  body.rustscript .rustscript-body > #rustscript-editor-test:not([hidden]) ~ #rustscript-panel {
+  body.rustscript .rustscript-body > #rustscript-panel {
     flex: 1 1 auto;
     min-width: 0;
     max-width: none;

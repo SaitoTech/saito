@@ -1892,7 +1892,7 @@ class Browser {
   }
 
   returnAddressHTML(key, disable = false) {
-    return `<div class="saito-address" data-id="${key}" ${disable ? `data-disable="true"` : ''}>${this.app.keychain.returnUsername(key)}</div>`;
+    return `<div class="saito-address" data-id="${this.escapeHTML(key)}" ${disable ? `data-disable="true"` : ''}>${this.escapeHTML(this.app.keychain.returnUsername(key))}</div>`;
   }
 
   updateAddressHTML(key, id) {
@@ -2050,125 +2050,227 @@ class Browser {
     return regex.test(potential_link);
   }
 
+  /**
+   * Return a compact label for a URL without changing the URL used by the link.
+   */
+  formatUrlForDisplay(url, maxLength = 42) {
+    let displayUrl = String(url ?? '').trim();
+    if (!displayUrl) {
+      return '';
+    }
+
+    displayUrl = displayUrl.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+
+    const limit = Math.max(4, Number(maxLength) || 42);
+    if (displayUrl.length > limit) {
+      displayUrl = displayUrl.slice(0, limit - 3) + '...';
+    }
+
+    return displayUrl;
+  }
+
+  /**
+   * Sanitize untrusted metadata that may contain basic inline emphasis.
+   * This deliberately excludes links, images, block elements and all attributes.
+   */
+  sanitizeInlineHtml(text) {
+    if (!text) {
+      return '';
+    }
+
+    return sanitizeHtml(String(text), {
+      allowedTags: ['em', 'i', 'strong', 'b'],
+      allowedAttributes: {}
+    });
+  }
+
+  /**
+   * Repair anchors produced by an older publisher that used a smart quote to
+   * close href attributes. Keep this deliberately narrow: only a lone href is
+   * accepted, and its value must pass the same URL policy as normal links.
+   */
+  normalizeLegacySmartQuotedAnchors(text) {
+    return String(text ?? '').replace(
+      /<a\s+href=(["'])([^<>"']+)[‘’“”]\s*>/gi,
+      (match, _openingQuote, href) => {
+        const decodedHref = sanitizer.unescapeEntities(String(href).trim());
+        if (!this.isSafeHref(decodedHref)) {
+          return match;
+        }
+        return `<a href="${this.escapeHTML(decodedHref)}">`;
+      }
+    );
+  }
+
   sanitize(text, createLinks = false) {
     if (!text) {
       return '';
     }
     try {
+      text = this.normalizeLegacySmartQuotedAnchors(text);
+
+      if (createLinks) {
+        const host =
+          typeof window !== 'undefined' && window.location && window.location.host
+            ? window.location.host
+            : '';
+
+        const renderer = new marked.Renderer();
+        const defaultLinkRenderer = renderer.link.bind(renderer);
+        renderer.link = (href, title, linkText) => {
+          const decodedHref = sanitizer.unescapeEntities(String(href ?? ''));
+          const decodedText = sanitizer.unescapeEntities(String(linkText ?? ''));
+          const hrefFromLabel = this.hrefFromAutolink(decodedText);
+
+          // Marked has already converted bare URLs into anchors. Shorten only
+          // their generated labels, preserving authored Markdown link text.
+          if (
+            (decodedText === decodedHref || hrefFromLabel === decodedHref) &&
+            this.isSafeHref(decodedHref) &&
+            decodedText.length > 42
+          ) {
+            linkText = this.escapeHTML(this.formatUrlForDisplay(decodedText));
+          }
+
+          return defaultLinkRenderer(href, title, linkText);
+        };
+
+        text = marked.parse(text, { renderer });
+
+        text = text.replace(this.urlRegexp(), (...args) => {
+          const url = args[0];
+          const offset = args[args.length - 2];
+          const full = args[args.length - 1];
+          const before = full.slice(0, offset);
+          const openAnchors = (before.match(/<a\b/gi) || []).length;
+          const closeAnchors = (before.match(/<\/a>/gi) || []).length;
+          if (openAnchors > closeAnchors) {
+            return url;
+          }
+
+          if (this.numberFilter(url)) {
+            return url;
+          }
+
+          const hrefRaw = this.hrefFromAutolink(url);
+          if (!hrefRaw || !this.isSafeHref(hrefRaw)) {
+            return url;
+          }
+
+          const url2 = this.formatUrlForDisplay(url);
+
+          const extra =
+            host && hrefRaw.includes(host)
+              ? "data-link='local_link' "
+              : "target='_blank' rel='noopener noreferrer' ";
+
+          return `<a ${extra} class="saito-link" href="${this.escapeHTML(hrefRaw)}">${this.escapeHTML(url2)}</a>`;
+        });
+      }
+
       text = sanitizeHtml(text, {
         allowedTags: [
           'a',
+          'p',
+          'br',
+          'div',
+          'span',
+          'ul',
+          'ol',
+          'li',
+          'blockquote',
+          'strong',
+          'b',
+          'em',
+          'i',
+          'strike',
+          'del',
+          'code',
+          'pre',
+          'hr',
           'h1',
           'h2',
           'h3',
           'h4',
           'h5',
           'h6',
-          'blockquote',
-          'p',
-          'ul',
-          'ol',
-          'nl',
-          'li',
-          'b',
-          'i',
-          'strong',
-          'em',
-          'strike',
-          'code',
-          'hr',
-          'br',
-          'div',
           'table',
           'thead',
-          'caption',
           'tbody',
           'tr',
           'th',
           'td',
-          'marquee',
-          /*'pre',*/
-          'span',
-          'img',
-          'video',
-          'audio'
+          'img'
         ],
         allowedAttributes: {
+          a: ['href', 'class', 'target', 'rel', 'data-link'],
+          span: ['class', 'data-id'],
           div: ['class', 'id'],
-          span: ['class', 'id', 'data-id'],
-          img: ['src', 'class'],
+          img: ['src', 'class', 'alt'],
           blockquote: ['href'],
-          i: ['class'],
-          a: ['href', 'data-*']
+          code: ['class']
         },
-        selfClosing: ['img', 'br', 'hr', 'area', 'base', 'basefont', 'input', 'link', 'meta'],
-        allowedSchemes: ['http', 'https', 'ftp', 'mailto'],
-        allowedSchemesByTag: {},
-        allowedSchemesAppliedToAttributes: ['href', 'cite'],
-        allowProtocolRelative: true
+        selfClosing: ['img', 'br', 'hr'],
+        allowedSchemes: ['http', 'https', 'mailto'],
+        allowedSchemesByTag: {
+          img: ['http', 'https', 'data']
+        },
+        allowedSchemesAppliedToAttributes: ['href', 'src'],
+        allowProtocolRelative: false,
+        transformTags: {
+          a: (tagName, attribs) => {
+            const href = attribs.href || '';
+            if (href && !this.isSafeHref(href)) {
+              delete attribs.href;
+            }
+            attribs.class = 'saito-link';
+            let isLocal = false;
+            try {
+              if (typeof window !== 'undefined' && window.location?.host) {
+                isLocal = (attribs.href || href).includes(window.location.host);
+              }
+            } catch (err) {}
+            if (isLocal) {
+              attribs['data-link'] = 'local_link';
+              delete attribs.target;
+              delete attribs.rel;
+            } else {
+              attribs.target = '_blank';
+              attribs.rel = 'noopener noreferrer';
+            }
+            return { tagName, attribs };
+          }
+        },
+        exclusiveFilter: (frame) => {
+          if (frame.tag !== 'img') {
+            return false;
+          }
+          const src = frame.attribs?.src;
+          if (!src || typeof src !== 'string') {
+            return true;
+          }
+          const trimmed = src.trim();
+          if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
+            return true;
+          }
+          if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+            return trimmed.includes('\\');
+          }
+          if (/^data:image\/(jpeg|jpg|png|gif|webp);base64,/i.test(trimmed)) {
+            return false;
+          }
+          return !(this.isSafeHref(trimmed) && /^https?:/i.test(trimmed));
+        }
       });
 
-      /* wrap link in <a> tag */
-
-      if (createLinks) {
-        text = text.replace(this.urlRegexp(), (url) => {
-          // This is a number like 1.50 that accidentally got marked as a URL
-          if (this.numberFilter(url)) {
-            //console.warn(`BROWSER [sanitize]: ${url} is a number, not a link`);
-            return url;
-          }
-
-          let url1 = url.trim();
-          let url2 = url1;
-          if (url2.length > 42) {
-            if (url2.indexOf('http') == 0 && url2.includes('://')) {
-              let temp = url2.split('://');
-              url2 = temp[1];
-            }
-            if (url2.indexOf('www.') == 0) {
-              url2 = url2.substr(4);
-            }
-            if (url2.length > 40) {
-              url2 = url2.substr(0, 37) + '...';
-            }
-          }
-
-          return `<a ${
-            url.includes(window.location.host)
-              ? "data-link='local_link' "
-              : "target='_blank' rel='noopener noreferrer' "
-          } class="saito-link" href="${
-            !url.includes('http') ? `http://${url1}` : url1
-          }">${url2}</a>`;
-        });
-
-        //
-        // HTML markup for some basic formatting in chat/tweets -- also functions as a link detector
-        //
-        text = marked.parse(text);
-
-        if (text.includes('<a ') && text.includes('href') && !text.includes('saito-link')) {
-          // These are links created by MarkDown which has a more expansive url regexp
-          let io = text.indexOf('<a ');
-          let href = text.match(/href=".*"/)[0];
-
-          let extra_stuff = href.includes(window.location.host)
-            ? "data-link='local_link'"
-            : "target='_blank' rel='noopener noreferrer'";
-
-          text = text.slice(0, io + 3) + extra_stuff + ` class="saito-link" ` + text.slice(io + 3);
-        }
-      }
-
-      //trim lines at start and end
-      text = text.replace(/^\s+|\s+$/g, '');
-
       text = emoji.emojify(text);
+
+      text = text.replace(/^\s+|\s+$/g, '');
 
       return text;
     } catch (err) {
       console.error('Browser [sanitize] error: ', err);
-      return text;
+      return '';
     }
   }
 
@@ -2248,7 +2350,84 @@ class Browser {
   // escaping special characters like & < > "
   //
   escapeHTML(text) {
-    return sanitizer.escapeAttrib(text);
+    return sanitizer.escapeAttrib(text == null ? '' : String(text));
+  }
+
+  /**
+   * Turn a bare autolink match into an absolute href, or null if the match
+   * already has a non-allowed scheme (javascript:, data:, etc.).
+   */
+  hrefFromAutolink(url) {
+    if (!url || typeof url !== 'string') {
+      return null;
+    }
+    const trimmed = url.trim();
+    if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
+      return null;
+    }
+    if (trimmed.startsWith('//')) {
+      return null;
+    }
+    if (/^(https?|mailto):/i.test(trimmed)) {
+      return trimmed;
+    }
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) {
+      return null;
+    }
+    return `http://${trimmed}`;
+  }
+
+  /**
+   * True if url is safe to use as an href (http/https/mailto).
+   * Rejects javascript:, data:, vbscript:, ftp, protocol-relative, and other non-allowed schemes.
+   */
+  isSafeHref(url) {
+    if (!url || typeof url !== 'string') {
+      return false;
+    }
+    const trimmed = url.trim();
+    if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
+      return false;
+    }
+    if (trimmed.startsWith('//')) {
+      return false;
+    }
+    const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+    if (!schemeMatch) {
+      return false;
+    }
+    const scheme = schemeMatch[1].toLowerCase();
+    return scheme === 'http' || scheme === 'https' || scheme === 'mailto';
+  }
+
+  /**
+   * True if url is safe as an image/media src or CSS url().
+   * Allows http(s), relative paths, and raster data:image base64 URLs. Rejects svg data URLs.
+   */
+  isSafeMediaUrl(url) {
+    if (!url || typeof url !== 'string') {
+      return false;
+    }
+    const trimmed = url.trim();
+    if (!trimmed || /[\s<>"'`]/.test(trimmed)) {
+      return false;
+    }
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+      return !trimmed.includes('\\');
+    }
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('data:image/svg')) {
+      return false;
+    }
+    if (/^data:image\/[a-z0-9.+-]+[;,]/i.test(trimmed)) {
+      return true;
+    }
+    const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+    if (!schemeMatch) {
+      return false;
+    }
+    const scheme = schemeMatch[1].toLowerCase();
+    return scheme === 'http' || scheme === 'https';
   }
 
   //////////////////////
@@ -2311,39 +2490,42 @@ class Browser {
 
       window.salert = function (message) {
         if (document.getElementById('saito-alert')) {
-          return;
+          return Promise.resolve(false);
         }
-        let wrapper = document.createElement('div');
-        wrapper.id = 'saito-alert';
-        wrapper.className = 'saito-alert';
-        let html = `<div id="saito-alert-shim">
-                      <div id="saito-alert-box" class="saito-overlay-panel compact">
-                        <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
-                        <div class="saito-button-row">
-                          <button id="alert-ok" class="saito-button-primary">OK</button>
+        return new Promise((resolve) => {
+          let wrapper = document.createElement('div');
+          wrapper.id = 'saito-alert';
+          wrapper.className = 'saito-alert';
+          let html = `<div id="saito-alert-shim">
+                        <div id="saito-alert-box" class="saito-overlay-panel compact">
+                          <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
+                          <div class="saito-button-row">
+                            <button id="alert-ok" class="saito-button-primary">OK</button>
+                          </div>
                         </div>
-                      </div>
-                    </div>`;
-        wrapper.innerHTML = html;
-        document.body.appendChild(wrapper);
-        //        setTimeout(() => {
-        //          document.querySelector("#saito-alert-box").style.top = "0";
-        //        }, 100);
-        document.querySelector('#alert-ok').focus();
-        document.querySelector('#saito-alert-shim').addEventListener('keyup', function (event) {
-          if (event.keyCode === 13) {
-            event.preventDefault();
-            document.querySelector('#alert-ok').click();
-          }
+                      </div>`;
+          wrapper.innerHTML = html;
+          document.body.appendChild(wrapper);
+          //        setTimeout(() => {
+          //          document.querySelector("#saito-alert-box").style.top = "0";
+          //        }, 100);
+          document.querySelector('#alert-ok').focus();
+          document.querySelector('#saito-alert-shim').addEventListener('keyup', function (event) {
+            if (event.keyCode === 13) {
+              event.preventDefault();
+              document.querySelector('#alert-ok').click();
+            }
+          });
+          document.querySelector('#alert-ok').addEventListener(
+            'click',
+            function () {
+              wrapper.remove();
+              resolve(true);
+            },
+            false
+          );
+          document.querySelector('#saito-alert-box').style.top = '1rem';
         });
-        document.querySelector('#alert-ok').addEventListener(
-          'click',
-          function () {
-            wrapper.remove();
-          },
-          false
-        );
-        document.querySelector('#saito-alert-box').style.top = '1rem';
       };
 
       window.sconfirm = function (message) {
@@ -2937,7 +3119,7 @@ class Browser {
       }
 
       if (this.app.crypto.isPublicKey(key)) {
-        return `<span class="saito-mention saito-address" data-id="${key}">${username}</span>`;
+        return `<span class="saito-mention saito-address" data-id="${this.escapeHTML(key)}">${this.escapeHTML(username)}</span>`;
       } else {
         return k;
       }

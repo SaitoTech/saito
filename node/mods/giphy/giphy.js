@@ -103,21 +103,23 @@ class Giphy extends ModTemplate {
   }
 
   onPeerServiceUp(app, peer, service = {}) {
-    let gif_self = this;
+    if (this.app.BROWSER == 1) {
+      let gif_self = this;
 
-    if (service.service === 'giphy') {
-      app.network.sendRequestAsTransaction(
-        'get giphy auth',
-        {},
-        function (res) {
-          gif_self.auth = res;
-          // If UI is already opened, render once auth arrives.
-          if (gif_self.container || document.querySelector('.saito-gif-container')) {
-            gif_self.render();
-          }
-        },
-        peer.publicKey
-      );
+      if (service.service === 'giphy') {
+        app.network.sendRequestAsTransaction(
+          'get giphy auth',
+          {},
+          function (res) {
+            gif_self.auth = res;
+            // If UI is already opened, render once auth arrives.
+            if (gif_self.container || document.querySelector('.saito-gif-container')) {
+              gif_self.render();
+            }
+          },
+          peer.publicKey
+        );
+      }
     }
   }
 
@@ -172,6 +174,7 @@ class Giphy extends ModTemplate {
     };
 
     const searchGif = async (value) => {
+      gif_content.classList.remove('results');
       gif_content.innerHTML = '<div class="giphy-loader">Loading...</div>';
 
       try {
@@ -184,10 +187,8 @@ class Giphy extends ModTemplate {
         }
 
         gif_content.innerHTML = '';
-        gif_content.style.display = 'grid';
+        gif_content.classList.add('results');
         gif_content.style.gridTemplateColumns = `repeat(${Math.max(1, giphy_self.selectorColumns)}, minmax(120px, 1fr))`;
-        gif_content.style.gap = '6px';
-        gif_content.style.alignItems = 'start';
 
         gifs.forEach((gif) => {
           const img = document.createElement('img');
@@ -197,10 +198,6 @@ class Giphy extends ModTemplate {
             gif?.images?.original?.url;
           img.alt = gif?.title || 'gif';
           img.loading = 'lazy';
-          img.style.width = '100%';
-          img.style.height = 'auto';
-          img.style.cursor = 'pointer';
-          img.style.borderRadius = '6px';
           img.onclick = () => onGifClick(gif);
           gif_content.appendChild(img);
         });

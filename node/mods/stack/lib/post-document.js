@@ -328,25 +328,20 @@ function renderDocument(doc, container, options = {}) {
         element.setAttribute('data-block-id', block.id);
         element.setAttribute('data-block-type', 'image');
         element.setAttribute('data-block-index', index.toString());
-        element.className = 'stack-image-block';
+        element.className = 'image-block';
         // Images are NOT contenteditable - they are block-level elements
         element.contentEditable = false;
 
         const img = document.createElement('img');
         img.src = block.src || '';
         img.alt = block.caption || '';
-        img.style.maxWidth = '100%';
-        img.style.height = 'auto';
-        img.style.display = 'block';
-        img.style.margin = '0 auto';
         element.appendChild(img);
 
         // Caption is optional and hidden unless image is selected
         if (block.caption) {
           const figcaption = document.createElement('figcaption');
-          figcaption.className = 'stack-image-caption';
+          figcaption.className = 'image-caption';
           figcaption.textContent = block.caption;
-          figcaption.style.display = 'none'; // Hidden by default
           element.appendChild(figcaption);
         }
         break;

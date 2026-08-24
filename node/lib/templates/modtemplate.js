@@ -68,6 +68,55 @@ class ModTemplate {
     // this.darkModeToggler = new Toggler(app);
   }
 
+  returnServerOrigin() {
+    const endpoint = this.app?.options?.server?.endpoint;
+
+    if (!endpoint?.protocol || !endpoint?.host) {
+      return '';
+    }
+
+    const protocol = endpoint.protocol.replace(/:$/, '');
+    const port = endpoint.port ? `:${endpoint.port}` : '';
+
+    return `${protocol}://${endpoint.host}${port}`;
+  }
+
+  resolveSocialUrl(value) {
+    if (typeof value !== 'string' || value === '') {
+      return value;
+    }
+
+    if (/^[a-z][a-z\d+.-]*:/i.test(value) || value.startsWith('//')) {
+      return value;
+    }
+
+    const origin = this.returnServerOrigin();
+
+    if (!origin) {
+      return value;
+    }
+
+    try {
+      return new URL(value, `${origin}/`).href;
+    } catch {
+      return value;
+    }
+  }
+
+  buildSocial(social = {}) {
+    const resolved = { ...social };
+
+    if (Object.prototype.hasOwnProperty.call(resolved, 'url')) {
+      resolved.url = this.resolveSocialUrl(resolved.url);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(resolved, 'image')) {
+      resolved.image = this.resolveSocialUrl(resolved.image);
+    }
+
+    return resolved;
+  }
+
   ////////////////////////////
   // Extend these Functions //
   ////////////////////////////
@@ -552,7 +601,17 @@ class ModTemplate {
       // bots get Open Graph
       //
       if (is_bot) {
-        const social = this.social || {};
+        let social = this.social || {};
+
+        try {
+          const resolvedSocial = await this.returnShortLinkSocial(row, req);
+
+          if (resolvedSocial) {
+            social = { ...social, ...resolvedSocial };
+          }
+        } catch (err) {
+          console.error(`${this.returnName()} shortlink metadata lookup failed:`, err);
+        }
 
         const title = row.title || social.title || this.returnName();
 
@@ -562,28 +621,34 @@ class ModTemplate {
 
         const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 
+        const escapeHTML = (value) => this.app.browser.escapeHTML(String(value || ''));
+        const escapedTitle = escapeHTML(title);
+        const escapedDescription = escapeHTML(description);
+        const escapedImage = escapeHTML(image);
+        const escapedUrl = escapeHTML(url);
+
         res.send(`
 		<!DOCTYPE html>
 			<html>
 			<head>
 				<meta charset="utf-8">
-				<title>${title}</title>
+				<title>${escapedTitle}</title>
 
-				<meta property="og:title" content="${title}">
-				<meta property="og:description" content="${description}">
-				<meta property="og:image" content="${image}">
-				<meta property="og:url" content="${url}">
+				<meta property="og:title" content="${escapedTitle}">
+				<meta property="og:description" content="${escapedDescription}">
+				<meta property="og:image" content="${escapedImage}">
+				<meta property="og:url" content="${escapedUrl}">
 				<meta property="og:type" content="website">
 
 				<meta name="twitter:card" content="summary_large_image">
-				<meta name="twitter:title" content="${title}">
-				<meta name="twitter:description" content="${description}">
-				<meta name="twitter:image" content="${image}">
+				<meta name="twitter:title" content="${escapedTitle}">
+				<meta name="twitter:description" content="${escapedDescription}">
+				<meta name="twitter:image" content="${escapedImage}">
 
 			</head>
 
 			<body>
-				${title}
+				${escapedTitle}
 			</body>
 
 		</html>
@@ -621,6 +686,11 @@ class ModTemplate {
         res.status(400).send('Invalid shortlink target');
       }
     });
+  }
+
+  // Modules with content-specific links may override the default social card.
+  async returnShortLinkSocial(row, req) {
+    return null;
   }
 
   //

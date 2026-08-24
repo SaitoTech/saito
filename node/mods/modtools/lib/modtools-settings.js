@@ -87,9 +87,9 @@ class ModtoolsSettings {
       };
     }
 
-    if (document.getElementById('public_mod')) {
-      document.getElementById('public_mod').onclick = (e) => {
-        this.mod.permissions.mode = 'public';
+    if (document.getElementById('server_mod')) {
+      document.getElementById('server_mod').onclick = (e) => {
+        this.mod.permissions.mode = 'server';
         this.mod.save();
       };
     }

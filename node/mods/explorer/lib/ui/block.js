@@ -352,7 +352,10 @@ class Block {
       return;
     }
 
-    unlockTransactionInRustscript(this.app, rawTx, target);
+    unlockTransactionInRustscript(this.app, rawTx, target, {
+      blk: this.block,
+      block_id: this.block?.id ?? this.block?.block_id
+    });
   }
 
   attachEvents() {
@@ -491,7 +494,10 @@ class Block {
           return;
         }
         try {
-          exportTransaction(this.app, rawTx);
+          exportTransaction(this.app, rawTx, {
+            blk: this.block,
+            block_id: this.block?.id ?? this.block?.block_id
+          });
         } catch (err) {
           console.warn('Explorer: export transaction failed', err);
         }

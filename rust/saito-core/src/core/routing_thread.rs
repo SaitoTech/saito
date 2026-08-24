@@ -362,11 +362,6 @@ impl RoutingThread {
         peer_id: u64,
         block_reference: BlockReference,
     ) {
-        info!(
-            "[BLOCK_PROCESS_TRACE][VERIFY] received block reference for block_id={}",
-            block_reference.block_id,
-        );
-
         //
         // sync from peer if needed
         //
@@ -401,7 +396,6 @@ impl RoutingThread {
             .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, &block_reference)
             .await
         {
-            info!("[BLOCK_PROCESS_TRACE][VERIFY] adding to sync manager...");
             let mut sync = self.sync.write().await;
             if sync.add(&self.network, block_reference, peer_id).await {
                 sync.fetch(&self.network, &self.fetch_dispatcher).await;
@@ -440,11 +434,6 @@ impl RoutingThread {
                     .get_latest_block_id()
                     .saturating_add(MAX_BLOCKCHAIN_CHUNK as BlockId)
         {
-            info!(
-                "[BLOCK_PROCESS_TRACE][VERIFY] deferring block reference {} while chain sync catches up from {}",
-                block_id,
-                blockchain.get_latest_block_id()
-            );
             return false;
         }
         if !blockchain.blocks.is_empty() && blockchain.lowest_acceptable_block_id >= block_id {
@@ -843,7 +832,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     if !is_latest_block {
                         return None;
                     }
-                    info!("RoutingEvent::OnAddBlockSuccess: empty queue, triggering advance chain symc...");
                     sync.advance_chain_sync_if_ready(&self.network, self.config_lock.clone())
                         .await;
                 }

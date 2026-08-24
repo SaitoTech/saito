@@ -9,9 +9,6 @@ module.exports = {
     op: 'CHECKOWN',
     utxokey: '<utxokey>'
   },
-  schema: {
-    utxokey: 'utxokey'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

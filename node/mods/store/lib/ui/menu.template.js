@@ -9,19 +9,23 @@ function escapeHtml(value = '') {
 }
 
 /** Public marketplace sidebar — All Listings is a normal category row. */
-function browseTemplate() {
+function browseTemplate({ showMyStore = false } = {}) {
   const categoryItems = STORE_CATEGORY_LIST.map((category) => {
     const view = categoryViewKey(category);
     return `<li class="item" role="button" tabindex="0" data-view="${view}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</li>`;
   }).join('\n      ');
+
+  const myStoreItem = showMyStore
+    ? `\n      <li class="item" role="button" tabindex="0" data-view="my-store">My Saito Store</li>`
+    : '';
 
   return `
     <ul class="list saito-menu-select-subtle" role="list">
       <li class="item active" role="button" tabindex="0" data-view="all" data-category="">All Listings</li>
       ${categoryItems}
       <li class="divider" role="separator"></li>
+      <li class="item" role="button" tabindex="0" data-action="list-item">List Item for Sale</li>${myStoreItem}
     </ul>
-    <button type="button" class="store-list-for-sale" data-action="list-item">List Item for Sale</button>
   `;
 }
 
@@ -41,8 +45,9 @@ function dashboardTemplate({ dashboardView = 'store-admin' } = {}) {
   return `
     <ul class="list saito-menu-select-subtle" role="list">
       ${item('store-admin', 'Store Admin')}
-      ${item('active', 'Active Listings')}
-      ${item('sold', 'Sold Listings')}
+      ${item('active', 'Listings')}
+      ${item('sold', 'Sales')}
+      <li class="item" role="button" tabindex="0" data-action="settings">Settings</li>
     </ul>
   `;
 }

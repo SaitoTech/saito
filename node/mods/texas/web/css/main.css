@@ -1,0 +1,110 @@
+.game.texas {
+  --texas-chrome-inset: 0.8rem;
+  /*
+    YOUR MOVE backdrop — independent overlay, NOT parent opacity.
+    Strength restored toward the former table.is-acting veil (~52%).
+  */
+  --texas-your-move-veil: color-mix(in srgb, #041008 56%, transparent);
+  --texas-your-move-duration: 0.35s;
+}
+
+body.game.texas {
+  background-color: #1a5a32;
+  background-image: url(/texas/img/greenfelt.jpg);
+  background-size: cover;
+  background-position: center;
+}
+
+.game.texas .texas-main {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(28rem, 26vw) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'rail table';
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: #1a5a32;
+  background-image: url(/texas/img/greenfelt.jpg);
+  background-size: cover;
+  background-position: center;
+}
+
+/*
+  Backdrop layer only. Sits under sidebar/table so cards & controls stay crisp.
+  Opacity transition preserves the existing fade in/out.
+*/
+.game.texas .texas-main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--texas-your-move-veil);
+  opacity: 0;
+  transition: opacity var(--texas-your-move-duration) ease;
+}
+
+.game.texas .texas-main.is-your-move::before {
+  opacity: 1;
+}
+
+.game.texas .texas-sidebar,
+.game.texas .texas-table {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+  Playerboxes are normally translucent. With a strong veil under the rail,
+  that transparency shows darkened felt through them → washed-out haze.
+  In YOUR MOVE only: solid opaque surfaces (same green family, not brighter).
+*/
+.game.texas .texas-main.is-your-move .texas-playerbox {
+  background: #0d2818;
+  border-color: color-mix(in srgb, var(--saito-foreground) 40%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, #000 28%, transparent);
+}
+
+.game.texas .texas-main.is-your-move .playerbox-character {
+  border-color: color-mix(in srgb, var(--saito-foreground) 58%, transparent);
+}
+
+.game.texas .texas-main.is-your-move .texas-pot {
+  background: #f3ead2;
+}
+
+.game.texas .game-menu {
+  top: var(--texas-chrome-inset);
+  left: var(--texas-chrome-inset);
+  margin: 0;
+}
+
+.game.texas #saito-header.game .hamburger-container {
+  margin-top: var(--texas-chrome-inset);
+  margin-right: var(--texas-chrome-inset);
+}
+
+.game.texas .texas-sidebar {
+  grid-area: rail;
+}
+
+.game.texas .texas-table {
+  grid-area: table;
+}
+
+.game.texas #game-share {
+  display: none;
+}
+
+@media (max-width: 900px), (max-height: 500px) {
+  .game.texas .texas-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'table'
+      'rail';
+  }
+}

@@ -46,6 +46,27 @@ class PublicKeyFieldOverlay {
 
     input.addEventListener('input', clearError);
 
+    const applyValue = () => {
+      const next = String(input.value ?? '').trim();
+      if (!next || isPlaceholder(next)) {
+        showError('A value is required');
+        return false;
+      }
+      const ok =
+        (this.app?.crypto?.isPublicKey && this.app.crypto.isPublicKey(next)) ||
+        (/^[A-HJ-NP-Za-km-z1-9]+$/.test(next) && next.length >= 40 && next.length <= 50);
+      if (!ok) {
+        showError('Expected a Saito public key');
+        return false;
+      }
+      clearError();
+      if (typeof this.onApply === 'function') {
+        this.onApply(next);
+      }
+      this.overlay.hide();
+      return true;
+    };
+
     root.querySelector('.rs-prompt-use-mine')?.addEventListener('click', async () => {
       try {
         let pk = '';
@@ -56,31 +77,14 @@ class PublicKeyFieldOverlay {
         }
         input.value = String(pk || '');
         clearError();
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+        applyValue();
       } catch (err) {
         showError(err.message || 'Could not read wallet public key');
       }
     });
 
     root.querySelector('.rs-prompt-apply')?.addEventListener('click', () => {
-      const next = String(input.value ?? '').trim();
-      if (!next || isPlaceholder(next)) {
-        showError('A value is required');
-        return;
-      }
-      const ok =
-        (this.app?.crypto?.isPublicKey && this.app.crypto.isPublicKey(next)) ||
-        (/^[A-HJ-NP-Za-km-z1-9]+$/.test(next) && next.length >= 40 && next.length <= 50);
-      if (!ok) {
-        showError('Expected a Saito public key');
-        return;
-      }
-      clearError();
-      if (typeof this.onApply === 'function') {
-        this.onApply(next);
-      }
-      this.overlay.hide();
+      applyValue();
     });
   }
 }

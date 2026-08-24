@@ -2,7 +2,7 @@ const MainTemplate = require('./main.template');
 const Menu = require('./menu');
 const Composer = require('./composer');
 const Profile = require('./profile');
-const NewPost = require('./new-post');
+const Create = require('./create');
 const Sidebar = require('./sidebar');
 
 class Main {
@@ -16,10 +16,16 @@ class Main {
     this.manager = mod.manager;
     this.manager.container = '.manager';
     this.profile = new Profile(app, mod, '.sidebar-right > .redsquare-profile');
-    this.new_post = new NewPost(app, mod, '.manager .actions');
+    this.mobile_profile = new Profile(app, mod, '.manager .redsquare-profile.mobile');
+    this.create = new Create(app, mod, '.sidebar-right > .redsquare-create');
     this.sidebar = new Sidebar(app, mod, '.sidebar-right > .sidebar');
     this.active_mobile_view = 'feed';
     this.chat_manager = null;
+    this.post_control_visible = true;
+    this.post_visibility_observer = null;
+    this.floating_post_resize_handler = null;
+    this.visualViewport = null;
+    this.visualViewportHandler = null;
   }
 
   setChatManager(chatManager = null) {
@@ -76,6 +82,8 @@ class Main {
       this.chat_manager.render();
     }
 
+    this.syncFloatingPostMenu();
+
     return true;
   }
 
@@ -105,15 +113,59 @@ class Main {
 
     this.menu.render();
     this.manager.render();
-    this.profile.render();
-    this.new_post.render();
+    const profileKey = this.manager.isProfileMode()
+      ? this.manager.active_profile_key
+      : this.mod.publicKey;
+    this.profile.render('', profileKey);
+    this.create.render();
     this.sidebar.render();
 
     if (this.isCompactViewport()) {
       this.showMobileView(this.active_mobile_view);
     }
 
+    this.attachVisualViewportHandler();
     this.attachEvents();
+  }
+
+  attachVisualViewportHandler() {
+    const container = document.querySelector(this.container);
+
+    if (!container || !window.visualViewport) {
+      return;
+    }
+
+    this.removeVisualViewportHandler();
+    this.visualViewport = window.visualViewport;
+    this.visualViewportHandler = () => {
+      const headerBottom = Math.max(
+        0,
+        document.querySelector('#saito-header')?.getBoundingClientRect().bottom || 0
+      );
+      const viewportTop = this.visualViewport.offsetTop;
+      const containerTop = Math.max(viewportTop, headerBottom);
+      const visibleHeaderHeight = Math.max(0, headerBottom - viewportTop);
+
+      container.style.setProperty('--redsquare-page-viewport-top', `${containerTop}px`);
+      container.style.setProperty(
+        '--redsquare-page-viewport-height',
+        `${Math.max(0, this.visualViewport.height - visibleHeaderHeight)}px`
+      );
+    };
+
+    this.visualViewportHandler();
+    this.visualViewport.addEventListener('resize', this.visualViewportHandler);
+    this.visualViewport.addEventListener('scroll', this.visualViewportHandler);
+  }
+
+  removeVisualViewportHandler() {
+    if (this.visualViewport && this.visualViewportHandler) {
+      this.visualViewport.removeEventListener('resize', this.visualViewportHandler);
+      this.visualViewport.removeEventListener('scroll', this.visualViewportHandler);
+    }
+
+    this.visualViewport = null;
+    this.visualViewportHandler = null;
   }
 
   attachSidebarScrollSync() {
@@ -186,9 +238,8 @@ class Main {
 
   attachFeedWheelScroll() {
     const root = document.querySelector(this.container);
-    const scroller = root?.querySelector('.manager .body');
 
-    if (!root || !scroller || root.dataset.feedWheelScrollBound === '1') {
+    if (!root || root.dataset.feedWheelScrollBound === '1') {
       return;
     }
 
@@ -197,7 +248,10 @@ class Main {
     root.addEventListener(
       'wheel',
       (event) => {
+        const scroller = root.querySelector('.manager .body');
+
         if (
+          !scroller ||
           event.defaultPrevented ||
           event.ctrlKey ||
           event.deltaY === 0 ||
@@ -222,14 +276,92 @@ class Main {
     );
   }
 
+  positionFloatingPostMenu() {
+    const root = document.querySelector(this.container);
+    const manager = root?.querySelector('.manager');
+    const menu = document.querySelector('#saito-floating-menu');
+
+    if (!manager || !menu) {
+      return;
+    }
+
+    const bounds = manager.getBoundingClientRect();
+    const rightInset = Math.max(0, window.innerWidth - bounds.right);
+    const bottomInset = Math.max(0, window.innerHeight - bounds.bottom);
+
+    menu.style.setProperty('--redsquare-feed-right-inset', `${rightInset}px`);
+    menu.style.setProperty('--redsquare-feed-bottom-inset', `${bottomInset}px`);
+  }
+
+  syncFloatingPostMenu() {
+    const menu = document.querySelector('#saito-floating-menu');
+
+    if (!menu) {
+      return;
+    }
+
+    const feedActive = !this.isCompactViewport() || this.active_mobile_view === 'feed';
+    const show = feedActive && !this.post_control_visible;
+
+    menu.classList.toggle('redsquare-post-offscreen', show);
+
+    if (show) {
+      this.positionFloatingPostMenu();
+    } else {
+      menu.classList.remove('activated');
+    }
+  }
+
+  attachFloatingPostVisibility() {
+    const root = document.querySelector(this.container);
+    const postControl = root?.querySelector('.sidebar-right > .redsquare-create');
+    const menu = document.querySelector('#saito-floating-menu');
+
+    this.post_visibility_observer?.disconnect();
+
+    if (this.floating_post_resize_handler) {
+      window.removeEventListener('resize', this.floating_post_resize_handler);
+    }
+
+    if (!postControl || !menu || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    this.post_visibility_observer = new IntersectionObserver(([entry]) => {
+      this.post_control_visible = entry.isIntersecting;
+      this.syncFloatingPostMenu();
+    });
+    this.post_visibility_observer.observe(postControl);
+
+    this.floating_post_resize_handler = () => {
+      if (!this.post_control_visible) {
+        this.positionFloatingPostMenu();
+      }
+    };
+    window.addEventListener('resize', this.floating_post_resize_handler, { passive: true });
+  }
+
   attachEvents() {
     this.menu.attachEvents();
     this.manager.attachEvents();
     this.profile.attachEvents();
-    this.new_post.attachEvents();
+    this.create.attachEvents();
     this.sidebar.attachEvents();
     this.attachSidebarScrollSync();
     this.attachFeedWheelScroll();
+    this.attachFloatingPostVisibility();
+  }
+
+  showProfile(publicKey = '') {
+    this.profile.render('', publicKey || this.mod.publicKey);
+  }
+
+  showMobileProfile(publicKey = '') {
+    if (!document.querySelector(this.mobile_profile.container)) {
+      return;
+    }
+
+    this.mobile_profile.render('', publicKey || this.mod.publicKey);
   }
 }
 

@@ -35,11 +35,16 @@ class SaitoRecover {
   }
 
   attachEvents() {
-    if (document.getElementById('private-key-submit')) {
-      document.getElementById('private-key-submit').onclick = (e) => {
-        let privatekey = document.getElementById('private-key-input').value;
-        this.loadPrivateKey(privatekey);
-      };
+    // Form submit covers both the Enter button and RETURN in the input
+    if (document.getElementById('private-key-input')) {
+      let form = document.getElementById('key-entry-template');
+      if (form) {
+        form.onsubmit = (e) => {
+          e.preventDefault();
+          let privatekey = document.getElementById('private-key-input').value;
+          this.loadPrivateKey(privatekey);
+        };
+      }
     }
 
     if (document.getElementById('seed-phrase-submit')) {

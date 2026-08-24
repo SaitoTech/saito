@@ -2,7 +2,7 @@ module.exports = async (app, mod, build_number, server_publickey = '') => {
   let html = `
 
   <!DOCTYPE html>
-  <html lang="en" data-theme="dark">
+  <html lang="en">
   
   <head>
     <meta charset="utf-8" />
@@ -19,8 +19,7 @@ module.exports = async (app, mod, build_number, server_publickey = '') => {
     <link rel="stylesheet" type="text/css" href="/admin/style.css?v=${build_number}" />
     <link rel="stylesheet" type="text/css" href="/saito/lib/font-awesome-6/css/fontawesome.min.css" />
     <link rel="stylesheet" type="text/css" href="/saito/lib/font-awesome-6/css/all.css" />
-    <link rel="stylesheet" type="text/css" href='/saito/lib/jsonTree/jsonTree.css'/>
-    <title>Saito Dashboard</title>
+    <title>Saito Admin</title>
   
   </head>
   
@@ -34,6 +33,7 @@ module.exports = async (app, mod, build_number, server_publickey = '') => {
   <script type="text/javascript">
     var server_publickey = "${server_publickey}";
     var need_to_set_key = ${!app.options.admin?.length};
+    var default_module = "${app.options.defaultModule || ''}";
     var active_module = '${mod.returnSlug()}';
   </script>
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}"></script>

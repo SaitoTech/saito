@@ -24,9 +24,13 @@ function buildSendPanelOverlay({
       <div class="rs-publish-send-column rs-publish-send-form">
         ${formFieldsHtml}
         <p class="rs-publish-error ${errorExtraClass}" hidden></p>
-        <div class="rs-overlay-actions rs-overlay-actions-end">
+        ${
+          actionButtonHtml
+            ? `<div class="rs-overlay-actions rs-overlay-actions-end">
           ${actionButtonHtml}
-        </div>
+        </div>`
+            : ''
+        }
       </div>
     </div>
   `;

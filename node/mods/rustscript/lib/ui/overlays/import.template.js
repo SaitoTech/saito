@@ -1,4 +1,5 @@
 const { buildRustscriptOverlay } = require('./overlay.shell');
+const { dropzoneMarkup } = require('./import-dropzone');
 
 module.exports = {
   idleOverlay({ error = '' } = {}) {
@@ -11,16 +12,12 @@ module.exports = {
       title: 'Import Transaction',
       titleClass: 'rs-overlay-title-hero',
       bodyHtml: `
-        <div id="rs-import-drop-zone" class="rs-import-dropzone" tabindex="0" role="button" aria-label="Import transaction file">
-          <svg class="rs-import-dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          <p class="rs-import-dropzone-lead">drag and drop a transaction file here</p>
-          <p class="rs-import-dropzone-click">or click here</p>
-          <input type="file" class="rs-import-file-input" accept=".json,application/json,text/plain" hidden />
-        </div>
+        ${dropzoneMarkup({
+          id: 'rs-import-drop-zone',
+          ariaLabel: 'Import transaction file',
+          lead: 'drag and drop a transaction file here',
+          clickHint: 'or click here'
+        })}
 
         ${errorBlock}
 

@@ -126,6 +126,19 @@ input.rs-import-p2sh-input:focus {
 .rs-import-loading .rs-overlay-body {
   align-items: center;
   text-align: center;
+  width: 100%;
+}
+
+.rs-import-loading .rs-overlay-title,
+.rs-import-loading .rs-overlay-title-loading {
+  text-align: center;
+  width: 100%;
+  padding-right: 0;
+}
+
+.rs-import-loading .rs-import-loading-lead {
+  text-align: center;
+  width: 100%;
 }
 
 .rs-import-loading .rs-publish-spinner {

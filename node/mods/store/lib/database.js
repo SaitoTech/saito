@@ -132,8 +132,7 @@ class Database {
   // --- listings (authoritative: one row per listing transaction) ---
 
   async insertListingRow(row) {
-    await this.app.storage.runDatabase(
-      `INSERT INTO listings (
+    const sql = `INSERT INTO listings (
 			  signature, nft_id, seller, category, quantity, price,
 			  access_hash, access_script, p2sh_address, slip_id,
 			  block_id_listed, block_hash_listed, transaction_id_listed, longest_chain_listed,
@@ -149,35 +148,40 @@ class Database {
 			  $on_chain,
 			  $utxo_slip1, $utxo_slip2, $utxo_slip3,
 			  $created_at, $updated_at
-			)`,
-      {
-        $signature: row.signature,
-        $nft_id: row.nft_id,
-        $seller: row.seller || '',
-        $category: row.category || STORE_CATEGORIES.OTHER,
-        $quantity: Number(row.quantity ?? 1),
-        $price: Number(row.price ?? 0),
-        $access_hash: row.access_hash || '',
-        $access_script: row.access_script || '',
-        $p2sh_address: row.p2sh_address || '',
-        $slip_id: row.slip_id ?? 0,
-        $block_id_listed: row.block_id_listed ?? row.block_id ?? 0,
-        $block_hash_listed: row.block_hash_listed || row.block_hash || '',
-        $transaction_id_listed: row.transaction_id_listed ?? row.transaction_id ?? 0,
-        $longest_chain_listed: row.longest_chain_listed ?? row.longest_chain ?? 1,
-        $block_id_sold: row.block_id_sold ?? 0,
-        $block_hash_sold: row.block_hash_sold || '',
-        $transaction_id_sold: row.transaction_id_sold ?? 0,
-        $longest_chain_sold: row.longest_chain_sold ?? 0,
-        $on_chain: row.on_chain ?? 1,
-        $utxo_slip1: row.utxo_slip1 || '',
-        $utxo_slip2: row.utxo_slip2 || '',
-        $utxo_slip3: row.utxo_slip3 || '',
-        $created_at: row.created_at,
-        $updated_at: row.updated_at
-      },
-      this.dbname
-    );
+			)`;
+    const params = {
+      $signature: row.signature,
+      $nft_id: row.nft_id,
+      $seller: row.seller || '',
+      $category: row.category || STORE_CATEGORIES.OTHER,
+      $quantity: Number(row.quantity ?? 1),
+      $price: Number(row.price ?? 0),
+      $access_hash: row.access_hash || '',
+      $access_script: row.access_script || '',
+      $p2sh_address: row.p2sh_address || '',
+      $slip_id: row.slip_id ?? 0,
+      $block_id_listed: row.block_id_listed ?? row.block_id ?? 0,
+      $block_hash_listed: row.block_hash_listed || row.block_hash || '',
+      $transaction_id_listed: row.transaction_id_listed ?? row.transaction_id ?? 0,
+      $longest_chain_listed: row.longest_chain_listed ?? row.longest_chain ?? 1,
+      $block_id_sold: row.block_id_sold ?? 0,
+      $block_hash_sold: row.block_hash_sold || '',
+      $transaction_id_sold: row.transaction_id_sold ?? 0,
+      $longest_chain_sold: row.longest_chain_sold ?? 0,
+      $on_chain: row.on_chain ?? 1,
+      $utxo_slip1: row.utxo_slip1 || '',
+      $utxo_slip2: row.utxo_slip2 || '',
+      $utxo_slip3: row.utxo_slip3 || '',
+      $created_at: row.created_at,
+      $updated_at: row.updated_at
+    };
+
+    // Bypass runDatabase so insert failures surface (runDatabase swallows errors).
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      throw new Error('Store database unavailable');
+    }
+    await db.run(sql, params);
   }
 
   async returnListingBySignature(signature) {
@@ -413,6 +417,82 @@ class Database {
     }
   }
 
+  sellerListingWhere(status = 'active') {
+    if (status === 'sold') {
+      return `on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND block_id_sold > 0
+				   AND longest_chain_sold = 1`;
+    }
+    return `on_chain = 1
+				   AND longest_chain_listed = 1
+				   AND block_id_sold = 0
+				   AND longest_chain_sold = 0`;
+  }
+
+  async countListingsForSeller({ seller = '', status = 'active', category = '' } = {}) {
+    const key = String(seller || '').trim();
+    if (!key) {
+      return 0;
+    }
+    const filter = String(category || '').trim();
+    const params = { $seller: key };
+    let category_sql = '';
+    if (filter) {
+      category_sql = ' AND category = $category';
+      params.$category = filter;
+    }
+    try {
+      const res = await this.app.storage.queryDatabase(
+        `SELECT COUNT(*) AS total FROM listings
+				 WHERE seller = $seller
+				   AND ${this.sellerListingWhere(status)}${category_sql}`,
+        params,
+        this.dbname
+      );
+      return Number(res?.[0]?.total ?? 0) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  async returnListingsPageForSeller({
+    seller = '',
+    status = 'active',
+    category = '',
+    offset = 0,
+    page_size = 24
+  } = {}) {
+    const key = String(seller || '').trim();
+    if (!key) {
+      return [];
+    }
+    const filter = String(category || '').trim();
+    const params = {
+      $seller: key,
+      $limit: Math.max(1, Number(page_size) || 24),
+      $offset: Math.max(0, Number(offset) || 0)
+    };
+    let category_sql = '';
+    if (filter) {
+      category_sql = ' AND category = $category';
+      params.$category = filter;
+    }
+    try {
+      return await this.app.storage.queryDatabase(
+        `SELECT * FROM listings
+				 WHERE seller = $seller
+				   AND ${this.sellerListingWhere(status)}${category_sql}
+				 ORDER BY created_at DESC, signature ASC
+				 LIMIT $limit OFFSET $offset`,
+        params,
+        this.dbname
+      );
+    } catch (err) {
+      return [];
+    }
+  }
+
   async returnSoldListingsForSeller(seller = '') {
     const key = String(seller || '').trim();
     if (!key) {
@@ -457,8 +537,6 @@ class Database {
   // --- summary (derived market aggregate) ---
 
   async insertSummary(summary) {
-    // TEMPORARY DIAGNOSTIC — remove after listing/summary null root cause is identified.
-    // Bypasses runDatabase so SQLite errors are visible (runDatabase swallows them).
     const sql = `INSERT INTO summary (
 			  nft_id, price, category, title, description, image,
 			  quantity_available, updated_at
@@ -477,26 +555,12 @@ class Database {
       $updated_at: summary.updated_at ?? Date.now()
     };
 
-    try {
-      const db = await this.app.storage.returnDatabaseByName(this.dbname);
-      const result = await db.run(sql, params);
-      console.error('Store DEBUG insertSummary OK', {
-        nft_id: params.$nft_id,
-        price: params.$price,
-        changes: result?.changes,
-        lastID: result?.lastID
-      });
-    } catch (err) {
-      console.error('Store DEBUG insertSummary FAILED', {
-        SQL: sql,
-        params,
-        error: err?.message || err
-      });
-      console.error(err);
+    // Bypass runDatabase so insert failures surface (runDatabase swallows errors).
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      throw new Error('Store database unavailable');
     }
-
-    const after = await this.returnSummaryByBucket(summary.nft_id, summary.price);
-    console.error('Store DEBUG insertSummary re-read returnSummaryByBucket', after);
+    await db.run(sql, params);
   }
 
   async returnSummary(summary_id) {
@@ -527,6 +591,51 @@ class Database {
 
   async clearSummaries() {
     await this.app.storage.runDatabase(`DELETE FROM summary`, {}, this.dbname);
+  }
+
+  /**
+   * Atomically replace the entire summary table (DELETE + INSERTs).
+   * Uses the shared SQLite connection's BEGIN/COMMIT so readers on this
+   * connection never observe a half-rebuilt table if the rebuild fails.
+   */
+  async replaceAllSummaries(rows = []) {
+    const db = await this.app.storage.returnDatabaseByName(this.dbname);
+    if (!db) {
+      throw new Error('Store database unavailable');
+    }
+
+    const insert_sql = `INSERT INTO summary (
+			  nft_id, price, category, title, description, image,
+			  quantity_available, updated_at
+			) VALUES (
+			  $nft_id, $price, $category, $title, $description, $image,
+			  $quantity_available, $updated_at
+			)`;
+
+    await db.exec('BEGIN IMMEDIATE');
+    try {
+      await db.run(`DELETE FROM summary`);
+      for (const summary of rows || []) {
+        await db.run(insert_sql, {
+          $nft_id: summary.nft_id,
+          $price: Number(summary.price ?? 0),
+          $category: summary.category || STORE_CATEGORIES.OTHER,
+          $title: summary.title || '',
+          $description: summary.description || '',
+          $image: summary.image ?? null,
+          $quantity_available: Number(summary.quantity_available ?? 0),
+          $updated_at: summary.updated_at ?? Date.now()
+        });
+      }
+      await db.exec('COMMIT');
+    } catch (err) {
+      try {
+        await db.exec('ROLLBACK');
+      } catch (_) {
+        // ignore rollback failure; original error is what matters
+      }
+      throw err;
+    }
   }
 
   async deleteSummaryByBucket(nft_id, price) {

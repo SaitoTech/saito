@@ -1649,7 +1649,7 @@ class Pandemic extends GameTemplate {
         salert('GAME OVER: ' + mv[1]);
         this.updateStatus('Players lose to the virus!');
         this.updateLog('The game is over');
-        this.sendGameOverTransaction([], mv[1]);
+        this.triggerGameOver([], mv[1]);
         return 0;
       }
 
@@ -1660,7 +1660,7 @@ class Pandemic extends GameTemplate {
         );
         this.updateStatus('Players win the game!');
         salert('Players Win! Humanity survives');
-        this.sendGameOverTransaction(this.game.players, 'All vaccines discovered!');
+        this.triggerGameOver(this.game.players, 'All vaccines discovered!');
         return 0;
       }
       if (mv[0] === 'forecast') {
@@ -2791,7 +2791,7 @@ class Pandemic extends GameTemplate {
 
     this.game.over = 2;
     this.saveGame(this.game.id);
-    this.sendGameOverTransaction([], 'cancellation');
+    this.triggerGameOver([], 'cancellation');
   }
 }
 

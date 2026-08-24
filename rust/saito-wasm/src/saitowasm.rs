@@ -618,7 +618,6 @@ pub async fn process_fetched_block(
     peer_id: u64,
 ) -> Result<(), JsValue> {
     let block_buffer = buffer.to_vec();
-    let buffer_len = block_buffer.len();
     let hash_vec = hash.to_vec();
     let hash_len = hash_vec.len();
     let block_hash: [u8; 32] = hash_vec.try_into().map_err(|_| {
@@ -627,37 +626,6 @@ pub async fn process_fetched_block(
             hash_len
         ))
     })?;
-    let prefix_len = std::cmp::min(32, buffer_len);
-    let prefix_hex = block_buffer[..prefix_len]
-        .iter()
-        .map(|b| format!("{:02x}", b))
-        .collect::<String>();
-    if buffer_len >= 20 {
-        let tx_count = u32::from_be_bytes(block_buffer[0..4].try_into().unwrap_or([0; 4]));
-        let parsed_block_id = u64::from_be_bytes(block_buffer[4..12].try_into().unwrap_or([0; 8]));
-        let parsed_timestamp =
-            u64::from_be_bytes(block_buffer[12..20].try_into().unwrap_or([0; 8]));
-        info!(
-            "[TRACE_SYNC][SERDE] wasm_process_fetched_block peer_id={} expected_block_id={} expected_block_hash={} bytes={} prefix32={} parsed_header_txs={} parsed_header_block_id={} parsed_header_ts={}",
-            peer_id,
-            block_id,
-            block_hash.to_hex(),
-            buffer_len,
-            prefix_hex,
-            tx_count,
-            parsed_block_id,
-            parsed_timestamp
-        );
-    } else {
-        info!(
-            "[TRACE_SYNC][SERDE] wasm_process_fetched_block peer_id={} expected_block_id={} expected_block_hash={} bytes={} prefix32={} parsed_header=too_short",
-            peer_id,
-            block_id,
-            block_hash.to_hex(),
-            buffer_len,
-            prefix_hex
-        );
-    }
     let mut saito = SAITO.lock().await;
     let saito = saito
         .as_mut()
@@ -853,7 +821,7 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
 }
 
 #[wasm_bindgen]
-pub async fn evaluate_script(json: JsString) -> u8 {
+pub async fn evaluate_script(json: JsString, context_json: Option<JsString>) -> u8 {
     let json_str = match json.as_string() {
         Some(s) => s,
         None => return 0,
@@ -862,6 +830,14 @@ pub async fn evaluate_script(json: JsString) -> u8 {
     if serde_json::from_str::<serde_json::Value>(&json_str).is_err() {
         return 0;
     }
+
+    let supplied_context = match context_json.and_then(|v| v.as_string()) {
+        Some(s) => match serde_json::from_str::<serde_json::Value>(&s) {
+            Ok(v) => Some(v),
+            Err(_) => return 0,
+        },
+        None => None,
+    };
 
     let saito = SAITO.lock().await;
     let blockchain = saito
@@ -874,11 +850,22 @@ pub async fn evaluate_script(json: JsString) -> u8 {
 
     let mut script = Script::new();
     script.parse(&json_str);
-    script.validate(None, None, Some(&blockchain), None)
+
+    script.validate_with_context(
+        None,
+        None,
+        Some(&blockchain),
+        None,
+        supplied_context.as_ref(),
+    )
 }
 
 #[wasm_bindgen]
-pub async fn evaluate_script_with_transaction(json: JsString, tx: &WasmTransaction) -> u8 {
+pub async fn evaluate_script_with_transaction(
+    json: JsString,
+    tx: &WasmTransaction,
+    context_json: Option<JsString>,
+) -> u8 {
     let json_str = match json.as_string() {
         Some(s) => s,
         None => return 0,
@@ -887,6 +874,14 @@ pub async fn evaluate_script_with_transaction(json: JsString, tx: &WasmTransacti
     if serde_json::from_str::<serde_json::Value>(&json_str).is_err() {
         return 0;
     }
+
+    let supplied_context = match context_json.and_then(|v| v.as_string()) {
+        Some(s) => match serde_json::from_str::<serde_json::Value>(&s) {
+            Ok(v) => Some(v),
+            Err(_) => return 0,
+        },
+        None => None,
+    };
 
     let saito = SAITO.lock().await;
     let blockchain = saito
@@ -901,7 +896,14 @@ pub async fn evaluate_script_with_transaction(json: JsString, tx: &WasmTransacti
 
     let mut script = Script::new();
     script.parse(&json_str);
-    script.validate(tx_ref, None, Some(&blockchain), None)
+
+    script.validate_with_context(
+        tx_ref,
+        None,
+        Some(&blockchain),
+        None,
+        supplied_context.as_ref(),
+    )
 }
 
 #[wasm_bindgen]

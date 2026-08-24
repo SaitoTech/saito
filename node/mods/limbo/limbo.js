@@ -39,13 +39,13 @@ class Limbo extends ModTemplate {
     this.stun = null;
     this.rendered = false;
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: `🟥 ${this.returnName()}`,
-      url: `https://saito.io/${this.returnSlug()}/`,
+      url: `/${this.returnSlug()}/`,
       description: 'Voice and video "swarmcasting" with no middleman',
       image: 'https://saito.tech/wp-content/uploads/2023/11/videocall-300x300.png'
-    };
+    });
 
     /*
 		Indexed by public key of dreamer

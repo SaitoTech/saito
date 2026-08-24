@@ -1,0 +1,200 @@
+.game.texas .texas-pot {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 0 0 auto;
+  order: 0;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  min-height: 4.4rem;
+  margin-bottom: 2px;
+  padding: 0.5rem 1.4rem 0.5rem 8rem;
+  overflow: visible;
+  border-radius: 1.4rem;
+  background: color-mix(in srgb, var(--saito-white) 88%, transparent);
+  color: var(--saito-background);
+  cursor: pointer;
+  transition: background var(--texas-your-move-duration, 0.35s) ease;
+}
+
+.game.texas .pot-chip {
+  position: absolute;
+  left: 0.4rem;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6.4rem;
+  height: 6.4rem;
+  transform: translateY(-50%);
+  background: url(/texas/img/simple-chip.svg) center / contain no-repeat;
+  font-family: var(--saito-font-medium);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: var(--saito-white);
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.game.texas .pot-label {
+  display: none;
+}
+
+.game.texas .texas-pot .line2,
+.game.texas .pot-value {
+  font-family: var(--saito-font-medium);
+  font-size: 2.4rem;
+  font-weight: inherit;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.game.texas .texas-pot .line3,
+.game.texas .pot-units {
+  display: none;
+}
+
+.game.texas .texas-pot .chip-crypto-balance-num,
+.game.texas .texas-pot .chip-crypto-balance-unit {
+  font-size: inherit;
+  color: inherit;
+}
+
+.game.texas .texas-pot.invisible {
+  visibility: hidden;
+}
+
+/* Pot contributions overlay */
+.pot-details-overlay.saito-overlay-form {
+  box-sizing: border-box;
+  width: min(56rem, 94vw);
+  max-width: min(56rem, 94vw);
+  min-width: min(32rem, 94vw);
+  padding: var(--saito-space-xl);
+  gap: 2rem;
+  align-items: stretch;
+  border: 1px solid color-mix(in srgb, var(--saito-white) 28%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--saito-black) 45%, transparent),
+    0 1.4rem 3.2rem color-mix(in srgb, var(--saito-black) 50%, transparent);
+}
+
+.pot-details-overlay .saito-overlay-form-header-title {
+  font-size: 2.2rem;
+}
+
+.pot-details-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0;
+}
+
+.pot-details-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(10rem, 0.8fr);
+  column-gap: 2rem;
+  align-items: center;
+  width: 100%;
+  padding: 1.4rem 0.2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--saito-white) 14%, transparent);
+}
+
+.pot-details-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0.2rem;
+}
+
+.pot-details-player {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pot-details-name {
+  font-family: var(--saito-font-medium);
+  font-size: 2.1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--saito-white);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pot-details-role {
+  font-size: 1.55rem;
+  line-height: 1.25;
+  color: color-mix(in srgb, var(--saito-white) 62%, transparent);
+}
+
+.pot-details-role--empty {
+  min-height: 1.55rem;
+}
+
+.pot-details-amount {
+  justify-self: end;
+  text-align: right;
+  font-size: 2.2rem;
+  color: #efe2c0;
+  min-width: 0;
+}
+
+.pot-details-amount .chip-crypto-balance {
+  justify-items: end;
+}
+
+.pot-details-overlay .chip-crypto-balance-face {
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px), (max-height: 500px) {
+  .game.texas .texas-pot {
+    flex: 1 1 100%;
+    min-height: 3.6rem;
+    padding: 0.4rem 1rem 0.4rem 6.6rem;
+  }
+
+  .game.texas .pot-chip {
+    width: 5.2rem;
+    height: 5.2rem;
+    font-size: 1.2rem;
+  }
+
+  .game.texas .texas-pot .line2,
+  .game.texas .pot-value {
+    font-size: 1.9rem;
+  }
+
+  .pot-details-overlay.saito-overlay-form {
+    width: min(96vw, 56rem);
+    max-width: 96vw;
+    min-width: 0;
+    padding: var(--saito-space-lg);
+  }
+
+  .pot-details-row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(8rem, 0.8fr);
+    column-gap: 1.2rem;
+    padding: 1.15rem 0.1rem;
+  }
+
+  .pot-details-name {
+    font-size: 1.8rem;
+  }
+
+  .pot-details-amount {
+    font-size: 1.85rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .game.texas .texas-pot {
+    flex: 0 0 auto;
+  }
+}

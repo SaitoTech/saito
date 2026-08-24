@@ -16,7 +16,7 @@ class PublishSettingsOverlay {
       imageUrl: null,
       customCSS: ''
     };
-    // Wizard navigation + future check hooks (null = not yet resolved)
+    // Wizard navigation + distribution options (survive access switches via preserveStep)
     this.wizardState = {
       step: 1,
       hasSaito: null,
@@ -26,9 +26,41 @@ class PublishSettingsOverlay {
       pendingNftId: null,
       pendingNftSignature: null,
       // Same-session mint tx — wallet NFT records keep slips/tx_sig only.
-      pendingNftTx: null
+      pendingNftTx: null,
+      // Distribution options (default checked).
+      linkToProfile: true,
+      tweetOnPublish: true
     };
     this._isSliding = false;
+    // Stack post signatures already cross-posted to RedSquare this session.
+    this._redSquareCrossPostedSigs = new Set();
+  }
+
+  /**
+   * Read persisted distribution choices from the editor session (if any).
+   */
+  readPersistedDistribution() {
+    const saved = this.mod.create_post_ui?.publishDistribution;
+    if (!saved || typeof saved !== 'object') {
+      return { linkToProfile: true, tweetOnPublish: true };
+    }
+    return {
+      linkToProfile: saved.linkToProfile !== false,
+      tweetOnPublish: saved.tweetOnPublish !== false
+    };
+  }
+
+  /**
+   * Persist distribution choices on the editor so overlay re-opens keep them.
+   */
+  persistDistribution() {
+    if (!this.mod.create_post_ui) {
+      return;
+    }
+    this.mod.create_post_ui.publishDistribution = {
+      linkToProfile: this.wizardState.linkToProfile !== false,
+      tweetOnPublish: this.wizardState.tweetOnPublish !== false
+    };
   }
 
   render(postData = {}, options = {}) {
@@ -40,6 +72,7 @@ class PublishSettingsOverlay {
     };
 
     if (!preserveStep) {
+      const distribution = this.readPersistedDistribution();
       this.wizardState = {
         step: 1,
         hasSaito: null,
@@ -48,8 +81,11 @@ class PublishSettingsOverlay {
         createNftStatus: null,
         pendingNftId: null,
         pendingNftSignature: null,
-        pendingNftTx: null
+        pendingNftTx: null,
+        linkToProfile: distribution.linkToProfile,
+        tweetOnPublish: distribution.tweetOnPublish
       };
+      this.persistDistribution();
     }
 
     if (this.postState.accessLevel === 'private' || this.postState.accessLevel === 'subscription') {
@@ -81,7 +117,7 @@ class PublishSettingsOverlay {
     this._isSliding = true;
 
     const panel = document.querySelector('#stack-publish-step-panel');
-    const actionBar = document.querySelector('.stack-publish-global-action');
+    const actionBar = document.querySelector('.publish .actions');
     if (!panel) {
       this._isSliding = false;
       this.render(this.postState, { preserveStep: true });
@@ -89,11 +125,11 @@ class PublishSettingsOverlay {
     }
 
     const exitClass =
-      direction === 'forward' ? 'stack-publish-slide-exit-left' : 'stack-publish-slide-exit-right';
+      direction === 'forward' ? 'slide-exit-left' : 'slide-exit-right';
     const enterClass =
       direction === 'forward'
-        ? 'stack-publish-slide-enter-right'
-        : 'stack-publish-slide-enter-left';
+        ? 'slide-enter-right'
+        : 'slide-enter-left';
 
     panel.classList.add(exitClass);
     await this._wait(180);
@@ -103,7 +139,7 @@ class PublishSettingsOverlay {
     temp.innerHTML = html.trim();
 
     const newPanel = temp.querySelector('#stack-publish-step-panel');
-    const newActionBar = temp.querySelector('.stack-publish-global-action');
+    const newActionBar = temp.querySelector('.publish .actions');
 
     if (newPanel) {
       newPanel.classList.add(enterClass);
@@ -140,8 +176,8 @@ class PublishSettingsOverlay {
 			};
 		}
 
-		const accessCards = document.querySelectorAll('.stack-publish-access-card');
-		const accessCheckboxes = document.querySelectorAll('.stack-publish-access-checkbox');
+		const accessCards = document.querySelectorAll('.publish .access-card');
+		const accessCheckboxes = document.querySelectorAll('.publish .access-checkbox');
 
 		accessCards.forEach((card) => {
 			card.onclick = (e) => {
@@ -149,45 +185,77 @@ class PublishSettingsOverlay {
 					return;
 				}
 
-				const checkbox = card.querySelector('.stack-publish-access-checkbox');
+				const checkbox = card.querySelector('.access-checkbox');
 				const accessValue = card.getAttribute('data-access');
 
 				accessCheckboxes.forEach((cb) => {
 					if (cb !== checkbox) {
 						cb.checked = false;
-						cb.closest('.stack-publish-access-card')?.classList.remove(
-							'stack-publish-access-card-active'
+						cb.closest('.access-card')?.classList.remove(
+							'active'
 						);
 					}
 				});
 
 				checkbox.checked = true;
-				card.classList.add('stack-publish-access-card-active');
+				card.classList.add('active');
 				this.setAccessLevel(accessValue);
 			};
 		});
 
 		accessCheckboxes.forEach((checkbox) => {
 			checkbox.onchange = () => {
-				const card = checkbox.closest('.stack-publish-access-card');
+				const card = checkbox.closest('.access-card');
 				const accessValue = card?.getAttribute('data-access');
 
 				if (checkbox.checked) {
 					accessCheckboxes.forEach((cb) => {
 						if (cb !== checkbox) {
 							cb.checked = false;
-							cb.closest('.stack-publish-access-card')?.classList.remove(
-								'stack-publish-access-card-active'
+							cb.closest('.access-card')?.classList.remove(
+								'active'
 							);
 						}
 					});
-					card?.classList.add('stack-publish-access-card-active');
+					card?.classList.add('active');
 					this.setAccessLevel(accessValue);
 				} else {
 					checkbox.checked = true;
 				}
 			};
 		});
+
+		const profileToggle = document.querySelector(
+			'.publish [data-action="toggle-profile-link"]'
+		);
+		if (profileToggle) {
+			profileToggle.onchange = async () => {
+				this.wizardState.linkToProfile = profileToggle.checked;
+				this.persistDistribution();
+				// Uncheck removes the Profile stack link immediately.
+				// Check only records intent — Profile is updated on Publish.
+				if (!profileToggle.checked) {
+					try {
+						await this.mod.updateProfile?.('');
+					} catch (err) {
+						console.warn('Stack: profile link clear failed', err?.message || err);
+						profileToggle.checked = true;
+						this.wizardState.linkToProfile = true;
+						this.persistDistribution();
+					}
+				}
+			};
+		}
+
+		const tweetToggle = document.querySelector(
+			'.publish [data-action="toggle-tweet-on-publish"]'
+		);
+		if (tweetToggle) {
+			tweetToggle.onchange = () => {
+				this.wizardState.tweetOnPublish = tweetToggle.checked;
+				this.persistDistribution();
+			};
+		}
 
 		const deleteDraftBtn = document.querySelector('#stack-publish-delete-draft-btn');
 		if (deleteDraftBtn) {
@@ -662,9 +730,12 @@ class PublishSettingsOverlay {
 			return;
 		}
 
-    const title = document.querySelector('#stack-post-title-input')
-      ? document.querySelector('#stack-post-title-input').value || ''
-      : '';
+    const title =
+      this.mod.create_post_ui && typeof this.mod.create_post_ui.getDocumentTitle === 'function'
+        ? this.mod.create_post_ui.getDocumentTitle()
+        : document.querySelector('#stack-post-title-input')
+          ? document.querySelector('#stack-post-title-input').value || ''
+          : '';
     let content = '';
 
     if (this.mod.create_post_ui) {
@@ -888,6 +959,24 @@ class PublishSettingsOverlay {
 				this.mod.create_post_ui.isPublished = true;
 			}
 
+			// Checked: ensure Profile has the Stack URL (no-op if already set).
+			// Same distribution option for every access level.
+			if (this.wizardState.linkToProfile !== false) {
+				try {
+					const url = this.mod.returnStackUrl?.(this.mod.publicKey) || '';
+					if (url && this.mod.returnProfileStackUrl?.() !== url) {
+						await this.mod.updateProfile?.(url);
+					}
+				} catch (err) {
+					console.warn('Stack: profile stack link publish skipped', err?.message || err);
+				}
+			}
+
+			// Optional RedSquare cross-post after the Stack article has a signature.
+			if (this.wizardState.tweetOnPublish !== false) {
+				await this.crossPostToRedSquare(publishedTx, title);
+			}
+
 			this.overlay.hide();
 
 			if (
@@ -928,6 +1017,73 @@ class PublishSettingsOverlay {
 				siteMessage('Unable to publish post', 3000);
 			}
 			siteMessage('Failed to publish post. Please try again.');
+		}
+	}
+
+	/**
+	 * Create a normal RedSquare post linking to the published Stack article.
+	 * Idempotent per Stack post signature for this overlay session.
+	 * Only runs after Stack publish returned a signed transaction.
+	 */
+	async crossPostToRedSquare(publishedTx, title = '') {
+		if (!publishedTx || !publishedTx.signature) {
+			return;
+		}
+
+		const stackSig = String(publishedTx.signature);
+		if (this._redSquareCrossPostedSigs.has(stackSig)) {
+			return;
+		}
+
+		// Updates to an existing article should not spawn another tweet.
+		const parentId = publishedTx.returnMessage?.()?.data?.parent_id || null;
+		if (parentId) {
+			return;
+		}
+
+		const redsquare =
+			this.app.modules.returnModule?.('RedSquare') ||
+			this.app.modules.returnModuleByName?.('RedSquare');
+		if (!redsquare || typeof redsquare.createTweetTransaction !== 'function') {
+			return;
+		}
+
+		const authorPublicKey = this.mod.publicKey;
+		if (!authorPublicKey) {
+			return;
+		}
+
+		const path = `/${this.mod.slug}/${authorPublicKey}/${stackSig}`;
+		const absoluteUrl =
+			typeof window !== 'undefined' && window.location?.origin
+				? `${window.location.origin}${path}`
+				: path;
+
+		const articleTitle = String(title || '').trim() || 'Untitled';
+		const data = {
+			text: `${articleTitle}\n${absoluteUrl}`
+		};
+
+		// Mark before await so retries / double-confirm cannot duplicate.
+		this._redSquareCrossPostedSigs.add(stackSig);
+
+		try {
+			const tweetTx = await redsquare.createTweetTransaction(data, []);
+			await tweetTx.sign();
+			await this.app.network.propagateTransaction(tweetTx);
+
+			if (redsquare.browser_active && typeof redsquare.receiveTweetTransaction === 'function') {
+				try {
+					const tweet = await redsquare.receiveTweetTransaction(tweetTx);
+					redsquare.manager?.onTweetPosted?.(tweet);
+				} catch (err) {
+					console.warn('Stack: RedSquare local receive skipped', err?.message || err);
+				}
+			}
+		} catch (err) {
+			// Allow a later retry if propagation failed.
+			this._redSquareCrossPostedSigs.delete(stackSig);
+			console.warn('Stack: RedSquare cross-post failed', err?.message || err);
 		}
 	}
 

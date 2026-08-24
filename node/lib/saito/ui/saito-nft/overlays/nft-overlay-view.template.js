@@ -1,5 +1,6 @@
 module.exports = (app, mod, nft_overlay) => {
   let nft = nft_overlay.nft;
+  const capabilities = nft_overlay.capabilities;
 
   let text = '';
   if (nft.text) {
@@ -15,23 +16,31 @@ module.exports = (app, mod, nft_overlay) => {
     text = nft.json;
   }
 
-  let imageHtml = '';
-  if (text == '') {
-    imageHtml = `<div class="saito-nft-image" style="background-image:url('${nft?.image || '/saito/img/dreamscape.png'}')" ></div>`;
-  } else {
-    imageHtml = `<div class="saito-nft-image" style="background-image:url('${nft?.image || '/saito/img/dreamscape.png'}')" ><div class="saito-nft-text">${text}</div></div>`;
-  }
+  const esc = (value) => app.browser.escapeHTML(String(value ?? ''));
+  const rawImageUrl = nft?.image || '/saito/img/dreamscape.png';
+  const imageUrl = app.browser.isSafeMediaUrl(rawImageUrl)
+    ? rawImageUrl
+    : '/saito/img/dreamscape.png';
+  const textHtml = text ? `<div class="saito-nft-text">${esc(text)}</div>` : '';
+  const capsHtml = capabilities ? capabilities.renderHtml() : '';
+  const metaHtml = capabilities ? capabilities.footerMetaHtml(nft) : '';
 
   return `
     <div class="saito-nft-panel saito-nft-panel-view active">
       <div class="saito-nft-panel-body saito-nft-panel-body-view">
-        ${imageHtml}
+        <div class="saito-nft-image" style="background-image:url('${esc(imageUrl)}')">
+          ${textHtml}
+          ${nft.expires_at != null && nft.expires_at !== '' ? `<div class="saito-nft-expires-clock">${nft.remainingExpiresLabel()}</div>` : ''}
+          <div class="saito-nft-capability-chrome">
+            <div class="saito-nft-capabilities" role="toolbar" aria-label="NFT capabilities">
+              ${capsHtml}
+            </div>
+            <div class="saito-nft-capability-desc is-empty" aria-live="polite"></div>
+          </div>
+        </div>
       </div>
-      <footer class="saito-nft-panel-footer">
-        <button class="saito-nft-footer-btn enable-nft" style="display:none;">Enable</button>
-        <button class="saito-nft-footer-btn disable-nft" style="display:none;">Disable</button>
-        <button class="saito-nft-footer-btn sell-nft" style="display:none;">List on Store</button>
-        <button class="saito-nft-footer-btn send-nft">Transfer</button>
+      <footer class="saito-nft-panel-footer saito-nft-panel-footer-view">
+        <div class="saito-nft-footer-meta">${metaHtml}</div>
       </footer>
     </div>
   `;

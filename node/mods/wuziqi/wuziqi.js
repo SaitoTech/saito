@@ -341,7 +341,7 @@ class Wuziqi extends GameTemplate {
         // Remove this item from the queue.
         this.game.queue = [];
         this.stopClock();
-        await this.sendGameOverTransaction(
+        await this.triggerGameOver(
           this.game.players[parseInt(mv[1]) - 1],
           `best of ${this.game.options.best_of}`
         );

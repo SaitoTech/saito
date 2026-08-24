@@ -1,7 +1,12 @@
 const PanelMenu = require('./panel_menu');
 
-module.exports = (role) => {
-  const title = role === 'test' ? 'Test Script' : 'Create Script';
+module.exports = (role, { workflow = 'create' } = {}) => {
+  const title =
+    role === 'test'
+      ? workflow === 'unlock'
+        ? 'Unlock Transaction'
+        : 'Test Script'
+      : 'Create Script';
   const menuId = role === 'test' ? 'script-test' : 'script-create';
   return `
 <header class="rs-panel-header">

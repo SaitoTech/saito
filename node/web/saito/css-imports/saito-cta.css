@@ -83,6 +83,10 @@ body:has(.saito-cta) .pace {
     justify-content: safe center;
   }
 
+  .saito-overlay > .saito-cta {
+    z-index: auto;
+  }
+
   .saito-cta .saito-button-row {
     flex-direction: column;
     flex-wrap: nowrap;

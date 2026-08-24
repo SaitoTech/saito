@@ -1,26 +1,25 @@
 /**
  * In-game crypto receive overlay — structural markup only.
  *
+ * Shared overlay for:
+ *   pending  → "Awaiting Transfer"
+ *   success  → "Payment Received"  (title + state set from receive.js)
+ *
  * `data-receive-state` and `data-receive-mode` are set from receive.js after mount.
  */
 module.exports = function cryptoReceiveOverlayTemplate(details) {
-  let ca = false;
-  if (details.address && details.address !== details.publicKey) {
-    ca = details.address.includes('|') ? details.address.split('|')[0] : details.address;
-  }
+  const partyKey = details.partyKey
+    ? `<div class="game-crypto-party-key">${details.partyKey}</div>`
+    : '';
 
   return `
   <div
-    class="saito-crypto-transfer crypto-receive-overlay"
+    class="saito-crypto-transfer game-crypto-transfer-card crypto-receive-overlay"
     id="receive-crypto-request-root"
     data-receive-state="pending"
     data-receive-mode="interactive"
   >
-    <header class="crypto-receive-overlay__header">
-      <h2 class="auth-title crypto-receive-overlay__title" id="crypto_receive_title">Receiving Payment</h2>
-    </header>
-
-    <div class="crypto-receive-overlay__body">
+    <div class="crypto-receive-overlay__body game-crypto-transfer-card__body">
       <div class="crypto-receive-overlay__status" aria-live="polite">
         <div class="saito-spinner spinner crypto-receive-overlay__spinner" id="crypto_receive_spinner"></div>
         <i
@@ -30,46 +29,49 @@ module.exports = function cryptoReceiveOverlayTemplate(details) {
         ></i>
       </div>
 
-      <section class="crypto-receive-overlay__summary" aria-label="Amount">
-        <div class="amount crypto-receive-overlay__amount" id="crypto_receive_amount">${details.amount} ${details.ticker}</div>
+      <header class="crypto-receive-overlay__header game-crypto-transfer-card__header">
+        <h2 class="crypto-receive-overlay__title game-crypto-transfer-card__title" id="crypto_receive_title">Awaiting Transfer</h2>
+      </header>
+
+      <div class="crypto-receive-overlay__amount game-crypto-transfer-card__amount" id="crypto_receive_amount">${details.amount} ${details.ticker}</div>
+
+      <section class="crypto-receive-overlay__party game-crypto-transfer-card__party" aria-labelledby="crypto_receive_sender_label">
+        <div class="crypto-receive-overlay__party-label game-crypto-transfer-card__party-label" id="crypto_receive_sender_label">
+          <span>FROM</span>
+        </div>
+        <div class="game-crypto-party">
+          <div class="game-crypto-party-name">${details.partyName || ''}</div>
+          ${partyKey}
+        </div>
       </section>
 
-      <section class="crypto-receive-overlay__sender" aria-labelledby="crypto_receive_sender_label">
-        <div class="crypto-receive-overlay__summary-label" id="crypto_receive_sender_label">From</div>
-        <div class="counterparty-details"></div>
-        ${
-          ca
-            ? `
-          <div class="crypto-receive-overlay__chain-address" id="crypto_receive_address">${ca.length > 16 ? `${ca.slice(0, 8)}…${ca.slice(-8)}` : ca}</div>
-        `
-            : ''
-        }
-      </section>
+      <div class="crypto-receive-overlay__prefs game-crypto-transfer-card__prefs">
+        <label class="crypto-receive-overlay__checkbox-label game-crypto-transfer-card__checkbox-label">
+          <input
+            type="checkbox"
+            id="crypto_receive_auto_accept"
+            class="saito-checkbox"
+            ${details.trustedInbound ? 'checked' : ''}
+          />
+          <span>auto-accept in-game transfers</span>
+        </label>
+      </div>
     </div>
 
-    <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--trusted">
+    <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--trusted game-crypto-transfer-card__footer">
       <div class="crypto-transfer-countdown crypto-receive-overlay__countdown" aria-live="polite">
         Closing in <span id="crypto_receive_countdown">3</span>s
       </div>
     </footer>
 
-    <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--interactive">
+    <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--interactive game-crypto-transfer-card__footer">
       <button
         type="button"
-        class="saito-button-primary crypto-transfer-btn crypto-receive-overlay__close-btn"
-        id="crypto_receive_close"
+        class="saito-button-primary crypto-receive-overlay__close-btn game-crypto-transfer-card__action"
+        id="crypto_receive_continue"
       >
-        Close
+        Continue
       </button>
-      <label class="crypto-receive-overlay__ignore">
-        <input
-          type="checkbox"
-          checked
-          id="crypto_receive_ignore"
-          class="saito-checkbox ignore-checkbox crypto-receive-overlay__ignore-checkbox"
-        />
-        <span class="crypto-receive-overlay__ignore-label">Don't wait for confirmation</span>
-      </label>
     </footer>
   </div>`;
 };

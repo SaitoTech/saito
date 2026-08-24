@@ -28,9 +28,10 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: var(--saito-space-sm);
+  gap: 0.35rem;
   min-height: 0;
-  padding: 0.55rem var(--saito-space-sm) 0.55rem var(--saito-space-md);
+  height: auto;
+  padding: 0.28rem 0.45rem 0.28rem 0.7rem;
 }
 
 .rustscript-editor-locking .rs-panel-header {
@@ -48,10 +49,12 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  font-size: 1.05em;
+  margin: 0;
+  padding: 0;
+  font-size: 0.95em;
   font-weight: 500;
   letter-spacing: 0.06em;
-  line-height: 1.25;
+  line-height: 1.2;
   text-transform: uppercase;
 }
 
@@ -66,6 +69,9 @@
 .rustscript-editor .rs-panel-menu {
   margin-left: auto;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  line-height: 1;
 }
 
 .rustscript-editor-guided,

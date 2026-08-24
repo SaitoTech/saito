@@ -1,0 +1,250 @@
+/* Namespace: .invite / .arcade-invite — compact invite over bright game artwork */
+
+.invite,
+.arcade-invite {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 9rem;
+  margin: 0;
+  padding: 0.75rem;
+  overflow: hidden;
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
+  background-color: transparent;
+  background-blend-mode: normal;
+  border-radius: var(--saito-radius);
+  border: 1px solid var(--saito-border);
+  color: #fff;
+}
+
+.invite .invite-title,
+.arcade-invite .invite-title {
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.invite .header,
+.arcade-invite .header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.3rem 0.5rem;
+  pointer-events: none;
+  border-radius: var(--saito-radius);
+  background: color-mix(in srgb, #000 42%, transparent);
+}
+
+.invite .title,
+.arcade-invite .title {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--saito-font-heavy);
+  font-size: 1.35rem;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.invite .actions,
+.arcade-invite .actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--saito-space-sm);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+
+.invite .details,
+.arcade-invite .details {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.083rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.invite .players,
+.arcade-invite .players {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  column-gap: 0.3rem;
+}
+
+.invite .player,
+.invite .requested,
+.invite .slot,
+.invite .pending,
+.arcade-invite .player,
+.arcade-invite .requested,
+.arcade-invite .slot,
+.arcade-invite .pending,
+.arcade-invite .arcade-invite-pending {
+  width: 2.4rem;
+  height: 2.4rem;
+  overflow: hidden;
+  flex: 0 0 2.4rem;
+  border-radius: var(--saito-radius);
+}
+
+.invite .player .saito-identicon,
+.invite .requested .saito-identicon,
+.invite .pending .saito-identicon,
+.arcade-invite .player .saito-identicon,
+.arcade-invite .requested .saito-identicon,
+.arcade-invite .pending .saito-identicon,
+.arcade-invite .arcade-invite-pending .saito-identicon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--saito-radius);
+}
+
+.invite .requested,
+.invite .pending,
+.arcade-invite .requested,
+.arcade-invite .pending,
+.arcade-invite .arcade-invite-pending {
+  opacity: 0.6;
+  filter: grayscale(0.7);
+}
+
+.invite .slot,
+.arcade-invite .slot {
+  border: 1px dashed color-mix(in srgb, #fff 55%, transparent);
+  background-color: color-mix(in srgb, #000 35%, transparent);
+  border-radius: var(--saito-radius);
+}
+
+.invite .badge,
+.arcade-invite .badge {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: auto;
+  width: auto;
+  max-width: 100%;
+  padding: 0.2rem 0.45rem;
+  font-size: 1.083rem;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--saito-primary-foreground);
+  background-color: var(--saito-primary);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-sm);
+}
+
+.invite.my-turn,
+.arcade-invite.my-turn {
+  border-color: var(--saito-primary);
+}
+
+/* Risk-mode corner ribbon — top-right folded triangle */
+.invite .risk-mode-ribbon,
+.arcade-invite .risk-mode-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 3;
+  width: 5.6rem;
+  height: 5.6rem;
+  overflow: hidden;
+  pointer-events: none;
+  border-top-right-radius: inherit;
+}
+
+.invite .risk-mode-ribbon::before,
+.arcade-invite .risk-mode-ribbon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 5.6rem 5.6rem 0;
+  border-color: transparent var(--saito-primary) transparent transparent;
+  filter: drop-shadow(-1px 1px 0 color-mix(in srgb, #000 22%, transparent));
+}
+
+.invite .risk-mode-ribbon__text,
+.arcade-invite .risk-mode-ribbon__text {
+  position: absolute;
+  top: 0.42rem;
+  right: 0.18rem;
+  z-index: 1;
+  display: block;
+  width: 3.35rem;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+  font-family: var(--saito-font-heavy);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.12;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 1px 1px color-mix(in srgb, #000 28%, transparent);
+}
+
+@media screen and (max-width: 600px) {
+  .invite .risk-mode-ribbon,
+  .arcade-invite .risk-mode-ribbon {
+    width: 4.8rem;
+    height: 4.8rem;
+  }
+
+  .invite .risk-mode-ribbon::before,
+  .arcade-invite .risk-mode-ribbon::before {
+    border-width: 0 4.8rem 4.8rem 0;
+  }
+
+  .invite .risk-mode-ribbon__text,
+  .arcade-invite .risk-mode-ribbon__text {
+    top: 0.32rem;
+    right: 0.1rem;
+    width: 2.95rem;
+    font-size: 0.68rem;
+  }
+}

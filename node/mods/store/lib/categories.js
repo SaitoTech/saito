@@ -4,8 +4,10 @@
  */
 const STORE_CATEGORIES = Object.freeze({
   APPS_AND_GAMES: 'Apps & Games',
+  EXTENSIONS: 'Extensions',
   THEMES: 'Themes',
-  TOKENS_AND_NFTS: 'Tokens & NFTs',
+  IMAGE_NFTS: 'Image NFTs',
+  TOKENS: 'Tokens',
   ACCESS_KEYS: 'Access Keys',
   MERCHANDISE: 'Merchandise',
   OTHER: 'Other'
@@ -14,8 +16,10 @@ const STORE_CATEGORIES = Object.freeze({
 /** Ordered list for Store navigation / browsing UI. */
 const STORE_CATEGORY_LIST = Object.freeze([
   STORE_CATEGORIES.APPS_AND_GAMES,
+  STORE_CATEGORIES.EXTENSIONS,
   STORE_CATEGORIES.THEMES,
-  STORE_CATEGORIES.TOKENS_AND_NFTS,
+  STORE_CATEGORIES.IMAGE_NFTS,
+  STORE_CATEGORIES.TOKENS,
   STORE_CATEGORIES.ACCESS_KEYS,
   STORE_CATEGORIES.MERCHANDISE,
   STORE_CATEGORIES.OTHER
@@ -52,6 +56,14 @@ function normalizePage(page) {
   return Math.floor(n);
 }
 
+function normalizeOffset(offset) {
+  const n = Number(offset);
+  if (!Number.isFinite(n) || n < 0) {
+    return 0;
+  }
+  return Math.floor(n);
+}
+
 /**
  * Protocol / module NFT type → Store category.
  * Unknown and empty types resolve to Other.
@@ -64,21 +76,73 @@ function mapNFTTypeToCategory(nft_type = '') {
 
   switch (type) {
     case 'image':
+      return STORE_CATEGORIES.IMAGE_NFTS;
     case 'token':
-      return STORE_CATEGORIES.TOKENS_AND_NFTS;
+      return STORE_CATEGORIES.TOKENS;
     case 'css':
       return STORE_CATEGORIES.THEMES;
     case 'js':
+      return STORE_CATEGORIES.EXTENSIONS;
     case 'stack':
     case 'nwasm-nft-mod':
       return STORE_CATEGORIES.APPS_AND_GAMES;
     case 'vault-nft-key':
+    case 'vault-nft-rental':
+    case 'store-nft-rental':
       return STORE_CATEGORIES.ACCESS_KEYS;
     case 'text':
     case 'json':
     default:
       return STORE_CATEGORIES.OTHER;
   }
+}
+
+/**
+ * Vault rental NFT that the Store RENT picker lists as rental source inventory.
+ * Exact type only — not vault-nft-key / vault masters, not store-nft-rental.
+ */
+function isVaultRentalNftType(nft_type = '') {
+  return (
+    String(nft_type || '')
+      .trim()
+      .toLowerCase() === 'vault-nft-rental'
+  );
+}
+
+/**
+ * NFTs eligible for the Store SELL picker.
+ * Vault rental NFTs are RENT-only; Store disposable rentals are not ordinary sell stock.
+ */
+function isSellableNftType(nft_type = '') {
+  const type = String(nft_type || '')
+    .trim()
+    .toLowerCase();
+  if (type === 'vault-nft-rental') {
+    return false;
+  }
+  if (type === 'store-nft-rental') {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Buyer-facing rental listing detection from summary + listing txmsg.listing.
+ */
+function isStoreRentalListing(summary = {}, listing_meta = {}) {
+  if (String(listing_meta?.listing_mode || '').toLowerCase() === 'rent') {
+    return true;
+  }
+  const nft_type =
+    (typeof summary?.nft?.returnType === 'function' ? summary.nft.returnType() : '') ||
+    summary?.nft?.nft_type ||
+    summary?.productType ||
+    '';
+  return String(nft_type).trim().toLowerCase() === 'store-nft-rental';
+}
+
+function normalizeListingMode(mode = 'sell') {
+  return String(mode || '').toLowerCase() === 'rent' ? 'rent' : 'sell';
 }
 
 module.exports = {
@@ -90,5 +154,10 @@ module.exports = {
   isStoreCategory,
   normalizePageSize,
   normalizePage,
-  mapNFTTypeToCategory
+  normalizeOffset,
+  mapNFTTypeToCategory,
+  isVaultRentalNftType,
+  isSellableNftType,
+  isStoreRentalListing,
+  normalizeListingMode
 };

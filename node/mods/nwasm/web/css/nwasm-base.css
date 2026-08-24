@@ -1,527 +1,217 @@
-.game.nwasm {
-  body {
-    background-color: black !important;
+/* Namespace integration: shell / emulator chrome only */
+
+/* game.css paints a tiled Saito logo on body; N-WASM uses a plain surface. */
+body {
+  background-color: var(--saito-background);
+  background-image: none;
+}
+
+#maindiv.container.text-center {
+  max-width: unset;
+  min-width: unset;
+}
+
+.container {
+  max-width: unset;
+  max-height: unset;
+  min-width: unset;
+  min-height: unset;
+}
+
+#canvas {
+  cursor: default;
+  height: 100vh;
+  width: auto;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#topPanel,
+#lbErrorOuter,
+#buttomPanel,
+.card-title,
+#loginModal,
+#buttonsModal {
+  display: none;
+}
+
+/*
+ * Approximate N64 4:3 letterbox gutters (kept for drawer width hints only).
+ * Header chrome is fixed to the application/viewport edges — not the canvas.
+ */
+body.nwasm-playing {
+  --nwasm-canvas-w: min(100vw, calc(100vh * 4 / 3));
+  --nwasm-side-gutter: max(0px, calc((100vw - var(--nwasm-canvas-w)) / 2));
+}
+
+/*
+ * Launcher: keep the hamburger icon fixed in the top-right without
+ * consuming a full header band that pushes N-WASM content downward.
+ *
+ * IMPORTANT: do NOT position/fix the whole .hamburger-container.
+ * It also contains the slide-in drawer and the full-viewport backdrop.
+ * Making that container position:fixed + pointer-events:auto left an
+ * invisible backdrop (opacity:0) covering the page and stealing clicks
+ * (e.g. Upload a ROM → toggleMenu).
+ *
+ * Only the toggle is taken out of flow. The drawer stays positioned
+ * against the full-width #saito-header, and closed chrome keeps
+ * pointer-events: none.
+ */
+body:not(.nwasm-playing) #saito-header.game {
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  overflow: visible;
+  pointer-events: none;
+  background: transparent;
+}
+
+body:not(.nwasm-playing) #saito-header.game #saito-header-menu-toggle {
+  pointer-events: auto;
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1.2rem, env(safe-area-inset-right));
+  margin: 0;
+  z-index: 100;
+}
+
+body:not(.nwasm-playing) #saito-header.game .saito-header-hamburger-contents {
+  top: 0;
+  height: 100svh;
+  pointer-events: none;
+}
+
+body:not(.nwasm-playing) #saito-header.game .saito-header-hamburger-contents.show-menu {
+  pointer-events: auto;
+}
+
+body:not(.nwasm-playing) #saito-header.game .saito-header-backdrop {
+  top: 0;
+  height: 100vh;
+  /* Closed state must remain non-interactive (Saito default). */
+  pointer-events: none;
+}
+
+body:not(.nwasm-playing) #saito-header.game .saito-header-backdrop.menu-visible {
+  pointer-events: auto;
+}
+
+/*
+ * In-game: collapse the header band and pin Game menu + hamburger to the
+ * application (viewport) edges. Must override `#saito-header .game-menu
+ * { position: relative }` so controls are not laid out against the canvas.
+ */
+body.nwasm-playing #saito-header.game {
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  overflow: visible;
+  pointer-events: none;
+  background: transparent;
+}
+
+body.nwasm-playing #saito-header .game-menu {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  left: max(0.6rem, env(safe-area-inset-left));
+  margin: 0;
+  z-index: 500;
+  pointer-events: auto;
+}
+
+body.nwasm-playing #saito-header.game .hamburger-container {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body.nwasm-playing #saito-header.game #saito-header-menu-toggle {
+  pointer-events: auto;
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1.2rem, env(safe-area-inset-right));
+  margin: 0;
+  z-index: 100;
+}
+
+/*
+ * In-game hamburger drawer: prefer the right letterbox gutter when present,
+ * instead of a full-width slide that covers the game.
+ */
+body.nwasm-playing #saito-header.game .saito-header-hamburger-contents {
+  width: max(28rem, var(--nwasm-side-gutter));
+  max-width: min(40rem, 100vw);
+  top: 0;
+  height: 100svh;
+  pointer-events: none;
+}
+
+body.nwasm-playing #saito-header.game .saito-header-hamburger-contents.show-menu {
+  pointer-events: auto;
+}
+
+body.nwasm-playing #saito-header.game .saito-header-backdrop {
+  top: 0;
+  height: 100vh;
+}
+
+/*
+ * In-game overlays sit above the live canvas. Saito's default overlay
+ * backdrop is intentionally translucent; for NWASM make the backdrop and
+ * panel opaque so the emulator does not show through.
+ */
+.saito-overlay:has(.nwasm-controls) + .saito-overlay-backdrop,
+.saito-overlay:has(.nwasm-save-games) + .saito-overlay-backdrop,
+.saito-overlay:has(.nwasm-load-rom) + .saito-overlay-backdrop,
+.saito-overlay:has(.nwasm-upload-rom) + .saito-overlay-backdrop,
+.saito-overlay:has(.nwasm-new-game) + .saito-overlay-backdrop,
+.saito-overlay:has(.nwasm-library) + .saito-overlay-backdrop {
+  background-color: var(--saito-background);
+}
+
+.saito-overlay:has(.nwasm-controls),
+.saito-overlay:has(.nwasm-save-games),
+.saito-overlay:has(.nwasm-load-rom),
+.saito-overlay:has(.nwasm-upload-rom),
+.saito-overlay:has(.nwasm-new-game),
+.saito-overlay:has(.nwasm-library) {
+  background-color: transparent;
+}
+
+/* Beat mobile Saito rule that clears panel backgrounds on small screens. */
+.saito-overlay:has(.nwasm-controls) > .saito-overlay-panel,
+.saito-overlay:has(.nwasm-save-games) > .saito-overlay-panel,
+.saito-overlay:has(.nwasm-load-rom) > .saito-overlay-panel,
+.saito-overlay:has(.nwasm-upload-rom) > .saito-overlay-panel,
+.saito-overlay:has(.nwasm-new-game) > .saito-overlay-panel,
+.saito-overlay:has(.nwasm-library) > .saito-overlay-panel,
+.nwasm-controls,
+.nwasm-save-games,
+.nwasm-load-rom,
+.nwasm-upload-rom {
+  background-color: var(--saito-popover);
+  background-image: none;
+}
+
+/* New Game / Library cards own their surfaces; keep the shell clear. */
+.nwasm-new-game,
+.nwasm-library {
+  background-color: transparent;
+  background-image: none;
+}
+
+/* Narrow / no letterbox: horizontal menu may overlay the canvas. */
+@media (max-width: 900px) {
+  body.nwasm-playing {
+    --nwasm-side-gutter: 0px;
   }
 
-  .saito-overlay:has(> .nwasm-upload-overlay) {
-    box-shadow: none;
-    background: transparent;
-  }
-
-  #maindiv.container.text-center {
-    max-width: unset;
-    min-width: unset;
-  }
-
-  .nwasm-upload-instructions {
-    font-size: 3rem;
-  }
-
-  .nwasm-saved-games-screenshot {
-    max-height: 300px;
-    max-width: 300px;
-    padding: 1rem;
-  }
-
-  .nwasm-saved-games-screenshot img {
-    width: 100%;
-    height: 100%;
-  }
-
-  .nwasm-lib-title {
-    text-align: left;
-  }
-
-  .nwasm-lib-copies {
-    text-align: right;
-  }
-
-  .nwasm-lib-status {
-    text-align: right;
-  }
-
-  .nwasm-library-introduction {
-    color: whitesmoke;
-    font-size: 1.5rem;
-    font-size: 2.5rem;
-    margin-left: 2rem;
-    padding-bottom: 4rem;
-  }
-
-  .nwasm-libraries {
-    margin-top: 10rem;
-    font-size: 3rem;
-    color: white;
-    text-align: left;
-    line-height: 5rem;
-    max-width: 800px;
-    position: absolute;
-    top: 0rem;
-    left: 2.5rem;
-    padding: 2rem;
-    max-width: 95vw;
-  }
-
-  .nwasm-libraries p {
-    height: 3rem;
-  }
-
-  .nwasm-saved-games {
-    cursor: pointer;
-    background-color: white;
-    padding: 2.5rem;
-    font-size: 3rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    grid-template-rows: min-content;
-    overflow-y: scroll;
-    height: 90vh;
-    width: 90vw;
-  }
-
-  .nwasm-introduction {
-    color: whitesmoke;
-    font-size: 1.5rem;
-  }
-
-  .nwasm-libraries .saito-table-row {
-    display: flex;
-    column-gap: 2rem;
-    align-items: center;
-    font-size: 4rem;
-    color: whitesmoke;
-    width: 1;
-    min-width: 100%;
-    padding: 0.75rem;
-    padding-left: 1.5rem;
-  }
-
-  .nwasm-lib-owner {
-    max-width: 6ch;
-    overflow-x: hidden;
-    font-family: courier;
-  }
-  .nwasm-lib-sig {
-    max-width: 6ch;
-    overflow-x: hidden;
-    font-family: courier;
-  }
-
-  .nwasm-libraries-header.saito-table-row:hover {
-    background-color: #000;
-  }
-
-  .saito-table-row:hover {
-    background-color: #222;
-    cursor: pointer;
-  }
-
-  .container {
-    max-width: unset;
-    max-height: unset;
-    min-width: unset;
-    min-height: unset;
-  }
-
-  #canvas {
-    cursor: default;
-    height: 100vh;
-    width: auto;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-
-  #topPanel {
-    display: none;
-  }
-
-  #lbErrorOuter {
-    display: none;
-  }
-
-  #buttomPanel {
-    display: none;
-  }
-
-  .card-title {
-    display: none;
-  }
-
-  #loginModal {
-    display: none;
-  }
-
-  #buttonsModal {
-    display: none;
-  }
-
-  .nwasm-upload-overlay {
-    width: auto;
-    background-color: #fff;
-    padding: 2.5rem;
-    min-width: 50rem;
-    max-width: 30rem;
-    min-height: 30rem;
-    max-height: 40rem;
-    border-radius: 2rem;
-  }
-
-  .nwasm-upload-overlay-dark {
-    color: white;
-    background-color: #000c;
-  }
-
-  .nwasm-preloader-dark {
-    padding-top: 7rem;
-    color: white;
-  }
-
-  #nwasm-upload-rom-box {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    display: inline-block;
-  }
-
-  #upload-rom-file {
-    display: block;
-  }
-
-  #nwasm-upload-area {
-    border: 2px dotted #333;
-    height: 20rem;
-    width: 40rem;
-    text-align: center;
-    line-height: 20rem;
-    font-size: 1.5rem;
-    margin-top: 1rem;
-  }
-
-  .loader {
-    width: auto;
-    height: auto;
-    display: none;
-    place-items: center;
-    --f-w: 2vmin;
-    --f-g: 0.5vmin;
-    --x-1: calc(-2.5 * (var(--f-w) + var(--f-g)));
-    --x-2: calc(-1.5 * (var(--f-w) + var(--f-g)));
-    --x-3: calc(-0.5 * (var(--f-w) + var(--f-g)));
-    --x-4: calc(0.5 * (var(--f-w) + var(--f-g)));
-    --x-5: calc(1.5 * (var(--f-w) + var(--f-g)));
-    --x-6: calc(2.5 * (var(--f-w) + var(--f-g)));
-    --y-1: calc(1 * (var(--f-w) + var(--f-g)));
-    --y-2: calc(2 * (var(--f-w) + var(--f-g)));
-    --y-3: calc(3 * (var(--f-w) + var(--f-g)));
-    --c-1-1: var(--saito-primary);
-    --c-1-2: var(--saito-primary);
-    --c-1-3: var(--saito-primary);
-    --c-2-1: var(--saito-primary);
-    --c-2-2: var(--saito-primary);
-    --c-2-3: var(--saito-primary);
-    --c-3-1: var(--saito-primary);
-    --c-3-2: var(--saito-primary);
-    --c-3-3: var(--saito-primary);
-    --c-4-1: var(--saito-primary);
-    --c-4-2: var(--saito-primary);
-    --c-4-3: var(--saito-primary);
-    --c-5-1: var(--saito-primary);
-    --c-5-2: var(--saito-primary);
-    --c-5-3: var(--saito-primary);
-    --c-6-1: var(--saito-primary);
-    --c-6-2: var(--saito-primary);
-    --c-6-3: var(--saito-primary);
-    box-sizing: border-box;
-    font-size: 10vmin;
-  }
-
-  .loader:before {
-    content: 'loading ROM file...';
-    color: #fff;
-    display: none;
-    min-width: 50rem;
-    min-height: 50rem;
-    position: absolute;
-    text-align: center;
-    font-size: 2.5rem;
-    left: 0px;
-    top: 0px;
-    background: rgba(0, 0, 0, 0.7);
-    transform: translate(-12.5rem, -12.5rem);
-    text-align: center;
-    /*line-height: ;*/
-    padding: 25rem 2rem;
-    width: 25rem;
-    border-radius: 1rem;
-  }
-
-  .loader:after {
-    display: block;
-    content: ' ';
-    background: #f000;
-    width: var(--f-w);
-    height: var(--f-w);
-    box-shadow:
-      var(--x-1) var(--y-3) var(--c-1-3),
-      var(--x-1) var(--y-2) var(--c-1-2),
-      var(--x-2) var(--y-2) var(--c-2-2),
-      var(--x-3) var(--y-2) var(--c-3-2),
-      var(--x-4) var(--y-2) var(--c-4-2),
-      var(--x-5) var(--y-2) var(--c-5-2),
-      var(--x-6) var(--y-2) var(--c-6-2),
-      var(--x-6) var(--y-1) var(--c-6-1);
-    animation: 6s infinite loader;
-    position: absolute;
-    /* top: 22rem; */
-    top: 8rem;
-    /* left: 45%; */
-    left: 48%;
-  }
-
-  .loader.stepone:before {
-    content: 'loading ROM file...';
-  }
-
-  .loader.steptwo:before {
-    content: 'encrypting ROM so only you can access it...';
-  }
-
-  .loader.stepthree:before {
-    content: 'cryptographically signing ROM as proof-of-ownership...';
-  }
-
-  .loader.stepfour:before {
-    content: 'archiving encrypted ROM in your private transaction archive';
-  }
-
-  .loader.stepfive:before {
-    content: 'this is a [ big , really big , really really big file ] it will take about a minute to finish. please be patient..';
-  }
-
-  @keyframes loader {
-    0% {
-      box-shadow:
-        var(--x-1) var(--y-3) var(--c-1-3),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-6) var(--y-1) var(--c-6-1);
-    }
-    5% {
-      box-shadow:
-        var(--x-2) var(--y-3) var(--c-2-3),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-5) var(--y-1) var(--c-5-1);
-    }
-    10% {
-      box-shadow:
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-1) var(--c-2-1),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-5) var(--y-3) var(--c-5-3),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-5) var(--y-2) var(--c-5-2);
-    }
-    15% {
-      box-shadow:
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-3) var(--y-1) var(--c-3-1),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-4) var(--y-3) var(--c-4-3),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-5) var(--y-2) var(--c-5-2);
-    }
-    20% {
-      box-shadow:
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-3) var(--y-3) var(--c-3-3),
-        var(--x-4) var(--y-1) var(--c-4-1),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-5) var(--y-2) var(--c-5-2);
-    }
-    25% {
-      box-shadow:
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-3) var(--c-4-3),
-        var(--x-3) var(--y-1) var(--c-3-1),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-5) var(--y-2) var(--c-5-2);
-    }
-    30% {
-      box-shadow:
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-3) var(--y-3) var(--c-3-3),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-1) var(--c-4-1),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-5) var(--y-2) var(--c-5-2);
-    }
-    35% {
-      box-shadow:
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-3) var(--c-2-3),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-5) var(--y-1) var(--c-5-1),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-5) var(--y-2) var(--c-5-2);
-    }
-    40% {
-      box-shadow:
-        var(--x-2) var(--y-1) var(--c-2-1),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-5) var(--y-3) var(--c-5-3);
-    }
-    45% {
-      box-shadow:
-        var(--x-1) var(--y-1) var(--c-1-1),
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2),
-        var(--x-6) var(--y-3) var(--c-6-3);
-    }
-    50% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-1) var(--y-3) var(--c-1-3),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-1) var(--c-6-1),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
-    55% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-3) var(--c-2-3),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-5) var(--y-1) var(--c-5-1),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
-    60% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-2) var(--y-1) var(--c-2-1),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-5) var(--y-3) var(--c-5-3),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
-    65% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-3) var(--y-1) var(--c-3-1),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-3) var(--c-4-3),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
-    70% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-1) var(--c-4-1),
-        var(--x-3) var(--y-3) var(--c-3-3),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
-    75% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-3) var(--y-1) var(--c-3-1),
-        var(--x-4) var(--y-3) var(--c-4-3),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
-    80% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-3) var(--y-3) var(--c-3-3),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-4) var(--y-1) var(--c-4-1),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
-    85% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-2) var(--y-3) var(--c-2-3),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-5) var(--y-1) var(--c-5-1),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
-    90% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-2) var(--y-1) var(--c-2-1),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-5) var(--y-3) var(--c-5-3),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
-    95% {
-      box-shadow:
-        var(--x-1) var(--y-2) var(--c-1-2),
-        var(--x-1) var(--y-1) var(--c-1-1),
-        var(--x-2) var(--y-2) var(--c-2-2),
-        var(--x-3) var(--y-2) var(--c-3-2),
-        var(--x-4) var(--y-2) var(--c-4-2),
-        var(--x-5) var(--y-2) var(--c-5-2),
-        var(--x-6) var(--y-3) var(--c-6-3),
-        var(--x-6) var(--y-2) var(--c-6-2);
-    }
+  body.nwasm-playing #saito-header.game .saito-header-hamburger-contents {
+    width: min(40rem, 100vw);
   }
 }

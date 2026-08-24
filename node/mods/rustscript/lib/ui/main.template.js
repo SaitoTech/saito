@@ -32,13 +32,13 @@ module.exports = () => {
     </div>
 
     <div class="rs-command-bar-right">
+      <div class="rs-publish-slot" aria-hidden="true">
+        <button type="button" class="rs-cmd-btn rs-cmd-primary rs-publish-script" tabindex="-1">Publish</button>
+      </div>
       <div class="rs-mode-switch" role="group" aria-label="Editing mode">
         <button type="button" class="rs-mode-btn rs-mode-guided is-active" data-mode="guided">Guided</button>
         <span class="rs-mode-sep" aria-hidden="true">/</span>
         <button type="button" class="rs-mode-btn rs-mode-expert" data-mode="expert">Expert</button>
-      </div>
-      <div class="rs-publish-slot" aria-hidden="true">
-        <button type="button" class="rs-cmd-btn rs-cmd-primary rs-publish-script" tabindex="-1">Publish</button>
       </div>
     </div>
   </footer>

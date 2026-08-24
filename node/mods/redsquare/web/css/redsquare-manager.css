@@ -7,6 +7,7 @@
  */
 
 .manager {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -20,12 +21,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--saito-space-sm);
+  gap: var(--saito-space-md);
   flex: 0 0 auto;
-  min-height: 5.6rem;
-  padding: 0 var(--saito-space-lg);
-  background: var(--saito-background);
+  min-height: 5.2rem;
+  padding: 0.8rem var(--saito-space-md);
+  background: var(--saito-card-wash);
   border-bottom: 1px solid var(--saito-border);
+}
+
+/*
+ * Desktop Option A — page title anchors the feed chrome.
+ * Content-sized height (no empty min-height), title-weighted.
+ */
+@media (min-width: 601px) {
+  .manager > .header {
+    min-height: 0;
+    padding: 0.7rem var(--saito-space-md) 0.55rem;
+  }
 }
 
 /* Header is omitted from the DOM when the view does not require chrome. */
@@ -46,18 +58,9 @@
   flex: 1 1 auto;
 }
 
-/* display must not override the HTML [hidden] attribute — Home has no Back */
-.manager > .header .back:not([hidden]) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 3.2rem;
-  height: 3.2rem;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
+/* Shared .saito-button-square owns appearance; keep [hidden] from being overridden. */
+.manager > .header .back[hidden] {
+  display: none;
 }
 
 .manager > .header .title {
@@ -66,8 +69,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-size-large);
-  font-family: var(--saito-font-medium);
+  /* Visuelt Medium — page-title for conversation / profile navigation chrome */
+  font-family: var(--saito-font-heavy);
   line-height: 1.2;
 }
 
@@ -83,14 +86,25 @@
 }
 
 .manager .new-posts-banner {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
   display: block;
-  width: 100%;
+  width: 16rem;
   padding: var(--saito-space-sm) var(--saito-space-lg);
-  border: none;
-  background: var(--saito-card-wash);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-lg);
+  margin: var(--saito-space-md) 0 0;
+  background: color-mix(in srgb, var(--saito-background) 33%, transparent);
   color: var(--saito-foreground);
   text-align: center;
   cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.manager .new-posts-banner[hidden] {
+  display: none;
 }
 
 .manager .thread-context {
@@ -106,7 +120,8 @@
 }
 
 .manager .feed-status .loader,
-.manager .feed-status .message {
+.manager .feed-status .message,
+.manager .feed-status .retry {
   display: none;
 }
 
@@ -124,7 +139,9 @@
 
 .manager .feed-status[data-status='loading'],
 .manager .feed-status[data-status='empty'],
-.manager .feed-status[data-status='end'] {
+.manager .feed-status[data-status='end'],
+.manager .feed-status[data-status='unavailable'],
+.manager .feed-status[data-status='error'] {
   padding: 7rem var(--saito-space-lg) 5rem;
 }
 
@@ -136,13 +153,26 @@
 }
 
 .manager .feed-status[data-status='empty'] .message,
-.manager .feed-status[data-status='end'] .message {
+.manager .feed-status[data-status='end'] .message,
+.manager .feed-status[data-status='unavailable'] .message,
+.manager .feed-status[data-status='error'] .message,
+.manager .feed-status[data-status='unavailable'] .retry,
+.manager .feed-status[data-status='error'] .retry {
   display: block;
 }
 
+.manager .feed-status .retry {
+  margin-top: var(--saito-space-md);
+}
+
 @media (max-width: 600px) {
+  .manager > .body {
+    padding: 0.5rem;
+    scroll-padding-bottom: var(--saito-space-md);
+  }
+
   .manager > .header {
-    padding: 0 var(--saito-space-sm);
+    padding: 0.8rem var(--saito-space-sm);
   }
 
   /* Floating + is the only compose affordance on mobile */
@@ -155,7 +185,9 @@
   .manager .feed-status[data-status='content'],
   .manager .feed-status[data-status='loading'],
   .manager .feed-status[data-status='empty'],
-  .manager .feed-status[data-status='end'] {
+  .manager .feed-status[data-status='end'],
+  .manager .feed-status[data-status='unavailable'],
+  .manager .feed-status[data-status='error'] {
     padding-left: var(--saito-space-sm);
     padding-right: var(--saito-space-sm);
   }

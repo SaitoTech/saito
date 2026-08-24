@@ -4,6 +4,9 @@ const ListingFieldEdit = require('./listing-field-edit');
 const Summary = require('../../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../../summary');
 const { summaryBucketKey } = require('../summary-cache');
+const { isStoreRentalListing } = require('../../categories');
+const { durationLabel, rightsLabel } = require('./rental-listing.template');
+const { yieldForPaint } = require('../purchase-service');
 
 function returnShortKey(key = '') {
   if (!key) {
@@ -37,11 +40,13 @@ class ListingDetailOverlay {
 
     this.app.connection.on('store-listing-updated', (summary) => {
       if (
+        this.overlay?.visible &&
         this.mode === 'view' &&
         this.summary?.nft_id &&
         summaryBucketKey(this.summary.nft_id, this.summary.price) ===
           summaryBucketKey(summary.nft_id, summary.price)
       ) {
+        // Paint only — do not restart archive/media loading.
         this.render(summary);
       }
     });
@@ -68,7 +73,10 @@ class ListingDetailOverlay {
     }
 
     if (nft.image) {
-      return ListingDetailTemplate.mediaImage(this.escapeHtml(nft.image));
+      if (this.app?.browser?.isSafeMediaUrl?.(nft.image)) {
+        return ListingDetailTemplate.mediaImage(this.escapeHtml(nft.image));
+      }
+      return ListingDetailTemplate.mediaImage(this.returnFallbackImage());
     }
 
     const textContent =
@@ -125,8 +133,14 @@ class ListingDetailOverlay {
     return 'Digital';
   }
 
+  returnListingMeta(summary = {}) {
+    const tx = summary.listing_tx;
+    const txmsg = tx?.returnMessage?.() || tx?.msg || {};
+    return txmsg.listing || {};
+  }
+
   returnViewModel(summary = {}) {
-    const listingTitle = summary.returnTitle?.() || 'Untitled Item';
+    const listingTitle = this.escapeHtml(summary.returnTitle?.() || 'Untitled Item');
     const seller = summary.seller || 'anon-store';
     const shortSeller = returnShortKey(seller);
 
@@ -137,50 +151,65 @@ class ListingDetailOverlay {
       display.loading || display.innerHtml
         ? ''
         : summary.returnPlaceholderImage?.() || DREAMSCAPE_PLACEHOLDER;
-    const normalizedImages = Array.isArray(summary.images)
+    const rawImages = Array.isArray(summary.images)
       ? summary.images.filter(Boolean)
       : [listingImage || placeholder];
+    const normalizedImages = rawImages
+      .filter((src) => this.app?.browser?.isSafeMediaUrl?.(src))
+      .map((src) => this.escapeHtml(src));
+    if (!normalizedImages.length) {
+      normalizedImages.push(this.escapeHtml(DREAMSCAPE_PLACEHOLDER));
+    }
+
+    const listingMeta = this.returnListingMeta(summary);
+    const isRental = isStoreRentalListing(summary, listingMeta);
 
     const priceValue = summary.returnPrice?.() || summary.price || summary.reserve_price || '';
     const bidValue = summary.current_bid || summary.currentBid || '';
-    const isBid = !!bidValue && !priceValue;
+    const isBid = !!bidValue && !priceValue && !isRental;
     const primaryValue = isBid ? bidValue : priceValue || 'N/A';
-    const primaryLabel = isBid ? 'Current Bid' : 'Price';
+    const primaryLabel = isRental ? 'Rental Price' : isBid ? 'Current Bid' : 'Price';
     const currency = summary.currency || summary.denomination || 'SAITO';
     const nextBid = summary.next_bid || summary.nextMinBid || '';
     const supply = summary.returnQuantity?.() || 1;
-    const actionText = isBid ? 'Bid' : 'Buy';
-    const description = summary.returnDescription?.() || '';
+    const actionText = isRental ? 'Rent' : isBid ? 'Bid' : 'Buy';
+    const description = this.escapeHtml(summary.returnDescription?.() || '');
     const txid = String(summary.listing_signature || summary.nft_id || 'N/A');
-    const primaryDisplay = this.hasCurrencyLabel(primaryValue)
-      ? String(primaryValue)
-      : `${primaryValue} ${currency}`;
-    const nextBidDisplay = this.hasCurrencyLabel(nextBid)
-      ? String(nextBid)
-      : `${nextBid} ${currency}`;
+    const primaryDisplay = this.escapeHtml(
+      this.hasCurrencyLabel(primaryValue) ? String(primaryValue) : `${primaryValue} ${currency}`
+    );
+    const nextBidDisplay = this.escapeHtml(
+      this.hasCurrencyLabel(nextBid) ? String(nextBid) : `${nextBid} ${currency}`
+    );
+
+    const durationHours = listingMeta.rental_duration_hours || summary.nft?.data?.duration_hours;
+    const rights = listingMeta.rental_rights || summary.nft?.data?.rights || 'all';
 
     return {
-      identicon: this.app?.keychain?.returnIdenticon?.(seller) || '',
+      identicon: this.escapeHtml(this.app?.keychain?.returnIdenticon?.(seller) || ''),
       listingTitle,
       seller: this.escapeHtml(seller),
       shortSeller: this.escapeHtml(shortSeller),
       images: normalizedImages,
       hasGallery: normalizedImages.length > 1,
-      primaryLabel,
+      primaryLabel: this.escapeHtml(primaryLabel),
       primaryDisplay,
       nextBid,
-      showNextBid: !!nextBid,
+      showNextBid: !!nextBid && !isRental,
       nextBidDisplay,
       supply,
-      showQuantity: supply > 1,
-      actionText,
+      showQuantity: !isRental && supply > 1,
+      actionText: this.escapeHtml(actionText),
       description,
       hasDescription: !!description,
-      productType: this.returnProductType(summary),
-      fileType: this.returnFileTypeFromImages(normalizedImages),
-      createdDate: this.returnCreatedDate(summary),
-      txidShort: returnShortKey(txid),
-      imageLoading: summary.isImageLoading?.() ?? false
+      productType: this.escapeHtml(isRental ? 'store-nft-rental' : this.returnProductType(summary)),
+      fileType: this.escapeHtml(this.returnFileTypeFromImages(rawImages)),
+      createdDate: this.escapeHtml(this.returnCreatedDate(summary)),
+      txidShort: this.escapeHtml(returnShortKey(txid)),
+      imageLoading: summary.isImageLoading?.() ?? false,
+      isRental,
+      rentalDuration: this.escapeHtml(durationHours ? durationLabel(durationHours) : ''),
+      rentalRights: this.escapeHtml(rightsLabel(rights))
     };
   }
 
@@ -258,15 +287,47 @@ class ListingDetailOverlay {
     }
     if (mainImage) {
       mainImage.style.display = '';
-      if (display.backgroundImage) {
+      if (display.backgroundImage && this.app?.browser?.isSafeMediaUrl?.(display.backgroundImage)) {
         mainImage.setAttribute('src', display.backgroundImage);
       }
     }
   }
 
   /**
-   * View mode: render(summary)
-   * Edit mode: render({ mode: 'edit', nft, defaults })
+   * Open a listing for viewing: paint immediately, then load anything missing.
+   * Callers that only need a repaint (media updates, etc.) should use render().
+   */
+  open(summary) {
+    this.render(summary);
+    if (!(summary instanceof Summary)) {
+      return;
+    }
+
+    const finish = () => {
+      if (this.overlay?.visible && this.mode === 'view' && this.summary === summary) {
+        this.render(summary);
+      }
+    };
+
+    if (!summary.listing_tx && summary.listing_signature) {
+      summary.ensureListingTransaction(() => {
+        if (summary.isImageLoading?.()) {
+          summary.enrichMedia(finish);
+          return;
+        }
+        finish();
+      });
+      return;
+    }
+
+    if (summary.isImageLoading?.()) {
+      summary.enrichMedia(finish);
+    }
+  }
+
+  /**
+   * Paint the overlay from current state. Does not load or enrich data.
+   * View: render(summary) | Edit: render({ mode: 'edit', nft, defaults })
    */
   render(input = null) {
     if (input && !(input instanceof Summary) && input.mode === 'edit') {
@@ -274,29 +335,14 @@ class ListingDetailOverlay {
       return;
     }
 
-    if (input instanceof Summary || input === null || input === undefined) {
-      this.renderView(input);
-      return;
-    }
-
-    if (input?.nft_id || input?.returnTitle) {
-      this.renderView(input);
-      return;
-    }
-
-    this.renderView(input);
-  }
-
-  renderView(summary = null) {
     this.mode = 'view';
-    if (summary) {
-      this.summary = summary;
+    if (input) {
+      this.summary = input;
     }
     const view = this.returnViewModel(this.summary || {});
     this.overlay.show(ListingDetailTemplate.viewTemplate(view));
     this.attachViewEvents();
     this.applyProductMedia();
-    this.beginOverlayEnrichment();
   }
 
   renderEdit(nft, defaults = {}) {
@@ -340,12 +386,20 @@ class ListingDetailOverlay {
 
     if (mainImage) {
       mainImage.onerror = () => {
-        const display = this.summary?.returnMediaDisplay?.() || {};
+        const summary = this.summary;
+        const display = summary?.returnMediaDisplay?.() || {};
         if (display.innerHtml || display.loading) {
           return;
         }
         mainImage.onerror = null;
-        this.beginOverlayEnrichment();
+        if (!(summary instanceof Summary)) {
+          return;
+        }
+        summary.enrichMedia(() => {
+          if (this.overlay?.visible && this.mode === 'view' && this.summary === summary) {
+            this.render(summary);
+          }
+        });
       };
     }
 
@@ -358,8 +412,10 @@ class ListingDetailOverlay {
           return;
         }
 
+        const listingMeta = this.returnListingMeta(summary);
+        const isRental = isStoreRentalListing(summary, listingMeta);
         const qtyInput = root.querySelector('#listing-qty');
-        const quantity = qtyInput ? Number(qtyInput.value) || 1 : 1;
+        const quantity = isRental ? 1 : qtyInput ? Number(qtyInput.value) || 1 : 1;
 
         if (buyBtn.disabled) {
           return;
@@ -555,6 +611,30 @@ class ListingDetailOverlay {
   }
 
   async submitListing() {
+    const submitBtn = document.querySelector(
+      '.listing-detail.edit:not(.rental-ready) [data-action="submit"]'
+    );
+    if (submitBtn?.disabled) {
+      return;
+    }
+
+    const restore = () => {
+      if (!submitBtn) {
+        return;
+      }
+      submitBtn.disabled = false;
+      submitBtn.removeAttribute('aria-busy');
+      submitBtn.textContent = 'Submit Listing';
+    };
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.setAttribute('aria-busy', 'true');
+      submitBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Preparing listing…';
+    }
+    await yieldForPaint();
+
     try {
       const tx = await this.mod.createListAssetTransaction(this.selectedNft, this.listing);
       await this.app.network.propagateTransaction(tx);
@@ -570,6 +650,7 @@ class ListingDetailOverlay {
       this.beginListingProgress(tx);
     } catch (err) {
       console.error('Store: listing failed', err);
+      restore();
       alert(err?.message || 'Listing failed');
     }
   }
@@ -628,31 +709,6 @@ class ListingDetailOverlay {
         console.warn('Store: openStorefront after list failed', err?.message || err);
       });
     }
-  }
-
-  beginOverlayEnrichment() {
-    const summary = this.summary;
-    if (!(summary instanceof Summary)) {
-      return;
-    }
-
-    const refreshIfNeeded = () => {
-      this.renderView(summary);
-      if (summary.isImageLoading?.()) {
-        summary.enrichMedia(() => this.renderView(summary));
-      }
-    };
-
-    if (summary.listing_tx) {
-      summary.hydrateFromListingTransaction?.();
-      this.renderView(summary);
-      if (summary.isImageLoading?.()) {
-        summary.enrichMedia(() => this.renderView(summary));
-      }
-      return;
-    }
-
-    summary.ensureListingTransaction(refreshIfNeeded);
   }
 }
 

@@ -115,56 +115,66 @@ function inferFieldKindFromPath(path) {
   return 'text';
 }
 
-function resolveFieldOverlayKind(value, path) {
+/**
+ * UI metadata for an existing field on the canonical script.
+ * Does not invent fields — only interprets value + path already present on mod.script.
+ */
+function getFieldDefinition(value, path) {
   const pathArr = Array.isArray(path)
     ? path
     : String(path || '')
         .split('.')
         .filter(Boolean);
 
+  let kind = 'text';
+  let label = '';
+  let hint = '';
+
   if (typeof value === 'string' && isPlaceholder(value)) {
     const meta = placeholderMeta(value);
+    const tag = placeholderName(value);
     if (meta?.action === 'publickey') {
-      return 'publickey';
+      kind = 'publickey';
+    } else if (meta?.action === 'signature') {
+      kind = 'signature';
+    } else if (meta?.action === 'hash') {
+      kind = 'hash';
+    } else if (tag === 'msg' || tag === 'message') {
+      kind = 'message';
+    } else if (tag === 'and' || tag === 'or' || tag === 'not' || tag === 'then') {
+      kind = 'logical';
+    } else {
+      kind = meta?.action === 'text' ? 'text' : meta?.action || 'text';
     }
-    if (meta?.action === 'signature') {
-      return 'signature';
-    }
-    if (meta?.action === 'hash') {
-      return 'hash';
-    }
-    const tag = placeholderName(value);
-    if (tag === 'msg' || tag === 'message') {
-      return 'message';
-    }
+    label = meta?.label || tag || 'Value';
+    hint = meta?.hint || '';
+  } else if (typeof value === 'number') {
+    kind = 'number';
+  } else {
+    kind = inferFieldKindFromPath(pathArr);
   }
 
-  if (typeof value === 'number') {
-    return 'number';
-  }
-
-  const fromPath = inferFieldKindFromPath(pathArr);
-  if (fromPath !== 'text') {
-    return fromPath;
-  }
-
-  if (typeof value === 'string' && isPlaceholder(value)) {
-    const tag = placeholderName(value);
-    if (tag === 'and' || tag === 'or' || tag === 'not' || tag === 'then') {
-      return 'logical';
-    }
-  }
-
-  if (pathArr.length && String(pathArr[pathArr.length - 1]).toLowerCase() === 'op') {
-    const op = String(value || '')
-      .trim()
-      .toUpperCase();
+  if (
+    pathArr.length &&
+    String(pathArr[pathArr.length - 1]).toLowerCase() === 'op' &&
+    typeof value === 'string'
+  ) {
+    const op = value.trim().toUpperCase();
     if (op === 'AND' || op === 'OR' || op === 'NOT' || op === 'THEN') {
-      return 'logical';
+      kind = 'logical';
     }
   }
 
-  return 'text';
+  if (!label) {
+    const leaf = pathArr.length ? String(pathArr[pathArr.length - 1]) : 'Value';
+    label = leaf;
+  }
+
+  return { kind, label, hint, action: kind === 'message' ? 'text' : kind };
+}
+
+function resolveFieldOverlayKind(value, path) {
+  return getFieldDefinition(value, path).kind;
 }
 
 function validateField(kind, value, app) {
@@ -209,15 +219,6 @@ function isEmptyScript(script) {
   return false;
 }
 
-/** Locking script with only an opcode name and no field values yet. */
-function isIncompleteOpcodeStub(script) {
-  if (isEmptyScript(script)) {
-    return false;
-  }
-  const keys = Object.keys(script).filter((k) => k !== 'witness' && k !== 'required');
-  return keys.length === 1 && keys[0] === 'op';
-}
-
 function collectPlaceholders(node, path = [], options = {}) {
   const found = [];
   const skipRequired = options.skipRequired === true;
@@ -260,13 +261,6 @@ function collectPlaceholders(node, path = [], options = {}) {
 function evaluateScriptStatus(lockingScript) {
   if (isEmptyScript(lockingScript)) {
     return { state: 'idle', placeholders: [] };
-  }
-  if (isIncompleteOpcodeStub(lockingScript)) {
-    return {
-      state: 'warn',
-      placeholders: ['(incomplete)'],
-      validation: validateScriptStructure(lockingScript)
-    };
   }
   const placeholders = collectPlaceholders(lockingScript, [], {
     skipRequired: true,
@@ -425,6 +419,7 @@ function deriveWorkflowIndicator({
 module.exports = {
   validateScriptStructure,
   inferFieldKindFromPath,
+  getFieldDefinition,
   resolveFieldOverlayKind,
   validateField,
   evaluateWorkspaceStatus,

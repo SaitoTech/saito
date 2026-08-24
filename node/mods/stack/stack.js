@@ -37,13 +37,13 @@ class Stack extends ModTemplate {
     this.pending_post_pk = null;
     this.pending_post_loaded = null;
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: 'Stack - Permissioned Blogging',
-      url: 'https://saito.io/stack',
+      url: '/stack',
       description: 'Open-source subscription-based blogging platform',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png'
-    };
+    });
 
     // Cache for posts and subscriptions
     this.postsCache = {
@@ -105,6 +105,62 @@ class Stack extends ModTemplate {
 				console.debug('Stack: prefetchStackCache failed', err);
 			});
 		}
+	}
+
+	/**
+	 * Ask Profile (if installed) to set or clear the preferred Stack URL.
+	 * Blank address removes the Profile `stack` field. No-op when Profile is absent.
+	 */
+	async updateProfile(address = '') {
+		if (!this.app.BROWSER) {
+			return;
+		}
+
+		const api = this.app.modules.returnFirstRespondTo('profile-update');
+		if (!api || typeof api.update !== 'function') {
+			return;
+		}
+
+		const stack = address == null ? '' : String(address).trim();
+		await api.update({ stack });
+	}
+
+	/**
+	 * Current Profile `stack` field via optional profile-update capability.
+	 */
+	returnProfileStackUrl() {
+		const api = this.app.modules.returnFirstRespondTo?.('profile-update');
+		if (!api || typeof api.get !== 'function') {
+			return '';
+		}
+		try {
+			const profile = api.get() || {};
+			return String(profile.stack || '').trim();
+		} catch (err) {
+			return '';
+		}
+	}
+
+	/**
+	 * Path for a creator Stack feed: /stack/<publickey>
+	 */
+	returnStackPath(publicKey = '') {
+		const key = String(publicKey || '').trim();
+		if (!key) {
+			return '/' + encodeURI(this.returnSlug());
+		}
+		return `/${encodeURI(this.returnSlug())}/${encodeURIComponent(key)}`;
+	}
+
+	/**
+	 * Absolute shareable URL for a creator Stack feed.
+	 */
+	returnStackUrl(publicKey = '') {
+		const path = this.returnStackPath(publicKey);
+		if (this.app.BROWSER && typeof window !== 'undefined' && window.location?.origin) {
+			return `${window.location.origin}${path}`;
+		}
+		return path;
 	}
 
 	shouldAffixCallbackToModule(modname, tx = null) {
@@ -199,6 +255,12 @@ class Stack extends ModTemplate {
     // ========================================================================
     const pathname = window.location.pathname;
     const slug = '/' + this.slug;
+
+    if (pathname === slug && new URLSearchParams(window.location.search).get('publish') === '1') {
+      window.history.replaceState({}, '', slug);
+      await this.main.handleStartWriting();
+      return;
+    }
 
     // Check if pathname starts with /stack
     if (pathname.startsWith(slug)) {
@@ -295,9 +357,9 @@ class Stack extends ModTemplate {
     // Show loading state
     if (container) {
       container.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem;">
-          <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
-          <p style="color: var(--saito-muted-foreground); font-size: 1.6rem;">Loading blog post for you…</p>
+        <div class="stack-status">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <p>Loading blog post for you…</p>
         </div>
       `;
     }
@@ -310,45 +372,17 @@ class Stack extends ModTemplate {
         if (container) {
           if (this.pending_post_sig != '' && this.pending_post_loaded != true) {
             container.innerHTML = `
-    <div
-      class="stack-post-loading"
-      style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 1.2rem;
-        pointer-events: none;
-        z-index: 10;
-      "
-    >
-      <div
-        class="saito-spinner"
-        style="width:8rem;height:8rem;"
-      ></div>
-
-      <div
-        style="
-          font-size: 2.5rem;
-          color: var(--saito-muted-foreground);
-          text-align: center;
-        "
-      >
-        Loading Post from Saito Network
-      </div>
+    <div class="stack-status network">
+      <div class="saito-spinner"></div>
+      <div class="message">Loading Post from Saito Network</div>
     </div>
   `;
           } else {
             container.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem; text-align: center;">
-              <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
-              <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">Unable to load this blog post</h3>
-              <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
+            <div class="stack-status">
+              <i class="fa-solid fa-exclamation-triangle"></i>
+              <h3>Unable to load this blog post</h3>
+              <p>
                 The blog post you're looking for could not be found. It may have been deleted, or you may not have permission to view it.
               </p>
             </div>
@@ -366,10 +400,10 @@ class Stack extends ModTemplate {
       // Show error state
       if (container) {
         container.innerHTML = `
-          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem; text-align: center;">
-            <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
-            <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">Unable to load this blog post</h3>
-            <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
+          <div class="stack-status">
+            <i class="fa-solid fa-exclamation-triangle"></i>
+            <h3>Unable to load this blog post</h3>
+            <p>
               An error occurred while loading the blog post. Please try again later.
             </p>
           </div>
@@ -385,10 +419,10 @@ class Stack extends ModTemplate {
     const container = document.querySelector('.saito-container');
     if (container) {
       container.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem; text-align: center;">
-          <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
-          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">Invalid URL</h3>
-          <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
+        <div class="stack-status">
+          <i class="fa-solid fa-exclamation-triangle"></i>
+          <h3>Invalid URL</h3>
+          <p>
             The URL you requested is not valid. Please check the URL and try again.
           </p>
         </div>
@@ -465,6 +499,47 @@ class Stack extends ModTemplate {
   // Inter-module Communication //
   ////////////////////////////
   respondTo(type = '', obj) {
+    if (type === 'redsquare-profile') {
+      const publicKey = String(obj?.publicKey || '').trim();
+      if (!publicKey) {
+        return null;
+      }
+
+      let link = String(obj?.profile?.stack || '').trim();
+      if (!link) {
+        const api = this.app.modules.returnFirstRespondTo?.('profile-update');
+        if (api && typeof api.get === 'function') {
+          try {
+            const profile = api.get(publicKey) || {};
+            link = String(profile.stack || '').trim();
+          } catch (err) {
+            link = '';
+          }
+        }
+      }
+      if (!link) {
+        return null;
+      }
+
+      return {
+        text: 'Stack',
+        link
+      };
+    }
+
+    if (type === 'redsquare-create') {
+      return {
+        id: 'stack-publish',
+        label: 'Publish',
+        image: '/saito/icons/saito-stack-icon-solid.svg',
+        callback: () => {
+          if (typeof navigateWindow === 'function') {
+            navigateWindow('/stack?publish=1');
+          }
+        }
+      };
+    }
+
     if (type === 'saito-header') {
       let x = [];
       if (!this.browser_active) {
@@ -485,6 +560,7 @@ class Stack extends ModTemplate {
       return {
         text: `View Stack`,
         icon: this.icon_fa,
+        image: '/saito/icons/saito-stack-icon-solid.svg',
         callback: function (app, publicKey) {
           navigateWindow(`/stack/${publicKey}`);
         }
@@ -2447,20 +2523,14 @@ class Stack extends ModTemplate {
     //
     // 2. STACK APP BOOTSTRAP
     //
-    // Explicitly handle:
     //   /stack
     //   /stack/<publickey>
     //   /stack/<publickey>/<txsig>
     //
-    // In ALL cases, we just return the Stack home HTML.
-    // Stack (browser-side) will inspect window.location.pathname
-    // and decide whether to call:
-    //   - loadPostsForAuthor()
-    //   - loadPost()
-    //   - explore logic
+    // Article GET loads the transaction via loadPost() so OG tags in the
+    // initial HTML do not depend on JavaScript or transactionCache.
+    // The browser still hydrates the page from saito.js / __STACK_INITIAL_POST.
     //
-    let updateSocial = Object.assign({}, stack_self.social);
-
     expressapp.get(`${uri}`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
@@ -2489,6 +2559,11 @@ class Stack extends ModTemplate {
                 });
                 return res.end(img);
               }
+              return;
+            }
+
+            if (!res.finished) {
+              res.status(404).end();
             }
           },
           'localhost'
@@ -2497,35 +2572,39 @@ class Stack extends ModTemplate {
         return;
       }
 
-      return res.send(HomePage(app, stack_self, app.build_number, updateSocial));
+      return res.send(
+        HomePage(app, stack_self, app.build_number, Object.assign({}, stack_self.social))
+      );
     });
 
     expressapp.get(`${uri}/:publickey`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
-      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publicKey)}`;
+      const updateSocial = Object.assign({}, stack_self.social);
+      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publickey)}`;
       return res.send(HomePage(app, stack_self, app.build_number, updateSocial));
     });
 
-    expressapp.get(`${uri}/:publickey/:txsig`, (req, res) => {
+    expressapp.get(`${uri}/:publickey/:txsig`, async (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
+      const publickey = req.params.publickey;
       const txsig = req.params.txsig;
-      const cachedTx = txsig ? stack_self.transactionCache[txsig] : null;
+      const updateSocial = Object.assign({}, stack_self.social);
+      updateSocial.url = stack_self.resolveSocialUrl(`${uri}/${publickey}/${txsig}`);
 
-      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publicKey)}`;
+      const articleTx = txsig ? await stack_self.loadPost(txsig, { peer: 'localhost' }) : null;
 
-      if (cachedTx) {
+      if (articleTx) {
         try {
-          let txmsg = cachedTx.returnMessage();
+          let txmsg = articleTx.returnMessage();
           if (txmsg?.data?.title) {
             updateSocial.title = txmsg.data.title;
           }
           if (txmsg?.data?.image) {
-            console.log(txmsg?.data?.image);
-            updateSocial.image = uri + '?og_img_sig=' + txsig;
+            updateSocial.image = stack_self.resolveSocialUrl(`${uri}?og_img_sig=${txsig}`);
           } else if (txmsg?.data?.imageUrl) {
-            updateSocial.image = txmsg.data.imageUrl;
+            updateSocial.image = stack_self.resolveSocialUrl(txmsg.data.imageUrl);
           }
 
           let summary = txmsg?.data?.summary || txmsg?.data?.excerpt || '';
@@ -2533,19 +2612,20 @@ class Stack extends ModTemplate {
             updateSocial.description = summary;
           } else {
             updateSocial.description =
-              app.keychain.returnUsername(req.params.publicKey) + ' writes on Saito Stack...';
+              app.keychain.returnUsername(publickey) + ' writes on Saito Stack...';
           }
         } catch (err) {
           console.debug('Stack: Failed to serialize cached post for initial HTML', err);
         }
       }
+
       return res.send(
         HomePage(
           app,
           stack_self,
           app.build_number,
           updateSocial,
-          cachedTx ? cachedTx.serialize_to_web(app) : null
+          articleTx ? articleTx.serialize_to_web(app) : null
         )
       );
     });

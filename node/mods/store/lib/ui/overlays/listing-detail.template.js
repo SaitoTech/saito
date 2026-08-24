@@ -15,24 +15,34 @@ module.exports = {
     const loader = view.imageLoading
       ? `<i class="fas fa-spinner fa-spin loader" aria-hidden="true"></i>`
       : '';
-    const imageAlt = view.listingTitle
-      ? String(view.listingTitle).replace(/"/g, '&quot;')
-      : 'Listing image';
+    const imageAlt = view.listingTitle || 'Listing image';
 
-    const quantity = view.showQuantity
-      ? `<div class="quantity">
+    const quantity =
+      !view.isRental && view.showQuantity
+        ? `<div class="quantity">
           <label for="listing-qty">Quantity</label>
           <input class="saito-input" id="listing-qty" type="number" min="1" max="${view.supply}" value="1" />
           <span class="hint">max ${view.supply}</span>
         </div>`
-      : '';
+        : '';
 
     const nextBid = view.showNextBid
       ? `<p class="next-bid">Next minimum bid ${view.nextBidDisplay}</p>`
       : '';
 
+    const rentalFacts = view.isRental
+      ? `
+              <div><dt>Duration</dt><dd>${view.rentalDuration || '—'}</dd></div>
+              <div><dt>Rights</dt><dd>${view.rentalRights || 'All rights'}</dd></div>`
+      : `
+              <div><dt>File</dt><dd>${view.fileType}</dd></div>`;
+
+    const note = view.isRental
+      ? `<p class="rental-note">One rental NFT is transferred per rent. This grants temporary access to the protected file for the listed duration.</p>`
+      : `<textarea id="listing-note" class="saito-textarea note" placeholder="Note to seller (optional)" aria-label="Note to seller"></textarea>`;
+
     return `
-    <article class="listing-detail view">
+    <article class="listing-detail view${view.isRental ? ' rental' : ''}">
       <header>
         <img class="saito-identicon" src="${view.identicon}" alt="" />
         <div class="meta">
@@ -65,14 +75,14 @@ module.exports = {
           <section class="section meta-facts">
             <dl class="facts">
               <div><dt>Type</dt><dd>${view.productType}</dd></div>
-              <div><dt>File</dt><dd>${view.fileType}</dd></div>
+              ${rentalFacts}
               <div><dt>Listed</dt><dd>${view.createdDate}</dd></div>
             </dl>
           </section>
 
           <section class="section checkout">
             ${quantity}
-            <textarea id="listing-note" class="saito-textarea note" placeholder="Note to seller (optional)" aria-label="Note to seller"></textarea>
+            ${note}
             <button type="button" class="saito-button-primary action" data-action="buy">${view.actionText}</button>
           </section>
         </div>

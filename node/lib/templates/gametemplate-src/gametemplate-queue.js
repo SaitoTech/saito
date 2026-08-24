@@ -155,7 +155,7 @@ class GameQueue {
     );
     console.debug('GT [startQueue] CONFIRMS_NEEDED: ' + JSON.stringify(this.game.confirms_needed));
 
-    if (this.game.over) {
+    if (this.game.over == 1) {
       console.trace('GT: Starting queue from game over state???');
       return;
     }
@@ -206,7 +206,7 @@ class GameQueue {
     //
     if (this.deferred_game_end?.length) {
       await this.processDeferredGameEndTransactions();
-      if (this.game.over) {
+      if (this.game.over == 1) {
         return;
       }
     }
@@ -308,6 +308,9 @@ class GameQueue {
         last_instruction === game_self.game.queue[queue_length - 1]
       ) {
         cont = await this.handleGameLoop();
+        if (cont == 0 && game_self.game.terminating && game_self.game.over == 0) {
+          cont = 1;
+        }
       }
     }
 
@@ -583,10 +586,31 @@ class GameQueue {
     });
 
     this.commands.push(async (game_self, gmv) => {
+      if (gmv[0] === 'SETTLE') {
+        game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+        game_self.queueGameStakeSettlement();
+        return 1;
+      }
+      return 1;
+    });
+
+    this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'GAMEOVER') {
+        game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
+        game_self.game.terminating = 0;
+        game_self.game.over = 1;
+        game_self.game.last_block = game_self.app.blockchain.last_bid;
+
         if (game_self.gameBrowserActive()) {
-          game_self.updateLog('Player has Quit the Game');
+          game_self.gameOverUserInterface();
+        } else {
+          if (game_self.game.reason !== 'cancellation') {
+            siteMessage(game_self.game.module + ': Game Over', 5000);
+            game_self.app.connection.emit('arcade-invite-manager-render-request');
+          }
         }
+
+        game_self.saveGame(game_self.game.id);
         return 0;
       }
       return 1;
@@ -2668,6 +2692,20 @@ class GameQueue {
         game_self.halted = 1;
 
         let sendPaymentWrapper = async () => {
+          // TEMP_DIAG_POKER_AUTH: sendPaymentWrapper invoked (post-Authorize click)
+          const trusted_now = game_self.game.terminating
+            ? true
+            : this_self.loadGamePreference('crypto_transfers_outbound_trusted');
+          const trunc = (s) =>
+            typeof s === 'string' && s.length > 14 ? `${s.slice(0, 8)}...${s.slice(-6)}` : s;
+          console.info('[TEMP_DIAG_POKER_AUTH] sendPaymentWrapper invoked', {
+            ticker,
+            amount,
+            trusted_now,
+            sender_crypto_address: trunc(sender_crypto_address),
+            receiver_crypto_address: trunc(receiver_crypto_address),
+            unique_hash: trunc(unique_hash)
+          });
           await game_self.app.wallet.sendPayment(
             ticker,
             [sender_crypto_address],
@@ -2675,6 +2713,14 @@ class GameQueue {
             [amount],
             unique_hash,
             function (robj) {
+              // TEMP_DIAG_POKER_AUTH: wallet.sendPayment callback stage
+              console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment callback', {
+                robj_has_err: robj?.err != null,
+                robj_err: robj?.err != null ? robj.err : undefined,
+                robj_hash: robj?.hash != null ? robj.hash : undefined,
+                queue_tail_matches:
+                  game_self.game.queue[game_self.game.queue.length - 1] === my_queue_entry
+              });
               if (game_self.game.id != my_specific_game_id) {
                 game_self.game = game_self.loadGame(my_specific_game_id);
               }
@@ -2694,9 +2740,14 @@ class GameQueue {
                 return 0;
               }
               game_self.updateLog('payments issued...');
+              console.info('[TEMP_DIAG_POKER_AUTH] SEND callback splicing and restarting queue', {
+                removing_queue_entry: game_self.game.queue[game_self.game.queue.length - 1],
+                restartQueue_called: true
+              });
               game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
               game_self.restartQueue();
+
               return 0;
             },
             receiver,
@@ -2704,14 +2755,16 @@ class GameQueue {
           );
         };
 
-        game_self.app.connection.emit('saito-crypto-send-confirm-open-request', {
+        game_self.app.connection.emit('saito-game-crypto-send-auth-open-request', {
           publicKey: receiver,
           address: receiver_crypto_address,
           amount,
           ticker,
           hash: unique_hash,
           game_id: game_self.game.id,
-          trusted: this_self.loadGamePreference('crypto_transfers_outbound_trusted'),
+          trusted: game_self.game.terminating
+            ? true
+            : this_self.loadGamePreference('crypto_transfers_outbound_trusted'),
           mycallback: sendPaymentWrapper
         });
 

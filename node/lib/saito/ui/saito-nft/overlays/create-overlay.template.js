@@ -80,10 +80,14 @@ module.exports = (app, mod) => {
           <div class="upload-hint">drag-and-drop image to upload</div>
         </div>
         <textarea id="create-nft-textarea" class="saito-textarea"></textarea>
+        <button type="button" class="create-nft-thumbnail-picker" aria-label="add thumbnail">
+          <span>add thumbnail</span>
+        </button>
       </div>
 
       <footer class="footer">
         <div class="get-saito-tokens"></div>
+        <div class="actions"></div>
         <button type="button" id="next-step" class="saito-button-primary">Next Step</button>
       </footer>
     </section>

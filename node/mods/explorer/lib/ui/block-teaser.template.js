@@ -1,3 +1,5 @@
+const BlockCardTemplate = require('./block-card.template');
+
 module.exports = ({
   blocks = [],
   loading = false,
@@ -27,34 +29,15 @@ module.exports = ({
       </div>
     `;
   } else {
-    body = blocks
-      .map(
-        (block) => `
-      <div class="explorer-feed-item" role="button" tabindex="0" data-block-hash="${block.hash}">
-        <span class="explorer-feed-icon" aria-hidden="true"><i class="fas fa-cube"></i></span>
-        <div class="explorer-feed-main">
-          <div class="explorer-feed-line">
-            <span class="explorer-link">Block ${block.number}</span>
-          </div>
-          <div class="explorer-feed-meta">
-            Miner ${block.miner}
-          </div>
-        </div>
-        <div class="explorer-feed-aside">
-          <span class="explorer-feed-time">${block.time}</span>
-          <span class="explorer-feed-detail">${block.txns} txns</span>
-        </div>
-        <span class="explorer-feed-badge">${block.reward}</span>
-      </div>
-    `
-      )
-      .join('');
+    body = blocks.map((block) => BlockCardTemplate(block)).join('');
   }
 
   return `
     <section class="block-teaser explorer-panel" aria-label="Latest blocks">
       <div class="explorer-panel-header">
-        <h2 class="explorer-heading explorer-m-0">Latest Blocks</h2>
+        <h2 class="explorer-heading explorer-m-0">
+          <a class="explorer-link" href="/explorer/blocks" data-explorer-nav="all-blocks">Latest Blocks</a>
+        </h2>
       </div>
       <div class="explorer-feed">
         ${body}

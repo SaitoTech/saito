@@ -169,6 +169,18 @@ impl WasmBlockchain {
         // or full block with transactions (if exists)
         //
         if !mem_block.transactions.is_empty() {
+            let needs_generate = mem_block
+                .transactions
+                .iter()
+                .any(|tx| tx.hash_for_signature.is_none());
+            if needs_generate {
+                let mut block = mem_block.clone();
+                drop(blockchain);
+                block
+                    .generate()
+                    .map_err(|_| JsValue::from("failed to generate block"))?;
+                return Ok(WasmBlock::from_block(block));
+            }
             return Ok(WasmBlock::from_block(mem_block.clone()));
         }
 
@@ -195,10 +207,14 @@ impl WasmBlockchain {
         let saito = SAITO.lock().await;
         let storage = &saito.as_ref().unwrap().routing_thread.storage;
 
-        let block = storage
+        let mut block = storage
             .load_block_from_disk(filepath.as_str())
             .await
             .map_err(|_| JsValue::from("transactions unavailable"))?;
+
+        block
+            .generate()
+            .map_err(|_| JsValue::from("failed to generate block"))?;
 
         Ok(WasmBlock::from_block(block))
     }

@@ -116,13 +116,13 @@ impl Mempool {
             "add transaction if validates : {:?}",
             transaction.signature.to_hex()
         );
+
         let public_key;
         let tx_valid;
         {
             let wallet = self.wallet_lock.read().await;
             public_key = wallet.public_key;
             transaction.generate(&public_key, 0, 0);
-
             tx_valid = transaction.validate(&blockchain.utxoset, blockchain, true);
         }
 
@@ -193,7 +193,6 @@ impl Mempool {
         let previous_block_hash: SaitoHash;
         let public_key;
         let private_key;
-        let block_timestamp_gap;
         {
             let wallet = self.wallet_lock.read().await;
             previous_block_hash = blockchain.get_latest_block_hash();
@@ -211,21 +210,12 @@ impl Mempool {
                 return None;
             }
 
-            block_timestamp_gap =
-                Duration::from_millis(current_timestamp - previous_block_timestamp).as_secs();
             public_key = wallet.public_key;
             private_key = wallet.private_key;
         }
         let mempool_work = self
             .can_bundle_block(blockchain, current_timestamp, &gt_tx, configs, &public_key)
             .await?;
-        info!(
-            "bundling block with {:?} txs with work : {:?} with a gap of {:?} seconds. timestamp : {:?}",
-            self.transactions.len(),
-            mempool_work,
-            block_timestamp_gap,
-            current_timestamp
-        );
 
         if blockchain.social_stake_requirement > 0 {
             let staking_tx;
@@ -356,7 +346,6 @@ impl Mempool {
                 previous_block.timestamp,
                 configs.get_consensus_config().unwrap().heartbeat_interval,
             );
-            let time_elapsed = current_timestamp - previous_block.timestamp;
 
             let mut h: Vec<u8> = vec![];
             h.append(&mut public_key.to_vec());
@@ -371,17 +360,6 @@ impl Mempool {
             }
 
             let result = work_available >= work_needed;
-            if result {
-                info!(
-                "last ts: {:?}, this ts: {:?}, work available: {:?}, work needed: {:?}, time_elapsed : {:?} can_bundle : {:?}",
-                previous_block.timestamp, current_timestamp, work_available, work_needed, time_elapsed, true
-                );
-            } else {
-                info!(
-                "last ts: {:?}, this ts: {:?}, work available: {:?}, work needed: {:?}, time_elapsed : {:?} can_bundle : {:?}",
-                previous_block.timestamp, current_timestamp, work_available, work_needed, time_elapsed, false
-                );
-            }
             if result {
                 return Some(work_available);
             }
@@ -537,6 +515,42 @@ mod tests {
             )
             .await
             .is_some());
+    }
+
+    // Issuance transactions must not enter the mempool once block 1 exists.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn issuance_transaction_rejected_after_block_one() {
+        let mut t = TestManager::default();
+        t.initialize(1, 100_000).await;
+
+        let wallet_lock = t.get_wallet_lock();
+        let mempool_lock = t.get_mempool_lock();
+        let blockchain_lock = t.get_blockchain_lock();
+
+        let public_key;
+        let private_key;
+        {
+            let wallet = wallet_lock.read().await;
+            public_key = wallet.public_key;
+            private_key = wallet.private_key;
+        }
+
+        let mut tx = Transaction::create_issuance_transaction(public_key, 1);
+        tx.generate(&public_key, 0, 0);
+        tx.sign(&private_key);
+
+        let blockchain = blockchain_lock.read().await;
+        let mut mempool = mempool_lock.write().await;
+        let before = mempool.transactions.len();
+
+        mempool.add_transaction_if_validates(tx, &blockchain).await;
+
+        assert_eq!(
+            mempool.transactions.len(),
+            before,
+            "issuance txs must not enter the mempool after block 1"
+        );
     }
 
     // Item 23: a GoldenTicket transaction sent to add_transaction is silently rejected

@@ -77,13 +77,13 @@ class ChooseDraftOverlay {
     }, 50);
 
     // Draft row click handlers (up to 3 drafts)
-    const draftRows = document.querySelectorAll('.stack-choose-draft-row[data-draft-id]');
+    const draftRows = document.querySelectorAll('.choose-draft .row[data-draft-id]');
     draftRows.forEach((row) => {
       const draftId = row.getAttribute('data-draft-id');
       if (draftId) {
         row.addEventListener('click', async (e) => {
           // Don't select if clicking on delete button
-          if (e.target.closest('.stack-choose-draft-row-delete')) {
+          if (e.target.closest('.delete')) {
             return;
           }
 
@@ -97,7 +97,7 @@ class ChooseDraftOverlay {
     });
 
     // Delete icon click handlers (stop propagation to prevent row selection)
-    const deleteIcons = document.querySelectorAll('.stack-choose-draft-row-delete');
+    const deleteIcons = document.querySelectorAll('.choose-draft .delete');
     deleteIcons.forEach((icon) => {
       const draftId = icon.getAttribute('data-draft-id');
       if (draftId) {

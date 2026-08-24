@@ -1,7 +1,8 @@
 .saito-alert {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  /* Keep wallet prompts actionable while the startup CTA loader is visible. */
+  z-index: 2147483100;
 }
 
 #saito-alert-shim {

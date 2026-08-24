@@ -29,13 +29,13 @@ class Docs extends ModTemplate {
 
     this.styles = ['/docs/style.css'];
 
-    this.social = {
+    this.social = this.buildSocial({
       twitter: '@SaitoOfficial',
       title: 'Saito Docs',
-      url: 'https://saito.io/docs/',
+      url: '/docs/',
       description: 'End-to-end encrypted collaborative documents on Saito',
       image: '/docs/img/splash.png'
-    };
+    });
 
     // Auth state
     this._authReady = false;

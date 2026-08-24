@@ -34,13 +34,6 @@ Typical use:
       signature: '<hex_signature>'
     }
   },
-  schema: {
-    key: 'string',
-    publickey: 'reference',
-    hash: 'reference',
-    value: 'integer',
-    signature: 'signature'
-  },
 
   execute(node, context) {
     if (!node || typeof node !== 'object' || !context || typeof context !== 'object') {

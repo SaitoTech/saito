@@ -1,0 +1,218 @@
+/*
+ * Namespace: .arcade-add-game
+ * Visual reference: NWASM `.nwasm-new-game` action cards.
+ * Stack-based views share one shell; home grid is count-driven (3 or 4).
+ */
+
+.arcade-add-game {
+  width: min(110rem, 96vw);
+  max-height: min(92vh, 70rem);
+  background: transparent;
+  background-image: none;
+}
+
+.arcade-add-game .body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+}
+
+.arcade-add-game .nav {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--saito-space-md);
+}
+
+.arcade-add-game .nav .heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  text-align: center;
+}
+
+.arcade-add-game .nav .lede {
+  font-family: var(--saito-font-heavy);
+  font-size: 1.67rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.arcade-add-game .nav .text,
+.arcade-add-game .placeholder .text,
+.arcade-add-game .empty {
+  font-size: inherit;
+  line-height: 1.4;
+  color: var(--saito-foreground);
+}
+
+.arcade-add-game .nav-btn {
+  min-height: 2.6rem;
+  padding: 0 var(--saito-space-sm);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius-sm);
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.arcade-add-game .nav-btn:hover,
+.arcade-add-game .nav-btn:focus-visible {
+  border-color: var(--saito-primary);
+  outline: none;
+}
+
+.arcade-add-game .nav-spacer {
+  width: 4.5rem;
+}
+
+.arcade-add-game .choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(var(--saito-space-lg), 2.5vw, var(--saito-space-xxl));
+}
+
+.arcade-add-game .game-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: clamp(var(--saito-space-lg), 2.5vw, var(--saito-space-xxl));
+}
+
+.arcade-add-game .choice,
+.arcade-add-game .game-choice {
+  display: flex;
+  flex-direction: column;
+  min-height: min(62vh, 42rem);
+  padding: 0;
+  border: 1px solid var(--saito-border);
+  border-radius: calc(var(--saito-radius) + 0.2rem);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  background: var(--saito-card);
+  color: var(--saito-foreground);
+  box-shadow: var(--saito-elevation-1);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.arcade-add-game .game-choice {
+  min-height: min(36vh, 24rem);
+}
+
+.arcade-add-game .choice:hover,
+.arcade-add-game .choice:focus-visible,
+.arcade-add-game .game-choice:hover,
+.arcade-add-game .game-choice:focus-visible {
+  border-color: var(--saito-primary);
+  box-shadow: var(--saito-elevation-3);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.arcade-add-game .choice .art,
+.arcade-add-game .game-choice .art {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: 1672 / 941;
+  background: var(--saito-background);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.arcade-add-game .choice .art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.arcade-add-game .choice .meta,
+.arcade-add-game .game-choice .meta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  flex: 0 0 auto;
+  padding: var(--saito-space-xl) var(--saito-space-lg) var(--saito-space-xxl);
+  background-color: var(--saito-card);
+  box-shadow: 0 -1.2rem 2.4rem color-mix(in srgb, var(--saito-background) 55%, transparent);
+}
+
+.arcade-add-game .choice .lede,
+.arcade-add-game .game-choice .lede {
+  font-family: var(--saito-font-heavy);
+  font-size: clamp(1.8rem, 2.2vw, 2.4rem);
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.arcade-add-game .choice .text {
+  font-size: var(--font-size-medium, 1.083rem);
+  line-height: 1.45;
+  color: var(--saito-foreground);
+  max-width: 36ch;
+}
+
+.arcade-add-game .placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--saito-space-lg);
+  min-height: 18rem;
+  padding: var(--saito-space-xl);
+  border: 1px solid var(--saito-border);
+  border-radius: calc(var(--saito-radius) + 0.2rem);
+  background: var(--saito-card);
+  text-align: center;
+}
+
+/* Darker page backdrop — Arcade still faintly visible, cards dominate. */
+.saito-overlay:has(> .arcade-add-game) + .saito-overlay-backdrop {
+  background-color: color-mix(in srgb, #000 86%, transparent);
+}
+
+.saito-overlay:has(> .arcade-add-game) {
+  background-color: transparent;
+}
+
+.saito-overlay:has(> .arcade-add-game) > .saito-overlay-panel,
+.saito-overlay:has(> .arcade-add-game) > .arcade-add-game {
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .arcade-add-game {
+    width: min(48rem, 96vw);
+    max-height: 92vh;
+  }
+
+  .arcade-add-game .choices {
+    grid-template-columns: 1fr;
+    gap: var(--saito-space-lg);
+  }
+
+  .arcade-add-game .choice {
+    min-height: 0;
+  }
+
+  .arcade-add-game .choice .meta,
+  .arcade-add-game .game-choice .meta {
+    padding: var(--saito-space-lg);
+  }
+
+  .arcade-add-game .nav {
+    grid-template-columns: auto 1fr;
+  }
+}

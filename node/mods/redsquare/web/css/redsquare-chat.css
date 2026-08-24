@@ -11,16 +11,43 @@
   background: transparent;
 }
 
-.sidebar-left .close-chat-manager,
-.sidebar-left .alternate-close-button {
-  display: none;
-}
-
 .sidebar-left .chat-manager-list {
   flex: 1 1 auto;
   min-height: 0;
   max-height: none;
   overflow-y: auto;
+}
+
+/*
+ * Chat typography — match RS feed hierarchy (Saito chat defaults are larger).
+ * Title inherits body on mobile; desktop section step lives in redsquare-main.css.
+ * Names = body + medium; secondary line = metadata step.
+ */
+body.redsquare-body .chat-manager .saito-sidebar-header,
+body.redsquare-body .redsquare-mobile-chat .saito-sidebar-header {
+  font-size: inherit;
+}
+
+/* Desktop rail Chat title — same section step as Leaderboard / Who to Follow */
+@media (min-width: 601px) {
+  body.redsquare-body .sidebar-left .chat-manager .saito-sidebar-header {
+    font-size: 1.67rem;
+    font-family: var(--saito-font-medium);
+  }
+}
+
+body.redsquare-body .chat-manager-list .saito-address,
+body.redsquare-body .redsquare-mobile-chat .chat-manager-list .saito-address {
+  font-size: inherit;
+  font-family: var(--saito-font-medium);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+body.redsquare-body .chat-manager-list .saito-userline,
+body.redsquare-body .redsquare-mobile-chat .chat-manager-list .saito-userline {
+  font-size: 1.083rem;
+  line-height: 1.35;
 }
 
 @media (max-width: 1200px) {
@@ -50,11 +77,6 @@
     min-height: 0;
     max-height: none;
     overflow-y: auto;
-  }
-
-  .redsquare-mobile-chat .close-chat-manager,
-  .redsquare-mobile-chat .alternate-close-button {
-    display: none;
   }
 
   .redsquare-mobile-chat > .chat-static {

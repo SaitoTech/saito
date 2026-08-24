@@ -111,34 +111,33 @@ impl SyncManager {
         let blockchain = self.blockchain_lock.read().await;
         let mempool = self.mempool_lock.read().await;
         if blockchain.is_block_indexed(block_hash) {
-            info!("[BLOCK_FETCH_TRACE][FETCH] block is indexed...");
-        } else if mempool.blocks_queue.iter().any(|b| b.hash == block_hash) {
-            info!("[BLOCK_FETCH_TRACE][FETCH] block is in mempool...");
-        } else {
-            info!("[BLOCK_FETCH_TRACE][FETCH] block inserting into queue...");
+            return false;
+        }
+        if mempool.blocks_queue.iter().any(|b| b.hash == block_hash) {
+            return false;
+        }
 
-            let key = (block_id, block_hash);
-            match self.queue.get_mut(&key) {
-                Some(entry) => {
-                    if !entry.peer_ids.contains(&peer_id) {
-                        entry.peer_ids.push(peer_id);
-                    }
+        let key = (block_id, block_hash);
+        match self.queue.get_mut(&key) {
+            Some(entry) => {
+                if !entry.peer_ids.contains(&peer_id) {
+                    entry.peer_ids.push(peer_id);
                 }
-                None => {
-                    self.queue.insert(
-                        key,
-                        QueueItem {
-                            block_id,
-                            block_hash,
-                            peer_ids: vec![peer_id],
-                            retry_count: 0,
-                            last_attempt_at: 0,
-                            fetch_active: false,
-                            fetch_peer_id: None,
-                        },
-                    );
-                    return true;
-                }
+            }
+            None => {
+                self.queue.insert(
+                    key,
+                    QueueItem {
+                        block_id,
+                        block_hash,
+                        peer_ids: vec![peer_id],
+                        retry_count: 0,
+                        last_attempt_at: 0,
+                        fetch_active: false,
+                        fetch_peer_id: None,
+                    },
+                );
+                return true;
             }
         }
         return false;
@@ -772,7 +771,6 @@ impl SyncManager {
         };
 
         let Some(peer_id) = peer_id else {
-            info!(" -- no -- cannot find peer from peer_id");
             return;
         };
 

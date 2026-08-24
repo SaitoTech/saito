@@ -1,6 +1,8 @@
-const Teasers = require('./teasers');
 const EmptyPanel = require('./empty-panel');
-const { loadSellerInventory } = require('./browse-listings');
+const ListingsTableTemplate = require('./listings-table.template');
+const CatalogFooterTemplate = require('./catalog-footer.template');
+const { loadListingsPage } = require('./browse-listings');
+const { DEFAULT_PAGE_SIZE } = require('../categories');
 
 class SalesView {
   constructor(app, mod, container = '') {
@@ -10,9 +12,11 @@ class SalesView {
     this.summaries = [];
     this.loading = false;
     this.loadToken = 0;
-    this.teasers = new Teasers(app, mod, '');
+    this.page = 1;
+    this.page_size = DEFAULT_PAGE_SIZE;
+    this.pagination = null;
     this.empty = new EmptyPanel(app, mod, {
-      title: 'No sold listings.',
+      title: 'No completed sales.',
       body: '',
       actionLabel: '',
       onAction: null
@@ -40,14 +44,13 @@ class SalesView {
               : ''
           }
         </div>
-        <div class="teasers" aria-label="Sold listings"></div>
+        <div data-listings-table></div>
+        <div class="catalog-footer" data-catalog-footer hidden></div>
       </section>
     </div>
   `,
       this.container
     );
-
-    this.teasers.container = `${this.container} .teasers`;
 
     if (this.loading) {
       return;
@@ -57,40 +60,85 @@ class SalesView {
   }
 
   /**
-   * @param {import('../summary')[]|null} [summaries] Preloaded sold summaries from warehouse inventory.
+   * @param {import('../summary')[]|null} [summaries] Preloaded sold summaries (no extra fetch).
    */
   async show(summaries = null) {
     if (Array.isArray(summaries)) {
       this.summaries = summaries;
+      this.pagination = {
+        offset: 0,
+        page: 1,
+        page_size: summaries.length || this.page_size,
+        total: summaries.length,
+        total_pages: summaries.length ? 1 : 0,
+        has_next: false,
+        has_previous: false
+      };
+      this.page = 1;
       this.loading = false;
       this.render();
       return;
     }
 
+    this.page = 1;
+    await this.loadPage({ page: 1 });
+  }
+
+  async loadPage({ page = this.page } = {}) {
     const seller = String(this.mod.publicKey || '').trim();
     if (!seller) {
       this.summaries = [];
+      this.pagination = {
+        offset: 0,
+        page: 1,
+        page_size: this.page_size,
+        total: 0,
+        total_pages: 0,
+        has_next: false,
+        has_previous: false
+      };
       this.loading = false;
       this.render();
       return;
     }
 
+    const next_page = Math.max(1, Number(page) || 1);
+    const offset = (next_page - 1) * this.page_size;
+
+    this.page = next_page;
     this.loading = true;
     const token = ++this.loadToken;
     this.render();
 
     try {
-      const inventory = await loadSellerInventory(this.app, this.mod, seller);
+      const result = await loadListingsPage(this.app, this.mod, {
+        public_key: seller,
+        category: '',
+        offset,
+        page_size: this.page_size,
+        status: 'sold'
+      });
       if (token !== this.loadToken) {
         return;
       }
-      this.summaries = inventory.sold || [];
+      this.summaries = result.listings || [];
+      this.pagination = result.pagination || null;
+      this.page = this.pagination?.page || this.page;
     } catch (err) {
       console.warn('Store: sold listings load failed', err?.message || err);
       if (token !== this.loadToken) {
         return;
       }
       this.summaries = [];
+      this.pagination = {
+        offset: 0,
+        page: 1,
+        page_size: this.page_size,
+        total: 0,
+        total_pages: 0,
+        has_next: false,
+        has_previous: false
+      };
     }
 
     if (token !== this.loadToken) {
@@ -108,21 +156,42 @@ class SalesView {
       status.innerHTML = '';
     }
 
-    const teasersEl = document.querySelector(`${this.container} .teasers`);
-    if (!teasersEl) {
+    const host = document.querySelector(`${this.container} [data-listings-table]`);
+    const footer = document.querySelector(`${this.container} [data-catalog-footer]`);
+    if (!host) {
       return;
     }
 
-    if (!this.summaries.length) {
-      teasersEl.innerHTML = '';
-      const emptyHost = document.createElement('div');
-      emptyHost.className = 'storefront-empty';
-      teasersEl.appendChild(emptyHost);
+    const listings = this.summaries || [];
+    const total = Number(this.pagination?.total ?? listings.length);
+
+    if (!total) {
+      host.innerHTML = '<div class="storefront-empty"></div>';
+      if (footer) {
+        footer.hidden = true;
+        footer.innerHTML = '';
+      }
       this.empty.render(`${this.container} .storefront-empty`);
       return;
     }
 
-    this.teasers.render(`${this.container} .teasers`, this.summaries);
+    host.innerHTML = ListingsTableTemplate({
+      listings,
+      caption: 'Sales'
+    });
+
+    if (footer) {
+      footer.hidden = false;
+      footer.innerHTML = CatalogFooterTemplate({
+        pagination: this.pagination,
+        empty: false
+      });
+      CatalogFooterTemplate.attachCatalogFooterEvents(footer, {
+        page: this.page,
+        pagination: this.pagination,
+        onPage: (nextPage) => this.loadPage({ page: nextPage })
+      });
+    }
   }
 }
 

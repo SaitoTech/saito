@@ -1,0 +1,52 @@
+/*
+ * Namespace: .arcade-settings
+ * Compact informational Settings panel.
+ */
+
+.arcade-settings {
+  width: min(36rem, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-md);
+  padding: var(--saito-space-lg);
+}
+
+.arcade-settings .title {
+  margin: 0;
+  font-family: var(--saito-font-medium);
+  font-size: 1.67rem;
+  line-height: 1.3;
+}
+
+.arcade-settings .body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.arcade-settings .body p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.arcade-settings .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--saito-space-sm);
+  margin-top: var(--saito-space-xs);
+}
+
+.arcade-settings .actions a {
+  text-decoration: none;
+}
+
+@media (max-width: 600px) {
+  .arcade-settings .actions {
+    flex-direction: column;
+  }
+
+  .arcade-settings .actions a {
+    width: 100%;
+    text-align: center;
+  }
+}

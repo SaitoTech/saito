@@ -1,3 +1,5 @@
+const CtaLoader = require('../../lib/templates/saito-cta-loader.template');
+
 module.exports = (app, mod, build_number) => {
   return `
     <!DOCTYPE html>
@@ -31,11 +33,13 @@ module.exports = (app, mod, build_number) => {
 
   <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
   <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
+  ${CtaLoader.head('store')}
 
   <link rel="stylesheet" href="/saito/saito.css" />
   <link rel="stylesheet" href="/store/style.css">
       </head>
-      <body>
+      <body class="saito-cta-loader-active">
+        ${CtaLoader.loader('store')}
         <div id="saito-container" class="saito-container"></div>
       </body>
       <script type="text/javascript" src="/saito/saito.js?build=${build_number}"></script>

@@ -47056,27 +47056,27 @@ If this is your first game, it is usually fine to skip the diplomacy phase until
         let keys = this.returnNumberOfKeysControlledByFaction(faction);
         if (faction === 'hapsburg' && keys >= this.game.state.autowin_hapsburg_keys_controlled) {
           let player = this.returnPlayerOfFaction(faction);
-          this.sendGameOverTransaction([this.game.players[player - 1]], 'Military Victory');
+          this.triggerGameOver([this.game.players[player - 1]], 'Military Victory');
           return 0;
         }
         if (faction === 'ottoman' && keys >= this.game.state.autowin_ottoman_keys_controlled) {
           let player = this.returnPlayerOfFaction(faction);
-          this.sendGameOverTransaction([this.game.players[player - 1]], 'Military Victory');
+          this.triggerGameOver([this.game.players[player - 1]], 'Military Victory');
           return 0;
         }
         if (faction === 'france' && keys >= this.game.state.autowin_france_keys_controlled) {
           let player = this.returnPlayerOfFaction(faction);
-          this.sendGameOverTransaction([this.game.players[player - 1]], 'Military Victory');
+          this.triggerGameOver([this.game.players[player - 1]], 'Military Victory');
           return 0;
         }
         if (faction === 'england' && keys >= this.game.state.autowin_england_keys_controlled) {
           let player = this.returnPlayerOfFaction(faction);
-          this.sendGameOverTransaction([this.game.players[player - 1]], 'Military Victory');
+          this.triggerGameOver([this.game.players[player - 1]], 'Military Victory');
           return 0;
         }
         if (faction === 'papacy' && keys >= this.game.state.autowin_papacy_keys_controlled) {
           let player = this.returnPlayerOfFaction(faction);
-          this.sendGameOverTransaction([this.game.players[player - 1]], 'Military Victory');
+          this.triggerGameOver([this.game.players[player - 1]], 'Military Victory');
           return 0;
         }
 
@@ -47168,7 +47168,7 @@ If this is your first game, it is usually fine to skip the diplomacy phase until
         //
         if (this.returnNumberOfProtestantSpacesInLanguageZone() >= 50) {
           let player = this.returnPlayerOfFaction('protestant');
-          this.sendGameOverTransaction([this.game.players[player - 1]], 'Religious Victory');
+          this.triggerGameOver([this.game.players[player - 1]], 'Religious Victory');
           return 0;
         }
 

@@ -39,6 +39,16 @@ body {
   transition: height 0.3s;
 }
 
+.saito-glass {
+  border: 1px solid color-mix(in srgb, var(--saito-foreground) 55%, transparent);
+  background: color-mix(in srgb, var(--saito-background) 58%, transparent);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow:
+    0 1.2rem 2.8rem color-mix(in srgb, var(--saito-black) 32%, transparent),
+    0 0.3rem 0.8rem color-mix(in srgb, var(--saito-black) 18%, transparent);
+}
+
 /* ----------------------------------------------------------------
  Link
 -----------------------------------------------------------------*/
@@ -147,6 +157,11 @@ blockquote {
   border-width: 0 0 0 2px;
   border-style: solid;
   padding: 0 0 0 0.5rem;
+}
+
+pre {
+    overflow-x: auto;
+    font-size: 1rem;
 }
 
 /* ----------------------------------------------------------------
@@ -290,7 +305,7 @@ Scrollbars
 }
 
 /* ----------------------------------------------------------------
- Scrollbars 
+ Scrollbars
 ----------------------------------------------------------------- */
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -319,7 +334,7 @@ Media Queries
 
   :root {
     font-size: 10px;
-  }    
+  }
   body {
     font-size: 1.45rem;
   }

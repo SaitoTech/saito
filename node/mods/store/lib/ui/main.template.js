@@ -3,7 +3,6 @@ module.exports = () => {
     <div class="store">
       <nav class="menu marketplace" aria-label="Store"></nav>
       <div class="main-column">
-        <div class="purchase-status-slot"></div>
         <main class="manager"></main>
       </div>
     </div>

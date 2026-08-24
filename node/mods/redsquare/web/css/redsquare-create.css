@@ -1,0 +1,70 @@
+/* Namespace: .redsquare-create — publishing action dropdown. */
+
+.redsquare-create {
+  min-width: 0;
+}
+
+.redsquare-create .actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+  padding: var(--saito-space-xs);
+}
+
+.redsquare-create .primary-action,
+.redsquare-create .options {
+  display: flex;
+  width: 100%;
+}
+
+.redsquare-create .primary-action {
+  gap: 0;
+}
+
+.redsquare-create .options {
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+}
+
+.redsquare-create .options[hidden] {
+  display: none;
+}
+
+.redsquare-create .action {
+  justify-content: flex-start;
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.redsquare-create .primary-action .action {
+  flex: 1 1 auto;
+  border-radius: var(--saito-radius) 0 0 var(--saito-radius);
+}
+
+.redsquare-create .primary-action .action:only-child {
+  border-radius: var(--saito-radius);
+}
+
+.redsquare-create .toggle {
+  flex: 0 0 4rem;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+  border-left: 0;
+  border-radius: 0 var(--saito-radius) var(--saito-radius) 0;
+}
+
+.redsquare-create .toggle i {
+  margin: 0;
+}
+
+.redsquare-create .logo {
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  margin-right: var(--saito-space-xs);
+  background: currentcolor;
+  -webkit-mask: var(--redsquare-create-logo) center / contain no-repeat;
+  mask: var(--redsquare-create-logo) center / contain no-repeat;
+}

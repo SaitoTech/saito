@@ -123,8 +123,17 @@
   font-size: 2.5rem;
 }
 
-.saito-modal-menu-option > i {
+.saito-modal-menu-option > i,
+.saito-modal-menu-option > .saito-modal-menu-option-icon {
   justify-self: center;
+}
+
+.saito-modal-menu-option-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: currentcolor;
+  -webkit-mask: var(--saito-menu-icon) center / contain no-repeat;
+  mask: var(--saito-menu-icon) center / contain no-repeat;
 }
 
 .saito-modal-menu-option > div,

@@ -97,7 +97,7 @@ class SettlersGameloop {
         if (this.gameOverCallback) {
           this.gameOverCallback();
         } else {
-          this.sendGameOverTransaction(this.game.players[winner]);
+          this.triggerGameOver(this.game.players[winner]);
         }
 
         return 0;

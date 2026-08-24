@@ -285,19 +285,26 @@
 @media screen and (max-width: 768px) {
   .saito-overlay {
     inset: 0;
+    top: var(--saito-overlay-viewport-top, 0px);
+    bottom: auto;
     box-sizing: border-box;
     width: 100vw;
     max-width: none;
     height: 100vh;
-    height: 100dvh;
+    height: var(--saito-overlay-viewport-height, 100dvh);
     max-height: none;
     margin: 0;
-    padding: 6rem 1rem 0;
+    padding: 1rem;
     border-radius: 0;
     transform: none;
     overflow-y: auto;
+    scrollbar-width: none;
     overscroll-behavior: contain;
     background: var(--saito-canvas-wash);
+  }
+
+  .saito-overlay::-webkit-scrollbar {
+    display: none;
   }
 
   .saito-overlay > .saito-overlay-panel:not(.retain-surface),
@@ -310,14 +317,14 @@
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    height: calc(100% - 5rem);
+    min-height: 100%;
     background: transparent;
     background-image: none;
   }
 
   .saito-overlay .saito-overlay-closebox {
     position: fixed;
-    top: max(1rem, env(safe-area-inset-top));
+    top: max(2.3rem, env(safe-area-inset-top));
     right: max(1rem, env(safe-area-inset-right));
   }
 }

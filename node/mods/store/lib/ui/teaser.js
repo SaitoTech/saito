@@ -1,7 +1,7 @@
 const TeaserTemplate = require('./teaser.template');
 const Summary = require('../summary');
 const { DREAMSCAPE_PLACEHOLDER } = require('../summary');
-const { summaryDomId } = require('./summary-cache');
+const { listingTeaserDataAttrs, listingTeaserSelector } = require('./summary-cache');
 
 class Teaser {
   constructor(app, mod, summary = null, container = '') {
@@ -9,27 +9,24 @@ class Teaser {
     this.mod = mod;
     this.summary = summary;
     this.container = container;
-    this.cardId = summaryDomId(summary);
   }
 
-  static returnTeaserCard(dom_id) {
-    if (!dom_id) {
-      return null;
+  /** All mounted teaser instances for this listing (browse + storefront, etc.). */
+  static returnTeaserCards(summary) {
+    const selector = listingTeaserSelector(summary);
+    if (!selector || typeof document === 'undefined') {
+      return [];
     }
-    return document.getElementById(dom_id);
+    return Array.from(document.querySelectorAll(selector));
   }
 
-  static returnTeaserMedia(dom_id) {
-    const card = Teaser.returnTeaserCard(dom_id);
-    return card?.querySelector('.media') ?? null;
-  }
-
-  static setMediaLoading(app, dom_id, loading = false) {
-    const media = Teaser.returnTeaserMedia(dom_id);
-    if (!media) {
-      return;
+  static setMediaLoading(app, summary, loading = false) {
+    for (const card of Teaser.returnTeaserCards(summary)) {
+      const media = card.querySelector('.media');
+      if (media) {
+        media.classList.toggle('loading', loading);
+      }
     }
-    media.classList.toggle('loading', loading);
   }
 
   static updateMedia(app, summary) {
@@ -37,7 +34,7 @@ class Teaser {
       return;
     }
 
-    Teaser.applyMediaDisplay(app, summaryDomId(summary), summary.returnMediaDisplay());
+    Teaser.applyMediaDisplay(app, summary, summary.returnMediaDisplay());
     Teaser.applyInfoDisplay(summary);
   }
 
@@ -46,54 +43,56 @@ class Teaser {
       return;
     }
 
-    const card = Teaser.returnTeaserCard(summaryDomId(summary));
-    if (!card) {
+    const cards = Teaser.returnTeaserCards(summary);
+    if (!cards.length) {
       return;
     }
 
     summary.hydrateFromListingTransaction?.();
 
-    const titleEl = card.querySelector('.info .title');
-    if (titleEl) {
-      titleEl.textContent = summary.returnTitle() || 'Untitled Item';
-    }
-
+    const title = summary.returnTitle() || 'Untitled Item';
     const seller = summary.returnSeller?.() || summary.seller || '';
     const shortSeller =
       !seller || seller.length <= 18
         ? seller || 'anon'
         : `${seller.slice(0, 8)}…${seller.slice(-6)}`;
-
-    let sellerEl = card.querySelector('.info .seller');
-    if (shortSeller) {
-      if (!sellerEl) {
-        sellerEl = document.createElement('p');
-        sellerEl.className = 'seller';
-        const titleNode = card.querySelector('.info .title');
-        titleNode?.insertAdjacentElement('afterend', sellerEl);
-      }
-      sellerEl.textContent = shortSeller;
-    }
-
     const price = summary.returnPrice?.() || '';
-    let priceEl = card.querySelector('.info .price');
-    if (price) {
-      if (!priceEl) {
-        priceEl = document.createElement('p');
-        priceEl.className = 'price';
-        card.querySelector('.info')?.appendChild(priceEl);
+
+    for (const card of cards) {
+      const titleEl = card.querySelector('.info .title');
+      if (titleEl) {
+        titleEl.textContent = title;
       }
-      priceEl.textContent = price;
+
+      let sellerEl = card.querySelector('.info .seller');
+      if (shortSeller) {
+        if (!sellerEl) {
+          sellerEl = document.createElement('p');
+          sellerEl.className = 'seller';
+          const titleNode = card.querySelector('.info .title');
+          titleNode?.insertAdjacentElement('afterend', sellerEl);
+        }
+        sellerEl.textContent = shortSeller;
+      }
+
+      let priceEl = card.querySelector('.info .price');
+      if (price) {
+        if (!priceEl) {
+          priceEl = document.createElement('p');
+          priceEl.className = 'price';
+          card.querySelector('.info')?.appendChild(priceEl);
+        }
+        priceEl.textContent = price;
+      }
     }
   }
 
-  static applyMediaDisplay(app, dom_id, display = {}) {
-    const media = Teaser.returnTeaserMedia(dom_id);
+  static applyMediaToElement(app, media, display = {}) {
     if (!media) {
       return;
     }
 
-    Teaser.setMediaLoading(app, dom_id, !!display.loading);
+    media.classList.toggle('loading', !!display.loading);
     if (display.loading) {
       return;
     }
@@ -112,9 +111,10 @@ class Teaser {
       content.remove();
     }
 
-    if (display.backgroundImage) {
+    const bg = display.backgroundImage;
+    if (bg && app?.browser?.isSafeMediaUrl?.(bg)) {
       media.classList.add('has-image');
-      media.style.background = `url(${display.backgroundImage}) center / cover no-repeat`;
+      media.style.background = `url("${String(bg).replace(/"/g, '%22')}") center / cover no-repeat`;
       return;
     }
 
@@ -123,6 +123,12 @@ class Teaser {
       media.style.background = `url(${DREAMSCAPE_PLACEHOLDER}) center / cover no-repeat`;
     } else {
       media.style.background = '';
+    }
+  }
+
+  static applyMediaDisplay(app, summary, display = {}) {
+    for (const card of Teaser.returnTeaserCards(summary)) {
+      Teaser.applyMediaToElement(app, card.querySelector('.media'), display);
     }
   }
 
@@ -158,12 +164,18 @@ class Teaser {
     };
 
     this.app.browser.addElementToSelector(
-      TeaserTemplate(templateData, this.cardId, mediaClass, mediaBackground, showLoading),
+      TeaserTemplate(
+        templateData,
+        listingTeaserDataAttrs(this.summary),
+        mediaClass,
+        mediaBackground,
+        showLoading
+      ),
       this.container
     );
 
     if (!display.loading) {
-      Teaser.applyMediaDisplay(this.app, this.cardId, display);
+      Teaser.applyMediaDisplay(this.app, this.summary, display);
     }
 
     this.attachEvents();
@@ -175,7 +187,7 @@ class Teaser {
       return;
     }
 
-    Teaser.setMediaLoading(this.app, this.cardId, true);
+    Teaser.setMediaLoading(this.app, this.summary, true);
     this.summary.enrichMedia(() => {
       Teaser.updateMedia(this.app, this.summary);
     });
@@ -192,17 +204,26 @@ class Teaser {
   }
 
   returnMediaBackground(image = '', display = {}) {
-    if (display.backgroundImage) {
-      return `url(${display.backgroundImage}) center / cover no-repeat`;
+    const raw = display.backgroundImage || image || DREAMSCAPE_PLACEHOLDER;
+    if (!this.app.browser.isSafeMediaUrl(raw)) {
+      return `url("${DREAMSCAPE_PLACEHOLDER}") center / cover no-repeat`;
     }
-    if (!image) {
-      return `url(${DREAMSCAPE_PLACEHOLDER}) center / cover no-repeat`;
-    }
-    return `url(${image}) center / cover no-repeat`;
+    return `url("${String(raw).replace(/"/g, '%22')}") center / cover no-repeat`;
   }
 
   attachEvents() {
-    const teaserCard = Teaser.returnTeaserCard(this.cardId);
+    const root = this.container ? document.querySelector(this.container) : null;
+    if (!root) {
+      return;
+    }
+
+    const selector = listingTeaserSelector(this.summary);
+    if (!selector) {
+      return;
+    }
+
+    const cards = root.querySelectorAll(selector);
+    const teaserCard = cards[cards.length - 1];
     if (!teaserCard) {
       return;
     }
@@ -210,9 +231,7 @@ class Teaser {
     const open = (e) => {
       e.preventDefault();
       const detail = this.mod.main?.listing_detail || this.mod.main?.product_overlay;
-      if (detail) {
-        detail.render(this.summary);
-      }
+      detail?.open?.(this.summary);
     };
 
     teaserCard.onclick = open;

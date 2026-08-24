@@ -201,16 +201,23 @@ class Storage {
    * as "updated_at" in the obj
    *
    */
-  async updateTransaction(tx: Transaction, obj = {}, peer = null, preserve_ts = 0) {
+  async updateTransaction(tx: Transaction | null, obj = {}, peer = null, preserve_ts = 0) {
     const message = 'archive';
     let data: any = {};
     data.request = 'update';
-    data.optional = tx.optional;
-    data.serial_transaction = tx.serialize_to_web(this.app);
 
-    if (!(obj as any)['updated_at']) {
-      if (preserve_ts) {
-        (obj as any)['updated_at'] = tx.optional.updated_at || tx.timestamp;
+    //
+    // tx may be null for metadata-only Archive updates (e.g. owner change).
+    // Localhost forwards (tx, obj) directly to Archive.updateTransaction.
+    //
+    if (tx) {
+      data.optional = tx.optional;
+      data.serial_transaction = tx.serialize_to_web(this.app);
+
+      if (!(obj as any)['updated_at']) {
+        if (preserve_ts) {
+          (obj as any)['updated_at'] = tx.optional.updated_at || tx.timestamp;
+        }
       }
     }
 

@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f3ed" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="author" content="The Saito Team" />
+    <meta
+      name="description"
+      content="Saito is an open network for peer-to-peer applications that run in the browser."
+    />
+
+    <title>Saito — The network is the platform</title>
+
+    <link
+      rel="stylesheet"
+      href="/saito/lib/font-awesome-6/css/all.css"
+      type="text/css"
+      media="screen"
+    />
+    <link rel="stylesheet" href="./css/saito-shell.css" />
+    <link rel="stylesheet" href="./css/website-2026.css" />
+    <link rel="icon" href="./favicon.ico" sizes="any" />
+    <link rel="me" href="https://mastodon.social/@saitonetwork" />
+
+    <script>
+      window.paceOptions = {
+        startOnPageLoad: false,
+        restartOnRequestAfter: false,
+        restartOnPushState: false
+      };
+    </script>
+    <script src="/saito/lib/pace/pace.min.js"></script>
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@SaitoOfficial" />
+    <meta name="twitter:creator" content="@SaitoOfficial" />
+    <meta name="twitter:title" content="Saito — The network is the platform" />
+    <meta name="twitter:description" content="Peer-to-peer applications that run in the browser." />
+    <meta name="twitter:image" content="https://saito.io/saito/img/background.png" />
+
+    <meta property="og:title" content="Saito — The network is the platform" />
+    <meta property="og:url" content="https://saito.io/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description" content="Peer-to-peer applications that run in the browser." />
+    <meta property="og:site_name" content="Saito" />
+    <meta property="og:image" content="https://saito.io/saito/img/background.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://saito.io/#organization",
+            "name": "Saito",
+            "url": "https://saito.io/",
+            "logo": "https://saito.io/saito/img/logo.png",
+            "email": "info@saito.io",
+            "sameAs": [
+              "https://github.com/SaitoTech",
+              "https://mastodon.social/@saitonetwork",
+              "https://twitter.com/SaitoOfficial"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://saito.io/#website",
+            "name": "Saito",
+            "url": "https://saito.io/",
+            "publisher": {
+              "@id": "https://saito.io/#organization"
+            },
+            "description": "An open network for peer-to-peer applications that run in the browser."
+          }
+        ]
+      }
+    </script>
+  </head>
+
+  <body class="websitex">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header" data-site-header>
+      <a class="brand" href="#top" aria-label="Saito home">
+        <img src="/saito/img/logo.svg" alt="Saito" />
+      </a>
+
+      <nav class="desktop-nav" aria-label="Primary navigation">
+        <a href="#apps">Apps</a>
+        <a href="#network">Network</a>
+        <a href="#ownership">Ownership</a>
+        <a href="#developers">Build</a>
+        <a href="#community">Community</a>
+        <a href="https://wiki.saito.io/" target="_blank" rel="noopener"
+          >Docs <span aria-hidden="true">↗</span></a
+        >
+      </nav>
+
+      <div class="header-actions">
+        <span class="saito-menu-cue" aria-live="polite" data-saito-menu-cue></span>
+        <a class="button button-small button-dark" href="#apps" data-header-open-saito
+          >Open Saito</a
+        >
+        <button
+          class="menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="mobile-navigation"
+          aria-label="Open navigation"
+          data-menu-toggle
+        >
+          <span></span><span></span>
+        </button>
+      </div>
+
+      <nav
+        class="mobile-nav"
+        id="mobile-navigation"
+        aria-label="Mobile navigation"
+        data-mobile-nav
+        inert
+      >
+        <div class="mobile-nav-main">
+          <a href="#apps"><span>01</span>Apps</a>
+          <a href="#network"><span>02</span>Network</a>
+          <a href="#ownership"><span>03</span>Ownership</a>
+          <a href="#developers"><span>04</span>Build</a>
+          <a href="#community"><span>05</span>Community</a>
+          <a href="https://wiki.saito.io/" target="_blank" rel="noopener"
+            ><span>06</span>Docs <span class="mobile-nav-external" aria-hidden="true">↗</span></a
+          >
+        </div>
+        <div class="mobile-nav-secondary">
+          <a href="https://github.com/SaitoTech" target="_blank" rel="noopener">GitHub ↗</a>
+          <a href="/blog">Project blog</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <div class="hero-atmosphere" aria-hidden="true">
+          <div class="hero-orbit orbit-one"></div>
+          <div class="hero-orbit orbit-two"></div>
+          <div class="hero-glow"></div>
+        </div>
+
+        <div class="hero-copy">
+          <p class="eyebrow reveal">The open application network</p>
+          <h1 id="hero-title" class="reveal">
+            Apps that connect people.
+            <em>Directly.</em>
+          </h1>
+          <p class="hero-intro reveal">
+            Saito is an open network for peer-to-peer applications.<br />
+            Social, games, messaging, commerce and more…<br />
+            No platform just people.
+          </p>
+          <div class="hero-actions reveal">
+            <a class="button button-primary" href="#apps">
+              Discover Saito <img src="/saito/img/saito-cube.svg" alt="" class="button-logo" />
+            </a>
+            <a class="text-action" href="#network">
+              See how it works <span aria-hidden="true">↓</span>
+            </a>
+          </div>
+          <div class="hero-note reveal">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span>Open source</span>
+            <span class="hero-note-divider" aria-hidden="true"></span>
+            <span>Browser native</span>
+            <span class="hero-note-divider" aria-hidden="true"></span>
+            <span>Peer to peer</span>
+          </div>
+        </div>
+
+        <div class="hero-network" aria-label="An abstract peer-to-peer network">
+          <div class="network-grid" aria-hidden="true"></div>
+          <div class="hero-node node-a" aria-hidden="true"><span></span></div>
+          <div class="hero-node node-b" aria-hidden="true"><span></span></div>
+          <div class="hero-node node-c" aria-hidden="true"><span></span></div>
+          <div class="hero-node node-d" aria-hidden="true"><span></span></div>
+          <div class="cube-stage">
+            <div class="cube-halo" aria-hidden="true"></div>
+            <img src="/saito/img/saito-cube.svg" alt="" class="hero-cube" />
+          </div>
+          <div class="network-label label-browser">
+            <span></span>
+            Browser
+          </div>
+          <div class="network-label label-peer">
+            <span></span>
+            Peer
+          </div>
+          <div class="network-label label-app">
+            <span></span>
+            App
+          </div>
+          <div class="hero-console" aria-hidden="true">
+            <span>SAITO / NETWORK</span>
+            <strong data-hero-status>READY</strong>
+          </div>
+        </div>
+
+        <a class="hero-scroll" href="#apps">
+          <span>Explore the network</span>
+          <span class="scroll-line" aria-hidden="true"></span>
+        </a>
+      </section>
+
+      <section class="apps section-shell" id="apps" aria-labelledby="apps-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Use it now</p>
+            <h2 id="apps-title">The open internet is here.</h2>
+          </div>
+          <p>
+            Every Saito application opens in your browser and shares the same peer-to-peer
+            foundation. Pick a doorway.
+          </p>
+        </div>
+
+        <div class="app-filters" role="group" aria-label="Filter applications">
+          <button type="button" class="is-active" data-app-filter="all" aria-pressed="true">
+            All
+          </button>
+          <button type="button" data-app-filter="connect" aria-pressed="false">Connect</button>
+          <button type="button" data-app-filter="play" aria-pressed="false">Play</button>
+          <button type="button" data-app-filter="create" aria-pressed="false">Create</button>
+          <button type="button" data-app-filter="own" aria-pressed="false">Own</button>
+        </div>
+
+        <div class="app-grid">
+          <a
+            class="app-card app-featured app-redsquare"
+            href="/redsquare"
+            data-app-category="connect create"
+          >
+            <span class="app-number">01</span>
+            <div class="app-icon">
+              <img src="/saito/icons/saito-redsquare-icon-outline.svg" alt="" />
+            </div>
+            <div class="app-copy">
+              <p class="app-kicker">Social / Publishing</p>
+              <h3>RedSquare</h3>
+              <p>Post, follow and discover without a platform owning the conversation.</p>
+            </div>
+            <span class="app-open">Open app <span aria-hidden="true">↗</span></span>
+          </a>
+
+          <a
+            class="app-card app-featured app-arcade"
+            href="/arcade"
+            data-app-category="play connect"
+          >
+            <span class="app-number">02</span>
+            <div class="app-icon">
+              <img src="/saito/icons/saito-arcade-icon-outline.svg" alt="" />
+            </div>
+            <div class="app-copy">
+              <p class="app-kicker">Games / Community</p>
+              <h3>Arcade</h3>
+              <p>Meet players and launch peer-to-peer games with verifiable rules.</p>
+            </div>
+            <span class="app-open">Enter arcade <span aria-hidden="true">↗</span></span>
+          </a>
+
+          <a class="app-card app-chat" href="/chat" data-app-category="connect">
+            <span class="app-number">03</span>
+            <div class="app-icon">
+              <img src="/saito/icons/saito-chat-icon-outline.svg" alt="" />
+            </div>
+            <div class="app-copy">
+              <p class="app-kicker">Encrypted messaging</p>
+              <h3>Chat</h3>
+              <p>Private conversations between peers.</p>
+            </div>
+            <span class="app-open">Start chatting <span aria-hidden="true">↗</span></span>
+          </a>
+
+          <a class="app-card app-talk" href="/videocall" data-app-category="connect">
+            <span class="app-number">04</span>
+            <div class="app-icon">
+              <img src="/saito/icons/saito-talk-icon-outline.svg" alt="" />
+            </div>
+            <div class="app-copy">
+              <p class="app-kicker">Live communication</p>
+              <h3>Saito Talk</h3>
+              <p>Browser-to-browser calls without another account.</p>
+            </div>
+            <span class="app-open">Start a call <span aria-hidden="true">↗</span></span>
+          </a>
+
+          <a class="app-card app-stack" href="/stack" data-app-category="create own">
+            <span class="app-number">05</span>
+            <div class="app-icon">
+              <img src="/saito/icons/saito-stack-icon-outline.svg" alt="" />
+            </div>
+            <div class="app-copy">
+              <p class="app-kicker">Open publishing</p>
+              <h3>Stack</h3>
+              <p>Publish for readers and create portable access.</p>
+            </div>
+            <span class="app-open">Read and publish <span aria-hidden="true">↗</span></span>
+          </a>
+
+          <a class="app-card app-vault" href="/vault" data-app-category="own">
+            <span class="app-number">06</span>
+            <div class="app-icon">
+              <img src="/saito/icons/saito-vault-icon-outline.svg" alt="" />
+            </div>
+            <div class="app-copy">
+              <p class="app-kicker">Key-controlled storage</p>
+              <h3>Vault</h3>
+              <p>Private files and digital assets under your key.</p>
+            </div>
+            <span class="app-open">Open vault <span aria-hidden="true">↗</span></span>
+          </a>
+
+          <a class="app-card app-store" href="/store" data-app-category="own create">
+            <span class="app-number">07</span>
+            <div class="app-icon">
+              <img src="/saito/icons/saito-store-icon-outline.svg" alt="" />
+            </div>
+            <div class="app-copy">
+              <p class="app-kicker">Open commerce</p>
+              <h3>Store</h3>
+              <p>Discover and exchange peer-published offers.</p>
+            </div>
+            <span class="app-open">Browse store <span aria-hidden="true">↗</span></span>
+          </a>
+        </div>
+      </section>
+
+      <section class="live-proof" id="live-proof" aria-labelledby="proof-demo-title">
+        <div class="proof-intro">
+          <p class="eyebrow eyebrow-light">Live network status</p>
+          <h2 id="proof-demo-title">Don’t take our word for it. Check now.</h2>
+          <p>
+            See the latest block, start a Saito node in this browser, and inspect the peers carrying
+            traffic across the network.
+          </p>
+          <button class="button button-light" type="button" data-network-check>
+            Join network <span aria-hidden="true">→</span>
+          </button>
+          <p class="privacy-note">
+            Reads public network status only. No wallet action or transaction is required.
+          </p>
+        </div>
+
+        <div class="network-dashboard" data-network-dashboard>
+          <div class="dashboard-bar">
+            <span class="dashboard-window-controls" aria-hidden="true"
+              ><span></span><span></span><span></span
+            ></span>
+            <span class="dashboard-console-title">network://saito-status</span>
+            <span class="dashboard-state" data-network-state aria-live="polite">CONNECTING</span>
+          </div>
+
+          <div class="dashboard-console-body">
+            <div class="dashboard-block" data-network-metrics hidden>
+              <div class="block-pulse" data-block-pulse aria-hidden="true"><span></span></div>
+              <div>
+                <small>Latest block</small>
+                <strong data-block-height>—</strong>
+              </div>
+              <div>
+                <small>Time since last block</small>
+                <strong data-last-block>—</strong>
+              </div>
+            </div>
+
+            <section class="dashboard-identity" aria-label="Browser identity">
+              <div class="dashboard-browser-key">
+                <div class="dashboard-browser-key-heading">
+                  <small>Your identity key</small>
+                  <span class="browser-node-state" data-browser-node-state>NOT JOINED</span>
+                </div>
+                <code data-browser-public-key aria-live="polite"></code>
+              </div>
+
+              <div class="dashboard-join-progress" data-network-join-panel hidden>
+                <div class="join-progress-heading">
+                  <span class="join-spinner" aria-hidden="true"></span>
+                  <strong data-network-join-status>Initializing your Saito node</strong>
+                  <span data-network-join-percent>10%</span>
+                </div>
+                <div class="join-progress-track" aria-hidden="true">
+                  <span data-network-join-meter></span>
+                </div>
+                <div class="join-console-heading">
+                  <span>Browser console</span>
+                  <span>LIVE</span>
+                </div>
+                <pre
+                  class="join-log"
+                  data-network-log
+                  aria-label="Mirrored browser console"
+                  aria-live="off"
+                ></pre>
+              </div>
+            </section>
+
+            <div class="dashboard-primary-node">
+              <div>
+                <small>Primary node</small>
+                <strong data-primary-node>Not connected</strong>
+              </div>
+              <span data-primary-node-status>OFFLINE</span>
+            </div>
+
+            <div class="dashboard-peers">
+              <div>
+                <strong>Peer nodes</strong>
+                <span data-peer-count>0 visible</span>
+              </div>
+              <ul data-peer-list>
+                <li class="is-placeholder">Join the network to see peer nodes.</li>
+              </ul>
+            </div>
+
+            <p class="dashboard-updated" data-network-updated>Waiting for network status…</p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="network section-shell section-dark"
+        id="network"
+        aria-labelledby="network-title"
+      >
+        <div class="section-heading section-heading-light">
+          <div>
+            <p class="eyebrow eyebrow-light">How Saito works</p>
+            <h2 id="network-title">Useful traffic should sustain useful infrastructure.</h2>
+          </div>
+          <div class="network-summary">
+            <p>
+              Saito aligns applications, users, and the nodes carrying their data. Applications pay
+              nodes directly for the infrastructure they need. No middlemen to extract, control, or
+              censor.
+            </p>
+            <button
+              class="button network-see-how"
+              type="button"
+              aria-haspopup="dialog"
+              data-traffic-dialog-open
+            >
+              See how <span aria-hidden="true">&#8599;</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="network-story">
+          <div
+            class="route-visual"
+            role="img"
+            aria-label="A message travels from a browser through routing peers to an application"
+          >
+            <svg viewBox="0 0 800 620" role="img" aria-hidden="true">
+              <defs>
+                <linearGradient id="route-gradient" x1="0" x2="1">
+                  <stop offset="0" stop-color="#ffb199"></stop>
+                  <stop offset=".5" stop-color="#f71f3d"></stop>
+                  <stop offset="1" stop-color="#f7009b"></stop>
+                </linearGradient>
+              </defs>
+              <path
+                class="route-faint"
+                d="M100 310 C210 105 318 120 400 310 S605 518 700 310"
+              ></path>
+              <path
+                class="route-faint"
+                d="M100 310 C240 480 335 480 400 310 S570 105 700 310"
+              ></path>
+              <path
+                class="route-main"
+                d="M100 310 C210 105 318 120 400 310 S605 518 700 310"
+              ></path>
+              <circle class="route-packet packet-one" cx="0" cy="0" r="8"></circle>
+              <circle class="route-packet packet-two" cx="0" cy="0" r="5"></circle>
+            </svg>
+            <div class="route-node route-browser">
+              <span class="route-icon">B</span><strong>Your browser</strong
+              ><small>Creates useful traffic</small>
+            </div>
+            <div class="route-node route-peer-one">
+              <span class="route-icon">P</span><strong>Routing peer</strong
+              ><small>Carries the data</small>
+            </div>
+            <div class="route-node route-peer-two">
+              <span class="route-icon">P</span><strong>Routing peer</strong
+              ><small>Connects the edge</small>
+            </div>
+            <div class="route-node route-destination">
+              <span class="route-icon">A</span><strong>Saito app</strong
+              ><small>Reaches another peer</small>
+            </div>
+          </div>
+
+          <ol class="network-steps">
+            <li>
+              <span>01</span>
+              <div>
+                <h3>Applications Create Value</h3>
+                <p>Messages, moves, posts, calls, and offers begin in the browser.</p>
+              </div>
+            </li>
+            <li>
+              <span>02</span>
+              <div>
+                <h3>Nodes Carry the Traffic</h3>
+                <p>Independent infrastructure connects applications and their users.</p>
+              </div>
+            </li>
+            <li>
+              <span>03</span>
+              <div>
+                <h3>The Network Rewards the Nodes</h3>
+                <p>Consensus directs value toward infrastructure that serves the network.</p>
+              </div>
+            </li>
+            <li>
+              <span>04</span>
+              <div>
+                <h3>The Edge Stays Open</h3>
+                <p>Developers build applications instead of rebuilding a closed platform.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="deep-links">
+          <span>Go deeper</span>
+          <a href="https://wiki.saito.io/en/consensus" target="_blank" rel="noopener"
+            >Consensus wiki ↗</a
+          >
+          <a href="./saito-whitepaper.pdf" target="_blank">Whitepaper ↗</a>
+          <a href="https://github.com/SaitoTech/papers" target="_blank" rel="noopener"
+            >Mechanism design ↗</a
+          >
+        </div>
+      </section>
+
+      <dialog class="traffic-dialog" aria-labelledby="traffic-dialog-title" data-traffic-dialog>
+        <div class="traffic-dialog-bar">
+          <div>
+            <span>How Saito works</span>
+            <h2 id="traffic-dialog-title">Useful traffic sustains the network.</h2>
+          </div>
+          <button
+            class="traffic-dialog-close"
+            type="button"
+            aria-label="Close animation"
+            data-traffic-dialog-close
+          >
+            <span aria-hidden="true"></span><span aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="traffic-animation-frame">
+          <div
+            role="img"
+            aria-label="Interactive comparison of traditional blockchain infrastructure and Saito"
+            data-traffic-animation
+            data-src="./useful-traffic-animation.svg"
+          >
+            <p>
+              The interactive network animation could not be loaded.
+              <a href="./useful-traffic-animation.svg" target="_blank" rel="noopener"
+                >Open the SVG directly.</a
+              >
+            </p>
+          </div>
+        </div>
+      </dialog>
+
+      <section class="ownership section-shell" id="ownership" aria-labelledby="ownership-title">
+        <div class="ownership-intro">
+          <p class="eyebrow">A shared ownership layer</p>
+          <h2 id="ownership-title">One Key. Your Identity. Real Ownership.</h2>
+          <p>
+            Create an asset, use it in any app, sell it without middlemen, rent it out. The asset is
+            yours; you set the rules. No hidden fees, no asking for permission.
+          </p>
+        </div>
+
+        <div class="asset-lab">
+          <div class="asset-picker">
+            <p>Choose an asset</p>
+            <button
+              type="button"
+              class="is-active"
+              data-asset="Passes and Subscriptions"
+              data-asset-type="PASS"
+              aria-pressed="true"
+            >
+              <span>01</span>Passes and Subscriptions
+            </button>
+            <button
+              type="button"
+              data-asset="Apps and Games"
+              data-asset-type="APP"
+              aria-pressed="false"
+            >
+              <span>02</span>Apps and Games
+            </button>
+            <button
+              type="button"
+              data-asset="Extensions and Themes"
+              data-asset-type="EXTENSION"
+              aria-pressed="false"
+            >
+              <span>03</span>Extensions and Themes
+            </button>
+            <button type="button" data-asset="Tokens" data-asset-type="TOKEN" aria-pressed="false">
+              <span>04</span>Tokens
+            </button>
+            <button
+              type="button"
+              data-asset="Art, Certificates and Documents"
+              data-asset-type="PROVENANCE"
+              aria-pressed="false"
+            >
+              <span>05</span>Art, Certificates and Documents
+            </button>
+          </div>
+
+          <div class="asset-card-wrap">
+            <div class="asset-card" data-asset-card>
+              <div class="asset-card-top">
+                <img src="/saito/img/saito-cube.svg" alt="" />
+                <span data-asset-type-output>PASS</span>
+              </div>
+              <div>
+                <small>SAITO NATIVE ASSET</small>
+                <strong data-asset-name>Passes and Subscriptions</strong>
+              </div>
+              <div class="asset-card-code">
+                <span>OWNER</span>
+                <span data-asset-code>8F2A · 16C4</span>
+              </div>
+            </div>
+            <p>Controlled by your key—not a platform account.</p>
+          </div>
+
+          <ol class="asset-lifecycle">
+            <li class="is-active">
+              <span>01</span><strong>Create</strong><small>Mint your content</small>
+            </li>
+            <li>
+              <span>02</span><strong>Publish</strong><small>Define ownership and rules</small>
+            </li>
+            <li>
+              <span>03</span><strong>Exchange</strong
+              ><small>List, sell and settle automatically</small>
+            </li>
+            <li><span>04</span><strong>Use</strong><small>In any app</small></li>
+          </ol>
+        </div>
+
+        <div class="ecosystem-panel">
+          <div class="ecosystem-copy">
+            <p class="eyebrow eyebrow-light">Everything works together</p>
+            <h3>Publish here. Discover there. Use it everywhere.</h3>
+            <p>
+              Saito applications can share wallet, identity, asset, market, and network capabilities
+              while remaining independent.
+            </p>
+            <div class="audience-list">
+              <div>
+                <span>For people</span>
+                <p>Create, consume, and exchange using identities you own.</p>
+              </div>
+              <div>
+                <span>For creators</span>
+                <p>Create, promote, and sell items and subscriptions without permission or fees.</p>
+              </div>
+              <div>
+                <span>For developers</span>
+                <p>
+                  Build apps that expand the ecosystem instead of fighting gatekeepers. Attract
+                  users. Get paid.
+                </p>
+              </div>
+            </div>
+            <div class="ecosystem-actions">
+              <a class="button button-light" href="/store">Explore Store ↗</a>
+              <a
+                class="text-action text-action-light"
+                href="https://wiki.saito.io/en/refactor-2026/decentralized-finance"
+                target="_blank"
+                rel="noopener"
+              >
+                Programmable finance ↗
+              </a>
+            </div>
+          </div>
+
+          <div class="app-orbit" role="img" aria-label="Saito applications connected to one wallet">
+            <div class="orbit-ring ring-one" aria-hidden="true"></div>
+            <div class="orbit-ring ring-two" aria-hidden="true"></div>
+            <div class="wallet-core">
+              <img src="/saito/img/saito-cube.svg" alt="" />
+              <strong>One wallet</strong>
+              <span>Shared ownership</span>
+            </div>
+            <div class="orbit-app orbit-redsquare">
+              <img src="/saito/icons/saito-redsquare-icon-outline.svg" alt="" /><span
+                >RedSquare</span
+              >
+            </div>
+            <div class="orbit-app orbit-arcade">
+              <img src="/saito/icons/saito-arcade-icon-outline.svg" alt="" /><span>Arcade</span>
+            </div>
+            <div class="orbit-app orbit-chat">
+              <img src="/saito/icons/saito-chat-icon-outline.svg" alt="" /><span>Chat</span>
+            </div>
+            <div class="orbit-app orbit-stack">
+              <img src="/saito/icons/saito-stack-icon-outline.svg" alt="" /><span>Stack</span>
+            </div>
+            <div class="orbit-app orbit-store">
+              <img src="/saito/icons/saito-store-icon-outline.svg" alt="" /><span>Store</span>
+            </div>
+            <div class="orbit-app orbit-talk">
+              <img src="/saito/icons/saito-talk-icon-outline.svg" alt="" /><span>Talk</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="developers section-shell section-dark"
+        id="developers"
+        aria-labelledby="developers-title"
+      >
+        <div class="developer-layout">
+          <div class="developer-copy">
+            <p class="eyebrow eyebrow-light">Build on Saito</p>
+            <h2 id="developers-title">Build an app, not another platform.</h2>
+            <p>
+              Saito modules are browser-native applications with access to shared network, wallet,
+              identity, peer-service, and transaction capabilities.
+            </p>
+            <div class="developer-actions">
+              <a
+                class="button button-primary"
+                href="https://wiki.saito.io/en/install"
+                target="_blank"
+                rel="noopener"
+              >
+                Start building ↗
+              </a>
+              <a
+                class="text-action text-action-light"
+                href="https://github.com/SaitoTech/saito-lite-rust/tree/master/mods"
+                target="_blank"
+                rel="noopener"
+              >
+                Explore modules ↗
+              </a>
+            </div>
+          </div>
+
+          <div class="code-window" aria-label="Example Saito module code">
+            <div class="code-bar">
+              <div aria-hidden="true"><span></span><span></span><span></span></div>
+              <p>mods/hello/hello.js</p>
+              <button type="button" data-copy-code>Copy</button>
+            </div>
+            <pre><code data-code-example><span class="code-keyword">class</span> Hello <span class="code-keyword">extends</span> ModTemplate {
+  <span class="code-keyword">constructor</span>(app) {
+    <span class="code-keyword">super</span>(app);
+    <span class="code-prop">this</span>.name = <span class="code-string">'Hello'</span>;
+  }
+
+  <span class="code-keyword">async</span> onPeerHandshakeComplete(app, peer) {
+    <span class="code-prop">this</span>.render(app);
+  }
+}</code></pre>
+            <div class="code-status">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span>Browser module ready</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="capability-grid">
+          <a href="https://wiki.saito.io/docs/modules" target="_blank" rel="noopener">
+            <span>01</span>
+            <h3>Modules</h3>
+            <p>Ship a focused application into a shared environment.</p>
+            <strong>Learn modules ↗</strong>
+          </a>
+          <a href="https://wiki.saito.io/applications/wallet" target="_blank" rel="noopener">
+            <span>02</span>
+            <h3>Wallet</h3>
+            <p>Use identity, signing, payments, and portable ownership.</p>
+            <strong>Explore wallet ↗</strong>
+          </a>
+          <a href="https://wiki.saito.io/docs" target="_blank" rel="noopener">
+            <span>03</span>
+            <h3>Peer services</h3>
+            <p>Discover capabilities and request services across peers.</p>
+            <strong>Read services ↗</strong>
+          </a>
+          <a href="https://github.com/SaitoTech/saito-lite-rust" target="_blank" rel="noopener">
+            <span>04</span>
+            <h3>Open source</h3>
+            <p>Inspect, run, extend, and contribute to the network.</p>
+            <strong>View source ↗</strong>
+          </a>
+        </div>
+      </section>
+
+      <section class="evidence section-shell" aria-labelledby="evidence-title">
+        <div class="evidence-lead">
+          <p class="eyebrow">Verify everything</p>
+          <h2 id="evidence-title">Proof beats promises.</h2>
+          <p>
+            Use the applications. Read the research. Inspect the source. Run the software. Saito is
+            designed to be examined, not taken on faith.
+          </p>
+        </div>
+
+        <div class="evidence-links">
+          <a href="/redsquare">
+            <span class="evidence-index">01 / LIVE</span>
+            <strong>Use a running application</strong>
+            <span>Open RedSquare ↗</span>
+          </a>
+          <a href="https://github.com/SaitoTech" target="_blank" rel="noopener">
+            <span class="evidence-index">02 / SOURCE</span>
+            <strong>Inspect the repositories</strong>
+            <span>Open GitHub ↗</span>
+          </a>
+          <a href="./saito-whitepaper.pdf" target="_blank">
+            <span class="evidence-index">03 / DESIGN</span>
+            <strong>Read the whitepaper</strong>
+            <span>Open PDF ↗</span>
+          </a>
+          <a href="https://github.com/SaitoTech/papers" target="_blank" rel="noopener">
+            <span class="evidence-index">04 / RESEARCH</span>
+            <strong>Study mechanism design</strong>
+            <span>Read papers ↗</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="community" id="community" aria-labelledby="community-title">
+        <div class="community-backdrop" aria-hidden="true">
+          <span>PEOPLE</span><span>PLAY</span><span>BUILD</span><span>SHARE</span>
+        </div>
+        <div class="community-content">
+          <p class="eyebrow eyebrow-light">The human layer</p>
+          <h2 id="community-title">The network gets interesting when people arrive.</h2>
+          <p>
+            Ask a question, join a game, read what builders are shipping, or start something the
+            network has never seen before.
+          </p>
+          <div class="community-links">
+            <a href="/redsquare"
+              ><span>Conversation</span><strong>Meet on RedSquare</strong
+              ><b aria-hidden="true">↗</b></a
+            >
+            <a href="/arcade"
+              ><span>Play</span><strong>Join the Arcade</strong><b aria-hidden="true">↗</b></a
+            >
+            <a href="https://wiki.saito.io/" target="_blank" rel="noopener"
+              ><span>Learn</span><strong>Explore the wiki</strong><b aria-hidden="true">↗</b></a
+            >
+            <a href="/blog"
+              ><span>Updates</span><strong>Read the project blog</strong
+              ><b aria-hidden="true">↗</b></a
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="final-cta" aria-labelledby="final-title">
+        <div>
+          <p class="eyebrow">Choose your way in</p>
+          <h2 id="final-title">The network is the platform.</h2>
+        </div>
+        <div class="path-grid">
+          <a href="/redsquare">
+            <span>01</span>
+            <strong>Use Saito</strong>
+            <p>Open an application and meet the network.</p>
+            <b aria-hidden="true">↗</b>
+          </a>
+          <a href="https://wiki.saito.io/en/install" target="_blank" rel="noopener">
+            <span>02</span>
+            <strong>Build on Saito</strong>
+            <p>Turn an idea into a browser-native module.</p>
+            <b aria-hidden="true">↗</b>
+          </a>
+          <a href="https://github.com/SaitoTech/saito-lite-rust" target="_blank" rel="noopener">
+            <span>03</span>
+            <strong>Run Saito</strong>
+            <p>Inspect the source and operate a node.</p>
+            <b aria-hidden="true">↗</b>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="footer-brand" href="#top" aria-label="Back to top">
+        <img src="/saito/img/logo.svg" alt="Saito" />
+      </a>
+      <div class="footer-links">
+        <a href="mailto:info@saito.io">Email</a>
+        <a href="https://github.com/SaitoTech" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://twitter.com/SaitoOfficial" target="_blank" rel="noopener">X / Twitter</a>
+        <a href="https://mastodon.social/@saitonetwork" target="_blank" rel="me noopener"
+          >Mastodon</a
+        >
+        <a href="/saito/assets/Saito-Brand-Book.pdf">Media assets</a>
+      </div>
+      <div class="footer-legal">
+        <span>© Saito Project <span data-current-year>2026</span></span>
+        <a href="https://saito.tech/copyright-policy-claims/">Copyright policy</a>
+      </div>
+    </footer>
+
+    <button class="mobile-app-dock" type="button" data-open-apps>
+      <span class="status-dot" aria-hidden="true"></span>
+      Open apps
+      <span aria-hidden="true">↑</span>
+    </button>
+
+    <script src="./js/site-2026.js"></script>
+  </body>
+</html>

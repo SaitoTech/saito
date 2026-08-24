@@ -2,7 +2,7 @@ module.exports = (app, league) => {
   let html = `
 	   <div class="league-join-overlay-box email-box">
         <div class="title-box">
-		    	<div class="title">${league.name}</div>
+		    	<div class="title">${app.browser.escapeHTML(String(league.name ?? ''))}</div>
 		    	<div>Send a message to <span class="admin-name" title="${app.keychain.returnIdentifierByPublicKey(
             league.admin,
             true

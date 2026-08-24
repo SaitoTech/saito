@@ -11,6 +11,10 @@ function addTweet(mod, tx) {
     return null;
   }
 
+  if (mod.app.modules.moderate(tx, mod.name) === -1) {
+    return null;
+  }
+
   if (hasTweet(mod, tweet.signature)) {
     return updateTweet(mod, tx);
   }

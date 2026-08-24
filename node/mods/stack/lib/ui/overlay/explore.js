@@ -106,10 +106,8 @@ class ExploreOverlay {
 
   updateHelpNoteVisibility() {
     // Count subscription items
-    const subscriptionItems = document.querySelectorAll(
-      '.stack-explore-subscriptions-list .stack-explore-subscription-item'
-    );
-    const helpNote = document.querySelector('.stack-explore-help-note');
+    const subscriptionItems = document.querySelectorAll('.explore .filters > .item');
+    const helpNote = document.querySelector('.explore .help');
 
     if (helpNote && subscriptionItems.length > 2) {
       // Hide help note if more than 2 subscriptions
@@ -151,12 +149,12 @@ class ExploreOverlay {
     const subscribeBtnContainer = document.querySelector(
       '#stack-explore-subscribe-button-container'
     );
-    const actionBtnContainer = document.querySelector('.stack-explore-action-button-container');
+    const actionBtnContainer = document.querySelector('.explore .actions');
     if (subscribeBtnContainer) {
-      subscribeBtnContainer.style.display = isSubscribed ? 'none' : 'block';
+      subscribeBtnContainer.classList.toggle('is-visible', !isSubscribed);
     }
     if (actionBtnContainer) {
-      actionBtnContainer.style.display = isSubscribed ? 'flex' : 'none';
+      actionBtnContainer.classList.toggle('is-hidden', !isSubscribed);
     }
 
     // ========================================================================
@@ -164,26 +162,24 @@ class ExploreOverlay {
     // ========================================================================
     const shareAuthorBtn = document.getElementById('stack-explore-author-share');
     if (shareAuthorBtn) {
-      if (currentUserPublicKey == this.mod.STACK_OFFICIAL_PUBLICKEY) {
-        shareAuthorBtn.style.display = 'none';
-      } else {
-        shareAuthorBtn.style.display = '';
-      }
+      shareAuthorBtn.classList.toggle(
+        'is-hidden',
+        currentUserPublicKey == this.mod.STACK_OFFICIAL_PUBLICKEY
+      );
     }
 
     const settingsBtn = document.querySelector('#stack-explore-settings-btn');
     if (settingsBtn) {
       // Temporary since there is no connected functionality
-      //settingsBtn.style.display = currentUserPublicKey === this.mod.publicKey ? '' : 'none';
     }
 
     const postBtn = document.querySelector('#stack-explore-new-post-btn');
     if (postBtn) {
       if (currentUserPublicKey === this.mod.publicKey) {
-        postBtn.style.display = '';
+        postBtn.classList.remove('is-hidden');
         this.attachGetStartedHandler();
       } else {
-        postBtn.style.display = 'none';
+        postBtn.classList.add('is-hidden');
       }
     }
   }
@@ -230,10 +226,10 @@ class ExploreOverlay {
     if (this.isLoading) {
       // PART 5: Show loading spinner with "Fetching latest posts…" message
       grid.innerHTML = `
-        <div class="stack-explore-loading" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 4rem 2rem;">
-          <div style="text-align: center;">
-            <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-muted-foreground); margin-bottom: 1rem;"></i>
-            <p style="color: var(--saito-muted-foreground); font-size: 1.6rem;">Fetching latest posts…</p>
+        <div class="loading">
+          <div class="loading-inner">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Fetching latest posts…</p>
           </div>
         </div>
       `;
@@ -251,11 +247,11 @@ class ExploreOverlay {
     } else {
       if (author == this.mod.publicKey) {
         grid.innerHTML = `
-        <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
-          <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-muted-foreground); opacity: 0.5; margin-bottom: 2rem;"></i>
-          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">Welcome</h3>
-          <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
-            You haven't published any posts yet. <span class="stack-alt-new-post saito-anchor">Get started now<span>
+        <div class="empty">
+          <i class="fa-solid fa-newspaper"></i>
+          <h3>Welcome</h3>
+          <p>
+            You haven't published any posts yet. <span class="alt-new-post saito-anchor">Get started now</span>
           </p>
         </div>
       `;
@@ -263,10 +259,10 @@ class ExploreOverlay {
       } else {
         // Show empty state for reading
         grid.innerHTML = `
-        <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
-          <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-muted-foreground); opacity: 0.5; margin-bottom: 2rem;"></i>
-          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1rem 0;">No posts available</h3>
-          <p style="font-size: 1.6rem; color: var(--saito-muted-foreground); margin: 0; max-width: 500px; line-height: 1.6;">
+        <div class="empty">
+          <i class="fa-solid fa-newspaper"></i>
+          <h3>No posts available</h3>
+          <p>
             No posts are visible at this time. This may be because no posts have been published yet, or you may need to subscribe to see content from this creator.
           </p>
         </div>
@@ -327,7 +323,7 @@ class ExploreOverlay {
    * Resolves transactions from cache using signature.
    */
   attachPostClickHandlers() {
-    const teasers = document.querySelectorAll('.stack-post-teaser');
+    const teasers = document.querySelectorAll('.teaser');
     teasers.forEach((teaser) => {
       // Get transaction signature from DOM (preferred) or fallback to post-id
       const txSignature =
@@ -371,7 +367,7 @@ class ExploreOverlay {
   }
 
   attachGetStartedHandler() {
-    Array.from(document.querySelectorAll('.stack-alt-new-post')).forEach((btn) => {
+    Array.from(document.querySelectorAll('.alt-new-post')).forEach((btn) => {
       btn.onclick = (e) => {
         document.querySelector('#stack-create-post-btn').click();
         this.overlay.hide();
@@ -418,16 +414,16 @@ class ExploreOverlay {
       // If transaction is missing, show error message
       if (!tx) {
         const errorHtml = `
-          <div class="stack-view-post-error" style="padding: 4rem 2rem; text-align: center; max-width: 600px; margin: 0 auto;">
-            <i class="fa-solid fa-exclamation-circle" style="font-size: 4rem; color: var(--saito-muted-foreground); opacity: 0.5; margin-bottom: 2rem;"></i>
-            <h2 style="font-size: 2.4rem; font-weight: 600; color: var(--saito-foreground); margin: 0 0 1.5rem 0;">Post Not Available</h2>
-            <p style="font-size: 1.8rem; color: var(--saito-muted-foreground); margin: 0; line-height: 1.6;">
+          <div class="explore-error">
+            <i class="fa-solid fa-exclamation-circle"></i>
+            <h2>Post Not Available</h2>
+            <p>
               This post could not be loaded or is no longer available.
             </p>
             ${
               txSignature
                 ? `
-              <p style="font-size: 1.4rem; color: var(--saito-muted-foreground); margin: 1.5rem 0 0 0; opacity: 0.7; font-family: monospace; word-break: break-all;">
+              <p class="sig">
                 ${txSignature.substring(0, 32)}...
               </p>
             `
@@ -487,7 +483,7 @@ class ExploreOverlay {
       }
 
       // Mobile Alternate
-      const mobileAddBtn = document.querySelector('.stack-explorer-mobile-icon');
+      const mobileAddBtn = document.querySelector('.explore .mobile-add');
       if (mobileAddBtn) {
         mobileAddBtn.onclick = (e) => {
           e.preventDefault();
@@ -520,10 +516,10 @@ class ExploreOverlay {
         const subscribeBtnContainer = document.querySelector(
           '#stack-explore-subscribe-button-container'
         );
-        const actionBtnContainer = document.querySelector('.stack-explore-action-button-container');
+        const actionBtnContainer = document.querySelector('.explore .actions');
         if (subscribeBtnContainer && actionBtnContainer) {
-          const isSubscribeVisible = subscribeBtnContainer.style.display !== 'none';
-          actionBtnContainer.style.display = isSubscribeVisible ? 'none' : 'flex';
+          const isSubscribeVisible = subscribeBtnContainer.classList.contains('is-visible');
+          actionBtnContainer.classList.toggle('is-hidden', isSubscribeVisible);
         }
       }
 
@@ -545,9 +541,7 @@ class ExploreOverlay {
       }
 
       // Subscription/Identity list items
-      const subscriptionItems = document.querySelectorAll(
-        '.stack-explore-subscriptions-list .stack-explore-subscription-item'
-      );
+      const subscriptionItems = document.querySelectorAll('.explore .filters > .item');
       subscriptionItems.forEach((item) => {
         item.onclick = (e) => {
           e.preventDefault();
@@ -566,7 +560,7 @@ class ExploreOverlay {
       });
 
       // Mobile author selector
-      const mobileSelector = document.querySelector('.stack-explorer-mobile-selector');
+      const mobileSelector = document.querySelector('.explore .mobile-selector');
       if (mobileSelector) {
         mobileSelector.onchange = (e) => {
           e.preventDefault;
@@ -660,12 +654,12 @@ class ExploreOverlay {
       const subscribeContainer = document.querySelector(
         '#stack-explore-subscribe-button-container'
       );
-      const actionBtnContainer = document.querySelector('.stack-explore-action-button-container');
+      const actionBtnContainer = document.querySelector('.explore .actions');
       if (subscribeContainer) {
-        subscribeContainer.style.display = 'none';
+        subscribeContainer.classList.remove('is-visible');
       }
       if (actionBtnContainer) {
-        actionBtnContainer.style.display = 'flex';
+        actionBtnContainer.classList.remove('is-hidden');
       }
 
       // Show success message

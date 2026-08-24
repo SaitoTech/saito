@@ -1,66 +1,18 @@
-/* ============================================
-   CREATE POST PAGE
-   ============================================ */
+/*
+ * Namespace: .create-post
+ * Writing canvas is primary; sidebar is a real secondary column (not an overlay).
+ * Shell scroll mode: stack-base.css (:has(.create-post)).
+ */
 
-/* ARCHITECTURAL CHANGE: Delegate scrolling to body/html for create-post page */
-/* Override base Saito body rules to enable normal document scrolling */
-body:has(.stack-create-post-page) {
-  position: static !important; /* Remove fixed positioning */
-  overflow-y: auto !important; /* Enable vertical scrolling */
-  overflow-x: hidden !important;
-  height: auto !important; /* Allow body to grow with content */
-  min-height: 100vh !important; /* Ensure at least viewport height */
-}
-
-html:has(.stack-create-post-page) {
-  overflow-y: auto !important; /* Enable scrolling on html as well */
-  overflow-x: hidden !important;
-  height: auto !important;
-  min-height: 100vh !important;
-}
-
-/* Remove scroll responsibility from container - let it grow naturally */
-.saito-container:has(.stack-create-post-page),
-.saito-container.stack-create-post-container {
-  grid-template-columns: 1fr !important;
-  padding: 0 !important;
-  max-width: 100% !important;
-  width: 100vw !important;
-  /* Position below header in normal document flow */
-  position: relative !important; /* Use relative positioning instead of absolute */
-  top: auto !important;
-  left: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  /* Container grows naturally with content - no height constraints */
-  height: auto !important;
-  min-height: 0 !important;
-  /* Remove scroll container behavior - body/html owns scrolling */
-  overflow: visible !important;
-}
-
-.saito-container.stack-create-post-container .saito-sidebar {
-  display: none !important;
-}
-
-.stack-create-post-page {
-  /* Remove min-height: 100vh - allow natural growth, don't force viewport height */
-  /* Top padding accounts for fixed header + spacing */
-  padding-top: calc(var(--saito-header-height, 60px) + 4rem);
-  padding-bottom: 4rem; /* Bottom padding for comfortable scrolling */
-  background: var(--saito-background);
+.create-post {
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Align to top, allow natural growth */
+  align-items: flex-start;
   position: relative;
-  padding-left: 2rem;
-  padding-right: 2rem;
-  /* Body/html owns scrolling - no internal scroll containers */
-  overflow: visible;
-  /* Ensure page can grow naturally with content */
+  padding: calc(var(--saito-header-height, 60px) + 4.5rem) 2rem 6rem;
+  background: var(--saito-background);
   height: auto;
-
-  /* Mount-only transition: fade + micro-translate */
+  overflow: visible;
   opacity: 0;
   transform: translateY(8px);
   transition:
@@ -68,711 +20,426 @@ html:has(.stack-create-post-page) {
     transform 150ms ease-out;
 }
 
-.stack-create-post-page.stack-create-post-page-mounted {
+.create-post.mounted {
   opacity: 1;
   transform: translateY(0);
 }
 
-.stack-create-post-page .stack-create-post-container {
+.create-post .frame {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 1.5rem 0 2rem 0; /* Reduced top padding to align title with status */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* No flex: 1 - allow natural growth, page scrolls */
-  min-height: 0;
-}
-
-/* Content wrapper for document column and sidebar */
-.stack-create-post-page .stack-editor-content-wrapper {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  position: relative; /* For absolute positioning of sidebar */
   padding: 0;
 }
 
-/* Right-hand gradient for sidebar zoning (desktop only) */
-.stack-create-post-page .stack-editor-content-wrapper::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 300px; /* Extend beyond sidebar for fade effect */
-  min-height: 100%; /* Use min-height to allow gradient to grow with content */
-  height: auto; /* Allow gradient to extend with page content */
-  pointer-events: none;
-  background: linear-gradient(
-    to right,
-    transparent 0%,
-    rgba(0, 0, 0, 0.015) 20%,
-    rgba(0, 0, 0, 0.02) 40%,
-    rgba(0, 0, 0, 0.015) 60%,
-    transparent 100%
-  );
-  z-index: 0;
+.create-post .workspace {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  column-gap: 4rem;
+  align-items: start;
 }
 
-/* Bounded Writing Column - scoped to create-post page only */
-.stack-create-post-page .stack-document-column {
-  width: 720px; /* Explicit readable width - defines page centerline */
-  max-width: 720px; /* Optimal reading width (680-740px range) */
-  margin: 0 auto; /* Center the writing column independently */
+.create-post .document {
+  width: 100%;
+  max-width: 68rem;
+  justify-self: center;
   display: flex;
   flex-direction: column;
-  position: relative; /* Required for absolute positioning of publish trigger */
-  padding: 0; /* Remove padding - let title/body handle their own spacing */
-  /* NO flex: 1 - allow natural growth, page scrolls */
-  /* NO overflow - page owns scrolling */
-  overflow: visible;
-  /* Clean, minimal background - no shadows or effects */
-  background: transparent;
-  z-index: 1; /* Above gradient */
-}
-
-/* Editor Header - Draft State */
-.stack-create-post-page .stack-editor-header {
-  width: 100%;
-  max-width: 1200px; /* Match content wrapper width */
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 1rem;
-  padding: 0;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-/* Editor Sidebar */
-.stack-create-post-page .stack-editor-sidebar {
-  width: 240px;
-  padding: 1.5rem;
-  background: var(--saito-background);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
-  font-size: 1.4rem;
-  line-height: 1.5;
-  color: var(--saito-foreground);
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  position: absolute;
-  top: 0;
-  right: 0; /* Align right edge with wrapper's right edge (matches header boundary) */
-  /* Ensure sidebar scrolls with page, not independently */
-  overflow: visible;
-  z-index: 1; /* Above gradient */
-}
-
-/* Editor Status */
-.stack-create-post-page .stack-editor-status {
-  display: block;
-  font-size: 1.5rem;
-  line-height: 1.5;
-  color: var(--saito-foreground);
-  opacity: 0.8;
-  font-weight: 400;
-  white-space: nowrap; /* Ensure "Status: Draft" stays on one line */
-}
-
-.stack-create-post-page .stack-editor-status-label {
-  display: inline;
-  font-weight: 600; /* Emphasize "Status" label - bold, not underlined */
-}
-
-.stack-create-post-page .stack-editor-status-value {
-  display: inline;
-  font-weight: 500;
-  transition: opacity 200ms ease;
-}
-
-.stack-create-post-page .stack-editor-status-value.saving {
-  font-style: italic;
-}
-
-/* Shared structural invariant for primary editor controls (button and dropzone) */
-/* This class enforces identical geometry so elements align visually */
-.stack-create-post-page .stack-editor-primary-control {
-  width: 100%;
   min-width: 0;
-  margin: 0;
-  padding: 1rem 1.5rem;
-  box-sizing: border-box;
 }
 
-/* Help Section */
-.stack-editor-help-container {
+/* Real secondary column — reserved grid track, never overlays the document */
+.create-post .sidebar {
+  width: 100%;
+  padding: 0;
   display: flex;
   flex-direction: column;
-}
-
-.stack-create-post-page .stack-editor-help-icon-container {
-  display: flex;
-  justify-content: space-around;
-}
-
-.stack-editor-help-text-container {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height ease-in-out 0.5s;
-}
-
-.stack-cheatsheet-title {
-  text-align: center;
-}
-
-.stack-create-post-page .stack-editor-help {
-  display: block;
-  padding: 1rem;
-  border-radius: var(--saito-radius);
-  border: 1px solid var(--saito-border);
-  color: var(--saito-foreground);
-}
-
-.stack-create-post-page .stack-editor-help-link {
-  font-size: 1.4rem;
-  color: inherit; /* Inherit from container, not primary color */
-  text-decoration: none;
-  font-weight: 500;
-  transition: text-decoration 0.2s ease;
-}
-
-.stack-create-post-page .stack-editor-help-link:hover {
-  text-decoration: underline;
-}
-
-.stack-create-post-page .stack-editor-help-text {
-  display: inline;
-  font-size: 1.4rem;
-  line-height: 1.5;
-  color: inherit; /* Inherit from container */
-  margin: 0;
-}
-
-.stack-create-post-page .stack-markdown-cheatsheet {
-  margin: 1rem 0 0 0;
-  font-size: small;
-}
-
-/* Help Icon Container - matches stack-view-post-actions styling */
-.stack-create-post-page .stack-editor-help-icon-container {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-shrink: 0;
-}
-
-/* Circular icon-only badges - matches stack-view-post-action-badge styling */
-/* Direct icon (not wrapped in <a>) */
-.stack-create-post-page .stack-editor-help-icon-container > .stack-help-icon {
-  width: 3.6rem;
-  height: 3.6rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: var(--saito-space-lg);
+  position: sticky;
+  top: calc(var(--saito-header-height, 60px) + 2rem);
   background: transparent;
-  border: 1px solid var(--saito-border);
-  color: var(--saito-foreground);
-  opacity: 0.6; /* Low contrast by default */
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1.6rem;
-  line-height: 1;
-}
-
-/* Link wrapper for icon */
-.stack-create-post-page .stack-editor-help-icon-container > a {
-  width: 3.6rem;
-  height: 3.6rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid var(--saito-border);
-  color: var(--saito-foreground);
-  opacity: 0.6; /* Low contrast by default */
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-}
-
-/* Icon inside link wrapper */
-.stack-create-post-page .stack-editor-help-icon-container > a .stack-help-icon {
-  font-size: 1.6rem;
-  line-height: 1;
-}
-
-/* Hover states */
-.stack-create-post-page .stack-editor-help-icon-container > .stack-help-icon:hover,
-.stack-create-post-page .stack-editor-help-icon-container > a:hover {
-  opacity: 1;
-  background: var(--saito-primary);
-  border-color: var(--saito-primary);
-  color: white;
-  transform: scale(1.05);
-}
-
-.stack-create-post-page .stack-draft-state {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.6rem;
+  border: none;
+  font-size: 1.3rem;
   line-height: 1.4;
-  color: var(--saito-foreground);
-  opacity: 0.85;
-  transition: all 0.2s ease;
-  font-weight: 400;
-  cursor: pointer;
-  user-select: none;
-  padding-right: 0; /* No padding needed with clean layout */
+  color: var(--saito-muted-foreground);
 }
 
-.stack-create-post-page .stack-draft-state:hover {
-  opacity: 1;
-  color: var(--saito-primary);
-}
-
-.stack-create-post-page .stack-draft-state.stack-admin-active {
+.create-post .status {
+  font-size: 1.3rem;
+  line-height: 1.4;
+  color: var(--saito-muted-foreground);
   opacity: 0.9;
-  color: var(--saito-foreground);
-}
-
-.stack-create-post-page .stack-draft-state.stack-admin-active:hover {
-  opacity: 1;
-  color: var(--saito-primary);
-}
-
-.stack-create-post-page .stack-draft-state.stack-admin-published {
-  opacity: 0.9;
-  color: var(--saito-primary);
-}
-
-.stack-create-post-page .stack-draft-state.stack-admin-published:hover {
-  opacity: 1;
-}
-
-.stack-create-post-page .stack-draft-state.saving {
-  opacity: 0.9;
-}
-
-.stack-create-post-page .stack-draft-state.saved {
-  opacity: 0.8;
-}
-
-.stack-create-post-page .stack-draft-state-text {
-  font-weight: 400;
+  white-space: nowrap;
   letter-spacing: 0.02em;
 }
 
-/* Featured Image Section (in sidebar, between Status and Publish button) */
-/* Upload box is only a chooser - image appears in main layout above title */
-.stack-featured-image-section {
+.create-post .status .value {
+  font-weight: 400;
+  transition: opacity 200ms ease;
+}
+
+.create-post .status .value.saving {
+  font-style: italic;
+  opacity: 1;
+}
+
+.create-post .status .value.saved {
+  color: var(--saito-muted-foreground);
+}
+
+.create-post .control {
   width: 100%;
-  margin: 0; /* No margin in sidebar - gap is handled by sidebar's gap property */
-  padding: 0; /* No padding - children handle their own spacing */
-  position: relative;
-  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
 }
 
-/* Featured Image Dropzone (shown when no image) */
-.stack-featured-image-dropzone {
-  min-height: 100px; /* More compact for sidebar */
-  border: 2px dashed var(--saito-border); /* Border drawn INSIDE shared geometry */
-  border-radius: 8px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: var(--saito-background);
-  position: relative;
-  display: flex; /* Changed from block to flex for better centering */
-  align-items: center;
-  justify-content: center;
-}
-
-.stack-featured-image-dropzone:hover {
-  border-color: var(--saito-primary);
-  background: var(--saito-background-secondary, var(--saito-background));
-}
-
-.stack-featured-image-dropzone-content {
+/* Cover is sidebar metadata — never in the writing canvas */
+.create-post .upload {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem; /* Tighter gap for sidebar */
-  pointer-events: none;
+  gap: 0.8rem;
 }
 
-.stack-featured-image-upload-icon {
-  font-size: 2rem; /* Slightly smaller for sidebar */
-  color: var(--saito-muted-foreground);
-  margin-bottom: 0.5rem;
-}
-
-.stack-featured-image-dropzone-text {
-  font-size: 1.3rem; /* Slightly smaller for sidebar */
-  color: var(--saito-foreground);
-  margin: 0;
-  font-weight: 500;
-}
-
-.stack-featured-image-dropzone-subtext {
-  font-size: 1.1rem; /* Slightly smaller for sidebar */
-  color: var(--saito-foreground);
-  opacity: 0.7;
-  margin: 0;
-}
-
-/* Featured Image Display (in main page layout, above title) - read-only preview */
-.stack-featured-image-display {
+.create-post .feature {
+  display: none;
   width: 100%;
-  margin-bottom: 2rem;
+  margin: 0;
   position: relative;
 }
 
-.stack-featured-image-display-container {
+.create-post .feature.is-visible {
+  display: block;
+}
+
+.create-post .preview {
+  display: block;
   width: 100%;
-  position: relative;
-  border-radius: 8px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
   overflow: hidden;
-  background: var(--saito-background);
+  cursor: pointer;
 }
 
-.stack-featured-image-display-img {
+.create-post .preview:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--saito-primary) 40%, var(--saito-border));
+}
+
+.create-post .image {
   width: 100%;
-  height: auto;
-  max-height: 400px;
+  height: 10rem;
   object-fit: cover;
   display: block;
-  border-radius: 8px;
 }
 
-/* Remove button hidden (display is read-only, removal via sidebar only) */
-.stack-featured-image-display-remove {
+.create-post .remove {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
   display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-background);
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
 }
 
-.stack-create-post-page .stack-post-title-field {
-  width: 100%;
+.create-post .feature.is-visible:hover .remove,
+.create-post .feature.is-visible:focus-within .remove {
+  display: flex;
+}
+
+.create-post .remove:hover {
+  color: var(--saito-destructive, var(--saito-red));
+  border-color: color-mix(
+    in srgb,
+    var(--saito-destructive, var(--saito-red)) 45%,
+    var(--saito-border)
+  );
+}
+
+.create-post .dropzone {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 0;
+  padding: var(--saito-space-sm) 0;
+  border: none;
+  border-top: 1px solid var(--saito-border);
+  border-bottom: 1px solid var(--saito-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.create-post .dropzone:hover,
+.create-post .dropzone:focus-visible {
+  color: var(--saito-foreground);
+  border-color: color-mix(in srgb, var(--saito-primary) 40%, var(--saito-border));
+  outline: none;
+}
+
+.create-post .dropzone .icon {
+  font-size: 1.4rem;
+  color: inherit;
   margin: 0;
-  padding: 1.5rem 0 0 0; /* Align top with sidebar status (1.5rem matches sidebar padding) */
-  margin-bottom: 3rem; /* Clear separation from body */
+  flex-shrink: 0;
+}
+
+.create-post .dropzone .text {
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: inherit;
+  margin: 0;
+}
+
+.create-post .sidebar .saito-button-primary {
+  margin: 0;
+}
+
+.create-post .title-field {
+  width: 100%;
+  padding: 0;
+  /* Air between editorial title and primary writing surface */
+  margin: 0 0 2.5rem;
   position: relative;
 }
 
-.stack-create-post-page .stack-post-title-input {
+.create-post .title-field .title {
   width: 100%;
   padding: 0;
   margin: 0;
-  font-size: 3.6rem; /* Larger, more prominent */
-  line-height: 1.2;
-  font-weight: 700; /* Heavier weight */
+  /* Document title: visuelt-regular — scale for hierarchy, not heavy weight */
+  font-family: var(--saito-font-medium);
+  font-size: 4.67rem;
+  font-weight: normal;
+  line-height: 1.12;
+  letter-spacing: normal;
   border: none;
   background: transparent;
   color: var(--saito-foreground);
-  font-family: var(
-    --saito-font-family,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif
-  );
   outline: none;
-  transition: opacity 0.2s ease;
-  text-align: left;
-  display: block;
-  letter-spacing: -0.02em; /* Tighter letter spacing for large text */
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
+  min-height: 1.12em;
 }
 
-.stack-create-post-page .stack-post-title-input::placeholder {
-  color: var(--saito-foreground);
-  opacity: 0.4; /* More visible, intentional placeholder */
-  font-weight: 500; /* Slightly heavier for visibility */
-}
-
-.stack-create-post-page .stack-post-title-input:is(:focus, :focus-visible) {
+.create-post .title-field .title.is-empty,
+.create-post .title-field .title::placeholder {
+  color: var(--saito-muted-foreground);
+  font-weight: normal;
   opacity: 1;
+}
+
+.create-post .title-field .title:is(:focus, :focus-visible) {
+  /* Neutralize any Saito form focus chrome on the document title */
   border-color: transparent !important;
-  box-shadow: none !important;
+  box-shadow: none;
+  background: transparent;
 }
 
-.stack-create-post-page .stack-post-body-field {
+.create-post .body-field {
   width: 100%;
-  margin-bottom: 4rem;
-  padding: 0;
-  margin-left: 0;
-  margin-right: 0;
-  /* Page owns scrolling - no nested scroll containers */
-  overflow: visible;
+  margin-bottom: 6rem;
 }
 
-/* Block Editor - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor {
+.create-post .body {
   width: 100%;
-  min-height: 50vh;
+  min-height: 55vh;
   padding: 0;
-  margin: 0;
-  font-size: 2rem;
-  line-height: 1.7; /* Improved line-height for better readability */
+  font-size: 2.05rem;
+  line-height: 1.78;
   border: none;
   background: transparent;
   color: var(--saito-foreground);
-  font-family: var(
-    --saito-font-family,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif
-  );
+  font-family: var(--saito-font);
   outline: none;
   cursor: text;
-  text-align: left;
   position: relative;
-  /* NO overflow - page owns scrolling */
   overflow: visible;
   font-weight: 400;
-  /* Calm top spacing - first line feels like start of writing */
-  padding-top: 0.5rem;
 }
 
-/* Placeholder for empty editor - scoped to create-post page only */
-/* Show placeholder when editor is empty (has stack-editor-empty class) */
-/* Target the first paragraph block, which may contain zero-width space for editability */
-/* Use CSS variable to pass placeholder text from editor's data-placeholder attribute */
-.stack-create-post-page .stack-post-body-editor.stack-editor-empty > p:first-child {
+.create-post .body.empty > p:first-child {
   position: relative;
 }
 
-.stack-create-post-page .stack-post-body-editor.stack-editor-empty > p:first-child::before {
-  content: 'Start writing...'; /* Placeholder text - matches data-placeholder on editor */
-  color: var(--saito-foreground);
-  opacity: 0.5;
+.create-post .body.empty > p:first-child::before {
+  content: 'Write something…';
+  color: var(--saito-muted-foreground);
+  opacity: 1;
   pointer-events: none;
-  font-weight: 400;
   position: absolute;
   left: 0;
   top: 0;
   white-space: nowrap;
-}
-
-.stack-create-post-page .stack-post-body-editor:focus {
-  outline: none;
-}
-
-/* Block elements - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > p,
-.stack-create-post-page .stack-post-body-editor > h1,
-.stack-create-post-page .stack-post-body-editor > h2,
-.stack-create-post-page .stack-post-body-editor > h3,
-.stack-create-post-page .stack-post-body-editor > h4,
-.stack-create-post-page .stack-post-body-editor > h5,
-.stack-create-post-page .stack-post-body-editor > h6,
-.stack-create-post-page .stack-post-body-editor > figure,
-.stack-create-post-page .stack-post-body-editor > div[data-block-type='rawhtml'] {
-  margin: 0;
-  margin-bottom: 1.8rem; /* Improved paragraph spacing - visually distinct */
-  padding: 0;
-  outline: none;
-  color: var(--saito-foreground);
-}
-
-/* Code blocks - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > pre[data-block-type='code'] {
-  background: var(--saito-foreground);
-  color: var(--saito-background);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  padding: 1rem 1.25rem;
-  margin: 1rem 0;
-  border-left: 4px solid var(--saito-primary);
-  border-radius: 6px;
-  overflow-x: auto;
-}
-
-/* I3: Visual list markers rendered via CSS, not textContent */
-.stack-create-post-page .stack-post-body-editor > ul {
-  list-style-type: disc;
-  padding-left: 1.2em;
-  margin: 0;
-  margin-bottom: 1.8rem;
-}
-
-.stack-create-post-page .stack-post-body-editor > ul > li {
-  margin: 0;
-  padding: 0;
-  margin-bottom: 0.5rem;
-}
-
-.stack-create-post-page .stack-post-body-editor > ul > li:last-child {
-  margin-bottom: 0;
-}
-
-/* First child blocks - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > p:first-child,
-.stack-create-post-page .stack-post-body-editor > h1:first-child,
-.stack-create-post-page .stack-post-body-editor > h2:first-child,
-.stack-create-post-page .stack-post-body-editor > h3:first-child,
-.stack-create-post-page .stack-post-body-editor > h4:first-child,
-.stack-create-post-page .stack-post-body-editor > h5:first-child,
-.stack-create-post-page .stack-post-body-editor > h6:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  margin-bottom: 1.8rem; /* Consistent spacing */
-}
-
-/* Subtle block insertion affordance on hover between blocks */
-.stack-post-body-editor > p:hover::after,
-.stack-post-body-editor > h1:hover::after,
-.stack-post-body-editor > h2:hover::after,
-.stack-post-body-editor > h3:hover::after,
-.stack-post-body-editor > h4:hover::after,
-.stack-post-body-editor > h5:hover::after,
-.stack-post-body-editor > h6:hover::after {
-  content: '';
-  position: absolute;
-  left: -1.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--saito-primary);
-  opacity: 0.2;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-
-.stack-post-body-editor > p:hover::after,
-.stack-post-body-editor > h1:hover::after,
-.stack-post-body-editor > h2:hover::after,
-.stack-post-body-editor > h3:hover::after,
-.stack-post-body-editor > h4:hover::after,
-.stack-post-body-editor > h5:hover::after,
-.stack-post-body-editor > h6:hover::after {
-  opacity: 0.3;
-}
-
-/* Last child blocks - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > p:last-child,
-.stack-create-post-page .stack-post-body-editor > h1:last-child,
-.stack-create-post-page .stack-post-body-editor > h2:last-child,
-.stack-create-post-page .stack-post-body-editor > h3:last-child,
-.stack-create-post-page .stack-post-body-editor > h4:last-child,
-.stack-create-post-page .stack-post-body-editor > h5:last-child,
-.stack-create-post-page .stack-post-body-editor > h6:last-child {
-  margin-bottom: 0;
-}
-
-/* Document End Indicator - hidden for create-post page */
-.stack-create-post-page .stack-document-end {
-  display: none;
-}
-
-/* Editor Footer - hidden for create-post page */
-.stack-create-post-page .stack-editor-footer {
-  display: none;
-}
-
-/* Body text - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > p {
-  font-size: 2rem;
-  line-height: 1.7; /* Improved line-height for better readability */
-  color: var(--saito-foreground);
   font-weight: 400;
 }
 
-/* Heading styles - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > h1 {
-  font-size: 2.8rem;
+.create-post .body:focus {
+  outline: none;
+}
+
+.create-post .body > p,
+.create-post .body > h1,
+.create-post .body > h2,
+.create-post .body > h3,
+.create-post .body > h4,
+.create-post .body > h5,
+.create-post .body > h6,
+.create-post .body > figure,
+.create-post .body > div[data-block-type='rawhtml'] {
+  margin: 0 0 1.6em;
+  padding: 0;
+  outline: none;
+  color: var(--saito-foreground);
+}
+
+.create-post .body > pre[data-block-type='code'] {
+  background: color-mix(in srgb, var(--saito-secondary) 80%, var(--saito-background));
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-monospace);
+  font-size: 1.5rem;
+  line-height: 1.55;
+  padding: 1.4rem 1.6rem;
+  margin: 2rem 0;
+  border-left: 3px solid var(--saito-primary);
+  border-radius: var(--saito-radius);
+  overflow-x: auto;
+}
+
+.create-post .body > ul {
+  list-style-type: disc;
+  padding-left: 1.35em;
+  margin: 0 0 1.6em;
+}
+
+.create-post .body > ul > li {
+  margin: 0 0 0.55em;
+  padding: 0;
+  line-height: 1.78;
+}
+
+.create-post .body > ul > li:last-child {
+  margin-bottom: 0;
+}
+
+.create-post .body > p:first-child,
+.create-post .body > h1:first-child,
+.create-post .body > h2:first-child,
+.create-post .body > h3:first-child,
+.create-post .body > h4:first-child,
+.create-post .body > h5:first-child,
+.create-post .body > h6:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.create-post .body > p:last-child,
+.create-post .body > h1:last-child,
+.create-post .body > h2:last-child,
+.create-post .body > h3:last-child,
+.create-post .body > h4:last-child,
+.create-post .body > h5:last-child,
+.create-post .body > h6:last-child {
+  margin-bottom: 0;
+}
+
+.create-post .body > p {
+  font-size: 2.05rem;
+  line-height: 1.78;
+  font-weight: 400;
+}
+
+.create-post .body > h1 {
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 2.4rem 0 1rem;
+  letter-spacing: -0.02em;
+}
+
+.create-post .body > h2 {
+  font-size: 2.55rem;
   font-weight: 600;
   line-height: 1.3;
-  margin: 1.5rem 0 1rem 0;
-  color: var(--saito-foreground);
+  margin: 2.2rem 0 0.9rem;
+  letter-spacing: -0.015em;
 }
 
-.stack-create-post-page .stack-post-body-editor > h2 {
-  font-size: 2.5rem;
+.create-post .body > h3 {
+  font-size: 2.25rem;
   font-weight: 600;
   line-height: 1.35;
-  margin: 1.5rem 0 1rem 0;
-  color: var(--saito-foreground);
+  margin: 2rem 0 0.75rem;
 }
 
-.stack-create-post-page .stack-post-body-editor > h3 {
-  font-size: 2.2rem;
+.create-post .body > h4 {
+  font-size: 2.05rem;
   font-weight: 600;
-  line-height: 1.4;
-  margin: 1.25rem 0 0.75rem 0;
-  color: var(--saito-foreground);
+  margin: 1.6rem 0 0.6rem;
 }
 
-.stack-create-post-page .stack-post-body-editor > h4 {
-  font-size: 2rem;
+.create-post .body > h5 {
+  font-size: 1.85rem;
   font-weight: 600;
-  margin: 1rem 0 0.5rem 0;
-  color: var(--saito-foreground);
+  margin: 1.4rem 0 0.5rem;
 }
 
-.stack-create-post-page .stack-post-body-editor > h5 {
-  font-size: 1.75rem;
+.create-post .body > h6 {
+  font-size: 1.65rem;
   font-weight: 600;
-  margin: 0.75rem 0 0.5rem 0;
-  color: var(--saito-foreground);
+  margin: 1.2rem 0 0.5rem;
 }
 
-.stack-create-post-page .stack-post-body-editor > h6 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0.5rem 0;
-  color: var(--saito-foreground);
-}
-
-.stack-post-body-editor > figure {
-  margin: 1.5rem 0;
+.create-post .body > figure {
+  margin: 2.4rem 0;
   text-align: center;
   position: relative;
   cursor: pointer;
 }
 
-.stack-post-body-editor > figure img {
+.create-post .body > figure img {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: var(--saito-radius);
   display: block;
   margin: 0 auto;
 }
 
-.stack-post-body-editor > figure figcaption {
-  margin-top: 0.5rem;
-  font-size: 1.2rem;
+.create-post .body > figure figcaption {
+  margin-top: 0.8rem;
+  font-size: 1.35rem;
   color: var(--saito-muted-foreground);
   font-style: italic;
-  display: none; /* Hidden by default */
+  display: none;
 }
 
-.stack-post-body-editor > figure.stack-image-selected {
+.create-post .body > figure.selected {
   outline: 2px solid var(--saito-primary);
   outline-offset: 4px;
-  border-radius: 8px;
+  border-radius: var(--saito-radius);
 }
 
-.stack-post-body-editor > figure.stack-image-selected figcaption {
-  display: block; /* Show caption when selected */
+.create-post .body > figure.selected figcaption {
+  display: block;
 }
 
-/* Insertion indicator */
-.stack-insertion-indicator {
+.create-post .insertion-indicator {
   height: 2px;
   background: var(--saito-primary);
   margin: 0.5rem 0;
@@ -780,7 +447,7 @@ html:has(.stack-create-post-page) {
   opacity: 0.8;
 }
 
-.stack-insertion-indicator::before {
+.create-post .insertion-indicator::before {
   content: '';
   position: absolute;
   left: 0;
@@ -791,333 +458,109 @@ html:has(.stack-create-post-page) {
   border-radius: 50%;
 }
 
-.stack-post-body-editor > div[data-block-type='rawhtml'] {
-  margin: 1rem 0;
+.create-post .body > div[data-block-type='rawhtml'] {
+  margin: 1.6rem 0;
 }
 
-/* Legacy textarea styles (for backwards compatibility) */
-.stack-post-body-input {
-  width: 100%;
-  height: 100%;
-  min-height: 500px;
-  padding: 1.5rem;
-  font-size: 1.8rem;
-  line-height: 1.9;
-  border: none;
-  background: transparent;
-  color: var(--saito-foreground);
-  font-family: var(--saito-font-monospace, 'Courier New', monospace);
-  resize: none;
-  outline: none;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.stack-post-body-input::placeholder {
-  color: var(--saito-muted-foreground);
-  opacity: 0.5;
-  font-style: italic;
-}
-
-/* Sidebar */
-.stack-create-post-sidebar {
-  width: 320px;
-  min-width: 320px;
-  border-right: 1px solid var(--saito-border);
-  background: var(--saito-background);
-  padding: 2rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  max-height: calc(100vh - var(--saito-header-height, 60px));
-}
-
-.stack-sidebar-section {
-  background: var(--saito-background);
-  border: 1px solid var(--saito-border);
-  border-radius: 12px;
-  padding: 1.5rem;
-}
-
-.stack-sidebar-actions {
-  margin-top: auto;
-}
-
-.stack-sidebar-section h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: var(--saito-foreground);
-}
-
-/* Image Upload Area */
-.stack-image-upload-area {
-  border: 2px dashed var(--saito-border);
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: var(--saito-background);
-  position: relative;
-}
-
-.stack-image-upload-area:hover {
-  border-color: var(--saito-primary);
-  background: var(--saito-background);
-}
-
-.stack-image-upload-area.stack-upload-dragover {
-  border-color: var(--saito-primary);
-  background: rgba(var(--saito-primary-rgb, 74, 144, 226), 0.1);
-  transform: scale(1.02);
-}
-
-.stack-image-upload-content {
-  pointer-events: none;
-}
-
-.stack-upload-icon {
-  font-size: 3rem;
-  color: var(--saito-muted-foreground);
-  margin-bottom: 1rem;
-  display: block;
-}
-
-.stack-upload-text {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: var(--saito-foreground);
-  margin: 0 0 0.5rem 0;
-}
-
-.stack-upload-subtext {
-  font-size: 1.1rem;
-  color: var(--saito-foreground);
-  margin: 0;
-  opacity: 0.8;
-}
-
-.stack-image-upload-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-/* Uploaded Images */
-.stack-uploaded-images {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.stack-uploaded-image-item {
-  position: relative;
-  border: 1px solid var(--saito-border);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--saito-background);
-}
-
-.stack-uploaded-image-item img {
-  width: 100%;
-  height: auto;
-  display: block;
-  max-height: 200px;
-  object-fit: cover;
-}
-
-.stack-remove-image-btn {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  font-size: 1.6rem; /* 16px minimum - button icon text */
-}
-
-.stack-remove-image-btn:hover {
-  background: rgba(255, 0, 0, 0.8);
-  transform: scale(1.1);
-}
-
-.stack-image-name {
-  display: block;
-  padding: 0.5rem;
-  font-size: 1.6rem;
-  color: var(--saito-foreground);
-  text-align: center;
-  word-break: break-all;
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-
-/* Medium screens - maintain readable width */
-@media (max-width: 1200px) and (min-width: 769px) {
-  .stack-create-post-page .stack-editor-content-wrapper::after {
-    display: none; /* Hide gradient on smaller screens */
-  }
-
-  .stack-create-post-page .stack-editor-content-wrapper {
-    max-width: 100%;
-    gap: 2rem;
-  }
-
-  .stack-create-post-page .stack-document-column {
-    max-width: 720px; /* Maintain optimal reading width */
-    padding: 0;
-  }
-
-  .stack-create-post-page .stack-editor-header {
-    max-width: 1200px;
-    padding: 0;
-  }
-
-  .stack-create-post-page .stack-draft-state {
-    padding-right: 0;
-  }
-
-  .stack-create-post-page .stack-editor-sidebar {
-    width: 200px;
-    right: 0; /* Maintain alignment with wrapper right edge */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .create-post .workspace {
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    column-gap: 2.5rem;
   }
 }
 
-/* Mobile */
 @media (max-width: 768px) {
-  .stack-create-post-page .stack-editor-content-wrapper::after {
-    display: none; /* Hide gradient on mobile */
+  .create-post {
+    padding: calc(var(--saito-header-height, 6rem) + 1.5rem) 0 3rem;
   }
 
-  .stack-create-post-page {
-    /* Remove min-height: 100vh on mobile - allow natural growth */
-    padding: var(--saito-header-height, 6rem) 0 0 0; /* Slightly less top spacing on mobile */
-    /* Body/html owns scrolling on mobile too */
-    overflow: visible;
-  }
-
-  .stack-create-post-page .stack-post-body-editor {
-    min-height: 33vh;
-    height: calc(100dvh - 50rem);
-  }
-
-  .stack-create-post-page .stack-create-post-container {
-    padding: 1rem;
-    width: 100vw;
-  }
-
-  .stack-create-post-page .stack-document-column {
+  .create-post .frame {
+    padding: 0 1.6rem;
     width: 100%;
   }
-  .stack-create-post-page .stack-post-title-input {
-    font-size: 2.75rem;
+
+  .create-post .workspace {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
   }
 
-  .stack-create-post-page .stack-editor-sidebar {
-    position: relative;
+  .create-post .document {
     width: 100%;
-    left: auto;
-    right: auto;
+    max-width: 100%;
+    order: 1;
+  }
+
+  .create-post .sidebar {
+    position: static;
+    width: 100%;
+    order: 2;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--saito-border);
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1rem 1.5rem;
+  }
+
+  .create-post .status {
+    flex: 0 0 auto;
+    align-self: center;
+  }
+
+  .create-post .upload {
+    flex: 1 1 14rem;
+    min-width: 12rem;
+  }
+
+  .create-post .feature.is-visible {
+    max-width: 18rem;
+  }
+
+  .create-post .image {
+    height: 9rem;
+  }
+
+  .create-post .sidebar .saito-button-primary {
+    flex: 0 0 auto;
+    margin-top: 0;
+    align-self: center;
+  }
+
+  .create-post .title-field {
     margin-bottom: 2rem;
   }
 
-  .stack-document-column {
-    max-width: 100%; /* Full width on mobile */
-    /* Remove fixed min-height - allow natural content growth */
-    min-height: 0;
-    /* NO overflow on mobile - page scrolls */
-    overflow: visible;
+  .create-post .title-field .title {
+    font-size: 3.3rem;
+    line-height: 1.12;
   }
 
-  .stack-post-body-field {
-    /* Page owns scrolling - no nested scroll containers */
-    overflow: visible;
-  }
-
-  .stack-editor-header {
-    max-width: 100%;
-    margin-bottom: 1.5rem;
-    padding: 0;
-  }
-
-  .stack-create-post-page .stack-draft-state {
-    padding-right: 0;
-  }
-
-  .stack-post-title-field {
-    margin-bottom: 2.5rem; /* Clear separation on mobile */
-  }
-
-  .stack-post-title-input {
-    font-size: 2.8rem; /* Slightly smaller on mobile but still prominent */
-    line-height: 1.2;
-  }
-
-  .stack-post-body-field {
+  .create-post .body-field {
     margin-bottom: 3rem;
   }
 
-  .stack-post-body-editor {
-    font-size: 1.8rem;
-    line-height: 1.7; /* Improved line-height */
+  .create-post .body {
+    font-size: 1.9rem;
+    line-height: 1.75;
     min-height: 50vh;
   }
 
-  .stack-document-end {
-    margin-top: 3rem;
-    margin-bottom: 2rem;
+  .create-post .body > p {
+    font-size: 1.9rem;
+    line-height: 1.75;
   }
 
-  .stack-editor-footer {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-  }
-
-  .stack-post-body-editor > p {
-    font-size: 1.8rem;
-    line-height: 1.7; /* Improved line-height */
-    margin-bottom: 1.8rem; /* Consistent paragraph spacing */
-  }
-
-  .stack-post-body-editor > h1 {
+  .create-post .body > h1 {
     font-size: 2.5rem;
   }
 
-  .stack-post-body-editor > h2 {
+  .create-post .body > h2 {
+    font-size: 2.2rem;
+  }
+
+  .create-post .body > h3 {
     font-size: 2rem;
-  }
-
-  .stack-post-body-editor > h3 {
-    font-size: 1.75rem;
-  }
-
-  .stack-create-post-page .stack-editor-help-icon-container {
-    gap: 0.5rem;
-  }
-
-  .stack-create-post-page .stack-editor-help-icon-container > .stack-help-icon,
-  .stack-create-post-page .stack-editor-help-icon-container > a {
-    width: 3.2rem;
-    height: 3.2rem;
-  }
-
-  .stack-create-post-page .stack-editor-help-icon-container > .stack-help-icon,
-  .stack-create-post-page .stack-editor-help-icon-container > a .stack-help-icon {
-    font-size: 1.4rem;
   }
 }

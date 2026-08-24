@@ -5,6 +5,7 @@ const CTA_LOGOS = {
   games: 'saito-games-icon',
   redsquare: 'saito-redsquare-icon',
   stack: 'saito-stack-icon',
+  store: 'saito-store-icon',
   swarmcast: 'saito-swarmcast-icon',
   talk: 'saito-talk-icon',
   vault: 'saito-vault-icon'
@@ -26,6 +27,10 @@ const CTA_CONTENT = {
   stack: {
     label: 'Saito Stack',
     subtitle: 'PUBLISH WITHOUT PUBLISHERS'
+  },
+  store: {
+    label: 'Saito Store',
+    subtitle: 'PEER-TO-PEER COMMERCE'
   },
   swarmcast: {
     label: 'Swarmcast',
@@ -217,9 +222,65 @@ function styles() {
       align-items: center;
       justify-content: center;
       color: #fff7ed;
-      font: 700 15.5px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font: 400 15.5px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.34);
       pointer-events: none;
+    }
+
+    .saito-cta-loader-progress.is-application-loading .saito-cta-loader-progress-fill {
+      width: 100%;
+      overflow: hidden;
+      background: var(--saito-cta-loader-primary);
+    }
+
+    .saito-cta-loader-progress.is-application-loading .saito-cta-loader-progress-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0 100% 0 auto;
+      width: 195%;
+      background: linear-gradient(
+        90deg,
+        var(--saito-cta-loader-primary) 0%,
+        var(--saito-cta-loader-primary) 30%,
+        var(--saito-cta-loader-primary-strong) 50%,
+        var(--saito-cta-loader-primary) 70%,
+        var(--saito-cta-loader-primary) 100%
+      );
+      animation: saito-cta-loader-application-pulse 5s linear infinite;
+    }
+
+    .saito-cta-loader-progress-text.is-application-loading::after {
+      content: "...";
+      flex: 0 0 1.2em;
+      width: 1.2em;
+      overflow: hidden;
+      text-align: left;
+      clip-path: inset(0 0 0 0);
+      animation: saito-cta-loader-ellipsis 1.2s steps(4, end) infinite;
+    }
+
+    @keyframes saito-cta-loader-ellipsis {
+      from {
+        clip-path: inset(0 100% 0 0);
+      }
+      to {
+        clip-path: inset(0 0 0 0);
+      }
+    }
+
+    @keyframes saito-cta-loader-application-pulse {
+      from {
+        transform: translateX(0);
+      }
+      to {
+        transform: translateX(151.3%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .saito-cta-loader-progress-text.is-application-loading::after {
+        animation: none;
+      }
     }
 
     @media (max-width: 720px) {
@@ -236,11 +297,11 @@ function styles() {
         min-height: 100dvh;
         max-height: 100vh;
         max-height: 100dvh;
-        padding: 24px;
+        padding: 20dvh 24px 24px;
         border: 0;
         border-radius: 0;
         overflow-y: auto;
-        justify-content: safe center;
+        justify-content: flex-start;
       }
 
       .saito-cta-loader-progress {
@@ -259,7 +320,7 @@ function script() {
       var paceComplete = false;
       var appReady = false;
       var fallbackTimer = null;
-      var hardTimeoutTimer = null;
+      var applicationTimeoutTimer = null;
       var xcloseObserver = null;
 
       function percent(value) {
@@ -287,8 +348,37 @@ function script() {
           progressBar.setAttribute('aria-valuenow', String(progress));
         }
         var text = loader.querySelector('.saito-cta-loader-progress-text');
-        if (text && text.textContent !== valueText) {
+        if (
+          text &&
+          loader.getAttribute('data-saito-cta-loader-state') === 'loading-resources' &&
+          text.textContent !== valueText
+        ) {
           text.textContent = valueText;
+        }
+      }
+
+      function showApplicationLoading(delayed) {
+        var loader = document.querySelector('.saito-cta-loader-shell');
+        if (!loader) {
+          return;
+        }
+
+        var message = delayed
+          ? 'Application is taking longer than expected'
+          : 'Application Loading';
+        loader.setAttribute(
+          'data-saito-cta-loader-state',
+          delayed ? 'loading-application-delayed' : 'loading-application'
+        );
+        var progressBar = loader.querySelector('.saito-cta-loader-progress');
+        if (progressBar) {
+          progressBar.setAttribute('aria-valuetext', message);
+          progressBar.classList.add('is-application-loading');
+        }
+        var text = loader.querySelector('.saito-cta-loader-progress-text');
+        if (text) {
+          text.textContent = message;
+          text.classList.add('is-application-loading');
         }
       }
 
@@ -297,6 +387,21 @@ function script() {
           clearInterval(fallbackTimer);
           fallbackTimer = null;
         }
+      }
+
+      function startApplicationTimeout() {
+        if (applicationTimeoutTimer || complete) {
+          return;
+        }
+        applicationTimeoutTimer = setTimeout(function () {
+          if (!complete) {
+            console.warn('Saito CTA loader is still waiting for application readiness', {
+              paceComplete: paceComplete,
+              appReady: appReady
+            });
+            showApplicationLoading(true);
+          }
+        }, 30000);
       }
 
       function waitForStylesheets(timeout) {
@@ -356,11 +461,13 @@ function script() {
       }
 
       function reveal(loader) {
-        if (hardTimeoutTimer) {
-          clearTimeout(hardTimeoutTimer);
-          hardTimeoutTimer = null;
+        if (applicationTimeoutTimer) {
+          clearTimeout(applicationTimeoutTimer);
+          applicationTimeoutTimer = null;
         }
 
+        loader.setAttribute('data-saito-cta-loader-state', 'revealing');
+        loader.setAttribute('aria-busy', 'false');
         if (document.body) {
           document.body.classList.add('saito-cta-loader-complete');
           document.body.classList.remove('saito-cta-loader-active');
@@ -375,11 +482,11 @@ function script() {
         }
       }
 
-      function finish(force) {
+      function finish() {
         if (complete) {
           return;
         }
-        if (!force && (!paceComplete || !appReady)) {
+        if (!paceComplete || !appReady) {
           return;
         }
         var loader = document.querySelector('.saito-cta-loader-shell');
@@ -403,9 +510,16 @@ function script() {
       }
 
       function markPaceComplete() {
+        if (paceComplete) {
+          finish();
+          return;
+        }
         paceComplete = true;
-        update(Math.max(progress, 98));
-        finish(false);
+        stopFallbackProgress();
+        update(100);
+        showApplicationLoading(false);
+        startApplicationTimeout();
+        finish();
       }
 
       function markAppReady() {
@@ -414,7 +528,7 @@ function script() {
           xcloseObserver.disconnect();
           xcloseObserver = null;
         }
-        finish(false);
+        finish();
       }
 
       function bindXCloseFallback() {
@@ -475,7 +589,7 @@ function script() {
         markAppReady: markAppReady,
         markPaceComplete: markPaceComplete,
         finish: function () {
-          finish(true);
+          markAppReady();
         }
       };
 
@@ -495,13 +609,6 @@ function script() {
           }
         }, 600);
       });
-
-      hardTimeoutTimer = setTimeout(function () {
-        if (!complete) {
-          console.warn('Saito CTA loader timed out before app-ready signal');
-          finish(true);
-        }
-      }, 12000);
     })();
   </script>`;
 }
@@ -517,13 +624,13 @@ function loader(logo) {
   const content = CTA_CONTENT[key] || CTA_CONTENT.chat;
 
   return `
-    <div class="saito-cta-loader-shell" data-saito-cta-loader="${key}">
+    <div class="saito-cta-loader-shell" data-saito-cta-loader="${key}" data-saito-cta-loader-state="loading-resources" aria-busy="true">
       <div class="saito-cta-loader-card">
         <div class="saito-cta-loader-logo" role="img" aria-label="${content.label}" style="--saito-cta-loader-logo-mask: url('/saito/icons/${CTA_LOGOS[key]}-outline-label-horizontal.svg');"></div>
         <div class="saito-cta-loader-subtitle">${content.subtitle}</div>
         <div class="saito-cta-loader-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div class="saito-cta-loader-progress-fill"></div>
-          <div class="saito-cta-loader-progress-text">0%</div>
+          <div class="saito-cta-loader-progress-text" aria-live="polite">0%</div>
         </div>
       </div>
     </div>
