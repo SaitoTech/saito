@@ -122,52 +122,50 @@ class SaitoInput {
   }
 
   attachSelectionBoxTabEvents() {
-    Array.from(
-      document.querySelectorAll('.saito-input-selection-box .saito-box-tab')
-    ).forEach((tab) => {
-      tab.onclick = (e) => {
-        e.stopPropagation();
+    Array.from(document.querySelectorAll('.saito-input-selection-box .saito-box-tab')).forEach(
+      (tab) => {
+        tab.onclick = (e) => {
+          e.stopPropagation();
 
-        if (e.currentTarget.id === 'selection-box-close') {
-          this.removeSelectionBox();
-          return;
-        }
-
-        Array.from(
-          document.querySelectorAll('.saito-input-selection-box .selection-box-pane.active-tab')
-        ).forEach((pane) => {
-          pane.classList.remove('active-tab');
-        });
-        Array.from(document.querySelectorAll('.saito-input-selection-box .saito-box-tab')).forEach(
-          (tab2) => {
-            tab2.classList.remove('active');
+          if (e.currentTarget.id === 'selection-box-close') {
+            this.removeSelectionBox();
+            return;
           }
-        );
 
-        let selected_tab = e.currentTarget.getAttribute('id').replace('tab', 'window');
-        e.currentTarget.classList.add('active');
+          Array.from(
+            document.querySelectorAll('.saito-input-selection-box .selection-box-pane.active-tab')
+          ).forEach((pane) => {
+            pane.classList.remove('active-tab');
+          });
+          Array.from(
+            document.querySelectorAll('.saito-input-selection-box .saito-box-tab')
+          ).forEach((tab2) => {
+            tab2.classList.remove('active');
+          });
 
-        if (document.getElementById(selected_tab)) {
-          document.getElementById(selected_tab).classList.add('active-tab');
-        }
+          let selected_tab = e.currentTarget.getAttribute('id').replace('tab', 'window');
+          e.currentTarget.classList.add('active');
 
-        this.syncSelectionBoxHeaderMode(selected_tab);
+          if (document.getElementById(selected_tab)) {
+            document.getElementById(selected_tab).classList.add('active-tab');
+          }
 
-        if (selected_tab === 'emoji-window') {
-          this.addEmojiEvent();
-        } else if (selected_tab === 'gif-window') {
-          this.addGiphyEvent();
-        } else if (selected_tab === 'photo-window') {
-          this.addPhotoEvent();
-        }
-      };
-    });
+          this.syncSelectionBoxHeaderMode(selected_tab);
+
+          if (selected_tab === 'emoji-window') {
+            this.addEmojiEvent();
+          } else if (selected_tab === 'gif-window') {
+            this.addGiphyEvent();
+          } else if (selected_tab === 'photo-window') {
+            this.addPhotoEvent();
+          }
+        };
+      }
+    );
   }
 
   attachSelectionBoxCloseEvent() {
-    const closeBtn = document.querySelector(
-      '.saito-input-selection-box #selection-box-close'
-    );
+    const closeBtn = document.querySelector('.saito-input-selection-box #selection-box-close');
     if (!closeBtn) {
       return;
     }
@@ -547,8 +545,7 @@ class SaitoInput {
       if (typeof input.setRangeText === 'function') {
         input.setRangeText(unicode, start, end, 'end');
       } else {
-        input.value =
-          input.value.slice(0, start) + unicode + input.value.slice(end);
+        input.value = input.value.slice(0, start) + unicode + input.value.slice(end);
         const caret = start + unicode.length;
         input.selectionStart = input.selectionEnd = caret;
       }

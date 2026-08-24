@@ -544,9 +544,7 @@ mod tests {
         let mut mempool = mempool_lock.write().await;
         let before = mempool.transactions.len();
 
-        mempool
-            .add_transaction_if_validates(tx, &blockchain)
-            .await;
+        mempool.add_transaction_if_validates(tx, &blockchain).await;
 
         assert_eq!(
             mempool.transactions.len(),

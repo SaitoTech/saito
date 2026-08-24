@@ -255,12 +255,10 @@ impl Script {
             } else if let Some(obj) = context.as_object_mut() {
                 obj.remove("REQUESTER");
             }
-
         } else {
             if let Some(obj) = context.as_object_mut() {
                 obj.remove("REQUESTER");
             }
-
         }
 
         fn eval(
@@ -383,8 +381,7 @@ impl Script {
                         crypto::hash(input.as_bytes()).to_hex()
                     };
                     let r = CheckHash::execute(context, tx, blk);
-                    if r == 0 {
-                    }
+                    if r == 0 {}
                     r
                 }
 
@@ -409,9 +406,7 @@ impl Script {
                 "CHECKPATHHOP" => CheckPathHop::validate(context, tx, blk),
                 "CHECKTIME" => CheckTime::validate(context, tx, blk),
 
-                _ => {
-                    0
-                }
+                _ => 0,
             };
 
             if result == 1 {
@@ -531,10 +526,34 @@ impl Script {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::consensus::slip::{Slip, SlipType};
+    use crate::core::consensus::transaction::Transaction;
     use crate::core::defs::PrintForLog;
     use serde_json::{json, Value};
 
     use super::Script;
+
+    fn transaction_with_output() -> Transaction {
+        let mut output = Slip::default();
+        output.amount = 1;
+        output.slip_type = SlipType::Normal;
+
+        let mut tx = Transaction::default();
+        tx.to.push(output);
+        tx
+    }
+
+    fn p2sh_authorization_message(message: &str, tx: &Transaction) -> String {
+        let mut output_bytes = Vec::new();
+        for output in &tx.to {
+            output_bytes.extend(output.serialize_output_for_signature());
+        }
+
+        format!(
+            "{message}|{}",
+            crate::core::util::crypto::hash(&output_bytes).to_hex()
+        )
+    }
 
     fn loan_script(creator: &str, renter: &str, expires_at: u64) -> Value {
         json!({
@@ -612,10 +631,7 @@ mod tests {
                 "msg": "hello"
             }]
         });
-        assert_ne!(
-            Script { json: alice }.hash(),
-            Script { json: bob }.hash()
-        );
+        assert_ne!(Script { json: alice }.hash(), Script { json: bob }.hash());
     }
 
     #[test]
@@ -1175,18 +1191,26 @@ mod tests {
 
     #[test]
     fn validate_checksig_fixture_returns_success() {
+        let (public_key, private_key) = crate::core::util::crypto::generate_keys();
+        let tx = transaction_with_output();
+        let authorization_message = p2sh_authorization_message("hello", &tx);
+        let signature =
+            crate::core::util::crypto::sign(authorization_message.as_bytes(), &private_key)
+                .to_hex();
+
         let mut script = Script::new();
         script.parse(
-            r#"{
-  "op": "CHECKSIG",
-  "publickey": "xM2vUs5XCpNjYjcgxk4yVhybDcayk3tnwZNWrFg7jRGs",
-  "msg": "hello",
-  "witness": {
-    "signature": "feb62fe225dd4b15e7ac6fe472c046715e77e8f01b93d501300353104630fdce3abdf31ad517c4d7f062d24d715d72ad66e0770d27d3e5c6b98f58151bd65b0c"
-  }
-}"#,
+            &serde_json::to_string(&json!({
+                "op": "CHECKSIG",
+                "publickey": public_key.to_base58(),
+                "msg": "hello",
+                "witness": {
+                    "signature": signature
+                }
+            }))
+            .unwrap(),
         );
-        assert_eq!(script.validate(None, None, None, None), 1);
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
     }
 
     #[test]
@@ -1293,8 +1317,10 @@ mod tests {
         let (pk2, sk2) = crate::core::util::crypto::generate_keys();
         let (pk3, _) = crate::core::util::crypto::generate_keys();
         let msg = "two of three success";
-        let sig1 = crate::core::util::crypto::sign(msg.as_bytes(), &sk1).to_hex();
-        let sig2 = crate::core::util::crypto::sign(msg.as_bytes(), &sk2).to_hex();
+        let tx = transaction_with_output();
+        let authorization_message = p2sh_authorization_message(msg, &tx);
+        let sig1 = crate::core::util::crypto::sign(authorization_message.as_bytes(), &sk1).to_hex();
+        let sig2 = crate::core::util::crypto::sign(authorization_message.as_bytes(), &sk2).to_hex();
 
         let mut script = Script::new();
         script.parse(
@@ -1310,7 +1336,7 @@ mod tests {
             .unwrap(),
         );
 
-        assert_eq!(script.validate(None, None, None, None), 1);
+        assert_eq!(script.validate(Some(&tx), None, None, None), 1);
     }
 
     #[test]
@@ -1430,10 +1456,7 @@ mod tests {
             "op": "CHECKSENDER",
             "publickey": "alice"
         });
-        let expected = Script {
-            json: tree.clone(),
-        }
-        .hash();
+        let expected = Script { json: tree.clone() }.hash();
 
         let mut script = Script::new();
         script.parse(
@@ -1465,10 +1488,7 @@ mod tests {
             "op": "CHECKSENDER",
             "publickey": "bob"
         });
-        let expected = Script {
-            json: tree.clone(),
-        }
-        .hash();
+        let expected = Script { json: tree.clone() }.hash();
 
         let mut script = Script::new();
         script.parse(
@@ -1519,10 +1539,7 @@ mod tests {
             ],
             "witness": { "outer": 1 }
         });
-        let expected = Script {
-            json: tree.clone(),
-        }
-        .hash();
+        let expected = Script { json: tree.clone() }.hash();
 
         let mut script = Script::new();
         script.parse(
@@ -4161,9 +4178,6 @@ mod tests {
 
     #[test]
     fn validate_checkmultisig_contextual_p2sh_msg_succeeds() {
-        use crate::core::consensus::slip::{Slip, SlipType};
-        use crate::core::consensus::transaction::Transaction;
-
         let (pk, sk) = crate::core::util::crypto::generate_keys();
         let mut custody = Slip::default();
         custody.slip_type = SlipType::Normal;
@@ -4171,10 +4185,11 @@ mod tests {
         custody.public_key[1] = 0xef;
         custody.generate_utxoset_key();
         let msg = custody.utxoset_key.to_hex();
-        let sig = crate::core::util::crypto::sign(msg.as_bytes(), &sk).to_hex();
 
-        let mut tx = Transaction::default();
+        let mut tx = transaction_with_output();
         tx.from.push(custody);
+        let authorization_message = p2sh_authorization_message(&msg, &tx);
+        let sig = crate::core::util::crypto::sign(authorization_message.as_bytes(), &sk).to_hex();
 
         let mut script = Script::new();
         script.parse(
@@ -4195,9 +4210,6 @@ mod tests {
 
     #[test]
     fn validate_checksig_contextual_p2sh_msg_succeeds() {
-        use crate::core::consensus::slip::{Slip, SlipType};
-        use crate::core::consensus::transaction::Transaction;
-
         let (pk, sk) = crate::core::util::crypto::generate_keys();
         let mut custody = Slip::default();
         custody.slip_type = SlipType::Normal;
@@ -4205,10 +4217,11 @@ mod tests {
         custody.public_key[1] = 0xef;
         custody.generate_utxoset_key();
         let msg = custody.utxoset_key.to_hex();
-        let sig = crate::core::util::crypto::sign(msg.as_bytes(), &sk).to_hex();
 
-        let mut tx = Transaction::default();
+        let mut tx = transaction_with_output();
         tx.from.push(custody);
+        let authorization_message = p2sh_authorization_message(&msg, &tx);
+        let sig = crate::core::util::crypto::sign(authorization_message.as_bytes(), &sk).to_hex();
 
         let mut script = Script::new();
         script.parse(
@@ -4282,9 +4295,7 @@ fn resolve_p2sh_slip_field(slips: &[Slip], field: &str, p2sh_ordinal: usize) -> 
 /// Returns the cached P2SH authorization hash.
 ///
 /// The hash is computed lazily the first time CHECKSIG or CHECKMULTISIG
-/// requests it, then cached in:
-///
-///     context["__p2sh_auth_hash"]
+/// requests it, then cached in `context["__p2sh_auth_hash"]`.
 ///
 /// The hash is Blake3 over the concatenation of every output slip's
 /// serialize_output_for_signature() bytes.

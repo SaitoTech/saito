@@ -850,8 +850,7 @@ class GameGame {
     } else {
       if (
         winner &&
-        (!this.game.winner ||
-          (Array.isArray(this.game.winner) && this.game.winner.length === 0))
+        (!this.game.winner || (Array.isArray(this.game.winner) && this.game.winner.length === 0))
       ) {
         this.game.winner = winner;
         this.game.reason = reason;

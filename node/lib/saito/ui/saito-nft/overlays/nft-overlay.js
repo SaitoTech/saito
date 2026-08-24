@@ -78,7 +78,9 @@ class NFTOverlay {
     if (info_back_btn) {
       info_back_btn.onclick = (e) => {
         e.preventDefault();
-        document.querySelector('.saito-nft-overlay.panels')?.classList.remove('saito-nft-mode-info');
+        document
+          .querySelector('.saito-nft-overlay.panels')
+          ?.classList.remove('saito-nft-mode-info');
         this.capabilities?.setActive('');
       };
     }
@@ -446,14 +448,18 @@ class NFTOverlay {
     if (send_btn) {
       send_btn.onclick = (e) => {
         document.querySelector('.saito-nft-overlay.panels')?.classList.add('saito-nft-mode-send');
-        document.querySelector('.saito-nft-overlay.panels')?.classList.remove('saito-nft-mode-info');
+        document
+          .querySelector('.saito-nft-overlay.panels')
+          ?.classList.remove('saito-nft-mode-info');
         this.capabilities?.setActive('transfer');
       };
     }
 
     if (cancel_send_btn) {
       cancel_send_btn.onclick = (e) => {
-        document.querySelector('.saito-nft-overlay.panels')?.classList.remove('saito-nft-mode-send');
+        document
+          .querySelector('.saito-nft-overlay.panels')
+          ?.classList.remove('saito-nft-mode-send');
         this.capabilities?.setActive('');
       };
     }
