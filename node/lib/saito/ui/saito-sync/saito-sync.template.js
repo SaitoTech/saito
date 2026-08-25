@@ -83,10 +83,11 @@ const SaitoSyncTooFarBehindTemplate = () => {
           </div>
         </div>
         <div class="saito-sync-copy">
-          <p class="saito-sync-status">Looks like you haven't been here in a while.</p>
+          <p class="saito-sync-status">Haven't been here in a while?</p>
           <p class="saito-sync-explain">
-            It would take too long for your browser to sync the blockchain from where you left off. We recommend fast-forwarding your wallet to the latest block on the chain.
+            Click on the button below to fast-forward your wallet to the latest block on the chain.
           </p>
+          <p class="saito-sync-error" id="saito-sync-error"></p>
         </div>
         <button
           type="button"
