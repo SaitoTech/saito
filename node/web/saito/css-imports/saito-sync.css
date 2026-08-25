@@ -1,36 +1,66 @@
-/* Saito Sync — five related bands, one synchronization field */
+/* Saito Sync — shared panel for both overlay states */
 
 .saito-sync.saito-overlay-form {
-  width: min(30rem, 92vw);
+  --saito-sync-panel-width: min(42rem, 92vw);
+  --saito-sync-panel-min-height: min(46rem, calc(100dvh - 8rem));
+  --saito-sync-visual: min(18rem, 46vw);
+  width: var(--saito-sync-panel-width);
   max-width: 92vw;
   min-width: 0;
-  gap: var(--saito-space-sm);
-  padding: var(--saito-space-lg) var(--saito-space-lg) var(--saito-space-xxl);
+  min-height: var(--saito-sync-panel-min-height);
+  max-height: calc(100dvh - 4rem);
+  gap: var(--saito-space-lg);
+  padding: var(--saito-space-xl) var(--saito-space-xl) var(--saito-space-xxl);
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .saito-sync > .saito-overlay-form-header {
-  height: 4.8rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 6rem;
+  min-height: 6rem;
+  padding: 0 var(--saito-space-lg);
+  border-radius: var(--saito-radius);
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--saito-primary) 68%, transparent) 0%,
-    color-mix(in srgb, var(--saito-primary) 18%, transparent) 42%,
+    var(--saito-primary) 0%,
+    var(--saito-primary) 20%,
     transparent 100%
   );
 }
 
 .saito-sync .saito-overlay-form-header-title {
-  font-size: 1.55rem;
-  letter-spacing: 0.08em;
+  margin: 0;
+  font-size: 2rem;
+  font-family: var(--saito-font-medium);
   font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .saito-sync-body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
   text-align: center;
-  gap: 0;
-  padding: 0.2rem 0 0;
+  gap: var(--saito-space-xl);
+  padding: var(--saito-space-lg) 0 var(--saito-space-sm);
+}
+
+.saito-sync-behind .saito-sync-body {
+  justify-content: space-evenly;
+  gap: var(--saito-space-xl);
+  padding: var(--saito-space-xl) 0 var(--saito-space-md);
 }
 
 .saito-sync-graphic {
@@ -39,9 +69,10 @@
   --saito-sync-base: 18s;
   --saito-sync-logo: 32%;
   position: relative;
-  width: min(15.5rem, 68vw);
-  height: min(15.5rem, 68vw);
-  margin: 0.2rem 0 0.7rem;
+  flex: 0 0 auto;
+  width: var(--saito-sync-visual);
+  height: var(--saito-sync-visual);
+  margin: 0;
 }
 
 .saito-sync-halo,
@@ -270,13 +301,22 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 0.55rem;
+  gap: var(--saito-space-md);
+}
+
+.saito-sync:not(.saito-sync-behind) .saito-sync-meter {
+  order: 1;
+}
+
+.saito-sync:not(.saito-sync-behind) .saito-sync-status {
+  order: 2;
 }
 
 .saito-sync-status {
   margin: 0;
-  color: var(--saito-foreground);
-  font-size: 1.5rem;
+  color: var(--saito-muted-foreground);
+  font-size: 1.45rem;
+  line-height: 1.35;
 }
 
 .saito-sync-meter {
@@ -284,13 +324,13 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 0.45rem;
+  gap: var(--saito-space-sm);
 }
 
 .saito-sync-progress-label {
   margin: 0;
   color: var(--saito-foreground);
-  font-size: 1.45rem;
+  font-size: 1.65rem;
   line-height: 1.25;
 }
 
@@ -310,7 +350,7 @@
 }
 
 .saito-sync-progress {
-  width: min(16.5rem, 74%);
+  width: min(22rem, 78%);
   height: 0.42rem;
   margin: 0;
   border-radius: var(--saito-radius-full);
@@ -453,26 +493,54 @@
   }
 }
 
+@media (max-width: 768px) {
+  .saito-sync > .saito-overlay-form-header {
+    background: linear-gradient(
+      90deg,
+      var(--saito-primary) 0%,
+      var(--saito-primary) 40%,
+      transparent 100%
+    );
+  }
+}
+
 @media (max-width: 600px) {
   .saito-sync.saito-overlay-form {
-    width: min(30rem, 94vw);
+    --saito-sync-panel-width: min(42rem, 94vw);
+    --saito-sync-panel-min-height: min(36rem, calc(100dvh - 5rem));
+    --saito-sync-visual: min(15.5rem, 68vw);
     max-width: 94vw;
     padding: var(--saito-space-md) var(--saito-space-md) var(--saito-space-xl);
+    gap: var(--saito-space-md);
+  }
+
+  .saito-sync > .saito-overlay-form-header {
+    height: auto;
+    min-height: 6rem;
+    padding-top: var(--saito-space-sm);
+    padding-bottom: var(--saito-space-sm);
+  }
+
+  .saito-sync .saito-overlay-form-header-title {
+    font-size: 1.85rem;
+    white-space: normal;
+  }
+
+  .saito-sync-body {
+    gap: var(--saito-space-lg);
+    padding: var(--saito-space-md) 0 0;
   }
 
   .saito-sync-graphic {
     --saito-sync-logo: 30%;
-    width: min(13.5rem, 70vw);
-    height: min(13.5rem, 70vw);
-    margin: 0.15rem 0 0.6rem;
   }
 
   .saito-sync-status {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
   }
 
   .saito-sync-progress-label {
-    font-size: 1.35rem;
+    font-size: 1.5rem;
   }
 }
 
@@ -512,36 +580,23 @@
   }
 }
 
-/* Too far behind — same overlay language, distinct leap metaphor */
-.saito-sync-behind > .saito-overlay-form-header {
-  height: auto;
-  min-height: 4.8rem;
-  padding: 0.9rem var(--saito-space-md) 0.9rem var(--saito-space-lg);
-}
-
-.saito-sync-behind .saito-overlay-form-header-title {
-  white-space: normal;
-  font-size: 1.35rem;
-  letter-spacing: 0.05em;
-  line-height: 1.25;
-}
-
-.saito-sync-behind .saito-sync-body {
-  padding: 0.35rem 0 0;
-}
-
+/* Too far behind — cube above a compact horizontal leap */
 .saito-sync-leap {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  width: min(15.5rem, 68vw);
-  height: min(8.8rem, 40vw);
-  margin: 0.45rem 0 1.15rem;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  margin: 0;
+  gap: var(--saito-space-lg);
 }
 
 .saito-sync-leap-origin {
   position: relative;
-  flex: 0 0 34%;
-  height: 100%;
+  flex: 0 0 auto;
+  width: 7.6rem;
+  height: 7.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -586,12 +641,14 @@
 }
 
 .saito-sync-leap-path {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 12.4rem;
+  height: 4rem;
   gap: 0.28rem;
-  height: 100%;
-  padding-right: 0.15rem;
+  padding: 0;
 }
 
 .saito-sync-leap-seg {
@@ -613,9 +670,10 @@
 
 .saito-sync-leap-jump {
   position: relative;
-  flex: 1 1 auto;
+  flex: 0 0 4.8rem;
+  width: 4.8rem;
   height: 3.2rem;
-  min-width: 2.4rem;
+  min-width: 4.8rem;
 }
 
 .saito-sync-leap-jump-arc {
@@ -652,28 +710,38 @@
 }
 
 .saito-sync-behind .saito-sync-copy {
-  gap: 0.75rem;
-  max-width: 24rem;
-  padding: 0 0.2rem;
+  gap: var(--saito-space-sm);
+  max-width: 32rem;
+  padding: 0 var(--saito-space-sm);
 }
 
 .saito-sync-behind .saito-sync-status {
-  font-size: 1.5rem;
+  font-size: 2rem;
   line-height: 1.3;
+  color: var(--saito-foreground);
+  font-family: var(--saito-font-medium);
 }
 
 .saito-sync-explain {
   margin: 0;
-  color: var(--saito-muted-foreground);
-  font-size: 1.3rem;
-  line-height: 1.45;
+  color: color-mix(in srgb, var(--saito-foreground) 78%, var(--saito-muted-foreground));
+  font-size: 1.5rem;
+  line-height: 1.5;
+}
+
+.saito-sync-error {
+  margin: var(--saito-space-sm) 0 0;
+  min-height: 1.2em;
+  color: var(--saito-destructive, #c43c3c);
+  font-size: 1.25rem;
+  line-height: 1.35;
 }
 
 .saito-sync-behind .saito-button-primary {
   width: min(22rem, 88%);
   min-width: 0;
-  margin: 1.35rem 0 0;
-  padding: 0.9rem 1.4rem;
+  margin: 0;
+  padding: 0.85rem 1.4rem;
   letter-spacing: 0.04em;
 }
 
@@ -711,27 +779,31 @@
 }
 
 @media (max-width: 600px) {
-  .saito-sync-behind .saito-overlay-form-header-title {
-    font-size: 1.25rem;
+  .saito-sync-leap-origin {
+    width: 6.6rem;
+    height: 6.6rem;
   }
 
-  .saito-sync-leap {
-    width: min(14.5rem, 78vw);
-    height: min(8.2rem, 36vw);
-    margin: 0.3rem 0 1rem;
-  }
-
-  .saito-sync-behind .saito-sync-status {
-    font-size: 1.4rem;
-  }
-
-  .saito-sync-explain {
-    font-size: 1.25rem;
+  .saito-sync-leap-path {
+    width: 11.2rem;
   }
 
   .saito-sync-behind .saito-button-primary {
     width: 100%;
-    margin-top: 1.15rem;
+  }
+}
+
+@media (max-height: 640px) {
+  .saito-sync.saito-overlay-form {
+    --saito-sync-panel-min-height: 0;
+    --saito-sync-visual: min(14rem, 38vh);
+    padding: var(--saito-space-md) var(--saito-space-lg) var(--saito-space-lg);
+  }
+
+  .saito-sync-body {
+    gap: var(--saito-space-md);
+    padding: var(--saito-space-sm) 0 0;
+    justify-content: flex-start;
   }
 }
 
