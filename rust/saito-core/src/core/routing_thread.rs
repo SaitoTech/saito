@@ -179,6 +179,10 @@ impl RoutingThread {
                 let target_block_id = chaindata.latest_known_block_id;
                 let shared_ancestor_block_id = chaindata.shared_ancestor_block_id;
                 let shared_ancestor_block_hash = chaindata.shared_ancestor_block_hash;
+                let latest_known_block_id = {
+                    let blockchain = self.blockchain_lock.read().await;
+                    blockchain.get_latest_block_id()
+                };
 
                 info!("BLOCKCHAIN RESPONSE: received blockchain response...");
                 info!(" -- blocks => {}", chunk_len);
@@ -217,6 +221,9 @@ impl RoutingThread {
                             current_block_id,
                             target_block_id,
                             is_sync_possible,
+                            shared_ancestor_block_id,
+                            shared_ancestor_block_hash,
+                            latest_known_block_id,
                         },
                     );
                 }
