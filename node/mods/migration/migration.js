@@ -1,8 +1,17 @@
 const ModTemplate = require('./../../lib/templates/modtemplate');
 const MigrationMain = require('./lib/main');
+const ApeBondMain = require('./lib/apebond/main');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const Transaction = require('../../lib/saito/transaction').default;
 
 const PeerService = require('saito-js/lib/peer_service').default;
+
+const MIGRATION_TEST_DOMAINS = new Set([
+  'localhost',
+  '127.0.0.1',
+  'ksaito.saito.io',
+  'ksaito.hda0.net'
+]);
 
 class Migration extends ModTemplate {
   constructor(app) {
@@ -23,36 +32,56 @@ class Migration extends ModTemplate {
     this.key_cache = {}; // Mapping from Mixin Address --> Saito publicKey
     this.pending_payments = [];
     this.payment_cache = {};
+    this.processing_payments = false;
+
+    // A crypto-payment announcement can reach us just before Mixin exposes the
+    // corresponding Safe snapshot. It can also be restored during startup
+    // before Mixin has installed its dynamic ERC-SAITO module. Retry the exact
+    // transaction-hash lookup in both cases instead of relying solely on the
+    // module's incremental history cursor.
+    this.mixin_reconciliation_timers = {};
+    this.mixin_reconciliation_attempts = {};
+    this.mixin_reconciliation_delays = [2000, 5000, 15000, 45000, 90000, 120000, 180000];
 
     this.wrapped_saito_ticker = 'ERC-SAITO';
-    this.MAX_DEPOSIT = 500000; // Max of 500k at a time
+    this.MAX_DEPOSIT = 1000000; // Max of 1 million at a time
 
     this.relay_available = false;
     this.can_auto = false;
+    this.auto_migration_error = '';
     this.ercMod = null;
-
-    this.local_dev = false;
 
     //this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
     this.migration_publickey = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
     this.migration_mixin_address = '';
 
+    this.apebond = new ApeBondMain(this.app, this);
+
     return this;
+  }
+
+  isMigrationTestDomain(host = '') {
+    const normalized_host = String(host).toLowerCase().replace(/\.$/, '');
+    return MIGRATION_TEST_DOMAINS.has(normalized_host);
+  }
+
+  returnMigrationHost() {
+    if (this.app.BROWSER && typeof window !== 'undefined') {
+      return window.location.hostname;
+    }
+
+    return this.app.options?.server?.endpoint?.host || '';
   }
 
   async initialize(app) {
     await super.initialize(app);
 
-    if (!this.app.BROWSER) {
-      if (app.options?.server?.endpoint?.host == 'localhost') {
-        this.local_dev = true;
-      } else {
-        this.local_dev = false;
-      }
+    const migration_host = this.returnMigrationHost();
 
-      if (this.local_dev) {
+    if (!this.app.BROWSER) {
+      if (this.isMigrationTestDomain(migration_host)) {
         this.migration_publickey = this.publicKey;
-        console.warn('---> I am the migration bot for local testing!!!!');
+        console.warn('---> using this node as the migration bot for testing');
       }
 
       if (this.publicKey === this.migration_publickey) {
@@ -61,7 +90,7 @@ class Migration extends ModTemplate {
         // ERC-SAITO inbound confirmed via CryptoModule receivePayment polling
         this.app.connection.on('on-receive-expected-payment', (hash, details) => {
           // Secondary stricter checks
-          if (details.ticker !== this.ercMod?.ticker) {
+          if (details.ticker !== this.wrapped_saito_ticker) {
             return;
           }
           if (details.transaction_signature !== hash) {
@@ -93,19 +122,121 @@ class Migration extends ModTemplate {
   async confirmMixinInbound(hash) {
     const payment = this.payment_cache[hash];
     if (!payment || payment.status !== 'awaiting_mixin') {
-      console.warn("Inbound Mixin doesn't match expected payment...");
+      console.warn(`Inbound Mixin doesn't match expected payment...`);
       console.log(this.payment_cache);
       return;
     }
 
+    this.clearMixinReconciliation(hash);
     payment.status = 'pending';
-    await this.updatePayment(payment);
+    try {
+      await this.updatePayment(payment);
+    } catch (err) {
+      payment.status = 'awaiting_mixin';
+      this.scheduleMixinReconciliation(hash);
+      throw err;
+    }
 
     if (!this.pending_payments.some((p) => p.id === payment.id)) {
       this.pending_payments.push(payment);
     }
 
+    if (this.ercMod?.transfers_inbound) {
+      delete this.ercMod.transfers_inbound[hash];
+      if (Object.keys(this.ercMod.transfers_inbound).length === 0) {
+        this.ercMod.stopPolling?.();
+      }
+    }
+
     delete this.payment_cache[hash];
+  }
+
+  clearMixinReconciliation(hash) {
+    const timer = this.mixin_reconciliation_timers?.[hash];
+    if (timer) {
+      clearTimeout(timer);
+    }
+
+    if (this.mixin_reconciliation_timers) {
+      delete this.mixin_reconciliation_timers[hash];
+    }
+    if (this.mixin_reconciliation_attempts) {
+      delete this.mixin_reconciliation_attempts[hash];
+    }
+  }
+
+  returnWrappedSaitoModule() {
+    const crypto_mod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+    if (crypto_mod) {
+      this.ercMod = crypto_mod;
+    }
+    return crypto_mod;
+  }
+
+  async reconcileMixinInbound(hash) {
+    const payment = this.payment_cache[hash];
+    if (!payment || payment.status !== 'awaiting_mixin') {
+      this.clearMixinReconciliation(hash);
+      return true;
+    }
+
+    const crypto_mod = this.returnWrappedSaitoModule();
+    if (typeof crypto_mod?.findInboundPaymentBySignature !== 'function') {
+      return false;
+    }
+
+    const amount = this.app.wallet.convertNolanToSaito(payment.nolan_received);
+
+    try {
+      const confirmed_payment = await crypto_mod.findInboundPaymentBySignature(
+        hash,
+        amount,
+        payment.mixin,
+        payment.created_at
+      );
+
+      if (confirmed_payment) {
+        console.info(`Migration: reconciled confirmed Mixin deposit ${hash}`);
+        await this.confirmMixinInbound(hash);
+        return true;
+      }
+    } catch (err) {
+      console.error(`Migration: unable to reconcile Mixin deposit ${hash}`, err);
+    }
+
+    return false;
+  }
+
+  scheduleMixinReconciliation(hash) {
+    if (!hash || !this.payment_cache[hash] || this.mixin_reconciliation_timers?.[hash]) {
+      return;
+    }
+
+    this.mixin_reconciliation_timers ||= {};
+    this.mixin_reconciliation_attempts ||= {};
+
+    const attempt = this.mixin_reconciliation_attempts[hash] || 0;
+    const delays = this.mixin_reconciliation_delays || [];
+
+    if (attempt >= delays.length) {
+      delete this.mixin_reconciliation_attempts[hash];
+      console.error(`Migration: timed out reconciling Mixin deposit ${hash}`);
+      return;
+    }
+
+    this.mixin_reconciliation_attempts[hash] = attempt + 1;
+    const timer = setTimeout(async () => {
+      delete this.mixin_reconciliation_timers[hash];
+
+      const confirmed = await this.reconcileMixinInbound(hash);
+      if (!confirmed) {
+        this.scheduleMixinReconciliation(hash);
+      }
+    }, delays[attempt]);
+
+    // Do not keep a server process alive solely for a reconciliation retry.
+    timer?.unref?.();
+    this.mixin_reconciliation_timers[hash] = timer;
   }
 
   async resumeAwaitingMixin(row) {
@@ -118,12 +249,20 @@ class Migration extends ModTemplate {
 
     this.payment_cache[row.announcement_hash] = payment;
 
-    await this.app.wallet.receivePayment(
-      this.wrapped_saito_ticker,
-      row.mixin,
-      amount,
-      row.announcement_hash
-    );
+    if (await this.reconcileMixinInbound(row.announcement_hash)) {
+      return;
+    }
+
+    if (this.ercMod) {
+      await this.app.wallet.receivePayment(
+        this.wrapped_saito_ticker,
+        row.mixin,
+        amount,
+        row.announcement_hash
+      );
+    }
+
+    this.scheduleMixinReconciliation(row.announcement_hash);
   }
 
   returnServices() {
@@ -136,13 +275,26 @@ class Migration extends ModTemplate {
     return services;
   }
 
+  webServer(app, expressapp, express) {
+    expressapp.get(['/migration/apebond', '/migration/apebond/'], (req, res) => {
+      res.sendFile(`${__dirname}/web/index.html`);
+    });
+
+    super.webServer(app, expressapp, express);
+  }
+
   async onPeerServiceUp(app, peer, service = {}) {
     // Update migration service node address
     if (this.browser_active) {
       if (service.service == 'migration') {
-        console.warn('---> update public key of Migration bot for local testing!!!!');
-        this.migration_publickey = peer.publicKey;
-        this.local_dev = true;
+        if (
+          peer.publicKey === this.migration_publickey ||
+          this.isMigrationTestDomain(this.returnMigrationHost())
+        ) {
+          this.migration_publickey = peer.publicKey;
+        } else {
+          console.warn('Ignoring an unexpected migration service provider', peer.publicKey);
+        }
       }
 
       if (service.service == 'relay') {
@@ -155,6 +307,7 @@ class Migration extends ModTemplate {
       if (service.service === 'mixin') {
         setTimeout(async () => {
           try {
+            this.ercMod ||= this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
             if (this.ercMod) {
               await this.ercMod.activate();
 
@@ -164,10 +317,16 @@ class Migration extends ModTemplate {
                 return;
               }
             } else {
+              this.auto_migration_error =
+                'Automated Migration requires Mixin and ERC modules to be installed.';
+              this.main?.render();
               salert('Automated Migration requires Mixin and ERC modules to be installed!');
             }
           } catch (err) {
             console.error(err);
+            this.auto_migration_error =
+              'Unable to initialize the deposit address for automated migration.';
+            this.main?.render();
             salert('Unable to initialize deposit address for automated migration');
           }
         }, 1000);
@@ -176,7 +335,7 @@ class Migration extends ModTemplate {
   }
 
   async render() {
-    this.main = new MigrationMain(this.app, this);
+    this.main = this.apebond.isActive() ? this.apebond : new MigrationMain(this.app, this);
     this.header = new SaitoHeader(this.app, this);
     await this.header.initialize(this.app);
 
@@ -395,26 +554,43 @@ class Migration extends ModTemplate {
     let saitozen = tx.from[0].publicKey;
 
     // Only respond if I am the known migration bot
-    if (this.publicKey != this.migration_publickey) {
+    if (this.app.BROWSER || this.publicKey !== this.migration_publickey) {
       return;
     }
 
-    if (!this.ercMod) {
-      try {
-        this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
-        await this.ercMod.activate();
-      } catch (err) {
-        // failure state, take self off line
-        this.ercMod = false;
-        this.migration_publickey = '';
-        this.services = [];
-        console.error(err);
-        return;
+    try {
+      this.ercMod = this.returnWrappedSaitoModule();
+      if (!this.ercMod) {
+        throw new Error(`${this.wrapped_saito_ticker} is not installed`);
       }
+
+      if (!this.ercMod.isActivated()) {
+        const activated = await this.ercMod.activate();
+        if (activated === false || !this.ercMod.isActivated()) {
+          throw new Error(`${this.wrapped_saito_ticker} could not be activated`);
+        }
+      }
+    } catch (err) {
+      // failure state, take self off line
+      this.ercMod = false;
+      this.migration_publickey = '';
+      this.services = [];
+      console.error(err);
+      return;
     }
 
     if (txmsg?.data?.mixin_address) {
       this.key_cache[txmsg.data.mixin_address] = saitozen;
+
+      if (txmsg.data.double_check) {
+        const is_apebond = txmsg.data.migration_type === 'apebond';
+        this.apebond.intents[txmsg.data.mixin_address] = {
+          migration_type: is_apebond ? 'apebond' : 'standard',
+          email: is_apebond ? this.apebond.normalizeEmail(txmsg.data.email) : ''
+        };
+      } else {
+        delete this.apebond.intents[txmsg.data.mixin_address];
+      }
     }
 
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(saitozen);
@@ -434,7 +610,7 @@ class Migration extends ModTemplate {
     let mixin_address = '';
 
     if (!this.ercMod) {
-      error = "Migration bot doesn't have ERC20 Saito installed";
+      error = `Migration bot doesn't have ERC20 Saito installed`;
     } else {
       mixin_address = this.ercMod.formatAddress();
     }
@@ -460,46 +636,61 @@ class Migration extends ModTemplate {
   }
 
   async receiveMigrationResponseTransaction(app, tx, peer, mycallback) {
-    if (app.BROWSER) {
-      let txmsg = tx.returnMessage();
+    if (!app.BROWSER) {
+      return;
+    }
 
-      if (txmsg.data.error) {
-        console.error(txmsg.data.error);
-        let btn = document.querySelector('button#automatic');
-        if (btn) {
-          btn.title = txmsg.data.error;
-        }
-        // We have deposited and want to finish the transfer, so need a more robust failure mode
-        if (txmsg.data.go) {
-          salert(
-            'Migration Bot currently unable to process: \n' +
-              txmsg.data.error +
-              '\n Your ERC20 SAITO are safe on this wallet, you can refresh later to complete the migration'
-          );
-        }
-        return;
+    if (!tx?.isFrom(this.migration_publickey)) {
+      console.warn('Ignoring a migration response from an unexpected sender');
+      return;
+    }
+
+    let txmsg = tx.returnMessage();
+
+    if (txmsg.data.error) {
+      console.error(txmsg.data.error);
+      this.auto_migration_error = String(txmsg.data.error);
+      if (!txmsg.data.go) {
+        this.can_auto = false;
       }
-
-      // Maybe the migration server changes the deposit address...
-      this.migration_mixin_address = txmsg.data.mixin_address;
-      this.max_deposit = txmsg.data.max_deposit;
-
-      this.can_auto = true;
-
-      let new_balance = Number(await this.ercMod.getAvailableBalance());
-
-      if (txmsg.data?.go) {
-        if (this.local_dev) {
-          new_balance = Math.round(10000000000 * Math.random());
-          new_balance = new_balance / 2000000; // 20000  --> 5k max
-        }
-
-        this.main.processDepositedSaito(new_balance);
-      } else {
-        // We are already sitting on some ERC20 wrapped SAITO
-        this.balance = new_balance;
+      if (this.apebond.isActive()) {
+        this.apebond.treasury_error =
+          txmsg.data.error || 'The Treasury Bot could not accept this migration.';
+        this.apebond.render();
+      }
+      let btn = document.querySelector('button#automatic');
+      if (btn) {
+        btn.title = txmsg.data.error;
+      }
+      // We have deposited and want to finish the transfer, so need a more robust failure mode
+      if (txmsg.data.go) {
+        salert(
+          'Migration Bot currently unable to process: \n' +
+            txmsg.data.error +
+            '\n Your ERC20 SAITO are safe on this wallet, you can refresh later to complete the migration'
+        );
+      } else if (!this.apebond.isActive()) {
         this.main.render();
       }
+      return;
+    }
+
+    // Maybe the migration server changes the deposit address...
+    this.migration_mixin_address = txmsg.data.mixin_address;
+    this.max_deposit = txmsg.data.max_deposit;
+
+    this.can_auto = true;
+    this.auto_migration_error = '';
+    this.apebond.treasury_error = '';
+
+    let new_balance = Number(await this.ercMod.getAvailableBalance());
+
+    if (txmsg.data?.go) {
+      this.main.processDepositedSaito(new_balance);
+    } else {
+      // We are already sitting on some ERC20 wrapped SAITO
+      this.balance = new_balance;
+      this.main.render();
     }
   }
 
@@ -517,9 +708,143 @@ class Migration extends ModTemplate {
     };
 
     await newtx.sign();
-    await this.app.network.propagateTransaction(newtx);
+    return newtx;
+  }
 
-    return newtx.signature;
+  async recordMigrationIssuance(payment, tx) {
+    const issuanceAt = Date.now();
+    const serializedTx = tx.serialize_to_web(this.app);
+    const sql = `UPDATE auto_migration
+      SET status = 'issuing', tx_sig = $tx_sig, issuance_tx = $issuance_tx,
+          issuance_at = $issuance_at
+      WHERE id = $id AND status = 'pending'`;
+    const params = {
+      $id: payment.id,
+      $tx_sig: tx.signature,
+      $issuance_tx: serializedTx,
+      $issuance_at: issuanceAt
+    };
+
+    const result = await this.app.storage.runDatabase(sql, params, 'migration');
+    if (result?.changes === 0) {
+      throw new Error(`Migration payment ${payment.id} is no longer available for issuance`);
+    }
+
+    payment.status = 'issuing';
+    payment.tx_sig = tx.signature;
+    payment.issuance_tx = serializedTx;
+    payment.issuance_at = issuanceAt;
+  }
+
+  validateSavedMigrationIssuance(payment, tx) {
+    const txmsg = tx.returnMessage();
+    const expectedAmount = BigInt(payment.nolan_received);
+    const hasExpectedOutput = tx.to.some(
+      (slip) => slip.publicKey === payment.public_key && BigInt(slip.amount || 0) === expectedAmount
+    );
+
+    return (
+      tx.signature === payment.tx_sig &&
+      tx.isFrom(this.publicKey) &&
+      tx.isTo(payment.public_key) &&
+      hasExpectedOutput &&
+      txmsg?.module === 'Migration' &&
+      txmsg?.request === 'migration issuance' &&
+      txmsg?.hash === (payment.announcement_hash || String(payment.id))
+    );
+  }
+
+  async rebroadcastMigrationIssuance(payment) {
+    if (!payment.issuance_tx || !payment.tx_sig) {
+      if (!payment.missing_issuance_notified) {
+        console.error(
+          `Migration payment ${payment.id} is issuing without a saved signed transaction; manual review required`
+        );
+        payment.missing_issuance_notified = true;
+      }
+      return false;
+    }
+
+    const tx = new Transaction();
+    tx.deserialize_from_web(this.app, payment.issuance_tx);
+    if (!tx.signature || !this.validateSavedMigrationIssuance(payment, tx)) {
+      throw new Error(`Migration payment ${payment.id} has invalid saved issuance data`);
+    }
+
+    await this.app.wallet.addTransactionToPending(tx, false);
+    await this.app.network.propagateTransaction(tx);
+    return true;
+  }
+
+  async confirmMigrationIssuancesInBlock(blk, lc) {
+    if (!lc || !Array.isArray(blk?.transactions) || !blk.transactions.length) {
+      return;
+    }
+
+    const issuing = this.pending_payments.filter((payment) => payment.status === 'issuing');
+    if (!issuing.length) {
+      return;
+    }
+
+    for (const tx of blk.transactions) {
+      const txmsg = tx.returnMessage();
+      const payment = issuing.find(
+        (candidate) =>
+          (candidate.tx_sig && candidate.tx_sig === tx.signature) ||
+          (!candidate.tx_sig && candidate.announcement_hash === txmsg?.hash)
+      );
+      if (payment) {
+        await this.receiveMigrationIssuanceTransaction(tx, blk);
+      }
+    }
+  }
+
+  async reconcileMigrationIssuances() {
+    const issued = this.pending_payments.filter(
+      (payment) =>
+        payment.status === 'issuing' &&
+        payment.tx_sig &&
+        payment.issuance_tx &&
+        Number(payment.issuance_at) > 0
+    );
+    const blockchain = this.app?.blockchain;
+    if (!issued.length || !blockchain?.getLatestBlockId) {
+      return;
+    }
+
+    const bySignature = new Map(issued.map((payment) => [payment.tx_sig, payment]));
+    const earliestIssuance = Math.min(...issued.map((payment) => Number(payment.issuance_at)));
+    const latestId = Number(await blockchain.getLatestBlockId());
+
+    for (let id = latestId; id > 0 && bySignature.size; id--) {
+      let block = null;
+      try {
+        const hash = await blockchain.getLongestChainHashAtId(id);
+        if (!hash) {
+          continue;
+        }
+        block = await blockchain.loadBlockAsync(String(hash));
+        if (!block) {
+          block = await blockchain.getBlock(String(hash), true);
+        }
+      } catch (_err) {
+        continue;
+      }
+      if (!block) {
+        continue;
+      }
+
+      for (const tx of block.transactions || []) {
+        if (bySignature.has(tx?.signature)) {
+          await this.receiveMigrationIssuanceTransaction(tx, block);
+          bySignature.delete(tx.signature);
+        }
+      }
+
+      if (Number(block.timestamp) < earliestIssuance) {
+        break;
+      }
+    }
   }
 
   //
@@ -542,18 +867,25 @@ class Migration extends ModTemplate {
           ((!pp.tx_sig && txmsg.hash == pp.announcement_hash) || tx.signature === pp.tx_sig)
         ) {
           pp.status = 'succeeded';
-          await this.updatePayment(pp, {
-            tx_sig: tx.signature,
-            blk_id: Number(blk.id),
-            issued_at: tx.timestamp
-          });
+          try {
+            await this.updatePayment(pp, {
+              tx_sig: tx.signature,
+              blk_id: Number(blk.id),
+              issued_at: tx.timestamp
+            });
+          } catch (err) {
+            pp.status = 'issuing';
+            throw err;
+          }
 
           this.notifyTeam(
             txmsg,
             tx_payee,
             2,
-            `TX Signature: ${tx.signature}</p><p>Block ID: ${blk?.id}`
+            `TX Signature: ${tx.signature}</p><p>Block ID: ${blk?.id}`,
+            pp
           );
+          this.apebond.sendUserMigrationConfirmation(pp);
           return;
         }
       }
@@ -608,6 +940,12 @@ class Migration extends ModTemplate {
         announcement_hash: txmsg.hash
       };
 
+      const intent = this.apebond.intents[from] || {};
+      newPayment.migration_type = intent.migration_type === 'apebond' ? 'apebond' : 'standard';
+      newPayment.email =
+        newPayment.migration_type === 'apebond' ? this.apebond.normalizeEmail(intent.email) : '';
+      delete this.apebond.intents[from];
+
       let saitozen_key = this.key_cache[from];
 
       if (!saitozen_key || !tx.isFrom(saitozen_key)) {
@@ -615,7 +953,8 @@ class Migration extends ModTemplate {
           txmsg,
           tx_sender,
           0,
-          `Received a ${txmsg.module.toUpperCase()} transaction from an unknown sender!!`
+          `Received a ${txmsg.module.toUpperCase()} transaction from an unknown sender!!`,
+          newPayment
         );
 
         newPayment.status = 'failed';
@@ -625,13 +964,7 @@ class Migration extends ModTemplate {
       }
 
       await this.savePendingPayment(newPayment, false);
-      this.payment_cache[txmsg.hash] = newPayment;
-      await this.app.wallet.receivePayment(this.wrapped_saito_ticker, from, amount, txmsg.hash);
-
-      if (this.local_dev) {
-        console.info('Migration local_dev: confirming inbound without Mixin poll');
-        await this.confirmMixinInbound(txmsg.hash);
-      }
+      await this.resumeAwaitingMixin(newPayment);
     }
   }
 
@@ -643,7 +976,9 @@ class Migration extends ModTemplate {
                   created_at,
                   status,
                   ticker,
-                  announcement_hash
+                  announcement_hash,
+                  migration_type,
+                  email
                  )
                  VALUES ( 
                 $public_key,
@@ -652,7 +987,9 @@ class Migration extends ModTemplate {
                   $created_at,
                   $status,
                   $ticker,
-                  $announcement_hash
+                  $announcement_hash,
+                  $migration_type,
+                  $email
                      )`;
     let params = {
       $public_key: payment.public_key,
@@ -661,7 +998,9 @@ class Migration extends ModTemplate {
       $created_at: payment.created_at,
       $status: payment.status,
       $ticker: payment.ticker,
-      $announcement_hash: payment.announcement_hash || ''
+      $announcement_hash: payment.announcement_hash || '',
+      $migration_type: payment.migration_type || 'standard',
+      $email: payment.email || ''
     };
 
     let res = await this.app.storage.runDatabase(sql, params, 'migration');
@@ -688,8 +1027,6 @@ class Migration extends ModTemplate {
     };
 
     if (data) {
-      Object.assign(payment, data);
-
       sql += `, tx_sig = $tx_sig, blk_id = $blk_id, issued_at = $issued_at`;
 
       params['$tx_sig'] = data.tx_sig;
@@ -700,63 +1037,108 @@ class Migration extends ModTemplate {
     sql += ` WHERE id = $id`;
 
     await this.app.storage.runDatabase(sql, params, 'migration');
+
+    if (data) {
+      Object.assign(payment, data);
+    }
   }
 
   /**
    * On new block (assuming we get a slip back), try to clear out the payments queue
    */
   async onNewBlock(blk, lc) {
-    if (this.app.BROWSER) {
+    if (this.app.BROWSER || !lc) {
       return;
     }
-    if (this.pending_payments?.length) {
-      for (let i = 0; i < this.pending_payments.length; i++) {
-        if (this.pending_payments[i].status == 'pending') {
-          const pp = this.pending_payments[i];
-          const amount = this.app.wallet.convertNolanToSaito(pp.nolan_received);
-          const saitozen_key = pp.public_key;
 
-          const data_for_email = {
-            module: pp.ticker,
-            from: pp.mixin,
-            amount
-          };
+    await this.confirmMigrationIssuancesInBlock(blk, lc);
 
-          let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
-          let pending_balance = Number(await sm.getPendingBalance());
+    if (this.processing_payments) {
+      return;
+    }
 
-          try {
-            pp.tx_sig = await this.sendMigrationIssuanceTransaction(
-              saitozen_key,
-              amount,
-              pp.announcement_hash || String(pp.id)
-            );
+    this.processing_payments = true;
 
-            // Success!
-            this.notifyTeam(data_for_email, saitozen_key, 1);
-            pp.status = 'issuing';
-            await this.updatePayment(pp);
-          } catch (err) {
-            // Failure!
-            if (pending_balance && pending_balance > amount) {
-              console.info('666.777 --- insufficient slips to migrate SAITO keep active in queue');
-            } else {
-              this.notifyTeam(data_for_email, saitozen_key, 0, err);
-              console.error('666.777 --- ', err);
-              pp.status = 'failed';
-              this.sendFailureNotification(saitozen_key);
-              await this.updatePayment(pp);
+    try {
+      if (this.pending_payments?.length) {
+        for (const pp of this.pending_payments) {
+          if (
+            pp.status === 'issuing' &&
+            (!pp.last_rebroadcast_block || Number(blk.id) - pp.last_rebroadcast_block >= 3)
+          ) {
+            try {
+              if (await this.rebroadcastMigrationIssuance(pp)) {
+                pp.last_rebroadcast_block = Number(blk.id);
+              }
+            } catch (err) {
+              console.error(`Failed to rebroadcast migration payment ${pp.id}:`, err);
             }
           }
+        }
 
-          // Max - one issuance per block
-          return;
+        for (let i = 0; i < this.pending_payments.length; i++) {
+          if (this.pending_payments[i].status == 'pending') {
+            const pp = this.pending_payments[i];
+            const amount = this.app.wallet.convertNolanToSaito(pp.nolan_received);
+            const saitozen_key = pp.public_key;
+
+            const data_for_email = {
+              module: pp.ticker,
+              from: pp.mixin,
+              amount
+            };
+
+            let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
+            let pending_balance = Number(await sm.getPendingBalance());
+
+            try {
+              const tx = await this.sendMigrationIssuanceTransaction(
+                saitozen_key,
+                amount,
+                pp.announcement_hash || String(pp.id)
+              );
+
+              // Persist the exact signed transaction before it becomes observable.
+              // A restart can then only rebroadcast this signature, never pay twice.
+              await this.recordMigrationIssuance(pp, tx);
+              await this.app.wallet.addTransactionToPending(tx);
+              await this.app.network.propagateTransaction(tx);
+              pp.last_rebroadcast_block = Number(blk.id);
+
+              // Submitted, but not complete until receiveMigrationIssuanceTransaction
+              // sees this exact signature in a longest-chain block.
+              this.notifyTeam(data_for_email, saitozen_key, 1, null, pp);
+            } catch (err) {
+              if (pp.status === 'issuing') {
+                // The signed payout is durable. Leave it issuing so the exact same
+                // transaction is retried; generating a replacement could double-pay.
+                console.error(`Migration payment ${pp.id} saved but not propagated:`, err);
+              } else if (pending_balance && pending_balance > amount) {
+                console.info(
+                  '666.777 --- insufficient slips to migrate SAITO keep active in queue'
+                );
+              } else {
+                this.notifyTeam(data_for_email, saitozen_key, 0, err, pp);
+                console.error('666.777 --- ', err);
+                pp.status = 'failed';
+                this.sendFailureNotification(saitozen_key);
+                await this.updatePayment(pp);
+              }
+            }
+
+            // Max - one issuance per block
+            return;
+          }
         }
       }
+    } finally {
+      this.processing_payments = false;
     }
   }
 
   async load() {
+    await this.ensureAutoMigrationSchema();
+
     let sql = `SELECT * FROM auto_migration WHERE status IN ('awaiting_mixin','pending','issuing')`;
     let params = {};
 
@@ -772,11 +1154,54 @@ class Migration extends ModTemplate {
             this.pending_payments.push(s);
           }
 
-          if (s.status === 'awaiting_mixin' && s.announcement_hash && !this.local_dev) {
+          if (s.status === 'awaiting_mixin' && s.announcement_hash) {
             await this.resumeAwaitingMixin(s);
           }
         }
       }
+    }
+
+    await this.reconcileMigrationIssuances();
+  }
+
+  async ensureAutoMigrationSchema() {
+    const columns = await this.app.storage.queryDatabase(
+      'PRAGMA table_info(auto_migration)',
+      {},
+      'migration'
+    );
+    const column_names = new Set(columns.map((column) => column.name));
+
+    if (!column_names.has('migration_type')) {
+      await this.app.storage.runDatabase(
+        `ALTER TABLE auto_migration ADD COLUMN migration_type TEXT DEFAULT 'standard'`,
+        {},
+        'migration'
+      );
+    }
+
+    if (!column_names.has('email')) {
+      await this.app.storage.runDatabase(
+        `ALTER TABLE auto_migration ADD COLUMN email TEXT DEFAULT ''`,
+        {},
+        'migration'
+      );
+    }
+
+    if (!column_names.has('issuance_tx')) {
+      await this.app.storage.runDatabase(
+        `ALTER TABLE auto_migration ADD COLUMN issuance_tx TEXT DEFAULT ''`,
+        {},
+        'migration'
+      );
+    }
+
+    if (!column_names.has('issuance_at')) {
+      await this.app.storage.runDatabase(
+        `ALTER TABLE auto_migration ADD COLUMN issuance_at INTEGER DEFAULT 0`,
+        {},
+        'migration'
+      );
     }
   }
 
@@ -784,9 +1209,13 @@ class Migration extends ModTemplate {
    * Format and send email for record keeping
    * data aka txmsg { module, amount, to, from }
    */
-  async notifyTeam(data, pk, result, msg) {
+  async notifyTeam(data, pk, result, msg, payment = null) {
     let emailtext;
     let subject = `Saito Token Automated Migration Alert`;
+
+    if (this.apebond.isApeBondPayment(payment)) {
+      subject = `Saito Ape Bond Automated Migration Alert`;
+    }
 
     // 2 -> Whole process confirmed onChain, tokens migrated!
     if (result == 2) {
@@ -823,13 +1252,15 @@ class Migration extends ModTemplate {
 
       // 1 -> sent tokens to Saitozen, but not confirmed
       if (result) {
-        subject += ' (Success!)';
-        emailtext += `<p>Disbursing SAITO!</p></div>`;
+        subject += ' (Submitted)';
+        emailtext += `<p>Signed SAITO payout submitted; awaiting on-chain confirmation.</p></div>`;
       } else {
         subject += ' (Error)';
         emailtext += `<p>Error: ${msg}</p></div>`;
       }
     }
+
+    emailtext += this.apebond.returnTeamEmailHTML(payment);
 
     console.info('666.777 --- Sending Notification Email');
     this.app.connection.emit('mailrelay-send-email', {

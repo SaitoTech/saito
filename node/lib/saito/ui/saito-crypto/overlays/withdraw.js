@@ -639,7 +639,7 @@ class Withdraw {
         resultTitle.textContent = 'Transaction broadcast';
       }
       if (resultMessage) {
-        resultMessage.textContent = 'Check transaction history for confirmation.';
+        resultMessage.textContent = 'Check recent transactions for confirmation.';
       }
     } else if (state === 'failed') {
       if (overlayTitle) {

@@ -10,6 +10,10 @@ CREATE TABLE IF NOT EXISTS purchases (
   external_address  TEXT DEFAULT "",  -- address the incoming payment is from (for checking external block explorer)
   status            TEXT NOT NULL CHECK (status IN ('new', 'pending', 'confirmed','failed','cancelled')),
   paid              TEXT DEFAULT "",  -- tx.signature of the Saito issuance
+  issuance_tx       TEXT DEFAULT "",  -- exact signed issuance transaction for restart-safe rebroadcast
+  issuance_at       INTEGER DEFAULT 0,
+  issuance_block_id INTEGER DEFAULT 0,
+  issuance_block_hash TEXT DEFAULT "",
   active            NUMBER DEFAULT 1, -- simpler flag than distinguishing the five statuses above
   tx                TEXT,             -- transaction user wants sent on completion
   created_at        INTEGER DEFAULT 0,

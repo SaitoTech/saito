@@ -45,15 +45,11 @@ class BuySaito extends ModTemplate {
     this.authorized_public_key = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
 
     this.available_currencies = [];
+    this.service_ready = false;
+    this.processing_payments = false;
 
     // turn this on to fake receiving a mixin payment and test out the UX flow
     this.local_dev = false;
-
-    // BEGIN DEV_MODE_UI — temporary currency-selection UI preview (no Mixin API).
-    // Remove this.dev_mode, seedDevAvailableCurrencies(), and its initialize() call
-    // when UI work is finished. Production must leave currencies empty without Mixin bot.
-    this.dev_mode = 1;
-    // END DEV_MODE_UI
 
     this.purchase_overlay = new SaitoPurchaseOverlay(app, this);
 
@@ -65,15 +61,14 @@ class BuySaito extends ModTemplate {
 
     if (app.BROWSER) {
       this.attachStyleSheets();
-      // BEGIN DEV_MODE_UI
-      this.seedDevAvailableCurrencies();
-      // END DEV_MODE_UI
     }
 
     if (!this.app.BROWSER) {
+      await this.ensurePurchasesSchema();
       this.mixin_mod = app.modules.returnModule('Mixin');
       if (
         app.options?.server?.endpoint?.host == 'localhost' ||
+        app.options?.server?.endpoint?.host == 'ksaito.hda0.net' ||
         app.options?.server?.endpoint?.host.includes('staging') ||
         app.options?.server?.endpoint?.host.includes('testnet') ||
         app.options?.server?.endpoint?.host.includes('test') ||
@@ -84,14 +79,23 @@ class BuySaito extends ModTemplate {
         this.local_dev = false;
       }
 
-      setTimeout(() => {
-        if (this.mixin_mod?.bot && this.authorized_public_key === this.publicKey) {
-          this.mixin_mod.createAccount();
-          this.loadAltAccounts();
-          this.loadPendingPayments();
-          this.checkPrices();
-        } else if (this.authorized_public_key === this.publicKey) {
-          console.warn('BUYSAITO disabled: Mixin API credentials are not configured');
+      setTimeout(async () => {
+        try {
+          if (this.mixin_mod?.bot && this.authorized_public_key === this.publicKey) {
+            const account = await this.mixin_mod.createAccount();
+            if (account?.err || !this.mixin_mod.account_created) {
+              console.error('BUYSAITO disabled: unable to initialize Mixin account', account?.err);
+              return;
+            }
+            await this.loadAltAccounts();
+            await this.loadPendingPayments();
+            await this.checkPrices();
+            this.service_ready = true;
+          } else if (this.authorized_public_key === this.publicKey) {
+            console.warn('BUYSAITO disabled: Mixin API credentials are not configured');
+          }
+        } catch (err) {
+          console.error('BUYSAITO disabled: initialization failed', err);
         }
       }, 2000);
     }
@@ -198,25 +202,25 @@ class BuySaito extends ModTemplate {
       return 0;
     }
 
-    if (txmsg.request.includes('buysaito')) {
+    if (typeof txmsg?.request === 'string' && txmsg.request.includes('buysaito')) {
       console.debug(txmsg);
 
       if (txmsg.request == 'buysaito available currencies') {
         if (this.publicKey === this.authorized_public_key && !this.app.BROWSER) {
-          if (!this.available_currencies.length) {
+          if (this.service_ready && !this.available_currencies.length) {
             this.loadAvailableCryptos();
           }
           this.app.connection.emit('relay-send-message', {
             recipient: tx.from[0].publicKey,
             request: 'buysaito available currencies',
             data: {
-              ac: this.available_currencies,
+              ac: this.service_ready ? this.available_currencies : null,
               erc: this.erc_saito?.price_usd
             }
           });
           this.hasPendingPayment(tx.from[0].publicKey);
         } else if (txmsg.data && this.app.BROWSER) {
-          this.available_currencies = txmsg.data.ac;
+          this.available_currencies = Array.isArray(txmsg.data.ac) ? txmsg.data.ac : null;
           if (!this.erc_saito) {
             this.erc_saito = { price_usd: txmsg.data.erc };
           }
@@ -228,19 +232,28 @@ class BuySaito extends ModTemplate {
       }
 
       if (txmsg.request === 'buysaito report error') {
-        this.app.connection.emit('saito-purchase-error-notification');
+        if (tx.isFrom(this.authorized_public_key) && this.app.BROWSER) {
+          this.app.connection.emit('saito-purchase-error-notification', txmsg.data || {});
+        }
       }
 
       if (txmsg.request === 'buysaito reserve address') {
         if (this.publicKey === this.authorized_public_key && !this.app.BROWSER) {
-          // If user has an open address, ignore the new specifics... (?)
-          if (!this.hasPendingPayment(tx.from[0].publicKey)) {
-            if (!tx.isFrom(txmsg.data.initiator_pubkey)) {
-              console.error('BUYSAITO - PublicKey mismatch... ignore payment request');
-              return;
+          try {
+            if (!this.service_ready) {
+              throw new Error('BuySaito Mixin service is not initialized');
             }
-            await this.checkPrices();
-            this.findAvailableAddress(txmsg.data);
+
+            // If user has an open address, ignore the new specifics... (?)
+            if (!this.hasPendingPayment(tx.from[0].publicKey)) {
+              if (!txmsg.data || !tx.isFrom(txmsg.data.initiator_pubkey)) {
+                throw new Error('Public key mismatch in payment instruction request');
+              }
+              await this.checkPrices();
+              await this.findAvailableAddress(txmsg.data);
+            }
+          } catch (err) {
+            this.reportPaymentInstructionError(tx.from[0].publicKey, err);
           }
         } else if (tx.isFrom(this.authorized_public_key) && this.app.BROWSER) {
           this.pending_payments.push(txmsg.data);
@@ -294,6 +307,7 @@ class BuySaito extends ModTemplate {
    */
   async onNewBlock(blk, lc) {
     if (this.publicKey == this.authorized_public_key && !this.app.BROWSER) {
+      await this.confirmIssuedPaymentsInBlock(blk, lc);
       await this.processPendingPayments();
     }
   }
@@ -323,6 +337,19 @@ class BuySaito extends ModTemplate {
   /// SERVER FUNCTIONS
   //////////////////////////
 
+  reportPaymentInstructionError(publicKey, err = null) {
+    console.error('BUYSAITO - Unable to generate payment instructions:', err);
+
+    this.app.connection.emit('relay-send-message', {
+      recipient: publicKey,
+      request: 'buysaito report error',
+      data: {
+        message:
+          'The payment service could not generate a deposit address. Please try again shortly.'
+      }
+    });
+  }
+
   // Use the current Mixin USD-pair rates plus a 5% spread to calculate a given SAITO value
   // in a web3 Crypto. Rounds up to 6th decimal place
   // To-do: round up to 6 significant digit
@@ -338,7 +365,8 @@ class BuySaito extends ModTemplate {
     let usd_price = 0;
 
     if (ticker) {
-      for (let cm of this.mixin_mod.crypto_mods) {
+      const currencies = this.mixin_mod?.crypto_mods || this.available_currencies || [];
+      for (let cm of currencies) {
         if (cm.ticker == ticker) {
           usd_price = Number(cm.price_usd);
         }
@@ -422,39 +450,6 @@ class BuySaito extends ModTemplate {
     }
   }
 
-  // BEGIN DEV_MODE_UI
-  // Temporary: populate available_currencies from installed mixin-crypto modules so the
-  // existing Get SAITO crypto-selection UI can be inspected without Mixin API credentials.
-  // Does not fake payments, addresses, balances, or transactions. Delete this method and
-  // all DEV_MODE_UI markers when finished with UI work.
-  seedDevAvailableCurrencies() {
-    if (!this.dev_mode || !this.app.BROWSER) {
-      return;
-    }
-    if (this.available_currencies?.length) {
-      return;
-    }
-
-    const installed = this.app.modules.getRespondTos('mixin-crypto') || [];
-    this.available_currencies = installed
-      .filter((m) => m?.ticker && m.ticker !== 'ERC-SAITO')
-      .map((m) => {
-        const ticker = String(m.ticker);
-        return {
-          ticker,
-          price_usd: '1',
-          last_update: 0,
-          icon_url: `/${ticker.toLowerCase()}/img/logo.png`
-        };
-      });
-
-    console.debug(
-      'BUYSAITO DEV_MODE_UI: seeded available_currencies from installed modules',
-      this.available_currencies.map((c) => c.ticker)
-    );
-  }
-  // END DEV_MODE_UI
-
   //
   // Refresh USD-pair price info of Web3Cryptos
   //
@@ -477,35 +472,29 @@ class BuySaito extends ModTemplate {
    * these are stored in a dedicated database and restored in the initialize() function
    *
    */
-  createNewAltAccount(callback) {
+  async createNewAltAccount() {
     if (!this.mixin_mod) {
-      console.error('Mixin not installed!');
-      return;
+      throw new Error('Mixin not installed');
     }
 
-    this.mixin_mod.createAccount(async (res) => {
-      if (res.err || Object.keys(res).length < 1) {
-        console.error('BUYSAITO - Mixin create account failed...', res.err);
-        return;
-      }
+    const res = await this.mixin_mod.createAccount(null, true);
+    if (res?.err || !res?.keys) {
+      throw new Error(res?.err || 'Mixin alternate account was not created');
+    }
 
-      // Save encrypted Mixin account (keys) in our own DB...
-      let sql = `INSERT INTO mixin_accounts (publickey, mixin_json) VALUES ($publickey, $mixin_json) `;
-      let params = {
-        $publickey: this.publicKey,
-        $mixin_json: res.res
-      };
+    // Save encrypted Mixin account (keys) in our own DB...
+    let sql = `INSERT INTO mixin_accounts (publickey, mixin_json) VALUES ($publickey, $mixin_json) `;
+    let params = {
+      $publickey: this.publicKey,
+      $mixin_json: res.res
+    };
 
-      await this.app.storage.runDatabase(sql, params, 'buysaito');
+    await this.app.storage.runDatabase(sql, params, 'buysaito');
 
-      // Add raw account keys to our accounts array...
-      this.mixin_accounts.push(res.keys);
+    // Add raw account keys to our accounts array...
+    this.mixin_accounts.push(res.keys);
 
-      // Run provided callback because we don't have a direct return value...
-      if (callback) {
-        callback(res.keys);
-      }
-    }, true);
+    return res.keys;
   }
 
   async loadAltAccounts() {
@@ -547,6 +536,10 @@ class BuySaito extends ModTemplate {
   // Is this deposit address currently "busy", i.e. associated with a pending payment
   ///
   checkAvailability(ticker, destination) {
+    if (!ticker || !destination) {
+      return false;
+    }
+
     for (let ep of this.pending_payments) {
       if (ep.ticker == ticker && ep.destination == destination) {
         return false;
@@ -564,9 +557,20 @@ class BuySaito extends ModTemplate {
   //  payment_data : { publicKey, issue_amount, ticker, tx}
   //
   async findAvailableAddress(payment_data) {
+    if (!this.mixin_mod) {
+      throw new Error('Mixin payment service is unavailable');
+    }
+
     //Is my main available?
     const cm = this.app.wallet.returnCryptoModuleByTicker(payment_data.ticker);
-    await cm.activate();
+    if (!cm) {
+      throw new Error(`Unsupported payment ticker: ${payment_data.ticker}`);
+    }
+
+    const activated = await cm.activate();
+    if (activated === false || !cm.address) {
+      throw new Error(`Unable to create a ${payment_data.ticker} deposit address`);
+    }
 
     const ticker = payment_data.ticker;
     let destination = cm.address;
@@ -577,7 +581,7 @@ class BuySaito extends ModTemplate {
     } else {
       for (let m of this.mixin_accounts) {
         destination = await this.mixin_mod.createDepositAddress(null, cm.chain_id, m);
-        if (this.checkAvailability(ticker, destination)) {
+        if (destination && this.checkAvailability(ticker, destination)) {
           await this.createPendingPayment(destination, payment_data, m);
           return; // exit here
         }
@@ -585,11 +589,12 @@ class BuySaito extends ModTemplate {
     }
 
     console.info('BUYSAITO - Creating New Alt Account for Payment Processing...');
-    this.createNewAltAccount(async (keys) => {
-      // Take the last one
-      destination = await this.mixin_mod.createDepositAddress(null, cm.chain_id, keys);
-      await this.createPendingPayment(destination, payment_data, keys);
-    });
+    const keys = await this.createNewAltAccount();
+    destination = await this.mixin_mod.createDepositAddress(null, cm.chain_id, keys);
+    if (!destination) {
+      throw new Error(`Unable to create an alternate ${ticker} deposit address`);
+    }
+    await this.createPendingPayment(destination, payment_data, keys);
   }
 
   //
@@ -620,6 +625,9 @@ class BuySaito extends ModTemplate {
       }
     }
 
+    await this.reconcileIssuedPayments();
+    this.clearInactivePayments();
+
     console.debug(
       `BUYSAITO - Recovered ${this.pending_payments.length} pending payments from the DB`
     );
@@ -632,7 +640,7 @@ class BuySaito extends ModTemplate {
 
     // Check if this user has a pending payment and send them that info again
     for (let p of this.pending_payments) {
-      if (p.initiator_pubkey == publicKey && !p.paid) {
+      if (p.initiator_pubkey == publicKey) {
         this.app.connection.emit('relay-send-message', {
           recipient: publicKey,
           request: 'buysaito reserve address',
@@ -644,7 +652,7 @@ class BuySaito extends ModTemplate {
             mixin_id: p.mixin.user_id,
             expected_deposit: p.expected_deposit,
             reserved_until: p.ts + this.time_limit,
-            status: 'pending'
+            status: p.paid ? 'issuing' : 'pending'
           }
         });
         return true;
@@ -673,7 +681,7 @@ class BuySaito extends ModTemplate {
       if (
         this.pending_payments[i].status == 'cancelled' ||
         this.pending_payments[i].status == 'failed' ||
-        (this.pending_payments[i].status == 'confirmed' && this.pending_payments[i].paid)
+        Number(this.pending_payments[i].active) === 0
       ) {
         this.pending_payments.splice(i, 1);
       }
@@ -684,6 +692,10 @@ class BuySaito extends ModTemplate {
   // Pending payments are stored in an array and backed up in a database
   //
   async createPendingPayment(destination, payment_data, mixin_account) {
+    if (!destination || !mixin_account?.user_id) {
+      throw new Error('Cannot reserve an incomplete Mixin payment address');
+    }
+
     // Add remaining fields
     payment_data.destination = destination;
     payment_data.ts = Date.now();
@@ -702,28 +714,17 @@ class BuySaito extends ModTemplate {
         payment_data.ticker
       );
     } else {
-      console.error('BuySaito: no valid numeric input');
+      throw new Error('BuySaito: no valid numeric input');
     }
 
-    this.pending_payments.push(payment_data);
-
-    //
-    // Send key info back to user
-    //
-    this.app.connection.emit('relay-send-message', {
-      recipient: payment_data.initiator_pubkey,
-      request: 'buysaito reserve address',
-      data: {
-        initiator_pubkey: payment_data.initiator_pubkey,
-        recipient_pubkey: payment_data.recipient_pubkey,
-        issue_amount: payment_data.issue_amount,
-        ticker: payment_data.ticker,
-        destination: payment_data.destination,
-        mixin_id: payment_data.mixin.user_id,
-        expected_deposit: payment_data.expected_deposit,
-        reserved_until: payment_data.ts + this.time_limit
-      }
-    });
+    if (
+      !Number.isFinite(Number(payment_data.issue_amount)) ||
+      Number(payment_data.issue_amount) <= 0 ||
+      !Number.isFinite(Number(payment_data.expected_deposit)) ||
+      Number(payment_data.expected_deposit) <= 0
+    ) {
+      throw new Error('BuySaito: invalid payment amount');
+    }
 
     // back up to DB
     let sql = `INSERT INTO purchases (initiator_pubkey, recipient_pubkey, ticker, mixin_user_id, destination, issue_amount, expected_deposit, status, tx, created_at) 
@@ -749,6 +750,24 @@ class BuySaito extends ModTemplate {
     if (res?.lastID) {
       payment_data.id = res.lastID;
     }
+
+    this.pending_payments.push(payment_data);
+
+    // Only return instructions after their reservation has been persisted.
+    this.app.connection.emit('relay-send-message', {
+      recipient: payment_data.initiator_pubkey,
+      request: 'buysaito reserve address',
+      data: {
+        initiator_pubkey: payment_data.initiator_pubkey,
+        recipient_pubkey: payment_data.recipient_pubkey,
+        issue_amount: payment_data.issue_amount,
+        ticker: payment_data.ticker,
+        destination: payment_data.destination,
+        mixin_id: payment_data.mixin.user_id,
+        expected_deposit: payment_data.expected_deposit,
+        reserved_until: payment_data.ts + this.time_limit
+      }
+    });
 
     console.debug(this.pending_payments);
   }
@@ -801,11 +820,157 @@ class BuySaito extends ModTemplate {
     this.clearInactivePayments();
   }
 
-  async finishPayment(payment_data) {
-    let sql = `UPDATE purchases SET active = 0, paid = $paid, updated_at = $updated_at WHERE id=$id`;
-    let params = { $id: payment_data.id, $paid: payment_data.paid, $updated_at: Date.now() };
+  async ensurePurchasesSchema() {
+    const columns = await this.app.storage.queryDatabase(
+      'PRAGMA table_info(purchases)',
+      {},
+      'buysaito'
+    );
+    const columnNames = new Set(columns.map((column) => column.name));
+    const additions = [
+      ['issuance_tx', `TEXT DEFAULT ''`],
+      ['issuance_at', 'INTEGER DEFAULT 0'],
+      ['issuance_block_id', 'INTEGER DEFAULT 0'],
+      ['issuance_block_hash', `TEXT DEFAULT ''`]
+    ];
 
-    await this.app.storage.runDatabase(sql, params, 'buysaito');
+    for (const [name, definition] of additions) {
+      if (!columnNames.has(name)) {
+        await this.app.storage.runDatabase(
+          `ALTER TABLE purchases ADD COLUMN ${name} ${definition}`,
+          {},
+          'buysaito'
+        );
+      }
+    }
+  }
+
+  async recordPaymentIssuance(payment_data, tx) {
+    const issuanceAt = Date.now();
+    const serializedTx = tx.serialize_to_web(this.app);
+    const sql = `UPDATE purchases
+      SET paid = $paid, issuance_tx = $issuance_tx, issuance_at = $issuance_at,
+          updated_at = $updated_at
+      WHERE id = $id AND active = 1 AND (paid = '' OR paid = $paid)`;
+    const params = {
+      $id: payment_data.id,
+      $paid: tx.signature,
+      $issuance_tx: serializedTx,
+      $issuance_at: issuanceAt,
+      $updated_at: issuanceAt
+    };
+
+    const result = await this.app.storage.runDatabase(sql, params, 'buysaito');
+    if (result?.changes === 0) {
+      throw new Error(`BuySaito payment ${payment_data.id} is no longer available for issuance`);
+    }
+
+    payment_data.paid = tx.signature;
+    payment_data.issuance_tx = serializedTx;
+    payment_data.issuance_at = issuanceAt;
+  }
+
+  async rebroadcastPaymentIssuance(payment_data) {
+    if (!payment_data.issuance_tx) {
+      if (!payment_data.missing_issuance_notified) {
+        console.error(
+          `BUYSAITO - Payment ${payment_data.id} has signature ${payment_data.paid} but no saved issuance transaction; manual review required`
+        );
+        payment_data.missing_issuance_notified = true;
+      }
+      return;
+    }
+
+    const tx = new Transaction();
+    tx.deserialize_from_web(this.app, payment_data.issuance_tx);
+    if (!tx.signature || tx.signature !== payment_data.paid) {
+      throw new Error(`BuySaito payment ${payment_data.id} has invalid saved issuance data`);
+    }
+    await this.app.wallet.addTransactionToPending(tx, false);
+    await this.app.network.propagateTransaction(tx);
+  }
+
+  async confirmIssuedPaymentsInBlock(blk, lc) {
+    if (!lc || !Array.isArray(blk?.transactions) || !blk.transactions.length) {
+      return;
+    }
+
+    const signatures = new Set(
+      blk.transactions.map((tx) => tx?.signature).filter((signature) => signature)
+    );
+    for (const payment of this.pending_payments) {
+      if (payment.paid && signatures.has(payment.paid)) {
+        await this.finishPayment(payment, blk);
+      }
+    }
+  }
+
+  async reconcileIssuedPayments() {
+    const issued = this.pending_payments.filter(
+      (payment) => payment.paid && payment.issuance_tx && Number(payment.issuance_at) > 0
+    );
+    const blockchain = this.app?.blockchain;
+    if (!issued.length || !blockchain?.getLatestBlockId) {
+      return;
+    }
+
+    const bySignature = new Map(issued.map((payment) => [payment.paid, payment]));
+    const earliestIssuance = Math.min(...issued.map((payment) => Number(payment.issuance_at)));
+    const latestId = Number(await blockchain.getLatestBlockId());
+
+    for (let id = latestId; id > 0 && bySignature.size; id--) {
+      let hash = '';
+      let block = null;
+      try {
+        hash = await blockchain.getLongestChainHashAtId(id);
+        if (!hash) {
+          continue;
+        }
+        block = await blockchain.loadBlockAsync(String(hash));
+        if (!block) {
+          block = await blockchain.getBlock(String(hash), true);
+        }
+      } catch (_err) {
+        continue;
+      }
+      if (!block) {
+        continue;
+      }
+
+      for (const tx of block.transactions || []) {
+        const payment = bySignature.get(tx?.signature);
+        if (payment) {
+          await this.finishPayment(payment, block);
+          bySignature.delete(tx.signature);
+        }
+      }
+
+      if (Number(block.timestamp) < earliestIssuance) {
+        break;
+      }
+    }
+  }
+
+  async finishPayment(payment_data, blk) {
+    let sql = `UPDATE purchases
+      SET active = 0, paid = $paid, issuance_block_id = $issuance_block_id,
+          issuance_block_hash = $issuance_block_hash, updated_at = $updated_at
+      WHERE id = $id AND active = 1 AND paid = $paid`;
+    let params = {
+      $id: payment_data.id,
+      $paid: payment_data.paid,
+      $issuance_block_id: Number(blk?.id || 0),
+      $issuance_block_hash: blk?.hash || '',
+      $updated_at: Date.now()
+    };
+
+    const result = await this.app.storage.runDatabase(sql, params, 'buysaito');
+    if (result?.changes === 0) {
+      return;
+    }
+    payment_data.active = 0;
+    payment_data.issuance_block_id = params.$issuance_block_id;
+    payment_data.issuance_block_hash = params.$issuance_block_hash;
 
     this.app.connection.emit('relay-send-message', {
       recipient: payment_data.initiator_pubkey,
@@ -839,12 +1004,36 @@ class BuySaito extends ModTemplate {
    *
    */
   async processPendingPayments() {
+    if (this.processing_payments) {
+      return;
+    }
+    this.processing_payments = true;
+    try {
+      await this._processPendingPayments();
+    } finally {
+      this.processing_payments = false;
+    }
+  }
+
+  async _processPendingPayments() {
     // First clear out any inactive payments
     this.clearInactivePayments();
 
     // Second, make sure we have something to process
     if (!this.pending_payments.length) {
       return;
+    }
+
+    // A saved payout must not depend on Mixin being reachable again. Queue the
+    // exact signed transaction first, then continue refreshing deposit status.
+    for (const payment of this.pending_payments) {
+      if (payment.status !== 'new' && payment.paid) {
+        try {
+          await this.rebroadcastPaymentIssuance(payment);
+        } catch (err) {
+          console.error(`BUYSAITO - Failed to rebroadcast payment ${payment.id}:`, err);
+        }
+      }
     }
 
     // Third, check Mixin to update status
@@ -855,7 +1044,7 @@ class BuySaito extends ModTemplate {
         let { deposits, utxo, snapshots } = await this.mixin_mod.consolidatedLookUp(
           pp.ticker,
           pp.destination,
-          pp.ts, // only check transaction history post creating the pending payment
+          pp.ts, // only check recent transactions post creating the pending payment
           pp.mixin
         );
 
@@ -867,7 +1056,7 @@ class BuySaito extends ModTemplate {
         try {
           if (pp.mixin.user_id !== this.mixin_mod.mixin.user_id && Number(utxo) > 0) {
             const cm = this.app.wallet.returnCryptoModuleByTicker(pp.ticker);
-            res = await this.mixin_mod.sendInNetworkTransferRequest(
+            const res = await this.mixin_mod.sendInNetworkTransferRequest(
               cm.asset_id,
               this.mixin_mod.mixin.user_id,
               utxo,
@@ -931,10 +1120,12 @@ class BuySaito extends ModTemplate {
       if (pp.status !== 'new' && !pp.paid) {
         if (available_balance > pp.issue_amount) {
           await this.createSaitoIssuanceTransaction(pp)
-            .then((sig) => {
-              pp.paid = sig;
-              pp.active = 0;
-              this.finishPayment(pp);
+            .then(async (tx) => {
+              // Persist before propagation. If the process stops after this point,
+              // the same signed transaction is recovered and rebroadcast.
+              await this.recordPaymentIssuance(pp, tx);
+              await this.app.wallet.addTransactionToPending(tx);
+              await this.app.network.propagateTransaction(tx);
             })
             .catch((err) => {
               // Don't do anything other than report the error
@@ -1035,9 +1226,7 @@ class BuySaito extends ModTemplate {
     );
 
     await newtx.sign();
-    await this.app.network.propagateTransaction(newtx);
-
-    return newtx.signature;
+    return newtx;
   }
 }
 

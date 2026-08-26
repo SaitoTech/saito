@@ -1126,8 +1126,8 @@ class SaitoHeader extends UIModTemplate {
               <div
                 class="saito-icon-button header-crypto-history"
                 data-ticker="${crypto_mod.ticker}"
-                title="View ${crypto_mod.ticker} transaction history"
-                aria-label="View ${crypto_mod.ticker} transaction history"
+                title="View ${crypto_mod.ticker} recent transactions"
+                aria-label="View ${crypto_mod.ticker} recent transactions"
                 role="button"
                 tabindex="0"
               >

@@ -8,7 +8,7 @@ const legacySpecIgnores = [
 
 module.exports = {
   testEnvironment: 'node',
-  roots: ['<rootDir>/lib'],
+  roots: ['<rootDir>/lib', '<rootDir>/tests'],
   testMatch: ['**/*.spec.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   modulePathIgnorePatterns: ['<rootDir>/dist/'],
@@ -24,7 +24,7 @@ module.exports = {
     ]
   },
   moduleNameMapper: {
-    '^saito-js$': '<rootDir>/node_modules/saito-js/dist/index.node.js',
-    '^saito-js/(.*)$': '<rootDir>/node_modules/saito-js/dist/$1'
+    '^saito-js$': '<rootDir>/node_modules/saito-js/index.node.js',
+    '^saito-js/(.*)$': '<rootDir>/node_modules/saito-js/$1'
   }
 };

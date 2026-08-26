@@ -5,8 +5,8 @@ module.exports = (mod, explorerUrl = '') => {
   let html = `
     <div class="wallet-history">
       <header class="saito-overlay-form-header">
-        <h2 class="saito-overlay-form-header-title">Transaction History</h2>
-        <button type="button" class="saito-button-square refresh" id="wallet-history-refresh" aria-label="Refresh transaction history" title="Refresh transaction history">
+        <h2 class="saito-overlay-form-header-title">Recent Transactions</h2>
+        <button type="button" class="saito-button-square refresh" id="wallet-history-refresh" aria-label="Refresh recent transactions" title="Refresh recent transactions">
           <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
         </button>
       </header>

@@ -64,7 +64,7 @@ class CryptoModule extends ModTemplate {
     this.address = '';
 
     //
-    // cached in memory / localForage -- list of standardized objects detailing transaction history
+    // cached in memory / localForage -- list of standardized objects detailing recent transactions
     //
     this.history = [];
     this.history_update_ts = 0;
@@ -117,6 +117,16 @@ class CryptoModule extends ModTemplate {
   }
 
   startPolling() {}
+
+  /**
+   * Compare the sender recorded for an expected payment with the sender reported
+   * by the underlying payment network. Crypto modules with more than one valid
+   * address representation can override this without weakening matching for the
+   * other modules.
+   */
+  paymentsHaveSameSender(expected_sender, actual_sender) {
+    return expected_sender === actual_sender;
+  }
 
   stopPolling() {}
 
@@ -392,7 +402,7 @@ class CryptoModule extends ModTemplate {
           this.history[i].timestamp === this.history[j].timestamp &&
           this.history[i].amount == this.history[j].amount
         ) {
-          console.warn(`Resetting ${this.ticker} transaction history cache...`);
+          console.warn(`Resetting ${this.ticker} recent transactions cache...`);
           await this.app.storage.removeLocalForageItem(`${this.ticker}_${this.address}_history`);
           this.history = [];
           this.history_update_ts = 0;
@@ -417,7 +427,7 @@ class CryptoModule extends ModTemplate {
     if (this.early_payments.length) {
       for (let i = 0; i < this.early_payments.length; i++) {
         let early_sender = this.early_payments[i].sender_address || this.early_payments[i].sender;
-        if (early_sender == sender) {
+        if (this.paymentsHaveSameSender(sender, early_sender)) {
           if (Number(this.early_payments[i].amount) == Number(amount)) {
             this.app.connection.emit(
               'on-receive-expected-payment',
@@ -469,7 +479,7 @@ class CryptoModule extends ModTemplate {
     let sender = obj.sender_address || obj.sender;
 
     for (let h in this.transfers_inbound) {
-      if (this.transfers_inbound[h].sender == sender) {
+      if (this.paymentsHaveSameSender(this.transfers_inbound[h].sender, sender)) {
         // Convert to Number so we don't worry about string formatting
         if (Number(this.transfers_inbound[h].amount) == Number(obj.amount)) {
           this.app.connection.emit('on-receive-expected-payment', h, obj);

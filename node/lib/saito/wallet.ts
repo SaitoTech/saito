@@ -6,6 +6,10 @@ import S from 'saito-js/saito';
 import { Saito } from './app';
 import Slip from './slip';
 import Transaction from './transaction';
+import {
+  deserializePendingTransaction,
+  serializePendingTransaction
+} from './pending-transaction-storage';
 import { TransactionType } from 'saito-js/lib/transaction';
 
 const getUuid = require('uuid-by-string');
@@ -716,23 +720,20 @@ export default class Wallet extends SaitoWallet {
 
       delete this.app.options.pending_txs;
 
-      console.info('Recovered pending_txs -- ', pending_txs);
+      console.info(`Recovered ${pending_txs.length} saved pending transaction(s)`);
 
       for (let i = pending_txs.length - 1, k = 0; i >= 0; i--, k++) {
         try {
-          if (pending_txs[i].instance) {
-            delete pending_txs[i].instance;
+          const newtx = deserializePendingTransaction(this.app, pending_txs[i]);
+          if (!newtx) {
+            console.error(`Ignoring malformed saved pending transaction at index ${i}`);
+            continue;
           }
-          if (!pending_txs[i].from) {
-          } else {
-            let newtx = new Transaction();
-            newtx.deserialize_from_web(this.app, JSON.stringify(pending_txs[i]));
-            if (newtx.timestamp > new Date().getTime() - 85000000) {
-              await this.app.wallet.addTransactionToPending(newtx, false);
-            }
+          if (newtx.timestamp > new Date().getTime() - 85000000) {
+            await this.app.wallet.addTransactionToPending(newtx, false);
           }
         } catch (err) {
-          // console.log('caught error: ' + JSON.stringify(err));
+          console.error(`Failed to restore pending transaction at index ${i}:`, err);
         }
       }
 
@@ -838,7 +839,16 @@ export default class Wallet extends SaitoWallet {
     this.app.options.wallet.version = this.version;
     this.app.options.wallet.default_fee = this.default_fee.toString();
 
-    let pending_txs = await this.getPendingTransactions();
+    const pendingTransactions = await this.getPendingTransactions();
+    const pending_txs = pendingTransactions
+      .map((tx) => serializePendingTransaction(this.app, tx))
+      .filter((tx): tx is string => tx !== null);
+
+    if (pending_txs.length !== pendingTransactions.length) {
+      console.error(
+        `Skipped ${pendingTransactions.length - pending_txs.length} malformed pending transaction(s) while saving wallet`
+      );
+    }
 
     if (this.app.BROWSER) {
       await this.app.storage.setLocalForageItem('pending_txs', pending_txs);

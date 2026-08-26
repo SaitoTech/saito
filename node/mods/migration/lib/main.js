@@ -163,41 +163,58 @@ class MigrationMain {
 
     if (document.getElementById('automatic')) {
       document.getElementById('automatic').onclick = async () => {
-        if (!this.mod.can_auto) {
-          salert('Automated migration is not available yet. Please wait a moment and try again.');
-          return;
-        }
-
-        if (this.mod.balance) {
-          this.processDepositedSaito(this.mod.balance);
-          return;
-        }
-
-        this.app.connection.emit('saito-backup-render-request', {
-          msg: 'Backup your wallet before initiating automated ERC-20 to mainnet token migration',
-          success_callback: () => {
-            this.app.connection.emit('saito-crypto-deposit-render-request', {
-              title: 'My Deposit Address',
-              ticker: this.mod.wrapped_saito_ticker,
-              warning: `<div>Reminder: send only ERC-20 SAITO</div><div>Max Deposit: ${this.mod.max_deposit}</div><div>Click <em>'Done'</em> to check on deposit.</div>`,
-              migration: true,
-              callback: () => {
-                //
-                // Double check the Migration bot can handle our transfer
-                //
-                this.mod.sendMigrationPingTransaction(
-                  {
-                    mixin_address: this.mod.ercMod.formatAddress(),
-                    double_check: true
-                  },
-                  true
-                );
-              }
-            });
-          }
-        });
+        this.startAutomatedMigration();
       };
     }
+  }
+
+  startAutomatedMigration(migration_data = {}) {
+    if (!this.mod.can_auto) {
+      salert('Automated migration is not available yet. Please wait a moment and try again.');
+      return;
+    }
+
+    if (this.mod.balance) {
+      if (migration_data.migration_type) {
+        this.mod.sendMigrationPingTransaction(
+          {
+            mixin_address: this.mod.ercMod.formatAddress(),
+            double_check: true,
+            ...migration_data
+          },
+          true
+        );
+        return;
+      }
+
+      this.processDepositedSaito(this.mod.balance);
+      return;
+    }
+
+    this.app.connection.emit('saito-backup-render-request', {
+      msg: 'Backup your wallet before initiating automated ERC-20 to mainnet token migration',
+      success_callback: () => {
+        this.app.connection.emit('saito-crypto-deposit-render-request', {
+          title: 'My Deposit Address',
+          ticker: this.mod.wrapped_saito_ticker,
+          warning: `<div>Reminder: send only ERC-20 SAITO</div><div>Max Deposit: ${this.mod.max_deposit}</div><div>Click <em>'Done'</em> to check on deposit.</div>`,
+          migration: true,
+          callback: () => {
+            //
+            // Double check the Migration bot can handle our transfer
+            //
+            this.mod.sendMigrationPingTransaction(
+              {
+                mixin_address: this.mod.ercMod.formatAddress(),
+                double_check: true,
+                ...migration_data
+              },
+              true
+            );
+          }
+        });
+      }
+    });
   }
 
   /***
@@ -205,7 +222,7 @@ class MigrationMain {
    * */
   processDepositedSaito(new_balance) {
     let html = `
-          <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit saito-overlay-size narrow">
+			<div id="saito-deposit-form" class="saito-overlay-form saito-overlay-panel retain-surface saito-crypto-deposit saito-overlay-size narrow">
               <div class="saito-overlay-form-header">
                   <div class="saito-overlay-form-header-title">Deposited</div>
               </div>
@@ -242,6 +259,10 @@ class MigrationMain {
         return;
       }
 
+      // Do not offer the same cached ERC balance for migration again while the
+      // Mixin balance API catches up with the completed outbound transfer.
+      this.mod.balance = 0;
+
       try {
         this.overlay.remove();
         document.querySelector('.withdraw-title').innerHTML = 'Awaiting native SAITO';
@@ -275,43 +296,45 @@ class MigrationMain {
 
     if (document.getElementById('submit')) {
       document.getElementById('submit').onclick = (e) => {
-        e.currentTarget.remove();
         let sender = this.mod.ercMod.formatAddress();
 
         let amount = Math.min(new_balance, this.mod.max_deposit).toString();
+
+        // This deterministic hash is persisted by wallet.sendPayment before the
+        // ERC transfer. It prevents a refresh or stale balance from submitting
+        // the same migration twice.
+        let unique_hash = this.app.crypto.hash(
+          Buffer.from(sender + this.mod.migration_mixin_address + amount + 'ERC-SAITO', 'utf-8')
+        );
+
+        if (this.app.wallet.doesPreferredCryptoTransactionExist(unique_hash)) {
+          this.mod.balance = 0;
+          salert(
+            'This ERC-SAITO migration has already been submitted. Please wait for the balance and migration status to update.'
+          );
+          return;
+        }
+
+        e.currentTarget.remove();
 
         if (document.querySelector('.saito-overlay-form-header-title')) {
           document.querySelector('.saito-overlay-form-header-title').innerHTML =
             `Converting ${new_balance > this.mod.max_deposit ? 'only' : ''} ${amount} ERC20 SAITO...`;
         }
 
-        // This doesn't matter
-        let unique_hash = this.app.crypto.hash(
-          Buffer.from(sender + this.mod.migration_mixin_address + amount + 'ERC-SAITO', 'utf-8')
-        );
-
         const sendPaymentWrapper = async () => {
-          let res = { hash: 'local-dev-mixin-' + Date.now() };
+          let res = {};
 
           try {
-            if (this.mod.local_dev) {
-              await this.mod.ercMod.sendPaymentTransaction(
-                this.mod.migration_publickey,
-                this.mod.ercMod.formatAddress(),
-                this.mod.migration_mixin_address,
-                amount,
-                res.hash
-              );
-            } else {
-              res = await this.app.wallet.sendPayment(
-                this.mod.wrapped_saito_ticker,
-                [this.mod.ercMod.formatAddress()],
-                [this.mod.migration_mixin_address],
-                [amount],
-                unique_hash,
-                this.mod.migration_publickey
-              );
-            }
+            res = await this.app.wallet.sendPayment(
+              this.mod.wrapped_saito_ticker,
+              [this.mod.ercMod.formatAddress()],
+              [this.mod.migration_mixin_address],
+              [amount],
+              unique_hash,
+              null,
+              this.mod.migration_publickey
+            );
 
             this.app.connection.emit('saito-crypto-send-confirm', res, () => {
               shiftFromSendToReceive(res, amount);

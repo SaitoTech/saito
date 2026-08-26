@@ -7,7 +7,11 @@ CREATE TABLE IF NOT EXISTS auto_migration (
   created_at  INTEGER DEFAULT 0,
   status TEXT DEFAULT 'pending' CHECK (status IN ('awaiting_mixin','pending','issuing','succeeded','failed')),
   tx_sig TEXT DEFAULT "",
+  issuance_tx TEXT DEFAULT "",
+  issuance_at INTEGER DEFAULT 0,
   blk_id INTEGER DEFAULT 0,
   issued_at INTEGER DEFAULT 0,
-  announcement_hash TEXT DEFAULT ""
+  announcement_hash TEXT DEFAULT "",
+  migration_type TEXT DEFAULT 'standard',
+  email TEXT DEFAULT ''
 );

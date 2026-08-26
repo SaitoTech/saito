@@ -1,6 +1,7 @@
 module.exports = (app, mod, deposit_self) => {
+  const migration_class = deposit_self.migration ? ' migration-deposit' : '';
   let html = `
-        <div id="saito-deposit-form" class="saito-crypto-deposit saito-overlay-size narrow">
+        <div id="saito-deposit-form" class="saito-overlay-panel retain-surface saito-crypto-deposit saito-overlay-size narrow${migration_class}">
             <header class="saito-overlay-form-header">
                 <h2 class="saito-overlay-form-header-title">${deposit_self.title}</h2>
             </header>

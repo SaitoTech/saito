@@ -2821,7 +2821,7 @@ class GameQueue {
         // because the continue code is triggered by closing the overlay, which
         // listens for a confirmation event emitted by the crypto, that could be instantaneous
         //
-        game_self.app.connection.emit('saito-crypto-receive-render-request', {
+        game_self.app.connection.emit('saito-crypto-game-receive-render-request', {
           address: sender_crypto_address,
           publicKey: sender,
           amount: amount,

@@ -1,15 +1,17 @@
 /**
- * Crypto receive overlay — waiting for / confirming inbound payment.
+ * In-game crypto receive overlay — waiting for / confirming inbound payment.
  *
  * Presentation: `mods/crypto/web/css/crypto-overlays.css` (`.crypto-receive-overlay`).
  *
- * Completion is one-shot via completeReceiveOnce():
+ * Preference: crypto_transfers_inbound_trusted (UI/storage; auto-skip behavior later).
+ *
+ * Queue resume is one-shot via completeReceiveOnce():
  *   - Continue click → completeReceiveOnce()
  *   - Payment arrived → success UI, then completeReceiveOnce()
- * Overlay close must not re-fire the completion callback.
+ * Overlay close must not re-fire the game callback.
  */
 
-const ReceiveTemplate = require('./receive.template');
+const GameReceiveTemplate = require('./game-receive.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 
 function escapeHtml(value = '') {
@@ -20,7 +22,7 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;');
 }
 
-class Receive {
+class GameReceive {
   constructor(app, mod, container = '') {
     this.app = app;
     this.mod = mod;
@@ -28,14 +30,14 @@ class Receive {
 
     this.overlay.clickBackdropToClose = false;
 
-    /** @type {ReturnType<Receive['bindElements']> | null} */
+    /** @type {ReturnType<GameReceive['bindElements']> | null} */
     this.el = null;
 
     this.expected_hash = null;
     this.mycallback = null;
     this.receive_completed = false;
 
-    this.app.connection.on('saito-crypto-receive-render-request', (details) => {
+    this.app.connection.on('saito-crypto-game-receive-render-request', (details) => {
       this.render(details);
     });
 
@@ -47,12 +49,25 @@ class Receive {
   }
 
   /**
+   * First-time / absent preference → checked (opt-in invitation).
+   * After the user has saved a value → reflect that stored preference.
+   */
+  readInboundCheckboxDefault() {
+    const pref = this.app.options?.gameprefs?.crypto_transfers_inbound_trusted;
+    if (pref === undefined || pref === null) {
+      return true;
+    }
+    return !!pref;
+  }
+
+  /**
    * @returns {null | {
    *   root: HTMLElement,
    *   title: HTMLElement | null,
    *   amount: HTMLElement | null,
    *   countdown: HTMLElement | null,
-   *   closeBtn: HTMLButtonElement | null
+   *   closeBtn: HTMLButtonElement | null,
+   *   ignoreCheckbox: HTMLInputElement | null
    * }}
    */
   bindElements() {
@@ -63,15 +78,23 @@ class Receive {
         title: root.querySelector('#crypto_receive_title'),
         amount: root.querySelector('#crypto_receive_amount'),
         countdown: root.querySelector('#crypto_receive_countdown'),
-        closeBtn: root.querySelector('#crypto_receive_continue')
+        closeBtn: root.querySelector('#crypto_receive_continue'),
+        ignoreCheckbox: root.querySelector('#crypto_receive_auto_accept')
       };
     } else {
       return null;
     }
   }
 
+  saveInboundPreferenceFromCheckbox() {
+    const checkbox = document.getElementById('crypto_receive_auto_accept');
+    this.app.options.gameprefs = this.app.options.gameprefs || {};
+    this.app.options.gameprefs.crypto_transfers_inbound_trusted = checkbox?.checked ? 1 : 0;
+    this.app.storage.saveOptions();
+  }
+
   /**
-   * One-shot: run the completion callback and close the overlay.
+   * One-shot: resume the game queue and close the overlay.
    * Safe to call from Continue or from payment-arrived auto-continue.
    */
   completeReceiveOnce() {
@@ -80,6 +103,8 @@ class Receive {
     }
     this.receive_completed = true;
     this.expected_hash = null;
+
+    this.saveInboundPreferenceFromCheckbox();
 
     const cb = this.mycallback;
     this.mycallback = null;
@@ -118,12 +143,13 @@ class Receive {
     this.receive_completed = false;
 
     const publicKey = details.publicKey;
+    details.trustedInbound = this.readInboundCheckboxDefault();
     details.partyName = escapeHtml(this.app.keychain.returnUsername(publicKey));
     details.partyKey = escapeHtml(publicKey);
 
-    this.overlay.show(ReceiveTemplate(details), () => {
+    this.overlay.show(GameReceiveTemplate(details), () => {
       this.expected_hash = null;
-      // Completion is owned by completeReceiveOnce(); close must not re-fire it.
+      // Queue resume is owned by completeReceiveOnce(); close must not re-fire it.
       this.mycallback = null;
     });
     this.overlay.blockClose();
@@ -153,4 +179,4 @@ class Receive {
   }
 }
 
-module.exports = Receive;
+module.exports = GameReceive;

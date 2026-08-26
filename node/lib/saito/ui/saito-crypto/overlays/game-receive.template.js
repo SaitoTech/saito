@@ -1,13 +1,13 @@
 /**
- * Crypto receive overlay — structural markup only.
+ * In-game crypto receive overlay — structural markup only.
  *
  * Shared overlay for:
  *   pending  → "Awaiting Transfer"
- *   success  → "Payment Received"  (title + state set from receive.js)
+ *   success  → "Payment Received"  (title + state set from game-receive.js)
  *
- * `data-receive-state` and `data-receive-mode` are set from receive.js after mount.
+ * `data-receive-state` and `data-receive-mode` are set from game-receive.js after mount.
  */
-module.exports = function cryptoReceiveOverlayTemplate(details) {
+module.exports = function gameCryptoReceiveOverlayTemplate(details) {
   const partyKey = details.partyKey
     ? `<div class="game-crypto-party-key">${details.partyKey}</div>`
     : '';
@@ -45,6 +45,17 @@ module.exports = function cryptoReceiveOverlayTemplate(details) {
         </div>
       </section>
 
+      <div class="crypto-receive-overlay__prefs game-crypto-transfer-card__prefs">
+        <label class="crypto-receive-overlay__checkbox-label game-crypto-transfer-card__checkbox-label">
+          <input
+            type="checkbox"
+            id="crypto_receive_auto_accept"
+            class="saito-checkbox"
+            ${details.trustedInbound ? 'checked' : ''}
+          />
+          <span>auto-accept in-game transfers</span>
+        </label>
+      </div>
     </div>
 
     <footer class="crypto-receive-overlay__footer crypto-receive-overlay__footer--trusted game-crypto-transfer-card__footer">

@@ -58,35 +58,36 @@ class MixinModule extends CryptoModule {
   }
 
   async activate() {
-    if (this.mixin.account_created == 0) {
-      console.info('Create Mixin account');
-      await this.mixin.createAccount((res) => {
-        if (res.err || Object.keys(res).length < 1) {
-          if (this.app.BROWSER) {
-            salert('Having problem generating key for ' + ' ' + this.ticker);
-          }
-          this.app.wallet.setPreferredCrypto('SAITO');
-          return null;
-        }
+    try {
+      if (!this.mixin.account_created) {
+        console.info('Create Mixin account');
+        const result = await this.mixin.createAccount();
 
-        return this.activate();
-      });
-    } else {
-      if (!this.address) {
-        console.info(`Create Mixin deposit address -- ${this.ticker}`);
-
-        let rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
-        if (!rv) {
-          if (this.app.BROWSER) {
-            salert('Having problem generating key for ' + ' ' + this.ticker);
-          }
-          await this.app.wallet.setPreferredCrypto('SAITO');
-        } else {
-          console.info(`Address for ${this.ticker}: ${this.address}`);
+        if (result?.err || !this.mixin.account_created) {
+          throw new Error(result?.err || 'Mixin account was not created');
         }
       }
 
+      if (!this.address) {
+        console.info(`Create Mixin deposit address -- ${this.ticker}`);
+
+        const rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
+        if (!rv) {
+          throw new Error('Mixin deposit address was not created');
+        }
+
+        console.info(`Address for ${this.ticker}: ${this.address}`);
+      }
+
       await super.activate();
+      return true;
+    } catch (err) {
+      console.error(`Unable to activate ${this.ticker}:`, err);
+      if (this.app.BROWSER) {
+        salert(`Having problem generating key for ${this.ticker}`);
+      }
+      await this.app.wallet.setPreferredCrypto('SAITO');
+      return false;
     }
   }
 
@@ -102,7 +103,7 @@ class MixinModule extends CryptoModule {
   // - pending_balance: ephemeral post-send expected balance until the API reflects the
   //   transfer; also drives returnDisplayBalance() and header "pending" styling
   // - last_balance: ephemeral pre-send snapshot for a synthetic pending row in the
-  //   transaction history overlay until the snapshot lands in history
+  //   recent transactions overlay until the snapshot lands in history
   //
   // pending_balance and last_balance are not persisted in save().
   //
@@ -291,6 +292,87 @@ class MixinModule extends CryptoModule {
   }
 
   /**
+   * Mixin represents an internal account in two equivalent ways:
+   *
+   *   chain-address|mixin-user-uuid|mixin
+   *   mixin-user-uuid
+   *
+   * Expected payments are commonly registered with the first form while Safe
+   * snapshots report the second. Match on the Mixin user UUID when one side is
+   * packed, while CryptoModule keeps exact sender matching for other networks.
+   */
+  returnPaymentSenderIdentity(sender = '') {
+    const address = String(sender || '').trim();
+    const parts = address.split('|');
+
+    if (parts.length >= 3 && parts[parts.length - 1].toLowerCase() === 'mixin') {
+      return parts[parts.length - 2].toLowerCase();
+    }
+
+    return address.toLowerCase();
+  }
+
+  paymentsHaveSameSender(expected_sender, actual_sender) {
+    if (super.paymentsHaveSameSender(expected_sender, actual_sender)) {
+      return true;
+    }
+
+    const expected_identity = this.returnPaymentSenderIdentity(expected_sender);
+    const actual_identity = this.returnPaymentSenderIdentity(actual_sender);
+
+    return Boolean(expected_identity && actual_identity && expected_identity === actual_identity);
+  }
+
+  /**
+   * Look up one inbound Safe transfer using the transaction signature supplied
+   * in its Saito announcement. This lets callers recover an expected payment
+   * after an in-memory polling cursor has already passed the snapshot.
+   */
+  async findInboundPaymentBySignature(
+    transaction_signature = '',
+    amount = '',
+    sender = '',
+    created_at = 0
+  ) {
+    if (!transaction_signature || !this.asset_id) {
+      return null;
+    }
+
+    const timestamp = Number(created_at) || 0;
+    const lookup_start = timestamp > 0 ? Math.max(timestamp - 300000, 0) : 0;
+    const snapshots = await this.mixin.fetchSafeSnapshots(this.asset_id, lookup_start);
+
+    if (!Array.isArray(snapshots)) {
+      return null;
+    }
+
+    const snapshot = snapshots.find((candidate) => {
+      return (
+        Number(candidate?.amount) > 0 &&
+        candidate?.transaction_hash === transaction_signature &&
+        (!candidate?.asset_id || candidate.asset_id === this.asset_id) &&
+        Number(candidate.amount) === Number(amount) &&
+        this.paymentsHaveSameSender(sender, candidate?.opponent_id || '')
+      );
+    });
+
+    if (!snapshot) {
+      return null;
+    }
+
+    return {
+      ticker: this.ticker,
+      amount: String(snapshot.amount),
+      receiver: this.publicKey,
+      receiver_address: this.formatAddress() || '',
+      sender_address: snapshot.opponent_id || '',
+      timestamp: new Date(snapshot.created_at).getTime(),
+      transaction_signature: snapshot.transaction_hash,
+      memo: snapshot.memo || ''
+    };
+  }
+
+  /**
    * Incremental history / snapshot sync: fetch new Safe ledger events, append to history,
    * emit semantic payment events, and advance history_update_ts.
    */
@@ -471,8 +553,9 @@ class MixinModule extends CryptoModule {
       // if something has happened....
       // or nothing is going to happen...
       //
+      const still_waiting = Object.keys(this.transfers_inbound).length > 0;
       if (
-        wallet_updates?.length > 0 ||
+        (wallet_updates?.length > 0 && !still_waiting) ||
         this.polling_interval_current >= this.polling_intervals.length
       ) {
         this.stopPolling();
