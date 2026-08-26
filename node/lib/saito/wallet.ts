@@ -6,10 +6,6 @@ import S from 'saito-js/saito';
 import { Saito } from './app';
 import Slip from './slip';
 import Transaction from './transaction';
-import {
-  deserializePendingTransaction,
-  serializePendingTransaction
-} from './pending-transaction-storage';
 import { TransactionType } from 'saito-js/lib/transaction';
 
 const getUuid = require('uuid-by-string');
@@ -724,11 +720,22 @@ export default class Wallet extends SaitoWallet {
 
       for (let i = pending_txs.length - 1, k = 0; i >= 0; i--, k++) {
         try {
-          const newtx = deserializePendingTransaction(this.app, pending_txs[i]);
-          if (!newtx) {
+          const serializedTx =
+            typeof pending_txs[i] === 'string' ? pending_txs[i] : JSON.stringify(pending_txs[i]);
+
+          if (!serializedTx) {
             console.error(`Ignoring malformed saved pending transaction at index ${i}`);
             continue;
           }
+
+          const newtx = new Transaction();
+          newtx.deserialize_from_web(this.app, serializedTx);
+
+          if (!newtx.signature || newtx.from.length === 0) {
+            console.error(`Ignoring malformed saved pending transaction at index ${i}`);
+            continue;
+          }
+
           if (newtx.timestamp > new Date().getTime() - 85000000) {
             await this.app.wallet.addTransactionToPending(newtx, false);
           }
@@ -840,9 +847,18 @@ export default class Wallet extends SaitoWallet {
     this.app.options.wallet.default_fee = this.default_fee.toString();
 
     const pendingTransactions = await this.getPendingTransactions();
-    const pending_txs = pendingTransactions
-      .map((tx) => serializePendingTransaction(this.app, tx))
-      .filter((tx): tx is string => tx !== null);
+    const pending_txs: string[] = [];
+
+    for (let i = 0; i < pendingTransactions.length; i++) {
+      try {
+        const serializedTx = (pendingTransactions[i] as Transaction).serialize_to_web(this.app);
+        if (serializedTx) {
+          pending_txs.push(serializedTx);
+        }
+      } catch (err) {
+        console.error(`Failed to serialize pending transaction at index ${i}:`, err);
+      }
+    }
 
     if (pending_txs.length !== pendingTransactions.length) {
       console.error(
