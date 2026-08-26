@@ -23,6 +23,7 @@ class SaitoSync {
     this.poll_in_flight = false;
     this.fast_forward_in_progress = false;
     this.ui_mode = 'idle';
+    this.initial_sync_completed = false;
     this.syncing_shown_at = null;
     this.ui_timer = null;
     this.fade_timer = null;
@@ -41,6 +42,10 @@ class SaitoSync {
   }
 
   onChunkReceived() {
+    if (this.initial_sync_completed) {
+      return;
+    }
+
     if (this.ui_mode === 'fast_forward') {
       return;
     }
@@ -116,6 +121,7 @@ class SaitoSync {
   attachEvents() {}
 
   onOverlayClosed() {
+    this.initial_sync_completed = true;
     this.stopProgressPolling();
     this.cancelPendingUi();
     this.pending_transition = null;
