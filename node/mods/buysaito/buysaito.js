@@ -1212,10 +1212,17 @@ class BuySaito extends ModTemplate {
     if (txmsg) {
       newtx.msg = txmsg;
     } else {
+      // Wallet pending/propagation clones re-pack the transaction message. Keep
+      // the signed data detached from the DB-backed payment object, which is
+      // updated with issuance metadata immediately after signing. Mixin account
+      // data contains private credentials and must never enter an on-chain tx.
+      const issuance_data = JSON.parse(
+        JSON.stringify(payment_data, (key, value) => (key === 'mixin' ? undefined : value))
+      );
       newtx.msg = {
         module: 'BuySaito',
         request: 'buysaito issuance',
-        data: payment_data,
+        data: issuance_data,
         memo: `${payment_data.expected_deposit} ${payment_data.ticker}`
       };
     }
