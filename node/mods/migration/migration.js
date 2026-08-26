@@ -13,6 +13,35 @@ const MIGRATION_TEST_DOMAINS = new Set([
   'ksaito.hda0.net'
 ]);
 
+const AUTO_MIGRATION_OPTIONAL_COLUMNS = {
+  announcement_hash: `TEXT DEFAULT ''`,
+  migration_type: `TEXT DEFAULT 'standard'`,
+  email: `TEXT DEFAULT ''`,
+  issuance_tx: `TEXT DEFAULT ''`,
+  issuance_at: `INTEGER DEFAULT 0`
+};
+
+function autoMigrationTableSql(table_name = 'auto_migration') {
+  return `CREATE TABLE IF NOT EXISTS "${table_name}" (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    public_key TEXT DEFAULT '',
+    ticker TEXT DEFAULT '',
+    mixin TEXT DEFAULT '',
+    nolan_received INTEGER DEFAULT 0,
+    created_at INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'pending'
+      CHECK (status IN ('awaiting_mixin','pending','issuing','succeeded','failed')),
+    tx_sig TEXT DEFAULT '',
+    issuance_tx TEXT DEFAULT '',
+    issuance_at INTEGER DEFAULT 0,
+    blk_id INTEGER DEFAULT 0,
+    issued_at INTEGER DEFAULT 0,
+    announcement_hash TEXT DEFAULT '',
+    migration_type TEXT DEFAULT 'standard',
+    email TEXT DEFAULT ''
+  )`;
+}
+
 class Migration extends ModTemplate {
   constructor(app) {
     super(app);
@@ -426,7 +455,7 @@ class Migration extends ModTemplate {
         }
 
         // tells the migration bot that the user's deposit is complete
-        this.receiveCryptoPaymentTransaction(tx, blk);
+        await this.receiveCryptoPaymentTransaction(tx, blk);
       }
     }
   }
@@ -958,7 +987,7 @@ class Migration extends ModTemplate {
         );
 
         newPayment.status = 'failed';
-        this.savePendingPayment(newPayment, false);
+        await this.savePendingPayment(newPayment, false);
         console.error('Process a crypto transfer from an unknown sender!!!');
         return;
       }
@@ -1003,11 +1032,21 @@ class Migration extends ModTemplate {
       $email: payment.email || ''
     };
 
-    let res = await this.app.storage.runDatabase(sql, params, 'migration');
-
-    if (res.lastID) {
-      payment.id = res.lastID;
+    let res;
+    try {
+      const db = await this.app.storage.returnDatabaseByName('migration');
+      res = await db.run(sql, params);
+    } catch (err) {
+      const reason = err?.message || String(err);
+      const reference = payment.announcement_hash || 'without-announcement-hash';
+      throw new Error(`Migration failed to save payment ${reference}: ${reason}`);
     }
+
+    if (!res?.lastID) {
+      const reference = payment.announcement_hash || 'without-announcement-hash';
+      throw new Error(`Migration failed to save payment ${reference}: no database row ID returned`);
+    }
+    payment.id = res.lastID;
 
     if (add_to_queue) {
       this.pending_payments.push(payment);
@@ -1165,43 +1204,80 @@ class Migration extends ModTemplate {
   }
 
   async ensureAutoMigrationSchema() {
-    const columns = await this.app.storage.queryDatabase(
-      'PRAGMA table_info(auto_migration)',
-      {},
-      'migration'
-    );
+    const db = await this.app.storage.returnDatabaseByName('migration');
+
+    // options.modules can say Migration is installed even when a deployment has
+    // copied options without its database, so creation must also be safe at startup.
+    await db.run(autoMigrationTableSql());
+
+    const columns = await db.all('PRAGMA table_info(auto_migration)');
     const column_names = new Set(columns.map((column) => column.name));
+    const required_columns = [
+      'id',
+      'public_key',
+      'ticker',
+      'mixin',
+      'nolan_received',
+      'created_at',
+      'status',
+      'tx_sig',
+      'blk_id',
+      'issued_at'
+    ];
+    const missing_required_columns = required_columns.filter(
+      (column_name) => !column_names.has(column_name)
+    );
 
-    if (!column_names.has('migration_type')) {
-      await this.app.storage.runDatabase(
-        `ALTER TABLE auto_migration ADD COLUMN migration_type TEXT DEFAULT 'standard'`,
-        {},
-        'migration'
+    if (missing_required_columns.length) {
+      throw new Error(
+        `Migration database has an unsupported auto_migration schema; missing: ${missing_required_columns.join(
+          ', '
+        )}`
       );
     }
 
-    if (!column_names.has('email')) {
-      await this.app.storage.runDatabase(
-        `ALTER TABLE auto_migration ADD COLUMN email TEXT DEFAULT ''`,
-        {},
-        'migration'
-      );
+    for (const [column_name, definition] of Object.entries(AUTO_MIGRATION_OPTIONAL_COLUMNS)) {
+      if (!column_names.has(column_name)) {
+        await db.run(`ALTER TABLE auto_migration ADD COLUMN ${column_name} ${definition}`);
+        column_names.add(column_name);
+      }
     }
 
-    if (!column_names.has('issuance_tx')) {
-      await this.app.storage.runDatabase(
-        `ALTER TABLE auto_migration ADD COLUMN issuance_tx TEXT DEFAULT ''`,
-        {},
-        'migration'
-      );
+    const table = await db.get(
+      `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'auto_migration'`
+    );
+    if (!table?.sql) {
+      throw new Error('Migration database is missing the auto_migration table definition');
     }
 
-    if (!column_names.has('issuance_at')) {
-      await this.app.storage.runDatabase(
-        `ALTER TABLE auto_migration ADD COLUMN issuance_at INTEGER DEFAULT 0`,
-        {},
-        'migration'
-      );
+    if (!table.sql.includes('awaiting_mixin')) {
+      let transaction_started = false;
+      try {
+        await db.exec('BEGIN IMMEDIATE');
+        transaction_started = true;
+        await db.exec('DROP TABLE IF EXISTS auto_migration_upgrade');
+        await db.run(autoMigrationTableSql('auto_migration_upgrade'));
+        await db.run(`INSERT INTO auto_migration_upgrade (
+          id, public_key, ticker, mixin, nolan_received, created_at, status,
+          tx_sig, issuance_tx, issuance_at, blk_id, issued_at,
+          announcement_hash, migration_type, email
+        ) SELECT
+          id, public_key, ticker, mixin, nolan_received, created_at, status,
+          tx_sig, issuance_tx, issuance_at, blk_id, issued_at,
+          announcement_hash, migration_type, email
+        FROM auto_migration`);
+        await db.exec('DROP TABLE auto_migration');
+        await db.exec('ALTER TABLE auto_migration_upgrade RENAME TO auto_migration');
+        await db.exec('COMMIT');
+      } catch (err) {
+        if (transaction_started) {
+          try {
+            await db.exec('ROLLBACK');
+          } catch {}
+        }
+        const reason = err?.message || String(err);
+        throw new Error(`Migration database schema upgrade failed: ${reason}`);
+      }
     }
   }
 
