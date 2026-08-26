@@ -81,7 +81,7 @@ class BuySaito extends ModTemplate {
 
       setTimeout(async () => {
         try {
-          if (this.mixin_mod?.bot && this.authorized_public_key === this.publicKey) {
+          if (this.mixin_mod && this.authorized_public_key === this.publicKey) {
             const account = await this.mixin_mod.createAccount();
             if (account?.err || !this.mixin_mod.account_created) {
               console.error('BUYSAITO disabled: unable to initialize Mixin account', account?.err);
@@ -92,7 +92,7 @@ class BuySaito extends ModTemplate {
             await this.checkPrices();
             this.service_ready = true;
           } else if (this.authorized_public_key === this.publicKey) {
-            console.warn('BUYSAITO disabled: Mixin API credentials are not configured');
+            console.warn('BUYSAITO disabled: Mixin module is not available');
           }
         } catch (err) {
           console.error('BUYSAITO disabled: initialization failed', err);
@@ -104,7 +104,7 @@ class BuySaito extends ModTemplate {
   returnServices() {
     let services = [];
     if (!this.app.BROWSER) {
-      if (this.mixin_mod?.bot && this.publicKey == this.authorized_public_key) {
+      if (this.publicKey == this.authorized_public_key) {
         services.push(new PeerService(null, 'buysaito'));
       }
     }
