@@ -107,8 +107,12 @@ impl InterfaceIO for WasmIoHandler {
         let array = js_sys::Uint8Array::new_with_length(value.len() as u32);
         array.copy_from(value);
 
-        MsgHandler::write_value(key.to_string(), &array);
+        let result = MsgHandler::write_value(key.to_string(), &array);
         drop(array);
+        if result.is_err() {
+            error!("failed writing value '{}': {:?}", key, result.err().unwrap());
+            return Err(Error::from(ErrorKind::Other));
+        }
 
         Ok(())
     }
@@ -407,8 +411,8 @@ extern "C" {
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
     pub fn connect_to_peer(url: String) -> Result<JsValue, js_sys::Error>;
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn write_value(key: String, value: &Uint8Array);
+    #[wasm_bindgen(static_method_of = MsgHandler, catch)]
+    pub fn write_value(key: String, value: &Uint8Array) -> Result<(), js_sys::Error>;
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn append_value(key: String, value: &Uint8Array);
