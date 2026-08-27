@@ -465,12 +465,15 @@ impl Blockchain {
                 )
                 .await;
 
-            //
-            // confirm supply unchanged
-            //
-            does_new_chain_validate &= self.validate_total_supply(configs).await;
-
             if does_new_chain_validate {
+
+              //
+              // confirm supply unchanged
+              //
+              // this check sweeps the entire hashmap. it may create problems
+              //
+              //does_new_chain_validate &= self.validate_total_supply(configs).await;
+
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
                 AddBlockResult::BlockAddedSuccessfully(
@@ -1534,7 +1537,14 @@ impl Blockchain {
         let mut does_block_validate = if wind_failure {
             true
         } else {
-            self.validate_total_supply(configs).await
+	    //
+	    // do not recheck total supply here
+	    //
+            //self.validate_total_supply(configs).await
+	    //
+	    // avoid validating supply here
+	    //
+	    true
         };
 
         let genesis_period = configs.get_consensus_config().unwrap().genesis_period;

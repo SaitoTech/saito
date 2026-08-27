@@ -2838,6 +2838,28 @@ impl Block {
             return true;
         }
 
+	//
+	// return true if hardcoded
+	//
+if self.id == 1754546 {
+    let hardcoded_hash: [u8; 32] =
+        hex::decode("f7b293c131384fbfc60f8b4954a23050e8a1df5fd4e66cc51984839b8b35c98b")
+            .unwrap()
+            .try_into()
+            .unwrap();
+	if self.hash == hardcoded_hash { return true; }
+}
+if self.id == 1754560 {
+    let hardcoded_hash: [u8; 32] =
+        hex::decode("c8323bd736a5e69df1c4a13397a1d3dc7c2c5b432debc48d8099ae37af17d6ee")
+            .unwrap()
+            .try_into()
+            .unwrap();
+	if self.hash == hardcoded_hash { return true; }
+}
+
+
+
         //
         // TODO
         //

@@ -19,7 +19,7 @@
   "spv_mode": false,
   "browser_mode": false,
   "consensus": {
-        "genesis_period": 80640,
+        "genesis_period": 100000,
         "heartbeat_interval": 5000,
         "prune_after_blocks": 8,
         "max_staker_recursions": 3,
