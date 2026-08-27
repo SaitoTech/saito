@@ -466,13 +466,12 @@ impl Blockchain {
                 .await;
 
             if does_new_chain_validate {
-
-              //
-              // confirm supply unchanged
-              //
-              // this check sweeps the entire hashmap. it may create problems
-              //
-              //does_new_chain_validate &= self.validate_total_supply(configs).await;
+                //
+                // confirm supply unchanged
+                //
+                // this check sweeps the entire hashmap. it may create problems
+                //
+                //does_new_chain_validate &= self.validate_total_supply(configs).await;
 
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
@@ -618,7 +617,9 @@ impl Blockchain {
                 && !configs.is_browser()
                 && !configs.is_spv_mode()
             {
-                storage.write_block_to_disk(block).await;
+                if !block.force_loaded {
+                    storage.write_block_to_disk(block).await;
+                }
 
                 let writing_interval = configs
                     .get_blockchain_configs()
@@ -1537,14 +1538,14 @@ impl Blockchain {
         let mut does_block_validate = if wind_failure {
             true
         } else {
-	    //
-	    // do not recheck total supply here
-	    //
+            //
+            // do not recheck total supply here
+            //
             //self.validate_total_supply(configs).await
-	    //
-	    // avoid validating supply here
-	    //
-	    true
+            //
+            // avoid validating supply here
+            //
+            true
         };
 
         let genesis_period = configs.get_consensus_config().unwrap().genesis_period;

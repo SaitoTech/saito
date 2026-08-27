@@ -255,12 +255,10 @@ impl Script {
             } else if let Some(obj) = context.as_object_mut() {
                 obj.remove("REQUESTER");
             }
-
         } else {
             if let Some(obj) = context.as_object_mut() {
                 obj.remove("REQUESTER");
             }
-
         }
 
         fn eval(
@@ -383,8 +381,7 @@ impl Script {
                         crypto::hash(input.as_bytes()).to_hex()
                     };
                     let r = CheckHash::execute(context, tx, blk);
-                    if r == 0 {
-                    }
+                    if r == 0 {}
                     r
                 }
 
@@ -409,9 +406,7 @@ impl Script {
                 "CHECKPATHHOP" => CheckPathHop::validate(context, tx, blk),
                 "CHECKTIME" => CheckTime::validate(context, tx, blk),
 
-                _ => {
-                    0
-                }
+                _ => 0,
             };
 
             if result == 1 {
@@ -612,10 +607,7 @@ mod tests {
                 "msg": "hello"
             }]
         });
-        assert_ne!(
-            Script { json: alice }.hash(),
-            Script { json: bob }.hash()
-        );
+        assert_ne!(Script { json: alice }.hash(), Script { json: bob }.hash());
     }
 
     #[test]
@@ -1430,10 +1422,7 @@ mod tests {
             "op": "CHECKSENDER",
             "publickey": "alice"
         });
-        let expected = Script {
-            json: tree.clone(),
-        }
-        .hash();
+        let expected = Script { json: tree.clone() }.hash();
 
         let mut script = Script::new();
         script.parse(
@@ -1465,10 +1454,7 @@ mod tests {
             "op": "CHECKSENDER",
             "publickey": "bob"
         });
-        let expected = Script {
-            json: tree.clone(),
-        }
-        .hash();
+        let expected = Script { json: tree.clone() }.hash();
 
         let mut script = Script::new();
         script.parse(
@@ -1519,10 +1505,7 @@ mod tests {
             ],
             "witness": { "outer": 1 }
         });
-        let expected = Script {
-            json: tree.clone(),
-        }
-        .hash();
+        let expected = Script { json: tree.clone() }.hash();
 
         let mut script = Script::new();
         script.parse(

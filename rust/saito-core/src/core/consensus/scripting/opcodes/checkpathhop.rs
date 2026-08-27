@@ -683,14 +683,8 @@ mod tests {
         );
         hop["value"] = json!(bad_value);
 
-        let mut context = checkpathhop_context(
-            &pk0,
-            &binding_hash,
-            vec![hop],
-            "LAST",
-            json!([]),
-            json!([]),
-        );
+        let mut context =
+            checkpathhop_context(&pk0, &binding_hash, vec![hop], "LAST", json!([]), json!([]));
 
         assert_eq!(CheckPathHop::validate(&mut context, None, None), 0);
     }
@@ -743,7 +737,9 @@ mod tests {
         })
     }
 
-    fn requester_tx(pk: &crate::core::defs::SaitoPublicKey) -> crate::core::consensus::transaction::Transaction {
+    fn requester_tx(
+        pk: &crate::core::defs::SaitoPublicKey,
+    ) -> crate::core::consensus::transaction::Transaction {
         use crate::core::consensus::slip::Slip;
         use crate::core::consensus::transaction::Transaction;
         let mut tx = Transaction::default();
@@ -1336,7 +1332,9 @@ mod tests {
         })
     }
 
-    fn loan_eval_fixture(expires_offset_ms: i64) -> (
+    fn loan_eval_fixture(
+        expires_offset_ms: i64,
+    ) -> (
         crate::core::defs::SaitoPublicKey,
         crate::core::defs::SaitoPublicKey,
         String,
@@ -1391,7 +1389,10 @@ mod tests {
         let ctx = json!({ "db": { "type": "DELETE", "owner": expected } });
         let mut script = Script::new();
         script.json = tree;
-        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 0);
+        assert_eq!(
+            script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)),
+            0
+        );
     }
 
     #[test]
@@ -1403,7 +1404,10 @@ mod tests {
         });
         let mut script = Script::new();
         script.json = tree;
-        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 0);
+        assert_eq!(
+            script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)),
+            0
+        );
     }
 
     #[test]
@@ -1419,7 +1423,10 @@ mod tests {
         });
         let mut script = Script::new();
         script.json = tree;
-        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 1);
+        assert_eq!(
+            script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)),
+            1
+        );
     }
 
     #[test]
@@ -1435,7 +1442,10 @@ mod tests {
         });
         let mut script = Script::new();
         script.json = tree;
-        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 0);
+        assert_eq!(
+            script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)),
+            0
+        );
     }
 
     #[test]
@@ -1487,6 +1497,9 @@ mod tests {
         let ctx = json!({ "db": { "type": "UPDATE", "owner": other_hash } });
         let mut script = Script::new();
         script.json = tree;
-        assert_eq!(script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)), 0);
+        assert_eq!(
+            script.validate_with_context(Some(&tx), None, None, None, Some(&ctx)),
+            0
+        );
     }
 }
