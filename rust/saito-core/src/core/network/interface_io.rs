@@ -27,6 +27,20 @@ pub enum InterfaceEvent {
     StunPeerConnected(u64, SaitoPublicKey),
     StunPeerDisconnected(u64, SaitoPublicKey),
     NewChainDetected(),
+    /// Emitted after a `Blockchain` chunk is processed successfully.
+    /// JS decides whether to show UI. JS event name: `on-blockchain-received`.
+    /// Field names stay snake_case.
+    ///
+    /// `latest_known_block_id` is the local tip **before** this chunk was applied.
+    /// `current_block_id` is the local tip **after** processing.
+    OnBlockchainReceived {
+        current_block_id: BlockId,
+        target_block_id: BlockId,
+        is_sync_possible: bool,
+        shared_ancestor_block_id: BlockId,
+        shared_ancestor_block_hash: SaitoHash,
+        latest_known_block_id: BlockId,
+    },
 }
 
 /// An interface is provided to access the IO functionalities in a platform (Rust/WASM) agnostic way

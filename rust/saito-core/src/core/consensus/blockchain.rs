@@ -2882,7 +2882,8 @@ impl Blockchain {
                 }
 
                 //
-                // skip old UTXOs outside the genesis window
+                // Skip old UTXOs outside the genesis window
+                //
                 if slip.block_id < latest_block.id.saturating_sub(genesis_period) {
                     return None;
                 }

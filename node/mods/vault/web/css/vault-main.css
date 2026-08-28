@@ -8,14 +8,14 @@ body.vault-body .saito-container {
   place-items: center;
   width: 100%;
   min-height: 100%;
-  padding: 3rem;
+  padding: 30px;
 }
 
 .vault-cta-logo {
   --saito-cta-logo-mask: url('/saito/icons/saito-vault-icon-outline-label-horizontal.svg');
   position: relative;
   display: block;
-  width: min(56rem, 84vw);
+  width: min(560px, 84vw);
   max-width: 100%;
   aspect-ratio: 381 / 134;
   filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));

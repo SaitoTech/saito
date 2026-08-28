@@ -36,6 +36,8 @@ class GameMenu {
     this.crypto_settings_overlay = null;
     this.lock = null;
     this.container = '#saito-header';
+    this.mobile_body_click_handler = null;
+    this.mobile_saito_state_handler = null;
   }
 
   /**
@@ -201,16 +203,31 @@ class GameMenu {
         }
       });
       this.addMenuIcon({
-        text: '<i class="fa fa-window-maximize" aria-hidden="true"></i>',
+        text: '<i class="fa fa-window-maximize game-menu-desktop-fullscreen-icon" aria-hidden="true"></i><i class="fa-solid fa-expand game-menu-mobile-fullscreen-icon" aria-hidden="true"></i>',
+        mobile_text: 'Full Screen',
         id: 'game-menu-fullscreen',
         callback: function (app, game_mod) {
-          game_mod.menu.hideSubMenus();
+          if (game_mod.menu.isMobileView()) {
+            game_mod.menu.hideAllMenus();
+          } else {
+            game_mod.menu.hideSubMenus();
+          }
           app.browser.requestFullscreen();
         }
       });
     }
 
-    let html = `<ul>`;
+    const gameTitle = this.escapeHTML(this.game_mod?.name || 'Game');
+    let html = `<ul><li class="game-menu-mobile-header">
+      <button type="button" id="game-menu-close" class="game-menu-mobile-header-button">
+        <span class="game-menu-game-state"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>Close</span></span>
+        <span class="game-menu-saito-state"><i class="fa-solid fa-gamepad" aria-hidden="true"></i><span>${gameTitle}</span></span>
+      </button>
+      <button type="button" id="game-menu-saito" class="game-menu-mobile-header-button">
+        <span class="game-menu-game-state"><img src="/saito/img/saito-cube.svg" alt=""><span>Saito</span></span>
+        <span class="game-menu-saito-state"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>Close</span></span>
+      </button>
+    </li>`;
     for (let i = 0; i < this.icons.length; i++) {
       html += GameMenuIconTemplate(this.icons[i]);
     }
@@ -218,7 +235,7 @@ class GameMenu {
       html += GameMenuOptionTemplate(this.options[i], this.sub_options[i]);
     }
 
-    html += `<div id="game-menu-toggle" class="game-menu-mobile-toggle"><i class="fas fa-bars"></i></div></ul>`;
+    html += `</ul><button type="button" id="game-menu-toggle" class="game-menu-mobile-toggle" aria-label="Open game menu"><i class="fas fa-bars" aria-hidden="true"></i></button>`;
 
     if (document.getElementById('game-menu')) {
       this.app.browser.replaceElementById(GameMenuTemplate(html), 'game-menu');
@@ -238,20 +255,32 @@ class GameMenu {
    * If callback is undefined for top-level menu options, default behavior is to attempt to open its submenu
    */
   attachEvents() {
-    if (
-      this.app.browser.isMobileBrowser(navigator.userAgent) ||
-      window.innerWidth < 600 ||
-      window.innerHeight < 600
-    ) {
-      //We really need the makeDraggable to prevent propagation of click events
-      //this.app.browser.makeDraggable("game-menu", "game-menu", true);
-
-      document.body.addEventListener('click', (e) => {
-        if (!document.querySelector('.game-menu').contains(e.target)) {
-          this.hideSubMenus(true);
-        }
-      });
+    if (this.mobile_body_click_handler) {
+      document.body.removeEventListener('click', this.mobile_body_click_handler);
     }
+    this.mobile_body_click_handler = (e) => {
+      if (!this.isMobileView()) {
+        return;
+      }
+      const gameMenu = document.querySelector('.game-menu');
+      const saitoMenu = document.querySelector('.saito-header-hamburger-contents');
+      if (
+        gameMenu &&
+        !gameMenu.contains(e.target) &&
+        (!saitoMenu || !saitoMenu.contains(e.target))
+      ) {
+        this.hideSubMenus(true);
+      }
+    };
+    document.body.addEventListener('click', this.mobile_body_click_handler);
+
+    if (this.mobile_saito_state_handler) {
+      window.removeEventListener('saito-header-menu-state', this.mobile_saito_state_handler);
+    }
+    this.mobile_saito_state_handler = (e) => {
+      this.setMobileSaitoState(Boolean(e.detail?.open));
+    };
+    window.addEventListener('saito-header-menu-state', this.mobile_saito_state_handler);
 
     //
     // callbacks in game-menu-option
@@ -301,7 +330,7 @@ class GameMenu {
         };
 
         menu.onmouseleave = (e) => {
-          if (!this.lock) {
+          if (!this.isMobileView() && !this.lock) {
             this.hideSubMenus(false);
           }
         };
@@ -334,21 +363,32 @@ class GameMenu {
               return;
             }
 
-            if (this.lock) {
-              this.hideSubSubMenu(this.lock);
-            }
-            if (this.lock === e.currentTarget.id) {
-              this.lock = null;
+            if (this.isMobileView()) {
+              const wasOpen = this.lock === e.currentTarget.id;
+              if (this.lock) {
+                this.hideSubSubMenu(this.lock);
+              }
+              this.lock = wasOpen ? null : e.currentTarget.id;
+              if (this.lock) {
+                this.showSubSubMenu(this.lock);
+              }
             } else {
-              this.lock = e.currentTarget.id;
+              if (this.lock) {
+                this.hideSubSubMenu(this.lock);
+              }
+              if (this.lock === e.currentTarget.id) {
+                this.lock = null;
+              } else {
+                this.lock = e.currentTarget.id;
+              }
+              this.showSubSubMenu(e.currentTarget.id);
             }
-            this.showSubSubMenu(e.currentTarget.id);
           };
 
           submenu.onmouseover = (e) => {
             let id = e.currentTarget.id;
 
-            if (!this.lock) {
+            if (!this.isMobileView() && !this.lock) {
               this.showSubSubMenu(id);
             }
 
@@ -356,7 +396,7 @@ class GameMenu {
             return;
           };
           submenu.onmouseleave = (e) => {
-            if (!this.lock) {
+            if (!this.isMobileView() && !this.lock) {
               let id = e.currentTarget.id;
               this.hideSubSubMenu(id);
               e.stopPropagation();
@@ -419,11 +459,87 @@ class GameMenu {
           if (menu.classList.contains('mobile-visible')) {
             this.hideSubMenus();
           } else {
+            this.closeMobileSaitoMenu();
             menu.classList.add('mobile-visible');
           }
         }
       };
     }
+
+    const mobileClose = document.querySelector('#game-menu-close');
+    if (mobileClose) {
+      mobileClose.onclick = (e) => {
+        e.stopPropagation();
+        const menu = document.querySelector('.game-menu');
+        if (menu?.classList.contains('mobile-saito-visible')) {
+          this.closeMobileSaitoMenu();
+        } else {
+          this.hideSubMenus(true);
+        }
+      };
+    }
+
+    const mobileSaito = document.querySelector('#game-menu-saito');
+    if (mobileSaito) {
+      mobileSaito.onclick = (e) => {
+        e.stopPropagation();
+        const menu = document.querySelector('.game-menu');
+        if (menu?.classList.contains('mobile-saito-visible')) {
+          this.closeMobileSaitoMenu();
+        } else {
+          this.openMobileSaitoMenu();
+        }
+      };
+    }
+  }
+
+  isMobileView() {
+    return (
+      window.innerWidth <= 600 ||
+      (window.innerWidth > window.innerHeight && window.innerHeight <= 600)
+    );
+  }
+
+  escapeHTML(text = '') {
+    return String(text)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  setMobileSaitoState(open) {
+    const menu = document.querySelector('.game-menu');
+    if (menu && this.isMobileView()) {
+      menu.classList.toggle('mobile-saito-visible', open);
+    }
+  }
+
+  openMobileSaitoMenu() {
+    this.setMobileSaitoState(true);
+    if (this.game_mod?.header?.openMenu) {
+      this.game_mod.header.openMenu();
+      return;
+    }
+    document.querySelector('.saito-header-hamburger-contents')?.classList.add('show-menu');
+    document.querySelector('.saito-header-backdrop')?.classList.add('menu-visible');
+  }
+
+  closeMobileSaitoMenu() {
+    const sidebar = document.querySelector('.saito-header-hamburger-contents');
+    if (sidebar?.classList.contains('show-menu') && this.game_mod?.header?.hideMenu) {
+      this.game_mod.header.hideMenu();
+    } else {
+      sidebar?.classList.remove('show-menu');
+      document.querySelector('.saito-header-backdrop')?.classList.remove('menu-visible');
+    }
+    this.setMobileSaitoState(false);
+  }
+
+  hideAllMenus() {
+    this.closeMobileSaitoMenu();
+    this.hideSubMenus(true);
   }
 
   /**
@@ -607,6 +723,7 @@ class GameMenu {
     let el = document.querySelector('#' + parent_id + ' > ul');
     if (el) {
       el.style.display = 'block';
+      document.getElementById(parent_id)?.classList.add('expanded');
     }
   }
 
@@ -619,6 +736,7 @@ class GameMenu {
     let el = document.querySelector('#' + parent_id + ' > ul');
     if (el) {
       el.style.display = 'block';
+      document.getElementById(parent_id)?.classList.add('expanded');
 
       //if (this.lock)
       //this.hideSubMenus(e.currentTarget.parentElement);
@@ -643,6 +761,10 @@ class GameMenu {
       }
     }
 
+    document
+      .querySelectorAll('.game-menu .expanded')
+      .forEach((menuItem) => menuItem.classList.remove('expanded'));
+
     let menu = document.querySelector('.game-menu');
     if (menu && activeClose) {
       menu.classList.remove('mobile-visible');
@@ -657,6 +779,7 @@ class GameMenu {
     let div = document.querySelector(`#${parent_id} ul`);
     if (div) {
       div.style.display = 'none';
+      document.getElementById(parent_id)?.classList.remove('expanded');
     }
   }
 
