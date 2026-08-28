@@ -10,10 +10,14 @@ import Blockchain from '../../lib/saito/blockchain';
 import Factory from '../../lib/saito/factory';
 import Wallet from '../../lib/saito/wallet';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const SaitoSync = require('../../lib/saito/ui/saito-sync/saito-sync');
+
 async function init() {
   console.log('lite init...');
 
   const saito = new Saito({ mod_paths: mods_config.lite });
+  saito.saito_sync = new SaitoSync(saito, null);
   await saito.storage.initialize();
 
   {

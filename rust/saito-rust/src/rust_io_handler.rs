@@ -167,19 +167,30 @@ impl InterfaceIO for RustIOHandler {
     }
 
     async fn write_value(&self, key: &str, value: &[u8]) -> Result<(), Error> {
-        // trace!("writing value to disk : {:?}", key);
-        let filename = key;
-        let path = Path::new(filename);
+        let path = Path::new(key);
         if path.parent().is_some() {
             tokio::fs::create_dir_all(path.parent().unwrap())
                 .await
                 .expect("creating directory structure failed");
         }
-        let mut file = File::create(filename).await?;
 
-        file.write_all(value).await?;
+        let tmp_filename = format!("{}.tmp", key);
+        let write_tmp = async {
+            let mut file = File::create(&tmp_filename).await?;
+            file.write_all(value).await?;
+            file.sync_data().await?;
+            Ok(())
+        };
 
-        // TODO : write the file to a temp file and move to avoid file corruptions
+        if let Err(err) = write_tmp.await {
+            let _ = tokio::fs::remove_file(&tmp_filename).await;
+            return Err(err);
+        }
+
+        if let Err(err) = tokio::fs::rename(&tmp_filename, key).await {
+            let _ = tokio::fs::remove_file(&tmp_filename).await;
+            return Err(err);
+        }
 
         Ok(())
     }

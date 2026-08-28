@@ -1575,13 +1575,32 @@ module.exports = {
         game_mod.launchFromArcadeWizard(options, invite_obj);
         return;
       }
-      if (!this.app.options.arcade) {
-        this.app.options.arcade = {};
+
+      let opentx = await this.createOpenTransaction(gamedata);
+
+      this.app.connection.emit('relay-send-message', {
+        recipient: 'PEERS',
+        request: 'arcade spv update',
+        data: opentx.toJson()
+      });
+      this.addInviteRecord(opentx, 'private');
+
+      let newtx = await this.createAcceptTransaction(opentx);
+      if (!newtx) {
+        console.warn(
+          'ARCADE: createAcceptTransaction returned nothing; skipping propagate and lounge overlay'
+        );
+        return;
       }
-      this.app.options.arcade[game_mod.name] = (this.app.options.arcade[game_mod.name] || 0) + 1;
-      this.app.options.arcade.last_game = game_mod.name;
-      this.app.storage.saveOptions();
-      navigateWindow(`/${game_mod.returnSlug()}/`);
+
+      this.app.network.propagateTransaction(newtx);
+      this.app.connection.emit('relay-send-message', {
+        recipient: 'PEERS',
+        request: 'arcade spv update',
+        data: newtx.toJson()
+      });
+
+      this.render('lounge_overlay', { game_id: opentx.signature });
       return;
     } else {
       let open_invites = this.returnOpenInvites();
