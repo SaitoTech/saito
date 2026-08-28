@@ -730,9 +730,18 @@ pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
     for current_page in 0..pages {
         let start = current_page * page_size;
         let end = min(start + page_size, list.len());
-        storage
+        if !storage
             .load_blocks_from_disk(&list[start..end], context.mempool_lock.clone())
-            .await;
+            .await
+        {
+            error!(
+                "refusing to continue: block file load failed for page {} (blocks {}-{})",
+                current_page,
+                start,
+                end
+            );
+            process::exit(1);
+        }
 
         tokio::task::yield_now().await;
 

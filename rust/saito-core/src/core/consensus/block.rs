@@ -1659,10 +1659,33 @@ impl Block {
                                 atr_block.hash.to_hex()
                             );
                             atr_block.generate().unwrap();
-                            assert_ne!(
+
+                            if atr_block.block_type != BlockType::Full {
+                                error!(
+                                    "ERROR: ATR lookback block {}-{} loaded from disk as {:?}, expected Full",
+                                    atr_block.id,
+                                    atr_block.hash.to_hex(),
+                                    atr_block.block_type
+                                );
+                            }
+                            assert_eq!(
                                 atr_block.block_type,
-                                BlockType::Pruned,
-                                "block should be fetched fully before this"
+                                BlockType::Full,
+                                "ATR lookback loaded from disk must include the transaction body"
+                            );
+
+                            if atr_block.transactions.is_empty() {
+                                error!(
+                                    "ERROR: ATR lookback block {}-{} loaded from disk has no transactions; every block must include at least one",
+                                    atr_block.id,
+                                    atr_block.hash.to_hex()
+                                );
+                            }
+                            assert!(
+                                !atr_block.transactions.is_empty(),
+                                "ATR lookback block {}-{} must have at least one transaction",
+                                atr_block.id,
+                                atr_block.hash.to_hex()
                             );
 
                             // estimate amount looping around chain
@@ -3719,6 +3742,8 @@ mod tests {
             deserialized_block_header.serialize_for_net(BlockType::Full),
             deserialized_block.serialize_for_net(BlockType::Header)
         );
+        assert_eq!(deserialized_block_header.block_type, BlockType::Header);
+        assert!(deserialized_block_header.transactions.is_empty());
 
         assert_eq!(deserialized_block_header.id, 1);
         assert_eq!(deserialized_block_header.timestamp, timestamp);
@@ -4185,6 +4210,79 @@ mod tests {
         // assert_eq!(cv.burnfee, 1104854);
         assert_eq!(cv.rebroadcasts.len(), 1);
         assert_eq!(cv.avg_nolan_rebroadcast_per_block, 10);
+    }
+
+    /// When the ATR lookback file on disk is header-only, `Block::create` must not
+    /// silently produce a block with empty ATR (see `generate_consensus_values`).
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn atr_lookback_header_on_disk_panics_during_block_create() {
+        let mut t = TestManager::default();
+        t.initialize_with_timestamp(100, 10_000, 0).await;
+
+        let genesis_period = t
+            .config_lock
+            .read()
+            .await
+            .get_consensus_config()
+            .unwrap()
+            .genesis_period;
+
+        for _ in 0..genesis_period {
+            let latest = t.get_latest_block().await;
+            let mut block = t
+                .create_block(
+                    t.latest_block_hash,
+                    latest.timestamp + 10_000,
+                    0,
+                    100,
+                    10,
+                    true,
+                )
+                .await;
+            block.generate().unwrap();
+            t.add_block(block).await;
+        }
+
+        assert_eq!(t.get_latest_block().await.id, genesis_period + 1);
+
+        let (filepath, header_bytes) = {
+            let blockchain = t.blockchain_lock.read().await;
+            let lookback_hash = blockchain
+                .blockring
+                .get_longest_chain_block_hash_at_block_id(1)
+                .expect("lookback block at id 1");
+            let lookback = blockchain
+                .get_block(&lookback_hash)
+                .expect("lookback block in hashmap");
+            let filepath = t.storage.generate_block_filepath(lookback);
+            let header_bytes = lookback.serialize_for_net(BlockType::Header);
+            (filepath, header_bytes)
+        };
+
+        tokio::fs::write(&filepath, &header_bytes)
+            .await
+            .expect("overwrite lookback with header-only bytes");
+
+        let loaded = t
+            .storage
+            .load_block_from_disk(filepath.as_str())
+            .await
+            .expect("lookback file should still load");
+        assert_eq!(loaded.block_type, BlockType::Header);
+        assert!(loaded.transactions.is_empty());
+
+        let parent_hash = t.latest_block_hash;
+        let parent_ts = t.get_latest_block().await.timestamp + 10_000;
+
+        let join = tokio::spawn(async move {
+            t.create_block(parent_hash, parent_ts, 0, 100, 10, true).await
+        });
+
+        assert!(
+            join.await.is_err(),
+            "Block::create should panic when ATR lookback on disk is Header-only"
+        );
     }
 
     #[tokio::test]
