@@ -4,7 +4,7 @@ module.exports = (app, mod, keys) => {
         <div class="stun-appspace-content saito-cta">
           <div class="stunx-appspace-splash">
               <div class="saito-cta-logo stun-talk-logo" role="img" aria-label="Saito Talk"></div>
-              <div class="stun-subtitle">PEER-TO-PEER VIDEO CHAT</div>
+              <div class="saito-cta-subtitle stun-subtitle">PEER-TO-PEER VIDEO CHAT</div>
             </div>
 
           <div class="stunx-appspace-actions">`;

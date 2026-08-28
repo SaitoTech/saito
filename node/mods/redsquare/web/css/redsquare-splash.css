@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
+  padding: 30px;
   color: var(--saito-white, #fff);
   background:
     radial-gradient(60vw 60vw at 50% -20%, rgba(255, 145, 77, 0.12), transparent), #0d0e11;

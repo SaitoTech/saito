@@ -90,7 +90,7 @@ module.exports = (app, mod, nft_overlay) => {
 
   let canDeleteFooter = all_slips.some((slip) => mod.publicKey == slip.slip2?.public_key);
   let deleteFooterHtml = canDeleteFooter
-    ? `<button type="button" class="saito-button-secondary saito-nft-footer-btn nft-info-delete-nft">disolve</button>`
+    ? `<button type="button" class="saito-button-secondary saito-nft-footer-btn nft-info-delete-nft">Dissolve</button>`
     : '';
   let footerSpacerHtml = `<span class="saito-nft-footer-spacer"></span>`;
 
@@ -119,7 +119,7 @@ module.exports = (app, mod, nft_overlay) => {
         deleteButtonHtml = '';
 
       if (mod.publicKey == slip.slip2.public_key) {
-        deleteButtonHtml = `<button type="button" class="utxo-delete-btn" data-utxo-idx="${utxoIdx}">disolve</button>`;
+        deleteButtonHtml = `<button type="button" class="utxo-delete-btn" data-utxo-idx="${utxoIdx}">Dissolve</button>`;
       }
 
       if (amount > 1 && mod.publicKey == slip.slip2.public_key) {

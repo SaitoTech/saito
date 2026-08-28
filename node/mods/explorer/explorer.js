@@ -39,6 +39,7 @@ const { produceExplorerBlockWithoutGt } = require('./lib/produce-block-without-g
 const { produceExplorerBlockWithGt } = require('./lib/produce-block-with-gt');
 const { handleExplorerSubmitFeeTransaction } = require('./lib/submit-fee-transaction');
 const { logManualProduction } = require('./lib/manual-production-log');
+const { buildExplorerApiData } = require('./lib/api-data');
 
 class Explorer extends ModTemplate {
   constructor(app) {
@@ -1123,6 +1124,17 @@ class Explorer extends ModTemplate {
         return res.redirect(301, `${uri}/block/${encodeURIComponent(hash)}`);
       }
       return res.redirect(301, uri);
+    });
+
+    expressapp.get(`${uri}/data`, async function (req, res) {
+      res.setHeader('Cache-Control', 'no-store');
+
+      try {
+        return res.json(await buildExplorerApiData(app, self));
+      } catch (err) {
+        console.error('Explorer: failed to build API data', err);
+        return res.status(503).json({ error: 'Explorer data is temporarily unavailable.' });
+      }
     });
 
     expressapp.get(`${uri}/block/:hash`, sendIndex);
