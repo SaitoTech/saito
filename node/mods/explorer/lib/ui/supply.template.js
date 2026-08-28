@@ -23,6 +23,11 @@ function renderNumericCell(value, options = {}) {
     classes.push('explorer-supply-unknown');
   }
 
+  if (options.exactValue != null) {
+    classes.push('explorer-supply-exact-capable');
+    return `<td class="${classes.join(' ')}"><span data-supply-compact-value${options.showExactSupplyIntegers ? ' hidden' : ''}>${value}</span><span data-supply-exact-value${options.showExactSupplyIntegers ? '' : ' hidden'}>${options.exactValue}</span></td>`;
+  }
+
   return `<td class="${classes.join(' ')}">${value}</td>`;
 }
 
@@ -48,7 +53,7 @@ function renderBlockHeaderCells(columns = []) {
     .join('');
 }
 
-function renderMatrixRows(rows = [], columns = []) {
+function renderMatrixRows(rows = [], columns = [], showExactSupplyIntegers = false) {
   const columnCount = columns.length;
   const colspan = columnCount > 0 ? columnCount + 1 : 2;
 
@@ -79,7 +84,9 @@ function renderMatrixRows(rows = [], columns = []) {
               isUnknown: row.key === 'utxo' && !row.isNetFlow,
               isNetFlow: row.isNetFlow,
               isTotal: row.isTotal,
-              isGoldenTicketColumn: Boolean(columns[columnIndex]?.hasGoldenTicket)
+              isGoldenTicketColumn: Boolean(columns[columnIndex]?.hasGoldenTicket),
+              exactValue: row.exactValues?.[columnIndex],
+              showExactSupplyIntegers
             })
           )
           .join('')}
@@ -160,17 +167,21 @@ module.exports = ({
   rows = [],
   hasData = false,
   fullWidth = false,
+  showExactSupplyIntegers = false,
   showBlockControls = false,
   produceBlockRequest = '',
   produceBlockWithGtRequest = ''
 }) => {
   const headerCells = renderBlockHeaderCells(columns);
-  const bodyRows = renderMatrixRows(rows, columns);
+  const bodyRows = renderMatrixRows(rows, columns, showExactSupplyIntegers);
   const containerClasses = ['explorer-container', 'explorer-stack'];
   if (fullWidth) {
     containerClasses.push('full-width');
   }
   const toggleLabel = fullWidth ? 'Collapse supply dashboard' : 'Expand supply dashboard';
+  const hasExactSupplyValues = rows.some(
+    (row) => Array.isArray(row.exactValues) && row.exactValues.length > 0
+  );
   const blockControlsHtml = renderBlockControls(
     showBlockControls,
     produceBlockRequest,
@@ -239,6 +250,11 @@ module.exports = ({
 
         <div class="explorer-supply-dashboard explorer-card explorer-card-padded">
           <div class="explorer-supply-dashboard-toolbar">
+            ${
+              hasExactSupplyValues
+                ? `<button type="button" class="explorer-supply-exact-toggle${showExactSupplyIntegers ? ' is-active' : ''}" data-supply-exact-toggle aria-pressed="${showExactSupplyIntegers ? 'true' : 'false'}" title="Show complete, unabridged total supply values">Exact totals</button>`
+                : ''
+            }
             <span class="explorer-supply-width-toggle" data-supply-width-toggle role="button" tabindex="0" aria-label="${toggleLabel}" title="${toggleLabel}" aria-expanded="${fullWidth ? 'true' : 'false'}">
               <i class="fa-solid fa-expand explorer-supply-expand-icon" aria-hidden="true"></i>
               <i class="fa-solid fa-down-left-and-up-right-to-center explorer-supply-collapse-icon" aria-hidden="true"></i>

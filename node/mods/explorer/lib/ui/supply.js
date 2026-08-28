@@ -30,6 +30,7 @@ class Supply {
     this.mod = mod;
     this.container = '.explorer-view';
     this.fullWidth = false;
+    this.showExactSupplyIntegers = false;
     this.producing = false;
     this.produceError = null;
   }
@@ -68,6 +69,7 @@ class Supply {
         rows: view?.rows || [],
         hasData: Boolean(view?.hasData),
         fullWidth: this.fullWidth,
+        showExactSupplyIntegers: this.showExactSupplyIntegers,
         showBlockControls: this.shouldShowBlockControls(),
         produceBlockRequest: EXPLORER_PRODUCE_BLOCK_REQUEST,
         produceBlockWithGtRequest: EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST
@@ -372,6 +374,22 @@ class Supply {
           event.preventDefault();
           toggleFullWidth();
         }
+      };
+    }
+
+    const exactToggle = root.querySelector('[data-supply-exact-toggle]');
+    if (exactToggle) {
+      exactToggle.onclick = () => {
+        this.showExactSupplyIntegers = !this.showExactSupplyIntegers;
+        exactToggle.classList.toggle('is-active', this.showExactSupplyIntegers);
+        exactToggle.setAttribute('aria-pressed', this.showExactSupplyIntegers ? 'true' : 'false');
+
+        root.querySelectorAll('[data-supply-compact-value]').forEach((value) => {
+          value.hidden = this.showExactSupplyIntegers;
+        });
+        root.querySelectorAll('[data-supply-exact-value]').forEach((value) => {
+          value.hidden = !this.showExactSupplyIntegers;
+        });
       };
     }
   }

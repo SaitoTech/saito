@@ -25,6 +25,20 @@
   max-width: 1180px;
   margin: 0 auto;
   width: min(95vw, 1180px);
+  min-height: 0;
+  padding: 3.2rem;
+  border-radius: calc(var(--saito-radius) + 0.15rem);
+}
+
+/* Stack intentionally keeps its roomier two-column CTA controls. */
+.splash > .saito-cta :is(.saito-button-primary, .saito-button-secondary) {
+  height: 4.5rem;
+  min-height: 4.5rem;
+  border-radius: var(--saito-radius);
+  font-family: var(--saito-font);
+  font-size: 1.6rem;
+  font-weight: 500;
+  line-height: inherit;
 }
 
 .splash .flip {
@@ -202,6 +216,7 @@
 
 .splash .saito-button-row {
   align-self: stretch;
+  margin-top: 1rem;
 }
 
 @media (min-width: 1400px) {
