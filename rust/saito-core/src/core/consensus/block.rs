@@ -4218,6 +4218,19 @@ mod tests {
     #[serial_test::serial]
     async fn atr_lookback_header_on_disk_panics_during_block_create() {
         let mut t = TestManager::default();
+        const TEST_GENESIS_PERIOD: u64 = 10;
+
+        {
+            let mut configs = t.config_lock.write().await;
+            configs.get_consensus_config_mut().unwrap().genesis_period = TEST_GENESIS_PERIOD;
+        }
+        {
+            let mut blockchain = t.blockchain_lock.write().await;
+            blockchain.genesis_period = TEST_GENESIS_PERIOD;
+            blockchain.blockring =
+                crate::core::consensus::blockring::BlockRing::new(TEST_GENESIS_PERIOD);
+        }
+
         t.initialize_with_timestamp(100, 10_000, 0).await;
 
         let genesis_period = t
@@ -4228,7 +4241,7 @@ mod tests {
             .unwrap()
             .genesis_period;
 
-        for _ in 0..genesis_period {
+        for _ in 0..=genesis_period {
             let latest = t.get_latest_block().await;
             let mut block = t
                 .create_block(
@@ -4244,14 +4257,14 @@ mod tests {
             t.add_block(block).await;
         }
 
-        assert_eq!(t.get_latest_block().await.id, genesis_period + 1);
+        assert_eq!(t.get_latest_block().await.id, genesis_period + 2);
 
         let (filepath, header_bytes) = {
             let blockchain = t.blockchain_lock.read().await;
             let lookback_hash = blockchain
                 .blockring
-                .get_longest_chain_block_hash_at_block_id(1)
-                .expect("lookback block at id 1");
+                .get_longest_chain_block_hash_at_block_id(2)
+                .expect("lookback block at id 2");
             let lookback = blockchain
                 .get_block(&lookback_hash)
                 .expect("lookback block in hashmap");
@@ -4276,7 +4289,8 @@ mod tests {
         let parent_ts = t.get_latest_block().await.timestamp + 10_000;
 
         let join = tokio::spawn(async move {
-            t.create_block(parent_hash, parent_ts, 0, 100, 10, true).await
+            t.create_block(parent_hash, parent_ts, 0, 100, 10, false)
+                .await
         });
 
         assert!(

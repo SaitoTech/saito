@@ -52,8 +52,7 @@ class SaitoSync {
 
     const target = this.toBigInt(this.payload?.target_block_id);
     const previous_target = this.active_target_block_id;
-    const new_target =
-      target != null && (previous_target == null || target !== previous_target);
+    const new_target = target != null && (previous_target == null || target !== previous_target);
 
     if (this.sync_complete && new_target) {
       this.sync_complete = false;
@@ -79,8 +78,7 @@ class SaitoSync {
       return;
     }
 
-    const current =
-      this.local_current_block_id ?? this.toBigInt(this.payload?.current_block_id);
+    const current = this.local_current_block_id ?? this.toBigInt(this.payload?.current_block_id);
     if (target != null && current != null && current >= target) {
       this.sync_complete = true;
       this.scheduleDismissSyncing();
@@ -139,10 +137,7 @@ class SaitoSync {
 
   hasNoSharedAncestor() {
     const payload = this.payload || {};
-    if (
-      payload.shared_ancestor_block_id == null &&
-      payload.shared_ancestor_block_hash == null
-    ) {
+    if (payload.shared_ancestor_block_id == null && payload.shared_ancestor_block_hash == null) {
       return false;
     }
     const ancestor_id = this.toBigInt(payload.shared_ancestor_block_id);
@@ -202,9 +197,7 @@ class SaitoSync {
     }
 
     const overlay_el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
-    const backdrop_el = document.getElementById(
-      `saito-overlay-backdrop${this.overlay.ordinal}`
-    );
+    const backdrop_el = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
     const fade_ms = this.prefersReducedMotion() ? 0 : SYNCING_FADE_MS;
     const fade_transition = fade_ms > 0 ? `opacity ${fade_ms}ms ease` : 'none';
 
@@ -248,9 +241,7 @@ class SaitoSync {
 
   clearOverlayFade() {
     const overlay_el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
-    const backdrop_el = document.getElementById(
-      `saito-overlay-backdrop${this.overlay.ordinal}`
-    );
+    const backdrop_el = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
     [overlay_el, backdrop_el].forEach((el) => {
       if (!el) {
         return;
@@ -405,12 +396,7 @@ class SaitoSync {
       return false;
     }
     const target = this.toBigInt(this.payload?.target_block_id);
-    return !!(
-      this.ui_mode === 'syncing' &&
-      this.overlay.visible &&
-      target != null &&
-      target > 0n
-    );
+    return !!(this.ui_mode === 'syncing' && this.overlay.visible && target != null && target > 0n);
   }
 
   async pollLocalProgress(generation) {

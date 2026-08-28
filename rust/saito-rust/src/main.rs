@@ -736,9 +736,7 @@ pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
         {
             error!(
                 "refusing to continue: block file load failed for page {} (blocks {}-{})",
-                current_page,
-                start,
-                end
+                current_page, start, end
             );
             process::exit(1);
         }

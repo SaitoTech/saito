@@ -110,7 +110,11 @@ impl InterfaceIO for WasmIoHandler {
         let result = MsgHandler::write_value(key.to_string(), &array);
         drop(array);
         if result.is_err() {
-            error!("failed writing value '{}': {:?}", key, result.err().unwrap());
+            error!(
+                "failed writing value '{}': {:?}",
+                key,
+                result.err().unwrap()
+            );
             return Err(Error::from(ErrorKind::Other));
         }
 

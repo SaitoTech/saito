@@ -136,8 +136,7 @@ impl Storage {
             if result.is_err() {
                 error!(
                     "failed deserializing block {:?} from disk with buffer length : {:?}",
-                    file_name,
-                    buffer_len
+                    file_name, buffer_len
                 );
                 return false;
             }
@@ -146,8 +145,7 @@ impl Storage {
             if let Err(e) = block.generate() {
                 error!(
                     "failed to generate block {:?} loaded from disk: {:?}",
-                    file_name,
-                    e
+                    file_name, e
                 );
                 return false;
             }

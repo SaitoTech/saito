@@ -2718,8 +2718,8 @@ class GameQueue {
                 robj_has_err: robj?.err != null,
                 robj_err: robj?.err != null ? robj.err : undefined,
                 robj_hash: robj?.hash != null ? robj.hash : undefined,
-                queue_tail_matches: game_self.game.queue[game_self.game.queue.length - 1] ===
-                  my_queue_entry
+                queue_tail_matches:
+                  game_self.game.queue[game_self.game.queue.length - 1] === my_queue_entry
               });
               if (game_self.game.id != my_specific_game_id) {
                 game_self.game = game_self.loadGame(my_specific_game_id);

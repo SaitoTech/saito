@@ -206,14 +206,14 @@ impl Blockchain {
             is_loading: false,
             is_loaded: false,
             initial_token_supply: 0,
-	    validated_total_supply: 0,
-	    validated_total_supply_block_hash: [0; 32],
-	    validated_total_supply_block_id: 0,
+            validated_total_supply: 0,
+            validated_total_supply_block_hash: [0; 32],
+            validated_total_supply_block_id: 0,
             last_issuance_written_on: 0,
             prune_after_blocks,
             block_confirmation_limit,
             observers: Vec::new(),
-	    last_bad_fork_hash: None,
+            last_bad_fork_hash: None,
         }
     }
     pub fn init(&mut self) -> Result<(), Error> {
@@ -270,15 +270,13 @@ impl Blockchain {
             info!("blockchain.add_block: block already exists, returning that result");
             return AddBlockResult::BlockAlreadyExists;
         }
-	if self.last_bad_fork_hash == Some(block_hash) {
-    	    info!(
+        if self.last_bad_fork_hash == Some(block_hash) {
+            info!(
                 "blockchain.add_block: rejecting recently failed block {:?}",
                 block_hash.to_hex()
             );
             return AddBlockResult::FailedNotValid;
         }
-
-
 
         //
         // if this is not our first block, fetch the missing block
@@ -295,22 +293,20 @@ impl Blockchain {
                     max(1, self.get_latest_block_id().saturating_sub(genesis_period))
                         .max(self.sync_fetch_floor_block_id);
 
-
-		//
-		// double-check this isn't a bad block, in which case we skip and update
-		// our last bad block to point to this one to avoid getting spammed with
-		// a bad chain from an inconsiderate node.
-		//
-		if self.last_bad_fork_hash == Some(block.previous_block_hash) {
-		    info!(
+                //
+                // double-check this isn't a bad block, in which case we skip and update
+                // our last bad block to point to this one to avoid getting spammed with
+                // a bad chain from an inconsiderate node.
+                //
+                if self.last_bad_fork_hash == Some(block.previous_block_hash) {
+                    info!(
 		        "blockchain.add_block: rejecting fork extension {:?} with known-bad parent {:?}",
 		        block_hash.to_hex(),
 		        block.previous_block_hash.to_hex()
 		    );
-		    self.last_bad_fork_hash = Some(block_hash);
-		    return AddBlockResult::FailedNotValid;
-		}
-
+                    self.last_bad_fork_hash = Some(block_hash);
+                    return AddBlockResult::FailedNotValid;
+                }
 
                 return if !previous_block_fetched {
                     if block.id.saturating_sub(1) >= minimum_parent_fetch_block_id {
@@ -457,37 +453,33 @@ impl Blockchain {
                     }
                 }
             }
-            old_chain =
-                self.calculate_old_chain_up_to_length(latest_block_hash, new_chain.len() as BlockId);
+            old_chain = self
+                .calculate_old_chain_up_to_length(latest_block_hash, new_chain.len() as BlockId);
         }
 
         //
         // is it possible that this will require a chain reorg?
         //
-	if shared_ancestor_found
-	    && old_chain.is_empty()
-	    && shared_block_hash != latest_block_hash
-	{
-	    //
-	    // the old chain is empty, but the previous/current tip is not
-	    // the shared_ancestor. this is only possible if the reorg would
-	    // require our crossing a checkpoint, so in this case we do not
-	    // recognize this block as a valid part of the longest-chain
-	    //
-	    info!(
-	        "reorg blocked: unwind path crosses checkpoint (incoming {}-{})",
-	        block_id,
-	        block_hash.to_hex()
-	    );
-	} else if block_id
-	    > self
-	        .get_latest_block_id()
-	        .saturating_sub(self.genesis_period)
-	    && self.is_new_chain_the_longest_chain(&new_chain, &old_chain)
-	{
-	    am_i_the_longest_chain = true;
-	}
-
+        if shared_ancestor_found && old_chain.is_empty() && shared_block_hash != latest_block_hash {
+            //
+            // the old chain is empty, but the previous/current tip is not
+            // the shared_ancestor. this is only possible if the reorg would
+            // require our crossing a checkpoint, so in this case we do not
+            // recognize this block as a valid part of the longest-chain
+            //
+            info!(
+                "reorg blocked: unwind path crosses checkpoint (incoming {}-{})",
+                block_id,
+                block_hash.to_hex()
+            );
+        } else if block_id
+            > self
+                .get_latest_block_id()
+                .saturating_sub(self.genesis_period)
+            && self.is_new_chain_the_longest_chain(&new_chain, &old_chain)
+        {
+            am_i_the_longest_chain = true;
+        }
 
         //
         // now update blockring
@@ -521,7 +513,6 @@ impl Blockchain {
                 .await;
 
             if does_new_chain_validate {
-
                 //
                 // confirm supply unchanged (once every 100 blocks)
                 //
@@ -550,7 +541,7 @@ impl Blockchain {
                     "block.add_block: validation failed for {:?}",
                     block_hash.to_hex()
                 );
-		self.last_bad_fork_hash = Some(block_hash);
+                self.last_bad_fork_hash = Some(block_hash);
                 self.blocks.get_mut(&block_hash).unwrap().in_longest_chain = false;
                 self.add_block_failure(&block_hash, mempool).await;
                 AddBlockResult::FailedNotValid
@@ -577,9 +568,9 @@ impl Blockchain {
 
         while shared_block_hash != old_chain_hash {
             if self.blocks.contains_key(&old_chain_hash) {
-		if self.blocks.get(&old_chain_hash).unwrap().has_checkpoint {
-            	    return vec![];
-        	}
+                if self.blocks.get(&old_chain_hash).unwrap().has_checkpoint {
+                    return vec![];
+                }
                 old_chain.push(old_chain_hash);
                 old_chain_hash = self
                     .blocks
@@ -607,9 +598,9 @@ impl Blockchain {
 
         while old_chain.len() < length as usize {
             if self.blocks.contains_key(&old_chain_hash) {
-	        if self.blocks.get(&old_chain_hash).unwrap().has_checkpoint {
-		    return vec![];
-		}
+                if self.blocks.get(&old_chain_hash).unwrap().has_checkpoint {
+                    return vec![];
+                }
                 old_chain.push(old_chain_hash);
                 old_chain_hash = self
                     .blocks
@@ -1464,13 +1455,13 @@ impl Blockchain {
                     WindingResult::FinishWithSuccess(wallet_updated) => {
                         return (true, wallet_update_status | wallet_updated)
                     }
-		    WindingResult::FinishWithUnsuccessfulWind => {
-		        return (false, wallet_update_status);
-		    }
-		    WindingResult::FinishWithFailure => {
-    			error!("reorg failed with UTXO not restored; halting node");
-    			panic!("reorg failed: inconsistent UTXO after FinishWithFailure");
-		    }
+                    WindingResult::FinishWithUnsuccessfulWind => {
+                        return (false, wallet_update_status);
+                    }
+                    WindingResult::FinishWithFailure => {
+                        error!("reorg failed with UTXO not restored; halting node");
+                        panic!("reorg failed: inconsistent UTXO after FinishWithFailure");
+                    }
                 }
             }
         } else if !new_chain.is_empty() {
@@ -1523,13 +1514,13 @@ impl Blockchain {
                     WindingResult::FinishWithSuccess(wallet_updated) => {
                         return (true, wallet_update_status | wallet_updated);
                     }
-		    WindingResult::FinishWithUnsuccessfulWind => {
-    			return (false, wallet_update_status);
-		    }
-		    WindingResult::FinishWithFailure => {
-		        error!("reorg failed with UTXO not restored; halting node");
-    			panic!("reorg failed: inconsistent UTXO after FinishWithFailure");
-		    }
+                    WindingResult::FinishWithUnsuccessfulWind => {
+                        return (false, wallet_update_status);
+                    }
+                    WindingResult::FinishWithFailure => {
+                        error!("reorg failed with UTXO not restored; halting node");
+                        panic!("reorg failed: inconsistent UTXO after FinishWithFailure");
+                    }
                 }
             }
         } else {
@@ -1588,7 +1579,7 @@ impl Blockchain {
         // means our wind attempt failed, and we should move directly into
         // add_block_failure() by returning false.
         if wind_failure && new_chain.is_empty() {
-	    return WindingResult::FinishWithUnsuccessfulWind;
+            return WindingResult::FinishWithUnsuccessfulWind;
         }
 
         // winding the chain requires us to have certain data associated
@@ -1730,7 +1721,7 @@ impl Blockchain {
             // success.
             if current_wind_index == 0 {
                 if wind_failure {
-		    return WindingResult::FinishWithUnsuccessfulWind;
+                    return WindingResult::FinishWithUnsuccessfulWind;
                 }
                 return WindingResult::FinishWithSuccess(wallet_updated);
             }
@@ -1794,7 +1785,7 @@ impl Blockchain {
                     )
                 } else {
                     debug!("old chain is empty. finishing with unsuccessful wind (no harm)");
-		    WindingResult::FinishWithUnsuccessfulWind
+                    WindingResult::FinishWithUnsuccessfulWind
                 }
             } else {
                 // let mut chain_to_unwind: Vec<SaitoHash> = vec![];
@@ -2787,10 +2778,10 @@ impl Blockchain {
         self.fork_id = Some([0; 32]);
         self.is_loading = false;
         self.is_loaded = false;
-	self.last_bad_fork_hash = None;
-	self.validated_total_supply = 0;
-	self.validated_total_supply_block_hash = [0; 32];
-	self.validated_total_supply_block_id = 0;
+        self.last_bad_fork_hash = None;
+        self.validated_total_supply = 0;
+        self.validated_total_supply_block_hash = [0; 32];
+        self.validated_total_supply_block_id = 0;
         self.save().await;
     }
 
@@ -3028,7 +3019,6 @@ impl Blockchain {
         self.validated_total_supply = current_supply;
         self.validated_total_supply_block_hash = latest_block_hash;
         self.validated_total_supply_block_id = latest_block_id;
-
 
         if self.initial_token_supply == 0 {
             info!(
