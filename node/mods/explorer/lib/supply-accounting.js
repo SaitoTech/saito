@@ -31,6 +31,13 @@ function toStorage(value) {
   return String(value);
 }
 
+function toNullableStorage(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return toStorage(value);
+}
+
 function slipAmountValue(slip) {
   if (slip == null) {
     return 0n;
@@ -142,6 +149,69 @@ function blockIdString(block) {
   return String(block.id);
 }
 
+function balanceSnapshotTip(fileName) {
+  const match = String(fileName || '').match(/^(\d+)-(\d+)-([0-9a-f]{64})\.snap$/i);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    block_id: match[2],
+    block_hash: match[3].toLowerCase()
+  };
+}
+
+function sumBalanceSnapshotRows(rows) {
+  if (!rows || typeof rows[Symbol.iterator] !== 'function') {
+    throw new Error('balance snapshot has no iterable rows');
+  }
+
+  let total = 0n;
+  for (const row of rows) {
+    const columns = String(row || '')
+      .trim()
+      .split(/\s+/);
+
+    if (columns.length !== 6 || !/^\d+$/.test(columns[4])) {
+      throw new Error('balance snapshot contains an invalid row');
+    }
+
+    total += BigInt(columns[4]);
+  }
+
+  return total;
+}
+
+async function readBalanceSnapshotSupply(mod, block, buckets) {
+  if (typeof mod?.getSupplyBalanceSnapshot !== 'function') {
+    return null;
+  }
+
+  try {
+    const snapshot = await mod.getSupplyBalanceSnapshot();
+    const tip = balanceSnapshotTip(snapshot?.file_name);
+    if (!tip) {
+      return null;
+    }
+
+    if (
+      blockIdString(block) !== tip.block_id ||
+      String(block?.hash || '').toLowerCase() !== tip.block_hash
+    ) {
+      return null;
+    }
+
+    const calculatedTotalSupply = sumBalanceSnapshotRows(snapshot.rows);
+    return {
+      calculated_total_supply: calculatedTotalSupply,
+      utxo_graveyard_treasury_total: calculatedTotalSupply + buckets.graveyard + buckets.treasury
+    };
+  } catch (err) {
+    console.warn('Explorer: failed to read balance snapshot for supply accounting', err);
+    return null;
+  }
+}
+
 async function resolveGenesisTotalSupply(block) {
   const issuanceTotal = sumIssuanceFromBlock(block);
   if (issuanceTotal > 0n) {
@@ -173,19 +243,25 @@ async function resolveTotalSupply(app, mod, block, buckets) {
   return DEFAULT_SUPPLY_NOLAN;
 }
 
-async function computeSupplyBuckets(app, mod, block) {
+async function computeSupplyBuckets(app, mod, block, options = {}) {
   const buckets = readHeaderBuckets(block);
   const totalSupply = await resolveTotalSupply(app, mod, block, buckets);
   const utxo = deriveUtxoFromSupply(totalSupply, buckets, blockIdString(block));
+  const consensusSupply =
+    options.calculateSnapshot === false
+      ? null
+      : await readBalanceSnapshotSupply(mod, block, buckets);
 
   return {
     utxo,
     total_supply: totalSupply,
+    calculated_total_supply: consensusSupply?.calculated_total_supply ?? null,
+    utxo_graveyard_treasury_total: consensusSupply?.utxo_graveyard_treasury_total ?? null,
     ...buckets
   };
 }
 
-async function buildBlockSupplyStats(app, mod, block) {
+async function buildBlockSupplyStats(app, mod, block, options = {}) {
   const {
     id,
     hash,
@@ -217,7 +293,7 @@ async function buildBlockSupplyStats(app, mod, block) {
     graveyard
   } = block;
 
-  const supply = await computeSupplyBuckets(app, mod, block);
+  const supply = await computeSupplyBuckets(app, mod, block, options);
 
   const stats = {
     block_id: toStorage(id),
@@ -249,18 +325,20 @@ async function buildBlockSupplyStats(app, mod, block) {
     previous_block_unpaid: toStorage(previousBlockUnpaid),
     has_golden_ticket: toStorage(hasGoldenTicket),
     utxo: toStorage(supply.utxo),
-    total_supply: toStorage(supply.total_supply)
+    total_supply: toStorage(supply.total_supply),
+    calculated_total_supply: toNullableStorage(supply.calculated_total_supply),
+    utxo_graveyard_treasury_total: toNullableStorage(supply.utxo_graveyard_treasury_total)
   };
 
   return stats;
 }
 
-async function ensureBlockSupplyIndexed(app, mod, block) {
+async function ensureBlockSupplyIndexed(app, mod, block, options = {}) {
   if (!block?.hash || !mod?.database?.upsertBlockStatistics) {
     return null;
   }
 
-  const stats = await buildBlockSupplyStats(app, mod, block);
+  const stats = await buildBlockSupplyStats(app, mod, block, options);
   const result = await mod.database.upsertBlockStatistics(stats);
   if (!result?.success) {
     const reason = result?.reason || 'unknown database error';
@@ -279,6 +357,10 @@ function isBlockHash(hash) {
 
 function hasSupplyStatistics(row) {
   return row?.total_supply != null && row.total_supply !== '';
+}
+
+function hasCalculatedSupply(row) {
+  return row?.calculated_total_supply != null && row.calculated_total_supply !== '';
 }
 
 function backfillStartId(app, latestId) {
@@ -330,7 +412,12 @@ async function runSupplyStatisticsBackfill(app, mod) {
       }
 
       const existing = await mod.database.getStatisticsByBlockHash(blockHash);
-      if (hasSupplyStatistics(existing)) {
+      const needsLatestConsensusSnapshot =
+        blockId === latestId && typeof mod?.getSupplyBalanceSnapshot === 'function';
+      if (
+        hasSupplyStatistics(existing) &&
+        (!needsLatestConsensusSnapshot || hasCalculatedSupply(existing))
+      ) {
         summary.already_indexed++;
         consecutiveFailures = 0;
         continue;
@@ -344,7 +431,9 @@ async function runSupplyStatisticsBackfill(app, mod) {
         continue;
       }
 
-      await ensureBlockSupplyIndexed(app, mod, block);
+      await ensureBlockSupplyIndexed(app, mod, block, {
+        calculateSnapshot: blockId === latestId
+      });
       summary.indexed++;
       consecutiveFailures = 0;
     } catch (err) {
@@ -403,6 +492,8 @@ module.exports = {
   ensureBlockSupplyIndexed,
   backfillSupplyStatistics,
   sumIssuanceFromBlock,
+  sumBalanceSnapshotRows,
+  balanceSnapshotTip,
   isGenesisBlock,
   toStorage
 };
