@@ -35,7 +35,9 @@ async function buildExplorerApiData(app, mod) {
     supply: {
       utxo_set_value: await getUtxoSetValue(app, mod, latest),
       treasury: toDecimalString(latest.treasury),
-      graveyard: toDecimalString(latest.graveyard)
+      graveyard: toDecimalString(latest.graveyard),
+      total_fees: toDecimalString(latest.totalFees),
+      previous_block_unpaid: toDecimalString(latest.previousBlockUnpaid)
     },
     blocks: {
       latest_block_id: toSafeNumber(latest.id),
