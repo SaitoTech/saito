@@ -1470,8 +1470,10 @@ mod tests {
         let mut blocks = vec![];
         // create a main fork first
         for i in 2..=100 {
+            // Fees are unrelated to replay handling and can strand the wallet's
+            // larger slips outside this test's short genesis window.
             let tx = tester
-                .create_transaction(NOLAN_PER_SAITO, NOLAN_PER_SAITO, public_key)
+                .create_transaction(NOLAN_PER_SAITO, 0, public_key)
                 .await
                 .unwrap();
 
@@ -1572,7 +1574,7 @@ mod tests {
         // create a main fork first
         for i in 2..=100 {
             let tx = tester
-                .create_transaction(NOLAN_PER_SAITO, NOLAN_PER_SAITO, public_key)
+                .create_transaction(NOLAN_PER_SAITO, 0, public_key)
                 .await
                 .unwrap();
 
