@@ -39,6 +39,7 @@ const { produceExplorerBlockWithoutGt } = require('./lib/produce-block-without-g
 const { produceExplorerBlockWithGt } = require('./lib/produce-block-with-gt');
 const { handleExplorerSubmitFeeTransaction } = require('./lib/submit-fee-transaction');
 const { logManualProduction } = require('./lib/manual-production-log');
+const { buildExplorerApiData } = require('./lib/api-data');
 
 class Explorer extends ModTemplate {
   constructor(app) {
@@ -104,6 +105,22 @@ class Explorer extends ModTemplate {
       services.push(new PeerService(null, 'Explorer'));
     }
     return services;
+  }
+
+  async getSupplyBalanceSnapshot() {
+    if (this.app.BROWSER !== 0) {
+      return null;
+    }
+
+    const loaded = require('saito-js/saito');
+    const Saito = loaded.default || loaded;
+    const instance = typeof Saito.getInstance === 'function' ? Saito.getInstance() : null;
+
+    if (!instance || typeof instance.getBalanceSnapshot !== 'function') {
+      return null;
+    }
+
+    return instance.getBalanceSnapshot([]);
   }
 
   parseRoute() {
@@ -949,6 +966,7 @@ class Explorer extends ModTemplate {
 
     if (app.BROWSER == 0) {
       this.database = new ExplorerDatabase(app, this);
+      await this.database.ensureSchema();
       setImmediate(() => {
         backfillSupplyStatistics(app, this).catch((err) => {
           console.error('Explorer: supply statistics backfill failed', err);
@@ -1018,7 +1036,9 @@ class Explorer extends ModTemplate {
 
     if (this.INDEX_BLOCKS) {
       try {
-        await ensureBlockSupplyIndexed(this.app, this, block);
+        await ensureBlockSupplyIndexed(this.app, this, block, {
+          calculateSnapshot: Boolean(lc)
+        });
       } catch (err) {
         console.error('Explorer: failed to record block statistics', err);
       }
@@ -1104,6 +1124,17 @@ class Explorer extends ModTemplate {
         return res.redirect(301, `${uri}/block/${encodeURIComponent(hash)}`);
       }
       return res.redirect(301, uri);
+    });
+
+    expressapp.get(`${uri}/data`, async function (req, res) {
+      res.setHeader('Cache-Control', 'no-store');
+
+      try {
+        return res.json(await buildExplorerApiData(app, self));
+      } catch (err) {
+        console.error('Explorer: failed to build API data', err);
+        return res.status(503).json({ error: 'Explorer data is temporarily unavailable.' });
+      }
     });
 
     expressapp.get(`${uri}/block/:hash`, sendIndex);

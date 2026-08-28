@@ -17,11 +17,64 @@ function isProductionNodeEnv() {
   return nodeEnv === 'prod' || nodeEnv === 'production';
 }
 
+function normalizeHostname(value) {
+  const raw = String(value || '')
+    .trim()
+    .toLowerCase();
+
+  if (!raw) {
+    return '';
+  }
+
+  if (raw === '::1' || raw === '[::1]') {
+    return '::1';
+  }
+
+  try {
+    const url = new URL(raw.includes('://') ? raw : `http://${raw}`);
+    return String(url.hostname || '')
+      .replace(/^\[|\]$/g, '')
+      .toLowerCase();
+  } catch (err) {
+    return raw.split('/')[0].split(':')[0];
+  }
+}
+
+function getManualTestingHost(app) {
+  if (app?.BROWSER == 1 && typeof window !== 'undefined') {
+    const browserHost = window?.location?.hostname || window?.location?.host;
+    if (browserHost) {
+      return normalizeHostname(browserHost);
+    }
+  }
+
+  return normalizeHostname(
+    app?.options?.server?.endpoint?.host || app?.options?.server?.host || ''
+  );
+}
+
+function isAllowedManualTestingHost(host) {
+  const hostname = normalizeHostname(host);
+
+  return (
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname.includes('staging') ||
+    hostname.includes('testnet')
+  );
+}
+
 /**
  * Browser: whether manual block controls may be shown.
  */
 function canShowManualBlockControls(app, mod) {
   if (!app || !mod?.enable_manual_testing) {
+    return false;
+  }
+
+  if (!isAllowedManualTestingHost(getManualTestingHost(app))) {
     return false;
   }
 
@@ -44,6 +97,10 @@ function allowsManualTestingOnServer(app, mod) {
     return false;
   }
 
+  if (!isAllowedManualTestingHost(getManualTestingHost(app))) {
+    return false;
+  }
+
   if (isSpamInstalled(app)) {
     return false;
   }
@@ -60,6 +117,9 @@ module.exports = {
   EXPLORER_SUBMIT_FEE_TRANSACTION_REQUEST,
   EXPLORER_PRODUCE_BLOCK_REQUEST,
   EXPLORER_PRODUCE_BLOCK_WITH_GT_REQUEST,
+  normalizeHostname,
+  getManualTestingHost,
+  isAllowedManualTestingHost,
   canShowManualBlockControls,
   allowsManualTestingOnServer
 };

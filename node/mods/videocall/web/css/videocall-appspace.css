@@ -445,8 +445,8 @@ input:checked + .slider:before {
 /* CTA loader hooks — moved from saito-cta-loader.css */
 body .saito-cta .stunx-precall-link {
   width: 100%;
-  height: 4.5rem;
-  min-height: 4.5rem;
+  height: 45px;
+  min-height: 45px;
   margin: 0;
 }
 body .saito-cta :is(.stunx-appspace-actions, .stun-button-row) {
@@ -480,7 +480,7 @@ body .saito-cta :is(.stunx-appspace-actions, .stun-button-row) > .stunx-precall-
     .saito-cta.saito-cta
     :is(.stunx-appspace-actions, .stun-button-row)
     > :is(.stunx-precall-link, .saito-button-primary, .saito-button-secondary) {
-    flex: 0 0 4.5rem;
+    flex: 0 0 45px;
     width: 100%;
   }
 }

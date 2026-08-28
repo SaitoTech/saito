@@ -111,7 +111,7 @@ impl Storage {
         &mut self,
         file_names: &[String],
         mempool_lock: Arc<RwLock<Mempool>>,
-    ) {
+    ) -> bool {
         debug!("loading  {:?} blocks from disk", file_names.len());
 
         let mut mempool = mempool_lock.write().await;
@@ -123,28 +123,31 @@ impl Storage {
                 .await;
             if result.is_err() {
                 error!(
-                    "failed loading block from disk : {:?}",
+                    "failed loading block {:?} from disk : {:?}",
+                    file_name,
                     result.err().unwrap()
                 );
-                return;
+                return false;
             }
             trace!("file : {:?} loaded", file_name);
             let buffer: Vec<u8> = result.unwrap();
             let buffer_len = buffer.len();
             let result = Block::deserialize_from_net(&buffer);
             if result.is_err() {
-                // ideally this shouldn't happen since we only write blocks which are valid to disk
-                warn!(
-                    "failed deserializing block with buffer length : {:?}",
-                    buffer_len
+                error!(
+                    "failed deserializing block {:?} from disk with buffer length : {:?}",
+                    file_name, buffer_len
                 );
-                return;
+                return false;
             }
             let mut block: Block = result.unwrap();
             block.force_loaded = true;
             if let Err(e) = block.generate() {
-                warn!("failed to generate block loaded from disk: {:?}", e);
-                return;
+                error!(
+                    "failed to generate block {:?} loaded from disk: {:?}",
+                    file_name, e
+                );
+                return false;
             }
             trace!("block : {:?} loaded from disk", block.hash.to_hex());
             mempool.add_block(block);
@@ -154,6 +157,7 @@ impl Storage {
         // mempool.golden_tickets.shrink_to_fit();
 
         debug!("blocks loaded to mempool");
+        true
     }
 
     pub async fn load_block_from_disk(&self, file_name: &str) -> Result<Block, std::io::Error> {

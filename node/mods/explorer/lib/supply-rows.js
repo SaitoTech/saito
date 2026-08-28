@@ -1,7 +1,16 @@
 const SUPPLY_BLOCK_COUNT = 8;
 
 const SUPPLY_TABLE_ROWS = [
-  { key: 'total_supply', label: 'TOTAL SUPPLY', section: 'supply-total' },
+  {
+    key: 'utxo_graveyard_treasury_total',
+    label: 'TOTAL SUPPLY',
+    section: 'supply-total'
+  },
+  {
+    key: 'calculated_total_supply',
+    label: 'CALCULATED TOTAL SUPPLY',
+    section: 'supply-total'
+  },
   { key: 'treasury', label: 'treasury', section: 'supply' },
   { key: 'graveyard', label: 'graveyard', section: 'supply' },
   { key: 'previous_block_unpaid', label: 'Old Fees', section: 'supply' },

@@ -175,6 +175,14 @@ impl RoutingThread {
             }
             Message::Blockchain(chaindata) => {
                 let chunk_len = chaindata.payload.len();
+                let has_more = chaindata.payload_latest_block_id < chaindata.latest_known_block_id;
+                let target_block_id = chaindata.latest_known_block_id;
+                let shared_ancestor_block_id = chaindata.shared_ancestor_block_id;
+                let shared_ancestor_block_hash = chaindata.shared_ancestor_block_hash;
+                let latest_known_block_id = {
+                    let blockchain = self.blockchain_lock.read().await;
+                    blockchain.get_latest_block_id()
+                };
 
                 info!("BLOCKCHAIN RESPONSE: received blockchain response...");
                 info!(" -- blocks => {}", chunk_len);
@@ -182,10 +190,7 @@ impl RoutingThread {
                 {
                     let mut peers = self.network.peer_lock.write().await;
                     if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                        peer.on_sync_chunk_received(
-                            chunk_len,
-                            chaindata.payload_latest_block_id < chaindata.latest_known_block_id,
-                        );
+                        peer.on_sync_chunk_received(chunk_len, has_more);
                     }
                 }
                 let mut sync = self.sync.write().await;
@@ -202,6 +207,24 @@ impl RoutingThread {
                     error!(
                         "failed processing Blockchain Peer Message {}: {}",
                         peer_id, e
+                    );
+                } else {
+                    drop(sync);
+                    let current_block_id = {
+                        let blockchain = self.blockchain_lock.read().await;
+                        blockchain.get_latest_block_id()
+                    };
+                    let is_sync_possible =
+                        shared_ancestor_block_id != 0 && shared_ancestor_block_hash != [0; 32];
+                    self.network.io_interface.send_interface_event(
+                        InterfaceEvent::OnBlockchainReceived {
+                            current_block_id,
+                            target_block_id,
+                            is_sync_possible,
+                            shared_ancestor_block_id,
+                            shared_ancestor_block_hash,
+                            latest_known_block_id,
+                        },
                     );
                 }
             }

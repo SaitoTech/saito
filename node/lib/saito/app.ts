@@ -51,6 +51,7 @@ class Saito {
   keychain!: Keychain;
   network!: Network;
   blockchain!: Blockchain;
+  saito_sync: any;
   server: any;
   core: any;
 

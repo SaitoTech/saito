@@ -200,6 +200,39 @@
   position: relative;
 }
 
+.explorer-supply-exact-toggle {
+  position: absolute;
+  top: -20px;
+  right: 1.75rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--explorer-border);
+  border-radius: var(--explorer-radius-sm);
+  background: var(--explorer-card);
+  color: var(--explorer-muted-foreground);
+  font-family: var(--explorer-font-mono);
+  font-size: var(--explorer-text-xs);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color var(--explorer-transition-fast),
+    border-color var(--explorer-transition-fast),
+    background-color var(--explorer-transition-fast);
+}
+
+.explorer-supply-exact-toggle:hover,
+.explorer-supply-exact-toggle:focus-visible {
+  color: var(--explorer-foreground);
+  border-color: var(--explorer-ring);
+  outline: none;
+}
+
+.explorer-supply-exact-toggle.is-active {
+  color: var(--explorer-primary-foreground);
+  border-color: var(--explorer-primary);
+  background: var(--explorer-primary);
+}
+
 .explorer-supply-width-toggle {
   position: absolute;
   top: -24px;

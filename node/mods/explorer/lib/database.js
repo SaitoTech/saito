@@ -8,6 +8,27 @@ class ExplorerDatabase {
     return this.mod.dbname;
   }
 
+  async ensureSchema() {
+    const columns = [
+      ['calculated_total_supply', 'TEXT'],
+      ['utxo_graveyard_treasury_total', 'TEXT']
+    ];
+
+    const rows =
+      (await this.app.storage.queryDatabase('PRAGMA table_info(blocks)', {}, this.dbname)) || [];
+    const existing = new Set(rows.map((row) => row.name));
+
+    for (const [name, definition] of columns) {
+      if (!existing.has(name)) {
+        await this.app.storage.runDatabase(
+          `ALTER TABLE blocks ADD COLUMN ${name} ${definition}`,
+          {},
+          this.dbname
+        );
+      }
+    }
+  }
+
   async upsertBlockStatistics(stats) {
     const sql = `INSERT OR REPLACE INTO blocks (
 			block_id,
@@ -39,7 +60,9 @@ class ExplorerDatabase {
 			previous_block_unpaid,
 			has_golden_ticket,
 			utxo,
-			total_supply
+			total_supply,
+			calculated_total_supply,
+			utxo_graveyard_treasury_total
 		) VALUES (
 			$block_id,
 			$block_hash,
@@ -70,7 +93,9 @@ class ExplorerDatabase {
 			$previous_block_unpaid,
 			$has_golden_ticket,
 			$utxo,
-			$total_supply
+			$total_supply,
+			$calculated_total_supply,
+			$utxo_graveyard_treasury_total
 		)`;
 
     return this.runBlockStatisticsStatement(sql, stats, 'upsertBlockStatistics');
@@ -111,7 +136,9 @@ class ExplorerDatabase {
       $previous_block_unpaid: stats.previous_block_unpaid,
       $has_golden_ticket: stats.has_golden_ticket,
       $utxo: stats.utxo,
-      $total_supply: stats.total_supply
+      $total_supply: stats.total_supply,
+      $calculated_total_supply: stats.calculated_total_supply,
+      $utxo_graveyard_treasury_total: stats.utxo_graveyard_treasury_total
     };
   }
 

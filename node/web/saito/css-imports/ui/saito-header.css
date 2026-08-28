@@ -612,6 +612,46 @@
   }
 }
 
+@media screen and (max-width: 600px),
+  screen and (orientation: landscape) and (max-height: 600px) {
+  #saito-header.game {
+    --game-menu-mobile-header-height: 6.4rem;
+    padding: 0;
+  }
+
+  #saito-header.game .hamburger-container {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+  }
+
+  #saito-header.game #saito-header-menu-toggle {
+    display: none;
+  }
+
+  #saito-header.game .saito-header-hamburger-contents {
+    top: var(--game-menu-mobile-header-height);
+    right: auto;
+    left: -40rem;
+    width: min(40rem, 100vw);
+    height: calc(100svh - var(--game-menu-mobile-header-height));
+    border-radius: 0 0 var(--saito-radius-lg) 0;
+    transition:
+      left 0.33s,
+      width 0.33s;
+  }
+
+  #saito-header.game .saito-header-hamburger-contents.show-menu {
+    right: auto;
+    left: 0;
+  }
+
+  #saito-header.game .saito-header-backdrop {
+    top: var(--game-menu-mobile-header-height);
+    height: calc(100svh - var(--game-menu-mobile-header-height));
+  }
+}
+
 @media screen and (max-width: 420px) {
   #header-msg {
     font-size: 1.5rem;

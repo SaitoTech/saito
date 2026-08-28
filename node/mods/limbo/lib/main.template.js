@@ -4,7 +4,7 @@ module.exports = LimboMainTemplate = (app, mod) => {
       <div id="limbo-main" class="saito-main limbo-main">
         <div class="limbo-menu limbo-splash-box saito-cta">
           <div class="saito-cta-logo limbo-splash-logo" role="img" aria-label="Swarmcast"></div>
-          <div class="limbo-splash-subtitle">Peer to Peer Streaming</div>
+          <div class="saito-cta-subtitle limbo-splash-subtitle">Peer to Peer Streaming</div>
           <div class="limbo-launch-options">`;
   if (!app.browser.isMobileBrowser()) {
     html += `<button class="limbo-option" id="screen" type="button"><i class="fa-solid ${mod.icons.screen}"></i><span>Screencast</span></button>`;

@@ -133,6 +133,7 @@
 .saito-nft-panel-send .saito-nft-panel-body {
   padding: 2rem;
   gap: 2rem;
+  overflow-y: auto;
 }
 
 .saito-nft-panel-info .saito-nft-panel-body {
@@ -770,19 +771,265 @@
   margin-bottom: var(--saito-space-sm, 1rem);
 }
 
-.nft-send-amount-row {
+.nft-send-input-row {
+  position: relative;
+  display: grid;
+  align-items: center;
+  margin-bottom: var(--saito-space-sm, 1rem);
+}
+
+.nft-send-input-row input.saito-input {
+  margin-bottom: 0;
+  padding-right: 4.2rem;
+}
+
+.nft-send-input-actions {
+  position: absolute;
+  right: 0.8rem;
+  top: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
-  gap: var(--saito-space-sm, 0.8rem);
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+
+.nft-send-input-actions .saito-icon-button {
+  width: 2.8rem;
+  height: 2.8rem;
+  color: var(--saito-muted-foreground);
+}
+
+.nft-send-input-actions .saito-icon-button:hover,
+.nft-send-input-actions .saito-icon-button:focus-visible {
+  color: var(--saito-primary);
+}
+
+#nft-paste-address,
+#nft-scan-address {
+  display: none;
+}
+
+.nft-send-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.nft-send-balance {
+  color: var(--saito-muted-foreground);
+  font-size: 1.2rem;
+  white-space: nowrap;
+}
+
+.nft-recipient-preview.hide-element,
+.nft-amount-status.hide-element {
+  display: none;
+}
+
+.nft-recipient-preview {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 6.2rem;
+  margin-bottom: var(--saito-space-sm, 1rem);
+  padding: 0 1.5rem;
+  overflow: hidden;
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+  background: var(--saito-secondary);
+}
+
+.nft-recipient-user.saito-user {
+  display: grid;
+  grid-template-columns: min-content minmax(0, 1fr) min-content;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 1rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.nft-recipient-user .saito-identicon-box,
+.nft-recipient-user .saito-identicon {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 4.4rem;
+  height: 4.4rem;
+}
+
+.nft-recipient-user .saito-address,
+.nft-recipient-user .saito-userline {
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nft-recipient-user .saito-address {
+  grid-row: 1;
+  font-weight: 600;
+}
+
+.nft-recipient-user .saito-userline {
+  grid-row: 2;
+  color: var(--saito-muted-foreground);
+  font-size: 1.2rem;
+}
+
+.nft-recipient-edit {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--saito-muted-foreground);
+}
+
+.nft-recipient-edit:hover,
+.nft-recipient-edit:focus-visible {
+  color: var(--saito-primary);
+}
+
+.nft-recipient-invalid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min-content;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  color: var(--saito-error, var(--saito-destructive, #c0392b));
+}
+
+.nft-recipient-invalid-message {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saito-nft-confirm-btn:disabled {
+  filter: none;
+}
+
+.saito-nft-panel-send .saito-nft-panel-footer {
+  padding-right: 2rem;
+}
+
+.saito-nft-panel-send .saito-nft-confirm-btn {
+  margin-right: 0;
+}
+
+.nft-send-amount-row {
+  position: relative;
+  display: grid;
+  align-items: center;
   margin-bottom: var(--saito-space-sm, 1rem);
 }
 
 .nft-send-amount-row input.saito-input {
   margin-bottom: 0;
+  padding-right: 6.5rem;
+}
+
+.nft-send-amount-actions {
+  position: absolute;
+  top: 0;
+  right: 1rem;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.nft-send-amount-actions > * {
+  pointer-events: auto;
 }
 
 .nft-send-max-btn {
-  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  color: var(--saito-muted-foreground);
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.nft-send-max-btn:not(:disabled):hover,
+.nft-send-max-btn:not(:disabled):focus-visible {
+  color: var(--saito-primary);
+}
+
+.nft-send-max-btn:disabled {
+  opacity: 0.5;
+}
+
+.nft-amount-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  font-size: 1.6rem;
+}
+
+.nft-amount-status.valid {
+  color: var(--saito-success, #2e8b57);
+}
+
+.nft-amount-status.invalid {
+  color: var(--saito-error, var(--saito-destructive, #c0392b));
+  cursor: help;
+}
+
+.nft-amount-tooltip {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 5.2rem;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 1rem;
+  overflow: hidden;
+  color: var(--saito-error, var(--saito-destructive, #c0392b));
+  font-size: 1.2rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+@media (hover: hover) {
+  .nft-send-amount-actions:has(.nft-amount-status.invalid:hover) ~ .nft-amount-tooltip,
+  .nft-send-amount-actions:has(.nft-amount-status.invalid:focus-visible)
+    ~ .nft-amount-tooltip {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  .nft-send-amount-actions:has(.nft-amount-status.invalid:active) ~ .nft-amount-tooltip {
+    opacity: 1;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  #nft-paste-address,
+  #nft-scan-address {
+    display: inline-flex;
+  }
+
+  .nft-send-input-row input.saito-input {
+    padding-right: 11rem;
+  }
 }
 
 .saito-nft-mode-title {

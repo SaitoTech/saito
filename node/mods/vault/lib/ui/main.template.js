@@ -3,7 +3,7 @@ module.exports = VaultMainTemplate = (app, mod) => {
   <div class="saito-vault">
     <section class="vault-cta-card saito-cta">
       <div class="saito-cta-logo vault-cta-logo" role="img" aria-label="Saito Vault"></div>
-      <div class="vault-cta-tagline">Your NFT Is Your Access Key</div>
+      <div class="saito-cta-subtitle vault-cta-tagline">Your NFT Is Your Access Key</div>
       <div class="saito-button-row">
         <button class="saito-button-primary" id="vault-secure-btn" type="button">
           Upload File
