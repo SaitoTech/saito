@@ -329,7 +329,7 @@ function formatMonetaryWhole(whole) {
 /**
  * Format a NOLAN balance using Explorer monetary display rules (no unit suffix).
  */
-function formatNolanAsExplorerCurrency(nolan) {
+function formatNolanAsExplorerCurrency(nolan, options = {}) {
   if (nolan == null || nolan === '') {
     return '—';
   }
@@ -345,7 +345,9 @@ function formatNolanAsExplorerCurrency(nolan) {
   const frac = amount % NOLAN_PER_SAITO;
 
   if (frac === 0n) {
-    return formatMonetaryWhole(whole);
+    return options.abbreviate === false
+      ? whole.toLocaleString('en-US')
+      : formatMonetaryWhole(whole);
   }
 
   const fracStr = frac.toString().padStart(8, '0').replace(/0+$/, '');

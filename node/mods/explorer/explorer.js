@@ -106,6 +106,22 @@ class Explorer extends ModTemplate {
     return services;
   }
 
+  async getSupplyBalanceSnapshot() {
+    if (this.app.BROWSER !== 0) {
+      return null;
+    }
+
+    const loaded = require('saito-js/saito');
+    const Saito = loaded.default || loaded;
+    const instance = typeof Saito.getInstance === 'function' ? Saito.getInstance() : null;
+
+    if (!instance || typeof instance.getBalanceSnapshot !== 'function') {
+      return null;
+    }
+
+    return instance.getBalanceSnapshot([]);
+  }
+
   parseRoute() {
     const path = window.location.pathname.replace(/\/+$/, '');
     const prefix = `/${this?.slug || 'explorer'}`;
@@ -949,6 +965,7 @@ class Explorer extends ModTemplate {
 
     if (app.BROWSER == 0) {
       this.database = new ExplorerDatabase(app, this);
+      await this.database.ensureSchema();
       setImmediate(() => {
         backfillSupplyStatistics(app, this).catch((err) => {
           console.error('Explorer: supply statistics backfill failed', err);
@@ -1018,7 +1035,9 @@ class Explorer extends ModTemplate {
 
     if (this.INDEX_BLOCKS) {
       try {
-        await ensureBlockSupplyIndexed(this.app, this, block);
+        await ensureBlockSupplyIndexed(this.app, this, block, {
+          calculateSnapshot: Boolean(lc)
+        });
       } catch (err) {
         console.error('Explorer: failed to record block statistics', err);
       }
