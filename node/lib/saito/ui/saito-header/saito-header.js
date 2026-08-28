@@ -757,6 +757,7 @@ class SaitoHeader extends UIModTemplate {
     ) {
       document.querySelector('.saito-header-hamburger-contents').classList.add('show-menu');
       document.querySelector('.saito-header-backdrop').classList.add('menu-visible');
+      window.dispatchEvent(new CustomEvent('saito-header-menu-state', { detail: { open: true } }));
 
       //
       // start polling web3 crypto
@@ -795,6 +796,7 @@ class SaitoHeader extends UIModTemplate {
       sidebar.classList.remove('show-menu');
       document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
     }
+    window.dispatchEvent(new CustomEvent('saito-header-menu-state', { detail: { open: false } }));
 
     //
     // clear web3 polling if active

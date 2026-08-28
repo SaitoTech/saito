@@ -22,7 +22,9 @@ function formatSupplyCell(value, key = '', options = {}) {
     return formatExplorerInteger(value);
   }
 
-  return formatNolanAsExplorerCurrency(value);
+  return formatNolanAsExplorerCurrency(value, {
+    abbreviate: options.exactInteger !== true
+  });
 }
 
 function formatNetFlowCell(nolanValue, options = {}) {
@@ -76,7 +78,7 @@ function netFlowRowClassName(fieldKey, isTotal = false) {
 }
 
 function buildAccountingRow(row, statsRows) {
-  return {
+  const accountingRow = {
     key: row.key,
     label: row.label,
     className: accountingRowClassName(row),
@@ -85,6 +87,14 @@ function buildAccountingRow(row, statsRows) {
       formatSupplyCell(column?.[row.key], row.key, { displayUnknown: row.displayUnknown })
     )
   };
+
+  if (row.section === 'supply-total') {
+    accountingRow.exactValues = statsRows.map((column) =>
+      formatSupplyCell(column?.[row.key], row.key, { exactInteger: true })
+    );
+  }
+
+  return accountingRow;
 }
 
 function buildSectionDivider(key) {

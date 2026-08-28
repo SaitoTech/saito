@@ -25,6 +25,8 @@ function dbRowToStatsRow(dbRow) {
     total_fees: dbRow.total_fees,
     utxo: dbRow.utxo,
     total_supply: dbRow.total_supply,
+    calculated_total_supply: dbRow.calculated_total_supply,
+    utxo_graveyard_treasury_total: dbRow.utxo_graveyard_treasury_total,
     has_golden_ticket: dbRow.has_golden_ticket,
     total_payout_routing: dbRow.total_payout_routing,
     total_payout_mining: dbRow.total_payout_mining,

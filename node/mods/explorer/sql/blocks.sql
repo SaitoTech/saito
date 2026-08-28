@@ -36,7 +36,9 @@ CREATE TABLE IF NOT EXISTS blocks (
     has_golden_ticket INTEGER,
 
     utxo INTEGER,
-    total_supply INTEGER
+    total_supply INTEGER,
+    calculated_total_supply TEXT,
+    utxo_graveyard_treasury_total TEXT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS blocks_hash_id_uidx

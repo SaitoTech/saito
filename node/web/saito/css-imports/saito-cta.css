@@ -16,11 +16,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2.4rem;
+  gap: 24px;
   width: min(95vw, 860px);
   max-width: 100%;
-  padding: 3.2rem;
-  border-radius: calc(var(--saito-radius) + 0.15rem);
+  min-height: 280px;
+  padding: 32px;
+  border-radius: 7px;
   background: var(--saito-card);
   box-shadow: var(--saito-elevation-0);
   border: 1px solid var(--saito-border);
@@ -28,9 +29,11 @@
 
 .saito-cta :is(.saito-button-primary, .saito-button-secondary) {
   width: 100%;
-  height: 4.5rem;
-  min-height: 4.5rem;
+  height: 45px;
+  min-height: 45px;
   margin: 0;
+  border-radius: 4.5px;
+  font: 400 15.5px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .saito-cta .saito-button-row {
@@ -38,6 +41,7 @@
   flex-flow: row nowrap;
   width: 100%;
   gap: 2rem;
+  margin-top: 0;
 }
 
 .saito-cta .saito-button-row > :is(.saito-button-primary, .saito-button-secondary) {
@@ -57,6 +61,15 @@ body:has(.saito-cta) .pace {
   background: currentColor;
 }
 
+/* Mirrors the boot loader so its copy can change without a layout jump. */
+.saito-cta .saito-cta-subtitle {
+  color: var(--saito-muted-foreground, #a6a09b);
+  font: 700 12.5px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.22em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 @media (max-width: 720px) {
   .saito-cta {
     position: fixed;
@@ -72,15 +85,15 @@ body:has(.saito-cta) .pace {
     max-height: 100vh;
     max-height: 100dvh;
     margin: 0;
-    padding: 2.4rem;
+    padding: 20dvh 24px 24px;
     border: 0;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
     overflow-y: auto;
     transform: none;
-    align-content: safe center;
-    justify-content: safe center;
+    align-content: flex-start;
+    justify-content: flex-start;
   }
 
   .saito-overlay > .saito-cta {
@@ -95,7 +108,7 @@ body:has(.saito-cta) .pace {
   }
 
   .saito-cta .saito-button-row > :is(.saito-button-primary, .saito-button-secondary) {
-    flex: 0 0 4.5rem;
+    flex: 0 0 45px;
     width: 100%;
   }
 }

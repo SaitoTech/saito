@@ -20,7 +20,7 @@
 
 .limbo-splash-logo {
   --saito-cta-logo-mask: url('/saito/icons/saito-swarmcast-icon-outline-label-horizontal.svg');
-  width: min(56rem, 84vw);
+  width: min(560px, 84vw);
   display: block;
   position: relative;
   aspect-ratio: 381 / 134;
@@ -665,8 +665,8 @@ video#local.noflip {
 /* CTA loader hooks — moved from saito-cta-loader.css */
 body .saito-cta .limbo-option {
   width: 100%;
-  height: 4.5rem;
-  min-height: 4.5rem;
+  height: 45px;
+  min-height: 45px;
   margin: 0;
 }
 body .saito-cta .limbo-launch-options {
@@ -693,7 +693,7 @@ body .saito-cta .limbo-launch-options > .limbo-option {
     gap: 2rem;
   }
   body .saito-cta.saito-cta .limbo-launch-options > .limbo-option {
-    flex: 0 0 4.5rem;
+    flex: 0 0 45px;
     width: 100%;
   }
 }
