@@ -1,3 +1,5 @@
+const SettingsContactsTemplate = require('./contacts.template');
+
 module.exports = (app, mod, main) => {
   let publicKey = mod.publicKey;
   let privateKey = main.privateKey || '';
@@ -40,38 +42,11 @@ module.exports = (app, mod, main) => {
       <h2 class="saito-overlay-form-header-title">account</h2>
     </header>
 
-    <div id="settings-appspace-warning-bar" class="settings-appspace-warning-bar" style="display: none;" role="alert" aria-live="polite"></div>
-
-    <div class="settings-appspace-header">
-      <div class="settings-actions-container">
-        <button type="button" class="saito-large-square-button" id="restore-privatekey-btn" title="Wipe local data and restore account from private key or seed phrase">
-          <span class="saito-icon-button"><i class="fa-solid fa-key" aria-hidden="true"></i></span>
-          <span>Import Key</span>
-        </button>
-        <button type="button" class="saito-large-square-button" id="settings-add-module" title="Install a module from the App Store">
-          <span class="saito-icon-button"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
-          <span>Add Module</span>
-        </button>
-        <button type="button" class="saito-large-square-button" id="restore-account-btn" title="Restore account by uploading json-file of wallet">
-          <span class="saito-icon-button"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i></span>
-          <span>Restore Wallet</span>
-        </button>
-        <button type="button" class="saito-large-square-button" id="backup-account-btn" title="Download json-file copy of wallet">
-          <span class="saito-icon-button"><i class="fa-solid fa-download" aria-hidden="true"></i></span>
-          <span>Backup Wallet</span>
-        </button>
-        <button type="button" class="saito-large-square-button" id="nuke-account-btn" title="Erase all local Saito data and reset this browser to a fresh installation">
-          <span class="saito-icon-button"><i class="fa-solid fa-trash" aria-hidden="true"></i></span>
-          <span>Nuke</span>
-        </button>
-      </div>
-    </div>
-
     <div class="settings-appspace-body">
       <details class="settings-appspace-section" open>
         <summary class="settings-appspace-section-summary">
           <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
-          <h6>wallet</h6>
+          <h6>Wallet</h6>
         </summary>
         <div class="settings-appspace-user-details">
           <div class="settings-field-label">username</div>
@@ -127,13 +102,53 @@ module.exports = (app, mod, main) => {
                    value="${app.wallet.convertNolanToSaito(app.wallet.default_fee)}"
             />
           </div>
+
+          <div class="settings-wallet-actions">
+            <div class="settings-actions-container">
+              <button type="button" class="saito-large-square-button" id="restore-privatekey-btn" title="Wipe local data and restore account from private key or seed phrase">
+                <span class="saito-icon-button"><i class="fa-solid fa-key" aria-hidden="true"></i></span>
+                <span>Import Key</span>
+              </button>
+              <button type="button" class="saito-large-square-button" id="settings-add-module" title="Install a module from the App Store">
+                <span class="saito-icon-button"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+                <span>Add Module</span>
+              </button>
+              <button type="button" class="saito-large-square-button" id="restore-account-btn" title="Restore account by uploading json-file of wallet">
+                <span class="saito-icon-button"><i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i></span>
+                <span>Restore Wallet</span>
+              </button>
+              <button type="button" class="saito-large-square-button" id="backup-account-btn" title="Download json-file copy of wallet">
+                <span class="saito-icon-button"><i class="fa-solid fa-download" aria-hidden="true"></i></span>
+                <span>Backup Wallet</span>
+              </button>
+              <button type="button" class="saito-large-square-button" id="nuke-account-btn" title="Erase all local Saito data and reset this browser to a fresh installation">
+                <span class="saito-icon-button"><i class="fa-solid fa-trash" aria-hidden="true"></i></span>
+                <span>Nuke</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="settings-appspace-warning-bar" class="settings-appspace-warning-bar" style="display: none;" role="alert" aria-live="polite"></div>
+        </div>
+      </details>
+
+      <details class="settings-appspace-section settings-appspace-contacts-container">
+        <summary class="settings-appspace-section-summary settings-contacts-header">
+          <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+          <h6>Contacts</h6>
+          <button type="button" id="settings-add-contact" class="saito-button-square" aria-label="Add contact">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          </button>
+        </summary>
+        <div id="settings-appspace-contacts" class="settings-appspace-contacts">
+          ${SettingsContactsTemplate(app)}
         </div>
       </details>
 
       <details class="settings-appspace-section settings-appspace-modules-container">
-        <summary class="settings-appspace-section-summary settings-installed-mod-header">
+        <summary class="settings-appspace-section-summary settings-modules-header">
           <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
-          <h6>installed modules</h6>
+          <h6>Manage Apps/Modules</h6>
           <button type="button" id="settings-add-app" class="saito-button-square" aria-label="Add application">
             <i class="fa-solid fa-plus" aria-hidden="true"></i>
           </button>
@@ -146,55 +161,63 @@ module.exports = (app, mod, main) => {
       <details class="settings-appspace-section settings-appspace-crypto-transfer-container">
         <summary class="settings-appspace-section-summary">
           <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
-          <h6>in-game crypto transfers</h6>
+          <h6>In-Game Crypto Transfers</h6>
         </summary>
         <div id="settings-appspace-crypto-transfer" class="settings-appspace-modules saito-menu-select-subtle">
         </div>
       </details>
 
-      <details class="settings-appspace-section settings-appspace-debug">
+      <details class="settings-appspace-section settings-appspace-device">
         <summary class="settings-appspace-section-summary">
           <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
-          <h6>debug info</h6>
+          <h6>Device</h6>
         </summary>
-        <div class="settings-section-note">Advanced: ALT-select items to mark them (OPT-select in MacOS), then <span class="saito-text-link" id="delete_marked">click here to delete selected entries</span></div>
-        <div class="settings-appspace-debug-content" id="settings-appspace-debug-content"></div>
-      </details>
+        <div class="settings-appspace-device-content">
+          <details class="settings-appspace-subsection settings-appspace-debug">
+            <summary class="settings-appspace-section-summary">
+              <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+              <h6>Debug</h6>
+            </summary>
+            <div>
+              <div class="settings-section-note">Advanced: ALT-select items to mark them (OPT-select in MacOS), then <span class="saito-text-link" id="delete_marked">click here to delete selected entries</span></div>
+              <div class="settings-appspace-debug-content" id="settings-appspace-debug-content"></div>
+            </div>
+          </details>
 
-      <details class="settings-appspace-section settings-storage-info">
-        <summary class="settings-appspace-section-summary">
-          <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
-          <h6>storage info</h6>
-        </summary>
-        <div class="settings-appspace-storage-content">
+          <details class="settings-appspace-subsection settings-storage-info">
+            <summary class="settings-appspace-section-summary">
+              <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+              <h6>Storage</h6>
+            </summary>
+            <div class="settings-appspace-storage-content">
+              <div class="settings-appspace-localstorage-info">
+                <div class="title">Local Storage</div>
+                <div>quota (bytes)</div><div class="quota"></div>
+                <div>usage (bytes)</div><div class="usage"></div>
+                <div>used (%)</div><div class="percent"></div>
+              </div>
 
-          <div class="settings-appspace-localstorage-info">
-            <div class="title">local storage</div>
-            <div>quota (bytes)</div><div class="quota"></div>
-            <div>usage (bytes)</div><div class="usage"></div>
-            <div>used (%)</div><div class="percent"></div>
-          </div>
+              <div class="settings-appspace-indexdb-info">
+                <div class="title">IndexedDB</div>
+                <div>quota (bytes)</div><div class="quota"></div>
+                <div>usage (bytes)</div><div class="usage"></div>
+                <div>used (%)</div><div class="percent"></div>
+              </div>
+            </div>
+          </details>
 
-          <div class="settings-appspace-indexdb-info">
-            <div class="title">indexedDB</div>
-            <div>quota (bytes)</div><div class="quota"></div>
-            <div>usage (bytes)</div><div class="usage"></div>
-            <div>used (%)</div><div class="percent"></div>
-          </div>
-
-        </div>
-      </details>
-
-      <details class="settings-appspace-section settings-appspace-build-info">
-        <summary class="settings-appspace-section-summary">
-          <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
-          <h6>build information</h6>
-        </summary>
-        <div class="settings-appspace-build-info-grid">
-          <div class="settings-field-label">browser build</div>
-          <div id="settings-browser-build-value" class="settings-appspace-build-value">${String(app.build_number)}</div>
-          <div class="settings-field-label">node peer build</div>
-          <div id="settings-node-peer-build-value" class="settings-appspace-build-value">—</div>
+          <details class="settings-appspace-subsection settings-appspace-build-info">
+            <summary class="settings-appspace-section-summary">
+              <i class="fas fa-caret-right settings-section-caret" aria-hidden="true"></i>
+              <h6>Build</h6>
+            </summary>
+            <div class="settings-appspace-build-info-grid">
+              <div class="settings-field-label">browser build</div>
+              <div id="settings-browser-build-value" class="settings-appspace-build-value">${String(app.build_number)}</div>
+              <div class="settings-field-label">node peer build</div>
+              <div id="settings-node-peer-build-value" class="settings-appspace-build-value">—</div>
+            </div>
+          </details>
         </div>
       </details>
     </div>
