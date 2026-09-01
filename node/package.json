@@ -80,7 +80,7 @@
     "secp256k1": "3.8.1",
     "snarkjs": "0.7.6",
     "sqlite": "5.1.1",
-    "sqlite3": "6.0.1",
+    "sqlite3": "5.1.7",
     "unzipper": "0.12.5",
     "url": "0.11.4",
     "uuid-by-string": "3.0.7",
