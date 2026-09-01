@@ -84,10 +84,10 @@ module.exports = (profile) => {
       <div class="profile-description-${keyClass}" data-id="${safeKey}">${bio}</div>
       ${canEdit ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>` : ''}
     `;
-  } else if (canEdit) {
+  } else {
     descriptionInner = profile.emptyBioPlaceholderHtml
-      ? profile.emptyBioPlaceholderHtml()
-      : `<div class="redsquare-profile-description-edit placeholder"></div>`;
+      ? profile.emptyBioPlaceholderHtml(canEdit)
+      : `<div class="redsquare-profile-description-placeholder">No profile description yet.</div>`;
   }
 
   const bannerStyle = bannerUrl

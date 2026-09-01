@@ -1,14 +1,8 @@
 const ProfileTemplate = require('./profile.template');
 
-const EMPTY_BIO_QUOTES = [
-  "Once an idea has taken hold of the brain it's almost impossible to eradicate. An idea that is fully formed - fully understood - that sticks; right in there somewhere.",
-  "Dreams feel real while we're in them. It's only when we wake up that we realize something was actually strange.",
-  "They say we only use a fraction of our brain's true potential.",
-  'Your condescension, as always, is much appreciated.',
-  'My father accepts that I want to create for myself, not follow in his footsteps.',
-  'The more you change things, the quicker the projections start to converge on you.',
-  "These aren't just dreams. These are memories. And you said never to use memories."
-];
+const DEFAULT_OWN_PROFILE_PLACEHOLDER =
+  'This is your profile. Stay anonymous or provide an image or comment introducing yourself.';
+const DEFAULT_OTHER_PROFILE_PLACEHOLDER = 'No profile description yet.';
 
 class Profile {
   constructor(app, mod, container = '') {
@@ -21,25 +15,30 @@ class Profile {
     this._dom_bound = false;
   }
 
-  /**
-   * Placeholder when the viewer’s own bio is empty — ambient quote, not a CTA.
-   */
-  returnEmptyBioQuote() {
-    return EMPTY_BIO_QUOTES[Math.floor(Math.random() * EMPTY_BIO_QUOTES.length)];
+  hasProfileDescription(value) {
+    return String(value ?? '').trim().length > 0;
   }
 
-  emptyBioPlaceholderHtml() {
-    const quote = this.returnEmptyBioQuote();
+  emptyBioPlaceholderText(canEdit = false) {
+    return canEdit ? DEFAULT_OWN_PROFILE_PLACEHOLDER : DEFAULT_OTHER_PROFILE_PLACEHOLDER;
+  }
+
+  emptyBioPlaceholderHtml(canEdit = false) {
+    const text = this.emptyBioPlaceholderText(canEdit);
     const safe =
       typeof this.app.browser?.sanitize === 'function'
-        ? this.app.browser.sanitize(quote, true)
-        : String(quote)
+        ? this.app.browser.sanitize(text, true)
+        : String(text)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
 
-    return `<div class="redsquare-profile-description-edit placeholder">${safe}</div>`;
+    const editHtml = canEdit
+      ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>`
+      : '';
+
+    return `<div class="redsquare-profile-description-placeholder">${safe}</div>${editHtml}`;
   }
 
   /**
@@ -61,7 +60,8 @@ class Profile {
     const existing =
       key === this.mod.publicKey ? this.mod.profile || {} : this.profiles[key] || {};
     const can_edit = this.canEditProfile(key);
-    let bio = existing.bio || existing.description || '';
+    const rawBio = existing.bio || existing.description || '';
+    let bio = this.hasProfileDescription(rawBio) ? rawBio : '';
     if (bio && this.app.browser?.sanitize) {
       bio = this.app.browser.sanitize(bio, true);
     }
@@ -333,10 +333,10 @@ class Profile {
     if (container) {
       const canEdit = this.canEditProfile(publicKey);
       container.classList.toggle('can-edit', canEdit);
-      container.classList.toggle('empty', !description && canEdit);
+      container.classList.toggle('empty', !this.hasProfileDescription(description));
 
-      if (!description) {
-        container.innerHTML = canEdit ? this.emptyBioPlaceholderHtml() : '';
+      if (!this.hasProfileDescription(description)) {
+        container.innerHTML = this.emptyBioPlaceholderHtml(canEdit);
       } else {
         const sanitized = this.app.browser.sanitize(description, true).replaceAll('\n', '<br>');
         container.innerHTML = `

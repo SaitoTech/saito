@@ -4,6 +4,7 @@ const SaitoSyncTemplate = require('./saito-sync.template');
 const POLL_INTERVAL_MS = 400;
 const MIN_SYNCING_VISIBLE_MS = 500;
 const SYNCING_FADE_MS = 220;
+const NEAR_TIP_BLOCK_THRESHOLD = 2n;
 const ZERO_BLOCK_HASH = '0'.repeat(64);
 
 class SaitoSync {
@@ -79,7 +80,7 @@ class SaitoSync {
     }
 
     const current = this.local_current_block_id ?? this.toBigInt(this.payload?.current_block_id);
-    if (target != null && current != null && current >= target) {
+    if (this.isNearTip(current, target)) {
       this.sync_complete = true;
       this.scheduleDismissSyncing();
       return;
@@ -114,9 +115,30 @@ class SaitoSync {
     this.displayed_current_block_id = this.toBigInt(
       this.local_current_block_id ?? this.payload?.current_block_id
     );
+    this.updateNumberWidths(this.toBigInt(this.payload?.target_block_id));
   }
 
-  attachEvents() {}
+  attachEvents() {
+    const button = document.getElementById('saito-sync-skip');
+    if (!button) {
+      return;
+    }
+    button.onclick = (event) => {
+      event.preventDefault();
+      this.skipSyncWait();
+    };
+  }
+
+  skipSyncWait() {
+    if (this.ui_mode !== 'syncing' || !this.overlay.visible) {
+      return;
+    }
+    this.sync_complete = true;
+    this.stopProgressPolling();
+    this.cancelPendingUi();
+    this.pending_transition = null;
+    this.fadeOutSyncing();
+  }
 
   onOverlayClosed() {
     this.initial_sync_completed = true;
@@ -439,7 +461,7 @@ class SaitoSync {
       }
 
       const target = this.toBigInt(this.payload?.target_block_id);
-      if (target != null && latest >= target) {
+      if (this.isNearTip(latest, target)) {
         this.sync_complete = true;
         this.stopProgressPolling();
         this.scheduleDismissSyncing();
@@ -541,6 +563,24 @@ class SaitoSync {
     if (el) {
       el.textContent = this.formatBlockId(value);
     }
+    this.updateNumberWidths(value);
+  }
+
+  updateNumberWidths(target) {
+    const label = document.querySelector('.saito-sync-progress-label');
+    if (!label) {
+      return;
+    }
+    const formatted = this.formatBlockId(target);
+    const width = formatted === '—' ? 4 : formatted.length;
+    label.style.setProperty('--saito-sync-num-ch', String(width));
+  }
+
+  isNearTip(current, target) {
+    if (current == null || target == null || target <= 0n) {
+      return false;
+    }
+    return current >= target - NEAR_TIP_BLOCK_THRESHOLD;
   }
 
   setProgress(current, target) {
@@ -559,7 +599,7 @@ class SaitoSync {
     if (current == null || target == null || target <= 0n) {
       return 0;
     }
-    if (current >= target) {
+    if (this.isNearTip(current, target)) {
       return 100;
     }
     return Number((current * 10000n) / target) / 100;
