@@ -47,6 +47,18 @@ class SaitoSync {
   }
 
   onChunkReceived() {
+    if (this.shouldInhibitOverlay()) {
+      this.stopProgressPolling();
+      this.cancelPendingUi();
+      this.pending_transition = null;
+      this.ui_mode = 'idle';
+      this.syncing_shown_at = null;
+      if (this.overlay.visible) {
+        this.overlay.remove();
+      }
+      return;
+    }
+
     if (this.initial_sync_completed) {
       return;
     }
@@ -92,6 +104,14 @@ class SaitoSync {
 
     this.cancelPendingUi();
     this.startProgressPolling();
+  }
+
+  shouldInhibitOverlay() {
+    const page_inhibits_overlay =
+      typeof document !== 'undefined' &&
+      document.body?.hasAttribute('data-inhibit-block-sync-overlay');
+    const active_mod = this.app?.modules?.returnActiveModule?.();
+    return page_inhibits_overlay || active_mod?.inhibit_block_sync_overlay === true;
   }
 
   showSyncingOverlay() {
