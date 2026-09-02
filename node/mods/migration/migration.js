@@ -114,6 +114,7 @@ class Migration extends ModTemplate {
       }
 
       if (this.publicKey === this.migration_publickey) {
+        await this.ensureAutoMigrationSchema();
         await this.load();
 
         // ERC-SAITO inbound confirmed via CryptoModule receivePayment polling
@@ -132,6 +133,91 @@ class Migration extends ModTemplate {
       }
 
       return;
+    }
+  }
+
+  async ensureAutoMigrationSchema() {
+    const db = await this.app.storage.returnDatabaseByName('migration');
+    const columns = await db.all('PRAGMA table_info(auto_migration)');
+
+    if (!columns.length) {
+      throw new Error('Migration: auto_migration table is missing');
+    }
+
+    const columnNames = new Set(columns.map((column) => column.name));
+    const table = await db.get(
+      `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'auto_migration'`
+    );
+    const expectedColumns = [
+      'id',
+      'public_key',
+      'ticker',
+      'mixin',
+      'nolan_received',
+      'created_at',
+      'status',
+      'tx_sig',
+      'blk_id',
+      'issued_at',
+      'announcement_hash'
+    ];
+    const retainedColumns = columns
+      .map((column) => column.name)
+      .filter((column) => expectedColumns.includes(column));
+    const comparableExpectedColumns = expectedColumns.filter((column) => columnNames.has(column));
+    const tailNeedsUpgrade =
+      !/awaiting_mixin/.test(table?.sql || '') ||
+      !columnNames.has('announcement_hash') ||
+      retainedColumns.join(',') !== comparableExpectedColumns.join(',');
+    const legacyColumns = ['issuance_tx', 'issuance_at', 'migration_type', 'email'].filter(
+      (column) => columnNames.has(column)
+    );
+
+    if (!tailNeedsUpgrade && legacyColumns.length === 0) {
+      return;
+    }
+
+    const statements = [];
+    if (tailNeedsUpgrade) {
+      const tailColumns = ['status', 'tx_sig', 'blk_id', 'issued_at', 'announcement_hash'];
+      const definitions = {
+        status: `TEXT DEFAULT 'pending' CHECK (status IN ('awaiting_mixin','pending','issuing','succeeded','failed'))`,
+        tx_sig: 'TEXT DEFAULT ""',
+        blk_id: 'INTEGER DEFAULT 0',
+        issued_at: 'INTEGER DEFAULT 0',
+        announcement_hash: 'TEXT DEFAULT ""'
+      };
+      const preservedColumns = tailColumns.filter((column) => columnNames.has(column));
+
+      for (const column of preservedColumns) {
+        if (columnNames.has(`${column}_legacy`)) {
+          throw new Error(`Migration: auto_migration.${column}_legacy already exists`);
+        }
+        statements.push(`ALTER TABLE auto_migration RENAME COLUMN ${column} TO ${column}_legacy`);
+      }
+      for (const column of tailColumns) {
+        statements.push(`ALTER TABLE auto_migration ADD COLUMN ${column} ${definitions[column]}`);
+      }
+      for (const column of preservedColumns) {
+        statements.push(`UPDATE auto_migration SET ${column} = ${column}_legacy`);
+      }
+      for (const column of preservedColumns) {
+        statements.push(`ALTER TABLE auto_migration DROP COLUMN ${column}_legacy`);
+      }
+    }
+    for (const column of legacyColumns) {
+      statements.push(`ALTER TABLE auto_migration DROP COLUMN ${column}`);
+    }
+
+    await db.exec('BEGIN IMMEDIATE');
+    try {
+      for (const statement of statements) {
+        await db.exec(statement);
+      }
+      await db.exec('COMMIT');
+    } catch (error) {
+      await db.exec('ROLLBACK').catch(() => {});
+      throw error;
     }
   }
 

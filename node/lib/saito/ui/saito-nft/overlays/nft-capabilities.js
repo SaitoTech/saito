@@ -250,9 +250,7 @@ class NFTCapabilities {
   }
 
   showDescription(text = '') {
-    const desc = document.querySelector(
-      '.saito-nft-panel-view .saito-nft-capability-desc'
-    );
+    const desc = document.querySelector('.saito-nft-panel-view .saito-nft-capability-desc');
     if (!desc) {
       return;
     }

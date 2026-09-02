@@ -304,21 +304,6 @@
   gap: var(--saito-space-md);
 }
 
-.saito-sync:not(.saito-sync-behind) .saito-sync-meter {
-  order: 1;
-}
-
-.saito-sync:not(.saito-sync-behind) .saito-sync-status {
-  order: 2;
-}
-
-.saito-sync-status {
-  margin: 0;
-  color: var(--saito-muted-foreground);
-  font-size: 1.45rem;
-  line-height: 1.35;
-}
-
 .saito-sync-meter {
   display: flex;
   flex-direction: column;
@@ -328,16 +313,28 @@
 }
 
 .saito-sync-progress-label {
+  --saito-sync-num-ch: 6;
   margin: 0;
   color: var(--saito-foreground);
   font-size: 1.65rem;
   line-height: 1.25;
 }
 
-#saito-sync-current-block {
+.saito-sync-num,
+#saito-sync-current-block,
+#saito-sync-target-block {
   display: inline-block;
+  font-family: var(--saito-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+#saito-sync-current-block,
+#saito-sync-target-block {
+  min-width: calc(var(--saito-sync-num-ch) * 1ch);
+}
+
+#saito-sync-current-block {
   color: var(--saito-primary);
-  font-family: var(--saito-font-medium);
 }
 
 #saito-sync-target-block {
@@ -347,6 +344,22 @@
 #saito-sync-current-block.saito-sync-beat,
 #saito-sync-current-block.saito-sync-tick {
   animation: saito-sync-number-beat 0.42s ease;
+}
+
+.saito-sync-wait {
+  margin: var(--saito-space-sm) 0 0;
+  color: var(--saito-muted-foreground);
+  font-size: 1.45rem;
+  line-height: 1.35;
+}
+
+.saito-sync-skip {
+  width: min(22rem, 88%);
+  min-width: 0;
+  margin: var(--saito-space-sm) 0 0;
+  padding: 0.85rem 1.4rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .saito-sync-progress {
@@ -535,12 +548,16 @@
     --saito-sync-logo: 30%;
   }
 
-  .saito-sync-status {
+  .saito-sync-progress-label {
+    font-size: 1.5rem;
+  }
+
+  .saito-sync-wait {
     font-size: 1.35rem;
   }
 
-  .saito-sync-progress-label {
-    font-size: 1.5rem;
+  .saito-sync-skip {
+    width: 100%;
   }
 }
 

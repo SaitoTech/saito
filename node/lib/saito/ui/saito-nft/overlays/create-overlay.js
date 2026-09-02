@@ -703,8 +703,7 @@ class CreateNFT {
 
       btn.disabled = true;
       btn.setAttribute('aria-busy', 'true');
-      btn.innerHTML =
-        '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Minting…';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Minting…';
       await yieldForPaint();
 
       let obj = await this.createObject();

@@ -1,7 +1,9 @@
 const SettingsAppspaceTemplate = require('./main.template.js');
+const SettingsContactsTemplate = require('./contacts.template');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoModule = require('./../../../../lib/saito/ui/saito-module/saito-module');
 const SaitoRecover = require('./../../../../lib/saito/ui/modals/saito-recovery/saito-recovery');
+const UserMenu = require('./../../../../lib/saito/ui/modals/user-menu/user-menu');
 
 const jsonTree = require('json-tree-viewer');
 
@@ -234,6 +236,56 @@ class SettingsAppspace {
     }
   }
 
+  renderContacts() {
+    const contacts = document.getElementById('settings-appspace-contacts');
+    if (!contacts) {
+      return;
+    }
+
+    contacts.innerHTML = SettingsContactsTemplate(this.app);
+    this.attachContactEvents();
+  }
+
+  attachContactEvents() {
+    document.querySelectorAll('.settings-appspace-contact').forEach((contact) => {
+      const openUserMenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const publicKey = e.currentTarget.dataset.id;
+        const userMenu = new UserMenu(this.app, publicKey, {
+          contactAction: 'delete',
+          onDelete: () => this.renderContacts()
+        });
+        userMenu.render();
+      };
+
+      contact.onclick = openUserMenu;
+      contact.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          openUserMenu(e);
+        }
+      };
+    });
+  }
+
+  async addContact() {
+    const address = await sprompt('Enter Address of Contact to Add:');
+    if (!address) {
+      return;
+    }
+
+    if (!this.app.crypto.isPublicKey(address)) {
+      salert('Not a Network Address / Public Key');
+      return;
+    }
+
+    salert(`Adding ${address} as Contact`);
+    this.app.keychain.addKey(address);
+    this.app.connection.emit('encrypt-key-exchange', address);
+    this.renderContacts();
+  }
+
   renderStorageInfo() {
     navigator.storage
       .estimate()
@@ -287,7 +339,7 @@ class SettingsAppspace {
 
     try {
       let settings_sections = Array.from(
-        document.querySelectorAll('.settings-appspace details.settings-appspace-section')
+        document.querySelectorAll('.settings-appspace-body > details.settings-appspace-section')
       );
       settings_sections.forEach((section) => {
         section.ontoggle = () => {
@@ -343,6 +395,8 @@ class SettingsAppspace {
           app.connection.emit('register-username-or-login');
         };
       }
+
+      this.attachContactEvents();
 
       if (document.getElementById('trigger-appstore-btn')) {
         document.getElementById('trigger-appstore-btn').onclick = function (e) {
@@ -536,6 +590,21 @@ class SettingsAppspace {
       addAppBtn.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           openModuleInstall(e);
+        }
+      };
+    }
+
+    if (document.getElementById('settings-add-contact')) {
+      const addContactBtn = document.getElementById('settings-add-contact');
+      const addContact = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.addContact();
+      };
+      addContactBtn.onclick = addContact;
+      addContactBtn.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          addContact(e);
         }
       };
     }

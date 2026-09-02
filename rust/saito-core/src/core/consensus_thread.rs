@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use ahash::HashMap;
 use async_trait::async_trait;
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -525,9 +525,18 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             while !list.is_empty() {
                 let file_names: Vec<String> =
                     list.drain(..std::cmp::min(10000, list.len())).collect();
-                self.storage
+                if !self
+                    .storage
                     .load_blocks_from_disk(file_names.as_slice(), self.mempool_lock.clone())
-                    .await;
+                    .await
+                {
+                    error!(
+                        "refusing to start: block file load failed mid-batch ({} files drained from queue). \
+                         fix or remove the corrupt file under data/blocks/ and restart",
+                        file_names.len()
+                    );
+                    panic!("blockchain disk load failed: incomplete batch");
+                }
 
                 {
                     let mempool = self.mempool_lock.read().await;
@@ -1461,8 +1470,10 @@ mod tests {
         let mut blocks = vec![];
         // create a main fork first
         for i in 2..=100 {
+            // Fees are unrelated to replay handling and can strand the wallet's
+            // larger slips outside this test's short genesis window.
             let tx = tester
-                .create_transaction(NOLAN_PER_SAITO, NOLAN_PER_SAITO, public_key)
+                .create_transaction(NOLAN_PER_SAITO, 0, public_key)
                 .await
                 .unwrap();
 
@@ -1563,7 +1574,7 @@ mod tests {
         // create a main fork first
         for i in 2..=100 {
             let tx = tester
-                .create_transaction(NOLAN_PER_SAITO, NOLAN_PER_SAITO, public_key)
+                .create_transaction(NOLAN_PER_SAITO, 0, public_key)
                 .await
                 .unwrap();
 

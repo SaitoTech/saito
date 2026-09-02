@@ -111,11 +111,7 @@ class GameWeb3 {
     console.info('GT [queueGameStakeSettlement] winners: ', winners);
 
     if (!this.game?.stake || !this.game?.crypto) {
-      console.debug(
-        'GT [queueGameStakeSettlement] No stake: ',
-        this.game.stake,
-        this.game.crypto
-      );
+      console.debug('GT [queueGameStakeSettlement] No stake: ', this.game.stake, this.game.crypto);
       return;
     }
 

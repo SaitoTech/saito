@@ -474,7 +474,9 @@ export default class Wallet extends SaitoWallet {
           throw new Error('sendPayment: Attempting to send payment with insufficient balance');
         }
 
-        console.info('[TEMP_DIAG_POKER_AUTH] validateAddress about to run', { to_address: trunc(to_address) });
+        console.info('[TEMP_DIAG_POKER_AUTH] validateAddress about to run', {
+          to_address: trunc(to_address)
+        });
         if (!this.validateAddress(to_address)) {
           console.info('[TEMP_DIAG_POKER_AUTH] validateAddress check FAILED');
           throw new Error('sendPayment: Attempting to send payment to invalid public key');
@@ -1127,24 +1129,35 @@ export default class Wallet extends SaitoWallet {
               cryptomod_formatAddress: trunc(cryptomod.formatAddress())
             });
             await this.savePreferredCryptoTransaction(unique_hash);
-            console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment saved preferred crypto transaction', {
-              unique_hash: trunc(unique_hash)
-            });
-            try {
-              console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment calling cryptomod.sendPayment', {
-                amount: amounts[i],
-                receiver: trunc(receivers[i]),
+            console.info(
+              '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment saved preferred crypto transaction',
+              {
                 unique_hash: trunc(unique_hash)
-              });
+              }
+            );
+            try {
+              console.info(
+                '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment calling cryptomod.sendPayment',
+                {
+                  amount: amounts[i],
+                  receiver: trunc(receivers[i]),
+                  unique_hash: trunc(unique_hash)
+                }
+              );
               const hash = await cryptomod.sendPayment(amounts[i], receivers[i], unique_hash, memo);
-              console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod.sendPayment returned', {
-                hash: trunc(hash)
-              });
+              console.info(
+                '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod.sendPayment returned',
+                {
+                  hash: trunc(hash)
+                }
+              );
               //
               // hash is "" if unsuccessful, trace_id if successful
               //
               if (hash === '') {
-                console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod returned empty hash (treat as unsuccessful)');
+                console.info(
+                  '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod returned empty hash (treat as unsuccessful)'
+                );
                 this.deletePreferredCryptoTransaction(unique_hash);
               }
 
@@ -1171,9 +1184,12 @@ export default class Wallet extends SaitoWallet {
               }
 
               if (mycallback) {
-                console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment invoking mycallback with success', {
-                  hash: trunc(hash)
-                });
+                console.info(
+                  '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment invoking mycallback with success',
+                  {
+                    hash: trunc(hash)
+                  }
+                );
                 mycallback({ hash: hash });
               }
               return { hash: hash };
@@ -1182,9 +1198,12 @@ export default class Wallet extends SaitoWallet {
               // it failed, delete the transaction
               this.deletePreferredCryptoTransaction(unique_hash);
               rtnObj = { err: err instanceof Error ? err.message : String(err) };
-              console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod.sendPayment threw', {
-                err: typeof rtnObj?.err === 'string' ? trunc(rtnObj.err) : rtnObj?.err
-              });
+              console.info(
+                '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod.sendPayment threw',
+                {
+                  err: typeof rtnObj?.err === 'string' ? trunc(rtnObj.err) : rtnObj?.err
+                }
+              );
             }
           } else {
             console.log(cryptomod.name);
@@ -1204,7 +1223,9 @@ export default class Wallet extends SaitoWallet {
       }
     } else {
       rtnObj = { err: 'already sent' };
-      console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment preferred tx already exists -> already sent');
+      console.info(
+        '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment preferred tx already exists -> already sent'
+      );
     }
 
     // console.error('sendPayment ERROR: ', rtnObj);

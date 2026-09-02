@@ -8,7 +8,7 @@ const SaitoSyncTemplate = (sync) => {
   return `
     <div id="saito-sync" class="saito-overlay-form saito-sync">
       <div class="saito-overlay-form-header">
-        <h2 class="saito-overlay-form-header-title">SYNCING BLOCKCHAIN</h2>
+        <h2 class="saito-overlay-form-header-title">SYNCING BLOCKS</h2>
       </div>
       <div class="saito-sync-body">
         <div class="saito-sync-graphic" aria-hidden="true">
@@ -29,11 +29,10 @@ const SaitoSyncTemplate = (sync) => {
           </div>
         </div>
         <div class="saito-sync-copy">
-          <p class="saito-sync-status">Loading the blockchain</p>
           <div class="saito-sync-meter">
             <p class="saito-sync-progress-label">
-              Block <span id="saito-sync-current-block">${current_block_id}</span>
-              of <span id="saito-sync-target-block">${target_block_id}</span>
+              Loading <span id="saito-sync-current-block" class="saito-sync-num">${current_block_id}</span>
+              of <span id="saito-sync-target-block" class="saito-sync-num">${target_block_id}</span>
             </p>
             <div
               class="saito-sync-progress"
@@ -45,6 +44,14 @@ const SaitoSyncTemplate = (sync) => {
             >
               <div class="saito-sync-progress-fill" id="saito-sync-progress-fill"></div>
             </div>
+            <p class="saito-sync-wait">wait for blockchain to sync, or...</p>
+            <button
+              type="button"
+              class="saito-button-primary saito-sync-skip"
+              id="saito-sync-skip"
+            >
+              skip the wait...
+            </button>
           </div>
         </div>
       </div>

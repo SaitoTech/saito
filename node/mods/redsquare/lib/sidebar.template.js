@@ -49,10 +49,7 @@ module.exports = (sidebar) => {
       </section>
 
       <footer class="footer">
-        <a href="#">About</a>
-        <a href="#">Terms</a>
-        <a href="#">Privacy</a>
-        <span>© 2026 Saito</span>
+        <a href="https://archive.saito.io/saito.tech/copyright-policy-claims/" target="_blank" rel="noopener noreferrer">Terms of Service @ 2026 Saito</a>
       </footer>
   `;
 };

@@ -72,7 +72,7 @@
   height: 6.4rem;
   z-index: 1;
   object-fit: cover;
-  border: 3px solid var(--saito-card-wash);
+  border: 5px solid transparent;
   border-radius: var(--saito-radius);
   background: var(--saito-card-wash);
 }

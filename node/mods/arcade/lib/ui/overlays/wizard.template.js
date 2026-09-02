@@ -22,9 +22,9 @@ module.exports = (game_mod, invite_obj = {}) => {
         <div class="settings">
           ${game_mod.returnOptions()}
           <div id="arcade-advance-opt">
-            <button type="button" class="advanced-btn saito-button-secondary" aria-label="Advanced options">
+            <button type="button" class="advanced-btn saito-button-secondary" aria-label="advanced options">
               <i class="fa-solid fa-gear" aria-hidden="true"></i>
-              <span>Advanced</span>
+              <span>advanced</span>
             </button>
           </div>
         </div>

@@ -146,9 +146,6 @@ class NftPickerOverlay {
    * Prefers the header-owned instance so we do not register a second listener.
    */
   openCreateNft() {
-    if (this.defaults) {
-      this.defaults.callback = null;
-    }
     this.overlay.close();
 
     let createNft =
@@ -164,7 +161,7 @@ class NftPickerOverlay {
       createNft = this.create_nft_overlay;
     }
 
-    createNft.render();
+    createNft.render(this.defaults || {});
   }
 
   async handleSelect(nft) {

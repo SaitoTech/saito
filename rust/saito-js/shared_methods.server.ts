@@ -135,10 +135,23 @@ export class ServerSharedMethods implements SharedMethods {
   }
 
   writeValue(key: string, value: Uint8Array): void {
+    const tmp = key + ".tmp";
     try {
-      fs.writeFileSync(key, value);
+      fs.writeFileSync(tmp, value);
+      const fd = fs.openSync(tmp, "r+");
+      try {
+        fs.fsyncSync(fd);
+      } finally {
+        fs.closeSync(fd);
+      }
+      fs.renameSync(tmp, key);
     } catch (error) {
-      // console.error(error);
+      try {
+        fs.rmSync(tmp, { force: true });
+      } catch {
+        // ignore cleanup failure
+      }
+      throw error;
     }
   }
 
