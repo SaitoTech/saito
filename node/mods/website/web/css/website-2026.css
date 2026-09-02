@@ -2907,8 +2907,7 @@ body.websitex .site-header.is-scrolled + #saito-header .saito-header-backdrop {
   .mobile-nav {
     display: flex;
     padding: max(6rem, calc(5rem + env(safe-area-inset-top)))
-      max(var(--mobile-gutter), env(safe-area-inset-right))
-      max(2rem, env(safe-area-inset-bottom))
+      max(var(--mobile-gutter), env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom))
       max(var(--mobile-gutter), env(safe-area-inset-left));
     overflow-y: auto;
   }
@@ -3434,8 +3433,7 @@ body.websitex .site-header.is-scrolled + #saito-header .saito-header-backdrop {
   .route-dialog {
     padding: max(0.75rem, env(safe-area-inset-top))
       max(var(--mobile-gutter), env(safe-area-inset-right))
-      max(0.75rem, env(safe-area-inset-bottom))
-      max(var(--mobile-gutter), env(safe-area-inset-left));
+      max(0.75rem, env(safe-area-inset-bottom)) max(var(--mobile-gutter), env(safe-area-inset-left));
   }
 
   .traffic-dialog-bar {
