@@ -44,7 +44,7 @@ class RegisterUsername {
           document.querySelector('.saito-button-row').remove();
           this.loader.render();
           this.app.browser.addElementToId(
-            `<div class="saito-overlay-form-subtext">It can take one or two block cycles to confirm your name registration, please be patient.</div>`,
+            `<div class="saito-overlay-form-subtext">Registration in process, please wait...</div>`,
             'register-username-template'
           );
         } catch (err) {

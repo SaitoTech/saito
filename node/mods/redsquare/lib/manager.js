@@ -43,15 +43,15 @@ class Manager {
     this.profile_cache = {};
 
     // Per-view Manager chrome. Header is navigation only (back + title).
-    // Home / notifications omit sticky chrome.
-    // Thread and profile detail views keep the pinned header for back navigation.
+    // Home / notifications / user-content (posts/replies/likes) omit sticky chrome.
+    // Thread keeps the pinned header for back navigation.
     this.viewChrome = {
       timeline: { header: false },
       notifications: { header: false },
       thread: { header: true },
-      posts: { header: true },
-      replies: { header: true },
-      likes: { header: true }
+      posts: { header: false },
+      replies: { header: false },
+      likes: { header: false }
     };
   }
 
@@ -238,6 +238,7 @@ class Manager {
     }
 
     this.mod.main?.showProfile?.(this.active_profile_key);
+    this.clearPrimaryNavigation();
     this.render();
     this.restoreScrollPosition(mode);
     this.syncFeedStatus();
@@ -277,6 +278,12 @@ class Manager {
     this.attachEvents();
     this.syncScrollFooter();
     this.syncProfileNav();
+
+    // Remounts (e.g. main.render → menu.render) restore Home as active by default;
+    // re-clear so user-content views never leave primary nav highlighted.
+    if (this.isProfileMode()) {
+      this.clearPrimaryNavigation();
+    }
   }
 
   ensureShell() {
@@ -368,17 +375,16 @@ class Manager {
       const title = header?.querySelector('.title');
       const back = header?.querySelector('.back');
 
+      // Only views with viewChrome.header === true reach here (currently: thread).
       const labels = {
         timeline: 'Home',
         notifications: 'Notifications',
-        thread: 'Post',
-        posts: 'Profile',
-        replies: 'Profile',
-        likes: 'Profile'
+        thread: 'Post'
       };
 
       if (title) {
         title.textContent = labels[this.mode] || 'Home';
+        title.hidden = false;
       }
 
       const isDetail = this.isDetailHeaderMode();
@@ -649,11 +655,19 @@ class Manager {
   }
 
   resetMenuToHome() {
-    const homeItem = document.querySelector('.sidebar-left [data-nav="home"]');
+    const homeItem = document.querySelector('.sidebar-left .menu [data-nav="home"]');
 
     if (homeItem && this.mod.main?.menu) {
       this.mod.main.menu.setActiveMenuItem(homeItem);
     }
+  }
+
+  /**
+   * User-content views are not primary navigation destinations.
+   * Clear Home / Notifications / etc. selection while posts/replies/likes are shown.
+   */
+  clearPrimaryNavigation() {
+    this.mod.main?.menu?.clearActiveMenuItem?.();
   }
 
   getPaginationState() {

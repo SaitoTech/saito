@@ -124,7 +124,7 @@ module.exports = (profile) => {
             </div>
           </div>
           <div class="${descriptionClass}">${descriptionInner}</div>
-          <nav class="nav" aria-label="Profile navigation">
+          <nav class="nav" aria-label="Posts, replies, and likes">
             <div class="item" role="link" tabindex="0" data-profile-nav="posts">Posts</div>
             <div class="item" role="link" tabindex="0" data-profile-nav="replies">Replies</div>
             <div class="item" role="link" tabindex="0" data-profile-nav="likes">Likes</div>
