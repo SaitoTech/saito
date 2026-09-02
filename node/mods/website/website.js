@@ -112,6 +112,7 @@ class Websitex extends ModTemplate {
     const siteHeader = document.querySelector('[data-site-header]');
     const menuTrigger = document.getElementById('saito-header-menu-toggle');
     const menuProxy = document.querySelector('[data-header-open-saito]');
+    const mobileMenuProxy = document.querySelector('[data-menu-toggle]');
     const sidebar = document.querySelector('.saito-header-hamburger-contents');
     const backdrop = document.querySelector('.saito-header-backdrop');
     const menuCue = document.querySelector('[data-saito-menu-cue]');
@@ -147,6 +148,12 @@ class Websitex extends ModTemplate {
       liveTrigger.setAttribute('aria-label', isOpen ? 'Close Saito menu' : 'Open Saito menu');
       menuProxy.setAttribute('aria-expanded', String(isOpen));
       menuProxy.setAttribute('aria-label', isOpen ? 'Close Saito menu' : 'Open Saito menu');
+
+      if (mobileMenuProxy && siteHeader.classList.contains('network-online')) {
+        mobileMenuProxy.setAttribute('aria-controls', 'saito-sidebar');
+        mobileMenuProxy.setAttribute('aria-expanded', String(isOpen));
+        mobileMenuProxy.setAttribute('aria-label', isOpen ? 'Close Saito menu' : 'Open Saito menu');
+      }
     };
 
     const observeSidebar = (liveSidebar) => {
@@ -213,6 +220,8 @@ class Websitex extends ModTemplate {
         }
       });
     }
+
+    syncMenuAccessibility();
 
     menuProxy.classList.remove('saito-menu-arrival');
     window.requestAnimationFrame(() => menuProxy.classList.add('saito-menu-arrival'));

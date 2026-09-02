@@ -6,10 +6,37 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 const header = document.querySelector('[data-site-header]');
 const menuToggle = document.querySelector('[data-menu-toggle]');
 const mobileNavigation = document.querySelector('[data-mobile-nav]');
+const saitoMenuProxy = document.querySelector('[data-header-open-saito]');
 const mobileNavigationLinks = mobileNavigation?.querySelectorAll('a') || [];
 const desktopNavigationLinks = document.querySelectorAll('.desktop-nav a');
 const mobileAppDock = document.querySelector('[data-open-apps]');
 const appsSection = document.querySelector('#apps');
+
+function mobileMenuTargetsSaito() {
+  return Boolean(
+    header?.classList.contains('network-online') &&
+    document.body.classList.contains('saito-shell-ready') &&
+    saitoMenuProxy
+  );
+}
+
+function syncMobileMenuTarget(isOpen = false) {
+  if (!menuToggle) {
+    return;
+  }
+
+  const targetsSaito = mobileMenuTargetsSaito();
+  menuToggle.setAttribute('aria-expanded', String(targetsSaito && isOpen));
+  menuToggle.setAttribute('aria-controls', targetsSaito ? 'saito-sidebar' : 'mobile-navigation');
+  menuToggle.setAttribute(
+    'aria-label',
+    targetsSaito && isOpen
+      ? 'Close Saito menu'
+      : targetsSaito
+        ? 'Open Saito menu'
+        : 'Open navigation'
+  );
+}
 
 function setMenuState(isOpen) {
   if (!menuToggle || !mobileNavigation) {
@@ -31,7 +58,18 @@ function setMenuState(isOpen) {
 }
 
 menuToggle?.addEventListener('click', () => {
+  if (mobileMenuTargetsSaito()) {
+    saitoMenuProxy.click();
+    return;
+  }
+
   setMenuState(menuToggle.getAttribute('aria-expanded') !== 'true');
+});
+
+window.addEventListener('saito-header-menu-state', (event) => {
+  if (mobileMenuTargetsSaito()) {
+    syncMobileMenuTarget(Boolean(event.detail?.open));
+  }
 });
 
 mobileNavigationLinks.forEach((link) => {
@@ -39,19 +77,28 @@ mobileNavigationLinks.forEach((link) => {
 });
 
 window.addEventListener('resize', () => {
-  if (window.innerWidth > 820 && menuToggle?.getAttribute('aria-expanded') === 'true') {
+  if (
+    window.innerWidth > 820 &&
+    menuToggle?.getAttribute('aria-expanded') === 'true' &&
+    !mobileMenuTargetsSaito()
+  ) {
     setMenuState(false);
   }
 });
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && menuToggle?.getAttribute('aria-expanded') === 'true') {
-    setMenuState(false);
+    if (mobileMenuTargetsSaito()) {
+      saitoMenuProxy.click();
+    } else {
+      setMenuState(false);
+    }
   }
 
   if (
     event.key === 'Tab' &&
     menuToggle?.getAttribute('aria-expanded') === 'true' &&
+    !mobileMenuTargetsSaito() &&
     mobileNavigation
   ) {
     const focusable = [
@@ -591,8 +638,12 @@ function applyBrowserNetworkStatus(detail = {}) {
     renderPeers(connectedBrowserPeers, 'The node has no live peers yet.');
     browserNodeLoading = false;
     setJoinStage('On line', 100, 'complete');
+    if (mobileNavigation?.classList.contains('is-open')) {
+      setMenuState(false);
+    }
     browserNodeOnline = true;
     header?.classList.add('network-online');
+    syncMobileMenuTarget(false);
     setNetworkAction('online');
     refreshNodePeers();
     window.Pace?.stop?.();
@@ -600,11 +651,17 @@ function applyBrowserNetworkStatus(detail = {}) {
     renderPeers([], 'Connecting to live peers…');
     const wasOnline = browserNodeOnline;
     browserNodeLoading = true;
-    if (wasOnline && menuToggle?.getAttribute('aria-expanded') === 'true') {
+    const saitoSidebarOpen = document
+      .querySelector('.saito-header-hamburger-contents')
+      ?.classList.contains('show-menu');
+    if (wasOnline && saitoSidebarOpen) {
+      saitoMenuProxy?.click();
+    } else if (wasOnline && menuToggle?.getAttribute('aria-expanded') === 'true') {
       setMenuState(false);
     }
     browserNodeOnline = false;
     header?.classList.remove('network-online');
+    syncMobileMenuTarget(false);
     setNetworkAction('joining');
     setJoinStage('Syncing with network', 88);
     appendNetworkLog('Syncing with network');
@@ -632,7 +689,7 @@ async function loadSaitoBrowserBundle() {
   const previousOnload = window.onload;
   await new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = '/saito/saito.js?websitex=20260902-5';
+    script.src = '/saito/saito.js?websitex=20260902-6';
     script.dataset.saitoBrowserBundle = 'true';
     script.onload = async () => {
       setJoinStage('Creating identity', 45);
