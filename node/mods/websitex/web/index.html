@@ -20,7 +20,7 @@
       media="screen"
     />
     <link rel="stylesheet" href="./css/saito-shell.css" />
-    <link rel="stylesheet" href="./css/website-2026.css" />
+    <link rel="stylesheet" href="./css/website-2026.css?v=20260902-7" />
     <link rel="icon" href="./favicon.ico" sizes="any" />
     <link rel="me" href="https://mastodon.social/@saitonetwork" />
 
@@ -79,7 +79,7 @@
     </script>
   </head>
 
-  <body class="websitex">
+  <body class="websitex" data-inhibit-block-sync-overlay>
     <a class="skip-link" href="#main-content">Skip to content</a>
 
     <header class="site-header" data-site-header>
@@ -178,30 +178,15 @@
 
         <div class="hero-network" aria-label="An abstract peer-to-peer network">
           <div class="network-grid" aria-hidden="true"></div>
-          <div class="hero-node node-a" aria-hidden="true"><span></span></div>
-          <div class="hero-node node-b" aria-hidden="true"><span></span></div>
-          <div class="hero-node node-c" aria-hidden="true"><span></span></div>
-          <div class="hero-node node-d" aria-hidden="true"><span></span></div>
-          <div class="cube-stage">
-            <div class="cube-halo" aria-hidden="true"></div>
-            <img src="/saito/img/saito-cube.svg" alt="" class="hero-cube" />
-          </div>
-          <div class="network-label label-browser">
-            <span></span>
-            Browser
-          </div>
-          <div class="network-label label-peer">
-            <span></span>
-            Peer
-          </div>
-          <div class="network-label label-app">
-            <span></span>
-            App
-          </div>
-          <div class="hero-console" aria-hidden="true">
-            <span>SAITO / NETWORK</span>
-            <strong data-hero-status>READY</strong>
-          </div>
+          <svg
+            class="hero-network-graph"
+            data-hero-network
+            viewBox="0 0 100 100"
+            aria-hidden="true"
+          >
+            <g data-hero-connections></g>
+            <g data-hero-nodes></g>
+          </svg>
         </div>
 
         <a class="hero-scroll" href="#apps">
@@ -217,8 +202,9 @@
             <h2 id="apps-title">The open internet is here.</h2>
           </div>
           <p>
-            Every Saito application opens in your browser and shares the same peer-to-peer
-            foundation. Pick a doorway.
+            All applications on Saito share the same peer-to-peer foundation.<br />
+            Messages and data are shared, however you like.<br />
+            <em>Pick a doorway.</em>
           </p>
         </div>
 
@@ -231,6 +217,8 @@
           <button type="button" data-app-filter="create" aria-pressed="false">Create</button>
           <button type="button" data-app-filter="own" aria-pressed="false">Own</button>
         </div>
+
+        <p class="app-swipe-cue">Swipe to explore <span aria-hidden="true">→</span></p>
 
         <div class="app-grid">
           <a
@@ -403,21 +391,13 @@
               </div>
             </section>
 
-            <div class="dashboard-primary-node">
-              <div>
-                <small>Primary node</small>
-                <strong data-primary-node>Not connected</strong>
-              </div>
-              <span data-primary-node-status>OFFLINE</span>
-            </div>
-
             <div class="dashboard-peers">
               <div>
-                <strong>Peer nodes</strong>
-                <span data-peer-count>0 visible</span>
+                <strong>Live peers</strong>
+                <span data-peer-count>0 live</span>
               </div>
               <ul data-peer-list>
-                <li class="is-placeholder">Join the network to see peer nodes.</li>
+                <li class="is-placeholder">Join the network to see live peers.</li>
               </ul>
             </div>
 
@@ -457,7 +437,7 @@
           <div
             class="route-visual"
             role="img"
-            aria-label="A message travels from a browser through routing peers to an application"
+            aria-label="A message travels between Saito apps through two routing peers"
           >
             <svg viewBox="0 0 800 620" role="img" aria-hidden="true">
               <defs>
@@ -472,30 +452,52 @@
                 d="M100 310 C210 105 318 120 400 310 S605 518 700 310"
               ></path>
               <path
-                class="route-faint"
-                d="M100 310 C240 480 335 480 400 310 S570 105 700 310"
-              ></path>
-              <path
+                id="route-motion-path"
                 class="route-main"
                 d="M100 310 C210 105 318 120 400 310 S605 518 700 310"
               ></path>
-              <circle class="route-packet packet-one" cx="0" cy="0" r="8"></circle>
-              <circle class="route-packet packet-two" cx="0" cy="0" r="5"></circle>
+              <circle
+                class="route-packet"
+                data-route-packet
+                data-route-direction="1"
+                data-route-phase="0"
+                cx="0"
+                cy="0"
+                r="6"
+              ></circle>
+              <circle
+                class="route-packet"
+                data-route-packet
+                data-route-direction="-1"
+                data-route-phase=".16"
+                cx="0"
+                cy="0"
+                r="5"
+              ></circle>
+              <circle
+                class="route-packet"
+                data-route-packet
+                data-route-direction="1"
+                data-route-phase=".62"
+                cx="0"
+                cy="0"
+                r="4.5"
+              ></circle>
             </svg>
             <div class="route-node route-browser">
-              <span class="route-icon">B</span><strong>Your browser</strong
+              <span class="route-icon">A</span><strong>Saito App</strong
               ><small>Creates useful traffic</small>
             </div>
-            <div class="route-node route-peer-one">
+            <div class="route-node route-peer-one" data-route-peer data-route-progress=".254334">
               <span class="route-icon">P</span><strong>Routing peer</strong
               ><small>Carries the data</small>
             </div>
-            <div class="route-node route-peer-two">
+            <div class="route-node route-peer-two" data-route-peer data-route-progress=".748245">
               <span class="route-icon">P</span><strong>Routing peer</strong
               ><small>Connects the edge</small>
             </div>
             <div class="route-node route-destination">
-              <span class="route-icon">A</span><strong>Saito app</strong
+              <span class="route-icon">A</span><strong>Saito App</strong
               ><small>Reaches another peer</small>
             </div>
           </div>
@@ -505,28 +507,29 @@
               <span>01</span>
               <div>
                 <h3>Applications Create Value</h3>
-                <p>Messages, moves, posts, calls, and offers begin in the browser.</p>
+                <p>Users pay for what they use. <br>
+                    Messages, moves, posts, calls, and offers...</p>
               </div>
             </li>
             <li>
               <span>02</span>
               <div>
                 <h3>Nodes Carry the Traffic</h3>
-                <p>Independent infrastructure connects applications and their users.</p>
+                <p>Independent infrastructure competes to serve applications and their users.</p>
               </div>
             </li>
             <li>
               <span>03</span>
               <div>
                 <h3>The Network Rewards the Nodes</h3>
-                <p>Consensus directs value toward infrastructure that serves the network.</p>
+                <p>Consensus directs value toward infrastructure that serves users the best.</p>
               </div>
             </li>
             <li>
               <span>04</span>
               <div>
                 <h3>The Edge Stays Open</h3>
-                <p>Developers build applications instead of rebuilding a closed platform.</p>
+                <p>Developers build applications that work for users not closed platforms to extract.</p>
               </div>
             </li>
           </ol>
@@ -576,10 +579,30 @@
         </div>
       </dialog>
 
+      <dialog class="route-dialog" aria-labelledby="route-dialog-title" data-route-dialog>
+        <div class="traffic-dialog-bar route-dialog-bar">
+          <div>
+            <span>How traffic moves</span>
+            <h2 id="route-dialog-title">Apps connect through routing peers.</h2>
+          </div>
+          <button
+            class="traffic-dialog-close"
+            type="button"
+            aria-label="Close route animation"
+            data-route-dialog-close
+          >
+            <span aria-hidden="true"></span><span aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="route-dialog-content" data-route-dialog-content></div>
+      </dialog>
+
       <section class="ownership section-shell" id="ownership" aria-labelledby="ownership-title">
         <div class="ownership-intro">
-          <p class="eyebrow">A shared ownership layer</p>
-          <h2 id="ownership-title">One Key. Your Identity. Real Ownership.</h2>
+          <div>
+            <p class="eyebrow">A shared ownership layer</p>
+            <h2 id="ownership-title">Your Key. Your Identity. Real Ownership.</h2>
+          </div>
           <p>
             Create an asset, use it in any app, sell it without middlemen, rent it out. The asset is
             yours; you set the rules. No hidden fees, no asking for permission.
@@ -665,23 +688,22 @@
             <p class="eyebrow eyebrow-light">Everything works together</p>
             <h3>Publish here. Discover there. Use it everywhere.</h3>
             <p>
-              Saito applications can share wallet, identity, asset, market, and network capabilities
-              while remaining independent.
+              Users can user their identity, assets, and data across any application on the network.
+
             </p>
             <div class="audience-list">
               <div>
-                <span>For people</span>
-                <p>Create, consume, and exchange using identities you own.</p>
+                <span>Different Apps<br>Same Data</span>
+                <p>A game invite can be a tweet. A store lisitng can be a post in your feed. A chat message can be a game move.</p>
               </div>
               <div>
-                <span>For creators</span>
-                <p>Create, promote, and sell items and subscriptions without permission or fees.</p>
+                <span>Same Data<br>Different Apps</span>
+                <p>Developers compete to build apps the best experience. Users can choose between different apps to access the same conetnt.</p>
               </div>
               <div>
-                <span>For developers</span>
+                <span>Your Data<br>Always</span>
                 <p>
-                  Build apps that expand the ecosystem instead of fighting gatekeepers. Attract
-                  users. Get paid.
+                Identity, contacts and data belong to the user not the platform. There's not penalty to switch apps.
                 </p>
               </div>
             </div>
@@ -752,14 +774,6 @@
               >
                 Start building ↗
               </a>
-              <a
-                class="text-action text-action-light"
-                href="https://github.com/SaitoTech/saito-lite-rust/tree/master/mods"
-                target="_blank"
-                rel="noopener"
-              >
-                Explore modules ↗
-              </a>
             </div>
           </div>
 
@@ -801,11 +815,11 @@
           </a>
           <a href="https://wiki.saito.io/docs" target="_blank" rel="noopener">
             <span>03</span>
-            <h3>Peer services</h3>
-            <p>Discover capabilities and request services across peers.</p>
-            <strong>Read services ↗</strong>
+            <h3>Saito Core</h3>
+            <p>Discover consensus, network and peering.</p>
+            <strong>Dig into Core ↗</strong>
           </a>
-          <a href="https://github.com/SaitoTech/saito-lite-rust" target="_blank" rel="noopener">
+          <a href="https://github.com/SaitoTech/saito" target="_blank" rel="noopener">
             <span>04</span>
             <h3>Open source</h3>
             <p>Inspect, run, extend, and contribute to the network.</p>
@@ -871,7 +885,7 @@
               ><span>Learn</span><strong>Explore the wiki</strong><b aria-hidden="true">↗</b></a
             >
             <a href="/blog"
-              ><span>Updates</span><strong>Read the project blog</strong
+              ><span>Updates</span><strong>Get the latest</strong
               ><b aria-hidden="true">↗</b></a
             >
           </div>
@@ -890,16 +904,16 @@
             <p>Open an application and meet the network.</p>
             <b aria-hidden="true">↗</b>
           </a>
-          <a href="https://wiki.saito.io/en/install" target="_blank" rel="noopener">
+          <a href="https://github.com/SaitoTech/saito" target="_blank" rel="noopener">
             <span>02</span>
             <strong>Build on Saito</strong>
             <p>Turn an idea into a browser-native module.</p>
             <b aria-hidden="true">↗</b>
           </a>
-          <a href="https://github.com/SaitoTech/saito-lite-rust" target="_blank" rel="noopener">
+          <a href="https://wiki.saito.io/en/install" target="_blank" rel="noopener">
             <span>03</span>
             <strong>Run Saito</strong>
-            <p>Inspect the source and operate a node.</p>
+            <p>Inspect the source and run a node.</p>
             <b aria-hidden="true">↗</b>
           </a>
         </div>
@@ -931,6 +945,6 @@
       <span aria-hidden="true">↑</span>
     </button>
 
-    <script src="./js/site-2026.js"></script>
+    <script src="./js/site-2026.js?v=20260902-7"></script>
   </body>
 </html>

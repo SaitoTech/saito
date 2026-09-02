@@ -151,6 +151,13 @@ const trafficDialog = document.querySelector('[data-traffic-dialog]');
 const openTrafficDialog = document.querySelector('[data-traffic-dialog-open]');
 const closeTrafficDialog = document.querySelector('[data-traffic-dialog-close]');
 const trafficAnimation = document.querySelector('[data-traffic-animation]');
+const mobileRouteDialogQuery = window.matchMedia('(max-width: 820px)');
+const routeDialog = document.querySelector('[data-route-dialog]');
+const routeDialogContent = document.querySelector('[data-route-dialog-content]');
+const closeRouteDialog = document.querySelector('[data-route-dialog-close]');
+const routeVisual = document.querySelector('.network-story > .route-visual');
+const routeVisualHome = routeVisual?.parentElement;
+const routeVisualNextSibling = routeVisual?.nextSibling;
 
 async function loadTrafficAnimation() {
   if (!trafficAnimation?.dataset.src) {
@@ -210,8 +217,42 @@ function setTrafficDialogState(isOpen) {
   }
 }
 
-openTrafficDialog?.addEventListener('click', () => setTrafficDialogState(true));
+function restoreRouteVisual() {
+  if (!routeVisual || !routeVisualHome) {
+    return;
+  }
+
+  routeVisualHome.insertBefore(routeVisual, routeVisualNextSibling || null);
+}
+
+function setRouteDialogState(isOpen) {
+  if (!routeDialog || !routeDialogContent || !routeVisual) {
+    return;
+  }
+
+  if (isOpen) {
+    if (routeDialog.open) {
+      return;
+    }
+
+    routeDialogContent.append(routeVisual);
+    routeDialog.showModal();
+    document.body.classList.add('route-dialog-open');
+    closeRouteDialog?.focus();
+  } else if (routeDialog.open) {
+    routeDialog.close();
+  }
+}
+
+openTrafficDialog?.addEventListener('click', () => {
+  if (mobileRouteDialogQuery.matches) {
+    setRouteDialogState(true);
+  } else {
+    setTrafficDialogState(true);
+  }
+});
 closeTrafficDialog?.addEventListener('click', () => setTrafficDialogState(false));
+closeRouteDialog?.addEventListener('click', () => setRouteDialogState(false));
 
 trafficDialog?.addEventListener('close', () => {
   document.body.classList.remove('traffic-dialog-open');
@@ -221,6 +262,24 @@ trafficDialog?.addEventListener('close', () => {
 trafficDialog?.addEventListener('click', (event) => {
   if (event.target === trafficDialog) {
     setTrafficDialogState(false);
+  }
+});
+
+routeDialog?.addEventListener('close', () => {
+  document.body.classList.remove('route-dialog-open');
+  restoreRouteVisual();
+  openTrafficDialog?.focus();
+});
+
+routeDialog?.addEventListener('click', (event) => {
+  if (event.target === routeDialog) {
+    setRouteDialogState(false);
+  }
+});
+
+mobileRouteDialogQuery.addEventListener('change', (event) => {
+  if (!event.matches && routeDialog?.open) {
+    setRouteDialogState(false);
   }
 });
 
@@ -258,12 +317,9 @@ const networkJoinStatus = document.querySelector('[data-network-join-status]');
 const networkJoinPercent = document.querySelector('[data-network-join-percent]');
 const networkJoinMeter = document.querySelector('[data-network-join-meter]');
 const networkLog = document.querySelector('[data-network-log]');
-const primaryNode = document.querySelector('[data-primary-node]');
-const primaryNodeStatus = document.querySelector('[data-primary-node-status]');
 const peerCount = document.querySelector('[data-peer-count]');
 const peerList = document.querySelector('[data-peer-list]');
 const networkUpdated = document.querySelector('[data-network-updated]');
-const heroStatus = document.querySelector('[data-hero-status]');
 let networkChecking = false;
 let networkRefreshTimer;
 let currentBlockHeight;
@@ -274,6 +330,7 @@ let browserNodeStarted = false;
 let browserNodeLoading = false;
 let browserNodeOnline = false;
 let nodePeersRefreshing = false;
+let browserUpstreamPeer = null;
 let restoreConsole = null;
 
 function readStoredBrowserOptions() {
@@ -312,15 +369,7 @@ function peerAddress(peer) {
   return `${protocol}://${peer.host}${peer.port && !defaultPort ? `:${peer.port}` : ''}`;
 }
 
-function compactKey(publicKey) {
-  if (!publicKey || publicKey.length < 18) {
-    return publicKey || '';
-  }
-
-  return `${publicKey.slice(0, 9)}…${publicKey.slice(-7)}`;
-}
-
-function renderPeers(peers, emptyMessage = 'No peer nodes are visible yet.', excludedKeys = []) {
+function renderPeers(peers, emptyMessage = 'No live peers are visible yet.', excludedKeys = []) {
   if (!peerList || !peerCount) {
     return;
   }
@@ -334,7 +383,7 @@ function renderPeers(peers, emptyMessage = 'No peer nodes are visible yet.', exc
   peers.forEach((peer) => {
     const address = peerAddress(peer);
     const key = peer.publicKey || peer.publickey || '';
-    const identifier = address || key;
+    const identifier = key || address;
 
     if (!identifier || ownKeys.has(key) || seen.has(identifier)) {
       return;
@@ -345,7 +394,7 @@ function renderPeers(peers, emptyMessage = 'No peer nodes are visible yet.', exc
   });
 
   peerList.replaceChildren();
-  peerCount.textContent = `${uniquePeers.length} visible`;
+  peerCount.textContent = `${uniquePeers.length} live`;
 
   if (!uniquePeers.length) {
     const empty = document.createElement('li');
@@ -358,13 +407,24 @@ function renderPeers(peers, emptyMessage = 'No peer nodes are visible yet.', exc
   uniquePeers.forEach((peer) => {
     const item = document.createElement('li');
     const label = document.createElement('span');
-    const status = document.createElement('span');
-    label.textContent = peer.address || peer.publicKey || 'Peer';
-    label.title = peer.publicKey || peer.address || '';
-    status.textContent = peer.connected
-      ? 'CONNECTED'
-      : String(peer.status || peer.synctype || 'AVAILABLE').toUpperCase();
-    item.append(label, status);
+    label.className = 'peer-label';
+    const address = peer.address.replace(/^https?:\/\//i, '');
+    const key = document.createElement('span');
+    key.className = 'peer-key';
+    key.textContent = peer.publicKey || address || 'Peer';
+    label.append(key);
+
+    if (peer.publicKey && address) {
+      const peerAddress = document.createElement('span');
+      peerAddress.className = 'peer-address';
+      peerAddress.textContent = ` (${address})`;
+      label.append(peerAddress);
+    }
+
+    label.title = `${peer.publicKey || address || 'Peer'}${
+      peer.publicKey && address ? ` (${address})` : ''
+    }`;
+    item.append(label);
     peerList.append(item);
   });
 }
@@ -405,27 +465,21 @@ function renderStoredBrowser() {
   }
 }
 
-function renderPrimaryNode(peers, stage = 'offline') {
+function trackBrowserUpstream(peers, stage = 'offline') {
   const connectedPeer = peers.find((peer) => peer.connected);
   const candidate = connectedPeer || (stage === 'syncing' ? peers[0] : null);
 
   if (!candidate) {
-    primaryNode.textContent = 'Not connected';
-    primaryNode.title = '';
-    primaryNodeStatus.textContent = stage === 'syncing' ? 'CONNECTING' : 'OFFLINE';
-    primaryNodeStatus.classList.remove('is-live');
+    browserUpstreamPeer = null;
     return;
   }
 
-  const address = (
-    peerAddress(candidate) ||
-    compactKey(candidate.publicKey) ||
-    'Peer node'
-  ).replace(/^https?:\/\//i, '');
-  primaryNode.textContent = address;
-  primaryNode.title = candidate.publicKey || address;
-  primaryNodeStatus.textContent = connectedPeer ? 'CONNECTED' : 'CONNECTING';
-  primaryNodeStatus.classList.toggle('is-live', Boolean(connectedPeer));
+  browserUpstreamPeer = {
+    ...candidate,
+    address: peerAddress(candidate),
+    publicKey: candidate.publicKey || candidate.publickey || '',
+    connected: Boolean(connectedPeer)
+  };
 }
 
 function appendNetworkLog(message) {
@@ -530,24 +584,20 @@ function applyBrowserNetworkStatus(detail = {}) {
     browserPublicKey.textContent = publicKey;
   }
 
-  renderPrimaryNode(peersToRender, detail.stage || 'syncing');
+  trackBrowserUpstream(peersToRender, detail.stage || 'syncing');
 
   if (isOnline) {
     networkMetrics.hidden = false;
-    renderPeers(connectedBrowserPeers, 'The node has no active peers yet.');
-    const wasOnline = browserNodeOnline;
+    renderPeers(connectedBrowserPeers, 'The node has no live peers yet.');
     browserNodeLoading = false;
     setJoinStage('On line', 100, 'complete');
-    if (!wasOnline) {
-      appendNetworkLog('On line');
-    }
     browserNodeOnline = true;
     header?.classList.add('network-online');
     setNetworkAction('online');
     refreshNodePeers();
     window.Pace?.stop?.();
   } else {
-    renderPeers([], 'Connecting to peer nodes…');
+    renderPeers([], 'Connecting to live peers…');
     const wasOnline = browserNodeOnline;
     browserNodeLoading = true;
     if (wasOnline && menuToggle?.getAttribute('aria-expanded') === 'true') {
@@ -582,7 +632,7 @@ async function loadSaitoBrowserBundle() {
   const previousOnload = window.onload;
   await new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = '/saito/saito.js';
+    script.src = '/saito/saito.js?websitex=20260902-5';
     script.dataset.saitoBrowserBundle = 'true';
     script.onload = async () => {
       setJoinStage('Creating identity', 45);
@@ -674,7 +724,27 @@ async function refreshNodePeers() {
   try {
     const status = await fetchJson(moduleUrl('network-status'));
     const peers = Array.isArray(status.peers) ? status.peers : [];
-    renderPeers(peers, 'The node has no active peers yet.', [status.publicKey]);
+    const endpoint = status.endpoint || {};
+    const upstreamPeer = browserUpstreamPeer
+      ? {
+          ...endpoint,
+          ...browserUpstreamPeer,
+          publicKey: browserUpstreamPeer.publicKey || endpoint.publicKey || status.publicKey || '',
+          connected: true
+        }
+      : {
+          ...endpoint,
+          publicKey: endpoint.publicKey || status.publicKey || '',
+          connected: true
+        };
+    const hasUpstreamPeer = peerAddress(upstreamPeer) || upstreamPeer.publicKey;
+    if (hasUpstreamPeer) {
+      browserUpstreamPeer = upstreamPeer;
+    }
+    renderPeers(
+      hasUpstreamPeer ? [upstreamPeer, ...peers] : peers,
+      'The node has no live peers yet.'
+    );
     networkUpdated.textContent = `Peers updated ${new Date().toLocaleTimeString()}`;
   } catch (error) {
     // Keep the browser's last known peer list if the node snapshot is temporarily unavailable.
@@ -717,8 +787,8 @@ async function checkNetwork() {
     }
 
     if (!browserNodeStarted) {
-      renderPeers([], 'Join the network to see peer nodes.');
-      renderPrimaryNode([], browserNodeLoading ? 'syncing' : 'offline');
+      renderPeers([], 'Join the network to see live peers.');
+      trackBrowserUpstream([], browserNodeLoading ? 'syncing' : 'offline');
     }
     updateBlockClocks();
 
@@ -729,13 +799,11 @@ async function checkNetwork() {
     networkState.textContent = 'LIVE';
     networkState.classList.add('is-live');
     networkUpdated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
-    heroStatus.textContent = 'NETWORK LIVE';
     scheduleNetworkRefresh();
   } catch (error) {
     networkState.textContent = 'UNAVAILABLE';
     networkState.classList.add('is-error');
     networkUpdated.textContent = 'Network status could not be reached. Try again.';
-    heroStatus.textContent = 'BROWSER READY';
     window.clearTimeout(networkRefreshTimer);
     networkRefreshTimer = window.setTimeout(checkNetwork, 10000);
   } finally {
@@ -831,6 +899,388 @@ copyCodeButton?.addEventListener('click', async () => {
 });
 
 document.querySelector('[data-current-year]').textContent = new Date().getFullYear();
+
+const sineRoutePath = document.querySelector('#route-motion-path');
+const sineRoutePackets = [...document.querySelectorAll('[data-route-packet]')];
+const sineRoutePeers = [...document.querySelectorAll('[data-route-peer]')].map((peer) => ({
+  progress: Number(peer.dataset.routeProgress),
+  icon: peer.querySelector('.route-icon'),
+  pulseAnimation: null
+}));
+
+if (sineRoutePath && sineRoutePackets.length && sineRoutePeers.length) {
+  const routeCrossingDuration = 3600;
+  const routeLength = sineRoutePath.getTotalLength();
+  const packets = sineRoutePackets.map((packet) => ({
+    element: packet,
+    direction: Number(packet.dataset.routeDirection),
+    phase: Number(packet.dataset.routePhase),
+    previousProgress: null
+  }));
+
+  function normalizeRouteProgress(progress) {
+    return ((progress % 1) + 1) % 1;
+  }
+
+  function passedRoutePeer(previousProgress, progress, peerProgress, direction) {
+    if (direction > 0) {
+      return progress >= previousProgress
+        ? peerProgress > previousProgress && peerProgress <= progress
+        : peerProgress > previousProgress || peerProgress <= progress;
+    }
+
+    return progress <= previousProgress
+      ? peerProgress < previousProgress && peerProgress >= progress
+      : peerProgress < previousProgress || peerProgress >= progress;
+  }
+
+  function pulseRoutePeer(peer) {
+    if (!peer.icon?.animate) {
+      return;
+    }
+
+    peer.pulseAnimation?.cancel();
+    peer.pulseAnimation = peer.icon.animate(
+      [
+        {
+          borderColor: 'rgba(255, 255, 255, 0.2)',
+          boxShadow: 'none',
+          transform: 'scale(1)'
+        },
+        {
+          borderColor: '#ff9e8f',
+          boxShadow: '0 0 0 0.35rem rgba(247, 31, 61, 0.15), 0 0 1.4rem rgba(247, 31, 61, 0.8)',
+          transform: 'scale(1.12)',
+          offset: 0.22
+        },
+        {
+          borderColor: 'rgba(255, 255, 255, 0.2)',
+          boxShadow: 'none',
+          transform: 'scale(1)'
+        }
+      ],
+      { duration: 440, easing: 'ease-out' }
+    );
+  }
+
+  let routeStartTime;
+  let previousRouteFrameTime;
+
+  function animateSineRoute(timestamp) {
+    routeStartTime ??= timestamp;
+    const elapsed = (timestamp - routeStartTime) / routeCrossingDuration;
+    const frameGap = previousRouteFrameTime === undefined ? 0 : timestamp - previousRouteFrameTime;
+
+    packets.forEach((packet) => {
+      const cycleProgress = normalizeRouteProgress(elapsed + packet.phase);
+      const progress = packet.direction > 0 ? cycleProgress : 1 - cycleProgress;
+      const point = sineRoutePath.getPointAtLength(progress * routeLength);
+      const endpointDistance = Math.min(progress, 1 - progress);
+
+      packet.element.setAttribute('cx', point.x.toFixed(2));
+      packet.element.setAttribute('cy', point.y.toFixed(2));
+      packet.element.style.opacity = Math.min(1, endpointDistance / 0.035).toFixed(2);
+
+      if (packet.previousProgress !== null && frameGap < 100) {
+        sineRoutePeers.forEach((peer) => {
+          if (passedRoutePeer(packet.previousProgress, progress, peer.progress, packet.direction)) {
+            pulseRoutePeer(peer);
+          }
+        });
+      }
+
+      packet.previousProgress = progress;
+    });
+
+    previousRouteFrameTime = timestamp;
+    window.requestAnimationFrame(animateSineRoute);
+  }
+
+  window.requestAnimationFrame(animateSineRoute);
+}
+
+const heroNetworkGraph = document.querySelector('[data-hero-network]');
+const heroConnectionLayer = heroNetworkGraph?.querySelector('[data-hero-connections]');
+const heroNodeLayer = heroNetworkGraph?.querySelector('[data-hero-nodes]');
+
+if (heroNetworkGraph && heroConnectionLayer && heroNodeLayer) {
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+  const nodeFadeDuration = 1950;
+  const initialNodeCount = 7;
+  const minimumNodeCount = 6;
+  const maximumNodeCount = 8;
+  const networkRadius = 42;
+  const positionCandidateCount = 96;
+  const heroNodes = new Map();
+  const heroConnections = new Map();
+  let nextHeroNodeId = 0;
+  let connectionVersion = 0;
+  const initialAngleOffset = Math.random() * Math.PI * 2;
+
+  function createSvgElement(name, attributes = {}) {
+    const element = document.createElementNS(svgNamespace, name);
+    Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+    return element;
+  }
+
+  function hashNetworkValue(value) {
+    return [...String(value)].reduce((hash, character) => {
+      return (hash * 31 + character.charCodeAt(0)) >>> 0;
+    }, 7);
+  }
+
+  function connectionKey(leftNode, rightNode) {
+    return [leftNode.id, rightNode.id].sort((left, right) => left - right).join('-');
+  }
+
+  function buildHeroConnections(nodes) {
+    if (nodes.length < 3) {
+      return [];
+    }
+
+    const degrees = new Map(nodes.map((node) => [node.id, 0]));
+    const pairs = new Map();
+    const orderedNodes = [...nodes].sort((left, right) => {
+      const leftAngle = Math.atan2(left.y - 50, left.x - 50);
+      const rightAngle = Math.atan2(right.y - 50, right.x - 50);
+      return leftAngle - rightAngle;
+    });
+
+    function addPair(leftNode, rightNode) {
+      const key = connectionKey(leftNode, rightNode);
+      if (leftNode === rightNode || pairs.has(key)) {
+        return false;
+      }
+
+      pairs.set(key, [leftNode, rightNode]);
+      degrees.set(leftNode.id, degrees.get(leftNode.id) + 1);
+      degrees.set(rightNode.id, degrees.get(rightNode.id) + 1);
+      return true;
+    }
+
+    // The ring guarantees two links per node; optional chords raise that count without exceeding four.
+    orderedNodes.forEach((node, index) => {
+      addPair(node, orderedNodes[(index + 1) % orderedNodes.length]);
+    });
+
+    const targetDegrees = new Map(
+      nodes.map((node) => [node.id, 2 + (hashNetworkValue(node.id + connectionVersion) % 3)])
+    );
+    const candidates = [];
+    nodes.forEach((leftNode, leftIndex) => {
+      nodes.slice(leftIndex + 1).forEach((rightNode) => {
+        const key = connectionKey(leftNode, rightNode);
+        if (!pairs.has(key)) {
+          candidates.push([leftNode, rightNode]);
+        }
+      });
+    });
+    candidates.sort((left, right) => {
+      return (
+        hashNetworkValue(`${connectionKey(...left)}-${connectionVersion}`) -
+        hashNetworkValue(`${connectionKey(...right)}-${connectionVersion}`)
+      );
+    });
+    candidates.forEach(([leftNode, rightNode]) => {
+      if (
+        degrees.get(leftNode.id) < targetDegrees.get(leftNode.id) &&
+        degrees.get(rightNode.id) < targetDegrees.get(rightNode.id) &&
+        degrees.get(leftNode.id) < 4 &&
+        degrees.get(rightNode.id) < 4
+      ) {
+        addPair(leftNode, rightNode);
+      }
+    });
+
+    return [...pairs.values()];
+  }
+
+  function addHeroConnection(leftNode, rightNode) {
+    const key = connectionKey(leftNode, rightNode);
+    const pathValue = `M ${leftNode.x} ${leftNode.y} L ${rightNode.x} ${rightNode.y}`;
+    const connection = createSvgElement('g', {
+      class: 'hero-network-connection',
+      'data-nodes': key
+    });
+    const line = createSvgElement('path', {
+      class: 'hero-network-line',
+      d: pathValue
+    });
+    connection.append(line);
+
+    const pulseHash = hashNetworkValue(key);
+    const pulse = createSvgElement('path', {
+      class: 'hero-network-pulse',
+      d: pathValue,
+      pathLength: '100'
+    });
+    pulse.style.setProperty('--pulse-delay', `-${(pulseHash % 40) / 10}s`);
+    connection.append(pulse);
+
+    heroConnectionLayer.append(connection);
+    heroConnections.set(key, connection);
+    window.requestAnimationFrame(() => connection.classList.add('is-visible'));
+  }
+
+  function reconcileHeroConnections() {
+    const activeNodes = [...heroNodes.values()].filter((node) => node.state === 'active');
+    const desiredPairs = buildHeroConnections(activeNodes);
+    const desiredKeys = new Set(
+      desiredPairs.map(([leftNode, rightNode]) => connectionKey(leftNode, rightNode))
+    );
+
+    heroConnections.forEach((connection, key) => {
+      if (desiredKeys.has(key)) {
+        return;
+      }
+
+      heroConnections.delete(key);
+      connection.classList.remove('is-visible');
+      window.setTimeout(() => connection.remove(), nodeFadeDuration);
+    });
+
+    desiredPairs.forEach(([leftNode, rightNode]) => {
+      if (!heroConnections.has(connectionKey(leftNode, rightNode))) {
+        addHeroConnection(leftNode, rightNode);
+      }
+    });
+  }
+
+  function createRandomHeroNodePosition() {
+    const existingNodes = [...heroNodes.values()];
+    let bestCandidate = null;
+    let bestDistance = -1;
+
+    for (let attempt = 0; attempt < positionCandidateCount; attempt += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const distanceFromCenter = Math.sqrt(Math.random()) * networkRadius;
+      const candidate = {
+        x: Number((50 + Math.cos(angle) * distanceFromCenter).toFixed(2)),
+        y: Number((50 + Math.sin(angle) * distanceFromCenter).toFixed(2))
+      };
+      const closestNodeDistance = existingNodes.length
+        ? Math.min(
+            ...existingNodes.map((node) => Math.hypot(candidate.x - node.x, candidate.y - node.y))
+          )
+        : Number.POSITIVE_INFINITY;
+
+      if (closestNodeDistance > bestDistance) {
+        bestCandidate = candidate;
+        bestDistance = closestNodeDistance;
+      }
+    }
+
+    return bestCandidate;
+  }
+
+  function createInitialHeroNodePosition(index) {
+    const sectorAngle = (Math.PI * 2) / initialNodeCount;
+    const angleJitter = (Math.random() - 0.5) * sectorAngle * 0.28;
+    const angle = initialAngleOffset + index * sectorAngle + angleJitter;
+    const distanceFromCenter = networkRadius * (0.86 + Math.random() * 0.14);
+
+    return {
+      x: Number((50 + Math.cos(angle) * distanceFromCenter).toFixed(2)),
+      y: Number((50 + Math.sin(angle) * distanceFromCenter).toFixed(2))
+    };
+  }
+
+  function appendHeroNode(position, visibleDelay = 0) {
+    const { x, y } = position;
+    const id = nextHeroNodeId;
+    nextHeroNodeId += 1;
+    const element = createSvgElement('g', {
+      class: 'hero-network-node',
+      'data-node': id,
+      transform: `translate(${x} ${y})`
+    });
+    const halo = createSvgElement('circle', {
+      class: 'hero-network-node-halo',
+      r: '4.25'
+    });
+    const background = createSvgElement('circle', {
+      class: 'hero-network-node-core',
+      r: '3.2'
+    });
+    const logo = createSvgElement('image', {
+      href: '/saito/img/saito-cube.svg',
+      x: '-1.65',
+      y: '-1.89',
+      width: '3.3',
+      height: '3.78'
+    });
+    const node = { id, x, y, state: 'entering', element };
+
+    element.append(halo, background, logo);
+    heroNodeLayer.append(element);
+    heroNodes.set(id, node);
+    window.setTimeout(() => element.classList.add('is-visible'), visibleDelay);
+    return node;
+  }
+
+  function addPeriodicHeroNode() {
+    if (heroNodes.size >= maximumNodeCount) {
+      return;
+    }
+
+    const node = appendHeroNode(createRandomHeroNodePosition());
+    window.setTimeout(() => {
+      node.state = 'active';
+      connectionVersion += 1;
+      reconcileHeroConnections();
+    }, nodeFadeDuration);
+  }
+
+  function removePeriodicHeroNode() {
+    const activeNodes = [...heroNodes.values()].filter((node) => node.state === 'active');
+    if (activeNodes.length <= minimumNodeCount) {
+      return;
+    }
+
+    const node = activeNodes[Math.floor(Math.random() * activeNodes.length)];
+    node.state = 'leaving';
+    node.element.classList.remove('is-visible');
+    connectionVersion += 1;
+    reconcileHeroConnections();
+    window.setTimeout(() => {
+      node.element.remove();
+      heroNodes.delete(node.id);
+    }, nodeFadeDuration);
+  }
+
+  function scheduleHeroNodeLifecycle() {
+    const delay = 1000 + Math.random() * 2000;
+    window.setTimeout(() => {
+      const activeNodeCount = [...heroNodes.values()].filter(
+        (node) => node.state === 'active'
+      ).length;
+      const canAddNode = heroNodes.size < maximumNodeCount;
+      const canRemoveNode = activeNodeCount > minimumNodeCount;
+
+      if (canAddNode && (!canRemoveNode || Math.random() < 0.5)) {
+        addPeriodicHeroNode();
+      } else if (canRemoveNode) {
+        removePeriodicHeroNode();
+      }
+      scheduleHeroNodeLifecycle();
+    }, delay);
+  }
+
+  for (let index = 0; index < initialNodeCount; index += 1) {
+    appendHeroNode(createInitialHeroNodePosition(index), index * 80);
+  }
+
+  window.setTimeout(
+    () => {
+      heroNodes.forEach((node) => {
+        node.state = 'active';
+      });
+      reconcileHeroConnections();
+      scheduleHeroNodeLifecycle();
+    },
+    nodeFadeDuration + initialNodeCount * 80
+  );
+}
 
 const heroNetwork = document.querySelector('.hero-network');
 
