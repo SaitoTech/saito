@@ -50,6 +50,11 @@ class Menu {
       return;
     }
 
+    // User-store left rail is owned by Main / UserStoreSidebar.
+    if (this.mode === 'user-store') {
+      return;
+    }
+
     if (!this.has_store && this.mod.publicKey && this.mod.returnProfileStoreUrl?.()) {
       this.has_store = true;
     }
@@ -58,6 +63,7 @@ class Menu {
     if (root) {
       root.classList.toggle('marketplace', this.mode === 'browse');
       root.classList.toggle('dashboard', this.mode === 'dashboard');
+      root.classList.remove('user-store');
     }
 
     const html =

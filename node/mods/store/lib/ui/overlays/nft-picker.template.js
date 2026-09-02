@@ -39,20 +39,16 @@ NftPickerTemplate.emptyInstructions = (mode = 'sell') => {
     </div>
   `;
   }
-  return `
-    <div class="empty">
-      <p>No NFTs in this wallet.</p>
-    </div>
-  `;
+  // Sell empty state: bottom create-prompt is enough; no mid-panel "No NFTs" line.
+  return '';
 };
 
 NftPickerTemplate.createPrompt = () => {
   return `
     <div class="instructions">
-      Don't have any NFTs in your wallet? Why not
-      <span class="saito-anchor" id="nft-picker-create-link" role="button" tabindex="0">
-        <span>create one and list it for sale</span>
-      </span>?
+      Don't own any NFTs? <span class="saito-anchor" id="nft-picker-create-link" role="button" tabindex="0">
+        <span>Create one and list it for sale</span>
+      </span>.
     </div>
   `;
 };

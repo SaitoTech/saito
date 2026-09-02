@@ -29,25 +29,35 @@ function browseTemplate({ showMyStore = false } = {}) {
   `;
 }
 
-/** Seller admin sidebar — vertical nav matching marketplace item chrome. */
+/** Seller admin sidebar — Admin Home with indented children + View Store. */
 function dashboardTemplate({ dashboardView = 'store-admin' } = {}) {
   const view = ['store-admin', 'active', 'sold'].includes(dashboardView)
     ? dashboardView
     : 'store-admin';
 
-  const item = (id, label) => {
+  const item = (id, label, { child = false } = {}) => {
     const on = view === id;
     const active = on ? ' active' : '';
     const current = on ? 'page' : 'false';
-    return `<li class="item${active}" role="button" tabindex="0" data-view="${id}" aria-current="${current}">${label}</li>`;
+    const childClass = child ? ' child' : '';
+    const caret = child
+      ? `<span class="caret" aria-hidden="true">&gt;</span>`
+      : '';
+    return `<li class="item${childClass}${active}" role="button" tabindex="0" data-view="${id}" aria-current="${current}">${caret}<span class="label">${label}</span></li>`;
   };
 
   return `
     <ul class="list saito-menu-select-subtle" role="list">
-      ${item('store-admin', 'Store Admin')}
-      ${item('active', 'Listings')}
-      ${item('sold', 'Sales')}
-      <li class="item" role="button" tabindex="0" data-action="settings">Settings</li>
+      ${item('store-admin', 'Admin Home')}
+      ${item('active', 'Listings', { child: true })}
+      ${item('sold', 'Sales', { child: true })}
+      <li class="item child" role="button" tabindex="0" data-action="settings">
+        <span class="caret" aria-hidden="true">&gt;</span>
+        <span class="label">Settings</span>
+      </li>
+      <li class="item" role="button" tabindex="0" data-view="view-store">
+        <span class="label">View Store</span>
+      </li>
     </ul>
   `;
 }

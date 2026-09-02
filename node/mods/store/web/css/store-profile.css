@@ -1,0 +1,186 @@
+/* Namespace: .store-profile — user-store identity card (Store-owned copy of RS card layout) */
+
+.store-profile .card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--saito-card-wash);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+}
+
+.store-profile-banner {
+  position: relative;
+  width: 100%;
+  height: 7.2rem;
+  overflow: hidden;
+  background-color: var(--saito-card);
+  background-image: url(/saito/img/dreamscape.png);
+  background-size: cover;
+  background-position: center;
+}
+
+.store-profile-banner-edit {
+  box-sizing: border-box;
+  position: absolute;
+  right: var(--saito-space-sm);
+  bottom: var(--saito-space-sm);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  margin: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--saito-black) 52%, transparent);
+  color: var(--saito-foreground);
+  font-size: 1.15rem;
+  line-height: 1;
+  text-shadow: none;
+  cursor: pointer;
+}
+
+.store-profile-banner-edit:hover,
+.store-profile-banner-edit:focus-visible {
+  background: color-mix(in srgb, var(--saito-black) 68%, transparent);
+  outline: none;
+}
+
+.store-profile .body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.store-profile .identity {
+  display: grid;
+  grid-template-columns: 6.4rem minmax(0, 1fr);
+  column-gap: 1.4rem;
+  align-items: start;
+  min-width: 0;
+  margin: -2.2rem 0 0.85rem;
+  padding: 0 1rem;
+}
+
+.store-profile .avatar {
+  width: 6.4rem;
+  height: 6.4rem;
+  z-index: 1;
+  object-fit: cover;
+  border: 5px solid transparent;
+  border-radius: var(--saito-radius);
+  background: var(--saito-card-wash);
+}
+
+.store-profile .text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  padding-top: calc(2.2rem + 0.55rem);
+}
+
+.store-profile .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--saito-font-medium);
+  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1.25;
+  color: var(--saito-foreground);
+}
+
+.store-profile .key-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.store-profile .public-key {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  color: var(--saito-muted-foreground);
+}
+
+.store-profile .copy-key {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  align-self: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--saito-radius-sm, 0.4rem);
+  color: var(--saito-muted-foreground);
+  opacity: 0.5;
+}
+
+.store-profile .copy-key:hover,
+.store-profile .copy-key:focus-visible {
+  background: transparent;
+  border: none;
+  color: var(--saito-foreground);
+  opacity: 1;
+}
+
+.store-profile .copy-key:active {
+  transform: scale(0.94);
+}
+
+.store-profile .copy-key i {
+  font-size: 0.95rem;
+}
+
+.store-profile-description {
+  margin: 0;
+  padding: 0 1rem 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+  color: var(--saito-foreground);
+}
+
+.store-profile-description.empty:not(.can-edit) {
+  display: none;
+}
+
+.store-profile-description.can-edit {
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  gap: var(--saito-space-xs);
+  cursor: pointer;
+}
+
+.store-profile-description-edit {
+  display: none;
+  cursor: pointer;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0.45;
+}
+
+.store-profile-description.can-edit .store-profile-description-edit {
+  display: flex;
+}
+
+.store-profile-description.can-edit.empty .store-profile-description-edit {
+  display: block;
+}
+
+.store-profile-description-placeholder {
+  color: var(--saito-muted-foreground);
+}

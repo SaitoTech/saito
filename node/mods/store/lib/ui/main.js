@@ -1,6 +1,7 @@
 const MainTemplate = require('./main.template');
 const Menu = require('./menu');
 const Manager = require('./manager');
+const UserStoreSidebar = require('./user-store-sidebar');
 const NftPickerOverlay = require('./overlays/nft-picker');
 const PrepareStoreOverlay = require('./overlays/prepare-store');
 const ListingDetailOverlay = require('./overlays/listing-detail');
@@ -16,6 +17,8 @@ class Main {
     this.app = app;
     this.mod = mod;
     this.container = container;
+    /** @type {'marketplace' | 'user-store' | 'admin'} */
+    this.composition = 'marketplace';
 
     if (!this.mod.purchase_lifecycle) {
       this.mod.purchase_lifecycle = new PurchaseLifecycle(app, mod);
@@ -29,6 +32,9 @@ class Main {
       onSell: () => this.openSell(),
       onSettings: () => this.openSettings(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
+    });
+    this.user_store_sidebar = new UserStoreSidebar(app, mod, '', {
+      onSettings: () => this.openSettings()
     });
     this.manager = new Manager(app, mod, '', {
       onSell: () => this.openSell(),
@@ -54,6 +60,50 @@ class Main {
     }
   }
 
+  railSelector() {
+    return `${this.container} .store > .menu`;
+  }
+
+  storeRoot() {
+    return document.querySelector(`${this.container} .store`);
+  }
+
+  /**
+   * Shell composition: marketplace categories, user-store profile rail, or admin dashboard.
+   * Only swaps the left rail + .store.user-store geometry — not listing machinery.
+   */
+  setComposition(mode = 'marketplace', publicKey = '') {
+    const next = mode === 'user-store' ? 'user-store' : mode === 'admin' ? 'admin' : 'marketplace';
+    this.composition = next;
+
+    const store = this.storeRoot();
+    if (store) {
+      store.classList.toggle('user-store', next === 'user-store');
+    }
+
+    const rail = this.railSelector();
+    if (next === 'user-store') {
+      // Prevent Menu.refreshHasStore from rewriting this rail as categories.
+      this.menu.mode = 'user-store';
+      this.user_store_sidebar.render(rail, publicKey);
+      return;
+    }
+
+    const menuRoot = document.querySelector(rail);
+    if (menuRoot) {
+      menuRoot.classList.remove('user-store');
+    }
+
+    if (next === 'admin') {
+      this.menu.setMode('dashboard', {
+        dashboardView: this.menu.dashboardView || 'store-admin'
+      });
+      return;
+    }
+
+    this.menu.setMode('browse');
+  }
+
   onPathChange() {
     const route = this.mod.returnStoreRouteFromPath?.() || {
       publicKey: '',
@@ -66,7 +116,7 @@ class Main {
       });
       return;
     }
-    this.menu.setMode('browse');
+    this.setComposition('marketplace');
     this.menu.setActive('all');
     this.manager.show('browse');
     this.loadBrowsePage({ category: '', page: 1 });
@@ -130,6 +180,11 @@ class Main {
       return;
     }
 
+    if (view === 'view-store') {
+      this.openStorefront(this.mod.publicKey, { admin: false });
+      return;
+    }
+
     if (view === 'active') {
       this.openStorefront(this.mod.publicKey, {
         updateUrl: true,
@@ -146,7 +201,8 @@ class Main {
     }
 
     if (view === 'all') {
-      this.menu.setMode('browse');
+      this.setComposition('marketplace');
+      this.menu.setActive('all');
       this.manager.show('browse');
       this.setBrowseUrl();
       this.loadBrowsePage({ category: '', page: 1, scroll: true });
@@ -155,7 +211,7 @@ class Main {
 
     // Category browse (data-category from menu items).
     if (Object.prototype.hasOwnProperty.call(opts, 'category')) {
-      this.menu.setMode('browse');
+      this.setComposition('marketplace');
       this.manager.show('browse');
       this.setBrowseUrl();
       this.loadBrowsePage({
@@ -193,7 +249,8 @@ class Main {
           : ['store-admin', 'active'].includes(dashboardView)
             ? dashboardView
             : 'store-admin';
-        this.menu.setMode('dashboard', { dashboardView: view });
+        this.menu.dashboardView = view;
+        this.setComposition('admin');
         if (celebrate) {
           this.manager.storefront.armSuccessBanner();
         }
@@ -202,9 +259,7 @@ class Main {
           adminSection: view === 'active' ? 'active' : 'home'
         });
       } else {
-        if (this.menu.mode === 'dashboard') {
-          this.menu.setMode('browse');
-        }
+        this.setComposition('marketplace');
         await this.manager.showStorefront(key, { viewMode: 'admin-denied' });
       }
 
@@ -214,10 +269,7 @@ class Main {
       return;
     }
 
-    if (this.menu.mode === 'dashboard') {
-      this.menu.setMode('browse');
-    }
-
+    this.setComposition('user-store', key);
     await this.manager.showStorefront(key, { viewMode: 'public' });
 
     if (updateUrl) {
@@ -226,7 +278,8 @@ class Main {
   }
 
   openSales() {
-    this.menu.setMode('dashboard', { dashboardView: 'sold' });
+    this.menu.dashboardView = 'sold';
+    this.setComposition('admin');
     this.manager.showSales();
     if (this.mod.publicKey) {
       this.setAdminUrl(this.mod.publicKey);

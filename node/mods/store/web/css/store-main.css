@@ -14,6 +14,11 @@
   min-width: 0;
 }
 
+/* User store: rail width matches Red Square's profile column (~300px) */
+.store.user-store {
+  grid-template-columns: 18.75rem minmax(0, 1fr);
+}
+
 /* —— Menu rail (shared item chrome; mode-specific rules below) —— */
 
 .store > .menu {
@@ -24,6 +29,49 @@
   gap: var(--saito-space-xs);
   padding-block: var(--saito-space-xs);
   min-width: 0;
+}
+
+.store.user-store > .menu {
+  gap: var(--saito-space-lg);
+  padding-block: 0;
+}
+
+.store.user-store .user-store-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+  min-width: 0;
+}
+
+.store.user-store .user-store-profile {
+  min-width: 0;
+}
+
+.store.user-store > .menu .user-store-rail > .list .item {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--saito-space-md);
+}
+
+.store.user-store > .menu .user-store-rail > .list .item .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.store.user-store > .menu .user-store-rail > .list .item .icon i {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.store.user-store > .menu .user-store-rail > .list .item .label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .store > .menu .list {
@@ -55,6 +103,23 @@
 /* Selected = bold only; hover still from .saito-menu-select-subtle */
 .store > .menu .item.active {
   font-family: var(--saito-font-heavy);
+}
+
+/* Admin dashboard: indented children under Admin Home */
+.store > .menu.dashboard .item.child {
+  padding-left: 2.2rem;
+  gap: 0.55rem;
+}
+
+.store > .menu.dashboard .item.child .caret {
+  flex: 0 0 auto;
+  color: var(--saito-muted-foreground);
+  font-family: var(--saito-font-medium);
+  line-height: 1;
+}
+
+.store > .menu.dashboard .item .label {
+  min-width: 0;
 }
 
 .store > .menu .divider {
@@ -524,6 +589,10 @@
     gap: var(--saito-space-xl);
   }
 
+  .store.user-store {
+    grid-template-columns: 1fr;
+  }
+
   .store > .menu {
     position: static;
   }
@@ -532,6 +601,12 @@
     flex-direction: row;
     flex-wrap: wrap;
     gap: var(--saito-space-xs);
+  }
+
+  /* Keep user-store nav stacked under the profile on narrow viewports */
+  .store.user-store > .menu .list {
+    flex-direction: column;
+    flex-wrap: nowrap;
   }
 
   .store > .menu .divider {

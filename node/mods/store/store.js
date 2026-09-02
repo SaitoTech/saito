@@ -25,6 +25,8 @@ class Store extends ModTemplate {
     this.store_peer_index = null;
     this.fee = 0;
     this.order_retry_limit = 10;
+    // Allows store-profile banner/description edits on own user-store rail.
+    this.enable_profile_edits = true;
 
     this.warehouse = new Warehouse(app, this);
     Object.assign(this, transactions);
