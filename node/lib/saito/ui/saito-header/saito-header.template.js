@@ -52,7 +52,7 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                            <div class="saito-icon-button">
                                <i class="fa-solid fa-wallet"></i>
                            </div>
-                           <span>Wallet</span>
+                           <span>Tokens</span>
                        </div>
                        <div class="saito-large-square-button" id="wallet-btn-nft">
                            <div class="saito-icon-button">
@@ -64,7 +64,7 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                            <div class="saito-icon-button">
                                <i class="fas fa-cog"></i>
                            </div>
-                           <span>Account</span>
+                           <span>Admin</span>
                        </div>
                    </div>
 

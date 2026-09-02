@@ -4,6 +4,10 @@ const SaitoSyncTemplate = require('./saito-sync.template');
 const POLL_INTERVAL_MS = 400;
 const MIN_SYNCING_VISIBLE_MS = 500;
 const SYNCING_FADE_MS = 220;
+/** Matches `.saito-sync-progress-fill { transition: width 0.7s ease }` in saito-sync.css */
+const PROGRESS_FILL_TRANSITION_MS = 700;
+/** Pause at a full bar before the overlay fades out. */
+const COMPLETE_HOLD_MS = 350;
 const NEAR_TIP_BLOCK_THRESHOLD = 2n;
 const ZERO_BLOCK_HASH = '0'.repeat(64);
 
@@ -147,6 +151,14 @@ class SaitoSync {
     this.pending_transition = null;
     this.ui_mode = 'idle';
     this.syncing_shown_at = null;
+    if (this.number_raf) {
+      cancelAnimationFrame(this.number_raf);
+      this.number_raf = null;
+    }
+    if (this.beat_timer) {
+      clearTimeout(this.beat_timer);
+      this.beat_timer = null;
+    }
   }
 
   shouldShowFastForward() {
@@ -202,15 +214,39 @@ class SaitoSync {
   }
 
   scheduleDismissSyncing() {
-    if (this.ui_mode !== 'syncing' || this.pending_transition === 'fast_forward') {
+    if (
+      this.ui_mode !== 'syncing' ||
+      this.initial_sync_completed ||
+      this.pending_transition === 'fast_forward'
+    ) {
       return;
     }
     this.pending_transition = 'dismiss';
     this.stopProgressPolling();
-    this.scheduleAfterMinVisible(() => {
+
+    // Measure how much of the bar animation is left before snapping to 100%.
+    const bar_remaining_ms = this.progressBarRemainingMs();
+
+    const target = this.toBigInt(this.payload?.target_block_id);
+    const current = this.local_current_block_id ?? this.toBigInt(this.payload?.current_block_id);
+    this.setProgress(current, target);
+    this.setCurrentBlockText(current);
+    this.setTargetBlockText(target);
+
+    const shown_at = this.syncing_shown_at ?? performance.now();
+    const min_visible_remaining = Math.max(0, MIN_SYNCING_VISIBLE_MS - (performance.now() - shown_at));
+    const wait = Math.max(min_visible_remaining, bar_remaining_ms) + COMPLETE_HOLD_MS;
+
+    this.cancelPendingUi();
+    this.ui_timer = setTimeout(() => {
+      this.ui_timer = null;
+      if (this.ui_mode !== 'syncing' || this.initial_sync_completed) {
+        this.pending_transition = null;
+        return;
+      }
       this.pending_transition = null;
       this.fadeOutSyncing();
-    });
+    }, wait);
   }
 
   fadeOutSyncing() {
@@ -258,6 +294,14 @@ class SaitoSync {
     if (this.fade_timer) {
       clearTimeout(this.fade_timer);
       this.fade_timer = null;
+    }
+    if (this.number_raf) {
+      cancelAnimationFrame(this.number_raf);
+      this.number_raf = null;
+    }
+    if (this.beat_timer) {
+      clearTimeout(this.beat_timer);
+      this.beat_timer = null;
     }
   }
 
@@ -462,6 +506,9 @@ class SaitoSync {
 
       const target = this.toBigInt(this.payload?.target_block_id);
       if (this.isNearTip(latest, target)) {
+        if (this.initial_sync_completed || this.ui_mode !== 'syncing') {
+          return;
+        }
         this.sync_complete = true;
         this.stopProgressPolling();
         this.scheduleDismissSyncing();
@@ -567,7 +614,8 @@ class SaitoSync {
   }
 
   updateNumberWidths(target) {
-    const label = document.querySelector('.saito-sync-progress-label');
+    const root = document.getElementById('saito-sync');
+    const label = root ? root.querySelector('.saito-sync-progress-label') : null;
     if (!label) {
       return;
     }
@@ -581,6 +629,21 @@ class SaitoSync {
       return false;
     }
     return current >= target - NEAR_TIP_BLOCK_THRESHOLD;
+  }
+
+  /**
+   * Remaining time for the progress fill to reach 100% visually (CSS width transition).
+   * Reads rendered width so dismiss waits for the bar, not just the logical complete flag.
+   */
+  progressBarRemainingMs() {
+    const fill = document.getElementById('saito-sync-progress-fill');
+    const bar = document.getElementById('saito-sync-progress');
+    if (!fill || !bar || bar.offsetWidth <= 0) {
+      return PROGRESS_FILL_TRANSITION_MS;
+    }
+    const current_pct = Math.min(100, (fill.offsetWidth / bar.offsetWidth) * 100);
+    const remaining_pct = Math.max(0, 100 - current_pct);
+    return Math.ceil((remaining_pct / 100) * PROGRESS_FILL_TRANSITION_MS);
   }
 
   setProgress(current, target) {
