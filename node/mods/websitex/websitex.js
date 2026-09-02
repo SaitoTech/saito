@@ -12,6 +12,7 @@ class Websitex extends ModTemplate {
     this.description = 'Experimental Saito project website redesign.';
     this.categories = 'Utilities Communications';
     this.class = 'utility';
+    this.inhibit_block_sync_overlay = true;
     this.header = null;
     this.browserConnectedPeers = new Set();
     this.publishBrowserNetworkStatus = null;
