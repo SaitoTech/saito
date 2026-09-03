@@ -2,10 +2,10 @@
 .game-playerbox-manager {
     display: flex;
     flex-direction: column;
-    gap: 3rem;
+    gap: 2.5rem;
     position: absolute;
-    top: 6rem;
-    right: 3rem;
+    top: 5rem;
+    right: 2.5rem;
     user-select: none;
 }
 
@@ -14,7 +14,7 @@
 }
 
 .game-playerbox {
-    padding: 1rem;
+    padding: 0.833rem;
     z-index: 3;
     max-width: 25vw;
     display: flex;
@@ -42,9 +42,9 @@
 .game-playerbox-body {
     width: 100%;
     padding: 0rem;
-    margin-top: 0.5rem;
-    line-height: 2.3rem;
-    font-size: 1.6rem;
+    margin-top: 0.417rem;
+    line-height: 1.917rem;
+    font-size: 1.333rem;
     flex-grow: 1;
 }
 
@@ -64,7 +64,7 @@
 }
 
 .game-playerbox-head .saito-user .saito-address {
-  max-width: calc(100% + 1rem);
+  max-width: calc(100% + 0.833rem);
 }
 
 .game-playerbox-head .saito-user>.saito-userline {
@@ -117,10 +117,10 @@
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: max-content;
     justify-content: space-between;
-    bottom: 1rem;
+    bottom: 0.833rem;
     top: unset;
-    right: 2rem;
-    gap: 2rem;
+    right: 1.667rem;
+    gap: 1.667rem;
     position: absolute;
     height: max-content;
   }

@@ -10,7 +10,7 @@
   width: auto;
   margin: 1px 1px 3px 3px;
   z-index: 500;
-  font-size: 1.9rem;
+  font-size: 1.583rem;
   min-width: 20vw;
   cursor: pointer;
   color: black;
@@ -42,7 +42,7 @@
   flex-direction: row;
   height: 40px;
   border: 1px solid #444;
-  border-radius: 0.5rem;
+  border-radius: 0.417rem;
 }
 
 /* All menu options */
@@ -153,10 +153,10 @@
   content: '!';
   color: var(--saito-white);
   background-color: var(--saito-primary);
-  border-radius: 0.7rem;
-  padding: 0.25rem 0.6rem;
+  border-radius: 0.583rem;
+  padding: 0.208rem 0.5rem;
   position: absolute;
-  right: 1rem;
+  right: 0.833rem;
   top: 50%;
   transform: translateY(-50%);
   font-size: 20px;
@@ -165,7 +165,7 @@
 
 .game-menu .saito-notification-dot {
   left: unset;
-  right: 3rem;
+  right: 2.5rem;
   top: 0;
 }
 
@@ -175,7 +175,7 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: min(40rem, 100vw);
+    width: min(33.333rem, 100vw);
     min-width: 0;
     height: 100svh;
     margin: 0;
@@ -233,7 +233,7 @@
     align-items: center;
     justify-content: center;
     min-width: 0;
-    height: 4.8rem;
+    height: 4rem;
     padding: var(--saito-space-sm) var(--saito-space-md);
     color: var(--saito-foreground);
     font: inherit;
@@ -254,13 +254,13 @@
   }
 
   .game-menu-mobile-header-button img {
-    width: 2.6rem;
-    height: 2.6rem;
+    width: 2.167rem;
+    height: 2.167rem;
     object-fit: contain;
   }
 
   .game-menu-mobile-header-button i {
-    font-size: 2.2rem;
+    font-size: 1.833rem;
   }
 
   .game-menu > ul > li.game-menu-icon,
@@ -268,10 +268,10 @@
     display: flex;
     align-items: center;
     width: 100%;
-    height: 5rem;
+    height: 4.167rem;
     padding: 0 var(--saito-space-lg);
     color: var(--saito-foreground);
-    line-height: 5rem;
+    line-height: 4.167rem;
     text-align: left;
     background: transparent;
     box-shadow: none;
@@ -283,8 +283,8 @@
   }
 
   .game-menu > ul > li.game-menu-icon > i {
-    width: 2.4rem;
-    font-size: 2rem;
+    width: 2rem;
+    font-size: 1.667rem;
     text-align: center;
   }
 
@@ -330,13 +330,13 @@
   }
 
   .game-menu-sub-option .game-menu-option-label {
-    height: 4.8rem;
-    padding-left: 3.2rem;
-    line-height: 4.8rem;
+    height: 4rem;
+    padding-left: 2.667rem;
+    line-height: 4rem;
   }
 
   .game-menu-sub-sub-option .game-menu-option-label {
-    padding-left: 5.2rem;
+    padding-left: 4.333rem;
   }
 
   .game-menu .game-menu-mobile-toggle {
@@ -346,11 +346,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 4.4rem;
-    height: 4.4rem;
+    width: 3.667rem;
+    height: 3.667rem;
     padding: 0;
     color: var(--saito-foreground);
-    font-size: 2.6rem;
+    font-size: 2.167rem;
     background: var(--saito-secondary);
     border: 1px solid var(--saito-border);
     border-left: 0;

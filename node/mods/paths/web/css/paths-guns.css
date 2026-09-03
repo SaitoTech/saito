@@ -4,7 +4,7 @@
     min-height: 700px;
     max-height: 70vh;
     max-width: 90vw;
-    border-radius: 2rem;
+    border-radius: 1.667rem;
     background-image: url(/paths/img/backgrounds/general01.png);
     background-size: cover;
   }
@@ -18,20 +18,20 @@
 
   .guns-overlay .status {
     position: relative;
-    height: 4rem;
-    line-height: 4rem;
+    height: 3.333rem;
+    line-height: 3.333rem;
     min-height: 0;
-    width: 32rem;
-    max-width: 35rem;
+    width: 26.667rem;
+    max-width: 29.167rem;
     background-color: whitesmoke;
     z-index: 10;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     top: 0px;
     left: 0px;
     white-space: nowrap;
     float: left;
-    margin-left: 1rem;
-    margin-top: 1rem;
+    margin-left: 0.833rem;
+    margin-top: 0.833rem;
   }
 
   .guns-overlay .help {
@@ -40,11 +40,11 @@
     color: white;
     margin-left: auto;
     margin-right: auto;
-    font-size: 2.4rem;
-    padding: 0.75rem;
+    font-size: 2rem;
+    padding: 0.625rem;
     max-width: 100%;
-    padding: 1rem;
-    line-height: 3.4rem;
+    padding: 0.833rem;
+    line-height: 2.833rem;
     text-align: center;
   }
 
@@ -57,18 +57,18 @@
     display: block;
     position: relative;
     background-color: whitesmoke;
-    line-height: 4rem;
-    width: 32rem;
-    max-width: 35rem;
+    line-height: 3.333rem;
+    width: 26.667rem;
+    max-width: 29.167rem;
     max-height: 80vh;
     z-index: 10;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     top: 0px;
     left: 0px;
     white-space: nowrap;
     float: left;
-    margin-left: 1rem;
-    margin-top: 1rem;
+    margin-left: 0.833rem;
+    margin-top: 0.833rem;
     clear: both;
     min-height: max-content;
     height: auto;
@@ -80,7 +80,7 @@
   }
 
   .guns-overlay .status ul .option {
-    padding: 1.5rem;
+    padding: 1.25rem;
     cursor: pointer;
   }
   .guns-overlay .status ul .option:hover {
@@ -96,7 +96,7 @@
     margin-top: auto;
     margin-bottom: auto;
     position: relative;
-    margin-top: 4rem;
+    margin-top: 3.333rem;
   }
 
   .guns-overlay .cardbox {
@@ -109,7 +109,7 @@
   .guns-cardbox {
     position: relative;
     display: block;
-    right: 2rem;
+    right: 1.667rem;
     width: 30vw;
     transform: rotate(5deg);
     top: 0px;

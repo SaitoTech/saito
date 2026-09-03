@@ -1,7 +1,7 @@
 /* Namespace: .nwasm-load-rom */
 
 .nwasm-load-rom {
-  min-width: min(28rem, 90vw);
+  min-width: min(23.333rem, 90vw);
 }
 
 .nwasm-load-rom .body {

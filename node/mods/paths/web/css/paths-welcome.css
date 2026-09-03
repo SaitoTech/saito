@@ -2,7 +2,7 @@
   .welcome {
     min-width: 80vw;
     min-height: 80vh;
-    border-radius: 2rem;
+    border-radius: 1.667rem;
     overflow: hidden;
     background-size: cover;
     -webkit-user-select: none; /* Safari */
@@ -14,7 +14,7 @@
   .welcome-card {
     position: relative;
     display: block;
-    right: 2rem;
+    right: 1.667rem;
     width: 30vw;
     transform: rotate(5deg);
     top: 0px;
@@ -26,14 +26,14 @@
     top: 0px;
     max-width: 50%;
     color: white;
-    line-height: 5rem;
-    font-size: 3.5rem;
+    line-height: 4.167rem;
+    font-size: 2.917rem;
     position: absolute;
     background: #0009;
-    margin-top: 5rem;
-    margin-left: 5rem;
-    padding: 1rem;
-    letter-spacing: 0.2rem;
+    margin-top: 4.167rem;
+    margin-left: 4.167rem;
+    padding: 0.833rem;
+    letter-spacing: 0.167rem;
     font-weight: bold;
   }
 
@@ -41,12 +41,12 @@
     bottom: 0px;
     color: white;
     max-width: 50%;
-    line-height: 5rem;
-    font-size: 2.7rem;
+    line-height: 4.167rem;
+    font-size: 2.25rem;
     position: absolute;
-    margin-left: 5rem;
-    margin-bottom: 5rem;
-    padding: 1rem;
+    margin-left: 4.167rem;
+    margin-bottom: 4.167rem;
+    padding: 0.833rem;
     background: #0009;
   }
 

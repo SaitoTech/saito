@@ -1,21 +1,21 @@
 .game.his {
   .debater-card {
-    height: 25rem;
-    width: 25rem;
+    height: 20.833rem;
+    width: 20.833rem;
     background-size: cover;
     margin-left: auto;
     margin-right: auto;
   }
 
   .debaters-tile {
-    height: 20rem;
-    width: 20rem;
+    height: 16.667rem;
+    width: 16.667rem;
     background-size: cover;
   }
 
   .debaters-overlay {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(16.667rem, 1fr));
     align-content: start;
     min-width: 90vw;
     max-width: 91vw;

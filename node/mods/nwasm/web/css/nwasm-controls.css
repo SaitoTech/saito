@@ -1,7 +1,7 @@
 /* Namespace: .nwasm-controls */
 
 .nwasm-controls {
-  width: min(52rem, 94vw);
+  width: min(43.333rem, 94vw);
   max-height: 85vh;
   display: flex;
   flex-direction: column;
@@ -31,15 +31,15 @@
 .nwasm-controls .list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.292rem;
 }
 
 .nwasm-controls .row {
   display: grid;
-  grid-template-columns: 8rem 1fr 1fr auto;
+  grid-template-columns: 6.667rem 1fr 1fr auto;
   gap: var(--saito-space-sm);
   align-items: center;
-  padding: 0.55rem 0.35rem;
+  padding: 0.458rem 0.292rem;
   border-bottom: 1px solid var(--saito-border);
   color: var(--saito-foreground);
 }

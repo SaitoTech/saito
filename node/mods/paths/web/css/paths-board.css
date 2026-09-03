@@ -8,8 +8,8 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 15rem;
-    height: 15rem;
+    width: 12.5rem;
+    height: 12.5rem;
     background: rgba(255, 140, 0, 0.25); /* strong orange fill */
     border: 15px solid rgba(255, 69, 0, 1); /* fiery orange-red border */
     border-radius: 50%;
@@ -867,24 +867,24 @@
     left: 1880px;
     width: 430px;
     height: 280px;
-    padding: 3rem;
+    padding: 2.5rem;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    row-gap: 1rem;
-    column-gap: 1rem;
+    row-gap: 0.833rem;
+    column-gap: 0.833rem;
   }
   .space.ceubox {
     top: 110px;
     left: 1050px;
     width: 430px;
     height: 280px;
-    padding: 3rem;
+    padding: 2.5rem;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    row-gap: 1rem;
-    column-gap: 1rem;
+    row-gap: 0.833rem;
+    column-gap: 0.833rem;
   }
 
   .space.crbox,
@@ -893,12 +893,12 @@
     left: 4250px;
     width: 730px;
     height: 380px;
-    padding: 3rem;
+    padding: 2.5rem;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    row-gap: 1rem;
-    column-gap: 1rem;
+    row-gap: 0.833rem;
+    column-gap: 0.833rem;
   }
   .space.arbox,
   .arbox {
@@ -906,12 +906,12 @@
     left: 4250px;
     width: 730px;
     height: 380px;
-    padding: 3rem;
+    padding: 2.5rem;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    row-gap: 1rem;
-    column-gap: 1rem;
+    row-gap: 0.833rem;
+    column-gap: 0.833rem;
   }
   .reserve-box.selectable::before {
     width: inherit;

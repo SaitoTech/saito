@@ -6,7 +6,7 @@
     background-size: cover;
     width: 90vw;
     height: 90vh;
-    padding: 2rem;
+    padding: 1.667rem;
     margin-top: auto;
     overflow-y: scroll;
   }
@@ -16,19 +16,19 @@
   }
 
   .anti-fighter-barrage-ui {
-    padding: 2rem;
+    padding: 1.667rem;
     color: white;
-    line-height: 3rem;
-    font-size: 2rem;
+    line-height: 2.5rem;
+    font-size: 1.667rem;
   }
 
   .anti-fighter-barrage-units {
     display: grid;
-    grid-template-columns: 32rem 1fr;
+    grid-template-columns: 26.667rem 1fr;
   }
   .anti-fighter-barrage-ui .anti-fighter-barrage-menu ul li {
     width: 100%;
-    line-height: 3.5rem;
+    line-height: 2.917rem;
     border-top: 1px solid var(--saito-gray-lighter);
     cursor: pointer;
     border-color: #555;
@@ -36,11 +36,11 @@
     color: #fffd;
     text-align: center;
     list-style: none;
-    padding-top: 2rem;
+    padding-top: 1.667rem;
     font-weight: bolder;
     font-family: 'orbitron-medium';
-    font-size: 2rem;
-    letter-spacing: 0.2rem;
+    font-size: 1.667rem;
+    letter-spacing: 0.167rem;
   }
 
   .anti-fighter-barrage-ui .anti-fighter-barrage-menu ul li:hover {
@@ -49,17 +49,17 @@
 
   .anti-fighter-barrage-attacker .unit-table.small .unit-element {
     clear: both;
-    width: 32rem;
-    max-width: 32rem;
+    width: 26.667rem;
+    max-width: 26.667rem;
   }
 
   .anti-fighter-barrage-attacker-name {
-    font-size: 2rem;
+    font-size: 1.667rem;
     color: white;
     font-family: 'bank-gothic';
     text-align: center;
     background-color: #0005;
-    padding: 1rem;
-    border-radius: 1rem;
+    padding: 0.833rem;
+    border-radius: 0.833rem;
   }
 }

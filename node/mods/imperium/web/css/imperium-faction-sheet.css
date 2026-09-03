@@ -3,30 +3,30 @@
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    grid-gap: 1rem;
+    grid-gap: 0.833rem;
     height: min-content;
     min-height: min-content;
-    padding-top: 1rem;
+    padding-top: 0.833rem;
   }
 
   .faction-sheet-tech-cards {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    grid-gap: 1rem;
+    grid-gap: 0.833rem;
     height: min-content;
     min-height: min-content;
-    padding-top: 1rem;
+    padding-top: 0.833rem;
   }
 
   .faction-sheet-planets {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    grid-gap: 1rem;
+    grid-gap: 0.833rem;
     height: min-content;
     min-height: min-content;
-    padding-top: 1rem;
+    padding-top: 0.833rem;
   }
 
   .faction-sheet-action-cards:empty,
@@ -49,7 +49,7 @@
     background-size: cover;
     overflow-y: scroll;
     position: relative;
-    padding: 1rem;
+    padding: 0.833rem;
   }
   .faction-sheet-main {
     grid-column: 1 / 2;
@@ -58,38 +58,38 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     color: white;
-    font-size: 2rem;
+    font-size: 1.667rem;
     font-weight: bold;
-    letter-spacing: 0.2rem;
+    letter-spacing: 0.167rem;
     background: linear-gradient(90deg, #000d, #0000);
     margin-left: 0rem;
-    margin-right: 1rem;
-    padding: 0.25rem;
+    margin-right: 0.833rem;
+    padding: 0.208rem;
   }
   .faction-sheet-title {
     color: white;
-    padding-left: 0.75rem;
-    font-size: 3rem;
+    padding-left: 0.625rem;
+    font-size: 2.5rem;
   }
 
   .faction-sheet-tokens {
   }
   .faction-sheet-sidebar {
     grid-column: 2;
-    min-width: 25rem;
+    min-width: 20.833rem;
     max-width: 25vw;
-    font-size: 1.5rem;
-    line-height: 2rem;
+    font-size: 1.25rem;
+    line-height: 1.667rem;
   }
   .faction-sheet-faction-abilities {
     background-color: #0008;
     color: white;
-    padding: 1rem;
+    padding: 0.833rem;
   }
   .faction-sheet-faction-tech {
     max-width: 100%;
-    font-size: 1rem;
-    line-height: 1.5rem;
+    font-size: 0.833rem;
+    line-height: 1.25rem;
     width: 100%;
     display: grid;
   }
@@ -101,26 +101,26 @@
     grid-gap: 0 2em;
     grid-template-columns: auto auto auto;
     transform: scale(1);
-    font-size: 0.4rem;
-    margin: 0.5rem;
+    font-size: 0.333rem;
+    margin: 0.417rem;
   }
 
   .faction_sheet_empire_title {
     color: white;
-    font-size: 2rem;
+    font-size: 1.667rem;
     font-weight: bold;
-    letter-spacing: 0.2rem;
+    letter-spacing: 0.167rem;
     background: linear-gradient(90deg, #000d, #0000);
     margin-left: 0rem;
-    margin-right: 1rem;
-    padding: 0.25rem;
+    margin-right: 0.833rem;
+    padding: 0.208rem;
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
 
   .faction_sheet_empire_title_name {
     color: white;
-    padding-left: 0.75rem;
+    padding-left: 0.625rem;
   }
 
   .faction_sheet_container {
@@ -132,7 +132,7 @@
     display: grid;
     grid-template-columns: 1fr min-content;
     position: relative;
-    padding: 1rem;
+    padding: 0.833rem;
   }
   .fa-stack {
     height: 1em;
@@ -141,45 +141,45 @@
   .faction_abilities_container {
     background-color: #0008;
     color: white;
-    padding: 1rem;
-    font-size: 1rem;
-    line-height: 1.5rem;
+    padding: 0.833rem;
+    font-size: 0.833rem;
+    line-height: 1.25rem;
   }
   .faction_ability {
-    margin-bottom: 2rem;
+    margin-bottom: 1.667rem;
   }
   .faction_ability:last-child {
     margin-bottom: 0rem;
   }
   .faction_ability:nth-child(n + 2) {
-    margin-top: 1rem;
+    margin-top: 0.833rem;
   }
   .faction_ability_title {
     font-weight: bold;
     border-bottom: 1px solid #fff;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.417rem;
   }
   .faction_ability_text {
     font-weight: normal;
   }
   .faction_tech_container {
     max-width: 100%;
-    font-size: 1rem;
-    line-height: 1.5rem;
+    font-size: 0.833rem;
+    line-height: 1.25rem;
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
   .faction_tech_container.tech_card {
-    margin-left: 0.25rem;
-    margin-right: 0.25rem;
+    margin-left: 0.208rem;
+    margin-right: 0.208rem;
   }
 
   .faciton_sheet_empire_title {
     color: white;
-    font-size: 2rem;
+    font-size: 1.667rem;
     font-weight: bold;
-    letter-spacing: 0.2rem;
+    letter-spacing: 0.167rem;
     background-color: #0005;
   }
   .faction_sheet_planet_card_box {

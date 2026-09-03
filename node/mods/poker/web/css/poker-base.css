@@ -17,7 +17,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-around;
-    padding: 4rem;
+    padding: 3.333rem;
     /* To adjust shade of felt */
     background-image: url(/saito/img/arcade/greenfelt.jpg);
     background-blend-mode: luminosity;
@@ -32,7 +32,7 @@
   }
 
   .gameboard.threed {
-    border-radius: 12rem;
+    border-radius: 10rem;
     transform: perspective(700px) rotateX(33deg) translateY(-35px);
     filter: drop-shadow(0px 10px 20px black);
   }
@@ -43,8 +43,8 @@
 
   .deal {
     display: flex;
-    gap: 1rem;
-    margin: 8rem 0 0;
+    gap: 0.833rem;
+    margin: 6.667rem 0 0;
     height: 230px;
   }
 
@@ -80,8 +80,8 @@
   }
 
   .dealer-button {
-    width: 4.5rem;
-    height: 4.5rem;
+    width: 3.75rem;
+    height: 3.75rem;
     border: 2px ridge #999;
     border-radius: 100%;
     overflow: hidden;
@@ -92,12 +92,12 @@
     background-color: #fee;
     position: absolute;
     right: calc(100% + 5px);
-    top: 0.5rem;
+    top: 0.417rem;
     display: flex;
     align-items: center;
     justify-content: center;
     color: black;
-    font-size: 3rem;
+    font-size: 2.5rem;
     text-shadow:
       -1px -1px rgba(0, 0, 0, 0.4),
       1px 1px rgba(255, 255, 255, 0.8);
@@ -125,7 +125,7 @@
 
   @media screen and (max-width: 600px) {
     .gameboard {
-      padding: 2rem;
+      padding: 1.667rem;
     }
     /*
   .mystuff {

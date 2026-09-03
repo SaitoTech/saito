@@ -3,22 +3,22 @@
     width: 80vw;
     max-width: 1200px;
     min-width: 800px;
-    padding: 2rem;
+    padding: 1.667rem;
     text-align: center;
   }
 
   .new-action-cards-overlay > .title {
-    font-size: 4rem;
+    font-size: 3.333rem;
     background-color: #0009;
     color: whitesmoke;
-    padding: 1rem;
+    padding: 0.833rem;
     width: max-content;
     text-wrap: nowrap;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     text-align: center;
     margin-left: auto;
     margin-right: auto;
-    margin-bottom: 2rem;
+    margin-bottom: 1.667rem;
   }
 
   .new-action-cards {
@@ -33,12 +33,12 @@
     width: calc(40vh * 0.7211);
   }
   .new-action-cards > .action-card > .title {
-    font-size: 2rem;
-    line-height: 2.8rem;
+    font-size: 1.667rem;
+    line-height: 2.333rem;
   }
   .new-action-cards > .action-card > .text {
-    font-size: 1.8rem;
-    line-height: 2.4rem;
+    font-size: 1.5rem;
+    line-height: 2rem;
   }
   .new-action-cards > .action-card:hover {
     transform: unset;
@@ -60,14 +60,14 @@
   .action-card .title {
     font-family: 'orbitron-medium', helvetica, arial;
     text-align: center;
-    font-size: 1.5rem;
-    line-height: 2rem;
-    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    line-height: 1.667rem;
+    margin-bottom: 0.833rem;
   }
 
   .action-card .text {
-    font-size: 1.4rem;
-    line-height: 1.9rem;
+    font-size: 1.167rem;
+    line-height: 1.583rem;
     text-align: center;
   }
 

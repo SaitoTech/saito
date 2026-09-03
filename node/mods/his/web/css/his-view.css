@@ -6,7 +6,7 @@
   background-color: whitesmoke;
   border-radius: 10px;
   font-size: 2em;
-  padding: 1.5rem;
+  padding: 1.25rem;
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: min-content min-content min-content min-content;
@@ -14,7 +14,7 @@
 }
 
 .space_properties .religion .label , .space_properties .language .label , .space_properties .political .label , .space_properties .home .label {
-  font-size: 2rem;
+  font-size: 1.667rem;
   text-align: center;
   max-height: 70px;
 }
@@ -27,9 +27,9 @@
 .space_name {
   width; 100%;
   text-align: center;
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  margin-top: 1rem;
+  font-size: 2.5rem;
+  margin-bottom: 0.833rem;
+  margin-top: 0.833rem;
 }
 
 .space_properties {
@@ -46,7 +46,7 @@
 }
 
 .space_units {
-  font-size: 2rem;
-  margin-top: 2rem;
+  font-size: 1.667rem;
+  margin-top: 1.667rem;
 }
 }

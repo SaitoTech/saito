@@ -63,7 +63,7 @@
 
   .strategy-card .text {
     font-family: helvetica;
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     position: absolute;
     z-index: 101;
     padding-left: 1.5vw;
@@ -79,18 +79,18 @@
   }
 
   .strategy-card .text br {
-    margin: 1.5rem;
+    margin: 1.25rem;
   }
 
   .strategy-card .picked {
     position: relative;
-    padding: 1rem;
-    padding-left: 2rem;
-    padding-right: 2rem;
+    padding: 0.833rem;
+    padding-left: 1.667rem;
+    padding-right: 1.667rem;
     width: min-content;
     z-index: 9000;
     color: white;
-    border-bottom-right-radius: 0.5rem;
+    border-bottom-right-radius: 0.417rem;
   }
 
   .strategy-card .bonus {

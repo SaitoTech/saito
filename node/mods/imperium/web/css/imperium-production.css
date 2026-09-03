@@ -8,12 +8,12 @@
     background-image: url(/imperium/img/backgrounds/starscape-background4.jpg);
     background-size: cover;
     color: white;
-    padding: 2rem;
+    padding: 1.667rem;
   }
 
   .production-table {
-    column-gap: 3rem;
-    row-gap: 2rem;
+    column-gap: 2.5rem;
+    row-gap: 1.667rem;
     margin-left: auto;
     margin-right: auto;
     display: flex;
@@ -26,23 +26,23 @@
     display: grid;
     grid-template-columns: auto min-content;
     border-bottom: 1px solid #ddd5;
-    column-gap: 2rem;
-    padding: 1rem;
+    column-gap: 1.667rem;
+    padding: 0.833rem;
   }
 
   .production-description {
-    font-size: 2.1rem;
-    line-height: 4rem;
-    min-height: 12rem;
+    font-size: 1.75rem;
+    line-height: 3.333rem;
+    min-height: 10rem;
   }
 
   .production-button {
-    width: 12rem;
-    height: 7rem;
+    width: 10rem;
+    height: 5.833rem;
     text-align: center;
     margin-right: auto;
-    font-size: 1.8rem;
-    line-height: 4.75rem;
+    font-size: 1.5rem;
+    line-height: 3.958rem;
   }
 
   .unit-description.highlight {
@@ -56,26 +56,26 @@
 
   .production-table .unit .unit-description {
     clear: both;
-    padding-left: 1rem;
+    padding-left: 0.833rem;
     padding-top: 0px;
     padding-bottom: 0px;
-    min-height: 3rem;
+    min-height: 2.5rem;
     line-height: 1.7em;
     letter-spacing: 0.1em;
     font-weight: bolder;
     font-family: 'bank-gothic';
-    font-size: 1.7rem;
-    margin-bottom: 0.25rem;
+    font-size: 1.417rem;
+    margin-bottom: 0.208rem;
   }
 
   .unit.square {
-    width: 26rem;
-    padding: 1rem;
+    width: 21.667rem;
+    padding: 0.833rem;
   }
 
   .unit.square .unit-ship {
-    height: 8.1rem;
-    width: 16rem;
+    height: 6.75rem;
+    width: 13.333rem;
     background-size: contain;
   }
 

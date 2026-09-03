@@ -6,23 +6,23 @@
   }
 
   #hud-toggle-button {
-    font-size: 2rem;
-    padding-left: 0.5rem;
+    font-size: 1.667rem;
+    padding-left: 0.417rem;
   }
 
   .controls ul li,
   .options {
     background-color: whitesmoke;
-    height: 7rem;
+    height: 5.833rem;
     border-top: 1px solid var(--saito-border);
     width: 100%;
-    font-size: 1.6rem;
+    font-size: 1.333rem;
     display: list-item;
-    line-height: 4.75rem;
+    line-height: 3.958rem;
     list-style: none;
     cursor: pointer;
     text-align: center;
-    padding: 1rem;
+    padding: 0.833rem;
   }
 
   .controls ul {
@@ -31,8 +31,8 @@
 
   .controls {
     height: max-content;
-    margin-top: 1rem;
-    max-height: 20rem;
+    margin-top: 0.833rem;
+    max-height: 16.667rem;
     overflow-y: scroll;
   }
 
@@ -78,7 +78,7 @@
 
   .hud-body .controls .game-cardgrid {
     display: flex;
-    column-gap: 0.5rem;
+    column-gap: 0.417rem;
     align-items: center;
     justify-content: center;
   }

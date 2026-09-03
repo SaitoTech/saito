@@ -11,22 +11,22 @@
 
   .zoom-overlay .status {
     position: relative;
-    height: 4rem;
-    line-height: 4rem;
+    height: 3.333rem;
+    line-height: 3.333rem;
     min-height: 0;
-    width: 30rem;
-    max-width: 35rem;
+    width: 25rem;
+    max-width: 29.167rem;
     background-color: whitesmoke;
     z-index: 10;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     top: 0px;
     left: 0px;
     white-space: nowrap;
     float: left;
-    margin-left: 1rem;
-    margin-top: 1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    margin-left: 0.833rem;
+    margin-top: 0.833rem;
+    padding-left: 0.833rem;
+    padding-right: 0.833rem;
   }
 
   .zoom-overlay .controls {
@@ -38,20 +38,20 @@
     display: block;
     position: relative;
     background-color: whitesmoke;
-    line-height: 4rem;
-    width: 30rem;
-    max-width: 35rem;
+    line-height: 3.333rem;
+    width: 25rem;
+    max-width: 29.167rem;
     max-height: 80vh;
     z-index: 10;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     top: 0px;
     left: 0px;
     white-space: nowrap;
     float: left;
-    margin-left: 1rem;
-    margin-top: 1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    margin-left: 0.833rem;
+    margin-top: 0.833rem;
+    padding-left: 0.833rem;
+    padding-right: 0.833rem;
     clear: both;
     min-height: max-content;
     height: auto;
@@ -64,15 +64,15 @@
   }
 
   .zoom-overlay .status .message {
-    padding: 1rem;
+    padding: 0.833rem;
     margin-bottom: 0px;
     box-shadow: none;
   }
 
   .zoom-overlay .status ul {
-    margin-top: 1rem;
+    margin-top: 0.833rem;
     background-color: whitesmoke;
-    border-radius: 0.5rem;
+    border-radius: 0.417rem;
   }
 
   .zoom-overlay .status ul {
@@ -80,7 +80,7 @@
   }
 
   .zoom-overlay .status ul .option {
-    padding: 1.5rem;
+    padding: 1.25rem;
     cursor: pointer;
   }
   .zoom-overlay .status ul .option:hover {

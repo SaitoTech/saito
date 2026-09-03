@@ -33,7 +33,7 @@
     max-height: 80vh;
     display: grid;
     grid-template-columns: repeat(auto-fit, 200px);
-    grid-gap: 1rem;
+    grid-gap: 0.833rem;
     align-content: start;
     background-color: transparent;
     border: 0px;
@@ -72,7 +72,7 @@
   }
 
   .ts-overlay h1 {
-    font-size: 3rem;
+    font-size: 2.5rem;
   }
 
   .waroverlay-body {

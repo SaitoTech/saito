@@ -5,8 +5,8 @@
     cursor: pointer;
     position: absolute;
     display: block;
-    width: 30rem;
-    height: 20rem;
+    width: 25rem;
+    height: 16.667rem;
     background: #ff7700;
     overflow: hidden;
     color: #fff;
@@ -15,7 +15,7 @@
     bottom: 0px;
     left: 0px;
     transform: skew(+55deg);
-    margin-left: -24rem;
+    margin-left: -20rem;
     z-index: 999;
 }
 
@@ -38,13 +38,13 @@
 
 .game-help-text {
     font-family: arial, helvetica, sans-serif;
-    font-size: 2.4rem;
-    padding-top: 12rem;
-    margin-left: 23rem;
+    font-size: 2rem;
+    padding-top: 10rem;
+    margin-left: 19.167rem;
     transform: skew(-55deg);
-    min-width: 16rem;
+    min-width: 13.333rem;
     overflow: visible;
-    line-height: 3.5rem;
+    line-height: 2.917rem;
     font-weight: bold;
     letter-spacing: 0.5px;
     text-shadow: -2px 2px 2px black;
@@ -76,17 +76,17 @@
 .game-help-overlay > div {
     position: absolute;
     background: #0009;
-    left: 3rem;
-    padding: 1rem;
+    left: 2.5rem;
+    padding: 0.833rem;
     color: white;
     max-width:50%;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
 }
 
 .game-help-overlay-title {
-    top: 3rem;
-    font-size: 4.6rem;
-    letter-spacing: 0.1rem;
+    top: 2.5rem;
+    font-size: 3.833rem;
+    letter-spacing: 0.083rem;
     font-weight: bold;
     text-transform: uppercase;
     max-width: 60%;
@@ -94,9 +94,9 @@
 
 .game-help-overlay-text {
     bottom: 0px;
-    line-height: 4rem;
-    font-size: 2.7rem;
-    bottom: 3rem;
+    line-height: 3.333rem;
+    font-size: 2.25rem;
+    bottom: 2.5rem;
 }
 
 .game-help-overlay-text em {
@@ -106,17 +106,17 @@
 
 .game-help-overlay > div.game-help-overlay-optout {
     left: unset;
-    right: 1rem;
-    bottom: 1rem;
+    right: 0.833rem;
+    bottom: 0.833rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.833rem;
     cursor: pointer;
 }
 
 @media screen and (max-width: 768px) {
     .game-help-overlay > div {
-        left: 1.5rem;
+        left: 1.25rem;
         max-width: 65%;
     }
 

@@ -8,7 +8,7 @@
     position: static;
     height: 100%;
     display: block;
-    font-size: 3rem;
+    font-size: 2.5rem;
     filter: none;
     font-family: 'digital-7', monospace, courier-new, courier, sans-serif;
     background: #fff;
@@ -23,11 +23,11 @@
   }
   .mobile-log-tab {
     background-color: #f9efdf;
-    height: 4rem;
+    height: 3.333rem;
     margin-top: 2px;
     color: black;
-    font-size: 2.2rem;
-    padding-top: 1rem;
+    font-size: 1.833rem;
+    padding-top: 0.833rem;
   }
 
   .saito-userline {
@@ -47,7 +47,7 @@
   /**** Rust update **** 
 #game-observer-hud {
 	border-radius: 7px;
-	font-size: 1rem;
+	font-size: 0.833rem;
 	height: 110px;
 	width: 300px;
 	padding: 10px;
@@ -55,12 +55,12 @@
 
 .game-observer-status,
 #obstatus {
-	font-size: 1.7rem;
+	font-size: 1.417rem;
 	height: unset;
 }
 
 #game-observer-controls {
-	font-size: 2rem;
+	font-size: 1.667rem;
 	height: 40px;
 }
 ******/
@@ -86,7 +86,7 @@
     display: grid;
     grid-template-columns: min(86vh, 60vw, 700px) 280px;
     grid-template-rows: max-content;
-    column-gap: 7rem;
+    column-gap: 5.833rem;
     align-items: center;
     justify-items: center;
     align-content: center;
@@ -118,7 +118,7 @@
     display: flex;
     flex-direction: row;
     justify-content: left;
-    column-gap: 2rem;
+    column-gap: 1.667rem;
     align-items: center;
     padding: 10px 20px;
     width: 100%;
@@ -126,7 +126,7 @@
     background: #f9efdf;
     border-radius: 10px;
     box-shadow: 0 2px 3px 2px #644b37;
-    gap: 1rem;
+    gap: 0.833rem;
     overflow: hidden;
   }
 
@@ -142,7 +142,7 @@
   }
 
   .last_move {
-    padding: 0.5rem;
+    padding: 0.417rem;
     cursor: pointer;
     justify-self: center;
     align-self: center;
@@ -166,11 +166,11 @@
   }
 
   #controls {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
   }
 
   .status {
-    margin-top: 0.5rem;
+    margin-top: 0.417rem;
   }
 
   .turn-shape {
@@ -217,7 +217,7 @@
     flex-direction: row;
     padding: 0;
     justify-content: center;
-    gap: 1rem;
+    gap: 0.833rem;
     align-items: center;
   }
 

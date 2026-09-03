@@ -6,11 +6,11 @@
     max-height: 90vh;
     background-image: url(/imperium/img/backgrounds/space_background.jpg);
     background-size: cover;
-    padding: 2rem;
+    padding: 1.667rem;
   }
 
   .influence-selection-title {
-    font-size: 2.2rem;
+    font-size: 1.833rem;
     color: white;
     margin-left: auto;
     margin-right: auto;
@@ -24,7 +24,7 @@
     flew-wrap: wrap;
     margin-left: auto;
     margin-right: auto;
-    margin-top: 4rem;
+    margin-top: 3.333rem;
     justify-content: space-evenly;
     align-items: center;
     justify-items: center;
@@ -32,17 +32,17 @@
 
   .influence-selection-goods {
     text-align: center;
-    width: 60rem;
+    width: 50rem;
     margin-left: auto;
     margin-right: auto;
-    height: 15rem;
-    font-size: 4rem;
-    padding-top: 5.5rem;
+    height: 12.5rem;
+    font-size: 3.333rem;
+    padding-top: 4.583rem;
     font-family: 'orbitron-medium';
     color: white;
     background-color: #000a;
-    border-radius: 1rem;
-    margin-top: 4rem;
+    border-radius: 0.833rem;
+    margin-top: 3.333rem;
   }
 
   .resource-selection-overlay {
@@ -52,11 +52,11 @@
     max-height: 90vh;
     background-image: url(/imperium/img/backgrounds/space_background.jpg);
     background-size: cover;
-    padding: 2rem;
+    padding: 1.667rem;
   }
 
   .resource-selection-title {
-    font-size: 5rem;
+    font-size: 4.167rem;
     color: white;
     margin-left: auto;
     margin-right: auto;
@@ -66,10 +66,10 @@
 
   .resource-selection-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(25rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(20.833rem, 1fr));
     margin-left: auto;
     margin-right: auto;
-    margin-top: 4rem;
+    margin-top: 3.333rem;
     justify-content: center;
     align-items: center;
     justify-items: center;
@@ -77,16 +77,16 @@
 
   .resource-selection-goods {
     text-align: center;
-    width: 60rem;
+    width: 50rem;
     margin-left: auto;
     margin-right: auto;
-    height: 15rem;
-    font-size: 4rem;
-    padding-top: 5.5rem;
+    height: 12.5rem;
+    font-size: 3.333rem;
+    padding-top: 4.583rem;
     font-family: 'orbitron-medium';
     color: white;
     background-color: #000a;
-    border-radius: 1rem;
-    margin-top: 4rem;
+    border-radius: 0.833rem;
+    margin-top: 3.333rem;
   }
 }

@@ -5,7 +5,7 @@
     width: 95vw;
     height: max-content;
     justify-content: space-around;
-    top: 5rem;
+    top: 4.167rem;
     left: 2.5vw;
   }
 
@@ -44,9 +44,9 @@
     position: absolute;
     display: none;
     border: 1px solid white;
-    bottom: calc(100% + 2rem);
-    border-radius: 1rem;
-    padding: 0.5rem;
+    bottom: calc(100% + 1.667rem);
+    border-radius: 0.833rem;
+    padding: 0.417rem;
     font-size: 24px;
     background-color: #020;
   }
@@ -54,8 +54,8 @@
   .saito-user > .game-playerbox-icons:after {
     content: '';
     position: absolute;
-    width: 6rem;
-    height: 5rem;
+    width: 5rem;
+    height: 4.167rem;
   }
 
   .saito-user > .game-playerbox-icons:hover .crypto-hover-balance {
@@ -67,8 +67,8 @@
     display: none;
     border: 1px solid white;
     bottom: 100%;
-    border-radius: 1rem;
-    padding: 0.5rem;
+    border-radius: 0.833rem;
+    padding: 0.417rem;
     font-size: 18px;
     background-color: #020;
     pointer-events: none;
@@ -81,16 +81,16 @@
 
   .game-playerbox {
     border: 1px solid #fff3;
-    min-height: 7.5rem;
+    min-height: 6.25rem;
     color: white;
     background-color: #0a1808ee;
     position: relative;
-    border-radius: 1.5rem;
+    border-radius: 1.25rem;
     transition: all 0.5s;
     margin: auto; /* auto-center in grid */
-    padding: 1.5rem;
-    gap: 0.5rem;
-    border-radius: 0.5rem;
+    padding: 1.25rem;
+    gap: 0.417rem;
+    border-radius: 0.417rem;
     max-width: 350px;
     box-shadow: 5px 5px 3px #0a1808dd;
   }
@@ -138,20 +138,20 @@
     display: flex;
     align-items: center;
     justify-content: right;
-    font-size: 2.5rem;
+    font-size: 2.083rem;
     position: absolute;
-    top: calc(100% + 1rem);
+    top: calc(100% + 0.833rem);
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 10rem;
+    border-radius: 8.333rem;
     color: #fff;
-    height: 4rem;
-    width: 10rem;
+    height: 3.333rem;
+    width: 8.333rem;
     transition: opacity 0.75s;
     background-image: url(/poker/img/simple-chip.svg);
     background-size: contain;
     background-repeat: no-repeat;
-    padding: 2px 2rem 0;
+    padding: 2px 1.667rem 0;
     border: 1px solid #aaa8;
     background-color: #0008;
     box-shadow: 5px 5px 3px #0008;
@@ -176,8 +176,8 @@
     content: 'IN';
     position: absolute;
     top: 50%;
-    left: 1.99rem;
-    font-size: 1.1rem;
+    left: 1.658rem;
+    font-size: 0.917rem;
     font-weight: bolder;
     transform: translate(-51%, -46%);
   }
@@ -186,7 +186,7 @@
     left: unset;
     transform: unset;
     top: unset;
-    bottom: calc(100% + 1rem);
+    bottom: calc(100% + 0.833rem);
     right: 2px;
   }
 
@@ -194,14 +194,14 @@
   .status {
     width: 100%;
     text-align: center;
-    margin-top: 0.5rem;
+    margin-top: 0.417rem;
     cursor: default;
-    min-height: 2.3rem;
+    min-height: 1.917rem;
   }
 
   @media screen and (max-width: 900px) {
     .game-playerbox-manager {
-      gap: 2rem;
+      gap: 1.667rem;
     }
     .game-playerbox {
       border: 0px;
@@ -214,7 +214,7 @@
 
   @media screen and (max-width: 600px) {
     .game-playerbox-manager {
-      gap: 1rem;
+      gap: 0.833rem;
     }
 
     .game-playerbox.game-playerbox-seat-1 {
@@ -223,8 +223,8 @@
       bottom: 0px;
     }
     .dealer-button {
-      left: 1rem;
-      top: -4rem !important;
+      left: 0.833rem;
+      top: -3.333rem !important;
     }
   }
 }

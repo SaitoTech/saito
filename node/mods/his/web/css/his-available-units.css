@@ -5,7 +5,7 @@
     justify-content: center;
     margin-left: auto;
     margin-right: auto;
-    column-gap: 0.5rem;
+    column-gap: 0.417rem;
     width: 100%;
     row-gap: 0px;
     position: relative;
@@ -17,7 +17,7 @@
     justify-items: center;
     left: unset !important;
     transform: unset !important;
-    margin-top: 1rem;
+    margin-top: 0.833rem;
     z-index:9999;
 }
 
@@ -37,7 +37,7 @@
     justify-items: center;
     left: 50%;
     transform: translateX(-50%);
-    margin-top: 5rem;
+    margin-top: 4.167rem;
     z-index:9999;
 }
 

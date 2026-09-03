@@ -1,8 +1,8 @@
 /* Namespace: .nwasm-new-game */
 
 .nwasm-new-game {
-  width: min(110rem, 96vw);
-  max-height: min(92vh, 70rem);
+  width: min(91.667rem, 96vw);
+  max-height: min(92vh, 58.333rem);
   background: transparent;
 }
 
@@ -21,10 +21,10 @@
 .nwasm-new-game .choice {
   display: flex;
   flex-direction: column;
-  min-height: min(62vh, 42rem);
+  min-height: min(62vh, 35rem);
   padding: 0;
   border: 1px solid var(--saito-border);
-  border-radius: calc(var(--saito-radius) + 0.2rem);
+  border-radius: calc(var(--saito-radius) + 0.167rem);
   overflow: hidden;
   cursor: pointer;
   text-align: left;
@@ -71,12 +71,12 @@
   flex: 0 0 auto;
   padding: var(--saito-space-xl) var(--saito-space-lg) var(--saito-space-xxl);
   background-color: var(--saito-card);
-  box-shadow: 0 -1.2rem 2.4rem color-mix(in srgb, var(--saito-background) 55%, transparent);
+  box-shadow: 0 -1rem 2rem color-mix(in srgb, var(--saito-background) 55%, transparent);
 }
 
 .nwasm-new-game .choice .lede {
   font-family: var(--saito-font-heavy);
-  font-size: clamp(1.8rem, 2.2vw, 2.4rem);
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
   line-height: 1.2;
 }
 
@@ -113,7 +113,7 @@
 
 @media (max-width: 900px) {
   .nwasm-new-game {
-    width: min(48rem, 96vw);
+    width: min(40rem, 96vw);
     max-height: 92vh;
   }
 

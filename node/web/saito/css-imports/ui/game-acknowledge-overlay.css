@@ -5,28 +5,28 @@
   background-size: cover;
   width: 90vw;
   height: 90vh;
-  padding: 2rem;
+  padding: 1.667rem;
   margin-top: auto;
   overflow-y: scroll;
 }
 
 .game-acknowledge-menu {
   margin-top: 20vh;
-  padding: 2rem;
+  padding: 1.667rem;
 }
 
 .game-acknowledge-notice {
   color: white;
-  font-size: 2rem;
+  font-size: 1.667rem;
   margin-left: auto;
   margin-right: auto;
   width: max-content;
-  max-width: 80rem;
+  max-width: 66.667rem;
 }
 
 .game-acknowledge-overlay .game-acknowledge-menu ul li {
   width: 100%;
-  line-height: 3.5rem;
+  line-height: 2.917rem;
   border-top: 1px solid var(--saito-gray-850);
   cursor: pointer;
   border-color: #555;
@@ -34,11 +34,11 @@
   color: #fffd;
   text-align: center;
   list-style: none;
-  padding-top: 2rem;
+  padding-top: 1.667rem;
   font-weight: bolder;
   font-family: 'orbitron-medium';
-  font-size: 2rem;
-  letter-spacing: 0.2rem;
+  font-size: 1.667rem;
+  letter-spacing: 0.167rem;
 }
 
 .game-acknowledge-overlay .game-acknowledge-menu ul li:hover {

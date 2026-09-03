@@ -3,13 +3,13 @@
     cursor: pointer;
     position: absolute;
     display: block;
-    width: 25rem;
-    height: 7rem;
+    width: 20.833rem;
+    height: 5.833rem;
     overflow: hidden;
     color: #fff;
     top: calc(50% - 210px);
     z-index: 89;
-    border-radius: 20rem;
+    border-radius: 16.667rem;
     user-select: none;
     left: 50%;
     transition: opacity 0.75s;
@@ -19,7 +19,7 @@
     background-repeat: no-repeat;
     border: 1px solid #aaa8;
     background-color: #0008;
-    padding: 1rem 1rem 1rem 8rem;
+    padding: 0.833rem 0.833rem 0.833rem 6.667rem;
     box-shadow: 5px 5px 3px #0008;
   }
 
@@ -31,27 +31,27 @@
     content: 'POT';
     position: absolute;
     top: 50%;
-    left: 3.5rem;
-    font-size: 1.75rem;
+    left: 2.917rem;
+    font-size: 1.458rem;
     font-weight: bolder;
     transform: translate(-53%, -48%);
   }
 
   .potholder {
-    font-size: 2.4rem;
-    padding: 1rem;
+    font-size: 2rem;
+    padding: 0.833rem;
     height: 100%;
     overflow: visible;
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.417rem;
   }
 
   .potholder .line2 {
     font-weight: bolder;
-    font-size: 3.4rem;
+    font-size: 2.833rem;
   }
 
   .potholder.squeeze {
@@ -75,23 +75,23 @@
 
   /*  Details overlay */
   .pot-details-overlay {
-    min-width: 58rem;
+    min-width: 48.333rem;
     max-width: 90vw;
-    min-height: 38rem;
+    min-height: 31.667rem;
     max-height: 90vh;
 
-    padding: 3rem;
+    padding: 2.5rem;
     background-image: url('/poker/img/poker-chip-values-colors.webp');
     background-position: center;
     background-size: cover;
-    font-size: 2rem;
+    font-size: 1.667rem;
     user-select: none;
   }
 
   .pot-details-overlay .saito-table-row {
     grid-template-columns: 1fr 1fr min-content;
-    margin: 1rem 0;
-    grid-gap: 2rem;
+    margin: 0.833rem 0;
+    grid-gap: 1.667rem;
     align-items: center;
     background: #cccb;
   }
@@ -105,11 +105,11 @@
   }
 
   .pot-details-overlay .player-name {
-    font-size: 2.2rem;
+    font-size: 1.833rem;
   }
 
   .pot-details-overlay .player-bet {
-    font-size: 2.6rem;
+    font-size: 2.167rem;
   }
 
   @media screen and (max-width: 1000px) {

@@ -16,11 +16,11 @@
     color: white;
     margin-left: auto;
     margin-right: auto;
-    font-size: 2.4rem;
-    padding: 0.75rem;
+    font-size: 2rem;
+    padding: 0.625rem;
     max-width: 100%;
-    padding: 2rem;
-    line-height: 3.4rem;
+    padding: 1.667rem;
+    line-height: 2.833rem;
   }
 
   .cardfans {
@@ -30,7 +30,7 @@
     height: 100%;
     min-height: inherit;
     justify-content: space-evenly;
-    margin-top: 5rem;
+    margin-top: 4.167rem;
   }
 
   .cardfans .protestant,

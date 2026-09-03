@@ -2,7 +2,7 @@
   .cardnotice-wrapper {
     background-size: 111%;
     background-position: center;
-    padding: 1rem;
+    padding: 0.833rem;
     background-color: #0002;
     background-blend-mode: darken;
     height: 100%;
@@ -12,7 +12,7 @@
 
   .cardnotice-card {
     position: absolute;
-    right: 1.5rem;
+    right: 1.25rem;
     top: 50%;
     transform: rotate(5deg) scale(0.2) translateY(-50%);
     transform-origin: top right;
@@ -20,18 +20,18 @@
 
   .cardnotice div {
     width: fit-content;
-    margin: 0.7rem;
-    padding: 1rem;
-    border-radius: 1rem;
+    margin: 0.583rem;
+    padding: 0.833rem;
+    border-radius: 0.833rem;
     background-color: #b79e76cc;
   }
 
   .cardnotice-title {
-    font-size: 2.2rem;
+    font-size: 1.833rem;
   }
 
   .cardnotice-text {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
   }
 
   .cardnotice-card .settlers-dev-card-title {

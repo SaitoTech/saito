@@ -3,14 +3,14 @@
     display: grid;
     color: white;
     width: 80vw;
-    min-width: 75rem;
+    min-width: 62.5rem;
     max-width: 1200px;
     height: max-content;
-    column-gap: 2rem;
-    row-gap: 2rem;
-    padding: 4rem;
+    column-gap: 1.667rem;
+    row-gap: 1.667rem;
+    padding: 3.333rem;
     background-color: #0007;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     grid-template-columns: 1fr 1fr;
     width: min-content;
     justify-items: center;
@@ -22,8 +22,8 @@
     margin-left: auto;
     margin-right: auto;
     font-family: 'bank-gothic';
-    letter-spacing: 0.75rem;
-    font-size: 5rem;
+    letter-spacing: 0.625rem;
+    font-size: 4.167rem;
     width: max-content;
     grid-column-start: 1;
     grid-column-end: span 2;
@@ -39,10 +39,10 @@
   }
 
   .how-to-move-tutorial li {
-    margin-bottom: 2rem;
-    margin-left: 2rem;
-    padding-left: 1rem;
-    font-size: 1.8rem;
+    margin-bottom: 1.667rem;
+    margin-left: 1.667rem;
+    padding-left: 0.833rem;
+    font-size: 1.5rem;
   }
 
   .how-to-move-tutorial li:nth-child(3) {
@@ -52,18 +52,18 @@
   .how-to-move-tutorial .title {
     font-family: unset;
     font-weight: bold;
-    margin-bottom: 0.5rem;
-    font-size: 1.8rem;
+    margin-bottom: 0.417rem;
+    font-size: 1.5rem;
     font-family: 'orbitron-light', helvetica, arial;
     text-transform: uppercase;
     width: auto;
-    letter-spacing: 0.1rem;
+    letter-spacing: 0.083rem;
   }
 
   .how-to-move-tutorial .desc {
     font-family: unset;
     font-weight: bold;
-    font-size: 1.8rem;
+    font-size: 1.5rem;
   }
 
   .how-to-move-example {
@@ -71,15 +71,15 @@
     grid-column-end: span 1;
     grid-row-start: 2;
     grid-row-end: span 1;
-    width: 26rem;
-    min-width: 26rem;
-    max-width: 26rem;
-    line-height: 2.2rem;
-    font-size: 1.6rem;
+    width: 21.667rem;
+    min-width: 21.667rem;
+    max-width: 21.667rem;
+    line-height: 1.833rem;
+    font-size: 1.333rem;
   }
 
   .how-to-move-example-desc {
-    font-size: 1.6rem;
+    font-size: 1.333rem;
     text-align: center;
     grid-column-start: 1;
     grid-column-end: span 2;

@@ -27,11 +27,25 @@
   --background-color-shim-normal: color-mix(in srgb, var(--saito-black) 70%, transparent);
 
   /* for the header */
-  --saito-header-height: 4rem;
+  --saito-header-height: 3.333rem;
 }
 
 html.game {
-    font-size: 10px;
+    font-size: 12px;
+
+    /* Design tokens authored at 10px rem — keep prior pixel footprint */
+    --saito-space-xs: 0.417rem;
+    --saito-space-sm: 0.625rem;
+    --saito-space-md: 0.833rem;
+    --saito-space-lg: 1.333rem;
+    --saito-space-xl: 1.667rem;
+    --saito-space-xxl: 2.5rem;
+    --saito-radius: 0.375rem;
+    --saito-radius-sm: 0.292rem;
+    --saito-radius-lg: 0.583rem;
+    --font-size-large: 1.667rem;
+    --font-size-medium: 1.25rem;
+    --font-size-tiny: 1.083rem;
 }
 
 body {
@@ -109,9 +123,9 @@ div.h3 {
   max-width: 750px;
   border: 1px solid var(--saito-primary);
   background-color: var(--saito-background);
-  font-size: 1.6rem;
+  font-size: 1.333rem;
   font-style: italic;
-  line-height: 2rem;
+  line-height: 1.667rem;
 }
 
 .tip:hover .tiptext {
@@ -160,7 +174,7 @@ div.h3 {
   background-position: center;
   width: 400px;
   max-width: 95vw;
-  font-size: 4rem;
+  font-size: 3.333rem;
   height: 404px;
   max-height: 95vh;
   display: flex;
@@ -169,7 +183,7 @@ div.h3 {
   align-items: center;
   color: white;
   text-shadow: 2px 2px black;
-  padding: 1rem 0;
+  padding: 0.833rem 0;
   text-transform: uppercase;
   font-family: impact;
 }
@@ -181,8 +195,8 @@ div.h3 {
   position: absolute;
   bottom: 20px;
   left: 50px;
-  width: min(12rem, 20vw);
-  height: auto /*min(12rem, 20vw)*/;
+  width: min(10rem, 20vw);
+  height: auto /*min(10rem, 20vw)*/;
   z-index: 0;
 }
 
@@ -194,20 +208,20 @@ div.h3 {
   position: relative;
   height: 100vh;
   scroll-behavior: smooth;
-  padding-left: min(16rem, calc(25rem - 9vw));
+  padding-left: min(13.333rem, calc(20.833rem - 9vw));
 }
 
 .saito-splash-image,
 .saito-splash-info {
   width: 800px;
-  max-width: calc(100vw - 18rem);
+  max-width: calc(100vw - 15rem);
   margin: auto;
 }
 
 .scrollable-page > .saito-splash-image,
 .scrollable-page > .saito-splash-info,
 .saito-splash-image.full .saito-splash-section-title {
-  /*left: min(16rem, max(0px, calc(25rem - 15vw)));*/
+  /*left: min(13.333rem, max(0px, calc(20.833rem - 15vw)));*/
 }
 
 .saito-splash-image {
@@ -215,18 +229,18 @@ div.h3 {
   background-size: cover;
   position: relative;
   min-height: min(150px, 25vh);
-  border-radius: 1rem 1rem 0 0;
-  margin-top: 2rem;
+  border-radius: 0.833rem 0.833rem 0 0;
+  margin-top: 1.667rem;
 }
 
 .saito-splash-info {
   position: relative;
   background-color: var(--saito-profile-background);
   color: var(--saito-foreground);
-  padding: min(5rem, 5vh) min(8rem, 5vw);
+  padding: min(4.167rem, 5vh) min(6.667rem, 5vw);
   min-height: min(300px, 30vh);
-  margin-bottom: 4rem;
-  border-radius: 0 0 1rem 1rem;
+  margin-bottom: 3.333rem;
+  border-radius: 0 0 0.833rem 0.833rem;
 }
 
 .saito-splash-image.full {
@@ -235,11 +249,11 @@ div.h3 {
   max-width: unset;
   background-attachment: fixed;
   margin: 0 !important;
-  left: max(-16rem, calc(9vw - 25rem));
+  left: max(-13.333rem, calc(9vw - 20.833rem));
 }
 
 .saito-splash-image.full .saito-splash-section-title {
-  padding-left: min(16rem, calc(25rem - 9vw));
+  padding-left: min(13.333rem, calc(20.833rem - 9vw));
 }
 
 .saito-splash-section-title {
@@ -258,22 +272,22 @@ div.h3 {
 
 .saito-splash-section-title .saito-splash-info {
   margin-bottom: unset;
-  border-radius: 1rem;
+  border-radius: 0.833rem;
   max-width: min(650px, 75vw);
   min-height: min(200px, 20vh);
-  padding: min(4rem, 4vh) min(6rem, 4vw);
+  padding: min(3.333rem, 4vh) min(5rem, 4vw);
 }
 
 .splash-page-game-description {
   font-size: 18px;
-  margin: 1rem 0;
+  margin: 0.833rem 0;
   line-height: 24px;
 }
 
 .splash-page-leaderboard,
 .league-overlay-games-list {
   max-height: min(600px, 70vh);
-  max-width: 80rem;
+  max-width: 66.667rem;
   margin: auto;
   overflow: auto;
 }
@@ -302,18 +316,18 @@ div.h3 {
   #mobile-anchor {
     position: fixed;
     display: flex;
-    right: 1rem;
-    bottom: 2rem;
+    right: 0.833rem;
+    bottom: 1.667rem;
   }
 
   #create-game-button-mobile {
-    min-width: 5rem;
-    height: 5rem;
+    min-width: 4.167rem;
+    height: 4.167rem;
     padding: unset;
-    border-radius: 5rem;
+    border-radius: 4.167rem;
     justify-content: center;
     align-items: center;
-    font-size: 3rem;
+    font-size: 2.5rem;
   }
 
   .saito-splash-image {
@@ -334,7 +348,7 @@ div.h3 {
   top: 50%;
   left: 0;
   transform: translateY(-50%);
-  padding: 2rem;
+  padding: 1.667rem;
 
   background-size: cover;
   background-position: right;
@@ -342,10 +356,10 @@ div.h3 {
 
 .saito-splash-nav ul {
   list-style: none;
-  font-size: 2.4rem;
+  font-size: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 2.083rem;
 }
 
 .saito-splash-nav a {
@@ -356,7 +370,7 @@ div.h3 {
 
 .saito-splash-nav button {
   min-width: unset;
-  max-width: 20rem;
+  max-width: 16.667rem;
 }
 
 @media screen and (max-width: 900px) {

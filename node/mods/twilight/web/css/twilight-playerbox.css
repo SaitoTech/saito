@@ -18,7 +18,7 @@
     position: absolute;
     right: 20px;
     top: 45px;
-    gap: 0.5rem;
+    gap: 0.417rem;
     cursor: default;
     z-index: 46; /* Sit above sizer */
   }
@@ -28,9 +28,9 @@
     height: fit-content;
     background-color: rgba(43, 29, 14, 0.75);
     border: 2px solid transparent;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     box-shadow: 5px 3px 4px black;
-    width: 22rem;
+    width: 18.333rem;
   }
 
   .game-playerbox.active {
@@ -73,15 +73,15 @@
 
   @media (max-aspect-ratio: 8/7) {
     .game-playerbox-manager {
-      margin: 0.25rem;
+      margin: 0.208rem;
       flex-direction: row;
     }
 
     .game-playerbox {
       min-height: unset;
-      width: 20rem;
+      width: 16.667rem;
       max-width: 100%;
-      padding: 0.5rem;
+      padding: 0.417rem;
       margin: 0;
       border-radius: 12px;
       box-shadow: -4px 2px 3px black;

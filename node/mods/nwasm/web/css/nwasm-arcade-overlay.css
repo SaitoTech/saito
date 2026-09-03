@@ -3,8 +3,8 @@
 .nwasm-arcade-overlay {
   display: flex;
   flex-direction: column;
-  width: min(96vw, 110rem);
-  height: min(90vh, 68rem);
+  width: min(96vw, 91.667rem);
+  height: min(90vh, 56.667rem);
   max-height: 90vh;
   padding: var(--saito-space-xl);
   overflow: hidden;
@@ -14,7 +14,7 @@
 
 .nwasm-arcade-overlay .library {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(16rem, 0.85fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(13.333rem, 0.85fr);
   gap: var(--saito-space-xl);
   align-items: stretch;
   flex: 1 1 auto;
@@ -34,7 +34,7 @@
 .nwasm-arcade-overlay .section-title {
   margin: 0;
   font-family: var(--saito-font-medium);
-  font-size: 1.67rem;
+  font-size: 1.392rem;
   font-weight: normal;
   line-height: 1.3;
   text-align: left;
@@ -91,7 +91,7 @@
 
 .nwasm-arcade-overlay .table .expires {
   color: var(--saito-muted-foreground);
-  font-size: var(--font-size-small, 1.4rem);
+  font-size: var(--font-size-small, 1.167rem);
   white-space: nowrap;
 }
 
@@ -152,8 +152,8 @@
 
 @media (max-width: 820px) {
   .nwasm-arcade-overlay {
-    width: min(96vw, 110rem);
-    height: min(92vh, 68rem);
+    width: min(96vw, 91.667rem);
+    height: min(92vh, 56.667rem);
     padding: var(--saito-space-lg);
   }
 
@@ -168,6 +168,6 @@
   }
 
   .nwasm-arcade-overlay .dropzone {
-    min-height: 14rem;
+    min-height: 11.667rem;
   }
 }

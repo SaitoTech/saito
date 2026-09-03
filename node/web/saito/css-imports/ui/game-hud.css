@@ -35,7 +35,7 @@
   bottom: 0;
   float: none;
   z-index: 40;
-  font-size: 1.6rem;
+  font-size: 1.333rem;
   border-bottom: 0px;
   overflow: visible;
 }
@@ -44,12 +44,12 @@
   display: none;
   border: 3px solid #424143;
   background-color: #b79e76;
-  border-radius: 1rem 1rem 0 0;
+  border-radius: 0.833rem 0.833rem 0 0;
   height: 65%;
   position: absolute;
   top: 0;
-  width: calc(100% - 2rem);
-  margin: 0 0.5rem;
+  width: calc(100% - 1.667rem);
+  margin: 0 0.417rem;
   transition: all 0.5s ease-in-out;
   z-index: -1;
   transform: scale(0.95); /* Slightly scale down */
@@ -83,7 +83,7 @@
 
 .hud-long {
   width: max-content;
-  max-width: calc(100vw - 1rem);
+  max-width: calc(100vw - 0.833rem);
   height: 280px;
   max-height: 280px;
   padding: 0 5px 10px 5px;
@@ -121,7 +121,7 @@
 .status {
   border-radius: unset;
   position: relative;
-  font-size: 1.6rem;
+  font-size: 1.333rem;
   justify-content: space-around;
   height: min-content;
   min-height: fit-content;
@@ -136,13 +136,13 @@
   margin-left: auto;
   margin-right: auto;
   box-shadow: 2px 2px 5px 0px rgba(0, 0, 0, 0.75);
-  padding-top: 0.9rem;
-  padding-bottom: 0.9rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
 }
 
 .hud-body .status .back-button {
-  padding: 1rem;
-  font-size: 1.85rem;
+  padding: 0.833rem;
+  font-size: 1.542rem;
   display: inline-block;
   position: absolute;
   top: 0;
@@ -167,12 +167,12 @@
 
 .controls {
   height: max-content;
-  margin-top: 1rem;
+  margin-top: 0.833rem;
 }
 
 .controls .game-cardgrid {
   display: flex;
-  column-gap: 0.5rem;
+  column-gap: 0.417rem;
   align-items: center;
   justify-content: center;
   overflow-y: auto;
@@ -186,7 +186,7 @@
   margin-left: auto;
   margin-right: auto;
   overflow-y: auto;
-  font-size: 1.6rem;
+  font-size: 1.333rem;
   display: flex;
   flex-direction: column;
 }
@@ -194,14 +194,14 @@
 .controls ul li,
 .options {
   background-color: whitesmoke;
-  height: 8rem;
+  height: 6.667rem;
   border-top: 1px solid var(--saito-border);
   width: 100%;
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   display: list-item;
   list-style: none;
   cursor: pointer;
-  padding: 1rem;
+  padding: 0.833rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -221,7 +221,7 @@ ul li.option {
 
 @media screen and (orientation: portrait) and (max-width: 600px) {
   .hud-notice {
-    width: calc(100% - 4rem);
+    width: calc(100% - 3.333rem);
   }
   .hud-notice.show {
     top: -65%;

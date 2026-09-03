@@ -10,7 +10,7 @@
 
   .help-question {
     background-color: goldenrod;
-    padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+    padding: 0.417rem 1.25rem 0.417rem 1.25rem;
     border: 1px solid #000;
   }
 
@@ -26,31 +26,31 @@
     height: 4.5vh;
     font-size: 3vh;
     background-color: goldenrod;
-    width: 4rem;
+    width: 3.333rem;
     opacity: 0.5;
     margin: 3px;
-    padding-left: 1.4rem;
+    padding-left: 1.167rem;
     padding-top: 0.8vh;
     user-select: none;
     cursor: pointer;
     position: relative;
-    top: -1.1rem;
+    top: -0.917rem;
   }
 
   .game-overlay-button-continue,
   .game-overlay-cardlist-button {
     background-color: white;
-    padding: 2rem;
+    padding: 1.667rem;
     color: #000d;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     cursor: pointer;
   }
   .game-overlay-button-continue:hover,
   .game-overlay-cardlist-button:hover {
     background-color: var(--saito-primary);
-    padding: 2rem;
+    padding: 1.667rem;
     color: white;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     cursor: pointer;
   }
 
@@ -96,12 +96,12 @@
     color: #000;
     -webkit-text-stroke: 2px #fffd;
     stroke: 2px #fff8;
-    font-size: 4.5rem;
+    font-size: 3.75rem;
   }
   .game-overlay-cardlist-subtitle {
     font-family: 'orbitron-light', helvetica;
     height: auto;
-    padding: 1rem;
+    padding: 0.833rem;
   }
 
   .sf-title {
@@ -1020,7 +1020,7 @@
     font-size: 3em;
     width: 2em;
     color: #fff;
-    margin-top: 6.75rem;
+    margin-top: 5.625rem;
   }
 
   .round {
@@ -1051,15 +1051,15 @@
     font-size: 0.5em;
     text-align: center;
     font-family: 'bank-gothic';
-    padding-top: 0.5rem;
+    padding-top: 0.417rem;
   }
 
   .VP-track-label {
     font-size: 1.35em;
     color: #fff;
     text-align: left;
-    padding-left: 1rem;
-    height: 3rem;
+    padding-left: 0.833rem;
+    height: 2.5rem;
     cursor: pointer;
   }
 
@@ -1128,7 +1128,7 @@
     cursor: pointer;
     font-family: 'orbitron-medium', helvetica, arial, courier;
     text-transform: uppercase;
-    padding: 2rem;
+    padding: 1.667rem;
     user-select: none;
   }
   .buildchoice {
@@ -1137,7 +1137,7 @@
   .option {
     cursor: pointer;
     font-family: 'orbitron-medium', helvetica, arial, courier;
-    padding: 2rem;
+    padding: 1.667rem;
     user-select: none;
   }
 
@@ -1213,11 +1213,11 @@
   }
 
   .player_color_box {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.083rem;
+    height: 2.083rem;
     display: inline-block;
-    margin-right: 1rem;
-    padding-top: 0.5rem;
+    margin-right: 0.833rem;
+    padding-top: 0.417rem;
     background-color: #000;
   }
 
@@ -1565,7 +1565,7 @@
 
   .system_summary {
     background-image: url(/imperium/img/backgrounds/space-art.jpg);
-    padding: 4rem;
+    padding: 3.333rem;
     color: white;
     width: auto;
     height: auto;
@@ -1576,7 +1576,7 @@
     overflow-y: scroll;
   }
   .system_summary_content {
-    padding: 2rem;
+    padding: 1.667rem;
   }
   .system_summary_sector {
     display: inline-block;
@@ -1584,7 +1584,7 @@
     text-align: center;
     font-size: 2em;
     font-family: 'orbitron-medium', helvetical, arial;
-    margin-bottom: 1.6rem;
+    margin-bottom: 1.333rem;
   }
   .system_summary_units {
     width: 80%;
@@ -1599,15 +1599,15 @@
     text-align: center;
   }
   .system_summary_planet {
-    margin-bottom: 1rem;
+    margin-bottom: 0.833rem;
   }
   .system_summary_planets_grid {
     min-width: auto;
     display: grid;
     grid-template-columns: 1fr 1fr;
     width: auto;
-    column-gap: 4rem;
-    font-size: 1.6rem;
+    column-gap: 3.333rem;
+    font-size: 1.333rem;
   }
 
   .system_summary_planet_card {
