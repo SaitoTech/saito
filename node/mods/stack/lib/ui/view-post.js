@@ -237,25 +237,34 @@ class ViewPost {
       // Share icon - generic share
       const shareBtn = document.querySelector('#stack-view-post-share');
       if (shareBtn) {
-        shareBtn.addEventListener('click', (e) => {
+        shareBtn.addEventListener('click', async (e) => {
           e.preventDefault();
 
           if (!this.tx || !this.authorPublicKey) return;
 
-          let shareUrl = window.location.href;
+          let longUrl = window.location.href;
           if (this.authorPublicKey && this.tx.signature) {
-            shareUrl = `/${this.mod.slug}/${this.authorPublicKey}/${this.tx.signature}`;
-            if (!shareUrl.startsWith('http')) {
-              shareUrl = window.location.origin + shareUrl;
+            longUrl = `/${this.mod.slug}/${this.authorPublicKey}/${this.tx.signature}`;
+            if (!longUrl.startsWith('http')) {
+              longUrl = window.location.origin + longUrl;
             }
           }
 
           const msg = this.tx.returnMessage();
 
-          this.app.browser.handleShare({
-            title: msg?.data?.title || 'Stack Post',
-            url: shareUrl
-          });
+          try {
+            const url = await this.mod.createShortLink(longUrl);
+            this.app.browser.handleShare({
+              title: msg?.data?.title || 'Stack Post',
+              url
+            });
+          } catch (err) {
+            console.error('Stack post share failed:', err);
+            this.app.browser.handleShare({
+              title: msg?.data?.title || 'Stack Post',
+              url: longUrl
+            });
+          }
         });
       }
     } catch (err) {

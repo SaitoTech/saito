@@ -31,6 +31,7 @@ class Arcade extends ModTemplate {
     this.categories = 'Games Entertainment Appspace';
     this.icon = 'fas fa-gamepad';
     this.styles = ['/arcade/style.css'];
+    this.shortlinks_enabled = 1;
     this.affix_callbacks_to = [];
     this.services = [this.app.network.createPeerService(null, 'arcade', '', 'saito')];
 

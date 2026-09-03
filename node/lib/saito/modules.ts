@@ -335,6 +335,10 @@ class Mods {
             active: 1
           });
         }
+      } else if (this.mods[i].shortlinks_enabled) {
+        // Shortlinks may be enabled after a module was originally installed.
+        // The shared schema is idempotent, so ensure it exists during upgrades.
+        await this.mods[i].installShortlinkDatabase(this.app);
       }
     }
 
