@@ -1,221 +1,234 @@
 module.exports = (app, mod, invite) => {
-  let game_tx = mod.returnGameTransaction(invite.game_id);
-
-  let desc = invite.verbose_game_type;
-
-  if (invite.players.length >= invite.players_needed) {
-    desc = 'active game';
-  }
-
-  if (invite.time_finished) {
-    desc = 'finished game';
-  }
-
-  let html = `
-  <div class="arcade-lounge arcade-lounge--invite saito-overlay-panel">
-  <div class="arcade-lounge-header header">
-	  <div class="arcade-lounge-header-image image" style="background-image: url('${invite.game_mod.respondTo('arcade-games').image}')">
-	  </div>
-	  <div class="arcade-lounge-header-title title">${invite.game_name}</div>
-	  <div class="arcade-lounge-header-desc desc">${desc}</div>
-  </div>
-  <div class="arcade-lounge-body body">
-	  <div class="arcade-lounge-section hide-scrollbar">
-	    <div class="arcade-lounge-players players">
-	`;
-
+  const image = invite.game_mod.respondTo('arcade-games')?.image || '';
   const tentative = invite.tentative || { join: [], leave: [] };
   const leaving = new Set(tentative.leave || []);
+  const isInPlay = !invite.time_finished && invite.players.length >= invite.players_needed;
 
-  // render players who have joined (marking any about to leave)
-  for (let i = 0; i < invite.players.length; i++) {
-    const pkey = invite.players[i];
+  let stateLabel = 'Open Invite';
+  if (isInPlay) {
+    stateLabel = 'In Play';
+  }
+  if (invite.time_finished) {
+    stateLabel = 'Finished Game';
+  }
+
+  let playersHtml = '';
+  let playerCount = 0;
+
+  // Render players who have joined (marking any about to leave).
+  for (const pkey of invite.players) {
     const isLeaving = leaving.has(pkey);
-    html += `
-		  <div class="arcade-lounge-playerbox saito-table-row ${isLeaving ? 'leaving' : ''}" id="invite-user-${pkey}">
-		    <div class="saito-identicon-box${invite.winner?.includes(pkey) ? ' winner' : ''}">
-          <img class="saito-identicon" src="${app.keychain.returnIdenticon(pkey)}">
-        </div>
-		    ${app.browser.returnAddressHTML(pkey)}
-        ${isLeaving ? '<div class="arcade-lounge-player-note">leaving next hand</div>' : '<div class="online-status-indicator"></div>'}
-		  </div>
-			`;
+    playersHtml += playerBox(
+      app,
+      pkey,
+      isLeaving ? 'leaving' : '',
+      isLeaving ? 'leaving next hand' : '',
+      invite.winner?.includes(pkey)
+    );
+    playerCount++;
   }
 
-  // render tentative joiners (pending seat requests not yet seated)
-  for (let i = 0; i < (tentative.join || []).length; i++) {
-    const pkey = tentative.join[i];
-    if (invite.players.includes(pkey)) {
-      continue;
+  // Render tentative joiners (pending seat requests not yet seated).
+  for (const pkey of tentative.join || []) {
+    if (!invite.players.includes(pkey)) {
+      playersHtml += playerBox(app, pkey, 'pending', 'joining next hand');
+      playerCount++;
     }
-    html += `
-		  <div class="arcade-lounge-playerbox saito-table-row pending" id="invite-user-${pkey}">
-		    <div class="saito-identicon-box">
-          <img class="saito-identicon" src="${app.keychain.returnIdenticon(pkey)}">
-        </div>
-		    ${app.browser.returnAddressHTML(pkey)}
-        <div class="arcade-lounge-player-note">joining next hand</div>
-		  </div>
-			`;
   }
 
-  // render players who are requested to join
-  for (let i = 0; i < invite.desired_opponent_publickeys.length; i++) {
-    html += `
-      <div class="arcade-lounge-playerbox saito-table-row arcade-lounge-playerbox--requested" id="invite-user-${invite.desired_opponent_publickeys[i]}">
-	      <div class="saito-identicon-box">
-	      	<img class="saito-identicon" src="${app.keychain.returnIdenticon(invite.desired_opponent_publickeys[i])}">
-	      </div>
- 	      ${app.browser.returnAddressHTML(invite.desired_opponent_publickeys[i])}
-        <div class="online-status-indicator"></div>
-	    </div>
-     `;
+  // Render players who were specifically requested to join.
+  for (const pkey of invite.desired_opponent_publickeys) {
+    playersHtml += playerBox(app, pkey, 'arcade-lounge-playerbox--requested');
+    playerCount++;
   }
 
-  // render empty slots
+  // Empty seats are status indicators, not interactive checkboxes.
   for (let i = 0; i < invite.empty_slots; i++) {
-    html += `
-	        <div class="arcade-lounge-playerbox saito-table-row">
-	      			<div class="saito-identicon-box empty-slot"></div>
-	    			<div class="saito-address">open player slot</div>
-	  			</div>
-		    `;
+    playersHtml += `
+      <div class="arcade-lounge-playerbox arcade-lounge-playerbox--open saito-table-row">
+        <div class="saito-identicon-box empty-slot" aria-hidden="true"></div>
+        <div class="arcade-lounge-player-identity">
+          <div class="saito-address">Open</div>
+        </div>
+      </div>`;
+    playerCount++;
   }
 
-  html += `
-	      </div>`;
-
-  // render players who have cashed out / been eliminated
   const eliminated = invite.options?.eliminated || {};
   let eliminatedHtml = '';
   for (const pkey in eliminated) {
-    if (invite.players.includes(pkey)) {
-      continue;
+    if (!invite.players.includes(pkey)) {
+      const amt = typeof eliminated[pkey] === 'string' ? eliminated[pkey] : '';
+      eliminatedHtml += playerBox(
+        app,
+        pkey,
+        'eliminated',
+        amt ? `cashed out ${amt}` : 'left the table'
+      );
     }
-    const amt = typeof eliminated[pkey] === 'string' ? eliminated[pkey] : '';
-    eliminatedHtml += `
-		  <div class="arcade-lounge-playerbox saito-table-row eliminated" id="invite-user-${pkey}">
-		    <div class="saito-identicon-box">
-          <img class="saito-identicon" src="${app.keychain.returnIdenticon(pkey)}">
-        </div>
-		    ${app.browser.returnAddressHTML(pkey)}
-        <div class="arcade-lounge-player-note">${amt ? `cashed out ${amt}` : 'left the table'}</div>
-		  </div>`;
-  }
-  if (eliminatedHtml) {
-    html += `<div class="arcade-lounge-eliminated-label">Cashed out</div>
-	    <div class="arcade-lounge-players arcade-lounge-eliminated">${eliminatedHtml}</div>`;
   }
 
-  html += `
-	    <div class="saito-table">
-			  <div class="saito-table-body">
-	`;
-
-  html += formatOptions(invite.game_mod.returnShortGameOptionsArray(invite.options));
+  let detailsHtml = formatOptions(invite.game_mod.returnShortGameOptionsArray(invite.options));
   if (invite.time_finished) {
-    let datetime = app.browser.formatDate(invite.time_finished);
-    html += addTimeStamp('finished at', datetime);
+    detailsHtml += addTimeStamp('finished at', app.browser.formatDate(invite.time_finished));
   } else if (invite.time_created) {
-    let datetime = app.browser.formatDate(invite.time_created);
-    html += addTimeStamp('created at', datetime);
+    detailsHtml += addTimeStamp('created at', app.browser.formatDate(invite.time_created));
   }
   if (invite?.step >= 0) {
-    html += `<div class="saito-table-row">
-              <div class="arcade-lounge-key">game moves</div>
-							<div class="arcade-lounge-value">${invite.step}</div>
-					</div>`;
+    detailsHtml += detailRow('game moves', invite.step);
     if (invite?.game_status) {
-      html += `<div class="saito-table-row">
-              <div class="arcade-lounge-key">status</div>
-							<div class="arcade-lounge-value">${invite.game_status}</div>
-					</div>`;
+      detailsHtml += detailRow('status', invite.game_status);
     }
   }
   if (invite?.method) {
-    html += `<div class="saito-table-row">
-              <div class="arcade-lounge-key">game ending</div>
-							<div class="arcade-lounge-value">${invite.method}</div>
-					</div>`;
+    detailsHtml += detailRow('game ending', invite.method);
   }
 
-  html += `
-			  </div>
-		  </div>
-	    </div>
-	  </div>
-	  <div class="arcade-lounge-chat"></div>
-	  <div class="arcade-lounge-controls">`;
+  const controls = renderControls(mod, invite);
+  const playerRows = Math.min(3, Math.max(1, Math.ceil(playerCount / 2)));
+  const controlsState = isInPlay
+    ? 'arcade-lounge-controls--in-play'
+    : 'arcade-lounge-controls--standard';
+  const gameStatus = app.browser.escapeHTML(String(invite.game_status || ''));
+  const cryptoStake = invite.economic_line
+    ? `<div class="arcade-lounge-current-stake"><span class="arcade-lounge-current-stake-label">Stake</span>${app.browser.escapeHTML(String(invite.economic_line))}</div>`
+    : '';
+  const headingStatus = isInPlay
+    ? `${gameStatus ? `<div class="arcade-lounge-current-status">${gameStatus}</div>` : ''}${cryptoStake}`
+    : `<h3 class="arcade-lounge-header-desc">${stateLabel}</h3>`;
+  const detailsId = 'arcade-lounge-game-details';
+  const detailsToggle = isInPlay
+    ? `<button type="button" id="arcade-lounge-details-toggle" class="arcade-lounge-details-toggle" aria-expanded="false" aria-controls="${detailsId}">details</button>`
+    : '';
+  const eliminatedSection = eliminatedHtml
+    ? `<div class="arcade-lounge-eliminated-label">Cashed out</div>
+       <div class="arcade-lounge-players arcade-lounge-eliminated">${eliminatedHtml}</div>`
+    : '';
+
+  return `
+    <div class="arcade-lounge arcade-lounge--invite arcade-lounge--four-sector saito-overlay-panel">
+      <div class="arcade-lounge-art">
+        <img class="arcade-lounge-hero" src="${image}" alt="">
+      </div>
+
+      <section class="arcade-lounge-info" aria-labelledby="arcade-lounge-title">
+        <h1 id="arcade-lounge-title" class="arcade-lounge-header-title">${invite.game_name}</h1>
+        ${headingStatus}
+        <div id="${detailsId}" class="arcade-lounge-details saito-table"${isInPlay ? ' hidden' : ''}>
+          <div class="saito-table-body">${detailsHtml}</div>
+        </div>
+        ${detailsToggle}
+      </section>
+
+      <section class="arcade-lounge-section hide-scrollbar" aria-label="Players">
+        <div class="arcade-lounge-players">${playersHtml}</div>
+        ${eliminatedSection}
+      </section>
+
+      <div class="arcade-lounge-chat"></div>
+      <div class="arcade-lounge-controls ${controlsState} arcade-lounge-controls--${playerRows}-rows arcade-lounge-controls--${controls.length}-actions">${controls.join('')}</div>
+    </div>`;
+};
+
+const playerBox = (app, pkey, extraClass = '', note = '', winner = false) => `
+  <div class="arcade-lounge-playerbox saito-table-row ${extraClass}" id="invite-user-${pkey}">
+    <div class="saito-identicon-box${winner ? ' winner' : ''}">
+      <img class="saito-identicon" src="${app.keychain.returnIdenticon(pkey)}">
+    </div>
+    <div class="arcade-lounge-player-identity">
+      ${app.browser.returnAddressHTML(pkey)}
+      <div class="arcade-lounge-player-key" title="${app.browser.escapeHTML(pkey)}">${app.browser.escapeHTML(pkey)}</div>
+      ${note ? `<div class="arcade-lounge-player-note">${note}</div>` : ''}
+    </div>
+    ${note ? '' : '<div class="online-status-indicator"></div>'}
+  </div>`;
+
+const renderControls = (mod, invite) => {
+  const controls = [];
 
   if (!invite.time_finished) {
     if (invite.players.length >= invite.players_needed) {
       if (invite.players.includes(mod.publicKey)) {
-        html += `<div id="arcade-game-controls-continue-game" class="fat saito-button-primary">continue game</div>`;
+        controls.push(
+          `<div id="arcade-game-controls-continue-game" class="saito-button-primary">continue</div>`
+        );
         if (invite.players.length > 1) {
-          html += `<div id="arcade-game-controls-forfeit-game" class="fat saito-button-secondary">forfeit game</div>`;
-        } else {
-          console.debug(invite);
+          controls.push(
+            `<div id="arcade-game-controls-forfeit-game" class="saito-button-secondary">forfeit</div>`
+          );
         }
-        html += `<div id="arcade-game-controls-close-game" class="fat saito-button-secondary">cancel game</div>`;
+        controls.push(
+          `<div id="arcade-game-controls-close-game" class="saito-button-secondary">cancel</div>`
+        );
       } else if (invite.tentative?.join?.includes(mod.publicKey)) {
-        // viewer already has a pending seat request at this table
-        html += `<div id="arcade-game-controls-continue-join" class="fat saito-button-primary">continue</div>`;
-        html += `<div id="arcade-game-controls-cancel-tentative" class="fat saito-button-secondary">cancel</div>`;
+        controls.push(
+          `<div id="arcade-game-controls-continue-join" class="saito-button-primary">continue</div>`,
+          `<div id="arcade-game-controls-cancel-tentative" class="saito-button-secondary">cancel</div>`
+        );
       } else if (invite.empty_slots) {
-        html += `<div id="arcade-game-controls-join-table" class="fat saito-button-primary">join table</div>`;
+        controls.push(
+          `<div id="arcade-game-controls-join-table" class="saito-button-primary">join table</div>`
+        );
       } else if (invite.game_mod.enable_observer) {
-        html += `<div id="arcade-game-controls-watch-game" class="fat saito-button-primary">watch game</div>`;
+        controls.push(
+          `<div id="arcade-game-controls-watch-game" class="saito-button-primary">watch game</div>`
+        );
         if (invite.game_mod.doesGameExistLocally(invite.game_id)) {
-          html += `<div id="arcade-game-controls-clear-game" class="fat saito-button-secondary">clear</div>`;
+          controls.push(
+            `<div id="arcade-game-controls-clear-game" class="saito-button-secondary">clear</div>`
+          );
         }
       }
-    } else {
-      if (invite.players.includes(mod.publicKey)) {
-        if (mod.publicKey === invite.originator) {
-          html += `<div id="arcade-game-controls-invite-join" class="fat saito-button-primary"><i class="fa-solid fa-link"></i>share</div>`;
-          html += `<div id="arcade-game-controls-cancel-join" class="fat saito-button-secondary">cancel invite</div>`;
-        } else {
-          html += `<div id="arcade-game-controls-cancel-join" class="fat saito-button-secondary">leave invite</div>`;
-        }
-      } else if (invite.empty_slots > 0) {
-        html += `<div id="arcade-game-controls-join-game" class="fat saito-button-primary">join game</div>`;
-      } else if (invite.desired_opponent_publickeys.includes(mod.publicKey)) {
-        html += `<div id="arcade-game-controls-join-game" class="fat saito-button-primary">join game</div>
-								<div id="arcade-game-controls-cancel-join" class="fat saito-button-secondary">decline invite</div>`;
+    } else if (invite.players.includes(mod.publicKey)) {
+      if (mod.publicKey === invite.originator) {
+        controls.push(
+          `<div id="arcade-game-controls-invite-join" class="saito-button-primary"><i class="fa-solid fa-link"></i>share</div>`,
+          `<div id="arcade-game-controls-cancel-join" class="saito-button-secondary">cancel</div>`
+        );
+      } else {
+        controls.push(
+          `<div id="arcade-game-controls-cancel-join" class="saito-button-secondary">leave invite</div>`
+        );
       }
+    } else if (invite.empty_slots > 0) {
+      controls.push(
+        `<div id="arcade-game-controls-join-game" class="saito-button-primary">join game</div>`
+      );
+    } else if (invite.desired_opponent_publickeys.includes(mod.publicKey)) {
+      controls.push(
+        `<div id="arcade-game-controls-join-game" class="saito-button-primary">join game</div>`,
+        `<div id="arcade-game-controls-cancel-join" class="saito-button-secondary">decline invite</div>`
+      );
     }
-  } else {
-    if (invite.game_mod.doesGameExistLocally(invite.game_id)) {
-      html += `<div id="arcade-game-controls-continue-game" class="fat saito-button-primary">view game</div>`;
-    } else if (invite.game_mod.enable_observer && invite?.step > 0) {
-      html += `<div id="arcade-game-controls-review-game" class="fat saito-button-primary">review game</div>`;
-    }
+  } else if (invite.game_mod.doesGameExistLocally(invite.game_id)) {
+    controls.push(
+      `<div id="arcade-game-controls-continue-game" class="saito-button-primary">view game</div>`
+    );
+  } else if (invite.game_mod.enable_observer && invite?.step > 0) {
+    controls.push(
+      `<div id="arcade-game-controls-review-game" class="saito-button-primary">review game</div>`
+    );
   }
 
-  html += `
-	  </div>
-</div>
-  `;
-
-  return html;
+  return controls;
 };
+
+const detailRow = (label, value) => `<div class="saito-table-row">
+  <div class="arcade-lounge-key">${label}</div>
+  <div class="arcade-lounge-value">${value}</div>
+</div>`;
 
 const formatOptions = (sgoa) => {
   let html = '';
-  for (let i in sgoa) {
-    html += `<div class="saito-table-row">
-                <div class="arcade-lounge-key">${i.replace(/_/g, ' ')}</div>`;
-    if (sgoa[i] !== null) {
-      html += `<div class="arcade-lounge-value">${sgoa[i]}</div>`;
+  for (const key in sgoa) {
+    if (sgoa[key] !== null) {
+      html += detailRow(key.replace(/_/g, ' '), sgoa[key]);
+    } else {
+      html += `<div class="saito-table-row"><div class="arcade-lounge-key">${key.replace(/_/g, ' ')}</div></div>`;
     }
-    html += '</div>';
   }
   return html;
 };
 
-const addTimeStamp = (label, datetime) => {
-  return `<div class="saito-table-row">
-              <div class="arcade-lounge-key">${label}</div>
-							<div class="arcade-lounge-value">${datetime.hours}:${datetime.minutes}, ${datetime.day} ${datetime.month}</div>
-					</div>`;
-};
+const addTimeStamp = (label, datetime) =>
+  detailRow(label, `${datetime.hours}:${datetime.minutes}, ${datetime.day} ${datetime.month}`);

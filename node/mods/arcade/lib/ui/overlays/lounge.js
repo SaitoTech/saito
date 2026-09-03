@@ -122,23 +122,34 @@ class LoungeOverlay {
     const root = this._getLoungeRoot();
     if (!root) return false;
 
-    const { game, state, game_mod, gameName } = this._resolveGameIdContext();
+    const { game, state, game_mod, image, gameName } = this._resolveGameIdContext();
     const stateLabel = 'Game Ready';
-    const bodyHtml = this._buildReadyBody(game, state, game_mod);
-    const controlsHtml = `
-	  <div id="arcade-game-controls-start-game" class="fat saito-button-primary">Start Game</div>
-	  <div id="arcade-game-controls-close-game" class="fat saito-button-secondary">Hide</div>`;
+    const { detailsHtml, playersHtml, playerCount } = this._buildGameSections(
+      game,
+      state,
+      game_mod
+    );
+    const controls = [
+      '<div id="arcade-game-controls-start-game" class="saito-button-primary">Start Game</div>',
+      '<div id="arcade-game-controls-close-game" class="saito-button-secondary">Hide</div>'
+    ];
 
     const descEl = root.querySelector('.arcade-lounge-header-desc');
-    const bodyEl = root.querySelector('.arcade-lounge-body');
+    const detailsEl = root.querySelector('.arcade-lounge-details .saito-table-body');
+    const playersEl = root.querySelector('.arcade-lounge-section');
     const controlsEl = root.querySelector('.arcade-lounge-controls');
     const titleEl = root.querySelector('.arcade-lounge-header-title');
-    if (!descEl || !bodyEl || !controlsEl) return false;
+    const heroEl = root.querySelector('.arcade-lounge-hero');
+    if (!descEl || !detailsEl || !playersEl || !controlsEl) return false;
 
     if (titleEl) titleEl.textContent = gameName;
+    if (heroEl && image) heroEl.src = image;
+    descEl.classList.remove('arcade-lounge-header-desc--loading');
     descEl.textContent = stateLabel;
-    bodyEl.innerHTML = bodyHtml;
-    controlsEl.innerHTML = controlsHtml;
+    detailsEl.innerHTML = detailsHtml;
+    playersEl.innerHTML = playersHtml;
+    controlsEl.className = this._gameControlClasses(playerCount, controls.length);
+    controlsEl.innerHTML = controls.join('');
     this.attachEvents();
     this.app.connection.emit('add-league-identifier-to-dom');
     return true;
@@ -158,8 +169,8 @@ class LoungeOverlay {
       derivedState = 'INITIALIZING';
     }
 
-    let stateLabel, bodyHtml, controlsHtml;
-    const headerImageStyle = image ? ` style="background-image: url('${image}')"` : '';
+    let stateLabel, stateIndicator, playerMessage, controls;
+    let { detailsHtml, playersHtml, playerCount } = this._buildGameSections(game, state, game_mod);
 
     //
     // No local metadata for this game_id – show observer overlay.
@@ -170,47 +181,57 @@ class LoungeOverlay {
       // Observer/spectate is disabled pending the GameObserver rebuild -- show a
       // message instead of a (broken) Watch Game button. Restore the button
       // when the observer is functional again.
-      bodyHtml = `
-	  <div class="arcade-lounge-section arcade-lounge-section-game-id-message">
-		  <div class="arcade-lounge-message arcade-lounge-message-game-id">This server does not have viewable game data for this match.</div>
-	  </div>`;
-      controlsHtml = '';
+      detailsHtml = '';
+      playersHtml = '';
+      playerCount = 0;
+      playerMessage =
+        '<div class="arcade-lounge-message arcade-lounge-message-game-id">This server does not have viewable game data for this match.</div>';
+      controls = [];
     } else if (derivedState === 'INITIALIZING') {
       stateLabel = 'Initializing Game';
-      bodyHtml = `
-	  <div class="arcade-lounge-section">
-		  <div id="game-loader-spinner" class="arcade-lounge-loader game-loader-spinner"></div>
-		  <div class="arcade-lounge-message">Setting up your game...</div>
-	  </div>`;
-      controlsHtml = '';
+      stateIndicator =
+        '<span id="game-loader-spinner" class="arcade-lounge-loader game-loader-spinner" aria-hidden="true"></span>';
+      controls = [];
     } else if (derivedState === 'READY') {
       stateLabel = 'Game Ready';
-      bodyHtml = this._buildReadyBody(game, state, game_mod);
-      controlsHtml = `
-	  <div id="arcade-game-controls-start-game" class="fat saito-button-primary">Start Game</div>
-	  <div id="arcade-game-controls-close-game" class="fat saito-button-secondary">Hide</div>`;
+      controls = [
+        '<div id="arcade-game-controls-start-game" class="saito-button-primary">Start Game</div>',
+        '<div id="arcade-game-controls-close-game" class="saito-button-secondary">Hide</div>'
+      ];
     } else {
       stateLabel = 'Game completed';
-      bodyHtml = '';
-      controlsHtml = `
-	  <div id="arcade-game-controls-continue-game" class="fat saito-button-primary">View game</div>`;
+      controls = [
+        '<div id="arcade-game-controls-continue-game" class="saito-button-primary">View game</div>'
+      ];
     }
 
-    // Unified layout: same header (thumbnail + title + subtitle), body, chat, controls for all states
-    let html = `
-  <div class="arcade-lounge">
-  <div class="arcade-lounge-header">
-	  <div class="arcade-lounge-header-image"${headerImageStyle}></div>
-	  <div class="arcade-lounge-header-title">${gameName}</div>
-	  <div class="arcade-lounge-header-desc">${stateLabel}</div>
-  </div>
-  <div class="arcade-lounge-body">
-	  ${bodyHtml}
-  </div>
-  <div class="arcade-lounge-chat"></div>
-  <div class="arcade-lounge-controls">${controlsHtml}
-  </div>
-</div>`;
+    const safeImage = this.app.browser.escapeHTML(image);
+    const safeGameName = this.app.browser.escapeHTML(gameName);
+    const safeStateLabel = this.app.browser.escapeHTML(stateLabel);
+    const html = `
+      <div class="arcade-lounge arcade-lounge--game arcade-lounge--four-sector saito-overlay-panel">
+        <div class="arcade-lounge-art">
+          <img class="arcade-lounge-hero" src="${safeImage}" alt="">
+        </div>
+
+        <section class="arcade-lounge-info" aria-labelledby="arcade-lounge-title">
+          <h1 id="arcade-lounge-title" class="arcade-lounge-header-title">${safeGameName}</h1>
+          <h3 class="arcade-lounge-header-desc${stateIndicator ? ' arcade-lounge-header-desc--loading' : ''}">
+            <span>${safeStateLabel}</span>
+            ${stateIndicator || ''}
+          </h3>
+          <div class="arcade-lounge-details saito-table">
+            <div class="saito-table-body">${detailsHtml}</div>
+          </div>
+        </section>
+
+        <section class="arcade-lounge-section hide-scrollbar" aria-label="Players">
+          ${playersHtml}${playerMessage || ''}
+        </section>
+
+        <div class="arcade-lounge-chat"></div>
+        <div class="${this._gameControlClasses(playerCount, controls.length)}">${controls.join('')}</div>
+      </div>`;
 
     this.overlay.show(html);
     this.overlay.setBackground(image);
@@ -218,7 +239,15 @@ class LoungeOverlay {
     this.app.connection.emit('add-league-identifier-to-dom');
   }
 
-  _buildReadyBody(record, state, game_mod) {
+  _gamePlayerRows(playerCount) {
+    return Math.min(3, Math.max(1, Math.ceil(playerCount / 2)));
+  }
+
+  _gameControlClasses(playerCount, controlCount) {
+    return `arcade-lounge-controls arcade-lounge-controls--standard arcade-lounge-controls--${this._gamePlayerRows(playerCount)}-rows arcade-lounge-controls--${controlCount}-actions`;
+  }
+
+  _buildGameSections(record, state, game_mod) {
     const players = state?.players || record?.tx?.msg?.players || [];
     const options = state?.options || record?.tx?.msg?.options || {};
     const tentative = record?.tx?.msg?.tentative || { join: [], leave: [] };
@@ -240,12 +269,21 @@ class LoungeOverlay {
       }
     }
 
-    const playerRow = (pkey, extraClass = '', note = '') => `
-		  <div class="arcade-lounge-playerbox saito-table-row ${extraClass}" id="invite-user-${pkey}">
-		    <div class="saito-identicon-box"><img class="saito-identicon" src="${this.app.keychain.returnIdenticon(pkey)}"></div>
-		    ${this.app.browser.returnAddressHTML(pkey)}
-		    ${note ? `<div class="arcade-lounge-player-note">${note}</div>` : '<div class="online-status-indicator"></div>'}
-		  </div>`;
+    const playerRow = (pkey, extraClass = '', note = '') => {
+      const safeKey = this.app.browser.escapeHTML(pkey);
+      return `
+        <div class="arcade-lounge-playerbox saito-table-row ${extraClass}" id="invite-user-${safeKey}">
+          <div class="saito-identicon-box">
+            <img class="saito-identicon" src="${this.app.keychain.returnIdenticon(pkey)}">
+          </div>
+          <div class="arcade-lounge-player-identity">
+            ${this.app.browser.returnAddressHTML(pkey)}
+            <div class="arcade-lounge-player-key" title="${safeKey}">${safeKey}</div>
+            ${note ? `<div class="arcade-lounge-player-note">${note}</div>` : ''}
+          </div>
+          ${note ? '' : '<div class="online-status-indicator"></div>'}
+        </div>`;
+    };
 
     let playersHtml = '';
     for (let i = 0; i < players.length; i++) {
@@ -278,13 +316,14 @@ class LoungeOverlay {
 	    </div>`
       : '';
 
-    return `
-	  <div class="arcade-lounge-section hide-scrollbar">
-	    <div class="arcade-lounge-players">${playersHtml}
-	    </div>
-	    ${eliminatedSection}
-	    <div class="saito-table"><div class="saito-table-body">${optsHtml}</div></div>
-	  </div>`;
+    const playerCount =
+      players.length + (tentative.join || []).filter((pkey) => !players.includes(pkey)).length;
+
+    return {
+      detailsHtml: optsHtml,
+      playersHtml: `<div class="arcade-lounge-players">${playersHtml}</div>${eliminatedSection}`,
+      playerCount
+    };
   }
 
   //
@@ -307,6 +346,18 @@ class LoungeOverlay {
   }
 
   attachEvents() {
+    const detailsToggle = document.getElementById('arcade-lounge-details-toggle');
+    if (detailsToggle) {
+      const details = document.getElementById(detailsToggle.getAttribute('aria-controls'));
+      detailsToggle.onclick = () => {
+        if (!details) return;
+        const expanded = detailsToggle.getAttribute('aria-expanded') === 'true';
+        details.hidden = expanded;
+        detailsToggle.setAttribute('aria-expanded', String(!expanded));
+        detailsToggle.textContent = expanded ? 'details' : 'hide details';
+      };
+    }
+
     let startBtn = document.getElementById('arcade-game-controls-start-game');
     if (startBtn && this.game_id != null) {
       startBtn.onclick = (e) => {
@@ -321,7 +372,8 @@ class LoungeOverlay {
       };
     }
 
-    if (document.getElementById('arcade-game-controls-join-game')) {
+    const joinGameButton = document.getElementById('arcade-game-controls-join-game');
+    if (joinGameButton) {
       //This is a joinable game
       this.app.connection.emit('relay-send-message', {
         recipient: [this.invite.originator],
@@ -329,7 +381,7 @@ class LoungeOverlay {
         data: {}
       });
 
-      document.getElementById('arcade-game-controls-join-game').onclick = async (e) => {
+      joinGameButton.onclick = async (e) => {
         let open_invites = this.mod.returnOpenInvites();
 
         if (open_invites.length > 0) {
@@ -459,8 +511,9 @@ class LoungeOverlay {
     // join an in-progress open table: request a seat via the game module's
     // FOLLOW/SHARE/JOIN flow (no observer involved)
     //
-    if (document.getElementById('arcade-game-controls-join-table')) {
-      document.getElementById('arcade-game-controls-join-table').onclick = async (e) => {
+    const joinTableButton = document.getElementById('arcade-game-controls-join-table');
+    if (joinTableButton) {
+      joinTableButton.onclick = async (e) => {
         let game_mod = this.app.modules.returnModuleBySlug(this.invite.game_slug);
         let game_tx = this.mod.returnGameTransaction(this.invite.game_id);
 
@@ -486,6 +539,28 @@ class LoungeOverlay {
 
         this.confirmStakeThen(game_mod, requestSeat);
       };
+    }
+
+    const openSeatJoinButton = joinGameButton || joinTableButton;
+    if (openSeatJoinButton) {
+      const lounge = openSeatJoinButton.closest('.arcade-lounge');
+      const openSeats = lounge?.querySelectorAll('.arcade-lounge-playerbox--open') || [];
+
+      for (const openSeat of openSeats) {
+        const joinOpenSeat = () => openSeatJoinButton.click();
+
+        openSeat.classList.add('is-joinable');
+        openSeat.setAttribute('role', 'button');
+        openSeat.setAttribute('tabindex', '0');
+        openSeat.setAttribute('aria-label', 'Join game in this open seat');
+        openSeat.onclick = joinOpenSeat;
+        openSeat.onkeydown = (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            joinOpenSeat();
+          }
+        };
+      }
     }
 
     //

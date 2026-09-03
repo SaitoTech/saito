@@ -53,7 +53,7 @@ class Migration extends ModTemplate {
     this.categories = 'Core Utilities Messaging';
     this.styles = ['/migration/style.css'];
 
-    this.dependencies = ['Relay', 'Mixin', 'ERC', 'MailRelay'];
+    this.dependencies = ['Relay', 'Mixin', 'ERC', 'BEP', 'MailRelay'];
 
     this.main = null;
     this.header = null;
@@ -65,20 +65,22 @@ class Migration extends ModTemplate {
 
     // A crypto-payment announcement can reach us just before Mixin exposes the
     // corresponding Safe snapshot. It can also be restored during startup
-    // before Mixin has installed its dynamic ERC-SAITO module. Retry the exact
+    // before Mixin has installed its dynamic wrapped-SAITO module. Retry the exact
     // transaction-hash lookup in both cases instead of relying solely on the
     // module's incremental history cursor.
     this.mixin_reconciliation_timers = {};
     this.mixin_reconciliation_attempts = {};
     this.mixin_reconciliation_delays = [2000, 5000, 15000, 45000, 90000, 120000, 180000];
 
+    this.wrapped_saito_tickers = ['ERC-SAITO', 'BEP-SAITO'];
     this.wrapped_saito_ticker = 'ERC-SAITO';
     this.MAX_DEPOSIT = 1000000; // Max of 1 million at a time
 
     this.relay_available = false;
     this.can_auto = false;
     this.auto_migration_error = '';
-    this.ercMod = null;
+    this.wrappedSaitoMod = null;
+    this.wrappedSaitoMods = {};
 
     //this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
     this.migration_publickey = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
@@ -117,10 +119,10 @@ class Migration extends ModTemplate {
         await this.ensureAutoMigrationSchema();
         await this.load();
 
-        // ERC-SAITO inbound confirmed via CryptoModule receivePayment polling
+        // Wrapped SAITO inbound confirmed via CryptoModule receivePayment polling
         this.app.connection.on('on-receive-expected-payment', (hash, details) => {
           // Secondary stricter checks
-          if (details.ticker !== this.wrapped_saito_ticker) {
+          if (!this.isWrappedSaitoTicker(details.ticker)) {
             return;
           }
           if (details.transaction_signature !== hash) {
@@ -128,7 +130,7 @@ class Migration extends ModTemplate {
             return;
           }
 
-          this.confirmMixinInbound(hash);
+          this.confirmMixinInbound(hash, details.ticker);
         });
       }
 
@@ -234,13 +236,50 @@ class Migration extends ModTemplate {
     return rows?.length ? rows[0] : null;
   }
 
-  async confirmMixinInbound(hash) {
+  isWrappedSaitoTicker(ticker = '') {
+    return (this.wrapped_saito_tickers || ['ERC-SAITO', 'BEP-SAITO']).includes(ticker);
+  }
+
+  returnWrappedSaitoLabel(ticker = this.wrapped_saito_ticker) {
+    return ticker === 'BEP-SAITO' ? 'BEP20 SAITO' : 'ERC20 SAITO';
+  }
+
+  async selectWrappedSaitoTicker(ticker = 'ERC-SAITO', activate = false) {
+    if (!this.isWrappedSaitoTicker(ticker)) {
+      throw new Error(`Unsupported wrapped SAITO ticker: ${ticker}`);
+    }
+
+    this.wrapped_saito_ticker = ticker;
+    this.wrappedSaitoMod = this.returnWrappedSaitoModule(ticker);
+
+    if (!this.wrappedSaitoMod) {
+      throw new Error(`${ticker} is not installed`);
+    }
+
+    if (activate && !this.wrappedSaitoMod.isActivated()) {
+      const activated = await this.wrappedSaitoMod.activate();
+      if (activated === false || !this.wrappedSaitoMod.isActivated()) {
+        throw new Error(`${ticker} could not be activated`);
+      }
+    }
+
+    return this.wrappedSaitoMod;
+  }
+
+  async confirmMixinInbound(hash, ticker = '') {
     const payment = this.payment_cache[hash];
     if (!payment || payment.status !== 'awaiting_mixin') {
       console.warn(`Inbound Mixin doesn't match expected payment...`);
       console.log(this.payment_cache);
       return;
     }
+
+    if (ticker && payment.ticker && payment.ticker !== ticker) {
+      console.warn(`Inbound Mixin ticker doesn't match expected payment...`);
+      return;
+    }
+
+    payment.ticker ||= ticker || this.wrapped_saito_ticker;
 
     this.clearMixinReconciliation(hash);
     payment.status = 'pending';
@@ -256,10 +295,14 @@ class Migration extends ModTemplate {
       this.pending_payments.push(payment);
     }
 
-    if (this.ercMod?.transfers_inbound) {
-      delete this.ercMod.transfers_inbound[hash];
-      if (Object.keys(this.ercMod.transfers_inbound).length === 0) {
-        this.ercMod.stopPolling?.();
+    const crypto_mod =
+      this.wrappedSaitoMods?.[payment.ticker] ||
+      (payment.ticker === this.wrapped_saito_ticker ? this.wrappedSaitoMod : null) ||
+      this.returnWrappedSaitoModule(payment.ticker);
+    if (crypto_mod?.transfers_inbound) {
+      delete crypto_mod.transfers_inbound[hash];
+      if (Object.keys(crypto_mod.transfers_inbound).length === 0) {
+        crypto_mod.stopPolling?.();
       }
     }
 
@@ -280,10 +323,18 @@ class Migration extends ModTemplate {
     }
   }
 
-  returnWrappedSaitoModule() {
-    const crypto_mod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+  returnWrappedSaitoModule(ticker = this.wrapped_saito_ticker) {
+    if (!this.isWrappedSaitoTicker(ticker)) {
+      return null;
+    }
+
+    const crypto_mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
     if (crypto_mod) {
-      this.ercMod = crypto_mod;
+      this.wrappedSaitoMods ||= {};
+      this.wrappedSaitoMods[ticker] = crypto_mod;
+      if (ticker === this.wrapped_saito_ticker) {
+        this.wrappedSaitoMod = crypto_mod;
+      }
     }
     return crypto_mod;
   }
@@ -295,7 +346,7 @@ class Migration extends ModTemplate {
       return true;
     }
 
-    const crypto_mod = this.returnWrappedSaitoModule();
+    const crypto_mod = this.returnWrappedSaitoModule(payment.ticker || this.wrapped_saito_ticker);
     if (typeof crypto_mod?.findInboundPaymentBySignature !== 'function') {
       return false;
     }
@@ -368,13 +419,12 @@ class Migration extends ModTemplate {
       return;
     }
 
-    if (this.ercMod) {
-      await this.app.wallet.receivePayment(
-        this.wrapped_saito_ticker,
-        row.mixin,
-        amount,
-        row.announcement_hash
-      );
+    const ticker = row.ticker || this.wrapped_saito_ticker;
+    const crypto_mod =
+      this.wrappedSaitoMods?.[ticker] ||
+      (ticker === this.wrapped_saito_ticker ? this.wrappedSaitoMod : null);
+    if (crypto_mod) {
+      await this.app.wallet.receivePayment(ticker, row.mixin, amount, row.announcement_hash);
     }
 
     this.scheduleMixinReconciliation(row.announcement_hash);
@@ -422,20 +472,23 @@ class Migration extends ModTemplate {
       if (service.service === 'mixin') {
         setTimeout(async () => {
           try {
-            this.ercMod ||= this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
-            if (this.ercMod) {
-              await this.ercMod.activate();
-
-              if (this.relay_available && this.ercMod?.address) {
-                this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+            const crypto_mod = await this.selectWrappedSaitoTicker(this.wrapped_saito_ticker, true);
+            if (crypto_mod) {
+              if (this.relay_available && crypto_mod.address) {
+                this.sendMigrationPingTransaction({
+                  ticker: this.wrapped_saito_ticker,
+                  mixin_address: crypto_mod.formatAddress()
+                });
                 siteMessage('checking if automated migration available...', 2000);
                 return;
               }
             } else {
               this.auto_migration_error =
-                'Automated Migration requires Mixin and ERC modules to be installed.';
+                'Automated Migration requires Mixin and wrapped SAITO modules to be installed.';
               this.main?.render();
-              salert('Automated Migration requires Mixin and ERC modules to be installed!');
+              salert(
+                'Automated Migration requires Mixin and wrapped SAITO modules to be installed!'
+              );
             }
           } catch (err) {
             console.error(err);
@@ -461,7 +514,7 @@ class Migration extends ModTemplate {
 
     // Set this on rendering... All modules will be initialized, so guaranteed to return if available.
     try {
-      this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+      this.wrappedSaitoMod = this.returnWrappedSaitoModule();
     } catch (err) {
       console.error(err);
     }
@@ -472,9 +525,15 @@ class Migration extends ModTemplate {
       return 1;
     }
 
-    // Monitor "ERC20" transactions - only!
-    if (this.ercMod?.name == modname) {
-      return 1;
+    // Monitor wrapped SAITO transactions only.
+    for (const ticker of this.wrapped_saito_tickers || []) {
+      try {
+        if (this.returnWrappedSaitoModule(ticker)?.name == modname) {
+          return 1;
+        }
+      } catch (err) {
+        // Crypto modules may not be installed yet during callback registration.
+      }
     }
 
     return 0;
@@ -667,34 +726,37 @@ class Migration extends ModTemplate {
   async receiveMigrationPingTransaction(tx) {
     let txmsg = tx.returnMessage();
     let saitozen = tx.from[0].publicKey;
+    const ticker = txmsg?.data?.ticker || 'ERC-SAITO';
+    let crypto_mod = null;
+    let error = null;
 
     // Only respond if I am the known migration bot
     if (this.app.BROWSER || this.publicKey !== this.migration_publickey) {
       return;
     }
 
-    try {
-      this.ercMod = this.returnWrappedSaitoModule();
-      if (!this.ercMod) {
-        throw new Error(`${this.wrapped_saito_ticker} is not installed`);
-      }
-
-      if (!this.ercMod.isActivated()) {
-        const activated = await this.ercMod.activate();
-        if (activated === false || !this.ercMod.isActivated()) {
-          throw new Error(`${this.wrapped_saito_ticker} could not be activated`);
+    if (!this.isWrappedSaitoTicker(ticker)) {
+      error = `Unsupported wrapped SAITO ticker: ${ticker}`;
+    } else {
+      try {
+        crypto_mod = this.returnWrappedSaitoModule(ticker);
+        if (!crypto_mod) {
+          throw new Error(`${ticker} is not installed`);
         }
+
+        if (!crypto_mod.isActivated()) {
+          const activated = await crypto_mod.activate();
+          if (activated === false || !crypto_mod.isActivated()) {
+            throw new Error(`${ticker} could not be activated`);
+          }
+        }
+      } catch (err) {
+        error = err?.message || String(err);
+        console.error(err);
       }
-    } catch (err) {
-      // failure state, take self off line
-      this.ercMod = false;
-      this.migration_publickey = '';
-      this.services = [];
-      console.error(err);
-      return;
     }
 
-    if (txmsg?.data?.mixin_address) {
+    if (crypto_mod && txmsg?.data?.mixin_address) {
       this.key_cache[txmsg.data.mixin_address] = saitozen;
 
       if (txmsg.data.double_check) {
@@ -710,7 +772,6 @@ class Migration extends ModTemplate {
 
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(saitozen);
 
-    let error = null;
     // Check balance
 
     let max_deposit = await this.app.wallet.getBalance('SAITO');
@@ -724,14 +785,14 @@ class Migration extends ModTemplate {
 
     let mixin_address = '';
 
-    if (!this.ercMod) {
-      error = `Migration bot doesn't have ERC20 Saito installed`;
+    if (!crypto_mod) {
+      error ||= `Migration bot doesn't have ${this.returnWrappedSaitoLabel(ticker)} installed`;
     } else {
-      mixin_address = this.ercMod.formatAddress();
+      mixin_address = crypto_mod.formatAddress();
     }
 
     if (max_deposit < 1000) {
-      error = 'Insufficient balance in the Migration bot';
+      error ||= 'Insufficient balance in the Migration bot';
     }
 
     newtx.msg = {
@@ -741,6 +802,7 @@ class Migration extends ModTemplate {
         max_deposit,
         mixin_address,
         error,
+        ticker,
         go: txmsg.data?.double_check
       }
     };
@@ -761,6 +823,12 @@ class Migration extends ModTemplate {
     }
 
     let txmsg = tx.returnMessage();
+    const ticker = txmsg.data?.ticker || 'ERC-SAITO';
+
+    // Ignore stale responses if the user changed networks while the bot replied.
+    if (ticker !== this.wrapped_saito_ticker) {
+      return;
+    }
 
     if (txmsg.data.error) {
       console.error(txmsg.data.error);
@@ -782,7 +850,7 @@ class Migration extends ModTemplate {
         salert(
           'Migration Bot currently unable to process: \n' +
             txmsg.data.error +
-            '\n Your ERC20 SAITO are safe on this wallet, you can refresh later to complete the migration'
+            `\n Your ${this.returnWrappedSaitoLabel()} are safe on this wallet, you can refresh later to complete the migration`
         );
       } else if (!this.apebond.isActive()) {
         this.main.render();
@@ -798,12 +866,21 @@ class Migration extends ModTemplate {
     this.auto_migration_error = '';
     this.apebond.treasury_error = '';
 
-    let new_balance = Number(await this.ercMod.getAvailableBalance());
+    const crypto_mod = this.returnWrappedSaitoModule(ticker);
+    if (!crypto_mod) {
+      this.can_auto = false;
+      this.auto_migration_error = `${ticker} is not installed`;
+      this.main.render();
+      return;
+    }
+
+    this.wrappedSaitoMod = crypto_mod;
+    let new_balance = Number(await crypto_mod.getAvailableBalance());
 
     if (txmsg.data?.go) {
       this.main.processDepositedSaito(new_balance);
     } else {
-      // We are already sitting on some ERC20 wrapped SAITO
+      // We are already sitting on some wrapped SAITO.
       this.balance = new_balance;
       this.main.render();
     }
@@ -1020,13 +1097,13 @@ class Migration extends ModTemplate {
     const tx_sender = tx?.from[0]?.publicKey;
     const { amount, from } = txmsg;
 
-    // Quietly fail if receiving anything other than ERC-20 because other modules might care
-    if (txmsg.module !== this.wrapped_saito_ticker) {
+    // Quietly fail for unrelated crypto-payment announcements.
+    if (!this.isWrappedSaitoTicker(txmsg.module)) {
       return;
     }
 
     if (tx.isTo(this.publicKey)) {
-      //  module: 'ERC-SAITO',
+      //  module: 'ERC-SAITO' or 'BEP-SAITO',
       //  request: 'crypto payment',
       //  amount: '36293.58109136',
       //  from: '0x9e97e4c1201E961F6586fC5293b801e9e0d07859|e15bbf5b-f385-348f-b1a8-31ba2b0aae12|mixin',
@@ -1034,7 +1111,12 @@ class Migration extends ModTemplate {
       //  hash: 'ce23e0df0c53a9605834101d71d89fcf84cf3f52757850856ca9074ba9a63017'
 
       if (!txmsg.hash) {
-        this.notifyTeam(txmsg, tx_sender, 0, 'ERC-SAITO crypto payment missing announcement hash');
+        this.notifyTeam(
+          txmsg,
+          tx_sender,
+          0,
+          `${txmsg.module} crypto payment missing announcement hash`
+        );
         console.error('Migration: announcement missing hash');
         return;
       }
