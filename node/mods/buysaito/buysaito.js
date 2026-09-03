@@ -6,6 +6,12 @@ const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const BuySaitoHome = require('./index');
 const SaitoPurchaseOverlay = require('./lib/saito-purchase');
 
+const EXCLUDED_PAYMENT_TICKERS = new Set(['ERC-SAITO', 'BEP-SAITO']);
+
+function isAvailablePaymentCurrency(currency) {
+  return Boolean(currency?.ticker) && !EXCLUDED_PAYMENT_TICKERS.has(currency.ticker);
+}
+
 //
 //
 
@@ -220,7 +226,9 @@ class BuySaito extends ModTemplate {
           });
           this.hasPendingPayment(tx.from[0].publicKey);
         } else if (txmsg.data && this.app.BROWSER) {
-          this.available_currencies = Array.isArray(txmsg.data.ac) ? txmsg.data.ac : null;
+          this.available_currencies = Array.isArray(txmsg.data.ac)
+            ? txmsg.data.ac.filter(isAvailablePaymentCurrency)
+            : null;
           if (!this.erc_saito) {
             this.erc_saito = { price_usd: txmsg.data.erc };
           }
@@ -439,7 +447,7 @@ class BuySaito extends ModTemplate {
           this.erc_saito = cm;
           this.erc_saito.activate();
         }
-      } else {
+      } else if (isAvailablePaymentCurrency(cm)) {
         this.available_currencies.push({
           ticker: cm.ticker,
           price_usd: cm.price_usd,
@@ -559,6 +567,10 @@ class BuySaito extends ModTemplate {
   async findAvailableAddress(payment_data) {
     if (!this.mixin_mod) {
       throw new Error('Mixin payment service is unavailable');
+    }
+
+    if (!isAvailablePaymentCurrency(payment_data)) {
+      throw new Error(`Unsupported payment ticker: ${payment_data?.ticker}`);
     }
 
     //Is my main available?

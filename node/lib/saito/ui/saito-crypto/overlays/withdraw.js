@@ -5,6 +5,7 @@ const SaitoNFT = require('../../saito-nft/saito-nft');
 const SaitoUser = require('./../../saito-user/saito-user');
 
 const WRAPPED_SAITO_TICKERS = ['ERC-SAITO', 'BEP-SAITO'];
+const QUERY_GATED_TICKERS = new Set(['BEP-SAITO']);
 
 class Withdraw {
   constructor(app, mod, container = '') {
@@ -923,9 +924,14 @@ class Withdraw {
   }
 
   returnAvailableCryptos() {
-    const available_cryptos = this.app.wallet.returnActivatedCryptos();
+    const hasWithdrawQuery = Boolean(this.app.browser.returnURLParameter('withdraw'));
+    const available_cryptos = this.app.wallet
+      .returnActivatedCryptos()
+      .filter(
+        (crypto_module) => hasWithdrawQuery || !QUERY_GATED_TICKERS.has(crypto_module.ticker)
+      );
 
-    if (!this.app.browser.returnURLParameter('withdraw')) {
+    if (!hasWithdrawQuery) {
       return available_cryptos;
     }
 
