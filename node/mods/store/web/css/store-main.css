@@ -14,12 +14,29 @@
   min-width: 0;
 }
 
-/* User store: rail width matches Red Square's profile column (~300px) */
+/*
+ * User-store page composition — not the marketplace category rail.
+ *
+ * Two regions:
+ *   .user-store-context  → identity (SaitoProfile) + Store-owned nav + attribution
+ *   .main-column         → shared StorefrontView / listings
+ *
+ * Spacing model:
+ *   - Page top inset: `.saito-container.store-container:has(.store.user-store)`
+ *     padding-top → --saito-space-xl (see store-base.css)
+ *   - Inter-column / stacked separation: this grid `gap` → --store-user-rhythm
+ *   - Below profile card: context column `gap` → --saito-space-md (attribution)
+ *
+ * Profile and listings are grid siblings with align-items: start — same top edge.
+ * Do not pad .saito-profile to fake page rhythm.
+ */
 .store.user-store {
-  grid-template-columns: 18.75rem minmax(0, 1fr);
+  --store-user-rhythm: var(--saito-space-xxl);
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: var(--store-user-rhythm);
 }
 
-/* —— Menu rail (shared item chrome; mode-specific rules below) —— */
+/* —— Menu rail (marketplace / admin only) —— */
 
 .store > .menu {
   position: sticky;
@@ -32,42 +49,120 @@
 }
 
 .store.user-store > .menu {
-  gap: var(--saito-space-lg);
-  padding-block: 0;
+  display: none;
 }
 
-.store.user-store .user-store-rail {
+/* —— User-store profile context (never `.menu`) —— */
+
+.store > .user-store-context {
+  display: none;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.store.user-store > .user-store-context {
   display: flex;
   flex-direction: column;
-  gap: var(--saito-space-lg);
-  min-width: 0;
+  gap: var(--saito-space-md);
+  position: sticky;
+  top: 0;
+  align-self: start;
+  width: 100%;
 }
 
 .store.user-store .user-store-profile {
   min-width: 0;
 }
 
-.store.user-store > .menu .user-store-rail > .list .item {
-  display: grid;
-  grid-template-columns: 2.75rem minmax(0, 1fr);
-  align-items: center;
-  column-gap: var(--saito-space-md);
+/* Store-owned attribution — outside SaitoProfile, under the card */
+.store.user-store .user-store-attribution {
+  margin: 0;
+  padding: 0 var(--saito-space-xs);
+  font-size: 1.25rem;
+  line-height: 1.45;
+  color: var(--saito-muted-foreground);
+  opacity: 0.85;
 }
 
-.store.user-store > .menu .user-store-rail > .list .item .icon {
+.store.user-store .user-store-attribution a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-thickness: 1px;
+}
+
+.store.user-store .user-store-attribution a:hover,
+.store.user-store .user-store-attribution a:focus-visible {
+  color: var(--saito-foreground);
+  opacity: 1;
+  outline: none;
+}
+
+/* Listings share the grid top edge — no extra top inset in the main column */
+.store.user-store > .main-column,
+.store.user-store > .main-column > .manager,
+.store.user-store .storefront-catalog {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/*
+ * Store-owned nav in the shared profile footer slot — visually inside the card.
+ * Labels/icons/routing stay Store-specific; SaitoProfile only provides the slot.
+ */
+.store.user-store .saito-profile-footer:not(:empty) {
+  display: block;
+  border-top: 1px solid var(--saito-border);
+}
+
+.store.user-store .user-store-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: var(--saito-space-xs) 0;
+}
+
+.store.user-store .user-store-nav .item {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--saito-space-sm);
+  min-height: 2.6rem;
+  margin: 0 var(--saito-space-xs);
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--saito-radius);
+  font-size: var(--font-size-medium);
+  line-height: 1.25;
+  color: var(--saito-muted-foreground);
+  cursor: pointer;
+}
+
+.store.user-store .user-store-nav .item:focus-visible {
+  outline: none;
+  box-shadow: var(--saito-focus-ring);
+}
+
+.store.user-store .user-store-nav .item.active {
+  font-family: var(--saito-font-heavy);
+  color: var(--saito-foreground);
+  background: color-mix(in srgb, var(--saito-foreground) 10%, transparent);
+}
+
+.store.user-store .user-store-nav .item .icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 2.4rem;
+  height: 2.4rem;
 }
 
-.store.user-store > .menu .user-store-rail > .list .item .icon i {
-  font-size: 1.8rem;
+.store.user-store .user-store-nav .item .icon i {
+  font-size: 1.5rem;
   line-height: 1;
 }
 
-.store.user-store > .menu .user-store-rail > .list .item .label {
+.store.user-store .user-store-nav .item .label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -589,8 +684,21 @@
     gap: var(--saito-space-xl);
   }
 
+  /*
+   * Stack user-store regions. Profile context stays card-sized (≤300px) and
+   * start-aligned — do not stretch SaitoProfile into a full-width banner.
+   * Keep --store-user-rhythm so stacked separation matches page top inset.
+   */
   .store.user-store {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--store-user-rhythm);
+  }
+
+  .store.user-store > .user-store-context {
+    position: static;
+    width: 300px;
+    max-width: 100%;
+    justify-self: start;
   }
 
   .store > .menu {
@@ -601,12 +709,6 @@
     flex-direction: row;
     flex-wrap: wrap;
     gap: var(--saito-space-xs);
-  }
-
-  /* Keep user-store nav stacked under the profile on narrow viewports */
-  .store.user-store > .menu .list {
-    flex-direction: column;
-    flex-wrap: nowrap;
   }
 
   .store > .menu .divider {
@@ -642,6 +744,11 @@
 @media (max-width: 600px) {
   .store {
     gap: var(--saito-space-lg);
+  }
+
+  .store.user-store {
+    --store-user-rhythm: var(--saito-space-lg);
+    gap: var(--store-user-rhythm);
   }
 
   .store > .main-column > .manager {

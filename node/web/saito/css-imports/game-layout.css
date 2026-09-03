@@ -48,6 +48,10 @@ html.game {
     --font-size-tiny: 1.083rem;
 }
 
+html.game #saito-alert-box {
+  color: var(--saito-foreground);
+}
+
 body {
   position: relative;
   background-color: #4e4e4e;

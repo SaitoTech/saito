@@ -14,11 +14,11 @@
 }
 
 /* Limbo tightens Spaces for the RS slot — neutralize extra vertical margins. */
-.sidebar .redsquare-sidebar .spaces-list .saito-profile-header-row {
+.sidebar .redsquare-sidebar .spaces-list .saito-profile-identity {
   margin-bottom: 0;
 }
 
-.sidebar .redsquare-sidebar .spaces-list .saito-profile-header-row .saito-identicon-box {
+.sidebar .redsquare-sidebar .spaces-list .saito-profile-avatar-wrap {
   margin-top: 0;
 }
 

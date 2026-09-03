@@ -1,105 +1,27 @@
-const ProfileTemplate = require('./profile.template');
+const SaitoProfile = require('../../../lib/saito/ui/saito-profile/saito-profile');
 
-const DEFAULT_OWN_PROFILE_PLACEHOLDER =
-  'This is your profile. Stay anonymous or provide an image or comment introducing yourself.';
-const DEFAULT_OTHER_PROFILE_PLACEHOLDER = 'No profile description yet.';
-
+/**
+ * Red Square profile chrome: shared SaitoProfile card + RS-specific footer nav
+ * (Posts / Replies / Likes + respondTo('redsquare-profile') ext links).
+ */
 class Profile {
   constructor(app, mod, container = '') {
     this.app = app;
     this.mod = mod;
     this.container = container;
-    this.profile = null;
-    this.profiles = {};
+    this.publicKey = '';
     this.ext_links = [];
-    this._dom_bound = false;
+    this._nav_bound = false;
+    this.saito_profile = new SaitoProfile(app, mod, container);
   }
 
-  hasProfileDescription(value) {
-    return String(value ?? '').trim().length > 0;
-  }
-
-  emptyBioPlaceholderText(canEdit = false) {
-    return canEdit ? DEFAULT_OWN_PROFILE_PLACEHOLDER : DEFAULT_OTHER_PROFILE_PLACEHOLDER;
-  }
-
-  emptyBioPlaceholderHtml(canEdit = false) {
-    const text = this.emptyBioPlaceholderText(canEdit);
-    const safe =
-      typeof this.app.browser?.sanitize === 'function'
-        ? this.app.browser.sanitize(text, true)
-        : String(text)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-
-    const editHtml = canEdit
-      ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>`
-      : '';
-
-    return `<div class="redsquare-profile-description-placeholder">${safe}</div>${editHtml}`;
-  }
-
-  /**
-   * Resolve what the sidebar profile card should show.
-   * Edit controls only for the viewing user's own key.
-   */
-  buildProfileData(publicKey = '') {
-    const key = publicKey || this.mod.publicKey || '';
-    const avatar = (key && this.app.keychain.returnIdenticon(key)) || '/saito/img/dreamscape.png';
-
-    // Display name from keychain: registered identifier, else Anon-xxxxxx.
-    // Do not use returnIdentifierByPublicKey(..., true) alone — that returns the
-    // raw public key when unnamed and would overflow the profile name slot.
-    let name = 'Anonymous';
-    if (key) {
-      name = this.app.keychain.returnUsername(key) || `Anon-${key.slice(0, 6)}`;
-    }
-
-    const existing =
-      key === this.mod.publicKey ? this.mod.profile || {} : this.profiles[key] || {};
-    const can_edit = this.canEditProfile(key);
-    const rawBio = existing.bio || existing.description || '';
-    let bio = this.hasProfileDescription(rawBio) ? rawBio : '';
-    if (bio && this.app.browser?.sanitize) {
-      bio = this.app.browser.sanitize(bio, true);
-    }
-
-    return {
-      publicKey: key,
-      name,
-      handle: existing.handle || '',
-      bio,
-      avatar: existing.avatar || avatar,
-      banner: existing.banner || '',
-      can_edit
-    };
-  }
-
-  canEditProfile(publicKey) {
-    if (!publicKey || !this.mod.enable_profile_edits) {
-      return false;
-    }
-    if (!this.app.modules.returnModule('Profile')) {
-      return false;
-    }
-    return publicKey === this.mod.publicKey;
-  }
-
-  /**
-   * Module-supplied profile destinations via respondTo('redsquare-profile').
-   * Each responder may return { text, link } when that user exposes the link.
-   */
   collectProfileExtLinks(publicKey = '', profileData = null) {
     const key = String(publicKey || '').trim();
     if (!key || !this.app.modules?.getRespondTos) {
       return [];
     }
 
-    const profile =
-      profileData && typeof profileData === 'object' ? profileData : {};
-
+    const profile = profileData && typeof profileData === 'object' ? profileData : {};
     const peers = this.app.modules.getRespondTos('redsquare-profile', {
       publicKey: key,
       profile
@@ -123,12 +45,46 @@ class Profile {
     return out;
   }
 
-  /**
-   * Replace module link items in the profile nav (Posts/Replies/Likes stay put).
-   */
+  renderNavHtml(extLinks = []) {
+    const browser = this.app.browser;
+    const escapeAttr = (value) =>
+      browser?.escapeHTML
+        ? browser.escapeHTML(String(value ?? ''))
+        : String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    const escapeText = (value) =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    const extLinksHtml = (extLinks || [])
+      .map((item) => {
+        const text = escapeText(item?.text);
+        const rawLink = item?.link;
+        if (!text || !rawLink || !browser?.isSafeHref?.(rawLink)) {
+          return '';
+        }
+        return `<a class="item" href="${escapeAttr(rawLink)}" data-profile-ext="1">${text}</a>`;
+      })
+      .join('');
+
+    return `
+      <nav class="nav redsquare-profile-nav" aria-label="Posts, replies, and likes">
+        <div class="item" role="link" tabindex="0" data-profile-nav="posts">Posts</div>
+        <div class="item" role="link" tabindex="0" data-profile-nav="replies">Replies</div>
+        <div class="item" role="link" tabindex="0" data-profile-nav="likes">Likes</div>
+        ${extLinksHtml}
+      </nav>
+    `;
+  }
+
   syncProfileExtLinks(publicKey = '', profileData = null) {
-    const root = document.querySelector(this.container);
-    const nav = root?.querySelector?.('.nav');
+    const footer = this.saito_profile.getFooterEl();
+    const nav = footer?.querySelector?.('.nav');
     if (!nav) {
       return;
     }
@@ -137,6 +93,9 @@ class Profile {
 
     this.ext_links = this.collectProfileExtLinks(publicKey, profileData);
     for (const item of this.ext_links) {
+      if (!this.app.browser?.isSafeHref?.(item.link)) {
+        continue;
+      }
       const a = document.createElement('a');
       a.className = 'item';
       a.href = item.link;
@@ -149,102 +108,68 @@ class Profile {
   render(container = '', publicKey = '') {
     if (container) {
       this.container = container;
+      this.saito_profile.container = container;
     }
 
     const key = publicKey || this.mod.publicKey || '';
-    this.profile = this.buildProfileData(key);
-    this.profiles[key] = Object.assign({}, this.profiles[key] || {}, this.profile);
+    this.publicKey = key;
     this.ext_links = this.collectProfileExtLinks(key);
 
-    if (key === this.mod.publicKey) {
-      this.mod.profile = Object.assign({}, this.mod.profile || {}, this.profile);
+    // Clear host mount then render shared card into it.
+    const host = document.querySelector(this.container);
+    if (host) {
+      host.innerHTML = '';
     }
 
-    this.app.browser.replaceElementContentBySelector(ProfileTemplate(this), this.container);
-    this.attachEvents();
+    this.saito_profile.ordinal = 0;
+    this.saito_profile.reset(key);
+    this.saito_profile.container = this.container;
+    this.saito_profile.render();
+
+    const footer = this.saito_profile.getFooterEl();
+    if (footer) {
+      footer.innerHTML = this.renderNavHtml(this.ext_links);
+    }
+
+    this.attachNavEvents();
     this.syncActiveNav(this.mod.manager?.mode || 'timeline');
 
-    // Pull archived banner/description for the shown key (Profile module).
-    if (this.profile.publicKey) {
-      this.app.connection.emit('profile-fetch-content-and-update-dom', this.profile.publicKey);
+    // When Profile updates arrive on the shared card, refresh ext links + mod.profile cache.
+    if (!this._profile_dom_hooked) {
+      this._profile_dom_hooked = true;
+      this.app.connection.on('profile-update-dom', (pk, data) => {
+        if (!pk || !data) {
+          return;
+        }
+        if (this.publicKey && pk === this.publicKey) {
+          this.syncProfileExtLinks(pk, data);
+        }
+        if (pk === this.mod.publicKey && this.mod.profile) {
+          this.mod.profile.banner = data.banner || '';
+          this.mod.profile.bio = data.description || '';
+          if (data.image) {
+            this.mod.profile.avatar = data.image;
+          }
+        }
+      });
     }
   }
 
   attachEvents() {
-    const root = document.querySelector(this.container);
+    // Compatibility for main.js callers; nav is bound in attachNavEvents.
+    this.attachNavEvents();
+  }
 
-    if (!root) {
+  attachNavEvents() {
+    const footer = this.saito_profile.getFooterEl();
+    if (!footer || footer.dataset.redsquareNavBound) {
       return;
     }
+    footer.dataset.redsquareNavBound = '1';
 
-    if (!this._dom_bound) {
-      this._dom_bound = true;
-
-      this.app.connection.on('profile-update-dom', (publicKey, data) => {
-        this.applyProfileDomUpdate(publicKey, data);
-      });
-    }
-
-    if (root.dataset.profileBound) {
-      return;
-    }
-
-    root.dataset.profileBound = '1';
-
-    root.addEventListener('click', (e) => {
-      const copyBtn = e.target.closest('.copy-key');
-      if (copyBtn && root.contains(copyBtn)) {
-        e.preventDefault();
-        e.stopPropagation();
-        const key =
-          copyBtn.getAttribute('data-profile-key') ||
-          this.profile?.publicKey ||
-          this.mod.publicKey ||
-          '';
-        if (!key) {
-          return;
-        }
-        const done = () => {
-          if (typeof siteMessage === 'function') {
-            siteMessage('Address copied', 1200);
-          } else if (this.app.browser?.siteMessage) {
-            this.app.browser.siteMessage('Address copied', 1200);
-          }
-        };
-        if (navigator.clipboard?.writeText) {
-          navigator.clipboard
-            .writeText(key)
-            .then(done)
-            .catch(() => {});
-        }
-        return;
-      }
-
-      const bannerEdit = e.target.closest('.redsquare-profile-banner-edit');
-      if (bannerEdit && root.contains(bannerEdit)) {
-        e.preventDefault();
-        e.stopPropagation();
-        const key = this.profile?.publicKey || this.mod.publicKey;
-        if (this.canEditProfile(key)) {
-          this.app.connection.emit('profile-edit-banner', key);
-        }
-        return;
-      }
-
-      const descEdit = e.target.closest('.redsquare-profile-description.can-edit');
-      if (descEdit && root.contains(descEdit)) {
-        e.preventDefault();
-        e.stopPropagation();
-        const key = this.profile?.publicKey || this.mod.publicKey;
-        if (this.canEditProfile(key)) {
-          this.app.connection.emit('profile-edit-description', key);
-        }
-        return;
-      }
-
+    footer.addEventListener('click', (e) => {
       const item = e.target.closest('.nav .item');
-
-      if (!item || !root.contains(item)) {
+      if (!item || !footer.contains(item)) {
         return;
       }
 
@@ -267,9 +192,8 @@ class Profile {
 
       e.preventDefault();
 
-      const publicKey = this.profile?.publicKey || this.mod.publicKey || '';
+      const publicKey = this.publicKey || this.mod.publicKey || '';
       const manager = this.mod.manager;
-
       if (!manager) {
         return;
       }
@@ -283,108 +207,28 @@ class Profile {
       }
     });
 
-    root.addEventListener('keydown', (e) => {
+    footer.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') {
         return;
       }
-
-      const item = e.target.closest('.nav .item, .redsquare-profile-banner-edit, .copy-key');
-
-      if (!item || !root.contains(item)) {
+      const item = e.target.closest('.nav .item');
+      if (!item || !footer.contains(item)) {
         return;
       }
-
       e.preventDefault();
       item.click();
     });
   }
 
-  /**
-   * Apply Profile-module content updates to the RedSquare sidebar card.
-   * `data` is the complete profile object; missing fields are treated as unset.
-   */
-  applyProfileDomUpdate(publicKey, data) {
-    if (!publicKey || !data) {
-      return;
-    }
-
-    const shown = this.profile?.publicKey || this.mod.publicKey;
-    if (shown && publicKey !== shown) {
-      return;
-    }
-
-    const { banner, description, image } = data;
-
-    this.profiles[publicKey] = Object.assign({}, this.profiles[publicKey] || {}, {
-      banner: banner || '',
-      bio: description || ''
-    });
-
-    if (publicKey === this.mod.publicKey && this.mod.profile) {
-      this.mod.profile.banner = banner || '';
-      this.mod.profile.bio = description || '';
-    }
-
-    document.querySelectorAll(`.banner-${publicKey}`).forEach((el) => {
-      el.style.backgroundImage = banner ? `url('${banner}')` : '';
-    });
-
-    const container = document.querySelector(`${this.container} .redsquare-profile-description`);
-    if (container) {
-      const canEdit = this.canEditProfile(publicKey);
-      container.classList.toggle('can-edit', canEdit);
-      container.classList.toggle('empty', !this.hasProfileDescription(description));
-
-      if (!this.hasProfileDescription(description)) {
-        container.innerHTML = this.emptyBioPlaceholderHtml(canEdit);
-      } else {
-        const sanitized = this.app.browser.sanitize(description, true).replaceAll('\n', '<br>');
-        container.innerHTML = `
-            <div class="profile-description-${publicKey}" data-id="${publicKey}">
-              ${sanitized}
-            </div>
-            ${canEdit ? `<div class="redsquare-profile-description-edit"><i class="fas fa-pen"></i></div>` : ''}
-          `;
-      }
-    }
-
-    const avatarNodes = document.querySelectorAll(`${this.container} .avatar`);
-    if (image) {
-      avatarNodes.forEach((el) => {
-        el.src = image;
-      });
-      this.profiles[publicKey].avatar = image;
-      if (publicKey === this.mod.publicKey && this.mod.profile) {
-        this.mod.profile.avatar = image;
-      }
-    } else {
-      const fallback = this.app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
-      avatarNodes.forEach((el) => {
-        el.src = fallback;
-      });
-      this.profiles[publicKey].avatar = fallback;
-      if (publicKey === this.mod.publicKey && this.mod.profile) {
-        this.mod.profile.avatar = fallback;
-      }
-    }
-
-    // Module links (Store/Stack/…) depend on Profile fields that may arrive here.
-    this.syncProfileExtLinks(publicKey, data);
-  }
-
-  /**
-   * Reflect Manager's current view. Nothing is active on the global timeline.
-   */
   syncActiveNav(mode = '') {
-    const root = document.querySelector(this.container);
-
-    if (!root) {
+    const footer = this.saito_profile.getFooterEl();
+    if (!footer) {
       return;
     }
 
     const activeView = mode === 'posts' || mode === 'replies' || mode === 'likes' ? mode : '';
 
-    root.querySelectorAll('.nav .item').forEach((item) => {
+    footer.querySelectorAll('.nav .item').forEach((item) => {
       const view = item.getAttribute('data-profile-nav') || '';
       const active = Boolean(activeView) && view === activeView;
       item.classList.toggle('active', active);

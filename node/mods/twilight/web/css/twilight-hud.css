@@ -14,7 +14,7 @@
   .options {
     background-color: whitesmoke;
     height: 5.833rem;
-    border-top: 1px solid var(--saito-border);
+    border-top: 1px solid var(--saito-gray-200);
     width: 100%;
     font-size: 1.333rem;
     display: list-item;
