@@ -494,20 +494,23 @@ class ExploreOverlay {
 
       const shareAuthorBtn = document.getElementById('stack-explore-author-share');
       if (shareAuthorBtn) {
-        shareAuthorBtn.onclick = (e) => {
+        shareAuthorBtn.onclick = async (e) => {
           e.preventDefault();
           e.stopPropagation();
 
-          let shareUrl = window.location.origin + `/${this.mod.slug}/${this.targetPublicKey}`;
+          const longUrl = window.location.origin + `/${this.mod.slug}/${this.targetPublicKey}`;
           let title = 'Stack Creator';
           if (this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey)) {
             title += ' --- ' + this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey);
           }
 
-          this.app.browser.handleShare({
-            title,
-            url: shareUrl
-          });
+          try {
+            const url = await this.mod.createShortLink(longUrl);
+            this.app.browser.handleShare({ title, url });
+          } catch (err) {
+            console.error('Stack author share failed:', err);
+            this.app.browser.handleShare({ title, url: longUrl });
+          }
         };
       }
 

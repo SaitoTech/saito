@@ -1,4 +1,5 @@
 const Transaction = require('../../../lib/saito/transaction').default;
+const ModTemplate = require('../../../lib/templates/modtemplate');
 const JSON = require('json-bigint');
 const Invite = require('./ui/invite');
 const SaitoOverlay = require('../../../lib/saito/ui/saito-overlay/saito-overlay');
@@ -445,7 +446,7 @@ module.exports = {
       return 1;
     }
 
-    return super.handlePeerTransaction(app, newtx, peer, mycallback);
+    return ModTemplate.prototype.handlePeerTransaction.call(this, app, newtx, peer, mycallback);
   },
 
   async onConnectionUnstable(app, publicKey) {

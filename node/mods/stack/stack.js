@@ -31,6 +31,7 @@ class Stack extends ModTemplate {
     this.description = 'Permissioned blogging platform - an open-source alternative to Substack';
     this.categories = 'Social Media Blogging Publishing';
     this.icon_fa = 'fa-solid fa-newspaper';
+    this.shortlinks_enabled = 1;
 
     this.pending_author_load = null;
     this.pending_post_sig = null;
@@ -1896,8 +1897,8 @@ class Stack extends ModTemplate {
       }
     }
 
-    // Not a Stack service request
-    return 0;
+    // Let shared module services, including shortlinks, handle the request.
+    return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
   ////////////////////////////
