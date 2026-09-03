@@ -4607,18 +4607,15 @@ async playerTurnHeadlineSelected(card, player) {
       twilight_self.hideCard(); //close cardbox in case it is open
 
       //
-      // WWBY
+      // WWBY warning only — do not mutate state until the play is committed
+      // (event / ops / space). Keeps back-button / re-select working.
       //
       if (twilight_self.game.state.events.wwby == 1 && twilight_self.game.state.headline == 0) {
-        if (player == "us") {
-          if (card != "unintervention") {
-            if (twilight_self.playerHoldsCard("unintervention")){
-              let c = await sconfirm(`If you don't play ${twilight_self.cardToText("unintervention")}, USSR will gain 3 VP. Still play this card?`);
-              if (c) {} else { return; }
-            }
-            twilight_self.game.state.events.wwby_triggers = 1; //Remember penalty to apply with next endturn
+        if (player == "us" && card != "unintervention") {
+          if (twilight_self.playerHoldsCard("unintervention")){
+            let c = await sconfirm(`If you don't play ${twilight_self.cardToText("unintervention")}, USSR will gain 3 VP. Still play this card?`);
+            if (c) {} else { return; }
           }
-          twilight_self.game.state.events.wwby = -1; // disable WWBY
         }
       }
 
@@ -4629,6 +4626,7 @@ async playerTurnHeadlineSelected(card, player) {
         //
         // scoring cards score, not get discarded
         if (ac[card]?.scoring == 0) {
+          twilight_self.resolveWeWillBuryYouOnCommit(player, card, false);
           twilight_self.removeTwilightCardFromHand(card);
           twilight_self.addMove("resolve\tplay");
           twilight_self.addMove("quagmire\t"+player+"\t"+card);
@@ -4766,8 +4764,6 @@ async playerTurnHeadlineSelected(card, player) {
 
         if (action == "event") {
 
-          if (twilight_self.game.state.events.wwby == -1) { twilight_self.game.state.events.wwby = 0; }
-
 	  let ac = twilight_self.returnAllCards(true);
           if (ac[card].player != "both" && ac[card].player != player) {
 
@@ -4823,8 +4819,6 @@ async playerTurnHeadlineSelected(card, player) {
 
         if (action == "ops") {
 
-          if (twilight_self.game.state.events.wwby == -1) { twilight_self.game.state.events.wwby = 1; }
-
           //
           // our event or both
           if (twilight_self.confirm_moves == 1 && (card != "missileenvy" || is_this_missile_envy_noneventable == 0)) {
@@ -4862,8 +4856,6 @@ async playerTurnHeadlineSelected(card, player) {
 
 	  let ac = twilight_self.returnAllCards(true);
 
-          if (twilight_self.game.state.events.wwby == -1) { twilight_self.game.state.events.wwby = 1; }
-
           if (twilight_self.confirm_moves == 1) {
             let fr_header = `Confirm you want to space ${ac[card].name}`;
             let fr_msg =  `<ul><li class="option" id="spaceit">send into orbit</li>
@@ -4882,6 +4874,7 @@ async playerTurnHeadlineSelected(card, player) {
 	      }
 
               if (action == "spaceit") {
+                twilight_self.resolveWeWillBuryYouOnCommit(player, card, false);
                 twilight_self.addMove("space\t"+player+"\t"+card);
                 twilight_self.removeTwilightCardFromHand(card);
                 twilight_self.endTurn();
@@ -4892,6 +4885,7 @@ async playerTurnHeadlineSelected(card, player) {
             return;
           }
 
+          twilight_self.resolveWeWillBuryYouOnCommit(player, card, false);
           twilight_self.addMove("space\t"+player+"\t"+card);
           twilight_self.removeTwilightCardFromHand(card);
           twilight_self.endTurn();
@@ -5400,6 +5394,26 @@ async playerTurnHeadlineSelected(card, player) {
 
 
 
+  /**
+   * Finalize We Will Bury You when a US Action Round play is committed.
+   * Call only from final commit paths (not card-select / back-button).
+   * UN Intervention as Event cancels; any other committed play scores once via endTurn.
+   */
+  resolveWeWillBuryYouOnCommit(player, card, committing_as_event = false) {
+    if (this.game.state.events.wwby != 1) { return; }
+    if (this.game.state.headline == 1) { return; }
+    if (player != "us") { return; }
+
+    if (card == "unintervention" && committing_as_event) {
+      this.game.state.events.wwby = 0;
+      return;
+    }
+
+    this.game.state.events.wwby_triggers = 1;
+    this.game.state.events.wwby = 0;
+  }
+
+
   playerTriggerOps(player, card) {
 
     let twilight_self = this;
@@ -5428,6 +5442,7 @@ async playerTurnHeadlineSelected(card, player) {
         twilight_self.bindBackButtonFunction(() => {  twilight_self.playerTurnCardSelected(card, player);  });
         twilight_self.updateStatusWithOptions('Playing opponent card:', html, function(action2) {
 
+          twilight_self.resolveWeWillBuryYouOnCommit(player, card, false);
           twilight_self.game.state.event_name = twilight_self.cardToText(card);
 
           if (action2 === "before_ops") {
@@ -5451,6 +5466,7 @@ async playerTurnHeadlineSelected(card, player) {
 
     } else { //Playing my own or neutral card for ops
 
+      twilight_self.resolveWeWillBuryYouOnCommit(player, card, false);
       twilight_self.addMove("ops\t"+player+"\t"+card+"\t"+ac[card].ops);
       if (card == "china") { twilight_self.addMove("limit\tchina"); }
       twilight_self.removeTwilightCardFromHand(card);
@@ -5468,6 +5484,8 @@ async playerTurnHeadlineSelected(card, player) {
   playerTriggerEvent(player, card) {
 
     let twilight_self = this;
+
+    twilight_self.resolveWeWillBuryYouOnCommit(player, card, true);
 
     //
     // Flower Power
