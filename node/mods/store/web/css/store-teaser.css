@@ -63,7 +63,7 @@
   max-width: calc(100% - 4rem);
   padding: var(--saito-space-xs) var(--saito-space-sm);
   border-radius: var(--saito-radius-full);
-  background: color-mix(in srgb, var(--saito-background) 82%, transparent);
+  background: color-mix(in srgb, var(--saito-background) 85%, transparent);
   backdrop-filter: blur(8px);
   color: var(--saito-foreground);
   font-size: var(--font-size-tiny);

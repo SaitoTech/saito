@@ -25,8 +25,8 @@ class Store extends ModTemplate {
     this.store_peer_index = null;
     this.fee = 0;
     this.order_retry_limit = 10;
-    // Allows store-profile banner/description edits on own user-store rail.
-    this.enable_profile_edits = true;
+    // User-store chrome is read-only; edits stay on Profile / Red Square hosts.
+    this.enable_profile_edits = false;
 
     this.warehouse = new Warehouse(app, this);
     Object.assign(this, transactions);

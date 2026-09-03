@@ -34,16 +34,13 @@ body.redsquare-body .settings > .header .title {
 
 /*
  * Desktop hierarchy (first pass) — sizes only; cuts stay on components.
- * Steps: page/nav/section 1.67rem (~20px) → profile name 1.4rem → body 1.25rem → meta 1.083rem.
+ * Steps: page/nav/section 1.67rem (~20px) → body 1.25rem → meta 1.083rem.
+ * Profile name typography is owned by shared SaitoProfile (saito-profile.css).
  * Tweet author/body/meta unchanged. Mobile keeps the inherited body band.
  */
 @media (min-width: 601px) {
   body.redsquare-body .menu .label {
     font-size: 1.67rem;
-  }
-
-  body.redsquare-body .redsquare-profile .name {
-    font-size: 1.45rem;
   }
 }
 

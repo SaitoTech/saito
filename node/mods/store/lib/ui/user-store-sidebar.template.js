@@ -1,31 +1,29 @@
 module.exports = ({ showPosts = false, showSettings = false } = {}) => {
   const postsItem = showPosts
     ? `
-        <li class="item" role="button" tabindex="0" data-nav="posts">
+        <div class="item" role="button" tabindex="0" data-nav="posts">
           <span class="icon" aria-hidden="true"><i class="fa-solid fa-comment"></i></span>
           <span class="label">Posts</span>
-        </li>`
+        </div>`
     : '';
 
   const settingsItem = showSettings
     ? `
-        <li class="item" role="button" tabindex="0" data-nav="settings">
+        <div class="item" role="button" tabindex="0" data-nav="settings">
           <span class="icon" aria-hidden="true"><i class="fa-solid fa-gear"></i></span>
           <span class="label">Settings</span>
-        </li>`
+        </div>`
     : '';
 
+  // Injected into SaitoProfile's generic footer slot (inside the card).
   return `
-    <div class="user-store-rail">
-      <div class="user-store-profile store-profile"></div>
-      <ul class="list saito-menu-select-subtle" role="list">
-        <li class="item active" role="button" tabindex="0" data-nav="store" aria-current="page">
-          <span class="icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span>
-          <span class="label">Store</span>
-        </li>
-        ${postsItem}
-        ${settingsItem}
-      </ul>
-    </div>
+    <nav class="user-store-nav saito-menu-select-subtle" aria-label="User store">
+      <div class="item active" role="button" tabindex="0" data-nav="store" aria-current="page">
+        <span class="icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span>
+        <span class="label">Store</span>
+      </div>
+      ${postsItem}
+      ${settingsItem}
+    </nav>
   `;
 };

@@ -1,16 +1,247 @@
+/* Canonical modern SaitoProfile card (promoted from Red Square profile presentation).
+ * Hosts own navigation via .saito-profile-footer (inline) or sibling DOM (e.g. Store).
+ * Profile module is optional — card renders from publicKey + host + keychain alone.
+ */
+
 .saito-profile {
   min-width: 0;
   width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 0;
-  max-width: 1000px;
-  margin: auto;
 }
 
-.saito-profile-menu {
-  margin-left: 0.2rem;
+.saito-profile-card {
+  --saito-profile-inset: var(--saito-space-md);
+  --saito-profile-avatar-ring: 5px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--saito-card-wash);
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+}
+
+.saito-profile-banner {
+  position: relative;
+  width: 100%;
+  height: 7.2rem;
+  overflow: hidden;
+  background-color: var(--saito-card);
+  background-image: url(/saito/img/dreamscape.png);
+  background-size: cover;
+  background-position: center;
+}
+
+.saito-profile-banner-edit {
+  box-sizing: border-box;
+  position: absolute;
+  right: var(--saito-space-sm);
+  bottom: var(--saito-space-sm);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  margin: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--saito-black) 52%, transparent);
+  color: var(--saito-foreground);
+  font-size: 1.15rem;
+  line-height: 1;
+  text-shadow: none;
+  cursor: pointer;
+}
+
+.saito-profile-banner-edit:hover,
+.saito-profile-banner-edit:focus-visible {
+  background: color-mix(in srgb, var(--saito-black) 68%, transparent);
+  outline: none;
+}
+
+.saito-profile-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/*
+ * Identity unit geometry (owned here, not by child offsets):
+ * - Inset and column-gap share --saito-profile-inset so
+ *   card→image-content ≈ image-content→username (ring is inside the 6.4rem border-box).
+ * - Row stretches to the avatar; text column fills that height.
+ * - Username stays banner-cleared via padding-top; key row is bottom-anchored
+ *   with padding-bottom = ring so the baseline references image content, not the ring.
+ */
+.saito-profile-identity {
+  display: grid;
+  grid-template-columns: 6.4rem minmax(0, 1fr);
+  column-gap: var(--saito-profile-inset);
+  align-items: stretch;
+  min-width: 0;
+  /* No margin below identity — row already ends at the avatar outer/ring; description owns its padding */
+  margin: -2.2rem 0 0;
+  padding: 0 var(--saito-profile-inset);
+}
+
+.saito-profile-avatar-wrap {
+  position: relative;
+  width: 6.4rem;
+  height: 6.4rem;
+  z-index: 1;
+}
+
+.saito-profile-avatar {
+  width: 6.4rem;
+  height: 6.4rem;
+  object-fit: cover;
+  border: var(--saito-profile-avatar-ring) solid transparent;
+  border-radius: var(--saito-radius);
+  background: var(--saito-card-wash);
+}
+
+.saito-profile-avatar-wrap .saito-overlaid-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.saito-profile-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  /* Clear banner overlap, then air; -1px lifts username only (key compensated below) */
+  padding-top: calc(2.2rem + 0.55rem - 1px);
+  /* Lift key off the outer border-box so baseline tracks image content bottom */
+  padding-bottom: var(--saito-profile-avatar-ring);
+}
+
+.saito-profile-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--saito-font-medium);
+  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1.25;
+  color: var(--saito-foreground);
+}
+
+.saito-profile-key-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
+  margin: auto 0 0;
+  /* Keeps public-key position fixed when username padding-top is reduced by 1px */
+  padding-top: 1px;
+}
+
+.saito-profile-public-key {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  color: var(--saito-muted-foreground);
+}
+
+.saito-profile-copy-key {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--saito-radius-sm, 0.4rem);
+  color: var(--saito-muted-foreground);
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.saito-profile-copy-key:hover,
+.saito-profile-copy-key:focus-visible {
+  background: transparent;
+  border: none;
+  color: var(--saito-foreground);
+  opacity: 1;
+}
+
+.saito-profile-copy-key:active {
+  transform: scale(0.94);
+}
+
+.saito-profile-copy-key i {
+  font-size: 0.95rem;
+}
+
+.saito-profile-description {
+  margin: 0;
+  padding: 0 var(--saito-profile-inset) var(--saito-space-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 1.35rem;
+  line-height: 1.35;
+  color: var(--saito-foreground);
+}
+
+.saito-profile-description.empty:not(.can-edit) {
+  display: none;
+}
+
+/* Editable: click on section; hover/focus wash only on the text/content node */
+.saito-profile-description.can-edit {
+  cursor: pointer;
+}
+
+.saito-profile-description.can-edit > :first-child {
+  border-radius: var(--saito-radius-sm, 0.4rem);
+  outline: 1px solid transparent;
+  transition: background-color 0.15s ease, outline-color 0.15s ease;
+}
+
+.saito-profile-description.can-edit > :first-child:hover {
+  background: color-mix(in srgb, var(--saito-foreground) 8%, transparent);
+}
+
+.saito-profile-description.can-edit:focus-visible > :first-child {
+  outline-color: color-mix(in srgb, var(--saito-primary) 55%, transparent);
+}
+
+.saito-profile-description-placeholder {
+  min-width: 0;
+}
+
+/* Optional host slots — empty by default; no app-specific nav styles here */
+.saito-profile-controls:empty,
+.saito-profile-menu:empty,
+.saito-profile-footer:empty {
+  display: none;
+}
+
+.saito-profile-controls:not(:empty) {
+  display: block;
+}
+
+.saito-profile-menu:not(:empty) {
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
+  margin-left: 0.2rem;
 }
 
 .saito-profile-menu .saito-profile-tab {
@@ -19,126 +250,19 @@
   text-transform: capitalize;
 }
 
-.saito-profile-tab:hover {
+.saito-profile-menu .saito-profile-tab:hover {
   color: var(--saito-primary);
   background-color: var(--background-color-button-sidebar);
   border-radius: var(--saito-radius);
 }
 
-.saito-profile-menu .active {
+.saito-profile-menu .saito-profile-tab.active {
   text-decoration: underline dashed;
   text-underline-offset: 0.5rem;
-  /*border-bottom: 1px dashed var(--saito-foreground);*/
 }
 
-.saito-profile-banner {
-  width: 100%;
-  height: 0;
-  padding-top: min(33.33%, 180px);
-  background-image: url(/saito/img/profile-banner.jpg);
-  background-size: cover;
-  background-position: center;
-  position: relative;
-}
-
-.saito-profile-header-row .saito-identicon-box {
-  border: 2px solid var(--border-color-identicon-square-profile);
-  width: 10rem;
-  height: 10rem;
-  background-size: cover;
-  border-radius: 5%;
-  margin-top: -4.5rem;
-  z-index: 1;
-  margin-left: 1rem;
-  position: relative;
-  cursor: unset;
-  font-size: 4rem;
-}
-
-.saito-profile-header-row .saito-identicon-box .saito-overlaid-icon {
-  top: 50%;
-}
-
-.saito-banner-edit {
-  margin-left: 0;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  position: absolute;
-  text-shadow: 1px 1px 4px var(--saito-black);
-  cursor: pointer;
-}
-
-.saito-profile-description {
-  position: relative;
-  margin-left: 1rem;
-  padding: 0.5rem;
-  margin-right: 0.5rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-}
-
-.saito-profile-description.empty {
-  display: none;
-}
-
-.saito-profile-description.can-edit.empty {
+.saito-profile-footer:not(:empty) {
   display: block;
-}
-
-.saito-profile-description.can-edit {
-  display: grid;
-  grid-template-columns: 1fr min-content;
-  cursor: pointer;
-}
-
-.saito-description-edit {
-  display: none;
-  cursor: pointer;
-  width: 100%;
-  height: 100%;
-  justify-content: center;
-  align-items: flex-end;
-  font-size: 1.5rem;
-}
-
-.saito-profile-description.can-edit .saito-description-edit {
-  display: flex;
-}
-
-.saito-profile-header-row {
-  display: grid;
-  grid-template-columns: min-content 1fr;
-  align-items: center;
-  height: 5rem;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  margin-right: 0.5rem;
-}
-
-.saito-profile-header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-evenly;
-  height: 100%;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.saito-profile-username {
-  font-size: 2.2rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  white-space: nowrap;
-}
-
-.saito-profile-key {
-  font-size: 1.4rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
 }
 
 .saito-profile .saito-modal-menu-option {
@@ -162,32 +286,18 @@
   margin-top: 0.5rem;
 }
 
-.saito-banner-edit {
-  color: var(--saito-gray-850);
-}
-
 @media screen and (max-width: 600px) {
-  .saito-profile-header-row {
-    margin-bottom: unset;
+  .saito-profile-name {
+    font-size: 1.33rem;
   }
 
-  .saito-profile-header-row .saito-identicon-box {
-    border-width: 1px;
-    width: 7rem;
-    height: 7rem;
-    margin-top: -2.5rem;
-    margin-left: 0.5rem;
-  }
-  .saito-profile-menu {
+  .saito-profile-menu:not(:empty) {
     justify-content: space-between;
   }
+
   .saito-profile-menu .saito-profile-tab {
     margin-right: unset;
     flex-grow: 1;
     text-align: center;
-  }
-
-  .saito-profile-description {
-    margin: unset;
   }
 }

@@ -60,8 +60,8 @@ class Main {
     }
   }
 
-  railSelector() {
-    return `${this.container} .store > .menu`;
+  userStoreContextSelector() {
+    return `${this.container} .store > .user-store-context`;
   }
 
   storeRoot() {
@@ -69,8 +69,9 @@ class Main {
   }
 
   /**
-   * Shell composition: marketplace categories, user-store profile rail, or admin dashboard.
-   * Only swaps the left rail + .store.user-store geometry — not listing machinery.
+   * Page composition modes share Main/Manager, but not left-rail semantics:
+   * - marketplace / admin → `.menu` (categories or dashboard)
+   * - user-store → `.user-store-context` (SaitoProfile + Store nav); listings stay in `.main-column`
    */
   setComposition(mode = 'marketplace', publicKey = '') {
     const next = mode === 'user-store' ? 'user-store' : mode === 'admin' ? 'admin' : 'marketplace';
@@ -81,17 +82,9 @@ class Main {
       store.classList.toggle('user-store', next === 'user-store');
     }
 
-    const rail = this.railSelector();
     if (next === 'user-store') {
-      // Prevent Menu.refreshHasStore from rewriting this rail as categories.
-      this.menu.mode = 'user-store';
-      this.user_store_sidebar.render(rail, publicKey);
+      this.user_store_sidebar.render(this.userStoreContextSelector(), publicKey);
       return;
-    }
-
-    const menuRoot = document.querySelector(rail);
-    if (menuRoot) {
-      menuRoot.classList.remove('user-store');
     }
 
     if (next === 'admin') {

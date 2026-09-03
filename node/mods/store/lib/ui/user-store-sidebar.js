@@ -1,9 +1,10 @@
-const UserStoreSidebarTemplate = require('./user-store-sidebar.template');
-const StoreProfile = require('./store-profile');
+const UserStoreNavTemplate = require('./user-store-sidebar.template');
+const SaitoProfile = require('../../../../lib/saito/ui/saito-profile/saito-profile');
 
 /**
- * User-store left rail: Store profile card + Store / Posts nav.
- * Settings is admin-only (not shown on the public storefront).
+ * User-store profile context: shared SaitoProfile (read-only) with Store nav
+ * injected into the profile card footer slot, plus Store-owned attribution
+ * below the card (outside SaitoProfile).
  */
 class UserStoreSidebar {
   constructor(app, mod, container = '', callbacks = {}) {
@@ -12,7 +13,9 @@ class UserStoreSidebar {
     this.container = container;
     this.publicKey = '';
     this.onSettings = callbacks.onSettings || null;
-    this.profile = new StoreProfile(app, mod, '');
+    this.profile = new SaitoProfile(app, mod, '');
+    // Public storefront is always read-only (no camera / pencil). Shared component stays editable for other hosts.
+    this.profile.editable = false;
   }
 
   hasPostsRoute() {
@@ -21,6 +24,23 @@ class UserStoreSidebar {
 
   isOwnStore(publicKey = this.publicKey) {
     return Boolean(publicKey && this.mod.publicKey && publicKey === this.mod.publicKey);
+  }
+
+  /** Canonical marketplace path — same slug routing as Store header / setBrowseUrl. */
+  marketplacePath() {
+    return `/${encodeURI(this.mod.returnSlug?.() || 'store')}`;
+  }
+
+  openMarketplace(e) {
+    if (e) {
+      e.preventDefault();
+    }
+    const path = this.marketplacePath();
+    if (typeof navigateWindow === 'function') {
+      navigateWindow(path);
+    } else {
+      window.location.assign(path);
+    }
   }
 
   render(container = '', publicKey = '') {
@@ -40,21 +60,28 @@ class UserStoreSidebar {
       return;
     }
 
-    root.classList.remove('marketplace', 'dashboard');
-    root.classList.add('user-store');
-    root.setAttribute('aria-label', 'User store');
-
     const showPosts = this.hasPostsRoute();
-    // Public storefront is visitor-facing — Settings belongs on admin only.
-    const showSettings = false;
+    const showSettings = this.isOwnStore(key);
+    const marketPath = this.marketplacePath();
 
-    this.app.browser.replaceElementContentBySelector(
-      UserStoreSidebarTemplate({ showPosts, showSettings }),
-      this.container
-    );
+    root.innerHTML = `
+      <div class="user-store-profile"></div>
+      <p class="user-store-attribution">
+        Listings indexed on the
+        <a href="${marketPath}" data-store-attribution="marketplace">Saito Store</a>
+      </p>
+    `;
 
+    this.profile.editable = false;
     this.profile.container = `${this.container} .user-store-profile`;
-    this.profile.render('', key);
+    this.profile.reset(key);
+    this.profile.editable = false;
+    this.profile.render();
+
+    const footer = this.profile.getFooterEl();
+    if (footer) {
+      footer.innerHTML = UserStoreNavTemplate({ showPosts, showSettings });
+    }
 
     this.attachEvents();
   }
@@ -65,7 +92,16 @@ class UserStoreSidebar {
       return;
     }
 
-    root.querySelectorAll('.user-store-rail > .list .item[data-nav]').forEach((item) => {
+    root.querySelectorAll('[data-store-attribution="marketplace"]').forEach((link) => {
+      link.onclick = (e) => this.openMarketplace(e);
+    });
+
+    const footer = this.profile.getFooterEl();
+    if (!footer) {
+      return;
+    }
+
+    footer.querySelectorAll('.user-store-nav .item[data-nav]').forEach((item) => {
       item.onclick = (e) => {
         e.preventDefault();
         this.activate(item.getAttribute('data-nav') || '');
