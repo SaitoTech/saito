@@ -688,7 +688,15 @@ class MixinModule extends CryptoModule {
     } else {
       let fee = await this.mixin.returnWithdrawalFee(this.asset_id, address);
       if (fee !== false) {
-        return mycallback(fee);
+        const feeBalance = await this.mixin.fetchSafeUtxoBalance(fee.asset_id);
+        const feeModule = this.mixin.crypto_mods?.find(
+          (crypto_module) => crypto_module.asset_id === fee.asset_id
+        );
+        return mycallback(fee.amount, {
+          ...fee,
+          ticker: feeModule?.ticker || fee.ticker,
+          available_balance: feeBalance === false ? null : feeBalance
+        });
       }
 
       return mycallback(0);
@@ -827,7 +835,10 @@ class MixinModule extends CryptoModule {
     }
 
     try {
-      return WAValidator.validate(address, this.ticker);
+      const chain = this.mixin?.crypto_mods?.find(
+        (crypto_module) => crypto_module.asset_id === this.chain_id
+      );
+      return WAValidator.validate(address, chain?.ticker || this.ticker);
     } catch (err) {
       console.error("Error 'validateAddress' MixinModule: ", err);
       return false;

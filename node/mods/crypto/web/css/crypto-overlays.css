@@ -1239,6 +1239,16 @@
 
 @media (hover: hover) {
   .saito-crypto-withdraw
+    #withdraw-amount-cont:has(.withdraw-amount-status--invalid:hover)
+    > input.saito-input,
+  .saito-crypto-withdraw
+    #withdraw-amount-cont:has(.withdraw-amount-status--invalid:focus-visible)
+    > input.saito-input {
+    color: transparent;
+    caret-color: transparent;
+  }
+
+  .saito-crypto-withdraw
     .input-actions:has(.withdraw-amount-status--invalid:hover)
     ~ .withdraw-amount-tooltip,
   .saito-crypto-withdraw
@@ -1249,6 +1259,13 @@
 }
 
 @media (hover: none) {
+  .saito-crypto-withdraw
+    #withdraw-amount-cont:has(.withdraw-amount-status--invalid:active)
+    > input.saito-input {
+    color: transparent;
+    caret-color: transparent;
+  }
+
   .saito-crypto-withdraw
     .input-actions:has(.withdraw-amount-status--invalid:active)
     ~ .withdraw-amount-tooltip {

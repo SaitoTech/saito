@@ -4,6 +4,8 @@ const SaitoContacts = require('./../../modals/saito-contacts/saito-contacts');
 const SaitoNFT = require('../../saito-nft/saito-nft');
 const SaitoUser = require('./../../saito-user/saito-user');
 
+const WRAPPED_SAITO_TICKERS = ['ERC-SAITO', 'BEP-SAITO'];
+
 class Withdraw {
   constructor(app, mod, container = '') {
     this.app = app;
@@ -20,6 +22,9 @@ class Withdraw {
     this.address = '';
     this.recipientAddressValid = false;
     this.fee = null;
+    this.feeAssetId = '';
+    this.feeTicker = '';
+    this.feeAssetBalance = null;
     this.feePending = false;
     this.feeRequestKey = '';
     this.feeRequestPromise = null;
@@ -517,6 +522,9 @@ class Withdraw {
   }
 
   formatFeeTicker() {
+    if (this.feeTicker) {
+      return this.feeTicker;
+    }
     if (!this.pc) {
       return this.ticker || '';
     }
@@ -869,7 +877,7 @@ class Withdraw {
       menu.replaceChildren();
     }
 
-    let available_cryptos = this.app.wallet.returnActivatedCryptos();
+    const available_cryptos = this.returnAvailableCryptos();
 
     for (let crypto_mod of available_cryptos) {
       if (
@@ -912,6 +920,25 @@ class Withdraw {
     if (triggerTick) {
       triggerTick.textContent = this.pc.ticker;
     }
+  }
+
+  returnAvailableCryptos() {
+    const available_cryptos = this.app.wallet.returnActivatedCryptos();
+
+    if (!this.app.browser.returnURLParameter('withdraw')) {
+      return available_cryptos;
+    }
+
+    const installed_tickers = new Set(available_cryptos.map((crypto_mod) => crypto_mod.ticker));
+    for (const ticker of WRAPPED_SAITO_TICKERS) {
+      const crypto_mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
+      if (crypto_mod && !installed_tickers.has(crypto_mod.ticker)) {
+        available_cryptos.push(crypto_mod);
+        installed_tickers.add(crypto_mod.ticker);
+      }
+    }
+
+    return available_cryptos;
   }
 
   positionTokenMenu() {
@@ -1373,7 +1400,10 @@ class Withdraw {
                   : this_withdraw.available_balance
               );
             } else {
-              const fee = Number(this_withdraw.fee) || 0;
+              const feePaidInSelectedAsset =
+                !this_withdraw.feeAssetId ||
+                this_withdraw.feeAssetId === this_withdraw.pc?.asset_id;
+              const fee = feePaidInSelectedAsset ? Number(this_withdraw.fee) || 0 : 0;
               this_withdraw.setAmountInputValue(this_withdraw.available_balance - fee);
             }
             this_withdraw.validateAmountInput();
@@ -1520,6 +1550,9 @@ class Withdraw {
       this.feeRequestKey = '';
       this.feeRequestPromise = null;
       this.fee = this.getNativeDefaultFee();
+      this.feeAssetId = this.pc?.asset_id || '';
+      this.feeTicker = '';
+      this.feeAssetBalance = this.available_balance;
       this.feePending = false;
       this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(this.fee));
       this.validateAmountInput();
@@ -1532,6 +1565,9 @@ class Withdraw {
       this.feeRequestKey = '';
       this.feeRequestPromise = null;
       this.fee = null;
+      this.feeAssetId = '';
+      this.feeTicker = '';
+      this.feeAssetBalance = null;
       this.feePending = false;
       this.setFeeDisplayElement(feeEl, '—', 'Add a recipient address to estimate the network fee');
       this.handleErrors();
@@ -1542,6 +1578,9 @@ class Withdraw {
       this.feeRequestKey = '';
       this.feeRequestPromise = null;
       this.fee = null;
+      this.feeAssetId = '';
+      this.feeTicker = '';
+      this.feeAssetBalance = null;
       this.feePending = false;
       this.setFeeDisplayElement(feeEl, '—');
       this.handleErrors();
@@ -1565,7 +1604,7 @@ class Withdraw {
     let feeReceived = false;
     const feeRequestPromise = (async () => {
       try {
-        await cryptoModule.checkWithdrawalFeeForAddress(address, (amt) => {
+        await cryptoModule.checkWithdrawalFeeForAddress(address, (amt, feeDetails = {}) => {
           feeReceived = true;
 
           if (this.feeRequestKey !== requestKey || this.pc !== cryptoModule) {
@@ -1573,13 +1612,24 @@ class Withdraw {
           }
 
           this.fee = Number(amt);
+          this.feeAssetId = feeDetails.asset_id || cryptoModule.asset_id || '';
+          this.feeTicker = feeDetails.ticker || '';
+          this.feeAssetBalance =
+            feeDetails.available_balance == null ? null : Number(feeDetails.available_balance);
           this.feePending = false;
-          this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(amt));
+          const feeTitle =
+            this.feeAssetId && this.feeAssetId !== cryptoModule.asset_id
+              ? `A ${this.formatFeeTicker()} balance is required to pay this network fee`
+              : '';
+          this.setFeeDisplayElement(feeEl, this.formatFeeDisplay(amt), feeTitle);
           this.validateAmountInput();
         });
 
         if (!feeReceived && this.feeRequestKey === requestKey && this.pc === cryptoModule) {
           this.fee = null;
+          this.feeAssetId = '';
+          this.feeTicker = '';
+          this.feeAssetBalance = null;
           this.feePending = false;
           this.setFeeDisplayElement(feeEl, '—', 'Unable to estimate the network fee');
           this.handleErrors();
@@ -1587,6 +1637,9 @@ class Withdraw {
       } catch (err) {
         if (this.feeRequestKey === requestKey && this.pc === cryptoModule) {
           this.fee = null;
+          this.feeAssetId = '';
+          this.feeTicker = '';
+          this.feeAssetBalance = null;
           this.feePending = false;
           this.setFeeDisplayElement(feeEl, '—', 'Unable to estimate the network fee');
           this.handleErrors();
@@ -1640,13 +1693,28 @@ class Withdraw {
 
         let amount_avl = this.available_balance;
         this.fee = Number(this.fee);
+        const feePaidInSelectedAsset = !this.feeAssetId || this.feeAssetId === this.pc?.asset_id;
 
         if (amount <= 0) {
           error_msg = 'Amount must be greater than 0';
         } else if (amount > amount_avl) {
           error_msg = `Insufficient funds (${amount_avl} ${this.ticker} available)`;
-        } else if (Number.isFinite(this.fee) && amount + this.fee > amount_avl) {
+        } else if (
+          feePaidInSelectedAsset &&
+          Number.isFinite(this.fee) &&
+          amount + this.fee > amount_avl
+        ) {
           error_msg = 'The amount plus the network fee exceeds your available balance';
+        } else if (
+          !feePaidInSelectedAsset &&
+          Number.isFinite(this.fee) &&
+          Number.isFinite(this.feeAssetBalance) &&
+          this.feeAssetBalance < this.fee
+        ) {
+          error_msg =
+            `A ${this.formatFeeTicker()} balance is required to move ${this.ticker}. ` +
+            `The network fee is ${this.fee} ${this.formatFeeTicker()}, but only ` +
+            `${this.feeAssetBalance} ${this.formatFeeTicker()} is available.`;
         }
       }
     } else {
@@ -1735,6 +1803,9 @@ class Withdraw {
     this.address = '';
     this.recipientAddressValid = false;
     this.fee = null;
+    this.feeAssetId = '';
+    this.feeTicker = '';
+    this.feeAssetBalance = null;
     this.feePending = false;
     this.feeRequestKey = '';
     this.feeRequestPromise = null;

@@ -65,6 +65,14 @@ function calculatePendingBalance(balance, ...deductions) {
   return Number(pending.toFixed(8));
 }
 
+function selectWithdrawalFee(feeResponse, assetId, chainAssetId) {
+  const fees = Array.isArray(feeResponse) ? feeResponse : feeResponse ? [feeResponse] : [];
+  const assetFee = fees.find((fee) => fee.asset_id === assetId);
+  const chainFee = fees.find((fee) => fee.asset_id === chainAssetId);
+
+  return assetFee ?? chainFee ?? (fees.length === 1 ? fees[0] : null);
+}
+
 function formatMixinError(err) {
   const apiError = err?.response?.data?.error;
   if (apiError?.description || apiError?.code) {
@@ -891,12 +899,24 @@ class Mixin extends ModTemplate {
       const asset = await user.safe.fetchAsset(asset_id);
       const chain =
         asset.chain_id === asset.asset_id ? asset : await user.safe.fetchAsset(asset.chain_id);
-      const fees = await user.safe.fetchFee(asset.asset_id, recipient);
-      const assetFee = fees.find((f) => f.asset_id === asset.asset_id);
-      const chainFee = fees.find((f) => f.asset_id === chain.asset_id);
-      const fee = assetFee ?? chainFee;
+      const feeResponse = await user.safe.fetchFee(asset.asset_id, recipient);
+      const fee = selectWithdrawalFee(feeResponse, asset.asset_id, chain.asset_id);
 
-      return fee.amount;
+      if (!fee?.asset_id || fee.amount == null) {
+        throw new Error(`No withdrawal fee available for ${asset_id}`);
+      }
+
+      const feeAsset =
+        fee.asset_id === asset.asset_id
+          ? asset
+          : fee.asset_id === chain.asset_id
+            ? chain
+            : await user.safe.fetchAsset(fee.asset_id);
+
+      return {
+        ...fee,
+        ticker: feeAsset.display_symbol || feeAsset.symbol
+      };
     } catch (err) {
       console.error('ERROR: Mixin error check withdrawl fee: ' + err);
       return false;
@@ -1015,12 +1035,34 @@ class Mixin extends ModTemplate {
       const asset = await user.safe.fetchAsset(asset_id);
       const chain =
         asset.chain_id === asset.asset_id ? asset : await user.safe.fetchAsset(asset.chain_id);
-      const fees = await user.safe.fetchFee(asset.asset_id, destination);
-      const assetFee = fees.find((f) => f.asset_id === asset.asset_id);
-      const chainFee = fees.find((f) => f.asset_id === chain.asset_id);
-      const fee = assetFee ?? chainFee;
+      const feeResponse = await user.safe.fetchFee(asset.asset_id, destination);
+      const fee = selectWithdrawalFee(feeResponse, asset.asset_id, chain.asset_id);
       if (!fee?.asset_id || fee.amount == null) {
         throw new Error(`No withdrawal fee available for ${asset_id}`);
+      }
+      const assetTicker =
+        this.crypto_mods.find((crypto_module) => crypto_module.asset_id === asset.asset_id)
+          ?.ticker ||
+        asset.display_symbol ||
+        asset.symbol;
+      const feeAsset =
+        fee.asset_id === asset.asset_id
+          ? asset
+          : fee.asset_id === chain.asset_id
+            ? chain
+            : await user.safe.fetchAsset(fee.asset_id);
+      const feeTicker =
+        this.crypto_mods.find((crypto_module) => crypto_module.asset_id === fee.asset_id)?.ticker ||
+        feeAsset.display_symbol ||
+        feeAsset.symbol;
+      const assetRequired = new Decimal(amount).plus(
+        fee.asset_id === asset.asset_id ? fee.amount : 0
+      );
+
+      if (new Decimal(balance).lessThan(assetRequired)) {
+        throw new Error(
+          `Insufficient ${assetTicker} balance: ${assetRequired.toString()} required, ${balance} available.`
+        );
       }
       console.log('fee', fee);
       console.log('balance: ', balance);
@@ -1035,6 +1077,19 @@ class Mixin extends ModTemplate {
           asset: fee.asset_id,
           state: 'unspent'
         });
+        const feeBalance = await user.utxo.safeAssetBalance({
+          members: [user_id],
+          threshold: 1,
+          asset: fee.asset_id,
+          state: 'unspent'
+        });
+
+        if (new Decimal(feeBalance).lessThan(fee.amount)) {
+          throw new Error(
+            `A ${feeTicker} balance is required to withdraw ${assetTicker}. ` +
+              `The network fee is ${fee.amount} ${feeTicker}, but only ${feeBalance} ${feeTicker} is available.`
+          );
+        }
         console.log('outputs: ', outputs, 'feeOutputs: ', feeOutputs);
 
         let recipients = [
