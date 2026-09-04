@@ -1,32 +1,39 @@
 /**
  * Store-owned profile footer nav (injected into SaitoProfile footer slot).
- * @param {{ action: string, state: string, label: string, icon: string } | null} contact
+ * @param {Array<{ action: string, state?: string, label: string, icon: string }>} items
  */
-module.exports = (contact = null) => {
-  if (!contact) {
-    return '';
-  }
-
-  const action = String(contact.action || '').trim();
-  const state = String(contact.state || '').trim();
-  const label = String(contact.label || '').trim();
-  const icon = String(contact.icon || '').trim();
-  if (!action || !label || !icon) {
-    return '';
-  }
-
-  return `
-    <nav class="user-store-nav saito-menu-select-subtle" aria-label="Contact seller">
+module.exports = (items = []) => {
+  const rows = (Array.isArray(items) ? items : [])
+    .map((item) => {
+      const action = String(item?.action || '').trim();
+      const state = String(item?.state || '').trim();
+      const label = String(item?.label || '').trim();
+      const icon = String(item?.icon || '').trim();
+      if (!action || !label || !icon) {
+        return '';
+      }
+      const stateAttr = state ? ` data-contact-state="${state}"` : '';
+      return `
       <div
         class="item"
         role="button"
         tabindex="0"
-        data-contact-action="${action}"
-        data-contact-state="${state}"
+        data-nav-action="${action}"${stateAttr}
       >
         <span class="icon" aria-hidden="true"><i class="${icon}"></i></span>
         <span class="label">${label}</span>
-      </div>
+      </div>`;
+    })
+    .filter(Boolean)
+    .join('');
+
+  if (!rows) {
+    return '';
+  }
+
+  return `
+    <nav class="user-store-nav saito-menu-select-subtle" aria-label="Store profile">
+      ${rows}
     </nav>
   `;
 };

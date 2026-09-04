@@ -68,8 +68,7 @@ class UserStoreSidebar {
       };
     }
 
-    const started =
-      this._contact_started.has(key) || this.isPendingKeyExchange(key);
+    const started = this._contact_started.has(key) || this.isPendingKeyExchange(key);
 
     if (started || !this.hasEncrypt()) {
       return {
@@ -88,6 +87,25 @@ class UserStoreSidebar {
     };
   }
 
+  /**
+   * @returns {Array<{ action: string, state?: string, label: string, icon: string }>}
+   */
+  returnNavItems(publicKey = this.publicKey) {
+    const items = [];
+    const contact = this.returnContactItem(publicKey);
+    if (contact) {
+      items.push(contact);
+    }
+    if (this.isOwnStore(publicKey)) {
+      items.push({
+        action: 'admin-store',
+        label: 'Admin Store',
+        icon: 'fa-solid fa-gear'
+      });
+    }
+    return items;
+  }
+
   /** Canonical marketplace path — same slug routing as Store header / setBrowseUrl. */
   marketplacePath() {
     return `/${encodeURI(this.mod.returnSlug?.() || 'store')}`;
@@ -98,6 +116,23 @@ class UserStoreSidebar {
       e.preventDefault();
     }
     const path = this.marketplacePath();
+    if (typeof navigateWindow === 'function') {
+      navigateWindow(path);
+    } else {
+      window.location.assign(path);
+    }
+  }
+
+  openAdminStore(publicKey = this.publicKey) {
+    const key = String(publicKey || '').trim();
+    if (!key || !this.isOwnStore(key)) {
+      return;
+    }
+    if (typeof this.mod.main?.openStorefront === 'function') {
+      void this.mod.main.openStorefront(key, { admin: true });
+      return;
+    }
+    const path = this.mod.returnAdminPath?.(key) || `${this.marketplacePath()}/${encodeURIComponent(key)}/admin`;
     if (typeof navigateWindow === 'function') {
       navigateWindow(path);
     } else {
@@ -132,18 +167,18 @@ class UserStoreSidebar {
         return;
       }
       this._contact_started.delete(key);
-      this.renderContactNav();
+      this.renderNav();
     });
   }
 
-  renderContactNav() {
+  renderNav() {
     const footer = this.profile.getFooterEl();
     if (!footer) {
       return;
     }
 
-    footer.innerHTML = UserStoreNavTemplate(this.returnContactItem(this.publicKey));
-    this.attachContactEvents();
+    footer.innerHTML = UserStoreNavTemplate(this.returnNavItems(this.publicKey));
+    this.attachNavEvents();
   }
 
   render(container = '', publicKey = '') {
@@ -180,7 +215,7 @@ class UserStoreSidebar {
     this.profile.editable = false;
     this.profile.render();
 
-    this.renderContactNav();
+    this.renderNav();
     this.attachEvents();
   }
 
@@ -194,27 +229,36 @@ class UserStoreSidebar {
       link.onclick = (e) => this.openMarketplace(e);
     });
 
-    this.attachContactEvents();
+    this.attachNavEvents();
   }
 
-  attachContactEvents() {
+  attachNavEvents() {
     const footer = this.profile.getFooterEl();
     if (!footer) {
       return;
     }
 
-    footer.querySelectorAll('.user-store-nav .item[data-contact-action]').forEach((item) => {
+    footer.querySelectorAll('.user-store-nav .item[data-nav-action]').forEach((item) => {
       item.onclick = (e) => {
         e.preventDefault();
-        void this.activateContact(item.getAttribute('data-contact-action') || '');
+        void this.activateNav(item.getAttribute('data-nav-action') || '');
       };
       item.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          void this.activateContact(item.getAttribute('data-contact-action') || '');
+          void this.activateNav(item.getAttribute('data-nav-action') || '');
         }
       };
     });
+  }
+
+  async activateNav(action = '') {
+    if (action === 'admin-store') {
+      this.openAdminStore(this.publicKey);
+      return;
+    }
+
+    await this.activateContact(action);
   }
 
   async activateContact(action = '') {
@@ -226,7 +270,7 @@ class UserStoreSidebar {
     if (action === 'add-contact') {
       this._contact_started.add(key);
       this.app.connection.emit('encrypt-key-exchange', key);
-      this.renderContactNav();
+      this.renderNav();
       return;
     }
 
