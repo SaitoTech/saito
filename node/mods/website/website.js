@@ -111,13 +111,11 @@ class Websitex extends ModTemplate {
     const saitoHeader = document.getElementById('saito-header');
     const siteHeader = document.querySelector('[data-site-header]');
     const menuTrigger = document.getElementById('saito-header-menu-toggle');
-    const menuProxy = document.querySelector('[data-header-open-saito]');
     const mobileMenuProxy = document.querySelector('[data-menu-toggle]');
     const sidebar = document.querySelector('.saito-header-hamburger-contents');
     const backdrop = document.querySelector('.saito-header-backdrop');
-    const menuCue = document.querySelector('[data-saito-menu-cue]');
 
-    if (!saitoHeader || !siteHeader || !menuTrigger || !menuProxy || !sidebar || !backdrop) {
+    if (!saitoHeader || !siteHeader || !menuTrigger || !sidebar || !backdrop) {
       return;
     }
 
@@ -129,10 +127,6 @@ class Websitex extends ModTemplate {
     menuTrigger.setAttribute('aria-label', 'Open Saito menu');
     menuTrigger.setAttribute('aria-controls', 'saito-sidebar');
     menuTrigger.setAttribute('aria-expanded', 'false');
-    menuProxy.setAttribute('role', 'button');
-    menuProxy.setAttribute('aria-label', 'Open Saito menu');
-    menuProxy.setAttribute('aria-controls', 'saito-sidebar');
-    menuProxy.setAttribute('aria-expanded', 'false');
     sidebar.id = 'saito-sidebar';
 
     const syncMenuAccessibility = () => {
@@ -146,8 +140,6 @@ class Websitex extends ModTemplate {
       const isOpen = liveSidebar.classList.contains('show-menu');
       liveTrigger.setAttribute('aria-expanded', String(isOpen));
       liveTrigger.setAttribute('aria-label', isOpen ? 'Close Saito menu' : 'Open Saito menu');
-      menuProxy.setAttribute('aria-expanded', String(isOpen));
-      menuProxy.setAttribute('aria-label', isOpen ? 'Close Saito menu' : 'Open Saito menu');
 
       if (mobileMenuProxy && siteHeader.classList.contains('network-online')) {
         mobileMenuProxy.setAttribute('aria-controls', 'saito-sidebar');
@@ -194,6 +186,8 @@ class Websitex extends ModTemplate {
       syncMenuAccessibility();
     };
 
+    window.saitoWebsitex.toggleMenu = toggleSaitoMenu;
+
     if (!menuTrigger.dataset.websitexBound) {
       menuTrigger.dataset.websitexBound = 'true';
       observeSidebar(sidebar);
@@ -206,37 +200,7 @@ class Websitex extends ModTemplate {
       });
     }
 
-    if (!menuProxy.dataset.websitexBound) {
-      menuProxy.dataset.websitexBound = 'true';
-      menuProxy.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        toggleSaitoMenu();
-      });
-      menuProxy.addEventListener('keydown', (event) => {
-        if (event.key === ' ') {
-          event.preventDefault();
-          toggleSaitoMenu();
-        }
-      });
-    }
-
     syncMenuAccessibility();
-
-    menuProxy.classList.remove('saito-menu-arrival');
-    window.requestAnimationFrame(() => menuProxy.classList.add('saito-menu-arrival'));
-    if (menuCue) {
-      menuCue.textContent = 'Your Saito menu is ready';
-      menuCue.classList.remove('is-visible');
-      window.requestAnimationFrame(() => menuCue.classList.add('is-visible'));
-    }
-    window.setTimeout(() => {
-      menuProxy.classList.remove('saito-menu-arrival');
-      menuCue?.classList.remove('is-visible');
-      if (menuCue) {
-        menuCue.textContent = '';
-      }
-    }, 3800);
   }
 
   respondTo(type = '', obj = null) {

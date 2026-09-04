@@ -331,29 +331,6 @@ h3 {
   gap: 1.2rem;
 }
 
-.saito-menu-cue {
-  position: absolute;
-  top: 50%;
-  right: 3.5rem;
-  width: max-content;
-  padding: 0.55rem 0.8rem;
-  border: 1px solid #ef604f66;
-  border-radius: 999px;
-  background: #fff8f3;
-  box-shadow: 0 0.75rem 2rem #9e2d2030;
-  color: #8e1627;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(0.75rem, -50%) scale(0.92);
-}
-
-.saito-menu-cue.is-visible {
-  animation: saito-menu-cue 3.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 .menu-toggle {
   position: relative;
   z-index: 2;
@@ -484,59 +461,6 @@ body.websitex #saito-header-menu-toggle {
   visibility: hidden;
 }
 
-body.websitex.saito-shell-ready [data-header-open-saito] {
-  position: relative;
-  display: grid;
-  width: 2.9rem;
-  min-width: 2.9rem;
-  height: 2.9rem;
-  min-height: 2.9rem;
-  padding: 0;
-  place-items: center;
-  border: 1px solid #17171b33;
-  border-radius: 50%;
-  background: transparent;
-  color: transparent;
-  font-size: 0;
-  outline-offset: 0.3rem;
-}
-
-body.websitex.saito-shell-ready [data-header-open-saito]:hover {
-  border-color: #17171b66;
-  background: #17171b0a;
-  transform: none;
-}
-
-body.websitex.saito-shell-ready [data-header-open-saito]::before,
-body.websitex.saito-shell-ready [data-header-open-saito]::after {
-  position: absolute;
-  width: 1rem;
-  height: 1px;
-  background: #17171b;
-  content: '';
-  transition: transform 180ms ease;
-}
-
-body.websitex.saito-shell-ready [data-header-open-saito]::before {
-  transform: translateY(-0.2rem);
-}
-
-body.websitex.saito-shell-ready [data-header-open-saito]::after {
-  transform: translateY(0.2rem);
-}
-
-body.websitex.saito-shell-ready [data-header-open-saito][aria-expanded='true']::before {
-  transform: rotate(45deg);
-}
-
-body.websitex.saito-shell-ready [data-header-open-saito][aria-expanded='true']::after {
-  transform: rotate(-45deg);
-}
-
-body.websitex.saito-shell-ready [data-header-open-saito].saito-menu-arrival {
-  animation: saito-menu-splash 1.55s cubic-bezier(0.22, 1, 0.36, 1) 100ms 2;
-}
-
 body.websitex .saito-header-hamburger-contents,
 body.websitex .saito-header-backdrop {
   top: var(--websitex-site-header-height);
@@ -564,60 +488,6 @@ body.websitex .site-header.is-scrolled + #saito-header .saito-header-hamburger-c
 body.websitex .site-header.is-scrolled + #saito-header .saito-header-backdrop {
   top: 4.75rem;
   height: calc(100svh - 4.75rem);
-}
-
-@keyframes saito-menu-splash {
-  0% {
-    border-color: #ef604f;
-    background: #ef604f;
-    box-shadow:
-      0 0 0 0 #ff6b58c7,
-      0 0 0 0 #ffb2a566;
-    transform: scale(0.82) rotate(-8deg);
-  }
-
-  35% {
-    background: #fff8f3;
-    box-shadow:
-      0 0 0 0.65rem #ff6b5840,
-      0 0 0 1.25rem #ffb2a51f;
-    transform: scale(1.14) rotate(4deg);
-  }
-
-  72% {
-    border-color: #17171b33;
-    background: transparent;
-    box-shadow:
-      0 0 0 1rem #ff6b5800,
-      0 0 0 1.8rem #ffb2a500;
-    transform: scale(1) rotate(0);
-  }
-
-  100% {
-    border-color: #17171b33;
-    background: transparent;
-    box-shadow: none;
-    transform: none;
-  }
-}
-
-@keyframes saito-menu-cue {
-  0%,
-  8% {
-    opacity: 0;
-    transform: translate(0.75rem, -50%) scale(0.92);
-  }
-
-  18%,
-  72% {
-    opacity: 1;
-    transform: translate(0, -50%) scale(1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate(-0.35rem, -50%) scale(0.96);
-  }
 }
 
 .hero {
@@ -915,6 +785,7 @@ body.websitex .site-header.is-scrolled + #saito-header .saito-header-backdrop {
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 600;
+  text-align: center;
   transition:
     background-color 180ms ease,
     color 180ms ease;
@@ -2887,12 +2758,7 @@ body.websitex .site-header.is-scrolled + #saito-header .saito-header-backdrop {
   }
 
   .desktop-nav,
-  .header-actions .button,
-  .saito-menu-cue {
-    display: none;
-  }
-
-  body.websitex.saito-shell-ready .header-actions [data-header-open-saito] {
+  .header-actions .button {
     display: none;
   }
 

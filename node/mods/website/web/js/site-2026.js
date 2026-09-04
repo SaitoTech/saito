@@ -6,7 +6,6 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 const header = document.querySelector('[data-site-header]');
 const menuToggle = document.querySelector('[data-menu-toggle]');
 const mobileNavigation = document.querySelector('[data-mobile-nav]');
-const saitoMenuProxy = document.querySelector('[data-header-open-saito]');
 const mobileNavigationLinks = mobileNavigation?.querySelectorAll('a') || [];
 const desktopNavigationLinks = document.querySelectorAll('.desktop-nav a');
 const mobileAppDock = document.querySelector('[data-open-apps]');
@@ -16,7 +15,7 @@ function mobileMenuTargetsSaito() {
   return Boolean(
     header?.classList.contains('network-online') &&
     document.body.classList.contains('saito-shell-ready') &&
-    saitoMenuProxy
+    typeof window.saitoWebsitex?.toggleMenu === 'function'
   );
 }
 
@@ -59,7 +58,7 @@ function setMenuState(isOpen) {
 
 menuToggle?.addEventListener('click', () => {
   if (mobileMenuTargetsSaito()) {
-    saitoMenuProxy.click();
+    window.saitoWebsitex.toggleMenu();
     return;
   }
 
@@ -89,7 +88,7 @@ window.addEventListener('resize', () => {
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && menuToggle?.getAttribute('aria-expanded') === 'true') {
     if (mobileMenuTargetsSaito()) {
-      saitoMenuProxy.click();
+      window.saitoWebsitex.toggleMenu();
     } else {
       setMenuState(false);
     }
@@ -655,7 +654,7 @@ function applyBrowserNetworkStatus(detail = {}) {
       .querySelector('.saito-header-hamburger-contents')
       ?.classList.contains('show-menu');
     if (wasOnline && saitoSidebarOpen) {
-      saitoMenuProxy?.click();
+      window.saitoWebsitex?.toggleMenu?.();
     } else if (wasOnline && menuToggle?.getAttribute('aria-expanded') === 'true') {
       setMenuState(false);
     }
