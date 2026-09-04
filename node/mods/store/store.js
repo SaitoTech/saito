@@ -67,6 +67,13 @@ class Store extends ModTemplate {
       this.main = new Main(this.app, this);
       await this.main.initialize();
       this.addComponent(this.main);
+
+      // Chat is optional: wake ChatManager for popups only (no sidebar list).
+      const cm = this.app.modules.returnFirstRespondTo?.('chat-manager');
+      if (cm) {
+        cm.render_popups_to_screen = 1;
+        cm.render_manager_to_screen = 0;
+      }
     }
   }
 

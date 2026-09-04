@@ -143,12 +143,6 @@
   box-shadow: var(--saito-focus-ring);
 }
 
-.store.user-store .user-store-nav .item.active {
-  font-family: var(--saito-font-heavy);
-  color: var(--saito-foreground);
-  background: color-mix(in srgb, var(--saito-foreground) 10%, transparent);
-}
-
 .store.user-store .user-store-nav .item .icon {
   display: flex;
   align-items: center;
