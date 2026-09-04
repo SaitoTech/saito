@@ -1,7 +1,7 @@
 const SaitoSyncTemplate = (sync) => {
   const payload = sync.payload || {};
   const current_block_id = sync.formatBlockId(
-    sync.displayed_current_block_id ?? payload.current_block_id
+    sync.displayed_current_block_id ?? sync.getDisplayCurrentBlockId()
   );
   const target_block_id = sync.formatBlockId(payload.target_block_id);
 
@@ -31,7 +31,7 @@ const SaitoSyncTemplate = (sync) => {
         <div class="saito-sync-copy">
           <div class="saito-sync-meter">
             <p class="saito-sync-progress-label">
-              Loading <span id="saito-sync-current-block" class="saito-sync-num">${current_block_id}</span>
+              Currently <span id="saito-sync-current-block" class="saito-sync-num">${current_block_id}</span>
               of <span id="saito-sync-target-block" class="saito-sync-num">${target_block_id}</span>
             </p>
             <div

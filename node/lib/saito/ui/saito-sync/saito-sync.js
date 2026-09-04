@@ -41,13 +41,17 @@ class SaitoSync {
     if (this.app?.connection?.on) {
       this.app.connection.on('on-blockchain-received', (payload) => {
         this.payload = payload || {};
-        this.onChunkReceived();
+        void this.onChunkReceived();
       });
     }
   }
 
-  onChunkReceived() {
-    if (this.shouldInhibitOverlay()) {
+  async onChunkReceived() {
+    const page_inhibits_overlay =
+      typeof document !== 'undefined' &&
+      document.body?.hasAttribute('data-inhibit-block-sync-overlay');
+    const active_mod = this.app?.modules?.returnActiveModule?.();
+    if (page_inhibits_overlay || active_mod?.inhibit_block_sync_overlay === true) {
       this.stopProgressPolling();
       this.cancelPendingUi();
       this.pending_transition = null;
@@ -81,21 +85,70 @@ class SaitoSync {
 
     this.active_target_block_id = target;
 
+    // Skip overlay when Rust already marks a peer synced and we have a block watermark.
+    try {
+      const peers = await this.app?.core?.network?.getPeers?.();
+      if (Array.isArray(peers)) {
+        let peer_synced = false;
+        for (const peer of peers) {
+          const data = typeof peer.get === 'function' ? peer.get() : null;
+          if (data && data.is_synced) {
+            peer_synced = true;
+            break;
+          }
+        }
+        const block_id =
+          this.toBigInt(this.app?.options?.blockchain?.last_block_id) ??
+          this.toBigInt(this.payload?.current_block_id) ??
+          0n;
+        if (peer_synced && block_id > 0n) {
+          this.initial_sync_completed = true;
+          this.sync_complete = true;
+          this.stopProgressPolling();
+          this.cancelPendingUi();
+          this.pending_transition = null;
+          this.ui_mode = 'idle';
+          this.syncing_shown_at = null;
+          if (this.overlay.visible) {
+            this.overlay.remove();
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      // If peer dump is unavailable, fall through to the normal sync UI path.
+    }
+
     const already_showing_syncing =
       this.ui_mode === 'syncing' &&
       this.overlay.visible &&
       !!document.getElementById('saito-sync') &&
       !document.querySelector('#saito-sync.saito-sync-behind');
 
-    this.showSyncingOverlay();
-    this.updateFromChunkEvent(already_showing_syncing);
+    this.render();
 
-    if (this.shouldShowFastForward()) {
+    const current = this.getDisplayCurrentBlockId();
+    this.applyCurrentProgress(current, already_showing_syncing);
+    if (already_showing_syncing) {
+      this.pulseVisual('saito-sync-beat');
+    }
+    this.pollLocalProgress(this.sync_generation);
+
+    const local_id = this.toBigInt(this.payload?.latest_known_block_id);
+    const payload = this.payload || {};
+    const ancestor_id = this.toBigInt(payload.shared_ancestor_block_id);
+    const ancestor_fields_present =
+      payload.shared_ancestor_block_id != null || payload.shared_ancestor_block_hash != null;
+    const no_shared_ancestor =
+      ancestor_fields_present &&
+      (ancestor_id == null || ancestor_id === 0n) &&
+      this.isZeroBlockHash(payload.shared_ancestor_block_hash);
+
+    if (local_id != null && local_id > 0n && no_shared_ancestor) {
       this.scheduleFastForward();
       return;
     }
 
-    const current = this.local_current_block_id ?? this.toBigInt(this.payload?.current_block_id);
     if (this.isNearTip(current, target)) {
       this.sync_complete = true;
       this.scheduleDismissSyncing();
@@ -106,15 +159,41 @@ class SaitoSync {
     this.startProgressPolling();
   }
 
-  shouldInhibitOverlay() {
-    const page_inhibits_overlay =
-      typeof document !== 'undefined' &&
-      document.body?.hasAttribute('data-inhibit-block-sync-overlay');
-    const active_mod = this.app?.modules?.returnActiveModule?.();
-    return page_inhibits_overlay || active_mod?.inhibit_block_sync_overlay === true;
+  /**
+   * Currently X: live tip, never below shared_ancestor_block_id when one exists.
+   */
+  getDisplayCurrentBlockId(candidate) {
+    const tip = this.toBigInt(
+      candidate ?? this.local_current_block_id ?? this.payload?.current_block_id
+    );
+    const ancestor_id = this.toBigInt(this.payload?.shared_ancestor_block_id);
+    if (ancestor_id == null || ancestor_id <= 0n) {
+      return tip;
+    }
+    if (this.isZeroBlockHash(this.payload?.shared_ancestor_block_hash)) {
+      return tip;
+    }
+    if (tip == null || tip < ancestor_id) {
+      return ancestor_id;
+    }
+    return tip;
   }
 
-  showSyncingOverlay() {
+  isZeroBlockHash(value) {
+    if (value == null || value === '') {
+      return true;
+    }
+    if (typeof value === 'string') {
+      const hex = value.replace(/^0x/i, '').toLowerCase();
+      return hex.length === 0 || hex === ZERO_BLOCK_HASH;
+    }
+    if (Array.isArray(value) || value instanceof Uint8Array) {
+      return Array.from(value).every((byte) => Number(byte) === 0);
+    }
+    return false;
+  }
+
+  render() {
     const existing = document.getElementById('saito-sync');
     const showing_syncing =
       this.overlay.visible && existing && !existing.classList.contains('saito-sync-behind');
@@ -135,22 +214,17 @@ class SaitoSync {
     this.overlay.show(SaitoSyncTemplate(this), () => {
       this.onOverlayClosed();
     });
-    this.attachEvents();
-    this.displayed_current_block_id = this.toBigInt(
-      this.local_current_block_id ?? this.payload?.current_block_id
-    );
-    this.updateNumberWidths(this.toBigInt(this.payload?.target_block_id));
-  }
 
-  attachEvents() {
-    const button = document.getElementById('saito-sync-skip');
-    if (!button) {
-      return;
+    const skip = document.getElementById('saito-sync-skip');
+    if (skip) {
+      skip.onclick = (event) => {
+        event.preventDefault();
+        this.skipSyncWait();
+      };
     }
-    button.onclick = (event) => {
-      event.preventDefault();
-      this.skipSyncWait();
-    };
+
+    this.displayed_current_block_id = this.getDisplayCurrentBlockId();
+    this.setTargetBlockText(this.toBigInt(this.payload?.target_block_id));
   }
 
   skipSyncWait() {
@@ -181,56 +255,17 @@ class SaitoSync {
     }
   }
 
-  shouldShowFastForward() {
-    const local_id = this.toBigInt(this.payload?.latest_known_block_id);
-    if (local_id == null || local_id <= 0n) {
-      return false;
-    }
-    return this.hasNoSharedAncestor();
-  }
-
-  hasNoSharedAncestor() {
-    const payload = this.payload || {};
-    if (payload.shared_ancestor_block_id == null && payload.shared_ancestor_block_hash == null) {
-      return false;
-    }
-    const ancestor_id = this.toBigInt(payload.shared_ancestor_block_id);
-    const id_is_zero = ancestor_id == null || ancestor_id === 0n;
-    return id_is_zero && this.isZeroBlockHash(payload.shared_ancestor_block_hash);
-  }
-
-  isZeroBlockHash(value) {
-    if (value == null || value === '') {
-      return true;
-    }
-    if (typeof value === 'string') {
-      const hex = value.replace(/^0x/i, '').toLowerCase();
-      return hex.length === 0 || hex === ZERO_BLOCK_HASH;
-    }
-    if (Array.isArray(value) || value instanceof Uint8Array) {
-      return Array.from(value).every((byte) => Number(byte) === 0);
-    }
-    return false;
-  }
-
-  scheduleAfterMinVisible(callback) {
-    this.cancelPendingUi();
-    const shown_at = this.syncing_shown_at ?? performance.now();
-    const elapsed = performance.now() - shown_at;
-    const wait = Math.max(0, MIN_SYNCING_VISIBLE_MS - elapsed);
-    this.ui_timer = setTimeout(() => {
-      this.ui_timer = null;
-      callback();
-    }, wait);
-  }
-
   scheduleFastForward() {
     this.pending_transition = 'fast_forward';
     this.stopProgressPolling();
-    this.scheduleAfterMinVisible(() => {
+    this.cancelPendingUi();
+    const shown_at = this.syncing_shown_at ?? performance.now();
+    const wait = Math.max(0, MIN_SYNCING_VISIBLE_MS - (performance.now() - shown_at));
+    this.ui_timer = setTimeout(() => {
+      this.ui_timer = null;
       this.pending_transition = null;
       this.showTooFarBehind();
-    });
+    }, wait);
   }
 
   scheduleDismissSyncing() {
@@ -244,11 +279,16 @@ class SaitoSync {
     this.pending_transition = 'dismiss';
     this.stopProgressPolling();
 
-    // Measure how much of the bar animation is left before snapping to 100%.
-    const bar_remaining_ms = this.progressBarRemainingMs();
+    const fill = document.getElementById('saito-sync-progress-fill');
+    const bar = document.getElementById('saito-sync-progress');
+    let bar_remaining_ms = PROGRESS_FILL_TRANSITION_MS;
+    if (fill && bar && bar.offsetWidth > 0) {
+      const current_pct = Math.min(100, (fill.offsetWidth / bar.offsetWidth) * 100);
+      bar_remaining_ms = Math.ceil(((100 - Math.min(100, current_pct)) / 100) * PROGRESS_FILL_TRANSITION_MS);
+    }
 
     const target = this.toBigInt(this.payload?.target_block_id);
-    const current = this.local_current_block_id ?? this.toBigInt(this.payload?.current_block_id);
+    const current = this.getDisplayCurrentBlockId();
     this.setProgress(current, target);
     this.setCurrentBlockText(current);
     this.setTargetBlockText(target);
@@ -276,7 +316,11 @@ class SaitoSync {
 
     const overlay_el = document.getElementById(`saito-overlay${this.overlay.ordinal}`);
     const backdrop_el = document.getElementById(`saito-overlay-backdrop${this.overlay.ordinal}`);
-    const fade_ms = this.prefersReducedMotion() ? 0 : SYNCING_FADE_MS;
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const fade_ms = reduced ? 0 : SYNCING_FADE_MS;
     const fade_transition = fade_ms > 0 ? `opacity ${fade_ms}ms ease` : 'none';
 
     if (overlay_el) {
@@ -296,14 +340,6 @@ class SaitoSync {
         this.syncing_shown_at = null;
       }
     }, fade_ms);
-  }
-
-  prefersReducedMotion() {
-    return (
-      typeof window !== 'undefined' &&
-      window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    );
   }
 
   cancelPendingUi() {
@@ -345,18 +381,13 @@ class SaitoSync {
     this.overlay.show(SaitoSyncTemplate.tooFarBehind(this), () => {
       this.onOverlayClosed();
     });
-    this.attachTooFarBehindEvents();
-  }
-
-  attachTooFarBehindEvents() {
     const button = document.getElementById('saito-sync-fast-forward');
-    if (!button) {
-      return;
+    if (button) {
+      button.onclick = (event) => {
+        event.preventDefault();
+        this.fastForwardWallet();
+      };
     }
-    button.onclick = (event) => {
-      event.preventDefault();
-      this.fastForwardWallet();
-    };
   }
 
   async fastForwardWallet() {
@@ -443,19 +474,6 @@ class SaitoSync {
     }
   }
 
-  updateFromChunkEvent(animate) {
-    const payload = this.payload || {};
-    const target = this.toBigInt(payload.target_block_id);
-    this.setTargetBlockText(target);
-
-    const current = this.local_current_block_id ?? this.toBigInt(payload.current_block_id);
-    this.applyCurrentProgress(current, animate);
-    if (animate) {
-      this.pulseVisual('saito-sync-beat');
-    }
-    this.pollLocalProgress(this.sync_generation);
-  }
-
   startProgressPolling() {
     if (this.poll_timer || this.sync_complete) {
       return;
@@ -474,17 +492,6 @@ class SaitoSync {
     }
   }
 
-  isTrackingSync(generation) {
-    if (generation !== this.sync_generation) {
-      return false;
-    }
-    if (this.sync_complete || this.pending_transition === 'fast_forward') {
-      return false;
-    }
-    const target = this.toBigInt(this.payload?.target_block_id);
-    return !!(this.ui_mode === 'syncing' && this.overlay.visible && target != null && target > 0n);
-  }
-
   async pollLocalProgress(generation) {
     if (generation !== this.sync_generation || this.sync_complete) {
       this.stopProgressPolling();
@@ -497,14 +504,30 @@ class SaitoSync {
     if (this.poll_in_flight) {
       return;
     }
-    if (!this.isTrackingSync(generation)) {
+
+    const target = this.toBigInt(this.payload?.target_block_id);
+    if (!(this.ui_mode === 'syncing' && this.overlay.visible && target != null && target > 0n)) {
       this.stopProgressPolling();
       return;
     }
 
     this.poll_in_flight = true;
     try {
-      const latest = await this.queryLocalLatestBlockId();
+      let latest = null;
+      try {
+        const core_fn = this.app?.core?.blockchain?.get_latest_block_id;
+        if (typeof core_fn === 'function') {
+          latest = this.toBigInt(await core_fn.call(this.app.core.blockchain));
+        } else {
+          const wrapper_fn = this.app?.blockchain?.getLatestBlockId;
+          if (typeof wrapper_fn === 'function') {
+            latest = this.toBigInt(await wrapper_fn.call(this.app.blockchain));
+          }
+        }
+      } catch (err) {
+        latest = null;
+      }
+
       if (generation !== this.sync_generation || this.sync_complete) {
         return;
       }
@@ -515,17 +538,17 @@ class SaitoSync {
         return;
       }
 
-      this.local_current_block_id = latest;
+      const display_current = this.getDisplayCurrentBlockId(latest);
+      this.local_current_block_id = display_current;
       const previous = this.displayed_current_block_id;
-      const changed = previous == null || latest !== previous;
-      this.applyCurrentProgress(latest, changed);
+      const changed = previous == null || display_current !== previous;
+      this.applyCurrentProgress(display_current, changed);
 
       if (changed && previous != null) {
         this.pulseVisual('saito-sync-tick');
       }
 
-      const target = this.toBigInt(this.payload?.target_block_id);
-      if (this.isNearTip(latest, target)) {
+      if (this.isNearTip(display_current, target)) {
         if (this.initial_sync_completed || this.ui_mode !== 'syncing') {
           return;
         }
@@ -538,33 +561,18 @@ class SaitoSync {
     }
   }
 
-  async queryLocalLatestBlockId() {
-    try {
-      const core_fn = this.app?.core?.blockchain?.get_latest_block_id;
-      if (typeof core_fn === 'function') {
-        return this.toBigInt(await core_fn.call(this.app.core.blockchain));
-      }
-      const wrapper_fn = this.app?.blockchain?.getLatestBlockId;
-      if (typeof wrapper_fn === 'function') {
-        return this.toBigInt(await wrapper_fn.call(this.app.blockchain));
-      }
-    } catch (err) {
-      return null;
-    }
-    return null;
-  }
-
   applyCurrentProgress(current, animate_number) {
     const target = this.toBigInt(this.payload?.target_block_id);
+    const display_current = this.getDisplayCurrentBlockId(current);
     this.setTargetBlockText(target);
 
     if (animate_number) {
-      this.animateCurrentBlock(this.displayed_current_block_id, current);
+      this.animateCurrentBlock(this.displayed_current_block_id, display_current);
     } else {
-      this.setCurrentBlockText(current);
+      this.setCurrentBlockText(display_current);
     }
-    this.displayed_current_block_id = current;
-    this.setProgress(current, target);
+    this.displayed_current_block_id = display_current;
+    this.setProgress(display_current, target);
   }
 
   pulseVisual(class_name) {
@@ -594,8 +602,19 @@ class SaitoSync {
       this.number_raf = null;
     }
 
-    const from_n = this.toSafeNumber(from);
-    const to_n = this.toSafeNumber(to);
+    const to_safe = (value) => {
+      const as_bigint = this.toBigInt(value);
+      if (as_bigint == null) {
+        return null;
+      }
+      if (as_bigint > BigInt(Number.MAX_SAFE_INTEGER) || as_bigint < 0n) {
+        return null;
+      }
+      return Number(as_bigint);
+    };
+
+    const from_n = to_safe(from);
+    const to_n = to_safe(to);
     if (from_n == null || to_n == null || from_n === to_n) {
       this.setCurrentBlockText(to);
       return;
@@ -630,18 +649,12 @@ class SaitoSync {
     if (el) {
       el.textContent = this.formatBlockId(value);
     }
-    this.updateNumberWidths(value);
-  }
-
-  updateNumberWidths(target) {
     const root = document.getElementById('saito-sync');
     const label = root ? root.querySelector('.saito-sync-progress-label') : null;
-    if (!label) {
-      return;
+    if (label) {
+      const formatted = this.formatBlockId(value);
+      label.style.setProperty('--saito-sync-num-ch', String(formatted === '—' ? 4 : formatted.length));
     }
-    const formatted = this.formatBlockId(target);
-    const width = formatted === '—' ? 4 : formatted.length;
-    label.style.setProperty('--saito-sync-num-ch', String(width));
   }
 
   isNearTip(current, target) {
@@ -651,41 +664,21 @@ class SaitoSync {
     return current >= target - NEAR_TIP_BLOCK_THRESHOLD;
   }
 
-  /**
-   * Remaining time for the progress fill to reach 100% visually (CSS width transition).
-   * Reads rendered width so dismiss waits for the bar, not just the logical complete flag.
-   */
-  progressBarRemainingMs() {
-    const fill = document.getElementById('saito-sync-progress-fill');
-    const bar = document.getElementById('saito-sync-progress');
-    if (!fill || !bar || bar.offsetWidth <= 0) {
-      return PROGRESS_FILL_TRANSITION_MS;
-    }
-    const current_pct = Math.min(100, (fill.offsetWidth / bar.offsetWidth) * 100);
-    const remaining_pct = Math.max(0, 100 - current_pct);
-    return Math.ceil((remaining_pct / 100) * PROGRESS_FILL_TRANSITION_MS);
-  }
-
   setProgress(current, target) {
     const fill = document.getElementById('saito-sync-progress-fill');
     const bar = document.getElementById('saito-sync-progress');
-    const percent = this.progressPercent(current, target);
+    let percent = 0;
+    if (current != null && target != null && target > 0n) {
+      percent = this.isNearTip(current, target)
+        ? 100
+        : Number((current * 10000n) / target) / 100;
+    }
     if (fill) {
       fill.style.width = `${percent}%`;
     }
     if (bar) {
       bar.setAttribute('aria-valuenow', String(Math.round(percent)));
     }
-  }
-
-  progressPercent(current, target) {
-    if (current == null || target == null || target <= 0n) {
-      return 0;
-    }
-    if (this.isNearTip(current, target)) {
-      return 100;
-    }
-    return Number((current * 10000n) / target) / 100;
   }
 
   toBigInt(value) {
@@ -702,40 +695,12 @@ class SaitoSync {
     }
   }
 
-  toSafeNumber(value) {
-    const as_bigint = this.toBigInt(value);
-    if (as_bigint == null) {
-      return null;
-    }
-    if (as_bigint > BigInt(Number.MAX_SAFE_INTEGER) || as_bigint < 0n) {
-      return null;
-    }
-    return Number(as_bigint);
-  }
-
   formatBlockId(value) {
     const as_bigint = this.toBigInt(value);
     if (as_bigint == null) {
       return '—';
     }
     return as_bigint.toLocaleString('en-US');
-  }
-
-  displayBlockId(value) {
-    return this.formatBlockId(value);
-  }
-
-  displaySyncPossible(value) {
-    if (value === true) {
-      return 'true';
-    }
-    if (value === false) {
-      return 'false';
-    }
-    if (value == null) {
-      return '';
-    }
-    return value.toString();
   }
 }
 
