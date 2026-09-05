@@ -323,7 +323,7 @@ class ExploreOverlay {
    * Resolves transactions from cache using signature.
    */
   attachPostClickHandlers() {
-    const teasers = document.querySelectorAll('.teaser');
+    const teasers = document.querySelectorAll('#stack-explore-posts-grid .post-teaser');
     teasers.forEach((teaser) => {
       // Get transaction signature from DOM (preferred) or fallback to post-id
       const txSignature =

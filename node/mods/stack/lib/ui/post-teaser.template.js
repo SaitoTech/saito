@@ -2,8 +2,8 @@
  * Post Teaser Template
  *
  * Editorial-style blog post preview.
- * Root namespace: .teaser
- * Modifier: .teaser.compact — denser layout for parent slots (e.g. view-post footer)
+ * Root namespace: .post-teaser
+ * Modifier: .post-teaser.compact — denser layout for parent slots (e.g. view-post footer)
  */
 module.exports = (app, mod, post, options = {}) => {
   let data = {};
@@ -55,7 +55,7 @@ module.exports = (app, mod, post, options = {}) => {
   }
 
   const compact = options.compact === true;
-  const rootClass = compact ? 'teaser compact' : 'teaser';
+  const rootClass = compact ? 'post-teaser compact' : 'post-teaser';
 
   return `
     <article class="${rootClass}" data-tx-signature="${postId}" data-post-id="${postId}" data-public-key="${publicKey}">

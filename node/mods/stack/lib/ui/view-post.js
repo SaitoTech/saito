@@ -153,7 +153,7 @@ class ViewPost {
 
         //attach Events
 
-        const teasers = document.querySelectorAll('.view-post .teaser');
+        const teasers = document.querySelectorAll('.view-post .post-teaser');
         teasers.forEach((teaser) => {
           // Get transaction signature from DOM (preferred) or fallback to post-id
           const txSignature =

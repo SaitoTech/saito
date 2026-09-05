@@ -3,7 +3,7 @@ const PostTeaserTemplate = require('./post-teaser.template');
 /**
  * PostTeaser UI Component
  *
- * Root namespace: .teaser
+ * Root namespace: .post-teaser
  * options.compact — denser layout when parent arranges teaser in a tight slot
  */
 class PostTeaser {
@@ -26,8 +26,8 @@ class PostTeaser {
     if (this.container) {
       const signature = this.transaction.signature || '';
       const selector = signature
-        ? `${this.container} .teaser[data-tx-signature="${signature}"]`
-        : `${this.container} .teaser:last-child`;
+        ? `${this.container} .post-teaser[data-tx-signature="${signature}"]`
+        : `${this.container} .post-teaser:last-child`;
 
       if (document.querySelector(selector)) {
         this.app.browser.replaceElementBySelector(html, selector);

@@ -268,7 +268,7 @@
   gap: 2rem;
 }
 
-/* Parent arranges footer slots; .teaser.compact owns teaser internals */
+/* Parent arranges footer slots; .post-teaser.compact owns teaser internals */
 .view-post .footer-slot {
   min-width: 0;
 }
