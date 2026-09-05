@@ -1,5 +1,4 @@
 const ViewPostTemplate = require('./view-post.template');
-const PostTeaser = require('./post-teaser');
 const SaitoUser = require('./../../../../lib/saito/ui/saito-user/saito-user');
 
 class ViewPost {
@@ -68,7 +67,6 @@ class ViewPost {
     setTimeout(() => {
       this.attachEvents();
       this.renderAuthorBlock();
-      this.addBreadCrumbs();
     }, 25);
   }
 
@@ -97,97 +95,6 @@ class ViewPost {
       '' // fourthelem
     );
     saitoUser.render();
-  }
-
-  async addBreadCrumbs() {
-    if (!this.tx || !this.authorPublicKey) {
-      return;
-    }
-
-    let otherPosts = this.mod.postsCache.byAuthor.get(this.authorPublicKey);
-
-    if (!otherPosts) {
-      // Pull extras for breadcrumbs
-      await this.mod.loadPostsForAuthor(this.authorPublicKey);
-      otherPosts = this.mod.postsCache.byAuthor.get(this.authorPublicKey);
-    }
-
-    let idx = -1;
-
-    if (otherPosts?.length > 1) {
-      for (let i = 0; i < otherPosts.length; i++) {
-        if (otherPosts[i].signature == this.tx.signature) {
-          idx = i;
-          break;
-        }
-      }
-
-      if (idx >= 0) {
-        if (idx > 0) {
-          const teaser = new PostTeaser(this.app, this.mod, '#next-post', otherPosts[idx - 1], {
-            compact: true
-          });
-          teaser.render();
-        } else {
-          this.app.browser.addElementToId(
-            `<div class="footer-note">This is the most recent post</div>`,
-            'next-post'
-          );
-        }
-
-        if (idx < otherPosts.length - 1) {
-          const teaser = new PostTeaser(
-            this.app,
-            this.mod,
-            '#previous-post',
-            otherPosts[idx + 1],
-            { compact: true }
-          );
-          teaser.render();
-        } else {
-          this.app.browser.addElementToId(
-            `<div class="footer-note">This is the earliest available post</div>`,
-            'previous-post'
-          );
-        }
-
-        //attach Events
-
-        const teasers = document.querySelectorAll('.view-post .post-teaser');
-        teasers.forEach((teaser) => {
-          // Get transaction signature from DOM (preferred) or fallback to post-id
-          const txSignature =
-            teaser.getAttribute('data-tx-signature') || teaser.getAttribute('data-post-id');
-          if (!txSignature) return;
-
-          // Remove existing click handlers to avoid duplicates
-          const newTeaser = teaser.cloneNode(true);
-          teaser.parentNode.replaceChild(newTeaser, teaser);
-
-          // Attach click handler
-          newTeaser.onclick = async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Resolve transaction from cache
-            // First try this.posts (already loaded)
-            let tx = otherPosts.find((p) => p.signature === txSignature) || null;
-
-            if (tx) {
-              this.render(tx);
-              // Reset scroll position immediately
-              const container = document.querySelector('.saito-container');
-              window.scrollTo({ top: 0, behavior: 'instant' });
-              if (container.scrollTop !== undefined) {
-                container.scrollTop = 0;
-              }
-            } else {
-              siteMessage('Something went wrong...');
-            }
-          };
-        });
-      }
-    }
   }
 
   attachEvents() {
