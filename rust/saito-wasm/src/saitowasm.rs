@@ -42,7 +42,11 @@ use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingThread};
 use saito_core::core::storage::storage::Storage;
 use saito_core::core::util::configuration::Configuration;
-use saito_core::core::util::crypto::{generate_keypair_from_private_key, sign};
+use saito_core::core::util::crypto::{
+    generate_keypair_from_private_key,
+    generate_shared_secret as generate_shared_secret_core,
+    sign,
+};
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
 use secp256k1::SECP256K1;
 use std::convert::TryInto;
@@ -1023,6 +1027,23 @@ pub fn generate_public_key(private_key: JsString) -> Result<JsString, JsValue> {
     )))?;
     let (public_key, _) = generate_keypair_from_private_key(&private_key);
     Ok(public_key.to_base58().into())
+}
+
+
+#[wasm_bindgen]
+pub fn generate_shared_secret(
+    private_key: JsString,
+    public_key: JsString,
+) -> Result<JsString, JsValue> {
+    let private_key: SaitoPrivateKey = string_to_hex(private_key).or(Err(JsValue::from(
+        "Failed parsing private key string to key",
+    )))?;
+    let public_key: SaitoPublicKey = string_to_key(public_key).or(Err(JsValue::from(
+        "Failed parsing public key string to key",
+    )))?;
+    let secret = generate_shared_secret_core(&private_key, &public_key)
+        .map_err(|e| JsValue::from(format!("Failed generating shared secret: {:?}", e)))?;
+    Ok(secret.to_hex().into())
 }
 
 #[wasm_bindgen]

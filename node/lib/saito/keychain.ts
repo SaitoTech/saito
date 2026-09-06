@@ -184,35 +184,57 @@ class Keychain {
     this.saveKeys();
   }
 
-  decryptMessage(publicKey: string, encrypted_msg) {
-    // submit JSON parsed object after unencryption
+  async decryptMessage(publicKey: string, encrypted_msg) {
+
+    //
+    // use DH if exists
+    //
     for (let x = 0; x < this.keys.length; x++) {
-      // check for matching public key && see if it has an aes_secret
       if (this.keys[x].publicKey === publicKey && this.keys[x].aes_secret) {
-        const tmpmsg = this.app.crypto.aesDecrypt(encrypted_msg, this.keys[x].aes_secret);
-
-        if (tmpmsg == null) {
+        const tmpmsg = this.app.crypto.aesDecrypt(
+          encrypted_msg,
+          this.keys[x].aes_secret
+        );
+        if (tmpmsg != null) {
+          try {
+            return JSON.parse(tmpmsg);
+          } catch (err) {
+          }
+        } else {
           console.warn('Failed decryption with aes_secret');
-          return null;
         }
-
-        try {
-          const decrypted_msg = JSON.parse(tmpmsg);
-
-          // Succesful decryption and parsing returns here
-          return decrypted_msg;
-        } catch (err) {
-          console.error('Failed to JSON.parse decrypted message', err);
-          this.app.connection.emit('encrypt-decryption-failed', publicKey);
-          return null;
-        }
+        break;
       }
+    }
+
+    //
+    // fallback to implicit shared secret
+    //
+    try {
+      const privateKey = await this.app.wallet.getPrivateKey();
+      if (!privateKey) {
+        return null;
+      }
+      const sharedSecret = this.app.crypto.generateSharedSecret(
+        privateKey,
+        publicKey
+      );
+      const tmpmsg = this.app.crypto.aesDecrypt(
+        encrypted_msg,
+        sharedSecret
+      );
+      if (tmpmsg == null) {
+        return null;
+      }
+      return JSON.parse(tmpmsg);
+    } catch (err) {
     }
 
     if (this.app.BROWSER) {
       console.warn("I don't share a decryption key with encrypter, cannot decrypt");
       this.app.connection.emit('encrypt-decryption-failed', publicKey);
     }
+
     return null;
   }
 
@@ -263,27 +285,33 @@ class Keychain {
     this.saveGroups();
   }
 
-  decryptString(publicKey, encrypted_string) {
-    for (let x = 0; x < this.keys.length; x++) {
-      if (this.keys[x].publicKey == publicKey) {
-        if (this.keys[x].aes_secret) {
-          return this.app.crypto.aesDecrypt(encrypted_string, this.keys[x].aes_secret);
-        }
-      }
-    }
+  async encryptMessage(publicKey: string, msg) {
 
-    return encrypted_string;
-  }
 
-  encryptMessage(publicKey: string, msg) {
+    //
+    // prefer DH shared secret if exists
+    //
     for (let x = 0; x < this.keys.length; x++) {
       if (this.keys[x].publicKey === publicKey) {
         if (this.keys[x].aes_secret) {
-          const jsonmsg = JSON.stringify(msg);
-          return this.app.crypto.aesEncrypt(jsonmsg, this.keys[x].aes_secret);
+          return this.app.crypto.aesEncrypt(JSON.stringify(msg), this.keys[x].aes_secret);
         }
       }
     }
+
+    //
+    // failing that, fallback to implicit shared secret
+    //
+    try {
+      const privateKey = await this.app.wallet.getPrivateKey();
+      if (!privateKey) { throw new Error('missing wallet private key'); }
+      const sharedSecret = this.app.crypto.generateSharedSecret(privateKey, publicKey);
+      return this.app.crypto.aesEncrypt(JSON.stringify(msg), sharedSecret);
+    } catch (err) {
+      console.warn('Message not encrypted, missing key', err);
+      return msg;
+    }
+
     console.warn('Message not encrypted, missing key');
     return msg;
   }

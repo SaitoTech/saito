@@ -1435,7 +1435,7 @@ export default class Wallet extends SaitoWallet {
    * @param {Transaction}
    * @return {Transaction}
    */
-  async signAndEncryptTransaction(tx: Transaction, recipient = '') {
+  async signAndEncryptTransaction(tx: Transaction, recipient = '', force_encrypt=false) {
     if (tx == null) {
       return null;
     }
@@ -1443,37 +1443,33 @@ export default class Wallet extends SaitoWallet {
     //
     // convert tx.msg to base64 tx.ms
     //
-    // if the transaction is of excessive length, we cut the message and
-    // continue blank. so be careful kids as there are some hardcoded
-    // limits in NodeJS!
-    //
     try {
-      // Empty placeholder protects data in case encryption fails to fire
-      let encryptedMessage = '';
 
-      // if recipient input has a shared secret in keychain
-      if (this.app.keychain.hasSharedSecret(recipient)) {
-        encryptedMessage = this.app.keychain.encryptMessage(recipient, tx.msg);
+      let encryptedMessage = '';
+      let encryptionRecipient = '';
+
+      if (recipient && force_encrypt === true) {
+  	encryptionRecipient = recipient;
+      } else if (this.app.keychain.hasSharedSecret(recipient)) {
+  	encryptionRecipient = recipient;
+      } else if (this.app.keychain.hasSharedSecret(tx.to[0].publicKey)) {
+  	encryptionRecipient = tx.to[0].publicKey;
       }
-      // if tx sendee's public address has shared secret
-      else if (this.app.keychain.hasSharedSecret(tx.to[0].publicKey)) {
-        encryptedMessage = this.app.keychain.encryptMessage(tx.to[0].publicKey, tx.msg);
+
+      if (encryptionRecipient) {
+  	encryptedMessage = await this.app.keychain.encryptMessage(
+  	  encryptionRecipient,
+  	  tx.msg
+  	);
       }
 
       if (encryptedMessage) {
         tx.msg = encryptedMessage;
       } else {
-        //console.warn("Not encrypting transaction because don't have shared key with recipient");
       }
 
-      //
-      // nov 25 2022 - eliminate base64 formatting for TXS
-      //
-      //tx.m = Buffer.from(
-      //  this.app.crypto.stringToBase64(JSON.stringify(tx.msg)),
-      //  "base64"
-      //);
       tx.data = Buffer.from(JSON.stringify(tx.msg), 'utf-8');
+
     } catch (err) {
       // console.log('####################');
       // console.log('### OVERSIZED TX ###');

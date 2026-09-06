@@ -496,6 +496,7 @@ export default class Saito {
       crypto: {
         generatePrivateKey: wasm.generate_private_key?.bind(wasm),
         generatePublicKey: wasm.generate_public_key?.bind(wasm),
+	generateSharedSecret: wasm.generate_shared_secret?.bind(wasm),
         hash: wasm.hash?.bind(wasm),
         isPublicKey: wasm.isPublicKey?.bind(wasm),
         signBuffer: wasm.sign_buffer?.bind(wasm),

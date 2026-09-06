@@ -124,6 +124,7 @@ export default class Transaction extends SaitoTransaction {
   }
 
   async decryptMessage(app: Saito) {
+
     if (!app) {
       console.error('Need to pass Saito App into decryptMessage');
       return;
@@ -170,7 +171,7 @@ export default class Transaction extends SaitoTransaction {
       console.warn('Attempting to decrypt multiparty message: ', addresses);
     }
 
-    let dmsg = app.keychain.decryptMessage(counter_party_key, parsed_msg);
+    let dmsg = await app.keychain.decryptMessage(counter_party_key, parsed_msg);
 
     if (dmsg && dmsg !== parsed_msg) {
       this.dmsg = dmsg;
