@@ -43,8 +43,8 @@ class PurchaseOverlay {
     return this.mod.purchase_lifecycle || null;
   }
 
-  async startPurchase(summary, quantity = 1) {
-    return startPurchase(this.app, this.mod, this, summary, quantity);
+  async startPurchase(summary, quantity = 1, opts = {}) {
+    return startPurchase(this.app, this.mod, this, summary, quantity, opts);
   }
 
   render(step = 'fulfilling') {

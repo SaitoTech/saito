@@ -26,6 +26,11 @@ CREATE TABLE IF NOT EXISTS listings (
   transaction_id_sold INTEGER NOT NULL DEFAULT 0,
   longest_chain_sold INTEGER NOT NULL DEFAULT 0,
 
+  note TEXT NOT NULL DEFAULT '',
+  buyer TEXT NOT NULL DEFAULT '',
+  quantity_sold INTEGER NOT NULL DEFAULT 0,
+  sold_at INTEGER NOT NULL DEFAULT 0,
+
   on_chain INTEGER NOT NULL DEFAULT 1,
 
   utxo_slip1 TEXT DEFAULT '',

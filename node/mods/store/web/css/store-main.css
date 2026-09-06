@@ -629,8 +629,34 @@
   white-space: nowrap;
 }
 
+.store .sales-table td:nth-child(2),
+.store .sales-table td:nth-child(3),
+.store .sales-table td:nth-child(4),
+.store .sales-table td:nth-child(6) {
+  white-space: nowrap;
+}
+
+.store .sales-table .sales-title {
+  max-width: 18rem;
+  word-break: break-word;
+}
+
+.store .sales-table .sales-note {
+  min-width: 10rem;
+  max-width: 22rem;
+}
+
 .store .listings-table tbody tr:last-child td {
   border-bottom: 0;
+}
+
+.store .sales-seller-note {
+  margin: 0;
+  font-size: var(--font-size-small);
+  line-height: 1.45;
+  color: var(--saito-muted-foreground);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .store .catalog-empty {

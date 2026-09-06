@@ -1,16 +1,13 @@
 const UserStoreNavTemplate = require('./user-store-sidebar.template');
 const SaitoProfile = require('../../../../lib/saito/ui/saito-profile/saito-profile');
 
-const INSECURE_SEND_CONFIRM =
-  'You have not yet created a secure key for encrypting communications with this seller. This normally takes a minute or two if the seller is online, or longer if they are offline. Until this process is finished any message you send to this seller will be publicly-visible by default.';
-
 /**
  * User-store profile context: shared SaitoProfile (read-only) with Store nav
  * injected into the profile card footer slot, plus Store-owned attribution
  * below the card (outside SaitoProfile).
  *
- * Footer follows the Red Square pattern: host owns the slot; Chat/Encrypt are
- * invoked only via connection events + keychain (no hard module APIs).
+ * Footer follows the Red Square pattern: host owns the slot; Chat is opened
+ * via connection events (no hard Chat module API).
  */
 class UserStoreSidebar {
   constructor(app, mod, container = '') {
@@ -21,80 +18,28 @@ class UserStoreSidebar {
     this.profile = new SaitoProfile(app, mod, '');
     // Public storefront is always read-only (no camera / pencil).
     this.profile.editable = false;
-    /** @type {Set<string>} optimistic Add Contact clicks before keychain catches up */
-    this._contact_started = new Set();
-    this._encrypt_confirm_bound = false;
   }
 
   hasChat() {
     return Boolean(this.app.modules?.returnModuleBySlug?.('chat'));
   }
 
-  hasEncrypt() {
-    return Boolean(this.app.modules?.returnModuleBySlug?.('encrypt'));
-  }
-
   isOwnStore(publicKey = this.publicKey) {
     return Boolean(publicKey && this.mod.publicKey && publicKey === this.mod.publicKey);
   }
 
-  isPendingKeyExchange(publicKey = this.publicKey) {
-    const key = this.app.keychain?.returnKey?.(publicKey, true);
-    if (!key) {
-      return false;
-    }
-    return Boolean((key.aes_privatekey || key.aes_publicKey) && !key.aes_secret);
-  }
-
-  hasSecureChannel(publicKey = this.publicKey) {
-    return Boolean(this.app.keychain?.hasSharedSecret?.(publicKey));
-  }
-
   /**
-   * @returns {{ action: string, state: string, label: string, icon: string } | null}
-   */
-  returnContactItem(publicKey = this.publicKey) {
-    const key = String(publicKey || '').trim();
-    if (!key || !this.hasChat() || this.isOwnStore(key)) {
-      return null;
-    }
-
-    if (this.hasSecureChannel(key)) {
-      return {
-        action: 'send-message',
-        state: 'secure',
-        label: 'Send Message',
-        icon: 'fa-solid fa-lock'
-      };
-    }
-
-    const started = this._contact_started.has(key) || this.isPendingKeyExchange(key);
-
-    if (started || !this.hasEncrypt()) {
-      return {
-        action: 'send-message',
-        state: 'insecure',
-        label: 'Send Message',
-        icon: 'fa-solid fa-lock-open'
-      };
-    }
-
-    return {
-      action: 'add-contact',
-      state: 'add',
-      label: 'Add Contact',
-      icon: 'fa-solid fa-user-lock'
-    };
-  }
-
-  /**
-   * @returns {Array<{ action: string, state?: string, label: string, icon: string }>}
+   * @returns {Array<{ action: string, label: string, icon: string }>}
    */
   returnNavItems(publicKey = this.publicKey) {
     const items = [];
-    const contact = this.returnContactItem(publicKey);
-    if (contact) {
-      items.push(contact);
+    const key = String(publicKey || '').trim();
+    if (key && this.hasChat() && !this.isOwnStore(key)) {
+      items.push({
+        action: 'send-message',
+        label: 'Send Message',
+        icon: 'fa-solid fa-lock'
+      });
     }
     if (this.isOwnStore(publicKey)) {
       items.push({
@@ -154,23 +99,6 @@ class UserStoreSidebar {
     });
   }
 
-  ensureEncryptConfirmListener() {
-    if (this._encrypt_confirm_bound) {
-      return;
-    }
-    this._encrypt_confirm_bound = true;
-
-    this.app.connection.on('encrypt-key-exchange-confirm', (data) => {
-      const members = Array.isArray(data?.members) ? data.members : [];
-      const key = String(this.publicKey || '').trim();
-      if (!key || !members.includes(key)) {
-        return;
-      }
-      this._contact_started.delete(key);
-      this.renderNav();
-    });
-  }
-
   renderNav() {
     const footer = this.profile.getFooterEl();
     if (!footer) {
@@ -192,7 +120,6 @@ class UserStoreSidebar {
     }
 
     this.publicKey = key;
-    this.ensureEncryptConfirmListener();
 
     const root = document.querySelector(this.container);
     if (!root) {
@@ -241,56 +168,25 @@ class UserStoreSidebar {
     footer.querySelectorAll('.user-store-nav .item[data-nav-action]').forEach((item) => {
       item.onclick = (e) => {
         e.preventDefault();
-        void this.activateNav(item.getAttribute('data-nav-action') || '');
+        this.activateNav(item.getAttribute('data-nav-action') || '');
       };
       item.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          void this.activateNav(item.getAttribute('data-nav-action') || '');
+          this.activateNav(item.getAttribute('data-nav-action') || '');
         }
       };
     });
   }
 
-  async activateNav(action = '') {
+  activateNav(action = '') {
     if (action === 'admin-store') {
       this.openAdminStore(this.publicKey);
       return;
     }
-
-    await this.activateContact(action);
-  }
-
-  async activateContact(action = '') {
-    const key = String(this.publicKey || '').trim();
-    if (!key || this.isOwnStore(key) || !this.hasChat()) {
-      return;
+    if (action === 'send-message') {
+      this.openChat(this.publicKey);
     }
-
-    if (action === 'add-contact') {
-      this._contact_started.add(key);
-      this.app.connection.emit('encrypt-key-exchange', key);
-      this.renderNav();
-      return;
-    }
-
-    if (action !== 'send-message') {
-      return;
-    }
-
-    if (this.hasSecureChannel(key)) {
-      this.openChat(key);
-      return;
-    }
-
-    let confirmed = true;
-    if (typeof sconfirm === 'function') {
-      confirmed = await sconfirm(INSECURE_SEND_CONFIRM);
-    }
-    if (!confirmed) {
-      return;
-    }
-    this.openChat(key);
   }
 }
 

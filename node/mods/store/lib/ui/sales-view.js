@@ -1,5 +1,5 @@
 const EmptyPanel = require('./empty-panel');
-const ListingsTableTemplate = require('./listings-table.template');
+const SalesTableTemplate = require('./sales-table.template');
 const CatalogFooterTemplate = require('./catalog-footer.template');
 const { loadListingsPage } = require('./browse-listings');
 const { DEFAULT_PAGE_SIZE } = require('../categories');
@@ -76,12 +76,40 @@ class SalesView {
       };
       this.page = 1;
       this.loading = false;
+      await this.decryptSellerNotes(this.summaries);
       this.render();
       return;
     }
 
     this.page = 1;
     await this.loadPage({ page: 1 });
+  }
+
+  async decryptSellerNotes(summaries = []) {
+    let private_key = '';
+    try {
+      private_key = await this.app.wallet.getPrivateKey();
+    } catch (err) {
+      console.warn('Store: seller private key unavailable for note decrypt', err?.message || err);
+    }
+
+    for (const summary of summaries || []) {
+      summary.seller_note = '';
+      const ciphertext = String(summary.note || '').trim();
+      const buyer = String(summary.buyer || '').trim();
+      if (!ciphertext || !buyer || !private_key) {
+        continue;
+      }
+      try {
+        const shared_secret = this.app.crypto.generateSharedSecret(private_key, buyer);
+        const plain = this.app.crypto.aesDecrypt(ciphertext, shared_secret);
+        if (plain) {
+          summary.seller_note = plain;
+        }
+      } catch (err) {
+        console.warn('Store: seller note decrypt failed', err?.message || err);
+      }
+    }
   }
 
   async loadPage({ page = this.page } = {}) {
@@ -124,6 +152,7 @@ class SalesView {
       this.summaries = result.listings || [];
       this.pagination = result.pagination || null;
       this.page = this.pagination?.page || this.page;
+      await this.decryptSellerNotes(this.summaries);
     } catch (err) {
       console.warn('Store: sold listings load failed', err?.message || err);
       if (token !== this.loadToken) {
@@ -175,7 +204,7 @@ class SalesView {
       return;
     }
 
-    host.innerHTML = ListingsTableTemplate({
+    host.innerHTML = SalesTableTemplate({
       listings,
       caption: 'Sales'
     });

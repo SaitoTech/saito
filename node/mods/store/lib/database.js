@@ -24,7 +24,11 @@ class Database {
       'ALTER TABLE listings ADD COLUMN block_hash_sold TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE listings ADD COLUMN transaction_id_sold INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE listings ADD COLUMN longest_chain_sold INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE listings ADD COLUMN category TEXT DEFAULT "Other"'
+      'ALTER TABLE listings ADD COLUMN category TEXT DEFAULT "Other"',
+      'ALTER TABLE listings ADD COLUMN note TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listings ADD COLUMN buyer TEXT NOT NULL DEFAULT ""',
+      'ALTER TABLE listings ADD COLUMN quantity_sold INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE listings ADD COLUMN sold_at INTEGER NOT NULL DEFAULT 0'
     ];
     const summary_columns = ['ALTER TABLE summary ADD COLUMN category TEXT DEFAULT "Other"'];
     const order_columns = [
@@ -38,7 +42,8 @@ class Database {
       'ALTER TABLE orders ADD COLUMN block_id_received INTEGER NOT NULL DEFAULT 0',
       'ALTER TABLE orders ADD COLUMN block_hash_received TEXT NOT NULL DEFAULT ""',
       'ALTER TABLE orders ADD COLUMN transaction_id_received INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE orders ADD COLUMN longest_chain_received INTEGER NOT NULL DEFAULT 1'
+      'ALTER TABLE orders ADD COLUMN longest_chain_received INTEGER NOT NULL DEFAULT 1',
+      'ALTER TABLE orders ADD COLUMN note TEXT NOT NULL DEFAULT ""'
     ];
 
     for (const sql of [...listing_columns, ...summary_columns, ...order_columns]) {
@@ -266,7 +271,15 @@ class Database {
 
   async markListingSold(
     signature,
-    { sold_block_id = 0, sold_block_hash = '', sold_transaction_id = 0 } = {},
+    {
+      sold_block_id = 0,
+      sold_block_hash = '',
+      sold_transaction_id = 0,
+      note = '',
+      buyer = '',
+      quantity_sold = 0,
+      sold_at = 0
+    } = {},
     now = Date.now()
   ) {
     await this.app.storage.runDatabase(
@@ -275,6 +288,10 @@ class Database {
 			     block_hash_sold = $block_hash_sold,
 			     transaction_id_sold = $transaction_id_sold,
 			     longest_chain_sold = 1,
+			     note = $note,
+			     buyer = $buyer,
+			     quantity_sold = $quantity_sold,
+			     sold_at = $sold_at,
 			     updated_at = $updated_at
 			 WHERE signature = $signature`,
       {
@@ -282,6 +299,10 @@ class Database {
         $block_id_sold: Number(sold_block_id ?? 0),
         $block_hash_sold: String(sold_block_hash || ''),
         $transaction_id_sold: Number(sold_transaction_id ?? 0),
+        $note: String(note || ''),
+        $buyer: String(buyer || ''),
+        $quantity_sold: Math.max(0, Number(quantity_sold ?? 0) || 0),
+        $sold_at: Number(sold_at || now) || now,
         $updated_at: now
       },
       this.dbname
@@ -479,11 +500,15 @@ class Database {
       params.$category = filter;
     }
     try {
+      const order_sql =
+        status === 'sold'
+          ? 'CASE WHEN sold_at > 0 THEN sold_at ELSE updated_at END DESC, block_id_sold DESC, signature ASC'
+          : 'created_at DESC, signature ASC';
       return await this.app.storage.queryDatabase(
         `SELECT * FROM listings
 				 WHERE seller = $seller
 				   AND ${this.sellerListingWhere(status)}${category_sql}
-				 ORDER BY created_at DESC, signature ASC
+				 ORDER BY ${order_sql}
 				 LIMIT $limit OFFSET $offset`,
         params,
         this.dbname
@@ -506,7 +531,7 @@ class Database {
 				   AND longest_chain_listed = 1
 				   AND block_id_sold > 0
 				   AND longest_chain_sold = 1
-				 ORDER BY block_id_sold DESC, created_at DESC`,
+				 ORDER BY CASE WHEN sold_at > 0 THEN sold_at ELSE updated_at END DESC, block_id_sold DESC, signature ASC`,
         { $seller: key },
         this.dbname
       );
@@ -701,7 +726,7 @@ class Database {
   async insertOrder(order) {
     await this.app.storage.runDatabase(
       `INSERT INTO orders (
-			  order_tx_sig, buyer, nft_id, price, quantity,
+			  order_tx_sig, buyer, nft_id, price, quantity, note,
 			  payment_tx_sig, payment_output_index, payment_amount, utxo_slip,
 			  access_hash, access_script, p2sh_address,
 			  block_id_received, block_hash_received, transaction_id_received, longest_chain_received,
@@ -710,7 +735,7 @@ class Database {
 			  attempts, status,
 			  created_at, updated_at
 			) VALUES (
-			  $order_tx_sig, $buyer, $nft_id, $price, $quantity,
+			  $order_tx_sig, $buyer, $nft_id, $price, $quantity, $note,
 			  $payment_tx_sig, $payment_output_index, $payment_amount, $utxo_slip,
 			  $access_hash, $access_script, $p2sh_address,
 			  $block_id_received, $block_hash_received, $transaction_id_received, $longest_chain_received,
