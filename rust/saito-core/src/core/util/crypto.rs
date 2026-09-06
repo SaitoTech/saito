@@ -172,6 +172,22 @@ pub fn is_public_key(key: &SaitoPublicKey) -> bool {
     result.is_ok()
 }
 
+///
+/// ECDH shared secret from a Saito private key and a peer's compressed public key.
+/// Returns the 32-byte X coordinate of the shared point (compatible with existing AES secret usage).
+///
+pub fn generate_shared_secret(
+    private_key: &SaitoPrivateKey,
+    public_key: &SaitoPublicKey,
+) -> Result<[u8; 32], secp256k1::Error> {
+    let secret_key = SecretKey::from_slice(private_key)?;
+    let public_key = PublicKey::from_slice(public_key)?;
+    let xy = secp256k1::ecdh::shared_secret_point(&public_key, &secret_key);
+    let mut secret = [0u8; 32];
+    secret.copy_from_slice(&xy[..32]);
+    Ok(secret)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -256,5 +272,20 @@ mod tests {
 
         let public_key: SaitoPublicKey = [u8::try_from('a').unwrap(); 33];
         assert!(!is_public_key(&public_key));
+    }
+
+    #[test]
+    fn generate_shared_secret_test() {
+        let (alice_public, alice_private) = generate_keys();
+        let (bob_public, bob_private) = generate_keys();
+        let (carol_public, _) = generate_keys();
+
+        let alice_secret = generate_shared_secret(&alice_private, &bob_public).unwrap();
+        let bob_secret = generate_shared_secret(&bob_private, &alice_public).unwrap();
+        assert_eq!(alice_secret, bob_secret);
+        assert_eq!(alice_secret.len(), 32);
+
+        let different_secret = generate_shared_secret(&alice_private, &carol_public).unwrap();
+        assert_ne!(alice_secret, different_secret);
     }
 }
