@@ -80,17 +80,8 @@ class SaitoHeader extends UIModTemplate {
     // listen for inbound / outbound payments
     //
     app.connection.on('on-transaction-pending', async (obj = null) => {
-      console.log('[header-mint-flash] on-transaction-pending received', {
-        obj,
-        installing_crypto: this.installing_crypto
-      });
       if (!this.installing_crypto) {
-        console.log('[header-mint-flash] on-transaction-pending -> renderCrypto()');
-        this.renderCrypto(false, 'on-transaction-pending');
-      } else {
-        console.log(
-          '[header-mint-flash] on-transaction-pending skipped renderCrypto (installing_crypto)'
-        );
+        this.renderCrypto();
       }
     });
 
@@ -236,15 +227,6 @@ class SaitoHeader extends UIModTemplate {
 
     this.app.connection.on('saito-header-logo-change-request', (obj) => {
       this.disableBackButton();
-    });
-
-    const pendingListenerCount =
-      typeof app.connection.listenerCount === 'function'
-        ? app.connection.listenerCount('on-transaction-pending')
-        : null;
-    console.log('[header-mint-flash] SaitoHeader.initialize complete', {
-      mod: this.mod?.name,
-      on_transaction_pending_listener_count: pendingListenerCount
     });
   }
 
@@ -1000,12 +982,7 @@ class SaitoHeader extends UIModTemplate {
    * So if there is something in here that awaits a remote API call, it can be very costly
    *
    * *******************************************************/
-  async renderCrypto(force = false, flashDebugTrigger = null) {
-    const flashDebug = flashDebugTrigger === 'on-transaction-pending';
-    if (flashDebug) {
-      console.log('[header-mint-flash] renderCrypto begin', { force, flashDebugTrigger });
-    }
-
+  async renderCrypto(force = false) {
     if (!document.getElementById('saito-header')) {
       return;
     }
@@ -1064,88 +1041,32 @@ class SaitoHeader extends UIModTemplate {
           .join('');
       }
 
-      if (flashDebug) {
-        console.log('[header-mint-flash] renderCrypto painted cached balance first', {
-          ticker: preferred_crypto.ticker,
-          cached_balance,
-          categories: preferred_crypto.categories,
-          pending_balance_field: preferred_crypto.pending_balance,
-          last_balance_field: preferred_crypto.last_balance
-        });
-      }
-
       let ab = await preferred_crypto.getAvailableBalance();
       let pb = await preferred_crypto.getPendingBalance();
-
-      console.log('****** CHECKING BALANCES SAITO HEADER ******');
-      console.log('available balance: ' + ab);
-      console.log('pending balance: ' + pb);
 
       //
       // insert crypto balance
       //
       try {
         if (preferred_crypto.isActivated()) {
-          console.log(
-            '@@@ RenderCrypto -- ',
-            preferred_crypto.ticker,
-            preferred_crypto.balance,
-            ab,
-            pb,
-            preferred_crypto.pending_balance,
-            preferred_crypto.last_balance
-          );
-
-          const strict_pending_diff = pb !== ab;
-          const numeric_pending_diff = Number(pb) !== Number(ab);
-          let flash_branch = 'none';
-
           if (preferred_crypto.categories === 'NFT') {
             if (pb !== ab) {
-              flash_branch = 'nft-pending-flash-on';
               b_elm.classList.add('pending');
               b_elm.innerHTML = `<span class="balance-amount-whole">${pb}</span>`;
             } else {
-              flash_branch = 'nft-pending-flash-off';
               b_elm.classList.remove('pending');
               b_elm.innerHTML = `<span class="balance-amount-whole">${ab}</span>`;
             }
           } else if (pb !== ab) {
-            flash_branch = 'saito-pending-flash-on';
             b_elm.classList.add('pending');
             b_elm.innerHTML = this.app.browser.returnBalanceHTML(pb);
           } else {
-            flash_branch = 'saito-pending-flash-off';
             b_elm.classList.remove('pending');
             b_elm.innerHTML = this.app.browser.returnBalanceHTML(ab);
           }
-
-          if (flashDebug) {
-            console.log('[header-mint-flash] renderCrypto balance decision', {
-              ticker: preferred_crypto.ticker,
-              categories: preferred_crypto.categories,
-              available_balance: ab,
-              pending_balance: pb,
-              strict_pending_diff,
-              numeric_pending_diff,
-              flash_branch,
-              has_pending_class: b_elm.classList.contains('pending'),
-              displayed_html: b_elm.innerHTML
-            });
-          }
-        } else if (flashDebug) {
-          console.log(
-            '[header-mint-flash] renderCrypto skipped flash logic (crypto not activated)',
-            {
-              ticker: preferred_crypto.ticker
-            }
-          );
         }
       } catch (err) {
         console.error('Error rendering crypto balance: ' + err);
-        if (flashDebug) {
-          console.error('[header-mint-flash] renderCrypto balance decision error', err);
-        }
       }
 
       let menu_html = '';
@@ -1255,17 +1176,6 @@ class SaitoHeader extends UIModTemplate {
         }
       };
     });
-
-    console.log('done wallet update...' + preferred_crypto.ticker);
-
-    if (flashDebug) {
-      const b_done = document.querySelector('.balance-amount');
-      console.log('[header-mint-flash] renderCrypto complete', {
-        ticker: preferred_crypto.ticker,
-        has_pending_class: b_done?.classList?.contains('pending') ?? null,
-        displayed_html: b_done?.innerHTML ?? null
-      });
-    }
   }
 }
 

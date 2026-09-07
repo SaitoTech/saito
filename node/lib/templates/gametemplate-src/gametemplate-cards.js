@@ -31,7 +31,6 @@ class GameCards {
         let gameWidth = document.querySelector('.gameboard').getBoundingClientRect().width;
         //Only needed for gameTemplate.scale, for putting game pieces on a game board
         this.boardRatio = gameWidth / this.boardWidth;
-        console.info('GT: BOARD RATIO:', this.boardRatio);
       }
     } catch (err) {
       console.error(`GT [calculateBoardRatio] ERROR: `, err);

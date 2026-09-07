@@ -619,11 +619,6 @@ class Vault extends ModTemplate {
     }
 
     if (txmsg.request === 'vault checkout rental') {
-      console.log('[VAULT CHECKOUT] Server received checkout transaction', {
-        peer_request_sig: tx?.signature || null,
-        request: txmsg.request
-      });
-      console.log('[VAULT CHECKOUT] Dispatching to receiveCheckOutRentalTransaction()');
       return await this.receiveCheckOutRentalTransaction(tx, mycallback);
     }
   }

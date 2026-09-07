@@ -227,63 +227,24 @@ module.exports = {
         return;
       }
 
-      console.log(
-        '[VAULT CHECKOUT] Store detected rental transfer',
-        {
-          list_asset_tx: tx.signature,
-          nft_type,
-          recipient: my_key,
-          fulfill_sale_buyer: txmsg?.fulfill_sale?.buyer || null
-        }
-      );
-
       const vault_mod = this.app.modules.returnModule('Vault');
       if (!vault_mod || typeof vault_mod.createCheckOutRentalTransaction !== 'function') {
-        console.log(
-          '[VAULT CHECKOUT] Store skipped — Vault module not installed or missing createCheckOutRentalTransaction'
-        );
         return;
       }
 
-      console.log(
-        '[VAULT CHECKOUT] Store invoking vault_mod.createCheckOutRentalTransaction(tx)',
-        tx.signature
-      );
       const newTx = await vault_mod.createCheckOutRentalTransaction(tx);
       if (!newTx) {
-        console.log('[VAULT CHECKOUT] Store skipped — Vault returned no checkout transaction');
         return;
       }
-
-      console.log('[VAULT CHECKOUT] Store received checkout transaction from Vault', {
-        checkout_tx_sig: newTx.signature,
-        request: newTx.msg?.request || newTx.returnMessage?.()?.request,
-        data: newTx.msg?.data || newTx.returnMessage?.()?.data
-      });
 
       if (!vault_mod.peer?.publicKey) {
-        console.log(
-          '[VAULT CHECKOUT] Store skipped send — Vault peer not connected; checkout tx',
-          newTx.signature
-        );
         return;
       }
 
-      console.log(
-        '[VAULT CHECKOUT] Sending checkout transaction to Vault server',
-        {
-          checkout_tx_sig: newTx.signature,
-          checkout_tx_signed: !!(newTx.signature && String(newTx.signature).length > 0),
-          vault_peer: vault_mod.peer.publicKey,
-          request: 'vault checkout rental',
-          note: 'sendRequestAsTransaction outer peer-request is signed only if signature_required=true (currently omitted)'
-        }
-      );
       this.app.network.sendRequestAsTransaction(
         'vault checkout rental',
         newTx.serialize_to_web(this.app),
         (res) => {
-          console.log('[VAULT CHECKOUT] Store received Vault server response', res);
           const file_id = res?.file_id || '';
           if (res && res.status === 'ok') {
             alert(
@@ -298,12 +259,7 @@ module.exports = {
         },
         vault_mod.peer.publicKey
       );
-    } catch (err) {
-      console.error('[VAULT CHECKOUT] Store rental checkout wiring failed', err);
-      if (err?.stack) {
-        console.error(err.stack);
-      }
-    }
+    } catch (err) {}
   },
 
   async receiveFulfillmentTransaction(blk, tx) {
@@ -449,14 +405,6 @@ module.exports = {
     fulfillment_tx.timestamp = Date.now();
     fulfillment_tx.type = TransactionType.Bound;
     fulfillment_tx.msg = {};
-
-    const payment_pubkey =
-      slipPublicKey(this.app, order_row.p2sh_address) || order_row.p2sh_address || '';
-
-    const witness_log = (role) => ({
-      logP2shScript: true,
-      context: `createFulfillmentTransaction:${role}`
-    });
 
     fulfillment_tx.addFromSlip(payment_input);
     access_script_jobs.push({
@@ -627,12 +575,7 @@ module.exports = {
     for (const job of access_script_jobs) {
       const auth_message = `${job.message}|${p2sh_auth_hash}`;
       access_scripts.push(
-        await signAccessScriptWitness(
-          this.app,
-          job.access_script,
-          auth_message,
-          witness_log(job.role)
-        )
+        await signAccessScriptWitness(this.app, job.access_script, auth_message)
       );
     }
 
@@ -668,9 +611,6 @@ module.exports = {
         }
       }
     }
-
-    const { dumpFulfillmentAccessScripts } = require('./fulfillment-trace');
-    dumpFulfillmentAccessScripts(this.app, fulfillment_tx, payment_pubkey);
 
     await fulfillment_tx.sign();
     return fulfillment_tx;
@@ -761,10 +701,7 @@ module.exports = {
     const auth_message = `${custody_utxo_key}|${p2sh_auth_hash}`;
 
     const access_scripts = [
-      await signAccessScriptWitness(this.app, listing_access_script, auth_message, {
-        logP2shScript: true,
-        context: 'createDelistAssetTransaction:listing-custody'
-      })
+      await signAccessScriptWitness(this.app, listing_access_script, auth_message)
     ];
 
     const p2sh_indexes = listRustP2shInputIndexes(this.app, delist_tx);
@@ -1074,14 +1011,6 @@ module.exports = {
     tx.msg.access_scripts = [
       await signAccessScriptWitness(this.app, payment_access_script, refund_auth_message)
     ];
-
-    const payment_pubkey = slipPublicKey(this.app, order.p2sh_address) || order.p2sh_address || '';
-
-    const { logAccessScriptsForP2sh } = require('./fulfillment-trace');
-    logAccessScriptsForP2sh(this.app, tx, {
-      operation: 'order-refund',
-      payment_pubkey
-    });
 
     return tx;
   },
