@@ -1287,7 +1287,7 @@ export default class Wallet extends SaitoWallet {
    * @param {Transaction}
    * @return {Transaction}
    */
-  async signAndEncryptTransaction(tx: Transaction, recipient = '', force_encrypt=false) {
+  async signAndEncryptTransaction(tx: Transaction, recipient = '', force_encrypt = false) {
     if (tx == null) {
       return null;
     }
@@ -1296,23 +1296,19 @@ export default class Wallet extends SaitoWallet {
     // convert tx.msg to base64 tx.ms
     //
     try {
-
       let encryptedMessage = '';
       let encryptionRecipient = '';
 
       if (recipient && force_encrypt === true) {
-  	encryptionRecipient = recipient;
+        encryptionRecipient = recipient;
       } else if (this.app.keychain.hasSharedSecret(recipient)) {
-  	encryptionRecipient = recipient;
+        encryptionRecipient = recipient;
       } else if (this.app.keychain.hasSharedSecret(tx.to[0].publicKey)) {
-  	encryptionRecipient = tx.to[0].publicKey;
+        encryptionRecipient = tx.to[0].publicKey;
       }
 
       if (encryptionRecipient) {
-  	encryptedMessage = await this.app.keychain.encryptMessage(
-  	  encryptionRecipient,
-  	  tx.msg
-  	);
+        encryptedMessage = await this.app.keychain.encryptMessage(encryptionRecipient, tx.msg);
       }
 
       if (encryptedMessage) {
@@ -1321,7 +1317,6 @@ export default class Wallet extends SaitoWallet {
       }
 
       tx.data = Buffer.from(JSON.stringify(tx.msg), 'utf-8');
-
     } catch (err) {
       // console.log('####################');
       // console.log('### OVERSIZED TX ###');

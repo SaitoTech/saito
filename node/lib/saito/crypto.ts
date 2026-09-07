@@ -176,7 +176,6 @@ class Crypto {
     return this.app.core.crypto.generatePublicKey(privateKey);
   }
 
-
   generateSharedSecret(privateKeyHex: string, publicKeyBase58: string): string {
     return this.app.core.crypto.generateSharedSecret(privateKeyHex, publicKeyBase58);
   }

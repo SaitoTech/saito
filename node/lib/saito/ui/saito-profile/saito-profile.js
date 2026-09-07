@@ -97,13 +97,10 @@ class SaitoProfile {
       name = `Anon-${key.slice(0, 6)}`;
     }
 
-    const avatar =
-      (typeof this.avatar === 'string' && this.avatar.trim()) ||
-      identicon;
+    const avatar = (typeof this.avatar === 'string' && this.avatar.trim()) || identicon;
 
     const banner = typeof this.banner === 'string' ? this.banner : '';
-    const description =
-      typeof this.description === 'string' ? this.description : undefined;
+    const description = typeof this.description === 'string' ? this.description : undefined;
 
     return {
       publicKey: key,
@@ -262,9 +259,7 @@ class SaitoProfile {
     const safeKey = this.escapeAttr(d.publicKey);
     const keyClass = this.classSafe(d.publicKey);
     const safeName = this.escapeText(d.name);
-    const safeAvatar = this.escapeAttr(
-      this.safeImgSrc(d.avatar, '/saito/img/dreamscape.png')
-    );
+    const safeAvatar = this.escapeAttr(this.safeImgSrc(d.avatar, '/saito/img/dreamscape.png'));
     const bannerUrl = this.safeBannerUrl(d.banner);
     const bannerStyle = bannerUrl
       ? ` style="background-image: url('${this.escapeAttr(bannerUrl).replace(/'/g, '%27')}')"`
@@ -426,8 +421,7 @@ class SaitoProfile {
       btn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const key =
-          btn.getAttribute('data-profile-key') || this.publicKey || '';
+        const key = btn.getAttribute('data-profile-key') || this.publicKey || '';
         if (!key) {
           return;
         }
@@ -439,7 +433,10 @@ class SaitoProfile {
           }
         };
         if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText(key).then(done).catch(() => {});
+          navigator.clipboard
+            .writeText(key)
+            .then(done)
+            .catch(() => {});
         }
       };
     });
@@ -528,9 +525,7 @@ class SaitoProfile {
       if (!this.hasDescription(description)) {
         container.innerHTML = canEdit ? this.emptyDescriptionPlaceholderHtml(true) : '';
       } else {
-        const sanitized = this.app.browser
-          .sanitize(description, true)
-          .replaceAll('\n', '<br>');
+        const sanitized = this.app.browser.sanitize(description, true).replaceAll('\n', '<br>');
         container.innerHTML = `
             <div id="profile-description-${publicKey}" class="profile-description-${keyClass}" data-id="${publicKey}">
               ${sanitized}
@@ -554,8 +549,7 @@ class SaitoProfile {
         el.src = image;
       });
     } else if (!this.avatar) {
-      const fallback =
-        this.app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
+      const fallback = this.app.keychain.returnIdenticon(publicKey) || '/saito/img/dreamscape.png';
       avatarNodes.forEach((el) => {
         el.src = fallback;
       });

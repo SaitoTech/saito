@@ -284,7 +284,9 @@ class SaitoSync {
     let bar_remaining_ms = PROGRESS_FILL_TRANSITION_MS;
     if (fill && bar && bar.offsetWidth > 0) {
       const current_pct = Math.min(100, (fill.offsetWidth / bar.offsetWidth) * 100);
-      bar_remaining_ms = Math.ceil(((100 - Math.min(100, current_pct)) / 100) * PROGRESS_FILL_TRANSITION_MS);
+      bar_remaining_ms = Math.ceil(
+        ((100 - Math.min(100, current_pct)) / 100) * PROGRESS_FILL_TRANSITION_MS
+      );
     }
 
     const target = this.toBigInt(this.payload?.target_block_id);
@@ -294,7 +296,10 @@ class SaitoSync {
     this.setTargetBlockText(target);
 
     const shown_at = this.syncing_shown_at ?? performance.now();
-    const min_visible_remaining = Math.max(0, MIN_SYNCING_VISIBLE_MS - (performance.now() - shown_at));
+    const min_visible_remaining = Math.max(
+      0,
+      MIN_SYNCING_VISIBLE_MS - (performance.now() - shown_at)
+    );
     const wait = Math.max(min_visible_remaining, bar_remaining_ms) + COMPLETE_HOLD_MS;
 
     this.cancelPendingUi();
@@ -653,7 +658,10 @@ class SaitoSync {
     const label = root ? root.querySelector('.saito-sync-progress-label') : null;
     if (label) {
       const formatted = this.formatBlockId(value);
-      label.style.setProperty('--saito-sync-num-ch', String(formatted === '—' ? 4 : formatted.length));
+      label.style.setProperty(
+        '--saito-sync-num-ch',
+        String(formatted === '—' ? 4 : formatted.length)
+      );
     }
   }
 
@@ -669,9 +677,7 @@ class SaitoSync {
     const bar = document.getElementById('saito-sync-progress');
     let percent = 0;
     if (current != null && target != null && target > 0n) {
-      percent = this.isNearTip(current, target)
-        ? 100
-        : Number((current * 10000n) / target) / 100;
+      percent = this.isNearTip(current, target) ? 100 : Number((current * 10000n) / target) / 100;
     }
     if (fill) {
       fill.style.width = `${percent}%`;

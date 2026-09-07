@@ -185,21 +185,16 @@ class Keychain {
   }
 
   async decryptMessage(publicKey: string, encrypted_msg) {
-
     //
     // use DH if exists
     //
     for (let x = 0; x < this.keys.length; x++) {
       if (this.keys[x].publicKey === publicKey && this.keys[x].aes_secret) {
-        const tmpmsg = this.app.crypto.aesDecrypt(
-          encrypted_msg,
-          this.keys[x].aes_secret
-        );
+        const tmpmsg = this.app.crypto.aesDecrypt(encrypted_msg, this.keys[x].aes_secret);
         if (tmpmsg != null) {
           try {
             return JSON.parse(tmpmsg);
-          } catch (err) {
-          }
+          } catch (err) {}
         } else {
           console.warn('Failed decryption with aes_secret');
         }
@@ -215,20 +210,13 @@ class Keychain {
       if (!privateKey) {
         return null;
       }
-      const sharedSecret = this.app.crypto.generateSharedSecret(
-        privateKey,
-        publicKey
-      );
-      const tmpmsg = this.app.crypto.aesDecrypt(
-        encrypted_msg,
-        sharedSecret
-      );
+      const sharedSecret = this.app.crypto.generateSharedSecret(privateKey, publicKey);
+      const tmpmsg = this.app.crypto.aesDecrypt(encrypted_msg, sharedSecret);
       if (tmpmsg == null) {
         return null;
       }
       return JSON.parse(tmpmsg);
-    } catch (err) {
-    }
+    } catch (err) {}
 
     if (this.app.BROWSER) {
       console.warn("I don't share a decryption key with encrypter, cannot decrypt");
@@ -286,8 +274,6 @@ class Keychain {
   }
 
   async encryptMessage(publicKey: string, msg) {
-
-
     //
     // prefer DH shared secret if exists
     //
@@ -304,7 +290,9 @@ class Keychain {
     //
     try {
       const privateKey = await this.app.wallet.getPrivateKey();
-      if (!privateKey) { throw new Error('missing wallet private key'); }
+      if (!privateKey) {
+        throw new Error('missing wallet private key');
+      }
       const sharedSecret = this.app.crypto.generateSharedSecret(privateKey, publicKey);
       return this.app.crypto.aesEncrypt(JSON.stringify(msg), sharedSecret);
     } catch (err) {

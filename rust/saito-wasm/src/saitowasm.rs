@@ -43,9 +43,7 @@ use saito_core::core::routing_thread::{RoutingEvent, RoutingThread};
 use saito_core::core::storage::storage::Storage;
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::{
-    generate_keypair_from_private_key,
-    generate_shared_secret as generate_shared_secret_core,
-    sign,
+    generate_keypair_from_private_key, generate_shared_secret as generate_shared_secret_core, sign,
 };
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
 use secp256k1::SECP256K1;
@@ -1028,7 +1026,6 @@ pub fn generate_public_key(private_key: JsString) -> Result<JsString, JsValue> {
     let (public_key, _) = generate_keypair_from_private_key(&private_key);
     Ok(public_key.to_base58().into())
 }
-
 
 #[wasm_bindgen]
 pub fn generate_shared_secret(

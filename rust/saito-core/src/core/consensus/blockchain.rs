@@ -688,8 +688,7 @@ impl Blockchain {
                     .utxoset_writing_block_interval;
 
                 if utxoset_writing_block_interval > 0
-                    && block_id
-                        >= self.last_utxoset_written_on + utxoset_writing_block_interval
+                    && block_id >= self.last_utxoset_written_on + utxoset_writing_block_interval
                     && in_longest_chain
                 {
                     debug!("utxoset writing interval : {:?} last utxoset written on : {:?}, writing for current block : {}", utxoset_writing_block_interval, self.last_utxoset_written_on, block_id);
@@ -984,7 +983,10 @@ impl Blockchain {
             buffer.extend(format!("{}\n", key.to_hex()).as_bytes());
         }
 
-        info!("{:?} spendable utxo keys to write to file", total_written_lines);
+        info!(
+            "{:?} spendable utxo keys to write to file",
+            total_written_lines
+        );
 
         let utxoset_path = if utxoset_file_path.is_empty() {
             format!(
