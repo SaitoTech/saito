@@ -73,8 +73,8 @@ body:not(.nwasm-playing) #saito-header.game {
 body:not(.nwasm-playing) #saito-header.game #saito-header-menu-toggle {
   pointer-events: auto;
   position: fixed;
-  top: max(1rem, env(safe-area-inset-top));
-  right: max(1.2rem, env(safe-area-inset-right));
+  top: max(0.833rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
   margin: 0;
   z-index: 100;
 }
@@ -117,8 +117,8 @@ body.nwasm-playing #saito-header.game {
 
 body.nwasm-playing #saito-header .game-menu {
   position: fixed;
-  top: max(1rem, env(safe-area-inset-top));
-  left: max(0.6rem, env(safe-area-inset-left));
+  top: max(0.833rem, env(safe-area-inset-top));
+  left: max(0.5rem, env(safe-area-inset-left));
   margin: 0;
   z-index: 500;
   pointer-events: auto;
@@ -133,8 +133,8 @@ body.nwasm-playing #saito-header.game .hamburger-container {
 body.nwasm-playing #saito-header.game #saito-header-menu-toggle {
   pointer-events: auto;
   position: fixed;
-  top: max(1rem, env(safe-area-inset-top));
-  right: max(1.2rem, env(safe-area-inset-right));
+  top: max(0.833rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
   margin: 0;
   z-index: 100;
 }
@@ -144,8 +144,8 @@ body.nwasm-playing #saito-header.game #saito-header-menu-toggle {
  * instead of a full-width slide that covers the game.
  */
 body.nwasm-playing #saito-header.game .saito-header-hamburger-contents {
-  width: max(28rem, var(--nwasm-side-gutter));
-  max-width: min(40rem, 100vw);
+  width: max(23.333rem, var(--nwasm-side-gutter));
+  max-width: min(33.333rem, 100vw);
   top: 0;
   height: 100svh;
   pointer-events: none;
@@ -212,6 +212,6 @@ body.nwasm-playing #saito-header.game .saito-header-backdrop {
   }
 
   body.nwasm-playing #saito-header.game .saito-header-hamburger-contents {
-    width: min(40rem, 100vw);
+    width: min(33.333rem, 100vw);
   }
 }

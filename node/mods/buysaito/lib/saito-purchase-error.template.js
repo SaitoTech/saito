@@ -1,4 +1,21 @@
-module.exports = () => {
+module.exports = (message = '') => {
+  const escapedMessage = String(message)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+
+  if (escapedMessage) {
+    return `
+      <div class="saito-purchase-error saito-overlay-panel saito-overlay-size narrow loader-interstitial-overlay">
+        <div class="container-header">Payment Instructions Unavailable</div>
+        <div class="container-body">${escapedMessage}</div>
+        <div class="container-footer">Please close this notice and try again.</div>
+      </div>
+    `;
+  }
+
   return `
     <div class="saito-purchase-error saito-overlay-panel saito-overlay-size narrow loader-interstitial-overlay">
       <div class="container-header">Friendly Notice</div> 

@@ -648,6 +648,7 @@ class SettlersActions {
           <div class="popup-confirm-menu">
             <div class="popup-prompt">Place ${piece} here?</div>
             <div class="action" id="confirm">yes</div>
+            <div class="action" id="stopasking">yes, stop asking</div>
           </div>`;
 
     let left = $(`#${slot}`).offset().left + 50;
@@ -677,6 +678,11 @@ class SettlersActions {
 
       $('.action').off();
       $('.popup-confirm-menu').remove();
+      if (confirmation == 'stopasking') {
+        settlers_self.confirm_moves = 0;
+        settlers_self.saveGamePreference('settlers_confirm_moves', 0);
+        callback();
+      }
       if (confirmation == 'confirm') {
         callback();
       }

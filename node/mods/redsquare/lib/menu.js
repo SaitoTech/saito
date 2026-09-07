@@ -26,6 +26,11 @@ class Menu {
 
     this.app.browser.replaceElementContentBySelector(MenuTemplate(this), this.container);
     this.attachEvents();
+
+    // Template defaults Home to .active; clear when user-content is the active view.
+    if (this.mod.manager?.isProfileMode?.()) {
+      this.clearActiveMenuItem();
+    }
   }
 
   updateBadge(count = 0) {
@@ -121,9 +126,18 @@ class Menu {
       return;
     }
 
-    root.querySelectorAll('.item').forEach((item) => {
-      item.classList.toggle('active', item === activeItem);
+    // Scope to primary nav items only (avoid chat-list .item nodes in .sidebar-left).
+    root.querySelectorAll('.menu .item[data-nav]').forEach((item) => {
+      item.classList.toggle('active', Boolean(activeItem) && item === activeItem);
     });
+  }
+
+  /**
+   * Clear primary-nav selection. Used for user-content views (posts/replies/likes),
+   * which are not primary destinations like Home or Notifications.
+   */
+  clearActiveMenuItem() {
+    this.setActiveMenuItem(null);
   }
 }
 

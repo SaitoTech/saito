@@ -36,6 +36,7 @@
   border-bottom: 2px solid var(--saito-red, #c0392b);
   font-weight: 600;
   line-height: 1.35;
+  grid-column: 1 / -1;
 }
 
 .settings-appspace-warning-bar-text {
@@ -109,6 +110,31 @@
   padding: var(--saito-space-md);
 }
 
+.settings-appspace-device-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+}
+
+.settings-appspace-subsection {
+  border: 1px solid var(--saito-border);
+  border-radius: var(--saito-radius);
+}
+
+.settings-appspace-subsection[open] > .settings-appspace-section-summary {
+  background: color-mix(in srgb, var(--saito-primary) 10%, transparent);
+}
+
+.settings-appspace-subsection[open] > .settings-appspace-section-summary .settings-section-caret {
+  transform: rotate(90deg);
+  color: var(--saito-primary);
+}
+
+.settings-appspace-subsection > div {
+  border-top: 1px solid color-mix(in srgb, var(--saito-primary) 18%, var(--saito-border));
+  padding: var(--saito-space-md);
+}
+
 .settings-section-note {
   margin-bottom: var(--saito-space-md);
   color: var(--saito-muted-foreground);
@@ -118,19 +144,20 @@
   color: var(--saito-muted-foreground);
 }
 
-/* Equal-width action header — full-bleed bar across the overlay */
-.settings-appspace-header {
+/* Equal-width Wallet actions */
+.settings-wallet-actions {
+  grid-column: 1 / -1;
   width: 100%;
 }
 
-.settings-appspace-header .settings-actions-container {
+.settings-wallet-actions .settings-actions-container {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--saito-space-sm);
   width: 100%;
 }
 
-.settings-appspace-header .settings-actions-container .saito-large-square-button {
+.settings-wallet-actions .settings-actions-container .saito-large-square-button {
   justify-content: center;
   width: 100%;
   min-width: 0;
@@ -139,7 +166,7 @@
 
 /* Keep the action bar compact on desktop; mobile uses the shared square treatment. */
 @media only screen and (min-width: 769px) {
-  .settings-appspace-header .settings-actions-container .saito-large-square-button {
+  .settings-wallet-actions .settings-actions-container .saito-large-square-button {
     flex-direction: row;
     gap: var(--saito-space-xs);
     min-height: 3.6rem;
@@ -153,7 +180,7 @@
     white-space: nowrap;
   }
 
-  .settings-appspace-header
+  .settings-wallet-actions
     .settings-actions-container
     .saito-large-square-button
     > .saito-icon-button {
@@ -161,7 +188,7 @@
     min-height: 0;
   }
 
-  .settings-appspace-header
+  .settings-wallet-actions
     .settings-actions-container
     .saito-large-square-button
     > .saito-icon-button
@@ -169,7 +196,7 @@
     font-size: 1.35rem;
   }
 
-  .settings-appspace-header .settings-actions-container .saito-large-square-button:hover {
+  .settings-wallet-actions .settings-actions-container .saito-large-square-button:hover {
     background: var(--saito-button-secondary-background-hover);
     border-color: var(--saito-border);
     color: var(--saito-foreground);
@@ -258,6 +285,65 @@
   grid-gap: var(--saito-space-sm);
   grid-template-columns: repeat(5, minmax(0, 1fr));
   width: 100%;
+}
+
+.settings-appspace-contacts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--saito-space-sm);
+}
+
+.settings-appspace-contact {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--saito-space-sm);
+  min-width: 0;
+  padding: var(--saito-space-sm);
+  border-radius: var(--saito-radius);
+  cursor: pointer;
+}
+
+.settings-appspace-contact:hover,
+.settings-appspace-contact:focus-visible {
+  background: color-mix(in srgb, var(--saito-primary) 12%, transparent);
+}
+
+.settings-appspace-contact:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--saito-primary) 70%, transparent);
+}
+
+.settings-appspace-contact .saito-identicon-box,
+.settings-appspace-contact .saito-identicon {
+  width: 4rem;
+  height: 4rem;
+}
+
+.settings-appspace-contact-details {
+  min-width: 0;
+}
+
+.settings-appspace-contact-name,
+.settings-appspace-contact-key {
+  white-space: nowrap;
+}
+
+.settings-appspace-contact-key,
+.settings-appspace-contacts-empty {
+  color: var(--saito-muted-foreground);
+}
+
+.settings-appspace-contact-key {
+  font-family: var(--saito-font-monospace);
+  font-size: 0.9em;
+}
+
+.settings-contacts-header #settings-add-contact {
+  margin-left: auto;
+}
+
+.settings-appspace-contacts-container:not([open]) #settings-add-contact {
+  display: none;
 }
 
 .settings-appspace-app {
@@ -350,7 +436,7 @@
   word-break: break-all;
 }
 
-.settings-installed-mod-header #settings-add-app {
+.settings-modules-header #settings-add-app {
   margin-left: auto;
 }
 
@@ -386,7 +472,7 @@
     grid-template-columns: 8rem minmax(0, 1fr);
   }
 
-  .settings-appspace-header .settings-actions-container {
+  .settings-wallet-actions .settings-actions-container {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   }
 }

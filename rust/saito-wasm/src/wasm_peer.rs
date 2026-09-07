@@ -6,6 +6,9 @@ use crate::wasm_peer_service::WasmPeerService;
 use saito_core::core::defs::PrintForLog;
 use saito_core::core::network::peer::Peer;
 
+use serde::Serialize;
+use serde_wasm_bindgen::Serializer;
+
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct WasmPeer {
@@ -14,14 +17,21 @@ pub struct WasmPeer {
 
 #[wasm_bindgen]
 impl WasmPeer {
+    pub fn get(&self) -> JsValue {
+        let serializer = Serializer::new().serialize_large_number_types_as_bigints(true);
+        self.peer.serialize(&serializer).unwrap()
+    }
+
     #[wasm_bindgen(getter = id)]
     pub fn get_id(&self) -> u64 {
         self.peer.id
     }
+
     #[wasm_bindgen(getter = public_key)]
     pub fn get_public_key(&self) -> JsString {
         self.peer.get_public_key().to_base58().into()
     }
+
     #[wasm_bindgen(getter = key_list)]
     pub fn get_key_list(&self) -> Array {
         let array = Array::new_with_length(self.peer.key_list.len() as u32);
@@ -30,6 +40,7 @@ impl WasmPeer {
         }
         array
     }
+
     #[wasm_bindgen(getter = sync_type)]
     pub fn get_sync_type(&self) -> JsString {
         // Sentinel args return the derived HTTP base URL only (see Peer::get_block_fetch_url).
@@ -39,6 +50,7 @@ impl WasmPeer {
         }
         "full".into()
     }
+
     #[wasm_bindgen(getter = services)]
     pub fn get_services(&self) -> JsValue {
         let arr = js_sys::Array::new_with_length(self.peer.services.len() as u32);

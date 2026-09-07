@@ -5,8 +5,8 @@
     flex-wrap: wrap;
     width: 100vw;
     height: min-content;
-    row-gap: 2rem;
-    column-gap: 2rem;
+    row-gap: 1.667rem;
+    column-gap: 1.667rem;
     justify-content: space-evenly;
   }
 
@@ -36,7 +36,7 @@
   }
 
   .tech-card .name {
-    margin: 0 0 0.3rem 0;
+    margin: 0 0 0.25rem 0;
     text-align: center;
     font-size: 1.3em;
     margin-bottom: 0.5vw;
@@ -44,14 +44,14 @@
 
   .tech-card .content {
     text-align: left;
-    padding: 0.75rem;
+    padding: 0.625rem;
   }
 
   .tech-card .prereqs {
-    font-size: 3rem;
+    font-size: 2.5rem;
     letter-spacing: 2px;
     position: absolute;
-    bottom: 0.5rem;
+    bottom: 0.417rem;
     right: 0rem;
     -webkit-text-stroke: 1px #000;
   }

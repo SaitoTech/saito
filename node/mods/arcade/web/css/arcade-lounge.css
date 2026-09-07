@@ -255,3 +255,401 @@
     padding: 1rem;
   }
 }
+
+/*
+ * Four-sector lounge
+ *
+ * Mirrors the wizard's four-sector composition:
+ *   [ game art ] [ title / state / details ]
+ *   [ players  ] [ actions                 ]
+ */
+.arcade-lounge.arcade-lounge--four-sector {
+  display: grid;
+  grid-template-columns: minmax(10rem, 55%) minmax(0, 1fr);
+  grid-template-areas:
+    'art info'
+    'players actions';
+  gap: var(--saito-space-lg);
+  align-items: stretch;
+  width: min(80rem, 94vw);
+  min-width: unset;
+  max-width: none;
+  max-height: min(90vh, 56rem);
+  padding: var(--saito-space-xl);
+  overflow: auto;
+  color: var(--saito-foreground);
+}
+
+.arcade-lounge--four-sector .arcade-lounge-art {
+  grid-area: art;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--saito-radius);
+  background: var(--saito-muted);
+}
+
+.arcade-lounge--four-sector .arcade-lounge-hero {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 14rem;
+  object-fit: cover;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-info {
+  grid-area: info;
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-sm);
+  min-width: 0;
+  min-height: 0;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-header-title,
+.arcade-lounge--four-sector .arcade-lounge-header-desc {
+  margin: 0;
+  color: var(--saito-foreground);
+}
+
+.arcade-lounge--four-sector .arcade-lounge-header-title {
+  font-family: var(--saito-font-heavy);
+  font-size: 1.67rem;
+  line-height: 1.2;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-header-desc {
+  font-family: var(--saito-font-medium);
+  font-size: 1.3rem;
+  font-weight: normal;
+  line-height: 1.4;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-current-status {
+  font-family: var(--saito-font-medium);
+  font-size: 1.3rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-current-stake {
+  display: flex;
+  gap: var(--saito-space-sm);
+  align-items: baseline;
+  font-size: 1.083rem;
+  line-height: 1.4;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-current-stake-label {
+  font-family: var(--saito-font-medium);
+}
+
+.arcade-lounge--four-sector .arcade-lounge-header-desc--loading {
+  display: flex;
+  align-items: center;
+  gap: var(--saito-space-sm);
+}
+
+.arcade-lounge--four-sector .arcade-lounge-header-desc--loading .arcade-lounge-loader {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  min-height: 0;
+  margin: 0;
+  border-width: 0.25rem;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-details {
+  min-width: 0;
+  margin-top: var(--saito-space-xs);
+  font-size: 1.083rem;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-details[hidden] {
+  display: none;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-details .saito-table-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-xs);
+}
+
+.arcade-lounge--four-sector .arcade-lounge-details .saito-table-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 8rem) minmax(0, 1fr);
+  gap: var(--saito-space-md);
+  align-items: baseline;
+  min-height: 1.5rem;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-key {
+  font-family: var(--saito-font-medium);
+  font-weight: normal;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-details-toggle {
+  align-self: flex-end;
+  width: auto;
+  min-height: 0;
+  margin: auto 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--saito-foreground);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-details-toggle:hover,
+.arcade-lounge--four-sector .arcade-lounge-details-toggle:focus {
+  background: transparent;
+  box-shadow: none;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-section {
+  grid-area: players;
+  align-self: stretch;
+  min-width: 0;
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+  border: none;
+  border-radius: 0;
+  row-gap: var(--saito-space-sm);
+}
+
+.arcade-lounge--four-sector .arcade-lounge-players {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--saito-space-sm);
+}
+
+.arcade-lounge--four-sector
+  .arcade-lounge-players:not(.arcade-lounge-eliminated)
+  > .arcade-lounge-playerbox:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-playerbox.saito-table-row {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  grid-template-areas: 'avatar identity';
+  column-gap: var(--saito-space-sm);
+  align-items: center;
+  min-width: 0;
+  min-height: 5rem;
+  padding: 0.45rem 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--saito-border);
+}
+
+.arcade-lounge--four-sector .arcade-lounge-playerbox > .saito-identicon-box {
+  grid-area: avatar;
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-player-identity {
+  grid-area: identity;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-player-identity > .saito-address {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--saito-font-medium);
+  font-size: 1.3rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-player-key {
+  min-width: 0;
+  margin-top: 0.2rem;
+  overflow: hidden;
+  font-size: 0.95rem;
+  opacity: 0.72;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-player-note {
+  min-width: 0;
+  margin-top: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.arcade-lounge--four-sector .saito-identicon-box.empty-slot {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-color: var(--saito-border);
+  border-radius: calc(var(--saito-radius) * 0.75);
+  background: transparent;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-playerbox--open {
+  color: color-mix(in srgb, var(--saito-foreground) 78%, transparent);
+}
+
+.arcade-lounge--four-sector .arcade-lounge-playerbox--open.is-joinable {
+  cursor: pointer;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-eliminated-label {
+  margin: var(--saito-space-sm) 0 0;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-chat {
+  display: none;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-controls {
+  grid-area: actions;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--saito-space-sm);
+  align-self: stretch;
+  align-content: stretch;
+  min-width: 0;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-controls--1-rows {
+  display: flex;
+  flex-flow: row nowrap;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-controls--1-rows > div {
+  flex: 1 1 0;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-controls--2-rows {
+  grid-template-rows: repeat(2, minmax(5rem, 1fr));
+}
+
+.arcade-lounge--four-sector
+  .arcade-lounge-controls--2-rows.arcade-lounge-controls--2-actions
+  > div {
+  grid-column: 1 / -1;
+}
+
+.arcade-lounge--four-sector
+  .arcade-lounge-controls--2-rows.arcade-lounge-controls--1-actions
+  > div {
+  grid-row: 2;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-controls--3-rows {
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, minmax(5rem, 1fr));
+}
+
+.arcade-lounge--four-sector
+  .arcade-lounge-controls--3-rows.arcade-lounge-controls--2-actions::before {
+  content: '';
+  display: block;
+  grid-row: 1;
+  order: 0;
+}
+
+.arcade-lounge--four-sector
+  .arcade-lounge-controls--3-rows.arcade-lounge-controls--1-actions
+  > div {
+  grid-row: 3;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-controls > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  order: 2;
+  width: 100%;
+  min-width: 0;
+  height: 3.6rem;
+  min-height: 3.6rem;
+  align-self: center;
+  margin: 0;
+  padding: 0 var(--saito-space-md);
+  font-family: var(--saito-font-medium);
+  font-size: 1.6rem;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: none;
+}
+
+.arcade-lounge--four-sector .arcade-lounge-controls > div:only-child {
+  grid-column: 1 / -1;
+}
+
+.arcade-lounge--four-sector #arcade-game-controls-cancel-join,
+.arcade-lounge--four-sector #arcade-game-controls-cancel-tentative,
+.arcade-lounge--four-sector #arcade-game-controls-close-game {
+  order: 1;
+}
+
+.arcade-lounge--four-sector #arcade-game-controls-invite-join {
+  gap: 0.55rem;
+}
+
+.arcade-lounge--four-sector.arcade-lounge
+  .arcade-lounge-controls--in-play
+  #arcade-game-controls-continue-game {
+  grid-column: 1 / -1;
+  order: 3;
+}
+
+@media screen and (max-width: 600px) {
+  .arcade-lounge.arcade-lounge--four-sector {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-template-areas:
+      'art'
+      'info'
+      'players'
+      'actions';
+    width: min(96vw, 64rem);
+    padding: var(--saito-space-lg);
+  }
+
+  .arcade-lounge--four-sector .arcade-lounge-hero {
+    min-height: 10rem;
+  }
+}
+
+@media screen and (max-width: 420px) {
+  .arcade-lounge--four-sector .arcade-lounge-players,
+  .arcade-lounge--four-sector .arcade-lounge-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+
+  .arcade-lounge--four-sector .arcade-lounge-players > .arcade-lounge-playerbox,
+  .arcade-lounge--four-sector .arcade-lounge-controls > div {
+    grid-column: 1;
+  }
+}
+
+@media screen and (max-height: 550px) {
+  .arcade-lounge.arcade-lounge--four-sector {
+    max-height: 98vh;
+    gap: var(--saito-space-md);
+    padding: var(--saito-space-lg);
+  }
+}

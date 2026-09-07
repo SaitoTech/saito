@@ -45,19 +45,7 @@ class InviteManager {
         listGames = this.mod.returnGamesWithFilter({ status: list }).map((r) => r.tx);
       }
 
-      if (listGames.length > 0 && !this.game_filter) {
-        let label = 'Games';
-        if (list === 'mine') label = 'My Games';
-        else if (list === 'open') label = 'Open Games';
-        else if (list === 'active') label = 'Active Matches';
-        else if (list === 'over') label = 'Recent Matches';
-        else label = `${list.charAt(0).toUpperCase() + list.slice(1)} Games`;
-
-        this.app.browser.addElementToSelector(
-          `<h5 class="saito-sidebar-header">${label}</h5>`,
-          target
-        );
-      }
+      let header_added = false;
 
       for (let i = 0; i < listGames.length && i < 15; i++) {
         if (this.game_filter && this.game_filter != listGames[i].msg.game) {
@@ -82,6 +70,20 @@ class InviteManager {
               continue;
             }
           }
+          if (!header_added && !this.game_filter) {
+            let label = 'Games';
+            if (list === 'mine') label = 'My Games';
+            else if (list === 'open') label = 'Open Games';
+            else if (list === 'active') label = 'Active Matches';
+            else if (list === 'over') label = 'Recent Matches';
+            else label = `${list.charAt(0).toUpperCase() + list.slice(1)} Games`;
+
+            this.app.browser.addElementToSelector(
+              `<h5 class="saito-sidebar-header">${label}</h5>`,
+              target
+            );
+            header_added = true;
+          }
           newInvite.render();
         }
       }
@@ -91,12 +93,7 @@ class InviteManager {
       let offlineGames = this.mod
         .returnGamesWithFilter({ is_sender_reachable: false })
         .map((game) => game.tx);
-      if (offlineGames.length > 0 && !this.game_filter) {
-        this.app.browser.addElementToSelector(
-          `<h5 class="saito-sidebar-header">Offline</h5>`,
-          target
-        );
-      }
+      let offline_header_added = false;
       for (let i = 0; i < offlineGames.length && i < 15; i++) {
         if (!this?.game_filter || this.game_filter == offlineGames[i].msg.game) {
           let newInvite = new Invite(
@@ -112,6 +109,13 @@ class InviteManager {
               if (!this.mod.leagueCallback?.testMembership(newInvite.invite_data.league)) {
                 continue;
               }
+            }
+            if (!offline_header_added && !this.game_filter) {
+              this.app.browser.addElementToSelector(
+                `<h5 class="saito-sidebar-header">Offline</h5>`,
+                target
+              );
+              offline_header_added = true;
             }
             newInvite.render();
           }

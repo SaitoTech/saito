@@ -102,9 +102,10 @@ class Stun extends ModTemplate {
       let peerConnection = this.peers.get(peerId);
       let c = null;
       if (peerConnection) {
-        c = await sconfirm(
-          `STUN: connection timed out -- ${app.keychain.returnUsername(peerId)} might not be online. Keep waiting?`
-        );
+        // Quietly give up — do not prompt the user on timeout.
+        // c = await sconfirm(
+        //   `STUN: connection timed out -- ${app.keychain.returnUsername(peerId)} might not be online. Keep waiting?`
+        // );
       }
       if (c) {
         this.createPeerConnection(peerId, callback);
@@ -181,44 +182,45 @@ class Stun extends ModTemplate {
       };
     }
 
-    if (type === 'user-menu') {
-      if (!obj?.publicKey || obj.publicKey == this.publicKey) {
-        return null;
-      }
-
-      if (!this.hasConnectionWithPeer(obj.publicKey)) {
-        return {
-          text: 'Upgrade Connection',
-          icon: 'fa-solid fa-bolt-lightning',
-          callback: function (app, public_key) {
-            stun_self.createPeerConnection(public_key, () => {
-              stun_self.sendJoinTransaction(public_key);
-            });
-          }
-        };
-      } else {
-        return {
-          text: 'Downgrade Connection',
-          icon: 'fa-solid fa-shield-cat',
-          callback: async function (app, public_key) {
-            let newtx = await app.wallet.createUnsignedTransactionWithDefaultFee(public_key);
-
-            newtx.msg = {
-              module: 'Stun',
-              request: 'peer-left'
-            };
-
-            await newtx.sign();
-
-            app.connection.emit('relay-transaction', newtx);
-
-            setTimeout(() => {
-              stun_self.removePeerConnection(public_key);
-            }, 500);
-          }
-        };
-      }
-    }
+    // Temporarily disabled — Upgrade / Downgrade Connection user-menu entries.
+    // if (type === 'user-menu') {
+    //   if (!obj?.publicKey || obj.publicKey == this.publicKey) {
+    //     return null;
+    //   }
+    //
+    //   if (!this.hasConnectionWithPeer(obj.publicKey)) {
+    //     return {
+    //       text: 'Upgrade Connection',
+    //       icon: 'fa-solid fa-bolt-lightning',
+    //       callback: function (app, public_key) {
+    //         stun_self.createPeerConnection(public_key, () => {
+    //           stun_self.sendJoinTransaction(public_key);
+    //         });
+    //       }
+    //     };
+    //   } else {
+    //     return {
+    //       text: 'Downgrade Connection',
+    //       icon: 'fa-solid fa-shield-cat',
+    //       callback: async function (app, public_key) {
+    //         let newtx = await app.wallet.createUnsignedTransactionWithDefaultFee(public_key);
+    //
+    //         newtx.msg = {
+    //           module: 'Stun',
+    //           request: 'peer-left'
+    //         };
+    //
+    //         await newtx.sign();
+    //
+    //         app.connection.emit('relay-transaction', newtx);
+    //
+    //         setTimeout(() => {
+    //           stun_self.removePeerConnection(public_key);
+    //         }, 500);
+    //       }
+    //     };
+    //   }
+    // }
 
     return null;
   }

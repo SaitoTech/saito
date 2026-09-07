@@ -6,7 +6,7 @@
   .strategy-card-selection-controls {
     display: flex;
     flex-direction: row;
-    row-gap: 1rem;
+    row-gap: 0.833rem;
     overflow: visible;
     width: 80vw;
   }

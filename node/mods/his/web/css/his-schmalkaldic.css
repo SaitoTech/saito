@@ -2,36 +2,36 @@
   .schmalkaldic {
     min-width: 80vw;
     min-height: 80vh;
-    border-radius: 2rem;
+    border-radius: 1.667rem;
     background-image: url('/his/img/backgrounds/schmalkaldic_league.png');
     background-size: cover;
-    padding: 5rem;
+    padding: 4.167rem;
   }
 
   .schmalkaldic .title {
-    font-size: 4rem;
+    font-size: 3.333rem;
     color: white;
-    padding: 1rem;
+    padding: 0.833rem;
     background-color: #0005;
   }
 
   .schmalkaldic .text {
-    font-size: 2.5rem;
+    font-size: 2.083rem;
     bottom: 0px;
     position: absolute;
-    margin-bottom: 4rem;
-    padding: 1rem;
+    margin-bottom: 3.333rem;
+    padding: 0.833rem;
     background-color: #0005;
     color: white;
-    padding: 1rem;
+    padding: 0.833rem;
     width: 60%;
-    line-height: 3.5rem;
+    line-height: 2.917rem;
     min-width: 700px;
   }
 
   .schmalkaldic .text ul {
-    margin-left: 4rem;
-    padding-top: 2rem;
-    padding-bottom: 2rem;
+    margin-left: 3.333rem;
+    padding-top: 1.667rem;
+    padding-bottom: 1.667rem;
   }
 }

@@ -394,17 +394,6 @@ impl SyncManager {
             wallet.public_key
         };
 
-        info!("SEND BLOCKCHAIN REQUEST: to peer...");
-        info!(" -- to peer_id => {}", peer_id);
-        info!(" -- my latest_known_block_id => {}", latest_known_block_id);
-        info!(
-            " -- my latest_known_block_hash => {:?}",
-            latest_known_block_hash.to_hex()
-        );
-        info!(" -- my fork_id => {:?}", fork_id.to_hex());
-        info!(" -- for sync_type => {}", sync_type);
-        info!(" -- for public_key => {:?}", my_public_key.to_base58());
-
         network
             .send_message_by_peer_id(
                 peer_id,
@@ -624,12 +613,6 @@ impl SyncManager {
         for (i, block_reference) in cs.payload.iter().enumerate() {
             should_add_block = true;
 
-            info!(
-                "received blockchain message 1 : {}-{}-{}",
-                block_reference.block_id,
-                previous_block_id,
-                cs.payload.len()
-            );
             //
             // only process sequential blocks
             //
@@ -756,8 +739,6 @@ impl SyncManager {
         config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     ) {
         if !self.queue.is_empty() {
-            info!(" -- no -- queue is not empty");
-
             return;
         }
 
@@ -776,25 +757,20 @@ impl SyncManager {
 
         let mut peers = network.peer_lock.write().await;
         let Some(peer) = peers.peers.get_mut(&peer_id) else {
-            info!(" -- no -- cannot get writeable peer");
             return;
         };
 
         if peer.should_continue_chain_sync() {
-            info!(" -- yes -- should continue chain sync");
             drop(peers);
             self.send_request_blockchain_message(peer_id, config_lock, network)
                 .await;
             return;
         }
 
-        info!(" -- no -- should we mark as sync complete?");
-
         //
         // update peer if needed, requires return; after peer drop in closure above
         //
         if peer.last_request_blockchain_chunksize > 0 && !peer.last_request_blockchain_has_more {
-            info!(" --    -- yes -- mark as sync complete");
             peer.on_sync_complete();
         }
     }

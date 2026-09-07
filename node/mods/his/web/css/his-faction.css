@@ -1,7 +1,7 @@
 .game.his {
   .faction_sheet_vp .debaters-tile {
-    height: 5rem;
-    width: 5rem;
+    height: 4.167rem;
+    width: 4.167rem;
   }
 
   .factionbar-faction.papacy,
@@ -74,12 +74,12 @@
     position: absolute;
     top: 0px;
     width: max-content;
-    max-width: 50rem;
-    font-size: 2.6rem;
-    padding: 1.5rem;
+    max-width: 41.667rem;
+    font-size: 2.167rem;
+    padding: 1.25rem;
     color: white;
     background: #ff7700;
-    line-height: 3.8rem;
+    line-height: 3.167rem;
     visibility: hidden;
   }
   .faction_sheet_notice.protestant {
@@ -99,19 +99,19 @@
     min-width: max-content;
     background-color: whitesmoke;
     padding: 0rem;
-    font-size: 2.2rem;
+    font-size: 1.833rem;
     display: flex;
     flex-direction: column;
     border: 2px solid #ddd;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 0.833rem;
+    padding-right: 0.833rem;
   }
   .factionbar-faction:hover {
     background-color: #e3e3e3;
     cursor: pointer;
   }
   .factionbar div {
-    padding: 0.75rem;
+    padding: 0.625rem;
   }
 
   .papacy_vp_tile {
@@ -171,7 +171,7 @@
     width: 50px;
     height: 50px;
     position: absolute;
-    margin-top: 1rem;
+    margin-top: 0.833rem;
   }
   .new_testament_english_tile {
     background-image: url('/his/img/factions/NewTestament_English.svg');
@@ -179,7 +179,7 @@
     width: 50px;
     height: 50px;
     position: absolute;
-    margin-top: 2rem;
+    margin-top: 1.667rem;
   }
 
   .henry_viii_marital_status.active {
@@ -201,7 +201,7 @@
     width: 50px;
     height: 50px;
     position: absolute;
-    margin-top: 1rem;
+    margin-top: 0.833rem;
   }
   .bible_english_tile {
     background-image: url('/his/img/factions/BibleEnglish.svg');
@@ -209,7 +209,7 @@
     width: 50px;
     height: 50px;
     position: absolute;
-    margin-top: 2rem;
+    margin-top: 1.667rem;
   }
 
   #hapsburg_vp_tile {

@@ -23,6 +23,7 @@ class PrepareStoreOverlay {
     this.has_tokens = false;
     this.wizard_state = 1;
     this.wizard_key = '';
+    this.awaiting_mint_tx = '';
     this.status_timer = null;
     this.poll_timer = null;
     this.prepare_token = 0;
@@ -38,6 +39,7 @@ class PrepareStoreOverlay {
     this.has_tokens = false;
     this.wizard_state = 1;
     this.wizard_key = '';
+    this.awaiting_mint_tx = '';
     this.faucet_option = null;
     this.upload_action = null;
     this.stopPreparation();
@@ -113,13 +115,24 @@ class PrepareStoreOverlay {
     }, 120);
   }
 
+  deriveWizardState() {
+    if (this.has_nfts) {
+      return 3;
+    }
+    if (this.has_tokens || this.awaiting_mint_tx) {
+      return 2;
+    }
+    return 1;
+  }
+
+  applyMonotonicStage(derived = 1) {
+    const next = Number(derived) || 1;
+    this.wizard_state = Math.max(this.wizard_state, next);
+  }
+
   async refreshWalletState() {
     await Promise.all([this.loadWalletNfts(), this.loadWalletTokens()]);
-    if (this.has_nfts) {
-      this.wizard_state = 3;
-      return;
-    }
-    this.wizard_state = this.has_tokens ? 2 : 1;
+    this.applyMonotonicStage(this.deriveWizardState());
   }
 
   /**
@@ -144,9 +157,20 @@ class PrepareStoreOverlay {
   async loadWalletTokens() {
     try {
       const balance = await this.app.wallet.getBalance();
-      this.has_tokens = typeof balance === 'bigint' ? balance > 0n : Number(balance) > 0;
+      const has_available =
+        typeof balance === 'bigint' ? balance > 0n : Number(balance) > 0;
+
+      let has_pending = false;
+      const crypto = this.app.wallet?.saitoCrypto;
+      if (crypto && typeof crypto.getPendingBalance === 'function') {
+        const pending = await crypto.getPendingBalance();
+        has_pending =
+          typeof pending === 'bigint' ? pending > 0n : Number(pending) > 0;
+      }
+
+      this.has_tokens = has_available || has_pending || !!this.awaiting_mint_tx;
     } catch (err) {
-      this.has_tokens = false;
+      this.has_tokens = !!this.awaiting_mint_tx;
     }
   }
 
@@ -222,7 +246,8 @@ class PrepareStoreOverlay {
     ready.innerHTML = PrepareStoreTemplate.ready({
       state: this.wizard_state,
       actions,
-      store_url
+      store_url,
+      awaiting_mint: !!this.awaiting_mint_tx
     });
     this.attachReadyEvents();
   }
@@ -230,6 +255,7 @@ class PrepareStoreOverlay {
   returnViewKey(state, actions = {}, store_url = '') {
     return [
       state,
+      this.awaiting_mint_tx ? 1 : 0,
       actions.get_saito ? 1 : 0,
       actions.faucet ? 1 : 0,
       actions.create_nft ? 1 : 0,
@@ -318,6 +344,10 @@ class PrepareStoreOverlay {
       return;
     }
 
+    if (this.awaiting_mint_tx && this.mod.transaction_monitor?.tx) {
+      return;
+    }
+
     await this.refreshWalletState();
     if (!document.querySelector('.prepare-store.ready')) {
       this.stopPolling();
@@ -377,11 +407,86 @@ class PrepareStoreOverlay {
   }
 
   openCreateNft() {
+    const defaults = {
+      ...(this.defaults || {}),
+      callback: (result) => this.onNftCreateResult(result)
+    };
+
     if (typeof this.onCreateNft === 'function') {
-      this.onCreateNft(this.defaults);
+      this.onCreateNft(defaults);
       return;
     }
-    this.app.connection.emit('saito-nft-create-render-request', this.defaults);
+    this.app.connection.emit('saito-nft-create-render-request', defaults);
+  }
+
+  onNftCreateResult(result = {}) {
+    if (result?.status === 'cancelled') {
+      return;
+    }
+    if (result?.status !== 'created' || !result?.tx) {
+      return;
+    }
+
+    const signature = String(result.signature || result.tx?.signature || '').trim();
+    this.awaiting_mint_tx = signature;
+    this.applyMonotonicStage(2);
+    if (document.querySelector('.prepare-store.ready')) {
+      this.renderReadyPanel();
+    }
+    this.watchMintTransaction(result.tx);
+  }
+
+  watchMintTransaction(tx) {
+    if (!tx?.signature) {
+      return;
+    }
+    if (!this.mod.transaction_monitor) {
+      console.error('Store: transaction_monitor is not initialized');
+      return;
+    }
+
+    this.stopPolling();
+
+    this.mod.transaction_monitor.render({
+      tx,
+      title: 'Creating NFT',
+      lead: 'Your NFT is being broadcast to the Saito network.',
+      subtitle: 'Waiting for confirmation...',
+      successTitle: 'NFT Created',
+      successLead: 'Your NFT is confirmed and ready to list on your store.',
+      successActionLabel: 'Continue',
+      callback: (result) => {
+        if (result?.status === 'confirmed') {
+          void this.onMintConfirmed();
+          return;
+        }
+        if (result?.status === 'cancelled') {
+          this.awaiting_mint_tx = '';
+          if (document.querySelector('.prepare-store.ready')) {
+            this.renderReadyPanel();
+            this.startPolling();
+          }
+        }
+      }
+    });
+  }
+
+  async onMintConfirmed() {
+    this.awaiting_mint_tx = '';
+    await this.refreshWalletState();
+
+    if (!document.querySelector('.prepare-store.ready')) {
+      return;
+    }
+
+    this.renderReadyPanel();
+
+    if (this.wizard_state === 3) {
+      this.stopPolling();
+      return;
+    }
+
+    this.startPolling();
   }
 
   openUploadMedia() {

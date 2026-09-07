@@ -15,7 +15,7 @@
     flex-direction: column;
     align-items: center;
     gap: 10px; /* spacing between boxes */
-    padding: 1rem;
+    padding: 0.833rem;
   }
   .replacements-overlay .points .box {
     width: 120px;
@@ -28,12 +28,12 @@
     background-color: #efefef;
   }
   .replacements-overlay .points .box .num {
-    font-size: 5.4rem;
+    font-size: 4.5rem;
     line-height: 1;
     font-weight: bolder;
   }
   .replacements-overlay .points .box .ckey {
-    font-size: 2.2rem;
+    font-size: 1.833rem;
     margin-top: 4px;
     font-weight: bolder;
   }
@@ -42,45 +42,45 @@
     text-align: center;
     display: flex;
     justify-content: flex-start;
-    margin-right: 5rem;
-    margin-top: 5rem;
+    margin-right: 4.167rem;
+    margin-top: 4.167rem;
   }
 
   .replacements-overlay .mainmenu .controls ul li,
   .replacements-overlay .submenu .controls ul li {
     background-color: whitesmoke;
-    height: 8rem;
+    height: 6.667rem;
     border-top: 1px solid var(--saito-border);
     width: 100%;
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     display: list-item;
     list-style: none;
     cursor: pointer;
-    padding: 1rem;
+    padding: 0.833rem;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .replacements-overlay .mainmenu .status,
   .replacements-overlay .submenu .status {
-    width: 25rem;
-    max-width: 25rem;
+    width: 20.833rem;
+    max-width: 20.833rem;
     text-align: center;
-    line-height: 4rem;
+    line-height: 3.333rem;
     position: relative;
-    height: 4rem;
+    height: 3.333rem;
     min-height: 0;
     background-color: whitesmoke;
     z-index: 10;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     top: 0px;
     left: 0px;
     white-space: nowrap;
     float: left;
-    margin-left: 5rem;
-    margin-top: 1rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    margin-left: 4.167rem;
+    margin-top: 0.833rem;
+    padding-left: 0.417rem;
+    padding-right: 0.417rem;
   }
 
   .replacements-overlay .mainmenu .controls ul,
@@ -88,19 +88,19 @@
     display: block;
     position: relative;
     background-color: whitesmoke;
-    line-height: 4rem;
-    width: 25rem;
-    max-width: 35rem;
+    line-height: 3.333rem;
+    width: 20.833rem;
+    max-width: 29.167rem;
     z-index: 10;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     top: 0px;
     left: 0px;
     white-space: nowrap;
     float: left;
-    margin-left: 5rem;
-    margin-top: 1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    margin-left: 4.167rem;
+    margin-top: 0.833rem;
+    padding-left: 0.833rem;
+    padding-right: 0.833rem;
     clear: both;
     min-height: max-content;
     max-height: max-content;

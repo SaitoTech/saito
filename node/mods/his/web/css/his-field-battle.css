@@ -17,17 +17,17 @@
     color: white;
     margin-left: auto;
     margin-right: auto;
-    font-size: 2.4rem;
-    padding: 0.75rem;
+    font-size: 2rem;
+    padding: 0.625rem;
     max-width: 100%;
-    padding: 1rem;
-    line-height: 3.4rem;
+    padding: 0.833rem;
+    line-height: 2.833rem;
   }
 
   .field-battle-grid {
     display: grid;
     grid-template-columns: 40vw 40vw;
-    padding: 4rem;
+    padding: 3.333rem;
     justify-items: center;
     justify-content: space-evenly;
   }
@@ -44,7 +44,7 @@
     margin-top: unset;
     width: unset;
     color: whitesmoke;
-    letter-spacing: 0.05rem;
+    letter-spacing: 0.042rem;
   }
 
   .field-battle-grid .attacker .field-battle-row.hits-assignable-hover-effect,
@@ -65,19 +65,19 @@
   .field-battle-grid .defender .title {
     color: whitesmoke;
     background: #0005;
-    font-size: 2.5rem;
+    font-size: 2.083rem;
     text-align: center;
     border: 1px solid black;
     grid-column: 1 / span 2;
     grid-row: 1;
-    padding: 1rem;
+    padding: 0.833rem;
   }
 
   .field-battle-unit {
     width: 80%;
-    height: 5rem;
-    padding: 0.75rem;
-    font-size: 2rem;
+    height: 4.167rem;
+    padding: 0.625rem;
+    font-size: 1.667rem;
     grid-column: 1;
     margin-left: 0rem;
     margin-right: 4vw;
@@ -87,23 +87,23 @@
 
   .field-battle-desc {
     position: relative;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .field-battle-roll {
     display: grid;
-    grid-template-columns: 6rem 6rem;
+    grid-template-columns: 5rem 5rem;
     background: #0005;
-    width: 6rem;
-    height: 6rem;
+    width: 5rem;
+    height: 5rem;
     border: 1px solid black;
     margin-bottom: 0rem;
     min-height: 0px;
     font-weight: bolder;
     text-transform: uppercase;
-    font-size: 3.5rem;
+    font-size: 2.917rem;
     text-align: center;
-    padding-top: 1rem;
+    padding-top: 0.833rem;
     grid-column: 2;
   }
 

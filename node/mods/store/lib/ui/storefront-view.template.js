@@ -50,19 +50,6 @@ function dashboard({ shareUrl = '', showSuccess = false } = {}) {
   `;
 }
 
-function publicHero({ title = 'Store', description = '' } = {}) {
-  const descriptionHtml = description ? `<p class="description">${description}</p>` : '';
-
-  return `
-    <section class="hero">
-      <div class="toolbar-row">
-        <h2 class="title">${title}</h2>
-      </div>
-      ${descriptionHtml}
-    </section>
-  `;
-}
-
 function adminDenied() {
   return `
     <section class="admin-denied" role="status">
@@ -130,7 +117,6 @@ module.exports = ({
   }
 
   return `
-    ${publicHero({ title, description })}
     ${catalog({ loading })}
   `;
 };

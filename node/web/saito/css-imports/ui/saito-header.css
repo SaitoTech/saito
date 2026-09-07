@@ -27,7 +27,7 @@
 
 #saito-header.game {
   padding: 0;
-  padding-right: 2rem;
+  padding-right: 1.667rem;
   /* redefining base variable in game-layout doesn't work if people push themes on games */
   background: transparent;
   backdrop-filter: none;
@@ -41,10 +41,10 @@
 }
 
 #saito-header.game .hamburger-container {
-  padding: 0.5rem;
+  padding: 0.417rem;
   background: var(--saito-secondary);
   border-radius: var(--saito-radius);
-  margin-top: 1rem;
+  margin-top: 0.833rem;
 }
 
 .saito-header-logo {
@@ -615,7 +615,7 @@
 @media screen and (max-width: 600px),
   screen and (orientation: landscape) and (max-height: 600px) {
   #saito-header.game {
-    --game-menu-mobile-header-height: 6.4rem;
+    --game-menu-mobile-header-height: 5.333rem;
     padding: 0;
   }
 
@@ -632,8 +632,8 @@
   #saito-header.game .saito-header-hamburger-contents {
     top: var(--game-menu-mobile-header-height);
     right: auto;
-    left: -40rem;
-    width: min(40rem, 100vw);
+    left: -33.333rem;
+    width: min(33.333rem, 100vw);
     height: calc(100svh - var(--game-menu-mobile-header-height));
     border-radius: 0 0 var(--saito-radius-lg) 0;
     transition:
@@ -660,9 +660,10 @@
 
 /*
   Desktop chrome compensation for the 12px root.
-  Header rem geometry was authored at 10px root. Mobile (≤768px) and
-  html.game already force 10px, so leave base rem values alone for those.
-  Scale only desktop non-game chrome back to the previous pixel footprint.
+  Header rem geometry was authored at 10px root. Mobile (≤768px) site
+  still uses 10px. Games use html.game { font-size: 12px }; see the
+  html.game compensation block at the end of this file for shared
+  hamburger/wallet chrome.
 */
 @media screen and (min-width: 769px) {
   html:not(.game) {
@@ -814,5 +815,145 @@
 
   html:not(.game) .saito-header-wallet-menu {
     gap: var(--saito-space-xs);
+  }
+}
+
+/*
+  Games use a 12px rem root (see game-layout.css). Header/hamburger/wallet
+  rem geometry was authored at 10px — scale back to the prior pixel footprint.
+  #saito-header.game-specific rem values are scaled in-place above.
+*/
+html.game #saito-header-menu-toggle {
+  width: 3.35rem;
+}
+
+html.game #saito-header-menu-toggle i {
+  font-size: 2.5rem;
+}
+
+html.game .saito-header-profile .saito-identicon-box .saito-identicon {
+  width: 4.1rem;
+  height: 4.1rem;
+}
+
+html.game .saito-header-hamburger-contents {
+  right: -33.35rem;
+  width: 33.35rem;
+}
+
+html.game .saito-header-hamburger-contents.show-menu {
+  right: 0;
+}
+
+html.game #qrcode {
+  height: 15rem;
+}
+
+html.game #qrcode img,
+html.game #qrcode svg {
+  height: 15rem;
+  width: 15rem;
+  border-width: 0.85rem;
+}
+
+html.game .crypto-api-fetch-spinner {
+  right: 0.4rem;
+  bottom: 0.4rem;
+  width: 3.35rem;
+  height: 3.35rem;
+  font-size: 2.65rem;
+}
+
+html.game #saito-header .balance-amount-whole,
+html.game #saito-header .balance-amount-separator {
+  font-size: 2.9rem;
+}
+
+html.game #saito-header .balance-amount-decimal {
+  font-size: 1.65rem;
+}
+
+html.game #saito-header .balance-amount-segments--subunit .balance-amount-whole,
+html.game #saito-header .balance-amount-segments--subunit .balance-amount-separator,
+html.game #saito-header .balance-amount-segments--subunit .balance-amount-decimal {
+  font-size: 2.9rem;
+}
+
+html.game #saito-header .wallet-nft-icon {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+html.game #saito-header .wallet-identicon {
+  width: 2.65rem;
+  height: 2.65rem;
+  margin-right: 0.4rem;
+}
+
+html.game .wallet-info {
+  height: min(50vh, 22.5rem);
+}
+
+html.game #saito-header .pubkey-container {
+  max-width: 31.65rem;
+  min-height: 2.65rem;
+  gap: var(--saito-space-sm);
+  font-size: 1.35rem;
+}
+
+html.game #saito-header .wallet-balance {
+  gap: var(--saito-space-sm);
+  height: 3.5rem;
+}
+
+html.game #saito-header .wallet-balance select {
+  font-size: 1.85rem;
+  padding: 0.35rem 2.15rem 0.35rem 0.5rem;
+  background-position: right 0.5rem center;
+}
+
+html.game #saito-header .wallet-balance select option {
+  padding: 0.5rem 0.85rem;
+}
+
+html.game #saito-header .hamburger-container {
+  gap: var(--saito-space-sm);
+}
+
+html.game .saito-header-crypto {
+  grid-template-columns: 4.15rem 1fr auto;
+  row-gap: var(--saito-space-xs);
+  column-gap: var(--saito-space-sm);
+  height: 5rem;
+  padding: 0.4rem 0.85rem;
+}
+
+html.game .saito-header-crypto .crypto-logo-container {
+  max-width: 4.15rem;
+  max-height: 4.15rem;
+  height: 4.15rem;
+}
+
+html.game .saito-header-crypto .crypto-logo-container .crypto-logo {
+  height: 3.35rem;
+  width: 3.35rem;
+}
+
+html.game .saito-header-wallet-menu {
+  gap: var(--saito-space-xs);
+}
+
+/* Mobile game drawer uses left, not right — keep that orientation */
+@media screen and (max-width: 600px),
+  screen and (orientation: landscape) and (max-height: 600px) {
+  html.game .saito-header-hamburger-contents {
+    right: auto;
+    left: -33.333rem;
+    width: min(33.333rem, 100vw);
+  }
+
+  html.game .saito-header-hamburger-contents.show-menu {
+    right: auto;
+    left: 0;
   }
 }

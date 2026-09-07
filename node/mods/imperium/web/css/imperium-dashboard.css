@@ -1,7 +1,7 @@
 .game.imperium {
   .imperium-dashboard {
     display: inline-flex;
-    column-gap: 1.5rem;
+    column-gap: 1.25rem;
   }
 
   .dashboard {
@@ -10,62 +10,62 @@
     z-index: 9;
     color: #fff;
     background: transparent;
-    margin-top: 5.5rem;
-    margin-left: 1rem;
+    margin-top: 4.583rem;
+    margin-left: 0.833rem;
   }
 
   .dash-faction {
     display: flex;
     flex-direction: column;
-    grid-gap: 0.2rem;
+    grid-gap: 0.167rem;
     cursor: pointer;
     user-select: none;
     width: max-content;
-    row-gap: 0.5rem;
+    row-gap: 0.417rem;
   }
 
   .dash-faction-name {
     text-align: center;
     color: #fff;
     cursor: pointer;
-    padding-top: 0.5rem;
-    padding-bottom: 0.25rem;
+    padding-top: 0.417rem;
+    padding-bottom: 0.208rem;
     font-family: 'orbitron-medium';
-    font-size: 1.6rem;
+    font-size: 1.333rem;
   }
 
   .dash-faction-info {
     display: flex;
     flex-direction: row;
     height: max-content;
-    padding-left: 0.3rem;
+    padding-left: 0.25rem;
     justify-content: space-around;
   }
 
   .dash-item.resources {
     background-image: url(/imperium/img/blank_resources_hex.png);
     background-size: cover;
-    height: 5rem;
-    width: 5.65rem;
-    font-size: 3.5rem;
+    height: 4.167rem;
+    width: 4.708rem;
+    font-size: 2.917rem;
   }
 
   .dash-item.influence {
     background-image: url('/imperium/img/blank_influence_hex.png');
     background-size: cover;
-    height: 5rem;
-    width: 5.65rem;
+    height: 4.167rem;
+    width: 4.708rem;
     color: #c16400;
-    font-size: 3.5rem;
+    font-size: 2.917rem;
   }
 
   .dash-item.trade {
     display: flex;
     position: relative;
-    height: 5rem;
-    width: 5.65rem;
-    font-size: 5rem;
-    padding-left: 0.4rem;
+    height: 4.167rem;
+    width: 4.708rem;
+    font-size: 4.167rem;
+    padding-left: 0.333rem;
     z-index: 1001;
   }
 
@@ -84,9 +84,9 @@
 
   .dash-item-goods {
     position: relative;
-    top: -2.2rem;
-    left: -3.5rem;
-    font-size: 4rem;
+    top: -1.833rem;
+    left: -2.917rem;
+    font-size: 3.333rem;
   }
 
   .dash-faction-base {
@@ -94,42 +94,42 @@
     opacity: 0.95;
     color: white;
     text-weight: bold;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
+    padding-top: 0.208rem;
+    padding-bottom: 0.208rem;
   }
 
   .speaker {
     background-color: red;
     color: white;
-    font-size: 1.6rem;
+    font-size: 1.333rem;
     font-weight: bold;
     margin-left: auto;
     margin-right: auto;
     font-family: 'bank-gothic';
-    letter-spacing: 0.1rem;
-    padding-bottom: 0.5rem;
-    padding-top: 0.5rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    letter-spacing: 0.083rem;
+    padding-bottom: 0.417rem;
+    padding-top: 0.417rem;
+    padding-left: 0.833rem;
+    padding-right: 0.833rem;
   }
 
   .dash-faction-status {
     border: 1px solid #c16400;
     background-color: green;
-    height: 1rem;
-    width: 2rem;
-    margin-right: 0.5rem;
-    margin-left: 0.5rem;
-    margin-top: 0.5rem;
+    height: 0.833rem;
+    width: 1.667rem;
+    margin-right: 0.417rem;
+    margin-left: 0.417rem;
+    margin-top: 0.417rem;
     float: left;
   }
 
   .dash-faction-status-text {
-    padding-top: 0.25rem;
+    padding-top: 0.208rem;
     font-family: 'orbitron-medium';
-    letter-spacing: 0.1rem;
-    width: 20rem;
-    font-size: 1.4rem;
+    letter-spacing: 0.083rem;
+    width: 16.667rem;
+    font-size: 1.167rem;
   }
 
   .dash-faction-agenda {

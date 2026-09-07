@@ -58,18 +58,18 @@
 
 .selectable::before {
 	content: ' ';
-	box-shadow: 2rem 2rem 7rem 3rem #fffc, -2rem -2rem 7rem 3rem #fffc;
-	height: 6rem;
-	width: 6rem;
+	box-shadow: 1.667rem 1.667rem 5.833rem 2.5rem #fffc, -1.667rem -1.667rem 5.833rem 2.5rem #fffc;
+	height: 5rem;
+	width: 5rem;
 	display: block;
-	margin-top: 2.5rem;
-	margin-left: 2rem;
+	margin-top: 2.083rem;
+	margin-left: 1.667rem;
 	position: absolute;
 }
 
 .warbox {
-	height: 9rem;
-	width: 9rem;
+	height: 7.5rem;
+	width: 7.5rem;
 	position: absolute;
 	display: block;
 }
@@ -77,10 +77,10 @@
 .fortified {
 	display: block;
 	position: absolute;
-	width: 14rem;
-	height: 14rem;
-	left: -2.5rem;
-	top: -2.5rem;
+	width: 11.667rem;
+	height: 11.667rem;
+	left: -2.083rem;
+	top: -2.083rem;
 }
 
 .warbox img {
@@ -284,8 +284,8 @@ img {
 }
 
 .personage_tile {
-	height: 25rem;
-	width: 25rem;
+	height: 20.833rem;
+	width: 20.833rem;
 	background-size: cover;
 }
 
@@ -480,11 +480,11 @@ img {
 }
 
 .space_faction {
-	font-size: 2rem;
+	font-size: 1.667rem;
 }
 
 .space_unit {
-	margin-left: 1rem;
+	margin-left: 0.833rem;
 }
 
 .space_regulars img:nth-child(1) {
@@ -560,14 +560,14 @@ img {
 	margin-left: 0px;
 	margin-right: 0px;
 	position: relative;
-	padding: 0.25rem;
+	padding: 0.208rem;
 }
 
 
 .turntrack {
-  border: 1rem solid red;
-  height: 24rem;
-  width: 14rem;
+  border: 0.833rem solid red;
+  height: 20rem;
+  width: 11.667rem;
   position: absolute;
 }
 .turntrack1 {

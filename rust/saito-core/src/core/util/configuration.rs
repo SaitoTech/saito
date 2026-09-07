@@ -190,12 +190,17 @@ pub struct BlockchainConfig {
     pub fork_id: String,
     #[serde(default = "get_default_issuance_writing_block_interval")]
     pub issuance_writing_block_interval: BlockId,
+    #[serde(default = "get_default_utxoset_writing_block_interval")]
+    pub utxoset_writing_block_interval: BlockId,
     #[serde(default)]
     pub confirmations: Vec<(BlockId, SaitoHash, BlockId)>,
 }
 
 pub fn get_default_issuance_writing_block_interval() -> BlockId {
     10
+}
+pub fn get_default_utxoset_writing_block_interval() -> BlockId {
+    100
 }
 pub fn get_default_block_confirmation_limit() -> BlockId {
     1

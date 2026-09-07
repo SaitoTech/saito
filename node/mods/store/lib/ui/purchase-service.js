@@ -24,8 +24,9 @@ function yieldForPaint() {
  * Shows Purchase Monitor during create/sign/broadcast, then hands off
  * to Transaction Monitor once the signed tx exists.
  */
-async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
+async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1, opts = {}) {
   const monitor = mod.purchase_monitor;
+  const note = String(opts?.note || '').trim();
 
   // Immediate UI transition — before any purchase preparation work.
   // Cheap title only; returnTitle()/price hydration happens after paint.
@@ -78,7 +79,7 @@ async function startPurchase(app, mod, purchaseOverlay, summary, quantity = 1) {
     try {
       newtx = await mod.createPurchaseAssetTransaction(
         summary,
-        { price: unit_price, fee, quantity },
+        { price: unit_price, fee, quantity, note },
         total_nolan
       );
     } catch (err) {

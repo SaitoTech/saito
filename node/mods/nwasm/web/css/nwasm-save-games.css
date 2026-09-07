@@ -1,7 +1,7 @@
 /* Namespace: .nwasm-save-games */
 
 .nwasm-save-games {
-  width: min(72rem, 92vw);
+  width: min(60rem, 92vw);
   max-height: 85vh;
   display: flex;
   flex-direction: column;
@@ -9,7 +9,7 @@
 
 .nwasm-save-games .body {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(11.667rem, 1fr));
   gap: var(--saito-space-md);
   overflow-y: auto;
   padding: var(--saito-space-md) 0;
@@ -67,7 +67,7 @@
   position: absolute;
   right: var(--saito-space-sm);
   bottom: var(--saito-space-sm);
-  padding: 0.2rem 0.55rem;
+  padding: 0.167rem 0.458rem;
   border-radius: var(--saito-radius);
   background: color-mix(in srgb, var(--saito-background) 80%, transparent);
   color: var(--saito-foreground);

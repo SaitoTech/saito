@@ -19,6 +19,7 @@ class SaitoPurchaseOverlay {
     //
     this.amount = 0;
     this.expected_deposit = 0;
+    this.amount_input_source = 'crypto';
     this.crypto_selected = false;
     this.tx = null;
     this.recipient = '';
@@ -35,6 +36,7 @@ class SaitoPurchaseOverlay {
     this.faucet_already_issued = null;
 
     this.countdown_interval = null;
+    this.payment_instruction_timer = null;
 
     this.ui_msg = '';
 
@@ -54,10 +56,11 @@ class SaitoPurchaseOverlay {
       this.receivePaymentAddressFromServer(data);
     });
 
-    app.connection.on('saito-purchase-error-notification', () => {
+    app.connection.on('saito-purchase-error-notification', (data = {}) => {
+      this.clearPaymentInstructionTimer();
       this.overlay.close();
       this.overlay.closebox = true;
-      this.overlay.show(SaitoPurchaseErrorTemplate());
+      this.overlay.show(SaitoPurchaseErrorTemplate(data?.message));
     });
 
     app.connection.on(
@@ -540,27 +543,58 @@ class SaitoPurchaseOverlay {
       };
     }
 
-    const input = document.getElementById('input-amount');
-    const output = document.querySelector('.expected_amount');
+    const cryptoInput = document.getElementById('input-amount');
+    const saitoInput = document.getElementById('saito-input-amount');
 
-    if (input && output) {
-      input.onchange = (e) => {
-        let amount = input.value;
-        output.value = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
+    if (cryptoInput && saitoInput) {
+      const updateAmount = (sourceInput, targetInput, converter, source) => {
+        sourceInput.value = this.sanitizeAmountInput(sourceInput.value);
+        this.amount_input_source = source;
+
+        if (!sourceInput.value) {
+          targetInput.value = '';
+          return;
+        }
+
+        const convertedAmount = Number(converter(Number(sourceInput.value)));
+        targetInput.value = this.formatAmountInput(convertedAmount);
       };
-      input.onkeyup = (e) => {
-        let amount = input.value;
-        output.value = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
+
+      cryptoInput.oninput = () => {
+        updateAmount(
+          cryptoInput,
+          saitoInput,
+          (amount) => this.mod.convertToSaito(amount, this.crypto_selected.ticker),
+          'crypto'
+        );
+      };
+
+      saitoInput.oninput = () => {
+        updateAmount(
+          saitoInput,
+          cryptoInput,
+          (amount) => this.mod.convertSaitoToOther(amount, this.crypto_selected.ticker),
+          'saito'
+        );
       };
     }
 
     if (document.getElementById('next-purchase-btn')) {
       document.getElementById('next-purchase-btn').onclick = (e) => {
-        this.expected_deposit = document.querySelector('#input-amount').value;
+        const expectedDeposit = cryptoInput?.value || '';
+        const issueAmount = saitoInput?.value || '';
 
-        if (!this.expected_deposit) {
+        if (!this.isValidAmount(expectedDeposit) || !this.isValidAmount(issueAmount)) {
           salert('Invalid input');
           return;
+        }
+
+        if (this.amount_input_source === 'saito') {
+          this.amount = issueAmount;
+          this.expected_deposit = 0;
+        } else {
+          this.amount = 0;
+          this.expected_deposit = expectedDeposit;
         }
 
         this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
@@ -621,6 +655,42 @@ class SaitoPurchaseOverlay {
     }
   }
 
+  sanitizeAmountInput(value, maxFractionDigits = 8) {
+    const numericCharacters = String(value ?? '').replace(/[^0-9.]/g, '');
+    if (!/[0-9]/.test(numericCharacters)) {
+      return '';
+    }
+
+    const decimalIndex = numericCharacters.indexOf('.');
+    if (decimalIndex === -1) {
+      return numericCharacters;
+    }
+
+    const whole = numericCharacters.slice(0, decimalIndex) || '0';
+    const fraction = numericCharacters
+      .slice(decimalIndex + 1)
+      .replace(/\./g, '')
+      .slice(0, maxFractionDigits);
+
+    return `${whole}.${fraction}`;
+  }
+
+  formatAmountInput(value) {
+    if (!Number.isFinite(value) || value < 0) {
+      return '';
+    }
+
+    return value.toLocaleString('en-US', {
+      useGrouping: false,
+      maximumFractionDigits: 8
+    });
+  }
+
+  isValidAmount(value) {
+    const amount = Number(value);
+    return value !== '' && Number.isFinite(amount) && amount > 0;
+  }
+
   async handleInternalTransfer() {
     try {
       let cm = this.app.wallet.returnCryptoModuleByTicker(this.crypto_selected.ticker);
@@ -658,10 +728,24 @@ class SaitoPurchaseOverlay {
       data.expected_deposit = this.expected_deposit;
     } else {
       console.error('No valid numeric input');
+      this.app.connection.emit('saito-purchase-error-notification', {
+        message: 'A valid payment amount is required before requesting instructions.'
+      });
       return;
     }
 
     console.log('Payment Address Request:', data);
+
+    this.clearPaymentInstructionTimer();
+    this.payment_instruction_timer = setTimeout(() => {
+      if (!this.active || this.destination) {
+        return;
+      }
+      this.app.connection.emit('saito-purchase-error-notification', {
+        message:
+          'The payment service did not return instructions. Please check your connection and try again.'
+      });
+    }, 35000);
 
     this.app.connection.emit('relay-send-message', {
       recipient: this.mod.authorized_public_key,
@@ -671,13 +755,21 @@ class SaitoPurchaseOverlay {
   }
 
   receivePaymentAddressFromServer(data) {
+    this.clearPaymentInstructionTimer();
+
     console.log('\n/////////////////////////////////////');
     console.log('RESERVE ADDRESS RESPONSE');
     console.log(data);
     console.log('/////////////////////////////////////\n');
 
+    if (!data?.destination || !data?.mixin_id || !data?.ticker) {
+      this.app.connection.emit('saito-purchase-error-notification', {
+        message: 'The payment service returned incomplete deposit instructions.'
+      });
+      return;
+    }
+
     if (this.crypto_selected && data.ticker !== this.crypto_selected.ticker) {
-      salert('You have an active pending deposit for a different crypto');
       console.debug(data);
       console.debug(
         this.crypto_selected,
@@ -686,6 +778,9 @@ class SaitoPurchaseOverlay {
         this.description,
         this.destination
       );
+      this.app.connection.emit('saito-purchase-error-notification', {
+        message: 'You have an active pending deposit for a different crypto.'
+      });
       return;
     }
     //
@@ -805,6 +900,13 @@ class SaitoPurchaseOverlay {
     this.overlay.close();
   }
 
+  clearPaymentInstructionTimer() {
+    if (this.payment_instruction_timer) {
+      clearTimeout(this.payment_instruction_timer);
+      this.payment_instruction_timer = null;
+    }
+  }
+
   reset() {
     console.log('Reset Saito-Purchase Values');
     this.mod.pending_payments = [];
@@ -815,6 +917,7 @@ class SaitoPurchaseOverlay {
     this.amount = 0;
     this.internal_transfer = null;
     this.expected_deposit = 0;
+    this.amount_input_source = 'crypto';
     this.reserved_until = 0;
     this.crypto_selected = false;
     this.tx = null;
@@ -831,6 +934,7 @@ class SaitoPurchaseOverlay {
 
     clearTimeout(this.timer);
     this.timer = null;
+    this.clearPaymentInstructionTimer();
 
     //
     // reset countdown timer

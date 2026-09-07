@@ -182,7 +182,7 @@
 }
 
 .arcade-wizard .game-wizard-crypto-hook::after {
-  content: 'Stake';
+  content: 'crypto';
   font-family: var(--saito-font-medium);
   text-transform: none;
 }

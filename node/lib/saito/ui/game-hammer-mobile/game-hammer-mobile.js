@@ -64,9 +64,6 @@ class GameHammerMobile {
       this.rendered = true;
 
       screen.orientation.addEventListener('change', (event) => {
-        const type = event.target.type;
-        const angle = event.target.angle;
-        console.log(`ScreenOrientation change: ${type}, ${angle} degrees.`);
         setTimeout(() => {
           this.render(target, min_width, min_height);
         }, 25);
@@ -78,9 +75,6 @@ class GameHammerMobile {
     let boardWidth = parseInt(window.getComputedStyle(this.element).width);
     let boardHeight = parseInt(window.getComputedStyle(this.element).height);
 
-    if (this.debug) {
-      console.log('Basic gameboard size:', boardWidth, boardHeight);
-    }
     if (window.getComputedStyle(this.element).boxSizing == 'content-box') {
       boardWidth +=
         parseInt(window.getComputedStyle(this.element).paddingLeft) +
@@ -89,19 +83,12 @@ class GameHammerMobile {
         parseInt(window.getComputedStyle(this.element).paddingTop) +
         parseInt(window.getComputedStyle(this.element).paddingBottom);
     }
-    if (this.debug) {
-      console.log('With padding included:', boardWidth, boardHeight);
-    }
     boardWidth +=
       parseInt(window.getComputedStyle(this.element).marginLeft) +
       parseInt(window.getComputedStyle(this.element).marginRight);
     boardHeight +=
       parseInt(window.getComputedStyle(this.element).marginTop) +
       parseInt(window.getComputedStyle(this.element).marginBottom);
-
-    if (this.debug) {
-      console.log('and with margins:', boardWidth, boardHeight);
-    }
 
     this.originalSize = {
       width: boardWidth,
@@ -113,13 +100,7 @@ class GameHammerMobile {
     let fit_width = window.innerWidth;
     let fit_height = window.innerHeight;
 
-    if (this.debug) {
-      console.log('screensize: ', fit_width, fit_height);
-    }
-
     let scale = Math.floor(100 * Math.min(fit_width / boardWidth, fit_height / boardHeight)) / 100;
-
-    console.log(this.originalSize);
 
     this.pinchZoomOrigin = this.getRelativePosition(
       this.element,
@@ -129,7 +110,6 @@ class GameHammerMobile {
     );
 
     var d = this.scaleFrom(this.pinchZoomOrigin, 1, scale);
-    console.log(d);
     this.current.x = d.x;
     this.current.y = d.y;
     this.current.z = d.z;
@@ -195,7 +175,6 @@ class GameHammerMobile {
 
       //Pinch scaling object
       hammertime.on('pinch', function (e) {
-        console.log(e.scale);
         var d = hammer_self.scaleFrom(
           hammer_self.pinchZoomOrigin,
           hammer_self.last.z,
@@ -315,10 +294,6 @@ class GameHammerMobile {
       } else {
         min_y = 0;
         max_y = window.innerHeight - element_height;
-      }
-
-      if (this.debug) {
-        console.log('Set dragging boundaries: ', min_x, min_y, max_x, max_y);
       }
 
       if (this.rightJustify) {

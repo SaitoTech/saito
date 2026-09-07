@@ -1,5 +1,6 @@
 module.exports = {
   core: [
+    'website/website.js',
     'arcade/arcade.js',
     'archive/archive.js',
     'chat/chat.js',
@@ -20,6 +21,7 @@ module.exports = {
     'stun/stun.js'
   ],
   lite: [
+    'website/website.js',
     'arcade/arcade.js',
     'archive/archive.js',
     'chess/chess.js',

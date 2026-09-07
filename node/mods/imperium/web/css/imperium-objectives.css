@@ -5,15 +5,15 @@
     width: min-content;
     max-width: 1000px;
     max-height: 85vh;
-    padding: 4rem;
+    padding: 3.333rem;
     min-width: 80vw;
   }
 
   .objectives-overlay-title {
     color: white;
     font-family: 'bank-gothic';
-    letter-spacing: 0.75rem;
-    font-size: 5rem;
+    letter-spacing: 0.625rem;
+    font-size: 4.167rem;
     font-weight: bold;
     margin-left: auto;
     margin-right: auto;
@@ -23,14 +23,14 @@
   .objectives-overlay-content {
     display: flex;
     flex-direction: row;
-    gap: 2rem;
+    gap: 1.667rem;
     justify-content: space-evenly;
     width: 100%;
     max-width: 80vw;
     max-height: 85vh;
     height: min-content;
     width: 100%;
-    padding: 2rem;
+    padding: 1.667rem;
   }
 
   .objectives_card_content {
@@ -39,12 +39,12 @@
     position: relative;
     color: white;
     margin-top: 0px;
-    padding: 1.4rem;
-    padding-top: 1rem;
-    line-height: 3rem;
+    padding: 1.167rem;
+    padding-top: 0.833rem;
+    line-height: 2.5rem;
     height: calc(42vh - 5em);
     text-align: center;
-    font-size: 2.3rem;
+    font-size: 1.917rem;
   }
 
   .objectives_card_name {
@@ -54,12 +54,12 @@
     min-height: min-content;
     text-align: center;
     width: 100%;
-    padding-bottom: 1rem;
-    padding-top: 1rem;
-    font-size: 2.5rem;
+    padding-bottom: 0.833rem;
+    padding-top: 0.833rem;
+    font-size: 2.083rem;
     font-weight: bold;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    padding-left: 0.417rem;
+    padding-right: 0.417rem;
   }
 
   .objectives_overlay_objectives_card {
@@ -68,8 +68,8 @@
     height: 50vh;
     margin: 10px;
     background-size: cover;
-    max-width: 36rem;
-    max-height: 54rem;
+    max-width: 30rem;
+    max-height: 45rem;
     float: left;
     font-size: 0.8em;
     z-index: 5;

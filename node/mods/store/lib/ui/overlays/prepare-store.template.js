@@ -64,7 +64,13 @@ module.exports = {
     `;
   },
 
-  ready({ state = 1, actions = {}, store_url = '' } = {}) {
+  ready({ state = 1, actions = {}, store_url = '', awaiting_mint = false } = {}) {
+    const step2Copy = awaiting_mint
+      ? 'Waiting for your NFT to confirm on the network...'
+      : 'Create an NFT or upload media to list and sell.';
+    const createEnabled =
+      !!actions.create_nft && state === 2 && !awaiting_mint;
+
     return `
       <ol class="steps" data-state="${state}">
         <li class="${stepClass(1, state)}" data-step="1">
@@ -86,11 +92,11 @@ module.exports = {
             <span class="disc" aria-hidden="true"></span>
             <img src="/store/img/store-wizard-plant-2.png" alt="">
           </div>
-          <p class="copy">Create an NFT or upload media to list and sell.</p>
+          <p class="copy">${step2Copy}</p>
           ${stepButton({
             action: actions.create_nft && 'create-nft',
             label: 'CREATE NFT',
-            enabled: !!actions.create_nft && state === 2
+            enabled: createEnabled
           })}
         </li>
         <li class="${stepClass(3, state)}" data-step="3">

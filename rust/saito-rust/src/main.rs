@@ -1,7 +1,4 @@
-use std::cmp::min;
-use std::ops::DerefMut;
 use std::panic;
-use std::path::Path;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -12,8 +9,6 @@ use clap::{crate_version, App, Arg};
 use log::info;
 use log::{debug, error};
 use saito_rust::run_thread::run_thread;
-use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
 use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::RwLock;
@@ -28,9 +23,7 @@ use saito_core::core::consensus::blockchain::Blockchain;
 use saito_core::core::consensus::context::Context;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusThread};
-use saito_core::core::defs::{
-    Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, CHANNEL_SAFE_BUFFER, PROJECT_PUBLIC_KEY,
-};
+use saito_core::core::defs::{PrintForLog, SaitoPrivateKey, SaitoPublicKey, CHANNEL_SAFE_BUFFER};
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::network::events::IoEvent;
 use saito_core::core::network::events::NetworkEvent;
@@ -45,7 +38,7 @@ use saito_core::core::storage::storage::Storage;
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::generate_keys;
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
-use saito_rust::config_handler::{ConfigHandler, NodeConfigurations};
+use saito_rust::config_handler::ConfigHandler;
 use saito_rust::network_controller::{run_network_controller, NetworkController};
 use saito_rust::rust_io_handler::RustIOHandler;
 use saito_rust::time_keeper::TimeKeeper;
@@ -670,169 +663,6 @@ async fn run_node(
     );
 }
 
-pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
-    info!("running saito controllers");
-    let start_time = Instant::now();
-    let public_key: SaitoPublicKey =
-        hex::decode("03145c7e7644ab277482ba8801a515b8f1b62bcd7e4834a33258f438cd7e223849")
-            .unwrap()
-            .try_into()
-            .unwrap();
-    let private_key: SaitoPrivateKey =
-        hex::decode("ddb4ba7e5d70c2234f035853902c6bc805cae9163085f2eac5e585e2d6113ccd")
-            .unwrap()
-            .try_into()
-            .unwrap();
-
-    let configs_lock: Arc<RwLock<NodeConfigurations>> =
-        Arc::new(RwLock::new(NodeConfigurations::default()));
-
-    let configs_clone: Arc<RwLock<dyn Configuration + Send + Sync>> = configs_lock.clone();
-
-    let wallet = Arc::new(RwLock::new(Wallet::new(private_key, public_key)));
-    {
-        let _configs = configs_clone.write().await;
-        let mut wallet = wallet.write().await;
-        let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(100);
-        Wallet::load(&mut wallet, &(RustIOHandler::new(sender, None, 1))).await;
-    }
-    let consensus = configs_clone
-        .read()
-        .await
-        .get_consensus_config()
-        .unwrap()
-        .clone();
-    let context = Context::new(
-        configs_clone.clone(),
-        wallet,
-        consensus.genesis_period,
-        consensus.default_social_stake,
-        consensus.default_social_stake_period,
-        consensus.prune_after_blocks,
-        consensus.block_confirmation_limit,
-    );
-
-    let (sender_to_network_controller, _receiver_in_network_controller) =
-        tokio::sync::mpsc::channel::<IoEvent>(100000);
-    let mut storage = Storage::new(Box::new(RustIOHandler::new(
-        sender_to_network_controller.clone(),
-        None,
-        0,
-    )));
-    let list = storage.load_block_name_list().await.unwrap();
-
-    let page_size = 100;
-    let pages = list.len() / page_size;
-    let mut configs = configs_lock.write().await;
-
-    let mut blockchain = context.blockchain_lock.write().await;
-
-    for current_page in 0..pages {
-        let start = current_page * page_size;
-        let end = min(start + page_size, list.len());
-        if !storage
-            .load_blocks_from_disk(&list[start..end], context.mempool_lock.clone())
-            .await
-        {
-            error!(
-                "refusing to continue: block file load failed for page {} (blocks {}-{})",
-                current_page, start, end
-            );
-            process::exit(1);
-        }
-
-        tokio::task::yield_now().await;
-
-        blockchain
-            .add_blocks_from_mempool(
-                context.mempool_lock.clone(),
-                None,
-                &mut storage,
-                None,
-                None,
-                configs.deref_mut(),
-            )
-            .await;
-        // blockchain.utxoset.shrink_to_fit();
-        // blockchain.blocks.shrink_to_fit();
-    }
-
-    info!("utxo size : {:?}", blockchain.utxoset.len());
-
-    let data = blockchain.get_utxoset_data();
-
-    info!("{:?} entries in utxo to write to file", data.len());
-    let issuance_path: String = "./data/issuance.file".to_string();
-    info!("opening file : {:?}", issuance_path);
-
-    let path = Path::new(issuance_path.as_str());
-    if path.parent().is_some() {
-        tokio::fs::create_dir_all(path.parent().unwrap())
-            .await
-            .expect("failed creating directory structure");
-    }
-
-    let file = File::create(issuance_path.clone()).await;
-    if file.is_err() {
-        error!("error opening file. {:?}", file.err().unwrap());
-        File::create(issuance_path)
-            .await
-            .expect("couldn't create file");
-        return;
-    }
-    let mut file = file.unwrap();
-
-    let mut sum = 0;
-    let slip_type = "Normal";
-    let mut aggregated_value = 0;
-    let mut total_written_lines = 0;
-    for (key, value) in &data {
-        if value < &threshold {
-            // PROJECT_PUBLIC_KEY.to_string()
-            aggregated_value += value;
-        } else {
-            sum += value;
-            total_written_lines += 1;
-            let key_base58 = key.to_base58();
-
-            file.write_all(format!("{}\t{}\t{}\n", value, key_base58, slip_type).as_bytes())
-                .await
-                .expect("failed writing to issuance file");
-        };
-    }
-
-    // add remaining value
-    if aggregated_value > 0 {
-        sum += aggregated_value;
-        total_written_lines += 1;
-        file.write_all(
-            format!(
-                "{}\t{}\t{}\n",
-                aggregated_value,
-                PROJECT_PUBLIC_KEY.to_string(),
-                slip_type
-            )
-            .as_bytes(),
-        )
-        .await
-        .expect("failed writing to issuance file");
-    }
-
-    file.flush()
-        .await
-        .expect("failed flushing issuance file data");
-
-    let end_time = Instant::now();
-    let spent_time = end_time.duration_since(start_time);
-
-    info!(
-        "total written lines : {:?} sum : {:?} spent_time : {:?}",
-        total_written_lines,
-        sum,
-        spent_time.as_secs()
-    );
-}
-
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("saito-rust")
@@ -849,15 +679,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .long("mode")
                 .value_name("MODE")
                 .default_value("node")
-                .possible_values(["node", "utxo-issuance", "hastened"])
+                .possible_values(["node", "hastened"])
                 .help("Sets the mode for execution")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("utxo_threshold")
-                .long("threshold")
-                .value_name("UTXO_THRESHOLD")
-                .help("Threshold for selecting utxo for issuance file")
                 .takes_value(true),
         )
         .arg(
@@ -889,23 +712,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arc::new(RwLock::new(configs.unwrap()));
 
         run_node(configs, 1).await;
-    } else if program_mode == "utxo-issuance" {
-        let threshold_str = matches.value_of("utxo_threshold");
-        let mut threshold: Currency = 25_000;
-        if threshold_str.is_some() {
-            let result = String::from(threshold_str.unwrap()).parse();
-            if result.is_err() {
-                error!("cannot parse threshold : {:?}", threshold_str);
-            } else {
-                threshold = result.unwrap();
-            }
-        }
-        info!(
-            "running the program in utxo to issuance converter mode with threshold : {:?}",
-            threshold
-        );
-
-        run_utxo_to_issuance_converter(threshold).await;
     } else if program_mode == "hastened" {
         let multiplier_str = matches.value_of("haste_multiplier");
         let result = String::from(multiplier_str.unwrap()).parse();

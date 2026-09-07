@@ -278,7 +278,6 @@ class Browser {
       console.log('Browser.ts -- active module is ' + active_module);
       for (let i = 0; i < this.app.modules.mods.length; i++) {
         if (this.app.modules.mods[i].isSlug(active_module)) {
-          console.log('Activating ' + this.app.modules.mods[i].returnName());
           this.app.modules.mods[i].activateModule();
           break;
         }
@@ -2167,6 +2166,8 @@ class Browser {
           return `<a ${extra} class="saito-link" href="${this.escapeHTML(hrefRaw)}">${this.escapeHTML(url2)}</a>`;
         });
       }
+
+      text = String(text).replace(/\sid=(["']).*?\1/gi, '');
 
       text = sanitizeHtml(text, {
         allowedTags: [

@@ -3,14 +3,14 @@
     display: grid;
     color: white;
     width: 80vw;
-    min-width: 75rem;
+    min-width: 62.5rem;
     max-width: 1200px;
     height: max-content;
-    column-gap: 2rem;
-    row-gap: 2rem;
-    padding: 4rem;
+    column-gap: 1.667rem;
+    row-gap: 1.667rem;
+    padding: 3.333rem;
     background-color: #0007;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     grid-template-rows: min-content 1fr;
     width: min-content;
     justify-items: center;
@@ -21,8 +21,8 @@
     margin-left: auto;
     margin-right: auto;
     font-family: 'bank-gothic';
-    letter-spacing: 0.75rem;
-    font-size: 5rem;
+    letter-spacing: 0.625rem;
+    font-size: 4.167rem;
     width: max-content;
   }
 
@@ -30,7 +30,7 @@
     display: flex;
     flex-direction: row;
     justify-content: space-evenly;
-    margin-top: 2rem;
+    margin-top: 1.667rem;
     width: max-content;
     max-width: 80vw;
     min-width: 1000px;

@@ -42,7 +42,9 @@ use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingThread};
 use saito_core::core::storage::storage::Storage;
 use saito_core::core::util::configuration::Configuration;
-use saito_core::core::util::crypto::{generate_keypair_from_private_key, sign};
+use saito_core::core::util::crypto::{
+    generate_keypair_from_private_key, generate_shared_secret as generate_shared_secret_core, sign,
+};
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
 use secp256k1::SECP256K1;
 use std::convert::TryInto;
@@ -1026,6 +1028,22 @@ pub fn generate_public_key(private_key: JsString) -> Result<JsString, JsValue> {
 }
 
 #[wasm_bindgen]
+pub fn generate_shared_secret(
+    private_key: JsString,
+    public_key: JsString,
+) -> Result<JsString, JsValue> {
+    let private_key: SaitoPrivateKey = string_to_hex(private_key).or(Err(JsValue::from(
+        "Failed parsing private key string to key",
+    )))?;
+    let public_key: SaitoPublicKey = string_to_key(public_key).or(Err(JsValue::from(
+        "Failed parsing public key string to key",
+    )))?;
+    let secret = generate_shared_secret_core(&private_key, &public_key)
+        .map_err(|e| JsValue::from(format!("Failed generating shared secret: {:?}", e)))?;
+    Ok(secret.to_hex().into())
+}
+
+#[wasm_bindgen]
 pub async fn get_wallet() -> WasmWallet {
     let saito = SAITO.lock().await;
     return saito.as_ref().unwrap().wallet.clone();
@@ -1089,6 +1107,21 @@ pub async fn write_issuance_file(threshold: Currency) {
     blockchain
         .write_issuance_file(threshold, "./data/issuance.file", &mut storage)
         .await;
+}
+
+#[wasm_bindgen]
+pub async fn write_utxoset_file() {
+    let mut saito = SAITO.lock().await;
+    let blockchain_lock = saito
+        .as_mut()
+        .unwrap()
+        .routing_thread
+        .blockchain_lock
+        .clone();
+    let mut storage = &mut saito.as_mut().unwrap().consensus_thread.storage;
+
+    let blockchain = blockchain_lock.write().await;
+    blockchain.write_utxoset_file("", &mut storage).await;
 }
 
 #[wasm_bindgen]

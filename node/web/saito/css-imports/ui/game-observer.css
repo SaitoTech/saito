@@ -6,7 +6,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3rem;
+  gap: 2.5rem;
   z-index: 10000;
   height: 100vh;
   width: 100vw;
@@ -14,13 +14,13 @@
 
 .game-observer-sync-overlay .game-observer-sync-title {
   color: #fff;
-  font-size: 4.5rem;
+  font-size: 3.75rem;
   margin: 0;
 }
 
 .game-observer-sync-overlay .game-observer-sync-status {
   color: rgba(255, 255, 255, 0.9);
-  font-size: 3rem;
+  font-size: 2.5rem;
   margin: 0;
 }
 
@@ -34,7 +34,7 @@
   position: fixed;
   pointer-events: auto;
   display: flex;
-  bottom: 2rem;
+  bottom: 1.667rem;
   left: 50%;
   transform: translateX(-50%);
   width: 450px;
@@ -44,8 +44,8 @@
   color: ghostwhite;
   font-size: max(3vh, 16px);
   text-align: center;
-  padding: 0.75rem;
-  padding-top: 1.25rem;
+  padding: 0.625rem;
+  padding-top: 1.042rem;
   z-index: 99999999;
   border-radius: 15px;
   border: 2px solid #AAA;
@@ -59,8 +59,8 @@
   height: fit-content;
   width: 100%;
   font-size: 18px;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-top: 0.417rem;
+  margin-bottom: 0.417rem;
 }
 .game-observer-status {
   font-size: 20px;
@@ -74,8 +74,8 @@
 }
 
 #obstatus {
-  font-size: 1.8rem;
-  min-height: 5rem;
+  font-size: 1.5rem;
+  min-height: 4.167rem;
 }
 
 .game-observer-hud .game-observer-controls-row,
@@ -93,12 +93,12 @@
 .game-observer-controls-row .game-observer-btn,
 .game-observer-controls button {
   width: fit-content;
-  padding: 0.75rem 1.25rem;
+  padding: 0.625rem 1.042rem;
   min-width: 56px;
   min-height: 48px;
-  font-size: 1.4rem;
+  font-size: 1.167rem;
   border: 1px solid;
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -135,8 +135,8 @@
 .game-observer-title {
   text-align: center;
   font-size: 22px;
-  margin-top: 0.25rem;
-  margin-bottom: 0.75rem;
+  margin-top: 0.208rem;
+  margin-bottom: 0.625rem;
   white-space: nowrap;
   line-height: 1.3;
 }
@@ -196,7 +196,7 @@
 .game-observer-timeline-inner {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.417rem;
   width: 100%;
   min-height: 28px;
 }
@@ -289,7 +289,7 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  top: -1.25rem;
+  top: -1.042rem;
   font-size: 0.8em;
   color: rgba(255, 255, 255, 0.95);
   white-space: nowrap;
@@ -327,7 +327,7 @@
 .game-observer-state-slider-wrap {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
   width: 100%;
 }
 .game-observer-state-slider {
@@ -413,9 +413,9 @@
   min-width: 56px !important;
   min-height: 48px !important;
   margin: 0 !important;
-  padding: 0.75rem 1.25rem !important;
-  font-size: 1.4rem !important;
-  border-radius: 0.5rem !important;
+  padding: 0.625rem 1.042rem !important;
+  font-size: 1.167rem !important;
+  border-radius: 0.417rem !important;
 }
 
 .game-observer-hud .game-observer-btn {
@@ -438,12 +438,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
-  padding: 0.75rem 1.25rem;
+  font-size: 1.167rem;
+  padding: 0.625rem 1.042rem;
   min-width: 56px;
   min-height: 48px;
   border: 1px solid var(--saito-primary);
-  border-radius: 0.6rem;
+  border-radius: 0.5rem;
   cursor: pointer;
 }
 

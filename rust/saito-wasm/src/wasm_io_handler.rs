@@ -357,7 +357,6 @@ impl InterfaceIO for WasmIoHandler {
     }
 
     async fn load_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
-        info!("[LOAD_TRACE] wasm io load_wallet");
         MsgHandler::load_wallet();
         // TODO : return error state
         Ok(())

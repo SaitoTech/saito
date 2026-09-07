@@ -19,6 +19,9 @@ if [ ! -f "$buildJsonFile" ]; then
 fi
 
 # make sure blocks directory exists
+mkdir -p "${PROJECT_DIR}/data/utxoset"
+
+# make sure blocks directory exists
 mkdir -p "${PROJECT_DIR}/data/blocks"
 
 # make sure state directory exists
