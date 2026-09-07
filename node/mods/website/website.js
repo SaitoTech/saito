@@ -34,12 +34,6 @@ class Websitex extends ModTemplate {
       return;
     }
 
-    if (this.browser_active && document.body?.classList.contains('websitex')) {
-      this.header = new SaitoHeader(this.app, this);
-      await this.header.initialize(this.app);
-      this.addComponent(this.header);
-    }
-
     this.publishBrowserNetworkStatus = async (requestedStage = 'syncing', newBlock = false) => {
       try {
         const publicKey =
@@ -91,12 +85,27 @@ class Websitex extends ModTemplate {
       this.publishBrowserNetworkStatus('online');
     });
 
+    // Report handshakes directly; another module's async callback must not hold
+    // the landing page's connection indicator in its loading state.
+    app.connection.on('on_peer_handshake_complete', (peerId, publicKey) => {
+      if (publicKey) {
+        this.browserConnectedPeers.add(publicKey);
+      }
+      this.publishBrowserNetworkStatus('online');
+    });
+
     app.connection.on('peer_disconnect', (peerId, publicKey) => {
       if (publicKey) {
         this.browserConnectedPeers.delete(publicKey);
       }
       this.publishBrowserNetworkStatus('syncing');
     });
+
+    if (this.browser_active && document.body?.classList.contains('websitex')) {
+      this.header = new SaitoHeader(this.app, this);
+      await this.header.initialize(this.app);
+      this.addComponent(this.header);
+    }
 
     window.setTimeout(() => this.publishBrowserNetworkStatus('syncing'), 0);
   }
@@ -111,7 +120,7 @@ class Websitex extends ModTemplate {
     const saitoHeader = document.getElementById('saito-header');
     const siteHeader = document.querySelector('[data-site-header]');
     const menuTrigger = document.getElementById('saito-header-menu-toggle');
-    const mobileMenuProxy = document.querySelector('[data-menu-toggle]');
+    const desktopMenuProxy = document.querySelector('[data-saito-menu-toggle]');
     const sidebar = document.querySelector('.saito-header-hamburger-contents');
     const backdrop = document.querySelector('.saito-header-backdrop');
 
@@ -120,7 +129,6 @@ class Websitex extends ModTemplate {
     }
 
     siteHeader.after(saitoHeader);
-    document.body.classList.add('saito-shell-ready');
 
     menuTrigger.setAttribute('role', 'button');
     menuTrigger.setAttribute('tabindex', '0');
@@ -141,10 +149,13 @@ class Websitex extends ModTemplate {
       liveTrigger.setAttribute('aria-expanded', String(isOpen));
       liveTrigger.setAttribute('aria-label', isOpen ? 'Close Saito menu' : 'Open Saito menu');
 
-      if (mobileMenuProxy && siteHeader.classList.contains('network-online')) {
-        mobileMenuProxy.setAttribute('aria-controls', 'saito-sidebar');
-        mobileMenuProxy.setAttribute('aria-expanded', String(isOpen));
-        mobileMenuProxy.setAttribute('aria-label', isOpen ? 'Close Saito menu' : 'Open Saito menu');
+      liveSidebar.id = 'saito-sidebar';
+      if (desktopMenuProxy) {
+        desktopMenuProxy.setAttribute('aria-expanded', String(isOpen));
+        desktopMenuProxy.setAttribute(
+          'aria-label',
+          isOpen ? 'Close Saito menu' : 'Open Saito menu'
+        );
       }
     };
 
@@ -201,6 +212,8 @@ class Websitex extends ModTemplate {
     }
 
     syncMenuAccessibility();
+    document.body.classList.add('saito-shell-ready');
+    window.dispatchEvent(new CustomEvent('saito-websitex-shell-ready'));
   }
 
   respondTo(type = '', obj = null) {

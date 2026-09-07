@@ -3,3 +3,47 @@
  * its page-level defaults replace the landing page's visual system.
  */
 @import url('/saito/saito.css') layer(saito-shell);
+
+/*
+ * Saito's rem-based controls expect a 12px root (10px on phones), while the
+ * landing page uses 16px. Scale the drawer contents, keeping its fixed panel
+ * and backdrop in viewport coordinates.
+ */
+body.websitex .saito-header-hamburger-contents {
+  --website-shell-scale: 0.75;
+  font-family: var(--saito-font);
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+body.websitex .saito-header-hamburger-contents > * {
+  zoom: var(--website-shell-scale);
+}
+
+/* Keep the QR code and balance together; the drawer itself handles scrolling. */
+body.websitex .saito-header-hamburger-contents .wallet-info {
+  height: auto;
+  min-height: 26.5rem;
+}
+
+body.websitex .saito-header-hamburger-contents.show-wallet .wallet-info {
+  height: 0;
+  min-height: 0;
+}
+
+body.websitex #saito-header :is(button, input, textarea, select) {
+  font: revert-layer;
+}
+
+@media (min-width: 769px) {
+  body.websitex .saito-header-hamburger-contents:not(.show-wallet) .wallet-info {
+    min-height: 22.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  body.websitex .saito-header-hamburger-contents {
+    --website-shell-scale: 0.625;
+    font-size: 1.45rem;
+  }
+}

@@ -19,8 +19,8 @@
       type="text/css"
       media="screen"
     />
-    <link rel="stylesheet" href="./css/saito-shell.css" />
-    <link rel="stylesheet" href="./css/website-2026.css?v=20260902-7" />
+    <link rel="stylesheet" href="./css/saito-shell.css?v=20260907-2" />
+    <link rel="stylesheet" href="./css/website-2026.css?v=20260907-2" />
     <link rel="icon" href="./favicon.ico" sizes="any" />
     <link rel="me" href="https://mastodon.social/@saitonetwork" />
 
@@ -107,6 +107,17 @@
       <div class="header-actions">
         <a class="button button-small button-dark" href="/redsquare">Open Saito</a>
         <button
+          class="menu-toggle saito-menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="saito-sidebar"
+          aria-label="Open Saito menu"
+          data-saito-menu-toggle
+          hidden
+        >
+          <span></span><span></span>
+        </button>
+        <button
           class="menu-toggle"
           type="button"
           aria-expanded="false"
@@ -126,6 +137,7 @@
         inert
       >
         <div class="mobile-nav-main">
+          <a href="#saito-sidebar" data-saito-profile hidden><span>00</span>Profile</a>
           <a href="#apps"><span>01</span>Apps</a>
           <a href="#network"><span>02</span>Network</a>
           <a href="#ownership"><span>03</span>Ownership</a>
@@ -701,7 +713,7 @@
               <div>
                 <span>Different Apps<br />Same Data</span>
                 <p>
-                  A game invite can be a tweet. A store lisitng can be a post in your feed. A chat
+                  A game invite can be a tweet. A store lisiting can be a post in your feed. A chat
                   message can be a game move.
                 </p>
               </div>
@@ -709,7 +721,7 @@
                 <span>Same Data<br />Different Apps</span>
                 <p>
                   Developers compete to build apps the best experience. Users can choose between
-                  different apps to access the same conetnt.
+                  different apps to access the same content.
                 </p>
               </div>
               <div>
@@ -957,6 +969,6 @@
       <span aria-hidden="true">↑</span>
     </button>
 
-    <script src="./js/site-2026.js?v=20260902-8"></script>
+    <script src="./js/site-2026.js?v=20260907-1"></script>
   </body>
 </html>

@@ -281,6 +281,12 @@ h3 {
   backdrop-filter: blur(16px);
 }
 
+/* A backdrop filter makes this header the containing block for its fixed menu. */
+.site-header.menu-active {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 .brand {
   position: relative;
   z-index: 2;
@@ -368,6 +374,24 @@ h3 {
   transform: rotate(-45deg);
 }
 
+.saito-menu-toggle[hidden],
+.mobile-nav-main [data-saito-profile][hidden],
+.site-header.saito-menu-ready .header-actions .button {
+  display: none;
+}
+
+@media (min-width: 821px) {
+  .saito-menu-toggle:not([hidden]) {
+    display: grid;
+  }
+}
+
+@media (max-width: 820px) {
+  .header-actions .saito-menu-toggle {
+    display: none;
+  }
+}
+
 .mobile-nav {
   position: fixed;
   inset: 0;
@@ -376,6 +400,7 @@ h3 {
   background: radial-gradient(circle at 90% 10%, #ff8d79 0, transparent 30%), #f7f3ed;
   flex-direction: column;
   justify-content: space-between;
+  gap: 2rem;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-1rem);
@@ -392,6 +417,7 @@ h3 {
 
 .mobile-nav-main {
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
 }
 
@@ -424,6 +450,7 @@ h3 {
 
 .mobile-nav-secondary {
   display: flex;
+  flex-shrink: 0;
   flex-wrap: wrap;
   gap: 0.7rem 1.5rem;
 }

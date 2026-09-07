@@ -1,41 +1,40 @@
 // Progressive enhancement for the Websitex landing-page experiment.
 document.documentElement.classList.add('has-js');
+window.active_module = 'website';
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const header = document.querySelector('[data-site-header]');
 const menuToggle = document.querySelector('[data-menu-toggle]');
+const saitoMenuToggle = document.querySelector('[data-saito-menu-toggle]');
+const saitoProfile = document.querySelector('[data-saito-profile]');
 const mobileNavigation = document.querySelector('[data-mobile-nav]');
 const mobileNavigationLinks = mobileNavigation?.querySelectorAll('a') || [];
 const desktopNavigationLinks = document.querySelectorAll('.desktop-nav a');
 const mobileAppDock = document.querySelector('[data-open-apps]');
 const appsSection = document.querySelector('#apps');
 
-function mobileMenuTargetsSaito() {
-  return Boolean(
-    header?.classList.contains('network-online') &&
+function syncSaitoMenuAvailability() {
+  const available = Boolean(
     document.body.classList.contains('saito-shell-ready') &&
     typeof window.saitoWebsitex?.toggleMenu === 'function'
   );
-}
-
-function syncMobileMenuTarget(isOpen = false) {
-  if (!menuToggle) {
-    return;
+  header?.classList.toggle('saito-menu-ready', available);
+  if (saitoMenuToggle) {
+    saitoMenuToggle.hidden = !available;
   }
-
-  const targetsSaito = mobileMenuTargetsSaito();
-  menuToggle.setAttribute('aria-expanded', String(targetsSaito && isOpen));
-  menuToggle.setAttribute('aria-controls', targetsSaito ? 'saito-sidebar' : 'mobile-navigation');
-  menuToggle.setAttribute(
-    'aria-label',
-    targetsSaito && isOpen
-      ? 'Close Saito menu'
-      : targetsSaito
-        ? 'Open Saito menu'
-        : 'Open navigation'
-  );
+  if (saitoProfile) {
+    saitoProfile.hidden = !available;
+  }
 }
+
+window.addEventListener('saito-websitex-shell-ready', syncSaitoMenuAvailability);
+saitoMenuToggle?.addEventListener('click', () => window.saitoWebsitex?.toggleMenu?.());
+saitoProfile?.addEventListener('click', (event) => {
+  event.preventDefault();
+  setMenuState(false);
+  window.saitoWebsitex?.toggleMenu?.();
+});
 
 function setMenuState(isOpen) {
   if (!menuToggle || !mobileNavigation) {
@@ -50,25 +49,24 @@ function setMenuState(isOpen) {
   document.body.classList.toggle('menu-open', isOpen);
 
   if (isOpen) {
-    mobileNavigation.querySelector('a')?.focus();
+    mobileNavigation.querySelector('a:not([hidden])')?.focus();
   } else {
     menuToggle.focus();
   }
 }
 
 menuToggle?.addEventListener('click', () => {
-  if (mobileMenuTargetsSaito()) {
-    window.saitoWebsitex.toggleMenu();
-    return;
+  if (document.querySelector('.saito-header-hamburger-contents.show-menu')) {
+    window.saitoWebsitex?.toggleMenu?.();
   }
 
   setMenuState(menuToggle.getAttribute('aria-expanded') !== 'true');
 });
 
 window.addEventListener('saito-header-menu-state', (event) => {
-  if (mobileMenuTargetsSaito()) {
-    syncMobileMenuTarget(Boolean(event.detail?.open));
-  }
+  const isOpen = Boolean(event.detail?.open);
+  saitoMenuToggle?.setAttribute('aria-expanded', String(isOpen));
+  saitoMenuToggle?.setAttribute('aria-label', isOpen ? 'Close Saito menu' : 'Open Saito menu');
 });
 
 mobileNavigationLinks.forEach((link) => {
@@ -76,33 +74,31 @@ mobileNavigationLinks.forEach((link) => {
 });
 
 window.addEventListener('resize', () => {
-  if (
-    window.innerWidth > 820 &&
-    menuToggle?.getAttribute('aria-expanded') === 'true' &&
-    !mobileMenuTargetsSaito()
-  ) {
+  if (window.innerWidth > 820 && menuToggle?.getAttribute('aria-expanded') === 'true') {
     setMenuState(false);
   }
 });
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && menuToggle?.getAttribute('aria-expanded') === 'true') {
-    if (mobileMenuTargetsSaito()) {
-      window.saitoWebsitex.toggleMenu();
-    } else {
-      setMenuState(false);
-    }
+    setMenuState(false);
+  } else if (
+    event.key === 'Escape' &&
+    document.querySelector('.saito-header-hamburger-contents.show-menu')
+  ) {
+    window.saitoWebsitex?.toggleMenu?.();
   }
 
   if (
     event.key === 'Tab' &&
     menuToggle?.getAttribute('aria-expanded') === 'true' &&
-    !mobileMenuTargetsSaito() &&
     mobileNavigation
   ) {
     const focusable = [
       menuToggle,
-      ...mobileNavigation.querySelectorAll('a[href], button:not([disabled])')
+      ...mobileNavigation.querySelectorAll(
+        'a[href]:not([hidden]), button:not([disabled]):not([hidden])'
+      )
     ];
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
@@ -601,6 +597,9 @@ function captureSaitoLogs() {
         appendNetworkLog(`[${timestamp}] [${level.toUpperCase()}] ${message}`);
       }
 
+      if (browserNodeOnline) {
+        return;
+      }
       if (/Installing:/i.test(message)) {
         setJoinStage('Loading modules', 68);
       } else if (/lite init|Initializing wallet|Build Number/i.test(message)) {
@@ -637,30 +636,18 @@ function applyBrowserNetworkStatus(detail = {}) {
     renderPeers(connectedBrowserPeers, 'The node has no live peers yet.');
     browserNodeLoading = false;
     setJoinStage('On line', 100, 'complete');
-    if (mobileNavigation?.classList.contains('is-open')) {
-      setMenuState(false);
-    }
     browserNodeOnline = true;
     header?.classList.add('network-online');
-    syncMobileMenuTarget(false);
+    syncSaitoMenuAvailability();
     setNetworkAction('online');
     refreshNodePeers();
     window.Pace?.stop?.();
+    restoreConsole?.();
   } else {
     renderPeers([], 'Connecting to live peers…');
-    const wasOnline = browserNodeOnline;
     browserNodeLoading = true;
-    const saitoSidebarOpen = document
-      .querySelector('.saito-header-hamburger-contents')
-      ?.classList.contains('show-menu');
-    if (wasOnline && saitoSidebarOpen) {
-      window.saitoWebsitex?.toggleMenu?.();
-    } else if (wasOnline && menuToggle?.getAttribute('aria-expanded') === 'true') {
-      setMenuState(false);
-    }
     browserNodeOnline = false;
     header?.classList.remove('network-online');
-    syncMobileMenuTarget(false);
     setNetworkAction('joining');
     setJoinStage('Syncing with network', 88);
     appendNetworkLog('Syncing with network');
@@ -688,23 +675,35 @@ async function loadSaitoBrowserBundle() {
   const previousOnload = window.onload;
   await new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = '/saito/saito.js?websitex=20260902-6';
+    script.id = 'saito';
+    script.src = '/saito/saito.js?websitex=20260907-1';
     script.dataset.saitoBrowserBundle = 'true';
     script.onload = async () => {
-      setJoinStage('Creating identity', 45);
-      appendNetworkLog('Creating identity');
+      try {
+        if (!browserNodeStarted) {
+          setJoinStage('Creating identity', 45);
+          appendNetworkLog('Creating identity');
+        }
 
-      const saitoOnload = window.onload;
-      if (
-        document.readyState === 'complete' &&
-        typeof saitoOnload === 'function' &&
-        saitoOnload !== previousOnload
-      ) {
-        await saitoOnload();
+        const saitoOnload = window.onload;
+        if (
+          document.readyState === 'complete' &&
+          typeof saitoOnload === 'function' &&
+          saitoOnload !== previousOnload
+        ) {
+          // The bundle is loaded after the page; run its entry point only once.
+          window.onload = previousOnload;
+          await saitoOnload();
+        }
+        resolve();
+      } catch (error) {
+        reject(error);
       }
-      resolve();
     };
-    script.onerror = () => reject(new Error('Could not download saito.js'));
+    script.onerror = () => {
+      script.remove();
+      reject(new Error('Could not download saito.js'));
+    };
     document.body.append(script);
   });
 }
