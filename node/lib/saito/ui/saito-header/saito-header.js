@@ -856,6 +856,8 @@ class SaitoHeader extends UIModTemplate {
         return;
       }
     } else {
+      el.onmouseenter = null;
+      el.onmouseleave = null;
       el.innerHTML = text;
     }
 
@@ -910,6 +912,17 @@ class SaitoHeader extends UIModTemplate {
     //Update name
     el.innerHTML = sanitize(username);
     el.classList.remove('flash');
+    el.onmouseenter = null;
+    el.onmouseleave = null;
+
+    if (username === 'Anonymous Account') {
+      el.onmouseenter = () => {
+        el.textContent = 'Register Name';
+      };
+      el.onmouseleave = () => {
+        el.textContent = username;
+      };
+    }
 
     //Differential behavior
     if (username === 'Anonymous Account' || username === 'Anonymous') {
