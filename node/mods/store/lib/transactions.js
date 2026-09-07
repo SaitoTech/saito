@@ -685,6 +685,27 @@ module.exports = {
       p2sh_address: script_info.p2sh_address
     };
 
+    const note = String(sale.note || '').trim();
+    if (note) {
+      const seller_publickey = String(summary.seller || '').trim();
+      if (!seller_publickey) {
+        throw new Error('Seller public key is unavailable; cannot encrypt note');
+      }
+      const buyer_privatekey = await this.app.wallet.getPrivateKey();
+      if (!buyer_privatekey) {
+        throw new Error('Wallet private key is unavailable; cannot encrypt note');
+      }
+      const shared_secret = this.app.crypto.generateSharedSecret(
+        buyer_privatekey,
+        seller_publickey
+      );
+      const ciphertext = this.app.crypto.aesEncrypt(note, shared_secret);
+      if (!ciphertext || typeof ciphertext !== 'string' || ciphertext === note) {
+        throw new Error('Failed to encrypt note to seller');
+      }
+      newtx.msg.note = ciphertext;
+    }
+
     await newtx.sign();
     return newtx;
   },
@@ -700,6 +721,7 @@ module.exports = {
     return new Order({
       order_tx_sig: tx.signature,
       buyer,
+      note: String(txmsg.note || ''),
       payment_tx_sig: payment_utxo.payment_tx_sig,
       payment_output_index: payment_utxo.payment_output_index,
       payment_amount: Number(payment_utxo.payment_amount),
@@ -934,6 +956,7 @@ module.exports = {
       order.nft_id = summary.nft_id;
       order.price = Number(summary.price ?? 0);
       order.quantity = quantity;
+      order.note = String(txmsg.note || '');
       order.created_at = now;
       order.updated_at = now;
       await this.warehouse.addOrder(order);

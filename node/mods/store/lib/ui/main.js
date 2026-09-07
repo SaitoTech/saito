@@ -33,9 +33,7 @@ class Main {
       onSettings: () => this.openSettings(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)
     });
-    this.user_store_sidebar = new UserStoreSidebar(app, mod, '', {
-      onSettings: () => this.openSettings()
-    });
+    this.user_store_sidebar = new UserStoreSidebar(app, mod, '');
     this.manager = new Manager(app, mod, '', {
       onSell: () => this.openSell(),
       onStoreModeChange: (mode) => this.onStoreModeChange(mode)

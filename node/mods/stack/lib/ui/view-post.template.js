@@ -90,9 +90,39 @@ module.exports = (app, mod, tx) => {
     return '<div class="view-post-error">No post content available</div>';
   }
 
+  const authorPublicKey =
+    tx.from && tx.from.length > 0 ? tx.from[0].publicKey || tx.from[0].address || '' : '';
+
+  let authorLabel = 'Author';
+  if (authorPublicKey) {
+    if (authorPublicKey === mod.STACK_OFFICIAL_PUBLICKEY) {
+      authorLabel = 'SaitoOfficial';
+    } else if (authorPublicKey === mod.publicKey) {
+      authorLabel = 'My Posts';
+    } else if (app.keychain && typeof app.keychain.returnUsername === 'function') {
+      authorLabel = app.keychain.returnUsername(authorPublicKey) || authorLabel;
+    }
+  }
+
+  const displayTitle = hasTitle ? title.trim() : 'Untitled post';
+  const stackHomePath = mod.returnStackPath ? mod.returnStackPath() : `/${mod.slug}`;
+  const authorFeedPath = authorPublicKey
+    ? mod.returnStackPath
+      ? mod.returnStackPath(authorPublicKey)
+      : `/${mod.slug}/${authorPublicKey}`
+    : stackHomePath;
+
   return `
     <div class="view-post">
       <article class="article">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a class="crumb" href="${app.browser.escapeHTML(stackHomePath)}">Saito Stack</a>
+          <span class="sep" aria-hidden="true">&gt;</span>
+          <a class="crumb" href="${app.browser.escapeHTML(authorFeedPath)}">${app.browser.escapeHTML(authorLabel)}</a>
+          <span class="sep" aria-hidden="true">&gt;</span>
+          <span class="current">${app.browser.escapeHTML(displayTitle)}</span>
+        </nav>
+
         ${
           featureImageUrl
             ? `
@@ -150,11 +180,6 @@ module.exports = (app, mod, tx) => {
         `
             : ''
         }
-
-        <footer class="footer">
-          <div id="next-post" class="footer-slot"></div>
-          <div id="previous-post" class="footer-slot"></div>
-        </footer>
       </article>
     </div>
   `;

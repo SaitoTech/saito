@@ -2168,6 +2168,8 @@ class Browser {
         });
       }
 
+      text = String(text).replace(/\sid=(["']).*?\1/gi, '');
+
       text = sanitizeHtml(text, {
         allowedTags: [
           'a',

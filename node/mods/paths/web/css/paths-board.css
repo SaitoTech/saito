@@ -23,25 +23,6 @@
       0 0 60px 20px rgba(255, 69, 0, 0.5); /* inner + outer glow */
   }
 
-  @keyframes pulse-ring-strong {
-    0% {
-      transform: translate(-50%, -50%) scale(0.1);
-      opacity: 1;
-    }
-    30% {
-      transform: translate(-50%, -50%) scale(1.5);
-      opacity: 0.8;
-    }
-    60% {
-      transform: translate(-50%, -50%) scale(2);
-      opacity: 0.4;
-    }
-    100% {
-      transform: translate(-50%, -50%) scale(2.5);
-      opacity: 0;
-    }
-  }
-
   .combat_cards {
     height: 300px;
     display: flex;
@@ -918,3 +899,23 @@
     height: inherit;
   }
 }
+
+@keyframes pulse-ring-strong {
+  0% {
+    transform: translate(-50%, -50%) scale(0.1);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0.8;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS orders (
   nft_id TEXT NOT NULL,
   price INTEGER NOT NULL DEFAULT 0,
   quantity INTEGER NOT NULL DEFAULT 1,
+  note TEXT NOT NULL DEFAULT '',
 
   payment_tx_sig TEXT NOT NULL,
   payment_output_index INTEGER NOT NULL DEFAULT 0,

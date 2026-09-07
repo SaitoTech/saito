@@ -96,6 +96,9 @@ class Withdraw {
     this.updateAmountActionState();
     this.updateSuccessAction();
     this.handleErrors();
+    if (!this.fixedRecipient) {
+      document.getElementById('withdraw-input-address')?.focus();
+    }
   }
 
   updateHeaderTitle() {

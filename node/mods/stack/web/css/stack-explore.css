@@ -265,7 +265,7 @@
   line-height: 1;
 }
 
-.explore .content {
+.explore .main > .content {
   flex: 1;
   min-height: 0;
   display: flex;

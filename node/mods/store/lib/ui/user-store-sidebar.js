@@ -5,25 +5,50 @@ const SaitoProfile = require('../../../../lib/saito/ui/saito-profile/saito-profi
  * User-store profile context: shared SaitoProfile (read-only) with Store nav
  * injected into the profile card footer slot, plus Store-owned attribution
  * below the card (outside SaitoProfile).
+ *
+ * Footer follows the Red Square pattern: host owns the slot; Chat is opened
+ * via connection events (no hard Chat module API).
  */
 class UserStoreSidebar {
-  constructor(app, mod, container = '', callbacks = {}) {
+  constructor(app, mod, container = '') {
     this.app = app;
     this.mod = mod;
     this.container = container;
     this.publicKey = '';
-    this.onSettings = callbacks.onSettings || null;
     this.profile = new SaitoProfile(app, mod, '');
-    // Public storefront is always read-only (no camera / pencil). Shared component stays editable for other hosts.
+    // Public storefront is always read-only (no camera / pencil).
     this.profile.editable = false;
   }
 
-  hasPostsRoute() {
-    return Boolean(this.app.modules?.returnModule?.('RedSquare'));
+  hasChat() {
+    return Boolean(this.app.modules?.returnModuleBySlug?.('chat'));
   }
 
   isOwnStore(publicKey = this.publicKey) {
     return Boolean(publicKey && this.mod.publicKey && publicKey === this.mod.publicKey);
+  }
+
+  /**
+   * @returns {Array<{ action: string, label: string, icon: string }>}
+   */
+  returnNavItems(publicKey = this.publicKey) {
+    const items = [];
+    const key = String(publicKey || '').trim();
+    if (key && this.hasChat() && !this.isOwnStore(key)) {
+      items.push({
+        action: 'send-message',
+        label: 'Send Message',
+        icon: 'fa-solid fa-lock'
+      });
+    }
+    if (this.isOwnStore(publicKey)) {
+      items.push({
+        action: 'admin-store',
+        label: 'Admin Store',
+        icon: 'fa-solid fa-gear'
+      });
+    }
+    return items;
   }
 
   /** Canonical marketplace path — same slug routing as Store header / setBrowseUrl. */
@@ -43,6 +68,47 @@ class UserStoreSidebar {
     }
   }
 
+  openAdminStore(publicKey = this.publicKey) {
+    const key = String(publicKey || '').trim();
+    if (!key || !this.isOwnStore(key)) {
+      return;
+    }
+    if (typeof this.mod.main?.openStorefront === 'function') {
+      void this.mod.main.openStorefront(key, { admin: true });
+      return;
+    }
+    const path = this.mod.returnAdminPath?.(key) || `${this.marketplacePath()}/${encodeURIComponent(key)}/admin`;
+    if (typeof navigateWindow === 'function') {
+      navigateWindow(path);
+    } else {
+      window.location.assign(path);
+    }
+  }
+
+  openChat(publicKey = this.publicKey) {
+    const key = String(publicKey || '').trim();
+    if (!key || !this.hasChat()) {
+      return;
+    }
+    // ChatManager owns the open-chat-with listener; create it if needed
+    // (same side-effect Chat's user-menu uses before emitting).
+    this.app.modules.returnFirstRespondTo('chat-manager');
+    this.app.connection.emit('open-chat-with', {
+      key,
+      activate: true
+    });
+  }
+
+  renderNav() {
+    const footer = this.profile.getFooterEl();
+    if (!footer) {
+      return;
+    }
+
+    footer.innerHTML = UserStoreNavTemplate(this.returnNavItems(this.publicKey));
+    this.attachNavEvents();
+  }
+
   render(container = '', publicKey = '') {
     if (container) {
       this.container = container;
@@ -60,8 +126,6 @@ class UserStoreSidebar {
       return;
     }
 
-    const showPosts = this.hasPostsRoute();
-    const showSettings = this.isOwnStore(key);
     const marketPath = this.marketplacePath();
 
     root.innerHTML = `
@@ -78,11 +142,7 @@ class UserStoreSidebar {
     this.profile.editable = false;
     this.profile.render();
 
-    const footer = this.profile.getFooterEl();
-    if (footer) {
-      footer.innerHTML = UserStoreNavTemplate({ showPosts, showSettings });
-    }
-
+    this.renderNav();
     this.attachEvents();
   }
 
@@ -96,48 +156,36 @@ class UserStoreSidebar {
       link.onclick = (e) => this.openMarketplace(e);
     });
 
+    this.attachNavEvents();
+  }
+
+  attachNavEvents() {
     const footer = this.profile.getFooterEl();
     if (!footer) {
       return;
     }
 
-    footer.querySelectorAll('.user-store-nav .item[data-nav]').forEach((item) => {
+    footer.querySelectorAll('.user-store-nav .item[data-nav-action]').forEach((item) => {
       item.onclick = (e) => {
         e.preventDefault();
-        this.activate(item.getAttribute('data-nav') || '');
+        this.activateNav(item.getAttribute('data-nav-action') || '');
       };
       item.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          this.activate(item.getAttribute('data-nav') || '');
+          this.activateNav(item.getAttribute('data-nav-action') || '');
         }
       };
     });
   }
 
-  activate(nav = '') {
-    if (nav === 'store') {
+  activateNav(action = '') {
+    if (action === 'admin-store') {
+      this.openAdminStore(this.publicKey);
       return;
     }
-
-    if (nav === 'posts') {
-      const redsquare = this.app.modules?.returnModule?.('RedSquare');
-      if (!redsquare || !this.publicKey) {
-        return;
-      }
-      const path = `/${encodeURI(redsquare.returnSlug())}/user/${encodeURIComponent(this.publicKey)}`;
-      if (typeof navigateWindow === 'function') {
-        navigateWindow(path);
-      } else {
-        window.location.assign(path);
-      }
-      return;
-    }
-
-    if (nav === 'settings' && this.isOwnStore()) {
-      if (typeof this.onSettings === 'function') {
-        this.onSettings();
-      }
+    if (action === 'send-message') {
+      this.openChat(this.publicKey);
     }
   }
 }

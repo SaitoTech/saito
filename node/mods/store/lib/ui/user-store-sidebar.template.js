@@ -1,29 +1,37 @@
-module.exports = ({ showPosts = false, showSettings = false } = {}) => {
-  const postsItem = showPosts
-    ? `
-        <div class="item" role="button" tabindex="0" data-nav="posts">
-          <span class="icon" aria-hidden="true"><i class="fa-solid fa-comment"></i></span>
-          <span class="label">Posts</span>
-        </div>`
-    : '';
+/**
+ * Store-owned profile footer nav (injected into SaitoProfile footer slot).
+ * @param {Array<{ action: string, label: string, icon: string }>} items
+ */
+module.exports = (items = []) => {
+  const rows = (Array.isArray(items) ? items : [])
+    .map((item) => {
+      const action = String(item?.action || '').trim();
+      const label = String(item?.label || '').trim();
+      const icon = String(item?.icon || '').trim();
+      if (!action || !label || !icon) {
+        return '';
+      }
+      return `
+      <div
+        class="item"
+        role="button"
+        tabindex="0"
+        data-nav-action="${action}"
+      >
+        <span class="icon" aria-hidden="true"><i class="${icon}"></i></span>
+        <span class="label">${label}</span>
+      </div>`;
+    })
+    .filter(Boolean)
+    .join('');
 
-  const settingsItem = showSettings
-    ? `
-        <div class="item" role="button" tabindex="0" data-nav="settings">
-          <span class="icon" aria-hidden="true"><i class="fa-solid fa-gear"></i></span>
-          <span class="label">Settings</span>
-        </div>`
-    : '';
+  if (!rows) {
+    return '';
+  }
 
-  // Injected into SaitoProfile's generic footer slot (inside the card).
   return `
-    <nav class="user-store-nav saito-menu-select-subtle" aria-label="User store">
-      <div class="item active" role="button" tabindex="0" data-nav="store" aria-current="page">
-        <span class="icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span>
-        <span class="label">Store</span>
-      </div>
-      ${postsItem}
-      ${settingsItem}
+    <nav class="user-store-nav saito-menu-select-subtle" aria-label="Store profile">
+      ${rows}
     </nav>
   `;
 };

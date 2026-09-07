@@ -1860,6 +1860,47 @@ class Stack extends ModTemplate {
       return 1;
     }
 
+    // Private author-feed load: use the signed peer request as Archive request_tx
+    if (txmsg.request === 'load stack posts for author') {
+      const field1 = txmsg.data?.field1;
+      const field2 = txmsg.data?.field2;
+      const field4 = txmsg.data?.field4;
+      const access_witness = txmsg.data?.access_witness;
+
+      if (!field1 || !field2 || !field4) {
+        mycallback([]);
+        return 1;
+      }
+
+      const query = {
+        field1: field1,
+        field2: field2,
+        field4: field4,
+        request_tx: tx
+      };
+      if (access_witness) {
+        query.access_witness = access_witness;
+      }
+
+      this.app.storage.loadTransactions(
+        query,
+        (txs) => {
+          const serialized = [];
+          if (Array.isArray(txs)) {
+            for (let i = 0; i < txs.length; i++) {
+              if (txs[i]) {
+                serialized.push(txs[i].serialize_to_web(app));
+              }
+            }
+          }
+          mycallback(serialized);
+        },
+        'localhost'
+      );
+
+      return 1;
+    }
+
     // Handle receiving a post transaction from a peer
     // This happens when a peer sends us a post they have cached
     if (txmsg.request === 'stack post transaction') {
@@ -2279,6 +2320,28 @@ class Stack extends ModTemplate {
       localQuery.access_witness = access_witness;
     }
 
+    // Private path: one signed proving Transaction for local request_tx and remote peer send
+    let requestTx = null;
+    if (access_witness) {
+      const walletPublicKey = await this.app.wallet.getPublicKey();
+      requestTx = await this.app.wallet.createUnsignedTransaction(
+        walletPublicKey,
+        BigInt(0),
+        BigInt(0)
+      );
+      requestTx.msg = {
+        request: 'load stack posts for author',
+        data: {
+          field1: 'Stack',
+          field2: publicKey,
+          field4: 'stack:post',
+          access_witness: access_witness
+        }
+      };
+      await requestTx.sign();
+      localQuery.request_tx = requestTx;
+    }
+
     const localPosts = await new Promise((resolve) => {
       this.app.storage.loadTransactions(
         localQuery,
@@ -2299,16 +2362,6 @@ class Stack extends ModTemplate {
 
     // PART 2.3: If forceRemote, query remote peers
     if (forceRemote) {
-      // Build remote query with same access data pattern
-      let remoteQuery = {
-        field1: 'Stack',
-        field2: publicKey,
-        field4: 'stack:post'
-      };
-      if (access_witness) {
-        remoteQuery.access_witness = access_witness;
-      }
-
       let peers = await this.app.network.getPeers();
       if (peers.length === 0) {
         // Defer until peers are available
@@ -2316,15 +2369,59 @@ class Stack extends ModTemplate {
         return posts;
       }
 
-      const remotePosts = await new Promise((resolve) => {
-        this.app.storage.loadTransactions(
-          remoteQuery,
-          (txs) => {
-            resolve(txs || []);
-          },
-          null // null = remote peers
-        );
-      });
+      let remotePosts = [];
+      if (access_witness && requestTx) {
+        // Private path: send the same signed Transaction to a Stack peer
+        const peerKeys = Object.keys(this.peers);
+        if (peerKeys.length > 0) {
+          const firstPeerKey = peerKeys[0];
+          const peerObj = this.peers[firstPeerKey]?.peer;
+          if (peerObj && peerObj.publicKey !== undefined) {
+            remotePosts = await new Promise((resolve) => {
+              this.app.network.sendTransactionWithCallback(
+                requestTx,
+                (responseTx) => {
+                  const response = responseTx?.msg;
+                  const txs = [];
+                  if (Array.isArray(response)) {
+                    for (let i = 0; i < response.length; i++) {
+                      try {
+                        const remoteTx = new Transaction();
+                        remoteTx.deserialize_from_web(this.app, response[i]);
+                        txs.push(remoteTx);
+                      } catch (error) {
+                        console.debug(
+                          'Stack.loadPostsForAuthor: Failed to deserialize peer response',
+                          error
+                        );
+                      }
+                    }
+                  }
+                  resolve(txs);
+                },
+                peerObj.publicKey
+              );
+            });
+          }
+        }
+      } else {
+        // Public path: unchanged Archive remote query
+        let remoteQuery = {
+          field1: 'Stack',
+          field2: publicKey,
+          field4: 'stack:post'
+        };
+
+        remotePosts = await new Promise((resolve) => {
+          this.app.storage.loadTransactions(
+            remoteQuery,
+            (txs) => {
+              resolve(txs || []);
+            },
+            null // null = remote peers
+          );
+        });
+      }
 
       for (const tx of remotePosts) {
         seenSignatures.add(tx.signature);

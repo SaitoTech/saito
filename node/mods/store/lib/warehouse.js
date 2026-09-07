@@ -203,7 +203,9 @@ class Warehouse {
         {
           sold_block_id,
           sold_block_hash,
-          sold_transaction_id
+          sold_transaction_id,
+          quantity_sold: Math.max(0, Number(row.quantity ?? 0) || 0),
+          sold_at: now
         },
         now
       );
@@ -268,13 +270,23 @@ class Warehouse {
         ? [prior_listing]
         : [];
 
+    let remaining_sold = Number(order.quantity) || 1;
     for (const signature of consumed_signatures) {
+      const listing_row =
+        this.listings[signature] || (await this.db.returnListingBySignature(signature));
+      const row_qty = Math.max(1, Number(listing_row?.quantity ?? 1) || 1);
+      const quantity_sold = Math.min(row_qty, Math.max(0, remaining_sold));
+      remaining_sold = Math.max(0, remaining_sold - quantity_sold);
       await this.db.markListingSold(
         signature,
         {
           sold_block_id: fulfilled_block_id,
           sold_block_hash: fulfilled_block_hash,
-          sold_transaction_id: fulfilled_transaction_id
+          sold_transaction_id: fulfilled_transaction_id,
+          note: order.note || '',
+          buyer: order.buyer || '',
+          quantity_sold,
+          sold_at: now
         },
         now
       );
@@ -682,7 +694,19 @@ class Warehouse {
       listing_signature: row.signature || '',
       created_at: Number(row.created_at || 0),
       updated_at: Number(row.updated_at || row.created_at || meta.updated_at || 0),
-      status: sold ? 0 : 1
+      status: sold ? 0 : 1,
+      note: sold ? String(row.note || '') : '',
+      buyer: sold ? String(row.buyer || '') : '',
+      quantity_sold: sold
+        ? Math.max(
+            0,
+            Number(row.quantity_sold ?? 0) || Number(row.quantity ?? 0) || 0
+          )
+        : 0,
+      // Prefer sold_at; for pre-migration sold rows, updated_at was set at settlement.
+      sold_at: sold
+        ? Number(row.sold_at || 0) || Number(row.updated_at || 0) || 0
+        : 0
     });
   }
 

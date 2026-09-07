@@ -1,10 +1,10 @@
 /*
- * Namespace: .teaser
+ * Namespace: .post-teaser
  * Editorial post preview — layout + preserved surface chrome.
- * Parent components arrange placement; use .teaser.compact for dense slots.
+ * Parent components arrange placement; use .post-teaser.compact for dense slots.
  */
 
-.teaser {
+.post-teaser {
   background: var(--saito-background);
   border: 1px solid var(--saito-border);
   border-left: 3px solid transparent;
@@ -19,14 +19,14 @@
   position: relative;
 }
 
-.teaser:hover {
+.post-teaser:hover {
   background: var(--saito-background-secondary, var(--saito-background));
   border-color: var(--saito-primary);
   border-left-color: var(--saito-primary);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.teaser .image {
+.post-teaser .image {
   position: relative;
   width: 280px;
   min-width: 280px;
@@ -36,7 +36,7 @@
   background: var(--saito-background-secondary, var(--saito-background));
 }
 
-.teaser .image img {
+.post-teaser .image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -44,11 +44,11 @@
   transition: transform 0.3s ease;
 }
 
-.teaser:hover .image img {
+.post-teaser:hover .image img {
   transform: scale(1.02);
 }
 
-.teaser .content {
+.post-teaser .content {
   padding: 2.5rem 3rem;
   display: flex;
   flex-direction: column;
@@ -57,7 +57,7 @@
   justify-content: center;
 }
 
-.teaser .title {
+.post-teaser .title {
   font-size: 2.2rem;
   font-weight: 600;
   margin: 0 0 1rem 0;
@@ -70,11 +70,11 @@
   transition: color 0.2s ease;
 }
 
-.teaser:hover .title {
+.post-teaser:hover .title {
   color: var(--saito-primary);
 }
 
-.teaser .excerpt {
+.post-teaser .excerpt {
   font-size: 1.7rem;
   line-height: 1.6;
   color: var(--saito-foreground);
@@ -86,12 +86,12 @@
   overflow: hidden;
 }
 
-.teaser .meta {
+.post-teaser .meta {
   margin-top: auto;
   padding-top: 1rem;
 }
 
-.teaser .date {
+.post-teaser .date {
   font-size: 1.4rem;
   color: var(--saito-foreground);
   opacity: 0.6;
@@ -100,7 +100,7 @@
 }
 
 /* Dense slot (parent places teaser in a tight grid/footer cell) */
-.teaser.compact {
+.post-teaser.compact {
   gap: 0.5rem;
   height: 100%;
   border-left-width: 1px;
@@ -108,54 +108,54 @@
   min-height: 0;
 }
 
-.teaser.compact .image {
+.post-teaser.compact .image {
   min-width: unset;
   width: 50%;
 }
 
-.teaser.compact .content {
+.post-teaser.compact .content {
   padding: 1rem;
 }
 
 @media (max-width: 768px) {
-  .teaser {
+  .post-teaser {
     flex-direction: column;
     min-height: auto;
     border-left: 1px solid var(--saito-border);
     border-top: 3px solid transparent;
   }
 
-  .teaser:hover {
+  .post-teaser:hover {
     border-top-color: var(--saito-primary);
     border-left-color: var(--saito-primary);
   }
 
-  .teaser .image,
-  .teaser.compact .image {
+  .post-teaser .image,
+  .post-teaser.compact .image {
     width: 100%;
     min-width: 100%;
     aspect-ratio: 16 / 9;
   }
 
-  .teaser .content {
+  .post-teaser .content {
     padding: 2rem 1.5rem;
   }
 
-  .teaser.compact .content {
+  .post-teaser.compact .content {
     padding: 2rem 1.5rem;
   }
 
-  .teaser .title {
+  .post-teaser .title {
     font-size: 1.9rem;
     -webkit-line-clamp: 2;
   }
 
-  .teaser .excerpt {
+  .post-teaser .excerpt {
     font-size: 1.6rem;
     -webkit-line-clamp: 2;
   }
 
-  .teaser .date {
+  .post-teaser .date {
     font-size: 1.4rem;
   }
 }

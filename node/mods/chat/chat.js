@@ -1513,14 +1513,14 @@ class Chat extends ModTemplate {
       }
     }
 
+    //
     // DMs
+    //
     if (members.length == 2 && !group?.member_ids) {
-      //console.log('Chat: Try encrypting Message for ' + secret_holder);
-
       //
       // Only encrypts if we have swapped keys and haveSharedKey, otherwise just signs
       //
-      newtx = await this.app.wallet.signAndEncryptTransaction(newtx, secret_holder);
+      newtx = await this.app.wallet.signAndEncryptTransaction(newtx, secret_holder, true); // force encrypt
     } else {
       await newtx.sign();
     }

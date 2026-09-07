@@ -176,6 +176,11 @@ class Crypto {
     return this.app.core.crypto.generatePublicKey(privateKey);
   }
 
+
+  generateSharedSecret(privateKeyHex: string, publicKeyBase58: string): string {
+    return this.app.core.crypto.generateSharedSecret(privateKeyHex, publicKeyBase58);
+  }
+
   /**
    * Creates a random number, but not a privatekey. used for
    * XOR encryption in the game engine among other uses. public/private keypair. returns the string
