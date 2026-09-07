@@ -601,10 +601,6 @@ export default class Saito {
       };
     }
 
-    console.log("CORE OBJECT");
-    console.log(coreObject);
-    console.log("CORE SCRIPTING", coreObject.scripting);
-
     return coreObject;
   }
 

@@ -394,17 +394,6 @@ impl SyncManager {
             wallet.public_key
         };
 
-        info!("SEND BLOCKCHAIN REQUEST: to peer...");
-        info!(" -- to peer_id => {}", peer_id);
-        info!(" -- my latest_known_block_id => {}", latest_known_block_id);
-        info!(
-            " -- my latest_known_block_hash => {:?}",
-            latest_known_block_hash.to_hex()
-        );
-        info!(" -- my fork_id => {:?}", fork_id.to_hex());
-        info!(" -- for sync_type => {}", sync_type);
-        info!(" -- for public_key => {:?}", my_public_key.to_base58());
-
         network
             .send_message_by_peer_id(
                 peer_id,

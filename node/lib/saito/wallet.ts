@@ -107,10 +107,6 @@ export default class Wallet extends SaitoWallet {
   }
 
   async initialize() {
-    console.info(
-      '[INIT_TRACE] wallet initialize begin app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
     let privateKey = await this.getPrivateKey();
     let publicKey = await this.getPublicKey();
     let wallet_self = this;
@@ -690,9 +686,6 @@ export default class Wallet extends SaitoWallet {
           this.preferred_crypto = this.app.options.wallet.preferred_crypto;
         }
         if (this.app.options.wallet.slips) {
-          console.info(
-            '[LOAD_TRACE] loading wallet app_option_slips=' + this.app.options.wallet.slips.length
-          );
           let slips = this.app.options.wallet.slips.map((json: any) => {
             let slip = new WalletSlip();
             slip.copyFrom(json);
@@ -700,7 +693,6 @@ export default class Wallet extends SaitoWallet {
           });
           console.log('preserving slips without a wallet reset..... : ' + slips.length);
           await this.addSlips(slips);
-          console.info('[LOAD_TRACE] loaded wallet restored_slips=' + slips.length);
         }
       }
 
@@ -771,14 +763,6 @@ export default class Wallet extends SaitoWallet {
     // add nfts back to rust wallet
     //
     await this.addNFTList();
-    console.info(
-      '[INIT_TRACE] wallet initialize complete app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
-    console.info(
-      '[LOAD_TRACE] wallet initialization complete app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
   }
 
   constructor(wallet: any) {
