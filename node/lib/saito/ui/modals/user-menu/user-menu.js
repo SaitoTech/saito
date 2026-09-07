@@ -2,9 +2,10 @@ const SaitoOverlay = require('../../saito-overlay/saito-overlay');
 const userMenuTemplate = require('./user-menu.template');
 
 class UserMenu {
-  constructor(app, publicKey) {
+  constructor(app, publicKey, options = {}) {
     this.app = app;
     this.user_publickey = publicKey;
+    this.options = options;
     this.overlay = new SaitoOverlay(app, null, true, true);
     this.callbacks = {};
   }
@@ -24,22 +25,39 @@ class UserMenu {
       let mods = this.app.modules.mods;
 
       let index = 0;
+      let contactActionAdded = false;
       for (const mod of mods) {
         let item = mod.respondTo('user-menu', {
           publicKey: this.user_publickey
         });
         if (item instanceof Array) {
           item.forEach((j) => {
+            if (this.options.contactAction === 'delete' && j.text === 'Add Contact') {
+              j = this.returnDeleteContactItem();
+              contactActionAdded = true;
+            }
             let id = `user_menu_item_${index}`;
             thisobj.callbacks[id] = j.callback;
             thisobj.addMenuItem(j, id);
             index++;
           });
         } else if (item != null) {
+          if (this.options.contactAction === 'delete' && item.text === 'Add Contact') {
+            item = this.returnDeleteContactItem();
+            contactActionAdded = true;
+          }
           let id = `user_menu_item_${index}`;
           thisobj.callbacks[id] = item.callback;
           thisobj.addMenuItem(item, id);
         }
+        index++;
+      }
+
+      if (this.options.contactAction === 'delete' && !contactActionAdded) {
+        let id = `user_menu_item_${index}`;
+        let item = this.returnDeleteContactItem();
+        thisobj.callbacks[id] = item.callback;
+        thisobj.addMenuItem(item, id);
         index++;
       }
 
@@ -91,6 +109,24 @@ class UserMenu {
         thisobj.overlay.remove();
       });
     });
+  }
+
+  returnDeleteContactItem() {
+    return {
+      text: 'Delete Contact',
+      icon: 'fa-solid fa-user-minus',
+      callback: async (app, publicKey) => {
+        const confirmed = await sconfirm('Delete this contact?');
+        if (!confirmed) {
+          return;
+        }
+
+        app.keychain.removeKey(publicKey);
+        if (typeof this.options.onDelete === 'function') {
+          this.options.onDelete(publicKey);
+        }
+      }
+    };
   }
 
   addMenuItem(item, id) {

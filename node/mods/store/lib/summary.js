@@ -34,6 +34,11 @@ class Summary {
     this.listing_tx = data.listing_tx || null;
     this._image_source = data._image_source || null;
     this._media_enriched = data._media_enriched || false;
+    this.note = data.note || '';
+    this.buyer = data.buyer || '';
+    this.seller_note = data.seller_note || '';
+    this.quantity_sold = Number(data.quantity_sold ?? 0) || 0;
+    this.sold_at = Number(data.sold_at || 0) || 0;
   }
 
   returnPlaceholderImage() {
@@ -216,7 +221,11 @@ class Summary {
       created_at: this.created_at,
       updated_at: this.updated_at,
       subtitle: this.subtitle,
-      badge: this.badge
+      badge: this.badge,
+      note: this.note || '',
+      buyer: this.buyer || '',
+      quantity_sold: this.quantity_sold || 0,
+      sold_at: this.sold_at || 0
     };
   }
 }

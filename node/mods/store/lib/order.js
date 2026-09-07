@@ -12,6 +12,7 @@ class Order {
     this.nft_id = data.nft_id || '';
     this.price = Number(data.price ?? 0);
     this.quantity = Number(data.quantity ?? 1);
+    this.note = data.note || '';
 
     this.payment_tx_sig = data.payment_tx_sig || data.order_tx_sig || data.signature || '';
     this.payment_output_index = Number(data.payment_output_index ?? 0);
@@ -107,6 +108,7 @@ class Order {
       $nft_id: this.nft_id,
       $price: Number(this.price ?? 0),
       $quantity: Number(this.quantity ?? 1),
+      $note: this.note || '',
       $payment_tx_sig: this.payment_tx_sig,
       $payment_output_index: Number(this.payment_output_index ?? 0),
       $payment_amount: Number(this.payment_amount ?? 0),

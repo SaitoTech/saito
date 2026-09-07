@@ -9,14 +9,14 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    row-gap: 1rem;
-    column-gap: 1rem;
+    row-gap: 0.833rem;
+    column-gap: 0.833rem;
     overflow-y: auto;
     height: 92.5vh;
     width: 95vw;
     background-color: transparent;
     justify-content: space-between;
-    gap: 2rem;
+    gap: 1.667rem;
   }
 
   /* Alternative menu layouts */
@@ -26,8 +26,8 @@
     display: flex;
     flex-direction: column; /* was 'columns' which is invalid */
     flex-wrap: wrap;
-    row-gap: 1rem;
-    column-gap: 1rem;
+    row-gap: 0.833rem;
+    column-gap: 0.833rem;
     width: 90vw;
     max-width: 1400px;
     height: 85vh;
@@ -151,17 +151,17 @@
     position: absolute;
     top: 0;
     left: 0;
-    height: 6rem;
+    height: 5rem;
     width: 100%;
     background-color: rgba(0, 0, 0, 0.65);
-    padding: 1.6rem;
+    padding: 1.333rem;
     color: #f7f1e1;
     font-family: 'EB-Garamond', serif;
     font-style: normal;
     font-weight: 600;
     font-variant: small-caps;
-    letter-spacing: 0.15rem;
-    font-size: 2.4rem;
+    letter-spacing: 0.125rem;
+    font-size: 2rem;
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;

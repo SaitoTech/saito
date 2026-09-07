@@ -1,15 +1,15 @@
 .game.imperium {
   #confirm.option {
-    padding: 2rem;
+    padding: 1.667rem;
   }
 
   .status-header-text,
   .status-message {
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
     font-family: helvetica, sans-serif;
-    font-size: 1.8rem;
-    line-height: 2.5rem;
+    font-size: 1.5rem;
+    line-height: 2.083rem;
     box-shadow: none;
     background-color: unset;
   }
@@ -17,7 +17,7 @@
     display: grid;
     grid-template-columns: min-content 1fr;
     align-items: center;
-    font-size: 1.8rem;
+    font-size: 1.5rem;
   }
 
   .hud-body .status {
@@ -31,10 +31,10 @@
   }
 
   .hud-header .hud-controls {
-    padding: 1.5rem;
-    padding: 1.5rem;
-    min-width: 12.5rem;
-    margin-top: -0.5rem;
+    padding: 1.25rem;
+    padding: 1.25rem;
+    min-width: 10.417rem;
+    margin-top: -0.417rem;
   }
 
   .hud-body .controls {
@@ -122,7 +122,7 @@
   .status ul li:last-child,
   hud-menu-overlay ul li {
     border-color: #555;
-    font-size: 2rem;
+    font-size: 1.667rem;
   }
 
   .hud {

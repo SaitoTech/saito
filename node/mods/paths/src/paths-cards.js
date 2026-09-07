@@ -1,8 +1,4 @@
 
-  returnSpaceNameForLog() {
-    return `<span class="showcard ${card}" id="${card}">${card}</span>`;
-  }
-
   popup(card) {
 
     let c = null;

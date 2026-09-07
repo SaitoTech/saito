@@ -1,4 +1,5 @@
 const GameWizardTemplate = require('./wizard.template.js');
+const CryptoStakingOverlay = require('./crypto-staking-overlay.js');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
 
 //
@@ -14,6 +15,7 @@ class GameWizard {
     this.mod = mod;
     this.game_mod = game_mod;
     this.overlay = new SaitoOverlay(app, mod);
+    this.crypto_staking_overlay = new CryptoStakingOverlay(app, mod);
     this.obj = obj;
     this._invite_menu_closer = null;
 
@@ -60,7 +62,7 @@ class GameWizard {
     });
   }
 
-  render() {
+  async render() {
     //
     // Create the game wizard overlay
     //  & set a callback to remove the advanced options overlay if we change our mind about creating a game
@@ -99,7 +101,8 @@ class GameWizard {
     }
 
     //Hook for Crypto module (if installed) to add button to attach functionality
-    this.app.modules.renderInto('#arcade-advance-opt');
+    await this.app.modules.renderInto('#arcade-advance-opt');
+    this.attachCryptoHookEvents();
 
     this.attachEvents();
 
@@ -113,6 +116,38 @@ class GameWizard {
         }
       }
     }
+  }
+
+  async userHasNoTokens() {
+    let balances = await this.app.wallet.returnAvailableCryptosAssociativeArray();
+
+    for (let ticker in balances) {
+      if (parseFloat(balances[ticker].balance) > 0) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  attachCryptoHookEvents() {
+    let hook = document.querySelector('.game-wizard-crypto-hook');
+    if (!hook) {
+      return;
+    }
+
+    let original_onclick = hook.onclick;
+
+    hook.onclick = async (e) => {
+      if (await this.userHasNoTokens()) {
+        this.crypto_staking_overlay.render();
+        return;
+      }
+
+      if (original_onclick) {
+        original_onclick.call(hook, e);
+      }
+    };
   }
 
   detachInviteMenuCloser() {

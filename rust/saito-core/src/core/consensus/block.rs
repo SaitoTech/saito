@@ -2864,6 +2864,11 @@ impl Block {
         //
         // return true if hardcoded
         //
+        //
+        // these entries exist for RC1 testing / syncing and can be removed for any other chain. they
+        // should probably be purged the next time we find ourselves editing this file. current date
+        // Sept 7, 2026.
+        //
         if self.id == 1754546 {
             let hardcoded_hash: [u8; 32] =
                 hex::decode("f7b293c131384fbfc60f8b4954a23050e8a1df5fd4e66cc51984839b8b35c98b")

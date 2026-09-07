@@ -20,7 +20,7 @@ body {
   color: #333333;
   display: flex;
   justify-content: center;
-  padding: 2rem;
+  padding: 1.667rem;
   overflow-y: scroll;
 }
 
@@ -33,7 +33,7 @@ body {
   min-width: 1200px;
   background-color: #ffffff;
   border-radius: 8px;
-  padding: 1.2rem;
+  padding: 1rem;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   height: max-content;
 }
@@ -43,11 +43,11 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.417rem;
 }
 
 .header h2 {
-  font-size: 2.2rem;
+  font-size: 1.833rem;
   font-weight: bold;
   color: #333333;
 }
@@ -60,18 +60,18 @@ body {
 
 .metric {
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.833rem;
 }
 
 .metric h3 {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: bold;
   color: #333333;
   margin-bottom: 4px;
 }
 
 .metric p {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   color: #6c6464;
 }
 
@@ -80,7 +80,7 @@ body {
   display: flex;
   gap: 16px;
   border-bottom: 1px solid #e0e0e0;
-  margin-top: 0.5rem;
+  margin-top: 0.417rem;
 }
 
 .tab {
@@ -110,7 +110,7 @@ body {
 }
 
 .control-button {
-  font-size: 1.2rem;
+  font-size: 1rem;
   border-radius: 6px;
   cursor: pointer;
 }
@@ -125,7 +125,7 @@ body {
 .data-table td {
   padding: 6px 6px;
   text-align: left;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
 }
 
 .data-table th {
@@ -173,7 +173,7 @@ body {
 
 .inputs {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .data-table tr.total_supply_value {
@@ -199,7 +199,7 @@ body {
 textarea {
   width: 100%;
   height: 100px;
-  padding: 0.5rem;
+  padding: 0.417rem;
   border: 1px solid #ccc;
   border-radius: 4px;
   resize: none;

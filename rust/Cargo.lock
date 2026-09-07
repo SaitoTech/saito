@@ -2347,7 +2347,7 @@ checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "saito-core"
-version = "0.2.11"
+version = "0.3.1"
 dependencies = [
  "aes 0.7.5",
  "ahash",
@@ -2383,7 +2383,7 @@ dependencies = [
 
 [[package]]
 name = "saito-rust"
-version = "0.2.11"
+version = "0.3.1"
 dependencies = [
  "aes-gcm",
  "ahash",
@@ -2421,7 +2421,7 @@ dependencies = [
 
 [[package]]
 name = "saito-spammer"
-version = "0.2.11"
+version = "0.3.1"
 dependencies = [
  "criterion",
  "ctor",
@@ -2441,7 +2441,7 @@ dependencies = [
 
 [[package]]
 name = "saito-wasm"
-version = "0.2.11"
+version = "0.3.1"
 dependencies = [
  "async-trait",
  "bs58",

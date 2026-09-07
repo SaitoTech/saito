@@ -2692,20 +2692,6 @@ class GameQueue {
         game_self.halted = 1;
 
         let sendPaymentWrapper = async () => {
-          // TEMP_DIAG_POKER_AUTH: sendPaymentWrapper invoked (post-Authorize click)
-          const trusted_now = game_self.game.terminating
-            ? true
-            : this_self.loadGamePreference('crypto_transfers_outbound_trusted');
-          const trunc = (s) =>
-            typeof s === 'string' && s.length > 14 ? `${s.slice(0, 8)}...${s.slice(-6)}` : s;
-          console.info('[TEMP_DIAG_POKER_AUTH] sendPaymentWrapper invoked', {
-            ticker,
-            amount,
-            trusted_now,
-            sender_crypto_address: trunc(sender_crypto_address),
-            receiver_crypto_address: trunc(receiver_crypto_address),
-            unique_hash: trunc(unique_hash)
-          });
           await game_self.app.wallet.sendPayment(
             ticker,
             [sender_crypto_address],
@@ -2713,14 +2699,6 @@ class GameQueue {
             [amount],
             unique_hash,
             function (robj) {
-              // TEMP_DIAG_POKER_AUTH: wallet.sendPayment callback stage
-              console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment callback', {
-                robj_has_err: robj?.err != null,
-                robj_err: robj?.err != null ? robj.err : undefined,
-                robj_hash: robj?.hash != null ? robj.hash : undefined,
-                queue_tail_matches:
-                  game_self.game.queue[game_self.game.queue.length - 1] === my_queue_entry
-              });
               if (game_self.game.id != my_specific_game_id) {
                 game_self.game = game_self.loadGame(my_specific_game_id);
               }
@@ -2740,10 +2718,6 @@ class GameQueue {
                 return 0;
               }
               game_self.updateLog('payments issued...');
-              console.info('[TEMP_DIAG_POKER_AUTH] SEND callback splicing and restarting queue', {
-                removing_queue_entry: game_self.game.queue[game_self.game.queue.length - 1],
-                restartQueue_called: true
-              });
               game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
               game_self.restartQueue();
@@ -2821,7 +2795,7 @@ class GameQueue {
         // because the continue code is triggered by closing the overlay, which
         // listens for a confirmation event emitted by the crypto, that could be instantaneous
         //
-        game_self.app.connection.emit('saito-crypto-receive-render-request', {
+        game_self.app.connection.emit('saito-crypto-game-receive-render-request', {
           address: sender_crypto_address,
           publicKey: sender,
           amount: amount,

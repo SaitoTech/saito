@@ -1,0 +1,285 @@
+/*
+ * Font Awesome compatibility layer for trialing Remix Icon.
+ * Keep existing fa-* markup and dynamic class toggles, but render Remix glyphs.
+ * Generated against Remix Icon v4.9.1.
+ */
+
+html[data-icon-font='remix'] :where(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands) {
+  display: inline-block;
+  font-family: "remixicon" !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  line-height: 1;
+  text-rendering: auto;
+  text-transform: none;
+  speak: never;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-icon-font='remix'] .fa-fw {
+  width: 1.25em;
+  text-align: center;
+}
+
+html[data-icon-font='remix'] .fa-2x { font-size: 2em; }
+
+html[data-icon-font='remix'] .fa-spin {
+  animation: remix-fa-spin 2s infinite linear;
+}
+
+@keyframes remix-fa-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+html[data-icon-font='remix'] .fa-anchor:before { content: "\ea30"; }
+html[data-icon-font='remix'] .fa-angle-double-right:before { content: "\f2e5"; }
+html[data-icon-font='remix'] .fa-angle-left:before { content: "\ea64"; }
+html[data-icon-font='remix'] .fa-angle-right:before { content: "\ea6e"; }
+html[data-icon-font='remix'] .fa-arrow-alt-circle-left:before { content: "\ea5c"; }
+html[data-icon-font='remix'] .fa-arrow-left:before { content: "\ea60"; }
+html[data-icon-font='remix'] .fa-arrow-pointer:before { content: "\ec0a"; }
+html[data-icon-font='remix'] .fa-arrow-right:before { content: "\ea6c"; }
+html[data-icon-font='remix'] .fa-arrow-up:before { content: "\ea76"; }
+html[data-icon-font='remix'] .fa-arrow-up-from-bracket:before { content: "\f250"; }
+html[data-icon-font='remix'] .fa-arrow-up-right-from-square:before { content: "\ecaf"; }
+html[data-icon-font='remix'] .fa-arrows-alt:before { content: "\ec62"; }
+html[data-icon-font='remix'] .fa-arrows-alt-h:before { content: "\f323"; }
+html[data-icon-font='remix'] .fa-arrows-alt-v:before { content: "\f327"; }
+html[data-icon-font='remix'] .fa-arrows-rotate:before { content: "\f064"; }
+html[data-icon-font='remix'] .fa-arrows-up-down-left-right:before { content: "\ec60"; }
+html[data-icon-font='remix'] .fa-axe:before { content: "\ee7b"; }
+html[data-icon-font='remix'] .fa-ban:before { content: "\ed95"; }
+html[data-icon-font='remix'] .fa-bars:before { content: "\ef3e"; }
+html[data-icon-font='remix'] .fa-bell:before { content: "\ef94"; }
+html[data-icon-font='remix'] .fa-bolt-lightning:before { content: "\ed3d"; }
+html[data-icon-font='remix'] .fa-book-open-reader:before { content: "\eadd"; }
+html[data-icon-font='remix'] .fa-bookmark:before { content: "\eae5"; }
+html[data-icon-font='remix'] .fa-box:before { content: "\f2f5"; }
+html[data-icon-font='remix'] .fa-braille:before { content: "\eddf"; }
+html[data-icon-font='remix'] .fa-building-columns:before { content: "\edd9"; }
+html[data-icon-font='remix'] .fa-bus:before { content: "\eb13"; }
+html[data-icon-font='remix'] .fa-calendar:before { content: "\eb27"; }
+html[data-icon-font='remix'] .fa-calendar-check:before { content: "\eb23"; }
+html[data-icon-font='remix'] .fa-camera:before { content: "\eb31"; }
+html[data-icon-font='remix'] .fa-camera-rotate:before { content: "\eb35"; }
+html[data-icon-font='remix'] .fa-car-side:before { content: "\eb39"; }
+html[data-icon-font='remix'] .fa-caret-down:before { content: "\ea4e"; }
+html[data-icon-font='remix'] .fa-caret-left:before { content: "\ea64"; }
+html[data-icon-font='remix'] .fa-caret-right:before { content: "\ea6e"; }
+html[data-icon-font='remix'] .fa-caret-up:before { content: "\ea78"; }
+html[data-icon-font='remix'] .fa-cart-shopping:before { content: "\f120"; }
+html[data-icon-font='remix'] .fa-check:before { content: "\eb7b"; }
+html[data-icon-font='remix'] .fa-check-to-slot:before { content: "\eb81"; }
+html[data-icon-font='remix'] .fa-chess:before { content: "\f5e1"; }
+html[data-icon-font='remix'] .fa-chevron-down:before { content: "\ea4e"; }
+html[data-icon-font='remix'] .fa-chevron-left:before { content: "\ea64"; }
+html[data-icon-font='remix'] .fa-chevron-right:before { content: "\ea6e"; }
+html[data-icon-font='remix'] .fa-circle-check:before { content: "\eb81"; }
+html[data-icon-font='remix'] .fa-circle-dot:before { content: "\f050"; }
+html[data-icon-font='remix'] .fa-circle-exclamation:before { content: "\eca1"; }
+html[data-icon-font='remix'] .fa-circle-half-stroke:before { content: "\ebd4"; }
+html[data-icon-font='remix'] .fa-circle-info:before { content: "\ee59"; }
+html[data-icon-font='remix'] .fa-circle-notch:before { content: "\eec6"; }
+html[data-icon-font='remix'] .fa-circle-question:before { content: "\f048"; }
+html[data-icon-font='remix'] .fa-circle-xmark:before { content: "\eb97"; }
+html[data-icon-font='remix'] .fa-clock:before { content: "\f20f"; }
+html[data-icon-font='remix'] .fa-cloud-arrow-up:before { content: "\f24e"; }
+html[data-icon-font='remix'] .fa-cloud-moon:before { content: "\eba3"; }
+html[data-icon-font='remix'] .fa-cog:before { content: "\f0e6"; }
+html[data-icon-font='remix'] .fa-coins:before { content: "\ebb4"; }
+html[data-icon-font='remix'] .fa-comment:before { content: "\ef46"; }
+html[data-icon-font='remix'] .fa-comment-alt:before { content: "\eb51"; }
+html[data-icon-font='remix'] .fa-comment-dots:before { content: "\eb71"; }
+html[data-icon-font='remix'] .fa-comments:before { content: "\ec3a"; }
+html[data-icon-font='remix'] .fa-compact-disc:before { content: "\ec36"; }
+html[data-icon-font='remix'] .fa-copy:before { content: "\ecd5"; }
+html[data-icon-font='remix'] .fa-cow:before { content: "\eab8"; }
+html[data-icon-font='remix'] .fa-crow:before { content: "\edb5"; }
+html[data-icon-font='remix'] .fa-crown:before { content: "\f28e"; }
+html[data-icon-font='remix'] .fa-cube:before { content: "\f2f1"; }
+html[data-icon-font='remix'] .fa-cubes:before { content: "\f181"; }
+html[data-icon-font='remix'] .fa-dagger:before { content: "\ee7b"; }
+html[data-icon-font='remix'] .fa-database:before { content: "\ec16"; }
+html[data-icon-font='remix'] .fa-debater:before { content: "\f27a"; }
+html[data-icon-font='remix'] .fa-diamond:before { content: "\f290"; }
+html[data-icon-font='remix'] .fa-dice:before { content: "\f400"; }
+html[data-icon-font='remix'] .fa-display:before { content: "\ebca"; }
+html[data-icon-font='remix'] .fa-door-open:before { content: "\ec4c"; }
+html[data-icon-font='remix'] .fa-down-long:before { content: "\ea4c"; }
+html[data-icon-font='remix'] .fa-download:before { content: "\ec5a"; }
+html[data-icon-font='remix'] .fa-droplet-slash:before { content: "\f2b0"; }
+html[data-icon-font='remix'] .fa-earth-asia:before { content: "\ec7a"; }
+html[data-icon-font='remix'] .fa-edit:before { content: "\ec86"; }
+html[data-icon-font='remix'] .fa-ellipsis:before { content: "\ef79"; }
+html[data-icon-font='remix'] .fa-ellipsis-vertical:before { content: "\ef77"; }
+html[data-icon-font='remix'] .fa-envelope:before { content: "\eef6"; }
+html[data-icon-font='remix'] .fa-envelope-open-text:before { content: "\eefa"; }
+html[data-icon-font='remix'] .fa-exclamation-circle:before { content: "\eca1"; }
+html[data-icon-font='remix'] .fa-exclamation-triangle:before { content: "\ea21"; }
+html[data-icon-font='remix'] .fa-expand:before { content: "\ed9c"; }
+html[data-icon-font='remix'] .fa-eye:before { content: "\ecb5"; }
+html[data-icon-font='remix'] .fa-eye-dropper:before { content: "\f531"; }
+html[data-icon-font='remix'] .fa-eye-slash:before { content: "\ecb7"; }
+html[data-icon-font='remix'] .fa-face-smile:before { content: "\ec8d"; }
+html[data-icon-font='remix'] .fa-face-smile-beam:before { content: "\ec8f"; }
+html[data-icon-font='remix'] .fa-fast-backward:before { content: "\f086"; }
+html[data-icon-font='remix'] .fa-fast-forward:before { content: "\f371"; }
+html[data-icon-font='remix'] .fa-faucet:before { content: "\ec6a"; }
+html[data-icon-font='remix'] .fa-file:before { content: "\eceb"; }
+html[data-icon-font='remix'] .fa-file-arrow-up:before { content: "\ed15"; }
+html[data-icon-font='remix'] .fa-file-export:before { content: "\ed11"; }
+html[data-icon-font='remix'] .fa-file-image:before { content: "\f3c4"; }
+html[data-icon-font='remix'] .fa-file-import:before { content: "\ecd9"; }
+html[data-icon-font='remix'] .fa-file-lines:before { content: "\ed0f"; }
+html[data-icon-font='remix'] .fa-fire:before { content: "\ed33"; }
+html[data-icon-font='remix'] .fa-flag:before { content: "\ed3b"; }
+html[data-icon-font='remix'] .fa-flag-checkered:before { content: "\ed3b"; }
+html[data-icon-font='remix'] .fa-forward:before { content: "\f144"; }
+html[data-icon-font='remix'] .fa-forward-step:before { content: "\f144"; }
+html[data-icon-font='remix'] .fa-gamepad:before { content: "\edab"; }
+html[data-icon-font='remix'] .fa-gear:before { content: "\f0e6"; }
+html[data-icon-font='remix'] .fa-gears:before { content: "\f0ea"; }
+html[data-icon-font='remix'] .fa-gem:before { content: "\f290"; }
+html[data-icon-font='remix'] .fa-graduation-cap:before { content: "\f333"; }
+html[data-icon-font='remix'] .fa-hammer:before { content: "\edef"; }
+html[data-icon-font='remix'] .fa-hand-lizard:before { content: "\f444"; }
+html[data-icon-font='remix'] .fa-hand-paper:before { content: "\f444"; }
+html[data-icon-font='remix'] .fa-hat-wizard:before { content: "\eeea"; }
+html[data-icon-font='remix'] .fa-heart-crack:before { content: "\ee11"; }
+html[data-icon-font='remix'] .fa-history:before { content: "\ee17"; }
+html[data-icon-font='remix'] .fa-house:before { content: "\ee2b"; }
+html[data-icon-font='remix'] .fa-id-card:before { content: "\f02d"; }
+html[data-icon-font='remix'] .fa-image:before { content: "\ee4b"; }
+html[data-icon-font='remix'] .fa-info:before { content: "\ee59"; }
+html[data-icon-font='remix'] .fa-key:before { content: "\ee71"; }
+html[data-icon-font='remix'] .fa-language:before { content: "\f226"; }
+html[data-icon-font='remix'] .fa-laptop-file:before { content: "\eee8"; }
+html[data-icon-font='remix'] .fa-layer-group:before { content: "\f181"; }
+html[data-icon-font='remix'] .fa-link:before { content: "\eeb2"; }
+html[data-icon-font='remix'] .fa-list:before { content: "\eebe"; }
+html[data-icon-font='remix'] .fa-list-ol:before { content: "\eebb"; }
+html[data-icon-font='remix'] .fa-lock:before { content: "\eece"; }
+html[data-icon-font='remix'] .fa-lock-open:before { content: "\eed2"; }
+html[data-icon-font='remix'] .fa-magnifying-glass-plus:before { content: "\f2db"; }
+html[data-icon-font='remix'] .fa-map:before { content: "\ef06"; }
+html[data-icon-font='remix'] .fa-mask:before { content: "\edb5"; }
+html[data-icon-font='remix'] .fa-maximize:before { content: "\ed9c"; }
+html[data-icon-font='remix'] .fa-microphone:before { content: "\ef50"; }
+html[data-icon-font='remix'] .fa-microphone-lines:before { content: "\ef50"; }
+html[data-icon-font='remix'] .fa-microphone-slash:before { content: "\ef52"; }
+html[data-icon-font='remix'] .fa-minimize:before { content: "\ed9a"; }
+html[data-icon-font='remix'] .fa-mobile-screen-button:before { content: "\f15a"; }
+html[data-icon-font='remix'] .fa-money-bill-transfer:before { content: "\eca9"; }
+html[data-icon-font='remix'] .fa-money-check-dollar:before { content: "\ea92"; }
+html[data-icon-font='remix'] .fa-moon:before { content: "\ef75"; }
+html[data-icon-font='remix'] .fa-network-wired:before { content: "\ef90"; }
+html[data-icon-font='remix'] .fa-newspaper:before { content: "\ef8f"; }
+html[data-icon-font='remix'] .fa-oil-can:before { content: "\efae"; }
+html[data-icon-font='remix'] .fa-om:before { content: "\efaf"; }
+html[data-icon-font='remix'] .fa-paintbrush:before { content: "\efc1"; }
+html[data-icon-font='remix'] .fa-palette:before { content: "\efc5"; }
+html[data-icon-font='remix'] .fa-paper-plane:before { content: "\f0da"; }
+html[data-icon-font='remix'] .fa-pause:before { content: "\efd8"; }
+html[data-icon-font='remix'] .fa-pen:before { content: "\efde"; }
+html[data-icon-font='remix'] .fa-pencil:before { content: "\efe0"; }
+html[data-icon-font='remix'] .fa-person-running:before { content: "\f0a5"; }
+html[data-icon-font='remix'] .fa-person-through-window:before { content: "\eeda"; }
+html[data-icon-font='remix'] .fa-phone:before { content: "\efec"; }
+html[data-icon-font='remix'] .fa-pizza-slice:before { content: "\f084"; }
+html[data-icon-font='remix'] .fa-plane:before { content: "\f005"; }
+html[data-icon-font='remix'] .fa-plane-arrival:before { content: "\ed41"; }
+html[data-icon-font='remix'] .fa-plane-departure:before { content: "\ed43"; }
+html[data-icon-font='remix'] .fa-play:before { content: "\f00b"; }
+html[data-icon-font='remix'] .fa-plus:before { content: "\ea13"; }
+html[data-icon-font='remix'] .fa-qrcode:before { content: "\f03d"; }
+html[data-icon-font='remix'] .fa-question:before { content: "\f045"; }
+html[data-icon-font='remix'] .fa-question-circle:before { content: "\f048"; }
+html[data-icon-font='remix'] .fa-radiation:before { content: "\ea21"; }
+html[data-icon-font='remix'] .fa-rainbow:before { content: "\f054"; }
+html[data-icon-font='remix'] .fa-random:before { content: "\f124"; }
+html[data-icon-font='remix'] .fa-ranking-star:before { content: "\ef28"; }
+html[data-icon-font='remix'] .fa-record-vinyl:before { content: "\f05a"; }
+html[data-icon-font='remix'] .fa-recycle:before { content: "\f05e"; }
+html[data-icon-font='remix'] .fa-redo-alt:before { content: "\ea5a"; }
+html[data-icon-font='remix'] .fa-repeat:before { content: "\f074"; }
+html[data-icon-font='remix'] .fa-reply:before { content: "\f07a"; }
+html[data-icon-font='remix'] .fa-right-from-bracket:before { content: "\eeda"; }
+html[data-icon-font='remix'] .fa-right-to-bracket:before { content: "\eed4"; }
+html[data-icon-font='remix'] .fa-rotate-left:before { content: "\ea58"; }
+html[data-icon-font='remix'] .fa-scalpel:before { content: "\ee7b"; }
+html[data-icon-font='remix'] .fa-screwdriver-wrench:before { content: "\f21b"; }
+html[data-icon-font='remix'] .fa-search:before { content: "\f0d1"; }
+html[data-icon-font='remix'] .fa-shapes:before { content: "\f0f2"; }
+html[data-icon-font='remix'] .fa-share-nodes:before { content: "\f0fd"; }
+html[data-icon-font='remix'] .fa-shield-cat:before { content: "\f10a"; }
+html[data-icon-font='remix'] .fa-shield-halved:before { content: "\f100"; }
+html[data-icon-font='remix'] .fa-shoe-prints:before { content: "\f2a8"; }
+html[data-icon-font='remix'] .fa-shop:before { content: "\f1a5"; }
+html[data-icon-font='remix'] .fa-sign-in:before { content: "\eed6"; }
+html[data-icon-font='remix'] .fa-skull:before { content: "\f14a"; }
+html[data-icon-font='remix'] .fa-slash:before { content: "\f3a4"; }
+html[data-icon-font='remix'] .fa-sliders:before { content: "\eebd"; }
+html[data-icon-font='remix'] .fa-socks:before { content: "\f112"; }
+html[data-icon-font='remix'] .fa-spinner:before { content: "\eec6"; }
+html[data-icon-font='remix'] .fa-square:before { content: "\eb7f"; }
+html[data-icon-font='remix'] .fa-square-full:before { content: "\eb7e"; }
+html[data-icon-font='remix'] .fa-stack:before { content: "\f181"; }
+html[data-icon-font='remix'] .fa-step-backward:before { content: "\f140"; }
+html[data-icon-font='remix'] .fa-step-forward:before { content: "\f144"; }
+html[data-icon-font='remix'] .fa-store:before { content: "\f1a5"; }
+html[data-icon-font='remix'] .fa-subway:before { content: "\f1b1"; }
+html[data-icon-font='remix'] .fa-sun:before { content: "\f1bf"; }
+html[data-icon-font='remix'] .fa-swimming-pool:before { content: "\f4e0"; }
+html[data-icon-font='remix'] .fa-sword:before { content: "\f1cf"; }
+html[data-icon-font='remix'] .fa-table-cells:before { content: "\ee90"; }
+html[data-icon-font='remix'] .fa-tablet-button:before { content: "\f1e0"; }
+html[data-icon-font='remix'] .fa-tablet-screen-button:before { content: "\f1e0"; }
+html[data-icon-font='remix'] .fa-taxi:before { content: "\f1ea"; }
+html[data-icon-font='remix'] .fa-thumbs-up:before { content: "\f207"; }
+html[data-icon-font='remix'] .fa-times:before { content: "\eb99"; }
+html[data-icon-font='remix'] .fa-times-circle:before { content: "\eb97"; }
+html[data-icon-font='remix'] .fa-tools:before { content: "\f21b"; }
+html[data-icon-font='remix'] .fa-tower-broadcast:before { content: "\f12a"; }
+html[data-icon-font='remix'] .fa-trash:before { content: "\ec2a"; }
+html[data-icon-font='remix'] .fa-trash-alt:before { content: "\ec26"; }
+html[data-icon-font='remix'] .fa-triangle-exclamation:before { content: "\ea21"; }
+html[data-icon-font='remix'] .fa-trophy:before { content: "\f22f"; }
+html[data-icon-font='remix'] .fa-tv:before { content: "\f237"; }
+html[data-icon-font='remix'] .fa-undo:before { content: "\ea58"; }
+html[data-icon-font='remix'] .fa-undo-alt:before { content: "\ea58"; }
+html[data-icon-font='remix'] .fa-unlock:before { content: "\eed2"; }
+html[data-icon-font='remix'] .fa-unlock-alt:before { content: "\eed2"; }
+html[data-icon-font='remix'] .fa-upload:before { content: "\f250"; }
+html[data-icon-font='remix'] .fa-user:before { content: "\f264"; }
+html[data-icon-font='remix'] .fa-user-friends:before { content: "\ede3"; }
+html[data-icon-font='remix'] .fa-user-group:before { content: "\ede3"; }
+html[data-icon-font='remix'] .fa-user-lock:before { content: "\f107"; }
+html[data-icon-font='remix'] .fa-user-minus:before { content: "\f278"; }
+html[data-icon-font='remix'] .fa-user-plus:before { content: "\f25e"; }
+html[data-icon-font='remix'] .fa-user-secret:before { content: "\f10c"; }
+html[data-icon-font='remix'] .fa-user-slash:before { content: "\f3bd"; }
+html[data-icon-font='remix'] .fa-users:before { content: "\f1ee"; }
+html[data-icon-font='remix'] .fa-users-cog:before { content: "\f26e"; }
+html[data-icon-font='remix'] .fa-users-gear:before { content: "\f26e"; }
+html[data-icon-font='remix'] .fa-users-viewfinder:before { content: "\f26c"; }
+html[data-icon-font='remix'] .fa-vault:before { content: "\f0a9"; }
+html[data-icon-font='remix'] .fa-video:before { content: "\f282"; }
+html[data-icon-font='remix'] .fa-video-slash:before { content: "\f51b"; }
+html[data-icon-font='remix'] .fa-volume-high:before { content: "\f2a2"; }
+html[data-icon-font='remix'] .fa-volume-low:before { content: "\f29c"; }
+html[data-icon-font='remix'] .fa-volume-mute:before { content: "\f29e"; }
+html[data-icon-font='remix'] .fa-volume-up:before { content: "\f2a2"; }
+html[data-icon-font='remix'] .fa-volume-xmark:before { content: "\f29e"; }
+html[data-icon-font='remix'] .fa-walking:before { content: "\f2a8"; }
+html[data-icon-font='remix'] .fa-wallet:before { content: "\f2ae"; }
+html[data-icon-font='remix'] .fa-window-close:before { content: "\eb99"; }
+html[data-icon-font='remix'] .fa-window-maximize:before { content: "\eea1"; }
+html[data-icon-font='remix'] .fa-window-minimize:before { content: "\f1af"; }
+html[data-icon-font='remix'] .fa-window-restore:before { content: "\ee7f"; }
+html[data-icon-font='remix'] .fa-wine-bottle:before { content: "\edd3"; }
+html[data-icon-font='remix'] .fa-x:before { content: "\eb99"; }
+html[data-icon-font='remix'] .fa-xmark:before { content: "\eb99"; }
+html[data-icon-font='remix'] .fa-youtube:before { content: "\f2d5"; }

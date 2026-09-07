@@ -496,6 +496,7 @@ export default class Saito {
       crypto: {
         generatePrivateKey: wasm.generate_private_key?.bind(wasm),
         generatePublicKey: wasm.generate_public_key?.bind(wasm),
+        generateSharedSecret: wasm.generate_shared_secret?.bind(wasm),
         hash: wasm.hash?.bind(wasm),
         isPublicKey: wasm.isPublicKey?.bind(wasm),
         signBuffer: wasm.sign_buffer?.bind(wasm),
@@ -573,6 +574,7 @@ export default class Saito {
       //
       admin: {
         writeIssuanceFile: wasm.write_issuance_file?.bind(wasm),
+        writeUtxosetFile: wasm.write_utxoset_file?.bind(wasm),
       },
     };
 
@@ -598,10 +600,6 @@ export default class Saito {
         return wrapper.getBlocks(count, includeOffchain);
       };
     }
-
-    console.log("CORE OBJECT");
-    console.log(coreObject);
-    console.log("CORE SCRIPTING", coreObject.scripting);
 
     return coreObject;
   }

@@ -1,5 +1,0 @@
-/*
- * Load the standard Saito UI for the live application shell without letting
- * its page-level defaults replace the landing page's visual system.
- */
-@import url('/saito/saito.css') layer(saito-shell);

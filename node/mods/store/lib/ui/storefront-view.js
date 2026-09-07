@@ -415,6 +415,28 @@ class StorefrontView {
       caption: 'Listings'
     });
 
+    host.querySelectorAll('.listings-table tbody tr[data-signature]').forEach((row) => {
+      row.classList.add('is-clickable');
+      row.addEventListener('click', (e) => {
+        e.preventDefault();
+        const signature = row.getAttribute('data-signature') || '';
+        if (!signature) {
+          return;
+        }
+        const summary = (this.activeSummaries || []).find(
+          (item) => String(item.listing_signature || '') === signature
+        );
+        if (!summary) {
+          return;
+        }
+        if (!this.mod.delist_overlay) {
+          const DelistOverlay = require('./overlays/delist-overlay');
+          this.mod.delist_overlay = new DelistOverlay(this.app, this.mod);
+        }
+        this.mod.delist_overlay.open(summary);
+      });
+    });
+
     if (footer) {
       footer.hidden = false;
       footer.innerHTML = CatalogFooterTemplate({

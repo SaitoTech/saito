@@ -1,0 +1,12 @@
+/* Namespace: .listing-detail.delist — seller reclaim overlay (reuses listing-detail layout) */
+
+.listing-detail.delist .delist-note {
+  margin: 0 0 var(--saito-space-md);
+  font-size: var(--font-size-medium);
+  line-height: 1.45;
+  color: var(--saito-muted-foreground);
+}
+
+.listing-detail.delist .checkout .action {
+  width: 100%;
+}

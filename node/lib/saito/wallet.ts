@@ -107,10 +107,6 @@ export default class Wallet extends SaitoWallet {
   }
 
   async initialize() {
-    console.info(
-      '[INIT_TRACE] wallet initialize begin app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
     let privateKey = await this.getPrivateKey();
     let publicKey = await this.getPublicKey();
     let wallet_self = this;
@@ -452,33 +448,14 @@ export default class Wallet extends SaitoWallet {
         unique_hash: string = '',
         memo: string = ''
       ) {
-        // TEMP_DIAG_POKER_AUTH: cryptomodule.sendPayment outbound trace (SAITO)
-        const trunc = (s) =>
-          typeof s === 'string' && s.length > 14 ? `${s.slice(0, 8)}...${s.slice(-6)}` : s;
-        console.info('[TEMP_DIAG_POKER_AUTH] cryptomod(SAITO).sendPayment invoked', {
-          amount,
-          to_address: trunc(to_address),
-          unique_hash: trunc(unique_hash),
-          memo: trunc(memo)
-        });
-
         let nolan_amount = this.app.wallet.convertSaitoToNolan(amount);
         let current_balance = await this.getAvailableBalance();
-        console.info('[TEMP_DIAG_POKER_AUTH] balance check', {
-          current_balance: trunc(String(current_balance)),
-          amount
-        });
 
         if (Number(current_balance) - Number(amount) < 0) {
-          console.info('[TEMP_DIAG_POKER_AUTH] insufficient balance check FAILED');
           throw new Error('sendPayment: Attempting to send payment with insufficient balance');
         }
 
-        console.info('[TEMP_DIAG_POKER_AUTH] validateAddress about to run', {
-          to_address: trunc(to_address)
-        });
         if (!this.validateAddress(to_address)) {
-          console.info('[TEMP_DIAG_POKER_AUTH] validateAddress check FAILED');
           throw new Error('sendPayment: Attempting to send payment to invalid public key');
         }
 
@@ -486,10 +463,6 @@ export default class Wallet extends SaitoWallet {
           to_address,
           nolan_amount
         );
-        console.info('[TEMP_DIAG_POKER_AUTH] transaction construction', {
-          newtx_created: newtx != null,
-          signature_pre_sign: newtx?.signature
-        });
 
         newtx.msg = {
           module: this.name,
@@ -500,42 +473,10 @@ export default class Wallet extends SaitoWallet {
           hash: unique_hash,
           memo
         };
-        console.info('[TEMP_DIAG_POKER_AUTH] transaction msg set', {
-          request: newtx?.msg?.request,
-          tx_hash: trunc(newtx?.msg?.hash)
-        });
 
-        console.info('[TEMP_DIAG_POKER_AUTH] signing (signAndEncryptTransaction) about to run');
         await this.app.wallet.signAndEncryptTransaction(newtx);
-        console.info('[TEMP_DIAG_POKER_AUTH] signing complete', {
-          signature_post_sign: newtx?.signature
-        });
 
-        const pendingBefore = await this.app.wallet.getPendingTransactions();
-        console.info('[TEMP_DIAG_POKER_AUTH] pending state BEFORE propagateTransaction', {
-          pending_count: pendingBefore?.length,
-          pending_signatures_sample: pendingBefore
-            ?.slice(0, 5)
-            ?.map((pt) => pt?.sig || pt?.signature || pt?.hash)
-            ?.filter(Boolean)
-        });
-
-        console.info('[TEMP_DIAG_POKER_AUTH] propagateTransaction about to run', {
-          signature: trunc(newtx?.signature)
-        });
         await this.app.network.propagateTransaction(newtx);
-        console.info('[TEMP_DIAG_POKER_AUTH] propagateTransaction completed successfully', {
-          signature: trunc(newtx?.signature)
-        });
-
-        const pendingAfter = await this.app.wallet.getPendingTransactions();
-        console.info('[TEMP_DIAG_POKER_AUTH] pending state AFTER propagateTransaction', {
-          pending_count: pendingAfter?.length,
-          pending_signatures_sample: pendingAfter
-            ?.slice(0, 5)
-            ?.map((pt) => pt?.sig || pt?.signature || pt?.hash)
-            ?.filter(Boolean)
-        });
 
         return newtx.signature;
       }
@@ -690,9 +631,6 @@ export default class Wallet extends SaitoWallet {
           this.preferred_crypto = this.app.options.wallet.preferred_crypto;
         }
         if (this.app.options.wallet.slips) {
-          console.info(
-            '[LOAD_TRACE] loading wallet app_option_slips=' + this.app.options.wallet.slips.length
-          );
           let slips = this.app.options.wallet.slips.map((json: any) => {
             let slip = new WalletSlip();
             slip.copyFrom(json);
@@ -700,7 +638,6 @@ export default class Wallet extends SaitoWallet {
           });
           console.log('preserving slips without a wallet reset..... : ' + slips.length);
           await this.addSlips(slips);
-          console.info('[LOAD_TRACE] loaded wallet restored_slips=' + slips.length);
         }
       }
 
@@ -718,23 +655,31 @@ export default class Wallet extends SaitoWallet {
 
       delete this.app.options.pending_txs;
 
-      console.info('Recovered pending_txs -- ', pending_txs);
+      console.info(`Recovered ${pending_txs.length} saved pending transaction(s)`);
 
       for (let i = pending_txs.length - 1, k = 0; i >= 0; i--, k++) {
         try {
-          if (pending_txs[i].instance) {
-            delete pending_txs[i].instance;
+          const serializedTx =
+            typeof pending_txs[i] === 'string' ? pending_txs[i] : JSON.stringify(pending_txs[i]);
+
+          if (!serializedTx) {
+            console.error(`Ignoring malformed saved pending transaction at index ${i}`);
+            continue;
           }
-          if (!pending_txs[i].from) {
-          } else {
-            let newtx = new Transaction();
-            newtx.deserialize_from_web(this.app, JSON.stringify(pending_txs[i]));
-            if (newtx.timestamp > new Date().getTime() - 85000000) {
-              await this.app.wallet.addTransactionToPending(newtx, false);
-            }
+
+          const newtx = new Transaction();
+          newtx.deserialize_from_web(this.app, serializedTx);
+
+          if (!newtx.signature || newtx.from.length === 0) {
+            console.error(`Ignoring malformed saved pending transaction at index ${i}`);
+            continue;
+          }
+
+          if (newtx.timestamp > new Date().getTime() - 85000000) {
+            await this.app.wallet.addTransactionToPending(newtx, false);
           }
         } catch (err) {
-          // console.log('caught error: ' + JSON.stringify(err));
+          console.error(`Failed to restore pending transaction at index ${i}:`, err);
         }
       }
 
@@ -763,14 +708,6 @@ export default class Wallet extends SaitoWallet {
     // add nfts back to rust wallet
     //
     await this.addNFTList();
-    console.info(
-      '[INIT_TRACE] wallet initialize complete app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
-    console.info(
-      '[LOAD_TRACE] wallet initialization complete app_option_slips=' +
-        (this.app.options.wallet?.slips?.length ?? 0)
-    );
   }
 
   constructor(wallet: any) {
@@ -840,7 +777,25 @@ export default class Wallet extends SaitoWallet {
     this.app.options.wallet.version = this.version;
     this.app.options.wallet.default_fee = this.default_fee.toString();
 
-    let pending_txs = await this.getPendingTransactions();
+    const pendingTransactions = await this.getPendingTransactions();
+    const pending_txs: string[] = [];
+
+    for (let i = 0; i < pendingTransactions.length; i++) {
+      try {
+        const serializedTx = (pendingTransactions[i] as Transaction).serialize_to_web(this.app);
+        if (serializedTx) {
+          pending_txs.push(serializedTx);
+        }
+      } catch (err) {
+        console.error(`Failed to serialize pending transaction at index ${i}:`, err);
+      }
+    }
+
+    if (pending_txs.length !== pendingTransactions.length) {
+      console.error(
+        `Skipped ${pendingTransactions.length - pending_txs.length} malformed pending transaction(s) while saving wallet`
+      );
+    }
 
     if (this.app.BROWSER) {
       await this.app.storage.setLocalForageItem('pending_txs', pending_txs);
@@ -1045,26 +1000,8 @@ export default class Wallet extends SaitoWallet {
     saito_public_key = null,
     memo = ''
   ) {
-    // TEMP_DIAG_POKER_AUTH: wallet.sendPayment outbound trace (general crypto send wrapper)
-    const trunc = (s) =>
-      typeof s === 'string' && s.length > 14 ? `${s.slice(0, 8)}...${s.slice(-6)}` : s;
-    console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment invoked', {
-      ticker,
-      sender_crypto: trunc(senders?.[0]),
-      receiver_crypto: trunc(receivers?.[0]),
-      amount: amounts?.[0],
-      unique_hash: trunc(unique_hash),
-      saito_public_key: trunc(saito_public_key),
-      memo: trunc(memo)
-    });
-
     if (senders.length !== 1 || receivers.length !== 1 || amounts.length !== 1) {
       // We have no code which exercises multiple senders/receivers so can't implement it yet.
-      console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment length validation FAILED', {
-        senders_len: senders?.length,
-        receivers_len: receivers?.length,
-        amounts_len: amounts?.length
-      });
       console.error('sendPayment ERROR: Only supports one transaction');
       // console.log(senders, receivers, amounts);
       if (mycallback) {
@@ -1085,11 +1022,6 @@ export default class Wallet extends SaitoWallet {
       );
       try {
         const cryptomod = this.returnCryptoModuleByTicker(ticker);
-        console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod resolved', {
-          cryptomod_name: cryptomod?.name,
-          cryptomod_ticker: cryptomod?.ticker,
-          cryptomod_chain_id: cryptomod?.chain_id
-        });
         for (let i = 0; i < senders.length; i++) {
           //
           // DEBUGGING - sender is address to which we send the crypto
@@ -1098,40 +1030,13 @@ export default class Wallet extends SaitoWallet {
 
           if (senders[i] === cryptomod.formatAddress()) {
             // Need to save before we await, otherwise there is a race condition
-            console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment sender address MATCH', {
-              sender: trunc(senders[i]),
-              cryptomod_formatAddress: trunc(cryptomod.formatAddress())
-            });
             await this.savePreferredCryptoTransaction(unique_hash);
-            console.info(
-              '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment saved preferred crypto transaction',
-              {
-                unique_hash: trunc(unique_hash)
-              }
-            );
             try {
-              console.info(
-                '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment calling cryptomod.sendPayment',
-                {
-                  amount: amounts[i],
-                  receiver: trunc(receivers[i]),
-                  unique_hash: trunc(unique_hash)
-                }
-              );
               const hash = await cryptomod.sendPayment(amounts[i], receivers[i], unique_hash, memo);
-              console.info(
-                '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod.sendPayment returned',
-                {
-                  hash: trunc(hash)
-                }
-              );
               //
               // hash is "" if unsuccessful, trace_id if successful
               //
               if (hash === '') {
-                console.info(
-                  '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod returned empty hash (treat as unsuccessful)'
-                );
                 this.deletePreferredCryptoTransaction(unique_hash);
               }
 
@@ -1158,12 +1063,6 @@ export default class Wallet extends SaitoWallet {
               }
 
               if (mycallback) {
-                console.info(
-                  '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment invoking mycallback with success',
-                  {
-                    hash: trunc(hash)
-                  }
-                );
                 mycallback({ hash: hash });
               }
               return { hash: hash };
@@ -1172,44 +1071,23 @@ export default class Wallet extends SaitoWallet {
               // it failed, delete the transaction
               this.deletePreferredCryptoTransaction(unique_hash);
               rtnObj = { err: err instanceof Error ? err.message : String(err) };
-              console.info(
-                '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment cryptomod.sendPayment threw',
-                {
-                  err: typeof rtnObj?.err === 'string' ? trunc(rtnObj.err) : rtnObj?.err
-                }
-              );
             }
           } else {
             console.log(cryptomod.name);
             console.log(senders[i], cryptomod.formatAddress());
-            console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment sender address MISMATCH', {
-              sender: trunc(senders[i]),
-              cryptomod_formatAddress: trunc(cryptomod.formatAddress())
-            });
             rtnObj = { err: 'wrong address' };
           }
         }
       } catch (err) {
         rtnObj = { err: err instanceof Error ? err.message : String(err) };
-        console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment outer try/catch threw', {
-          err: typeof rtnObj?.err === 'string' ? trunc(rtnObj.err) : rtnObj?.err
-        });
       }
     } else {
       rtnObj = { err: 'already sent' };
-      console.info(
-        '[TEMP_DIAG_POKER_AUTH] wallet.sendPayment preferred tx already exists -> already sent'
-      );
     }
 
     // console.error('sendPayment ERROR: ', rtnObj);
 
     if (mycallback) {
-      console.info('[TEMP_DIAG_POKER_AUTH] wallet.sendPayment invoking mycallback with rtnObj', {
-        has_err: rtnObj?.err != null,
-        err: typeof rtnObj?.err === 'string' ? trunc(rtnObj.err) : rtnObj?.err,
-        hash: rtnObj?.hash != null ? trunc(rtnObj.hash) : undefined
-      });
       mycallback(rtnObj);
     }
     return rtnObj;
@@ -1409,7 +1287,7 @@ export default class Wallet extends SaitoWallet {
    * @param {Transaction}
    * @return {Transaction}
    */
-  async signAndEncryptTransaction(tx: Transaction, recipient = '') {
+  async signAndEncryptTransaction(tx: Transaction, recipient = '', force_encrypt = false) {
     if (tx == null) {
       return null;
     }
@@ -1417,36 +1295,27 @@ export default class Wallet extends SaitoWallet {
     //
     // convert tx.msg to base64 tx.ms
     //
-    // if the transaction is of excessive length, we cut the message and
-    // continue blank. so be careful kids as there are some hardcoded
-    // limits in NodeJS!
-    //
     try {
-      // Empty placeholder protects data in case encryption fails to fire
       let encryptedMessage = '';
+      let encryptionRecipient = '';
 
-      // if recipient input has a shared secret in keychain
-      if (this.app.keychain.hasSharedSecret(recipient)) {
-        encryptedMessage = this.app.keychain.encryptMessage(recipient, tx.msg);
+      if (recipient && force_encrypt === true) {
+        encryptionRecipient = recipient;
+      } else if (this.app.keychain.hasSharedSecret(recipient)) {
+        encryptionRecipient = recipient;
+      } else if (this.app.keychain.hasSharedSecret(tx.to[0].publicKey)) {
+        encryptionRecipient = tx.to[0].publicKey;
       }
-      // if tx sendee's public address has shared secret
-      else if (this.app.keychain.hasSharedSecret(tx.to[0].publicKey)) {
-        encryptedMessage = this.app.keychain.encryptMessage(tx.to[0].publicKey, tx.msg);
+
+      if (encryptionRecipient) {
+        encryptedMessage = await this.app.keychain.encryptMessage(encryptionRecipient, tx.msg);
       }
 
       if (encryptedMessage) {
         tx.msg = encryptedMessage;
       } else {
-        //console.warn("Not encrypting transaction because don't have shared key with recipient");
       }
 
-      //
-      // nov 25 2022 - eliminate base64 formatting for TXS
-      //
-      //tx.m = Buffer.from(
-      //  this.app.crypto.stringToBase64(JSON.stringify(tx.msg)),
-      //  "base64"
-      //);
       tx.data = Buffer.from(JSON.stringify(tx.msg), 'utf-8');
     } catch (err) {
       // console.log('####################');
@@ -1465,45 +1334,14 @@ export default class Wallet extends SaitoWallet {
   public async fetchBalanceSnapshot(key: string) {
     const balanceUrl = '/balance/' + key;
     try {
-      console.log('fetching balance snapshot for key : ' + key);
-      console.log('[BALANCE FETCH] requesting snapshot URL:', balanceUrl);
       let response = await fetch(balanceUrl);
-      if (!response.ok) {
-        console.log(
-          `[BALANCE FETCH] non-OK response status=${response.status} statusText=${response.statusText} url=${balanceUrl}`
-        );
-      }
       let data = await response.text();
       let snapshot = BalanceSnapshot.fromString(data);
       if (snapshot) {
-        const expectedBalance = snapshot.rows.reduce((total, row) => {
-          const cols = row.split(' ');
-          if (cols.length < 5) {
-            return total;
-          }
-          try {
-            return total + BigInt(cols[4]);
-          } catch (_err) {
-            return total;
-          }
-        }, BigInt(0));
-        console.log(
-          `[BALANCE FETCH] snapshot parsed file=${snapshot.file_name} rows=${snapshot.rows.length} expected_balance_nolan=${expectedBalance.toString()}`
-        );
-        const beforeSlipCount = (await this.getSlips()).length;
         await S.getInstance().updateBalanceFrom(snapshot);
-        const afterSlipCount = (await this.getSlips()).length;
-        console.log(
-          `[BALANCE FETCH] wallet slips updated before=${beforeSlipCount} after=${afterSlipCount} added=${Math.max(
-            0,
-            afterSlipCount - beforeSlipCount
-          )}`
-        );
-      } else {
-        console.log(`[BALANCE FETCH] snapshot parse failed url=${balanceUrl}`);
       }
     } catch (error) {
-      console.log('[BALANCE FETCH] request/update failed:', error);
+      console.error('fetchBalanceSnapshot failed:', error);
     }
   }
 

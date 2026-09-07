@@ -13,10 +13,10 @@
     color: white;
     margin-left: auto;
     margin-right: auto;
-    font-size: 2.4rem;
+    font-size: 2rem;
     max-width: 100%;
-    padding: 2rem;
-    line-height: 3.4rem;
+    padding: 1.667rem;
+    line-height: 2.833rem;
     text-align: center;
   }
 
@@ -24,22 +24,22 @@
     display: grid;
     grid-template-columns: 1fr 3fr;
     grid-template-rows: auto;
-    margin-top: 4rem;
+    margin-top: 3.333rem;
     background: #0009;
     margin-left: auto;
     margin-right: auto;
     width: 100%;
-    padding: 1rem;
+    padding: 0.833rem;
   }
 
   .units-faction {
-    font-size: 2rem;
-    padding: 2rem;
+    font-size: 1.667rem;
+    padding: 1.667rem;
     color: white;
   }
 
   .units-faction-available {
-    margin-top: 3rem;
+    margin-top: 2.5rem;
   }
 
   .units-faction-available .army_tile {

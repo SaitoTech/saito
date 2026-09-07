@@ -65,6 +65,14 @@ function calculatePendingBalance(balance, ...deductions) {
   return Number(pending.toFixed(8));
 }
 
+function selectWithdrawalFee(feeResponse, assetId, chainAssetId) {
+  const fees = Array.isArray(feeResponse) ? feeResponse : feeResponse ? [feeResponse] : [];
+  const assetFee = fees.find((fee) => fee.asset_id === assetId);
+  const chainFee = fees.find((fee) => fee.asset_id === chainAssetId);
+
+  return assetFee ?? chainFee ?? (fees.length === 1 ? fees[0] : null);
+}
+
 function formatMixinError(err) {
   const apiError = err?.response?.data?.error;
   if (apiError?.description || apiError?.code) {
@@ -130,6 +138,7 @@ class Mixin extends ModTemplate {
     this.mixin_peer = null;
     this.bot = null;
     this.account_created = 0;
+    this.account_creation_promise = null;
     this.crypto_mods = [];
   }
 
@@ -378,17 +387,65 @@ class Mixin extends ModTemplate {
   //
 
   async createAccount(callback = null, force_new = false) {
-    if (this.account_created == 0 || force_new) {
-      const mixin_self = this;
-      const privateKey = await this.app.wallet.getPrivateKey();
-      const callback2 = (res) => {
-        console.log(res);
-        if (typeof res == 'object' && res?.res) {
-          // Unencrypt
-          const buf1 = Buffer.from(res.res, 'base64');
-          const buf2 = mixin_self.app.crypto.decryptWithPrivateKey(buf1, privateKey);
+    let result;
 
-          res.keys = JSON.parse(buf2.toString('utf8'));
+    if (this.account_created && !force_new) {
+      console.warn('You already have a Mixin Account created...');
+      result = { keys: this.mixin, existing: true };
+    } else if (!force_new && this.account_creation_promise) {
+      result = await this.account_creation_promise;
+    } else {
+      const createAccount = async () => {
+        const privateKey = await this.app.wallet.getPrivateKey();
+        let response;
+
+        if (this.mixin_peer) {
+          console.log(
+            'Request remote node to create Mixin User Account',
+            this.mixin_peer.publicKey
+          );
+
+          response = await new Promise((resolve) => {
+            let settled = false;
+            const finish = (res) => {
+              if (!settled) {
+                settled = true;
+                clearTimeout(timeout);
+                resolve(res);
+              }
+              return res;
+            };
+            const timeout = setTimeout(
+              () => finish({ err: 'Mixin account service timed out' }),
+              30000
+            );
+
+            try {
+              Promise.resolve(this.sendCreateAccountTransaction(finish, force_new)).catch((err) =>
+                finish({ err: formatMixinError(err) })
+              );
+            } catch (err) {
+              finish({ err: formatMixinError(err) });
+            }
+          });
+        } else if (this.app.BROWSER) {
+          response = { err: 'Mixin account service is unavailable' };
+        } else {
+          console.log('==> Create Mixin User Account on Same Node as API Keys');
+          response = await this.createMixinUserAccount(this.publicKey, null, force_new);
+        }
+
+        if (typeof response !== 'object' || !response?.res) {
+          const error = response?.err || 'Mixin account service returned no account';
+          console.error('Mixin Account Error:', error);
+          return { err: error };
+        }
+
+        try {
+          const res = { ...response };
+          const encrypted = Buffer.from(res.res, 'base64');
+          const decrypted = this.app.crypto.decryptWithPrivateKey(encrypted, privateKey);
+          res.keys = JSON.parse(decrypted.toString('utf8'));
 
           if (res.restored) {
             console.log('Successfully Restored Mixin Account!');
@@ -396,30 +453,38 @@ class Mixin extends ModTemplate {
             console.log('Successfully Created Mixin Account!');
           }
 
-          // Skip save step if we are creating multiple accounts on the same public key
+          // Skip save step if we are creating multiple accounts on the same public key.
           if (!force_new) {
-            mixin_self.mixin = res.keys;
-            mixin_self.account_created = 1;
-            mixin_self.save();
+            this.mixin = res.keys;
+            this.account_created = 1;
+            this.save();
           }
-        } else {
-          console.error('Mixin Account Error:', res?.err);
-        }
-        if (callback) {
-          return callback(res);
+
+          return res;
+        } catch (err) {
+          const error = `Unable to decrypt Mixin account: ${formatMixinError(err)}`;
+          console.error(error);
+          return { err: error };
         }
       };
 
-      if (this.mixin_peer) {
-        console.log('Request remote node to create Mixin User Account', this.mixin_peer.publicKey);
-        await this.sendCreateAccountTransaction(callback2, force_new);
+      if (force_new) {
+        result = await createAccount();
       } else {
-        console.log('==> Create Mixin User Account on Same Node as API Keys');
-        await this.createMixinUserAccount(this.publicKey, callback2, force_new);
+        this.account_creation_promise = createAccount();
+        try {
+          result = await this.account_creation_promise;
+        } finally {
+          this.account_creation_promise = null;
+        }
       }
-    } else {
-      console.warn('You already have a Mixin Account created...');
     }
+
+    if (callback) {
+      await callback(result);
+    }
+
+    return result;
   }
 
   sendCreateAccountTransaction(callback = null, force_new = false) {
@@ -543,61 +608,55 @@ class Mixin extends ModTemplate {
   }
 
   async createDepositAddress(asset_id, chain_id, alt_keys = null) {
-    let keystore;
-
-    if (alt_keys) {
-      keystore = {
-        app_id: alt_keys.user_id,
-        session_id: alt_keys.session_id,
-        pin_token_base64: alt_keys.tip_key_base64,
-        session_private_key: alt_keys.session_seed
-      };
-    } else {
-      keystore = {
-        app_id: this.mixin.user_id,
-        session_id: this.mixin.session_id,
-        pin_token_base64: this.mixin.tip_key_base64,
-        session_private_key: this.mixin.session_seed
-      };
-    }
-
-    let user = MixinApi({ keystore });
-
-    let address = await user.safe.createDeposit(chain_id);
-
-    console.log('New MIXIN deposit address:', address);
-
-    if (!address[0]?.destination) {
-      console.error('ERROR: Mixin error create deposit address: Deposit Address undefined!');
+    if (!chain_id) {
+      console.error('ERROR: Cannot create Mixin deposit address without a chain ID');
       return false;
     }
 
-    if (!alt_keys) {
-      for (let i = 0; i < this.crypto_mods.length; i++) {
-        if (this.crypto_mods[i].asset_id === asset_id) {
-          this.crypto_mods[i].address = address[0].destination;
-          this.crypto_mods[i].save();
+    try {
+      const account = alt_keys || this.mixin;
+      const { keystore } = createMixinCredentials(account);
+      const user = MixinApi({ keystore });
+      const address = await user.safe.createDeposit(chain_id);
+      const destination = address?.[0]?.destination;
 
-          if (this.app.BROWSER) {
-            this.app.network.sendRequestAsTransaction(
-              'mixin save new deposit address',
-              {
-                user_id: this.mixin.user_id,
-                asset_id: asset_id,
-                address: address[0].destination,
-                publickey: this.publicKey
-              },
-              function (res) {
-                console.log('Callback for sendSaveUserTransaction request: ', res);
-              },
-              this.mixin_peer?.publicKey
-            );
+      console.log('New MIXIN deposit address:', address);
+
+      if (!destination) {
+        console.error('ERROR: Mixin error create deposit address: Deposit Address undefined!');
+        return false;
+      }
+
+      if (!alt_keys) {
+        for (let i = 0; i < this.crypto_mods.length; i++) {
+          if (this.crypto_mods[i].asset_id === asset_id) {
+            this.crypto_mods[i].address = destination;
+            this.crypto_mods[i].save();
+
+            if (this.app.BROWSER) {
+              this.app.network.sendRequestAsTransaction(
+                'mixin save new deposit address',
+                {
+                  user_id: this.mixin.user_id,
+                  asset_id: asset_id,
+                  address: destination,
+                  publickey: this.publicKey
+                },
+                function (res) {
+                  console.log('Callback for sendSaveUserTransaction request: ', res);
+                },
+                this.mixin_peer?.publicKey
+              );
+            }
           }
         }
       }
-    }
 
-    return address[0].destination;
+      return destination;
+    } catch (err) {
+      console.error('ERROR: Mixin error create deposit address: ' + formatMixinError(err));
+      return false;
+    }
   }
 
   async fetchSafeUtxoBalance(asset_id) {
@@ -667,10 +726,14 @@ class Mixin extends ModTemplate {
       });
 
       if (callback) {
-        return callback(snapshots);
+        callback(snapshots);
       }
+      return snapshots;
     } catch (err) {
       console.error('ERROR: Mixin error fetch safe snapshots: ' + err);
+      if (callback) {
+        callback(false);
+      }
       return false;
     }
   }
@@ -836,12 +899,24 @@ class Mixin extends ModTemplate {
       const asset = await user.safe.fetchAsset(asset_id);
       const chain =
         asset.chain_id === asset.asset_id ? asset : await user.safe.fetchAsset(asset.chain_id);
-      const fees = await user.safe.fetchFee(asset.asset_id, recipient);
-      const assetFee = fees.find((f) => f.asset_id === asset.asset_id);
-      const chainFee = fees.find((f) => f.asset_id === chain.asset_id);
-      const fee = assetFee ?? chainFee;
+      const feeResponse = await user.safe.fetchFee(asset.asset_id, recipient);
+      const fee = selectWithdrawalFee(feeResponse, asset.asset_id, chain.asset_id);
 
-      return fee.amount;
+      if (!fee?.asset_id || fee.amount == null) {
+        throw new Error(`No withdrawal fee available for ${asset_id}`);
+      }
+
+      const feeAsset =
+        fee.asset_id === asset.asset_id
+          ? asset
+          : fee.asset_id === chain.asset_id
+            ? chain
+            : await user.safe.fetchAsset(fee.asset_id);
+
+      return {
+        ...fee,
+        ticker: feeAsset.display_symbol || feeAsset.symbol
+      };
     } catch (err) {
       console.error('ERROR: Mixin error check withdrawl fee: ' + err);
       return false;
@@ -960,12 +1035,34 @@ class Mixin extends ModTemplate {
       const asset = await user.safe.fetchAsset(asset_id);
       const chain =
         asset.chain_id === asset.asset_id ? asset : await user.safe.fetchAsset(asset.chain_id);
-      const fees = await user.safe.fetchFee(asset.asset_id, destination);
-      const assetFee = fees.find((f) => f.asset_id === asset.asset_id);
-      const chainFee = fees.find((f) => f.asset_id === chain.asset_id);
-      const fee = assetFee ?? chainFee;
+      const feeResponse = await user.safe.fetchFee(asset.asset_id, destination);
+      const fee = selectWithdrawalFee(feeResponse, asset.asset_id, chain.asset_id);
       if (!fee?.asset_id || fee.amount == null) {
         throw new Error(`No withdrawal fee available for ${asset_id}`);
+      }
+      const assetTicker =
+        this.crypto_mods.find((crypto_module) => crypto_module.asset_id === asset.asset_id)
+          ?.ticker ||
+        asset.display_symbol ||
+        asset.symbol;
+      const feeAsset =
+        fee.asset_id === asset.asset_id
+          ? asset
+          : fee.asset_id === chain.asset_id
+            ? chain
+            : await user.safe.fetchAsset(fee.asset_id);
+      const feeTicker =
+        this.crypto_mods.find((crypto_module) => crypto_module.asset_id === fee.asset_id)?.ticker ||
+        feeAsset.display_symbol ||
+        feeAsset.symbol;
+      const assetRequired = new Decimal(amount).plus(
+        fee.asset_id === asset.asset_id ? fee.amount : 0
+      );
+
+      if (new Decimal(balance).lessThan(assetRequired)) {
+        throw new Error(
+          `Insufficient ${assetTicker} balance: ${assetRequired.toString()} required, ${balance} available.`
+        );
       }
       console.log('fee', fee);
       console.log('balance: ', balance);
@@ -980,6 +1077,19 @@ class Mixin extends ModTemplate {
           asset: fee.asset_id,
           state: 'unspent'
         });
+        const feeBalance = await user.utxo.safeAssetBalance({
+          members: [user_id],
+          threshold: 1,
+          asset: fee.asset_id,
+          state: 'unspent'
+        });
+
+        if (new Decimal(feeBalance).lessThan(fee.amount)) {
+          throw new Error(
+            `A ${feeTicker} balance is required to withdraw ${assetTicker}. ` +
+              `The network fee is ${fee.amount} ${feeTicker}, but only ${feeBalance} ${feeTicker} is available.`
+          );
+        }
         console.log('outputs: ', outputs, 'feeOutputs: ', feeOutputs);
 
         let recipients = [
@@ -1031,13 +1141,9 @@ class Mixin extends ModTemplate {
         }
         const feeId = v4();
         const feeGhosts = await user.utxo.ghostKey(feeRecipients, feeId, spend_private_key);
-        const feeTx = buildSafeTransaction(
-          feeUtxos,
-          feeRecipients,
-          feeGhosts,
-          createMixinMemo(),
-          [ref]
-        );
+        const feeTx = buildSafeTransaction(feeUtxos, feeRecipients, feeGhosts, createMixinMemo(), [
+          ref
+        ]);
         console.log('feeTx: ', feeTx);
         const feeRaw = encodeSafeTransaction(feeTx);
         console.log('feeRaw: ', feeRaw);
@@ -1254,9 +1360,7 @@ class Mixin extends ModTemplate {
 
     filters.push('asset_id = $asset_id');
     params['$asset_id'] = data.asset_id;
-    const sql = `SELECT * FROM mixin_users WHERE ${filters.join(
-      ' AND '
-    )} ORDER BY created_at DESC`;
+    const sql = `SELECT * FROM mixin_users WHERE ${filters.join(' AND ')} ORDER BY created_at DESC`;
 
     console.log('*****', sql, params);
 

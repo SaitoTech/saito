@@ -8,42 +8,42 @@
     overflow-y: auto;
   }
   .war-overlay .status {
-    line-height: 4rem;
+    line-height: 3.333rem;
     position: relative;
-    height: 4rem;
+    height: 3.333rem;
     min-height: 0;
-    width: 35rem;
-    max-width: 35rem;
+    width: 29.167rem;
+    max-width: 29.167rem;
     background-color: whitesmoke;
     z-index: 10;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     top: 0px;
     left: 0px;
     white-space: nowrap;
     float: left;
-    margin-left: 1rem;
-    margin-top: 1rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    margin-left: 0.833rem;
+    margin-top: 0.833rem;
+    padding-left: 0.417rem;
+    padding-right: 0.417rem;
   }
 
   .war-overlay .controls ul {
     display: block;
     position: relative;
     background-color: whitesmoke;
-    line-height: 4rem;
-    width: 25rem;
-    max-width: 35rem;
+    line-height: 3.333rem;
+    width: 20.833rem;
+    max-width: 29.167rem;
     z-index: 10;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     top: 0px;
     left: 0px;
     white-space: nowrap;
     float: left;
-    margin-left: 5rem;
-    margin-top: 1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    margin-left: 4.167rem;
+    margin-top: 0.833rem;
+    padding-left: 0.833rem;
+    padding-right: 0.833rem;
     clear: both;
     min-height: max-content;
     max-height: max-content;
@@ -54,17 +54,17 @@
   .war-overlay .status .status-header {
     box-shadow: none;
     margin-bottom: 0px;
-    padding: 1rem;
+    padding: 0.833rem;
     margin-bottom: 0px;
     box-shadow: none;
   }
 
   .war-overlay .status .status-text-menu {
     background-color: whitesmoke;
-    margin-top: 1rem;
+    margin-top: 0.833rem;
     width: min(500px, 100%);
     overflow-y: auto;
-    font-size: 1.6rem;
+    font-size: 1.333rem;
   }
   .war-overlay .status-text-menu ul {
     list-style-type: none;
@@ -73,10 +73,10 @@
     margin-inline-start: 0px;
     margin-inline-end: 0px;
     padding-inline-start: 0px;
-    font-size: 1.6rem;
+    font-size: 1.333rem;
   }
   .war-overlay .status-text-menu ul li {
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
 
   .war-overlay .status-header .status-message {
@@ -86,7 +86,7 @@
     min-height: 40px;
     margin-left: auto;
     margin-right: auto;
-    font-size: 2.6rem;
+    font-size: 2.167rem;
     background-color: #0009;
   }
   .warquote {
@@ -96,8 +96,8 @@
     color: white;
     font-size: 100%;
     position: absolute;
-    padding: 2rem;
-    font-size: 2rem;
+    padding: 1.667rem;
+    font-size: 1.667rem;
     font-style: italic;
   }
 }

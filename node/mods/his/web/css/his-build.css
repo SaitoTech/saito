@@ -2,21 +2,21 @@
   .build-overlay .build-controls {
     display: flex;
     flex-direction: row;
-    margin-top: 9rem;
+    margin-top: 7.5rem;
   }
 
   .build-submit {
     border: 1px solid black;
     width: max-content;
-    padding: 1rem 3rem;
-    font-size: 2rem;
-    border-radius: 0.5rem;
+    padding: 0.833rem 2.5rem;
+    font-size: 1.667rem;
+    border-radius: 0.417rem;
     background-color: whitesmoke;
     cursor: pointer;
-    height: 7rem;
-    padding-top: 2rem;
-    margin-top: 1rem;
-    margin-bottom: 2rem;
+    height: 5.833rem;
+    padding-top: 1.667rem;
+    margin-top: 0.833rem;
+    margin-bottom: 1.667rem;
     margin-left: auto;
     margin-right: auto;
   }
@@ -24,36 +24,36 @@
     border: 1px solid white;
     color: white;
     background: #000;
-    margin-bottom: 2rem;
+    margin-bottom: 1.667rem;
   }
 
   .build-overlay .build-controls .fewer-units,
   .build-overlay .build-controls .more-units {
-    height: 40rem;
-    width: 20rem;
+    height: 33.333rem;
+    width: 16.667rem;
     background-color: #0005;
-    font-size: 35rem;
+    font-size: 29.167rem;
     color: #fffd;
     text-align: center;
     margin-left: auto;
     margin-right: auto;
-    padding-top: 2rem;
-    padding-left: 3rem;
+    padding-top: 1.667rem;
+    padding-left: 2.5rem;
   }
   .build-overlay .build-controls .more-units {
     padding-left: 0rem;
-    padding-right: 3rem;
+    padding-right: 2.5rem;
   }
 
   .build-overlay .build-controls .unit-details {
-    width: 60rem;
-    height: 40rem;
+    width: 50rem;
+    height: 33.333rem;
     background-image:
       linear-gradient(rgba(0, 0, 0, 0.527), rgba(0, 0, 0, 0.5)),
       url(/his/img/backgrounds/move/regular.jpg);
     background-size: cover;
     color: #fffd;
-    font-size: 34rem;
+    font-size: 28.333rem;
     text-align: center;
   }
 }

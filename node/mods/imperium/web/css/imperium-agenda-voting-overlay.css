@@ -15,7 +15,7 @@
   }
 
   .voting-hud .hud-body .status li.option.textchoice {
-    padding: 1rem;
+    padding: 0.833rem;
     list-style: none;
   }
   .voting-hud .hud-body .status li.option.textchoice:hover {

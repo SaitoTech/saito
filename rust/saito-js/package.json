@@ -1,6 +1,6 @@
 {
   "name": "saito-js",
-  "version": "0.2.210",
+  "version": "0.3.1",
   "description": "js wrappings around saito-core using wasm",
   "repository": {
     "type": "git",
@@ -16,34 +16,27 @@
   "devDependencies": {
     "@types/jest": "29.2.5",
     "@types/node-fetch": "2.6.13",
-    "@types/ws": "8.5.5",
+    "@types/ws": "8.18.1",
     "babel-loader": "8.2.3",
     "babel-polyfill": "6.26.0",
-    "copy-webpack-plugin": "11.0.0",
-    "crypto-browserify": "3.12.0",
-    "html-webpack-plugin": "5.5.0",
+    "crypto-browserify": "3.12.1",
     "ignore-loader": "0.1.2",
     "path-browserify": "1.0.1",
     "prettier": "2.8.8",
     "source-map-loader": "3.0.0",
     "stream-browserify": "3.0.0",
-    "ts-loader": "9.4.2",
+    "ts-loader": "9.6.2",
     "ts-node-dev": "2.0.0",
     "typescript": "5.4.5"
   },
   "dependencies": {
     "base-58": "0.0.1",
     "buffer": "6.0.3",
-    "cookie-parser": "1.4.7",
-    "cors": "2.8.5",
-    "debug": "4.3.4",
-    "express": "4.21.2",
-    "morgan": "1.10.1",
     "node-fetch": "2.7.0",
     "process": "0.11.10",
-    "saito-wasm": "0.2.11",
-    "url": "0.11.0",
+    "saito-wasm": "0.3.1",
+    "url": "0.11.4",
     "util": "0.12.5",
-    "ws": "8.18.3"
+    "ws": "8.21.3"
   }
 }

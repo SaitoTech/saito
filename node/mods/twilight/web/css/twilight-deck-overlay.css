@@ -12,13 +12,13 @@
     font-weight: bold;
     text-transform: lowercase;
     text-align: center;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-    font-size: 2.4rem;
+    margin-top: 0.833rem;
+    margin-bottom: 0.833rem;
+    font-size: 2rem;
     padding-right: 8px;
     background: #0009;
-    padding: 1rem;
-    letter-spacing: 0.2rem;
+    padding: 0.833rem;
+    letter-spacing: 0.167rem;
   }
 
   .deck-overlay .cardlist-container {
@@ -31,12 +31,12 @@
     flex-direction: row;
     background: unset;
     justify-content: center;
-    gap: 2rem;
+    gap: 1.667rem;
   }
 
   .custom_card_resize {
     scale: 0.95;
-    margin-top: -1rem;
+    margin-top: -0.833rem;
   }
 
   .deck-overlay .cardlist-container .card_added::before {
@@ -51,7 +51,7 @@
     right: 0;
     z-index: 10;
     margin-right: 6px;
-    border-top-right-radius: 1rem;
+    border-top-right-radius: 0.833rem;
   }
   .deck-overlay .cardlist-container .card_removed::before {
     content: '';
@@ -65,7 +65,7 @@
     right: 0;
     z-index: 10;
     margin-right: 6px;
-    border-top-right-radius: 1rem;
+    border-top-right-radius: 0.833rem;
   }
   .deck-overlay .cardlist-container .card_added::after {
     content: '+';
@@ -73,12 +73,12 @@
     top: 0;
     right: 0;
     z-index: 10000;
-    font-size: 4rem;
+    font-size: 3.333rem;
     position: absolute;
     font-weight: bold;
     margin-right: 6px;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 0.833rem;
+    padding-right: 0.833rem;
   }
   .deck-overlay .cardlist-container .card_removed::after {
     content: '-';
@@ -86,12 +86,12 @@
     top: 0;
     right: 0;
     z-index: 10000;
-    font-size: 4rem;
+    font-size: 3.333rem;
     position: absolute;
     font-weight: bold;
     margin-right: 6px;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 0.833rem;
+    padding-right: 0.833rem;
   }
 
   .deck-overlay .cardlist-container .card {
@@ -109,7 +109,7 @@
     width: 80%;
     margin-left: auto;
     margin-right: auto;
-    padding: 0.5rem;
+    padding: 0.417rem;
     color: white;
     font-weight: bold;
   }

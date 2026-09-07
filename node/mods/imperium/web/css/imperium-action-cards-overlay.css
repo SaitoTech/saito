@@ -5,15 +5,15 @@
     width: min-content;
     max-width: 1000px;
     max-height: 85vh;
-    padding: 4rem;
+    padding: 3.333rem;
     min-width: 80vw;
   }
 
   .action-cards-overlay-title {
     color: white;
     font-family: 'bank-gothic';
-    letter-spacing: 0.75rem;
-    font-size: 5rem;
+    letter-spacing: 0.625rem;
+    font-size: 4.167rem;
     font-weight: bold;
     margin-left: auto;
     margin-right: auto;
@@ -23,14 +23,14 @@
   .action-cards-overlay-content {
     display: flex;
     flex-direction: row;
-    gap: 2rem;
+    gap: 1.667rem;
     justify-content: space-evenly;
     width: 100%;
     max-width: 80vw;
     max-height: 85vh;
     height: min-content;
     width: 100%;
-    padding: 2rem;
+    padding: 1.667rem;
   }
 
   .action-cards_overlay_action-cards_card {

@@ -1,0 +1,52 @@
+#!/bin/bash
+
+if [ ! -t 0 ]; then
+  echo ""
+  echo "Non-interactive terminal detected; Saito was not started."
+  echo "Start it manually with: npm start"
+  exit 0
+fi
+
+if command -v pm2 >/dev/null 2>&1; then
+  echo ""
+  echo "PM2 is installed. How would you like to start Saito?"
+  echo "  1) PM2"
+  echo "  2) npm start"
+  echo "  3) Do not start"
+
+  while true; do
+    read -r -p "Select [1-3]: " start_choice
+    case "$start_choice" in
+      1)
+        exec pm2 start npm --name saito -- start
+        ;;
+      2)
+        exec npm start
+        ;;
+      3)
+        echo "Saito was not started."
+        exit 0
+        ;;
+      *)
+        echo "Please enter 1, 2, or 3."
+        ;;
+    esac
+  done
+else
+  echo ""
+  while true; do
+    read -r -p "PM2 is not installed. Start Saito using npm start? [Y/n] " start_choice
+    case "$start_choice" in
+      ""|y|Y|yes|YES|Yes)
+        exec npm start
+        ;;
+      n|N|no|NO|No)
+        echo "Saito was not started."
+        exit 0
+        ;;
+      *)
+        echo "Please answer yes or no."
+        ;;
+    esac
+  done
+fi

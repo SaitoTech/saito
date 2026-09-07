@@ -7,7 +7,7 @@
   display:inline;
   background: #000;
   color: red;
-  font-size:3.6rem;
+  font-size:3rem;
   font-family: monospace;
   margin: 0 auto;
   padding-left: 10px;
@@ -15,13 +15,13 @@
   padding-top: 5px;
   padding-bottom: 5px;
   text-align: center;
-  border-radius: 0.5rem;
+  border-radius: 0.417rem;
   z-index: 900000;
 }
 
 
 #game-clock-miliseconds{
-  font-size: 2.8rem;
+  font-size: 2.333rem;
 }
 
 .game-playerbox .game-clock {
@@ -33,12 +33,12 @@
   background: unset;
   height: 100%;
   display: block;
-  font-size: 3rem;
+  font-size: 2.5rem;
   filter: drop-shadow(2px 2px 1px black);
 }
 
 @media only screen and (max-width: 600px) {
   .player_clock .game-clock{
-    font-size: 2.4rem;
+    font-size: 2rem;
   }
 }

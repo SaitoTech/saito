@@ -35,11 +35,11 @@ module.exports = (app, mod, self) => {
       <div class='saito-purchase-deposit-header'>Select Amount</div>
       <div class='crypto-box'>
         <div class="amount-selection-logo">${logo}</div>
-        <input type="number" autocomplete="off" min="0" max="9999999999.99999999" step="0.00000001" class="saito-input buysaito-input-amount" id="input-amount" value="" required="" aria-label="Amount in ${data.ticker}" placeholder="${data.ticker}">
+        <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" autocomplete="off" spellcheck="false" class="saito-input buysaito-input-amount" id="input-amount" value="" required aria-label="Amount in ${data.ticker}" placeholder="${data.ticker}">
       </div>
       <div class='crypto-box'>
         <div class="amount-selection-logo">${saito_logo}</div>
-        <input type="text" class="saito-input expected_amount" aria-label="Approximate amount in SAITO" placeholder="SAITO (approx.)" readonly>
+        <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" autocomplete="off" spellcheck="false" class="saito-input buysaito-input-amount expected_amount" id="saito-input-amount" value="" required aria-label="Amount in SAITO" placeholder="SAITO">
       </div>
 
       <div class="saito-button-row auto-size">

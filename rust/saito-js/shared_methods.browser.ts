@@ -358,7 +358,6 @@ export class BrowserSharedMethods implements SharedMethods {
   }
 
   async loadWallet() {
-    console.info("[LOAD_TRACE] loading wallet (browser loadWallet not implemented)");
     throw new Error("Method not implemented.");
   }
 

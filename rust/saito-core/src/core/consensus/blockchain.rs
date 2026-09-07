@@ -159,7 +159,7 @@ pub struct Blockchain {
     pub validated_total_supply_block_hash: SaitoHash,
     pub validated_total_supply_block_id: BlockId,
 
-    pub last_issuance_written_on: BlockId,
+    pub last_utxoset_written_on: BlockId,
 
     pub prune_after_blocks: BlockId,
     pub block_confirmation_limit: BlockId,
@@ -209,7 +209,7 @@ impl Blockchain {
             validated_total_supply: 0,
             validated_total_supply_block_hash: [0; 32],
             validated_total_supply_block_id: 0,
-            last_issuance_written_on: 0,
+            last_utxoset_written_on: 0,
             prune_after_blocks,
             block_confirmation_limit,
             observers: Vec::new(),
@@ -683,17 +683,17 @@ impl Blockchain {
                     storage.write_block_to_disk(block).await;
                 }
 
-                let writing_interval = configs
+                let utxoset_writing_block_interval = configs
                     .get_blockchain_configs()
-                    .issuance_writing_block_interval;
+                    .utxoset_writing_block_interval;
 
-                if writing_interval > 0
-                    && block_id >= self.last_issuance_written_on + writing_interval
+                if utxoset_writing_block_interval > 0
+                    && block_id >= self.last_utxoset_written_on + utxoset_writing_block_interval
                     && in_longest_chain
                 {
-                    debug!("writing interval : {:?} last issuance written on : {:?}, writing for current block : {}", writing_interval, self.last_issuance_written_on, block_id);
-                    self.write_issuance_file(0, "", storage).await;
-                    self.last_issuance_written_on = block_id;
+                    debug!("utxoset writing interval : {:?} last utxoset written on : {:?}, writing for current block : {}", utxoset_writing_block_interval, self.last_utxoset_written_on, block_id);
+                    self.write_utxoset_file("", storage).await;
+                    self.last_utxoset_written_on = block_id;
                 }
             } else if block.block_type == BlockType::Header {
                 debug!(
@@ -862,7 +862,24 @@ impl Blockchain {
     ) {
         info!("utxo size : {:?}", self.utxoset.len());
 
-        let data = self.get_utxoset_data();
+        let mut data: HashMap<SaitoPublicKey, Currency> = Default::default();
+        self.utxoset.iter().for_each(|(key, value)| {
+            if !value {
+                return;
+            }
+            let slip = Slip::parse_slip_from_utxokey(key).unwrap();
+            if matches!(slip.slip_type, SlipType::Bound) {
+                return;
+            }
+            if slip.block_id
+                < self
+                    .get_latest_block_id()
+                    .saturating_sub(self.genesis_period)
+            {
+                return;
+            }
+            *data.entry(slip.public_key).or_default() += slip.amount;
+        });
 
         info!("{:?} entries in utxo to write to file", data.len());
         let latest_block = self.get_latest_block().unwrap();
@@ -930,6 +947,78 @@ impl Blockchain {
             "total written lines : {:?} sum : {}",
             total_written_lines, sum
         );
+    }
+
+    pub async fn write_utxoset_file(&self, utxoset_file_path: &str, storage: &mut Storage) {
+        info!("utxo size : {:?}", self.utxoset.len());
+
+        let Some(latest_block) = self.get_latest_block() else {
+            error!("cannot write utxoset file: no latest block");
+            return;
+        };
+
+        let genesis_cutoff = latest_block.id.saturating_sub(self.genesis_period);
+
+        let mut buffer: Vec<u8> = vec![];
+        let mut total_written_lines = 0;
+
+        for (key, spendable) in &self.utxoset {
+            if !spendable {
+                continue;
+            }
+
+            let slip = match Slip::parse_slip_from_utxokey(key) {
+                Ok(slip) => slip,
+                Err(e) => {
+                    error!("skipping invalid utxoset key: {:?}", e);
+                    continue;
+                }
+            };
+
+            if slip.block_id < genesis_cutoff {
+                continue;
+            }
+
+            total_written_lines += 1;
+            buffer.extend(format!("{}\n", key.to_hex()).as_bytes());
+        }
+
+        info!(
+            "{:?} spendable utxo keys to write to file",
+            total_written_lines
+        );
+
+        let utxoset_path = if utxoset_file_path.is_empty() {
+            format!(
+                "./data/utxoset/{}-{}-{}.utxoset",
+                latest_block.timestamp,
+                latest_block.hash.to_hex(),
+                latest_block.id
+            )
+        } else {
+            utxoset_file_path.to_string()
+        };
+
+        info!("opening file : {:?}", utxoset_path);
+
+        if let Err(e) = storage
+            .io_interface
+            .ensure_directory_exists("./data/utxoset")
+        {
+            error!("Failed to create utxoset directory: {:?}", e);
+            return;
+        }
+
+        if let Err(e) = storage
+            .io_interface
+            .write_value(utxoset_path.as_str(), buffer.as_slice())
+            .await
+        {
+            error!("Failed to write utxoset file: {:?}", e);
+            return;
+        }
+
+        info!("total written lines : {:?}", total_written_lines);
     }
 
     fn remove_block_transactions(&self, block_hash: &SaitoHash, mempool: &mut Mempool) {
@@ -2787,27 +2876,6 @@ impl Blockchain {
 
     pub async fn save(&self) {
         // TODO : what should be done here in rust code?
-    }
-    pub fn get_utxoset_data(&self) -> HashMap<SaitoPublicKey, Currency> {
-        let mut data: HashMap<SaitoPublicKey, Currency> = Default::default();
-        self.utxoset.iter().for_each(|(key, value)| {
-            if !value {
-                return;
-            }
-            let slip = Slip::parse_slip_from_utxokey(key).unwrap();
-            if matches!(slip.slip_type, SlipType::Bound) {
-                return;
-            }
-            if slip.block_id
-                < self
-                    .get_latest_block_id()
-                    .saturating_sub(self.genesis_period)
-            {
-                return;
-            }
-            *data.entry(slip.public_key).or_default() += slip.amount;
-        });
-        data
     }
     pub fn get_slips_for(&self, public_key: SaitoPublicKey) -> Vec<Slip> {
         let mut slips: Vec<Slip> = Default::default();

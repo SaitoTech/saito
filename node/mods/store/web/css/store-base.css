@@ -17,6 +17,14 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/*
+ * User-store page inset — owned here (shell), not on .saito-profile children.
+ * Top padding uses --saito-space-xl. Marketplace / admin keep 0.5rem above.
+ */
+.saito-container.store-container:has(.store.user-store) {
+  padding-top: var(--saito-space-xl);
+}
+
 /* Listing detail — wide product sheet (NFT picker sizes itself in store-nft-picker.css) */
 .saito-overlay:has(> .listing-detail) {
   width: min(92vw, 96rem);
@@ -26,6 +34,10 @@
 @media (max-width: 900px) {
   .saito-container.store-container {
     padding: 0.5rem var(--saito-space-lg) var(--saito-space-lg);
+  }
+
+  .saito-container.store-container:has(.store.user-store) {
+    padding-top: var(--saito-space-xl);
   }
 
   .saito-overlay:has(> .listing-detail) {
@@ -39,6 +51,10 @@
     padding: 0.5rem max(var(--saito-space-md), env(safe-area-inset-right, 0px))
       calc(var(--saito-space-xl) + env(safe-area-inset-bottom, 0px))
       max(var(--saito-space-md), env(safe-area-inset-left, 0px));
+  }
+
+  .saito-container.store-container:has(.store.user-store) {
+    padding-top: var(--saito-space-lg);
   }
 
   .saito-overlay:has(> .listing-detail) {

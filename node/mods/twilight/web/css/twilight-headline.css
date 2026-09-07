@@ -22,10 +22,10 @@
     color: white;
     margin-left: auto;
     margin-right: auto;
-    font-size: 3rem;
-    padding: 0.75rem;
-    padding: 2rem;
-    line-height: 3.4rem;
+    font-size: 2.5rem;
+    padding: 0.625rem;
+    padding: 1.667rem;
+    line-height: 2.833rem;
     text-align: center;
   }
 
@@ -35,10 +35,10 @@
     justify-content: space-around;
     width: min(750px, 90vw);
     min-height: 65vh;
-    padding: 1rem 0;
-    border-radius: 0.5rem;
-    column-gap: 2rem;
-    padding: 2rem;
+    padding: 0.833rem 0;
+    border-radius: 0.417rem;
+    column-gap: 1.667rem;
+    padding: 1.667rem;
     align-items: center;
     justify-content: space-evenly;
     justify-items: center;
@@ -48,10 +48,10 @@
 
   .headline-overlay .cards .card {
     display: block;
-    height: 45rem;
-    width: calc(45rem * 0.7211);
+    height: 37.5rem;
+    width: calc(37.5rem * 0.7211);
     justify-content: space-around;
-    padding: 2rem;
+    padding: 1.667rem;
     z-index: 2;
     background-image: url(/twilight/img/Base.svg);
     background-size: contain;
@@ -61,9 +61,9 @@
   .headline-overlay .help {
     color: white;
     background: #0009;
-    padding: 1.5rem;
+    padding: 1.25rem;
     text-align: center;
-    font-size: 2rem;
+    font-size: 1.667rem;
     display: block;
     width: 100%;
   }

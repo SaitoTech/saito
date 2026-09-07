@@ -44,11 +44,6 @@ class GameObserverLoader {
       const hudZ = parseInt(window.getComputedStyle(hud).zIndex) || 0;
       existing.style.zIndex = hudZ + 1;
     }
-
-    console.log(
-      '[OBS_TRACE] Loader.render() called; overlay in DOM:',
-      !!this.container.querySelector('#observer-sync-overlay')
-    );
   }
 
   /**
@@ -62,7 +57,6 @@ class GameObserverLoader {
     const overlay = this.container.querySelector('#observer-sync-overlay');
     if (overlay) {
       overlay.style.display = 'none';
-      console.log('[OBS_TRACE] Loader.hide() called');
     }
   }
 
@@ -77,7 +71,6 @@ class GameObserverLoader {
     const overlay = this.container.querySelector('#observer-sync-overlay');
     if (overlay) {
       overlay.remove();
-      console.log('[OBS_TRACE] Loader.remove() called; overlay removed from DOM');
     }
     if (this.container.querySelector('#observer-sync-overlay')) {
       console.warn('[Loader] existence check after remove: element still in DOM');

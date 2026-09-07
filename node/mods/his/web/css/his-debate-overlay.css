@@ -15,51 +15,51 @@
     width: 100%;
     background-color: #0005;
     z-index: 10;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     top: 0px;
     left: 0px;
     float: left;
     text-align: center;
     color: white;
-    font-size: 2.4rem;
-    padding: 1rem;
-    line-height: 3.6rem;
+    font-size: 2rem;
+    padding: 0.833rem;
+    line-height: 3rem;
   }
 
   .theological-debate-overlay .controls ul {
     margin-left: auto;
     margin-right: auto;
-    width: 35rem;
+    width: 29.167rem;
     background-color: whitesmoke;
     height: auto;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     clear: both;
-    margin-top: 1rem;
-    line-height: 3rem;
+    margin-top: 0.833rem;
+    line-height: 2.5rem;
   }
 
   .theological-debate-overlay .status {
     margin-left: auto;
     margin-right: auto;
-    width: 35rem;
+    width: 29.167rem;
     background-color: whitesmoke;
     height: auto;
-    border-radius: 1rem;
+    border-radius: 0.833rem;
     clear: both;
-    margin-top: 20rem;
-    line-height: 3rem;
+    margin-top: 16.667rem;
+    line-height: 2.5rem;
   }
 
   .theological-debate-overlay .status .status-header,
   .theological-debate-overlay .status .status-message {
     box-shadow: none;
     margin-bottom: 0px;
-    padding: 1rem;
+    padding: 0.833rem;
   }
 
   .theological-debate-overlay .status .status-text-menu {
     background-color: whitesmoke;
-    border-radius: 0.5rem;
+    border-radius: 0.417rem;
     width: 100%;
   }
 

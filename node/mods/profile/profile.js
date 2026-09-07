@@ -469,8 +469,6 @@ class Profile extends ModTemplate {
     }
 
     if (this.app.BROWSER && this.app.keychain.isWatched(from)) {
-      console.info(`PROFILE UPDATE for ${this.app.keychain.returnUsername(from)}: `, incoming);
-
       const returned_key = this.app.keychain.returnKey(from);
       const previous_index = Object.assign({}, returned_key?.profile || {});
 

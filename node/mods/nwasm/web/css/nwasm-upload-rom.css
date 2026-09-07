@@ -6,7 +6,7 @@
 }
 
 .nwasm-upload-rom {
-  min-width: min(36rem, 92vw);
+  min-width: min(30rem, 92vw);
 }
 
 .nwasm-upload-rom .state {

@@ -196,6 +196,12 @@
   object-position: bottom center;
 }
 
+/* Soften bright illustrations in side steps so the current step leads. */
+.prepare-store .step.upcoming .figure img,
+.prepare-store .step.complete .figure img {
+  filter: brightness(0.88);
+}
+
 .prepare-store .step .copy {
   margin: 0;
   max-width: 18rem;

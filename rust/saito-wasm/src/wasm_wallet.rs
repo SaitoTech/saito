@@ -409,7 +409,6 @@ impl WasmWallet {
     }
 
     pub async fn load(&mut self) {
-        info!("[LOAD_TRACE] wasm_wallet.load");
         let mut wallet = self.wallet.write().await;
         Wallet::load(&mut wallet, &(WasmIoHandler {})).await;
     }

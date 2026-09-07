@@ -132,8 +132,6 @@ decryptMessage(publickey, encrypted_msg)
 
 addGroup(group_id = "", members = [], name = "", watched = false, tag = "", bid = "", bsh = "", lc = 1)
 
-decryptString(publickey, encrypted_string)
-
 encryptMessage(publickey, msg)
 
 findByPublicKey(publickey)

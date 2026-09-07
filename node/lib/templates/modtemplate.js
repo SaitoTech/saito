@@ -168,18 +168,24 @@ class ModTemplate {
       }
     }
 
-    //
-    // shortlinks
-    //
-    if (this.shortlinks_enabled) {
-      let template_sql = `${__dirname}/sql/shortlinks1.sql`;
-      if (fs.existsSync(template_sql)) {
-        try {
-          let data = fs.readFileSync(template_sql, 'utf8');
-          await app.storage.executeDatabase(data, dbname);
-        } catch (err) {
-          console.error('Error installing shortlinks table:', err);
-        }
+    await this.installShortlinkDatabase(app);
+  }
+
+  async installShortlinkDatabase(app) {
+    if (app.BROWSER === 1 || !this.shortlinks_enabled) {
+      return;
+    }
+
+    const fs = app.storage.returnFileSystem();
+    const template_sql = `${__dirname}/sql/shortlinks1.sql`;
+    const dbname = this.dbname || encodeURI(this.returnSlug());
+
+    if (fs?.existsSync(template_sql)) {
+      try {
+        const data = fs.readFileSync(template_sql, 'utf8');
+        await app.storage.executeDatabase(data, dbname);
+      } catch (err) {
+        console.error(`Error installing ${this.returnName()} shortlinks table:`, err);
       }
     }
   }

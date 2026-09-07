@@ -138,24 +138,11 @@ impl Wallet {
     }
 
     pub async fn load(wallet: &mut Wallet, io: &(dyn InterfaceIO + Send + Sync)) {
-        info!("[LOAD_TRACE] loading wallet");
         let result = io.load_wallet(wallet).await;
         if result.is_err() {
             error!("loading wallet failed. saving new wallet");
             io.save_wallet(wallet).await.unwrap();
         } else {
-            info!(
-                "[LOAD_TRACE] loaded wallet slips={} unspent={} balance={}",
-                wallet.slips.len(),
-                wallet.unspent_slips.len(),
-                wallet.get_available_balance()
-            );
-            info!(
-                "[LOAD_TRACE] wallet initialization complete slips={} unspent={} balance={}",
-                wallet.slips.len(),
-                wallet.unspent_slips.len(),
-                wallet.get_available_balance()
-            );
             io.send_interface_event(InterfaceEvent::WalletUpdate());
         }
     }
@@ -2210,20 +2197,9 @@ impl Wallet {
         snapshot: BalanceSnapshot,
         network: Option<&Network>,
     ) {
-        info!(
-            "[SNAPSHOT_TRACE] entering update_from_balance_snapshot existing_slips={} unspent={} balance={}",
-            self.slips.len(),
-            self.unspent_slips.len(),
-            self.get_available_balance()
-        );
         // need to reset balance and slips to avoid failing integrity from forks
         self.unspent_slips.clear();
         self.slips.clear();
-
-        info!(
-            "[SNAPSHOT_TRACE] snapshot contains {} slips",
-            snapshot.slips.len()
-        );
 
         snapshot.slips.iter().for_each(|slip| {
             assert_ne!(slip.utxoset_key, [0; UTXO_KEY_LENGTH]);
@@ -2240,25 +2216,8 @@ impl Wallet {
             let result = self.slips.insert(slip.utxoset_key, wallet_slip);
             if result.is_none() {
                 self.unspent_slips.insert(slip.utxoset_key);
-                info!(
-                    "[SNAPSHOT_TRACE] inserting utxo={} amount={}",
-                    slip.utxoset_key.to_hex(),
-                    slip.amount
-                );
-                info!("slip : {:?} with value : {:?} added to wallet from snapshot for address : {:?}. slip : {}",
-                    slip.utxoset_key.to_hex(),
-                    slip.amount,
-                    slip.public_key.to_base58(),
-                    slip);
             }
         });
-
-        info!(
-            "[SNAPSHOT_TRACE] completed update_from_balance_snapshot slips={} unspent={} balance={}",
-            self.slips.len(),
-            self.unspent_slips.len(),
-            self.get_available_balance()
-        );
 
         self.log_wallet_pending_balance_debug(
             "update_from_balance_snapshot after slip reload (pending_txs unchanged by this fn)",

@@ -1,0 +1,56 @@
+.wallet-history {
+  width: min(90rem, 95vw);
+  max-width: 100%;
+  max-height: 90vh;
+  padding: var(--saito-space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--saito-space-lg);
+}
+
+.wallet-history .transaction-history {
+  min-height: 30rem;
+  overflow: auto;
+}
+
+.transaction-history-table.saitox-table {
+  min-width: min(80rem, 95vw);
+  grid-template-columns:
+    repeat(3, minmax(max-content, 2fr))
+    repeat(2, minmax(max-content, 3fr));
+}
+
+.wallet-history .transaction-history-table div.saito-only {
+  display: none;
+}
+
+.wallet-history .transaction-history-table[data-crypto='SAITO'] div.saito-only {
+  display: flex;
+}
+
+.wallet-history .crypto-timestamp {
+  white-space: nowrap;
+}
+
+.wallet-history .crypto-type-italic {
+  font-style: italic;
+}
+
+.wallet-history .history-tx-link {
+  display: flex;
+  align-items: baseline;
+}
+
+.wallet-history .history-tx-id {
+  display: block;
+  min-width: 25rem;
+  padding: 1.5rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wallet-history .actions {
+  display: flex;
+  justify-content: flex-end;
+}

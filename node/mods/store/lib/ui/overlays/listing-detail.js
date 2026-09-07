@@ -416,6 +416,8 @@ class ListingDetailOverlay {
         const isRental = isStoreRentalListing(summary, listingMeta);
         const qtyInput = root.querySelector('#listing-qty');
         const quantity = isRental ? 1 : qtyInput ? Number(qtyInput.value) || 1 : 1;
+        const noteEl = root.querySelector('#listing-note');
+        const note = noteEl ? String(noteEl.value || '').trim() : '';
 
         if (buyBtn.disabled) {
           return;
@@ -423,7 +425,7 @@ class ListingDetailOverlay {
         buyBtn.disabled = true;
 
         try {
-          await this.mod.main?.purchase_flow?.startPurchase(summary, quantity);
+          await this.mod.main?.purchase_flow?.startPurchase(summary, quantity, { note });
         } finally {
           buyBtn.disabled = false;
         }

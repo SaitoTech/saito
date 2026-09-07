@@ -4,7 +4,7 @@
     min-height: 540px;
     max-height: 90vh;
     max-width: 90vw;
-    border-radius: 2rem;
+    border-radius: 1.667rem;
     background-image: url('/paths/img/CombatTables.png');
     background-size: cover;
   }
@@ -14,15 +14,15 @@
   .reserves-overlay .units {
     display: flex;
     flex-wrap: wrap;
-    grid-gap: 1rem;
-    column-gap: 1rem;
+    grid-gap: 0.833rem;
+    column-gap: 0.833rem;
+    padding-top: 16.667rem;
+    padding: 4.167rem;
     padding-top: 20rem;
-    padding: 5rem;
-    padding-top: 24rem;
   }
   .reserves-overlay .units .army-tile {
-    height: 10rem;
-    width: 10rem;
+    height: 8.333rem;
+    width: 8.333rem;
     position: relative;
   }
   .reserves-overlay.allies {

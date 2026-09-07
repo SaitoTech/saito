@@ -26,7 +26,7 @@ class AddGameOverlay {
         id: 'free',
         title: 'Free Games',
         description: 'Browse and install free peer-to-peer games.',
-        image: '/saito/img/doom.jpg',
+        image: '/arcade/img/free_games.png',
         view: 'free'
       },
       {
